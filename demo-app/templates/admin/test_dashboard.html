@@ -19,11 +19,11 @@
             <h1 class="page-title">Dashboard</h1>
             <p class="page-subtitle">Application overview</p>
         </div>
-        <a href="/admin/toggle-template" class="btn btn-secondary btn-sm">← Default template</a>
+        <a href="{{ admin_prefix }}/toggle-template" class="btn btn-secondary btn-sm">← Default template</a>
     </div>
     <div class="stats-grid">
         {% for resource in resources %}
-        <a href="/admin/{{ resource.key }}/list" class="stat-card">
+        <a href="{{ admin_prefix }}/{{ resource.key }}/list" class="stat-card">
             <div class="stat-label">{{ resource.title }}</div>
             <div class="stat-value">{{ resource_counts[resource.key] | default(value="0") }}</div>
             <div class="stat-meta">View list →</div>
@@ -77,15 +77,15 @@
                         </td>
                         <td>
                             <div class="table-actions">
-                                <a href="/admin/{{ resource.key }}/list" class="btn btn-secondary btn-sm">Liste</a>
+                                <a href="{{ admin_prefix }}/{{ resource.key }}/list" class="btn btn-secondary btn-sm">Liste</a>
                                 {% if current_user %}
                                 {% if current_user.is_superuser %}
-                                    <a href="/admin/{{ resource.key }}/create" class="btn btn-primary btn-sm">Create</a>
+                                    <a href="{{ admin_prefix }}/{{ resource.key }}/create" class="btn btn-primary btn-sm">Create</a>
                                 {% else %}
                                     {% for groupe in current_user.groupes %}
                                     {% for perm in groupe.permissions %}
                                         {% if perm.resource_key == resource.key and perm.can_create %}
-                                        <a href="/admin/{{ resource.key }}/create" class="btn btn-primary btn-sm">Create</a>
+                                        <a href="{{ admin_prefix }}/{{ resource.key }}/create" class="btn btn-primary btn-sm">Create</a>
                                         {% endif %}
                                     {% endfor %}
                                     {% endfor %}

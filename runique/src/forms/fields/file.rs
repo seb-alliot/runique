@@ -43,8 +43,11 @@ fn cleanup_files(files: &[String]) {
     }
 }
 
-/// Checks if the file is a valid image
+/// Checks if the file is a valid image using magic bytes.
+/// Covers JPEG, PNG, GIF, WebP, and ISO BMFF containers (AVIF, HEIC, HEIF).
 fn is_valid_path(path: &str) -> bool {
+    use std::io::Read;
+
     let p = Path::new(path);
     if !p.exists() {
         return false;
@@ -52,10 +55,34 @@ fn is_valid_path(path: &str) -> bool {
     if path.to_lowercase().ends_with(".svg") {
         return false;
     }
-    match ImageReader::open(p) {
-        Ok(reader) => reader.with_guessed_format().is_ok(),
-        Err(_) => false,
+    let mut buf = [0u8; 12];
+    let n = std::fs::File::open(p)
+        .and_then(|mut f| f.read(&mut buf))
+        .unwrap_or(0);
+    if n < 4 {
+        return false;
     }
+    // JPEG
+    if buf[..3] == [0xFF, 0xD8, 0xFF] {
+        return true;
+    }
+    // PNG
+    if buf[..4] == [0x89, 0x50, 0x4E, 0x47] {
+        return true;
+    }
+    // GIF
+    if buf[..4] == [0x47, 0x49, 0x46, 0x38] {
+        return true;
+    }
+    // WebP (RIFF....WEBP)
+    if n >= 12 && &buf[..4] == b"RIFF" && &buf[8..12] == b"WEBP" {
+        return true;
+    }
+    // AVIF / HEIC / HEIF — ISO Base Media File Format: ftyp box at offset 4
+    if n >= 8 && &buf[4..8] == b"ftyp" {
+        return true;
+    }
+    false
 }
 
 /// Parses the field value into a list of file paths
@@ -208,6 +235,7 @@ pub struct FileField {
     pub max_files: Option<usize>,
     pub max_width: Option<u32>,
     pub max_height: Option<u32>,
+    pub prev_value: Option<String>,
 }
 
 impl CommonFieldConfig for FileField {
@@ -238,6 +266,7 @@ impl FileField {
             max_files: None,
             max_width: None,
             max_height: None,
+            prev_value: None,
         }
     }
 
@@ -329,6 +358,14 @@ impl FormField for FileField {
 
     fn set_max_size_bounded(&mut self, size: FileSize) -> Result<(), String> {
         self.apply_max_size_bounded(size)
+    }
+
+    fn set_value(&mut self, value: &str) {
+        let current = self.base.value.trim().to_string();
+        if !current.is_empty() && current != value.trim() {
+            self.prev_value = Some(current);
+        }
+        self.base.value = value.to_string();
     }
 
     fn validate(&mut self) -> bool {
@@ -456,8 +493,15 @@ impl FormField for FileField {
             return Ok(());
         }
 
-        let dest_dir = upload_fn(&self.base.name);
-        let dest_dir_path = Path::new(&dest_dir);
+        // Relative upload dir declared on the field, e.g. "plats/"
+        let upload_rel = upload_fn(&self.base.name);
+        let upload_rel_clean = upload_rel.trim_matches('/');
+
+        // Physical destination: {MEDIA_ROOT}/{upload_rel}/
+        let media_root = std::env::var("MEDIA_ROOT").unwrap_or_else(|_| "media".to_string());
+        let media_root_clean = media_root.trim_end_matches('/');
+        let dest_dir_abs = format!("{}/{}", media_root_clean, upload_rel_clean);
+        let dest_dir_abs_path = Path::new(&dest_dir_abs);
 
         let files: Vec<String> = val
             .split(',')
@@ -470,33 +514,53 @@ impl FormField for FileField {
         for file_path in &files {
             let src = Path::new(file_path.as_str());
 
-            // Already in the right directory — nothing to move
-            if src.parent() == Some(dest_dir_path) {
-                new_paths.push(file_path.clone());
+            // Already in the right physical directory — store as relative path
+            if src.parent() == Some(dest_dir_abs_path) {
+                let filename = src
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or(file_path.as_str());
+                let rel = format!("{}/{}", upload_rel_clean, filename);
+                new_paths.push(rel);
                 continue;
             }
 
-            // Not a freshly uploaded file (e.g. stored DB value pointing elsewhere)
+            // Value is already a relative stored path (no physical file at that path) — keep as-is
             if !src.exists() {
                 new_paths.push(file_path.clone());
                 continue;
             }
 
-            std::fs::create_dir_all(dest_dir_path)
-                .map_err(|e| format!("upload dir '{}': {}", dest_dir, e))?;
+            std::fs::create_dir_all(dest_dir_abs_path)
+                .map_err(|e| format!("upload dir '{}': {}", dest_dir_abs, e))?;
 
             let filename = src
                 .file_name()
                 .and_then(|n| n.to_str())
                 .unwrap_or(file_path.as_str());
-            let dest = dest_dir_path.join(filename);
+            let dest_abs = dest_dir_abs_path.join(filename);
 
-            std::fs::rename(src, &dest).map_err(|e| format!("move '{}': {}", dest.display(), e))?;
+            std::fs::rename(src, &dest_abs)
+                .map_err(|e| format!("move '{}': {}", dest_abs.display(), e))?;
 
-            new_paths.push(dest.to_string_lossy().to_string());
+            // Store relative path: "{upload_rel}/{filename}" with forward slashes
+            let rel = format!("{}/{}", upload_rel_clean, filename);
+            new_paths.push(rel);
         }
 
         self.base.value = new_paths.join(",");
+
+        // Delete old file(s) if a new upload replaced them
+        if let Some(prev) = &self.prev_value {
+            for old_rel in prev.split(',').map(|s| s.trim()).filter(|s| !s.is_empty()) {
+                if !new_paths.iter().any(|p| p == old_rel) {
+                    let old_abs =
+                        format!("{}/{}", media_root_clean, old_rel.trim_start_matches('/'));
+                    let _ = std::fs::remove_file(&old_abs);
+                }
+            }
+        }
+
         Ok(())
     }
 

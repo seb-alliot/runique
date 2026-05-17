@@ -50,9 +50,13 @@ let app = RuniqueApp::builder(config)
 
 | Section | Description |
 | --- | --- |
-| [CSRF](/docs/en/middleware/csrf) | CSRF protection |
+| [CSRF](/docs/en/middleware/csrf) | CSRF protection and exempt paths |
 | [CSP & headers](/docs/en/middleware/csp) | Content Security Policy |
 | [Hosts & cache](/docs/en/middleware/hosts-cache) | Host validation |
+| [CORS](/docs/en/middleware/cors) | Cross-Origin Resource Sharing |
+| [Open Redirect](/docs/en/middleware/open-redirect) | Open redirect protection |
+| [Permissions-Policy](/docs/en/middleware/permissions-policy) | Browser API permissions |
+| [Trusted Proxies](/docs/en/middleware/trusted-proxies) | Real client IP extraction |
 
 ## Back to summary
 

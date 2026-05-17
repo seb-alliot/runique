@@ -25,8 +25,10 @@ use crate::utils::{
 };
 use crate::{
     admin::{
-        PrototypeAdminState, config::AdminConfig, middleware::admin_required,
-        trad::insert_admin_messages,
+        PrototypeAdminState,
+        config::AdminConfig,
+        middleware::admin_required,
+        trad::{inject_admin_prefix, insert_admin_messages},
     },
     flash_now,
 };
@@ -84,7 +86,8 @@ pub fn build_admin_router(admin_staging: AdminStaging, _db: crate::utils::aliase
     let protected_router = urlpatterns! {
         &format!("{prefix}/") => get(admin_dashboard), name = "admin_dashboard",
         &prefix => get(admin_dashboard_redirect), name = "admin_dashboard_redirect",
-        &format!("{prefix}/logout") => get(admin_logout), name = "admin_logout",
+        &format!("{prefix}/logout") => post(admin_logout), name = "admin_logout",
+        &format!("{prefix}/toggle-template") => get(admin_toggle_template), name = "admin_toggle_template",
         &format!("{prefix}/history") => get(admin_history), name = "admin_history",
         &format!("{prefix}/history/timeline") => get(admin_history_timeline), name = "admin_history_timeline",
         &format!("{prefix}/history/batch/{{batch_id}}") => get(admin_history_batch), name = "admin_history_batch",
@@ -97,6 +100,14 @@ pub fn build_admin_router(admin_staging: AdminStaging, _db: crate::utils::aliase
     } else {
         Router::new()
     };
+
+    // Extra routes registered via .extra_routes() — protected by admin middleware
+    let generated_router = admin_staging
+        .extra_routes
+        .into_iter()
+        .fold(generated_router, |router, (path, method_router)| {
+            router.route(&format!("{}{}", prefix, path), method_router)
+        });
 
     // Assembly: public + (protected + generated with middleware)
     let mut router = public_router
@@ -148,8 +159,8 @@ pub fn build_admin_router(admin_staging: AdminStaging, _db: crate::utils::aliase
 /// ```
 pub const ADMIN_TEMPLATE_SESSION_KEY: &str = "admin_template_override";
 
-async fn admin_dashboard_redirect() -> Response {
-    Redirect::permanent("/admin/").into_response()
+async fn admin_dashboard_redirect(Extension(admin): Extension<Arc<AdminState>>) -> Response {
+    Redirect::permanent(&format!("{}/", admin.config.prefix.trim_end_matches('/'))).into_response()
 }
 
 async fn admin_dashboard(
@@ -224,6 +235,7 @@ async fn admin_dashboard(
 
     insert_admin_messages(&mut req.context, "dashboard");
     insert_admin_messages(&mut req.context, "base");
+    inject_admin_prefix(&mut req.context, &admin.config.prefix);
     req = req
         .insert("current_user", &current_user)
         .insert("site_title", &admin.config.site_title)
@@ -254,6 +266,7 @@ async fn admin_login_get(
     }
 
     insert_admin_messages(&mut req.context, "login");
+    inject_admin_prefix(&mut req.context, &admin.config.prefix);
 
     req = req
         .insert("site_title", &admin.config.site_title)
@@ -292,6 +305,7 @@ async fn admin_login_post(
         .unwrap_or(false);
     if !csrf_valid {
         insert_admin_messages(&mut req.context, "login");
+        inject_admin_prefix(&mut req.context, &admin.config.prefix);
         req = req
             .insert("lang", current_lang().code())
             .insert("site_title", &admin.config.site_title)
@@ -308,6 +322,7 @@ async fn admin_login_post(
         if guard.is_locked(&key) {
             let secs = guard.remaining_lockout_secs(&key).unwrap_or(0);
             insert_admin_messages(&mut req.context, "login");
+            inject_admin_prefix(&mut req.context, &admin.config.prefix);
             req = req
                 .insert("lang", current_lang().code())
                 .insert("site_title", &admin.config.site_title)
@@ -359,6 +374,7 @@ async fn admin_login_post(
         {
             insert_admin_messages(&mut req.context, "login");
             insert_admin_messages(&mut req.context, "base");
+            inject_admin_prefix(&mut req.context, &admin.config.prefix);
             req = req
                 .insert("lang", current_lang().code())
                 .insert("site_title", &admin.config.site_title)
@@ -378,6 +394,7 @@ async fn admin_login_post(
 
         insert_admin_messages(&mut req.context, "login");
         insert_admin_messages(&mut req.context, "base");
+        inject_admin_prefix(&mut req.context, &admin.config.prefix);
         req = req
             .insert("lang", current_lang().code())
             .insert("site_title", &admin.config.site_title)
@@ -412,7 +429,7 @@ async fn admin_history(
         .and_then(|p| p.parse::<u64>().ok())
         .unwrap_or(1)
         .max(1);
-    const PER_PAGE: u64 = 50;
+    let per_page = admin.config.page_size;
 
     let filter_resource: Option<String> = params.get("resource").filter(|v| !v.is_empty()).cloned();
     let filter_action: Option<String> = params.get("action").filter(|v| !v.is_empty()).cloned();
@@ -429,7 +446,7 @@ async fn admin_history(
         query = query.filter(history::Column::Username.eq(user.clone()));
     }
 
-    let paginator = query.paginate(req.engine.db.as_ref(), PER_PAGE);
+    let paginator = query.paginate(req.engine.db.as_ref(), per_page);
     let total_pages = paginator.num_pages().await.unwrap_or(1);
     let raw_entries: Vec<history::Model> = paginator.fetch_page(page - 1).await.unwrap_or_default();
 
@@ -486,6 +503,7 @@ async fn admin_history(
     };
 
     insert_admin_messages(&mut req.context, "base");
+    inject_admin_prefix(&mut req.context, &admin.config.prefix);
     req = req
         .insert("entries", &entries)
         .insert("page", page)
@@ -576,6 +594,7 @@ async fn admin_history_diff(
     };
 
     insert_admin_messages(&mut req.context, "base");
+    inject_admin_prefix(&mut req.context, &admin.config.prefix);
     req = req
         .insert("entry", &entry)
         .insert("diff_fields", &diff_fields)
@@ -614,7 +633,7 @@ async fn admin_history_timeline(
         .and_then(|p| p.parse::<u64>().ok())
         .unwrap_or(1)
         .max(1);
-    const PER_PAGE: u64 = 50;
+    let per_page = admin.config.page_size;
 
     let filter_user_id: Option<crate::utils::Pk> =
         params.get("user_id").and_then(|v| v.parse().ok());
@@ -634,7 +653,7 @@ async fn admin_history_timeline(
         query = query.filter(history::Column::ObjectPk.eq(oid.clone()));
     }
 
-    let paginator = query.paginate(req.engine.db.as_ref(), PER_PAGE);
+    let paginator = query.paginate(req.engine.db.as_ref(), per_page);
     let total_pages = paginator.num_pages().await.unwrap_or(1);
     let total = paginator.num_items().await.unwrap_or(0);
     let entries: Vec<history::Model> = paginator.fetch_page(page - 1).await.unwrap_or_default();
@@ -661,6 +680,7 @@ async fn admin_history_timeline(
     };
 
     insert_admin_messages(&mut req.context, "base");
+    inject_admin_prefix(&mut req.context, &admin.config.prefix);
     req = req
         .insert("entries", &entries)
         .insert("page", page)
@@ -816,6 +836,7 @@ async fn admin_history_batch(
     };
 
     insert_admin_messages(&mut req.context, "base");
+    inject_admin_prefix(&mut req.context, &admin.config.prefix);
     req = req
         .insert("batch_id", &batch_id)
         .insert("batch_entries", &batch_entries)
@@ -832,6 +853,29 @@ async fn admin_history_batch(
         .insert("lang", current_lang().code());
 
     req.render("admin/history_batch")
+}
+
+async fn admin_toggle_template(
+    Extension(admin): Extension<Arc<AdminState>>,
+    req: Request,
+) -> Response {
+    let current: Option<String> = req
+        .session
+        .get::<String>(ADMIN_TEMPLATE_SESSION_KEY)
+        .await
+        .unwrap_or(None);
+    if current.is_some() {
+        let _ = req
+            .session
+            .remove::<String>(ADMIN_TEMPLATE_SESSION_KEY)
+            .await;
+    } else {
+        let _ = req
+            .session
+            .insert(ADMIN_TEMPLATE_SESSION_KEY, "admin/dashboard")
+            .await;
+    }
+    Redirect::to(&format!("{}/", admin.config.prefix)).into_response()
 }
 
 async fn admin_logout(Extension(admin): Extension<Arc<AdminState>>, req: Request) -> Response {

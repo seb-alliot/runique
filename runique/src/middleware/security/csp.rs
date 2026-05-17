@@ -256,10 +256,10 @@ pub async fn security_headers_middleware(
         HeaderValue::from_static("strict-origin-when-cross-origin"),
     );
 
-    headers.insert(
-        "permissions-policy",
-        HeaderValue::from_static("geolocation=(), microphone=(), camera=()"),
-    );
+    let pp = engine.permissions_policy.to_header_value();
+    if let Ok(v) = HeaderValue::from_str(&pp) {
+        headers.insert("permissions-policy", v);
+    }
 
     headers.insert(
         "cross-origin-embedder-policy",

@@ -743,8 +743,8 @@ fn test_alter_file_add_index_in_up() {
     );
     assert!(content.contains("idx_posts_title"));
     assert!(
-        content.contains("unique_key"),
-        "Index unique doit contenir unique_key"
+        content.contains(".unique()"),
+        "Index unique doit contenir .unique()"
     );
 }
 

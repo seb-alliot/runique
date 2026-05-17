@@ -1,3 +1,13 @@
+-- ============================================================
+-- VPS MIGRATION — PostgreSQL enum type renames
+-- Run ONCE after deploying 2.1.2, before runique migrate up
+-- ============================================================
+ALTER TYPE "CourBlockType" RENAME TO courblocktype;
+ALTER TYPE "CourTheme" RENAME TO courtheme;
+ALTER TYPE "Difficulte" RENAME TO difficulte;
+ALTER TYPE "PageType" RENAME TO pagetype;
+-- ============================================================
+
 COPY public.demo_category (id, title, sort_order, back_link_url, back_link_label) FROM stdin;
 1	Getting Started	1	\N	\N
 2	Authentication	2	\N	\N

@@ -21,7 +21,7 @@ Thumbs.db
 # Fichiers temporaires Claude Code
 tmpclaude-*
 /.claude/
-
+/campanile/
 # Fichier perso
 commande.txt
 AUDIT.md
@@ -35,3 +35,4 @@ server.md
 architecture_quick.md
 architecture_current.txt
 CLAUDE.md
+difference-django-runique.md

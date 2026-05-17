@@ -4,14 +4,14 @@ use crate::migration::utils::{
     types::{Changes, DbKind, ParsedColumn, ParsedSchema},
 };
 
+/// Generates the migration file for a CREATE TABLE — no FK constraints (they go in the relations file).
+/// Also used for snapshots (via `DbKind::Other`) to enable FK diffing on subsequent runs.
 pub fn generate_create_file(schema: &ParsedSchema, db_kind: &DbKind) -> String {
     let cols = build_create_table_cols(schema, db_kind);
-    let fk_stmts = build_fk_create_stmts(schema);
     let idx_stmts = build_index_create_stmts(schema);
     let trigger_stmts = build_updated_at_trigger_stmts(schema, db_kind);
     let enum_stmts = build_enum_type_stmts(schema, db_kind);
     let enum_drops = build_enum_type_drops(schema, db_kind);
-    let fk_drops = build_fk_drop_stmts(schema);
     let idx_drops = build_index_drop_stmts(schema);
     let trigger_drops = build_updated_at_trigger_drops(schema, db_kind);
 
@@ -26,17 +26,15 @@ pub fn generate_create_file(schema: &ParsedSchema, db_kind: &DbKind) -> String {
     ));
     up.push_str("                    .if_not_exists()\n");
     up.push_str(&cols);
-    up.push_str("                    .to_owned()\n"); //
+    up.push_str("                    .to_owned()\n");
     up.push_str("            )\n");
     up.push_str("            .await?;\n\n");
-    up.push_str(&fk_stmts);
     up.push_str(&idx_stmts);
     up.push_str(&trigger_stmts);
     up.push_str("        Ok(())\n");
 
     let mut down = String::new();
     down.push_str(&trigger_drops);
-    down.push_str(&fk_drops);
     down.push_str(&idx_drops);
     down.push_str("        manager\n");
     down.push_str("            .drop_table(Table::drop()\n");
@@ -60,6 +58,104 @@ pub fn generate_create_file(schema: &ParsedSchema, db_kind: &DbKind) -> String {
         }}\n\n\
         async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {{\n\
     {down}\
+        }}\n\
+    }}\n",
+        up = up,
+        down = down,
+    )
+}
+
+/// Generates the snapshot file (includes FK stmts so diffs detect FK additions/removals).
+pub fn generate_snapshot_file(schema: &ParsedSchema) -> String {
+    let cols = build_create_table_cols(schema, &DbKind::Other);
+    let fk_stmts = build_fk_create_stmts(schema);
+    let idx_stmts = build_index_create_stmts(schema);
+    let fk_drops = build_fk_drop_stmts(schema);
+    let idx_drops = build_index_drop_stmts(schema);
+
+    let mut up = String::new();
+    up.push_str("        manager\n");
+    up.push_str("            .create_table(\n");
+    up.push_str("                Table::create()\n");
+    up.push_str(&format!(
+        "                    .table(Alias::new(\"{}\"))\n",
+        schema.table_name
+    ));
+    up.push_str("                    .if_not_exists()\n");
+    up.push_str(&cols);
+    up.push_str("                    .to_owned()\n");
+    up.push_str("            )\n");
+    up.push_str("            .await?;\n\n");
+    up.push_str(&fk_stmts);
+    up.push_str(&idx_stmts);
+    up.push_str("        Ok(())\n");
+
+    let mut down = String::new();
+    down.push_str(&fk_drops);
+    down.push_str(&idx_drops);
+    down.push_str("        manager\n");
+    down.push_str("            .drop_table(Table::drop()\n");
+    down.push_str(&format!(
+        "                .table(Alias::new(\"{}\"))\n",
+        schema.table_name
+    ));
+    down.push_str("                .to_owned())\n");
+    down.push_str("            .await?;\n");
+    down.push_str("        Ok(())\n");
+
+    format!(
+        "use sea_orm_migration::prelude::*;\n\n\
+    #[derive(DeriveMigrationName)]\n\
+    pub struct Migration;\n\n\
+    #[async_trait::async_trait]\n\
+    impl MigrationTrait for Migration {{\n\
+        async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {{\n\
+    {up}\
+        }}\n\n\
+        async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {{\n\
+    {down}\
+        }}\n\
+    }}\n",
+        up = up,
+        down = down,
+    )
+}
+
+/// Generates a single migration that adds all FK constraints for a batch of new tables.
+/// Placed last in lib.rs so all tables exist before FK constraints are applied.
+pub fn generate_relations_file(schemas: &[&ParsedSchema]) -> String {
+    let mut up = String::new();
+    let mut down = String::new();
+
+    for schema in schemas {
+        up.push_str(&build_fk_create_stmts(schema));
+    }
+    for schema in schemas.iter().rev() {
+        down.push_str(&build_fk_drop_stmts(schema));
+    }
+
+    let up_param = if !up.trim().is_empty() {
+        "manager"
+    } else {
+        "_manager"
+    };
+    let down_param = if !down.trim().is_empty() {
+        "manager"
+    } else {
+        "_manager"
+    };
+
+    format!(
+        "use sea_orm_migration::prelude::*;\n\n\
+    #[derive(DeriveMigrationName)]\n\
+    pub struct Migration;\n\n\
+    #[async_trait::async_trait]\n\
+    impl MigrationTrait for Migration {{\n\
+        async fn up(&self, {up_param}: &SchemaManager) -> Result<(), DbErr> {{\n\
+    {up}        Ok(())\n\
+        }}\n\n\
+        async fn down(&self, {down_param}: &SchemaManager) -> Result<(), DbErr> {{\n\
+    {down}        Ok(())\n\
         }}\n\
     }}\n",
         up = up,
@@ -682,7 +778,7 @@ fn render_create_index_stmt(
     }
 
     let uniq_line = if unique {
-        "                    .unique_key()\n"
+        "                    .unique()\n"
     } else {
         ""
     };

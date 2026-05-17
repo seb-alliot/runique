@@ -92,6 +92,17 @@ impl RuniqueAppBuilder {
         self
     }
 
+    /// Shortcut: registers a custom external database (MongoDB, Redis, etc.).
+    ///
+    /// ```rust,ignore
+    /// let mongo = mongodb::Client::with_options(opts)?.into();
+    /// RuniqueApp::builder(config).with_custom_db(mongo)
+    /// ```
+    pub fn with_custom_db<T: std::any::Any + Send + Sync + 'static>(mut self, db: T) -> Self {
+        self.core = self.core.with_extra_db(db);
+        self
+    }
+
     /// Configures Runique logs by category.
     ///
     /// Each category is disabled by default. Calling the corresponding

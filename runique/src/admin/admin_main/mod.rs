@@ -23,7 +23,7 @@ use crate::{
         AdminRegistry,
         config::AdminConfig,
         helper::resource_entry::{ResourceEntry, SortDir},
-        trad::insert_admin_messages,
+        trad::{inject_admin_prefix, insert_admin_messages},
     },
     utils::admin_context::list::{PAGE, SORT_BY, SORT_DIR},
 };
@@ -52,6 +52,8 @@ pub(crate) fn format_datetime(value: &mut serde_json::Value) {
         serde_json::Value::String(s) => {
             if let Ok(dt) = NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S%.f")
                 .or_else(|_| NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S"))
+                .or_else(|_| NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S%.f"))
+                .or_else(|_| NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S"))
             {
                 *s = dt.format("%d/%m/%Y %H:%M").to_string();
             }
@@ -150,6 +152,14 @@ pub async fn admin_get(
             }
             handle_create_get(&mut req, entry, &state).await
         }
+        "bulk" => {
+            if !check_write_access(&current_user, &resource_key) {
+                return Ok(
+                    permission_denied(&req.notices, &state.config.prefix, &resource_key).await,
+                );
+            }
+            handle_bulk::handle_bulk_edit_get(&mut req, entry, &state, &params).await
+        }
         _ => Err(Box::new(AppError::new(ErrorContext::not_found(
             "Unknown action",
         )))),
@@ -166,7 +176,6 @@ pub async fn admin_post(
     mut req: Request,
 ) -> AppResult<Response> {
     let body = req.prisme.data.clone();
-    tracing::info!("form data at validation {:?}", body);
     let entry = state
         .registry
         .get(&resource_key)
@@ -272,6 +281,7 @@ pub(super) fn inject_context(
         .insert(ctx_common::SITE_TITLE, &state.config.site_title);
     req.context
         .insert(ctx_common::SITE_URL, &state.config.site_url);
+    inject_admin_prefix(&mut req.context, &state.config.prefix);
     req.context.insert(ctx_common::RESOURCE_KEY, entry.meta.key);
     req.context
         .insert(ctx_common::CURRENT_RESOURCE, entry.meta.key);

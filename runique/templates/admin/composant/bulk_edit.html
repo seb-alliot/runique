@@ -1,8 +1,12 @@
 {% extends "admin_base" %}
+{% block extra_js %}
+  {{ super() }}
+  <script {% csp %} src="{{ "js/admin/admin-bulk-edit.js" | runique_static }}" defer></script>
+{% endblock %}
 {% block title %}{% if admin_edit_title %}{{ admin_edit_title }}{% endif %} — {{ resource.title }}{% endblock %}
 {% block breadcrumb %}
   <span class="breadcrumb-sep">/</span>
-  <a href="/admin/{{ resource.key }}/list">{{ resource.title }}</a>
+  <a href="{{ admin_prefix }}/{{ resource.key }}/list">{{ resource.title }}</a>
   <span class="breadcrumb-sep">/</span>
   <span>Modification groupée ({{ bulk_count }})</span>
 {% endblock %}
@@ -27,30 +31,47 @@
   {% endif %}
 
   {% if current_user and can_edit %}
-  <div class="card card-form" data-admin-auto-init>
-    <div class="card-header">
-      <h2>Appliquer à {{ bulk_count }} élément(s) sélectionné(s)</h2>
-      <p class="text-muted" style="font-size:0.85rem;margin-top:0.25rem">Les champs laissés vides ne seront pas modifiés.</p>
-    </div>
-    <div class="card-body">
-      <form method="POST" action="/admin/{{ resource.key }}/bulk">
-        {% csrf %}
-        <input type="hidden" name="bulk_action" value="update-submit">
-        <input type="hidden" name="ids" value="{{ bulk_ids }}">
-        <div class="form-grid">
+  <form method="POST" action="{{ admin_prefix }}/{{ resource.key }}/bulk" id="bulk-edit-form">
+    {% csrf %}
+    <input type="hidden" name="bulk_action" value="update-submit">
+    <input type="hidden" name="ids" value="{{ bulk_ids }}">
+
+    {# Section 1 — champs non-booléens (groupe, ressources, …) #}
+    <div class="card card-form bulk-section">
+      <div class="card-header">
+        <h2>Appliquer à {{ bulk_count }} élément(s) sélectionné(s)</h2>
+        <p class="text-muted bulk-section-hint">Les champs laissés vides ne seront pas modifiés.</p>
+      </div>
+      <div class="card-body">
+        <div id="bulk-fields-main" class="form-grid">
           {% if form_fields is defined and form_fields.html is defined and form_fields.html %}
             {{ form_fields.html }}
           {% else %}
             <p>{% if admin_edit_no_fields %}{{ admin_edit_no_fields }}{% endif %}</p>
           {% endif %}
         </div>
-        <div class="form-actions">
-          <a href="/admin/{{ resource.key }}/list" class="btn btn-secondary">{% if admin_edit_btn_cancel %}{{ admin_edit_btn_cancel }}{% endif %}</a>
-          <button type="submit" class="btn btn-primary">Appliquer à {{ bulk_count }} élément(s)</button>
+        <div class="bulk-toggle-row">
+          <button type="button" class="btn btn-sm btn-secondary" id="bulk-toggle-fields">Tout cocher les ressources</button>
         </div>
-      </form>
+      </div>
     </div>
-  </div>
+
+    {# Section 2 — permissions booléennes (remplie par JS si présentes) #}
+    <div class="card card-form bulk-section" id="bulk-perms-section" hidden>
+      <div class="card-header bulk-section-header">
+        <h2>Permissions</h2>
+        <button type="button" class="btn btn-sm btn-secondary" id="bulk-toggle-perms">Tout cocher les permissions</button>
+      </div>
+      <div class="card-body">
+        <div id="bulk-perm-fields" class="bulk-perm-grid"></div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <a href="{{ admin_prefix }}/{{ resource.key }}/list" class="btn btn-secondary">{% if admin_edit_btn_cancel %}{{ admin_edit_btn_cancel }}{% endif %}</a>
+      <button type="submit" class="btn btn-primary">Appliquer à {{ bulk_count }} élément(s)</button>
+    </div>
+  </form>
   {% else %}
   <div class="card">
     <div class="card-body">

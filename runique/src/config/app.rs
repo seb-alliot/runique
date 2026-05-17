@@ -19,6 +19,9 @@ pub struct RuniqueConfig {
     pub log: RuniqueLog,
     pub base_dir: String,
     pub debug: bool,
+    /// IANA timezone name — read from `TZ` env var. Default: `"UTC"`.
+    /// Parse with `chrono-tz`: `config.timezone.parse::<chrono_tz::Tz>()`.
+    pub timezone: String,
 }
 
 impl RuniqueConfig {
@@ -34,6 +37,7 @@ impl RuniqueConfig {
             static_files: StaticConfig::from_env(),
             base_dir: std::env::var("BASE_DIR").unwrap_or_else(|_| ".".to_string()),
             debug: matches!(std::env::var("DEBUG").as_deref(), Ok("true" | "1")),
+            timezone: std::env::var("TZ").unwrap_or_else(|_| "UTC".to_string()),
             log: RuniqueLog::default(),
         }
     }

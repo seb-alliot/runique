@@ -19,7 +19,7 @@
 
         <nav class="sidebar-nav">
 
-            <a href="/admin" class="nav-item{% if current_page %} {% if current_page == 'dashboard' %}active{% endif %} {% endif %}">
+            <a href="{{ admin_prefix }}" class="nav-item{% if current_page %} {% if current_page == 'dashboard' %}active{% endif %} {% endif %}">
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
                     <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
@@ -32,7 +32,7 @@
                 <div class="nav-section-label">{% if admin_list_breadcrumb_admin %}{{ admin_list_breadcrumb_admin }}{% endif %}</div>
 
                 {% for resource in resources %}
-                <a href="/admin/{{ resource.key }}/list"
+                <a href="{{ admin_prefix }}/{{ resource.key }}/list"
                     class="nav-item {% if current_resource == resource.key %}active{% endif %}">
                         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -47,7 +47,7 @@
 
             {% if current_user and (current_user.is_staff or current_user.is_superuser) %}
                 <div class="nav-divider"></div>
-                <a href="/admin/history" class="nav-item{% if current_page | default(value='') == 'history' %} active{% endif %}">
+                <a href="{{ admin_prefix }}/history" class="nav-item{% if current_page | default(value='') == 'history' %} active{% endif %}">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"/>
                         <polyline points="12 6 12 12 16 14"/>
@@ -85,14 +85,14 @@
         </button>
 
         <div class="topbar-breadcrumb">
-            <a href="/admin">{% if admin_base_breadcrumb %}{{ admin_base_breadcrumb }}{% endif %}</a>
+            <a href="{{ admin_prefix }}">{% if admin_base_breadcrumb %}{{ admin_base_breadcrumb }}{% endif %}</a>
             {% block breadcrumb %}{% endblock %}
         </div>
 
         <a href="{{ site_url | default(value='/') }}" class="btn btn-ghost btn-sm">
             {% if admin_base_back_to_site %}{{ admin_base_back_to_site }}{% else %}← Site{% endif %}
         </a>
-        <form method="POST" action="/admin/logout" class="logout-form">
+        <form method="POST" action="{{ admin_prefix }}/logout" class="logout-form">
             {% csrf %}
             <button type="submit" class="topbar-user logout-button" title="{% if admin_base_logout_title %}{{ admin_base_logout_title }}{% endif %}">
                 <div class="user-avatar">
@@ -106,5 +106,6 @@
 {% endblock %}
 
 {% block extra_js %}
+    <script {% csp %} src="{{ "js/admin/admin-modal.js" | runique_static }}" defer></script>
     <script {% csp %} src="{{ "js/admin/admin.js" | runique_static }}" defer></script>
 {% endblock %}

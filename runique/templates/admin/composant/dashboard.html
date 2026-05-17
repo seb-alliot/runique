@@ -11,12 +11,12 @@
         <p class="page-subtitle">{% if admin_dashboard_subtitle %}{{ admin_dashboard_subtitle }}{% endif %}</p>
     </div>
     {% if admin_has_session_override %}
-    <a href="/admin/toggle-template" class="btn btn-secondary btn-sm">← Template configuré</a>
+    <a href="{{ admin_prefix }}/toggle-template" class="btn btn-secondary btn-sm">← Template configuré</a>
     {% endif %}
 </div>
 <div class="stats-grid">
     {% for resource in resources %}
-    <a href="/admin/{{ resource.key }}/list" class="stat-card">
+    <a href="{{ admin_prefix }}/{{ resource.key }}/list" class="stat-card">
         <div class="stat-label">{{ resource.title }}</div>
         <div class="stat-value">{{ resource_counts[resource.key] | default(value="—") }}</div>
     </a>
@@ -66,7 +66,7 @@
                 </td>
                 <td>
                     <div class="table-actions">
-                        <a href="/admin/{{ resource.key }}/list" class="btn btn-secondary btn-sm">
+                        <a href="{{ admin_prefix }}/{{ resource.key }}/list" class="btn btn-secondary btn-sm">
                             {{ admin_dashboard_btn_list }}
                         </a>
                         
@@ -86,7 +86,7 @@
                         {% endif %}
                         
                         {% if can_create_resource %}
-                        <a href="/admin/{{ resource.key }}/create" class="btn btn-primary btn-sm">
+                        <a href="{{ admin_prefix }}/{{ resource.key }}/create" class="btn btn-primary btn-sm">
                             {{ admin_dashboard_btn_create }}
                         </a>
                         {% endif %}

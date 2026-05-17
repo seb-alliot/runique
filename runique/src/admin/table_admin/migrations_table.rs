@@ -359,6 +359,7 @@ impl sea_orm_migration::MigrationTrait for AdminTableMigration {
         manager
             .create_table(create_eihwaz_users_groupes_table())
             .await?;
+        manager.create_table(create_eihwaz_sessions_table()).await?;
         manager.create_table(create_eihwaz_history_table()).await?;
         Ok(())
     }
@@ -366,6 +367,14 @@ impl sea_orm_migration::MigrationTrait for AdminTableMigration {
     async fn down(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), sea_orm::DbErr> {
         manager
             .drop_table(Table::drop().table(Alias::new("eihwaz_history")).to_owned())
+            .await?;
+        manager
+            .drop_table(
+                Table::drop()
+                    .table(Alias::new("eihwaz_sessions"))
+                    .if_exists()
+                    .to_owned(),
+            )
             .await?;
         manager
             .drop_table(

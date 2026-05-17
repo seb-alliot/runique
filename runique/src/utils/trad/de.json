@@ -9,6 +9,7 @@
     "too_long": "Zu lang (max. {})",
     "email_invalid": "Ungültiges E-Mail-Adressformat",
     "url_invalid": "Bitte geben Sie eine gültige URL ein",
+    "phone_invalid": "Ungültige Telefonnummer (Ziffern, +, Leerzeichen, Bindestriche, 7-15 Ziffern)",
     "hash_error": "Hash-Fehler: {}",
     "password_empty": "Das Passwort darf nicht leer sein",
     "filter_invalid_value": "Der Filter static/media hat einen ungültigen Wert ({}) statt eines Dateipfads erhalten.",
@@ -476,7 +477,7 @@
     "password_mismatch": "Die Passwörter stimmen nicht überein.",
     "check_inbox": "Falls diese Adresse mit einem Konto verknüpft ist, erhalten Sie eine Reset-E-Mail.",
     "email_subject": "Passwort zurücksetzen",
-    "email_body": "<p>Hallo {0},</p><p>Klicken Sie auf den folgenden Link, um Ihr Passwort zurückzusetzen (gültig für 1 Stunde):</p><p><a href=\"{1}\">{2}</a></p>"
+    "email_body": "<p>Hallo {},</p><p>Klicken Sie auf den folgenden Link, um Ihr Passwort zurückzusetzen (gültig für 1 Stunde):</p><p><a href=\"{}\">{}</a></p>"
   },
   "permission": {
     "col.id": "ID",

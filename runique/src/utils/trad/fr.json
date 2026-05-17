@@ -9,6 +9,7 @@
     "too_long": "Trop long (max {})",
     "email_invalid": "Format d'adresse email invalide",
     "url_invalid": "Veuillez entrer une URL valide",
+    "phone_invalid": "Numéro de téléphone invalide (chiffres, +, espaces, tirets autorisés, 7-15 chiffres)",
     "hash_error": "Erreur de hachage : {}",
     "password_empty": "Le mot de passe ne peut pas être vide",
     "filter_invalid_value": "Le filtre static/media a reçu une valeur invalide ({}) au lieu d'un chemin de fichier.",
@@ -442,7 +443,7 @@
     "password_mismatch": "Les mots de passe ne correspondent pas.",
     "check_inbox": "Si cette adresse est associée à un compte, vous recevrez un email de réinitialisation.",
     "email_subject": "Réinitialisation de votre mot de passe",
-    "email_body": "<p>Bonjour {0},</p><p>Cliquez sur le lien suivant pour réinitialiser votre mot de passe (valide 1 heure) :</p><p><a href=\"{1}\">{2}</a></p>"
+    "email_body": "<p>Bonjour {},</p><p>Cliquez sur le lien suivant pour réinitialiser votre mot de passe (valide 1 heure) :</p><p><a href=\"{}\">{}</a></p>"
   },
   "makemigrations": {
     "scanning": "Scan des entités dans '{}'...",

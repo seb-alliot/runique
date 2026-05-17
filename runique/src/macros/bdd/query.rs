@@ -148,6 +148,21 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
         self
     }
 
+    pub fn order_by_random(mut self) -> Self {
+        use sea_orm::Order;
+        use sea_query::Expr;
+        self.query = self.query.order_by(Expr::cust("RANDOM()"), Order::Asc);
+        self
+    }
+
+    pub fn order_by_expr<T>(mut self, expr: T, order: sea_orm::Order) -> Self
+    where
+        T: sea_orm::IntoSimpleExpr,
+    {
+        self.query = self.query.order_by(expr, order);
+        self
+    }
+
     pub fn into_select(self) -> Select<E> {
         self.query
     }
@@ -172,6 +187,21 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
 
     pub async fn first(self, db: &DatabaseConnection) -> Result<Option<E::Model>, DbErr> {
         self.query.one(db).await
+    }
+
+    pub async fn one(self, db: &DatabaseConnection) -> Result<Option<E::Model>, DbErr>
+    where
+        E::Model: Sync,
+    {
+        use sea_orm::PaginatorTrait;
+        let mut results = self.query.paginate(db, 2).fetch_page(0).await?;
+        match results.len() {
+            0 => Ok(None),
+            1 => Ok(Some(results.remove(0))),
+            _ => Err(DbErr::Custom(
+                "search!.one(): multiple rows returned".to_string(),
+            )),
+        }
     }
 
     pub fn join(mut self, rel: sea_orm::RelationDef) -> Self {

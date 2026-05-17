@@ -9,5 +9,6 @@ pub use builder::RuniqueAppBuilder;
 pub use error_build::{BuildError, BuildErrorKind, CheckError, CheckReport};
 pub use runique_app::RuniqueApp;
 pub use staging::{
-    AdminStaging, CoreStaging, CspConfig, HostConfig, MiddlewareStaging, StaticStaging,
+    AdminStaging, CoreStaging, CorsConfig, CspConfig, HostConfig, MiddlewareStaging,
+    PermissionsPolicyConfig, StaticStaging, TrustedProxiesConfig,
 };

@@ -16,6 +16,7 @@ Ces variables sont injectées sur **toutes les routes** par l'extracteur `Reques
 | `static_runique` | `StaticConfig` | Config des assets statiques Runique (voir ci-dessous) |
 | `messages` | `Vec<FlashMessage>` | Messages flash de la session courante |
 | `current_user` | `CurrentUser` *(optionnel)* | Données de l'utilisateur connecté, absent si non authentifié |
+| `admin_prefix` | `String` | **Préfixe URL du panel admin** — ex : `"/admin"` ou `"/admin-campanile"`. Toujours utiliser cette variable pour tous les liens admin — ne jamais coder `/admin/` en dur. |
 
 ### Champs de `static_runique`
 
@@ -190,7 +191,7 @@ csrf_token, site_title, lang
     <div class="alert alert-danger">{{ error }}</div>
     {% endif %}
 
-    <form method="POST" action="/admin/login">
+    <form method="POST" action="{{ admin_prefix }}/login">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <div>
             <label>{{ admin_login_label_username }}</label>
@@ -273,11 +274,11 @@ resources, resource_counts, current_page
             <td><code>{{ res.key }}</code></td>
             <td>{{ res.permissions.list | join(sep=", ") }}</td>
             <td>
-                <a href="/admin/{{ res.key }}/list">
+                <a href="{{ admin_prefix }}/{{ res.key }}/list">
                     {{ admin_dashboard_btn_list }}
                     {% if resource_counts[res.key] %}({{ resource_counts[res.key] }}){% endif %}
                 </a>
-                <a href="/admin/{{ res.key }}/create">{{ admin_dashboard_btn_create }}</a>
+                <a href="{{ admin_prefix }}/{{ res.key }}/create">{{ admin_dashboard_btn_create }}</a>
             </td>
         </tr>
         {% endfor %}
@@ -377,7 +378,7 @@ sort_by, sort_dir, sort_dir_toggle, search
     <h1>{{ resource.title }}
         <small class="text-muted fs-6">{{ total }} {{ admin_list_entries_count }}</small>
     </h1>
-    <a href="/admin/{{ resource_key }}/create" class="btn btn-primary">
+    <a href="{{ admin_prefix }}/{{ resource_key }}/create" class="btn btn-primary">
         {{ admin_list_btn_create }}
     </a>
 </div>
@@ -396,9 +397,9 @@ sort_by, sort_dir, sort_dir_toggle, search
         <tr>
             <td>{{ entry.id }}</td>
             <td>
-                <a href="/admin/{{ resource_key }}/{{ entry.id }}/detail">{{ admin_list_btn_detail }}</a>
-                <a href="/admin/{{ resource_key }}/{{ entry.id }}/edit">{{ admin_list_btn_edit }}</a>
-                <a href="/admin/{{ resource_key }}/{{ entry.id }}/delete">{{ admin_list_btn_delete }}</a>
+                <a href="{{ admin_prefix }}/{{ resource_key }}/{{ entry.id }}/detail">{{ admin_list_btn_detail }}</a>
+                <a href="{{ admin_prefix }}/{{ resource_key }}/{{ entry.id }}/edit">{{ admin_list_btn_edit }}</a>
+                <a href="{{ admin_prefix }}/{{ resource_key }}/{{ entry.id }}/delete">{{ admin_list_btn_delete }}</a>
             </td>
         </tr>
         {% endfor %}
@@ -407,7 +408,7 @@ sort_by, sort_dir, sort_dir_toggle, search
 {% else %}
 <p>{{ admin_list_empty_title }}</p>
 <p>{{ admin_list_empty_desc }}</p>
-<a href="/admin/{{ resource_key }}/create">{{ admin_list_btn_create_first }}</a>
+<a href="{{ admin_prefix }}/{{ resource_key }}/create">{{ admin_list_btn_create_first }}</a>
 {% endif %}
 {% endblock %}
 ```
@@ -442,7 +443,7 @@ form_fields, is_edit
 <h1>{{ admin_create_title }} — {{ resource.title }}</h1>
 <p class="text-muted">{{ admin_create_card_info }}</p>
 
-<form method="POST" action="/admin/{{ resource_key }}/create">
+<form method="POST" action="{{ admin_prefix }}/{{ resource_key }}/create">
     {# csrf.js gère le token automatiquement pour les formulaires admin #}
     {% if form_fields.html %}
         {{ form_fields.html | safe }}
@@ -450,7 +451,7 @@ form_fields, is_edit
         <p>{{ admin_create_no_fields }}</p>
     {% endif %}
     <button type="submit" class="btn btn-primary">{{ admin_create_btn_submit }}</button>
-    <a href="/admin/{{ resource_key }}/list" class="btn btn-secondary">{{ admin_create_btn_cancel }}</a>
+    <a href="{{ admin_prefix }}/{{ resource_key }}/list" class="btn btn-secondary">{{ admin_create_btn_cancel }}</a>
 </form>
 {% endblock %}
 ```
@@ -486,14 +487,14 @@ form_fields, is_edit, object_id
 <h1>{{ admin_edit_title }} — {{ resource.title }} <small>#{{ object_id }}</small></h1>
 <p class="text-muted">{{ admin_edit_card_info }}</p>
 
-<form method="POST" action="/admin/{{ resource_key }}/{{ object_id }}/edit">
+<form method="POST" action="{{ admin_prefix }}/{{ resource_key }}/{{ object_id }}/edit">
     {% if form_fields.html %}
         {{ form_fields.html | safe }}
     {% else %}
         <p>{{ admin_edit_no_fields }}</p>
     {% endif %}
     <button type="submit" class="btn btn-primary">{{ admin_edit_btn_submit }}</button>
-    <a href="/admin/{{ resource_key }}/list" class="btn btn-secondary">{{ admin_edit_btn_cancel }}</a>
+    <a href="{{ admin_prefix }}/{{ resource_key }}/list" class="btn btn-secondary">{{ admin_edit_btn_cancel }}</a>
 </form>
 {% endblock %}
 ```
@@ -538,9 +539,9 @@ object_id
 </dl>
 {% endif %}
 
-<a href="/admin/{{ resource_key }}/list" class="btn btn-secondary">{{ admin_detail_btn_list }}</a>
-<a href="/admin/{{ resource_key }}/{{ object_id }}/edit" class="btn btn-primary">{{ admin_detail_btn_edit }}</a>
-<a href="/admin/{{ resource_key }}/{{ object_id }}/delete" class="btn btn-danger">{{ admin_detail_btn_delete }}</a>
+<a href="{{ admin_prefix }}/{{ resource_key }}/list" class="btn btn-secondary">{{ admin_detail_btn_list }}</a>
+<a href="{{ admin_prefix }}/{{ resource_key }}/{{ object_id }}/edit" class="btn btn-primary">{{ admin_detail_btn_edit }}</a>
+<a href="{{ admin_prefix }}/{{ resource_key }}/{{ object_id }}/delete" class="btn btn-danger">{{ admin_detail_btn_delete }}</a>
 {% endblock %}
 ```
 
@@ -583,9 +584,9 @@ object_id
     <p>{{ admin_delete_warning_irreversible }}</p>
 </div>
 
-<form method="POST" action="/admin/{{ resource_key }}/{{ object_id }}/delete">
+<form method="POST" action="{{ admin_prefix }}/{{ resource_key }}/{{ object_id }}/delete">
     <button type="submit" class="btn btn-danger">{{ admin_delete_btn_confirm }}</button>
-    <a href="/admin/{{ resource_key }}/list" class="btn btn-secondary">{{ admin_delete_btn_cancel }}</a>
+    <a href="{{ admin_prefix }}/{{ resource_key }}/list" class="btn btn-secondary">{{ admin_delete_btn_cancel }}</a>
 </form>
 {% endblock %}
 ```

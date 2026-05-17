@@ -1361,6 +1361,19 @@ footer strong {
     gap: 1.25rem;
 }
 
+.pagination-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin: 2rem 0 1rem;
+}
+
+.pagination-info {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
 .back-link {
     margin-top: 2rem;
     text-align: center;

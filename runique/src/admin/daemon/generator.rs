@@ -122,7 +122,16 @@ fn write_admin_register(out: &mut String, parsed: &ParsedAdmin) -> Result<(), St
             || !cfg.list_exclude.is_empty()
             || !cfg.list_filter.is_empty();
         if has_display {
-            let chain = build_display_chain(&cfg.list_display, &cfg.list_exclude, &cfg.list_filter);
+            let display_3: Vec<(
+                String,
+                String,
+                Option<crate::admin::daemon::parser::FkDisplay>,
+            )> = cfg
+                .list_display
+                .iter()
+                .map(|(c, l)| (c.clone(), l.clone(), None))
+                .collect();
+            let chain = build_display_chain(&display_3, &cfg.list_exclude, &cfg.list_filter);
             let _ = writeln!(out, "    registry.configure(\"{}\", {});", cfg.key, chain);
         }
         if !cfg.group_action.is_empty() {
@@ -142,7 +151,7 @@ fn write_admin_register(out: &mut String, parsed: &ParsedAdmin) -> Result<(), St
     // routes() function — returns the Axum Router of the admin prototype
     let _ = writeln!(
         out,
-        "/// Builds the Axum Router of the admin prototype for the given prefix."
+        "/// Builds the admin CRUD routes for the given prefix."
     );
     let _ = writeln!(
         out,
@@ -150,18 +159,23 @@ fn write_admin_register(out: &mut String, parsed: &ParsedAdmin) -> Result<(), St
     );
     let _ = writeln!(
         out,
-        "pub fn routes(prefix: &str) -> runique::axum::Router {{"
+        "/// The prefix is automatically propagated to `AdminConfig` — no need to call `.prefix()` separately."
+    );
+    let _ = writeln!(
+        out,
+        "pub fn routes(prefix: &str) -> runique::admin::AdminRoutes {{"
     );
     let _ = writeln!(out, "    let p = prefix.trim_end_matches('/');");
-    let _ = writeln!(out, "    runique::axum::Router::new()");
+    let _ = writeln!(out, "    let router = runique::axum::Router::new()");
     let _ = writeln!(
         out,
         "        .route(&format!(\"{{}}/{{{{resource}}}}/{{{{action}}}}\", p), get(admin_get).post(admin_post))"
     );
     let _ = writeln!(
         out,
-        "        .route(&format!(\"{{}}/{{{{resource}}}}/{{{{id}}}}/{{{{action}}}}\", p), get(admin_get_id).post(admin_post_id))"
+        "        .route(&format!(\"{{}}/{{{{resource}}}}/{{{{id}}}}/{{{{action}}}}\", p), get(admin_get_id).post(admin_post_id));"
     );
+    let _ = writeln!(out, "    runique::admin::AdminRoutes::new(p, router)");
     let _ = writeln!(out, "}}");
     let _ = writeln!(out);
     let _ = writeln!(
@@ -243,8 +257,13 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         let _ = writeln!(out, "    let meta = meta.extra(\"{}\", \"{}\");", k, v);
     }
 
-    // FormBuilder closure
-    write_form_builder_closure(out, "form_builder", &form_path, &wrapper);
+    // FormBuilder closure — injecte les ChoiceFields FK si déclarés dans list_display
+    let fk_cols_for_form: Vec<_> = r
+        .list_display
+        .iter()
+        .filter(|(_, _, fk)| fk.is_some())
+        .collect();
+    write_form_builder_closure_fk(out, "form_builder", &form_path, &wrapper, &fk_cols_for_form);
 
     // ListFn closure
     let _ = writeln!(
@@ -301,14 +320,80 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     let _ = writeln!(out, "            }}");
     let _ = writeln!(
         out,
-        "            let rows = query.offset(params.offset).limit(params.limit).all(&*db).await?;"
+        "            let db_rows = query.offset(params.offset).limit(params.limit).all(&*db).await?;"
     );
-    let _ = writeln!(out, "            Ok(rows.into_iter()");
+    let has_fk = r.list_display.iter().any(|(_, _, fk)| fk.is_some());
+    let rows_binding = if has_fk { "let mut rows" } else { "let rows" };
+    let _ = writeln!(
+        out,
+        "            {rows_binding}: Vec<serde_json::Value> = db_rows.into_iter()",
+        rows_binding = rows_binding
+    );
     let _ = writeln!(
         out,
         "                .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))"
     );
-    let _ = writeln!(out, "                .collect())");
+    let _ = writeln!(out, "                .collect();");
+    // FK resolution blocks — fonctionne pour i32, i64 et UUID (clé String unifiée)
+    let fk_cols: Vec<_> = r
+        .list_display
+        .iter()
+        .filter(|(_, _, fk)| fk.is_some())
+        .collect();
+    for (col, _, fk_opt) in &fk_cols {
+        let fk = fk_opt.as_ref().unwrap();
+        let safe_var = col.replace('.', "_");
+        let _ = writeln!(out, "            {{");
+        let _ = writeln!(out, "                use sea_orm::ConnectionTrait;");
+        // Extrait l'ID comme String que ce soit un entier ou un UUID
+        let _ = writeln!(
+            out,
+            "                let fk_ids: Vec<String> = rows.iter().filter_map(|r| r.get(\"{col}\").and_then(|v| v.as_i64().map(|n| n.to_string()).or_else(|| v.as_str().map(str::to_string)))).collect::<std::collections::HashSet<String>>().into_iter().collect();",
+            col = col
+        );
+        let _ = writeln!(out, "                if !fk_ids.is_empty() {{");
+        // Quote chaque valeur → fonctionne pour entiers et UUIDs
+        let _ = writeln!(
+            out,
+            "                    let ids_csv = fk_ids.iter().map(|s| format!(\"'{{}}'\", s.replace('\\'', \"''\"))).collect::<Vec<_>>().join(\",\");"
+        );
+        // CAST(id AS TEXT) → compatible i32, i64, UUID
+        let _ = writeln!(
+            out,
+            "                    let _fk_stmt_{safe} = sea_orm::sea_query::Query::select().expr(sea_orm::sea_query::Expr::cust(\"CAST(id AS TEXT)\")).expr(sea_orm::sea_query::Expr::cust(\"{fk_col}\")).from(sea_orm::sea_query::Alias::new(\"{fk_table}\")).and_where(sea_orm::sea_query::Expr::cust(format!(\"CAST(id AS TEXT) IN ({{}})\", ids_csv))).to_owned();",
+            safe = safe_var,
+            fk_col = fk.col,
+            fk_table = fk.table,
+        );
+        let _ = writeln!(
+            out,
+            "                    let label_map_{safe}: std::collections::HashMap<String, String> = db.query_all(&_fk_stmt_{safe}).await.unwrap_or_default().iter().filter_map(|row| {{ let id = row.try_get_by_index::<String>(0).ok()?; let label = row.try_get_by_index::<String>(1).ok()?; Some((id, label)) }}).collect();",
+            safe = safe_var,
+        );
+        let _ = writeln!(out, "                    for row in &mut rows {{");
+        // Extrait la clé String pour le lookup (même logique que pour fk_ids)
+        let _ = writeln!(
+            out,
+            "                        if let Some(key) = row.get(\"{col}\").and_then(|v| v.as_i64().map(|n| n.to_string()).or_else(|| v.as_str().map(str::to_string))) {{",
+            col = col
+        );
+        let _ = writeln!(
+            out,
+            "                            if let Some(label) = label_map_{safe}.get(&key) {{",
+            safe = safe_var
+        );
+        let _ = writeln!(
+            out,
+            "                                row[\"{col}\"] = serde_json::Value::String(label.clone());",
+            col = col
+        );
+        let _ = writeln!(out, "                            }}");
+        let _ = writeln!(out, "                        }}");
+        let _ = writeln!(out, "                    }}");
+        let _ = writeln!(out, "                }}");
+        let _ = writeln!(out, "            }}");
+    }
+    let _ = writeln!(out, "            Ok(rows)");
     let _ = writeln!(out, "        }})");
     let _ = writeln!(out, "    }});");
     let _ = writeln!(out);
@@ -357,10 +442,62 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         "            let row = {}::Entity::find_by_id(id).one(&*db).await?;",
         module
     );
-    let _ = writeln!(
-        out,
-        "            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))"
-    );
+    if fk_cols.is_empty() {
+        let _ = writeln!(
+            out,
+            "            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))"
+        );
+    } else {
+        let _ = writeln!(
+            out,
+            "            let Some(model) = row else {{ return Ok(None); }};"
+        );
+        let _ = writeln!(
+            out,
+            "            let mut row = serde_json::to_value(model).unwrap_or(serde_json::Value::Null);"
+        );
+        for (col, _, fk_opt) in &fk_cols {
+            let fk = fk_opt.as_ref().unwrap();
+            let safe_var = col.replace('.', "_");
+            let _ = writeln!(out, "            {{");
+            let _ = writeln!(out, "                use sea_orm::ConnectionTrait;");
+            let _ = writeln!(
+                out,
+                "                if let Some(fk_key) = row.get(\"{col}\").and_then(|v| v.as_i64().map(|n| n.to_string()).or_else(|| v.as_str().map(str::to_string))) {{",
+                col = col
+            );
+            let _ = writeln!(
+                out,
+                "                    let ids_csv = format!(\"'{{}}'\", fk_key.replace('\\'', \"''\"));"
+            );
+            let _ = writeln!(
+                out,
+                "                    let _fk_stmt_{safe} = sea_orm::sea_query::Query::select().expr(sea_orm::sea_query::Expr::cust(\"CAST(id AS TEXT)\")).expr(sea_orm::sea_query::Expr::cust(\"{fk_col}\")).from(sea_orm::sea_query::Alias::new(\"{fk_table}\")).and_where(sea_orm::sea_query::Expr::cust(format!(\"CAST(id AS TEXT) IN ({{}})\", ids_csv))).to_owned();",
+                safe = safe_var,
+                fk_col = fk.col,
+                fk_table = fk.table,
+            );
+            let _ = writeln!(
+                out,
+                "                    if let Some(fk_row) = db.query_one(&_fk_stmt_{safe}).await.ok().flatten() {{",
+                safe = safe_var,
+            );
+            let _ = writeln!(
+                out,
+                "                        if let Ok(label) = fk_row.try_get_by_index::<String>(1) {{"
+            );
+            let _ = writeln!(
+                out,
+                "                            row[\"{col}\"] = serde_json::Value::String(label);",
+                col = col
+            );
+            let _ = writeln!(out, "                        }}");
+            let _ = writeln!(out, "                    }}");
+            let _ = writeln!(out, "                }}");
+            let _ = writeln!(out, "            }}");
+        }
+        let _ = writeln!(out, "            Ok(Some(row))");
+    }
     let _ = writeln!(out, "        }})");
     let _ = writeln!(out, "    }});");
     let _ = writeln!(out);
@@ -387,8 +524,72 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         "    let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {{"
     );
     let _ = writeln!(out, "        Box::pin(async move {{");
-    let _ = writeln!(out, "            {}::admin_from_form(&data, None)", module);
-    let _ = writeln!(out, "                .insert(&*db).await.map(|_| ())");
+    if let Some(ref bulk_field) = r.bulk_create {
+        // Bulk create: split the specified field by comma, insert one record per value
+        let _ = writeln!(
+            out,
+            "            let raw = data.get(\"{bulk_field}\").cloned().unwrap_or_default();",
+            bulk_field = bulk_field
+        );
+        let _ = writeln!(
+            out,
+            "            let values: Vec<&str> = raw.split(',').map(str::trim).filter(|v| !v.is_empty()).collect();"
+        );
+        let _ = writeln!(out, "            for val in values {{");
+        let _ = writeln!(out, "                let mut row = data.clone();");
+        let _ = writeln!(
+            out,
+            "                row.insert(\"{bulk_field}\".to_string(), val.to_string());",
+            bulk_field = bulk_field
+        );
+        let _ = writeln!(
+            out,
+            "                {}::admin_from_form(&row, None).insert(&*db).await?;",
+            module
+        );
+        let _ = writeln!(out, "            }}");
+        let _ = writeln!(out, "            Ok(())");
+    } else if r.m2m.is_empty() {
+        let _ = writeln!(out, "            {}::admin_from_form(&data, None)", module);
+        let _ = writeln!(out, "                .insert(&*db).await.map(|_| ())");
+    } else {
+        // With M2M: capture inserted ID, then populate junction tables
+        let _ = writeln!(out, "            use sea_orm::ConnectionTrait;");
+        let _ = writeln!(
+            out,
+            "            let result = {}::admin_from_form(&data, None).insert(&*db).await?;",
+            module
+        );
+        let _ = writeln!(out, "            let inserted_id = result.id.to_string();");
+        for m2m in &r.m2m {
+            let prefix = format!("m2m_{}__", m2m.field_name);
+            let _ = writeln!(out, "            for (key, _) in &data {{");
+            let _ = writeln!(
+                out,
+                "                if let Some(target_id) = key.strip_prefix(\"{prefix}\") {{",
+                prefix = prefix
+            );
+            let _ = writeln!(
+                out,
+                "                    if !target_id.is_empty() && target_id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {{"
+            );
+            let _ = writeln!(
+                out,
+                "                        let sql = format!(\"INSERT INTO {junction} ({self_fk}, {target_fk}) VALUES ({{}}, {{}}) ON CONFLICT DO NOTHING\", inserted_id, target_id);",
+                junction = m2m.junction_table,
+                self_fk = m2m.self_fk,
+                target_fk = m2m.target_fk
+            );
+            let _ = writeln!(
+                out,
+                "                        let _ = db.execute_unprepared(&sql).await;"
+            );
+            let _ = writeln!(out, "                    }}");
+            let _ = writeln!(out, "                }}");
+            let _ = writeln!(out, "            }}");
+        }
+        let _ = writeln!(out, "            Ok(())");
+    }
     let _ = writeln!(out, "        }})");
     let _ = writeln!(out, "    }});");
     let _ = writeln!(out);
@@ -400,12 +601,56 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     );
     let _ = writeln!(out, "        Box::pin(async move {{");
     let _ = writeln!(out, "            {};", id_parse_code);
-    let _ = writeln!(
-        out,
-        "            {}::admin_from_form(&data, Some(id.into()))",
-        module
-    );
-    let _ = writeln!(out, "                .update(&*db).await.map(|_| ())");
+    if r.m2m.is_empty() {
+        let _ = writeln!(
+            out,
+            "            {}::admin_from_form(&data, Some(id.into()))",
+            module
+        );
+        let _ = writeln!(out, "                .update(&*db).await.map(|_| ())");
+    } else {
+        let _ = writeln!(out, "            use sea_orm::ConnectionTrait;");
+        let _ = writeln!(out, "            let id_str = id.to_string();");
+        let _ = writeln!(
+            out,
+            "            {}::admin_from_form(&data, Some(id.into())).update(&*db).await?;",
+            module
+        );
+        for m2m in &r.m2m {
+            let prefix = format!("m2m_{}__", m2m.field_name);
+            let _ = writeln!(
+                out,
+                "            let _ = db.execute_unprepared(&format!(\"DELETE FROM {junction} WHERE {self_fk} = {{}}\", id_str)).await;",
+                junction = m2m.junction_table,
+                self_fk = m2m.self_fk
+            );
+            let _ = writeln!(out, "            for (key, _) in &data {{");
+            let _ = writeln!(
+                out,
+                "                if let Some(target_id) = key.strip_prefix(\"{prefix}\") {{",
+                prefix = prefix
+            );
+            let _ = writeln!(
+                out,
+                "                    if !target_id.is_empty() && target_id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {{"
+            );
+            let _ = writeln!(
+                out,
+                "                        let sql = format!(\"INSERT INTO {junction} ({self_fk}, {target_fk}) VALUES ({{}}, {{}})\", id_str, target_id);",
+                junction = m2m.junction_table,
+                self_fk = m2m.self_fk,
+                target_fk = m2m.target_fk
+            );
+            let _ = writeln!(
+                out,
+                "                        let _ = db.execute_unprepared(&sql).await;"
+            );
+            let _ = writeln!(out, "                    }}");
+            let _ = writeln!(out, "                }}");
+            let _ = writeln!(out, "            }}");
+        }
+        let _ = writeln!(out, "            Ok(())");
+    }
     let _ = writeln!(out, "        }})");
     let _ = writeln!(out, "    }});");
     let _ = writeln!(out);
@@ -426,6 +671,89 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     let _ = writeln!(out, "        }})");
     let _ = writeln!(out, "    }});");
     let _ = writeln!(out);
+
+    // M2mLoaderFn closure (optional — only when m2m is declared)
+    if !r.m2m.is_empty() {
+        let _ = writeln!(
+            out,
+            "    let m2m_loader: M2mLoaderFn = Arc::new(|db: ADb, object_id: Option<String>| {{"
+        );
+        let _ = writeln!(out, "        Box::pin(async move {{");
+        let _ = writeln!(
+            out,
+            "            use sea_orm::{{EntityTrait, ConnectionTrait}};"
+        );
+        let _ = writeln!(
+            out,
+            "            let mut fields: Vec<M2mFieldOptions> = Vec::new();"
+        );
+        for m2m in &r.m2m {
+            let _ = writeln!(out, "            {{");
+            let _ = writeln!(
+                out,
+                "                let rows = {entity}::Entity::find().all(&*db).await.unwrap_or_default();",
+                entity = m2m.target_entity
+            );
+            let _ = writeln!(
+                out,
+                "                let choices: Vec<(String, String)> = rows.iter().map(|r| {{"
+            );
+            let _ = writeln!(
+                out,
+                "                    let v = serde_json::to_value(r).unwrap_or_default();"
+            );
+            let _ = writeln!(
+                out,
+                "                    let id = v.get(\"id\").map(|i| i.to_string().trim_matches('\"').to_string()).unwrap_or_default();"
+            );
+            let _ = writeln!(
+                out,
+                "                    let label = v.get(\"{display}\").and_then(|n| n.as_str()).unwrap_or(\"\").to_string();",
+                display = m2m.target_display
+            );
+            let _ = writeln!(out, "                    (id, label)");
+            let _ = writeln!(out, "                }}).collect();");
+            let _ = writeln!(
+                out,
+                "                let selected = if let Some(ref oid) = object_id {{"
+            );
+            let _ = writeln!(
+                out,
+                "                    use sea_orm::sea_query::{{Query, Alias, Expr}};"
+            );
+            let _ = writeln!(
+                out,
+                "                    let stmt = Query::select().expr(Expr::cust(\"CAST({target_fk} AS TEXT)\")).from(Alias::new(\"{junction}\")).and_where(Expr::cust(format!(\"CAST({self_fk} AS TEXT) = '{{}}'\", oid))).to_owned();",
+                target_fk = m2m.target_fk,
+                junction = m2m.junction_table,
+                self_fk = m2m.self_fk
+            );
+            let _ = writeln!(
+                out,
+                "                    db.query_all(&stmt).await.unwrap_or_default().iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect()"
+            );
+            let _ = writeln!(out, "                }} else {{ vec![] }};");
+            let _ = writeln!(out, "                fields.push(M2mFieldOptions {{");
+            let _ = writeln!(
+                out,
+                "                    field_name: \"{field_name}\".to_string(),",
+                field_name = m2m.field_name
+            );
+            let _ = writeln!(
+                out,
+                "                    label: \"{label}\".to_string(),",
+                label = m2m.label
+            );
+            let _ = writeln!(out, "                    choices,");
+            let _ = writeln!(out, "                    selected,");
+            let _ = writeln!(out, "                }});");
+            let _ = writeln!(out, "            }}");
+        }
+        let _ = writeln!(out, "            fields");
+        let _ = writeln!(out, "        }})");
+        let _ = writeln!(out, "    }});");
+        let _ = writeln!(out);
+    }
 
     // EditFormBuilder closure (optional)
     if let Some(ref edit_form_path) = r.edit_form_type {
@@ -547,6 +875,9 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
             actions_str
         );
     }
+    if !r.m2m.is_empty() {
+        let _ = writeln!(out, "            .with_m2m_loader(m2m_loader)");
+    }
     let _ = writeln!(out, "    );");
     let _ = writeln!(out);
 
@@ -617,10 +948,89 @@ fn write_form_builder_closure(out: &mut String, var_name: &str, form_path: &str,
     let _ = writeln!(out);
 }
 
+/// Emits a `FormBuilder` closure with optional FK ChoiceField injection from the DB.
+/// When `fk_cols` is empty, behaves identically to `write_form_builder_closure`.
+fn write_form_builder_closure_fk(
+    out: &mut String,
+    var_name: &str,
+    form_path: &str,
+    wrapper: &str,
+    fk_cols: &[&(
+        String,
+        String,
+        Option<crate::admin::daemon::parser::FkDisplay>,
+    )],
+) {
+    let db_param = if fk_cols.is_empty() { "_db" } else { "db" };
+    let _ = writeln!(
+        out,
+        "    let {var}: FormBuilder = Arc::new(|{db}: ADb, _vec: Vec<std::string::String>, data: StrMap, tera: ATera, csrf: String, method: Method| {{",
+        var = var_name,
+        db = db_param,
+    );
+    let _ = writeln!(out, "        Box::pin(async move {{");
+    let mut_kw = if fk_cols.is_empty() { "let" } else { "let mut" };
+    let _ = writeln!(
+        out,
+        "            {mut_kw} form = {form}::build_with_data(&data, tera, &csrf, method).await;",
+        mut_kw = mut_kw,
+        form = form_path,
+    );
+    for (col, label, fk_opt) in fk_cols {
+        let fk = fk_opt.as_ref().unwrap();
+        let safe_var = col.replace('.', "_");
+        let _ = writeln!(out, "            {{");
+        let _ = writeln!(out, "                use sea_orm::ConnectionTrait;");
+        let _ = writeln!(
+            out,
+            "                let _fk_opt_stmt_{safe} = sea_orm::sea_query::Query::select().expr(sea_orm::sea_query::Expr::cust(\"CAST(id AS TEXT)\")).expr(sea_orm::sea_query::Expr::cust(\"{fk_col}\")).from(sea_orm::sea_query::Alias::new(\"{fk_table}\")).to_owned();",
+            safe = safe_var,
+            fk_col = fk.col,
+            fk_table = fk.table,
+        );
+        let _ = writeln!(
+            out,
+            "                let _fk_opt_choices_{safe}: Vec<(String, String)> = db.query_all(&_fk_opt_stmt_{safe}).await.unwrap_or_default().iter().filter_map(|row| {{ let id = row.try_get_by_index::<String>(0).ok()?; let lbl = row.try_get_by_index::<String>(1).ok()?; Some((id, lbl)) }}).collect();",
+            safe = safe_var,
+        );
+        let _ = writeln!(
+            out,
+            "                form.get_form_mut().field_choices(\"{col}\", \"{label}\", _fk_opt_choices_{safe});",
+            col = col,
+            label = label,
+            safe = safe_var,
+        );
+        let _ = writeln!(out, "            }}");
+    }
+    let _ = writeln!(
+        out,
+        "            Box::new({wrapper}(form)) as Box<dyn DynForm>",
+        wrapper = wrapper,
+    );
+    let _ = writeln!(out, "        }})");
+    let _ = writeln!(out, "    }});");
+    let _ = writeln!(out);
+}
+
 /// Emits `search_cond.add(...)` lines for each column in `list_display` (or "id" if empty).
-fn write_search_conditions(out: &mut String, list_display: &[(String, String)], module: &str) {
-    if list_display.is_empty() {
-        // No list_display declared → search all columns via Column::iter() at runtime
+/// FK columns (with a FkDisplay) are skipped — searching a raw FK ID makes no sense.
+fn write_search_conditions(
+    out: &mut String,
+    list_display: &[(
+        String,
+        String,
+        Option<crate::admin::daemon::parser::FkDisplay>,
+    )],
+    module: &str,
+) {
+    let searchable: Vec<&str> = list_display
+        .iter()
+        .filter(|(_, _, fk)| fk.is_none())
+        .map(|(col, _, _)| col.as_str())
+        .collect();
+
+    if searchable.is_empty() {
+        // No non-FK list_display declared → search all columns via Column::iter() at runtime
         let _ = writeln!(
             out,
             "                use sea_orm::{{Iterable, IdenStatic}};"
@@ -637,7 +1047,7 @@ fn write_search_conditions(out: &mut String, list_display: &[(String, String)], 
         );
         let _ = writeln!(out, "                }}");
     } else {
-        for (col, _) in list_display {
+        for col in searchable {
             let _ = writeln!(
                 out,
                 "                search_cond = search_cond.add(Expr::cust(format!(\"LOWER(CAST({{}} AS TEXT)) LIKE LOWER('%%{{}}%%')\", \"{}\", escaped)));",
@@ -649,7 +1059,11 @@ fn write_search_conditions(out: &mut String, list_display: &[(String, String)], 
 
 /// Builds a `DisplayConfig::new().columns_include(...).columns_exclude(...).list_filter(...)` chain.
 fn build_display_chain(
-    list_display: &[(String, String)],
+    list_display: &[(
+        String,
+        String,
+        Option<crate::admin::daemon::parser::FkDisplay>,
+    )],
     list_exclude: &[String],
     list_filter: &[(String, String, u64)],
 ) -> String {
@@ -657,7 +1071,7 @@ fn build_display_chain(
     if !list_display.is_empty() {
         let cols = list_display
             .iter()
-            .map(|(c, l)| format!("(\"{}\", \"{}\")", c, l))
+            .map(|(c, l, _)| format!("(\"{}\", \"{}\")", c, l))
             .collect::<Vec<_>>()
             .join(", ");
         chain.push_str(&format!(".columns_include(vec![{}])", cols));
@@ -681,11 +1095,14 @@ fn build_display_chain(
     chain
 }
 
-/// Builds a comma-separated list of `GroupAction::bool("field", "label")` expressions.
-fn build_group_actions_str(group_action: &[(String, String)]) -> String {
+/// Builds a comma-separated list of `GroupAction::*` expressions.
+fn build_group_actions_str(group_action: &[(String, String, Option<String>)]) -> String {
     group_action
         .iter()
-        .map(|(f, l)| format!("GroupAction::bool(\"{}\", \"{}\")", f, l))
+        .map(|(f, l, v)| match v {
+            Some(val) => format!("GroupAction::val(\"{}\", \"{}\", \"{}\")", f, l, val),
+            None => format!("GroupAction::bool(\"{}\", \"{}\")", f, l),
+        })
         .collect::<Vec<_>>()
         .join(", ")
 }

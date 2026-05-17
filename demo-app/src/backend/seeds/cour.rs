@@ -516,8 +516,8 @@ pub async fn seed_cours(db: &DatabaseConnection) {
             slug: Set(def.slug.to_string()),
             lang: Set("fr".to_string()),
             title: Set(def.title.to_string()),
-            theme: Set(def.theme.to_string()),
-            difficulte: Set(def.difficulte.to_string()),
+            theme: Set(def.theme.parse::<cour::CourTheme>().unwrap_or_default()),
+            difficulte: Set(def.difficulte.parse::<cour::Difficulte>().unwrap_or_default()),
             sort_order: Set(def.sort_order),
             ordre: Set(def.ordre),
             ..Default::default()
@@ -560,7 +560,7 @@ pub async fn seed_cours(db: &DatabaseConnection) {
                     chapitre_id: Set(inserted_chapitre.id.try_into().unwrap()),
                     heading: Set(heading),
                     content: Set(blk_content),
-                    block_type: Set(blk_type.to_string()),
+                    block_type: Set(blk_type.parse::<cour_block::CourBlockType>().unwrap_or_default()),
                     sort_order: Set(blk_order as i32 + 1),
                     ..Default::default()
                 };

@@ -9,6 +9,7 @@
     "too_long": "Demasiado largo (máx {})",
     "email_invalid": "Formato de dirección de correo electrónico no válido",
     "url_invalid": "Por favor introduce una URL válida",
+    "phone_invalid": "Número de teléfono inválido (dígitos, +, espacios, guiones, 7-15 dígitos)",
     "hash_error": "Error de hash: {}",
     "password_empty": "La contraseña no puede estar vacía",
     "filter_invalid_value": "El filtro static/media recibió un valor no válido ({}) en lugar de una ruta de archivo.",
@@ -479,7 +480,7 @@
     "password_mismatch": "Las contraseñas no coinciden.",
     "check_inbox": "Si esta dirección está asociada a una cuenta, recibirá un correo de restablecimiento.",
     "email_subject": "Restablecer contraseña",
-    "email_body": "<p>Hola {0},</p><p>Haga clic en el siguiente enlace para restablecer su contraseña (válido durante 1 hora):</p><p><a href=\"{1}\">{2}</a></p>"
+    "email_body": "<p>Hola {},</p><p>Haga clic en el siguiente enlace para restablecer su contraseña (válido durante 1 hora):</p><p><a href=\"{}\">{}</a></p>"
   },
   "permission": {
     "col.id": "ID",

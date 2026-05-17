@@ -3,7 +3,7 @@
 //!   v1: `fields: { name: String [required], ... }`
 //!   v2: `{ name: text [required], ... }` (anonymous block, semantic types)
 use syn::{
-    Ident, LitStr, Token, braced, bracketed,
+    Ident, LitStr, Token, braced, bracketed, parenthesized,
     parse::{Parse, ParseStream},
     visit::Visit,
 };
@@ -123,6 +123,20 @@ impl Parse for DslModel {
                                                     string_values.push(n.to_string())
                                                 }
                                                 _ => string_values.push(vname.to_string()),
+                                            }
+                                        } else if variants.peek(syn::token::Paren) {
+                                            // tuple syntax: ("db_value", "Display") — only keep first value
+                                            let tuple;
+                                            parenthesized!(tuple in variants);
+                                            if let Ok(syn::Lit::Str(s)) = tuple.parse::<syn::Lit>()
+                                            {
+                                                string_values.push(s.value());
+                                            } else {
+                                                string_values.push(vname.to_string());
+                                            }
+                                            // consume the rest of the tuple (display label, etc.)
+                                            while !tuple.is_empty() {
+                                                tuple.parse::<proc_macro2::TokenTree>().ok();
                                             }
                                         } else {
                                             string_values.push(vname.to_string());
@@ -488,7 +502,7 @@ fn dsl_field_type_to_col_type(ty: &str) -> String {
         "binary" | "blob" => "Binary".to_string(),
         "inet" | "cidr" | "mac_address" | "interval" | "ip" => "String".to_string(),
         // v2 semantic text → String (VARCHAR) or Text
-        "email" | "url" | "password" | "slug" | "color" => "String".to_string(),
+        "email" | "url" | "password" | "slug" | "color" | "phone" => "String".to_string(),
         "richtext" | "textarea" => "Text".to_string(),
         // v2 files → String (JSON path)
         "image" | "document" | "file" => "String".to_string(),
@@ -576,6 +590,7 @@ fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
                 "cidr",
                 "mac_address",
                 "interval",
+                "phone",
             ];
             let is_v2 = V2_TYPES.contains(&f.ty.as_str());
             let nullable = if has_auto_now || has_auto_now_update || has_required {

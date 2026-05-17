@@ -61,6 +61,14 @@ pub fn generate_enums(model: &ModelInput) -> TokenStream2 {
                             )*
                         }
 
+                        impl #name {
+                            pub fn db_value(&self) -> i32 {
+                                match self {
+                                    #(#name::#variant_names => #db_values,)*
+                                }
+                            }
+                        }
+
                         impl ::std::default::Default for #name {
                             fn default() -> Self { #name::#first }
                         }
@@ -110,6 +118,14 @@ pub fn generate_enums(model: &ModelInput) -> TokenStream2 {
                                 #[sea_orm(num_value = #db_values)]
                                 #variant_names,
                             )*
+                        }
+
+                        impl #name {
+                            pub fn db_value(&self) -> i64 {
+                                match self {
+                                    #(#name::#variant_names => #db_values,)*
+                                }
+                            }
                         }
 
                         impl ::std::default::Default for #name {
@@ -189,8 +205,17 @@ pub fn generate_enums(model: &ModelInput) -> TokenStream2 {
                             pub enum #name {
                                 #(
                                     #[sea_orm(string_value = #db_values)]
+                                    #[serde(rename = #db_values)]
                                     #variant_names,
                                 )*
+                            }
+
+                            impl #name {
+                                pub fn db_value(&self) -> &'static str {
+                                    match self {
+                                        #(#name::#variant_names => #db_values,)*
+                                    }
+                                }
                             }
 
                             impl ::std::default::Default for #name {
@@ -226,8 +251,17 @@ pub fn generate_enums(model: &ModelInput) -> TokenStream2 {
                             pub enum #name {
                                 #(
                                     #[sea_orm(string_value = #db_values)]
+                                    #[serde(rename = #db_values)]
                                     #variant_names,
                                 )*
+                            }
+
+                            impl #name {
+                                pub fn db_value(&self) -> &'static str {
+                                    match self {
+                                        #(#name::#variant_names => #db_values,)*
+                                    }
+                                }
                             }
 
                             impl ::std::default::Default for #name {
@@ -365,10 +399,51 @@ pub fn generate_from_str_map(model: &ModelInput) -> TokenStream2 {
                     }
                 }
             }
-            FieldType::Datetime | FieldType::Timestamp | FieldType::TimestampTz
-            | FieldType::Date | FieldType::Time => {
-                // Date/time fields without auto_now: left to Default (NotSet)
-                return None;
+            FieldType::Time => {
+                quote! {
+                    #fname: ::sea_orm::ActiveValue::Set(
+                        __data.get(#fname_str).and_then(|v| {
+                            if v.is_empty() { return None; }
+                            ::chrono::NaiveTime::parse_from_str(v, "%H:%M:%S")
+                                .or_else(|_| ::chrono::NaiveTime::parse_from_str(v, "%H:%M"))
+                                .ok()
+                        })
+                    ),
+                }
+            }
+            FieldType::Date => {
+                quote! {
+                    #fname: ::sea_orm::ActiveValue::Set(
+                        __data.get(#fname_str).and_then(|v| {
+                            if v.is_empty() { return None; }
+                            ::chrono::NaiveDate::parse_from_str(v, "%Y-%m-%d").ok()
+                        })
+                    ),
+                }
+            }
+            FieldType::Datetime | FieldType::Timestamp => {
+                quote! {
+                    #fname: ::sea_orm::ActiveValue::Set(
+                        __data.get(#fname_str).and_then(|v| {
+                            if v.is_empty() { return None; }
+                            ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M:%S")
+                                .or_else(|_| ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M"))
+                                .ok()
+                        })
+                    ),
+                }
+            }
+            FieldType::TimestampTz => {
+                quote! {
+                    #fname: ::sea_orm::ActiveValue::Set(
+                        __data.get(#fname_str).and_then(|v| {
+                            if v.is_empty() { return None; }
+                            ::chrono::DateTime::parse_from_rfc3339(v)
+                                .map(|dt| dt.with_timezone(&::chrono::Utc))
+                                .ok()
+                        })
+                    ),
+                }
             }
             FieldType::Uuid => {
                 if is_nullable {
@@ -566,8 +641,6 @@ pub fn generate_partial_update(model: &ModelInput) -> TokenStream2 {
                     }
                 }
             }
-            FieldType::Datetime | FieldType::Timestamp | FieldType::TimestampTz
-            | FieldType::Date | FieldType::Time => return None,
             FieldType::Uuid => {
                 if is_nullable {
                     quote! {
@@ -622,6 +695,52 @@ pub fn generate_partial_update(model: &ModelInput) -> TokenStream2 {
                             None => ::sea_orm::ActiveValue::NotSet,
                         },
                     }
+                }
+            }
+            FieldType::Time => {
+                quote! {
+                    #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
+                        Some(v) => ::sea_orm::ActiveValue::Set(
+                            ::chrono::NaiveTime::parse_from_str(v, "%H:%M:%S")
+                                .or_else(|_| ::chrono::NaiveTime::parse_from_str(v, "%H:%M"))
+                                .ok()
+                        ),
+                        None => ::sea_orm::ActiveValue::NotSet,
+                    },
+                }
+            }
+            FieldType::Date => {
+                quote! {
+                    #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
+                        Some(v) => ::sea_orm::ActiveValue::Set(
+                            ::chrono::NaiveDate::parse_from_str(v, "%Y-%m-%d").ok()
+                        ),
+                        None => ::sea_orm::ActiveValue::NotSet,
+                    },
+                }
+            }
+            FieldType::Datetime | FieldType::Timestamp => {
+                quote! {
+                    #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
+                        Some(v) => ::sea_orm::ActiveValue::Set(
+                            ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M:%S")
+                                .or_else(|_| ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M"))
+                                .ok()
+                        ),
+                        None => ::sea_orm::ActiveValue::NotSet,
+                    },
+                }
+            }
+            FieldType::TimestampTz => {
+                quote! {
+                    #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
+                        Some(v) => ::sea_orm::ActiveValue::Set(
+                            ::chrono::DateTime::parse_from_rfc3339(v)
+                                .map(|dt| dt.with_timezone(&::chrono::Utc))
+                                .ok()
+                        ),
+                        None => ::sea_orm::ActiveValue::NotSet,
+                    },
                 }
             }
             _ => {
@@ -1071,8 +1190,8 @@ fn generate_form_field_decl(ff: &FormFieldDecl, model: &ModelInput) -> TokenStre
             quote! { ::runique::forms::fields::FileField::any(#name_str).label(#label) #file_extras #required_suffix }
         }
 
-        // ── Choice / Radio — resolution via EnumRef attr or fields: ─────
-        FormFieldKind::Choice | FormFieldKind::Radio => {
+        // ── Choice / Radio / Checkbox — resolution via EnumRef attr or fields: ─────
+        FormFieldKind::Choice | FormFieldKind::Radio | FormFieldKind::Checkbox => {
             // Priority: Explicit EnumRef in attrs, otherwise lookup via fields:
             let enum_ident = ff.attrs.iter().find_map(|a| {
                 if let FormFieldAttr::EnumRef(id) = a {
@@ -1112,6 +1231,8 @@ fn generate_form_field_decl(ff: &FormFieldDecl, model: &ModelInput) -> TokenStre
 
             if matches!(ff.kind, FormFieldKind::Radio) {
                 quote! { ::runique::forms::fields::RadioField::new(#name_str).label(#label) #(#choices)* #required_suffix }
+            } else if matches!(ff.kind, FormFieldKind::Checkbox) {
+                quote! { ::runique::forms::fields::CheckboxField::new(#name_str).label(#label) #(#choices)* #required_suffix }
             } else {
                 quote! { ::runique::forms::fields::ChoiceField::new(#name_str).label(#label) #(#choices)* #required_suffix }
             }
@@ -1138,6 +1259,11 @@ fn generate_form_field_decl(ff: &FormFieldDecl, model: &ModelInput) -> TokenStre
         FormFieldKind::Bigint => {
             let extras = numeric_attrs_tokens(&ff.attrs);
             quote! { ::runique::forms::fields::NumericField::integer(#name_str).label(#label) #extras }
+        }
+
+        FormFieldKind::Phone => {
+            let extras = text_attrs_tokens(&ff.attrs, false);
+            quote! { ::runique::forms::fields::TextField::phone(#name_str).label(#label) #extras #required_suffix }
         }
     };
 

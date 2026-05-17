@@ -54,7 +54,7 @@ Cela couvre tous les appels AJAX sans aucune modification manuelle dans le code 
 Pour les formulaires HTML classiques (non gérés via `form_fields`), il faut inclure le tag Tera `{% csrf %}` à l'intérieur du `<form>` :
 
 ```html
-<form method="POST" action="/admin/login">
+<form method="POST" action="{{ admin_prefix }}/login">
     {% csrf %}
     <input type="text" name="username">
     <input type="password" name="password">
@@ -89,7 +89,7 @@ Si le template de login est personnalisé (hors `admin_template.html`), les troi
     <title>Connexion — Admin</title>
 </head>
 <body>
-    <form method="POST" action="/admin/login">
+    <form method="POST" action="{{ admin_prefix }}/login">
         {% csrf %}
         <div>
             <label for="username">Identifiant</label>

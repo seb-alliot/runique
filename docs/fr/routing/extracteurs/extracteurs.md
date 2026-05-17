@@ -2,18 +2,36 @@
 
 ## Path — Paramètres d'URL
 
+### Valeur typée — `request.get_path_as()`
+
+Parse le segment d'URL directement dans le type cible.
+Retourne `None` si la clé est absente ou si la valeur ne peut pas être parsée.
+
+```rust
+// Route : "/menus/{id}"
+async fn menu_detail(mut request: Request) -> AppResult<Response> {
+    let Some(id) = request.get_path_as::<i32>("id") else {
+        return Ok((StatusCode::NOT_FOUND, "Introuvable").into_response());
+    };
+    // id = 42 pour /menus/42
+}
+```
+
+### Chaîne brute — `request.get_path()`
+
+```rust
+async fn article(mut request: Request) -> AppResult<Response> {
+    let slug = request.get_path("slug").unwrap_or_default();
+}
+```
+
+### Plusieurs segments — extracteur Axum `Path`
+
+Pour extraire plusieurs segments à la fois, l'extracteur Axum reste disponible :
+
 ```rust
 use axum::extract::Path;
 
-// Simple
-async fn user_detail(
-    Path(id): Path<i32>,
-    mut request: Request,
-) -> AppResult<Response> {
-    // id = 42 pour /users/42
-}
-
-// Multiple
 #[derive(Deserialize)]
 pub struct UserPostPath {
     user_id: i32,
@@ -32,24 +50,77 @@ async fn user_post(
 
 ## Query — Paramètres de requête
 
-```rust
-use axum::extract::Query;
+### Struct typée — `request.query()`
 
-#[derive(Deserialize)]
-pub struct PaginationQuery {
+Désérialise la query string complète vers une struct dérivant `Deserialize + Default`.
+Les clés inconnues sont ignorées ; les clés absentes prennent leur valeur `Default`.
+
+```rust
+#[derive(Deserialize, Default)]
+pub struct Filtres {
     page: Option<u32>,
     limit: Option<u32>,
+    recherche: Option<String>,
 }
 
-async fn list(
-    Query(query): Query<PaginationQuery>,
-    mut request: Request,
-) -> AppResult<Response> {
-    let page = query.page.unwrap_or(1);
-    let limit = query.limit.unwrap_or(10);
+async fn liste(mut request: Request) -> AppResult<Response> {
+    let filtres: Filtres = request.query();
+    let page = filtres.page.unwrap_or(1);
     // ...
 }
 ```
+
+### Valeur unique — `request.get_query(clé)`
+
+```rust
+async fn liste(mut request: Request) -> AppResult<Response> {
+    let page: u32 = request.get_query("page")
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(1);
+    // ...
+}
+```
+
+---
+
+## Headers — `request.headers`
+
+La map HTTP complète des en-têtes est accessible directement sur `Request`. Utile pour lire `Host`, `Accept-Language`, des en-têtes custom, etc.
+
+```rust
+async fn handler(mut request: Request) -> AppResult<Response> {
+    // Construire une URL absolue depuis le header Host
+    let base_url = request.headers
+        .get("host")
+        .and_then(|v| v.to_str().ok())
+        .map(|h| format!("https://{h}"))
+        .unwrap_or_else(|| "http://localhost:3000".to_string());
+
+    // Lire n'importe quel header
+    let lang = request.headers
+        .get("accept-language")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("fr");
+}
+```
+
+`request.headers` est de type `axum::http::HeaderMap`, re-exporté dans le prelude.
+
+---
+
+## Base de données — `request.db()`
+
+Retourne une `&DatabaseConnection` depuis le moteur, prête à passer aux requêtes SeaORM.
+
+```rust
+async fn handler(mut request: Request) -> AppResult<Response> {
+    let db = request.db();
+    let item = MyEntity::find_by_id(1).one(db).await?;
+    // ...
+}
+```
+
+Équivalent à `&*request.engine.db`, en plus court et lisible.
 
 ---
 

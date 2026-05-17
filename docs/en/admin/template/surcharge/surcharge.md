@@ -38,7 +38,7 @@ Create a file that extends `admin_template` and fills the layout blocks.
     <ul>
     {% for res in resources %}
         <li>
-            <a href="/admin/{{ res.key }}/list"
+            <a href="{{ admin_prefix }}/{{ res.key }}/list"
                {% if res.key == current_resource %}class="active"{% endif %}>
                 {{ res.title }}
             </a>
@@ -51,7 +51,7 @@ Create a file that extends `admin_template` and fills the layout blocks.
 {% block topbar %}
 <header class="my-topbar">
     {% block breadcrumb %}{% endblock %}
-    <form method="POST" action="/admin/logout">
+    <form method="POST" action="{{ admin_prefix }}/logout">
         {% csrf %}
         <button type="submit">{{ current_user.username }} — Logout</button>
     </form>

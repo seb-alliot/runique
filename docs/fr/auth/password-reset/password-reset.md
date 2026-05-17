@@ -44,6 +44,7 @@ Toutes les options sont optionnelles — les valeurs par défaut fonctionnent sa
     .reset_route("/reinitialiser")               // défaut : /reset-password
     .forgot_template("auth/oubli.html")          // défaut : auth/forgot_password.html
     .reset_template("auth/reset.html")           // défaut : auth/reset_password.html
+    .email_template("emails/reset.html")         // défaut : template intégré
     .success_redirect("/connexion")              // défaut : /
     .base_url("https://monsite.com")             // pour construire le lien dans l'email
 )

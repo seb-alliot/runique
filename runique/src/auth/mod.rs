@@ -17,4 +17,4 @@ pub use session::{
     get_user_id, get_username, is_admin_authenticated, is_authenticated, load_user_middleware,
     login, logout, protect_session, unprotect_session,
 };
-pub use user::{BuiltinUserEntity, RuniqueAdminAuth};
+pub use user::{BuiltinUserEntity, RuniqueAdminAuth, authenticate_user};

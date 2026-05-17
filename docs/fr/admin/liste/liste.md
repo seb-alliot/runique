@@ -5,6 +5,7 @@ La vue liste admin gère toutes ses opérations **au niveau SQL** : pagination, 
 ## Sommaire
 
 - [Colonnes affichées — list_display](#colonnes-affichées--list_display)
+- [Résolution des clés étrangères (FK)](#résolution-des-clés-étrangères-fk)
 - [Filtres latéraux — list_filter](#filtres-latéraux--list_filter)
 - [Tri par colonne](#tri-par-colonne)
 - [Recherche](#recherche)
@@ -31,6 +32,40 @@ admin! {
 Chaque entrée est une paire `["nom_colonne", "Libellé"]`. Les colonnes déclarées dans `list_display` servent aussi de **whitelist pour le tri** : seules ces colonnes (et `id`) acceptent un `sort_by`.
 
 Disponible dans le contexte Tera via `visible_columns` (liste des noms) et `column_labels` (libellés).
+
+## Résolution des clés étrangères (FK)
+
+Un troisième élément optionnel dans chaque entrée de `list_display` permet d'afficher le libellé d'une table liée au lieu de l'ID brut :
+
+```rust
+admin! {
+    commandes: commande::Model => commande::AdminForm {
+        title: "Commandes",
+        list_display: [
+            ["numero", "N°"],
+            ["user_id", "Client", "eihwaz_users.username"],   // ← FK
+            ["statut", "Statut"],
+        ],
+    }
+}
+```
+
+La syntaxe du 3ème élément est `"table.colonne"` — le daemon génère automatiquement :
+
+- Dans la **vue liste** : une requête `SELECT CAST(id AS TEXT), colonne FROM table WHERE id IN (...)` post-traitement qui remplace l'ID par le libellé affiché.
+- Dans les **formulaires create et edit** : un `<select>` peuplé depuis la table liée, avec pré-sélection de la valeur existante en mode édition.
+
+La résolution est compatible `i32`, `i64` et UUID — l'identifiant est converti en `TEXT` avant la comparaison.
+
+La colonne FK est automatiquement **exclue de la recherche plein-texte** (chercher dans un ID brut n'a pas de sens). Les colonnes non-FK restent indexées normalement.
+
+### Exemples courants
+
+```rust
+["menu_id",   "Menu",   "menus.titre"]
+["theme_id",  "Thème",  "themes.libelle"]
+["user_id",   "Client", "eihwaz_users.username"]
+```
 
 ### Configurer les builtins — configure {}
 
@@ -105,9 +140,11 @@ La pagination est calculée côté SQL (`LIMIT` / `OFFSET`). La taille de page e
 .with_admin(|a| {
     a.site_title("Administration")
      .auth(RuniqueAdminAuth::new())
-     .page_size(15)   // ← entrées par page
+     .page_size(15)   // ← entrées par page (liste ET historique)
 })
 ```
+
+`page_size` s'applique à la **vue liste des ressources** et à la **vue historique** (`/admin/history`). La valeur par défaut est `10`.
 
 Les filtres et la recherche actifs sont préservés dans les liens de pagination.
 

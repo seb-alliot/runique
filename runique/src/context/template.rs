@@ -18,7 +18,9 @@ use axum::{
     response::{Html, IntoResponse, Response},
 };
 use sea_orm::DbErr;
+use serde::de::DeserializeOwned;
 use std::collections::HashMap;
+use std::str::FromStr;
 use std::sync::Arc;
 use tera::Context;
 use tower_sessions::Session;
@@ -99,8 +101,12 @@ pub struct Request {
     pub context: Context,
     /// HTTP method of the request.
     pub method: Method,
+    /// HTTP headers of the request.
+    pub headers: axum::http::HeaderMap,
     /// Path parameters (`/{id}`).
     pub path_params: HashMap<String, String>,
+    /// Raw query string (`?a=1&b=2`), preserved for typed deserialization.
+    pub raw_query: String,
     /// Query string parameters.
     pub query_params: HashMap<String, String>,
     /// Current user (None if not authenticated).
@@ -175,13 +181,12 @@ where
             crate::utils::resolve_og_image(&engine.security_hosts, engine.config.debug, &og_image);
         context.insert("og_image", &og_image);
 
-        let query_params = parts
-            .uri
-            .query()
-            .and_then(|q| serde_urlencoded::from_str::<HashMap<String, String>>(q).ok())
-            .unwrap_or_default();
+        let raw_query = parts.uri.query().unwrap_or_default().to_string();
+        let query_params =
+            serde_urlencoded::from_str::<HashMap<String, String>>(&raw_query).unwrap_or_default();
 
         let method = parts.method.clone();
+        let headers = parts.headers.clone();
 
         // Run Prisme pipeline (sentinel → aegis → CSRF check)
         let req = HttpRequest::from_parts(parts, body);
@@ -194,7 +199,9 @@ where
             csrf_token,
             context,
             method,
+            headers,
             path_params,
+            raw_query,
             query_params,
             user,
             prisme,
@@ -224,7 +231,9 @@ impl Request {
             csrf_token,
             context,
             method,
+            headers: axum::http::HeaderMap::new(),
             path_params: HashMap::new(),
+            raw_query: String::new(),
             query_params: HashMap::new(),
             user: None,
             prisme: Prisme {
@@ -319,14 +328,39 @@ impl Request {
         self.render(template)
     }
 
-    /// Retrieves a route parameter (`/{id}`)
-    pub fn path_param(&self, key: &str) -> Option<&str> {
+    /// Returns a reference to the database connection.
+    pub fn db(&self) -> &sea_orm::DatabaseConnection {
+        &self.engine.db
+    }
+
+    /// Returns a path segment as a string slice (`/users/{id}` → `get_path("id")`).
+    pub fn get_path(&self, key: &str) -> Option<&str> {
         self.path_params.get(key).map(|s| s.as_str())
     }
 
-    /// Retrieves a query string parameter (`?page=2`)
-    pub fn from_url(&self, key: &str) -> Option<&str> {
+    /// Parses a path segment into any type implementing `FromStr`.
+    pub fn get_path_as<T: FromStr>(&self, key: &str) -> Option<T> {
+        self.path_params.get(key)?.parse().ok()
+    }
+
+    /// Returns a query parameter as a string slice (`?page=2` → `get_query("page")`).
+    pub fn get_query(&self, key: &str) -> Option<&str> {
         self.query_params.get(key).map(|s| s.as_str())
+    }
+
+    /// Deserializes the full query string into a typed struct.
+    /// The struct must derive `serde::Deserialize` and `Default`.
+    /// Unknown keys are ignored; missing keys produce the `Default` value.
+    /// Empty values (`key=`) are dropped so that `Option<i32>` fields receive `None`
+    /// rather than causing a parse failure that silently resets the whole struct.
+    pub fn query<T: DeserializeOwned + Default>(&self) -> T {
+        let cleaned = self
+            .raw_query
+            .split('&')
+            .filter(|pair| pair.split('=').nth(1).is_none_or(|v| !v.is_empty()))
+            .collect::<Vec<_>>()
+            .join("&");
+        serde_urlencoded::from_str(&cleaned).unwrap_or_default()
     }
 
     /// Returns an `UrlParams` combining path and query — to be passed to `form.cleaned()`

@@ -1,7 +1,7 @@
 //! `Forms` — main form container: fields, validation, rendering, CSRF management.
 use crate::forms::{
     base::FormField,
-    fields::HiddenField,
+    fields::{ChoiceField, HiddenField},
     generic::GenericField,
     renderer::FormRenderer,
     validator::{FormValidator, ValidationError},
@@ -188,6 +188,29 @@ impl Forms {
             .insert(field.name().to_string(), Box::new(field));
     }
 
+    /// Replaces a field with a `ChoiceField` populated with the given options.
+    /// Preserves the current value (pre-selects the matching option) and the required flag.
+    /// Used by the admin daemon to inject FK select options loaded from the DB.
+    pub fn field_choices(&mut self, name: &str, label: &str, choices: Vec<(String, String)>) {
+        let current_value = self
+            .fields
+            .get(name)
+            .map(|f| f.value().to_string())
+            .unwrap_or_default();
+        let required = self.fields.get(name).map(|f| f.required()).unwrap_or(false);
+        let mut cf = ChoiceField::new(name).label(label);
+        if required {
+            cf = cf.required();
+        }
+        for (val, lbl) in choices {
+            cf = cf.add_choice(&val, &lbl);
+        }
+        if !current_value.is_empty() {
+            cf.base.value = current_value;
+        }
+        self.field_generic(cf.into());
+    }
+
     pub fn field<T>(&mut self, field_template: &T)
     where
         T: FormField + Clone + Into<GenericField> + 'static,
@@ -222,11 +245,13 @@ impl Forms {
             }
         }
         // Normalizes checkboxes/radios absent from POST → "false".
-        // A browser does not send unchecked boxes: without this normalization,
-        // their value would remain "" and get_string().is_empty() would return true wrongly.
+        // A browser does not send unchecked boxes: without this normalization a checkbox
+        // with default=true would keep its "true" default even when unchecked.
         if allow_password {
             for field in self.fields.values_mut() {
-                if matches!(field.field_type(), "checkbox" | "radio") && field.value().is_empty() {
+                if matches!(field.field_type(), "checkbox" | "radio")
+                    && !data.contains_key(field.name())
+                {
                     field.set_value("false");
                 }
             }

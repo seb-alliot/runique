@@ -8,7 +8,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "2.1.1"
+version = "2.1.2"
 edition = "2024"
 rust-version = "1.88"
 authors = ["Itsuki"]
@@ -20,7 +20,7 @@ homepage = "https://runique.io/"
 # Framework web
 axum = { version = "0.8.7", features = ["macros", "form" ,"multipart"] }
 tower = { version = "0.5.3", features = ["util"] }
-tower-http = { version = "0.6.8", features = ["fs", "util", "trace", "timeout","compression-full", "set-header"] }
+tower-http = { version = "0.6.8", features = ["fs", "util", "trace", "timeout","compression-full", "set-header", "cors"] }
 tower-sessions = "0.15.0"
 
 # Runtime asyn
@@ -45,6 +45,7 @@ sea-query = { version = "1.0.0-rc.27" }
 # Utilitaires
 dotenvy = "0.15"
 chrono = { version = "0.4.44", features = ["serde"] }
+chrono-tz = "0.10"
 anyhow = "1.0"
 regex = "1.12.2"
 fancy-regex = "0.18.0"
@@ -62,8 +63,7 @@ image = { version = "0.25.10", features = ["avif"] }
 dialoguer = "0.12"
 walkdir = "2.5.0"
 
-derive_form = "2.0.2"
-
+derive_form = { path = "runique/derive_form" }
 # Logging
 tracing = "0.1"
 tracing-futures = "0.2.5"

@@ -70,6 +70,15 @@ pub async fn csrf_middleware(
         }
     }
 
+    // Skip CSRF for exempt paths (webhooks with their own signature verification)
+    if engine
+        .csrf_exempt_paths
+        .iter()
+        .any(|p| p == req.uri().path())
+    {
+        return next.run(req).await;
+    }
+
     let secret = &engine.config.server.secret_key;
 
     // Retrieve or generate the session token

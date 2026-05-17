@@ -70,6 +70,12 @@ impl PathAdminTemplate {
             runique: "admin/list_partial",
         }
     }
+    pub fn bulk_edit() -> Self {
+        Self {
+            dev: None,
+            runique: "admin/bulk_edit",
+        }
+    }
 }
 
 /// Global configuration for admin templates.
@@ -100,6 +106,7 @@ pub struct AdminTemplate {
     pub base: PathAdminTemplate,
     /// Template for HTMX partial responses (fragment only, no layout).
     pub htmx: PathAdminTemplate,
+    pub bulk_edit: PathAdminTemplate,
 }
 
 impl AdminTemplate {
@@ -114,6 +121,7 @@ impl AdminTemplate {
             login: PathAdminTemplate::login(),
             base: PathAdminTemplate::base(),
             htmx: PathAdminTemplate::htmx(),
+            bulk_edit: PathAdminTemplate::bulk_edit(),
         }
     }
     #[must_use]
@@ -159,6 +167,11 @@ impl AdminTemplate {
     #[must_use]
     pub fn with_htmx(mut self, path: &str) -> Self {
         self.htmx.dev = Some(path.to_string());
+        self
+    }
+    #[must_use]
+    pub fn with_bulk_edit(mut self, path: &str) -> Self {
+        self.bulk_edit.dev = Some(path.to_string());
         self
     }
 }

@@ -15,7 +15,7 @@
         {% if disabled.choice %}disabled{% endif %}
     >
         {% if field.placeholder %}
-        <option value="" disabled {% if not field.value %}selected{% endif %}>{{ field.placeholder }}</option>
+        <option value="" {% if not field.value %}selected{% endif %}>{{ field.placeholder }}</option>
         {% endif %}
 
         {% for choice in choices %}

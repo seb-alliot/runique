@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 {% block lang %}
-    <html lang="{{ lang }}">
+    <html lang="{{ lang | default(value="fr") }}">
 {% endblock %}
 <head>
     <meta charset="UTF-8">
@@ -39,6 +39,17 @@
 </div>
 
 {% endblock %}
+
+<div class="rq-modal-overlay" id="rqModalOverlay" role="dialog" aria-modal="true" aria-labelledby="rqModalTitle">
+    <div class="rq-modal-box">
+        <p class="rq-modal-title" id="rqModalTitle"></p>
+        <p class="rq-modal-msg" id="rqModalMsg"></p>
+        <div class="rq-modal-actions">
+            <button type="button" class="btn btn-ghost btn-sm" id="rqModalCancel"></button>
+            <button type="button" class="btn btn-danger btn-sm" id="rqModalOk"></button>
+        </div>
+    </div>
+</div>
 
 <script {% csp %} src="{{ "js/csrf.js" | runique_static }}" defer></script>
 

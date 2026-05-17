@@ -11,7 +11,7 @@
 
 use async_trait::async_trait;
 use axum::{Router, routing::get};
-use runique::admin::AdminConfig;
+use runique::admin::{AdminConfig, AdminRoutes};
 use runique::app::staging::{AdminStaging, CoreStaging, MiddlewareStaging, StaticStaging};
 use runique::app::{BuildError, BuildErrorKind, CheckError, CheckReport, RuniqueAppBuilder};
 use runique::auth::session::{AdminAuth, AdminLoginResult};
@@ -762,8 +762,10 @@ fn test_admin_staging_site_title() {
 #[test]
 fn test_admin_staging_routes_stocke_router() {
     let router = Router::new().route("/admin/test", get(|| async { "ok" }));
-    let a = AdminStaging::new().routes(router);
+    let admin_routes = AdminRoutes::new("/admin", router);
+    let a = AdminStaging::new().routes(admin_routes);
     assert!(a.route_admin.is_some());
+    assert_eq!(a.config.prefix, "/admin");
 }
 
 #[test]

@@ -461,3 +461,9 @@
     .admin-content { padding: 2rem 2.5rem; }
     .stats-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
 }
+
+@media (max-width: 480px) {
+    .bulk-perm-grid { gap: 0.5rem 1rem; }
+    .bulk-perm-grid .boolean-field { min-width: 110px; }
+    .bulk-section-header { flex-direction: column; align-items: flex-start; }
+}

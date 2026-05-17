@@ -92,6 +92,24 @@ pub type FilterFn = Arc<
         + Sync,
 >;
 
+/// Options for a single M2M field, passed to the create/edit template context.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct M2mFieldOptions {
+    /// Form field name (e.g., "allergenes")
+    pub field_name: String,
+    /// Human-readable label (e.g., "Allergènes")
+    pub label: String,
+    /// All available choices: (id as String, display label)
+    pub choices: Vec<(String, String)>,
+    /// Currently selected IDs (empty for create, pre-filled for edit)
+    pub selected: Vec<String>,
+}
+
+/// Loads M2M field options for the create/edit form.
+/// `object_id`: None for create, Some(id) for edit (to pre-select existing relations).
+pub type M2mLoaderFn =
+    Arc<dyn Fn(ADb, Option<String>) -> BoxFuture<'static, Vec<M2mFieldOptions>> + Send + Sync>;
+
 /// One field available for group (bulk) update in the list view.
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct GroupAction {
@@ -112,6 +130,15 @@ impl GroupAction {
             ],
         }
     }
+
+    /// Single-value action: submits exactly one fixed value for the field.
+    pub fn val(field: &str, label: &str, value: &str) -> Self {
+        Self {
+            field: field.to_string(),
+            label: label.to_string(),
+            choices: vec![(value.to_string(), label.to_string())],
+        }
+    }
 }
 
 /// Admin registry entry: metadata + CRUD closures.
@@ -128,6 +155,7 @@ pub struct ResourceEntry {
     pub count_fn: Option<CountFn>,
     pub filter_fn: Option<FilterFn>,
     pub group_actions: Vec<GroupAction>,
+    pub m2m_loader: Option<M2mLoaderFn>,
 }
 
 impl ResourceEntry {
@@ -145,7 +173,13 @@ impl ResourceEntry {
             count_fn: None,
             filter_fn: None,
             group_actions: Vec::new(),
+            m2m_loader: None,
         }
+    }
+    #[must_use]
+    pub fn with_m2m_loader(mut self, f: M2mLoaderFn) -> Self {
+        self.m2m_loader = Some(f);
+        self
     }
     #[must_use]
     pub fn with_edit_form_builder(mut self, f: FormBuilder) -> Self {
@@ -194,7 +228,15 @@ impl ResourceEntry {
     }
     #[must_use]
     pub fn with_group_actions(mut self, actions: Vec<GroupAction>) -> Self {
-        self.group_actions = actions;
+        let mut merged: Vec<GroupAction> = Vec::new();
+        for action in actions {
+            if let Some(existing) = merged.iter_mut().find(|a| a.field == action.field) {
+                existing.choices.extend(action.choices);
+            } else {
+                merged.push(action);
+            }
+        }
+        self.group_actions = merged;
         self
     }
 }

@@ -4,12 +4,21 @@ model! {
     DemoPage,
     table: "demo_page",
     pk: id => Pk,
+    enums: {
+        PageType: [
+            Code = "code",
+            Form = "form",
+            Custom = "custom",
+            DocEn = "doc_en",
+            DocFr = "doc_fr"
+        ],
+    },
     {
         category_id: int [required],
         slug:        text [required],
         title:       text [required],
         lead:        text,
-        page_type:   text [required],
+        page_type:   choice [enum(PageType), required],
         sort_order:  int [required],
     },
     relations: {

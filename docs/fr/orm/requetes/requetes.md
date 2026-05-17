@@ -171,6 +171,18 @@ let blocked: Vec<i32> = get_blocked_ids();
 let clean = search!(users::Entity => Id not_in (blocked)).all(&*db).await?;
 ```
 
+> **Note — inférence de type avec `in (expr)`**
+>
+> La macro convertit `$val` en `Vec<_>` en interne avant de l'appeler avec `is_in`.
+> Cela évite les erreurs d'inférence dans les contextes où le type de retour global
+> est complexe (ex: `HashMap<i32, String>`).
+> Si le compilateur ne parvient pas à inférer le type des éléments, annoter la variable :
+>
+> ```rust
+> let ids: Vec<i32> = lignes.iter().filter_map(|l| l.plat_id).collect();
+> let plats = search!(plat::Entity => Id in (ids)).all(db).await?;
+> ```
+
 ### BETWEEN / NOT BETWEEN
 
 ```rust
@@ -218,6 +230,43 @@ search!(users::Entity =>
     or(Title icontains q, Bio icontains q), // OR multi-colonnes
 )
 ```
+
+### `order_by_random()` — ordre aléatoire
+
+```rust
+let selection = search!(produit::Entity => Disponible eq true)
+    .order_by_random()
+    .limit(5)
+    .all(&*db).await?;
+```
+
+### `order_by_expr(expr, order)` — expression custom
+
+Accepte toute expression SeaORM `IntoSimpleExpr` — utile pour colonnes calculées, COALESCE, CASE, etc.
+
+```rust
+use sea_orm::Order;
+use sea_orm::sea_query::Expr;
+
+let results = search!(produit::Entity)
+    .order_by_expr(Expr::col(produit::Column::Prix), Order::Desc)
+    .all(&*db).await?;
+```
+
+### `.one()` — exactement un résultat attendu
+
+Retourne `Ok(None)` si aucune ligne ne correspond, `Ok(Some(model))` si exactement une, et `Err` si plus d'une ligne correspond. Analogue au `.get()` de Django.
+
+Charge au plus 2 lignes en interne pour détecter le cas ambigu sans scan complet.
+
+```rust
+// Retourne Err si plusieurs admins actifs correspondent
+let admin = search!(users::Entity => IsStaff eq true, Username eq "alice")
+    .one(&*db)
+    .await?; // Result<Option<users::Model>, DbErr>
+```
+
+Utilisez `.first()` à la place si vous voulez seulement la première ligne d'un résultat potentiellement multiple, sans erreur.
 
 ### `.into_select()` — projection partielle
 

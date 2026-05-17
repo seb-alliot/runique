@@ -128,7 +128,8 @@ pub mod prelude {
         handle_forgot_password, handle_password_reset,
     };
     pub use crate::middleware::{
-        allowed_hosts::*, cache::*, config::*, csp::*, csrf::*, errors::*, rate_limit::RateLimiter,
+        allowed_hosts::*, cache::*, config::*, csp::*, csrf::*, errors::*, permissions_policy::*,
+        rate_limit::RateLimiter, trusted_proxies::*,
     };
 
     // ========================================================================
@@ -215,7 +216,7 @@ pub mod prelude {
             dyn_form::DynForm,
             resource_entry::{
                 CountFn, CreateFn, DeleteFn, FilterFn, FormBuilder, GetFn, GroupAction, ListFn,
-                ListParams, ResourceEntry, SortDir, UpdateFn,
+                ListParams, M2mFieldOptions, M2mLoaderFn, ResourceEntry, SortDir, UpdateFn,
             },
         },
         registry::AdminRegistry,
@@ -223,7 +224,9 @@ pub mod prelude {
             AdminIdType, AdminResource, ColumnFilter, CrudOperation, DisplayConfig,
             ResourcePermissions,
         },
+        router::admin_router::AdminState,
         table_admin::migrations_table,
+        trad::{inject_admin_prefix, insert_admin_messages},
     };
     pub use futures_util::future::BoxFuture;
 }

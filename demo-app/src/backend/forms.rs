@@ -31,8 +31,8 @@ pub struct HelpersData {
 
 pub fn extract_helpers_data(request: &Request, cleaned_search: Option<String>) -> HelpersData {
     HelpersData {
-        path_id: request.path_param("id").map(|s| s.to_string()),
-        search_value: request.from_url("search").map(|s| s.to_string()),
+        path_id: request.get_path("id").map(|s| s.to_string()),
+        search_value: request.get_query("search").map(|s| s.to_string()),
         cleaned_search,
     }
 }

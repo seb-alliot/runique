@@ -1,11 +1,14 @@
 //! Middleware staging: configuration API for the middleware stack.
 mod applicator;
 
+use super::cors_config::CorsConfig;
 use super::csp_config::CspConfig;
 use super::host_config::HostConfig;
+use super::permissions_policy_config::PermissionsPolicyConfig;
+use super::trusted_proxies_config::TrustedProxiesConfig;
 use crate::app::error_build::BuildError;
 use crate::config::RuniqueConfig;
-use crate::middleware::{MiddlewareConfig, SecurityPolicy};
+use crate::middleware::{MiddlewareConfig, PermissionsPolicy, SecurityPolicy};
 use axum::Router;
 use tower_sessions::cookie::time::Duration;
 use tower_sessions::{Expiry, SessionManagerLayer, SessionStore};
@@ -53,6 +56,15 @@ pub struct MiddlewareStaging {
 
     /// Allowed hosts defined via the builder
     pub(crate) allowed_hosts: Vec<String>,
+
+    /// CORS configuration (None = CORS désactivé)
+    pub(crate) cors_config: Option<CorsConfig>,
+    /// Chemins exemptés de la validation CSRF (ex: endpoints webhook)
+    pub(crate) csrf_exempt_paths: Vec<String>,
+    /// Permissions-Policy header configuration (None = default secure preset)
+    pub(crate) permissions_policy: Option<PermissionsPolicy>,
+    /// Trusted proxies configuration (None = default: private networks)
+    pub(crate) trusted_proxies_config: Option<TrustedProxiesConfig>,
 }
 
 impl MiddlewareStaging {
@@ -76,6 +88,10 @@ impl MiddlewareStaging {
             custom_middlewares: Vec::new(),
             security_policy: None,
             allowed_hosts: Vec::new(),
+            cors_config: None,
+            csrf_exempt_paths: Vec::new(),
+            permissions_policy: None,
+            trusted_proxies_config: None,
         }
     }
 
@@ -126,6 +142,10 @@ impl MiddlewareStaging {
             custom_middlewares: Vec::new(),
             security_policy: None,
             allowed_hosts: Vec::new(),
+            cors_config: None,
+            csrf_exempt_paths: Vec::new(),
+            permissions_policy: None,
+            trusted_proxies_config: None,
         }
     }
 
@@ -318,11 +338,128 @@ impl MiddlewareStaging {
     }
 
     // ═══════════════════════════════════════════════════
+    // CSRF exemptions
+    // ═══════════════════════════════════════════════════
+
+    /// Exempte des chemins de la validation CSRF.
+    ///
+    /// À utiliser pour les endpoints qui reçoivent des requêtes tierces signées
+    /// (webhooks Stripe, GitHub, etc.) — ces endpoints doivent implémenter
+    /// leur propre vérification de signature en remplacement du CSRF.
+    ///
+    /// # Example
+    /// ```rust,ignore
+    /// .middleware(|m| {
+    ///     m.csrf_exempt(vec!["/webhook/stripe", "/webhook/github"])
+    /// })
+    /// ```
+    pub fn csrf_exempt(mut self, paths: Vec<impl Into<String>>) -> Self {
+        self.csrf_exempt_paths = paths.into_iter().map(Into::into).collect();
+        self
+    }
+
+    // ═══════════════════════════════════════════════════
+    // CORS
+    // ═══════════════════════════════════════════════════
+
+    /// Configure CORS via une closure.
+    ///
+    /// Désactivé par défaut. Appeler `.origin()` ou `.any_origin()` pour activer.
+    /// La combinaison `any_origin()` + `allow_credentials(true)` déclenche un `BuildError`.
+    ///
+    /// # Example — frontend cross-origin authentifié
+    /// ```rust,ignore
+    /// .middleware(|m| {
+    ///     m.with_cors(|c| {
+    ///         c.origin("https://app.monsite.com")
+    ///          .allow_credentials(true)
+    ///     })
+    /// })
+    /// ```
+    ///
+    /// # Example — API publique sans session
+    /// ```rust,ignore
+    /// m.with_cors(|c| c.any_origin())
+    /// ```
+    pub fn with_cors(mut self, f: impl FnOnce(CorsConfig) -> CorsConfig) -> Self {
+        self.cors_config = Some(f(CorsConfig::default()));
+        self
+    }
+
+    // ═══════════════════════════════════════════════════
+    // Permissions-Policy
+    // ═══════════════════════════════════════════════════
+
+    /// Configures the Permissions-Policy header via a closure.
+    ///
+    /// Starts from a secure default (denies geolocation, camera, microphone,
+    /// payment, usb, bluetooth, etc.). Call methods to override individual directives.
+    /// To keep the default: do not call `.with_permissions_policy` at all.
+    ///
+    /// # Example
+    /// ```rust,ignore
+    /// .middleware(|m| {
+    ///     m.with_permissions_policy(|p| {
+    ///         p.deny("geolocation")
+    ///          .allow_self("fullscreen")
+    ///          .allow("payment", vec!["https://pay.example.com"])
+    ///     })
+    /// })
+    /// ```
+    pub fn with_permissions_policy(
+        mut self,
+        f: impl FnOnce(PermissionsPolicyConfig) -> PermissionsPolicyConfig,
+    ) -> Self {
+        self.permissions_policy = Some(f(PermissionsPolicyConfig::default()).build());
+        self
+    }
+
+    // ═══════════════════════════════════════════════════
+    // Trusted Proxies
+    // ═══════════════════════════════════════════════════
+
+    /// Configures trusted proxies via a closure.
+    ///
+    /// Starts from a secure default (private networks: RFC 1918 + loopback).
+    /// The middleware always runs and injects `ClientIp` into every request.
+    ///
+    /// # Example — behind nginx + Cloudflare
+    /// ```rust,ignore
+    /// .middleware(|m| {
+    ///     m.with_trusted_proxies(|t| {
+    ///         t.private_networks()
+    ///          .cidr("103.21.244.0/22")   // Cloudflare range
+    ///     })
+    /// })
+    /// ```
+    ///
+    /// # Example — direct internet exposure (no proxy)
+    /// ```rust,ignore
+    /// m.with_trusted_proxies(|t| t.none())
+    /// ```
+    pub fn with_trusted_proxies(
+        mut self,
+        f: impl FnOnce(TrustedProxiesConfig) -> TrustedProxiesConfig,
+    ) -> Self {
+        self.trusted_proxies_config = Some(f(TrustedProxiesConfig::default()));
+        self
+    }
+
+    // ═══════════════════════════════════════════════════
     // Validation
     // ═══════════════════════════════════════════════════
 
     /// Validates the consistency of the middleware configuration
     pub fn validate(&self) -> Result<(), BuildError> {
+        if let Some(cors) = &self.cors_config
+            && cors.is_wildcard()
+            && cors.allow_credentials
+        {
+            return Err(BuildError::validation(
+                "CORS: any_origin() (*) is incompatible with allow_credentials(true). \
+                 Use explicit origins instead: .origin(\"https://app.example.com\")",
+            ));
+        }
         Ok(())
     }
 

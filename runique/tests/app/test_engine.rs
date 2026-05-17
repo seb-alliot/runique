@@ -40,8 +40,12 @@ async fn test_attach_middlewares_with_host_validation_enabled() {
         features,
         security_csp: Arc::new(SecurityPolicy::default()),
         security_hosts: Arc::new(HostPolicy::new(vec!["localhost".to_string()], false)),
+        csrf_exempt_paths: Arc::new(vec![]),
+        permissions_policy: Arc::new(runique::middleware::PermissionsPolicy::default()),
+        trusted_proxies: Arc::new(runique::middleware::TrustedProxies::default()),
         session_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
         session_db_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
+        custom_db: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
     });
 
     let router = RuniqueEngine::attach_middlewares(engine, Router::new());
@@ -70,8 +74,12 @@ async fn test_attach_middlewares_with_https_redirect() {
         features: MiddlewareConfig::default(),
         security_csp: Arc::new(SecurityPolicy::default()),
         security_hosts: Arc::new(HostPolicy::new(vec![], true)),
+        csrf_exempt_paths: Arc::new(vec![]),
+        permissions_policy: Arc::new(runique::middleware::PermissionsPolicy::default()),
+        trusted_proxies: Arc::new(runique::middleware::TrustedProxies::default()),
         session_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
         session_db_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
+        custom_db: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
     });
 
     let router = RuniqueEngine::attach_middlewares(engine, Router::new());

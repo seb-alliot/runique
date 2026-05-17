@@ -7,16 +7,7 @@ use quote::quote;
 pub fn generate_sea_model(model: &ModelInput) -> TokenStream2 {
     let table = &model.table;
     let pk_field = generate_pk_field(model);
-    let fields: Vec<TokenStream2> = model
-        .fields
-        .iter()
-        .filter(|f| {
-            !f.options
-                .iter()
-                .any(|o| matches!(o, FieldOption::AutoNow | FieldOption::AutoNowUpdate))
-        })
-        .map(generate_model_field)
-        .collect();
+    let fields: Vec<TokenStream2> = model.fields.iter().map(generate_model_field).collect();
 
     quote! {
         #[derive(Clone, Debug, PartialEq, ::sea_orm::DeriveEntityModel, ::serde::Serialize, ::serde::Deserialize)]
@@ -43,10 +34,15 @@ fn generate_pk_field(model: &ModelInput) -> TokenStream2 {
 
 fn generate_model_field(field: &FieldDef) -> TokenStream2 {
     let name = &field.name;
-    let nullable = field
+    let is_auto = field
         .options
         .iter()
-        .any(|o| matches!(o, FieldOption::Nullable));
+        .any(|o| matches!(o, FieldOption::AutoNow | FieldOption::AutoNowUpdate));
+    let nullable = is_auto
+        || field
+            .options
+            .iter()
+            .any(|o| matches!(o, FieldOption::Nullable));
     let base_ty = field_type_to_rust(&field.ty);
 
     let ty = if nullable {

@@ -195,7 +195,10 @@ fn render_404(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -
     context.insert("error_text", &t("html.404_text"));
     context.insert("back_home", &t("html.back_home"));
 
-    let mut response = match tera.render("404", &context) {
+    let rendered = tera
+        .render("404.html", &context)
+        .or_else(|_| tera.render("404", &context));
+    let mut response = match rendered {
         Ok(html) => (StatusCode::NOT_FOUND, Html(html)).into_response(),
         Err(e) => {
             error!("Failed to render 404 template: {}", e);
@@ -229,7 +232,10 @@ fn render_500(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -
     context.insert("error_text", &t("html.500_text"));
     context.insert("back_home", &t("html.back_home"));
 
-    let mut response = match tera.render("500", &context) {
+    let rendered = tera
+        .render("500.html", &context)
+        .or_else(|_| tera.render("500", &context));
+    let mut response = match rendered {
         Ok(html) => (StatusCode::INTERNAL_SERVER_ERROR, Html(html)).into_response(),
         Err(e) => {
             error!("Failed to render 500 template: {}", e);

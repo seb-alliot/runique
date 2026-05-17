@@ -179,16 +179,89 @@ admin! {
     users: users::Model => RegisterForm {
         title: "Users",
         group_action: [
-            ["is_active", "Activate"],
-            ["is_active", "Deactivate"],
+            ["is_active", "Activate"],   // 2-element: boolean field → submits "true"
         ]
     }
 }
 ```
 
-Each entry is a pair `["field_name", "Label"]`. The `handle_group_set` handler applies the `ga_*`-prefixed field value to all selected rows via `partial_update_fn`.
+Each 2-element entry `["field_name", "Label"]` targets a **boolean field** and submits `"true"` via `partial_update_fn`.
+
+For **enum fields**, use the 3-element syntax to submit an exact string value:
+
+```rust
+admin! {
+    reviews: review::Model => review::AdminForm {
+        title: "Reviews",
+        group_action: [
+            ["status", "Approve", "approved"],  // 3-element: submits "approved"
+            ["status", "Reject",  "rejected"],  // 3-element: submits "rejected"
+        ]
+    }
+}
+```
+
+Multiple entries targeting the **same field** are automatically merged into a single dropdown in the interface, preventing form conflicts.
 
 Also available in `configure {}` for builtin resources.
+
+---
+
+#### `bulk_create`
+
+When declared on a resource, the generated `create_fn` splits the named field by comma and inserts one record per value. Designed for `CheckboxField` multi-select (e.g. selecting multiple days of the week to create one row per day).
+
+```rust
+admin! {
+    horaires: horaire::Model => HoraireForm {
+        title: "Schedules",
+        bulk_create: jour,   // splits data["jour"] by comma, inserts one row per value
+    }
+}
+```
+
+Only the split field behaves differently — all other form fields are copied as-is into each inserted record.
+
+---
+
+#### `m2m`
+
+Declares many-to-many relations managed through a junction table. The daemon generates a `M2mLoaderFn` closure that loads available choices and pre-selects existing associations.
+
+```rust
+admin! {
+    articles: article::Model => ArticleForm {
+        title: "Articles",
+        m2m: [
+            ["tags", "Tags", "article_tags", "article_id", "tag_id", "tags::Entity", "name"],
+        ]
+    }
+}
+```
+
+Each entry is a 7-element array:
+
+| Position | Example | Description |
+| --- | --- | --- |
+| 1 | `"tags"` | Field name — used as the form field prefix (`m2m_tags__`) |
+| 2 | `"Tags"` | Label displayed in the create/edit form |
+| 3 | `"article_tags"` | Junction table name |
+| 4 | `"article_id"` | This entity's FK column in the junction table |
+| 5 | `"tag_id"` | Target entity's FK column in the junction table |
+| 6 | `"tags::Entity"` | Target SeaORM entity path |
+| 7 | `"name"` | Column from the target table used as display label in the form |
+
+In create/edit forms, all available choices are loaded from the target table and existing associations are pre-selected. On submit, submitted values (prefixed `m2m_field__`) are diffed against the current state — only inserts and deletes are applied.
+
+---
+
+#### Bulk edit
+
+Bulk edit requires no DSL declaration. When entries are selected in the list view and the bulk-edit action is triggered, a form is rendered with all shared editable fields.
+
+On submit, each record is updated independently. Only fields with non-empty submitted values are applied — leaving a select blank means "no change". Unique-constraint violations skip that record with a warning rather than aborting the batch.
+
+The bulk edit form uses the same form type as the create/edit view. To customise the template, override `admin/bulk_edit.html`.
 
 ---
 
@@ -247,6 +320,8 @@ The `admin!` macro covers only **registry metadata**:
 - visible columns in the list view (`list_display`)
 - sidebar filters with optional per-column limit (`list_filter`)
 - bulk actions (`group_action`)
+- multi-record creation from a comma-split field (`bulk_create`)
+- many-to-many relations through a junction table (`m2m`)
 - additional per-resource Tera variables (`extra`)
 - display configuration for any resource including builtins (`configure {}`)
 

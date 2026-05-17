@@ -34,7 +34,7 @@
                     {{ error }}
                 </div>
                 {% endif %}
-                <form class="login-form" method="POST" action="/admin/login">
+                <form class="login-form" method="POST" action="{{ admin_prefix }}/login">
                     {% csrf %}
                     <div class="form-group">
                         <label class="form-label" for="username">{% if admin_login_label_username %}{{ admin_login_label_username }}{% endif %}</label>

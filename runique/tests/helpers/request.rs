@@ -113,12 +113,14 @@ pub async fn build_handler_req(
         context,
         method: Method::POST,
         path_params: Default::default(),
+        raw_query: String::new(),
         query_params: Default::default(),
         user,
         prisme: Prisme {
             data: body,
             csrf_valid: true,
         },
+        headers: Default::default(),
     }
 }
 

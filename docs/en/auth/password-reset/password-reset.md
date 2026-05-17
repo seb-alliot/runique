@@ -44,6 +44,7 @@ All options are optional — the defaults work without any changes.
     .reset_route("/reset-password")             // default: /reset-password
     .forgot_template("auth/forgot.html")        // default: auth/forgot_password.html
     .reset_template("auth/reset.html")          // default: auth/reset_password.html
+    .email_template("emails/reset.html")        // default: built-in template
     .success_redirect("/login")                 // default: /
     .base_url("https://mysite.com")             // used to build the link in the email
 )

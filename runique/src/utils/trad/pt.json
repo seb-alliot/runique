@@ -9,6 +9,7 @@
     "too_long": "Muito longo (máx {})",
     "email_invalid": "Formato de endereço de e-mail inválido",
     "url_invalid": "Por favor, insira uma URL válida",
+    "phone_invalid": "Número de telefone inválido (dígitos, +, espaços, hífens, 7-15 dígitos)",
     "hash_error": "Erro de hash: {}",
     "password_empty": "A senha não pode estar vazia",
     "filter_invalid_value": "O filtro static/media recebeu um valor inválido ({}) em vez de um caminho de arquivo.",
@@ -479,7 +480,7 @@
     "password_mismatch": "As senhas não coincidem.",
     "check_inbox": "Se este endereço estiver associado a uma conta, você receberá um email de redefinição.",
     "email_subject": "Redefinição de senha",
-    "email_body": "<p>Olá {0},</p><p>Clique no link a seguir para redefinir sua senha (válido por 1 hora):</p><p><a href=\"{1}\">{2}</a></p>"
+    "email_body": "<p>Olá {},</p><p>Clique no link a seguir para redefinir sua senha (válido por 1 hora):</p><p><a href=\"{}\">{}</a></p>"
   },
   "permission": {
     "col.id": "ID",

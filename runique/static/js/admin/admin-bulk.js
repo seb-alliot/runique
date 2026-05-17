@@ -1,31 +1,30 @@
 (function () {
   "use strict";
 
-  function init() {
-    const checkAll = document.getElementById("bulk-check-all");
+  function getChecked() {
+    return Array.from(document.querySelectorAll(".bulk-check:checked"));
+  }
+
+  function collectIds() {
+    return getChecked().map((cb) => cb.value).join(",");
+  }
+
+  // Always look up live elements to avoid stale references after HTMX swaps.
+  const getBulkForm    = () => document.getElementById("bulk-form");
+  const getIdsInput    = () => document.getElementById("bulk-ids-input");
+  const getActionInput = () => document.getElementById("bulk-action-input");
+
+  const updateBar = function () {
     const bar = document.getElementById("bulk-action-bar");
     const countEl = document.getElementById("bulk-count");
-    const idsInput = document.getElementById("bulk-ids-input");
-    const actionInput = document.getElementById("bulk-action-input");
-    const bulkForm = document.getElementById("bulk-form");
+    if (!bar) return;
+    const n = getChecked().length;
+    if (countEl) countEl.textContent = n;
+    bar.classList.toggle("bulk-bar-visible", n > 0);
+  }
 
-    if (!bar || !bulkForm) return;
-
-    function getChecked() {
-      return Array.from(document.querySelectorAll(".bulk-check:checked"));
-    }
-
-    function updateBar() {
-      const checked = getChecked();
-      const n = checked.length;
-      if (countEl) countEl.textContent = n;
-      bar.classList.toggle("bulk-bar-visible", n > 0);
-    }
-
-    function collectIds() {
-      return getChecked().map((cb) => cb.value).join(",");
-    }
-
+  const bindCheckboxes = function () {
+    const checkAll = document.getElementById("bulk-check-all");
     if (checkAll) {
       checkAll.addEventListener("change", function () {
         document
@@ -37,41 +36,69 @@
 
     document.querySelectorAll(".bulk-check").forEach((cb) => {
       cb.addEventListener("change", function () {
-        if (checkAll && !this.checked) checkAll.checked = false;
+        const all = document.getElementById("bulk-check-all");
+        if (all && !this.checked) all.checked = false;
         updateBar();
-      });
-    });
-
-    bulkForm.addEventListener("submit", function (e) {
-      idsInput.value = collectIds();
-      if (!idsInput.value) {
-        e.preventDefault();
-        return;
-      }
-    });
-
-    document.querySelectorAll("[data-bulk-action]").forEach((btn) => {
-      btn.addEventListener("click", function (e) {
-        const action = this.dataset.bulkAction;
-        const n = getChecked().length;
-        if (action === "delete") {
-          if (!confirm("Supprimer " + n + " élément(s) ? Cette action est irréversible.")) {
-            e.preventDefault();
-            return;
-          }
-        }
-        actionInput.value = action;
-        idsInput.value = collectIds();
-        bulkForm.submit();
       });
     });
 
     updateBar();
   }
 
+  // Event delegation on document — survives HTMX swaps.
+  document.addEventListener("click", function (e) {
+    const btn = e.target.closest("[data-bulk-action]");
+    if (!btn) return;
+
+    const bulkForm = getBulkForm();
+    const idsInput = getIdsInput();
+    const actionInput = getActionInput();
+    if (!bulkForm || !idsInput || !actionInput) return;
+
+    const action = btn.dataset.bulkAction;
+    const n = getChecked().length;
+
+    if (action === "delete") {
+      e.preventDefault();
+      const msg = "Supprimer " + n + " élément(s) ? Cette action est irréversible.";
+      const doDelete = () => {
+        actionInput.value = "delete";
+        idsInput.value = collectIds();
+        bulkForm.submit();
+      };
+      if (typeof window.runique_confirm === "function") {
+        window.runique_confirm(msg, { okLabel: "Supprimer", cancelLabel: "Annuler" }).then(
+          (ok) => { if (ok) doDelete(); }
+        );
+      } else if (window.confirm(msg)) {
+        doDelete();
+      }
+      return;
+    }
+
+    if (action === "bulk-edit") {
+      const ids = collectIds();
+      if (!ids) return;
+      const base = bulkForm.action.replace(/\/bulk$/, "/bulk");
+      window.location.href = base + "?ids=" + encodeURIComponent(ids);
+      return;
+    }
+
+    actionInput.value = action;
+    idsInput.value = collectIds();
+    bulkForm.submit();
+  });
+
+  // Après chaque swap HTMX, rebind les checkboxes recréées
+  document.addEventListener("htmx:afterSwap", function (e) {
+    if (e.target && e.target.id === "list-content") {
+      bindCheckboxes();
+    }
+  });
+
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
+    document.addEventListener("DOMContentLoaded", bindCheckboxes);
   } else {
-    init();
+    bindCheckboxes();
   }
 })();

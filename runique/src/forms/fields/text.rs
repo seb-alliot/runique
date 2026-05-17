@@ -31,6 +31,7 @@ pub enum SpecialFormat {
     Password,
     RichText,
     Csrf,
+    Phone,
 }
 impl CommonFieldConfig for TextField {
     fn get_field_config(&self) -> &FieldConfig {
@@ -94,6 +95,9 @@ impl TextField {
     }
     pub fn url(name: &str) -> Self {
         Self::create(name, "url", SpecialFormat::Url)
+    }
+    pub fn phone(name: &str) -> Self {
+        Self::create(name, "tel", SpecialFormat::Phone)
     }
 
     // Builder methods
@@ -203,6 +207,19 @@ impl FormField for TextField {
             SpecialFormat::Url if !val.validate_url() => {
                 self.set_error(t("forms.url_invalid").to_string());
                 return false;
+            }
+            SpecialFormat::Phone => {
+                let digit_count = val.chars().filter(|c| c.is_ascii_digit()).count();
+                let has_only_valid_chars = val
+                    .chars()
+                    .all(|c| c.is_ascii_digit() || matches!(c, '+' | ' ' | '-' | '(' | ')'));
+                // '+' autorisé uniquement en première position
+                let plus_only_at_start = val.match_indices('+').all(|(i, _)| i == 0);
+                if !has_only_valid_chars || !plus_only_at_start || !(7..=15).contains(&digit_count)
+                {
+                    self.set_error(t("forms.phone_invalid").to_string());
+                    return false;
+                }
             }
             _ => {}
         }

@@ -5,7 +5,7 @@
 {% block title %}Diff — {{ entry.resource_key }} #{{ entry.object_pk }}{% endblock %}
 {% block breadcrumb %}
   <span class="breadcrumb-sep">/</span>
-  <a href="/admin/history">Historique</a>
+  <a href="{{ admin_prefix }}/history">Historique</a>
   <span class="breadcrumb-sep">/</span>
   <span>Diff #{{ entry.id }}</span>
 {% endblock %}
@@ -16,7 +16,7 @@
     <h1 class="page-title">Diff — {{ entry.resource_key }}</h1>
     <p class="page-subtitle">Modifications enregistrées pour cet objet</p>
   </div>
-  <a href="/admin/history" class="btn btn-secondary btn-sm">← Historique</a>
+  <a href="{{ admin_prefix }}/history" class="btn btn-secondary btn-sm">← Historique</a>
 </div>
 
 <div class="card">
@@ -86,16 +86,16 @@
 
 <div class="history-nav">
   {% if entry.object_pk and entry.object_pk != "" %}
-  <a href="/admin/history/timeline?resource={{ entry.resource_key | urlencode }}&object_id={{ entry.object_pk | urlencode }}"
+  <a href="{{ admin_prefix }}/history/timeline?resource={{ entry.resource_key | urlencode }}&object_id={{ entry.object_pk | urlencode }}"
      class="btn btn-secondary btn-sm">
     Historique de cet objet
   </a>
   {% endif %}
-  <a href="/admin/history/timeline?resource={{ entry.resource_key | urlencode }}"
+  <a href="{{ admin_prefix }}/history/timeline?resource={{ entry.resource_key | urlencode }}"
      class="btn btn-secondary btn-sm">
     Historique de la table {{ entry.resource_key }}
   </a>
-  <a href="/admin/history/timeline?user_id={{ entry.user_id }}"
+  <a href="{{ admin_prefix }}/history/timeline?user_id={{ entry.user_id }}"
      class="btn btn-ghost btn-sm">
     Activité de {{ entry.username }}
   </a>

@@ -428,6 +428,8 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
     let mut files_to_write: Vec<(String, String)> = Vec::new(); // (path, content)
     let mut extra_dirs: Vec<String> = Vec::new();
     let mut lib_modules: Vec<String> = Vec::new();
+    // Schemas of new tables that have FK constraints — collected for the relations migration.
+    let mut schemas_with_fks: Vec<&ParsedSchema> = Vec::new();
 
     for change in &all_changes {
         let schema = schemas
@@ -435,18 +437,22 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
             .find(|s| s.table_name == change.table_name)
             .unwrap();
 
-        // Snapshot (always updated, without DB-specific SQL)
+        // Snapshot — includes FK stmts so future diffs detect FK additions/removals.
         files_to_write.push((
             snapshot_file_path(migrations_path, &change.table_name),
-            generate_create_file(schema, &crate::migration::utils::types::DbKind::Other),
+            generate_snapshot_file(schema),
         ));
 
         if change.is_new_table {
             let module_name = seaorm_create_module_name(&timestamp, &change.table_name);
             let seaorm_path =
                 seaorm_create_file_path(migrations_path, &timestamp, &change.table_name);
+            // CREATE TABLE without FK constraints — relations are added last via relations migration.
             files_to_write.push((seaorm_path, generate_create_file(schema, &db_kind)));
             lib_modules.push(module_name);
+            if !schema.foreign_keys.is_empty() {
+                schemas_with_fks.push(schema);
+            }
         } else {
             extra_dirs.push(table_applied_dir(migrations_path, &change.table_name));
             extra_dirs.push(batch_up_dir(migrations_path, &change.table_name));
@@ -489,12 +495,25 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
 
     let mut written: Vec<String> = Vec::new();
 
+    // Relations migration — all FK constraints grouped in a single last migration.
+    let relations_module = if !schemas_with_fks.is_empty() {
+        let module_name = format!("m{}_create_relations", timestamp);
+        let path = format!("{}/{}.rs", migrations_path, module_name);
+        files_to_write.push((path, generate_relations_file(&schemas_with_fks)));
+        Some(module_name)
+    } else {
+        None
+    };
+
     let write_result: Result<()> = (|| {
         for (path, content) in &files_to_write {
             fs::write(path, content).with_context(|| format!("Failed to write: {}", path))?;
             written.push(path.clone());
         }
         for module_name in &lib_modules {
+            update_migration_lib(migrations_path, module_name)?;
+        }
+        if let Some(ref module_name) = relations_module {
             update_migration_lib(migrations_path, module_name)?;
         }
         Ok(())
@@ -567,17 +586,19 @@ pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
     };
 
     let admin_box = "            Box::new(migrations_table::AdminTableMigration),";
+    let sessions_box = "            Box::new(migrations_table::EihwazSessionsMigration),";
     let users_box = "            Box::new(migrations_table::EihwazUsersMigration),";
     let user_pattern = format!("create_{}_table", user_table);
 
     let using_builtin_user = user_table == "eihwaz_users";
 
-    // Tables created by `EihwazUsersMigration` + `AdminTableMigration` — to exclude from the vec
+    // Tables created by `EihwazUsersMigration` + `EihwazSessionsMigration` + `AdminTableMigration` — to exclude from the vec
     const FRAMEWORK_TABLE_PATTERNS: &[&str] = &[
         "create_eihwaz_users_table",
         "create_eihwaz_groupes_table",
         "create_eihwaz_groupes_droits_table",
         "create_eihwaz_users_groupes_table",
+        "create_eihwaz_sessions_table",
     ];
 
     if using_builtin_user {
@@ -588,18 +609,20 @@ pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
             .lines()
             .filter(|l| {
                 !l.contains("migrations_table::EihwazUsersMigration")
+                    && !l.contains("migrations_table::EihwazSessionsMigration")
                     && !l.contains("migrations_table::AdminTableMigration")
                     && !FRAMEWORK_TABLE_PATTERNS.iter().any(|pat| l.contains(pat))
             })
             .map(|l| l.to_string())
             .collect();
 
-        // Insert both framework migrations at the start of vec![
+        // Insert all three framework migrations at the start of vec![
         if let Some(idx) = lines
             .iter()
             .position(|l| l.trim() == "vec![" || l.contains("vec!["))
         {
             lines.insert(idx + 1, admin_box.to_string());
+            lines.insert(idx + 1, sessions_box.to_string());
             lines.insert(idx + 1, users_box.to_string());
         }
 

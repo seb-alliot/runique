@@ -9,6 +9,7 @@
     "too_long": "Too long (max {})",
     "email_invalid": "Invalid email address format",
     "url_invalid": "Please enter a valid URL",
+    "phone_invalid": "Invalid phone number (digits, +, spaces, dashes allowed, 7-15 digits)",
     "hash_error": "Hashing error: {}",
     "password_empty": "Password cannot be empty",
     "filter_invalid_value": "The static/media filter received an invalid value ({}) instead of a file path.",
@@ -441,7 +442,7 @@
     "password_mismatch": "Passwords do not match.",
     "check_inbox": "If this address is associated with an account, you will receive a reset email.",
     "email_subject": "Password reset request",
-    "email_body": "<p>Hello {0},</p><p>Click the link below to reset your password (valid for 1 hour):</p><p><a href=\"{1}\">{2}</a></p>"
+    "email_body": "<p>Hello {},</p><p>Click the link below to reset your password (valid for 1 hour):</p><p><a href=\"{}\">{}</a></p>"
   },
   "makemigrations": {
     "scanning": "Scanning entities in '{}'...",

@@ -9,6 +9,7 @@
     "too_long": "Troppo lungo (max {})",
     "email_invalid": "Formato dell'indirizzo email non valido",
     "url_invalid": "Inserisci un URL valido",
+    "phone_invalid": "Numero di telefono non valido (cifre, +, spazi, trattini, 7-15 cifre)",
     "hash_error": "Errore di hashing: {}",
     "password_empty": "La password non può essere vuota",
     "filter_invalid_value": "Il filtro static/media ha ricevuto un valore non valido ({}) invece di un percorso di file.",
@@ -479,7 +480,7 @@
     "password_mismatch": "Le password non coincidono.",
     "check_inbox": "Se questo indirizzo è associato a un account, riceverà un'email di reimpostazione.",
     "email_subject": "Reimpostazione password",
-    "email_body": "<p>Ciao {0},</p><p>Clicca sul link seguente per reimpostare la password (valido per 1 ora):</p><p><a href=\"{1}\">{2}</a></p>"
+    "email_body": "<p>Ciao {},</p><p>Clicca sul link seguente per reimpostare la password (valido per 1 ora):</p><p><a href=\"{}\">{}</a></p>"
   },
   "permission": {
     "col.id": "ID",
