@@ -27,15 +27,16 @@
 //!   the lowest slot is applied LAST (.layer) = the most EXTERNAL
 //!
 //! RESULT on an incoming request:
-//!   → Extensions(0) → ErrorHandler(10) → Custom(20+)
-//!   → CSP(30) → Cache(40) → Session(50) → CSRF(60)
+//!   → Extensions(0) → TrustedProxies(2) → CORS(8) → ErrorHandler(10) → Custom(20+)
+//!   → OpenRedirect(25) → CSP(30) → Cache(40) → Session(50) → CSRF(60)
 //!   → Host(70) → Handler
 
 use crate::context::RequestExtensions;
 use crate::middleware::session::CleaningMemoryStore;
 use crate::middleware::{
     allowed_hosts_middleware, csp_middleware, csrf_middleware, dev_no_cache_middleware,
-    error_handler_middleware, security_headers_middleware,
+    error_handler_middleware, open_redirect_middleware, security_headers_middleware,
+    trusted_proxies_middleware,
 };
 use crate::utils::aliases::{AEngine, ARuniqueConfig, ATera};
 use axum::{self, Router, middleware};
@@ -49,9 +50,12 @@ use super::MiddlewareStaging;
 // ─── Built-in slots — Guaranteed execution order on the request ───────────────
 
 const SLOT_EXTENSIONS: u16 = 0; // Engine/Tera/Config injection (outermost)
+const SLOT_TRUSTED_PROXIES: u16 = 2; // Real client IP extraction — before everything
 const SLOT_COMPRESSION: u16 = 5; // Compression (external, before any other middleware)
+const SLOT_CORS: u16 = 8; // Outside ErrorHandler — OPTIONS preflight never reaches CSRF
 const SLOT_ERROR_HANDLER: u16 = 10; // Catches errors of the WHOLE stack
 const SLOT_CUSTOM_BASE: u16 = 20; // Dev's custom middlewares start here
+const SLOT_OPEN_REDIRECT: u16 = 25; // After custom, before CSP — wraps response inspection
 const SLOT_SECURITY_HEADERS: u16 = 30;
 const SLOT_SECURITY_CSP: u16 = 31;
 const SLOT_CACHE: u16 = 40;
@@ -114,12 +118,66 @@ impl MiddlewareStaging {
             });
         }
 
+        // Slot 2: Trusted proxies — extract real client IP from X-Forwarded-For
+        {
+            let eng = engine.clone();
+            entries.push(MiddlewareEntry {
+                slot: SLOT_TRUSTED_PROXIES,
+                name: "TrustedProxies",
+                apply: Box::new(move |r| {
+                    r.layer(middleware::from_fn_with_state(
+                        eng,
+                        trusted_proxies_middleware,
+                    ))
+                }),
+            });
+        }
+
         // Slot 5: Compression — before any other middleware
         entries.push(MiddlewareEntry {
             slot: SLOT_COMPRESSION,
             name: "Compression",
             apply: Box::new(|r| r.layer(CompressionLayer::new())),
         });
+
+        // Slot 8: CORS — outside ErrorHandler so OPTIONS preflight never reaches CSRF/Session
+        if let Some(cors) = self.cors_config {
+            use axum::http::HeaderValue;
+            use std::time::Duration as StdDuration;
+            use tower_http::cors::{AllowOrigin, CorsLayer};
+
+            let max_age = StdDuration::from_secs(if cors.max_age_secs > 0 {
+                cors.max_age_secs
+            } else {
+                3600
+            });
+
+            let layer = if cors.is_wildcard() {
+                CorsLayer::new()
+                    .allow_origin(tower_http::cors::Any)
+                    .allow_methods(tower_http::cors::Any)
+                    .allow_headers(tower_http::cors::Any)
+                    .max_age(max_age)
+            } else {
+                let origins: Vec<HeaderValue> = cors
+                    .origins
+                    .iter()
+                    .filter_map(|o| HeaderValue::from_str(o).ok())
+                    .collect();
+                CorsLayer::new()
+                    .allow_origin(AllowOrigin::list(origins))
+                    .allow_methods(tower_http::cors::Any)
+                    .allow_headers(tower_http::cors::Any)
+                    .allow_credentials(cors.allow_credentials)
+                    .max_age(max_age)
+            };
+
+            entries.push(MiddlewareEntry {
+                slot: SLOT_CORS,
+                name: "CORS",
+                apply: Box::new(move |r| r.layer(layer)),
+            });
+        }
 
         // Slot 70: Host validation — last defense before handler
         if self.features.enable_host_validation {
@@ -205,6 +263,21 @@ impl MiddlewareStaging {
                 name: "NoCache",
                 apply: Box::new(move |r| {
                     r.layer(middleware::from_fn_with_state(eng, dev_no_cache_middleware))
+                }),
+            });
+        }
+
+        // Slot 25: Open redirect protection — ALWAYS active
+        {
+            let eng = engine.clone();
+            entries.push(MiddlewareEntry {
+                slot: SLOT_OPEN_REDIRECT,
+                name: "OpenRedirect",
+                apply: Box::new(move |r| {
+                    r.layer(middleware::from_fn_with_state(
+                        eng,
+                        open_redirect_middleware,
+                    ))
                 }),
             });
         }

@@ -19,6 +19,29 @@ pub mod history;
 pub use admin_main::{PrototypeAdminState, admin_get, admin_get_id, admin_post, admin_post_id};
 pub use builtin::builtin_resources;
 pub use config::AdminConfig;
+
+/// Carries the admin CRUD router and its URL prefix.
+///
+/// Returned by the daemon-generated `admins::routes(prefix)`.
+/// Passed to `AdminStaging::routes()` which sets both the router and prefix automatically.
+pub struct AdminRoutes {
+    pub router: axum::Router,
+    pub prefix: String,
+}
+
+impl AdminRoutes {
+    pub fn new(prefix: impl Into<String>, router: axum::Router) -> Self {
+        Self {
+            router,
+            prefix: prefix.into(),
+        }
+    }
+
+    pub fn merge(mut self, other: axum::Router) -> Self {
+        self.router = self.router.merge(other);
+        self
+    }
+}
 pub use registry::AdminRegistry;
 pub use resource::{
     AdminIdType, AdminResource, ColumnFilter, CrudOperation, DisplayConfig, ResourcePermissions,
@@ -27,4 +50,6 @@ pub use resource::{
 pub use table_admin::migrations_table::*;
 
 pub use permissions::{Groupe, pull_groupes_db};
+pub use router::admin_router::AdminState;
 pub(crate) use router::build_admin_router;
+pub use trad::{inject_admin_prefix, insert_admin_messages};

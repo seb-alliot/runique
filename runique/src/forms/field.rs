@@ -6,6 +6,7 @@ use crate::utils::{
     aliases::{ATera, StrMap},
     trad::t,
 };
+
 use async_trait::async_trait;
 use axum::http::Method;
 use sea_orm::{DatabaseConnection, DatabaseTransaction, DbErr, TransactionTrait};
@@ -17,7 +18,6 @@ pub enum SaveContext {
     Update,
     Delete,
 }
-
 dyn_clone::clone_trait_object!(FormField);
 
 /// Common logic for all `cleaned_*` — whitelist + priority: POST > path > query.
@@ -28,7 +28,7 @@ fn cleaned_value(form: &Forms, name: &str) -> Option<String> {
     if let Some(val) = form.fields.get(name).map(|f| f.value())
         && !val.is_empty()
     {
-        return Some(val.to_string());
+        return Some(val.to_string().trim().to_string());
     }
     form.path_params
         .get(name)

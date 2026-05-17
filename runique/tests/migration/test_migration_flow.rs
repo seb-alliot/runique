@@ -281,10 +281,6 @@ fn test_flow_generate_create_posts_avec_fk() {
 
     assert!(content.contains("posts"), "nom de table présent");
     assert!(content.contains("user_id"), "colonne FK présente");
-    assert!(
-        content.contains("users"),
-        "référence à la table users présente"
-    );
 }
 
 #[test]

@@ -109,7 +109,7 @@ impl TemplateLoader {
             })
             .to_string();
 
-        // Static/Media processing
+        // Static/Media processing — literal strings: {% static "path" %} / {% media "path" %}
         content = BALISE_LINK
             .replace_all(&content, |caps: &Captures| {
                 let path = &caps["link"];
@@ -121,6 +121,13 @@ impl TemplateLoader {
                     }
                     None => url,
                 }
+            })
+            .to_string();
+
+        // Static/Media processing — Tera variables: {% media var %} / {% static var %}
+        content = BALISE_LINK_VAR
+            .replace_all(&content, |caps: &Captures| {
+                format!("{{{{ {} | {} }}}}", &caps["var"], &caps["tag"])
             })
             .to_string();
 

@@ -3,7 +3,7 @@ use crate::auth::session::CurrentUser;
 use crate::config::app::RuniqueConfig;
 use crate::context::template::AppError;
 use crate::engine::RuniqueEngine;
-use crate::prelude::{HostPolicy, SecurityPolicy};
+use crate::prelude::{HostPolicy, PermissionsPolicy, SecurityPolicy};
 use crate::utils::{csp_nonce::CspNonce, csrf::CsrfToken};
 use sea_orm::DatabaseConnection;
 use std::{collections::HashMap, result::Result, sync::Arc, sync::RwLock};
@@ -35,6 +35,9 @@ pub type OSecurityCsp = Option<ASecurityCsp>;
 /// Security Policy Hosts
 pub type ASecurityHosts = Arc<HostPolicy>;
 pub type OSecurityHosts = Option<ASecurityHosts>;
+
+/// Permissions Policy
+pub type APermissionsPolicy = Arc<PermissionsPolicy>;
 
 /// Runique Engine
 pub type AEngine = Arc<RuniqueEngine>;

@@ -692,3 +692,73 @@
     cursor: pointer;
     accent-color: var(--accent);
 }
+
+/* ───────────────────────────────────────────────
+    Modale de confirmation — rq-modal
+   ─────────────────────────────────────────────── */
+
+.rq-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+
+.rq-modal-overlay.open {
+    display: flex;
+}
+
+.rq-modal-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.75rem;
+    max-width: 420px;
+    width: calc(100% - 2rem);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+}
+
+.rq-modal-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 0.5rem 0;
+}
+
+.rq-modal-msg {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin: 0 0 1.5rem 0;
+}
+
+.rq-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+/* ── Bulk edit sections ──────────────────────────────────────── */
+
+.bulk-section {
+    margin-bottom: 1rem;
+}
+
+.bulk-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.bulk-section-hint {
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+}
+
+.bulk-toggle-row {
+    margin-top: 0.75rem;
+}

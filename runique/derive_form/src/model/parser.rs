@@ -748,7 +748,7 @@ fn form_field_to_field_def(ff: &FormFieldDecl) -> FieldDef {
         Ip => FieldType::Inet,
         Color | Slug => FieldType::String,
         Image | Document | File => FieldType::String,
-        Choice | Radio => {
+        Choice | Radio | Checkbox => {
             if let Some(ident) = enum_ref {
                 FieldType::Enum(ident)
             } else {
@@ -756,6 +756,13 @@ fn form_field_to_field_def(ff: &FormFieldDecl) -> FieldDef {
             }
         }
         Bigint => FieldType::I64,
+        Phone => {
+            if let Some(n) = max_len {
+                FieldType::Varchar(n)
+            } else {
+                FieldType::Varchar(20)
+            }
+        }
     };
 
     let is_auto_now = ff.attrs.iter().any(|a| matches!(a, AutoNow));
@@ -840,7 +847,9 @@ impl Parse for FormFieldDecl {
             "ip" => FormFieldKind::Ip,
             "choice" => FormFieldKind::Choice,
             "radio" => FormFieldKind::Radio,
+            "checkbox" => FormFieldKind::Checkbox,
             "bigint" => FormFieldKind::Bigint,
+            "phone" => FormFieldKind::Phone,
             other => {
                 let suggestion = suggest_form_field_type(other);
                 return Err(syn::Error::new(
@@ -964,7 +973,7 @@ fn suggest_form_field_type(input: &str) -> String {
     let known = [
         "text", "email", "password", "richtext", "textarea", "url", "int", "bigint", "float",
         "decimal", "percent", "bool", "date", "time", "datetime", "image", "document", "file",
-        "color", "slug", "uuid", "json", "ip",
+        "color", "slug", "uuid", "json", "ip", "phone",
     ];
     // Suggestion by common prefix (≥ 2 characters)
     let matches: Vec<&str> = known
@@ -998,7 +1007,10 @@ fn validate_form_field_attrs(
             // required / nullable / EnumRef — universal
             (Required, _) => true,
             (Nullable, _) => true,
-            (EnumRef(_), FormFieldKind::Choice | FormFieldKind::Radio) => true,
+            (
+                EnumRef(_),
+                FormFieldKind::Choice | FormFieldKind::Radio | FormFieldKind::Checkbox,
+            ) => true,
             (EnumRef(_), _) => false,
 
             // no_hash — password only
@@ -1006,9 +1018,9 @@ fn validate_form_field_attrs(
             (NoHash, _) => false,
 
             // max_length / min_length — textual types
-            (MaxLength(_), Text | Email | Password | Richtext | Textarea | Url) => true,
+            (MaxLength(_), Text | Email | Password | Richtext | Textarea | Url | Phone) => true,
             (MaxLength(_), _) => false,
-            (MinLength(_), Text | Textarea) => true,
+            (MinLength(_), Text | Textarea | Phone) => true,
             (MinLength(_), _) => false,
 
             // min / max integer — int only

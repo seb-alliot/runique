@@ -228,8 +228,10 @@ impl FormField for TimeField {
             return true;
         }
 
-        // Parse the time
-        let time = match NaiveTime::parse_from_str(val, "%H:%M") {
+        // Parse the time — accept both HH:MM (HTML input) and HH:MM:SS (PostgreSQL)
+        let time = match NaiveTime::parse_from_str(val, "%H:%M")
+            .or_else(|_| NaiveTime::parse_from_str(val, "%H:%M:%S"))
+        {
             Ok(t) => t,
             Err(_) => {
                 self.set_error(t("forms.time_invalid").to_string());
@@ -367,8 +369,10 @@ impl FormField for DateTimeField {
             return true;
         }
 
-        // Parse the datetime (ISO format: YYYY-MM-DDTHH:MM)
-        let datetime = match NaiveDateTime::parse_from_str(val, "%Y-%m-%dT%H:%M") {
+        // Parse the datetime — accept HTML (YYYY-MM-DDTHH:MM) and ISO with seconds only
+        let datetime = match NaiveDateTime::parse_from_str(val, "%Y-%m-%dT%H:%M")
+            .or_else(|_| NaiveDateTime::parse_from_str(val, "%Y-%m-%dT%H:%M:%S"))
+        {
             Ok(dt) => dt,
             Err(_) => {
                 self.set_error(t("forms.date_invalid").to_string());

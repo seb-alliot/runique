@@ -80,7 +80,7 @@
   {% endif %}
 
   {% if can_bulk %}
-  <form id="bulk-form" method="POST" action="/admin/{{ resource.key }}/bulk">
+  <form id="bulk-form" method="POST" action="{{ admin_prefix }}/{{ resource.key }}/bulk">
     {% csrf %}
     <input type="hidden" name="bulk_action" id="bulk-action-input" value="">
     <input type="hidden" name="ids" id="bulk-ids-input" value="">
@@ -99,6 +99,9 @@
           {% endfor %}
           <button type="button" class="btn btn-sm btn-primary" data-bulk-action="group_set">Modifier</button>
         </div>
+        {% endif %}
+        {% if can_update %}
+        <button type="button" class="btn btn-sm btn-secondary" data-bulk-action="bulk-edit">Modifier en groupe</button>
         {% endif %}
         <button type="button" class="btn btn-sm btn-danger" data-bulk-action="delete">Supprimer</button>
       </div>
@@ -214,7 +217,7 @@
             </svg>
             <p class="empty-state-title">{% if admin_list_empty_title %}{{ admin_list_empty_title }}{% endif %}</p>
             <p class="empty-state-desc">{% if admin_list_empty_desc %}{{ admin_list_empty_desc }}{% endif %}</p>
-            {% if can_create %}<a href="/admin/{{ resource.key }}/create" class="btn btn-primary mt-sm">{% if admin_list_btn_create_first %}{{ admin_list_btn_create_first }}{% endif %}</a>{% endif %}
+            {% if can_create %}<a href="{{ admin_prefix }}/{{ resource.key }}/create" class="btn btn-primary mt-sm">{% if admin_list_btn_create_first %}{{ admin_list_btn_create_first }}{% endif %}</a>{% endif %}
           </div>
         {% endif %}
       </div>
@@ -280,7 +283,7 @@
                   hx-get="?filter_{{ col }}={{ val | urlencode }}{% if sort_by %}&sort_by={{ sort_by }}&sort_dir={{ sort_dir }}{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}&page=1"
                   hx-target="#list-content" hx-swap="innerHTML" hx-push-url="true"
                   class="filter-option {% if is_active %}filter-active{% endif %}">
-                  {{ val }}
+                  {{ val | replace(from="_", to=" ") }}
                 </a>
               {% endfor %}
               {% if meta.total_pages > 1 %}

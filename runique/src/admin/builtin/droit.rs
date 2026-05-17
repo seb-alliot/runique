@@ -383,6 +383,55 @@ pub(super) fn droit_entry() -> ResourceEntry {
         })
     });
 
+    let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            use sea_orm::{ActiveModelTrait, ActiveValue::NotSet, ColumnTrait, QueryFilter};
+            let (groupe_id, resource_key) = decode_droit_id(&id)?;
+            let model = groupes_droits::Entity::find()
+                .filter(groupes_droits::Column::GroupeId.eq(groupe_id))
+                .filter(groupes_droits::Column::ResourceKey.eq(&resource_key))
+                .one(&*db)
+                .await?
+                .ok_or_else(|| sea_orm::DbErr::RecordNotFound(format!("droit not found: {id}")))?;
+
+            let mut active: groupes_droits::ActiveModel = model.into();
+            // Only touch permission fields present in data; ignore groupe_id / resource_key.
+            if data.contains_key(CAN_CREATE) {
+                active.can_create = Set(parse_bool(&data, CAN_CREATE));
+            } else {
+                active.can_create = NotSet;
+            }
+            if data.contains_key(CAN_READ) {
+                active.can_read = Set(parse_bool(&data, CAN_READ));
+            } else {
+                active.can_read = NotSet;
+            }
+            if data.contains_key(CAN_UPDATE) {
+                active.can_update = Set(parse_bool(&data, CAN_UPDATE));
+            } else {
+                active.can_update = NotSet;
+            }
+            if data.contains_key(CAN_DELETE) {
+                active.can_delete = Set(parse_bool(&data, CAN_DELETE));
+            } else {
+                active.can_delete = NotSet;
+            }
+            if data.contains_key(CAN_UPDATE_OWN) {
+                active.can_update_own = Set(parse_bool(&data, CAN_UPDATE_OWN));
+            } else {
+                active.can_update_own = NotSet;
+            }
+            if data.contains_key(CAN_DELETE_OWN) {
+                active.can_delete_own = Set(parse_bool(&data, CAN_DELETE_OWN));
+            } else {
+                active.can_delete_own = NotSet;
+            }
+            active.update(&*db).await?;
+            crate::auth::guard::clear_cache();
+            Ok(())
+        })
+    });
+
     ResourceEntry::new(meta, form_builder)
         .with_edit_form_builder(edit_form_builder)
         .with_list_fn(list_fn)
@@ -391,6 +440,7 @@ pub(super) fn droit_entry() -> ResourceEntry {
         .with_delete_fn(delete_fn)
         .with_create_fn(create_fn)
         .with_update_fn(update_fn)
+        .with_partial_update_fn(partial_update_fn)
 }
 
 struct DroitDynWrapper(pub DroitAdminForm);

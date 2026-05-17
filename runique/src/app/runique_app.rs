@@ -1,5 +1,6 @@
 //! Built and ready-to-launch Runique application.
 use axum::Router;
+use std::net::SocketAddr;
 use tokio::signal;
 
 use crate::config::RuniqueConfig;
@@ -68,12 +69,16 @@ impl RuniqueApp {
 
         let listener = tokio::net::TcpListener::bind(&addr).await?;
 
-        axum::serve(listener, self.router)
-            .with_graceful_shutdown(async {
-                signal::ctrl_c().await.expect("Error signal Ctrl+C");
-                println!("\nShutting down Runique server...");
-            })
-            .await?;
+        axum::serve(
+            listener,
+            self.router
+                .into_make_service_with_connect_info::<SocketAddr>(),
+        )
+        .with_graceful_shutdown(async {
+            signal::ctrl_c().await.expect("Error signal Ctrl+C");
+            println!("\nShutting down Runique server...");
+        })
+        .await?;
 
         Ok(())
     }

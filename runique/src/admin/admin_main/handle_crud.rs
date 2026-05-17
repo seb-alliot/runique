@@ -89,6 +89,10 @@ pub(super) async fn handle_create_get(
     )
     .await;
 
+    if let Some(loader) = &entry.m2m_loader {
+        let m2m_fields = loader(req.engine.db.clone(), None).await;
+        req.context.insert("m2m_fields", &m2m_fields);
+    }
     req.context.insert(ctx_create::FORM_FIELDS, form.get_form());
     req.context.insert(ctx_create::IS_EDIT, &false);
     req.context.insert(ctx_common::LANG, &current_lang().code());
@@ -115,7 +119,7 @@ pub(super) async fn handle_create_post(
         }
     }
 
-    let body_for_create = body.clone();
+    let mut body_for_create = body.clone();
     let tera = req.engine.tera.clone();
     let csrf = req
         .csrf_token
@@ -139,6 +143,10 @@ pub(super) async fn handle_create_post(
     .await;
 
     if form.is_valid().await {
+        // Sync finalized field values (e.g. file paths moved by finalize()) into body
+        for (name, field) in &form.get_form().fields {
+            body_for_create.insert(name.clone(), field.value().to_string());
+        }
         let result = match &entry.create_fn {
             Some(f) => f(req.engine.db.clone(), body_for_create.clone()).await,
             None => form.save(&req.engine.db).await,
@@ -147,6 +155,10 @@ pub(super) async fn handle_create_post(
             Ok(()) => {}
             Err(sea_orm::DbErr::Custom(ref msg)) => {
                 form.get_form_mut().errors.push(msg.clone());
+                if let Some(loader) = &entry.m2m_loader {
+                    let m2m_fields = loader(req.engine.db.clone(), None).await;
+                    req.context.insert("m2m_fields", &m2m_fields);
+                }
                 req.context.insert(ctx_create::FORM_FIELDS, form.get_form());
                 req.context.insert(ctx_create::IS_EDIT, &false);
                 req.context.insert(ctx_common::LANG, &current_lang().code());
@@ -161,6 +173,10 @@ pub(super) async fn handle_create_post(
                 form.get_form_mut().database_error(&e);
                 if !is_unique_violation(&e) {
                     return Err(Box::new(AppError::new(ErrorContext::database(e))));
+                }
+                if let Some(loader) = &entry.m2m_loader {
+                    let m2m_fields = loader(req.engine.db.clone(), None).await;
+                    req.context.insert("m2m_fields", &m2m_fields);
                 }
                 req.context.insert(ctx_create::FORM_FIELDS, form.get_form());
                 req.context.insert(ctx_create::IS_EDIT, &false);
@@ -219,6 +235,10 @@ pub(super) async fn handle_create_post(
         .into_response());
     }
 
+    if let Some(loader) = &entry.m2m_loader {
+        let m2m_fields = loader(req.engine.db.clone(), None).await;
+        req.context.insert("m2m_fields", &m2m_fields);
+    }
     req.context.insert(ctx_create::FORM_FIELDS, form.get_form());
     req.context.insert(ctx_create::IS_EDIT, &false);
     req.context.insert(ctx_common::LANG, &current_lang().code());
@@ -283,6 +303,11 @@ pub(super) async fn handle_edit_get(
         .filter(|s| !s.is_empty())
         .cloned()
         .unwrap_or_default();
+
+    if let Some(loader) = &entry.m2m_loader {
+        let m2m_fields = loader(req.engine.db.clone(), Some(id.clone())).await;
+        req.context.insert("m2m_fields", &m2m_fields);
+    }
 
     req.context.insert(ctx_edit::FORM_FIELDS, form.get_form());
     req.context.insert(ctx_edit::IS_EDIT, &true);
@@ -363,6 +388,31 @@ pub(super) async fn handle_edit_post(
     }
 
     if !is_locked && !form.get_form().has_errors() {
+        // Sync finalized field values (e.g. file paths moved by finalize()) into body
+        for (name, field) in &form.get_form().fields {
+            body_for_update.insert(name.clone(), field.value().to_string());
+        }
+        // Delete old files replaced by a new upload
+        if let Some(ref old) = old_obj {
+            let media_root = std::env::var("MEDIA_ROOT").unwrap_or_else(|_| "media".to_string());
+            let media_root = media_root.trim_end_matches('/');
+            for (name, field) in &form.get_form().fields {
+                if field.field_type() != "file" {
+                    continue;
+                }
+                let new_val = field.value();
+                if new_val.is_empty() {
+                    continue;
+                }
+                if let Some(old_val) = old.get(name).and_then(|v| v.as_str())
+                    && !old_val.is_empty()
+                    && old_val != new_val
+                {
+                    let old_abs = format!("{}/{}", media_root, old_val.trim_start_matches('/'));
+                    let _ = std::fs::remove_file(&old_abs);
+                }
+            }
+        }
         let summary = old_obj
             .as_ref()
             .and_then(|v| history::diff_fields(v, &body_for_update));
@@ -413,6 +463,11 @@ pub(super) async fn handle_edit_post(
 
     if let Some(ts) = orig_updated_at {
         req.context.insert("orig_updated_at", &ts);
+    }
+
+    if let Some(loader) = &entry.m2m_loader {
+        let m2m_fields = loader(req.engine.db.clone(), Some(id.clone())).await;
+        req.context.insert("m2m_fields", &m2m_fields);
     }
 
     let return_qs_str = return_qs.as_deref().unwrap_or("");

@@ -1,6 +1,7 @@
 //! Core application staging: DB connection and URL registry.
 use crate::app::error_build::{BuildError, CheckError, CheckReport};
 use crate::utils::aliases::{ARlockmap, new_registry};
+use std::sync::RwLock;
 
 #[cfg(feature = "orm")]
 use crate::db::DatabaseConfig;
@@ -32,6 +33,9 @@ pub struct CoreStaging {
     pub(crate) db_config: Option<DatabaseConfig>,
 
     pub(crate) url_registry: ARlockmap,
+
+    /// DB custom : ex mongodb client, redis client, etc. (not used by the framework, just for your app)
+    pub(crate) custom_db: RwLock<Option<std::sync::Arc<dyn std::any::Any + Send + Sync>>>,
 }
 
 impl CoreStaging {
@@ -43,6 +47,7 @@ impl CoreStaging {
             #[cfg(feature = "orm")]
             db_config: None,
             url_registry: new_registry(),
+            custom_db: RwLock::new(None),
         }
     }
 
@@ -64,7 +69,16 @@ impl CoreStaging {
         self.db = Some(db);
         self
     }
-
+    /// Registers an extra database connection (for multi-DB setups)
+    /// Ex : MongoDB client, Redis client, etc.
+    /// ```rust,ignore
+    /// let mongo = mongodb_client(uri).await?;
+    /// .core(|c| c.with_extra_db(mongo))
+    /// ```
+    pub fn with_extra_db<T: std::any::Any + Send + Sync + 'static>(mut self, db: T) -> Self {
+        self.custom_db = RwLock::new(Some(std::sync::Arc::new(db)));
+        self
+    }
     /// Registers a DB configuration — the connection will be established during build.
     ///
     /// Staging validates the driver and connects automatically:

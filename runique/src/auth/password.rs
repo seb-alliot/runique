@@ -2,7 +2,6 @@
 use axum::{
     Router,
     extract::{Path, State},
-    http::HeaderMap,
     response::{IntoResponse, Redirect, Response},
 };
 use serde::Serialize;
@@ -125,6 +124,7 @@ pub struct PasswordResetConfig {
     pub reset_route: String,
     pub forgot_template: String,
     pub reset_template: String,
+    pub email_template: Option<String>,
     pub success_redirect: String,
     pub base_url: Option<String>,
     pub max_requests: u64,
@@ -138,6 +138,7 @@ impl Default for PasswordResetConfig {
             reset_route: "/reset-password".to_string(),
             forgot_template: "auth/forgot_password.html".to_string(),
             reset_template: "auth/reset_password.html".to_string(),
+            email_template: None,
             success_redirect: "/".to_string(),
             base_url: None,
             max_requests: 5,
@@ -180,6 +181,11 @@ impl PasswordResetConfig {
         self.base_url = Some(url.to_string());
         self
     }
+    #[must_use]
+    pub fn email_template(mut self, template: &str) -> Self {
+        self.email_template = Some(template.to_string());
+        self
+    }
 }
 
 // ─── handle_forgot_password ───────────────────────────────────────────────────
@@ -187,10 +193,11 @@ impl PasswordResetConfig {
 pub async fn handle_forgot_password<E: UserEntity + 'static>(
     request: &mut Request,
     form: &mut ForgotPasswordForm,
-    headers: &HeaderMap,
     template: &str,
+    forgot_route: &str,
     reset_path: &str,
     base_url: Option<&str>,
+    email_template: Option<&str>,
 ) -> AppResult<Response> {
     request.context.insert("lang", &current_lang().code());
     if request.is_get() {
@@ -214,8 +221,12 @@ pub async fn handle_forgot_password<E: UserEntity + 'static>(
             let host = base_url
                 .map(std::string::ToString::to_string)
                 .unwrap_or_else(|| {
-                    let host = headers;
-                    format!("http://{host:?}")
+                    request
+                        .headers
+                        .get("host")
+                        .and_then(|v| v.to_str().ok())
+                        .map(|h| format!("http://{h}"))
+                        .unwrap_or_else(|| "http://localhost:3000".to_string())
                 });
 
             let reset_url = format!(
@@ -229,15 +240,21 @@ pub async fn handle_forgot_password<E: UserEntity + 'static>(
             if crate::utils::mailer_configured() {
                 let username = user.username().to_string();
                 let subject = t("reset.email_subject").to_string();
-                let body = tf("reset.email_body", &[&username, &reset_url, &reset_url]).clone();
-
-                crate::utils::Email::new()
+                let mail = crate::utils::Email::new()
                     .to(email.clone())
-                    .subject(&subject)
-                    .html(body)
-                    .send()
-                    .await
-                    .ok();
+                    .subject(&subject);
+                if let Some(tpl) = email_template {
+                    use tera::Context as TeraCtx;
+                    let mut ctx = TeraCtx::new();
+                    ctx.insert("username", &username);
+                    ctx.insert("reset_url", &reset_url);
+                    if let Ok(msg) = mail.template(&request.engine.tera, tpl, ctx) {
+                        msg.send().await.ok();
+                    }
+                } else {
+                    let body = tf("reset.email_body", &[&username, &reset_url, &reset_url]).clone();
+                    mail.html(body).send().await.ok();
+                }
             }
         }
 
@@ -246,6 +263,7 @@ pub async fn handle_forgot_password<E: UserEntity + 'static>(
             .notices
             .success(t("reset.check_inbox").to_string())
             .await;
+        return Ok(Redirect::to(forgot_route).into_response());
     }
 
     context_update!(request => {
@@ -378,17 +396,17 @@ struct ResetState {
 
 async fn forgot_view<E: UserEntity + 'static>(
     State(state): State<ForgotState>,
-    headers: HeaderMap,
     mut request: Request,
 ) -> AppResult<Response> {
     let mut form: ForgotPasswordForm = request.form();
     handle_forgot_password::<E>(
         &mut request,
         &mut form,
-        &headers,
         &state.config.forgot_template,
+        &state.config.forgot_route,
         &state.config.reset_route,
         state.config.base_url.as_deref(),
+        state.config.email_template.as_deref(),
     )
     .await
 }

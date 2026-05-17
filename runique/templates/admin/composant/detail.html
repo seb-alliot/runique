@@ -2,7 +2,7 @@
 {% block title %}{% if admin_detail_title %}{{ admin_detail_title }}{% endif %} — {{ resource.title | default(value=resource_key) }} #{{ entry.id }}{% endblock %}
 {% block breadcrumb %}
   <span class="breadcrumb-sep">/</span>
-  <a href="/admin/{{ resource.key }}/list">{{ resource.title | default(value=resource_key) }}</a>
+  <a href="{{ admin_prefix }}/{{ resource.key }}/list">{{ resource.title | default(value=resource_key) }}</a>
   <span class="breadcrumb-sep">/</span>
   <span>{% if admin_detail_breadcrumb %}{{ admin_detail_breadcrumb }}{% endif %} #{{ entry.id }}</span>
 {% endblock %}
@@ -13,7 +13,7 @@
       <p class="page-subtitle">{% if admin_detail_entry_label %}{{ admin_detail_entry_label }}{% endif %} #{{ entry.id }}</p>
     </div>
     <div class="page-actions">
-      <a href="/admin/{{ resource.key }}/list" class="btn btn-secondary btn-sm">{% if admin_detail_btn_list %}{{ admin_detail_btn_list }}{% endif %}</a>
+      <a href="{{ admin_prefix }}/{{ resource.key }}/list" class="btn btn-secondary btn-sm">{% if admin_detail_btn_list %}{{ admin_detail_btn_list }}{% endif %}</a>
       {% set_global can_modify = false %}
       {% if current_user %}
         {% if current_user.is_superuser %}
@@ -32,7 +32,7 @@
       {% set has_password = false %}
       {% for key, value in entry %}{% if key == "password" or key == "password_hash" %}{% set_global has_password = true %}{% endif %}{% endfor %}
       {% if has_password %}
-      <form method="post" action="/admin/{{ resource.key }}/{{ entry.id }}/reset-password" class="form-inline btn-hide-mobile">
+      <form method="post" action="{{ admin_prefix }}/{{ resource.key }}/{{ entry.id }}/reset-password" class="form-inline btn-hide-mobile">
         {% csrf %}
         <button type="submit" class="btn btn-secondary btn-sm btn-hide-mobile">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -40,8 +40,8 @@
         </button>
       </form>
       {% endif %}
-      <a href="/admin/{{ resource.key }}/{{ entry.id }}/edit" class="btn btn-primary btn-sm btn-hide-mobile">{% if admin_detail_btn_edit %}{{ admin_detail_btn_edit }}{% endif %}</a>
-      <form method="post" action="/admin/{{ resource.key }}/{{ entry.id }}/delete" class="form-inline btn-hide-mobile">
+      <a href="{{ admin_prefix }}/{{ resource.key }}/{{ entry.id }}/edit" class="btn btn-primary btn-sm btn-hide-mobile">{% if admin_detail_btn_edit %}{{ admin_detail_btn_edit }}{% endif %}</a>
+      <form method="post" action="{{ admin_prefix }}/{{ resource.key }}/{{ entry.id }}/delete" class="form-inline btn-hide-mobile">
           {% csrf %}
           <button type="submit" class="btn btn-sm btn-danger"
             data-confirm-delete="{% if admin_detail_confirm_delete %}{{ admin_detail_confirm_delete }}{% endif %}">
@@ -55,13 +55,13 @@
           </svg>
         </button>
         <div class="row-menu-dropdown">
-          <a href="/admin/{{ resource.key }}/{{ entry.id }}/edit" class="row-menu-item">
+          <a href="{{ admin_prefix }}/{{ resource.key }}/{{ entry.id }}/edit" class="row-menu-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             {% if admin_detail_btn_edit %}{{ admin_detail_btn_edit }}{% endif %}
           </a>
           {% if has_password %}
           <div class="row-menu-separator"></div>
-          <form method="post" action="/admin/{{ resource.key }}/{{ entry.id }}/reset-password">
+          <form method="post" action="{{ admin_prefix }}/{{ resource.key }}/{{ entry.id }}/reset-password">
             {% csrf %}
             <button type="submit" class="row-menu-item">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -70,7 +70,7 @@
           </form>
           {% endif %}
           <div class="row-menu-separator"></div>
-          <form method="post" action="/admin/{{ resource.key }}/{{ entry.id }}/delete">
+          <form method="post" action="{{ admin_prefix }}/{{ resource.key }}/{{ entry.id }}/delete">
             {% csrf %}
             <button type="submit" class="row-menu-item row-menu-danger"
               data-confirm-delete="{% if admin_detail_confirm_delete %}{{ admin_detail_confirm_delete }}{% endif %}">

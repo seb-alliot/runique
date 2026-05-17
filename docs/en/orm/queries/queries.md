@@ -171,6 +171,18 @@ let blocked: Vec<i32> = get_blocked_ids();
 let clean = search!(users::Entity => Id not_in (blocked)).all(&*db).await?;
 ```
 
+> **Note — type inference with `in (expr)`**
+>
+> The macro internally converts `$val` to `Vec<_>` before passing it to `is_in`.
+> This prevents inference errors in contexts where the overall return type is complex
+> (e.g. `HashMap<i32, String>`).
+> If the compiler cannot infer the element type, annotate the variable explicitly:
+>
+> ```rust
+> let ids: Vec<i32> = lines.iter().filter_map(|l| l.item_id).collect();
+> let items = search!(item::Entity => Id in (ids)).all(db).await?;
+> ```
+
 ### BETWEEN / NOT BETWEEN
 
 ```rust
@@ -218,6 +230,43 @@ search!(users::Entity =>
     or(Title icontains q, Bio icontains q), // OR across columns
 )
 ```
+
+### `order_by_random()` — random order
+
+```rust
+let picks = search!(product::Entity => Available eq true)
+    .order_by_random()
+    .limit(5)
+    .all(&*db).await?;
+```
+
+### `order_by_expr(expr, order)` — custom expression
+
+Accepts any SeaORM `IntoSimpleExpr` — useful for computed columns, COALESCE, CASE, etc.
+
+```rust
+use sea_orm::Order;
+use sea_orm::sea_query::Expr;
+
+let results = search!(product::Entity)
+    .order_by_expr(Expr::col(product::Column::Price), Order::Desc)
+    .all(&*db).await?;
+```
+
+### `.one()` — expect exactly one result
+
+Returns `Ok(None)` if no row matches, `Ok(Some(model))` if exactly one, and `Err` if more than one row matches. Analogous to Django's `.get()`.
+
+Internally fetches at most 2 rows to detect the ambiguous case without a full scan.
+
+```rust
+// Returns Err if more than one active admin exists
+let admin = search!(users::Entity => IsStaff eq true, Username eq "alice")
+    .one(&*db)
+    .await?; // Result<Option<users::Model>, DbErr>
+```
+
+Use `.first()` instead when you only want the first row of a potentially multi-row result without erroring.
 
 ### `.into_select()` — partial projection
 

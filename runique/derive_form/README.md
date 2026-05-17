@@ -111,6 +111,8 @@ Fields default to **nullable** unless `required` is specified.
 | `image`       | `VARCHAR(255)`              | Stores file path — upload handled by app |
 | `document`    | `VARCHAR(255)`              | Stores file path                         |
 | `file`        | `VARCHAR(255)`              | Stores file path                         |
+| `bigint`      | `BIGINT`                    | 64-bit integer                           |
+| `phone`       | `VARCHAR(20)`               | Phone number                             |
 | `choice`      | `VARCHAR` or native enum    | Requires `enum(EnumName)` — see Enums    |
 | `radio`       | `VARCHAR` or native enum    | Same as `choice`, rendered as radio      |
 
@@ -151,11 +153,14 @@ model! {
 | `auto_now_update`       | Set to `NOW()` on UPDATE                                           |
 | `rows: n`               | Number of rows for `textarea` / `richtext` in admin                |
 | `step: n`               | Step for numeric fields in forms                                   |
-| `max_size: n`         | Max upload size (e.g., 2 GB, 500 KB) for file fields              |
+| `max_size: n`         | Max upload size (e.g., `2 MB`, `500 KB`, `1 GB`) for file fields  |
 | `upload_to: "path"`     | Upload directory for file fields (required for files)             |
+| `rows: n`               | Number of visible rows for `textarea` / `richtext` / `json`       |
+| `step: n`               | Step increment for `float` / `decimal` fields in forms            |
 | `enum(EnumName)`        | Enum reference for `choice` / `radio` fields                       |
 | `skip`                  | Column generated in SQL but excluded from forms                    |
 | `no_hash`               | Prevent auto-hashing for `password` fields                         |
+| `fk(table.col, action)` | Foreign key constraint — action: `cascade`, `set_null`, `restrict`, `set_default` |
 
 ```rust
 model! {
@@ -180,7 +185,7 @@ model! {
 
 ## Foreign keys
 
-Use the `fk(table.column, action)` option to declare a foreign key.
+Declare the constraint directly on the field with `fk(table.column, action)`:
 
 **Actions:** `cascade`, `set_null`, `restrict`, `set_default`
 
@@ -190,17 +195,19 @@ model! {
     table: "comments",
     pk: id => Pk,
     {
-        post_id:    int  [required],
-        author_id:  int,
+        post_id:    int  [required, fk(posts.id, cascade)],
+        author_id:  int  [fk(users.id, set_null)],
         content:    textarea [required],
         created_at: datetime [auto_now],
     },
     relations: {
-        belongs_to: Post via post_id [cascade],
-        belongs_to: User via author_id [set_null],
+        belongs_to: Post via post_id,
+        belongs_to: User via author_id,
     }
 }
 ```
+
+The `fk()` option is only valid on `int` and `bigint` fields.
 
 ---
 
@@ -241,10 +248,13 @@ enums: {
 }
 ```
 
-Each variant can optionally specify:
+Three forms per variant:
 
-- `= "db_value"` — value stored in the database (defaults to variant name)
-- `= ("db_value", "Display label")` — db value + label shown in admin
+| Syntax                           | DB value              | Admin label   |
+| -------------------------------- | --------------------- | ------------- |
+| `Active`                         | `"Active"` (name)     | variant name  |
+| `Active = "active"`              | `"active"`            | variant name  |
+| `Active = ("active", "Active!")` | `"active"`            | `"Active!"`   |
 
 ### Example
 
@@ -252,24 +262,68 @@ Each variant can optionally specify:
 use runique::prelude::*;
 
 model! {
-    Task,
-    table: "tasks",
+    Article,
+    table: "articles",
     pk: id => Pk,
     enums: {
         Status: [
-            Draft:    "Brouillon",
-            Active:   "Publié",
-            Archived: "Archivé",
+            Draft    = ("draft",     "Draft"),
+            Published = ("published", "Published"),
+            Archived  = ("archived",  "Archived"),
         ],
         Priority: [Low, Medium, High],
     },
     {
-        title:    text     [required],
-        status:   choice   [enum(Status), required, default: "draft"],
-        priority: choice   [enum(Priority), required],
+        title:    text   [required, max_length: 200],
+        status:   choice [enum(Status), required, default: "draft"],
+        priority: choice [enum(Priority), required],
     }
 }
 ```
+
+Integer-backed enums (for databases that don't support native enums):
+
+```rust
+enums: {
+    Level: i32 [Guest = 0, Member = 1, Admin = 9],
+}
+```
+
+---
+
+## Meta
+
+The optional `meta:` block configures table-level options:
+
+```rust
+model! {
+    Post,
+    table: "posts",
+    pk: id => Pk,
+    {
+        title:      text     [required],
+        slug:       slug     [required, unique],
+        author_id:  int      [required, fk(users.id, cascade)],
+        lang:       text     [required, max_length: 5],
+        created_at: datetime [auto_now],
+    },
+    meta: {
+        ordering: [-created_at, title],
+        unique_together: [(slug, lang)],
+        indexes: [(author_id, lang)],
+        verbose_name: "Post",
+        verbose_name_plural: "Posts",
+    }
+}
+```
+
+| Key                   | Description                              |
+| --------------------- | ---------------------------------------- |
+| `ordering`            | Default sort — prefix `-` for DESC       |
+| `unique_together`     | Multi-column UNIQUE constraints          |
+| `indexes`             | Multi-column indexes (non-unique)        |
+| `verbose_name`        | Singular display name                    |
+| `verbose_name_plural` | Plural display name                      |
 
 ---
 
@@ -519,16 +573,14 @@ pub struct PostForm;
 ### Using the form in a handler
 
 ```rust
-pub async fn create_post(
-    mut req: Request,
-    Prisme(mut form): Prisme<PostForm>,
-) -> impl IntoResponse {
+pub async fn create_post(mut req: Request) -> impl IntoResponse {
+    let mut form: PostForm = req.form();
     if form.is_valid().await {
         form.save(&req.engine.db).await.ok();
         return Redirect::to("/posts").into_response();
     }
 
-    ctx.render("posts/new.html", context! { form })
+    req.render("posts/new.html", context! { form })
 }
 ```
 

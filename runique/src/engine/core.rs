@@ -10,9 +10,9 @@ use tera::Tera;
 use crate::config::RuniqueConfig;
 // Import our newly renamed structures
 use crate::middleware::{
-    HostPolicy, MiddlewareConfig, SecurityPolicy, allowed_hosts_middleware, csrf_middleware,
-    dev_no_cache_middleware, error_handler_middleware, https_redirect_middleware,
-    security_headers_middleware,
+    HostPolicy, MiddlewareConfig, PermissionsPolicy, SecurityPolicy, TrustedProxies,
+    allowed_hosts_middleware, csrf_middleware, dev_no_cache_middleware, error_handler_middleware,
+    https_redirect_middleware, security_headers_middleware,
 };
 
 #[cfg(feature = "orm")]
@@ -36,10 +36,18 @@ pub struct RuniqueEngine {
     pub security_csp: ASecurityCsp,
     /// Policy for validating allowed hosts.
     pub security_hosts: ASecurityHosts,
+    /// Paths exempt from CSRF validation (ex: webhook endpoints).
+    pub csrf_exempt_paths: Arc<Vec<String>>,
+    /// Active Permissions-Policy header configuration.
+    pub permissions_policy: Arc<PermissionsPolicy>,
+    /// Trusted proxy IPs/CIDRs for real client IP extraction.
+    pub trusted_proxies: Arc<TrustedProxies>,
     /// Memory store — anonymous sessions + CSRF.
     pub session_store: LazyLock<RwLock<Option<Arc<CleaningMemoryStore>>>>,
     /// DB store — persistent authenticated sessions (table `eihwaz_sessions`).
     pub session_db_store: LazyLock<RwLock<Option<Arc<RuniqueSessionStore>>>>,
+    /// DB custom : ex mongodb client, redis client, etc. (not used by the framework, just for your app)
+    pub custom_db: LazyLock<RwLock<Option<Arc<dyn std::any::Any + Send + Sync>>>>,
 }
 
 impl RuniqueEngine {
@@ -59,8 +67,30 @@ impl RuniqueEngine {
             features,
             security_csp: new(security_csp),
             security_hosts: new(security_hosts),
+            csrf_exempt_paths: Arc::new(vec![]),
+            permissions_policy: Arc::new(PermissionsPolicy::default()),
+            trusted_proxies: Arc::new(TrustedProxies::default()),
             session_store: LazyLock::new(|| RwLock::new(None)),
             session_db_store: LazyLock::new(|| RwLock::new(None)),
+            custom_db: LazyLock::new(|| RwLock::new(None)),
+        }
+    }
+
+    /// Retrieve and downcast the custom DB to a specific type (e.g., MongoDB client).
+    ///
+    /// # Example
+    /// ```rust,ignore
+    /// if let Some(mongo) = engine.custom_db::<mongodb::Client>() {
+    ///     // Use mongo client
+    /// }
+    /// ```
+    pub fn custom_db<T: std::any::Any + Send + Sync + 'static>(&self) -> Option<std::sync::Arc<T>> {
+        if let Ok(guard) = self.custom_db.read() {
+            guard
+                .as_ref()
+                .and_then(|any| any.clone().downcast::<T>().ok())
+        } else {
+            None
         }
     }
 

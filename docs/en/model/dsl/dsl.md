@@ -150,6 +150,45 @@ The tuple form `= ("db_value", "Label")` lets you store a short value in the dat
 
 `FromStr` accepts all three forms case-insensitively: the variant name, the DB value, and the label (if present) all resolve to the same variant.
 
+**Generated methods on enums:**
+
+| Method | Return | Description |
+| --- | --- | --- |
+| `.to_string()` | `String` | Display label (2nd tuple element, or variant name) |
+| `.db_value()` | `&'static str` / `i32` / `i64` | Exact value stored in the database |
+| `::from_str(s)` / `.parse()` | `Result<Self, ()>` | Parse from DB value, label, or variant name |
+| `::iter()` | `impl Iterator<Item = Self>` | Iterate over all variants (via `sea_orm::Iterable`) |
+
+> **`Display` behavior by syntax:**
+>
+> - `Variant` → `.to_string()` returns `"Variant"` (variant name)
+> - `Variant = "db_val"` → `.to_string()` returns `"db_val"`
+> - `Variant = ("db_val", "Label")` → `.to_string()` returns `"Label"` ← most useful form
+
+```rust
+use sea_orm::Iterable;
+
+// Enum declared with the tuple form:
+// OrderStatus: [
+//     Pending = ("pending", "Pending"),
+//     Cancelled = ("cancelled", "Cancelled"),
+// ]
+
+let s = OrderStatus::Pending;
+
+s.db_value()   // → "pending"   (stored in DB)
+s.to_string()  // → "Pending"   (human-readable label)
+
+// Build a <select> option list
+let options: Vec<(String, String)> = OrderStatus::iter()
+    .map(|s: OrderStatus| (s.db_value().to_string(), s.to_string()))
+    .collect();
+// → [("pending", "Pending"), ("cancelled", "Cancelled"), ...]
+
+// Parse from a DB value (POST form)
+let status: Option<OrderStatus> = "pending".parse().ok();
+```
+
 **In Tera templates**, the comparison value must **exactly** match what is stored in the database (case-sensitive):
 
 ```jinja2
@@ -161,6 +200,24 @@ The tuple form `= ("db_value", "Label")` lets you store a short value in the dat
 ```
 
 The Tera `filter` built-in is **strictly case-sensitive**.
+
+### `phone` field type
+
+A `String` field stored as `VARCHAR` and rendered as `<input type="tel">` in the admin form.
+
+```rust
+model! {
+    Contact,
+    table: "contacts",
+    pk: id => i32,
+    fields: {
+        name:  text [required],
+        phone: phone [required],
+    },
+}
+```
+
+`phone` accepts `required`, `label(...)`, and all common string constraints.
 
 ### Field options
 
@@ -249,7 +306,40 @@ Available FK actions: `cascade`, `restrict`, `set_null`, `set_default` (default:
 
 ### Meta
 
-> The `meta` block is reserved for future versions (ordering, verbose_name, etc.). It is parsed without error but currently ignored.
+The `meta` block controls database-level constraints and display metadata. All keys are optional.
+
+```rust
+model! {
+    Article,
+    table: "articles",
+    pk: id => i32,
+    fields: {
+        title:      text [required],
+        slug:       text [required],
+        lang:       text [required],
+        sort_order: int,
+        created_at: datetime [auto_now],
+    },
+    meta: {
+        ordering: [-created_at, title],
+        unique_together: [(slug, lang)],
+        indexes: [(lang, sort_order)],
+        verbose_name: "Article",
+        verbose_name_plural: "Articles",
+    }
+}
+```
+
+| Key | Syntax | Effect |
+| --- | --- | --- |
+| `ordering` | `[field, -field]` | Default sort order in queries. `-` prefix = `DESC`. |
+| `unique_together` | `[(col1, col2), ...]` | Generates a `UNIQUE` constraint on the column combination. |
+| `indexes` | `[(col1, col2), ...]` | Generates a plain (non-unique) `INDEX` on the column combination. |
+| `verbose_name` | `"string"` | Human-readable name used in the admin interface. |
+| `verbose_name_plural` | `"string"` | Plural form used in the admin interface. |
+| `abstract` | `true` / `false` | Abstract model — no table generated, used as a base for other models. |
+
+`unique_together` and `indexes` are processed by `makemigrations` and generate the appropriate SQL constraints.
 
 ---
 

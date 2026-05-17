@@ -29,6 +29,22 @@
     </div>
     {% endfor %}
 
+    {% if total_pages and total_pages > 1 %}
+    <div class="pagination-nav">
+        {% if prev_page %}
+        <a href="?page={{ prev_page }}" class="btn btn-outline-secondary">← Newer</a>
+        {% else %}
+        <span class="btn btn-outline-secondary disabled">← Newer</span>
+        {% endif %}
+        <span class="pagination-info">{{ current_page }} / {{ total_pages }}</span>
+        {% if next_page %}
+        <a href="?page={{ next_page }}" class="btn btn-outline-secondary">Older →</a>
+        {% else %}
+        <span class="btn btn-outline-secondary disabled">Older →</span>
+        {% endif %}
+    </div>
+    {% endif %}
+
     <div class="back-link">
         {% if ext_link_url %}
         <a href="{{ ext_link_url }}" target="_blank" class="btn btn-secondary">{{ ext_link_label }}</a>

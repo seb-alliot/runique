@@ -21,6 +21,17 @@ pub struct CardSection {
     pub entries: Vec<CardEntry>,
 }
 
+pub async fn fetch_changelog_paged(
+    db: &sea_orm::DatabaseConnection,
+    page: usize,
+) -> (Vec<CardSection>, usize, usize) {
+    let all = fetch_changelog(db).await;
+    let total = all.len();
+    let page = page.max(1).min(total.max(1));
+    let sections = all.into_iter().skip(page - 1).take(1).collect();
+    (sections, page, total)
+}
+
 pub async fn fetch_changelog(db: &sea_orm::DatabaseConnection) -> Vec<CardSection> {
     let all = search!(ChangelogEntryEntity => desc Version, asc SortOrder)
         .all(db)

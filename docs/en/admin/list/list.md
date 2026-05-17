@@ -5,6 +5,7 @@ The admin list view handles all its operations **at the SQL level**: pagination,
 ## Table of Contents
 
 - [Displayed columns — list_display](#displayed-columns--list_display)
+- [Foreign key resolution](#foreign-key-resolution)
 - [Sidebar filters — list_filter](#sidebar-filters--list_filter)
 - [Column sorting](#column-sorting)
 - [Search](#search)
@@ -31,6 +32,40 @@ admin! {
 Each entry is a `["column_name", "Label"]` pair. Columns declared in `list_display` also serve as the **sorting whitelist**: only these columns (and `id`) accept a `sort_by` parameter.
 
 Available in the Tera context via `visible_columns` (list of names) and `column_labels` (corresponding labels).
+
+## Foreign key resolution
+
+An optional third element in each `list_display` entry resolves a related table's label instead of displaying the raw ID:
+
+```rust
+admin! {
+    orders: order::Model => order::AdminForm {
+        title: "Orders",
+        list_display: [
+            ["number", "N°"],
+            ["user_id", "Customer", "eihwaz_users.username"],   // ← FK
+            ["status", "Status"],
+        ],
+    }
+}
+```
+
+The third element syntax is `"table.column"`. The daemon automatically generates:
+
+- In the **list view**: a `SELECT CAST(id AS TEXT), column FROM table WHERE id IN (...)` post-processing query that replaces each ID with the resolved label.
+- In **create and edit forms**: a `<select>` dropdown populated from the related table, with the existing value pre-selected in edit mode.
+
+Resolution is compatible with `i32`, `i64` and UUID — the identifier is cast to `TEXT` before comparison.
+
+FK columns are automatically **excluded from full-text search** (searching a raw ID is meaningless). Non-FK columns remain indexed normally.
+
+### Common examples
+
+```rust
+["menu_id",  "Menu",     "menus.title"]
+["theme_id", "Theme",    "themes.label"]
+["user_id",  "Customer", "eihwaz_users.username"]
+```
 
 ### Configuring builtins — configure {}
 
@@ -105,9 +140,11 @@ Pagination is computed at the SQL level (`LIMIT` / `OFFSET`). Page size is confi
 .with_admin(|a| {
     a.site_title("Administration")
      .auth(RuniqueAdminAuth::new())
-     .page_size(15)   // ← entries per page
+     .page_size(15)   // ← entries per page (list views AND history)
 })
 ```
+
+`page_size` applies to both the **resource list view** and the **history view** (`/admin/history`). The default value is `10`.
 
 Active filters and search are preserved in pagination links.
 

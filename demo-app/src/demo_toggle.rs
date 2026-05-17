@@ -24,7 +24,7 @@ async fn toggle_dashboard_template(session: Session) -> Response {
             .await;
     }
 
-    Redirect::to("/admin/").into_response()
+    Redirect::to("/admin-runique/").into_response()
 }
 
 pub fn router(prefix: &str) -> Router {

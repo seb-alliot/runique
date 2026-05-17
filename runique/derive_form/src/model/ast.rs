@@ -76,7 +76,9 @@ pub enum FormFieldKind {
     Ip,
     Choice,
     Radio,
+    Checkbox,
     Bigint,
+    Phone,
 }
 
 pub enum FormFieldAttr {

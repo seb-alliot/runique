@@ -38,7 +38,7 @@ Créer un fichier qui hérite de `admin_template` et remplit les blocks de layou
     <ul>
     {% for res in resources %}
         <li>
-            <a href="/admin/{{ res.key }}/list"
+            <a href="{{ admin_prefix }}/{{ res.key }}/list"
                {% if res.key == current_resource %}class="active"{% endif %}>
                 {{ res.title }}
             </a>
@@ -51,7 +51,7 @@ Créer un fichier qui hérite de `admin_template` et remplit les blocks de layou
 {% block topbar %}
 <header class="mon-topbar">
     {% block breadcrumb %}{% endblock %}
-    <form method="POST" action="/admin/logout">
+    <form method="POST" action="{{ admin_prefix }}/logout">
         {% csrf %}
         <button type="submit">{{ current_user.username }} — Déconnexion</button>
     </form>

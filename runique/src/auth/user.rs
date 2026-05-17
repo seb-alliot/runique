@@ -117,6 +117,22 @@ impl UserEntity for BuiltinUserEntity {
     }
 }
 
+/// Authenticates a user by username and password against the built-in user table.
+///
+/// Returns `None` if the user is not found, the account is inactive, or the password is wrong.
+pub async fn authenticate_user(
+    db: &DatabaseConnection,
+    username: &str,
+    password: &str,
+) -> Option<Model> {
+    let user = BuiltinUserEntity::find_by_username(db, username).await?;
+    if user.is_active && crate::utils::password::verify(password, &user.password) {
+        Some(user)
+    } else {
+        None
+    }
+}
+
 // ─── Handy Alias ───────────────────────────────────────────────────────────
 pub type RuniqueAdminAuth = crate::auth::session::DefaultAdminAuth<BuiltinUserEntity>;
 

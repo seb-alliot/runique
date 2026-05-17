@@ -184,16 +184,89 @@ admin! {
     users: users::Model => RegisterForm {
         title: "Utilisateurs",
         group_action: [
-            ["is_active", "Activer"],
-            ["is_active", "Désactiver"],
+            ["is_active", "Activer"],   // 2 éléments : champ booléen → soumet "true"
         ]
     }
 }
 ```
 
-Chaque entrée est une paire `["nom_champ", "Libellé"]`. Le handler `handle_group_set` applique la valeur du champ préfixé `ga_*` sur toutes les lignes sélectionnées via `partial_update_fn`.
+Chaque entrée à 2 éléments `["nom_champ", "Libellé"]` cible un **champ booléen** et soumet `"true"` via `partial_update_fn`.
+
+Pour les **champs enum**, utiliser la syntaxe à 3 éléments pour soumettre une valeur exacte :
+
+```rust
+admin! {
+    avis: avis::Model => avis::AdminForm {
+        title: "Avis",
+        group_action: [
+            ["statut", "Valider", "valide"],   // 3 éléments : soumet "valide"
+            ["statut", "Refuser", "refuse"],   // 3 éléments : soumet "refuse"
+        ]
+    }
+}
+```
+
+Plusieurs entrées ciblant le **même champ** sont automatiquement fusionnées en un seul select dans l'interface, évitant les conflits de soumission.
 
 Disponible aussi dans `configure {}` pour les ressources builtin.
+
+---
+
+#### `bulk_create`
+
+Quand déclaré sur une ressource, le `create_fn` généré découpe le champ nommé par virgule et insère un enregistrement par valeur. Conçu pour les `CheckboxField` multi-sélection (ex : sélectionner plusieurs jours de la semaine pour créer un `horaire` par jour).
+
+```rust
+admin! {
+    horaires: horaire::Model => HoraireForm {
+        title: "Horaires",
+        bulk_create: jour,   // découpe data["jour"] par virgule, insère un enregistrement par valeur
+    }
+}
+```
+
+Seul le champ split se comporte différemment — tous les autres champs du formulaire sont copiés tels quels dans chaque enregistrement inséré.
+
+---
+
+#### `m2m`
+
+Déclare des relations many-to-many gérées via une table de jonction. Le daemon génère une closure `M2mLoaderFn` qui charge les choix disponibles et pré-sélectionne les associations existantes.
+
+```rust
+admin! {
+    articles: article::Model => ArticleForm {
+        title: "Articles",
+        m2m: [
+            ["tags", "Tags", "article_tags", "article_id", "tag_id", "tags::Entity", "name"],
+        ]
+    }
+}
+```
+
+Chaque entrée est un tableau à 7 éléments :
+
+| Position | Exemple | Description |
+| --- | --- | --- |
+| 1 | `"tags"` | Nom du champ — utilisé comme préfixe de champ de formulaire (`m2m_tags__`) |
+| 2 | `"Tags"` | Libellé affiché dans le formulaire création/édition |
+| 3 | `"article_tags"` | Nom de la table de jonction |
+| 4 | `"article_id"` | Colonne FK de cette entité dans la table de jonction |
+| 5 | `"tag_id"` | Colonne FK de l'entité cible dans la table de jonction |
+| 6 | `"tags::Entity"` | Chemin de l'entité SeaORM cible |
+| 7 | `"name"` | Colonne de la table cible utilisée comme libellé dans le formulaire |
+
+Dans les formulaires de création/édition, tous les choix disponibles sont chargés depuis la table cible et les associations existantes sont pré-sélectionnées. À la soumission, les valeurs soumises (préfixées `m2m_field__`) sont comparées à l'état courant — seuls les inserts et suppressions nécessaires sont appliqués.
+
+---
+
+#### Édition en masse (bulk edit)
+
+L'édition en masse ne nécessite aucune déclaration DSL. Quand des entrées sont sélectionnées dans la vue liste et que l'action bulk-edit est déclenchée, un formulaire est rendu avec tous les champs éditables.
+
+À la soumission, chaque enregistrement est mis à jour indépendamment. Seuls les champs avec une valeur non vide sont appliqués — laisser un select vide signifie « sans changement ». Les violations de contrainte unique ignorent cet enregistrement avec un avertissement plutôt qu'interrompre le lot.
+
+Le formulaire d'édition en masse utilise le même type de formulaire que la vue création/édition. Pour personnaliser le template, surcharger `admin/bulk_edit.html`.
 
 ---
 
@@ -252,6 +325,8 @@ La macro `admin!` couvre uniquement les **métadonnées de registre** :
 - les colonnes visibles dans la vue liste (`list_display`)
 - les filtres de la barre latérale (`list_filter`) avec limite optionnelle par colonne
 - des actions de masse (`group_action`)
+- création multi-enregistrements depuis un champ split par virgule (`bulk_create`)
+- relations many-to-many via table de jonction (`m2m`)
 - des variables Tera supplémentaires par ressource (`extra`)
 - la configuration d'affichage de toute ressource y compris les builtins (`configure {}`)
 

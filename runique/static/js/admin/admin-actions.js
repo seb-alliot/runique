@@ -1,50 +1,60 @@
 /**
  * admin-actions.js
  * Gestion des confirmations admin - Compatible CSP
- * Usage: <script src="admin-actions.js" nonce="TON_NONCE"></script>
  */
 
 (function() {
     'use strict';
 
+    function confirm_then(msg, callback) {
+        if (typeof window.runique_confirm === 'function') {
+            window.runique_confirm(msg, { okLabel: 'Supprimer', cancelLabel: 'Annuler' })
+                .then(function (ok) { if (ok) callback(); });
+        } else if (window.confirm(msg)) {
+            callback();
+        }
+    }
+
     function AdminActions(options) {
         options = options || {};
-        this.msgDelete = options.deleteMessage || 'Vraiment supprimer ?';
+        this.msgDelete  = options.deleteMessage  || 'Vraiment supprimer ?';
         this.msgDefault = options.defaultMessage || 'Confirmer ?';
     }
 
     AdminActions.prototype.init = function() {
         var self = this;
-        
-        // Bind les suppressions
+
         document.querySelectorAll('[data-confirm-delete]').forEach(function(btn) {
             if (btn._adminBound) return;
             btn._adminBound = true;
-            
-            var msg = btn.getAttribute('data-confirm-delete') || self.msgDelete;
-            
+
+            const msg = btn.getAttribute('data-confirm-delete') || self.msgDelete;
+
             btn.addEventListener('click', function(e) {
-                if (!confirm(msg)) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    return false;
-                }
+                e.preventDefault();
+                e.stopPropagation();
+                var form = btn.closest('form');
+                confirm_then(msg, function () {
+                    if (form) form.submit();
+                });
             });
         });
 
-        // Bind les confirmations génériques
         document.querySelectorAll('[data-confirm]').forEach(function(el) {
             if (el._adminBound) return;
             el._adminBound = true;
-            
-            var msg = el.getAttribute('data-confirm') || self.msgDefault;
-            
+
+            const msg = el.getAttribute('data-confirm') || self.msgDefault;
+
             el.addEventListener('click', function(e) {
-                if (!confirm(msg)) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    return false;
-                }
+                e.preventDefault();
+                e.stopPropagation();
+                const form = el.closest('form');
+                const href = el.href || null;
+                confirm_then(msg, function () {
+                    if (form) form.submit();
+                    else if (href) window.location.href = href;
+                });
             });
         });
     };
@@ -53,10 +63,8 @@
         this.init();
     };
 
-    // Expose globalement
     window.AdminActions = AdminActions;
 
-    // Auto-init if data-admin-auto-init is present (works even if DOM is already ready)
     function tryAutoInit() {
         if (document.querySelector('[data-admin-auto-init]')) {
             new AdminActions().init();

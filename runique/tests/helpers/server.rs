@@ -92,8 +92,12 @@ pub async fn build_engine() -> Arc<RuniqueEngine> {
         features: MiddlewareConfig::default(),
         security_csp: Arc::new(SecurityPolicy::default()),
         security_hosts: Arc::new(HostPolicy::new(vec![], true)),
+        csrf_exempt_paths: Arc::new(vec![]),
+        permissions_policy: Arc::new(runique::middleware::PermissionsPolicy::default()),
+        trusted_proxies: Arc::new(runique::middleware::TrustedProxies::default()),
         session_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
         session_db_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
+        custom_db: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
     })
 }
 

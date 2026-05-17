@@ -147,7 +147,8 @@ macro_rules! search_munch {
     ($b:expr, $entity:ty; $col:ident in ($val:expr) , $($rest:tt)*) => {
         {
             use sea_orm::ColumnTrait;
-            $b = $b.filter(<$entity as sea_orm::EntityTrait>::Column::$col.is_in($val));
+            let __vals: ::std::vec::Vec<_> = (&$val).into_iter().cloned().collect();
+            $b = $b.filter(<$entity as sea_orm::EntityTrait>::Column::$col.is_in(__vals));
         }
         $crate::search_munch!($b, $entity; $($rest)*);
     };
@@ -156,7 +157,8 @@ macro_rules! search_munch {
     ($b:expr, $entity:ty; $col:ident not_in ($val:expr) , $($rest:tt)*) => {
         {
             use sea_orm::ColumnTrait;
-            $b = $b.filter(<$entity as sea_orm::EntityTrait>::Column::$col.is_not_in($val));
+            let __vals: ::std::vec::Vec<_> = (&$val).into_iter().cloned().collect();
+            $b = $b.filter(<$entity as sea_orm::EntityTrait>::Column::$col.is_not_in(__vals));
         }
         $crate::search_munch!($b, $entity; $($rest)*);
     };
@@ -165,10 +167,11 @@ macro_rules! search_munch {
     ($b:expr, $entity:ty; $col:ident range ($start:expr, $end:expr) , $($rest:tt)*) => {
         {
             use sea_orm::ColumnTrait;
-            $b = $b.filter(sea_orm::Condition::all([
-                <$entity as sea_orm::EntityTrait>::Column::$col.gte($start),
-                <$entity as sea_orm::EntityTrait>::Column::$col.lte($end),
-            ]));
+            $b = $b.filter(
+                sea_orm::Condition::all()
+                    .add(<$entity as sea_orm::EntityTrait>::Column::$col.gte($start))
+                    .add(<$entity as sea_orm::EntityTrait>::Column::$col.lte($end))
+            );
         }
         $crate::search_munch!($b, $entity; $($rest)*);
     };
@@ -177,10 +180,11 @@ macro_rules! search_munch {
     ($b:expr, $entity:ty; $col:ident not_range ($start:expr, $end:expr) , $($rest:tt)*) => {
         {
             use sea_orm::ColumnTrait;
-            $b = $b.filter(sea_orm::Condition::any([
-                <$entity as sea_orm::EntityTrait>::Column::$col.lt($start),
-                <$entity as sea_orm::EntityTrait>::Column::$col.gt($end),
-            ]));
+            $b = $b.filter(
+                sea_orm::Condition::any()
+                    .add(<$entity as sea_orm::EntityTrait>::Column::$col.lt($start))
+                    .add(<$entity as sea_orm::EntityTrait>::Column::$col.gt($end))
+            );
         }
         $crate::search_munch!($b, $entity; $($rest)*);
     };
@@ -300,15 +304,17 @@ macro_rules! search {
     // ── Col in (expr) — Dynamic IN ─────────────────────────────────────────
     ($entity:ty => $col:ident in ($val:expr)) => {{
         use sea_orm::{EntityTrait, ColumnTrait};
+        let __vals: ::std::vec::Vec<_> = (&$val).into_iter().cloned().collect();
         $crate::macros::bdd::objects::Objects::<$entity>::new()
-            .filter(<$entity as EntityTrait>::Column::$col.is_in($val))
+            .filter(<$entity as EntityTrait>::Column::$col.is_in(__vals))
     }};
 
     // ── Col not_in (expr) — Dynamic NOT IN ─────────────────────────────────
     ($entity:ty => $col:ident not_in ($val:expr)) => {{
         use sea_orm::{EntityTrait, ColumnTrait};
+        let __vals: ::std::vec::Vec<_> = (&$val).into_iter().cloned().collect();
         $crate::macros::bdd::objects::Objects::<$entity>::new()
-            .filter(<$entity as EntityTrait>::Column::$col.is_not_in($val))
+            .filter(<$entity as EntityTrait>::Column::$col.is_not_in(__vals))
     }};
 
     // ── Col range (a, b) — BETWEEN ───────────────────────────────────────────

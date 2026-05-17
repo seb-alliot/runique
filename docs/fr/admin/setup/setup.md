@@ -90,11 +90,69 @@ RuniqueApp::builder(config)
 | `.routes(admins::routes("/admin"))` | Monte les routes CRUD sous `/admin` |
 | `.with_state(…)` | État partagé généré par le daemon |
 | `.no_robots_txt()` | Désactive le `/robots.txt` automatique |
+| `.extra_routes(vec![…])` | Routes custom protégées par le middleware admin |
 
 > **robots.txt automatique** — Quand l'admin est actif, Runique génère automatiquement
 > une route `/robots.txt` contenant `Disallow: /admin/` pour exclure l'interface
 > des moteurs de recherche. Le préfixe configuré via `.prefix()` est respecté.
 > Utilisez `.no_robots_txt()` si vous souhaitez gérer ce fichier vous-même.
+
+---
+
+## Routes admin custom (`extra_routes`)
+
+Pour des vues métier qui dépassent le CRUD généré (ex : détail commande avec lignes associées,
+tableau de bord personnalisé), déclarez des routes supplémentaires dans `url.rs` et
+enregistrez-les via `.extra_routes()`.
+
+Ces routes héritent automatiquement du middleware admin : authentification, `AdminState`,
+`PrototypeAdminState` (sidebar), et `CurrentUser`.
+
+**`url.rs`**
+
+```rust
+pub fn admin_extra_routes() -> Vec<(&'static str, runique::axum::routing::MethodRouter)> {
+    vec![
+        ("/commandes/{numero}/detail", view!{ admin_commande_detail }),
+    ]
+}
+```
+
+**`main.rs`**
+
+```rust
+.with_admin(|a| a
+    .routes(admins::routes("/admin"))
+    .extra_routes(url::admin_extra_routes())
+)
+```
+
+Les chemins sont **relatifs au préfixe admin** — `/commandes/{numero}/detail` devient
+`/admin/commandes/{numero}/detail`.
+
+**Handler** — récupérer les extensions injectées par le middleware :
+
+```rust
+use runique::prelude::*;
+use runique::admin::{AdminState, PrototypeAdminState, inject_admin_prefix, insert_admin_messages};
+
+pub async fn admin_commande_detail(
+    Extension(admin): Extension<Arc<AdminState>>,
+    Extension(proto): Extension<Arc<PrototypeAdminState>>,
+    mut request: Request,
+) -> AppResult<Response> {
+    inject_admin_prefix(&mut request, &admin.config.prefix);
+    insert_admin_messages(&mut request, proto.registry.all());
+    // … logique métier …
+    request.render("admin/commande_detail.html")
+}
+```
+
+Le template doit étendre `admin_base` pour hériter du CSS et de la sidebar :
+
+```html
+{% extends "admin_base" %}
+```
 
 ---
 

@@ -150,6 +150,45 @@ La forme tuple `= ("valeur_db", "Libellé")` permet de stocker une valeur courte
 
 `FromStr` accepte les trois formes en insensible à la casse : le nom du variant, la valeur DB, et le libellé (si présent) redirigent tous vers le même variant.
 
+**Méthodes générées sur les enums :**
+
+| Méthode | Retour | Description |
+| --- | --- | --- |
+| `.to_string()` | `String` | Libellé d'affichage (2ème élément du tuple, ou nom du variant) |
+| `.db_value()` | `&'static str` / `i32` / `i64` | Valeur exacte stockée en base |
+| `::from_str(s)` / `.parse()` | `Result<Self, ()>` | Parsing depuis valeur DB, libellé, ou nom variant |
+| `::iter()` | `impl Iterator<Item = Self>` | Itération sur tous les variants (via `sea_orm::Iterable`) |
+
+> **Comportement de `Display` selon la syntaxe :**
+>
+> - `Variant` → `.to_string()` retourne `"Variant"` (nom du variant)
+> - `Variant = "db_val"` → `.to_string()` retourne `"db_val"`
+> - `Variant = ("db_val", "Libellé")` → `.to_string()` retourne `"Libellé"` ← cas le plus utile
+
+```rust
+use sea_orm::Iterable;
+
+// Enum déclaré avec la forme tuple
+// StatutCommande: [
+//     EnAttente = ("en_attente", "En attente"),
+//     Annule    = ("annule",     "Annulé"),
+// ]
+
+let s = StatutCommande::EnAttente;
+
+s.db_value()   // → "en_attente"  (valeur DB stockée)
+s.to_string()  // → "En attente"  (libellé lisible)
+
+// Lister tous les statuts pour un <select>
+let options: Vec<(String, String)> = StatutCommande::iter()
+    .map(|s: StatutCommande| (s.db_value().to_string(), s.to_string()))
+    .collect();
+// → [("en_attente", "En attente"), ("annule", "Annulé"), ...]
+
+// Parser depuis une valeur DB (formulaire POST)
+let statut: Option<StatutCommande> = "en_attente".parse().ok();
+```
+
 **Dans les templates Tera**, la valeur de comparaison doit correspondre **exactement** à ce qui est stocké en base (sensible à la casse) :
 
 ```jinja2
@@ -161,6 +200,24 @@ La forme tuple `= ("valeur_db", "Libellé")` permet de stocker une valeur courte
 ```
 
 Le filtre Tera `filter` est **strictement sensible à la casse**.
+
+### Type de champ `phone`
+
+Un champ `String` stocké en `VARCHAR` et rendu en `<input type="tel">` dans le formulaire admin.
+
+```rust
+model! {
+    Contact,
+    table: "contacts",
+    pk: id => i32,
+    fields: {
+        nom:       text [required],
+        telephone: phone [required],
+    },
+}
+```
+
+`phone` accepte `required`, `label(...)` et toutes les contraintes de chaîne courantes.
 
 ### Options de champ
 
@@ -249,7 +306,40 @@ Actions FK disponibles : `cascade`, `restrict`, `set_null`, `set_default` (défa
 
 ### Meta
 
-> Le bloc `meta` est réservé aux futures versions (ordering, verbose_name, etc.). Il est parsé sans erreur mais ignoré.
+Le bloc `meta` contrôle les contraintes au niveau base de données et les métadonnées d'affichage. Toutes les clés sont optionnelles.
+
+```rust
+model! {
+    Article,
+    table: "articles",
+    pk: id => i32,
+    fields: {
+        title:      text [required],
+        slug:       text [required],
+        lang:       text [required],
+        sort_order: int,
+        created_at: datetime [auto_now],
+    },
+    meta: {
+        ordering: [-created_at, title],
+        unique_together: [(slug, lang)],
+        indexes: [(lang, sort_order)],
+        verbose_name: "Article",
+        verbose_name_plural: "Articles",
+    }
+}
+```
+
+| Clé | Syntaxe | Effet |
+| --- | --- | --- |
+| `ordering` | `[field, -field]` | Ordre de tri par défaut dans les requêtes. Préfixe `-` = `DESC`. |
+| `unique_together` | `[(col1, col2), ...]` | Génère une contrainte `UNIQUE` sur la combinaison de colonnes. |
+| `indexes` | `[(col1, col2), ...]` | Génère un `INDEX` simple (non unique) sur la combinaison de colonnes. |
+| `verbose_name` | `"chaîne"` | Nom lisible utilisé dans l'interface admin. |
+| `verbose_name_plural` | `"chaîne"` | Forme plurielle utilisée dans l'interface admin. |
+| `abstract` | `true` / `false` | Modèle abstrait — aucune table générée, utilisé comme base pour d'autres modèles. |
+
+`unique_together` et `indexes` sont traités par `makemigrations` et génèrent les contraintes SQL correspondantes.
 
 ---
 

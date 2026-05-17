@@ -6,6 +6,65 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2.1.2] - 2026-05-17
+
+### Fixed — `runique` (migration utils)
+
+* **`unique_together` generates `.unique_key()` — not found on `IndexCreateStatement`:** sea-query rc.27+ renamed `IndexCreateStatement::unique_key()` to `unique()`. The call in `generators.rs` is updated; `.unique_key()` on `ColumnDef` is unaffected.
+* **Enum tuple syntax `Variant = ("db_value", "Display")` ignored in migrations:** `parser_builder.rs` only handled `syn::Lit` directly after `=`. When the value was a tuple `(...)`, parsing failed and fell back to the Rust variant name (e.g. `'Entree'` instead of `'entree'`), causing SeaORM deserialization failures. Fixed with a `parenthesized!` branch that extracts the first string from the tuple.
+
+### Fixed — `runique` (admin prefix)
+
+* **Admin middleware redirected to `/` on unauthenticated access:** now redirects to `{prefix}/login` using the configured prefix from `AdminState`. Unmatched routes pass through without triggering the redirect.
+* **`admin_prefix` missing from all admin template contexts:** `inject_admin_prefix` was not called in `inject_context` (shared handler entry point), causing `Variable admin_prefix not found` in templates. Now injected centrally so every admin view has access to it.
+* **`AdminRoutes` struct added:** `admins::routes(prefix)` now returns `AdminRoutes { router, prefix }` instead of a bare `axum::Router`, so the staging layer can propagate the prefix to `AdminConfig` automatically without a separate `.prefix()` call.
+* **`list_filter` in `configure {}` for builtin resources:** sidebar filters declared via `configure { users: { list_filter: [...] } }` were silently ignored — the generator didn't pass them to `DisplayConfig`. The generator now includes the `list_filter` chain in the `configure` call, consistent with resource-level declarations.
+
+### Fixed — `derive_form` 2.0.3
+
+* **Time/Date/Datetime fields not saved in `partial_update`:** a `return None` arm at the top of the match in `generate_partial_update` was silently discarding all temporal fields before reaching the correct chrono-parsing arms added in 2.0.2 — those arms were unreachable dead code. The blocking arm is removed; `NaiveTime`, `NaiveDate`, `NaiveDateTime`, and `DateTime<Utc>` now persist correctly via `admin_partial_update`.
+* **`auto_now`/`auto_now_update` fields absent from `Column` enum and `Model` struct:** the filter in `generate_sea_model` excluded these fields from both `ActiveModel` and `Column`, making `Entity::Column::CreatedAt` unavailable for sorting or filtering. The filter is removed; `auto_now` fields now appear in `Model` and `Column` as `Option<T>` and remain excluded only from `ActiveModel` to prevent manual overwrites.
+
+### Added — `runique` 2.1.2
+
+* **CORS support:** new `with_cors(|c| c.origin("https://app.example.com").allow_credentials(true))` on `MiddlewareStaging`. `CorsConfig` accepts `.origin()`, `.any_origin()`, `.allow_credentials()`, `.max_age()`. Wildcard origin combined with `allow_credentials(true)` is rejected at build time with a `BuildError`.
+* **Trusted proxies:** new `with_trusted_proxies(|t| t.private_networks().proxy("203.0.113.5"))` middleware. Validates `X-Forwarded-For` chains and injects `ClientIp` into handler extensions. Defaults to RFC 1918 + loopback — covers nginx on the same machine and Docker networks without configuration. `.none()` clears all trust for direct-exposure deployments.
+* **`Permissions-Policy` header:** new `with_permissions_policy(|p| ...)` middleware. Sends the `Permissions-Policy` header; all sensors, hardware APIs, and payment are denied by default. Individual directives can be overridden via the builder.
+* **Open redirect protection:** automatic middleware on all 3xx responses. `Location` headers pointing to external origins are blocked unless the destination is in the configured allowed hosts list. Stops unintentional redirects introduced by handler logic.
+* **`RuniqueAppBuilder::with_custom_db`:** attaches any `Any + Send + Sync + 'static` value as an Axum extension, making secondary connections (Redis pools, alternate databases) available in handlers via `Extension<T>`.
+* **`EihwazSessionsMigration` included in `AdminTableMigration`:** `create_eihwaz_sessions_table()` is now called inside `AdminTableMigration::up()` (between `eihwaz_users_groupes` and `eihwaz_history`). The corresponding `DROP` is added to `down()`. New projects no longer need to add this migration manually.
+* **`makemigrations` injects `EihwazSessionsMigration`:** `ensure_admin_migration_positioned()` now inserts `Box::new(migrations_table::EihwazSessionsMigration)` between `EihwazUsersMigration` and `AdminTableMigration` in the generated `lib.rs`. The duplicate-filter and `FRAMEWORK_TABLE_PATTERNS` are updated accordingly.
+* **Admin login — `admin_prefix` injected in all error paths:** `inject_admin_prefix` was missing from the four error render paths in `admin_login_post` (CSRF invalid, account locked, session error, wrong credentials), causing a `Variable admin_prefix not found` 500 error on failed logins. Fixed in all four paths.
+* **Admin bulk JS — checkboxes rebound after HTMX swap:** `admin-bulk.js` now listens to `htmx:afterSwap` on `#list-content` and re-attaches all checkbox listeners (`#bulk-check-all` and `.bulk-check`). Previously, pagination and filter navigation via HTMX recreated DOM elements without event listeners, breaking the select-all checkbox.
+* **Admin bulk edit:** new `GET /{resource}/bulk_edit` and `POST /{resource}/bulk_edit` handlers. When IDs are selected in the list view and the bulk-edit action is triggered, a form is rendered with the shared fields editable. On submit, each record is updated independently; unique-constraint violations are skipped with a warning rather than aborting the whole batch.
+* **M2M support in admin DSL:** `m2m: [["field", "Label", "junction_table", "self_fk", "target_fk", "entity::path"]]` in `admin!{}` generates a `M2mLoaderFn` closure. In create/edit forms, all available choices are loaded from the target table and pre-selected IDs are read from the junction table. Submitted values (prefixed `m2m_field__`) are diffed against the current state; only inserts and deletes are applied.
+* **`AdminConfig::extra_routes()`:** `.with_admin(|a| a.extra_routes(vec![("/path", get(handler))]))` attaches custom routes inside the admin prefix without needing a separate `merge()` call on the router.
+* **`Request` query/path helpers:** four new methods on `runique::context::Request`:
+  * `get_path(key) -> Option<&str>` — raw path parameter.
+  * `get_path_as::<T>(key) -> Option<T>` — typed path parameter (parses via `FromStr`).
+  * `get_query(key) -> Option<&str>` — raw query string parameter (replaces `from_url`).
+  * `query::<T>() -> T` — deserializes the full query string into a struct via `serde_qs`; `raw_query` is now stored on `Request` at extraction time.
+* **DSL `bulk_create: field` — multi-record creation from a single form submit:** when `bulk_create: field_name` is declared on a resource in `admin!{}`, the generated `create_fn` splits `data[field_name]` by comma and inserts one record per value. Designed for `CheckboxField` multi-select (e.g. selecting multiple days of the week to create one `horaire` row per day).
+* **FK resolution in `list_display` — optional 3rd element `"table.column"`:** declaring `["col", "Label", "table.column"]` in `list_display` resolves the raw FK id to a human-readable label in the list view. A `SELECT CAST(id AS TEXT), column FROM table WHERE id IN (...)` query runs after the main fetch and replaces each id in-place. Compatible with `i32`, `i64` and UUID. FK columns are automatically excluded from full-text search.
+* **FK select in admin create/edit forms:** when a `list_display` entry has a 3rd FK element, the generated `form_builder` closure loads all rows from the related table and injects a `<select>` dropdown (via `Forms::field_choices`) for that field, with the existing value pre-selected in edit mode.
+* **`Forms::field_choices` added:** new method on `Forms` that replaces a field by name with a `ChoiceField` populated from a `Vec<(String, String)>` of `(value, label)` pairs. Preserves the current value and the required flag.
+* **History pagination uses `AdminConfig::page_size`:** the two history handlers (`/admin/history` and per-object history) previously used a hardcoded `PER_PAGE = 50`. They now read `admin.config.page_size`, controlled via `.with_admin(|a| a.page_size(N))` in the builder.
+* **`GroupAction::val(field, label, value)` — fixed-value group action:** new constructor for enum-type fields. The 3-element DSL syntax `["field", "Label", "value"]` generates `GroupAction::val` instead of `GroupAction::bool`, submitting the exact string value (e.g. `"valide"`) rather than `"true"`/`"false"`.
+* **`with_group_actions` merges same-field actions:** multiple `GroupAction` entries targeting the same field are merged into a single `<select>` with all choices combined. Previously, duplicate `name="ga_*"` selects caused the last (empty) value to overwrite the selected one, silently discarding the update.
+* **`RuniqueQueryBuilder::order_by_random()`:** orders results by `RANDOM()` without raw SQL.
+* **`RuniqueQueryBuilder::order_by_expr(expr, order)`:** orders by an arbitrary SeaORM `IntoSimpleExpr` expression.
+* **`RuniqueQueryBuilder::one()`:** returns `Result<Option<E::Model>, DbErr>`. Returns `Err` if more than one row matches — analogous to Django's `.get()`. Fetches at most 2 rows internally to detect the ambiguous case without a full scan.
+* **`Request::headers`:** HTTP request headers (`axum::http::HeaderMap`) now available on `Request` in all handlers.
+* **`PasswordResetConfig::email_template(path)`:** optional custom Tera template for password reset emails; falls back to the built-in template if not set.
+* **Translation placeholders unified:** all language files (`fr`, `en`, `de`, `es`, `it`, `ja`, `pt`, `ru`, `zh`) migrated from positional `{0}`/`{1}`/`{2}` to anonymous `{}` to match the Rust `format!` convention used at runtime.
+
+### Added — `derive_form` 2.0.3
+
+* **`extend!{}` macro — extend framework tables:** generates a `schema()` function that `makemigrations` uses to emit `ALTER TABLE ADD COLUMN` statements for the named framework table. Only allowed on built-in tables (`eihwaz_users`, `eihwaz_groupes`, `eihwaz_droits`, `eihwaz_sessions`, `eihwaz_users_groupes`, `eihwaz_groupes_droits`). Other names are rejected at compile time.
+* **`phone` field type:** `phone: phone [required]` in `model!{}` — stored as VARCHAR, rendered as `<input type="tel">` in forms.
+
+---
+
 ## [2.1.1] - 2026-05-02
 
 ### Fixed — `derive_form` 2.0.2

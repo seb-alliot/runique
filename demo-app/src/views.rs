@@ -7,7 +7,7 @@ use crate::backend::{
     cours::{ExerciceInput, cours_detail, cours_exercice, cours_index},
     demo_code_page,
     doc::{doc_index, doc_page, doc_section_index},
-    fetch_changelog, fetch_known_issues, fetch_roadmap,
+    fetch_changelog_paged, fetch_known_issues, fetch_roadmap,
     forms::{extract_helpers_data, get_field_groups, handle_upload_image},
     inject_globals,
 };
@@ -228,10 +228,21 @@ pub async fn rgpd(mut request: Request) -> AppResult<Response> {
 
 pub async fn changelog(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
-    let sections = fetch_changelog(&request.engine.db).await;
+    let page: usize = request
+        .get_query("page")
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(1);
+    let (sections, current_page, total_pages) =
+        fetch_changelog_paged(&request.engine.db, page).await;
+    let prev_page = if current_page > 1 { Some(current_page - 1) } else { None };
+    let next_page = if current_page < total_pages { Some(current_page + 1) } else { None };
     context_update!(request => {
         "title"          => "Changelog",
         "sections"       => &sections,
+        "current_page"   => current_page,
+        "total_pages"    => total_pages,
+        "prev_page"      => prev_page,
+        "next_page"      => next_page,
         "ext_link_label" => "Full CHANGELOG",
         "ext_link_url"   => "https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md",
     });

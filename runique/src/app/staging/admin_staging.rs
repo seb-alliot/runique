@@ -9,12 +9,15 @@ use crate::auth::{guard::LoginGuard, session::AdminAuth};
 use crate::middleware::security::RateLimiter;
 use axum::Router;
 
+use crate::admin::AdminRoutes;
+
 pub struct AdminStaging {
     pub config: AdminConfig,
     pub enabled: bool,
     pub robots_txt: bool,
     pub sitemap_url: Option<String>,
     pub route_admin: Option<Router>,
+    pub extra_routes: Vec<(String, axum::routing::MethodRouter)>,
     pub state: Option<Arc<PrototypeAdminState>>,
 }
 
@@ -26,6 +29,7 @@ impl AdminStaging {
             robots_txt: true,
             sitemap_url: None,
             route_admin: None,
+            extra_routes: Vec::new(),
             state: None,
         }
     }
@@ -46,8 +50,33 @@ impl AdminStaging {
         self
     }
 
-    pub fn routes(mut self, router: Router) -> Self {
-        self.route_admin = Some(router);
+    pub fn routes(mut self, admin_routes: AdminRoutes) -> Self {
+        self.config.prefix = admin_routes.prefix;
+        self.route_admin = Some(admin_routes.router);
+        self
+    }
+
+    /// Registers additional routes within the admin middleware boundary.
+    ///
+    /// Paths are relative to the admin prefix — the framework prepends it automatically.
+    /// These routes inherit admin authentication, `AdminState` and `PrototypeAdminState`.
+    ///
+    /// ```rust,ignore
+    /// // url.rs
+    /// pub fn admin_extra_routes() -> Vec<(&'static str, runique::axum::routing::MethodRouter)> {
+    ///     vec![
+    ///         ("/commandes/{numero}/detail", view!{ admin_commande_detail }),
+    ///     ]
+    /// }
+    ///
+    /// // main.rs
+    /// .with_admin(|a| a.extra_routes(url::admin_extra_routes()))
+    /// ```
+    pub fn extra_routes(mut self, routes: Vec<(&str, axum::routing::MethodRouter)>) -> Self {
+        for (path, method_router) in routes {
+            let path = format!("/{}", path.trim_start_matches('/'));
+            self.extra_routes.push((path, method_router));
+        }
         self
     }
 

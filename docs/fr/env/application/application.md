@@ -6,6 +6,7 @@
 |----------|--------|-------------|
 | `DEBUG` | `false` | Interrupteur global dev/prod — lu **une seule fois** au démarrage via `LazyLock`. Active : niveau de log `debug`, pages d'erreur détaillées, hot reload templates admin. En production (`false`) : niveau `warn`, erreurs génériques. |
 | `BASE_DIR` | `.` | Répertoire racine de l'application |
+| `TZ` | `UTC` | Fuseau horaire IANA de l'application (ex : `Europe/Paris`, `America/New_York`). Accessible via `config.timezone` — à parser avec `chrono-tz` dans le projet. |
 | `LANG` | locale système | Langue de la CLI (`fr`, `en`, `de`, `es`, `it`, `pt`, `ja`, `zh`, `ru`). Priorité : `.env` > locale système (`LC_ALL`, `LC_MESSAGES`) > `en` |
 
 ---
@@ -55,6 +56,40 @@
 | Variable | Défaut | Description |
 |----------|--------|-------------|
 | `DB_LOGGING` | `false` | Active les logs SQL (`true`, `1`, `yes`) |
+
+---
+
+## Connexions secondaires — `with_custom_db`
+
+Pour attacher une connexion additionnelle (pool Redis, PostgreSQL secondaire, client MongoDB, etc.), utilisez `.with_custom_db()` sur le builder. La valeur est accessible dans les handlers via `Extension<T>` d'Axum.
+
+```rust
+// main.rs
+let redis = redis::Client::open("redis://127.0.0.1/")?;
+
+RuniqueAppBuilder::new(config)
+    .with_database().await
+    .with_custom_db(redis)   // T: Any + Send + Sync + 'static
+    .routes(url::urlpatterns())
+    .build().await?
+    .run().await
+```
+
+```rust
+// handler
+use axum::Extension;
+use redis::Client;
+
+pub async fn mon_handler(
+    Extension(redis): Extension<Client>,
+    mut req: Request,
+) -> AppResult<Response> {
+    let mut conn = redis.get_async_connection().await?;
+    // ...
+}
+```
+
+Tout type implémentant `Any + Send + Sync + 'static` est accepté. Plusieurs connexions secondaires de types différents peuvent être enregistrées avec des appels `.with_custom_db()` répétés.
 
 ---
 

@@ -6,6 +6,65 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ---
 
+## [2.1.2] - 2026-05-17
+
+### Corrigé — `runique` (utilitaires migration)
+
+* **`unique_together` génère `.unique_key()` — méthode introuvable sur `IndexCreateStatement` :** sea-query rc.27+ a renommé `IndexCreateStatement::unique_key()` en `unique()`. L'appel dans `generators.rs` est corrigé ; `.unique_key()` sur `ColumnDef` n'est pas affecté.
+* **Syntaxe tuple `Variant = ("db_value", "Display")` ignorée dans les migrations :** `parser_builder.rs` ne gérait que `syn::Lit` directement après `=`. Quand la valeur était un tuple `(...)`, le parsing échouait et revenait au nom de variant Rust (ex. `'Entree'` au lieu de `'entree'`), causant des erreurs de désérialisation SeaORM. Corrigé avec un branchement `parenthesized!` qui extrait la première chaîne du tuple.
+
+### Corrigé — `runique` (préfixe admin)
+
+* **Le middleware admin redirige vers `/` si non authentifié :** redirige maintenant vers `{prefix}/login` en utilisant le préfixe configuré depuis `AdminState`. Les routes sans correspondance passent sans déclencher la redirection.
+* **`admin_prefix` absent de tous les contextes de templates admin :** `inject_admin_prefix` n'était pas appelé dans `inject_context` (point d'entrée partagé des handlers), causant `Variable admin_prefix not found` dans les templates. Désormais injecté centralement pour que toutes les vues admin y aient accès.
+* **Struct `AdminRoutes` ajoutée :** `admins::routes(prefix)` retourne maintenant `AdminRoutes { router, prefix }` au lieu d'un `axum::Router` nu, permettant à la couche staging de propager automatiquement le préfixe vers `AdminConfig` sans appel séparé à `.prefix()`.
+* **`list_filter` dans `configure {}` pour les ressources builtin :** les filtres de sidebar déclarés via `configure { users: { list_filter: [...] } }` étaient ignorés silencieusement — le générateur ne les transmettait pas à `DisplayConfig`. Le générateur inclut désormais la chaîne `list_filter` dans l'appel `configure`, cohérent avec les déclarations au niveau ressource.
+
+### Corrigé — `derive_form` 2.0.3
+
+* **Champs Time/Date/Datetime non sauvegardés dans `partial_update` :** un bras `return None` en tête du match dans `generate_partial_update` écartait silencieusement tous les champs temporels avant d'atteindre les bras chrono corrects ajoutés en 2.0.2 — ces bras étaient du code mort inatteignable. Le bras bloquant est supprimé ; `NaiveTime`, `NaiveDate`, `NaiveDateTime` et `DateTime<Utc>` sont désormais correctement persistés via `admin_partial_update`.
+* **Champs `auto_now`/`auto_now_update` absents du `Column` enum et du struct `Model` :** le filtre dans `generate_sea_model` excluait ces champs à la fois de `ActiveModel` et de `Column`, rendant `Entity::Column::CreatedAt` inaccessible pour le tri ou le filtrage. Le filtre est supprimé ; les champs `auto_now` apparaissent désormais dans `Model` et `Column` en `Option<T>` et restent exclus uniquement de `ActiveModel` pour éviter les écrasements manuels.
+
+### Ajouté — `runique` 2.1.2
+
+* **Support CORS :** nouveau `with_cors(|c| c.origin("https://app.example.com").allow_credentials(true))` sur `MiddlewareStaging`. `CorsConfig` accepte `.origin()`, `.any_origin()`, `.allow_credentials()`, `.max_age()`. L'association origine wildcard + `allow_credentials(true)` est rejetée au démarrage avec un `BuildError`.
+* **Proxies de confiance :** nouveau middleware `with_trusted_proxies(|t| t.private_networks().proxy("203.0.113.5"))`. Valide les chaînes `X-Forwarded-For` et injecte `ClientIp` dans les extensions des handlers. Par défaut : réseaux RFC 1918 + loopback — couvre nginx sur la même machine et les réseaux Docker sans configuration. `.none()` supprime toute confiance pour les déploiements exposés directement.
+* **En-tête `Permissions-Policy` :** nouveau middleware `with_permissions_policy(|p| ...)`. Envoie l'en-tête `Permissions-Policy` ; tous les capteurs, APIs matérielles et paiement sont interdits par défaut. Les directives individuelles peuvent être surchargées via le builder.
+* **Protection open redirect :** middleware automatique sur toutes les réponses 3xx. Les en-têtes `Location` pointant vers des origines externes sont bloqués sauf si la destination fait partie des hôtes autorisés configurés. Bloque les redirections involontaires introduites par la logique des handlers.
+* **`RuniqueAppBuilder::with_custom_db` :** attache n'importe quelle valeur `Any + Send + Sync + 'static` comme extension Axum, rendant les connexions secondaires (pools Redis, bases alternatives) accessibles dans les handlers via `Extension<T>`.
+* **`EihwazSessionsMigration` incluse dans `AdminTableMigration` :** `create_eihwaz_sessions_table()` est maintenant appelée dans `AdminTableMigration::up()` (entre `eihwaz_users_groupes` et `eihwaz_history`). Le `DROP` correspondant est ajouté dans `down()`. Les nouveaux projets n'ont plus besoin d'ajouter cette migration manuellement.
+* **`makemigrations` injecte `EihwazSessionsMigration` :** `ensure_admin_migration_positioned()` insère maintenant `Box::new(migrations_table::EihwazSessionsMigration)` entre `EihwazUsersMigration` et `AdminTableMigration` dans le `lib.rs` généré. Le filtre de doublons et `FRAMEWORK_TABLE_PATTERNS` sont mis à jour en conséquence.
+* **Login admin — `admin_prefix` injecté dans tous les chemins d'erreur :** `inject_admin_prefix` était absent des quatre chemins d'erreur de `admin_login_post` (CSRF invalide, compte bloqué, erreur session, mauvais identifiants), provoquant une erreur 500 `Variable admin_prefix not found` sur les échecs de connexion. Corrigé dans les quatre chemins.
+* **JS bulk admin — checkboxes rebindées après swap HTMX :** `admin-bulk.js` écoute maintenant `htmx:afterSwap` sur `#list-content` et rattache tous les listeners de checkboxes (`#bulk-check-all` et `.bulk-check`). Auparavant, la navigation par pagination et filtres via HTMX recréait les éléments DOM sans listeners, cassant la checkbox "tout sélectionner".
+* **Bulk edit admin :** nouveaux handlers `GET /{resource}/bulk_edit` et `POST /{resource}/bulk_edit`. Quand des IDs sont sélectionnés dans la vue liste et que l'action bulk-edit est déclenchée, un formulaire est rendu avec les champs communs éditables. À la soumission, chaque enregistrement est mis à jour indépendamment ; les violations de contrainte unique sont ignorées avec un avertissement plutôt que d'interrompre le lot.
+* **Support M2M dans le DSL admin :** `m2m: [["field", "Libellé", "junction_table", "self_fk", "target_fk", "entity::path"]]` dans `admin!{}` génère une closure `M2mLoaderFn`. Dans les formulaires create/edit, tous les choix disponibles sont chargés depuis la table cible et les IDs existants sont pré-sélectionnés depuis la table de jonction. Les valeurs soumises (préfixées `m2m_field__`) sont comparées à l'état courant ; seuls les inserts et suppressions nécessaires sont appliqués.
+* **`AdminConfig::extra_routes()` :** `.with_admin(|a| a.extra_routes(vec![("/path", get(handler))]))` attache des routes personnalisées dans le préfixe admin sans nécessiter un `merge()` séparé sur le router.
+* **Helpers query/path sur `Request` :** quatre nouvelles méthodes sur `runique::context::Request` :
+  * `get_path(key) -> Option<&str>` — paramètre de chemin brut.
+  * `get_path_as::<T>(key) -> Option<T>` — paramètre de chemin typé (parsé via `FromStr`).
+  * `get_query(key) -> Option<&str>` — paramètre de query string brut (remplace `from_url`).
+  * `query::<T>() -> T` — désérialise toute la query string en struct via `serde_qs` ; `raw_query` est désormais stocké sur `Request` à l'extraction.
+* **DSL `bulk_create: field` — création multi-enregistrements depuis un seul submit :** quand `bulk_create: field_name` est déclaré sur une ressource dans `admin!{}`, le `create_fn` généré découpe `data[field_name]` par virgule et insère un enregistrement par valeur. Conçu pour les `CheckboxField` multi-sélection (ex. : sélectionner plusieurs jours de la semaine pour créer un enregistrement `horaire` par jour).
+* **Résolution FK dans `list_display` — 3ème élément optionnel `"table.colonne"` :** déclarer `["col", "Libellé", "table.colonne"]` dans `list_display` remplace l'id FK brut par un libellé lisible dans la vue liste. Une requête `SELECT CAST(id AS TEXT), colonne FROM table WHERE id IN (...)` s'exécute après le fetch principal et remplace chaque id en place. Compatible `i32`, `i64` et UUID. Les colonnes FK sont automatiquement exclues de la recherche plein-texte.
+* **Select FK dans les formulaires create/edit admin :** quand une entrée de `list_display` possède un 3ème élément FK, le `form_builder` généré charge toutes les lignes de la table liée et injecte un `<select>` (via `Forms::field_choices`) pour ce champ, avec la valeur existante pré-sélectionnée en mode édition.
+* **`Forms::field_choices` ajouté :** nouvelle méthode sur `Forms` qui remplace un champ par son nom par un `ChoiceField` peuplé depuis un `Vec<(String, String)>` de paires `(valeur, libellé)`. Préserve la valeur courante et le flag required.
+* **Pagination de l'historique liée à `AdminConfig::page_size` :** les deux handlers history (`/admin/history` et historique par objet) utilisaient un `PER_PAGE = 50` codé en dur. Ils lisent maintenant `admin.config.page_size`, contrôlé via `.with_admin(|a| a.page_size(N))` dans le builder.
+* **`GroupAction::val(field, label, value)` — action groupe à valeur fixe :** nouveau constructeur pour les champs de type enum. La syntaxe DSL à 3 éléments `["field", "Libellé", "value"]` génère `GroupAction::val` au lieu de `GroupAction::bool`, soumettant la valeur exacte (ex. `"valide"`) plutôt que `"true"`/`"false"`.
+* **`with_group_actions` fusionne les actions sur le même champ :** plusieurs entrées `GroupAction` ciblant le même champ sont fusionnées en un seul `<select>` regroupant tous les choix. Auparavant, les selects `name="ga_*"` en doublon provoquaient l'écrasement de la valeur sélectionnée par la valeur vide, abandonnant silencieusement la mise à jour.
+* **`RuniqueQueryBuilder::order_by_random()` :** trie les résultats par `RANDOM()` sans SQL brut.
+* **`RuniqueQueryBuilder::order_by_expr(expr, order)` :** tri par une expression SeaORM `IntoSimpleExpr` arbitraire.
+* **`RuniqueQueryBuilder::one()` :** retourne `Result<Option<E::Model>, DbErr>`. Retourne `Err` si plus d'une ligne correspond — analogue au `.get()` de Django. Charge au plus 2 lignes en interne pour détecter le cas ambigu sans scan complet.
+* **`Request::headers` :** les en-têtes HTTP (`axum::http::HeaderMap`) sont désormais accessibles sur `Request` dans tous les handlers.
+* **`PasswordResetConfig::email_template(path)` :** template Tera personnalisé optionnel pour les emails de réinitialisation de mot de passe ; utilise le template intégré si non défini.
+* **Placeholders de traduction unifiés :** tous les fichiers de langue (`fr`, `en`, `de`, `es`, `it`, `ja`, `pt`, `ru`, `zh`) migrés de `{0}`/`{1}`/`{2}` vers `{}` pour correspondre à la convention `format!` de Rust utilisée à l'exécution.
+
+### Ajouté — `derive_form` 2.0.3
+
+* **Macro `extend!{}` — extension des tables framework :** génère une fonction `schema()` que `makemigrations` utilise pour émettre des instructions `ALTER TABLE ADD COLUMN` sur la table framework nommée. Autorisé uniquement sur les tables intégrées (`eihwaz_users`, `eihwaz_groupes`, `eihwaz_droits`, `eihwaz_sessions`, `eihwaz_users_groupes`, `eihwaz_groupes_droits`). Les autres noms sont rejetés à la compilation.
+* **Type de champ `phone` :** `phone: phone [required]` dans `model!{}` — stocké en VARCHAR, rendu en `<input type="tel">` dans les formulaires.
+
+---
+
 ## [2.1.1] - 2026-05-02
 
 ### Corrigé — `derive_form` 2.0.2

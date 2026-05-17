@@ -1,11 +1,50 @@
 use proc_macro::TokenStream;
 
+mod extend_schema;
 mod model;
 mod schema_form;
 
-/// #[form(...)] macro
+/// Derives a validated HTML form bound to a SeaORM entity schema.
+///
+/// # Required attribute
+///
+/// `schema = path::to::entity` — the SeaORM entity module (e.g. `crate::entities::contact`).
+/// The macro reads the entity's column list to generate field accessors and validation.
+///
+/// # Optional attributes
+///
+/// - `fields = [field1, field2, ...]` — include only these fields (allowlist)
+/// - `exclude = [field1, field2, ...]` — exclude these fields (denylist)
+/// - `model = MyModel` — override the generated model name (defaults to struct name)
+///
+/// # Example
+///
+/// ```rust,ignore
+/// #[form(schema = crate::entities::contact, fields = [email, message])]
+/// pub struct ContactForm;
+/// impl RuniqueForm for ContactForm {
+///     impl_form_access!(model);
+/// }
+/// ```
+///
+/// The struct must be a unit struct (`pub struct Foo;`). The macro generates
+/// a `pub form: Forms` field and implements `ModelForm`.
+///
+/// # Field types available in templates
+///
+/// `TextField`, `DecimalField`, `IntField`, `BoolField`, `DateTimeField`,
+/// `FileField`, `ChoiceField`, `FkField`, `TextAreaField`
 #[proc_macro_attribute]
 pub fn form(attr: TokenStream, item: TokenStream) -> TokenStream {
+    if attr.is_empty() {
+        return quote::quote! {
+            compile_error!(
+                "#[form] requires `schema = path::to::entity`.\n\
+                Example: #[form(schema = crate::entities::my_entity, fields = [field1, field2])]"
+            );
+        }
+        .into();
+    }
     schema_form::model_schema(attr, item)
 }
 
@@ -40,78 +79,19 @@ pub fn extend(input: TokenStream) -> TokenStream {
         "eihwaz_groupes_droits",
     ];
 
-    // Translation JSONs embedded at derive_form compilation time
-    const TRANSLATIONS: &[(&str, &str)] = &[(
-        "en",
-        r#"{"makemigrations": {"extend_invalid_syntax": "extend: incomplete feature", "extend_unknown_table": "extend: incomplete feature"}}"#,
-    )];
+    let dsl = match syn::parse::<extend_schema::ExtendDsl>(input) {
+        Ok(d) => d,
+        Err(e) => return e.to_compile_error().into(),
+    };
 
-    /// Extracts a nested key `"section.key"` from an embedded JSON.
-    fn get_msg(lang_code: &str, key: &str) -> Option<String> {
-        let json_str = TRANSLATIONS.iter().find(|(l, _)| *l == lang_code)?.1;
-        let val: serde_json::Value = serde_json::from_str(json_str).ok()?;
-        let mut parts = key.split('.');
-        let section = parts.next()?;
-        let subkey = parts.next()?;
-        val.get(section)?
-            .get(subkey)?
-            .as_str()
-            .map(|s| s.to_string())
+    if !FRAMEWORK_TABLES.contains(&dsl.table.as_str()) {
+        let tables_list = FRAMEWORK_TABLES.join(", ");
+        let msg = format!(
+            "extend!{{}}: \"{}\" is not a known framework table. Allowed: {}",
+            dsl.table, tables_list
+        );
+        return quote::quote! { compile_error!(#msg); }.into();
     }
 
-    /// Detects the language from LANG / LC_ALL / LC_MESSAGES in the environment (after dotenvy).
-    fn detect_lang() -> String {
-        dotenvy::dotenv().ok();
-        let raw = std::env::var("LANG")
-            .or_else(|_| std::env::var("LC_ALL"))
-            .or_else(|_| std::env::var("LC_MESSAGES"))
-            .unwrap_or_default();
-        raw.chars().take(2).collect::<String>().to_lowercase()
-    }
-
-    // Extracts the table name from `table: "..."` to validate at compile time.
-    let input2 = proc_macro2::TokenStream::from(input);
-    let mut tokens = input2.into_iter();
-
-    let table_name: Option<String> = (|| {
-        loop {
-            let tok = tokens.next()?;
-            if let proc_macro2::TokenTree::Ident(ident) = &tok
-                && ident == "table"
-            {
-                tokens.next()?; // consume ':'
-                if let proc_macro2::TokenTree::Literal(lit) = tokens.next()? {
-                    return Some(lit.to_string().trim_matches('"').to_string());
-                }
-            }
-        }
-    })();
-
-    let lang = detect_lang();
-
-    match table_name {
-        None => {
-            let msg = get_msg(&lang, "makemigrations.extend_invalid_syntax")
-                .or_else(|| get_msg("en", "makemigrations.extend_invalid_syntax"))
-                .unwrap_or_else(|| "extend!{} : invalid syntax.".to_string());
-            return quote::quote! { compile_error!(#msg); }.into();
-        }
-        Some(name) if !FRAMEWORK_TABLES.contains(&name.as_str()) => {
-            let tables_list = FRAMEWORK_TABLES.join(", ");
-            let template = get_msg(&lang, "makemigrations.extend_unknown_table")
-                .or_else(|| get_msg("en", "makemigrations.extend_unknown_table"))
-                .unwrap_or_else(|| {
-                    "extend!{{}} : \"{}\" is not a known framework table. Allowed tables: {}."
-                        .to_string()
-                });
-            // Replaces {} with values (simple format: first {} = table, second {} = list)
-            let msg = template
-                .replacen("{}", &name, 1)
-                .replacen("{}", &tables_list, 1);
-            return quote::quote! { compile_error!(#msg); }.into();
-        }
-        _ => {}
-    }
-
-    TokenStream::new()
+    extend_schema::generate_schema_fn(&dsl).into()
 }

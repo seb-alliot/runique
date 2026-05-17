@@ -58,6 +58,40 @@
 
 ---
 
+## Secondary connections — `with_custom_db`
+
+To attach an additional database connection (Redis pool, secondary PostgreSQL, MongoDB client, etc.), use `.with_custom_db()` on the builder. The value is available in handlers via Axum's `Extension<T>`.
+
+```rust
+// main.rs
+let redis = redis::Client::open("redis://127.0.0.1/")?;
+
+RuniqueAppBuilder::new(config)
+    .with_database().await
+    .with_custom_db(redis)   // T: Any + Send + Sync + 'static
+    .routes(url::urlpatterns())
+    .build().await?
+    .run().await
+```
+
+```rust
+// handler
+use axum::Extension;
+use redis::Client;
+
+pub async fn my_handler(
+    Extension(redis): Extension<Client>,
+    mut req: Request,
+) -> AppResult<Response> {
+    let mut conn = redis.get_async_connection().await?;
+    // ...
+}
+```
+
+Any type implementing `Any + Send + Sync + 'static` is accepted. Multiple secondary connections of different types can be registered with repeated `.with_custom_db()` calls.
+
+---
+
 ## See also
 
 | Section | Description |

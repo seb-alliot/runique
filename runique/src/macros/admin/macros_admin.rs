@@ -6,18 +6,9 @@ macro_rules! admin {
     (
         configure { $($_cfg:tt)* }
         $(
-            $key:ident : $($model:ident)::+ => $form:path {
-                title: $title:literal
-                $(, create_form: $create_form_path:path)?
-                $(, edit_form: $edit_form_path:path)?
-                $(, list_display: [ $([$display_col:literal, $display_label:literal]),* $(,)? ])?
-                $(, list_filter: [ $([$filter_col:literal, $filter_label:literal $(, $entry_limit:literal)?]),* $(,)? ])?
-                $(,)?
-            }
+            $key:ident : $($model:ident)::+ => $form:path { $($body:tt)* }
         )*
     ) => {
-        // Compile-time verification — validates dev imports
-        // If a type is missing → explicit compilation error
         $(
             const _: () = {
                 fn _check_types() {
@@ -31,18 +22,9 @@ macro_rules! admin {
     // Without configure block
     (
         $(
-            $key:ident : $($model:ident)::+ => $form:path {
-                title: $title:literal
-                $(, create_form: $create_form_path:path)?
-                $(, edit_form: $edit_form_path:path)?
-                $(, list_display: [ $([$display_col:literal, $display_label:literal]),* $(,)? ])?
-                $(, list_filter: [ $([$filter_col:literal, $filter_label:literal $(, $entry_limit:literal)?]),* $(,)? ])?
-                $(,)?
-            }
+            $key:ident : $($model:ident)::+ => $form:path { $($body:tt)* }
         )*
     ) => {
-        // Compile-time verification — validates dev imports
-        // If a type is missing → explicit compilation error
         $(
             const _: () = {
                 fn _check_types() {

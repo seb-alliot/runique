@@ -44,6 +44,25 @@ fetch('/api/endpoint', {
 
 ---
 
+## Chemins exemptés (webhooks, APIs)
+
+Certains endpoints reçoivent des POST sans token CSRF — webhooks Stripe, callbacks tiers, APIs JSON appelées par d'autres serveurs.
+Utilisez `.csrf_exempt()` pour bypasser la validation CSRF sur des chemins spécifiques :
+
+```rust
+.middleware(|m| {
+    m.with_csrf()
+     .csrf_exempt(vec!["/webhook/stripe", "/api/callback"])
+})
+```
+
+La correspondance est **exacte** — `/webhook/stripe` n'exempte pas `/webhook/stripe/sub`.
+
+> Après avoir exempté un chemin, vérifiez l'authenticité de la requête par d'autres moyens dans votre handler
+> (ex : HMAC-SHA256 sur l'en-tête `Stripe-Signature` pour les webhooks Stripe).
+
+---
+
 ## Voir aussi
 
 | Section | Description |

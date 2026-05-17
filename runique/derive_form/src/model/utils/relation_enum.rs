@@ -1,4 +1,4 @@
-use crate::model::{ModelInput, RelationDef};
+use crate::model::{FieldOption, FkDef, ModelInput, RelationDef};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 
@@ -39,25 +39,105 @@ fn related_module_tokens(table_name: &str) -> TokenStream2 {
 }
 
 pub fn generate_relation_enum(model: &ModelInput) -> TokenStream2 {
-    if model.relations.is_empty() {
+    // FK fields already covered by an explicit belongs_to (matched by via field name)
+    let explicit_vias: std::collections::HashSet<String> = model
+        .relations
+        .iter()
+        .filter_map(|r| {
+            if let RelationDef::BelongsTo { via, .. } = r {
+                Some(via.to_string())
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    // FK fields not already covered → auto-generate BelongsTo for pivot tables
+    let auto_fks: Vec<(&syn::Ident, &FkDef)> = model
+        .fields
+        .iter()
+        .filter_map(|f| {
+            if explicit_vias.contains(&f.name.to_string()) {
+                return None;
+            }
+            f.options.iter().find_map(|opt| {
+                if let FieldOption::Fk(fk) = opt {
+                    Some((&f.name, fk))
+                } else {
+                    None
+                }
+            })
+        })
+        .collect();
+
+    let explicit_variants: Vec<TokenStream2> =
+        model.relations.iter().map(generate_variant).collect();
+    let explicit_related: Vec<TokenStream2> =
+        model.relations.iter().map(generate_related_impl).collect();
+
+    let fk_variants: Vec<TokenStream2> = auto_fks
+        .iter()
+        .map(|(name, fk)| generate_fk_variant(name, fk))
+        .collect();
+    let fk_related: Vec<TokenStream2> = auto_fks
+        .iter()
+        .map(|(name, fk)| generate_fk_related_impl(name, fk))
+        .collect();
+
+    if explicit_variants.is_empty() && fk_variants.is_empty() {
         return quote! {
             #[derive(Copy, Clone, Debug, ::sea_orm::EnumIter, ::sea_orm::DeriveRelation)]
             pub enum Relation {}
         };
     }
 
-    let variants: Vec<TokenStream2> = model.relations.iter().map(generate_variant).collect();
-
-    let related_impls: Vec<TokenStream2> =
-        model.relations.iter().map(generate_related_impl).collect();
-
     quote! {
         #[derive(Copy, Clone, Debug, ::sea_orm::EnumIter, ::sea_orm::DeriveRelation)]
         pub enum Relation {
-            #(#variants)*
+            #(#explicit_variants)*
+            #(#fk_variants)*
         }
 
-        #(#related_impls)*
+        #(#explicit_related)*
+        #(#fk_related)*
+    }
+}
+
+fn generate_fk_variant(field_name: &syn::Ident, fk_def: &FkDef) -> TokenStream2 {
+    let field_str = field_name.to_string();
+    let variant_base = field_str.strip_suffix("_id").unwrap_or(&field_str);
+    let variant = quote::format_ident!("{}", pascal_case(variant_base));
+    let module = table_to_module(&fk_def.table.to_string());
+    let mod_path = entity_path(&module);
+    let to_col = pascal_case(&fk_def.column.to_string());
+    let to_path = format!(
+        "{}::Column::{}",
+        &mod_path[..mod_path.len() - "::Entity".len()],
+        to_col
+    );
+    let via_col = format!("Column::{}", pascal_case(&field_str));
+    quote! {
+        #[sea_orm(
+            belongs_to = #mod_path,
+            from = #via_col,
+            to = #to_path
+        )]
+        #variant,
+    }
+}
+
+fn generate_fk_related_impl(field_name: &syn::Ident, fk_def: &FkDef) -> TokenStream2 {
+    let field_str = field_name.to_string();
+    let variant_base = field_str.strip_suffix("_id").unwrap_or(&field_str);
+    let variant = quote::format_ident!("{}", pascal_case(variant_base));
+    let module = table_to_module(&fk_def.table.to_string());
+    let entity_tokens = related_module_tokens(&module);
+    quote! {
+        impl ::sea_orm::Related<#entity_tokens> for Entity {
+            fn to() -> ::sea_orm::RelationDef {
+                Relation::#variant.def()
+            }
+        }
     }
 }
 
@@ -158,6 +238,20 @@ fn generate_related_impl(rel: &RelationDef) -> TokenStream2 {
                 }
             }
         }
+    }
+}
+
+/// Convert a SQL table name (often plural) to the Rust module name (singular model snake_case).
+/// Framework tables are left as-is since they're matched by FRAMEWORK_TABLES.
+/// Simple heuristic: strip trailing `s` unless it's `ss` or the table doesn't end with `s`.
+fn table_to_module(table_name: &str) -> String {
+    if FRAMEWORK_TABLES.iter().any(|(t, _)| *t == table_name) {
+        return table_name.to_string();
+    }
+    if table_name.ends_with('s') && !table_name.ends_with("ss") {
+        table_name[..table_name.len() - 1].to_string()
+    } else {
+        table_name.to_string()
     }
 }
 

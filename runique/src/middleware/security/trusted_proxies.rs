@@ -1,0 +1,152 @@
+use axum::{body::Body, extract::State, http::Request, middleware::Next, response::Response};
+use serde::{Deserialize, Serialize};
+use std::net::{IpAddr, Ipv4Addr};
+
+/// Real client IP extracted from the request after proxy chain validation.
+///
+/// Injected into extensions by `trusted_proxies_middleware`.
+/// Access in handlers via `Extension<ClientIp>`.
+#[derive(Clone, Debug, Copy)]
+pub struct ClientIp(pub IpAddr);
+
+// ─── CIDR helper ─────────────────────────────────────────────────────────────
+
+fn ip_in_cidr(ip: &IpAddr, network: &IpAddr, prefix_len: u8) -> bool {
+    match (ip, network) {
+        (IpAddr::V4(ip), IpAddr::V4(net)) => {
+            if prefix_len == 0 {
+                return true;
+            }
+            if prefix_len > 32 {
+                return false;
+            }
+            let shift = 32 - prefix_len;
+            let mask = if shift == 32 { 0u32 } else { u32::MAX << shift };
+            (u32::from_be_bytes(ip.octets()) & mask) == (u32::from_be_bytes(net.octets()) & mask)
+        }
+        (IpAddr::V6(ip), IpAddr::V6(net)) => {
+            if prefix_len == 0 {
+                return true;
+            }
+            if prefix_len > 128 {
+                return false;
+            }
+            let shift = 128 - prefix_len;
+            let mask = if shift == 128 {
+                0u128
+            } else {
+                u128::MAX << shift
+            };
+            (u128::from_be_bytes(ip.octets()) & mask) == (u128::from_be_bytes(net.octets()) & mask)
+        }
+        _ => false,
+    }
+}
+
+// ─── TrustedProxies ──────────────────────────────────────────────────────────
+
+/// Trusted proxy configuration stored on the engine.
+///
+/// Built via [`TrustedProxiesConfig`](crate::app::staging::TrustedProxiesConfig).
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct TrustedProxies {
+    /// Exact trusted IPs.
+    exact: Vec<IpAddr>,
+    /// Trusted CIDR ranges: (network address, prefix length).
+    cidrs: Vec<(IpAddr, u8)>,
+}
+
+impl Default for TrustedProxies {
+    fn default() -> Self {
+        // RFC 1918 private networks + loopback — safe to trust as proxies
+        Self {
+            exact: vec![],
+            cidrs: vec![
+                ("127.0.0.0".parse().unwrap(), 8),    // IPv4 loopback
+                ("10.0.0.0".parse().unwrap(), 8),     // Class A private
+                ("172.16.0.0".parse().unwrap(), 12),  // Class B private
+                ("192.168.0.0".parse().unwrap(), 16), // Class C private
+                ("::1".parse().unwrap(), 128),        // IPv6 loopback
+                ("fc00::".parse().unwrap(), 7),       // IPv6 unique local (fc00::/7)
+            ],
+        }
+    }
+}
+
+impl TrustedProxies {
+    pub fn new(exact: Vec<IpAddr>, cidrs: Vec<(IpAddr, u8)>) -> Self {
+        Self { exact, cidrs }
+    }
+
+    pub fn is_trusted(&self, ip: &IpAddr) -> bool {
+        if self.exact.contains(ip) {
+            return true;
+        }
+        self.cidrs
+            .iter()
+            .any(|(net, prefix)| ip_in_cidr(ip, net, *prefix))
+    }
+
+    /// Extracts the real client IP from the request.
+    ///
+    /// Algorithm:
+    ///   1. If the direct connection IP (conn_ip) is not trusted, return it directly.
+    ///   2. Otherwise, parse `X-Forwarded-For` and walk from right to left,
+    ///      skipping trusted proxies, to find the first untrusted IP.
+    ///   3. If all XFF entries are trusted, return the leftmost (client claim).
+    pub fn extract_client_ip(&self, req: &Request<Body>, conn_ip: Option<IpAddr>) -> IpAddr {
+        // When ConnectInfo is absent (tests / non-socket contexts), assume loopback
+        let conn_ip_value = conn_ip.unwrap_or(IpAddr::V4(Ipv4Addr::LOCALHOST));
+
+        if !self.is_trusted(&conn_ip_value) {
+            return conn_ip_value;
+        }
+
+        let xff: Vec<IpAddr> = req
+            .headers()
+            .get("x-forwarded-for")
+            .and_then(|v| v.to_str().ok())
+            .map(|s| {
+                s.split(',')
+                    .filter_map(|ip| ip.trim().parse().ok())
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        if xff.is_empty() {
+            return conn_ip_value;
+        }
+
+        // Walk from rightmost (last proxy) to leftmost (client)
+        for ip in xff.iter().rev() {
+            if !self.is_trusted(ip) {
+                return *ip;
+            }
+        }
+
+        // All entries are trusted proxies — use the leftmost as client claim
+        xff.into_iter().next().unwrap_or(conn_ip_value)
+    }
+}
+
+// ─── Middleware ───────────────────────────────────────────────────────────────
+
+use crate::utils::aliases::AEngine;
+
+pub async fn trusted_proxies_middleware(
+    State(engine): State<AEngine>,
+    mut req: Request<Body>,
+    next: Next,
+) -> Response {
+    use axum::extract::ConnectInfo;
+    use std::net::SocketAddr;
+
+    let conn_ip = req
+        .extensions()
+        .get::<ConnectInfo<SocketAddr>>()
+        .map(|ci| ci.0.ip());
+
+    let client_ip = engine.trusted_proxies.extract_client_ip(&req, conn_ip);
+    req.extensions_mut().insert(ClientIp(client_ip));
+    next.run(req).await
+}

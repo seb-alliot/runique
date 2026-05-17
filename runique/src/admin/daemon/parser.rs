@@ -4,6 +4,7 @@ use proc_macro2::TokenStream;
 use syn::{Macro, parse_file, visit::Visit};
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub(crate) struct ResourceDef {
     /// Resource key (e.g., "users")
     pub key: String,
@@ -36,14 +37,51 @@ pub(crate) struct ResourceDef {
     /// Sidebar filters: `[("col_sql", "Display Label", limit_per_page)]`
     pub list_filter: Vec<(String, String, u64)>,
 
-    /// List visible columns with labels: `[("col", "Label")]`
-    pub list_display: Vec<(String, String)>,
+    /// List visible columns with labels (and optional FK resolution): `[("col", "Label", Option<FkDisplay>)]`
+    pub list_display: Vec<(String, String, Option<FkDisplay>)>,
 
     /// Columns excluded from the list: `["col1", "col2"]`
     pub list_exclude: Vec<String>,
 
-    /// Fields available for group bulk update: `[("field", "Label")]`
-    pub group_action: Vec<(String, String)>,
+    /// Fields available for group bulk update: `[("field", "Label")]` or `[("field", "Label", "value")]`
+    pub group_action: Vec<(String, String, Option<String>)>,
+
+    /// When set, the create_fn splits this field by comma and inserts one record per value.
+    /// DSL: `bulk_create: field_name`
+    pub bulk_create: Option<String>,
+
+    /// Many-to-many relations to manage on create/edit.
+    pub m2m: Vec<M2mFieldDef>,
+}
+
+/// FK resolution for a list_display column: display a related record's label instead of the raw ID.
+/// DSL: `["menu_id", "Menu", "menus.titre"]`
+#[derive(Debug, Clone)]
+pub(crate) struct FkDisplay {
+    /// Target table name (e.g., "menus")
+    pub table: String,
+    /// Column to display on the target (e.g., "titre")
+    pub col: String,
+}
+
+/// One M2M relation managed by the admin.
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub(crate) struct M2mFieldDef {
+    /// Form field name (e.g., "allergenes") — used as context key and body prefix
+    pub field_name: String,
+    /// Human-readable label shown in the form
+    pub label: String,
+    /// Junction table name (e.g., "plat_allergene")
+    pub junction_table: String,
+    /// FK column in the junction table pointing to the current resource
+    pub self_fk: String,
+    /// FK column in the junction table pointing to the related resource
+    pub target_fk: String,
+    /// SeaORM Entity path for related resource (e.g., "crate::entities::allergene")
+    pub target_entity: String,
+    /// Column name on the target entity to use as display label (e.g., "nom")
+    pub target_display: String,
 }
 
 /// Display configuration for a resource in the `configure {}` block
@@ -57,8 +95,8 @@ pub(crate) struct ConfigureDef {
     pub list_exclude: Vec<String>,
     /// Sidebar filters
     pub list_filter: Vec<(String, String, u64)>,
-    /// Group action fields: `[("field", "Label")]`
-    pub group_action: Vec<(String, String)>,
+    /// Group action fields: `[("field", "Label")]` or `[("field", "Label", "value")]`
+    pub group_action: Vec<(String, String, Option<String>)>,
 }
 
 /// Result of parsing `src/admin.rs`
@@ -184,6 +222,8 @@ fn parse_admin_tokens(tokens: TokenStream) -> Result<ParsedAdmin, String> {
             list_display: body.list_display,
             list_exclude: body.list_exclude,
             group_action: body.group_action,
+            bulk_create: body.bulk_create,
+            m2m: body.m2m,
         });
 
         // Optional comma between resources
@@ -263,7 +303,7 @@ fn parse_configure_body(key: String, tokens: TokenStream) -> Result<ConfigureDef
 
         match field.as_str() {
             "list_display" => {
-                list_display = parse_list_display(&mut iter)?;
+                list_display = parse_pair_array(&mut iter)?;
             }
             "list_exclude" => {
                 list_exclude = parse_list_exclude(&mut iter)?;
@@ -272,7 +312,7 @@ fn parse_configure_body(key: String, tokens: TokenStream) -> Result<ConfigureDef
                 list_filter = parse_list_filter(&mut iter)?;
             }
             "group_action" => {
-                group_action = parse_list_display(&mut iter)?;
+                group_action = parse_group_action(&mut iter)?;
             }
             other => {
                 skip_until_punct(&mut iter, ',');
@@ -308,9 +348,11 @@ struct ResourceBody {
     edit_form_type: Option<String>,
     id_type: String,
     list_filter: Vec<(String, String, u64)>,
-    list_display: Vec<(String, String)>,
+    list_display: Vec<(String, String, Option<FkDisplay>)>,
     list_exclude: Vec<String>,
-    group_action: Vec<(String, String)>,
+    group_action: Vec<(String, String, Option<String>)>,
+    bulk_create: Option<String>,
+    m2m: Vec<M2mFieldDef>,
 }
 
 fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
@@ -332,6 +374,8 @@ fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
         list_display: Vec::new(),
         list_exclude: Vec::new(),
         group_action: Vec::new(),
+        bulk_create: None,
+        m2m: Vec::new(),
     };
 
     while iter.peek().is_some() {
@@ -384,7 +428,13 @@ fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
                 body.list_exclude = parse_list_exclude(&mut iter)?;
             }
             "group_action" => {
-                body.group_action = parse_list_display(&mut iter)?;
+                body.group_action = parse_group_action(&mut iter)?;
+            }
+            "bulk_create" => {
+                body.bulk_create = Some(parse_ident(&mut iter)?);
+            }
+            "m2m" => {
+                body.m2m = parse_m2m(&mut iter)?;
             }
             other => {
                 skip_until_punct(&mut iter, ',');
@@ -403,9 +453,108 @@ fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
     Ok(body)
 }
 
-/// Parse list_display: [["col", "Label"], ...]
-fn parse_list_display(iter: &mut TokenIter) -> Result<Vec<(String, String)>, String> {
+/// Parse list_display: [["col", "Label"], ...] or [["col", "Label", "table.col"], ...]
+fn parse_list_display(
+    iter: &mut TokenIter,
+) -> Result<Vec<(String, String, Option<FkDisplay>)>, String> {
+    use proc_macro2::TokenTree;
+
+    match iter.next() {
+        Some(TokenTree::Group(outer)) => {
+            let mut entries = Vec::new();
+            let mut inner = outer.stream().into_iter().peekable();
+            while inner.peek().is_some() {
+                match inner.next() {
+                    Some(TokenTree::Punct(p)) if p.as_char() == ',' => continue,
+                    Some(TokenTree::Group(pair)) => {
+                        let mut t = pair.stream().into_iter().peekable();
+                        let col = parse_string_literal(&mut t)?;
+                        expect_punct(&mut t, ',')?;
+                        let label = parse_string_literal(&mut t)?;
+                        let fk = match t.next() {
+                            Some(TokenTree::Punct(p)) if p.as_char() == ',' => {
+                                let fk_spec = parse_string_literal(&mut t)?;
+                                let parts: Vec<&str> = fk_spec.splitn(2, '.').collect();
+                                if parts.len() == 2 {
+                                    Some(FkDisplay {
+                                        table: parts[0].to_string(),
+                                        col: parts[1].to_string(),
+                                    })
+                                } else {
+                                    return Err(format!(
+                                        "FK spec '{}' must be 'table.col'",
+                                        fk_spec
+                                    ));
+                                }
+                            }
+                            _ => None,
+                        };
+                        entries.push((col, label, fk));
+                    }
+                    Some(other) => {
+                        return Err(format!(
+                            "Expected [col, label] in list_display, found: {}",
+                            other
+                        ));
+                    }
+                    None => break,
+                }
+            }
+            Ok(entries)
+        }
+        Some(other) => Err(format!("Expected [...] for list_display, found: {}", other)),
+        None => Err("Expected [...] for list_display, end of file".to_string()),
+    }
+}
+
+/// Parse group_action / configure list_display: [["col", "Label"], ...]
+fn parse_pair_array(iter: &mut TokenIter) -> Result<Vec<(String, String)>, String> {
     parse_str_pair_array(iter, "list_display")
+}
+
+/// Parse group_action: [["field", "Label"], ...] or [["field", "Label", "value"], ...]
+fn parse_group_action(
+    iter: &mut TokenIter,
+) -> Result<Vec<(String, String, Option<String>)>, String> {
+    use proc_macro2::TokenTree;
+
+    match iter.next() {
+        Some(TokenTree::Group(outer)) => {
+            let mut entries = Vec::new();
+            let mut inner = outer.stream().into_iter().peekable();
+            while inner.peek().is_some() {
+                match inner.next() {
+                    Some(TokenTree::Punct(p)) if p.as_char() == ',' => continue,
+                    Some(TokenTree::Group(pair)) => {
+                        let mut t = pair.stream().into_iter().peekable();
+                        let field = parse_string_literal(&mut t)?;
+                        match t.next() {
+                            Some(TokenTree::Punct(p)) if p.as_char() == ',' => {}
+                            _ => return Err("Expected ',' after field in group_action".to_string()),
+                        }
+                        let label = parse_string_literal(&mut t)?;
+                        let value = match t.next() {
+                            Some(TokenTree::Punct(p)) if p.as_char() == ',' => {
+                                Some(parse_string_literal(&mut t)?)
+                            }
+                            _ => None,
+                        };
+                        entries.push((field, label, value));
+                    }
+                    Some(other) => {
+                        return Err(format!(
+                            "Expected [field, label] in group_action, found: {}",
+                            other
+                        ));
+                    }
+                    None => break,
+                }
+            }
+            Ok(entries)
+        }
+        Some(other) => Err(format!("Expected [...] for group_action, got {:?}", other)),
+        None => Err("Expected [...] for group_action, end of file".to_string()),
+    }
 }
 
 /// Parse list_exclude: ["col1", "col2", ...]
@@ -616,6 +765,55 @@ fn parse_extra_map(iter: &mut TokenIter) -> Result<Vec<(String, String)>, String
             other
         )),
         None => Err("Expected '{{...}}' for extra map, end of file".to_string()),
+    }
+}
+
+/// Parses `m2m: [["field", "Label", "junction_table", "self_fk", "target_fk", "entity::path"], ...]`
+fn parse_m2m(iter: &mut TokenIter) -> Result<Vec<M2mFieldDef>, String> {
+    use proc_macro2::TokenTree;
+
+    match iter.next() {
+        Some(TokenTree::Group(outer)) => {
+            let mut defs = Vec::new();
+            let mut inner = outer.stream().into_iter().peekable();
+            while inner.peek().is_some() {
+                match inner.next() {
+                    Some(TokenTree::Punct(p)) if p.as_char() == ',' => continue,
+                    Some(TokenTree::Group(entry)) => {
+                        let mut t = entry.stream().into_iter().peekable();
+                        let field_name = parse_string_literal(&mut t)?;
+                        expect_punct(&mut t, ',')?;
+                        let label = parse_string_literal(&mut t)?;
+                        expect_punct(&mut t, ',')?;
+                        let junction_table = parse_string_literal(&mut t)?;
+                        expect_punct(&mut t, ',')?;
+                        let self_fk = parse_string_literal(&mut t)?;
+                        expect_punct(&mut t, ',')?;
+                        let target_fk = parse_string_literal(&mut t)?;
+                        expect_punct(&mut t, ',')?;
+                        let target_entity = parse_string_literal(&mut t)?;
+                        expect_punct(&mut t, ',')?;
+                        let target_display = parse_string_literal(&mut t)?;
+                        defs.push(M2mFieldDef {
+                            field_name,
+                            label,
+                            junction_table,
+                            self_fk,
+                            target_fk,
+                            target_entity,
+                            target_display,
+                        });
+                    }
+                    Some(other) => {
+                        return Err(format!("Expected [...] entry in m2m, found: {}", other));
+                    }
+                    None => break,
+                }
+            }
+            Ok(defs)
+        }
+        Some(other) => Err(format!("Expected [...] for m2m, found: {}", other)),
+        None => Err("Expected [...] for m2m, end of file".to_string()),
     }
 }
 
