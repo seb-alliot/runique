@@ -23,7 +23,7 @@ fn strip_github_anchors(content: &str) -> String {
 
 // Cherche le dossier docs/ en remontant depuis le répertoire courant
 fn find_docs_root() -> Option<PathBuf> {
-    let documents = ["../docs", "docs", "../../docs"];
+    let documents = ["../docs", "docs", "../../docs", "/var/www/runique/docs"];
     for document in &documents {
         let p = PathBuf::from(document);
         if p.is_dir() {

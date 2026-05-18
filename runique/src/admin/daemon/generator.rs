@@ -374,20 +374,19 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         // Extrait la clé String pour le lookup (même logique que pour fk_ids)
         let _ = writeln!(
             out,
-            "                        if let Some(key) = row.get(\"{col}\").and_then(|v| v.as_i64().map(|n| n.to_string()).or_else(|| v.as_str().map(str::to_string))) {{",
+            "                        if let Some(key) = row.get(\"{col}\").and_then(|v| v.as_i64().map(|n| n.to_string()).or_else(|| v.as_str().map(str::to_string)))",
             col = col
         );
         let _ = writeln!(
             out,
-            "                            if let Some(label) = label_map_{safe}.get(&key) {{",
+            "                            && let Some(label) = label_map_{safe}.get(&key) {{",
             safe = safe_var
         );
         let _ = writeln!(
             out,
-            "                                row[\"{col}\"] = serde_json::Value::String(label.clone());",
+            "                            row[\"{col}\"] = serde_json::Value::String(label.clone());",
             col = col
         );
-        let _ = writeln!(out, "                            }}");
         let _ = writeln!(out, "                        }}");
         let _ = writeln!(out, "                    }}");
         let _ = writeln!(out, "                }}");
@@ -479,19 +478,18 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
             );
             let _ = writeln!(
                 out,
-                "                    if let Some(fk_row) = db.query_one(&_fk_stmt_{safe}).await.ok().flatten() {{",
+                "                    if let Some(fk_row) = db.query_one(&_fk_stmt_{safe}).await.ok().flatten()",
                 safe = safe_var,
             );
             let _ = writeln!(
                 out,
-                "                        if let Ok(label) = fk_row.try_get_by_index::<String>(1) {{"
+                "                        && let Ok(label) = fk_row.try_get_by_index::<String>(1) {{"
             );
             let _ = writeln!(
                 out,
-                "                            row[\"{col}\"] = serde_json::Value::String(label);",
+                "                        row[\"{col}\"] = serde_json::Value::String(label);",
                 col = col
             );
-            let _ = writeln!(out, "                        }}");
             let _ = writeln!(out, "                    }}");
             let _ = writeln!(out, "                }}");
             let _ = writeln!(out, "            }}");
@@ -563,7 +561,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         let _ = writeln!(out, "            let inserted_id = result.id.to_string();");
         for m2m in &r.m2m {
             let prefix = format!("m2m_{}__", m2m.field_name);
-            let _ = writeln!(out, "            for (key, _) in &data {{");
+            let _ = writeln!(out, "            for key in data.keys() {{");
             let _ = writeln!(
                 out,
                 "                if let Some(target_id) = key.strip_prefix(\"{prefix}\") {{",
@@ -624,7 +622,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
                 junction = m2m.junction_table,
                 self_fk = m2m.self_fk
             );
-            let _ = writeln!(out, "            for (key, _) in &data {{");
+            let _ = writeln!(out, "            for key in data.keys() {{");
             let _ = writeln!(
                 out,
                 "                if let Some(target_id) = key.strip_prefix(\"{prefix}\") {{",
