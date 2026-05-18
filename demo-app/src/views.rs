@@ -234,8 +234,16 @@ pub async fn changelog(mut request: Request) -> AppResult<Response> {
         .unwrap_or(1);
     let (sections, current_page, total_pages) =
         fetch_changelog_paged(&request.engine.db, page).await;
-    let prev_page = if current_page > 1 { Some(current_page - 1) } else { None };
-    let next_page = if current_page < total_pages { Some(current_page + 1) } else { None };
+    let prev_page = if current_page > 1 {
+        Some(current_page - 1)
+    } else {
+        None
+    };
+    let next_page = if current_page < total_pages {
+        Some(current_page + 1)
+    } else {
+        None
+    };
     context_update!(request => {
         "title"          => "Changelog",
         "sections"       => &sections,
