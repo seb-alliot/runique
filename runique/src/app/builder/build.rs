@@ -58,8 +58,8 @@ impl RuniqueAppBuilder {
         #[cfg(feature = "orm")]
         let db = self.core.connect().await?;
 
-        // Step 3: destructuring — extraire custom_db AVANT
-        let custom_db_value = self.core.custom_db.into_inner();
+        // Step 3: destructuring
+        let extensions = self.core.extensions;
         let config = self.config;
         let url_registry = self.core.url_registry;
         let mut middleware = self.middleware;
@@ -110,7 +110,7 @@ impl RuniqueAppBuilder {
             ),
             session_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
             session_db_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
-            custom_db: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
+            extensions,
         });
 
         add_urls(&engine);
@@ -170,13 +170,6 @@ impl RuniqueAppBuilder {
             if let Ok(mut guard) = engine.session_db_store.write() {
                 *guard = Some(Arc::new(db_store));
             }
-        }
-
-        // Write custom_db if provided
-        if let Ok(Some(custom_db)) = custom_db_value
-            && let Ok(mut guard) = engine.custom_db.write()
-        {
-            *guard = Some(custom_db);
         }
 
         // Step 6: static files (conditional)

@@ -54,11 +54,63 @@ let user = users::Entity::find_by_id(user_id)
 
 ## Helpers disponibles
 
-- `all()` : point d'entrée pour chaîner `filter`, `order_by_asc/desc`, `limit`, `offset`.
-- `filter(...)` / `exclude(...)` : ajoutent des conditions.
-- `first(db)` / `count(db)` : exécutent la requête.
-- `get(db, id)` / `get_optional(db, id)` : accès direct par clé primaire.
-- `get_or_404(db, ctx, msg)` : retourne une réponse 404/500 avec rendu Tera si manquant.
+| Méthode | Description |
+| --- | --- |
+| `all()` | Point d'entrée — retourne un `RuniqueQueryBuilder` chainable |
+| `filter(cond)` | Ajoute une condition WHERE (AND) |
+| `exclude(cond)` | Ajoute une condition WHERE NOT |
+| `asc(col)` / `desc(col)` | Tri ascendant / descendant par colonne |
+| `order_by_random()` | Tri par `RANDOM()` — sans SQL brut |
+| `order_by_expr(expr, order)` | Tri par une expression SeaORM arbitraire |
+| `limit(n)` / `offset(n)` | Pagination |
+| `first(db)` | Exécute et retourne le premier résultat (`Option<Model>`) |
+| `one(db)` | Retourne le résultat si exactement 1 ligne, `Err` si plusieurs |
+| `count(db)` | Compte les lignes correspondantes |
+| `get(db, id)` / `get_optional(db, id)` | Accès direct par clé primaire |
+| `get_or_404(db, ctx, msg)` | Retourne 404/500 avec rendu Tera si manquant |
+
+### `order_by_random()`
+
+```rust
+let suggestion = MonForm::objects
+    .all()
+    .order_by_random()
+    .limit(1)
+    .first(&db)
+    .await?;
+```
+
+### `order_by_expr(expr, order)`
+
+```rust
+use sea_orm::Order;
+
+// Tri par longueur de titre
+let results = MonForm::objects
+    .all()
+    .order_by_expr(sea_query::Expr::cust("LENGTH(titre)"), Order::Desc)
+    .all(&db)
+    .await?;
+```
+
+### `one()` — exactement un résultat
+
+Analogue au `.get()` de Django : retourne `Err` si plusieurs lignes correspondent — sans scanner la table entière (fetche au plus 2 lignes).
+
+```rust
+// Retourne Ok(None) si 0 résultats, Ok(Some(model)) si 1, Err si plusieurs
+let unique = MonForm::objects
+    .all()
+    .filter(mon_entity::Column::Email.eq("user@example.com"))
+    .one(&db)
+    .await?;
+
+match unique {
+    Ok(Some(model)) => { /* trouvé, unique */ }
+    Ok(None) => { /* inexistant */ }
+    Err(e) => { /* plusieurs lignes — données incohérentes */ }
+}
+```
 
 ---
 

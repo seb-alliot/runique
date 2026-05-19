@@ -180,6 +180,39 @@ RuniqueApp::builder(config)
 | `session`        | Memory watermarks, large records, cleanup errors            |
 | `db`             | DB connection in progress / connection established          |
 
+### Secondary database — `with_custom_db`
+
+Attaches any `Any + Send + Sync + 'static` value into the `RuniqueEngine`.
+Useful for connecting MongoDB, Redis, or any other external source.
+Can be called multiple times with different types.
+
+```rust
+let mongo = mongodb::Client::with_uri_str("mongodb://localhost:27017").await?;
+let redis = redis::Client::open("redis://localhost")?;
+
+let app = RuniqueApp::builder(config)
+    .with_custom_db(mongo)
+    .with_custom_db(redis)
+    .routes(url::routes())
+    .build()
+    .await?;
+```
+
+Accessing in a handler via `engine.extension::<T>()` — returns `Option<Arc<T>>`:
+
+```rust
+async fn my_handler(req: Request) -> Response {
+    if let Some(mongo) = req.engine.extension::<mongodb::Client>() {
+        let collection = mongo.database("mydb").collection::<Document>("users");
+    }
+    if let Some(redis) = req.engine.extension::<redis::Client>() {
+        // ...
+    }
+}
+```
+
+`engine.custom_db::<T>()` is kept as a backward-compatible alias — both methods are equivalent.
+
 ### Static files
 
 ```rust

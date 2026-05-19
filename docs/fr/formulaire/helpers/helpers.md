@@ -89,4 +89,27 @@ if request.is_get() {
 
 ---
 
+## Injecter des choix dynamiques — `field_choices`
+
+`Forms::field_choices` remplace un champ par un `ChoiceField` peuplé depuis une liste `Vec<(String, String)>` de paires `(valeur, libellé)`. La valeur courante est pré-sélectionnée et le flag `required` est préservé.
+
+Utile dans les handlers admin custom pour injecter des options chargées depuis la base :
+
+```rust
+use runique::forms::Forms;
+
+// Dans une closure CRUD ou un handler admin personnalisé
+let choices: Vec<(String, String)> = themes::Entity::find()
+    .all(&db).await?
+    .into_iter()
+    .map(|t| (t.id.to_string(), t.nom))
+    .collect();
+
+form.get_form_mut().field_choices("theme_id", "Thème", choices);
+```
+
+> Dans les ressources admin générées par `admin!{}`, cette injection est automatique lorsqu'une colonne FK est déclarée avec un 3ème élément dans `list_display`. Voir [Vue liste — Résolution des clés étrangères](/docs/fr/admin/liste#résolution-des-clés-étrangères-fk).
+
+---
+
 [← Trait RuniqueForm](/docs/fr/formulaire/trait) | [**Types de champs**](/docs/fr/formulaire/champs) →

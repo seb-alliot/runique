@@ -34,7 +34,7 @@ async fn engine_with_exempt(paths: Vec<&str>) -> Arc<RuniqueEngine> {
         trusted_proxies: Arc::new(runique::middleware::TrustedProxies::default()),
         session_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
         session_db_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
-        custom_db: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
+        extensions: std::collections::HashMap::new(),
     })
 }
 

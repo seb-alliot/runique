@@ -13,23 +13,36 @@ Runique intègre des middlewares de sécurité configurables appliqués automati
 | [Builder & configuration](/docs/fr/middleware/builder) | Builder classique, Builder Intelligent, variables d'env |
 | [Rate Limiting](/docs/fr/middleware/rate-limit) | Limitation de débit par IP, par route, configurable |
 | [Login Required](/docs/fr/middleware/login-required) | Protection de routes — redirige si non authentifié |
+| [CORS](/docs/fr/middleware/cors) | Cross-Origin Resource Sharing — origines, credentials, preflight |
+| [Proxies de confiance](/docs/fr/middleware/trusted-proxies) | IP client réelle, RFC 1918, CIDR, `ClientIp` |
+| [Permissions-Policy](/docs/fr/middleware/permissions-policy) | Restrictions d'API navigateur par header HTTP |
+| [Open Redirect](/docs/fr/middleware/open-redirect) | Blocage automatique des redirections vers des origines externes |
 
 ## Stack d'exécution
 
 ```text
 Requête entrante
     ↓
-1. Extensions (slot 0)     → Injection Engine, Tera, Config
-2. ErrorHandler (slot 10)  → Capture et rendu des erreurs
-3. Custom (slot 20+)       → Vos middlewares personnalisés
-4. CSP (slot 30)           → Content Security Policy & headers
-5. Cache (slot 40)         → No-cache en développement
-6. Session (slot 50)       → Gestion des sessions
-7. CSRF (slot 60)          → Protection Cross-Site Request Forgery
-8. Host (slot 70)          → Validation des hosts autorisés
+slot  0  Extensions          → Injection Engine, Tera, Config (toujours actif)
+slot  2  TrustedProxies      → IP client réelle depuis X-Forwarded-For (toujours actif)
+slot  5  Compression         → Compression des réponses (toujours actif)
+slot  8  CORS                → Cross-Origin Resource Sharing (si with_cors() configuré)
+slot 10  ErrorHandler        → Capture et rendu des erreurs (toujours actif)
+slot 20+ Custom              → Vos middlewares personnalisés
+slot 25  OpenRedirect        → Blocage redirections externes (toujours actif)
+slot 30  SecurityHeaders     → X-Frame-Options, HSTS, Permissions-Policy… (toujours actif)
+slot 31  CSP                 → Content Security Policy (toujours actif)
+slot 40  Cache               → No-cache en développement (toujours actif)
+slot 50  Session             → Gestion des sessions (toujours actif)
+slot 55  SessionUpgrade      → Upgrade session anonyme → authentifiée (toujours actif)
+slot 57  Auth                → Chargement CurrentUser depuis la session (toujours actif)
+slot 60  CSRF                → Protection Cross-Site Request Forgery (toujours actif)
+slot 70  HostValidation      → Validation des hosts autorisés (si with_allowed_hosts() configuré)
     ↓
 Handler (votre code)
 ```
+
+> **Slots "toujours actif"** : ces middlewares s'appliquent à toutes les requêtes sans configuration supplémentaire. Les autres ne s'insèrent dans la stack que si leur méthode builder correspondante est appelée.
 
 ## Prochaines étapes
 

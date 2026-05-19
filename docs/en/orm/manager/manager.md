@@ -54,11 +54,62 @@ let user = users::Entity::find_by_id(user_id)
 
 ## Available helpers
 
-- `all()`: entry point for chaining `filter`, `order_by_asc/desc`, `limit`, `offset`.
-- `filter(...)` / `exclude(...)`: add conditions.
-- `first(db)` / `count(db)`: execute the query.
-- `get(db, id)` / `get_optional(db, id)`: direct primary key access.
-- `get_or_404(db, ctx, msg)`: returns a 404/500 response with Tera rendering if missing.
+| Method | Description |
+| --- | --- |
+| `all()` | Entry point — returns a chainable `RuniqueQueryBuilder` |
+| `filter(cond)` | Add a WHERE condition (AND) |
+| `exclude(cond)` | Add a WHERE NOT condition |
+| `asc(col)` / `desc(col)` | Sort ascending / descending by column |
+| `order_by_random()` | Sort by `RANDOM()` — no raw SQL needed |
+| `order_by_expr(expr, order)` | Sort by an arbitrary SeaORM expression |
+| `limit(n)` / `offset(n)` | Pagination |
+| `first(db)` | Execute and return the first result (`Option<Model>`) |
+| `one(db)` | Return result if exactly 1 row matches, `Err` if multiple |
+| `count(db)` | Count matching rows |
+| `get(db, id)` / `get_optional(db, id)` | Direct primary key access |
+| `get_or_404(db, ctx, msg)` | Returns 404/500 with Tera rendering if missing |
+
+### `order_by_random()`
+
+```rust
+let suggestion = MyForm::objects
+    .all()
+    .order_by_random()
+    .limit(1)
+    .first(&db)
+    .await?;
+```
+
+### `order_by_expr(expr, order)`
+
+```rust
+use sea_orm::Order;
+
+let results = MyForm::objects
+    .all()
+    .order_by_expr(sea_query::Expr::cust("LENGTH(title)"), Order::Desc)
+    .all(&db)
+    .await?;
+```
+
+### `one()` — exactly one result
+
+Analogous to Django's `.get()`: returns `Err` if multiple rows match — without scanning the full table (fetches at most 2 rows).
+
+```rust
+// Returns Ok(None) if 0 results, Ok(Some(model)) if 1, Err if multiple
+let unique = MyForm::objects
+    .all()
+    .filter(my_entity::Column::Email.eq("user@example.com"))
+    .one(&db)
+    .await?;
+
+match unique {
+    Ok(Some(model)) => { /* found, unique */ }
+    Ok(None) => { /* not found */ }
+    Err(e) => { /* multiple rows — data integrity issue */ }
+}
+```
 
 ---
 

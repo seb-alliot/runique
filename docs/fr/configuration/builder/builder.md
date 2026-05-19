@@ -180,6 +180,39 @@ RuniqueApp::builder(config)
 | `session`        | Watermarks mémoire, records volumineux, erreurs cleanup    |
 | `db`             | Connexion DB en cours / connexion établie                  |
 
+### Base de données secondaire — `with_custom_db`
+
+Attache n'importe quel type `Any + Send + Sync + 'static` dans le `RuniqueEngine`.
+Utile pour connecter MongoDB, Redis, ou toute autre source externe.
+Peut être appelé plusieurs fois avec des types différents.
+
+```rust
+let mongo = mongodb::Client::with_uri_str("mongodb://localhost:27017").await?;
+let redis = redis::Client::open("redis://localhost")?;
+
+let app = RuniqueApp::builder(config)
+    .with_custom_db(mongo)
+    .with_custom_db(redis)
+    .routes(url::routes())
+    .build()
+    .await?;
+```
+
+Récupération dans un handler via `engine.extension::<T>()` — retourne `Option<Arc<T>>` :
+
+```rust
+async fn mon_handler(req: Request) -> Response {
+    if let Some(mongo) = req.engine.extension::<mongodb::Client>() {
+        let collection = mongo.database("mydb").collection::<Document>("users");
+    }
+    if let Some(redis) = req.engine.extension::<redis::Client>() {
+        // ...
+    }
+}
+```
+
+`engine.custom_db::<T>()` est un alias conservé pour la compatibilité ascendante — les deux méthodes sont équivalentes.
+
 ### Fichiers statiques
 
 ```rust

@@ -4,6 +4,8 @@ use crate::utils::aliases::{
     ADb, ARlockmap, ASecurityCsp, ASecurityHosts, ATera, new, new_registry,
 };
 use axum::{Router, middleware};
+use std::any::TypeId;
+use std::collections::HashMap;
 use std::sync::{Arc, LazyLock, RwLock};
 use tera::Tera;
 
@@ -46,8 +48,9 @@ pub struct RuniqueEngine {
     pub session_store: LazyLock<RwLock<Option<Arc<CleaningMemoryStore>>>>,
     /// DB store — persistent authenticated sessions (table `eihwaz_sessions`).
     pub session_db_store: LazyLock<RwLock<Option<Arc<RuniqueSessionStore>>>>,
-    /// DB custom : ex mongodb client, redis client, etc. (not used by the framework, just for your app)
-    pub custom_db: LazyLock<RwLock<Option<Arc<dyn std::any::Any + Send + Sync>>>>,
+    /// Extension map — custom external connections registered via `with_custom_db()`.
+    /// Keyed by `TypeId`, supports multiple types simultaneously.
+    pub extensions: HashMap<TypeId, Arc<dyn std::any::Any + Send + Sync>>,
 }
 
 impl RuniqueEngine {
@@ -72,26 +75,34 @@ impl RuniqueEngine {
             trusted_proxies: Arc::new(TrustedProxies::default()),
             session_store: LazyLock::new(|| RwLock::new(None)),
             session_db_store: LazyLock::new(|| RwLock::new(None)),
-            custom_db: LazyLock::new(|| RwLock::new(None)),
+            extensions: HashMap::new(),
         }
     }
 
-    /// Retrieve and downcast the custom DB to a specific type (e.g., MongoDB client).
+    /// Retrieves a custom extension registered via `with_custom_db()`.
     ///
-    /// # Example
+    /// Returns `Option<Arc<T>>` — `None` if this type was not registered.
+    ///
+    /// # Examples
     /// ```rust,ignore
-    /// if let Some(mongo) = engine.custom_db::<mongodb::Client>() {
-    ///     // Use mongo client
+    /// // In a handler:
+    /// if let Some(mongo) = req.engine.extension::<mongodb::Client>() {
+    ///     let col = mongo.database("mydb").collection::<Document>("items");
     /// }
+    ///
+    /// // Multiple types:
+    /// let redis = req.engine.extension::<redis::Client>();
+    /// let mongo = req.engine.extension::<mongodb::Client>();
     /// ```
-    pub fn custom_db<T: std::any::Any + Send + Sync + 'static>(&self) -> Option<std::sync::Arc<T>> {
-        if let Ok(guard) = self.custom_db.read() {
-            guard
-                .as_ref()
-                .and_then(|any| any.clone().downcast::<T>().ok())
-        } else {
-            None
-        }
+    pub fn extension<T: std::any::Any + Send + Sync + 'static>(&self) -> Option<Arc<T>> {
+        self.extensions
+            .get(&TypeId::of::<T>())
+            .and_then(|arc| arc.clone().downcast::<T>().ok())
+    }
+
+    /// Alias for [`extension`](Self::extension) — kept for backward compatibility.
+    pub fn custom_db<T: std::any::Any + Send + Sync + 'static>(&self) -> Option<Arc<T>> {
+        self.extension::<T>()
     }
 
     /// Attaches global middlewares (HTTPS, hosts, CSRF, cache, CSP, errors)
