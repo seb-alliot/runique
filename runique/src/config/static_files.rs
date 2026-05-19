@@ -28,6 +28,18 @@ pub struct StaticConfig {
     pub max_text_field_kb: usize,
 }
 
+/// Returns the media root: `MEDIA_ROOT` env var if set, otherwise `media/`
+/// resolved relative to the running binary's directory.
+pub fn resolve_media_root() -> String {
+    std::env::var("MEDIA_ROOT").unwrap_or_else(|_| {
+        std::env::current_exe()
+            .ok()
+            .and_then(|exe| exe.parent().map(|p| p.join("media")))
+            .map(|p| p.to_string_lossy().into_owned())
+            .unwrap_or_else(|| "media".to_string())
+    })
+}
+
 impl StaticConfig {
     /// Loads paths from environment variables with sensible defaults.
     pub fn from_env() -> Self {
@@ -58,7 +70,7 @@ impl StaticConfig {
         let staticfiles_dirs =
             std::env::var("STATICFILES_DIRS").unwrap_or_else(|_| "static".to_string());
 
-        let media_root = std::env::var("MEDIA_ROOT").unwrap_or_else(|_| "media".to_string());
+        let media_root = resolve_media_root();
 
         let static_url = std::env::var("STATIC_URL").unwrap_or_else(|_| "/static".to_string());
 

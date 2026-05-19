@@ -1,4 +1,5 @@
 //! File Field: `FileField` with type, size, and upload path validation.
+use crate::config::static_files::resolve_media_root;
 use crate::utils::trad::{t, tf};
 use crate::{
     config::StaticConfig,
@@ -293,7 +294,7 @@ impl FileField {
     }
 
     pub fn upload_to_env(mut self) -> Self {
-        let media_root = std::env::var("MEDIA_ROOT").unwrap_or_else(|_| "media".to_string());
+        let media_root = resolve_media_root();
         let f = Arc::new(move |field_name: &str| format!("{}/{}", media_root, field_name));
         self.upload_config.upload_to = Some(f);
         self
@@ -498,7 +499,7 @@ impl FormField for FileField {
         let upload_rel_clean = upload_rel.trim_matches('/');
 
         // Physical destination: {MEDIA_ROOT}/{upload_rel}/
-        let media_root = std::env::var("MEDIA_ROOT").unwrap_or_else(|_| "media".to_string());
+        let media_root = resolve_media_root();
         let media_root_clean = media_root.trim_end_matches('/');
         let dest_dir_abs = format!("{}/{}", media_root_clean, upload_rel_clean);
         let dest_dir_abs_path = Path::new(&dest_dir_abs);
