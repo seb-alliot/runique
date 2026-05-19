@@ -95,9 +95,33 @@ impl StaticStaging {
     // Validation
     // ═══════════════════════════════════════════════════
 
-    /// Validates static files configuration
+    /// Validates static files configuration.
+    /// Checks that the media root directory is accessible (creates it if needed).
     pub fn validate(&self) -> Result<(), BuildError> {
-        Ok(())
+        if !self.enabled {
+            return Ok(());
+        }
+        let media_root = std::env::var("MEDIA_ROOT").unwrap_or_else(|_| "media".to_string());
+        std::fs::create_dir_all(&media_root).map_err(|e| {
+            BuildError::check({
+                let mut report = crate::app::error_build::CheckReport::new();
+                report.add(
+                    crate::app::error_build::CheckError::new(
+                        "MediaRoot",
+                        format!(
+                            "Cannot create or access MEDIA_ROOT directory '{}': {}",
+                            media_root, e
+                        ),
+                    )
+                    .with_suggestion(
+                        "Set MEDIA_ROOT to an absolute writable path in your .env \
+                         (e.g. MEDIA_ROOT=/var/www/myapp/media) and ensure the process \
+                         has write permission.",
+                    ),
+                );
+                report
+            })
+        })
     }
 
     /// Returns `true` if the static files service is enabled

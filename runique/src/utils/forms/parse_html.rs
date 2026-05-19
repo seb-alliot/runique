@@ -1,5 +1,6 @@
 //! Multipart request parsing — text field extraction and file uploads to disk.
 use crate::{
+    errors::error::ErrorContext,
     utils::aliases::StrVecMap,
     utils::trad::{t, tf},
 };
@@ -9,6 +10,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use futures_util::StreamExt;
+use std::sync::Arc;
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
@@ -22,12 +24,17 @@ pub async fn parse_multipart(
     max_upload_mb: u64,
     max_text_field_kb: usize,
 ) -> Result<StrVecMap, Response> {
-    tokio::fs::create_dir_all(upload_dir).await.map_err(|_| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            t("forms.upload_dir_error").to_string(),
-        )
-            .into_response()
+    tokio::fs::create_dir_all(upload_dir).await.map_err(|e| {
+        let msg = format!(
+            "{} — path: {:?}, os error: {}",
+            t("forms.upload_dir_error"),
+            upload_dir,
+            e
+        );
+        let ctx = ErrorContext::generic(StatusCode::INTERNAL_SERVER_ERROR, &msg);
+        let mut res = StatusCode::INTERNAL_SERVER_ERROR.into_response();
+        res.extensions_mut().insert(Arc::new(ctx));
+        res
     })?;
 
     let max_file_bytes = max_upload_mb.saturating_mul(1024).saturating_mul(1024);
