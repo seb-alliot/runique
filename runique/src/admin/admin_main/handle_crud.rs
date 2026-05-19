@@ -146,7 +146,10 @@ pub(super) async fn handle_create_post(
     eprintln!("[DEBUG create_post] form built");
 
     let valid = form.is_valid().await;
-    eprintln!("[DEBUG create_post] is_valid={valid}, errors={:?}", form.get_form().errors);
+    eprintln!(
+        "[DEBUG create_post] is_valid={valid}, errors={:?}",
+        form.get_form().errors
+    );
     if valid {
         // Sync finalized field values (e.g. file paths moved by finalize()) into body
         for (name, field) in &form.get_form().fields {
@@ -157,7 +160,10 @@ pub(super) async fn handle_create_post(
             Some(f) => f(req.engine.db.clone(), body_for_create.clone()).await,
             None => form.save(&req.engine.db).await,
         };
-        eprintln!("[DEBUG create_post] create_fn result: {:?}", result.as_ref().map(|_| "ok").map_err(|e| e.to_string()));
+        eprintln!(
+            "[DEBUG create_post] create_fn result: {:?}",
+            result.as_ref().map(|_| "ok").map_err(|e| e.to_string())
+        );
         match result {
             Ok(()) => {}
             Err(sea_orm::DbErr::Custom(ref msg)) => {
@@ -428,7 +434,10 @@ pub(super) async fn handle_edit_post(
             Some(f) => f(req.engine.db.clone(), id.clone(), body_for_update).await,
             None => form.save(&req.engine.db).await,
         };
-        eprintln!("[DEBUG edit_post] update result: {:?}", result.as_ref().map(|_| "ok").map_err(|e| e.to_string()));
+        eprintln!(
+            "[DEBUG edit_post] update result: {:?}",
+            result.as_ref().map(|_| "ok").map_err(|e| e.to_string())
+        );
         if let Err(e) = result {
             form.get_form_mut().database_error(&e);
             if !is_unique_violation(&e) {
