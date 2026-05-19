@@ -5,7 +5,7 @@ model! {
     table: "cour_block",
     pk: id => Pk,
     enums: {
-        CourBlockType: [Code = "code", Text = "text"],
+        CourBlockType: [Code = "code", Text = "text", Table = "table", List = "list", Warning = "warning"],
     },
     {
         chapitre_id: int [required],
