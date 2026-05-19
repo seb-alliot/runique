@@ -13,23 +13,36 @@ Runique includes configurable security middlewares automatically applied in the 
 | [Builder & Configuration](/docs/en/middleware/builder) | Classic Builder, Intelligent Builder, environment variables |
 | [Rate Limiting](/docs/en/middleware/rate-limit) | Per-IP, per-route rate limiting, configurable |
 | [Login Required](/docs/en/middleware/login-required) | Route protection — redirects if not authenticated |
+| [CORS](/docs/en/middleware/cors) | Cross-Origin Resource Sharing — origins, credentials, preflight |
+| [Trusted Proxies](/docs/en/middleware/trusted-proxies) | Real client IP, RFC 1918, CIDR, `ClientIp` |
+| [Permissions-Policy](/docs/en/middleware/permissions-policy) | Browser API restrictions via HTTP header |
+| [Open Redirect](/docs/en/middleware/open-redirect) | Automatic blocking of redirects to external origins |
 
 ## Execution Stack
 
 ```text
 Incoming request
-↓
-1. Extensions (slot 0)     → Inject Engine, Tera, Config
-2. ErrorHandler (slot 10)  → Capture and render errors
-3. Custom (slot 20+)       → Your custom middlewares
-4. CSP (slot 30)           → Content Security Policy & headers
-5. Cache (slot 40)         → No-cache in development
-6. Session (slot 50)       → Session management
-7. CSRF (slot 60)          → Cross-Site Request Forgery protection
-8. Host (slot 70)          → Allowed host validation
-   ↓
-   Handler (your code)
+    ↓
+slot  0  Extensions          → Inject Engine, Tera, Config (always active)
+slot  2  TrustedProxies      → Real client IP from X-Forwarded-For (always active)
+slot  5  Compression         → Response compression (always active)
+slot  8  CORS                → Cross-Origin Resource Sharing (if with_cors() configured)
+slot 10  ErrorHandler        → Capture and render errors (always active)
+slot 20+ Custom              → Your custom middlewares
+slot 25  OpenRedirect        → Block external redirects (always active)
+slot 30  SecurityHeaders     → X-Frame-Options, HSTS, Permissions-Policy… (always active)
+slot 31  CSP                 → Content Security Policy (always active)
+slot 40  Cache               → No-cache in development (always active)
+slot 50  Session             → Session management (always active)
+slot 55  SessionUpgrade      → Upgrade anonymous session → authenticated (always active)
+slot 57  Auth                → Load CurrentUser from session (always active)
+slot 60  CSRF                → Cross-Site Request Forgery protection (always active)
+slot 70  HostValidation      → Allowed host validation (if with_allowed_hosts() configured)
+    ↓
+Handler (your code)
 ```
+
+> **"Always active" slots** apply to every request with no extra configuration. Others only insert into the stack when their builder method is called.
 
 ## Next Steps
 

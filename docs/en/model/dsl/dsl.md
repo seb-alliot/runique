@@ -1,254 +1,34 @@
-# `model!` DSL & AST
+# `model!` DSL & `extend!`
 
-## Actually exposed macros
+## Exposed macros
 
-In the `derive_form` crate, the available macros are:
+- `model! { ... }` — declares a model (SeaORM entity + migrations + admin form)
+- `extend! { ... }` — adds columns to an existing framework table
+- `#[form(...)]` — links a Rust form to a `model!` (see [Forms & concepts](/docs/en/model/forms))
 
-- `model! { ... }` (proc macro)
-- `#[form(...)]` (attribute proc macro)
-
-On the Runique API side (`prelude`), `model` and `form` are re-exported.
-
----
-
-## `model! { ... }` DSL: expected structure
-
-The parser expects a strict structure:
-
-1. model name,
-2. `table: "..."`,
-3. `pk: id => i32|i64|uuid`,
-4. `enums: { ... }` (optional),
-5. `fields: { ... }`,
-6. `relations: { ... }` (optional),
-7. `meta: { ... }` (optional).
-
-Concrete example:
-
-```rust
-use runique::prelude::*;
-
-model! {
-    User,
-    table: "users",
-    pk: id => i32,
-    fields: {
-        username: String [required, max_len(150), unique],
-        email: String [required, unique],
-        password: String [required],
-        is_active: bool,
-        team_id: i32 [required],
-        created_at: datetime [auto_now],
-    },
-    relations: {
-        has_many: Post,
-        belongs_to: Team via team_id,
-    },
-}
-```
+All available via `use runique::prelude::*`.
 
 ---
 
-## Primary Key (`pk`)
+## `model!` structure
 
-The `pk` block defines the name and type of the primary key. Three types are supported natively:
-
-| Type | SQL (Postgres / MySQL) | Auto-increment |
-| --- | --- | --- |
-| `i32` | `SERIAL` / `INT AUTO_INC` | ✅ Yes (default) |
-| `i64` | `BIGSERIAL` / `BIGINT AUTO_INC` | ✅ Yes |
-| `uuid` | `UUID` / `VARCHAR(36)` | ❌ No |
-
-**UUID Example:**
-```rust
-model! {
-    Log,
-    table: "logs",
-    pk: id => uuid,
-    fields: { ... }
-}
-```
-
-#### Link with the `User` model and the `big-pk` feature
-
-If you use `i64` for your user model (the entity linked to the session), you must enable the `big-pk` feature in your `Cargo.toml` so that the global `Pk` alias used by the framework is synchronized:
-
-```toml
-[dependencies]
-runique = { version = "2.1.1-alpha.1", features = ["big-pk"] }
-```
-
-> **Warning:** The `uuid` type for the global `Pk` alias (authentication) is not yet natively supported in the current version.
-
----
-
----
-
-## Internal AST (what is parsed)
-
-The DSL is converted into an internal `Model` AST structure, including:
-
-- `name`, `table`, `pk`
-- `fields: Vec<FieldDef>`
-- `relations: Vec<RelationDef>`
-- `meta: Option<MetaDef>`
-
-### Supported types
-
-- text: `String`, `text`, `char`, `varchar(n)`, `var_binary(n)`
-- numeric: `i8/i16/i32/i64/u32/u64/f32/f64`, `decimal(p,s)`, `decimal`
-- date/time: `date`, `time`, `datetime`, `timestamp`, `timestamp_tz`, `interval`
-- other: `bool`, `uuid`, `json`, `json_binary`, `binary(n)`, `binary`, `blob`, `enum(EnumName)`, `inet`, `cidr`, `mac_address`
-
-#### Enums — `enums: { ... }` + `enum(EnumName)`
-
-Enums are declared in a separate `enums: { ... }` block, then referenced in `fields` via `enum(EnumName)`.
+The parser expects blocks **in this strict order** (optional blocks may be absent but not reordered):
 
 ```rust
 model! {
-    DocSection,
-    table: "doc_section",
-    pk: id => i32,
-    enums: {
-        SectionTheme: [Demarrage, Web, Database, Security, Admin, Autres],
-    },
-    fields: {
-        theme: enum(SectionTheme) [nullable],
-    },
+    ModelName,              // 1. Name (PascalCase)
+    table: "table_name",   // 2. SQL table name
+    pk: field => type,     // 3. Primary key
+    enums: { ... },        // 4. Optional — local enums
+    fields: { ... },       // 5. Fields (v1 or v2 syntax)
+    relations: { ... },    // 6. Optional — SeaORM relations
+    meta: { ... },         // 7. Optional — constraints & ordering
 }
 ```
 
-**Backing types:**
+### Two field syntaxes
 
-| Syntax | DB storage |
-| --- | --- |
-| `EnumName: [A, B]` | Auto-detected from `DB_ENGINE`: native `Enum` on PostgreSQL, `VARCHAR` on MySQL/SQLite |
-| `EnumName: i32 [A, B]` | `Integer` |
-| `EnumName: i64 [A, B]` | `BigInteger` |
-
-**DB values:** variants are stored **exactly as written in the DSL** — no automatic transformation. Declaring `[Demarrage, Web]` stores `"Demarrage"` and `"Web"`. Declaring `[demarrage, web]` stores `"demarrage"` and `"web"`.
-
-**Variant syntaxes:**
-
-| Syntax | DB value | Display label (admin) |
-| --- | --- | --- |
-| `Variant` | variant name as written | variant name |
-| `Variant = "order"` | `"order"` | `"order"` |
-| `Variant = ("order", "Display order")` | `"order"` | `"Display order"` |
-
-```rust
-enums: {
-    SortMode: [
-        Manual,
-        Alphabetical = "alpha",
-        ByDate = ("date", "By creation date"),
-    ],
-},
-```
-
-The tuple form `= ("db_value", "Label")` lets you store a short value in the database while displaying a readable label in the admin form.
-
-`FromStr` accepts all three forms case-insensitively: the variant name, the DB value, and the label (if present) all resolve to the same variant.
-
-**Generated methods on enums:**
-
-| Method | Return | Description |
-| --- | --- | --- |
-| `.to_string()` | `String` | Display label (2nd tuple element, or variant name) |
-| `.db_value()` | `&'static str` / `i32` / `i64` | Exact value stored in the database |
-| `::from_str(s)` / `.parse()` | `Result<Self, ()>` | Parse from DB value, label, or variant name |
-| `::iter()` | `impl Iterator<Item = Self>` | Iterate over all variants (via `sea_orm::Iterable`) |
-
-> **`Display` behavior by syntax:**
->
-> - `Variant` → `.to_string()` returns `"Variant"` (variant name)
-> - `Variant = "db_val"` → `.to_string()` returns `"db_val"`
-> - `Variant = ("db_val", "Label")` → `.to_string()` returns `"Label"` ← most useful form
-
-```rust
-use sea_orm::Iterable;
-
-// Enum declared with the tuple form:
-// OrderStatus: [
-//     Pending = ("pending", "Pending"),
-//     Cancelled = ("cancelled", "Cancelled"),
-// ]
-
-let s = OrderStatus::Pending;
-
-s.db_value()   // → "pending"   (stored in DB)
-s.to_string()  // → "Pending"   (human-readable label)
-
-// Build a <select> option list
-let options: Vec<(String, String)> = OrderStatus::iter()
-    .map(|s: OrderStatus| (s.db_value().to_string(), s.to_string()))
-    .collect();
-// → [("pending", "Pending"), ("cancelled", "Cancelled"), ...]
-
-// Parse from a DB value (POST form)
-let status: Option<OrderStatus> = "pending".parse().ok();
-```
-
-**In Tera templates**, the comparison value must **exactly** match what is stored in the database (case-sensitive):
-
-```jinja2
-{# Correct — matches the stored value "Web" #}
-{% for section in sections | filter(attribute="theme", value="Web") %}
-
-{# Incorrect — will never match if the DB contains "Web" #}
-{% for section in sections | filter(attribute="theme", value="web") %}
-```
-
-The Tera `filter` built-in is **strictly case-sensitive**.
-
-### `phone` field type
-
-A `String` field stored as `VARCHAR` and rendered as `<input type="tel">` in the admin form.
-
-```rust
-model! {
-    Contact,
-    table: "contacts",
-    pk: id => i32,
-    fields: {
-        name:  text [required],
-        phone: phone [required],
-    },
-}
-```
-
-`phone` accepts `required`, `label(...)`, and all common string constraints.
-
-### Field options
-
-- `required`, `nullable`, `unique`, `readonly`
-- `max_len(n)`, `min_len(n)`, `max(n)`, `min(n)`, `max_f(n)`, `min_f(n)`
-- `auto_now`, `auto_now_update`
-- `label(...)`, `help(...)`, `select_as(...)`
-- `file(kind)`, `file(kind, "upload/path")` — file field (see below)
-
-#### `label(...)`
-
-By default, the admin form generates a field label from its snake_case name (`sort_order` → `Sort order`). The `label(...)` option sets a custom label:
-
-```rust
-model! {
-    Chapter,
-    table: "chapters",
-    pk: id => i32,
-    fields: {
-        title: String [required, label("Chapter title")],
-        sort_order: i32 [label("Display order")],
-        is_published: bool [label("Published")],
-    },
-}
-```
-
-The label is used in the admin edit form (`<label>` tag) and in column headers when the field is declared in `list_display`. It has no effect on the generated migration or SeaORM entity.
-
-### File fields — `file()`
-
-A `String` field can be declared as a file field using the `file()` option. The auto-generated form (`AdminForm`) will then use a `FileField` instead of a `TextField`.
+**Syntax v1 — explicit SQL types** (named `fields:` block):
 
 ```rust
 model! {
@@ -256,90 +36,378 @@ model! {
     table: "articles",
     pk: id => i32,
     fields: {
-        title: String [required],
-
-        // image — explicit directory
-        image: String [file(image, "media/articles")],
-
-        // document — auto directory from MEDIA_ROOT + field name
-        file: String [file(document)],
-
-        // any file type
-        attachment: String [file(any, "media/uploads")],
+        title:      String   [required, max_len(150)],
+        content:    text     [required],
+        is_active:  bool,
+        created_at: datetime [auto_now],
     },
 }
 ```
 
-**Available kinds:**
-
-| Value | Default allowed extensions | Maps to |
-| --- | --- | --- |
-| `image` | `jpg jpeg png gif webp avif` | `FileField::image()` |
-| `document` | `pdf doc docx txt odt` | `FileField::document()` |
-| `any` | no filter | `FileField::any()` |
-
-**Upload path:**
-
-| Syntax | Destination |
-| --- | --- |
-| `file(image, "media/articles")` | `media/articles/` (exact path) |
-| `file(image)` | `{MEDIA_ROOT}/{field_name}/` (reads `MEDIA_ROOT` from `.env`) |
-
-> Invalid files are deleted from disk if validation fails. The destination directory is created automatically on the first valid upload.
-
-### Relations
-
-Relations are declared in an optional `relations: { ... }` block after `fields`.
-
-| Syntax | DB constraint | Description |
-| --- | --- | --- |
-| `belongs_to: Model via fk_field,` | ✅ `FOREIGN KEY` generated | Foreign key to `model.id` |
-| `belongs_to: Model via fk_field [cascade],` | ✅ `ON DELETE CASCADE` | FK with on_delete cascade |
-| `belongs_to: Model via fk_field [cascade, restrict],` | ✅ | FK with on_delete + on_update |
-| `has_many: Model,` | ❌ (code only) | 1-N relation |
-| `has_one: Model,` | ❌ (code only) | 1-1 relation |
-| `many_to_many: Model through PivotTable via via_field,` | ❌ (code only) | N-N relation |
-
-Available FK actions: `cascade`, `restrict`, `set_null`, `set_default` (default: `no_action`).
-
-> `belongs_to` automatically generates a `FOREIGN KEY` in the migration. The FK column (`fk_field`) must be declared in `fields`.
-
-### Meta
-
-The `meta` block controls database-level constraints and display metadata. All keys are optional.
+**Syntax v2 — semantic types** (anonymous `{ ... }` block):
 
 ```rust
 model! {
     Article,
     table: "articles",
     pk: id => i32,
-    fields: {
-        title:      text [required],
-        slug:       text [required],
-        lang:       text [required],
-        sort_order: int,
+    {
+        title:      text     [required, max_length: 150],
+        content:    textarea [required],
+        is_active:  bool     [default: true],
         created_at: datetime [auto_now],
-    },
-    meta: {
-        ordering: [-created_at, title],
-        unique_together: [(slug, lang)],
-        indexes: [(lang, sort_order)],
-        verbose_name: "Article",
-        verbose_name_plural: "Articles",
     }
 }
 ```
 
-| Key | Syntax | Effect |
-| --- | --- | --- |
-| `ordering` | `[field, -field]` | Default sort order in queries. `-` prefix = `DESC`. |
-| `unique_together` | `[(col1, col2), ...]` | Generates a `UNIQUE` constraint on the column combination. |
-| `indexes` | `[(col1, col2), ...]` | Generates a plain (non-unique) `INDEX` on the column combination. |
-| `verbose_name` | `"string"` | Human-readable name used in the admin interface. |
-| `verbose_name_plural` | `"string"` | Plural form used in the admin interface. |
-| `abstract` | `true` / `false` | Abstract model — no table generated, used as a base for other models. |
+> In syntax v2, the `form_fields:` block is ignored — semantic types already carry widget information.
 
-`unique_together` and `indexes` are processed by `makemigrations` and generate the appropriate SQL constraints.
+---
+
+## Primary key (`pk`)
+
+```
+pk: field_name => type
+```
+
+| Type   | Postgres SQL        | MySQL SQL              | Auto-increment | Creation |
+|--------|---------------------|------------------------|----------------|----------|
+| `i32`  | `SERIAL`            | `INT AUTO_INCREMENT`   | ✅ Yes          | DB sequence |
+| `i64`  | `BIGSERIAL`         | `BIGINT AUTO_INCREMENT`| ✅ Yes          | DB sequence |
+| `uuid` | `UUID`              | `VARCHAR(36)`          | ❌ No           | `Uuid::new_v4()` in Rust |
+| `Pk`   | alias `i32` or `i64`| same                   | ✅ Yes          | depends on `big-pk` feature |
+
+**The `Pk` alias** resolves to `i32` by default, or `i64` if the `big-pk` feature is enabled:
+
+```toml
+[dependencies]
+runique = { version = "2.1.2", features = ["big-pk"] }
+```
+
+---
+
+## Field types — syntax v1
+
+Directly declared SQL types:
+
+| DSL type          | Generated Rust type       | SQL column                |
+|-------------------|---------------------------|---------------------------|
+| `String`          | `String`                  | `VARCHAR(255)`            |
+| `text`            | `String`                  | `TEXT`                    |
+| `char`            | `String`                  | `CHAR`                    |
+| `varchar(n)`      | `String`                  | `VARCHAR(n)`              |
+| `i8`              | `i32`                     | `TINYINT`                 |
+| `i16`             | `i32`                     | `SMALLINT`                |
+| `i32`             | `i32`                     | `INTEGER`                 |
+| `i64`             | `i64`                     | `BIGINT`                  |
+| `u32`             | `u32`                     | `INTEGER UNSIGNED`        |
+| `u64`             | `u64`                     | `BIGINT UNSIGNED`         |
+| `f32`             | `f32`                     | `FLOAT`                   |
+| `f64`             | `f64`                     | `DOUBLE`                  |
+| `decimal`         | `Decimal`                 | `DECIMAL`                 |
+| `decimal(p, s)`   | `Decimal`                 | `DECIMAL(p, s)`           |
+| `bool`            | `bool`                    | `BOOLEAN`                 |
+| `date`            | `NaiveDate`               | `DATE`                    |
+| `time`            | `NaiveTime`               | `TIME`                    |
+| `datetime`        | `NaiveDateTime`           | `DATETIME`                |
+| `timestamp`       | `NaiveDateTime`           | `TIMESTAMP`               |
+| `timestamp_tz`    | `NaiveDateTime`           | `TIMESTAMPTZ`             |
+| `uuid`            | `Uuid`                    | `UUID`                    |
+| `json`            | `serde_json::Value`       | `JSON`                    |
+| `json_binary`     | `serde_json::Value`       | `JSON BINARY`             |
+| `binary`          | `Vec<u8>`                 | `BINARY`                  |
+| `binary(n)`       | `Vec<u8>`                 | `BINARY(n)`               |
+| `var_binary(n)`   | `Vec<u8>`                 | `VARBINARY(n)`            |
+| `blob`            | `Vec<u8>`                 | `BLOB`                    |
+| `inet`            | `String`                  | `INET`                    |
+| `cidr`            | `String`                  | `CIDR`                    |
+| `mac_address`     | `String`                  | `MACADDR`                 |
+| `interval`        | `String`                  | `INTERVAL`                |
+| `enum(EnumName)`  | `EnumName`                | `INTEGER` / `ENUM` / `VARCHAR` |
+
+---
+
+## Field types — syntax v2 (semantic)
+
+Automatically converted to SQL types:
+
+| Semantic type   | Generated SQL                          | Notes                               |
+|-----------------|----------------------------------------|-------------------------------------|
+| `text`          | `VARCHAR(255)` or `VARCHAR(n)` if `max_length: n` |                        |
+| `email`         | `VARCHAR(254)`                         | Validated email format              |
+| `password`      | `VARCHAR(255)`                         | Automatically hashed                |
+| `richtext`      | `TEXT`                                 | HTML editor                         |
+| `textarea`      | `TEXT`                                 | Multi-line                          |
+| `url`           | `VARCHAR(255)`                         | Validated URL format                |
+| `slug`          | `VARCHAR(255)`                         |                                     |
+| `color`         | `VARCHAR(255)`                         | Hex color                           |
+| `ip`            | `INET`                                 |                                     |
+| `phone`         | `VARCHAR(20)` or `VARCHAR(n)` if `max_length: n` | `<input type="tel">`  |
+| `int`           | `INTEGER`                              |                                     |
+| `bigint`        | `BIGINT`                               |                                     |
+| `float`         | `DOUBLE`                               |                                     |
+| `decimal`       | `DECIMAL`                              |                                     |
+| `percent`       | `DOUBLE`                               | Stored as float                     |
+| `bool`          | `BOOLEAN`                              |                                     |
+| `date`          | `DATE`                                 |                                     |
+| `time`          | `TIME`                                 |                                     |
+| `datetime`      | `DATETIME`                             |                                     |
+| `uuid`          | `UUID`                                 |                                     |
+| `json`          | `TEXT`                                 |                                     |
+| `image`         | `VARCHAR(255)`                         | Stores file path                    |
+| `document`      | `VARCHAR(255)`                         | Stores file path                    |
+| `file`          | `VARCHAR(255)`                         | Stores file path                    |
+| `choice`        | `VARCHAR` / native `ENUM`              | Requires `enum(EnumName)`           |
+| `radio`         | Same as `choice`                       | Different widget, same SQL          |
+| `checkbox`      | Same as `choice`                       | Different widget, same SQL          |
+
+---
+
+## Field options — syntax v1
+
+In a `[...]` block, comma-separated:
+
+```rust
+username: String [required, max_len(150), unique],
+```
+
+| Option              | Description                                                    |
+|---------------------|----------------------------------------------------------------|
+| `required`          | `NOT NULL` column + form validation                            |
+| `nullable`          | `NULL` column — Rust type `Option<T>`                         |
+| `unique`            | `UNIQUE` constraint                                            |
+| `index`             | Simple index (non-unique)                                      |
+| `default(value)`    | SQL default value (`true`, `0`, `"draft"`, etc.)              |
+| `max_len(n)`        | Max length (validation + `VARCHAR(n)`)                        |
+| `min_len(n)`        | Min length (validation)                                       |
+| `max(n)`            | Max integer value (validation)                                |
+| `min(n)`            | Min integer value (validation)                                |
+| `max_f(n)`          | Max float value                                               |
+| `min_f(n)`          | Min float value                                               |
+| `auto_now`          | Set to `NOW()` on every `INSERT` — excluded from forms        |
+| `auto_now_update`   | Set to `NOW()` on every `UPDATE` — excluded from forms        |
+| `readonly`          | Excluded from generated forms                                 |
+| `select_as(str)`    | SQL alias in SELECTs                                          |
+| `label("str")`      | Custom label in admin forms                                   |
+| `help("str")`       | Help text (reserved)                                          |
+| `fk(table.col, action)` | Foreign key constraint (see Relations)                   |
+| `file(kind)`        | File field — `image`, `document`, `any`                       |
+| `file(kind, "path")`| File field with explicit upload directory                     |
+| `max_size(n)`       | Max upload size — `n KB`, `n MB`, `n GB`                      |
+
+## Field options — syntax v2
+
+Using `:` instead of `()` for values:
+
+```rust
+username: text [required, max_length: 150, unique],
+```
+
+| v2 option              | v1 equivalent          | Notes                          |
+|------------------------|------------------------|--------------------------------|
+| `required`             | `required`             |                                |
+| `nullable`             | `nullable`             |                                |
+| `unique`               | `unique`               |                                |
+| `max_length: n`        | `max_len(n)`           |                                |
+| `min_length: n`        | `min_len(n)`           |                                |
+| `min: n`               | `min(n)`               |                                |
+| `max: n`               | `max(n)`               |                                |
+| `min: n.0`             | `min_f(n)`             |                                |
+| `max: n.0`             | `max_f(n)`             |                                |
+| `default: value`       | `default(value)`       |                                |
+| `auto_now`             | `auto_now`             |                                |
+| `auto_now_update`      | `auto_now_update`      |                                |
+| `upload_to: "path"`    | `file(kind, "path")`   |                                |
+| `max_size: n MB`       | `max_size(n MB)`       |                                |
+| `rows: n`              | —                      | v2 only (textarea)             |
+| `step: n`              | —                      | v2 only (numeric fields)       |
+| `fk(table.col, action)`| `fk(table.col, action)`|                                |
+| `enum(EnumName)`       | `enum(EnumName)`       |                                |
+| `skip`                 | `readonly`             |                                |
+| `no_hash`              | —                      | `password` fields only         |
+
+> **`auto_now` / `auto_now_update`**: excluded from `admin_from_form` and `admin_partial_update`. Their value is managed by the database only. They appear in `Model` and `Column` as `Option<T>`.
+
+---
+
+## Enums
+
+Declared in a separate `enums: { ... }` block, then referenced via `enum(EnumName)`.
+
+```rust
+model! {
+    Order,
+    table: "orders",
+    pk: id => i32,
+    enums: {
+        OrderStatus: [
+            Pending   = ("pending",   "Pending"),
+            InProgress= ("in_progress","In progress"),
+            Delivered = ("delivered", "Delivered"),
+            Cancelled = ("cancelled", "Cancelled"),
+        ],
+        Priority: i32 [Low = 0, Normal = 1, High = 2, Urgent = 9],
+    },
+    fields: {
+        status:   enum(OrderStatus) [required],
+        priority: enum(Priority)    [required],
+    },
+}
+```
+
+### Three variant forms
+
+| Syntax                               | DB value         | Display label (Display)   |
+|--------------------------------------|------------------|---------------------------|
+| `Variant`                            | `"Variant"`      | `"Variant"`               |
+| `Variant = "db_value"`              | `"db_value"`     | `"db_value"`              |
+| `Variant = ("db_value", "Label")`   | `"db_value"`     | `"Label"`                 |
+
+> **The DB value is stored exactly as written.** No automatic transformation.
+
+### Backing types
+
+| Syntax               | DB storage                                      |
+|----------------------|-------------------------------------------------|
+| `EnumName: [A, B]`   | Native `ENUM` (Postgres) or `VARCHAR` (MySQL/SQLite) |
+| `EnumName: i32 [...]`| `INTEGER`                                       |
+| `EnumName: i64 [...]`| `BIGINT`                                        |
+
+### Generated methods
+
+| Method | Return | Description |
+|--------|--------|-------------|
+| `.to_string()` | `String` | Display label |
+| `.db_value()` | `&'static str` / `i32` / `i64` | Exact DB value |
+| `::from_str(s)` / `.parse()` | `Result<Self, ()>` | Parse from DB value, label, or variant name |
+| `::iter()` | `impl Iterator<Item = Self>` | Iterate over all variants |
+
+```rust
+use sea_orm::Iterable;
+
+let s = OrderStatus::Pending;
+s.db_value()   // → "pending"
+s.to_string()  // → "Pending"
+
+// For a <select>
+let options: Vec<(String, String)> = OrderStatus::iter()
+    .map(|v| (v.db_value().to_string(), v.to_string()))
+    .collect();
+
+// Parse from a DB value
+let status: Option<OrderStatus> = "pending".parse().ok();
+```
+
+---
+
+## File fields — `file()`
+
+```rust
+model! {
+    Article,
+    table: "articles",
+    pk: id => i32,
+    fields: {
+        image:       String [file(image, "media/articles")],
+        attachment:  String [file(document)],
+        upload:      String [file(any, "media/uploads")],
+    },
+}
+```
+
+| Value     | Allowed extensions             |
+|-----------|--------------------------------|
+| `image`   | `jpg jpeg png gif webp avif`   |
+| `document`| `pdf doc docx txt odt`         |
+| `any`     | no filter                      |
+
+| Syntax                        | Destination                              |
+|-------------------------------|------------------------------------------|
+| `file(image, "media/articles")`| `media/articles/` (exact path)          |
+| `file(image)`                 | `{MEDIA_ROOT}/{field_name}/`            |
+
+---
+
+## Relations
+
+```rust
+relations: {
+    belongs_to: Model via fk_field,
+    belongs_to: Model via fk_field [cascade],
+    has_many: Model,
+    has_one: Model,
+    many_to_many: Model through PivotTable via via_field,
+}
+```
+
+| Type           | DB constraint   | Description                   |
+|----------------|-----------------|-------------------------------|
+| `belongs_to`   | ✅ `FOREIGN KEY` | Foreign key to `model.id`     |
+| `has_many`     | ❌ code only     | 1-N relation                  |
+| `has_one`      | ❌ code only     | 1-1 relation                  |
+| `many_to_many` | ❌ code only     | N-N via pivot table           |
+
+Available FK actions: `cascade` · `restrict` · `set_null` · `set_default`
+
+---
+
+## Meta
+
+```rust
+meta: {
+    ordering: [-created_at, title],
+    unique_together: [(slug, lang)],
+    indexes: [(lang, sort_order)],
+    verbose_name: "Article",
+    verbose_name_plural: "Articles",
+}
+```
+
+| Key                   | Syntax                | Effect                                      |
+|-----------------------|-----------------------|---------------------------------------------|
+| `ordering`            | `[field, -field]`     | Default sort order, `-` = `DESC`            |
+| `unique_together`     | `[(col1, col2)]`      | Multi-column `UNIQUE` constraint            |
+| `indexes`             | `[(col1, col2)]`      | Multi-column simple index                   |
+| `verbose_name`        | `"string"`            | Singular name in the admin interface        |
+| `verbose_name_plural` | `"string"`            | Plural name in the admin interface          |
+| `abstract`            | `true`                | Abstract model — no table generated         |
+
+---
+
+## `label` and `help`
+
+By default, the label is generated from the snake_case field name (`sort_order` → `Sort order`). The `label(...)` option overrides it:
+
+```rust
+fields: {
+    title:        String [required, label("Article title")],
+    sort_order:   i32    [label("Display order")],
+    is_published: bool   [label("Published")],
+},
+```
+
+The label applies to the admin form and column headers in `list_display`. It has no effect on migrations.
+
+---
+
+## `extend!{}` — extending framework tables
+
+Adds columns to a Runique table without redefining it. The `makemigrations` CLI detects `extend!{}` blocks and generates `ALTER TABLE ADD COLUMN` statements.
+
+```rust
+extend! {
+    table: "eihwaz_users",
+    fields: {
+        avatar:  image   [upload_to: "avatars/"],
+        bio:     textarea,
+        website: url     [required],
+    }
+}
+```
+
+Allowed tables: `eihwaz_users`, `eihwaz_groupes`, `eihwaz_droits`, `eihwaz_sessions`, `eihwaz_users_groupes`, `eihwaz_groupes_droits`. Any other name causes a compile-time error.
+
+Fields in `extend!{}` use the same types and options as the v2 syntax of `model!`.
 
 ---
 
@@ -347,8 +415,8 @@ model! {
 
 | Section | Description |
 | --- | --- |
-| [Generation & ModelSchema](/docs/en/model/generation) | Generated code, `ModelSchema` |
-| [Forms & technical considerations](/docs/en/model/forms) | `#[form(...)]` |
+| [Generation & ModelSchema](/docs/en/model/generation) | Generated code, `schema()`, `ModelSchema` |
+| [Forms & concepts](/docs/en/model/forms) | `#[form(...)]`, model/form binding |
 
 ## Back to summary
 

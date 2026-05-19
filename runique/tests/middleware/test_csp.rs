@@ -408,7 +408,7 @@ async fn test_https_redirect_redirige_quand_actif() {
         trusted_proxies: Arc::new(runique::middleware::TrustedProxies::default()),
         session_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
         session_db_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
-        custom_db: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
+        extensions: std::collections::HashMap::new(),
     });
 
     // Requête sans X-Forwarded-Proto: https → redirection (308 Permanent Redirect)
@@ -449,7 +449,7 @@ async fn test_https_redirect_passe_si_deja_https() {
         trusted_proxies: Arc::new(runique::middleware::TrustedProxies::default()),
         session_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
         session_db_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
-        custom_db: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
+        extensions: std::collections::HashMap::new(),
     });
 
     let app = https_redirect_app(engine_https);

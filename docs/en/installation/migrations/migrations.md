@@ -33,7 +33,8 @@ Runique automatically injects two migrations into your `lib.rs` without you havi
 | Migration | Creates | Order |
 | --- | --- | --- |
 | `EihwazUsersMigration` | `eihwaz_users` (id, username, email, password, is_active, is_staff, is_superuser, created_at, updated_at) | 1st |
-| `AdminTableMigration` | `eihwaz_groupes`, `eihwaz_groupes_droits`, `eihwaz_users_groupes`, `eihwaz_history` | 2nd |
+| `EihwazSessionsMigration` | `eihwaz_sessions` (authenticated session persistence) | 2nd |
+| `AdminTableMigration` | `eihwaz_groupes`, `eihwaz_groupes_droits`, `eihwaz_users_groupes`, `eihwaz_history` | 3rd |
 
 > You do not need to declare `eihwaz_users` in your entities.
 

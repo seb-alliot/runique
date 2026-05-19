@@ -45,7 +45,7 @@ async fn test_attach_middlewares_with_host_validation_enabled() {
         trusted_proxies: Arc::new(runique::middleware::TrustedProxies::default()),
         session_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
         session_db_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
-        custom_db: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
+        extensions: std::collections::HashMap::new(),
     });
 
     let router = RuniqueEngine::attach_middlewares(engine, Router::new());
@@ -79,7 +79,7 @@ async fn test_attach_middlewares_with_https_redirect() {
         trusted_proxies: Arc::new(runique::middleware::TrustedProxies::default()),
         session_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
         session_db_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
-        custom_db: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
+        extensions: std::collections::HashMap::new(),
     });
 
     let router = RuniqueEngine::attach_middlewares(engine, Router::new());

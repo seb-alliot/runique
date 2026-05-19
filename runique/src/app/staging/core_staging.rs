@@ -1,7 +1,9 @@
 //! Core application staging: DB connection and URL registry.
 use crate::app::error_build::{BuildError, CheckError, CheckReport};
 use crate::utils::aliases::{ARlockmap, new_registry};
-use std::sync::RwLock;
+use std::any::TypeId;
+use std::collections::HashMap;
+use std::sync::Arc;
 
 #[cfg(feature = "orm")]
 use crate::db::DatabaseConfig;
@@ -34,8 +36,9 @@ pub struct CoreStaging {
 
     pub(crate) url_registry: ARlockmap,
 
-    /// DB custom : ex mongodb client, redis client, etc. (not used by the framework, just for your app)
-    pub(crate) custom_db: RwLock<Option<std::sync::Arc<dyn std::any::Any + Send + Sync>>>,
+    /// Extension map — custom external connections (MongoDB, Redis, etc.).
+    /// Supports multiple types simultaneously — each type is stored under its `TypeId`.
+    pub(crate) extensions: HashMap<TypeId, Arc<dyn std::any::Any + Send + Sync>>,
 }
 
 impl CoreStaging {
@@ -47,7 +50,7 @@ impl CoreStaging {
             #[cfg(feature = "orm")]
             db_config: None,
             url_registry: new_registry(),
-            custom_db: RwLock::new(None),
+            extensions: HashMap::new(),
         }
     }
 
@@ -69,14 +72,16 @@ impl CoreStaging {
         self.db = Some(db);
         self
     }
-    /// Registers an extra database connection (for multi-DB setups)
-    /// Ex : MongoDB client, Redis client, etc.
+    /// Registers an external resource (MongoDB client, Redis pool, etc.).
+    /// Can be called multiple times with different types.
+    /// Retrieved at runtime via `engine.extension::<T>()`.
     /// ```rust,ignore
-    /// let mongo = mongodb_client(uri).await?;
-    /// .core(|c| c.with_extra_db(mongo))
+    /// let mongo = mongodb::Client::with_uri_str(uri).await?;
+    /// let redis = redis::Client::open(url)?;
+    /// .core(|c| c.with_extra_db(mongo).with_extra_db(redis))
     /// ```
     pub fn with_extra_db<T: std::any::Any + Send + Sync + 'static>(mut self, db: T) -> Self {
-        self.custom_db = RwLock::new(Some(std::sync::Arc::new(db)));
+        self.extensions.insert(TypeId::of::<T>(), Arc::new(db));
         self
     }
     /// Registers a DB configuration — the connection will be established during build.
