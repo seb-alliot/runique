@@ -254,7 +254,7 @@ const COURS: &[CourDef] = &[
         ordre: 20,
     },
     CourDef {
-        slug: "cours-filtre-admin",
+        slug: "filtre-admin",
         title: "Filtre admin",
         theme: "Runique",
         difficulte: "specifique",
