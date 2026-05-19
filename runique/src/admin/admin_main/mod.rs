@@ -175,7 +175,9 @@ pub async fn admin_post(
     Extension(current_user): Extension<CurrentUser>,
     mut req: Request,
 ) -> AppResult<Response> {
+    eprintln!("[DBG admin_post] resource={resource_key} action={action}");
     let body = req.prisme.data.clone();
+    eprintln!("[DBG admin_post] body keys: {:?}", body.keys().collect::<Vec<_>>());
     let entry = state
         .registry
         .get(&resource_key)
@@ -183,11 +185,15 @@ pub async fn admin_post(
 
     inject_context(&mut req, &state, entry, &current_user);
     req.context.insert(ctx_common::LANG, &current_lang().code());
-    check_csrf(&body, req.csrf_token.as_str())?;
+    eprintln!("[DBG admin_post] csrf_token présent: {}", body.contains_key("_csrftoken"));
+    let csrf_result = check_csrf(&body, req.csrf_token.as_str());
+    eprintln!("[DBG admin_post] csrf_result: {}", csrf_result.is_ok());
+    csrf_result?;
     if !check_write_access(&current_user, &resource_key) {
         return Ok(permission_denied(&req.notices, &state.config.prefix, &resource_key).await);
     }
-    match action.as_str() {
+    eprintln!("[DBG admin_post] dispatching action={action}");
+    let result = match action.as_str() {
         "create" => {
             handle_create_post(&mut req, entry, body, &headers, &state, &current_user).await
         }
@@ -197,7 +203,9 @@ pub async fn admin_post(
         _ => Err(Box::new(AppError::new(ErrorContext::not_found(
             "Unknown action",
         )))),
-    }
+    };
+    eprintln!("[DBG admin_post] result is_ok={}", result.is_ok());
+    result
 }
 
 /// GET /admin/{resource}/{id}/{action}  (detail, edit, delete)
