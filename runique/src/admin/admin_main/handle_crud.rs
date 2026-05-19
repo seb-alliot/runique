@@ -2,6 +2,7 @@ use super::format_datetime;
 use crate::admin::helper::resource_entry::ResourceEntry;
 use crate::admin::history;
 use crate::auth::session::CurrentUser;
+use crate::config::static_files::resolve_media_root;
 use crate::context::template::{AppError, Request};
 use crate::errors::error::ErrorContext;
 use crate::utils::{
@@ -394,7 +395,7 @@ pub(super) async fn handle_edit_post(
         }
         // Delete old files replaced by a new upload
         if let Some(ref old) = old_obj {
-            let media_root = std::env::var("MEDIA_ROOT").unwrap_or_else(|_| "media".to_string());
+            let media_root = resolve_media_root();
             let media_root = media_root.trim_end_matches('/');
             for (name, field) in &form.get_form().fields {
                 if field.field_type() != "file" {

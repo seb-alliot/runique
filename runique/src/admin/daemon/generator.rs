@@ -602,7 +602,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     if r.m2m.is_empty() {
         let _ = writeln!(
             out,
-            "            {}::admin_from_form(&data, Some(id.into()))",
+            "            {}::admin_from_form(&data, Some(id))",
             module
         );
         let _ = writeln!(out, "                .update(&*db).await.map(|_| ())");
@@ -611,7 +611,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         let _ = writeln!(out, "            let id_str = id.to_string();");
         let _ = writeln!(
             out,
-            "            {}::admin_from_form(&data, Some(id.into())).update(&*db).await?;",
+            "            {}::admin_from_form(&data, Some(id)).update(&*db).await?;",
             module
         );
         for m2m in &r.m2m {
@@ -662,7 +662,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     let _ = writeln!(out, "            {};", id_parse_code);
     let _ = writeln!(
         out,
-        "            {}::admin_partial_update(&data, id.into())",
+        "            {}::admin_partial_update(&data, id)",
         module
     );
     let _ = writeln!(out, "                .update(&*db).await.map(|_| ())");

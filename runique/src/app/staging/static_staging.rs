@@ -1,5 +1,5 @@
 //! Static files staging: enables or disables the asset service.
-use crate::app::error_build::BuildError;
+use crate::{app::error_build::BuildError, config::static_files::resolve_media_root};
 //
 // Controls whether static files (CSS, JS, media, Runique
 // internal assets) are served by the application.
@@ -101,7 +101,7 @@ impl StaticStaging {
         if !self.enabled {
             return Ok(());
         }
-        let media_root = std::env::var("MEDIA_ROOT").unwrap_or_else(|_| "media".to_string());
+        let media_root = resolve_media_root();
         std::fs::create_dir_all(&media_root).map_err(|e| {
             BuildError::check({
                 let mut report = crate::app::error_build::CheckReport::new();
