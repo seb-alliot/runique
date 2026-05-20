@@ -64,13 +64,10 @@ pub fn extract_host(location: &str) -> Option<&str> {
     // Strip scheme: "https://host/path" or "//host/path"
     let without_scheme = if let Some(rest) = location.strip_prefix("//") {
         rest
-    } else if let Some(rest) = location
-        .strip_prefix("http://")
-        .or_else(|| location.strip_prefix("https://"))
-    {
-        rest
     } else {
-        return None;
+        location
+            .strip_prefix("http://")
+            .or_else(|| location.strip_prefix("https://"))?
     };
 
     // Host ends at the first '/', '?', '#', or end of string
