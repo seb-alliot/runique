@@ -6,6 +6,14 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2.1.4] - 2026-05-20
+
+### Fixed — `runique` (admin daemon)
+
+* **Admin generator emitted hardcoded `i32`/`i64` for PK parsing:** the `detect_big_pk` approach read the project's `Cargo.toml` to decide the parse type, but failed when `cargo clippy --all-features` was used on the workspace (workspace-wide feature activation made `Pk = i64` even for projects without `big-pk` in their own `Cargo.toml`). The generator now emits `parse::<Pk>()` by default, which resolves to the correct type at compile time via the `Pk` type alias. Explicit `id_type: I32 | I64 | Uuid` overrides still emit concrete types.
+
+---
+
 ## [2.1.3] - 2026-05-20
 
 ### Fixed — `runique` (file uploads)

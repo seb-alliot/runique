@@ -81,8 +81,31 @@ pk: nom_champ => type
 
 ```toml
 [dependencies]
-runique = { version = "2.1.2", features = ["big-pk"] }
+runique = { version = "2.1.4", features = ["big-pk"] }
 ```
+
+Utilisez `big-pk` quand vous anticipez plus de ~2 milliards de lignes dans une table, ou pour interopérer avec un schéma existant utilisant des clés primaires `BIGINT`.
+
+**Contraintes lors de l'activation de `big-pk` :**
+
+- Chaque colonne FK pointant vers une clé primaire `Pk` doit aussi être déclarée `bigint`, sinon vous obtenez une erreur de type à la compilation :
+
+```rust
+derive_form! {
+    Commande {
+        fields: {
+            user_id: bigint [required]   // doit correspondre à users.id qui est Pk (i64)
+        }
+    }
+}
+```
+
+- Le daemon admin génère `parse::<Pk>()` par défaut dans `admin.rs`, le code généré suit donc automatiquement la feature — aucun ajustement manuel nécessaire.
+
+- Les fichiers de seeds et tout code manuel qui assigne `entity.id` (un `Pk`) à un champ FK `i32` doivent utiliser `.try_into().unwrap()` ou changer la colonne FK en `bigint`.
+
+> **`big-pk` doit être décidé avant la première migration.**
+> Une fois les migrations appliquées, basculer entre `big-pk` et le mode par défaut (`i32`) est un changement cassant : les colonnes en base sont déjà `INT` ou `BIGINT`, et changer la feature flag ne modifie que le type Rust — le schéma reste intact. Changer après coup nécessite une migration manuelle pour `ALTER` chaque colonne PK et FK, avec un risque de troncature des données si des IDs existants dépassent `i32::MAX`. Choisissez un mode au démarrage du projet et ne le changez pas.
 
 ---
 

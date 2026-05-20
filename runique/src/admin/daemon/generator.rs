@@ -212,12 +212,15 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         "I32" => {
             "let id = id.parse::<i32>().map_err(|_| DbErr::Custom(\"invalid id\".to_string()))?"
         }
+        "I64" => {
+            "let id = id.parse::<i64>().map_err(|_| DbErr::Custom(\"invalid id\".to_string()))?"
+        }
         "Uuid" => {
             "let id = uuid::Uuid::parse_str(&id).map_err(|_| DbErr::Custom(\"invalid id\".to_string()))?"
         }
         _ => {
-            // default: i64 (matches pk: id => Pk)
-            "let id = id.parse::<i64>().map_err(|_| DbErr::Custom(\"invalid id\".to_string()))?"
+            // default "Pk": follows the big-pk feature flag automatically
+            "let id = id.parse::<Pk>().map_err(|_| DbErr::Custom(\"invalid id\".to_string()))?"
         }
     };
 

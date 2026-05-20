@@ -557,7 +557,7 @@ pub fn admin_register() -> AdminRegistry {
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = contribution::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
@@ -567,7 +567,7 @@ pub fn admin_register() -> AdminRegistry {
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             contribution::Entity::delete_by_id(id)
                 .exec(&*db)
@@ -588,7 +588,7 @@ pub fn admin_register() -> AdminRegistry {
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             contribution::admin_from_form(&data, Some(id))
                 .update(&*db)
@@ -600,7 +600,7 @@ pub fn admin_register() -> AdminRegistry {
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             contribution::admin_partial_update(&data, id)
                 .update(&*db)
@@ -955,7 +955,7 @@ pub fn admin_register() -> AdminRegistry {
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = blog::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
@@ -965,7 +965,7 @@ pub fn admin_register() -> AdminRegistry {
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             blog::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
         })
@@ -983,7 +983,7 @@ pub fn admin_register() -> AdminRegistry {
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             blog::admin_from_form(&data, Some(id))
                 .update(&*db)
@@ -995,7 +995,7 @@ pub fn admin_register() -> AdminRegistry {
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             blog::admin_partial_update(&data, id)
                 .update(&*db)
@@ -1402,7 +1402,7 @@ pub fn admin_register() -> AdminRegistry {
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = changelog_entry::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
@@ -1412,7 +1412,7 @@ pub fn admin_register() -> AdminRegistry {
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             changelog_entry::Entity::delete_by_id(id)
                 .exec(&*db)
@@ -1433,7 +1433,7 @@ pub fn admin_register() -> AdminRegistry {
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             changelog_entry::admin_from_form(&data, Some(id))
                 .update(&*db)
@@ -1445,7 +1445,7 @@ pub fn admin_register() -> AdminRegistry {
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             changelog_entry::admin_partial_update(&data, id)
                 .update(&*db)
@@ -1926,7 +1926,7 @@ pub fn admin_register() -> AdminRegistry {
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = roadmap_entry::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
@@ -1936,7 +1936,7 @@ pub fn admin_register() -> AdminRegistry {
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             roadmap_entry::Entity::delete_by_id(id)
                 .exec(&*db)
@@ -1957,7 +1957,7 @@ pub fn admin_register() -> AdminRegistry {
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             roadmap_entry::admin_from_form(&data, Some(id))
                 .update(&*db)
@@ -1969,7 +1969,7 @@ pub fn admin_register() -> AdminRegistry {
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             roadmap_entry::admin_partial_update(&data, id)
                 .update(&*db)
@@ -2530,7 +2530,7 @@ pub fn admin_register() -> AdminRegistry {
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = known_issue::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
@@ -2540,7 +2540,7 @@ pub fn admin_register() -> AdminRegistry {
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             known_issue::Entity::delete_by_id(id)
                 .exec(&*db)
@@ -2561,7 +2561,7 @@ pub fn admin_register() -> AdminRegistry {
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             known_issue::admin_from_form(&data, Some(id))
                 .update(&*db)
@@ -2573,7 +2573,7 @@ pub fn admin_register() -> AdminRegistry {
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             known_issue::admin_partial_update(&data, id)
                 .update(&*db)
@@ -2957,7 +2957,7 @@ pub fn admin_register() -> AdminRegistry {
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = demo_category::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
@@ -2967,7 +2967,7 @@ pub fn admin_register() -> AdminRegistry {
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             demo_category::Entity::delete_by_id(id)
                 .exec(&*db)
@@ -2988,7 +2988,7 @@ pub fn admin_register() -> AdminRegistry {
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             demo_category::admin_from_form(&data, Some(id))
                 .update(&*db)
@@ -3000,7 +3000,7 @@ pub fn admin_register() -> AdminRegistry {
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             demo_category::admin_partial_update(&data, id)
                 .update(&*db)
@@ -3143,7 +3143,7 @@ pub fn admin_register() -> AdminRegistry {
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = demo_page::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
@@ -3153,7 +3153,7 @@ pub fn admin_register() -> AdminRegistry {
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             demo_page::Entity::delete_by_id(id)
                 .exec(&*db)
@@ -3174,7 +3174,7 @@ pub fn admin_register() -> AdminRegistry {
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             demo_page::admin_from_form(&data, Some(id))
                 .update(&*db)
@@ -3186,7 +3186,7 @@ pub fn admin_register() -> AdminRegistry {
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             demo_page::admin_partial_update(&data, id)
                 .update(&*db)
@@ -3632,7 +3632,7 @@ pub fn admin_register() -> AdminRegistry {
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = demo_section::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
@@ -3642,7 +3642,7 @@ pub fn admin_register() -> AdminRegistry {
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             demo_section::Entity::delete_by_id(id)
                 .exec(&*db)
@@ -3663,7 +3663,7 @@ pub fn admin_register() -> AdminRegistry {
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             demo_section::admin_from_form(&data, Some(id))
                 .update(&*db)
@@ -3675,7 +3675,7 @@ pub fn admin_register() -> AdminRegistry {
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             demo_section::admin_partial_update(&data, id)
                 .update(&*db)
@@ -4036,7 +4036,7 @@ pub fn admin_register() -> AdminRegistry {
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = code_example::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
@@ -4046,7 +4046,7 @@ pub fn admin_register() -> AdminRegistry {
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             code_example::Entity::delete_by_id(id)
                 .exec(&*db)
@@ -4067,7 +4067,7 @@ pub fn admin_register() -> AdminRegistry {
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             code_example::admin_from_form(&data, Some(id))
                 .update(&*db)
@@ -4079,7 +4079,7 @@ pub fn admin_register() -> AdminRegistry {
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             code_example::admin_partial_update(&data, id)
                 .update(&*db)
@@ -4530,7 +4530,7 @@ pub fn admin_register() -> AdminRegistry {
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = page_doc_link::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
@@ -4540,7 +4540,7 @@ pub fn admin_register() -> AdminRegistry {
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             page_doc_link::Entity::delete_by_id(id)
                 .exec(&*db)
@@ -4561,7 +4561,7 @@ pub fn admin_register() -> AdminRegistry {
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             page_doc_link::admin_from_form(&data, Some(id))
                 .update(&*db)
@@ -4573,7 +4573,7 @@ pub fn admin_register() -> AdminRegistry {
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             page_doc_link::admin_partial_update(&data, id)
                 .update(&*db)
@@ -4990,7 +4990,7 @@ pub fn admin_register() -> AdminRegistry {
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = form_field::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
@@ -5000,7 +5000,7 @@ pub fn admin_register() -> AdminRegistry {
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             form_field::Entity::delete_by_id(id)
                 .exec(&*db)
@@ -5021,7 +5021,7 @@ pub fn admin_register() -> AdminRegistry {
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             form_field::admin_from_form(&data, Some(id))
                 .update(&*db)
@@ -5033,7 +5033,7 @@ pub fn admin_register() -> AdminRegistry {
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             form_field::admin_partial_update(&data, id)
                 .update(&*db)
@@ -5542,7 +5542,7 @@ pub fn admin_register() -> AdminRegistry {
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = doc_section::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
@@ -5552,7 +5552,7 @@ pub fn admin_register() -> AdminRegistry {
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             doc_section::Entity::delete_by_id(id)
                 .exec(&*db)
@@ -5573,7 +5573,7 @@ pub fn admin_register() -> AdminRegistry {
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             doc_section::admin_from_form(&data, Some(id))
                 .update(&*db)
@@ -5585,7 +5585,7 @@ pub fn admin_register() -> AdminRegistry {
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             doc_section::admin_partial_update(&data, id)
                 .update(&*db)
@@ -5844,7 +5844,7 @@ pub fn admin_register() -> AdminRegistry {
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = doc_page::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
@@ -5854,7 +5854,7 @@ pub fn admin_register() -> AdminRegistry {
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             doc_page::Entity::delete_by_id(id)
                 .exec(&*db)
@@ -5875,7 +5875,7 @@ pub fn admin_register() -> AdminRegistry {
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             doc_page::admin_from_form(&data, Some(id))
                 .update(&*db)
@@ -5887,7 +5887,7 @@ pub fn admin_register() -> AdminRegistry {
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             doc_page::admin_partial_update(&data, id)
                 .update(&*db)
@@ -6340,7 +6340,7 @@ pub fn admin_register() -> AdminRegistry {
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = doc_block::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
@@ -6350,7 +6350,7 @@ pub fn admin_register() -> AdminRegistry {
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             doc_block::Entity::delete_by_id(id)
                 .exec(&*db)
@@ -6371,7 +6371,7 @@ pub fn admin_register() -> AdminRegistry {
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             doc_block::admin_from_form(&data, Some(id))
                 .update(&*db)
@@ -6383,7 +6383,7 @@ pub fn admin_register() -> AdminRegistry {
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             doc_block::admin_partial_update(&data, id)
                 .update(&*db)
@@ -6764,7 +6764,7 @@ pub fn admin_register() -> AdminRegistry {
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = site_config::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
@@ -6774,7 +6774,7 @@ pub fn admin_register() -> AdminRegistry {
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             site_config::Entity::delete_by_id(id)
                 .exec(&*db)
@@ -6795,7 +6795,7 @@ pub fn admin_register() -> AdminRegistry {
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             site_config::admin_from_form(&data, Some(id))
                 .update(&*db)
@@ -6807,7 +6807,7 @@ pub fn admin_register() -> AdminRegistry {
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             site_config::admin_partial_update(&data, id)
                 .update(&*db)
@@ -6958,7 +6958,7 @@ pub fn admin_register() -> AdminRegistry {
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = cour::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
@@ -6968,7 +6968,7 @@ pub fn admin_register() -> AdminRegistry {
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             cour::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
         })
@@ -6986,7 +6986,7 @@ pub fn admin_register() -> AdminRegistry {
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             cour::admin_from_form(&data, Some(id))
                 .update(&*db)
@@ -6998,7 +6998,7 @@ pub fn admin_register() -> AdminRegistry {
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             cour::admin_partial_update(&data, id)
                 .update(&*db)
@@ -7492,7 +7492,7 @@ pub fn admin_register() -> AdminRegistry {
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = chapitre::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
@@ -7502,7 +7502,7 @@ pub fn admin_register() -> AdminRegistry {
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             chapitre::Entity::delete_by_id(id)
                 .exec(&*db)
@@ -7523,7 +7523,7 @@ pub fn admin_register() -> AdminRegistry {
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             chapitre::admin_from_form(&data, Some(id))
                 .update(&*db)
@@ -7535,7 +7535,7 @@ pub fn admin_register() -> AdminRegistry {
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             chapitre::admin_partial_update(&data, id)
                 .update(&*db)
@@ -7879,7 +7879,7 @@ pub fn admin_register() -> AdminRegistry {
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = cour_block::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
@@ -7889,7 +7889,7 @@ pub fn admin_register() -> AdminRegistry {
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             cour_block::Entity::delete_by_id(id)
                 .exec(&*db)
@@ -7910,7 +7910,7 @@ pub fn admin_register() -> AdminRegistry {
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             cour_block::admin_from_form(&data, Some(id))
                 .update(&*db)
@@ -7922,7 +7922,7 @@ pub fn admin_register() -> AdminRegistry {
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             cour_block::admin_partial_update(&data, id)
                 .update(&*db)
@@ -8265,7 +8265,7 @@ pub fn admin_register() -> AdminRegistry {
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = runique_release::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
@@ -8275,7 +8275,7 @@ pub fn admin_register() -> AdminRegistry {
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             runique_release::Entity::delete_by_id(id)
                 .exec(&*db)
@@ -8296,7 +8296,7 @@ pub fn admin_register() -> AdminRegistry {
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             runique_release::admin_from_form(&data, Some(id))
                 .update(&*db)
@@ -8308,7 +8308,7 @@ pub fn admin_register() -> AdminRegistry {
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             runique_release::admin_partial_update(&data, id)
                 .update(&*db)

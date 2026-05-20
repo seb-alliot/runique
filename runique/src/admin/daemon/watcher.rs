@@ -93,18 +93,6 @@ fn is_write_event(event: &Event) -> bool {
     matches!(event.kind, EventKind::Modify(_) | EventKind::Create(_))
 }
 
-/// Returns true if the project's Cargo.toml enables the `big-pk` feature on runique.
-fn detect_big_pk(admin_path: &Path) -> bool {
-    let cargo_path = admin_path
-        .parent()
-        .and_then(|p| p.parent())
-        .map(|root| root.join("Cargo.toml"));
-    cargo_path
-        .and_then(|p| fs::read_to_string(p).ok())
-        .map(|content| content.contains("\"big-pk\"") || content.contains("'big-pk'"))
-        .unwrap_or(false)
-}
-
 /// Parse + generate — display the result
 fn run_generation(admin_path: &Path) {
     let source = match fs::read_to_string(admin_path) {
@@ -115,8 +103,7 @@ fn run_generation(admin_path: &Path) {
         }
     };
 
-    let big_pk = detect_big_pk(admin_path);
-    match parse_admin_file(&source, big_pk) {
+    match parse_admin_file(&source) {
         Err(e) => {
             eprintln!(" {}", tf("daemon.parse_error", &[&e.to_string()]));
         }
