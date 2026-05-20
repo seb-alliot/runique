@@ -363,7 +363,6 @@ async fn seed_section_pages(
             insert_page_with_blocks(section_id, &slug, lang, &content, order, db).await;
             order += 1;
         } else if path.is_dir() {
-            // Sous-page : dossier contenant un .md du même nom
             let sub_slug = path
                 .file_name()
                 .and_then(|n| n.to_str())
@@ -374,26 +373,56 @@ async fn seed_section_pages(
                 continue;
             }
 
-            // Cherche le .md dans le sous-dossier
-            let md_file = fs::read_dir(&path)
-                .ok()
-                .and_then(|mut d| {
-                    d.find(|e| {
-                        e.as_ref()
-                            .map(|e| e.path().extension().is_some_and(|x| x == "md"))
-                            .unwrap_or(false)
-                    })
-                })
-                .and_then(|e| e.ok());
+            let mut sub_entries: Vec<_> = match fs::read_dir(&path) {
+                Ok(e) => e.filter_map(|e| e.ok()).collect(),
+                Err(_) => continue,
+            };
+            sub_entries.sort_by_key(|e| e.file_name());
 
-            if let Some(md) = md_file {
-                let content = match fs::read_to_string(md.path()) {
-                    Ok(c) => strip_github_anchors(&c),
-                    Err(_) => continue,
-                };
-                let page_slug = format!("{section_slug}-{sub_slug}");
-                insert_page_with_blocks(section_id, &page_slug, lang, &content, order, db).await;
-                order += 1;
+            for sub_entry in sub_entries {
+                let sub_path = sub_entry.path();
+
+                if sub_path.is_file() && sub_path.extension().is_some_and(|e| e == "md") {
+                    // .md directement dans le sous-dossier
+                    let content = match fs::read_to_string(&sub_path) {
+                        Ok(c) => strip_github_anchors(&c),
+                        Err(_) => continue,
+                    };
+                    let page_slug = format!("{section_slug}-{sub_slug}");
+                    insert_page_with_blocks(section_id, &page_slug, lang, &content, order, db)
+                        .await;
+                    order += 1;
+                } else if sub_path.is_dir() {
+                    // Niveau supplémentaire : dossier dans le sous-dossier
+                    let leaf_slug = sub_path
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("")
+                        .to_string();
+                    if leaf_slug.is_empty() {
+                        continue;
+                    }
+                    let md_file = fs::read_dir(&sub_path)
+                        .ok()
+                        .and_then(|mut d| {
+                            d.find(|e| {
+                                e.as_ref()
+                                    .map(|e| e.path().extension().is_some_and(|x| x == "md"))
+                                    .unwrap_or(false)
+                            })
+                        })
+                        .and_then(|e| e.ok());
+                    if let Some(md) = md_file {
+                        let content = match fs::read_to_string(md.path()) {
+                            Ok(c) => strip_github_anchors(&c),
+                            Err(_) => continue,
+                        };
+                        let page_slug = format!("{section_slug}-{sub_slug}-{leaf_slug}");
+                        insert_page_with_blocks(section_id, &page_slug, lang, &content, order, db)
+                            .await;
+                        order += 1;
+                    }
+                }
             }
         }
     }
