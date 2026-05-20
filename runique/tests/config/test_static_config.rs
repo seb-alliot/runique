@@ -36,8 +36,13 @@ fn test_static_config_default_staticfiles_dirs() {
 #[serial]
 fn test_static_config_default_media_root() {
     del_env("MEDIA_ROOT");
+    del_env("BASE_DIR");
     let cfg = StaticConfig::from_env();
-    assert_eq!(cfg.media_root, "media");
+    assert!(
+        cfg.media_root.ends_with("/media") || cfg.media_root.ends_with("\\media"),
+        "expected media_root to end with /media or \\media, got: {}",
+        cfg.media_root
+    );
 }
 
 #[test]

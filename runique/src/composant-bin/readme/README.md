@@ -64,7 +64,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-sea-orm-migration = { version = "2.0.0-rc.18", features = [
+sea-orm-migration = { version = "2.0.0-rc.38", features = [
     "runtime-tokio-rustls",
     "sqlx-postgres",
     "sqlx-sqlite",
@@ -73,14 +73,14 @@ tokio = { version = "1", features = ["full"] }
 async-trait = "0.1"
 ```
 
-> **Important**: Use version `2.0.0-rc.18` to match with Runique!
+> **Important**: Use version `2.0.0-rc.38` to match with Runique!
 
 <details>
 <summary>Customize features based on your database</summary>
 
 **For PostgreSQL only**:
 ```toml
-sea-orm-migration = { version = "2.0.0-rc.18", features = [
+sea-orm-migration = { version = "2.0.0-rc.38", features = [
     "runtime-tokio-rustls",
     "sqlx-postgres"
 ] }
@@ -88,7 +88,7 @@ sea-orm-migration = { version = "2.0.0-rc.18", features = [
 
 **For SQLite only**:
 ```toml
-sea-orm-migration = { version = "2.0.0-rc.18", features = [
+sea-orm-migration = { version = "2.0.0-rc.38", features = [
     "runtime-tokio-rustls",
     "sqlx-sqlite"
 ] }
@@ -96,7 +96,7 @@ sea-orm-migration = { version = "2.0.0-rc.18", features = [
 
 **For MySQL only**:
 ```toml
-sea-orm-migration = { version = "2.0.0-rc.18", features = [
+sea-orm-migration = { version = "2.0.0-rc.38", features = [
     "runtime-tokio-rustls",
     "sqlx-mysql"
 ] }
@@ -300,7 +300,7 @@ cargo install sea-orm-cli
 
 ### Error: "version mismatch"
 
-Check that `migration/Cargo.toml` is using `sea-orm-migration = "2.0.0-rc.18"`
+Check that `migration/Cargo.toml` is using `sea-orm-migration = "2.0.0-rc.38"`
 
 ### Error: "no such table: users"
 

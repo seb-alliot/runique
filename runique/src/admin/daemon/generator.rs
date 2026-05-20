@@ -209,14 +209,15 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     let wrapper = format!("{}AdminFormDynWrapper", pascal_case(&module));
     // ID conversion code from String according to id_type
     let id_parse_code = match r.id_type.as_str() {
-        "I64" => {
-            "let id = id.parse::<i64>().map_err(|_| DbErr::Custom(\"invalid id\".to_string().to_string()))?"
+        "I32" => {
+            "let id = id.parse::<i32>().map_err(|_| DbErr::Custom(\"invalid id\".to_string()))?"
         }
         "Uuid" => {
-            "let id = uuid::Uuid::parse_str(&id).map_err(|_| DbErr::Custom(\"invalid id\".to_string().to_string()))?"
+            "let id = uuid::Uuid::parse_str(&id).map_err(|_| DbErr::Custom(\"invalid id\".to_string()))?"
         }
         _ => {
-            "let id = id.parse::<i32>().map_err(|_| DbErr::Custom(\"invalid id\".to_string().to_string()))?"
+            // default: i64 (matches pk: id => Pk)
+            "let id = id.parse::<i64>().map_err(|_| DbErr::Custom(\"invalid id\".to_string()))?"
         }
     };
 

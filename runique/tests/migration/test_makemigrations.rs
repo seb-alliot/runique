@@ -1,6 +1,7 @@
 //! Tests — migration/makemigrations.rs
 //! Couvre : seaorm_alter_module_name, seaorm_alter_file_path,
-//!          update_migration_lib (création + mise à jour), parse_create_file
+//!          update_migration_lib (création + mise à jour), parse_create_file,
+//!          collect_destructive_messages
 
 use runique::utils::cli::makemigration::{
     seaorm_alter_file_path, seaorm_alter_module_name, update_migration_lib,
@@ -318,4 +319,376 @@ fn test_scan_entities_melange_valide_invalide() {
     // Selon l'implémentation, l'un ou l'autre est acceptable.
     // On vérifie juste que ça ne panique pas.
     let _ = result;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// collect_destructive_messages
+// ═══════════════════════════════════════════════════════════════
+
+use runique::migration::utils::types::{Changes, ParsedColumn, ParsedFk};
+use runique::utils::cli::makemigration::collect_destructive_messages;
+
+fn col(name: &str, col_type: &str, nullable: bool) -> ParsedColumn {
+    ParsedColumn {
+        name: name.to_string(),
+        col_type: col_type.to_string(),
+        nullable,
+        ..Default::default()
+    }
+}
+
+fn empty_changes(table: &str) -> Changes {
+    Changes {
+        table_name: table.to_string(),
+        added_columns: vec![],
+        dropped_columns: vec![],
+        modified_columns: vec![],
+        added_fks: vec![],
+        dropped_fks: vec![],
+        added_indexes: vec![],
+        dropped_indexes: vec![],
+        is_new_table: false,
+        enum_renames: vec![],
+        enum_value_adds: vec![],
+        enum_value_drops: vec![],
+    }
+}
+
+#[test]
+fn no_changes_returns_empty() {
+    let changes = vec![empty_changes("users")];
+    assert!(collect_destructive_messages(&changes).is_empty());
+}
+
+#[test]
+fn dropped_column_detected() {
+    let mut c = empty_changes("users");
+    c.dropped_columns.push(col("email", "text", true));
+    let msgs = collect_destructive_messages(&[c]);
+    assert_eq!(msgs.len(), 1);
+    assert!(msgs[0].contains("users.email"));
+    assert!(msgs[0].contains("DROP COLUMN"));
+}
+
+#[test]
+fn type_change_detected() {
+    let mut c = empty_changes("posts");
+    c.modified_columns
+        .push((col("views", "int", false), col("views", "bigint", false)));
+    let msgs = collect_destructive_messages(&[c]);
+    assert_eq!(msgs.len(), 1);
+    assert!(msgs[0].contains("posts.views"));
+    assert!(msgs[0].contains("int"));
+    assert!(msgs[0].contains("bigint"));
+}
+
+#[test]
+fn nullable_to_required_detected() {
+    let mut c = empty_changes("orders");
+    c.modified_columns
+        .push((col("note", "text", true), col("note", "text", false)));
+    let msgs = collect_destructive_messages(&[c]);
+    assert_eq!(msgs.len(), 1);
+    assert!(msgs[0].contains("orders.note"));
+    assert!(msgs[0].contains("not_null"));
+}
+
+#[test]
+fn same_type_nullable_to_nullable_not_destructive() {
+    let mut c = empty_changes("items");
+    c.modified_columns
+        .push((col("desc", "text", true), col("desc", "text", true)));
+    assert!(collect_destructive_messages(&[c]).is_empty());
+}
+
+#[test]
+fn multiple_tables_all_collected() {
+    let mut c1 = empty_changes("users");
+    c1.dropped_columns.push(col("phone", "text", true));
+
+    let mut c2 = empty_changes("orders");
+    c2.modified_columns
+        .push((col("amount", "int", false), col("amount", "bigint", false)));
+
+    let msgs = collect_destructive_messages(&[c1, c2]);
+    assert_eq!(msgs.len(), 2);
+    assert!(msgs.iter().any(|m| m.contains("users.phone")));
+    assert!(msgs.iter().any(|m| m.contains("orders.amount")));
+}
+
+// ── FK tests ──────────────────────────────────────────────────────────────────
+
+fn fk(from: &str, to_table: &str, on_delete: &str) -> ParsedFk {
+    ParsedFk {
+        from_column: from.to_string(),
+        to_table: to_table.to_string(),
+        to_column: "id".to_string(),
+        on_delete: on_delete.to_string(),
+        on_update: "NO ACTION".to_string(),
+    }
+}
+
+#[test]
+fn dropped_fk_detected() {
+    let mut c = empty_changes("comments");
+    c.dropped_fks.push(fk("post_id", "posts", "RESTRICT"));
+    let msgs = collect_destructive_messages(&[c]);
+    assert_eq!(msgs.len(), 1);
+    assert!(msgs[0].contains("comments.post_id"));
+    assert!(msgs[0].contains("DROP FOREIGN KEY"));
+    assert!(msgs[0].contains("posts"));
+}
+
+#[test]
+fn added_fk_cascade_detected() {
+    let mut c = empty_changes("orders");
+    c.added_fks.push(fk("user_id", "users", "CASCADE"));
+    let msgs = collect_destructive_messages(&[c]);
+    assert_eq!(msgs.len(), 1);
+    assert!(msgs[0].contains("orders.user_id"));
+    assert!(msgs[0].contains("CASCADE"));
+}
+
+#[test]
+fn added_fk_cascade_case_insensitive() {
+    let mut c = empty_changes("orders");
+    c.added_fks.push(fk("user_id", "users", "cascade"));
+    let msgs = collect_destructive_messages(&[c]);
+    assert_eq!(msgs.len(), 1);
+}
+
+#[test]
+fn added_fk_restrict_not_destructive() {
+    let mut c = empty_changes("orders");
+    c.added_fks.push(fk("user_id", "users", "RESTRICT"));
+    assert!(collect_destructive_messages(&[c]).is_empty());
+}
+
+#[test]
+fn added_fk_set_null_not_destructive() {
+    let mut c = empty_changes("orders");
+    c.added_fks.push(fk("user_id", "users", "SET NULL"));
+    assert!(collect_destructive_messages(&[c]).is_empty());
+}
+
+#[test]
+fn added_fk_no_action_not_destructive() {
+    let mut c = empty_changes("items");
+    c.added_fks
+        .push(fk("category_id", "categories", "NO ACTION"));
+    assert!(collect_destructive_messages(&[c]).is_empty());
+}
+
+// ═══════════════════════════════════════════════════════════════
+// seaorm_extend_module_name / seaorm_extend_file_path
+// ═══════════════════════════════════════════════════════════════
+
+use runique::utils::cli::makemigration::{seaorm_extend_file_path, seaorm_extend_module_name};
+
+#[test]
+fn extend_module_name_format() {
+    let name = seaorm_extend_module_name("20260101_000000", "eihwaz_users");
+    assert_eq!(name, "m20260101_000000_extend_eihwaz_users_table");
+}
+
+#[test]
+fn extend_module_name_tables_differentes() {
+    assert_eq!(
+        seaorm_extend_module_name("20260101_000000", "posts"),
+        "m20260101_000000_extend_posts_table"
+    );
+}
+
+#[test]
+fn extend_file_path_format() {
+    let path = seaorm_extend_file_path("/migrations", "20260101_000000", "eihwaz_users");
+    assert_eq!(
+        path,
+        "/migrations/m20260101_000000_extend_eihwaz_users_table.rs"
+    );
+}
+
+#[test]
+fn extend_file_path_termine_par_rs() {
+    let path = seaorm_extend_file_path("/some/path", "20260228_120000", "orders");
+    assert!(path.ends_with(".rs"));
+    assert!(path.contains("orders"));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// merge_extend_schemas
+// ═══════════════════════════════════════════════════════════════
+
+use runique::migration::utils::types::ParsedSchema;
+use runique::utils::cli::makemigration::merge_extend_schemas;
+
+fn extend_schema(table: &str, col_names: &[&str]) -> ParsedSchema {
+    ParsedSchema {
+        table_name: table.to_string(),
+        primary_key: None,
+        columns: col_names
+            .iter()
+            .map(|n| ParsedColumn {
+                name: n.to_string(),
+                col_type: "text".to_string(),
+                ..Default::default()
+            })
+            .collect(),
+        foreign_keys: vec![],
+        indexes: vec![],
+    }
+}
+
+#[test]
+fn merge_meme_table_concatene_colonnes() {
+    let s1 = extend_schema("eihwaz_users", &["bio"]);
+    let s2 = extend_schema("eihwaz_users", &["telephone"]);
+    let result = merge_extend_schemas(vec![s1, s2]);
+    assert_eq!(result.len(), 1);
+    assert_eq!(result[0].table_name, "eihwaz_users");
+    assert_eq!(result[0].columns.len(), 2);
+    let names: Vec<&str> = result[0].columns.iter().map(|c| c.name.as_str()).collect();
+    assert!(names.contains(&"bio"));
+    assert!(names.contains(&"telephone"));
+}
+
+#[test]
+fn merge_tables_differentes_reste_separees() {
+    let s1 = extend_schema("eihwaz_users", &["bio"]);
+    let s2 = extend_schema("orders", &["note"]);
+    let result = merge_extend_schemas(vec![s1, s2]);
+    assert_eq!(result.len(), 2);
+}
+
+#[test]
+fn merge_ordre_premiere_occurrence_preserve() {
+    let s1 = extend_schema("table_a", &["col1"]);
+    let s2 = extend_schema("table_b", &["col2"]);
+    let s3 = extend_schema("table_a", &["col3"]);
+    let result = merge_extend_schemas(vec![s1, s2, s3]);
+    assert_eq!(result.len(), 2);
+    assert_eq!(result[0].table_name, "table_a");
+    assert_eq!(result[1].table_name, "table_b");
+    assert_eq!(result[0].columns.len(), 2);
+}
+
+#[test]
+fn merge_vide_retourne_vide() {
+    let result = merge_extend_schemas(vec![]);
+    assert!(result.is_empty());
+}
+
+// ═══════════════════════════════════════════════════════════════
+// scan_extend_blocks
+// ═══════════════════════════════════════════════════════════════
+
+use runique::utils::cli::makemigration::scan_extend_blocks;
+
+#[test]
+fn scan_extend_dir_vide_retourne_vide() {
+    let dir = temp_dir("scan_ext_empty");
+    let result = scan_extend_blocks(dir.to_str().unwrap());
+    assert!(result.is_ok());
+    assert!(result.unwrap().is_empty());
+}
+
+#[test]
+fn scan_extend_dir_inexistant_retourne_err() {
+    let result = scan_extend_blocks("/chemin/qui/nexiste/pas");
+    assert!(result.is_err());
+}
+
+#[test]
+fn scan_extend_detecte_un_bloc() {
+    let dir = temp_dir("scan_ext_one");
+    let src = r#"
+        extend! {
+            table: "eihwaz_users",
+            fields: { bio: textarea, }
+        }
+    "#;
+    fs::write(dir.join("user_ext.rs"), src).unwrap();
+    let result = scan_extend_blocks(dir.to_str().unwrap()).unwrap();
+    assert_eq!(result.len(), 1);
+    assert_eq!(result[0].table_name, "eihwaz_users");
+}
+
+#[test]
+fn scan_extend_ignore_fichier_sans_extend() {
+    let dir = temp_dir("scan_ext_no_macro");
+    fs::write(dir.join("user.rs"), "pub struct User { pub id: i32 }").unwrap();
+    let result = scan_extend_blocks(dir.to_str().unwrap()).unwrap();
+    assert!(result.is_empty());
+}
+
+#[test]
+fn scan_extend_ignore_mod_rs() {
+    let dir = temp_dir("scan_ext_mod");
+    let src = r#"extend! { table: "users", fields: { x: text, } }"#;
+    fs::write(dir.join("mod.rs"), src).unwrap();
+    let result = scan_extend_blocks(dir.to_str().unwrap()).unwrap();
+    assert!(result.is_empty());
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ensure_admin_migration_positioned
+// ═══════════════════════════════════════════════════════════════
+
+use runique::utils::cli::makemigration::ensure_admin_migration_positioned;
+use std::sync::Mutex;
+static ENV_LOCK: Mutex<()> = Mutex::new(());
+
+fn lib_with_vec(modules: &[&str]) -> String {
+    let mods: String = modules.iter().map(|m| format!("mod {};\n", m)).collect();
+    let boxes: String = modules
+        .iter()
+        .map(|m| format!("            Box::new({}::Migration),\n", m))
+        .collect();
+    format!(
+        "use sea_orm_migration::prelude::*;\n{}\npub struct Migrator;\n\
+         #[async_trait::async_trait]\nimpl MigratorTrait for Migrator {{\n\
+         fn migrations() -> Vec<Box<dyn MigrationTrait>> {{\n        vec![\n{}        ]\n    }}\n}}\n",
+        mods, boxes
+    )
+}
+
+#[test]
+fn ensure_admin_no_lib_retourne_ok() {
+    let dir = temp_dir("ensure_no_lib");
+    let result = ensure_admin_migration_positioned(dir.to_str().unwrap());
+    assert!(result.is_ok());
+}
+
+#[test]
+fn ensure_admin_builtin_insere_trois_migrations_framework() {
+    let _lock = ENV_LOCK.lock().unwrap();
+    unsafe { std::env::remove_var("RUNIQUE_USER_TABLE") };
+    let dir = temp_dir("ensure_builtin");
+    fs::write(
+        dir.join("lib.rs"),
+        lib_with_vec(&["m20260101_create_menus_table"]),
+    )
+    .unwrap();
+    ensure_admin_migration_positioned(dir.to_str().unwrap()).unwrap();
+    let content = fs::read_to_string(dir.join("lib.rs")).unwrap();
+    assert!(content.contains("EihwazUsersMigration"));
+    assert!(content.contains("EihwazSessionsMigration"));
+    assert!(content.contains("AdminTableMigration"));
+}
+
+#[test]
+fn ensure_admin_builtin_idempotent() {
+    let _lock = ENV_LOCK.lock().unwrap();
+    unsafe { std::env::remove_var("RUNIQUE_USER_TABLE") };
+    let dir = temp_dir("ensure_idempotent");
+    fs::write(
+        dir.join("lib.rs"),
+        lib_with_vec(&["m20260101_create_menus_table"]),
+    )
+    .unwrap();
+    ensure_admin_migration_positioned(dir.to_str().unwrap()).unwrap();
+    ensure_admin_migration_positioned(dir.to_str().unwrap()).unwrap();
+    let content = fs::read_to_string(dir.join("lib.rs")).unwrap();
+    assert_eq!(content.matches("EihwazUsersMigration").count(), 1);
+    assert_eq!(content.matches("AdminTableMigration").count(), 1);
 }
