@@ -423,7 +423,10 @@ impl Forms {
 
         if let Some(cap) = CONSTRAINT_REGEX.captures(err_msg).ok()? {
             let constraint = cap.get(1)?.as_str();
-            return Self::parse_constraint_name(constraint);
+            // Only return early if parse succeeds; _pkey/_fkey fall through to other regexes.
+            if let Some(field) = Self::parse_constraint_name(constraint) {
+                return Some(field);
+            }
         }
 
         if let Some(cap) = KEY_REGEX.captures(err_msg).ok()? {
@@ -442,18 +445,18 @@ impl Forms {
     }
 
     fn parse_constraint_name(constraint: &str) -> Option<String> {
-        // PK constraints (ending in _pkey) are not field-level violations
-        if constraint.ends_with("_pkey") {
+        // PK and FK constraints are not field-level unique violations.
+        if constraint.ends_with("_pkey") || constraint.ends_with("_fkey") {
             return None;
         }
-        // FK constraints (_fkey) are not field-level unique violations
-        if constraint.ends_with("_fkey") {
-            return None;
-        }
+        // PostgreSQL convention: tablename_fieldname_key
+        // The field is the second-to-last segment (parts[-2] before "_key").
+        // Taking parts[1..len-1] incorrectly includes the table name when it contains underscores.
+        // Taking just parts[len-2] gives the last field segment — correct for single-word fields,
+        // and a best-effort fallback for multi-word ones (handled upstream by KEY_REGEX / FAILED_REGEX).
         let parts: Vec<&str> = constraint.split('_').collect();
         if parts.len() >= 3 {
-            let field_parts = &parts[1..parts.len().saturating_sub(1)];
-            return Some(field_parts.join("_"));
+            return Some(parts[parts.len() - 2].to_string());
         }
         None
     }
