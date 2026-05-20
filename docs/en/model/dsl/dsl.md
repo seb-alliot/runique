@@ -81,8 +81,31 @@ pk: field_name => type
 
 ```toml
 [dependencies]
-runique = { version = "2.1.2", features = ["big-pk"] }
+runique = { version = "2.1.4", features = ["big-pk"] }
 ```
+
+Use `big-pk` when you expect more than ~2 billion rows in a table, or when you need to interoperate with an existing schema that uses `BIGINT` primary keys.
+
+**Constraints when enabling `big-pk`:**
+
+- Every FK column pointing to a `Pk` primary key must also be declared `bigint`, otherwise you get a type mismatch at compile time:
+
+```rust
+derive_form! {
+    Order {
+        fields: {
+            user_id: bigint [required]   // must match users.id which is Pk (i64)
+        }
+    }
+}
+```
+
+- The admin daemon generates `parse::<Pk>()` by default in `admin.rs`, so the generated code automatically follows the feature — no manual adjustment needed.
+
+- Seed files and any handwritten code that assigns `entity.id` (a `Pk`) to an `i32` FK field must use `.try_into().unwrap()` or change the FK column to `bigint`.
+
+> **`big-pk` must be decided before the first migration.**
+> Once migrations have been applied, switching between `big-pk` and the default (`i32`) is a breaking change: the database columns are already `INT` or `BIGINT`, and changing the feature flag alone only changes the Rust type — the schema stays untouched. Switching after the fact requires a manual migration to `ALTER` every PK and FK column, and risks data truncation if existing IDs exceed `i32::MAX`. Pick one mode at project start and keep it.
 
 ---
 

@@ -6,6 +6,14 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ---
 
+## [2.1.4] - 2026-05-20
+
+### Corrigé — `runique` (daemon admin)
+
+* **Le générateur admin émettait `i32`/`i64` hardcodés pour le parsing de PK :** l'approche `detect_big_pk` lisait le `Cargo.toml` du projet pour déterminer le type, mais échouait lors de `cargo clippy --all-features` sur le workspace (l'activation globale des features rendait `Pk = i64` même pour les projets sans `big-pk` dans leur propre `Cargo.toml`). Le générateur émet désormais `parse::<Pk>()` par défaut, qui se résout au bon type à la compilation via l'alias `Pk`. Les surcharges explicites `id_type: I32 | I64 | Uuid` conservent les types concrets.
+
+---
+
 ## [2.1.3] - 2026-05-20
 
 ### Corrigé — `runique` (uploads de fichiers)

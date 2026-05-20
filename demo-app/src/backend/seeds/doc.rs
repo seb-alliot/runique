@@ -226,7 +226,7 @@ async fn insert_page_with_blocks(
     let blocks = parse_blocks(content);
     for (i, (heading, block_content, block_type)) in blocks.into_iter().enumerate() {
         let block = doc_block::ActiveModel {
-            page_id: Set(page.id),
+            page_id: Set(page.id.try_into().unwrap()),
             heading: Set(heading),
             content: Set(block_content),
             block_type: Set(block_type
@@ -326,7 +326,7 @@ async fn seed_language(lang: &str, lang_path: &Path, db: &DatabaseConnection) {
 
         match section.insert(db).await {
             Ok(s) => {
-                seed_section_pages(&section_slug, lang, s.id, &path, db).await;
+                seed_section_pages(&section_slug, lang, s.id.try_into().unwrap(), &path, db).await;
             }
             Err(e) => {
                 tracing::warn!("doc_seed: erreur section {section_slug}: {e}");
