@@ -6,6 +6,14 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ---
 
+## [2.1.5] - 2026-05-20
+
+### Corrigé — `runique` (formulaires)
+
+* **`parse_constraint_name` extrayait des segments du nom de table comme noms de champ pour les tables multi-mots :** pour une table `changelog_entry`, la contrainte de clé primaire `changelog_entry_pkey` était découpée en `["changelog", "entry", "pkey"]` et la partie centrale `"entry"` était retournée comme nom de champ, produisant une erreur "La valeur du champ 'entry' est déjà utilisée" à chaque INSERT. Les contraintes se terminant par `_pkey` ou `_fkey` retournent désormais `None` immédiatement, laissant les violations de clé primaire et étrangère tomber dans le message d'erreur générique.
+
+---
+
 ## [2.1.4] - 2026-05-20
 
 ### Corrigé — `runique` (daemon admin)

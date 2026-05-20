@@ -442,6 +442,14 @@ impl Forms {
     }
 
     fn parse_constraint_name(constraint: &str) -> Option<String> {
+        // PK constraints (ending in _pkey) are not field-level violations
+        if constraint.ends_with("_pkey") {
+            return None;
+        }
+        // FK constraints (_fkey) are not field-level unique violations
+        if constraint.ends_with("_fkey") {
+            return None;
+        }
         let parts: Vec<&str> = constraint.split('_').collect();
         if parts.len() >= 3 {
             let field_parts = &parts[1..parts.len().saturating_sub(1)];
