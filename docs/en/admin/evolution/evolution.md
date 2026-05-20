@@ -4,52 +4,46 @@ Features planned for future versions of the Runique admin.
 
 ---
 
-## Granular permissions per CRUD operation
+## Admin inlines
 
-Currently permissions apply uniformly to all operations.
-The goal is to allow:
+Allow editing related models directly within the parent form, similar to Django inlines:
 
 ```rust
 admin! {
-    users: users::Model => UserForm {
-        title: "Users",
-        permissions: {
-            list:   ["staff", "admin"],
-            create: ["admin"],
-            edit:   ["admin"],
-            delete: ["admin"],
-        }
+    order {
+        model: entities::order::Entity,
+        inline: [
+            ["lines", "crate::entities::order_line", "order_id"],
+        ],
     }
 }
 ```
 
+The inline would display an editable table of related entries (add, remove, update) within the parent resource's create/edit page.
+
 ---
 
-## Filters and search on the list view
+## `view!{}` — public CRUD router with overridable templates
 
-Adding declarative filters on the `list` view:
+A routing macro that merges route declaration and overridable default templates, analogous to Django's generic views (`ListView`, `DetailView`, `CreateView`…).
 
 ```rust
-admin! {
-    users: users::Model => UserForm {
-        title: "Users",
-        filters: ["username", "is_active"],
-        search: ["username", "email"],
+view! {
+    Article {
+        model: entities::article::Entity,
+        prefix: "/articles",
+        templates: {
+            list:   "articles/list.html",    // optional override
+            detail: "articles/detail.html",
+            create: "articles/create.html",
+        },
+        page_size: 10,
+        login_required: true,
     }
 }
 ```
 
----
-
-## Relations and computed fields
-
-SeaORM relation support in detail/edit views (display of related entities).
-
----
-
-## Improved daemon error feedback
-
-Better feedback during generation: Rust compilation errors exposed directly in the terminal with context.
+Generated routes: `GET /articles` (paginated list), `GET /articles/<id>` (detail), `GET/POST /articles/new` (create), `GET/POST /articles/<id>/edit`, `POST /articles/<id>/delete`. Default templates are provided by the framework and overridable block by block, exactly like the admin.
 
 ## See also
 

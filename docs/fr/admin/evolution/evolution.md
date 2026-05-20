@@ -4,52 +4,46 @@ Fonctionnalités envisagées pour les versions futures de l'admin Runique.
 
 ---
 
-## Permissions granulaires par opération CRUD
+## Inlines admin
 
-Actuellement les permissions s'appliquent uniformément à toutes les opérations.
-L'objectif est de permettre :
+Permettre d'éditer des modèles liés directement dans le formulaire parent, à la manière des inlines Django :
 
 ```rust
 admin! {
-    users: users::Model => UserForm {
-        title: "Utilisateurs",
-        permissions: {
-            list:   ["staff", "admin"],
-            create: ["admin"],
-            edit:   ["admin"],
-            delete: ["admin"],
-        }
+    commande {
+        model: entities::commande::Entity,
+        inline: [
+            ["lignes", "crate::entities::commande_ligne", "commande_id"],
+        ],
     }
 }
 ```
 
+L'inline afficherait un tableau éditable des entrées liées (ajout, suppression, modification) dans la page create/edit de la ressource parente.
+
 ---
 
-## Filtres et recherche dans la liste
+## `view!{}` — router CRUD public avec templates surchargeables
 
-Ajout de filtres déclaratifs sur la vue `list` :
+Macro de routage qui fusionne déclaration de routes et templates par défaut overridables, analogue aux vues génériques Django (`ListView`, `DetailView`, `CreateView`…).
 
 ```rust
-admin! {
-    users: users::Model => UserForm {
-        title: "Utilisateurs",
-        filters: ["username", "is_active"],
-        search: ["username", "email"],
+view! {
+    Article {
+        model: entities::article::Entity,
+        prefix: "/articles",
+        templates: {
+            list:   "articles/list.html",    // surcharge optionnelle
+            detail: "articles/detail.html",
+            create: "articles/create.html",
+        },
+        page_size: 10,
+        login_required: true,
     }
 }
 ```
 
----
-
-## Relations et champs calculés
-
-Support des relations SeaORM dans les vues detail/edit (affichage des entités liées).
-
----
-
-## Amélioration du retour d'erreur du daemon
-
-Meilleur feedback lors de la génération : erreurs de compilation Rust exposées directement dans le terminal avec contexte.
+Routes générées : `GET /articles` (liste paginée), `GET /articles/<id>` (detail), `GET/POST /articles/new` (create), `GET/POST /articles/<id>/edit`, `POST /articles/<id>/delete`. Les templates par défaut sont fournis par le framework et surchargeables block par block, exactement comme l'admin.
 
 ## Voir aussi
 

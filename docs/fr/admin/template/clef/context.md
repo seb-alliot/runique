@@ -424,6 +424,36 @@ sort_by, sort_dir, sort_dir_toggle, search
 | --- | --- | --- |
 | `form_fields` | `Forms` | Formulaire généré par `request.form()` — rendu via `{% form.field_name %}` ou `form_fields.html` |
 | `is_edit` | `bool` | Vaut `false` |
+| `m2m_fields` | `Vec<M2mFieldOptions>` *(optionnel)* | Champs many-to-many déclarés via `m2m: [...]` dans le DSL. Absent si aucun M2M n'est déclaré sur la ressource. |
+
+Chaque entrée de `m2m_fields` expose :
+
+| Propriété | Type | Description |
+| --- | --- | --- |
+| `field_name` | `String` | Nom du champ — préfixe des inputs (`m2m_{field_name}__{id}`) |
+| `label` | `String` | Label affiché dans le formulaire |
+| `choices` | `Vec<(String, String)>` | Toutes les options disponibles — `(id, label)` |
+| `selected` | `Vec<String>` | IDs sélectionnés (vide en création) |
+
+**Exemple Tera :**
+
+```html
+{% if m2m_fields is defined and m2m_fields %}
+  {% for field in m2m_fields %}
+  <div class="form-group">
+    <label>{{ field.label }}</label>
+    {% for choice in field.choices %}
+    <label>
+      <input type="checkbox"
+             name="m2m_{{ field.field_name }}__{{ choice[0] }}"
+             value="1">
+      {{ choice[1] }}
+    </label>
+    {% endfor %}
+  </div>
+  {% endfor %}
+{% endif %}
+```
 
 ### Clés obligatoires — `create`
 
@@ -468,6 +498,28 @@ form_fields, is_edit
 | `form_fields` | `Forms` | Formulaire pré-rempli avec les données existantes |
 | `is_edit` | `bool` | Vaut `true` |
 | `object_id` | `String` | ID de l'entrée en cours d'édition |
+| `m2m_fields` | `Vec<M2mFieldOptions>` *(optionnel)* | Même structure qu'en création — `selected` contient les IDs déjà associés, les checkboxes correspondantes sont pré-cochées. |
+
+**Exemple Tera (avec pré-sélection) :**
+
+```html
+{% if m2m_fields is defined and m2m_fields %}
+  {% for field in m2m_fields %}
+  <div class="form-group">
+    <label>{{ field.label }}</label>
+    {% for choice in field.choices %}
+    <label>
+      <input type="checkbox"
+             name="m2m_{{ field.field_name }}__{{ choice[0] }}"
+             value="1"
+             {% if choice[0] in field.selected %}checked{% endif %}>
+      {{ choice[1] }}
+    </label>
+    {% endfor %}
+  </div>
+  {% endfor %}
+{% endif %}
+```
 
 ### Clés obligatoires — `edit`
 
