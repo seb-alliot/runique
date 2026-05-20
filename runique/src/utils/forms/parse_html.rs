@@ -24,38 +24,14 @@ pub async fn parse_multipart(
     max_upload_mb: u64,
     max_text_field_kb: usize,
 ) -> Result<StrVecMap, Response> {
-    tokio::fs::create_dir_all(upload_dir).await.map_err(|e| {
-        let msg = format!(
-            "{} — path: {:?}, os error: {}",
-            t("forms.upload_dir_error"),
-            upload_dir,
-            e
-        );
-        let ctx = ErrorContext::generic(StatusCode::INTERNAL_SERVER_ERROR, &msg);
-        let mut res = StatusCode::INTERNAL_SERVER_ERROR.into_response();
-        res.extensions_mut().insert(Arc::new(ctx));
-        res
-    })?;
-
     let max_file_bytes = max_upload_mb.saturating_mul(1024).saturating_mul(1024);
     let max_text_bytes = max_text_field_kb.saturating_mul(1024);
-
-    // Temporary directory for atomic upload:
-    // all files are first written here, then moved all at once
-    // to their final destination. In case of error, the tmp is deleted
-    // entirely — no orphan files remain in upload_dir.
-    let tmp_dir = upload_dir.join(format!("tmp-{}", Uuid::new_v4()));
-    tokio::fs::create_dir_all(&tmp_dir).await.map_err(|_| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            t("forms.upload_dir_error").to_string(),
-        )
-            .into_response()
-    })?;
 
     let mut data: StrVecMap = HashMap::new();
     // (tmp path, final path, field name)
     let mut pending_files: Vec<(PathBuf, PathBuf, String)> = Vec::new();
+    // Created lazily on first real file upload — never touches the filesystem for text-only forms.
+    let mut tmp_dir: Option<PathBuf> = None;
 
     while let Ok(Some(mut field)) = multipart.next_field().await {
         let name = match field.name() {
@@ -71,8 +47,34 @@ pub async fn parse_multipart(
                 continue;
             }
 
+            // Lazy init: create upload_dir and tmp dir only on first real file.
+            if tmp_dir.is_none() {
+                tokio::fs::create_dir_all(upload_dir).await.map_err(|e| {
+                    let msg = format!(
+                        "{} — path: {:?}, os error: {}",
+                        t("forms.upload_dir_error"),
+                        upload_dir,
+                        e
+                    );
+                    let ctx = ErrorContext::generic(StatusCode::INTERNAL_SERVER_ERROR, &msg);
+                    let mut res = StatusCode::INTERNAL_SERVER_ERROR.into_response();
+                    res.extensions_mut().insert(Arc::new(ctx));
+                    res
+                })?;
+                let dir = upload_dir.join(format!("tmp-{}", Uuid::new_v4()));
+                tokio::fs::create_dir_all(&dir).await.map_err(|_| {
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        t("forms.upload_dir_error").to_string(),
+                    )
+                        .into_response()
+                })?;
+                tmp_dir = Some(dir);
+            }
+            let cur_tmp = tmp_dir.as_ref().unwrap();
+
             let safe = sanitize_filename(&filename);
-            let tmp_path = tmp_dir.join(&safe);
+            let tmp_path = cur_tmp.join(&safe);
             let final_path = upload_dir.join(&safe);
 
             // Stream into tmp — the file handle is scoped to this block
@@ -116,7 +118,9 @@ pub async fn parse_multipart(
             .await;
 
             if let Err(e) = stream_result {
-                let _ = tokio::fs::remove_dir_all(&tmp_dir).await;
+                if let Some(ref tmp) = tmp_dir {
+                    let _ = tokio::fs::remove_dir_all(tmp).await;
+                }
                 return Err(e);
             }
 
@@ -150,7 +154,9 @@ pub async fn parse_multipart(
             match text_result {
                 Ok(text) => data.entry(name).or_default().push(text),
                 Err(e) => {
-                    let _ = tokio::fs::remove_dir_all(&tmp_dir).await;
+                    if let Some(ref tmp) = tmp_dir {
+                        let _ = tokio::fs::remove_dir_all(tmp).await;
+                    }
                     return Err(e);
                 }
             }
@@ -173,7 +179,9 @@ pub async fn parse_multipart(
     }
 
     // Remove the now-empty tmp directory
-    let _ = tokio::fs::remove_dir(&tmp_dir).await;
+    if let Some(ref tmp) = tmp_dir {
+        let _ = tokio::fs::remove_dir(tmp).await;
+    }
 
     Ok(data)
 }
