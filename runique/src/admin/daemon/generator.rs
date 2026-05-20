@@ -399,10 +399,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         "    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {{"
     );
     let _ = writeln!(out, "        Box::pin(async move {{");
-    let _ = writeln!(
-        out,
-        "            use sea_orm::QueryFilter;"
-    );
+    let _ = writeln!(out, "            use sea_orm::QueryFilter;");
     let _ = writeln!(
         out,
         "            let mut query = {}::Entity::find();",
