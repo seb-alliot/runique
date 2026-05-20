@@ -7,7 +7,7 @@ while preserving the contractual elements (CSRF, flash messages).
 
 ## Principle: 3 inheritance levels
 
-```
+```text
 admin_template.html   ← level 1: Runique contract (do not touch)
         ↓ extends
 admin_base.html            ← level 2: default layout (can be replaced)
@@ -109,21 +109,12 @@ To replace only the users list page:
 {% endfor %}
 {% endblock %}
 ```
+
 ---
 
 ## Available blocks for override
 
-| Block | Default content | Can be overridden |
-| --- | --- | --- |
-| `{% block title %}` | Page title | Yes |
-| `{% block extra_css %}` | Runique admin CSS | Yes |
-| `{% block layout %}` | Full layout (sidebar + main) | Yes (advanced) |
-| `{% block sidebar %}` | Sidebar with resource navigation | Yes |
-| `{% block topbar %}` | Topbar with breadcrumb + logout | Yes |
-| `{% block breadcrumb %}` | Breadcrumb | Yes (from admin_base) |
-| `{% block messages %}` | `{% messages %}` | Yes — keep `{% messages %}` |
-| `{% block content %}` | CRUD page content | Yes |
-| `{% block extra_js %}` | `admin.js` | Yes — use `{{ super() }}` to accumulate |
+See the [complete block reference](/docs/en/admin/template/surcharge/blocks) — exhaustive list per template with overridable CSS variables.
 
 ---
 
@@ -131,6 +122,7 @@ To replace only the users list page:
 
 - `current_resource` is a **String** (the key, e.g. `"users"`), not an object. Use `resource.key` and `resource.title` for metadata.
 - If `{% block extra_js %}` is overridden, call `{{ super() }}` to avoid losing `admin.js`.
+- If `{% block extra_css %}` is overridden, call `{{ super() }}` to keep Runique's CSS.
 - Elements outside blocks (`<meta csrf-token>`, `<script csrf.js>`) are guaranteed by `admin_template` — they cannot be removed by overriding.
 - If `{% block messages %}` is redefined, **keep** `{% messages %}` inside it.
 
@@ -138,8 +130,9 @@ To replace only the users list page:
 
 | Section | Description |
 | --- | --- |
+| [Block reference](/docs/en/admin/template/surcharge/blocks) | Complete block list per template + CSS variables |
 | [Examples](/docs/en/admin/template) | 3 approaches: Runique inheritance, custom layout, standalone HTML |
-| [Context keys](/docs/en/admin/template) | Variables injected by the backend into each template |
+| [Context keys](/docs/en/admin/template/clef/context) | Variables injected by the backend into each template |
 | [CSRF](/docs/en/admin/template) | CSRF token, `csrf.js`, custom login checklist |
 
 ## Back to summary

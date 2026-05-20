@@ -114,17 +114,7 @@ Pour remplacer uniquement la page de liste des utilisateurs :
 
 ## Blocks disponibles pour la surcharge
 
-| Block | Contenu par défaut | Peut être surchargé |
-| --- | --- | --- |
-| `{% block title %}` | Titre de la page | Oui |
-| `{% block extra_css %}` | CSS Runique admin | Oui |
-| `{% block layout %}` | Tout le layout (sidebar + main) | Oui (avancé) |
-| `{% block sidebar %}` | Sidebar avec navigation ressources | Oui |
-| `{% block topbar %}` | Topbar avec breadcrumb + logout | Oui |
-| `{% block breadcrumb %}` | Fil d'Ariane | Oui (depuis admin_base) |
-| `{% block messages %}` | `{% messages %}` | Oui — conserver `{% messages %}` |
-| `{% block content %}` | Contenu de la page CRUD | Oui |
-| `{% block extra_js %}` | `admin.js` | Oui — utiliser `{{ super() }}` pour cumuler |
+Voir la [référence complète des blocks](/docs/fr/admin/template/surcharge/blocks) — liste exhaustive par template avec les variables CSS surchargeables.
 
 ---
 
@@ -132,6 +122,7 @@ Pour remplacer uniquement la page de liste des utilisateurs :
 
 - `current_resource` est une **String** (la clé, ex: `"users"`), pas un objet. Utiliser `resource.key` et `resource.title` pour les métadonnées.
 - Si `{% block extra_js %}` est surchargé, appeler `{{ super() }}` pour ne pas perdre `admin.js`.
+- Si `{% block extra_css %}` est surchargé, appeler `{{ super() }}` pour conserver le CSS Runique.
 - Les éléments hors-blocks (`<meta csrf-token>`, `<script csrf.js>`) sont garantis par `admin_template` — ils ne peuvent pas être supprimés par surcharge.
 - Si `{% block messages %}` est redéfini, **conserver** `{% messages %}` dedans.
 
@@ -139,9 +130,10 @@ Pour remplacer uniquement la page de liste des utilisateurs :
 
 | Section | Description |
 | --- | --- |
+| [Référence des blocks](/docs/fr/admin/template/surcharge/blocks) | Liste complète des blocks par template + variables CSS |
 | [Exemples](/docs/fr/admin/template) | 3 approches : héritage Runique, layout custom, HTML autonome |
-| [Clés de contexte](/docs/fr/admin/template) | variables injectées par le backend dans chaque template
-| [CSRF](/docs/fr/admin/template) | token CSRF, `csrf.js`, checklist login custom |
+| [Clés de contexte](/docs/fr/admin/template/clef/context) | Variables injectées par le backend dans chaque template |
+| [CSRF](/docs/fr/admin/template) | Token CSRF, `csrf.js`, checklist login custom |
 
 ## Revenir au sommaire
 

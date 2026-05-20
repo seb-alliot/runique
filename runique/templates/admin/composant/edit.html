@@ -1,16 +1,18 @@
 {% extends "admin_base" %}
 {% block title %}{% if admin_edit_title %}{{ admin_edit_title }}{% endif %} — {{ resource.title }}{% endblock %}
 {% block breadcrumb %}
-  <span class="breadcrumb-sep">/</span>
+  <span class="admin-topbar__sep">/</span>
   <a href="{{ admin_prefix }}/{{ resource.key }}/list">{{ resource.title }}</a>
-  <span class="breadcrumb-sep">/</span>
+  <span class="admin-topbar__sep">/</span>
   <span>{% if admin_edit_breadcrumb %}{{ admin_edit_breadcrumb }}{% endif %}</span>
 {% endblock %}
 {% block content %}
-  <header class="page-header">
+  {% block edit_header %}
+  <header class="admin-page__header">
     <h1>{% if admin_edit_title %}{{ admin_edit_title }}{% endif %} — {{ resource.title }}</h1>
   </header>
-  
+  {% endblock %}
+
   {% set_global can_edit = false %}
   {% if current_user %}
     {% if current_user.is_superuser %}
@@ -25,13 +27,14 @@
       {% endfor %}
     {% endif %}
   {% endif %}
-  
+
   {% if current_user and can_edit %}
-  <div class="card card-form" data-admin-auto-init>
-    <div class="card-header">
+  {% block edit_form %}
+  <div class="admin-card admin-card--form" data-admin-auto-init>
+    <div class="admin-card__header">
       <h2>{% if admin_edit_card_info %}{{ admin_edit_card_info }}{% endif %}</h2>
     </div>
-    <div class="card-body">
+    <div class="admin-card__body">
       <form method="POST" action="{{ admin_prefix }}/{{ resource.key }}/{{ object_id }}/edit" enctype="multipart/form-data">
         {% csrf %}
         {% if orig_updated_at is defined %}
@@ -42,6 +45,7 @@
         {% if return_qs is defined and return_qs %}
         <input type="hidden" name="return_qs" value="{{ return_qs }}">
         {% endif %}
+        {% block edit_form_fields %}
         <div class="form-grid">
           {% if form_fields is defined and form_fields.html is defined and form_fields.html %}
             {{ form_fields.html }}
@@ -50,13 +54,13 @@
           {% endif %}
         </div>
         {% if m2m_fields is defined and m2m_fields %}
-        <div class="m2m-fields">
+        <div class="admin-m2m__fields">
           {% for field in m2m_fields %}
-          <div class="form-group m2m-group">
+          <div class="form-group admin-m2m__group">
             <label class="form-label">{{ field.label }}</label>
-            <div class="m2m-choices">
+            <div class="admin-m2m__choices">
               {% for choice in field.choices %}
-              <label class="m2m-choice">
+              <label class="admin-m2m__choice">
                 <input type="checkbox" name="m2m_{{ field.field_name }}__{{ choice[0] }}" value="1"
                   {% if choice[0] in field.selected %}checked{% endif %}>
                 {{ choice[1] }}
@@ -67,22 +71,28 @@
           {% endfor %}
         </div>
         {% endif %}
-        <div class="form-actions">
+        {% endblock %}
+        {% block edit_form_actions %}
+        <div class="admin-form__actions">
           <a href="{{ admin_prefix }}/{{ resource.key }}/list{% if return_qs is defined and return_qs %}?{{ return_qs }}{% endif %}" class="btn btn-secondary">{% if admin_edit_btn_cancel %}{{ admin_edit_btn_cancel }}{% endif %}</a>
           <button type="submit" class="btn btn-primary">{% if admin_edit_btn_submit %}{{ admin_edit_btn_submit }}{% endif %}</button>
         </div>
+        {% endblock %}
       </form>
     </div>
   </div>
+  {% endblock %}
   {% else %}
-  <div class="card">
-    <div class="card-body">
-      <div class="empty-state">
-        <p class="empty-state-desc">{% if admin_access_denied %}{{ admin_access_denied }}{% else %}Vous n'avez pas les droits nécessaires pour modifier cet élément.{% endif %}</p>
+  {% block edit_denied %}
+  <div class="admin-card">
+    <div class="admin-card__body">
+      <div class="admin-empty-state">
+        <p class="admin-empty-state__desc">{% if admin_access_denied %}{{ admin_access_denied }}{% else %}Vous n'avez pas les droits nécessaires pour modifier cet élément.{% endif %}</p>
         <a href="{{ admin_prefix }}/{{ resource.key }}/list" class="btn btn-secondary">{% if admin_edit_btn_cancel %}{{ admin_edit_btn_cancel }}{% else %}Retour{% endif %}</a>
       </div>
     </div>
   </div>
+  {% endblock %}
   {% endif %}
 {% endblock %}
 {% block extra_js %}

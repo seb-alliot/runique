@@ -1,16 +1,18 @@
 {% extends "admin_base" %}
 {% block title %}{% if admin_delete_title %}{{ admin_delete_title }}{% endif %} — {{ resource.title | default(value="Élément") }}{% endblock %}
 {% block breadcrumb %}
-  <span class="breadcrumb-sep">/</span>
+  <span class="admin-topbar__sep">/</span>
   <a href="{{ admin_prefix }}/{{ resource.key }}/list">{{ resource.title | default(value="Éléments") }}</a>
-  <span class="breadcrumb-sep">/</span>
+  <span class="admin-topbar__sep">/</span>
   <span>{% if admin_delete_breadcrumb %}{{ admin_delete_breadcrumb }}{% endif %}</span>
 {% endblock %}
 {% block content %}
-  <div class="page-header">
+  {% block delete_header %}
+  <div class="admin-page__header">
     <h1>{% if admin_delete_heading %}{{ admin_delete_heading }}{% endif %}</h1>
   </div>
-  
+  {% endblock %}
+
   {% set_global can_delete = false %}
   {% if current_user %}
     {% if current_user.is_superuser %}
@@ -25,11 +27,12 @@
       {% endfor %}
     {% endif %}
   {% endif %}
-  
+
   {% if current_user and can_delete %}
-  <div class="card">
-    <div class="card-body">
-      <div class="warning-box">
+  <div class="admin-card">
+    <div class="admin-card__body">
+      {% block delete_warning %}
+      <div class="admin-warning">
         <p>
           <strong>{% if admin_delete_warning_title %}{{ admin_delete_warning_title }}{% endif %}</strong>
           {% if admin_delete_warning_desc %}{{ admin_delete_warning_desc }}{% endif %}
@@ -39,23 +42,28 @@
         </p>
         <p>{% if admin_delete_warning_irreversible %}{{ admin_delete_warning_irreversible }}{% endif %}</p>
       </div>
-      <div class="form-actions">
+      {% endblock %}
+      {% block delete_actions %}
+      <div class="admin-form__actions">
         <a href="{{ admin_prefix }}/{{ resource.key }}/{{ object_id }}/detail" class="btn btn-secondary">{% if admin_delete_btn_cancel %}{{ admin_delete_btn_cancel }}{% endif %}</a>
-        <form method="POST" action="{{ admin_prefix }}/{{ resource.key }}/{{ object_id }}/delete" class="form-inline">
+        <form method="POST" action="{{ admin_prefix }}/{{ resource.key }}/{{ object_id }}/delete" class="admin-form--inline">
           {% csrf %}
           <button type="submit" class="btn btn-danger">{% if admin_delete_btn_confirm %}{{ admin_delete_btn_confirm }}{% endif %}</button>
         </form>
       </div>
+      {% endblock %}
     </div>
   </div>
   {% else %}
-  <div class="card">
-    <div class="card-body">
-      <div class="empty-state">
-        <p class="empty-state-desc">{% if admin_access_denied %}{{ admin_access_denied }}{% else %}Vous n'avez pas les droits nécessaires pour supprimer cet élément.{% endif %}</p>
+  {% block delete_denied %}
+  <div class="admin-card">
+    <div class="admin-card__body">
+      <div class="admin-empty-state">
+        <p class="admin-empty-state__desc">{% if admin_access_denied %}{{ admin_access_denied }}{% else %}Vous n'avez pas les droits nécessaires pour supprimer cet élément.{% endif %}</p>
         <a href="{{ admin_prefix }}/{{ resource.key }}/{{ object_id }}/detail" class="btn btn-secondary">{% if admin_delete_btn_cancel %}{{ admin_delete_btn_cancel }}{% else %}Retour{% endif %}</a>
       </div>
     </div>
   </div>
+  {% endblock %}
   {% endif %}
 {% endblock %}

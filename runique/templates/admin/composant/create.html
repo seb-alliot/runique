@@ -1,16 +1,18 @@
 {% extends "admin_base" %}
 {% block title %}{% if admin_create_title %}{{ admin_create_title }}{% endif %} — {{ resource.title | default(value="Élément") }}{% endblock %}
 {% block breadcrumb %}
-  <span class="breadcrumb-sep">/</span>
+  <span class="admin-topbar__sep">/</span>
   <a href="{{ admin_prefix }}/{{ resource.key }}/list">{{ resource.title | default(value="Éléments") }}</a>
-  <span class="breadcrumb-sep">/</span>
+  <span class="admin-topbar__sep">/</span>
   <span>{% if admin_create_breadcrumb %}{{ admin_create_breadcrumb }}{% endif %}</span>
 {% endblock %}
 {% block content %}
-  <header class="page-header">
+  {% block create_header %}
+  <header class="admin-page__header">
     <h1>{% if admin_create_title %}{{ admin_create_title }}{% endif %} — {{ resource.title | default(value="Élément") }}</h1>
   </header>
-  
+  {% endblock %}
+
   {% set_global can_create = false %}
   {% if current_user %}
     {% if current_user.is_superuser %}
@@ -25,14 +27,16 @@
       {% endfor %}
     {% endif %}
   {% endif %}
-  
+
   {% if current_user and can_create %}
-  <div class="card card-form" data-admin-auto-init>
-    <div class="card-header">
+  {% block create_form %}
+  <div class="admin-card admin-card--form" data-admin-auto-init>
+    <div class="admin-card__header">
       <h2>{% if admin_create_card_info %}{{ admin_create_card_info }}{% endif %}</h2>
     </div>
-    <div class="card-body">
+    <div class="admin-card__body">
       <form method="POST" action="{{ admin_prefix }}/{{ resource.key }}/create" enctype="multipart/form-data">
+        {% block create_form_fields %}
         <div class="form-grid">
           {% if form_fields is defined and form_fields.html is defined and form_fields.html %}
             {% csrf %}
@@ -42,13 +46,13 @@
           {% endif %}
         </div>
         {% if m2m_fields is defined and m2m_fields %}
-        <div class="m2m-fields">
+        <div class="admin-m2m__fields">
           {% for field in m2m_fields %}
-          <div class="form-group m2m-group">
+          <div class="form-group admin-m2m__group">
             <label class="form-label">{{ field.label }}</label>
-            <div class="m2m-choices">
+            <div class="admin-m2m__choices">
               {% for choice in field.choices %}
-              <label class="m2m-choice">
+              <label class="admin-m2m__choice">
                 <input type="checkbox" name="m2m_{{ field.field_name }}__{{ choice[0] }}" value="1">
                 {{ choice[1] }}
               </label>
@@ -58,22 +62,28 @@
           {% endfor %}
         </div>
         {% endif %}
-        <div class="form-actions">
+        {% endblock %}
+        {% block create_form_actions %}
+        <div class="admin-form__actions">
           <a href="{{ admin_prefix }}/{{ resource.key }}/list" class="btn btn-secondary">{% if admin_create_btn_cancel %}{{ admin_create_btn_cancel }}{% endif %}</a>
           <button type="submit" class="btn btn-primary">{% if admin_create_btn_submit %}{{ admin_create_btn_submit }}{% endif %}</button>
         </div>
+        {% endblock %}
       </form>
     </div>
   </div>
+  {% endblock %}
   {% else %}
-  <div class="card">
-    <div class="card-body">
-      <div class="empty-state">
-        <p class="empty-state-desc">{% if admin_access_denied %}{{ admin_access_denied }}{% else %}Vous n'avez pas les droits nécessaires pour créer cet élément.{% endif %}</p>
+  {% block create_denied %}
+  <div class="admin-card">
+    <div class="admin-card__body">
+      <div class="admin-empty-state">
+        <p class="admin-empty-state__desc">{% if admin_access_denied %}{{ admin_access_denied }}{% else %}Vous n'avez pas les droits nécessaires pour créer cet élément.{% endif %}</p>
         <a href="{{ admin_prefix }}/{{ resource.key }}/list" class="btn btn-secondary">{% if admin_create_btn_cancel %}{{ admin_create_btn_cancel }}{% else %}Retour{% endif %}</a>
       </div>
     </div>
   </div>
+  {% endblock %}
   {% endif %}
 {% endblock %}
 {% block extra_js %}
