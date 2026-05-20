@@ -242,7 +242,10 @@ pub(super) fn user_entry() -> ResourceEntry {
                 if super::is_unique_violation(&e) {
                     let msg = e.to_string().to_lowercase();
                     if msg.contains("username") {
-                        sea_orm::DbErr::Custom(tf("admin.builtin.user_username_exists", &[&username]))
+                        sea_orm::DbErr::Custom(tf(
+                            "admin.builtin.user_username_exists",
+                            &[&username],
+                        ))
                     } else if msg.contains("email") {
                         sea_orm::DbErr::Custom(tf("admin.builtin.user_email_exists", &[&email]))
                     } else {
