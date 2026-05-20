@@ -6,6 +6,23 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2.1.3] - 2026-05-20
+
+### Fixed — `runique` (file uploads)
+
+* **`parse_multipart` created upload directories for all multipart requests:** `create_dir_all` was called unconditionally at the start of `parse_multipart`, causing a crash in production on any form POST when `MEDIA_ROOT` was not set — even for forms with no file fields. Upload directories are now created lazily, only when an actual file part is encountered.
+* **`resolve_media_root()` defaulted to relative `"media"` string:** the fallback was a bare relative path, making the effective directory unpredictable depending on the process working directory. The resolution now follows a three-level priority chain: `MEDIA_ROOT` env var → `{BASE_DIR}/media` → `{cwd}/media`, anchoring the path to the project root in all environments.
+
+### Fixed — `runique` (admin daemon)
+
+* **Admin generator used `i32` for all entity PKs regardless of `big-pk` feature:** the daemon always emitted `id.parse::<i32>()` in generated handlers. When a project enables the `big-pk` feature (making `pk: id => Pk` generate `i64`), the generated `admin.rs` failed to compile with type mismatch errors. The daemon now reads the project's `Cargo.toml` at startup — if `big-pk` is present in the features, the default id type is `i64`; otherwise `i32`. An explicit `id_type: I32 | I64 | Uuid` in `admin!{}` always takes precedence.
+
+### Fixed — `runique` (makemigrations)
+
+* **No destructive-change prompt before generating migrations:** `makemigrations` silently generated DROP COLUMN, type changes, nullable→NOT NULL alterations, dropped foreign keys, and CASCADE foreign keys without warning. A `collect_destructive_messages()` function now inspects all pending changes and, if any are destructive, prints a summary and prompts for confirmation (bypassed by `--force`).
+
+---
+
 ## [2.1.2] - 2026-05-17
 
 ### Fixed — `runique` (migration utils)

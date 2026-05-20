@@ -106,11 +106,12 @@ pub(crate) struct ParsedAdmin {
     pub configures: Vec<ConfigureDef>,
 }
 
-/// Parses the content of `src/admin.rs` and returns the declared resources
-pub(crate) fn parse_admin_file(source: &str) -> Result<ParsedAdmin, String> {
+/// Parses the content of `src/admin.rs` and returns the declared resources.
+/// `big_pk`: true when the project enables the `big-pk` feature — sets the default id_type to I64.
+pub(crate) fn parse_admin_file(source: &str, big_pk: bool) -> Result<ParsedAdmin, String> {
     let syntax = parse_file(source).map_err(|e| format!("Rust syntax error: {}", e))?;
 
-    let mut visitor = AdminMacroVisitor::new();
+    let mut visitor = AdminMacroVisitor::new(big_pk);
     visitor.visit_file(&syntax);
 
     if let Some(err) = visitor.error {
@@ -127,14 +128,16 @@ struct AdminMacroVisitor {
     pub resources: Vec<ResourceDef>,
     pub configures: Vec<ConfigureDef>,
     pub error: Option<String>,
+    big_pk: bool,
 }
 
 impl AdminMacroVisitor {
-    fn new() -> Self {
+    fn new(big_pk: bool) -> Self {
         Self {
             resources: Vec::new(),
             configures: Vec::new(),
             error: None,
+            big_pk,
         }
     }
 }
@@ -153,7 +156,7 @@ impl<'ast> Visit<'ast> for AdminMacroVisitor {
             return;
         }
 
-        match parse_admin_tokens(mac.tokens.clone()) {
+        match parse_admin_tokens(mac.tokens.clone(), self.big_pk) {
             Ok(parsed) => {
                 self.resources = parsed.resources;
                 self.configures = parsed.configures;
@@ -168,7 +171,7 @@ impl<'ast> Visit<'ast> for AdminMacroVisitor {
 //       title: "...",
 //   }
 
-fn parse_admin_tokens(tokens: TokenStream) -> Result<ParsedAdmin, String> {
+fn parse_admin_tokens(tokens: TokenStream, big_pk: bool) -> Result<ParsedAdmin, String> {
     use proc_macro2::TokenTree;
 
     let mut resources = Vec::new();
@@ -199,7 +202,7 @@ fn parse_admin_tokens(tokens: TokenStream) -> Result<ParsedAdmin, String> {
         let _form_type = parse_path(&mut iter)?;
 
         let body = match iter.next() {
-            Some(TokenTree::Group(group)) => parse_resource_body(group.stream())?,
+            Some(TokenTree::Group(group)) => parse_resource_body(group.stream(), big_pk)?,
             Some(other) => return Err(format!("Expected '{{', found: {}", other)),
             None => return Err("Expected '{{', end of file".to_string()),
         };
@@ -355,7 +358,7 @@ struct ResourceBody {
     m2m: Vec<M2mFieldDef>,
 }
 
-fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
+fn parse_resource_body(tokens: TokenStream, big_pk: bool) -> Result<ResourceBody, String> {
     use proc_macro2::TokenTree;
 
     let mut iter = tokens.into_iter().peekable();
@@ -369,7 +372,7 @@ fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
         extra_context: Vec::new(),
         create_form_type: None,
         edit_form_type: None,
-        id_type: "I32".to_string(),
+        id_type: if big_pk { "I64" } else { "I32" }.to_string(),
         list_filter: Vec::new(),
         list_display: Vec::new(),
         list_exclude: Vec::new(),

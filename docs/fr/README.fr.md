@@ -1,9 +1,9 @@
 # Runique — Framework Rust inspiré de Django
 
 ![Rust](https://img.shields.io/badge/rust-1.85%2B-orange)
-![Tests passing](https://img.shields.io/badge/tests-1731%2F1731%20passing-green)
+![Tests passing](https://img.shields.io/badge/tests-2011%2B%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-2.0.0-blue)
+![Version](https://img.shields.io/badge/version-2.1.3-blue)
 [![Crates.io](https://img.shields.io/crates/v/runique)](https://crates.io/crates/runique)
 [![Runique](https://img.shields.io/badge/Runique-brightgreen)](https://runique.io)
 
@@ -22,7 +22,7 @@ Runique est un framework web basé sur Axum, axé sur les formulaires typés, le
 * `demo-app/` → application de test/validation pour le développement du framework
 * `docs/` → documentation EN/FR
 
-Version du workspace (source de vérité) : **2.1.1-alpha.1**.
+Version du workspace (source de vérité) : **2.1.3**.
 
 ---
 
@@ -131,7 +131,7 @@ Backends disponibles :
 
 ## Tests et couverture
 
-* Tests : **1731/1731 réussis**
+* Tests : **2011+ réussis**
 * Snapshot de couverture (`2026-03-01`, package `runique`) :
 
   * Fonctions : **76.66%**

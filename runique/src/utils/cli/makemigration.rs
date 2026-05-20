@@ -243,6 +243,90 @@ fn topological_sort_changes(
     result
 }
 
+// ── destructive change guard ─────────────────────────────────────────────────
+
+pub fn collect_destructive_messages(all_changes: &[Changes]) -> Vec<String> {
+    let dropped = all_changes.iter().flat_map(|c| {
+        c.dropped_columns
+            .iter()
+            .map(|col| format!("  {}.{}: DROP COLUMN (data loss)", c.table_name, col.name))
+    });
+
+    let type_changes = all_changes.iter().flat_map(|c| {
+        c.modified_columns
+            .iter()
+            .filter(|(old, new)| old.col_type != new.col_type)
+            .map(|(old, new)| {
+                format!(
+                    "  {}.{}: type {} -> {}",
+                    c.table_name, old.name, old.col_type, new.col_type
+                )
+            })
+    });
+
+    let nullable_to_required = all_changes.iter().flat_map(|c| {
+        c.modified_columns
+            .iter()
+            .filter(|(old, new)| old.nullable && !new.nullable && old.col_type == new.col_type)
+            .map(|(_, new)| {
+                format!(
+                    "  {}.{}: nullable -> not_null (requires a default or backfill)",
+                    c.table_name, new.name
+                )
+            })
+    });
+
+    let dropped_fks = all_changes.iter().flat_map(|c| {
+        c.dropped_fks.iter().map(|fk| {
+            format!(
+                "  {}.{}: DROP FOREIGN KEY -> {} (orphan records possible)",
+                c.table_name, fk.from_column, fk.to_table
+            )
+        })
+    });
+
+    // Adding a CASCADE constraint to existing data can trigger mass deletes if a parent is removed.
+    let cascade_fks = all_changes.iter().flat_map(|c| {
+        c.added_fks
+            .iter()
+            .filter(|fk| fk.on_delete.to_uppercase() == "CASCADE")
+            .map(|fk| {
+                format!(
+                    "  {}.{}: ADD FOREIGN KEY -> {} ON DELETE CASCADE (existing rows may be deleted)",
+                    c.table_name, fk.from_column, fk.to_table
+                )
+            })
+    });
+
+    dropped
+        .chain(type_changes)
+        .chain(nullable_to_required)
+        .chain(dropped_fks)
+        .chain(cascade_fks)
+        .collect()
+}
+
+fn check_destructive(all_changes: &[Changes], force: bool) -> Result<()> {
+    let blocking = collect_destructive_messages(all_changes);
+
+    if blocking.is_empty() || force {
+        return Ok(());
+    }
+
+    println!("\n{}", t("makemigrations.destructive_detected"));
+    for msg in &blocking {
+        println!("{}", msg);
+    }
+    print!("\nProvide a default value for migration, or use --force to skip: ");
+    io::stdout().flush()?;
+    let mut input = String::new();
+    io::stdin().read_line(&mut input)?;
+    if input.trim().is_empty() {
+        anyhow::bail!("Destructive changes require a default value or --force. Aborting.");
+    }
+    Ok(())
+}
+
 // ── run ──────────────────────────────────────────────────────────────────────
 pub fn seaorm_alter_module_name(timestamp: &str, table: &str) -> String {
     format!("m{}_alter_{}_table", timestamp, table)
@@ -371,52 +455,7 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
         return Ok(());
     }
 
-    // ── destructive check ────────────────────────────────────────────────────
-    let type_changes: Vec<String> = all_changes
-        .iter()
-        .flat_map(|c| {
-            c.modified_columns
-                .iter()
-                .filter(|(old, new)| old.col_type != new.col_type)
-                .map(|(old, new)| {
-                    format!(
-                        "  {}.{}: type {} -> {}",
-                        c.table_name, old.name, old.col_type, new.col_type
-                    )
-                })
-        })
-        .collect();
-
-    let nullable_to_required: Vec<String> = all_changes
-        .iter()
-        .flat_map(|c| {
-            c.modified_columns
-                .iter()
-                .filter(|(old, new)| old.nullable && !new.nullable && old.col_type == new.col_type)
-                .map(|(_, new)| {
-                    format!(
-                        "  {}.{}: nullable -> not_null (requires a default or backfill)",
-                        c.table_name, new.name
-                    )
-                })
-        })
-        .collect();
-
-    let blocking: Vec<String> = [type_changes, nullable_to_required].concat();
-
-    if !blocking.is_empty() && !force {
-        println!("\n{}", t("makemigrations.destructive_detected"));
-        for msg in &blocking {
-            println!("{}", msg);
-        }
-        print!("\nProvide a default value for migration, or use --force to skip: ");
-        io::stdout().flush()?;
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
-        if input.trim().is_empty() {
-            anyhow::bail!("Destructive changes require a default value or --force. Aborting.");
-        }
-    }
+    check_destructive(&all_changes, force)?;
 
     let timestamp = Utc::now().format("%Y%m%d_%H%M%S").to_string();
     let db_kind = detect_db_kind();

@@ -125,7 +125,12 @@ fn test_into_upload_path_static_config() {
     let config = StaticConfig::from_env();
     let field = FileField::image("pic").upload_to(&config);
     let f = field.upload_config.upload_to.unwrap();
-    assert_eq!(f("pic"), "media");
+    let result = f("pic");
+    assert!(
+        result.ends_with("/media") || result.ends_with("\\media") || result == "media",
+        "expected upload path to end with media, got: {}",
+        result
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════

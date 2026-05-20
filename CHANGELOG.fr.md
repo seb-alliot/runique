@@ -6,6 +6,23 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ---
 
+## [2.1.3] - 2026-05-20
+
+### Corrigé — `runique` (uploads de fichiers)
+
+* **`parse_multipart` créait les répertoires d'upload pour toutes les requêtes multipart :** `create_dir_all` était appelé inconditionnellement en tête de `parse_multipart`, provoquant un crash en production sur tout POST de formulaire lorsque `MEDIA_ROOT` n'était pas défini — même pour les formulaires sans champ fichier. Les répertoires d'upload sont désormais créés de façon lazy, uniquement quand une partie fichier effective est détectée.
+* **`resolve_media_root()` utilisait le chemin relatif `"media"` comme fallback :** ce chemin relatif rendait le répertoire effectif imprévisible selon le répertoire de travail du processus. La résolution suit maintenant une chaîne de priorité à trois niveaux : variable `MEDIA_ROOT` → `{BASE_DIR}/media` → `{cwd}/media`, ancrant le chemin à la racine du projet dans tous les environnements.
+
+### Corrigé — `runique` (daemon admin)
+
+* **Le générateur admin utilisait `i32` pour tous les PKs quelle que soit la feature `big-pk` :** le daemon émettait toujours `id.parse::<i32>()` dans les handlers générés. Quand un projet active la feature `big-pk` (ce qui fait que `pk: id => Pk` génère `i64`), le `admin.rs` généré ne compilait pas avec des erreurs de type. Le daemon lit désormais le `Cargo.toml` du projet au démarrage — si `big-pk` est présent dans les features, le type id par défaut est `i64` ; sinon `i32`. Un `id_type: I32 | I64 | Uuid` explicite dans `admin!{}` prend toujours la priorité.
+
+### Corrigé — `runique` (makemigrations)
+
+* **Aucune confirmation avant la génération de migrations destructrices :** `makemigrations` générait silencieusement les DROP COLUMN, changements de type, passages nullable→NOT NULL, suppressions de clés étrangères et clés étrangères CASCADE sans avertissement. Une fonction `collect_destructive_messages()` inspecte désormais toutes les modifications en attente et, si certaines sont destructrices, affiche un résumé et demande une confirmation (contournable avec `--force`).
+
+---
+
 ## [2.1.2] - 2026-05-17
 
 ### Corrigé — `runique` (utilitaires migration)
