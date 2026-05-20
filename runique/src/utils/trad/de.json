@@ -422,7 +422,9 @@
       "invalid_id": "Ungültige ID.",
       "droit_resource_required": "Bitte mindestens eine Ressource auswählen.",
       "droit_exists": "Das Recht \"{}\" existiert bereits.",
-      "groupe_exists": "Eine Gruppe namens \"{}\" existiert bereits."
+      "groupe_exists": "Eine Gruppe namens \"{}\" existiert bereits.",
+      "user_username_exists": "Der Benutzername \"{}\" ist bereits vergeben.",
+      "user_email_exists": "Die E-Mail-Adresse \"{}\" ist bereits registriert."
     }
   },
   "makemigrations": {
