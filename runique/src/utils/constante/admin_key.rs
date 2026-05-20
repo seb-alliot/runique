@@ -30,7 +30,6 @@ pub mod admin_context {
         pub const GROUPES: &str = "groupes";
     }
 
-    pub mod etat {}
     /// `list` template — resource list view
     pub mod list {
         pub use super::common::LANG;
@@ -52,11 +51,15 @@ pub mod admin_context {
         pub const ACTIVE_FILTERS: &str = "active_filters";
         pub const FILTER_QS: &str = "filter_qs";
         pub const FILTER_META: &str = "filter_meta";
+        /// Full query string (sort + search + active filters) — pass to edit/delete links so the list
+        /// state is restored after returning. Used by `kebab.html` to build the `?return_qs=` param.
+        pub const RETURN_QS: &str = "return_qs";
+        /// Group actions declared in `admin!{}` — `Vec<GroupAction>` iterated as `ga` in the template.
+        pub const GROUP_ACTIONS: &str = "group_actions";
 
         /// Mandatory keys for overriding this template
         pub const REQUIRED: &[&str] = &[
             ENTRIES,
-            TOTAL,
             PAGE,
             PAGE_COUNT,
             HAS_PREV,
@@ -68,6 +71,8 @@ pub mod admin_context {
             SORT_DIR,
             SORT_DIR_TOGGLE,
             SEARCH,
+            RETURN_QS,
+            GROUP_ACTIONS,
         ];
     }
 
@@ -82,9 +87,15 @@ pub mod admin_context {
     /// `edit` template — edition form
     pub mod edit {
         pub use super::common::{FORM_FIELDS, IS_EDIT, LANG, OBJECT_ID};
+        /// Injected on GET from the stored object, and on POST re-injected on validation failure.
+        /// Used by the optimistic locking check (`__original_updated_at` hidden field).
+        pub const ORIG_UPDATED_AT: &str = "orig_updated_at";
+        /// Query string from the originating list (sort + search + filters) — used to redirect
+        /// back to the exact list page after a successful save.
+        pub const RETURN_QS: &str = "return_qs";
 
         /// Mandatory keys for overriding this template
-        pub const REQUIRED: &[&str] = &[FORM_FIELDS, OBJECT_ID];
+        pub const REQUIRED: &[&str] = &[FORM_FIELDS, OBJECT_ID, RETURN_QS];
     }
 
     /// `detail` template — object detail view
@@ -101,6 +112,18 @@ pub mod admin_context {
 
         /// Mandatory keys for overriding this template
         pub const REQUIRED: &[&str] = &[ENTRY, OBJECT_ID];
+    }
+
+    /// `bulk_edit` template — multi-row batch edit form
+    pub mod bulk_edit {
+        pub use super::common::{FORM_FIELDS, LANG};
+        /// Number of selected rows being edited.
+        pub const BULK_COUNT: &str = "bulk_count";
+        /// Comma-separated IDs of the selected rows — value of the hidden `ids` field.
+        pub const BULK_IDS: &str = "bulk_ids";
+
+        /// Mandatory keys for overriding this template
+        pub const REQUIRED: &[&str] = &[FORM_FIELDS, BULK_COUNT, BULK_IDS];
     }
 }
 

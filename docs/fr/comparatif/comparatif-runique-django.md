@@ -141,7 +141,7 @@
 | Pagination liste | natif | `.page_size(n)` (liste + historique) |
 | `list_display` | natif | `list_display: [["col", "Libellé"], ...]` |
 | Résolution FK en liste | — | 3ème élément : `["fk_id", "Libellé", "table.colonne"]` |
-| Recherche / filtres | natif | `list_filter` + recherche plein-texte SQL |
+| Recherche / filtres | natif | `list_filter` + recherche plein-texte SQL — colonnes directes uniquement, filtres non cumulables (UI) |
 | Actions de groupe | `actions` | `group_action` — bool (2 éléments) ou enum (3 éléments, valeur exacte) |
 | Création multiple | — | `bulk_create: champ` — split par virgule, insère N enregistrements |
 | Édition en masse | — | bulk edit natif sur sélection multi-entrées |
@@ -151,6 +151,15 @@
 | Permissions | par ressource | RBAC dynamique (Groupes / Droits scopés) |
 | Historique modifications | `django-simple-history` (tiers) | historique natif (créé/modifié/supprimé) avec diff de champs |
 | Configuration builtins | — | bloc `configure {}` dans `admin!{}` |
+| Verrouillage optimiste | — | natif — détecte les éditions concurrentes (`__original_updated_at`) |
+| Protection brute-force login | `django-axes` (tiers) | natif — `LoginGuard` + rate limiter sur le login admin |
+| Email création compte | plugin tiers | natif — `inject_password: true` génère mot de passe temporaire + email |
+| Rafraîchissement liste partiel | — | natif — `list_partial` HTMX sans rechargement page |
+| Fieldsets | `fieldsets` | — |
+| Champs lecture seule | `readonly_fields` | — |
+| Navigation par date | `date_hierarchy` | — |
+| Export | CSV natif | — |
+| Boutons save avancés | "Save and continue" / "Save and add" | — |
 
 ---
 
@@ -195,6 +204,13 @@
 - **Test client intégré** : pas de client HTTP de test natif — utiliser `reqwest` ou `axum::test`.
 - **Fixtures** : pas de `loaddata`/`dumpdata` — les seeds sont des fonctions Rust.
 - **Admin inline** : pas d'édition d'objets liés directement dans le formulaire parent.
+- **Admin filtres cumulables** : cliquer une valeur de filtre réinitialise les autres colonnes filtrées — le backend supporte plusieurs filtres simultanés (`Vec`), mais les liens générés dans le template ne préservent pas les filtres des autres colonnes.
+- **Admin filtre FK** : `list_filter` ne supporte que les colonnes directes — pas de traversée de relation (`article__auteur__nom`).
+- **Admin fieldsets** : pas de groupement de champs par section dans les formulaires admin (`fieldsets` Django).
+- **Admin readonly fields** : pas de `readonly_fields` — les champs non éditables doivent être exclus du formulaire.
+- **Admin navigation par date** : pas de `date_hierarchy` pour filtrer la liste par année/mois/jour.
+- **Admin export** : pas d'export CSV/JSON natif depuis la liste.
+- **Admin boutons save avancés** : pas de "Enregistrer et continuer" / "Enregistrer et ajouter un autre".
 - **i18n complète** : `t()`/`tf()` disponibles, mais pas de pluralisation ni de traduction des templates Tera.
 - **Sitemap / RSS** : non natif.
 - **Authentification tiers** : OAuth / OIDC structuré (Google, Microsoft, Apple, LDAP, SAML) mais flow non implémenté — stub uniquement. JWT et API key auth absents.

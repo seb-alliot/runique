@@ -16,7 +16,9 @@
 {% endif %}
 {% set has_filters = resource.display.list_filter | length > 0 %}
 <div id="list-content">
-  {# ── Barre de recherche + bouton filtres ── #}
+
+  {# ── Barre de recherche ── #}
+  {% block list_search %}
   <div class="admin-search-row">
     <form method="GET" action="" class="admin-search-form"
           hx-get=""
@@ -62,8 +64,9 @@
     </button>
     {% endif %}
   </div>
+  {% endblock list_search %}
 
-  {# ── Barre d'actions bulk (cachée jusqu'à sélection) ── #}
+  {# ── Barre d'actions bulk ── #}
   {% set_global can_bulk = false %}
   {% if current_user %}
     {% if current_user.is_superuser %}
@@ -79,6 +82,7 @@
     {% endif %}
   {% endif %}
 
+  {% block list_bulk %}
   {% if can_bulk %}
   <form id="bulk-form" method="POST" action="{{ admin_prefix }}/{{ resource.key }}/bulk">
     {% csrf %}
@@ -108,11 +112,14 @@
     </div>
   </form>
   {% endif %}
+  {% endblock list_bulk %}
 
   <div class="{% if has_filters %}admin-list-layout{% endif %}">
 
-    {# ── Colonne principale : card + pagination ── #}
+    {# ── Colonne principale : table + pagination ── #}
     <div>
+
+      {% block list_table %}
       <div class="card">
         {% if entries is defined and entries | length > 0 %}
           <div class="admin-table-wrapper">
@@ -221,6 +228,9 @@
           </div>
         {% endif %}
       </div>
+      {% endblock list_table %}
+
+      {% block list_pagination %}
       {% if page_count is defined and page_count > 1 %}
       <div class="pagination">
         {% if has_prev %}
@@ -242,9 +252,12 @@
         {% endif %}
       </div>
       {% endif %}
+      {% endblock list_pagination %}
+
     </div>
 
-    {# ── Sidebar filtres (droite) ── #}
+    {# ── Sidebar filtres ── #}
+    {% block list_filters %}
     {% if has_filters %}
     <div class="filter-sidebar-overlay" id="filterOverlay"></div>
     <aside class="admin-filter-sidebar" id="filterSidebar" data-resource="{{ resource.key }}">
@@ -272,15 +285,15 @@
             </button>
             <div class="filter-group-body">
               {% if active_filters[col] %}
-              <a href="?{% if sort_by %}sort_by={{ sort_by }}&sort_dir={{ sort_dir }}&{% endif %}{% if search %}search={{ search | urlencode }}&{% endif %}page=1"
-                hx-get="?{% if sort_by %}sort_by={{ sort_by }}&sort_dir={{ sort_dir }}&{% endif %}{% if search %}search={{ search | urlencode }}&{% endif %}page=1"
+              <a href="?{% for k, v in active_filters %}{% if k != col and v %}filter_{{ k }}={{ v | urlencode }}&{% endif %}{% endfor %}{% if sort_by %}sort_by={{ sort_by }}&sort_dir={{ sort_dir }}&{% endif %}{% if search %}search={{ search | urlencode }}&{% endif %}page=1"
+                hx-get="?{% for k, v in active_filters %}{% if k != col and v %}filter_{{ k }}={{ v | urlencode }}&{% endif %}{% endfor %}{% if sort_by %}sort_by={{ sort_by }}&sort_dir={{ sort_dir }}&{% endif %}{% if search %}search={{ search | urlencode }}&{% endif %}page=1"
                 hx-target="#list-content" hx-swap="innerHTML" hx-push-url="true"
                 class="filter-option filter-clear">✕ Tout</a>
               {% endif %}
               {% for val in values %}
                 {% set is_active = active_filters[col] == val %}
-                <a href="?filter_{{ col }}={{ val | urlencode }}{% if sort_by %}&sort_by={{ sort_by }}&sort_dir={{ sort_dir }}{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}&page=1"
-                  hx-get="?filter_{{ col }}={{ val | urlencode }}{% if sort_by %}&sort_by={{ sort_by }}&sort_dir={{ sort_dir }}{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}&page=1"
+                <a href="?filter_{{ col }}={{ val | urlencode }}{% for k, v in active_filters %}{% if k != col and v %}&filter_{{ k }}={{ v | urlencode }}{% endif %}{% endfor %}{% if sort_by %}&sort_by={{ sort_by }}&sort_dir={{ sort_dir }}{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}&page=1"
+                  hx-get="?filter_{{ col }}={{ val | urlencode }}{% for k, v in active_filters %}{% if k != col and v %}&filter_{{ k }}={{ v | urlencode }}{% endif %}{% endfor %}{% if sort_by %}&sort_by={{ sort_by }}&sort_dir={{ sort_dir }}{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}&page=1"
                   hx-target="#list-content" hx-swap="innerHTML" hx-push-url="true"
                   class="filter-option {% if is_active %}filter-active{% endif %}">
                   {{ val | replace(from="_", to=" ") }}
@@ -314,6 +327,7 @@
       </div>
     </aside>
     {% endif %}
+    {% endblock list_filters %}
 
   </div>{# fin admin-list-layout #}
 </div>
