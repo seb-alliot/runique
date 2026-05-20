@@ -426,7 +426,9 @@
       "invalid_id": "Identifiant invalide.",
       "droit_resource_required": "Veuillez sélectionner au moins une ressource.",
       "droit_exists": "Le droit \"{}\" existe déjà.",
-      "groupe_exists": "Un groupe nommé « {} » existe déjà."
+      "groupe_exists": "Un groupe nommé « {} » existe déjà.",
+      "user_username_exists": "Le nom d'utilisateur « {} » est déjà pris.",
+      "user_email_exists": "L'adresse e-mail « {} » est déjà utilisée."
     }
   },
   "reset": {

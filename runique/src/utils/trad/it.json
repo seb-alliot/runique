@@ -425,7 +425,9 @@
       "invalid_id": "Identificativo non valido.",
       "droit_resource_required": "Seleziona almeno una risorsa.",
       "droit_exists": "Il diritto \"{}\" esiste già.",
-      "groupe_exists": "Esiste già un gruppo chiamato \"{}\"."
+      "groupe_exists": "Esiste già un gruppo chiamato \"{}\".",
+      "user_username_exists": "Il nome utente \"{}\" è già in uso.",
+      "user_email_exists": "L'indirizzo e-mail \"{}\" è già registrato."
     }
   },
   "makemigrations": {

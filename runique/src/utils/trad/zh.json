@@ -425,7 +425,9 @@
       "invalid_id": "无效的标识符。",
       "droit_resource_required": "请至少选择一个资源。",
       "droit_exists": "权限 \"{}\" 已存在。",
-      "groupe_exists": "名为 \"{}\" 的组已存在。"
+      "groupe_exists": "名为 \"{}\" 的组已存在。",
+      "user_username_exists": "用户名「{}」已被占用。",
+      "user_email_exists": "邮箱「{}」已被注册。"
     }
   },
   "makemigrations": {

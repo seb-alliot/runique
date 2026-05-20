@@ -24,7 +24,7 @@ use crate::utils::{
         },
     },
     forms::parse_bool,
-    trad::t,
+    trad::{t, tf},
 };
 
 pub(super) fn user_entry() -> ResourceEntry {
@@ -223,9 +223,11 @@ pub(super) fn user_entry() -> ResourceEntry {
             use crate::admin::permissions::users_groupes;
 
             let now = Some(chrono::Utc::now().naive_utc());
+            let username = data.get("username").cloned().unwrap_or_default();
+            let email = data.get("email").cloned().unwrap_or_default();
             let inserted = user::ActiveModel {
-                username: Set(data.get("username").cloned().unwrap_or_default()),
-                email: Set(data.get("email").cloned().unwrap_or_default()),
+                username: Set(username.clone()),
+                email: Set(email.clone()),
                 password: Set(data.get("password").cloned().unwrap_or_default()),
                 is_active: Set(parse_bool(&data, IS_ACTIVE)),
                 is_staff: Set(parse_bool(&data, SESSION_USER_IS_STAFF_KEY)),
@@ -235,7 +237,21 @@ pub(super) fn user_entry() -> ResourceEntry {
                 ..Default::default()
             }
             .insert(&*db)
-            .await?;
+            .await
+            .map_err(|e| {
+                if super::is_unique_violation(&e) {
+                    let msg = e.to_string().to_lowercase();
+                    if msg.contains("username") {
+                        sea_orm::DbErr::Custom(tf("admin.builtin.user_username_exists", &[&username]))
+                    } else if msg.contains("email") {
+                        sea_orm::DbErr::Custom(tf("admin.builtin.user_email_exists", &[&email]))
+                    } else {
+                        e
+                    }
+                } else {
+                    e
+                }
+            })?;
 
             if let Some(groupes_str) = data.get(GROUPES) {
                 for id_str in groupes_str.split(',') {
