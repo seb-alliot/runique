@@ -241,27 +241,28 @@ model! {
     pk: id => i32,
     enums: {
         OrderStatus: [
-            Pending   = ("pending",   "Pending"),
-            InProgress= ("in_progress","In progress"),
-            Delivered = ("delivered", "Delivered"),
-            Cancelled = ("cancelled", "Cancelled"),
+            Pending    = ("pending",    "Pending"),
+            InProgress = ("in_progress","In progress"),
+            Delivered  = ("delivered",  "Delivered"),
+            Cancelled  = ("cancelled",  "Cancelled"),
         ],
         Priority: i32 [Low = 0, Normal = 1, High = 2, Urgent = 9],
     },
-    fields: {
-        status:   enum(OrderStatus) [required],
-        priority: enum(Priority)    [required],
+    {
+        status:   choice [enum(OrderStatus), required],
+        priority: choice [enum(Priority), required],
     },
 }
 ```
 
-### Three variant forms
+### Four variant forms
 
 | Syntax                               | DB value         | Display label (Display)   |
 |--------------------------------------|------------------|---------------------------|
 | `Variant`                            | `"Variant"`      | `"Variant"`               |
-| `Variant = "db_value"`              | `"db_value"`     | `"db_value"`              |
-| `Variant = ("db_value", "Label")`   | `"db_value"`     | `"Label"`                 |
+| `Variant: "Label"`                   | `"Variant"`      | `"Label"`                 |
+| `Variant = "db_value"`               | `"db_value"`     | `"db_value"`              |
+| `Variant = ("db_value", "Label")`    | `"db_value"`     | `"Label"`                 |
 
 > **The DB value is stored exactly as written.** No automatic transformation.
 
@@ -300,31 +301,28 @@ let status: Option<OrderStatus> = "pending".parse().ok();
 
 ---
 
-## File fields — `file()`
+## File fields
 
 ```rust
 model! {
     Article,
     table: "articles",
     pk: id => i32,
-    fields: {
-        image:       String [file(image, "media/articles")],
-        attachment:  String [file(document)],
-        upload:      String [file(any, "media/uploads")],
+    {
+        image:      image    [upload_to: "media/articles"],
+        attachment: document [upload_to: "docs/"],
+        upload:     file     [upload_to: "media/uploads"],
     },
 }
 ```
 
-| Value     | Allowed extensions             |
+| Type      | Allowed extensions             |
 |-----------|--------------------------------|
 | `image`   | `jpg jpeg png gif webp avif`   |
 | `document`| `pdf doc docx txt odt`         |
-| `any`     | no filter                      |
+| `file`    | no filter                      |
 
-| Syntax                        | Destination                              |
-|-------------------------------|------------------------------------------|
-| `file(image, "media/articles")`| `media/articles/` (exact path)          |
-| `file(image)`                 | `{MEDIA_ROOT}/{field_name}/`            |
+`upload_to:` is required for all three types. The path is relative to `MEDIA_ROOT`.
 
 ---
 
@@ -333,21 +331,23 @@ model! {
 ```rust
 relations: {
     belongs_to: Model via fk_field,
-    belongs_to: Model via fk_field [cascade],
     has_many: Model,
-    has_one: Model,
-    many_to_many: Model through PivotTable via via_field,
+    has_many: Comments as user_comments,   // optional alias
+    has_one: Profile as user_profile,
+    many_to_many: Roles through UserRoles via self_id,
 }
 ```
 
 | Type           | DB constraint   | Description                   |
 |----------------|-----------------|-------------------------------|
-| `belongs_to`   | ✅ `FOREIGN KEY` | Foreign key to `model.id`     |
+| `belongs_to`   | ❌ code only     | N-1 relation (SeaORM)         |
 | `has_many`     | ❌ code only     | 1-N relation                  |
 | `has_one`      | ❌ code only     | 1-1 relation                  |
 | `many_to_many` | ❌ code only     | N-N via pivot table           |
 
-Available FK actions: `cascade` · `restrict` · `set_null` · `set_default`
+> **Actual FK constraint**: the SQL `FOREIGN KEY` and its action (`cascade`, `restrict`, `set_null`, `set_default`) are declared on the `fk(table.col, action)` field option, not in the `relations:` block. The `relations:` block only generates SeaORM traits for object navigation.
+
+Available FK actions on `fk(...)`: `cascade` · `restrict` · `set_null` · `set_default`
 
 ---
 
@@ -380,11 +380,13 @@ By default, the label is generated from the snake_case field name (`sort_order` 
 
 ```rust
 fields: {
-    title:        String [required, label("Article title")],
-    sort_order:   i32    [label("Display order")],
-    is_published: bool   [label("Published")],
+    title:        text [required, label("Article title")],
+    sort_order:   i32  [label("Display order")],
+    is_published: bool [label("Published")],
 },
 ```
+
+> `label` and `help` are **v1 only** options — not available in the v2 anonymous block.
 
 The label applies to the admin form and column headers in `list_display`. It has no effect on migrations.
 
@@ -408,6 +410,8 @@ extend! {
 Allowed tables: `eihwaz_users`, `eihwaz_groupes`, `eihwaz_droits`, `eihwaz_sessions`, `eihwaz_users_groupes`, `eihwaz_groupes_droits`. Any other name causes a compile-time error.
 
 Fields in `extend!{}` use the same types and options as the v2 syntax of `model!`.
+
+> **Limitation**: the `search` macro does not yet work on columns added via `extend!{}`.
 
 ---
 
