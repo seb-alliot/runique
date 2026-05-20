@@ -28,9 +28,24 @@ pub struct StaticConfig {
     pub max_text_field_kb: usize,
 }
 
-/// Returns the media root: `MEDIA_ROOT` env var if set, otherwise `"media"` (relative to cwd).
+/// Returns the current working directory as a string, cross-platform.
+/// Falls back to `"."` if the OS call fails (deleted dir, permission error).
+fn current_dir_str() -> String {
+    std::env::current_dir()
+        .ok()
+        .and_then(|p| p.to_str().map(str::to_string))
+        .unwrap_or_else(|| ".".to_string())
+}
+
+/// Priority: `MEDIA_ROOT` → `{BASE_DIR}/media` → `{cwd}/media` → `./media`.
 pub fn resolve_media_root() -> String {
-    std::env::var("MEDIA_ROOT").unwrap_or_else(|_| "media".to_string())
+    if let Ok(root) = std::env::var("MEDIA_ROOT") {
+        return root;
+    }
+    if let Ok(base) = std::env::var("BASE_DIR") {
+        return format!("{}/media", base);
+    }
+    format!("{}/media", current_dir_str())
 }
 
 impl StaticConfig {
@@ -99,5 +114,63 @@ impl StaticConfig {
             max_upload_mb,
             max_text_field_kb,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::Mutex;
+
+    // std::env::set_var is not thread-safe — serialize all env-mutating tests.
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
+
+    #[test]
+    fn current_dir_str_is_absolute() {
+        let dir = current_dir_str();
+        assert!(!dir.is_empty());
+        assert!(
+            std::path::Path::new(&dir).is_absolute(),
+            "current_dir_str() returned a relative path: {dir}"
+        );
+    }
+
+    #[test]
+    fn resolve_media_root_explicit_wins() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        unsafe {
+            std::env::set_var("MEDIA_ROOT", "/custom/media");
+            std::env::remove_var("BASE_DIR");
+        }
+        let result = resolve_media_root();
+        unsafe { std::env::remove_var("MEDIA_ROOT") };
+        assert_eq!(result, "/custom/media");
+    }
+
+    #[test]
+    fn resolve_media_root_uses_base_dir() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        unsafe {
+            std::env::remove_var("MEDIA_ROOT");
+            std::env::set_var("BASE_DIR", "/var/www/app");
+        }
+        let result = resolve_media_root();
+        unsafe { std::env::remove_var("BASE_DIR") };
+        assert_eq!(result, "/var/www/app/media");
+    }
+
+    #[test]
+    fn resolve_media_root_falls_back_to_cwd() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        unsafe {
+            std::env::remove_var("MEDIA_ROOT");
+            std::env::remove_var("BASE_DIR");
+        }
+        let result = resolve_media_root();
+        assert_eq!(result, format!("{}/media", current_dir_str()));
+        assert!(
+            std::path::Path::new(&result).is_absolute(),
+            "fallback path should be absolute: {result}"
+        );
     }
 }
