@@ -12,6 +12,10 @@ All notable changes to this project will be documented in this file.
 
 * **`parse_constraint_name` extracted table-name segments as field names for multi-word tables:** for a table named `changelog_entry`, the primary key constraint `changelog_entry_pkey` was split into `["changelog", "entry", "pkey"]` and the middle part `"entry"` was returned as a field name, producing a spurious "Field 'entry' value is already taken" error on every INSERT. Constraints ending in `_pkey` or `_fkey` now return `None` immediately, so primary key and foreign key violations fall through to the generic error message instead.
 
+### Fixed — `runique` (admin)
+
+* **Admin sidebar filters were not cumulative:** clicking a filter value in one column silently discarded active filters from other columns, because each filter link only included its own `filter_col=val` parameter. Links in `list_partial.html` now iterate over `active_filters` and preserve every other active column filter in the generated URL, both for value selection and for the per-column clear (✕) link.
+
 ---
 
 ## [2.1.4] - 2026-05-20

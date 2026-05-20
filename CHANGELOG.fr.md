@@ -12,6 +12,10 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 * **`parse_constraint_name` extrayait des segments du nom de table comme noms de champ pour les tables multi-mots :** pour une table `changelog_entry`, la contrainte de clé primaire `changelog_entry_pkey` était découpée en `["changelog", "entry", "pkey"]` et la partie centrale `"entry"` était retournée comme nom de champ, produisant une erreur "La valeur du champ 'entry' est déjà utilisée" à chaque INSERT. Les contraintes se terminant par `_pkey` ou `_fkey` retournent désormais `None` immédiatement, laissant les violations de clé primaire et étrangère tomber dans le message d'erreur générique.
 
+### Corrigé — `runique` (admin)
+
+* **Les filtres de la sidebar admin n'étaient pas cumulables :** cliquer une valeur de filtre sur une colonne supprimait silencieusement les filtres actifs des autres colonnes, car chaque lien de filtre n'incluait que son propre paramètre `filter_col=val`. Les liens dans `list_partial.html` itèrent maintenant sur `active_filters` et préservent tous les autres filtres actifs dans l'URL générée, aussi bien pour la sélection d'une valeur que pour le lien de réinitialisation par colonne (✕).
+
 ---
 
 ## [2.1.4] - 2026-05-20

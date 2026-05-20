@@ -339,9 +339,11 @@ resources, resource_counts, current_page
 | `filter_values` | `HashMap<String, Vec<String>>` | Distinct values per filter column (from `list_filter`) |
 | `active_filters` | `HashMap<String, String>` | Active filter per column — `""` if no active filter on that column |
 | `filter_qs` | `String` | Query string fragment for active filters — append to pagination links |
+| `filter_meta` | `HashMap<String, Object>` | Sidebar pagination per column — see structure below |
 | `filter_page_size` | `u64` | Number of values shown per page in the filter sidebar (from `list_filter_limit`) |
+| `return_qs` | `String` | Full query string (sort + search + active filters) — pass to edit/delete links to restore list state on return |
 
-> **Note:** `active_filters` is pre-populated for **all** `list_filter` columns (value `""` if inactive). Tera raises an error on missing keys — this pre-init prevents it.
+> **Note:** `active_filters` is pre-populated for **all** `list_filter` columns (value `""` if inactive). Tera raises an error on missing keys — this pre-init prevents it. Multiple columns can have a non-empty value simultaneously: filter links preserve active filters from other columns.
 
 ### Required keys for template override
 

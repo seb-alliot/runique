@@ -5,7 +5,7 @@ use crate::context::template::{AppError, Request};
 use crate::errors::error::ErrorContext;
 use crate::utils::{
     aliases::{AppResult, StrMap},
-    constante::admin_context::create as ctx_create,
+    constante::admin_context::{bulk_edit as ctx_bulk, create as ctx_create},
     trad::{current_lang, t},
 };
 use axum::response::{IntoResponse, Redirect, Response};
@@ -74,8 +74,8 @@ pub(super) async fn handle_bulk_edit_get(
         crate::utils::constante::admin_context::common::LANG,
         &current_lang().code(),
     );
-    req.context.insert("bulk_count", &bulk_count);
-    req.context.insert("bulk_ids", &ids_raw);
+    req.context.insert(ctx_bulk::BULK_COUNT, &bulk_count);
+    req.context.insert(ctx_bulk::BULK_IDS, &ids_raw);
     req.render(state.config.templates.bulk_edit.resolve())
 }
 

@@ -14,7 +14,7 @@ use crate::context::template::{AppError, Request};
 use crate::errors::error::ErrorContext;
 use crate::utils::{
     aliases::{AppResult, StrMap},
-    constante::admin_context::{common as ctx_common, permission as ctx_perm},
+    constante::admin_context::{common as ctx_common, list as ctx_list, permission as ctx_perm},
     session_key::session::CSRF_TOKEN_KEY,
     trad::{current_lang, t},
 };
@@ -286,7 +286,8 @@ pub(super) fn inject_context(
     req.context
         .insert(ctx_common::CURRENT_RESOURCE, entry.meta.key);
     req.context.insert(ctx_common::RESOURCE, &entry.meta);
-    req.context.insert("group_actions", &entry.group_actions);
+    req.context
+        .insert(ctx_list::GROUP_ACTIONS, &entry.group_actions);
 
     let visible_resources: Vec<_> = state
         .registry

@@ -340,8 +340,9 @@ resources, resource_counts, current_page
 | `active_filters` | `HashMap<String, String>` | Filtre actif par colonne — `""` si aucun filtre actif sur cette colonne |
 | `filter_qs` | `String` | Fragment query string des filtres actifs — à inclure dans les liens de pagination |
 | `filter_meta` | `HashMap<String, Object>` | Pagination sidebar par colonne — voir structure ci-dessous |
+| `return_qs` | `String` | Query string complet (tri + recherche + filtres actifs) — à passer aux liens edit/delete pour retrouver l'état de la liste après retour |
 
-> **Note :** `active_filters` est pré-rempli pour **toutes** les colonnes de `list_filter` (valeur `""` si inactif). Tera lève une erreur si on accède à une clé absente — cette pré-initialisation l'évite.
+> **Note :** `active_filters` est pré-rempli pour **toutes** les colonnes de `list_filter` (valeur `""` si inactif). Tera lève une erreur si on accède à une clé absente — cette pré-initialisation l'évite. Plusieurs colonnes peuvent avoir une valeur non vide simultanément : les liens de filtre préservent les filtres des autres colonnes.
 
 ### Structure de `filter_meta[colonne]`
 

@@ -294,13 +294,13 @@ pub(super) async fn handle_edit_get(
     .await;
 
     if let Some(ts) = data.get("updated_at") {
-        req.context.insert("orig_updated_at", ts);
+        req.context.insert(ctx_edit::ORIG_UPDATED_AT, ts);
     }
 
     let return_qs = req
         .prisme
         .data
-        .get("return_qs")
+        .get(ctx_edit::RETURN_QS)
         .filter(|s| !s.is_empty())
         .cloned()
         .unwrap_or_default();
@@ -313,7 +313,7 @@ pub(super) async fn handle_edit_get(
     req.context.insert(ctx_edit::FORM_FIELDS, form.get_form());
     req.context.insert(ctx_edit::IS_EDIT, &true);
     req.context.insert(ctx_edit::OBJECT_ID, &id);
-    req.context.insert("return_qs", &return_qs);
+    req.context.insert(ctx_edit::RETURN_QS, &return_qs);
     let template = entry
         .meta
         .template_edit
@@ -463,7 +463,7 @@ pub(super) async fn handle_edit_post(
     }
 
     if let Some(ts) = orig_updated_at {
-        req.context.insert("orig_updated_at", &ts);
+        req.context.insert(ctx_edit::ORIG_UPDATED_AT, &ts);
     }
 
     if let Some(loader) = &entry.m2m_loader {
@@ -475,7 +475,7 @@ pub(super) async fn handle_edit_post(
     req.context.insert(ctx_edit::FORM_FIELDS, form.get_form());
     req.context.insert(ctx_edit::IS_EDIT, &true);
     req.context.insert(ctx_edit::OBJECT_ID, &id);
-    req.context.insert("return_qs", return_qs_str);
+    req.context.insert(ctx_edit::RETURN_QS, return_qs_str);
     let template = entry
         .meta
         .template_edit
