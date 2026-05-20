@@ -311,14 +311,6 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         out,
         "            if let Some(ref search_str) = params.search {{"
     );
-    let _ = writeln!(
-        out,
-        "                let escaped = search_str.replace('\\'', \"''\");"
-    );
-    let _ = writeln!(
-        out,
-        "                let mut search_cond = sea_orm::Condition::any();"
-    );
     write_search_conditions(out, &r.list_display, &module);
     let _ = writeln!(out, "                query = query.filter(search_cond);");
     let _ = writeln!(out, "            }}");
@@ -409,7 +401,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     let _ = writeln!(out, "        Box::pin(async move {{");
     let _ = writeln!(
         out,
-        "            use sea_orm::{{QueryFilter, sea_query::Expr}};"
+        "            use sea_orm::QueryFilter;"
     );
     let _ = writeln!(
         out,
@@ -417,14 +409,6 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         module
     );
     let _ = writeln!(out, "            if let Some(ref search_str) = _search {{");
-    let _ = writeln!(
-        out,
-        "                let escaped = search_str.replace('\\'', \"''\");"
-    );
-    let _ = writeln!(
-        out,
-        "                let mut search_cond = sea_orm::Condition::any();"
-    );
     write_search_conditions(out, &r.list_display, &module);
     let _ = writeln!(out, "                query = query.filter(search_cond);");
     let _ = writeln!(out, "            }}");
@@ -1014,8 +998,8 @@ fn write_form_builder_closure_fk(
     let _ = writeln!(out);
 }
 
-/// Emits `search_cond.add(...)` lines for each column in `list_display` (or "id" if empty).
-/// FK columns (with a FkDisplay) are skipped — searching a raw FK ID makes no sense.
+/// Emits a `search_cond!` call for the search block.
+/// FK columns are skipped — searching a raw FK ID makes no sense.
 fn write_search_conditions(
     out: &mut String,
     list_display: &[(
@@ -1032,30 +1016,23 @@ fn write_search_conditions(
         .collect();
 
     if searchable.is_empty() {
-        // No non-FK list_display declared → search all columns via Column::iter() at runtime
         let _ = writeln!(
             out,
-            "                use sea_orm::{{Iterable, IdenStatic}};"
+            "                let search_cond = search_cond!({module}::Entity => all_columns icontains search_str);",
+            module = module
         );
-        let _ = writeln!(
-            out,
-            "                for col in {}::Column::iter() {{",
-            module
-        );
-        let _ = writeln!(out, "                    let col_name = col.as_str();");
-        let _ = writeln!(
-            out,
-            "                    search_cond = search_cond.add(Expr::cust(format!(\"LOWER(CAST({{}} AS TEXT)) LIKE LOWER('%%{{}}%%')\", col_name, escaped)));"
-        );
-        let _ = writeln!(out, "                }}");
     } else {
-        for col in searchable {
-            let _ = writeln!(
-                out,
-                "                search_cond = search_cond.add(Expr::cust(format!(\"LOWER(CAST({{}} AS TEXT)) LIKE LOWER('%%{{}}%%')\", \"{}\", escaped)));",
-                col
-            );
-        }
+        let cols = searchable
+            .iter()
+            .map(|col| format!("\"{}\" icontains search_str", col))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let _ = writeln!(
+            out,
+            "                let search_cond = search_cond!({module}::Entity => or({cols}));",
+            module = module,
+            cols = cols
+        );
     }
 }
 

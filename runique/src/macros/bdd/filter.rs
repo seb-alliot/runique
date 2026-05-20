@@ -372,3 +372,40 @@ macro_rules! search {
         b
     }};
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// search_cond! — returns a sea_orm::Condition for use in existing query builders
+//
+// Unlike `search!` which wraps an Objects query builder, `search_cond!` returns
+// a raw Condition to merge into an already-in-progress query.
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[macro_export]
+macro_rules! search_cond {
+    // ── all_columns icontains val — runtime LIKE across every column ──────────
+    ($entity:ty => all_columns icontains $val:expr) => {{
+        use sea_orm::{EntityTrait, Iterable, IdenStatic};
+        let __val = ($val).replace('\'', "''");
+        let mut __cond = sea_orm::Condition::any();
+        for col in <$entity as EntityTrait>::Column::iter() {
+            __cond = __cond.add(sea_orm::sea_query::Expr::cust(
+                format!("LOWER(CAST({} AS TEXT)) LIKE LOWER('%{}%')", col.as_str(), __val)
+            ));
+        }
+        __cond
+    }};
+
+    // ── or("col1" icontains val, "col2" icontains val, ...) ──────────────────
+    ($entity:ty => or($($col:literal icontains $val:expr),+ $(,)?)) => {{
+        let mut __cond = sea_orm::Condition::any();
+        $(
+            {
+                let __v = ($val).replace('\'', "''");
+                __cond = __cond.add(sea_orm::sea_query::Expr::cust(
+                    format!("LOWER(CAST({} AS TEXT)) LIKE LOWER('%{}%')", $col, __v)
+                ));
+            }
+        )+
+        __cond
+    }};
+}
