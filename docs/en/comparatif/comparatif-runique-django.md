@@ -149,7 +149,7 @@
 | Custom admin routes | `get_urls()` | `.extra_routes(vec![...])` |
 | Custom templates | yes | yes (Tera hierarchy) |
 | Permissions | per resource | Dynamic RBAC (Groups / Scoped permissions) |
-| Change history | `django-simple-history` (3rd party) | native history (created/modified/deleted) — without field diff |
+| Change history | `django-simple-history` (3rd party) | native history (created/modified/deleted) with field diff |
 | Builtin config | — | `configure {}` block in `admin!{}` |
 
 ---
@@ -189,5 +189,13 @@
 ## What Runique is still missing (compared to Django)
 
 - **Image resizing**: no server-side auto resize/cropping.
-- **Field-level change history**: the admin history tracks operations (created/modified/deleted) but not the exact content of each changed field (full `django-simple-history` equivalent).
-- **Class-based views**: no equivalent to Django's `DetailView`, `ListView`, `CreateView`.
+- **Generic public CRUD views**: no equivalent to Django's `DetailView`, `ListView`, `CreateView` for public views — planned via `crud!{}` (in development). The admin panel covers backoffice CRUD via `admin!{}`.
+- **Model signals / hooks**: `before_save`, `after_save`, `before_delete`, `after_delete` — infrastructure in place, generator integration in progress.
+- **Management commands**: no equivalent to `manage.py custom_command` — one-shot operations go through `src/bin/`.
+- **Built-in test client**: no native HTTP test client — use `reqwest` or `axum::test`.
+- **Fixtures**: no `loaddata`/`dumpdata` — seeds are plain Rust functions.
+- **Admin inline**: no editing of related objects directly inside the parent form.
+- **Full i18n**: `t()`/`tf()` available, but no pluralization or Tera template translation.
+- **Sitemap / RSS**: not built-in.
+- **Third-party authentication**: OAuth / OIDC structured (Google, Microsoft, Apple, LDAP, SAML) but flow not implemented — stub only. JWT and API key auth absent.
+- **Security observability**: CSP `report-uri`/`report-to` absent — violations are not collected. Auth event log (successful/failed logins, lockouts) not stored in DB.

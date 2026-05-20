@@ -149,7 +149,7 @@
 | Routes admin custom | `get_urls()` | `.extra_routes(vec![...])` |
 | Templates custom | oui | oui (hiérarchie Tera) |
 | Permissions | par ressource | RBAC dynamique (Groupes / Droits scopés) |
-| Historique modifications | `django-simple-history` (tiers) | historique natif (créé/modifié/supprimé) — sans diff de champs |
+| Historique modifications | `django-simple-history` (tiers) | historique natif (créé/modifié/supprimé) avec diff de champs |
 | Configuration builtins | — | bloc `configure {}` dans `admin!{}` |
 
 ---
@@ -189,5 +189,13 @@
 ## Ce qu'il manque encore (comparé à Django)
 
 - **Redimensionnement automatique d'images** : resize/cropping côté serveur non natif.
-- **Historique diff de champs** : l'historique admin trace les opérations (créé/modifié/supprimé) mais pas le contenu exact de chaque champ modifié (équivalent complet de `django-simple-history`).
-- **Vues classe** : pas d'équivalent aux `DetailView`, `ListView`, `CreateView` de Django.
+- **Vues CRUD publiques génériques** : pas d'équivalent aux `DetailView`, `ListView`, `CreateView` de Django pour les vues publiques — prévu via `crud!{}` (en développement). Le panel admin couvre le CRUD backoffice via `admin!{}`.
+- **Signals / hooks modèles** : `before_save`, `after_save`, `before_delete`, `after_delete` — infrastructure posée, générateur en cours de branchement.
+- **Management commands** : pas d'équivalent à `manage.py custom_command` — les opérations one-shot passent par `src/bin/`.
+- **Test client intégré** : pas de client HTTP de test natif — utiliser `reqwest` ou `axum::test`.
+- **Fixtures** : pas de `loaddata`/`dumpdata` — les seeds sont des fonctions Rust.
+- **Admin inline** : pas d'édition d'objets liés directement dans le formulaire parent.
+- **i18n complète** : `t()`/`tf()` disponibles, mais pas de pluralisation ni de traduction des templates Tera.
+- **Sitemap / RSS** : non natif.
+- **Authentification tiers** : OAuth / OIDC structuré (Google, Microsoft, Apple, LDAP, SAML) mais flow non implémenté — stub uniquement. JWT et API key auth absents.
+- **Observabilité sécurité** : CSP `report-uri`/`report-to` absent — les violations ne sont pas collectées. Audit log des connexions (réussies/échouées/lockouts) non tracé en DB.
