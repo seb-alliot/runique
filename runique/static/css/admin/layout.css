@@ -66,7 +66,7 @@ ul { list-style: none; }
 }
 
 /* Header sidebar */
-.sidebar-header {
+.admin-sidebar__header {
     height: var(--topbar-height);
     display: flex;
     align-items: center;
@@ -76,7 +76,7 @@ ul { list-style: none; }
     flex-shrink: 0;
 }
 
-.sidebar-logo {
+.admin-sidebar__logo {
     width: 32px;
     height: 32px;
     background: var(--accent);
@@ -90,7 +90,7 @@ ul { list-style: none; }
     flex-shrink: 0;
 }
 
-.sidebar-title {
+.admin-sidebar__title {
     font-weight: 600;
     font-size: 0.95rem;
     color: var(--text-main);
@@ -100,24 +100,24 @@ ul { list-style: none; }
     transition: opacity var(--transition);
 }
 
-.admin-sidebar.collapsed .sidebar-title {
+.admin-sidebar.collapsed .admin-sidebar__title {
     opacity: 0;
     width: 0;
 }
 
 /* Navigation */
-.sidebar-nav {
+.admin-sidebar__nav {
     flex: 1;
     padding: 0.75rem 0;
     overflow-y: auto;
     overflow-x: hidden;
 }
 
-.sidebar-nav::-webkit-scrollbar { width: 4px; }
-.sidebar-nav::-webkit-scrollbar-track { background: transparent; }
-.sidebar-nav::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+.admin-sidebar__nav::-webkit-scrollbar { width: 4px; }
+.admin-sidebar__nav::-webkit-scrollbar-track { background: transparent; }
+.admin-sidebar__nav::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
 
-.nav-section-label {
+.admin-nav__section-label {
     font-size: 0.7rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -130,11 +130,11 @@ ul { list-style: none; }
     transition: opacity var(--transition);
 }
 
-.admin-sidebar.collapsed .nav-section-label {
+.admin-sidebar.collapsed .admin-nav__section-label {
     opacity: 0;
 }
 
-.nav-item {
+.admin-nav__item {
     display: flex;
     align-items: center;
     gap: 0.75rem;
@@ -148,18 +148,18 @@ ul { list-style: none; }
     position: relative;
 }
 
-.nav-item:hover {
+.admin-nav__item:hover {
     background: var(--bg-hover);
     color: var(--text-main);
 }
 
-.nav-item.active {
+.admin-nav__item.active {
     background: var(--bg-active);
     color: var(--accent);
     font-weight: 500;
 }
 
-.nav-item.active::before {
+.admin-nav__item.active::before {
     content: "";
     position: absolute;
     left: 0;
@@ -171,45 +171,45 @@ ul { list-style: none; }
     margin-left: -0.5rem;
 }
 
-.nav-icon {
+.admin-nav__icon {
     width: 20px;
     height: 20px;
     flex-shrink: 0;
     opacity: 0.8;
 }
 
-.nav-item:hover .nav-icon,
-.nav-item.active .nav-icon { opacity: 1; }
+.admin-nav__item:hover .admin-nav__icon,
+.admin-nav__item.active .admin-nav__icon { opacity: 1; }
 
-.nav-label {
+.admin-nav__label {
     opacity: 1;
     transition: opacity var(--transition);
     font-size: 0.88rem;
 }
 
-.admin-sidebar.collapsed .nav-label {
+.admin-sidebar.collapsed .admin-nav__label {
     opacity: 0;
     width: 0;
 }
 
-.admin-sidebar.collapsed .nav-item {
+.admin-sidebar.collapsed .admin-nav__item {
     justify-content: center;
 }
 
-.nav-divider {
+.admin-nav__divider {
     height: 1px;
     background: var(--border);
     margin: 0.5rem 1rem;
 }
 
 /* Footer sidebar */
-.sidebar-footer {
+.admin-sidebar__footer {
     border-top: 1px solid var(--border);
     padding: 0.75rem 0;
     flex-shrink: 0;
 }
 
-.sidebar-footer-center {
+.admin-sidebar__footer-center {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -218,7 +218,7 @@ ul { list-style: none; }
 
 .hidden { display: none; }
 
-.sidebar-toggle {
+.admin-sidebar__toggle {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -231,7 +231,7 @@ ul { list-style: none; }
     transition: all var(--transition);
 }
 
-.sidebar-toggle:hover {
+.admin-sidebar__toggle:hover {
     background: var(--bg-hover);
     color: var(--text-main);
     border-color: var(--accent);
@@ -261,7 +261,7 @@ ul { list-style: none; }
     flex-shrink: 0;
 }
 
-.topbar-breadcrumb {
+.admin-topbar__breadcrumb {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -270,11 +270,11 @@ ul { list-style: none; }
     flex: 1;
 }
 
-.topbar-breadcrumb a:hover { color: var(--accent); }
-.topbar-breadcrumb span { color: var(--text-main); font-weight: 500; }
-.breadcrumb-sep { opacity: 0.4; }
+.admin-topbar__breadcrumb a:hover { color: var(--accent); }
+.admin-topbar__breadcrumb span { color: var(--text-main); font-weight: 500; }
+.admin-topbar__sep { opacity: 0.4; }
 
-.topbar-user {
+.admin-topbar__user {
     display: flex;
     align-items: center;
     gap: 0.6rem;
@@ -286,12 +286,12 @@ ul { list-style: none; }
     transition: background var(--transition);
 }
 
-.topbar-user:hover {
+.admin-topbar__user:hover {
     background: var(--bg-hover);
     color: var(--text-main);
 }
 
-.user-avatar {
+.admin-topbar__avatar {
     width: clamp(32px, 4vw, 40px);
     height: clamp(32px, 4vw, 40px);
     border-radius: 50%;
@@ -317,7 +317,7 @@ ul { list-style: none; }
 .admin-content::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
 
 /* Page header */
-.page-header {
+.admin-page__header {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -325,20 +325,20 @@ ul { list-style: none; }
     gap: 1rem;
 }
 
-.page-title {
+.admin-page__title {
     font-size: 1.35rem;
     font-weight: 600;
     color: var(--text-main);
 }
 
-.page-subtitle {
+.admin-page__subtitle {
     font-size: 0.85rem;
     color: var(--text-muted);
     margin-top: 0.2rem;
 }
 
 /* ── Filter sidebar layout ── */
-.admin-list-layout {
+.admin-list__layout {
     display: grid;
     grid-template-columns: 1fr 200px;
     gap: 1.5rem;
@@ -346,12 +346,12 @@ ul { list-style: none; }
     transition: grid-template-columns var(--transition);
 }
 
-.admin-list-layout.filter-collapsed {
+.admin-list__layout.filter-collapsed {
     grid-template-columns: 1fr 36px;
 }
 
-.admin-list-layout.filter-collapsed .filter-sidebar-body { display: none; }
-.admin-list-layout.filter-collapsed .filter-sidebar-title { opacity: 0; width: 0; }
+.admin-list__layout.filter-collapsed .admin-filter__body { display: none; }
+.admin-list__layout.filter-collapsed .admin-filter__title { opacity: 0; width: 0; }
 
 /* Transition de page — fade-in au chargement */
 /* TODO: remplacer par @view-transition { navigation: auto; } quand Firefox le supporte */

@@ -8,11 +8,11 @@
     'use strict';
 
     const closeAllMenus = () => {
-        document.querySelectorAll('.row-menu-dropdown.open').forEach(d => {
+        document.querySelectorAll('.admin-menu__dropdown.open').forEach(d => {
             d.classList.remove('open');
             d.removeAttribute('style');
         });
-        document.querySelectorAll('.row-menu-trigger.active').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.admin-menu__trigger.active').forEach(t => t.classList.remove('active'));
     };
 
     const positionDropdown = (trigger, dropdown) => {
@@ -43,7 +43,7 @@
     let lastOpenTime = 0;
 
     document.addEventListener('click', function (e) {
-        const trigger = e.target.closest('.row-menu-trigger');
+        const trigger = e.target.closest('.admin-menu__trigger');
         if (trigger) {
             const dropdown = trigger.nextElementSibling;
             const isOpen = dropdown.classList.contains('open');
@@ -57,7 +57,7 @@
             e.stopPropagation();
             return;
         }
-        if (!e.target.closest('.row-menu-dropdown')) closeAllMenus();
+        if (!e.target.closest('.admin-menu__dropdown')) closeAllMenus();
     });
 
     // Sur mobile, un tap génère un micro-scroll — on ignore les scrolls dans les 300ms suivant l'ouverture

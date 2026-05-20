@@ -19,18 +19,18 @@ function initAdminList() {
     // ── Cellules dépliables (clic sur td-data) ──
     document.querySelectorAll('.admin-table tbody').forEach(function (tbody) {
         tbody.addEventListener('click', function (e) {
-            const cell = e.target.closest('td.td-data');
+            const cell = e.target.closest('td.admin-table__td-data');
             if (cell) cell.classList.toggle('expanded');
         });
     });
 
     // ── Expand lignes (mobile) ──
-    document.querySelectorAll('.row-expand-btn').forEach(function (btn) {
+    document.querySelectorAll('.admin-table__expand-btn').forEach(function (btn) {
         btn.addEventListener('click', function (e) {
             e.stopPropagation();
             const tr = btn.closest('tr');
             const detailRow = tr.nextElementSibling;
-            if (!detailRow || !detailRow.classList.contains('row-detail')) return;
+            if (!detailRow || !detailRow.classList.contains('admin-table__row-detail')) return;
             const isOpen = detailRow.classList.toggle('open');
             btn.classList.toggle('open', isOpen);
             btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
@@ -42,7 +42,7 @@ function initAdminList() {
 
     const toggle     = document.getElementById('filterToggle');
     const chevron    = toggle.querySelector('svg');
-    const layout     = sidebar.closest('.admin-list-layout');
+    const layout     = sidebar.closest('.admin-list__layout');
     const FILTER_KEY = 'runique_admin_filter_collapsed';
     const isMobile   = window.innerWidth <= 768;
 
@@ -88,11 +88,11 @@ function initAdminList() {
     // ── Groupes de filtres individuels ──
     const RESOURCE = sidebar.dataset.resource;
 
-    document.querySelectorAll('.filter-group').forEach(function (group) {
+    document.querySelectorAll('.admin-filter__group').forEach(function (group) {
         const col     = group.dataset.filterCol;
-        const btn     = group.querySelector('.filter-group-title');
-        const body    = group.querySelector('.filter-group-body');
-        const grpChev = btn.querySelector('.filter-group-chevron');
+        const btn     = group.querySelector('.admin-filter__group-title');
+        const body    = group.querySelector('.admin-filter__group-body');
+        const grpChev = btn.querySelector('.admin-filter__chevron');
         const KEY     = 'runique_fg_' + RESOURCE + '_' + col;
         const stored  = sessionStorage.getItem(KEY);
 

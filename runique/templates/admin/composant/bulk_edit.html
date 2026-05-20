@@ -5,15 +5,17 @@
 {% endblock %}
 {% block title %}{% if admin_edit_title %}{{ admin_edit_title }}{% endif %} — {{ resource.title }}{% endblock %}
 {% block breadcrumb %}
-  <span class="breadcrumb-sep">/</span>
+  <span class="admin-topbar__sep">/</span>
   <a href="{{ admin_prefix }}/{{ resource.key }}/list">{{ resource.title }}</a>
-  <span class="breadcrumb-sep">/</span>
+  <span class="admin-topbar__sep">/</span>
   <span>Modification groupée ({{ bulk_count }})</span>
 {% endblock %}
 {% block content %}
-  <header class="page-header">
+  {% block group_edit_header %}
+  <header class="admin-page__header">
     <h1>Modification groupée — {{ resource.title }}</h1>
   </header>
+  {% endblock %}
 
   {% set_global can_edit = false %}
   {% if current_user %}
@@ -36,13 +38,14 @@
     <input type="hidden" name="bulk_action" value="update-submit">
     <input type="hidden" name="ids" value="{{ bulk_ids }}">
 
+    {% block group_edit_fields %}
     {# Section 1 — champs non-booléens (groupe, ressources, …) #}
-    <div class="card card-form bulk-section">
-      <div class="card-header">
+    <div class="admin-card admin-card--form admin-group-edit__section">
+      <div class="admin-card__header">
         <h2>Appliquer à {{ bulk_count }} élément(s) sélectionné(s)</h2>
-        <p class="text-muted bulk-section-hint">Les champs laissés vides ne seront pas modifiés.</p>
+        <p class="admin-text--muted admin-group-edit__section-hint">Les champs laissés vides ne seront pas modifiés.</p>
       </div>
-      <div class="card-body">
+      <div class="admin-card__body">
         <div id="bulk-fields-main" class="form-grid">
           {% if form_fields is defined and form_fields.html is defined and form_fields.html %}
             {{ form_fields.html }}
@@ -50,35 +53,42 @@
             <p>{% if admin_edit_no_fields %}{{ admin_edit_no_fields }}{% endif %}</p>
           {% endif %}
         </div>
-        <div class="bulk-toggle-row">
+        <div class="admin-group-edit__toggle-row">
           <button type="button" class="btn btn-sm btn-secondary" id="bulk-toggle-fields">Tout cocher les ressources</button>
         </div>
       </div>
     </div>
+    {% endblock %}
 
+    {% block group_edit_permissions %}
     {# Section 2 — permissions booléennes (remplie par JS si présentes) #}
-    <div class="card card-form bulk-section" id="bulk-perms-section" hidden>
-      <div class="card-header bulk-section-header">
+    <div class="admin-card admin-card--form admin-group-edit__section" id="bulk-perms-section" hidden>
+      <div class="admin-card__header admin-group-edit__section-header">
         <h2>Permissions</h2>
         <button type="button" class="btn btn-sm btn-secondary" id="bulk-toggle-perms">Tout cocher les permissions</button>
       </div>
-      <div class="card-body">
-        <div id="bulk-perm-fields" class="bulk-perm-grid"></div>
+      <div class="admin-card__body">
+        <div id="bulk-perm-fields" class="admin-group-edit__perm-grid"></div>
       </div>
     </div>
+    {% endblock %}
 
-    <div class="form-actions">
+    {% block group_edit_actions %}
+    <div class="admin-form__actions">
       <a href="{{ admin_prefix }}/{{ resource.key }}/list" class="btn btn-secondary">{% if admin_edit_btn_cancel %}{{ admin_edit_btn_cancel }}{% endif %}</a>
       <button type="submit" class="btn btn-primary">Appliquer à {{ bulk_count }} élément(s)</button>
     </div>
+    {% endblock %}
   </form>
   {% else %}
-  <div class="card">
-    <div class="card-body">
-      <div class="empty-state">
-        <p class="empty-state-desc">Vous n'avez pas les droits nécessaires pour modifier ces éléments.</p>
+  {% block group_edit_denied %}
+  <div class="admin-card">
+    <div class="admin-card__body">
+      <div class="admin-empty-state">
+        <p class="admin-empty-state__desc">Vous n'avez pas les droits nécessaires pour modifier ces éléments.</p>
       </div>
     </div>
   </div>
+  {% endblock %}
   {% endif %}
 {% endblock %}

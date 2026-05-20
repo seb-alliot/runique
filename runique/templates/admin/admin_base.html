@@ -12,55 +12,55 @@
 {% block sidebar %}
     <aside class="admin-sidebar" id="adminSidebar">
 
-        <div class="sidebar-header">
-            <div class="sidebar-logo">R</div>
-            <span class="sidebar-title">{{ site_title | default(value="Runique Admin") }}</span>
+        <div class="admin-sidebar__header">
+            <div class="admin-sidebar__logo">R</div>
+            <span class="admin-sidebar__title">{{ site_title | default(value="Runique Admin") }}</span>
         </div>
 
-        <nav class="sidebar-nav">
+        <nav class="admin-sidebar__nav">
 
-            <a href="{{ admin_prefix }}" class="nav-item{% if current_page %} {% if current_page == 'dashboard' %}active{% endif %} {% endif %}">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <a href="{{ admin_prefix }}" class="admin-nav__item{% if current_page %} {% if current_page == 'dashboard' %}active{% endif %} {% endif %}">
+                <svg class="admin-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
                     <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
                 </svg>
-                <span class="nav-label">{% if admin_dashboard_title %}{{ admin_dashboard_title }}{% endif %}</span>
+                <span class="admin-nav__label">{% if admin_dashboard_title %}{{ admin_dashboard_title }}{% endif %}</span>
             </a>
 
             {% if resources %}
-                <div class="nav-divider"></div>
-                <div class="nav-section-label">{% if admin_list_breadcrumb_admin %}{{ admin_list_breadcrumb_admin }}{% endif %}</div>
+                <div class="admin-nav__divider"></div>
+                <div class="admin-nav__section-label">{% if admin_list_breadcrumb_admin %}{{ admin_list_breadcrumb_admin }}{% endif %}</div>
 
                 {% for resource in resources %}
                 <a href="{{ admin_prefix }}/{{ resource.key }}/list"
-                    class="nav-item {% if current_resource == resource.key %}active{% endif %}">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    class="admin-nav__item {% if current_resource == resource.key %}active{% endif %}">
+                        <svg class="admin-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                             <polyline points="14 2 14 8 20 8"/>
                             <line x1="16" y1="13" x2="8" y2="13"/>
                             <line x1="16" y1="17" x2="8" y2="17"/>
                         </svg>
-                    <span class="nav-label">{{ resource.title }}</span>
+                    <span class="admin-nav__label">{{ resource.title }}</span>
                 </a>
                 {% endfor %}
             {% endif %}
 
             {% if current_user and (current_user.is_staff or current_user.is_superuser) %}
-                <div class="nav-divider"></div>
-                <a href="{{ admin_prefix }}/history" class="nav-item{% if current_page | default(value='') == 'history' %} active{% endif %}">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <div class="admin-nav__divider"></div>
+                <a href="{{ admin_prefix }}/history" class="admin-nav__item{% if current_page | default(value='') == 'history' %} active{% endif %}">
+                    <svg class="admin-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"/>
                         <polyline points="12 6 12 12 16 14"/>
                     </svg>
-                    <span class="nav-label">Historique</span>
+                    <span class="admin-nav__label">Historique</span>
                 </a>
             {% endif %}
 
         </nav>
 
-        <div class="sidebar-footer">
-            <div class="sidebar-footer-center">
-                <button class="sidebar-toggle" id="sidebarToggle" title="{% if admin_base_toggle %}{{ admin_base_toggle }}{% endif %}">
+        <div class="admin-sidebar__footer">
+            <div class="admin-sidebar__footer-center">
+                <button class="admin-sidebar__toggle" id="sidebarToggle" title="{% if admin_base_toggle %}{{ admin_base_toggle }}{% endif %}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
                         <polyline points="15 18 9 12 15 6"/>
                     </svg>
@@ -70,7 +70,7 @@
 
     </aside>
 
-    <div class="admin-sidebar-overlay" id="sidebarOverlay"></div>
+    <div class="admin-sidebar__overlay" id="sidebarOverlay"></div>
 {% endblock %}
 
 {% block topbar %}
@@ -84,7 +84,7 @@
             </svg>
         </button>
 
-        <div class="topbar-breadcrumb">
+        <div class="admin-topbar__breadcrumb">
             <a href="{{ admin_prefix }}">{% if admin_base_breadcrumb %}{{ admin_base_breadcrumb }}{% endif %}</a>
             {% block breadcrumb %}{% endblock %}
         </div>
@@ -92,10 +92,10 @@
         <a href="{{ site_url | default(value='/') }}" class="btn btn-ghost btn-sm">
             {% if admin_base_back_to_site %}{{ admin_base_back_to_site }}{% else %}← Site{% endif %}
         </a>
-        <form method="POST" action="{{ admin_prefix }}/logout" class="logout-form">
+        <form method="POST" action="{{ admin_prefix }}/logout" class="admin-logout__form">
             {% csrf %}
-            <button type="submit" class="topbar-user logout-button" title="{% if admin_base_logout_title %}{{ admin_base_logout_title }}{% endif %}">
-                <div class="user-avatar">
+            <button type="submit" class="admin-topbar__user admin-logout__btn" title="{% if admin_base_logout_title %}{{ admin_base_logout_title }}{% endif %}">
+                <div class="admin-topbar__avatar">
                     {{ current_user.username }}
                 </div>
                 <span>{% if admin_base_logout_title %}{{ admin_base_logout_title }}{% else %}Déconnexion{% endif %}</span>

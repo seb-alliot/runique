@@ -2,7 +2,7 @@
   "use strict";
 
   function getChecked() {
-    return Array.from(document.querySelectorAll(".bulk-check:checked"));
+    return Array.from(document.querySelectorAll(".admin-table__bulk-check:checked"));
   }
 
   function collectIds() {
@@ -20,7 +20,7 @@
     if (!bar) return;
     const n = getChecked().length;
     if (countEl) countEl.textContent = n;
-    bar.classList.toggle("bulk-bar-visible", n > 0);
+    bar.classList.toggle("admin-group-action__bar--visible", n > 0);
   }
 
   const bindCheckboxes = function () {
@@ -28,13 +28,13 @@
     if (checkAll) {
       checkAll.addEventListener("change", function () {
         document
-          .querySelectorAll(".bulk-check")
+          .querySelectorAll(".admin-table__bulk-check")
           .forEach((cb) => (cb.checked = checkAll.checked));
         updateBar();
       });
     }
 
-    document.querySelectorAll(".bulk-check").forEach((cb) => {
+    document.querySelectorAll(".admin-table__bulk-check").forEach((cb) => {
       cb.addEventListener("change", function () {
         const all = document.getElementById("bulk-check-all");
         if (all && !this.checked) all.checked = false;

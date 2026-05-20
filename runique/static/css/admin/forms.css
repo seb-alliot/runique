@@ -84,7 +84,7 @@
     cursor: pointer;
 }
 
-.form-actions {
+.admin-form__actions {
     display: flex;
     align-items: center;
     justify-content: flex-end;
@@ -336,25 +336,25 @@ textarea.form-control { min-height: 100px; resize: vertical; }
     Champs Many-to-Many admin
    ─────────────────────────────────────────────── */
 
-.m2m-fields {
+.admin-m2m__fields {
     padding: 1rem 0 0;
 }
 
-.m2m-group {
+.admin-m2m__group {
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 0.75rem 1rem 1rem;
     margin-bottom: 1rem;
 }
 
-.m2m-choices {
+.admin-m2m__choices {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     gap: 0.4rem 0.75rem;
     margin-top: 0.5rem;
 }
 
-.m2m-choice {
+.admin-m2m__choice {
     display: flex;
     align-items: center;
     gap: 0.55rem;
@@ -364,7 +364,7 @@ textarea.form-control { min-height: 100px; resize: vertical; }
     padding: 0.2rem 0;
 }
 
-.m2m-choice input[type="checkbox"] {
+.admin-m2m__choice input[type="checkbox"] {
     width: 16px;
     height: 16px;
     accent-color: var(--accent);
@@ -372,9 +372,9 @@ textarea.form-control { min-height: 100px; resize: vertical; }
     flex-shrink: 0;
 }
 
-@media (max-width: 1024px) { .m2m-choices { grid-template-columns: repeat(4, 1fr); } }
-@media (max-width: 900px)  { .m2m-choices { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 480px)  { .m2m-choices { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 1024px) { .admin-m2m__choices { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 900px)  { .admin-m2m__choices { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 480px)  { .admin-m2m__choices { grid-template-columns: repeat(2, 1fr); } }
 
 /* ───────────────────────────────────────────────
     Barre de filtre alphabétique (choice-filter.js)
@@ -447,15 +447,15 @@ textarea.form-control { min-height: 100px; resize: vertical; }
     word-break: break-all;
 }
 
-/* ── Bulk edit — permissions grid ───────────────────────────── */
+/* ── Group edit — permissions grid ──────────────────────────── */
 
-.bulk-perm-grid {
+.admin-group-edit__perm-grid {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem 2rem;
 }
 
-.bulk-perm-grid .boolean-field {
+.admin-group-edit__perm-grid .boolean-field {
     flex: 0 0 auto;
     min-width: 130px;
 }
