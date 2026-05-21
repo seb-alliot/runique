@@ -268,7 +268,7 @@ async fn seed_language(lang: &str, lang_path: &Path, db: &DatabaseConnection) {
         }
 
         // Les cours ont leur propre table — on les exclut du seed doc
-        if section_slug == "cour" {
+        if section_slug == "cour" || section_slug == "ia" {
             continue;
         }
 
