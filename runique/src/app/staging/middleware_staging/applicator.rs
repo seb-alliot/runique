@@ -353,6 +353,17 @@ impl MiddlewareStaging {
         // In Axum, last `.layer()` = outermost = first executed on the request.
         entries.sort_by_key(|b| std::cmp::Reverse(b.slot));
 
+        if let Some(level) = crate::utils::runique_log::get_log()
+            .builder
+            .as_ref()
+            .and_then(|b| b.middleware)
+        {
+            crate::runique_log!(level, count = entries.len(), "middleware stack");
+            for entry in &entries {
+                crate::runique_log!(level, slot = entry.slot, name = %entry.name, "middleware slot");
+            }
+        }
+
         let mut router = router;
         for entry in entries {
             router = (entry.apply)(router);

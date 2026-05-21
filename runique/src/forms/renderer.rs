@@ -4,7 +4,7 @@ use crate::utils::{
     aliases::{ATera, FieldsMap},
     trad::tf,
 };
-use tracing::{debug, trace, warn};
+use tracing::warn;
 
 #[derive(Clone)]
 pub struct FormRenderer {
@@ -21,15 +21,12 @@ impl FormRenderer {
     }
 
     pub fn add_js(&mut self, files: &[&str]) {
-        debug!(files_count = files.len(), "add JS files to form");
-
         for file in files {
             if let Some(reason) = Self::validate_js_path(file) {
                 warn!(file = %file, reason = reason, "Skipping JS file");
                 continue;
             }
             self.js_files.push(file.to_string());
-            trace!(file = %file, "Added JS file to form");
         }
     }
 
@@ -47,6 +44,18 @@ impl FormRenderer {
     }
 
     pub fn render(&self, fields: &FieldsMap, errors: &[String]) -> Result<String, String> {
+        let log_render = crate::utils::runique_log::get_log()
+            .forms
+            .as_ref()
+            .and_then(|f| f.render);
+        if let Some(level) = log_render {
+            crate::runique_log!(
+                level,
+                fields = fields.len(),
+                global_errors = errors.len(),
+                "render start"
+            );
+        }
         let mut html = Vec::new();
 
         // Render global errors first
@@ -69,8 +78,18 @@ impl FormRenderer {
 
         for field in fields.values() {
             match field.render(&self.tera) {
-                Ok(rendered) => html.push(rendered),
-                Err(e) => return Err(tf("forms.finalize_error", &[field.name(), &e]).to_owned()),
+                Ok(rendered) => {
+                    if let Some(level) = log_render {
+                        crate::runique_log!(level, field = %field.name(), "rendered ok");
+                    }
+                    html.push(rendered);
+                }
+                Err(e) => {
+                    if let Some(level) = log_render {
+                        crate::runique_log!(level, field = %field.name(), error = %e, "render error");
+                    }
+                    return Err(tf("forms.finalize_error", &[field.name(), &e]).to_owned());
+                }
             }
         }
 

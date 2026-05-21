@@ -100,7 +100,21 @@ pub async fn admin_get(
 
     match action.as_str() {
         "list" => {
-            if !current_user.can_access_resource(&resource_key) {
+            let can_access = current_user.can_access_resource(&resource_key);
+            if let Some(level) = crate::utils::runique_log::get_log()
+                .admin
+                .as_ref()
+                .and_then(|a| a.auth)
+            {
+                crate::runique_log!(
+                    level,
+                    resource = %resource_key,
+                    user = %current_user.username,
+                    can_access,
+                    "list access check"
+                );
+            }
+            if !can_access {
                 return Ok(permission_denied_dashboard(&req.notices, &state.config.prefix).await);
             }
             let page = params
@@ -139,24 +153,83 @@ pub async fn admin_get(
                 filter_pages,
             };
             let is_htmx = headers.contains_key("hx-request");
+            if let Some(level) = crate::utils::runique_log::get_log()
+                .admin
+                .as_ref()
+                .and_then(|a| a.list)
+            {
+                crate::runique_log!(
+                    level,
+                    resource = %resource_key,
+                    page = query.page,
+                    search = ?query.search,
+                    filters = query.column_filters.len(),
+                    htmx = is_htmx,
+                    "list"
+                );
+            }
             handle_list(&mut req, entry, &state, query, &current_user, is_htmx).await
         }
         "create" => {
-            if !current_user.can_access_resource(&resource_key) {
+            let can_access = current_user.can_access_resource(&resource_key);
+            let can_write = check_write_access(&current_user, &resource_key);
+            if let Some(level) = crate::utils::runique_log::get_log()
+                .admin
+                .as_ref()
+                .and_then(|a| a.auth)
+            {
+                crate::runique_log!(
+                    level,
+                    resource = %resource_key,
+                    user = %current_user.username,
+                    can_access,
+                    can_write,
+                    "create access check"
+                );
+            }
+            if !can_access {
                 return Ok(permission_denied_dashboard(&req.notices, &state.config.prefix).await);
             }
-            if !check_write_access(&current_user, &resource_key) {
+            if !can_write {
                 return Ok(
                     permission_denied(&req.notices, &state.config.prefix, &resource_key).await,
                 );
+            }
+            if let Some(level) = crate::utils::runique_log::get_log()
+                .admin
+                .as_ref()
+                .and_then(|a| a.crud)
+            {
+                crate::runique_log!(level, resource = %resource_key, action = "create GET", "crud");
             }
             handle_create_get(&mut req, entry, &state).await
         }
         "bulk" => {
-            if !check_write_access(&current_user, &resource_key) {
+            let can_write = check_write_access(&current_user, &resource_key);
+            if let Some(level) = crate::utils::runique_log::get_log()
+                .admin
+                .as_ref()
+                .and_then(|a| a.auth)
+            {
+                crate::runique_log!(
+                    level,
+                    resource = %resource_key,
+                    user = %current_user.username,
+                    can_write,
+                    "bulk edit access check"
+                );
+            }
+            if !can_write {
                 return Ok(
                     permission_denied(&req.notices, &state.config.prefix, &resource_key).await,
                 );
+            }
+            if let Some(level) = crate::utils::runique_log::get_log()
+                .admin
+                .as_ref()
+                .and_then(|a| a.bulk)
+            {
+                crate::runique_log!(level, resource = %resource_key, action = "bulk GET", "bulk");
             }
             handle_bulk::handle_bulk_edit_get(&mut req, entry, &state, &params).await
         }
@@ -184,14 +257,43 @@ pub async fn admin_post(
     inject_context(&mut req, &state, entry, &current_user);
     req.context.insert(ctx_common::LANG, &current_lang().code());
     check_csrf(&body, req.csrf_token.as_str())?;
-    if !check_write_access(&current_user, &resource_key) {
+    let can_write = check_write_access(&current_user, &resource_key);
+    if let Some(level) = crate::utils::runique_log::get_log()
+        .admin
+        .as_ref()
+        .and_then(|a| a.auth)
+    {
+        crate::runique_log!(
+            level,
+            resource = %resource_key,
+            user = %current_user.username,
+            action = %action,
+            can_write,
+            "POST access check"
+        );
+    }
+    if !can_write {
         return Ok(permission_denied(&req.notices, &state.config.prefix, &resource_key).await);
     }
     match action.as_str() {
         "create" => {
+            if let Some(level) = crate::utils::runique_log::get_log()
+                .admin
+                .as_ref()
+                .and_then(|a| a.crud)
+            {
+                crate::runique_log!(level, resource = %resource_key, action = "create POST", "crud");
+            }
             handle_create_post(&mut req, entry, body, &headers, &state, &current_user).await
         }
         "bulk" => {
+            if let Some(level) = crate::utils::runique_log::get_log()
+                .admin
+                .as_ref()
+                .and_then(|a| a.bulk)
+            {
+                crate::runique_log!(level, resource = %resource_key, action = "bulk POST", "bulk");
+            }
             handle_bulk_action(&mut req, entry, body, &state, &resource_key, &current_user).await
         }
         _ => Err(Box::new(AppError::new(ErrorContext::not_found(
@@ -215,18 +317,61 @@ pub async fn admin_get_id(
     inject_context(&mut req, &state, entry, &current_user);
     req.context.insert(ctx_common::LANG, &current_lang().code());
 
-    if !current_user.can_access_resource(&resource_key) {
+    let can_access = current_user.can_access_resource(&resource_key);
+    let can_write = check_write_access(&current_user, &resource_key);
+    if let Some(level) = crate::utils::runique_log::get_log()
+        .admin
+        .as_ref()
+        .and_then(|a| a.auth)
+    {
+        crate::runique_log!(
+            level,
+            resource = %resource_key,
+            id = %id,
+            action = %action,
+            user = %current_user.username,
+            can_access,
+            can_write,
+            "id action access check"
+        );
+    }
+    if !can_access {
         return Ok(permission_denied_dashboard(&req.notices, &state.config.prefix).await);
     }
-    if !check_write_access(&current_user, &resource_key)
-        && matches!(action.as_str(), "edit" | "delete")
-    {
+    if !can_write && matches!(action.as_str(), "edit" | "delete") {
         return Ok(permission_denied(&req.notices, &state.config.prefix, &resource_key).await);
     }
     match action.as_str() {
-        "detail" => handle_detail(&mut req, entry, id, &state).await,
-        "edit" => handle_edit_get(&mut req, entry, id, &state).await,
-        "delete" => handle_delete_get(&mut req, entry, id, &state).await,
+        "detail" => {
+            if let Some(level) = crate::utils::runique_log::get_log()
+                .admin
+                .as_ref()
+                .and_then(|a| a.crud)
+            {
+                crate::runique_log!(level, resource = %resource_key, id = %id, action = "detail", "crud");
+            }
+            handle_detail(&mut req, entry, id, &state).await
+        }
+        "edit" => {
+            if let Some(level) = crate::utils::runique_log::get_log()
+                .admin
+                .as_ref()
+                .and_then(|a| a.crud)
+            {
+                crate::runique_log!(level, resource = %resource_key, id = %id, action = "edit GET", "crud");
+            }
+            handle_edit_get(&mut req, entry, id, &state).await
+        }
+        "delete" => {
+            if let Some(level) = crate::utils::runique_log::get_log()
+                .admin
+                .as_ref()
+                .and_then(|a| a.crud)
+            {
+                crate::runique_log!(level, resource = %resource_key, id = %id, action = "delete GET", "crud");
+            }
+            handle_delete_get(&mut req, entry, id, &state).await
+        }
         _ => Err(Box::new(AppError::new(ErrorContext::not_found(
             "Unknown action",
         )))),
@@ -251,14 +396,57 @@ pub async fn admin_post_id(
     inject_context(&mut req, &state, entry, &current_user);
     req.context.insert(ctx_common::LANG, &current_lang().code());
     check_csrf(&body, req.csrf_token.as_str())?;
-    if !check_write_access(&current_user, &resource_key) {
+    let can_write = check_write_access(&current_user, &resource_key);
+    if let Some(level) = crate::utils::runique_log::get_log()
+        .admin
+        .as_ref()
+        .and_then(|a| a.auth)
+    {
+        crate::runique_log!(
+            level,
+            resource = %resource_key,
+            id = %id,
+            action = %action,
+            user = %current_user.username,
+            can_write,
+            "id POST access check"
+        );
+    }
+    if !can_write {
         return Ok(permission_denied(&req.notices, &state.config.prefix, &resource_key).await);
     }
 
     match action.as_str() {
-        "edit" => handle_edit_post(&mut req, entry, id, body, &state, &current_user).await,
-        "delete" => handle_delete_post(&mut req, entry, id, &state, &current_user).await,
-        "reset-password" => handle_reset_password(&mut req, entry, id, &headers, &state).await,
+        "edit" => {
+            if let Some(level) = crate::utils::runique_log::get_log()
+                .admin
+                .as_ref()
+                .and_then(|a| a.crud)
+            {
+                crate::runique_log!(level, resource = %resource_key, id = %id, action = "edit POST", "crud");
+            }
+            handle_edit_post(&mut req, entry, id, body, &state, &current_user).await
+        }
+        "delete" => {
+            if let Some(level) = crate::utils::runique_log::get_log()
+                .admin
+                .as_ref()
+                .and_then(|a| a.crud)
+            {
+                crate::runique_log!(level, resource = %resource_key, id = %id, action = "delete POST", "crud");
+            }
+            handle_delete_post(&mut req, entry, id, &state, &current_user).await
+        }
+        "reset-password" => {
+            if let Some(level) = crate::utils::runique_log::get_log()
+                .admin
+                .as_ref()
+                .and_then(|a| a.crud)
+            {
+                crate::runique_log!(level, resource = %resource_key, id = %id, action = "reset-password", "crud");
+            }
+            handle_reset_password(&mut req, entry, id, &headers, &state).await
+        }
         _ => Err(Box::new(AppError::new(ErrorContext::not_found(
             "Unknown action",
         )))),
@@ -380,6 +568,13 @@ fn check_csrf(body: &StrMap, session_token: &str) -> AppResult<()> {
         })
         .unwrap_or(false);
     if !valid {
+        if let Some(level) = crate::utils::runique_log::get_log()
+            .admin
+            .as_ref()
+            .and_then(|a| a.auth)
+        {
+            crate::runique_log!(level, "CSRF validation failed");
+        }
         return Err(Box::new(AppError::new(ErrorContext::generic(
             StatusCode::FORBIDDEN,
             t("csrf.invalid_or_missing").as_ref(),

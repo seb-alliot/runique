@@ -81,7 +81,7 @@ pk: field_name => type
 
 ```toml
 [dependencies]
-runique = { version = "2.1.4", features = ["big-pk"] }
+runique = { version = "2.1.5", features = ["big-pk"] }
 ```
 
 Use `big-pk` when you expect more than ~2 billion rows in a table, or when you need to interoperate with an existing schema that uses `BIGINT` primary keys.

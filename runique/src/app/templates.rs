@@ -59,7 +59,32 @@ impl TemplateLoader {
             }
         }
 
-        tera.add_raw_templates(all_templates)?;
+        let user_count = all_templates.len();
+        if let Err(e) = tera.add_raw_templates(all_templates) {
+            // Tera's error message already contains the template name and line number
+            tracing::error!(error = %e, "user template failed to load");
+            return Err(Box::new(e));
+        }
+
+        if let Some(level) = crate::utils::runique_log::get_log()
+            .builder
+            .as_ref()
+            .and_then(|b| b.templates)
+        {
+            let internal_count = SIMPLE_TEMPLATES.len()
+                + ERROR_CORPS.len()
+                + FIELD_TEMPLATES.len()
+                + AUTH_TEMPLATES.len()
+                + ADMIN_TEMPLATES.len();
+            crate::runique_log!(
+                level,
+                internal = internal_count,
+                user = user_count,
+                total = internal_count + user_count,
+                "templates loaded"
+            );
+        }
+
         Ok(tera)
     }
 
@@ -148,7 +173,10 @@ impl TemplateLoader {
         {
             let processed = Self::process_content(content.to_string(), integrity_map);
 
-            tera.add_raw_template(name, &processed)?;
+            if let Err(e) = tera.add_raw_template(name, &processed) {
+                tracing::error!(template = %name, error = %e, "internal template failed to load");
+                return Err(Box::new(e));
+            }
         }
         Ok(())
     }

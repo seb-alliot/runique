@@ -42,6 +42,8 @@ impl RuniqueAppBuilder {
     /// 4. **Application** of static files (if enabled)
     pub async fn build(mut self) -> Result<RuniqueApp, BuildError> {
         // Step 0: tracing (before everything else)
+        // log_init early so get_log() works in TemplateLoader::init() and middleware staging.
+        log_init(self.config.log.clone());
         self.config.log.init_subscriber();
 
         // Step 1: validation
@@ -74,7 +76,6 @@ impl RuniqueAppBuilder {
             .map_err(|e| BuildError::template(e.to_string()))?);
 
         let config = new(config);
-        log_init(config.log.clone());
         crate::utils::password::password_init(config.password.clone());
 
         let engine = new(RuniqueEngine {
@@ -131,6 +132,19 @@ impl RuniqueAppBuilder {
             let admin_prefix = self.admin.config.prefix.trim_end_matches('/').to_string();
             let robots_txt = self.admin.robots_txt;
             let sitemap_url = self.admin.sitemap_url.clone();
+            if let Some(level) = crate::utils::runique_log::get_log()
+                .builder
+                .as_ref()
+                .and_then(|b| b.registry)
+            {
+                let count = self
+                    .admin
+                    .state
+                    .as_ref()
+                    .map(|s| s.registry.all().count())
+                    .unwrap_or(0);
+                crate::runique_log!(level, resources = count, "admin registry");
+            }
             let admin_router = build_admin_router(self.admin, engine.db.clone());
             add_urls(&engine);
             let mut r = router.merge(admin_router);
@@ -153,6 +167,19 @@ impl RuniqueAppBuilder {
         } else {
             router
         };
+
+        if let Some(level) = crate::utils::runique_log::get_log()
+            .builder
+            .as_ref()
+            .and_then(|b| b.routes)
+        {
+            let count = engine
+                .url_registry
+                .read()
+                .map(|guard| guard.len())
+                .unwrap_or(0);
+            crate::runique_log!(level, routes = count, "url registry");
+        }
 
         // Step 5: middleware staging — automatic slot sort and apply
         let _exclusive_login = middleware.exclusive_login;
@@ -301,6 +328,21 @@ impl RuniqueAppBuilder {
             router = router.nest_service(
                 &config.static_files.static_runique_url,
                 static_headers.service(ServeDir::new(&config.static_files.static_runique_path)),
+            );
+        }
+
+        if let Some(level) = crate::utils::runique_log::get_log()
+            .builder
+            .as_ref()
+            .and_then(|b| b.statics)
+        {
+            crate::runique_log!(
+                level,
+                static_url = %config.static_files.static_url,
+                static_dir = %config.static_files.staticfiles_dirs,
+                media_url = %config.static_files.media_url,
+                media_dir = %config.static_files.media_root,
+                "static files attached"
             );
         }
 

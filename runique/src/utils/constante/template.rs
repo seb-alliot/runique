@@ -60,5 +60,13 @@ pub const ADMIN_TEMPLATES: &[(&str, &str)] = tpls![
         "admin/composant/history_timeline.html"
     ),
     ("admin/history_batch", "admin/composant/history_batch.html"),
-    ("admin/bulk_edit", "admin/composant/bulk_edit.html")
+    ("admin/bulk_edit", "admin/composant/bulk_edit.html"),
+    (
+        "admin/reset_password_email.html",
+        "admin/reset_password_email.html"
+    ),
+    (
+        "admin/user_created_email.html",
+        "admin/user_created_email.html"
+    ),
 ];
