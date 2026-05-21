@@ -37,6 +37,10 @@ impl FormValidator {
         fields: &mut FieldsMap,
         global_errors: &[String],
     ) -> Result<bool, ValidationError> {
+        let log_validate = crate::utils::runique_log::get_log()
+            .forms
+            .as_ref()
+            .and_then(|f| f.validate);
         let mut is_all_valid = true;
 
         for field in fields.values_mut() {
@@ -46,14 +50,35 @@ impl FormValidator {
             {
                 field.set_error(t("forms.required").into_owned());
                 is_all_valid = false;
+                if let Some(level) = log_validate {
+                    crate::runique_log!(level, field = %field.name(), "required field empty");
+                }
                 continue;
             }
-            if !field.validate() {
+            let valid = field.validate();
+            if let Some(level) = log_validate {
+                crate::runique_log!(
+                    level,
+                    field = %field.name(),
+                    valid = valid,
+                    error = ?field.error(),
+                    "validate"
+                );
+            }
+            if !valid {
                 is_all_valid = false;
             }
         }
 
         let result = is_all_valid && global_errors.is_empty();
+        if let Some(level) = log_validate {
+            crate::runique_log!(
+                level,
+                ok = result,
+                global_errors = global_errors.len(),
+                "validate_fields result"
+            );
+        }
 
         if !result {
             if !global_errors.is_empty() {

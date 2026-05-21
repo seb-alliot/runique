@@ -162,6 +162,7 @@ fn parse_blocks(content: &str) -> Vec<(Option<String>, String, String)> {
             || heading_lower == "table des matières"
             || heading_lower == "table of contents"
             || heading_lower == "contents"
+            || heading_lower == "ia"
         {
             // Bloc de navigation : stocké avec block_type "sommaire", sans heading
             if !body_part.is_empty() {
@@ -170,13 +171,14 @@ fn parse_blocks(content: &str) -> Vec<(Option<String>, String, String)> {
             continue;
         }
 
-        // Ignore les sections de navigation récurrentes
+        // Ignore les sections de navigation récurrentes et IA
         if heading_lower == "voir aussi"
             || heading_lower == "see also"
             || heading_lower == "retour au sommaire"
             || heading_lower == "back to summary"
             || heading_lower == "prochaines étapes"
             || heading_lower == "next steps"
+            || heading_lower == "ia"
         {
             continue;
         }

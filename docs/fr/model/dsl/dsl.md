@@ -81,7 +81,7 @@ pk: nom_champ => type
 
 ```toml
 [dependencies]
-runique = { version = "2.1.4", features = ["big-pk"] }
+runique = { version = "2.1.5", features = ["big-pk"] }
 ```
 
 Utilisez `big-pk` quand vous anticipez plus de ~2 milliards de lignes dans une table, ou pour interopérer avec un schéma existant utilisant des clés primaires `BIGINT`.

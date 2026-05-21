@@ -143,6 +143,13 @@ pub(super) async fn handle_create_post(
     )
     .await;
     let valid = form.is_valid().await;
+    if let Some(level) = crate::utils::runique_log::get_log()
+        .admin
+        .as_ref()
+        .and_then(|a| a.crud)
+    {
+        crate::runique_log!(level, resource = %entry.meta.key, valid, "create POST — form validation");
+    }
     if valid {
         // Sync finalized field values (e.g. file paths moved by finalize()) into body
         for (name, field) in &form.get_form().fields {
@@ -153,8 +160,23 @@ pub(super) async fn handle_create_post(
             None => form.save(&req.engine.db).await,
         };
         match result {
-            Ok(()) => {}
+            Ok(()) => {
+                if let Some(level) = crate::utils::runique_log::get_log()
+                    .admin
+                    .as_ref()
+                    .and_then(|a| a.crud)
+                {
+                    crate::runique_log!(level, resource = %entry.meta.key, "create POST — saved ok");
+                }
+            }
             Err(sea_orm::DbErr::Custom(ref msg)) => {
+                if let Some(level) = crate::utils::runique_log::get_log()
+                    .admin
+                    .as_ref()
+                    .and_then(|a| a.crud)
+                {
+                    crate::runique_log!(level, resource = %entry.meta.key, error = %msg, "create POST — custom DB error");
+                }
                 form.get_form_mut().errors.push(msg.clone());
                 if let Some(loader) = &entry.m2m_loader {
                     let m2m_fields = loader(req.engine.db.clone(), None).await;
@@ -171,6 +193,13 @@ pub(super) async fn handle_create_post(
                 return req.render(template);
             }
             Err(e) => {
+                if let Some(level) = crate::utils::runique_log::get_log()
+                    .admin
+                    .as_ref()
+                    .and_then(|a| a.crud)
+                {
+                    crate::runique_log!(level, resource = %entry.meta.key, error = %e, unique = is_unique_violation(&e), "create POST — DB error");
+                }
                 form.get_form_mut().database_error(&e);
                 if !is_unique_violation(&e) {
                     return Err(Box::new(AppError::new(ErrorContext::database(e))));
@@ -364,6 +393,13 @@ pub(super) async fn handle_edit_post(
 
     let mut is_locked = false;
     let is_form_valid = form.is_valid().await;
+    if let Some(level) = crate::utils::runique_log::get_log()
+        .admin
+        .as_ref()
+        .and_then(|a| a.crud)
+    {
+        crate::runique_log!(level, resource = %entry.meta.key, id = %id, valid = is_form_valid, "edit POST — form validation");
+    }
 
     let old_obj: Option<Value> = if is_form_valid {
         if let Some(get_fn) = &entry.get_fn {
@@ -422,11 +458,25 @@ pub(super) async fn handle_edit_post(
             None => form.save(&req.engine.db).await,
         };
         if let Err(e) = result {
+            if let Some(level) = crate::utils::runique_log::get_log()
+                .admin
+                .as_ref()
+                .and_then(|a| a.crud)
+            {
+                crate::runique_log!(level, resource = %entry.meta.key, id = %id, error = %e, unique = is_unique_violation(&e), "edit POST — DB error");
+            }
             form.get_form_mut().database_error(&e);
             if !is_unique_violation(&e) {
                 return Err(Box::new(AppError::new(ErrorContext::database(e))));
             }
         } else {
+            if let Some(level) = crate::utils::runique_log::get_log()
+                .admin
+                .as_ref()
+                .and_then(|a| a.crud)
+            {
+                crate::runique_log!(level, resource = %entry.meta.key, id = %id, "edit POST — saved ok");
+            }
             if summary.is_some() {
                 history::log_admin_action(
                     &req.engine.db,
@@ -522,9 +572,22 @@ pub(super) async fn handle_delete_post(
         )))
     })?;
 
-    delete_fn(req.engine.db.clone(), id.clone())
-        .await
-        .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?;
+    let delete_result = delete_fn(req.engine.db.clone(), id.clone()).await;
+    if let Some(level) = crate::utils::runique_log::get_log()
+        .admin
+        .as_ref()
+        .and_then(|a| a.crud)
+    {
+        match &delete_result {
+            Ok(()) => {
+                crate::runique_log!(level, resource = %entry.meta.key, id = %id, "delete POST — ok")
+            }
+            Err(e) => {
+                crate::runique_log!(level, resource = %entry.meta.key, id = %id, error = %e, "delete POST — DB error")
+            }
+        }
+    }
+    delete_result.map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?;
 
     history::log_admin_action(
         &req.engine.db,

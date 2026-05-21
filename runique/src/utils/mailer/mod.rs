@@ -157,6 +157,13 @@ impl Email {
 
     pub async fn send(self) -> Result<(), String> {
         let config = MAILER_CONFIG.get().ok_or_else(|| {
+            if let Some(level) = crate::utils::runique_log::get_log()
+                .mailer
+                .as_ref()
+                .and_then(|m| m.send)
+            {
+                crate::runique_log!(level, to = %self.to, subject = %self.subject, "send — mailer not configured");
+            }
             "Mailer not configured — call .with_mailer_from_env() in the builder or set EMAIL_BACKEND/SMTP_* in .env"
                 .to_string()
         })?;
@@ -165,10 +172,30 @@ impl Email {
             return Err("Email without content".to_string());
         }
 
-        match config.backend {
+        let backend = match config.backend {
+            MailerBackend::Console => "console",
+            MailerBackend::Smtp => "smtp",
+        };
+        if let Some(level) = crate::utils::runique_log::get_log()
+            .mailer
+            .as_ref()
+            .and_then(|m| m.send)
+        {
+            crate::runique_log!(level, to = %self.to, subject = %self.subject, backend, "send");
+        }
+        let result = match config.backend {
             MailerBackend::Console => self.send_console(config),
             MailerBackend::Smtp => self.send_smtp(config).await,
+        };
+        if let Err(ref e) = result
+            && let Some(level) = crate::utils::runique_log::get_log()
+                .mailer
+                .as_ref()
+                .and_then(|m| m.send)
+        {
+            crate::runique_log!(level, error = %e, backend, "send error");
         }
+        result
     }
 
     fn send_console(self, config: &MailerConfig) -> Result<(), String> {

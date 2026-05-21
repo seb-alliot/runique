@@ -83,6 +83,20 @@ pub(super) async fn handle_list(
     );
     let entries = entries_result.map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?;
     let count = count_result.map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?;
+    if let Some(level) = crate::utils::runique_log::get_log()
+        .admin
+        .as_ref()
+        .and_then(|a| a.list)
+    {
+        crate::runique_log!(
+            level,
+            resource = %entry.meta.key,
+            rows = entries.len(),
+            total = count,
+            page,
+            "list result"
+        );
+    }
 
     let filter_values: HashMap<String, Vec<String>> = filter_result
         .iter()

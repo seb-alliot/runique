@@ -11,9 +11,9 @@ mon-projet/
 │   │   ├── users.rs       # Utilise l'ast de runique pour la cli makemigrations
 │   │   └── blog.rs        # Le cli est non compatible avec les struct basique
 │   │
-│   ├── formulaire/        # Déclaration des formulaire
+│   ├── formulaire/        # Déclaration des formulaires
 │   │   ├── inscription.rs # Utilisation du moteur de formulaire
-│   │   └── blog.rs        # ou de macro pro attribu
+│   │   └── blog.rs        # ou de macros proc-attribute
 │   │
 │   ├── main.rs            # Point d'entrée — RuniqueApp builder
 │   ├── admin.rs           # Déclaration admin!{} (si admin activé, necessaire pour la cli runique start)

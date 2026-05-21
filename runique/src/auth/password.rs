@@ -218,6 +218,14 @@ pub async fn handle_forgot_password<E: UserEntity + 'static>(
             let token = crate::utils::reset_token::generate(&email);
             let encrypted_email = crate::utils::reset_token::encrypt_email(&token, &email);
 
+            if let Some(level) = crate::utils::runique_log::get_log()
+                .auth
+                .as_ref()
+                .and_then(|a| a.reset)
+            {
+                crate::runique_log!(level, %email, "reset token generated");
+            }
+
             let host = base_url
                 .map(std::string::ToString::to_string)
                 .unwrap_or_else(|| {
@@ -250,10 +258,24 @@ pub async fn handle_forgot_password<E: UserEntity + 'static>(
                     ctx.insert("reset_url", &reset_url);
                     if let Ok(msg) = mail.template(&request.engine.tera, tpl, ctx) {
                         msg.send().await.ok();
+                        if let Some(level) = crate::utils::runique_log::get_log()
+                            .auth
+                            .as_ref()
+                            .and_then(|a| a.reset)
+                        {
+                            crate::runique_log!(level, %email, "reset email sent");
+                        }
                     }
                 } else {
                     let body = tf("reset.email_body", &[&username, &reset_url, &reset_url]).clone();
                     mail.html(body).send().await.ok();
+                    if let Some(level) = crate::utils::runique_log::get_log()
+                        .auth
+                        .as_ref()
+                        .and_then(|a| a.reset)
+                    {
+                        crate::runique_log!(level, %email, "reset email sent");
+                    }
                 }
             }
         }
@@ -294,6 +316,13 @@ pub async fn handle_password_reset<E: UserEntity + 'static>(
     };
 
     if !crate::utils::reset_token::peek(&token) {
+        if let Some(level) = crate::utils::runique_log::get_log()
+            .auth
+            .as_ref()
+            .and_then(|a| a.reset)
+        {
+            crate::runique_log!(level, %email, "reset token invalid or expired");
+        }
         request
             .notices
             .error(t("reset.invalid_or_expired").to_string())
@@ -316,6 +345,13 @@ pub async fn handle_password_reset<E: UserEntity + 'static>(
 
     if request.is_post() && form.is_valid().await {
         let Some(stored_email) = crate::utils::reset_token::consume(&token) else {
+            if let Some(level) = crate::utils::runique_log::get_log()
+                .auth
+                .as_ref()
+                .and_then(|a| a.reset)
+            {
+                crate::runique_log!(level, %email, "reset token consume failed");
+            }
             request
                 .notices
                 .error(t("reset.invalid_or_expired").to_string())
@@ -337,6 +373,13 @@ pub async fn handle_password_reset<E: UserEntity + 'static>(
 
         match E::update_password(&db, email_clean.trim(), &new_hash).await {
             Ok(()) => {
+                if let Some(level) = crate::utils::runique_log::get_log()
+                    .auth
+                    .as_ref()
+                    .and_then(|a| a.reset)
+                {
+                    crate::runique_log!(level, email = %email_clean, "password reset ok");
+                }
                 form.clear();
                 context_update!(request => {
                     "title"           => t("reset.success_title").as_ref(),
@@ -348,6 +391,13 @@ pub async fn handle_password_reset<E: UserEntity + 'static>(
                 return request.render(template);
             }
             Err(e) => {
+                if let Some(level) = crate::utils::runique_log::get_log()
+                    .auth
+                    .as_ref()
+                    .and_then(|a| a.reset)
+                {
+                    crate::runique_log!(level, email = %email_clean, error = %e, "password reset db error");
+                }
                 form.get_form_mut().database_error(&e);
             }
         }

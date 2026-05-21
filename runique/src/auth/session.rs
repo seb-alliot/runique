@@ -287,6 +287,21 @@ pub async fn login(
     // Memory cache — single access point for load_user_middleware and point 6 (internal)
     cache_permissions(user_id, groupes.clone());
 
+    if let Some(level) = crate::utils::runique_log::get_log()
+        .auth
+        .as_ref()
+        .and_then(|a| a.login)
+    {
+        crate::runique_log!(
+            level,
+            user_id = %user_id,
+            username = %username,
+            is_superuser,
+            exclusive,
+            db_persist = db_store.is_some(),
+            "login"
+        );
+    }
     session.insert(SESSION_USER_ID_KEY, user_id).await?;
     session
         .insert(SESSION_USER_USERNAME_KEY, username.to_string())

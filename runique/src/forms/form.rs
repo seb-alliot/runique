@@ -216,6 +216,19 @@ impl Forms {
         T: FormField + Clone + Into<GenericField> + 'static,
     {
         let generic_instance: GenericField = field_template.clone().into();
+        if let Some(level) = crate::utils::runique_log::get_log()
+            .forms
+            .as_ref()
+            .and_then(|f| f.field)
+        {
+            crate::runique_log!(
+                level,
+                field = %generic_instance.name(),
+                kind = %generic_instance.field_type(),
+                required = generic_instance.required(),
+                "field registered"
+            );
+        }
         self.fields.insert(
             generic_instance.name().to_string(),
             Box::new(generic_instance),
@@ -240,6 +253,17 @@ impl Forms {
             if let Some(value) = data.get(field.name()) {
                 if !value.trim().is_empty() {
                     has_data = true;
+                }
+                if let Some(level) = crate::utils::runique_log::get_log()
+                    .forms
+                    .as_ref()
+                    .and_then(|f| f.set_value)
+                {
+                    if field.field_type() == "password" {
+                        crate::runique_log!(level, field = %field.name(), "set_value [hidden]");
+                    } else {
+                        crate::runique_log!(level, field = %field.name(), value = %value, "set_value");
+                    }
                 }
                 field.set_value(value);
             }
@@ -340,9 +364,23 @@ impl Forms {
     }
 
     pub fn finalize(&mut self) -> Result<(), String> {
+        let log_finalize = crate::utils::runique_log::get_log()
+            .forms
+            .as_ref()
+            .and_then(|f| f.finalize);
         for (name, field) in self.fields.iter_mut() {
-            if let Err(e) = field.finalize() {
-                return Err(tf("forms.finalize_error", &[name, &e]));
+            match field.finalize() {
+                Ok(()) => {
+                    if let Some(level) = log_finalize {
+                        crate::runique_log!(level, field = %name, kind = %field.field_type(), "finalize ok");
+                    }
+                }
+                Err(e) => {
+                    if let Some(level) = log_finalize {
+                        crate::runique_log!(level, field = %name, kind = %field.field_type(), error = %e, "finalize error");
+                    }
+                    return Err(tf("forms.finalize_error", &[name, &e]));
+                }
             }
         }
         Ok(())

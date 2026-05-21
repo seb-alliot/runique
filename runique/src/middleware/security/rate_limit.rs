@@ -172,10 +172,13 @@ pub async fn rate_limit_middleware(
     if limiter.is_allowed(&ip) {
         next.run(req).await
     } else {
-        let retry_after = limiter.retry_after_secs(&ip).to_string();
+        let retry_after_secs = limiter.retry_after_secs(&ip);
+        if let Some(level) = crate::utils::runique_log::get_log().rate_limit {
+            crate::runique_log!(level, %ip, retry_after = retry_after_secs, "rate limited");
+        }
         (
             StatusCode::TOO_MANY_REQUESTS,
-            [(header::RETRY_AFTER, retry_after)],
+            [(header::RETRY_AFTER, retry_after_secs.to_string())],
             t("html.429_text").into_owned(),
         )
             .into_response()
