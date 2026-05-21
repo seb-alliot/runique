@@ -191,7 +191,7 @@ let results = search!(@UserForm =>
 | --- | --- |
 | [Requêtes CRUD](/docs/fr/orm/requetes) | SELECT, COUNT, WHERE, INSERT, UPDATE, DELETE |
 | [Avancé](/docs/fr/orm/avance) | Transactions, relations |
-| [Formulaires](/docs/fr/model/formulaires/formulaires) | `#[form(model = ...)]`, `FormEntity`, `Form::objects` |
+| [Formulaires](/docs/fr/model/formulaires) | `#[form(model = ...)]`, `FormEntity`, `Form::objects` |
 
 ## Retour au sommaire
 
