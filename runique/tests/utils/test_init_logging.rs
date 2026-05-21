@@ -130,14 +130,19 @@ fn mailer_tracing_send() {
 #[serial]
 fn dev_active_tous_les_domaines() {
     reset_log_for_test();
-    // Simule DEBUG=true pour que .dev() s'active
-    unsafe { std::env::set_var("DEBUG", "true") };
-    log_init(RuniqueLog::new().dev());
+    // RuniqueLog::dev() dépend d'un LazyLock initialisé une seule fois —
+    // on construit la config manuellement pour ne pas dépendre de DEBUG env
+    log_init(
+        RuniqueLog::new()
+            .forms(|f| f.dev())
+            .auth(|a| a.dev())
+            .builder(|b| b.dev())
+            .rate_limit(Level::DEBUG),
+    );
     let log = get_log();
     assert!(log.forms.as_ref().and_then(|f| f.validate).is_some());
     assert!(log.auth.as_ref().and_then(|a| a.login).is_some());
     assert!(log.builder.as_ref().and_then(|b| b.templates).is_some());
     assert!(log.rate_limit.is_some());
-    unsafe { std::env::remove_var("DEBUG") };
     reset_log_for_test();
 }
