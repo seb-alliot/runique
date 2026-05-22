@@ -118,6 +118,10 @@ fn write_admin_register(out: &mut String, parsed: &ParsedAdmin) -> Result<(), St
 
     // Applies configure{}: overrides the DisplayConfig and group_actions of any resource
     for cfg in &parsed.configures {
+        if cfg.hidden {
+            let _ = writeln!(out, "    registry.remove(\"{}\");", cfg.key);
+            continue;
+        }
         let has_display = !cfg.list_display.is_empty()
             || !cfg.list_exclude.is_empty()
             || !cfg.list_filter.is_empty();

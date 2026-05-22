@@ -1,7 +1,7 @@
 use crate::entities::{
     blog, changelog_entry, chapitre, code_example, contribution, cour, cour_block, demo_category,
     demo_page, demo_section, doc_block, doc_page, doc_section, form_field, known_issue,
-    page_doc_link, roadmap_entry, runique_release, site_config,
+    page_doc_link, roadmap_entry, runique_release, site_config, user_profile,
 };
 use crate::formulaire::{
     BlogForm, ChangelogEntryForm, ChapitreForm, CodeExampleForm, ContributionForm, CourBlockForm,
@@ -13,7 +13,7 @@ use crate::formulaire::{
 admin! {
     configure {
         users: {
-            group_action: [["is_active", "Actif"], ["is_staff", "Staff"]]
+            hidden: true
         }
     }
     contribution: contribution::Model => ContributionForm {
@@ -325,6 +325,24 @@ admin! {
         ],
         list_filter: [
             ["version", "Version", 10],
+        ]
+    }
+    user_profile: user_profile::Model => user_profile::AdminForm {
+        title: "Profils utilisateurs",
+        list_display: [
+            ["username", "Utilisateur"],
+            ["bio", "Bio"],
+            ["website", "Site"],
+            ["phone", "Téléphone"],
+            ["birth_date", "Date de naissance"],
+            ["is_verified", "Vérifié"],
+        ],
+        list_filter: [
+            ["username", "Utilisateur", 10],
+            ["is_verified", "Vérifié", 5],
+        ],
+        m2m: [
+            ["groupes", "Groupes", "eihwaz_users_groupes", "user_id", "groupe_id", "runique::admin::permissions::groupe", "nom"],
         ]
     }
 }

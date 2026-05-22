@@ -2,6 +2,7 @@ use proc_macro::TokenStream;
 
 mod extend_schema;
 mod model;
+mod registry;
 mod schema_form;
 
 /// Derives a validated HTML form bound to a SeaORM entity schema.
@@ -93,5 +94,11 @@ pub fn extend(input: TokenStream) -> TokenStream {
         return quote::quote! { compile_error!(#msg); }.into();
     }
 
-    extend_schema::generate_schema_fn(&dsl).into()
+    let schema = extend_schema::generate_schema_fn(&dsl);
+    let entity = extend_schema::generate_entity(&dsl);
+    quote::quote! {
+        #schema
+        #entity
+    }
+    .into()
 }

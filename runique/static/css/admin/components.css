@@ -76,6 +76,24 @@
 
 .admin-card__body { padding: 1.25rem; }
 
+.admin-card__section {
+    padding: 1rem 1.25rem;
+    border-top: 1px solid var(--border);
+}
+
+.admin-card__section:first-child {
+    border-top: none;
+}
+
+.admin-card__label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin: 0 0 0.6rem 0;
+}
+
 /* ───────────────────────────────────────────────
     Barre de recherche
    ─────────────────────────────────────────────── */
@@ -275,7 +293,7 @@
     border-radius: 999px;
     font-size: 0.72rem;
     font-weight: 600;
-    line-height: 1;
+    line-height: 2;
 }
 
 .admin-badge--blue    { background: var(--accent-light);  color: var(--accent); }

@@ -55,6 +55,10 @@ pub(super) async fn handle_detail(
         req.context.insert(ctx_detail::ENTRY, &v);
     }
     req.context.insert(ctx_detail::OBJECT_ID, &id);
+    if let Some(loader) = &entry.m2m_loader {
+        let m2m_fields = loader(req.engine.db.clone(), Some(id.clone())).await;
+        req.context.insert("m2m_fields", &m2m_fields);
+    }
     let template = entry
         .meta
         .template_detail
