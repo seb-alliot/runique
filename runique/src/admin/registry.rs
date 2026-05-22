@@ -72,6 +72,11 @@ impl AdminRegistry {
         }
     }
 
+    /// Removes a resource from the registry (e.g., to hide a builtin when extend!{} takes over).
+    pub fn remove(&mut self, key: &str) {
+        self.resources.shift_remove(key);
+    }
+
     /// Reorders the registry according to the provided list of keys.
     /// Unlisted keys are added at the end in their insertion order.
     pub fn reorder(&mut self, order: &[String]) {

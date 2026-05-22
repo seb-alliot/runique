@@ -22,6 +22,7 @@ use crate::entities::page_doc_link;
 use crate::entities::roadmap_entry;
 use crate::entities::runique_release;
 use crate::entities::site_config;
+use crate::entities::user_profile;
 
 // ── DynForm wrapper for contribution::AdminForm ──
 struct ContributionAdminFormDynWrapper(pub contribution::AdminForm);
@@ -424,6 +425,28 @@ struct RuniqueReleaseAdminFormDynWrapper(pub runique_release::AdminForm);
 
 #[async_trait]
 impl DynForm for RuniqueReleaseAdminFormDynWrapper {
+    async fn is_valid(&mut self) -> bool {
+        self.0.is_valid().await
+    }
+
+    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {
+        self.0.save(db).await
+    }
+
+    fn get_form(&self) -> &Forms {
+        self.0.get_form()
+    }
+
+    fn get_form_mut(&mut self) -> &mut Forms {
+        self.0.get_form_mut()
+    }
+}
+
+// ── DynForm wrapper for user_profile::AdminForm ──
+struct UserProfileAdminFormDynWrapper(pub user_profile::AdminForm);
+
+#[async_trait]
+impl DynForm for UserProfileAdminFormDynWrapper {
     async fn is_valid(&mut self) -> bool {
         self.0.is_valid().await
     }
@@ -7609,13 +7632,358 @@ pub fn admin_register() -> AdminRegistry {
             .with_filter_fn(filter_fn),
     );
 
-    registry.configure_group_actions(
-        "users",
-        vec![
-            GroupAction::bool("is_active", "Actif"),
-            GroupAction::bool("is_staff", "Staff"),
-        ],
+    // ── Resource: user_profile ──
+    let meta = AdminResource::new(
+        "user_profile",
+        "crate::entities::user_profile::Model",
+        "AdminForm",
+        "Profils utilisateurs",
+        vec![],
     );
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
+            Box::pin(async move {
+                let form =
+                    user_profile::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+                Box::new(UserProfileAdminFormDynWrapper(form)) as Box<dyn DynForm>
+            })
+        },
+    );
+
+    let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
+        Box::pin(async move {
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, Order},
+            };
+            let mut query = user_profile::Entity::find();
+            if let Some(ref col) = params.sort_by {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
+                query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
+            }
+            for (col, val) in &params.column_filters {
+                let escaped = val.replace('\'', "''");
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+            }
+            if let Some(ref search_str) = params.search {
+                let search_cond = search_cond!(user_profile::Entity => or("username" icontains search_str, "bio" icontains search_str, "website" icontains search_str, "phone" icontains search_str, "birth_date" icontains search_str, "is_verified" icontains search_str));
+                query = query.filter(search_cond);
+            }
+            let db_rows = query
+                .offset(params.offset)
+                .limit(params.limit)
+                .all(&*db)
+                .await?;
+            let rows: Vec<serde_json::Value> = db_rows
+                .into_iter()
+                .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
+                .collect();
+            Ok(rows)
+        })
+    });
+
+    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
+        Box::pin(async move {
+            use sea_orm::QueryFilter;
+            let mut query = user_profile::Entity::find();
+            if let Some(ref search_str) = _search {
+                let search_cond = search_cond!(user_profile::Entity => or("username" icontains search_str, "bio" icontains search_str, "website" icontains search_str, "phone" icontains search_str, "birth_date" icontains search_str, "is_verified" icontains search_str));
+                query = query.filter(search_cond);
+            }
+            query.count(&*db).await
+        })
+    });
+
+    let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
+        Box::pin(async move {
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let row = user_profile::Entity::find_by_id(id).one(&*db).await?;
+            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
+        })
+    });
+
+    let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
+        Box::pin(async move {
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            user_profile::Entity::delete_by_id(id)
+                .exec(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
+        Box::pin(async move {
+            use sea_orm::ConnectionTrait;
+            let result = user_profile::admin_from_form(&data, None)
+                .insert(&*db)
+                .await?;
+            let inserted_id = result.id.to_string();
+            for key in data.keys() {
+                if let Some(target_id) = key.strip_prefix("m2m_groupes__")
+                    && !target_id.is_empty()
+                    && target_id
+                        .chars()
+                        .all(|c| c.is_ascii_alphanumeric() || c == '-')
+                {
+                    let sql = format!(
+                        "INSERT INTO eihwaz_users_groupes (user_id, groupe_id) VALUES ({}, {}) ON CONFLICT DO NOTHING",
+                        inserted_id, target_id
+                    );
+                    let _ = db.execute_unprepared(&sql).await;
+                }
+            }
+            Ok(())
+        })
+    });
+
+    let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            use sea_orm::ConnectionTrait;
+            let id_str = id.to_string();
+            user_profile::admin_from_form(&data, Some(id))
+                .update(&*db)
+                .await?;
+            let _ = db
+                .execute_unprepared(&format!(
+                    "DELETE FROM eihwaz_users_groupes WHERE user_id = {}",
+                    id_str
+                ))
+                .await;
+            for key in data.keys() {
+                if let Some(target_id) = key.strip_prefix("m2m_groupes__")
+                    && !target_id.is_empty()
+                    && target_id
+                        .chars()
+                        .all(|c| c.is_ascii_alphanumeric() || c == '-')
+                {
+                    let sql = format!(
+                        "INSERT INTO eihwaz_users_groupes (user_id, groupe_id) VALUES ({}, {})",
+                        id_str, target_id
+                    );
+                    let _ = db.execute_unprepared(&sql).await;
+                }
+            }
+            Ok(())
+        })
+    });
+
+    let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            user_profile::admin_partial_update(&data, id)
+                .update(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let m2m_loader: M2mLoaderFn = Arc::new(|db: ADb, object_id: Option<String>| {
+        Box::pin(async move {
+            use sea_orm::{ConnectionTrait, EntityTrait};
+            let mut fields: Vec<M2mFieldOptions> = Vec::new();
+            {
+                let rows = runique::admin::permissions::groupe::Entity::find()
+                    .all(&*db)
+                    .await
+                    .unwrap_or_default();
+                let choices: Vec<(String, String)> = rows
+                    .iter()
+                    .map(|r| {
+                        let v = serde_json::to_value(r).unwrap_or_default();
+                        let id = v
+                            .get("id")
+                            .map(|i| i.to_string().trim_matches('"').to_string())
+                            .unwrap_or_default();
+                        let label = v
+                            .get("nom")
+                            .and_then(|n| n.as_str())
+                            .unwrap_or("")
+                            .to_string();
+                        (id, label)
+                    })
+                    .collect();
+                let selected = if let Some(ref oid) = object_id {
+                    use sea_orm::sea_query::{Alias, Expr, Query};
+                    let stmt = Query::select()
+                        .expr(Expr::cust("CAST(groupe_id AS TEXT)"))
+                        .from(Alias::new("eihwaz_users_groupes"))
+                        .and_where(Expr::cust(format!("CAST(user_id AS TEXT) = '{}'", oid)))
+                        .to_owned();
+                    db.query_all(&stmt)
+                        .await
+                        .unwrap_or_default()
+                        .iter()
+                        .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                        .collect()
+                } else {
+                    vec![]
+                };
+                fields.push(M2mFieldOptions {
+                    field_name: "groupes".to_string(),
+                    label: "Groupes".to_string(),
+                    choices,
+                    selected,
+                });
+            }
+            fields
+        })
+    });
+
+    let meta = meta.display(
+        DisplayConfig::new()
+            .columns_include(vec![
+                ("username", "Utilisateur"),
+                ("bio", "Bio"),
+                ("website", "Site"),
+                ("phone", "Téléphone"),
+                ("birth_date", "Date de naissance"),
+                ("is_verified", "Vérifié"),
+            ])
+            .list_filter(vec![
+                ("username", "Utilisateur", 10u64),
+                ("is_verified", "Vérifié", 5u64),
+            ]),
+    );
+    let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
+        Box::pin(async move {
+            use sea_orm::sea_query::{Alias, Expr, Query};
+            use sea_orm::{ConnectionTrait, ExprTrait};
+            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
+                std::collections::HashMap::new();
+            let page_size_username = 10u64;
+            let cur_page_username = pages.get("username").copied().unwrap_or(0);
+            let count_stmt_username = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT username)"))
+                .from(Alias::new(user_profile::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("username")).is_not_null())
+                .to_owned();
+            let count_row_username = match db.query_one(&count_stmt_username).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `user_profile.username`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_username = count_row_username
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_username = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(username AS TEXT)"))
+                .from(Alias::new(user_profile::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("username")).is_not_null())
+                .limit(page_size_username)
+                .offset(cur_page_username * page_size_username)
+                .to_owned();
+            let rows_username = match db.query_all(&stmt_username).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `user_profile.username`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_username: Vec<String> = rows_username
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_username.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => x.cmp(&y),
+                _ => a.cmp(b),
+            });
+            result.insert("username".to_string(), (vals_username, total_username));
+            let page_size_is_verified = 5u64;
+            let cur_page_is_verified = pages.get("is_verified").copied().unwrap_or(0);
+            let count_stmt_is_verified = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT is_verified)"))
+                .from(Alias::new(user_profile::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("is_verified")).is_not_null())
+                .to_owned();
+            let count_row_is_verified = match db.query_one(&count_stmt_is_verified).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `user_profile.is_verified`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_is_verified = count_row_is_verified
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_is_verified = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(is_verified AS TEXT)"))
+                .from(Alias::new(user_profile::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("is_verified")).is_not_null())
+                .limit(page_size_is_verified)
+                .offset(cur_page_is_verified * page_size_is_verified)
+                .to_owned();
+            let rows_is_verified = match db.query_all(&stmt_is_verified).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `user_profile.is_verified`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_is_verified: Vec<String> = rows_is_verified
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_is_verified.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => x.cmp(&y),
+                _ => a.cmp(b),
+            });
+            result.insert(
+                "is_verified".to_string(),
+                (vals_is_verified, total_is_verified),
+            );
+            Ok(result)
+        })
+    });
+
+    registry.register(
+        ResourceEntry::new(meta, form_builder)
+            .with_list_fn(list_fn)
+            .with_get_fn(get_fn)
+            .with_delete_fn(delete_fn)
+            .with_create_fn(create_fn)
+            .with_update_fn(update_fn)
+            .with_partial_update_fn(partial_update_fn)
+            .with_count_fn(count_fn)
+            .with_filter_fn(filter_fn)
+            .with_m2m_loader(m2m_loader),
+    );
+
+    registry.remove("users");
     registry
 }
 

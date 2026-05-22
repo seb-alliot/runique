@@ -419,24 +419,101 @@ Le libellé s'applique au formulaire admin et aux en-têtes de colonnes dans `li
 
 ## `extend!{}` — extension des tables framework
 
-Ajoute des colonnes à une table Runique sans la redéfinir. Le CLI `makemigrations` détecte les blocs `extend!{}` et génère des instructions `ALTER TABLE ADD COLUMN`.
+Ajoute des colonnes à une table Runique et génère une entité SeaORM complète sur cette table.
+
+`extend!{}` produit deux choses :
+
+1. **Schema SQL** — `makemigrations` détecte le bloc et génère des instructions `ALTER TABLE ADD COLUMN`
+2. **Entité complète** — `Model`, `Column`, `Entity`, `AdminForm`, `admin_from_form`, `admin_partial_update` couvrant **toutes** les colonnes de la table (colonnes de base + colonnes étendues)
 
 ```rust
+// src/entities/user_profile.rs
+use runique::prelude::*;
+
 extend! {
     table: "eihwaz_users",
     fields: {
-        avatar:  image   [upload_to: "avatars/"],
-        bio:     textarea,
-        website: url     [required],
+        bio:        textarea,
+        avatar:     image  [upload_to: "avatars/"],
+        website:    url,
+        phone:      phone,
+        birth_date: date,
+        is_verified: bool  [default: false],
     }
 }
 ```
 
 Tables autorisées : `eihwaz_users`, `eihwaz_groupes`, `eihwaz_droits`, `eihwaz_sessions`, `eihwaz_users_groupes`, `eihwaz_groupes_droits`. Tout autre nom provoque une erreur à la compilation.
 
-Les champs déclarés dans `extend!{}` utilisent les mêmes types et options que la syntaxe v2 de `model!`.
+Les champs déclarés dans `extend!{}` utilisent les mêmes types et options que la syntaxe v2 de `model!`. Pas de bloc `relations:` dans `extend!{}` — les relations se déclarent dans `model!{}` cible avec `has_many(user_profile)` etc.
 
-> **Limitation** : la macro `search` ne fonctionne pas encore sur les colonnes ajoutées via `extend!{}`.
+### Workflow complet
+
+```bash
+# 1. Déclarer l'extension dans src/entities/
+# 2. Générer la migration
+runique makemigrations
+
+# 3. Appliquer
+runique migrate
+
+# 4. Enregistrer dans admin!{} (src/admin.rs)
+```
+
+```rust
+admin! {
+    configure {
+        users: { hidden: true }   // masque le panel builtin "Utilisateurs"
+    }
+    user_profile: user_profile::Model => user_profile::AdminForm {
+        title: "Profils utilisateurs",
+        list_display: [
+            ["username", "Utilisateur"],
+            ["bio", "Bio"],
+            ["is_verified", "Vérifié"],
+        ],
+    }
+}
+```
+
+### Ce qui est généré
+
+| Symbole | Description |
+| ------- | ----------- |
+| `Model` | Struct avec toutes les colonnes (base + étendues) |
+| `Column` | Enum SeaORM pour les colonnes |
+| `Entity` | `EntityTrait` complet — utilisable avec `search!` |
+| `AdminForm` | Formulaire admin couvrant toutes les colonnes |
+| `admin_from_form` | Construit un `ActiveModel` depuis les données du formulaire |
+| `admin_partial_update` | Construit un `ActiveModel` partiel pour la mise à jour |
+
+### Requêtes depuis les vues
+
+L'entité générée est un `EntityTrait` SeaORM standard — `search!` fonctionne directement :
+
+```rust
+// Tous les profils vérifiés
+let profiles = search!(user_profile::Entity => is_verified eq true).fetch(&db).await?;
+
+// Recherche multi-colonnes
+let results = search!(user_profile::Entity => or(username icontains q, bio icontains q)).fetch(&db).await?;
+```
+
+### Relations vers l'entité étendue
+
+D'autres entités peuvent pointer vers l'entité étendue via le bloc `relations:` habituel de `model!{}` :
+
+```rust
+model! {
+    Article,
+    table: "articles",
+    pk: id => i32,
+    { auteur_id: int [required] },
+    relations: {
+        belongs_to: user_profile::Model via auteur_id,
+    }
+}
+```
 
 ---
 

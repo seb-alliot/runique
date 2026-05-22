@@ -84,10 +84,35 @@ Clés disponibles dans chaque entrée :
 | `list_display` | `[["col", "Libellé"], …]` | Colonnes visibles ordonnées dans la vue liste |
 | `list_exclude` | `["col1", "col2", …]` | Colonnes à masquer (exclusif avec `list_display`) |
 | `list_filter` | `[["col", "Libellé"], …]` | Filtres de la barre latérale |
+| `group_action` | `[["champ", "Libellé"], …]` | Actions de masse (disponible aussi ici pour les builtins) |
+| `hidden` | `true` / `false` | Supprime la ressource builtin du registry — utile quand `extend!{}` prend le relai |
 
 `list_display` et `list_exclude` sont mutuellement exclusifs — le daemon rejette les deux déclarés pour la même ressource.
 
-Le daemon génère des appels `registry.configure("key", DisplayConfig::new()...)` **après** tous les `registry.register()`, ce qui permet de configurer aussi les ressources builtin enregistrées en amont.
+Quand `hidden: true` est déclaré, toutes les autres clés de cette entrée sont ignorées — la ressource est supprimée du registry.
+
+Le daemon génère des appels `registry.configure("key", DisplayConfig::new()...)` **après** tous les `registry.register()`, ce qui permet de configurer aussi les ressources builtin enregistrées en amont. Pour `hidden: true`, il génère `registry.remove("key")`.
+
+**Exemple typique — `extend!{}` prend ownership d'`eihwaz_users` :**
+
+```rust
+admin! {
+    configure {
+        users: { hidden: true }
+    }
+    user_profile: user_profile::Model => user_profile::AdminForm {
+        title: "Profils utilisateurs",
+        list_display: [
+            ["username", "Utilisateur"],
+            ["email", "Email"],
+            ["bio", "Bio"],
+            ["is_verified", "Vérifié"],
+        ],
+    }
+}
+```
+
+Le panel builtin "Utilisateurs" disparaît ; "Profils utilisateurs" le remplace avec toute la table (`eihwaz_users` + colonnes étendues).
 
 #### `id_type`
 

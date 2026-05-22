@@ -15,7 +15,7 @@ async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
                     .col(ColumnDef::new(Alias::new("chapitre_id")).integer().not_null())
                     .col(ColumnDef::new(Alias::new("heading")).string().null())
                     .col(ColumnDef::new(Alias::new("content")).text().not_null())
-                    .col(ColumnDef::new(Alias::new("block_type")).string().not_null())
+                    .col(ColumnDef::new_with_type(Alias::new("block_type"), ColumnType::Enum { name: Alias::new("CourBlockType").into_iden(), variants: vec![Alias::new("code").into_iden(), Alias::new("text").into_iden(), Alias::new("table").into_iden(), Alias::new("list").into_iden(), Alias::new("warning").into_iden()] }).not_null())
                     .col(ColumnDef::new(Alias::new("sort_order")).integer().not_null())
                     .to_owned()
             )

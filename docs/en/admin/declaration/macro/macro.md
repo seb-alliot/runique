@@ -84,10 +84,35 @@ Supported keys inside each entry:
 | `list_display` | `[["col", "Label"], …]` | Ordered visible columns in the list view |
 | `list_exclude` | `["col1", "col2", …]` | Columns to hide (mutually exclusive with `list_display`) |
 | `list_filter` | `[["col", "Label"], …]` | Sidebar filters |
+| `group_action` | `[["field", "Label"], …]` | Bulk actions (also available here for builtins) |
+| `hidden` | `true` / `false` | Removes the builtin resource from the registry — useful when `extend!{}` takes over |
 
 `list_display` and `list_exclude` are mutually exclusive — the daemon rejects both being declared for the same resource.
 
-The daemon generates `registry.configure("key", DisplayConfig::new()...)` calls **after** all `registry.register()` calls, so builtin resources registered earlier can also be configured.
+When `hidden: true` is declared, all other keys for that entry are ignored — the resource is removed from the registry.
+
+The daemon generates `registry.configure("key", DisplayConfig::new()...)` calls **after** all `registry.register()` calls, so builtin resources registered earlier can also be configured. For `hidden: true`, it generates `registry.remove("key")`.
+
+**Typical example — `extend!{}` takes ownership of `eihwaz_users`:**
+
+```rust
+admin! {
+    configure {
+        users: { hidden: true }
+    }
+    user_profile: user_profile::Model => user_profile::AdminForm {
+        title: "User profiles",
+        list_display: [
+            ["username", "User"],
+            ["email", "Email"],
+            ["bio", "Bio"],
+            ["is_verified", "Verified"],
+        ],
+    }
+}
+```
+
+The builtin "Users" panel disappears; "User profiles" replaces it with the full table (`eihwaz_users` + extended columns).
 
 #### `id_type`
 

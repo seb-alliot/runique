@@ -50,6 +50,12 @@ ACME_CERTS_DIR=/chemin/absolu/vers/certs   # défaut : ./certs
 > Si `ACME_ENABLED=true` mais que la feature `acme` n'est pas compilée, Runique
 > affiche un avertissement au démarrage.
 
+### Limitation — un seul site par machine
+
+ACME requiert l'**exclusivité du port 80**. Si plusieurs applications tournent sur le même serveur, une seule peut utiliser ACME — les autres ne peuvent pas obtenir leurs certificats simultanément.
+
+Dans un contexte multi-site, utiliser un reverse proxy (nginx, Caddy) qui gère lui-même Let's Encrypt, et faire tourner chaque instance Runique sur un port interne distinct avec `ACME_ENABLED=false`.
+
 ### Ports requis
 
 | Port | Usage |

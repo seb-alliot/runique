@@ -11,6 +11,7 @@ Toute la configuration est facilitée via `.env` et est chargée dans une struct
 | [Builder](/docs/fr/configuration/builder) | Builder classique, Builder Intelligent, méthodes, valeurs par défaut |
 | [Mots de passe](/docs/fr/configuration/password) | `PasswordConfig` : Auto, Manual, Delegated, Custom — `password_init()`, `hash()`, `verify()` |
 | [Internationalisation (i18n)](/docs/fr/configuration/i18n) | Langues, `set_lang()`, `t()`, `tf()`, variable `LANG`, fallback |
+| [Tracing structuré](/docs/fr/configuration/tracing) | `RuniqueLog`, activation par domaine, `.dev()`, `runique_log!` |
 
 ## Prochaines étapes
 

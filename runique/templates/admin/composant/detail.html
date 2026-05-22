@@ -121,6 +121,28 @@
     </div>
   </div>
   {% endblock %}
+  {% if m2m_fields is defined and m2m_fields %}
+  {% for field in m2m_fields %}
+  <div class="admin-card mt-sm">
+    <div class="admin-card__header">
+      <span class="admin-card__title">{{ field.label }}</span>
+    </div>
+    <div class="admin-card__body">
+      <div class="admin-m2m__choices admin-m2m__choices--readonly">
+        {% if field.selected | length > 0 %}
+          {% for choice in field.choices %}
+            {% if choice[0] in field.selected %}
+              <span class="admin-badge admin-badge--neutral">{{ choice[1] }}</span>
+            {% endif %}
+          {% endfor %}
+        {% else %}
+          <span class="admin-text--muted">—</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+  {% endif %}
   <script {% csp %} src="{{ "js/admin/admin-actions.js" | runique_static }}"></script>
   <script {% csp %} src="{{ "js/admin/admin-kebab.js" | runique_static }}"></script>
 {% endblock %}

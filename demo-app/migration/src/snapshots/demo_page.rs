@@ -16,7 +16,7 @@ async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
                     .col(ColumnDef::new(Alias::new("slug")).string().not_null())
                     .col(ColumnDef::new(Alias::new("title")).string().not_null())
                     .col(ColumnDef::new(Alias::new("lead")).string().null())
-                    .col(ColumnDef::new(Alias::new("page_type")).string().not_null())
+                    .col(ColumnDef::new_with_type(Alias::new("page_type"), ColumnType::Enum { name: Alias::new("PageType").into_iden(), variants: vec![Alias::new("code").into_iden(), Alias::new("form").into_iden(), Alias::new("custom").into_iden(), Alias::new("doc_en").into_iden(), Alias::new("doc_fr").into_iden()] }).not_null())
                     .col(ColumnDef::new(Alias::new("sort_order")).integer().not_null())
                     .to_owned()
             )

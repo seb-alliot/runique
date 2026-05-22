@@ -97,6 +97,8 @@ pub(crate) struct ConfigureDef {
     pub list_filter: Vec<(String, String, u64)>,
     /// Group action fields: `[("field", "Label")]` or `[("field", "Label", "value")]`
     pub group_action: Vec<(String, String, Option<String>)>,
+    /// When true, the builtin resource is removed from the registry entirely.
+    pub hidden: bool,
 }
 
 /// Result of parsing `src/admin.rs`
@@ -291,6 +293,7 @@ fn parse_configure_body(key: String, tokens: TokenStream) -> Result<ConfigureDef
     let mut list_exclude = Vec::new();
     let mut list_filter = Vec::new();
     let mut group_action = Vec::new();
+    let mut hidden = false;
 
     while iter.peek().is_some() {
         let field = match iter.next() {
@@ -314,6 +317,9 @@ fn parse_configure_body(key: String, tokens: TokenStream) -> Result<ConfigureDef
             "group_action" => {
                 group_action = parse_group_action(&mut iter)?;
             }
+            "hidden" => {
+                hidden = parse_bool(&mut iter)?;
+            }
             other => {
                 skip_until_punct(&mut iter, ',');
                 eprintln!("  Unknown field in configure[\"{}\"]: '{}'", key, other);
@@ -333,6 +339,7 @@ fn parse_configure_body(key: String, tokens: TokenStream) -> Result<ConfigureDef
         list_exclude,
         list_filter,
         group_action,
+        hidden,
     })
 }
 
@@ -870,6 +877,19 @@ fn parse_string_literal(iter: &mut TokenIter) -> Result<String, String> {
         }
         Some(other) => Err(tf("parser.string_expected", &[&other.to_string()])),
         None => Err(t("parser.string_eof").to_string()),
+    }
+}
+
+fn parse_bool(iter: &mut TokenIter) -> Result<bool, String> {
+    use proc_macro2::TokenTree;
+    match iter.next() {
+        Some(TokenTree::Ident(id)) => match id.to_string().as_str() {
+            "true" => Ok(true),
+            "false" => Ok(false),
+            other => Err(format!("Expected true or false, found: {}", other)),
+        },
+        Some(other) => Err(format!("Expected true or false, found: {}", other)),
+        None => Err("Expected true or false, end of file".to_string()),
     }
 }
 

@@ -376,6 +376,13 @@ textarea.form-control { min-height: 100px; resize: vertical; }
 @media (max-width: 900px)  { .admin-m2m__choices { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 480px)  { .admin-m2m__choices { grid-template-columns: repeat(2, 1fr); } }
 
+.admin-m2m__choices--readonly {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.5rem;
+    margin-top: 0.5rem;
+}
+
 /* ───────────────────────────────────────────────
     Barre de filtre alphabétique (choice-filter.js)
    ─────────────────────────────────────────────── */

@@ -22,3 +22,4 @@ pub mod site_config;
 pub mod test_all_field;
 
 pub mod model_derive;
+pub mod user_profile;
