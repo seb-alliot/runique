@@ -1,6 +1,6 @@
 # Mailer — sending emails
 
-[← Back](/docs/en/)
+[← Back](/docs/en)
 
 ---
 
@@ -162,4 +162,4 @@ pub async fn register(mut request: Request) -> AppResult<Response> {
 
 ---
 
-← [**Back**](/docs/en/)
+← [**Back**](/docs/en)

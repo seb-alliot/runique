@@ -190,7 +190,7 @@ let results = search!(@UserForm =>
 | --- | --- |
 | [CRUD Queries](/docs/en/orm/queries) | SELECT, COUNT, WHERE, INSERT, UPDATE, DELETE |
 | [Advanced](/docs/en/orm/advanced) | Transactions, relations |
-| [Forms](/docs/en/model/forms/forms) | `#[form(model = ...)]`, `FormEntity`, `Form::objects` |
+| [Forms](/docs/en/model/forms) | `#[form(model = ...)]`, `FormEntity`, `Form::objects` |
 
 ## Back to summary
 

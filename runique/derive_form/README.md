@@ -2,10 +2,11 @@
 
 Procedural macros for the [Runique](https://github.com/seb-alliot/runique) web framework.
 
-Exposes two macros:
+Exposes three macros:
 
 - `model!(...)` — DSL to declare a SeaORM model and generate its schema
 - `#[form(...)]` — attribute macro to generate a form struct from a model schema
+- `extend!{...}` — extends a framework table (e.g. `eihwaz_users`) with custom columns
 
 ---
 
@@ -469,6 +470,28 @@ model! {
     }
 }
 ```
+
+---
+
+## `extend!{}` — extend framework tables
+
+`extend!{}` declares custom columns to add to a framework table. It is used by `makemigrations` to generate the corresponding `ALTER TABLE ADD COLUMN` statements, and generates the entity extension and `AdminForm` for use in `admin!{}`.
+
+Tables allowed: `eihwaz_users`, `eihwaz_groupes`, `eihwaz_droits`, `eihwaz_sessions`, `eihwaz_users_groupes`, `eihwaz_groupes_droits`.
+
+### Syntax
+
+```rust
+extend! {
+    table: "eihwaz_users",
+    fields: {
+        field: type [option1, option2, ...],
+        ...
+    }
+}
+```
+
+Field types and options follow the same rules as `model!{}`.
 
 ---
 

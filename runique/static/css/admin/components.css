@@ -174,6 +174,7 @@
 .admin-table td.admin-table__td-data .admin-table__td-content {
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     white-space: normal;
@@ -187,6 +188,7 @@
 .admin-table td.admin-table__td-data.expanded .admin-table__td-content {
     display: block;
     overflow: visible;
+    line-clamp:unset;
     -webkit-line-clamp: unset;
     word-break: break-word;
 }

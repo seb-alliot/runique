@@ -273,6 +273,7 @@ impl sea_orm_migration::MigrationTrait for EihwazSessionsMigration {
             .drop_table(
                 Table::drop()
                     .table(Alias::new("eihwaz_sessions"))
+                    .if_exists()
                     .to_owned(),
             )
             .await
