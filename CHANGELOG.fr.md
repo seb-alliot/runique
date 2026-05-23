@@ -6,6 +6,22 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ---
 
+## [2.1.6] - 2026-05-23
+
+### Ajouté — `derive_form` (extend)
+
+* **Bloc `extend!{}` dans `derive_form!{}`:** un nouveau bloc `extend { Table { fields: { ... } } }` permet d'ajouter des colonnes personnalisées à des tables framework (ex. `eihwaz_users`) en utilisant le même DSL de champs que `derive_form!{}`. La macro génère la migration `ALTER TABLE`, injecte les colonnes dans l'entité SeaORM existante et produit un `AdminForm` utilisable dans `admin!{}`. Les colonnes de base de la table restent invisibles — seules les extensions déclarées sont exposées.
+
+### Ajouté — `runique` (admin)
+
+* **Tracing structuré dans les opérations CRUD de l'admin et tout le reste du framework :** `handle_create_post` et `handle_edit_post` émettent désormais des événements de log structurés contrôlés par `RuniqueLog::admin.crud`. Les événements couvrent le résultat de la validation du formulaire, la sauvegarde réussie et les erreurs de base de données (violations d'unicité distinguées des autres erreurs).
+
+### Corrigé — `runique` (migrations)
+
+* **`EihwazSessionsMigration::down()` échouait avec "no such table: eihwaz_sessions" :** `AdminTableMigration::down()` supprime déjà `eihwaz_sessions` (avec `.if_exists()`). Lors d'un `migrate reset`, les migrations DOWN s'exécutent en ordre inverse — `AdminTableMigration::down()` s'exécutait en premier, supprimant la table. `EihwazSessionsMigration::down()` tentait ensuite de la supprimer à nouveau sans `.if_exists()` et plantait. Corrigé en ajoutant `.if_exists()` à `EihwazSessionsMigration::down()`.
+
+---
+
 ## [2.1.5] - 2026-05-20
 
 ### Corrigé — `runique` (formulaires)

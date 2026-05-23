@@ -163,4 +163,4 @@ pub async fn login(/* ... */) -> impl IntoResponse {
 
 ---
 
-← [**Protection Middlewares**](/docs/en/auth/middleware) | [**Complete Example**](/docs/en/auth/exemple) →
+← [**Protection Middlewares**](/docs/en/auth/middleware) | [**Complete Example**](/docs/en/auth/example) →

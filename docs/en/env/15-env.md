@@ -10,7 +10,7 @@ All configuration keys available through `.env`. The listed values are the defau
 | --- | --- |
 | [Application & Server](/docs/en/env/application) | DEBUG, BASE_DIR, IP_SERVER, PORT, SECRET_KEY, DB, Redirects |
 | [Assets & Media](/docs/en/env/assets) | STATICFILES_DIRS, MEDIA_ROOT, TEMPLATES_DIR and associated URLs |
-| [Security & Sessions](/docs/en/env/securite) | ALLOWED_HOSTS, CSP, Middlewares, Sessions |
+| [Security & Sessions](/docs/en/env/security) | ALLOWED_HOSTS, CSP, Middlewares, Sessions |
 
 ---
 

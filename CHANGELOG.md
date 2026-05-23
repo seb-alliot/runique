@@ -6,6 +6,22 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2.1.6] - 2026-05-23
+
+### Added — `derive_form` (extend)
+
+* **`extend!{}` block in `derive_form!{}`:** a new `extend { Table { fields: { ... } } }` block allows adding custom columns to framework tables (e.g. `eihwaz_users`) using the same field DSL as `derive_form!{}`. The macro generates the `ALTER TABLE` migration, injects the columns into the existing SeaORM entity, and produces an `AdminForm` for use in `admin!{}`. The base table columns remain invisible to the user — only the declared extensions are surfaced.
+
+### Added — `runique` (admin)
+
+* **Structured tracing in admin CRUD operations and all party to of framework:** `handle_create_post` and `handle_edit_post` now emit structured log events controlled by `RuniqueLog::admin.crud`. Events cover form validation outcome, successful save, and database errors (unique violations distinguished from other errors).
+
+### Fixed — `runique` (migrations)
+
+* **`EihwazSessionsMigration::down()` failed with "no such table: eihwaz_sessions":** `AdminTableMigration::down()` already drops `eihwaz_sessions` (with `.if_exists()`). When `migrate reset` ran all DOWN migrations in reverse, `AdminTableMigration::down()` executed first, leaving the table gone. `EihwazSessionsMigration::down()` then tried to drop it again without `.if_exists()` and crashed. Fixed by adding `.if_exists()` to `EihwazSessionsMigration::down()`.
+
+---
+
 ## [2.1.5] - 2026-05-20
 
 ### Fixed — `runique` (forms)
