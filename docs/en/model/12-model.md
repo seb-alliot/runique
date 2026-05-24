@@ -12,7 +12,7 @@ The `model!` macro generates SeaORM entities, migration schemas, and associated 
 | --- | --- |
 | [DSL & AST](/docs/en/model/dsl) | Exposed macros, `model!` syntax, internal AST, field types and options |
 | [Generation & ModelSchema](/docs/en/model/generation) | Generated code, `ModelSchema`, `to_migration()`, `fill_form()` |
-| [Forms & Challenges](/docs/en/model/formulaires) | `#[form(...)]`, technical considerations, reading order |
+| [Forms & Challenges](/docs/en/model/forms) | `#[form(...)]`, technical considerations, reading order |
 
 ---
 
