@@ -102,7 +102,7 @@ Ne pas appeler `.with_trusted_proxies` — le preset RFC 1918 s'applique automat
 | Section | Description |
 | --- | --- |
 | [Permissions-Policy](/docs/fr/middleware/permissions-policy) | Restrictions des API navigateur |
-| [Validation des hôtes](/docs/fr/middleware/host) | Hôtes autorisés |
+| [Validation des hôtes](/docs/fr/middleware/hosts-cache) | Hôtes autorisés |
 | [Builder](/docs/fr/middleware/builder) | Configuration du builder |
 
 ## Retour au sommaire
