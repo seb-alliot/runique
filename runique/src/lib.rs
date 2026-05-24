@@ -108,8 +108,8 @@ pub mod prelude {
     };
     pub use crate::utils::csp_nonce::*;
     pub use crate::{
-        context_update, error, flash_now, impl_form_access, impl_objects, info, search, search_cond, success,
-        urlpatterns, view, warning,
+        context_update, error, flash_now, impl_form_access, impl_objects, info, search,
+        search_cond, success, urlpatterns, view, warning,
     };
 
     // ========================================================================
