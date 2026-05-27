@@ -95,8 +95,6 @@ pub async fn ma_vue(
 
 Ne pas appeler `.with_trusted_proxies` — le preset RFC 1918 s'applique automatiquement.
 
----
-
 ## Voir aussi
 
 | Section | Description |

@@ -95,8 +95,6 @@ pub async fn my_handler(
 
 Do not call `.with_trusted_proxies` — the RFC 1918 preset applies automatically.
 
----
-
 ## See also
 
 | Section | Description |

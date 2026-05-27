@@ -1,7 +1,7 @@
 //! `Forms` — main form container: fields, validation, rendering, CSRF management.
 use crate::forms::{
     base::FormField,
-    fields::{ChoiceField, HiddenField},
+    fields::{ChoiceField, HiddenField, HoneypotField},
     generic::GenericField,
     renderer::FormRenderer,
     validator::{FormValidator, ValidationError},
@@ -35,6 +35,10 @@ pub struct Forms {
     validated: bool,
     pub(crate) path_params: HashMap<String, String>,
     pub(crate) query_params: HashMap<String, String>,
+    /// Set to true by anti-bot middleware when honeypot field was filled.
+    pub(crate) force_invalid: bool,
+    /// Honeypot field name injected by anti-bot middleware (for rendering).
+    pub(crate) honeypot_field_name: Option<String>,
 }
 
 impl std::fmt::Debug for Forms {
@@ -111,6 +115,16 @@ impl Serialize for Forms {
             .collect();
 
         state.serialize_field("fields", &fields_data)?;
+
+        let honeypot_html = match (&self.honeypot_field_name, &self.renderer) {
+            (Some(name), Some(renderer)) => {
+                let hp = HoneypotField::new(name);
+                renderer.render_field(&hp).unwrap_or_default()
+            }
+            _ => String::new(),
+        };
+        state.serialize_field("honeypot_html", &honeypot_html)?;
+
         state.end()
     }
 }
@@ -161,7 +175,13 @@ impl Forms {
             validated: false,
             path_params: HashMap::new(),
             query_params: HashMap::new(),
+            force_invalid: false,
+            honeypot_field_name: None,
         }
+    }
+
+    pub fn set_honeypot(&mut self, name: &str) {
+        self.honeypot_field_name = Some(name.to_string());
     }
 
     pub fn set_url_params(
@@ -393,8 +413,9 @@ impl Forms {
 
 impl Forms {
     pub fn is_valid(&mut self) -> Result<bool, ValidationError> {
-        // For unit tests and robustness, we always validate if is_valid() is called,
-        // even if the form is not marked as submitted (e.g., no field filled).
+        if self.force_invalid {
+            return Ok(false);
+        }
         self.validated = true;
         Self::validate(&mut self.fields, &self.errors)
     }

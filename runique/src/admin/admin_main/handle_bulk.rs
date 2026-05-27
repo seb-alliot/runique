@@ -59,10 +59,12 @@ pub(super) async fn handle_bulk_edit_get(
     )
     .await;
 
-    // Inject a blank "no-change" placeholder on all select fields so they submit ""
-    // when left untouched, which the update handler filters out.
+    // Remove unique-constrained fields: bulk edit cannot set the same unique value on multiple rows.
     {
         let forms = form.get_form_mut();
+        for field_name in entry.unique_fields {
+            forms.fields.shift_remove(*field_name);
+        }
         for field in forms.fields.values_mut() {
             if field.field_type() == "select" && field.placeholder().is_empty() {
                 field.set_placeholder("— sans changement —");
@@ -131,7 +133,7 @@ async fn handle_bulk_update(
         resource_key
     );
 
-    // Only fields with non-empty values are applied
+    // Only fields with non-empty values are applied; unique fields are always excluded.
     let updates: StrMap = body
         .iter()
         .filter(|(k, v)| {
@@ -139,6 +141,7 @@ async fn handle_bulk_update(
                 && k.as_str() != "bulk_action"
                 && k.as_str() != "ids"
                 && k.as_str() != crate::utils::session_key::session::CSRF_TOKEN_KEY
+                && !entry.unique_fields.contains(&k.as_str())
         })
         .map(|(k, v)| (k.clone(), v.clone()))
         .collect();

@@ -1,7 +1,7 @@
 //! `RouterExt` — Axum `Router` extension to attach a rate limiter or a login guard to a route.
 use std::sync::Arc;
 
-use axum::{Router, routing::MethodRouter};
+use axum::{Router, http::Method, routing::MethodRouter};
 
 use crate::auth::guard::login_required_middleware;
 use crate::macros::routeur::register_url::register_pending;
@@ -40,6 +40,7 @@ pub trait RouterExt {
     ) -> Self;
 
     /// Adds a route protected by a rate limiter.
+    /// `methods`: HTTP methods to count — empty vec counts all methods.
     fn rate_limit(
         self,
         path: impl Into<String>,
@@ -47,13 +48,16 @@ pub trait RouterExt {
         handler: MethodRouter,
         max_requests: u32,
         retry_after: u64,
+        methods: Vec<Method>,
     ) -> Self;
 
     /// Adds multiple routes sharing the same rate limiter (common counter).
+    /// `methods`: HTTP methods to count — empty vec counts all methods.
     fn rate_limit_many(
         self,
         max_requests: u32,
         retry_after: u64,
+        methods: Vec<Method>,
         routes: Vec<(String, String, MethodRouter)>,
     ) -> Self;
 }
@@ -87,10 +91,12 @@ impl RouterExt for Router {
         handler: MethodRouter,
         max_requests: u32,
         retry_after: u64,
+        methods: Vec<Method>,
     ) -> Self {
         self.rate_limit_many(
             max_requests,
             retry_after,
+            methods,
             vec![(path.into(), name.into(), handler)],
         )
     }
@@ -99,13 +105,16 @@ impl RouterExt for Router {
         self,
         max_requests: u32,
         retry_after: u64,
+        methods: Vec<Method>,
         routes: Vec<(String, String, MethodRouter)>,
     ) -> Self {
-        let limiter = Arc::new(
-            RateLimiter::new()
-                .max_requests(max_requests)
-                .retry_after(retry_after),
-        );
+        let mut limiter = RateLimiter::new()
+            .max_requests(max_requests)
+            .retry_after(retry_after);
+        if !methods.is_empty() {
+            limiter = limiter.only_methods(methods);
+        }
+        let limiter = Arc::new(limiter);
         limiter.spawn_cleanup(tokio::time::Duration::from_secs(retry_after));
         let mut r = self;
         for (path, name, handler) in routes {

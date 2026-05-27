@@ -205,15 +205,63 @@ fn build_enum_type_drops(schema: &ParsedSchema, db_kind: &DbKind) -> String {
     out
 }
 
-pub fn generate_alter_file(change: &Changes) -> String {
+fn build_enum_create_stmts_for_cols(cols: &[ParsedColumn], db_kind: &DbKind) -> String {
+    if *db_kind != DbKind::Postgres {
+        return String::new();
+    }
+    let mut out = String::new();
+    for col in cols {
+        if col.enum_string_values.is_empty() {
+            continue;
+        }
+        let name = col.enum_name.as_deref().unwrap_or(&col.name);
+        let variants: Vec<String> = col
+            .enum_string_values
+            .iter()
+            .map(|v| format!("'{}'", v))
+            .collect();
+        out.push_str(&format!(
+            "        manager.get_connection().execute_unprepared(\n            \"DO $$ BEGIN CREATE TYPE {name} AS ENUM ({variants}); EXCEPTION WHEN duplicate_object THEN NULL; END $$\"\n        ).await?;\n\n",
+            name = name,
+            variants = variants.join(", "),
+        ));
+    }
+    out
+}
+
+fn build_enum_drop_stmts_for_cols(cols: &[ParsedColumn], db_kind: &DbKind) -> String {
+    if *db_kind != DbKind::Postgres {
+        return String::new();
+    }
+    let mut out = String::new();
+    for col in cols {
+        if col.enum_string_values.is_empty() {
+            continue;
+        }
+        let name = col.enum_name.as_deref().unwrap_or(&col.name);
+        out.push_str(&format!(
+            "        manager.get_connection().execute_unprepared(\n            \"DROP TYPE IF EXISTS {name}\"\n        ).await?;\n\n",
+            name = name,
+        ));
+    }
+    out
+}
+
+pub fn generate_alter_file(change: &Changes, db_kind: &DbKind) -> String {
     let (up_body, down_body) = build_alter_bodies(change);
 
-    let up_param = if !up_body.trim().is_empty() {
+    let enum_creates = build_enum_create_stmts_for_cols(&change.added_columns, db_kind);
+    let enum_drops = build_enum_drop_stmts_for_cols(&change.added_columns, db_kind);
+
+    let full_up = format!("{}{}", enum_creates, up_body);
+    let full_down = format!("{}{}", down_body, enum_drops);
+
+    let up_param = if !full_up.trim().is_empty() {
         "manager"
     } else {
         "_manager"
     };
-    let down_param = if !down_body.trim().is_empty() {
+    let down_param = if !full_down.trim().is_empty() {
         "manager"
     } else {
         "_manager"
@@ -223,8 +271,8 @@ pub fn generate_alter_file(change: &Changes) -> String {
         "use sea_orm_migration::prelude::*;\n\n#[derive(DeriveMigrationName)]\npub struct Migration;\n\n#[async_trait::async_trait]\nimpl MigrationTrait for Migration {{\n    async fn up(&self, {up_param}: &SchemaManager) -> Result<(), DbErr> {{\n{up}\n        Ok(())\n    }}\n\n    async fn down(&self, {down_param}: &SchemaManager) -> Result<(), DbErr> {{\n{down}\n        Ok(())\n    }}\n}}\n",
         up_param = up_param,
         down_param = down_param,
-        up = up_body.trim_end(),
-        down = down_body.trim_end()
+        up = full_up.trim_end(),
+        down = full_down.trim_end()
     )
 }
 

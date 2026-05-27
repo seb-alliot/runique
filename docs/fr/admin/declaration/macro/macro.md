@@ -58,6 +58,7 @@ La macro est parsée par le daemon (`runique start`) qui génère la fonction `a
 | Champ | Valeur par défaut | Description |
 | --- | --- | --- |
 | `id_type` | `I32` | Type de la clé primaire dans les routes — `I32`, `I64`, `Uuid` |
+| `create_form` | *(même que `form`)* | Formulaire distinct pour la création |
 | `edit_form` | *(même que `form`)* | Formulaire distinct pour l'édition |
 | `list_display` | *(vide — toutes colonnes)* | Colonnes visibles et leurs libellés dans la vue liste |
 | `list_filter` | *(vide — pas de sidebar)* | Champs disponibles dans la barre de filtre latérale (limite optionnelle par colonne en 3ème élément, défaut `10`) |
@@ -130,6 +131,26 @@ admin! {
 Types supportés : `I32` (défaut), `I64`, `Uuid`.
 
 > La colonne en base est définie par l'entité SeaORM, pas par `id_type`. Ce champ ne génère ni migration ni changement de schéma — il ajuste seulement la conversion String → type natif dans le handler admin.
+
+#### `create_form`
+
+Utiliser un formulaire différent pour la création (cas courant : un `CheckboxField` multi-sélection pour créer plusieurs enregistrements en une fois, combiné avec `bulk_create`) :
+
+```rust
+admin! {
+    horaires: horaire::Model => horaire::AdminForm {
+        title: "Horaires",
+        create_form: crate::formulaire::HorairesGroupeForm,
+        bulk_create: jour,
+    }
+}
+```
+
+Lorsque déclaré, la vue create utilise `create_form` ; la vue edit continue d'utiliser le formulaire principal (ou `edit_form` si déclaré séparément). La méthode `save()` du wrapper create retourne `Ok(())` — la persistance est assurée par `create_fn`.
+
+> `create_form` active implicitement `inject_password: true` sur la ressource, ce qui préserve le traitement du champ mot de passe si présent dans le formulaire.
+
+---
 
 #### `edit_form`
 
@@ -239,18 +260,36 @@ Disponible aussi dans `configure {}` pour les ressources builtin.
 
 #### `bulk_create`
 
-Quand déclaré sur une ressource, le `create_fn` généré découpe le champ nommé par virgule et insère un enregistrement par valeur. Conçu pour les `CheckboxField` multi-sélection (ex : sélectionner plusieurs jours de la semaine pour créer un `horaire` par jour).
+Quand déclaré sur une ressource, le `create_fn` généré découpe le champ nommé par virgule et effectue un **upsert** par valeur : mise à jour si l'enregistrement existe déjà (même valeur du champ split), insertion sinon. Conçu pour les `CheckboxField` multi-sélection (ex : sélectionner plusieurs jours de la semaine pour créer ou mettre à jour un `horaire` par jour).
 
 ```rust
 admin! {
-    horaires: horaire::Model => HoraireForm {
+    horaires: horaire::Model => horaire::AdminForm {
         title: "Horaires",
-        bulk_create: jour,   // découpe data["jour"] par virgule, insère un enregistrement par valeur
+        create_form: crate::formulaire::HorairesGroupeForm,
+        bulk_create: jour,   // upsert par valeur de data["jour"]
     }
 }
 ```
 
-Seul le champ split se comporte différemment — tous les autres champs du formulaire sont copiés tels quels dans chaque enregistrement inséré.
+Seul le champ split se comporte différemment — tous les autres champs du formulaire sont copiés tels quels dans chaque enregistrement inséré ou mis à jour.
+
+**Pipeline de soumission multi-sélection** : une série de checkboxes HTML soumettent plusieurs fois la même clé (`jour=lundi&jour=mardi&jour=jeudi`). Prisme, le parser de corps de requête de Runique, joint automatiquement ces valeurs répétées par une virgule → le champ devient `"lundi,mardi,jeudi"`. C'est cette chaîne que `bulk_create` découpe pour traiter chaque valeur indépendamment.
+
+```rust
+// Dans le formulaire de création groupée
+form.field(
+    &CheckboxField::new("jour")
+        .label("Jours")
+        .add_choice("lundi", "Lundi")
+        .add_choice("mardi", "Mardi")
+        // ...
+);
+```
+
+**Interaction avec `edit_form`** : quand `bulk_create` est déclaré sans `edit_form` explicite, le daemon génère automatiquement un `edit_form_builder` utilisant `module::AdminForm` (formulaire standard mono-enregistrement). La vue edit individuelle n'utilise donc jamais le formulaire multi-sélection de la création groupée.
+
+> Le champ split doit correspondre à une contrainte `unique` dans le modèle pour que l'upsert fonctionne correctement — c'est cette unicité qui permet de retrouver l'enregistrement existant.
 
 ---
 
@@ -289,7 +328,9 @@ Dans les formulaires de création/édition, tous les choix disponibles sont char
 
 L'édition en masse ne nécessite aucune déclaration DSL. Quand des entrées sont sélectionnées dans la vue liste et que l'action bulk-edit est déclenchée, un formulaire est rendu avec tous les champs éditables.
 
-À la soumission, chaque enregistrement est mis à jour indépendamment. Seuls les champs avec une valeur non vide sont appliqués — laisser un select vide signifie « sans changement ». Les violations de contrainte unique ignorent cet enregistrement avec un avertissement plutôt qu'interrompre le lot.
+Les **champs à contrainte unique** sont automatiquement exclus du formulaire d'édition en masse — appliquer la même valeur unique sur plusieurs enregistrements violerait la contrainte. Ces champs sont détectés via la constante `UNIQUE_FIELDS` générée par `derive_form!{}` pour chaque entité.
+
+À la soumission, chaque enregistrement est mis à jour indépendamment. Seuls les champs avec une valeur non vide sont appliqués — laisser un select vide signifie « sans changement ».
 
 Le formulaire d'édition en masse utilise le même type de formulaire que la vue création/édition. Pour personnaliser le template, surcharger `admin/bulk_edit.html`.
 

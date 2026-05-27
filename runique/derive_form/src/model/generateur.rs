@@ -12,6 +12,7 @@ pub fn generate(model: &ModelInput) -> TokenStream2 {
     let from_str_map: TokenStream2 = generate_from_str_map(model);
     let partial_update: TokenStream2 = generate_partial_update(model);
     let admin_form = generate_admin_form(model);
+    let unique_fields = generate_unique_fields(model);
 
     quote! {
         #enums
@@ -22,6 +23,7 @@ pub fn generate(model: &ModelInput) -> TokenStream2 {
         #from_str_map
         #partial_update
         #admin_form
+        #unique_fields
     }
 }
 
@@ -400,49 +402,105 @@ pub fn generate_from_str_map(model: &ModelInput) -> TokenStream2 {
                 }
             }
             FieldType::Time => {
-                quote! {
-                    #fname: ::sea_orm::ActiveValue::Set(
-                        __data.get(#fname_str).and_then(|v| {
-                            if v.is_empty() { return None; }
-                            ::chrono::NaiveTime::parse_from_str(v, "%H:%M:%S")
-                                .or_else(|_| ::chrono::NaiveTime::parse_from_str(v, "%H:%M"))
-                                .ok()
-                        })
-                    ),
+                if is_nullable {
+                    quote! {
+                        #fname: ::sea_orm::ActiveValue::Set(
+                            __data.get(#fname_str).and_then(|v| {
+                                if v.is_empty() { return None; }
+                                ::chrono::NaiveTime::parse_from_str(v, "%H:%M:%S")
+                                    .or_else(|_| ::chrono::NaiveTime::parse_from_str(v, "%H:%M"))
+                                    .ok()
+                            })
+                        ),
+                    }
+                } else {
+                    quote! {
+                        #fname: ::sea_orm::ActiveValue::Set(
+                            __data.get(#fname_str)
+                                .filter(|v| !v.is_empty())
+                                .and_then(|v| {
+                                    ::chrono::NaiveTime::parse_from_str(v, "%H:%M:%S")
+                                        .or_else(|_| ::chrono::NaiveTime::parse_from_str(v, "%H:%M"))
+                                        .ok()
+                                })
+                                .unwrap_or_default()
+                        ),
+                    }
                 }
             }
             FieldType::Date => {
-                quote! {
-                    #fname: ::sea_orm::ActiveValue::Set(
-                        __data.get(#fname_str).and_then(|v| {
-                            if v.is_empty() { return None; }
-                            ::chrono::NaiveDate::parse_from_str(v, "%Y-%m-%d").ok()
-                        })
-                    ),
+                if is_nullable {
+                    quote! {
+                        #fname: ::sea_orm::ActiveValue::Set(
+                            __data.get(#fname_str).and_then(|v| {
+                                if v.is_empty() { return None; }
+                                ::chrono::NaiveDate::parse_from_str(v, "%Y-%m-%d").ok()
+                            })
+                        ),
+                    }
+                } else {
+                    quote! {
+                        #fname: ::sea_orm::ActiveValue::Set(
+                            __data.get(#fname_str)
+                                .filter(|v| !v.is_empty())
+                                .and_then(|v| ::chrono::NaiveDate::parse_from_str(v, "%Y-%m-%d").ok())
+                                .unwrap_or_default()
+                        ),
+                    }
                 }
             }
             FieldType::Datetime | FieldType::Timestamp => {
-                quote! {
-                    #fname: ::sea_orm::ActiveValue::Set(
-                        __data.get(#fname_str).and_then(|v| {
-                            if v.is_empty() { return None; }
-                            ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M:%S")
-                                .or_else(|_| ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M"))
-                                .ok()
-                        })
-                    ),
+                if is_nullable {
+                    quote! {
+                        #fname: ::sea_orm::ActiveValue::Set(
+                            __data.get(#fname_str).and_then(|v| {
+                                if v.is_empty() { return None; }
+                                ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M:%S")
+                                    .or_else(|_| ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M"))
+                                    .ok()
+                            })
+                        ),
+                    }
+                } else {
+                    quote! {
+                        #fname: ::sea_orm::ActiveValue::Set(
+                            __data.get(#fname_str)
+                                .filter(|v| !v.is_empty())
+                                .and_then(|v| {
+                                    ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M:%S")
+                                        .or_else(|_| ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M"))
+                                        .ok()
+                                })
+                                .unwrap_or_default()
+                        ),
+                    }
                 }
             }
             FieldType::TimestampTz => {
-                quote! {
-                    #fname: ::sea_orm::ActiveValue::Set(
-                        __data.get(#fname_str).and_then(|v| {
-                            if v.is_empty() { return None; }
-                            ::chrono::DateTime::parse_from_rfc3339(v)
-                                .map(|dt| dt.with_timezone(&::chrono::Utc))
-                                .ok()
-                        })
-                    ),
+                if is_nullable {
+                    quote! {
+                        #fname: ::sea_orm::ActiveValue::Set(
+                            __data.get(#fname_str).and_then(|v| {
+                                if v.is_empty() { return None; }
+                                ::chrono::DateTime::parse_from_rfc3339(v)
+                                    .map(|dt| dt.with_timezone(&::chrono::Utc))
+                                    .ok()
+                            })
+                        ),
+                    }
+                } else {
+                    quote! {
+                        #fname: ::sea_orm::ActiveValue::Set(
+                            __data.get(#fname_str)
+                                .filter(|v| !v.is_empty())
+                                .and_then(|v| {
+                                    ::chrono::DateTime::parse_from_rfc3339(v)
+                                        .map(|dt| dt.with_timezone(&::chrono::Utc))
+                                        .ok()
+                                })
+                                .unwrap_or_else(|| ::chrono::Utc::now())
+                        ),
+                    }
                 }
             }
             FieldType::Uuid => {
@@ -698,49 +756,101 @@ pub fn generate_partial_update(model: &ModelInput) -> TokenStream2 {
                 }
             }
             FieldType::Time => {
-                quote! {
-                    #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
-                        Some(v) => ::sea_orm::ActiveValue::Set(
-                            ::chrono::NaiveTime::parse_from_str(v, "%H:%M:%S")
+                if is_nullable {
+                    quote! {
+                        #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
+                            Some(v) => ::sea_orm::ActiveValue::Set(
+                                ::chrono::NaiveTime::parse_from_str(v, "%H:%M:%S")
+                                    .or_else(|_| ::chrono::NaiveTime::parse_from_str(v, "%H:%M"))
+                                    .ok()
+                            ),
+                            None => ::sea_orm::ActiveValue::NotSet,
+                        },
+                    }
+                } else {
+                    quote! {
+                        #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
+                            Some(v) => match ::chrono::NaiveTime::parse_from_str(v, "%H:%M:%S")
                                 .or_else(|_| ::chrono::NaiveTime::parse_from_str(v, "%H:%M"))
-                                .ok()
-                        ),
-                        None => ::sea_orm::ActiveValue::NotSet,
-                    },
+                            {
+                                Ok(t) => ::sea_orm::ActiveValue::Set(t),
+                                Err(_) => ::sea_orm::ActiveValue::NotSet,
+                            },
+                            None => ::sea_orm::ActiveValue::NotSet,
+                        },
+                    }
                 }
             }
             FieldType::Date => {
-                quote! {
-                    #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
-                        Some(v) => ::sea_orm::ActiveValue::Set(
-                            ::chrono::NaiveDate::parse_from_str(v, "%Y-%m-%d").ok()
-                        ),
-                        None => ::sea_orm::ActiveValue::NotSet,
-                    },
+                if is_nullable {
+                    quote! {
+                        #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
+                            Some(v) => ::sea_orm::ActiveValue::Set(
+                                ::chrono::NaiveDate::parse_from_str(v, "%Y-%m-%d").ok()
+                            ),
+                            None => ::sea_orm::ActiveValue::NotSet,
+                        },
+                    }
+                } else {
+                    quote! {
+                        #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
+                            Some(v) => match ::chrono::NaiveDate::parse_from_str(v, "%Y-%m-%d") {
+                                Ok(d) => ::sea_orm::ActiveValue::Set(d),
+                                Err(_) => ::sea_orm::ActiveValue::NotSet,
+                            },
+                            None => ::sea_orm::ActiveValue::NotSet,
+                        },
+                    }
                 }
             }
             FieldType::Datetime | FieldType::Timestamp => {
-                quote! {
-                    #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
-                        Some(v) => ::sea_orm::ActiveValue::Set(
-                            ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M:%S")
+                if is_nullable {
+                    quote! {
+                        #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
+                            Some(v) => ::sea_orm::ActiveValue::Set(
+                                ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M:%S")
+                                    .or_else(|_| ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M"))
+                                    .ok()
+                            ),
+                            None => ::sea_orm::ActiveValue::NotSet,
+                        },
+                    }
+                } else {
+                    quote! {
+                        #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
+                            Some(v) => match ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M:%S")
                                 .or_else(|_| ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M"))
-                                .ok()
-                        ),
-                        None => ::sea_orm::ActiveValue::NotSet,
-                    },
+                            {
+                                Ok(dt) => ::sea_orm::ActiveValue::Set(dt),
+                                Err(_) => ::sea_orm::ActiveValue::NotSet,
+                            },
+                            None => ::sea_orm::ActiveValue::NotSet,
+                        },
+                    }
                 }
             }
             FieldType::TimestampTz => {
-                quote! {
-                    #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
-                        Some(v) => ::sea_orm::ActiveValue::Set(
-                            ::chrono::DateTime::parse_from_rfc3339(v)
-                                .map(|dt| dt.with_timezone(&::chrono::Utc))
-                                .ok()
-                        ),
-                        None => ::sea_orm::ActiveValue::NotSet,
-                    },
+                if is_nullable {
+                    quote! {
+                        #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
+                            Some(v) => ::sea_orm::ActiveValue::Set(
+                                ::chrono::DateTime::parse_from_rfc3339(v)
+                                    .map(|dt| dt.with_timezone(&::chrono::Utc))
+                                    .ok()
+                            ),
+                            None => ::sea_orm::ActiveValue::NotSet,
+                        },
+                    }
+                } else {
+                    quote! {
+                        #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
+                            Some(v) => match ::chrono::DateTime::parse_from_rfc3339(v) {
+                                Ok(dt) => ::sea_orm::ActiveValue::Set(dt.with_timezone(&::chrono::Utc)),
+                                Err(_) => ::sea_orm::ActiveValue::NotSet,
+                            },
+                            None => ::sea_orm::ActiveValue::NotSet,
+                        },
+                    }
                 }
             }
             _ => {
@@ -1377,5 +1487,17 @@ fn generate_option(opt: &FieldOption) -> TokenStream2 {
             let _ = (table, column, action);
             quote! {}
         }
+    }
+}
+
+pub fn generate_unique_fields(model: &ModelInput) -> TokenStream2 {
+    let names: Vec<String> = model
+        .fields
+        .iter()
+        .filter(|f| f.options.iter().any(|o| matches!(o, FieldOption::Unique)))
+        .map(|f| f.name.to_string())
+        .collect();
+    quote! {
+        pub const UNIQUE_FIELDS: &[&str] = &[#(#names),*];
     }
 }

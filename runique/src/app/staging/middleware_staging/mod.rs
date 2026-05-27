@@ -65,6 +65,8 @@ pub struct MiddlewareStaging {
     pub(crate) permissions_policy: Option<PermissionsPolicy>,
     /// Trusted proxies configuration (None = default: private networks)
     pub(crate) trusted_proxies_config: Option<TrustedProxiesConfig>,
+    /// Anti-bot honeypot middleware (false by default)
+    pub(crate) anti_bot: bool,
 }
 
 impl MiddlewareStaging {
@@ -92,6 +94,7 @@ impl MiddlewareStaging {
             csrf_exempt_paths: Vec::new(),
             permissions_policy: None,
             trusted_proxies_config: None,
+            anti_bot: false,
         }
     }
 
@@ -146,6 +149,7 @@ impl MiddlewareStaging {
             csrf_exempt_paths: Vec::new(),
             permissions_policy: None,
             trusted_proxies_config: None,
+            anti_bot: false,
         }
     }
 
@@ -334,6 +338,15 @@ impl MiddlewareStaging {
     /// ```
     pub fn add_custom(mut self, mw: impl FnOnce(Router) -> Router + Send + 'static) -> Self {
         self.custom_middlewares.push(Box::new(mw));
+        self
+    }
+
+    /// Enables the anti-bot honeypot middleware.
+    ///
+    /// Injects a rotating hidden field into every form. On POST, if the field
+    /// is filled the form is automatically marked invalid — no handler change needed.
+    pub fn with_anti_bot(mut self) -> Self {
+        self.anti_bot = true;
         self
     }
 

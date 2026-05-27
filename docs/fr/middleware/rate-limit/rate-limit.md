@@ -111,6 +111,25 @@ Retourne `true` si la clé est sous la limite, `false` sinon.
 
 Secondes restantes avant réinitialisation de la fenêtre pour cette clé. Retourne `0` si la fenêtre est déjà expirée ou si la clé est inconnue. Utilisé pour remplir le header `Retry-After` dans les réponses 429.
 
+### `.only_methods(methods: Vec<Method>)`
+
+Restreint le rate limiting aux méthodes HTTP spécifiées. Les requêtes avec d'autres méthodes passent librement sans être comptabilisées.
+
+```rust
+use axum::http::Method;
+
+RateLimiter::new()
+    .max_requests(5)
+    .retry_after(60)
+    .only_methods(vec![Method::POST])
+```
+
+Cas d'usage : protéger une route de login contre le brute force sur les soumissions POST uniquement, tout en laissant passer GET (affichage du formulaire) librement.
+
+> Sans `.only_methods()`, toutes les méthodes HTTP sont comptabilisées.
+
+---
+
 ### `.spawn_cleanup(period: Duration)`
 
 Lance une tâche de nettoyage en arrière-plan qui purge périodiquement les entrées expirées. Sans ce nettoyage, la map interne croît indéfiniment pour chaque IP distincte. À appeler une fois après construction du limiter.

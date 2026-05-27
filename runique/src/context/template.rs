@@ -8,6 +8,7 @@ use crate::forms::{
     field::RuniqueForm,
 };
 use crate::impl_from_error;
+use crate::middleware::security::anti_bot::HoneypotFieldName;
 use crate::utils::aliases::{AEngine, AppResult};
 use crate::utils::url_params::UrlParams;
 use crate::utils::{csp_nonce::CspNonce, csrf::CsrfToken};
@@ -114,6 +115,8 @@ pub struct Request {
     /// Parsed form data from the request (query params on GET, body on POST).
     /// CSRF is validated — csrf_valid = false signals an invalid token.
     pub prisme: Prisme,
+    /// Honeypot field name injected by anti_bot middleware (None if middleware not active).
+    pub honeypot_field_name: Option<String>,
 }
 
 impl<S> FromRequest<S> for Request
@@ -142,6 +145,7 @@ where
             .ok_or_else(|| err("session missing"))?;
         let nonce = ex.get::<CspNonce>().map(|n| n.as_str()).unwrap_or_default();
         let user = ex.get::<CurrentUser>().cloned();
+        let honeypot_field_name = ex.get::<HoneypotFieldName>().map(|h| h.0.clone());
 
         let notices = Message {
             session: session.clone(),
@@ -205,6 +209,7 @@ where
             query_params,
             user,
             prisme,
+            honeypot_field_name,
         })
     }
 }
@@ -240,6 +245,7 @@ impl Request {
                 data: Default::default(),
                 csrf_valid: true,
             },
+            honeypot_field_name: None,
         }
     }
 
@@ -376,6 +382,14 @@ impl Request {
         let mut form = T::build(self.engine.tera.clone(), masked.as_str());
         form.get_form_mut()
             .set_url_params(&self.path_params, &self.query_params);
+
+        if let Some(ref hp_name) = self.honeypot_field_name {
+            form.get_form_mut().set_honeypot(hp_name);
+            if self.is_post() && self.prisme.data.get(hp_name).is_some_and(|v| !v.is_empty()) {
+                form.get_form_mut().force_invalid = true;
+            }
+        }
+
         form.get_form_mut()
             .fill(&self.prisme.data, self.method.clone());
         form

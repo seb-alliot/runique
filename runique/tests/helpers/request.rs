@@ -121,6 +121,7 @@ pub async fn build_handler_req(
             csrf_valid: true,
         },
         headers: Default::default(),
+        honeypot_field_name: None,
     }
 }
 

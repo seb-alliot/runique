@@ -554,3 +554,126 @@ async fn test_run_ignore_mod_rs() {
     std::fs::remove_dir_all(&entities).ok();
     std::fs::remove_dir_all(&migrations).ok();
 }
+
+// ═══════════════════════════════════════════════════════════════
+// ALTER — suppression de colonne (destructif)
+// ═══════════════════════════════════════════════════════════════
+
+fn entity_user_without_email() -> &'static str {
+    r#"
+    use runique::prelude::*;
+    model! {
+        User,
+        table: "users",
+        pk: id => i32,
+        fields: {
+            username: String [unique],
+            is_active: bool,
+        }
+    }
+    "#
+}
+
+#[tokio::test]
+async fn test_run_drop_colonne_sans_force_retourne_err() {
+    set_env("RUNIQUE_TEST", "1");
+    let entities = temp_dir("run_drop_noforce_ent");
+    let migrations = temp_dir("run_drop_noforce_mig");
+
+    fs::write(entities.join("user.rs"), entity_user()).unwrap();
+    run(
+        entities.to_str().unwrap(),
+        migrations.to_str().unwrap(),
+        false,
+    )
+    .unwrap();
+
+    fs::write(entities.join("user.rs"), entity_user_without_email()).unwrap();
+    let result = run(
+        entities.to_str().unwrap(),
+        migrations.to_str().unwrap(),
+        false,
+    );
+    assert!(
+        result.is_err(),
+        "DROP COLUMN sans --force doit retourner Err"
+    );
+    let err = result.unwrap_err().to_string();
+    assert!(
+        err.contains("--force") || err.contains("force"),
+        "message d'erreur doit mentionner --force, got: {err}"
+    );
+
+    let snap = fs::read_to_string(migrations.join("snapshots/users.rs")).unwrap();
+    assert!(
+        snap.contains("email"),
+        "snapshot ne doit pas être mis à jour après un bail"
+    );
+
+    del_env("RUNIQUE_TEST");
+    std::fs::remove_dir_all(&entities).ok();
+    std::fs::remove_dir_all(&migrations).ok();
+}
+
+#[tokio::test]
+async fn test_run_drop_colonne_avec_force_genere_migration() {
+    set_env("RUNIQUE_TEST", "1");
+    let entities = temp_dir("run_drop_force_ent");
+    let migrations = temp_dir("run_drop_force_mig");
+
+    fs::write(entities.join("user.rs"), entity_user()).unwrap();
+    run(
+        entities.to_str().unwrap(),
+        migrations.to_str().unwrap(),
+        false,
+    )
+    .unwrap();
+
+    fs::write(entities.join("user.rs"), entity_user_without_email()).unwrap();
+    let result = run(
+        entities.to_str().unwrap(),
+        migrations.to_str().unwrap(),
+        true,
+    );
+    assert!(
+        result.is_ok(),
+        "DROP COLUMN avec --force doit Ok: {:?}",
+        result
+    );
+
+    let alter_dir = migrations.join("applied/users");
+    assert!(alter_dir.exists(), "applied/users/ doit exister");
+    let alter_files: Vec<_> = fs::read_dir(&alter_dir)
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .filter(|e| {
+            let n = e.file_name();
+            let s = n.to_string_lossy().to_string();
+            s.contains("alter_users_table") && s.ends_with(".rs")
+        })
+        .collect();
+    assert!(
+        !alter_files.is_empty(),
+        "fichier ALTER doit exister dans applied/users/"
+    );
+
+    let alter_content = fs::read_to_string(alter_files[0].path()).unwrap();
+    assert!(
+        alter_content.contains("drop_column"),
+        "ALTER doit contenir drop_column"
+    );
+    assert!(
+        alter_content.contains("email"),
+        "ALTER doit mentionner la colonne supprimée"
+    );
+
+    let snap = fs::read_to_string(migrations.join("snapshots/users.rs")).unwrap();
+    assert!(
+        !snap.contains("\"email\""),
+        "snapshot mis à jour ne doit plus contenir email"
+    );
+
+    del_env("RUNIQUE_TEST");
+    std::fs::remove_dir_all(&entities).ok();
+    std::fs::remove_dir_all(&migrations).ok();
+}

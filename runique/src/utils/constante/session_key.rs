@@ -14,4 +14,5 @@ pub mod session {
     pub const SESSION_USER_ROLES_KEY: &str = "roles";
     pub const SESSION_USER_DROITS_KEY: &str = "droits";
     pub const IS_ACTIVE: &str = "is_active";
+    pub const HP_FIELD_KEY: &str = "_hp";
 }

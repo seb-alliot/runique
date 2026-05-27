@@ -56,6 +56,22 @@ fn write_admin(parsed: &ParsedAdmin, dir: &Path) -> Result<(), String> {
         write_dyn_form_impl(&mut out, r)?;
         if r.edit_form_type.is_some() {
             write_edit_dyn_form_impl(&mut out, r)?;
+        } else if r.bulk_create.is_some() {
+            // bulk_create without explicit edit_form: auto-generate edit wrapper using AdminForm
+            let module = model_to_module(&r.model_type);
+            let default_form = format!("{}::AdminForm", module);
+            let edit_wrapper = format!("{}EditFormDynWrapper", pascal_case(&module));
+            write_dyn_form_wrapper(
+                &mut out,
+                &format!(
+                    "DynForm edit wrapper for {} (auto from bulk_create)",
+                    module
+                ),
+                &edit_wrapper,
+                &default_form,
+                "_db",
+                "Ok(()) // update_fn handles persistence",
+            )?;
         }
     }
 
@@ -512,7 +528,8 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     );
     let _ = writeln!(out, "        Box::pin(async move {{");
     if let Some(ref bulk_field) = r.bulk_create {
-        // Bulk create: split the specified field by comma, insert one record per value
+        // Bulk upsert: split the specified field by comma, update if exists, insert otherwise
+        let _ = writeln!(out, "            use sea_orm::QueryFilter;");
         let _ = writeln!(
             out,
             "            let raw = data.get(\"{bulk_field}\").cloned().unwrap_or_default();",
@@ -531,9 +548,34 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         );
         let _ = writeln!(
             out,
-            "                {}::admin_from_form(&row, None).insert(&*db).await?;",
+            "                let escaped_bv = val.replace('\\'', \"''\");"
+        );
+        let _ = writeln!(
+            out,
+            "                let existing_id: Option<String> = {}::Entity::find()",
             module
         );
+        let _ = writeln!(
+            out,
+            "                    .filter(sea_orm::sea_query::Expr::cust(format!(\"CAST({bulk_field} AS TEXT) = '{{}}'\", escaped_bv)))",
+            bulk_field = bulk_field
+        );
+        let _ = writeln!(out, "                    .one(&*db).await?");
+        let _ = writeln!(out, "                    .map(|m| m.id.to_string());");
+        let _ = writeln!(out, "                if let Some(id) = existing_id {{");
+        let _ = writeln!(out, "                    {};", id_parse_code);
+        let _ = writeln!(
+            out,
+            "                    {}::admin_from_form(&row, Some(id)).update(&*db).await?;",
+            module
+        );
+        let _ = writeln!(out, "                }} else {{");
+        let _ = writeln!(
+            out,
+            "                    {}::admin_from_form(&row, None).insert(&*db).await?;",
+            module
+        );
+        let _ = writeln!(out, "                }}");
         let _ = writeln!(out, "            }}");
         let _ = writeln!(out, "            Ok(())");
     } else if r.m2m.is_empty() {
@@ -553,25 +595,20 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
             let _ = writeln!(out, "            for key in data.keys() {{");
             let _ = writeln!(
                 out,
-                "                if let Some(target_id) = key.strip_prefix(\"{prefix}\") {{",
+                "                if let Some(target_id) = key.strip_prefix(\"{prefix}\") && !target_id.is_empty() && target_id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {{",
                 prefix = prefix
             );
             let _ = writeln!(
                 out,
-                "                    if !target_id.is_empty() && target_id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {{"
-            );
-            let _ = writeln!(
-                out,
-                "                        let sql = format!(\"INSERT INTO {junction} ({self_fk}, {target_fk}) VALUES ({{}}, {{}}) ON CONFLICT DO NOTHING\", inserted_id, target_id);",
+                "                    let sql = format!(\"INSERT INTO {junction} ({self_fk}, {target_fk}) VALUES ({{}}, {{}}) ON CONFLICT DO NOTHING\", inserted_id, target_id);",
                 junction = m2m.junction_table,
                 self_fk = m2m.self_fk,
                 target_fk = m2m.target_fk
             );
             let _ = writeln!(
                 out,
-                "                        let _ = db.execute_unprepared(&sql).await;"
+                "                    let _ = db.execute_unprepared(&sql).await;"
             );
-            let _ = writeln!(out, "                    }}");
             let _ = writeln!(out, "                }}");
             let _ = writeln!(out, "            }}");
         }
@@ -614,25 +651,20 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
             let _ = writeln!(out, "            for key in data.keys() {{");
             let _ = writeln!(
                 out,
-                "                if let Some(target_id) = key.strip_prefix(\"{prefix}\") {{",
+                "                if let Some(target_id) = key.strip_prefix(\"{prefix}\") && !target_id.is_empty() && target_id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {{",
                 prefix = prefix
             );
             let _ = writeln!(
                 out,
-                "                    if !target_id.is_empty() && target_id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {{"
-            );
-            let _ = writeln!(
-                out,
-                "                        let sql = format!(\"INSERT INTO {junction} ({self_fk}, {target_fk}) VALUES ({{}}, {{}})\", id_str, target_id);",
+                "                    let sql = format!(\"INSERT INTO {junction} ({self_fk}, {target_fk}) VALUES ({{}}, {{}})\", id_str, target_id);",
                 junction = m2m.junction_table,
                 self_fk = m2m.self_fk,
                 target_fk = m2m.target_fk
             );
             let _ = writeln!(
                 out,
-                "                        let _ = db.execute_unprepared(&sql).await;"
+                "                    let _ = db.execute_unprepared(&sql).await;"
             );
-            let _ = writeln!(out, "                    }}");
             let _ = writeln!(out, "                }}");
             let _ = writeln!(out, "            }}");
         }
@@ -742,10 +774,14 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         let _ = writeln!(out);
     }
 
-    // EditFormBuilder closure (optional)
+    // EditFormBuilder closure (optional, or auto when bulk_create is declared)
     if let Some(ref edit_form_path) = r.edit_form_type {
         let edit_wrapper = format!("{}EditFormDynWrapper", pascal_case(&module));
         write_form_builder_closure(out, "edit_form_builder", edit_form_path, &edit_wrapper);
+    } else if r.bulk_create.is_some() {
+        let default_form = format!("{}::AdminForm", module);
+        let edit_wrapper = format!("{}EditFormDynWrapper", pascal_case(&module));
+        write_form_builder_closure(out, "edit_form_builder", &default_form, &edit_wrapper);
     }
 
     // DisplayConfig with list_display, list_exclude and/or list_filter if configured
@@ -832,7 +868,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     }
 
     let _ = writeln!(out, "    registry.register(");
-    if r.edit_form_type.is_some() {
+    if r.edit_form_type.is_some() || r.bulk_create.is_some() {
         let _ = writeln!(out, "        ResourceEntry::new(meta, form_builder)");
         let _ = writeln!(
             out,
@@ -851,6 +887,11 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         "            .with_partial_update_fn(partial_update_fn)"
     );
     let _ = writeln!(out, "            .with_count_fn(count_fn)");
+    let _ = writeln!(
+        out,
+        "            .with_unique_fields({}::UNIQUE_FIELDS)",
+        module
+    );
     if !r.list_filter.is_empty() {
         let _ = writeln!(out, "            .with_filter_fn(filter_fn)");
     }

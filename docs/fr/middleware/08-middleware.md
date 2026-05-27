@@ -17,6 +17,7 @@ Runique intègre des middlewares de sécurité configurables appliqués automati
 | [Proxies de confiance](/docs/fr/middleware/trusted-proxies) | IP client réelle, RFC 1918, CIDR, `ClientIp` |
 | [Permissions-Policy](/docs/fr/middleware/permissions-policy) | Restrictions d'API navigateur par header HTTP |
 | [Open Redirect](/docs/fr/middleware/open-redirect) | Blocage automatique des redirections vers des origines externes |
+| [Anti-Bot Honeypot](/docs/fr/middleware/anti-bot) | Champ piège invisible — rejet automatique des bots |
 
 ## Stack d'exécution
 
@@ -37,6 +38,7 @@ slot 50  Session             → Gestion des sessions (toujours actif)
 slot 55  SessionUpgrade      → Upgrade session anonyme → authentifiée (toujours actif)
 slot 57  Auth                → Chargement CurrentUser depuis la session (toujours actif)
 slot 60  CSRF                → Protection Cross-Site Request Forgery (toujours actif)
+slot 65  AntiBotHoneypot     → Champ piège invisible, force_invalid si rempli (si with_anti_bot() configuré)
 slot 70  HostValidation      → Validation des hosts autorisés (si with_allowed_hosts() configuré)
     ↓
 Handler (votre code)
