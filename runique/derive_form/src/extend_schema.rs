@@ -333,7 +333,8 @@ fn phantom_form_registration(col: &PhantomColumn) -> Option<TokenStream2> {
 
 /// Generates the ActiveModel assignment for a phantom column.
 /// Returns None for Skip / AutoDateTime (left to `..Default::default()`).
-fn phantom_active_model_field(col: &PhantomColumn) -> Option<TokenStream2> {
+/// `partial = true` → use `NotSet` when the key is absent (for `admin_partial_update`).
+fn phantom_active_model_field(col: &PhantomColumn, partial: bool) -> Option<TokenStream2> {
     let name = format_ident!("{}", col.name);
     let name_str = col.name;
     match &col.widget {
@@ -346,18 +347,42 @@ fn phantom_active_model_field(col: &PhantomColumn) -> Option<TokenStream2> {
                 None => ::sea_orm::ActiveValue::NotSet,
             },
         }),
-        FormWidget::Bool => Some(quote! {
-            #name: ::sea_orm::ActiveValue::Set(
-                __data.get(#name_str)
-                    .map(|v| { let s = v.as_str(); s == "true" || s == "1" || s == "on" })
-                    .unwrap_or(false)
-            ),
-        }),
-        FormWidget::Text | FormWidget::Email => Some(quote! {
-            #name: ::sea_orm::ActiveValue::Set(
-                __data.get(#name_str).map(|v| v.trim().to_string()).unwrap_or_default()
-            ),
-        }),
+        FormWidget::Bool => {
+            if partial {
+                Some(quote! {
+                    #name: match __data.get(#name_str) {
+                        Some(v) => ::sea_orm::ActiveValue::Set({
+                            let s = v.as_str(); s == "true" || s == "1" || s == "on"
+                        }),
+                        None => ::sea_orm::ActiveValue::NotSet,
+                    },
+                })
+            } else {
+                Some(quote! {
+                    #name: ::sea_orm::ActiveValue::Set(
+                        __data.get(#name_str)
+                            .map(|v| { let s = v.as_str(); s == "true" || s == "1" || s == "on" })
+                            .unwrap_or(false)
+                    ),
+                })
+            }
+        }
+        FormWidget::Text | FormWidget::Email => {
+            if partial {
+                Some(quote! {
+                    #name: match __data.get(#name_str) {
+                        Some(v) => ::sea_orm::ActiveValue::Set(v.trim().to_string()),
+                        None => ::sea_orm::ActiveValue::NotSet,
+                    },
+                })
+            } else {
+                Some(quote! {
+                    #name: ::sea_orm::ActiveValue::Set(
+                        __data.get(#name_str).map(|v| v.trim().to_string()).unwrap_or_default()
+                    ),
+                })
+            }
+        }
     }
 }
 
@@ -538,9 +563,14 @@ pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
         .collect();
 
     // ActiveModel: phantom columns + extended columns
+    // Two versions: full (admin_from_form) vs partial (admin_partial_update)
     let phantom_am_fields: Vec<TokenStream2> = base_cols
         .iter()
-        .filter_map(phantom_active_model_field)
+        .filter_map(|col| phantom_active_model_field(col, false))
+        .collect();
+    let phantom_am_fields_partial: Vec<TokenStream2> = base_cols
+        .iter()
+        .filter_map(|col| phantom_active_model_field(col, true))
         .collect();
     let full_assignments: Vec<TokenStream2> = dsl
         .fields
@@ -592,7 +622,7 @@ pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
         ) -> ActiveModel {
             ActiveModel {
                 id: ::sea_orm::ActiveValue::Unchanged(__id),
-                #(#phantom_am_fields)*
+                #(#phantom_am_fields_partial)*
                 #(#partial_assignments)*
                 ..::std::default::Default::default()
             }

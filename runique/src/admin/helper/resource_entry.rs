@@ -156,6 +156,7 @@ pub struct ResourceEntry {
     pub filter_fn: Option<FilterFn>,
     pub group_actions: Vec<GroupAction>,
     pub m2m_loader: Option<M2mLoaderFn>,
+    pub unique_fields: &'static [&'static str],
 }
 
 impl ResourceEntry {
@@ -174,6 +175,7 @@ impl ResourceEntry {
             filter_fn: None,
             group_actions: Vec::new(),
             m2m_loader: None,
+            unique_fields: &[],
         }
     }
     #[must_use]
@@ -224,6 +226,11 @@ impl ResourceEntry {
     #[must_use]
     pub fn with_filter_fn(mut self, f: FilterFn) -> Self {
         self.filter_fn = Some(f);
+        self
+    }
+    #[must_use]
+    pub fn with_unique_fields(mut self, fields: &'static [&'static str]) -> Self {
+        self.unique_fields = fields;
         self
     }
     #[must_use]

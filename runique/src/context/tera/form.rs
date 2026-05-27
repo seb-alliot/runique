@@ -17,8 +17,11 @@ pub fn form_filter(value: &Value, args: &JsonMap) -> TResult {
             output = format!("{}\n{}", csrf, output);
         }
 
-        // Inject scripts after the last field
+        // Inject honeypot and scripts after the last field
         if is_last_field_by_index(value, field_name) {
+            if let Some(hp) = get_honeypot_html(value) {
+                output = format!("{}\n{}", output, hp);
+            }
             let scripts = render_scripts(value).unwrap_or_default();
             if !scripts.is_empty() {
                 output = format!(
@@ -104,6 +107,15 @@ fn render_csrf(value: &Value) -> Option<String> {
         .map(|s| s.to_string())
 }
 
+fn get_honeypot_html(value: &Value) -> Option<String> {
+    value
+        .get("honeypot_html")
+        .or_else(|| value.get("form").and_then(|f| f.get("honeypot_html")))
+        .and_then(|v| v.as_str())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+}
+
 fn render_scripts(value: &Value) -> Option<String> {
     let js_files = value
         .get("js_files")
@@ -159,6 +171,9 @@ fn render_form_html(value: &Value) -> TResult {
     let html = find_html(value);
 
     if let Some(html_str) = html {
+        if let Some(hp) = get_honeypot_html(value) {
+            return Ok(Value::String(format!("{}\n{}", html_str, hp)));
+        }
         return Ok(Value::String(html_str.to_string()));
     }
 

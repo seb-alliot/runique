@@ -111,6 +111,25 @@ Returns `true` if the key is under the limit, `false` otherwise.
 
 Seconds remaining until the window resets for this key. Returns `0` if the window has already expired or the key is unknown. Used to populate the `Retry-After` header in 429 responses.
 
+### `.only_methods(methods: Vec<Method>)`
+
+Restricts rate limiting to the specified HTTP methods. Requests with other methods pass through freely without being counted.
+
+```rust
+use axum::http::Method;
+
+RateLimiter::new()
+    .max_requests(5)
+    .retry_after(60)
+    .only_methods(vec![Method::POST])
+```
+
+Use case: protect a login route against brute force on POST submissions only, while letting GET (display the form) pass freely.
+
+> Without `.only_methods()`, all HTTP methods are counted.
+
+---
+
 ### `.spawn_cleanup(period: Duration)`
 
 Spawns a background task that periodically purges expired entries. Without this, the internal map grows indefinitely for each distinct IP. Call it once after building the limiter.

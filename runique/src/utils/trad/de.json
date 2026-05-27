@@ -436,6 +436,7 @@
     "updated_lib": "Aktualisiert {}",
     "no_changes": "Keine Änderungen erkannt. Ihr Schema ist aktuell.",
     "destructive_detected": "Destruktive Änderungen erkannt:",
+    "destructive_require_force": "Verwenden Sie --force, um diese destruktiven Änderungen anzuwenden.",
     "generated": "Generiert: {}",
     "snapshot_updated": "Snapshot aktualisiert: {}",
     "seaorm_alter": "SeaORM ALTER-Migration generiert: {}",

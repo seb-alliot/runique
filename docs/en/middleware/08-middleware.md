@@ -17,6 +17,7 @@ Runique includes configurable security middlewares automatically applied in the 
 | [Trusted Proxies](/docs/en/middleware/trusted-proxies) | Real client IP, RFC 1918, CIDR, `ClientIp` |
 | [Permissions-Policy](/docs/en/middleware/permissions-policy) | Browser API restrictions via HTTP header |
 | [Open Redirect](/docs/en/middleware/open-redirect) | Automatic blocking of redirects to external origins |
+| [Anti-Bot Honeypot](/docs/en/middleware/anti-bot) | Invisible trap field — automatic bot rejection |
 
 ## Execution Stack
 
@@ -37,6 +38,7 @@ slot 50  Session             → Session management (always active)
 slot 55  SessionUpgrade      → Upgrade anonymous session → authenticated (always active)
 slot 57  Auth                → Load CurrentUser from session (always active)
 slot 60  CSRF                → Cross-Site Request Forgery protection (always active)
+slot 65  AntiBotHoneypot     → Invisible trap field, force_invalid on fill (if with_anti_bot() configured)
 slot 70  HostValidation      → Allowed host validation (if with_allowed_hosts() configured)
     ↓
 Handler (your code)

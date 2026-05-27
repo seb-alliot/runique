@@ -456,6 +456,7 @@
     "updated_lib": "Mis à jour {}",
     "no_changes": "Aucun changement détecté. Votre schéma est à jour.",
     "destructive_detected": "Changements destructifs détectés :",
+    "destructive_require_force": "Utilisez --force pour appliquer ces changements destructifs.",
     "generated": "Généré : {}",
     "snapshot_updated": "Snapshot mis à jour : {}",
     "seaorm_alter": "Migration ALTER SeaORM générée : {}",

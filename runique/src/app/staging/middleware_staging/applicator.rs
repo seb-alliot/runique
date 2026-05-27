@@ -34,9 +34,9 @@
 use crate::context::RequestExtensions;
 use crate::middleware::session::CleaningMemoryStore;
 use crate::middleware::{
-    allowed_hosts_middleware, csp_middleware, csrf_middleware, dev_no_cache_middleware,
-    error_handler_middleware, open_redirect_middleware, security_headers_middleware,
-    trusted_proxies_middleware,
+    allowed_hosts_middleware, anti_bot_middleware, csp_middleware, csrf_middleware,
+    dev_no_cache_middleware, error_handler_middleware, open_redirect_middleware,
+    security_headers_middleware, trusted_proxies_middleware,
 };
 use crate::utils::aliases::{AEngine, ARuniqueConfig, ATera};
 use axum::{self, Router, middleware};
@@ -63,6 +63,7 @@ const SLOT_SESSION: u16 = 50; // Before CSRF (CSRF depends on it)
 const SLOT_SESSION_UPGRADE: u16 = 55; // After Session (reads/writes in session)
 const SLOT_AUTH: u16 = 57; // After Session — loads CurrentUser from the session
 const SLOT_CSRF: u16 = 60; // After Session (reads/writes in session)
+const SLOT_ANTI_BOT: u16 = 65; // After CSRF — injects honeypot field name extension
 const SLOT_HOST_VALIDATION: u16 = 70; // Last defense before handler
 
 // ─── MiddlewareEntry ──────────────────────────────────────────────────────────
@@ -176,6 +177,18 @@ impl MiddlewareStaging {
                 slot: SLOT_CORS,
                 name: "CORS",
                 apply: Box::new(move |r| r.layer(layer)),
+            });
+        }
+
+        // Slot 65: Anti-bot — injects honeypot field name extension
+        if self.anti_bot {
+            let eng = engine.clone();
+            entries.push(MiddlewareEntry {
+                slot: SLOT_ANTI_BOT,
+                name: "AntiBot",
+                apply: Box::new(move |r| {
+                    r.layer(middleware::from_fn_with_state(eng, anti_bot_middleware))
+                }),
             });
         }
 

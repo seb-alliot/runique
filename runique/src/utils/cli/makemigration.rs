@@ -4,10 +4,7 @@ use crate::utils::trad::{t, tf};
 use anyhow::{Context, Result};
 use chrono::Utc;
 use std::fs;
-use std::{
-    io::{self, Write},
-    path::Path,
-};
+use std::path::Path;
 
 pub use crate::utils::*;
 
@@ -313,18 +310,11 @@ fn check_destructive(all_changes: &[Changes], force: bool) -> Result<()> {
         return Ok(());
     }
 
-    println!("\n{}", t("makemigrations.destructive_detected"));
+    eprintln!("\n{}", t("makemigrations.destructive_detected"));
     for msg in &blocking {
-        println!("{}", msg);
+        eprintln!("{}", msg);
     }
-    print!("\nProvide a default value for migration, or use --force to skip: ");
-    io::stdout().flush()?;
-    let mut input = String::new();
-    io::stdin().read_line(&mut input)?;
-    if input.trim().is_empty() {
-        anyhow::bail!("Destructive changes require a default value or --force. Aborting.");
-    }
-    Ok(())
+    anyhow::bail!("{}", t("makemigrations.destructive_require_force"));
 }
 
 // ── run ──────────────────────────────────────────────────────────────────────
@@ -500,12 +490,12 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
             let module_name = seaorm_alter_module_name(&timestamp, &change.table_name);
             let seaorm_path =
                 seaorm_alter_file_path(migrations_path, &timestamp, &change.table_name);
-            files_to_write.push((seaorm_path, generate_alter_file(change)));
+            files_to_write.push((seaorm_path, generate_alter_file(change, &db_kind)));
             lib_modules.push(module_name);
 
             files_to_write.push((
                 alter_file_path(migrations_path, &change.table_name, &timestamp),
-                generate_alter_file(change),
+                generate_alter_file(change, &db_kind),
             ));
             files_to_write.push((
                 batch_up_path(migrations_path, &change.table_name, &timestamp),
@@ -702,7 +692,7 @@ fn run_extend_pass(
     entities_path: &str,
     migrations_path: &str,
     timestamp: &str,
-    _db_kind: &crate::migration::utils::types::DbKind,
+    db_kind: &crate::migration::utils::types::DbKind,
 ) -> Result<()> {
     let raw_extends = scan_extend_blocks(entities_path)?;
     if raw_extends.is_empty() {
@@ -753,7 +743,7 @@ fn run_extend_pass(
         let module_name = seaorm_extend_module_name(timestamp, &ext_schema.table_name);
         let seaorm_path =
             seaorm_extend_file_path(migrations_path, timestamp, &ext_schema.table_name);
-        files_to_write.push((seaorm_path, generate_alter_file(&changes)));
+        files_to_write.push((seaorm_path, generate_alter_file(&changes, db_kind)));
         lib_modules.push(module_name);
 
         // Applied/batch files (specific directory for each extended table)
@@ -766,7 +756,7 @@ fn run_extend_pass(
 
         files_to_write.push((
             alter_file_path(migrations_path, &ext_schema.table_name, timestamp),
-            generate_alter_file(&changes),
+            generate_alter_file(&changes, db_kind),
         ));
         files_to_write.push((
             batch_up_path(migrations_path, &ext_schema.table_name, timestamp),

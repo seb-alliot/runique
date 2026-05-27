@@ -70,19 +70,17 @@ pub trait RuniqueForm: Sized + Send + Sync {
     fn cleaned_u64(&self, name: &str) -> Option<u64> {
         cleaned_value(self.get_form(), name)?.parse().ok()
     }
-    /// `f32` — handles `,` → `.`. `None` if unknown, empty, or not parseable.
+    /// `f32` — handles `,` → `.`, parses via `Decimal` for precision. `None` if unknown, empty, or not parseable.
     fn cleaned_f32(&self, name: &str) -> Option<f32> {
-        cleaned_value(self.get_form(), name)?
-            .replace(',', ".")
-            .parse()
-            .ok()
+        use rust_decimal::prelude::ToPrimitive;
+        let v = cleaned_value(self.get_form(), name)?.replace(',', ".");
+        rust_decimal::Decimal::from_str_exact(&v).ok()?.to_f32()
     }
-    /// `f64` — handles `,` → `.`. `None` if unknown, empty, or not parseable.
+    /// `f64` — handles `,` → `.`, parses via `Decimal` for precision. `None` if unknown, empty, or not parseable.
     fn cleaned_f64(&self, name: &str) -> Option<f64> {
-        cleaned_value(self.get_form(), name)?
-            .replace(',', ".")
-            .parse()
-            .ok()
+        use rust_decimal::prelude::ToPrimitive;
+        let v = cleaned_value(self.get_form(), name)?.replace(',', ".");
+        rust_decimal::Decimal::from_str_exact(&v).ok()?.to_f64()
     }
     /// `bool` — `true` for `"true"`, `"1"`, `"on"` (case-insensitive).
     /// Returns `None` if the field does not exist in the form.
@@ -122,6 +120,20 @@ pub trait RuniqueForm: Sized + Send + Sync {
         chrono::DateTime::parse_from_rfc3339(&cleaned_value(self.get_form(), name)?)
             .ok()
             .map(|dt| dt.with_timezone(&chrono::Utc))
+    }
+
+    /// SeaORM `ActiveEnum` — `None` if unknown, empty, or not a valid variant.
+    fn cleaned_enum<T: sea_orm::ActiveEnum<Value = String>>(&self, name: &str) -> Option<T> {
+        let v = cleaned_value(self.get_form(), name)?;
+        T::try_from_value(&v).ok()
+    }
+
+    // ── Field value overrides ───────────────────────────────────────────────
+
+    /// Forces a value on a field, bypassing `fill()`. Useful for skipped fields (e.g. passwords).
+    fn add_value(&mut self, name: &str, value: &str) -> &mut Self {
+        self.get_form_mut().add_value(name, value);
+        self
     }
 
     // ── Field display overrides ──────────────────────────────────────────────

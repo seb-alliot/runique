@@ -81,6 +81,7 @@ phone_number.workspace = true
 country.workspace = true
 postal-code.workspace = true
 dyn-clone.workspace = true
+rust_decimal.workspace = true
 image.workspace = true
 walkdir.workspace = true
 

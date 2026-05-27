@@ -439,6 +439,7 @@
     "updated_lib": "Aggiornato {}",
     "no_changes": "Nessuna modifica rilevata. Lo schema è aggiornato.",
     "destructive_detected": "Modifiche distruttive rilevate:",
+    "destructive_require_force": "Usa --force per applicare queste modifiche distruttive.",
     "generated": "Generato: {}",
     "snapshot_updated": "Snapshot aggiornato: {}",
     "seaorm_alter": "Migrazione ALTER SeaORM generata: {}",

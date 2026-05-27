@@ -439,6 +439,7 @@
     "updated_lib": "已更新{}",
     "no_changes": "未检测到更改。您的架构是最新的。",
     "destructive_detected": "检测到破坏性更改:",
+    "destructive_require_force": "使用 --force 应用这些破坏性更改。",
     "generated": "已生成: {}",
     "snapshot_updated": "已更新快照: {}",
     "seaorm_alter": "已生成SeaORM ALTER迁移: {}",

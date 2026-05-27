@@ -178,7 +178,7 @@ fn test_create_file_sans_pk() {
 #[test]
 fn test_alter_file_contient_struct_migration() {
     let changes = simple_changes("users");
-    let content = generate_alter_file(&changes);
+    let content = generate_alter_file(&changes, &DbKind::Other);
     assert!(content.contains("pub struct Migration"));
     assert!(content.contains("impl MigrationTrait for Migration"));
 }
@@ -186,7 +186,7 @@ fn test_alter_file_contient_struct_migration() {
 #[test]
 fn test_alter_file_contient_up_et_down() {
     let changes = simple_changes("users");
-    let content = generate_alter_file(&changes);
+    let content = generate_alter_file(&changes, &DbKind::Other);
     assert!(content.contains("async fn up("));
     assert!(content.contains("async fn down("));
 }
@@ -207,7 +207,7 @@ fn test_alter_file_sans_changements() {
         enum_value_adds: vec![],
         enum_value_drops: vec![],
     };
-    let content = generate_alter_file(&changes);
+    let content = generate_alter_file(&changes, &DbKind::Other);
     assert!(content.contains("pub struct Migration"));
 }
 
@@ -233,7 +233,7 @@ fn test_alter_file_avec_ajout_fk() {
         enum_value_adds: vec![],
         enum_value_drops: vec![],
     };
-    let content = generate_alter_file(&changes);
+    let content = generate_alter_file(&changes, &DbKind::Other);
     assert!(content.contains("author_id") || content.contains("users"));
 }
 
@@ -261,7 +261,7 @@ fn test_alter_file_enum_rename_genere_update_up() {
         enum_value_adds: vec![],
         enum_value_drops: vec![],
     };
-    let content = generate_alter_file(&changes);
+    let content = generate_alter_file(&changes, &DbKind::Other);
     assert!(
         content.contains("Ajoute") && content.contains("Ajouté"),
         "UP doit contenir les deux valeurs"
@@ -289,7 +289,7 @@ fn test_alter_file_enum_rename_genere_update_down() {
         enum_value_adds: vec![],
         enum_value_drops: vec![],
     };
-    let content = generate_alter_file(&changes);
+    let content = generate_alter_file(&changes, &DbKind::Other);
     // DOWN doit inverser : SET 'Ajoute' WHERE 'Ajouté'
     let down_section = content.split("async fn down").nth(1).unwrap_or("");
     assert!(
@@ -314,7 +314,7 @@ fn test_alter_file_enum_rename_contient_nom_table() {
         enum_value_adds: vec![],
         enum_value_drops: vec![],
     };
-    let content = generate_alter_file(&changes);
+    let content = generate_alter_file(&changes, &DbKind::Other);
     assert!(
         content.contains("articles"),
         "Le nom de la table doit apparaître dans l'UPDATE"
@@ -591,7 +591,7 @@ fn test_alter_file_type_change_generates_warning() {
         enum_value_adds: vec![],
         enum_value_drops: vec![],
     };
-    let content = generate_alter_file(&changes);
+    let content = generate_alter_file(&changes, &DbKind::Other);
     assert!(
         content.contains("WARNING"),
         "Changement de type doit générer un avertissement"
@@ -627,7 +627,7 @@ fn test_alter_file_nullable_to_not_null_modify_column() {
         enum_value_adds: vec![],
         enum_value_drops: vec![],
     };
-    let content = generate_alter_file(&changes);
+    let content = generate_alter_file(&changes, &DbKind::Other);
     assert!(
         content.contains("modify_column"),
         "nullable→not_null doit générer modify_column"
@@ -654,7 +654,7 @@ fn test_alter_file_enum_value_adds() {
         )],
         enum_value_drops: vec![],
     };
-    let content = generate_alter_file(&changes);
+    let content = generate_alter_file(&changes, &DbKind::Other);
     assert!(
         content.contains("ADD VALUE IF NOT EXISTS"),
         "enum_value_adds doit générer ALTER TYPE ADD VALUE"
@@ -682,7 +682,7 @@ fn test_alter_file_enum_value_drops_warning() {
             "OldVal".to_string(),
         )],
     };
-    let content = generate_alter_file(&changes);
+    let content = generate_alter_file(&changes, &DbKind::Other);
     assert!(
         content.contains("WARNING"),
         "enum_value_drops doit générer un WARNING dans up"
@@ -710,7 +710,7 @@ fn test_alter_file_drop_index_in_up() {
         enum_value_adds: vec![],
         enum_value_drops: vec![],
     };
-    let content = generate_alter_file(&changes);
+    let content = generate_alter_file(&changes, &DbKind::Other);
     assert!(
         content.contains("drop_index"),
         "UP doit contenir drop_index pour index supprimé"
@@ -738,7 +738,7 @@ fn test_alter_file_add_index_in_up() {
         enum_value_adds: vec![],
         enum_value_drops: vec![],
     };
-    let content = generate_alter_file(&changes);
+    let content = generate_alter_file(&changes, &DbKind::Other);
     assert!(
         content.contains("create_index"),
         "UP doit contenir create_index pour index ajouté"
@@ -772,10 +772,86 @@ fn test_alter_file_drop_fk_in_up() {
         enum_value_adds: vec![],
         enum_value_drops: vec![],
     };
-    let content = generate_alter_file(&changes);
+    let content = generate_alter_file(&changes, &DbKind::Other);
     assert!(
         content.contains("drop_foreign_key"),
         "UP doit contenir drop_foreign_key pour FK supprimée"
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// generate_alter_file — enum CREATE TYPE sur ALTER Postgres
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_alter_file_postgres_enum_add_column_generates_create_type() {
+    let enum_col = ParsedColumn {
+        name: "status".to_string(),
+        col_type: "Enum".to_string(),
+        nullable: true,
+        enum_name: Some("article_status".to_string()),
+        enum_string_values: vec!["draft".to_string(), "published".to_string()],
+        ..ParsedColumn::default()
+    };
+    let changes = Changes {
+        table_name: "articles".to_string(),
+        added_columns: vec![enum_col],
+        dropped_columns: vec![],
+        modified_columns: vec![],
+        added_fks: vec![],
+        dropped_fks: vec![],
+        added_indexes: vec![],
+        dropped_indexes: vec![],
+        is_new_table: false,
+        enum_renames: vec![],
+        enum_value_adds: vec![],
+        enum_value_drops: vec![],
+    };
+    let content = generate_alter_file(&changes, &DbKind::Postgres);
+    let up = content.split("async fn down").next().unwrap_or("");
+    assert!(
+        up.contains("CREATE TYPE article_status AS ENUM"),
+        "UP Postgres doit créer le type enum avant ADD COLUMN"
+    );
+    assert!(
+        up.contains("'draft'") && up.contains("'published'"),
+        "UP doit contenir les valeurs de l'enum"
+    );
+    let down = content.split("async fn down").nth(1).unwrap_or("");
+    assert!(
+        down.contains("DROP TYPE IF EXISTS article_status"),
+        "DOWN doit supprimer le type enum après DROP COLUMN"
+    );
+}
+
+#[test]
+fn test_alter_file_other_db_enum_add_column_no_create_type() {
+    let enum_col = ParsedColumn {
+        name: "status".to_string(),
+        col_type: "Enum".to_string(),
+        nullable: true,
+        enum_name: Some("article_status".to_string()),
+        enum_string_values: vec!["draft".to_string(), "published".to_string()],
+        ..ParsedColumn::default()
+    };
+    let changes = Changes {
+        table_name: "articles".to_string(),
+        added_columns: vec![enum_col],
+        dropped_columns: vec![],
+        modified_columns: vec![],
+        added_fks: vec![],
+        dropped_fks: vec![],
+        added_indexes: vec![],
+        dropped_indexes: vec![],
+        is_new_table: false,
+        enum_renames: vec![],
+        enum_value_adds: vec![],
+        enum_value_drops: vec![],
+    };
+    let content = generate_alter_file(&changes, &DbKind::Other);
+    assert!(
+        !content.contains("CREATE TYPE"),
+        "DbKind::Other ne doit pas émettre CREATE TYPE"
     );
 }
 

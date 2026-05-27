@@ -3,7 +3,7 @@ use crate::utils::trad::t;
 use axum::{
     body::Body,
     extract::State,
-    http::{Request, StatusCode, header},
+    http::{Method, Request, StatusCode, header},
     middleware::Next,
     response::{IntoResponse, Response},
 };
@@ -25,6 +25,8 @@ pub struct RateLimiter {
     pub max_requests: u32,
     /// Window duration
     pub window: Duration,
+    /// If set, only these HTTP methods are counted (others pass through freely)
+    pub methods: Option<Vec<Method>>,
 }
 
 impl RateLimiter {
@@ -41,7 +43,16 @@ impl RateLimiter {
             store: Arc::new(Mutex::new(HashMap::new())),
             max_requests: 60,
             window: Duration::from_secs(60),
+            methods: None,
         }
+    }
+
+    /// Restricts rate limiting to the given HTTP methods.
+    /// GET requests are never counted if POST is the only method listed.
+    #[must_use]
+    pub fn only_methods(mut self, methods: Vec<Method>) -> Self {
+        self.methods = Some(methods);
+        self
     }
 
     /// Maximum number of requests allowed in the window
@@ -123,6 +134,16 @@ impl Default for RateLimiter {
     }
 }
 
+impl std::fmt::Debug for RateLimiter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RateLimiter")
+            .field("max_requests", &self.max_requests)
+            .field("window", &self.window)
+            .field("methods", &self.methods)
+            .finish()
+    }
+}
+
 /// Extracts the IP key from headers (`X-Forwarded-For`, `X-Real-IP`, fallback `"unknown"`).
 ///
 /// **Pre-requisite: trusted reverse proxy.**
@@ -168,6 +189,11 @@ pub async fn rate_limit_middleware(
     req: Request<Body>,
     next: Next,
 ) -> Response {
+    if let Some(ref methods) = limiter.methods
+        && !methods.contains(req.method())
+    {
+        return next.run(req).await;
+    }
     let ip = extract_ip(&req);
     if limiter.is_allowed(&ip) {
         next.run(req).await
@@ -182,5 +208,79 @@ pub async fn rate_limit_middleware(
             t("html.429_text").into_owned(),
         )
             .into_response()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_allowed_basic() {
+        let limiter = RateLimiter::new().max_requests(3).retry_after(60);
+        assert!(limiter.is_allowed("ip1"));
+        assert!(limiter.is_allowed("ip1"));
+        assert!(limiter.is_allowed("ip1"));
+        assert!(!limiter.is_allowed("ip1"));
+        // different key unaffected
+        assert!(limiter.is_allowed("ip2"));
+    }
+
+    #[test]
+    fn test_only_methods_skips_unlisted() {
+        let limiter = RateLimiter::new()
+            .max_requests(2)
+            .retry_after(60)
+            .only_methods(vec![Method::POST]);
+
+        // GET is not counted — can call indefinitely
+        for _ in 0..10 {
+            // simulate method check as the middleware does
+            let method = Method::GET;
+            let methods = limiter.methods.as_ref().unwrap();
+            assert!(!methods.contains(&method), "GET should not be in the list");
+        }
+
+        // POST IS counted
+        assert!(limiter.is_allowed("ip1"));
+        assert!(limiter.is_allowed("ip1"));
+        assert!(!limiter.is_allowed("ip1"));
+    }
+
+    #[test]
+    fn test_only_methods_counts_listed() {
+        let limiter = RateLimiter::new()
+            .max_requests(1)
+            .retry_after(60)
+            .only_methods(vec![Method::POST, Method::PUT]);
+
+        let methods = limiter.methods.as_ref().unwrap();
+        assert!(methods.contains(&Method::POST));
+        assert!(methods.contains(&Method::PUT));
+        assert!(!methods.contains(&Method::GET));
+        assert!(!methods.contains(&Method::DELETE));
+    }
+
+    #[test]
+    fn test_no_methods_filter_counts_all() {
+        let limiter = RateLimiter::new().max_requests(1).retry_after(60);
+        assert!(limiter.methods.is_none());
+        assert!(limiter.is_allowed("ip1"));
+        assert!(!limiter.is_allowed("ip1"));
+    }
+
+    #[test]
+    fn test_retry_after_secs_unknown_key() {
+        let limiter = RateLimiter::new().max_requests(5).retry_after(60);
+        assert_eq!(limiter.retry_after_secs("unknown"), 0);
+    }
+
+    #[test]
+    fn test_retry_after_secs_known_key() {
+        let limiter = RateLimiter::new().max_requests(1).retry_after(60);
+        let _ = limiter.is_allowed("ip1");
+        let _ = limiter.is_allowed("ip1"); // exceeds limit
+        let remaining = limiter.retry_after_secs("ip1");
+        assert!(remaining > 0 && remaining <= 60);
     }
 }

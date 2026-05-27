@@ -439,6 +439,7 @@
     "updated_lib": "更新しました: {}",
     "no_changes": "変更は検出されませんでした。スキーマは最新です。",
     "destructive_detected": "破壊的な変更が検出されました:",
+    "destructive_require_force": "--force を使用してこれらの破壊的な変更を適用してください。",
     "generated": "生成しました: {}",
     "snapshot_updated": "スナップショットを更新しました: {}",
     "seaorm_alter": "SeaORM ALTERマイグレーションを生成しました: {}",

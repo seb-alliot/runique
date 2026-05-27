@@ -51,6 +51,49 @@ impl CommonFieldConfig for HiddenField {
     }
 }
 
+/// HoneypotField - invisible anti-bot trap field
+#[derive(Clone, Serialize, Debug)]
+pub struct HoneypotField {
+    pub base: FieldConfig,
+}
+
+impl HoneypotField {
+    pub fn new(name: &str) -> Self {
+        Self {
+            base: FieldConfig::new(name, "text", "base_honeypot"),
+        }
+    }
+}
+
+impl CommonFieldConfig for HoneypotField {
+    fn get_field_config(&self) -> &FieldConfig {
+        &self.base
+    }
+
+    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
+        &mut self.base
+    }
+}
+
+impl FormField for HoneypotField {
+    fn validate(&mut self) -> bool {
+        true
+    }
+
+    fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
+        let mut context = Context::new();
+        context.insert("field", &self.base);
+        tera.render(&self.base.template_name, &context)
+            .map_err(|e| {
+                tf(
+                    "forms.finalize_error",
+                    &[&self.base.template_name, &e.to_string()],
+                )
+                .to_string()
+            })
+    }
+}
+
 impl FormField for HiddenField {
     fn validate(&mut self) -> bool {
         // For a CSRF field, check that the value matches the expected one
