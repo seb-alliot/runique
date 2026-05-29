@@ -3,7 +3,7 @@
 ![Rust](https://img.shields.io/badge/rust-1.88%2B-orange)
 ![Tests passing](https://img.shields.io/badge/tests-2011%2B%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-2.1.7-blue)
+![Version](https://img.shields.io/badge/version-2.1.10-blue)
 [![Crates.io](https://img.shields.io/crates/v/runique)](https://crates.io/crates/runique)
 [![Runique](https://img.shields.io/badge/Runique-brightgreen)](https://runique.io)
 
