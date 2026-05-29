@@ -6,6 +6,14 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ---
 
+## [2.1.10] - 2026-05-30
+
+### Correctif — `runique` (admin)
+
+* **Édition et suppression bloquées pour toutes les ressources sans `own_field` (régression critique) :** la précédence des opérateurs dans la vérification d'appartenance produisait `(action == "edit" && !can_update && !can_update_own) || !check_owns_record(...)`. Comme `check_owns_record` retourne `false` quand `own_field` n'est pas déclaré, `!check_owns_record()` était toujours `true`, provoquant un refus de permission sur chaque requête d'édition et de suppression indépendamment des droits réels de l'utilisateur. Correctif : la condition est désormais `!can_update && !(can_update_own && check_owns_record(...))`, appliquée séparément dans `admin_get_id` et `admin_post_id`.
+
+---
+
 ## [2.1.9] - 2026-05-28
 
 ### Sécurité — `runique` (admin, auth)
