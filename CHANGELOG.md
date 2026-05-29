@@ -6,6 +6,18 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2.1.11] - 2026-05-30
+
+### Fix — `runique` (sessions)
+
+* **DB session fallback broken after `cycle_id()` (critical regression introduced in 2.1.9):** the session fixation fix added `session.cycle_id()` on every privilege elevation. tower-sessions calls `create()` (not `save()`) at response commit for a recycled session. `create()` in `CleaningMemoryStore` had no DB persistence, so the authenticated session data was never written to the DB store after a login — breaking the warm-restart fallback entirely. Fixed: `create()` now persists to `RuniqueSessionStore` when `SESSION_USER_ID_KEY` is present, identical to the existing logic in `save()`.
+
+* **Orphaned DB session entries after `cycle_id()` (cleanup regression):** tower-sessions calls `delete(old_id)` after `create(new_id)` during `cycle_id()`. `CleaningMemoryStore::delete()` only removed the entry from memory, leaving the old session ID as an orphan in the DB. Fixed: `delete()` now also calls `db.delete()` when the DB fallback is configured. The operation is idempotent — `logout()` already removes the entry via `RuniqueSessionStore::delete()` before calling `session.delete()`.
+
+* **`exclusive_login` only invalidated memory sessions, not DB sessions:** `CleaningMemoryStore::save()` evicted in-memory sessions for the same user when `exclusive_login = true`, but never called `RuniqueSessionStore::invalidate_other_sessions()`. After a server restart, the evicted sessions were restored from DB, making the exclusive-login guarantee ineffective. Fixed: the DB invalidation is now collected inside the lock and executed after release, symmetric with the memory cleanup. Using `Pk` directly (`serde_json::from_value::<Pk>`) instead of `as_i64` — correct under the `big-pk` feature flag.
+
+---
+
 ## [2.1.10] - 2026-05-30
 
 ### Fix — `runique` (admin)

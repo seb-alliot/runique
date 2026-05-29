@@ -6,6 +6,18 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ---
 
+## [2.1.11] - 2026-05-30
+
+### Correctif — `runique` (sessions)
+
+* **Fallback DB des sessions cassé après `cycle_id()` (régression critique introduite en 2.1.9) :** le correctif de fixation de session avait ajouté `session.cycle_id()` à chaque élévation de privilège. tower-sessions appelle `create()` (et non `save()`) au commit de la réponse pour une session recyclée. `create()` dans `CleaningMemoryStore` ne persistait pas en DB, ce qui empêchait toute écriture des données de session authentifiée dans le store DB après un login — cassant entièrement le fallback de redémarrage à chaud. Correctif : `create()` persiste désormais dans `RuniqueSessionStore` lorsque `SESSION_USER_ID_KEY` est présent, identique à la logique déjà présente dans `save()`.
+
+* **Entrées DB orphelines après `cycle_id()` (régression de nettoyage) :** tower-sessions appelle `delete(old_id)` après `create(new_id)` lors d'un `cycle_id()`. `CleaningMemoryStore::delete()` ne supprimait l'entrée qu'en mémoire, laissant l'ancien identifiant de session comme orphelin en DB. Correctif : `delete()` appelle désormais aussi `db.delete()` lorsque le fallback DB est configuré. L'opération est idempotente — `logout()` supprime déjà l'entrée via `RuniqueSessionStore::delete()` avant d'appeler `session.delete()`.
+
+* **`exclusive_login` n'invalidait que les sessions mémoire, pas les sessions DB :** `CleaningMemoryStore::save()` évictait les sessions mémoire du même utilisateur quand `exclusive_login = true`, mais n'appelait jamais `RuniqueSessionStore::invalidate_other_sessions()`. Après un redémarrage serveur, les sessions évictées étaient restaurées depuis la DB, rendant la garantie de connexion exclusive ineffective. Correctif : l'invalidation DB est désormais collectée sous le verrou et exécutée après sa libération, symétrique au nettoyage mémoire. Utilisation de `Pk` directement (`serde_json::from_value::<Pk>`) plutôt que `as_i64` — correct avec le feature flag `big-pk`.
+
+---
+
 ## [2.1.10] - 2026-05-30
 
 ### Correctif — `runique` (admin)
