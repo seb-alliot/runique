@@ -36,8 +36,10 @@ struct TrackerForm {
 
 impl TrackerForm {
     fn new() -> Self {
+        let mut form = Forms::new("csrf_test");
+        form.mark_validated();
         Self {
-            form: Forms::new("csrf_test"),
+            form,
             fail_before: false,
             fail_save: false,
             fail_after: false,

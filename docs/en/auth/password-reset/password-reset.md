@@ -4,6 +4,8 @@
 
 ---
 
+> **`Auto` mode required for the built-in reset:** the integrated route (`with_password_reset`) reads the form value after `finalize()` and writes it to the database. In `Auto` mode, `finalize()` hashes the password automatically — everything works correctly. In `Manual`, `Custom`, or `Delegated` mode, `finalize()` does not hash: the password would be stored in plaintext. If you are not using `PasswordConfig::auto()`, write your own reset route or implement `UserEntity::update_password` to hash the received value. See → [Password configuration](/docs/en/configuration/password)
+
 ## What the framework provides
 
 Runique includes a complete, ready-to-use system:

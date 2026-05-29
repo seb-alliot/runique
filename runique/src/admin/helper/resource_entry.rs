@@ -157,6 +157,9 @@ pub struct ResourceEntry {
     pub group_actions: Vec<GroupAction>,
     pub m2m_loader: Option<M2mLoaderFn>,
     pub unique_fields: &'static [&'static str],
+    /// Field name used to verify record ownership when `can_update_own`/`can_delete_own` is set.
+    /// If None, "own" permissions are blocked (safe default until the field is declared).
+    pub own_field: Option<&'static str>,
 }
 
 impl ResourceEntry {
@@ -176,6 +179,7 @@ impl ResourceEntry {
             group_actions: Vec::new(),
             m2m_loader: None,
             unique_fields: &[],
+            own_field: None,
         }
     }
     #[must_use]
@@ -231,6 +235,11 @@ impl ResourceEntry {
     #[must_use]
     pub fn with_unique_fields(mut self, fields: &'static [&'static str]) -> Self {
         self.unique_fields = fields;
+        self
+    }
+    #[must_use]
+    pub fn with_own_field(mut self, field: &'static str) -> Self {
+        self.own_field = Some(field);
         self
     }
     #[must_use]

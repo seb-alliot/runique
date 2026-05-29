@@ -251,31 +251,37 @@ pub async fn handle_forgot_password<E: UserEntity + 'static>(
                 let mail = crate::utils::Email::new()
                     .to(email.clone())
                     .subject(&subject);
+                // Fire-and-forget: do not await the SMTP send — a blocking await would leak
+                // whether the email exists via response time (timing enumeration attack).
                 if let Some(tpl) = email_template {
                     use tera::Context as TeraCtx;
                     let mut ctx = TeraCtx::new();
                     ctx.insert("username", &username);
                     ctx.insert("reset_url", &reset_url);
                     if let Ok(msg) = mail.template(&request.engine.tera, tpl, ctx) {
-                        msg.send().await.ok();
-                        if let Some(level) = crate::utils::runique_log::get_log()
+                        let log_level = crate::utils::runique_log::get_log()
                             .auth
                             .as_ref()
-                            .and_then(|a| a.reset)
-                        {
-                            crate::runique_log!(level, %email, "reset email sent");
-                        }
+                            .and_then(|a| a.reset);
+                        tokio::spawn(async move {
+                            msg.send().await.ok();
+                            if let Some(level) = log_level {
+                                crate::runique_log!(level, "reset email sent");
+                            }
+                        });
                     }
                 } else {
                     let body = tf("reset.email_body", &[&username, &reset_url, &reset_url]).clone();
-                    mail.html(body).send().await.ok();
-                    if let Some(level) = crate::utils::runique_log::get_log()
+                    let log_level = crate::utils::runique_log::get_log()
                         .auth
                         .as_ref()
-                        .and_then(|a| a.reset)
-                    {
-                        crate::runique_log!(level, %email, "reset email sent");
-                    }
+                        .and_then(|a| a.reset);
+                    tokio::spawn(async move {
+                        mail.html(body).send().await.ok();
+                        if let Some(level) = log_level {
+                            crate::runique_log!(level, "reset email sent");
+                        }
+                    });
                 }
             }
         }

@@ -6,6 +6,49 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ---
 
+## [2.1.9] - 2026-05-28
+
+### Sécurité — `runique` (admin, auth)
+
+* **Injection SQL dans les filtres de liste admin (élevée) :** le nom de colonne extrait des paramètres URL (`?filter_<col>=val`) était interpolé directement dans `Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, ...))` sans aucune validation. Un utilisateur staff authentifié avec des droits minimaux pouvait exécuter du SQL arbitraire sur la base de données. Correctif : le générateur émet désormais deux listes statiques (`SORT_COLS`, `FILTER_COLS`) construites à la génération de code depuis les colonnes déclarées dans `list_display` et `list_filter`. Tout nom de colonne absent de ces listes est silencieusement ignoré avant d'atteindre la requête.
+
+* **Fixation de session au login (moyenne) :** `login()` n'appelait pas `session.cycle_id()` lors de l'élévation de privilège (anonyme → authentifié). Un attaquant ayant planté un identifiant de session dans le navigateur de la victime avant le login pouvait le réutiliser après l'authentification. Correctif : `session.cycle_id().await` est désormais appelé à chaque élévation de privilège (nouvelle session ou changement d'utilisateur). Atténué en pratique par les attributs `SameSite=Strict` + `HttpOnly`, mais la mitigation standard était absente.
+
+* **Granularité des droits d'écriture admin (moyenne) :** `check_write_access` retournait `true` si n'importe lequel parmi `can_create`, `can_update` ou `can_delete` était activé. Un utilisateur staff avec seulement `can_create` pouvait éditer et supprimer n'importe quel enregistrement. Correctif : trois gardes distincts (`check_can_create`, `check_can_update`, `check_can_delete`) sont désormais appliqués par opération et par méthode HTTP. Les actions bulk POST sont également contrôlées par type d'action (`delete` → `can_delete`, les autres → `can_update`).
+
+* **IDOR — `can_update_own` / `can_delete_own` non appliqués (faible) :** les flags de permission "own" existaient dans le modèle de permissions et étaient injectés dans les templates, mais les closures CRUD `(db, id)` / `(db, id, data)` ne transportaient aucune identité utilisateur, rendant la vérification d'appartenance structurellement impossible. Les routes edit et delete autorisaient silencieusement n'importe quel enregistrement. Correctif : une nouvelle option DSL `own_field: "nom_champ"` déclare le champ JSON utilisé pour la comparaison d'appartenance. Quand un utilisateur a `can_update_own` (sans `can_update`), le handler récupère l'enregistrement via `get_fn` et compare `record[own_field]` avec `current_user.id`. Si `own_field` n'est pas déclaré, les permissions "own" sont bloquées par défaut (repli sûr).
+
+### Ajouté — `runique` (formulaires, debug)
+
+* **Sortie `eprintln!` debug pour tout le pipeline de traitement des formulaires :** quand `DEBUG=true` et que le champ `FormTracing` correspondant est configuré, chaque étape émet désormais à la fois un événement `tracing` structuré (filtré par le niveau du subscriber) et un `eprintln!` directement sur stderr (contourne le filtre du subscriber). Étapes couvertes : enregistrement des champs, `set_value` par champ (POST), normalisation des checkboxes, validation par champ, résultat de validation, finalisation par champ, rendu par champ.
+
+### Ajouté — `runique` (DSL admin)
+
+* **`own_field` dans `admin!{}`:** nouvelle clé DSL optionnelle qui déclare le champ d'appartenance d'un enregistrement pour l'application de `can_update_own` / `can_delete_own`. Exemple : `own_field: "user_id"`.
+
+---
+
+## [2.1.8] - 2026-05-28
+
+### Corrigé — `runique` (admin, bulk)
+
+* **`bulk_create` violait la contrainte UNIQUE à la re-soumission :** le `create_fn` généré effectuait un INSERT simple par valeur. Resoumettre les mêmes jours causait une violation UNIQUE arrêtant la boucle. Le générateur émet désormais un upsert : pour chaque valeur, il vérifie si un enregistrement avec cette valeur existe déjà, puis met à jour si trouvé ou insère sinon.
+* **La vue edit utilisait le formulaire multi-sélection quand `bulk_create` était déclaré :** quand `bulk_create` est déclaré sans `edit_form` explicite, le daemon génère désormais automatiquement un `edit_form_builder` utilisant `module::AdminForm` (formulaire standard mono-enregistrement).
+* **Les champs uniques apparaissaient dans le formulaire d'édition en masse :** l'édition en masse d'une ressource avec des champs à contrainte UNIQUE pouvait produire une violation UNIQUE. Le générateur émet désormais `UNIQUE_FIELDS` par entité (depuis les contraintes `unique` de `derive_form!{}`). Ces champs sont automatiquement exclus du formulaire d'édition en masse.
+
+### Ajouté — `runique` (middleware)
+
+* **Middleware anti-bot honeypot :** `AntiBot::new("nom_champ")` injecte un champ piège caché dans tous les formulaires du scope protégé. Si le champ est rempli au POST, `form.is_valid()` retourne `false` immédiatement.
+* **`RateLimiter` par méthode HTTP :** `rate_limit_get()`, `rate_limit_post()`, `rate_limit_put()`, `rate_limit_delete()` permettent de définir des limites indépendantes par méthode HTTP en plus du `rate_limit()` global.
+
+### Ajouté — `runique` (formulaires)
+
+* **`FormTracing` pour toutes les étapes du pipeline formulaire :** quand `RuniqueLog::forms` est configuré, chaque étape (enregistrement des champs, `set_value`, validation, finalisation, rendu) émet un événement `tracing` structuré au niveau configuré.
+* **`cleaned_enum<T>()` sur `RuniqueForm` :** lit la valeur validée d'un champ et tente de la convertir en `ActiveEnum` SeaORM.
+* **`add_value()` sur `RuniqueForm` :** force une valeur sur un champ nommé, contournant `fill()`. Utile pour les champs ignorés par le pipeline (ex. hash de mot de passe pré-calculé).
+
+---
+
 ## [2.1.6] - 2026-05-23
 
 ### Ajouté — `derive_form` (extend)

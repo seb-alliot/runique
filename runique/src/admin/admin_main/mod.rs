@@ -172,7 +172,7 @@ pub async fn admin_get(
         }
         "create" => {
             let can_access = current_user.can_access_resource(&resource_key);
-            let can_write = check_write_access(&current_user, &resource_key);
+            let can_create = check_can_create(&current_user, &resource_key);
             if let Some(level) = crate::utils::runique_log::get_log()
                 .admin
                 .as_ref()
@@ -183,14 +183,14 @@ pub async fn admin_get(
                     resource = %resource_key,
                     user = %current_user.username,
                     can_access,
-                    can_write,
+                    can_create,
                     "create access check"
                 );
             }
             if !can_access {
                 return Ok(permission_denied_dashboard(&req.notices, &state.config.prefix).await);
             }
-            if !can_write {
+            if !can_create {
                 return Ok(
                     permission_denied(&req.notices, &state.config.prefix, &resource_key).await,
                 );
@@ -205,7 +205,7 @@ pub async fn admin_get(
             handle_create_get(&mut req, entry, &state).await
         }
         "bulk" => {
-            let can_write = check_write_access(&current_user, &resource_key);
+            let can_update = check_can_update(&current_user, &resource_key);
             if let Some(level) = crate::utils::runique_log::get_log()
                 .admin
                 .as_ref()
@@ -215,11 +215,11 @@ pub async fn admin_get(
                     level,
                     resource = %resource_key,
                     user = %current_user.username,
-                    can_write,
+                    can_update,
                     "bulk edit access check"
                 );
             }
-            if !can_write {
+            if !can_update {
                 return Ok(
                     permission_denied(&req.notices, &state.config.prefix, &resource_key).await,
                 );
@@ -257,7 +257,7 @@ pub async fn admin_post(
     inject_context(&mut req, &state, entry, &current_user);
     req.context.insert(ctx_common::LANG, &current_lang().code());
     check_csrf(&body, req.csrf_token.as_str())?;
-    let can_write = check_write_access(&current_user, &resource_key);
+    let can_create = check_can_create(&current_user, &resource_key);
     if let Some(level) = crate::utils::runique_log::get_log()
         .admin
         .as_ref()
@@ -268,11 +268,11 @@ pub async fn admin_post(
             resource = %resource_key,
             user = %current_user.username,
             action = %action,
-            can_write,
+            can_create,
             "POST access check"
         );
     }
-    if !can_write {
+    if !can_create {
         return Ok(permission_denied(&req.notices, &state.config.prefix, &resource_key).await);
     }
     match action.as_str() {
@@ -287,6 +287,17 @@ pub async fn admin_post(
             handle_create_post(&mut req, entry, body, &headers, &state, &current_user).await
         }
         "bulk" => {
+            let bulk_action = body.get("bulk_action").map(String::as_str).unwrap_or("");
+            let can_bulk = if bulk_action == "delete" {
+                check_can_delete(&current_user, &resource_key)
+            } else {
+                check_can_update(&current_user, &resource_key)
+            };
+            if !can_bulk {
+                return Ok(
+                    permission_denied(&req.notices, &state.config.prefix, &resource_key).await,
+                );
+            }
             if let Some(level) = crate::utils::runique_log::get_log()
                 .admin
                 .as_ref()
@@ -318,7 +329,12 @@ pub async fn admin_get_id(
     req.context.insert(ctx_common::LANG, &current_lang().code());
 
     let can_access = current_user.can_access_resource(&resource_key);
-    let can_write = check_write_access(&current_user, &resource_key);
+    let can_update = check_can_update(&current_user, &resource_key);
+    let can_delete = check_can_delete(&current_user, &resource_key);
+    let perm = current_user.permission_for(&resource_key);
+    let can_update_own =
+        current_user.is_superuser || perm.as_ref().is_some_and(|p| p.can_update_own);
+    let can_delete_own = current_user.is_superuser || perm.is_some_and(|p| p.can_delete_own);
     if let Some(level) = crate::utils::runique_log::get_log()
         .admin
         .as_ref()
@@ -331,14 +347,22 @@ pub async fn admin_get_id(
             action = %action,
             user = %current_user.username,
             can_access,
-            can_write,
+            can_update,
+            can_delete,
             "id action access check"
         );
     }
     if !can_access {
         return Ok(permission_denied_dashboard(&req.notices, &state.config.prefix).await);
     }
-    if !can_write && matches!(action.as_str(), "edit" | "delete") {
+    if action == "edit" && !can_update && !can_update_own
+        || !check_owns_record(entry, req.engine.db.clone(), &id, current_user.id).await
+    {
+        return Ok(permission_denied(&req.notices, &state.config.prefix, &resource_key).await);
+    }
+    if action == "delete" && !can_delete && !can_delete_own
+        || !check_owns_record(entry, req.engine.db.clone(), &id, current_user.id).await
+    {
         return Ok(permission_denied(&req.notices, &state.config.prefix, &resource_key).await);
     }
     match action.as_str() {
@@ -396,7 +420,12 @@ pub async fn admin_post_id(
     inject_context(&mut req, &state, entry, &current_user);
     req.context.insert(ctx_common::LANG, &current_lang().code());
     check_csrf(&body, req.csrf_token.as_str())?;
-    let can_write = check_write_access(&current_user, &resource_key);
+    let can_update = check_can_update(&current_user, &resource_key);
+    let can_delete = check_can_delete(&current_user, &resource_key);
+    let perm = current_user.permission_for(&resource_key);
+    let can_update_own =
+        current_user.is_superuser || perm.as_ref().is_some_and(|p| p.can_update_own);
+    let can_delete_own = current_user.is_superuser || perm.is_some_and(|p| p.can_delete_own);
     if let Some(level) = crate::utils::runique_log::get_log()
         .admin
         .as_ref()
@@ -408,11 +437,19 @@ pub async fn admin_post_id(
             id = %id,
             action = %action,
             user = %current_user.username,
-            can_write,
+            can_update,
+            can_delete,
             "id POST access check"
         );
     }
-    if !can_write {
+    if action == "edit" && !can_update && !can_update_own
+        || !check_owns_record(entry, req.engine.db.clone(), &id, current_user.id).await
+    {
+        return Ok(permission_denied(&req.notices, &state.config.prefix, &resource_key).await);
+    }
+    if action == "delete" && !can_delete && !can_delete_own
+        || !check_owns_record(entry, req.engine.db.clone(), &id, current_user.id).await
+    {
         return Ok(permission_denied(&req.notices, &state.config.prefix, &resource_key).await);
     }
 
@@ -521,11 +558,53 @@ pub(super) fn inject_context(
         .insert(ctx_perm::CAN_DELETE_OWN, &can_delete_own);
 }
 
-fn check_write_access(user: &CurrentUser, resource_key: &str) -> bool {
+/// Returns true if the record identified by `id` has `entry.own_field == user_id`.
+/// Falls back to false when own_field is not set or get_fn is unavailable.
+async fn check_owns_record(
+    entry: &super::helper::resource_entry::ResourceEntry,
+    db: crate::utils::aliases::ADb,
+    id: &str,
+    user_id: crate::utils::pk::Pk,
+) -> bool {
+    let own_field = match entry.own_field {
+        Some(f) => f,
+        None => return false,
+    };
+    let get_fn = match &entry.get_fn {
+        Some(f) => f,
+        None => return false,
+    };
+    let record = match get_fn(db, id.to_string()).await.ok().flatten() {
+        Some(v) => v,
+        None => return false,
+    };
+    let field_val = match record.get(own_field) {
+        Some(serde_json::Value::String(s)) => s.clone(),
+        Some(v) => v.to_string(),
+        None => return false,
+    };
+    field_val == user_id.to_string()
+}
+
+fn check_can_create(user: &CurrentUser, resource_key: &str) -> bool {
     user.is_superuser
         || user
             .permission_for(resource_key)
-            .is_some_and(|p| p.can_create || p.can_update || p.can_delete)
+            .is_some_and(|p| p.can_create)
+}
+
+fn check_can_update(user: &CurrentUser, resource_key: &str) -> bool {
+    user.is_superuser
+        || user
+            .permission_for(resource_key)
+            .is_some_and(|p| p.can_update)
+}
+
+fn check_can_delete(user: &CurrentUser, resource_key: &str) -> bool {
+    user.is_superuser
+        || user
+            .permission_for(resource_key)
+            .is_some_and(|p| p.can_delete)
 }
 
 async fn permission_denied(
