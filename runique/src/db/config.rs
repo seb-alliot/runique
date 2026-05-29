@@ -293,9 +293,7 @@ fn mask_password(url: &str) -> String {
     let Some(idx) = url.find("://") else {
         return url.to_string();
     };
-    let protocol_end = idx
-        .checked_add(3)
-        .and_then(|x| if x <= url.len() { Some(x) } else { None });
+    let protocol_end = idx.checked_add(3).filter(|&x| x <= url.len());
     let Some(after_protocol) = protocol_end else {
         return url.to_string();
     };
