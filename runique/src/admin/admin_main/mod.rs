@@ -355,14 +355,11 @@ pub async fn admin_get_id(
     if !can_access {
         return Ok(permission_denied_dashboard(&req.notices, &state.config.prefix).await);
     }
-    if action == "edit" && !can_update && !can_update_own
-        || !check_owns_record(entry, req.engine.db.clone(), &id, current_user.id).await
-    {
+    let owns_record = check_owns_record(entry, req.engine.db.clone(), &id, current_user.id).await;
+    if action == "edit" && !can_update && !(can_update_own && owns_record) {
         return Ok(permission_denied(&req.notices, &state.config.prefix, &resource_key).await);
     }
-    if action == "delete" && !can_delete && !can_delete_own
-        || !check_owns_record(entry, req.engine.db.clone(), &id, current_user.id).await
-    {
+    if action == "delete" && !can_delete && !(can_delete_own && owns_record) {
         return Ok(permission_denied(&req.notices, &state.config.prefix, &resource_key).await);
     }
     match action.as_str() {
@@ -442,14 +439,11 @@ pub async fn admin_post_id(
             "id POST access check"
         );
     }
-    if action == "edit" && !can_update && !can_update_own
-        || !check_owns_record(entry, req.engine.db.clone(), &id, current_user.id).await
-    {
+    let owns_record = check_owns_record(entry, req.engine.db.clone(), &id, current_user.id).await;
+    if action == "edit" && !can_update && !(can_update_own && owns_record) {
         return Ok(permission_denied(&req.notices, &state.config.prefix, &resource_key).await);
     }
-    if action == "delete" && !can_delete && !can_delete_own
-        || !check_owns_record(entry, req.engine.db.clone(), &id, current_user.id).await
-    {
+    if action == "delete" && !can_delete && !(can_delete_own && owns_record) {
         return Ok(permission_denied(&req.notices, &state.config.prefix, &resource_key).await);
     }
 
