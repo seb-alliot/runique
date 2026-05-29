@@ -103,21 +103,29 @@ impl MiddlewareConfig {
     }
 
     // Chainable methods for fine-grained configuration
+
+    /// Enables or disables the CSP middleware.
     #[must_use]
     pub fn with_csp(mut self, enable: bool) -> Self {
         self.enable_csp = enable;
         self
     }
+
+    /// Enables or disables debug error pages (4xx/5xx intercepted by `error_handler`).
     #[must_use]
     pub fn with_debug_errors(mut self, enable: bool) -> Self {
         self.enable_debug_errors = enable;
         self
     }
+
+    /// Enables or disables the HTTP cache middleware.
     #[must_use]
     pub fn with_cache(mut self, enable: bool) -> Self {
         self.enable_cache = enable;
         self
     }
+
+    /// Enables or disables `Host` header validation against the allowed hosts list.
     #[must_use]
     pub fn with_host_validation(mut self, enable: bool) -> Self {
         self.enable_host_validation = enable;

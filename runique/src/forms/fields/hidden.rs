@@ -6,6 +6,8 @@ use std::sync::Arc;
 use subtle::ConstantTimeEq;
 use tera::{Context, Tera};
 
+/// Hidden input field. Used internally for CSRF tokens; also available for opaque data
+/// that should be submitted with the form but not displayed to the user.
 #[derive(Clone, Serialize, Debug)]
 pub struct HiddenField {
     pub base: FieldConfig,
@@ -35,6 +37,7 @@ impl HiddenField {
         self.expected_value = Some(expected.to_string());
     }
 
+    /// Overrides the auto-generated label.
     pub fn label(mut self, label: &str) -> Self {
         self.base.label = label.to_string();
         self

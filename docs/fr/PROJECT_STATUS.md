@@ -35,6 +35,7 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 - Protection CSRF intégrée (token masqué anti-BREACH, comparaison temps constant)
 - `FormTracing` structuré + `eprintln!` debug sur tout le pipeline (field, set_value, validate, finalize, render)
 - Tous les types de champs : Text, Numeric, Boolean, Choice, Radio, Checkbox, Date, Time, DateTime, Duration, File, Color, Slug, UUID, JSON, IP, Hidden, Honeypot
+- Garde `save()` / `save_as()` : retourne `Err` si `is_valid()` n'a pas été appelé ou a retourné `false` — empêche toute persistance sans validation préalable
 
 ### Routing
 - `urlpatterns!{}` avec segments typés, GET/POST séparés
@@ -126,5 +127,5 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 ---
 
-**Dernière mise à jour** : 28 mai 2026
-**Statut global** : ✅ Framework stable · 🟡 Admin bêta mature · 🔒 Audit sécurité complété 2026-05-28
+**Dernière mise à jour** : 30 mai 2026
+**Statut global** : ✅ Framework stable · 🟡 Admin bêta mature · 🔒 Audit sécurité complété 2026-05-28 · 📖 Documentation API publique complète (docs.rs)

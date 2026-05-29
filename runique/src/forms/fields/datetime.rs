@@ -7,7 +7,7 @@ use serde_json::json;
 use std::sync::Arc;
 use tera::{Context, Tera};
 
-/// DateField - Date field (format: YYYY-MM-DD)
+/// Date input (`<input type="date">`). Validates `YYYY-MM-DD` format with optional min/max bounds.
 #[derive(Clone, Serialize, Debug)]
 pub struct DateField {
     pub base: FieldConfig,
@@ -16,6 +16,7 @@ pub struct DateField {
 }
 
 impl DateField {
+    /// Creates a date field.
     pub fn new(name: &str) -> Self {
         Self {
             base: FieldConfig::new(name, "date", "base_datetime"),
@@ -24,11 +25,13 @@ impl DateField {
         }
     }
 
+    /// Sets the HTML `placeholder` attribute.
     pub fn placeholder(mut self, p: &str) -> Self {
         self.set_placeholder(p);
         self
     }
 
+    /// Minimum accepted date. `msg` overrides the default error (pass `""` for default).
     pub fn min(mut self, date: NaiveDate, msg: &str) -> Self {
         self.min_date = Some(date);
         if !msg.is_empty() {
@@ -39,6 +42,7 @@ impl DateField {
         self
     }
 
+    /// Maximum accepted date. `msg` overrides the default error (pass `""` for default).
     pub fn max(mut self, date: NaiveDate, msg: &str) -> Self {
         self.max_date = Some(date);
         if !msg.is_empty() {
@@ -49,11 +53,13 @@ impl DateField {
         self
     }
 
+    /// Overrides the auto-generated label.
     pub fn label(mut self, label: &str) -> Self {
         self.base.label = label.to_string();
         self
     }
 
+    /// Marks the field as required (empty value fails validation).
     pub fn required(mut self) -> Self {
         self.set_required(true, None);
         self
@@ -152,7 +158,7 @@ impl FormField for DateField {
     }
 }
 
-/// TimeField - Time field (format: HH:MM)
+/// Time input (`<input type="time">`). Accepts `HH:MM` (HTML) or `HH:MM:SS` (database). Optional min/max bounds.
 #[derive(Clone, Serialize, Debug)]
 pub struct TimeField {
     pub base: FieldConfig,
@@ -161,6 +167,7 @@ pub struct TimeField {
 }
 
 impl TimeField {
+    /// Creates a time field.
     pub fn new(name: &str) -> Self {
         Self {
             base: FieldConfig::new(name, "time", "base_datetime"),
@@ -169,6 +176,7 @@ impl TimeField {
         }
     }
 
+    /// Minimum accepted time. `msg` overrides the default error (pass `""` for default).
     pub fn min(mut self, time: NaiveTime, msg: &str) -> Self {
         self.min_time = Some(time);
         if !msg.is_empty() {
@@ -179,6 +187,7 @@ impl TimeField {
         self
     }
 
+    /// Maximum accepted time. `msg` overrides the default error (pass `""` for default).
     pub fn max(mut self, time: NaiveTime, msg: &str) -> Self {
         self.max_time = Some(time);
         if !msg.is_empty() {
@@ -189,11 +198,13 @@ impl TimeField {
         self
     }
 
+    /// Overrides the auto-generated label.
     pub fn label(mut self, label: &str) -> Self {
         self.base.label = label.to_string();
         self
     }
 
+    /// Marks the field as required (empty value fails validation).
     pub fn required(mut self) -> Self {
         self.set_required(true, None);
         self
@@ -293,7 +304,7 @@ impl FormField for TimeField {
     }
 }
 
-/// DateTimeField - Combined date and time field
+/// Combined date and time input (`<input type="datetime-local">`). Accepts `YYYY-MM-DDTHH:MM`. Optional min/max bounds.
 #[derive(Clone, Serialize, Debug)]
 pub struct DateTimeField {
     pub base: FieldConfig,
@@ -302,6 +313,7 @@ pub struct DateTimeField {
 }
 
 impl DateTimeField {
+    /// Creates a datetime-local field.
     pub fn new(name: &str) -> Self {
         Self {
             base: FieldConfig::new(name, "datetime-local", "base_datetime"),
@@ -310,6 +322,7 @@ impl DateTimeField {
         }
     }
 
+    /// Minimum accepted datetime. `msg` overrides the default error (pass `""` for default).
     pub fn min(mut self, datetime: NaiveDateTime, msg: &str) -> Self {
         self.min_datetime = Some(datetime);
         if !msg.is_empty() {
@@ -320,6 +333,7 @@ impl DateTimeField {
         self
     }
 
+    /// Maximum accepted datetime. `msg` overrides the default error (pass `""` for default).
     pub fn max(mut self, datetime: NaiveDateTime, msg: &str) -> Self {
         self.max_datetime = Some(datetime);
         if !msg.is_empty() {
@@ -330,11 +344,13 @@ impl DateTimeField {
         self
     }
 
+    /// Overrides the auto-generated label.
     pub fn label(mut self, label: &str) -> Self {
         self.base.label = label.to_string();
         self
     }
 
+    /// Marks the field as required (empty value fails validation).
     pub fn required(mut self) -> Self {
         self.set_required(true, None);
         self
@@ -434,7 +450,7 @@ impl FormField for DateTimeField {
     }
 }
 
-/// DurationField - Field to enter a duration (in seconds)
+/// Duration input stored as seconds (`u64`). Optional min/max bounds in seconds.
 #[derive(Clone, Serialize, Debug)]
 pub struct DurationField {
     pub base: FieldConfig,
@@ -443,6 +459,7 @@ pub struct DurationField {
 }
 
 impl DurationField {
+    /// Creates a duration field.
     pub fn new(name: &str) -> Self {
         Self {
             base: FieldConfig::new(name, "number", "base_datetime"),
@@ -451,6 +468,7 @@ impl DurationField {
         }
     }
 
+    /// Minimum duration in seconds. `msg` overrides the default error (pass `""` for default).
     pub fn min_seconds(mut self, seconds: u64, msg: &str) -> Self {
         self.min_seconds = Some(seconds);
         if !msg.is_empty() {
@@ -461,6 +479,7 @@ impl DurationField {
         self
     }
 
+    /// Maximum duration in seconds. `msg` overrides the default error (pass `""` for default).
     pub fn max_seconds(mut self, seconds: u64, msg: &str) -> Self {
         self.max_seconds = Some(seconds);
         if !msg.is_empty() {
@@ -471,11 +490,13 @@ impl DurationField {
         self
     }
 
+    /// Overrides the auto-generated label.
     pub fn label(mut self, label: &str) -> Self {
         self.base.label = label.to_string();
         self
     }
 
+    /// Marks the field as required (empty value fails validation).
     pub fn required(mut self) -> Self {
         self.set_required(true, None);
         self

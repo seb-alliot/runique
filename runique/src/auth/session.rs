@@ -108,6 +108,7 @@ pub trait UserEntity: Send + Sync + 'static {
 pub struct DefaultAdminAuth<E: UserEntity>(PhantomData<E>);
 
 impl<E: UserEntity> DefaultAdminAuth<E> {
+    /// Creates a new `DefaultAdminAuth` for the given entity type.
     pub fn new() -> Self {
         Self(PhantomData)
     }

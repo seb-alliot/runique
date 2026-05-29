@@ -94,6 +94,7 @@ fn parse_file_list(val: &str) -> Vec<&str> {
         .collect()
 }
 
+/// Determines which validation rules and allowed extensions apply to a [`FileField`].
 #[derive(Debug, Clone, Serialize)]
 pub enum FileFieldType {
     None,
@@ -102,26 +103,32 @@ pub enum FileFieldType {
     Any,
 }
 
+/// Extension whitelist applied during file validation.
+/// SVG is always rejected for images regardless of the list (XSS risk).
 #[derive(Debug, Clone, Serialize)]
 pub struct AllowedExtensions {
     pub extensions: Vec<String>,
 }
 
 impl AllowedExtensions {
+    /// Custom extension list (lowercase, without dot: `vec!["jpg", "png"]`).
     pub fn new(extensions: Vec<&str>) -> Self {
         Self {
             extensions: extensions.iter().map(|s| s.to_string()).collect(),
         }
     }
 
+    /// Preset for web images: jpg, jpeg, png, gif, webp, avif.
     pub fn images() -> Self {
         Self::new(vec!["jpg", "jpeg", "png", "gif", "webp", "avif"])
     }
 
+    /// Preset for documents: pdf, doc, docx, txt, odt.
     pub fn documents() -> Self {
         Self::new(vec!["pdf", "doc", "docx", "txt", "odt"])
     }
 
+    /// No extension filter (any extension accepted, SVG still rejected).
     pub fn any() -> Self {
         Self { extensions: vec![] }
     }
@@ -226,6 +233,8 @@ impl FileUploadConfig {
     }
 }
 
+/// File upload field. Construct with [`FileField::image`], [`::document`](FileField::document),
+/// or [`::any`](FileField::any). Validates extension, size, and for images, magic bytes + dimensions.
 #[derive(Clone, Debug)]
 pub struct FileField {
     pub base: FieldConfig,
@@ -250,6 +259,7 @@ impl CommonFieldConfig for FileField {
 }
 
 impl FileField {
+    /// Low-level constructor. Prefer [`image`](FileField::image), [`document`](FileField::document), or [`any`](FileField::any).
     pub fn create(name: &str, type_field: &str, format: FileFieldType) -> Self {
         let extensions = match format {
             FileFieldType::Image => AllowedExtensions::images(),
@@ -271,28 +281,34 @@ impl FileField {
         }
     }
 
+    /// Image upload field. Validates magic bytes (JPEG/PNG/GIF/WebP/AVIF). SVG rejected.
     pub fn image(name: &str) -> Self {
         Self::create(name, "file", FileFieldType::Image)
     }
 
+    /// Document upload field. Accepts pdf, doc, docx, txt, odt.
     pub fn document(name: &str) -> Self {
         Self::create(name, "file", FileFieldType::Document)
     }
 
+    /// Generic upload field. No extension restriction (SVG still rejected).
     pub fn any(name: &str) -> Self {
         Self::create(name, "file", FileFieldType::Any)
     }
 
+    /// Overrides the auto-generated label.
     pub fn label(mut self, label: &str) -> Self {
         self.base.label = label.to_string();
         self
     }
 
+    /// Destination directory for uploaded files. Accepts `"media/avatars"`, `String`, or `&StaticConfig`.
     pub fn upload_to(mut self, path: impl IntoUploadPath) -> Self {
         self.upload_config = self.upload_config.upload_to(path.into_upload_path());
         self
     }
 
+    /// Uses `MEDIA_ROOT` from environment as upload root, with subdirectory named after the field.
     pub fn upload_to_env(mut self) -> Self {
         let media_root = resolve_media_root();
         let f = Arc::new(move |field_name: &str| format!("{}/{}", media_root, field_name));
@@ -300,6 +316,7 @@ impl FileField {
         self
     }
 
+    /// Maximum upload size. Use `FileSize::mb(5)`, `::kb(512)`, etc. Default: 10 MB.
     pub fn max_size(mut self, size: FileSize) -> Self {
         let bytes = size.as_bytes();
         self.model_max_size = Some(bytes);
@@ -325,6 +342,7 @@ impl FileField {
         Ok(())
     }
 
+    /// Maximum number of files. Values > 1 automatically add the `multiple` HTML attribute.
     pub fn max_files(mut self, count: usize) -> Self {
         self.max_files = Some(count);
         if count > 1 {
@@ -335,17 +353,20 @@ impl FileField {
         self
     }
 
+    /// Marks the field as required (no file fails validation).
     pub fn required(mut self) -> Self {
         self.set_required(true, None);
         self
     }
 
+    /// Maximum image dimensions in pixels. Only checked for `FileFieldType::Image`.
     pub fn max_dimensions(mut self, width: u32, height: u32) -> Self {
         self.max_width = Some(width);
         self.max_height = Some(height);
         self
     }
 
+    /// Overrides the extension whitelist. Pass lowercase extensions without dots: `vec!["jpg", "png"]`.
     pub fn allowed_extensions(mut self, exts: Vec<&str>) -> Self {
         self.allowed_extensions = AllowedExtensions::new(exts);
         self

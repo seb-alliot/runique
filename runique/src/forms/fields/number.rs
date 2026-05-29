@@ -6,6 +6,10 @@ use serde_json::json;
 use std::sync::Arc;
 use tera::{Context, Tera};
 
+/// Numeric input (integer, decimal, float, percent, or range slider).
+/// Construct with [`NumericField::integer`], [`::decimal`](NumericField::decimal),
+/// [`::float`](NumericField::float), [`::percent`](NumericField::percent),
+/// or [`::range`](NumericField::range).
 #[derive(Clone, Serialize, Debug)]
 pub struct NumericField {
     pub base: FieldConfig,
@@ -33,12 +37,13 @@ impl NumericField {
             max_digits: None,
         }
     }
+    /// Constrains the number of decimal digits (e.g. `digits(2, 4)` for `12.34` to `12.3456`).
     pub fn digits(mut self, min: usize, max: usize) -> Self {
         self.min_digits = Some(min);
         self.max_digits = Some(max);
         self
     }
-    // --- Constructors ---
+    /// Integer input (`i64` range). No decimal part allowed.
     pub fn integer(name: &str) -> Self {
         Self::create(
             name,
@@ -50,19 +55,23 @@ impl NumericField {
         )
     }
 
+    /// Sets the HTML `placeholder` attribute.
     pub fn placeholder(mut self, p: &str) -> Self {
         self.set_placeholder(p);
         self
     }
 
+    /// Floating-point input (`f64`). Accepts `,` as decimal separator.
     pub fn float(name: &str) -> Self {
         Self::create(name, "number", NumericConfig::Float { value: None })
     }
 
+    /// Decimal input (arbitrary precision via `rust_decimal`). Accepts `,` as decimal separator.
     pub fn decimal(name: &str) -> Self {
         Self::create(name, "number", NumericConfig::Decimal { value: None })
     }
 
+    /// Percentage input. Valid range: `0.0–100.0`.
     pub fn percent(name: &str) -> Self {
         Self::create(
             name,
@@ -76,6 +85,7 @@ impl NumericField {
         )
     }
 
+    /// Range slider `<input type="range">`. `default` is the initial value.
     pub fn range(name: &str, min: f64, max: f64, default: f64) -> Self {
         let mut field = Self::create(
             name,
@@ -90,7 +100,7 @@ impl NumericField {
         field
     }
 
-    // --- Builder Methods ---
+    /// Minimum accepted value. `msg` overrides the default error (pass `""` for default).
     pub fn min(mut self, val: f64, msg: &str) -> Self {
         match &mut self.config {
             NumericConfig::Integer { min, .. } => *min = Some(val as i64),
@@ -116,6 +126,7 @@ impl NumericField {
         self
     }
 
+    /// Maximum accepted value. `msg` overrides the default error (pass `""` for default).
     pub fn max(mut self, val: f64, msg: &str) -> Self {
         match &mut self.config {
             NumericConfig::Integer { max, .. } => *max = Some(val as i64),
@@ -141,6 +152,7 @@ impl NumericField {
         self
     }
 
+    /// Step increment for range sliders.
     pub fn step(mut self, s: f64) -> Self {
         if let NumericConfig::Range { step, .. } = &mut self.config {
             *step = s;
@@ -148,6 +160,7 @@ impl NumericField {
         self
     }
 
+    /// Overrides the auto-generated label.
     pub fn label(mut self, label: &str) -> Self {
         self.base.label = label.to_string();
         self
