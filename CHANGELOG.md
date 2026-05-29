@@ -26,6 +26,10 @@ All notable changes to this project will be documented in this file.
 
 * **`own_field` in `admin!{}`:** new optional DSL key that declares the record ownership field for `can_update_own` / `can_delete_own` enforcement. Example: `own_field: "user_id"`.
 
+### Security — `runique` (forms)
+
+* **`save()` / `save_as()` guard against skipped validation (low):** a developer could call `form.save()` without a prior successful `is_valid()` call, bypassing field validation, CSRF token verification, and `clean()` business rules entirely. Fixed: both methods now return `Err(DbErr::Custom(...))` immediately if `is_valid()` was not called or returned `false`. The check is performed via the internal `is_save_allowed()` method (`!force_invalid && validated && !has_errors()`). A `#[doc(hidden)]` `Forms::mark_validated()` helper is provided for tests that verify save/hook behavior in isolation.
+
 ---
 
 ## [2.1.8] - 2026-05-28

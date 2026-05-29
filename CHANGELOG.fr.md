@@ -26,6 +26,10 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 * **`own_field` dans `admin!{}`:** nouvelle clé DSL optionnelle qui déclare le champ d'appartenance d'un enregistrement pour l'application de `can_update_own` / `can_delete_own`. Exemple : `own_field: "user_id"`.
 
+### Sécurité — `runique` (formulaires)
+
+* **Garde sur `save()` / `save_as()` contre la validation contournée (faible) :** un développeur pouvait appeler `form.save()` sans avoir appelé `is_valid()` au préalable, contournant entièrement la validation des champs, la vérification du token CSRF et les règles métier de `clean()`. Correctif : les deux méthodes retournent désormais `Err(DbErr::Custom(...))` immédiatement si `is_valid()` n'a pas été appelé ou a retourné `false`. La vérification s'effectue via la méthode interne `is_save_allowed()` (`!force_invalid && validated && !has_errors()`). Un helper `#[doc(hidden)]` `Forms::mark_validated()` est fourni pour les tests qui vérifient le comportement des hooks save en isolation.
+
 ---
 
 ## [2.1.8] - 2026-05-28
