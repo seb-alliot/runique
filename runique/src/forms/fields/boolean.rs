@@ -5,6 +5,8 @@ use serde::Serialize;
 use std::sync::Arc;
 use tera::{Context, Tera};
 
+/// Checkbox or radio input for boolean values.
+/// Use [`BooleanField::new`] for a checkbox, [`::radio`](BooleanField::radio) for a radio button.
 #[derive(Clone, Serialize, Debug)]
 pub struct BooleanField {
     pub base: FieldConfig,
@@ -21,33 +23,40 @@ impl CommonFieldConfig for BooleanField {
 }
 
 impl BooleanField {
+    /// Creates a checkbox field. Unchecked state is normalized to `"false"` by `fill()`.
     pub fn new(name: &str) -> Self {
         Self {
             base: FieldConfig::new(name, "checkbox", "base_boolean"),
         }
     }
 
+    /// Creates a radio button field (`<input type="radio">`).
     pub fn radio(name: &str) -> Self {
         let mut field = Self::new(name);
         field.base.type_field = "radio".to_string();
         field
     }
 
+    /// Marks the field as required. For a checkbox, this means NOT NULL in DB — not "must be checked".
+    /// To force the user to tick (e.g. ToS), use `clean()` with a custom error instead.
     pub fn required(mut self) -> Self {
         self.set_required(true, None);
         self
     }
 
+    /// Overrides the auto-generated label.
     pub fn label(mut self, label: &str) -> Self {
         self.base.label = label.to_string();
         self
     }
 
+    /// Pre-selects the checkbox as checked.
     pub fn checked(mut self) -> Self {
         self.base.value = "true".to_string();
         self
     }
 
+    /// Pre-selects the checkbox as unchecked (default).
     pub fn unchecked(mut self) -> Self {
         self.base.value = "false".to_string();
         self

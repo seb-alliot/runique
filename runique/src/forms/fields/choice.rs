@@ -15,6 +15,7 @@ pub struct ChoiceOption {
 }
 
 impl ChoiceOption {
+    /// Creates a new option with the given submitted value and display label.
     pub fn new(value: &str, label: &str) -> Self {
         Self {
             value: value.to_string(),
@@ -23,13 +24,14 @@ impl ChoiceOption {
         }
     }
 
+    /// Marks this option as pre-selected.
     pub fn selected(mut self) -> Self {
         self.selected = true;
         self
     }
 }
 
-/// SelectField - Standard Dropdown/Select
+/// Dropdown `<select>` field. Use [`ChoiceField::multiple`] for multi-select.
 #[derive(Clone, Serialize, Debug)]
 pub struct ChoiceField {
     pub base: FieldConfig,
@@ -38,6 +40,7 @@ pub struct ChoiceField {
 }
 
 impl ChoiceField {
+    /// Creates an empty dropdown. Add options with [`choices`](ChoiceField::choices) or [`add_choice`](ChoiceField::add_choice).
     pub fn new(name: &str) -> Self {
         Self {
             base: FieldConfig::new(name, "select", "base_select"),
@@ -46,27 +49,32 @@ impl ChoiceField {
         }
     }
 
+    /// Enables `<select multiple>`. Submitted value is a comma-separated string.
     pub fn multiple(mut self) -> Self {
         self.multiple = true;
         self.base.type_field = "select-multiple".to_string();
         self
     }
 
+    /// Replaces all options at once.
     pub fn choices(mut self, choices: Vec<ChoiceOption>) -> Self {
         self.choices = choices;
         self
     }
 
+    /// Appends a single option.
     pub fn add_choice(mut self, value: &str, label: &str) -> Self {
         self.choices.push(ChoiceOption::new(value, label));
         self
     }
 
+    /// Overrides the auto-generated label.
     pub fn label(mut self, label: &str) -> Self {
         self.base.label = label.to_string();
         self
     }
 
+    /// Marks the field as required (empty selection fails validation).
     pub fn required(mut self) -> Self {
         self.set_required(true, None);
         self
@@ -130,7 +138,7 @@ impl FormField for ChoiceField {
     }
 }
 
-/// RadioField - Radio buttons
+/// A group of `<input type="radio">` buttons where one option can be selected.
 #[derive(Clone, Serialize, Debug)]
 pub struct RadioField {
     pub base: FieldConfig,
@@ -138,6 +146,7 @@ pub struct RadioField {
 }
 
 impl RadioField {
+    /// Creates an empty radio group. Add options with [`choices`](RadioField::choices) or [`add_choice`](RadioField::add_choice).
     pub fn new(name: &str) -> Self {
         Self {
             base: FieldConfig::new(name, "radio", "base_radio"),
@@ -145,21 +154,25 @@ impl RadioField {
         }
     }
 
+    /// Replaces all options at once.
     pub fn choices(mut self, choices: Vec<ChoiceOption>) -> Self {
         self.choices = choices;
         self
     }
 
+    /// Appends a single option.
     pub fn add_choice(mut self, value: &str, label: &str) -> Self {
         self.choices.push(ChoiceOption::new(value, label));
         self
     }
 
+    /// Overrides the auto-generated label.
     pub fn label(mut self, label: &str) -> Self {
         self.base.label = label.to_string();
         self
     }
 
+    /// Marks the field as required (no selection fails validation).
     pub fn required(mut self) -> Self {
         self.set_required(true, None);
         self
@@ -231,7 +244,7 @@ impl FormField for RadioField {
     }
 }
 
-/// CheckboxField - Multiple checkboxes
+/// A group of checkboxes where multiple options can be selected simultaneously. Submitted value is a comma-separated string.
 #[derive(Clone, Serialize, Debug)]
 pub struct CheckboxField {
     pub base: FieldConfig,
@@ -239,6 +252,7 @@ pub struct CheckboxField {
 }
 
 impl CheckboxField {
+    /// Creates an empty checkbox group. Add options with [`choices`](CheckboxField::choices) or [`add_choice`](CheckboxField::add_choice).
     pub fn new(name: &str) -> Self {
         Self {
             base: FieldConfig::new(name, "checkbox", "base_checkbox"),
@@ -246,21 +260,25 @@ impl CheckboxField {
         }
     }
 
+    /// Replaces all options at once.
     pub fn choices(mut self, choices: Vec<ChoiceOption>) -> Self {
         self.choices = choices;
         self
     }
 
+    /// Appends a single option.
     pub fn add_choice(mut self, value: &str, label: &str) -> Self {
         self.choices.push(ChoiceOption::new(value, label));
         self
     }
 
+    /// Overrides the auto-generated label.
     pub fn label(mut self, label: &str) -> Self {
         self.base.label = label.to_string();
         self
     }
 
+    /// Marks the field as required (no selection fails validation).
     pub fn required(mut self) -> Self {
         self.set_required(true, None);
         self

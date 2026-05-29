@@ -36,11 +36,12 @@ pub struct AppError {
 }
 
 impl AppError {
+    /// Wraps an [`ErrorContext`] into an `AppError`.
     pub fn new(context: ErrorContext) -> Self {
         Self { context }
     }
 
-    // Generic helper to map known errors
+    /// Converts a Tera rendering error into an `AppError`, logging detail in debug mode.
     pub fn map_tera(e: tera::Error, route: &str, tera: &tera::Tera) -> Box<Self> {
         // Log the detailed error in the console
         error!(
@@ -249,18 +250,22 @@ impl Request {
         }
     }
 
+    /// Returns `true` if the request method is GET.
     pub fn is_get(&self) -> bool {
         self.method == Method::GET
     }
 
+    /// Returns `true` if the request method is POST.
     pub fn is_post(&self) -> bool {
         self.method == Method::POST
     }
 
+    /// Returns `true` if the request method is PUT.
     pub fn is_put(&self) -> bool {
         self.method == Method::PUT
     }
 
+    /// Returns `true` if the request method is DELETE.
     pub fn is_delete(&self) -> bool {
         self.method == Method::DELETE
     }
@@ -374,6 +379,9 @@ impl Request {
         UrlParams::new(&self.path_params, &self.query_params)
     }
 
+    /// Constructs a form `T`, fills it with submitted data (POST body or query string on GET),
+    /// and injects the honeypot field if the anti-bot middleware is active.
+    /// Call `form.is_valid().await` before reading cleaned values or calling `save()`.
     pub fn form<T: RuniqueForm>(&self) -> T {
         let masked = self
             .csrf_token

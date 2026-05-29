@@ -1,209 +1,142 @@
 
-# 📊 Runique Framework — Project Status (English)
+# Runique Framework — Project Status (English)
 
 This document consolidates the actual state of the repository from the reference sources:
 
 - `Cargo.toml` (workspace version)
 - `README.md`
 - `CHANGELOG.md`
-- `ROADMAP.md`
-- `couverture_test.md`
 
 ---
 
-## 🧾 Snapshot (as of March 15, 2026)
+## Snapshot (as of May 30, 2026)
 
-- **Workspace version**: `2.0.0`
+- **Workspace version**: `2.1.9`
+- **derive_form**: `2.1.7`
 - **License**: MIT
-- **Working branch**: `i18n` → merge into `main` for publication
-- **Tests reported**: **~1,600 / ~1,600 passed** ✅
-- **Coverage (report from 2026-03-15)**:
-  - Functions: **82.83%**
-  - Lines: **78.35%**
-  - Regions: **75.38%**
-- **Coverage command**: `cargo llvm-cov --tests --package runique --ignore-filename-regex "admin|bin/runique|runique_app" --summary-only`
+- **Branch**: `main`
+- **Stack**: Axum 0.8.7 + SeaORM 2.0.0-rc.38 + Tera 1.20.1 · Rust edition 2024 · Rust 1.88
 
 ---
 
-## 🧱 Workspace scope
+## Workspace scope
 
-Member crates declared in the workspace:
-
-- `runique` (main framework crate)
-- `demo-app` (framework test application)
-- `demo-app/migration` (migration related to the test app)
-
-The status below concerns the **`runique`** crate (product source).
-`demo-app` is only used to validate/test the framework during development.
+- `runique` — main framework crate
+- `derive_form` — proc-macro DSL (`derive_form!{}`, `extend!{}`)
+- `demo-app` — framework validation application
+- `demo-app/migration` — migrations linked to the demo app
 
 ---
 
-## ✅ Features implemented
+## Features implemented
 
-- **Forms**: typed form system, validation, rendering, integrated CSRF protection.
-- **Routing**: macros and route registration.
-- **Templates**: Tera engine + context helpers.
-- **ORM / Migration**: SeaORM integration, `makemigrations`, => possible but avoided to prevent desynchronization with sea-orm -> `migration up/down/status`.
-- **Security**: CSRF middleware, CSP, allowed hosts, sanitization, auth session.
-- **Flash messages**: temporary session message system.
-- **CLI `runique`**: `new`, `start`, `create-superuser` => password hashing via Argon2, reflection in progress for flexibility, `makemigrations`, `migration` => uses sea-orm CLI.
-- **I18n**: 8 languages (`en`, `fr`, `de`, `es`, `it`, `pt`, `ja`, `zh`), 14 sections, automatic fallback to `Lang::En`, stored via `AtomicU8`, configurable via `RUNIQUE_LANG`.
-- **Enhanced security**: rate limiter (`RateLimiter`), login guard (`LoginGuard`), masked CSRF (BREACH protection), HSTS, CSP nonce, constant-time comparisons (`subtle`).
+### Forms
 
-### Exported modules (crate `runique`)
+- Typed form system: `#[form]`, `RuniqueForm`, validation, HTML rendering via Tera
+- Integrated CSRF protection (masked token anti-BREACH, constant-time comparison)
+- Structured `FormTracing` + `eprintln!` debug on the full pipeline (field, set_value, validate, finalize, render)
+- All field types: Text, Numeric, Boolean, Choice, Radio, Checkbox, Date, Time, DateTime, Duration, File, Color, Slug, UUID, JSON, IP, Hidden, Honeypot
+- `save()` / `save_as()` guard: returns `Err` if `is_valid()` was not called or returned `false` — prevents any persistence without prior validation
 
-- `app`, `config`, `context`, `engine`, `flash`, `forms`, `macros`, `middleware`, `migration`, `admin`, `errors`, `utils`
-- `db` is conditional on the **`orm`** feature.
+### Routing
 
-### Legacy API compatibility
+- `urlpatterns!{}` with typed segments, separate GET/POST
+- Named URL registry, `{% url %}` Tera helper
 
-Compatibility aliases remain exposed (`config_runique`, `formulaire`, `middleware_runique`, etc.), making it easier to transition old projects.
+### Templates
 
----
+- Tera engine + context helpers (`{% csrf %}`, `{% static %}`, `{% url %}`, `{% media %}`)
+- Autoescape active on `.html`/`.xml`
 
-## ⚙️ Cargo Features & Technical Base
+### Admin panel (stable beta)
 
-- Default features: `orm` + `all-databases`
-- DB backends available: `sqlite`, `postgres`, `mysql`, `mariadb`
-- Main stack: Axum + Tower + Tokio + Tera + SeaORM (optional via feature)
-- Password security: `argon2`, `bcrypt`, `scrypt`, `password-hash`
+- Declarative `admin!{}` DSL → generation of `src/admins/` by the daemon
+- Watcher via `runique start` (300ms debounce, initial generation on startup)
+- Full generated CRUD: list, detail, create, edit, delete, bulk edit, bulk delete, group actions
+- `list_display`, `list_filter` (paginated distinct values), `search!` on all columns
+- `group_action`: booleans and exact enum values, multi-entry merge same field
+- `bulk_create`: upsert by value (split by comma), auto-generation `edit_form_builder`
+- `m2m`: many-to-many relations via junction table
+- `own_field`: ownership check for `can_update_own`/`can_delete_own`
+- Admin action history (log, batch_id, old/new diff)
+- Resource-overridable templates
 
----
+### Security
 
-## 🧭 Admin View Status (beta)
+- Masked CSRF (BREACH protection), session-bound token, `subtle::ct_eq` comparison
+- `session.cycle_id()` on login — session fixation protection
+- Granular admin permissions per operation (`can_create`, `can_update`, `can_delete`, `can_update_own`, `can_delete_own`)
+- Statically generated SQL column whitelist — SQL injection protection in admin filters/sort
+- CSP builder with nonce, HSTS, host validation
+- Global + per-HTTP-method `RateLimiter` (`rate_limit_get()`, `rate_limit_post()`, etc.)
+- `LoginGuard` — brute-force login protection
+- `AntiBot` — configurable honeypot per scope
+- HTML sanitization (ammonia), argon2/bcrypt/scrypt for passwords
+- Secure redirects (open-redirect guard), `HttpOnly`/`SameSite=Strict`/`Secure` cookies
 
-The admin view is **operational in beta** on a declarative model + code generation:
+### ORM / Migrations
 
-- Declaration via `admin!` macro in `src/admin.rs`
-- Macro parsing (`syn`) + generation of `src/admins/`
-- Watcher via `runique start` for automatic regeneration
-- CRUD routes/handlers generated (basic functionality)
+- `derive_form!{}` DSL → SeaORM entity + SQL migration + AdminForm
+- `extend!{}` — framework table extension (e.g. `eihwaz_users`)
+- `makemigrations` with destructive change detection + confirmation prompt
+- Supported backends: PostgreSQL, MariaDB, SQLite
 
-### Known limitations (assumed at this stage)
+### I18n
 
-- Permissions mainly global per resource
-- Little fine-grained control per operation
-- `src/admins/` is regenerated (manual changes are overwritten)
-- **CSRF**: reliable protection in the form flow (`request.form()` / `csrf_gate`), but middleware still permissive for some mutating endpoints outside the form flow.
+- 8 languages (en, fr, de, es, it, pt, ja, zh), `AtomicU8` storage, `RUNIQUE_LANG`
 
-### Practical workflow state
+### CLI
 
-- `runique start` detects `.with_admin(...)` in `src/main.rs`
-- If admin enabled: launches watcher + generation
-- If admin not enabled: explicit message, no daemon launched
-
----
-
-## 🧪 Quality & Tests
-
-### Current state
-
-- **Pass rate**: 100% (~1,600/~1,600 passing)
-- **Functional coverage**: 82.83%
-- **Roadmap target before publication**: ~85%+
-- **Note**: reported coverage ignores `admin`, `bin/runique`, `runique_app`
-
-### Identified weak areas
-
-Critical files still low according to `couverture_test.md`:
-
-- `migration/migrate.rs` (22%) — depends on sea-orm CLI commands
-- `engine/core.rs` (50%)
-- `middleware/dev/cache.rs` (60%)
-- `forms/fields/file.rs` (61%) — multipart upload
-- `middleware/errors/error.rs` (60%)
-
-### Areas with strong progress (session 2026-03-13 → 2026-03-15)
-
-- `context/template.rs`: 0% → **80.95%**
-- `middleware/security/csp.rs`: 66% → **95%**
-- `errors/error.rs`: 38% → **77%**
-- `context/request_extensions.rs`: 40% → **100%**
+- `runique new`, `runique start`, `runique create-superuser`, `runique makemigrations`, `runique migration`
 
 ---
 
-## 📌 Consolidated Roadmap
+## Security — fix history
 
-### Done
-
-- Complete and stabilized migration pipeline
-- Refactored/stabilized form system
-- i18n complete: 8 languages, 14 sections, `AtomicU8`, `RUNIQUE_LANG`
-- Security hardening: masked CSRF, CSP builder, HSTS, rate limiter, login guard
-- Coverage significantly improved (76% → 82% functions)
-
-### In progress
-
-- Admin view beta (runtime permissions, pagination, `js:` in `admin!`)
-- Raise coverage to 85%+
-
-### To do
-
-- More advanced error tracing
-- Executable doctests/examples for crates.io
-- Gradual deprecation of legacy aliases
+| Version | Issue | Severity |
+|---------|-------|----------|
+| 2.1.9 | SQL injection in admin list filters | High |
+| 2.1.9 | Session fixation on login (missing cycle_id) | Medium |
+| 2.1.9 | Admin write permission granularity (create/update/delete indistinct) | Medium |
+| 2.1.9 | IDOR — can_update_own/can_delete_own not enforced | Low |
 
 ---
 
-## 🆕 Recent changes
+## Admin — permissions state
 
-See `CHANGELOG.md` for full details. Key points from `[2.0.0]`:
-
-- CSP fully migrated to builder (env vars removed)
-- Masked CSRF (BREACH protection), constant-time comparisons
-- Rate limiter + Login guard in prelude
-- i18n 8 languages delivered in `[1.1.46]`
-- Test coverage: 82.83% functions
+- `can_read`, `can_create`, `can_update`, `can_delete`: enforced per operation ✅
+- `can_update_own`, `can_delete_own`: enforced when `own_field` is declared in `admin!{}` ✅
+- Per-group permissions, memory cache with immediate revocation ✅
 
 ---
 
-## 🚀 Maturity level
+## Fixes to apply / roadmap
 
-- **Core framework**: stable and production-ready on the main base
-- **Admin**: usable beta, still in iteration phase
-- **External publication**: still in preparation (mainly coverage + detailed docs)
+### High priority (v2.x)
 
----
+- **SQLi filters via `configure {}`**: builtin resource filters go through a separate path, to be verified
+- **Security non-regression tests**: add tests covering SQL whitelist, cycle_id, operation guards
 
-## ⚠️ Gaps / inconsistencies to watch
+### Medium priority (v3.0, breaking)
 
-- **Coverage**: 82.83% functions, 85% target not yet reached.
-- **Admin permissions**: declared in `admin!{}` but not yet enforced at runtime in `admin_main`.
-- **`migration/migrate.rs`**: 22% coverage — depends on sea-orm CLI, difficult to unit test.
-
----
-
-## 🛠️ Fixes to apply
-
-### High priority
-
-- **Admin permissions**: actually enforce permissions declared per resource in generated CRUD handlers.
-- **Runtime safety**: replace remaining `panic!/unwrap/expect` on runtime paths with propagated errors.
-
-### Medium priority
-
-- **Admin daemon**: clarify and stabilize the lifecycle (start, stop, error reporting).
-- **Admin generation**: unify generation paths/contracts (`src/admins/`).
+- **Sequential validation S1/S2/S3**: `req.form()` → S1 CSRF → S2 rules → S3 accessible data. Structural guarantee that CSRF + validation precede all data access (~115 call sites)
+- **TypeState form**: variant `validate() -> Result<ValidForm<T>, T>`
 
 ### Low priority
 
-- **Targeted coverage**: `engine/core.rs`, `migration/migrate.rs`, `forms/fields/file.rs`, `middleware/dev/cache.rs`.
-- **Doctests/docs publication**: convert `ignore/no_run` examples to executable ones.
-- **Compatibility debt**: plan gradual deprecation of legacy aliases.
+- **In-memory reset tokens**: not persisted across restarts, inoperative in multi-instance
+- **`makemigrations` DROP COLUMN**: removed columns not detected
+- **Targeted coverage**: `migration/migrate.rs` (22%), `engine/core.rs` (50%), `forms/fields/file.rs` (61%)
 
 ---
 
-## 🔗 References
+## References
 
-- Repository : [github.com/seb-alliot/runique](https://github.com/seb-alliot/runique)
-- Status coverage : (https://github.com/seb-alliot/runique/blob/main/docs/couverture_test.md)
-- Changelog : [Changelog](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md)
-- Roadmap : [Roadmap](https://github.com/seb-alliot/runique/blob/main/ROADMAP.md)
-- Documentation : [English](https://github.com/seb-alliot/runique/tree/main/docs/en) et [French](https://github.com/seb-alliot/runique/tree/main/docs/fr)
+- Repository: [github.com/seb-alliot/runique](https://github.com/seb-alliot/runique)
+- Changelog: [CHANGELOG.md](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md)
+- Documentation: [English](https://github.com/seb-alliot/runique/tree/main/docs/en) | [Français](https://github.com/seb-alliot/runique/tree/main/docs/fr)
 
 ---
 
-**Last update**: March 15, 2026
-**Global status**: ✅ Stable core, 🟡 Admin beta evolving
-Silent errors may occur, please report them if you find any.
-Thank you!
+**Last update**: May 30, 2026
+**Global status**: ✅ Stable framework · 🟡 Admin mature beta · 🔒 Security audit completed 2026-05-28 · 📖 Full public API documentation (docs.rs)

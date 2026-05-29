@@ -152,6 +152,8 @@ impl Forms {
         })
     }
 
+    /// Creates a `Forms` container pre-loaded with a CSRF hidden field set to `csrf_token`.
+    /// The CSRF token is validated upstream by the Prisme pipeline — `set_expected_value` is not called here.
     pub fn new(csrf_token: &str) -> Self {
         let mut fields: FieldsMap = IndexMap::new();
         let mut csrf_field = HiddenField::new_csrf();
@@ -180,10 +182,12 @@ impl Forms {
         }
     }
 
+    /// Registers the honeypot field name injected by the anti-bot middleware.
     pub fn set_honeypot(&mut self, name: &str) {
         self.honeypot_field_name = Some(name.to_string());
     }
 
+    /// Injects path and query parameters so `cleaned_*` methods can read them (GET search forms).
     pub fn set_url_params(
         &mut self,
         path: &HashMap<String, String>,
@@ -193,16 +197,19 @@ impl Forms {
         self.query_params = query.clone();
     }
 
+    /// Attaches the Tera-based HTML renderer. Required for `form.html` in templates.
     pub fn set_renderer(&mut self, renderer: FormRenderer) {
         self.renderer = Some(renderer);
     }
 
+    /// Appends JavaScript file paths to the renderer's `js_files` list (injected via `form.js_files`).
     pub fn add_js(&mut self, files: &[&str]) {
         if let Some(renderer) = self.renderer.as_mut() {
             renderer.add_js(files);
         }
     }
 
+    /// Registers a pre-built `GenericField`. Prefer [`field`](Forms::field) for typed fields.
     pub fn field_generic(&mut self, field: GenericField) {
         self.fields
             .insert(field.name().to_string(), Box::new(field));
@@ -231,6 +238,8 @@ impl Forms {
         self.field_generic(cf.into());
     }
 
+    /// Registers a typed field (e.g. `TextField`, `NumericField`, `FileField`, …).
+    /// Called inside `RuniqueForm::register_fields`.
     pub fn field<T>(&mut self, field_template: &T)
     where
         T: FormField + Clone + Into<GenericField> + 'static,
@@ -340,6 +349,7 @@ impl Forms {
 
     // ── Field display overrides ──────────────────────────────────────────────
 
+    /// Overrides the label of a registered field by name.
     pub fn field_label(&mut self, name: &str, label: &str) -> &mut Self {
         if let Some(f) = self.fields.get_mut(name) {
             f.set_label(label);
@@ -347,6 +357,7 @@ impl Forms {
         self
     }
 
+    /// Overrides the placeholder of a registered field by name.
     pub fn field_placeholder(&mut self, name: &str, placeholder: &str) -> &mut Self {
         if let Some(f) = self.fields.get_mut(name) {
             f.set_placeholder(placeholder);
@@ -354,6 +365,7 @@ impl Forms {
         self
     }
 
+    /// Overrides the required constraint of a registered field by name.
     pub fn field_required(&mut self, name: &str, required: bool) -> &mut Self {
         if let Some(f) = self.fields.get_mut(name) {
             f.set_required(required, None);
@@ -361,6 +373,7 @@ impl Forms {
         self
     }
 
+    /// Sets a registered field as read-only by name.
     pub fn field_readonly(&mut self, name: &str, readonly: bool) -> &mut Self {
         if let Some(f) = self.fields.get_mut(name) {
             f.set_readonly(readonly, None);
@@ -368,6 +381,7 @@ impl Forms {
         self
     }
 
+    /// Sets a registered field as disabled by name.
     pub fn field_disabled(&mut self, name: &str, disabled: bool) -> &mut Self {
         if let Some(f) = self.fields.get_mut(name) {
             f.set_disabled(disabled, None);
@@ -375,6 +389,7 @@ impl Forms {
         self
     }
 
+    /// Sets an arbitrary HTML attribute on a registered field by name.
     pub fn field_attr(&mut self, name: &str, key: &str, value: &str) -> &mut Self {
         if let Some(f) = self.fields.get_mut(name) {
             f.set_html_attribute(key, value);
@@ -394,6 +409,9 @@ impl Forms {
         Ok(self)
     }
 
+    /// Forces a value on a named field, bypassing `fill()`.
+    /// Also marks the form as submitted if the value is non-empty.
+    /// Use this for fields skipped by `fill()` (e.g. password hash pre-computed before POST parsing).
     pub fn add_value(&mut self, name: &str, value: &str) {
         if let Some(field) = self.fields.get_mut(name) {
             field.set_value(value);
@@ -459,6 +477,9 @@ impl Forms {
 // ============================================================================
 
 impl Forms {
+    /// Synchronous validation — runs all field validators in order.
+    /// Returns `Ok(false)` if the form was force-invalidated (honeypot).
+    /// Used internally by [`RuniqueForm::is_valid`].
     pub fn is_valid(&mut self) -> Result<bool, ValidationError> {
         if self.force_invalid {
             return Ok(false);
@@ -466,6 +487,7 @@ impl Forms {
         self.validated = true;
         Self::validate(&mut self.fields, &self.errors)
     }
+    /// Returns `true` if any field or form-level error is present.
     pub fn has_errors(&self) -> bool {
         FormValidator::has_errors(&self.fields, &self.errors)
     }

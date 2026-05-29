@@ -13,7 +13,9 @@ use std::sync::Arc;
 use tera::{Context, Tera};
 use validator::{ValidateEmail, ValidateUrl};
 
-// Main structure for text fields
+/// Single-line text input. Construct with [`TextField::text`], [`::email`](TextField::email),
+/// [`::password`](TextField::password), [`::url`](TextField::url), [`::phone`](TextField::phone),
+/// [`::textarea`](TextField::textarea), or [`::richtext`](TextField::richtext).
 #[derive(Clone, Serialize, Debug)]
 pub struct TextField {
     pub base: FieldConfig,
@@ -22,7 +24,7 @@ pub struct TextField {
     pub hash_password: bool, // true by default
 }
 
-// Special formats for text fields
+/// Validation format applied to a [`TextField`].
 #[derive(Clone, Debug, Serialize, PartialEq)]
 pub enum SpecialFormat {
     None,
@@ -59,6 +61,7 @@ impl TextField {
         self.hash_password = false;
         self
     }
+    /// Minimum character count. `msg` overrides the default error message (pass `""` for default).
     pub fn min_length(mut self, min: u32, msg: &str) -> Self {
         self.config.min_length = Some(LengthConstraint {
             value: min,
@@ -67,6 +70,7 @@ impl TextField {
         self
     }
 
+    /// Maximum character count. `msg` overrides the default error message (pass `""` for default).
     pub fn max_length(mut self, max: u32, msg: &str) -> Self {
         self.config.max_length = Some(LengthConstraint {
             value: max,
@@ -75,57 +79,68 @@ impl TextField {
         self
     }
 
-    // Public constructors for different text field types
+    /// Plain text `<input type="text">`.
     pub fn text(name: &str) -> Self {
         Self::create(name, "text", SpecialFormat::None)
     }
+    /// Multi-line `<textarea>`.
     pub fn textarea(name: &str) -> Self {
         Self::create(name, "textarea", SpecialFormat::None)
     }
+    /// Rich-text editor (HTML sanitized on save).
     pub fn richtext(name: &str) -> Self {
         Self::create(name, "richtext", SpecialFormat::RichText)
     }
+    /// Password input. Value is auto-hashed on `finalize()` when password mode is `Auto`.
     pub fn password(name: &str) -> Self {
         Self::create(name, "password", SpecialFormat::Password)
     }
+    /// Email input. Validates RFC format and normalizes to lowercase.
     pub fn email(name: &str) -> Self {
         let mut field = Self::create(name, "email", SpecialFormat::Email);
         field.base.value = field.base.value.to_lowercase();
         field
     }
+    /// URL input. Validates format.
     pub fn url(name: &str) -> Self {
         Self::create(name, "url", SpecialFormat::Url)
     }
+    /// Phone number input (`<input type="tel">`). Validates E.164-compatible format.
     pub fn phone(name: &str) -> Self {
         Self::create(name, "tel", SpecialFormat::Phone)
     }
 
-    // Builder methods
+    /// Marks the field as required (empty value fails validation).
     pub fn required(mut self) -> Self {
         self.set_required(true, None);
         self
     }
 
+    /// Overrides the auto-generated label.
     pub fn label(mut self, label: &str) -> Self {
         self.base.label = label.to_string();
         self
     }
 
+    /// Sets the HTML `placeholder` attribute.
     pub fn placeholder(mut self, p: &str) -> Self {
         self.set_placeholder(p);
         self
     }
 
+    /// Renders the field as read-only. `msg` is shown instead of the input when displayed.
     pub fn readonly(mut self, msg: &str) -> Self {
         self.set_readonly(true, Some(msg));
         self
     }
 
+    /// Renders the field as disabled. `msg` is shown instead of the input when displayed.
     pub fn disabled(mut self, msg: &str) -> Self {
         self.set_disabled(true, Some(msg));
         self
     }
 
+    /// Number of visible rows for `textarea` fields.
     pub fn rows(mut self, rows: usize) -> Self {
         self.base
             .extra_context
