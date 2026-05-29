@@ -6,6 +6,14 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2.1.10] - 2026-05-30
+
+### Fix — `runique` (admin)
+
+* **Edit and delete blocked for all resources without `own_field` (critical regression):** operator precedence in the ownership check produced `(action == "edit" && !can_update && !can_update_own) || !check_owns_record(...)`. Because `check_owns_record` returns `false` when `own_field` is not declared, `!check_owns_record()` was always `true`, causing every edit and delete request to return "permission denied" regardless of the user's actual rights. Fixed: the condition is now `!can_update && !(can_update_own && check_owns_record(...))`, applied separately in `admin_get_id` and `admin_post_id`.
+
+---
+
 ## [2.1.9] - 2026-05-28
 
 ### Security — `runique` (admin, auth)
