@@ -134,6 +134,40 @@ impl RuniqueSessionStore {
     }
 
     /// Persists serialized session data for an existing row (no-op if not found).
+    /// Creates or updates a session entry (upsert).
+    ///
+    /// Used by `CleaningMemoryStore::create()` at response commit: the new cookie_id
+    /// may not have a DB record yet (e.g. after `cycle_id()`), so a plain UPDATE
+    /// would silently no-op. This method inserts when the record is absent.
+    pub async fn upsert_session(
+        &self,
+        cookie_id: &str,
+        user_id: crate::utils::pk::Pk,
+        expires_at: chrono::NaiveDateTime,
+        data: Option<String>,
+    ) -> Result<(), DbErr> {
+        let result = Entity::update_many()
+            .col_expr(Column::SessionData, Expr::value(data.clone()))
+            .col_expr(Column::ExpiresAt, Expr::value(expires_at))
+            .filter(Column::CookieId.eq(cookie_id))
+            .exec(&*self.db)
+            .await?;
+
+        if result.rows_affected == 0 {
+            let model = ActiveModel {
+                cookie_id: Set(cookie_id.to_string()),
+                user_id: Set(user_id),
+                session_id: Set(uuid::Uuid::new_v4().to_string()),
+                session_data: Set(data),
+                expires_at: Set(expires_at),
+                ..Default::default()
+            };
+            // Ignore potential unique-constraint race (concurrent login on same session)
+            Entity::insert(model).exec(&*self.db).await.ok();
+        }
+        Ok(())
+    }
+
     pub async fn update_session_data(
         &self,
         cookie_id: &str,

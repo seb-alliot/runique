@@ -310,8 +310,45 @@ impl SessionStore for CleaningMemoryStore {
             );
         }
 
+        // Collect DB write params before releasing the lock.
+        // Uses upsert_session (not update_session_data) because after cycle_id() the new
+        // cookie_id has no DB record yet — a plain UPDATE would silently no-op.
+        #[cfg(feature = "orm")]
+        let db_write = if let Some(ref db) = self.db_fallback
+            && let Some(user_id) = record
+                .data
+                .get(crate::utils::constante::session_key::session::SESSION_USER_ID_KEY)
+                .and_then(|v| serde_json::from_value::<crate::utils::pk::Pk>(v.clone()).ok())
+        {
+            let expires_at =
+                chrono::DateTime::from_timestamp(record.expiry_date.unix_timestamp(), 0)
+                    .map(|dt| dt.naive_utc())
+                    .unwrap_or_else(|| chrono::Utc::now().naive_utc());
+            Some((
+                db.clone(),
+                record.id.to_string(),
+                user_id,
+                expires_at,
+                serde_json::to_string(&record.data).ok(),
+            ))
+        } else {
+            None
+        };
+
         guard.insert(record.id, record.clone());
         self.size_bytes.fetch_add(size, Ordering::Relaxed);
+
+        // Release the lock before the async DB write (cycle_id path: tower-sessions calls
+        // create() instead of save() for a recycled session, so we must persist here too).
+        drop(guard);
+
+        #[cfg(feature = "orm")]
+        if let Some((db, cookie_id, user_id, expires_at, data)) = db_write {
+            db.upsert_session(&cookie_id, user_id, expires_at, data)
+                .await
+                .ok();
+        }
+
         Ok(())
     }
 
@@ -322,6 +359,13 @@ impl SessionStore for CleaningMemoryStore {
 
         // Exclusive login: if user_id appears for the first time on this session,
         // invalidate all other sessions for the same user.
+        #[cfg(feature = "orm")]
+        let mut exclusive_db_invalidate: Option<(
+            Arc<RuniqueSessionStore>,
+            crate::utils::pk::Pk,
+            String,
+        )> = None;
+
         if self.exclusive_login {
             let had_user = guard
                 .get(&record.id)
@@ -333,7 +377,7 @@ impl SessionStore for CleaningMemoryStore {
             if let Some(user_id) = record
                 .data
                 .get(crate::utils::constante::session_key::session::SESSION_USER_ID_KEY)
-                .and_then(serde_json::Value::as_i64)
+                .and_then(|v| serde_json::from_value::<crate::utils::pk::Pk>(v.clone()).ok())
                 && !had_user
             {
                 let mut freed = 0usize;
@@ -343,7 +387,7 @@ impl SessionStore for CleaningMemoryStore {
                             **id != record.id
                                 && r.data
                                     .get(crate::utils::constante::session_key::session::SESSION_USER_ID_KEY)
-                                    .and_then(serde_json::Value::as_i64)
+                                    .and_then(|v| serde_json::from_value::<crate::utils::pk::Pk>(v.clone()).ok())
                                     .is_some_and(|id| id == user_id)
                         })
                         .map(|(id, _)| *id)
@@ -364,6 +408,12 @@ impl SessionStore for CleaningMemoryStore {
                             user_id
                         );
                     }
+                }
+
+                // Collect params for DB-level invalidation (executed after lock release).
+                #[cfg(feature = "orm")]
+                if let Some(ref db) = self.db_fallback {
+                    exclusive_db_invalidate = Some((db.clone(), user_id, record.id.to_string()));
                 }
             }
         }
@@ -404,8 +454,13 @@ impl SessionStore for CleaningMemoryStore {
             None
         };
 
-        // Release the lock before the async DB write to avoid holding it during I/O.
+        // Release the lock before the async DB writes to avoid holding it during I/O.
         drop(guard);
+
+        #[cfg(feature = "orm")]
+        if let Some((db, user_id, cookie_id)) = exclusive_db_invalidate {
+            db.invalidate_other_sessions(user_id, &cookie_id).await.ok();
+        }
 
         // Persist authenticated session data so it survives restarts.
         #[cfg(feature = "orm")]
@@ -463,6 +518,15 @@ impl SessionStore for CleaningMemoryStore {
             self.size_bytes
                 .fetch_sub(estimate_size(&r), Ordering::Relaxed);
         }
+        drop(guard);
+
+        // Remove from DB too (covers cycle_id() old-ID cleanup and explicit session.delete()).
+        // logout() already calls store.delete() before session.delete(), so this is idempotent.
+        #[cfg(feature = "orm")]
+        if let Some(ref db) = self.db_fallback {
+            db.delete(&session_id.to_string()).await.ok();
+        }
+
         Ok(())
     }
 }
