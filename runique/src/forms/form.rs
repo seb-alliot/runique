@@ -248,6 +248,14 @@ impl Forms {
                 required = generic_instance.required(),
                 "field registered"
             );
+            if crate::utils::env::is_debug() {
+                eprintln!(
+                    "[runique:form] field registered  {} ({}) required={}",
+                    generic_instance.name(),
+                    generic_instance.field_type(),
+                    generic_instance.required()
+                );
+            }
         }
         self.fields.insert(
             generic_instance.name().to_string(),
@@ -281,8 +289,14 @@ impl Forms {
                 {
                     if field.field_type() == "password" {
                         crate::runique_log!(level, field = %field.name(), "set_value [hidden]");
+                        if crate::utils::env::is_debug() {
+                            eprintln!("[runique:form] set_value  {} = [hidden]", field.name());
+                        }
                     } else {
                         crate::runique_log!(level, field = %field.name(), value = %value, "set_value");
+                        if crate::utils::env::is_debug() {
+                            eprintln!("[runique:form] set_value  {} = {:?}", field.name(), value);
+                        }
                     }
                 }
                 field.set_value(value);
@@ -296,6 +310,13 @@ impl Forms {
                 if matches!(field.field_type(), "checkbox" | "radio")
                     && !data.contains_key(field.name())
                 {
+                    if let Some(level) = crate::utils::runique_log::get_log()
+                        .forms
+                        .as_ref()
+                        .and_then(|f| f.set_value)
+                    {
+                        crate::runique_log!(level, field = %field.name(), value = "false", "set_value [checkbox absent → false]");
+                    }
                     field.set_value("false");
                 }
             }
@@ -304,6 +325,17 @@ impl Forms {
         // A POST/PUT/PATCH is always a submission, even if all fields are empty.
         // A GET with query params is only "submitted" if at least one param is non-empty.
         self.submitted = allow_password || has_data;
+
+        if allow_password && crate::utils::env::is_debug() {
+            eprintln!("[runique:form] fill POST —");
+            for (name, field) in &self.fields {
+                if field.field_type() == "password" {
+                    eprintln!("  {name} = [hidden]");
+                } else {
+                    eprintln!("  {name} = {:?}", field.value());
+                }
+            }
+        }
     }
 
     // ── Field display overrides ──────────────────────────────────────────────
@@ -393,11 +425,26 @@ impl Forms {
                 Ok(()) => {
                     if let Some(level) = log_finalize {
                         crate::runique_log!(level, field = %name, kind = %field.field_type(), "finalize ok");
+                        if crate::utils::env::is_debug() {
+                            eprintln!(
+                                "[runique:form] finalize ok  {} ({})",
+                                name,
+                                field.field_type()
+                            );
+                        }
                     }
                 }
                 Err(e) => {
                     if let Some(level) = log_finalize {
                         crate::runique_log!(level, field = %name, kind = %field.field_type(), error = %e, "finalize error");
+                        if crate::utils::env::is_debug() {
+                            eprintln!(
+                                "[runique:form] finalize error  {} ({}) : {}",
+                                name,
+                                field.field_type(),
+                                e
+                            );
+                        }
                     }
                     return Err(tf("forms.finalize_error", &[name, &e]));
                 }
@@ -421,6 +468,20 @@ impl Forms {
     }
     pub fn has_errors(&self) -> bool {
         FormValidator::has_errors(&self.fields, &self.errors)
+    }
+
+    /// Returns true if save() is allowed: is_valid() was called and passed, no force_invalid.
+    pub(crate) fn is_save_allowed(&self) -> bool {
+        !self.force_invalid && self.validated && !self.has_errors()
+    }
+
+    /// **Test-only.** Marks the form as validated without calling `is_valid()`.
+    ///
+    /// Use this in tests that verify save/hook behavior independently of field validation.
+    /// Calling this in production code bypasses all validation — never use outside `#[cfg(test)]`.
+    #[doc(hidden)]
+    pub fn mark_validated(&mut self) {
+        self.validated = true;
     }
 
     pub fn errors(&self) -> StrMap {

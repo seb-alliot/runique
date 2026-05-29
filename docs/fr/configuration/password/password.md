@@ -54,6 +54,13 @@ password_init(PasswordConfig::manual(Manual::Argon2));
 
 > À utiliser si tu veux contrôler précisément quand et comment le mot de passe est haché.
 
+> **Attention — vue admin et reset intégrés :** la route de reset intégrée (`with_password_reset`) lit la valeur du formulaire **après** `finalize()` et l'écrit directement en base. En mode `Auto`, `finalize()` hache déjà la valeur — tout est correct. En mode `Manual`, `Custom` ou `Delegated`, `finalize()` ne hache pas : **la valeur stockée sera en clair** si tu utilises la route built-in sans adaptation.
+>
+> Solutions :
+> - Rester en mode `Auto` pour tout projet utilisant `with_password_reset` ou le panel admin avec gestion des mots de passe.
+> - Ou écrire une route de reset personnalisée qui appelle `hash()` explicitement avant la mise à jour.
+> - Ou implémenter `UserEntity::update_password` de façon à hacher la valeur reçue avant de la persister.
+
 ### `Delegated` — Authentification externe (OAuth / SSO)
 
 Aucun mot de passe n'est géré par Runique. L'authentification est déléguée à un fournisseur externe.

@@ -54,6 +54,13 @@ password_init(PasswordConfig::manual(Manual::Argon2));
 
 > Use this when you need precise control over when and how the password is hashed.
 
+> **Warning — built-in admin and reset flow:** the built-in reset route (`with_password_reset`) reads the form value **after** `finalize()` and writes it directly to the database. In `Auto` mode, `finalize()` already hashes the value — everything is correct. In `Manual`, `Custom`, or `Delegated` mode, `finalize()` does not hash: **the stored value will be plaintext** if you use the built-in route without adaptation.
+>
+> Solutions:
+> - Stay in `Auto` mode for any project using `with_password_reset` or the admin panel with password management.
+> - Or write a custom reset route that calls `hash()` explicitly before updating.
+> - Or implement `UserEntity::update_password` to hash the received value before persisting it.
+
 ### `Delegated` — External authentication (OAuth / SSO)
 
 No password is managed by Runique. Authentication is delegated to an external provider.

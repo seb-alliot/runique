@@ -26,6 +26,13 @@ fn login_form() -> LoginAdmin {
     LoginAdmin::from_form(form)
 }
 
+fn login_form_validated() -> LoginAdmin {
+    let mut form = Forms::new("csrf_token");
+    LoginAdmin::register_fields(&mut form);
+    form.mark_validated();
+    LoginAdmin::from_form(form)
+}
+
 // ═══════════════════════════════════════════════════════════════
 // register_fields / from_form
 // ═══════════════════════════════════════════════════════════════
@@ -156,7 +163,7 @@ async fn test_is_valid_valide_avec_username_rempli() {
 #[tokio::test]
 async fn test_save_avec_impl_par_defaut_retourne_ok() {
     use crate::helpers::db::fresh_db;
-    let mut login = login_form();
+    let mut login = login_form_validated();
     let db = fresh_db().await;
     // L'implémentation par défaut de on_save retourne Ok(()),
     // donc save() doit réussir (commit vide)

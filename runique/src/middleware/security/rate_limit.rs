@@ -194,7 +194,11 @@ pub async fn rate_limit_middleware(
     {
         return next.run(req).await;
     }
-    let ip = extract_ip(&req);
+    let ip = req
+        .extensions()
+        .get::<crate::middleware::security::trusted_proxies::ClientIp>()
+        .map(|c| c.0.to_string())
+        .unwrap_or_else(|| extract_ip(&req));
     if limiter.is_allowed(&ip) {
         next.run(req).await
     } else {

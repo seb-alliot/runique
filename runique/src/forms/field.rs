@@ -274,6 +274,12 @@ pub trait RuniqueForm: Sized + Send + Sync {
 
     /// Atomic wrapper: explicit transaction (avoids the 'static futures trap)
     async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {
+        if !self.get_form().is_save_allowed() {
+            return Err(DbErr::Custom(
+                "save() requires a successful is_valid() call — form not validated or invalid"
+                    .to_string(),
+            ));
+        }
         let txn = db.begin().await?;
 
         match self.on_save(&txn).await {
@@ -293,6 +299,12 @@ pub trait RuniqueForm: Sized + Send + Sync {
     /// Order: `before_save` → `on_save` → `after_save` → commit.
     /// Any failure triggers rollback and returns the original error.
     async fn save_as(&mut self, ctx: SaveContext, db: &DatabaseConnection) -> Result<(), DbErr> {
+        if !self.get_form().is_save_allowed() {
+            return Err(DbErr::Custom(
+                "save_as() requires a successful is_valid() call — form not validated or invalid"
+                    .to_string(),
+            ));
+        }
         let txn = db.begin().await?;
 
         if let Err(e) = self.before_save(ctx, &txn).await {

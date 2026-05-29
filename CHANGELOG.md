@@ -6,6 +6,49 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2.1.9] - 2026-05-28
+
+### Security — `runique` (admin, auth)
+
+* **SQL injection in admin list filters (high):** the column name from URL parameters (`?filter_<col>=val`) was interpolated directly into `Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, ...))` without any validation. An authenticated staff user with minimal view rights could execute arbitrary SQL against the database. Fixed: the generator now emits two static whitelists (`SORT_COLS`, `FILTER_COLS`) built at code generation time from the declared `list_display` and `list_filter` columns. Any column name not in the whitelist is silently discarded before reaching the query.
+
+* **Session fixation on login (medium):** `login()` did not call `session.cycle_id()` on privilege elevation (anonymous → authenticated). An attacker who planted a session ID in the victim's browser before login could reuse it after authentication. Fixed: `session.cycle_id().await` is now called on every privilege elevation (new session or user switch). Mitigated in practice by `SameSite=Strict` + `HttpOnly` cookie attributes, but the standard mitigation was absent.
+
+* **Admin write access granularity (medium):** `check_write_access` returned `true` if any of `can_create`, `can_update`, or `can_delete` was set. A staff user granted only `can_create` could also edit and delete any record. Fixed: three separate guards (`check_can_create`, `check_can_update`, `check_can_delete`) are now applied per operation and per HTTP method. Bulk POST actions are also gated per action type (`delete` → `can_delete`, others → `can_update`).
+
+* **IDOR — `can_update_own` / `can_delete_own` not enforced (low):** the "own" permission flags existed in the permission model and were injected into templates, but the CRUD closures `(db, id)` / `(db, id, data)` carried no user identity, making ownership verification structurally impossible. Edit and delete routes silently fell back to allowing any record. Fixed: a new `own_field: "field_name"` DSL option declares the JSON field used for ownership comparison. When a user has `can_update_own` (without `can_update`), the handler fetches the record via `get_fn` and compares `record[own_field]` against `current_user.id`. If `own_field` is not declared, "own" permissions are blocked by default (safe fallback).
+
+### Added — `runique` (forms, debug)
+
+* **`eprintln!` debug output for the full form processing pipeline:** when `DEBUG=true` and the corresponding `FormTracing` field is configured, each stage now emits both a `tracing` structured event (filtered by subscriber level) and an `eprintln!` directly to stderr (bypasses the subscriber filter). Stages covered: field registration, `set_value` per field (POST), checkbox normalization, validate per field, validate result, finalize per field, render per field.
+
+### Added — `runique` (admin DSL)
+
+* **`own_field` in `admin!{}`:** new optional DSL key that declares the record ownership field for `can_update_own` / `can_delete_own` enforcement. Example: `own_field: "user_id"`.
+
+---
+
+## [2.1.8] - 2026-05-28
+
+### Fixed — `runique` (admin, bulk)
+
+* **`bulk_create` violated UNIQUE constraint on re-submit:** the generated `create_fn` performed a plain INSERT per value. Re-submitting the same days caused a UNIQUE violation that stopped the loop. The generator now emits an upsert: for each value, it checks whether a record with that value already exists (via `Expr::cust(format!("CAST({field} AS TEXT) = '{}'"...))`), then updates if found or inserts if not.
+* **Edit view used multi-select form when `bulk_create` was declared:** when `bulk_create` is declared without an explicit `edit_form`, the daemon now auto-generates an `edit_form_builder` using `module::AdminForm` (standard single-record form). The individual edit view no longer uses the multi-select create form.
+* **Unique fields appeared in bulk edit form:** bulk editing a resource with UNIQUE-constrained fields could produce a UNIQUE violation when the same value was applied to multiple records. The generator now emits `UNIQUE_FIELDS` per entity (from `derive_form!{}` `unique` constraints). These fields are automatically excluded from the bulk edit form (both GET rendering and POST update map).
+
+### Added — `runique` (middleware)
+
+* **Anti-bot honeypot middleware:** `AntiBot::new("field_name")` injects a hidden trap field into all forms on the protected scope. If the field is filled on POST, `form.is_valid()` returns `false` immediately without running field-level validation.
+* **`RateLimiter` per-method configuration:** `rate_limit_get()`, `rate_limit_post()`, `rate_limit_put()`, `rate_limit_delete()` allow setting independent limits per HTTP method in addition to the global `rate_limit()`.
+
+### Added — `runique` (forms)
+
+* **`FormTracing` structured tracing for all form pipeline stages:** when `RuniqueLog::forms` is configured, each stage (field registration, `set_value`, validate, finalize, render) emits a structured `tracing` event at the configured level.
+* **`cleaned_enum<T>()` on `RuniqueForm`:** reads a validated field value and tries to convert it to a SeaORM `ActiveEnum`.
+* **`add_value()` on `RuniqueForm`:** forces a value on a named field, bypassing `fill()`. Useful for fields skipped by the form pipeline (e.g. password hash pre-computed before form processing).
+
+---
+
 ## [2.1.6] - 2026-05-23
 
 ### Added — `derive_form` (extend)

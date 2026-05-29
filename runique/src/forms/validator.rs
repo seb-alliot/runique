@@ -52,6 +52,12 @@ impl FormValidator {
                 is_all_valid = false;
                 if let Some(level) = log_validate {
                     crate::runique_log!(level, field = %field.name(), "required field empty");
+                    if crate::utils::env::is_debug() {
+                        eprintln!(
+                            "[runique:form] validate  {} — required field empty",
+                            field.name()
+                        );
+                    }
                 }
                 continue;
             }
@@ -64,6 +70,14 @@ impl FormValidator {
                     error = ?field.error(),
                     "validate"
                 );
+                if crate::utils::env::is_debug() {
+                    eprintln!(
+                        "[runique:form] validate  {} valid={} error={:?}",
+                        field.name(),
+                        valid,
+                        field.error()
+                    );
+                }
             }
             if !valid {
                 is_all_valid = false;
@@ -78,6 +92,13 @@ impl FormValidator {
                 global_errors = global_errors.len(),
                 "validate_fields result"
             );
+            if crate::utils::env::is_debug() {
+                eprintln!(
+                    "[runique:form] validate result  ok={} global_errors={}",
+                    result,
+                    global_errors.len()
+                );
+            }
         }
 
         if !result {

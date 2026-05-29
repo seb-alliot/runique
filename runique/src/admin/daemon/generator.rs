@@ -304,19 +304,60 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         "            let mut query = {}::Entity::find();",
         module
     );
+
+    // Whitelist columns for sort and filters — built at code generation time from DSL declarations.
+    // Any col not in the whitelist is silently ignored, preventing SQL injection via URL parameters.
+    let sort_cols: Vec<String> = std::iter::once("id".to_string())
+        .chain(r.list_display.iter().map(|(col, _, _)| col.clone()))
+        .collect();
+    let sort_cols_literal = sort_cols
+        .iter()
+        .map(|c| format!("\"{}\"", c))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let filter_cols: Vec<String> = r
+        .list_filter
+        .iter()
+        .map(|(col, _, _)| col.clone())
+        .collect();
+    let filter_cols_literal = filter_cols
+        .iter()
+        .map(|c| format!("\"{}\"", c))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let _ = writeln!(
+        out,
+        "            const SORT_COLS: &[&str] = &[{sort_cols_literal}];",
+        sort_cols_literal = sort_cols_literal
+    );
+    let _ = writeln!(
+        out,
+        "            const FILTER_COLS: &[&str] = &[{filter_cols_literal}];",
+        filter_cols_literal = filter_cols_literal
+    );
+
     let _ = writeln!(out, "            if let Some(ref col) = params.sort_by {{");
     let _ = writeln!(
         out,
-        "                let order = if params.sort_dir == SortDir::Desc {{ Order::Desc }} else {{ Order::Asc }};"
+        "                if SORT_COLS.contains(&col.as_str()) {{"
     );
     let _ = writeln!(
         out,
-        "                query = query.order_by(Expr::col(Alias::new(col.as_str())), order);"
+        "                    let order = if params.sort_dir == SortDir::Desc {{ Order::Desc }} else {{ Order::Asc }};"
     );
+    let _ = writeln!(
+        out,
+        "                    query = query.order_by(Expr::col(Alias::new(col.as_str())), order);"
+    );
+    let _ = writeln!(out, "                }}");
     let _ = writeln!(out, "            }}");
     let _ = writeln!(
         out,
         "            for (col, val) in &params.column_filters {{"
+    );
+    let _ = writeln!(
+        out,
+        "                if !FILTER_COLS.contains(&col.as_str()) {{ continue; }}"
     );
     let _ = writeln!(
         out,
@@ -905,6 +946,9 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     }
     if !r.m2m.is_empty() {
         let _ = writeln!(out, "            .with_m2m_loader(m2m_loader)");
+    }
+    if let Some(ref own_field) = r.own_field {
+        let _ = writeln!(out, "            .with_own_field(\"{}\")", own_field);
     }
     let _ = writeln!(out, "    );");
     let _ = writeln!(out);

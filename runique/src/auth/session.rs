@@ -276,10 +276,17 @@ pub async fn login(
 ) -> Result<(), tower_sessions::session::Error> {
     // If another session is already active, perform a clean logout before login
     let existing_id: Option<_> = session.get::<Pk>(SESSION_USER_ID_KEY).await.ok().flatten();
+    let is_privilege_elevation = existing_id != Some(user_id);
     if let Some(existing) = existing_id
         && existing != user_id
     {
         let _ = logout(session, db_store).await;
+    }
+
+    // Rotate the session ID on any privilege elevation (anonymous → auth, or user switch).
+    // Prevents session fixation: an attacker who planted a session ID cannot reuse it after login.
+    if is_privilege_elevation {
+        let _ = session.cycle_id().await;
     }
 
     let groupes = pull_groupes_db(db, user_id).await;

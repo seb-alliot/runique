@@ -50,6 +50,10 @@ pub(crate) struct ResourceDef {
     /// DSL: `bulk_create: field_name`
     pub bulk_create: Option<String>,
 
+    /// Field name used for ownership verification when `can_update_own`/`can_delete_own` is set.
+    /// DSL: `own_field: "user_id"`
+    pub own_field: Option<String>,
+
     /// Many-to-many relations to manage on create/edit.
     pub m2m: Vec<M2mFieldDef>,
 }
@@ -225,6 +229,7 @@ fn parse_admin_tokens(tokens: TokenStream) -> Result<ParsedAdmin, String> {
             list_exclude: body.list_exclude,
             group_action: body.group_action,
             bulk_create: body.bulk_create,
+            own_field: body.own_field,
             m2m: body.m2m,
         });
 
@@ -359,6 +364,7 @@ struct ResourceBody {
     list_exclude: Vec<String>,
     group_action: Vec<(String, String, Option<String>)>,
     bulk_create: Option<String>,
+    own_field: Option<String>,
     m2m: Vec<M2mFieldDef>,
 }
 
@@ -382,6 +388,7 @@ fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
         list_exclude: Vec::new(),
         group_action: Vec::new(),
         bulk_create: None,
+        own_field: None,
         m2m: Vec::new(),
     };
 
@@ -439,6 +446,9 @@ fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
             }
             "bulk_create" => {
                 body.bulk_create = Some(parse_ident(&mut iter)?);
+            }
+            "own_field" => {
+                body.own_field = Some(parse_string_literal(&mut iter)?);
             }
             "m2m" => {
                 body.m2m = parse_m2m(&mut iter)?;
