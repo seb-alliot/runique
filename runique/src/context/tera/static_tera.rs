@@ -48,6 +48,10 @@ fn markdown_filter(value: &Value, _: &JsonMap) -> TResult {
     let parser = Parser::new_ext(md, opts);
     let mut output = String::new();
     html::push_html(&mut output, parser);
+    // The template preprocessor forces `| safe` on every `| markdown`, so the
+    // output is emitted unescaped. Sanitize here to neutralize XSS in
+    // user-authored Markdown (raw <script>, javascript: links, etc.).
+    let output = crate::utils::sanitizer::sanitize_markdown(&output);
     Ok(Value::String(output))
 }
 

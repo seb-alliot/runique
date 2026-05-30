@@ -191,7 +191,10 @@ pub(super) fn droit_entry() -> ResourceEntry {
             use std::collections::HashMap as HMap;
 
             let mut query = groupes_droits::Entity::find();
-            if let Some(ref col) = params.sort_by {
+            if let Some(ref col) = params.sort_by
+                && !col.is_empty()
+                && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+            {
                 let order = if params.sort_dir == SortDir::Desc {
                     Order::Desc
                 } else {
@@ -200,11 +203,12 @@ pub(super) fn droit_entry() -> ResourceEntry {
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             if let Some(ref search_str) = params.search {
-                let escaped = search_str.replace('\'', "''");
+                let pattern = format!("%{search_str}%");
                 let mut cond = sea_orm::Condition::any();
-                cond = cond.add(Expr::cust(format!(
-                    "LOWER(CAST(resource_key AS TEXT)) LIKE LOWER('%{escaped}%')"
-                )));
+                cond = cond.add(Expr::cust_with_values(
+                    "LOWER(CAST(resource_key AS TEXT)) LIKE LOWER(?)",
+                    [pattern],
+                ));
                 query = query.filter(cond);
             }
             let rows = query
@@ -244,10 +248,11 @@ pub(super) fn droit_entry() -> ResourceEntry {
             use sea_orm::{QueryFilter, sea_query::Expr};
             let mut query = groupes_droits::Entity::find();
             if let Some(ref search_str) = _search {
-                let escaped = search_str.replace('\'', "''");
-                query = query.filter(Expr::cust(format!(
-                    "LOWER(CAST(resource_key AS TEXT)) LIKE LOWER('%{escaped}%')"
-                )));
+                let pattern = format!("%{search_str}%");
+                query = query.filter(Expr::cust_with_values(
+                    "LOWER(CAST(resource_key AS TEXT)) LIKE LOWER(?)",
+                    [pattern],
+                ));
             }
             query.count(&*db).await
         })

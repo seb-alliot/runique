@@ -385,11 +385,14 @@ macro_rules! search_cond {
     // ── all_columns icontains val — runtime LIKE across every column ──────────
     ($entity:ty => all_columns icontains $val:expr) => {{
         use sea_orm::{EntityTrait, Iterable, IdenStatic};
-        let __val = ($val).replace('\'', "''");
+        // Value bound as a parameter — sea-query applies backend-aware escaping
+        // (handles MySQL/MariaDB backslash, unlike a manual '' replacement).
+        let __val = format!("%{}%", $val);
         let mut __cond = sea_orm::Condition::any();
         for col in <$entity as EntityTrait>::Column::iter() {
-            __cond = __cond.add(sea_orm::sea_query::Expr::cust(
-                format!("LOWER(CAST({} AS TEXT)) LIKE LOWER('%{}%')", col.as_str(), __val)
+            __cond = __cond.add(sea_orm::sea_query::Expr::cust_with_values(
+                format!("LOWER(CAST({} AS TEXT)) LIKE LOWER(?)", col.as_str()),
+                [__val.clone()],
             ));
         }
         __cond
@@ -400,9 +403,10 @@ macro_rules! search_cond {
         let mut __cond = sea_orm::Condition::any();
         $(
             {
-                let __v = ($val).replace('\'', "''");
-                __cond = __cond.add(sea_orm::sea_query::Expr::cust(
-                    format!("LOWER(CAST({} AS TEXT)) LIKE LOWER('%{}%')", $col, __v)
+                let __v = format!("%{}%", $val);
+                __cond = __cond.add(sea_orm::sea_query::Expr::cust_with_values(
+                    format!("LOWER(CAST({} AS TEXT)) LIKE LOWER(?)", $col),
+                    [__v],
                 ));
             }
         )+

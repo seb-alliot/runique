@@ -58,12 +58,30 @@ Guide détaillé : [Installation](https://runique.io/docs/en/installation)
 
 ```rust,no_run
 use runique::prelude::*;
+use runique::app::builder::RuniqueAppBuilder;
+
+mod url; // urlpatterns!{} — vos routes
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    password_init(PasswordConfig::auto_with(Manual::Argon2));
+
     let config = RuniqueConfig::from_env();
-    let app = RuniqueApp::builder(config).build().await.unwrap();
-    app.run().await.unwrap();
+    let db = DatabaseConfig::from_env()?.build().connect().await?;
+
+    RuniqueAppBuilder::new(config)
+        .routes(url::routes())
+        .with_database(db)
+        .statics()
+        .middleware(|m| {
+            m.with_allowed_hosts(|h| h.enabled(!is_debug()).host("localhost:3000"))
+        })
+        .build()
+        .await?
+        .run()
+        .await?;
+
+    Ok(())
 }
 ```
 
@@ -156,6 +174,7 @@ Référence complète : [Sessions](https://runique.io/docs/en/session)
 ---
 
 ## Variables d'environnement
+
 
 Tout le comportement est configurable via `.env`. Variables clés :
 

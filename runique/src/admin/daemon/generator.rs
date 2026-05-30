@@ -361,11 +361,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     );
     let _ = writeln!(
         out,
-        "                let escaped = val.replace('\\'', \"''\");"
-    );
-    let _ = writeln!(
-        out,
-        "                query = query.filter(Expr::cust(format!(\"CAST({{}} AS TEXT) = '{{}}'\", col, escaped)));"
+        "                query = query.filter(Expr::cust_with_values(format!(\"CAST({{}} AS TEXT) = ?\", col), [val.clone()]));"
     );
     let _ = writeln!(out, "            }}");
     let _ = writeln!(
@@ -589,16 +585,12 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         );
         let _ = writeln!(
             out,
-            "                let escaped_bv = val.replace('\\'', \"''\");"
-        );
-        let _ = writeln!(
-            out,
             "                let existing_id: Option<String> = {}::Entity::find()",
             module
         );
         let _ = writeln!(
             out,
-            "                    .filter(sea_orm::sea_query::Expr::cust(format!(\"CAST({bulk_field} AS TEXT) = '{{}}'\", escaped_bv)))",
+            "                    .filter(sea_orm::sea_query::Expr::cust_with_values(\"CAST({bulk_field} AS TEXT) = ?\", [val.clone()]))",
             bulk_field = bulk_field
         );
         let _ = writeln!(out, "                    .one(&*db).await?");
@@ -783,7 +775,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
             );
             let _ = writeln!(
                 out,
-                "                    let stmt = Query::select().expr(Expr::cust(\"CAST({target_fk} AS TEXT)\")).from(Alias::new(\"{junction}\")).and_where(Expr::cust(format!(\"CAST({self_fk} AS TEXT) = '{{}}'\", oid))).to_owned();",
+                "                    let stmt = Query::select().expr(Expr::cust(\"CAST({target_fk} AS TEXT)\")).from(Alias::new(\"{junction}\")).and_where(Expr::cust_with_values(\"CAST({self_fk} AS TEXT) = ?\", [oid.clone()])).to_owned();",
                 target_fk = m2m.target_fk,
                 junction = m2m.junction_table,
                 self_fk = m2m.self_fk

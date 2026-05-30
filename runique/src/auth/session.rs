@@ -224,7 +224,7 @@ async fn session_bool(session: &Session, key: &str) -> bool {
 /// Checks if the user is authenticated.
 pub async fn is_authenticated(session: &Session) -> bool {
     session
-        .get::<i32>(SESSION_USER_ID_KEY)
+        .get::<Pk>(SESSION_USER_ID_KEY)
         .await
         .ok()
         .flatten()
