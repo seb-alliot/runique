@@ -31,6 +31,22 @@ static RICH_BUILDER: LazyLock<Builder<'static>> = LazyLock::new(|| {
     builder
 });
 
+/// Ammonia builder for Markdown output. Same tag/attribute whitelist as rich
+/// text, but allows same-origin relative URLs (common in Markdown links/images).
+/// Schemes stay restricted to http/https/mailto, so `javascript:`/`data:` links
+/// and any embedded raw HTML are stripped.
+static MARKDOWN_BUILDER: LazyLock<Builder<'static>> = LazyLock::new(|| {
+    let mut builder = Builder::new();
+    builder.tags(ALLOWED_TAGS.clone());
+    builder.tag_attributes(ALLOWED_ATTRS.clone());
+    builder.url_schemes(HashSet::from(["http", "https", "mailto"]));
+    // A relative URL carries no scheme, so it cannot smuggle `javascript:`.
+    builder.url_relative(ammonia::UrlRelative::PassThrough);
+    builder.link_rel(Some("noopener noreferrer"));
+    builder.strip_comments(true);
+    builder
+});
+
 // =============================
 // STRICT MODE — TEXT ONLY
 // =============================
@@ -81,6 +97,17 @@ pub fn sanitize_rich(input: &str) -> String {
     }
 
     RICH_BUILDER.clean(input).to_string().trim().to_string()
+}
+
+/// Sanitizes HTML produced by the Markdown renderer. Defends against XSS in
+/// user-authored Markdown: raw `<script>`, `onerror=` handlers, and
+/// `javascript:`/`data:` link or image URLs.
+#[must_use]
+pub fn sanitize_markdown(html: &str) -> String {
+    if html.is_empty() {
+        return String::new();
+    }
+    MARKDOWN_BUILDER.clean(html).to_string()
 }
 
 // =============================

@@ -53,7 +53,10 @@ pub(super) fn groupe_entry() -> ResourceEntry {
                 sea_query::{Alias, Expr, Order},
             };
             let mut query = groupe::Entity::find();
-            if let Some(ref col) = params.sort_by {
+            if let Some(ref col) = params.sort_by
+                && !col.is_empty()
+                && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+            {
                 let order = if params.sort_dir == SortDir::Desc {
                     Order::Desc
                 } else {
@@ -62,17 +65,24 @@ pub(super) fn groupe_entry() -> ResourceEntry {
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                let escaped = val.replace('\'', "''");
-                query = query.filter(Expr::cust(format!("CAST({col} AS TEXT) = '{escaped}'")));
+                // Identifier guard (blocks injection on every backend) + bound value.
+                if col.is_empty() || !col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_') {
+                    continue;
+                }
+                query = query.filter(Expr::cust_with_values(
+                    format!("CAST({col} AS TEXT) = ?"),
+                    [val.clone()],
+                ));
             }
             if let Some(ref search_str) = params.search {
-                let escaped = search_str.replace('\'', "''");
+                let pattern = format!("%{search_str}%");
                 let mut search_cond = sea_orm::Condition::any();
                 let cols = vec!["id", "nom"];
                 for col in cols {
-                    search_cond = search_cond.add(Expr::cust(format!(
-                        "LOWER(CAST({col} AS TEXT)) LIKE LOWER('%{escaped}%')"
-                    )));
+                    search_cond = search_cond.add(Expr::cust_with_values(
+                        format!("LOWER(CAST({col} AS TEXT)) LIKE LOWER(?)"),
+                        [pattern.clone()],
+                    ));
                 }
                 query = query.filter(search_cond);
             }
@@ -93,13 +103,14 @@ pub(super) fn groupe_entry() -> ResourceEntry {
             use sea_orm::{QueryFilter, sea_query::Expr};
             let mut query = groupe::Entity::find();
             if let Some(ref search_str) = _search {
-                let escaped = search_str.replace('\'', "''");
+                let pattern = format!("%{search_str}%");
                 let mut search_cond = sea_orm::Condition::any();
                 let cols = vec!["id", "nom"];
                 for col in cols {
-                    search_cond = search_cond.add(Expr::cust(format!(
-                        "LOWER(CAST({col} AS TEXT)) LIKE LOWER('%{escaped}%')"
-                    )));
+                    search_cond = search_cond.add(Expr::cust_with_values(
+                        format!("LOWER(CAST({col} AS TEXT)) LIKE LOWER(?)"),
+                        [pattern.clone()],
+                    ));
                 }
                 query = query.filter(search_cond);
             }

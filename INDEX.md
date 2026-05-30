@@ -97,7 +97,7 @@ runique/
 - **`form.rs`** — `Forms` struct, `RuniqueForm` trait, `impl_form_access!`
 - **`field.rs`** — `FormField` trait
 - **`generic.rs`** — generic field implementation
-- **`extractor.rs`** — `Prisme<T>` extractor (parses + validates form body)
+- **`extractor.rs`** — Prisme pipeline (`prisme_pipeline`): CSRF check + body parsing, consumed via `request.form::<T>()`
 - **`renderer.rs`** — HTML renderer for form fields
 - **`validator.rs`** — validation logic
 - **`model_form/`** — `ModelForm` (form bound to a SeaORM model)

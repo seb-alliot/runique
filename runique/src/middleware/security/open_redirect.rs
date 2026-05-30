@@ -38,6 +38,12 @@ pub async fn open_redirect_middleware(
 }
 
 fn is_safe_redirect(location: &str, engine: &crate::engine::RuniqueEngine) -> bool {
+    // Browsers treat backslashes as forward slashes in URLs: "/\evil.com" and
+    // "\/evil.com" both navigate to "//evil.com" (protocol-relative → evil.com).
+    // Normalize before any same-origin determination so the check can't be bypassed.
+    let normalized = location.replace('\\', "/");
+    let location = normalized.as_str();
+
     // Relative path (not protocol-relative) — same origin, always safe
     if location.starts_with('/') && !location.starts_with("//") {
         return true;
