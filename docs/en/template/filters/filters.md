@@ -13,9 +13,11 @@
 
 | Filter     | Description                                        | Example                          |
 |------------|----------------------------------------------------|----------------------------------|
-| `markdown` | Converts Markdown to HTML (automatically safe)     | `{{ page.content \| markdown }}` |
+| `markdown` | Converts Markdown to HTML, sanitized (XSS-safe)    | `{{ page.content \| markdown }}` |
 
 > Runique's preprocessor automatically injects `\| safe` — no need to add it manually.
+>
+> The output is **sanitized via ammonia**: dangerous raw HTML (`<script>`, `on*` handlers) and `javascript:` / `data:` URLs in links and images are stripped. Legitimate Markdown (headings, tables, lists, links, images, code) is preserved — user-authored Markdown can therefore be rendered safely.
 
 ---
 

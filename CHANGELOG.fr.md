@@ -6,7 +6,7 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ---
 
-## [2.1.11] - 2026-05-30
+## [2.1.12] - 2026-05-30
 
 ### Correctif — `runique` (sessions)
 
@@ -27,6 +27,8 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 * **XSS stocké via le filtre `| markdown` (élevée) :** le préprocesseur de templates réécrit chaque `{{ x | markdown }}` en `{{ x | markdown | safe }}`, et le filtre émettait la sortie de `pulldown-cmark` sans sanitisation. Le HTML brut inline (`<script>`, `onerror=`) et les URL de lien/image `javascript:` passaient sans échappement, rendant tout Markdown rédigé par un utilisateur vecteur de XSS stocké. Correctif : le filtre passe désormais sa sortie dans un nouveau `sanitize_markdown()` (ammonia) — schemes http/https/mailto uniquement, pas d'attribut `style`, HTML brut supprimé, `rel="noopener noreferrer"` sur les liens. Le whitelist partagé `ALLOWED_TAGS` / `ALLOWED_ATTRS` a été élargi (h1–h6, tables, `del`/`s`/`sub`/`sup`, `hr`, `img`, `code[class]`) pour couvrir la sortie Markdown sans activer aucun élément porteur de script.
 
 * **Contournement du filtre open-redirect via backslash (moyenne) :** `is_safe_redirect` traitait `/\evil.com` comme un chemin relatif sûr (`starts_with('/')` mais pas `"//"`). Les navigateurs normalisent `\` en `/`, le transformant en `//evil.com` protocol-relative. Correctif : les backslashes sont normalisés en slashes avant la détermination de même origine.
+
+* **IP spoofing via `X-Forwarded-For` en mode TLS autonome (moyenne) :** le serveur TLS intégré (`axum_server::bind_rustls`, pour ACME / HTTPS autonome) servait le routeur via `into_make_service()` sans connect-info. Sans `ConnectInfo<SocketAddr>`, `trusted_proxies` voyait `conn_ip = None`, retombait sur loopback (un CIDR de confiance), et faisait donc confiance au header `X-Forwarded-For` contrôlé par le client — permettant à n'importe qui de forger son IP (contournement du rate-limit, logs d'audit falsifiés). Corrigé sur trois niveaux : (1) le chemin TLS utilise désormais `into_make_service_with_connect_info::<SocketAddr>()`, exposant la vraie IP du pair ; (2) `extract_client_ip` retourne loopback sans jamais lire `X-Forwarded-For` quand l'IP du pair est inconnue, donc l'absence de connect-info ne peut plus activer le spoofing ; (3) les adresses IPv4-mappées en IPv6 (`::ffff:a.b.c.d`, vues sur socket dual-stack) sont canonicalisées en IPv4 avant la vérification des CIDR de confiance, pour qu'un reverse proxy privé soit correctement reconnu. Couvert par des tests unitaires dans `trusted_proxies.rs`.
 
 * **`is_authenticated` désérialisait l'id utilisateur en `i32` (faible) :** avec le feature `big-pk` (`i64`), un id utilisateur supérieur à `i32::MAX` échouait à la désérialisation, et `is_authenticated` retournait `false` de façon incohérente avec `get_user_id` (qui utilise `Pk`). Correctif : lecture en `Pk`.
 
