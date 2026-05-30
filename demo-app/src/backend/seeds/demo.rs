@@ -1,4 +1,3 @@
-use crate::entities::demo_category;
 use runique::prelude::*;
 use std::path::PathBuf;
 
@@ -40,10 +39,7 @@ async fn psql_file(db_url: &str, path: &PathBuf) {
 }
 
 pub async fn seed_demo(db: &DatabaseConnection) {
-    let cat_count = demo_category::Entity::find().count(db).await.unwrap_or(0);
-    if cat_count > 0 {
-        return;
-    }
+    use sea_orm::ConnectionTrait;
 
     let db_url = match std::env::var("DATABASE_URL") {
         Ok(u) => u,
@@ -56,12 +52,23 @@ pub async fn seed_demo(db: &DatabaseConnection) {
     let sql_path = match find_seed_sql() {
         Some(p) => p,
         None => {
-            tracing::warn!("demo_seed: seed_demo_only.sql introuvable, seed ignoré");
+            tracing::warn!("demo_seed: seed.sql introuvable, seed ignoré");
             return;
         }
     };
 
-    tracing::info!("demo_seed: démarrage depuis {:?}", sql_path);
+    // Re-seed à chaque démarrage : un simple redémarrage ne mettait jamais à jour
+    // les tables (early-return si déjà peuplées), laissant des exemples périmés.
+    // On vide les tables démo puis on ré-applique seed.sql.
+    // `changelog_entry` et `roadmap_entry` sont préservées (non tronquées) : leurs
+    // blocs COPY échoueront sur conflit de clé et seront ignorés, gardant les lignes.
+    let truncate = "TRUNCATE demo_category, demo_page, demo_section, form_field, \
+                    page_doc_link, blog, known_issue, code_example CASCADE;";
+    if let Err(e) = db.execute_unprepared(truncate).await {
+        tracing::warn!("demo_seed: erreur TRUNCATE: {e}");
+    }
+
+    tracing::info!("demo_seed: re-seed depuis {:?}", sql_path);
     psql_file(&db_url, &sql_path).await;
 
     tracing::info!("demo_seed: terminé");

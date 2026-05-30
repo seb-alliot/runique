@@ -43,6 +43,19 @@ fn ip_in_cidr(ip: &IpAddr, network: &IpAddr, prefix_len: u8) -> bool {
     }
 }
 
+/// Normalizes IPv4-mapped IPv6 addresses (`::ffff:a.b.c.d`) to plain IPv4 so a
+/// dual-stack socket's mapped peers still match the IPv4 trusted-proxy CIDRs.
+/// Uses `to_ipv4_mapped` (not `to_ipv4`) so genuine IPv6 like `::1` is left intact.
+fn canonicalize_ip(ip: IpAddr) -> IpAddr {
+    match ip {
+        IpAddr::V6(v6) => match v6.to_ipv4_mapped() {
+            Some(v4) => IpAddr::V4(v4),
+            None => IpAddr::V6(v6),
+        },
+        v4 => v4,
+    }
+}
+
 // ─── TrustedProxies ──────────────────────────────────────────────────────────
 
 /// Trusted proxy configuration stored on the engine.
@@ -95,9 +108,16 @@ impl TrustedProxies {
     ///      skipping trusted proxies, to find the first untrusted IP.
     ///   3. If all XFF entries are trusted, return the leftmost (client claim).
     pub fn extract_client_ip(&self, req: &Request<Body>, conn_ip: Option<IpAddr>) -> IpAddr {
-        // When ConnectInfo is absent (tests / non-socket contexts), assume loopback
-        let conn_ip_value = conn_ip.unwrap_or(IpAddr::V4(Ipv4Addr::LOCALHOST));
+        // No socket peer info (tests / non-socket contexts): we cannot verify the
+        // request actually transited a trusted proxy, so X-Forwarded-For — which is
+        // fully client-controlled — must NOT be trusted. Return loopback without
+        // ever reading the header, so a missing ConnectInfo can't enable spoofing.
+        let Some(conn_ip_value) = conn_ip else {
+            return IpAddr::V4(Ipv4Addr::LOCALHOST);
+        };
+        let conn_ip_value = canonicalize_ip(conn_ip_value);
 
+        // Direct connection from a non-proxy: the peer IS the client, ignore XFF.
         if !self.is_trusted(&conn_ip_value) {
             return conn_ip_value;
         }
@@ -108,7 +128,8 @@ impl TrustedProxies {
             .and_then(|v| v.to_str().ok())
             .map(|s| {
                 s.split(',')
-                    .filter_map(|ip| ip.trim().parse().ok())
+                    .filter_map(|ip| ip.trim().parse::<IpAddr>().ok())
+                    .map(canonicalize_ip)
                     .collect()
             })
             .unwrap_or_default();

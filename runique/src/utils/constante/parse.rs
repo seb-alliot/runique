@@ -35,14 +35,41 @@ pub static RICH_CONTENT_FIELDS: LazyLock<HashSet<&'static str>> = LazyLock::new(
 pub static ALLOWED_TAGS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
     HashSet::from([
         // text & inline
-        "p", "br", "hr", "strong", "em", "b", "i", "u", "del", "s", "sub", "sup", "code", "a",
+        "p",
+        "br",
+        "hr",
+        "strong",
+        "em",
+        "b",
+        "i",
+        "u",
+        "del",
+        "s",
+        "sub",
+        "sup",
+        "code",
+        "a",
         "img",
         // headings
-        "h1", "h2", "h3", "h4", "h5", "h6",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
         // blocks & lists
-        "ul", "ol", "li", "blockquote", "pre",
+        "ul",
+        "ol",
+        "li",
+        "blockquote",
+        "pre",
         // tables (Markdown ENABLE_TABLES)
-        "table", "thead", "tbody", "tr", "th", "td",
+        "table",
+        "thead",
+        "tbody",
+        "tr",
+        "th",
+        "td",
     ])
 });
 
