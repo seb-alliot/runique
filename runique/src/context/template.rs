@@ -398,6 +398,13 @@ impl Request {
             }
         }
 
+        // CSRF enforcement: Prisme computes `csrf_valid` but never rejects on its own.
+        // Without this, a mutating request with a missing/invalid token silently passes
+        // is_valid(). Fail closed on any non-safe method (GET/HEAD carry no token).
+        if !matches!(self.method, Method::GET | Method::HEAD) && !self.prisme.csrf_valid {
+            form.get_form_mut().force_invalid = true;
+        }
+
         form.get_form_mut()
             .fill(&self.prisme.data, self.method.clone());
         form
