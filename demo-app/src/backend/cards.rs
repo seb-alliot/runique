@@ -33,7 +33,7 @@ pub async fn fetch_changelog_paged(
 }
 
 pub async fn fetch_changelog(db: &sea_orm::DatabaseConnection) -> Vec<CardSection> {
-    let all = search!(ChangelogEntryEntity => desc ReleaseDate, asc SortOrder)
+    let all = search!(ChangelogEntryEntity => desc Id, asc SortOrder)
         .all(db)
         .await
         .unwrap_or_default();
