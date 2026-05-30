@@ -246,8 +246,14 @@ impl RuniqueApp {
         }
         println!("              └──> ctrl + c to stop");
 
+        // ConnectInfo must be propagated so `trusted_proxies` sees the real peer IP.
+        // Without it, conn_ip defaults to loopback (trusted) and X-Forwarded-For
+        // becomes spoofable in standalone-TLS mode (no reverse proxy).
         axum_server::bind_rustls(https_addr.parse()?, tls_config)
-            .serve(self.router.into_make_service())
+            .serve(
+                self.router
+                    .into_make_service_with_connect_info::<std::net::SocketAddr>(),
+            )
             .await?;
 
         Ok(())
