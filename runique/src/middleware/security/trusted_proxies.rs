@@ -171,3 +171,129 @@ pub async fn trusted_proxies_middleware(
     req.extensions_mut().insert(ClientIp(client_ip));
     next.run(req).await
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn ip(s: &str) -> IpAddr {
+        s.parse().unwrap()
+    }
+
+    fn req_with_xff(xff: Option<&str>) -> Request<Body> {
+        let mut b = Request::builder();
+        if let Some(v) = xff {
+            b = b.header("x-forwarded-for", v);
+        }
+        b.body(Body::empty()).unwrap()
+    }
+
+    // ── canonicalize_ip ──────────────────────────────────────────────
+
+    #[test]
+    fn canonicalize_maps_ipv4_mapped_v6() {
+        assert_eq!(canonicalize_ip(ip("::ffff:10.0.0.5")), ip("10.0.0.5"));
+        assert_eq!(canonicalize_ip(ip("::ffff:8.8.8.8")), ip("8.8.8.8"));
+    }
+
+    #[test]
+    fn canonicalize_leaves_plain_ipv4_untouched() {
+        assert_eq!(canonicalize_ip(ip("1.2.3.4")), ip("1.2.3.4"));
+    }
+
+    #[test]
+    fn canonicalize_leaves_genuine_ipv6_untouched() {
+        // ::1 must NOT become 0.0.0.1 — that is the `to_ipv4()` trap we avoid.
+        assert_eq!(canonicalize_ip(ip("::1")), ip("::1"));
+        assert_eq!(canonicalize_ip(ip("2001:db8::1")), ip("2001:db8::1"));
+    }
+
+    // ── extract_client_ip: no ConnectInfo (anti-spoofing fallback) ───
+
+    #[test]
+    fn no_conn_info_never_trusts_xff() {
+        let tp = TrustedProxies::default();
+        // A forged XFF must NOT be honored when the peer IP is unknown.
+        let req = req_with_xff(Some("9.9.9.9"));
+        assert_eq!(tp.extract_client_ip(&req, None), ip("127.0.0.1"));
+    }
+
+    // ── extract_client_ip: direct (untrusted) connection ─────────────
+
+    #[test]
+    fn direct_untrusted_peer_ignores_xff() {
+        let tp = TrustedProxies::default();
+        let req = req_with_xff(Some("9.9.9.9")); // spoof attempt
+        assert_eq!(
+            tp.extract_client_ip(&req, Some(ip("8.8.8.8"))),
+            ip("8.8.8.8")
+        );
+    }
+
+    // ── extract_client_ip: behind a trusted proxy ────────────────────
+
+    #[test]
+    fn trusted_proxy_uses_xff_client() {
+        let tp = TrustedProxies::default();
+        let req = req_with_xff(Some("9.9.9.9"));
+        assert_eq!(
+            tp.extract_client_ip(&req, Some(ip("10.0.0.1"))),
+            ip("9.9.9.9")
+        );
+    }
+
+    #[test]
+    fn trusted_proxy_walks_right_to_left() {
+        let tp = TrustedProxies::default();
+        // "<client>, <internal hop>" → real client is the leftmost untrusted entry.
+        let req = req_with_xff(Some("9.9.9.9, 10.0.0.2"));
+        assert_eq!(
+            tp.extract_client_ip(&req, Some(ip("10.0.0.1"))),
+            ip("9.9.9.9")
+        );
+    }
+
+    #[test]
+    fn trusted_proxy_no_xff_returns_peer() {
+        let tp = TrustedProxies::default();
+        let req = req_with_xff(None);
+        assert_eq!(
+            tp.extract_client_ip(&req, Some(ip("10.0.0.1"))),
+            ip("10.0.0.1")
+        );
+    }
+
+    #[test]
+    fn all_xff_trusted_returns_leftmost() {
+        let tp = TrustedProxies::default();
+        let req = req_with_xff(Some("10.0.0.9, 10.0.0.2"));
+        assert_eq!(
+            tp.extract_client_ip(&req, Some(ip("10.0.0.1"))),
+            ip("10.0.0.9")
+        );
+    }
+
+    // ── dual-stack: IPv4-mapped peer / XFF entries ───────────────────
+
+    #[test]
+    fn ipv4_mapped_proxy_is_recognized_as_trusted() {
+        let tp = TrustedProxies::default();
+        // Dual-stack socket: the 10.0.0.1 proxy arrives as ::ffff:10.0.0.1.
+        // Before canonicalization this was seen as untrusted → XFF dropped.
+        let req = req_with_xff(Some("9.9.9.9"));
+        assert_eq!(
+            tp.extract_client_ip(&req, Some(ip("::ffff:10.0.0.1"))),
+            ip("9.9.9.9")
+        );
+    }
+
+    #[test]
+    fn ipv4_mapped_xff_entry_is_canonicalized() {
+        let tp = TrustedProxies::default();
+        let req = req_with_xff(Some("::ffff:9.9.9.9"));
+        assert_eq!(
+            tp.extract_client_ip(&req, Some(ip("10.0.0.1"))),
+            ip("9.9.9.9")
+        );
+    }
+}

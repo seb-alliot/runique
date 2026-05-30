@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## [2.1.11] - 2026-05-30
+## [2.1.12] - 2026-05-30
 
 ### Fix — `runique` (sessions)
 
@@ -27,6 +27,8 @@ All notable changes to this project will be documented in this file.
 * **Stored XSS via the `| markdown` filter (high):** the template preprocessor rewrites every `{{ x | markdown }}` to `{{ x | markdown | safe }}`, and the filter emitted `pulldown-cmark` output without sanitization. Raw inline HTML (`<script>`, `onerror=`) and `javascript:` link/image URLs passed through unescaped, making any user-authored Markdown a stored-XSS vector. Fixed: the filter now runs its output through a new `sanitize_markdown()` (ammonia) — http/https/mailto schemes only, no `style` attribute, raw HTML stripped, `rel="noopener noreferrer"` on links. The shared `ALLOWED_TAGS` / `ALLOWED_ATTRS` whitelist was widened (h1–h6, tables, `del`/`s`/`sub`/`sup`, `hr`, `img`, `code[class]`) to cover Markdown output without enabling any script-bearing element.
 
 * **Open-redirect filter bypass via backslash (medium):** `is_safe_redirect` treated `/\evil.com` as a safe relative path (`starts_with('/')` but not `"//"`). Browsers normalize `\` to `/`, turning it into the protocol-relative `//evil.com`. Fixed: backslashes are normalized to forward slashes before the same-origin determination.
+
+* **IP spoofing via `X-Forwarded-For` in standalone-TLS mode (medium):** the built-in TLS server (`axum_server::bind_rustls`, used for ACME / standalone HTTPS) served the router via `into_make_service()` without connect-info. With no `ConnectInfo<SocketAddr>`, `trusted_proxies` saw `conn_ip = None`, defaulted to loopback (a trusted CIDR), and therefore honored the client-controlled `X-Forwarded-For` header — letting any client forge its IP (rate-limit bypass, forged audit logs). Fixed on three layers: (1) the TLS serve path now uses `into_make_service_with_connect_info::<SocketAddr>()`, exposing the real peer IP; (2) `extract_client_ip` returns loopback without ever reading `X-Forwarded-For` when the peer IP is unknown, so a missing connect-info can no longer enable spoofing; (3) IPv4-mapped IPv6 peers and XFF entries (`::ffff:a.b.c.d`, seen on dual-stack sockets) are canonicalized to IPv4 before the trusted-CIDR check, so a private reverse proxy is correctly recognized. Covered by unit tests in `trusted_proxies.rs`.
 
 * **`is_authenticated` deserialized the user id as `i32` (low):** under the `big-pk` feature (`i64`), a user id exceeding `i32::MAX` failed to deserialize, so `is_authenticated` returned `false` inconsistently with `get_user_id` (which uses `Pk`). Fixed: it now reads `Pk`.
 
