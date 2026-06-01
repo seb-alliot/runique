@@ -3,7 +3,7 @@ use regex::Regex;
 use std::sync::LazyLock;
 
 pub static BALISE_LINK: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r#"(?P<q>["'])\{%\s*(?P<tag>static|media)\s*"(?P<link>[^"]+)"\s*%\}(?P=q)"#)
+    Regex::new(r#"(?P<q>["'])\{%\s*(?P<tag>static|media)\s*"(?P<link>[^"]+)"\s*%\}["']"#)
         .unwrap()
 });
 
