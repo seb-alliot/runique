@@ -6,6 +6,16 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ---
 
+## [2.1.13] - 2026-06-01
+
+### Correctif — `runique` (templates)
+
+* **Templates internes non autoéchappés — vecteur XSS sur les champs de formulaire admin :** l'autoescaping Tera s'active pour les clés logiques se terminant par `.html` ou `.xml`. Les templates internes du framework étaient enregistrés sans le suffixe `.html`, leurs variables étaient donc rendues brutes. En particulier, `{{ form_fields.html }}` (contenant le HTML de formulaire généré par Runique) n'était pas autoéchappé et aurait été interprété comme une variable manquante. Correctif : toutes les clés de templates internes incluent désormais le suffixe `.html` ; le préprocesseur de templates (`process_content`) réécrit `{{ form_fields.html }}` en `{{ form_fields.html | safe }}` via `ADMIN_FORM_HTML_REGEX` — seule variable exemptée de l'autoescaping car toujours du HTML généré par Runique, jamais une saisie utilisateur. Les clés `{% extends %}` dans les exemples de documentation ont été mises à jour en conséquence (`"admin/admin_template.html"`, `"admin_base.html"`).
+
+* **`resolve_og_image` : hash de version CSS appliqué aux URLs media, et double slash potentiel :** la fonction ajoutait `?v=<hash>` à l'URL de l'image OG sans condition quand un token de build CSS était présent. Ce hash est calculé à partir des assets statiques (CSS/JS) au moment du build et n'a aucun lien avec le contenu du fichier media — l'appliquer à une image uploadée est sémantiquement faux et casse le cache-busting côté scrapers quand l'image change sans redéploiement. Par ailleurs, si une entrée `allowed_hosts` contenait un slash final, le préfixe de host (`https://host/`) concaténé à un `og_image` commençant par `/` produisait un double slash (`https://host//media/...`). Correctif : le `?v=` est supprimé des URLs og:image ; `trim_end_matches('/')` est appliqué au host et `trim_start_matches('/')` au chemin de l'image avant concaténation ; les URLs absolues (`http://` / `https://`) sont retournées directement sans modification.
+
+---
+
 ## [2.1.12] - 2026-05-30
 
 ### Correctif — `runique` (sessions)

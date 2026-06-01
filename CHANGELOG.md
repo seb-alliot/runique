@@ -6,6 +6,16 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2.1.13] - 2026-06-01
+
+### Fix — `runique` (templates)
+
+* **Internal templates not autoescaped — XSS vector on admin form fields:** Tera's autoescape is activated for logical keys ending in `.html` or `.xml`. Internal framework templates were registered without the `.html` suffix, so their variables were rendered raw. In particular, `{{ form_fields.html }}` (which holds Runique-generated form HTML) was not autoescaped and would have been misinterpreted as a missing variable. Fixed: all internal template keys now include the `.html` suffix; the template preprocessor (`process_content`) rewrites `{{ form_fields.html }}` to `{{ form_fields.html | safe }}` via `ADMIN_FORM_HTML_REGEX` — the only variable exempt from autoescaping because it is always Runique-generated HTML, never user input. The `{% extends %}` keys in doc examples were updated accordingly (`"admin/admin_template.html"`, `"admin_base.html"`).
+
+* **`resolve_og_image`: CSS version hash applied to media URLs, and potential double slash:** the function appended `?v=<hash>` to the OG image URL unconditionally when a CSS build token was present. The hash is computed from static assets (CSS/JS) at build time and has no relation to the media file's content — applying it to an uploaded image is semantically wrong and breaks scraper cache-busting when the image changes without a redeploy. Additionally, if an `allowed_hosts` entry contained a trailing slash, the host prefix (`https://host/`) concatenated with an `og_image` starting with `/` produced a double slash (`https://host//media/...`). Fixed: the `?v=` is removed entirely from OG image URLs; `trim_end_matches('/')` is applied to the host and `trim_start_matches('/')` to the image path before concatenation; absolute URLs (`http://` / `https://`) are returned early without modification.
+
+---
+
 ## [2.1.12] - 2026-05-30
 
 ### Fix — `runique` (sessions)
