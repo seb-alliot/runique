@@ -16,7 +16,7 @@ pub struct ColorField {
 impl ColorField {
     pub fn new(name: &str) -> Self {
         Self {
-            base: FieldConfig::new(name, "color", "base_color"),
+            base: FieldConfig::new(name, "color", "base_color.html"),
         }
     }
 
@@ -122,7 +122,7 @@ impl CommonFieldConfig for SlugField {
 impl SlugField {
     pub fn new(name: &str) -> Self {
         Self {
-            base: FieldConfig::new(name, "text", "base_special"),
+            base: FieldConfig::new(name, "text", "base_special.html"),
             allow_unicode: false,
         }
     }
@@ -215,7 +215,7 @@ pub struct UUIDField {
 impl UUIDField {
     pub fn new(name: &str) -> Self {
         Self {
-            base: FieldConfig::new(name, "text", "base_special"),
+            base: FieldConfig::new(name, "text", "base_special.html"),
         }
     }
 
@@ -297,7 +297,7 @@ pub struct JSONField {
 impl JSONField {
     pub fn new(name: &str) -> Self {
         Self {
-            base: FieldConfig::new(name, "textarea", "base_special"),
+            base: FieldConfig::new(name, "textarea", "base_special.html"),
         }
     }
 
@@ -398,7 +398,7 @@ pub struct IPAddressField {
 impl IPAddressField {
     pub fn new(name: &str) -> Self {
         Self {
-            base: FieldConfig::new(name, "text", "base_special"),
+            base: FieldConfig::new(name, "text", "base_special.html"),
             ipv6_only: false,
             ipv4_only: false,
         }

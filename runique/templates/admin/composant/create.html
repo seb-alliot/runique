@@ -1,4 +1,4 @@
-{% extends "admin_base" %}
+{% extends "admin_base.html" %}
 {% block title %}{% if admin_create_title %}{{ admin_create_title }}{% endif %} — {{ resource.title | default(value="Élément") }}{% endblock %}
 {% block breadcrumb %}
   <span class="admin-topbar__sep">/</span>

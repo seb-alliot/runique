@@ -20,7 +20,7 @@ async fn toggle_dashboard_template(session: Session) -> Response {
         let _ = session.remove::<String>(ADMIN_TEMPLATE_SESSION_KEY).await;
     } else {
         let _ = session
-            .insert(ADMIN_TEMPLATE_SESSION_KEY, "admin/dashboard")
+            .insert(ADMIN_TEMPLATE_SESSION_KEY, "admin/dashboard.html".to_string())
             .await;
     }
 

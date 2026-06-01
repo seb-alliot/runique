@@ -1,4 +1,4 @@
-{% extends "admin_base" %}
+{% extends "admin_base.html" %}
 {% block title %}{{ resource.title | default(value="Éléments") }}{% endblock %}
 {% block breadcrumb %}
   <span class="admin-topbar__sep">/</span>
@@ -40,7 +40,7 @@
   </div>
   {% endblock %}
 
-  {% include "admin/list_partial" %}
+  {% include "admin/list_partial.html" %}
 
   <script {% csp %} src="{{ "js/admin/admin-actions.js" | runique_static }}"></script>
   <script {% csp %} src="{{ "js/admin/admin-kebab.js" | runique_static }}"></script>

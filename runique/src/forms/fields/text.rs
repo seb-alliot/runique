@@ -50,7 +50,7 @@ impl TextField {
     // Private generic constructor based on the generic field — avoids code duplication
     fn create(name: &str, type_field: &str, format: SpecialFormat) -> Self {
         Self {
-            base: FieldConfig::new(name, type_field, "base_string"),
+            base: FieldConfig::new(name, type_field, "base_string.html"),
             config: TextConfig::default(),
             format,
             hash_password: true,

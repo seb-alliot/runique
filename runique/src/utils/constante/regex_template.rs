@@ -25,3 +25,8 @@ pub static FORM_FULL_REGEX: LazyLock<Regex> =
 
 pub static MARKDOWN_REGEX: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\{\{\s*([^|{}\n]+?)\s*\|\s*markdown\s*\}\}").unwrap());
+
+/// Matches `{{ form_fields.html }}` — Runique-generated HTML, never user input.
+/// Rewrites to `{{ form_fields.html | safe }}` during template preprocessing.
+pub static ADMIN_FORM_HTML_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\{\{\s*form_fields\.html\s*\}\}").unwrap());

@@ -19,7 +19,7 @@ impl DateField {
     /// Creates a date field.
     pub fn new(name: &str) -> Self {
         Self {
-            base: FieldConfig::new(name, "date", "base_datetime"),
+            base: FieldConfig::new(name, "date", "base_datetime.html"),
             min_date: None,
             max_date: None,
         }
@@ -170,7 +170,7 @@ impl TimeField {
     /// Creates a time field.
     pub fn new(name: &str) -> Self {
         Self {
-            base: FieldConfig::new(name, "time", "base_datetime"),
+            base: FieldConfig::new(name, "time", "base_datetime.html"),
             min_time: None,
             max_time: None,
         }
@@ -316,7 +316,7 @@ impl DateTimeField {
     /// Creates a datetime-local field.
     pub fn new(name: &str) -> Self {
         Self {
-            base: FieldConfig::new(name, "datetime-local", "base_datetime"),
+            base: FieldConfig::new(name, "datetime-local", "base_datetime.html"),
             min_datetime: None,
             max_datetime: None,
         }
@@ -462,7 +462,7 @@ impl DurationField {
     /// Creates a duration field.
     pub fn new(name: &str) -> Self {
         Self {
-            base: FieldConfig::new(name, "number", "base_datetime"),
+            base: FieldConfig::new(name, "number", "base_datetime.html"),
             min_seconds: None,
             max_seconds: None,
         }

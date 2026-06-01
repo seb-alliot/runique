@@ -57,6 +57,18 @@ Le middleware `security_headers_middleware` injecte automatiquement un ensemble 
 
 ## Notes
 
+**Reverse proxy (Nginx, Caddy, Cloudflare…)** — Runique envoie tous ces headers sur chaque réponse dynamique. Un reverse proxy configuré avec `proxy_hide_header` ou des headers `add_header` en doublon peut les écraser silencieusement. En production, ne déclarez pas ces headers dans Nginx — laissez-les passer tels quels depuis l'application.
+
+Pour les fichiers statiques servis directement par Nginx (assets, media), les headers ne passent pas par Runique : il faut les déclarer explicitement dans le bloc `location` concerné :
+
+```nginx
+location /media/ {
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Frame-Options "DENY" always;
+}
+```
+
 **HSTS (`Strict-Transport-Security`)** — Ce header est toujours envoyé, même si l'application tourne en HTTP derrière un reverse proxy. Le navigateur le respecte uniquement sur les connexions HTTPS. En production, assurez-vous que votre proxy (nginx, Caddy, Cloudflare…) termine le TLS.
 
 **COEP (`Cross-Origin-Embedder-Policy: require-corp`)** — Ce header est requis pour utiliser `SharedArrayBuffer` et certaines APIs haute performance. Il peut bloquer le chargement de ressources cross-origin (images, scripts, fonts) qui ne renvoient pas le header `Cross-Origin-Resource-Policy`. Si vous chargez des ressources depuis des CDN tiers, vérifiez leur compatibilité ou désactivez COEP via une `SecurityPolicy` personnalisée.

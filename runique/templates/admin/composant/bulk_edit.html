@@ -1,4 +1,4 @@
-{% extends "admin_base" %}
+{% extends "admin_base.html" %}
 {% block extra_js %}
   {{ super() }}
   <script {% csp %} src="{{ "js/admin/admin-bulk-edit.js" | runique_static }}" defer></script>
@@ -48,7 +48,7 @@
       <div class="admin-card__body">
         <div id="bulk-fields-main" class="form-grid">
           {% if form_fields is defined and form_fields.html is defined and form_fields.html %}
-            {{ form_fields.html }}
+            {{ form_fields.html | safe }}
           {% else %}
             <p>{% if admin_edit_no_fields %}{{ admin_edit_no_fields }}{% endif %}</p>
           {% endif %}

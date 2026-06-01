@@ -31,7 +31,7 @@ impl CommonFieldConfig for NumericField {
 impl NumericField {
     fn create(name: &str, type_field: &str, config: NumericConfig) -> Self {
         Self {
-            base: FieldConfig::new(name, type_field, "base_number"),
+            base: FieldConfig::new(name, type_field, "base_number.html"),
             config,
             min_digits: None,
             max_digits: None,

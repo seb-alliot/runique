@@ -19,7 +19,7 @@ impl HiddenField {
     /// Specific constructor for a CSRF hidden field
     pub fn new_csrf() -> Self {
         Self {
-            base: FieldConfig::new("csrf_token", "hidden", "csrf"),
+            base: FieldConfig::new("csrf_token", "hidden", "csrf.html"),
             expected_value: None,
         }
     }
@@ -27,7 +27,7 @@ impl HiddenField {
     /// Generic constructor for a hidden field
     pub fn new(name: &str) -> Self {
         Self {
-            base: FieldConfig::new(name, "hidden", "base_hidden"),
+            base: FieldConfig::new(name, "hidden", "base_hidden.html"),
             expected_value: None,
         }
     }
@@ -63,7 +63,7 @@ pub struct HoneypotField {
 impl HoneypotField {
     pub fn new(name: &str) -> Self {
         Self {
-            base: FieldConfig::new(name, "text", "base_honeypot"),
+            base: FieldConfig::new(name, "text", "base_honeypot.html"),
         }
     }
 }

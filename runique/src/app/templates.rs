@@ -91,9 +91,9 @@ impl TemplateLoader {
     /// Applies all Runique transformations on a template content
     fn process_content(mut content: String, integrity_map: &HashMap<String, String>) -> String {
         // Simple replacements (Runique DSL)
-        content = content.replace("{% csrf %}", r#"{% include "csrf" %}"#);
-        content = content.replace("{% messages %}", r#"{% include "message" %}"#);
-        content = content.replace("{% csp %}", r#"{% include "csp" %}"#);
+        content = content.replace("{% csrf %}", r#"{% include "csrf.html" %}"#);
+        content = content.replace("{% messages %}", r#"{% include "message.html" %}"#);
+        content = content.replace("{% csp %}", r#"{% include "csp.html" %}"#);
 
         // Form processing (Isolated fields)
         content = FORM_FIELD_REGEX
@@ -132,6 +132,12 @@ impl TemplateLoader {
             .replace_all(&content, |caps: &Captures| {
                 format!("{{{{ {} | markdown | safe }}}}", &caps[1])
             })
+            .to_string();
+
+        // Admin form HTML ({{ form_fields.html }} → {{ form_fields.html | safe }})
+        // form_fields.html is always Runique-generated HTML, never raw user input.
+        content = ADMIN_FORM_HTML_REGEX
+            .replace_all(&content, "{{ form_fields.html | safe }}")
             .to_string();
 
         // Static/Media processing — literal strings: {% static "path" %} / {% media "path" %}
