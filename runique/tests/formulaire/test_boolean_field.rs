@@ -7,7 +7,7 @@ use tera::Tera;
 
 fn minimal_tera() -> Arc<Tera> {
     let mut tera = Tera::default();
-    tera.add_raw_template("base_boolean", "").unwrap();
+    tera.add_raw_template("base_boolean.html", "").unwrap();
     Arc::new(tera)
 }
 
