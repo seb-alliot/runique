@@ -85,3 +85,77 @@ IP_SERVER=127.0.0.1
 
 Pour la redirection HTTPS, laisser le proxy la gérer et désactiver `ENFORCE_HTTPS`
 côté Runique (évite une double redirection).
+
+## Nginx — configuration recommandée en production
+
+### TLS et durcissement
+
+```nginx
+ssl_protocols TLSv1.2 TLSv1.3;
+ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305;
+ssl_prefer_server_ciphers off;
+ssl_session_timeout 1d;
+ssl_session_cache shared:SSL:10m;
+server_tokens off;
+```
+
+### Headers de sécurité sur les fichiers media
+
+Runique injecte ses headers de sécurité (CSP, HSTS, `X-Content-Type-Options`, etc.)
+dans chaque réponse qu'il génère. Mais les fichiers servis directement par Nginx via
+`alias` (bloc `location /media/`) **contournent Runique entièrement** — Nginx doit
+y ajouter les headers lui-même.
+
+```nginx
+location /media/ {
+    alias /var/www/monprojet/media/;
+    add_header Cache-Control "public, max-age=31536000, immutable";
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    add_header X-Content-Type-Options "nosniff" always;
+}
+```
+
+> Le flag `always` est obligatoire : sans lui, Nginx n'envoie ces headers que sur
+> les réponses 2xx/3xx, pas sur les erreurs 4xx/5xx.
+
+### Exemple complet (multi-site)
+
+```nginx
+server {
+    listen 80;
+    server_name mondomaine.fr www.mondomaine.fr;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name mondomaine.fr www.mondomaine.fr;
+
+    ssl_certificate     /etc/letsencrypt/live/mondomaine.fr/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/mondomaine.fr/privkey.pem;
+
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305;
+    ssl_prefer_server_ciphers off;
+    ssl_session_timeout 1d;
+    ssl_session_cache shared:SSL:10m;
+    server_tokens off;
+
+    client_max_body_size 10M;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /media/ {
+        alias /var/www/monprojet/media/;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+        add_header X-Content-Type-Options "nosniff" always;
+    }
+}
+```
