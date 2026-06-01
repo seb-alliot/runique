@@ -114,7 +114,7 @@ impl FormRenderer {
             return Ok(String::new());
         }
 
-        let template_name = "js_files";
+        let template_name = "js_files.html";
         if !self
             .tera
             .get_template_names()

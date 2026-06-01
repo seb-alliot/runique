@@ -7,7 +7,7 @@ use tera::Tera;
 
 fn minimal_tera() -> Arc<Tera> {
     let mut tera = Tera::default();
-    for name in &["base_select", "base_radio", "base_checkbox"] {
+    for name in &["base_select.html", "base_radio.html", "base_checkbox.html"] {
         tera.add_raw_template(name, "").unwrap();
     }
     Arc::new(tera)

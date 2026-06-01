@@ -16,15 +16,15 @@ fn make_renderer_with_templates() -> runique::forms::renderer::FormRenderer {
     let mut tera = Tera::default();
     // Ajouter un template js_files minimal pour tester render_js
     tera.add_raw_template(
-        "js_files",
+        "js_files.html",
         "{% for f in js_files %}<script src=\"{{ f }}\"></script>{% endfor %}",
     )
     .unwrap();
     // Ajouter un template base_string pour render_field via TextField
-    tera.add_raw_template("base_string", "<input name=\"{{ field.name }}\">")
+    tera.add_raw_template("base_string.html", "<input name=\"{{ field.name }}\">")
         .unwrap();
     tera.add_raw_template(
-        "csrf",
+        "csrf.html",
         "<input type=\"hidden\" name=\"csrf_token\" value=\"{{ field.value }}\">",
     )
     .unwrap();
@@ -235,7 +235,7 @@ fn test_render_js_sans_template_retourne_erreur() {
     let result = renderer.render(&fields, &[]);
     // Doit échouer car le template js_files est absent
     assert!(result.is_err());
-    assert!(result.unwrap_err().contains("Missing template: js_files"));
+    assert!(result.unwrap_err().contains("Missing template: js_files.html"));
 }
 
 #[test]

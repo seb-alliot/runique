@@ -9,8 +9,8 @@ use tera::Tera;
 
 fn minimal_tera() -> Arc<Tera> {
     let mut tera = Tera::default();
-    tera.add_raw_template("base_color", "").unwrap();
-    tera.add_raw_template("base_special", "").unwrap();
+    tera.add_raw_template("base_color.html", "").unwrap();
+    tera.add_raw_template("base_special.html", "").unwrap();
     Arc::new(tera)
 }
 
