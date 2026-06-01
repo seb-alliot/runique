@@ -217,9 +217,15 @@ fn render_429(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -
     context.insert("error_text", &t("html.429_text"));
     context.insert("back_home", &t("html.back_home"));
 
-    let mut response = match tera.render("429", &context) {
+    let rendered = tera
+        .render("429.html", &context)
+        .or_else(|_| tera.render("429", &context));
+    let mut response = match rendered {
         Ok(html) => (StatusCode::TOO_MANY_REQUESTS, Html(html)).into_response(),
-        Err(_) => fallback_429_html(),
+        Err(e) => {
+            error!("Failed to render 429 template: {}", e);
+            fallback_429_html()
+        }
     };
     inject_security_headers(response.headers_mut());
     response
