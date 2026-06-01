@@ -1,4 +1,4 @@
-{% extends "admin_base" %}
+{% extends "admin_base.html" %}
 {% block title %}{% if admin_detail_title %}{{ admin_detail_title }}{% endif %} — {{ resource.title | default(value=resource_key) }} #{{ entry.id }}{% endblock %}
 {% block breadcrumb %}
   <span class="admin-topbar__sep">/</span>

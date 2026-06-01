@@ -26,7 +26,7 @@ impl BooleanField {
     /// Creates a checkbox field. Unchecked state is normalized to `"false"` by `fill()`.
     pub fn new(name: &str) -> Self {
         Self {
-            base: FieldConfig::new(name, "checkbox", "base_boolean"),
+            base: FieldConfig::new(name, "checkbox", "base_boolean.html"),
         }
     }
 

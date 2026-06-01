@@ -57,6 +57,18 @@ The `security_headers_middleware` automatically injects a set of security header
 
 ## Notes
 
+**Reverse proxy (Nginx, Caddy, Cloudflare…)** — Runique sends all these headers on every dynamic response. A reverse proxy configured with `proxy_hide_header` or duplicate `add_header` directives can silently overwrite them. In production, do not declare these headers in Nginx — let them pass through from the application as-is.
+
+For static files served directly by Nginx (assets, media), the headers do not go through Runique: they must be declared explicitly in the relevant `location` block:
+
+```nginx
+location /media/ {
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Frame-Options "DENY" always;
+}
+```
+
 **HSTS (`Strict-Transport-Security`)** — This header is always sent, even if the application runs on HTTP behind a reverse proxy. Browsers only honor it over HTTPS connections. In production, ensure your proxy (nginx, Caddy, Cloudflare…) terminates TLS.
 
 **COEP (`Cross-Origin-Embedder-Policy: require-corp`)** — Required to use `SharedArrayBuffer` and certain high-performance APIs. It may block loading of cross-origin resources (images, scripts, fonts) that do not return the `Cross-Origin-Resource-Policy` header. If you load resources from third-party CDNs, verify their compatibility or disable COEP via a custom `SecurityPolicy`.

@@ -43,7 +43,7 @@ impl ChoiceField {
     /// Creates an empty dropdown. Add options with [`choices`](ChoiceField::choices) or [`add_choice`](ChoiceField::add_choice).
     pub fn new(name: &str) -> Self {
         Self {
-            base: FieldConfig::new(name, "select", "base_select"),
+            base: FieldConfig::new(name, "select", "base_select.html"),
             choices: Vec::new(),
             multiple: false,
         }
@@ -149,7 +149,7 @@ impl RadioField {
     /// Creates an empty radio group. Add options with [`choices`](RadioField::choices) or [`add_choice`](RadioField::add_choice).
     pub fn new(name: &str) -> Self {
         Self {
-            base: FieldConfig::new(name, "radio", "base_radio"),
+            base: FieldConfig::new(name, "radio", "base_radio.html"),
             choices: Vec::new(),
         }
     }
@@ -255,7 +255,7 @@ impl CheckboxField {
     /// Creates an empty checkbox group. Add options with [`choices`](CheckboxField::choices) or [`add_choice`](CheckboxField::add_choice).
     pub fn new(name: &str) -> Self {
         Self {
-            base: FieldConfig::new(name, "checkbox", "base_checkbox"),
+            base: FieldConfig::new(name, "checkbox", "base_checkbox.html"),
             choices: Vec::new(),
         }
     }

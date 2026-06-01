@@ -10,7 +10,7 @@ The most common case: keep the Runique admin layout and only customise the conte
 
 ```html
 {# templates/my_theme/users_list.html #}
-{% extends "admin/admin_base" %}
+{% extends "admin_base.html" %}
 
 {% block title %}{{ resource.title }}{% endblock %}
 

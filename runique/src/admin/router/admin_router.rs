@@ -872,7 +872,7 @@ async fn admin_toggle_template(
     } else {
         let _ = req
             .session
-            .insert(ADMIN_TEMPLATE_SESSION_KEY, "admin/dashboard")
+            .insert(ADMIN_TEMPLATE_SESSION_KEY, "admin/dashboard.html")
             .await;
     }
     Redirect::to(&format!("{}/", admin.config.prefix)).into_response()

@@ -269,7 +269,7 @@ impl FileField {
         };
 
         Self {
-            base: FieldConfig::new(name, type_field, "base_file"),
+            base: FieldConfig::new(name, type_field, "base_file.html"),
             field_type: format,
             allowed_extensions: extensions,
             upload_config: FileUploadConfig::default(),

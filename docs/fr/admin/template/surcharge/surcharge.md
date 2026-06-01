@@ -26,7 +26,7 @@ Créer un fichier qui hérite de `admin_template` et remplit les blocks de layou
 ### `templates/mon_theme/admin_base.html`
 
 ```html
-{% extends "admin/admin_template" %}
+{% extends "admin/admin_template.html" %}
 
 {% block extra_css %}
     <link rel="stylesheet" href="{{ "css/mon_theme.css" | runique_static }}">
@@ -63,7 +63,7 @@ Créer un fichier qui hérite de `admin_template` et remplit les blocks de layou
 {% endblock %}
 ```
 
-> **Note** : `admin/admin_template` est la clé Tera, pas un chemin de fichier.
+> **Note** : `admin/admin_template.html` est la clé Tera, pas un chemin de fichier.
 
 ---
 
@@ -73,14 +73,14 @@ Créer un fichier qui hérite de `admin_template` et remplit les blocks de layou
 RuniqueApp::builder(config)
     .with_admin(|a| a
         .templates(|t| t
-            .with_list("mon_theme/list")
-            .with_create("mon_theme/create")
-            .with_edit("mon_theme/edit")
-            .with_detail("mon_theme/detail")
-            .with_delete("mon_theme/delete")
-            .with_dashboard("mon_theme/dashboard")
-            .with_login("mon_theme/login")
-            .with_base("mon_theme/admin_base")
+            .with_list("mon_theme/list.html")
+            .with_create("mon_theme/create.html")
+            .with_edit("mon_theme/edit.html")
+            .with_detail("mon_theme/detail.html")
+            .with_delete("mon_theme/delete.html")
+            .with_dashboard("mon_theme/dashboard.html")
+            .with_login("mon_theme/login.html")
+            .with_base("mon_theme/admin_base.html")
         )
     )
     .build().await?
@@ -95,7 +95,7 @@ Pour remplacer uniquement la page de liste des utilisateurs :
 ### `templates/mon_theme/users_list.html`
 
 ```html
-{% extends "mon_theme/admin_base" %}
+{% extends "mon_theme/admin_base.html" %}
 
 {% block content %}
 <h1>{{ resource.title }}</h1>

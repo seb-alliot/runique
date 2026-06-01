@@ -26,7 +26,7 @@ Create a file that extends `admin_template` and fills the layout blocks.
 ### `templates/my_theme/admin_base.html`
 
 ```html
-{% extends "admin/admin_template" %}
+{% extends "admin/admin_template.html" %}
 
 {% block extra_css %}
     <link rel="stylesheet" href="{{ "css/my_theme.css" | runique_static }}">
@@ -63,7 +63,7 @@ Create a file that extends `admin_template` and fills the layout blocks.
 {% endblock %}
 ```
 
-> **Note**: `admin/admin_template` is the Tera key, not a file path.
+> **Note**: `admin/admin_template.html` is the Tera key, not a file path.
 
 ---
 
@@ -73,14 +73,14 @@ Create a file that extends `admin_template` and fills the layout blocks.
 RuniqueApp::builder(config)
     .with_admin(|a| a
         .templates(|t| t
-            .with_list("my_theme/list")
-            .with_create("my_theme/create")
-            .with_edit("my_theme/edit")
-            .with_detail("my_theme/detail")
-            .with_delete("my_theme/delete")
-            .with_dashboard("my_theme/dashboard")
-            .with_login("my_theme/login")
-            .with_base("my_theme/admin_base")
+            .with_list("my_theme/list.html")
+            .with_create("my_theme/create.html")
+            .with_edit("my_theme/edit.html")
+            .with_detail("my_theme/detail.html")
+            .with_delete("my_theme/delete.html")
+            .with_dashboard("my_theme/dashboard.html")
+            .with_login("my_theme/login.html")
+            .with_base("my_theme/admin_base.html")
         )
     )
     .build().await?
@@ -95,7 +95,7 @@ To replace only the users list page:
 ### `templates/my_theme/users_list.html`
 
 ```html
-{% extends "my_theme/admin_base" %}
+{% extends "my_theme/admin_base.html" %}
 
 {% block content %}
 <h1>{{ resource.title }}</h1>
