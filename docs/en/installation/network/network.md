@@ -85,3 +85,77 @@ IP_SERVER=127.0.0.1
 
 For HTTPS redirection, let the proxy handle it and disable `ENFORCE_HTTPS` on
 Runique's side to avoid a double redirect.
+
+## Nginx — recommended production configuration
+
+### TLS hardening
+
+```nginx
+ssl_protocols TLSv1.2 TLSv1.3;
+ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305;
+ssl_prefer_server_ciphers off;
+ssl_session_timeout 1d;
+ssl_session_cache shared:SSL:10m;
+server_tokens off;
+```
+
+### Security headers on media files
+
+Runique injects its security headers (CSP, HSTS, `X-Content-Type-Options`, etc.)
+into every response it generates. But files served directly by Nginx via `alias`
+(a `location /media/` block) **bypass Runique entirely** — Nginx must add the
+security headers itself.
+
+```nginx
+location /media/ {
+    alias /var/www/myproject/media/;
+    add_header Cache-Control "public, max-age=31536000, immutable";
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    add_header X-Content-Type-Options "nosniff" always;
+}
+```
+
+> The `always` flag is required: without it, Nginx only sends these headers on
+> 2xx/3xx responses, not on 4xx/5xx errors.
+
+### Full example (multi-site)
+
+```nginx
+server {
+    listen 80;
+    server_name mydomain.com www.mydomain.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name mydomain.com www.mydomain.com;
+
+    ssl_certificate     /etc/letsencrypt/live/mydomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/mydomain.com/privkey.pem;
+
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305;
+    ssl_prefer_server_ciphers off;
+    ssl_session_timeout 1d;
+    ssl_session_cache shared:SSL:10m;
+    server_tokens off;
+
+    client_max_body_size 10M;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /media/ {
+        alias /var/www/myproject/media/;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+        add_header X-Content-Type-Options "nosniff" always;
+    }
+}
+```
