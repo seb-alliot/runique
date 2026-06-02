@@ -13,6 +13,7 @@
 <url><loc>https://runique.io/problemes-connus</loc><lastmod>2026-04-20T00:00:00+00:00</lastmod></url>
 <url><loc>https://runique.io/rgpd</loc><lastmod>2026-04-20T00:00:00+00:00</lastmod></url>
 <url><loc>https://runique.io/contribution</loc><lastmod>2026-04-20T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique.io/contributions</loc><lastmod>2026-06-02T00:00:00+00:00</lastmod></url>
 
 <!-- Blog -->
 <url><loc>https://runique.io/blog/liste</loc><lastmod>2026-04-20T00:00:00+00:00</lastmod></url>
@@ -39,6 +40,7 @@
 <url><loc>https://runique.io/docs/fr/architecture</loc><lastmod>2026-04-20T00:00:00+00:00</lastmod></url>
 <url><loc>https://runique.io/docs/fr/comparatif</loc><lastmod>2026-04-20T00:00:00+00:00</lastmod></url>
 <url><loc>https://runique.io/docs/fr/exemple</loc><lastmod>2026-04-20T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique.io/docs/fr/mailer</loc><lastmod>2026-06-02T00:00:00+00:00</lastmod></url>
 <url><loc>https://runique.io/docs/en</loc><lastmod>2026-04-20T00:00:00+00:00</lastmod></url>
 <url><loc>https://runique.io/docs/en/installation</loc><lastmod>2026-04-20T00:00:00+00:00</lastmod></url>
 <url><loc>https://runique.io/docs/en/configuration</loc><lastmod>2026-04-20T00:00:00+00:00</lastmod></url>
@@ -56,6 +58,7 @@
 <url><loc>https://runique.io/docs/en/architecture</loc><lastmod>2026-04-20T00:00:00+00:00</lastmod></url>
 <url><loc>https://runique.io/docs/en/comparatif</loc><lastmod>2026-04-20T00:00:00+00:00</lastmod></url>
 <url><loc>https://runique.io/docs/en/exemple</loc><lastmod>2026-04-20T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique.io/docs/en/mailer</loc><lastmod>2026-06-02T00:00:00+00:00</lastmod></url>
 
 <!-- Pages démo -->
 <url><loc>https://runique.io/installation</loc><lastmod>2026-04-20T00:00:00+00:00</lastmod></url>
@@ -81,6 +84,13 @@
 <url><loc>https://runique.io/middleware/login-guard</loc><lastmod>2026-04-20T00:00:00+00:00</lastmod></url>
 <url><loc>https://runique.io/middleware/host-validation</loc><lastmod>2026-04-20T00:00:00+00:00</lastmod></url>
 <url><loc>https://runique.io/middleware/https</loc><lastmod>2026-04-20T00:00:00+00:00</lastmod></url>
+
+<!-- Admin démo -->
+<url><loc>https://runique.io/admin-demo</loc><lastmod>2026-06-02T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique.io/admin-demo/declaration</loc><lastmod>2026-06-02T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique.io/admin-demo/setup</loc><lastmod>2026-06-02T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique.io/admin-demo/surcharge</loc><lastmod>2026-06-02T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique.io/admin-demo/surcharge/exemple</loc><lastmod>2026-06-02T00:00:00+00:00</lastmod></url>
 
 <!-- Cours Rust -->
 <url><loc>https://runique.io/cours</loc><lastmod>2026-04-20T00:00:00+00:00</lastmod></url>
