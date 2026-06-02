@@ -8,10 +8,10 @@ Runique applique une politique CSP via le middleware de sécurité, configuré e
 
 | Section | Description |
 | --- | --- |
-| [Profils CSP](/docs/fr/middleware/csp/profils) | `default()`, `strict()`, `permissive()` — comparaison et cas d'usage |
-| [Directives](/docs/fr/middleware/csp/directives) | Toutes les directives configurables |
-| [Nonce CSP](/docs/fr/middleware/csp/nonce) | Fonctionnement du nonce, usage dans les templates |
-| [Headers de sécurité](/docs/fr/middleware/csp/headers) | Tous les headers injectés automatiquement |
+| [Profils CSP](/docs/fr/middleware/csp-profils) | `default()`, `strict()`, `permissive()` — comparaison et cas d'usage |
+| [Directives](/docs/fr/middleware/csp-directives) | Toutes les directives configurables |
+| [Nonce CSP](/docs/fr/middleware/csp-nonce) | Fonctionnement du nonce, usage dans les templates |
+| [Headers de sécurité](/docs/fr/middleware/csp-headers) | Tous les headers injectés automatiquement |
 
 ---
 
