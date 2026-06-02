@@ -41,7 +41,7 @@
         >
         {% if sort_by %}<input type="hidden" name="sort_by" value="{{ sort_by }}">{% endif %}
         {% if sort_dir %}<input type="hidden" name="sort_dir" value="{{ sort_dir }}">{% endif %}
-        {% for col, val in active_filters %}<input type="hidden" name="filter_{{ col }}" value="{{ val | escape }}">{% endfor %}
+        {% for col, val in active_filters %}<input type="hidden" name="filter_{{ col }}" value="{{ val }}">{% endfor %}
         <button type="submit" class="btn btn-secondary admin-search__btn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -173,7 +173,7 @@
                         {% elif value == false %}
                           <span class="admin-badge admin-badge--neutral">{% if admin_list_bool_false %}{{ admin_list_bool_false }}{% endif %}</span>
                         {% elif value %}
-                          <span class="admin-table__td-content">{% if value is string %}{{ value | escape }}{% else %}{{ value }}{% endif %}</span>
+                          <span class="admin-table__td-content">{% if value is string %}{{ value }}{% else %}{{ value }}{% endif %}</span>
                         {% else %}
                           <span class="admin-text--muted">—</span>
                         {% endif %}
@@ -203,7 +203,7 @@
                               <span class="admin-table__detail-value">
                                 {% if value == true %}<span class="admin-badge admin-badge--green">{% if admin_list_bool_true %}{{ admin_list_bool_true }}{% endif %}</span>
                                 {% elif value == false %}<span class="admin-badge admin-badge--neutral">{% if admin_list_bool_false %}{{ admin_list_bool_false }}{% endif %}</span>
-                                {% elif value %}{% if value is string %}{{ value | escape }}{% else %}{{ value }}{% endif %}
+                                {% elif value %}{% if value is string %}{{ value }}{% else %}{{ value }}{% endif %}
                                 {% else %}<span class="admin-text--muted">—</span>{% endif %}
                               </span>
                             </div>

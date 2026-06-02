@@ -17,6 +17,8 @@
         sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
     });
     overlay.addEventListener('click', closeSidebar);
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeSidebar(); });
+    window.addEventListener('resize', function () { if (window.innerWidth > 1024) closeSidebar(); });
 
     sidebar.querySelectorAll('a').forEach(function (a) {
         a.addEventListener('click', closeSidebar);

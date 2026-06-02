@@ -8,6 +8,12 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ## [2.1.13] - 2026-06-01
 
+### Correctif — `runique` (templates admin, CSS admin)
+
+* **Double-encodage des valeurs chaîne dans les vues liste et détail admin :** `{{ value | escape }}` était utilisé dans `list_partial.html` et `detail.html` alors que l'autoescaping Tera était déjà actif. Le filtre `escape` convertit `/` en `&#x2F;`, puis l'autoescaping réencode `&` en `&amp;`, ce qui faisait afficher le texte littéral `&#x2F;` au lieu de `/`. Même problème dans les inputs cachés de filtre (`value="{{ val | escape }}"`), ce qui aurait cassé les comparaisons de filtre pour les valeurs contenant `/`. Correctif : les trois occurrences remplacées par `{{ value }}` / `{{ val }}` — l'autoescaping seul suffit pour la protection XSS.
+
+* **CSS de la sidebar filtres admin avec sélecteurs non concordants :** la section CSS du panneau filtres utilisait des sélecteurs en tirets (`.admin-filter-sidebar`, `.filter-group`, `.admin-list-layout`, etc.) alors que les templates avaient déjà été refactorisés en BEM (`.admin-filter__sidebar`, `.admin-filter__group`, `.admin-list__layout`, etc.). Le panneau filtres n'avait aucun style effectif. Correctif : la section entière est réécrite avec les sélecteurs BEM ; le mobile utilise désormais un pattern offcanvas (`position: fixed; right: -300px` → `.mobile-open { right: 0 }`) avec un overlay de fond.
+
 ### Correctif — `runique` (templates)
 
 * **Templates internes non autoéchappés — vecteur XSS sur les champs de formulaire admin :** l'autoescaping Tera s'active pour les clés logiques se terminant par `.html` ou `.xml`. Les templates internes du framework étaient enregistrés sans le suffixe `.html`, leurs variables étaient donc rendues brutes. En particulier, `{{ form_fields.html }}` (contenant le HTML de formulaire généré par Runique) n'était pas autoéchappé et aurait été interprété comme une variable manquante. Correctif : toutes les clés de templates internes incluent désormais le suffixe `.html` ; le préprocesseur de templates (`process_content`) réécrit `{{ form_fields.html }}` en `{{ form_fields.html | safe }}` via `ADMIN_FORM_HTML_REGEX` — seule variable exemptée de l'autoescaping car toujours du HTML généré par Runique, jamais une saisie utilisateur. Les clés `{% extends %}` dans les exemples de documentation ont été mises à jour en conséquence (`"admin/admin_template.html"`, `"admin_base.html"`).

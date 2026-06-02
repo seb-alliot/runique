@@ -8,6 +8,12 @@ All notable changes to this project will be documented in this file.
 
 ## [2.1.13] - 2026-06-01
 
+### Fix — `runique` (admin templates, admin CSS)
+
+* **Double-escaping of string values in admin list and detail views:** `{{ value | escape }}` was used in `list_partial.html` and `detail.html` while Tera's autoescape was already active. The `escape` filter converts `/` to `&#x2F;`, then autoescape re-encodes `&` to `&amp;`, so the browser rendered the literal text `&#x2F;` instead of `/`. Same issue in the hidden filter inputs (`value="{{ val | escape }}"`), which would have caused filter comparisons to fail for values containing `/`. Fixed: all three occurrences replaced with plain `{{ value }}` / `{{ val }}` — autoescape alone is sufficient for XSS protection here.
+
+* **Admin filter sidebar CSS used mismatched selectors:** the CSS section for the list filter panel used hyphen-style selectors (`.admin-filter-sidebar`, `.filter-group`, `.admin-list-layout`, etc.) while the templates had already been refactored to BEM (`.admin-filter__sidebar`, `.admin-filter__group`, `.admin-list__layout`, etc.). The filter panel had no effective styling. Fixed: the entire section is rewritten with BEM selectors; mobile now uses an offcanvas pattern (`position: fixed; right: -300px` → `.mobile-open { right: 0 }`) with a backdrop overlay.
+
 ### Fix — `runique` (templates)
 
 * **Internal templates not autoescaped — XSS vector on admin form fields:** Tera's autoescape is activated for logical keys ending in `.html` or `.xml`. Internal framework templates were registered without the `.html` suffix, so their variables were rendered raw. In particular, `{{ form_fields.html }}` (which holds Runique-generated form HTML) was not autoescaped and would have been misinterpreted as a missing variable. Fixed: all internal template keys now include the `.html` suffix; the template preprocessor (`process_content`) rewrites `{{ form_fields.html }}` to `{{ form_fields.html | safe }}` via `ADMIN_FORM_HTML_REGEX` — the only variable exempt from autoescaping because it is always Runique-generated HTML, never user input. The `{% extends %}` keys in doc examples were updated accordingly (`"admin/admin_template.html"`, `"admin_base.html"`).
