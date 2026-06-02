@@ -11,13 +11,15 @@ use runique::{urlpatterns, view};
 
 pub fn routes() -> Router {
     urlpatterns! {
-        "/" => view!{ views::index }, name = "index",
-        "/users" => view! { views::user_list }, name = "users",
-        "/users/:id" => view!{ views::user_detail }, name = "user_detail",
-        "/users/:id/delete" => view!{views::delete_user }, name = "user_delete",
+        "/"                  => view!{ views::index },       name = "index",
+        "/users"             => view! { views::user_list },  name = "users",
+        "/users/{id}"        => view!{ views::user_detail }, name = "user_detail",
+        "/users/{id}/delete" => view!{ views::delete_user }, name = "user_delete",
     }
 }
 ```
+
+> Les segments de chemin dynamiques utilisent la syntaxe `{param}` (Axum 0.8). L'ancienne syntaxe `:param` n'est plus supportée.
 
 ### Avec noms (recommandé)
 
@@ -25,8 +27,8 @@ Les noms permettent la résolution d'URL dans les templates via `{% link "nom" %
 
 ```rust
 urlpatterns! {
-    "/" => view!{ views::index }, name = "index",
-    "/users/:id" => view!{ views::user_detail }, name = "user_detail",
+    "/"          => view!{ views::index },       name = "index",
+    "/users/{id}" => view!{ views::user_detail }, name = "user_detail",
 }
 ```
 
@@ -34,6 +36,8 @@ urlpatterns! {
 <a href='{% link "index" %}'>Accueil</a>
 <a href='{% link "user_detail" id="42" %}'>Profil</a>
 ```
+
+> Toutes les routes dans un même `urlpatterns!` doivent être soit toutes nommées, soit toutes sans nom — le mélange n'est pas supporté.
 
 ### Sans noms
 

@@ -82,7 +82,18 @@ cargo run
 
 ---
 
-## Outils recommandés
+## Outil requis — migrations
+
+```bash
+# SeaORM CLI — requis pour appliquer les migrations générées par `runique makemigrations`
+cargo install sea-orm-cli
+```
+
+> Sans `sea-orm-cli`, `runique makemigrations` génère les fichiers mais `sea-orm-cli migrate up` ne sera pas disponible pour les appliquer.
+
+---
+
+## Outils recommandés (développement)
 
 ```bash
 # Rust analyzer pour l'IDE
@@ -90,9 +101,6 @@ rustup component add rust-analyzer
 
 # Linter & formatter
 rustup component add clippy rustfmt
-
-# SeaORM CLI (requis pour les migrations)
-cargo install sea-orm-cli
 ```
 
 ---

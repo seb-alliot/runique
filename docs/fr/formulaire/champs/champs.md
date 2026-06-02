@@ -83,7 +83,9 @@ if !ok {
 }
 ```
 
-> Le hachage automatique dans `finalize()` détecte si la valeur commence déjà par `$argon2` pour éviter un double hachage. Dans un formulaire de **connexion**, n'utilisez pas `is_valid()` pour vérifier le mot de passe — récupérez d'abord l'utilisateur en DB, puis appelez `verify()` manuellement.
+> `finalize()` appelle `is_already_hashed()` avant de hacher : si la valeur est déjà un hash reconnu (Argon2 : `$argon2id$`/`$argon2i$`/`$argon2d$`, bcrypt : `$2`, scrypt : `$scrypt$`), le hachage est ignoré. Cela couvre le cas de l'édition admin où un hash existant est rechargé dans le formulaire.
+>
+> Dans un formulaire de **connexion**, la valeur soumise est toujours du texte brut — `is_already_hashed()` retourne `false` et `finalize()` hacherait le mot de passe avant la comparaison, ce qui ferait échouer `verify()`. C'est pourquoi `.no_hash()` est obligatoire sur les champs password d'un formulaire de connexion. Appelez `is_valid()` normalement (validation des champs requis), puis vérifiez le mot de passe séparément via `verify()` après avoir récupéré l'utilisateur en base.
 >
 > Voir → [Configuration des mots de passe](/docs/fr/configuration/password) pour tous les modes (`Auto`, `Manual`, `Delegated`, `Custom`) et la configuration dans `main.rs`.
 

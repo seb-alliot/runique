@@ -189,6 +189,17 @@ Chaque entrée est une paire `["nom_colonne", "Libellé"]`. Le nom de colonne do
 
 > Si le champ DSL est `sort_order`, le nom de colonne à déclarer est `"sort_order"` — pas `"ordre"` ni un alias quelconque.
 
+**Résolution FK** — Pour afficher le libellé d'une relation au lieu de l'ID brut, ajouter un 3ème élément `"table.colonne"` :
+
+```rust
+list_display: [
+    ["theme_id", "Thème", "themes.nom"],   // affiche themes.nom au lieu de l'ID
+    ["user_id",  "Auteur", "eihwaz_users.username"],
+]
+```
+
+Le daemon génère une jointure SQL `LEFT JOIN themes ON menus.theme_id = themes.id` et expose la valeur résolue dans le contexte Tera.
+
 Si `list_display` est absent, **toutes les colonnes** de l'entité sont affichées (comportement par défaut).
 
 Les colonnes sont injectées dans le contexte Tera sous les clés `visible_columns` (noms) et `column_labels` (libellés correspondants).
@@ -336,6 +347,44 @@ Le formulaire d'édition en masse utilise le même type de formulaire que la vue
 
 ---
 
+#### `own_field`
+
+Déclare le champ de l'entité utilisé pour les vérifications de propriété (`can_update_own` / `can_delete_own`). Sans cette déclaration, les droits `own` sont ignorés même si accordés dans les permissions.
+
+```rust
+admin! {
+    articles: articles::Model => ArticleForm {
+        title: "Articles",
+        own_field: "author_id",   // vérifié contre l'user_id de la session courante
+    }
+}
+```
+
+Le champ doit contenir l'ID de l'utilisateur propriétaire de l'enregistrement. Le daemon génère un appel `resource.own_field("author_id")` dans `admin_register()`, ce qui active la vérification dans `handle_edit` et `handle_delete`.
+
+---
+
+#### `template_list`, `template_create`, `template_edit`, `template_detail`, `template_delete`
+
+Surcharger le template utilisé pour une opération précise sur cette ressource uniquement. Utile pour personnaliser une vue sans toucher au template global.
+
+```rust
+admin! {
+    articles: articles::Model => ArticleForm {
+        title: "Articles",
+        template_list:   "admin/articles/list.html",
+        template_create: "admin/articles/create.html",
+        template_edit:   "admin/articles/edit.html",
+    }
+}
+```
+
+Seules les opérations déclarées sont surchargées — les autres utilisent le template admin par défaut. Le chemin est relatif au dossier `templates/` du projet.
+
+Voir [Surcharge des templates](/docs/fr/admin/template/surcharge) pour la liste complète des blocks disponibles.
+
+---
+
 #### `extra`
 
 Injecter des variables Tera disponibles dans tous les templates de cette ressource :
@@ -394,6 +443,8 @@ La macro `admin!` couvre uniquement les **métadonnées de registre** :
 - création multi-enregistrements depuis un champ split par virgule (`bulk_create`)
 - relations many-to-many via table de jonction (`m2m`)
 - des variables Tera supplémentaires par ressource (`extra`)
+- la vérification de propriété pour `can_update_own`/`can_delete_own` (`own_field`)
+- la surcharge du template pour une opération précise (`template_list/create/edit/detail/delete`)
 - la configuration d'affichage de toute ressource y compris les builtins (`configure {}`)
 
 ## Ce qui n'est pas déclarable

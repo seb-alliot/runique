@@ -5,30 +5,45 @@
 ```rust
 use runique::prelude::*;
 
+// LoginForm — déclaré séparément, .no_hash() obligatoire sur le champ password
+#[derive(Serialize, Debug, Clone)]
+#[serde(transparent)]
+pub struct LoginForm {
+    pub form: Forms,
+}
+
+impl RuniqueForm for LoginForm {
+    fn register_fields(form: &mut Forms) {
+        form.field(&TextField::text("username").label("Nom d'utilisateur").required());
+        form.field(&TextField::password("password").label("Mot de passe").no_hash().required());
+    }
+    impl_form_access!();
+}
+
 pub async fn login_post(mut request: Request) -> AppResult<Response> {
     let mut form: LoginForm = request.form();
     if request.is_post() && form.is_valid().await {
-        // 1. Chercher l'utilisateur par username
+        let db = request.engine.db.clone();
         let username = form.cleaned_string("username").unwrap_or_default();
-        let user = users::Entity::objects
-            .filter(users::Column::Username.eq(&username))
-            .first(&*request.engine.db)
-            .await?;
+        let password = form.cleaned_string("password").unwrap_or_default();
 
-        if let Some(user) = user {
-            // 2. Vérifier le mot de passe (en clair vs hash)
-            let password = form.cleaned_string("password").unwrap_or_default();
-            if verify(&password, &user.password) {
-                // 3. Ouvrir la session (charge les données depuis la DB par user_id)
-                auth_login(&request.session, &request.engine.db, user.id).await.ok();
-                return Ok(Redirect::to("/dashboard").into_response());
-            }
+        // 1. Chercher l'utilisateur par username via search!
+        let query = search!(users::Entity => Username eq username.trim());
+        let user = query.first(&db).await.unwrap_or(None);
+
+        if let Some(user) = user
+            && user.is_active
+            && verify(&password, &user.password)
+        {
+            // 2. Ouvrir la session — cycle_id() anti-fixation de session inclus
+            auth_login(&request.session, &db, user.id).await.ok();
+            return Ok(Redirect::to("/dashboard").into_response());
         }
 
-        // Identifiants invalides
+        // Identifiants invalides (message générique — ne pas distinguer user inconnu / mdp faux)
         context_update!(request => {
             "login_form" => &form,
-            "messages" => flash_now!(error => "Identifiants invalides"),
+            "messages"   => flash_now!(error => "Identifiants invalides"),
         });
     } else {
         context_update!(request => { "login_form" => &form });
