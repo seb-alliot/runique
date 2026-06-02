@@ -431,15 +431,9 @@ async fn seed_section_pages(
 }
 
 async fn seed_site_config(db: &DatabaseConnection) {
-    let count = site_config::Entity::find().count(db).await.unwrap_or(0);
-
-    if count > 0 {
-        return;
-    }
-
     let entries = [
-        ("runique_version", "1.1.54", "Version actuelle de Runique"),
-        ("release_date", "2026-03-21", "Date de la dernière release"),
+        ("runique_version", "2.1.13", "Version actuelle de Runique"),
+        ("release_date", "2026-06-03", "Date de la dernière release"),
         (
             "github_url",
             "https://github.com/seb-alliot/runique",
@@ -453,10 +447,14 @@ async fn seed_site_config(db: &DatabaseConnection) {
     ];
 
     for (key, value, description) in &entries {
+        let _ = site_config::Entity::delete_many()
+            .filter(site_config::Column::Key.eq(*key))
+            .exec(db)
+            .await;
         let row = site_config::ActiveModel {
-            key: Set(std::string::ToString::to_string(key)),
-            value: Set(std::string::ToString::to_string(value)),
-            description: Set(Some(std::string::ToString::to_string(description))),
+            key: Set(ToString::to_string(key)),
+            value: Set(ToString::to_string(value)),
+            description: Set(Some(ToString::to_string(description))),
             ..Default::default()
         };
         if let Err(e) = row.insert(db).await {
@@ -464,7 +462,7 @@ async fn seed_site_config(db: &DatabaseConnection) {
         }
     }
 
-    tracing::info!("doc_seed: site_config initialisé");
+    tracing::info!("doc_seed: site_config mis à jour");
 }
 
 /// Point d'entrée principal. Vide et re-seede `doc_section/page/block` à chaque démarrage.
