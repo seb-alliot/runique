@@ -459,21 +459,7 @@
 }
 
 @media (max-width: 900px) {
-    /* Sidebar masquée par défaut sur mobile */
-    .doc-sidebar {
-        position: fixed;
-        top: 0;
-        left: -280px;
-        width: 220px;
-        height: 100vh;
-        z-index: 200;
-        background: var(--bg, #0f0f1a);
-        border-right: 1px solid var(--border, #333);
-        padding: 1.5rem 1rem;
-        overflow-y: auto;
-        transition: left 0.25s ease;
-    }
-        .doc-index-section-title {
+    .doc-index-section-title {
     display: flex;
     align-items: center;
     justify-content: space-between;

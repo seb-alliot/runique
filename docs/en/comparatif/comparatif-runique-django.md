@@ -204,6 +204,7 @@
 - **Built-in test client**: no native HTTP test client — use `reqwest` or `axum::test`.
 - **Fixtures**: no `loaddata`/`dumpdata` — seeds are plain Rust functions.
 - **Admin inline**: no editing of related objects directly inside the parent form.
+- **Admin custom group actions**: `group_action` only supports SQL column updates (`GroupAction::bool` and `GroupAction::val`) — no arbitrary Rust logic on the selection (Django equivalent: `actions` with any callable).
 - **Admin combinable filters**: clicking a filter value resets other active column filters — the backend supports multiple simultaneous filters (`Vec`), but the generated template links do not preserve filters from other columns.
 - **Admin FK filters**: `list_filter` supports direct columns only — no relation traversal (`article__author__name`).
 - **Admin fieldsets**: no field grouping by section in admin forms (`fieldsets` in Django).
