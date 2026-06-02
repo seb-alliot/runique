@@ -150,7 +150,7 @@ pub async fn register(mut request: Request) -> AppResult<Response> {
             tracing::warn!("Erreur email : {e}");
         }
 
-        return request.redirect("/");
+        return Ok(Redirect::to("/").into_response());
     }
 
     context_update!(request => { "form" => &form });
