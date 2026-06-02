@@ -3,8 +3,7 @@ use regex::Regex;
 use std::sync::LazyLock;
 
 pub static BALISE_LINK: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r#"(?P<q>["'])\{%\s*(?P<tag>static|media)\s*"(?P<link>[^"]+)"\s*%\}["']"#)
-        .unwrap()
+    Regex::new(r#"(?P<q>["'])\{%\s*(?P<tag>static|media)\s*"(?P<link>[^"]+)"\s*%\}["']"#).unwrap()
 });
 
 /// Handles `{% media var %}` / `{% static var %}` with a Tera variable (no quotes).

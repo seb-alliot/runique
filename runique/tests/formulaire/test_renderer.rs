@@ -235,7 +235,11 @@ fn test_render_js_sans_template_retourne_erreur() {
     let result = renderer.render(&fields, &[]);
     // Doit échouer car le template js_files est absent
     assert!(result.is_err());
-    assert!(result.unwrap_err().contains("Missing template: js_files.html"));
+    assert!(
+        result
+            .unwrap_err()
+            .contains("Missing template: js_files.html")
+    );
 }
 
 #[test]
