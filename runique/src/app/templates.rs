@@ -149,7 +149,10 @@ impl TemplateLoader {
                 let url = format!(r#"{{{{ "{}" | {} }}}}"#, path, tag);
                 match integrity_map.get(path) {
                     Some(hash) => {
-                        format!(r#"{}{}{} integrity="{}" crossorigin="anonymous""#, q, url, q, hash)
+                        format!(
+                            r#"{}{}{} integrity="{}" crossorigin="anonymous""#,
+                            q, url, q, hash
+                        )
                     }
                     None => format!("{}{}{}", q, url, q),
                 }
