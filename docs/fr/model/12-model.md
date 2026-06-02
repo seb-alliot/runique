@@ -18,6 +18,6 @@ La macro `model!` génère les entités SeaORM, les schémas de migration et les
 
 ## Ordre recommandé de lecture
 
-1. Ce document (`12-model.md`)
+1. Ce document
 2. [ORM](/docs/fr/orm) pour l'usage DB
 3. [Formulaires](/docs/fr/formulaire) pour l'extraction de formulaire et le rendu

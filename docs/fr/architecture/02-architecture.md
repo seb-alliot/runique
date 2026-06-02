@@ -17,7 +17,7 @@ mon-projet/
 │   │
 │   ├── main.rs            # Point d'entrée — RuniqueApp builder
 │   ├── admin.rs           # Déclaration admin!{} (si admin activé, necessaire pour la cli runique start)
-│   ├── urls.rs            # urlpatterns! — table de routage
+│   ├── url.rs             # urlpatterns! — table de routage
 │   ├── views.rs           # Handlers (fonctions async)
 │   └──  forms.rs          # Structs RuniqueForm (ou dossier forms/)
 │
@@ -46,7 +46,7 @@ use runique::prelude::*;
 
 mod entities;
 mod formulaire;
-mod urls;
+mod url;
 mod views;
 
 #[tokio::main]
@@ -58,7 +58,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     password_init(PasswordConfig::auto());
 
     RuniqueApp::builder(config)
-        .routes(urls::routes())
+        .routes(url::routes())
         .with_database(db)
         .statics()
         .build()
@@ -70,7 +70,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-**`urls.rs`** — Déclare les routes via `urlpatterns!` :
+**`url.rs`** — Déclare les routes via `urlpatterns!` :
 
 ```rust
 use runique::prelude::*;
@@ -132,7 +132,7 @@ runique start
 | Fichier / dossier | À modifier | Rôle |
 | --- | --- | --- |
 | `src/main.rs` | Oui | Configure le builder et déclare les modules |
-| `src/urls.rs` | Oui | Table de routage |
+| `src/url.rs` | Oui | Table de routage |
 | `src/views.rs` | Oui | Handlers de requêtes |
 | `src/entities/` | Oui | Déclarations de modèles (AST Runique, compatible `makemigrations`) |
 | `src/formulaire/` | Oui | Formulaires et validation |
