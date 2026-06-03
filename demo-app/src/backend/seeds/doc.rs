@@ -117,6 +117,15 @@ fn parse_blocks(content: &str) -> Vec<(Option<String>, String, String)> {
         content.trim_start()
     };
 
+    // If body starts directly with ## (no intro text), prefix \n so the split captures the first heading
+    let body_with_prefix;
+    let body = if body.starts_with("## ") {
+        body_with_prefix = format!("\n{body}");
+        body_with_prefix.as_str()
+    } else {
+        body
+    };
+
     let parts: Vec<&str> = body.split("\n## ").collect();
 
     // Partie intro (avant le premier ##)

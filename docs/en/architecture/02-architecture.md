@@ -186,10 +186,12 @@ runique/src/
 | Section | Content |
 | --- | --- |
 | [Core Concepts](/docs/en/architecture/concepts) | `RuniqueEngine`, `Request`, `request.form()` |
+| [Makemigrations Internals](/docs/en/architecture/makemigrations) | Three-pass pipeline: AST extraction, diffing, SeaQuery generation |
 | [Macros](/docs/en/architecture/macros) | Context, flash, routing, and error macros |
 | [Tera Tags & Filters](/docs/en/architecture/tera) | Django-like tags, filters, functions |
 | [Middleware Stack](/docs/en/architecture/middleware) | Slot order and dependency injection |
 | [Request Lifecycle](/docs/en/architecture/lifecycle) | Lifecycle and best practices |
+| [Testing](/docs/en/architecture/testing) | Integration test helpers, `TestClient`, handler tests |
 
 ---
 
