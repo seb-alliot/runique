@@ -1,4 +1,4 @@
-﻿# Admin Runique
+# Admin Runique
 
 L'administration Runique génère un CRUD complet à partir d'une macro déclarative (`admin!`).
 Le code produit est du Rust ordinaire — lisible, auditable et modifiable si nécessaire.

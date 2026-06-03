@@ -1,4 +1,4 @@
-﻿# Vue liste — Pagination, tri, recherche et filtres
+# Vue liste — Pagination, tri, recherche et filtres
 
 La vue liste admin gère toutes ses opérations **au niveau SQL** : pagination, tri par colonne, recherche plein-texte et filtres par valeur. Rien n'est chargé en mémoire.
 

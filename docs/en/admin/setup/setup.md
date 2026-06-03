@@ -1,4 +1,4 @@
-﻿# Admin setup
+# Admin setup
 
 Step-by-step guide to enable the admin interface in an existing Runique project.
 

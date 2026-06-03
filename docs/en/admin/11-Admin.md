@@ -1,4 +1,4 @@
-﻿# Runique Admin
+# Runique Admin
 
 Runique's admin generates a full CRUD interface from a declarative macro (`admin!`).
 The generated code is plain Rust — readable, auditable, and modifiable if needed.

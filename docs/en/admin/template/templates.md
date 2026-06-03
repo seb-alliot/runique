@@ -1,4 +1,4 @@
-﻿# Admin template system
+# Admin template system
 
 ## 3-level hierarchy
 

@@ -1,4 +1,4 @@
-﻿# Planned features
+# Planned features
 
 Features planned for future versions of the Runique admin.
 

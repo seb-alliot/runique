@@ -1,4 +1,4 @@
-﻿# Système de templates admin
+# Système de templates admin
 
 ## Hiérarchie en 3 niveaux
 

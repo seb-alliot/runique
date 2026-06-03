@@ -1,4 +1,4 @@
-﻿# List view — Pagination, sorting, search and filters
+# List view — Pagination, sorting, search and filters
 
 The admin list view handles all its operations **at the SQL level**: pagination, column sorting, full-text search and value filters. Nothing is loaded into memory.
 
