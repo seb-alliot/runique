@@ -49,8 +49,8 @@ The daemon performs an **initial generation on startup** — there is no need to
 
 | Section | Description |
 | --- | --- |
-| [Daemon & generation](/docs/en/admin/declaration) | Watcher, generated files |
-| [Macro `admin!`](/docs/en/admin/declaration) | Declaring administrable resources |
+| [Daemon & generation](/docs/en/admin/declaration/daemon/generation) | Watcher, generated files |
+| [Macro `admin!`](/docs/en/admin/declaration/macro) | Declaring administrable resources |
 
 ## See also
 
