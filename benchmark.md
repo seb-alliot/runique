@@ -55,6 +55,38 @@ Post-benchmark idle memory does not return to baseline — this is normal alloca
 not a leak. The allocator keeps pages warm after a load spike.
 See [docs/en/14-sessions.md](docs/en/14-sessions.md) for full session management documentation.
 
+## VPS Production — Hostinger KVM (2 vCPU, 8 GB RAM, Debian trixie, PostgreSQL 18, release build)
+
+Route `/docs/fr` — page with multiple DB queries (doc_section + doc_page + doc_block joins). Full middleware stack active (CSP, CSRF, compression, session, trusted proxies). Cloudflare bypassed (direct `127.0.0.1:3000`).
+
+### Baseline — pool min=2 / max=10
+
+| Tool | Concurrency | RPS    | Avg (ms) | P90 (ms) | P95 (ms) | P99 (ms) | Max (ms) | Success (%) |
+|------|-------------|--------|----------|----------|----------|----------|----------|-------------|
+| wrk (30s) | 100 | 1,250 | 79.8 | — | — | — | 129.4 | 100 |
+| oha (1000 req) | 50 | 1,081 | 44.7 | 50.2 | 52.8 | 58.2 | 77.5 | 100 |
+
+### Stress test — pool min=5 / max=30, 2 minutes, 200 concurrent
+
+| Concurrency | RPS | Avg (ms) | P50 (ms) | P90 (ms) | P95 (ms) | P99 (ms) | Max (ms) | Success (%) |
+|-------------|-----|----------|----------|----------|----------|----------|----------|-------------|
+| 200 | 463 | 428 | 230 | 326 | 2,262 | 2,526 | 2,721 | 100 |
+
+**Observation**: bimodal distribution — 90% of requests under 326ms, P95 jumps to 2.26s (pool exhaustion at 30 connections for 200 concurrent). CPU peaked at 113% (multi-core saturation), RSS stable at 85 MB.
+
+**Pool impact**: 10 connections → bottleneck at 100 concurrent. 30 connections → bottleneck at ~150 concurrent. Increase `DB_MAX_CONNECTIONS` proportionally to expected peak load.
+
+## Cloudflare Edge Cache — Windows PC → runique.io (MRS edge, cache HIT)
+
+Route `/docs/fr` with Cloudflare cache active (Transform Rule strips `Set-Cookie`, Cache Rule TTL 3600s). Requests served from Cloudflare edge — VPS not hit. DNS+dialup overhead included (new TCP connections from oha).
+
+| Tool | Concurrency | RPS | Avg (ms) | P50 (ms) | P90 (ms) | P95 (ms) | P99 (ms) | Success (%) |
+|------|-------------|-----|----------|----------|----------|----------|----------|-------------|
+| oha (1000 req) | 50 | 808 | 60.1 | 20.9 | 39.5 | 394.8 | 1,095 | 100 |
+| oha (2 min) | 50 | 1,745 | 28.7 | 21.7 | 51.4 | 67.9 | 106.6 | 100 |
+
+**Key finding**: P50 drops from 44ms (VPS direct) to **22ms** (Cloudflare edge). VPS CPU stays at ~8% during the 2-minute test — edge absorbs 100% of traffic on cached routes. P95 spike on the 1000-req test is TCP setup overhead (new connections), not representative of real browser traffic (keep-alive). The 2-minute test with connection reuse shows the real P95 at **68ms**.
+
 ## Notes
 
 - All tests were performed locally, compiled in release mode, with the environment variable `TOKIO_WORKER_THREADS=2`.
@@ -122,6 +154,27 @@ le mécanisme de refus d'urgence sous stress. Avec les valeurs de production (12
 La mémoire idle après benchmark ne revient pas au niveau initial — comportement normal de l'allocateur (pages réservées),
 pas une fuite. L'allocateur conserve les pages chaudes après un pic de charge.
 Voir [docs/fr/14-sessions.md](docs/fr/14-sessions.md) pour la documentation complète de la gestion des sessions.
+
+## VPS Production — Hostinger KVM (2 vCPU, 8 Go RAM, Debian trixie, PostgreSQL 18, build release)
+
+Route `/docs/fr` — page avec plusieurs requêtes DB (jointures doc_section + doc_page + doc_block). Stack middleware complète active (CSP, CSRF, compression, session, trusted proxies). Cloudflare bypassé (direct `127.0.0.1:3000`).
+
+### Baseline — pool min=2 / max=10
+
+| Outil | Concurrence | RPS    | Moy. (ms) | P90 (ms) | P95 (ms) | P99 (ms) | Max (ms) | Succès (%) |
+|-------|-------------|--------|-----------|----------|----------|----------|----------|------------|
+| wrk (30s) | 100 | 1 250 | 79.8 | — | — | — | 129.4 | 100 |
+| oha (1000 req) | 50 | 1 081 | 44.7 | 50.2 | 52.8 | 58.2 | 77.5 | 100 |
+
+### Stress test — pool min=5 / max=30, 2 minutes, 200 connexions simultanées
+
+| Concurrence | RPS | Moy. (ms) | P50 (ms) | P90 (ms) | P95 (ms) | P99 (ms) | Max (ms) | Succès (%) |
+|-------------|-----|-----------|----------|----------|----------|----------|----------|------------|
+| 200 | 463 | 428 | 230 | 326 | 2 262 | 2 526 | 2 721 | 100 |
+
+**Observation** : distribution bimodale — 90% des requêtes sous 326ms, P95 saute à 2,26s (épuisement du pool à 30 connexions pour 200 concurrent). CPU pic à 113% (saturation multi-cœur), RSS stable à 85 Mo.
+
+**Impact du pool** : 10 connexions → goulot à 100 concurrent. 30 connexions → goulot vers ~150 concurrent. Augmenter `DB_MAX_CONNECTIONS` proportionnellement au pic de charge attendu.
 
 ## Remarques
 
