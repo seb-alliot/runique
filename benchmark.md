@@ -53,7 +53,7 @@ at this load level.
 
 Post-benchmark idle memory does not return to baseline — this is normal allocator behavior (reserved pages),
 not a leak. The allocator keeps pages warm after a load spike.
-See [docs/en/14-sessions.md](docs/en/14-sessions.md) for full session management documentation.
+See [docs/en/session/14-sessions.md](https://github.com/seb-alliot/runique/blob/main/docs/en/session/14-sessions.md) for full session management documentation.
 
 ## VPS Production — Hostinger KVM (2 vCPU, 8 GB RAM, Debian trixie, PostgreSQL 18, release build)
 
@@ -153,7 +153,7 @@ le mécanisme de refus d'urgence sous stress. Avec les valeurs de production (12
 
 La mémoire idle après benchmark ne revient pas au niveau initial — comportement normal de l'allocateur (pages réservées),
 pas une fuite. L'allocateur conserve les pages chaudes après un pic de charge.
-Voir [docs/fr/14-sessions.md](docs/fr/14-sessions.md) pour la documentation complète de la gestion des sessions.
+Voir [docs/fr/session/14-sessions.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/session/14-sessions.md) pour la documentation complète de la gestion des sessions.
 
 ## VPS Production — Hostinger KVM (2 vCPU, 8 Go RAM, Debian trixie, PostgreSQL 18, build release)
 
