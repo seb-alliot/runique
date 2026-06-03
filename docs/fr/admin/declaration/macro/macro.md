@@ -1,4 +1,4 @@
-# La macro `admin!`
+﻿# La macro `admin!`
 
 ## Syntaxe complète
 
@@ -475,8 +475,8 @@ Les champs obligatoires manquants produisent également des erreurs à la compil
 
 | Section | Description |
 | --- | --- |
-| [CLI](/docs/fr/admin/declaration/cli) | Fonctionnement de `runique start`
-| [Daemon & génération](/docs/fr/admin/declaration/daemon/generation) | Fichiers générés
+| [CLI](/docs/fr/admin/declaration) | Fonctionnement de `runique start`
+| [Daemon & génération](/docs/fr/admin/declaration-daemon) | Fichiers générés
 
 ## Revenir au sommaire
 

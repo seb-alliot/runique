@@ -1,4 +1,4 @@
-# Vue liste — Pagination, tri, recherche et filtres
+﻿# Vue liste — Pagination, tri, recherche et filtres
 
 La vue liste admin gère toutes ses opérations **au niveau SQL** : pagination, tri par colonne, recherche plein-texte et filtres par valeur. Rien n'est chargé en mémoire.
 
@@ -163,7 +163,7 @@ Tous les paramètres sont combinables. L'ordre de priorité : filtres → recher
 
 ## Voir aussi
 
-- [Macro `admin!`](/docs/fr/admin/declaration/macro) — syntaxe `list_display`, `list_filter`
+- [Macro `admin!`](/docs/fr/admin/declaration-macro) — syntaxe `list_display`, `list_filter`
 - [Contexte des templates](/docs/fr/admin/template/clef/context) — clés Tera de la vue liste
 - [Surcharge des templates](/docs/fr/admin/template/surcharge) — personnaliser le rendu de la liste
 

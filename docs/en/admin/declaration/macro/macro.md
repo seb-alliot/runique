@@ -1,4 +1,4 @@
-# The `admin!` macro
+﻿# The `admin!` macro
 
 ## Full syntax
 
@@ -419,8 +419,8 @@ Missing required fields also produce compile-time errors, not runtime errors.
 
 | Section | Description |
 | --- | --- |
-| [CLI](/docs/en/admin/declaration/cli) | How `runique start` works |
-| [Daemon & generation](/docs/en/admin/declaration/daemon/generation) | Generated files |
+| [CLI](/docs/en/admin/declaration) | How `runique start` works |
+| [Daemon & generation](/docs/en/admin/declaration-daemon) | Generated files |
 
 ## Back to summary
 

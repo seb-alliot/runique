@@ -1,4 +1,4 @@
-# Planned features
+﻿# Planned features
 
 Features planned for future versions of the Runique admin.
 
@@ -50,7 +50,7 @@ Generated routes: `GET /articles` (paginated list), `GET /articles/<id>` (detail
 | Section | Description |
 | --- | --- |
 | [Setup](/docs/en/admin/setup) | Wire the admin into an existing project, create a superuser |
-| [CLI](/docs/en/admin/declaration/cli) | `runique start` command, general workflow |
+| [CLI](/docs/en/admin/declaration) | `runique start` command, general workflow |
 | [Permissions](/docs/en/admin/permission) | Roles, `is_staff` / `is_superuser`, runtime check |
 | [Templates](/docs/en/admin/template) | Template hierarchy, blocks, visual override |
 

@@ -1,4 +1,4 @@
-# `runique start`
+﻿# `runique start`
 
 La commande `runique start` est le point d'entrée du workflow admin.
 Elle orchestre deux opérations en parallèle : la **surveillance de `src/admin.rs`** et le **lancement du serveur**.
@@ -49,8 +49,8 @@ Le daemon effectue une **génération initiale au démarrage** — il n'est pas 
 
 | Section | Description |
 | --- | --- |
-| [Daemon & génération](/docs/fr/admin/declaration/daemon/generation) | Watcher, fichiers
-| [Macro `admin!`](/docs/fr/admin/declaration/macro) | Déclaration des ressources administrables
+| [Daemon & génération](/docs/fr/admin/declaration-daemon) | Watcher, fichiers
+| [Macro `admin!`](/docs/fr/admin/declaration-macro) | Déclaration des ressources administrables
 
 ## Voir aussi
 

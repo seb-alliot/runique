@@ -1,4 +1,4 @@
-# `runique start`
+﻿# `runique start`
 
 The `runique start` command is the entry point of the admin workflow.
 It orchestrates two operations in parallel: **watching `src/admin.rs`** and **launching the server**.
@@ -49,8 +49,8 @@ The daemon performs an **initial generation on startup** — there is no need to
 
 | Section | Description |
 | --- | --- |
-| [Daemon & generation](/docs/en/admin/declaration/daemon/generation) | Watcher, generated files |
-| [Macro `admin!`](/docs/en/admin/declaration/macro) | Declaring administrable resources |
+| [Daemon & generation](/docs/en/admin/declaration-daemon) | Watcher, generated files |
+| [Macro `admin!`](/docs/en/admin/declaration-macro) | Declaring administrable resources |
 
 ## See also
 
