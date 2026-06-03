@@ -49,8 +49,8 @@ Le daemon effectue une **génération initiale au démarrage** — il n'est pas 
 
 | Section | Description |
 | --- | --- |
-| [Daemon & génération](/docs/fr/admin/declaration) | Watcher, fichiers
-| [Macro `admin!`](/docs/fr/admin/declaration) | Déclaration des ressources administrables
+| [Daemon & génération](/docs/fr/admin/declaration/daemon/generation) | Watcher, fichiers
+| [Macro `admin!`](/docs/fr/admin/declaration/macro) | Déclaration des ressources administrables
 
 ## Voir aussi
 

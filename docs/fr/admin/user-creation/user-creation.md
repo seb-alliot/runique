@@ -120,7 +120,7 @@ Si le projet utilise son propre modèle utilisateur (pas `runique_users`), il do
 ## Voir aussi
 
 - [Macro `admin!`](/docs/fr/admin/declaration/macro) — `create_form:`, `edit_form:`
-- [Réinitialisation de mot de passe](/docs/fr/auth) — flux forgot/reset
+- [Réinitialisation de mot de passe](/docs/fr/auth/password-reset) — flux forgot/reset
 
 ## Revenir au sommaire
 

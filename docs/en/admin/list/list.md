@@ -163,7 +163,7 @@ All parameters can be combined. Priority order: filters → search → sort → 
 
 ## See also
 
-- [Macro `admin!`](/docs/en/admin/declaration) — `list_display`, `list_filter` syntax
+- [Macro `admin!`](/docs/en/admin/declaration/macro) — `list_display`, `list_filter` syntax
 - [Template context](/docs/en/admin/template/clef/context) — Tera keys for the list view
 - [Template override](/docs/en/admin/template/surcharge) — customise the list rendering
 
