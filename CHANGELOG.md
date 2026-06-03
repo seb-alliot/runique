@@ -8,6 +8,12 @@ All notable changes to this project will be documented in this file.
 
 ## [2.1.13] - 2026-06-01
 
+### Fix — `runique` (admin templates)
+
+* **Admin sort links lost active filters:** clicking a column header to sort reset all active `list_filter` values. The sort links in `list_partial.html` did not include `{{ filter_qs }}`, unlike the pagination links. Fixed: `filter_qs` is now appended to the `href` and `hx-get` of both the `id` column and dynamic column headers.
+
+* **Admin filter sidebar values unordered:** generated `filter_fn` closures retrieved distinct values then re-sorted them in Rust with `sort_by` (numeric-then-lexicographic ascending), overriding any DB-side ordering. Fixed: the in-memory `sort_by` is removed; the `DISTINCT` query now uses `ORDER BY CAST(col AS TEXT) DESC` so values arrive pre-sorted from the DB — dates show newest first, string values show highest alphabetically first.
+
 ### Fix — `runique` (admin templates, admin CSS)
 
 * **Double-escaping of string values in admin list and detail views:** `{{ value | escape }}` was used in `list_partial.html` and `detail.html` while Tera's autoescape was already active. The `escape` filter converts `/` to `&#x2F;`, then autoescape re-encodes `&` to `&amp;`, so the browser rendered the literal text `&#x2F;` instead of `/`. Same issue in the hidden filter inputs (`value="{{ val | escape }}"`), which would have caused filter comparisons to fail for values containing `/`. Fixed: all three occurrences replaced with plain `{{ value }}` / `{{ val }}` — autoescape alone is sufficient for XSS protection here.

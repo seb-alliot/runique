@@ -141,7 +141,7 @@
 | Pagination liste | natif | `.page_size(n)` (liste + historique) |
 | `list_display` | natif | `list_display: [["col", "Libellé"], ...]` |
 | Résolution FK en liste | — | 3ème élément : `["fk_id", "Libellé", "table.colonne"]` |
-| Recherche / filtres | natif | `list_filter` + recherche plein-texte SQL — colonnes directes uniquement, filtres non cumulables (UI) |
+| Recherche / filtres | natif | `list_filter` + recherche plein-texte SQL — colonnes directes uniquement, filtres cumulables (plusieurs colonnes simultanément) |
 | Actions de groupe | `actions` | `group_action` — bool (2 éléments) ou enum (3 éléments, valeur exacte) |
 | Création multiple | — | `bulk_create: champ` — split par virgule, insère N enregistrements |
 | Édition en masse | — | bulk edit natif sur sélection multi-entrées |
@@ -205,7 +205,6 @@
 - **Fixtures** : pas de `loaddata`/`dumpdata` — les seeds sont des fonctions Rust.
 - **Admin inline** : pas d'édition d'objets liés directement dans le formulaire parent.
 - **Admin actions de groupe custom** : `group_action` ne supporte que des mises à jour de colonnes SQL (`GroupAction::bool` et `GroupAction::val`) — aucune logique Rust arbitraire possible sur la sélection (équivalent Django : `actions` avec une fonction quelconque).
-- **Admin filtres cumulables** : cliquer une valeur de filtre réinitialise les autres colonnes filtrées — le backend supporte plusieurs filtres simultanés (`Vec`), mais les liens générés dans le template ne préservent pas les filtres des autres colonnes.
 - **Admin filtre FK** : `list_filter` ne supporte que les colonnes directes — pas de traversée de relation (`article__auteur__nom`).
 - **Admin fieldsets** : pas de groupement de champs par section dans les formulaires admin (`fieldsets` Django).
 - **Admin readonly fields** : pas de `readonly_fields` — les champs non éditables doivent être exclus du formulaire.
