@@ -475,8 +475,8 @@ Les champs obligatoires manquants produisent également des erreurs à la compil
 
 | Section | Description |
 | --- | --- |
-| [CLI](/docs/fr/admin/declaration) | Fonctionnement de `runique start`
-| [Daemon & génération](/docs/fr/admin/declaration) | Fichiers générés
+| [CLI](/docs/fr/admin/declaration/cli) | Fonctionnement de `runique start`
+| [Daemon & génération](/docs/fr/admin/declaration/daemon/generation) | Fichiers générés
 
 ## Revenir au sommaire
 

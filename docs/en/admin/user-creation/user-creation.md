@@ -120,7 +120,7 @@ If the project uses its own user model (not `runique_users`), it must implement
 ## See also
 
 - [Macro `admin!`](/docs/en/admin/declaration/macro) — `create_form:`, `edit_form:`
-- [Password reset](/docs/en/auth) — forgot/reset flow
+- [Password reset](/docs/en/auth/password-reset) — forgot/reset flow
 
 ## Back to summary
 

@@ -64,8 +64,8 @@ Dans ce mode, `src/admins/` n'est plus surveillé ni écrasé. Les modifications
 
 | Section | Description |
 | --- | --- |
-| [CLI](/docs/fr/admin/declaration) | Fonctionnement de `runique start` |
-| [Macro `admin!`](/docs/fr/admin/declaration) | Déclaration des ressources administrables |
+| [CLI](/docs/fr/admin/declaration/cli) | Fonctionnement de `runique start` |
+| [Macro `admin!`](/docs/fr/admin/declaration/macro) | Déclaration des ressources administrables |
 
 ## Revenir au Sommaire
 

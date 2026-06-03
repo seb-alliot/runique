@@ -92,7 +92,7 @@ authentifié ?
 | Section | Description |
 | --- | --- |
 | [Mise en place](/docs/fr/admin/setup) | Câbler l'admin, créer un superuser |
-| [CLI](/docs/fr/admin/declaration) | Commande `runique start`, workflow général |
+| [CLI](/docs/fr/admin/declaration/cli) | Commande `runique start`, workflow général |
 | [Templates](/docs/fr/admin/template) | Hiérarchie de templates, blocks, surcharge |
 | [Évolutions](/docs/fr/admin/evolution) | Axes d'évolution |
 

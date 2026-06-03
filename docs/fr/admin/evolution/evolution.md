@@ -50,7 +50,7 @@ Routes générées : `GET /articles` (liste paginée), `GET /articles/<id>` (det
 | Section | Description |
 | --- | --- |
 | [Mise en place](/docs/fr/admin/setup) | Câbler l'admin dans un projet existant, créer un superuser |
-| [CLI](/docs/fr/admin/declaration) | Commande `runique start`, workflow général |
+| [CLI](/docs/fr/admin/declaration/cli) | Commande `runique start`, workflow général |
 | [Permissions](/docs/fr/admin/permission) | Rôles, `is_staff` / `is_superuser`, vérification runtime |
 | [Templates](/docs/fr/admin/template) | Hiérarchie de templates, blocks, surcharge du visuel |
 
