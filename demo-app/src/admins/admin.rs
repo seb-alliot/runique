@@ -502,7 +502,11 @@ pub fn admin_register() -> AdminRegistry {
                 sea_query::{Alias, Expr, Order},
             };
             let mut query = contribution::Entity::find();
-            if let Some(ref col) = params.sort_by {
+            const SORT_COLS: &[&str] = &["id", "user_id", "contribution_type", "title", "content"];
+            const FILTER_COLS: &[&str] = &["user_id", "contribution_type", "title", "content"];
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
                 let order = if params.sort_dir == SortDir::Desc {
                     Order::Desc
                 } else {
@@ -511,8 +515,13 @@ pub fn admin_register() -> AdminRegistry {
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                let escaped = val.replace('\'', "''");
-                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(Expr::cust_with_values(
+                    format!("CAST({} AS TEXT) = ?", col),
+                    [val.clone()],
+                ));
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(contribution::Entity => or("user_id" icontains search_str, "contribution_type" icontains search_str, "title" icontains search_str, "content" icontains search_str));
@@ -615,7 +624,7 @@ pub fn admin_register() -> AdminRegistry {
     );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
-            use sea_orm::sea_query::{Alias, Expr, Query};
+            use sea_orm::sea_query::{Alias, Expr, Order, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
             let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
                 std::collections::HashMap::new();
@@ -644,6 +653,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(user_id AS TEXT)"))
                 .from(Alias::new(contribution::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("user_id")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(user_id AS TEXT)"), Order::Desc)
                 .limit(page_size_user_id)
                 .offset(cur_page_user_id * page_size_user_id)
                 .to_owned();
@@ -657,14 +667,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_user_id: Vec<String> = rows_user_id
+            let vals_user_id: Vec<String> = rows_user_id
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_user_id.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("user_id".to_string(), (vals_user_id, total_user_id));
             let page_size_contribution_type = 5u64;
             let cur_page_contribution_type = pages.get("contribution_type").copied().unwrap_or(0);
@@ -694,6 +700,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(contribution_type AS TEXT)"))
                 .from(Alias::new(contribution::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("contribution_type")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(contribution_type AS TEXT)"), Order::Desc)
                 .limit(page_size_contribution_type)
                 .offset(cur_page_contribution_type * page_size_contribution_type)
                 .to_owned();
@@ -707,14 +714,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_contribution_type: Vec<String> = rows_contribution_type
+            let vals_contribution_type: Vec<String> = rows_contribution_type
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_contribution_type.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert(
                 "contribution_type".to_string(),
                 (vals_contribution_type, total_contribution_type),
@@ -744,6 +747,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(title AS TEXT)"))
                 .from(Alias::new(contribution::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(title AS TEXT)"), Order::Desc)
                 .limit(page_size_title)
                 .offset(cur_page_title * page_size_title)
                 .to_owned();
@@ -757,14 +761,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_title: Vec<String> = rows_title
+            let vals_title: Vec<String> = rows_title
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("title".to_string(), (vals_title, total_title));
             let page_size_content = 5u64;
             let cur_page_content = pages.get("content").copied().unwrap_or(0);
@@ -791,6 +791,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(content AS TEXT)"))
                 .from(Alias::new(contribution::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("content")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(content AS TEXT)"), Order::Desc)
                 .limit(page_size_content)
                 .offset(cur_page_content * page_size_content)
                 .to_owned();
@@ -804,14 +805,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_content: Vec<String> = rows_content
+            let vals_content: Vec<String> = rows_content
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_content.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("content".to_string(), (vals_content, total_content));
             Ok(result)
         })
@@ -826,6 +823,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
+            .with_unique_fields(contribution::UNIQUE_FIELDS)
             .with_filter_fn(filter_fn),
     );
 
@@ -858,7 +856,11 @@ pub fn admin_register() -> AdminRegistry {
                 sea_query::{Alias, Expr, Order},
             };
             let mut query = blog::Entity::find();
-            if let Some(ref col) = params.sort_by {
+            const SORT_COLS: &[&str] = &["id", "title", "email", "website", "summary", "content"];
+            const FILTER_COLS: &[&str] = &["title", "email", "website", "summary", "content"];
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
                 let order = if params.sort_dir == SortDir::Desc {
                     Order::Desc
                 } else {
@@ -867,8 +869,13 @@ pub fn admin_register() -> AdminRegistry {
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                let escaped = val.replace('\'', "''");
-                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(Expr::cust_with_values(
+                    format!("CAST({} AS TEXT) = ?", col),
+                    [val.clone()],
+                ));
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(blog::Entity => or("title" icontains search_str, "email" icontains search_str, "website" icontains search_str, "summary" icontains search_str, "content" icontains search_str));
@@ -970,7 +977,7 @@ pub fn admin_register() -> AdminRegistry {
     );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
-            use sea_orm::sea_query::{Alias, Expr, Query};
+            use sea_orm::sea_query::{Alias, Expr, Order, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
             let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
                 std::collections::HashMap::new();
@@ -999,6 +1006,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(title AS TEXT)"))
                 .from(Alias::new(blog::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(title AS TEXT)"), Order::Desc)
                 .limit(page_size_title)
                 .offset(cur_page_title * page_size_title)
                 .to_owned();
@@ -1012,14 +1020,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_title: Vec<String> = rows_title
+            let vals_title: Vec<String> = rows_title
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("title".to_string(), (vals_title, total_title));
             let page_size_email = 10u64;
             let cur_page_email = pages.get("email").copied().unwrap_or(0);
@@ -1046,6 +1050,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(email AS TEXT)"))
                 .from(Alias::new(blog::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("email")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(email AS TEXT)"), Order::Desc)
                 .limit(page_size_email)
                 .offset(cur_page_email * page_size_email)
                 .to_owned();
@@ -1059,14 +1064,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_email: Vec<String> = rows_email
+            let vals_email: Vec<String> = rows_email
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_email.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("email".to_string(), (vals_email, total_email));
             let page_size_website = 10u64;
             let cur_page_website = pages.get("website").copied().unwrap_or(0);
@@ -1093,6 +1094,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(website AS TEXT)"))
                 .from(Alias::new(blog::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("website")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(website AS TEXT)"), Order::Desc)
                 .limit(page_size_website)
                 .offset(cur_page_website * page_size_website)
                 .to_owned();
@@ -1106,14 +1108,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_website: Vec<String> = rows_website
+            let vals_website: Vec<String> = rows_website
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_website.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("website".to_string(), (vals_website, total_website));
             let page_size_summary = 10u64;
             let cur_page_summary = pages.get("summary").copied().unwrap_or(0);
@@ -1140,6 +1138,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(summary AS TEXT)"))
                 .from(Alias::new(blog::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("summary")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(summary AS TEXT)"), Order::Desc)
                 .limit(page_size_summary)
                 .offset(cur_page_summary * page_size_summary)
                 .to_owned();
@@ -1153,14 +1152,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_summary: Vec<String> = rows_summary
+            let vals_summary: Vec<String> = rows_summary
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_summary.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("summary".to_string(), (vals_summary, total_summary));
             let page_size_content = 10u64;
             let cur_page_content = pages.get("content").copied().unwrap_or(0);
@@ -1187,6 +1182,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(content AS TEXT)"))
                 .from(Alias::new(blog::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("content")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(content AS TEXT)"), Order::Desc)
                 .limit(page_size_content)
                 .offset(cur_page_content * page_size_content)
                 .to_owned();
@@ -1200,14 +1196,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_content: Vec<String> = rows_content
+            let vals_content: Vec<String> = rows_content
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_content.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("content".to_string(), (vals_content, total_content));
             Ok(result)
         })
@@ -1222,6 +1214,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
+            .with_unique_fields(blog::UNIQUE_FIELDS)
             .with_filter_fn(filter_fn),
     );
 
@@ -1255,7 +1248,26 @@ pub fn admin_register() -> AdminRegistry {
                 sea_query::{Alias, Expr, Order},
             };
             let mut query = changelog_entry::Entity::find();
-            if let Some(ref col) = params.sort_by {
+            const SORT_COLS: &[&str] = &[
+                "id",
+                "version",
+                "release_date",
+                "category",
+                "title",
+                "description",
+                "sort_order",
+            ];
+            const FILTER_COLS: &[&str] = &[
+                "version",
+                "release_date",
+                "category",
+                "title",
+                "description",
+                "sort_order",
+            ];
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
                 let order = if params.sort_dir == SortDir::Desc {
                     Order::Desc
                 } else {
@@ -1264,8 +1276,13 @@ pub fn admin_register() -> AdminRegistry {
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                let escaped = val.replace('\'', "''");
-                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(Expr::cust_with_values(
+                    format!("CAST({} AS TEXT) = ?", col),
+                    [val.clone()],
+                ));
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(changelog_entry::Entity => or("version" icontains search_str, "release_date" icontains search_str, "category" icontains search_str, "title" icontains search_str, "description" icontains search_str, "sort_order" icontains search_str));
@@ -1372,7 +1389,7 @@ pub fn admin_register() -> AdminRegistry {
     );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
-            use sea_orm::sea_query::{Alias, Expr, Query};
+            use sea_orm::sea_query::{Alias, Expr, Order, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
             let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
                 std::collections::HashMap::new();
@@ -1401,6 +1418,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(version AS TEXT)"))
                 .from(Alias::new(changelog_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("version")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(version AS TEXT)"), Order::Desc)
                 .limit(page_size_version)
                 .offset(cur_page_version * page_size_version)
                 .to_owned();
@@ -1414,14 +1432,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_version: Vec<String> = rows_version
+            let vals_version: Vec<String> = rows_version
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_version.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("version".to_string(), (vals_version, total_version));
             let page_size_release_date = 10u64;
             let cur_page_release_date = pages.get("release_date").copied().unwrap_or(0);
@@ -1448,6 +1462,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(release_date AS TEXT)"))
                 .from(Alias::new(changelog_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("release_date")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(release_date AS TEXT)"), Order::Desc)
                 .limit(page_size_release_date)
                 .offset(cur_page_release_date * page_size_release_date)
                 .to_owned();
@@ -1461,14 +1476,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_release_date: Vec<String> = rows_release_date
+            let vals_release_date: Vec<String> = rows_release_date
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_release_date.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert(
                 "release_date".to_string(),
                 (vals_release_date, total_release_date),
@@ -1498,6 +1509,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(category AS TEXT)"))
                 .from(Alias::new(changelog_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("category")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(category AS TEXT)"), Order::Desc)
                 .limit(page_size_category)
                 .offset(cur_page_category * page_size_category)
                 .to_owned();
@@ -1511,14 +1523,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_category: Vec<String> = rows_category
+            let vals_category: Vec<String> = rows_category
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_category.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("category".to_string(), (vals_category, total_category));
             let page_size_title = 10u64;
             let cur_page_title = pages.get("title").copied().unwrap_or(0);
@@ -1545,6 +1553,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(title AS TEXT)"))
                 .from(Alias::new(changelog_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(title AS TEXT)"), Order::Desc)
                 .limit(page_size_title)
                 .offset(cur_page_title * page_size_title)
                 .to_owned();
@@ -1558,14 +1567,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_title: Vec<String> = rows_title
+            let vals_title: Vec<String> = rows_title
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("title".to_string(), (vals_title, total_title));
             let page_size_description = 10u64;
             let cur_page_description = pages.get("description").copied().unwrap_or(0);
@@ -1592,6 +1597,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(description AS TEXT)"))
                 .from(Alias::new(changelog_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("description")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(description AS TEXT)"), Order::Desc)
                 .limit(page_size_description)
                 .offset(cur_page_description * page_size_description)
                 .to_owned();
@@ -1605,14 +1611,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_description: Vec<String> = rows_description
+            let vals_description: Vec<String> = rows_description
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_description.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert(
                 "description".to_string(),
                 (vals_description, total_description),
@@ -1642,6 +1644,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(sort_order AS TEXT)"))
                 .from(Alias::new(changelog_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(sort_order AS TEXT)"), Order::Desc)
                 .limit(page_size_sort_order)
                 .offset(cur_page_sort_order * page_size_sort_order)
                 .to_owned();
@@ -1655,14 +1658,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_sort_order: Vec<String> = rows_sort_order
+            let vals_sort_order: Vec<String> = rows_sort_order
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert(
                 "sort_order".to_string(),
                 (vals_sort_order, total_sort_order),
@@ -1680,6 +1679,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
+            .with_unique_fields(changelog_entry::UNIQUE_FIELDS)
             .with_filter_fn(filter_fn),
     );
 
@@ -1713,7 +1713,30 @@ pub fn admin_register() -> AdminRegistry {
                 sea_query::{Alias, Expr, Order},
             };
             let mut query = roadmap_entry::Entity::find();
-            if let Some(ref col) = params.sort_by {
+            const SORT_COLS: &[&str] = &[
+                "id",
+                "status",
+                "title",
+                "description",
+                "link_url",
+                "link_label",
+                "link_url_2",
+                "link_label_2",
+                "sort_order",
+            ];
+            const FILTER_COLS: &[&str] = &[
+                "status",
+                "title",
+                "description",
+                "link_url",
+                "link_label",
+                "link_url_2",
+                "link_label_2",
+                "sort_order",
+            ];
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
                 let order = if params.sort_dir == SortDir::Desc {
                     Order::Desc
                 } else {
@@ -1722,8 +1745,13 @@ pub fn admin_register() -> AdminRegistry {
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                let escaped = val.replace('\'', "''");
-                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(Expr::cust_with_values(
+                    format!("CAST({} AS TEXT) = ?", col),
+                    [val.clone()],
+                ));
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(roadmap_entry::Entity => or("status" icontains search_str, "title" icontains search_str, "description" icontains search_str, "link_url" icontains search_str, "link_label" icontains search_str, "link_url_2" icontains search_str, "link_label_2" icontains search_str, "sort_order" icontains search_str));
@@ -1834,7 +1862,7 @@ pub fn admin_register() -> AdminRegistry {
     );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
-            use sea_orm::sea_query::{Alias, Expr, Query};
+            use sea_orm::sea_query::{Alias, Expr, Order, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
             let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
                 std::collections::HashMap::new();
@@ -1863,6 +1891,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(status AS TEXT)"))
                 .from(Alias::new(roadmap_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("status")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(status AS TEXT)"), Order::Desc)
                 .limit(page_size_status)
                 .offset(cur_page_status * page_size_status)
                 .to_owned();
@@ -1876,14 +1905,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_status: Vec<String> = rows_status
+            let vals_status: Vec<String> = rows_status
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_status.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("status".to_string(), (vals_status, total_status));
             let page_size_title = 10u64;
             let cur_page_title = pages.get("title").copied().unwrap_or(0);
@@ -1910,6 +1935,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(title AS TEXT)"))
                 .from(Alias::new(roadmap_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(title AS TEXT)"), Order::Desc)
                 .limit(page_size_title)
                 .offset(cur_page_title * page_size_title)
                 .to_owned();
@@ -1923,14 +1949,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_title: Vec<String> = rows_title
+            let vals_title: Vec<String> = rows_title
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("title".to_string(), (vals_title, total_title));
             let page_size_description = 10u64;
             let cur_page_description = pages.get("description").copied().unwrap_or(0);
@@ -1957,6 +1979,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(description AS TEXT)"))
                 .from(Alias::new(roadmap_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("description")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(description AS TEXT)"), Order::Desc)
                 .limit(page_size_description)
                 .offset(cur_page_description * page_size_description)
                 .to_owned();
@@ -1970,14 +1993,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_description: Vec<String> = rows_description
+            let vals_description: Vec<String> = rows_description
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_description.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert(
                 "description".to_string(),
                 (vals_description, total_description),
@@ -2007,6 +2026,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(link_url AS TEXT)"))
                 .from(Alias::new(roadmap_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("link_url")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(link_url AS TEXT)"), Order::Desc)
                 .limit(page_size_link_url)
                 .offset(cur_page_link_url * page_size_link_url)
                 .to_owned();
@@ -2020,14 +2040,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_link_url: Vec<String> = rows_link_url
+            let vals_link_url: Vec<String> = rows_link_url
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_link_url.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("link_url".to_string(), (vals_link_url, total_link_url));
             let page_size_link_label = 10u64;
             let cur_page_link_label = pages.get("link_label").copied().unwrap_or(0);
@@ -2054,6 +2070,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(link_label AS TEXT)"))
                 .from(Alias::new(roadmap_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("link_label")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(link_label AS TEXT)"), Order::Desc)
                 .limit(page_size_link_label)
                 .offset(cur_page_link_label * page_size_link_label)
                 .to_owned();
@@ -2067,14 +2084,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_link_label: Vec<String> = rows_link_label
+            let vals_link_label: Vec<String> = rows_link_label
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_link_label.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert(
                 "link_label".to_string(),
                 (vals_link_label, total_link_label),
@@ -2104,6 +2117,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(link_url_2 AS TEXT)"))
                 .from(Alias::new(roadmap_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("link_url_2")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(link_url_2 AS TEXT)"), Order::Desc)
                 .limit(page_size_link_url_2)
                 .offset(cur_page_link_url_2 * page_size_link_url_2)
                 .to_owned();
@@ -2117,14 +2131,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_link_url_2: Vec<String> = rows_link_url_2
+            let vals_link_url_2: Vec<String> = rows_link_url_2
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_link_url_2.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert(
                 "link_url_2".to_string(),
                 (vals_link_url_2, total_link_url_2),
@@ -2154,6 +2164,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(link_label_2 AS TEXT)"))
                 .from(Alias::new(roadmap_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("link_label_2")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(link_label_2 AS TEXT)"), Order::Desc)
                 .limit(page_size_link_label_2)
                 .offset(cur_page_link_label_2 * page_size_link_label_2)
                 .to_owned();
@@ -2167,14 +2178,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_link_label_2: Vec<String> = rows_link_label_2
+            let vals_link_label_2: Vec<String> = rows_link_label_2
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_link_label_2.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert(
                 "link_label_2".to_string(),
                 (vals_link_label_2, total_link_label_2),
@@ -2204,6 +2211,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(sort_order AS TEXT)"))
                 .from(Alias::new(roadmap_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(sort_order AS TEXT)"), Order::Desc)
                 .limit(page_size_sort_order)
                 .offset(cur_page_sort_order * page_size_sort_order)
                 .to_owned();
@@ -2217,14 +2225,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_sort_order: Vec<String> = rows_sort_order
+            let vals_sort_order: Vec<String> = rows_sort_order
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert(
                 "sort_order".to_string(),
                 (vals_sort_order, total_sort_order),
@@ -2242,6 +2246,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
+            .with_unique_fields(roadmap_entry::UNIQUE_FIELDS)
             .with_filter_fn(filter_fn),
     );
 
@@ -2275,7 +2280,24 @@ pub fn admin_register() -> AdminRegistry {
                 sea_query::{Alias, Expr, Order},
             };
             let mut query = known_issue::Entity::find();
-            if let Some(ref col) = params.sort_by {
+            const SORT_COLS: &[&str] = &[
+                "id",
+                "version",
+                "title",
+                "description",
+                "issue_type",
+                "sort_order",
+            ];
+            const FILTER_COLS: &[&str] = &[
+                "version",
+                "title",
+                "description",
+                "issue_type",
+                "sort_order",
+            ];
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
                 let order = if params.sort_dir == SortDir::Desc {
                     Order::Desc
                 } else {
@@ -2284,8 +2306,13 @@ pub fn admin_register() -> AdminRegistry {
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                let escaped = val.replace('\'', "''");
-                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(Expr::cust_with_values(
+                    format!("CAST({} AS TEXT) = ?", col),
+                    [val.clone()],
+                ));
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(known_issue::Entity => or("version" icontains search_str, "title" icontains search_str, "description" icontains search_str, "issue_type" icontains search_str, "sort_order" icontains search_str));
@@ -2390,7 +2417,7 @@ pub fn admin_register() -> AdminRegistry {
     );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
-            use sea_orm::sea_query::{Alias, Expr, Query};
+            use sea_orm::sea_query::{Alias, Expr, Order, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
             let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
                 std::collections::HashMap::new();
@@ -2419,6 +2446,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(version AS TEXT)"))
                 .from(Alias::new(known_issue::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("version")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(version AS TEXT)"), Order::Desc)
                 .limit(page_size_version)
                 .offset(cur_page_version * page_size_version)
                 .to_owned();
@@ -2432,14 +2460,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_version: Vec<String> = rows_version
+            let vals_version: Vec<String> = rows_version
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_version.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("version".to_string(), (vals_version, total_version));
             let page_size_title = 10u64;
             let cur_page_title = pages.get("title").copied().unwrap_or(0);
@@ -2466,6 +2490,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(title AS TEXT)"))
                 .from(Alias::new(known_issue::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(title AS TEXT)"), Order::Desc)
                 .limit(page_size_title)
                 .offset(cur_page_title * page_size_title)
                 .to_owned();
@@ -2479,14 +2504,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_title: Vec<String> = rows_title
+            let vals_title: Vec<String> = rows_title
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("title".to_string(), (vals_title, total_title));
             let page_size_description = 10u64;
             let cur_page_description = pages.get("description").copied().unwrap_or(0);
@@ -2513,6 +2534,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(description AS TEXT)"))
                 .from(Alias::new(known_issue::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("description")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(description AS TEXT)"), Order::Desc)
                 .limit(page_size_description)
                 .offset(cur_page_description * page_size_description)
                 .to_owned();
@@ -2526,14 +2548,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_description: Vec<String> = rows_description
+            let vals_description: Vec<String> = rows_description
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_description.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert(
                 "description".to_string(),
                 (vals_description, total_description),
@@ -2563,6 +2581,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(issue_type AS TEXT)"))
                 .from(Alias::new(known_issue::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("issue_type")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(issue_type AS TEXT)"), Order::Desc)
                 .limit(page_size_issue_type)
                 .offset(cur_page_issue_type * page_size_issue_type)
                 .to_owned();
@@ -2576,14 +2595,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_issue_type: Vec<String> = rows_issue_type
+            let vals_issue_type: Vec<String> = rows_issue_type
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_issue_type.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert(
                 "issue_type".to_string(),
                 (vals_issue_type, total_issue_type),
@@ -2613,6 +2628,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(sort_order AS TEXT)"))
                 .from(Alias::new(known_issue::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(sort_order AS TEXT)"), Order::Desc)
                 .limit(page_size_sort_order)
                 .offset(cur_page_sort_order * page_size_sort_order)
                 .to_owned();
@@ -2626,14 +2642,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_sort_order: Vec<String> = rows_sort_order
+            let vals_sort_order: Vec<String> = rows_sort_order
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert(
                 "sort_order".to_string(),
                 (vals_sort_order, total_sort_order),
@@ -2651,6 +2663,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
+            .with_unique_fields(known_issue::UNIQUE_FIELDS)
             .with_filter_fn(filter_fn),
     );
 
@@ -2684,7 +2697,11 @@ pub fn admin_register() -> AdminRegistry {
                 sea_query::{Alias, Expr, Order},
             };
             let mut query = demo_category::Entity::find();
-            if let Some(ref col) = params.sort_by {
+            const SORT_COLS: &[&str] = &["id"];
+            const FILTER_COLS: &[&str] = &[];
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
                 let order = if params.sort_dir == SortDir::Desc {
                     Order::Desc
                 } else {
@@ -2693,8 +2710,13 @@ pub fn admin_register() -> AdminRegistry {
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                let escaped = val.replace('\'', "''");
-                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(Expr::cust_with_values(
+                    format!("CAST({} AS TEXT) = ?", col),
+                    [val.clone()],
+                ));
             }
             if let Some(ref search_str) = params.search {
                 let search_cond =
@@ -2790,7 +2812,8 @@ pub fn admin_register() -> AdminRegistry {
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
-            .with_count_fn(count_fn),
+            .with_count_fn(count_fn)
+            .with_unique_fields(demo_category::UNIQUE_FIELDS),
     );
 
     // ── Resource: demo_page ──
@@ -2822,7 +2845,26 @@ pub fn admin_register() -> AdminRegistry {
                 sea_query::{Alias, Expr, Order},
             };
             let mut query = demo_page::Entity::find();
-            if let Some(ref col) = params.sort_by {
+            const SORT_COLS: &[&str] = &[
+                "id",
+                "category_id",
+                "slug",
+                "title",
+                "lead",
+                "page_type",
+                "sort_order",
+            ];
+            const FILTER_COLS: &[&str] = &[
+                "category_id",
+                "slug",
+                "title",
+                "lead",
+                "page_type",
+                "sort_order",
+            ];
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
                 let order = if params.sort_dir == SortDir::Desc {
                     Order::Desc
                 } else {
@@ -2831,8 +2873,13 @@ pub fn admin_register() -> AdminRegistry {
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                let escaped = val.replace('\'', "''");
-                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(Expr::cust_with_values(
+                    format!("CAST({} AS TEXT) = ?", col),
+                    [val.clone()],
+                ));
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(demo_page::Entity => or("category_id" icontains search_str, "slug" icontains search_str, "title" icontains search_str, "lead" icontains search_str, "page_type" icontains search_str, "sort_order" icontains search_str));
@@ -2939,7 +2986,7 @@ pub fn admin_register() -> AdminRegistry {
     );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
-            use sea_orm::sea_query::{Alias, Expr, Query};
+            use sea_orm::sea_query::{Alias, Expr, Order, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
             let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
                 std::collections::HashMap::new();
@@ -2968,6 +3015,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(category_id AS TEXT)"))
                 .from(Alias::new(demo_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("category_id")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(category_id AS TEXT)"), Order::Desc)
                 .limit(page_size_category_id)
                 .offset(cur_page_category_id * page_size_category_id)
                 .to_owned();
@@ -2981,14 +3029,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_category_id: Vec<String> = rows_category_id
+            let vals_category_id: Vec<String> = rows_category_id
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_category_id.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert(
                 "category_id".to_string(),
                 (vals_category_id, total_category_id),
@@ -3018,6 +3062,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(slug AS TEXT)"))
                 .from(Alias::new(demo_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("slug")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(slug AS TEXT)"), Order::Desc)
                 .limit(page_size_slug)
                 .offset(cur_page_slug * page_size_slug)
                 .to_owned();
@@ -3031,14 +3076,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_slug: Vec<String> = rows_slug
+            let vals_slug: Vec<String> = rows_slug
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_slug.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("slug".to_string(), (vals_slug, total_slug));
             let page_size_title = 10u64;
             let cur_page_title = pages.get("title").copied().unwrap_or(0);
@@ -3065,6 +3106,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(title AS TEXT)"))
                 .from(Alias::new(demo_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(title AS TEXT)"), Order::Desc)
                 .limit(page_size_title)
                 .offset(cur_page_title * page_size_title)
                 .to_owned();
@@ -3078,14 +3120,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_title: Vec<String> = rows_title
+            let vals_title: Vec<String> = rows_title
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("title".to_string(), (vals_title, total_title));
             let page_size_lead = 10u64;
             let cur_page_lead = pages.get("lead").copied().unwrap_or(0);
@@ -3112,6 +3150,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(lead AS TEXT)"))
                 .from(Alias::new(demo_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("lead")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(lead AS TEXT)"), Order::Desc)
                 .limit(page_size_lead)
                 .offset(cur_page_lead * page_size_lead)
                 .to_owned();
@@ -3125,14 +3164,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_lead: Vec<String> = rows_lead
+            let vals_lead: Vec<String> = rows_lead
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_lead.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("lead".to_string(), (vals_lead, total_lead));
             let page_size_page_type = 10u64;
             let cur_page_page_type = pages.get("page_type").copied().unwrap_or(0);
@@ -3159,6 +3194,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(page_type AS TEXT)"))
                 .from(Alias::new(demo_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("page_type")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(page_type AS TEXT)"), Order::Desc)
                 .limit(page_size_page_type)
                 .offset(cur_page_page_type * page_size_page_type)
                 .to_owned();
@@ -3172,14 +3208,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_page_type: Vec<String> = rows_page_type
+            let vals_page_type: Vec<String> = rows_page_type
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_page_type.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("page_type".to_string(), (vals_page_type, total_page_type));
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
@@ -3206,6 +3238,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(sort_order AS TEXT)"))
                 .from(Alias::new(demo_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(sort_order AS TEXT)"), Order::Desc)
                 .limit(page_size_sort_order)
                 .offset(cur_page_sort_order * page_size_sort_order)
                 .to_owned();
@@ -3219,14 +3252,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_sort_order: Vec<String> = rows_sort_order
+            let vals_sort_order: Vec<String> = rows_sort_order
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert(
                 "sort_order".to_string(),
                 (vals_sort_order, total_sort_order),
@@ -3244,6 +3273,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
+            .with_unique_fields(demo_page::UNIQUE_FIELDS)
             .with_filter_fn(filter_fn),
     );
 
@@ -3277,7 +3307,11 @@ pub fn admin_register() -> AdminRegistry {
                 sea_query::{Alias, Expr, Order},
             };
             let mut query = demo_section::Entity::find();
-            if let Some(ref col) = params.sort_by {
+            const SORT_COLS: &[&str] = &["id", "page_id", "title", "content", "sort_order"];
+            const FILTER_COLS: &[&str] = &["page_id", "title", "content", "sort_order"];
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
                 let order = if params.sort_dir == SortDir::Desc {
                     Order::Desc
                 } else {
@@ -3286,8 +3320,13 @@ pub fn admin_register() -> AdminRegistry {
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                let escaped = val.replace('\'', "''");
-                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(Expr::cust_with_values(
+                    format!("CAST({} AS TEXT) = ?", col),
+                    [val.clone()],
+                ));
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(demo_section::Entity => or("page_id" icontains search_str, "title" icontains search_str, "content" icontains search_str, "sort_order" icontains search_str));
@@ -3390,7 +3429,7 @@ pub fn admin_register() -> AdminRegistry {
     );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
-            use sea_orm::sea_query::{Alias, Expr, Query};
+            use sea_orm::sea_query::{Alias, Expr, Order, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
             let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
                 std::collections::HashMap::new();
@@ -3419,6 +3458,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(page_id AS TEXT)"))
                 .from(Alias::new(demo_section::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("page_id")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(page_id AS TEXT)"), Order::Desc)
                 .limit(page_size_page_id)
                 .offset(cur_page_page_id * page_size_page_id)
                 .to_owned();
@@ -3432,14 +3472,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_page_id: Vec<String> = rows_page_id
+            let vals_page_id: Vec<String> = rows_page_id
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_page_id.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("page_id".to_string(), (vals_page_id, total_page_id));
             let page_size_title = 10u64;
             let cur_page_title = pages.get("title").copied().unwrap_or(0);
@@ -3466,6 +3502,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(title AS TEXT)"))
                 .from(Alias::new(demo_section::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(title AS TEXT)"), Order::Desc)
                 .limit(page_size_title)
                 .offset(cur_page_title * page_size_title)
                 .to_owned();
@@ -3479,14 +3516,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_title: Vec<String> = rows_title
+            let vals_title: Vec<String> = rows_title
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("title".to_string(), (vals_title, total_title));
             let page_size_content = 10u64;
             let cur_page_content = pages.get("content").copied().unwrap_or(0);
@@ -3513,6 +3546,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(content AS TEXT)"))
                 .from(Alias::new(demo_section::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("content")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(content AS TEXT)"), Order::Desc)
                 .limit(page_size_content)
                 .offset(cur_page_content * page_size_content)
                 .to_owned();
@@ -3526,14 +3560,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_content: Vec<String> = rows_content
+            let vals_content: Vec<String> = rows_content
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_content.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("content".to_string(), (vals_content, total_content));
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
@@ -3560,6 +3590,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(sort_order AS TEXT)"))
                 .from(Alias::new(demo_section::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(sort_order AS TEXT)"), Order::Desc)
                 .limit(page_size_sort_order)
                 .offset(cur_page_sort_order * page_size_sort_order)
                 .to_owned();
@@ -3573,14 +3604,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_sort_order: Vec<String> = rows_sort_order
+            let vals_sort_order: Vec<String> = rows_sort_order
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert(
                 "sort_order".to_string(),
                 (vals_sort_order, total_sort_order),
@@ -3598,6 +3625,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
+            .with_unique_fields(demo_section::UNIQUE_FIELDS)
             .with_filter_fn(filter_fn),
     );
 
@@ -3631,7 +3659,26 @@ pub fn admin_register() -> AdminRegistry {
                 sea_query::{Alias, Expr, Order},
             };
             let mut query = code_example::Entity::find();
-            if let Some(ref col) = params.sort_by {
+            const SORT_COLS: &[&str] = &[
+                "id",
+                "page_id",
+                "title",
+                "language",
+                "code",
+                "context",
+                "sort_order",
+            ];
+            const FILTER_COLS: &[&str] = &[
+                "page_id",
+                "title",
+                "language",
+                "code",
+                "context",
+                "sort_order",
+            ];
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
                 let order = if params.sort_dir == SortDir::Desc {
                     Order::Desc
                 } else {
@@ -3640,8 +3687,13 @@ pub fn admin_register() -> AdminRegistry {
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                let escaped = val.replace('\'', "''");
-                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(Expr::cust_with_values(
+                    format!("CAST({} AS TEXT) = ?", col),
+                    [val.clone()],
+                ));
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(code_example::Entity => or("page_id" icontains search_str, "title" icontains search_str, "language" icontains search_str, "code" icontains search_str, "context" icontains search_str, "sort_order" icontains search_str));
@@ -3748,7 +3800,7 @@ pub fn admin_register() -> AdminRegistry {
     );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
-            use sea_orm::sea_query::{Alias, Expr, Query};
+            use sea_orm::sea_query::{Alias, Expr, Order, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
             let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
                 std::collections::HashMap::new();
@@ -3777,6 +3829,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(page_id AS TEXT)"))
                 .from(Alias::new(code_example::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("page_id")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(page_id AS TEXT)"), Order::Desc)
                 .limit(page_size_page_id)
                 .offset(cur_page_page_id * page_size_page_id)
                 .to_owned();
@@ -3790,14 +3843,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_page_id: Vec<String> = rows_page_id
+            let vals_page_id: Vec<String> = rows_page_id
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_page_id.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("page_id".to_string(), (vals_page_id, total_page_id));
             let page_size_title = 10u64;
             let cur_page_title = pages.get("title").copied().unwrap_or(0);
@@ -3824,6 +3873,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(title AS TEXT)"))
                 .from(Alias::new(code_example::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(title AS TEXT)"), Order::Desc)
                 .limit(page_size_title)
                 .offset(cur_page_title * page_size_title)
                 .to_owned();
@@ -3837,14 +3887,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_title: Vec<String> = rows_title
+            let vals_title: Vec<String> = rows_title
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("title".to_string(), (vals_title, total_title));
             let page_size_language = 10u64;
             let cur_page_language = pages.get("language").copied().unwrap_or(0);
@@ -3871,6 +3917,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(language AS TEXT)"))
                 .from(Alias::new(code_example::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("language")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(language AS TEXT)"), Order::Desc)
                 .limit(page_size_language)
                 .offset(cur_page_language * page_size_language)
                 .to_owned();
@@ -3884,14 +3931,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_language: Vec<String> = rows_language
+            let vals_language: Vec<String> = rows_language
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_language.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("language".to_string(), (vals_language, total_language));
             let page_size_code = 10u64;
             let cur_page_code = pages.get("code").copied().unwrap_or(0);
@@ -3918,6 +3961,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(code AS TEXT)"))
                 .from(Alias::new(code_example::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("code")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(code AS TEXT)"), Order::Desc)
                 .limit(page_size_code)
                 .offset(cur_page_code * page_size_code)
                 .to_owned();
@@ -3931,14 +3975,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_code: Vec<String> = rows_code
+            let vals_code: Vec<String> = rows_code
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_code.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("code".to_string(), (vals_code, total_code));
             let page_size_context = 10u64;
             let cur_page_context = pages.get("context").copied().unwrap_or(0);
@@ -3965,6 +4005,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(context AS TEXT)"))
                 .from(Alias::new(code_example::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("context")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(context AS TEXT)"), Order::Desc)
                 .limit(page_size_context)
                 .offset(cur_page_context * page_size_context)
                 .to_owned();
@@ -3978,14 +4019,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_context: Vec<String> = rows_context
+            let vals_context: Vec<String> = rows_context
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_context.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("context".to_string(), (vals_context, total_context));
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
@@ -4012,6 +4049,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(sort_order AS TEXT)"))
                 .from(Alias::new(code_example::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(sort_order AS TEXT)"), Order::Desc)
                 .limit(page_size_sort_order)
                 .offset(cur_page_sort_order * page_size_sort_order)
                 .to_owned();
@@ -4025,14 +4063,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_sort_order: Vec<String> = rows_sort_order
+            let vals_sort_order: Vec<String> = rows_sort_order
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert(
                 "sort_order".to_string(),
                 (vals_sort_order, total_sort_order),
@@ -4050,6 +4084,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
+            .with_unique_fields(code_example::UNIQUE_FIELDS)
             .with_filter_fn(filter_fn),
     );
 
@@ -4083,7 +4118,12 @@ pub fn admin_register() -> AdminRegistry {
                 sea_query::{Alias, Expr, Order},
             };
             let mut query = page_doc_link::Entity::find();
-            if let Some(ref col) = params.sort_by {
+            const SORT_COLS: &[&str] =
+                &["id", "page_id", "label", "url", "link_type", "sort_order"];
+            const FILTER_COLS: &[&str] = &["page_id", "label", "url", "link_type", "sort_order"];
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
                 let order = if params.sort_dir == SortDir::Desc {
                     Order::Desc
                 } else {
@@ -4092,8 +4132,13 @@ pub fn admin_register() -> AdminRegistry {
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                let escaped = val.replace('\'', "''");
-                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(Expr::cust_with_values(
+                    format!("CAST({} AS TEXT) = ?", col),
+                    [val.clone()],
+                ));
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(page_doc_link::Entity => or("page_id" icontains search_str, "label" icontains search_str, "url" icontains search_str, "link_type" icontains search_str, "sort_order" icontains search_str));
@@ -4198,7 +4243,7 @@ pub fn admin_register() -> AdminRegistry {
     );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
-            use sea_orm::sea_query::{Alias, Expr, Query};
+            use sea_orm::sea_query::{Alias, Expr, Order, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
             let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
                 std::collections::HashMap::new();
@@ -4227,6 +4272,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(page_id AS TEXT)"))
                 .from(Alias::new(page_doc_link::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("page_id")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(page_id AS TEXT)"), Order::Desc)
                 .limit(page_size_page_id)
                 .offset(cur_page_page_id * page_size_page_id)
                 .to_owned();
@@ -4240,14 +4286,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_page_id: Vec<String> = rows_page_id
+            let vals_page_id: Vec<String> = rows_page_id
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_page_id.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("page_id".to_string(), (vals_page_id, total_page_id));
             let page_size_label = 10u64;
             let cur_page_label = pages.get("label").copied().unwrap_or(0);
@@ -4274,6 +4316,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(label AS TEXT)"))
                 .from(Alias::new(page_doc_link::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("label")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(label AS TEXT)"), Order::Desc)
                 .limit(page_size_label)
                 .offset(cur_page_label * page_size_label)
                 .to_owned();
@@ -4287,14 +4330,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_label: Vec<String> = rows_label
+            let vals_label: Vec<String> = rows_label
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_label.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("label".to_string(), (vals_label, total_label));
             let page_size_url = 10u64;
             let cur_page_url = pages.get("url").copied().unwrap_or(0);
@@ -4321,6 +4360,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(url AS TEXT)"))
                 .from(Alias::new(page_doc_link::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("url")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(url AS TEXT)"), Order::Desc)
                 .limit(page_size_url)
                 .offset(cur_page_url * page_size_url)
                 .to_owned();
@@ -4334,14 +4374,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_url: Vec<String> = rows_url
+            let vals_url: Vec<String> = rows_url
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_url.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("url".to_string(), (vals_url, total_url));
             let page_size_link_type = 10u64;
             let cur_page_link_type = pages.get("link_type").copied().unwrap_or(0);
@@ -4368,6 +4404,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(link_type AS TEXT)"))
                 .from(Alias::new(page_doc_link::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("link_type")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(link_type AS TEXT)"), Order::Desc)
                 .limit(page_size_link_type)
                 .offset(cur_page_link_type * page_size_link_type)
                 .to_owned();
@@ -4381,14 +4418,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_link_type: Vec<String> = rows_link_type
+            let vals_link_type: Vec<String> = rows_link_type
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_link_type.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("link_type".to_string(), (vals_link_type, total_link_type));
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
@@ -4415,6 +4448,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(sort_order AS TEXT)"))
                 .from(Alias::new(page_doc_link::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(sort_order AS TEXT)"), Order::Desc)
                 .limit(page_size_sort_order)
                 .offset(cur_page_sort_order * page_size_sort_order)
                 .to_owned();
@@ -4428,14 +4462,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_sort_order: Vec<String> = rows_sort_order
+            let vals_sort_order: Vec<String> = rows_sort_order
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert(
                 "sort_order".to_string(),
                 (vals_sort_order, total_sort_order),
@@ -4453,6 +4483,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
+            .with_unique_fields(page_doc_link::UNIQUE_FIELDS)
             .with_filter_fn(filter_fn),
     );
 
@@ -4485,7 +4516,28 @@ pub fn admin_register() -> AdminRegistry {
                 sea_query::{Alias, Expr, Order},
             };
             let mut query = form_field::Entity::find();
-            if let Some(ref col) = params.sort_by {
+            const SORT_COLS: &[&str] = &[
+                "id",
+                "page_id",
+                "name",
+                "field_type",
+                "description",
+                "example",
+                "html_preview",
+                "sort_order",
+            ];
+            const FILTER_COLS: &[&str] = &[
+                "page_id",
+                "name",
+                "field_type",
+                "description",
+                "example",
+                "html_preview",
+                "sort_order",
+            ];
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
                 let order = if params.sort_dir == SortDir::Desc {
                     Order::Desc
                 } else {
@@ -4494,8 +4546,13 @@ pub fn admin_register() -> AdminRegistry {
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                let escaped = val.replace('\'', "''");
-                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(Expr::cust_with_values(
+                    format!("CAST({} AS TEXT) = ?", col),
+                    [val.clone()],
+                ));
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(form_field::Entity => or("page_id" icontains search_str, "name" icontains search_str, "field_type" icontains search_str, "description" icontains search_str, "example" icontains search_str, "html_preview" icontains search_str, "sort_order" icontains search_str));
@@ -4604,7 +4661,7 @@ pub fn admin_register() -> AdminRegistry {
     );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
-            use sea_orm::sea_query::{Alias, Expr, Query};
+            use sea_orm::sea_query::{Alias, Expr, Order, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
             let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
                 std::collections::HashMap::new();
@@ -4633,6 +4690,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(page_id AS TEXT)"))
                 .from(Alias::new(form_field::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("page_id")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(page_id AS TEXT)"), Order::Desc)
                 .limit(page_size_page_id)
                 .offset(cur_page_page_id * page_size_page_id)
                 .to_owned();
@@ -4646,14 +4704,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_page_id: Vec<String> = rows_page_id
+            let vals_page_id: Vec<String> = rows_page_id
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_page_id.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("page_id".to_string(), (vals_page_id, total_page_id));
             let page_size_name = 10u64;
             let cur_page_name = pages.get("name").copied().unwrap_or(0);
@@ -4680,6 +4734,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(name AS TEXT)"))
                 .from(Alias::new(form_field::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("name")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(name AS TEXT)"), Order::Desc)
                 .limit(page_size_name)
                 .offset(cur_page_name * page_size_name)
                 .to_owned();
@@ -4693,14 +4748,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_name: Vec<String> = rows_name
+            let vals_name: Vec<String> = rows_name
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_name.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("name".to_string(), (vals_name, total_name));
             let page_size_field_type = 10u64;
             let cur_page_field_type = pages.get("field_type").copied().unwrap_or(0);
@@ -4727,6 +4778,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(field_type AS TEXT)"))
                 .from(Alias::new(form_field::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("field_type")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(field_type AS TEXT)"), Order::Desc)
                 .limit(page_size_field_type)
                 .offset(cur_page_field_type * page_size_field_type)
                 .to_owned();
@@ -4740,14 +4792,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_field_type: Vec<String> = rows_field_type
+            let vals_field_type: Vec<String> = rows_field_type
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_field_type.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert(
                 "field_type".to_string(),
                 (vals_field_type, total_field_type),
@@ -4777,6 +4825,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(description AS TEXT)"))
                 .from(Alias::new(form_field::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("description")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(description AS TEXT)"), Order::Desc)
                 .limit(page_size_description)
                 .offset(cur_page_description * page_size_description)
                 .to_owned();
@@ -4790,14 +4839,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_description: Vec<String> = rows_description
+            let vals_description: Vec<String> = rows_description
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_description.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert(
                 "description".to_string(),
                 (vals_description, total_description),
@@ -4827,6 +4872,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(example AS TEXT)"))
                 .from(Alias::new(form_field::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("example")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(example AS TEXT)"), Order::Desc)
                 .limit(page_size_example)
                 .offset(cur_page_example * page_size_example)
                 .to_owned();
@@ -4840,14 +4886,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_example: Vec<String> = rows_example
+            let vals_example: Vec<String> = rows_example
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_example.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("example".to_string(), (vals_example, total_example));
             let page_size_html_preview = 10u64;
             let cur_page_html_preview = pages.get("html_preview").copied().unwrap_or(0);
@@ -4874,6 +4916,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(html_preview AS TEXT)"))
                 .from(Alias::new(form_field::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("html_preview")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(html_preview AS TEXT)"), Order::Desc)
                 .limit(page_size_html_preview)
                 .offset(cur_page_html_preview * page_size_html_preview)
                 .to_owned();
@@ -4887,14 +4930,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_html_preview: Vec<String> = rows_html_preview
+            let vals_html_preview: Vec<String> = rows_html_preview
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_html_preview.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert(
                 "html_preview".to_string(),
                 (vals_html_preview, total_html_preview),
@@ -4924,6 +4963,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(sort_order AS TEXT)"))
                 .from(Alias::new(form_field::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(sort_order AS TEXT)"), Order::Desc)
                 .limit(page_size_sort_order)
                 .offset(cur_page_sort_order * page_size_sort_order)
                 .to_owned();
@@ -4937,14 +4977,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_sort_order: Vec<String> = rows_sort_order
+            let vals_sort_order: Vec<String> = rows_sort_order
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert(
                 "sort_order".to_string(),
                 (vals_sort_order, total_sort_order),
@@ -4962,6 +4998,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
+            .with_unique_fields(form_field::UNIQUE_FIELDS)
             .with_filter_fn(filter_fn),
     );
 
@@ -4995,7 +5032,11 @@ pub fn admin_register() -> AdminRegistry {
                 sea_query::{Alias, Expr, Order},
             };
             let mut query = doc_section::Entity::find();
-            if let Some(ref col) = params.sort_by {
+            const SORT_COLS: &[&str] = &["id", "slug", "lang", "title", "theme", "sort_order"];
+            const FILTER_COLS: &[&str] = &["lang", "theme"];
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
                 let order = if params.sort_dir == SortDir::Desc {
                     Order::Desc
                 } else {
@@ -5004,8 +5045,13 @@ pub fn admin_register() -> AdminRegistry {
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                let escaped = val.replace('\'', "''");
-                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(Expr::cust_with_values(
+                    format!("CAST({} AS TEXT) = ?", col),
+                    [val.clone()],
+                ));
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(doc_section::Entity => or("slug" icontains search_str, "lang" icontains search_str, "title" icontains search_str, "theme" icontains search_str, "sort_order" icontains search_str));
@@ -5104,7 +5150,7 @@ pub fn admin_register() -> AdminRegistry {
     );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
-            use sea_orm::sea_query::{Alias, Expr, Query};
+            use sea_orm::sea_query::{Alias, Expr, Order, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
             let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
                 std::collections::HashMap::new();
@@ -5133,6 +5179,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(lang AS TEXT)"))
                 .from(Alias::new(doc_section::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("lang")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(lang AS TEXT)"), Order::Desc)
                 .limit(page_size_lang)
                 .offset(cur_page_lang * page_size_lang)
                 .to_owned();
@@ -5146,14 +5193,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_lang: Vec<String> = rows_lang
+            let vals_lang: Vec<String> = rows_lang
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_lang.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("lang".to_string(), (vals_lang, total_lang));
             let page_size_theme = 10u64;
             let cur_page_theme = pages.get("theme").copied().unwrap_or(0);
@@ -5180,6 +5223,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(theme AS TEXT)"))
                 .from(Alias::new(doc_section::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("theme")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(theme AS TEXT)"), Order::Desc)
                 .limit(page_size_theme)
                 .offset(cur_page_theme * page_size_theme)
                 .to_owned();
@@ -5193,14 +5237,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_theme: Vec<String> = rows_theme
+            let vals_theme: Vec<String> = rows_theme
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_theme.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("theme".to_string(), (vals_theme, total_theme));
             Ok(result)
         })
@@ -5215,6 +5255,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
+            .with_unique_fields(doc_section::UNIQUE_FIELDS)
             .with_filter_fn(filter_fn),
     );
 
@@ -5247,7 +5288,20 @@ pub fn admin_register() -> AdminRegistry {
                 sea_query::{Alias, Expr, Order},
             };
             let mut query = doc_page::Entity::find();
-            if let Some(ref col) = params.sort_by {
+            const SORT_COLS: &[&str] = &[
+                "id",
+                "section_id",
+                "slug",
+                "lang",
+                "title",
+                "lead",
+                "sort_order",
+            ];
+            const FILTER_COLS: &[&str] =
+                &["section_id", "slug", "lang", "title", "lead", "sort_order"];
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
                 let order = if params.sort_dir == SortDir::Desc {
                     Order::Desc
                 } else {
@@ -5256,8 +5310,13 @@ pub fn admin_register() -> AdminRegistry {
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                let escaped = val.replace('\'', "''");
-                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(Expr::cust_with_values(
+                    format!("CAST({} AS TEXT) = ?", col),
+                    [val.clone()],
+                ));
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(doc_page::Entity => or("section_id" icontains search_str, "slug" icontains search_str, "lang" icontains search_str, "title" icontains search_str, "lead" icontains search_str, "sort_order" icontains search_str));
@@ -5364,7 +5423,7 @@ pub fn admin_register() -> AdminRegistry {
     );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
-            use sea_orm::sea_query::{Alias, Expr, Query};
+            use sea_orm::sea_query::{Alias, Expr, Order, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
             let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
                 std::collections::HashMap::new();
@@ -5393,6 +5452,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(section_id AS TEXT)"))
                 .from(Alias::new(doc_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("section_id")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(section_id AS TEXT)"), Order::Desc)
                 .limit(page_size_section_id)
                 .offset(cur_page_section_id * page_size_section_id)
                 .to_owned();
@@ -5406,14 +5466,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_section_id: Vec<String> = rows_section_id
+            let vals_section_id: Vec<String> = rows_section_id
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_section_id.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert(
                 "section_id".to_string(),
                 (vals_section_id, total_section_id),
@@ -5443,6 +5499,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(slug AS TEXT)"))
                 .from(Alias::new(doc_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("slug")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(slug AS TEXT)"), Order::Desc)
                 .limit(page_size_slug)
                 .offset(cur_page_slug * page_size_slug)
                 .to_owned();
@@ -5456,14 +5513,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_slug: Vec<String> = rows_slug
+            let vals_slug: Vec<String> = rows_slug
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_slug.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("slug".to_string(), (vals_slug, total_slug));
             let page_size_lang = 10u64;
             let cur_page_lang = pages.get("lang").copied().unwrap_or(0);
@@ -5490,6 +5543,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(lang AS TEXT)"))
                 .from(Alias::new(doc_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("lang")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(lang AS TEXT)"), Order::Desc)
                 .limit(page_size_lang)
                 .offset(cur_page_lang * page_size_lang)
                 .to_owned();
@@ -5503,14 +5557,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_lang: Vec<String> = rows_lang
+            let vals_lang: Vec<String> = rows_lang
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_lang.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("lang".to_string(), (vals_lang, total_lang));
             let page_size_title = 10u64;
             let cur_page_title = pages.get("title").copied().unwrap_or(0);
@@ -5537,6 +5587,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(title AS TEXT)"))
                 .from(Alias::new(doc_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(title AS TEXT)"), Order::Desc)
                 .limit(page_size_title)
                 .offset(cur_page_title * page_size_title)
                 .to_owned();
@@ -5550,14 +5601,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_title: Vec<String> = rows_title
+            let vals_title: Vec<String> = rows_title
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("title".to_string(), (vals_title, total_title));
             let page_size_lead = 10u64;
             let cur_page_lead = pages.get("lead").copied().unwrap_or(0);
@@ -5584,6 +5631,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(lead AS TEXT)"))
                 .from(Alias::new(doc_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("lead")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(lead AS TEXT)"), Order::Desc)
                 .limit(page_size_lead)
                 .offset(cur_page_lead * page_size_lead)
                 .to_owned();
@@ -5597,14 +5645,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_lead: Vec<String> = rows_lead
+            let vals_lead: Vec<String> = rows_lead
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_lead.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("lead".to_string(), (vals_lead, total_lead));
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
@@ -5631,6 +5675,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(sort_order AS TEXT)"))
                 .from(Alias::new(doc_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(sort_order AS TEXT)"), Order::Desc)
                 .limit(page_size_sort_order)
                 .offset(cur_page_sort_order * page_size_sort_order)
                 .to_owned();
@@ -5644,14 +5689,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_sort_order: Vec<String> = rows_sort_order
+            let vals_sort_order: Vec<String> = rows_sort_order
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert(
                 "sort_order".to_string(),
                 (vals_sort_order, total_sort_order),
@@ -5669,6 +5710,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
+            .with_unique_fields(doc_page::UNIQUE_FIELDS)
             .with_filter_fn(filter_fn),
     );
 
@@ -5701,7 +5743,19 @@ pub fn admin_register() -> AdminRegistry {
                 sea_query::{Alias, Expr, Order},
             };
             let mut query = doc_block::Entity::find();
-            if let Some(ref col) = params.sort_by {
+            const SORT_COLS: &[&str] = &[
+                "id",
+                "page_id",
+                "content",
+                "block_type",
+                "heading",
+                "sort_order",
+            ];
+            const FILTER_COLS: &[&str] =
+                &["page_id", "heading", "content", "block_type", "sort_order"];
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
                 let order = if params.sort_dir == SortDir::Desc {
                     Order::Desc
                 } else {
@@ -5710,8 +5764,13 @@ pub fn admin_register() -> AdminRegistry {
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                let escaped = val.replace('\'', "''");
-                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(Expr::cust_with_values(
+                    format!("CAST({} AS TEXT) = ?", col),
+                    [val.clone()],
+                ));
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(doc_block::Entity => or("page_id" icontains search_str, "content" icontains search_str, "block_type" icontains search_str, "heading" icontains search_str, "sort_order" icontains search_str));
@@ -5816,7 +5875,7 @@ pub fn admin_register() -> AdminRegistry {
     );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
-            use sea_orm::sea_query::{Alias, Expr, Query};
+            use sea_orm::sea_query::{Alias, Expr, Order, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
             let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
                 std::collections::HashMap::new();
@@ -5845,6 +5904,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(page_id AS TEXT)"))
                 .from(Alias::new(doc_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("page_id")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(page_id AS TEXT)"), Order::Desc)
                 .limit(page_size_page_id)
                 .offset(cur_page_page_id * page_size_page_id)
                 .to_owned();
@@ -5858,14 +5918,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_page_id: Vec<String> = rows_page_id
+            let vals_page_id: Vec<String> = rows_page_id
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_page_id.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("page_id".to_string(), (vals_page_id, total_page_id));
             let page_size_heading = 10u64;
             let cur_page_heading = pages.get("heading").copied().unwrap_or(0);
@@ -5892,6 +5948,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(heading AS TEXT)"))
                 .from(Alias::new(doc_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("heading")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(heading AS TEXT)"), Order::Desc)
                 .limit(page_size_heading)
                 .offset(cur_page_heading * page_size_heading)
                 .to_owned();
@@ -5905,14 +5962,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_heading: Vec<String> = rows_heading
+            let vals_heading: Vec<String> = rows_heading
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_heading.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("heading".to_string(), (vals_heading, total_heading));
             let page_size_content = 10u64;
             let cur_page_content = pages.get("content").copied().unwrap_or(0);
@@ -5939,6 +5992,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(content AS TEXT)"))
                 .from(Alias::new(doc_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("content")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(content AS TEXT)"), Order::Desc)
                 .limit(page_size_content)
                 .offset(cur_page_content * page_size_content)
                 .to_owned();
@@ -5952,14 +6006,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_content: Vec<String> = rows_content
+            let vals_content: Vec<String> = rows_content
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_content.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("content".to_string(), (vals_content, total_content));
             let page_size_block_type = 10u64;
             let cur_page_block_type = pages.get("block_type").copied().unwrap_or(0);
@@ -5986,6 +6036,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(block_type AS TEXT)"))
                 .from(Alias::new(doc_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("block_type")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(block_type AS TEXT)"), Order::Desc)
                 .limit(page_size_block_type)
                 .offset(cur_page_block_type * page_size_block_type)
                 .to_owned();
@@ -5999,14 +6050,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_block_type: Vec<String> = rows_block_type
+            let vals_block_type: Vec<String> = rows_block_type
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_block_type.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert(
                 "block_type".to_string(),
                 (vals_block_type, total_block_type),
@@ -6036,6 +6083,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(sort_order AS TEXT)"))
                 .from(Alias::new(doc_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(sort_order AS TEXT)"), Order::Desc)
                 .limit(page_size_sort_order)
                 .offset(cur_page_sort_order * page_size_sort_order)
                 .to_owned();
@@ -6049,14 +6097,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_sort_order: Vec<String> = rows_sort_order
+            let vals_sort_order: Vec<String> = rows_sort_order
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert(
                 "sort_order".to_string(),
                 (vals_sort_order, total_sort_order),
@@ -6074,6 +6118,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
+            .with_unique_fields(doc_block::UNIQUE_FIELDS)
             .with_filter_fn(filter_fn),
     );
 
@@ -6107,7 +6152,11 @@ pub fn admin_register() -> AdminRegistry {
                 sea_query::{Alias, Expr, Order},
             };
             let mut query = site_config::Entity::find();
-            if let Some(ref col) = params.sort_by {
+            const SORT_COLS: &[&str] = &["id"];
+            const FILTER_COLS: &[&str] = &[];
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
                 let order = if params.sort_dir == SortDir::Desc {
                     Order::Desc
                 } else {
@@ -6116,8 +6165,13 @@ pub fn admin_register() -> AdminRegistry {
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                let escaped = val.replace('\'', "''");
-                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(Expr::cust_with_values(
+                    format!("CAST({} AS TEXT) = ?", col),
+                    [val.clone()],
+                ));
             }
             if let Some(ref search_str) = params.search {
                 let search_cond =
@@ -6213,7 +6267,8 @@ pub fn admin_register() -> AdminRegistry {
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
-            .with_count_fn(count_fn),
+            .with_count_fn(count_fn)
+            .with_unique_fields(site_config::UNIQUE_FIELDS),
     );
 
     // ── Resource: cour ──
@@ -6245,7 +6300,28 @@ pub fn admin_register() -> AdminRegistry {
                 sea_query::{Alias, Expr, Order},
             };
             let mut query = cour::Entity::find();
-            if let Some(ref col) = params.sort_by {
+            const SORT_COLS: &[&str] = &[
+                "id",
+                "slug",
+                "lang",
+                "title",
+                "theme",
+                "difficulte",
+                "ordre",
+                "sort_order",
+            ];
+            const FILTER_COLS: &[&str] = &[
+                "slug",
+                "lang",
+                "title",
+                "theme",
+                "difficulte",
+                "ordre",
+                "sort_order",
+            ];
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
                 let order = if params.sort_dir == SortDir::Desc {
                     Order::Desc
                 } else {
@@ -6254,8 +6330,13 @@ pub fn admin_register() -> AdminRegistry {
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                let escaped = val.replace('\'', "''");
-                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(Expr::cust_with_values(
+                    format!("CAST({} AS TEXT) = ?", col),
+                    [val.clone()],
+                ));
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(cour::Entity => or("slug" icontains search_str, "lang" icontains search_str, "title" icontains search_str, "theme" icontains search_str, "difficulte" icontains search_str, "ordre" icontains search_str, "sort_order" icontains search_str));
@@ -6361,7 +6442,7 @@ pub fn admin_register() -> AdminRegistry {
     );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
-            use sea_orm::sea_query::{Alias, Expr, Query};
+            use sea_orm::sea_query::{Alias, Expr, Order, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
             let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
                 std::collections::HashMap::new();
@@ -6390,6 +6471,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(slug AS TEXT)"))
                 .from(Alias::new(cour::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("slug")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(slug AS TEXT)"), Order::Desc)
                 .limit(page_size_slug)
                 .offset(cur_page_slug * page_size_slug)
                 .to_owned();
@@ -6403,14 +6485,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_slug: Vec<String> = rows_slug
+            let vals_slug: Vec<String> = rows_slug
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_slug.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("slug".to_string(), (vals_slug, total_slug));
             let page_size_lang = 10u64;
             let cur_page_lang = pages.get("lang").copied().unwrap_or(0);
@@ -6437,6 +6515,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(lang AS TEXT)"))
                 .from(Alias::new(cour::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("lang")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(lang AS TEXT)"), Order::Desc)
                 .limit(page_size_lang)
                 .offset(cur_page_lang * page_size_lang)
                 .to_owned();
@@ -6450,14 +6529,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_lang: Vec<String> = rows_lang
+            let vals_lang: Vec<String> = rows_lang
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_lang.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("lang".to_string(), (vals_lang, total_lang));
             let page_size_title = 10u64;
             let cur_page_title = pages.get("title").copied().unwrap_or(0);
@@ -6484,6 +6559,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(title AS TEXT)"))
                 .from(Alias::new(cour::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(title AS TEXT)"), Order::Desc)
                 .limit(page_size_title)
                 .offset(cur_page_title * page_size_title)
                 .to_owned();
@@ -6497,14 +6573,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_title: Vec<String> = rows_title
+            let vals_title: Vec<String> = rows_title
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("title".to_string(), (vals_title, total_title));
             let page_size_theme = 10u64;
             let cur_page_theme = pages.get("theme").copied().unwrap_or(0);
@@ -6531,6 +6603,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(theme AS TEXT)"))
                 .from(Alias::new(cour::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("theme")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(theme AS TEXT)"), Order::Desc)
                 .limit(page_size_theme)
                 .offset(cur_page_theme * page_size_theme)
                 .to_owned();
@@ -6544,14 +6617,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_theme: Vec<String> = rows_theme
+            let vals_theme: Vec<String> = rows_theme
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_theme.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("theme".to_string(), (vals_theme, total_theme));
             let page_size_difficulte = 10u64;
             let cur_page_difficulte = pages.get("difficulte").copied().unwrap_or(0);
@@ -6578,6 +6647,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(difficulte AS TEXT)"))
                 .from(Alias::new(cour::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("difficulte")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(difficulte AS TEXT)"), Order::Desc)
                 .limit(page_size_difficulte)
                 .offset(cur_page_difficulte * page_size_difficulte)
                 .to_owned();
@@ -6591,14 +6661,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_difficulte: Vec<String> = rows_difficulte
+            let vals_difficulte: Vec<String> = rows_difficulte
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_difficulte.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert(
                 "difficulte".to_string(),
                 (vals_difficulte, total_difficulte),
@@ -6628,6 +6694,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(ordre AS TEXT)"))
                 .from(Alias::new(cour::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("ordre")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(ordre AS TEXT)"), Order::Desc)
                 .limit(page_size_ordre)
                 .offset(cur_page_ordre * page_size_ordre)
                 .to_owned();
@@ -6641,14 +6708,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_ordre: Vec<String> = rows_ordre
+            let vals_ordre: Vec<String> = rows_ordre
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_ordre.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("ordre".to_string(), (vals_ordre, total_ordre));
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
@@ -6675,6 +6738,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(sort_order AS TEXT)"))
                 .from(Alias::new(cour::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(sort_order AS TEXT)"), Order::Desc)
                 .limit(page_size_sort_order)
                 .offset(cur_page_sort_order * page_size_sort_order)
                 .to_owned();
@@ -6688,14 +6752,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_sort_order: Vec<String> = rows_sort_order
+            let vals_sort_order: Vec<String> = rows_sort_order
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert(
                 "sort_order".to_string(),
                 (vals_sort_order, total_sort_order),
@@ -6713,6 +6773,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
+            .with_unique_fields(cour::UNIQUE_FIELDS)
             .with_filter_fn(filter_fn),
     );
 
@@ -6745,7 +6806,11 @@ pub fn admin_register() -> AdminRegistry {
                 sea_query::{Alias, Expr, Order},
             };
             let mut query = chapitre::Entity::find();
-            if let Some(ref col) = params.sort_by {
+            const SORT_COLS: &[&str] = &["id", "cour_id", "slug", "title", "sort_order"];
+            const FILTER_COLS: &[&str] = &["cour_id", "slug", "title", "sort_order"];
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
                 let order = if params.sort_dir == SortDir::Desc {
                     Order::Desc
                 } else {
@@ -6754,8 +6819,13 @@ pub fn admin_register() -> AdminRegistry {
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                let escaped = val.replace('\'', "''");
-                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(Expr::cust_with_values(
+                    format!("CAST({} AS TEXT) = ?", col),
+                    [val.clone()],
+                ));
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(chapitre::Entity => or("cour_id" icontains search_str, "slug" icontains search_str, "title" icontains search_str, "sort_order" icontains search_str));
@@ -6858,7 +6928,7 @@ pub fn admin_register() -> AdminRegistry {
     );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
-            use sea_orm::sea_query::{Alias, Expr, Query};
+            use sea_orm::sea_query::{Alias, Expr, Order, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
             let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
                 std::collections::HashMap::new();
@@ -6887,6 +6957,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(cour_id AS TEXT)"))
                 .from(Alias::new(chapitre::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("cour_id")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(cour_id AS TEXT)"), Order::Desc)
                 .limit(page_size_cour_id)
                 .offset(cur_page_cour_id * page_size_cour_id)
                 .to_owned();
@@ -6900,14 +6971,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_cour_id: Vec<String> = rows_cour_id
+            let vals_cour_id: Vec<String> = rows_cour_id
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_cour_id.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("cour_id".to_string(), (vals_cour_id, total_cour_id));
             let page_size_slug = 10u64;
             let cur_page_slug = pages.get("slug").copied().unwrap_or(0);
@@ -6934,6 +7001,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(slug AS TEXT)"))
                 .from(Alias::new(chapitre::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("slug")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(slug AS TEXT)"), Order::Desc)
                 .limit(page_size_slug)
                 .offset(cur_page_slug * page_size_slug)
                 .to_owned();
@@ -6947,14 +7015,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_slug: Vec<String> = rows_slug
+            let vals_slug: Vec<String> = rows_slug
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_slug.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("slug".to_string(), (vals_slug, total_slug));
             let page_size_title = 10u64;
             let cur_page_title = pages.get("title").copied().unwrap_or(0);
@@ -6981,6 +7045,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(title AS TEXT)"))
                 .from(Alias::new(chapitre::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(title AS TEXT)"), Order::Desc)
                 .limit(page_size_title)
                 .offset(cur_page_title * page_size_title)
                 .to_owned();
@@ -6994,14 +7059,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_title: Vec<String> = rows_title
+            let vals_title: Vec<String> = rows_title
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("title".to_string(), (vals_title, total_title));
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
@@ -7028,6 +7089,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(sort_order AS TEXT)"))
                 .from(Alias::new(chapitre::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(sort_order AS TEXT)"), Order::Desc)
                 .limit(page_size_sort_order)
                 .offset(cur_page_sort_order * page_size_sort_order)
                 .to_owned();
@@ -7041,14 +7103,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_sort_order: Vec<String> = rows_sort_order
+            let vals_sort_order: Vec<String> = rows_sort_order
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert(
                 "sort_order".to_string(),
                 (vals_sort_order, total_sort_order),
@@ -7066,6 +7124,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
+            .with_unique_fields(chapitre::UNIQUE_FIELDS)
             .with_filter_fn(filter_fn),
     );
 
@@ -7098,7 +7157,12 @@ pub fn admin_register() -> AdminRegistry {
                 sea_query::{Alias, Expr, Order},
             };
             let mut query = cour_block::Entity::find();
-            if let Some(ref col) = params.sort_by {
+            const SORT_COLS: &[&str] =
+                &["id", "chapitre_id", "block_type", "heading", "sort_order"];
+            const FILTER_COLS: &[&str] = &["chapitre_id", "block_type", "heading", "sort_order"];
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
                 let order = if params.sort_dir == SortDir::Desc {
                     Order::Desc
                 } else {
@@ -7107,8 +7171,13 @@ pub fn admin_register() -> AdminRegistry {
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                let escaped = val.replace('\'', "''");
-                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(Expr::cust_with_values(
+                    format!("CAST({} AS TEXT) = ?", col),
+                    [val.clone()],
+                ));
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(cour_block::Entity => or("chapitre_id" icontains search_str, "block_type" icontains search_str, "heading" icontains search_str, "sort_order" icontains search_str));
@@ -7211,7 +7280,7 @@ pub fn admin_register() -> AdminRegistry {
     );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
-            use sea_orm::sea_query::{Alias, Expr, Query};
+            use sea_orm::sea_query::{Alias, Expr, Order, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
             let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
                 std::collections::HashMap::new();
@@ -7240,6 +7309,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(chapitre_id AS TEXT)"))
                 .from(Alias::new(cour_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("chapitre_id")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(chapitre_id AS TEXT)"), Order::Desc)
                 .limit(page_size_chapitre_id)
                 .offset(cur_page_chapitre_id * page_size_chapitre_id)
                 .to_owned();
@@ -7253,14 +7323,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_chapitre_id: Vec<String> = rows_chapitre_id
+            let vals_chapitre_id: Vec<String> = rows_chapitre_id
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_chapitre_id.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert(
                 "chapitre_id".to_string(),
                 (vals_chapitre_id, total_chapitre_id),
@@ -7290,6 +7356,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(block_type AS TEXT)"))
                 .from(Alias::new(cour_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("block_type")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(block_type AS TEXT)"), Order::Desc)
                 .limit(page_size_block_type)
                 .offset(cur_page_block_type * page_size_block_type)
                 .to_owned();
@@ -7303,14 +7370,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_block_type: Vec<String> = rows_block_type
+            let vals_block_type: Vec<String> = rows_block_type
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_block_type.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert(
                 "block_type".to_string(),
                 (vals_block_type, total_block_type),
@@ -7340,6 +7403,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(heading AS TEXT)"))
                 .from(Alias::new(cour_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("heading")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(heading AS TEXT)"), Order::Desc)
                 .limit(page_size_heading)
                 .offset(cur_page_heading * page_size_heading)
                 .to_owned();
@@ -7353,14 +7417,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_heading: Vec<String> = rows_heading
+            let vals_heading: Vec<String> = rows_heading
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_heading.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("heading".to_string(), (vals_heading, total_heading));
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
@@ -7387,6 +7447,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(sort_order AS TEXT)"))
                 .from(Alias::new(cour_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(sort_order AS TEXT)"), Order::Desc)
                 .limit(page_size_sort_order)
                 .offset(cur_page_sort_order * page_size_sort_order)
                 .to_owned();
@@ -7400,14 +7461,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_sort_order: Vec<String> = rows_sort_order
+            let vals_sort_order: Vec<String> = rows_sort_order
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert(
                 "sort_order".to_string(),
                 (vals_sort_order, total_sort_order),
@@ -7425,6 +7482,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
+            .with_unique_fields(cour_block::UNIQUE_FIELDS)
             .with_filter_fn(filter_fn),
     );
 
@@ -7458,7 +7516,11 @@ pub fn admin_register() -> AdminRegistry {
                 sea_query::{Alias, Expr, Order},
             };
             let mut query = runique_release::Entity::find();
-            if let Some(ref col) = params.sort_by {
+            const SORT_COLS: &[&str] = &["id", "version", "github_url", "crates_url"];
+            const FILTER_COLS: &[&str] = &["version"];
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
                 let order = if params.sort_dir == SortDir::Desc {
                     Order::Desc
                 } else {
@@ -7467,8 +7529,13 @@ pub fn admin_register() -> AdminRegistry {
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                let escaped = val.replace('\'', "''");
-                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(Expr::cust_with_values(
+                    format!("CAST({} AS TEXT) = ?", col),
+                    [val.clone()],
+                ));
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(runique_release::Entity => or("version" icontains search_str, "github_url" icontains search_str, "crates_url" icontains search_str));
@@ -7565,7 +7632,7 @@ pub fn admin_register() -> AdminRegistry {
     );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
-            use sea_orm::sea_query::{Alias, Expr, Query};
+            use sea_orm::sea_query::{Alias, Expr, Order, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
             let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
                 std::collections::HashMap::new();
@@ -7594,6 +7661,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(version AS TEXT)"))
                 .from(Alias::new(runique_release::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("version")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(version AS TEXT)"), Order::Desc)
                 .limit(page_size_version)
                 .offset(cur_page_version * page_size_version)
                 .to_owned();
@@ -7607,14 +7675,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_version: Vec<String> = rows_version
+            let vals_version: Vec<String> = rows_version
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_version.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("version".to_string(), (vals_version, total_version));
             Ok(result)
         })
@@ -7629,6 +7693,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
+            .with_unique_fields(runique_release::UNIQUE_FIELDS)
             .with_filter_fn(filter_fn),
     );
 
@@ -7662,7 +7727,19 @@ pub fn admin_register() -> AdminRegistry {
                 sea_query::{Alias, Expr, Order},
             };
             let mut query = user_profile::Entity::find();
-            if let Some(ref col) = params.sort_by {
+            const SORT_COLS: &[&str] = &[
+                "id",
+                "username",
+                "bio",
+                "website",
+                "phone",
+                "birth_date",
+                "is_verified",
+            ];
+            const FILTER_COLS: &[&str] = &["username", "is_verified"];
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
                 let order = if params.sort_dir == SortDir::Desc {
                     Order::Desc
                 } else {
@@ -7671,8 +7748,13 @@ pub fn admin_register() -> AdminRegistry {
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                let escaped = val.replace('\'', "''");
-                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(Expr::cust_with_values(
+                    format!("CAST({} AS TEXT) = ?", col),
+                    [val.clone()],
+                ));
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(user_profile::Entity => or("username" icontains search_str, "bio" icontains search_str, "website" icontains search_str, "phone" icontains search_str, "birth_date" icontains search_str, "is_verified" icontains search_str));
@@ -7826,7 +7908,10 @@ pub fn admin_register() -> AdminRegistry {
                     let stmt = Query::select()
                         .expr(Expr::cust("CAST(groupe_id AS TEXT)"))
                         .from(Alias::new("eihwaz_users_groupes"))
-                        .and_where(Expr::cust(format!("CAST(user_id AS TEXT) = '{}'", oid)))
+                        .and_where(Expr::cust_with_values(
+                            "CAST(user_id AS TEXT) = ?",
+                            [oid.clone()],
+                        ))
                         .to_owned();
                     db.query_all(&stmt)
                         .await
@@ -7865,7 +7950,7 @@ pub fn admin_register() -> AdminRegistry {
     );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
-            use sea_orm::sea_query::{Alias, Expr, Query};
+            use sea_orm::sea_query::{Alias, Expr, Order, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
             let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
                 std::collections::HashMap::new();
@@ -7894,6 +7979,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(username AS TEXT)"))
                 .from(Alias::new(user_profile::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("username")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(username AS TEXT)"), Order::Desc)
                 .limit(page_size_username)
                 .offset(cur_page_username * page_size_username)
                 .to_owned();
@@ -7907,14 +7993,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_username: Vec<String> = rows_username
+            let vals_username: Vec<String> = rows_username
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_username.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert("username".to_string(), (vals_username, total_username));
             let page_size_is_verified = 5u64;
             let cur_page_is_verified = pages.get("is_verified").copied().unwrap_or(0);
@@ -7941,6 +8023,7 @@ pub fn admin_register() -> AdminRegistry {
                 .expr(Expr::cust("CAST(is_verified AS TEXT)"))
                 .from(Alias::new(user_profile::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("is_verified")).is_not_null())
+                .order_by_expr(Expr::cust("CAST(is_verified AS TEXT)"), Order::Desc)
                 .limit(page_size_is_verified)
                 .offset(cur_page_is_verified * page_size_is_verified)
                 .to_owned();
@@ -7954,14 +8037,10 @@ pub fn admin_register() -> AdminRegistry {
                     vec![]
                 }
             };
-            let mut vals_is_verified: Vec<String> = rows_is_verified
+            let vals_is_verified: Vec<String> = rows_is_verified
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_is_verified.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
-                (Ok(x), Ok(y)) => x.cmp(&y),
-                _ => a.cmp(b),
-            });
             result.insert(
                 "is_verified".to_string(),
                 (vals_is_verified, total_is_verified),
@@ -7979,6 +8058,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
+            .with_unique_fields(user_profile::UNIQUE_FIELDS)
             .with_filter_fn(filter_fn)
             .with_m2m_loader(m2m_loader),
     );

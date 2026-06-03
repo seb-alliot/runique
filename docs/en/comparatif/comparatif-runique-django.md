@@ -141,7 +141,7 @@
 | List pagination | native | `.page_size(n)` (list + history) |
 | `list_display` | native | `list_display: [["col", "Label"], ...]` |
 | FK resolution in list | — | 3rd element: `["fk_id", "Label", "table.column"]` |
-| Search / filters | native | `list_filter` + automatic full-text SQL search — direct columns only, filters not combinable (UI) |
+| Search / filters | native | `list_filter` + automatic full-text SQL search — direct columns only, combinable filters (multiple columns simultaneously) |
 | Group actions | `actions` | `group_action` — bool (2 elements) or enum (3 elements, exact value) |
 | Bulk create | — | `bulk_create: field` — comma-split, inserts N records |
 | Bulk edit | — | native bulk edit on multi-row selection |
@@ -205,7 +205,6 @@
 - **Fixtures**: no `loaddata`/`dumpdata` — seeds are plain Rust functions.
 - **Admin inline**: no editing of related objects directly inside the parent form.
 - **Admin custom group actions**: `group_action` only supports SQL column updates (`GroupAction::bool` and `GroupAction::val`) — no arbitrary Rust logic on the selection (Django equivalent: `actions` with any callable).
-- **Admin combinable filters**: clicking a filter value resets other active column filters — the backend supports multiple simultaneous filters (`Vec`), but the generated template links do not preserve filters from other columns.
 - **Admin FK filters**: `list_filter` supports direct columns only — no relation traversal (`article__author__name`).
 - **Admin fieldsets**: no field grouping by section in admin forms (`fieldsets` in Django).
 - **Admin readonly fields**: no `readonly_fields` — non-editable fields must be excluded from the form.

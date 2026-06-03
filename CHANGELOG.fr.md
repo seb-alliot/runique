@@ -8,6 +8,12 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ## [2.1.13] - 2026-06-01
 
+### Correctif — `runique` (templates admin)
+
+* **Liens de tri admin effaçaient les filtres actifs :** cliquer un en-tête de colonne pour trier réinitialisait tous les filtres `list_filter` actifs. Les liens de tri dans `list_partial.html` n'incluaient pas `{{ filter_qs }}`, contrairement aux liens de pagination. Correctif : `filter_qs` est désormais ajouté dans le `href` et le `hx-get` des en-têtes de colonne `id` et des colonnes dynamiques.
+
+* **Valeurs de la sidebar filtres admin dans le mauvais ordre :** les closures `filter_fn` générées récupéraient les valeurs distinctes puis les retriaient en Rust avec `sort_by` (numérique puis lexicographique croissant), écrasant tout ordre DB. Correctif : le `sort_by` en mémoire est supprimé ; la requête `DISTINCT` utilise désormais `ORDER BY CAST(col AS TEXT) DESC` — les valeurs arrivent pré-triées depuis la base, les dates affichent les plus récentes en premier, les chaînes les plus élevées alphabétiquement en premier.
+
 ### Correctif — `runique` (templates admin, CSS admin)
 
 * **Double-encodage des valeurs chaîne dans les vues liste et détail admin :** `{{ value | escape }}` était utilisé dans `list_partial.html` et `detail.html` alors que l'autoescaping Tera était déjà actif. Le filtre `escape` convertit `/` en `&#x2F;`, puis l'autoescaping réencode `&` en `&amp;`, ce qui faisait afficher le texte littéral `&#x2F;` au lieu de `/`. Même problème dans les inputs cachés de filtre (`value="{{ val | escape }}"`), ce qui aurait cassé les comparaisons de filtre pour les valeurs contenant `/`. Correctif : les trois occurrences remplacées par `{{ value }}` / `{{ val }}` — l'autoescaping seul suffit pour la protection XSS.

@@ -650,6 +650,8 @@ pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
                 &mut self.form
             }
         }
+
+        pub const UNIQUE_FIELDS: &[&str] = &[];
     }
 }
 

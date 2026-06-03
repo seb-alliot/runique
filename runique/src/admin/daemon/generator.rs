@@ -336,20 +336,18 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         filter_cols_literal = filter_cols_literal
     );
 
-    let _ = writeln!(out, "            if let Some(ref col) = params.sort_by {{");
     let _ = writeln!(
         out,
-        "                if SORT_COLS.contains(&col.as_str()) {{"
+        "            if let Some(ref col) = params.sort_by && SORT_COLS.contains(&col.as_str()) {{"
     );
     let _ = writeln!(
         out,
-        "                    let order = if params.sort_dir == SortDir::Desc {{ Order::Desc }} else {{ Order::Asc }};"
+        "                let order = if params.sort_dir == SortDir::Desc {{ Order::Desc }} else {{ Order::Asc }};"
     );
     let _ = writeln!(
         out,
-        "                    query = query.order_by(Expr::col(Alias::new(col.as_str())), order);"
+        "                query = query.order_by(Expr::col(Alias::new(col.as_str())), order);"
     );
-    let _ = writeln!(out, "                }}");
     let _ = writeln!(out, "            }}");
     let _ = writeln!(
         out,
@@ -836,7 +834,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         );
         let _ = writeln!(
             out,
-            "            use sea_orm::sea_query::{{Query, Alias, Expr}};"
+            "            use sea_orm::sea_query::{{Query, Alias, Expr, Order}};"
         );
         let _ = writeln!(
             out,
@@ -873,7 +871,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
             );
             let _ = writeln!(
                 out,
-                "            let stmt_{col} = Query::select().distinct().expr(Expr::cust(\"CAST({col} AS TEXT)\")).from(Alias::new({module}::Entity.table_name())).and_where(Expr::col(Alias::new(\"{col}\")).is_not_null()).limit(page_size_{col}).offset(cur_page_{col} * page_size_{col}).to_owned();",
+                "            let stmt_{col} = Query::select().distinct().expr(Expr::cust(\"CAST({col} AS TEXT)\")).from(Alias::new({module}::Entity.table_name())).and_where(Expr::col(Alias::new(\"{col}\")).is_not_null()).order_by_expr(Expr::cust(\"CAST({col} AS TEXT)\"), Order::Desc).limit(page_size_{col}).offset(cur_page_{col} * page_size_{col}).to_owned();",
                 col = col,
                 module = module
             );
@@ -885,7 +883,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
             );
             let _ = writeln!(
                 out,
-                "            let mut vals_{col}: Vec<String> = rows_{col}.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_{col}.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {{ (Ok(x), Ok(y)) => x.cmp(&y), _ => a.cmp(b) }});",
+                "            let vals_{col}: Vec<String> = rows_{col}.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect();",
                 col = col
             );
             let _ = writeln!(
