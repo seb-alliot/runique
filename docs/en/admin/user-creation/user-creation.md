@@ -1,4 +1,4 @@
-﻿# User creation via the admin panel
+# User creation via the admin panel
 
 ## Full flow
 

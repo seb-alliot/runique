@@ -1,4 +1,4 @@
-﻿# Création d'utilisateur via le panel admin
+# Création d'utilisateur via le panel admin
 
 ## Flux complet
 

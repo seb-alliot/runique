@@ -1,4 +1,4 @@
-﻿# `runique start`
+# `runique start`
 
 La commande `runique start` est le point d'entrée du workflow admin.
 Elle orchestre deux opérations en parallèle : la **surveillance de `src/admin.rs`** et le **lancement du serveur**.

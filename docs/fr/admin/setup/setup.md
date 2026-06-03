@@ -1,4 +1,4 @@
-﻿# Mise en place de l'admin
+# Mise en place de l'admin
 
 Guide pas à pas pour activer l'interface d'administration dans un projet Runique existant.
 

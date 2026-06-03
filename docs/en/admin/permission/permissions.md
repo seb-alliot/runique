@@ -1,4 +1,4 @@
-﻿# Roles and permissions
+# Roles and permissions
 
 ## Overview
 

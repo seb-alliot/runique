@@ -1,4 +1,4 @@
-﻿# Daemon & génération de code
+# Daemon & génération de code
 
 ## Comportement du daemon
 

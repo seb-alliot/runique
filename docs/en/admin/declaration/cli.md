@@ -1,4 +1,4 @@
-﻿# `runique start`
+# `runique start`
 
 The `runique start` command is the entry point of the admin workflow.
 It orchestrates two operations in parallel: **watching `src/admin.rs`** and **launching the server**.

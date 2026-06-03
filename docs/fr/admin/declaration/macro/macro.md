@@ -1,4 +1,4 @@
-﻿# La macro `admin!`
+# La macro `admin!`
 
 ## Syntaxe complète
 

@@ -1,4 +1,4 @@
-﻿# Évolutions prévues
+# Évolutions prévues
 
 Fonctionnalités envisagées pour les versions futures de l'admin Runique.
 
