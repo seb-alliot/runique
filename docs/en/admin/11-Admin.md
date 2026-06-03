@@ -19,9 +19,9 @@ admin! {
 | File | Contents |
 | --- | --- |
 | [Setup](/docs/en/admin/setup) | Wire the admin into an existing project, create a superuser |
-| [CLI](/docs/en/admin/declaration) | `runique start` command, general workflow |
-| [Daemon & generation](/docs/en/admin/declaration) | Generated files, watcher behaviour |
-| [Macro `admin!`](/docs/en/admin/declaration) | Full syntax, required and optional fields |
+| [CLI](/docs/en/admin/declaration/cli) | `runique start` command, general workflow |
+| [Daemon & generation](/docs/en/admin/declaration/daemon/generation) | Generated files, watcher behaviour |
+| [Macro `admin!`](/docs/en/admin/declaration/macro) | Full syntax, required and optional fields |
 | [User creation](/docs/en/admin/user-creation) | Full flow creation → email → activation, custom model |
 | [List view](/docs/en/admin/list) | Pagination, sorting, search, `list_display`, `list_filter` |
 | [Permissions](/docs/en/admin/permission) | Roles, `is_staff` / `is_superuser`, runtime check |

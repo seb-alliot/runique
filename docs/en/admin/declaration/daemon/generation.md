@@ -62,8 +62,8 @@ In this mode, `src/admins/` is no longer watched or overwritten. Changes persist
 
 | Section | Description |
 | --- | --- |
-| [CLI](/docs/en/admin/declaration) | How `runique start` works |
-| [Macro `admin!`](/docs/en/admin/declaration) | Declaring administrable resources |
+| [CLI](/docs/en/admin/declaration/cli) | How `runique start` works |
+| [Macro `admin!`](/docs/en/admin/declaration/macro) | Declaring administrable resources |
 
 ## Back to summary
 
