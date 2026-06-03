@@ -39,10 +39,10 @@
                 {% if group_sections | length > 0 %}
                 <div class="doc-index-subsection">
                     <button class="doc-index-section-title doc-subsection-title doc-theme--{{ key_lower }}" type="button" data-section="sub-{{ key_lower }}" aria-expanded="true">
-                        {% if key_lower == "demarrage" %}Getting Started
-                        {% elif key_lower == "web" %}Routing & Web
-                        {% elif key_lower == "database" %}Database
-                        {% elif key_lower == "security" %}Security & Auth
+                        {% if key_lower == "demarrage" %}{% if lang == "fr" %}Démarrer{% else %}Getting Started{% endif %}
+                        {% elif key_lower == "web" %}{% if lang == "fr" %}Routage & Web{% else %}Routing & Web{% endif %}
+                        {% elif key_lower == "database" %}{% if lang == "fr" %}Base de données{% else %}Database{% endif %}
+                        {% elif key_lower == "security" %}{% if lang == "fr" %}Sécurité & Auth{% else %}Security & Auth{% endif %}
                         {% elif key_lower == "admin" %}Admin
                         {% else %}{% if lang == "fr" %}Autres{% else %}Other{% endif %}
                         {% endif %}
