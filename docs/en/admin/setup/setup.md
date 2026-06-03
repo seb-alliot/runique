@@ -1,4 +1,4 @@
-# Admin setup
+﻿# Admin setup
 
 Step-by-step guide to enable the admin interface in an existing Runique project.
 
@@ -181,7 +181,7 @@ The `/admin/login` page redirects to the dashboard if credentials are valid.
 
 | Section | Description |
 | --- | --- |
-| [CLI](/docs/en/admin/declaration/cli) | `runique start` command, general workflow |
+| [CLI](/docs/en/admin/declaration) | `runique start` command, general workflow |
 | [Permissions](/docs/en/admin/permission) | Roles, `is_staff` / `is_superuser`, runtime check |
 | [Templates](/docs/en/admin/template) | Template hierarchy, blocks, visual override |
 | [Roadmap](/docs/en/admin/evolution) | Planned features and beta status |

@@ -1,4 +1,4 @@
-# Roles and permissions
+﻿# Roles and permissions
 
 ## Overview
 
@@ -92,7 +92,7 @@ authenticated?
 | Section | Description |
 | --- | --- |
 | [Setup](/docs/en/admin/setup) | Wire the admin, create a superuser |
-| [CLI](/docs/en/admin/declaration/cli) | `runique start` command, general workflow |
+| [CLI](/docs/en/admin/declaration) | `runique start` command, general workflow |
 | [Templates](/docs/en/admin/template) | Template hierarchy, blocks, visual override |
 | [Roadmap](/docs/en/admin/evolution) | Planned features |
 

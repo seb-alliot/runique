@@ -1,4 +1,4 @@
-# Admin Runique
+﻿# Admin Runique
 
 L'administration Runique génère un CRUD complet à partir d'une macro déclarative (`admin!`).
 Le code produit est du Rust ordinaire — lisible, auditable et modifiable si nécessaire.
@@ -27,9 +27,9 @@ admin! {
 | Fichier | Contenu |
 | --- | --- |
 | [Mise en place](/docs/fr/admin/setup) | Câbler l'admin dans un projet existant, créer un superuser |
-| [CLI](/docs/fr/admin/declaration/cli) | Commande `runique start`, workflow général |
-| [Daemon & génération](/docs/fr/admin/declaration/daemon/generation) | Fichiers générés, comportement du watcher |
-| [Macro `admin!`](/docs/fr/admin/declaration/macro) | Syntaxe complète, champs obligatoires et optionnels |
+| [CLI](/docs/fr/admin/declaration) | Commande `runique start`, workflow général |
+| [Daemon & génération](/docs/fr/admin/declaration-daemon) | Fichiers générés, comportement du watcher |
+| [Macro `admin!`](/docs/fr/admin/declaration-macro) | Syntaxe complète, champs obligatoires et optionnels |
 | [Création d'utilisateur](/docs/fr/admin/user-creation) | Flux complet création → email → activation, modèle custom |
 | [Vue liste](/docs/fr/admin/liste) | Pagination, tri, recherche, `list_display`, `list_filter` |
 | [Permissions](/docs/fr/admin/permission) | Rôles, `is_staff` / `is_superuser`, vérification runtime |
