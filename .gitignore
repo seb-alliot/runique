@@ -22,6 +22,10 @@ Thumbs.db
 tmpclaude-*
 /.claude/
 /campanile/
+# Dossiers projet
+dossier_projet*.md
+dossier_projet*.pdf
+
 # Fichier perso
 commande.txt
 AUDIT.md
