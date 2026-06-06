@@ -97,10 +97,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 * `runique makemigrations --entities src/entities --migrations migration/src [--force false]`
 * `runique migration up|down|status --migrations migration/src`
 
-> ⚠️ **Attention**
-> La commande `makemigrations` génère les tables SeaORM tout en respectant l’ordre chronologique du système de migrations.
-> Pour garantir la cohérence du suivi des migrations, utilisez uniquement le CLI SeaORM pour les appliquer ou les gérer.
-> L’utilisation d’autres commandes peut entraîner une désynchronisation des migrations.
+> ⚠️ **Attention — rollback de migrations**
+> La commande `runique makemigrations` génère les migrations tout en respectant l’ordre chronologique du système de migrations.
+> Pour **revenir en arrière** sur une migration, privilégiez le CLI SeaORM : il garde la table de suivi des migrations synchronisée avec l’état réel du schéma.
+> Mélanger les outils de rollback peut désynchroniser le suivi des migrations.
 
 ---
 

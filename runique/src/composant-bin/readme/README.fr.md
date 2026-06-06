@@ -169,12 +169,12 @@ migration/src/
 > Pour faire évoluer le schéma (ALTER), modifie ton entité et relance `runique makemigrations`.
 > Utilise `--force` pour ignorer la confirmation sur les changements destructifs.
 >
-> ⚠️ **Avertissement**
-> La commande `makemigrations` permet de générer les tables SeaORM tout en
+> ⚠️ **Avertissement — rollback de migrations**
+> La commande `runique makemigrations` génère les migrations tout en
 > respectant la chronologie du système de migrations.
-> Pour garantir la cohérence du suivi des migrations, utilisez uniquement
-> la CLI de SeaORM pour appliquer ou gérer les migrations.
-> L'utilisation des commandes peut entraîner une désynchronisation.
+> Pour **revenir en arrière** sur une migration, privilégiez la CLI de SeaORM :
+> elle garde la table de suivi des migrations synchronisée avec l'état réel du schéma.
+> Mélanger les outils de rollback peut désynchroniser le suivi des migrations.
 
 ---
 
