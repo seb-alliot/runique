@@ -2,7 +2,7 @@
 
 Navigate the Runique Framework codebase.
 
-**Version**: 2.1.14 — **Updated**: 2026-05-30
+**Version**: 2.1.14 — **Updated**: 2026-06-06
 
 ---
 
@@ -34,19 +34,19 @@ runique/
 - **`lib.rs`** — public API, prelude, module exports
 
 ### `admin/` — Admin Panel (beta)
-- **`admin_main.rs`** — admin request handler (login, list, create, edit, delete)
-- **`cli_admin.rs`** — CLI entry point for admin daemon
-- **`dyn_form.rs`** — dynamic form dispatch for admin resources
-- **`registry.rs`** — resource registry (admin! macro output)
-- **`resource.rs`** — `AdminResource` trait definition
-- **`resource_entry.rs`** — entry type for registered resources
-- **`roles.rs`** — role-based access for admin views
-- **`template.rs`** — admin template rendering helpers
-- **`config/`** — admin configuration struct
+- **`admin_main/`** — CRUD request handlers, split by concern: `mod.rs` (entry, `check_csrf`, `check_write_access`, dispatch), `handle_list.rs` (pagination, sort, filters), `handle_crud.rs` (detail, create, edit, delete), `handle_bulk.rs` (bulk_action, group_set, bulk_delete), `handle_password.rs` (reset, user-created email)
+- **`builtin/`** — builtin resources: `user.rs`, `groupe.rs`, `droit.rs` (+ `mod.rs` → `builtin_resources()`)
 - **`daemon/`** — code generator + file watcher (`generator.rs`, `parser.rs`, `watcher.rs`)
+- **`helper/`** — `dyn_form.rs` (dynamic form dispatch), `resource_entry.rs` (`ResourceEntry`, `ListParams`, closures), `roles.rs`, `template.rs`
+- **`permissions/`** — `droit`, `groupe`, `groupes_droits`, `users_groupes` (SeaORM entities for RBAC tables)
+- **`registry.rs`** — `AdminRegistry` (`HashMap<name, ResourceEntry>`)
+- **`resource.rs`** — `admin!` DSL output / `AdminResource`, `DisplayConfig`, `ColumnFilter`
+- **`history.rs`** — admin action history (audit log)
+- **`table_admin/`** — `migrations_table.rs` (migration tracking table)
+- **`config/`** — `config_admin.rs` (admin configuration struct)
 - **`middleware/`** — admin-specific middleware
-- **`permissions/`** — droit, groupe, groupes_droits, users_droits, users_groupes
 - **`router/`** — admin router builder
+- **`trad/`** — admin-specific i18n
 
 ### `app/` — Application Lifecycle
 - **`builder.rs`** — `RuniqueApp::builder(config)` / `RuniqueAppBuilder::new(config)`
@@ -54,6 +54,14 @@ runique/
 - **`error_build.rs`** — build-time error types
 - **`templates.rs`** — Tera engine initialization & template loader
 - **`staging/`** — builder stages: `core`, `middleware`, `admin`, `csp_config`, `host_config`, `static`
+
+### `auth/` — Authentication
+- **`session.rs`** — login/session management, `CurrentUser`, session keys
+- **`guard.rs`** — `LoginGuard` brute-force protection
+- **`password.rs`** — Argon2 hashing / verification helpers
+- **`user.rs`** — user extractor
+- **`user_trait.rs`** — `RuniqueUser` trait
+- **`form.rs`** — login form
 
 ### `bin/`
 - **`runique.rs`** — CLI: `new`, `start`, `makemigrations`, `migration`, `create-superuser`
@@ -107,30 +115,25 @@ runique/
 
 ### `macros/` — Macros
 - **`admin/macros_admin.rs`** — `admin!` declaration macro
-- **`bdd/`** — `impl_objects!`, `filter!`, ORM query macros
-- **`context/`** — `context_simplifier`, `flash!`, `helper`, `impl_error!`
-- **`forms/`** — `impl_form!`, `enum_kind!`, `kind!`
-- **`routeur/get_post.rs`** — `get_post!` macro
+- **`bdd/`** — `impl_objects!`, `search!` / `search_cond!` (+ internal `search_apply_op!`, `search_munch!`), `Objects` query builder (`objects.rs`, `query.rs`)
+- **`context/`** — `context!` / `context_update!` (`context_simplifier.rs`), flash macros `flash_now!` / `info!` / `success!` / `warning!` / `error!` (`flash.rs`), `impl_from_error!` (`impl_error.rs`)
+- **`forms/`** — `impl_form_access!` (`impl_form.rs`), `define_enum_kind!` (`enum_kind.rs`), `delegate_to_kind!` (`kind.rs`)
+- **`routeur/`** — `view!` macro (`get_post.rs`), `urlpatterns!` (`router.rs`), URL registry/reverse helpers (`register_url.rs`, `router_ext.rs`)
 - **`template/`** — template context macros
 
 ### `middleware/` — Middleware
-- **`auth/`**
-  - `admin_auth.rs` — `AdminAuth` trait + `AdminLoginResult`
-  - `auth_session.rs` — `auth_login()`, `auth_logout()`, session management
-  - `default_auth.rs` — `DefaultAdminAuth<Entity>` implementation
-  - `login_guard.rs` — `LoginGuard` brute-force protection
-  - `permissions_cache.rs`— permission cache for admin roles
-  - `reset.rs` — password reset token handling
-  - `user.rs` — `CurrentUser` extractor
-  - `user_trait.rs` — `RuniqueUser` trait
-  - `form/login.rs` — admin login form
-- **`config.rs`** — middleware configuration builder
+(authentication lives in the top-level `auth/` module since the refactor)
+- **`config.rs`** — middleware configuration builder (slot ordering)
 - **`dev/cache.rs`** — dev-mode cache control headers
 - **`errors/error.rs`** — error handling middleware (500, 404, custom pages)
-- **`security/allowed_hosts.rs`** — `HostPolicy` middleware
-- **`security/csp.rs`** — CSP header injection
+- **`security/allowed_hosts.rs`** — `HostPolicy` middleware (slot 70)
+- **`security/anti_bot.rs`** — honeypot / anti-bot heuristics
+- **`security/csp.rs`** — CSP header injection (slot 30)
 - **`security/csrf.rs`** — CSRF middleware (slot 60, always active)
+- **`security/open_redirect.rs`** — open-redirect guard for `next`/redirect params
+- **`security/permissions_policy.rs`** — `Permissions-Policy` header (allow/deny per feature)
 - **`security/rate_limit.rs`** — `RateLimiter` with 429 + `Retry-After`
+- **`security/trusted_proxies.rs`** — trusted proxy / client-IP resolution (CIDR, private nets)
 - **`session/cleaning_store.rs`** — `CleaningMemoryStore` (128MB/256MB watermarks)
 - **`session/session_db.rs`** — DB-backed session store
 - **`session/session_parametre.rs`** — session config helpers
@@ -141,6 +144,7 @@ runique/
 - **`utils/`** — `convertisseur`, `diff`, `generators`, `parser_seaorm`, `parser_builder`, `paths`, `types`
 
 ### `utils/` — Utilities
+- **`acme/`** — automatic TLS via Let's Encrypt (ACME HTTP-01), `acme` feature
 - **`aliases/`** — `AEngine`, `JsonMap`, `TResult` type aliases
 - **`cli/`** — `makemigration`, `migrate`, `new_project`, `start` implementations
 - **`config/lecture_env.rs`** — `.env` reader
@@ -163,7 +167,7 @@ runique/
 
 ## Tests (`runique/tests/`)
 
-**1833 tests, 0 failed** (2 ignored: SQLx Windows UTF-8 issue)
+**2011+ tests passing** (2 ignored: SQLx Windows UTF-8 issue)
 
 ```
 tests/
@@ -277,3 +281,4 @@ cargo test --tests                         # integration only (no inline)
 | `mysql`          | MySQL only                               |
 | `mariadb`        | MariaDB only                             |
 | `big-pk`         | `Pk = i64` instead of `i32`          |
+| `acme`           | Automatic TLS via Let's Encrypt (ACME)   |
