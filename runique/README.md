@@ -78,12 +78,12 @@ async fn main() {
 - `runique makemigrations --entities src/entities --migrations migration/src [--force false]`
 - `runique migration up|down|status --migrations migration/src`
 
-> ⚠️ **Warning**
-> The `makemigrations` command generates SeaORM tables while preserving the
+> ⚠️ **Warning — rolling back migrations**
+> `runique makemigrations` generates migrations while preserving the
 > chronological order of the migration system.
-> To ensure migration tracking remains consistent, only use the SeaORM CLI
-> to apply or manage migrations.
-> Using other commands may lead to migration desynchronization.
+> When you need to **roll a migration back**, prefer the SeaORM CLI: it keeps
+> the migration tracking table synchronized with the actual schema state.
+> Mixing rollback tooling can desynchronize migration tracking.
 
 ## Admin beta status
 

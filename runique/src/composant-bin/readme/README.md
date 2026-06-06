@@ -165,12 +165,12 @@ migration/src/
 > For schema changes (ALTER), just modify your entity and run `runique makemigrations` again.
 > Use `--force` to skip the destructive change prompt.
 >
-> ⚠️ **Warning**
-> The `makemigrations` command generates SeaORM tables while preserving the
+> ⚠️ **Warning — rolling back migrations**
+> `runique makemigrations` generates migrations while preserving the
 > chronological order of the migration system.
-> To ensure migration tracking remains consistent, only use the SeaORM CLI
-> to apply or manage migrations.
-> Using other commands may lead to migration desynchronization.
+> When you need to **roll a migration back**, prefer the SeaORM CLI: it keeps
+> the migration tracking table synchronized with the actual schema state.
+> Mixing rollback tooling can desynchronize migration tracking.
 
 ---
 
