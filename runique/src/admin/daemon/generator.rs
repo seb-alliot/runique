@@ -297,7 +297,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     let _ = writeln!(out, "        Box::pin(async move {{");
     let _ = writeln!(
         out,
-        "            use sea_orm::{{QueryFilter, sea_query::{{Alias, Expr, Order}}}};"
+        "            use sea_orm::{{QueryFilter, sea_query::{{Alias, Expr, ExprTrait, Order}}}};"
     );
     let _ = writeln!(
         out,
@@ -359,7 +359,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     );
     let _ = writeln!(
         out,
-        "                query = query.filter(Expr::cust_with_values(format!(\"CAST({{}} AS TEXT) = ?\", col), [val.clone()]));"
+        "                query = query.filter(Expr::col(Alias::new(col.as_str())).cast_as(Alias::new(\"TEXT\")).eq(val.clone()));"
     );
     let _ = writeln!(out, "            }}");
     let _ = writeln!(
@@ -564,7 +564,10 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     let _ = writeln!(out, "        Box::pin(async move {{");
     if let Some(ref bulk_field) = r.bulk_create {
         // Bulk upsert: split the specified field by comma, update if exists, insert otherwise
-        let _ = writeln!(out, "            use sea_orm::QueryFilter;");
+        let _ = writeln!(
+            out,
+            "            use sea_orm::{{QueryFilter, sea_query::{{Alias, Expr, ExprTrait}}}};"
+        );
         let _ = writeln!(
             out,
             "            let raw = data.get(\"{bulk_field}\").cloned().unwrap_or_default();",
@@ -588,7 +591,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         );
         let _ = writeln!(
             out,
-            "                    .filter(sea_orm::sea_query::Expr::cust_with_values(\"CAST({bulk_field} AS TEXT) = ?\", [val.clone()]))",
+            "                    .filter(Expr::col(Alias::new(\"{bulk_field}\")).cast_as(Alias::new(\"TEXT\")).eq(val.to_string()))",
             bulk_field = bulk_field
         );
         let _ = writeln!(out, "                    .one(&*db).await?");
@@ -769,11 +772,11 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
             );
             let _ = writeln!(
                 out,
-                "                    use sea_orm::sea_query::{{Query, Alias, Expr}};"
+                "                    use sea_orm::sea_query::{{Query, Alias, Expr, ExprTrait}};"
             );
             let _ = writeln!(
                 out,
-                "                    let stmt = Query::select().expr(Expr::cust(\"CAST({target_fk} AS TEXT)\")).from(Alias::new(\"{junction}\")).and_where(Expr::cust_with_values(\"CAST({self_fk} AS TEXT) = ?\", [oid.clone()])).to_owned();",
+                "                    let stmt = Query::select().expr(Expr::cust(\"CAST({target_fk} AS TEXT)\")).from(Alias::new(\"{junction}\")).and_where(Expr::col(Alias::new(\"{self_fk}\")).cast_as(Alias::new(\"TEXT\")).eq(oid.clone())).to_owned();",
                 target_fk = m2m.target_fk,
                 junction = m2m.junction_table,
                 self_fk = m2m.self_fk
@@ -834,7 +837,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         );
         let _ = writeln!(
             out,
-            "            use sea_orm::sea_query::{{Query, Alias, Expr, Order}};"
+            "            use sea_orm::sea_query::{{Query, Alias, Expr}};"
         );
         let _ = writeln!(
             out,
@@ -871,7 +874,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
             );
             let _ = writeln!(
                 out,
-                "            let stmt_{col} = Query::select().distinct().expr(Expr::cust(\"CAST({col} AS TEXT)\")).from(Alias::new({module}::Entity.table_name())).and_where(Expr::col(Alias::new(\"{col}\")).is_not_null()).order_by_expr(Expr::cust(\"CAST({col} AS TEXT)\"), Order::Desc).limit(page_size_{col}).offset(cur_page_{col} * page_size_{col}).to_owned();",
+                "            let stmt_{col} = Query::select().distinct().expr(Expr::cust(\"CAST({col} AS TEXT)\")).from(Alias::new({module}::Entity.table_name())).and_where(Expr::col(Alias::new(\"{col}\")).is_not_null()).limit(page_size_{col}).offset(cur_page_{col} * page_size_{col}).to_owned();",
                 col = col,
                 module = module
             );
@@ -883,7 +886,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
             );
             let _ = writeln!(
                 out,
-                "            let vals_{col}: Vec<String> = rows_{col}.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect();",
+                "            let mut vals_{col}: Vec<String> = rows_{col}.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_{col}.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {{ (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) }});",
                 col = col
             );
             let _ = writeln!(

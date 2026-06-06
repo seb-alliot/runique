@@ -6,6 +6,16 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2.1.14] - 2026-06-06
+
+### Fix — `runique` (admin filters & search — PostgreSQL regression)
+
+* **`?` placeholder in `cust_with_values` broke every admin filter and search on PostgreSQL (regression introduced by the 2.1.12 SQL-injection fix):** to bind values safely, 2.1.12 replaced inline interpolation with `Expr::cust_with_values(format!("CAST(col AS TEXT) = ?"), [val])`. The `?` marker is only the bind placeholder on MySQL/SQLite — PostgreSQL uses `$N`. In sea-query's `CustomWithExpr` renderer the placeholder is matched against the backend's own marker (`$` on Postgres), so an unrecognized `?` is emitted verbatim and the value is never bound. The condition collapsed to `WHERE CAST(col AS TEXT) = ` immediately followed by ` LIMIT`, producing a `syntax error at or near "LIMIT"` 500 on any filtered list or search. Completely silent on MySQL/SQLite. Fixed: all raw-SQL conditions are rebuilt with typed sea-query expressions that emit the backend-correct placeholder automatically — equality via `Expr::col(Alias::new(col)).cast_as(Alias::new("TEXT")).eq(val)`, case-insensitive search via `Expr::expr(Func::lower(Expr::col(...).cast_as(Alias::new("TEXT")))).like(pattern)` with the pattern lowered in Rust. Applied to the generated `list_fn` column filters, the `search_cond!` macro (both `all_columns` and `or(...)` arms), the bulk-upsert lookup and the m2m option query in the admin generator, and the builtin user / group / permission resources. The `search!` macro was unaffected — it already builds conditions through typed `ColumnTrait` methods.
+
+* **Filter sidebar values sorted in Rust, descending:** the `DISTINCT` query no longer carries the `ORDER BY CAST(col AS TEXT) DESC` introduced in 2.1.13 (it was entangled with the broken raw-SQL path). Distinct values are now sorted inside the generated closure (`sort_by` — numeric when both sides parse as integers, lexicographic otherwise), descending — highest version / id and most recent value first in each dropdown. The main list ordering is untouched (still driven by the clickable column headers).
+
+---
+
 ## [2.1.13] - 2026-06-01
 
 ### Fix — `runique` (admin templates)
