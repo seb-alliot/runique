@@ -385,29 +385,38 @@ macro_rules! search_cond {
     // ── all_columns icontains val — runtime LIKE across every column ──────────
     ($entity:ty => all_columns icontains $val:expr) => {{
         use sea_orm::{EntityTrait, Iterable, IdenStatic};
-        // Value bound as a parameter — sea-query applies backend-aware escaping
-        // (handles MySQL/MariaDB backslash, unlike a manual '' replacement).
-        let __val = format!("%{}%", $val);
+        use sea_orm::sea_query::ExprTrait;
+        // Pattern lowered in Rust + LOWER() on the column → case-insensitive match.
+        // The value is bound through a typed expression so sea-query emits the
+        // backend-correct placeholder ($1 on Postgres, ? on MySQL/SQLite).
+        let __val = format!("%{}%", $val.to_lowercase());
         let mut __cond = sea_orm::Condition::any();
         for col in <$entity as EntityTrait>::Column::iter() {
-            __cond = __cond.add(sea_orm::sea_query::Expr::cust_with_values(
-                format!("LOWER(CAST({} AS TEXT)) LIKE LOWER(?)", col.as_str()),
-                [__val.clone()],
-            ));
+            __cond = __cond.add(
+                sea_orm::sea_query::Expr::expr(sea_orm::sea_query::Func::lower(
+                    sea_orm::sea_query::Expr::col(sea_orm::sea_query::Alias::new(col.as_str()))
+                        .cast_as(sea_orm::sea_query::Alias::new("TEXT")),
+                ))
+                .like(__val.clone()),
+            );
         }
         __cond
     }};
 
     // ── or("col1" icontains val, "col2" icontains val, ...) ──────────────────
     ($entity:ty => or($($col:literal icontains $val:expr),+ $(,)?)) => {{
+        use sea_orm::sea_query::ExprTrait;
         let mut __cond = sea_orm::Condition::any();
         $(
             {
-                let __v = format!("%{}%", $val);
-                __cond = __cond.add(sea_orm::sea_query::Expr::cust_with_values(
-                    format!("LOWER(CAST({} AS TEXT)) LIKE LOWER(?)", $col),
-                    [__v],
-                ));
+                let __v = format!("%{}%", $val.to_lowercase());
+                __cond = __cond.add(
+                    sea_orm::sea_query::Expr::expr(sea_orm::sea_query::Func::lower(
+                        sea_orm::sea_query::Expr::col(sea_orm::sea_query::Alias::new($col))
+                            .cast_as(sea_orm::sea_query::Alias::new("TEXT")),
+                    ))
+                    .like(__v),
+                );
             }
         )+
         __cond

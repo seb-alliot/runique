@@ -186,7 +186,7 @@ pub(super) fn droit_entry() -> ResourceEntry {
             use sea_orm::ColumnTrait;
             use sea_orm::{
                 QueryFilter, QueryOrder,
-                sea_query::{Alias, Expr, Order},
+                sea_query::{Alias, Expr, ExprTrait, Func, Order},
             };
             use std::collections::HashMap as HMap;
 
@@ -203,12 +203,14 @@ pub(super) fn droit_entry() -> ResourceEntry {
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             if let Some(ref search_str) = params.search {
-                let pattern = format!("%{search_str}%");
+                let pattern = format!("%{}%", search_str.to_lowercase());
                 let mut cond = sea_orm::Condition::any();
-                cond = cond.add(Expr::cust_with_values(
-                    "LOWER(CAST(resource_key AS TEXT)) LIKE LOWER(?)",
-                    [pattern],
-                ));
+                cond = cond.add(
+                    Expr::expr(Func::lower(
+                        Expr::col(Alias::new("resource_key")).cast_as(Alias::new("TEXT")),
+                    ))
+                    .like(pattern),
+                );
                 query = query.filter(cond);
             }
             let rows = query
@@ -245,14 +247,19 @@ pub(super) fn droit_entry() -> ResourceEntry {
 
     let count_fn: CountFn = Arc::new(|db: ADb, _search| {
         Box::pin(async move {
-            use sea_orm::{QueryFilter, sea_query::Expr};
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, ExprTrait, Func},
+            };
             let mut query = groupes_droits::Entity::find();
             if let Some(ref search_str) = _search {
-                let pattern = format!("%{search_str}%");
-                query = query.filter(Expr::cust_with_values(
-                    "LOWER(CAST(resource_key AS TEXT)) LIKE LOWER(?)",
-                    [pattern],
-                ));
+                let pattern = format!("%{}%", search_str.to_lowercase());
+                query = query.filter(
+                    Expr::expr(Func::lower(
+                        Expr::col(Alias::new("resource_key")).cast_as(Alias::new("TEXT")),
+                    ))
+                    .like(pattern),
+                );
             }
             query.count(&*db).await
         })

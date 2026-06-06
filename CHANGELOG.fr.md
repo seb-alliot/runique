@@ -6,6 +6,16 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ---
 
+## [2.1.14] - 2026-06-06
+
+### Correctif — `runique` (filtres & recherche admin — régression PostgreSQL)
+
+* **Placeholder `?` dans `cust_with_values` cassait tous les filtres et la recherche admin sur PostgreSQL (régression introduite par le correctif injection SQL de 2.1.12) :** pour lier les valeurs proprement, 2.1.12 avait remplacé l'interpolation inline par `Expr::cust_with_values(format!("CAST(col AS TEXT) = ?"), [val])`. Le marqueur `?` n'est le placeholder de liaison que sur MySQL/SQLite — PostgreSQL utilise `$N`. Dans le rendu `CustomWithExpr` de sea-query, le placeholder est comparé au marqueur du backend (`$` sur Postgres) ; un `?` non reconnu est donc écrit littéralement et la valeur n'est jamais liée. La condition s'effondrait en `WHERE CAST(col AS TEXT) = ` immédiatement suivi de ` LIMIT`, produisant une erreur 500 `syntax error at or near "LIMIT"` sur toute liste filtrée ou recherche. Totalement silencieux sur MySQL/SQLite. Correctif : toutes les conditions SQL brutes sont reconstruites avec des expressions typées sea-query qui émettent automatiquement le bon placeholder selon le backend — égalité via `Expr::col(Alias::new(col)).cast_as(Alias::new("TEXT")).eq(val)`, recherche insensible à la casse via `Expr::expr(Func::lower(Expr::col(...).cast_as(Alias::new("TEXT")))).like(pattern)` avec le motif passé en minuscules côté Rust. Appliqué aux filtres de colonne du `list_fn` généré, à la macro `search_cond!` (branches `all_columns` et `or(...)`), à la requête d'upsert bulk et à la requête d'options m2m du générateur admin, et aux ressources builtin utilisateur / groupe / droit. La macro `search!` n'était pas concernée — elle construit déjà ses conditions via les méthodes typées `ColumnTrait`.
+
+* **Valeurs de la sidebar filtres triées en Rust, décroissant :** la requête `DISTINCT` ne porte plus le `ORDER BY CAST(col AS TEXT) DESC` introduit en 2.1.13 (il était imbriqué avec le chemin SQL brut cassé). Les valeurs distinctes sont désormais triées dans la closure générée (`sort_by` — numérique quand les deux côtés se parsent en entiers, lexicographique sinon), décroissant — version / id le plus élevé et valeur la plus récente en premier dans chaque dropdown. Le tri de la liste principale est inchangé (toujours piloté par les en-têtes de colonne cliquables).
+
+---
+
 ## [2.1.13] - 2026-06-01
 
 ### Correctif — `runique` (templates admin)

@@ -121,7 +121,7 @@ pub(super) fn user_entry() -> ResourceEntry {
         Box::pin(async move {
             use sea_orm::{
                 QueryFilter, QueryOrder,
-                sea_query::{Alias, Expr, Order},
+                sea_query::{Alias, Expr, ExprTrait, Func, Order},
             };
             let mut query = user::Entity::find();
             if let Some(ref col) = params.sort_by
@@ -140,20 +140,23 @@ pub(super) fn user_entry() -> ResourceEntry {
                 if col.is_empty() || !col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_') {
                     continue;
                 }
-                query = query.filter(Expr::cust_with_values(
-                    format!("CAST({col} AS TEXT) = ?"),
-                    [val.clone()],
-                ));
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
             }
             if let Some(ref search_str) = params.search {
-                let pattern = format!("%{search_str}%");
+                let pattern = format!("%{}%", search_str.to_lowercase());
                 let mut search_cond = sea_orm::Condition::any();
                 let cols = vec!["id", "username", "email"];
                 for col in cols {
-                    search_cond = search_cond.add(Expr::cust_with_values(
-                        format!("LOWER(CAST({col} AS TEXT)) LIKE LOWER(?)"),
-                        [pattern.clone()],
-                    ));
+                    search_cond = search_cond.add(
+                        Expr::expr(Func::lower(
+                            Expr::col(Alias::new(col)).cast_as(Alias::new("TEXT")),
+                        ))
+                        .like(pattern.clone()),
+                    );
                 }
                 query = query.filter(search_cond);
             }
@@ -171,17 +174,22 @@ pub(super) fn user_entry() -> ResourceEntry {
 
     let count_fn: CountFn = Arc::new(|db: ADb, _search| {
         Box::pin(async move {
-            use sea_orm::{QueryFilter, sea_query::Expr};
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, ExprTrait, Func},
+            };
             let mut query = user::Entity::find();
             if let Some(ref search_str) = _search {
-                let pattern = format!("%{search_str}%");
+                let pattern = format!("%{}%", search_str.to_lowercase());
                 let mut search_cond = sea_orm::Condition::any();
                 let cols = vec!["id", "username", "email"];
                 for col in cols {
-                    search_cond = search_cond.add(Expr::cust_with_values(
-                        format!("LOWER(CAST({col} AS TEXT)) LIKE LOWER(?)"),
-                        [pattern.clone()],
-                    ));
+                    search_cond = search_cond.add(
+                        Expr::expr(Func::lower(
+                            Expr::col(Alias::new(col)).cast_as(Alias::new("TEXT")),
+                        ))
+                        .like(pattern.clone()),
+                    );
                 }
                 query = query.filter(search_cond);
             }

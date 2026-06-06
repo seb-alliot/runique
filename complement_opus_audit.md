@@ -54,13 +54,13 @@ Le numéro affiché dans le header varie selon la page :
 
 | Valeur affichée | Où |
 |---|---|
-| `v2.1.13 post release` | index EN/FR, pages régénérées (`model/forms`, `admin/declaration-daemon`, `env`) |
+| `v2.1.14 post release` | index EN/FR, pages régénérées (`model/forms`, `admin/declaration-daemon`, `env`) |
 | `v2.1.7` | `comparatif` |
 | `v2.1.6` | majorité des sections EN (`installation/*`, `architecture`, `configuration`, `routing`, `orm`, `model`, `formulaire`, `template`, `flash`, `middleware`, `auth`, `session`, `admin`, `exemple`, `mailer`) |
 | `v2.1.5 - Upcoming` | pages FR (`installation/prerequis`, `auth`, `auth/modele`) |
 | `2.1.5` | en dur dans les `Cargo.toml` d'exemple (`database`, `troubleshooting`) |
 
-Le bandeau n'est pas centralisé : seules certaines pages ont été régénérées à 2.1.13, le reste est figé sur une valeur antérieure.
+Le bandeau n'est pas centralisé : seules certaines pages ont été régénérées à 2.1.14, le reste est figé sur une valeur antérieure.
 
 ---
 
@@ -74,7 +74,7 @@ Le mini-sommaire omet la première section `##` de la page. Confirmé sur :
 - `comparatif` (saute « CLI »)
 - `auth/model` et `auth/modele` (saute « Built-in Model » / « Modèle built-in »)
 
-**Corrélation nette :** les pages **non régénérées (v2.1.6 / v2.1.7)** ont le bug ; les pages **v2.1.13** ne l'ont pas. C'est probablement un bug de générateur déjà corrigé, mais ces pages n'ont pas été reconstruites.
+**Corrélation nette :** les pages **non régénérées (v2.1.6 / v2.1.7)** ont le bug ; les pages **v2.1.14** ne l'ont pas. C'est probablement un bug de générateur déjà corrigé, mais ces pages n'ont pas été reconstruites.
 
 ### Autre variante
 
@@ -133,7 +133,7 @@ Le FR reproduit cette structure avec slugs localisés (`installation/base-de-don
 | Priorité | Action |
 |---|---|
 | **Haute** | Corriger les 4 liens 404 EN (re-slugifier `modele`→`model`, `exemple`→`example`, `formulaires`→`forms` dans les tableaux et le renvoi ORM). |
-| **Haute** | Régénérer toutes les pages pour uniformiser le bandeau de version sur `v2.1.13` (et corriger en cascade le sommaire « skip 1ᵉʳ `##` »). |
+| **Haute** | Régénérer toutes les pages pour uniformiser le bandeau de version sur `v2.1.14` (et corriger en cascade le sommaire « skip 1ᵉʳ `##` »). |
 | **Moyenne** | Réparer les liens mal aiguillés : ancres CSP du `middleware`, `declaration-daemon`/`declaration-macro` dans `admin`, dédoublonnage `architecture/concepts`. |
 | **Moyenne** | Traduire « On this page » → « Sur cette page » et les en-têtes de groupe de l'index FR ; traduire « Comparatif » sur l'index EN. |
 | **Basse** | Fusionner ou différencier `env/*` et `configuration/variables` ; retirer la fuite `12-model.md` ; corriger le double « Overview » de `formulaire`. |
