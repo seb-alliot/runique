@@ -537,6 +537,7 @@
         position: fixed;
         top: 0;
         left: -280px;
+        width: 280px;
         height: 100vh;
         z-index: 200;
         background: var(--bg, #0f0f1a);

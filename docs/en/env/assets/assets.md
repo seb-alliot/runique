@@ -15,6 +15,29 @@
 
 ---
 
+## Docker deployment
+
+`STATIC_RUNIQUE_PATH` points to Runique's own admin static files (CSS, JS). Its default value is resolved at compile time via `CARGO_MANIFEST_DIR` and is invalid inside a Docker container at runtime.
+
+Set it explicitly in your `.env`:
+
+```env
+STATIC_RUNIQUE_PATH=/app/runique/static
+```
+
+Then copy the corresponding directory from the Runique source into the image during the Docker build.
+
+After a `runique` dependency version bump, always rebuild the image:
+
+```bash
+docker compose build
+docker compose up -d
+```
+
+`docker compose up -d` alone reuses the old image and the old assets.
+
+---
+
 ## See also
 
 | Section | Description |
