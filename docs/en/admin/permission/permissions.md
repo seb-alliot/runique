@@ -2,13 +2,13 @@
 
 ## Overview
 
-The admin permission system has two distinct levels:
+The admin permission system has three levels:
 
 | Level | Control | Effect |
 | --- | --- | --- |
-| **Permission (view)** | Scoped droit `access_type = "view"` | Resource visible in the nav |
-| **Droit (write)** | Scoped droit `access_type = "write"` | Access to create / edit / delete |
-| **Superuser** | `is_superuser = true` | Bypasses both levels |
+| **`is_staff`** | User field | Grants access to the admin login page only |
+| **Groups** | `eihwaz_groupes` + `eihwaz_groupes_droits` tables | Granular CRUD permissions per resource |
+| **`is_superuser`** | User field | Bypasses all checks |
 
 ---
 
@@ -16,55 +16,52 @@ The admin permission system has two distinct levels:
 
 | Field | Type | Role |
 | --- | --- | --- |
-| `is_staff` | `bool` | Grants access to the admin interface |
-| `is_superuser` | `bool` | Full access, bypasses all checks |
+| `is_staff` | `bool` | Allows login at `/admin/login` |
+| `is_superuser` | `bool` | Full access, bypasses all permission checks |
 | `is_active` | `bool` | Blocks inactive accounts |
 
 ---
 
-## Scoped droits
+## Granular permissions per group
 
-Each registered resource automatically gets two droits in `eihwaz_droits`, created at startup by the framework if absent:
+Permissions are carried by **groups**, not directly by users. A user inherits permissions from all their groups (aggregated with logical OR).
 
-| Name | `resource_key` | `access_type` | Effect |
-| --- | --- | --- | --- |
-| `blog.view` | `"blog"` | `"view"` | See the blog resource in the nav |
-| `blog.write` | `"blog"` | `"write"` | Create / edit / delete in blog |
+Each group has one entry per resource in `eihwaz_groupes_droits`:
 
-These droits are ordinary entries in `eihwaz_droits` — the admin assigns them to users or groups from the panel, exactly like any other droit.
+| Field | Effect |
+| --- | --- |
+| `can_read` | See the resource in the nav + access the list |
+| `can_create` | Create a record |
+| `can_update` | Edit any record |
+| `can_delete` | Delete any record |
+| `can_update_own` | Edit only their own records |
+| `can_delete_own` | Delete only their own records |
 
 ---
 
 ## Configuration via the panel
 
-### Granting visibility of a resource
+1. Go to **Admin → Groups** → create a group
+2. Configure that group's permissions per resource
+3. Go to **Admin → Users** → assign the group to the user
 
-1. Go to **Admin → Droits**
-2. Find `blog.view` (created automatically at startup)
-3. Go to **Admin → Users**, open the staff profile
-4. Assign the `blog.view` droit
-
-The user will now see the `blog` resource in the admin navigation.
-
-### Granting write access
-
-Same procedure with `blog.write`. A user can have `blog.view` without `blog.write` — they see the list but cannot create/edit/delete.
+A user with no group sees no resources in the nav (except superuser).
 
 ### Immediate revocation
 
-Removing a droit from a user takes effect on their next request — no logout required. Deleting a droit from `eihwaz_droits` clears the permissions cache for **all** users instantly.
+Removing a group from a user takes effect on their next request. Deleting a group clears the permissions cache for all its members instantly.
 
 ---
 
 ## Superuser-only resources
 
-The `droits` and `groupes` resources can only be accessed by an `is_superuser`. No scoped droit can unlock their access for a staff user — this is a fixed framework rule.
+The `groupes` and `groupes_droits` resources can only be accessed by an `is_superuser`. No group can unlock their access for a staff user — this is a fixed framework rule.
 
-This prevents privilege escalation: a staff user can never modify their own droits or those of other users.
+This prevents privilege escalation: a staff user can never modify their own permissions.
 
 ---
 
-## Access logic (current state)
+## Access logic
 
 ```text
 authenticated?
@@ -72,9 +69,13 @@ authenticated?
   └─ yes → is_staff OR is_superuser?
                └─ neither → redirect to /admin/login
                └─ is_superuser → GRANTED (full access, all resources)
-               └─ is_staff → resource visible if .view droit assigned
-                              write operation if .write droit assigned
-                              droits/groupes → denied (superuser only)
+               └─ is_staff → can_read on the resource?
+                                └─ no  → resource absent from the nav
+                                └─ yes → list visible
+                                         can_create / can_update / can_delete
+                                         for the corresponding operations
+                                         can_update_own / can_delete_own
+                                         for their own records only
 ```
 
 ---
@@ -82,8 +83,8 @@ authenticated?
 ## Notes
 
 - The `admin!` macro no longer declares `permissions:` — configuration is entirely in the database.
-- Scoped droits are created automatically: the developer has nothing to do on the code side.
-- A user with no scoped droits sees no resources in the nav (except superuser).
+- Permissions are aggregated with logical OR across all of the user's groups.
+- A user can have `can_read` without `can_create` — they see the list but cannot create.
 
 ---
 
