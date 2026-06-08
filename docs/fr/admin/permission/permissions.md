@@ -2,13 +2,13 @@
 
 ## Vue d'ensemble
 
-Le système de permissions admin repose sur deux niveaux distincts :
+Le système de permissions admin repose sur trois niveaux :
 
 | Niveau | Contrôle | Effet |
 | --- | --- | --- |
-| **Permission (view)** | Droit scopé `access_type = "view"` | Ressource visible dans la nav |
-| **Droit (write)** | Droit scopé `access_type = "write"` | Accès create / edit / delete |
-| **Superuser** | `is_superuser = true` | Bypass les deux niveaux |
+| **`is_staff`** | Champ utilisateur | Donne accès à la page de login admin uniquement |
+| **Groupes** | Tables `eihwaz_groupes` + `eihwaz_groupes_droits` | Permissions CRUD granulaires par ressource |
+| **`is_superuser`** | Champ utilisateur | Bypass tous les contrôles |
 
 ---
 
@@ -16,55 +16,52 @@ Le système de permissions admin repose sur deux niveaux distincts :
 
 | Champ | Type | Rôle |
 | --- | --- | --- |
-| `is_staff` | `bool` | Autorise l'accès à l'interface admin |
+| `is_staff` | `bool` | Autorise la connexion à la page `/admin/login` |
 | `is_superuser` | `bool` | Accès total, bypass toutes les vérifications |
 | `is_active` | `bool` | Bloque les comptes inactifs |
 
 ---
 
-## Droits scopés
+## Permissions granulaires par groupe
 
-Chaque ressource enregistrée dispose automatiquement de deux droits dans `eihwaz_droits`, créés au démarrage par le framework si absents :
+Les permissions sont portées par les **groupes**, pas directement par les utilisateurs. Un utilisateur hérite des permissions de tous ses groupes (agrégation par OR logique).
 
-| Nom | `resource_key` | `access_type` | Effet |
-| --- | --- | --- | --- |
-| `blog.view` | `"blog"` | `"view"` | Voir la ressource blog dans la nav |
-| `blog.write` | `"blog"` | `"write"` | Créer / modifier / supprimer dans blog |
+Chaque groupe dispose d'une entrée par ressource dans `eihwaz_groupes_droits` :
 
-Ces droits sont des entrées ordinaires dans `eihwaz_droits` — l'admin les assigne aux utilisateurs ou aux groupes depuis le panel, exactement comme n'importe quel autre droit.
+| Champ | Effet |
+| --- | --- |
+| `can_read` | Voir la ressource dans la nav + accéder à la liste |
+| `can_create` | Créer un enregistrement |
+| `can_update` | Modifier n'importe quel enregistrement |
+| `can_delete` | Supprimer n'importe quel enregistrement |
+| `can_update_own` | Modifier uniquement ses propres enregistrements |
+| `can_delete_own` | Supprimer uniquement ses propres enregistrements |
 
 ---
 
 ## Configuration via le panel
 
-### Accorder la visibilité d'une ressource
+1. Aller dans **Admin → Groupes** → créer un groupe
+2. Configurer les permissions de ce groupe par ressource
+3. Aller dans **Admin → Utilisateurs** → assigner le groupe à l'utilisateur
 
-1. Aller dans **Admin → Droits**
-2. Trouver `blog.view` (créé automatiquement au démarrage)
-3. Aller dans **Admin → Utilisateurs**, ouvrir le profil du staff
-4. Assigner le droit `blog.view`
-
-L'utilisateur verra désormais la ressource `blog` dans la navigation admin.
-
-### Accorder l'accès en écriture
-
-Même procédure avec `blog.write`. Un utilisateur peut avoir `blog.view` sans `blog.write` — il voit la liste mais ne peut pas créer/modifier/supprimer.
+Un utilisateur sans groupe ne voit aucune ressource dans la nav (sauf superuser).
 
 ### Révocation immédiate
 
-Retirer un droit d'un utilisateur prend effet à sa prochaine requête — aucune déconnexion requise. Supprimer un droit de `eihwaz_droits` vide le cache de permissions de **tous** les utilisateurs instantanément.
+Retirer un groupe d'un utilisateur prend effet à sa prochaine requête. Supprimer un groupe vide le cache de permissions de tous ses membres instantanément.
 
 ---
 
 ## Ressources superuser uniquement
 
-Les ressources `droits` et `groupes` ne peuvent être accédées que par un `is_superuser`. Aucun droit scopé ne peut débloquer leur accès pour un staff — c'est une règle fixe du framework.
+Les ressources `groupes` et `groupes_droits` ne peuvent être accédées que par un `is_superuser`. Aucun groupe ne peut débloquer leur accès pour un staff — règle fixe du framework.
 
-Cela empêche l'escalade de privilèges : un staff ne peut jamais modifier ses propres droits ou ceux d'autres utilisateurs.
+Cela empêche l'escalade de privilèges : un staff ne peut jamais modifier ses propres permissions.
 
 ---
 
-## Logique d'accès (état actuel)
+## Logique d'accès
 
 ```text
 authentifié ?
@@ -72,9 +69,13 @@ authentifié ?
   └─ oui → is_staff OU is_superuser ?
                └─ aucun → redirection /admin/login
                └─ is_superuser → AUTORISÉ (accès total, toutes ressources)
-               └─ is_staff → ressource visible si droit .view assigné
-                              opération write si droit .write assigné
-                              droits/groupes → refusé (superuser uniquement)
+               └─ is_staff → can_read sur la ressource ?
+                                └─ non  → ressource absente de la nav
+                                └─ oui  → liste visible
+                                          can_create / can_update / can_delete
+                                          pour les opérations correspondantes
+                                          can_update_own / can_delete_own
+                                          pour ses propres enregistrements uniquement
 ```
 
 ---
@@ -82,8 +83,8 @@ authentifié ?
 ## Notes
 
 - La macro `admin!` ne déclare plus de `permissions:` — la configuration est entièrement en base.
-- Les droits scopés sont créés automatiquement : le dev n'a rien à faire côté code.
-- Un utilisateur sans aucun droit scopé ne voit aucune ressource dans la nav (sauf superuser).
+- Les permissions sont agrégées par OR logique sur tous les groupes de l'utilisateur.
+- Un utilisateur peut avoir `can_read` sans `can_create` — il voit la liste mais ne peut pas créer.
 
 ---
 
@@ -96,6 +97,6 @@ authentifié ?
 | [Templates](/docs/fr/admin/template) | Hiérarchie de templates, blocks, surcharge |
 | [Évolutions](/docs/fr/admin/evolution) | Axes d'évolution |
 
-## Revenir au sommaire
+## Retour au sommaire
 
 - [Sommaire Admin](/docs/fr/admin)
