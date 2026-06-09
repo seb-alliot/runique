@@ -124,7 +124,9 @@ pub mod prelude {
     // ========================================================================
     // MIDDLEWARE
     // ========================================================================
+    pub use crate::auth::session::UserEntity;
     pub use crate::auth::user as runique_users;
+    pub use crate::auth::user::{BuiltinUserEntity, RuniqueAdminAuth};
     pub use crate::auth::*;
     pub use crate::auth::{
         ForgotPasswordForm, PasswordResetAdapter, PasswordResetConfig, PasswordResetForm,
