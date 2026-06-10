@@ -110,28 +110,28 @@ impl FormRenderer {
     }
 
     fn render_js(&self) -> Result<String, String> {
+        eprintln!("[render_js] called, js_files={:?}", self.js_files);
         if self.js_files.is_empty() {
+            eprintln!("[render_js] empty, returning Ok");
             return Ok(String::new());
         }
 
         let template_name = "js_files.html";
-        if !self
-            .tera
-            .get_template_names()
-            .any(|name| name == template_name)
-        {
+        let found = self.tera.get_template_names().any(|name| name == template_name);
+        eprintln!("[render_js] template '{}' found={}", template_name, found);
+        if !found {
             return Err(tf("forms.template_missing", &[template_name]).to_owned());
         }
 
         let mut context = tera::Context::new();
         context.insert("js_files", &self.js_files);
 
-        self.tera
-            .render(template_name, &context)
-            .map_err(|e| {
-                eprintln!("[render_js] tera error: {:#?}", e);
-                tf("forms.render_js_error", &[&e]).to_owned()
-            })
+        let result = self.tera.render(template_name, &context);
+        eprintln!("[render_js] tera render result: {}", result.is_ok());
+        result.map_err(|e| {
+            eprintln!("[render_js] tera error: {:#?}", e);
+            tf("forms.render_js_error", &[&e]).to_owned()
+        })
     }
 
     pub fn render_field(&self, field: &dyn FormField) -> Result<String, String> {
