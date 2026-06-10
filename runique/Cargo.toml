@@ -42,6 +42,7 @@ urlencoding.workspace = true
 byte.workspace = true
 http-body-util.workspace = true
 ammonia.workspace = true
+html-escape.workspace = true
 
 # Password management
 argon2.workspace = true

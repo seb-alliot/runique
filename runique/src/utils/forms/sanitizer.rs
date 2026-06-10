@@ -58,12 +58,12 @@ pub fn sanitize_strict(input: &str) -> String {
         return String::new();
     }
 
-    // Strip all HTML tags, keep text content (spaces preserved, case preserved)
+    // Strip all HTML tags — ammonia encodes `&` → `&amp;` as a side effect,
+    // so we decode entities afterwards to store plain text.
     let stripped = Builder::new().tags(HashSet::new()).clean(input).to_string();
-
     // Remove dangerous protocols (case-insensitive)
     const PROTOCOLS: &[&str] = &["javascript:", "vbscript:", "data:", "file:"];
-    let mut result = stripped;
+    let mut result: String = html_escape::decode_html_entities(&stripped).into_owned();
     for proto in PROTOCOLS {
         let lower = result.to_lowercase();
         if !lower.contains(proto) {

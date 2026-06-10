@@ -125,9 +125,16 @@ pub async fn authenticate_user(
     username: &str,
     password: &str,
 ) -> Option<Model> {
-    let user = BuiltinUserEntity::find_by_username(db, username).await?;
-    if user.is_active && crate::utils::password::verify(password, &user.password) {
-        Some(user)
+    let user_opt = BuiltinUserEntity::find_by_username(db, username).await;
+    // Always run verify regardless of whether the user exists — prevents user enumeration
+    // via timing differences (`ct_eq` equivalent at the hash layer).
+    let hash = user_opt
+        .as_ref()
+        .map(|u| u.password.as_str())
+        .unwrap_or(crate::utils::password::dummy_hash());
+    let password_ok = crate::utils::password::verify(password, hash);
+    if password_ok && user_opt.as_ref().is_some_and(|u| u.is_active) {
+        user_opt
     } else {
         None
     }

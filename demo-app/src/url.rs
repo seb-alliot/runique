@@ -111,5 +111,5 @@ pub fn routes() -> Router {
     }
     .rate_limit("/upload-image",  "upload_image",  view!(upload_image_submit),   5,  60,  vec![])
     .rate_limit("/inscription",   "inscription",   view!(soumission_inscription), 5, 300, vec![])
-    .rate_limit("/login",         "login",         view!(login_user),             10,  60, vec![])
+    .rate_limit("/login",         "login",         view!(login_user),             10,  60, vec![Method::POST])
 }
