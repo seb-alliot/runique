@@ -108,6 +108,8 @@ Elle retourne un `RuniqueQueryBuilder` chainable (`.limit()`, `.order_by_asc()`,
 | `Col not_in [v1, v2]` | `WHERE col NOT IN (v1, v2)` | `exclude(col__in=[v1, v2])` |
 | `Col in (expr)` | `WHERE col IN (...)` *(Vec/itérateur)* | `filter(col__in=qs)` |
 | `Col not_in (expr)` | `WHERE col NOT IN (...)` | `exclude(col__in=qs)` |
+| `?Col in (expr)` | `WHERE col IN (...)` *(sauté si vide)* | — |
+| `?Col not_in (expr)` | `WHERE col NOT IN (...)` *(sauté si vide)* | — |
 | `Col range (a, b)` | `WHERE col BETWEEN a AND b` | `filter(col__range=(a, b))` |
 | `Col not_range (a, b)` | `WHERE col NOT BETWEEN a AND b` | — |
 | `! Col op val` | exclusion (NOT) | `.exclude(col__op=val)` |
@@ -364,6 +366,59 @@ let result = users::Entity::delete_many()
     .exec(&*db)
     .await?;
 ```
+
+---
+
+## Limites actuelles de `search!`
+
+### `in (expr)` avec un vec vide
+
+`Col in (vec)` génère `WHERE col IN (...)`. Si le vec est vide, le SQL produit est invalide
+ou retourne toujours faux selon le moteur. Garder le guard manuel :
+
+```rust
+let ids: Vec<i32> = compute_ids();
+if !ids.is_empty() {
+    query = query.filter(col.is_in(ids));
+}
+```
+
+**Workaround intégré — `?Col in (expr)` :** si la vec peut être vide, utiliser la syntaxe conditionnelle qui saute le filtre automatiquement :
+
+```rust
+let ids: Vec<i32> = compute_ids();  // peut être vide
+let results = search!(item::Entity => ?Id in (ids)).all(db).await?;
+```
+
+De même `?Col not_in (expr)` pour l'exclusion conditionnelle.
+
+### Pas de filtre conditionnel inline (condition booléenne)
+
+Il n'est pas possible de sauter un filtre à l'intérieur d'un appel `search!` selon une condition
+booléenne arbitraire. Si certains filtres sont optionnels sur un prédicat autre qu'une vec vide,
+appliquer `.filter()` manuellement après le macro.
+
+### OR sur le même champ — plusieurs variantes enum
+
+`or(...)` opère sur plusieurs **colonnes** différentes. Pour filtrer une même colonne sur plusieurs
+valeurs enum, utiliser `Col in [V1, V2]` (littéral) ou `.filter(Col.is_in(vec))` :
+
+```rust
+// OK — IN littéral
+search!(commande::Entity => Statut in ["en_attente", "accepte"])
+
+// OK — Vec d'enum
+let statuts = vec![StatutCommande::EnAttente, StatutCommande::Accepte];
+query.filter(commande::Column::Statut.is_in(statuts))
+
+// Pas disponible — syntaxe future prévue :
+// search!(commande::Entity => Statut any [EnAttente, Accepte])
+```
+
+### Pas d'agrégats
+
+`.avg()`, `.sum()`, `.count_by()` ne sont pas disponibles sur `RuniqueQueryBuilder`.
+Pour les agrégats, utiliser SeaORM directement ou `.into_select()`.
 
 ---
 

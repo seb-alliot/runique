@@ -8,7 +8,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "2.1.14"
+version = "2.1.15"
 edition = "2024"
 rust-version = "1.88"
 authors = ["Itsuki"]
@@ -82,6 +82,7 @@ scrypt = "0.11.0"
 password-hash = "0.6.0"
 rand = "0.10.0"
 ammonia = "4.1.2"
+html-escape = "0.2"
 
 # Documentation
 pulldown-cmark = "0.13.3"

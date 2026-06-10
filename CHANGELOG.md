@@ -6,6 +6,18 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2.1.15] - 2026-06-10
+
+### Security — `runique` (auth)
+
+* **User enumeration via timing attack on login (medium):** `authenticate_user` and `DefaultAdminAuth::authenticate` returned `None` immediately via `?` when the username was not found in the database, skipping the password hash verification entirely. An attacker measuring response times could distinguish "user does not exist" (fast — no hash work) from "wrong password" (slow — full Argon2 verification), allowing silent username enumeration. Fixed: both functions now always call `verify()` before short-circuiting. When the user is not found, the password is verified against a pre-computed dummy Argon2 hash (`DUMMY_HASH`, initialised once at first use via `LazyLock`) — burning the same CPU time regardless of whether the account exists. The `?` on the user lookup is deferred to after `verify()` returns, so the result is always discarded once timing-sensitive work is done.
+
+### Fix — `runique` (forms)
+
+* **`TextField` double-encoded `&` when storing plain-text input:** `sanitize_strict()` used `ammonia::Builder::new().tags(HashSet::new()).clean(input)` to strip all HTML tags. This is correct, but ammonia always HTML-encodes `&` → `&amp;` in its output even when no tags remain — a side effect of its HTML-entity serialiser. The raw output was then stored in the database. When Tera later rendered it with autoescaping active, the `&` in `&amp;` was re-encoded to `&amp;amp;`, so the browser displayed the literal text `&amp;` instead of `&`. Fixed: after ammonia strips the tags, the result is decoded back to plain text via `html_escape::decode_html_entities()` — removing the spurious entity encoding before storage. Dangerous protocol stripping (`javascript:`, `vbscript:`, `data:`, `file:`) runs on the decoded string, preserving security guarantees. New dependency: `html-escape = "0.2"`.
+
+---
+
 ## [2.1.14] - 2026-06-06
 
 ### Fix — `runique` (admin filters & search — PostgreSQL regression)

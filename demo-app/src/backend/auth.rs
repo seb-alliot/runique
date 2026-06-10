@@ -1,5 +1,4 @@
 use crate::formulaire::{LoginForm, RegisterForm};
-use runique::auth::auth_login;
 use runique::prelude::runique_users::ActiveModel as UserActiveModel;
 use runique::prelude::runique_users::Entity as UserEntity;
 use runique::prelude::*;
@@ -9,19 +8,6 @@ pub async fn register_user(
     db: &sea_orm::DatabaseConnection,
 ) -> Result<runique::prelude::runique_users::Model, sea_orm::DbErr> {
     form.save(db).await
-}
-
-pub async fn authenticate_user(
-    db: &sea_orm::DatabaseConnection,
-    username: &str,
-    password: &str,
-) -> Option<runique::prelude::runique_users::Model> {
-    let user = find_user_by_username(db, username).await?;
-    if user.is_active && verify(password, &user.password) {
-        Some(user)
-    } else {
-        None
-    }
 }
 
 pub async fn find_user_by_username(

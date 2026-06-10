@@ -81,7 +81,8 @@
 - [ ] **`makemigrations` — détecter les suppressions** — générer `DROP COLUMN` quand une colonne disparaît du DSL (actuellement silencieux)
 - [ ] **`search!` — agrégats** — `.avg()`, `.sum()`, `.count_by()` sur `RuniqueQueryBuilder` (actuellement SQL brut requis)
 - [ ] **`search!` — `.first()` simplifié** — retourner `Option<T>` au lieu de `Result<Option<T>>`, cohérent avec `.all()` et `.count()`
-- [ ] **`search!` — filtres conditionnels** — bras `?Col in (opt_vec)` qui saute si `None`/vide
+- ✅ **`search!` — filtres conditionnels** — bras `?Col in (expr)` / `?Col not_in (expr)` qui sautent si vec vide
+- [ ] **`search!` / `search_cond!` — OR multi-variantes même champ** — `Col any [V1, V2, ...]` pour filtrer une colonne sur plusieurs valeurs enum sans `Condition::any()` manuel ; les deux macros concernées
 
 ---
 

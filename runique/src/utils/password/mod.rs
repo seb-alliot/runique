@@ -377,6 +377,24 @@ use std::sync::OnceLock;
 
 pub static PASSWORD_CONFIG: OnceLock<PasswordConfig> = OnceLock::new();
 
+// Pre-computed dummy hash — used to run a full verify even when the user is not found,
+// preventing user enumeration via timing differences (constant-time authentication flow).
+static DUMMY_HASH: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
+    BaseHash::new()
+        .hash("__runique_dummy__", &Manual::Argon2)
+        .unwrap_or_else(|_| {
+            "$argon2id$v=19$m=19456,t=2,p=1$c29tZXNhbHQ$RdescudvJCsgt3ub+b+dWRWJTmaaJObG"
+                .to_string()
+        })
+});
+
+/// Returns a pre-computed dummy hash for constant-time authentication.
+/// Always use this when the user is not found — never short-circuit before `verify()`.
+#[must_use]
+pub fn dummy_hash() -> &'static str {
+    &DUMMY_HASH
+}
+
 pub fn password_init(config: PasswordConfig) {
     if PASSWORD_CONFIG.set(config).is_err()
         && let Some(level) = crate::utils::runique_log::get_log().password_init

@@ -163,6 +163,30 @@ macro_rules! search_munch {
         $crate::search_munch!($b, $entity; $($rest)*);
     };
 
+    // ── ?Col in (expr) — Conditional Dynamic IN (skipped if empty) ──────────
+    ($b:expr, $entity:ty; ? $col:ident in ($val:expr) , $($rest:tt)*) => {
+        {
+            use sea_orm::ColumnTrait;
+            let __vals: ::std::vec::Vec<_> = (&$val).into_iter().cloned().collect();
+            if !__vals.is_empty() {
+                $b = $b.filter(<$entity as sea_orm::EntityTrait>::Column::$col.is_in(__vals));
+            }
+        }
+        $crate::search_munch!($b, $entity; $($rest)*);
+    };
+
+    // ── ?Col not_in (expr) — Conditional Dynamic NOT IN (skipped if empty) ──
+    ($b:expr, $entity:ty; ? $col:ident not_in ($val:expr) , $($rest:tt)*) => {
+        {
+            use sea_orm::ColumnTrait;
+            let __vals: ::std::vec::Vec<_> = (&$val).into_iter().cloned().collect();
+            if !__vals.is_empty() {
+                $b = $b.filter(<$entity as sea_orm::EntityTrait>::Column::$col.is_not_in(__vals));
+            }
+        }
+        $crate::search_munch!($b, $entity; $($rest)*);
+    };
+
     // ── Col range (a, b) — BETWEEN ───────────────────────────────────────────
     ($b:expr, $entity:ty; $col:ident range ($start:expr, $end:expr) , $($rest:tt)*) => {
         {
@@ -249,10 +273,12 @@ macro_rules! search_munch {
 // Special forms :
 //   Col isnull           → IS NULL
 //   Col not_null         → IS NOT NULL
-//   Col in [v1, v2]      → IN (literal)
-//   Col in (expr)        → IN (dynamic)
+//   Col in [v1, v2]       → IN (literal)
+//   Col in (expr)         → IN (dynamic)
+//   ?Col in (expr)        → IN (dynamic, skipped if empty)
 //   Col not_in [v1, v2]  → NOT IN (literal)
-//   Col not_in (expr)    → NOT IN (dynamic)
+//   Col not_in (expr)     → NOT IN (dynamic)
+//   ?Col not_in (expr)    → NOT IN (dynamic, skipped if empty)
 //   Col range (a, b)     → BETWEEN a AND b
 //   Col not_range (a, b) → NOT BETWEEN
 //   or(C1 op v, C2 op v) → multi-column OR

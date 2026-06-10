@@ -129,15 +129,20 @@ impl<E: UserEntity> AdminAuth for DefaultAdminAuth<E> {
         db: &DatabaseConnection,
     ) -> Option<AdminLoginResult> {
         // 1. Retrieve the user from the DB
-        let user = E::find_by_username(db, username).await?;
+        let user_opt = E::find_by_username(db, username).await;
 
-        // 2. Check admin access rights + active account
-        if !user.can_access_admin() {
-            return None;
-        }
+        // 2. Always verify password — prevents user enumeration via timing differences.
+        // If the user is not found, verify against a dummy hash to burn the same time.
+        let hash = user_opt
+            .as_ref()
+            .map(|u| u.password_hash())
+            .unwrap_or(crate::utils::password::dummy_hash());
+        let password_ok = crate::utils::password::verify(password, hash);
 
-        // 3. Check password (Argon2)
-        if !crate::utils::password::verify(password, user.password_hash()) {
+        // 3. Short-circuit only after verify has run
+        let user = user_opt?;
+
+        if !user.can_access_admin() || !password_ok {
             return None;
         }
 
