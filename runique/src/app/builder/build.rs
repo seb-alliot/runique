@@ -24,7 +24,7 @@ use super::RuniqueAppBuilder;
 use crate::admin::build_admin_router;
 use crate::config::RuniqueConfig;
 use crate::engine::RuniqueEngine;
-use crate::macros::add_urls;
+use crate::macros::{add_urls, register_name_url};
 use crate::middleware::HostPolicy;
 use crate::utils::aliases::new;
 use crate::utils::runique_log::log_init;
@@ -122,7 +122,14 @@ impl RuniqueAppBuilder {
         let router = router.unwrap_or_default();
 
         let router = if let Some(pr) = self.password_reset {
+            let forgot_path = pr.config.forgot_route.clone();
+            let reset_path = format!(
+                "{}/{{token}}/{{encrypted_email}}",
+                pr.config.reset_route.trim_end_matches('/')
+            );
             let pr_router = pr.handler.build_router(Arc::new(pr.config));
+            register_name_url(&engine, "forgot_password", &forgot_path);
+            register_name_url(&engine, "reset_password", &reset_path);
             router.merge(pr_router)
         } else {
             router
@@ -147,6 +154,7 @@ impl RuniqueAppBuilder {
             }
             let admin_router = build_admin_router(self.admin, engine.db.clone());
             add_urls(&engine);
+            register_name_url(&engine, "admin", &admin_prefix);
             let mut r = router.merge(admin_router);
             if robots_txt {
                 r = r.route(
