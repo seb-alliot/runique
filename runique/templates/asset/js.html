@@ -1,5 +1,5 @@
 {% if js_files %}
     {% for js_file in js_files %}
-        <script {% csp %} src="{{ js_file | static }}" defer></script>
+        <script {% if csp_nonce is defined %}nonce="{{ csp_nonce }}"{% endif %} src="{{ js_file | static }}" defer></script>
     {% endfor %}
 {% endif %}
