@@ -15,6 +15,12 @@ use crate::utils::{
 use axum::response::{IntoResponse, Redirect, Response};
 use serde_json::Value;
 
+fn inject_csp_nonce(form: &mut Box<dyn crate::admin::helper::dyn_form::DynForm>, ctx: &tera::Context) {
+    if let Some(nonce) = ctx.get("csp_nonce").and_then(|v| v.as_str()) {
+        form.get_form_mut().set_csp_nonce(nonce);
+    }
+}
+
 fn is_unique_violation(e: &sea_orm::DbErr) -> bool {
     let msg = e.to_string();
     msg.contains("unique") || msg.contains("UNIQUE") || msg.contains("Duplicate")
@@ -84,7 +90,7 @@ pub(super) async fn handle_create_get(
         .all()
         .map(|e| e.meta.key.to_string())
         .collect::<Vec<_>>();
-    let form = (entry.form_builder)(
+    let mut form = (entry.form_builder)(
         req.engine.db.clone(),
         resource_keys,
         StrMap::new(),
@@ -98,6 +104,7 @@ pub(super) async fn handle_create_get(
         let m2m_fields = loader(req.engine.db.clone(), None).await;
         req.context.insert("m2m_fields", &m2m_fields);
     }
+    inject_csp_nonce(&mut form, &req.context);
     req.context.insert(ctx_create::FORM_FIELDS, form.get_form());
     req.context.insert(ctx_create::IS_EDIT, &false);
     req.context.insert(ctx_common::LANG, &current_lang().code());
@@ -186,6 +193,7 @@ pub(super) async fn handle_create_post(
                     let m2m_fields = loader(req.engine.db.clone(), None).await;
                     req.context.insert("m2m_fields", &m2m_fields);
                 }
+                inject_csp_nonce(&mut form, &req.context);
                 req.context.insert(ctx_create::FORM_FIELDS, form.get_form());
                 req.context.insert(ctx_create::IS_EDIT, &false);
                 req.context.insert(ctx_common::LANG, &current_lang().code());
@@ -212,6 +220,7 @@ pub(super) async fn handle_create_post(
                     let m2m_fields = loader(req.engine.db.clone(), None).await;
                     req.context.insert("m2m_fields", &m2m_fields);
                 }
+                inject_csp_nonce(&mut form, &req.context);
                 req.context.insert(ctx_create::FORM_FIELDS, form.get_form());
                 req.context.insert(ctx_create::IS_EDIT, &false);
                 req.context.insert(ctx_common::LANG, &current_lang().code());
@@ -273,6 +282,7 @@ pub(super) async fn handle_create_post(
         let m2m_fields = loader(req.engine.db.clone(), None).await;
         req.context.insert("m2m_fields", &m2m_fields);
     }
+    inject_csp_nonce(&mut form, &req.context);
     req.context.insert(ctx_create::FORM_FIELDS, form.get_form());
     req.context.insert(ctx_create::IS_EDIT, &false);
     req.context.insert(ctx_common::LANG, &current_lang().code());
@@ -316,7 +326,7 @@ pub(super) async fn handle_edit_get(
         .all()
         .map(|e| e.meta.key.to_string())
         .collect::<Vec<_>>();
-    let form = (builder)(
+    let mut form = (builder)(
         req.engine.db.clone(),
         resource_keys,
         data.clone(),
@@ -343,6 +353,7 @@ pub(super) async fn handle_edit_get(
         req.context.insert("m2m_fields", &m2m_fields);
     }
 
+    inject_csp_nonce(&mut form, &req.context);
     req.context.insert(ctx_edit::FORM_FIELDS, form.get_form());
     req.context.insert(ctx_edit::IS_EDIT, &true);
     req.context.insert(ctx_edit::OBJECT_ID, &id);
@@ -526,6 +537,7 @@ pub(super) async fn handle_edit_post(
     }
 
     let return_qs_str = return_qs.as_deref().unwrap_or("");
+    inject_csp_nonce(&mut form, &req.context);
     req.context.insert(ctx_edit::FORM_FIELDS, form.get_form());
     req.context.insert(ctx_edit::IS_EDIT, &true);
     req.context.insert(ctx_edit::OBJECT_ID, &id);

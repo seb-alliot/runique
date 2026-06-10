@@ -202,6 +202,13 @@ impl Forms {
         self.renderer = Some(renderer);
     }
 
+    /// Passes the CSP nonce to the renderer so script tags carry the correct `nonce` attribute.
+    pub fn set_csp_nonce(&mut self, nonce: &str) {
+        if let Some(renderer) = self.renderer.as_mut() {
+            renderer.set_nonce(nonce);
+        }
+    }
+
     /// Appends JavaScript file paths to the renderer's `js_files` list (injected via `form.js_files`).
     pub fn add_js(&mut self, files: &[&str]) {
         if let Some(renderer) = self.renderer.as_mut() {
