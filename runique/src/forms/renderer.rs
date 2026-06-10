@@ -128,7 +128,10 @@ impl FormRenderer {
 
         self.tera
             .render(template_name, &context)
-            .map_err(|e| tf("forms.render_js_error", &[&e]).to_owned())
+            .map_err(|e| {
+                eprintln!("[render_js] tera error: {:#?}", e);
+                tf("forms.render_js_error", &[&e]).to_owned()
+            })
     }
 
     pub fn render_field(&self, field: &dyn FormField) -> Result<String, String> {
