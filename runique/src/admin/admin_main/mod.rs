@@ -446,6 +446,11 @@ pub async fn admin_post_id(
     if action == "delete" && !can_delete && !(can_delete_own && owns_record) {
         return Ok(permission_denied(&req.notices, &state.config.prefix, &resource_key).await);
     }
+    // reset-password est une opération d'écriture sensible : exiger can_update
+    // (global ou sur l'enregistrement possédé), au même titre que edit.
+    if action == "reset-password" && !can_update && !(can_update_own && owns_record) {
+        return Ok(permission_denied(&req.notices, &state.config.prefix, &resource_key).await);
+    }
 
     match action.as_str() {
         "edit" => {

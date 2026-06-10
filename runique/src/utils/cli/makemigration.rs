@@ -406,16 +406,76 @@ pub fn merge_extend_schemas(schemas: Vec<ParsedSchema>) -> Vec<ParsedSchema> {
 }
 pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()> {
     let schemas = scan_entities(entities_path)?;
-    if schemas.is_empty() {
-        return Ok(());
-    }
 
     fs::create_dir_all(applied_dir(migrations_path))?;
     fs::create_dir_all(snapshot_dir(migrations_path))?;
 
-    let mut all_changes: Vec<Changes> = Vec::new();
+    // ── Plan everything up front — nothing is written until the full plan
+    //    (main models + extend!{} blocks) is computed and validated.
+    let mut main_changes = compute_main_changes(&schemas, migrations_path)?;
+    let extend_planned = plan_extend_changes(entities_path, migrations_path)?;
 
-    for schema in &schemas {
+    if main_changes.is_empty() && extend_planned.is_empty() {
+        return Ok(());
+    }
+
+    // ── Single destructive guard over main + extend (honors --force) ──────
+    let mut destructive_set: Vec<Changes> = main_changes.clone();
+    destructive_set.extend(extend_planned.iter().map(|(_, c)| c.clone()));
+    check_destructive(&destructive_set, force)?;
+
+    let timestamp = Utc::now().format("%Y%m%d_%H%M%S").to_string();
+    let db_kind = detect_db_kind();
+
+    // referenced tables created before those referencing them
+    main_changes = topological_sort_changes(main_changes);
+
+    // ── Build a single unified plan (no writing) ──────────────────────────
+    let mut plan = Plan::default();
+    build_main_plan(
+        &mut plan,
+        &main_changes,
+        &schemas,
+        migrations_path,
+        &timestamp,
+        &db_kind,
+    );
+    build_extend_plan(
+        &mut plan,
+        &extend_planned,
+        migrations_path,
+        &timestamp,
+        &db_kind,
+    );
+
+    // ── One atomic commit: dirs → backups → write → lib.rs → admin positioning,
+    //    with a single rollback covering all of it.
+    let module_count = plan.lib_modules.len();
+    commit_plan(&plan, migrations_path)?;
+
+    println!("{}", tf("makemigrations.files_ready", &[module_count]));
+
+    Ok(())
+}
+
+// ── unified plan ───────────────────────────────────────────────────────────────
+
+/// A fully-computed migration plan: everything to create/write/register, no side effects.
+/// Built before any IO so the destructive guard and a single atomic commit can run on it.
+#[derive(Default)]
+struct Plan {
+    /// (path, content) files to write
+    files: Vec<(String, String)>,
+    /// directories to create before writing
+    dirs: Vec<String>,
+    /// migration modules to register in `lib.rs`, in order
+    lib_modules: Vec<String>,
+}
+
+/// Computes the diff for every scanned model (no writing).
+fn compute_main_changes(schemas: &[ParsedSchema], migrations_path: &str) -> Result<Vec<Changes>> {
+    let mut all_changes: Vec<Changes> = Vec::new();
+    for schema in schemas {
         let snap_path = snapshot_file_path(migrations_path, &schema.table_name);
         let changes = if Path::new(&snap_path).exists() {
             let previous = parse_create_file(&snap_path)?;
@@ -440,80 +500,142 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
             all_changes.push(changes);
         }
     }
+    Ok(all_changes)
+}
 
-    if all_changes.is_empty() {
-        return Ok(());
-    }
-
-    check_destructive(&all_changes, force)?;
-
-    let timestamp = Utc::now().format("%Y%m%d_%H%M%S").to_string();
-    let db_kind = detect_db_kind();
-
-    // ── topological sort: referenced tables created before those referencing them
-    all_changes = topological_sort_changes(all_changes);
-
-    // ── Phase 1: planning — no writing ────────────────────────────
-    let mut files_to_write: Vec<(String, String)> = Vec::new(); // (path, content)
-    let mut extra_dirs: Vec<String> = Vec::new();
-    let mut lib_modules: Vec<String> = Vec::new();
+/// Adds the main-model migration files/dirs/modules to the plan.
+fn build_main_plan(
+    plan: &mut Plan,
+    all_changes: &[Changes],
+    schemas: &[ParsedSchema],
+    migrations_path: &str,
+    timestamp: &str,
+    db_kind: &crate::migration::utils::types::DbKind,
+) {
     // Schemas of new tables that have FK constraints — collected for the relations migration.
     let mut schemas_with_fks: Vec<&ParsedSchema> = Vec::new();
 
-    for change in &all_changes {
+    for change in all_changes {
         let schema = schemas
             .iter()
             .find(|s| s.table_name == change.table_name)
             .unwrap();
 
         // Snapshot — includes FK stmts so future diffs detect FK additions/removals.
-        files_to_write.push((
+        plan.files.push((
             snapshot_file_path(migrations_path, &change.table_name),
             generate_snapshot_file(schema),
         ));
 
         if change.is_new_table {
-            let module_name = seaorm_create_module_name(&timestamp, &change.table_name);
+            let module_name = seaorm_create_module_name(timestamp, &change.table_name);
             let seaorm_path =
-                seaorm_create_file_path(migrations_path, &timestamp, &change.table_name);
+                seaorm_create_file_path(migrations_path, timestamp, &change.table_name);
             // CREATE TABLE without FK constraints — relations are added last via relations migration.
-            files_to_write.push((seaorm_path, generate_create_file(schema, &db_kind)));
-            lib_modules.push(module_name);
+            plan.files
+                .push((seaorm_path, generate_create_file(schema, db_kind)));
+            plan.lib_modules.push(module_name);
             if !schema.foreign_keys.is_empty() {
                 schemas_with_fks.push(schema);
             }
         } else {
-            extra_dirs.push(table_applied_dir(migrations_path, &change.table_name));
-            extra_dirs.push(batch_up_dir(migrations_path, &change.table_name));
-            extra_dirs.push(batch_down_dir(migrations_path, &change.table_name));
+            plan.dirs
+                .push(table_applied_dir(migrations_path, &change.table_name));
+            plan.dirs
+                .push(batch_up_dir(migrations_path, &change.table_name));
+            plan.dirs
+                .push(batch_down_dir(migrations_path, &change.table_name));
 
-            let module_name = seaorm_alter_module_name(&timestamp, &change.table_name);
+            let module_name = seaorm_alter_module_name(timestamp, &change.table_name);
             let seaorm_path =
-                seaorm_alter_file_path(migrations_path, &timestamp, &change.table_name);
-            files_to_write.push((seaorm_path, generate_alter_file(change, &db_kind)));
-            lib_modules.push(module_name);
+                seaorm_alter_file_path(migrations_path, timestamp, &change.table_name);
+            plan.files
+                .push((seaorm_path, generate_alter_file(change, db_kind)));
+            plan.lib_modules.push(module_name);
 
-            files_to_write.push((
-                alter_file_path(migrations_path, &change.table_name, &timestamp),
-                generate_alter_file(change, &db_kind),
+            plan.files.push((
+                alter_file_path(migrations_path, &change.table_name, timestamp),
+                generate_alter_file(change, db_kind),
             ));
-            files_to_write.push((
-                batch_up_path(migrations_path, &change.table_name, &timestamp),
-                generate_batch_up_file(&[change], &timestamp),
+            plan.files.push((
+                batch_up_path(migrations_path, &change.table_name, timestamp),
+                generate_batch_up_file(&[change], timestamp),
             ));
-            files_to_write.push((
-                batch_down_path(migrations_path, &change.table_name, &timestamp),
-                generate_batch_down_file(&[change], &timestamp),
+            plan.files.push((
+                batch_down_path(migrations_path, &change.table_name, timestamp),
+                generate_batch_down_file(&[change], timestamp),
             ));
         }
     }
 
-    // ── Phase 2: directory creation (idempotent) ──────────────────────
-    for dir in &extra_dirs {
+    // Relations migration — all FK constraints grouped in a single migration, registered
+    // after every CREATE so the referenced tables already exist when constraints are added.
+    if !schemas_with_fks.is_empty() {
+        let module_name = format!("m{}_create_relations", timestamp);
+        let path = format!("{}/{}.rs", migrations_path, module_name);
+        plan.files
+            .push((path, generate_relations_file(&schemas_with_fks)));
+        plan.lib_modules.push(module_name);
+    }
+}
+
+/// Adds the extend!{} migration files/dirs/modules to the plan.
+fn build_extend_plan(
+    plan: &mut Plan,
+    planned: &[(ParsedSchema, Changes)],
+    migrations_path: &str,
+    timestamp: &str,
+    db_kind: &crate::migration::utils::types::DbKind,
+) {
+    if planned.is_empty() {
+        return;
+    }
+    plan.dirs.push(extend_snapshot_dir(migrations_path));
+
+    for (ext_schema, changes) in planned {
+        // Snapshot updated (without PK, just extension columns)
+        plan.files.push((
+            extend_snapshot_file_path(migrations_path, &ext_schema.table_name),
+            generate_create_file(ext_schema, &crate::migration::utils::types::DbKind::Other),
+        ));
+
+        let module_name = seaorm_extend_module_name(timestamp, &ext_schema.table_name);
+        let seaorm_path =
+            seaorm_extend_file_path(migrations_path, timestamp, &ext_schema.table_name);
+        plan.files
+            .push((seaorm_path, generate_alter_file(changes, db_kind)));
+        plan.lib_modules.push(module_name);
+
+        plan.dirs
+            .push(table_applied_dir(migrations_path, &ext_schema.table_name));
+        plan.dirs
+            .push(batch_up_dir(migrations_path, &ext_schema.table_name));
+        plan.dirs
+            .push(batch_down_dir(migrations_path, &ext_schema.table_name));
+
+        plan.files.push((
+            alter_file_path(migrations_path, &ext_schema.table_name, timestamp),
+            generate_alter_file(changes, db_kind),
+        ));
+        plan.files.push((
+            batch_up_path(migrations_path, &ext_schema.table_name, timestamp),
+            generate_batch_up_file(&[changes], timestamp),
+        ));
+        plan.files.push((
+            batch_down_path(migrations_path, &ext_schema.table_name, timestamp),
+            generate_batch_down_file(&[changes], timestamp),
+        ));
+    }
+}
+
+/// Writes the whole plan atomically: create dirs, back up existing targets, write files,
+/// register lib.rs modules, position AdminTableMigration — all under a single rollback.
+fn commit_plan(plan: &Plan, migrations_path: &str) -> Result<()> {
+    // Directory creation (idempotent)
+    for dir in &plan.dirs {
         fs::create_dir_all(dir)?;
     }
 
-    // ── Phase 3: atomic writing ──────────────────────────────────────────
     // lib.rs backup for rollback in case of partial error.
     let lib_file = lib_path(migrations_path);
     let lib_backup: Option<String> = if Path::new(&lib_file).exists() {
@@ -522,29 +644,31 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
         None
     };
 
+    // Back up the previous content of any target that already exists (snapshots especially),
+    // so the rollback restores it instead of deleting it — a deleted snapshot would make the
+    // next run regenerate a full CREATE for an already-migrated table.
+    let mut file_backups: std::collections::HashMap<String, String> =
+        std::collections::HashMap::new();
+    for (path, _) in &plan.files {
+        if Path::new(path).exists()
+            && let Ok(prev) = fs::read_to_string(path)
+        {
+            file_backups.insert(path.clone(), prev);
+        }
+    }
+
     let mut written: Vec<String> = Vec::new();
-
-    // Relations migration — all FK constraints grouped in a single last migration.
-    let relations_module = if !schemas_with_fks.is_empty() {
-        let module_name = format!("m{}_create_relations", timestamp);
-        let path = format!("{}/{}.rs", migrations_path, module_name);
-        files_to_write.push((path, generate_relations_file(&schemas_with_fks)));
-        Some(module_name)
-    } else {
-        None
-    };
-
     let write_result: Result<()> = (|| {
-        for (path, content) in &files_to_write {
+        for (path, content) in &plan.files {
             fs::write(path, content).with_context(|| format!("Failed to write: {}", path))?;
             written.push(path.clone());
         }
-        for module_name in &lib_modules {
+        for module_name in &plan.lib_modules {
             update_migration_lib(migrations_path, module_name)?;
         }
-        if let Some(ref module_name) = relations_module {
-            update_migration_lib(migrations_path, module_name)?;
-        }
+        // AdminTableMigration positioning rewrites lib.rs — kept inside the protected
+        // scope so a failure here also triggers the rollback below.
+        ensure_admin_migration_positioned(migrations_path)?;
         Ok(())
     })();
 
@@ -554,10 +678,21 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
             e
         );
         for path in &written {
-            if let Err(re) = fs::remove_file(path) {
-                eprintln!("  warning: cannot delete {} : {}", path, re);
-            } else {
-                eprintln!("  deleted: {}", path);
+            match file_backups.get(path) {
+                Some(prev) => {
+                    if let Err(re) = fs::write(path, prev) {
+                        eprintln!("  warning: cannot restore {} : {}", path, re);
+                    } else {
+                        eprintln!("  restored: {}", path);
+                    }
+                }
+                None => {
+                    if let Err(re) = fs::remove_file(path) {
+                        eprintln!("  warning: cannot delete {} : {}", path, re);
+                    } else {
+                        eprintln!("  deleted: {}", path);
+                    }
+                }
             }
         }
         match lib_backup {
@@ -571,14 +706,6 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
         }
         return Err(e);
     }
-
-    // ── Pass 2: framework table extensions (extend!{}) ─────────────────
-    run_extend_pass(entities_path, migrations_path, &timestamp, &db_kind)?;
-
-    // ── Pass 3: automatic positioning of AdminTableMigration ────────────
-    ensure_admin_migration_positioned(migrations_path)?;
-
-    println!("{}", tf("makemigrations.files_ready", &[lib_modules.len()]));
 
     Ok(())
 }
@@ -686,31 +813,28 @@ pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
     Ok(())
 }
 
-// ── Extend pass ──────────────────────────────────────────────────────────────
+// ── Extend pass (planning) ─────────────────────────────────────────────────────
 
-fn run_extend_pass(
+/// Scans + merges `extend!{}` blocks and computes their diffs (no writing).
+/// Returns the owned schema + change pair for each table that actually changed.
+fn plan_extend_changes(
     entities_path: &str,
     migrations_path: &str,
-    timestamp: &str,
-    db_kind: &crate::migration::utils::types::DbKind,
-) -> Result<()> {
+) -> Result<Vec<(ParsedSchema, Changes)>> {
     let raw_extends = scan_extend_blocks(entities_path)?;
     if raw_extends.is_empty() {
-        return Ok(());
+        return Ok(Vec::new());
     }
 
     let extend_schemas = merge_extend_schemas(raw_extends);
-    fs::create_dir_all(extend_snapshot_dir(migrations_path))?;
 
-    let mut files_to_write: Vec<(String, String)> = Vec::new();
-    let mut lib_modules: Vec<String> = Vec::new();
-
-    for ext_schema in &extend_schemas {
+    let mut planned: Vec<(ParsedSchema, Changes)> = Vec::new();
+    for ext_schema in extend_schemas {
         let snap_path = extend_snapshot_file_path(migrations_path, &ext_schema.table_name);
 
         let changes = if Path::new(&snap_path).exists() {
             let previous = parse_create_file(&snap_path)?;
-            diff_schemas(&previous, ext_schema)
+            diff_schemas(&previous, &ext_schema)
         } else {
             // First time — all columns are new (ADD COLUMN)
             Changes {
@@ -732,81 +856,8 @@ fn run_extend_pass(
         if changes.is_empty() {
             continue;
         }
-
-        // Snapshot updated (without PK, just extension columns)
-        files_to_write.push((
-            snap_path,
-            generate_create_file(ext_schema, &crate::migration::utils::types::DbKind::Other),
-        ));
-
-        // SeaORM extend migration file
-        let module_name = seaorm_extend_module_name(timestamp, &ext_schema.table_name);
-        let seaorm_path =
-            seaorm_extend_file_path(migrations_path, timestamp, &ext_schema.table_name);
-        files_to_write.push((seaorm_path, generate_alter_file(&changes, db_kind)));
-        lib_modules.push(module_name);
-
-        // Applied/batch files (specific directory for each extended table)
-        let apply_dir = table_applied_dir(migrations_path, &ext_schema.table_name);
-        let up_dir = batch_up_dir(migrations_path, &ext_schema.table_name);
-        let down_dir = batch_down_dir(migrations_path, &ext_schema.table_name);
-        fs::create_dir_all(&apply_dir)?;
-        fs::create_dir_all(&up_dir)?;
-        fs::create_dir_all(&down_dir)?;
-
-        files_to_write.push((
-            alter_file_path(migrations_path, &ext_schema.table_name, timestamp),
-            generate_alter_file(&changes, db_kind),
-        ));
-        files_to_write.push((
-            batch_up_path(migrations_path, &ext_schema.table_name, timestamp),
-            generate_batch_up_file(&[&changes], timestamp),
-        ));
-        files_to_write.push((
-            batch_down_path(migrations_path, &ext_schema.table_name, timestamp),
-            generate_batch_down_file(&[&changes], timestamp),
-        ));
+        planned.push((ext_schema, changes));
     }
 
-    if files_to_write.is_empty() {
-        return Ok(());
-    }
-
-    // Write
-    let lib_backup: Option<String> = {
-        let lib_file = lib_path(migrations_path);
-        if Path::new(&lib_file).exists() {
-            Some(fs::read_to_string(&lib_file)?)
-        } else {
-            None
-        }
-    };
-    let lib_file = lib_path(migrations_path);
-    let mut written: Vec<String> = Vec::new();
-
-    let write_result: Result<()> = (|| {
-        for (path, content) in &files_to_write {
-            fs::write(path, content).with_context(|| format!("Failed to write: {}", path))?;
-            written.push(path.clone());
-        }
-        for module_name in &lib_modules {
-            update_migration_lib(migrations_path, module_name)?;
-        }
-        Ok(())
-    })();
-
-    if let Err(e) = write_result {
-        eprintln!("\n[makemigrations extend] Error: {}. Rollback...", e);
-        for path in &written {
-            if let Err(re) = fs::remove_file(path) {
-                eprintln!("  warning: cannot delete {} : {}", path, re);
-            }
-        }
-        if let Some(content) = lib_backup {
-            let _ = fs::write(&lib_file, content);
-        }
-        return Err(e);
-    }
-
-    Ok(())
+    Ok(planned)
 }
