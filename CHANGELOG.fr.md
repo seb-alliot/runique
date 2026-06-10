@@ -8,6 +8,10 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ## [2.1.15] - 2026-06-10
 
+### Fonctionnalité — `runique` (routing, templates)
+
+* **URLs nommées pour les routes intégrées (`forgot_password`, `reset_password`, `admin`) :** les routes enregistrées par le framework (reset de mot de passe et panel admin) étaient montées directement via `Router::route()` d'Axum sans être enregistrées dans le registre de noms d'URL. Elles ne pouvaient pas être référencées via `{% link %}` dans les templates. Correctif : `build.rs` appelle désormais `register_name_url` après le montage des routes de reset (`"forgot_password"` → `forgot_route` configuré, `"reset_password"` → `reset_route` configuré avec les placeholders `{token}/{encrypted_email}`) et après le montage du panel admin (`"admin"` → le préfixe configuré). L'enregistrement prend en compte les routes personnalisées définies par le développeur via `PasswordResetConfig::forgot_route()` / `.reset_route()` / `AdminConfig::prefix()`.
+
 ### Sécurité — `runique` (auth)
 
 * **Énumération d'utilisateurs par timing attack sur le login (moyenne) :** `authenticate_user` et `DefaultAdminAuth::authenticate` retournaient `None` immédiatement via `?` quand le nom d'utilisateur n'était pas trouvé en base, court-circuitant entièrement la vérification du hash de mot de passe. Un attaquant mesurant les temps de réponse pouvait distinguer "l'utilisateur n'existe pas" (rapide — pas de travail de hash) de "mauvais mot de passe" (lent — vérification Argon2 complète), permettant une énumération silencieuse des noms d'utilisateur. Correctif : les deux fonctions appellent désormais `verify()` avant tout court-circuit. Quand l'utilisateur n'est pas trouvé, le mot de passe est vérifié contre un hash dummy Argon2 pré-calculé (`DUMMY_HASH`, initialisé une fois au premier appel via `LazyLock`) — consommant le même temps CPU que l'utilisateur existe ou non. Le `?` sur la recherche utilisateur est différé après le retour de `verify()`, de sorte que le résultat est toujours ignoré une fois le travail sensible au timing effectué.

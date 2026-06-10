@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 
 ## [2.1.15] - 2026-06-10
 
+### Feature — `runique` (routing, templates)
+
+* **Named URLs for built-in routes (`forgot_password`, `reset_password`, `admin`):** framework-registered routes (password reset and admin panel) were mounted directly via Axum `Router::route()` without being registered in the URL name registry. They could not be referenced via `{% link %}` in templates. Fixed: `build.rs` now calls `register_name_url` after mounting password-reset routes (`"forgot_password"` → configured `forgot_route`, `"reset_password"` → configured `reset_route` with `{token}/{encrypted_email}` placeholders) and after mounting the admin panel (`"admin"` → the configured prefix). The registration picks up any custom routes set by the developer via `PasswordResetConfig::forgot_route()` / `.reset_route()` / `AdminConfig::prefix()`.
+
 ### Security — `runique` (auth)
 
 * **User enumeration via timing attack on login (medium):** `authenticate_user` and `DefaultAdminAuth::authenticate` returned `None` immediately via `?` when the username was not found in the database, skipping the password hash verification entirely. An attacker measuring response times could distinguish "user does not exist" (fast — no hash work) from "wrong password" (slow — full Argon2 verification), allowing silent username enumeration. Fixed: both functions now always call `verify()` before short-circuiting. When the user is not found, the password is verified against a pre-computed dummy Argon2 hash (`DUMMY_HASH`, initialised once at first use via `LazyLock`) — burning the same CPU time regardless of whether the account exists. The `?` on the user lookup is deferred to after `verify()` returns, so the result is always discarded once timing-sensitive work is done.
