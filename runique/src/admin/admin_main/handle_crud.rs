@@ -15,7 +15,10 @@ use crate::utils::{
 use axum::response::{IntoResponse, Redirect, Response};
 use serde_json::Value;
 
-fn inject_csp_nonce(form: &mut Box<dyn crate::admin::helper::dyn_form::DynForm>, ctx: &tera::Context) {
+fn inject_csp_nonce(
+    form: &mut Box<dyn crate::admin::helper::dyn_form::DynForm>,
+    ctx: &tera::Context,
+) {
     if let Some(nonce) = ctx.get("csp_nonce").and_then(|v| v.as_str()) {
         form.get_form_mut().set_csp_nonce(nonce);
     }
