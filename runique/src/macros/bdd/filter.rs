@@ -404,6 +404,11 @@ macro_rules! search {
 //
 // Unlike `search!` which wraps an Objects query builder, `search_cond!` returns
 // a raw Condition to merge into an already-in-progress query.
+//
+//   all_columns icontains val      → OR ILIKE across all columns
+//   or("col" icontains val, ...)   → OR ILIKE across named columns
+//   ?Col in (expr)                 → IN (dynamic, no-op Condition if empty)
+//   ?Col not_in (expr)             → NOT IN (dynamic, no-op Condition if empty)
 // ─────────────────────────────────────────────────────────────────────────────
 
 #[macro_export]
@@ -446,5 +451,29 @@ macro_rules! search_cond {
             }
         )+
         __cond
+    }};
+
+    // ── ?Col in (expr) — Conditional IN (no-op Condition if empty) ───────────
+    ($entity:ty => ? $col:ident in ($val:expr)) => {{
+        use sea_orm::ColumnTrait;
+        let __vals: ::std::vec::Vec<_> = (&$val).into_iter().cloned().collect();
+        if !__vals.is_empty() {
+            sea_orm::Condition::all()
+                .add(<$entity as sea_orm::EntityTrait>::Column::$col.is_in(__vals))
+        } else {
+            sea_orm::Condition::all()
+        }
+    }};
+
+    // ── ?Col not_in (expr) — Conditional NOT IN (no-op Condition if empty) ───
+    ($entity:ty => ? $col:ident not_in ($val:expr)) => {{
+        use sea_orm::ColumnTrait;
+        let __vals: ::std::vec::Vec<_> = (&$val).into_iter().cloned().collect();
+        if !__vals.is_empty() {
+            sea_orm::Condition::all()
+                .add(<$entity as sea_orm::EntityTrait>::Column::$col.is_not_in(__vals))
+        } else {
+            sea_orm::Condition::all()
+        }
     }};
 }

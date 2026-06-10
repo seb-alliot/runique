@@ -369,6 +369,34 @@ let result = users::Entity::delete_many()
 
 ---
 
+## `search_cond!` — Condition brute
+
+Retourne une `sea_orm::Condition` à injecter dans un query builder existant, au lieu de créer un nouveau builder.
+
+| Syntaxe | Résultat |
+| ------- | -------- |
+| `all_columns icontains val` | `OR ILIKE` sur toutes les colonnes |
+| `or("col1" icontains val, "col2" icontains val)` | `OR ILIKE` sur les colonnes nommées |
+| `?Col in (expr)` | `Condition::all().add(col IN (...))` — no-op si vide |
+| `?Col not_in (expr)` | `Condition::all().add(col NOT IN (...))` — no-op si vide |
+
+```rust
+// Utilisé typiquement pour injecter une condition dans une requête déjà construite
+let cond = search_cond!(commande::Entity => or("numero" icontains q, "statut" icontains q));
+let results = commande::Entity::find()
+    .filter(cond)
+    .all(db).await?;
+
+// Filtre conditionnel sur une Vec (no-op si vide)
+let statuts: Vec<StatutCommande> = get_statuts_actifs();
+let cond = search_cond!(commande::Entity => ?Statut in (statuts));
+let results = commande::Entity::find()
+    .filter(cond)
+    .all(db).await?;
+```
+
+---
+
 ## Limites actuelles de `search!`
 
 ### `in (expr)` avec un vec vide
