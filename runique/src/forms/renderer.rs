@@ -10,6 +10,7 @@ use tracing::warn;
 pub struct FormRenderer {
     tera: ATera,
     pub js_files: Vec<String>,
+    csp_nonce: Option<String>,
 }
 
 impl FormRenderer {
@@ -17,7 +18,12 @@ impl FormRenderer {
         Self {
             tera,
             js_files: Vec::new(),
+            csp_nonce: None,
         }
+    }
+
+    pub fn set_nonce(&mut self, nonce: impl Into<String>) {
+        self.csp_nonce = Some(nonce.into());
     }
 
     pub fn add_js(&mut self, files: &[&str]) {
@@ -125,6 +131,9 @@ impl FormRenderer {
 
         let mut context = tera::Context::new();
         context.insert("js_files", &self.js_files);
+        if let Some(ref nonce) = self.csp_nonce {
+            context.insert("csp_nonce", nonce);
+        }
 
         self.tera
             .render(template_name, &context)
