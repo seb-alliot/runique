@@ -403,15 +403,12 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
             col = col
         );
         let _ = writeln!(out, "                if !fk_ids.is_empty() {{");
-        // Quote chaque valeur → fonctionne pour entiers et UUIDs
-        let _ = writeln!(
-            out,
-            "                    let ids_csv = fk_ids.iter().map(|s| format!(\"'{{}}'\", s.replace('\\'', \"''\"))).collect::<Vec<_>>().join(\",\");"
-        );
+        // Valeurs liées via is_in — aucune donnée n'est interpolée dans le SQL.
+        // (ExprTrait est déjà importé en tête de la closure list_fn.)
         // CAST(id AS TEXT) → compatible i32, i64, UUID
         let _ = writeln!(
             out,
-            "                    let _fk_stmt_{safe} = sea_orm::sea_query::Query::select().expr(sea_orm::sea_query::Expr::cust(\"CAST(id AS TEXT)\")).expr(sea_orm::sea_query::Expr::cust(\"{fk_col}\")).from(sea_orm::sea_query::Alias::new(\"{fk_table}\")).and_where(sea_orm::sea_query::Expr::cust(format!(\"CAST(id AS TEXT) IN ({{}})\", ids_csv))).to_owned();",
+            "                    let _fk_stmt_{safe} = sea_orm::sea_query::Query::select().expr(sea_orm::sea_query::Expr::cust(\"CAST(id AS TEXT)\")).expr(sea_orm::sea_query::Expr::cust(\"{fk_col}\")).from(sea_orm::sea_query::Alias::new(\"{fk_table}\")).and_where(sea_orm::sea_query::Expr::cust(\"CAST(id AS TEXT)\").is_in(fk_ids.clone())).to_owned();",
             safe = safe_var,
             fk_col = fk.col,
             fk_table = fk.table,
@@ -507,11 +504,11 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
             );
             let _ = writeln!(
                 out,
-                "                    let ids_csv = format!(\"'{{}}'\", fk_key.replace('\\'', \"''\"));"
+                "                    use sea_orm::sea_query::ExprTrait;"
             );
             let _ = writeln!(
                 out,
-                "                    let _fk_stmt_{safe} = sea_orm::sea_query::Query::select().expr(sea_orm::sea_query::Expr::cust(\"CAST(id AS TEXT)\")).expr(sea_orm::sea_query::Expr::cust(\"{fk_col}\")).from(sea_orm::sea_query::Alias::new(\"{fk_table}\")).and_where(sea_orm::sea_query::Expr::cust(format!(\"CAST(id AS TEXT) IN ({{}})\", ids_csv))).to_owned();",
+                "                    let _fk_stmt_{safe} = sea_orm::sea_query::Query::select().expr(sea_orm::sea_query::Expr::cust(\"CAST(id AS TEXT)\")).expr(sea_orm::sea_query::Expr::cust(\"{fk_col}\")).from(sea_orm::sea_query::Alias::new(\"{fk_table}\")).and_where(sea_orm::sea_query::Expr::cust(\"CAST(id AS TEXT)\").eq(fk_key.clone())).to_owned();",
                 safe = safe_var,
                 fk_col = fk.col,
                 fk_table = fk.table,
