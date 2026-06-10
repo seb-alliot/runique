@@ -118,7 +118,7 @@ fn get_honeypot_html(value: &Value) -> Option<String> {
 
 fn render_scripts(value: &Value) -> Option<String> {
     let js_files = value
-        .get("js_files")
+        .get("js_files.html")
         .or_else(|| value.get("form").and_then(|f| f.get("js_files")))?;
 
     let files = js_files.as_array()?;
