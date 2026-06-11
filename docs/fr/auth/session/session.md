@@ -65,6 +65,38 @@ logout(&session, Some(&store)).await?;
 
 ---
 
+## Révocation des sessions
+
+`logout()` ne ferme que la session courante. Pour invalider **toutes** les sessions d'un utilisateur (« se déconnecter partout », compromission de compte, changement de mot de passe), appelez explicitement les méthodes des stores.
+
+> **Important :** le reset de mot de passe intégré (`with_password_reset`) **n'invalide pas** les sessions actives — une session déjà ouverte (y compris volée) reste valide jusqu'à expiration. Si vous voulez révoquer les sessions au changement de mot de passe, faites-le dans votre propre handler après la mise à jour. C'est un choix délibéré : le framework fournit les primitives, vous décidez de la politique.
+
+```rust
+// Sessions persistées en DB (with_db_fallback)
+if let Some(store) = engine
+    .session_db_store
+    .read()
+    .ok()
+    .and_then(|g| g.as_ref().cloned())
+{
+    store.invalidate_all(user_id).await?;
+}
+
+// Sessions en mémoire (store par défaut)
+if let Some(mem) = engine
+    .session_store
+    .read()
+    .ok()
+    .and_then(|g| g.as_ref().cloned())
+{
+    mem.invalidate_user_sessions(user_id).await;
+}
+```
+
+Pour ne révoquer que les **autres** appareils en gardant la session courante, utilisez `invalidate_other_sessions(user_id, &cookie_id)` côté DB — c'est exactement ce que fait la [connexion exclusive](#connexion-exclusive).
+
+---
+
 ## Vérifications
 
 ```rust

@@ -26,6 +26,30 @@ sea-orm-cli migrate up --migration-dir migration/src
 
 ---
 
+## Destructive Changes — `--force`
+
+Before writing anything, `makemigrations` detects destructive changes and **refuses** to generate the migration unless you pass `--force`:
+
+- `DROP COLUMN` (data loss)
+- a column type change
+- `nullable` → `not null` (requires a default or a backfill)
+- dropping a foreign key (orphan records possible)
+- adding an `ON DELETE CASCADE` FK on existing data (cascading deletes possible)
+
+```bash
+runique makemigrations --force
+```
+
+> The check covers both application tables (`model!{}`) and framework table extensions (`extend!{}`).
+
+---
+
+## Atomic Generation
+
+Generation is **all-or-nothing**. Model and `extend!{}` changes are first planned in memory, validated (destructive check above), then written as a single batch. On a write error, every generated file is rolled back and the existing snapshots and `lib.rs` are restored to their initial state.
+
+---
+
 ## Framework Tables — Provided Automatically
 
 Runique automatically injects two migrations into your `lib.rs` without you having to define them:

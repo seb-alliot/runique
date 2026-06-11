@@ -22,7 +22,7 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 ## Périmètre du workspace
 
 - `runique` — crate framework principale
-- `derive_form` — proc-macro DSL (derive_form!{}, extend!{})
+- `derive_form` — proc-macro DSL (model!{}, extend!{})
 - `demo-app` — application de validation du framework
 - `demo-app/migration` — migrations liées à la demo-app
 
@@ -70,7 +70,7 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 - Redirections sécurisées (open-redirect guard), cookies `HttpOnly`/`SameSite=Strict`/`Secure`
 
 ### ORM / Migrations
-- `derive_form!{}` DSL → entité SeaORM + migration SQL + AdminForm
+- `model!{}` DSL → entité SeaORM + migration SQL + AdminForm
 - `extend!{}` — extension de tables framework (ex. `eihwaz_users`)
 - `makemigrations` avec détection des changements destructifs + prompt de confirmation
 - Backends supportés : PostgreSQL, MariaDB, SQLite

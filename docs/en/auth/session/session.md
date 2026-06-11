@@ -65,6 +65,38 @@ logout(&session, Some(&store)).await?;
 
 ---
 
+## Revoking sessions
+
+`logout()` only ends the current session. To invalidate **all** of a user's sessions ("log out everywhere", account compromise, password change), call the store methods explicitly.
+
+> **Important:** the built-in password reset (`with_password_reset`) does **not** invalidate active sessions — an already-open session (including a stolen one) stays valid until it expires. If you want to revoke sessions on password change, do it in your own handler after the update. This is a deliberate choice: the framework provides the primitives, you decide the policy.
+
+```rust
+// DB-persisted sessions (with_db_fallback)
+if let Some(store) = engine
+    .session_db_store
+    .read()
+    .ok()
+    .and_then(|g| g.as_ref().cloned())
+{
+    store.invalidate_all(user_id).await?;
+}
+
+// In-memory sessions (default store)
+if let Some(mem) = engine
+    .session_store
+    .read()
+    .ok()
+    .and_then(|g| g.as_ref().cloned())
+{
+    mem.invalidate_user_sessions(user_id).await;
+}
+```
+
+To revoke only the **other** devices while keeping the current session, use `invalidate_other_sessions(user_id, &cookie_id)` on the DB store — this is exactly what [exclusive login](#exclusive-login) does.
+
+---
+
 ## Checks
 
 ```rust
