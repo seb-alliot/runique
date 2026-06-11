@@ -175,6 +175,8 @@ Available variables:
    - Redirects to success_redirect (default: /)
 ```
 
+> **Active sessions after reset:** updating the password does **not** invalidate already-open sessions. If you want to force a log-out everywhere on password change, call `invalidate_all(user_id)` in your own reset route — see [Revoking sessions](/docs/en/auth/session#revoking-sessions).
+
 ---
 
 ## Admin integration

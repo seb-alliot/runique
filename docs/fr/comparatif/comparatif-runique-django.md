@@ -52,7 +52,7 @@
 |----------------|--------|---------|
 | Définition | `class MonForm(ModelForm)` | `#[form]` struct ou `RuniqueForm` manuel |
 | Validation | `form.is_valid()` | `form.is_valid().await` |
-| Champs disponibles | CharField, EmailField, FileField, etc. | TextField, EmailField, PasswordField, HiddenField, ChoiceField, NumericField, BooleanField, FileField, DateField, TimeField, DateTimeField, DurationField, PhoneField |
+| Champs disponibles | CharField, EmailField, FileField, etc. | TextField (+ constructeurs `::email`/`::password`/`::url`/`::phone` → bon `<input type>` + validation), NumericField, BooleanField, CheckboxField, RadioField, ChoiceField, FileField, DateField, TimeField, DateTimeField, DurationField, ColorField, SlugField, UUIDField, IPAddressField, JSONField, HiddenField |
 | Rendu HTML | `{{ form.as_p }}` | `{% form.nom_form %}` (entier) ou `{% form.nom_form.champ %}` |
 | CSRF intégré | automatique | automatique — injecté avant le premier champ |
 | Sauvegarde | `form.save()` | `form.save(&db).await` (si `#[form]`) |

@@ -22,7 +22,7 @@ This document consolidates the actual state of the repository from the reference
 ## Workspace scope
 
 - `runique` — main framework crate
-- `derive_form` — proc-macro DSL (`derive_form!{}`, `extend!{}`)
+- `derive_form` — proc-macro DSL (`model!{}`, `extend!{}`)
 - `demo-app` — framework validation application
 - `demo-app/migration` — migrations linked to the demo app
 
@@ -76,7 +76,7 @@ This document consolidates the actual state of the repository from the reference
 
 ### ORM / Migrations
 
-- `derive_form!{}` DSL → SeaORM entity + SQL migration + AdminForm
+- `model!{}` DSL → SeaORM entity + SQL migration + AdminForm
 - `extend!{}` — framework table extension (e.g. `eihwaz_users`)
 - `makemigrations` with destructive change detection + confirmation prompt
 - Supported backends: PostgreSQL, MariaDB, SQLite

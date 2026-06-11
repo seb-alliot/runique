@@ -339,7 +339,7 @@ Dans les formulaires de création/édition, tous les choix disponibles sont char
 
 L'édition en masse ne nécessite aucune déclaration DSL. Quand des entrées sont sélectionnées dans la vue liste et que l'action bulk-edit est déclenchée, un formulaire est rendu avec tous les champs éditables.
 
-Les **champs à contrainte unique** sont automatiquement exclus du formulaire d'édition en masse — appliquer la même valeur unique sur plusieurs enregistrements violerait la contrainte. Ces champs sont détectés via la constante `UNIQUE_FIELDS` générée par `derive_form!{}` pour chaque entité.
+Les **champs à contrainte unique** sont automatiquement exclus du formulaire d'édition en masse — appliquer la même valeur unique sur plusieurs enregistrements violerait la contrainte. Ces champs sont détectés via la constante `UNIQUE_FIELDS` générée par `model!{}` pour chaque entité.
 
 À la soumission, chaque enregistrement est mis à jour indépendamment. Seuls les champs avec une valeur non vide sont appliqués — laisser un select vide signifie « sans changement ».
 

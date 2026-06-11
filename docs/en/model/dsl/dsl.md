@@ -91,12 +91,13 @@ Use `big-pk` when you expect more than ~2 billion rows in a table, or when you n
 - Every FK column pointing to a `Pk` primary key must also be declared `bigint`, otherwise you get a type mismatch at compile time:
 
 ```rust
-derive_form! {
-    Order {
-        fields: {
-            user_id: bigint [required]   // must match users.id which is Pk (i64)
-        }
-    }
+model! {
+    Order,
+    table: "orders",
+    pk: id => Pk,
+    fields: {
+        user_id: bigint [required]   // must match users.id which is Pk (i64)
+    },
 }
 ```
 

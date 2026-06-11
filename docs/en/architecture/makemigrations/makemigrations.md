@@ -10,7 +10,7 @@ The generation process follows a three-pass architecture:
 
 ### Pass 1: AST Extraction (`parse_schema_from_source`)
 
-Rainique uses a lightweight custom parser (based on `syn` and regular expressions for performance) to read your `src/entities/*.rs` files. 
+Runique uses a lightweight custom parser (based on `syn` and regular expressions for performance) to read your `src/entities/*.rs` files. 
 
 - **Static Analysis**: It doesn't compile your code. It reads the source files directly to extract the structure of `model!{}` blocks.
 - **Normalizer**: It converts high-level DSL types (e.g., `datetime`, `uuid`) into internal `FieldDef` structures.
@@ -34,6 +34,15 @@ The diff is converted into a sequence of `SeaQuery` statements (`TableCreate`, `
 1. **Ordering**: It ensures that dependencies (Foreign Keys) are handled in the correct order.
 2. **Framework Tables**: It automatically injects the `eihwaz_users` and `eihwaz_groupes` migrations if they are missing or need extension via `extend!{}`.
 3. **Rust Code Output**: It writes a new `.rs` file in `migration/src/` and updates the `Migrator` trait.
+
+---
+
+## Atomic commit & destructive guard
+
+The passes above only *compute* a plan in memory — nothing is written until the full plan (`model!{}` changes plus `extend!{}` changes) is assembled and validated:
+
+1. **Destructive guard**: `DROP COLUMN`, column type changes, `nullable → not null`, dropped foreign keys and newly added `ON DELETE CASCADE` constraints are blocked unless `makemigrations --force` is passed. The guard covers both `model!{}` and `extend!{}` changes.
+2. **Single commit**: directory creation, file writes, `lib.rs` registration and `AdminTableMigration` positioning all run under one rollback. On any write error, generated files are removed and pre-existing snapshots and `lib.rs` are restored to their previous content.
 
 ---
 

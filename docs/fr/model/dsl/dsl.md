@@ -91,12 +91,13 @@ Utilisez `big-pk` quand vous anticipez plus de ~2 milliards de lignes dans une t
 - Chaque colonne FK pointant vers une clé primaire `Pk` doit aussi être déclarée `bigint`, sinon vous obtenez une erreur de type à la compilation :
 
 ```rust
-derive_form! {
-    Commande {
-        fields: {
-            user_id: bigint [required]   // doit correspondre à users.id qui est Pk (i64)
-        }
-    }
+model! {
+    Commande,
+    table: "commandes",
+    pk: id => Pk,
+    fields: {
+        user_id: bigint [required]   // doit correspondre à users.id qui est Pk (i64)
+    },
 }
 ```
 
