@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## [2.1.15] - 2026-06-10
+## [2.1.15] - 2026-06-13
 
 ### Feature — `runique` (routing, templates)
 
