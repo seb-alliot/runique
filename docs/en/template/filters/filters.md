@@ -45,6 +45,7 @@
 | `csp_nonce` | CSP nonce value for the header (used by `{% csp %}`) |
 | `messages` | Request flash messages |
 | `user` | Currently authenticated user (if logged in) |
+| `current_path` | Current URL path, without query string (useful for `rel="canonical"`, `og:url`, active navigation) |
 
 ---
 

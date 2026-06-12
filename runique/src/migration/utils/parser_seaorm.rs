@@ -1,6 +1,21 @@
 //! AST Parser for generated SeaORM snapshots — extracts the `ParsedSchema` from snapshot files.
 use anyhow::Result;
+use quote::ToTokens;
 use syn::{Expr, visit::Visit};
+
+/// Returns the rendered argument of the `.default(...)` call in a column chain, if any.
+/// E.g. `ColumnDef::new(..).integer().default(0)` → `Some("0")`,
+/// `..default(Expr::current_timestamp())` → `Some("Expr :: current_timestamp ()")`.
+fn extract_default_arg(expr: &Expr) -> Option<String> {
+    for mc in collect_chain(expr) {
+        if mc.method == "default"
+            && let Some(arg) = mc.args.first()
+        {
+            return Some(arg.to_token_stream().to_string());
+        }
+    }
+    None
+}
 
 use crate::migration::utils::{
     helpers::{
@@ -87,7 +102,14 @@ impl SeaOrmVisitor {
                 let nullable = methods.contains(&"null".to_string());
                 let unique = methods.contains(&"unique".to_string())
                     || methods.contains(&"unique_key".to_string());
-                let has_default_now = methods.contains(&"default".to_string());
+                // Only a timestamp default sets `has_default_now`; a literal default
+                // (`.default(0)`, `.default(true)`, …) is kept separately so it round-trips
+                // through the snapshot without being mistaken for a CURRENT_TIMESTAMP default.
+                let default_arg = extract_default_arg(arg);
+                let is_ts_default = default_arg
+                    .as_deref()
+                    .is_some_and(|s| s.contains("current_timestamp"));
+                let default_value = if is_ts_default { None } else { default_arg };
                 let (enum_name, enum_string_values) = if methods.contains(&"enum_type".to_string())
                 {
                     extract_enum_type_info(arg)
@@ -105,9 +127,11 @@ impl SeaOrmVisitor {
                         created_at: false,
                         updated_at: false,
                         has_default_now: false,
+                        default_value: None,
                         enum_name: None,
                         enum_string_values: Vec::new(),
                         enum_is_pg: false,
+                        renamed_from: None,
                     });
                 } else {
                     let is_created_at = n == "created_at";
@@ -120,10 +144,12 @@ impl SeaOrmVisitor {
                         ignored: false,
                         created_at: is_created_at,
                         updated_at: is_updated_at,
-                        has_default_now: has_default_now || is_created_at || is_updated_at,
+                        has_default_now: is_ts_default || is_created_at || is_updated_at,
+                        default_value,
                         enum_is_pg: !enum_string_values.is_empty(),
                         enum_name,
                         enum_string_values,
+                        renamed_from: None,
                     });
                 }
             }

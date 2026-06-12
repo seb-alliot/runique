@@ -33,6 +33,32 @@ struct DslField {
     ty: String,
     enum_name: Option<String>, // from type (v1: `enum(X)`) or attrs (v2: `choice [enum(X)]`)
     options: Vec<String>,
+    default_value: Option<String>, // literal `[default: X]` value (rendered for `.default(...)`)
+    renamed_from: Option<String>,  // `[renamed_from: "old"]` → RENAME COLUMN instead of DROP+ADD
+}
+
+/// Concatenates every remaining token in `buf` (used for `default(...)` paren values).
+fn capture_tokens_string(buf: &syn::parse::ParseBuffer) -> String {
+    let mut s = String::new();
+    while !buf.is_empty() {
+        match buf.parse::<proc_macro2::TokenTree>() {
+            Ok(tt) => s.push_str(&tt.to_string()),
+            Err(_) => break,
+        }
+    }
+    s
+}
+
+/// Concatenates tokens in `buf` up to the next comma (used for `key: value` attr values).
+fn capture_value_until_comma(buf: &syn::parse::ParseBuffer) -> String {
+    let mut s = String::new();
+    while !buf.is_empty() && !buf.peek(Token![,]) {
+        match buf.parse::<proc_macro2::TokenTree>() {
+            Ok(tt) => s.push_str(&tt.to_string()),
+            Err(_) => break,
+        }
+    }
+    s
 }
 
 enum DslRelationKind {
@@ -313,6 +339,8 @@ impl Parse for DslField {
         };
 
         let mut options = Vec::new();
+        let mut default_value: Option<String> = None;
+        let mut renamed_from: Option<String> = None;
         if input.peek(syn::token::Bracket) {
             let opts;
             bracketed!(opts in input);
@@ -329,20 +357,29 @@ impl Parse for DslField {
                 }
 
                 let opt: Ident = opts.parse()?;
-                options.push(opt.to_string());
+                let opt_str = opt.to_string();
+                options.push(opt_str.clone());
 
-                // paren syntax (v1): max_len(150)
+                // paren syntax (v1): max_len(150), default(0)
                 if opts.peek(syn::token::Paren) {
                     let inner;
                     syn::parenthesized!(inner in opts);
-                    while !inner.is_empty() {
-                        inner.parse::<proc_macro2::TokenTree>().ok();
+                    let captured = capture_tokens_string(&inner);
+                    if opt_str == "default" {
+                        default_value = Some(captured);
+                    } else if opt_str == "renamed_from" {
+                        renamed_from = Some(captured.trim_matches('"').to_string());
                     }
                 }
-                // colon syntax (v2): max_length: 150, rows: 6, upload_to: "path"
+                // colon syntax (v2): max_length: 150, rows: 6, upload_to: "path", default: 0
                 else if opts.peek(Token![:]) {
                     opts.parse::<Token![:]>()?;
-                    opts.parse::<proc_macro2::TokenTree>().ok();
+                    let captured = capture_value_until_comma(&opts);
+                    if opt_str == "default" {
+                        default_value = Some(captured);
+                    } else if opt_str == "renamed_from" {
+                        renamed_from = Some(captured.trim_matches('"').to_string());
+                    }
                 }
 
                 let _ = opts.parse::<Token![,]>();
@@ -355,6 +392,8 @@ impl Parse for DslField {
             ty,
             enum_name,
             options,
+            default_value,
+            renamed_from,
         })
     }
 }
@@ -535,9 +574,11 @@ fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
         created_at: false,
         updated_at: false,
         has_default_now: false,
+        default_value: None,
         enum_name: None,
         enum_string_values: Vec::new(),
         enum_is_pg: false,
+        renamed_from: None,
     });
 
     let enum_types = model.enum_types;
@@ -564,6 +605,8 @@ fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
                 "textarea",
                 "url",
                 "int",
+                "bool",
+                "boolean",
                 "float",
                 "decimal",
                 "percent",
@@ -652,9 +695,11 @@ fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
                     || has_auto_now_update
                     || is_created_at
                     || is_updated_at,
+                default_value: f.default_value,
                 enum_name,
                 enum_string_values,
                 enum_is_pg,
+                renamed_from: f.renamed_from,
             }
         })
         .collect();

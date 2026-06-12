@@ -50,6 +50,17 @@ La génération est **tout ou rien**. Les changements des modèles et des blocs 
 
 ---
 
+## Clés étrangères et moteur cible
+
+`makemigrations` détecte le moteur (via `DB_URL`/`DATABASE_URL`/`DB_ENGINE`) et adapte la génération des FK :
+
+- **PostgreSQL / MySQL / MariaDB** : toutes les contraintes FK sont regroupées dans une migration `…_create_relations` appliquée **après** la création des tables (`ALTER TABLE … ADD CONSTRAINT`).
+- **SQLite** : ne supporte pas l'ajout de FK à une table existante. Les FK sont donc déclarées **inline dans le `CREATE TABLE`**, et la migration `create_relations` n'est pas générée.
+
+Conséquence : les fichiers de migration sont **spécifiques au moteur** pour lequel ils ont été générés. Pour changer de moteur, régénérez les migrations (à partir de zéro) avec le `DB_ENGINE` cible.
+
+---
+
 ## Tables framework — fournies automatiquement
 
 Runique injecte automatiquement deux migrations dans votre `lib.rs` sans que vous ayez à les définir :

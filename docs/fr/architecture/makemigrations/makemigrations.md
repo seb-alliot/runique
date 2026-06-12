@@ -25,15 +25,27 @@ Runique maintient un état caché dans `migration/src/snapshots/`.
 - **Moteur de diff** : il compare les deux états pour détecter :
     - Nouvelles tables / Tables supprimées.
     - Colonnes ajoutées / Colonnes supprimées.
+    - **Renommage de colonne** : via l'indice explicite `[renamed_from: "ancien"]`, le diff émet un `RENAME COLUMN` au lieu d'un `DROP` + `ADD` (zéro perte de données). Sans cet indice, l'outil non interactif ne peut pas deviner l'intention.
     - Contraintes modifiées (ex. passage de `nullable` à `required`).
+    - **Valeurs d'enum** : ajout, suppression et renommage (par position). Un renommage est traité comme **une seule** opération, exclu des listes ajout/suppression.
 
 ### Phase 3 : Génération SeaQuery
 
 Le diff est converti en une séquence de requêtes `SeaQuery` (`TableCreate`, `TableAlter`).
 
-1. **Ordonnancement** : il garantit que les dépendances (clés étrangères) sont traitées dans le bon ordre.
+1. **Ordonnancement** : il garantit que les dépendances (clés étrangères) sont traitées dans le bon ordre (tri topologique des nouvelles tables).
 2. **Tables framework** : il injecte automatiquement les migrations `eihwaz_users` et `eihwaz_groupes` si elles sont absentes ou doivent être étendues via `extend!{}`.
 3. **Sortie en code Rust** : il écrit un nouveau fichier `.rs` dans `migration/src/` et met à jour le trait `Migrator`.
+
+### Génération spécifique au moteur
+
+Le moteur cible est détecté (`DB_URL`/`DATABASE_URL`/`DB_ENGINE`) et la sortie est adaptée :
+
+- **Clés étrangères** : regroupées dans une migration `create_relations` (`ALTER … ADD CONSTRAINT`) sur PostgreSQL/MySQL/MariaDB ; déclarées **inline dans le `CREATE TABLE`** sur SQLite (qui ne sait pas ajouter de FK à une table existante).
+- **Enums** : `CREATE TYPE … AS ENUM` sur PostgreSQL ; `VARCHAR`/`ENUM` natif ailleurs. Un renommage de valeur d'enum devient `ALTER TYPE … RENAME VALUE` sur PostgreSQL (atomique) et un simple `UPDATE` des données sur les autres moteurs.
+- **`updated_at`** : trigger PostgreSQL ; `ON UPDATE CURRENT_TIMESTAMP` sur MySQL/MariaDB.
+
+Les fichiers générés sont donc **spécifiques au moteur** : pour en changer, régénérez à partir de zéro avec le bon `DB_ENGINE`.
 
 ---
 

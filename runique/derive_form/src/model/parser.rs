@@ -260,6 +260,23 @@ impl Parse for FieldDef {
             let options_content;
             syn::bracketed!(options_content in input);
             while !options_content.is_empty() {
+                // `renamed_from` is a migration-only directive — consume and ignore here.
+                if options_content.peek(Ident) {
+                    let peeked: Ident = options_content.fork().parse()?;
+                    if peeked == "renamed_from" {
+                        options_content.parse::<Ident>()?;
+                        if options_content.peek(token::Paren) {
+                            let content;
+                            syn::parenthesized!(content in options_content);
+                            let _: LitStr = content.parse()?;
+                        } else if options_content.peek(Token![:]) {
+                            options_content.parse::<Token![:]>()?;
+                            let _: LitStr = options_content.parse()?;
+                        }
+                        let _ = options_content.parse::<Token![,]>();
+                        continue;
+                    }
+                }
                 options.push(FieldOption::parse(&options_content)?);
                 let _ = options_content.parse::<Token![,]>();
             }
@@ -880,6 +897,16 @@ impl Parse for FormFieldDecl {
                 }
 
                 let attr_ident: Ident = attrs_content.parse()?;
+
+                // `renamed_from: "old"` is a migration-only directive (RENAME COLUMN).
+                // It does not affect the generated entity/form, so consume and ignore it here.
+                if attr_ident == "renamed_from" {
+                    attrs_content.parse::<Token![:]>()?;
+                    let _: LitStr = attrs_content.parse()?;
+                    let _ = attrs_content.parse::<Token![,]>();
+                    continue;
+                }
+
                 let attr = match attr_ident.to_string().as_str() {
                     "required" => FormFieldAttr::Required,
                     "nullable" => FormFieldAttr::Nullable,

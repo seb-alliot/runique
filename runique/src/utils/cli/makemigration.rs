@@ -155,7 +155,7 @@ fn detect_db_kind() -> crate::migration::utils::types::DbKind {
 /// Tables referenced by other new tables are placed first.
 /// Existing tables (not new) are ignored: they already exist in DB.
 /// In case of circular dependency, the remaining tables are added at the end.
-fn topological_sort_changes(
+pub(crate) fn topological_sort_changes(
     changes: Vec<crate::migration::utils::types::Changes>,
 ) -> Vec<crate::migration::utils::types::Changes> {
     use std::collections::{HashMap, HashSet, VecDeque};
@@ -283,17 +283,23 @@ pub fn collect_destructive_messages(all_changes: &[Changes]) -> Vec<String> {
     });
 
     // Adding a CASCADE constraint to existing data can trigger mass deletes if a parent is removed.
-    let cascade_fks = all_changes.iter().flat_map(|c| {
-        c.added_fks
-            .iter()
-            .filter(|fk| fk.on_delete.to_uppercase() == "CASCADE")
-            .map(|fk| {
-                format!(
-                    "  {}.{}: ADD FOREIGN KEY -> {} ON DELETE CASCADE (existing rows may be deleted)",
-                    c.table_name, fk.from_column, fk.to_table
-                )
-            })
-    });
+    // Only a concern on existing tables: a table created in this same batch has no rows yet,
+    // so a CASCADE FK on a brand-new table carries no data-loss risk (avoids a false positive
+    // on first generation / from-scratch regeneration).
+    let cascade_fks = all_changes
+        .iter()
+        .filter(|c| !c.is_new_table)
+        .flat_map(|c| {
+            c.added_fks
+                .iter()
+                .filter(|fk| fk.on_delete.to_uppercase() == "CASCADE")
+                .map(|fk| {
+                    format!(
+                        "  {}.{}: ADD FOREIGN KEY -> {} ON DELETE CASCADE (existing rows may be deleted)",
+                        c.table_name, fk.from_column, fk.to_table
+                    )
+                })
+        });
 
     dropped
         .chain(type_changes)
@@ -486,6 +492,7 @@ fn compute_main_changes(schemas: &[ParsedSchema], migrations_path: &str) -> Resu
                 added_columns: db_columns(schema).into_iter().cloned().collect(),
                 dropped_columns: vec![],
                 modified_columns: vec![],
+                renamed_columns: vec![],
                 added_fks: schema.foreign_keys.clone(),
                 dropped_fks: vec![],
                 added_indexes: schema.indexes.clone(),
@@ -570,7 +577,9 @@ fn build_main_plan(
 
     // Relations migration — all FK constraints grouped in a single migration, registered
     // after every CREATE so the referenced tables already exist when constraints are added.
-    if !schemas_with_fks.is_empty() {
+    // SQLite is excluded: it cannot ALTER-ADD FKs, so they are inlined in each CREATE TABLE.
+    let inline_fk_engine = *db_kind == crate::migration::utils::types::DbKind::Other;
+    if !schemas_with_fks.is_empty() && !inline_fk_engine {
         let module_name = format!("m{}_create_relations", timestamp);
         let path = format!("{}/{}.rs", migrations_path, module_name);
         plan.files
@@ -842,6 +851,7 @@ fn plan_extend_changes(
                 added_columns: ext_schema.columns.clone(),
                 dropped_columns: vec![],
                 modified_columns: vec![],
+                renamed_columns: vec![],
                 added_fks: vec![],
                 dropped_fks: vec![],
                 added_indexes: vec![],

@@ -247,10 +247,29 @@ username: text [required, max_length: 150, unique],
 | `step: n`              | —                      | V2 uniquement (numériques)     |
 | `fk(table.col, action)`| `fk(table.col, action)`|                                |
 | `enum(NomEnum)`        | `enum(NomEnum)`        |                                |
+| `renamed_from: "x"`    | `renamed_from("x")`    | Renomme (voir plus bas)        |
 | `skip`                 | `readonly`             |                                |
 | `no_hash`              | —                      | Champs `password` uniquement   |
 
 > **`auto_now` / `auto_now_update`** : ces champs sont exclus de `admin_from_form` et d'`admin_partial_update`. Leur valeur est gérée uniquement par la base. Ils apparaissent dans `Model` et `Column` comme `Option<T>`.
+
+### Renommer une colonne — `renamed_from`
+
+Renommer un champ sans cette option produit un `DROP COLUMN` + `ADD COLUMN` → **perte de données**.
+L'outil étant non interactif, il ne peut pas deviner l'intention : il faut le signaler explicitement.
+
+```rust
+// avant :  job_title: text,
+// après :
+title: text [renamed_from: "job_title"],
+```
+
+`makemigrations` génère alors un `ALTER TABLE … RENAME COLUMN job_title TO title` (supporté par
+PostgreSQL, MySQL/MariaDB et SQLite), sans perte de données. L'attribut est une directive de
+migration uniquement : il n'a aucun effet sur l'entité ou le formulaire générés. Garde-fou : si
+l'ancienne colonne existe toujours dans le snapshot (hint périmé), aucun rename n'est émis.
+
+Fonctionne aussi bien dans `model!{}` que dans `extend!{}`.
 
 ---
 
@@ -446,7 +465,26 @@ extend! {
 
 Tables autorisées : `eihwaz_users`, `eihwaz_groupes`, `eihwaz_droits`, `eihwaz_sessions`, `eihwaz_users_groupes`, `eihwaz_groupes_droits`. Tout autre nom provoque une erreur à la compilation.
 
-Les champs déclarés dans `extend!{}` utilisent les mêmes types et options que la syntaxe v2 de `model!`. Pas de bloc `relations:` dans `extend!{}` — les relations se déclarent dans `model!{}` cible avec `has_many(user_profile)` etc.
+Les champs déclarés dans `extend!{}` utilisent les mêmes types et options que la syntaxe v2 de `model!` (y compris `renamed_from`). Pas de bloc `relations:` dans `extend!{}` — les relations se déclarent dans `model!{}` cible avec `has_many(user_profile)` etc.
+
+### Enums dans `extend!{}`
+
+`extend!{}` accepte un bloc `enums: { ... }` optionnel (entre `table:` et `fields:`), identique à celui de `model!`. La colonne `choice [enum(NomEnum)]` génère le type Rust enum, la colonne typée et le `ChoiceField` peuplé :
+
+```rust
+extend! {
+    table: "eihwaz_users",
+    enums: {
+        Seniority: [Junior="junior", Mid="mid", Senior="senior", Lead="lead"],
+    },
+    fields: {
+        job_title: text,
+        seniority: choice [enum(Seniority)],
+    }
+}
+```
+
+`makemigrations` émet la colonne (sur PostgreSQL, un `CREATE TYPE … AS ENUM` ; ailleurs, un `VARCHAR`/`ENUM` natif).
 
 ### Workflow complet
 

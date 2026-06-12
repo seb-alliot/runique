@@ -28,8 +28,13 @@ pub fn generate(model: &ModelInput) -> TokenStream2 {
 }
 
 pub fn generate_enums(model: &ModelInput) -> TokenStream2 {
-    model
-        .enums
+    generate_enum_defs(&model.enums)
+}
+
+/// Generates the Rust enum types (`DeriveActiveEnum` + `Display`/`FromStr`/`Default`)
+/// for a list of `EnumDef`. Shared by `model!` and `extend!`.
+pub fn generate_enum_defs(enums: &[EnumDef]) -> TokenStream2 {
+    enums
         .iter()
         .map(|e| {
             let name = &e.name;

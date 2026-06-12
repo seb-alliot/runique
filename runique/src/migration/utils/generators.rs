@@ -7,7 +7,8 @@ use crate::migration::utils::{
 /// Generates the migration file for a CREATE TABLE — no FK constraints (they go in the relations file).
 /// Also used for snapshots (via `DbKind::Other`) to enable FK diffing on subsequent runs.
 pub fn generate_create_file(schema: &ParsedSchema, db_kind: &DbKind) -> String {
-    let cols = build_create_table_cols(schema, db_kind);
+    // SQLite: FKs inline in CREATE TABLE (it cannot ALTER-ADD them later).
+    let cols = build_create_table_cols(schema, db_kind, *db_kind == DbKind::Other);
     let idx_stmts = build_index_create_stmts(schema);
     let trigger_stmts = build_updated_at_trigger_stmts(schema, db_kind);
     let enum_stmts = build_enum_type_stmts(schema, db_kind);
@@ -67,7 +68,8 @@ pub fn generate_create_file(schema: &ParsedSchema, db_kind: &DbKind) -> String {
 
 /// Generates the snapshot file (includes FK stmts so diffs detect FK additions/removals).
 pub fn generate_snapshot_file(schema: &ParsedSchema) -> String {
-    let cols = build_create_table_cols(schema, &DbKind::Other);
+    // Snapshot keeps FKs as separate stmts (never inline) so parser_seaorm round-trip is stable.
+    let cols = build_create_table_cols(schema, &DbKind::Other, false);
     let fk_stmts = build_fk_create_stmts(schema);
     let idx_stmts = build_index_create_stmts(schema);
     let fk_drops = build_fk_drop_stmts(schema);
@@ -248,7 +250,7 @@ fn build_enum_drop_stmts_for_cols(cols: &[ParsedColumn], db_kind: &DbKind) -> St
 }
 
 pub fn generate_alter_file(change: &Changes, db_kind: &DbKind) -> String {
-    let (up_body, down_body) = build_alter_bodies(change);
+    let (up_body, down_body) = build_alter_bodies(change, db_kind);
 
     let enum_creates = build_enum_create_stmts_for_cols(&change.added_columns, db_kind);
     let enum_drops = build_enum_drop_stmts_for_cols(&change.added_columns, db_kind);
@@ -310,7 +312,7 @@ pub fn generate_batch_down_file(changes: &[&Changes], timestamp: &str) -> String
     )
 }
 
-fn build_create_table_cols(schema: &ParsedSchema, db_kind: &DbKind) -> String {
+fn build_create_table_cols(schema: &ParsedSchema, db_kind: &DbKind, inline_fks: bool) -> String {
     let mut cols = String::new();
 
     if let Some(ref pk) = schema.primary_key {
@@ -322,6 +324,22 @@ fn build_create_table_cols(schema: &ParsedSchema, db_kind: &DbKind) -> String {
             "                    .col({})\n",
             render_column_def(col, db_kind)
         ));
+    }
+
+    // SQLite cannot add FK constraints to an existing table (no ALTER TABLE ADD CONSTRAINT),
+    // so for SQLite the FKs are declared INLINE here instead of in the relations migration.
+    if inline_fks {
+        for fk in &schema.foreign_keys {
+            cols.push_str(&format!(
+                "                    .foreign_key(\n                        ForeignKey::create()\n                            .name(\"{table}_{from}_{to_table}_fkey\")\n                            .from(Alias::new(\"{table}\"), Alias::new(\"{from}\"))\n                            .to(Alias::new(\"{to_table}\"), Alias::new(\"{to_col}\"))\n                            .on_delete(ForeignKeyAction::{on_delete})\n                            .on_update(ForeignKeyAction::{on_update})\n                    )\n",
+                table = schema.table_name,
+                from = fk.from_column,
+                to_table = fk.to_table,
+                to_col = fk.to_column,
+                on_delete = fk.on_delete,
+                on_update = fk.on_update,
+            ));
+        }
     }
 
     cols
@@ -382,9 +400,15 @@ fn build_index_drop_stmts(schema: &ParsedSchema) -> String {
     out
 }
 
-fn build_alter_bodies(change: &Changes) -> (String, String) {
+fn build_alter_bodies(change: &Changes, db_kind: &DbKind) -> (String, String) {
     let mut up = String::new();
     let mut down = String::new();
+
+    // 0) RENAME columns first — later ops (modify/add) may target the new name.
+    // `ALTER TABLE … RENAME COLUMN` is portable (PG / MySQL 8+ / MariaDB 10.5+ / SQLite 3.25+).
+    for (old, new) in &change.renamed_columns {
+        push_rename_column(&mut up, &change.table_name, old, new);
+    }
 
     // 1) DROP indexes (up) / DROP added indexes (down)
     for idx in &change.dropped_indexes {
@@ -518,41 +542,64 @@ fn build_alter_bodies(change: &Changes) -> (String, String) {
         );
     }
 
-    // 9) Enum renames (data migration)
-    for (col, old_val, new_val) in &change.enum_renames {
-        up.push_str(&format!(
-            "        manager.get_connection().execute_unprepared(\n            \"UPDATE {table} SET {col} = '{new}' WHERE {col} = '{old}'\"\n        ).await?;\n\n",
-            table = change.table_name, col = col, old = old_val, new = new_val,
-        ));
-        // down: inverse
-        down.push_str(&format!(
-            "        manager.get_connection().execute_unprepared(\n            \"UPDATE {table} SET {col} = '{old}' WHERE {col} = '{new}'\"\n        ).await?;\n\n",
-            table = change.table_name, col = col, old = old_val, new = new_val,
-        ));
+    // 9) Enum value renames.
+    // Postgres native enum → `ALTER TYPE … RENAME VALUE` (atomic, in-place, keeps rows).
+    // VARCHAR-backed enum (non-PG) → the column is plain text, so update the stored data.
+    for (col, enum_name, old_val, new_val) in &change.enum_renames {
+        if *db_kind == DbKind::Postgres {
+            up.push_str(&format!(
+                "        manager.get_connection().execute_unprepared(\n            \"ALTER TYPE {enum_name} RENAME VALUE '{old}' TO '{new}'\"\n        ).await?;\n\n",
+                enum_name = enum_name, old = old_val, new = new_val,
+            ));
+            down.push_str(&format!(
+                "        manager.get_connection().execute_unprepared(\n            \"ALTER TYPE {enum_name} RENAME VALUE '{new}' TO '{old}'\"\n        ).await?;\n\n",
+                enum_name = enum_name, old = old_val, new = new_val,
+            ));
+        } else {
+            up.push_str(&format!(
+                "        manager.get_connection().execute_unprepared(\n            \"UPDATE {table} SET {col} = '{new}' WHERE {col} = '{old}'\"\n        ).await?;\n\n",
+                table = change.table_name, col = col, old = old_val, new = new_val,
+            ));
+            down.push_str(&format!(
+                "        manager.get_connection().execute_unprepared(\n            \"UPDATE {table} SET {col} = '{old}' WHERE {col} = '{new}'\"\n        ).await?;\n\n",
+                table = change.table_name, col = col, old = old_val, new = new_val,
+            ));
+        }
     }
 
-    // 10) Enum value additions/removals — manual migration required
-    for (_col, enum_name, val) in &change.enum_value_adds {
-        up.push_str(&format!(
-            "        manager.get_connection().execute_unprepared(\n            \"ALTER TYPE {enum_name} ADD VALUE IF NOT EXISTS '{val}'\"\n        ).await?;\n\n",
-            enum_name = enum_name, val = val,
-        ));
+    // 10) Enum value additions/removals — Postgres native enum only.
+    // VARCHAR-backed enums (non-PG) accept any string, so no DDL is needed.
+    if *db_kind == DbKind::Postgres {
+        for (_col, enum_name, val) in &change.enum_value_adds {
+            up.push_str(&format!(
+                "        manager.get_connection().execute_unprepared(\n            \"ALTER TYPE {enum_name} ADD VALUE IF NOT EXISTS '{val}'\"\n        ).await?;\n\n",
+                enum_name = enum_name, val = val,
+            ));
+        }
+        for (_col, enum_name, val) in &change.enum_value_drops {
+            up.push_str(&format!(
+                "        // WARNING: value '{val}' removed from {enum_name} — manual migration required (Postgres cannot drop an enum value).\n\n",
+                val = val, enum_name = enum_name,
+            ));
+            down.push_str(&format!(
+                "        manager.get_connection().execute_unprepared(\n            \"ALTER TYPE {enum_name} ADD VALUE IF NOT EXISTS '{val}'\"\n        ).await?;\n\n",
+                enum_name = enum_name, val = val,
+            ));
+        }
     }
-    for (_col, enum_name, val) in &change.enum_value_drops {
-        up.push_str(&format!(
-            "        // WARNING: value '{val}' removed from {enum_name} — manual migration required.\n\n",
-            val = val, enum_name = enum_name,
-        ));
-        down.push_str(&format!(
-            "        manager.get_connection().execute_unprepared(\n            \"ALTER TYPE {enum_name} ADD VALUE IF NOT EXISTS '{val}'\"\n        ).await?;\n\n",
-            enum_name = enum_name, val = val,
-        ));
+
+    // 11) Reverse the column renames last in DOWN (undo of section 0).
+    for (old, new) in &change.renamed_columns {
+        push_rename_column(&mut down, &change.table_name, new, old);
     }
 
     (up, down)
 }
 
 fn append_up_ops(change: &Changes, buf: &mut String) {
+    for (old, new) in &change.renamed_columns {
+        push_rename_column(buf, &change.table_name, old, new);
+    }
     for idx in &change.dropped_indexes {
         push_drop_index(buf, &change.table_name, &idx.name);
     }
@@ -609,6 +656,9 @@ fn append_down_ops(change: &Changes, buf: &mut String) {
     for idx in &change.dropped_indexes {
         push_create_index(buf, &change.table_name, &idx.name, &idx.columns, idx.unique);
     }
+    for (old, new) in &change.renamed_columns {
+        push_rename_column(buf, &change.table_name, new, old);
+    }
 }
 
 fn render_pk_col(pk: &ParsedColumn) -> String {
@@ -642,9 +692,11 @@ fn render_column_def(col: &ParsedColumn, db_kind: &DbKind) -> String {
     };
     let uniq = if col.unique { ".unique_key()" } else { "" };
     let default = if col.has_default_now {
-        ".default(Expr::current_timestamp())"
+        ".default(Expr::current_timestamp())".to_string()
+    } else if let Some(v) = &col.default_value {
+        format!(".default({})", v)
     } else {
-        ""
+        String::new()
     };
     let on_update = if col.updated_at && *db_kind == DbKind::Mysql {
         ".extra(\"ON UPDATE CURRENT_TIMESTAMP\")"
@@ -741,6 +793,15 @@ fn push_drop_fk(buf: &mut String, table: &str, from_col: &str, to_table: &str) {
         table = table,
         from = from_col,
         to = to_table
+    ));
+}
+
+fn push_rename_column(buf: &mut String, table: &str, from: &str, to: &str) {
+    buf.push_str(&format!(
+        "        manager\n            .alter_table(\n                Table::alter()\n                    .table(Alias::new(\"{table}\"))\n                    .rename_column(Alias::new(\"{from}\"), Alias::new(\"{to}\"))\n                    .to_owned(),\n            )\n            .await?;\n\n",
+        table = table,
+        from = from,
+        to = to
     ));
 }
 

@@ -45,6 +45,7 @@
 | `csp_nonce` | Valeur nonce CSP du header (utilisé par `{% csp %}`) |
 | `messages` | Flash messages de la requête |
 | `user` | Utilisateur authentifié courant (si connecté) |
+| `current_path` | Path de l'URL courante, sans query string (utile pour `rel="canonical"`, `og:url`, navigation active) |
 
 ---
 

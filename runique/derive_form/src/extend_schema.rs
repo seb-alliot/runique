@@ -1,4 +1,5 @@
-use crate::model::ast::{FormFieldAttr, FormFieldDecl, FormFieldKind};
+use crate::model::ast::{EnumDef, FormFieldAttr, FormFieldDecl, FormFieldKind};
+use crate::model::generateur::generate_enum_defs;
 use crate::registry::{FormWidget, PhantomColumn, PkKind, phantom_columns};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
@@ -8,6 +9,7 @@ use syn::{Ident, LitStr, Token, braced, parse::ParseStream};
 
 pub(crate) struct ExtendDsl {
     pub table: String,
+    pub enums: Vec<EnumDef>,
     pub fields: Vec<FormFieldDecl>,
 }
 
@@ -20,6 +22,22 @@ impl syn::parse::Parse for ExtendDsl {
         input.parse::<Token![:]>()?;
         let table: LitStr = input.parse()?;
         input.parse::<Token![,]>()?;
+
+        // enums: { ... } optional — reuses the model parser (EnumDef: Parse).
+        let mut enums = Vec::new();
+        if input.peek(Ident) {
+            let peek: Ident = input.fork().parse()?;
+            if peek == "enums" {
+                input.parse::<Ident>()?;
+                input.parse::<Token![:]>()?;
+                let enum_content;
+                braced!(enum_content in input);
+                while !enum_content.is_empty() {
+                    enums.push(EnumDef::parse(&enum_content)?);
+                }
+                let _ = input.parse::<Token![,]>();
+            }
+        }
 
         let kw: Ident = input.parse()?;
         if kw != "fields" {
@@ -37,12 +55,30 @@ impl syn::parse::Parse for ExtendDsl {
 
         Ok(ExtendDsl {
             table: table.value(),
+            enums,
             fields,
         })
     }
 }
 
 // ── Code generation ──────────────────────────────────────────────────────────
+
+/// Resolves the `EnumDef` a choice/radio field refers to via its `[enum(Name)]` attr.
+fn field_enum_def<'a>(ff: &FormFieldDecl, enums: &'a [EnumDef]) -> Option<&'a EnumDef> {
+    if !matches!(
+        ff.kind,
+        FormFieldKind::Choice | FormFieldKind::Radio | FormFieldKind::Checkbox
+    ) {
+        return None;
+    }
+    ff.attrs.iter().find_map(|a| {
+        if let FormFieldAttr::EnumRef(id) = a {
+            enums.iter().find(|e| e.name == *id)
+        } else {
+            None
+        }
+    })
+}
 
 fn field_to_coldef(ff: &FormFieldDecl) -> TokenStream2 {
     let name = ff.name.to_string();
@@ -146,7 +182,7 @@ fn table_to_form_ident(table: &str) -> proc_macro2::Ident {
 
 /// Generates the `ActiveValue::Set(...)` expression for a single extended field.
 /// `partial = true` → wraps in `if __data.contains_key(...) { Set } else { NotSet }`.
-fn extend_active_model_field(ff: &FormFieldDecl, partial: bool) -> TokenStream2 {
+fn extend_active_model_field(ff: &FormFieldDecl, partial: bool, enums: &[EnumDef]) -> TokenStream2 {
     let name = &ff.name;
     let name_str = name.to_string();
     let required = ff
@@ -154,135 +190,161 @@ fn extend_active_model_field(ff: &FormFieldDecl, partial: bool) -> TokenStream2 
         .iter()
         .any(|a| matches!(a, FormFieldAttr::Required));
 
-    let set_expr: TokenStream2 = match &ff.kind {
-        FormFieldKind::Bool => {
-            if required {
-                quote! {
-                    ::sea_orm::ActiveValue::Set(
-                        __data.get(#name_str)
-                            .map(|v| { let s = v.as_str(); s == "true" || s == "1" || s == "on" })
-                            .unwrap_or(false)
-                    )
-                }
-            } else {
-                quote! {
-                    ::sea_orm::ActiveValue::Set(
-                        __data.get(#name_str).map(|v| { let s = v.as_str(); s == "true" || s == "1" || s == "on" })
-                    )
-                }
-            }
-        }
-        FormFieldKind::Int => {
-            if required {
-                quote! { ::sea_orm::ActiveValue::Set(__data.get(#name_str).and_then(|v| v.parse::<i32>().ok()).unwrap_or_default()) }
-            } else {
-                quote! { ::sea_orm::ActiveValue::Set(__data.get(#name_str).and_then(|v| v.parse::<i32>().ok())) }
-            }
-        }
-        FormFieldKind::Bigint => {
-            if required {
-                quote! { ::sea_orm::ActiveValue::Set(__data.get(#name_str).and_then(|v| v.parse::<i64>().ok()).unwrap_or_default()) }
-            } else {
-                quote! { ::sea_orm::ActiveValue::Set(__data.get(#name_str).and_then(|v| v.parse::<i64>().ok())) }
-            }
-        }
-        FormFieldKind::Float | FormFieldKind::Percent => {
-            if required {
-                quote! { ::sea_orm::ActiveValue::Set(__data.get(#name_str).and_then(|v| v.parse::<f64>().ok()).unwrap_or_default()) }
-            } else {
-                quote! { ::sea_orm::ActiveValue::Set(__data.get(#name_str).and_then(|v| v.parse::<f64>().ok())) }
-            }
-        }
-        FormFieldKind::Decimal => {
-            if required {
-                quote! { ::sea_orm::ActiveValue::Set(__data.get(#name_str).and_then(|v| v.parse::<::sea_orm::prelude::Decimal>().ok()).unwrap_or_default()) }
-            } else {
-                quote! { ::sea_orm::ActiveValue::Set(__data.get(#name_str).and_then(|v| v.parse::<::sea_orm::prelude::Decimal>().ok())) }
-            }
-        }
-        FormFieldKind::Date => {
+    // Enum-backed choice/radio → parse via the generated `FromStr` of the enum type.
+    let enum_set_expr: Option<TokenStream2> = field_enum_def(ff, enums).map(|def| {
+        let ename = &def.name;
+        if required {
             quote! {
                 ::sea_orm::ActiveValue::Set(
-                    __data.get(#name_str).and_then(|v| {
-                        if v.is_empty() { return None; }
-                        ::chrono::NaiveDate::parse_from_str(v, "%Y-%m-%d").ok()
-                    })
+                    __data.get(#name_str)
+                        .and_then(|v| v.parse::<#ename>().ok())
+                        .unwrap_or_default()
+                )
+            }
+        } else {
+            quote! {
+                ::sea_orm::ActiveValue::Set(
+                    __data.get(#name_str)
+                        .filter(|v| !v.is_empty())
+                        .and_then(|v| v.parse::<#ename>().ok())
                 )
             }
         }
-        FormFieldKind::Time => {
-            quote! {
-                ::sea_orm::ActiveValue::Set(
-                    __data.get(#name_str).and_then(|v| {
-                        if v.is_empty() { return None; }
-                        ::chrono::NaiveTime::parse_from_str(v, "%H:%M:%S")
-                            .or_else(|_| ::chrono::NaiveTime::parse_from_str(v, "%H:%M"))
-                            .ok()
-                    })
-                )
-            }
-        }
-        FormFieldKind::Datetime => {
-            quote! {
-                ::sea_orm::ActiveValue::Set(
-                    __data.get(#name_str).and_then(|v| {
-                        if v.is_empty() { return None; }
-                        ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M:%S")
-                            .or_else(|_| ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M"))
-                            .ok()
-                    })
-                )
-            }
-        }
-        FormFieldKind::Uuid => {
-            if required {
-                quote! {
-                    ::sea_orm::ActiveValue::Set(
-                        __data.get(#name_str)
-                            .and_then(|v| ::sea_orm::prelude::Uuid::parse_str(v).ok())
-                            .unwrap_or_else(::sea_orm::prelude::Uuid::new_v4)
-                    )
-                }
-            } else {
-                quote! {
-                    ::sea_orm::ActiveValue::Set(
-                        __data.get(#name_str).and_then(|v| ::sea_orm::prelude::Uuid::parse_str(v).ok())
-                    )
+    });
+
+    let set_expr: TokenStream2 = if let Some(expr) = enum_set_expr {
+        expr
+    } else {
+        match &ff.kind {
+            FormFieldKind::Bool => {
+                if required {
+                    quote! {
+                        ::sea_orm::ActiveValue::Set(
+                            __data.get(#name_str)
+                                .map(|v| { let s = v.as_str(); s == "true" || s == "1" || s == "on" })
+                                .unwrap_or(false)
+                        )
+                    }
+                } else {
+                    quote! {
+                        ::sea_orm::ActiveValue::Set(
+                            __data.get(#name_str).map(|v| { let s = v.as_str(); s == "true" || s == "1" || s == "on" })
+                        )
+                    }
                 }
             }
-        }
-        FormFieldKind::Json => {
-            if required {
-                quote! {
-                    ::sea_orm::ActiveValue::Set(
-                        __data.get(#name_str)
-                            .and_then(|v| ::runique::serde_json::from_str(v).ok())
-                            .unwrap_or(::runique::serde_json::Value::Null)
-                    )
+            FormFieldKind::Int => {
+                if required {
+                    quote! { ::sea_orm::ActiveValue::Set(__data.get(#name_str).and_then(|v| v.parse::<i32>().ok()).unwrap_or_default()) }
+                } else {
+                    quote! { ::sea_orm::ActiveValue::Set(__data.get(#name_str).and_then(|v| v.parse::<i32>().ok())) }
                 }
-            } else {
+            }
+            FormFieldKind::Bigint => {
+                if required {
+                    quote! { ::sea_orm::ActiveValue::Set(__data.get(#name_str).and_then(|v| v.parse::<i64>().ok()).unwrap_or_default()) }
+                } else {
+                    quote! { ::sea_orm::ActiveValue::Set(__data.get(#name_str).and_then(|v| v.parse::<i64>().ok())) }
+                }
+            }
+            FormFieldKind::Float | FormFieldKind::Percent => {
+                if required {
+                    quote! { ::sea_orm::ActiveValue::Set(__data.get(#name_str).and_then(|v| v.parse::<f64>().ok()).unwrap_or_default()) }
+                } else {
+                    quote! { ::sea_orm::ActiveValue::Set(__data.get(#name_str).and_then(|v| v.parse::<f64>().ok())) }
+                }
+            }
+            FormFieldKind::Decimal => {
+                if required {
+                    quote! { ::sea_orm::ActiveValue::Set(__data.get(#name_str).and_then(|v| v.parse::<::sea_orm::prelude::Decimal>().ok()).unwrap_or_default()) }
+                } else {
+                    quote! { ::sea_orm::ActiveValue::Set(__data.get(#name_str).and_then(|v| v.parse::<::sea_orm::prelude::Decimal>().ok())) }
+                }
+            }
+            FormFieldKind::Date => {
                 quote! {
                     ::sea_orm::ActiveValue::Set(
-                        __data.get(#name_str)
-                            .filter(|v| !v.is_empty())
-                            .and_then(|v| ::runique::serde_json::from_str(v).ok())
+                        __data.get(#name_str).and_then(|v| {
+                            if v.is_empty() { return None; }
+                            ::chrono::NaiveDate::parse_from_str(v, "%Y-%m-%d").ok()
+                        })
                     )
                 }
             }
-        }
-        // All string-like fields
-        _ => {
-            if required {
+            FormFieldKind::Time => {
                 quote! {
                     ::sea_orm::ActiveValue::Set(
-                        __data.get(#name_str).map(|v| v.trim().to_string()).unwrap_or_default()
+                        __data.get(#name_str).and_then(|v| {
+                            if v.is_empty() { return None; }
+                            ::chrono::NaiveTime::parse_from_str(v, "%H:%M:%S")
+                                .or_else(|_| ::chrono::NaiveTime::parse_from_str(v, "%H:%M"))
+                                .ok()
+                        })
                     )
                 }
-            } else {
+            }
+            FormFieldKind::Datetime => {
                 quote! {
                     ::sea_orm::ActiveValue::Set(
-                        __data.get(#name_str).map(|v| v.trim().to_string()).filter(|v| !v.is_empty())
+                        __data.get(#name_str).and_then(|v| {
+                            if v.is_empty() { return None; }
+                            ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M:%S")
+                                .or_else(|_| ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M"))
+                                .ok()
+                        })
                     )
+                }
+            }
+            FormFieldKind::Uuid => {
+                if required {
+                    quote! {
+                        ::sea_orm::ActiveValue::Set(
+                            __data.get(#name_str)
+                                .and_then(|v| ::sea_orm::prelude::Uuid::parse_str(v).ok())
+                                .unwrap_or_else(::sea_orm::prelude::Uuid::new_v4)
+                        )
+                    }
+                } else {
+                    quote! {
+                        ::sea_orm::ActiveValue::Set(
+                            __data.get(#name_str).and_then(|v| ::sea_orm::prelude::Uuid::parse_str(v).ok())
+                        )
+                    }
+                }
+            }
+            FormFieldKind::Json => {
+                if required {
+                    quote! {
+                        ::sea_orm::ActiveValue::Set(
+                            __data.get(#name_str)
+                                .and_then(|v| ::runique::serde_json::from_str(v).ok())
+                                .unwrap_or(::runique::serde_json::Value::Null)
+                        )
+                    }
+                } else {
+                    quote! {
+                        ::sea_orm::ActiveValue::Set(
+                            __data.get(#name_str)
+                                .filter(|v| !v.is_empty())
+                                .and_then(|v| ::runique::serde_json::from_str(v).ok())
+                        )
+                    }
+                }
+            }
+            // All string-like fields
+            _ => {
+                if required {
+                    quote! {
+                        ::sea_orm::ActiveValue::Set(
+                            __data.get(#name_str).map(|v| v.trim().to_string()).unwrap_or_default()
+                        )
+                    }
+                } else {
+                    quote! {
+                        ::sea_orm::ActiveValue::Set(
+                            __data.get(#name_str).map(|v| v.trim().to_string()).filter(|v| !v.is_empty())
+                        )
+                    }
                 }
             }
         }
@@ -400,7 +462,7 @@ fn extend_file_attrs(attrs: &[FormFieldAttr]) -> TokenStream2 {
     ts
 }
 
-fn extend_form_field_registration(ff: &FormFieldDecl) -> TokenStream2 {
+fn extend_form_field_registration(ff: &FormFieldDecl, enums: &[EnumDef]) -> TokenStream2 {
     if ff.attrs.iter().any(|a| matches!(a, FormFieldAttr::Skip)) {
         return quote! {};
     }
@@ -496,7 +558,19 @@ fn extend_form_field_registration(ff: &FormFieldDecl) -> TokenStream2 {
             quote! { ::runique::forms::fields::FileField::any(#name_str).label(#label) #extras #required }
         }
         FormFieldKind::Choice | FormFieldKind::Radio | FormFieldKind::Checkbox => {
-            quote! { ::runique::forms::fields::ChoiceField::new(#name_str).label(#label) #required }
+            let choices: Vec<TokenStream2> = field_enum_def(ff, enums)
+                .map(|def| {
+                    def.variants
+                        .iter()
+                        .map(|v| {
+                            let db_val = v.db_str();
+                            let display = v.display_str();
+                            quote! { .add_choice(#db_val, #display) }
+                        })
+                        .collect()
+                })
+                .unwrap_or_default();
+            quote! { ::runique::forms::fields::ChoiceField::new(#name_str).label(#label) #(#choices)* #required }
         }
     };
 
@@ -544,7 +618,16 @@ pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
                 .attrs
                 .iter()
                 .any(|a| matches!(a, FormFieldAttr::Required));
-            let ty = form_field_to_rust_type(&ff.kind, nullable);
+            let ty = if let Some(def) = field_enum_def(ff, &dsl.enums) {
+                let ename = &def.name;
+                if nullable {
+                    quote! { Option<#ename> }
+                } else {
+                    quote! { #ename }
+                }
+            } else {
+                form_field_to_rust_type(&ff.kind, nullable)
+            };
             quote! { pub #name: #ty, }
         })
         .collect();
@@ -559,7 +642,7 @@ pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
     let extended_registrations: Vec<TokenStream2> = dsl
         .fields
         .iter()
-        .map(extend_form_field_registration)
+        .map(|ff| extend_form_field_registration(ff, &dsl.enums))
         .collect();
 
     // ActiveModel: phantom columns + extended columns
@@ -575,15 +658,19 @@ pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
     let full_assignments: Vec<TokenStream2> = dsl
         .fields
         .iter()
-        .map(|ff| extend_active_model_field(ff, false))
+        .map(|ff| extend_active_model_field(ff, false, &dsl.enums))
         .collect();
     let partial_assignments: Vec<TokenStream2> = dsl
         .fields
         .iter()
-        .map(|ff| extend_active_model_field(ff, true))
+        .map(|ff| extend_active_model_field(ff, true, &dsl.enums))
         .collect();
 
+    let enum_defs = generate_enum_defs(&dsl.enums);
+
     quote! {
+        #enum_defs
+
         #[derive(
             Clone, Debug, PartialEq,
             ::sea_orm::DeriveEntityModel,

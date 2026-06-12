@@ -103,6 +103,7 @@ pub async fn cours_index(request: &mut Request) -> AppResult<Response> {
         "title"   => "Rust Courses",
         "cours"   => &cours,
         "niveaux" => &niveaux,
+        "lang"    => "fr",
     });
 
     request.render("cours/cours_index.html")
@@ -137,6 +138,7 @@ pub async fn cours_detail(slug: &str, request: &mut Request) -> AppResult<Respon
         "cour"      => &cour,
         "chapitres" => &chapitres,
         "blocs"     => &blocs,
+        "lang"      => &cour.lang,
     });
 
     request.render("cours/cours_detail.html")

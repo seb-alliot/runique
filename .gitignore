@@ -27,6 +27,7 @@ dossier_projet*.md
 dossier_projet*.pdf
 
 # Fichier perso
+RECAP_SESSION_MAKEMIGRATIONS.md
 commande.txt
 AUDIT.md
 audit.ps1

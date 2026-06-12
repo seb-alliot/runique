@@ -9,5 +9,7 @@ extend! {
         phone: phone,
         birth_date: date,
         is_verified: bool [default: false],
+        linkedin: url,
+        job_title: text,
     }
 }

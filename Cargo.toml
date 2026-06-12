@@ -63,7 +63,7 @@ image = { version = "0.25.10", features = ["avif"] }
 dialoguer = "0.12"
 walkdir = "2.5.0"
 
-derive_form = { path = "runique/derive_form", version = "2.1.8" }
+derive_form = { path = "runique/derive_form", version = "2.1.9" }
 rust_decimal = { version = "1", features = ["serde-float"] }
 # Logging
 tracing = "0.1"
