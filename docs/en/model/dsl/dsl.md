@@ -247,10 +247,29 @@ username: text [required, max_length: 150, unique],
 | `step: n`              | —                      | v2 only (numeric fields)       |
 | `fk(table.col, action)`| `fk(table.col, action)`|                                |
 | `enum(EnumName)`       | `enum(EnumName)`       |                                |
+| `renamed_from: "x"`    | `renamed_from("x")`    | Renames a column (see below)   |
 | `skip`                 | `readonly`             |                                |
 | `no_hash`              | —                      | `password` fields only         |
 
 > **`auto_now` / `auto_now_update`**: excluded from `admin_from_form` and `admin_partial_update`. Their value is managed by the database only. They appear in `Model` and `Column` as `Option<T>`.
+
+### Renaming a column — `renamed_from`
+
+Renaming a field without this option produces a `DROP COLUMN` + `ADD COLUMN` → **data loss**.
+The tool is non-interactive and cannot guess intent: you must state it explicitly.
+
+```rust
+// before:  job_title: text,
+// after:
+title: text [renamed_from: "job_title"],
+```
+
+`makemigrations` then emits `ALTER TABLE … RENAME COLUMN job_title TO title` (supported by
+PostgreSQL, MySQL/MariaDB and SQLite), with no data loss. The attribute is a migration-only
+directive: it has no effect on the generated entity or form. Guard: if the old column still
+exists in the snapshot (stale hint), no rename is emitted.
+
+Works in both `model!{}` and `extend!{}`.
 
 ---
 
@@ -444,7 +463,26 @@ extend! {
 
 Allowed tables: `eihwaz_users`, `eihwaz_groupes`, `eihwaz_droits`, `eihwaz_sessions`, `eihwaz_users_groupes`, `eihwaz_groupes_droits`. Any other name causes a compile-time error.
 
-Fields in `extend!{}` use the same types and options as the v2 syntax of `model!`. No `relations:` block inside `extend!{}` — relations are declared in the target `model!{}` with `has_many(user_profile)` etc.
+Fields in `extend!{}` use the same types and options as the v2 syntax of `model!` (including `renamed_from`). No `relations:` block inside `extend!{}` — relations are declared in the target `model!{}` with `has_many(user_profile)` etc.
+
+### Enums in `extend!{}`
+
+`extend!{}` accepts an optional `enums: { ... }` block (between `table:` and `fields:`), identical to `model!`. A `choice [enum(EnumName)]` column generates the Rust enum type, the typed column and the populated `ChoiceField`:
+
+```rust
+extend! {
+    table: "eihwaz_users",
+    enums: {
+        Seniority: [Junior="junior", Mid="mid", Senior="senior", Lead="lead"],
+    },
+    fields: {
+        job_title: text,
+        seniority: choice [enum(Seniority)],
+    }
+}
+```
+
+`makemigrations` emits the column (on PostgreSQL, a `CREATE TYPE … AS ENUM`; elsewhere a native `VARCHAR`/`ENUM`).
 
 ### Full workflow
 

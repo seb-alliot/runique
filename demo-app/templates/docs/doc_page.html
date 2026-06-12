@@ -1,15 +1,21 @@
 {% extends "index.html" %}
 
 {% block meta %}
+{% set page_path = page.slug | replace(from=section_slug ~ "-", to="") %}
+{% if page_path == "index" %}
+    {% set canonical_url = "https://runique.io/docs/" ~ lang ~ "/" ~ section_slug %}
+{% else %}
+    {% set canonical_url = "https://runique.io/docs/" ~ lang ~ "/" ~ section_slug ~ "/" ~ page_path %}
+{% endif %}
 <meta name="description" content="{% if page.lead %}{{ page.lead }}{% else %}{{ page.title }} — Runique Documentation{% endif %}">
 <meta name="robots" content="index, follow">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="Runique">
 <meta property="og:title" content="{{ page.title }} — Runique">
 <meta property="og:description" content="{% if page.lead %}{{ page.lead }}{% else %}{{ page.title }} — Runique Documentation{% endif %}">
-<meta property="og:url" content="https://runique.io/docs/{{ lang }}/{{ section_slug }}/{{ page.slug | replace(from=section_slug ~ "-", to="") }}">
+<meta property="og:url" content="{{ canonical_url }}">
 <meta property="og:image" content="{{ og_image }}">
-<link rel="canonical" href="https://runique.io/docs/{{ lang }}/{{ section_slug }}/{{ page.slug | replace(from=section_slug ~ "-", to="") }}">
+<link rel="canonical" href="{{ canonical_url }}">
 {% endblock %}
 
 {% block style %}

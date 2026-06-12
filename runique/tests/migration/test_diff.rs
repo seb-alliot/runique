@@ -217,8 +217,9 @@ fn test_diff_enum_values_changees_genere_rename() {
     );
     let changes = diff_schemas(&prev, &curr);
     assert_eq!(changes.enum_renames.len(), 1, "Un rename attendu");
-    let (col, old_val, new_val) = &changes.enum_renames[0];
+    let (col, enum_name, old_val, new_val) = &changes.enum_renames[0];
     assert_eq!(col, "status");
+    assert_eq!(enum_name, "Status");
     assert_eq!(old_val, "Ajoute");
     assert_eq!(new_val, "Ajouté");
 }

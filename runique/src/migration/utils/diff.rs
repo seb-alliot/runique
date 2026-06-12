@@ -52,9 +52,29 @@ pub fn diff_schemas(previous: &ParsedSchema, current: &ParsedSchema) -> Changes 
         .map(|c| (c.name.as_str(), c))
         .collect();
 
+    // Column renames via the explicit `renamed_from` hint. A rename is ONE operation:
+    // the old/new names are excluded from drop/add so we emit RENAME COLUMN (no data loss).
+    // Guard: the old name must exist in prev and be gone from curr, and the new name must
+    // be genuinely new — otherwise the hint is stale and we fall back to add/drop.
+    let mut renamed_columns: Vec<(String, String)> = Vec::new();
+    let mut renamed_old: HashSet<String> = HashSet::new();
+    let mut renamed_new: HashSet<String> = HashSet::new();
+    for (new_name, curr) in &curr_cols {
+        if let Some(old) = curr.renamed_from.as_deref()
+            && prev_cols.contains_key(old)
+            && !curr_cols.contains_key(old)
+            && !prev_cols.contains_key(*new_name)
+        {
+            renamed_columns.push((old.to_string(), new_name.to_string()));
+            renamed_old.insert(old.to_string());
+            renamed_new.insert(new_name.to_string());
+        }
+    }
+
     let added_columns = curr_cols
         .values()
         .filter(|c| !prev_cols.contains_key(c.name.as_str()))
+        .filter(|c| !renamed_new.contains(&c.name))
         .map(|c| (*c).clone())
         .collect();
 
@@ -63,6 +83,7 @@ pub fn diff_schemas(previous: &ParsedSchema, current: &ParsedSchema) -> Changes 
         .iter()
         .filter(|c| !c.ignored)
         .filter(|c| !curr_cols.contains_key(c.name.as_str()))
+        .filter(|c| !renamed_old.contains(&c.name))
         .cloned()
         .collect();
 
@@ -127,8 +148,10 @@ pub fn diff_schemas(previous: &ParsedSchema, current: &ParsedSchema) -> Changes 
         .cloned()
         .collect();
 
-    // Enum: renames (same position, different value), additions and deletions of variants
-    let mut enum_renames: Vec<(String, String, String)> = Vec::new();
+    // Enum: renames (same position, different value), additions and deletions of variants.
+    // A rename is ONE logical operation: its values are excluded from add/drop so the
+    // generator can emit `ALTER TYPE … RENAME VALUE` (PG) instead of add + drop + UPDATE.
+    let mut enum_renames: Vec<(String, String, String, String)> = Vec::new();
     let mut enum_value_adds: Vec<(String, String, String)> = Vec::new();
     let mut enum_value_drops: Vec<(String, String, String)> = Vec::new();
 
@@ -141,26 +164,42 @@ pub fn diff_schemas(previous: &ParsedSchema, current: &ParsedSchema) -> Changes 
                 prev.enum_string_values.iter().map(|s| s.as_str()).collect();
             let curr_set: HashSet<&str> =
                 curr.enum_string_values.iter().map(|s| s.as_str()).collect();
+            let enum_name = curr.enum_name.as_deref().unwrap_or(name).to_string();
 
-            // Added values
-            for v in curr_set.difference(&prev_set) {
-                let enum_name = curr.enum_name.as_deref().unwrap_or(name).to_string();
-                enum_value_adds.push((name.to_string(), enum_name, v.to_string()));
-            }
-            // Dropped values
-            for v in prev_set.difference(&curr_set) {
-                let enum_name = prev.enum_name.as_deref().unwrap_or(name).to_string();
-                enum_value_drops.push((name.to_string(), enum_name, v.to_string()));
-            }
-            // Renames by position (among values present in both)
+            // Renames by position: same index, value changed, old value gone, new value fresh.
+            let mut renamed_old: HashSet<&str> = HashSet::new();
+            let mut renamed_new: HashSet<&str> = HashSet::new();
             for (i, new_val) in curr.enum_string_values.iter().enumerate() {
                 if let Some(old_val) = prev.enum_string_values.get(i)
                     && old_val != new_val
                     && prev_set.contains(old_val.as_str())
                     && !curr_set.contains(old_val.as_str())
+                    && !prev_set.contains(new_val.as_str())
                 {
-                    enum_renames.push((name.to_string(), old_val.clone(), new_val.clone()));
+                    enum_renames.push((
+                        name.to_string(),
+                        enum_name.clone(),
+                        old_val.clone(),
+                        new_val.clone(),
+                    ));
+                    renamed_old.insert(old_val.as_str());
+                    renamed_new.insert(new_val.as_str());
                 }
+            }
+            // Added values (excluding the fresh side of a rename)
+            for v in curr_set.difference(&prev_set) {
+                if renamed_new.contains(v) {
+                    continue;
+                }
+                enum_value_adds.push((name.to_string(), enum_name.clone(), v.to_string()));
+            }
+            // Dropped values (excluding the old side of a rename)
+            for v in prev_set.difference(&curr_set) {
+                if renamed_old.contains(v) {
+                    continue;
+                }
+                let drop_enum_name = prev.enum_name.as_deref().unwrap_or(name).to_string();
+                enum_value_drops.push((name.to_string(), drop_enum_name, v.to_string()));
             }
         }
     }
@@ -170,6 +209,7 @@ pub fn diff_schemas(previous: &ParsedSchema, current: &ParsedSchema) -> Changes 
         added_columns,
         dropped_columns,
         modified_columns,
+        renamed_columns,
         added_fks,
         dropped_fks,
         added_indexes,

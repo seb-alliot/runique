@@ -79,6 +79,7 @@ fn simple_changes(table: &str) -> Changes {
         added_indexes: vec![],
         dropped_indexes: vec![],
         is_new_table: false,
+        renamed_columns: vec![],
         enum_renames: vec![],
         enum_value_adds: vec![],
         enum_value_drops: vec![],
@@ -203,6 +204,7 @@ fn test_alter_file_sans_changements() {
         added_indexes: vec![],
         dropped_indexes: vec![],
         is_new_table: false,
+        renamed_columns: vec![],
         enum_renames: vec![],
         enum_value_adds: vec![],
         enum_value_drops: vec![],
@@ -229,6 +231,7 @@ fn test_alter_file_avec_ajout_fk() {
         added_indexes: vec![],
         dropped_indexes: vec![],
         is_new_table: false,
+        renamed_columns: vec![],
         enum_renames: vec![],
         enum_value_adds: vec![],
         enum_value_drops: vec![],
@@ -253,8 +256,10 @@ fn test_alter_file_enum_rename_genere_update_up() {
         added_indexes: vec![],
         dropped_indexes: vec![],
         is_new_table: false,
+        renamed_columns: vec![],
         enum_renames: vec![(
             "status".to_string(),
+            "Status".to_string(),
             "Ajoute".to_string(),
             "Ajouté".to_string(),
         )],
@@ -281,8 +286,10 @@ fn test_alter_file_enum_rename_genere_update_down() {
         added_indexes: vec![],
         dropped_indexes: vec![],
         is_new_table: false,
+        renamed_columns: vec![],
         enum_renames: vec![(
             "status".to_string(),
+            "Status".to_string(),
             "Ajoute".to_string(),
             "Ajouté".to_string(),
         )],
@@ -310,7 +317,13 @@ fn test_alter_file_enum_rename_contient_nom_table() {
         added_indexes: vec![],
         dropped_indexes: vec![],
         is_new_table: false,
-        enum_renames: vec![("status".to_string(), "old".to_string(), "new".to_string())],
+        renamed_columns: vec![],
+        enum_renames: vec![(
+            "status".to_string(),
+            "Status".to_string(),
+            "old".to_string(),
+            "new".to_string(),
+        )],
         enum_value_adds: vec![],
         enum_value_drops: vec![],
     };
@@ -587,6 +600,7 @@ fn test_alter_file_type_change_generates_warning() {
         added_indexes: vec![],
         dropped_indexes: vec![],
         is_new_table: false,
+        renamed_columns: vec![],
         enum_renames: vec![],
         enum_value_adds: vec![],
         enum_value_drops: vec![],
@@ -623,6 +637,7 @@ fn test_alter_file_nullable_to_not_null_modify_column() {
         added_indexes: vec![],
         dropped_indexes: vec![],
         is_new_table: false,
+        renamed_columns: vec![],
         enum_renames: vec![],
         enum_value_adds: vec![],
         enum_value_drops: vec![],
@@ -646,6 +661,7 @@ fn test_alter_file_enum_value_adds() {
         added_indexes: vec![],
         dropped_indexes: vec![],
         is_new_table: false,
+        renamed_columns: vec![],
         enum_renames: vec![],
         enum_value_adds: vec![(
             "status".to_string(),
@@ -654,7 +670,7 @@ fn test_alter_file_enum_value_adds() {
         )],
         enum_value_drops: vec![],
     };
-    let content = generate_alter_file(&changes, &DbKind::Other);
+    let content = generate_alter_file(&changes, &DbKind::Postgres);
     assert!(
         content.contains("ADD VALUE IF NOT EXISTS"),
         "enum_value_adds doit générer ALTER TYPE ADD VALUE"
@@ -674,6 +690,7 @@ fn test_alter_file_enum_value_drops_warning() {
         added_indexes: vec![],
         dropped_indexes: vec![],
         is_new_table: false,
+        renamed_columns: vec![],
         enum_renames: vec![],
         enum_value_adds: vec![],
         enum_value_drops: vec![(
@@ -682,7 +699,7 @@ fn test_alter_file_enum_value_drops_warning() {
             "OldVal".to_string(),
         )],
     };
-    let content = generate_alter_file(&changes, &DbKind::Other);
+    let content = generate_alter_file(&changes, &DbKind::Postgres);
     assert!(
         content.contains("WARNING"),
         "enum_value_drops doit générer un WARNING dans up"
@@ -706,6 +723,7 @@ fn test_alter_file_drop_index_in_up() {
             unique: false,
         }],
         is_new_table: false,
+        renamed_columns: vec![],
         enum_renames: vec![],
         enum_value_adds: vec![],
         enum_value_drops: vec![],
@@ -734,6 +752,7 @@ fn test_alter_file_add_index_in_up() {
         }],
         dropped_indexes: vec![],
         is_new_table: false,
+        renamed_columns: vec![],
         enum_renames: vec![],
         enum_value_adds: vec![],
         enum_value_drops: vec![],
@@ -768,6 +787,7 @@ fn test_alter_file_drop_fk_in_up() {
         added_indexes: vec![],
         dropped_indexes: vec![],
         is_new_table: false,
+        renamed_columns: vec![],
         enum_renames: vec![],
         enum_value_adds: vec![],
         enum_value_drops: vec![],
@@ -803,6 +823,7 @@ fn test_alter_file_postgres_enum_add_column_generates_create_type() {
         added_indexes: vec![],
         dropped_indexes: vec![],
         is_new_table: false,
+        renamed_columns: vec![],
         enum_renames: vec![],
         enum_value_adds: vec![],
         enum_value_drops: vec![],
@@ -844,6 +865,7 @@ fn test_alter_file_other_db_enum_add_column_no_create_type() {
         added_indexes: vec![],
         dropped_indexes: vec![],
         is_new_table: false,
+        renamed_columns: vec![],
         enum_renames: vec![],
         enum_value_adds: vec![],
         enum_value_drops: vec![],

@@ -186,6 +186,8 @@ where
             crate::utils::resolve_og_image(&engine.security_hosts, engine.config.debug, &og_image);
         context.insert("og_image", &og_image);
 
+        context.insert("current_path", parts.uri.path());
+
         let raw_query = parts.uri.query().unwrap_or_default().to_string();
         let query_params =
             serde_urlencoded::from_str::<HashMap<String, String>>(&raw_query).unwrap_or_default();

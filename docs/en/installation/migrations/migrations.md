@@ -50,6 +50,17 @@ Generation is **all-or-nothing**. Model and `extend!{}` changes are first planne
 
 ---
 
+## Foreign keys and target engine
+
+`makemigrations` detects the engine (via `DB_URL`/`DATABASE_URL`/`DB_ENGINE`) and adapts FK generation:
+
+- **PostgreSQL / MySQL / MariaDB**: all FK constraints are grouped into a `…_create_relations` migration applied **after** the tables are created (`ALTER TABLE … ADD CONSTRAINT`).
+- **SQLite**: does not support adding FKs to an existing table. FKs are therefore declared **inline in the `CREATE TABLE`**, and no `create_relations` migration is generated.
+
+As a result, migration files are **specific to the engine** they were generated for. To switch engines, regenerate the migrations (from scratch) with the target `DB_ENGINE`.
+
+---
+
 ## Framework Tables — Provided Automatically
 
 Runique automatically injects two migrations into your `lib.rs` without you having to define them:

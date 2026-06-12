@@ -9,6 +9,9 @@ pub mod parser_seaorm;
 pub mod paths;
 pub mod types;
 
+#[cfg(test)]
+mod tests_pipeline;
+
 pub use convertisseur::*;
 pub use diff::*;
 pub use generators::*;

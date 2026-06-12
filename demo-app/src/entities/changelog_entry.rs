@@ -5,7 +5,7 @@ model! {
     table: "changelog_entry",
     pk: id => Pk,
     enums: {
-        ChangelogCategory: [Fix="Fix", Feature="Feature", Ajoute="Ajouté"],
+        ChangelogCategory: [Fix="Fix", Feature="Feature", Ajoute="Ajouté", Securite="Sécurité"],
     },
     {
         version:      text [required],

@@ -25,15 +25,27 @@ Runique maintains a hidden state in `migration/src/snapshots/`.
 - **Diffing Engine**: It compares the two states to find:
     - New tables / Deleted tables.
     - Added columns / Removed columns.
+    - **Column rename**: via the explicit `[renamed_from: "old"]` hint, the diff emits a `RENAME COLUMN` instead of a `DROP` + `ADD` (no data loss). Without the hint, the non-interactive tool cannot guess intent.
     - Modified constraints (e.g., changing `nullable` to `required`).
+    - **Enum values**: additions, removals and renames (by position). A rename is treated as **one** operation, excluded from the add/remove lists.
 
 ### Pass 3: SeaQuery Generation
 
 The diff is converted into a sequence of `SeaQuery` statements (`TableCreate`, `TableAlter`).
 
-1. **Ordering**: It ensures that dependencies (Foreign Keys) are handled in the correct order.
+1. **Ordering**: It ensures that dependencies (Foreign Keys) are handled in the correct order (topological sort of new tables).
 2. **Framework Tables**: It automatically injects the `eihwaz_users` and `eihwaz_groupes` migrations if they are missing or need extension via `extend!{}`.
 3. **Rust Code Output**: It writes a new `.rs` file in `migration/src/` and updates the `Migrator` trait.
+
+### Engine-specific generation
+
+The target engine is detected (`DB_URL`/`DATABASE_URL`/`DB_ENGINE`) and the output is adapted:
+
+- **Foreign keys**: grouped into a `create_relations` migration (`ALTER … ADD CONSTRAINT`) on PostgreSQL/MySQL/MariaDB; declared **inline in the `CREATE TABLE`** on SQLite (which cannot add FKs to an existing table).
+- **Enums**: `CREATE TYPE … AS ENUM` on PostgreSQL; native `VARCHAR`/`ENUM` elsewhere. An enum value rename becomes `ALTER TYPE … RENAME VALUE` on PostgreSQL (atomic) and a plain data `UPDATE` on other engines.
+- **`updated_at`**: PostgreSQL trigger; `ON UPDATE CURRENT_TIMESTAMP` on MySQL/MariaDB.
+
+Generated files are therefore **engine-specific**: to switch engines, regenerate from scratch with the right `DB_ENGINE`.
 
 ---
 
