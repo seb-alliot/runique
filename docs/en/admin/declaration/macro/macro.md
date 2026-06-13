@@ -349,7 +349,7 @@ admin! {
 
 Keys are accessible via `{{ resource.extra_context.icon }}`.
 
-> The default admin templates do not use `icon` or `color`. These keys only have an effect in a **custom template** that reads them explicitly. See [Template overrides](/docs/en/admin/template/surcharge).
+> The default admin templates do not use `icon` or `color`. These keys only have an effect in a **custom template** that reads them explicitly. See [Template overrides](/docs/en/admin/template-surcharge).
 >
 > Framework reserved keys (`entries`, `form_fields`, `object_id`, `csrf_token`, etc.) take priority over `extra` keys.
 

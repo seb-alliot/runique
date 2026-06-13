@@ -1,6 +1,6 @@
 # Password Reset
 
-[← Authentication](/docs/en/auth/13-authentification)
+[← Authentication](/docs/en/auth)
 
 ---
 
@@ -210,4 +210,4 @@ The mailer is optional. If absent:
 
 ---
 
-← [**Authentication**](/docs/en/auth/13-authentification) | [**Mailer**](/docs/en/mailer) →
+← [**Authentication**](/docs/en/auth) | [**Mailer**](/docs/en/mailer) →

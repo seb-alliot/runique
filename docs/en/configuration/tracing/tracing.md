@@ -109,5 +109,5 @@ Regardless of tracing config, some errors are always logged via `tracing::error!
 
 ## See also
 
-- [Environment variables](../variables/variables.md) — `RUST_LOG`, `DEBUG`
-- [Programmatic configuration](../builder/builder.md) — `.with_log()`
+- [Environment variables](/docs/en/configuration/variables) — `RUST_LOG`, `DEBUG`
+- [Programmatic configuration](/docs/en/configuration/builder) — `.with_log()`

@@ -3,7 +3,7 @@
 Référence des classes CSS utilisées dans chaque block Tera.  
 Utile pour cibler des éléments précis via sélecteurs CSS sans réécrire le block entier.
 
-> Pour modifier les couleurs et espacements globaux, préférer les [custom properties CSS](/docs/fr/admin/template/surcharge/blocks#thème-css--custom-properties).
+> Pour modifier les couleurs et espacements globaux, préférer les [custom properties CSS](/docs/fr/admin/template-surcharge-blocks#thème-css--custom-properties).
 
 ---
 
@@ -268,6 +268,6 @@ Utile pour cibler des éléments précis via sélecteurs CSS sans réécrire le 
 
 | Section | Description |
 | --- | --- |
-| [Référence des blocks](/docs/fr/admin/template/surcharge/blocks) | Liste des blocks + custom properties CSS |
-| [Surcharge templates](/docs/fr/admin/template/surcharge/surcharge) | Principe et exemples |
+| [Référence des blocks](/docs/fr/admin/template-surcharge-blocks) | Liste des blocks + custom properties CSS |
+| [Surcharge templates](/docs/fr/admin/template-surcharge) | Principe et exemples |
 | [Sommaire template](/docs/fr/admin/template) | Sommaire templates |
