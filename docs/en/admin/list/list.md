@@ -4,9 +4,9 @@ The admin list view handles all its operations **at the SQL level**: pagination,
 
 ## Table of Contents
 
-- [Displayed columns — list_display](#displayed-columns--list_display)
+- [Displayed columns — list_display](#displayed-columns-list-display)
 - [Foreign key resolution](#foreign-key-resolution)
-- [Sidebar filters — list_filter](#sidebar-filters--list_filter)
+- [Sidebar filters — list_filter](#sidebar-filters-list-filter)
 - [Column sorting](#column-sorting)
 - [Search](#search)
 - [Pagination](#pagination)

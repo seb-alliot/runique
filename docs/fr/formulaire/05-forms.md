@@ -2,7 +2,7 @@
 
 ## Sommaire
 
-- [Vue d'ensemble](#vue-densemble)
+- [Vue d'ensemble](#vue-d-ensemble)
 - [Extraction de formulaire — `request.form()`](/docs/fr/formulaire/prisme)
 - [Trait RuniqueForm](/docs/fr/formulaire/trait)
   - Structure de base

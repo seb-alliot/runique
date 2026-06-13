@@ -93,7 +93,7 @@ if let Some(mem) = engine
 }
 ```
 
-To revoke only the **other** devices while keeping the current session, use `invalidate_other_sessions(user_id, &cookie_id)` on the DB store — this is exactly what [exclusive login](#exclusive-login) does.
+To revoke only the **other** devices while keeping the current session, use `invalidate_other_sessions(user_id, &cookie_id)` on the DB store — this is exactly what [exclusive login](#login) does.
 
 ---
 

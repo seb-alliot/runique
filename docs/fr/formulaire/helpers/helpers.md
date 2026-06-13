@@ -108,7 +108,7 @@ let choices: Vec<(String, String)> = themes::Entity::find()
 form.get_form_mut().field_choices("theme_id", "Thème", choices);
 ```
 
-> Dans les ressources admin générées par `admin!{}`, cette injection est automatique lorsqu'une colonne FK est déclarée avec un 3ème élément dans `list_display`. Voir [Vue liste — Résolution des clés étrangères](/docs/fr/admin/liste#résolution-des-clés-étrangères-fk).
+> Dans les ressources admin générées par `admin!{}`, cette injection est automatique lorsqu'une colonne FK est déclarée avec un 3ème élément dans `list_display`. Voir [Vue liste — Résolution des clés étrangères](/docs/fr/admin/liste#resolution-des-cles-etrangeres-fk).
 
 ---
 
