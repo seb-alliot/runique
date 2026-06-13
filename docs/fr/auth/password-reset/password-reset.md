@@ -1,6 +1,6 @@
 # Réinitialisation de mot de passe
 
-[← Authentification](/docs/fr/auth/13-authentification)
+[← Authentification](/docs/fr/auth)
 
 ---
 
@@ -210,4 +210,4 @@ Le mailer est optionnel. Si absent :
 
 ---
 
-← [**Authentification**](/docs/fr/auth/13-authentification) | [**Mailer**](/docs/fr/mailer) →
+← [**Authentification**](/docs/fr/auth) | [**Mailer**](/docs/fr/mailer) →

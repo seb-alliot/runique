@@ -154,7 +154,7 @@ Pour modifier les couleurs et espacements sans réécrire de HTML, surcharger le
 | `--shadow` | Ombre des cards |
 | `--transition` | Durée/easing des transitions |
 
-> Les classes CSS par block sont documentées dans la [référence des classes CSS](/docs/fr/admin/template/surcharge/classes). Le renommage BEM est prévu en v2.2.
+> Les classes CSS par block sont documentées dans la [référence des classes CSS](/docs/fr/admin/template-surcharge-classes). Le renommage BEM est prévu en v2.2.
 
 ---
 
@@ -162,6 +162,6 @@ Pour modifier les couleurs et espacements sans réécrire de HTML, surcharger le
 
 | Section | Description |
 | --- | --- |
-| [Surcharge templates](/docs/fr/admin/template/surcharge/surcharge) | Principe, niveaux d'héritage, exemples |
-| [Clés de contexte](/docs/fr/admin/template/clef/context) | Variables injectées par le backend |
+| [Surcharge templates](/docs/fr/admin/template-surcharge) | Principe, niveaux d'héritage, exemples |
+| [Clés de contexte](/docs/fr/admin/template-clef) | Variables injectées par le backend |
 | [Sommaire template](/docs/fr/admin/template) | Sommaire templates |

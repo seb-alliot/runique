@@ -109,5 +109,5 @@ Indépendamment de la config tracing, certaines erreurs sont toujours loggées v
 
 ## Voir aussi
 
-- [Variables d'environnement](../variables/variables.md) — `RUST_LOG`, `DEBUG`
-- [Configuration programmatique](../builder/builder.md) — `.with_log()`
+- [Variables d'environnement](/docs/fr/configuration/variables) — `RUST_LOG`, `DEBUG`
+- [Configuration programmatique](/docs/fr/configuration/builder) — `.with_log()`

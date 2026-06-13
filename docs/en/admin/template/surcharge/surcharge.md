@@ -114,7 +114,7 @@ To replace only the users list page:
 
 ## Available blocks for override
 
-See the [complete block reference](/docs/en/admin/template/surcharge/blocks) — exhaustive list per template with overridable CSS variables.
+See the [complete block reference](/docs/en/admin/template-surcharge-blocks) — exhaustive list per template with overridable CSS variables.
 
 ---
 
@@ -130,9 +130,9 @@ See the [complete block reference](/docs/en/admin/template/surcharge/blocks) —
 
 | Section | Description |
 | --- | --- |
-| [Block reference](/docs/en/admin/template/surcharge/blocks) | Complete block list per template + CSS variables |
+| [Block reference](/docs/en/admin/template-surcharge-blocks) | Complete block list per template + CSS variables |
 | [Examples](/docs/en/admin/template) | 3 approaches: Runique inheritance, custom layout, standalone HTML |
-| [Context keys](/docs/en/admin/template/clef/context) | Variables injected by the backend into each template |
+| [Context keys](/docs/en/admin/template-clef) | Variables injected by the backend into each template |
 | [CSRF](/docs/en/admin/template) | CSRF token, `csrf.js`, custom login checklist |
 
 ## Back to summary

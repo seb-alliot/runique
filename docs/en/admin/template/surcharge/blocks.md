@@ -154,7 +154,7 @@ To change colors and spacing without rewriting HTML, override variables inside `
 | `--shadow` | Card shadow |
 | `--transition` | Duration/easing of transitions |
 
-> CSS classes per block are documented in the [CSS class reference](/docs/en/admin/template/surcharge/classes). BEM renaming is planned for v2.2.
+> CSS classes per block are documented in the [CSS class reference](/docs/en/admin/template-surcharge-classes). BEM renaming is planned for v2.2.
 
 ---
 
@@ -162,6 +162,6 @@ To change colors and spacing without rewriting HTML, override variables inside `
 
 | Section | Description |
 | --- | --- |
-| [Template override](/docs/en/admin/template/surcharge/surcharge) | Principle, inheritance levels, examples |
-| [Context keys](/docs/en/admin/template/clef/context) | Variables injected by the backend |
+| [Template override](/docs/en/admin/template-surcharge) | Principle, inheritance levels, examples |
+| [Context keys](/docs/en/admin/template-clef) | Variables injected by the backend |
 | [Template summary](/docs/en/admin/template) | Admin templates |

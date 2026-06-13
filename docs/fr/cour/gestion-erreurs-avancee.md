@@ -1,5 +1,5 @@
 # Gestion d'erreurs avancée — thiserror et anyhow
-> Indispensables · Niveau intermédiaire · Prérequis : [gestion-des-erreurs.md](gestion-des-erreurs.md)
+> Indispensables · Niveau intermédiaire · Prérequis : [Gestion des erreurs](/cours/gestion-des-erreurs)
 
 Concevoir des types d'erreurs expressifs avec `thiserror`, gérer les erreurs contextuelles dans les applications avec `anyhow`, et propager correctement les erreurs entre couches.
 

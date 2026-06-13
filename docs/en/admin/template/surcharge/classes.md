@@ -3,7 +3,7 @@
 Reference of CSS classes used in each Tera block.  
 Useful for targeting specific elements via CSS selectors without rewriting the whole block.
 
-> To modify global colors and spacing, prefer [CSS custom properties](/docs/en/admin/template/surcharge/blocks#css-theme--custom-properties).
+> To modify global colors and spacing, prefer [CSS custom properties](/docs/en/admin/template-surcharge-blocks#css-theme--custom-properties).
 
 ---
 
@@ -268,6 +268,6 @@ Useful for targeting specific elements via CSS selectors without rewriting the w
 
 | Section | Description |
 | --- | --- |
-| [Block reference](/docs/en/admin/template/surcharge/blocks) | Block list + CSS custom properties |
-| [Template override](/docs/en/admin/template/surcharge/surcharge) | Principle and examples |
+| [Block reference](/docs/en/admin/template-surcharge-blocks) | Block list + CSS custom properties |
+| [Template override](/docs/en/admin/template-surcharge) | Principle and examples |
 | [Template summary](/docs/en/admin/template) | Admin templates |

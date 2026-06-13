@@ -413,22 +413,32 @@ async fn seed_section_pages(
                     if leaf_slug.is_empty() {
                         continue;
                     }
-                    let md_file = fs::read_dir(&sub_path)
-                        .ok()
-                        .and_then(|mut d| {
-                            d.find(|e| {
-                                e.as_ref()
-                                    .map(|e| e.path().extension().is_some_and(|x| x == "md"))
-                                    .unwrap_or(false)
-                            })
+                    let mut md_files: Vec<PathBuf> = fs::read_dir(&sub_path)
+                        .map(|d| {
+                            d.filter_map(|e| e.ok())
+                                .map(|e| e.path())
+                                .filter(|p| p.extension().is_some_and(|x| x == "md"))
+                                .collect()
                         })
-                        .and_then(|e| e.ok());
-                    if let Some(md) = md_file {
-                        let content = match fs::read_to_string(md.path()) {
+                        .unwrap_or_default();
+                    md_files.sort();
+
+                    // Un seul .md (ou .md homonyme du dossier) → la page porte le nom
+                    // du dossier feuille. Sinon chaque .md devient une page distincte
+                    // suffixée par son nom, sans quoi le routage 2 segments
+                    // (/docs/{lang}/{section}/{page}) les rendrait inaccessibles.
+                    let single = md_files.len() == 1;
+                    for md in md_files {
+                        let content = match fs::read_to_string(&md) {
                             Ok(c) => strip_github_anchors(&c),
                             Err(_) => continue,
                         };
-                        let page_slug = format!("{section_slug}-{sub_slug}-{leaf_slug}");
+                        let stem = md.file_stem().and_then(|n| n.to_str()).unwrap_or("");
+                        let page_slug = if single || stem == leaf_slug {
+                            format!("{section_slug}-{sub_slug}-{leaf_slug}")
+                        } else {
+                            format!("{section_slug}-{sub_slug}-{leaf_slug}-{stem}")
+                        };
                         insert_page_with_blocks(section_id, &page_slug, lang, &content, order, db)
                             .await;
                         order += 1;

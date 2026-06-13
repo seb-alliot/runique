@@ -230,7 +230,7 @@ La barre latérale s'affiche uniquement si au moins un filtre est déclaré. Si 
 
 > Ne pas utiliser `list_filter` sur des clés étrangères (FK) ou des colonnes `id` — la valeur brute (`35`, `128`…) n'est pas lisible. Bons candidats : booléens, énumérations, codes courts (`lang`, `status`, `block_type`).
 
-Les filtres actifs sont transmis à la requête SQL et injectés dans le contexte Tera sous les clés `filter_values`, `active_filters` et `filter_meta`. Voir [contexte de la vue liste](/docs/fr/admin/template/clef/context) pour le détail.
+Les filtres actifs sont transmis à la requête SQL et injectés dans le contexte Tera sous les clés `filter_values`, `active_filters` et `filter_meta`. Voir [contexte de la vue liste](/docs/fr/admin/template-clef) pour le détail.
 
 #### `group_action`
 
@@ -381,7 +381,7 @@ admin! {
 
 Seules les opérations déclarées sont surchargées — les autres utilisent le template admin par défaut. Le chemin est relatif au dossier `templates/` du projet.
 
-Voir [Surcharge des templates](/docs/fr/admin/template/surcharge) pour la liste complète des blocks disponibles.
+Voir [Surcharge des templates](/docs/fr/admin/template-surcharge) pour la liste complète des blocks disponibles.
 
 ---
 
@@ -403,7 +403,7 @@ admin! {
 
 Les clés sont accessibles via `{{ resource.extra_context.icon }}`.
 
-> Les templates admin par défaut n'utilisent pas `icon` ni `color`. Ces clés n'ont d'effet que dans un **template personnalisé** qui les lit explicitement. Voir [Surcharge des templates](/docs/fr/admin/template/surcharge).
+> Les templates admin par défaut n'utilisent pas `icon` ni `color`. Ces clés n'ont d'effet que dans un **template personnalisé** qui les lit explicitement. Voir [Surcharge des templates](/docs/fr/admin/template-surcharge).
 >
 > Les clés réservées du framework (`entries`, `form_fields`, `object_id`, `csrf_token`, etc.) ont la priorité sur les clés `extra`.
 
