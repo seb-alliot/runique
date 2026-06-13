@@ -175,7 +175,7 @@ Variables disponibles :
    - Redirige vers success_redirect (défaut : /)
 ```
 
-> **Sessions actives après reset :** la mise à jour du mot de passe **n'invalide pas** les sessions déjà ouvertes. Si vous voulez forcer la déconnexion partout au changement de mot de passe, appelez `invalidate_all(user_id)` dans votre propre route de reset — voir [Révocation des sessions](/docs/fr/auth/session#révocation-des-sessions).
+> **Sessions actives après reset :** la mise à jour du mot de passe **n'invalide pas** les sessions déjà ouvertes. Si vous voulez forcer la déconnexion partout au changement de mot de passe, appelez `invalidate_all(user_id)` dans votre propre route de reset — voir [Révocation des sessions](/docs/fr/auth/session#revocation-des-sessions).
 
 ---
 

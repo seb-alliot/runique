@@ -136,7 +136,7 @@ let results = search!(users::Entity =>
 .await?;
 ```
 
-Voir [Requêtes CRUD — Macro search!](/docs/fr/orm/requetes#macro-search--dsl-de-filtrage) pour la référence complète.
+Voir [Requêtes CRUD — Macro search!](/docs/fr/orm/requetes#macro-search-dsl-de-filtrage) pour la référence complète.
 
 ---
 

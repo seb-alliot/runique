@@ -135,7 +135,7 @@ let results = search!(users::Entity =>
 .await?;
 ```
 
-See [CRUD Queries — search! macro](/docs/en/orm/queries#search-macro--filter-dsl) for the full reference.
+See [CRUD Queries — search! macro](/docs/en/orm/queries#search-macro-filter-dsl) for the full reference.
 
 ---
 

@@ -4,13 +4,13 @@ La vue liste admin gère toutes ses opérations **au niveau SQL** : pagination, 
 
 ## Sommaire
 
-- [Colonnes affichées — list_display](#colonnes-affichées--list_display)
-- [Résolution des clés étrangères (FK)](#résolution-des-clés-étrangères-fk)
-- [Filtres latéraux — list_filter](#filtres-latéraux--list_filter)
+- [Colonnes affichées — list_display](#colonnes-affichees-list-display)
+- [Résolution des clés étrangères (FK)](#resolution-des-cles-etrangeres-fk)
+- [Filtres latéraux — list_filter](#filtres-lateraux-list-filter)
 - [Tri par colonne](#tri-par-colonne)
 - [Recherche](#recherche)
 - [Pagination](#pagination)
-- [Paramètres d'URL](#paramètres-durl)
+- [Paramètres d'URL](#parametres-d-url)
 
 ## Colonnes affichées — list_display
 
