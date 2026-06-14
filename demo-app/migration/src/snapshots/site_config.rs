@@ -15,6 +15,8 @@ async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
                     .col(ColumnDef::new(Alias::new("key")).string().not_null())
                     .col(ColumnDef::new(Alias::new("value")).string().not_null())
                     .col(ColumnDef::new(Alias::new("description")).string().null())
+                    .col(ColumnDef::new(Alias::new("is_public")).boolean().null().default(true))
+                    .col(ColumnDef::new(Alias::new("sort_order")).integer().null().default(0))
                     .to_owned()
             )
             .await?;

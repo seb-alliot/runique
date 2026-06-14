@@ -713,12 +713,13 @@ fn render_column_def(col: &ParsedColumn, db_kind: &DbKind) -> String {
             .collect();
 
         format!(
-            "ColumnDef::new_with_type(Alias::new(\"{name}\"), ColumnType::Enum {{ name: Alias::new(\"{enum_name}\").into_iden(), variants: vec![{variants}] }}){null}{uniq}",
+            "ColumnDef::new_with_type(Alias::new(\"{name}\"), ColumnType::Enum {{ name: Alias::new(\"{enum_name}\").into_iden(), variants: vec![{variants}] }}){null}{uniq}{default}",
             name = col.name,
             enum_name = name,
             variants = variants.join(", "),
             null = null,
             uniq = uniq,
+            default = default,
         )
     } else {
         let ty = col_type_to_method(&col.col_type);

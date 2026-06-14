@@ -13,7 +13,7 @@ model! {
         website: url,
         summary: textarea [rows: 3, required],
         content: richtext [rows: 15, required],
-        status:     choice [enum(BlogStatus), required],
+        status:     choice [enum(BlogStatus), default: "Draft", required],
         view_count: int [default: 0],
     }
 }
