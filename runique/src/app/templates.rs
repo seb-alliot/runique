@@ -134,6 +134,15 @@ impl TemplateLoader {
             })
             .to_string();
 
+        // Sanitize processing ({{ var | sanitize }} → {{ var | sanitize | safe }})
+        // The filter re-runs ammonia on the value, so `| safe` only ever emits
+        // already-cleaned HTML — output-side sanitization, not trust on storage.
+        content = SANITIZE_REGEX
+            .replace_all(&content, |caps: &Captures| {
+                format!("{{{{ {} | sanitize | safe }}}}", &caps[1])
+            })
+            .to_string();
+
         // Admin form HTML ({{ form_fields.html }} → {{ form_fields.html | safe }})
         // form_fields.html is always Runique-generated HTML, never raw user input.
         content = ADMIN_FORM_HTML_REGEX

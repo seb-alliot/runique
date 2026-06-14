@@ -55,6 +55,24 @@ fn markdown_filter(value: &Value, _: &JsonMap) -> TResult {
     Ok(Value::String(output))
 }
 
+// Re-sanitizes stored rich HTML at render time. The preprocessor forces `| safe`
+// on every `| sanitize`, so the output is emitted unescaped — but it is ammonia's
+// own (XSS-free by construction) output, re-cleaned here regardless of how the
+// value reached storage.
+fn sanitize_filter(value: &Value, _: &JsonMap) -> TResult {
+    let raw = value.as_str().unwrap_or("");
+    Ok(Value::String(crate::utils::sanitizer::sanitize_rich(raw)))
+}
+
+// Plain-text projection of a (possibly rich) value: strips every tag and decodes
+// entities, so a stored `&gt;` becomes a real `>` that Tera then escapes once.
+// No `| safe` is forced — the output is plain text and must stay auto-escaped.
+// Used for list-cell previews where rendered block HTML would break the row.
+fn plaintext_filter(value: &Value, _: &JsonMap) -> TResult {
+    let raw = value.as_str().unwrap_or("");
+    Ok(Value::String(crate::utils::sanitizer::sanitize_strict(raw)))
+}
+
 // Internal generic function to avoid repetition
 fn register_filter(base_url: String, version: String) -> impl Fn(&Value, &JsonMap) -> TResult {
     move |value: &Value, _: &JsonMap| {
@@ -101,6 +119,8 @@ pub fn register_asset_filters(
     tera.register_filter("form", form_filter);
     tera.register_filter("csrf_field", csrf_filter);
     tera.register_filter("markdown", markdown_filter);
+    tera.register_filter("sanitize", sanitize_filter);
+    tera.register_filter("plaintext", plaintext_filter);
     tera.register_filter("format_date", format_date_filter);
     tera.register_function("csrf_token", CsrfTokenFunction);
     tera.register_function("link", LinkFunction { url_registry });

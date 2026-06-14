@@ -108,7 +108,7 @@
                 {% elif value == false %}
                   <span class="admin-badge admin-badge--neutral">{% if admin_list_bool_false %}{{ admin_list_bool_false }}{% endif %}</span>
                 {% elif value %}
-                  {{ value }}
+                  {% if rich_fields and key in rich_fields %}{{ value | sanitize }}{% else %}{{ value }}{% endif %}
                 {% else %}
                   <span class="admin-text--muted">—</span>
                 {% endif %}
