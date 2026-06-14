@@ -21,6 +21,21 @@
 
 ---
 
+## Filtres sanitize & plaintext
+
+| Filtre      | Description                                                | Exemple                            |
+|-------------|-----------------------------------------------------------|------------------------------------|
+| `sanitize`  | Re-sanitise du HTML rich stocké et le rend en HTML        | `{{ entry.description \| sanitize }}` |
+| `plaintext` | Strip de tous les tags + décodage des entités → texte brut | `{{ entry.description \| plaintext }}` |
+
+> `sanitize` relance **ammonia au moment du rendu** ; le préprocesseur injecte `\| safe` automatiquement (comme `markdown`), donc le HTML émis est toujours fraîchement nettoyé — la sanitisation se fait à la **sortie**, sans jamais faire confiance à ce qui est stocké. À utiliser pour afficher un champ rich-text en HTML rendu.
+>
+> `plaintext` projette une valeur en texte brut via le sanitizer strict (tags retirés, entités décodées). Il reste **auto-échappé** (pas de `\| safe`), donc un `&gt;` stocké s'affiche `>`. À utiliser pour les aperçus — ex. cellules de liste — où du HTML bloc rendu casserait la mise en page.
+>
+> Les vues admin detail/list les emploient automatiquement pour les colonnes classées comme contenu rich ; tu les appelles rarement à la main.
+
+---
+
 ## Filtre de formulaire
 
 | Filtre | Description | Exemple |

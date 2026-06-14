@@ -14,6 +14,14 @@ All notable changes to this project will be documented in this file.
 
 * **3 pipeline tests added** (`tests_pipeline.rs`, now 14): the enum default reaches the parsed `ParsedColumn`, is emitted in CREATE across all three engines, and is emitted on the `extend!{}` ADD COLUMN path across all three engines (with `CREATE TYPE` still Postgres-only).
 
+### Fix — `runique` (admin display of rich-text fields + two template filters)
+
+* **Rich-text field values were double-escaped in the admin detail/list views:** a `richtext` field is sanitized at write time by ammonia, which normalizes a stray `>` in text to the entity `&gt;` (valid HTML). The admin detail and list templates rendered the stored value through `{{ value }}` (auto-escaped), so the already-encoded `&gt;` was escaped again to `&amp;gt;` and shown literally as `&gt;` on screen. Fixed without weakening security, via **output-side** sanitization: the admin now knows which columns are rich (`RICH_CONTENT_FIELDS`, the same classification used on write, injected as `rich_fields`), and renders them through new filters instead of trusting storage.
+
+* **New `| sanitize` filter (rich HTML, output-sanitized):** re-runs `sanitize_rich` (ammonia) on the value **at render time**, and the template preprocessor forces `| safe` on every `| sanitize` (mirroring `| markdown`). The `| safe` therefore only ever emits ammonia's own XSS-free output, re-cleaned regardless of how the value reached the database — sanitize-on-output, not trust-on-input. Used by the admin detail view to render rich fields as real HTML.
+
+* **New `| plaintext` filter (text preview):** projects a value to plain text via `sanitize_strict` — strips every tag and decodes entities, so a stored `&gt;` becomes a real `>` that Tera then escapes once. No `| safe` is forced (the output is plain text and stays auto-escaped). Used by the admin list cells, where rendering block-level rich HTML would break the truncated single-line layout.
+
 ---
 
 ## [2.1.16] - 2026-06-15

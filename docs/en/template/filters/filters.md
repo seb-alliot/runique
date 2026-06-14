@@ -21,6 +21,21 @@
 
 ---
 
+## Sanitize & plaintext filters
+
+| Filter      | Description                                              | Example                            |
+|-------------|---------------------------------------------------------|------------------------------------|
+| `sanitize`  | Re-sanitizes stored rich HTML and renders it as HTML    | `{{ entry.description \| sanitize }}` |
+| `plaintext` | Strips all tags + decodes entities → plain-text preview | `{{ entry.description \| plaintext }}` |
+
+> `sanitize` runs **ammonia at render time**; the preprocessor injects `\| safe` automatically (like `markdown`), so the emitted HTML is always freshly cleaned — sanitization happens on **output**, never trusting what is stored. Use it to display a rich-text field as rendered HTML.
+>
+> `plaintext` projects a value to plain text via the strict sanitizer (tags removed, entities decoded). It stays **auto-escaped** (no `\| safe`), so a stored `&gt;` is shown as `>`. Use it for previews — e.g. list cells — where rendered block HTML would break the layout.
+>
+> The admin detail/list views use these automatically for columns classified as rich content; you rarely call them by hand.
+
+---
+
 ## Form filter
 
 | Filter | Description | Example |
