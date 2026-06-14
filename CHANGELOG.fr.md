@@ -14,6 +14,14 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 * **3 tests pipeline ajoutés** (`tests_pipeline.rs`, désormais 14) : le default enum atteint le `ParsedColumn` parsé, est émis en CREATE sur les trois moteurs, et est émis sur la passe `extend!{}` ADD COLUMN sur les trois moteurs (avec le `CREATE TYPE` toujours Postgres-only).
 
+### Correctif — `runique` (affichage admin des champs rich-text + deux filtres template)
+
+* **Les valeurs de champ rich-text étaient doublement échappées dans les vues admin detail/list :** un champ `richtext` est sanitizé à l'écriture par ammonia, qui normalise un `>` isolé dans le texte vers l'entité `&gt;` (HTML valide). Les templates detail et list rendaient la valeur stockée via `{{ value }}` (auto-échappé), donc le `&gt;` déjà encodé était ré-échappé en `&amp;gt;` et affiché littéralement `&gt;` à l'écran. Corrigé sans affaiblir la sécurité, par sanitization **côté sortie** : l'admin connaît désormais les colonnes rich (`RICH_CONTENT_FIELDS`, la même classification qu'à l'écriture, injectée comme `rich_fields`) et les rend via de nouveaux filtres au lieu de faire confiance au stockage.
+
+* **Nouveau filtre `| sanitize` (HTML rich, sanitizé à la sortie) :** relance `sanitize_rich` (ammonia) sur la valeur **au moment du rendu**, et le préprocesseur de template force `| safe` sur chaque `| sanitize` (comme `| markdown`). Le `| safe` n'émet donc jamais que l'output ammonia sans vecteur XSS, re-nettoyé quel que soit le chemin par lequel la valeur a atteint la base — sanitize-on-output, pas trust-on-input. Utilisé par la vue detail admin pour rendre les champs rich en vrai HTML.
+
+* **Nouveau filtre `| plaintext` (aperçu texte) :** projette une valeur en texte brut via `sanitize_strict` — strip de tous les tags et décodage des entités, donc un `&gt;` stocké redevient un vrai `>` que Tera échappe ensuite une seule fois. Aucun `| safe` forcé (l'output est du texte brut et reste auto-échappé). Utilisé par les cellules de liste admin, où rendre du HTML rich bloc casserait la mise en page tronquée sur une ligne.
+
 ---
 
 ## [2.1.16] - 2026-06-15

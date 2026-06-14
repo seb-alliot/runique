@@ -154,13 +154,10 @@ impl FormField for TextField {
         let cleaned = match self.format {
             SpecialFormat::Password | SpecialFormat::Csrf => value.to_string(),
             SpecialFormat::RichText => crate::utils::sanitizer::sanitize_rich(value),
-            _ => {
-                if value.contains('<') || value.contains('>') {
-                    value.replace(['<', '>', '&'], "").trim().to_string()
-                } else {
-                    crate::utils::sanitizer::sanitize_strict(value)
-                }
-            }
+            // `sanitize_strict` already strips every tag (scripts included) via ammonia
+            // and decodes entities, so legitimate `>`, `&`, `<` survive. The XSS guard
+            // stays the output-side auto-escaping; no lossy input mutation needed.
+            _ => crate::utils::sanitizer::sanitize_strict(value),
         };
         self.base.value = cleaned;
     }

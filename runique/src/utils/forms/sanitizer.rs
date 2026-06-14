@@ -234,6 +234,23 @@ mod tests {
     }
 
     #[test]
+    fn strict_preserves_legitimate_punctuation() {
+        // Non-lossy: a lone `>` or `&` in prose must survive (the `=>` / `R&D` case),
+        // while tags are still stripped. This is what makes input mutation safe to drop.
+        assert_eq!(sanitize_strict("one bug => fix soon"), "one bug => fix soon");
+        assert_eq!(sanitize_strict("R&D budget"), "R&D budget");
+        assert_eq!(sanitize_strict("a => b => c"), "a => b => c");
+    }
+
+    #[test]
+    fn strict_still_removes_script_around_punctuation() {
+        // The reason input stripping was thought necessary — covered by strict alone.
+        let out = sanitize_strict("hi => <script>alert(1)</script> bye");
+        assert!(!out.contains('<'), "script must be gone: {out}");
+        assert!(out.contains("=>"), "legitimate `=>` must survive: {out}");
+    }
+
+    #[test]
     fn strict_handles_unicode_obfuscation() {
         let html = "<scr\u{0000}ipt>alert(1)</script>"; // Null byte injection
         let out = sanitize_strict(html);
