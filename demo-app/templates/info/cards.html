@@ -16,7 +16,7 @@
                     {% endif %}
                     {{ entry.title }}
                 </h3>
-                <p>{{ entry.description }}</p>
+                <p>{{ entry.description | sanitize }}</p>
                 {% if entry.link_url %}
                 <a href="{{ entry.link_url }}" target="_blank" class="btn btn-sm btn-outline-primary">{{ entry.link_label | default(value="View") }}</a>
                 {% endif %}
