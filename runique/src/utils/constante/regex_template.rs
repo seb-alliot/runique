@@ -26,6 +26,12 @@ pub static FORM_FULL_REGEX: LazyLock<Regex> =
 pub static MARKDOWN_REGEX: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\{\{\s*([^|{}\n]+?)\s*\|\s*markdown\s*\}\}").unwrap());
 
+/// Matches `{{ expr | sanitize }}` — re-sanitizes stored rich HTML at render time.
+/// Rewritten to `{{ expr | sanitize | safe }}` so the (ammonia-cleaned) output is
+/// emitted as HTML. Security is applied on output, never trusted from storage.
+pub static SANITIZE_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\{\{\s*([^|{}\n]+?)\s*\|\s*sanitize\s*\}\}").unwrap());
+
 /// Matches `{{ form_fields.html }}` — Runique-generated HTML, never user input.
 /// Rewrites to `{{ form_fields.html | safe }}` during template preprocessing.
 pub static ADMIN_FORM_HTML_REGEX: LazyLock<Regex> =

@@ -299,6 +299,7 @@ pub(super) async fn handle_list(
         list_ctx::FILTER_QS         => filter_qs,
         list_ctx::FILTER_META       => filter_meta,
         list_ctx::RETURN_QS         => return_qs,
+        "rich_fields"               => &*crate::utils::constante::parse::RICH_CONTENT_FIELDS,
     }
 
     let htmx_tpl = state.config.templates.htmx.resolve().to_string();
