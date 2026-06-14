@@ -1454,6 +1454,103 @@ fn enum_value_drop_warns_up_and_readds_down_on_postgres() {
     );
 }
 
+// ── Enum column default: emitted on the Enum coldef, all engines ───────────────
+// Regression: the generator dropped `[default: ...]` on enum columns (the `{default}`
+// fragment was missing from the enum branch of render_column_def). A NOT NULL enum
+// column added to a populated table then failed with "contains null values".
+
+const ENUM_DEFAULT_MODEL: &str = r#"
+use runique::prelude::*;
+model! {
+    Article,
+    table: "article",
+    pk: id => Pk,
+    enums: {
+        Status: [Draft="Draft", Published="Published", Archived="Archived"],
+    },
+    {
+        status: choice [enum(Status), default: "Draft", required],
+    }
+}
+"#;
+
+#[test]
+fn enum_default_reaches_parsed_column() {
+    let schema = parse_model(ENUM_DEFAULT_MODEL);
+    assert_eq!(
+        col(&schema, "status").default_value.as_deref(),
+        Some("\"Draft\""),
+        "model! must capture `default` alongside `enum(...)`"
+    );
+}
+
+#[test]
+fn enum_column_default_is_emitted_in_create_on_all_engines() {
+    let schema = parse_model(ENUM_DEFAULT_MODEL);
+    for kind in [DbKind::Postgres, DbKind::Mysql, DbKind::Other] {
+        let sql = generate_create_file(&schema, &kind);
+        assert!(
+            sql.contains("ColumnType::Enum"),
+            "enum coldef missing for {kind:?}:\n{sql}"
+        );
+        assert!(
+            sql.contains(r#".not_null().default("Draft")"#),
+            "enum default dropped for {kind:?}:\n{sql}"
+        );
+    }
+}
+
+const EXTEND_ENUM_DEFAULT_SRC: &str = r#"
+use runique::prelude::*;
+extend! {
+    table: "blog",
+    enums: {
+        Status: [Draft="Draft", Published="Published", Archived="Archived"],
+    },
+    fields: {
+        status: choice [enum(Status), default: "Draft", required],
+    }
+}
+"#;
+
+#[test]
+fn extend_enum_column_default_is_emitted_on_add_all_engines() {
+    // The production scenario: ADD COLUMN <enum> NOT NULL on an existing, populated
+    // table must carry a DEFAULT so Postgres can backfill instead of erroring.
+    let schema = &parse_extend_blocks_from_source(EXTEND_ENUM_DEFAULT_SRC)[0];
+    let change = Changes {
+        table_name: schema.table_name.clone(),
+        added_columns: schema.columns.clone(),
+        dropped_columns: vec![],
+        modified_columns: vec![],
+        added_fks: vec![],
+        dropped_fks: vec![],
+        added_indexes: vec![],
+        dropped_indexes: vec![],
+        is_new_table: false,
+        renamed_columns: vec![],
+        enum_renames: vec![],
+        enum_value_adds: vec![],
+        enum_value_drops: vec![],
+    };
+    for kind in [DbKind::Postgres, DbKind::Mysql, DbKind::Other] {
+        let sql = generate_alter_file(&change, &kind);
+        assert!(
+            sql.contains(r#".not_null().default("Draft")"#),
+            "extend enum default missing on ADD COLUMN for {kind:?}:\n{sql}"
+        );
+    }
+    // CREATE TYPE stays Postgres-only.
+    assert!(
+        generate_alter_file(&change, &DbKind::Postgres).contains("CREATE TYPE"),
+        "PG must still CREATE TYPE for the enum"
+    );
+    assert!(
+        !generate_alter_file(&change, &DbKind::Other).contains("CREATE TYPE"),
+        "non-PG must not CREATE TYPE"
+    );
+}
+
 // ── Topological sort: referenced tables created first ──────────────────────────
 
 fn new_table(name: &str, fks: Vec<ParsedFk>) -> Changes {

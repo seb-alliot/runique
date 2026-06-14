@@ -17,6 +17,7 @@ use crate::formulaire::{
 use runique::prelude::*;
 
 pub async fn erreur_502(mut request: Request) -> AppResult<Response> {
+    inject_globals(&mut request).await;
     request.render("erreur_502.html")
 }
 // ─── Index ────────────────────────────────────────────────────────────────────

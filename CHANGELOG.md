@@ -6,6 +6,24 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2.1.17] - 2026-06-15
+
+### Fix — `runique` (CLI `makemigrations` — enum column defaults)
+
+* **`[default: …]` was still dropped on enum columns:** the 2.1.15 fix made `render_column_def` emit `.default(<value>)`, but only on the non-enum branch — the `ColumnType::Enum` branch was rendered with `{null}{uniq}` and never appended `{default}`. A `choice [enum(X)]` column with a `[default: "Y"]` therefore lost its default, and a `required` (NOT NULL) enum column added to a populated table failed at migration time with `column "…" contains null values`. Fixed: the enum branch of `render_column_def` now appends `{default}` like every other column, so an `ADD COLUMN <enum> NOT NULL DEFAULT '<variant>'` lets Postgres backfill existing rows instead of erroring. The emission is engine-independent (Postgres/MySQL/SQLite); the Postgres-only `CREATE TYPE` gating is unchanged.
+
+* **3 pipeline tests added** (`tests_pipeline.rs`, now 14): the enum default reaches the parsed `ParsedColumn`, is emitted in CREATE across all three engines, and is emitted on the `extend!{}` ADD COLUMN path across all three engines (with `CREATE TYPE` still Postgres-only).
+
+---
+
+## [2.1.16] - 2026-06-15
+
+### Chore — `runique` (dependencies, toolchain)
+
+* **SeaORM bumped to `2.0.0-rc.40` and MSRV raised to Rust 1.94:** updated `sea-orm` / `sea-orm-migration` from `rc.38` to the pinned `=2.0.0-rc.40`. The new release candidate raises its minimum supported Rust version, so the workspace `rust-version` is bumped to `1.94` accordingly.
+
+---
+
 ## [2.1.15] - 2026-06-13
 
 ### Feature — `runique` (routing, templates)
