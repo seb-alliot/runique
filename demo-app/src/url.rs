@@ -8,9 +8,10 @@ use crate::views::{
     llms_full_txt, llms_txt, login_user, macros_demo, middleware_csp, middleware_csrf,
     middleware_hosts, middleware_https, middleware_hub, middleware_login_guard,
     middleware_rate_limit, migrations_demo, model_demo, orm_demo, probleme_connu, profil,
-    propos_template_error, readme_en, readme_fr, rgpd, roadmap, router_demo, security_txt,
-    session_demo, sitemap_xml, soumission_inscription, surcharge_exemple, template_demo, test_csrf,
-    test_fields, upload_image_submit, view_cours_detail, view_cours_exercice, view_cours_index,
+    propos_template_error, readme_en, readme_fr, rgpd, roadmap, router_demo, rust_django_framework,
+    security_txt, session_demo, sitemap_xml, soumission_inscription, surcharge_exemple,
+    template_demo, test_csrf, test_fields, upload_image_submit, view_cours_detail,
+    view_cours_exercice, view_cours_index,
 };
 
 use runique::prelude::*;
@@ -34,6 +35,7 @@ pub fn routes() -> Router {
 
         // Tools & Demo
         "/about"                         => view! { about },                  name = "about",
+        "/rust-django-framework"         => view! { rust_django_framework },  name = "rust_django_framework",
         "/admin-demo"                    => view! { admin_hub },              name = "admin_hub",
         "/admin-demo/declaration"        => view! { admin_declaration },      name = "admin_declaration",
         "/admin-demo/setup"              => view! { admin_setup },            name = "admin_setup",
