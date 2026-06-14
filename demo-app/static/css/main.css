@@ -1448,7 +1448,7 @@ footer strong {
     transition: transform 0.2s ease;
 }
 summary > h2 {
-    font-size: clamp(1.2rem , 1.2vh, 3rem);
+    font-size: clamp(1rem , 1.2vh, 3rem);
 }
 /* rotation quand ouvert */
 .demo-section details[open] summary::after {
