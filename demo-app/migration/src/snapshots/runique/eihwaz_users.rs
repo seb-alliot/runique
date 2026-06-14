@@ -16,7 +16,9 @@ async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
                     .col(ColumnDef::new(Alias::new("website")).string().null())
                     .col(ColumnDef::new(Alias::new("phone")).string().null())
                     .col(ColumnDef::new(Alias::new("birth_date")).date().null())
-                    .col(ColumnDef::new(Alias::new("is_verified")).boolean().null())
+                    .col(ColumnDef::new(Alias::new("is_verified")).boolean().null().default(false))
+                    .col(ColumnDef::new(Alias::new("linkedin")).string().null())
+                    .col(ColumnDef::new(Alias::new("job_title")).string().null())
                     .to_owned()
             )
             .await?;
