@@ -10,6 +10,7 @@ mod handle_list;
 mod handle_password;
 
 use crate::auth::session::CurrentUser;
+use crate::utils::config::TraceResult;
 use crate::context::template::{AppError, Request};
 use crate::errors::error::ErrorContext;
 use crate::utils::{
@@ -573,7 +574,17 @@ async fn check_owns_record(
         Some(f) => f,
         None => return false,
     };
-    let record = match get_fn(db, id.to_string()).await.ok().flatten() {
+    let record = match get_fn(db, id.to_string())
+        .await
+        .trace(
+            crate::utils::runique_log::get_log()
+                .admin
+                .as_ref()
+                .and_then(|a| a.auth),
+            "load record for object permission check",
+        )
+        .flatten()
+    {
         Some(v) => v,
         None => return false,
     };

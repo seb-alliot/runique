@@ -1,5 +1,6 @@
 //! Runique's built-in user entity (table `eihwaz_users`).
 pub use crate::auth::{session::UserEntity, user_trait::RuniqueUser};
+use crate::utils::config::TraceResult;
 use crate::utils::pk::Pk;
 use crate::{impl_objects, search};
 use sea_orm::{
@@ -80,7 +81,17 @@ impl UserEntity for BuiltinUserEntity {
     type Model = Model;
 
     async fn find_by_id(db: &DatabaseConnection, id: Pk) -> Option<Self::Model> {
-        Entity::find_by_id(id).one(db).await.ok().flatten()
+        Entity::find_by_id(id)
+            .one(db)
+            .await
+            .trace(
+                crate::utils::runique_log::get_log()
+                    .db
+                    .as_ref()
+                    .and_then(|d| d.query),
+                "find user by id",
+            )
+            .flatten()
     }
 
     async fn find_by_username(db: &DatabaseConnection, username: &str) -> Option<Self::Model> {
