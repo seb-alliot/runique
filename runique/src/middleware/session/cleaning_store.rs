@@ -135,6 +135,40 @@ impl CleaningMemoryStore {
         self
     }
 
+    /// Mirrors the authoritative in-memory record to the DB backup as a single full
+    /// snapshot (cookie_id, user_id, expiry, data). The unique persistence path for
+    /// both `create()` and `save()`: writing every field together makes a partial /
+    /// stale backup (e.g. data updated but not expiry) impossible by construction.
+    ///
+    /// No-op for anonymous sessions (no user_id) or when DB fallback is disabled.
+    /// A write failure is logged, never silently dropped — a silent backup failure
+    /// breaks the "transparent UX after restart" promise without any signal.
+    #[cfg(feature = "orm")]
+    async fn persist_to_db(&self, record: &Record) {
+        let Some(ref db) = self.db_fallback else {
+            return;
+        };
+        let Some(user_id) = record
+            .data
+            .get(crate::utils::constante::session_key::session::SESSION_USER_ID_KEY)
+            .and_then(|v| serde_json::from_value::<crate::utils::pk::Pk>(v.clone()).ok())
+        else {
+            return;
+        };
+        let expires_at = chrono::DateTime::from_timestamp(record.expiry_date.unix_timestamp(), 0)
+            .map(|dt| dt.naive_utc())
+            .unwrap_or_else(|| chrono::Utc::now().naive_utc());
+        let data = serde_json::to_string(&record.data).ok();
+
+        if let Err(e) = db
+            .upsert_session(&record.id.to_string(), user_id, expires_at, data)
+            .await
+            && let Some(level) = crate::utils::runique_log::get_log().session
+        {
+            crate::runique_log!(level, "session DB backup write failed: {e}");
+        }
+    }
+
     /// Current estimated size of the store in bytes.
     #[must_use]
     pub fn size_bytes(&self) -> usize {
@@ -310,44 +344,16 @@ impl SessionStore for CleaningMemoryStore {
             );
         }
 
-        // Collect DB write params before releasing the lock.
-        // Uses upsert_session (not update_session_data) because after cycle_id() the new
-        // cookie_id has no DB record yet — a plain UPDATE would silently no-op.
-        #[cfg(feature = "orm")]
-        let db_write = if let Some(ref db) = self.db_fallback
-            && let Some(user_id) = record
-                .data
-                .get(crate::utils::constante::session_key::session::SESSION_USER_ID_KEY)
-                .and_then(|v| serde_json::from_value::<crate::utils::pk::Pk>(v.clone()).ok())
-        {
-            let expires_at =
-                chrono::DateTime::from_timestamp(record.expiry_date.unix_timestamp(), 0)
-                    .map(|dt| dt.naive_utc())
-                    .unwrap_or_else(|| chrono::Utc::now().naive_utc());
-            Some((
-                db.clone(),
-                record.id.to_string(),
-                user_id,
-                expires_at,
-                serde_json::to_string(&record.data).ok(),
-            ))
-        } else {
-            None
-        };
-
         guard.insert(record.id, record.clone());
         self.size_bytes.fetch_add(size, Ordering::Relaxed);
 
         // Release the lock before the async DB write (cycle_id path: tower-sessions calls
-        // create() instead of save() for a recycled session, so we must persist here too).
+        // create() instead of save() for a recycled session, so we persist here too).
         drop(guard);
 
+        // Mirror the authoritative in-memory record to the DB backup.
         #[cfg(feature = "orm")]
-        if let Some((db, cookie_id, user_id, expires_at, data)) = db_write {
-            db.upsert_session(&cookie_id, user_id, expires_at, data)
-                .await
-                .ok();
-        }
+        self.persist_to_db(record).await;
 
         Ok(())
     }
@@ -438,33 +444,6 @@ impl SessionStore for CleaningMemoryStore {
                 .fetch_sub(old_size.saturating_sub(new_size), Ordering::Relaxed);
         }
 
-        // Collect DB write params before dropping the lock. Mirrors create(): we
-        // upsert with the *current* expiry so the DB row tracks the sliding TTL
-        // (after login the in-memory expiry is bumped to the authenticated duration,
-        // but update_session_data alone never refreshed expires_at — the row stayed
-        // frozen at the 5-min anonymous window and looked expired after a restart).
-        #[cfg(feature = "orm")]
-        let db_write = if let Some(ref db) = self.db_fallback
-            && let Some(user_id) = record
-                .data
-                .get(crate::utils::constante::session_key::session::SESSION_USER_ID_KEY)
-                .and_then(|v| serde_json::from_value::<crate::utils::pk::Pk>(v.clone()).ok())
-        {
-            let expires_at =
-                chrono::DateTime::from_timestamp(record.expiry_date.unix_timestamp(), 0)
-                    .map(|dt| dt.naive_utc())
-                    .unwrap_or_else(|| chrono::Utc::now().naive_utc());
-            Some((
-                db.clone(),
-                record.id.to_string(),
-                user_id,
-                expires_at,
-                serde_json::to_string(&record.data).ok(),
-            ))
-        } else {
-            None
-        };
-
         // Release the lock before the async DB writes to avoid holding it during I/O.
         drop(guard);
 
@@ -473,13 +452,10 @@ impl SessionStore for CleaningMemoryStore {
             db.invalidate_other_sessions(user_id, &cookie_id).await.ok();
         }
 
-        // Persist authenticated session data + refreshed expiry so it survives restarts.
+        // Mirror the authoritative in-memory record to the DB backup (full snapshot,
+        // refreshed expiry included) so it survives restarts.
         #[cfg(feature = "orm")]
-        if let Some((db, cookie_id, user_id, expires_at, data)) = db_write {
-            db.upsert_session(&cookie_id, user_id, expires_at, data)
-                .await
-                .ok();
-        }
+        self.persist_to_db(record).await;
 
         Ok(())
     }
