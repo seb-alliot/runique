@@ -190,7 +190,10 @@ impl RuniqueSessionStore {
                     .filter(Column::ExpiresAt.lt(now))
                     .exec(&*db)
                     .await
-                    && let Some(level) = crate::utils::runique_log::get_log().session
+                    && let Some(level) = crate::utils::runique_log::get_log()
+                        .session
+                        .as_ref()
+                        .and_then(|s| s.store)
                 {
                     crate::runique_log!(level, "session cleanup error: {e}");
                 }

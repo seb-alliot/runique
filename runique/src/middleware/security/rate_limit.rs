@@ -203,7 +203,11 @@ pub async fn rate_limit_middleware(
         next.run(req).await
     } else {
         let retry_after_secs = limiter.retry_after_secs(&ip);
-        if let Some(level) = crate::utils::runique_log::get_log().rate_limit {
+        if let Some(level) = crate::utils::runique_log::get_log()
+            .middleware
+            .as_ref()
+            .and_then(|m| m.rate_limit)
+        {
             crate::runique_log!(level, %ip, retry_after = retry_after_secs, "rate limited");
         }
         (

@@ -72,7 +72,7 @@ pub(super) async fn handle_list(
                 Some(f) => f(req.engine.db.clone(), filter_pages.clone())
                     .await
                     .unwrap_or_else(|e| {
-                        if let Some(level) = crate::utils::runique_log::get_log().filter_fn {
+                        if let Some(level) = crate::utils::runique_log::get_log().admin.as_ref().and_then(|a| a.filter_fn) {
                             crate::runique_log!(level, resource = entry.meta.key, error = %e, "filter_fn failed — list returned without sidebar filters");
                         }
                         HashMap::new()

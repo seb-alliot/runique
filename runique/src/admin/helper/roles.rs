@@ -12,7 +12,11 @@ pub fn register_roles(roles: Vec<String>) {
     match ADMIN_ROLES.write() {
         Ok(mut guard) => *guard = roles,
         Err(_) => {
-            if let Some(level) = crate::utils::runique_log::get_log().roles {
+            if let Some(level) = crate::utils::runique_log::get_log()
+                .admin
+                .as_ref()
+                .and_then(|a| a.roles)
+            {
                 crate::runique_log!(
                     level,
                     "register_roles(): impossible to acquire write lock — roles not registered"
@@ -27,7 +31,11 @@ pub fn get_roles() -> Vec<String> {
     if let Ok(guard) = ADMIN_ROLES.read() {
         guard.clone()
     } else {
-        if let Some(level) = crate::utils::runique_log::get_log().roles {
+        if let Some(level) = crate::utils::runique_log::get_log()
+            .admin
+            .as_ref()
+            .and_then(|a| a.roles)
+        {
             crate::runique_log!(level, "get_roles(): poisoned lock — returning empty roles");
         }
         Vec::new()

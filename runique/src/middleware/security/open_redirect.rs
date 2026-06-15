@@ -30,7 +30,11 @@ pub async fn open_redirect_middleware(
         return response;
     }
 
-    if let Some(level) = get_log().host_validation {
+    if let Some(level) = get_log()
+        .middleware
+        .as_ref()
+        .and_then(|m| m.host_validation)
+    {
         crate::runique_log!(level, location = %location_str, "open redirect blocked");
     }
 

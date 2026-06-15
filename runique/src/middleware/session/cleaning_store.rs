@@ -163,7 +163,10 @@ impl CleaningMemoryStore {
         if let Err(e) = db
             .upsert_session(&record.id.to_string(), user_id, expires_at, data)
             .await
-            && let Some(level) = crate::utils::runique_log::get_log().session
+            && let Some(level) = crate::utils::runique_log::get_log()
+                .session
+                .as_ref()
+                .and_then(|s| s.store)
         {
             crate::runique_log!(level, "session DB backup write failed: {e}");
         }
@@ -213,7 +216,10 @@ impl CleaningMemoryStore {
             loop {
                 interval.tick().await;
                 if let Err(e) = store.delete_expired().await
-                    && let Some(level) = crate::utils::runique_log::get_log().session
+                    && let Some(level) = crate::utils::runique_log::get_log()
+                        .session
+                        .as_ref()
+                        .and_then(|s| s.store)
                 {
                     crate::runique_log!(level, "session cleanup error: {e}");
                 }
@@ -241,7 +247,11 @@ impl CleaningMemoryStore {
 
         if freed > 0 {
             self.size_bytes.fetch_sub(freed, Ordering::Relaxed);
-            if let Some(level) = crate::utils::runique_log::get_log().session {
+            if let Some(level) = crate::utils::runique_log::get_log()
+                .session
+                .as_ref()
+                .and_then(|s| s.store)
+            {
                 crate::runique_log!(
                     level,
                     "Low watermark: {} bytes freed (expired anonymous sessions)",
@@ -303,7 +313,11 @@ impl SessionStore for CleaningMemoryStore {
                     }
                 }
                 self.size_bytes.fetch_sub(freed2, Ordering::Relaxed);
-                if let Some(level) = crate::utils::runique_log::get_log().session {
+                if let Some(level) = crate::utils::runique_log::get_log()
+                    .session
+                    .as_ref()
+                    .and_then(|s| s.store)
+                {
                     crate::runique_log!(
                         level,
                         "High watermark: {} + {} bytes freed in emergency",
@@ -315,7 +329,11 @@ impl SessionStore for CleaningMemoryStore {
 
             // Still above → refusal
             if self.size_bytes.load(Ordering::Relaxed) >= self.high_watermark {
-                if let Some(level) = crate::utils::runique_log::get_log().session {
+                if let Some(level) = crate::utils::runique_log::get_log()
+                    .session
+                    .as_ref()
+                    .and_then(|s| s.store)
+                {
                     crate::runique_log!(
                         level,
                         "Session store saturated ({} bytes), new session refused",
@@ -335,7 +353,10 @@ impl SessionStore for CleaningMemoryStore {
 
         let size = estimate_size(record);
         if size > MAX_SESSION_RECORD_SIZE
-            && let Some(level) = crate::utils::runique_log::get_log().session
+            && let Some(level) = crate::utils::runique_log::get_log()
+                .session
+                .as_ref()
+                .and_then(|s| s.store)
         {
             crate::runique_log!(
                 level,
@@ -405,7 +426,11 @@ impl SessionStore for CleaningMemoryStore {
                 }
                 if freed > 0 {
                     self.size_bytes.fetch_sub(freed, Ordering::Relaxed);
-                    if let Some(level) = crate::utils::runique_log::get_log().exclusive_login {
+                    if let Some(level) = crate::utils::runique_log::get_log()
+                        .session
+                        .as_ref()
+                        .and_then(|s| s.exclusive_login)
+                    {
                         crate::runique_log!(
                             level,
                             user_id = user_id,
@@ -425,7 +450,10 @@ impl SessionStore for CleaningMemoryStore {
         }
 
         if new_size > MAX_SESSION_RECORD_SIZE
-            && let Some(level) = crate::utils::runique_log::get_log().session
+            && let Some(level) = crate::utils::runique_log::get_log()
+                .session
+                .as_ref()
+                .and_then(|s| s.store)
         {
             crate::runique_log!(
                 level,
@@ -503,7 +531,11 @@ impl SessionStore for CleaningMemoryStore {
                 }
                 Ok(None) => {}
                 Err(e) => {
-                    if let Some(level) = crate::utils::runique_log::get_log().session {
+                    if let Some(level) = crate::utils::runique_log::get_log()
+                        .session
+                        .as_ref()
+                        .and_then(|s| s.store)
+                    {
                         crate::runique_log!(
                             level,
                             "session DB fallback load failed for cookie_id lookup: {e}"
