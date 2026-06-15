@@ -324,6 +324,14 @@ pub async fn login(
         .insert(SESSION_USER_IS_SUPERUSER_KEY, is_superuser)
         .await?;
 
+    // Promote the session TTL to the authenticated duration on the login request
+    // itself, so the first persisted row already carries the long expiry instead of
+    // the 5-min anonymous window. The ttl-upgrade middleware only kicks in from the
+    // next request; without this, a restart in that first window logs the user out.
+    session.set_expiry(Some(tower_sessions::Expiry::OnInactivity(
+        tower_sessions::cookie::time::Duration::hours(24),
+    )));
+
     // DB persistence
     if let Some(store) = db_store {
         let cookie_id = session.id().map(|id| id.to_string()).unwrap_or_default();
