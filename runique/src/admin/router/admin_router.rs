@@ -1,4 +1,5 @@
 //! Admin router: builds CRUD routes, login/logout, and attaches authentication middleware.
+use crate::utils::config::TraceResult;
 use std::sync::Arc;
 
 use axum::{
@@ -204,6 +205,13 @@ async fn admin_dashboard(
         let groupes: std::collections::HashMap<_, String> = groupe::Entity::find()
             .all(&*db)
             .await
+            .trace(
+                crate::utils::runique_log::get_log()
+                    .admin
+                    .as_ref()
+                    .and_then(|a| a.list),
+                "load groupes for permission map",
+            )
             .unwrap_or_default()
             .into_iter()
             .map(|g| (g.id, g.nom))
@@ -211,6 +219,13 @@ async fn admin_dashboard(
         let rows = groupes_droits::Entity::find()
             .all(&*db)
             .await
+            .trace(
+                crate::utils::runique_log::get_log()
+                    .admin
+                    .as_ref()
+                    .and_then(|a| a.list),
+                "load groupes_droits for permission map",
+            )
             .unwrap_or_default();
         let mut map: std::collections::HashMap<String, Vec<String>> =
             std::collections::HashMap::new();
@@ -448,7 +463,17 @@ async fn admin_history(
 
     let paginator = query.paginate(req.engine.db.as_ref(), per_page);
     let total_pages = paginator.num_pages().await.unwrap_or(1);
-    let raw_entries: Vec<history::Model> = paginator.fetch_page(page - 1).await.unwrap_or_default();
+    let raw_entries: Vec<history::Model> = paginator
+        .fetch_page(page - 1)
+        .await
+        .trace(
+            crate::utils::runique_log::get_log()
+                .admin
+                .as_ref()
+                .and_then(|a| a.list),
+            "history fetch_page",
+        )
+        .unwrap_or_default();
 
     #[derive(serde::Serialize)]
     struct HistoryRow {
@@ -656,7 +681,17 @@ async fn admin_history_timeline(
     let paginator = query.paginate(req.engine.db.as_ref(), per_page);
     let total_pages = paginator.num_pages().await.unwrap_or(1);
     let total = paginator.num_items().await.unwrap_or(0);
-    let entries: Vec<history::Model> = paginator.fetch_page(page - 1).await.unwrap_or_default();
+    let entries: Vec<history::Model> = paginator
+        .fetch_page(page - 1)
+        .await
+        .trace(
+            crate::utils::runique_log::get_log()
+                .admin
+                .as_ref()
+                .and_then(|a| a.list),
+            "history fetch_page",
+        )
+        .unwrap_or_default();
 
     let filter_type = if filter_object_id.is_some() && filter_resource.is_some() {
         "object"
@@ -725,6 +760,13 @@ async fn admin_history_batch(
         .order_by_asc(history::Column::Id)
         .all(req.engine.db.as_ref())
         .await
+        .trace(
+            crate::utils::runique_log::get_log()
+                .admin
+                .as_ref()
+                .and_then(|a| a.list),
+            "history batch fetch",
+        )
         .unwrap_or_default();
 
     #[derive(serde::Serialize)]
@@ -864,16 +906,20 @@ async fn admin_toggle_template(
         .get::<String>(ADMIN_TEMPLATE_SESSION_KEY)
         .await
         .unwrap_or(None);
+    let session_level = crate::utils::runique_log::get_log()
+        .session
+        .as_ref()
+        .and_then(|s| s.store);
     if current.is_some() {
-        let _ = req
-            .session
+        req.session
             .remove::<String>(ADMIN_TEMPLATE_SESSION_KEY)
-            .await;
+            .await
+            .trace(session_level, "remove admin template session key");
     } else {
-        let _ = req
-            .session
+        req.session
             .insert(ADMIN_TEMPLATE_SESSION_KEY, "admin/dashboard.html")
-            .await;
+            .await
+            .trace(session_level, "insert admin template session key");
     }
     Redirect::to(&format!("{}/", admin.config.prefix)).into_response()
 }
@@ -886,7 +932,13 @@ async fn admin_logout(Extension(admin): Extension<Arc<AdminState>>, req: Request
         .read()
         .ok()
         .and_then(|g| g.as_ref().cloned());
-    let _ = logout(session, db_store.as_deref()).await;
+    logout(session, db_store.as_deref()).await.trace(
+        crate::utils::runique_log::get_log()
+            .session
+            .as_ref()
+            .and_then(|s| s.store),
+        "admin logout",
+    );
     let login_url = format!("{}/login?from=logout", admin.config.prefix);
     flash_now!(info => t("admin.logout_success").as_ref());
     Redirect::to(&login_url).into_response()
