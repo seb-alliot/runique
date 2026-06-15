@@ -12,9 +12,10 @@
 
 - ✅ **Recherche admin** — debounce + WHERE sur colonnes `list_display` ou toutes colonnes
 - ✅ **Responsive admin** — layout mobile/tablette
-- ✅ **Tracing structuré** — `RuniqueLog` par domaine (forms, admin, auth, mailer, builder)
+- ✅ **Tracing structuré** — `RuniqueLog` en arbre par module (forms, middleware, session, auth, admin, db, mailer, migration, templates, errors, builder), trait `TraceResult` (auto-log file:line des `Result` avalés), warning si subscriber déjà posé. Sweep « zéro erreur avalée » : forms, session, admin, flash, migration, auth tracés
+🔧 **Tracing — sorties & observabilité** — sortie fichier (`LogOutput` + rotation + `WorkerGuard`), request_id/access-log, `Secret<T>`, branchement nœud `errors` sur la page d'erreur (à faire)
 - ✅ **`extend!{}` génère le code Rust** — entité complète + ActiveModel + AdminForm
-- [ ] **Historique admin** — filtres par resource/action/user + diff avant/après + timeline
+- ✅ **Historique admin** — filtres par resource/action/user + diff avant/après + vue batch (timeline)
 - [ ] **Persistance des filtres admin** — conserver `search`, `filter_*`, `page`, `sort_by` dans l'URL de retour après edit/delete
 - [ ] **Boot validation** — refuser le démarrage en production si la config est incohérente
 - [ ] **Reset token persisté en DB** — actuellement en mémoire, perdu au redémarrage
@@ -26,7 +27,7 @@
 
 ### Affichage liste
 
-- [ ] **Filtres cumulables** — cliquer un filtre réinitialise les autres colonnes ; le backend supporte déjà plusieurs filtres simultanés (`Vec`), c'est le template qui ne préserve pas les autres
+- ✅ **Filtres cumulables** — plusieurs filtres simultanés : backend `Vec` + template qui préserve les autres filtres au toggle (URL/HTMX reconstruite avec tous les `active_filters` sauf celui touché)
 - [ ] **Filtres par date/temps** — `list_filter` sur colonnes `timestamp` avec plages prédéfinies (aujourd'hui, cette semaine, ce mois, cette année)
 - [ ] **Filtres FK traversal** — `list_filter` sur colonnes de tables liées (`article__auteur__nom`)
 - [ ] **`date_hierarchy`** — navigation drill-down par date (année > mois > jour) dans la liste
@@ -78,7 +79,7 @@
 ## ORM & Modèles
 
 - 🔧 **Hooks / Signals** — `before_save`, `after_save`, `before_delete`, `after_delete` via `SignalBuilder` ; infrastructure `HooksDef` posée dans `migration/hooks/`, générateur à brancher dans `derive_form`
-- [ ] **`makemigrations` — détecter les suppressions** — générer `DROP COLUMN` quand une colonne disparaît du DSL (actuellement silencieux)
+- ✅ **`makemigrations` — détecter les suppressions** — `DROP COLUMN` généré quand une colonne disparaît du DSL, avec garde destructif (avertit au lieu de supprimer en silence). Pipeline remodelé : plan → validate → **commit atomique + rollback unique** + snapshots
 - [ ] **`search!` — agrégats** — `.avg()`, `.sum()`, `.count_by()` sur `RuniqueQueryBuilder` (actuellement SQL brut requis)
 - [ ] **`search!` — `.first()` simplifié** — retourner `Option<T>` au lieu de `Result<Option<T>>`, cohérent avec `.all()` et `.count()`
 - ✅ **`search!` — filtres conditionnels** — bras `?Col in (expr)` / `?Col not_in (expr)` qui sautent si vec vide
