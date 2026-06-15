@@ -484,13 +484,15 @@ impl SessionStore for CleaningMemoryStore {
 
         #[cfg(feature = "orm")]
         if let Some((db, user_id, cookie_id)) = exclusive_db_invalidate {
-            db.invalidate_other_sessions(user_id, &cookie_id).await.trace(
-                crate::utils::runique_log::get_log()
-                    .session
-                    .as_ref()
-                    .and_then(|s| s.exclusive_login),
-                "invalidate other sessions (exclusive login)",
-            );
+            db.invalidate_other_sessions(user_id, &cookie_id)
+                .await
+                .trace(
+                    crate::utils::runique_log::get_log()
+                        .session
+                        .as_ref()
+                        .and_then(|s| s.exclusive_login),
+                    "invalidate other sessions (exclusive login)",
+                );
         }
 
         // Mirror the authoritative in-memory record to the DB backup (full snapshot,

@@ -1,10 +1,10 @@
 //! Built-in password reset flow: forgot + reset via email token.
+use crate::utils::config::TraceResult;
 use axum::{
     Router,
     extract::{Path, State},
     response::{IntoResponse, Redirect, Response},
 };
-use crate::utils::config::TraceResult;
 use serde::Serialize;
 use std::{marker::PhantomData, sync::Arc};
 
@@ -265,7 +265,11 @@ pub async fn handle_forgot_password<E: UserEntity + 'static>(
                             .as_ref()
                             .and_then(|a| a.reset);
                         tokio::spawn(async move {
-                            if msg.send().await.trace(log_level, "reset email send").is_some()
+                            if msg
+                                .send()
+                                .await
+                                .trace(log_level, "reset email send")
+                                .is_some()
                                 && let Some(level) = log_level
                             {
                                 crate::runique_log!(level, "reset email sent");
@@ -279,7 +283,12 @@ pub async fn handle_forgot_password<E: UserEntity + 'static>(
                         .as_ref()
                         .and_then(|a| a.reset);
                     tokio::spawn(async move {
-                        if mail.html(body).send().await.trace(log_level, "reset email send").is_some()
+                        if mail
+                            .html(body)
+                            .send()
+                            .await
+                            .trace(log_level, "reset email send")
+                            .is_some()
                             && let Some(level) = log_level
                         {
                             crate::runique_log!(level, "reset email sent");
