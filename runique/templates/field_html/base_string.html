@@ -20,7 +20,7 @@
             {% if field.disabled and field.disabled.choice %}disabled{% endif %}
             {% if field.readonly and field.readonly.choice %}readonly{% endif %}
             {% for attr, val in field.html_attributes %}{{ attr }}="{{ val }}" {% endfor %}
-        >{{ field.value }}</textarea>
+        >{% if input_type == "richtext" %}{{ field.value | sanitize }}{% else %}{{ field.value }}{% endif %}</textarea>
     {% else %}
         <input
             type="{{ input_type | default(value='text') }}"
