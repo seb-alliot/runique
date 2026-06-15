@@ -36,6 +36,43 @@ fn cleaned_value(form: &Forms, name: &str) -> Option<String> {
         .map(|s| s.to_string())
 }
 
+/// Coerce a whitelisted value to `T`. Logs (field, raw, error) at `forms.field` level
+/// when a value is present but fails to parse — instead of silently returning `None`.
+/// An absent/empty value is not an error (returns `None` without logging).
+fn coerce<T>(form: &Forms, name: &str) -> Option<T>
+where
+    T: std::str::FromStr,
+    T::Err: std::fmt::Display,
+{
+    let raw = cleaned_value(form, name)?;
+    let parsed = raw.parse::<T>();
+    log_coerce(name, &raw, parsed)
+}
+
+/// Logs (field, raw, error) at `forms.field` level when a present value fails to parse,
+/// then returns `None`. Shared by `coerce` and the format-based `cleaned_*` helpers.
+fn log_coerce<T, E: std::fmt::Display>(name: &str, raw: &str, res: Result<T, E>) -> Option<T> {
+    match res {
+        Ok(v) => Some(v),
+        Err(e) => {
+            if let Some(level) = crate::utils::config::runique_log::get_log()
+                .forms
+                .as_ref()
+                .and_then(|f| f.field)
+            {
+                crate::runique_log!(
+                    level,
+                    field = %name,
+                    raw = %raw,
+                    error = %e,
+                    "cleaned coercion failed"
+                );
+            }
+            None
+        }
+    }
+}
+
 /// Main trait for typed forms with validation and saving
 ///
 #[doc = include_str!("../../doc-tests/form/form_proc_macro.md")]
@@ -56,31 +93,33 @@ pub trait RuniqueForm: Sized + Send + Sync {
     }
     /// `i32` — `None` if unknown, empty, or not parseable.
     fn cleaned_i32(&self, name: &str) -> Option<i32> {
-        cleaned_value(self.get_form(), name)?.parse().ok()
+        coerce(self.get_form(), name)
     }
     /// `i64` — `None` if unknown, empty, or not parseable.
     fn cleaned_i64(&self, name: &str) -> Option<i64> {
-        cleaned_value(self.get_form(), name)?.parse().ok()
+        coerce(self.get_form(), name)
     }
     /// `u32` — `None` if unknown, empty, or not parseable.
     fn cleaned_u32(&self, name: &str) -> Option<u32> {
-        cleaned_value(self.get_form(), name)?.parse().ok()
+        coerce(self.get_form(), name)
     }
     /// `u64` — `None` if unknown, empty, or not parseable.
     fn cleaned_u64(&self, name: &str) -> Option<u64> {
-        cleaned_value(self.get_form(), name)?.parse().ok()
+        coerce(self.get_form(), name)
     }
     /// `f32` — handles `,` → `.`, parses via `Decimal` for precision. `None` if unknown, empty, or not parseable.
     fn cleaned_f32(&self, name: &str) -> Option<f32> {
         use rust_decimal::prelude::ToPrimitive;
-        let v = cleaned_value(self.get_form(), name)?.replace(',', ".");
-        rust_decimal::Decimal::from_str_exact(&v).ok()?.to_f32()
+        let raw = cleaned_value(self.get_form(), name)?;
+        let v = raw.replace(',', ".");
+        log_coerce(name, &raw, rust_decimal::Decimal::from_str_exact(&v))?.to_f32()
     }
     /// `f64` — handles `,` → `.`, parses via `Decimal` for precision. `None` if unknown, empty, or not parseable.
     fn cleaned_f64(&self, name: &str) -> Option<f64> {
         use rust_decimal::prelude::ToPrimitive;
-        let v = cleaned_value(self.get_form(), name)?.replace(',', ".");
-        rust_decimal::Decimal::from_str_exact(&v).ok()?.to_f64()
+        let raw = cleaned_value(self.get_form(), name)?;
+        let v = raw.replace(',', ".");
+        log_coerce(name, &raw, rust_decimal::Decimal::from_str_exact(&v))?.to_f64()
     }
     /// `bool` — `true` for `"true"`, `"1"`, `"on"` (case-insensitive).
     /// Returns `None` if the field does not exist in the form.
@@ -93,39 +132,46 @@ pub trait RuniqueForm: Sized + Send + Sync {
 
     /// `Uuid` — `None` if unknown, empty, or not parseable.
     fn cleaned_uuid(&self, name: &str) -> Option<uuid::Uuid> {
-        uuid::Uuid::parse_str(&cleaned_value(self.get_form(), name)?).ok()
+        coerce(self.get_form(), name)
     }
 
     /// `NaiveDate` — `None` if unknown, empty, or not parseable.
     fn cleaned_naive_date(&self, name: &str) -> Option<chrono::NaiveDate> {
-        chrono::NaiveDate::parse_from_str(&cleaned_value(self.get_form(), name)?, "%Y-%m-%d").ok()
+        let raw = cleaned_value(self.get_form(), name)?;
+        log_coerce(
+            name,
+            &raw,
+            chrono::NaiveDate::parse_from_str(&raw, "%Y-%m-%d"),
+        )
     }
 
     /// `NaiveTime` — `None` if unknown, empty, or not parseable.
     fn cleaned_naive_time(&self, name: &str) -> Option<chrono::NaiveTime> {
-        chrono::NaiveTime::parse_from_str(&cleaned_value(self.get_form(), name)?, "%H:%M").ok()
+        let raw = cleaned_value(self.get_form(), name)?;
+        log_coerce(name, &raw, chrono::NaiveTime::parse_from_str(&raw, "%H:%M"))
     }
 
     /// `NaiveDateTime` — `None` if unknown, empty, or not parseable.
     fn cleaned_naive_datetime(&self, name: &str) -> Option<chrono::NaiveDateTime> {
-        chrono::NaiveDateTime::parse_from_str(
-            &cleaned_value(self.get_form(), name)?,
-            "%Y-%m-%dT%H:%M",
+        let raw = cleaned_value(self.get_form(), name)?;
+        log_coerce(
+            name,
+            &raw,
+            chrono::NaiveDateTime::parse_from_str(&raw, "%Y-%m-%dT%H:%M"),
         )
-        .ok()
     }
 
     /// `DateTime<Utc>` — `None` if unknown, empty, or not parseable.
     fn cleaned_datetime_utc(&self, name: &str) -> Option<chrono::DateTime<chrono::Utc>> {
-        chrono::DateTime::parse_from_rfc3339(&cleaned_value(self.get_form(), name)?)
-            .ok()
+        let raw = cleaned_value(self.get_form(), name)?;
+        log_coerce(name, &raw, chrono::DateTime::parse_from_rfc3339(&raw))
             .map(|dt| dt.with_timezone(&chrono::Utc))
     }
 
     /// SeaORM `ActiveEnum` — `None` if unknown, empty, or not a valid variant.
     fn cleaned_enum<T: sea_orm::ActiveEnum<Value = String>>(&self, name: &str) -> Option<T> {
-        let v = cleaned_value(self.get_form(), name)?;
-        T::try_from_value(&v).ok()
+        let raw = cleaned_value(self.get_form(), name)?;
+        log_coerce(name, &raw, T::try_from_value(&raw))
     }
 
     // ── Field value overrides ───────────────────────────────────────────────

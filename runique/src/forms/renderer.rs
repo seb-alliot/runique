@@ -61,13 +61,6 @@ impl FormRenderer {
                 global_errors = errors.len(),
                 "render start"
             );
-            if crate::utils::env::is_debug() {
-                eprintln!(
-                    "[runique:form] render start  fields={} global_errors={}",
-                    fields.len(),
-                    errors.len()
-                );
-            }
         }
         let mut html = Vec::new();
 
@@ -94,18 +87,12 @@ impl FormRenderer {
                 Ok(rendered) => {
                     if let Some(level) = log_render {
                         crate::runique_log!(level, field = %field.name(), "rendered ok");
-                        if crate::utils::env::is_debug() {
-                            eprintln!("[runique:form] render ok  {}", field.name());
-                        }
                     }
                     html.push(rendered);
                 }
                 Err(e) => {
                     if let Some(level) = log_render {
                         crate::runique_log!(level, field = %field.name(), error = %e, "render error");
-                        if crate::utils::env::is_debug() {
-                            eprintln!("[runique:form] render error  {} : {}", field.name(), e);
-                        }
                     }
                     return Err(tf("forms.finalize_error", &[field.name(), &e]).to_owned());
                 }

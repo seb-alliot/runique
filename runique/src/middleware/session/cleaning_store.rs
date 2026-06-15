@@ -10,6 +10,7 @@ use std::{
 #[cfg(feature = "orm")]
 use super::session_db::RuniqueSessionStore;
 
+use crate::utils::config::TraceResult;
 use async_trait::async_trait;
 use tokio::sync::Mutex;
 use tower_sessions::{
@@ -158,7 +159,13 @@ impl CleaningMemoryStore {
         let expires_at = chrono::DateTime::from_timestamp(record.expiry_date.unix_timestamp(), 0)
             .map(|dt| dt.naive_utc())
             .unwrap_or_else(|| chrono::Utc::now().naive_utc());
-        let data = serde_json::to_string(&record.data).ok();
+        let data = serde_json::to_string(&record.data).trace(
+            crate::utils::runique_log::get_log()
+                .session
+                .as_ref()
+                .and_then(|s| s.store),
+            "serialize session data for DB backup",
+        );
 
         if let Err(e) = db
             .upsert_session(&record.id.to_string(), user_id, expires_at, data)
@@ -477,7 +484,13 @@ impl SessionStore for CleaningMemoryStore {
 
         #[cfg(feature = "orm")]
         if let Some((db, user_id, cookie_id)) = exclusive_db_invalidate {
-            db.invalidate_other_sessions(user_id, &cookie_id).await.ok();
+            db.invalidate_other_sessions(user_id, &cookie_id).await.trace(
+                crate::utils::runique_log::get_log()
+                    .session
+                    .as_ref()
+                    .and_then(|s| s.exclusive_login),
+                "invalidate other sessions (exclusive login)",
+            );
         }
 
         // Mirror the authoritative in-memory record to the DB backup (full snapshot,
@@ -560,7 +573,13 @@ impl SessionStore for CleaningMemoryStore {
         // logout() already calls store.delete() before session.delete(), so this is idempotent.
         #[cfg(feature = "orm")]
         if let Some(ref db) = self.db_fallback {
-            db.delete(&session_id.to_string()).await.ok();
+            db.delete(&session_id.to_string()).await.trace(
+                crate::utils::runique_log::get_log()
+                    .session
+                    .as_ref()
+                    .and_then(|s| s.store),
+                "delete session from DB",
+            );
         }
 
         Ok(())
