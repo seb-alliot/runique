@@ -168,19 +168,6 @@ impl RuniqueSessionStore {
         Ok(())
     }
 
-    pub async fn update_session_data(
-        &self,
-        cookie_id: &str,
-        data: Option<String>,
-    ) -> Result<(), DbErr> {
-        Entity::update_many()
-            .col_expr(Column::SessionData, Expr::value(data))
-            .filter(Column::CookieId.eq(cookie_id))
-            .exec(&*self.db)
-            .await?;
-        Ok(())
-    }
-
     /// Returns all active sessions for a user.
     pub async fn find_by_user(&self, user_id: i32) -> Result<Vec<Model>, DbErr> {
         let now = chrono::Utc::now().naive_utc();
