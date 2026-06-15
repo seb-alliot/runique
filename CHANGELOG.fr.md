@@ -22,6 +22,10 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 * **Nouveau filtre `| plaintext` (aperçu texte) :** projette une valeur en texte brut via `sanitize_strict` — strip de tous les tags et décodage des entités, donc un `&gt;` stocké redevient un vrai `>` que Tera échappe ensuite une seule fois. Aucun `| safe` forcé (l'output est du texte brut et reste auto-échappé). Utilisé par les cellules de liste admin, où rendre du HTML rich bloc casserait la mise en page tronquée sur une ligne.
 
+### Correctif — `runique` (champs texte des formulaires : mutation destructive en saisie)
+
+* **Les champs texte supprimaient silencieusement les `<`, `>`, `&` légitimes :** `TextField::set_value` exécutait `value.replace(['<', '>', '&'], "")` dès que l'entrée contenait `<` ou `>`, donc tout champ non-rich stockait une donnée mutilée — `one bug => fix` devenait `one bug = fix`, `R&D` devenait `RD`, `a < b` devenait `a  b`. Le remplacement court-circuitait aussi entièrement `sanitize_strict`. Correctif : les champs non-rich passent désormais par `sanitize_strict` seul, qui retire déjà toutes les balises (scripts compris) via ammonia et décode les entités, en laissant la ponctuation légitime intacte. La protection XSS est inchangée — elle n'a jamais reposé sur cette mutation d'entrée mais sur l'auto-échappement à la sortie (et le strip de balises de `sanitize_strict`). Deux tests ajoutés dans `sanitizer.rs` : `=>` / `&` légitimes préservés, `<script>` autour de ponctuation toujours retiré.
+
 ---
 
 ## [2.1.16] - 2026-06-15

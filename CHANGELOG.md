@@ -22,6 +22,10 @@ All notable changes to this project will be documented in this file.
 
 * **New `| plaintext` filter (text preview):** projects a value to plain text via `sanitize_strict` — strips every tag and decodes entities, so a stored `&gt;` becomes a real `>` that Tera then escapes once. No `| safe` is forced (the output is plain text and stays auto-escaped). Used by the admin list cells, where rendering block-level rich HTML would break the truncated single-line layout.
 
+### Fix — `runique` (form text fields: destructive input mutation)
+
+* **Plain-text fields silently deleted legitimate `<`, `>`, `&`:** `TextField::set_value` ran `value.replace(['<', '>', '&'], "")` whenever the input contained `<` or `>`, so any non-rich field stored mangled data — `one bug => fix` became `one bug = fix`, `R&D` became `RD`, `a < b` became `a  b`. The replacement also short-circuited `sanitize_strict` entirely. Fixed: non-rich fields now go through `sanitize_strict` alone, which already strips every tag (scripts included) via ammonia and decodes entities, leaving legitimate punctuation intact. XSS protection is unchanged — it was never that input mutation but the output-side auto-escaping (and `sanitize_strict`'s tag stripping). Two tests added in `sanitizer.rs`: legitimate `=>` / `&` survive, `<script>` around punctuation is still removed.
+
 ---
 
 ## [2.1.16] - 2026-06-15
