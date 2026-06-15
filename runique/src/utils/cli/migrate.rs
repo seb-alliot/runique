@@ -1,4 +1,5 @@
 //! `migrate` command — applies SeaORM migrations in the database.
+use crate::utils::config::TraceResult;
 use crate::utils::trad::{t, tf};
 use anyhow::{Context, Result};
 use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend, TransactionTrait};
@@ -285,7 +286,13 @@ async fn execute_down_block(source: &str, db: &DatabaseConnection) -> Result<()>
     match result {
         Ok(()) => txn.commit().await.context("Failed to commit transaction")?,
         Err(e) => {
-            let _ = txn.rollback().await;
+            txn.rollback().await.trace(
+                crate::utils::runique_log::get_log()
+                    .migration
+                    .as_ref()
+                    .and_then(|m| m.rollback),
+                "migration transaction rollback",
+            );
             return Err(e);
         }
     }

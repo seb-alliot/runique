@@ -11,6 +11,7 @@ use crate::utils::constante::{
         SESSION_USER_IS_SUPERUSER_KEY, SESSION_USER_USERNAME_KEY,
     },
 };
+use crate::utils::config::TraceResult;
 use crate::utils::pk::Pk;
 use axum::{extract::Request, middleware::Next, response::Response};
 use sea_orm::DatabaseConnection;
@@ -286,13 +287,25 @@ pub async fn login(
     if let Some(existing) = existing_id
         && existing != user_id
     {
-        let _ = logout(session, db_store).await;
+        logout(session, db_store).await.trace(
+            crate::utils::runique_log::get_log()
+                .session
+                .as_ref()
+                .and_then(|s| s.store),
+            "pre-login logout of previous session",
+        );
     }
 
     // Rotate the session ID on any privilege elevation (anonymous → auth, or user switch).
     // Prevents session fixation: an attacker who planted a session ID cannot reuse it after login.
     if is_privilege_elevation {
-        let _ = session.cycle_id().await;
+        session.cycle_id().await.trace(
+            crate::utils::runique_log::get_log()
+                .session
+                .as_ref()
+                .and_then(|s| s.store),
+            "cycle session id (session fixation protection)",
+        );
     }
 
     let groupes = pull_groupes_db(db, user_id).await;
@@ -341,12 +354,28 @@ pub async fn login(
             .checked_add_signed(chrono::Duration::hours(24))
             .unwrap_or_else(|| chrono::Utc::now().naive_utc());
 
-        let _ = store
+        store
             .create(&cookie_id, user_id, &session_id, expires_at)
-            .await;
+            .await
+            .trace(
+                crate::utils::runique_log::get_log()
+                    .session
+                    .as_ref()
+                    .and_then(|s| s.store),
+                "persist session to DB",
+            );
 
         if exclusive {
-            let _ = store.invalidate_other_sessions(user_id, &cookie_id).await;
+            store
+                .invalidate_other_sessions(user_id, &cookie_id)
+                .await
+                .trace(
+                    crate::utils::runique_log::get_log()
+                        .session
+                        .as_ref()
+                        .and_then(|s| s.exclusive_login),
+                    "invalidate other sessions (exclusive login)",
+                );
         }
     }
 
@@ -394,7 +423,13 @@ pub async fn logout(
     // DB deletion before clearing the session (cookie_id still accessible)
     if let Some(store) = db_store {
         let cookie_id = session.id().map(|id| id.to_string()).unwrap_or_default();
-        let _ = store.delete(&cookie_id).await;
+        store.delete(&cookie_id).await.trace(
+            crate::utils::runique_log::get_log()
+                .session
+                .as_ref()
+                .and_then(|s| s.store),
+            "delete session from DB on logout",
+        );
     }
 
     // Clear permission cache
@@ -466,7 +501,13 @@ pub async fn load_user_middleware(
         let extensions = RequestExtensions::new().with_current_user(current_user);
         extensions.inject_request(&mut request);
     } else if session.id().is_some() {
-        let _ = session.delete().await;
+        session.delete().await.trace(
+            crate::utils::runique_log::get_log()
+                .session
+                .as_ref()
+                .and_then(|s| s.store),
+            "delete anonymous session",
+        );
     }
 
     next.run(request).await

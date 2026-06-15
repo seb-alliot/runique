@@ -1,5 +1,6 @@
 //! `Message` — Axum extractor to read/write flash messages in session.
 use crate::flash::flash_struct::FlashMessage;
+use crate::utils::config::TraceResult;
 use crate::utils::{aliases::Messages, constante::session_key::session::FLASH_KEY};
 use axum::extract::FromRequestParts;
 use axum::http::{StatusCode, request::Parts};
@@ -38,7 +39,13 @@ impl Message {
             .unwrap_or_default();
 
         messages.push(msg);
-        let _ = self.session.insert(FLASH_KEY, messages).await;
+        self.session.insert(FLASH_KEY, messages).await.trace(
+            crate::utils::runique_log::get_log()
+                .session
+                .as_ref()
+                .and_then(|s| s.store),
+            "flash message insert into session",
+        );
     }
 
     pub async fn success(&self, msg: impl Into<String>) {
@@ -63,7 +70,13 @@ impl Message {
             .unwrap_or_default();
 
         // Deletes after reading for “flash” effect
-        let _ = self.session.remove::<Messages>(FLASH_KEY).await;
+        self.session.remove::<Messages>(FLASH_KEY).await.trace(
+            crate::utils::runique_log::get_log()
+                .session
+                .as_ref()
+                .and_then(|s| s.store),
+            "flash message remove from session",
+        );
         messages
     }
 }
