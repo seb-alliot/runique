@@ -4,6 +4,7 @@ use crate::auth::guard::{cache_permissions, evict_permissions, get_permissions};
 use crate::auth::user_trait::RuniqueUser;
 use crate::context::RequestExtensions;
 use crate::middleware::session::session_db::RuniqueSessionStore;
+use crate::utils::config::TraceResult;
 use crate::utils::constante::{
     admin_key::admin_context::permission::GROUPES,
     session_key::session::{
@@ -11,7 +12,6 @@ use crate::utils::constante::{
         SESSION_USER_IS_SUPERUSER_KEY, SESSION_USER_USERNAME_KEY,
     },
 };
-use crate::utils::config::TraceResult;
 use crate::utils::pk::Pk;
 use axum::{extract::Request, middleware::Next, response::Response};
 use sea_orm::DatabaseConnection;

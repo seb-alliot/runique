@@ -1,8 +1,8 @@
 //! Persistent session store in the database (table `eihwaz_sessions`).
+use crate::utils::config::TraceResult;
 use sea_orm::{
     ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, entity::prelude::*,
 };
-use crate::utils::config::TraceResult;
 use sea_query::Expr;
 use std::sync::Arc;
 

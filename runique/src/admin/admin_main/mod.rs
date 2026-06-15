@@ -10,9 +10,9 @@ mod handle_list;
 mod handle_password;
 
 use crate::auth::session::CurrentUser;
-use crate::utils::config::TraceResult;
 use crate::context::template::{AppError, Request};
 use crate::errors::error::ErrorContext;
+use crate::utils::config::TraceResult;
 use crate::utils::{
     aliases::{AppResult, StrMap},
     constante::admin_context::{common as ctx_common, list as ctx_list, permission as ctx_perm},
