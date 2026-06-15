@@ -1,7 +1,7 @@
 
 # Runique — Framework Rust inspiré de Django
 
-![Rust](https://img.shields.io/badge/rust-1.88%2B-orange)
+![Rust](https://img.shields.io/badge/rust-1.94%2B-orange)
 ![Tests passing](https://img.shields.io/badge/tests-2011%2B%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Version](https://img.shields.io/badge/version-2.1.15-blue)

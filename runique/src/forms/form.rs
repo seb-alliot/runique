@@ -8,6 +8,7 @@ use crate::forms::{
 };
 
 use crate::middleware::errors::error::html_escape;
+use crate::utils::config::TraceResult;
 use crate::utils::{
     aliases::{FieldsMap, StrMap},
     constante::session_key::session::CSRF_TOKEN_KEY,
@@ -70,7 +71,16 @@ impl Serialize for Forms {
 
         let rendered_html = match self.render() {
             Ok(h) => h,
-            Err(e) => format!("<p style='color:red'>Render error: {}</p>", html_escape(&e)),
+            Err(e) => {
+                if let Some(level) = crate::utils::runique_log::get_log()
+                    .forms
+                    .as_ref()
+                    .and_then(|f| f.render)
+                {
+                    crate::runique_log!(level, error = %e, "form render failed");
+                }
+                format!("<p style='color:red'>Render error: {}</p>", html_escape(&e))
+            }
         };
         state.serialize_field("html", &rendered_html)?;
 
@@ -81,7 +91,13 @@ impl Serialize for Forms {
                 .filter_map(|(name, field)| {
                     renderer
                         .render_field(field.as_ref())
-                        .ok()
+                        .trace(
+                            crate::utils::runique_log::get_log()
+                                .forms
+                                .as_ref()
+                                .and_then(|f| f.render),
+                            "field render failed",
+                        )
                         .map(|html| (name.clone(), html))
                 })
                 .collect(),
@@ -119,7 +135,13 @@ impl Serialize for Forms {
         let honeypot_html = match (&self.honeypot_field_name, &self.renderer) {
             (Some(name), Some(renderer)) => {
                 let hp = HoneypotField::new(name);
-                renderer.render_field(&hp).unwrap_or_default()
+                renderer.render_field(&hp).trace_or_default(
+                    crate::utils::runique_log::get_log()
+                        .forms
+                        .as_ref()
+                        .and_then(|f| f.render),
+                    "honeypot render",
+                )
             }
             _ => String::new(),
         };
@@ -264,14 +286,6 @@ impl Forms {
                 required = generic_instance.required(),
                 "field registered"
             );
-            if crate::utils::env::is_debug() {
-                eprintln!(
-                    "[runique:form] field registered  {} ({}) required={}",
-                    generic_instance.name(),
-                    generic_instance.field_type(),
-                    generic_instance.required()
-                );
-            }
         }
         self.fields.insert(
             generic_instance.name().to_string(),
@@ -305,14 +319,8 @@ impl Forms {
                 {
                     if field.field_type() == "password" {
                         crate::runique_log!(level, field = %field.name(), "set_value [hidden]");
-                        if crate::utils::env::is_debug() {
-                            eprintln!("[runique:form] set_value  {} = [hidden]", field.name());
-                        }
                     } else {
                         crate::runique_log!(level, field = %field.name(), value = %value, "set_value");
-                        if crate::utils::env::is_debug() {
-                            eprintln!("[runique:form] set_value  {} = {:?}", field.name(), value);
-                        }
                     }
                 }
                 field.set_value(value);
@@ -341,17 +349,6 @@ impl Forms {
         // A POST/PUT/PATCH is always a submission, even if all fields are empty.
         // A GET with query params is only "submitted" if at least one param is non-empty.
         self.submitted = allow_password || has_data;
-
-        if allow_password && crate::utils::env::is_debug() {
-            eprintln!("[runique:form] fill POST —");
-            for (name, field) in &self.fields {
-                if field.field_type() == "password" {
-                    eprintln!("  {name} = [hidden]");
-                } else {
-                    eprintln!("  {name} = {:?}", field.value());
-                }
-            }
-        }
     }
 
     // ── Field display overrides ──────────────────────────────────────────────
@@ -450,26 +447,11 @@ impl Forms {
                 Ok(()) => {
                     if let Some(level) = log_finalize {
                         crate::runique_log!(level, field = %name, kind = %field.field_type(), "finalize ok");
-                        if crate::utils::env::is_debug() {
-                            eprintln!(
-                                "[runique:form] finalize ok  {} ({})",
-                                name,
-                                field.field_type()
-                            );
-                        }
                     }
                 }
                 Err(e) => {
                     if let Some(level) = log_finalize {
                         crate::runique_log!(level, field = %name, kind = %field.field_type(), error = %e, "finalize error");
-                        if crate::utils::env::is_debug() {
-                            eprintln!(
-                                "[runique:form] finalize error  {} ({}) : {}",
-                                name,
-                                field.field_type(),
-                                e
-                            );
-                        }
                     }
                     return Err(tf("forms.finalize_error", &[name, &e]));
                 }

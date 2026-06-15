@@ -2,6 +2,7 @@
 use sea_orm::{
     ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, entity::prelude::*,
 };
+use crate::utils::config::TraceResult;
 use sea_query::Expr;
 use std::sync::Arc;
 
@@ -163,7 +164,13 @@ impl RuniqueSessionStore {
                 ..Default::default()
             };
             // Ignore potential unique-constraint race (concurrent login on same session)
-            Entity::insert(model).exec(&*self.db).await.ok();
+            Entity::insert(model).exec(&*self.db).await.trace(
+                crate::utils::runique_log::get_log()
+                    .session
+                    .as_ref()
+                    .and_then(|s| s.store),
+                "insert session into DB",
+            );
         }
         Ok(())
     }
