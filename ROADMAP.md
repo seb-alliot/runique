@@ -16,10 +16,10 @@
 🔧 **Tracing — sorties & observabilité** — sortie fichier (`LogOutput` + rotation + `WorkerGuard`), request_id/access-log, `Secret<T>`, branchement nœud `errors` sur la page d'erreur (à faire)
 - ✅ **`extend!{}` génère le code Rust** — entité complète + ActiveModel + AdminForm
 - ✅ **Historique admin** — filtres par resource/action/user + diff avant/après + vue batch (timeline)
-- [ ] **Persistance des filtres admin** — conserver `search`, `filter_*`, `page`, `sort_by` dans l'URL de retour après edit/delete
-- [ ] **Boot validation** — refuser le démarrage en production si la config est incohérente
+- ✅ **Persistance des filtres admin** — `search`, `filter_*`, `page`, `sort_by` conservés via `return_qs` : liste → liens detail/edit/delete → hidden form → redirect retour après edit/delete
+- ✅ **Boot validation** — `cross_validate` au `build()` (`CheckReport`) : refuse le démarrage en production si `SECRET_KEY` par défaut ou ACME mal configuré ; sauté en debug, extensible
 - [ ] **Reset token persisté en DB** — actuellement en mémoire, perdu au redémarrage
-- [ ] **Pagination changelog** — demo-app : liste des entrées sans pagination
+- ✅ **Pagination changelog** — demo-app : `fetch_changelog_paged(db, page)` paginé
 
 ---
 
