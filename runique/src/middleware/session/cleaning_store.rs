@@ -438,16 +438,27 @@ impl SessionStore for CleaningMemoryStore {
                 .fetch_sub(old_size.saturating_sub(new_size), Ordering::Relaxed);
         }
 
-        // Collect DB write params before dropping the lock.
+        // Collect DB write params before dropping the lock. Mirrors create(): we
+        // upsert with the *current* expiry so the DB row tracks the sliding TTL
+        // (after login the in-memory expiry is bumped to the authenticated duration,
+        // but update_session_data alone never refreshed expires_at — the row stayed
+        // frozen at the 5-min anonymous window and looked expired after a restart).
         #[cfg(feature = "orm")]
         let db_write = if let Some(ref db) = self.db_fallback
-            && record
+            && let Some(user_id) = record
                 .data
-                .contains_key(crate::utils::constante::session_key::session::SESSION_USER_ID_KEY)
+                .get(crate::utils::constante::session_key::session::SESSION_USER_ID_KEY)
+                .and_then(|v| serde_json::from_value::<crate::utils::pk::Pk>(v.clone()).ok())
         {
+            let expires_at =
+                chrono::DateTime::from_timestamp(record.expiry_date.unix_timestamp(), 0)
+                    .map(|dt| dt.naive_utc())
+                    .unwrap_or_else(|| chrono::Utc::now().naive_utc());
             Some((
                 db.clone(),
                 record.id.to_string(),
+                user_id,
+                expires_at,
                 serde_json::to_string(&record.data).ok(),
             ))
         } else {
@@ -462,10 +473,12 @@ impl SessionStore for CleaningMemoryStore {
             db.invalidate_other_sessions(user_id, &cookie_id).await.ok();
         }
 
-        // Persist authenticated session data so it survives restarts.
+        // Persist authenticated session data + refreshed expiry so it survives restarts.
         #[cfg(feature = "orm")]
-        if let Some((db, cookie_id, data)) = db_write {
-            db.update_session_data(&cookie_id, data).await.ok();
+        if let Some((db, cookie_id, user_id, expires_at, data)) = db_write {
+            db.upsert_session(&cookie_id, user_id, expires_at, data)
+                .await
+                .ok();
         }
 
         Ok(())
@@ -488,24 +501,39 @@ impl SessionStore for CleaningMemoryStore {
         #[cfg(feature = "orm")]
         if let Some(ref db) = self.db_fallback {
             let cookie_id = session_id.to_string();
-            if let Ok(Some(model)) = db.find_by_cookie_id(&cookie_id).await
-                && let Some(data_str) = &model.session_data
-                && let Ok(data) = serde_json::from_str(data_str)
-            {
-                let expiry =
-                    OffsetDateTime::from_unix_timestamp(model.expires_at.and_utc().timestamp())
+            // A DB error here (schema drift, missing table) must NOT be swallowed:
+            // it silently kills the fallback and surfaces only as "record not found".
+            match db.find_by_cookie_id(&cookie_id).await {
+                Ok(Some(model)) => {
+                    if let Some(data_str) = &model.session_data
+                        && let Ok(data) = serde_json::from_str(data_str)
+                    {
+                        let expiry = OffsetDateTime::from_unix_timestamp(
+                            model.expires_at.and_utc().timestamp(),
+                        )
                         .unwrap_or_else(|_| OffsetDateTime::now_utc());
-                let record = Record {
-                    id: *session_id,
-                    data,
-                    expiry_date: expiry,
-                };
-                // Warm the memory cache
-                let mut guard = self.data.lock().await;
-                guard.insert(record.id, record.clone());
-                self.size_bytes
-                    .fetch_add(estimate_size(&record), Ordering::Relaxed);
-                return Ok(Some(record));
+                        let record = Record {
+                            id: *session_id,
+                            data,
+                            expiry_date: expiry,
+                        };
+                        // Warm the memory cache
+                        let mut guard = self.data.lock().await;
+                        guard.insert(record.id, record.clone());
+                        self.size_bytes
+                            .fetch_add(estimate_size(&record), Ordering::Relaxed);
+                        return Ok(Some(record));
+                    }
+                }
+                Ok(None) => {}
+                Err(e) => {
+                    if let Some(level) = crate::utils::runique_log::get_log().session {
+                        crate::runique_log!(
+                            level,
+                            "session DB fallback load failed for cookie_id lookup: {e}"
+                        );
+                    }
+                }
             }
         }
 
