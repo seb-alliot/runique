@@ -237,7 +237,10 @@ mod tests {
     fn strict_preserves_legitimate_punctuation() {
         // Non-lossy: a lone `>` or `&` in prose must survive (the `=>` / `R&D` case),
         // while tags are still stripped. This is what makes input mutation safe to drop.
-        assert_eq!(sanitize_strict("one bug => fix soon"), "one bug => fix soon");
+        assert_eq!(
+            sanitize_strict("one bug => fix soon"),
+            "one bug => fix soon"
+        );
         assert_eq!(sanitize_strict("R&D budget"), "R&D budget");
         assert_eq!(sanitize_strict("a => b => c"), "a => b => c");
     }
