@@ -11,8 +11,11 @@ use tracing::Level;
 #[serial]
 fn log_init_active_la_config() {
     reset_log_for_test();
-    log_init(RuniqueLog::new().db(Level::DEBUG));
-    assert_eq!(get_log().db, Some(Level::DEBUG));
+    log_init(RuniqueLog::new().db(|d| d.connect(Level::DEBUG)));
+    assert_eq!(
+        get_log().db.as_ref().and_then(|d| d.connect),
+        Some(Level::DEBUG)
+    );
     reset_log_for_test();
 }
 
@@ -20,9 +23,12 @@ fn log_init_active_la_config() {
 #[serial]
 fn log_init_idempotent() {
     reset_log_for_test();
-    log_init(RuniqueLog::new().db(Level::DEBUG));
-    log_init(RuniqueLog::new().db(Level::ERROR)); // ignoré
-    assert_eq!(get_log().db, Some(Level::DEBUG));
+    log_init(RuniqueLog::new().db(|d| d.connect(Level::DEBUG)));
+    log_init(RuniqueLog::new().db(|d| d.connect(Level::ERROR))); // ignoré
+    assert_eq!(
+        get_log().db.as_ref().and_then(|d| d.connect),
+        Some(Level::DEBUG)
+    );
     reset_log_for_test();
 }
 
@@ -32,7 +38,7 @@ fn get_log_sans_init_retourne_default() {
     reset_log_for_test();
     let log = get_log();
     assert!(log.db.is_none());
-    assert!(log.csrf.is_none());
+    assert!(log.middleware.is_none());
     assert!(log.forms.is_none());
 }
 
@@ -101,15 +107,24 @@ fn builder_tracing_dev_active_tout() {
 #[serial]
 fn rate_limit_desactive_par_defaut() {
     reset_log_for_test();
-    assert!(get_log().rate_limit.is_none());
+    assert!(
+        get_log()
+            .middleware
+            .as_ref()
+            .and_then(|m| m.rate_limit)
+            .is_none()
+    );
 }
 
 #[test]
 #[serial]
 fn rate_limit_active() {
     reset_log_for_test();
-    log_init(RuniqueLog::new().rate_limit(Level::WARN));
-    assert_eq!(get_log().rate_limit, Some(Level::WARN));
+    log_init(RuniqueLog::new().middleware(|m| m.rate_limit(Level::WARN)));
+    assert_eq!(
+        get_log().middleware.as_ref().and_then(|m| m.rate_limit),
+        Some(Level::WARN)
+    );
     reset_log_for_test();
 }
 
@@ -137,12 +152,12 @@ fn dev_active_tous_les_domaines() {
             .forms(|f| f.dev())
             .auth(|a| a.dev())
             .builder(|b| b.dev())
-            .rate_limit(Level::DEBUG),
+            .middleware(|m| m.rate_limit(Level::DEBUG)),
     );
     let log = get_log();
     assert!(log.forms.as_ref().and_then(|f| f.validate).is_some());
     assert!(log.auth.as_ref().and_then(|a| a.login).is_some());
     assert!(log.builder.as_ref().and_then(|b| b.templates).is_some());
-    assert!(log.rate_limit.is_some());
+    assert!(log.middleware.as_ref().and_then(|m| m.rate_limit).is_some());
     reset_log_for_test();
 }

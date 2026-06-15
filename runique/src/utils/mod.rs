@@ -16,6 +16,7 @@ pub mod trad;
 
 pub use aliases::*;
 pub use cli::create_new_project;
+pub use config::runique_log;
 pub use config::*;
 pub use constante::*;
 pub use env::is_debug;

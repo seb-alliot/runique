@@ -24,9 +24,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     builder::new(config)
         .with_log(|l| {
-            l.dev()
-                .host_validation(tracing::Level::WARN)
-                .acme(tracing::Level::INFO)
+            l.dev().middleware(|m| {
+                m.host_validation(tracing::Level::WARN)
+                    .https(tracing::Level::INFO)
+            })
         })
         .routes(url::routes())
         .with_database(db)

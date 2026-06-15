@@ -397,7 +397,10 @@ pub fn dummy_hash() -> &'static str {
 
 pub fn password_init(config: PasswordConfig) {
     if PASSWORD_CONFIG.set(config).is_err()
-        && let Some(level) = crate::utils::runique_log::get_log().password_init
+        && let Some(level) = crate::utils::runique_log::get_log()
+            .auth
+            .as_ref()
+            .and_then(|a| a.password_init)
     {
         crate::runique_log!(
             level,

@@ -150,38 +150,78 @@ async fn test_session_db_invalidate_all() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// update_session_data
+// upsert_session — single full-snapshot write path (data + expiry)
 // ═══════════════════════════════════════════════════════════════
 
 #[tokio::test]
-async fn test_session_db_update_session_data() {
+async fn test_session_db_upsert_inserts_when_absent() {
     let store = make_store().await;
     store
-        .create("cookie-data", 2, "sess-data", future_expiry())
+        .upsert_session(
+            "cookie-up",
+            3,
+            future_expiry(),
+            Some("{\"key\":\"value\"}".to_string()),
+        )
         .await
         .unwrap();
 
-    store
-        .update_session_data("cookie-data", Some("{\"key\":\"value\"}".to_string()))
-        .await
-        .unwrap();
-
-    let s = store
-        .find_by_cookie_id("cookie-data")
-        .await
-        .unwrap()
-        .unwrap();
+    let s = store.find_by_cookie_id("cookie-up").await.unwrap().unwrap();
+    assert_eq!(s.user_id, 3);
     assert_eq!(s.session_data, Some("{\"key\":\"value\"}".to_string()));
 }
 
 #[tokio::test]
-async fn test_session_db_update_session_data_none() {
+async fn test_session_db_upsert_updates_data_on_existing() {
     let store = make_store().await;
     store
-        .create("cookie-null", 2, "sess-null", future_expiry())
+        .create("cookie-ud", 2, "sess-ud", future_expiry())
         .await
         .unwrap();
-    assert!(store.update_session_data("cookie-null", None).await.is_ok());
+
+    store
+        .upsert_session(
+            "cookie-ud",
+            2,
+            future_expiry(),
+            Some("{\"v\":2}".to_string()),
+        )
+        .await
+        .unwrap();
+
+    let s = store.find_by_cookie_id("cookie-ud").await.unwrap().unwrap();
+    assert_eq!(s.session_data, Some("{\"v\":2}".to_string()));
+}
+
+#[tokio::test]
+async fn test_session_db_upsert_refreshes_expiry_not_frozen() {
+    // Regression (2026-06-15): a second write must move expires_at forward instead of
+    // leaving the row frozen at the first (short) expiry — the bug that logged active
+    // users out after a server restart because the DB backup looked expired.
+    let store = make_store().await;
+    let soon = chrono::Utc::now()
+        .naive_utc()
+        .checked_add_signed(chrono::Duration::minutes(5))
+        .unwrap();
+    store
+        .upsert_session("cookie-exp", 4, soon, Some("{}".to_string()))
+        .await
+        .unwrap();
+    store
+        .upsert_session("cookie-exp", 4, future_expiry(), Some("{}".to_string()))
+        .await
+        .unwrap();
+
+    let s = store
+        .find_by_cookie_id("cookie-exp")
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(
+        s.expires_at > soon,
+        "second upsert must refresh expires_at, got {}",
+        s.expires_at
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════
