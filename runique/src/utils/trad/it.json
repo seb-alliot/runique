@@ -116,11 +116,22 @@
     "template": "Errore del template in '{}'"
   },
   "build": {
+    "subscriber_already_installed": "Un subscriber di tracing è già installato; la configurazione di log di Runique è inattiva (RUST_LOG / with_log non hanno effetto)",
+    "external_outputs_ignored": "`with_log(|l| l.external())` è impostato; gli output di log configurati vengono ignorati (l'applicazione possiede il subscriber)",
     "validation_failed": "Validazione del build fallita: {}",
     "check_failed": "Build fallita con {} errore/i di verifica",
     "template_failed": "Caricamento del template fallito: {}",
     "db_missing": "Connessione al database richiesta quando la feature 'orm' è attiva",
     "component_not_ready": "Il componente '{}' non è pronto"
+  },
+  "server": {
+    "operational": "Runique è operativo",
+    "launched": "Server avviato su {}",
+    "connected_db": "Connesso al database {} -> {}",
+    "stop_hint": "ctrl + c per fermare",
+    "shutting_down": "Arresto del server Runique...",
+    "acme_not_compiled": "ACME_ENABLED=true ma la feature `acme` non è compilata.",
+    "acme_add_feature": "Aggiungi la feature `acme` al tuo Cargo.toml."
   },
   "middleware": {
     "host_invalid": "Host non valido: '{}' (Host consentiti: {})",

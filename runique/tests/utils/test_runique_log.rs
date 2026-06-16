@@ -128,5 +128,5 @@ fn test_dev_does_not_panic() {
 #[test]
 fn test_init_subscriber_does_not_panic() {
     let log = RuniqueLog::new().subscriber_level("error");
-    log.init_subscriber();
+    let _guards = log.init_subscriber();
 }

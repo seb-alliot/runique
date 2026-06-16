@@ -116,11 +116,22 @@
     "template": "'{}' のテンプレートエラー"
   },
   "build": {
+    "subscriber_already_installed": "tracing subscriber は既にインストールされています。Runique のログ設定は無効です（RUST_LOG / with_log は効果がありません）",
+    "external_outputs_ignored": "`with_log(|l| l.external())` が設定されています。設定されたログ出力は無視されます（アプリケーションが subscriber を所有します）",
     "validation_failed": "ビルド検証に失敗しました: {}",
     "check_failed": "ビルドが {} 個のチェックエラーで失敗しました",
     "template_failed": "テンプレートの読み込みに失敗しました: {}",
     "db_missing": "'orm' 機能が有効な場合、データベース接続が必要です",
     "component_not_ready": "コンポーネント '{}' の準備ができていません"
+  },
+  "server": {
+    "operational": "Runique は稼働中です",
+    "launched": "サーバーを {} で起動しました",
+    "connected_db": "データベースに接続しました {} -> {}",
+    "stop_hint": "停止するには Ctrl + C",
+    "shutting_down": "Runique サーバーをシャットダウンしています...",
+    "acme_not_compiled": "ACME_ENABLED=true ですが、`acme` フィーチャーがコンパイルされていません。",
+    "acme_add_feature": "Cargo.toml に `acme` フィーチャーを追加してください。"
   },
   "middleware": {
     "host_invalid": "無効なホスト: '{}' (許可されたホスト: {})",

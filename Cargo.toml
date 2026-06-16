@@ -68,7 +68,8 @@ rust_decimal = { version = "1", features = ["serde-float"] }
 # Logging
 tracing = "0.1"
 tracing-futures = "0.2.5"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-appender = "0.2"
 thiserror = "2.0.18"
 
 # Async

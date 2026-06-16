@@ -60,8 +60,8 @@ pub mod prelude {
     pub use crate::errors::RuniqueError;
     pub use crate::utils::config::runique_log::{
         AdminTracing, AuthTracing, BuilderTracing, DbTracing, ErrorsTracing, FormTracing,
-        MailerTracing, MiddlewareTracing, MigrationTracing, RuniqueLog, SessionTracing,
-        TemplatesTracing,
+        LogOutput, LogRecord, LogRotation, LogSink, MailerTracing, MiddlewareTracing,
+        MigrationTracing, RuniqueLog, SessionTracing, TemplatesTracing,
     };
     pub use crate::utils::init_logging;
     pub use tracing::{self, Level};

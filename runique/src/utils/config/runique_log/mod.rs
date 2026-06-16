@@ -5,8 +5,13 @@
 //! (`forms`, `middleware`, `session`, `auth`, `admin`, `db`, `mailer`, `migration`,
 //! `templates`, `errors`, `builder`). Each leaf is an `Option<Level>` — `None` means
 //! the event is disabled (zero cost).
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
-use tracing_subscriber::{EnvFilter, fmt::format::FmtSpan};
+use tracing_appender::non_blocking::WorkerGuard;
+use tracing_subscriber::{
+    EnvFilter, Layer, Registry, fmt, fmt::format::FmtSpan, layer::SubscriberExt,
+    util::SubscriberInitExt,
+};
 
 mod admin;
 mod auth;
@@ -17,6 +22,7 @@ mod forms;
 mod mailer;
 mod middleware;
 mod migration;
+mod output;
 mod session;
 mod templates;
 
@@ -29,6 +35,7 @@ pub use forms::FormTracing;
 pub use mailer::MailerTracing;
 pub use middleware::MiddlewareTracing;
 pub use migration::MigrationTracing;
+pub use output::{LogOutput, LogRecord, LogRotation, LogSink};
 pub use session::SessionTracing;
 pub use templates::TemplatesTracing;
 
@@ -73,6 +80,14 @@ pub struct RuniqueLog {
     pub errors: Option<ErrorsTracing>,
     /// Builder startup tracing (templates, registry, middleware slots).
     pub builder: Option<BuilderTracing>,
+
+    /// Log destinations. Empty means a single colored `Stdout` (the default).
+    /// Add with [`output`](RuniqueLog::output) to fan out to console + file(s).
+    outputs: Vec<LogOutput>,
+
+    /// When `true`, the application owns the subscriber: Runique installs nothing
+    /// (see [`external`](RuniqueLog::external)). Runique still emits its events.
+    external: bool,
 }
 
 impl RuniqueLog {
@@ -88,9 +103,67 @@ impl RuniqueLog {
         self
     }
 
-    /// Initializes the global tracing subscriber.
-    /// Called automatically by `build()` — no effect if already initialized.
-    pub fn init_subscriber(&self) {
+    /// Adds a log destination. Repeatable — outputs are cumulative.
+    ///
+    /// With no `output`, logs go to a single colored `Stdout`. The
+    /// `RUNIQUE_LOG_FILE` env var adds a file output at runtime without recompiling.
+    ///
+    /// ```rust,ignore
+    /// .with_log(|l| l
+    ///     .output(LogOutput::stdout())
+    ///     .output(LogOutput::file("logs/app.json")))
+    /// ```
+    #[must_use]
+    pub fn output(mut self, output: LogOutput) -> Self {
+        self.outputs.push(output);
+        self
+    }
+
+    /// Delegates the tracing subscriber to the application: Runique will **not**
+    /// install one (no `try_init`), so you can build and install your own
+    /// `tracing-subscriber` stack in `main`. Runique still emits its events to the
+    /// `tracing` facade, so your subscriber receives them — filter the `runique`
+    /// target out if you don't want them.
+    ///
+    /// Any [`output`](RuniqueLog::output) configured here is ignored in this mode
+    /// (your subscriber decides where logs go).
+    ///
+    /// ```rust,ignore
+    /// // main.rs — you own the subscriber
+    /// tracing_subscriber::fmt()
+    ///     .with_max_level(tracing::Level::INFO)
+    ///     .init();
+    ///
+    /// RuniqueApp::builder(config)
+    ///     .with_log(|l| l.external())
+    ///     .build().await?
+    ///     .run().await
+    /// ```
+    #[must_use]
+    pub fn external(mut self) -> Self {
+        self.external = true;
+        self
+    }
+
+    /// Initializes the global tracing subscriber and returns the file-writer
+    /// guards. Called automatically by `build()` — no effect if already initialized.
+    ///
+    /// The returned [`WorkerGuard`]s keep the non-blocking file-writer threads
+    /// alive: they **must** be held for the lifetime of the app (stored in
+    /// `RuniqueApp`), otherwise buffered log lines are dropped on shutdown.
+    #[must_use]
+    pub fn init_subscriber(&self) -> Vec<WorkerGuard> {
+        // The application owns the subscriber: install nothing, keep emitting.
+        if self.external && !self.outputs.is_empty() {
+            tracing::warn!(
+                "{}",
+                crate::utils::trad::t("build.external_outputs_ignored")
+            );
+        }
+        if self.external {
+            return Vec::new();
+        }
+
         let default = self.subscriber_level.as_deref().unwrap_or_else(|| {
             if crate::utils::env::is_debug() {
                 "debug"
@@ -102,9 +175,24 @@ impl RuniqueLog {
         let filter =
             std::env::var("RUST_LOG").map_or_else(|_| EnvFilter::new(default), EnvFilter::new);
 
-        let already_installed = tracing_subscriber::fmt()
-            .with_env_filter(filter)
-            .with_span_events(FmtSpan::CLOSE)
+        // Configured outputs, defaulting to a single stdout. The RUNIQUE_LOG_FILE
+        // env var adds a file output at runtime (ops override, no recompile).
+        let mut outputs = if self.outputs.is_empty() {
+            vec![LogOutput::Stdout]
+        } else {
+            self.outputs.clone()
+        };
+        if let Ok(path) = std::env::var("RUNIQUE_LOG_FILE")
+            && !path.is_empty()
+        {
+            outputs.push(LogOutput::file(path));
+        }
+
+        let (layers, guards) = Self::build_layers(outputs);
+
+        let already_installed = tracing_subscriber::registry()
+            .with(layers)
+            .with(filter)
             .try_init()
             .is_err();
 
@@ -114,9 +202,64 @@ impl RuniqueLog {
         // by the already-installed subscriber).
         if already_installed {
             tracing::warn!(
-                "Runique: a tracing subscriber is already installed; Runique log configuration is inactive (RUST_LOG / with_log have no effect)"
+                "{}",
+                crate::utils::trad::t("build.subscriber_already_installed")
             );
+            return Vec::new();
         }
+        guards
+    }
+
+    /// Builds one `fmt` layer per output plus the matching non-blocking file
+    /// guards. Split out from [`init_subscriber`](Self::init_subscriber) so it can
+    /// be exercised with a thread-local subscriber in tests (the global one can
+    /// only be installed once per process).
+    fn build_layers(
+        outputs: Vec<LogOutput>,
+    ) -> (
+        Vec<Box<dyn Layer<Registry> + Send + Sync>>,
+        Vec<WorkerGuard>,
+    ) {
+        let mut guards: Vec<WorkerGuard> = Vec::new();
+        let mut layers: Vec<Box<dyn Layer<Registry> + Send + Sync>> = Vec::new();
+
+        for output in outputs {
+            match output {
+                LogOutput::Stdout => {
+                    layers.push(fmt::layer().with_span_events(FmtSpan::CLOSE).boxed());
+                }
+                LogOutput::File { path, rotation } => {
+                    let dir = path
+                        .parent()
+                        .filter(|p| !p.as_os_str().is_empty())
+                        .map_or_else(|| PathBuf::from("."), Path::to_path_buf);
+                    let Some(prefix) = path.file_name().map(std::ffi::OsStr::to_owned) else {
+                        continue;
+                    };
+                    let appender = match rotation {
+                        LogRotation::Daily => tracing_appender::rolling::daily(&dir, &prefix),
+                        LogRotation::Hourly => tracing_appender::rolling::hourly(&dir, &prefix),
+                        LogRotation::Never => tracing_appender::rolling::never(&dir, &prefix),
+                    };
+                    let (writer, guard) = tracing_appender::non_blocking(appender);
+                    guards.push(guard);
+
+                    let layer = fmt::layer()
+                        .with_ansi(false)
+                        .with_writer(writer)
+                        .with_span_events(FmtSpan::CLOSE);
+                    if LogOutput::is_json(&path) {
+                        layers.push(layer.json().boxed());
+                    } else {
+                        layers.push(layer.boxed());
+                    }
+                }
+                LogOutput::Custom(sink) => {
+                    layers.push(output::SinkLayer::new(sink).boxed());
+                }
+            }
+        }
+        (layers, guards)
     }
 
     /// Configures form pipeline tracing.
@@ -273,4 +416,141 @@ macro_rules! runique_log {
             _                       => ::tracing::trace!($($args)*),
         }
     };
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tracing_subscriber::layer::SubscriberExt;
+
+    /// Unique temp directory per test, so parallel runs don't clobber each other.
+    fn unique_dir(tag: &str) -> PathBuf {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("runique_log_test_{tag}_{nanos}"));
+        std::fs::create_dir_all(&dir).expect("create temp dir");
+        dir
+    }
+
+    #[test]
+    fn output_is_repeatable_and_cumulative() {
+        let log = RuniqueLog::new()
+            .output(LogOutput::stdout())
+            .output(LogOutput::file("logs/app.json"));
+        assert_eq!(log.outputs.len(), 2);
+    }
+
+    #[test]
+    fn external_installs_no_subscriber() {
+        // external() must not call try_init (the app owns the subscriber): no guards.
+        let guards = RuniqueLog::new().external().init_subscriber();
+        assert!(guards.is_empty());
+    }
+
+    #[test]
+    fn file_defaults_to_daily_rotation() {
+        match LogOutput::file("logs/app.log") {
+            LogOutput::File { path, rotation } => {
+                assert_eq!(path, PathBuf::from("logs/app.log"));
+                assert_eq!(rotation, LogRotation::Daily);
+            }
+            other => panic!("expected a File output, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn rotation_overrides_file_and_noops_on_stdout() {
+        match LogOutput::file("a.log").rotation(LogRotation::Never) {
+            LogOutput::File { rotation, .. } => assert_eq!(rotation, LogRotation::Never),
+            other => panic!("expected a File output, got {other:?}"),
+        }
+        assert!(matches!(
+            LogOutput::stdout().rotation(LogRotation::Hourly),
+            LogOutput::Stdout
+        ));
+    }
+
+    #[test]
+    fn is_json_follows_the_extension() {
+        assert!(LogOutput::is_json(Path::new("logs/app.json")));
+        assert!(LogOutput::is_json(Path::new("APP.JSON"))); // case-insensitive
+        assert!(!LogOutput::is_json(Path::new("app.log")));
+        assert!(!LogOutput::is_json(Path::new("app")));
+    }
+
+    #[test]
+    fn plain_file_receives_events_and_fields() {
+        let dir = unique_dir("plain");
+        let path = dir.join("app.log");
+        // Never rotation → the file name is exactly `path` (no date suffix to resolve).
+        let output = LogOutput::file(&path).rotation(LogRotation::Never);
+        let (layers, guards) = RuniqueLog::build_layers(vec![output]);
+        let subscriber = tracing_subscriber::registry().with(layers);
+        tracing::subscriber::with_default(subscriber, || {
+            tracing::error!(user = 42, "boom in plain file");
+        });
+        drop(guards); // flushes the non-blocking writer thread before we read
+
+        let content = std::fs::read_to_string(&path).expect("log file written");
+        assert!(content.contains("boom in plain file"), "got: {content}");
+        assert!(content.contains("user"), "field missing: {content}");
+        assert!(!content.contains('\u{1b}'), "ANSI escape leaked into file");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn json_file_is_structured() {
+        let dir = unique_dir("json");
+        let path = dir.join("app.json");
+        let output = LogOutput::file(&path).rotation(LogRotation::Never);
+        let (layers, guards) = RuniqueLog::build_layers(vec![output]);
+        let subscriber = tracing_subscriber::registry().with(layers);
+        tracing::subscriber::with_default(subscriber, || {
+            tracing::warn!(code = 7, "structured line");
+        });
+        drop(guards);
+
+        let content = std::fs::read_to_string(&path).expect("log file written");
+        let first = content.lines().next().expect("at least one line");
+        let v: serde_json::Value = serde_json::from_str(first).expect("each line is valid JSON");
+        assert_eq!(v["level"], "WARN");
+        assert_eq!(v["fields"]["message"], "structured line");
+        assert_eq!(v["fields"]["code"], 7);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn custom_sink_receives_records() {
+        #[derive(Clone, Default)]
+        struct Capture(
+            Arc<std::sync::Mutex<Vec<(tracing::Level, String, Vec<(&'static str, String)>)>>>,
+        );
+        impl LogSink for Capture {
+            fn log(&self, record: &LogRecord<'_>) {
+                self.0.lock().unwrap().push((
+                    record.level,
+                    record.message.clone(),
+                    record.fields.clone(),
+                ));
+            }
+        }
+
+        let cap = Capture::default();
+        let (layers, guards) = RuniqueLog::build_layers(vec![LogOutput::sink(cap.clone())]);
+        let subscriber = tracing_subscriber::registry().with(layers);
+        tracing::subscriber::with_default(subscriber, || {
+            tracing::info!(answer = 42, "hello sink");
+        });
+        drop(guards);
+
+        let recs = cap.0.lock().unwrap();
+        assert_eq!(recs.len(), 1);
+        let (level, message, fields) = &recs[0];
+        assert_eq!(*level, tracing::Level::INFO);
+        assert_eq!(message, "hello sink");
+        // `message` is split out; only `answer` remains in fields.
+        assert_eq!(fields.as_slice(), &[("answer", "42".to_string())]);
+    }
 }

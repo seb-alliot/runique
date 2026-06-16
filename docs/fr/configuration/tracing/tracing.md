@@ -1,6 +1,6 @@
 # Tracing structuré
 
-Runique expose un système de tracing opt-in par domaine via `RuniqueLog`. Chaque domaine s'active indépendamment — rien n'est loggué par défaut.
+Runique expose un système de tracing structuré via `RuniqueLog`. Par défaut, un subscriber **console** est installé et les **domaines sont opt-in** : tant qu'un domaine n'est pas activé, ses événements ne sont pas émis. Quelques sites critiques émettent toujours (voir [Erreurs inconditionnelles](#erreurs-inconditionnelles-toujours-actives)).
 
 ## Activation rapide en développement
 
@@ -87,6 +87,17 @@ RuniqueApp::builder(config)
 | `routes` | Registry URL | count |
 | `statics` | Fichiers statiques | static_url, static_dir, media_url, media_dir |
 
+### `errors` — Pages d'erreur HTTP
+
+| Champ | Moment | Données loggées |
+|-------|--------|-----------------|
+| `http` | Erreur HTTP gérée (404/validation/forbidden) | method, path, type / erreur |
+| `render` | Échec de rendu d'un template d'erreur (404/429/500) | template, erreur — **plancher WARN** (toujours visible, voir plus bas) |
+
+```rust
+.with_log(|l| l.errors(|e| e.http(Level::INFO).render(Level::WARN)))
+```
+
 ### Champs plats sur `RuniqueLog`
 
 | Champ | Moment | Données loggées |
@@ -99,11 +110,96 @@ RuniqueApp::builder(config)
 
 ---
 
+## Sorties de log
+
+Par défaut Runique installe un subscriber console (`Stdout`, couleurs). On configure une ou plusieurs sorties **cumulables** via `.output()` :
+
+```rust
+use runique::prelude::{LogOutput, LogRotation};
+
+.with_log(|l| l
+    .output(LogOutput::stdout())                 // console couleurs
+    .output(LogOutput::file("logs/app.json"))    // JSON (déduit de l'extension .json)
+    .output(LogOutput::file("logs/app.log")      // texte brut
+        .rotation(LogRotation::Daily)))
+```
+
+- Le **format est déduit de l'extension** : `.json` → JSON structuré (une ligne par événement), sinon texte brut.
+- L'écriture fichier est **non bloquante** ; les logs sont vidés proprement à l'extinction.
+- Rotation : `Daily` (défaut), `Hourly`, `Never`.
+- `RUNIQUE_LOG_FILE=/chemin/app.json` ajoute une sortie fichier au runtime, sans recompiler.
+
+## Sink personnalisé
+
+Pour router les logs vers une destination arbitraire (base de données, collecteur HTTP, file de messages), implémente `LogSink` — aucun type `tracing` n'est exposé :
+
+```rust
+use runique::prelude::{LogOutput, LogRecord, LogSink};
+
+struct MonSink;
+
+impl LogSink for MonSink {
+    fn log(&self, record: &LogRecord) {
+        // record.level / target / message / file / line / fields
+        // Ne bloque pas : pour de l'async, enfile dans ton propre channel.
+    }
+}
+
+.with_log(|l| l.output(LogOutput::sink(MonSink)))
+```
+
+Le sink reçoit **tous** les événements du process (Runique **et** ton application) ; distingue-les par `record.target` (les événements Runique ont un target commençant par `runique`). Runique ne fournit volontairement **pas** de sink base de données (cela surchargerait la DB) — `LogSink` est la porte pour le brancher toi-même.
+
+## Subscriber externe
+
+Si ton application gère son propre subscriber `tracing` (stack de layers custom, OpenTelemetry…), déclare `.external()` : Runique **n'installe rien** et te laisse le créneau global unique, tout en **continuant d'émettre** ses événements vers la façade `tracing` (ton subscriber les reçoit).
+
+Minimal :
+
+```rust
+.with_log(|l| l.external())
+```
+
+Complet :
+
+```rust
+use runique::prelude::*;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Tu poses TON subscriber, avant build()
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::INFO)
+        .init();
+
+    RuniqueApp::builder(RuniqueConfig::from_env())
+        .with_database().await
+        .routes(url::urlpatterns())
+        .with_log(|l| l.external())   // Runique n'installe pas son subscriber
+        .build().await?
+        .run().await
+}
+```
+
+Pour **ignorer** les logs internes de Runique, filtre leur target dans ton `EnvFilter` :
+
+```rust
+tracing_subscriber::fmt()
+    .with_env_filter("info,runique=off")   // garde tes logs, coupe ceux de Runique
+    .init();
+```
+
+En mode `.external()`, les sorties `.output()` sont ignorées (c'est ton subscriber qui décide où vont les logs).
+
+---
+
 ## Erreurs inconditionnelles (toujours actives)
 
-Indépendamment de la config tracing, certaines erreurs sont toujours loggées via `tracing::error!` :
+Indépendamment de la config tracing, certains événements sont toujours émis :
 
-- **Template invalide** — si un template Tera échoue au chargement, le nom du template et l'erreur (avec numéro de ligne) sont loggués avant l'arrêt du démarrage.
+- **Template invalide au démarrage** — `tracing::error!` (nom du template + ligne) avant l'arrêt.
+- **Erreurs serveur critiques** (500 : base de données, IO, template, interne) — `tracing::error!`.
+- **Sites sensibles à plancher `WARN`** — même domaine désactivé, ces échecs émettent au moins en `WARN`, car un échec silencieux y casserait une garantie : rotation de l'ID de session (anti-fixation), invalidation des autres sessions (login exclusif), persistance de la session au login, envoi de l'email de reset, et échec de rendu d'un template d'erreur (`errors.render`).
 
 ---
 

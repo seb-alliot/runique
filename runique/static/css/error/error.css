@@ -310,3 +310,86 @@ summary {
   font-weight: bold;
   padding: var(--space-sm) 0;
 }
+
+/* ===== OVERFLOW SAFETY (long messages / values, whatever the error) ===== */
+.stack-frame,
+.stack-frame strong,
+.info-card .value,
+.message-box,
+.timestamp {
+  overflow-wrap: break-word;
+  word-break: break-word;
+  min-width: 0;
+}
+
+/* ===== RESPONSIVE ===== */
+/* The debug page renders highly variable content (stack traces, template
+   source, headers table) depending on the error, so its width and code blocks
+   must adapt down to mobile instead of staying at a fixed 80%. */
+@media (max-width: 992px) {
+  .container,
+  header {
+    width: 92%;
+  }
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: var(--space-xl);
+  }
+
+  .header h1 {
+    font-size: 2rem;
+  }
+
+  .section {
+    padding: var(--space-lg);
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Headers table: scroll horizontally instead of pushing the page wider. */
+@media (max-width: 600px) {
+  .headers-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .container,
+  header {
+    width: 96%;
+  }
+
+  .header {
+    padding: var(--space-lg);
+  }
+
+  .header h1 {
+    font-size: 1.6rem;
+  }
+
+  .section h2 {
+    font-size: 1.25rem;
+  }
+
+  .section h3 {
+    font-size: 1.05rem;
+  }
+
+  .stack-frame .level {
+    display: inline-block;
+    margin-bottom: var(--space-xs);
+  }
+
+  .code-block,
+  pre.debug-repr,
+  pre.debug-frame {
+    font-size: 0.8rem;
+  }
+}

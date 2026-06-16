@@ -44,7 +44,7 @@ impl RuniqueAppBuilder {
         // Step 0: tracing (before everything else)
         // log_init early so get_log() works in TemplateLoader::init() and middleware staging.
         log_init(self.config.log.clone());
-        self.config.log.init_subscriber();
+        let log_guards = self.config.log.init_subscriber();
 
         // Step 1: validation
         self.validate()?;
@@ -214,7 +214,11 @@ impl RuniqueAppBuilder {
             router
         };
 
-        Ok(RuniqueApp { engine, router })
+        Ok(RuniqueApp {
+            engine,
+            router,
+            _log_guards: log_guards,
+        })
     }
 
     // ─── Internal validation ──────────────────────────────────────────────────

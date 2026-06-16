@@ -5,6 +5,7 @@ use tokio::signal;
 
 use crate::config::RuniqueConfig;
 use crate::utils::aliases::AEngine;
+use crate::utils::trad::{t, tf};
 
 use super::builder::RuniqueAppBuilder;
 
@@ -18,6 +19,9 @@ pub struct RuniqueApp {
     pub engine: AEngine,
     /// Axum router with all attached middlewares.
     pub router: Router,
+    /// Keeps the non-blocking log file writers alive for the app's lifetime.
+    /// Dropping these flushes and stops the background writer threads.
+    pub _log_guards: Vec<tracing_appender::non_blocking::WorkerGuard>,
 }
 
 impl RuniqueApp {
@@ -34,8 +38,8 @@ impl RuniqueApp {
     pub async fn run(self) -> Result<(), Box<dyn std::error::Error>> {
         #[cfg(not(feature = "acme"))]
         if std::env::var("ACME_ENABLED").as_deref() == Ok("true") {
-            eprintln!("⚠  ACME_ENABLED=true but the `acme` feature is not compiled in.");
-            eprintln!("   Add features = [\"acme\"] to your Cargo.toml.");
+            eprintln!("⚠  {}", t("server.acme_not_compiled"));
+            eprintln!("   {}", t("server.acme_add_feature"));
         }
 
         #[cfg(feature = "acme")]
@@ -53,18 +57,21 @@ impl RuniqueApp {
             self.engine.config.server.ip_server, self.engine.config.server.port
         );
 
-        println!("   Runique is operational");
-        println!("      └──>  Server launched on http://{}", addr);
+        println!("   {}", t("server.operational"));
+        println!(
+            "      └──>  {}",
+            tf("server.launched", &[format!("http://{addr}")])
+        );
 
         #[cfg(feature = "orm")]
         {
             let moteur_db = self.engine.db.get_database_backend();
             let db_name = std::env::var("DB_NAME").unwrap_or_else(|_| "runique_db".to_string());
             println!(
-                "          └──>  Connected to database {:?} -> {}",
-                moteur_db, db_name
+                "          └──>  {}",
+                tf("server.connected_db", &[format!("{moteur_db:?}"), db_name])
             );
-            println!("              └──> ctrl + c to stop");
+            println!("              └──> {}", t("server.stop_hint"));
         }
 
         let listener = tokio::net::TcpListener::bind(&addr).await?;
@@ -76,7 +83,7 @@ impl RuniqueApp {
         )
         .with_graceful_shutdown(async {
             signal::ctrl_c().await.expect("Error signal Ctrl+C");
-            println!("\nShutting down Runique server...");
+            println!("\n{}", t("server.shutting_down"));
         })
         .await?;
 
@@ -233,15 +240,18 @@ impl RuniqueApp {
         let https_addr = format!("{ip}:443");
         let tls_config = axum_server::tls_rustls::RustlsConfig::from_pem(cert_pem, key_pem).await?;
 
-        println!("   Runique is operational");
-        println!("      └──>  Server launched on https://{}", domain);
+        println!("   {}", t("server.operational"));
+        println!(
+            "      └──>  {}",
+            tf("server.launched", &[format!("https://{domain}")])
+        );
         #[cfg(feature = "orm")]
         {
             let moteur_db = self.engine.db.get_database_backend();
             let db_name = std::env::var("DB_NAME").unwrap_or_else(|_| "runique_db".to_string());
             println!(
-                "          └──>  Connected to database {:?} -> {}",
-                moteur_db, db_name
+                "          └──>  {}",
+                tf("server.connected_db", &[format!("{moteur_db:?}"), db_name])
             );
         }
         println!("              └──> ctrl + c to stop");
