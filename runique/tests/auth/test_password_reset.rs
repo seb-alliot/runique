@@ -110,7 +110,7 @@ fn make_reset_form() -> PasswordResetForm {
 #[tokio::test]
 async fn test_reset_form_valid() {
     let email = "test@example.com";
-    let token = reset_token::generate(email);
+    let token = "test-reset-token".to_string();
     let encrypted = reset_token::encrypt_email(&token, email);
 
     let mut form = make_reset_form();
@@ -141,7 +141,7 @@ async fn test_reset_form_invalid_token_decrypt_fails() {
 async fn test_reset_form_email_mismatch() {
     // Token valide mais l'email fourni ne correspond pas à l'email chiffré
     let real_email = "real@example.com";
-    let token = reset_token::generate(real_email);
+    let token = "test-reset-token".to_string();
     let encrypted = reset_token::encrypt_email(&token, real_email);
 
     let mut form = make_reset_form();
@@ -158,7 +158,7 @@ async fn test_reset_form_email_mismatch() {
 #[tokio::test]
 async fn test_reset_form_password_too_short() {
     let email = "test@example.com";
-    let token = reset_token::generate(email);
+    let token = "test-reset-token".to_string();
     let encrypted = reset_token::encrypt_email(&token, email);
 
     let mut form = make_reset_form();
@@ -175,7 +175,7 @@ async fn test_reset_form_password_too_short() {
 #[tokio::test]
 async fn test_reset_form_password_mismatch() {
     let email = "test@example.com";
-    let token = reset_token::generate(email);
+    let token = "test-reset-token".to_string();
     let encrypted = reset_token::encrypt_email(&token, email);
 
     let mut form = make_reset_form();
