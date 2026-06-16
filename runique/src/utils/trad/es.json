@@ -116,11 +116,22 @@
     "template": "Error de plantilla en '{}'"
   },
   "build": {
+    "subscriber_already_installed": "Ya hay un subscriber de tracing instalado; la configuración de log de Runique está inactiva (RUST_LOG / with_log no tienen efecto)",
+    "external_outputs_ignored": "`with_log(|l| l.external())` está definido; las salidas de log configuradas se ignoran (la aplicación posee el subscriber)",
     "validation_failed": "La validación del build falló: {}",
     "check_failed": "El build falló con {} error(es) de verificación",
     "template_failed": "La carga de la plantilla falló: {}",
     "db_missing": "Se requiere conexión a la base de datos cuando la feature 'orm' está activada",
     "component_not_ready": "El componente '{}' no está listo"
+  },
+  "server": {
+    "operational": "Runique está operativo",
+    "launched": "Servidor iniciado en {}",
+    "connected_db": "Conectado a la base de datos {} -> {}",
+    "stop_hint": "ctrl + c para detener",
+    "shutting_down": "Deteniendo el servidor Runique...",
+    "acme_not_compiled": "ACME_ENABLED=true pero la feature `acme` no está compilada.",
+    "acme_add_feature": "Añade la feature `acme` a tu Cargo.toml."
   },
   "middleware": {
     "host_invalid": "Host no válido: '{}' (Hosts permitidos: {})",

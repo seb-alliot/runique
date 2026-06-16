@@ -116,11 +116,22 @@
     "template": "'{}' 的模板错误"
   },
   "build": {
+    "subscriber_already_installed": "tracing subscriber 已安装；Runique 的日志配置无效（RUST_LOG / with_log 不起作用）",
+    "external_outputs_ignored": "`with_log(|l| l.external())` 已设置；已配置的日志输出将被忽略（应用程序拥有该 subscriber）",
     "validation_failed": "构建验证失败：{}",
     "check_failed": "构建检查失败，共 {} 个错误",
     "template_failed": "模板加载失败：{}",
     "db_missing": "启用 'orm' 功能时需要数据库连接",
     "component_not_ready": "组件 '{}' 尚未就绪"
+  },
+  "server": {
+    "operational": "Runique 正在运行",
+    "launched": "服务器已启动于 {}",
+    "connected_db": "已连接到数据库 {} -> {}",
+    "stop_hint": "按 Ctrl + C 停止",
+    "shutting_down": "正在关闭 Runique 服务器...",
+    "acme_not_compiled": "ACME_ENABLED=true，但未编译 `acme` 功能。",
+    "acme_add_feature": "请在你的 Cargo.toml 中添加 `acme` 功能。"
   },
   "middleware": {
     "host_invalid": "无效的主机名：'{}'（允许的主机：{}）",

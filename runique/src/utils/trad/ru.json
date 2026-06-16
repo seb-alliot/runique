@@ -116,11 +116,22 @@
     "template": "Ошибка шаблона в '{}'"
   },
   "build": {
+    "subscriber_already_installed": "Tracing subscriber уже установлен; конфигурация логов Runique неактивна (RUST_LOG / with_log не действуют)",
+    "external_outputs_ignored": "`with_log(|l| l.external())` установлен; настроенные выходы логов игнорируются (приложение владеет subscriber)",
     "validation_failed": "Ошибка валидации сборки: {}",
     "check_failed": "Ошибка сборки с {} ошибками проверки",
     "template_failed": "Ошибка загрузки шаблона: {}",
     "db_missing": "Требуется подключение к базе данных при включённой функции 'orm'",
     "component_not_ready": "Компонент '{}' не готов"
+  },
+  "server": {
+    "operational": "Runique работает",
+    "launched": "Сервер запущен на {}",
+    "connected_db": "Подключено к базе данных {} -> {}",
+    "stop_hint": "ctrl + c для остановки",
+    "shutting_down": "Завершение работы сервера Runique...",
+    "acme_not_compiled": "ACME_ENABLED=true, но функция `acme` не скомпилирована.",
+    "acme_add_feature": "Добавьте функцию `acme` в ваш Cargo.toml."
   },
   "middleware": {
     "host_invalid": "Неверный хост: '{}' (Разрешённые хосты: {})",

@@ -31,10 +31,11 @@ pub async fn inject_auth(request: &mut Request) {
 pub async fn inject_globals(request: &mut Request) {
     inject_auth(request).await;
     let user = &request.user;
-    let release = search!(crate::entities::runique_release::Entity => desc Id)
-        .first(&request.engine.db)
-        .await
-        .unwrap_or(None);
+    let release: Option<crate::entities::runique_release::Model> =
+        search!(crate::entities::runique_release::Entity => desc Id)
+            .first(&request.engine.db)
+            .await
+            .unwrap_or(None);
 
     let lang = if request
         .path_params

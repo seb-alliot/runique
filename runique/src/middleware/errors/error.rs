@@ -18,8 +18,28 @@ use axum::{
 use chrono::Utc;
 use std::sync::Arc;
 use tera::{Context, Tera};
-use tracing::{error, info, instrument};
+use tracing::{Level, error, instrument};
 use tracing_futures::Instrument;
+
+/// Level for non-critical HTTP error diagnostics (status/path of handled errors).
+/// `None` (disabled) by default — opt-in observability via `errors.http`.
+fn errors_http_level() -> Option<Level> {
+    crate::utils::runique_log::get_log()
+        .errors
+        .as_ref()
+        .and_then(|e| e.http)
+}
+
+/// Level for error-template render failures. Floored at `WARN`: a broken error
+/// template still serves a fallback, but the dev must see it. Configurable via
+/// `errors.render`.
+fn errors_render_level() -> Level {
+    crate::utils::runique_log::get_log()
+        .errors
+        .as_ref()
+        .and_then(|e| e.render)
+        .unwrap_or(Level::WARN)
+}
 
 /// Transport for request info used in contextual debug
 pub struct RequestInfoHelper {
@@ -100,12 +120,15 @@ fn build_error_context(
         .map(|err| (**err).clone());
 
     if let Some(ctx) = error_context_from_app {
-        info!(
-            method = %request_helper.method,
-            path = %request_helper.path,
-            error_type = ?ctx.error_type,
-            "Error with full context"
-        );
+        if let Some(level) = errors_http_level() {
+            crate::runique_log!(
+                level,
+                method = %request_helper.method,
+                path = %request_helper.path,
+                error_type = ?ctx.error_type,
+                "Error with full context"
+            );
+        }
 
         let mut ctx = (*ctx).clone();
         if ctx.request_info.is_none() {
@@ -151,12 +174,15 @@ fn log_runique_error(err: &RuniqueError, request_helper: &RequestInfoHelper) {
             );
         }
         RuniqueError::Validation(_) | RuniqueError::Forbidden | RuniqueError::NotFound => {
-            info!(
-                method = %request_helper.method,
-                path = %request_helper.path,
-                error = %err,
-                "Handled error"
-            );
+            if let Some(level) = errors_http_level() {
+                crate::runique_log!(
+                    level,
+                    method = %request_helper.method,
+                    path = %request_helper.path,
+                    error = %err,
+                    "Handled error"
+                );
+            }
         }
     }
 }
@@ -201,7 +227,7 @@ fn render_404(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -
     let mut response = match rendered {
         Ok(html) => (StatusCode::NOT_FOUND, Html(html)).into_response(),
         Err(e) => {
-            error!("Failed to render 404 template: {}", e);
+            crate::runique_log!(errors_render_level(), error = %e, template = "404.html", "failed to render error template");
             fallback_404_html()
         }
     };
@@ -223,7 +249,7 @@ fn render_429(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -
     let mut response = match rendered {
         Ok(html) => (StatusCode::TOO_MANY_REQUESTS, Html(html)).into_response(),
         Err(e) => {
-            error!("Failed to render 429 template: {}", e);
+            crate::runique_log!(errors_render_level(), error = %e, template = "429.html", "failed to render error template");
             fallback_429_html()
         }
     };
@@ -244,7 +270,7 @@ fn render_500(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -
     let mut response = match rendered {
         Ok(html) => (StatusCode::INTERNAL_SERVER_ERROR, Html(html)).into_response(),
         Err(e) => {
-            error!("Failed to render 500 template: {}", e);
+            crate::runique_log!(errors_render_level(), error = %e, template = "500.html", "failed to render error template");
             fallback_500_html()
         }
     };
@@ -558,7 +584,30 @@ pub(crate) fn html_escape(s: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::html_escape;
+    use super::{errors_http_level, errors_render_level, html_escape};
+    use crate::utils::runique_log::{RuniqueLog, log_init, reset_log_for_test};
+    use tracing::Level;
+
+    #[test]
+    #[serial_test::serial]
+    fn errors_render_floors_at_warn_and_http_off_by_default() {
+        reset_log_for_test();
+        log_init(RuniqueLog::new());
+        // render must stay visible (WARN) even with the node disabled; http is opt-in.
+        assert_eq!(errors_render_level(), Level::WARN);
+        assert!(errors_http_level().is_none());
+        reset_log_for_test();
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn errors_levels_follow_explicit_config() {
+        reset_log_for_test();
+        log_init(RuniqueLog::new().errors(|e| e.http(Level::INFO).render(Level::ERROR)));
+        assert_eq!(errors_http_level(), Some(Level::INFO));
+        assert_eq!(errors_render_level(), Level::ERROR);
+        reset_log_for_test();
+    }
 
     #[test]
     fn test_html_escape_ampersand() {

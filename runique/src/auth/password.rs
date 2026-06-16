@@ -268,7 +268,7 @@ pub async fn handle_forgot_password<E: UserEntity + 'static>(
                             if msg
                                 .send()
                                 .await
-                                .trace(log_level, "reset email send")
+                                .trace_or(log_level, tracing::Level::WARN, "reset email send")
                                 .is_some()
                                 && let Some(level) = log_level
                             {
@@ -287,7 +287,7 @@ pub async fn handle_forgot_password<E: UserEntity + 'static>(
                             .html(body)
                             .send()
                             .await
-                            .trace(log_level, "reset email send")
+                            .trace_or(log_level, tracing::Level::WARN, "reset email send")
                             .is_some()
                             && let Some(level) = log_level
                         {

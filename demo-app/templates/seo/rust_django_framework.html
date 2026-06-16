@@ -1,56 +1,46 @@
 {% extends "index.html" %}
 
 {# Page SEO longue traîne : "rust django framework", "django alternative for rust",
-   "rust web framework with admin panel", "type-safe forms rust". #}
+    "rust web framework with admin panel", "type-safe forms rust". #}
 
 {% block jsonld %}
 <script type="application/ld+json" {% csp %}>
-{
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": [
     {
-      "@type": "Question",
-      "name": "Is there a Django-like web framework for Rust?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Yes. Runique is a Rust web framework inspired by Django, built on Axum, SeaORM and Tera. It ships an auto-generated admin panel, type-safe forms, migrations, authentication and built-in CSRF/CSP security."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Does Runique have an admin panel like Django admin?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Yes. Runique generates a full CRUD admin panel from your models with list display, search, filters, bulk actions and permissions, declared through the admin! macro."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "What is the best Django alternative in Rust?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Runique aims to bring the Django developer experience to Rust: a batteries-included framework with models, type-safe forms, a generated admin, sessions and security middleware, on top of the Axum and SeaORM ecosystem."
-      }
-    }
-  ]
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+        {
+        "@type": "Question",
+        "name": "Is there a Django-like web framework for Rust?",
+        "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Runique is a Rust web framework inspired by Django, built on Axum, SeaORM and Tera. It ships an auto-generated admin panel, type-safe forms, migrations, authentication and built-in CSRF/CSP security."
+        }
+        },
+        {
+        "@type": "Question",
+        "name": "Does Runique have an admin panel like Django admin?",
+        "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Runique generates a full CRUD admin panel from your models with list display, search, filters, bulk actions and permissions, declared through the admin! macro."
+        }
+        },
+        {
+        "@type": "Question",
+        "name": "What is the best Django alternative in Rust?",
+        "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Runique aims to bring the Django developer experience to Rust: a batteries-included framework with models, type-safe forms, a generated admin, sessions and security middleware, on top of the Axum and SeaORM ecosystem."
+        }
+        }
+    ]
 }
 </script>
 {% endblock %}
 
 {% block style %}
     {{ super() }}
-    <style {% csp %}>
-        .seo-page { max-width: 900px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
-        .seo-page h1 { font-size: 2.1rem; line-height: 1.2; margin-bottom: .75rem; }
-        .seo-page h2 { font-size: 1.45rem; margin-top: 2.5rem; }
-        .seo-lead { font-size: 1.15rem; opacity: .9; }
-        .seo-cta { display: flex; gap: .75rem; flex-wrap: wrap; margin: 1.75rem 0; }
-        .seo-table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
-        .seo-table th, .seo-table td { text-align: left; padding: .6rem .75rem; border-bottom: 1px solid rgba(255,255,255,.12); }
-        .seo-table th { opacity: .7; font-weight: 600; }
-        .seo-faq h3 { margin: 1.4rem 0 .3rem; font-size: 1.1rem; }
-    </style>
+    <link rel="stylesheet" href="{% static "css/seo.css" %}">
 {% endblock %}
 
 {% block messages %}{% endblock %}

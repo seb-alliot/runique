@@ -299,11 +299,12 @@ pub async fn login(
     // Rotate the session ID on any privilege elevation (anonymous → auth, or user switch).
     // Prevents session fixation: an attacker who planted a session ID cannot reuse it after login.
     if is_privilege_elevation {
-        session.cycle_id().await.trace(
+        session.cycle_id().await.trace_or(
             crate::utils::runique_log::get_log()
                 .session
                 .as_ref()
                 .and_then(|s| s.store),
+            tracing::Level::WARN,
             "cycle session id (session fixation protection)",
         );
     }
@@ -357,11 +358,12 @@ pub async fn login(
         store
             .create(&cookie_id, user_id, &session_id, expires_at)
             .await
-            .trace(
+            .trace_or(
                 crate::utils::runique_log::get_log()
                     .session
                     .as_ref()
                     .and_then(|s| s.store),
+                tracing::Level::WARN,
                 "persist session to DB",
             );
 
@@ -369,11 +371,12 @@ pub async fn login(
             store
                 .invalidate_other_sessions(user_id, &cookie_id)
                 .await
-                .trace(
+                .trace_or(
                     crate::utils::runique_log::get_log()
                         .session
                         .as_ref()
                         .and_then(|s| s.exclusive_login),
+                    tracing::Level::WARN,
                     "invalidate other sessions (exclusive login)",
                 );
         }

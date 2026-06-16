@@ -74,7 +74,7 @@ enum MigrateAction {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    init_logging();
+    let _log_guards = init_logging();
     dotenvy::dotenv_override().ok();
 
     let lang_str = std::env::var("LANG")

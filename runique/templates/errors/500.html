@@ -9,9 +9,8 @@
     <body>
         <div class="container">
             <div class="error-container">
-                <div id="error-icon" class="error-icon">🔍</div>
-                <p>500 Internal Server Error</p>
-                <h1 id="number-error" class="error-title">500</h1>
+                <div id="error-icon" class="error-icon">⚠️</div>
+                <h1 id="number-error" class="error-title">{{ error_title }}</h1>
                 <p class="error-message">{{ error_text }}</p>
                 <a href="/" class="btn-retry">{{ back_home }}</a>
             </div>

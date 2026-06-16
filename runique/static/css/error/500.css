@@ -61,6 +61,7 @@ body {
   text-shadow: 0 0 40px rgba(255, 107, 107, 0.3);
   letter-spacing: -0.05em;
   line-height: 1;
+  overflow-wrap: break-word;
 }
 
 /* ===== MESSAGE ===== */
@@ -71,6 +72,9 @@ body {
   max-width: 400px;
   margin-left: auto;
   margin-right: auto;
+  /* error_text varies a lot (short 404, long 429, custom 500 with URLs/ids):
+     keep it inside the card whatever the error instead of overflowing. */
+  overflow-wrap: break-word;
 }
 
 /* ===== BOUTON ===== */
