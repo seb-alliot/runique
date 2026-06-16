@@ -523,10 +523,10 @@ mod tests {
 
     #[test]
     fn custom_sink_receives_records() {
+        type CapturedRecord = (tracing::Level, String, Vec<(&'static str, String)>);
+
         #[derive(Clone, Default)]
-        struct Capture(
-            Arc<std::sync::Mutex<Vec<(tracing::Level, String, Vec<(&'static str, String)>)>>>,
-        );
+        struct Capture(Arc<std::sync::Mutex<Vec<CapturedRecord>>>);
         impl LogSink for Capture {
             fn log(&self, record: &LogRecord<'_>) {
                 self.0.lock().unwrap().push((
