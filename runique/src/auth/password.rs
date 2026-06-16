@@ -6,7 +6,7 @@ use axum::{
     response::{IntoResponse, Redirect, Response},
 };
 use serde::Serialize;
-use std::{marker::PhantomData, sync::Arc};
+use std::{marker::PhantomData, sync::Arc, time::Duration};
 
 use async_trait::async_trait;
 
@@ -130,6 +130,8 @@ pub struct PasswordResetConfig {
     pub base_url: Option<String>,
     pub max_requests: u64,
     pub retry_after: u64,
+    /// Lifetime of a reset token before it expires. Default: 1 hour.
+    pub token_ttl: Duration,
 }
 
 impl Default for PasswordResetConfig {
@@ -144,6 +146,7 @@ impl Default for PasswordResetConfig {
             base_url: None,
             max_requests: 5,
             retry_after: 300,
+            token_ttl: Duration::from_secs(3600),
         }
     }
 }
@@ -187,6 +190,12 @@ impl PasswordResetConfig {
         self.email_template = Some(template.to_string());
         self
     }
+    /// Sets how long a reset token stays valid (default: 1 hour).
+    #[must_use]
+    pub fn token_ttl(mut self, ttl: Duration) -> Self {
+        self.token_ttl = ttl;
+        self
+    }
 }
 
 // ─── handle_forgot_password ───────────────────────────────────────────────────
@@ -199,6 +208,7 @@ pub async fn handle_forgot_password<E: UserEntity + 'static>(
     reset_path: &str,
     base_url: Option<&str>,
     email_template: Option<&str>,
+    token_ttl: Duration,
 ) -> AppResult<Response> {
     request.context.insert("lang", &current_lang().code());
     if request.is_get() {
@@ -215,8 +225,10 @@ pub async fn handle_forgot_password<E: UserEntity + 'static>(
 
         let db = request.engine.db.clone();
 
-        if let Some(user) = E::find_by_email(&db, &email).await {
-            let token = crate::utils::reset_token::generate(&email);
+        if let Some(user) = E::find_by_email(&db, &email).await
+            && let Ok(token) =
+                crate::utils::reset_token::generate(&db, user.user_id(), token_ttl).await
+        {
             let encrypted_email = crate::utils::reset_token::encrypt_email(&token, &email);
 
             if let Some(level) = crate::utils::runique_log::get_log()
@@ -339,7 +351,9 @@ pub async fn handle_password_reset<E: UserEntity + 'static>(
         return Ok(Redirect::to("/").into_response());
     };
 
-    if !crate::utils::reset_token::peek(&token) {
+    let db = request.engine.db.clone();
+
+    if !crate::utils::reset_token::peek(&db, &token).await {
         if let Some(level) = crate::utils::runique_log::get_log()
             .auth
             .as_ref()
@@ -368,7 +382,7 @@ pub async fn handle_password_reset<E: UserEntity + 'static>(
     }
 
     if request.is_post() && form.is_valid().await {
-        let Some(stored_email) = crate::utils::reset_token::consume(&token) else {
+        let Some(user_id) = crate::utils::reset_token::consume(&db, &token).await else {
             if let Some(level) = crate::utils::runique_log::get_log()
                 .auth
                 .as_ref()
@@ -383,7 +397,16 @@ pub async fn handle_password_reset<E: UserEntity + 'static>(
             return Ok(Redirect::to("/").into_response());
         };
 
-        if stored_email.to_lowercase() != email.to_lowercase() {
+        // The token binds the reset to one user_id (server-derived). Resolve and
+        // mutate by that id (IDOR-safe); the URL email is only a UX cross-check.
+        let Some(user) = E::find_by_id(&db, user_id).await else {
+            request
+                .notices
+                .error(t("reset.invalid_or_expired").to_string())
+                .await;
+            return Ok(Redirect::to("/").into_response());
+        };
+        if user.email().to_lowercase() != email.to_lowercase() {
             request
                 .notices
                 .error(t("reset.invalid_or_expired").to_string())
@@ -391,11 +414,10 @@ pub async fn handle_password_reset<E: UserEntity + 'static>(
             return Ok(Redirect::to("/").into_response());
         }
 
-        let db = request.engine.db.clone();
         let email_clean = form.cleaned_string("email").unwrap_or_default();
         let new_hash = form.cleaned_string("password").unwrap_or_default();
 
-        match E::update_password(&db, email_clean.trim(), &new_hash).await {
+        match E::update_password_by_id(&db, user_id, &new_hash).await {
             Ok(()) => {
                 if let Some(level) = crate::utils::runique_log::get_log()
                     .auth
@@ -481,6 +503,7 @@ async fn forgot_view<E: UserEntity + 'static>(
         &state.config.reset_route,
         state.config.base_url.as_deref(),
         state.config.email_template.as_deref(),
+        state.config.token_ttl,
     )
     .await
 }

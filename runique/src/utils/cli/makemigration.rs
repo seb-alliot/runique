@@ -26,6 +26,7 @@ const FRAMEWORK_TABLES: &[&str] = &[
     "eihwaz_groupes_droits",
     "eihwaz_users_groupes",
     "eihwaz_sessions",
+    "eihwaz_reset_tokens",
 ];
 
 pub fn scan_entities(entities_path: &str) -> Result<Vec<ParsedSchema>> {
@@ -752,6 +753,7 @@ pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
 
     let admin_box = "            Box::new(migrations_table::AdminTableMigration),";
     let sessions_box = "            Box::new(migrations_table::EihwazSessionsMigration),";
+    let reset_box = "            Box::new(migrations_table::EihwazResetTokensMigration),";
     let users_box = "            Box::new(migrations_table::EihwazUsersMigration),";
     let user_pattern = format!("create_{}_table", user_table);
 
@@ -764,6 +766,7 @@ pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
         "create_eihwaz_groupes_droits_table",
         "create_eihwaz_users_groupes_table",
         "create_eihwaz_sessions_table",
+        "create_eihwaz_reset_tokens_table",
     ];
 
     if using_builtin_user {
@@ -775,6 +778,7 @@ pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
             .filter(|l| {
                 !l.contains("migrations_table::EihwazUsersMigration")
                     && !l.contains("migrations_table::EihwazSessionsMigration")
+                    && !l.contains("migrations_table::EihwazResetTokensMigration")
                     && !l.contains("migrations_table::AdminTableMigration")
                     && !FRAMEWORK_TABLE_PATTERNS.iter().any(|pat| l.contains(pat))
             })
@@ -786,6 +790,7 @@ pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
             .iter()
             .position(|l| l.trim() == "vec![" || l.contains("vec!["))
         {
+            lines.insert(idx + 1, reset_box.to_string());
             lines.insert(idx + 1, admin_box.to_string());
             lines.insert(idx + 1, sessions_box.to_string());
             lines.insert(idx + 1, users_box.to_string());
@@ -805,11 +810,15 @@ pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
 
         let mut lines: Vec<String> = content
             .lines()
-            .filter(|l| !l.contains("migrations_table::AdminTableMigration"))
+            .filter(|l| {
+                !l.contains("migrations_table::AdminTableMigration")
+                    && !l.contains("migrations_table::EihwazResetTokensMigration")
+            })
             .map(|l| l.to_string())
             .collect();
 
         if let Some(idx) = lines.iter().position(|l| l.contains(&user_pattern)) {
+            lines.insert(idx + 1, reset_box.to_string());
             lines.insert(idx + 1, admin_box.to_string());
         }
 

@@ -51,7 +51,13 @@ pub async fn handle_inscription(
     if request.is_post() && form.is_valid().await {
         match register_user(form, &request.engine.db).await {
             Ok(user) => {
-                let token = reset_token::generate(&user.email);
+                let token = reset_token::generate(
+                    &request.engine.db,
+                    user.id,
+                    std::time::Duration::from_secs(86_400),
+                )
+                .await
+                .unwrap_or_default();
                 let encrypted = reset_token::encrypt_email(&token, &user.email);
                 let base_url = headers
                     .get("host")
@@ -93,7 +99,7 @@ pub async fn handle_activate(
     encrypted_email: String,
 ) -> AppResult<Response> {
     // Verify and decrypt before consuming (consume is irreversible)
-    if !reset_token::peek(&token) {
+    if !reset_token::peek(&request.engine.db, &token).await {
         warning!(request.notices => "Lien d'activation invalide ou expiré.");
         return Ok(Redirect::to("/login").into_response());
     }
@@ -104,7 +110,7 @@ pub async fn handle_activate(
     };
 
     // Consume the token (single use)
-    reset_token::consume(&token);
+    let _ = reset_token::consume(&request.engine.db, &token).await;
 
     let db = request.engine.db.clone();
 

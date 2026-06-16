@@ -99,6 +99,23 @@ pub trait UserEntity: Send + Sync + 'static {
         email: &str,
         new_hash: &str,
     ) -> Result<(), sea_orm::DbErr>;
+
+    /// Updates the password of a user identified by their **primary key**.
+    ///
+    /// Preferred in flows where the id comes from a secret (e.g. a reset token):
+    /// the mutation never depends on an attacker-controlled email/URL field
+    /// (IDOR-safe). The default resolves the user by id then delegates to
+    /// [`update_password`]; override for a single-query path.
+    async fn update_password_by_id(
+        db: &DatabaseConnection,
+        id: crate::utils::pk::Pk,
+        new_hash: &str,
+    ) -> Result<(), sea_orm::DbErr> {
+        let user = Self::find_by_id(db, id)
+            .await
+            .ok_or_else(|| sea_orm::DbErr::RecordNotFound("User not found".into()))?;
+        Self::update_password(db, user.email(), new_hash).await
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════

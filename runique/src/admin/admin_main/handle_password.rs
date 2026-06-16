@@ -1,8 +1,14 @@
 use crate::admin::helper::resource_entry::ResourceEntry;
+use crate::auth::session::UserEntity;
+use crate::auth::user::BuiltinUserEntity;
+use crate::auth::user_trait::RuniqueUser;
 use crate::context::template::{AppError, Request};
 use crate::errors::error::ErrorContext;
 use crate::utils::{aliases::AppResult, trad::t};
 use axum::response::{IntoResponse, Redirect, Response};
+
+/// Default lifetime of an admin-issued reset link (1 hour), matching the prior behavior.
+const ADMIN_RESET_TTL: std::time::Duration = std::time::Duration::from_secs(3600);
 
 pub(super) async fn send_user_created_email(
     req: &mut Request,
@@ -13,7 +19,15 @@ pub(super) async fn send_user_created_email(
     headers: &axum::http::HeaderMap,
     state: &super::PrototypeAdminState,
 ) {
-    let token = crate::utils::reset_token::generate(email);
+    // Resolve the just-created user to bind the token to their id (IDOR-safe).
+    let Some(user) = BuiltinUserEntity::find_by_email(&req.engine.db, email).await else {
+        return;
+    };
+    let Ok(token) =
+        crate::utils::reset_token::generate(&req.engine.db, user.user_id(), ADMIN_RESET_TTL).await
+    else {
+        return;
+    };
     let encrypted = crate::utils::reset_token::encrypt_email(&token, email);
 
     let reset_url = if let Some(base) = &state.config.reset_password_url {
@@ -126,7 +140,21 @@ pub(super) async fn handle_reset_password(
         .and_then(|v| v.as_str())
         .unwrap_or(&email);
 
-    let token = crate::utils::reset_token::generate(&email);
+    // The admin object's pk is the authoritative target — bind the token to it.
+    let Ok(user_id) = id.parse::<crate::utils::pk::Pk>() else {
+        req.notices
+            .error(t("admin.reset_password.error_no_email"))
+            .await;
+        return Ok(Redirect::to(&detail_url).into_response());
+    };
+    let Ok(token) =
+        crate::utils::reset_token::generate(&req.engine.db, user_id, ADMIN_RESET_TTL).await
+    else {
+        req.notices
+            .error(t("admin.reset_password.error_no_email"))
+            .await;
+        return Ok(Redirect::to(&detail_url).into_response());
+    };
     let encrypted_email = crate::utils::reset_token::encrypt_email(&token, &email);
 
     let reset_url = if let Some(base) = &state.config.reset_password_url {

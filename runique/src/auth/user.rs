@@ -126,6 +126,23 @@ impl UserEntity for BuiltinUserEntity {
         active.update(db).await?;
         Ok(())
     }
+
+    async fn update_password_by_id(
+        db: &DatabaseConnection,
+        id: Pk,
+        new_hash: &str,
+    ) -> Result<(), sea_orm::DbErr> {
+        let user = Entity::find_by_id(id)
+            .one(db)
+            .await?
+            .ok_or_else(|| sea_orm::DbErr::RecordNotFound("User not found".into()))?;
+
+        let mut active: ActiveModel = user.into();
+        active.password = Set(new_hash.to_string());
+        active.is_active = Set(true);
+        active.update(db).await?;
+        Ok(())
+    }
 }
 
 /// Authenticates a user by username and password against the built-in user table.
