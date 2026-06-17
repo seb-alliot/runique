@@ -55,7 +55,7 @@ pub async fn register(mut request: Request) -> AppResult<Response> {
             }
             Err(err) => {
                 // DB error (e.g. unique constraint) reported on the form
-                form.get_form_mut().database_error(&err);
+                form.database_error(&err);
             }
         }
     }

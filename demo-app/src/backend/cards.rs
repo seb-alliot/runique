@@ -33,43 +33,52 @@ pub async fn fetch_changelog_paged(
 }
 
 pub async fn fetch_changelog(db: &sea_orm::DatabaseConnection) -> Vec<CardSection> {
-    let all = search!(ChangelogEntryEntity => desc Id, asc SortOrder)
+    // `desc Id` orders releases newest-first (id tracks insertion chronology — the
+    // version string can't be sorted reliably: "2.1.9" would land above "2.1.18").
+    // We then group by version in Rust so that `sort_order` controls the order WITHIN
+    // each release. A single SQL `ORDER BY id DESC, sort_order ASC` cannot do this:
+    // id is unique, so it fully dominates and sort_order never breaks a tie.
+    let all = search!(ChangelogEntryEntity => desc Id)
         .all(db)
         .await
         .unwrap_or_default();
 
-    let mut sections: Vec<CardSection> = Vec::new();
+    let mut order: Vec<String> = Vec::new();
+    let mut groups: std::collections::HashMap<String, (String, Vec<(i32, CardEntry)>)> =
+        std::collections::HashMap::new();
+
     for entry in all {
-        let heading = format!("v{} — {}", entry.version, entry.release_date);
-        if let Some(s) = sections.last_mut()
-            && s.heading == heading
-        {
-            s.entries.push(CardEntry {
-                subtitle: Some(entry.category.to_string()),
-                title: entry.title.clone(),
-                description: entry.description.clone(),
-                link_url: None,
-                link_label: None,
-                link_url_2: None,
-                link_label_2: None,
-            });
-            continue;
-        }
-        sections.push(CardSection {
-            heading,
-            heading_class: "roadmap-active".into(),
-            entries: vec![CardEntry {
-                subtitle: Some(entry.category.to_string()),
-                title: entry.title.clone(),
-                description: entry.description.clone(),
-                link_url: None,
-                link_label: None,
-                link_url_2: None,
-                link_label_2: None,
-            }],
+        let group = groups.entry(entry.version.clone()).or_insert_with(|| {
+            // First time we see this version (highest id, i.e. newest) → keep its rank.
+            order.push(entry.version.clone());
+            (entry.release_date.clone(), Vec::new())
         });
+        group.1.push((
+            entry.sort_order,
+            CardEntry {
+                subtitle: Some(entry.category.to_string()),
+                title: entry.title.clone(),
+                description: entry.description.clone(),
+                link_url: None,
+                link_label: None,
+                link_url_2: None,
+                link_label_2: None,
+            },
+        ));
     }
-    sections
+
+    order
+        .into_iter()
+        .map(|version| {
+            let (release_date, mut items) = groups.remove(&version).unwrap_or_default();
+            items.sort_by_key(|(sort_order, _)| *sort_order);
+            CardSection {
+                heading: format!("v{} — {}", version, release_date),
+                heading_class: "roadmap-active".into(),
+                entries: items.into_iter().map(|(_, entry)| entry).collect(),
+            }
+        })
+        .collect()
 }
 
 pub async fn fetch_known_issues(db: &sea_orm::DatabaseConnection) -> Vec<CardSection> {

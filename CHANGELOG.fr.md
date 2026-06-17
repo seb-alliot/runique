@@ -6,6 +6,16 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ---
 
+## [2.1.18] - 2026-06-17
+
+### Correctif / Fonctionnalité — `runique` (scripts de formulaire : accesseur `{% form.x.js %}` + fin des tags Tera littéraux)
+
+* **Les `<script>` auto-injectés par un formulaire partaient en texte brut en rendu champ par champ :** quand un formulaire déclarant des `js_files` (via `add_js`) était rendu champ par champ (`{% form.x.field %}`), le filtre `form` fabriquait la balise script à la main avec des tags Tera **littéraux** — `<script {% csp %} src="{% static "…" %}" defer>` — et l'injectait après le « dernier champ » deviné par index. Deux problèmes. (1) Le préprocesseur de template (`process_content`) qui convertit `{% csp %}` / `{% static %}` ne tourne qu'au **chargement** des fichiers, jamais sur une chaîne produite au runtime par un filtre ; et la sortie du filtre `form` est `| safe`, donc Tera ne la re-parse pas : le `<script>` partait avec `src="{% static "…" %}"` en littéral (jamais chargé) et sans nonce CSP réel (bloqué par la CSP). (2) L'ancrage « après le dernier champ » était fragile : un template au layout custom qui n'écrit pas le champ au plus haut index n'obtenait jamais ses scripts, silencieusement. Le rendu full-form (`{% form.x %}`, utilisé par l'admin via `form_fields.html`) n'était pas touché : il passe par `renderer::render_js` qui rend correctement le template `js.html` (vrai `{{ csp_nonce }}`, vrai `{{ … | static }}`).
+
+* **Correctif :** suppression du second générateur de balises et de l'injection devinée. Le js d'un formulaire est désormais rendu **une seule fois** par `render_js` (single source = `js.html`), exposé en deux points cohérents : en **full-form** il est émis en dernière position du `html` (après les champs qu'il pilote) ; en **champ par champ** un nouvel accesseur explicite **`{% form.x.js %}`** (façon `{{ form.media }}` de Django) émet le même bloc — nonce CSP réel et URL statique résolue, quel que soit le nombre de fichiers `add_js`. Plus de tags Tera morts, plus d'échec silencieux : le dev place `{% form.x.js %}` là où il veut quand il rend les champs un par un. Honeypot et CSRF gardent leurs ancrages (premier / dernier champ) inchangés.
+
+---
+
 ## [2.1.17] - 2026-06-15
 
 ### Correctif — `runique` (CLI `makemigrations` — defaults des colonnes enum)

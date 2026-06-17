@@ -55,7 +55,7 @@ pub async fn inscription(mut request: Request) -> AppResult<Response> {
             }
             Err(err) => {
                 // Erreur DB (ex. contrainte unique) reportée sur le formulaire
-                form.get_form_mut().database_error(&err);
+                form.database_error(&err);
             }
         }
     }

@@ -77,11 +77,6 @@ impl FormRenderer {
             );
         }
 
-        let js_html = self.render_js()?;
-        if !js_html.is_empty() {
-            html.push(js_html);
-        }
-
         for field in fields.values() {
             match field.render(&self.tera) {
                 Ok(rendered) => {
@@ -99,10 +94,16 @@ impl FormRenderer {
             }
         }
 
+        // Scripts last: the form's JS goes after the fields it drives (defer anyway).
+        let js_html = self.render_js()?;
+        if !js_html.is_empty() {
+            html.push(js_html);
+        }
+
         Ok(html.join("\n"))
     }
 
-    fn render_js(&self) -> Result<String, String> {
+    pub(crate) fn render_js(&self) -> Result<String, String> {
         if self.js_files.is_empty() {
             return Ok(String::new());
         }

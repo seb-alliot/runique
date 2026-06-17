@@ -1,12 +1,20 @@
 //! Tera `form` filter — HTML rendering of a form field by name from context.
 // Dans src/tera_function/form_filter.rs
-use crate::middleware::errors::error::html_escape;
 use crate::utils::aliases::JsonMap;
 use crate::utils::aliases::TResult;
 use tera::Value;
 
 pub fn form_filter(value: &Value, args: &JsonMap) -> TResult {
     if let Some(field_name) = args.get("field").and_then(|v| v.as_str()) {
+        // Reserved accessor `{% form.x.js %}` — the form's auto-collected <script>
+        // block (real CSP nonce + resolved static URLs), pre-rendered once by
+        // `renderer::render_js`. Django `form.media` style: in field-by-field
+        // rendering the dev places it explicitly. Full-form rendering already
+        // embeds it, so stateless filters never have to guess a last-field anchor.
+        if field_name == "js" {
+            return Ok(Value::String(render_scripts(value).unwrap_or_default()));
+        }
+
         let field_html = render_field(value, field_name)?;
         let mut output = field_html.as_str().unwrap_or("").to_string();
 
@@ -17,18 +25,11 @@ pub fn form_filter(value: &Value, args: &JsonMap) -> TResult {
             output = format!("{}\n{}", csrf, output);
         }
 
-        // Inject honeypot and scripts after the last field
-        if is_last_field_by_index(value, field_name) {
-            if let Some(hp) = get_honeypot_html(value) {
-                output = format!("{}\n{}", output, hp);
-            }
-            let scripts = render_scripts(value).unwrap_or_default();
-            if !scripts.is_empty() {
-                output = format!(
-                    "{}\n<!-- Form scripts (auto-injected after last field) -->\n{}",
-                    output, scripts
-                );
-            }
+        // Inject honeypot after the last field
+        if is_last_field_by_index(value, field_name)
+            && let Some(hp) = get_honeypot_html(value)
+        {
+            output = format!("{}\n{}", output, hp);
         }
 
         return Ok(Value::String(output));
@@ -116,33 +117,19 @@ fn get_honeypot_html(value: &Value) -> Option<String> {
         .map(|s| s.to_string())
 }
 
+/// Source of the `{% form.x.js %}` accessor: the form's pre-rendered `<script>`
+/// block (real CSP nonce + resolved static URLs), produced once by
+/// `renderer::render_js` via the `js.html` template and serialized as `rendered_js`.
+/// Read as-is — never rebuilt here with literal `{% csp %}` / `{% static %}` tags:
+/// the load-time preprocessor never sees this runtime string, so `| safe` would
+/// ship the raw tags to the browser.
 fn render_scripts(value: &Value) -> Option<String> {
-    let js_files = value
-        .get("js_files")
-        .or_else(|| value.get("form").and_then(|f| f.get("js_files")))?;
-
-    let files = js_files.as_array()?;
-
-    if files.is_empty() {
-        return None;
-    }
-
-    let scripts: Vec<String> = files
-        .iter()
-        .filter_map(|f| f.as_str())
-        .map(|file| {
-            format!(
-                r#"<script {{% csp %}} src="{{% static "{{{}}}" %}}" defer></script>"#,
-                html_escape(file)
-            )
-        })
-        .collect();
-
-    if scripts.is_empty() {
-        None
-    } else {
-        Some(scripts.join("\n"))
-    }
+    value
+        .get("rendered_js")
+        .or_else(|| value.get("form").and_then(|f| f.get("rendered_js")))
+        .and_then(|v| v.as_str())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
 }
 
 fn render_field(value: &Value, field_name: &str) -> TResult {

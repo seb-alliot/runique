@@ -12,6 +12,7 @@
 | `{% link "name" %}` | `{{ link(link='name') }}` | Named route URL |
 | `{% form.xxx %}` | `{{ xxx \| form \| safe }}` | Full form rendering |
 | `{% form.xxx.field %}` | `{{ xxx \| form(field='field') \| safe }}` | Single field rendering |
+| `{% form.xxx.js %}` | `{{ xxx \| form(field='js') \| safe }}` | Form JS scripts (field-by-field rendering) |
 
 ---
 
@@ -31,6 +32,32 @@
 | Function | Description |
 | -------- | ----------- |
 | `link(link='...')` | Named URL resolution |
+
+---
+
+## In context
+
+The tags combine in a real template:
+
+```html
+{% extends "base.html" %}
+
+{% block content %}
+  <link rel="stylesheet" href="{% static "css/contact.css" %}">
+
+  {% messages %}
+
+  <form method="post" action="{% link "contact" %}">
+    {% form.contact_form %}
+    <button type="submit">Send</button>
+  </form>
+
+  <img src="{% media avatar %}" alt="avatar">
+{% endblock %}
+```
+
+> `{% static %}` / `{% media %}` accept a string literal or a Tera variable (`avatar` above).
+> See [Django-like tags](/docs/en/template/tags) for the details of each tag.
 
 ---
 

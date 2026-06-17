@@ -43,6 +43,35 @@ Runique provides a set of macros to simplify development.
 
 ---
 
+## In context
+
+The macros combine in a typical handler:
+
+```rust
+use runique::prelude::*;
+
+pub async fn contact(mut request: Request) -> AppResult<Response> {
+    let mut form: ContactForm = request.form();
+
+    if request.is_post() && form.is_valid().await {
+        // Session flash + redirect (Post/Redirect/Get pattern)
+        success!(request.notices => "Message sent!");
+        return Ok(Redirect::to("/contact").into_response());
+    }
+
+    // Add variables to the request context
+    context_update!(request => {
+        "title" => "Contact",
+        "contact_form" => &form,
+    });
+    request.render("contact.html")
+}
+```
+
+> `success!` / `error!` / `info!` / `warning!` write to the session (visible after a redirect). `flash_now!` produces an immediate message without a session — useful when re-rendering the same page without redirecting.
+
+---
+
 ## See also
 
 | Section | Description |

@@ -1,7 +1,7 @@
 # Runique — Django-inspired Rust Framework
 
 ![Rust](https://img.shields.io/badge/rust-1.94%2B-orange)
-![Tests passing](https://img.shields.io/badge/tests-2011%2B%20passing-green)
+![Tests passing](https://img.shields.io/badge/tests-2380%2B%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Version](https://img.shields.io/badge/version-2.1.17-blue)
 [![Crates.io](https://img.shields.io/crates/v/runique)](https://crates.io/crates/runique)
@@ -129,11 +129,11 @@ Selectable backends:
 
 ## Test and coverage snapshot
 
-- Reported tests: **2011+ passing**
-- Coverage snapshot (`2026-05-24`, package `runique`):
-  - Functions: **78.32%**
-  - Lines: **76.05%**
-  - Regions: **73.93%**
+- Reported tests: **2380+ passing**
+- Coverage snapshot (`2026-06-17`, package `runique`):
+  - Functions: **78.17%**
+  - Lines: **77.26%**
+  - Regions: **75.46%**
 
 ```bash
 cargo llvm-cov --tests --package runique --ignore-filename-regex "admin" --summary-only
