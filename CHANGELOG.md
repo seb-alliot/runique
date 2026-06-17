@@ -6,6 +6,16 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2.1.18] - 2026-06-17
+
+### Fix / Feature — `runique` (form scripts: `{% form.x.js %}` accessor + end of literal Tera tags)
+
+* **A form's auto-injected `<script>` shipped as raw text in field-by-field rendering:** when a form declaring `js_files` (via `add_js`) was rendered field by field (`{% form.x.field %}`), the `form` filter hand-built the script tag with **literal** Tera tags — `<script {% csp %} src="{% static "…" %}" defer>` — and injected it after the index-guessed "last field". Two problems. (1) The template preprocessor (`process_content`) that turns `{% csp %}` / `{% static %}` into real Tera expressions only runs at template **load** time, never on a runtime filter string; and the `form` filter output is `| safe`, so Tera does not re-parse it: the `<script>` shipped with `src="{% static "…" %}"` verbatim (never loaded) and with no real CSP nonce (blocked by CSP). (2) The "after the last field" anchor was fragile: a custom-layout template that does not render the highest-index field silently got no scripts. Full-form rendering (`{% form.x %}`, used by the admin via `form_fields.html`) was unaffected — it goes through `renderer::render_js`, which correctly renders the `js.html` template (real `{{ csp_nonce }}`, real `{{ … | static }}`).
+
+* **Fix:** the second tag generator and the guessed injection were removed. A form's js is now rendered **once** by `render_js` (single source = `js.html`), exposed at two coherent points: in **full-form** it is emitted last in the `html` (after the fields it drives); in **field-by-field** a new explicit accessor **`{% form.x.js %}`** (Django `{{ form.media }}` style) emits the same block — real CSP nonce and resolved static URL, regardless of how many `add_js` files. No more dead Tera tags, no more silent failure: the dev places `{% form.x.js %}` wherever they want when rendering fields one by one. Honeypot and CSRF keep their anchors (first / last field) unchanged.
+
+---
+
 ## [2.1.17] - 2026-06-15
 
 ### Fix — `runique` (CLI `makemigrations` — enum column defaults)

@@ -167,7 +167,7 @@ runique/
 
 ## Tests (`runique/tests/`)
 
-**2011+ tests passing** (2 ignored: SQLx Windows UTF-8 issue)
+**2380+ tests passing** (2 ignored: SQLx Windows UTF-8 issue)
 
 ```
 tests/

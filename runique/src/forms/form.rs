@@ -57,7 +57,7 @@ impl Serialize for Forms {
     where
         S: Serializer,
     {
-        let mut state = serializer.serialize_struct("Forms", 8)?;
+        let mut state = serializer.serialize_struct("Forms", 9)?;
 
         state.serialize_field("errors", &self.errors())?;
         state.serialize_field("form_errors", &self.errors)?;
@@ -68,6 +68,17 @@ impl Serialize for Forms {
             .map(|r| r.js_files.clone())
             .unwrap_or_default();
         state.serialize_field("js_files", &js_files)?;
+
+        // Pre-rendered <script> block (real CSP nonce + resolved static URLs) from
+        // the canonical `js.html` template. The per-field form filter reuses this
+        // instead of re-emitting raw `{% csp %}` / `{% static %}` tags, which the
+        // load-time preprocessor never sees and `| safe` would ship verbatim.
+        let rendered_js = self
+            .renderer
+            .as_ref()
+            .map(|r| r.render_js().unwrap_or_default())
+            .unwrap_or_default();
+        state.serialize_field("rendered_js", &rendered_js)?;
 
         let rendered_html = match self.render() {
             Ok(h) => h,

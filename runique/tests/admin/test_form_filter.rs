@@ -1,7 +1,9 @@
-//! Tests — Form filter (injection CSRF et scripts)
-//! Bug fix vérifié :
-//!   - CSRF non injecté en rendu champ par champ → corrigé (injection sur le premier champ par index)
-//!   - Scripts injectés après le dernier champ
+//! Tests — Form filter (injection CSRF et accesseur js)
+//! Comportement vérifié :
+//!   - CSRF injecté sur le premier champ par index (rendu champ par champ)
+//!   - Scripts via l'accesseur explicite `{% form.x.js %}` (field='js') → bloc pré-rendu
+//!     (`rendered_js`), nonce CSP réel, jamais de tags Tera littéraux
+//!   - Le rendu d'un champ (même le dernier) n'auto-injecte plus les scripts
 
 use runique::context::tera::form::form_filter;
 use std::collections::HashMap;
@@ -32,16 +34,25 @@ fn make_form_value(field_names_with_index: &[(&str, u64)], with_scripts: bool) -
         );
     }
 
-    let js_files = if with_scripts {
-        json!(["filepicker.js"])
+    // `rendered_js` is what `renderer::render_js` produces (real nonce + resolved
+    // static URL via the `js.html` template). The `{% form.x.js %}` accessor reads it
+    // verbatim — the filter never rebuilds script tags from `js_files`.
+    let (js_files, rendered_js) = if with_scripts {
+        (
+            json!(["filepicker.js"]),
+            Value::String(
+                r#"<script nonce="n0nc3" src="/static/filepicker.js" defer></script>"#.to_string(),
+            ),
+        )
     } else {
-        json!([])
+        (json!([]), Value::String(String::new()))
     };
 
     json!({
         "fields": Value::Object(fields),
         "rendered_fields": Value::Object(rendered),
         "js_files": js_files,
+        "rendered_js": rendered_js,
     })
 }
 
@@ -112,17 +123,57 @@ fn test_form_filter_csrf_not_injected_on_middle_or_last() {
     }
 }
 
-// ── Scripts injectés après le dernier champ ───────────────────────────────────
+// ── Accesseur `{% form.x.js %}` (field='js') ──────────────────────────────────
 
 #[test]
-fn test_form_filter_scripts_injected_on_last_field() {
+fn test_form_filter_js_accessor_returns_prerendered_block() {
+    let form = make_form_value(&[("username", 0), ("email", 1)], true);
+    let result = form_filter(&form, &args_field("js")).unwrap();
+    let html = result.as_str().unwrap();
+
+    assert!(
+        html.contains("filepicker.js") && html.contains(r#"nonce="n0nc3""#),
+        "L'accesseur js doit renvoyer le bloc pré-rendu (nonce réel + src résolue). HTML: {}",
+        html
+    );
+}
+
+#[test]
+fn test_form_filter_js_accessor_no_literal_tera_tags() {
+    let form = make_form_value(&[("username", 0)], true);
+    let result = form_filter(&form, &args_field("js")).unwrap();
+    let html = result.as_str().unwrap();
+
+    assert!(
+        !html.contains("{% static") && !html.contains("{% csp %}"),
+        "L'accesseur js ne doit jamais émettre de tags Tera littéraux. HTML: {}",
+        html
+    );
+}
+
+#[test]
+fn test_form_filter_js_accessor_empty_when_no_scripts() {
+    let form = make_form_value(&[("username", 0), ("email", 1)], false);
+    let result = form_filter(&form, &args_field("js")).unwrap();
+    assert!(
+        result.as_str().unwrap().is_empty(),
+        "Sans js_files, l'accesseur js renvoie une chaîne vide"
+    );
+}
+
+// ── Plus d'auto-injection des scripts via le rendu d'un champ ──────────────────
+
+#[test]
+fn test_form_filter_scripts_not_auto_injected_on_last_field() {
+    // L'ancienne heuristique injectait les scripts après le dernier champ.
+    // Désormais le js passe uniquement par l'accesseur explicite `{% form.x.js %}`.
     let form = make_form_value(&[("username", 0), ("email", 1)], true);
     let result = form_filter(&form, &args_field("email")).unwrap();
     let html = result.as_str().unwrap();
 
     assert!(
-        html.contains("filepicker.js"),
-        "Les scripts doivent être injectés sur le dernier champ (email). HTML: {}",
+        !html.contains("filepicker.js") && !html.contains("<script"),
+        "Le rendu d'un champ (même le dernier) ne doit plus auto-injecter les scripts. HTML: {}",
         html
     );
 }
@@ -131,20 +182,7 @@ fn test_form_filter_scripts_injected_on_last_field() {
 fn test_form_filter_scripts_not_injected_on_non_last_field() {
     let form = make_form_value(&[("username", 0), ("email", 1)], true);
     let result = form_filter(&form, &args_field("username")).unwrap();
-    let html = result.as_str().unwrap();
-
-    assert!(
-        !html.contains("filepicker.js"),
-        "Les scripts ne doivent PAS être sur username. HTML: {}",
-        html
-    );
-}
-
-#[test]
-fn test_form_filter_no_scripts_when_js_files_empty() {
-    let form = make_form_value(&[("username", 0), ("email", 1)], false);
-    let result = form_filter(&form, &args_field("email")).unwrap();
-    assert!(!result.as_str().unwrap().contains("<script"));
+    assert!(!result.as_str().unwrap().contains("filepicker.js"));
 }
 
 // ── Rendu complet (sans field arg) ───────────────────────────────────────────

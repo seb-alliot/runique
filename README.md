@@ -1,7 +1,7 @@
 # Runique — the Django developer experience, in type-safe Rust
 
 ![Rust](https://img.shields.io/badge/rust-1.94%2B-orange)
-![Tests passing](https://img.shields.io/badge/tests-2011%2B%20passing-green)
+![Tests passing](https://img.shields.io/badge/tests-2380%2B%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Version](https://img.shields.io/badge/version-2.1.17-blue)
 [![Crates.io](https://img.shields.io/crates/v/runique)](https://crates.io/crates/runique)
@@ -197,8 +197,8 @@ Full reference: [Sessions](https://runique.io/docs/en/session)
 
 ## Tests and coverage
 
-- Reported tests: **2011+ passing**
-- Coverage snapshot (`2026-05-24`, package `runique`): functions **78.32%**, lines **76.05%**, regions **73.93%**
+- Reported tests: **2380+ passing**
+- Coverage snapshot (`2026-06-17`, package `runique`): functions **78.17%**, lines **77.26%**, regions **75.46%**
 
 ```bash
 cargo llvm-cov --tests --package runique --ignore-filename-regex "admin" --summary-only

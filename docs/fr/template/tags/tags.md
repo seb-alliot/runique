@@ -102,6 +102,31 @@ Rend l'intégralité du formulaire : tous les champs HTML, les erreurs de valida
 
 **Transformé en :** `{{ inscription_form | form(field='username') | safe }}`
 
+> En rendu champ par champ, les scripts JS du formulaire ne sont **pas** injectés automatiquement (contrairement à `{% form.xxx %}` complet). Place-les explicitement avec `{% form.xxx.js %}` — voir ci-dessous.
+
+---
+
+## {% form.xxx.js %} — Scripts JS du formulaire
+
+Émet le bloc `<script>` du formulaire : un par fichier déclaré via `add_js`, avec le nonce CSP correct et l'URL statique résolue. À utiliser **uniquement en rendu champ par champ**, là où tu veux les scripts (typiquement juste avant `</form>`).
+
+```html
+<form method="post" action="/inscription">
+    <div class="row">
+        <div class="col">{% form.inscription_form.username %}</div>
+        <div class="col">{% form.inscription_form.email %}</div>
+    </div>
+    {% form.inscription_form.password %}
+    <button type="submit">S'inscrire</button>
+
+    {% form.inscription_form.js %}
+</form>
+```
+
+**Transformé en :** `{{ inscription_form | form(field='js') | safe }}`
+
+> Inutile avec `{% form.xxx %}` (rendu complet) : les scripts y sont déjà inclus, en dernière position. Ne combine pas les deux — tu obtiendrais les `<script>` en double.
+
 ---
 
 ## Voir aussi

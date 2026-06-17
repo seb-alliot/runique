@@ -261,3 +261,83 @@ fn test_render_avec_champ_et_js() {
     assert!(html.contains("ui.js"));
     assert!(html.contains("nom"));
 }
+
+// ═══════════════════════════════════════════════════════════════
+// render — le bloc JS est émis APRÈS les champs (dernière position)
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_render_js_emis_apres_les_champs() {
+    use indexmap::IndexMap;
+    use runique::forms::fields::TextField;
+
+    let mut renderer = make_renderer_with_templates();
+    renderer.add_js(&["ui.js"]);
+
+    let mut fields: indexmap::IndexMap<String, Box<dyn runique::forms::base::FormField>> =
+        IndexMap::new();
+    fields.insert("nom".to_string(), Box::new(TextField::text("nom")));
+
+    let html = renderer.render(&fields, &[]).unwrap();
+
+    let pos_field = html.find("<input").expect("champ rendu");
+    let pos_script = html.find("<script").expect("script rendu");
+    assert!(
+        pos_script > pos_field,
+        "Le <script> doit venir APRÈS le champ. HTML: {}",
+        html
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// render_js — nonce CSP injecté dans la balise
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_render_js_inclut_le_nonce_csp() {
+    use indexmap::IndexMap;
+
+    let mut tera = Tera::default();
+    // Réplique du template interne js.html : nonce conditionnel + filtre static.
+    tera.add_raw_template(
+        "js_files.html",
+        "{% for f in js_files %}<script {% if csp_nonce is defined %}nonce=\"{{ csp_nonce }}\"{% endif %} src=\"{{ f }}\" defer></script>{% endfor %}",
+    )
+    .unwrap();
+
+    let mut renderer = runique::forms::renderer::FormRenderer::new(Arc::new(tera));
+    renderer.set_nonce("n0nc3-xyz");
+    renderer.add_js(&["form.js"]);
+
+    let html = renderer.render(&IndexMap::new(), &[]).unwrap();
+    assert!(
+        html.contains(r#"nonce="n0nc3-xyz""#),
+        "Le nonce CSP doit apparaître dans la balise script. HTML: {}",
+        html
+    );
+    assert!(html.contains("form.js"));
+}
+
+#[test]
+fn test_render_js_sans_nonce_pas_d_attribut() {
+    use indexmap::IndexMap;
+
+    let mut tera = Tera::default();
+    tera.add_raw_template(
+        "js_files.html",
+        "{% for f in js_files %}<script {% if csp_nonce is defined %}nonce=\"{{ csp_nonce }}\"{% endif %} src=\"{{ f }}\" defer></script>{% endfor %}",
+    )
+    .unwrap();
+
+    // Pas de set_nonce → l'attribut nonce ne doit pas apparaître.
+    let mut renderer = runique::forms::renderer::FormRenderer::new(Arc::new(tera));
+    renderer.add_js(&["form.js"]);
+
+    let html = renderer.render(&IndexMap::new(), &[]).unwrap();
+    assert!(
+        !html.contains("nonce="),
+        "Sans nonce, pas d'attribut. HTML: {}",
+        html
+    );
+    assert!(html.contains("form.js"));
+}

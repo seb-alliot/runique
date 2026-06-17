@@ -12,6 +12,7 @@
 | `{% link "name" %}` | `{{ link(link='name') }}` | URL d'une route nommée |
 | `{% form.xxx %}` | `{{ xxx \| form \| safe }}` | Rendu formulaire complet |
 | `{% form.xxx.field %}` | `{{ xxx \| form(field='field') \| safe }}` | Rendu d'un champ |
+| `{% form.xxx.js %}` | `{{ xxx \| form(field='js') \| safe }}` | Scripts JS du form (rendu champ par champ) |
 
 ---
 
@@ -31,6 +32,32 @@
 | Fonction | Description |
 | -------- | ----------- |
 | `link(link='...')` | Résolution d'URL nommée |
+
+---
+
+## En situation
+
+Les tags se combinent dans un template réel :
+
+```html
+{% extends "base.html" %}
+
+{% block content %}
+  <link rel="stylesheet" href="{% static "css/contact.css" %}">
+
+  {% messages %}
+
+  <form method="post" action="{% link "contact" %}">
+    {% form.contact_form %}
+    <button type="submit">Envoyer</button>
+  </form>
+
+  <img src="{% media avatar %}" alt="avatar">
+{% endblock %}
+```
+
+> `{% static %}` / `{% media %}` acceptent une chaîne littérale ou une variable Tera (`avatar` ci-dessus).
+> Voir [Tags Django-like](/docs/fr/template/tags) pour le détail de chaque tag.
 
 ---
 

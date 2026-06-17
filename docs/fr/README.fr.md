@@ -1,7 +1,7 @@
 # Runique — Framework Rust inspiré de Django
 
 ![Rust](https://img.shields.io/badge/rust-1.88%2B-orange)
-![Tests passing](https://img.shields.io/badge/tests-2011%2B%20passing-green)
+![Tests passing](https://img.shields.io/badge/tests-2380%2B%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Version](https://img.shields.io/badge/version-2.1.15-blue)
 [![Crates.io](https://img.shields.io/crates/v/runique)](https://crates.io/crates/runique)
@@ -149,7 +149,7 @@ Backends disponibles :
 
 ## Tests et couverture
 
-* Tests : **2011+ réussis**
+* Tests : **2380+ réussis**
 * Snapshot de couverture (`2026-03-01`, package `runique`) :
 
   * Fonctions : **76.66%**
