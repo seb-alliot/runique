@@ -54,6 +54,42 @@ Par défaut, le store est purement en mémoire. Lorsque la feature `orm` est act
 
 ---
 
+## Configuration
+
+Tous les seuils décrits ci-dessus sont réglables depuis le builder, dans le bloc `.middleware()`. Aucune construction manuelle du store n'est nécessaire — le framework instancie `CleaningMemoryStore` et applique ces valeurs.
+
+```rust
+use runique::prelude::*;
+use time::Duration;
+
+let app = RuniqueApp::builder(config)
+    // TTL d'inactivité avant expiration (sessions authentifiées)
+    .with_session_duration(Duration::hours(2))
+    .middleware(|m| {
+        m
+            // Low / high watermark — en octets
+            .with_session_memory_limit(64 * 1024 * 1024, 128 * 1024 * 1024)
+            // Intervalle du timer de purge périodique — en secondes
+            .with_session_cleanup_interval(30)
+            // Un seul appareil connecté à la fois par utilisateur
+            .with_exclusive_login(true)
+    })
+    .build()
+    .await?;
+```
+
+| Mécanisme (section ci-dessus) | Méthode builder | Défaut |
+|-------------------------------|-----------------|--------|
+| Timer périodique | `with_session_cleanup_interval(secs)` | 60 s |
+| Low / High watermark | `with_session_memory_limit(low, high)` | 128 Mo / 256 Mo |
+| TTL session authentifiée | `with_session_duration(Duration)` | — |
+| TTL session anonyme | `with_anonymous_session_duration(Duration)` | — |
+| Login exclusif (un appareil) | `with_exclusive_login(bool)` | `false` |
+
+> Les watermarks s'expriment en **octets** : `64 * 1024 * 1024` = 64 Mo. La durée du timer est en **secondes**.
+
+---
+
 ## Voir aussi
 
 | Section | Description |

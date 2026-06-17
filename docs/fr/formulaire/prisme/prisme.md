@@ -29,4 +29,50 @@ pub async fn inscription(mut request: Request) -> AppResult<Response> {
 
 ---
 
+## Exemple complet — afficher, valider, enregistrer
+
+Un même handler gère l'affichage (GET) et la soumission (POST). `request.form()` construit le formulaire dans les deux cas : vide au GET, rempli depuis le body au POST.
+
+```rust
+use runique::prelude::*;
+
+pub async fn inscription(mut request: Request) -> AppResult<Response> {
+    let mut form: RegisterForm = request.form();
+    let template = "inscription_form.html";
+
+    // GET — afficher le formulaire vide
+    if request.is_get() {
+        context_update!(request => { "inscription_form" => &form });
+        return request.render(template);
+    }
+
+    // POST — valider puis enregistrer
+    if request.is_post() && form.is_valid().await {
+        match form.save(&request.engine.db).await {
+            Ok(user) => {
+                success!(request.notices => format!("Bienvenue {} !", user.username));
+                return Ok(Redirect::to("/").into_response());
+            }
+            Err(err) => {
+                // Erreur DB (ex. contrainte unique) reportée sur le formulaire
+                form.get_form_mut().database_error(&err);
+            }
+        }
+    }
+
+    // POST invalide ou erreur DB — réafficher avec les erreurs
+    context_update!(request => { "inscription_form" => &form });
+    request.render(template)
+}
+```
+
+Points clés :
+
+- `request.form()` renvoie un formulaire utilisable directement — pas de construction manuelle.
+- `form.is_valid().await` agrège les erreurs de validation ; elles sont rendues automatiquement par `{{ form.inscription_form | form | safe }}` dans le template.
+- `form.save(&request.engine.db).await` persiste l'entité et renvoie le modèle créé.
+- `database_error(&err)` reporte une erreur DB (ex. email déjà pris) comme erreur de formulaire plutôt que comme 500.
+
+---
+
 ← [**Formulaires**](/docs/fr/formulaire) | [**Trait RuniqueForm**](/docs/fr/formulaire/trait) →

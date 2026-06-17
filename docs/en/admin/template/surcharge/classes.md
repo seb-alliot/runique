@@ -7,6 +7,38 @@ Useful for targeting specific elements via CSS selectors without rewriting the w
 
 ---
 
+## Targeting a class without rewriting the block
+
+Rather than overriding an entire Tera block, inject an extra stylesheet via the `extra_css` block (with `{{ super() }}` to keep Runique's CSS) and target the classes listed below:
+
+```html
+{# templates/admin_base.html — admin layout override #}
+{% block extra_css %}
+    {{ super() }}
+    <link rel="stylesheet" href="{% static 'css/admin_custom.css' %}">
+{% endblock %}
+```
+
+```css
+/* static/css/admin_custom.css */
+
+/* Admin page title in red */
+.admin-page__title {
+    color: #c0392b;
+}
+
+/* Full-width "Create" button on mobile */
+@media (max-width: 640px) {
+    .admin-page__header .btn-primary {
+        width: 100%;
+    }
+}
+```
+
+See [Template overriding](/docs/en/admin/template) for the full mechanism (`{% block %}`, `{{ super() }}`) and [Template system](/docs/en/admin/template) for the file hierarchy.
+
+---
+
 ## `list_header` — `list.html`
 
 | Class | Element | Role |

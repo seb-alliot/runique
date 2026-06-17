@@ -6,8 +6,6 @@ edition = "2024"
 [dependencies]
 
 # Base de données : sqlite (défaut) | postgres | mysql | mariadb | all-databases
-# en prod => runique = { version = "2.0.1", features = ["orm", "postgres"] }
-# en local
 runique = { path = "../runique", features = ["orm", "postgres", "acme"] }
 
 serde = { version = "1", features = ["derive"] }
