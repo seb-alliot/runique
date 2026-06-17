@@ -11,7 +11,7 @@ This document consolidates the actual state of the repository from the reference
 
 ## Snapshot (as of June 17, 2026)
 
-- **Workspace version**: `2.1.16`
+- **Workspace version**: `2.1.17`
 - **derive_form**: `2.1.9`
 - **License**: MIT
 - **Branch**: `main`

@@ -8,7 +8,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "2.1.16"
+version = "2.1.17"
 edition = "2024"
 rust-version = "1.94"
 authors = ["Itsuki"]
@@ -63,7 +63,7 @@ image = { version = "0.25.10", features = ["avif"] }
 dialoguer = "0.12"
 walkdir = "2.5.0"
 
-derive_form = "2.1.9"
+derive_form = "2.1.10"
 rust_decimal = { version = "1", features = ["serde-float"] }
 # Logging
 tracing = "0.1"
