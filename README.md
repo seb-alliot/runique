@@ -15,7 +15,7 @@
 
 ---
 
-## One model. Everything generated.
+## Declarative macros, not boilerplate
 
 ```rust
 model! {
@@ -33,12 +33,7 @@ model! {
 }
 ```
 
-From this single declaration, Runique gives you:
-
-- a **SeaORM entity** (`article::Model`)
-- a **SQL migration** (`runique makemigrations`)
-- a **type-safe form** with server-side validation
-- a **CRUD admin** with list display, search, filters and permissions:
+`model!` generates the **SeaORM entity** (`article::Model`) and its **SQL migration** (`runique makemigrations`). A matching **type-safe form** is declared with `#[form]` (server-side validated, derivable from the schema). Register the resource and you get a **full CRUD admin** — list display, search, filters, permissions:
 
 ```rust
 admin! {
@@ -85,7 +80,7 @@ Security ships on by construction, not as an add-on:
 - **Password reset**: DB-persisted, SHA-256-hashed, single-use, IDOR-hardened tokens
 - **Output sanitization** (ammonia) + Tera auto-escaping, allowed-host validation
 
-[Security policy](https://github.com/seb-alliot/runique/blob/main/SECURITY.md)
+[Security policy](https://runique.io/docs/en/middleware)
 
 ---
 
@@ -94,10 +89,14 @@ Security ships on by construction, not as an add-on:
 ```bash
 runique new myapp
 cd myapp
-runique start
+cargo run            # your app is a normal Rust binary
 ```
 
-Minimal `main.rs`:
+> `runique start` is **not** how you launch the app — it's the admin code
+> generator: it watches your `admin!` declarations and regenerates the CRUD
+> code (see [Admin (beta)](#admin-beta)).
+
+A trimmed `main.rs` (full version in `demo-app/src/main.rs`):
 
 ```rust,no_run
 use runique::prelude::*;
@@ -105,21 +104,30 @@ use runique::prelude::*;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = RuniqueConfig::from_env();
+    let db = DatabaseConfig::from_env()?.build().connect().await?;
+
     RuniqueApp::builder(config)
-        .with_database().await
-        .routes(url::urlpatterns())
-        .build().await?
-        .run().await
+        .routes(url::routes())
+        .with_database(db)
+        .statics()
+        .build()
+        .await
+        .map_err(|e| -> Box<dyn std::error::Error> { Box::new(e) })?
+        .run()
+        .await?;
+    Ok(())
 }
 ```
 
-Routes are declared with a macro:
+Routes are declared with the `urlpatterns!` macro and return an Axum `Router`:
 
 ```rust
-urlpatterns! {
-    "/" => views::index,
-    "/articles/<id:i32>" => views::article_detail,
-    "/login" => [get: views::login_get, post: views::login_post],
+pub fn routes() -> Router {
+    urlpatterns! {
+        "/"          => view!{ index },        name = "index",
+        "/blog/{id}" => view!{ blog_detail },  name = "blog_detail",
+    }
+    .rate_limit("/login", "login", view!(login_user), 10, 60, vec![Method::POST])
 }
 ```
 
@@ -142,7 +150,7 @@ Workspace version (source of truth): **2.1.16**.
 `runique` provides:
 
 - `runique new <name>`
-- `runique start [--main src/main.rs] [--admin src/admin.rs]`
+- `runique start [--main src/main.rs] [--admin src/admin.rs]` — admin code generator/watcher, **not** the app launcher (run the app with `cargo run`)
 - `runique create-superuser`
 - `runique makemigrations --entities src/entities --migrations migration/src [--force false]`
 - `runique migration up|down|status --migrations migration/src`
