@@ -18,7 +18,7 @@
 - ✅ **Historique admin** — filtres par resource/action/user + diff avant/après + vue batch (timeline)
 - ✅ **Persistance des filtres admin** — `search`, `filter_*`, `page`, `sort_by` conservés via `return_qs` : liste → liens detail/edit/delete → hidden form → redirect retour après edit/delete
 - ✅ **Boot validation** — `cross_validate` au `build()` (`CheckReport`) : refuse le démarrage en production si `SECRET_KEY` par défaut ou ACME mal configuré ; sauté en debug, extensible
-- [ ] **Reset token persisté en DB** — actuellement en mémoire, perdu au redémarrage
+- ✅ **Reset token persisté en DB** — table `eihwaz_reset_tokens` (token hashé SHA-256, single-use strict, FK user cascade), survit au redémarrage + multi-instance ; mutation durcie IDOR (`update_password_by_id`), TTL configurable (`PasswordResetConfig::token_ttl`)
 - ✅ **Pagination changelog** — demo-app : `fetch_changelog_paged(db, page)` paginé
 
 ---

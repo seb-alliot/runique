@@ -203,13 +203,14 @@ impl PasswordResetConfig {
 pub async fn handle_forgot_password<E: UserEntity + 'static>(
     request: &mut Request,
     form: &mut ForgotPasswordForm,
-    template: &str,
-    forgot_route: &str,
-    reset_path: &str,
-    base_url: Option<&str>,
-    email_template: Option<&str>,
-    token_ttl: Duration,
+    config: &PasswordResetConfig,
 ) -> AppResult<Response> {
+    let template = config.forgot_template.as_str();
+    let forgot_route = config.forgot_route.as_str();
+    let reset_path = config.reset_route.as_str();
+    let base_url = config.base_url.as_deref();
+    let email_template = config.email_template.as_deref();
+    let token_ttl = config.token_ttl;
     request.context.insert("lang", &current_lang().code());
     if request.is_get() {
         context_update!(request => {
@@ -495,17 +496,7 @@ async fn forgot_view<E: UserEntity + 'static>(
     mut request: Request,
 ) -> AppResult<Response> {
     let mut form: ForgotPasswordForm = request.form();
-    handle_forgot_password::<E>(
-        &mut request,
-        &mut form,
-        &state.config.forgot_template,
-        &state.config.forgot_route,
-        &state.config.reset_route,
-        state.config.base_url.as_deref(),
-        state.config.email_template.as_deref(),
-        state.config.token_ttl,
-    )
-    .await
+    handle_forgot_password::<E>(&mut request, &mut form, &state.config).await
 }
 
 async fn reset_view<E: UserEntity + 'static>(
