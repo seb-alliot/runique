@@ -9,13 +9,13 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 ---
 
-## Snapshot (au 10 juin 2026)
+## Snapshot (au 17 juin 2026)
 
-- **Version workspace** : `2.1.15`
-- **derive_form** : `2.1.8`
+- **Version workspace** : `2.1.16`
+- **derive_form** : `2.1.9`
 - **Licence** : MIT
 - **Branche** : `main`
-- **Stack** : Axum 0.8.7 + SeaORM 2.0.0-rc.38 + Tera 1.20.1 · Rust edition 2024 · Rust 1.88
+- **Stack** : Axum 0.8.7 + SeaORM 2.0.0-rc.40 + Tera 1.20.1 · Rust edition 2024 · Rust 1.94
 
 ---
 
@@ -33,7 +33,7 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 ### Formulaires
 - Système de formulaires typés : `#[form]`, `RuniqueForm`, validation, rendu HTML via Tera
 - Protection CSRF intégrée (token masqué anti-BREACH, comparaison temps constant)
-- `FormTracing` structuré + `eprintln!` debug sur tout le pipeline (field, set_value, validate, finalize, render)
+- Tracing structuré par domaine (arbre `RuniqueLog`) sur tout le pipeline (field, set_value, validate, finalize, render)
 - Tous les types de champs : Text, Numeric, Boolean, Choice, Radio, Checkbox, Date, Time, DateTime, Duration, File, Color, Slug, UUID, JSON, IP, Hidden, Honeypot
 - Garde `save()` / `save_as()` : retourne `Err` si `is_valid()` n'a pas été appelé ou a retourné `false` — empêche toute persistance sans validation préalable
 
@@ -68,15 +68,23 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 - `AntiBot` — honeypot configurable par scope
 - Sanitization HTML (ammonia), argon2/bcrypt/scrypt pour les mots de passe
 - Redirections sécurisées (open-redirect guard), cookies `HttpOnly`/`SameSite=Strict`/`Secure`
+- Login en temps constant (verify contre dummy-hash — pas d'énumération d'utilisateurs)
+- Tokens de reset persistés en DB : hashés SHA-256, single-use, durcis IDOR (mutation par l'id utilisateur lié au token)
 
 ### ORM / Migrations
 - `model!{}` DSL → entité SeaORM + migration SQL + AdminForm
 - `extend!{}` — extension de tables framework (ex. `eihwaz_users`)
-- `makemigrations` avec détection des changements destructifs + prompt de confirmation
+- `makemigrations` — plan → validate → **commit/rollback atomique** + snapshots ; `DROP COLUMN` sur colonnes supprimées (garde destructive)
 - Backends supportés : PostgreSQL, MariaDB, SQLite
 
 ### I18n
-- 8 langues (en, fr, de, es, it, pt, ja, zh), stockage `AtomicU8`, `RUNIQUE_LANG`
+- 9 langues (en, fr, de, es, it, pt, ja, zh, ru), stockage `AtomicU8`, `RUNIQUE_LANG`
+
+### Tracing & observabilité
+- Arbre `RuniqueLog` par domaine (forms, middleware, session, auth, admin, db, mailer, migration, templates, errors, builder), chaque feuille un `Option<Level>`
+- `TraceResult::trace` / `trace_or` — les `Result` avalés loggent leur `file:line` ; les sites sensibles à la sécurité plancher à `WARN` même catégorie désactivée
+- Sorties : stdout couleurs, fichiers roulants (JSON/plain, non bloquants), `LogSink` custom (aucun type `tracing` exposé) ; `.external()` délègue le subscriber global à l'app hôte
+- Override runtime `RUNIQUE_LOG_FILE`
 
 ### CLI
 - `runique new`, `runique start`, `runique create-superuser`, `runique makemigrations`, `runique migration`
@@ -91,6 +99,9 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 | 2.1.9 | Fixation de session au login (cycle_id manquant) | Moyenne |
 | 2.1.9 | Granularité droits write admin (create/update/delete indistincts) | Moyenne |
 | 2.1.9 | IDOR — can_update_own/can_delete_own non appliqués | Faible |
+| 2.1.15 | Énumération d'utilisateurs via timing attack au login | Moyenne |
+| 2.1.15 | Contrôle d'accès manquant sur l'action admin reset-password | Moyenne |
+| 2.1.17 | Tokens de reset : mémoire → DB (hashés, single-use, durcis IDOR) | Durcissement |
 
 ---
 
@@ -113,8 +124,6 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 - **TypeState form** : variante `validate() -> Result<ValidForm<T>, T>`
 
 ### Priorité basse
-- **Tokens de reset en mémoire** : non persistants au redémarrage, inopérants multi-instance
-- **`makemigrations` DROP COLUMN** : colonnes supprimées non détectées
 - **Couverture ciblée** : `migration/migrate.rs` (22%), `engine/core.rs` (50%), `forms/fields/file.rs` (61%)
 
 ---
@@ -127,5 +136,5 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 ---
 
-**Dernière mise à jour** : 30 mai 2026
-**Statut global** : ✅ Framework stable · 🟡 Admin bêta mature · 🔒 Audit sécurité complété 2026-05-28 · 📖 Documentation API publique complète (docs.rs)
+**Dernière mise à jour** : 17 juin 2026
+**Statut global** : ✅ Framework stable · 🟡 Admin bêta mature · 🔒 Sécurité : tokens de reset durcis en DB, auth en temps constant · 📖 Documentation API publique complète (docs.rs)

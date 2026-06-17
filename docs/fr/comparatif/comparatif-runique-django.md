@@ -92,7 +92,7 @@
 | Tri par expression | — | `.order_by_expr(expr, order)` |
 | Relations | ForeignKey, ManyToMany, OneToOne | Relations SeaORM standard |
 | Transactions | `with transaction.atomic()` | `db.transaction(...)` |
-| Multi-moteur SQL | oui | PostgreSQL, MySQL, SQLite |
+| Multi-moteur SQL | oui | PostgreSQL, MySQL/MariaDB, SQLite (3 backends SeaORM ; MariaDB passe par le driver MySQL avec son propre dialecte de migration) |
 | Connexions secondaires | `DATABASES` multi-entrées | `.with_custom_db::<T>()` × N types (TypeMap) |
 | Extension table framework | — | `extend!{}` — `ALTER TABLE ADD COLUMN` sur tables `eihwaz_*` |
 
@@ -109,7 +109,7 @@
 | Sessions | natif | tower-sessions (MemoryStore + DB fallback) |
 | Protection brute force | `django-axes` (tiers) | `LoginGuard` natif (lockout auto) |
 | Hashage mot de passe | PBKDF2 / Argon2 | Argon2 par défaut |
-| Reset password | natif | natif — template email personnalisable via `.email_template("...")` |
+| Reset password | token signé lié au hash du mot de passe (stateless) | tokens persistés en DB, **hashés**, single-use (durcis IDOR — clé `user_id`), TTL configurable via `.token_ttl(...)`, template email personnalisable |
 | Déconnexion forcée | oui | `RuniqueSessionStore::invalidate_all(user_id)` |
 
 ---
@@ -171,6 +171,18 @@
 | Templates email | natif | templates Tera via `.template("emails/mon.html")` |
 | Backend SMTP | configurable | configuration via `.env` |
 | Backend dev (console) | `EMAIL_BACKEND = 'console'` | `EMAIL_BACKEND=console` dans `.env` |
+
+---
+
+## Observabilité / Logging
+
+| Fonctionnalité | Django | Runique |
+|----------------|--------|---------|
+| Config logging | dict `LOGGING` (`logging` Python) | arbre `RuniqueLog` par domaine (`forms`, `middleware`, `session`, `auth`, `admin`, `db`, `mailer`, `migration`, `templates`, `errors`, `builder`) — chaque feuille un `Option<Level>` |
+| Tracing structuré | tiers (`structlog`) | natif (`tracing`) ; les `Result` avalés loggent leur `file:line` via `TraceResult::trace` / `trace_or` |
+| Sorties | handlers (console / fichier / …) | `.output(...)` : stdout couleurs, fichier roulant (JSON ou texte, non bloquant), `LogSink` custom (DB / HTTP / file) |
+| Override fichier runtime | — | variable d'env `RUNIQUE_LOG_FILE` |
+| Subscriber côté app | le logging appartient à l'app | `.external()` — Runique n'installe rien, émet quand même vers la façade `tracing` |
 
 ---
 

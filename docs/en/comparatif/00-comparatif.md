@@ -92,7 +92,7 @@
 | Expression ordering | — | `.order_by_expr(expr, order)` |
 | Relations | ForeignKey, ManyToMany, OneToOne | Standard SeaORM relations |
 | Transactions | `with transaction.atomic()` | `db.transaction(...)` |
-| Multi-engine SQL | yes | PostgreSQL, MySQL, SQLite |
+| Multi-engine SQL | yes | PostgreSQL, MySQL/MariaDB, SQLite (3 SeaORM backends; MariaDB rides the MySQL driver with its own migration dialect) |
 | Secondary connections | `DATABASES` multiple entries | `.with_custom_db::<T>()` × N types (TypeMap) |
 | Framework table extension | — | `extend!{}` — `ALTER TABLE ADD COLUMN` on `eihwaz_*` tables |
 
@@ -109,7 +109,7 @@
 | Sessions | native | tower-sessions (MemoryStore + DB fallback) |
 | Brute force protection | `django-axes` (3rd party) | Native `LoginGuard` (auto lockout) |
 | Password hashing | PBKDF2 / Argon2 | Argon2 by default |
-| Password reset | native | native — email template customizable via `.email_template("...")` |
+| Password reset | signed token bound to the password hash (stateless) | DB-persisted **hashed**, single-use tokens (IDOR-hardened — keyed on `user_id`), configurable TTL via `.token_ttl(...)`, customizable email template |
 | Force logout | yes | `RuniqueSessionStore::invalidate_all(user_id)` |
 
 ---
@@ -171,6 +171,18 @@
 | Email templates | native | Tera templates via `.template("emails/my.html")` |
 | SMTP backend | configurable | configuration via `.env` |
 | Dev backend (console) | `EMAIL_BACKEND = 'console'` | `EMAIL_BACKEND=console` in `.env` |
+
+---
+
+## Observability / Logging
+
+| Feature | Django | Runique |
+|---------|--------|---------|
+| Logging config | `LOGGING` dict (Python `logging`) | `RuniqueLog` per-domain tree (`forms`, `middleware`, `session`, `auth`, `admin`, `db`, `mailer`, `migration`, `templates`, `errors`, `builder`) — each leaf an `Option<Level>` |
+| Structured tracing | 3rd party (`structlog`) | native (`tracing`); swallowed `Result` sites log their `file:line` via `TraceResult::trace` / `trace_or` |
+| Outputs | handlers (console / file / …) | `.output(...)`: colored stdout, rolling file (JSON or plain, non-blocking), custom `LogSink` (DB / HTTP / queue) |
+| Runtime file override | — | `RUNIQUE_LOG_FILE` env var |
+| App-owned subscriber | logging is app-owned | `.external()` — Runique installs nothing, still emits to the `tracing` facade |
 
 ---
 
