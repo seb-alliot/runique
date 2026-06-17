@@ -1,47 +1,67 @@
 //! Tests — utils/reset_token
-//! Couvre : generate, consume, peek, encrypt_email, decrypt_email
+//! Couvre : generate, consume, peek (DB-backed), encrypt_email, decrypt_email
 
+use crate::helpers::db;
 use runique::utils::reset_token::{consume, decrypt_email, encrypt_email, generate, peek};
+use std::time::Duration;
+
+const RESET_TOKENS_DDL: &str = "
+    CREATE TABLE eihwaz_reset_tokens (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        token_hash  TEXT NOT NULL UNIQUE,
+        user_id     INTEGER NOT NULL,
+        expires_at  TEXT NOT NULL
+    )
+";
+
+fn ttl() -> Duration {
+    Duration::from_secs(3600)
+}
 
 // ═══════════════════════════════════════════════════════════════
-// generate / peek / consume
+// generate / peek / consume (DB-backed, hashed, single-use)
 // ═══════════════════════════════════════════════════════════════
 
-#[test]
-fn test_generate_peek_valid() {
-    let token = generate("alice@example.com");
-    assert!(peek(&token));
+#[tokio::test]
+async fn test_generate_peek_valid() {
+    let conn = db::fresh_db_with_schema(RESET_TOKENS_DDL).await;
+    let token = generate(&conn, 1, ttl()).await.unwrap();
+    assert!(peek(&conn, &token).await);
 }
 
-#[test]
-fn test_consume_returns_email() {
-    let token = generate("bob@example.com");
-    let result = consume(&token);
-    assert_eq!(result, Some("bob@example.com".to_string()));
+#[tokio::test]
+async fn test_consume_returns_user_id() {
+    let conn = db::fresh_db_with_schema(RESET_TOKENS_DDL).await;
+    let token = generate(&conn, 42, ttl()).await.unwrap();
+    assert_eq!(consume(&conn, &token).await, Some(42));
 }
 
-#[test]
-fn test_consume_single_use() {
-    let token = generate("carol@example.com");
-    let _ = consume(&token);
-    assert_eq!(consume(&token), None);
+#[tokio::test]
+async fn test_consume_single_use() {
+    let conn = db::fresh_db_with_schema(RESET_TOKENS_DDL).await;
+    let token = generate(&conn, 1, ttl()).await.unwrap();
+    let _ = consume(&conn, &token).await;
+    assert_eq!(consume(&conn, &token).await, None);
 }
 
-#[test]
-fn test_peek_after_consume_false() {
-    let token = generate("dave@example.com");
-    let _ = consume(&token);
-    assert!(!peek(&token));
+#[tokio::test]
+async fn test_peek_after_consume_false() {
+    let conn = db::fresh_db_with_schema(RESET_TOKENS_DDL).await;
+    let token = generate(&conn, 1, ttl()).await.unwrap();
+    let _ = consume(&conn, &token).await;
+    assert!(!peek(&conn, &token).await);
 }
 
-#[test]
-fn test_consume_unknown_token() {
-    assert_eq!(consume("non-existent-token-xyz-abc-123"), None);
+#[tokio::test]
+async fn test_consume_unknown_token() {
+    let conn = db::fresh_db_with_schema(RESET_TOKENS_DDL).await;
+    assert_eq!(consume(&conn, "non-existent-token-xyz").await, None);
 }
 
-#[test]
-fn test_peek_unknown_token() {
-    assert!(!peek("non-existent-token-xyz-abc-456"));
+#[tokio::test]
+async fn test_peek_unknown_token() {
+    let conn = db::fresh_db_with_schema(RESET_TOKENS_DDL).await;
+    assert!(!peek(&conn, "non-existent-token-abc").await);
 }
 
 // ═══════════════════════════════════════════════════════════════
