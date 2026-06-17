@@ -71,4 +71,63 @@ When you use `extend! { table: "eihwaz_users", ... }`, the parser:
 
 ---
 
+## Concrete examples
+
+### Renaming a column without data loss
+
+Renaming a field directly produces a `DROP` + `ADD` → lost data. The `renamed_from` hint signals intent to the non-interactive tool:
+
+```rust
+model! {
+    Employe,
+    table: "employes",
+    fields: {
+        // before:  job_title: text,
+        title: text [renamed_from: "job_title"],
+    }
+}
+```
+
+`makemigrations` then emits `ALTER TABLE employes RENAME COLUMN job_title TO title` (PostgreSQL, MySQL/MariaDB, SQLite). The attribute is a migration-only directive: no effect on the generated entity or form. Safeguard: if the old column still exists in the snapshot (stale hint), no rename is emitted.
+
+### Extending a framework table with `extend!{}`
+
+To add columns to `eihwaz_users` (or `eihwaz_groupes`) without touching the framework:
+
+```rust
+use runique::prelude::*;
+
+extend! {
+    table: "eihwaz_users",
+    fields: {
+        bio: textarea,
+        avatar: image [upload_to: "avatars/"],
+        website: url,
+        is_verified: bool [default: false],
+    }
+}
+```
+
+On the next `makemigrations`, these fields become an `ALTER TABLE eihwaz_users ADD COLUMN …` (never a `CREATE TABLE`). `extend!{}` fields accept the same types and options as `model!{}`, including `renamed_from`.
+
+### Generating and applying
+
+```bash
+# Detect the diff and write the migration files
+runique makemigrations
+
+# Destructive changes (DROP COLUMN, nullable → not null,
+# type change, FK removal) are blocked by default.
+# To allow them explicitly:
+runique makemigrations --force
+
+# Custom paths (defaults: src/entities and migration/src)
+runique makemigrations --entities src/entities --migrations migration/src
+
+# Apply the generated migrations
+sea-orm-cli migrate up
+```
+
+---
+
 ← [**Architecture**](/docs/en/architecture) | [**Models**](/docs/en/model) →

@@ -71,4 +71,63 @@ Quand vous utilisez `extend! { table: "eihwaz_users", ... }`, le parseur :
 
 ---
 
+## Exemples concrets
+
+### Renommer une colonne sans perte de données
+
+Renommer un champ directement produit un `DROP` + `ADD` → données perdues. L'indice `renamed_from` signale l'intention à l'outil non interactif :
+
+```rust
+model! {
+    Employe,
+    table: "employes",
+    fields: {
+        // avant :  job_title: text,
+        title: text [renamed_from: "job_title"],
+    }
+}
+```
+
+`makemigrations` émet alors `ALTER TABLE employes RENAME COLUMN job_title TO title` (PostgreSQL, MySQL/MariaDB, SQLite). L'attribut est une directive de migration uniquement : aucun effet sur l'entité ou le formulaire générés. Garde-fou : si l'ancienne colonne existe encore dans le snapshot (hint périmé), aucun rename n'est émis.
+
+### Étendre une table framework avec `extend!{}`
+
+Pour ajouter des colonnes à `eihwaz_users` (ou `eihwaz_groupes`) sans toucher au framework :
+
+```rust
+use runique::prelude::*;
+
+extend! {
+    table: "eihwaz_users",
+    fields: {
+        bio: textarea,
+        avatar: image [upload_to: "avatars/"],
+        website: url,
+        is_verified: bool [default: false],
+    }
+}
+```
+
+Au prochain `makemigrations`, ces champs deviennent un `ALTER TABLE eihwaz_users ADD COLUMN …` (jamais un `CREATE TABLE`). Les champs d'`extend!{}` acceptent les mêmes types et options que `model!{}`, `renamed_from` compris.
+
+### Générer et appliquer
+
+```bash
+# Détecte le diff et écrit les fichiers de migration
+runique makemigrations
+
+# Les changements destructifs (DROP COLUMN, nullable → not null,
+# changement de type, suppression de FK) sont bloqués par défaut.
+# Pour les autoriser explicitement :
+runique makemigrations --force
+
+# Chemins personnalisés (défauts : src/entities et migration/src)
+runique makemigrations --entities src/entities --migrations migration/src
+
+# Appliquer les migrations générées
+sea-orm-cli migrate up
+```
+
+---
+
 ← [**Architecture**](/docs/fr/architecture) | [**Modèles**](/docs/fr/model) →

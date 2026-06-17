@@ -7,6 +7,38 @@ Utile pour cibler des éléments précis via sélecteurs CSS sans réécrire le 
 
 ---
 
+## Cibler une classe sans réécrire le block
+
+Plutôt que de surcharger un block Tera entier, on injecte une feuille de style supplémentaire via le block `extra_css` (avec `{{ super() }}` pour conserver le CSS Runique) et on cible les classes listées ci-dessous :
+
+```html
+{# templates/admin_base.html — surcharge du layout admin #}
+{% block extra_css %}
+    {{ super() }}
+    <link rel="stylesheet" href="{% static 'css/admin_custom.css' %}">
+{% endblock %}
+```
+
+```css
+/* static/css/admin_custom.css */
+
+/* Titre de page admin en rouge */
+.admin-page__title {
+    color: #c0392b;
+}
+
+/* Bouton "Créer" pleine largeur sur mobile */
+@media (max-width: 640px) {
+    .admin-page__header .btn-primary {
+        width: 100%;
+    }
+}
+```
+
+Voir [Surcharge des templates](/docs/fr/admin/template) pour le mécanisme complet (`{% block %}`, `{{ super() }}`) et [Système de templates](/docs/fr/admin/template) pour la hiérarchie des fichiers.
+
+---
+
 ## `list_header` — `list.html`
 
 | Classe | Élément | Rôle |
