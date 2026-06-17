@@ -43,6 +43,7 @@ impl MigratorTrait for Migrator {
             Box::new(migrations_table::EihwazUsersMigration),
             Box::new(migrations_table::EihwazSessionsMigration),
             Box::new(migrations_table::AdminTableMigration),
+            Box::new(migrations_table::EihwazResetTokensMigration),
             Box::new(m20260413_133022_create_cour_table::Migration),
             Box::new(m20260413_133022_create_form_field_table::Migration),
             Box::new(m20260413_133022_create_site_config_table::Migration),
