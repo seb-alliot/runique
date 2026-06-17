@@ -11,8 +11,8 @@ This document consolidates the actual state of the repository from the reference
 
 ## Snapshot (as of June 17, 2026)
 
-- **Workspace version**: `2.1.17`
-- **derive_form**: `2.1.9`
+- **Workspace version**: `2.1.18`
+- **derive_form**: `2.1.10`
 - **License**: MIT
 - **Branch**: `main`
 - **Stack**: Axum 0.8.7 + SeaORM 2.0.0-rc.40 + Tera 1.20.1 · Rust edition 2024 · Rust 1.94
