@@ -672,8 +672,8 @@ Overridden templates have access to the **same variables as the default template
 
 | Section | Description |
 | --- | --- |
-| [Override](/docs/en/admin/template) | Replace the layout or a CRUD component |
-| [CSRF](/docs/en/admin/template) | CSRF token, `csrf.js`, custom login checklist |
+| [Override](/docs/en/admin/template-surcharge) | Replace the layout or a CRUD component |
+| [CSRF](/docs/en/admin/template-csrf) | CSRF token, `csrf.js`, custom login checklist |
 
 ## Back to summary
 

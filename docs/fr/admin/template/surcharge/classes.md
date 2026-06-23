@@ -35,7 +35,7 @@ Plutôt que de surcharger un block Tera entier, on injecte une feuille de style 
 }
 ```
 
-Voir [Surcharge des templates](/docs/fr/admin/template) pour le mécanisme complet (`{% block %}`, `{{ super() }}`) et [Système de templates](/docs/fr/admin/template) pour la hiérarchie des fichiers.
+Voir [Surcharge des templates](/docs/fr/admin/template-surcharge) pour le mécanisme complet (`{% block %}`, `{{ super() }}`) et [Système de templates](/docs/fr/admin/template) pour la hiérarchie des fichiers.
 
 ---
 

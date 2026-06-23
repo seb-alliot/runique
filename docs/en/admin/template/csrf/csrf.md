@@ -119,8 +119,8 @@ If the login template is customised (outside `admin_template.html`), the followi
 
 | Section | Description |
 | --- | --- |
-| [Context keys](/docs/en/admin/template) | Variables injected by the backend into each template |
-| [Override](/docs/en/admin/template) | Replace the layout or a CRUD component |
+| [Context keys](/docs/en/admin/template-clef) | Variables injected by the backend into each template |
+| [Override](/docs/en/admin/template-surcharge) | Replace the layout or a CRUD component |
 
 ## Back to summary
 

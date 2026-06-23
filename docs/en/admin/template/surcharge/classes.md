@@ -35,7 +35,7 @@ Rather than overriding an entire Tera block, inject an extra stylesheet via the 
 }
 ```
 
-See [Template overriding](/docs/en/admin/template) for the full mechanism (`{% block %}`, `{{ super() }}`) and [Template system](/docs/en/admin/template) for the file hierarchy.
+See [Template overriding](/docs/en/admin/template-surcharge) for the full mechanism (`{% block %}`, `{{ super() }}`) and [Template system](/docs/en/admin/template) for the file hierarchy.
 
 ---
 

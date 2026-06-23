@@ -131,9 +131,9 @@ Voir la [référence complète des blocks](/docs/fr/admin/template-surcharge-blo
 | Section | Description |
 | --- | --- |
 | [Référence des blocks](/docs/fr/admin/template-surcharge-blocks) | Liste complète des blocks par template + variables CSS |
-| [Exemples](/docs/fr/admin/template) | 3 approches : héritage Runique, layout custom, HTML autonome |
+| [Exemples](/docs/fr/admin/template-surcharge-exemples) | 3 approches : héritage Runique, layout custom, HTML autonome |
 | [Clés de contexte](/docs/fr/admin/template-clef) | Variables injectées par le backend dans chaque template |
-| [CSRF](/docs/fr/admin/template) | Token CSRF, `csrf.js`, checklist login custom |
+| [CSRF](/docs/fr/admin/template-csrf) | Token CSRF, `csrf.js`, checklist login custom |
 
 ## Revenir au sommaire
 

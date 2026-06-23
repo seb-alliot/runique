@@ -536,7 +536,7 @@ mod doc_link_validation {
     //! Pur filesystem : aucune base ni serveur requis.
     //!   cargo test -p demo-app internal_doc_links_resolve
     use super::{collect_section_pages, collect_sections, find_docs_root};
-    use std::collections::BTreeSet;
+    use std::collections::{BTreeMap, BTreeSet};
     use std::fs;
     use std::path::{Path, PathBuf};
 
@@ -633,6 +633,62 @@ mod doc_link_validation {
             "{} lien(s) interne(s) mort(s) dans la doc :\n{}",
             dead.len(),
             dead.join("\n")
+        );
+    }
+
+    // Dans un tableau de navigation (Table des matières, "Voir aussi"…), chaque
+    // ligne doit pointer vers une page distincte. Deux lignes vers la MÊME URL
+    // est la signature d'un lien valide-mais-erroné (ex. 4 sous-pages CSP
+    // pointant toutes vers l'index `/middleware/csp`) — que le check d'existence
+    // ne détecte pas, puisque l'index existe bel et bien.
+    #[test]
+    fn doc_tables_have_no_duplicate_internal_targets() {
+        let Some(docs_root) = find_docs_root() else {
+            eprintln!("docs/ introuvable — test ignoré");
+            return;
+        };
+
+        let mut md = Vec::new();
+        all_md(&docs_root, &mut md);
+
+        let mut problems: Vec<String> = Vec::new();
+        for file in &md {
+            let content = fs::read_to_string(file).unwrap_or_default();
+            let lines: Vec<&str> = content.lines().collect();
+            let mut i = 0;
+            while i < lines.len() {
+                // Bloc de tableau : lignes consécutives commençant par '|'.
+                if lines[i].trim_start().starts_with('|') {
+                    let mut seen: BTreeMap<String, BTreeSet<usize>> = BTreeMap::new();
+                    while i < lines.len() && lines[i].trim_start().starts_with('|') {
+                        for link in extract_doc_links(lines[i]) {
+                            seen.entry(normalize(&link)).or_default().insert(i + 1);
+                        }
+                        i += 1;
+                    }
+                    for (url, rows) in &seen {
+                        if rows.len() >= 2 {
+                            let rows: Vec<String> = rows.iter().map(usize::to_string).collect();
+                            problems.push(format!(
+                                "{} : {url} pointé par {} lignes du même tableau ({})",
+                                file.display(),
+                                rows.len(),
+                                rows.join(", ")
+                            ));
+                        }
+                    }
+                } else {
+                    i += 1;
+                }
+            }
+        }
+        problems.sort();
+
+        assert!(
+            problems.is_empty(),
+            "{} tableau(x) avec cible interne dupliquée (probable dérive de lien) :\n{}",
+            problems.len(),
+            problems.join("\n")
         );
     }
 }

@@ -45,9 +45,9 @@ Written directly in `admin_template.html` — **cannot be removed** by overridin
 
 | Section | Description |
 | --- | --- |
-| [Context keys](/docs/en/admin/template) | Variables injected by the backend into each template |
-| [Override](/docs/en/admin/template) | Replace the layout or a CRUD component |
-| [CSRF](/docs/en/admin/template) | CSRF token, `csrf.js`, custom login checklist |
+| [Context keys](/docs/en/admin/template-clef) | Variables injected by the backend into each template |
+| [Override](/docs/en/admin/template-surcharge) | Replace the layout or a CRUD component |
+| [CSRF](/docs/en/admin/template-csrf) | CSRF token, `csrf.js`, custom login checklist |
 
 ## See also
 

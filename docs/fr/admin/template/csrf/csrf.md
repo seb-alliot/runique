@@ -119,8 +119,8 @@ Si le template de login est personnalisé (hors `admin_template.html`), les troi
 
 | Section | Description |
 | --- | --- |
-| [Clés de contexte](/docs/fr/admin/template) | variables injectées par le backend dans chaque template
-| [Surcharge](/docs/fr/admin/template) | remplacer le layout ou un composant CRUD
+| [Clés de contexte](/docs/fr/admin/template-clef) | variables injectées par le backend dans chaque template
+| [Surcharge](/docs/fr/admin/template-surcharge) | remplacer le layout ou un composant CRUD
 
 ## Revenir au sommaire
 
