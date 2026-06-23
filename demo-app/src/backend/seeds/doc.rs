@@ -253,34 +253,37 @@ async fn insert_page_with_blocks(
 }
 use sea_orm::ActiveValue::Set;
 
-async fn seed_language(lang: &str, lang_path: &Path, db: &DatabaseConnection) {
+// Énumère les sections d'une langue (dossiers sous docs/{lang}/), triées,
+// hors `cour` et `ia` qui ont leur propre pipeline.
+// Source de vérité partagée par le seeder et le validateur de liens.
+fn collect_sections(lang_path: &Path) -> Vec<(String, PathBuf)> {
     let mut entries: Vec<_> = match fs::read_dir(lang_path) {
         Ok(e) => e.filter_map(|e| e.ok()).collect(),
-        Err(_) => return,
+        Err(_) => return Vec::new(),
     };
     entries.sort_by_key(|e| e.file_name());
 
+    let mut out = Vec::new();
     for entry in entries {
         let path = entry.path();
         if !path.is_dir() {
             continue;
         }
-
         let section_slug = path
             .file_name()
             .and_then(|n| n.to_str())
             .unwrap_or("")
             .to_string();
-
-        if section_slug.is_empty() {
+        if section_slug.is_empty() || section_slug == "cour" || section_slug == "ia" {
             continue;
         }
+        out.push((section_slug, path));
+    }
+    out
+}
 
-        // Les cours ont leur propre table — on les exclut du seed doc
-        if section_slug == "cour" || section_slug == "ia" {
-            continue;
-        }
-
+async fn seed_language(lang: &str, lang_path: &Path, db: &DatabaseConnection) {
+    for (section_slug, path) in collect_sections(lang_path) {
         // Trouve le fichier index (NN-nom.md) dans le dossier section
         let index_file = fs::read_dir(&path)
             .ok()
@@ -346,19 +349,20 @@ async fn seed_language(lang: &str, lang_path: &Path, db: &DatabaseConnection) {
     }
 }
 
-async fn seed_section_pages(
-    section_slug: &str,
-    lang: &str,
-    section_id: i32,
-    section_path: &Path,
-    db: &DatabaseConnection,
-) {
+// Calcule, pour une section, la liste ordonnée de ses pages : (slug, sort_order, fichier).
+//
+// RÈGLE DE SLUG — source de vérité UNIQUE, identique au routage
+// (`/docs/{lang}/{section}/{page}` ⇒ slug `{section}-{page}`, cf. backend/doc.rs).
+// Le seeder l'utilise pour insérer, le validateur de liens pour dériver les URL valides :
+// les deux ne peuvent plus diverger.
+fn collect_section_pages(section_slug: &str, section_path: &Path) -> Vec<(String, i32, PathBuf)> {
     let mut entries: Vec<_> = match fs::read_dir(section_path) {
         Ok(e) => e.filter_map(|e| e.ok()).collect(),
-        Err(_) => return,
+        Err(_) => return Vec::new(),
     };
     entries.sort_by_key(|e| e.file_name());
 
+    let mut pages = Vec::new();
     let mut order = 0i32;
 
     for entry in entries {
@@ -366,12 +370,7 @@ async fn seed_section_pages(
 
         if path.is_file() && path.extension().is_some_and(|e| e == "md") {
             // Fichier index de la section (NN-nom.md)
-            let content = match fs::read_to_string(&path) {
-                Ok(c) => strip_github_anchors(&c),
-                Err(_) => continue,
-            };
-            let slug = format!("{section_slug}-index");
-            insert_page_with_blocks(section_id, &slug, lang, &content, order, db).await;
+            pages.push((format!("{section_slug}-index"), order, path));
             order += 1;
         } else if path.is_dir() {
             let sub_slug = path
@@ -379,7 +378,6 @@ async fn seed_section_pages(
                 .and_then(|n| n.to_str())
                 .unwrap_or("")
                 .to_string();
-
             if sub_slug.is_empty() {
                 continue;
             }
@@ -395,13 +393,7 @@ async fn seed_section_pages(
 
                 if sub_path.is_file() && sub_path.extension().is_some_and(|e| e == "md") {
                     // .md directement dans le sous-dossier
-                    let content = match fs::read_to_string(&sub_path) {
-                        Ok(c) => strip_github_anchors(&c),
-                        Err(_) => continue,
-                    };
-                    let page_slug = format!("{section_slug}-{sub_slug}");
-                    insert_page_with_blocks(section_id, &page_slug, lang, &content, order, db)
-                        .await;
+                    pages.push((format!("{section_slug}-{sub_slug}"), order, sub_path));
                     order += 1;
                 } else if sub_path.is_dir() {
                     // Niveau supplémentaire : dossier dans le sous-dossier
@@ -429,23 +421,36 @@ async fn seed_section_pages(
                     // (/docs/{lang}/{section}/{page}) les rendrait inaccessibles.
                     let single = md_files.len() == 1;
                     for md in md_files {
-                        let content = match fs::read_to_string(&md) {
-                            Ok(c) => strip_github_anchors(&c),
-                            Err(_) => continue,
-                        };
                         let stem = md.file_stem().and_then(|n| n.to_str()).unwrap_or("");
                         let page_slug = if single || stem == leaf_slug {
                             format!("{section_slug}-{sub_slug}-{leaf_slug}")
                         } else {
                             format!("{section_slug}-{sub_slug}-{leaf_slug}-{stem}")
                         };
-                        insert_page_with_blocks(section_id, &page_slug, lang, &content, order, db)
-                            .await;
+                        pages.push((page_slug, order, md));
                         order += 1;
                     }
                 }
             }
         }
+    }
+
+    pages
+}
+
+async fn seed_section_pages(
+    section_slug: &str,
+    lang: &str,
+    section_id: i32,
+    section_path: &Path,
+    db: &DatabaseConnection,
+) {
+    for (slug, order, path) in collect_section_pages(section_slug, section_path) {
+        let content = match fs::read_to_string(&path) {
+            Ok(c) => strip_github_anchors(&c),
+            Err(_) => continue,
+        };
+        insert_page_with_blocks(section_id, &slug, lang, &content, order, db).await;
     }
 }
 
@@ -519,4 +524,115 @@ pub async fn seed_docs(db: &DatabaseConnection) {
     }
 
     tracing::info!("doc_seed: terminé");
+}
+
+#[cfg(test)]
+mod doc_link_validation {
+    //! Vérifie qu'aucun lien interne `/docs/...` des fichiers markdown ne pointe
+    //! vers une page inexistante. Le set d'URL valides est dérivé des MÊMES
+    //! fonctions (`collect_sections`, `collect_section_pages`) que le seeder, donc
+    //! ce test casse dès qu'un lien diverge de l'arborescence réelle.
+    //!
+    //! Pur filesystem : aucune base ni serveur requis.
+    //!   cargo test -p demo-app internal_doc_links_resolve
+    use super::{collect_section_pages, collect_sections, find_docs_root};
+    use std::collections::BTreeSet;
+    use std::fs;
+    use std::path::{Path, PathBuf};
+
+    // URL servies pour un slug donné, selon le routage réel :
+    //   slug `{section}-index` ⇒ /docs/{lang}/{section} (+ /index explicite)
+    //   slug `{section}-{page}` ⇒ /docs/{lang}/{section}/{page}
+    fn slug_to_urls(lang: &str, section: &str, slug: &str) -> Vec<String> {
+        if slug == format!("{section}-index") {
+            vec![
+                format!("/docs/{lang}/{section}"),
+                format!("/docs/{lang}/{section}/index"),
+            ]
+        } else {
+            let page = slug.strip_prefix(&format!("{section}-")).unwrap_or(slug);
+            vec![format!("/docs/{lang}/{section}/{page}")]
+        }
+    }
+
+    fn valid_urls(docs_root: &Path) -> BTreeSet<String> {
+        let mut set = BTreeSet::new();
+        for lang in ["fr", "en"] {
+            let lang_path = docs_root.join(lang);
+            if !lang_path.is_dir() {
+                continue;
+            }
+            set.insert(format!("/docs/{lang}"));
+            for (section, path) in collect_sections(&lang_path) {
+                set.insert(format!("/docs/{lang}/{section}"));
+                for (slug, _order, _path) in collect_section_pages(&section, &path) {
+                    set.extend(slug_to_urls(lang, &section, &slug));
+                }
+            }
+        }
+        set
+    }
+
+    fn all_md(dir: &Path, out: &mut Vec<PathBuf>) {
+        let Ok(rd) = fs::read_dir(dir) else { return };
+        for entry in rd.filter_map(|e| e.ok()) {
+            let p = entry.path();
+            if p.is_dir() {
+                all_md(&p, out);
+            } else if p.extension().is_some_and(|x| x == "md") {
+                out.push(p);
+            }
+        }
+    }
+
+    // Cibles des liens markdown inline `](/docs/...)`.
+    fn extract_doc_links(content: &str) -> Vec<String> {
+        let mut links = Vec::new();
+        let mut i = 0;
+        while let Some(rel) = content[i..].find("](/docs/") {
+            let start = i + rel + 2; // après "]("
+            let end = content[start..]
+                .find([')', ' ', '"', '\n'])
+                .map_or(content.len(), |x| start + x);
+            links.push(content[start..end].to_string());
+            i = end;
+        }
+        links
+    }
+
+    fn normalize(link: &str) -> String {
+        let link = link.split(['#', '?']).next().unwrap_or(link);
+        link.trim_end_matches('/').to_string()
+    }
+
+    #[test]
+    fn internal_doc_links_resolve() {
+        let Some(docs_root) = find_docs_root() else {
+            eprintln!("docs/ introuvable — test ignoré");
+            return;
+        };
+
+        let valid = valid_urls(&docs_root);
+
+        let mut md = Vec::new();
+        all_md(&docs_root, &mut md);
+
+        let mut dead: Vec<String> = Vec::new();
+        for file in &md {
+            let content = fs::read_to_string(file).unwrap_or_default();
+            for link in extract_doc_links(&content) {
+                if !valid.contains(&normalize(&link)) {
+                    dead.push(format!("{}  →  {link}", file.display()));
+                }
+            }
+        }
+        dead.sort();
+
+        assert!(
+            dead.is_empty(),
+            "{} lien(s) interne(s) mort(s) dans la doc :\n{}",
+            dead.len(),
+            dead.join("\n")
+        );
+    }
 }

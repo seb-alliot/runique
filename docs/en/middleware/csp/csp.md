@@ -8,10 +8,10 @@ Runique applies a CSP policy via the security middleware, configured exclusively
 
 | Section | Description |
 | --- | --- |
-| [CSP Profiles](/docs/en/middleware/csp) | `default()`, `strict()`, `permissive()` — comparison and use cases |
-| [Directives](/docs/en/middleware/csp) | All configurable directives |
-| [CSP Nonce](/docs/en/middleware/csp) | How the nonce works, template usage |
-| [Security Headers](/docs/en/middleware/csp) | All automatically injected headers |
+| [CSP Profiles](/docs/en/middleware/csp-profiles) | `default()`, `strict()`, `permissive()` — comparison and use cases |
+| [Directives](/docs/en/middleware/csp-directives) | All configurable directives |
+| [CSP Nonce](/docs/en/middleware/csp-nonce) | How the nonce works, template usage |
+| [Security Headers](/docs/en/middleware/csp-headers) | All automatically injected headers |
 
 ---
 

@@ -15,4 +15,4 @@ Runique provides a complete and extensible session-based authentication system.
 
 ## Next Steps
 
-← [**Flash Messages**](/docs/en/flash) | [**Examples**](/docs/en/exemple) →
+← [**Flash Messages**](/docs/en/flash) | [**Examples**](/docs/en/auth/example) →
