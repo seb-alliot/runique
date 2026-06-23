@@ -45,9 +45,9 @@ Inscrits directement dans `admin_template.html` — **impossibles à supprimer**
 
 | Section | Description |
 | --- | --- |
-| [Clés de contexte](/docs/fr/admin/template) | variables injectées par le backend dans chaque template
-| [Surcharge](/docs/fr/admin/template) | remplacer le layout ou un composant CRUD
-| [CSRF](/docs/fr/admin/template) | token CSRF, `csrf.js`, checklist login custom |
+| [Clés de contexte](/docs/fr/admin/template-clef) | variables injectées par le backend dans chaque template
+| [Surcharge](/docs/fr/admin/template-surcharge) | remplacer le layout ou un composant CRUD
+| [CSRF](/docs/fr/admin/template-csrf) | token CSRF, `csrf.js`, checklist login custom |
 
 ## Voir aussi
 

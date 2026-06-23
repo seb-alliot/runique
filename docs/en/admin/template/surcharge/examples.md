@@ -46,7 +46,7 @@ RuniqueApp::builder(config)
 
 ## Approach 2 — Extend a custom layout
 
-You have created your own `template.html` (see [Template override](/docs/en/admin/template)) and use it as the base.
+You have created your own `template.html` (see [Template override](/docs/en/admin/template-surcharge)) and use it as the base.
 
 ```html
 {# templates.html #}
@@ -138,7 +138,7 @@ No `{% extends %}` required. The template is a complete HTML file. Useful for fr
 </html>
 ```
 
-> If the template does not extend `admin_template.html`, CSRF elements are no longer injected automatically. You must add them manually (see above). See [CSRF](/docs/en/admin/template) for details.
+> If the template does not extend `admin_template.html`, CSRF elements are no longer injected automatically. You must add them manually (see above). See [CSRF](/docs/en/admin/template-csrf) for details.
 
 ---
 
@@ -156,5 +156,5 @@ No `{% extends %}` required. The template is a complete HTML file. Useful for fr
 
 | Section | Description |
 | --- | --- |
-| [Override](/docs/en/admin/template) | Principle and inheritance levels |
-| [Context keys](/docs/en/admin/template) | Variables available per view |
+| [Override](/docs/en/admin/template-surcharge) | Principle and inheritance levels |
+| [Context keys](/docs/en/admin/template-clef) | Variables available per view |

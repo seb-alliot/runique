@@ -683,8 +683,8 @@ RuniqueApp::builder(config)
 
 | Section | Description |
 | --- | --- |
-| [Surcharge](/docs/fr/admin/template) | remplacer le layout ou un composant CRUD |
-| [CSRF](/docs/fr/admin/template) | token CSRF, `csrf.js`, checklist login custom |
+| [Surcharge](/docs/fr/admin/template-surcharge) | remplacer le layout ou un composant CRUD |
+| [CSRF](/docs/fr/admin/template-csrf) | token CSRF, `csrf.js`, checklist login custom |
 
 ## Revenir au sommaire
 
