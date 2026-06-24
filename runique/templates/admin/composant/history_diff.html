@@ -2,7 +2,7 @@
 {% block extra_css %}{{ super() }}
   <link rel="stylesheet" href="{{ "css/admin/history.css" | runique_static }}">
 {% endblock %}
-{% block title %}Diff — {{ entry.resource_key }} #{{ entry.object_pk }}{% endblock %}
+{% block title %}Diff — {{ resource_titles[entry.resource_key] | default(value=entry.resource_key) }} #{{ entry.object_pk }}{% endblock %}
 {% block breadcrumb %}
   <span class="breadcrumb-sep">/</span>
   <a href="{{ admin_prefix }}/history">Historique</a>
@@ -13,7 +13,7 @@
 
 <div class="page-header">
   <div>
-    <h1 class="page-title">Diff — {{ entry.resource_key }}</h1>
+    <h1 class="page-title">Diff — {{ resource_titles[entry.resource_key] | default(value=entry.resource_key) }}</h1>
     <p class="page-subtitle">Modifications enregistrées pour cet objet</p>
   </div>
   <a href="{{ admin_prefix }}/history" class="btn btn-secondary btn-sm">← Historique</a>
@@ -32,7 +32,7 @@
     </div>
     <div class="history-meta-item">
       <span class="history-meta-label">Ressource</span>
-      <span class="history-meta-value">{{ entry.resource_key }}</span>
+      <span class="history-meta-value">{{ resource_titles[entry.resource_key] | default(value=entry.resource_key) }}</span>
     </div>
     <div class="history-meta-item">
       <span class="history-meta-label">Objet</span>
@@ -93,7 +93,7 @@
   {% endif %}
   <a href="{{ admin_prefix }}/history/timeline?resource={{ entry.resource_key | urlencode }}"
      class="btn btn-secondary btn-sm">
-    Historique de la table {{ entry.resource_key }}
+    Historique de la table {{ resource_titles[entry.resource_key] | default(value=entry.resource_key) }}
   </a>
   <a href="{{ admin_prefix }}/history/timeline?user_id={{ entry.user_id }}"
      class="btn btn-ghost btn-sm">

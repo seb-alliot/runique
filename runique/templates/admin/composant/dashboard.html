@@ -17,29 +17,71 @@
 </div>
 {% endblock %}
 {% block dashboard_stats %}
+{% if resources %}
+{# KPIs agrégés calculés depuis resource_counts (déjà dans le contexte) — pas de calcul Rust. #}
+{% set_global total_entries = 0 %}
+{% set_global max_count = 0 %}
+{% set_global max_name = "—" %}
+{% for resource in resources %}
+    {% set c = resource_counts[resource.key] | int(default=0) %}
+    {% set_global total_entries = total_entries + c %}
+    {% if c > max_count %}{% set_global max_count = c %}{% set_global max_name = resource.title %}{% endif %}
+{% endfor %}
 <div class="admin-stats__grid">
-    {% for resource in resources %}
-    <a href="{{ admin_prefix }}/{{ resource.key }}/list" class="admin-stats__card">
-        <div class="admin-stats__label">{{ resource.title }}</div>
-        <div class="admin-stats__value">{{ resource_counts[resource.key] | default(value="—") }}</div>
-    </a>
-    {% endfor %}
-    {% if not resources %}
-    <div class="admin-card admin-card--full-width">
-        <div class="admin-card__body">
-            <div class="admin-empty-state">
-                <svg class="admin-empty-state__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M9 17H7A5 5 0 0 1 7 7h2"/>
-                    <path d="M15 7h2a5 5 0 1 1 0 10h-2"/>
-                    <line x1="8" y1="12" x2="16" y2="12"/>
-                </svg>
-                <p class="admin-empty-state__title">{% if admin_dashboard_empty_title %}{{ admin_dashboard_empty_title }}{% endif %}</p>
-                <p class="admin-empty-state__desc">{% if admin_dashboard_empty_desc %}{{ admin_dashboard_empty_desc }}{% endif %}</p>
-            </div>
+    <div class="admin-stats__card">
+        <div class="admin-stats__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">
+                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+            </svg>
+        </div>
+        <div class="admin-stats__body">
+            <div class="admin-stats__value">{{ resources | length }}</div>
+            <div class="admin-stats__label">{{ admin_dashboard_kpi_resources | default(value="Ressources") }}</div>
         </div>
     </div>
-    {% endif %}
+    <div class="admin-stats__card">
+        <div class="admin-stats__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">
+                <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+            </svg>
+        </div>
+        <div class="admin-stats__body">
+            <div class="admin-stats__value">{{ total_entries }}</div>
+            <div class="admin-stats__label">{{ admin_dashboard_kpi_entries | default(value="Entrées totales") }}</div>
+        </div>
+    </div>
+    <div class="admin-stats__card">
+        <div class="admin-stats__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">
+                <line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/>
+                <line x1="6" y1="20" x2="6" y2="16"/>
+            </svg>
+        </div>
+        <div class="admin-stats__body">
+            <div class="admin-stats__value">{{ max_count }}</div>
+            <div class="admin-stats__label">{{ admin_dashboard_kpi_largest | default(value="Plus grande") }}</div>
+            <div class="admin-stats__meta">{{ max_name }}</div>
+        </div>
+    </div>
 </div>
+{% else %}
+<div class="admin-card admin-card--full-width">
+    <div class="admin-card__body">
+        <div class="admin-empty-state">
+            <svg class="admin-empty-state__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M9 17H7A5 5 0 0 1 7 7h2"/>
+                <path d="M15 7h2a5 5 0 1 1 0 10h-2"/>
+                <line x1="8" y1="12" x2="16" y2="12"/>
+            </svg>
+            <p class="admin-empty-state__title">{% if admin_dashboard_empty_title %}{{ admin_dashboard_empty_title }}{% endif %}</p>
+            <p class="admin-empty-state__desc">{% if admin_dashboard_empty_desc %}{{ admin_dashboard_empty_desc }}{% endif %}</p>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
 {% block dashboard_table %}
 {% if resources %}
@@ -52,6 +94,7 @@
             <thead>
                 <tr>
                     <th>{% if admin_dashboard_th_resource %}{{ admin_dashboard_th_resource }}{% endif %}</th>
+                    <th class="admin-table__col-num">{{ admin_dashboard_th_count | default(value="Entrées") }}</th>
                     <th class="admin-table__col-secondary">{% if admin_dashboard_th_key %}{{ admin_dashboard_th_key }}{% endif %}</th>
                     <th class="admin-table__col-secondary">{% if admin_dashboard_th_permissions %}{{ admin_dashboard_th_permissions }}{% endif %}</th>
                     <th>{% if admin_dashboard_th_actions %}{{ admin_dashboard_th_actions }}{% endif %}</th>
@@ -61,6 +104,7 @@
             {% for resource in resources %}
             <tr>
                 <td><strong>{{ resource.title }}</strong></td>
+                <td class="admin-table__col-num">{{ resource_counts[resource.key] | default(value="—") }}</td>
                 <td class="admin-table__col-secondary"><span class="admin-badge--id">{{ resource.key }}</span></td>
                 <td class="admin-table__col-secondary">
                     {% if resource_groups[resource.key] %}

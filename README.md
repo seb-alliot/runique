@@ -3,7 +3,7 @@
 ![Rust](https://img.shields.io/badge/rust-1.94%2B-orange)
 ![Tests passing](https://img.shields.io/badge/tests-2380%2B%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-2.1.18-blue)
+![Version](https://img.shields.io/badge/version-2.1.19-blue)
 [![Crates.io](https://img.shields.io/crates/v/runique)](https://crates.io/crates/runique)
 [![Runique](https://img.shields.io/badge/Runique-brightgreen)](https://runique.io)
 
@@ -141,7 +141,7 @@ Detailed guide: [Installation](https://runique.io/docs/en/installation)
 - `demo-app/` → validation app exercised against the framework
 - `docs/` → EN/FR documentation
 
-Workspace version (source of truth): **2.1.18**.
+Workspace version (source of truth): **2.1.19**.
 
 ---
 

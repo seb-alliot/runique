@@ -59,7 +59,7 @@
           <tr>
             <td class="td-nowrap">{{ entry.created_at | format_date }}</td>
             <td class="col-secondary"><span class="id-badge">{{ entry.username }}</span></td>
-            <td class="col-secondary">{{ entry.resource_key }}</td>
+            <td class="col-secondary">{{ resource_titles[entry.resource_key] | default(value=entry.resource_key) }}</td>
             <td class="col-secondary">
               {% if entry.batch_count > 1 %}
                 <span class="text-muted">{{ entry.batch_count }} objets</span>

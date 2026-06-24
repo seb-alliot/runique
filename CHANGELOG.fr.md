@@ -6,6 +6,28 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ---
 
+## [2.1.19] - 2026-06-24
+
+### Correctif — `runique` (persistance DB des sessions : violation d'unicité `eihwaz_sessions_cookie_id_key`)
+
+* **La persistance des sessions authentifiées levait une erreur de clé dupliquée au login, pour deux causes distinctes.** (1) `login()` lisait `session.id()` *avant* la sauvegarde de la session ; après `cycle_id()` (protection contre la fixation de session, déclenchée à chaque passage anonyme→authentifié) l'id est `None` jusqu'au prochain `save()`, et `unwrap_or_default()` le transformait en **`cookie_id` vide** — le premier login insérait une ligne `cookie_id=""`, tous les suivants entraient en collision sur la contrainte unique. (2) Au redémarrage, le store mémoire est vide mais la ligne DB d'avant survit ; le premier login réutilisant le même cookie (pas d'élévation de privilège → pas de `cycle_id()`) heurtait un `INSERT` brut contre la ligne existante.
+* **Correctif :** `login()` appelle désormais `session.save().await?` avant de lire l'id et saute la persistance (avec un `WARN`) si aucun id n'est disponible, au lieu d'écrire une ligne corrompue ; `logout()` n'émet plus de `delete("")`. `RuniqueSessionStore::create` et `upsert_session` ont été réécrits en **upserts atomiques `ON CONFLICT`** (portables Postgres / MySQL-MariaDB / SQLite via SeaORM, `exec_without_returning` pour éviter `RecordNotInserted`), supprimant la fenêtre de race de l'ancien UPDATE-puis-INSERT de `upsert_session`. Les colonnes sont partitionnées entre les deux écrivains (`create` possède identité + TTL, `upsert_session` possède payload + TTL) pour qu'aucun n'écrase l'autre ; les deux rejettent un `cookie_id` vide en amont.
+
+### Correctif — `runique` (appels `render()` admin sans `.html`)
+
+* Plusieurs handlers admin rendaient des templates par un nom sans extension `.html`, ce qui échouait silencieusement (repli sur une erreur générique) : `admin/history`, `admin/history_diff`, `admin/history_timeline`, `admin/history_batch`, ainsi que les rendus `404` / `500` / `debug` des macros query/object et la page d'erreur debug. Tous utilisent désormais les noms `.html` enregistrés.
+
+### Fonctionnalité — `runique` (panel admin : bascule de thème clair/sombre + sombre réchauffé)
+
+* Le panel admin gagne une **bascule de thème clair/sombre native** (bouton soleil/lune dans la topbar) persistée dans `localStorage`, avec un script inline anti-FOUC en `<head>` (nonce CSP) qui applique le thème choisi — ou la préférence système — avant le premier paint. Toutes les couleurs sont passées en tokens sensibles au thème dans `variables.css` (`:root` = sombre réchauffé, `[data-theme="light"]` = clair), et les halos de focus / alertes / couleurs de diff jusque-là codés en dur suivent désormais le thème actif.
+
+### Fonctionnalité — `runique` (refonte du dashboard admin + noms de ressources dans l'historique)
+
+* **Dashboard :** suppression des cartes statistiques par ressource qui dupliquaient le tableau des ressources ; remplacées par trois cartes KPI agrégées compactes (nombre de ressources, total d'entrées, plus grande table) calculées dans le template, le compteur par ressource étant fusionné dans le tableau en colonne alignée à droite.
+* **Historique :** les vues d'historique (timeline, diff, batch, liste) affichent désormais le **titre nav de la ressource** (ex. « Profils utilisateurs ») au lieu de la clé SQL brute (`user_profile`), via un `resource_title_map` partagé injecté par les handlers. Les paramètres de filtre d'URL conservent la clé brute.
+
+---
+
 ## [2.1.18] - 2026-06-17
 
 ### Correctif / Fonctionnalité — `runique` (scripts de formulaire : accesseur `{% form.x.js %}` + fin des tags Tera littéraux)

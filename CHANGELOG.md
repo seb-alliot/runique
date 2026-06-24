@@ -6,6 +6,28 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2.1.19] - 2026-06-24
+
+### Fix — `runique` (session DB persistence: `eihwaz_sessions_cookie_id_key` unique violation)
+
+* **Authenticated session persistence raised a duplicate-key error on login, two distinct causes.** (1) `login()` read `session.id()` *before* the session was saved; after `cycle_id()` (session-fixation protection, triggered on every anonymous→authenticated transition) the id is `None` until the next `save()`, and `unwrap_or_default()` turned that into an **empty `cookie_id`** — the first login inserted a row with `cookie_id=""`, every later login collided on the unique constraint. (2) On restart the in-memory store is empty but the pre-restart DB row survives; the first login reusing the same cookie (no privilege elevation → no `cycle_id()`) hit a plain `INSERT` against the existing row.
+* **Fix:** `login()` now calls `session.save().await?` before reading the id and skips persistence (with a `WARN`) if no id is available, instead of writing a corrupt row; `logout()` no longer issues `delete("")`. `RuniqueSessionStore::create` and `upsert_session` were rewritten as **atomic `ON CONFLICT` upserts** (portable across Postgres / MySQL-MariaDB / SQLite via SeaORM, `exec_without_returning` to avoid `RecordNotInserted`), removing the prior read-then-write race in `upsert_session`. Column ownership is partitioned between the two writers (`create` owns identity + TTL, `upsert_session` owns payload + TTL) so neither clobbers the other; both reject an empty `cookie_id` early.
+
+### Fix — `runique` (admin template `render()` calls missing `.html`)
+
+* Several admin handlers rendered templates by a name without the `.html` extension, which silently failed to resolve (falling back to a generic error): `admin/history`, `admin/history_diff`, `admin/history_timeline`, `admin/history_batch`, plus the `404` / `500` / `debug` renders in the query/object macros and the debug error page. All now use the registered `.html` names.
+
+### Feature — `runique` (admin panel: light/dark theme toggle + warmer dark)
+
+* The admin panel gained a **native light/dark theme toggle** (sun/moon button in the topbar) persisted in `localStorage`, with an inline anti-FOUC head script (CSP nonce) that applies the chosen — or system-preferred — theme before first paint. All colors moved to theme-aware tokens in `variables.css` (`:root` = warmer dark, `[data-theme="light"]` = light), and the previously hardcoded focus rings / alert / diff colors now follow the active theme.
+
+### Feature — `runique` (admin dashboard restructure + history resource names)
+
+* **Dashboard:** removed the redundant per-resource stat cards that duplicated the resources table; replaced by three compact aggregate KPI cards (resource count, total entries, largest table) computed in-template, with the per-resource count merged into the table as a right-aligned column.
+* **History:** the history views (timeline, diff, batch, list) now display the **resource's nav title** (e.g. "Profils utilisateurs") instead of the raw SQL key (`user_profile`), via a shared `resource_title_map` injected by the handlers. URL filter params keep the raw key.
+
+---
+
 ## [2.1.18] - 2026-06-17
 
 ### Fix / Feature — `runique` (form scripts: `{% form.x.js %}` accessor + end of literal Tera tags)
