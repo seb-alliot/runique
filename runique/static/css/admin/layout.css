@@ -79,7 +79,7 @@ ul { list-style: none; }
 .admin-sidebar__logo {
     width: 32px;
     height: 32px;
-    background: var(--accent);
+    background: var(--accent-gradient);
     border-radius: 6px;
     display: flex;
     align-items: center;
@@ -291,11 +291,42 @@ ul { list-style: none; }
     color: var(--text-main);
 }
 
+/* Toggle thème (sombre/clair) */
+.admin-theme-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+
+.admin-theme-toggle:hover {
+    background: var(--bg-hover);
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.admin-theme-toggle:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+}
+
+/* Soleil en sombre (clic → clair), lune en clair (clic → sombre) */
+.admin-theme-icon--moon { display: none; }
+[data-theme="light"] .admin-theme-icon--sun  { display: none; }
+[data-theme="light"] .admin-theme-icon--moon { display: block; }
+
 .admin-topbar__avatar {
     width: clamp(32px, 4vw, 40px);
     height: clamp(32px, 4vw, 40px);
     border-radius: 50%;
-    background: var(--accent);
+    background: var(--accent-gradient);
     display: flex;
     align-items: center;
     justify-content: center;

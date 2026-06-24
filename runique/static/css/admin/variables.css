@@ -1,52 +1,102 @@
 /* ═══════════════════════════════════════════════════════════════
     AdminPanel — Variables & Tokens
+    Thème par défaut : sombre (chaleureux). Thème clair via [data-theme="light"].
+    Le toggle pose data-theme sur <html> ; tous les composants consomment ces vars.
    ═══════════════════════════════════════════════════════════════ */
 
 :root {
-    /* Surfaces — dark slate raffiné, élévation par couches */
-    --bg-main:        #0a0c10;
-    --bg-card:        #14181f;
-    --bg-sidebar:     #0c0f14;
-    --bg-input:       #1a1f29;
-    --bg-hover:       #1b2130;
-    --bg-active:      rgba(99, 102, 241, 0.14);
+    /* Surfaces — charcoal chaud (sous-ton violet léger), élévation marquée
+       entre couches pour que les cartes "décollent" du fond. */
+    --bg-main:        #17141d;
+    --bg-card:        #211c2b;
+    --bg-sidebar:     #1b1724;
+    --bg-input:       #2a2436;
+    --bg-hover:       #2d2740;
+    --bg-active:      rgba(129, 140, 248, 0.16);
 
-    /* Texte */
-    --text-main:      #f4f6f8;
-    --text-muted:     #8b93a3;
-    --text-sidebar:   #c4ccd8;
+    /* Texte — blanc chaud, muted remonté en contraste */
+    --text-main:      #f4f1f9;
+    --text-muted:     #a79fb5;
+    --text-sidebar:   #cec7da;
 
-    /* Accent — indigo moderne */
-    --accent:         #6366f1;
-    --accent-hover:   #4f46e5;
-    --accent-light:   rgba(99, 102, 241, 0.14);
+    /* Accent — indigo lumineux (plus clair = mieux sur fond sombre) */
+    --accent:         #818cf8;
+    --accent-hover:   #6366f1;
+    --accent-light:   rgba(129, 140, 248, 0.16);
+    --accent-gradient: linear-gradient(135deg, #818cf8 0%, #a855f7 100%);
 
-    /* Bords — fins, lumineux (look "verre dépoli" moderne) */
-    --border:         rgba(255, 255, 255, 0.07);
-    --border-light:   rgba(255, 255, 255, 0.12);
+    /* Bords — plus visibles qu'avant pour redonner de la définition */
+    --border:         rgba(255, 255, 255, 0.10);
+    --border-light:   rgba(255, 255, 255, 0.16);
 
     /* États */
-    --success:        #10b981;
-    --success-light:  rgba(16, 185, 129, 0.14);
-    --danger:         #f43f5e;
-    --danger-light:   rgba(244, 63, 94, 0.14);
-    --warning:        #f59e0b;
-    --warning-light:  rgba(245, 158, 11, 0.14);
+    --success:        #34d399;
+    --success-light:  rgba(52, 211, 153, 0.15);
+    --danger:         #fb7185;
+    --danger-light:   rgba(251, 113, 133, 0.15);
+    --warning:        #fbbf24;
+    --warning-light:  rgba(251, 191, 36, 0.15);
+
+    /* Focus — halo accent réutilisable */
+    --focus-ring:     0 0 0 3px rgba(129, 140, 248, 0.30);
 
     /* Layout */
     --sidebar-width:      260px;
     --sidebar-collapsed:  64px;
     --topbar-height:      56px;
 
-    /* Rayons — plus généreux */
+    /* Rayons */
     --radius:      10px;
     --radius-lg:   16px;
     --radius-sm:   7px;
 
-    /* Élévation — ombres douces en couches (plus de bloc opaque) */
+    /* Élévation — ombres douces en couches */
     --shadow-sm:   0 1px 2px rgba(0, 0, 0, 0.30);
-    --shadow:      0 1px 2px rgba(0, 0, 0, 0.30), 0 8px 24px rgba(0, 0, 0, 0.35);
-    --shadow-lg:   0 1px 3px rgba(0, 0, 0, 0.35), 0 16px 40px rgba(0, 0, 0, 0.45);
+    --shadow:      0 1px 2px rgba(0, 0, 0, 0.30), 0 8px 24px rgba(0, 0, 0, 0.38);
+    --shadow-lg:   0 1px 3px rgba(0, 0, 0, 0.35), 0 16px 40px rgba(0, 0, 0, 0.48);
 
     --transition:  0.18s cubic-bezier(0.4, 0, 0.2, 1);
+
+    color-scheme: dark;
+}
+
+/* ───────────────────────────────────────────────
+    Thème clair
+   ─────────────────────────────────────────────── */
+
+[data-theme="light"] {
+    --bg-main:        #f6f5f9;
+    --bg-card:        #ffffff;
+    --bg-sidebar:     #ffffff;
+    --bg-input:       #f1eef6;
+    --bg-hover:       #f0edf7;
+    --bg-active:      rgba(99, 102, 241, 0.10);
+
+    --text-main:      #1f1b2e;
+    --text-muted:     #6b6577;
+    --text-sidebar:   #413b50;
+
+    --accent:         #6366f1;
+    --accent-hover:   #4f46e5;
+    --accent-light:   rgba(99, 102, 241, 0.12);
+    --accent-gradient: linear-gradient(135deg, #6366f1 0%, #9333ea 100%);
+
+    --border:         rgba(24, 20, 38, 0.10);
+    --border-light:   rgba(24, 20, 38, 0.16);
+
+    --success:        #059669;
+    --success-light:  rgba(5, 150, 105, 0.12);
+    --danger:         #e11d48;
+    --danger-light:   rgba(225, 29, 72, 0.10);
+    --warning:        #d97706;
+    --warning-light:  rgba(217, 119, 6, 0.12);
+
+    --focus-ring:     0 0 0 3px rgba(99, 102, 241, 0.22);
+
+    /* Ombres douces, jamais de noir franc en clair */
+    --shadow-sm:   0 1px 2px rgba(24, 20, 38, 0.06);
+    --shadow:      0 1px 2px rgba(24, 20, 38, 0.06), 0 6px 18px rgba(24, 20, 38, 0.08);
+    --shadow-lg:   0 2px 4px rgba(24, 20, 38, 0.08), 0 14px 36px rgba(24, 20, 38, 0.14);
+
+    color-scheme: light;
 }
