@@ -420,6 +420,15 @@ async fn admin_login_post(
     }
 }
 
+/// Map clé de ressource → titre nav, pour que l'historique affiche le nom lisible
+/// ("Profils utilisateurs") plutôt que la clé/table brute ("user_profile").
+/// L'historique stocke `resource_key` = `meta.key`, donc la résolution est directe.
+fn resource_title_map<'a>(
+    resources: &[&'a crate::admin::AdminResource],
+) -> std::collections::HashMap<&'a str, &'a str> {
+    resources.iter().map(|r| (r.key, r.title)).collect()
+}
+
 async fn admin_history(
     Extension(admin): Extension<Arc<AdminState>>,
     Extension(current_user): Extension<crate::auth::session::CurrentUser>,
@@ -539,6 +548,7 @@ async fn admin_history(
         .insert("current_page", "history")
         .insert("current_resource", &Option::<String>::None)
         .insert("resources", &resources)
+        .insert("resource_titles", &resource_title_map(&resources))
         .insert("current_user", &current_user)
         .insert("site_title", &admin.config.site_title)
         .insert("site_url", &admin.config.site_url)
@@ -626,6 +636,7 @@ async fn admin_history_diff(
         .insert("current_page", "history")
         .insert("current_resource", &Option::<String>::None)
         .insert("resources", &resources)
+        .insert("resource_titles", &resource_title_map(&resources))
         .insert("current_user", &current_user)
         .insert("site_title", &admin.config.site_title)
         .insert("site_url", &admin.config.site_url)
@@ -728,6 +739,7 @@ async fn admin_history_timeline(
         .insert("current_page", "history")
         .insert("current_resource", &Option::<String>::None)
         .insert("resources", &resources)
+        .insert("resource_titles", &resource_title_map(&resources))
         .insert("current_user", &current_user)
         .insert("site_title", &admin.config.site_title)
         .insert("site_url", &admin.config.site_url)
@@ -889,6 +901,7 @@ async fn admin_history_batch(
         .insert("current_page", "history")
         .insert("current_resource", &Option::<String>::None)
         .insert("resources", &resources)
+        .insert("resource_titles", &resource_title_map(&resources))
         .insert("current_user", &current_user)
         .insert("site_title", &admin.config.site_title)
         .insert("site_url", &admin.config.site_url)

@@ -17,16 +17,36 @@
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
-    padding: 1.25rem;
+    padding: 1rem 1.25rem;
     display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
     transition: border-color var(--transition), box-shadow var(--transition);
 }
 
 .admin-stats__card:hover {
     border-color: var(--border-light);
     box-shadow: var(--shadow);
+}
+
+.admin-stats__icon {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius);
+    background: var(--accent-light);
+    color: var(--accent);
+}
+
+.admin-stats__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
 }
 
 .admin-stats__label {
@@ -38,13 +58,13 @@
 }
 
 .admin-stats__value {
-    font-size: 1.8rem;
+    font-size: 1.6rem;
     font-weight: 700;
     color: var(--text-main);
-    line-height: 1;
+    line-height: 1.1;
 }
 
-.admin-stats__meta         { font-size: 0.78rem; color: var(--text-muted); }
+.admin-stats__meta         { font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .admin-stats__meta--up     { color: var(--success); }
 .admin-stats__meta--down   { color: var(--danger); }
 
@@ -201,6 +221,17 @@
     align-items: center;
     gap: 0.4rem;
 }
+
+/* Colonne numérique (compteurs) — chiffres alignés */
+.admin-table__col-num {
+    text-align: right;
+    width: 1%;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: var(--text-main);
+}
+th.admin-table__col-num { color: var(--text-muted); font-weight: 600; }
 
 .admin-badge--id {
     display: inline-block;

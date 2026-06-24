@@ -15,11 +15,11 @@
   <div>
     <h1 class="page-title">
       {% if filter_type == "object" %}
-        Historique — {{ filter_resource }} #{{ filter_object_id }}
+        Historique — {{ resource_titles[filter_resource] | default(value=filter_resource) }} #{{ filter_object_id }}
       {% elif filter_type == "user" %}
         Activité de l'admin #{{ filter_user_id }}
       {% elif filter_type == "resource" %}
-        Historique — table {{ filter_resource }}
+        Historique — {{ resource_titles[filter_resource] | default(value=filter_resource) }}
       {% else %}
         Timeline complète
       {% endif %}
@@ -37,7 +37,7 @@
       <span class="badge badge-blue">Admin #{{ filter_user_id }}</span>
     {% endif %}
     {% if filter_resource %}
-      <span class="badge badge-neutral">Table : {{ filter_resource }}</span>
+      <span class="badge badge-neutral">{{ resource_titles[filter_resource] | default(value=filter_resource) }}</span>
     {% endif %}
     {% if filter_object_id %}
       <span class="badge badge-neutral">Objet #{{ filter_object_id }}</span>
@@ -68,7 +68,7 @@
               <td class="col-secondary"><span class="id-badge">{{ entry.username }}</span></td>
             {% endif %}
             {% if not filter_resource %}
-              <td class="col-secondary">{{ entry.resource_key }}</td>
+              <td class="col-secondary">{{ resource_titles[entry.resource_key] | default(value=entry.resource_key) }}</td>
             {% endif %}
             {% if not filter_object_id %}
               <td class="col-secondary">
