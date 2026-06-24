@@ -123,7 +123,7 @@
 
 .admin-search__input:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    box-shadow: var(--focus-ring);
 }
 
 .admin-search__btn { flex-shrink: 0; }
@@ -279,10 +279,10 @@
     margin-bottom: 1rem;
 }
 
-.admin-alert--success { background: var(--success-light); border-color: rgba(34, 197, 94, 0.25);  color: #86efac; }
-.admin-alert--danger  { background: var(--danger-light);  border-color: rgba(239, 68, 68, 0.25);  color: #fca5a5; }
-.admin-alert--warning { background: var(--warning-light); border-color: rgba(245, 158, 11, 0.25); color: #fde68a; }
-.admin-alert--info    { background: var(--accent-light);  border-color: rgba(59, 130, 246, 0.25); color: #93c5fd; }
+.admin-alert--success { background: var(--success-light); border-color: var(--success); color: var(--success); }
+.admin-alert--danger  { background: var(--danger-light);  border-color: var(--danger);  color: var(--danger); }
+.admin-alert--warning { background: var(--warning-light); border-color: var(--warning); color: var(--warning); }
+.admin-alert--info    { background: var(--accent-light);  border-color: var(--accent);  color: var(--accent); }
 
 /* ───────────────────────────────────────────────
     Badges
@@ -442,7 +442,7 @@
     margin-top: 1.5rem;
 }
 
-.admin-danger-zone__text   { font-size: 0.88rem; color: #fca5a5; }
+.admin-danger-zone__text   { font-size: 0.88rem; color: var(--danger); }
 .admin-danger-zone__title  { font-weight: 600; color: var(--danger); margin-bottom: 0.25rem; }
 
 /* ───────────────────────────────────────────────
@@ -455,7 +455,7 @@
     border-radius: var(--radius);
     padding: 1rem 1.25rem;
     font-size: 0.88rem;
-    color: #fca5a5;
+    color: var(--danger);
     line-height: 1.6;
     margin-bottom: 1.5rem;
 }

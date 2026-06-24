@@ -40,7 +40,7 @@
 .form-select:focus,
 .form-textarea:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    box-shadow: var(--focus-ring);
 }
 
 .form-input.error,
@@ -126,7 +126,7 @@
 
 .form-control:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    box-shadow: var(--focus-ring);
 }
 
 .form-control.is-invalid { border-color: var(--danger); }
@@ -158,7 +158,7 @@ textarea.form-control { min-height: 100px; resize: vertical; }
 
 .number-field input:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    box-shadow: var(--focus-ring);
 }
 
 /* Champs select (base_select.html → .select-field select) */
@@ -183,7 +183,7 @@ textarea.form-control { min-height: 100px; resize: vertical; }
 
 .select-field select:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    box-shadow: var(--focus-ring);
 }
 
 .select-field select option {
