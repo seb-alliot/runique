@@ -3,36 +3,50 @@
    ═══════════════════════════════════════════════════════════════ */
 
 :root {
-    /* Couleurs */
-    --bg-main:        #0f1216;
-    --bg-card:        #111827;
-    --bg-sidebar:     #0d1117;
-    --bg-input:       #1f2937;
-    --bg-hover:       #1a2333;
-    --bg-active:      #1e3a5f;
-    --text-main:      #f9fafb;
-    --text-muted:     #9ca3af;
-    --text-sidebar:   #cbd5e1;
-    --accent:         #3b82f6;
-    --accent-hover:   #2563eb;
-    --accent-light:   rgba(59, 130, 246, 0.12);
-    --border:         #1f2937;
-    --border-light:   #374151;
-    --success:        #22c55e;
-    --success-light:  rgba(34, 197, 94, 0.12);
-    --danger:         #ef4444;
-    --danger-light:   rgba(239, 68, 68, 0.12);
+    /* Surfaces — dark slate raffiné, élévation par couches */
+    --bg-main:        #0a0c10;
+    --bg-card:        #14181f;
+    --bg-sidebar:     #0c0f14;
+    --bg-input:       #1a1f29;
+    --bg-hover:       #1b2130;
+    --bg-active:      rgba(99, 102, 241, 0.14);
+
+    /* Texte */
+    --text-main:      #f4f6f8;
+    --text-muted:     #8b93a3;
+    --text-sidebar:   #c4ccd8;
+
+    /* Accent — indigo moderne */
+    --accent:         #6366f1;
+    --accent-hover:   #4f46e5;
+    --accent-light:   rgba(99, 102, 241, 0.14);
+
+    /* Bords — fins, lumineux (look "verre dépoli" moderne) */
+    --border:         rgba(255, 255, 255, 0.07);
+    --border-light:   rgba(255, 255, 255, 0.12);
+
+    /* États */
+    --success:        #10b981;
+    --success-light:  rgba(16, 185, 129, 0.14);
+    --danger:         #f43f5e;
+    --danger-light:   rgba(244, 63, 94, 0.14);
     --warning:        #f59e0b;
-    --warning-light:  rgba(245, 158, 11, 0.12);
+    --warning-light:  rgba(245, 158, 11, 0.14);
 
     /* Layout */
     --sidebar-width:      260px;
     --sidebar-collapsed:  64px;
     --topbar-height:      56px;
 
-    /* Misc */
-    --radius:      8px;
-    --radius-lg:   12px;
-    --shadow:      0 4px 24px rgba(0, 0, 0, 0.4);
-    --transition:  0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Rayons — plus généreux */
+    --radius:      10px;
+    --radius-lg:   16px;
+    --radius-sm:   7px;
+
+    /* Élévation — ombres douces en couches (plus de bloc opaque) */
+    --shadow-sm:   0 1px 2px rgba(0, 0, 0, 0.30);
+    --shadow:      0 1px 2px rgba(0, 0, 0, 0.30), 0 8px 24px rgba(0, 0, 0, 0.35);
+    --shadow-lg:   0 1px 3px rgba(0, 0, 0, 0.35), 0 16px 40px rgba(0, 0, 0, 0.45);
+
+    --transition:  0.18s cubic-bezier(0.4, 0, 0.2, 1);
 }

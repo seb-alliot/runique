@@ -242,7 +242,7 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
                 context.insert("title", "Page not found");
                 context.insert("error_message", error_msg);
 
-                match ctx.engine.tera.render("404", &context) {
+                match ctx.engine.tera.render("404.html", &context) {
                     Ok(html) => Err(axum::response::Html(html).into_response()),
                     Err(e) => {
                         tracing::error!("Tera render 404 error: {}", e);
@@ -259,7 +259,7 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
                 context.insert("title", "Server error");
                 context.insert("error_message", "Database error");
 
-                match ctx.engine.tera.render("500", &context) {
+                match ctx.engine.tera.render("500.html", &context) {
                     Ok(html) => Err(axum::response::Html(html).into_response()),
                     Err(e) => {
                         tracing::error!("Tera render 500 error: {}", e);

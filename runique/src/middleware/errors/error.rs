@@ -301,7 +301,7 @@ fn render_debug_error_from_context(
     inject_global_vars(&mut context, config, csrf_token);
     insert_debug_messages(&mut context);
 
-    let mut response = match tera.render("debug", &context) {
+    let mut response = match tera.render("debug.html", &context) {
         Ok(html) => (
             StatusCode::from_u16(error_ctx.status_code)
                 .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
