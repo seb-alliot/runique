@@ -1,9 +1,8 @@
 //! Persistent session store in the database (table `eihwaz_sessions`).
-use crate::utils::config::TraceResult;
 use sea_orm::{
     ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, entity::prelude::*,
 };
-use sea_query::Expr;
+use sea_query::OnConflict;
 use std::sync::Arc;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -80,6 +79,13 @@ impl RuniqueSessionStore {
         session_id: &str,
         expires_at: chrono::NaiveDateTime,
     ) -> Result<(), DbErr> {
+        // Zero-trust : un cookie_id vide casserait la contrainte unique dès la 2ᵉ ligne.
+        // On rejette tôt plutôt que de laisser remonter une erreur SQL opaque.
+        if cookie_id.is_empty() {
+            return Err(DbErr::Custom(
+                "create session: empty cookie_id rejected".to_string(),
+            ));
+        }
         let model = ActiveModel {
             cookie_id: Set(cookie_id.to_string()),
             user_id: Set(user_id),
@@ -88,7 +94,24 @@ impl RuniqueSessionStore {
             expires_at: Set(expires_at),
             ..Default::default()
         };
-        Entity::insert(model).exec(&*self.db).await?;
+        // Upsert atomique, portable (Postgres ON CONFLICT / MySQL ON DUPLICATE KEY /
+        // SQLite ON CONFLICT — généré par SeaORM selon le backend).
+        // Au restart, la ligne d'avant survit en DB alors que la mémoire est vide ; le 1er
+        // login post-restart réutilise le même cookie_id (cycle_id() n'est pas appelé sans
+        // élévation de privilège) → sans ON CONFLICT, l'INSERT collisionne.
+        // On ne met à jour QUE user_id + expires_at : session_id reste stable (même cookie =
+        // même device) et session_data appartient à upsert_session (ne pas l'écraser à None,
+        // sinon un login post-restart effacerait les données restaurées).
+        // exec_without_returning : pas de clause RETURNING → évite l'erreur RecordNotInserted
+        // que certains backends renvoient quand le conflit déclenche un UPDATE sans INSERT.
+        Entity::insert(model)
+            .on_conflict(
+                OnConflict::column(Column::CookieId)
+                    .update_columns([Column::UserId, Column::ExpiresAt])
+                    .to_owned(),
+            )
+            .exec_without_returning(&*self.db)
+            .await?;
         Ok(())
     }
 
@@ -147,31 +170,31 @@ impl RuniqueSessionStore {
         expires_at: chrono::NaiveDateTime,
         data: Option<String>,
     ) -> Result<(), DbErr> {
-        let result = Entity::update_many()
-            .col_expr(Column::SessionData, Expr::value(data.clone()))
-            .col_expr(Column::ExpiresAt, Expr::value(expires_at))
-            .filter(Column::CookieId.eq(cookie_id))
-            .exec(&*self.db)
-            .await?;
-
-        if result.rows_affected == 0 {
-            let model = ActiveModel {
-                cookie_id: Set(cookie_id.to_string()),
-                user_id: Set(user_id),
-                session_id: Set(uuid::Uuid::new_v4().to_string()),
-                session_data: Set(data),
-                expires_at: Set(expires_at),
-                ..Default::default()
-            };
-            // Ignore potential unique-constraint race (concurrent login on same session)
-            Entity::insert(model).exec(&*self.db).await.trace(
-                crate::utils::runique_log::get_log()
-                    .session
-                    .as_ref()
-                    .and_then(|s| s.store),
-                "insert session into DB",
-            );
+        if cookie_id.is_empty() {
+            return Err(DbErr::Custom(
+                "upsert session: empty cookie_id rejected".to_string(),
+            ));
         }
+        let model = ActiveModel {
+            cookie_id: Set(cookie_id.to_string()),
+            user_id: Set(user_id),
+            session_id: Set(uuid::Uuid::new_v4().to_string()),
+            session_data: Set(data),
+            expires_at: Set(expires_at),
+            ..Default::default()
+        };
+        // Upsert atomique cross-DB : remplace l'ancien UPDATE-puis-INSERT qui avait une
+        // fenêtre de race (deux requêtes concurrentes voyaient "absent" puis collisionnaient).
+        // On ne touche pas user_id/session_id sur conflit : ce chemin ne fait que sauvegarder
+        // le payload (session_data) et prolonger le TTL d'une session existante.
+        Entity::insert(model)
+            .on_conflict(
+                OnConflict::column(Column::CookieId)
+                    .update_columns([Column::SessionData, Column::ExpiresAt])
+                    .to_owned(),
+            )
+            .exec_without_returning(&*self.db)
+            .await?;
         Ok(())
     }
 

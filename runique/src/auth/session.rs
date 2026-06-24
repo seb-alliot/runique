@@ -365,7 +365,20 @@ pub async fn login(
 
     // DB persistence
     if let Some(store) = db_store {
-        let cookie_id = session.id().map(|id| id.to_string()).unwrap_or_default();
+        // cycle_id() (session fixation protection) invalide l'ID courant et diffère la
+        // régénération du nouvel ID au prochain save(). Sans ce save() explicite,
+        // session.id() == None ici → cookie_id vide → collision sur la contrainte unique
+        // eihwaz_sessions_cookie_id_key dès le 2ᵉ login.
+        session.save().await?;
+
+        let Some(cookie_id) = session.id().map(|id| id.to_string()) else {
+            crate::runique_log!(
+                tracing::Level::WARN,
+                user_id = %user_id,
+                "session id unavailable after save — skipping DB persistence"
+            );
+            return Ok(());
+        };
         let session_id = uuid::Uuid::new_v4().to_string();
         let expires_at = chrono::Utc::now()
             .naive_utc()
@@ -441,8 +454,9 @@ pub async fn logout(
     db_store: Option<&RuniqueSessionStore>,
 ) -> Result<(), tower_sessions::session::Error> {
     // DB deletion before clearing the session (cookie_id still accessible)
-    if let Some(store) = db_store {
-        let cookie_id = session.id().map(|id| id.to_string()).unwrap_or_default();
+    if let Some(store) = db_store
+        && let Some(cookie_id) = session.id().map(|id| id.to_string())
+    {
         store.delete(&cookie_id).await.trace(
             crate::utils::runique_log::get_log()
                 .session

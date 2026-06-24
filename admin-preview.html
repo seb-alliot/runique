@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Runique Admin — preview (shadcn/Linear)</title>
+<style>
+/* ── Tokens (direction minimal dev-tool) ───────────────────────── */
+:root{
+  --bg-main:#0a0b0e; --bg-card:#121419; --bg-sidebar:#0c0e12; --bg-input:#15181e;
+  --bg-hover:#16191f; --bg-active:rgba(99,102,241,.12);
+  --text-main:#f3f4f6; --text-muted:#8a909c; --text-faint:#5b616d; --text-sidebar:#c2c8d2;
+  --accent:#6366f1; --accent-hover:#4f46e5; --accent-text:#a5b4fc; --accent-light:rgba(99,102,241,.12);
+  --border:rgba(255,255,255,.06); --border-strong:rgba(255,255,255,.10);
+  --success:#10b981; --success-bg:rgba(16,185,129,.12);
+  --danger:#f43f5e; --danger-bg:rgba(244,63,94,.12);
+  --warning:#f59e0b; --warning-bg:rgba(245,158,11,.12);
+  --sidebar-w:248px; --topbar-h:52px;
+  --radius:8px; --radius-sm:6px; --radius-lg:12px;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.25);
+  --shadow:0 4px 16px rgba(0,0,0,.30);
+  --t:.16s cubic-bezier(.4,0,.2,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:'Inter',-apple-system,'Segoe UI',Roboto,sans-serif;
+  background:var(--bg-main);color:var(--text-main);
+  font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;
+  display:grid;grid-template-columns:var(--sidebar-w) 1fr;min-height:100vh;
+}
+a{color:inherit;text-decoration:none}
+svg{width:18px;height:18px;flex:none}
+
+/* ── Sidebar ────────────────────────────────────────────────────── */
+.admin-sidebar{
+  background:var(--bg-sidebar);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;position:sticky;top:0;height:100vh;
+}
+.admin-sidebar__header{
+  display:flex;align-items:center;gap:10px;padding:0 16px;height:var(--topbar-h);
+  border-bottom:1px solid var(--border);
+}
+.admin-sidebar__logo{
+  width:28px;height:28px;border-radius:7px;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--accent),#8b5cf6);color:#fff;font-weight:700;font-size:14px;
+}
+.admin-sidebar__title{font-weight:600;font-size:14px;letter-spacing:-.01em}
+.admin-sidebar__nav{padding:12px 10px;display:flex;flex-direction:column;gap:2px;flex:1;overflow:auto}
+.admin-nav__section-label{
+  font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);
+  padding:14px 10px 6px;font-weight:600;
+}
+.admin-nav__item{
+  display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--radius-sm);
+  color:var(--text-sidebar);font-weight:500;transition:var(--t);position:relative;
+}
+.admin-nav__item svg{stroke:currentColor;color:var(--text-faint);transition:var(--t)}
+.admin-nav__item:hover{background:var(--bg-hover);color:var(--text-main)}
+.admin-nav__item:hover svg{color:var(--text-muted)}
+.admin-nav__item.active{background:var(--bg-active);color:var(--accent-text)}
+.admin-nav__item.active svg{color:var(--accent-text)}
+.admin-nav__divider{height:1px;background:var(--border);margin:10px 6px}
+.admin-sidebar__footer{padding:12px;border-top:1px solid var(--border)}
+.admin-sidebar__user{
+  display:flex;align-items:center;gap:10px;padding:8px;border-radius:var(--radius-sm);transition:var(--t);
+}
+.admin-sidebar__user:hover{background:var(--bg-hover)}
+.avatar{width:30px;height:30px;border-radius:50%;background:var(--bg-input);border:1px solid var(--border-strong);
+  display:grid;place-items:center;font-size:12px;font-weight:600;color:var(--accent-text)}
+.admin-sidebar__user small{display:block;color:var(--text-faint);font-size:12px}
+
+/* ── Topbar + main ──────────────────────────────────────────────── */
+.admin-main{display:flex;flex-direction:column;min-width:0}
+.admin-topbar{
+  height:var(--topbar-h);border-bottom:1px solid var(--border);background:rgba(10,11,14,.7);
+  backdrop-filter:blur(8px);display:flex;align-items:center;gap:12px;padding:0 24px;
+  position:sticky;top:0;z-index:10;
+}
+.breadcrumb{display:flex;align-items:center;gap:8px;color:var(--text-muted);font-size:13px}
+.breadcrumb b{color:var(--text-main);font-weight:600}
+.breadcrumb span{color:var(--text-faint)}
+.topbar-spacer{flex:1}
+.content{padding:28px 32px;max-width:1200px;width:100%}
+
+/* ── Page header ────────────────────────────────────────────────── */
+.page-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.page-head h1{font-size:22px;font-weight:650;letter-spacing:-.02em}
+.page-head p{color:var(--text-muted);font-size:13px;margin-top:2px}
+
+/* ── Buttons ────────────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 14px;border-radius:var(--radius-sm);
+  font-size:13px;font-weight:550;border:1px solid transparent;cursor:pointer;transition:var(--t);white-space:nowrap}
+.btn svg{width:15px;height:15px;stroke:currentColor}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent-hover)}
+.btn-ghost{background:transparent;color:var(--text-muted);border-color:var(--border-strong)}
+.btn-ghost:hover{background:var(--bg-hover);color:var(--text-main)}
+.btn-sm{height:28px;padding:0 10px;font-size:12px}
+
+/* ── KPI cards ──────────────────────────────────────────────────── */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;transition:var(--t)}
+.card:hover{border-color:var(--border-strong)}
+.kpi__label{display:flex;align-items:center;gap:8px;color:var(--text-muted);font-size:12.5px;font-weight:500}
+.kpi__label svg{width:15px;height:15px;stroke:var(--text-faint)}
+.kpi__value{font-size:26px;font-weight:680;letter-spacing:-.02em;margin-top:8px}
+.kpi__delta{font-size:12px;margin-top:4px;color:var(--success)}
+
+/* ── Table ──────────────────────────────────────────────────────── */
+.panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.panel__head{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border)}
+.panel__head h2{font-size:14px;font-weight:600}
+.pill-count{font-size:12px;color:var(--text-muted);background:var(--bg-input);border:1px solid var(--border);
+  padding:2px 8px;border-radius:20px}
+.search{flex:1;max-width:260px;margin-left:auto;position:relative}
+.search input{width:100%;height:32px;background:var(--bg-input);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:0 12px 0 32px;color:var(--text-main);font-size:13px;transition:var(--t)}
+.search input::placeholder{color:var(--text-faint)}
+.search input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light)}
+.search svg{position:absolute;left:9px;top:8px;stroke:var(--text-faint)}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);
+  font-weight:600;padding:10px 16px;border-bottom:1px solid var(--border)}
+td{padding:12px 16px;border-bottom:1px solid var(--border);font-size:13.5px}
+tbody tr{transition:var(--t)}
+tbody tr:hover{background:var(--bg-hover)}
+tbody tr:last-child td{border-bottom:none}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace;color:var(--text-muted);font-size:12.5px}
+.cell-title{font-weight:550}
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:550;padding:3px 9px;border-radius:20px}
+.badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.badge-live{color:var(--success);background:var(--success-bg)}
+.badge-draft{color:var(--text-muted);background:var(--bg-input)}
+.badge-warn{color:var(--warning);background:var(--warning-bg)}
+.row-link{color:var(--accent-text);font-weight:550;font-size:13px}
+.row-link:hover{color:#fff}
+
+/* ── Form mini ──────────────────────────────────────────────────── */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:26px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:12.5px;font-weight:550;color:var(--text-muted)}
+.field input,.field select{height:36px;background:var(--bg-input);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:0 12px;color:var(--text-main);font-size:13.5px;transition:var(--t)}
+.field input:focus,.field select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light)}
+.field .hint{font-size:11.5px;color:var(--text-faint)}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="admin-sidebar">
+  <div class="admin-sidebar__header">
+    <div class="admin-sidebar__logo">R</div>
+    <span class="admin-sidebar__title">Campanile Admin</span>
+  </div>
+  <nav class="admin-sidebar__nav">
+    <a class="admin-nav__item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      <span>Dashboard</span>
+    </a>
+    <div class="admin-nav__section-label">Ressources</div>
+    <a class="admin-nav__item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>Plats</span></a>
+    <a class="admin-nav__item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>Menus</span></a>
+    <a class="admin-nav__item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg><span>Commandes</span></a>
+    <a class="admin-nav__item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 2l2.4 7.4H22l-6 4.3 2.3 7.3L12 16.7 5.7 21l2.3-7.3-6-4.3h7.6z"/></svg><span>Avis</span></a>
+    <div class="admin-nav__divider"></div>
+    <a class="admin-nav__item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Historique</span></a>
+  </nav>
+  <div class="admin-sidebar__footer">
+    <a class="admin-sidebar__user">
+      <div class="avatar">SA</div>
+      <div><div style="font-weight:550">seb-alliot</div><small>Superuser</small></div>
+    </a>
+  </div>
+</aside>
+
+<!-- Main -->
+<div class="admin-main">
+  <header class="admin-topbar">
+    <div class="breadcrumb"><a>Admin</a><span>/</span><b>Dashboard</b></div>
+    <div class="topbar-spacer"></div>
+    <a class="btn btn-ghost btn-sm">← Site</a>
+  </header>
+
+  <div class="content">
+    <div class="page-head">
+      <div><h1>Dashboard</h1><p>Vue d'ensemble des ressources générées par <code>admin!{}</code></p></div>
+      <button class="btn btn-primary"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Nouveau plat</button>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpis">
+      <div class="card"><div class="kpi__label"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>Plats</div><div class="kpi__value">12</div><div class="kpi__delta">+2 ce mois</div></div>
+      <div class="card"><div class="kpi__label"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>Commandes</div><div class="kpi__value">9</div><div class="kpi__delta">+3 aujourd'hui</div></div>
+      <div class="card"><div class="kpi__label"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Utilisateurs</div><div class="kpi__value">284</div><div class="kpi__delta">+12</div></div>
+      <div class="card"><div class="kpi__label"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 9l-5 5-3-3-4 4"/></svg>CA / jour</div><div class="kpi__value">301€</div><div class="kpi__delta">+8%</div></div>
+    </div>
+
+    <!-- Table -->
+    <div class="panel">
+      <div class="panel__head">
+        <h2>Plats</h2><span class="pill-count">42</span>
+        <div class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input placeholder="Rechercher un plat…">
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>ID</th><th>Titre</th><th>Prix</th><th>Statut</th><th></th></tr></thead>
+        <tbody>
+          <tr><td class="mono">#42</td><td class="cell-title">Bowl Saumon fumé à partager</td><td class="mono">17,00 €</td><td><span class="badge badge-live">Publié</span></td><td style="text-align:right"><a class="row-link">Éditer</a></td></tr>
+          <tr><td class="mono">#41</td><td class="cell-title">Cannelloni broccio-blettes</td><td class="mono">17,00 €</td><td><span class="badge badge-live">Publié</span></td><td style="text-align:right"><a class="row-link">Éditer</a></td></tr>
+          <tr><td class="mono">#40</td><td class="cell-title">Filet de bœuf charolais, sauce morilles</td><td class="mono">48,00 €</td><td><span class="badge badge-draft">Brouillon</span></td><td style="text-align:right"><a class="row-link">Éditer</a></td></tr>
+          <tr><td class="mono">#39</td><td class="cell-title">Saucisses de sanglier, purée au lait</td><td class="mono">21,00 €</td><td><span class="badge badge-warn">En attente</span></td><td style="text-align:right"><a class="row-link">Éditer</a></td></tr>
+          <tr><td class="mono">#38</td><td class="cell-title">Corsican pulled porc thaï style</td><td class="mono">22,00 €</td><td><span class="badge badge-live">Publié</span></td><td style="text-align:right"><a class="row-link">Éditer</a></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Form preview -->
+    <div class="grid2">
+      <div class="field"><label>Titre</label><input value="Filet de bœuf charolais"><span class="hint">Affiché sur la carte</span></div>
+      <div class="field"><label>Prix (€)</label><input value="48.00"></div>
+      <div class="field"><label>Régime</label><select><option>Standard</option><option>Végétarien</option><option>Sans gluten</option></select></div>
+      <div class="field"><label>Statut</label><select><option>Publié</option><option>Brouillon</option></select></div>
+    </div>
+    <div style="margin-top:18px;display:flex;gap:10px">
+      <button class="btn btn-primary">Enregistrer</button>
+      <button class="btn btn-ghost">Annuler</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

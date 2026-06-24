@@ -544,7 +544,7 @@ async fn admin_history(
         .insert("site_url", &admin.config.site_url)
         .insert("lang", current_lang().code());
 
-    req.render("admin/history")
+    req.render("admin/history.html")
 }
 
 async fn admin_history_diff(
@@ -631,7 +631,7 @@ async fn admin_history_diff(
         .insert("site_url", &admin.config.site_url)
         .insert("lang", current_lang().code());
 
-    req.render("admin/history_diff")
+    req.render("admin/history_diff.html")
 }
 
 async fn admin_history_timeline(
@@ -733,7 +733,7 @@ async fn admin_history_timeline(
         .insert("site_url", &admin.config.site_url)
         .insert("lang", current_lang().code());
 
-    req.render("admin/history_timeline")
+    req.render("admin/history_timeline.html")
 }
 
 async fn admin_history_batch(
@@ -894,7 +894,7 @@ async fn admin_history_batch(
         .insert("site_url", &admin.config.site_url)
         .insert("lang", current_lang().code());
 
-    req.render("admin/history_batch")
+    req.render("admin/history_batch.html")
 }
 
 async fn admin_toggle_template(
