@@ -434,6 +434,27 @@
 }
 
 /* ───────────────────────────────────────────────
+    Fix chevauchement colonnes en table-layout:fixed (≤480px)
+    Les <col> secondaires ne sont PAS display:none (seuls th/td le sont),
+    donc en layout fixe ils gardent une part de largeur et écrasent la
+    colonne principale → texte qui déborde et se chevauche. On les force à 0
+    pour que la colonne principale récupère tout l'espace libre.
+    (.admin-table--resources reste en table-layout:auto, non concernée.)
+   ─────────────────────────────────────────────── */
+@media (max-width: 480px) {
+    .admin-table:not(.admin-table--resources) col.admin-table__col-secondary {
+        width: 0;
+    }
+
+    /* Ceinture + bretelles : aucune cellule ne déborde sur sa voisine */
+    .admin-table:not(.admin-table--resources) td,
+    .admin-table:not(.admin-table--resources) th {
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
+/* ───────────────────────────────────────────────
     Dashboard resources — override après les règles génériques
     La table Resources n'a pas de colonne ID en première position,
     elle doit rester en table-layout:auto.
@@ -466,4 +487,134 @@
     .admin-group-edit__perm-grid { gap: 0.5rem 1rem; }
     .admin-group-edit__perm-grid .boolean-field { min-width: 110px; }
     .admin-group-edit__section-header { flex-direction: column; align-items: flex-start; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+    Liste admin → cartes empilées sur mobile (≤480px)
+    Remplace le tableau compressé (colonnes étriquées, troncature `#2:us`)
+    par une carte par ligne : chaque champ = label (data-label) : valeur.
+    Tout est visible → plus besoin de l'expand-row ni des largeurs colgroup.
+    Doit venir APRÈS les règles tableau pour gagner la cascade.
+    .admin-table--resources (dashboard) garde son rendu tableau.
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+    .admin-table:not(.admin-table--resources),
+    .admin-table:not(.admin-table--resources) tbody {
+        display: block;
+        width: 100%;
+        min-width: 0;
+    }
+
+    /* En-têtes de colonnes superflus : chaque cellule porte son label */
+    .admin-table:not(.admin-table--resources) thead { display: none; }
+
+    /* Mode carte : pas de checkbox bulk, pas de ligne-détail séparée
+       (on déplie les champs secondaires dans la carte elle-même). */
+    .admin-table:not(.admin-table--resources) .admin-table__td-bulk,
+    .admin-table:not(.admin-table--resources) .admin-table__row-detail { display: none; }
+
+    /* Chaque ligne = une carte, nettement détachée du fond et des voisines */
+    .admin-table:not(.admin-table--resources) tbody tr {
+        display: block;
+        position: relative;
+        background: var(--bg-card);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        padding: 0.75rem 0.9rem;
+        margin-bottom: 1rem;
+    }
+    .admin-table:not(.admin-table--resources) tbody tr:hover {
+        background: var(--bg-card);
+    }
+
+    /* Cellules en blocs, fini la troncature */
+    .admin-table:not(.admin-table--resources) tbody td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.3rem 0;
+        border: none;
+        max-width: none;
+        white-space: normal;
+        overflow: visible;
+        font-size: 0.85rem;
+    }
+
+    /* Accordéon : repliée, la carte ne montre QUE l'ID (titre) + chevron + kebab.
+       Tous les champs data sont masqués et révélés à l'ouverture, via le .open
+       que le JS pose déjà sur .expand-btn + :has() — aucune modif JS. */
+    .admin-table:not(.admin-table--resources) tbody td.admin-table__td-data {
+        display: none;
+    }
+    .admin-table:not(.admin-table--resources) tbody tr:has(.admin-table__expand-btn.open) td.admin-table__td-data {
+        display: flex;
+    }
+
+    /* Cellule ID = titre de la carte (réserve la place chevron + kebab à droite) */
+    .admin-table:not(.admin-table--resources) tbody td:has(.admin-badge--id) {
+        justify-content: flex-start;
+        padding: 0 4.4rem 0 0;
+    }
+    .admin-table:not(.admin-table--resources) tbody td:has(.admin-badge--id) .admin-badge--id {
+        font-size: 0.82rem;
+    }
+    /* Séparateur sous l'ID seulement quand la carte est dépliée */
+    .admin-table:not(.admin-table--resources) tbody tr:has(.admin-table__expand-btn.open) td:has(.admin-badge--id) {
+        padding-bottom: 0.5rem;
+        margin-bottom: 0.4rem;
+        border-bottom: 1px solid var(--border);
+    }
+
+    /* Chevron d'ouverture : coin haut droit, juste à gauche du kebab */
+    .admin-table:not(.admin-table--resources) tbody td.admin-table__td-expand {
+        display: block;
+        position: absolute;
+        top: 0.5rem;
+        right: 2.5rem;
+        width: auto;
+        padding: 0;
+    }
+
+    /* Label de champ à gauche (depuis data-label) */
+    .admin-table:not(.admin-table--resources) tbody td.admin-table__td-data::before {
+        content: attr(data-label);
+        font-size: 0.72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-muted);
+        flex-shrink: 0;
+    }
+
+    /* Valeur à droite, peut passer à la ligne */
+    .admin-table:not(.admin-table--resources) tbody td.admin-table__td-data .admin-table__td-content {
+        -webkit-line-clamp: unset;
+        line-clamp: unset;
+        text-align: right;
+        word-break: break-word;
+    }
+
+    /* Kebab actions : coin haut droit de la carte */
+    .admin-table:not(.admin-table--resources) tbody td.admin-table__td-actions {
+        position: absolute;
+        top: 0.55rem;
+        right: 0.6rem;
+        width: auto;
+        padding: 0 !important;
+    }
+
+}
+
+/* ───────────────────────────────────────────────
+    "Créer" sur mobile (≤600px)
+    Le bouton plein indigo de l'en-tête "faisait tache" : on le masque et
+    l'action "Créer" apparaît dans le kebab (⋮) de ligne, sous Modifier.
+    Pour une liste vide (pas de ligne donc pas de kebab), le bouton de repli
+    de l'état vide prend le relais.
+   ─────────────────────────────────────────────── */
+@media (max-width: 600px) {
+    .admin-page__create-btn { display: none; }
+    .admin-menu__item--create-mobile { display: flex; }
 }

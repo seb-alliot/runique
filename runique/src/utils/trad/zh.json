@@ -497,15 +497,17 @@
     "email_body": "<p>您好 {}，</p><p>请点击以下链接重置您的密码（有效期1小时）：</p><p><a href=\"{}\">{}</a></p>"
   },
   "permission": {
-    "col.id": "ID",
-    "col.can_create": "创建",
-    "col.can_delete": "删除",
-    "col.can_delete_own": "删除（自己的）",
-    "col.can_read": "读取",
-    "col.can_update": "修改",
-    "col.can_update_own": "修改（自己的）",
-    "col.groupes": "组",
-    "col.resource_key": "资源",
-    "col.actions": "操作"
+    "col": {
+      "id": "ID",
+      "can_create": "创建",
+      "can_delete": "删除",
+      "can_delete_own": "删除（自己的）",
+      "can_read": "读取",
+      "can_update": "修改",
+      "can_update_own": "修改（自己的）",
+      "groupes": "组",
+      "resource_key": "资源",
+      "actions": "操作"
+    }
   }
 }

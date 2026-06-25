@@ -497,15 +497,17 @@
     "email_body": "<p>{} 様、</p><p>以下のリンクをクリックしてパスワードをリセットしてください（1時間有効）：</p><p><a href=\"{}\">{}</a></p>"
   },
   "permission": {
-    "col.id": "ID",
-    "col.can_create": "作成",
-    "col.can_delete": "削除",
-    "col.can_delete_own": "削除（自分の）",
-    "col.can_read": "閲覧",
-    "col.can_update": "更新",
-    "col.can_update_own": "更新（自分の）",
-    "col.groupes": "グループ",
-    "col.resource_key": "リソース",
-    "col.actions": "操作"
+    "col": {
+      "id": "ID",
+      "can_create": "作成",
+      "can_delete": "削除",
+      "can_delete_own": "削除（自分の）",
+      "can_read": "閲覧",
+      "can_update": "更新",
+      "can_update_own": "更新（自分の）",
+      "groupes": "グループ",
+      "resource_key": "リソース",
+      "actions": "操作"
+    }
   }
 }

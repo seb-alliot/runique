@@ -497,15 +497,17 @@
     "email_body": "<p>Hola {},</p><p>Haga clic en el siguiente enlace para restablecer su contraseña (válido durante 1 hora):</p><p><a href=\"{}\">{}</a></p>"
   },
   "permission": {
-    "col.id": "ID",
-    "col.can_create": "Crear",
-    "col.can_delete": "Eliminar",
-    "col.can_delete_own": "Eliminar (propio)",
-    "col.can_read": "Leer",
-    "col.can_update": "Modificar",
-    "col.can_update_own": "Modificar (propio)",
-    "col.groupes": "Grupos",
-    "col.resource_key": "Recurso",
-    "col.actions": "Acciones"
+    "col": {
+      "id": "ID",
+      "can_create": "Crear",
+      "can_delete": "Eliminar",
+      "can_delete_own": "Eliminar (propio)",
+      "can_read": "Leer",
+      "can_update": "Modificar",
+      "can_update_own": "Modificar (propio)",
+      "groupes": "Grupos",
+      "resource_key": "Recurso",
+      "actions": "Acciones"
+    }
   }
 }

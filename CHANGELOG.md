@@ -6,6 +6,20 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2.1.20] - 2026-06-25
+
+### Fix — `runique` (admin i18n: permission column headers showed raw keys)
+
+* **The admin permission list showed `CAN CREATE` / `CAN READ`… instead of localized labels.** The header label resolves via `t("permission.col.{col}")`, but the locale catalogs stored those translations as **flat dotted keys** (`"permission": { "col.can_create": "Create" }`) while the resolver splits on every `.` and walks nested objects (`permission` → `col` → `can_create`). The `col` lookup failed, the key fell through to the snake_case humanization fallback, so the translations **never resolved in any of the 9 languages**. Fixed by nesting the block as `"permission": { "col": { "can_create": … } }` in all locale files.
+
+### Fix / Feature — `runique` (admin list responsive on mobile)
+
+* **Columns overlapped on narrow viewports.** In `table-layout: fixed` (≤480px) only the secondary `<th>/<td>` were `display:none`, not the secondary `<col>` elements — the phantom columns kept reserving width, squeezing the main column to ~7% so text spilled over its neighbours (`#2:usersOui`). Fixed by zeroing the secondary `<col>` width and clipping cells in that range.
+* **Mobile list redesigned as collapsible cards (≤480px):** instead of a cramped, truncated table, each row now renders as a card. Collapsed it shows only the id (title) with a chevron and a kebab; the chevron expands all fields (`field label : value`, booleans as badges). Pure CSS using the existing per-cell `data-label`; the accordion reuses the existing expand-button `.open` toggle via `:has()` (no JS change). The dashboard resources table is unaffected.
+* **Create action on mobile:** the header's full "Create" button (a lone indigo block next to empty space) is hidden ≤600px; the action moves into the existing row kebab (below "Edit"), gated by `can_create`. Empty lists keep the empty-state create button. Desktop is unchanged.
+
+---
+
 ## [2.1.19] - 2026-06-24
 
 ### Fix — `runique` (session DB persistence: `eihwaz_sessions_cookie_id_key` unique violation)
