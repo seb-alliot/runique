@@ -73,8 +73,6 @@
    ─────────────────────────────────────────────── */
 
 .admin-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     overflow: hidden;
 }
@@ -498,6 +496,7 @@ th.admin-table__col-num { color: var(--text-muted); font-weight: 600; }
    ─────────────────────────────────────────────── */
 
 .admin-page__actions    { display: flex; gap: 0.6rem; height: 25px; }
+.admin-menu__item--create-mobile { display: none; } /* "Créer" dans le kebab : mobile uniquement (cf. responsive.css) */
 .admin-form--inline     { display: inline; }
 .admin-text--muted      { color: var(--text-muted); }
 .admin-table__actions--end { justify-content: flex-end; }
@@ -673,13 +672,17 @@ th.admin-table__col-num { color: var(--text-muted); font-weight: 600; }
 }
 
 @media (max-width: 480px) {
-    .admin-card--form { max-width: 100%; }
+    .admin-card--form { max-width: 100%; };
 }
 
 @media (min-width: 480px) and (max-width: 768px){
     .admin-card--form { max-width: 80%; }
+    .admin-card {border-radius: var(--radius-lg); overflow: hidden;}
 }
-
+@media (min-width: 768px){
+    .admin-card--form { max-width: 60%; }
+    .admin-card {background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden;}
+}
 /* ───────────────────────────────────────────────
     Group actions (bulk)
    ─────────────────────────────────────────────── */

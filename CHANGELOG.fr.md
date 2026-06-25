@@ -6,6 +6,20 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ---
 
+## [2.1.20] - 2026-06-25
+
+### Correctif — `runique` (i18n admin : en-têtes de colonnes permission en clés brutes)
+
+* **La liste des permissions affichait `CAN CREATE` / `CAN READ`… au lieu des libellés traduits.** Le libellé d'en-tête se résout via `t("permission.col.{col}")`, mais les catalogues stockaient ces traductions en **clés plates pointées** (`"permission": { "col.can_create": "Créer" }`) alors que le résolveur découpe sur chaque `.` et descend en imbriqué (`permission` → `col` → `can_create`). Le `.get("col")` échouait, la clé retombait sur le fallback d'humanisation snake_case : ces traductions **n'ont jamais résolu, dans aucune des 9 langues**. Corrigé en imbriquant le bloc `"permission": { "col": { "can_create": … } }` dans tous les fichiers de langue.
+
+### Correctif / Fonctionnalité — `runique` (responsive liste admin sur mobile)
+
+* **Chevauchement des colonnes sur écrans étroits.** En `table-layout: fixed` (≤480px), seules les `<th>/<td>` secondaires étaient `display:none`, pas les `<col>` correspondantes — les colonnes fantômes gardaient leur part de largeur et écrasaient la colonne principale (~7%), faisant déborder le texte sur la voisine (`#2:usersOui`). Corrigé en forçant la largeur des `<col>` secondaires à 0 et en clippant les cellules sur cette plage.
+* **Liste mobile repensée en cartes repliables (≤480px) :** au lieu d'un tableau compressé et tronqué, chaque ligne devient une carte. Repliée, elle n'affiche que l'id (titre) avec un chevron et un kebab ; le chevron déplie tous les champs (`label du champ : valeur`, booléens en badges). CSS pur via le `data-label` déjà présent sur chaque cellule ; l'accordéon réutilise le `.open` du bouton expand existant via `:has()` (aucune modif JS). La table des ressources du dashboard n'est pas affectée.
+* **Action « Créer » sur mobile :** le bouton plein « Créer » de l'en-tête (aplat indigo isolé à côté d'un vide) est masqué ≤600px ; l'action passe dans le kebab de ligne existant (sous « Modifier »), conditionnée par `can_create`. Les listes vides conservent le bouton de création de l'état vide. Le desktop est inchangé.
+
+---
+
 ## [2.1.19] - 2026-06-24
 
 ### Correctif — `runique` (persistance DB des sessions : violation d'unicité `eihwaz_sessions_cookie_id_key`)

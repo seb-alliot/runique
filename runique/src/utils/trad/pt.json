@@ -497,15 +497,17 @@
     "email_body": "<p>Olá {},</p><p>Clique no link a seguir para redefinir sua senha (válido por 1 hora):</p><p><a href=\"{}\">{}</a></p>"
   },
   "permission": {
-    "col.id": "ID",
-    "col.can_create": "Criar",
-    "col.can_delete": "Eliminar",
-    "col.can_delete_own": "Eliminar (próprio)",
-    "col.can_read": "Ler",
-    "col.can_update": "Modificar",
-    "col.can_update_own": "Modificar (próprio)",
-    "col.groupes": "Grupos",
-    "col.resource_key": "Recurso",
-    "col.actions": "Ações"
+    "col": {
+      "id": "ID",
+      "can_create": "Criar",
+      "can_delete": "Eliminar",
+      "can_delete_own": "Eliminar (próprio)",
+      "can_read": "Ler",
+      "can_update": "Modificar",
+      "can_update_own": "Modificar (próprio)",
+      "groupes": "Grupos",
+      "resource_key": "Recurso",
+      "actions": "Ações"
+    }
   }
 }

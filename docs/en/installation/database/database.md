@@ -6,7 +6,7 @@
 
 ```toml
 [dependencies]
-runique = { version = "2.1.19", features = ["orm", "sqlite"] }
+runique = { version = "2.1.20", features = ["orm", "sqlite"] }
 ```
 
 ### 2. Update `.env`

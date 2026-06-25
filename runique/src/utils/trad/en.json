@@ -497,15 +497,17 @@
     "executing": "Executing: {}"
   },
   "permission": {
-    "col.id": "ID",
-    "col.can_create": "Create",
-    "col.can_delete": "Delete",
-    "col.can_delete_own": "Delete (own)",
-    "col.can_read": "Read",
-    "col.can_update": "Update",
-    "col.can_update_own": "Update (own)",
-    "col.groupes": "Groups",
-    "col.resource_key": "Resource",
-    "col.actions": "Actions"
+    "col": {
+      "id": "ID",
+      "can_create": "Create",
+      "can_delete": "Delete",
+      "can_delete_own": "Delete (own)",
+      "can_read": "Read",
+      "can_update": "Update",
+      "can_update_own": "Update (own)",
+      "groupes": "Groups",
+      "resource_key": "Resource",
+      "actions": "Actions"
+    }
   }
 }

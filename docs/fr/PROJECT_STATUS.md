@@ -11,7 +11,7 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 ## Snapshot (au 17 juin 2026)
 
-- **Version workspace** : `2.1.19`
+- **Version workspace** : `2.1.20`
 - **derive_form** : `2.1.10`
 - **Licence** : MIT
 - **Branche** : `main`
@@ -136,5 +136,5 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 ---
 
-**Dernière mise à jour** : 24 juin 2026
+**Dernière mise à jour** : 25 juin 2026
 **Statut global** : ✅ Framework stable · 🟡 Admin bêta mature · 🔒 Sécurité : tokens de reset durcis en DB, auth en temps constant · 📖 Documentation API publique complète (docs.rs)

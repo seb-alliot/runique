@@ -9,9 +9,9 @@ This document consolidates the actual state of the repository from the reference
 
 ---
 
-## Snapshot (as of June 24, 2026)
+## Snapshot (as of June 25, 2026)
 
-- **Workspace version**: `2.1.19`
+- **Workspace version**: `2.1.20`
 - **derive_form**: `2.1.10`
 - **License**: MIT
 - **Branch**: `main`
@@ -148,5 +148,5 @@ This document consolidates the actual state of the repository from the reference
 
 ---
 
-**Last update**: June 24, 2026
+**Last update**: June 25, 2026
 **Global status**: ✅ Stable framework · 🟡 Admin mature beta · 🔒 Security: reset tokens DB-hardened, timing-safe auth · 📖 Full public API documentation (docs.rs)

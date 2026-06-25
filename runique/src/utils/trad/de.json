@@ -494,15 +494,17 @@
     "email_body": "<p>Hallo {},</p><p>Klicken Sie auf den folgenden Link, um Ihr Passwort zurückzusetzen (gültig für 1 Stunde):</p><p><a href=\"{}\">{}</a></p>"
   },
   "permission": {
-    "col.id": "ID",
-    "col.can_create": "Erstellen",
-    "col.can_delete": "Löschen",
-    "col.can_delete_own": "Löschen (eigenes)",
-    "col.can_read": "Lesen",
-    "col.can_update": "Bearbeiten",
-    "col.can_update_own": "Bearbeiten (eigenes)",
-    "col.groupes": "Gruppen",
-    "col.resource_key": "Ressource",
-    "col.actions": "Aktionen"
+    "col": {
+      "id": "ID",
+      "can_create": "Erstellen",
+      "can_delete": "Löschen",
+      "can_delete_own": "Löschen (eigenes)",
+      "can_read": "Lesen",
+      "can_update": "Bearbeiten",
+      "can_update_own": "Bearbeiten (eigenes)",
+      "groupes": "Gruppen",
+      "resource_key": "Ressource",
+      "actions": "Aktionen"
+    }
   }
 }

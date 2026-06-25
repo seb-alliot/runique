@@ -497,15 +497,17 @@
     "email_body": "<p>Ciao {},</p><p>Clicca sul link seguente per reimpostare la password (valido per 1 ora):</p><p><a href=\"{}\">{}</a></p>"
   },
   "permission": {
-    "col.id": "ID",
-    "col.can_create": "Creare",
-    "col.can_delete": "Eliminare",
-    "col.can_delete_own": "Eliminare (proprio)",
-    "col.can_read": "Leggere",
-    "col.can_update": "Modificare",
-    "col.can_update_own": "Modificare (proprio)",
-    "col.groupes": "Gruppi",
-    "col.resource_key": "Risorsa",
-    "col.actions": "Azioni"
+    "col": {
+      "id": "ID",
+      "can_create": "Creare",
+      "can_delete": "Eliminare",
+      "can_delete_own": "Eliminare (proprio)",
+      "can_read": "Leggere",
+      "can_update": "Modificare",
+      "can_update_own": "Modificare (proprio)",
+      "groupes": "Gruppi",
+      "resource_key": "Risorsa",
+      "actions": "Azioni"
+    }
   }
 }

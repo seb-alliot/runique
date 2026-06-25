@@ -498,15 +498,17 @@
     "email_body": "<p>Здравствуйте, {},</p><p>Перейдите по ссылке ниже для сброса пароля (действительна 1 час):</p><p><a href=\"{}\">{}</a></p>"
   },
   "permission": {
-    "col.id": "ID",
-    "col.can_create": "Создание",
-    "col.can_delete": "Удаление",
-    "col.can_delete_own": "Удаление (своё)",
-    "col.can_read": "Чтение",
-    "col.can_update": "Изменение",
-    "col.can_update_own": "Изменение (своё)",
-    "col.groupes": "Группы",
-    "col.resource_key": "Ресурс",
-    "col.actions": "Действия"
+    "col": {
+      "id": "ID",
+      "can_create": "Создание",
+      "can_delete": "Удаление",
+      "can_delete_own": "Удаление (своё)",
+      "can_read": "Чтение",
+      "can_update": "Изменение",
+      "can_update_own": "Изменение (своё)",
+      "groupes": "Группы",
+      "resource_key": "Ресурс",
+      "actions": "Действия"
+    }
   }
 }
