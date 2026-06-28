@@ -276,10 +276,14 @@ pub async fn security_headers_middleware(
         HeaderValue::from_static("same-origin"),
     );
 
-    headers.insert(
-        "strict-transport-security",
-        HeaderValue::from_static("max-age=31536000; includeSubDomains; preload"),
-    );
+    // HSTS uniquement si Runique sert réellement du HTTPS (ACME / enforce_https) :
+    // l'émettre en HTTP simple est inutile (ignoré) et risqué (lock-in HTTPS d'un an).
+    if engine.config.security.should_emit_hsts() {
+        headers.insert(
+            "strict-transport-security",
+            HeaderValue::from_static("max-age=31536000; includeSubDomains; preload"),
+        );
+    }
 
     response
 }

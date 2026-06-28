@@ -281,13 +281,15 @@ pub(super) fn user_entry() -> ResourceEntry {
                     if id_str.is_empty() {
                         continue;
                     }
-                    if let Ok(groupe_id) = id_str.parse::<crate::utils::pk::Pk>() {
-                        let _ = users_groupes::ActiveModel {
+                    if let Ok(groupe_id) = id_str.parse::<crate::utils::pk::Pk>()
+                        && let Err(e) = (users_groupes::ActiveModel {
                             user_id: Set(inserted.id),
                             groupe_id: Set(groupe_id),
                         }
                         .insert(&*db)
-                        .await;
+                        .await)
+                    {
+                        tracing::warn!(user_id = %inserted.id, groupe_id = %groupe_id, error = %e, "user→group assignment failed (create)");
                     }
                 }
             }
@@ -331,13 +333,15 @@ pub(super) fn user_entry() -> ResourceEntry {
                     if id_str.is_empty() {
                         continue;
                     }
-                    if let Ok(groupe_id) = id_str.parse::<crate::utils::pk::Pk>() {
-                        let _ = users_groupes::ActiveModel {
+                    if let Ok(groupe_id) = id_str.parse::<crate::utils::pk::Pk>()
+                        && let Err(e) = (users_groupes::ActiveModel {
                             user_id: Set(id),
                             groupe_id: Set(groupe_id),
                         }
                         .insert(&*db)
-                        .await;
+                        .await)
+                    {
+                        tracing::warn!(user_id = %id, groupe_id = %groupe_id, error = %e, "user→group assignment failed (update)");
                     }
                 }
             }

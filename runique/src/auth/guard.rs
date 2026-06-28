@@ -23,28 +23,41 @@ static PERMISSIONS_CACHE: LazyLock<RwLock<HashMap<Pk, Arc<CachedPermissions>>>> 
 /// Inserts or updates a user's permissions in the cache.
 /// Called upon login and when a rights change signal occurs.
 pub fn cache_permissions(user_id: Pk, groupes: Vec<Groupe>) {
-    if let Ok(mut cache) = PERMISSIONS_CACHE.write() {
-        cache.insert(user_id, Arc::new(CachedPermissions { groupes }));
-    }
+    // Récupère le lock même empoisonné (un thread a paniqué) et logge : ne jamais
+    // avaler ni sauter l'opération (la cohérence du cache de droits est sécuritaire).
+    let mut cache = PERMISSIONS_CACHE.write().unwrap_or_else(|p| {
+        tracing::warn!("permissions cache lock poisoned (recovered, insert)");
+        p.into_inner()
+    });
+    cache.insert(user_id, Arc::new(CachedPermissions { groupes }));
 }
 
 /// Returns the cached permissions for a user.
 pub fn get_permissions(user_id: Pk) -> Option<Arc<CachedPermissions>> {
-    PERMISSIONS_CACHE.read().ok()?.get(&user_id).cloned()
+    let cache = PERMISSIONS_CACHE.read().unwrap_or_else(|p| {
+        tracing::warn!("permissions cache lock poisoned (recovered, read)");
+        p.into_inner()
+    });
+    cache.get(&user_id).cloned()
 }
 
 /// Removes a user's permissions from the cache (logout).
+/// Sauter cette opération laisserait des permissions périmées → on récupère + logge.
 pub fn evict_permissions(user_id: Pk) {
-    if let Ok(mut cache) = PERMISSIONS_CACHE.write() {
-        cache.remove(&user_id);
-    }
+    let mut cache = PERMISSIONS_CACHE.write().unwrap_or_else(|p| {
+        tracing::warn!("permissions cache lock poisoned (recovered, evict)");
+        p.into_inner()
+    });
+    cache.remove(&user_id);
 }
 
 /// Entirely clears the cache (restart, maintenance).
 pub fn clear_cache() {
-    if let Ok(mut cache) = PERMISSIONS_CACHE.write() {
-        cache.clear();
-    }
+    let mut cache = PERMISSIONS_CACHE.write().unwrap_or_else(|p| {
+        tracing::warn!("permissions cache lock poisoned (recovered, clear)");
+        p.into_inner()
+    });
+    cache.clear();
 }
 
 // ═══════════════════════════════════════════════════════════════

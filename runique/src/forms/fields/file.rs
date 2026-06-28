@@ -40,7 +40,11 @@ use tera::{Context, Tera};
 /// Deletes uploaded files from disk (cleanup on validation failure)
 fn cleanup_files(files: &[String]) {
     for path in files {
-        let _ = std::fs::remove_file(path);
+        if let Err(e) = std::fs::remove_file(path)
+            && e.kind() != std::io::ErrorKind::NotFound
+        {
+            tracing::warn!(path = %path, error = %e, "cleanup_files: remove failed");
+        }
     }
 }
 
@@ -505,25 +509,39 @@ impl FormField for FileField {
     }
 
     fn finalize(&mut self) -> Result<(), String> {
-        let upload_fn = match &self.upload_config.upload_to {
-            Some(f) => f.clone(),
-            None => return Ok(()),
-        };
-
         let val = self.base.value.trim().to_string();
         if val.is_empty() {
             return Ok(());
         }
 
-        // Relative upload dir declared on the field, e.g. "plats/"
-        let upload_rel = upload_fn(&self.base.name);
-        let upload_rel_clean = upload_rel.trim_matches('/');
+        // Sous-dossier déclaré sur le champ (ex: "plats/"), ou racine MEDIA_ROOT si
+        // aucun `upload_to`. `finalize` est le seul committer : un fichier stagé doit
+        // toujours être déplacé en destination servie et stocké en chemin RELATIF,
+        // y compris sans `upload_to` (sinon le fichier reste hors media_root et la DB
+        // garde un chemin absolu de staging).
+        let upload_rel_clean = match &self.upload_config.upload_to {
+            Some(f) => f(&self.base.name).trim_matches('/').to_string(),
+            None => String::new(),
+        };
 
-        // Physical destination: {MEDIA_ROOT}/{upload_rel}/
+        // Physical destination: {MEDIA_ROOT}/{upload_rel}
         let media_root = resolve_media_root();
         let media_root_clean = media_root.trim_end_matches('/');
-        let dest_dir_abs = format!("{}/{}", media_root_clean, upload_rel_clean);
+        let dest_dir_abs = if upload_rel_clean.is_empty() {
+            media_root_clean.to_string()
+        } else {
+            format!("{}/{}", media_root_clean, upload_rel_clean)
+        };
         let dest_dir_abs_path = Path::new(&dest_dir_abs);
+
+        // Construit le chemin relatif stocké ("filename" en racine, sinon "rel/filename").
+        let to_rel = |filename: &str| -> String {
+            if upload_rel_clean.is_empty() {
+                filename.to_string()
+            } else {
+                format!("{}/{}", upload_rel_clean, filename)
+            }
+        };
 
         let files: Vec<String> = val
             .split(',')
@@ -542,8 +560,7 @@ impl FormField for FileField {
                     .file_name()
                     .and_then(|n| n.to_str())
                     .unwrap_or(file_path.as_str());
-                let rel = format!("{}/{}", upload_rel_clean, filename);
-                new_paths.push(rel);
+                new_paths.push(to_rel(filename));
                 continue;
             }
 
@@ -565,9 +582,7 @@ impl FormField for FileField {
             std::fs::rename(src, &dest_abs)
                 .map_err(|e| format!("move '{}': {}", dest_abs.display(), e))?;
 
-            // Store relative path: "{upload_rel}/{filename}" with forward slashes
-            let rel = format!("{}/{}", upload_rel_clean, filename);
-            new_paths.push(rel);
+            new_paths.push(to_rel(filename));
         }
 
         self.base.value = new_paths.join(",");
@@ -578,7 +593,11 @@ impl FormField for FileField {
                 if !new_paths.iter().any(|p| p == old_rel) {
                     let old_abs =
                         format!("{}/{}", media_root_clean, old_rel.trim_start_matches('/'));
-                    let _ = std::fs::remove_file(&old_abs);
+                    if let Err(e) = std::fs::remove_file(&old_abs)
+                        && e.kind() != std::io::ErrorKind::NotFound
+                    {
+                        tracing::warn!(path = %old_abs, error = %e, "old upload removal failed");
+                    }
                 }
             }
         }
@@ -620,5 +639,77 @@ impl FormField for FileField {
                 )
                 .to_string()
             })
+    }
+}
+
+#[cfg(test)]
+mod finalize_tests {
+    use super::*;
+    use crate::forms::base::FormField;
+    use std::fs;
+
+    fn unique_dir(tag: &str) -> std::path::PathBuf {
+        let p = std::env::temp_dir().join(format!("runique_ft_{}_{}", tag, uuid::Uuid::new_v4()));
+        fs::create_dir_all(&p).unwrap();
+        p
+    }
+
+    /// Sans `upload_to`, `finalize` doit committer le fichier stagé en racine de
+    /// MEDIA_ROOT et stocker un chemin RELATIF (pas l'absolu du staging).
+    /// Prérequis du passage de `parse_multipart` vers un staging non servi.
+    #[test]
+    fn finalize_without_upload_to_commits_staged_file_to_media_root() {
+        let media = unique_dir("media");
+        let staging = unique_dir("staging");
+        let staged = staging.join("photo.png");
+        fs::write(&staged, b"data").unwrap();
+
+        unsafe {
+            std::env::set_var("MEDIA_ROOT", media.to_str().unwrap());
+        }
+
+        let mut f = FileField::any("doc");
+        f.base.value = staged.to_string_lossy().to_string();
+
+        f.finalize().expect("finalize should succeed");
+
+        assert_eq!(f.base.value, "photo.png", "valeur normalisée en relatif");
+        assert!(
+            media.join("photo.png").exists(),
+            "fichier commité en media_root"
+        );
+        assert!(!staged.exists(), "fichier déplacé hors du staging");
+
+        unsafe {
+            std::env::remove_var("MEDIA_ROOT");
+        }
+        let _ = fs::remove_dir_all(&media);
+        let _ = fs::remove_dir_all(&staging);
+    }
+
+    /// Cas flux actuel : fichier déjà en racine media_root → finalize normalise en
+    /// relatif sans déplacer (idempotent).
+    #[test]
+    fn finalize_without_upload_to_normalizes_in_place() {
+        let media = unique_dir("media2");
+        let in_root = media.join("already.png");
+        fs::write(&in_root, b"data").unwrap();
+
+        unsafe {
+            std::env::set_var("MEDIA_ROOT", media.to_str().unwrap());
+        }
+
+        let mut f = FileField::any("doc");
+        f.base.value = in_root.to_string_lossy().to_string();
+
+        f.finalize().expect("finalize should succeed");
+
+        assert_eq!(f.base.value, "already.png");
+        assert!(in_root.exists());
+
+        unsafe {
+            std::env::remove_var("MEDIA_ROOT");
+        }
+        let _ = fs::remove_dir_all(&media);
     }
 }

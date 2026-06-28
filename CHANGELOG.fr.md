@@ -6,6 +6,52 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ---
 
+## [2.1.21] - 2026-06-29
+
+> Audit de sécurité et de robustesse issu d'une rétro-ingénierie complète du framework en
+> diagrammes UML/Merise (dossier `diagramme/`). Plusieurs faux positifs ont été écartés après
+> vérification (makemigrations gère bien les `ALTER COLUMN`, page d'erreur gatée sur `debug`,
+> handler d'erreurs monté par défaut).
+
+### Sécurité — `runique` (uploads commités avant tout contrôle)
+
+* **Les fichiers uploadés étaient déplacés directement dans `MEDIA_ROOT` pendant le parsing du corps** — donc **avant** la validation CSRF, **avant** la validation du formulaire et **sans** contrôle d'extension (écriture de fichier non authentifiée sur toute route publique, remplissage disque, risque de contenu servi). `parse_multipart` écrit désormais dans un dossier de **staging** `.staging-{uuid}` (non servi) ; `FileField::finalize` est le **seul committer** (il gère aussi le cas sans `upload_to` en déplaçant vers la racine `MEDIA_ROOT` et en stockant un chemin relatif) ; `sweep_stale_staging` purge les staging orphelins laissés par une requête rejetée (échecs loggés, jamais avalés).
+
+### Sécurité — `runique` (en-têtes durcis jamais posés + `STRICT_CSP` sans effet)
+
+* **`STRICT_CSP` (env, défaut `true`) était lu mais jamais consommé**, et `enable_header_security` valait toujours `false` → aucun en-tête de sécurité durci (HSTS, X-Frame-Options, COOP/CORP), **même en mode ACME** où Runique termine le TLS. `strict_csp` pilote désormais `enable_header_security` (secure-by-default ; le builder `.with_csp(...)` reste prioritaire). Le **HSTS** n'est émis que si Runique sert réellement du HTTPS (`enforce_https` ou `acme_enabled`, via `SecurityConfig::should_emit_hsts`) — évite le lock-in HTTPS d'un an sur un déploiement HTTP.
+
+### Sécurité — `runique` (`SECRET_KEY` vide ou faible acceptée en production)
+
+* La validation de boot refusait la clé **par défaut** mais **pas** une clé **vide** (`SECRET_KEY=""`) ni **trop courte** → CSRF/HMAC cassés en silence. `cross_validate` refuse désormais le démarrage en production pour toute clé vide, par défaut, ou < 32 caractères (`secret_key_is_weak`, plancher HMAC-SHA256). En debug : simple warning.
+
+### Sécurité — `runique` (mot de passe SMTP en clair dans les logs)
+
+* `MailerConfig` dérivait `Debug`, donc un `{:?}` (dans un log) imprimait le mot de passe SMTP en clair. Implémentation `Debug` manuelle masquant `password: "***"`.
+
+### Correctif — `runique` (durée de session authentifiée incohérente)
+
+* `login()` codait **24h en dur**, écrasant la valeur configurée via `with_session_duration(...)` que le middleware de rafraîchissement (`session_ttl_upgrade`) utilise déjà → cookie, ligne `eihwaz_sessions` et refresh divergeaient sur la première requête. **Source unique** désormais : la durée builder est lue par `login` (via un `OnceLock` posé au build), défaut 24h si non configurée, warning si re-définie avec une valeur différente.
+
+### Correctif — `runique` (FK incompatible sous la feature `big-pk`)
+
+* `eihwaz_users_groupes.user_id` était `INTEGER` codé en dur alors que `eihwaz_users.id` devient `BIGINT` sous `big-pk` → clé étrangère de **type incompatible** (échec de migration sur Postgres strict). Aligné sur le bloc conditionnel `big-pk` des autres tables.
+
+### Correctif — `runique` (erreurs silencieusement avalées — chantier « zéro erreur avalée »)
+
+* Plusieurs `Result` en échec étaient ignorés (`let _ =`, `if let Ok` sans `else`) et sont désormais **tracés** : rollback de transaction de formulaire, insert d'audit `eihwaz_history`, assignation user→groupe (RBAC), nettoyage de fichiers et de tokens reset, insert de session honeypot, rendu du template d'email de reset, lock de cache de permissions empoisonné (désormais récupéré via `into_inner` au lieu d'être sauté). `MailerConfig`/staging cleanup loggent leurs échecs.
+
+### Fonctionnalité — `runique` (accesseur CSRF fail-closed)
+
+* `Prisme::checked_data()` : renvoie les données du corps **uniquement si la CSRF est valide**, pour les handlers qui liraient `req.prisme.data` directement sans passer par `req.form()`.
+
+### Divers — `runique`
+
+* `ColumnDef::to_form_field` logge (niveau debug) lorsqu'un type de colonne non géré retombe sur un champ texte par défaut.
+* Documentation sessions (fr/en) : la durée de session authentifiée est expliquée explicitement (source unique réglable au builder uniquement, équivalent `SESSION_COOKIE_AGE` Django, exemple, et patron « se souvenir de moi » via `set_expiry` par session).
+
+---
+
 ## [2.1.20] - 2026-06-25
 
 ### Correctif — `runique` (i18n admin : en-têtes de colonnes permission en clés brutes)

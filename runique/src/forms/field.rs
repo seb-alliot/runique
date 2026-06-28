@@ -73,6 +73,15 @@ fn log_coerce<T, E: std::fmt::Display>(name: &str, raw: &str, res: Result<T, E>)
     }
 }
 
+/// Rolls back a transaction and logs the rollback error instead of swallowing it.
+/// A failed rollback leaves the DB in an undefined state — it must never be silent,
+/// even though the caller returns the original business error.
+async fn rollback_traced(txn: DatabaseTransaction) {
+    if let Err(rb) = txn.rollback().await {
+        tracing::warn!(error = %rb, "transaction rollback failed");
+    }
+}
+
 /// Main trait for typed forms with validation and saving
 ///
 #[doc = include_str!("../../doc-tests/form/form_proc_macro.md")]
@@ -84,6 +93,11 @@ pub trait RuniqueForm: Sized + Send + Sync {
     fn from_form(form: Forms) -> Self;
     fn get_form(&self) -> &Forms;
     fn get_form_mut(&mut self) -> &mut Forms;
+
+    /// Hook to tweak the generated fields (label, placeholder, required, attrs…)
+    /// right after they are registered. Default: no-op. Override it in your
+    /// `impl RuniqueForm` block to customize a macro-generated form.
+    fn customize(_form: &mut Forms) {}
 
     // ── Whitelisted access to values (POST > path param > query param) ──────────
 
@@ -335,7 +349,7 @@ pub trait RuniqueForm: Sized + Send + Sync {
             }
             Err(e) => {
                 // Try rollback, but return the original business/DB error.
-                let _ = txn.rollback().await;
+                rollback_traced(txn).await;
                 Err(e)
             }
         }
@@ -354,15 +368,15 @@ pub trait RuniqueForm: Sized + Send + Sync {
         let txn = db.begin().await?;
 
         if let Err(e) = self.before_save(ctx, &txn).await {
-            let _ = txn.rollback().await;
+            rollback_traced(txn).await;
             return Err(e);
         }
         if let Err(e) = self.on_save(&txn).await {
-            let _ = txn.rollback().await;
+            rollback_traced(txn).await;
             return Err(e);
         }
         if let Err(e) = self.after_save(ctx, &txn).await {
-            let _ = txn.rollback().await;
+            rollback_traced(txn).await;
             return Err(e);
         }
 

@@ -243,12 +243,15 @@ impl RuniqueAppBuilder {
         let sec = &self.config.security;
         let srv = &self.config.server;
 
-        if srv.secret_key == "default_secret_key" {
+        if crate::config::server::secret_key_is_weak(&srv.secret_key) {
             report.add(
-                CheckError::new("Security", "SECRET_KEY is using the default insecure value")
-                    .with_suggestion(
-                        "Set SECRET_KEY to a random 32+ character string in your .env file",
-                    ),
+                CheckError::new(
+                    "Security",
+                    "SECRET_KEY is missing, empty, the default value, or shorter than 32 characters",
+                )
+                .with_suggestion(
+                    "Set SECRET_KEY to a random 32+ character string in your .env file (the `runique` CLI can generate one)",
+                ),
             );
         }
 

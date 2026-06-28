@@ -22,6 +22,19 @@ pub struct Prisme {
     pub csrf_valid: bool,
 }
 
+impl Prisme {
+    /// Accesseur **fail-closed** : renvoie les données du corps uniquement si la CSRF
+    /// est valide. À utiliser dans un handler qui lit des champs du body **sans** passer
+    /// par `req.form()` — `.data` brut n'est PAS protégé par la CSRF (cf. anomalie C2).
+    pub fn checked_data(&self) -> Option<&StrMap> {
+        if self.csrf_valid {
+            Some(&self.data)
+        } else {
+            None
+        }
+    }
+}
+
 /// Non-generic pipeline: Sentinel → Aegis → CSRF check.
 /// Runs on every request — aegis handles GET (query params) and POST (body).
 pub async fn prisme_pipeline<S>(req: Request<Body>, state: &S) -> Result<Prisme, Response>
@@ -97,4 +110,33 @@ fn convert_for_form(parsed: StrVecMap) -> StrMap {
             }
         })
         .collect()
+}
+
+#[cfg(test)]
+mod checked_data_tests {
+    use super::*;
+
+    /// C2 : `checked_data` est fail-closed — None tant que la CSRF n'est pas validée,
+    /// même si `.data` (brut) contient des champs.
+    #[test]
+    fn checked_data_gates_on_csrf_valid() {
+        let mut data = StrMap::new();
+        data.insert("field".to_string(), "value".to_string());
+
+        let invalid = Prisme {
+            data: data.clone(),
+            csrf_valid: false,
+        };
+        assert!(invalid.checked_data().is_none(), "CSRF KO → aucune donnée");
+        assert!(
+            !invalid.data.is_empty(),
+            ".data brut reste accessible (legacy)"
+        );
+
+        let valid = Prisme {
+            data,
+            csrf_valid: true,
+        };
+        assert!(valid.checked_data().is_some(), "CSRF OK → données dispo");
+    }
 }

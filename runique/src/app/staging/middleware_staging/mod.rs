@@ -125,7 +125,10 @@ impl MiddlewareStaging {
         let features = MiddlewareConfig {
             // CSP configured only via the builder (.with_csp(true/false))
             enable_csp: false,
-            enable_header_security: false,
+            // STRICT_CSP (.env, défaut true) pilote les headers de sécurité durcis
+            // (X-Frame, nosniff, COOP/CORP, HSTS conditionné HTTPS). Le builder
+            // `.with_csp(|c| c.with_header_security(...))` reste prioritaire (appliqué après).
+            enable_header_security: config.security.strict_csp,
             // host validation configured only via the builder (.with_allowed_hosts)
             enable_host_validation: false,
             enable_debug_errors: true, // always mounted — config.debug manages the content

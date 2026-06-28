@@ -18,7 +18,7 @@ pub enum MailerBackend {
 
 pub static MAILER_CONFIG: OnceLock<MailerConfig> = OnceLock::new();
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct MailerConfig {
     pub backend: MailerBackend,
     pub host: String,
@@ -27,6 +27,21 @@ pub struct MailerConfig {
     pub password: String,
     pub from: String,
     pub starttls: bool,
+}
+
+// Debug manuel : ne jamais imprimer le mot de passe SMTP en clair (fuite via logs).
+impl std::fmt::Debug for MailerConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MailerConfig")
+            .field("backend", &self.backend)
+            .field("host", &self.host)
+            .field("port", &self.port)
+            .field("username", &self.username)
+            .field("password", &"***")
+            .field("from", &self.from)
+            .field("starttls", &self.starttls)
+            .finish()
+    }
 }
 
 impl MailerConfig {

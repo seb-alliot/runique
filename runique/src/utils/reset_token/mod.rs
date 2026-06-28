@@ -42,15 +42,19 @@ pub async fn generate(
         .and_then(|d| now.checked_add_signed(d))
         .unwrap_or(now);
 
-    // Best-effort cleanup; a failure here does not compromise the new token below.
-    let _ = entity::Entity::delete_many()
+    // Best-effort cleanup; a failure here does not compromise the new token below,
+    // mais on le logge (tokens périmés qui s'accumulent) plutôt que de l'avaler.
+    if let Err(e) = entity::Entity::delete_many()
         .filter(
             Condition::any()
                 .add(entity::Column::UserId.eq(user_id))
                 .add(entity::Column::ExpiresAt.lt(now)),
         )
         .exec(db)
-        .await;
+        .await
+    {
+        tracing::warn!(user_id = %user_id, error = %e, "reset token cleanup failed");
+    }
 
     let model = entity::ActiveModel {
         token_hash: Set(hash_token(&token)),

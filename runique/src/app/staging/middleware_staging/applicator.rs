@@ -325,6 +325,9 @@ impl MiddlewareStaging {
         // Slot 55: Upgrade session TTL if authenticated
         {
             let duration = self.session_duration;
+            // Source unique : login lit la même valeur (builder) que ce middleware,
+            // via le OnceLock posé ici → cookie/DB/refresh ne divergent plus (AM3).
+            crate::auth::session::set_auth_session_ttl_secs(duration.whole_seconds());
             entries.push(MiddlewareEntry {
                 slot: SLOT_SESSION_UPGRADE,
                 name: "SessionTtlUpgrade",

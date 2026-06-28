@@ -178,10 +178,19 @@ pub fn create_eihwaz_users_groupes_table() -> TableCreateStatement {
     let user_table = user_table_name();
     let fk_name = format!("fk_eihwaz_users_groupes_{}_id", user_table);
 
+    // user_id doit suivre le type de eihwaz_users.id (BIGINT sous feature big-pk),
+    // sinon la FK est de type incompatible et échoue à la création (Postgres strict).
+    let mut user_id_col = ColumnDef::new(Alias::new("user_id"));
+    #[cfg(feature = "big-pk")]
+    user_id_col.big_integer();
+    #[cfg(not(feature = "big-pk"))]
+    user_id_col.integer();
+    user_id_col.not_null();
+
     Table::create()
         .table(Alias::new("eihwaz_users_groupes"))
         .if_not_exists()
-        .col(ColumnDef::new(Alias::new("user_id")).integer().not_null())
+        .col(&mut user_id_col)
         .col(ColumnDef::new(Alias::new("groupe_id")).integer().not_null())
         .primary_key(
             Index::create()
@@ -281,6 +290,11 @@ impl sea_orm_migration::MigrationTrait for EihwazSessionsMigration {
 }
 
 /// Generates the `TableCreateStatement` for the `eihwaz_history` table.
+///
+/// `user_id` n'a **volontairement aucune FK** vers la table user : l'audit doit
+/// survivre à la suppression d'un utilisateur (une FK CASCADE effacerait l'historique
+/// de ses actions). `username` est dénormalisé pour garder une trace lisible même après
+/// suppression. Ne pas « corriger » en ajoutant une FK CASCADE.
 pub fn create_eihwaz_history_table() -> TableCreateStatement {
     let mut user_id_col = ColumnDef::new(Alias::new("user_id"));
     #[cfg(feature = "big-pk")]

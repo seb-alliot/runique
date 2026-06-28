@@ -55,6 +55,16 @@
 
 - [ ] **`SimpleListFilter`** — filtre custom avec logique arbitraire (queryset, labels, choix dynamiques) ; actuellement uniquement `filter_fn` bas niveau
 - [ ] **Recherche multi-table** — `search_fields` avec traversée FK (`client.nom`) via JOIN
+- [ ] **Index auto sur colonnes filtrées/cherchées** — générer génériquement un index DB pour
+  chaque colonne d'une resource admin présente dans `list_filter` / `search_fields` /
+  colonnes triables (équivalent `db_index=True` Django). Deux pistes : **(A)** au boot via
+  `CREATE INDEX IF NOT EXISTS` (simple, générique, mais DDL au démarrage + verrou possible sur
+  grosse table + MySQL < 8) ; **(B)** émission dans la migration générée (versionné, relisable,
+  mais couple config admin ↔ générateur de migration). B = cible long terme. Couvre aussi
+  `eihwaz_history` (filtré par `resource_key`/`object_pk`/`batch_id`)
+- [ ] **Index internes framework** — index fixes sur `eihwaz_sessions.user_id`
+  (invalidation de sessions) et `eihwaz_reset_tokens.expires_at` (purge) ; requêtes internes,
+  non couvertes par l'index auto admin → à ajouter directement aux migrations `eihwaz_*`
 
 ### Hooks et customisation
 

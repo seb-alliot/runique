@@ -115,6 +115,8 @@ impl RuniqueApp {
     /// 3. Start HTTPS server on port 443
     #[cfg(feature = "acme")]
     async fn run_with_acme(self) -> Result<(), Box<dyn std::error::Error>> {
+        // Err = un provider crypto est déjà installé (idiome rustls) → bénin, pas une
+        // erreur avalée : l'objectif (un provider par défaut présent) est atteint.
         let _ = rustls::crypto::ring::default_provider().install_default();
         use crate::utils::acme::{ChallengeStore, obtain_certificate};
         use axum::{
