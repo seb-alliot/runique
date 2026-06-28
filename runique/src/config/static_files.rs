@@ -38,6 +38,11 @@ fn current_dir_str() -> String {
 }
 
 /// Priority: `MEDIA_ROOT` → `{BASE_DIR}/media` → `{cwd}/media` → `./media`.
+/// Sérialise les tests qui mutent la variable d'env process-globale `MEDIA_ROOT`
+/// (sinon course inter-tests sous `cargo test` parallèle).
+#[cfg(test)]
+pub(crate) static MEDIA_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 pub fn resolve_media_root() -> String {
     if let Ok(root) = std::env::var("MEDIA_ROOT") {
         return root;
@@ -120,10 +125,9 @@ impl StaticConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Mutex;
-
-    // std::env::set_var is not thread-safe — serialize all env-mutating tests.
-    static ENV_LOCK: Mutex<()> = Mutex::new(());
+    // std::env::set_var is not thread-safe — serialize all env-mutating tests
+    // (partagé avec les tests de file.rs via le mutex au niveau module).
+    use super::MEDIA_ENV_LOCK as ENV_LOCK;
 
     #[test]
     fn current_dir_str_is_absolute() {
