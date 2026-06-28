@@ -3,7 +3,7 @@
 use crate::helpers::{
     assert::{assert_has_header, assert_header_eq, assert_status},
     request,
-    server::build_engine,
+    server::{build_engine, build_engine_https},
 };
 use axum::{Router, middleware, routing::get};
 use runique::app::staging::CspConfig;
@@ -330,7 +330,7 @@ async fn test_csp_middleware_header_contient_default_src() {
 
 #[tokio::test]
 async fn test_security_headers_middleware_ajoute_csp_et_autres() {
-    let engine = build_engine().await;
+    let engine = build_engine_https().await;
     let resp = request::get(security_headers_app(engine), "/").await;
     assert_status(&resp, 200);
     assert_has_header(&resp, "content-security-policy");
@@ -363,7 +363,7 @@ async fn test_security_headers_middleware_x_frame_options_deny() {
 
 #[tokio::test]
 async fn test_security_headers_middleware_hsts_present() {
-    let engine = build_engine().await;
+    let engine = build_engine_https().await;
     let resp = request::get(security_headers_app(engine), "/").await;
     let hsts = resp
         .headers()

@@ -77,12 +77,22 @@ pub fn test_server_addr() -> SocketAddr {
 /// Builds a `RuniqueEngine` with SQLite in-memory and default middleware config.
 /// Reuse this in tests that need `oneshot()` rather than a persistent server.
 pub async fn build_engine() -> Arc<RuniqueEngine> {
+    build_engine_cfg(false).await
+}
+
+/// Engine de test avec `enforce_https = true` (Runique = edge HTTPS → HSTS émis).
+pub async fn build_engine_https() -> Arc<RuniqueEngine> {
+    build_engine_cfg(true).await
+}
+
+async fn build_engine_cfg(enforce_https: bool) -> Arc<RuniqueEngine> {
     let db = Database::connect(SQLITE_URL)
         .await
         .expect("sqlite::memory: connect");
 
     let mut config = RuniqueConfig::default();
     config.server.secret_key = TEST_SECRET.to_string();
+    config.security.enforce_https = enforce_https;
 
     Arc::new(RuniqueEngine {
         config,

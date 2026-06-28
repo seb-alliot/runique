@@ -659,6 +659,9 @@ mod finalize_tests {
     /// Prérequis du passage de `parse_multipart` vers un staging non servi.
     #[test]
     fn finalize_without_upload_to_commits_staged_file_to_media_root() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         let media = unique_dir("media");
         let staging = unique_dir("staging");
         let staged = staging.join("photo.png");
@@ -691,6 +694,9 @@ mod finalize_tests {
     /// relatif sans déplacer (idempotent).
     #[test]
     fn finalize_without_upload_to_normalizes_in_place() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         let media = unique_dir("media2");
         let in_root = media.join("already.png");
         fs::write(&in_root, b"data").unwrap();

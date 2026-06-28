@@ -502,7 +502,10 @@ fn test_middleware_staging_is_ready_toujours_true() {
 // ════════════════════════════════════════════════════════════════
 
 fn make_config() -> RuniqueConfig {
-    RuniqueConfig::default()
+    let mut config = RuniqueConfig::default();
+    // SECRET_KEY ≥ 32 chars : la boot validation (prod) rejette les clés vides/faibles.
+    config.server.secret_key = "test_secret_key_at_least_32_characters_long".to_string();
+    config
 }
 
 #[test]
