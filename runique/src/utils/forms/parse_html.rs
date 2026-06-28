@@ -16,7 +16,11 @@ use std::{
     path::{Path, PathBuf},
 };
 use tokio::io::AsyncWriteExt;
+use tracing::warn;
 use uuid::Uuid;
+
+/// Staging dirs older than this are considered orphaned by a rejected upload.
+const STAGING_TTL_SECS: u64 = 3600;
 
 pub async fn parse_multipart(
     mut multipart: Multipart,
@@ -28,10 +32,14 @@ pub async fn parse_multipart(
     let max_text_bytes = max_text_field_kb.saturating_mul(1024);
 
     let mut data: StrVecMap = HashMap::new();
-    // (tmp path, final path, field name)
-    let mut pending_files: Vec<(PathBuf, PathBuf, String)> = Vec::new();
-    // Created lazily on first real file upload — never touches the filesystem for text-only forms.
+    // Staging dir (under upload_dir → même filesystem, donc le rename de finalize()
+    // est atomique). Les fichiers y restent jusqu'à ce que `FileField::finalize` les
+    // committe vers leur destination servie — APRÈS CSRF + validation. Créé à la
+    // demande au premier vrai fichier (aucun accès disque pour un form texte seul).
     let mut tmp_dir: Option<PathBuf> = None;
+
+    // Best-effort : purge des staging laissés par des uploads précédemment rejetés.
+    sweep_stale_staging(upload_dir).await;
 
     while let Ok(Some(mut field)) = multipart.next_field().await {
         let name = match field.name() {
@@ -61,7 +69,7 @@ pub async fn parse_multipart(
                     res.extensions_mut().insert(Arc::new(ctx));
                     res
                 })?;
-                let dir = upload_dir.join(format!("tmp-{}", Uuid::new_v4()));
+                let dir = upload_dir.join(format!(".staging-{}", Uuid::new_v4()));
                 tokio::fs::create_dir_all(&dir).await.map_err(|_| {
                     (
                         StatusCode::INTERNAL_SERVER_ERROR,
@@ -75,10 +83,9 @@ pub async fn parse_multipart(
 
             let safe = sanitize_filename(&filename);
             let tmp_path = cur_tmp.join(&safe);
-            let final_path = upload_dir.join(&safe);
 
-            // Stream into tmp — the file handle is scoped to this block
-            // to ensure its closure before any tmp_dir cleanup.
+            // Stream into staging — the file handle is scoped to this block
+            // to ensure its closure before any staging cleanup.
             let stream_result: Result<(), Response> = async {
                 let mut file = tokio::fs::File::create(&tmp_path).await.map_err(|_| {
                     (
@@ -118,13 +125,19 @@ pub async fn parse_multipart(
             .await;
 
             if let Err(e) = stream_result {
-                if let Some(ref tmp) = tmp_dir {
-                    let _ = tokio::fs::remove_dir_all(tmp).await;
+                if let Some(ref tmp) = tmp_dir
+                    && let Err(err) = tokio::fs::remove_dir_all(tmp).await
+                {
+                    warn!(dir = %tmp.display(), error = %err, "staging cleanup after stream error failed");
                 }
                 return Err(e);
             }
 
-            pending_files.push((tmp_path, final_path, name));
+            // Chemin de staging : finalize() le committera en destination servie.
+            // Pas de commit eager ici → aucune écriture servie avant CSRF/validation.
+            data.entry(name)
+                .or_default()
+                .push(tmp_path.to_string_lossy().to_string());
         }
         // --- Text field ---
         else {
@@ -154,8 +167,10 @@ pub async fn parse_multipart(
             match text_result {
                 Ok(text) => data.entry(name).or_default().push(text),
                 Err(e) => {
-                    if let Some(ref tmp) = tmp_dir {
-                        let _ = tokio::fs::remove_dir_all(tmp).await;
+                    if let Some(ref tmp) = tmp_dir
+                        && let Err(err) = tokio::fs::remove_dir_all(tmp).await
+                    {
+                        warn!(dir = %tmp.display(), error = %err, "staging cleanup after text-field error failed");
                     }
                     return Err(e);
                 }
@@ -163,27 +178,52 @@ pub async fn parse_multipart(
         }
     }
 
-    // Commit: move all files from tmp to their final destination.
-    // tmp_dir is within upload_dir → same filesystem → atomic rename guaranteed.
-    for (tmp_path, final_path, field_name) in pending_files {
-        if tokio::fs::rename(&tmp_path, &final_path).await.is_err() {
-            return Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                t("forms.file_write_error").to_string(),
-            )
-                .into_response());
-        }
-        data.entry(field_name)
-            .or_default()
-            .push(final_path.to_string_lossy().to_string());
-    }
-
-    // Remove the now-empty tmp directory
-    if let Some(ref tmp) = tmp_dir {
-        let _ = tokio::fs::remove_dir(tmp).await;
-    }
+    // Pas de commit ici : les fichiers restent en staging. `FileField::finalize`
+    // (le seul committer) les déplacera en destination servie après CSRF + validation.
+    // En cas de rejet (CSRF/validation), le staging est purgé par `sweep_stale_staging`
+    // au prochain upload (best-effort, TTL).
 
     Ok(data)
+}
+
+/// Best-effort purge des dossiers `.staging-*` orphelins (uploads rejetés avant
+/// `finalize`). Supprime ceux plus vieux que `STAGING_TTL_SECS`. Les échecs sont
+/// loggés, jamais avalés silencieusement.
+async fn sweep_stale_staging(upload_dir: &Path) {
+    let mut entries = match tokio::fs::read_dir(upload_dir).await {
+        Ok(e) => e,
+        Err(_) => return, // upload_dir pas encore créé : rien à purger
+    };
+    let now = std::time::SystemTime::now();
+    loop {
+        let entry = match entries.next_entry().await {
+            Ok(Some(e)) => e,
+            Ok(None) => break,
+            Err(err) => {
+                warn!(dir = %upload_dir.display(), error = %err, "staging sweep: read_dir failed");
+                break;
+            }
+        };
+        let name = entry.file_name();
+        let Some(name) = name.to_str() else { continue };
+        if !name.starts_with(".staging-") {
+            continue;
+        }
+        let path = entry.path();
+        let age = entry
+            .metadata()
+            .await
+            .ok()
+            .and_then(|m| m.modified().ok())
+            .and_then(|t| now.duration_since(t).ok())
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        if age > STAGING_TTL_SECS
+            && let Err(err) = tokio::fs::remove_dir_all(&path).await
+        {
+            warn!(dir = %path.display(), error = %err, "staging sweep: remove failed");
+        }
+    }
 }
 
 fn sanitize_filename(filename: &str) -> String {
@@ -196,5 +236,61 @@ fn sanitize_filename(filename: &str) -> String {
         uuid
     } else {
         format!("{uuid}.{ext}")
+    }
+}
+
+#[cfg(test)]
+mod staging_tests {
+    use super::*;
+    use axum::body::Body;
+    use axum::extract::FromRequest;
+    use axum::http::Request;
+
+    fn multipart_req(boundary: &str, field: &str, filename: &str, content: &str) -> Request<Body> {
+        let body = format!(
+            "--{b}\r\nContent-Disposition: form-data; name=\"{f}\"; filename=\"{fn}\"\r\nContent-Type: application/octet-stream\r\n\r\n{c}\r\n--{b}--\r\n",
+            b = boundary, f = field, fn = filename, c = content
+        );
+        Request::builder()
+            .method("POST")
+            .header(
+                "content-type",
+                format!("multipart/form-data; boundary={boundary}"),
+            )
+            .body(Body::from(body))
+            .unwrap()
+    }
+
+    /// L'upload ne doit PAS être commité en racine media_root pendant le parse :
+    /// il reste en staging (`.staging-*`), `finalize` committera plus tard, après
+    /// CSRF + validation. Sécurise C1 (pas d'écriture servie avant contrôle).
+    #[tokio::test]
+    async fn parse_multipart_stages_file_without_eager_commit() {
+        let media = std::env::temp_dir().join(format!("rq_pm_{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&media).unwrap();
+
+        let req = multipart_req("BNDRY", "avatar", "a.png", "HELLO");
+        let mp = Multipart::from_request(req, &()).await.unwrap();
+
+        let parsed = parse_multipart(mp, &media, 10, 64).await.unwrap();
+
+        let path = parsed.get("avatar").expect("champ avatar")[0].clone();
+        let p = Path::new(&path);
+
+        assert!(
+            path.contains(".staging"),
+            "chemin doit pointer vers staging: {path}"
+        );
+        assert!(p.exists(), "fichier présent en staging");
+
+        // Pas de commit eager : la racine media_root ne contient que le dossier staging,
+        // pas le fichier final directement.
+        let filename = p.file_name().unwrap();
+        assert!(
+            !media.join(filename).exists(),
+            "aucun fichier commité en racine media_root"
+        );
+
+        let _ = std::fs::remove_dir_all(&media);
     }
 }

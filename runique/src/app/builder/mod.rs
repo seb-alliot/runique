@@ -153,7 +153,13 @@ impl RuniqueAppBuilder {
         self
     }
 
-    /// Shortcut: configures the session duration without going through `.middleware()`.
+    /// Durée d'une session **authentifiée** (équivalent `SESSION_COOKIE_AGE` Django).
+    ///
+    /// Source unique réglable **uniquement ici** (pas d'`.env`) : s'applique au cookie, à la
+    /// ligne `eihwaz_sessions` (`expires_at`) et au refresh par requête — `login()` lit la
+    /// même valeur, donc rien ne diverge. Défaut si non appelé : **24h**. Sessions anonymes :
+    /// [`with_anonymous_session_duration`](MiddlewareStaging::with_anonymous_session_duration).
+    /// Doc complète (dont « se souvenir de moi ») : `docs/*/middleware/sessions`.
     pub fn with_session_duration(mut self, duration: Duration) -> Self {
         self.middleware = self.middleware.with_session_duration(duration);
         self

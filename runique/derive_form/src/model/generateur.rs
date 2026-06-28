@@ -1472,9 +1472,16 @@ fn generate_option(opt: &FieldOption) -> TokenStream2 {
         FieldOption::SelectAs(s) => quote! { .select_as(#s) },
         FieldOption::Default(lit) => quote! { .default(sea_query::Value::from(#lit)) },
         FieldOption::Label(_) | FieldOption::Help(_) => quote! {},
-        FieldOption::File { .. } => quote! {},
+        FieldOption::File { kind, .. } => {
+            let kind_tok = match kind {
+                FileKind::Image => quote! { ::runique::migration::FileKind::Image },
+                FileKind::Document => quote! { ::runique::migration::FileKind::Document },
+                FileKind::Any => quote! { ::runique::migration::FileKind::Any },
+            };
+            quote! { .file(#kind_tok) }
+        }
         FieldOption::MaxSize(n) => {
-            quote! { .max_size(::runique::forms::fields::FileSize::bytes(#n)) }
+            quote! { .max_size_bytes(#n) }
         }
         FieldOption::Fk(fk) => {
             let table = fk.table.to_string();

@@ -288,6 +288,11 @@ pub async fn handle_forgot_password<E: UserEntity + 'static>(
                                 crate::runique_log!(level, "reset email sent");
                             }
                         });
+                    } else {
+                        tracing::warn!(
+                            template = %tpl,
+                            "reset email template render failed — email not sent"
+                        );
                     }
                 } else {
                     let body = tf("reset.email_body", &[&username, &reset_url, &reset_url]).clone();

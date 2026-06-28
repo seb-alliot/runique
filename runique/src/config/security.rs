@@ -58,4 +58,45 @@ impl SecurityConfig {
             acme_certs_dir,
         }
     }
+
+    /// HSTS ne doit être émis QUE si Runique sert réellement du HTTPS : terminaison TLS
+    /// via ACME, ou redirection HTTPS forcée. En HTTP simple le header serait ignoré, et
+    /// surtout on évite le lock-in HTTPS d'un an (`max-age` + `includeSubDomains`/`preload`)
+    /// sur un déploiement qui n'est pas (encore) en HTTPS.
+    #[must_use]
+    pub fn should_emit_hsts(&self) -> bool {
+        self.enforce_https || self.acme_enabled
+    }
+}
+
+#[cfg(test)]
+mod hsts_tests {
+    use super::*;
+
+    fn cfg(enforce_https: bool, acme: bool) -> SecurityConfig {
+        SecurityConfig {
+            strict_csp: true,
+            rate_limiting: true,
+            enforce_https,
+            allowed_hosts: vec![],
+            acme_enabled: acme,
+            acme_domain: None,
+            acme_email: None,
+            acme_certs_dir: String::new(),
+        }
+    }
+
+    /// HSTS gaté sur HTTPS réel : pas de lock-in HTTPS forcé en HTTP simple.
+    #[test]
+    fn hsts_only_over_real_https() {
+        assert!(
+            !cfg(false, false).should_emit_hsts(),
+            "HTTP simple → pas de HSTS"
+        );
+        assert!(cfg(true, false).should_emit_hsts(), "enforce_https → HSTS");
+        assert!(
+            cfg(false, true).should_emit_hsts(),
+            "ACME (Runique sert le TLS) → HSTS"
+        );
+    }
 }

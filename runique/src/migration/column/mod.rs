@@ -6,6 +6,15 @@
 //! The [`ColumnDef::to_form_field`] method automatically generates the appropriate form field.
 use sea_query::{ColumnType, IntoIden};
 
+/// Upload kind for a file column — drives the form widget and the allowed
+/// extension whitelist when the schema rebuilds a `FileField`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FileKind {
+    Image,
+    Document,
+    Any,
+}
+
 /// Complete table column definition.
 #[derive(Debug, Clone)]
 pub struct ColumnDef {
@@ -26,6 +35,10 @@ pub struct ColumnDef {
     pub min_value: Option<i64>,
     pub max_float: Option<f64>,
     pub min_float: Option<f64>,
+    /// File upload metadata — pure form concern, ignored by `to_sea_column`.
+    pub is_file: bool,
+    pub file_kind: Option<FileKind>,
+    pub max_size: Option<u64>, // bytes
 }
 
 impl ColumnDef {
@@ -48,6 +61,9 @@ impl ColumnDef {
             min_value: None,
             max_float: None,
             min_float: None,
+            is_file: false,
+            file_kind: None,
+            max_size: None,
         }
     }
 
@@ -286,6 +302,20 @@ impl ColumnDef {
         self
     }
 
+    /// Marks the column as a file upload of the given kind. Drives the
+    /// `FileField` widget and allowed extensions when rebuilt from the schema.
+    pub fn file(mut self, kind: FileKind) -> Self {
+        self.is_file = true;
+        self.file_kind = Some(kind);
+        self
+    }
+
+    /// Model-defined upload ceiling in bytes. Bounds any form-level override.
+    pub fn max_size_bytes(mut self, bytes: u64) -> Self {
+        self.max_size = Some(bytes);
+        self
+    }
+
     pub fn auto_now(mut self) -> Self {
         self.col_type = ColumnType::DateTime;
         self.auto_now = true;
@@ -355,9 +385,11 @@ impl ColumnDef {
     pub fn to_form_field(&self) -> Option<crate::forms::generic::GenericField> {
         use crate::forms::base::FormField;
         use crate::forms::fields::{
+            FileSize,
             boolean::BooleanField,
             choice::ChoiceField,
             datetime::{DateField, DateTimeField, TimeField},
+            file::FileField,
             number::NumericField,
             special::{ColorField, IPAddressField, JSONField, SlugField, UUIDField},
             text::TextField,
@@ -372,119 +404,144 @@ impl ColumnDef {
         let label = self.format_label();
         let required = !self.nullable;
 
-        let mut field: GenericField = match &self.col_type {
-            ColumnType::String(_) => {
-                if name == "email" || name.ends_with("_email") {
-                    let mut tf = TextField::email(name);
-                    if let Some(max_model) = self.max_length {
-                        let current = tf.config.max_length.as_ref().map(|c| c.value);
-                        let effective = match current {
-                            Some(f) => max_model.min(f),
-                            None => max_model,
-                        };
-                        tf = tf.max_length(effective, "Too long");
-                    }
-                    tf.into()
-                } else if name == "password"
-                    || name.ends_with("_password")
-                    || name.ends_with("_pwd")
-                {
-                    let mut tf = TextField::password(name);
-                    if let Some(max_model) = self.max_length {
-                        let current = tf.config.max_length.as_ref().map(|c| c.value);
-                        let effective = match current {
-                            Some(f) => max_model.min(f),
-                            None => max_model,
-                        };
-                        tf = tf.max_length(effective, "Too long");
-                    }
-                    tf.into()
-                } else if name == "url"
-                    || name.ends_with("_url")
-                    || name == "website"
-                    || name.ends_with("_website")
-                    || name.contains("http")
-                {
-                    let mut tf = TextField::url(name);
-                    if let Some(max_model) = self.max_length {
-                        let current = tf.config.max_length.as_ref().map(|c| c.value);
-                        let effective = match current {
-                            Some(f) => max_model.min(f),
-                            None => max_model,
-                        };
-                        tf = tf.max_length(effective, "Too long");
-                    }
-                    tf.into()
-                } else if name == "slug" || name.ends_with("_slug") {
-                    SlugField::new(name).into()
-                } else if name == "color"
-                    || name.ends_with("_color")
-                    || name == "colour"
-                    || name.ends_with("_colour")
-                {
-                    ColorField::new(name).into()
-                } else if name == "ip" || name.ends_with("_ip") || name.contains("ip_address") {
-                    IPAddressField::new(name).into()
-                } else {
-                    let mut tf = TextField::text(name);
-                    if let Some(max_model) = self.max_length {
-                        let current = tf.config.max_length.as_ref().map(|c| c.value);
-                        let effective = match current {
-                            Some(f) => max_model.min(f),
-                            None => max_model,
-                        };
-                        tf = tf.max_length(effective, "Too long");
-                    }
-                    tf.into()
-                }
+        // A file column is stored as String at the SQL level, so the file
+        // marker must be checked before the col_type match would route it to a
+        // TextField. `max_size` sets the model ceiling, which later bounds any
+        // form-level override via `set_max_size_bounded`.
+        let mut field: GenericField = if self.is_file {
+            let mut ff = match self.file_kind {
+                Some(FileKind::Image) => FileField::image(name),
+                Some(FileKind::Document) => FileField::document(name),
+                Some(FileKind::Any) | None => FileField::any(name),
+            };
+            if let Some(bytes) = self.max_size {
+                ff = ff.max_size(FileSize::bytes(bytes));
             }
-            ColumnType::Text => {
-                let mut tf = if name.contains("description")
-                    || name.contains("bio")
-                    || name.contains("content")
-                    || name.contains("message")
-                    || name.contains("summary")
-                    || name.contains("richtext")
-                {
-                    TextField::richtext(name)
-                } else {
-                    TextField::textarea(name)
-                };
-                if let Some(max_model) = self.max_length {
-                    let current = tf.config.max_length.as_ref().map(|c| c.value);
-                    let effective = match current {
-                        Some(f) => max_model.min(f),
-                        None => max_model,
+            ff.into()
+        } else {
+            match &self.col_type {
+                ColumnType::String(_) => {
+                    if name == "email" || name.ends_with("_email") {
+                        let mut tf = TextField::email(name);
+                        if let Some(max_model) = self.max_length {
+                            let current = tf.config.max_length.as_ref().map(|c| c.value);
+                            let effective = match current {
+                                Some(f) => max_model.min(f),
+                                None => max_model,
+                            };
+                            tf = tf.max_length(effective, "Too long");
+                        }
+                        tf.into()
+                    } else if name == "password"
+                        || name.ends_with("_password")
+                        || name.ends_with("_pwd")
+                    {
+                        let mut tf = TextField::password(name);
+                        if let Some(max_model) = self.max_length {
+                            let current = tf.config.max_length.as_ref().map(|c| c.value);
+                            let effective = match current {
+                                Some(f) => max_model.min(f),
+                                None => max_model,
+                            };
+                            tf = tf.max_length(effective, "Too long");
+                        }
+                        tf.into()
+                    } else if name == "url"
+                        || name.ends_with("_url")
+                        || name == "website"
+                        || name.ends_with("_website")
+                        || name.contains("http")
+                    {
+                        let mut tf = TextField::url(name);
+                        if let Some(max_model) = self.max_length {
+                            let current = tf.config.max_length.as_ref().map(|c| c.value);
+                            let effective = match current {
+                                Some(f) => max_model.min(f),
+                                None => max_model,
+                            };
+                            tf = tf.max_length(effective, "Too long");
+                        }
+                        tf.into()
+                    } else if name == "slug" || name.ends_with("_slug") {
+                        SlugField::new(name).into()
+                    } else if name == "color"
+                        || name.ends_with("_color")
+                        || name == "colour"
+                        || name.ends_with("_colour")
+                    {
+                        ColorField::new(name).into()
+                    } else if name == "ip" || name.ends_with("_ip") || name.contains("ip_address") {
+                        IPAddressField::new(name).into()
+                    } else {
+                        let mut tf = TextField::text(name);
+                        if let Some(max_model) = self.max_length {
+                            let current = tf.config.max_length.as_ref().map(|c| c.value);
+                            let effective = match current {
+                                Some(f) => max_model.min(f),
+                                None => max_model,
+                            };
+                            tf = tf.max_length(effective, "Too long");
+                        }
+                        tf.into()
+                    }
+                }
+                ColumnType::Text => {
+                    let mut tf = if name.contains("description")
+                        || name.contains("bio")
+                        || name.contains("content")
+                        || name.contains("message")
+                        || name.contains("summary")
+                        || name.contains("richtext")
+                    {
+                        TextField::richtext(name)
+                    } else {
+                        TextField::textarea(name)
                     };
-                    tf = tf.max_length(effective, "Too long");
+                    if let Some(max_model) = self.max_length {
+                        let current = tf.config.max_length.as_ref().map(|c| c.value);
+                        let effective = match current {
+                            Some(f) => max_model.min(f),
+                            None => max_model,
+                        };
+                        tf = tf.max_length(effective, "Too long");
+                    }
+                    tf.into()
                 }
-                tf.into()
-            }
-            ColumnType::Integer
-            | ColumnType::BigInteger
-            | ColumnType::TinyInteger
-            | ColumnType::SmallInteger
-            | ColumnType::Unsigned
-            | ColumnType::BigUnsigned => NumericField::integer(name).into(),
-            ColumnType::Float | ColumnType::Double => NumericField::float(name).into(),
-            ColumnType::Decimal(_) => NumericField::decimal(name).into(),
-            ColumnType::Boolean => BooleanField::new(name).into(),
-            ColumnType::Date => DateField::new(name).into(),
-            ColumnType::Time => TimeField::new(name).into(),
-            ColumnType::DateTime | ColumnType::Timestamp | ColumnType::TimestampWithTimeZone => {
-                DateTimeField::new(name).into()
-            }
-            ColumnType::Uuid => UUIDField::new(name).into(),
-            ColumnType::Enum { .. } => {
-                let mut f = ChoiceField::new(name);
-                for v in &self.enum_variants {
-                    f = f.add_choice(v, v);
+                ColumnType::Integer
+                | ColumnType::BigInteger
+                | ColumnType::TinyInteger
+                | ColumnType::SmallInteger
+                | ColumnType::Unsigned
+                | ColumnType::BigUnsigned => NumericField::integer(name).into(),
+                ColumnType::Float | ColumnType::Double => NumericField::float(name).into(),
+                ColumnType::Decimal(_) => NumericField::decimal(name).into(),
+                ColumnType::Boolean => BooleanField::new(name).into(),
+                ColumnType::Date => DateField::new(name).into(),
+                ColumnType::Time => TimeField::new(name).into(),
+                ColumnType::DateTime
+                | ColumnType::Timestamp
+                | ColumnType::TimestampWithTimeZone => DateTimeField::new(name).into(),
+                ColumnType::Uuid => UUIDField::new(name).into(),
+                ColumnType::Enum { .. } => {
+                    let mut f = ChoiceField::new(name);
+                    for v in &self.enum_variants {
+                        f = f.add_choice(v, v);
+                    }
+                    f.into()
                 }
-                f.into()
+                ColumnType::Json | ColumnType::JsonBinary => JSONField::new(name).into(),
+                ColumnType::Char(_) => TextField::text(name).into(),
+                // Type non géré (binary/blob/inet/cidr/interval…) : dégradé en champ texte.
+                // Loggé pour rester visible (dégradation silencieuse sinon), pas une erreur fatale.
+                other => {
+                    tracing::debug!(
+                        field = %name,
+                        col_type = ?other,
+                        "to_form_field: type de colonne non géré → TextField par défaut"
+                    );
+                    TextField::text(name).into()
+                }
             }
-            ColumnType::Json | ColumnType::JsonBinary => JSONField::new(name).into(),
-            ColumnType::Char(_) => TextField::text(name).into(),
-            _ => TextField::text(name).into(),
         };
 
         field.set_label(&label);

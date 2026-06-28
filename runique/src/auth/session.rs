@@ -19,6 +19,60 @@ use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
 use tower_sessions::Session;
 
+/// Défaut si le builder n'a jamais fixé de durée (24h), pour que `login` ne casse
+/// jamais même appelé hors d'un build complet (test, usage bibliothèque).
+const DEFAULT_AUTH_SESSION_TTL_SECS: i64 = 86_400;
+
+/// Durée de vie d'une session authentifiée (cookie ET ligne DB), en secondes.
+/// Posée **une fois** au build depuis `MiddlewareStaging.session_duration`
+/// (builder `.with_session_duration(...)`). Source unique → cookie, ligne
+/// `eihwaz_sessions` et rafraîchissement par requête ne peuvent plus diverger.
+static AUTH_SESSION_TTL_SECS: std::sync::OnceLock<i64> = std::sync::OnceLock::new();
+
+/// Appelé une fois au build. Idempotent. Un second appel avec une valeur
+/// **différente** (deux apps dans le même process) est **loggé**, jamais avalé.
+pub fn set_auth_session_ttl_secs(secs: i64) {
+    match AUTH_SESSION_TTL_SECS.get() {
+        None => {
+            if AUTH_SESSION_TTL_SECS.set(secs).is_err() {
+                tracing::warn!("auth session TTL set raced at build — keeping the first value");
+            }
+        }
+        Some(&existing) if existing != secs => {
+            tracing::warn!(
+                existing,
+                attempted = secs,
+                "auth session TTL already set to a different value (multi-app in one process?) — keeping the first"
+            );
+        }
+        Some(_) => {}
+    }
+}
+
+/// Résolution pure du TTL (testable sans toucher au global).
+fn resolve_ttl_secs(configured: Option<i64>) -> i64 {
+    configured.unwrap_or(DEFAULT_AUTH_SESSION_TTL_SECS)
+}
+
+/// TTL effectif des sessions authentifiées (builder, sinon défaut).
+fn auth_session_ttl_secs() -> i64 {
+    resolve_ttl_secs(AUTH_SESSION_TTL_SECS.get().copied())
+}
+
+#[cfg(test)]
+mod ttl_tests {
+    use super::{DEFAULT_AUTH_SESSION_TTL_SECS, resolve_ttl_secs};
+
+    #[test]
+    fn ttl_uses_builder_value_else_default() {
+        // Builder a fixé une durée → on l'utilise telle quelle (cookie + DB alignés).
+        assert_eq!(resolve_ttl_secs(Some(172_800)), 172_800);
+        // Builder absent → défaut explicite 24h, jamais 0/panique.
+        assert_eq!(resolve_ttl_secs(None), DEFAULT_AUTH_SESSION_TTL_SECS);
+        assert_eq!(DEFAULT_AUTH_SESSION_TTL_SECS, 86_400);
+    }
+}
+
 // ═══════════════════════════════════════════════════════════════
 // AdminAuth — trait + result
 // ═══════════════════════════════════════════════════════════════
@@ -359,8 +413,9 @@ pub async fn login(
     // itself, so the first persisted row already carries the long expiry instead of
     // the 5-min anonymous window. The ttl-upgrade middleware only kicks in from the
     // next request; without this, a restart in that first window logs the user out.
+    let ttl_secs = auth_session_ttl_secs();
     session.set_expiry(Some(tower_sessions::Expiry::OnInactivity(
-        tower_sessions::cookie::time::Duration::hours(24),
+        tower_sessions::cookie::time::Duration::seconds(ttl_secs),
     )));
 
     // DB persistence
@@ -382,7 +437,7 @@ pub async fn login(
         let session_id = uuid::Uuid::new_v4().to_string();
         let expires_at = chrono::Utc::now()
             .naive_utc()
-            .checked_add_signed(chrono::Duration::hours(24))
+            .checked_add_signed(chrono::Duration::seconds(ttl_secs))
             .unwrap_or_else(|| chrono::Utc::now().naive_utc());
 
         store

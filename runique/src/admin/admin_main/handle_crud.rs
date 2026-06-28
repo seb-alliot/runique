@@ -468,7 +468,11 @@ pub(super) async fn handle_edit_post(
                     && old_val != new_val
                 {
                     let old_abs = format!("{}/{}", media_root, old_val.trim_start_matches('/'));
-                    let _ = std::fs::remove_file(&old_abs);
+                    if let Err(e) = std::fs::remove_file(&old_abs)
+                        && e.kind() != std::io::ErrorKind::NotFound
+                    {
+                        tracing::warn!(path = %old_abs, error = %e, "old upload removal failed (edit)");
+                    }
                 }
             }
         }

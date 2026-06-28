@@ -41,12 +41,15 @@ pub struct AdminActionLog<'a> {
 }
 
 /// Fire-and-forget: inserts one row in `eihwaz_history`.
-/// Errors are silently swallowed — a log failure must never break the request.
+/// A failed audit insert must never break the request — but it is **logged**
+/// (audit row lost), never silently dropped.
 pub async fn log_admin_action(db: &ADb, log: AdminActionLog<'_>) {
     let now = chrono::Utc::now().naive_utc();
+    let resource_key = log.resource_key.to_string();
+    let object_pk = log.object_pk.to_string();
     let entry = ActiveModel {
-        resource_key: Set(log.resource_key.to_string()),
-        object_pk: Set(log.object_pk.to_string()),
+        resource_key: Set(resource_key.clone()),
+        object_pk: Set(object_pk.clone()),
         action: Set(log.action.to_string()),
         user_id: Set(log.user_id),
         username: Set(log.username.to_string()),
@@ -55,7 +58,14 @@ pub async fn log_admin_action(db: &ADb, log: AdminActionLog<'_>) {
         batch_id: Set(log.batch_id),
         ..Default::default()
     };
-    let _ = Entity::insert(entry).exec(db.as_ref()).await;
+    if let Err(e) = Entity::insert(entry).exec(db.as_ref()).await {
+        tracing::warn!(
+            resource = %resource_key,
+            object_pk = %object_pk,
+            error = %e,
+            "history insert failed (audit row lost)"
+        );
+    }
 }
 
 /// Compares an old DB object (`get_fn` result) against submitted form fields.

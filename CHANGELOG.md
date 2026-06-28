@@ -6,6 +6,52 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2.1.21] - 2026-06-29
+
+> Security and robustness audit from a full reverse-engineering of the framework into
+> UML/Merise diagrams (`diagramme/` folder). Several false positives were dismissed after
+> verification (makemigrations does handle `ALTER COLUMN`, the error page is gated on `debug`,
+> the error handler is mounted by default).
+
+### Security — `runique` (uploads committed before any check)
+
+* **Uploaded files were moved straight into `MEDIA_ROOT` during body parsing** — i.e. **before** CSRF validation, **before** form validation, and **without** extension checks (unauthenticated file write on any public route, disk fill, possibly-served content). `parse_multipart` now writes to a **staging** dir `.staging-{uuid}` (not served); `FileField::finalize` is the **sole committer** (it also handles the no-`upload_to` case by moving to `MEDIA_ROOT` root and storing a relative path); `sweep_stale_staging` purges staging dirs orphaned by a rejected request (failures logged, never swallowed).
+
+### Security — `runique` (hardened headers never set + dead `STRICT_CSP`)
+
+* **`STRICT_CSP` (env, default `true`) was read but never consumed**, and `enable_header_security` was always `false` → no hardened security headers (HSTS, X-Frame-Options, COOP/CORP), **even in ACME mode** where Runique terminates TLS. `strict_csp` now drives `enable_header_security` (secure-by-default; the `.with_csp(...)` builder still wins). **HSTS** is only emitted when Runique actually serves HTTPS (`enforce_https` or `acme_enabled`, via `SecurityConfig::should_emit_hsts`) — avoids a one-year HTTPS lock-in on an HTTP deployment.
+
+### Security — `runique` (empty/weak `SECRET_KEY` accepted in production)
+
+* Boot validation rejected the **default** key but **not** an **empty** key (`SECRET_KEY=""`) nor a **too-short** one → CSRF/HMAC silently broken. `cross_validate` now refuses to start in production for any empty, default, or < 32-character key (`secret_key_is_weak`, HMAC-SHA256 floor). In debug: warning only.
+
+### Security — `runique` (SMTP password in clear in logs)
+
+* `MailerConfig` derived `Debug`, so `{:?}` (in a log) printed the SMTP password in clear. Manual `Debug` impl now masks `password: "***"`.
+
+### Fix — `runique` (inconsistent authenticated session duration)
+
+* `login()` hardcoded **24h**, overriding the value set via `with_session_duration(...)` that the refresh middleware (`session_ttl_upgrade`) already uses → cookie, `eihwaz_sessions` row and refresh diverged on the first request. **Single source** now: `login` reads the builder value (via an `OnceLock` set at build), 24h default if unset, warning if re-set to a different value.
+
+### Fix — `runique` (incompatible FK under the `big-pk` feature)
+
+* `eihwaz_users_groupes.user_id` was hardcoded `INTEGER` while `eihwaz_users.id` becomes `BIGINT` under `big-pk` → **type-incompatible** foreign key (migration failure on strict Postgres). Aligned with the other tables' conditional `big-pk` block.
+
+### Fix — `runique` (silently swallowed errors — "zero swallowed errors" sweep)
+
+* Several failing `Result`s were ignored (`let _ =`, `if let Ok` without `else`) and are now **traced**: form transaction rollback, `eihwaz_history` audit insert, user→group assignment (RBAC), file and reset-token cleanup, honeypot session insert, reset email template render, poisoned permission-cache lock (now recovered via `into_inner` instead of skipped).
+
+### Feature — `runique` (fail-closed CSRF accessor)
+
+* `Prisme::checked_data()`: returns body data **only when CSRF is valid**, for handlers that would read `req.prisme.data` directly without going through `req.form()`.
+
+### Misc — `runique`
+
+* `ColumnDef::to_form_field` logs (debug level) when an unhandled column type falls back to a default text field.
+* Session docs (fr/en): the authenticated session duration is explicitly documented (single source, builder-only, Django `SESSION_COOKIE_AGE` equivalent, example, and a "remember me" pattern via per-session `set_expiry`).
+
+---
+
 ## [2.1.20] - 2026-06-25
 
 ### Fix — `runique` (admin i18n: permission column headers showed raw keys)
