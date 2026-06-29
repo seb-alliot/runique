@@ -6,20 +6,16 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## [Unreleased]
-
-### Breaking — `runique` (CSRF fail-closed: raw body access removed)
-
-* **`Prisme::data` is now `pub(crate)`** (was `pub`). Reading `req.prisme.data` directly let user code consume the request body **bypassing CSRF validation** (anomaly C2) — the framework never did this internally (admin CRUD, login and `req.form()` all gate CSRF before touching the body), but third-party handlers could. The body is now reachable from a handler only through `req.prisme.checked_data()` (returns `Some` **only when CSRF is valid**, `None` otherwise) or `req.form()`. Migration: replace `req.prisme.data.get("x")` with `req.prisme.checked_data().and_then(|d| d.get("x").cloned())`. Scheduled for the next major bump alongside the `path_params`/`query_params` visibility changes.
-
----
-
-## [2.1.21] - 2026-06-29
+## [2.1.21] - 2026-06-30
 
 > Security and robustness audit from a full reverse-engineering of the framework into
 > UML/Merise diagrams (`diagramme/` folder). Several false positives were dismissed after
 > verification (makemigrations does handle `ALTER COLUMN`, the error page is gated on `debug`,
 > the error handler is mounted by default).
+
+### Breaking — `runique` (CSRF fail-closed: raw body access removed)
+
+* **`Prisme::data` is now `pub(crate)`** (was `pub`). Reading `req.prisme.data` directly let user code consume the request body **bypassing CSRF validation** (anomaly C2) — the framework never did this internally (admin CRUD, login and `req.form()` all gate CSRF before touching the body), but third-party handlers could. The body is now reachable from a handler only through `req.prisme.checked_data()` (returns `Some` **only when CSRF is valid**, `None` otherwise — for API/AJAX endpoints that read the body without an HTML form) or `req.form()`. Migration: replace `req.prisme.data.get("x")` with `req.prisme.checked_data().and_then(|d| d.get("x").cloned())`.
 
 ### Security — `runique` (uploads committed before any check)
 

@@ -95,7 +95,7 @@ HTTPS en dernier (intérieur). Le commentaire « Error Handler (Last, to catch e
 others) » est cohérent avec ça, mais l'écart ordre-d'écriture/ordre-d'exécution est un
 piège classique → à vérifier que l'intention (HTTPS tout en premier) tient vraiment.
 
-### 🟡 E4 — `session_store`/`session_db_store` en `LazyLock<RwLock<Option<Arc<…>>>>`
-Trois niveaux d'indirection mutables pour un store. L'init se fait dans `new()` à `None`,
-le store réel est posé plus tard (staging). Tout accès doit gérer le `None` → vérifier
-qu'aucun chemin ne `unwrap()` ces stores avant leur initialisation (race au boot).
+### 🟡 E4 — `session_store`/`session_db_store` en `LazyLock<RwLock<Option<Arc<…>>>>` — ✅ VÉRIFIÉ clean
+**Vérifié (2.1.21).** Aucun `unwrap`/`expect` sur ces stores : écritures gardées `if let Ok(write())`,
+lectures `.read().ok().and_then()`, init `RwLock::new(None)` infaillible, store non-init → `None`
+géré proprement. Pas de panic possible avant init.

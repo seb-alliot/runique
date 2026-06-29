@@ -69,6 +69,7 @@ flowchart TB
 `search!`/`impl_objects!`/`urlpatterns!` génèrent du code concret. Les `let _ = write!` des
 expansions écrivent dans des `String` (infaillible) — bénins (déjà classés).
 
-### 🟡 Rappel F1 — `customize` câblé seulement sur `impl_form_access!(model)`
-Les forms non-`model` (arms `()`/`($field)`) ne déclenchent pas le hook `customize`. Voir
+### 🟡 Rappel F1 — `customize` câblé seulement sur `impl_form_access!(model)` — ✅ VÉRIFIÉ (voulu)
+Les forms non-`model` (arms `()`/`($field)`) ne déclenchent pas `customize` — comportement
+voulu. Arm `(model)` dupliqué mort supprimé en 2.1.21. Voir
 [../forms/formulaires.md](../forms/formulaires.md).

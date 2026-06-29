@@ -58,11 +58,11 @@ détecté** → `makemigrations` ne génère **aucun `ALTER COLUMN`**. Le dev cr
 générée alors que le schéma réel diverge du modèle. C'est un faux négatif silencieux, le pire
 genre. À confirmer dans le flux makemigrations (03), mais la structure le prouve déjà.
 
-### 🟠 M2 — `to_form_field` : aucune branche pour beaucoup de `ColumnType`
-Le `match col_type` retombe sur `_ => TextField::text` pour tout type non explicitement géré
-(binary, blob, inet, cidr, interval, json géré, etc.). Un champ `interval`/`binary` devient un
-input texte silencieusement. Dégradation muette → au minimum un log/warn serait utile.
+### 🟠 M2 — `to_form_field` : fallback `TextField` silencieux — ✅ CORRIGÉ
+**Corrigé (2.1.21).** Le fallback `_ => TextField` émet désormais un log `debug`
+(« type de colonne non géré → TextField par défaut »). Brancher les types manquants
+(binary/inet/interval…) reste un nice-to-have non bloquant.
 
-### 🟡 M3 — `max_size`/`is_file` côté schéma vs AdminForm généré (rappel F2)
-Deux chemins produisent le `FileField` (schéma `to_form_field` et `generate_admin_form`).
-Tant que les deux ne partagent pas une source unique, risque de divergence du `max_size`.
+### 🟡 M3 — `max_size`/`is_file` côté schéma vs AdminForm généré (rappel F2) — ✅ VÉRIFIÉ clean
+**Vérifié (2.1.21).** Voir F2 : le plafond modèle (`model_max_size`) borne tout override via
+`set_max_size_bounded` (rejet si dépassement). Pas de divergence entre les chemins.

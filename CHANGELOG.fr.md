@@ -6,20 +6,16 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ---
 
-## [Unreleased]
-
-### Breaking — `runique` (CSRF fail-closed : accès brut au corps supprimé)
-
-* **`Prisme::data` passe en `pub(crate)`** (était `pub`). Lire `req.prisme.data` directement permettait au code utilisateur de consommer le corps de la requête **en contournant la validation CSRF** (anomalie C2) — le framework ne le faisait jamais en interne (CRUD admin, login et `req.form()` valident tous la CSRF avant de toucher au corps), mais un handler tiers le pouvait. Le corps n'est désormais accessible depuis un handler que via `req.prisme.checked_data()` (renvoie `Some` **uniquement si la CSRF est valide**, sinon `None`) ou `req.form()`. Migration : remplacer `req.prisme.data.get("x")` par `req.prisme.checked_data().and_then(|d| d.get("x").cloned())`. Planifié pour le prochain bump majeur, avec les changements de visibilité de `path_params`/`query_params`.
-
----
-
-## [2.1.21] - 2026-06-29
+## [2.1.21] - 2026-06-30
 
 > Audit de sécurité et de robustesse issu d'une rétro-ingénierie complète du framework en
 > diagrammes UML/Merise (dossier `diagramme/`). Plusieurs faux positifs ont été écartés après
 > vérification (makemigrations gère bien les `ALTER COLUMN`, page d'erreur gatée sur `debug`,
 > handler d'erreurs monté par défaut).
+
+### Breaking — `runique` (CSRF fail-closed : accès brut au corps supprimé)
+
+* **`Prisme::data` passe en `pub(crate)`** (était `pub`). Lire `req.prisme.data` directement permettait au code utilisateur de consommer le corps de la requête **en contournant la validation CSRF** (anomalie C2) — le framework ne le faisait jamais en interne (CRUD admin, login et `req.form()` valident tous la CSRF avant de toucher au corps), mais un handler tiers le pouvait. Le corps n'est désormais accessible depuis un handler que via `req.prisme.checked_data()` (renvoie `Some` **uniquement si la CSRF est valide**, sinon `None` — pour les endpoints API/AJAX qui lisent le corps sans formulaire HTML) ou `req.form()`. Migration : remplacer `req.prisme.data.get("x")` par `req.prisme.checked_data().and_then(|d| d.get("x").cloned())`.
 
 ### Sécurité — `runique` (uploads commités avant tout contrôle)
 

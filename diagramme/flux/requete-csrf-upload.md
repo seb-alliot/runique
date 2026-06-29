@@ -46,7 +46,10 @@ sequenceDiagram
 
 ## Anomalies / flux suspects
 
-### 🔴 C1 — Upload COMMIT en MEDIA_ROOT avant CSRF/validation, sans auth ni check d'extension
+### 🔴 C1 — Upload COMMIT en MEDIA_ROOT avant CSRF/validation — ✅ CORRIGÉ
+**Corrigé (2.1.21).** `parse_multipart` écrit désormais en **staging** `.staging-{uuid}` (non
+servi) ; `FileField::finalize` est le seul committer (après CSRF + validation). Description du
+problème d'origine ci-dessous (conservée pour mémoire) :
 [`parse_html.rs:166-184`](../../runique/src/utils/forms/parse_html.rs#L166)
 `parse_multipart` ne fait pas que streamer en tmp : il **rename immédiatement tmp →
 `MEDIA_ROOT/uuid.ext`** à la fin du parsing, et renvoie les chemins finaux. Or `parse_multipart`
@@ -66,27 +69,24 @@ Conséquences :
 Seules les routes admin sont protégées car `admin_required` (middleware) s'exécute **avant**
 l'extraction `Request`. Les routes publiques n'ont pas ce filet.
 
-### 🟠 C2 — CSRF des forms HTML repose entièrement sur `req.form()` (footgun)
-`csrf_middleware` laisse passer un POST form sans header, et `prisme_pipeline` ne rejette
-pas : seul `req.form()` pose `force_invalid`. Un handler qui lit **`req.prisme.data`
-directement** (sans passer par `form()` + `is_valid()`) **contourne entièrement la CSRF**.
-Rien n'empêche ce chemin. (Les handlers admin se protègent via un `check_csrf` explicite ;
-les handlers utilisateurs n'ont pas ce filet.) → fail-closed structurel manquant.
+### 🟠 C2 — CSRF des forms HTML reposait entièrement sur `req.form()` (footgun) — ✅ CORRIGÉ
+**Corrigé (2.1.21).** `Prisme::data` est passé en `pub(crate)` : le code tiers ne peut plus
+lire le corps brut hors CSRF. Seuls `req.form()` et `req.prisme.checked_data()` (fail-closed,
+renvoie `None` si CSRF KO — pour les endpoints API/AJAX) exposent le corps. La politique de
+méthode CSRF est centralisée dans `csrf_required()` (source unique, partagée par le pipeline
+et `form()`). Audit interne clean (admin/login/`form()` gardent tous la CSRF avant `.data`).
 
-### 🔴 C3 — Aucun rollback du fichier commité quand la requête est rejetée
-Corollaire de C1 : comme le commit est **eager** (rename en MEDIA_ROOT pendant le parse),
-un rejet ultérieur (CSRF KO, honeypot, `is_valid()` faux, erreur handler) laisse le fichier
-**définitivement** en MEDIA_ROOT. Il n'existe aucun chemin de compensation (« unlink si la
-requête échoue »). Le parsing devrait écrire en **staging** et ne committer qu'après succès
-CSRF + validation (vraie sémantique `finalize()`), ou bien le handler doit nettoyer sur
-chaque chemin d'échec. Rejoint l'historique « ancien fichier non supprimé auto ».
+### 🔴 C3 — Aucun rollback du fichier commité quand la requête est rejetée — ✅ CORRIGÉ
+**Corrigé (2.1.21).** Conséquence de C1, résolue par le même fix : le staging non commité est
+purgé par `sweep_stale_staging` (TTL), échecs tracés (jamais avalés). Plus de fichier orphelin
+en MEDIA_ROOT après un rejet (CSRF/honeypot/validation).
 
-### 🟡 C4 — `csrf_gate` : module possiblement mort / commentaire trompeur
-`forms/prisme/csrf_gate.rs` existe et `form.rs:194` dit « CSRF already validated upstream by
-csrf_gate (Prisme) », mais `prisme_pipeline` appelle `check_csrf` inline (extractor.rs), pas
-`csrf_gate`. Soit `csrf_gate` est du code mort, soit un second chemin existe → à clarifier
-(confusion = risque de réintroduire un trou en « nettoyant »).
+### 🟡 C4 — `csrf_gate` : module mort / commentaire trompeur — ✅ CORRIGÉ
+**Corrigé (2.1.21).** Le module `csrf_gate` était vide (poids mort) ; la logique est dans
+`extractor::check_csrf`. Module supprimé (fichier + `pub mod` + tombstone test) et commentaire
+`form.rs:194` corrigé pour pointer le vrai chemin.
 
-### 🟡 C5 — Méthodes sûres : seuls GET/HEAD exemptés
-`check_csrf` et `csrf_middleware` exemptent GET/HEAD mais traitent OPTIONS/TRACE comme
-mutants. Sans impact courant (pas de form sur OPTIONS), mais à acter.
+### 🟡 C5 — Méthodes sûres : seuls GET/HEAD exemptés — ✅ DURCI
+**Durci (2.1.21).** Politique CSRF par méthode collapsée en source unique `csrf_required()`
+(GET/HEAD exemptés, tout le reste exige un token, fail-closed), partagée par le pipeline et
+`Request::form()` → plus de dérive possible entre les deux sites. Comportement identique.
