@@ -4,7 +4,7 @@ use crate::auth::session::CurrentUser;
 use crate::errors::error::ErrorContext;
 use crate::flash::Message;
 use crate::forms::{
-    extractor::{Prisme, prisme_pipeline},
+    extractor::{Prisme, csrf_required, prisme_pipeline},
     field::RuniqueForm,
 };
 use crate::impl_from_error;
@@ -402,8 +402,8 @@ impl Request {
 
         // CSRF enforcement: Prisme computes `csrf_valid` but never rejects on its own.
         // Without this, a mutating request with a missing/invalid token silently passes
-        // is_valid(). Fail closed on any non-safe method (GET/HEAD carry no token).
-        if !matches!(self.method, Method::GET | Method::HEAD) && !self.prisme.csrf_valid {
+        // is_valid(). Fail closed on any non-safe method (same policy as the pipeline).
+        if csrf_required(&self.method) && !self.prisme.csrf_valid {
             form.get_form_mut().force_invalid = true;
         }
 

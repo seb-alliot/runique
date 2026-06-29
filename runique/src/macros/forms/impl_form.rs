@@ -39,18 +39,4 @@ macro_rules! impl_form_access {
             &mut self.$field
         }
     };
-    (model) => {
-        fn register_fields(form: &mut $crate::forms::Forms) {
-            <Self as $crate::forms::model_form::ModelForm>::model_register_fields(form);
-        }
-        fn from_form(form: $crate::forms::Forms) -> Self {
-            Self { form }
-        }
-        fn get_form(&self) -> &$crate::forms::Forms {
-            &self.form
-        }
-        fn get_form_mut(&mut self) -> &mut $crate::forms::Forms {
-            &mut self.form
-        }
-    };
 }

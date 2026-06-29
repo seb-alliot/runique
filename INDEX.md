@@ -111,7 +111,7 @@ runique/
 - **`model_form/`** — `ModelForm` (form bound to a SeaORM model)
 - **`fields/`** — field types: `text`, `number`, `boolean`, `choice`, `datetime`, `file`, `special`, `hidden`
 - **`options/`** — `length`, `bool_choice` option structs
-- **`prisme/`** — validation pipeline: `aegis` (security), `csrf_gate`, `sentinel`, `rules`
+- **`prisme/`** — validation pipeline: `aegis` (security), `sentinel`, `rules` (CSRF check inline dans `extractor::check_csrf`)
 
 ### `macros/` — Macros
 - **`admin/macros_admin.rs`** — `admin!` declaration macro

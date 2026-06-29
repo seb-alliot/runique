@@ -90,6 +90,11 @@ pub async fn error_handler_middleware(
             return render_429(&tera, &config, csrf_token);
         }
 
+        // 503: capacity/overload — direct rendering with Retry-After, no debug page
+        if status == StatusCode::SERVICE_UNAVAILABLE {
+            return render_503(&tera, &config, csrf_token);
+        }
+
         let error_ctx = build_error_context(&response, &request_helper, &tera);
 
         // --- Render according to debug or production mode ---
@@ -253,6 +258,37 @@ fn render_429(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -
             fallback_429_html()
         }
     };
+    inject_security_headers(response.headers_mut());
+    response
+}
+
+/// Retry delay (seconds) advertised on a 503 so clients back off before retrying.
+const SERVICE_UNAVAILABLE_RETRY_AFTER_SECS: u32 = 30;
+
+fn render_503(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -> Response {
+    let mut context = Context::new();
+    inject_global_vars(&mut context, config, csrf_token);
+    context.insert("error_title", &t("html.503_title"));
+    context.insert("error_text", &t("html.503_text"));
+    context.insert("back_home", &t("html.back_home"));
+
+    let rendered = tera
+        .render("503.html", &context)
+        .or_else(|_| tera.render("503", &context));
+    let mut response = match rendered {
+        Ok(html) => (StatusCode::SERVICE_UNAVAILABLE, Html(html)).into_response(),
+        Err(e) => {
+            crate::runique_log!(errors_render_level(), error = %e, template = "503.html", "failed to render error template");
+            fallback_503_html()
+        }
+    };
+    if let Ok(value) =
+        axum::http::HeaderValue::from_str(&SERVICE_UNAVAILABLE_RETRY_AFTER_SECS.to_string())
+    {
+        response
+            .headers_mut()
+            .insert(axum::http::header::RETRY_AFTER, value);
+    }
     inject_security_headers(response.headers_mut());
     response
 }
@@ -439,6 +475,38 @@ fn fallback_429_html() -> Response {
         back = t("html.back_home"),
     );
     (StatusCode::TOO_MANY_REQUESTS, Html(html)).into_response()
+}
+
+fn fallback_503_html() -> Response {
+    let lang = crate::utils::trad::current_lang().code();
+    let html = format!(
+        r#"<!DOCTYPE html>
+<html lang="{lang}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title}</title>
+</head>
+<body>
+    <h1>{title}</h1>
+    <p>{text}</p>
+    <a href="/">{back}</a>
+</body>
+</html>"#,
+        lang = lang,
+        title = t("html.503_title"),
+        text = t("html.503_text"),
+        back = t("html.back_home"),
+    );
+    let mut response = (StatusCode::SERVICE_UNAVAILABLE, Html(html)).into_response();
+    if let Ok(value) =
+        axum::http::HeaderValue::from_str(&SERVICE_UNAVAILABLE_RETRY_AFTER_SECS.to_string())
+    {
+        response
+            .headers_mut()
+            .insert(axum::http::header::RETRY_AFTER, value);
+    }
+    response
 }
 
 fn fallback_500_html() -> Response {

@@ -6,6 +6,14 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ---
 
+## [Unreleased]
+
+### Breaking — `runique` (CSRF fail-closed : accès brut au corps supprimé)
+
+* **`Prisme::data` passe en `pub(crate)`** (était `pub`). Lire `req.prisme.data` directement permettait au code utilisateur de consommer le corps de la requête **en contournant la validation CSRF** (anomalie C2) — le framework ne le faisait jamais en interne (CRUD admin, login et `req.form()` valident tous la CSRF avant de toucher au corps), mais un handler tiers le pouvait. Le corps n'est désormais accessible depuis un handler que via `req.prisme.checked_data()` (renvoie `Some` **uniquement si la CSRF est valide**, sinon `None`) ou `req.form()`. Migration : remplacer `req.prisme.data.get("x")` par `req.prisme.checked_data().and_then(|d| d.get("x").cloned())`. Planifié pour le prochain bump majeur, avec les changements de visibilité de `path_params`/`query_params`.
+
+---
+
 ## [2.1.21] - 2026-06-29
 
 > Audit de sécurité et de robustesse issu d'une rétro-ingénierie complète du framework en
@@ -44,10 +52,20 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 ### Fonctionnalité — `runique` (accesseur CSRF fail-closed)
 
 * `Prisme::checked_data()` : renvoie les données du corps **uniquement si la CSRF est valide**, pour les handlers qui liraient `req.prisme.data` directement sans passer par `req.form()`.
+* Politique CSRF par méthode collapsée en source unique (`csrf_required`) : GET/HEAD exemptés, **toute** autre méthode (POST/PUT/PATCH/DELETE, mais aussi OPTIONS/TRACE/inconnue) exige un token valide (fail-closed). Le pipeline et `Request::form()` la partagent désormais, impossible de diverger. Comportement inchangé.
+
+### Correctif — `runique` (503 propre sur saturation du store de sessions au lieu d'un 500 générique)
+
+* Quand le store de sessions en mémoire atteignait son high watermark, le `create` de session d'un nouveau login était refusé par le store (erreur typée, loggée) mais tower le remontait au commit de la réponse en **500 générique**. Ajout de `CleaningMemoryStore::is_saturated()` et `RuniqueEngine::session_store_saturated()` pour qu'un handler de login **échoue vite et proprement** : le login admin renvoie désormais **503 Service Unavailable** avec un header `Retry-After` (rendu via un nouveau template `503.html` + `render_503`, traduit dans les 9 langues). Les handlers de login publics peuvent se protéger pareil via `engine.session_store_saturated()`.
+
+### Correctif — `runique` (table fantôme `eihwaz_droits`)
+
+* L'ancienne table mono-droits `eihwaz_droits` (remplacée par la matrice par groupe `eihwaz_groupes_droits`) subsistait en poids mort : un **fichier entité orphelin** (non déclaré dans `permissions/mod.rs`, jamais compilé, sans migration) **et** une entrée dans la whitelist `extend!{}` + le registre de colonnes fantômes — si bien que `extend!{ table: "eihwaz_droits", … }` aurait été accepté à la compilation puis aurait échoué à l'exécution de la migration contre une table inexistante. Retiré sur tous les fronts (fichier entité, `FRAMEWORK_TABLES`, static/arm `EIHWAZ_DROITS`, commentaire trompeur).
 
 ### Divers — `runique`
 
 * `ColumnDef::to_form_field` logge (niveau debug) lorsqu'un type de colonne non géré retombe sur un champ texte par défaut.
+* Suppression d'un arm `(model)` dupliqué et inatteignable dans `impl_form_access!` (la 2ᵉ copie n'appelait pas le hook `customize` et ne pouvait jamais matcher — `macro_rules!` prend le premier arm).
 * Documentation sessions (fr/en) : la durée de session authentifiée est expliquée explicitement (source unique réglable au builder uniquement, équivalent `SESSION_COOKIE_AGE` Django, exemple, et patron « se souvenir de moi » via `set_expiry` par session).
 
 ---

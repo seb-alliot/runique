@@ -146,6 +146,8 @@
     "500_notice": "Nossa equipe foi notificada e está trabalhando no problema.",
     "429_title": "429",
     "429_text": "Muitas requisições. Por favor aguarde um momento antes de tentar novamente.",
+    "503_title": "503",
+    "503_text": "Serviço temporariamente indisponível devido a sobrecarga. Por favor tente novamente em breve.",
     "back_home": "Voltar ao início",
     "critical_error_title": "Erro crítico",
     "critical_error_text": "O sistema de tratamento de erros encontrou um erro.",

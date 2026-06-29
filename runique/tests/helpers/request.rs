@@ -116,10 +116,7 @@ pub async fn build_handler_req(
         raw_query: String::new(),
         query_params: Default::default(),
         user,
-        prisme: Prisme {
-            data: body,
-            csrf_valid: true,
-        },
+        prisme: Prisme::for_test(body, true),
         headers: Default::default(),
         honeypot_field_name: None,
     }

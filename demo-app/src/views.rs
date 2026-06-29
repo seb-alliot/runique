@@ -410,9 +410,8 @@ pub async fn view_cours_exercice(
     let input = ExerciceInput {
         message: request
             .prisme
-            .data
-            .get("message")
-            .cloned()
+            .checked_data()
+            .and_then(|d| d.get("message").cloned())
             .unwrap_or_default(),
     };
     cours_exercice(&slug, input, &mut request).await

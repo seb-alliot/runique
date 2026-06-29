@@ -146,6 +146,8 @@
     "500_notice": "Il nostro team è stato notificato e sta lavorando al problema.",
     "429_title": "429",
     "429_text": "Troppe richieste. Attendi un momento prima di riprovare.",
+    "503_title": "503",
+    "503_text": "Servizio temporaneamente non disponibile per sovraccarico. Riprova tra poco.",
     "back_home": "Torna alla home",
     "critical_error_title": "Errore critico",
     "critical_error_text": "Il sistema di gestione degli errori ha riscontrato un errore.",

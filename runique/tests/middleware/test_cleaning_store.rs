@@ -418,6 +418,25 @@ async fn test_exclusive_login_only_triggers_on_first_login() {
     assert!(store.load(&session1.id).await.unwrap().is_some());
 }
 
+/// is_saturated() : false sur store vide, true une fois le high watermark atteint
+/// par une session non purgeable (la garde 503 du login s'appuie dessus).
+#[tokio::test]
+async fn test_is_saturated_reflects_high_watermark() {
+    let store = CleaningMemoryStore::default().with_watermarks(1, 1);
+    assert!(!store.is_saturated(), "store vide → non saturé");
+
+    let mut alive_protected = protected_record_user_id(3600);
+    store.create(&mut alive_protected).await.unwrap();
+
+    assert!(
+        store.is_saturated(),
+        "session vivante non purgeable au-dessus du high watermark → saturé"
+    );
+    // Cohérence avec le refus effectif de create()
+    let mut new_session = fresh_record(3600);
+    assert!(store.create(&mut new_session).await.is_err());
+}
+
 /// store saturé (high watermark, aucune session purgeable) → refus.
 #[tokio::test]
 async fn test_store_saturated_refuses_new_session() {

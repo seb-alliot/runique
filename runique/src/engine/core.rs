@@ -79,6 +79,27 @@ impl RuniqueEngine {
         }
     }
 
+    /// `true` if the in-memory session store has reached its high watermark — a new
+    /// session would be refused. Lets a login handler fail fast and clean (503 +
+    /// `Retry-After`) instead of letting tower's commit-time `create` error surface
+    /// as a generic 500. Returns `false` if the store is not yet initialized.
+    ///
+    /// # Examples
+    /// ```rust,ignore
+    /// // At the top of a public login handler:
+    /// if engine.session_store_saturated() {
+    ///     return StatusCode::SERVICE_UNAVAILABLE.into_response();
+    /// }
+    /// ```
+    #[must_use]
+    pub fn session_store_saturated(&self) -> bool {
+        self.session_store
+            .read()
+            .ok()
+            .and_then(|g| g.as_ref().map(|s| s.is_saturated()))
+            .unwrap_or(false)
+    }
+
     /// Retrieves a custom extension registered via `with_custom_db()`.
     ///
     /// Returns `Option<Arc<T>>` — `None` if this type was not registered.

@@ -2,7 +2,7 @@
 // intégré dans Request::from_request.
 //
 // Stratégie : router oneshot avec middleware injectant les extensions nécessaires.
-// GET requests utilisées pour éviter la validation CSRF (csrf_gate passe sur GET).
+// GET requests utilisées pour éviter la validation CSRF (check_csrf passe sur GET/HEAD).
 
 use crate::helpers::{assert::assert_status, request, server::build_engine};
 use axum::{
