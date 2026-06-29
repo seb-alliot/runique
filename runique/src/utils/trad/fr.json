@@ -146,6 +146,8 @@
     "500_notice": "Nos équipes ont été notifiées et travaillent sur le problème.",
     "429_title": "429",
     "429_text": "Trop de requêtes. Veuillez patienter un moment avant de réessayer.",
+    "503_title": "503",
+    "503_text": "Service temporairement indisponible en raison d'une forte charge. Veuillez réessayer dans un instant.",
     "back_home": "Retour à l'accueil",
     "critical_error_title": "Erreur critique",
     "critical_error_text": "Le système de gestion d'erreurs a lui-même rencontré une erreur.",

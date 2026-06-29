@@ -1,7 +1,7 @@
 //! Types for admin resources: columns, operations, display configuration.
 //
-// Resource access permissions are managed in the database via scoped rights
-// (eihwaz_droits with resource_key + access_type), and not in admin!{}.
+// Resource access permissions are managed in the database via per-group scoped rights
+// (eihwaz_groupes_droits: groupe_id + resource_key + CRUD matrix), and not in admin!{}.
 // See: runique::auth::permissions_cache
 
 /// Type of the primary key for an admin resource

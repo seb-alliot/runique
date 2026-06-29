@@ -299,6 +299,11 @@ async fn admin_login_post(
     if is_admin_authenticated(&req.session).await {
         return Redirect::to(&format!("{}/", admin.config.prefix)).into_response();
     }
+    // Fail fast under memory pressure: a saturated session store would refuse the new
+    // session at commit time and surface as a generic 500. Return a clean 503 instead.
+    if req.engine.session_store_saturated() {
+        return axum::http::StatusCode::SERVICE_UNAVAILABLE.into_response();
+    }
     let data = AdminLoginData {
         username: req.prisme.data.get("username").cloned().unwrap_or_default(),
         password: req.prisme.data.get("password").cloned().unwrap_or_default(),

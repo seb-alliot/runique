@@ -117,17 +117,6 @@ static EIHWAZ_GROUPES: &[PhantomColumn] = &[
     col!("nom", PhantomType::String, FormWidget::Text),
 ];
 
-static EIHWAZ_DROITS: &[PhantomColumn] = &[
-    col!("id", PhantomType::Pk, pk),
-    col!("resource_key", PhantomType::String, FormWidget::Text),
-    col!("can_create", PhantomType::Bool, FormWidget::Bool),
-    col!("can_read", PhantomType::Bool, FormWidget::Bool),
-    col!("can_update", PhantomType::Bool, FormWidget::Bool),
-    col!("can_delete", PhantomType::Bool, FormWidget::Bool),
-    col!("can_update_own", PhantomType::Bool, FormWidget::Bool),
-    col!("can_delete_own", PhantomType::Bool, FormWidget::Bool),
-];
-
 static EIHWAZ_SESSIONS: &[PhantomColumn] = &[
     col!("id", PhantomType::I32, pk),
     col!("cookie_id", PhantomType::String, FormWidget::Text),
@@ -161,7 +150,6 @@ pub fn phantom_columns(table: &str) -> &'static [PhantomColumn] {
     match table {
         "eihwaz_users" => EIHWAZ_USERS,
         "eihwaz_groupes" => EIHWAZ_GROUPES,
-        "eihwaz_droits" => EIHWAZ_DROITS,
         "eihwaz_sessions" => EIHWAZ_SESSIONS,
         "eihwaz_users_groupes" => EIHWAZ_USERS_GROUPES,
         "eihwaz_groupes_droits" => EIHWAZ_GROUPES_DROITS,

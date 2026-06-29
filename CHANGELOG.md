@@ -6,6 +6,14 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [Unreleased]
+
+### Breaking — `runique` (CSRF fail-closed: raw body access removed)
+
+* **`Prisme::data` is now `pub(crate)`** (was `pub`). Reading `req.prisme.data` directly let user code consume the request body **bypassing CSRF validation** (anomaly C2) — the framework never did this internally (admin CRUD, login and `req.form()` all gate CSRF before touching the body), but third-party handlers could. The body is now reachable from a handler only through `req.prisme.checked_data()` (returns `Some` **only when CSRF is valid**, `None` otherwise) or `req.form()`. Migration: replace `req.prisme.data.get("x")` with `req.prisme.checked_data().and_then(|d| d.get("x").cloned())`. Scheduled for the next major bump alongside the `path_params`/`query_params` visibility changes.
+
+---
+
 ## [2.1.21] - 2026-06-29
 
 > Security and robustness audit from a full reverse-engineering of the framework into
@@ -44,10 +52,20 @@ All notable changes to this project will be documented in this file.
 ### Feature — `runique` (fail-closed CSRF accessor)
 
 * `Prisme::checked_data()`: returns body data **only when CSRF is valid**, for handlers that would read `req.prisme.data` directly without going through `req.form()`.
+* CSRF per-method policy collapsed into a single source of truth (`csrf_required`): GET/HEAD are exempt, **every** other method (POST/PUT/PATCH/DELETE, but also OPTIONS/TRACE/unknown) requires a valid token (fail-closed). The pipeline and `Request::form()` now share it so they cannot drift. Behavior unchanged.
+
+### Fix — `runique` (clean 503 on session-store saturation instead of a generic 500)
+
+* When the in-memory session store hit its high watermark, a new login's session `create` was refused by the store (typed error, logged) but tower surfaced it at response-commit time as a generic **500**. Added `CleaningMemoryStore::is_saturated()` and `RuniqueEngine::session_store_saturated()` so a login handler can **fail fast and clean**: the admin login now returns **503 Service Unavailable** with a `Retry-After` header (rendered via a new `503.html` template + `render_503`, translated in the 9 locales). Public login handlers can guard the same way via `engine.session_store_saturated()`.
+
+### Fix — `runique` (phantom `eihwaz_droits` table)
+
+* The legacy single `eihwaz_droits` rights table (superseded by the per-group `eihwaz_groupes_droits` matrix) survived as dead weight: an **orphan entity file** (not declared in `permissions/mod.rs`, never compiled, no migration) **and** an entry in the `extend!{}` framework-table whitelist + phantom-column registry — so `extend!{ table: "eihwaz_droits", … }` would have been accepted at macro time and then failed at migration runtime against a table that does not exist. Removed on all fronts (entity file, `FRAMEWORK_TABLES`, `EIHWAZ_DROITS` registry static/arm, misleading comment).
 
 ### Misc — `runique`
 
 * `ColumnDef::to_form_field` logs (debug level) when an unhandled column type falls back to a default text field.
+* Removed an unreachable duplicate `(model)` arm in `impl_form_access!` (the second copy lacked the `customize` hook call and could never match — `macro_rules!` picks the first arm).
 * Session docs (fr/en): the authenticated session duration is explicitly documented (single source, builder-only, Django `SESSION_COOKIE_AGE` equivalent, example, and a "remember me" pattern via per-session `set_expiry`).
 
 ---

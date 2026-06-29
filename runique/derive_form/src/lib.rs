@@ -74,7 +74,6 @@ pub fn extend(input: TokenStream) -> TokenStream {
     const FRAMEWORK_TABLES: &[&str] = &[
         "eihwaz_users",
         "eihwaz_groupes",
-        "eihwaz_droits",
         "eihwaz_sessions",
         "eihwaz_users_groupes",
         "eihwaz_groupes_droits",

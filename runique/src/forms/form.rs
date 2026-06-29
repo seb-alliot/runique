@@ -191,7 +191,7 @@ impl Forms {
         let mut fields: FieldsMap = IndexMap::new();
         let mut csrf_field = HiddenField::new_csrf();
         csrf_field.set_value(csrf_token);
-        // CSRF is already validated upstream by csrf_gate (Prisme).
+        // CSRF is already validated upstream by the Prisme pipeline (extractor::check_csrf).
         // set_expected_value is not called here: masked tokens are different on
         // each request (random mask), ct_eq would systematically fail and block
         // is_valid() on all forms.

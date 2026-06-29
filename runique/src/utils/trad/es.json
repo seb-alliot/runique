@@ -146,6 +146,8 @@
     "500_notice": "Nuestro equipo ha sido notificado y está trabajando en el problema.",
     "429_title": "429",
     "429_text": "Demasiadas solicitudes. Por favor espere un momento antes de intentarlo de nuevo.",
+    "503_title": "503",
+    "503_text": "Servicio temporalmente no disponible por sobrecarga. Por favor inténtelo de nuevo en breve.",
     "back_home": "Volver al inicio",
     "critical_error_title": "Error crítico",
     "critical_error_text": "El sistema de gestión de errores ha encontrado un error.",

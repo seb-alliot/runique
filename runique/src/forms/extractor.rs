@@ -18,20 +18,34 @@ use subtle::ConstantTimeEq;
 /// On POST: contains body params, csrf_valid = CSRF check result.
 #[derive(Clone)]
 pub struct Prisme {
-    pub data: StrMap,
+    /// Données du corps/query parsées. **Privé au crate** : le code utilisateur ne peut
+    /// PAS lire le body brut sans passer par la porte CSRF (cf. anomalie C2). Accès
+    /// externe uniquement via `checked_data()` (fail-closed) ou `req.form()`.
+    pub(crate) data: StrMap,
     pub csrf_valid: bool,
 }
 
 impl Prisme {
     /// Accesseur **fail-closed** : renvoie les données du corps uniquement si la CSRF
-    /// est valide. À utiliser dans un handler qui lit des champs du body **sans** passer
-    /// par `req.form()` — `.data` brut n'est PAS protégé par la CSRF (cf. anomalie C2).
+    /// est valide. Seule porte d'accès au body depuis un handler utilisateur qui ne
+    /// passe pas par `req.form()`. Sur CSRF invalide → `None` (la requête forgée ne
+    /// voit aucune donnée).
     pub fn checked_data(&self) -> Option<&StrMap> {
         if self.csrf_valid {
             Some(&self.data)
         } else {
             None
         }
+    }
+
+    /// **Test-only.** Construit un `Prisme` avec des données arbitraires.
+    ///
+    /// Le pipeline réel passe par [`prisme_pipeline`] ; ce constructeur n'existe que pour
+    /// les tests d'intégration (crate séparée) qui fabriquent une `Request` à la main.
+    /// Ne jamais l'utiliser en code de production : il court-circuite la validation CSRF.
+    #[doc(hidden)]
+    pub fn for_test(data: StrMap, csrf_valid: bool) -> Self {
+        Self { data, csrf_valid }
     }
 }
 
@@ -84,9 +98,18 @@ where
     Ok(Prisme { data, csrf_valid })
 }
 
-/// Returns true if CSRF is valid or not required (GET/HEAD).
+/// Source **unique** de la politique CSRF par méthode HTTP : seules GET/HEAD (sûres, sans
+/// effet de bord attendu) sont exemptées. **Toute** autre méthode — POST/PUT/PATCH/DELETE,
+/// mais aussi OPTIONS/TRACE/méthodes inconnues — exige un token valide (fail-closed).
+/// Partagée par le pipeline (`check_csrf`) et la garde de `Request::form()` pour qu'elles
+/// ne puissent jamais diverger.
+pub(crate) fn csrf_required(method: &Method) -> bool {
+    !matches!(*method, Method::GET | Method::HEAD)
+}
+
+/// Returns true if CSRF is valid or not required (safe method).
 fn check_csrf(parsed: &StrVecMap, csrf_session: &str, method: &Method) -> bool {
-    if method == Method::GET || method == Method::HEAD {
+    if !csrf_required(method) {
         return true;
     }
     parsed
@@ -130,7 +153,7 @@ mod checked_data_tests {
         assert!(invalid.checked_data().is_none(), "CSRF KO → aucune donnée");
         assert!(
             !invalid.data.is_empty(),
-            ".data brut reste accessible (legacy)"
+            ".data reste peuplé en interne (pub(crate)) — seul l'accès externe est fermé"
         );
 
         let valid = Prisme {
@@ -138,5 +161,23 @@ mod checked_data_tests {
             csrf_valid: true,
         };
         assert!(valid.checked_data().is_some(), "CSRF OK → données dispo");
+    }
+
+    /// C5 : seules GET/HEAD sont exemptées ; toute autre méthode (y compris
+    /// OPTIONS/TRACE) exige un token (fail-closed). Source unique de la politique.
+    #[test]
+    fn csrf_required_only_exempts_safe_methods() {
+        assert!(!csrf_required(&Method::GET), "GET exempté");
+        assert!(!csrf_required(&Method::HEAD), "HEAD exempté");
+        for m in [
+            Method::POST,
+            Method::PUT,
+            Method::PATCH,
+            Method::DELETE,
+            Method::OPTIONS,
+            Method::TRACE,
+        ] {
+            assert!(csrf_required(&m), "{m} doit exiger un token CSRF");
+        }
     }
 }

@@ -185,6 +185,15 @@ impl CleaningMemoryStore {
         self.size_bytes.load(Ordering::Relaxed)
     }
 
+    /// `true` if the store has reached its high watermark — a new session `create()`
+    /// would be refused after the emergency purge. Exposed so request handlers (login)
+    /// can fail **fast and clean** (503 + `Retry-After`) instead of letting tower's
+    /// commit-time `create` error bubble up as a generic 500.
+    #[must_use]
+    pub fn is_saturated(&self) -> bool {
+        self.size_bytes.load(Ordering::Relaxed) >= self.high_watermark
+    }
+
     /// Invalidates all active sessions for a user.
     ///
     /// Used to implement exclusive login (only one device at a time).
