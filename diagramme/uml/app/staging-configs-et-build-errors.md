@@ -56,10 +56,9 @@ Ces builders (staging) produisent les structs runtime de [../middleware/securite
 
 ## Anomalies / flux suspects
 
-### 🟡 CFG1 (rappel) — `secret_key` vide = warning, pas `CheckError`
-Le boot a une infra de validation (`CheckReport`/`CheckError`) propre — mais `secret_key`
-absent n'émet qu'un *warning* (cf. config) au lieu d'un `CheckError` bloquant en prod.
-Candidat à ajouter à la validation de boot (`CheckFailed`).
+### 🟡 CFG1 (rappel) — `secret_key` vide = warning, pas `CheckError` — ✅ CORRIGÉ
+**Corrigé (2.1.21).** `secret_key_is_weak()` (vide ‖ défaut ‖ < 32 car.) ; `cross_validate`
+refuse le boot en prod. En debug : warning seulement.
 
 ### 🟢 Boot validation = audit clean
 `BuildError` + `CheckReport` donnent des échecs de démarrage explicites avec suggestion.

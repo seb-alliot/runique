@@ -96,20 +96,21 @@ Flux de construction d'un `#[form(schema=…)]` :
 
 ## Anomalies / flux suspects
 
-### 🟡 F1 — `customize` hors des chemins qui n'appellent pas `register_fields`
-Le hook `customize` est appelé dans le `register_fields` généré par `impl_form_access!(model)`.
-Tout chemin qui matérialise des champs **sans** passer par ce `register_fields` (formulaire
-écrit à la main avec l'arm `()` ou `($field)` de la macro) **ne déclenchera pas** `customize`.
-Acceptable (c'est ciblé sur les forms générés), mais à documenter pour éviter la surprise.
+### 🟡 F1 — `customize` câblé seulement sur l'arm `(model)` — ✅ VÉRIFIÉ (voulu)
+Le hook `customize` n'est appelé que dans le `register_fields` généré par
+`impl_form_access!(model)`. **C'est voulu** : `customize` ne sert qu'aux forms générés depuis
+un modèle ; un form écrit à la main (arms `()`/`($field)`) gère ses champs directement.
+**Bug corrigé au passage (2.1.21)** : l'arm `(model)` était **dupliqué** dans la macro (2ᵉ copie
+sans l'appel `customize`, inatteignable car `macro_rules!` prend le 1ᵉ match) → doublon mort supprimé.
 
-### 🟡 F2 — `max_size` du modèle vs défaut 10 Mo (résolu par couche 1, à régression-tester)
-`to_form_field` applique `max_size` modèle seulement si `self.max_size` présent ; sinon le
-`FileUploadConfig` garde son défaut (10 Mo). Le `min(modèle, override)` runtime repose sur
-`model_max_size` posé ici. Si un champ fichier passe par un chemin qui **ne** repose pas sur
-`to_form_field` (ex : AdminForm généré directement), il existe **deux sources** d'application
-du `max_size` → vérifier qu'elles ne divergent jamais (cf. anomalie historique 2-sources).
+### 🟡 F2 — `max_size` du modèle vs override de form — ✅ VÉRIFIÉ clean
+**Vérifié (2.1.21).** Le modèle pose le plafond (`model_max_size`), l'override de form passe par
+`Forms::field_max_size` → `set_max_size_bounded` → `apply_max_size_bounded` qui **rejette si
+l'override dépasse le plafond modèle**. Les deux chemins sont réconciliés (pas en concurrence) :
+override possible vers le bas, jamais au-dessus du plafond. Pas de divergence.
 
-### 🟠 F3 — `force_invalid` / honeypot : couplage middleware → champ privé
-`Forms.force_invalid` est posé par le middleware anti-bot. Le flux exact (qui set, quand,
-ordre vs `fill`) est à tracer : si `fill` ou `validate` tourne avant que le middleware ait
-posé `force_invalid`, le honeypot peut être contourné. À vérifier dans [../../flux](../../flux).
+### 🟠 F3 — `force_invalid` / honeypot : ordre vs `fill`/`validate` — ✅ VÉRIFIÉ clean
+**Vérifié (2.1.21).** `force_invalid` est posé à la construction du form (honeypot + CSRF)
+**avant** `fill()` (qui n'y touche jamais) ; `is_valid()` court-circuite dessus avant toute
+validation, et `is_save_allowed()` double-garde. Honeypot POST-only mais la garde CSRF couvre
+toutes les méthodes mutantes. Pas de contournement possible.

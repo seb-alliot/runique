@@ -104,13 +104,13 @@ sessions → history. `eihwaz_users` et `eihwaz_reset_tokens` ont leurs propres 
 
 ## Anomalies / flux suspects (couche données)
 
-### 🔴 D1 — Incohérence de type sur `eihwaz_users_groupes.user_id` (feature `big-pk`)
+### 🔴 D1 — Incohérence de type sur `eihwaz_users_groupes.user_id` (feature `big-pk`) — ✅ CORRIGÉ
+**Corrigé (2.1.21).** Le bloc conditionnel `#[cfg(feature = "big-pk")]` (BIGINT/INTEGER) a été
+appliqué à `eihwaz_users_groupes.user_id`, aligné sur `sessions`/`history`/`reset_tokens`. La FK
+est désormais de type cohérent avec `eihwaz_users.id` sous `big-pk`.
 [`migrations_table.rs:184`](../../runique/src/admin/table_admin/migrations_table.rs#L184)
-`user_id` est codé en dur `.integer()`, **sans** le `#[cfg(feature = "big-pk")]` qui
-existe pour `sessions`/`history`/`reset_tokens`. Sous `big-pk`, `eihwaz_users.id` devient
-`BIGINT` mais `eihwaz_users_groupes.user_id` reste `INT` → **FK de type incompatible**.
-Selon le moteur : échec de création de FK (Postgres strict) ou FK silencieusement bancale.
-**Correctif** : appliquer le même bloc `cfg` que les autres tables.
+Problème d'origine : `user_id` codé en dur `.integer()` → FK incompatible avec `eihwaz_users.id`
+BIGINT sous `big-pk` (échec de création FK sur Postgres strict).
 
 ### 🟠 D2 — `eihwaz_history.user_id` sans FK : décision implicite
 [`migrations_table.rs:283-319`](../../runique/src/admin/table_admin/migrations_table.rs#L283)

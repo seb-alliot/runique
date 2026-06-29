@@ -15,6 +15,7 @@ classDiagram
         +with_watermarks(low, high)
         +with_exclusive_login(b)
         +with_db_fallback(db)
+        +is_saturated() bool
         -persist_to_db(record) [snapshot complet]
         +save(record) / load(id) / delete(id)
         +create(record) / delete_expired()
@@ -61,11 +62,12 @@ concurrents sur la même session peuvent donc écrire en DB dans un ordre ≠ de
 → backup DB potentiellement périmé d'un cran (le dernier writer DB gagne, pas le dernier
 writer mémoire). Mémoire reste cohérente (autoritaire), mais le fallback peut diverger.
 
-### 🟠 S3 — High watermark : refus de nouvelles sessions = déni de login sous pression
-Le store refuse de nouvelles sessions au-delà du high watermark. Sous forte charge mémoire,
-ça peut **bloquer les logins** (création de session impossible) sans message clair côté user.
-Comportement de protection, mais le flux doit confirmer qu'un refus renvoie une erreur lisible
-et pas un échec silencieux.
+### 🟠 S3 — High watermark : refus de nouvelles sessions sous pression — ✅ CORRIGÉ
+**Corrigé (2.1.21).** Le refus au-delà du high watermark était déjà propre côté store (Err
+typé, loggé), mais remontait en 500 générique. Ajout de `is_saturated()` +
+`RuniqueEngine::session_store_saturated()` → le login admin renvoie un **503 + Retry-After**
+clair (template `503.html` + `render_503`, 9 locales) au lieu d'un 500. Le login public se
+protège pareil via l'accesseur engine.
 
 ### 🟡 S4 — Double identifiant `cookie_id` / `session_id` (rappel D4)
 `SessionModel` porte `cookie_id` (UNIQUE, identifiant d'opposabilité) et `session_id`

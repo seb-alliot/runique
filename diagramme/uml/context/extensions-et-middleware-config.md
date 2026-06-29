@@ -60,11 +60,11 @@ flowchart LR
 
 ## Anomalies / flux suspects
 
-### 🟡 CX2 — `enable_header_security=false` par défaut → CSP seule sans headers durcis
-Par défaut `enable_header_security=false` : c'est `csp_middleware` (CSP seule) qui s'applique,
-pas `security_headers_middleware` (CSP + HSTS/X-Frame/etc.). En prod, les en-têtes de sécurité
-additionnels ne sont **pas** posés sauf activation explicite. À documenter / envisager `true`
-dans le preset `production()`.
+### 🟡 CX2 — `enable_header_security=false` par défaut → CSP seule sans headers durcis — ✅ CORRIGÉ
+**Corrigé (2.1.21).** `from_config` : `enable_header_security = security.strict_csp` (ranime le
+flag `STRICT_CSP` qui était stocké mais jamais consommé ; secure-by-default, builder prioritaire).
+**HSTS gaté** sur `should_emit_hsts()` (`enforce_https‖acme_enabled`) → pas de lock-in HTTPS sur un
+déploiement HTTP. Test `hsts_tests`.
 
 ### Rappel CX1 — couplage extraction ↔ slots
 `RequestExtensions` doit poser engine/session/csrf sinon `Request::from_request` → 500

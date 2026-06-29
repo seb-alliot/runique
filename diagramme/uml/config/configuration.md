@@ -80,10 +80,9 @@ classDiagram
 
 ## Anomalies / flux suspects
 
-### 🟡 CFG1 — `ServerConfig.secret_key` : warning si absent, pas d'échec
-`secret_key` (HMAC/CSRF) émet seulement un *warning* si absent (from_env). Une clé vide/faible
-en prod casse la sécurité CSRF/HMAC silencieusement. Envisager un **échec au boot** si
-`secret_key` vide en mode non-debug. À confirmer dans le flux build.
+### 🟡 CFG1 — `ServerConfig.secret_key` : warning si absent, pas d'échec — ✅ CORRIGÉ
+**Corrigé (2.1.21).** `secret_key_is_weak()` (vide ‖ défaut ‖ < 32 car., plancher HMAC-SHA256) ;
+`cross_validate` refuse le démarrage en prod pour toute clé faible. Debug : warning. Test `secret_key_tests`.
 
 ### 🟢 CFG2 — `from_env` par sous-config (pas d'anomalie)
 Chaque sous-config charge ses propres variables → séparation claire, défauts documentés.

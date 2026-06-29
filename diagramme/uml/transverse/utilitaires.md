@@ -128,7 +128,7 @@ classDiagram
 **garantir** que le template d'erreur ne les rend qu'en `debug_mode` — une fuite en prod
 exposerait stack traces + en-têtes de requête. À vérifier dans le template `errors/*.html`.
 
-### 🟡 TR2 — `MailerConfig.password` en clair en mémoire
-Le mot de passe SMTP vit en `String` clair dans `MailerConfig` (global `MAILER_CONFIG`).
-Inévitable pour l'auth SMTP, mais à ne jamais logger/sérialiser (vérifier qu'aucun `Debug`
-dérivé ne l'imprime — `MailerConfig` ne devrait pas être `Serialize`).
+### 🟡 TR2 — `MailerConfig.password` en clair dans les logs — ✅ CORRIGÉ
+**Corrigé (2.1.21).** `MailerConfig` dérivait `Debug` → `{:?}` imprimait le mot de passe SMTP en
+clair. Impl `Debug` manuelle masquant `password: "***"`. (Le secret reste en `String` en mémoire,
+inévitable pour l'auth SMTP, mais n'est plus exposable via un log.)
