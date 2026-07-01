@@ -23,17 +23,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     backend::run_seeds(&db).await;
 
     builder::new(config)
-        .with_log(|l| {
-            l.admin(
-                |a| {
-                    a.auth(Level::DEBUG) // décisions d'accès : granted=true/false + user/resource/action
-                        .crud(Level::DEBUG) // detail/create/edit/delete + résultat
-                        .bulk(Level::DEBUG) // group_set / bulk_delete
-                        .list(Level::DEBUG) // pagination / ordering / column resolution
-                        .filter_fn(Level::DEBUG)
-                }, // filter_fn failures
-            )
-        })
         .routes(url::routes())
         .with_database(db)
         .with_mailer_from_env()
