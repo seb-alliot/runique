@@ -1,21 +1,25 @@
 {% extends "admin_base.html" %}
-{% block title %}{% if admin_detail_title %}{{ admin_detail_title }}{% endif %} — {{ resource.title | default(value=resource_key) }} #{{ entry.id }}{% endblock %}
+{% block title %}{% if admin_detail_title %}{{ admin_detail_title }}{% endif %} — {{ resource.title | default(value=resource_key) }} #{{ object_id }}{% endblock %}
 {% block breadcrumb %}
+  {% if parent_key %}
   <span class="admin-topbar__sep">/</span>
-  <a href="{{ admin_prefix }}/{{ resource.key }}/list">{{ resource.title | default(value=resource_key) }}</a>
+  <a href="{{ parent_base }}/{{ parent_id }}/detail">{{ parent_title }}</a>
+  {% endif %}
   <span class="admin-topbar__sep">/</span>
-  <span>{% if admin_detail_breadcrumb %}{{ admin_detail_breadcrumb }}{% endif %} #{{ entry.id }}</span>
+  <a href="{{ resource_base }}/list">{{ resource.title | default(value=resource_key) }}</a>
+  <span class="admin-topbar__sep">/</span>
+  <span>{% if admin_detail_breadcrumb %}{{ admin_detail_breadcrumb }}{% endif %} #{{ object_id }}</span>
 {% endblock %}
 {% block content %}
   {% block detail_header %}
   <div class="admin-page__header" data-admin-auto-init>
     <div>
       <h1 class="admin-page__title">{% if admin_detail_title %}{{ admin_detail_title }}{% endif %} — {{ resource.title | default(value=resource_key) }}</h1>
-      <p class="admin-page__subtitle">{% if admin_detail_entry_label %}{{ admin_detail_entry_label }}{% endif %} #{{ entry.id }}</p>
+      <p class="admin-page__subtitle">{% if admin_detail_entry_label %}{{ admin_detail_entry_label }}{% endif %} #{{ object_id }}</p>
     </div>
     {% block detail_actions %}
     <div class="admin-page__actions">
-      <a href="{{ admin_prefix }}/{{ resource.key }}/list" class="btn btn-secondary btn-sm">{% if admin_detail_btn_list %}{{ admin_detail_btn_list }}{% endif %}</a>
+      <a href="{{ resource_base }}/list" class="btn btn-secondary btn-sm">{% if admin_detail_btn_list %}{{ admin_detail_btn_list }}{% endif %}</a>
       {% set_global can_modify = false %}
       {% if current_user %}
         {% if current_user.is_superuser %}
@@ -34,7 +38,7 @@
       {% set has_password = false %}
       {% for key, value in entry %}{% if key == "password" or key == "password_hash" %}{% set_global has_password = true %}{% endif %}{% endfor %}
       {% if has_password %}
-      <form method="post" action="{{ admin_prefix }}/{{ resource.key }}/{{ entry.id }}/reset-password" class="admin-form--inline admin-btn--hide-mobile">
+      <form method="post" action="{{ resource_base }}/{{ object_id }}/reset-password" class="admin-form--inline admin-btn--hide-mobile">
         {% csrf %}
         <button type="submit" class="btn btn-secondary btn-sm admin-btn--hide-mobile">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -42,8 +46,8 @@
         </button>
       </form>
       {% endif %}
-      <a href="{{ admin_prefix }}/{{ resource.key }}/{{ entry.id }}/edit" class="btn btn-primary btn-sm admin-btn--hide-mobile">{% if admin_detail_btn_edit %}{{ admin_detail_btn_edit }}{% endif %}</a>
-      <form method="post" action="{{ admin_prefix }}/{{ resource.key }}/{{ entry.id }}/delete" class="admin-form--inline admin-btn--hide-mobile">
+      <a href="{{ resource_base }}/{{ object_id }}/edit" class="btn btn-primary btn-sm admin-btn--hide-mobile">{% if admin_detail_btn_edit %}{{ admin_detail_btn_edit }}{% endif %}</a>
+      <form method="post" action="{{ resource_base }}/{{ object_id }}/delete" class="admin-form--inline admin-btn--hide-mobile">
           {% csrf %}
           <button type="submit" class="btn btn-sm btn-danger"
             data-confirm-delete="{% if admin_detail_confirm_delete %}{{ admin_detail_confirm_delete }}{% endif %}">
@@ -57,13 +61,13 @@
           </svg>
         </button>
         <div class="admin-menu__dropdown">
-          <a href="{{ admin_prefix }}/{{ resource.key }}/{{ entry.id }}/edit" class="admin-menu__item">
+          <a href="{{ resource_base }}/{{ object_id }}/edit" class="admin-menu__item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             {% if admin_detail_btn_edit %}{{ admin_detail_btn_edit }}{% endif %}
           </a>
           {% if has_password %}
           <div class="admin-menu__separator"></div>
-          <form method="post" action="{{ admin_prefix }}/{{ resource.key }}/{{ entry.id }}/reset-password">
+          <form method="post" action="{{ resource_base }}/{{ object_id }}/reset-password">
             {% csrf %}
             <button type="submit" class="admin-menu__item">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -72,7 +76,7 @@
           </form>
           {% endif %}
           <div class="admin-menu__separator"></div>
-          <form method="post" action="{{ admin_prefix }}/{{ resource.key }}/{{ entry.id }}/delete">
+          <form method="post" action="{{ resource_base }}/{{ object_id }}/delete">
             {% csrf %}
             <button type="submit" class="admin-menu__item admin-menu__item--danger"
               data-confirm-delete="{% if admin_detail_confirm_delete %}{{ admin_detail_confirm_delete }}{% endif %}">
@@ -94,7 +98,7 @@
         <tbody>
           <tr>
             <td class="admin-table__key">id</td>
-            <td><span class="admin-badge--id">#{{ entry.id }}</span></td>
+            <td><span class="admin-badge--id">#{{ object_id }}</span></td>
           </tr>
           {% for key, value in entry %}
             {% if key != "id" %}
@@ -139,6 +143,58 @@
           <span class="admin-text--muted">—</span>
         {% endif %}
       </div>
+    </div>
+  </div>
+  {% endfor %}
+  {% endif %}
+  {% if inlines is defined and inlines %}
+  {% for inline in inlines %}
+  <div class="admin-card mt-sm">
+    <div class="admin-card__header">
+      <span class="admin-card__title">{{ inline.title }}</span>
+      {% if inline.can_create %}
+      <a href="{{ inline.base }}/create" class="btn btn-primary btn-sm">+ {{ inline.title }}</a>
+      {% endif %}
+    </div>
+    <div class="admin-table__wrapper">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            {% for col in inline.columns %}
+            <th>{% if inline.column_labels[col] %}{{ inline.column_labels[col] }}{% else %}{{ col | replace(from="_", to=" ") }}{% endif %}</th>
+            {% endfor %}
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in inline.rows %}
+          <tr>
+            {% for col in inline.columns %}
+            <td>
+              {% set value = row[col] %}
+              {% if value == true %}<span class="admin-badge admin-badge--green">{% if admin_list_bool_true %}{{ admin_list_bool_true }}{% endif %}</span>
+              {% elif value == false %}<span class="admin-badge admin-badge--neutral">{% if admin_list_bool_false %}{{ admin_list_bool_false }}{% endif %}</span>
+              {% elif value %}{{ value }}
+              {% else %}<span class="admin-text--muted">—</span>{% endif %}
+            </td>
+            {% endfor %}
+            <td class="admin-table__td-actions">
+              {% if inline.can_update %}
+              <a href="{{ inline.base }}/{{ row.id }}/edit" class="btn btn-ghost btn-sm">{% if admin_list_btn_edit %}{{ admin_list_btn_edit }}{% endif %}</a>
+              {% endif %}
+              {% if inline.can_delete %}
+              <form method="POST" action="{{ inline.base }}/{{ row.id }}/delete" class="admin-form--inline">
+                {% csrf %}
+                <button type="submit" class="btn btn-ghost btn-sm btn-danger" data-confirm-delete="{% if admin_list_confirm_delete %}{{ admin_list_confirm_delete }}{% else %}Retirer ?{% endif %}">{% if admin_list_btn_delete %}{{ admin_list_btn_delete }}{% endif %}</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="999"><span class="admin-text--muted">—</span></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </div>
   {% endfor %}

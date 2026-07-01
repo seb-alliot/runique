@@ -178,7 +178,7 @@ async fn admin_dashboard(
     let resources: Vec<&crate::admin::AdminResource> = if let Some(Extension(ref state)) = proto {
         for (key, entry) in &state.registry.resources {
             if let Some(count_fn) = &entry.count_fn
-                && let Ok(n) = (count_fn)(db.clone(), None).await
+                && let Ok(n) = (count_fn)(db.clone(), None, None).await
             {
                 resource_counts.insert(key.clone(), n);
             }
@@ -186,12 +186,7 @@ async fn admin_dashboard(
         state
             .registry
             .all()
-            .filter(|e| {
-                if current_user.is_superuser {
-                    return true;
-                }
-                current_user.can_access_resource(e.meta.key)
-            })
+            .filter(|e| current_user.is_superuser || current_user.can_access_resource(e.meta.key))
             .map(|e| &e.meta)
             .collect()
     } else {

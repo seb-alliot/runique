@@ -1,8 +1,12 @@
 {% extends "admin_base.html" %}
 {% block title %}{% if admin_create_title %}{{ admin_create_title }}{% endif %} — {{ resource.title | default(value="Élément") }}{% endblock %}
 {% block breadcrumb %}
+  {% if parent_key %}
   <span class="admin-topbar__sep">/</span>
-  <a href="{{ admin_prefix }}/{{ resource.key }}/list">{{ resource.title | default(value="Éléments") }}</a>
+  <a href="{{ parent_base }}/{{ parent_id }}/detail">{{ parent_title }}</a>
+  {% endif %}
+  <span class="admin-topbar__sep">/</span>
+  <a href="{{ resource_base }}/list">{{ resource.title | default(value="Éléments") }}</a>
   <span class="admin-topbar__sep">/</span>
   <span>{% if admin_create_breadcrumb %}{{ admin_create_breadcrumb }}{% endif %}</span>
 {% endblock %}
@@ -35,7 +39,7 @@
       <h2>{% if admin_create_card_info %}{{ admin_create_card_info }}{% endif %}</h2>
     </div>
     <div class="admin-card__body">
-      <form method="POST" action="{{ admin_prefix }}/{{ resource.key }}/create" enctype="multipart/form-data">
+      <form method="POST" action="{{ resource_base }}/create" enctype="multipart/form-data">
         {% block create_form_fields %}
         <div class="form-grid">
           {% if form_fields is defined and form_fields.html is defined and form_fields.html %}
@@ -65,7 +69,7 @@
         {% endblock %}
         {% block create_form_actions %}
         <div class="admin-form__actions">
-          <a href="{{ admin_prefix }}/{{ resource.key }}/list" class="btn btn-secondary">{% if admin_create_btn_cancel %}{{ admin_create_btn_cancel }}{% endif %}</a>
+          <a href="{{ resource_base }}/list" class="btn btn-secondary">{% if admin_create_btn_cancel %}{{ admin_create_btn_cancel }}{% endif %}</a>
           <button type="submit" class="btn btn-primary">{% if admin_create_btn_submit %}{{ admin_create_btn_submit }}{% endif %}</button>
         </div>
         {% endblock %}
@@ -79,7 +83,7 @@
     <div class="admin-card__body">
       <div class="admin-empty-state">
         <p class="admin-empty-state__desc">{% if admin_access_denied %}{{ admin_access_denied }}{% else %}Vous n'avez pas les droits nécessaires pour créer cet élément.{% endif %}</p>
-        <a href="{{ admin_prefix }}/{{ resource.key }}/list" class="btn btn-secondary">{% if admin_create_btn_cancel %}{{ admin_create_btn_cancel }}{% else %}Retour{% endif %}</a>
+        <a href="{{ resource_base }}/list" class="btn btn-secondary">{% if admin_create_btn_cancel %}{{ admin_create_btn_cancel }}{% else %}Retour{% endif %}</a>
       </div>
     </div>
   </div>

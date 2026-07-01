@@ -102,6 +102,44 @@ pub enum ColumnFilter {
     Exclude(Vec<String>),
 }
 
+/// Declares that a resource is a **scoped child** of another resource, reached
+/// only through its parent (`/{parent}/{parent_id}/{child}/...`), never at the
+/// top level.
+///
+/// The child carries its own scoping contract (single source of truth for the FK):
+/// - its list is filtered `WHERE {fk_col} = {parent_id}`,
+/// - its create/edit forms fix `{fk_col}` to the parent id and hide the picker,
+/// - the parent detail screen renders it as an inline sub-list.
+///
+/// `local_key` distinguishes two child shapes:
+/// - `Some(col)` — junction table whose closure-id is `"{parent_id}:{col_value}"`
+///   (e.g. `groupes_droits`, keyed by `(groupe_id, resource_key)` → `local_key =
+///   Some("resource_key")`). The nested handler rebuilds the composite id from the
+///   path so the CRUD closures stay unchanged, exposes only the local key in child
+///   URLs, and fixes/hides both `fk_col` and `local_key` in the edit form (both are
+///   the row's identity).
+/// - `None` — child owns its own primary key. The closure-id is that key; the
+///   handler additionally verifies the fetched row's `{fk_col} == parent_id`
+///   (IDOR guard) so a child of another parent can't be reached through this one.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct ParentScope {
+    /// Registry key of the parent resource (e.g. `"groupes"`).
+    pub parent_key: &'static str,
+    /// Child column holding the FK to the parent (e.g. `"groupe_id"`).
+    pub fk_col: &'static str,
+    /// `Some(col)` for a composite/junction child keyed by `(fk_col, col)`;
+    /// `None` when the child owns its own primary key.
+    pub local_key: Option<&'static str>,
+}
+
+impl ParentScope {
+    /// Whether the child's closure-id is composite `"{parent_id}:{local_key}"`.
+    #[must_use]
+    pub fn is_composite(&self) -> bool {
+        self.local_key.is_some()
+    }
+}
+
 /// Configuration of resource display in the admin interface
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct DisplayConfig {
@@ -214,6 +252,11 @@ pub struct AdminResource {
     /// the display layer (never in `get_fn`/`list_fn`) so edit forms keep the
     /// raw id and pre-select the right option. Emitted by the daemon.
     pub fk_display: Vec<(String, String, String)>,
+
+    /// When set, this resource is a scoped child reached only through its parent
+    /// (`/{parent}/{parent_id}/{child}/...`). See [`ParentScope`]. `None` = a
+    /// normal top-level resource.
+    pub parent_scope: Option<ParentScope>,
 }
 
 impl AdminResource {
@@ -240,6 +283,7 @@ impl AdminResource {
             extra_context: std::collections::HashMap::new(),
             inject_password: false,
             fk_display: Vec::new(),
+            parent_scope: None,
         }
     }
 
@@ -267,6 +311,7 @@ impl AdminResource {
             extra_context: std::collections::HashMap::new(),
             inject_password: false,
             fk_display: Vec::new(),
+            parent_scope: None,
         }
     }
 
@@ -281,6 +326,26 @@ impl AdminResource {
     #[must_use]
     pub fn fk_display(mut self, specs: Vec<(String, String, String)>) -> Self {
         self.fk_display = specs;
+        self
+    }
+
+    /// Declares this resource as a scoped child of `parent_key`, reached only
+    /// through `/{parent_key}/{parent_id}/{key}/...`. See [`ParentScope`].
+    ///
+    /// `local_key`: `Some(col)` for a composite/junction child keyed by
+    /// `(fk_col, col)`; `None` when the child owns its own primary key.
+    #[must_use]
+    pub fn parent_scope(
+        mut self,
+        parent_key: &'static str,
+        fk_col: &'static str,
+        local_key: Option<&'static str>,
+    ) -> Self {
+        self.parent_scope = Some(ParentScope {
+            parent_key,
+            fk_col,
+            local_key,
+        });
         self
     }
 

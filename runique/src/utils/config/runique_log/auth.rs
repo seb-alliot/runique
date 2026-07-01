@@ -10,6 +10,9 @@ pub struct AuthTracing {
     pub reset: Option<Level>,
     /// Warns if `password_init()` is called multiple times.
     pub password_init: Option<Level>,
+    /// Permission cache lifecycle: reload from DB after invalidation
+    /// (`clear_cache`) — i.e. a request seeing a group's rights change take effect.
+    pub permissions: Option<Level>,
 }
 
 impl AuthTracing {
@@ -31,9 +34,15 @@ impl AuthTracing {
         self.password_init = Some(level);
         self
     }
+    #[must_use]
+    pub fn permissions(mut self, level: Level) -> Self {
+        self.permissions = Some(level);
+        self
+    }
     pub fn dev(self) -> Self {
         self.login(Level::DEBUG)
             .reset(Level::DEBUG)
             .password_init(Level::DEBUG)
+            .permissions(Level::DEBUG)
     }
 }

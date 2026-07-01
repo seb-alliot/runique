@@ -21,6 +21,8 @@ pub(super) struct ListQuery {
     pub search: Option<String>,
     pub column_filters: Vec<(String, String)>,
     pub filter_pages: HashMap<String, u64>,
+    /// Trusted parent scope `Some((fk_col, parent_id))` for a nested child list.
+    pub scope: Option<(String, String)>,
 }
 
 pub(super) async fn handle_list(
@@ -30,11 +32,12 @@ pub(super) async fn handle_list(
     query: ListQuery,
     current_user: &CurrentUser,
     is_htmx: bool,
+    parent: Option<&super::ParentBinding>,
 ) -> AppResult<Response> {
     if !current_user.can_access_resource(entry.meta.key) {
         return Ok(super::permission_denied_dashboard(&req.notices, &state.config.prefix).await);
     }
-    super::inject_context(req, state, entry, current_user);
+    super::inject_context(req, state, entry, current_user, parent);
     let ListQuery {
         page,
         sort_by,
@@ -42,6 +45,7 @@ pub(super) async fn handle_list(
         search,
         column_filters,
         filter_pages,
+        scope,
     } = query;
     let page_size = state.config.page_size;
     let offset = page.saturating_sub(1).saturating_mul(page_size);
@@ -52,6 +56,7 @@ pub(super) async fn handle_list(
         sort_dir: sort_dir.clone(),
         search: search.clone(),
         column_filters: column_filters.clone(),
+        scope: scope.clone(),
     };
 
     let (entries_result, count_result, filter_result) = tokio::join!(
@@ -63,7 +68,7 @@ pub(super) async fn handle_list(
         },
         async {
             match &entry.count_fn {
-                Some(f) => f(req.engine.db.clone(), search.clone()).await,
+                Some(f) => f(req.engine.db.clone(), search.clone(), scope.clone()).await,
                 None => Ok(0u64),
             }
         },
@@ -89,6 +94,23 @@ pub(super) async fn handle_list(
         &entry.meta.fk_display,
     )
     .await;
+    if let Some(apply_enum_labels) = entry.enum_label_fn {
+        for row in &mut entries {
+            apply_enum_labels(row);
+        }
+    }
+    // Nested list: expose the local id (strip the composite parent prefix) so row
+    // action URLs are `{resource_base}/{local}/…`, not `.../{parent}:{local}/…`.
+    if let Some(p) = parent {
+        for row in &mut entries {
+            if let Some(id_str) = row.get("id").and_then(|v| v.as_str()) {
+                let local = p.local_id(id_str).to_string();
+                if let serde_json::Value::Object(map) = row {
+                    map.insert("id".to_string(), serde_json::Value::String(local));
+                }
+            }
+        }
+    }
     let count = count_result.map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?;
     if let Some(level) = crate::utils::runique_log::get_log()
         .admin
@@ -123,50 +145,7 @@ pub(super) async fn handle_list(
     let page_count = total.div_ceil(page_size);
     let page = page.min(page_count.max(1));
 
-    let all_cols: Vec<String> = entries
-        .first()
-        .and_then(|v| v.as_object())
-        .map(|obj| {
-            obj.keys()
-                .filter(|k| *k != "id" && !k.starts_with("password"))
-                .cloned()
-                .collect()
-        })
-        .unwrap_or_default();
-
-    let (visible_columns, mut column_labels): (Vec<String>, HashMap<String, String>) =
-        match &entry.meta.display.columns {
-            ColumnFilter::All => (all_cols, HashMap::new()),
-            ColumnFilter::Include(cols) => {
-                let filtered: Vec<(String, String)> = cols
-                    .iter()
-                    .filter(|(c, _)| all_cols.contains(c))
-                    .cloned()
-                    .collect();
-                let labels = filtered
-                    .iter()
-                    .map(|(c, l)| (c.clone(), l.clone()))
-                    .collect();
-                (filtered.into_iter().map(|(c, _)| c).collect(), labels)
-            }
-            ColumnFilter::Exclude(excluded) => (
-                all_cols
-                    .into_iter()
-                    .filter(|c| !excluded.contains(c))
-                    .collect(),
-                HashMap::new(),
-            ),
-        };
-
-    for col in &visible_columns {
-        if !column_labels.contains_key(col) {
-            let key = format!("permission.col.{col}");
-            let translated = t(&key);
-            if translated != key.as_str() {
-                column_labels.insert(col.clone(), translated.into_owned());
-            }
-        }
-    }
+    let (visible_columns, column_labels) = resolve_columns(entry, &entries);
 
     let safe_sort_by = sort_by
         .filter(|s| s == "id" || visible_columns.contains(s))
@@ -320,4 +299,60 @@ pub(super) async fn handle_list(
             .unwrap_or_else(|| state.config.templates.list.resolve())
     };
     req.render(template)
+}
+
+/// Resolves the visible columns and their labels for a set of rows, honoring the
+/// resource's `ColumnFilter` and falling back to the `permission.col.*` i18n keys.
+/// Shared by the list view and the parent-detail inline sub-lists so both render
+/// identical columns.
+pub(super) fn resolve_columns(
+    entry: &ResourceEntry,
+    entries: &[serde_json::Value],
+) -> (Vec<String>, HashMap<String, String>) {
+    let all_cols: Vec<String> = entries
+        .first()
+        .and_then(|v| v.as_object())
+        .map(|obj| {
+            obj.keys()
+                .filter(|k| *k != "id" && !k.starts_with("password"))
+                .cloned()
+                .collect()
+        })
+        .unwrap_or_default();
+
+    let (visible_columns, mut column_labels): (Vec<String>, HashMap<String, String>) =
+        match &entry.meta.display.columns {
+            ColumnFilter::All => (all_cols, HashMap::new()),
+            ColumnFilter::Include(cols) => {
+                let filtered: Vec<(String, String)> = cols
+                    .iter()
+                    .filter(|(c, _)| all_cols.contains(c))
+                    .cloned()
+                    .collect();
+                let labels = filtered
+                    .iter()
+                    .map(|(c, l)| (c.clone(), l.clone()))
+                    .collect();
+                (filtered.into_iter().map(|(c, _)| c).collect(), labels)
+            }
+            ColumnFilter::Exclude(excluded) => (
+                all_cols
+                    .into_iter()
+                    .filter(|c| !excluded.contains(c))
+                    .collect(),
+                HashMap::new(),
+            ),
+        };
+
+    for col in &visible_columns {
+        if !column_labels.contains_key(col) {
+            let key = format!("permission.col.{col}");
+            let translated = t(&key);
+            if translated != key.as_str() {
+                column_labels.insert(col.clone(), translated.into_owned());
+            }
+        }
+    }
+
+    (visible_columns, column_labels)
 }

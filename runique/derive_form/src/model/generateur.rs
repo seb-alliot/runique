@@ -13,6 +13,7 @@ pub fn generate(model: &ModelInput) -> TokenStream2 {
     let partial_update: TokenStream2 = generate_partial_update(model);
     let admin_form = generate_admin_form(model);
     let unique_fields = generate_unique_fields(model);
+    let enum_labels = generate_enum_label_resolver(model);
 
     quote! {
         #enums
@@ -24,6 +25,47 @@ pub fn generate(model: &ModelInput) -> TokenStream2 {
         #partial_update
         #admin_form
         #unique_fields
+        #enum_labels
+    }
+}
+
+/// Generates `apply_enum_labels(row)` — rewrites this model's enum columns of a
+/// serialized JSON row to their display label (`Display` = the DSL label). Called
+/// by the admin display layer (list/detail/delete), never on the edit-form data
+/// path which needs the raw db value to pre-select the right choice. No-op when
+/// the model declares no enum field.
+fn generate_enum_label_resolver(model: &ModelInput) -> TokenStream2 {
+    let resolvers: Vec<TokenStream2> = model
+        .fields
+        .iter()
+        .filter_map(|f| {
+            let FieldType::Enum(enum_name) = &f.ty else {
+                return None;
+            };
+            let col = f.name.to_string();
+            Some(quote! {
+                {
+                    let current = row
+                        .get(#col)
+                        .and_then(|v| v.as_str())
+                        .map(::std::string::ToString::to_string);
+                    if let Some(s) = current
+                        && let Ok(e) = <#enum_name as ::std::str::FromStr>::from_str(&s)
+                    {
+                        row[#col] = ::runique::serde_json::Value::String(
+                            ::std::string::ToString::to_string(&e),
+                        );
+                    }
+                }
+            })
+        })
+        .collect();
+
+    quote! {
+        pub fn apply_enum_labels(row: &mut ::runique::serde_json::Value) {
+            let _ = &row;
+            #(#resolvers)*
+        }
     }
 }
 
@@ -53,6 +95,8 @@ pub fn generate_enum_defs(enums: &[EnumDef]) -> TokenStream2 {
                             _ => 0,
                         })
                         .collect();
+                    let display_values: Vec<String> =
+                        e.variants.iter().map(|v| v.display_str()).collect();
 
                     quote! {
                         #[derive(
@@ -83,7 +127,7 @@ pub fn generate_enum_defs(enums: &[EnumDef]) -> TokenStream2 {
                         impl ::std::fmt::Display for #name {
                             fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
                                 let s = match self {
-                                    #(#name::#variant_names => #variant_name_strs,)*
+                                    #(#name::#variant_names => #display_values,)*
                                 };
                                 f.write_str(s)
                             }
@@ -112,6 +156,8 @@ pub fn generate_enum_defs(enums: &[EnumDef]) -> TokenStream2 {
                             _ => 0,
                         })
                         .collect();
+                    let display_values: Vec<String> =
+                        e.variants.iter().map(|v| v.display_str()).collect();
 
                     quote! {
                         #[derive(
@@ -142,7 +188,7 @@ pub fn generate_enum_defs(enums: &[EnumDef]) -> TokenStream2 {
                         impl ::std::fmt::Display for #name {
                             fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
                                 let s = match self {
-                                    #(#name::#variant_names => #variant_name_strs,)*
+                                    #(#name::#variant_names => #display_values,)*
                                 };
                                 f.write_str(s)
                             }

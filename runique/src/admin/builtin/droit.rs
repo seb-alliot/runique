@@ -57,7 +57,13 @@ pub(super) fn droit_entry() -> ResourceEntry {
         "DroitAdminForm",
         SESSION_USER_DROITS_KEY,
         vec!["admin".to_string()],
-    );
+    )
+    // Scoped child of `groupes`: a droit is only reachable through its group
+    // (/groupes/{id}/droits/...). Composite id `"{groupe_id}:{resource_key}"` is
+    // rebuilt from the path by the nested handler, so the closures below are
+    // untouched. `resource_key` is the local key → fixed in the edit form. See
+    // `ParentScope`.
+    .parent_scope(GROUPES, GROUPE_ID, Some(RESOURCE_KEY));
 
     let form_builder: FormBuilder = Arc::new(
         |db: ADb,
@@ -202,6 +208,16 @@ pub(super) fn droit_entry() -> ResourceEntry {
                 };
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
+            // Trusted parent scope (groupe_id) when listed under a group.
+            if let Some((col, val)) = &params.scope
+                && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+            {
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
+            }
             if let Some(ref search_str) = params.search {
                 let pattern = format!("%{}%", search_str.to_lowercase());
                 let mut cond = sea_orm::Condition::any();
@@ -245,7 +261,7 @@ pub(super) fn droit_entry() -> ResourceEntry {
         })
     });
 
-    let count_fn: CountFn = Arc::new(|db: ADb, _search| {
+    let count_fn: CountFn = Arc::new(|db: ADb, _search, scope| {
         Box::pin(async move {
             use sea_orm::{
                 QueryFilter,
@@ -259,6 +275,16 @@ pub(super) fn droit_entry() -> ResourceEntry {
                         Expr::col(Alias::new("resource_key")).cast_as(Alias::new("TEXT")),
                     ))
                     .like(pattern),
+                );
+            }
+            // Must mirror list_fn's scope so scoped pagination counts the scoped rows.
+            if let Some((col, val)) = &scope
+                && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+            {
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
                 );
             }
             query.count(&*db).await

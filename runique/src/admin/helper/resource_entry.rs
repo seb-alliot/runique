@@ -47,6 +47,10 @@ pub struct ListParams {
     pub search: Option<String>,
     /// Exact filters by column: [(`col_sql`, `value`)]
     pub column_filters: Vec<(String, String)>,
+    /// Trusted parent scope `Some((fk_col, parent_id))` when this resource is
+    /// listed as a scoped child. Applied unconditionally (framework-injected,
+    /// never from the query string) — bypasses the sidebar-filter allowlist.
+    pub scope: Option<(String, String)>,
 }
 
 /// Closure building a typed form from raw data.
@@ -64,6 +68,11 @@ pub type ListFn =
 pub type GetFn =
     Arc<dyn Fn(ADb, String) -> BoxFuture<'static, Result<Option<Value>, DbErr>> + Send + Sync>;
 
+/// Rewrites a serialized row's enum columns to their display label. Model-provided
+/// (only the `model!` macro knows the model's enums), applied at the display layer
+/// so the edit form keeps the raw db value. A plain `fn` pointer (`Send + Sync`).
+pub type EnumLabelFn = fn(&mut Value);
+
 /// Closure deleting an entry by its ID.
 pub type DeleteFn = Arc<dyn Fn(ADb, String) -> BoxFuture<'static, Result<(), DbErr>> + Send + Sync>;
 
@@ -74,9 +83,18 @@ pub type UpdateFn =
 /// Closure creating a new entry from validated form data.
 pub type CreateFn = Arc<dyn Fn(ADb, StrMap) -> BoxFuture<'static, Result<(), DbErr>> + Send + Sync>;
 
-/// Closure returning the total number of entries (with optional search term).
-pub type CountFn =
-    Arc<dyn Fn(ADb, Option<String>) -> BoxFuture<'static, Result<u64, DbErr>> + Send + Sync>;
+/// Closure returning the total number of entries.
+///
+/// Receives the optional search term **and** the trusted parent scope
+/// (`Some((fk_col, parent_id))`), so a scoped child list
+/// (`WHERE {fk_col} = {parent_id}`) paginates on the scoped total rather than
+/// the whole table. The scope is framework-injected (never from the query
+/// string), so it bypasses the sidebar-filter allowlist.
+pub type CountFn = Arc<
+    dyn Fn(ADb, Option<String>, Option<(String, String)>) -> BoxFuture<'static, Result<u64, DbErr>>
+        + Send
+        + Sync,
+>;
 
 /// Closure returning distinct values for each column configured in `list_filter`.
 /// Parameter: current page per column (0-based).
@@ -160,6 +178,8 @@ pub struct ResourceEntry {
     /// Field name used to verify record ownership when `can_update_own`/`can_delete_own` is set.
     /// If None, "own" permissions are blocked (safe default until the field is declared).
     pub own_field: Option<&'static str>,
+    /// Model-provided resolver turning enum db values into display labels (display views).
+    pub enum_label_fn: Option<EnumLabelFn>,
 }
 
 impl ResourceEntry {
@@ -180,7 +200,13 @@ impl ResourceEntry {
             m2m_loader: None,
             unique_fields: &[],
             own_field: None,
+            enum_label_fn: None,
         }
+    }
+    #[must_use]
+    pub fn with_enum_label_fn(mut self, f: EnumLabelFn) -> Self {
+        self.enum_label_fn = Some(f);
+        self
     }
     #[must_use]
     pub fn with_m2m_loader(mut self, f: M2mLoaderFn) -> Self {

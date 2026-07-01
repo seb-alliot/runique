@@ -569,11 +569,25 @@ pub async fn load_user_middleware(
         let is_staff = session_bool(&session, SESSION_USER_IS_STAFF_KEY).await;
         let is_superuser = session_bool(&session, SESSION_USER_IS_SUPERUSER_KEY).await;
 
-        // Groups from cache — DB reload if cache is empty (after clear_cache)
+        // Groups from cache — DB reload if cache is empty (after clear_cache).
+        // The reload is the moment a rights change becomes visible in this user's
+        // context; trace it so that effect is observable (`auth.permissions`).
         let groupes = match get_permissions(user_id) {
             Some(cached) => cached.groupes.clone(),
             None => {
                 let groupes = pull_groupes_db(&*db, user_id).await;
+                if let Some(level) = crate::utils::runique_log::get_log()
+                    .auth
+                    .as_ref()
+                    .and_then(|a| a.permissions)
+                {
+                    crate::runique_log!(
+                        level,
+                        user = %username,
+                        groupes = groupes.len(),
+                        "permission cache miss — reloaded from DB (context refreshed)"
+                    );
+                }
                 cache_permissions(user_id, groupes.clone());
                 groupes
             }

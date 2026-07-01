@@ -1,8 +1,12 @@
 {% extends "admin_base.html" %}
 {% block title %}{% if admin_edit_title %}{{ admin_edit_title }}{% endif %} — {{ resource.title }}{% endblock %}
 {% block breadcrumb %}
+  {% if parent_key %}
   <span class="admin-topbar__sep">/</span>
-  <a href="{{ admin_prefix }}/{{ resource.key }}/list">{{ resource.title }}</a>
+  <a href="{{ parent_base }}/{{ parent_id }}/detail">{{ parent_title }}</a>
+  {% endif %}
+  <span class="admin-topbar__sep">/</span>
+  <a href="{{ resource_base }}/list">{{ resource.title }}</a>
   <span class="admin-topbar__sep">/</span>
   <span>{% if admin_edit_breadcrumb %}{{ admin_edit_breadcrumb }}{% endif %}</span>
 {% endblock %}
@@ -35,7 +39,7 @@
       <h2>{% if admin_edit_card_info %}{{ admin_edit_card_info }}{% endif %}</h2>
     </div>
     <div class="admin-card__body">
-      <form method="POST" action="{{ admin_prefix }}/{{ resource.key }}/{{ object_id }}/edit" enctype="multipart/form-data">
+      <form method="POST" action="{{ resource_base }}/{{ object_id }}/edit" enctype="multipart/form-data">
         {% csrf %}
         {% if orig_updated_at is defined %}
         <input type="hidden" name="__original_updated_at" value="{{ orig_updated_at }}">
@@ -74,7 +78,7 @@
         {% endblock %}
         {% block edit_form_actions %}
         <div class="admin-form__actions">
-          <a href="{{ admin_prefix }}/{{ resource.key }}/list{% if return_qs is defined and return_qs %}?{{ return_qs }}{% endif %}" class="btn btn-secondary">{% if admin_edit_btn_cancel %}{{ admin_edit_btn_cancel }}{% endif %}</a>
+          <a href="{{ resource_base }}/list{% if return_qs is defined and return_qs %}?{{ return_qs }}{% endif %}" class="btn btn-secondary">{% if admin_edit_btn_cancel %}{{ admin_edit_btn_cancel }}{% endif %}</a>
           <button type="submit" class="btn btn-primary">{% if admin_edit_btn_submit %}{{ admin_edit_btn_submit }}{% endif %}</button>
         </div>
         {% endblock %}
@@ -88,7 +92,7 @@
     <div class="admin-card__body">
       <div class="admin-empty-state">
         <p class="admin-empty-state__desc">{% if admin_access_denied %}{{ admin_access_denied }}{% else %}Vous n'avez pas les droits nécessaires pour modifier cet élément.{% endif %}</p>
-        <a href="{{ admin_prefix }}/{{ resource.key }}/list" class="btn btn-secondary">{% if admin_edit_btn_cancel %}{{ admin_edit_btn_cancel }}{% else %}Retour{% endif %}</a>
+        <a href="{{ resource_base }}/list" class="btn btn-secondary">{% if admin_edit_btn_cancel %}{{ admin_edit_btn_cancel }}{% else %}Retour{% endif %}</a>
       </div>
     </div>
   </div>

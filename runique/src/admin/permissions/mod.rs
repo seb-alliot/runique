@@ -58,6 +58,34 @@ pub struct Groupe {
 // DB loading functions — called at login
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// Deletes rights whose `resource_key` no longer maps to a registered admin
+/// resource, closing the referential-integrity gap of the soft `resource_key`
+/// string (it points at a code-registry key, not a DB table, so the DB can't
+/// enforce it). Without this, a resource removed then replaced by a different one
+/// **reusing the same key** would silently inherit the old group's grants — a
+/// stealthy privilege escalation. Resources are static per process, so running
+/// this once at boot fully closes the window. Returns the number of pruned rows.
+///
+/// `valid_keys` empty → no-op (never prune everything on a mis-wired registry).
+pub async fn prune_orphan_droits<C: ConnectionTrait>(
+    db: &C,
+    valid_keys: &[&str],
+) -> Result<u64, sea_orm::DbErr> {
+    if valid_keys.is_empty() {
+        return Ok(0);
+    }
+    let res = groupes_droits::Entity::delete_many()
+        .filter(
+            groupes_droits::Column::ResourceKey.is_not_in(valid_keys.iter().map(|k| k.to_string())),
+        )
+        .exec(db)
+        .await?;
+    if res.rows_affected > 0 {
+        crate::auth::guard::clear_cache();
+    }
+    Ok(res.rows_affected)
+}
+
 /// Refreshes the memory cache of permissions for a given user.
 pub async fn refresh_cache_for_user<C: ConnectionTrait>(db: &C, user_id: crate::utils::pk::Pk) {
     use crate::auth::guard::cache_permissions;

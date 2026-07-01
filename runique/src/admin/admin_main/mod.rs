@@ -7,6 +7,7 @@
 mod action;
 mod handle_bulk;
 mod handle_crud;
+mod handle_inline;
 mod handle_list;
 mod handle_password;
 
@@ -83,6 +84,141 @@ pub struct PrototypeAdminState {
     pub config: Arc<AdminConfig>,
 }
 
+// ─── Route target ────────────────────────────────────────────
+
+/// The routing identity of a request, built by the thin flat/nested wrappers and
+/// passed to the shared dispatchers — keeps their signatures small and lets flat
+/// and nested share one code path.
+struct RouteTarget {
+    resource_key: String,
+    action: String,
+    /// Raw `(parent_key, parent_id)` from a nested URL; `None` for a flat request.
+    parent: Option<(String, String)>,
+}
+
+impl RouteTarget {
+    fn flat(resource_key: String, action: String) -> Self {
+        Self {
+            resource_key,
+            action,
+            parent: None,
+        }
+    }
+
+    fn nested(parent_key: String, parent_id: String, resource_key: String, action: String) -> Self {
+        Self {
+            resource_key,
+            action,
+            parent: Some((parent_key, parent_id)),
+        }
+    }
+}
+
+// ─── Parent scope binding (nested resources) ─────────────────
+
+/// A resolved parent scope for a nested-resource request
+/// (`/{parent_key}/{parent_id}/{child}/...`). Built and validated by the nested
+/// entry points from the URL against the child's declared [`ParentScope`], then
+/// threaded through the shared CRUD logic so flat and nested requests share a
+/// single code path.
+#[derive(Clone)]
+pub(super) struct ParentBinding {
+    pub parent_key: String,
+    pub parent_id: String,
+    /// Child FK column holding the parent id (from the child's `ParentScope`).
+    pub fk_col: &'static str,
+    /// `Some(col)` for a composite/junction child keyed by `(fk_col, col)`;
+    /// `None` when the child owns its own primary key.
+    pub local_key: Option<&'static str>,
+}
+
+impl ParentBinding {
+    /// Whether the child's closure-id is composite `"{parent_id}:{local}"`.
+    pub(super) fn is_composite(&self) -> bool {
+        self.local_key.is_some()
+    }
+
+    /// Turns a local URL id segment into the id the CRUD closures expect.
+    /// Composite children get the parent prefix rebuilt; others pass through.
+    pub(super) fn closure_id(&self, local: &str) -> String {
+        if self.is_composite() {
+            format!("{}:{}", self.parent_id, local)
+        } else {
+            local.to_string()
+        }
+    }
+
+    /// Strips the composite parent prefix from a closure id, yielding the local
+    /// segment used in URLs. Non-composite ids pass through unchanged.
+    pub(super) fn local_id<'a>(&self, closure_id: &'a str) -> &'a str {
+        if self.is_composite() {
+            closure_id
+                .split_once(':')
+                .map_or(closure_id, |(_, local)| local)
+        } else {
+            closure_id
+        }
+    }
+
+    /// Scope-aware base path for building action URLs in templates.
+    pub(super) fn base_path(&self, prefix: &str, child_key: &str) -> String {
+        format!(
+            "{}/{}/{}/{}",
+            prefix.trim_end_matches('/'),
+            self.parent_key,
+            self.parent_id,
+            child_key
+        )
+    }
+}
+
+/// Base path for a flat (non-nested) resource.
+fn flat_base_path(prefix: &str, key: &str) -> String {
+    format!("{}/{}", prefix.trim_end_matches('/'), key)
+}
+
+/// Resolves and validates a nested request's parent binding.
+///
+/// Returns `None` (→ caller answers 404) when the child is not declared as a
+/// scoped child of that parent — this is the guard that forbids reaching an
+/// unrelated resource through an arbitrary parent (`/groupes/2/user/...`).
+fn build_parent_binding(
+    meta: &crate::admin::resource::AdminResource,
+    parent_key: &str,
+    parent_id: &str,
+) -> Option<ParentBinding> {
+    let scope = meta.parent_scope.as_ref()?;
+    if scope.parent_key != parent_key {
+        return None;
+    }
+    Some(ParentBinding {
+        parent_key: parent_key.to_string(),
+        parent_id: parent_id.to_string(),
+        fk_col: scope.fk_col,
+        local_key: scope.local_key,
+    })
+}
+
+/// Resolves the parent binding for a nested request, validating it against the
+/// child's declared `ParentScope` (else 404 — forbids reaching an unrelated
+/// resource through an arbitrary parent, `/{unrelated_parent}/{id}/{child}/...`).
+///
+/// A flat request is always allowed (`Ok(None)`), including on a scoped child:
+/// the child is merely hidden from the nav (see `AdminRegistry::visible_to`), not
+/// route-blocked, so a superuser keeps direct access as a bypass and the flat
+/// route stays reachable by URL for anyone with the resource permission.
+fn resolve_scope(
+    meta: &crate::admin::resource::AdminResource,
+    parent: Option<(String, String)>,
+) -> AppResult<Option<ParentBinding>> {
+    match parent {
+        Some((pk, pid)) => build_parent_binding(meta, &pk, &pid)
+            .map(Some)
+            .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found")))),
+        None => Ok(None),
+    }
+}
+
 // ─── Resolved permissions ────────────────────────────────────
 
 /// Effective CRUD rights of the current user on a single resource.
@@ -145,21 +281,66 @@ impl ResourcePerms {
 
 // ─── Axum entry points ────────────────────────────────────
 
-/// GET /admin/{resource}/{action}  (list, create)
+/// GET /admin/{resource}/{action}  (list, create) — flat (top-level).
 pub async fn admin_get(
     Path((resource_key, action)): Path<(String, String)>,
     Extension(state): Extension<Arc<PrototypeAdminState>>,
     Extension(current_user): Extension<CurrentUser>,
     Query(params): Query<StrMap>,
     headers: axum::http::HeaderMap,
+    req: Request,
+) -> AppResult<Response> {
+    dispatch_collection_get(
+        RouteTarget::flat(resource_key, action),
+        state,
+        current_user,
+        params,
+        headers,
+        req,
+    )
+    .await
+}
+
+/// GET /admin/{parent}/{parent_id}/{resource}/{action} — nested (scoped child).
+pub async fn admin_nested_get(
+    Path((parent_key, parent_id, resource_key, action)): Path<(String, String, String, String)>,
+    Extension(state): Extension<Arc<PrototypeAdminState>>,
+    Extension(current_user): Extension<CurrentUser>,
+    Query(params): Query<StrMap>,
+    headers: axum::http::HeaderMap,
+    req: Request,
+) -> AppResult<Response> {
+    dispatch_collection_get(
+        RouteTarget::nested(parent_key, parent_id, resource_key, action),
+        state,
+        current_user,
+        params,
+        headers,
+        req,
+    )
+    .await
+}
+
+async fn dispatch_collection_get(
+    target: RouteTarget,
+    state: Arc<PrototypeAdminState>,
+    current_user: CurrentUser,
+    params: StrMap,
+    headers: axum::http::HeaderMap,
     mut req: Request,
 ) -> AppResult<Response> {
+    let RouteTarget {
+        resource_key,
+        action,
+        parent,
+    } = target;
     let entry = state
         .registry
         .get(&resource_key)
         .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
 
-    let perms = inject_context(&mut req, &state, entry, &current_user);
+    let parent = resolve_scope(&entry.meta, parent)?;
+    let perms = inject_context(&mut req, &state, entry, &current_user, parent.as_ref());
 
     let Some(act) = CollectionAction::parse_get(&action) else {
         return Err(Box::new(AppError::new(ErrorContext::not_found(
@@ -181,7 +362,8 @@ pub async fn admin_get(
             "collection GET access check"
         );
     }
-    if let Some(resp) = enforce(access, &req.notices, &state.config.prefix, &resource_key).await {
+    let base = scope_base(&state.config.prefix, entry, parent.as_ref());
+    if let Some(resp) = enforce(access, &req.notices, &state.config.prefix, &base).await {
         return Ok(resp);
     }
 
@@ -221,6 +403,9 @@ pub async fn admin_get(
                 search,
                 column_filters,
                 filter_pages,
+                scope: parent
+                    .as_ref()
+                    .map(|p| (p.fk_col.to_string(), p.parent_id.clone())),
             };
             let is_htmx = headers.contains_key("hx-request");
             if let Some(level) = crate::utils::runique_log::get_log()
@@ -238,7 +423,16 @@ pub async fn admin_get(
                     "list"
                 );
             }
-            handle_list(&mut req, entry, &state, query, &current_user, is_htmx).await
+            handle_list(
+                &mut req,
+                entry,
+                &state,
+                query,
+                &current_user,
+                is_htmx,
+                parent.as_ref(),
+            )
+            .await
         }
         CollectionAction::Create => {
             if let Some(level) = crate::utils::runique_log::get_log()
@@ -248,7 +442,7 @@ pub async fn admin_get(
             {
                 crate::runique_log!(level, resource = %resource_key, action = "create GET", "crud");
             }
-            handle_create_get(&mut req, entry, &state).await
+            handle_create_get(&mut req, entry, &state, parent.as_ref()).await
         }
         CollectionAction::Bulk => {
             if let Some(level) = crate::utils::runique_log::get_log()
@@ -258,27 +452,70 @@ pub async fn admin_get(
             {
                 crate::runique_log!(level, resource = %resource_key, action = "bulk GET", "bulk");
             }
-            handle_bulk::handle_bulk_edit_get(&mut req, entry, &state, &params).await
+            handle_bulk::handle_bulk_edit_get(&mut req, entry, &state, &params, parent.as_ref())
+                .await
         }
     }
 }
 
-/// POST /admin/{resource}/{action}  (create)
+/// POST /admin/{resource}/{action}  (create, bulk) — flat.
 #[allow(private_interfaces)]
 pub async fn admin_post(
     headers: axum::http::HeaderMap,
     Path((resource_key, action)): Path<(String, String)>,
     Extension(state): Extension<Arc<PrototypeAdminState>>,
     Extension(current_user): Extension<CurrentUser>,
+    req: Request,
+) -> AppResult<Response> {
+    dispatch_collection_post(
+        RouteTarget::flat(resource_key, action),
+        state,
+        current_user,
+        headers,
+        req,
+    )
+    .await
+}
+
+/// POST /admin/{parent}/{parent_id}/{resource}/{action} — nested.
+#[allow(private_interfaces)]
+pub async fn admin_nested_post(
+    headers: axum::http::HeaderMap,
+    Path((parent_key, parent_id, resource_key, action)): Path<(String, String, String, String)>,
+    Extension(state): Extension<Arc<PrototypeAdminState>>,
+    Extension(current_user): Extension<CurrentUser>,
+    req: Request,
+) -> AppResult<Response> {
+    dispatch_collection_post(
+        RouteTarget::nested(parent_key, parent_id, resource_key, action),
+        state,
+        current_user,
+        headers,
+        req,
+    )
+    .await
+}
+
+async fn dispatch_collection_post(
+    target: RouteTarget,
+    state: Arc<PrototypeAdminState>,
+    current_user: CurrentUser,
+    headers: axum::http::HeaderMap,
     mut req: Request,
 ) -> AppResult<Response> {
+    let RouteTarget {
+        resource_key,
+        action,
+        parent,
+    } = target;
     let body = req.prisme.data.clone();
     let entry = state
         .registry
         .get(&resource_key)
         .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
 
-    let perms = inject_context(&mut req, &state, entry, &current_user);
+    let parent = resolve_scope(&entry.meta, parent)?;
+    let perms = inject_context(&mut req, &state, entry, &current_user, parent.as_ref());
     req.context.insert(ctx_common::LANG, &current_lang().code());
     check_csrf(&body, req.csrf_token.as_str())?;
 
@@ -303,7 +540,8 @@ pub async fn admin_post(
             "collection POST access check"
         );
     }
-    if let Some(resp) = enforce(access, &req.notices, &state.config.prefix, &resource_key).await {
+    let base = scope_base(&state.config.prefix, entry, parent.as_ref());
+    if let Some(resp) = enforce(access, &req.notices, &state.config.prefix, &base).await {
         return Ok(resp);
     }
 
@@ -316,7 +554,16 @@ pub async fn admin_post(
             {
                 crate::runique_log!(level, resource = %resource_key, action = "create POST", "crud");
             }
-            handle_create_post(&mut req, entry, body, &headers, &state, &current_user).await
+            handle_create_post(
+                &mut req,
+                entry,
+                body,
+                &headers,
+                &state,
+                &current_user,
+                parent.as_ref(),
+            )
+            .await
         }
         CollectionAction::Bulk => {
             if let Some(level) = crate::utils::runique_log::get_log()
@@ -326,7 +573,15 @@ pub async fn admin_post(
             {
                 crate::runique_log!(level, resource = %resource_key, action = "bulk POST", "bulk");
             }
-            handle_bulk_action(&mut req, entry, body, &state, &resource_key, &current_user).await
+            handle_bulk_action(
+                &mut req,
+                entry,
+                body,
+                &state,
+                &current_user,
+                parent.as_ref(),
+            )
+            .await
         }
         // `list` is rejected by `parse_post`; unreachable.
         CollectionAction::List => Err(Box::new(AppError::new(ErrorContext::not_found(
@@ -335,19 +590,65 @@ pub async fn admin_post(
     }
 }
 
-/// GET /admin/{resource}/{id}/{action}  (detail, edit, delete)
+/// GET /admin/{resource}/{id}/{action}  (detail, edit, delete) — flat.
 pub async fn admin_get_id(
     Path((resource_key, id, action)): Path<(String, String, String)>,
     Extension(state): Extension<Arc<PrototypeAdminState>>,
     Extension(current_user): Extension<CurrentUser>,
+    req: Request,
+) -> AppResult<Response> {
+    dispatch_member_get(
+        RouteTarget::flat(resource_key, action),
+        id,
+        state,
+        current_user,
+        req,
+    )
+    .await
+}
+
+/// GET /admin/{parent}/{parent_id}/{resource}/{id}/{action} — nested.
+pub async fn admin_nested_get_id(
+    Path((parent_key, parent_id, resource_key, id, action)): Path<(
+        String,
+        String,
+        String,
+        String,
+        String,
+    )>,
+    Extension(state): Extension<Arc<PrototypeAdminState>>,
+    Extension(current_user): Extension<CurrentUser>,
+    req: Request,
+) -> AppResult<Response> {
+    dispatch_member_get(
+        RouteTarget::nested(parent_key, parent_id, resource_key, action),
+        id,
+        state,
+        current_user,
+        req,
+    )
+    .await
+}
+
+async fn dispatch_member_get(
+    target: RouteTarget,
+    id: String,
+    state: Arc<PrototypeAdminState>,
+    current_user: CurrentUser,
     mut req: Request,
 ) -> AppResult<Response> {
+    let RouteTarget {
+        resource_key,
+        action,
+        parent,
+    } = target;
     let entry = state
         .registry
         .get(&resource_key)
         .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
 
-    let perms = inject_context(&mut req, &state, entry, &current_user);
+    let parent = resolve_scope(&entry.meta, parent)?;
+    let perms = inject_context(&mut req, &state, entry, &current_user, parent.as_ref());
     req.context.insert(ctx_common::LANG, &current_lang().code());
 
     let Some(act) = MemberAction::parse_get(&action) else {
@@ -359,7 +660,16 @@ pub async fn admin_get_id(
     if !perms.can_read {
         return Ok(permission_denied_dashboard(&req.notices, &state.config.prefix).await);
     }
-    let owns_record = check_owns_record(entry, req.engine.db.clone(), &id, current_user.id).await;
+    let closure_id = closure_id_of(parent.as_ref(), &id);
+    if let Some(p) = parent.as_ref()
+        && !verify_scope_ownership(entry, req.engine.db.clone(), &closure_id, p).await
+    {
+        return Err(Box::new(AppError::new(ErrorContext::not_found(
+            "Resource not found",
+        ))));
+    }
+    let owns_record =
+        check_owns_record(entry, req.engine.db.clone(), &closure_id, current_user.id).await;
     let access = act.authorize(&perms, owns_record);
     if let Some(level) = crate::utils::runique_log::get_log()
         .admin
@@ -376,7 +686,8 @@ pub async fn admin_get_id(
             "member GET access check"
         );
     }
-    if let Some(resp) = enforce(access, &req.notices, &state.config.prefix, &resource_key).await {
+    let base = scope_base(&state.config.prefix, entry, parent.as_ref());
+    if let Some(resp) = enforce(access, &req.notices, &state.config.prefix, &base).await {
         return Ok(resp);
     }
     match act {
@@ -388,7 +699,7 @@ pub async fn admin_get_id(
             {
                 crate::runique_log!(level, resource = %resource_key, id = %id, action = "detail", "crud");
             }
-            handle_detail(&mut req, entry, id, &state).await
+            handle_detail(&mut req, entry, id, &state, parent.as_ref(), &current_user).await
         }
         MemberAction::Edit => {
             if let Some(level) = crate::utils::runique_log::get_log()
@@ -398,7 +709,7 @@ pub async fn admin_get_id(
             {
                 crate::runique_log!(level, resource = %resource_key, id = %id, action = "edit GET", "crud");
             }
-            handle_edit_get(&mut req, entry, id, &state).await
+            handle_edit_get(&mut req, entry, id, &state, parent.as_ref()).await
         }
         MemberAction::Delete => {
             if let Some(level) = crate::utils::runique_log::get_log()
@@ -408,7 +719,7 @@ pub async fn admin_get_id(
             {
                 crate::runique_log!(level, resource = %resource_key, id = %id, action = "delete GET", "crud");
             }
-            handle_delete_get(&mut req, entry, id, &state).await
+            handle_delete_get(&mut req, entry, id, &state, parent.as_ref()).await
         }
         // `reset-password` is POST-only; rejected by `parse_get`, unreachable.
         MemberAction::ResetPassword => Err(Box::new(AppError::new(ErrorContext::not_found(
@@ -417,22 +728,73 @@ pub async fn admin_get_id(
     }
 }
 
-/// POST /admin/{resource}/{id}/{action}  (edit, delete)
+/// POST /admin/{resource}/{id}/{action}  (edit, delete, reset-password) — flat.
 #[allow(private_interfaces)]
 pub async fn admin_post_id(
     headers: axum::http::HeaderMap,
     Path((resource_key, id, action)): Path<(String, String, String)>,
     Extension(state): Extension<Arc<PrototypeAdminState>>,
     Extension(current_user): Extension<CurrentUser>,
+    req: Request,
+) -> AppResult<Response> {
+    dispatch_member_post(
+        RouteTarget::flat(resource_key, action),
+        id,
+        state,
+        current_user,
+        headers,
+        req,
+    )
+    .await
+}
+
+/// POST /admin/{parent}/{parent_id}/{resource}/{id}/{action} — nested.
+#[allow(private_interfaces)]
+pub async fn admin_nested_post_id(
+    headers: axum::http::HeaderMap,
+    Path((parent_key, parent_id, resource_key, id, action)): Path<(
+        String,
+        String,
+        String,
+        String,
+        String,
+    )>,
+    Extension(state): Extension<Arc<PrototypeAdminState>>,
+    Extension(current_user): Extension<CurrentUser>,
+    req: Request,
+) -> AppResult<Response> {
+    dispatch_member_post(
+        RouteTarget::nested(parent_key, parent_id, resource_key, action),
+        id,
+        state,
+        current_user,
+        headers,
+        req,
+    )
+    .await
+}
+
+async fn dispatch_member_post(
+    target: RouteTarget,
+    id: String,
+    state: Arc<PrototypeAdminState>,
+    current_user: CurrentUser,
+    headers: axum::http::HeaderMap,
     mut req: Request,
 ) -> AppResult<Response> {
+    let RouteTarget {
+        resource_key,
+        action,
+        parent,
+    } = target;
     let body = req.prisme.data.clone();
     let entry = state
         .registry
         .get(&resource_key)
         .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
 
-    let perms = inject_context(&mut req, &state, entry, &current_user);
+    let parent = resolve_scope(&entry.meta, parent)?;
+    let perms = inject_context(&mut req, &state, entry, &current_user, parent.as_ref());
     req.context.insert(ctx_common::LANG, &current_lang().code());
     check_csrf(&body, req.csrf_token.as_str())?;
 
@@ -441,7 +803,16 @@ pub async fn admin_post_id(
             "Unknown action",
         ))));
     };
-    let owns_record = check_owns_record(entry, req.engine.db.clone(), &id, current_user.id).await;
+    let closure_id = closure_id_of(parent.as_ref(), &id);
+    if let Some(p) = parent.as_ref()
+        && !verify_scope_ownership(entry, req.engine.db.clone(), &closure_id, p).await
+    {
+        return Err(Box::new(AppError::new(ErrorContext::not_found(
+            "Resource not found",
+        ))));
+    }
+    let owns_record =
+        check_owns_record(entry, req.engine.db.clone(), &closure_id, current_user.id).await;
     let access = act.authorize(&perms, owns_record);
     if let Some(level) = crate::utils::runique_log::get_log()
         .admin
@@ -458,7 +829,8 @@ pub async fn admin_post_id(
             "member POST access check"
         );
     }
-    if let Some(resp) = enforce(access, &req.notices, &state.config.prefix, &resource_key).await {
+    let base = scope_base(&state.config.prefix, entry, parent.as_ref());
+    if let Some(resp) = enforce(access, &req.notices, &state.config.prefix, &base).await {
         return Ok(resp);
     }
 
@@ -471,7 +843,16 @@ pub async fn admin_post_id(
             {
                 crate::runique_log!(level, resource = %resource_key, id = %id, action = "edit POST", "crud");
             }
-            handle_edit_post(&mut req, entry, id, body, &state, &current_user).await
+            handle_edit_post(
+                &mut req,
+                entry,
+                id,
+                body,
+                &state,
+                &current_user,
+                parent.as_ref(),
+            )
+            .await
         }
         MemberAction::Delete => {
             if let Some(level) = crate::utils::runique_log::get_log()
@@ -481,7 +862,7 @@ pub async fn admin_post_id(
             {
                 crate::runique_log!(level, resource = %resource_key, id = %id, action = "delete POST", "crud");
             }
-            handle_delete_post(&mut req, entry, id, &state, &current_user).await
+            handle_delete_post(&mut req, entry, id, &state, &current_user, parent.as_ref()).await
         }
         MemberAction::ResetPassword => {
             if let Some(level) = crate::utils::runique_log::get_log()
@@ -507,6 +888,7 @@ pub(super) fn inject_context(
     state: &PrototypeAdminState,
     entry: &ResourceEntry,
     current_user: &CurrentUser,
+    parent: Option<&ParentBinding>,
 ) -> ResourcePerms {
     for item in ["list", "create", "edit", "detail", "delete", "base"] {
         insert_admin_messages(&mut req.context, item);
@@ -523,6 +905,32 @@ pub(super) fn inject_context(
     req.context.insert(ctx_common::RESOURCE, &entry.meta);
     req.context
         .insert(ctx_list::GROUP_ACTIONS, &entry.group_actions);
+
+    // Single source of truth for action URLs: templates build every link from
+    // `resource_base`, which is scope-aware (flat or nested). See Bloc 6.
+    req.context.insert(
+        "resource_base",
+        &scope_base(&state.config.prefix, entry, parent),
+    );
+    match parent {
+        Some(p) => {
+            req.context.insert("parent_key", &p.parent_key);
+            req.context.insert("parent_id", &p.parent_id);
+            let parent_title = state
+                .registry
+                .get(&p.parent_key)
+                .map(|e| e.meta.title)
+                .unwrap_or(p.parent_key.as_str());
+            req.context.insert("parent_title", &parent_title);
+            req.context.insert(
+                "parent_base",
+                &flat_base_path(&state.config.prefix, &p.parent_key),
+            );
+        }
+        None => {
+            req.context.insert("parent_key", &Option::<String>::None);
+        }
+    }
 
     let visible_resources = state.registry.visible_to(current_user);
     req.context
@@ -545,17 +953,83 @@ pub(super) fn inject_context(
     perms
 }
 
+/// Scope-aware base path (`{prefix}/{key}` flat, `{prefix}/{parent}/{id}/{key}`
+/// nested) — the single place action URLs are assembled server-side.
+pub(super) fn scope_base(
+    prefix: &str,
+    entry: &ResourceEntry,
+    parent: Option<&ParentBinding>,
+) -> String {
+    match parent {
+        Some(p) => p.base_path(prefix, entry.meta.key),
+        None => flat_base_path(prefix, entry.meta.key),
+    }
+}
+
 /// Maps an [`Access`] decision to a redirect response, or `None` when granted.
+/// `base` is the scope-aware resource base (`enforce` redirects to `{base}/list`
+/// on a resource-level denial) so a nested denial never bounces to the blocked
+/// flat route.
 async fn enforce(
     access: Access,
     notices: &crate::flash::flash_manager::Message,
     prefix: &str,
-    resource_key: &str,
+    base: &str,
 ) -> Option<Response> {
     match access {
         Access::Granted => None,
         Access::DeniedDashboard => Some(permission_denied_dashboard(notices, prefix).await),
-        Access::DeniedResource => Some(permission_denied(notices, prefix, resource_key).await),
+        Access::DeniedResource => Some(permission_denied(notices, base).await),
+    }
+}
+
+/// Turns a local URL id segment into the id the CRUD closures expect
+/// (rebuilds the composite parent prefix for nested composite children).
+pub(super) fn closure_id_of(parent: Option<&ParentBinding>, local: &str) -> String {
+    parent.map_or_else(|| local.to_string(), |p| p.closure_id(local))
+}
+
+/// IDOR guard for a scoped child with its **own** PK (non-composite): verifies
+/// the target row actually belongs to the bound parent (`row[fk_col] == parent_id`),
+/// forbidding `/{parent}/A/{child}/{id}` from reaching a child of parent B.
+/// Composite children need no check — the parent id is baked into the closure id.
+async fn verify_scope_ownership(
+    entry: &ResourceEntry,
+    db: crate::utils::aliases::ADb,
+    closure_id: &str,
+    parent: &ParentBinding,
+) -> bool {
+    if parent.is_composite() {
+        return true;
+    }
+    let Some(get_fn) = &entry.get_fn else {
+        return false;
+    };
+    match get_fn(db, closure_id.to_string()).await {
+        Ok(Some(row)) => row
+            .get(parent.fk_col)
+            .map(|v| match v {
+                serde_json::Value::String(s) => s.clone(),
+                other => other.to_string(),
+            })
+            .is_some_and(|v| v == parent.parent_id),
+        Ok(None) => false,
+        Err(e) => {
+            if let Some(level) = crate::utils::runique_log::get_log()
+                .admin
+                .as_ref()
+                .and_then(|a| a.auth)
+            {
+                crate::runique_log!(
+                    level,
+                    resource = entry.meta.key,
+                    id = %closure_id,
+                    error = %e,
+                    "scope ownership check failed — denying access"
+                );
+            }
+            false
+        }
     }
 }
 
@@ -597,20 +1071,11 @@ async fn check_owns_record(
     field_val == user_id.to_string()
 }
 
-async fn permission_denied(
-    notices: &crate::flash::flash_manager::Message,
-    prefix: &str,
-    resource_key: &str,
-) -> Response {
+async fn permission_denied(notices: &crate::flash::flash_manager::Message, base: &str) -> Response {
     notices
         .error(t("admin.access.insufficient_rights").to_string())
         .await;
-    Redirect::to(&format!(
-        "{}/{}/list",
-        prefix.trim_end_matches('/'),
-        resource_key
-    ))
-    .into_response()
+    Redirect::to(&format!("{}/list", base)).into_response()
 }
 
 pub(super) async fn permission_denied_dashboard(
@@ -650,4 +1115,126 @@ fn check_csrf(body: &StrMap, session_token: &str) -> AppResult<()> {
         ))));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::admin::resource::AdminResource;
+
+    fn meta_child() -> AdminResource {
+        AdminResource::new("droits", "M", "F", "Droits", vec![]).parent_scope(
+            "groupes",
+            "groupe_id",
+            Some("resource_key"),
+        )
+    }
+
+    fn meta_own_pk_child() -> AdminResource {
+        AdminResource::new("lignes", "M", "F", "Lignes", vec![]).parent_scope(
+            "commandes",
+            "commande_id",
+            None,
+        )
+    }
+
+    fn meta_flat() -> AdminResource {
+        AdminResource::new("menus", "M", "F", "Menus", vec![])
+    }
+
+    fn binding_composite() -> ParentBinding {
+        ParentBinding {
+            parent_key: "groupes".into(),
+            parent_id: "2".into(),
+            fk_col: "groupe_id",
+            local_key: Some("resource_key"),
+        }
+    }
+
+    fn binding_own_pk() -> ParentBinding {
+        ParentBinding {
+            parent_key: "commandes".into(),
+            parent_id: "5".into(),
+            fk_col: "commande_id",
+            local_key: None,
+        }
+    }
+
+    #[test]
+    fn composite_closure_id_rebuilds_prefix() {
+        let b = binding_composite();
+        assert!(b.is_composite());
+        assert_eq!(b.closure_id("changelog_entry"), "2:changelog_entry");
+    }
+
+    #[test]
+    fn composite_local_id_strips_prefix() {
+        let b = binding_composite();
+        assert_eq!(b.local_id("2:changelog_entry"), "changelog_entry");
+        // A colon inside the local key must survive (only the first split counts).
+        assert_eq!(b.local_id("2:a:b"), "a:b");
+    }
+
+    #[test]
+    fn own_pk_child_ids_pass_through() {
+        let b = binding_own_pk();
+        assert!(!b.is_composite());
+        assert_eq!(b.closure_id("42"), "42");
+        assert_eq!(b.local_id("42"), "42");
+    }
+
+    #[test]
+    fn base_paths_are_scope_aware() {
+        let b = binding_composite();
+        assert_eq!(b.base_path("/admin", "droits"), "/admin/groupes/2/droits");
+        assert_eq!(b.base_path("/admin/", "droits"), "/admin/groupes/2/droits");
+        assert_eq!(flat_base_path("/admin", "menus"), "/admin/menus");
+    }
+
+    #[test]
+    fn build_binding_requires_matching_parent() {
+        // Correct parent → binding built.
+        let b = build_parent_binding(&meta_child(), "groupes", "2").unwrap();
+        assert_eq!(b.fk_col, "groupe_id");
+        assert_eq!(b.local_key, Some("resource_key"));
+        // Wrong parent key → rejected (forbids /wrong_parent/2/droits/...).
+        assert!(build_parent_binding(&meta_child(), "menus", "2").is_none());
+        // Resource without a parent_scope → never a valid child.
+        assert!(build_parent_binding(&meta_flat(), "groupes", "2").is_none());
+    }
+
+    #[test]
+    fn resolve_scope_nested_valid() {
+        let r = resolve_scope(&meta_child(), Some(("groupes".into(), "2".into())));
+        let binding = r.ok().flatten().expect("some binding");
+        assert_eq!(binding.parent_id, "2");
+    }
+
+    #[test]
+    fn resolve_scope_nested_wrong_parent_is_404() {
+        let r = resolve_scope(&meta_child(), Some(("menus".into(), "2".into())));
+        assert!(r.is_err());
+    }
+
+    #[test]
+    fn resolve_scope_flat_on_scoped_child_allowed() {
+        // A scoped child is only hidden from the nav, not route-blocked: a flat
+        // request stays allowed (superuser bypass / direct URL access).
+        let r = resolve_scope(&meta_child(), None);
+        assert!(matches!(r, Ok(None)));
+    }
+
+    #[test]
+    fn resolve_scope_flat_normal_resource_ok() {
+        let r = resolve_scope(&meta_flat(), None);
+        assert!(matches!(r, Ok(None)));
+    }
+
+    #[test]
+    fn resolve_scope_own_pk_child_nested_ok() {
+        let r = resolve_scope(&meta_own_pk_child(), Some(("commandes".into(), "5".into())));
+        let binding = r.ok().flatten().expect("some");
+        assert!(!binding.is_composite());
+        assert_eq!(binding.fk_col, "commande_id");
+    }
 }
