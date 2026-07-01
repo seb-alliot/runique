@@ -85,6 +85,13 @@ erDiagram
 
 ¹ `id`/`user_id` = `bigint` si feature `big-pk`, sinon `integer`.
 
+> **`resource_key` = référence molle (sans FK).** Dans `eihwaz_groupes_droits`, `resource_key`
+> pointe vers une clé du **registry en code** (pas une table `ressources`), donc la DB ne peut pas
+> en garantir l'intégrité → droits orphelins possibles si une ressource est renommée/supprimée.
+> Fermé côté applicatif par `prune_orphan_droits` au **boot** (supprime les droits dont
+> `resource_key ∉ registry`). Côté présentation, un droit est éditable comme **ressource enfant
+> scopée** du groupe (`/groupes/{id}/droits/…`) sans changement de schéma.
+
 ## Ordre de création (migrations clé-en-main)
 
 ```mermaid
