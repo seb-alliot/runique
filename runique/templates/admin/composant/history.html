@@ -42,7 +42,7 @@
   </div>
 
   <div class="admin-table-wrapper">
-    <table class="admin-table">
+    <table class="admin-table admin-table--history">
       <thead>
         <tr>
           <th>Date</th>
@@ -57,19 +57,21 @@
         {% if entries %}
           {% for entry in entries %}
           <tr>
-            <td class="td-nowrap">{{ entry.created_at | format_date }}</td>
-            <td class="col-secondary"><span class="id-badge">{{ entry.username }}</span></td>
-            <td class="col-secondary">{{ resource_titles[entry.resource_key] | default(value=entry.resource_key) }}</td>
-            <td class="col-secondary">
+            <td class="td-nowrap" data-label="Date">{{ entry.created_at | format_date }}</td>
+            <td class="col-secondary" data-label="Utilisateur"><span class="id-badge">{{ entry.username }}</span></td>
+            <td class="col-secondary" data-label="Ressource">{{ resource_titles[entry.resource_key] | default(value=entry.resource_key) }}</td>
+            <td class="col-secondary" data-label="Objet">
               {% if entry.batch_count > 1 %}
                 <span class="text-muted">{{ entry.batch_count }} objets</span>
+              {% elif entry.object_label %}
+                <span title="#{{ entry.object_pk }}">{{ entry.object_label }}</span>
               {% elif entry.object_pk and entry.object_pk != "" %}
-                <span class="id-badge">{{ entry.object_pk }}</span>
+                <span class="id-badge">#{{ entry.object_pk }}</span>
               {% else %}
                 <span class="text-muted">—</span>
               {% endif %}
             </td>
-            <td>
+            <td data-label="Action">
               {% if entry.batch_count > 1 %}
                 {% if entry.action == "edit" %}
                   <span class="badge badge-blue">{{ entry.batch_count }} modifiés</span>
@@ -107,12 +109,12 @@
         {% else %}
           <tr>
             <td colspan="5">
-              <div class="empty-state">
-                <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <div class="admin-empty-state">
+                <svg class="admin-empty-state__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                   <circle cx="12" cy="12" r="10"/>
                   <polyline points="12 6 12 12 16 14"/>
                 </svg>
-                <p class="empty-state-title">Aucune action enregistrée</p>
+                <p class="admin-empty-state__title">Aucune action enregistrée</p>
               </div>
             </td>
           </tr>

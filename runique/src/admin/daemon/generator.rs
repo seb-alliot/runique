@@ -373,73 +373,36 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         out,
         "            let db_rows = query.offset(params.offset).limit(params.limit).all(&*db).await?;"
     );
-    let has_fk = r.list_display.iter().any(|(_, _, fk)| fk.is_some());
-    let rows_binding = if has_fk { "let mut rows" } else { "let rows" };
     let _ = writeln!(
         out,
-        "            {rows_binding}: Vec<serde_json::Value> = db_rows.into_iter()",
-        rows_binding = rows_binding
+        "            let rows: Vec<serde_json::Value> = db_rows.into_iter()"
     );
     let _ = writeln!(
         out,
         "                .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))"
     );
     let _ = writeln!(out, "                .collect();");
-    // FK resolution blocks — fonctionne pour i32, i64 et UUID (clé String unifiée)
+    // FK display columns are resolved at the display layer (handle_list / detail /
+    // delete) via the meta, never here — so the edit form keeps the raw id and
+    // pre-selects the right option. `fk_display_specs` feeds `meta.fk_display(...)`.
     let fk_cols: Vec<_> = r
         .list_display
         .iter()
         .filter(|(_, _, fk)| fk.is_some())
         .collect();
-    for (col, _, fk_opt) in &fk_cols {
-        let fk = fk_opt.as_ref().unwrap();
-        let safe_var = col.replace('.', "_");
-        let _ = writeln!(out, "            {{");
-        let _ = writeln!(out, "                use sea_orm::ConnectionTrait;");
-        // Extrait l'ID comme String que ce soit un entier ou un UUID
-        let _ = writeln!(
-            out,
-            "                let fk_ids: Vec<String> = rows.iter().filter_map(|r| r.get(\"{col}\").and_then(|v| v.as_i64().map(|n| n.to_string()).or_else(|| v.as_str().map(str::to_string)))).collect::<std::collections::HashSet<String>>().into_iter().collect();",
-            col = col
-        );
-        let _ = writeln!(out, "                if !fk_ids.is_empty() {{");
-        // Valeurs liées via is_in — aucune donnée n'est interpolée dans le SQL.
-        // (ExprTrait est déjà importé en tête de la closure list_fn.)
-        // CAST(id AS TEXT) → compatible i32, i64, UUID
-        let _ = writeln!(
-            out,
-            "                    let _fk_stmt_{safe} = sea_orm::sea_query::Query::select().expr(sea_orm::sea_query::Expr::cust(\"CAST(id AS TEXT)\")).expr(sea_orm::sea_query::Expr::cust(\"{fk_col}\")).from(sea_orm::sea_query::Alias::new(\"{fk_table}\")).and_where(sea_orm::sea_query::Expr::cust(\"CAST(id AS TEXT)\").is_in(fk_ids.clone())).to_owned();",
-            safe = safe_var,
-            fk_col = fk.col,
-            fk_table = fk.table,
-        );
-        let _ = writeln!(
-            out,
-            "                    let label_map_{safe}: std::collections::HashMap<String, String> = db.query_all(&_fk_stmt_{safe}).await.unwrap_or_default().iter().filter_map(|row| {{ let id = row.try_get_by_index::<String>(0).ok()?; let label = row.try_get_by_index::<String>(1).ok()?; Some((id, label)) }}).collect();",
-            safe = safe_var,
-        );
-        let _ = writeln!(out, "                    for row in &mut rows {{");
-        // Extrait la clé String pour le lookup (même logique que pour fk_ids)
-        let _ = writeln!(
-            out,
-            "                        if let Some(key) = row.get(\"{col}\").and_then(|v| v.as_i64().map(|n| n.to_string()).or_else(|| v.as_str().map(str::to_string)))",
-            col = col
-        );
-        let _ = writeln!(
-            out,
-            "                            && let Some(label) = label_map_{safe}.get(&key) {{",
-            safe = safe_var
-        );
-        let _ = writeln!(
-            out,
-            "                            row[\"{col}\"] = serde_json::Value::String(label.clone());",
-            col = col
-        );
-        let _ = writeln!(out, "                        }}");
-        let _ = writeln!(out, "                    }}");
-        let _ = writeln!(out, "                }}");
-        let _ = writeln!(out, "            }}");
-    }
+    let fk_display_specs: String = fk_cols
+        .iter()
+        .map(|(col, _, fk_opt)| {
+            let fk = fk_opt.as_ref().unwrap();
+            format!(
+                "({c:?}.to_string(), {t:?}.to_string(), {fc:?}.to_string())",
+                c = col,
+                t = fk.table,
+                fc = fk.col
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(", ");
     let _ = writeln!(out, "            Ok(rows)");
     let _ = writeln!(out, "        }})");
     let _ = writeln!(out, "    }});");
@@ -478,61 +441,12 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         "            let row = {}::Entity::find_by_id(id).one(&*db).await?;",
         module
     );
-    if fk_cols.is_empty() {
-        let _ = writeln!(
-            out,
-            "            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))"
-        );
-    } else {
-        let _ = writeln!(
-            out,
-            "            let Some(model) = row else {{ return Ok(None); }};"
-        );
-        let _ = writeln!(
-            out,
-            "            let mut row = serde_json::to_value(model).unwrap_or(serde_json::Value::Null);"
-        );
-        for (col, _, fk_opt) in &fk_cols {
-            let fk = fk_opt.as_ref().unwrap();
-            let safe_var = col.replace('.', "_");
-            let _ = writeln!(out, "            {{");
-            let _ = writeln!(out, "                use sea_orm::ConnectionTrait;");
-            let _ = writeln!(
-                out,
-                "                if let Some(fk_key) = row.get(\"{col}\").and_then(|v| v.as_i64().map(|n| n.to_string()).or_else(|| v.as_str().map(str::to_string))) {{",
-                col = col
-            );
-            let _ = writeln!(
-                out,
-                "                    use sea_orm::sea_query::ExprTrait;"
-            );
-            let _ = writeln!(
-                out,
-                "                    let _fk_stmt_{safe} = sea_orm::sea_query::Query::select().expr(sea_orm::sea_query::Expr::cust(\"CAST(id AS TEXT)\")).expr(sea_orm::sea_query::Expr::cust(\"{fk_col}\")).from(sea_orm::sea_query::Alias::new(\"{fk_table}\")).and_where(sea_orm::sea_query::Expr::cust(\"CAST(id AS TEXT)\").eq(fk_key.clone())).to_owned();",
-                safe = safe_var,
-                fk_col = fk.col,
-                fk_table = fk.table,
-            );
-            let _ = writeln!(
-                out,
-                "                    if let Some(fk_row) = db.query_one(&_fk_stmt_{safe}).await.ok().flatten()",
-                safe = safe_var,
-            );
-            let _ = writeln!(
-                out,
-                "                        && let Ok(label) = fk_row.try_get_by_index::<String>(1) {{"
-            );
-            let _ = writeln!(
-                out,
-                "                        row[\"{col}\"] = serde_json::Value::String(label);",
-                col = col
-            );
-            let _ = writeln!(out, "                    }}");
-            let _ = writeln!(out, "                }}");
-            let _ = writeln!(out, "            }}");
-        }
-        let _ = writeln!(out, "            Ok(Some(row))");
-    }
+    // Raw model — FK ids are NOT resolved here (edit reuses this to pre-fill the
+    // form). Display views resolve via `meta.fk_display`.
+    let _ = writeln!(
+        out,
+        "            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))"
+    );
     let _ = writeln!(out, "        }})");
     let _ = writeln!(out, "    }});");
     let _ = writeln!(out);
@@ -819,6 +733,14 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     if !r.list_display.is_empty() || !r.list_exclude.is_empty() || !r.list_filter.is_empty() {
         let chain = build_display_chain(&r.list_display, &r.list_exclude, &r.list_filter);
         let _ = writeln!(out, "    let meta = meta.display({});", chain);
+    }
+
+    // FK display specs — consumed by the display handlers to resolve FK ids to labels.
+    if !fk_display_specs.is_empty() {
+        let _ = writeln!(
+            out,
+            "    let meta = meta.fk_display(vec![{fk_display_specs}]);"
+        );
     }
 
     // FilterFn closure (distinct values for each configured column)

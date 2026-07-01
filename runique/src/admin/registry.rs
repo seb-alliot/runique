@@ -2,7 +2,8 @@
 use indexmap::IndexMap;
 
 use crate::admin::helper::resource_entry::ResourceEntry;
-use crate::admin::resource::DisplayConfig;
+use crate::admin::resource::{AdminResource, DisplayConfig};
+use crate::auth::session::CurrentUser;
 
 /// Admin resource registry — IndexMap key → ResourceEntry.
 ///
@@ -33,6 +34,31 @@ impl AdminRegistry {
 
     pub fn all(&self) -> impl Iterator<Item = &ResourceEntry> {
         self.resources.values()
+    }
+
+    /// Single source of truth for admin visibility: superuser sees everything,
+    /// otherwise only resources the user has read access to. Keep this the only
+    /// place the rule lives so a change can't leak a resource in one view but
+    /// not another.
+    fn can_see(user: &CurrentUser, entry: &ResourceEntry) -> bool {
+        user.is_superuser || user.can_access_resource(entry.meta.key)
+    }
+
+    /// Resource metadata the user is allowed to see (for nav / filters).
+    pub fn visible_to<'a>(&'a self, user: &CurrentUser) -> Vec<&'a AdminResource> {
+        self.all()
+            .filter(|e| Self::can_see(user, e))
+            .map(|e| &e.meta)
+            .collect()
+    }
+
+    /// Keys of the resources the user may see — used to scope history queries
+    /// so a staff member never sees audit rows for resources they can't access.
+    pub fn accessible_keys(&self, user: &CurrentUser) -> Vec<String> {
+        self.all()
+            .filter(|e| Self::can_see(user, e))
+            .map(|e| e.meta.key.to_string())
+            .collect()
     }
 
     pub fn is_empty(&self) -> bool {

@@ -81,7 +81,14 @@ pub(super) async fn handle_list(
             }
         }
     );
-    let entries = entries_result.map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?;
+    let mut entries =
+        entries_result.map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?;
+    crate::admin::helper::resolve_fk_labels(
+        req.engine.db.as_ref(),
+        &mut entries,
+        &entry.meta.fk_display,
+    )
+    .await;
     let count = count_result.map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?;
     if let Some(level) = crate::utils::runique_log::get_log()
         .admin

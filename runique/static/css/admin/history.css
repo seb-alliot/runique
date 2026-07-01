@@ -217,3 +217,33 @@
     .diff-table td { padding: 0.5rem 0.75rem; }
     .admin-table th { width: 46%;}
 }
+
+/* ── Mobile : rendu carte label:valeur (≤480px) ───────────────────
+   responsive.css transforme déjà tr en carte et td en flex pour toute
+   .admin-table:not(--resources). Mais la history utilise des classes de
+   cellule legacy (col-secondary, td-actions…) non ciblées par le rendu
+   carte des listes de ressources, donc les libellés de champ manquaient.
+   On les régénère ici depuis data-label. */
+@media (max-width: 480px) {
+    .admin-table--history tbody td[data-label] {
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.35rem 0;
+    }
+
+    .admin-table--history tbody td[data-label]::before {
+        content: attr(data-label);
+        flex-shrink: 0;
+        font-size: 0.72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-muted);
+    }
+
+    /* Cellule action (bouton diff/lot) : pas de label, bouton aligné à droite */
+    .admin-table--history tbody td.td-actions {
+        justify-content: flex-end;
+        padding-top: 0.5rem;
+    }
+}

@@ -59,6 +59,10 @@ serde.workspace = true
 serde_json.workspace = true
 serde_urlencoded.workspace = true
 form_urlencoded.workspace = true
+# Pin transitif (cookie/tower-sessions) : sans une déclaration directe ici, le
+# `time = "=0.3.47"` de [workspace.dependencies] reste inerte et `cargo install`
+# reprend time 0.3.52 (qui casse cookie 0.18.1).
+time.workspace = true
 
 # Templates
 tera.workspace = true

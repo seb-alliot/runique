@@ -17,7 +17,7 @@
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
-    padding: 1rem 1.25rem;
+    padding: 0.8rem 0.9rem;
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -363,6 +363,9 @@ th.admin-table__col-num { color: var(--text-muted); font-weight: 600; }
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    /* width:100% : sur mobile la cellule parente passe en flex-row (rendu carte),
+       sans cela l'empty-state se réduit à son contenu et se colle à gauche. */
+    width: 100%;
     padding: 3rem 1rem;
     color: var(--text-muted);
     gap: 0.75rem;
