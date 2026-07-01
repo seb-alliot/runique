@@ -1,4 +1,5 @@
 use super::format_datetime;
+use super::{ParentBinding, closure_id_of, scope_base};
 use crate::admin::helper::resource_entry::ResourceEntry;
 use crate::admin::history;
 use crate::auth::session::CurrentUser;
@@ -46,14 +47,55 @@ pub(super) fn value_to_strmap(v: Value) -> StrMap {
     map
 }
 
+/// Forces the parent-scope identity columns into submitted data, so a nested
+/// create/edit always writes the parent from the (authorized) URL path — never
+/// a value the client could tamper with in the hidden field. On edit the local
+/// key is also pinned so a composite child's identity can't drift.
+fn force_scope_values(data: &mut StrMap, parent: &ParentBinding, local_id: Option<&str>) {
+    data.insert(parent.fk_col.to_string(), parent.parent_id.clone());
+    if let (Some(col), Some(local)) = (parent.local_key, local_id) {
+        data.insert(col.to_string(), local.to_string());
+    }
+}
+
+/// Replaces the parent-scope fields in a built form with hidden inputs carrying
+/// the fixed values, so the picker (FK select / local-key widget) disappears and
+/// the value is submitted as-is. `local_id` = `Some` on edit (pins the local key
+/// of a composite child), `None` on create (the local key stays user-chosen).
+fn hide_scope_fields(
+    form: &mut Box<dyn crate::admin::helper::dyn_form::DynForm>,
+    parent: &ParentBinding,
+    local_id: Option<&str>,
+) {
+    use crate::forms::base::FormField;
+    use crate::forms::fields::HiddenField;
+
+    let mut fk = HiddenField::new(parent.fk_col);
+    fk.set_value(&parent.parent_id);
+    form.get_form_mut()
+        .fields
+        .insert(parent.fk_col.to_string(), Box::new(fk));
+
+    if let (Some(col), Some(local)) = (parent.local_key, local_id) {
+        let mut lk = HiddenField::new(col);
+        lk.set_value(local);
+        form.get_form_mut()
+            .fields
+            .insert(col.to_string(), Box::new(lk));
+    }
+}
+
 pub(super) async fn handle_detail(
     req: &mut Request,
     entry: &ResourceEntry,
     id: String,
     state: &super::PrototypeAdminState,
+    parent: Option<&ParentBinding>,
+    current_user: &CurrentUser,
 ) -> AppResult<Response> {
+    let closure_id = closure_id_of(parent, &id);
     let object = match &entry.get_fn {
-        Some(f) => f(req.engine.db.clone(), id.clone())
+        Some(f) => f(req.engine.db.clone(), closure_id.clone())
             .await
             .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?,
         None => None,
@@ -66,6 +108,9 @@ pub(super) async fn handle_detail(
             &entry.meta.fk_display,
         )
         .await;
+        if let Some(apply_enum_labels) = entry.enum_label_fn {
+            apply_enum_labels(&mut v);
+        }
         format_datetime(&mut v);
         req.context.insert(ctx_detail::ENTRY, &v);
     }
@@ -75,9 +120,15 @@ pub(super) async fn handle_detail(
         &*crate::utils::constante::parse::RICH_CONTENT_FIELDS,
     );
     if let Some(loader) = &entry.m2m_loader {
-        let m2m_fields = loader(req.engine.db.clone(), Some(id.clone())).await;
+        let m2m_fields = loader(req.engine.db.clone(), Some(closure_id.clone())).await;
         req.context.insert("m2m_fields", &m2m_fields);
     }
+    // Inline sub-lists: resources scoped as children of this one, filtered to it
+    // (e.g. a group's rights on its detail page). Empty for resources with none.
+    let inlines =
+        super::handle_inline::build_inlines(req.engine.db.clone(), state, entry, &id, current_user)
+            .await;
+    req.context.insert("inlines", &inlines);
     let template = entry
         .meta
         .template_detail
@@ -90,6 +141,7 @@ pub(super) async fn handle_create_get(
     req: &mut Request,
     entry: &ResourceEntry,
     state: &super::PrototypeAdminState,
+    parent: Option<&ParentBinding>,
 ) -> AppResult<Response> {
     let tera = req.engine.tera.clone();
     let csrf = req
@@ -103,15 +155,24 @@ pub(super) async fn handle_create_get(
         .all()
         .map(|e| e.meta.key.to_string())
         .collect::<Vec<_>>();
+    // Pre-fill the parent FK so a pre-selected picker (if any) is correct before
+    // we hide it.
+    let mut initial = StrMap::new();
+    if let Some(p) = parent {
+        force_scope_values(&mut initial, p, None);
+    }
     let mut form = (entry.form_builder)(
         req.engine.db.clone(),
         resource_keys,
-        StrMap::new(),
+        initial,
         tera,
         csrf,
         axum::http::Method::GET,
     )
     .await;
+    if let Some(p) = parent {
+        hide_scope_fields(&mut form, p, None);
+    }
 
     if let Some(loader) = &entry.m2m_loader {
         let m2m_fields = loader(req.engine.db.clone(), None).await;
@@ -136,7 +197,12 @@ pub(super) async fn handle_create_post(
     headers: &axum::http::HeaderMap,
     state: &super::PrototypeAdminState,
     current_user: &CurrentUser,
+    parent: Option<&ParentBinding>,
 ) -> AppResult<Response> {
+    // Trusted parent scope from the URL path — overrides any client-supplied FK.
+    if let Some(p) = parent {
+        force_scope_values(&mut body, p, None);
+    }
     if entry.meta.inject_password && body.get("password").is_some_and(|p| p.is_empty()) {
         let temp_pw = uuid::Uuid::new_v4().to_string();
         if let Ok(hash) = crate::utils::password::hash(&temp_pw) {
@@ -166,6 +232,9 @@ pub(super) async fn handle_create_post(
         axum::http::Method::POST,
     )
     .await;
+    if let Some(p) = parent {
+        hide_scope_fields(&mut form, p, None);
+    }
     let valid = form.is_valid().await;
     if let Some(level) = crate::utils::runique_log::get_log()
         .admin
@@ -284,9 +353,8 @@ pub(super) async fn handle_create_post(
             .success(t("admin.create.success").to_string())
             .await;
         return Ok(Redirect::to(&format!(
-            "{}/{}/list",
-            state.config.prefix.trim_end_matches('/'),
-            entry.meta.key
+            "{}/list",
+            scope_base(&state.config.prefix, entry, parent)
         ))
         .into_response());
     }
@@ -312,7 +380,9 @@ pub(super) async fn handle_edit_get(
     entry: &ResourceEntry,
     id: String,
     state: &super::PrototypeAdminState,
+    parent: Option<&ParentBinding>,
 ) -> AppResult<Response> {
+    let closure_id = closure_id_of(parent, &id);
     let tera = req.engine.tera.clone();
     let csrf = req
         .csrf_token
@@ -322,7 +392,7 @@ pub(super) async fn handle_edit_get(
         .to_string();
 
     let data = match &entry.get_fn {
-        Some(f) => f(req.engine.db.clone(), id.clone())
+        Some(f) => f(req.engine.db.clone(), closure_id.clone())
             .await
             .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?
             .map(value_to_strmap)
@@ -348,6 +418,9 @@ pub(super) async fn handle_edit_get(
         axum::http::Method::GET,
     )
     .await;
+    if let Some(p) = parent {
+        hide_scope_fields(&mut form, p, Some(&id));
+    }
 
     if let Some(ts) = data.get("updated_at") {
         req.context.insert(ctx_edit::ORIG_UPDATED_AT, ts);
@@ -362,7 +435,7 @@ pub(super) async fn handle_edit_get(
         .unwrap_or_default();
 
     if let Some(loader) = &entry.m2m_loader {
-        let m2m_fields = loader(req.engine.db.clone(), Some(id.clone())).await;
+        let m2m_fields = loader(req.engine.db.clone(), Some(closure_id.clone())).await;
         req.context.insert("m2m_fields", &m2m_fields);
     }
 
@@ -386,12 +459,18 @@ pub(super) async fn handle_edit_post(
     body: StrMap,
     state: &super::PrototypeAdminState,
     current_user: &CurrentUser,
+    parent: Option<&ParentBinding>,
 ) -> AppResult<Response> {
+    let closure_id = closure_id_of(parent, &id);
     let mut body_for_update = body.clone();
     let orig_updated_at = body_for_update.remove("__original_updated_at");
     let return_qs = body_for_update
         .remove("return_qs")
         .filter(|s| !s.is_empty());
+    // Trusted parent scope from the URL path — the identity columns can't drift.
+    if let Some(p) = parent {
+        force_scope_values(&mut body_for_update, p, Some(&id));
+    }
 
     let tera = req.engine.tera.clone();
     let csrf = req
@@ -418,6 +497,9 @@ pub(super) async fn handle_edit_post(
         axum::http::Method::PATCH,
     )
     .await;
+    if let Some(p) = parent {
+        hide_scope_fields(&mut form, p, Some(&id));
+    }
 
     let mut is_locked = false;
     let is_form_valid = form.is_valid().await;
@@ -431,7 +513,7 @@ pub(super) async fn handle_edit_post(
 
     let old_obj: Option<Value> = if is_form_valid {
         if let Some(get_fn) = &entry.get_fn {
-            get_fn(req.engine.db.clone(), id.clone())
+            get_fn(req.engine.db.clone(), closure_id.clone())
                 .await
                 .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?
         } else {
@@ -486,7 +568,7 @@ pub(super) async fn handle_edit_post(
             .as_ref()
             .and_then(|v| history::diff_fields(v, &body_for_update));
         let result = match &entry.update_fn {
-            Some(f) => f(req.engine.db.clone(), id.clone(), body_for_update).await,
+            Some(f) => f(req.engine.db.clone(), closure_id.clone(), body_for_update).await,
             None => form.save(&req.engine.db).await,
         };
         if let Err(e) = result {
@@ -516,7 +598,7 @@ pub(super) async fn handle_edit_post(
                         user_id: current_user.id,
                         username: &current_user.username,
                         resource_key: entry.meta.key,
-                        object_pk: &id,
+                        object_pk: &closure_id,
                         action: "edit",
                         summary,
                         batch_id: None,
@@ -527,18 +609,10 @@ pub(super) async fn handle_edit_post(
             req.notices
                 .success(t("admin.edit.success").to_string())
                 .await;
+            let base = scope_base(&state.config.prefix, entry, parent);
             let list_url = match return_qs {
-                Some(qs) => format!(
-                    "{}/{}/list?{}",
-                    state.config.prefix.trim_end_matches('/'),
-                    entry.meta.key,
-                    qs
-                ),
-                None => format!(
-                    "{}/{}/list",
-                    state.config.prefix.trim_end_matches('/'),
-                    entry.meta.key
-                ),
+                Some(qs) => format!("{}/list?{}", base, qs),
+                None => format!("{}/list", base),
             };
             return Ok(Redirect::to(&list_url).into_response());
         }
@@ -549,7 +623,7 @@ pub(super) async fn handle_edit_post(
     }
 
     if let Some(loader) = &entry.m2m_loader {
-        let m2m_fields = loader(req.engine.db.clone(), Some(id.clone())).await;
+        let m2m_fields = loader(req.engine.db.clone(), Some(closure_id.clone())).await;
         req.context.insert("m2m_fields", &m2m_fields);
     }
 
@@ -572,9 +646,11 @@ pub(super) async fn handle_delete_get(
     entry: &ResourceEntry,
     id: String,
     state: &super::PrototypeAdminState,
+    parent: Option<&ParentBinding>,
 ) -> AppResult<Response> {
+    let closure_id = closure_id_of(parent, &id);
     let object = match &entry.get_fn {
-        Some(f) => f(req.engine.db.clone(), id.clone())
+        Some(f) => f(req.engine.db.clone(), closure_id.clone())
             .await
             .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?,
         None => None,
@@ -587,6 +663,9 @@ pub(super) async fn handle_delete_get(
             &entry.meta.fk_display,
         )
         .await;
+        if let Some(apply_enum_labels) = entry.enum_label_fn {
+            apply_enum_labels(&mut v);
+        }
         req.context.insert(ctx_detail::ENTRY, &v);
     }
     req.context.insert(ctx_detail::OBJECT_ID, &id);
@@ -604,14 +683,16 @@ pub(super) async fn handle_delete_post(
     id: String,
     state: &super::PrototypeAdminState,
     current_user: &CurrentUser,
+    parent: Option<&ParentBinding>,
 ) -> AppResult<Response> {
+    let closure_id = closure_id_of(parent, &id);
     let delete_fn = entry.delete_fn.as_ref().ok_or_else(|| {
         Box::new(AppError::new(ErrorContext::not_found(
             t("admin.delete.not_found").as_ref(),
         )))
     })?;
 
-    let delete_result = delete_fn(req.engine.db.clone(), id.clone()).await;
+    let delete_result = delete_fn(req.engine.db.clone(), closure_id.clone()).await;
     if let Some(level) = crate::utils::runique_log::get_log()
         .admin
         .as_ref()
@@ -634,7 +715,7 @@ pub(super) async fn handle_delete_post(
             user_id: current_user.id,
             username: &current_user.username,
             resource_key: entry.meta.key,
-            object_pk: &id,
+            object_pk: &closure_id,
             action: "delete",
             summary: None,
             batch_id: None,
@@ -651,18 +732,10 @@ pub(super) async fn handle_delete_post(
         .get("return_qs")
         .filter(|s| !s.is_empty())
         .cloned();
+    let base = scope_base(&state.config.prefix, entry, parent);
     let list_url = match return_qs {
-        Some(qs) => format!(
-            "{}/{}/list?{}",
-            state.config.prefix.trim_end_matches('/'),
-            entry.meta.key,
-            qs
-        ),
-        None => format!(
-            "{}/{}/list",
-            state.config.prefix.trim_end_matches('/'),
-            entry.meta.key
-        ),
+        Some(qs) => format!("{}/list?{}", base, qs),
+        None => format!("{}/list", base),
     };
     Ok(Redirect::to(&list_url).into_response())
 }

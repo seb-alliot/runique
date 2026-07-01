@@ -193,7 +193,16 @@ fn write_admin_register(out: &mut String, parsed: &ParsedAdmin) -> Result<(), St
     );
     let _ = writeln!(
         out,
-        "        .route(&format!(\"{{}}/{{{{resource}}}}/{{{{id}}}}/{{{{action}}}}\", p), get(admin_get_id).post(admin_post_id));"
+        "        .route(&format!(\"{{}}/{{{{resource}}}}/{{{{id}}}}/{{{{action}}}}\", p), get(admin_get_id).post(admin_post_id))"
+    );
+    // Nested (scoped child) routes: /{parent}/{parent_id}/{resource}/[{id}/]{action}
+    let _ = writeln!(
+        out,
+        "        .route(&format!(\"{{}}/{{{{parent}}}}/{{{{parent_id}}}}/{{{{resource}}}}/{{{{action}}}}\", p), get(admin_nested_get).post(admin_nested_post))"
+    );
+    let _ = writeln!(
+        out,
+        "        .route(&format!(\"{{}}/{{{{parent}}}}/{{{{parent_id}}}}/{{{{resource}}}}/{{{{id}}}}/{{{{action}}}}\", p), get(admin_nested_get_id).post(admin_nested_post_id));"
     );
     let _ = writeln!(out, "    runique::admin::AdminRoutes::new(p, router)");
     let _ = writeln!(out, "}}");
@@ -362,6 +371,16 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         "                query = query.filter(Expr::col(Alias::new(col.as_str())).cast_as(Alias::new(\"TEXT\")).eq(val.clone()));"
     );
     let _ = writeln!(out, "            }}");
+    // Trusted parent scope (framework-injected) — applied unconditionally, bypasses FILTER_COLS.
+    let _ = writeln!(
+        out,
+        "            if let Some((col, val)) = &params.scope && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_') {{"
+    );
+    let _ = writeln!(
+        out,
+        "                query = query.filter(Expr::col(Alias::new(col.as_str())).cast_as(Alias::new(\"TEXT\")).eq(val.clone()));"
+    );
+    let _ = writeln!(out, "            }}");
     let _ = writeln!(
         out,
         "            if let Some(ref search_str) = params.search {{"
@@ -411,10 +430,13 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     // CountFn closure
     let _ = writeln!(
         out,
-        "    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {{"
+        "    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>, scope: Option<(String, String)>| {{"
     );
     let _ = writeln!(out, "        Box::pin(async move {{");
-    let _ = writeln!(out, "            use sea_orm::QueryFilter;");
+    let _ = writeln!(
+        out,
+        "            use sea_orm::{{QueryFilter, sea_query::{{Alias, Expr, ExprTrait}}}};"
+    );
     let _ = writeln!(
         out,
         "            let mut query = {}::Entity::find();",
@@ -423,6 +445,16 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     let _ = writeln!(out, "            if let Some(ref search_str) = _search {{");
     write_search_conditions(out, &r.list_display, &module);
     let _ = writeln!(out, "                query = query.filter(search_cond);");
+    let _ = writeln!(out, "            }}");
+    // Mirror list_fn's trusted parent scope so a scoped list paginates on its scoped total.
+    let _ = writeln!(
+        out,
+        "            if let Some((col, val)) = &scope && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_') {{"
+    );
+    let _ = writeln!(
+        out,
+        "                query = query.filter(Expr::col(Alias::new(col.as_str())).cast_as(Alias::new(\"TEXT\")).eq(val.clone()));"
+    );
     let _ = writeln!(out, "            }}");
     let _ = writeln!(out, "            query.count(&*db).await");
     let _ = writeln!(out, "        }})");
@@ -832,6 +864,11 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     }
     let _ = writeln!(out, "            .with_list_fn(list_fn)");
     let _ = writeln!(out, "            .with_get_fn(get_fn)");
+    let _ = writeln!(
+        out,
+        "            .with_enum_label_fn({}::apply_enum_labels)",
+        module
+    );
     let _ = writeln!(out, "            .with_delete_fn(delete_fn)");
     let _ = writeln!(out, "            .with_create_fn(create_fn)");
     let _ = writeln!(out, "            .with_update_fn(update_fn)");

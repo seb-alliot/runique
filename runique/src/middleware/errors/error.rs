@@ -49,8 +49,15 @@ pub struct RequestInfoHelper {
     pub headers: StrMap,
 }
 
-/// Principal Runique middleware with tracing + debug
-#[instrument(name = "RuniqueRequest", skip(tera, config, next))]
+/// Principal Runique middleware with tracing + debug.
+///
+/// The span records only `method` + `uri` — never the full `request` Debug, which
+/// would dump every header onto every child log line and drown the console.
+#[instrument(
+    name = "RuniqueRequest",
+    skip(tera, config, next, request),
+    fields(method = %request.method(), uri = %request.uri())
+)]
 pub async fn error_handler_middleware(
     Extension(tera): Extension<ATera>,
     Extension(config): Extension<ARuniqueConfig>,

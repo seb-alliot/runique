@@ -44,7 +44,9 @@ impl AdminRegistry {
         user.is_superuser || user.can_access_resource(entry.meta.key)
     }
 
-    /// Resource metadata the user is allowed to see (for nav / filters).
+    /// Resource metadata the user is allowed to see (for nav / filters). Scoped
+    /// children stay listed: they are reachable both at the top level (direct
+    /// access) and inline under their parent — the two coexist by design.
     pub fn visible_to<'a>(&'a self, user: &CurrentUser) -> Vec<&'a AdminResource> {
         self.all()
             .filter(|e| Self::can_see(user, e))

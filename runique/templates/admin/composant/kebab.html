@@ -33,14 +33,14 @@
         <div class="admin-menu__dropdown">
 
             {% if can_view %}
-            <a href="{{ admin_prefix }}/{{ resource_key }}/{{ entry_id }}/detail{% if return_qs %}?return_qs={{ return_qs | urlencode }}{% endif %}" class="admin-menu__item">
+            <a href="{{ resource_base }}/{{ entry_id }}/detail{% if return_qs %}?return_qs={{ return_qs | urlencode }}{% endif %}" class="admin-menu__item">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                 {% if admin_list_btn_detail %}{{ admin_list_btn_detail }}{% else %}Voir{% endif %}
             </a>
             {% endif %}
 
             {% if can_edit %}
-            <a href="{{ admin_prefix }}/{{ resource_key }}/{{ entry_id }}/edit{% if return_qs %}?return_qs={{ return_qs | urlencode }}{% endif %}" class="admin-menu__item">
+            <a href="{{ resource_base }}/{{ entry_id }}/edit{% if return_qs %}?return_qs={{ return_qs | urlencode }}{% endif %}" class="admin-menu__item">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 {% if admin_list_btn_edit %}{{ admin_list_btn_edit }}{% else %}Modifier{% endif %}
             </a>
@@ -49,7 +49,7 @@
             {# Créer : action de page, exposée ici sur mobile (le bouton plein de l'en-tête
                y est masqué). Masqué sur desktop via .admin-menu__item--create-mobile. #}
             {% if can_create %}
-            <a href="{{ admin_prefix }}/{{ resource_key }}/create" class="admin-menu__item admin-menu__item--create-mobile">
+            <a href="{{ resource_base }}/create" class="admin-menu__item admin-menu__item--create-mobile">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 {% if admin_list_btn_create %}{{ admin_list_btn_create }}{% endif %}
             </a>
@@ -57,7 +57,7 @@
 
             {% if can_delete %}
             <div class="admin-menu__separator"></div>
-            <form method="POST" action="{{ admin_prefix }}/{{ resource_key }}/{{ entry_id }}/delete">
+            <form method="POST" action="{{ resource_base }}/{{ entry_id }}/delete">
                 {% csrf %}
                 {% if return_qs %}<input type="hidden" name="return_qs" value="{{ return_qs }}">{% endif %}
                 <button type="submit" class="admin-menu__item admin-menu__item--danger" data-confirm-delete="{% if admin_list_confirm_delete %}{{ admin_list_confirm_delete }}{% else %}Vraiment supprimer ?{% endif %}">

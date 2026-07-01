@@ -25,7 +25,34 @@ pub(crate) async fn admin_required(
     if request.extensions().get::<MatchedPath>().is_none() {
         return next.run(request).await;
     }
-    if !is_admin_authenticated(&session).await {
+    let authed = is_admin_authenticated(&session).await;
+    // Trace the admin access gate (grade check: is_staff || is_superuser), so the
+    // most fundamental auth decision — "may this user enter the admin at all" — is
+    // visible even on routes that don't run a per-resource access check (dashboard,
+    // history). `admin.auth` channel.
+    if let Some(level) = crate::utils::runique_log::get_log()
+        .admin
+        .as_ref()
+        .and_then(|a| a.auth)
+    {
+        let cu = request
+            .extensions()
+            .get::<crate::auth::session::CurrentUser>();
+        let path = request
+            .extensions()
+            .get::<MatchedPath>()
+            .map_or("", MatchedPath::as_str);
+        crate::runique_log!(
+            level,
+            path = %path,
+            user = cu.map_or("-", |u| u.username.as_str()),
+            is_staff = cu.is_some_and(|u| u.is_staff),
+            is_superuser = cu.is_some_and(|u| u.is_superuser),
+            granted = authed,
+            "admin access gate"
+        );
+    }
+    if !authed {
         let login_url = format!("{}/login", admin.config.prefix.trim_end_matches('/'));
         return Redirect::to(&login_url).into_response();
     }

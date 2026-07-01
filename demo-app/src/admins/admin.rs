@@ -3,25 +3,25 @@
 
 use runique::prelude::*;
 
-use crate::entities::contribution;
 use crate::entities::blog;
 use crate::entities::changelog_entry;
-use crate::entities::roadmap_entry;
-use crate::entities::known_issue;
+use crate::entities::chapitre;
+use crate::entities::code_example;
+use crate::entities::contribution;
+use crate::entities::cour;
+use crate::entities::cour_block;
 use crate::entities::demo_category;
 use crate::entities::demo_page;
 use crate::entities::demo_section;
-use crate::entities::code_example;
-use crate::entities::page_doc_link;
-use crate::entities::form_field;
-use crate::entities::doc_section;
-use crate::entities::doc_page;
 use crate::entities::doc_block;
-use crate::entities::site_config;
-use crate::entities::cour;
-use crate::entities::chapitre;
-use crate::entities::cour_block;
+use crate::entities::doc_page;
+use crate::entities::doc_section;
+use crate::entities::form_field;
+use crate::entities::known_issue;
+use crate::entities::page_doc_link;
+use crate::entities::roadmap_entry;
 use crate::entities::runique_release;
+use crate::entities::site_config;
 use crate::entities::user_profile;
 
 // ── DynForm wrapper for contribution::AdminForm ──
@@ -480,54 +480,107 @@ pub fn admin_register() -> AdminRegistry {
         "Contribution",
         vec![],
     );
-    let form_builder: FormBuilder = Arc::new(|_db: ADb, _vec: Vec<std::string::String>, data: StrMap, tera: ATera, csrf: String, method: Method| {
-        Box::pin(async move {
-            let form = contribution::AdminForm::build_with_data(&data, tera, &csrf, method).await;
-            Box::new(ContributionAdminFormDynWrapper(form)) as Box<dyn DynForm>
-        })
-    });
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
+            Box::pin(async move {
+                let form =
+                    contribution::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+                Box::new(ContributionAdminFormDynWrapper(form)) as Box<dyn DynForm>
+            })
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            use sea_orm::{QueryFilter, sea_query::{Alias, Expr, ExprTrait, Order}};
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, ExprTrait, Order},
+            };
             let mut query = contribution::Entity::find();
             const SORT_COLS: &[&str] = &["id", "user_id", "contribution_type", "title", "content"];
             const FILTER_COLS: &[&str] = &["user_id", "contribution_type", "title", "content"];
-            if let Some(ref col) = params.sort_by && SORT_COLS.contains(&col.as_str()) {
-                let order = if params.sort_dir == SortDir::Desc { Order::Desc } else { Order::Asc };
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                if !FILTER_COLS.contains(&col.as_str()) { continue; }
-                query = query.filter(Expr::col(Alias::new(col.as_str())).cast_as(Alias::new("TEXT")).eq(val.clone()));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
+            }
+            if let Some((col, val)) = &params.scope
+                && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+            {
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(contribution::Entity => or("user_id" icontains search_str, "contribution_type" icontains search_str, "title" icontains search_str, "content" icontains search_str));
                 query = query.filter(search_cond);
             }
-            let db_rows = query.offset(params.offset).limit(params.limit).all(&*db).await?;
-            let rows: Vec<serde_json::Value> = db_rows.into_iter()
+            let db_rows = query
+                .offset(params.offset)
+                .limit(params.limit)
+                .all(&*db)
+                .await?;
+            let rows: Vec<serde_json::Value> = db_rows
+                .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
                 .collect();
             Ok(rows)
         })
     });
 
-    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move {
-            use sea_orm::QueryFilter;
-            let mut query = contribution::Entity::find();
-            if let Some(ref search_str) = _search {
-                let search_cond = search_cond!(contribution::Entity => or("user_id" icontains search_str, "contribution_type" icontains search_str, "title" icontains search_str, "content" icontains search_str));
-                query = query.filter(search_cond);
-            }
-            query.count(&*db).await
-        })
-    });
+    let count_fn: CountFn = Arc::new(
+        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+            Box::pin(async move {
+                use sea_orm::{
+                    QueryFilter,
+                    sea_query::{Alias, Expr, ExprTrait},
+                };
+                let mut query = contribution::Entity::find();
+                if let Some(ref search_str) = _search {
+                    let search_cond = search_cond!(contribution::Entity => or("user_id" icontains search_str, "contribution_type" icontains search_str, "title" icontains search_str, "content" icontains search_str));
+                    query = query.filter(search_cond);
+                }
+                if let Some((col, val)) = &scope
+                    && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+                {
+                    query = query.filter(
+                        Expr::col(Alias::new(col.as_str()))
+                            .cast_as(Alias::new("TEXT"))
+                            .eq(val.clone()),
+                    );
+                }
+                query.count(&*db).await
+            })
+        },
+    );
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = contribution::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -535,75 +588,263 @@ pub fn admin_register() -> AdminRegistry {
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            contribution::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            contribution::Entity::delete_by_id(id)
+                .exec(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
             contribution::admin_from_form(&data, None)
-                .insert(&*db).await.map(|_| ())
+                .insert(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             contribution::admin_from_form(&data, Some(id))
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             contribution::admin_partial_update(&data, id)
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
-    let meta = meta.display(DisplayConfig::new().columns_include(vec![("user_id", "contributeur"), ("contribution_type", "type"), ("title", "titre"), ("content", "contenu")]).list_filter(vec![("user_id", "contributeur", 5u64), ("contribution_type", "type", 5u64), ("title", "titre", 5u64), ("content", "contenu", 5u64)]));
+    let meta = meta.display(
+        DisplayConfig::new()
+            .columns_include(vec![
+                ("user_id", "contributeur"),
+                ("contribution_type", "type"),
+                ("title", "titre"),
+                ("content", "contenu"),
+            ])
+            .list_filter(vec![
+                ("user_id", "contributeur", 5u64),
+                ("contribution_type", "type", 5u64),
+                ("title", "titre", 5u64),
+                ("content", "contenu", 5u64),
+            ]),
+    );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
+            use sea_orm::sea_query::{Alias, Expr, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
-            use sea_orm::sea_query::{Query, Alias, Expr};
-            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> = std::collections::HashMap::new();
+            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
+                std::collections::HashMap::new();
             let page_size_user_id = 5u64;
             let cur_page_user_id = pages.get("user_id").copied().unwrap_or(0);
-            let count_stmt_user_id = Query::select().expr(Expr::cust("COUNT(DISTINCT user_id)")).from(Alias::new(contribution::Entity.table_name())).and_where(Expr::col(Alias::new("user_id")).is_not_null()).to_owned();
-            let count_row_user_id = match db.query_one(&count_stmt_user_id).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `contribution.user_id`: column not found in DB — {}", e); None } };
-            let total_user_id = count_row_user_id.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_user_id = Query::select().distinct().expr(Expr::cust("CAST(user_id AS TEXT)")).from(Alias::new(contribution::Entity.table_name())).and_where(Expr::col(Alias::new("user_id")).is_not_null()).limit(page_size_user_id).offset(cur_page_user_id * page_size_user_id).to_owned();
-            let rows_user_id = match db.query_all(&stmt_user_id).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `contribution.user_id`: column not found in DB — {}", e); vec![] } };
-            let mut vals_user_id: Vec<String> = rows_user_id.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_user_id.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_user_id = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT user_id)"))
+                .from(Alias::new(contribution::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("user_id")).is_not_null())
+                .to_owned();
+            let count_row_user_id = match db.query_one(&count_stmt_user_id).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `contribution.user_id`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_user_id = count_row_user_id
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_user_id = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(user_id AS TEXT)"))
+                .from(Alias::new(contribution::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("user_id")).is_not_null())
+                .limit(page_size_user_id)
+                .offset(cur_page_user_id * page_size_user_id)
+                .to_owned();
+            let rows_user_id = match db.query_all(&stmt_user_id).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `contribution.user_id`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_user_id: Vec<String> = rows_user_id
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_user_id.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("user_id".to_string(), (vals_user_id, total_user_id));
             let page_size_contribution_type = 5u64;
             let cur_page_contribution_type = pages.get("contribution_type").copied().unwrap_or(0);
-            let count_stmt_contribution_type = Query::select().expr(Expr::cust("COUNT(DISTINCT contribution_type)")).from(Alias::new(contribution::Entity.table_name())).and_where(Expr::col(Alias::new("contribution_type")).is_not_null()).to_owned();
-            let count_row_contribution_type = match db.query_one(&count_stmt_contribution_type).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `contribution.contribution_type`: column not found in DB — {}", e); None } };
-            let total_contribution_type = count_row_contribution_type.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_contribution_type = Query::select().distinct().expr(Expr::cust("CAST(contribution_type AS TEXT)")).from(Alias::new(contribution::Entity.table_name())).and_where(Expr::col(Alias::new("contribution_type")).is_not_null()).limit(page_size_contribution_type).offset(cur_page_contribution_type * page_size_contribution_type).to_owned();
-            let rows_contribution_type = match db.query_all(&stmt_contribution_type).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `contribution.contribution_type`: column not found in DB — {}", e); vec![] } };
-            let mut vals_contribution_type: Vec<String> = rows_contribution_type.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_contribution_type.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
-            result.insert("contribution_type".to_string(), (vals_contribution_type, total_contribution_type));
+            let count_stmt_contribution_type = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT contribution_type)"))
+                .from(Alias::new(contribution::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("contribution_type")).is_not_null())
+                .to_owned();
+            let count_row_contribution_type = match db
+                .query_one(&count_stmt_contribution_type)
+                .await
+            {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `contribution.contribution_type`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_contribution_type = count_row_contribution_type
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_contribution_type = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(contribution_type AS TEXT)"))
+                .from(Alias::new(contribution::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("contribution_type")).is_not_null())
+                .limit(page_size_contribution_type)
+                .offset(cur_page_contribution_type * page_size_contribution_type)
+                .to_owned();
+            let rows_contribution_type = match db.query_all(&stmt_contribution_type).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `contribution.contribution_type`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_contribution_type: Vec<String> = rows_contribution_type
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_contribution_type.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
+            result.insert(
+                "contribution_type".to_string(),
+                (vals_contribution_type, total_contribution_type),
+            );
             let page_size_title = 5u64;
             let cur_page_title = pages.get("title").copied().unwrap_or(0);
-            let count_stmt_title = Query::select().expr(Expr::cust("COUNT(DISTINCT title)")).from(Alias::new(contribution::Entity.table_name())).and_where(Expr::col(Alias::new("title")).is_not_null()).to_owned();
-            let count_row_title = match db.query_one(&count_stmt_title).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `contribution.title`: column not found in DB — {}", e); None } };
-            let total_title = count_row_title.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_title = Query::select().distinct().expr(Expr::cust("CAST(title AS TEXT)")).from(Alias::new(contribution::Entity.table_name())).and_where(Expr::col(Alias::new("title")).is_not_null()).limit(page_size_title).offset(cur_page_title * page_size_title).to_owned();
-            let rows_title = match db.query_all(&stmt_title).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `contribution.title`: column not found in DB — {}", e); vec![] } };
-            let mut vals_title: Vec<String> = rows_title.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_title = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT title)"))
+                .from(Alias::new(contribution::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .to_owned();
+            let count_row_title = match db.query_one(&count_stmt_title).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `contribution.title`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_title = count_row_title
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_title = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(title AS TEXT)"))
+                .from(Alias::new(contribution::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .limit(page_size_title)
+                .offset(cur_page_title * page_size_title)
+                .to_owned();
+            let rows_title = match db.query_all(&stmt_title).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `contribution.title`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_title: Vec<String> = rows_title
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("title".to_string(), (vals_title, total_title));
             let page_size_content = 5u64;
             let cur_page_content = pages.get("content").copied().unwrap_or(0);
-            let count_stmt_content = Query::select().expr(Expr::cust("COUNT(DISTINCT content)")).from(Alias::new(contribution::Entity.table_name())).and_where(Expr::col(Alias::new("content")).is_not_null()).to_owned();
-            let count_row_content = match db.query_one(&count_stmt_content).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `contribution.content`: column not found in DB — {}", e); None } };
-            let total_content = count_row_content.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_content = Query::select().distinct().expr(Expr::cust("CAST(content AS TEXT)")).from(Alias::new(contribution::Entity.table_name())).and_where(Expr::col(Alias::new("content")).is_not_null()).limit(page_size_content).offset(cur_page_content * page_size_content).to_owned();
-            let rows_content = match db.query_all(&stmt_content).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `contribution.content`: column not found in DB — {}", e); vec![] } };
-            let mut vals_content: Vec<String> = rows_content.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_content.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_content = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT content)"))
+                .from(Alias::new(contribution::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("content")).is_not_null())
+                .to_owned();
+            let count_row_content = match db.query_one(&count_stmt_content).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `contribution.content`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_content = count_row_content
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_content = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(content AS TEXT)"))
+                .from(Alias::new(contribution::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("content")).is_not_null())
+                .limit(page_size_content)
+                .offset(cur_page_content * page_size_content)
+                .to_owned();
+            let rows_content = match db.query_all(&stmt_content).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `contribution.content`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_content: Vec<String> = rows_content
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_content.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("content".to_string(), (vals_content, total_content));
             Ok(result)
         })
@@ -613,13 +854,14 @@ pub fn admin_register() -> AdminRegistry {
         ResourceEntry::new(meta, form_builder)
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
+            .with_enum_label_fn(contribution::apply_enum_labels)
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_unique_fields(contribution::UNIQUE_FIELDS)
-            .with_filter_fn(filter_fn)
+            .with_filter_fn(filter_fn),
     );
 
     // ── Resource: blog ──
@@ -630,54 +872,106 @@ pub fn admin_register() -> AdminRegistry {
         "Articles",
         vec![],
     );
-    let form_builder: FormBuilder = Arc::new(|_db: ADb, _vec: Vec<std::string::String>, data: StrMap, tera: ATera, csrf: String, method: Method| {
-        Box::pin(async move {
-            let form = blog::AdminForm::build_with_data(&data, tera, &csrf, method).await;
-            Box::new(BlogAdminFormDynWrapper(form)) as Box<dyn DynForm>
-        })
-    });
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
+            Box::pin(async move {
+                let form = blog::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+                Box::new(BlogAdminFormDynWrapper(form)) as Box<dyn DynForm>
+            })
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            use sea_orm::{QueryFilter, sea_query::{Alias, Expr, ExprTrait, Order}};
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, ExprTrait, Order},
+            };
             let mut query = blog::Entity::find();
             const SORT_COLS: &[&str] = &["id", "title", "email", "website", "summary", "content"];
             const FILTER_COLS: &[&str] = &["title", "email", "website", "summary", "content"];
-            if let Some(ref col) = params.sort_by && SORT_COLS.contains(&col.as_str()) {
-                let order = if params.sort_dir == SortDir::Desc { Order::Desc } else { Order::Asc };
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                if !FILTER_COLS.contains(&col.as_str()) { continue; }
-                query = query.filter(Expr::col(Alias::new(col.as_str())).cast_as(Alias::new("TEXT")).eq(val.clone()));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
+            }
+            if let Some((col, val)) = &params.scope
+                && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+            {
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(blog::Entity => or("title" icontains search_str, "email" icontains search_str, "website" icontains search_str, "summary" icontains search_str, "content" icontains search_str));
                 query = query.filter(search_cond);
             }
-            let db_rows = query.offset(params.offset).limit(params.limit).all(&*db).await?;
-            let rows: Vec<serde_json::Value> = db_rows.into_iter()
+            let db_rows = query
+                .offset(params.offset)
+                .limit(params.limit)
+                .all(&*db)
+                .await?;
+            let rows: Vec<serde_json::Value> = db_rows
+                .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
                 .collect();
             Ok(rows)
         })
     });
 
-    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move {
-            use sea_orm::QueryFilter;
-            let mut query = blog::Entity::find();
-            if let Some(ref search_str) = _search {
-                let search_cond = search_cond!(blog::Entity => or("title" icontains search_str, "email" icontains search_str, "website" icontains search_str, "summary" icontains search_str, "content" icontains search_str));
-                query = query.filter(search_cond);
-            }
-            query.count(&*db).await
-        })
-    });
+    let count_fn: CountFn = Arc::new(
+        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+            Box::pin(async move {
+                use sea_orm::{
+                    QueryFilter,
+                    sea_query::{Alias, Expr, ExprTrait},
+                };
+                let mut query = blog::Entity::find();
+                if let Some(ref search_str) = _search {
+                    let search_cond = search_cond!(blog::Entity => or("title" icontains search_str, "email" icontains search_str, "website" icontains search_str, "summary" icontains search_str, "content" icontains search_str));
+                    query = query.filter(search_cond);
+                }
+                if let Some((col, val)) = &scope
+                    && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+                {
+                    query = query.filter(
+                        Expr::col(Alias::new(col.as_str()))
+                            .cast_as(Alias::new("TEXT"))
+                            .eq(val.clone()),
+                    );
+                }
+                query.count(&*db).await
+            })
+        },
+    );
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = blog::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -685,7 +979,9 @@ pub fn admin_register() -> AdminRegistry {
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             blog::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
         })
     });
@@ -693,76 +989,293 @@ pub fn admin_register() -> AdminRegistry {
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
             blog::admin_from_form(&data, None)
-                .insert(&*db).await.map(|_| ())
+                .insert(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             blog::admin_from_form(&data, Some(id))
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             blog::admin_partial_update(&data, id)
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
-    let meta = meta.display(DisplayConfig::new().columns_include(vec![("title", "Titre"), ("email", "email"), ("website", "lien url"), ("summary", "Sujet"), ("content", "contenu")]).list_filter(vec![("title", "Titre", 10u64), ("email", "email", 10u64), ("website", "lien url", 10u64), ("summary", "Sujet", 10u64), ("content", "contenu", 10u64)]));
+    let meta = meta.display(
+        DisplayConfig::new()
+            .columns_include(vec![
+                ("title", "Titre"),
+                ("email", "email"),
+                ("website", "lien url"),
+                ("summary", "Sujet"),
+                ("content", "contenu"),
+            ])
+            .list_filter(vec![
+                ("title", "Titre", 10u64),
+                ("email", "email", 10u64),
+                ("website", "lien url", 10u64),
+                ("summary", "Sujet", 10u64),
+                ("content", "contenu", 10u64),
+            ]),
+    );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
+            use sea_orm::sea_query::{Alias, Expr, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
-            use sea_orm::sea_query::{Query, Alias, Expr};
-            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> = std::collections::HashMap::new();
+            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
+                std::collections::HashMap::new();
             let page_size_title = 10u64;
             let cur_page_title = pages.get("title").copied().unwrap_or(0);
-            let count_stmt_title = Query::select().expr(Expr::cust("COUNT(DISTINCT title)")).from(Alias::new(blog::Entity.table_name())).and_where(Expr::col(Alias::new("title")).is_not_null()).to_owned();
-            let count_row_title = match db.query_one(&count_stmt_title).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `blog.title`: column not found in DB — {}", e); None } };
-            let total_title = count_row_title.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_title = Query::select().distinct().expr(Expr::cust("CAST(title AS TEXT)")).from(Alias::new(blog::Entity.table_name())).and_where(Expr::col(Alias::new("title")).is_not_null()).limit(page_size_title).offset(cur_page_title * page_size_title).to_owned();
-            let rows_title = match db.query_all(&stmt_title).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `blog.title`: column not found in DB — {}", e); vec![] } };
-            let mut vals_title: Vec<String> = rows_title.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_title = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT title)"))
+                .from(Alias::new(blog::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .to_owned();
+            let count_row_title = match db.query_one(&count_stmt_title).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `blog.title`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_title = count_row_title
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_title = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(title AS TEXT)"))
+                .from(Alias::new(blog::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .limit(page_size_title)
+                .offset(cur_page_title * page_size_title)
+                .to_owned();
+            let rows_title = match db.query_all(&stmt_title).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `blog.title`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_title: Vec<String> = rows_title
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("title".to_string(), (vals_title, total_title));
             let page_size_email = 10u64;
             let cur_page_email = pages.get("email").copied().unwrap_or(0);
-            let count_stmt_email = Query::select().expr(Expr::cust("COUNT(DISTINCT email)")).from(Alias::new(blog::Entity.table_name())).and_where(Expr::col(Alias::new("email")).is_not_null()).to_owned();
-            let count_row_email = match db.query_one(&count_stmt_email).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `blog.email`: column not found in DB — {}", e); None } };
-            let total_email = count_row_email.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_email = Query::select().distinct().expr(Expr::cust("CAST(email AS TEXT)")).from(Alias::new(blog::Entity.table_name())).and_where(Expr::col(Alias::new("email")).is_not_null()).limit(page_size_email).offset(cur_page_email * page_size_email).to_owned();
-            let rows_email = match db.query_all(&stmt_email).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `blog.email`: column not found in DB — {}", e); vec![] } };
-            let mut vals_email: Vec<String> = rows_email.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_email.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_email = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT email)"))
+                .from(Alias::new(blog::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("email")).is_not_null())
+                .to_owned();
+            let count_row_email = match db.query_one(&count_stmt_email).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `blog.email`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_email = count_row_email
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_email = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(email AS TEXT)"))
+                .from(Alias::new(blog::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("email")).is_not_null())
+                .limit(page_size_email)
+                .offset(cur_page_email * page_size_email)
+                .to_owned();
+            let rows_email = match db.query_all(&stmt_email).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `blog.email`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_email: Vec<String> = rows_email
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_email.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("email".to_string(), (vals_email, total_email));
             let page_size_website = 10u64;
             let cur_page_website = pages.get("website").copied().unwrap_or(0);
-            let count_stmt_website = Query::select().expr(Expr::cust("COUNT(DISTINCT website)")).from(Alias::new(blog::Entity.table_name())).and_where(Expr::col(Alias::new("website")).is_not_null()).to_owned();
-            let count_row_website = match db.query_one(&count_stmt_website).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `blog.website`: column not found in DB — {}", e); None } };
-            let total_website = count_row_website.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_website = Query::select().distinct().expr(Expr::cust("CAST(website AS TEXT)")).from(Alias::new(blog::Entity.table_name())).and_where(Expr::col(Alias::new("website")).is_not_null()).limit(page_size_website).offset(cur_page_website * page_size_website).to_owned();
-            let rows_website = match db.query_all(&stmt_website).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `blog.website`: column not found in DB — {}", e); vec![] } };
-            let mut vals_website: Vec<String> = rows_website.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_website.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_website = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT website)"))
+                .from(Alias::new(blog::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("website")).is_not_null())
+                .to_owned();
+            let count_row_website = match db.query_one(&count_stmt_website).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `blog.website`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_website = count_row_website
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_website = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(website AS TEXT)"))
+                .from(Alias::new(blog::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("website")).is_not_null())
+                .limit(page_size_website)
+                .offset(cur_page_website * page_size_website)
+                .to_owned();
+            let rows_website = match db.query_all(&stmt_website).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `blog.website`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_website: Vec<String> = rows_website
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_website.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("website".to_string(), (vals_website, total_website));
             let page_size_summary = 10u64;
             let cur_page_summary = pages.get("summary").copied().unwrap_or(0);
-            let count_stmt_summary = Query::select().expr(Expr::cust("COUNT(DISTINCT summary)")).from(Alias::new(blog::Entity.table_name())).and_where(Expr::col(Alias::new("summary")).is_not_null()).to_owned();
-            let count_row_summary = match db.query_one(&count_stmt_summary).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `blog.summary`: column not found in DB — {}", e); None } };
-            let total_summary = count_row_summary.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_summary = Query::select().distinct().expr(Expr::cust("CAST(summary AS TEXT)")).from(Alias::new(blog::Entity.table_name())).and_where(Expr::col(Alias::new("summary")).is_not_null()).limit(page_size_summary).offset(cur_page_summary * page_size_summary).to_owned();
-            let rows_summary = match db.query_all(&stmt_summary).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `blog.summary`: column not found in DB — {}", e); vec![] } };
-            let mut vals_summary: Vec<String> = rows_summary.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_summary.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_summary = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT summary)"))
+                .from(Alias::new(blog::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("summary")).is_not_null())
+                .to_owned();
+            let count_row_summary = match db.query_one(&count_stmt_summary).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `blog.summary`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_summary = count_row_summary
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_summary = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(summary AS TEXT)"))
+                .from(Alias::new(blog::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("summary")).is_not_null())
+                .limit(page_size_summary)
+                .offset(cur_page_summary * page_size_summary)
+                .to_owned();
+            let rows_summary = match db.query_all(&stmt_summary).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `blog.summary`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_summary: Vec<String> = rows_summary
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_summary.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("summary".to_string(), (vals_summary, total_summary));
             let page_size_content = 10u64;
             let cur_page_content = pages.get("content").copied().unwrap_or(0);
-            let count_stmt_content = Query::select().expr(Expr::cust("COUNT(DISTINCT content)")).from(Alias::new(blog::Entity.table_name())).and_where(Expr::col(Alias::new("content")).is_not_null()).to_owned();
-            let count_row_content = match db.query_one(&count_stmt_content).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `blog.content`: column not found in DB — {}", e); None } };
-            let total_content = count_row_content.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_content = Query::select().distinct().expr(Expr::cust("CAST(content AS TEXT)")).from(Alias::new(blog::Entity.table_name())).and_where(Expr::col(Alias::new("content")).is_not_null()).limit(page_size_content).offset(cur_page_content * page_size_content).to_owned();
-            let rows_content = match db.query_all(&stmt_content).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `blog.content`: column not found in DB — {}", e); vec![] } };
-            let mut vals_content: Vec<String> = rows_content.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_content.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_content = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT content)"))
+                .from(Alias::new(blog::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("content")).is_not_null())
+                .to_owned();
+            let count_row_content = match db.query_one(&count_stmt_content).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `blog.content`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_content = count_row_content
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_content = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(content AS TEXT)"))
+                .from(Alias::new(blog::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("content")).is_not_null())
+                .limit(page_size_content)
+                .offset(cur_page_content * page_size_content)
+                .to_owned();
+            let rows_content = match db.query_all(&stmt_content).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `blog.content`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_content: Vec<String> = rows_content
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_content.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("content".to_string(), (vals_content, total_content));
             Ok(result)
         })
@@ -772,13 +1285,14 @@ pub fn admin_register() -> AdminRegistry {
         ResourceEntry::new(meta, form_builder)
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
+            .with_enum_label_fn(blog::apply_enum_labels)
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_unique_fields(blog::UNIQUE_FIELDS)
-            .with_filter_fn(filter_fn)
+            .with_filter_fn(filter_fn),
     );
 
     // ── Resource: changelog_entry ──
@@ -789,54 +1303,122 @@ pub fn admin_register() -> AdminRegistry {
         "Changelog",
         vec![],
     );
-    let form_builder: FormBuilder = Arc::new(|_db: ADb, _vec: Vec<std::string::String>, data: StrMap, tera: ATera, csrf: String, method: Method| {
-        Box::pin(async move {
-            let form = changelog_entry::AdminForm::build_with_data(&data, tera, &csrf, method).await;
-            Box::new(ChangelogEntryAdminFormDynWrapper(form)) as Box<dyn DynForm>
-        })
-    });
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
+            Box::pin(async move {
+                let form =
+                    changelog_entry::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+                Box::new(ChangelogEntryAdminFormDynWrapper(form)) as Box<dyn DynForm>
+            })
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            use sea_orm::{QueryFilter, sea_query::{Alias, Expr, ExprTrait, Order}};
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, ExprTrait, Order},
+            };
             let mut query = changelog_entry::Entity::find();
-            const SORT_COLS: &[&str] = &["id", "version", "release_date", "category", "title", "description", "sort_order"];
-            const FILTER_COLS: &[&str] = &["version", "release_date", "category", "title", "description", "sort_order"];
-            if let Some(ref col) = params.sort_by && SORT_COLS.contains(&col.as_str()) {
-                let order = if params.sort_dir == SortDir::Desc { Order::Desc } else { Order::Asc };
+            const SORT_COLS: &[&str] = &[
+                "id",
+                "version",
+                "release_date",
+                "category",
+                "title",
+                "description",
+                "sort_order",
+            ];
+            const FILTER_COLS: &[&str] = &[
+                "version",
+                "release_date",
+                "category",
+                "title",
+                "description",
+                "sort_order",
+            ];
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                if !FILTER_COLS.contains(&col.as_str()) { continue; }
-                query = query.filter(Expr::col(Alias::new(col.as_str())).cast_as(Alias::new("TEXT")).eq(val.clone()));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
+            }
+            if let Some((col, val)) = &params.scope
+                && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+            {
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(changelog_entry::Entity => or("version" icontains search_str, "release_date" icontains search_str, "category" icontains search_str, "title" icontains search_str, "description" icontains search_str, "sort_order" icontains search_str));
                 query = query.filter(search_cond);
             }
-            let db_rows = query.offset(params.offset).limit(params.limit).all(&*db).await?;
-            let rows: Vec<serde_json::Value> = db_rows.into_iter()
+            let db_rows = query
+                .offset(params.offset)
+                .limit(params.limit)
+                .all(&*db)
+                .await?;
+            let rows: Vec<serde_json::Value> = db_rows
+                .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
                 .collect();
             Ok(rows)
         })
     });
 
-    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move {
-            use sea_orm::QueryFilter;
-            let mut query = changelog_entry::Entity::find();
-            if let Some(ref search_str) = _search {
-                let search_cond = search_cond!(changelog_entry::Entity => or("version" icontains search_str, "release_date" icontains search_str, "category" icontains search_str, "title" icontains search_str, "description" icontains search_str, "sort_order" icontains search_str));
-                query = query.filter(search_cond);
-            }
-            query.count(&*db).await
-        })
-    });
+    let count_fn: CountFn = Arc::new(
+        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+            Box::pin(async move {
+                use sea_orm::{
+                    QueryFilter,
+                    sea_query::{Alias, Expr, ExprTrait},
+                };
+                let mut query = changelog_entry::Entity::find();
+                if let Some(ref search_str) = _search {
+                    let search_cond = search_cond!(changelog_entry::Entity => or("version" icontains search_str, "release_date" icontains search_str, "category" icontains search_str, "title" icontains search_str, "description" icontains search_str, "sort_order" icontains search_str));
+                    query = query.filter(search_cond);
+                }
+                if let Some((col, val)) = &scope
+                    && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+                {
+                    query = query.filter(
+                        Expr::col(Alias::new(col.as_str()))
+                            .cast_as(Alias::new("TEXT"))
+                            .eq(val.clone()),
+                    );
+                }
+                query.count(&*db).await
+            })
+        },
+    );
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = changelog_entry::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -844,94 +1426,365 @@ pub fn admin_register() -> AdminRegistry {
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            changelog_entry::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            changelog_entry::Entity::delete_by_id(id)
+                .exec(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
             changelog_entry::admin_from_form(&data, None)
-                .insert(&*db).await.map(|_| ())
+                .insert(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             changelog_entry::admin_from_form(&data, Some(id))
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             changelog_entry::admin_partial_update(&data, id)
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
-    let meta = meta.display(DisplayConfig::new().columns_include(vec![("version", "Version"), ("release_date", "Date de sortie"), ("category", "Catégorie"), ("title", "Titre"), ("description", "Description"), ("sort_order", "Ordre d'affichage")]).list_filter(vec![("version", "Version", 10u64), ("release_date", "Date", 10u64), ("category", "Catégorie", 10u64), ("title", "Titre", 10u64), ("description", "Description", 10u64), ("sort_order", "Ordre d'affichage", 10u64)]));
+    let meta = meta.display(
+        DisplayConfig::new()
+            .columns_include(vec![
+                ("version", "Version"),
+                ("release_date", "Date de sortie"),
+                ("category", "Catégorie"),
+                ("title", "Titre"),
+                ("description", "Description"),
+                ("sort_order", "Ordre d'affichage"),
+            ])
+            .list_filter(vec![
+                ("version", "Version", 10u64),
+                ("release_date", "Date", 10u64),
+                ("category", "Catégorie", 10u64),
+                ("title", "Titre", 10u64),
+                ("description", "Description", 10u64),
+                ("sort_order", "Ordre d'affichage", 10u64),
+            ]),
+    );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
+            use sea_orm::sea_query::{Alias, Expr, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
-            use sea_orm::sea_query::{Query, Alias, Expr};
-            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> = std::collections::HashMap::new();
+            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
+                std::collections::HashMap::new();
             let page_size_version = 10u64;
             let cur_page_version = pages.get("version").copied().unwrap_or(0);
-            let count_stmt_version = Query::select().expr(Expr::cust("COUNT(DISTINCT version)")).from(Alias::new(changelog_entry::Entity.table_name())).and_where(Expr::col(Alias::new("version")).is_not_null()).to_owned();
-            let count_row_version = match db.query_one(&count_stmt_version).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `changelog_entry.version`: column not found in DB — {}", e); None } };
-            let total_version = count_row_version.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_version = Query::select().distinct().expr(Expr::cust("CAST(version AS TEXT)")).from(Alias::new(changelog_entry::Entity.table_name())).and_where(Expr::col(Alias::new("version")).is_not_null()).limit(page_size_version).offset(cur_page_version * page_size_version).to_owned();
-            let rows_version = match db.query_all(&stmt_version).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `changelog_entry.version`: column not found in DB — {}", e); vec![] } };
-            let mut vals_version: Vec<String> = rows_version.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_version.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_version = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT version)"))
+                .from(Alias::new(changelog_entry::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("version")).is_not_null())
+                .to_owned();
+            let count_row_version = match db.query_one(&count_stmt_version).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `changelog_entry.version`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_version = count_row_version
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_version = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(version AS TEXT)"))
+                .from(Alias::new(changelog_entry::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("version")).is_not_null())
+                .limit(page_size_version)
+                .offset(cur_page_version * page_size_version)
+                .to_owned();
+            let rows_version = match db.query_all(&stmt_version).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `changelog_entry.version`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_version: Vec<String> = rows_version
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_version.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("version".to_string(), (vals_version, total_version));
             let page_size_release_date = 10u64;
             let cur_page_release_date = pages.get("release_date").copied().unwrap_or(0);
-            let count_stmt_release_date = Query::select().expr(Expr::cust("COUNT(DISTINCT release_date)")).from(Alias::new(changelog_entry::Entity.table_name())).and_where(Expr::col(Alias::new("release_date")).is_not_null()).to_owned();
-            let count_row_release_date = match db.query_one(&count_stmt_release_date).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `changelog_entry.release_date`: column not found in DB — {}", e); None } };
-            let total_release_date = count_row_release_date.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_release_date = Query::select().distinct().expr(Expr::cust("CAST(release_date AS TEXT)")).from(Alias::new(changelog_entry::Entity.table_name())).and_where(Expr::col(Alias::new("release_date")).is_not_null()).limit(page_size_release_date).offset(cur_page_release_date * page_size_release_date).to_owned();
-            let rows_release_date = match db.query_all(&stmt_release_date).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `changelog_entry.release_date`: column not found in DB — {}", e); vec![] } };
-            let mut vals_release_date: Vec<String> = rows_release_date.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_release_date.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
-            result.insert("release_date".to_string(), (vals_release_date, total_release_date));
+            let count_stmt_release_date = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT release_date)"))
+                .from(Alias::new(changelog_entry::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("release_date")).is_not_null())
+                .to_owned();
+            let count_row_release_date = match db.query_one(&count_stmt_release_date).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `changelog_entry.release_date`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_release_date = count_row_release_date
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_release_date = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(release_date AS TEXT)"))
+                .from(Alias::new(changelog_entry::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("release_date")).is_not_null())
+                .limit(page_size_release_date)
+                .offset(cur_page_release_date * page_size_release_date)
+                .to_owned();
+            let rows_release_date = match db.query_all(&stmt_release_date).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `changelog_entry.release_date`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_release_date: Vec<String> = rows_release_date
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_release_date.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
+            result.insert(
+                "release_date".to_string(),
+                (vals_release_date, total_release_date),
+            );
             let page_size_category = 10u64;
             let cur_page_category = pages.get("category").copied().unwrap_or(0);
-            let count_stmt_category = Query::select().expr(Expr::cust("COUNT(DISTINCT category)")).from(Alias::new(changelog_entry::Entity.table_name())).and_where(Expr::col(Alias::new("category")).is_not_null()).to_owned();
-            let count_row_category = match db.query_one(&count_stmt_category).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `changelog_entry.category`: column not found in DB — {}", e); None } };
-            let total_category = count_row_category.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_category = Query::select().distinct().expr(Expr::cust("CAST(category AS TEXT)")).from(Alias::new(changelog_entry::Entity.table_name())).and_where(Expr::col(Alias::new("category")).is_not_null()).limit(page_size_category).offset(cur_page_category * page_size_category).to_owned();
-            let rows_category = match db.query_all(&stmt_category).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `changelog_entry.category`: column not found in DB — {}", e); vec![] } };
-            let mut vals_category: Vec<String> = rows_category.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_category.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_category = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT category)"))
+                .from(Alias::new(changelog_entry::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("category")).is_not_null())
+                .to_owned();
+            let count_row_category = match db.query_one(&count_stmt_category).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `changelog_entry.category`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_category = count_row_category
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_category = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(category AS TEXT)"))
+                .from(Alias::new(changelog_entry::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("category")).is_not_null())
+                .limit(page_size_category)
+                .offset(cur_page_category * page_size_category)
+                .to_owned();
+            let rows_category = match db.query_all(&stmt_category).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `changelog_entry.category`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_category: Vec<String> = rows_category
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_category.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("category".to_string(), (vals_category, total_category));
             let page_size_title = 10u64;
             let cur_page_title = pages.get("title").copied().unwrap_or(0);
-            let count_stmt_title = Query::select().expr(Expr::cust("COUNT(DISTINCT title)")).from(Alias::new(changelog_entry::Entity.table_name())).and_where(Expr::col(Alias::new("title")).is_not_null()).to_owned();
-            let count_row_title = match db.query_one(&count_stmt_title).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `changelog_entry.title`: column not found in DB — {}", e); None } };
-            let total_title = count_row_title.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_title = Query::select().distinct().expr(Expr::cust("CAST(title AS TEXT)")).from(Alias::new(changelog_entry::Entity.table_name())).and_where(Expr::col(Alias::new("title")).is_not_null()).limit(page_size_title).offset(cur_page_title * page_size_title).to_owned();
-            let rows_title = match db.query_all(&stmt_title).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `changelog_entry.title`: column not found in DB — {}", e); vec![] } };
-            let mut vals_title: Vec<String> = rows_title.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_title = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT title)"))
+                .from(Alias::new(changelog_entry::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .to_owned();
+            let count_row_title = match db.query_one(&count_stmt_title).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `changelog_entry.title`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_title = count_row_title
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_title = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(title AS TEXT)"))
+                .from(Alias::new(changelog_entry::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .limit(page_size_title)
+                .offset(cur_page_title * page_size_title)
+                .to_owned();
+            let rows_title = match db.query_all(&stmt_title).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `changelog_entry.title`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_title: Vec<String> = rows_title
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("title".to_string(), (vals_title, total_title));
             let page_size_description = 10u64;
             let cur_page_description = pages.get("description").copied().unwrap_or(0);
-            let count_stmt_description = Query::select().expr(Expr::cust("COUNT(DISTINCT description)")).from(Alias::new(changelog_entry::Entity.table_name())).and_where(Expr::col(Alias::new("description")).is_not_null()).to_owned();
-            let count_row_description = match db.query_one(&count_stmt_description).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `changelog_entry.description`: column not found in DB — {}", e); None } };
-            let total_description = count_row_description.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_description = Query::select().distinct().expr(Expr::cust("CAST(description AS TEXT)")).from(Alias::new(changelog_entry::Entity.table_name())).and_where(Expr::col(Alias::new("description")).is_not_null()).limit(page_size_description).offset(cur_page_description * page_size_description).to_owned();
-            let rows_description = match db.query_all(&stmt_description).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `changelog_entry.description`: column not found in DB — {}", e); vec![] } };
-            let mut vals_description: Vec<String> = rows_description.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_description.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
-            result.insert("description".to_string(), (vals_description, total_description));
+            let count_stmt_description = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT description)"))
+                .from(Alias::new(changelog_entry::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("description")).is_not_null())
+                .to_owned();
+            let count_row_description = match db.query_one(&count_stmt_description).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `changelog_entry.description`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_description = count_row_description
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_description = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(description AS TEXT)"))
+                .from(Alias::new(changelog_entry::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("description")).is_not_null())
+                .limit(page_size_description)
+                .offset(cur_page_description * page_size_description)
+                .to_owned();
+            let rows_description = match db.query_all(&stmt_description).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `changelog_entry.description`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_description: Vec<String> = rows_description
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_description.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
+            result.insert(
+                "description".to_string(),
+                (vals_description, total_description),
+            );
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
-            let count_stmt_sort_order = Query::select().expr(Expr::cust("COUNT(DISTINCT sort_order)")).from(Alias::new(changelog_entry::Entity.table_name())).and_where(Expr::col(Alias::new("sort_order")).is_not_null()).to_owned();
-            let count_row_sort_order = match db.query_one(&count_stmt_sort_order).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `changelog_entry.sort_order`: column not found in DB — {}", e); None } };
-            let total_sort_order = count_row_sort_order.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_sort_order = Query::select().distinct().expr(Expr::cust("CAST(sort_order AS TEXT)")).from(Alias::new(changelog_entry::Entity.table_name())).and_where(Expr::col(Alias::new("sort_order")).is_not_null()).limit(page_size_sort_order).offset(cur_page_sort_order * page_size_sort_order).to_owned();
-            let rows_sort_order = match db.query_all(&stmt_sort_order).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `changelog_entry.sort_order`: column not found in DB — {}", e); vec![] } };
-            let mut vals_sort_order: Vec<String> = rows_sort_order.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
-            result.insert("sort_order".to_string(), (vals_sort_order, total_sort_order));
+            let count_stmt_sort_order = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT sort_order)"))
+                .from(Alias::new(changelog_entry::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .to_owned();
+            let count_row_sort_order = match db.query_one(&count_stmt_sort_order).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `changelog_entry.sort_order`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_sort_order = count_row_sort_order
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_sort_order = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(sort_order AS TEXT)"))
+                .from(Alias::new(changelog_entry::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .limit(page_size_sort_order)
+                .offset(cur_page_sort_order * page_size_sort_order)
+                .to_owned();
+            let rows_sort_order = match db.query_all(&stmt_sort_order).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `changelog_entry.sort_order`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_sort_order: Vec<String> = rows_sort_order
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
+            result.insert(
+                "sort_order".to_string(),
+                (vals_sort_order, total_sort_order),
+            );
             Ok(result)
         })
     });
@@ -940,13 +1793,14 @@ pub fn admin_register() -> AdminRegistry {
         ResourceEntry::new(meta, form_builder)
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
+            .with_enum_label_fn(changelog_entry::apply_enum_labels)
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_unique_fields(changelog_entry::UNIQUE_FIELDS)
-            .with_filter_fn(filter_fn)
+            .with_filter_fn(filter_fn),
     );
 
     // ── Resource: roadmap_entry ──
@@ -957,54 +1811,126 @@ pub fn admin_register() -> AdminRegistry {
         "Roadmap",
         vec![],
     );
-    let form_builder: FormBuilder = Arc::new(|_db: ADb, _vec: Vec<std::string::String>, data: StrMap, tera: ATera, csrf: String, method: Method| {
-        Box::pin(async move {
-            let form = roadmap_entry::AdminForm::build_with_data(&data, tera, &csrf, method).await;
-            Box::new(RoadmapEntryAdminFormDynWrapper(form)) as Box<dyn DynForm>
-        })
-    });
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
+            Box::pin(async move {
+                let form =
+                    roadmap_entry::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+                Box::new(RoadmapEntryAdminFormDynWrapper(form)) as Box<dyn DynForm>
+            })
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            use sea_orm::{QueryFilter, sea_query::{Alias, Expr, ExprTrait, Order}};
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, ExprTrait, Order},
+            };
             let mut query = roadmap_entry::Entity::find();
-            const SORT_COLS: &[&str] = &["id", "status", "title", "description", "link_url", "link_label", "link_url_2", "link_label_2", "sort_order"];
-            const FILTER_COLS: &[&str] = &["status", "title", "description", "link_url", "link_label", "link_url_2", "link_label_2", "sort_order"];
-            if let Some(ref col) = params.sort_by && SORT_COLS.contains(&col.as_str()) {
-                let order = if params.sort_dir == SortDir::Desc { Order::Desc } else { Order::Asc };
+            const SORT_COLS: &[&str] = &[
+                "id",
+                "status",
+                "title",
+                "description",
+                "link_url",
+                "link_label",
+                "link_url_2",
+                "link_label_2",
+                "sort_order",
+            ];
+            const FILTER_COLS: &[&str] = &[
+                "status",
+                "title",
+                "description",
+                "link_url",
+                "link_label",
+                "link_url_2",
+                "link_label_2",
+                "sort_order",
+            ];
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                if !FILTER_COLS.contains(&col.as_str()) { continue; }
-                query = query.filter(Expr::col(Alias::new(col.as_str())).cast_as(Alias::new("TEXT")).eq(val.clone()));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
+            }
+            if let Some((col, val)) = &params.scope
+                && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+            {
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(roadmap_entry::Entity => or("status" icontains search_str, "title" icontains search_str, "description" icontains search_str, "link_url" icontains search_str, "link_label" icontains search_str, "link_url_2" icontains search_str, "link_label_2" icontains search_str, "sort_order" icontains search_str));
                 query = query.filter(search_cond);
             }
-            let db_rows = query.offset(params.offset).limit(params.limit).all(&*db).await?;
-            let rows: Vec<serde_json::Value> = db_rows.into_iter()
+            let db_rows = query
+                .offset(params.offset)
+                .limit(params.limit)
+                .all(&*db)
+                .await?;
+            let rows: Vec<serde_json::Value> = db_rows
+                .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
                 .collect();
             Ok(rows)
         })
     });
 
-    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move {
-            use sea_orm::QueryFilter;
-            let mut query = roadmap_entry::Entity::find();
-            if let Some(ref search_str) = _search {
-                let search_cond = search_cond!(roadmap_entry::Entity => or("status" icontains search_str, "title" icontains search_str, "description" icontains search_str, "link_url" icontains search_str, "link_label" icontains search_str, "link_url_2" icontains search_str, "link_label_2" icontains search_str, "sort_order" icontains search_str));
-                query = query.filter(search_cond);
-            }
-            query.count(&*db).await
-        })
-    });
+    let count_fn: CountFn = Arc::new(
+        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+            Box::pin(async move {
+                use sea_orm::{
+                    QueryFilter,
+                    sea_query::{Alias, Expr, ExprTrait},
+                };
+                let mut query = roadmap_entry::Entity::find();
+                if let Some(ref search_str) = _search {
+                    let search_cond = search_cond!(roadmap_entry::Entity => or("status" icontains search_str, "title" icontains search_str, "description" icontains search_str, "link_url" icontains search_str, "link_label" icontains search_str, "link_url_2" icontains search_str, "link_label_2" icontains search_str, "sort_order" icontains search_str));
+                    query = query.filter(search_cond);
+                }
+                if let Some((col, val)) = &scope
+                    && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+                {
+                    query = query.filter(
+                        Expr::col(Alias::new(col.as_str()))
+                            .cast_as(Alias::new("TEXT"))
+                            .eq(val.clone()),
+                    );
+                }
+                query.count(&*db).await
+            })
+        },
+    );
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = roadmap_entry::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -1012,112 +1938,469 @@ pub fn admin_register() -> AdminRegistry {
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            roadmap_entry::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            roadmap_entry::Entity::delete_by_id(id)
+                .exec(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
             roadmap_entry::admin_from_form(&data, None)
-                .insert(&*db).await.map(|_| ())
+                .insert(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             roadmap_entry::admin_from_form(&data, Some(id))
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             roadmap_entry::admin_partial_update(&data, id)
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
-    let meta = meta.display(DisplayConfig::new().columns_include(vec![("status", "Statut"), ("title", "Titre"), ("description", "Description"), ("link_url", "URL"), ("link_label", "Label"), ("link_url_2", "URL 2"), ("link_label_2", "Label 2"), ("sort_order", "Ordre d'affichage")]).list_filter(vec![("status", "Statut", 10u64), ("title", "Titre", 10u64), ("description", "Description", 10u64), ("link_url", "URL", 10u64), ("link_label", "Label", 10u64), ("link_url_2", "URL 2", 10u64), ("link_label_2", "Label 2", 10u64), ("sort_order", "Ordre d'affichage", 10u64)]));
+    let meta = meta.display(
+        DisplayConfig::new()
+            .columns_include(vec![
+                ("status", "Statut"),
+                ("title", "Titre"),
+                ("description", "Description"),
+                ("link_url", "URL"),
+                ("link_label", "Label"),
+                ("link_url_2", "URL 2"),
+                ("link_label_2", "Label 2"),
+                ("sort_order", "Ordre d'affichage"),
+            ])
+            .list_filter(vec![
+                ("status", "Statut", 10u64),
+                ("title", "Titre", 10u64),
+                ("description", "Description", 10u64),
+                ("link_url", "URL", 10u64),
+                ("link_label", "Label", 10u64),
+                ("link_url_2", "URL 2", 10u64),
+                ("link_label_2", "Label 2", 10u64),
+                ("sort_order", "Ordre d'affichage", 10u64),
+            ]),
+    );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
+            use sea_orm::sea_query::{Alias, Expr, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
-            use sea_orm::sea_query::{Query, Alias, Expr};
-            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> = std::collections::HashMap::new();
+            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
+                std::collections::HashMap::new();
             let page_size_status = 10u64;
             let cur_page_status = pages.get("status").copied().unwrap_or(0);
-            let count_stmt_status = Query::select().expr(Expr::cust("COUNT(DISTINCT status)")).from(Alias::new(roadmap_entry::Entity.table_name())).and_where(Expr::col(Alias::new("status")).is_not_null()).to_owned();
-            let count_row_status = match db.query_one(&count_stmt_status).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `roadmap_entry.status`: column not found in DB — {}", e); None } };
-            let total_status = count_row_status.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_status = Query::select().distinct().expr(Expr::cust("CAST(status AS TEXT)")).from(Alias::new(roadmap_entry::Entity.table_name())).and_where(Expr::col(Alias::new("status")).is_not_null()).limit(page_size_status).offset(cur_page_status * page_size_status).to_owned();
-            let rows_status = match db.query_all(&stmt_status).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `roadmap_entry.status`: column not found in DB — {}", e); vec![] } };
-            let mut vals_status: Vec<String> = rows_status.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_status.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_status = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT status)"))
+                .from(Alias::new(roadmap_entry::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("status")).is_not_null())
+                .to_owned();
+            let count_row_status = match db.query_one(&count_stmt_status).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `roadmap_entry.status`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_status = count_row_status
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_status = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(status AS TEXT)"))
+                .from(Alias::new(roadmap_entry::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("status")).is_not_null())
+                .limit(page_size_status)
+                .offset(cur_page_status * page_size_status)
+                .to_owned();
+            let rows_status = match db.query_all(&stmt_status).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `roadmap_entry.status`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_status: Vec<String> = rows_status
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_status.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("status".to_string(), (vals_status, total_status));
             let page_size_title = 10u64;
             let cur_page_title = pages.get("title").copied().unwrap_or(0);
-            let count_stmt_title = Query::select().expr(Expr::cust("COUNT(DISTINCT title)")).from(Alias::new(roadmap_entry::Entity.table_name())).and_where(Expr::col(Alias::new("title")).is_not_null()).to_owned();
-            let count_row_title = match db.query_one(&count_stmt_title).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `roadmap_entry.title`: column not found in DB — {}", e); None } };
-            let total_title = count_row_title.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_title = Query::select().distinct().expr(Expr::cust("CAST(title AS TEXT)")).from(Alias::new(roadmap_entry::Entity.table_name())).and_where(Expr::col(Alias::new("title")).is_not_null()).limit(page_size_title).offset(cur_page_title * page_size_title).to_owned();
-            let rows_title = match db.query_all(&stmt_title).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `roadmap_entry.title`: column not found in DB — {}", e); vec![] } };
-            let mut vals_title: Vec<String> = rows_title.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_title = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT title)"))
+                .from(Alias::new(roadmap_entry::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .to_owned();
+            let count_row_title = match db.query_one(&count_stmt_title).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `roadmap_entry.title`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_title = count_row_title
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_title = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(title AS TEXT)"))
+                .from(Alias::new(roadmap_entry::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .limit(page_size_title)
+                .offset(cur_page_title * page_size_title)
+                .to_owned();
+            let rows_title = match db.query_all(&stmt_title).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `roadmap_entry.title`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_title: Vec<String> = rows_title
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("title".to_string(), (vals_title, total_title));
             let page_size_description = 10u64;
             let cur_page_description = pages.get("description").copied().unwrap_or(0);
-            let count_stmt_description = Query::select().expr(Expr::cust("COUNT(DISTINCT description)")).from(Alias::new(roadmap_entry::Entity.table_name())).and_where(Expr::col(Alias::new("description")).is_not_null()).to_owned();
-            let count_row_description = match db.query_one(&count_stmt_description).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `roadmap_entry.description`: column not found in DB — {}", e); None } };
-            let total_description = count_row_description.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_description = Query::select().distinct().expr(Expr::cust("CAST(description AS TEXT)")).from(Alias::new(roadmap_entry::Entity.table_name())).and_where(Expr::col(Alias::new("description")).is_not_null()).limit(page_size_description).offset(cur_page_description * page_size_description).to_owned();
-            let rows_description = match db.query_all(&stmt_description).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `roadmap_entry.description`: column not found in DB — {}", e); vec![] } };
-            let mut vals_description: Vec<String> = rows_description.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_description.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
-            result.insert("description".to_string(), (vals_description, total_description));
+            let count_stmt_description = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT description)"))
+                .from(Alias::new(roadmap_entry::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("description")).is_not_null())
+                .to_owned();
+            let count_row_description = match db.query_one(&count_stmt_description).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `roadmap_entry.description`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_description = count_row_description
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_description = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(description AS TEXT)"))
+                .from(Alias::new(roadmap_entry::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("description")).is_not_null())
+                .limit(page_size_description)
+                .offset(cur_page_description * page_size_description)
+                .to_owned();
+            let rows_description = match db.query_all(&stmt_description).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `roadmap_entry.description`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_description: Vec<String> = rows_description
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_description.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
+            result.insert(
+                "description".to_string(),
+                (vals_description, total_description),
+            );
             let page_size_link_url = 10u64;
             let cur_page_link_url = pages.get("link_url").copied().unwrap_or(0);
-            let count_stmt_link_url = Query::select().expr(Expr::cust("COUNT(DISTINCT link_url)")).from(Alias::new(roadmap_entry::Entity.table_name())).and_where(Expr::col(Alias::new("link_url")).is_not_null()).to_owned();
-            let count_row_link_url = match db.query_one(&count_stmt_link_url).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `roadmap_entry.link_url`: column not found in DB — {}", e); None } };
-            let total_link_url = count_row_link_url.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_link_url = Query::select().distinct().expr(Expr::cust("CAST(link_url AS TEXT)")).from(Alias::new(roadmap_entry::Entity.table_name())).and_where(Expr::col(Alias::new("link_url")).is_not_null()).limit(page_size_link_url).offset(cur_page_link_url * page_size_link_url).to_owned();
-            let rows_link_url = match db.query_all(&stmt_link_url).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `roadmap_entry.link_url`: column not found in DB — {}", e); vec![] } };
-            let mut vals_link_url: Vec<String> = rows_link_url.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_link_url.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_link_url = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT link_url)"))
+                .from(Alias::new(roadmap_entry::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("link_url")).is_not_null())
+                .to_owned();
+            let count_row_link_url = match db.query_one(&count_stmt_link_url).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `roadmap_entry.link_url`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_link_url = count_row_link_url
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_link_url = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(link_url AS TEXT)"))
+                .from(Alias::new(roadmap_entry::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("link_url")).is_not_null())
+                .limit(page_size_link_url)
+                .offset(cur_page_link_url * page_size_link_url)
+                .to_owned();
+            let rows_link_url = match db.query_all(&stmt_link_url).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `roadmap_entry.link_url`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_link_url: Vec<String> = rows_link_url
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_link_url.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("link_url".to_string(), (vals_link_url, total_link_url));
             let page_size_link_label = 10u64;
             let cur_page_link_label = pages.get("link_label").copied().unwrap_or(0);
-            let count_stmt_link_label = Query::select().expr(Expr::cust("COUNT(DISTINCT link_label)")).from(Alias::new(roadmap_entry::Entity.table_name())).and_where(Expr::col(Alias::new("link_label")).is_not_null()).to_owned();
-            let count_row_link_label = match db.query_one(&count_stmt_link_label).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `roadmap_entry.link_label`: column not found in DB — {}", e); None } };
-            let total_link_label = count_row_link_label.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_link_label = Query::select().distinct().expr(Expr::cust("CAST(link_label AS TEXT)")).from(Alias::new(roadmap_entry::Entity.table_name())).and_where(Expr::col(Alias::new("link_label")).is_not_null()).limit(page_size_link_label).offset(cur_page_link_label * page_size_link_label).to_owned();
-            let rows_link_label = match db.query_all(&stmt_link_label).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `roadmap_entry.link_label`: column not found in DB — {}", e); vec![] } };
-            let mut vals_link_label: Vec<String> = rows_link_label.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_link_label.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
-            result.insert("link_label".to_string(), (vals_link_label, total_link_label));
+            let count_stmt_link_label = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT link_label)"))
+                .from(Alias::new(roadmap_entry::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("link_label")).is_not_null())
+                .to_owned();
+            let count_row_link_label = match db.query_one(&count_stmt_link_label).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `roadmap_entry.link_label`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_link_label = count_row_link_label
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_link_label = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(link_label AS TEXT)"))
+                .from(Alias::new(roadmap_entry::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("link_label")).is_not_null())
+                .limit(page_size_link_label)
+                .offset(cur_page_link_label * page_size_link_label)
+                .to_owned();
+            let rows_link_label = match db.query_all(&stmt_link_label).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `roadmap_entry.link_label`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_link_label: Vec<String> = rows_link_label
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_link_label.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
+            result.insert(
+                "link_label".to_string(),
+                (vals_link_label, total_link_label),
+            );
             let page_size_link_url_2 = 10u64;
             let cur_page_link_url_2 = pages.get("link_url_2").copied().unwrap_or(0);
-            let count_stmt_link_url_2 = Query::select().expr(Expr::cust("COUNT(DISTINCT link_url_2)")).from(Alias::new(roadmap_entry::Entity.table_name())).and_where(Expr::col(Alias::new("link_url_2")).is_not_null()).to_owned();
-            let count_row_link_url_2 = match db.query_one(&count_stmt_link_url_2).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `roadmap_entry.link_url_2`: column not found in DB — {}", e); None } };
-            let total_link_url_2 = count_row_link_url_2.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_link_url_2 = Query::select().distinct().expr(Expr::cust("CAST(link_url_2 AS TEXT)")).from(Alias::new(roadmap_entry::Entity.table_name())).and_where(Expr::col(Alias::new("link_url_2")).is_not_null()).limit(page_size_link_url_2).offset(cur_page_link_url_2 * page_size_link_url_2).to_owned();
-            let rows_link_url_2 = match db.query_all(&stmt_link_url_2).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `roadmap_entry.link_url_2`: column not found in DB — {}", e); vec![] } };
-            let mut vals_link_url_2: Vec<String> = rows_link_url_2.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_link_url_2.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
-            result.insert("link_url_2".to_string(), (vals_link_url_2, total_link_url_2));
+            let count_stmt_link_url_2 = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT link_url_2)"))
+                .from(Alias::new(roadmap_entry::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("link_url_2")).is_not_null())
+                .to_owned();
+            let count_row_link_url_2 = match db.query_one(&count_stmt_link_url_2).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `roadmap_entry.link_url_2`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_link_url_2 = count_row_link_url_2
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_link_url_2 = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(link_url_2 AS TEXT)"))
+                .from(Alias::new(roadmap_entry::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("link_url_2")).is_not_null())
+                .limit(page_size_link_url_2)
+                .offset(cur_page_link_url_2 * page_size_link_url_2)
+                .to_owned();
+            let rows_link_url_2 = match db.query_all(&stmt_link_url_2).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `roadmap_entry.link_url_2`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_link_url_2: Vec<String> = rows_link_url_2
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_link_url_2.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
+            result.insert(
+                "link_url_2".to_string(),
+                (vals_link_url_2, total_link_url_2),
+            );
             let page_size_link_label_2 = 10u64;
             let cur_page_link_label_2 = pages.get("link_label_2").copied().unwrap_or(0);
-            let count_stmt_link_label_2 = Query::select().expr(Expr::cust("COUNT(DISTINCT link_label_2)")).from(Alias::new(roadmap_entry::Entity.table_name())).and_where(Expr::col(Alias::new("link_label_2")).is_not_null()).to_owned();
-            let count_row_link_label_2 = match db.query_one(&count_stmt_link_label_2).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `roadmap_entry.link_label_2`: column not found in DB — {}", e); None } };
-            let total_link_label_2 = count_row_link_label_2.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_link_label_2 = Query::select().distinct().expr(Expr::cust("CAST(link_label_2 AS TEXT)")).from(Alias::new(roadmap_entry::Entity.table_name())).and_where(Expr::col(Alias::new("link_label_2")).is_not_null()).limit(page_size_link_label_2).offset(cur_page_link_label_2 * page_size_link_label_2).to_owned();
-            let rows_link_label_2 = match db.query_all(&stmt_link_label_2).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `roadmap_entry.link_label_2`: column not found in DB — {}", e); vec![] } };
-            let mut vals_link_label_2: Vec<String> = rows_link_label_2.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_link_label_2.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
-            result.insert("link_label_2".to_string(), (vals_link_label_2, total_link_label_2));
+            let count_stmt_link_label_2 = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT link_label_2)"))
+                .from(Alias::new(roadmap_entry::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("link_label_2")).is_not_null())
+                .to_owned();
+            let count_row_link_label_2 = match db.query_one(&count_stmt_link_label_2).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `roadmap_entry.link_label_2`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_link_label_2 = count_row_link_label_2
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_link_label_2 = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(link_label_2 AS TEXT)"))
+                .from(Alias::new(roadmap_entry::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("link_label_2")).is_not_null())
+                .limit(page_size_link_label_2)
+                .offset(cur_page_link_label_2 * page_size_link_label_2)
+                .to_owned();
+            let rows_link_label_2 = match db.query_all(&stmt_link_label_2).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `roadmap_entry.link_label_2`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_link_label_2: Vec<String> = rows_link_label_2
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_link_label_2.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
+            result.insert(
+                "link_label_2".to_string(),
+                (vals_link_label_2, total_link_label_2),
+            );
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
-            let count_stmt_sort_order = Query::select().expr(Expr::cust("COUNT(DISTINCT sort_order)")).from(Alias::new(roadmap_entry::Entity.table_name())).and_where(Expr::col(Alias::new("sort_order")).is_not_null()).to_owned();
-            let count_row_sort_order = match db.query_one(&count_stmt_sort_order).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `roadmap_entry.sort_order`: column not found in DB — {}", e); None } };
-            let total_sort_order = count_row_sort_order.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_sort_order = Query::select().distinct().expr(Expr::cust("CAST(sort_order AS TEXT)")).from(Alias::new(roadmap_entry::Entity.table_name())).and_where(Expr::col(Alias::new("sort_order")).is_not_null()).limit(page_size_sort_order).offset(cur_page_sort_order * page_size_sort_order).to_owned();
-            let rows_sort_order = match db.query_all(&stmt_sort_order).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `roadmap_entry.sort_order`: column not found in DB — {}", e); vec![] } };
-            let mut vals_sort_order: Vec<String> = rows_sort_order.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
-            result.insert("sort_order".to_string(), (vals_sort_order, total_sort_order));
+            let count_stmt_sort_order = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT sort_order)"))
+                .from(Alias::new(roadmap_entry::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .to_owned();
+            let count_row_sort_order = match db.query_one(&count_stmt_sort_order).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `roadmap_entry.sort_order`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_sort_order = count_row_sort_order
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_sort_order = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(sort_order AS TEXT)"))
+                .from(Alias::new(roadmap_entry::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .limit(page_size_sort_order)
+                .offset(cur_page_sort_order * page_size_sort_order)
+                .to_owned();
+            let rows_sort_order = match db.query_all(&stmt_sort_order).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `roadmap_entry.sort_order`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_sort_order: Vec<String> = rows_sort_order
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
+            result.insert(
+                "sort_order".to_string(),
+                (vals_sort_order, total_sort_order),
+            );
             Ok(result)
         })
     });
@@ -1126,13 +2409,14 @@ pub fn admin_register() -> AdminRegistry {
         ResourceEntry::new(meta, form_builder)
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
+            .with_enum_label_fn(roadmap_entry::apply_enum_labels)
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_unique_fields(roadmap_entry::UNIQUE_FIELDS)
-            .with_filter_fn(filter_fn)
+            .with_filter_fn(filter_fn),
     );
 
     // ── Resource: known_issue ──
@@ -1143,54 +2427,120 @@ pub fn admin_register() -> AdminRegistry {
         "Problèmes connus",
         vec![],
     );
-    let form_builder: FormBuilder = Arc::new(|_db: ADb, _vec: Vec<std::string::String>, data: StrMap, tera: ATera, csrf: String, method: Method| {
-        Box::pin(async move {
-            let form = known_issue::AdminForm::build_with_data(&data, tera, &csrf, method).await;
-            Box::new(KnownIssueAdminFormDynWrapper(form)) as Box<dyn DynForm>
-        })
-    });
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
+            Box::pin(async move {
+                let form =
+                    known_issue::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+                Box::new(KnownIssueAdminFormDynWrapper(form)) as Box<dyn DynForm>
+            })
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            use sea_orm::{QueryFilter, sea_query::{Alias, Expr, ExprTrait, Order}};
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, ExprTrait, Order},
+            };
             let mut query = known_issue::Entity::find();
-            const SORT_COLS: &[&str] = &["id", "version", "title", "description", "issue_type", "sort_order"];
-            const FILTER_COLS: &[&str] = &["version", "title", "description", "issue_type", "sort_order"];
-            if let Some(ref col) = params.sort_by && SORT_COLS.contains(&col.as_str()) {
-                let order = if params.sort_dir == SortDir::Desc { Order::Desc } else { Order::Asc };
+            const SORT_COLS: &[&str] = &[
+                "id",
+                "version",
+                "title",
+                "description",
+                "issue_type",
+                "sort_order",
+            ];
+            const FILTER_COLS: &[&str] = &[
+                "version",
+                "title",
+                "description",
+                "issue_type",
+                "sort_order",
+            ];
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                if !FILTER_COLS.contains(&col.as_str()) { continue; }
-                query = query.filter(Expr::col(Alias::new(col.as_str())).cast_as(Alias::new("TEXT")).eq(val.clone()));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
+            }
+            if let Some((col, val)) = &params.scope
+                && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+            {
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(known_issue::Entity => or("version" icontains search_str, "title" icontains search_str, "description" icontains search_str, "issue_type" icontains search_str, "sort_order" icontains search_str));
                 query = query.filter(search_cond);
             }
-            let db_rows = query.offset(params.offset).limit(params.limit).all(&*db).await?;
-            let rows: Vec<serde_json::Value> = db_rows.into_iter()
+            let db_rows = query
+                .offset(params.offset)
+                .limit(params.limit)
+                .all(&*db)
+                .await?;
+            let rows: Vec<serde_json::Value> = db_rows
+                .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
                 .collect();
             Ok(rows)
         })
     });
 
-    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move {
-            use sea_orm::QueryFilter;
-            let mut query = known_issue::Entity::find();
-            if let Some(ref search_str) = _search {
-                let search_cond = search_cond!(known_issue::Entity => or("version" icontains search_str, "title" icontains search_str, "description" icontains search_str, "issue_type" icontains search_str, "sort_order" icontains search_str));
-                query = query.filter(search_cond);
-            }
-            query.count(&*db).await
-        })
-    });
+    let count_fn: CountFn = Arc::new(
+        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+            Box::pin(async move {
+                use sea_orm::{
+                    QueryFilter,
+                    sea_query::{Alias, Expr, ExprTrait},
+                };
+                let mut query = known_issue::Entity::find();
+                if let Some(ref search_str) = _search {
+                    let search_cond = search_cond!(known_issue::Entity => or("version" icontains search_str, "title" icontains search_str, "description" icontains search_str, "issue_type" icontains search_str, "sort_order" icontains search_str));
+                    query = query.filter(search_cond);
+                }
+                if let Some((col, val)) = &scope
+                    && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+                {
+                    query = query.filter(
+                        Expr::col(Alias::new(col.as_str()))
+                            .cast_as(Alias::new("TEXT"))
+                            .eq(val.clone()),
+                    );
+                }
+                query.count(&*db).await
+            })
+        },
+    );
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = known_issue::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -1198,85 +2548,316 @@ pub fn admin_register() -> AdminRegistry {
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            known_issue::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            known_issue::Entity::delete_by_id(id)
+                .exec(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
             known_issue::admin_from_form(&data, None)
-                .insert(&*db).await.map(|_| ())
+                .insert(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             known_issue::admin_from_form(&data, Some(id))
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             known_issue::admin_partial_update(&data, id)
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
-    let meta = meta.display(DisplayConfig::new().columns_include(vec![("version", "Version"), ("title", "Titre"), ("description", "Description"), ("issue_type", "Type"), ("sort_order", "Ordre d'affichage")]).list_filter(vec![("version", "Version", 10u64), ("title", "Titre", 10u64), ("description", "Description", 10u64), ("issue_type", "Type", 10u64), ("sort_order", "Ordre d'affichage", 10u64)]));
+    let meta = meta.display(
+        DisplayConfig::new()
+            .columns_include(vec![
+                ("version", "Version"),
+                ("title", "Titre"),
+                ("description", "Description"),
+                ("issue_type", "Type"),
+                ("sort_order", "Ordre d'affichage"),
+            ])
+            .list_filter(vec![
+                ("version", "Version", 10u64),
+                ("title", "Titre", 10u64),
+                ("description", "Description", 10u64),
+                ("issue_type", "Type", 10u64),
+                ("sort_order", "Ordre d'affichage", 10u64),
+            ]),
+    );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
+            use sea_orm::sea_query::{Alias, Expr, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
-            use sea_orm::sea_query::{Query, Alias, Expr};
-            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> = std::collections::HashMap::new();
+            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
+                std::collections::HashMap::new();
             let page_size_version = 10u64;
             let cur_page_version = pages.get("version").copied().unwrap_or(0);
-            let count_stmt_version = Query::select().expr(Expr::cust("COUNT(DISTINCT version)")).from(Alias::new(known_issue::Entity.table_name())).and_where(Expr::col(Alias::new("version")).is_not_null()).to_owned();
-            let count_row_version = match db.query_one(&count_stmt_version).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `known_issue.version`: column not found in DB — {}", e); None } };
-            let total_version = count_row_version.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_version = Query::select().distinct().expr(Expr::cust("CAST(version AS TEXT)")).from(Alias::new(known_issue::Entity.table_name())).and_where(Expr::col(Alias::new("version")).is_not_null()).limit(page_size_version).offset(cur_page_version * page_size_version).to_owned();
-            let rows_version = match db.query_all(&stmt_version).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `known_issue.version`: column not found in DB — {}", e); vec![] } };
-            let mut vals_version: Vec<String> = rows_version.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_version.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_version = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT version)"))
+                .from(Alias::new(known_issue::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("version")).is_not_null())
+                .to_owned();
+            let count_row_version = match db.query_one(&count_stmt_version).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `known_issue.version`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_version = count_row_version
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_version = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(version AS TEXT)"))
+                .from(Alias::new(known_issue::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("version")).is_not_null())
+                .limit(page_size_version)
+                .offset(cur_page_version * page_size_version)
+                .to_owned();
+            let rows_version = match db.query_all(&stmt_version).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `known_issue.version`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_version: Vec<String> = rows_version
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_version.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("version".to_string(), (vals_version, total_version));
             let page_size_title = 10u64;
             let cur_page_title = pages.get("title").copied().unwrap_or(0);
-            let count_stmt_title = Query::select().expr(Expr::cust("COUNT(DISTINCT title)")).from(Alias::new(known_issue::Entity.table_name())).and_where(Expr::col(Alias::new("title")).is_not_null()).to_owned();
-            let count_row_title = match db.query_one(&count_stmt_title).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `known_issue.title`: column not found in DB — {}", e); None } };
-            let total_title = count_row_title.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_title = Query::select().distinct().expr(Expr::cust("CAST(title AS TEXT)")).from(Alias::new(known_issue::Entity.table_name())).and_where(Expr::col(Alias::new("title")).is_not_null()).limit(page_size_title).offset(cur_page_title * page_size_title).to_owned();
-            let rows_title = match db.query_all(&stmt_title).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `known_issue.title`: column not found in DB — {}", e); vec![] } };
-            let mut vals_title: Vec<String> = rows_title.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_title = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT title)"))
+                .from(Alias::new(known_issue::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .to_owned();
+            let count_row_title = match db.query_one(&count_stmt_title).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `known_issue.title`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_title = count_row_title
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_title = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(title AS TEXT)"))
+                .from(Alias::new(known_issue::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .limit(page_size_title)
+                .offset(cur_page_title * page_size_title)
+                .to_owned();
+            let rows_title = match db.query_all(&stmt_title).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `known_issue.title`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_title: Vec<String> = rows_title
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("title".to_string(), (vals_title, total_title));
             let page_size_description = 10u64;
             let cur_page_description = pages.get("description").copied().unwrap_or(0);
-            let count_stmt_description = Query::select().expr(Expr::cust("COUNT(DISTINCT description)")).from(Alias::new(known_issue::Entity.table_name())).and_where(Expr::col(Alias::new("description")).is_not_null()).to_owned();
-            let count_row_description = match db.query_one(&count_stmt_description).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `known_issue.description`: column not found in DB — {}", e); None } };
-            let total_description = count_row_description.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_description = Query::select().distinct().expr(Expr::cust("CAST(description AS TEXT)")).from(Alias::new(known_issue::Entity.table_name())).and_where(Expr::col(Alias::new("description")).is_not_null()).limit(page_size_description).offset(cur_page_description * page_size_description).to_owned();
-            let rows_description = match db.query_all(&stmt_description).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `known_issue.description`: column not found in DB — {}", e); vec![] } };
-            let mut vals_description: Vec<String> = rows_description.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_description.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
-            result.insert("description".to_string(), (vals_description, total_description));
+            let count_stmt_description = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT description)"))
+                .from(Alias::new(known_issue::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("description")).is_not_null())
+                .to_owned();
+            let count_row_description = match db.query_one(&count_stmt_description).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `known_issue.description`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_description = count_row_description
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_description = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(description AS TEXT)"))
+                .from(Alias::new(known_issue::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("description")).is_not_null())
+                .limit(page_size_description)
+                .offset(cur_page_description * page_size_description)
+                .to_owned();
+            let rows_description = match db.query_all(&stmt_description).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `known_issue.description`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_description: Vec<String> = rows_description
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_description.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
+            result.insert(
+                "description".to_string(),
+                (vals_description, total_description),
+            );
             let page_size_issue_type = 10u64;
             let cur_page_issue_type = pages.get("issue_type").copied().unwrap_or(0);
-            let count_stmt_issue_type = Query::select().expr(Expr::cust("COUNT(DISTINCT issue_type)")).from(Alias::new(known_issue::Entity.table_name())).and_where(Expr::col(Alias::new("issue_type")).is_not_null()).to_owned();
-            let count_row_issue_type = match db.query_one(&count_stmt_issue_type).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `known_issue.issue_type`: column not found in DB — {}", e); None } };
-            let total_issue_type = count_row_issue_type.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_issue_type = Query::select().distinct().expr(Expr::cust("CAST(issue_type AS TEXT)")).from(Alias::new(known_issue::Entity.table_name())).and_where(Expr::col(Alias::new("issue_type")).is_not_null()).limit(page_size_issue_type).offset(cur_page_issue_type * page_size_issue_type).to_owned();
-            let rows_issue_type = match db.query_all(&stmt_issue_type).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `known_issue.issue_type`: column not found in DB — {}", e); vec![] } };
-            let mut vals_issue_type: Vec<String> = rows_issue_type.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_issue_type.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
-            result.insert("issue_type".to_string(), (vals_issue_type, total_issue_type));
+            let count_stmt_issue_type = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT issue_type)"))
+                .from(Alias::new(known_issue::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("issue_type")).is_not_null())
+                .to_owned();
+            let count_row_issue_type = match db.query_one(&count_stmt_issue_type).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `known_issue.issue_type`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_issue_type = count_row_issue_type
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_issue_type = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(issue_type AS TEXT)"))
+                .from(Alias::new(known_issue::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("issue_type")).is_not_null())
+                .limit(page_size_issue_type)
+                .offset(cur_page_issue_type * page_size_issue_type)
+                .to_owned();
+            let rows_issue_type = match db.query_all(&stmt_issue_type).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `known_issue.issue_type`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_issue_type: Vec<String> = rows_issue_type
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_issue_type.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
+            result.insert(
+                "issue_type".to_string(),
+                (vals_issue_type, total_issue_type),
+            );
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
-            let count_stmt_sort_order = Query::select().expr(Expr::cust("COUNT(DISTINCT sort_order)")).from(Alias::new(known_issue::Entity.table_name())).and_where(Expr::col(Alias::new("sort_order")).is_not_null()).to_owned();
-            let count_row_sort_order = match db.query_one(&count_stmt_sort_order).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `known_issue.sort_order`: column not found in DB — {}", e); None } };
-            let total_sort_order = count_row_sort_order.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_sort_order = Query::select().distinct().expr(Expr::cust("CAST(sort_order AS TEXT)")).from(Alias::new(known_issue::Entity.table_name())).and_where(Expr::col(Alias::new("sort_order")).is_not_null()).limit(page_size_sort_order).offset(cur_page_sort_order * page_size_sort_order).to_owned();
-            let rows_sort_order = match db.query_all(&stmt_sort_order).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `known_issue.sort_order`: column not found in DB — {}", e); vec![] } };
-            let mut vals_sort_order: Vec<String> = rows_sort_order.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
-            result.insert("sort_order".to_string(), (vals_sort_order, total_sort_order));
+            let count_stmt_sort_order = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT sort_order)"))
+                .from(Alias::new(known_issue::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .to_owned();
+            let count_row_sort_order = match db.query_one(&count_stmt_sort_order).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `known_issue.sort_order`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_sort_order = count_row_sort_order
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_sort_order = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(sort_order AS TEXT)"))
+                .from(Alias::new(known_issue::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .limit(page_size_sort_order)
+                .offset(cur_page_sort_order * page_size_sort_order)
+                .to_owned();
+            let rows_sort_order = match db.query_all(&stmt_sort_order).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `known_issue.sort_order`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_sort_order: Vec<String> = rows_sort_order
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
+            result.insert(
+                "sort_order".to_string(),
+                (vals_sort_order, total_sort_order),
+            );
             Ok(result)
         })
     });
@@ -1285,13 +2866,14 @@ pub fn admin_register() -> AdminRegistry {
         ResourceEntry::new(meta, form_builder)
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
+            .with_enum_label_fn(known_issue::apply_enum_labels)
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_unique_fields(known_issue::UNIQUE_FIELDS)
-            .with_filter_fn(filter_fn)
+            .with_filter_fn(filter_fn),
     );
 
     // ── Resource: demo_category ──
@@ -1302,54 +2884,109 @@ pub fn admin_register() -> AdminRegistry {
         "Catégories",
         vec![],
     );
-    let form_builder: FormBuilder = Arc::new(|_db: ADb, _vec: Vec<std::string::String>, data: StrMap, tera: ATera, csrf: String, method: Method| {
-        Box::pin(async move {
-            let form = demo_category::AdminForm::build_with_data(&data, tera, &csrf, method).await;
-            Box::new(DemoCategoryAdminFormDynWrapper(form)) as Box<dyn DynForm>
-        })
-    });
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
+            Box::pin(async move {
+                let form =
+                    demo_category::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+                Box::new(DemoCategoryAdminFormDynWrapper(form)) as Box<dyn DynForm>
+            })
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            use sea_orm::{QueryFilter, sea_query::{Alias, Expr, ExprTrait, Order}};
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, ExprTrait, Order},
+            };
             let mut query = demo_category::Entity::find();
             const SORT_COLS: &[&str] = &["id"];
             const FILTER_COLS: &[&str] = &[];
-            if let Some(ref col) = params.sort_by && SORT_COLS.contains(&col.as_str()) {
-                let order = if params.sort_dir == SortDir::Desc { Order::Desc } else { Order::Asc };
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                if !FILTER_COLS.contains(&col.as_str()) { continue; }
-                query = query.filter(Expr::col(Alias::new(col.as_str())).cast_as(Alias::new("TEXT")).eq(val.clone()));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
+            }
+            if let Some((col, val)) = &params.scope
+                && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+            {
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
             }
             if let Some(ref search_str) = params.search {
-                let search_cond = search_cond!(demo_category::Entity => all_columns icontains search_str);
+                let search_cond =
+                    search_cond!(demo_category::Entity => all_columns icontains search_str);
                 query = query.filter(search_cond);
             }
-            let db_rows = query.offset(params.offset).limit(params.limit).all(&*db).await?;
-            let rows: Vec<serde_json::Value> = db_rows.into_iter()
+            let db_rows = query
+                .offset(params.offset)
+                .limit(params.limit)
+                .all(&*db)
+                .await?;
+            let rows: Vec<serde_json::Value> = db_rows
+                .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
                 .collect();
             Ok(rows)
         })
     });
 
-    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move {
-            use sea_orm::QueryFilter;
-            let mut query = demo_category::Entity::find();
-            if let Some(ref search_str) = _search {
-                let search_cond = search_cond!(demo_category::Entity => all_columns icontains search_str);
-                query = query.filter(search_cond);
-            }
-            query.count(&*db).await
-        })
-    });
+    let count_fn: CountFn = Arc::new(
+        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+            Box::pin(async move {
+                use sea_orm::{
+                    QueryFilter,
+                    sea_query::{Alias, Expr, ExprTrait},
+                };
+                let mut query = demo_category::Entity::find();
+                if let Some(ref search_str) = _search {
+                    let search_cond =
+                        search_cond!(demo_category::Entity => all_columns icontains search_str);
+                    query = query.filter(search_cond);
+                }
+                if let Some((col, val)) = &scope
+                    && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+                {
+                    query = query.filter(
+                        Expr::col(Alias::new(col.as_str()))
+                            .cast_as(Alias::new("TEXT"))
+                            .eq(val.clone()),
+                    );
+                }
+                query.count(&*db).await
+            })
+        },
+    );
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = demo_category::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -1357,31 +2994,46 @@ pub fn admin_register() -> AdminRegistry {
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            demo_category::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            demo_category::Entity::delete_by_id(id)
+                .exec(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
             demo_category::admin_from_form(&data, None)
-                .insert(&*db).await.map(|_| ())
+                .insert(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             demo_category::admin_from_form(&data, Some(id))
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             demo_category::admin_partial_update(&data, id)
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
@@ -1389,12 +3041,13 @@ pub fn admin_register() -> AdminRegistry {
         ResourceEntry::new(meta, form_builder)
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
+            .with_enum_label_fn(demo_category::apply_enum_labels)
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
-            .with_unique_fields(demo_category::UNIQUE_FIELDS)
+            .with_unique_fields(demo_category::UNIQUE_FIELDS),
     );
 
     // ── Resource: demo_page ──
@@ -1405,54 +3058,121 @@ pub fn admin_register() -> AdminRegistry {
         "Pages",
         vec![],
     );
-    let form_builder: FormBuilder = Arc::new(|_db: ADb, _vec: Vec<std::string::String>, data: StrMap, tera: ATera, csrf: String, method: Method| {
-        Box::pin(async move {
-            let form = demo_page::AdminForm::build_with_data(&data, tera, &csrf, method).await;
-            Box::new(DemoPageAdminFormDynWrapper(form)) as Box<dyn DynForm>
-        })
-    });
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
+            Box::pin(async move {
+                let form = demo_page::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+                Box::new(DemoPageAdminFormDynWrapper(form)) as Box<dyn DynForm>
+            })
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            use sea_orm::{QueryFilter, sea_query::{Alias, Expr, ExprTrait, Order}};
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, ExprTrait, Order},
+            };
             let mut query = demo_page::Entity::find();
-            const SORT_COLS: &[&str] = &["id", "category_id", "slug", "title", "lead", "page_type", "sort_order"];
-            const FILTER_COLS: &[&str] = &["category_id", "slug", "title", "lead", "page_type", "sort_order"];
-            if let Some(ref col) = params.sort_by && SORT_COLS.contains(&col.as_str()) {
-                let order = if params.sort_dir == SortDir::Desc { Order::Desc } else { Order::Asc };
+            const SORT_COLS: &[&str] = &[
+                "id",
+                "category_id",
+                "slug",
+                "title",
+                "lead",
+                "page_type",
+                "sort_order",
+            ];
+            const FILTER_COLS: &[&str] = &[
+                "category_id",
+                "slug",
+                "title",
+                "lead",
+                "page_type",
+                "sort_order",
+            ];
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                if !FILTER_COLS.contains(&col.as_str()) { continue; }
-                query = query.filter(Expr::col(Alias::new(col.as_str())).cast_as(Alias::new("TEXT")).eq(val.clone()));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
+            }
+            if let Some((col, val)) = &params.scope
+                && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+            {
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(demo_page::Entity => or("category_id" icontains search_str, "slug" icontains search_str, "title" icontains search_str, "lead" icontains search_str, "page_type" icontains search_str, "sort_order" icontains search_str));
                 query = query.filter(search_cond);
             }
-            let db_rows = query.offset(params.offset).limit(params.limit).all(&*db).await?;
-            let rows: Vec<serde_json::Value> = db_rows.into_iter()
+            let db_rows = query
+                .offset(params.offset)
+                .limit(params.limit)
+                .all(&*db)
+                .await?;
+            let rows: Vec<serde_json::Value> = db_rows
+                .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
                 .collect();
             Ok(rows)
         })
     });
 
-    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move {
-            use sea_orm::QueryFilter;
-            let mut query = demo_page::Entity::find();
-            if let Some(ref search_str) = _search {
-                let search_cond = search_cond!(demo_page::Entity => or("category_id" icontains search_str, "slug" icontains search_str, "title" icontains search_str, "lead" icontains search_str, "page_type" icontains search_str, "sort_order" icontains search_str));
-                query = query.filter(search_cond);
-            }
-            query.count(&*db).await
-        })
-    });
+    let count_fn: CountFn = Arc::new(
+        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+            Box::pin(async move {
+                use sea_orm::{
+                    QueryFilter,
+                    sea_query::{Alias, Expr, ExprTrait},
+                };
+                let mut query = demo_page::Entity::find();
+                if let Some(ref search_str) = _search {
+                    let search_cond = search_cond!(demo_page::Entity => or("category_id" icontains search_str, "slug" icontains search_str, "title" icontains search_str, "lead" icontains search_str, "page_type" icontains search_str, "sort_order" icontains search_str));
+                    query = query.filter(search_cond);
+                }
+                if let Some((col, val)) = &scope
+                    && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+                {
+                    query = query.filter(
+                        Expr::col(Alias::new(col.as_str()))
+                            .cast_as(Alias::new("TEXT"))
+                            .eq(val.clone()),
+                    );
+                }
+                query.count(&*db).await
+            })
+        },
+    );
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = demo_page::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -1460,94 +3180,362 @@ pub fn admin_register() -> AdminRegistry {
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            demo_page::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            demo_page::Entity::delete_by_id(id)
+                .exec(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
             demo_page::admin_from_form(&data, None)
-                .insert(&*db).await.map(|_| ())
+                .insert(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             demo_page::admin_from_form(&data, Some(id))
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             demo_page::admin_partial_update(&data, id)
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
-    let meta = meta.display(DisplayConfig::new().columns_include(vec![("category_id", "Catégorie"), ("slug", "Slug"), ("title", "Titre"), ("lead", "Lead"), ("page_type", "Type"), ("sort_order", "Ordre d'affichage")]).list_filter(vec![("category_id", "Catégorie", 10u64), ("slug", "Slug", 10u64), ("title", "Titre", 10u64), ("lead", "Lead", 10u64), ("page_type", "Type", 10u64), ("sort_order", "Ordre d'affichage", 10u64)]));
+    let meta = meta.display(
+        DisplayConfig::new()
+            .columns_include(vec![
+                ("category_id", "Catégorie"),
+                ("slug", "Slug"),
+                ("title", "Titre"),
+                ("lead", "Lead"),
+                ("page_type", "Type"),
+                ("sort_order", "Ordre d'affichage"),
+            ])
+            .list_filter(vec![
+                ("category_id", "Catégorie", 10u64),
+                ("slug", "Slug", 10u64),
+                ("title", "Titre", 10u64),
+                ("lead", "Lead", 10u64),
+                ("page_type", "Type", 10u64),
+                ("sort_order", "Ordre d'affichage", 10u64),
+            ]),
+    );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
+            use sea_orm::sea_query::{Alias, Expr, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
-            use sea_orm::sea_query::{Query, Alias, Expr};
-            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> = std::collections::HashMap::new();
+            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
+                std::collections::HashMap::new();
             let page_size_category_id = 10u64;
             let cur_page_category_id = pages.get("category_id").copied().unwrap_or(0);
-            let count_stmt_category_id = Query::select().expr(Expr::cust("COUNT(DISTINCT category_id)")).from(Alias::new(demo_page::Entity.table_name())).and_where(Expr::col(Alias::new("category_id")).is_not_null()).to_owned();
-            let count_row_category_id = match db.query_one(&count_stmt_category_id).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `demo_page.category_id`: column not found in DB — {}", e); None } };
-            let total_category_id = count_row_category_id.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_category_id = Query::select().distinct().expr(Expr::cust("CAST(category_id AS TEXT)")).from(Alias::new(demo_page::Entity.table_name())).and_where(Expr::col(Alias::new("category_id")).is_not_null()).limit(page_size_category_id).offset(cur_page_category_id * page_size_category_id).to_owned();
-            let rows_category_id = match db.query_all(&stmt_category_id).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `demo_page.category_id`: column not found in DB — {}", e); vec![] } };
-            let mut vals_category_id: Vec<String> = rows_category_id.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_category_id.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
-            result.insert("category_id".to_string(), (vals_category_id, total_category_id));
+            let count_stmt_category_id = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT category_id)"))
+                .from(Alias::new(demo_page::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("category_id")).is_not_null())
+                .to_owned();
+            let count_row_category_id = match db.query_one(&count_stmt_category_id).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `demo_page.category_id`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_category_id = count_row_category_id
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_category_id = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(category_id AS TEXT)"))
+                .from(Alias::new(demo_page::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("category_id")).is_not_null())
+                .limit(page_size_category_id)
+                .offset(cur_page_category_id * page_size_category_id)
+                .to_owned();
+            let rows_category_id = match db.query_all(&stmt_category_id).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `demo_page.category_id`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_category_id: Vec<String> = rows_category_id
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_category_id.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
+            result.insert(
+                "category_id".to_string(),
+                (vals_category_id, total_category_id),
+            );
             let page_size_slug = 10u64;
             let cur_page_slug = pages.get("slug").copied().unwrap_or(0);
-            let count_stmt_slug = Query::select().expr(Expr::cust("COUNT(DISTINCT slug)")).from(Alias::new(demo_page::Entity.table_name())).and_where(Expr::col(Alias::new("slug")).is_not_null()).to_owned();
-            let count_row_slug = match db.query_one(&count_stmt_slug).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `demo_page.slug`: column not found in DB — {}", e); None } };
-            let total_slug = count_row_slug.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_slug = Query::select().distinct().expr(Expr::cust("CAST(slug AS TEXT)")).from(Alias::new(demo_page::Entity.table_name())).and_where(Expr::col(Alias::new("slug")).is_not_null()).limit(page_size_slug).offset(cur_page_slug * page_size_slug).to_owned();
-            let rows_slug = match db.query_all(&stmt_slug).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `demo_page.slug`: column not found in DB — {}", e); vec![] } };
-            let mut vals_slug: Vec<String> = rows_slug.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_slug.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_slug = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT slug)"))
+                .from(Alias::new(demo_page::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("slug")).is_not_null())
+                .to_owned();
+            let count_row_slug = match db.query_one(&count_stmt_slug).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `demo_page.slug`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_slug = count_row_slug
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_slug = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(slug AS TEXT)"))
+                .from(Alias::new(demo_page::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("slug")).is_not_null())
+                .limit(page_size_slug)
+                .offset(cur_page_slug * page_size_slug)
+                .to_owned();
+            let rows_slug = match db.query_all(&stmt_slug).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `demo_page.slug`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_slug: Vec<String> = rows_slug
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_slug.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("slug".to_string(), (vals_slug, total_slug));
             let page_size_title = 10u64;
             let cur_page_title = pages.get("title").copied().unwrap_or(0);
-            let count_stmt_title = Query::select().expr(Expr::cust("COUNT(DISTINCT title)")).from(Alias::new(demo_page::Entity.table_name())).and_where(Expr::col(Alias::new("title")).is_not_null()).to_owned();
-            let count_row_title = match db.query_one(&count_stmt_title).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `demo_page.title`: column not found in DB — {}", e); None } };
-            let total_title = count_row_title.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_title = Query::select().distinct().expr(Expr::cust("CAST(title AS TEXT)")).from(Alias::new(demo_page::Entity.table_name())).and_where(Expr::col(Alias::new("title")).is_not_null()).limit(page_size_title).offset(cur_page_title * page_size_title).to_owned();
-            let rows_title = match db.query_all(&stmt_title).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `demo_page.title`: column not found in DB — {}", e); vec![] } };
-            let mut vals_title: Vec<String> = rows_title.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_title = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT title)"))
+                .from(Alias::new(demo_page::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .to_owned();
+            let count_row_title = match db.query_one(&count_stmt_title).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `demo_page.title`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_title = count_row_title
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_title = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(title AS TEXT)"))
+                .from(Alias::new(demo_page::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .limit(page_size_title)
+                .offset(cur_page_title * page_size_title)
+                .to_owned();
+            let rows_title = match db.query_all(&stmt_title).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `demo_page.title`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_title: Vec<String> = rows_title
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("title".to_string(), (vals_title, total_title));
             let page_size_lead = 10u64;
             let cur_page_lead = pages.get("lead").copied().unwrap_or(0);
-            let count_stmt_lead = Query::select().expr(Expr::cust("COUNT(DISTINCT lead)")).from(Alias::new(demo_page::Entity.table_name())).and_where(Expr::col(Alias::new("lead")).is_not_null()).to_owned();
-            let count_row_lead = match db.query_one(&count_stmt_lead).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `demo_page.lead`: column not found in DB — {}", e); None } };
-            let total_lead = count_row_lead.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_lead = Query::select().distinct().expr(Expr::cust("CAST(lead AS TEXT)")).from(Alias::new(demo_page::Entity.table_name())).and_where(Expr::col(Alias::new("lead")).is_not_null()).limit(page_size_lead).offset(cur_page_lead * page_size_lead).to_owned();
-            let rows_lead = match db.query_all(&stmt_lead).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `demo_page.lead`: column not found in DB — {}", e); vec![] } };
-            let mut vals_lead: Vec<String> = rows_lead.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_lead.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_lead = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT lead)"))
+                .from(Alias::new(demo_page::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("lead")).is_not_null())
+                .to_owned();
+            let count_row_lead = match db.query_one(&count_stmt_lead).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `demo_page.lead`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_lead = count_row_lead
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_lead = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(lead AS TEXT)"))
+                .from(Alias::new(demo_page::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("lead")).is_not_null())
+                .limit(page_size_lead)
+                .offset(cur_page_lead * page_size_lead)
+                .to_owned();
+            let rows_lead = match db.query_all(&stmt_lead).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `demo_page.lead`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_lead: Vec<String> = rows_lead
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_lead.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("lead".to_string(), (vals_lead, total_lead));
             let page_size_page_type = 10u64;
             let cur_page_page_type = pages.get("page_type").copied().unwrap_or(0);
-            let count_stmt_page_type = Query::select().expr(Expr::cust("COUNT(DISTINCT page_type)")).from(Alias::new(demo_page::Entity.table_name())).and_where(Expr::col(Alias::new("page_type")).is_not_null()).to_owned();
-            let count_row_page_type = match db.query_one(&count_stmt_page_type).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `demo_page.page_type`: column not found in DB — {}", e); None } };
-            let total_page_type = count_row_page_type.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_page_type = Query::select().distinct().expr(Expr::cust("CAST(page_type AS TEXT)")).from(Alias::new(demo_page::Entity.table_name())).and_where(Expr::col(Alias::new("page_type")).is_not_null()).limit(page_size_page_type).offset(cur_page_page_type * page_size_page_type).to_owned();
-            let rows_page_type = match db.query_all(&stmt_page_type).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `demo_page.page_type`: column not found in DB — {}", e); vec![] } };
-            let mut vals_page_type: Vec<String> = rows_page_type.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_page_type.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_page_type = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT page_type)"))
+                .from(Alias::new(demo_page::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("page_type")).is_not_null())
+                .to_owned();
+            let count_row_page_type = match db.query_one(&count_stmt_page_type).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `demo_page.page_type`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_page_type = count_row_page_type
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_page_type = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(page_type AS TEXT)"))
+                .from(Alias::new(demo_page::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("page_type")).is_not_null())
+                .limit(page_size_page_type)
+                .offset(cur_page_page_type * page_size_page_type)
+                .to_owned();
+            let rows_page_type = match db.query_all(&stmt_page_type).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `demo_page.page_type`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_page_type: Vec<String> = rows_page_type
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_page_type.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("page_type".to_string(), (vals_page_type, total_page_type));
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
-            let count_stmt_sort_order = Query::select().expr(Expr::cust("COUNT(DISTINCT sort_order)")).from(Alias::new(demo_page::Entity.table_name())).and_where(Expr::col(Alias::new("sort_order")).is_not_null()).to_owned();
-            let count_row_sort_order = match db.query_one(&count_stmt_sort_order).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `demo_page.sort_order`: column not found in DB — {}", e); None } };
-            let total_sort_order = count_row_sort_order.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_sort_order = Query::select().distinct().expr(Expr::cust("CAST(sort_order AS TEXT)")).from(Alias::new(demo_page::Entity.table_name())).and_where(Expr::col(Alias::new("sort_order")).is_not_null()).limit(page_size_sort_order).offset(cur_page_sort_order * page_size_sort_order).to_owned();
-            let rows_sort_order = match db.query_all(&stmt_sort_order).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `demo_page.sort_order`: column not found in DB — {}", e); vec![] } };
-            let mut vals_sort_order: Vec<String> = rows_sort_order.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
-            result.insert("sort_order".to_string(), (vals_sort_order, total_sort_order));
+            let count_stmt_sort_order = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT sort_order)"))
+                .from(Alias::new(demo_page::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .to_owned();
+            let count_row_sort_order = match db.query_one(&count_stmt_sort_order).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `demo_page.sort_order`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_sort_order = count_row_sort_order
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_sort_order = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(sort_order AS TEXT)"))
+                .from(Alias::new(demo_page::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .limit(page_size_sort_order)
+                .offset(cur_page_sort_order * page_size_sort_order)
+                .to_owned();
+            let rows_sort_order = match db.query_all(&stmt_sort_order).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `demo_page.sort_order`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_sort_order: Vec<String> = rows_sort_order
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
+            result.insert(
+                "sort_order".to_string(),
+                (vals_sort_order, total_sort_order),
+            );
             Ok(result)
         })
     });
@@ -1556,13 +3544,14 @@ pub fn admin_register() -> AdminRegistry {
         ResourceEntry::new(meta, form_builder)
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
+            .with_enum_label_fn(demo_page::apply_enum_labels)
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_unique_fields(demo_page::UNIQUE_FIELDS)
-            .with_filter_fn(filter_fn)
+            .with_filter_fn(filter_fn),
     );
 
     // ── Resource: demo_section ──
@@ -1573,54 +3562,107 @@ pub fn admin_register() -> AdminRegistry {
         "Sections",
         vec![],
     );
-    let form_builder: FormBuilder = Arc::new(|_db: ADb, _vec: Vec<std::string::String>, data: StrMap, tera: ATera, csrf: String, method: Method| {
-        Box::pin(async move {
-            let form = demo_section::AdminForm::build_with_data(&data, tera, &csrf, method).await;
-            Box::new(DemoSectionAdminFormDynWrapper(form)) as Box<dyn DynForm>
-        })
-    });
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
+            Box::pin(async move {
+                let form =
+                    demo_section::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+                Box::new(DemoSectionAdminFormDynWrapper(form)) as Box<dyn DynForm>
+            })
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            use sea_orm::{QueryFilter, sea_query::{Alias, Expr, ExprTrait, Order}};
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, ExprTrait, Order},
+            };
             let mut query = demo_section::Entity::find();
             const SORT_COLS: &[&str] = &["id", "page_id", "title", "content", "sort_order"];
             const FILTER_COLS: &[&str] = &["page_id", "title", "content", "sort_order"];
-            if let Some(ref col) = params.sort_by && SORT_COLS.contains(&col.as_str()) {
-                let order = if params.sort_dir == SortDir::Desc { Order::Desc } else { Order::Asc };
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                if !FILTER_COLS.contains(&col.as_str()) { continue; }
-                query = query.filter(Expr::col(Alias::new(col.as_str())).cast_as(Alias::new("TEXT")).eq(val.clone()));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
+            }
+            if let Some((col, val)) = &params.scope
+                && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+            {
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(demo_section::Entity => or("page_id" icontains search_str, "title" icontains search_str, "content" icontains search_str, "sort_order" icontains search_str));
                 query = query.filter(search_cond);
             }
-            let db_rows = query.offset(params.offset).limit(params.limit).all(&*db).await?;
-            let rows: Vec<serde_json::Value> = db_rows.into_iter()
+            let db_rows = query
+                .offset(params.offset)
+                .limit(params.limit)
+                .all(&*db)
+                .await?;
+            let rows: Vec<serde_json::Value> = db_rows
+                .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
                 .collect();
             Ok(rows)
         })
     });
 
-    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move {
-            use sea_orm::QueryFilter;
-            let mut query = demo_section::Entity::find();
-            if let Some(ref search_str) = _search {
-                let search_cond = search_cond!(demo_section::Entity => or("page_id" icontains search_str, "title" icontains search_str, "content" icontains search_str, "sort_order" icontains search_str));
-                query = query.filter(search_cond);
-            }
-            query.count(&*db).await
-        })
-    });
+    let count_fn: CountFn = Arc::new(
+        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+            Box::pin(async move {
+                use sea_orm::{
+                    QueryFilter,
+                    sea_query::{Alias, Expr, ExprTrait},
+                };
+                let mut query = demo_section::Entity::find();
+                if let Some(ref search_str) = _search {
+                    let search_cond = search_cond!(demo_section::Entity => or("page_id" icontains search_str, "title" icontains search_str, "content" icontains search_str, "sort_order" icontains search_str));
+                    query = query.filter(search_cond);
+                }
+                if let Some((col, val)) = &scope
+                    && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+                {
+                    query = query.filter(
+                        Expr::col(Alias::new(col.as_str()))
+                            .cast_as(Alias::new("TEXT"))
+                            .eq(val.clone()),
+                    );
+                }
+                query.count(&*db).await
+            })
+        },
+    );
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = demo_section::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -1628,76 +3670,261 @@ pub fn admin_register() -> AdminRegistry {
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            demo_section::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            demo_section::Entity::delete_by_id(id)
+                .exec(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
             demo_section::admin_from_form(&data, None)
-                .insert(&*db).await.map(|_| ())
+                .insert(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             demo_section::admin_from_form(&data, Some(id))
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             demo_section::admin_partial_update(&data, id)
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
-    let meta = meta.display(DisplayConfig::new().columns_include(vec![("page_id", "Page"), ("title", "Titre"), ("content", "Contenu"), ("sort_order", "Ordre d'affichage")]).list_filter(vec![("page_id", "Page", 10u64), ("title", "Titre", 10u64), ("content", "Contenu", 10u64), ("sort_order", "Ordre d'affichage", 10u64)]));
+    let meta = meta.display(
+        DisplayConfig::new()
+            .columns_include(vec![
+                ("page_id", "Page"),
+                ("title", "Titre"),
+                ("content", "Contenu"),
+                ("sort_order", "Ordre d'affichage"),
+            ])
+            .list_filter(vec![
+                ("page_id", "Page", 10u64),
+                ("title", "Titre", 10u64),
+                ("content", "Contenu", 10u64),
+                ("sort_order", "Ordre d'affichage", 10u64),
+            ]),
+    );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
+            use sea_orm::sea_query::{Alias, Expr, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
-            use sea_orm::sea_query::{Query, Alias, Expr};
-            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> = std::collections::HashMap::new();
+            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
+                std::collections::HashMap::new();
             let page_size_page_id = 10u64;
             let cur_page_page_id = pages.get("page_id").copied().unwrap_or(0);
-            let count_stmt_page_id = Query::select().expr(Expr::cust("COUNT(DISTINCT page_id)")).from(Alias::new(demo_section::Entity.table_name())).and_where(Expr::col(Alias::new("page_id")).is_not_null()).to_owned();
-            let count_row_page_id = match db.query_one(&count_stmt_page_id).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `demo_section.page_id`: column not found in DB — {}", e); None } };
-            let total_page_id = count_row_page_id.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_page_id = Query::select().distinct().expr(Expr::cust("CAST(page_id AS TEXT)")).from(Alias::new(demo_section::Entity.table_name())).and_where(Expr::col(Alias::new("page_id")).is_not_null()).limit(page_size_page_id).offset(cur_page_page_id * page_size_page_id).to_owned();
-            let rows_page_id = match db.query_all(&stmt_page_id).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `demo_section.page_id`: column not found in DB — {}", e); vec![] } };
-            let mut vals_page_id: Vec<String> = rows_page_id.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_page_id.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_page_id = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT page_id)"))
+                .from(Alias::new(demo_section::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("page_id")).is_not_null())
+                .to_owned();
+            let count_row_page_id = match db.query_one(&count_stmt_page_id).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `demo_section.page_id`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_page_id = count_row_page_id
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_page_id = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(page_id AS TEXT)"))
+                .from(Alias::new(demo_section::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("page_id")).is_not_null())
+                .limit(page_size_page_id)
+                .offset(cur_page_page_id * page_size_page_id)
+                .to_owned();
+            let rows_page_id = match db.query_all(&stmt_page_id).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `demo_section.page_id`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_page_id: Vec<String> = rows_page_id
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_page_id.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("page_id".to_string(), (vals_page_id, total_page_id));
             let page_size_title = 10u64;
             let cur_page_title = pages.get("title").copied().unwrap_or(0);
-            let count_stmt_title = Query::select().expr(Expr::cust("COUNT(DISTINCT title)")).from(Alias::new(demo_section::Entity.table_name())).and_where(Expr::col(Alias::new("title")).is_not_null()).to_owned();
-            let count_row_title = match db.query_one(&count_stmt_title).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `demo_section.title`: column not found in DB — {}", e); None } };
-            let total_title = count_row_title.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_title = Query::select().distinct().expr(Expr::cust("CAST(title AS TEXT)")).from(Alias::new(demo_section::Entity.table_name())).and_where(Expr::col(Alias::new("title")).is_not_null()).limit(page_size_title).offset(cur_page_title * page_size_title).to_owned();
-            let rows_title = match db.query_all(&stmt_title).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `demo_section.title`: column not found in DB — {}", e); vec![] } };
-            let mut vals_title: Vec<String> = rows_title.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_title = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT title)"))
+                .from(Alias::new(demo_section::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .to_owned();
+            let count_row_title = match db.query_one(&count_stmt_title).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `demo_section.title`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_title = count_row_title
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_title = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(title AS TEXT)"))
+                .from(Alias::new(demo_section::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .limit(page_size_title)
+                .offset(cur_page_title * page_size_title)
+                .to_owned();
+            let rows_title = match db.query_all(&stmt_title).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `demo_section.title`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_title: Vec<String> = rows_title
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("title".to_string(), (vals_title, total_title));
             let page_size_content = 10u64;
             let cur_page_content = pages.get("content").copied().unwrap_or(0);
-            let count_stmt_content = Query::select().expr(Expr::cust("COUNT(DISTINCT content)")).from(Alias::new(demo_section::Entity.table_name())).and_where(Expr::col(Alias::new("content")).is_not_null()).to_owned();
-            let count_row_content = match db.query_one(&count_stmt_content).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `demo_section.content`: column not found in DB — {}", e); None } };
-            let total_content = count_row_content.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_content = Query::select().distinct().expr(Expr::cust("CAST(content AS TEXT)")).from(Alias::new(demo_section::Entity.table_name())).and_where(Expr::col(Alias::new("content")).is_not_null()).limit(page_size_content).offset(cur_page_content * page_size_content).to_owned();
-            let rows_content = match db.query_all(&stmt_content).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `demo_section.content`: column not found in DB — {}", e); vec![] } };
-            let mut vals_content: Vec<String> = rows_content.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_content.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_content = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT content)"))
+                .from(Alias::new(demo_section::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("content")).is_not_null())
+                .to_owned();
+            let count_row_content = match db.query_one(&count_stmt_content).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `demo_section.content`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_content = count_row_content
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_content = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(content AS TEXT)"))
+                .from(Alias::new(demo_section::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("content")).is_not_null())
+                .limit(page_size_content)
+                .offset(cur_page_content * page_size_content)
+                .to_owned();
+            let rows_content = match db.query_all(&stmt_content).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `demo_section.content`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_content: Vec<String> = rows_content
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_content.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("content".to_string(), (vals_content, total_content));
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
-            let count_stmt_sort_order = Query::select().expr(Expr::cust("COUNT(DISTINCT sort_order)")).from(Alias::new(demo_section::Entity.table_name())).and_where(Expr::col(Alias::new("sort_order")).is_not_null()).to_owned();
-            let count_row_sort_order = match db.query_one(&count_stmt_sort_order).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `demo_section.sort_order`: column not found in DB — {}", e); None } };
-            let total_sort_order = count_row_sort_order.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_sort_order = Query::select().distinct().expr(Expr::cust("CAST(sort_order AS TEXT)")).from(Alias::new(demo_section::Entity.table_name())).and_where(Expr::col(Alias::new("sort_order")).is_not_null()).limit(page_size_sort_order).offset(cur_page_sort_order * page_size_sort_order).to_owned();
-            let rows_sort_order = match db.query_all(&stmt_sort_order).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `demo_section.sort_order`: column not found in DB — {}", e); vec![] } };
-            let mut vals_sort_order: Vec<String> = rows_sort_order.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
-            result.insert("sort_order".to_string(), (vals_sort_order, total_sort_order));
+            let count_stmt_sort_order = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT sort_order)"))
+                .from(Alias::new(demo_section::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .to_owned();
+            let count_row_sort_order = match db.query_one(&count_stmt_sort_order).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `demo_section.sort_order`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_sort_order = count_row_sort_order
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_sort_order = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(sort_order AS TEXT)"))
+                .from(Alias::new(demo_section::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .limit(page_size_sort_order)
+                .offset(cur_page_sort_order * page_size_sort_order)
+                .to_owned();
+            let rows_sort_order = match db.query_all(&stmt_sort_order).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `demo_section.sort_order`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_sort_order: Vec<String> = rows_sort_order
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
+            result.insert(
+                "sort_order".to_string(),
+                (vals_sort_order, total_sort_order),
+            );
             Ok(result)
         })
     });
@@ -1706,13 +3933,14 @@ pub fn admin_register() -> AdminRegistry {
         ResourceEntry::new(meta, form_builder)
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
+            .with_enum_label_fn(demo_section::apply_enum_labels)
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_unique_fields(demo_section::UNIQUE_FIELDS)
-            .with_filter_fn(filter_fn)
+            .with_filter_fn(filter_fn),
     );
 
     // ── Resource: code_example ──
@@ -1723,54 +3951,122 @@ pub fn admin_register() -> AdminRegistry {
         "Exemples de code",
         vec![],
     );
-    let form_builder: FormBuilder = Arc::new(|_db: ADb, _vec: Vec<std::string::String>, data: StrMap, tera: ATera, csrf: String, method: Method| {
-        Box::pin(async move {
-            let form = code_example::AdminForm::build_with_data(&data, tera, &csrf, method).await;
-            Box::new(CodeExampleAdminFormDynWrapper(form)) as Box<dyn DynForm>
-        })
-    });
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
+            Box::pin(async move {
+                let form =
+                    code_example::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+                Box::new(CodeExampleAdminFormDynWrapper(form)) as Box<dyn DynForm>
+            })
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            use sea_orm::{QueryFilter, sea_query::{Alias, Expr, ExprTrait, Order}};
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, ExprTrait, Order},
+            };
             let mut query = code_example::Entity::find();
-            const SORT_COLS: &[&str] = &["id", "page_id", "title", "language", "code", "context", "sort_order"];
-            const FILTER_COLS: &[&str] = &["page_id", "title", "language", "code", "context", "sort_order"];
-            if let Some(ref col) = params.sort_by && SORT_COLS.contains(&col.as_str()) {
-                let order = if params.sort_dir == SortDir::Desc { Order::Desc } else { Order::Asc };
+            const SORT_COLS: &[&str] = &[
+                "id",
+                "page_id",
+                "title",
+                "language",
+                "code",
+                "context",
+                "sort_order",
+            ];
+            const FILTER_COLS: &[&str] = &[
+                "page_id",
+                "title",
+                "language",
+                "code",
+                "context",
+                "sort_order",
+            ];
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                if !FILTER_COLS.contains(&col.as_str()) { continue; }
-                query = query.filter(Expr::col(Alias::new(col.as_str())).cast_as(Alias::new("TEXT")).eq(val.clone()));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
+            }
+            if let Some((col, val)) = &params.scope
+                && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+            {
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(code_example::Entity => or("page_id" icontains search_str, "title" icontains search_str, "language" icontains search_str, "code" icontains search_str, "context" icontains search_str, "sort_order" icontains search_str));
                 query = query.filter(search_cond);
             }
-            let db_rows = query.offset(params.offset).limit(params.limit).all(&*db).await?;
-            let rows: Vec<serde_json::Value> = db_rows.into_iter()
+            let db_rows = query
+                .offset(params.offset)
+                .limit(params.limit)
+                .all(&*db)
+                .await?;
+            let rows: Vec<serde_json::Value> = db_rows
+                .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
                 .collect();
             Ok(rows)
         })
     });
 
-    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move {
-            use sea_orm::QueryFilter;
-            let mut query = code_example::Entity::find();
-            if let Some(ref search_str) = _search {
-                let search_cond = search_cond!(code_example::Entity => or("page_id" icontains search_str, "title" icontains search_str, "language" icontains search_str, "code" icontains search_str, "context" icontains search_str, "sort_order" icontains search_str));
-                query = query.filter(search_cond);
-            }
-            query.count(&*db).await
-        })
-    });
+    let count_fn: CountFn = Arc::new(
+        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+            Box::pin(async move {
+                use sea_orm::{
+                    QueryFilter,
+                    sea_query::{Alias, Expr, ExprTrait},
+                };
+                let mut query = code_example::Entity::find();
+                if let Some(ref search_str) = _search {
+                    let search_cond = search_cond!(code_example::Entity => or("page_id" icontains search_str, "title" icontains search_str, "language" icontains search_str, "code" icontains search_str, "context" icontains search_str, "sort_order" icontains search_str));
+                    query = query.filter(search_cond);
+                }
+                if let Some((col, val)) = &scope
+                    && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+                {
+                    query = query.filter(
+                        Expr::col(Alias::new(col.as_str()))
+                            .cast_as(Alias::new("TEXT"))
+                            .eq(val.clone()),
+                    );
+                }
+                query.count(&*db).await
+            })
+        },
+    );
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = code_example::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -1778,94 +4074,359 @@ pub fn admin_register() -> AdminRegistry {
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            code_example::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            code_example::Entity::delete_by_id(id)
+                .exec(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
             code_example::admin_from_form(&data, None)
-                .insert(&*db).await.map(|_| ())
+                .insert(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             code_example::admin_from_form(&data, Some(id))
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             code_example::admin_partial_update(&data, id)
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
-    let meta = meta.display(DisplayConfig::new().columns_include(vec![("page_id", "Page"), ("title", "Titre"), ("language", "Langage"), ("code", "Code"), ("context", "Contexte"), ("sort_order", "Ordre d'affichage")]).list_filter(vec![("page_id", "Page", 10u64), ("title", "Titre", 10u64), ("language", "Langage", 10u64), ("code", "Code", 10u64), ("context", "Contexte", 10u64), ("sort_order", "Ordre d'affichage", 10u64)]));
+    let meta = meta.display(
+        DisplayConfig::new()
+            .columns_include(vec![
+                ("page_id", "Page"),
+                ("title", "Titre"),
+                ("language", "Langage"),
+                ("code", "Code"),
+                ("context", "Contexte"),
+                ("sort_order", "Ordre d'affichage"),
+            ])
+            .list_filter(vec![
+                ("page_id", "Page", 10u64),
+                ("title", "Titre", 10u64),
+                ("language", "Langage", 10u64),
+                ("code", "Code", 10u64),
+                ("context", "Contexte", 10u64),
+                ("sort_order", "Ordre d'affichage", 10u64),
+            ]),
+    );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
+            use sea_orm::sea_query::{Alias, Expr, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
-            use sea_orm::sea_query::{Query, Alias, Expr};
-            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> = std::collections::HashMap::new();
+            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
+                std::collections::HashMap::new();
             let page_size_page_id = 10u64;
             let cur_page_page_id = pages.get("page_id").copied().unwrap_or(0);
-            let count_stmt_page_id = Query::select().expr(Expr::cust("COUNT(DISTINCT page_id)")).from(Alias::new(code_example::Entity.table_name())).and_where(Expr::col(Alias::new("page_id")).is_not_null()).to_owned();
-            let count_row_page_id = match db.query_one(&count_stmt_page_id).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `code_example.page_id`: column not found in DB — {}", e); None } };
-            let total_page_id = count_row_page_id.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_page_id = Query::select().distinct().expr(Expr::cust("CAST(page_id AS TEXT)")).from(Alias::new(code_example::Entity.table_name())).and_where(Expr::col(Alias::new("page_id")).is_not_null()).limit(page_size_page_id).offset(cur_page_page_id * page_size_page_id).to_owned();
-            let rows_page_id = match db.query_all(&stmt_page_id).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `code_example.page_id`: column not found in DB — {}", e); vec![] } };
-            let mut vals_page_id: Vec<String> = rows_page_id.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_page_id.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_page_id = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT page_id)"))
+                .from(Alias::new(code_example::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("page_id")).is_not_null())
+                .to_owned();
+            let count_row_page_id = match db.query_one(&count_stmt_page_id).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `code_example.page_id`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_page_id = count_row_page_id
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_page_id = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(page_id AS TEXT)"))
+                .from(Alias::new(code_example::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("page_id")).is_not_null())
+                .limit(page_size_page_id)
+                .offset(cur_page_page_id * page_size_page_id)
+                .to_owned();
+            let rows_page_id = match db.query_all(&stmt_page_id).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `code_example.page_id`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_page_id: Vec<String> = rows_page_id
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_page_id.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("page_id".to_string(), (vals_page_id, total_page_id));
             let page_size_title = 10u64;
             let cur_page_title = pages.get("title").copied().unwrap_or(0);
-            let count_stmt_title = Query::select().expr(Expr::cust("COUNT(DISTINCT title)")).from(Alias::new(code_example::Entity.table_name())).and_where(Expr::col(Alias::new("title")).is_not_null()).to_owned();
-            let count_row_title = match db.query_one(&count_stmt_title).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `code_example.title`: column not found in DB — {}", e); None } };
-            let total_title = count_row_title.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_title = Query::select().distinct().expr(Expr::cust("CAST(title AS TEXT)")).from(Alias::new(code_example::Entity.table_name())).and_where(Expr::col(Alias::new("title")).is_not_null()).limit(page_size_title).offset(cur_page_title * page_size_title).to_owned();
-            let rows_title = match db.query_all(&stmt_title).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `code_example.title`: column not found in DB — {}", e); vec![] } };
-            let mut vals_title: Vec<String> = rows_title.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_title = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT title)"))
+                .from(Alias::new(code_example::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .to_owned();
+            let count_row_title = match db.query_one(&count_stmt_title).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `code_example.title`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_title = count_row_title
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_title = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(title AS TEXT)"))
+                .from(Alias::new(code_example::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .limit(page_size_title)
+                .offset(cur_page_title * page_size_title)
+                .to_owned();
+            let rows_title = match db.query_all(&stmt_title).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `code_example.title`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_title: Vec<String> = rows_title
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("title".to_string(), (vals_title, total_title));
             let page_size_language = 10u64;
             let cur_page_language = pages.get("language").copied().unwrap_or(0);
-            let count_stmt_language = Query::select().expr(Expr::cust("COUNT(DISTINCT language)")).from(Alias::new(code_example::Entity.table_name())).and_where(Expr::col(Alias::new("language")).is_not_null()).to_owned();
-            let count_row_language = match db.query_one(&count_stmt_language).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `code_example.language`: column not found in DB — {}", e); None } };
-            let total_language = count_row_language.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_language = Query::select().distinct().expr(Expr::cust("CAST(language AS TEXT)")).from(Alias::new(code_example::Entity.table_name())).and_where(Expr::col(Alias::new("language")).is_not_null()).limit(page_size_language).offset(cur_page_language * page_size_language).to_owned();
-            let rows_language = match db.query_all(&stmt_language).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `code_example.language`: column not found in DB — {}", e); vec![] } };
-            let mut vals_language: Vec<String> = rows_language.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_language.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_language = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT language)"))
+                .from(Alias::new(code_example::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("language")).is_not_null())
+                .to_owned();
+            let count_row_language = match db.query_one(&count_stmt_language).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `code_example.language`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_language = count_row_language
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_language = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(language AS TEXT)"))
+                .from(Alias::new(code_example::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("language")).is_not_null())
+                .limit(page_size_language)
+                .offset(cur_page_language * page_size_language)
+                .to_owned();
+            let rows_language = match db.query_all(&stmt_language).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `code_example.language`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_language: Vec<String> = rows_language
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_language.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("language".to_string(), (vals_language, total_language));
             let page_size_code = 10u64;
             let cur_page_code = pages.get("code").copied().unwrap_or(0);
-            let count_stmt_code = Query::select().expr(Expr::cust("COUNT(DISTINCT code)")).from(Alias::new(code_example::Entity.table_name())).and_where(Expr::col(Alias::new("code")).is_not_null()).to_owned();
-            let count_row_code = match db.query_one(&count_stmt_code).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `code_example.code`: column not found in DB — {}", e); None } };
-            let total_code = count_row_code.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_code = Query::select().distinct().expr(Expr::cust("CAST(code AS TEXT)")).from(Alias::new(code_example::Entity.table_name())).and_where(Expr::col(Alias::new("code")).is_not_null()).limit(page_size_code).offset(cur_page_code * page_size_code).to_owned();
-            let rows_code = match db.query_all(&stmt_code).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `code_example.code`: column not found in DB — {}", e); vec![] } };
-            let mut vals_code: Vec<String> = rows_code.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_code.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_code = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT code)"))
+                .from(Alias::new(code_example::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("code")).is_not_null())
+                .to_owned();
+            let count_row_code = match db.query_one(&count_stmt_code).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `code_example.code`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_code = count_row_code
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_code = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(code AS TEXT)"))
+                .from(Alias::new(code_example::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("code")).is_not_null())
+                .limit(page_size_code)
+                .offset(cur_page_code * page_size_code)
+                .to_owned();
+            let rows_code = match db.query_all(&stmt_code).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `code_example.code`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_code: Vec<String> = rows_code
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_code.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("code".to_string(), (vals_code, total_code));
             let page_size_context = 10u64;
             let cur_page_context = pages.get("context").copied().unwrap_or(0);
-            let count_stmt_context = Query::select().expr(Expr::cust("COUNT(DISTINCT context)")).from(Alias::new(code_example::Entity.table_name())).and_where(Expr::col(Alias::new("context")).is_not_null()).to_owned();
-            let count_row_context = match db.query_one(&count_stmt_context).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `code_example.context`: column not found in DB — {}", e); None } };
-            let total_context = count_row_context.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_context = Query::select().distinct().expr(Expr::cust("CAST(context AS TEXT)")).from(Alias::new(code_example::Entity.table_name())).and_where(Expr::col(Alias::new("context")).is_not_null()).limit(page_size_context).offset(cur_page_context * page_size_context).to_owned();
-            let rows_context = match db.query_all(&stmt_context).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `code_example.context`: column not found in DB — {}", e); vec![] } };
-            let mut vals_context: Vec<String> = rows_context.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_context.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_context = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT context)"))
+                .from(Alias::new(code_example::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("context")).is_not_null())
+                .to_owned();
+            let count_row_context = match db.query_one(&count_stmt_context).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `code_example.context`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_context = count_row_context
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_context = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(context AS TEXT)"))
+                .from(Alias::new(code_example::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("context")).is_not_null())
+                .limit(page_size_context)
+                .offset(cur_page_context * page_size_context)
+                .to_owned();
+            let rows_context = match db.query_all(&stmt_context).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `code_example.context`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_context: Vec<String> = rows_context
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_context.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("context".to_string(), (vals_context, total_context));
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
-            let count_stmt_sort_order = Query::select().expr(Expr::cust("COUNT(DISTINCT sort_order)")).from(Alias::new(code_example::Entity.table_name())).and_where(Expr::col(Alias::new("sort_order")).is_not_null()).to_owned();
-            let count_row_sort_order = match db.query_one(&count_stmt_sort_order).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `code_example.sort_order`: column not found in DB — {}", e); None } };
-            let total_sort_order = count_row_sort_order.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_sort_order = Query::select().distinct().expr(Expr::cust("CAST(sort_order AS TEXT)")).from(Alias::new(code_example::Entity.table_name())).and_where(Expr::col(Alias::new("sort_order")).is_not_null()).limit(page_size_sort_order).offset(cur_page_sort_order * page_size_sort_order).to_owned();
-            let rows_sort_order = match db.query_all(&stmt_sort_order).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `code_example.sort_order`: column not found in DB — {}", e); vec![] } };
-            let mut vals_sort_order: Vec<String> = rows_sort_order.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
-            result.insert("sort_order".to_string(), (vals_sort_order, total_sort_order));
+            let count_stmt_sort_order = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT sort_order)"))
+                .from(Alias::new(code_example::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .to_owned();
+            let count_row_sort_order = match db.query_one(&count_stmt_sort_order).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `code_example.sort_order`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_sort_order = count_row_sort_order
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_sort_order = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(sort_order AS TEXT)"))
+                .from(Alias::new(code_example::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .limit(page_size_sort_order)
+                .offset(cur_page_sort_order * page_size_sort_order)
+                .to_owned();
+            let rows_sort_order = match db.query_all(&stmt_sort_order).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `code_example.sort_order`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_sort_order: Vec<String> = rows_sort_order
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
+            result.insert(
+                "sort_order".to_string(),
+                (vals_sort_order, total_sort_order),
+            );
             Ok(result)
         })
     });
@@ -1874,13 +4435,14 @@ pub fn admin_register() -> AdminRegistry {
         ResourceEntry::new(meta, form_builder)
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
+            .with_enum_label_fn(code_example::apply_enum_labels)
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_unique_fields(code_example::UNIQUE_FIELDS)
-            .with_filter_fn(filter_fn)
+            .with_filter_fn(filter_fn),
     );
 
     // ── Resource: page_doc_link ──
@@ -1891,54 +4453,108 @@ pub fn admin_register() -> AdminRegistry {
         "Liens documentation",
         vec![],
     );
-    let form_builder: FormBuilder = Arc::new(|_db: ADb, _vec: Vec<std::string::String>, data: StrMap, tera: ATera, csrf: String, method: Method| {
-        Box::pin(async move {
-            let form = page_doc_link::AdminForm::build_with_data(&data, tera, &csrf, method).await;
-            Box::new(PageDocLinkAdminFormDynWrapper(form)) as Box<dyn DynForm>
-        })
-    });
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
+            Box::pin(async move {
+                let form =
+                    page_doc_link::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+                Box::new(PageDocLinkAdminFormDynWrapper(form)) as Box<dyn DynForm>
+            })
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            use sea_orm::{QueryFilter, sea_query::{Alias, Expr, ExprTrait, Order}};
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, ExprTrait, Order},
+            };
             let mut query = page_doc_link::Entity::find();
-            const SORT_COLS: &[&str] = &["id", "page_id", "label", "url", "link_type", "sort_order"];
+            const SORT_COLS: &[&str] =
+                &["id", "page_id", "label", "url", "link_type", "sort_order"];
             const FILTER_COLS: &[&str] = &["page_id", "label", "url", "link_type", "sort_order"];
-            if let Some(ref col) = params.sort_by && SORT_COLS.contains(&col.as_str()) {
-                let order = if params.sort_dir == SortDir::Desc { Order::Desc } else { Order::Asc };
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                if !FILTER_COLS.contains(&col.as_str()) { continue; }
-                query = query.filter(Expr::col(Alias::new(col.as_str())).cast_as(Alias::new("TEXT")).eq(val.clone()));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
+            }
+            if let Some((col, val)) = &params.scope
+                && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+            {
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(page_doc_link::Entity => or("page_id" icontains search_str, "label" icontains search_str, "url" icontains search_str, "link_type" icontains search_str, "sort_order" icontains search_str));
                 query = query.filter(search_cond);
             }
-            let db_rows = query.offset(params.offset).limit(params.limit).all(&*db).await?;
-            let rows: Vec<serde_json::Value> = db_rows.into_iter()
+            let db_rows = query
+                .offset(params.offset)
+                .limit(params.limit)
+                .all(&*db)
+                .await?;
+            let rows: Vec<serde_json::Value> = db_rows
+                .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
                 .collect();
             Ok(rows)
         })
     });
 
-    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move {
-            use sea_orm::QueryFilter;
-            let mut query = page_doc_link::Entity::find();
-            if let Some(ref search_str) = _search {
-                let search_cond = search_cond!(page_doc_link::Entity => or("page_id" icontains search_str, "label" icontains search_str, "url" icontains search_str, "link_type" icontains search_str, "sort_order" icontains search_str));
-                query = query.filter(search_cond);
-            }
-            query.count(&*db).await
-        })
-    });
+    let count_fn: CountFn = Arc::new(
+        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+            Box::pin(async move {
+                use sea_orm::{
+                    QueryFilter,
+                    sea_query::{Alias, Expr, ExprTrait},
+                };
+                let mut query = page_doc_link::Entity::find();
+                if let Some(ref search_str) = _search {
+                    let search_cond = search_cond!(page_doc_link::Entity => or("page_id" icontains search_str, "label" icontains search_str, "url" icontains search_str, "link_type" icontains search_str, "sort_order" icontains search_str));
+                    query = query.filter(search_cond);
+                }
+                if let Some((col, val)) = &scope
+                    && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+                {
+                    query = query.filter(
+                        Expr::col(Alias::new(col.as_str()))
+                            .cast_as(Alias::new("TEXT"))
+                            .eq(val.clone()),
+                    );
+                }
+                query.count(&*db).await
+            })
+        },
+    );
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = page_doc_link::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -1946,85 +4562,310 @@ pub fn admin_register() -> AdminRegistry {
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            page_doc_link::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            page_doc_link::Entity::delete_by_id(id)
+                .exec(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
             page_doc_link::admin_from_form(&data, None)
-                .insert(&*db).await.map(|_| ())
+                .insert(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             page_doc_link::admin_from_form(&data, Some(id))
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             page_doc_link::admin_partial_update(&data, id)
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
-    let meta = meta.display(DisplayConfig::new().columns_include(vec![("page_id", "Page"), ("label", "Label"), ("url", "URL"), ("link_type", "Type"), ("sort_order", "Ordre d'affichage")]).list_filter(vec![("page_id", "Page", 10u64), ("label", "Label", 10u64), ("url", "URL", 10u64), ("link_type", "Type", 10u64), ("sort_order", "Ordre d'affichage", 10u64)]));
+    let meta = meta.display(
+        DisplayConfig::new()
+            .columns_include(vec![
+                ("page_id", "Page"),
+                ("label", "Label"),
+                ("url", "URL"),
+                ("link_type", "Type"),
+                ("sort_order", "Ordre d'affichage"),
+            ])
+            .list_filter(vec![
+                ("page_id", "Page", 10u64),
+                ("label", "Label", 10u64),
+                ("url", "URL", 10u64),
+                ("link_type", "Type", 10u64),
+                ("sort_order", "Ordre d'affichage", 10u64),
+            ]),
+    );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
+            use sea_orm::sea_query::{Alias, Expr, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
-            use sea_orm::sea_query::{Query, Alias, Expr};
-            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> = std::collections::HashMap::new();
+            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
+                std::collections::HashMap::new();
             let page_size_page_id = 10u64;
             let cur_page_page_id = pages.get("page_id").copied().unwrap_or(0);
-            let count_stmt_page_id = Query::select().expr(Expr::cust("COUNT(DISTINCT page_id)")).from(Alias::new(page_doc_link::Entity.table_name())).and_where(Expr::col(Alias::new("page_id")).is_not_null()).to_owned();
-            let count_row_page_id = match db.query_one(&count_stmt_page_id).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `page_doc_link.page_id`: column not found in DB — {}", e); None } };
-            let total_page_id = count_row_page_id.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_page_id = Query::select().distinct().expr(Expr::cust("CAST(page_id AS TEXT)")).from(Alias::new(page_doc_link::Entity.table_name())).and_where(Expr::col(Alias::new("page_id")).is_not_null()).limit(page_size_page_id).offset(cur_page_page_id * page_size_page_id).to_owned();
-            let rows_page_id = match db.query_all(&stmt_page_id).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `page_doc_link.page_id`: column not found in DB — {}", e); vec![] } };
-            let mut vals_page_id: Vec<String> = rows_page_id.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_page_id.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_page_id = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT page_id)"))
+                .from(Alias::new(page_doc_link::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("page_id")).is_not_null())
+                .to_owned();
+            let count_row_page_id = match db.query_one(&count_stmt_page_id).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `page_doc_link.page_id`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_page_id = count_row_page_id
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_page_id = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(page_id AS TEXT)"))
+                .from(Alias::new(page_doc_link::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("page_id")).is_not_null())
+                .limit(page_size_page_id)
+                .offset(cur_page_page_id * page_size_page_id)
+                .to_owned();
+            let rows_page_id = match db.query_all(&stmt_page_id).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `page_doc_link.page_id`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_page_id: Vec<String> = rows_page_id
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_page_id.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("page_id".to_string(), (vals_page_id, total_page_id));
             let page_size_label = 10u64;
             let cur_page_label = pages.get("label").copied().unwrap_or(0);
-            let count_stmt_label = Query::select().expr(Expr::cust("COUNT(DISTINCT label)")).from(Alias::new(page_doc_link::Entity.table_name())).and_where(Expr::col(Alias::new("label")).is_not_null()).to_owned();
-            let count_row_label = match db.query_one(&count_stmt_label).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `page_doc_link.label`: column not found in DB — {}", e); None } };
-            let total_label = count_row_label.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_label = Query::select().distinct().expr(Expr::cust("CAST(label AS TEXT)")).from(Alias::new(page_doc_link::Entity.table_name())).and_where(Expr::col(Alias::new("label")).is_not_null()).limit(page_size_label).offset(cur_page_label * page_size_label).to_owned();
-            let rows_label = match db.query_all(&stmt_label).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `page_doc_link.label`: column not found in DB — {}", e); vec![] } };
-            let mut vals_label: Vec<String> = rows_label.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_label.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_label = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT label)"))
+                .from(Alias::new(page_doc_link::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("label")).is_not_null())
+                .to_owned();
+            let count_row_label = match db.query_one(&count_stmt_label).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `page_doc_link.label`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_label = count_row_label
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_label = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(label AS TEXT)"))
+                .from(Alias::new(page_doc_link::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("label")).is_not_null())
+                .limit(page_size_label)
+                .offset(cur_page_label * page_size_label)
+                .to_owned();
+            let rows_label = match db.query_all(&stmt_label).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `page_doc_link.label`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_label: Vec<String> = rows_label
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_label.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("label".to_string(), (vals_label, total_label));
             let page_size_url = 10u64;
             let cur_page_url = pages.get("url").copied().unwrap_or(0);
-            let count_stmt_url = Query::select().expr(Expr::cust("COUNT(DISTINCT url)")).from(Alias::new(page_doc_link::Entity.table_name())).and_where(Expr::col(Alias::new("url")).is_not_null()).to_owned();
-            let count_row_url = match db.query_one(&count_stmt_url).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `page_doc_link.url`: column not found in DB — {}", e); None } };
-            let total_url = count_row_url.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_url = Query::select().distinct().expr(Expr::cust("CAST(url AS TEXT)")).from(Alias::new(page_doc_link::Entity.table_name())).and_where(Expr::col(Alias::new("url")).is_not_null()).limit(page_size_url).offset(cur_page_url * page_size_url).to_owned();
-            let rows_url = match db.query_all(&stmt_url).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `page_doc_link.url`: column not found in DB — {}", e); vec![] } };
-            let mut vals_url: Vec<String> = rows_url.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_url.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_url = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT url)"))
+                .from(Alias::new(page_doc_link::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("url")).is_not_null())
+                .to_owned();
+            let count_row_url = match db.query_one(&count_stmt_url).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `page_doc_link.url`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_url = count_row_url
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_url = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(url AS TEXT)"))
+                .from(Alias::new(page_doc_link::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("url")).is_not_null())
+                .limit(page_size_url)
+                .offset(cur_page_url * page_size_url)
+                .to_owned();
+            let rows_url = match db.query_all(&stmt_url).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `page_doc_link.url`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_url: Vec<String> = rows_url
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_url.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("url".to_string(), (vals_url, total_url));
             let page_size_link_type = 10u64;
             let cur_page_link_type = pages.get("link_type").copied().unwrap_or(0);
-            let count_stmt_link_type = Query::select().expr(Expr::cust("COUNT(DISTINCT link_type)")).from(Alias::new(page_doc_link::Entity.table_name())).and_where(Expr::col(Alias::new("link_type")).is_not_null()).to_owned();
-            let count_row_link_type = match db.query_one(&count_stmt_link_type).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `page_doc_link.link_type`: column not found in DB — {}", e); None } };
-            let total_link_type = count_row_link_type.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_link_type = Query::select().distinct().expr(Expr::cust("CAST(link_type AS TEXT)")).from(Alias::new(page_doc_link::Entity.table_name())).and_where(Expr::col(Alias::new("link_type")).is_not_null()).limit(page_size_link_type).offset(cur_page_link_type * page_size_link_type).to_owned();
-            let rows_link_type = match db.query_all(&stmt_link_type).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `page_doc_link.link_type`: column not found in DB — {}", e); vec![] } };
-            let mut vals_link_type: Vec<String> = rows_link_type.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_link_type.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_link_type = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT link_type)"))
+                .from(Alias::new(page_doc_link::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("link_type")).is_not_null())
+                .to_owned();
+            let count_row_link_type = match db.query_one(&count_stmt_link_type).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `page_doc_link.link_type`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_link_type = count_row_link_type
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_link_type = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(link_type AS TEXT)"))
+                .from(Alias::new(page_doc_link::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("link_type")).is_not_null())
+                .limit(page_size_link_type)
+                .offset(cur_page_link_type * page_size_link_type)
+                .to_owned();
+            let rows_link_type = match db.query_all(&stmt_link_type).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `page_doc_link.link_type`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_link_type: Vec<String> = rows_link_type
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_link_type.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("link_type".to_string(), (vals_link_type, total_link_type));
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
-            let count_stmt_sort_order = Query::select().expr(Expr::cust("COUNT(DISTINCT sort_order)")).from(Alias::new(page_doc_link::Entity.table_name())).and_where(Expr::col(Alias::new("sort_order")).is_not_null()).to_owned();
-            let count_row_sort_order = match db.query_one(&count_stmt_sort_order).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `page_doc_link.sort_order`: column not found in DB — {}", e); None } };
-            let total_sort_order = count_row_sort_order.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_sort_order = Query::select().distinct().expr(Expr::cust("CAST(sort_order AS TEXT)")).from(Alias::new(page_doc_link::Entity.table_name())).and_where(Expr::col(Alias::new("sort_order")).is_not_null()).limit(page_size_sort_order).offset(cur_page_sort_order * page_size_sort_order).to_owned();
-            let rows_sort_order = match db.query_all(&stmt_sort_order).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `page_doc_link.sort_order`: column not found in DB — {}", e); vec![] } };
-            let mut vals_sort_order: Vec<String> = rows_sort_order.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
-            result.insert("sort_order".to_string(), (vals_sort_order, total_sort_order));
+            let count_stmt_sort_order = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT sort_order)"))
+                .from(Alias::new(page_doc_link::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .to_owned();
+            let count_row_sort_order = match db.query_one(&count_stmt_sort_order).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `page_doc_link.sort_order`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_sort_order = count_row_sort_order
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_sort_order = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(sort_order AS TEXT)"))
+                .from(Alias::new(page_doc_link::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .limit(page_size_sort_order)
+                .offset(cur_page_sort_order * page_size_sort_order)
+                .to_owned();
+            let rows_sort_order = match db.query_all(&stmt_sort_order).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `page_doc_link.sort_order`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_sort_order: Vec<String> = rows_sort_order
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
+            result.insert(
+                "sort_order".to_string(),
+                (vals_sort_order, total_sort_order),
+            );
             Ok(result)
         })
     });
@@ -2033,13 +4874,14 @@ pub fn admin_register() -> AdminRegistry {
         ResourceEntry::new(meta, form_builder)
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
+            .with_enum_label_fn(page_doc_link::apply_enum_labels)
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_unique_fields(page_doc_link::UNIQUE_FIELDS)
-            .with_filter_fn(filter_fn)
+            .with_filter_fn(filter_fn),
     );
 
     // ── Resource: form_field ──
@@ -2050,54 +4892,123 @@ pub fn admin_register() -> AdminRegistry {
         "Champs formulaire",
         vec![],
     );
-    let form_builder: FormBuilder = Arc::new(|_db: ADb, _vec: Vec<std::string::String>, data: StrMap, tera: ATera, csrf: String, method: Method| {
-        Box::pin(async move {
-            let form = form_field::AdminForm::build_with_data(&data, tera, &csrf, method).await;
-            Box::new(FormFieldAdminFormDynWrapper(form)) as Box<dyn DynForm>
-        })
-    });
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
+            Box::pin(async move {
+                let form = form_field::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+                Box::new(FormFieldAdminFormDynWrapper(form)) as Box<dyn DynForm>
+            })
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            use sea_orm::{QueryFilter, sea_query::{Alias, Expr, ExprTrait, Order}};
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, ExprTrait, Order},
+            };
             let mut query = form_field::Entity::find();
-            const SORT_COLS: &[&str] = &["id", "page_id", "name", "field_type", "description", "example", "html_preview", "sort_order"];
-            const FILTER_COLS: &[&str] = &["page_id", "name", "field_type", "description", "example", "html_preview", "sort_order"];
-            if let Some(ref col) = params.sort_by && SORT_COLS.contains(&col.as_str()) {
-                let order = if params.sort_dir == SortDir::Desc { Order::Desc } else { Order::Asc };
+            const SORT_COLS: &[&str] = &[
+                "id",
+                "page_id",
+                "name",
+                "field_type",
+                "description",
+                "example",
+                "html_preview",
+                "sort_order",
+            ];
+            const FILTER_COLS: &[&str] = &[
+                "page_id",
+                "name",
+                "field_type",
+                "description",
+                "example",
+                "html_preview",
+                "sort_order",
+            ];
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                if !FILTER_COLS.contains(&col.as_str()) { continue; }
-                query = query.filter(Expr::col(Alias::new(col.as_str())).cast_as(Alias::new("TEXT")).eq(val.clone()));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
+            }
+            if let Some((col, val)) = &params.scope
+                && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+            {
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(form_field::Entity => or("page_id" icontains search_str, "name" icontains search_str, "field_type" icontains search_str, "description" icontains search_str, "example" icontains search_str, "html_preview" icontains search_str, "sort_order" icontains search_str));
                 query = query.filter(search_cond);
             }
-            let db_rows = query.offset(params.offset).limit(params.limit).all(&*db).await?;
-            let rows: Vec<serde_json::Value> = db_rows.into_iter()
+            let db_rows = query
+                .offset(params.offset)
+                .limit(params.limit)
+                .all(&*db)
+                .await?;
+            let rows: Vec<serde_json::Value> = db_rows
+                .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
                 .collect();
             Ok(rows)
         })
     });
 
-    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move {
-            use sea_orm::QueryFilter;
-            let mut query = form_field::Entity::find();
-            if let Some(ref search_str) = _search {
-                let search_cond = search_cond!(form_field::Entity => or("page_id" icontains search_str, "name" icontains search_str, "field_type" icontains search_str, "description" icontains search_str, "example" icontains search_str, "html_preview" icontains search_str, "sort_order" icontains search_str));
-                query = query.filter(search_cond);
-            }
-            query.count(&*db).await
-        })
-    });
+    let count_fn: CountFn = Arc::new(
+        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+            Box::pin(async move {
+                use sea_orm::{
+                    QueryFilter,
+                    sea_query::{Alias, Expr, ExprTrait},
+                };
+                let mut query = form_field::Entity::find();
+                if let Some(ref search_str) = _search {
+                    let search_cond = search_cond!(form_field::Entity => or("page_id" icontains search_str, "name" icontains search_str, "field_type" icontains search_str, "description" icontains search_str, "example" icontains search_str, "html_preview" icontains search_str, "sort_order" icontains search_str));
+                    query = query.filter(search_cond);
+                }
+                if let Some((col, val)) = &scope
+                    && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+                {
+                    query = query.filter(
+                        Expr::col(Alias::new(col.as_str()))
+                            .cast_as(Alias::new("TEXT"))
+                            .eq(val.clone()),
+                    );
+                }
+                query.count(&*db).await
+            })
+        },
+    );
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = form_field::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -2105,103 +5016,417 @@ pub fn admin_register() -> AdminRegistry {
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            form_field::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            form_field::Entity::delete_by_id(id)
+                .exec(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
             form_field::admin_from_form(&data, None)
-                .insert(&*db).await.map(|_| ())
+                .insert(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             form_field::admin_from_form(&data, Some(id))
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             form_field::admin_partial_update(&data, id)
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
-    let meta = meta.display(DisplayConfig::new().columns_include(vec![("page_id", "Page"), ("name", "Nom"), ("field_type", "Type"), ("description", "Description"), ("example", "Exemple"), ("html_preview", "Aperçu HTML"), ("sort_order", "Ordre d'affichage")]).list_filter(vec![("page_id", "Page", 10u64), ("name", "Nom", 10u64), ("field_type", "Type", 10u64), ("description", "Description", 10u64), ("example", "Exemple", 10u64), ("html_preview", "Aperçu HTML", 10u64), ("sort_order", "Ordre d'affichage", 10u64)]));
+    let meta = meta.display(
+        DisplayConfig::new()
+            .columns_include(vec![
+                ("page_id", "Page"),
+                ("name", "Nom"),
+                ("field_type", "Type"),
+                ("description", "Description"),
+                ("example", "Exemple"),
+                ("html_preview", "Aperçu HTML"),
+                ("sort_order", "Ordre d'affichage"),
+            ])
+            .list_filter(vec![
+                ("page_id", "Page", 10u64),
+                ("name", "Nom", 10u64),
+                ("field_type", "Type", 10u64),
+                ("description", "Description", 10u64),
+                ("example", "Exemple", 10u64),
+                ("html_preview", "Aperçu HTML", 10u64),
+                ("sort_order", "Ordre d'affichage", 10u64),
+            ]),
+    );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
+            use sea_orm::sea_query::{Alias, Expr, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
-            use sea_orm::sea_query::{Query, Alias, Expr};
-            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> = std::collections::HashMap::new();
+            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
+                std::collections::HashMap::new();
             let page_size_page_id = 10u64;
             let cur_page_page_id = pages.get("page_id").copied().unwrap_or(0);
-            let count_stmt_page_id = Query::select().expr(Expr::cust("COUNT(DISTINCT page_id)")).from(Alias::new(form_field::Entity.table_name())).and_where(Expr::col(Alias::new("page_id")).is_not_null()).to_owned();
-            let count_row_page_id = match db.query_one(&count_stmt_page_id).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `form_field.page_id`: column not found in DB — {}", e); None } };
-            let total_page_id = count_row_page_id.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_page_id = Query::select().distinct().expr(Expr::cust("CAST(page_id AS TEXT)")).from(Alias::new(form_field::Entity.table_name())).and_where(Expr::col(Alias::new("page_id")).is_not_null()).limit(page_size_page_id).offset(cur_page_page_id * page_size_page_id).to_owned();
-            let rows_page_id = match db.query_all(&stmt_page_id).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `form_field.page_id`: column not found in DB — {}", e); vec![] } };
-            let mut vals_page_id: Vec<String> = rows_page_id.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_page_id.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_page_id = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT page_id)"))
+                .from(Alias::new(form_field::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("page_id")).is_not_null())
+                .to_owned();
+            let count_row_page_id = match db.query_one(&count_stmt_page_id).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `form_field.page_id`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_page_id = count_row_page_id
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_page_id = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(page_id AS TEXT)"))
+                .from(Alias::new(form_field::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("page_id")).is_not_null())
+                .limit(page_size_page_id)
+                .offset(cur_page_page_id * page_size_page_id)
+                .to_owned();
+            let rows_page_id = match db.query_all(&stmt_page_id).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `form_field.page_id`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_page_id: Vec<String> = rows_page_id
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_page_id.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("page_id".to_string(), (vals_page_id, total_page_id));
             let page_size_name = 10u64;
             let cur_page_name = pages.get("name").copied().unwrap_or(0);
-            let count_stmt_name = Query::select().expr(Expr::cust("COUNT(DISTINCT name)")).from(Alias::new(form_field::Entity.table_name())).and_where(Expr::col(Alias::new("name")).is_not_null()).to_owned();
-            let count_row_name = match db.query_one(&count_stmt_name).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `form_field.name`: column not found in DB — {}", e); None } };
-            let total_name = count_row_name.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_name = Query::select().distinct().expr(Expr::cust("CAST(name AS TEXT)")).from(Alias::new(form_field::Entity.table_name())).and_where(Expr::col(Alias::new("name")).is_not_null()).limit(page_size_name).offset(cur_page_name * page_size_name).to_owned();
-            let rows_name = match db.query_all(&stmt_name).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `form_field.name`: column not found in DB — {}", e); vec![] } };
-            let mut vals_name: Vec<String> = rows_name.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_name.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_name = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT name)"))
+                .from(Alias::new(form_field::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("name")).is_not_null())
+                .to_owned();
+            let count_row_name = match db.query_one(&count_stmt_name).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `form_field.name`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_name = count_row_name
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_name = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(name AS TEXT)"))
+                .from(Alias::new(form_field::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("name")).is_not_null())
+                .limit(page_size_name)
+                .offset(cur_page_name * page_size_name)
+                .to_owned();
+            let rows_name = match db.query_all(&stmt_name).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `form_field.name`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_name: Vec<String> = rows_name
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_name.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("name".to_string(), (vals_name, total_name));
             let page_size_field_type = 10u64;
             let cur_page_field_type = pages.get("field_type").copied().unwrap_or(0);
-            let count_stmt_field_type = Query::select().expr(Expr::cust("COUNT(DISTINCT field_type)")).from(Alias::new(form_field::Entity.table_name())).and_where(Expr::col(Alias::new("field_type")).is_not_null()).to_owned();
-            let count_row_field_type = match db.query_one(&count_stmt_field_type).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `form_field.field_type`: column not found in DB — {}", e); None } };
-            let total_field_type = count_row_field_type.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_field_type = Query::select().distinct().expr(Expr::cust("CAST(field_type AS TEXT)")).from(Alias::new(form_field::Entity.table_name())).and_where(Expr::col(Alias::new("field_type")).is_not_null()).limit(page_size_field_type).offset(cur_page_field_type * page_size_field_type).to_owned();
-            let rows_field_type = match db.query_all(&stmt_field_type).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `form_field.field_type`: column not found in DB — {}", e); vec![] } };
-            let mut vals_field_type: Vec<String> = rows_field_type.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_field_type.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
-            result.insert("field_type".to_string(), (vals_field_type, total_field_type));
+            let count_stmt_field_type = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT field_type)"))
+                .from(Alias::new(form_field::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("field_type")).is_not_null())
+                .to_owned();
+            let count_row_field_type = match db.query_one(&count_stmt_field_type).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `form_field.field_type`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_field_type = count_row_field_type
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_field_type = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(field_type AS TEXT)"))
+                .from(Alias::new(form_field::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("field_type")).is_not_null())
+                .limit(page_size_field_type)
+                .offset(cur_page_field_type * page_size_field_type)
+                .to_owned();
+            let rows_field_type = match db.query_all(&stmt_field_type).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `form_field.field_type`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_field_type: Vec<String> = rows_field_type
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_field_type.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
+            result.insert(
+                "field_type".to_string(),
+                (vals_field_type, total_field_type),
+            );
             let page_size_description = 10u64;
             let cur_page_description = pages.get("description").copied().unwrap_or(0);
-            let count_stmt_description = Query::select().expr(Expr::cust("COUNT(DISTINCT description)")).from(Alias::new(form_field::Entity.table_name())).and_where(Expr::col(Alias::new("description")).is_not_null()).to_owned();
-            let count_row_description = match db.query_one(&count_stmt_description).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `form_field.description`: column not found in DB — {}", e); None } };
-            let total_description = count_row_description.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_description = Query::select().distinct().expr(Expr::cust("CAST(description AS TEXT)")).from(Alias::new(form_field::Entity.table_name())).and_where(Expr::col(Alias::new("description")).is_not_null()).limit(page_size_description).offset(cur_page_description * page_size_description).to_owned();
-            let rows_description = match db.query_all(&stmt_description).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `form_field.description`: column not found in DB — {}", e); vec![] } };
-            let mut vals_description: Vec<String> = rows_description.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_description.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
-            result.insert("description".to_string(), (vals_description, total_description));
+            let count_stmt_description = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT description)"))
+                .from(Alias::new(form_field::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("description")).is_not_null())
+                .to_owned();
+            let count_row_description = match db.query_one(&count_stmt_description).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `form_field.description`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_description = count_row_description
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_description = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(description AS TEXT)"))
+                .from(Alias::new(form_field::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("description")).is_not_null())
+                .limit(page_size_description)
+                .offset(cur_page_description * page_size_description)
+                .to_owned();
+            let rows_description = match db.query_all(&stmt_description).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `form_field.description`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_description: Vec<String> = rows_description
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_description.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
+            result.insert(
+                "description".to_string(),
+                (vals_description, total_description),
+            );
             let page_size_example = 10u64;
             let cur_page_example = pages.get("example").copied().unwrap_or(0);
-            let count_stmt_example = Query::select().expr(Expr::cust("COUNT(DISTINCT example)")).from(Alias::new(form_field::Entity.table_name())).and_where(Expr::col(Alias::new("example")).is_not_null()).to_owned();
-            let count_row_example = match db.query_one(&count_stmt_example).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `form_field.example`: column not found in DB — {}", e); None } };
-            let total_example = count_row_example.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_example = Query::select().distinct().expr(Expr::cust("CAST(example AS TEXT)")).from(Alias::new(form_field::Entity.table_name())).and_where(Expr::col(Alias::new("example")).is_not_null()).limit(page_size_example).offset(cur_page_example * page_size_example).to_owned();
-            let rows_example = match db.query_all(&stmt_example).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `form_field.example`: column not found in DB — {}", e); vec![] } };
-            let mut vals_example: Vec<String> = rows_example.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_example.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_example = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT example)"))
+                .from(Alias::new(form_field::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("example")).is_not_null())
+                .to_owned();
+            let count_row_example = match db.query_one(&count_stmt_example).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `form_field.example`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_example = count_row_example
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_example = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(example AS TEXT)"))
+                .from(Alias::new(form_field::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("example")).is_not_null())
+                .limit(page_size_example)
+                .offset(cur_page_example * page_size_example)
+                .to_owned();
+            let rows_example = match db.query_all(&stmt_example).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `form_field.example`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_example: Vec<String> = rows_example
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_example.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("example".to_string(), (vals_example, total_example));
             let page_size_html_preview = 10u64;
             let cur_page_html_preview = pages.get("html_preview").copied().unwrap_or(0);
-            let count_stmt_html_preview = Query::select().expr(Expr::cust("COUNT(DISTINCT html_preview)")).from(Alias::new(form_field::Entity.table_name())).and_where(Expr::col(Alias::new("html_preview")).is_not_null()).to_owned();
-            let count_row_html_preview = match db.query_one(&count_stmt_html_preview).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `form_field.html_preview`: column not found in DB — {}", e); None } };
-            let total_html_preview = count_row_html_preview.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_html_preview = Query::select().distinct().expr(Expr::cust("CAST(html_preview AS TEXT)")).from(Alias::new(form_field::Entity.table_name())).and_where(Expr::col(Alias::new("html_preview")).is_not_null()).limit(page_size_html_preview).offset(cur_page_html_preview * page_size_html_preview).to_owned();
-            let rows_html_preview = match db.query_all(&stmt_html_preview).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `form_field.html_preview`: column not found in DB — {}", e); vec![] } };
-            let mut vals_html_preview: Vec<String> = rows_html_preview.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_html_preview.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
-            result.insert("html_preview".to_string(), (vals_html_preview, total_html_preview));
+            let count_stmt_html_preview = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT html_preview)"))
+                .from(Alias::new(form_field::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("html_preview")).is_not_null())
+                .to_owned();
+            let count_row_html_preview = match db.query_one(&count_stmt_html_preview).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `form_field.html_preview`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_html_preview = count_row_html_preview
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_html_preview = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(html_preview AS TEXT)"))
+                .from(Alias::new(form_field::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("html_preview")).is_not_null())
+                .limit(page_size_html_preview)
+                .offset(cur_page_html_preview * page_size_html_preview)
+                .to_owned();
+            let rows_html_preview = match db.query_all(&stmt_html_preview).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `form_field.html_preview`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_html_preview: Vec<String> = rows_html_preview
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_html_preview.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
+            result.insert(
+                "html_preview".to_string(),
+                (vals_html_preview, total_html_preview),
+            );
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
-            let count_stmt_sort_order = Query::select().expr(Expr::cust("COUNT(DISTINCT sort_order)")).from(Alias::new(form_field::Entity.table_name())).and_where(Expr::col(Alias::new("sort_order")).is_not_null()).to_owned();
-            let count_row_sort_order = match db.query_one(&count_stmt_sort_order).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `form_field.sort_order`: column not found in DB — {}", e); None } };
-            let total_sort_order = count_row_sort_order.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_sort_order = Query::select().distinct().expr(Expr::cust("CAST(sort_order AS TEXT)")).from(Alias::new(form_field::Entity.table_name())).and_where(Expr::col(Alias::new("sort_order")).is_not_null()).limit(page_size_sort_order).offset(cur_page_sort_order * page_size_sort_order).to_owned();
-            let rows_sort_order = match db.query_all(&stmt_sort_order).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `form_field.sort_order`: column not found in DB — {}", e); vec![] } };
-            let mut vals_sort_order: Vec<String> = rows_sort_order.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
-            result.insert("sort_order".to_string(), (vals_sort_order, total_sort_order));
+            let count_stmt_sort_order = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT sort_order)"))
+                .from(Alias::new(form_field::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .to_owned();
+            let count_row_sort_order = match db.query_one(&count_stmt_sort_order).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `form_field.sort_order`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_sort_order = count_row_sort_order
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_sort_order = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(sort_order AS TEXT)"))
+                .from(Alias::new(form_field::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .limit(page_size_sort_order)
+                .offset(cur_page_sort_order * page_size_sort_order)
+                .to_owned();
+            let rows_sort_order = match db.query_all(&stmt_sort_order).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `form_field.sort_order`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_sort_order: Vec<String> = rows_sort_order
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
+            result.insert(
+                "sort_order".to_string(),
+                (vals_sort_order, total_sort_order),
+            );
             Ok(result)
         })
     });
@@ -2210,13 +5435,14 @@ pub fn admin_register() -> AdminRegistry {
         ResourceEntry::new(meta, form_builder)
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
+            .with_enum_label_fn(form_field::apply_enum_labels)
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_unique_fields(form_field::UNIQUE_FIELDS)
-            .with_filter_fn(filter_fn)
+            .with_filter_fn(filter_fn),
     );
 
     // ── Resource: doc_section ──
@@ -2227,54 +5453,107 @@ pub fn admin_register() -> AdminRegistry {
         "Doc — Sections",
         vec![],
     );
-    let form_builder: FormBuilder = Arc::new(|_db: ADb, _vec: Vec<std::string::String>, data: StrMap, tera: ATera, csrf: String, method: Method| {
-        Box::pin(async move {
-            let form = doc_section::AdminForm::build_with_data(&data, tera, &csrf, method).await;
-            Box::new(DocSectionAdminFormDynWrapper(form)) as Box<dyn DynForm>
-        })
-    });
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
+            Box::pin(async move {
+                let form =
+                    doc_section::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+                Box::new(DocSectionAdminFormDynWrapper(form)) as Box<dyn DynForm>
+            })
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            use sea_orm::{QueryFilter, sea_query::{Alias, Expr, ExprTrait, Order}};
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, ExprTrait, Order},
+            };
             let mut query = doc_section::Entity::find();
             const SORT_COLS: &[&str] = &["id", "slug", "lang", "title", "theme", "sort_order"];
             const FILTER_COLS: &[&str] = &["lang", "theme"];
-            if let Some(ref col) = params.sort_by && SORT_COLS.contains(&col.as_str()) {
-                let order = if params.sort_dir == SortDir::Desc { Order::Desc } else { Order::Asc };
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                if !FILTER_COLS.contains(&col.as_str()) { continue; }
-                query = query.filter(Expr::col(Alias::new(col.as_str())).cast_as(Alias::new("TEXT")).eq(val.clone()));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
+            }
+            if let Some((col, val)) = &params.scope
+                && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+            {
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(doc_section::Entity => or("slug" icontains search_str, "lang" icontains search_str, "title" icontains search_str, "theme" icontains search_str, "sort_order" icontains search_str));
                 query = query.filter(search_cond);
             }
-            let db_rows = query.offset(params.offset).limit(params.limit).all(&*db).await?;
-            let rows: Vec<serde_json::Value> = db_rows.into_iter()
+            let db_rows = query
+                .offset(params.offset)
+                .limit(params.limit)
+                .all(&*db)
+                .await?;
+            let rows: Vec<serde_json::Value> = db_rows
+                .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
                 .collect();
             Ok(rows)
         })
     });
 
-    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move {
-            use sea_orm::QueryFilter;
-            let mut query = doc_section::Entity::find();
-            if let Some(ref search_str) = _search {
-                let search_cond = search_cond!(doc_section::Entity => or("slug" icontains search_str, "lang" icontains search_str, "title" icontains search_str, "theme" icontains search_str, "sort_order" icontains search_str));
-                query = query.filter(search_cond);
-            }
-            query.count(&*db).await
-        })
-    });
+    let count_fn: CountFn = Arc::new(
+        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+            Box::pin(async move {
+                use sea_orm::{
+                    QueryFilter,
+                    sea_query::{Alias, Expr, ExprTrait},
+                };
+                let mut query = doc_section::Entity::find();
+                if let Some(ref search_str) = _search {
+                    let search_cond = search_cond!(doc_section::Entity => or("slug" icontains search_str, "lang" icontains search_str, "title" icontains search_str, "theme" icontains search_str, "sort_order" icontains search_str));
+                    query = query.filter(search_cond);
+                }
+                if let Some((col, val)) = &scope
+                    && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+                {
+                    query = query.filter(
+                        Expr::col(Alias::new(col.as_str()))
+                            .cast_as(Alias::new("TEXT"))
+                            .eq(val.clone()),
+                    );
+                }
+                query.count(&*db).await
+            })
+        },
+    );
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = doc_section::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -2282,57 +5561,159 @@ pub fn admin_register() -> AdminRegistry {
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            doc_section::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            doc_section::Entity::delete_by_id(id)
+                .exec(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
             doc_section::admin_from_form(&data, None)
-                .insert(&*db).await.map(|_| ())
+                .insert(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             doc_section::admin_from_form(&data, Some(id))
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             doc_section::admin_partial_update(&data, id)
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
-    let meta = meta.display(DisplayConfig::new().columns_include(vec![("slug", "Slug"), ("lang", "Langue"), ("title", "Titre"), ("theme", "Thème"), ("sort_order", "Ordre d'affichage")]).list_filter(vec![("lang", "Langue", 10u64), ("theme", "Thème", 10u64)]));
+    let meta = meta.display(
+        DisplayConfig::new()
+            .columns_include(vec![
+                ("slug", "Slug"),
+                ("lang", "Langue"),
+                ("title", "Titre"),
+                ("theme", "Thème"),
+                ("sort_order", "Ordre d'affichage"),
+            ])
+            .list_filter(vec![("lang", "Langue", 10u64), ("theme", "Thème", 10u64)]),
+    );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
+            use sea_orm::sea_query::{Alias, Expr, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
-            use sea_orm::sea_query::{Query, Alias, Expr};
-            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> = std::collections::HashMap::new();
+            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
+                std::collections::HashMap::new();
             let page_size_lang = 10u64;
             let cur_page_lang = pages.get("lang").copied().unwrap_or(0);
-            let count_stmt_lang = Query::select().expr(Expr::cust("COUNT(DISTINCT lang)")).from(Alias::new(doc_section::Entity.table_name())).and_where(Expr::col(Alias::new("lang")).is_not_null()).to_owned();
-            let count_row_lang = match db.query_one(&count_stmt_lang).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `doc_section.lang`: column not found in DB — {}", e); None } };
-            let total_lang = count_row_lang.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_lang = Query::select().distinct().expr(Expr::cust("CAST(lang AS TEXT)")).from(Alias::new(doc_section::Entity.table_name())).and_where(Expr::col(Alias::new("lang")).is_not_null()).limit(page_size_lang).offset(cur_page_lang * page_size_lang).to_owned();
-            let rows_lang = match db.query_all(&stmt_lang).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `doc_section.lang`: column not found in DB — {}", e); vec![] } };
-            let mut vals_lang: Vec<String> = rows_lang.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_lang.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_lang = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT lang)"))
+                .from(Alias::new(doc_section::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("lang")).is_not_null())
+                .to_owned();
+            let count_row_lang = match db.query_one(&count_stmt_lang).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `doc_section.lang`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_lang = count_row_lang
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_lang = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(lang AS TEXT)"))
+                .from(Alias::new(doc_section::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("lang")).is_not_null())
+                .limit(page_size_lang)
+                .offset(cur_page_lang * page_size_lang)
+                .to_owned();
+            let rows_lang = match db.query_all(&stmt_lang).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `doc_section.lang`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_lang: Vec<String> = rows_lang
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_lang.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("lang".to_string(), (vals_lang, total_lang));
             let page_size_theme = 10u64;
             let cur_page_theme = pages.get("theme").copied().unwrap_or(0);
-            let count_stmt_theme = Query::select().expr(Expr::cust("COUNT(DISTINCT theme)")).from(Alias::new(doc_section::Entity.table_name())).and_where(Expr::col(Alias::new("theme")).is_not_null()).to_owned();
-            let count_row_theme = match db.query_one(&count_stmt_theme).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `doc_section.theme`: column not found in DB — {}", e); None } };
-            let total_theme = count_row_theme.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_theme = Query::select().distinct().expr(Expr::cust("CAST(theme AS TEXT)")).from(Alias::new(doc_section::Entity.table_name())).and_where(Expr::col(Alias::new("theme")).is_not_null()).limit(page_size_theme).offset(cur_page_theme * page_size_theme).to_owned();
-            let rows_theme = match db.query_all(&stmt_theme).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `doc_section.theme`: column not found in DB — {}", e); vec![] } };
-            let mut vals_theme: Vec<String> = rows_theme.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_theme.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_theme = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT theme)"))
+                .from(Alias::new(doc_section::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("theme")).is_not_null())
+                .to_owned();
+            let count_row_theme = match db.query_one(&count_stmt_theme).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `doc_section.theme`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_theme = count_row_theme
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_theme = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(theme AS TEXT)"))
+                .from(Alias::new(doc_section::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("theme")).is_not_null())
+                .limit(page_size_theme)
+                .offset(cur_page_theme * page_size_theme)
+                .to_owned();
+            let rows_theme = match db.query_all(&stmt_theme).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `doc_section.theme`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_theme: Vec<String> = rows_theme
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_theme.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("theme".to_string(), (vals_theme, total_theme));
             Ok(result)
         })
@@ -2342,13 +5723,14 @@ pub fn admin_register() -> AdminRegistry {
         ResourceEntry::new(meta, form_builder)
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
+            .with_enum_label_fn(doc_section::apply_enum_labels)
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_unique_fields(doc_section::UNIQUE_FIELDS)
-            .with_filter_fn(filter_fn)
+            .with_filter_fn(filter_fn),
     );
 
     // ── Resource: doc_page ──
@@ -2359,54 +5741,115 @@ pub fn admin_register() -> AdminRegistry {
         "Doc — Pages",
         vec![],
     );
-    let form_builder: FormBuilder = Arc::new(|_db: ADb, _vec: Vec<std::string::String>, data: StrMap, tera: ATera, csrf: String, method: Method| {
-        Box::pin(async move {
-            let form = doc_page::AdminForm::build_with_data(&data, tera, &csrf, method).await;
-            Box::new(DocPageAdminFormDynWrapper(form)) as Box<dyn DynForm>
-        })
-    });
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
+            Box::pin(async move {
+                let form = doc_page::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+                Box::new(DocPageAdminFormDynWrapper(form)) as Box<dyn DynForm>
+            })
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            use sea_orm::{QueryFilter, sea_query::{Alias, Expr, ExprTrait, Order}};
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, ExprTrait, Order},
+            };
             let mut query = doc_page::Entity::find();
-            const SORT_COLS: &[&str] = &["id", "section_id", "slug", "lang", "title", "lead", "sort_order"];
-            const FILTER_COLS: &[&str] = &["section_id", "slug", "lang", "title", "lead", "sort_order"];
-            if let Some(ref col) = params.sort_by && SORT_COLS.contains(&col.as_str()) {
-                let order = if params.sort_dir == SortDir::Desc { Order::Desc } else { Order::Asc };
+            const SORT_COLS: &[&str] = &[
+                "id",
+                "section_id",
+                "slug",
+                "lang",
+                "title",
+                "lead",
+                "sort_order",
+            ];
+            const FILTER_COLS: &[&str] =
+                &["section_id", "slug", "lang", "title", "lead", "sort_order"];
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                if !FILTER_COLS.contains(&col.as_str()) { continue; }
-                query = query.filter(Expr::col(Alias::new(col.as_str())).cast_as(Alias::new("TEXT")).eq(val.clone()));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
+            }
+            if let Some((col, val)) = &params.scope
+                && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+            {
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(doc_page::Entity => or("section_id" icontains search_str, "slug" icontains search_str, "lang" icontains search_str, "title" icontains search_str, "lead" icontains search_str, "sort_order" icontains search_str));
                 query = query.filter(search_cond);
             }
-            let db_rows = query.offset(params.offset).limit(params.limit).all(&*db).await?;
-            let rows: Vec<serde_json::Value> = db_rows.into_iter()
+            let db_rows = query
+                .offset(params.offset)
+                .limit(params.limit)
+                .all(&*db)
+                .await?;
+            let rows: Vec<serde_json::Value> = db_rows
+                .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
                 .collect();
             Ok(rows)
         })
     });
 
-    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move {
-            use sea_orm::QueryFilter;
-            let mut query = doc_page::Entity::find();
-            if let Some(ref search_str) = _search {
-                let search_cond = search_cond!(doc_page::Entity => or("section_id" icontains search_str, "slug" icontains search_str, "lang" icontains search_str, "title" icontains search_str, "lead" icontains search_str, "sort_order" icontains search_str));
-                query = query.filter(search_cond);
-            }
-            query.count(&*db).await
-        })
-    });
+    let count_fn: CountFn = Arc::new(
+        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+            Box::pin(async move {
+                use sea_orm::{
+                    QueryFilter,
+                    sea_query::{Alias, Expr, ExprTrait},
+                };
+                let mut query = doc_page::Entity::find();
+                if let Some(ref search_str) = _search {
+                    let search_cond = search_cond!(doc_page::Entity => or("section_id" icontains search_str, "slug" icontains search_str, "lang" icontains search_str, "title" icontains search_str, "lead" icontains search_str, "sort_order" icontains search_str));
+                    query = query.filter(search_cond);
+                }
+                if let Some((col, val)) = &scope
+                    && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+                {
+                    query = query.filter(
+                        Expr::col(Alias::new(col.as_str()))
+                            .cast_as(Alias::new("TEXT"))
+                            .eq(val.clone()),
+                    );
+                }
+                query.count(&*db).await
+            })
+        },
+    );
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = doc_page::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -2414,94 +5857,362 @@ pub fn admin_register() -> AdminRegistry {
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            doc_page::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            doc_page::Entity::delete_by_id(id)
+                .exec(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
             doc_page::admin_from_form(&data, None)
-                .insert(&*db).await.map(|_| ())
+                .insert(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             doc_page::admin_from_form(&data, Some(id))
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             doc_page::admin_partial_update(&data, id)
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
-    let meta = meta.display(DisplayConfig::new().columns_include(vec![("section_id", "Section"), ("slug", "Slug"), ("lang", "Langue"), ("title", "Titre"), ("lead", "Lead"), ("sort_order", "Ordre d'affichage")]).list_filter(vec![("section_id", "Section", 10u64), ("slug", "Slug", 10u64), ("lang", "Langue", 10u64), ("title", "Titre", 10u64), ("lead", "Lead", 10u64), ("sort_order", "Ordre d'affichage", 10u64)]));
+    let meta = meta.display(
+        DisplayConfig::new()
+            .columns_include(vec![
+                ("section_id", "Section"),
+                ("slug", "Slug"),
+                ("lang", "Langue"),
+                ("title", "Titre"),
+                ("lead", "Lead"),
+                ("sort_order", "Ordre d'affichage"),
+            ])
+            .list_filter(vec![
+                ("section_id", "Section", 10u64),
+                ("slug", "Slug", 10u64),
+                ("lang", "Langue", 10u64),
+                ("title", "Titre", 10u64),
+                ("lead", "Lead", 10u64),
+                ("sort_order", "Ordre d'affichage", 10u64),
+            ]),
+    );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
+            use sea_orm::sea_query::{Alias, Expr, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
-            use sea_orm::sea_query::{Query, Alias, Expr};
-            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> = std::collections::HashMap::new();
+            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
+                std::collections::HashMap::new();
             let page_size_section_id = 10u64;
             let cur_page_section_id = pages.get("section_id").copied().unwrap_or(0);
-            let count_stmt_section_id = Query::select().expr(Expr::cust("COUNT(DISTINCT section_id)")).from(Alias::new(doc_page::Entity.table_name())).and_where(Expr::col(Alias::new("section_id")).is_not_null()).to_owned();
-            let count_row_section_id = match db.query_one(&count_stmt_section_id).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `doc_page.section_id`: column not found in DB — {}", e); None } };
-            let total_section_id = count_row_section_id.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_section_id = Query::select().distinct().expr(Expr::cust("CAST(section_id AS TEXT)")).from(Alias::new(doc_page::Entity.table_name())).and_where(Expr::col(Alias::new("section_id")).is_not_null()).limit(page_size_section_id).offset(cur_page_section_id * page_size_section_id).to_owned();
-            let rows_section_id = match db.query_all(&stmt_section_id).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `doc_page.section_id`: column not found in DB — {}", e); vec![] } };
-            let mut vals_section_id: Vec<String> = rows_section_id.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_section_id.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
-            result.insert("section_id".to_string(), (vals_section_id, total_section_id));
+            let count_stmt_section_id = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT section_id)"))
+                .from(Alias::new(doc_page::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("section_id")).is_not_null())
+                .to_owned();
+            let count_row_section_id = match db.query_one(&count_stmt_section_id).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `doc_page.section_id`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_section_id = count_row_section_id
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_section_id = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(section_id AS TEXT)"))
+                .from(Alias::new(doc_page::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("section_id")).is_not_null())
+                .limit(page_size_section_id)
+                .offset(cur_page_section_id * page_size_section_id)
+                .to_owned();
+            let rows_section_id = match db.query_all(&stmt_section_id).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `doc_page.section_id`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_section_id: Vec<String> = rows_section_id
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_section_id.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
+            result.insert(
+                "section_id".to_string(),
+                (vals_section_id, total_section_id),
+            );
             let page_size_slug = 10u64;
             let cur_page_slug = pages.get("slug").copied().unwrap_or(0);
-            let count_stmt_slug = Query::select().expr(Expr::cust("COUNT(DISTINCT slug)")).from(Alias::new(doc_page::Entity.table_name())).and_where(Expr::col(Alias::new("slug")).is_not_null()).to_owned();
-            let count_row_slug = match db.query_one(&count_stmt_slug).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `doc_page.slug`: column not found in DB — {}", e); None } };
-            let total_slug = count_row_slug.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_slug = Query::select().distinct().expr(Expr::cust("CAST(slug AS TEXT)")).from(Alias::new(doc_page::Entity.table_name())).and_where(Expr::col(Alias::new("slug")).is_not_null()).limit(page_size_slug).offset(cur_page_slug * page_size_slug).to_owned();
-            let rows_slug = match db.query_all(&stmt_slug).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `doc_page.slug`: column not found in DB — {}", e); vec![] } };
-            let mut vals_slug: Vec<String> = rows_slug.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_slug.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_slug = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT slug)"))
+                .from(Alias::new(doc_page::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("slug")).is_not_null())
+                .to_owned();
+            let count_row_slug = match db.query_one(&count_stmt_slug).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `doc_page.slug`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_slug = count_row_slug
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_slug = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(slug AS TEXT)"))
+                .from(Alias::new(doc_page::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("slug")).is_not_null())
+                .limit(page_size_slug)
+                .offset(cur_page_slug * page_size_slug)
+                .to_owned();
+            let rows_slug = match db.query_all(&stmt_slug).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `doc_page.slug`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_slug: Vec<String> = rows_slug
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_slug.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("slug".to_string(), (vals_slug, total_slug));
             let page_size_lang = 10u64;
             let cur_page_lang = pages.get("lang").copied().unwrap_or(0);
-            let count_stmt_lang = Query::select().expr(Expr::cust("COUNT(DISTINCT lang)")).from(Alias::new(doc_page::Entity.table_name())).and_where(Expr::col(Alias::new("lang")).is_not_null()).to_owned();
-            let count_row_lang = match db.query_one(&count_stmt_lang).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `doc_page.lang`: column not found in DB — {}", e); None } };
-            let total_lang = count_row_lang.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_lang = Query::select().distinct().expr(Expr::cust("CAST(lang AS TEXT)")).from(Alias::new(doc_page::Entity.table_name())).and_where(Expr::col(Alias::new("lang")).is_not_null()).limit(page_size_lang).offset(cur_page_lang * page_size_lang).to_owned();
-            let rows_lang = match db.query_all(&stmt_lang).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `doc_page.lang`: column not found in DB — {}", e); vec![] } };
-            let mut vals_lang: Vec<String> = rows_lang.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_lang.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_lang = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT lang)"))
+                .from(Alias::new(doc_page::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("lang")).is_not_null())
+                .to_owned();
+            let count_row_lang = match db.query_one(&count_stmt_lang).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `doc_page.lang`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_lang = count_row_lang
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_lang = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(lang AS TEXT)"))
+                .from(Alias::new(doc_page::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("lang")).is_not_null())
+                .limit(page_size_lang)
+                .offset(cur_page_lang * page_size_lang)
+                .to_owned();
+            let rows_lang = match db.query_all(&stmt_lang).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `doc_page.lang`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_lang: Vec<String> = rows_lang
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_lang.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("lang".to_string(), (vals_lang, total_lang));
             let page_size_title = 10u64;
             let cur_page_title = pages.get("title").copied().unwrap_or(0);
-            let count_stmt_title = Query::select().expr(Expr::cust("COUNT(DISTINCT title)")).from(Alias::new(doc_page::Entity.table_name())).and_where(Expr::col(Alias::new("title")).is_not_null()).to_owned();
-            let count_row_title = match db.query_one(&count_stmt_title).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `doc_page.title`: column not found in DB — {}", e); None } };
-            let total_title = count_row_title.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_title = Query::select().distinct().expr(Expr::cust("CAST(title AS TEXT)")).from(Alias::new(doc_page::Entity.table_name())).and_where(Expr::col(Alias::new("title")).is_not_null()).limit(page_size_title).offset(cur_page_title * page_size_title).to_owned();
-            let rows_title = match db.query_all(&stmt_title).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `doc_page.title`: column not found in DB — {}", e); vec![] } };
-            let mut vals_title: Vec<String> = rows_title.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_title = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT title)"))
+                .from(Alias::new(doc_page::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .to_owned();
+            let count_row_title = match db.query_one(&count_stmt_title).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `doc_page.title`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_title = count_row_title
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_title = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(title AS TEXT)"))
+                .from(Alias::new(doc_page::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .limit(page_size_title)
+                .offset(cur_page_title * page_size_title)
+                .to_owned();
+            let rows_title = match db.query_all(&stmt_title).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `doc_page.title`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_title: Vec<String> = rows_title
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("title".to_string(), (vals_title, total_title));
             let page_size_lead = 10u64;
             let cur_page_lead = pages.get("lead").copied().unwrap_or(0);
-            let count_stmt_lead = Query::select().expr(Expr::cust("COUNT(DISTINCT lead)")).from(Alias::new(doc_page::Entity.table_name())).and_where(Expr::col(Alias::new("lead")).is_not_null()).to_owned();
-            let count_row_lead = match db.query_one(&count_stmt_lead).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `doc_page.lead`: column not found in DB — {}", e); None } };
-            let total_lead = count_row_lead.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_lead = Query::select().distinct().expr(Expr::cust("CAST(lead AS TEXT)")).from(Alias::new(doc_page::Entity.table_name())).and_where(Expr::col(Alias::new("lead")).is_not_null()).limit(page_size_lead).offset(cur_page_lead * page_size_lead).to_owned();
-            let rows_lead = match db.query_all(&stmt_lead).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `doc_page.lead`: column not found in DB — {}", e); vec![] } };
-            let mut vals_lead: Vec<String> = rows_lead.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_lead.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_lead = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT lead)"))
+                .from(Alias::new(doc_page::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("lead")).is_not_null())
+                .to_owned();
+            let count_row_lead = match db.query_one(&count_stmt_lead).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `doc_page.lead`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_lead = count_row_lead
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_lead = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(lead AS TEXT)"))
+                .from(Alias::new(doc_page::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("lead")).is_not_null())
+                .limit(page_size_lead)
+                .offset(cur_page_lead * page_size_lead)
+                .to_owned();
+            let rows_lead = match db.query_all(&stmt_lead).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `doc_page.lead`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_lead: Vec<String> = rows_lead
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_lead.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("lead".to_string(), (vals_lead, total_lead));
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
-            let count_stmt_sort_order = Query::select().expr(Expr::cust("COUNT(DISTINCT sort_order)")).from(Alias::new(doc_page::Entity.table_name())).and_where(Expr::col(Alias::new("sort_order")).is_not_null()).to_owned();
-            let count_row_sort_order = match db.query_one(&count_stmt_sort_order).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `doc_page.sort_order`: column not found in DB — {}", e); None } };
-            let total_sort_order = count_row_sort_order.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_sort_order = Query::select().distinct().expr(Expr::cust("CAST(sort_order AS TEXT)")).from(Alias::new(doc_page::Entity.table_name())).and_where(Expr::col(Alias::new("sort_order")).is_not_null()).limit(page_size_sort_order).offset(cur_page_sort_order * page_size_sort_order).to_owned();
-            let rows_sort_order = match db.query_all(&stmt_sort_order).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `doc_page.sort_order`: column not found in DB — {}", e); vec![] } };
-            let mut vals_sort_order: Vec<String> = rows_sort_order.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
-            result.insert("sort_order".to_string(), (vals_sort_order, total_sort_order));
+            let count_stmt_sort_order = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT sort_order)"))
+                .from(Alias::new(doc_page::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .to_owned();
+            let count_row_sort_order = match db.query_one(&count_stmt_sort_order).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `doc_page.sort_order`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_sort_order = count_row_sort_order
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_sort_order = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(sort_order AS TEXT)"))
+                .from(Alias::new(doc_page::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .limit(page_size_sort_order)
+                .offset(cur_page_sort_order * page_size_sort_order)
+                .to_owned();
+            let rows_sort_order = match db.query_all(&stmt_sort_order).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `doc_page.sort_order`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_sort_order: Vec<String> = rows_sort_order
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
+            result.insert(
+                "sort_order".to_string(),
+                (vals_sort_order, total_sort_order),
+            );
             Ok(result)
         })
     });
@@ -2510,13 +6221,14 @@ pub fn admin_register() -> AdminRegistry {
         ResourceEntry::new(meta, form_builder)
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
+            .with_enum_label_fn(doc_page::apply_enum_labels)
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_unique_fields(doc_page::UNIQUE_FIELDS)
-            .with_filter_fn(filter_fn)
+            .with_filter_fn(filter_fn),
     );
 
     // ── Resource: doc_block ──
@@ -2527,54 +6239,114 @@ pub fn admin_register() -> AdminRegistry {
         "Doc — Blocs",
         vec![],
     );
-    let form_builder: FormBuilder = Arc::new(|_db: ADb, _vec: Vec<std::string::String>, data: StrMap, tera: ATera, csrf: String, method: Method| {
-        Box::pin(async move {
-            let form = doc_block::AdminForm::build_with_data(&data, tera, &csrf, method).await;
-            Box::new(DocBlockAdminFormDynWrapper(form)) as Box<dyn DynForm>
-        })
-    });
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
+            Box::pin(async move {
+                let form = doc_block::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+                Box::new(DocBlockAdminFormDynWrapper(form)) as Box<dyn DynForm>
+            })
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            use sea_orm::{QueryFilter, sea_query::{Alias, Expr, ExprTrait, Order}};
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, ExprTrait, Order},
+            };
             let mut query = doc_block::Entity::find();
-            const SORT_COLS: &[&str] = &["id", "page_id", "content", "block_type", "heading", "sort_order"];
-            const FILTER_COLS: &[&str] = &["page_id", "heading", "content", "block_type", "sort_order"];
-            if let Some(ref col) = params.sort_by && SORT_COLS.contains(&col.as_str()) {
-                let order = if params.sort_dir == SortDir::Desc { Order::Desc } else { Order::Asc };
+            const SORT_COLS: &[&str] = &[
+                "id",
+                "page_id",
+                "content",
+                "block_type",
+                "heading",
+                "sort_order",
+            ];
+            const FILTER_COLS: &[&str] =
+                &["page_id", "heading", "content", "block_type", "sort_order"];
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                if !FILTER_COLS.contains(&col.as_str()) { continue; }
-                query = query.filter(Expr::col(Alias::new(col.as_str())).cast_as(Alias::new("TEXT")).eq(val.clone()));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
+            }
+            if let Some((col, val)) = &params.scope
+                && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+            {
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(doc_block::Entity => or("page_id" icontains search_str, "content" icontains search_str, "block_type" icontains search_str, "heading" icontains search_str, "sort_order" icontains search_str));
                 query = query.filter(search_cond);
             }
-            let db_rows = query.offset(params.offset).limit(params.limit).all(&*db).await?;
-            let rows: Vec<serde_json::Value> = db_rows.into_iter()
+            let db_rows = query
+                .offset(params.offset)
+                .limit(params.limit)
+                .all(&*db)
+                .await?;
+            let rows: Vec<serde_json::Value> = db_rows
+                .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
                 .collect();
             Ok(rows)
         })
     });
 
-    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move {
-            use sea_orm::QueryFilter;
-            let mut query = doc_block::Entity::find();
-            if let Some(ref search_str) = _search {
-                let search_cond = search_cond!(doc_block::Entity => or("page_id" icontains search_str, "content" icontains search_str, "block_type" icontains search_str, "heading" icontains search_str, "sort_order" icontains search_str));
-                query = query.filter(search_cond);
-            }
-            query.count(&*db).await
-        })
-    });
+    let count_fn: CountFn = Arc::new(
+        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+            Box::pin(async move {
+                use sea_orm::{
+                    QueryFilter,
+                    sea_query::{Alias, Expr, ExprTrait},
+                };
+                let mut query = doc_block::Entity::find();
+                if let Some(ref search_str) = _search {
+                    let search_cond = search_cond!(doc_block::Entity => or("page_id" icontains search_str, "content" icontains search_str, "block_type" icontains search_str, "heading" icontains search_str, "sort_order" icontains search_str));
+                    query = query.filter(search_cond);
+                }
+                if let Some((col, val)) = &scope
+                    && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+                {
+                    query = query.filter(
+                        Expr::col(Alias::new(col.as_str()))
+                            .cast_as(Alias::new("TEXT"))
+                            .eq(val.clone()),
+                    );
+                }
+                query.count(&*db).await
+            })
+        },
+    );
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = doc_block::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -2582,85 +6354,313 @@ pub fn admin_register() -> AdminRegistry {
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            doc_block::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            doc_block::Entity::delete_by_id(id)
+                .exec(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
             doc_block::admin_from_form(&data, None)
-                .insert(&*db).await.map(|_| ())
+                .insert(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             doc_block::admin_from_form(&data, Some(id))
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             doc_block::admin_partial_update(&data, id)
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
-    let meta = meta.display(DisplayConfig::new().columns_include(vec![("page_id", "Page"), ("content", "Contenu"), ("block_type", "Type"), ("heading", "En-tête"), ("sort_order", "Ordre")]).list_filter(vec![("page_id", "page", 10u64), ("heading", "En-tête", 10u64), ("content", "Contenu", 10u64), ("block_type", "type", 10u64), ("sort_order", "Ordre", 10u64)]));
+    let meta = meta.display(
+        DisplayConfig::new()
+            .columns_include(vec![
+                ("page_id", "Page"),
+                ("content", "Contenu"),
+                ("block_type", "Type"),
+                ("heading", "En-tête"),
+                ("sort_order", "Ordre"),
+            ])
+            .list_filter(vec![
+                ("page_id", "page", 10u64),
+                ("heading", "En-tête", 10u64),
+                ("content", "Contenu", 10u64),
+                ("block_type", "type", 10u64),
+                ("sort_order", "Ordre", 10u64),
+            ]),
+    );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
+            use sea_orm::sea_query::{Alias, Expr, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
-            use sea_orm::sea_query::{Query, Alias, Expr};
-            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> = std::collections::HashMap::new();
+            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
+                std::collections::HashMap::new();
             let page_size_page_id = 10u64;
             let cur_page_page_id = pages.get("page_id").copied().unwrap_or(0);
-            let count_stmt_page_id = Query::select().expr(Expr::cust("COUNT(DISTINCT page_id)")).from(Alias::new(doc_block::Entity.table_name())).and_where(Expr::col(Alias::new("page_id")).is_not_null()).to_owned();
-            let count_row_page_id = match db.query_one(&count_stmt_page_id).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `doc_block.page_id`: column not found in DB — {}", e); None } };
-            let total_page_id = count_row_page_id.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_page_id = Query::select().distinct().expr(Expr::cust("CAST(page_id AS TEXT)")).from(Alias::new(doc_block::Entity.table_name())).and_where(Expr::col(Alias::new("page_id")).is_not_null()).limit(page_size_page_id).offset(cur_page_page_id * page_size_page_id).to_owned();
-            let rows_page_id = match db.query_all(&stmt_page_id).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `doc_block.page_id`: column not found in DB — {}", e); vec![] } };
-            let mut vals_page_id: Vec<String> = rows_page_id.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_page_id.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_page_id = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT page_id)"))
+                .from(Alias::new(doc_block::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("page_id")).is_not_null())
+                .to_owned();
+            let count_row_page_id = match db.query_one(&count_stmt_page_id).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `doc_block.page_id`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_page_id = count_row_page_id
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_page_id = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(page_id AS TEXT)"))
+                .from(Alias::new(doc_block::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("page_id")).is_not_null())
+                .limit(page_size_page_id)
+                .offset(cur_page_page_id * page_size_page_id)
+                .to_owned();
+            let rows_page_id = match db.query_all(&stmt_page_id).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `doc_block.page_id`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_page_id: Vec<String> = rows_page_id
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_page_id.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("page_id".to_string(), (vals_page_id, total_page_id));
             let page_size_heading = 10u64;
             let cur_page_heading = pages.get("heading").copied().unwrap_or(0);
-            let count_stmt_heading = Query::select().expr(Expr::cust("COUNT(DISTINCT heading)")).from(Alias::new(doc_block::Entity.table_name())).and_where(Expr::col(Alias::new("heading")).is_not_null()).to_owned();
-            let count_row_heading = match db.query_one(&count_stmt_heading).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `doc_block.heading`: column not found in DB — {}", e); None } };
-            let total_heading = count_row_heading.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_heading = Query::select().distinct().expr(Expr::cust("CAST(heading AS TEXT)")).from(Alias::new(doc_block::Entity.table_name())).and_where(Expr::col(Alias::new("heading")).is_not_null()).limit(page_size_heading).offset(cur_page_heading * page_size_heading).to_owned();
-            let rows_heading = match db.query_all(&stmt_heading).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `doc_block.heading`: column not found in DB — {}", e); vec![] } };
-            let mut vals_heading: Vec<String> = rows_heading.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_heading.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_heading = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT heading)"))
+                .from(Alias::new(doc_block::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("heading")).is_not_null())
+                .to_owned();
+            let count_row_heading = match db.query_one(&count_stmt_heading).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `doc_block.heading`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_heading = count_row_heading
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_heading = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(heading AS TEXT)"))
+                .from(Alias::new(doc_block::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("heading")).is_not_null())
+                .limit(page_size_heading)
+                .offset(cur_page_heading * page_size_heading)
+                .to_owned();
+            let rows_heading = match db.query_all(&stmt_heading).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `doc_block.heading`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_heading: Vec<String> = rows_heading
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_heading.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("heading".to_string(), (vals_heading, total_heading));
             let page_size_content = 10u64;
             let cur_page_content = pages.get("content").copied().unwrap_or(0);
-            let count_stmt_content = Query::select().expr(Expr::cust("COUNT(DISTINCT content)")).from(Alias::new(doc_block::Entity.table_name())).and_where(Expr::col(Alias::new("content")).is_not_null()).to_owned();
-            let count_row_content = match db.query_one(&count_stmt_content).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `doc_block.content`: column not found in DB — {}", e); None } };
-            let total_content = count_row_content.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_content = Query::select().distinct().expr(Expr::cust("CAST(content AS TEXT)")).from(Alias::new(doc_block::Entity.table_name())).and_where(Expr::col(Alias::new("content")).is_not_null()).limit(page_size_content).offset(cur_page_content * page_size_content).to_owned();
-            let rows_content = match db.query_all(&stmt_content).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `doc_block.content`: column not found in DB — {}", e); vec![] } };
-            let mut vals_content: Vec<String> = rows_content.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_content.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_content = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT content)"))
+                .from(Alias::new(doc_block::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("content")).is_not_null())
+                .to_owned();
+            let count_row_content = match db.query_one(&count_stmt_content).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `doc_block.content`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_content = count_row_content
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_content = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(content AS TEXT)"))
+                .from(Alias::new(doc_block::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("content")).is_not_null())
+                .limit(page_size_content)
+                .offset(cur_page_content * page_size_content)
+                .to_owned();
+            let rows_content = match db.query_all(&stmt_content).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `doc_block.content`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_content: Vec<String> = rows_content
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_content.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("content".to_string(), (vals_content, total_content));
             let page_size_block_type = 10u64;
             let cur_page_block_type = pages.get("block_type").copied().unwrap_or(0);
-            let count_stmt_block_type = Query::select().expr(Expr::cust("COUNT(DISTINCT block_type)")).from(Alias::new(doc_block::Entity.table_name())).and_where(Expr::col(Alias::new("block_type")).is_not_null()).to_owned();
-            let count_row_block_type = match db.query_one(&count_stmt_block_type).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `doc_block.block_type`: column not found in DB — {}", e); None } };
-            let total_block_type = count_row_block_type.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_block_type = Query::select().distinct().expr(Expr::cust("CAST(block_type AS TEXT)")).from(Alias::new(doc_block::Entity.table_name())).and_where(Expr::col(Alias::new("block_type")).is_not_null()).limit(page_size_block_type).offset(cur_page_block_type * page_size_block_type).to_owned();
-            let rows_block_type = match db.query_all(&stmt_block_type).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `doc_block.block_type`: column not found in DB — {}", e); vec![] } };
-            let mut vals_block_type: Vec<String> = rows_block_type.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_block_type.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
-            result.insert("block_type".to_string(), (vals_block_type, total_block_type));
+            let count_stmt_block_type = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT block_type)"))
+                .from(Alias::new(doc_block::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("block_type")).is_not_null())
+                .to_owned();
+            let count_row_block_type = match db.query_one(&count_stmt_block_type).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `doc_block.block_type`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_block_type = count_row_block_type
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_block_type = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(block_type AS TEXT)"))
+                .from(Alias::new(doc_block::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("block_type")).is_not_null())
+                .limit(page_size_block_type)
+                .offset(cur_page_block_type * page_size_block_type)
+                .to_owned();
+            let rows_block_type = match db.query_all(&stmt_block_type).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `doc_block.block_type`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_block_type: Vec<String> = rows_block_type
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_block_type.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
+            result.insert(
+                "block_type".to_string(),
+                (vals_block_type, total_block_type),
+            );
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
-            let count_stmt_sort_order = Query::select().expr(Expr::cust("COUNT(DISTINCT sort_order)")).from(Alias::new(doc_block::Entity.table_name())).and_where(Expr::col(Alias::new("sort_order")).is_not_null()).to_owned();
-            let count_row_sort_order = match db.query_one(&count_stmt_sort_order).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `doc_block.sort_order`: column not found in DB — {}", e); None } };
-            let total_sort_order = count_row_sort_order.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_sort_order = Query::select().distinct().expr(Expr::cust("CAST(sort_order AS TEXT)")).from(Alias::new(doc_block::Entity.table_name())).and_where(Expr::col(Alias::new("sort_order")).is_not_null()).limit(page_size_sort_order).offset(cur_page_sort_order * page_size_sort_order).to_owned();
-            let rows_sort_order = match db.query_all(&stmt_sort_order).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `doc_block.sort_order`: column not found in DB — {}", e); vec![] } };
-            let mut vals_sort_order: Vec<String> = rows_sort_order.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
-            result.insert("sort_order".to_string(), (vals_sort_order, total_sort_order));
+            let count_stmt_sort_order = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT sort_order)"))
+                .from(Alias::new(doc_block::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .to_owned();
+            let count_row_sort_order = match db.query_one(&count_stmt_sort_order).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `doc_block.sort_order`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_sort_order = count_row_sort_order
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_sort_order = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(sort_order AS TEXT)"))
+                .from(Alias::new(doc_block::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .limit(page_size_sort_order)
+                .offset(cur_page_sort_order * page_size_sort_order)
+                .to_owned();
+            let rows_sort_order = match db.query_all(&stmt_sort_order).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `doc_block.sort_order`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_sort_order: Vec<String> = rows_sort_order
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
+            result.insert(
+                "sort_order".to_string(),
+                (vals_sort_order, total_sort_order),
+            );
             Ok(result)
         })
     });
@@ -2669,13 +6669,14 @@ pub fn admin_register() -> AdminRegistry {
         ResourceEntry::new(meta, form_builder)
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
+            .with_enum_label_fn(doc_block::apply_enum_labels)
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_unique_fields(doc_block::UNIQUE_FIELDS)
-            .with_filter_fn(filter_fn)
+            .with_filter_fn(filter_fn),
     );
 
     // ── Resource: site_config ──
@@ -2686,54 +6687,109 @@ pub fn admin_register() -> AdminRegistry {
         "Configuration site",
         vec![],
     );
-    let form_builder: FormBuilder = Arc::new(|_db: ADb, _vec: Vec<std::string::String>, data: StrMap, tera: ATera, csrf: String, method: Method| {
-        Box::pin(async move {
-            let form = site_config::AdminForm::build_with_data(&data, tera, &csrf, method).await;
-            Box::new(SiteConfigAdminFormDynWrapper(form)) as Box<dyn DynForm>
-        })
-    });
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
+            Box::pin(async move {
+                let form =
+                    site_config::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+                Box::new(SiteConfigAdminFormDynWrapper(form)) as Box<dyn DynForm>
+            })
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            use sea_orm::{QueryFilter, sea_query::{Alias, Expr, ExprTrait, Order}};
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, ExprTrait, Order},
+            };
             let mut query = site_config::Entity::find();
             const SORT_COLS: &[&str] = &["id"];
             const FILTER_COLS: &[&str] = &[];
-            if let Some(ref col) = params.sort_by && SORT_COLS.contains(&col.as_str()) {
-                let order = if params.sort_dir == SortDir::Desc { Order::Desc } else { Order::Asc };
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                if !FILTER_COLS.contains(&col.as_str()) { continue; }
-                query = query.filter(Expr::col(Alias::new(col.as_str())).cast_as(Alias::new("TEXT")).eq(val.clone()));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
+            }
+            if let Some((col, val)) = &params.scope
+                && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+            {
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
             }
             if let Some(ref search_str) = params.search {
-                let search_cond = search_cond!(site_config::Entity => all_columns icontains search_str);
+                let search_cond =
+                    search_cond!(site_config::Entity => all_columns icontains search_str);
                 query = query.filter(search_cond);
             }
-            let db_rows = query.offset(params.offset).limit(params.limit).all(&*db).await?;
-            let rows: Vec<serde_json::Value> = db_rows.into_iter()
+            let db_rows = query
+                .offset(params.offset)
+                .limit(params.limit)
+                .all(&*db)
+                .await?;
+            let rows: Vec<serde_json::Value> = db_rows
+                .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
                 .collect();
             Ok(rows)
         })
     });
 
-    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move {
-            use sea_orm::QueryFilter;
-            let mut query = site_config::Entity::find();
-            if let Some(ref search_str) = _search {
-                let search_cond = search_cond!(site_config::Entity => all_columns icontains search_str);
-                query = query.filter(search_cond);
-            }
-            query.count(&*db).await
-        })
-    });
+    let count_fn: CountFn = Arc::new(
+        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+            Box::pin(async move {
+                use sea_orm::{
+                    QueryFilter,
+                    sea_query::{Alias, Expr, ExprTrait},
+                };
+                let mut query = site_config::Entity::find();
+                if let Some(ref search_str) = _search {
+                    let search_cond =
+                        search_cond!(site_config::Entity => all_columns icontains search_str);
+                    query = query.filter(search_cond);
+                }
+                if let Some((col, val)) = &scope
+                    && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+                {
+                    query = query.filter(
+                        Expr::col(Alias::new(col.as_str()))
+                            .cast_as(Alias::new("TEXT"))
+                            .eq(val.clone()),
+                    );
+                }
+                query.count(&*db).await
+            })
+        },
+    );
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = site_config::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -2741,31 +6797,46 @@ pub fn admin_register() -> AdminRegistry {
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            site_config::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            site_config::Entity::delete_by_id(id)
+                .exec(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
             site_config::admin_from_form(&data, None)
-                .insert(&*db).await.map(|_| ())
+                .insert(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             site_config::admin_from_form(&data, Some(id))
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             site_config::admin_partial_update(&data, id)
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
@@ -2773,12 +6844,13 @@ pub fn admin_register() -> AdminRegistry {
         ResourceEntry::new(meta, form_builder)
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
+            .with_enum_label_fn(site_config::apply_enum_labels)
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
-            .with_unique_fields(site_config::UNIQUE_FIELDS)
+            .with_unique_fields(site_config::UNIQUE_FIELDS),
     );
 
     // ── Resource: cour ──
@@ -2789,54 +6861,123 @@ pub fn admin_register() -> AdminRegistry {
         "Cours",
         vec![],
     );
-    let form_builder: FormBuilder = Arc::new(|_db: ADb, _vec: Vec<std::string::String>, data: StrMap, tera: ATera, csrf: String, method: Method| {
-        Box::pin(async move {
-            let form = cour::AdminForm::build_with_data(&data, tera, &csrf, method).await;
-            Box::new(CourAdminFormDynWrapper(form)) as Box<dyn DynForm>
-        })
-    });
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
+            Box::pin(async move {
+                let form = cour::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+                Box::new(CourAdminFormDynWrapper(form)) as Box<dyn DynForm>
+            })
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            use sea_orm::{QueryFilter, sea_query::{Alias, Expr, ExprTrait, Order}};
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, ExprTrait, Order},
+            };
             let mut query = cour::Entity::find();
-            const SORT_COLS: &[&str] = &["id", "slug", "lang", "title", "theme", "difficulte", "ordre", "sort_order"];
-            const FILTER_COLS: &[&str] = &["slug", "lang", "title", "theme", "difficulte", "ordre", "sort_order"];
-            if let Some(ref col) = params.sort_by && SORT_COLS.contains(&col.as_str()) {
-                let order = if params.sort_dir == SortDir::Desc { Order::Desc } else { Order::Asc };
+            const SORT_COLS: &[&str] = &[
+                "id",
+                "slug",
+                "lang",
+                "title",
+                "theme",
+                "difficulte",
+                "ordre",
+                "sort_order",
+            ];
+            const FILTER_COLS: &[&str] = &[
+                "slug",
+                "lang",
+                "title",
+                "theme",
+                "difficulte",
+                "ordre",
+                "sort_order",
+            ];
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                if !FILTER_COLS.contains(&col.as_str()) { continue; }
-                query = query.filter(Expr::col(Alias::new(col.as_str())).cast_as(Alias::new("TEXT")).eq(val.clone()));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
+            }
+            if let Some((col, val)) = &params.scope
+                && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+            {
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(cour::Entity => or("slug" icontains search_str, "lang" icontains search_str, "title" icontains search_str, "theme" icontains search_str, "difficulte" icontains search_str, "ordre" icontains search_str, "sort_order" icontains search_str));
                 query = query.filter(search_cond);
             }
-            let db_rows = query.offset(params.offset).limit(params.limit).all(&*db).await?;
-            let rows: Vec<serde_json::Value> = db_rows.into_iter()
+            let db_rows = query
+                .offset(params.offset)
+                .limit(params.limit)
+                .all(&*db)
+                .await?;
+            let rows: Vec<serde_json::Value> = db_rows
+                .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
                 .collect();
             Ok(rows)
         })
     });
 
-    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move {
-            use sea_orm::QueryFilter;
-            let mut query = cour::Entity::find();
-            if let Some(ref search_str) = _search {
-                let search_cond = search_cond!(cour::Entity => or("slug" icontains search_str, "lang" icontains search_str, "title" icontains search_str, "theme" icontains search_str, "difficulte" icontains search_str, "ordre" icontains search_str, "sort_order" icontains search_str));
-                query = query.filter(search_cond);
-            }
-            query.count(&*db).await
-        })
-    });
+    let count_fn: CountFn = Arc::new(
+        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+            Box::pin(async move {
+                use sea_orm::{
+                    QueryFilter,
+                    sea_query::{Alias, Expr, ExprTrait},
+                };
+                let mut query = cour::Entity::find();
+                if let Some(ref search_str) = _search {
+                    let search_cond = search_cond!(cour::Entity => or("slug" icontains search_str, "lang" icontains search_str, "title" icontains search_str, "theme" icontains search_str, "difficulte" icontains search_str, "ordre" icontains search_str, "sort_order" icontains search_str));
+                    query = query.filter(search_cond);
+                }
+                if let Some((col, val)) = &scope
+                    && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+                {
+                    query = query.filter(
+                        Expr::col(Alias::new(col.as_str()))
+                            .cast_as(Alias::new("TEXT"))
+                            .eq(val.clone()),
+                    );
+                }
+                query.count(&*db).await
+            })
+        },
+    );
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = cour::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -2844,7 +6985,9 @@ pub fn admin_register() -> AdminRegistry {
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             cour::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
         })
     });
@@ -2852,95 +6995,398 @@ pub fn admin_register() -> AdminRegistry {
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
             cour::admin_from_form(&data, None)
-                .insert(&*db).await.map(|_| ())
+                .insert(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             cour::admin_from_form(&data, Some(id))
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             cour::admin_partial_update(&data, id)
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
-    let meta = meta.display(DisplayConfig::new().columns_include(vec![("slug", "Slug"), ("lang", "Langue"), ("title", "Titre"), ("theme", "Thème"), ("difficulte", "Difficulté"), ("ordre", "Ordre"), ("sort_order", "Ordre d'affichage")]).list_filter(vec![("slug", "Slug", 10u64), ("lang", "Langue", 10u64), ("title", "Titre", 10u64), ("theme", "Thème", 10u64), ("difficulte", "Difficulté", 10u64), ("ordre", "Ordre", 10u64), ("sort_order", "Ordre d'affichage", 10u64)]));
+    let meta = meta.display(
+        DisplayConfig::new()
+            .columns_include(vec![
+                ("slug", "Slug"),
+                ("lang", "Langue"),
+                ("title", "Titre"),
+                ("theme", "Thème"),
+                ("difficulte", "Difficulté"),
+                ("ordre", "Ordre"),
+                ("sort_order", "Ordre d'affichage"),
+            ])
+            .list_filter(vec![
+                ("slug", "Slug", 10u64),
+                ("lang", "Langue", 10u64),
+                ("title", "Titre", 10u64),
+                ("theme", "Thème", 10u64),
+                ("difficulte", "Difficulté", 10u64),
+                ("ordre", "Ordre", 10u64),
+                ("sort_order", "Ordre d'affichage", 10u64),
+            ]),
+    );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
+            use sea_orm::sea_query::{Alias, Expr, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
-            use sea_orm::sea_query::{Query, Alias, Expr};
-            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> = std::collections::HashMap::new();
+            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
+                std::collections::HashMap::new();
             let page_size_slug = 10u64;
             let cur_page_slug = pages.get("slug").copied().unwrap_or(0);
-            let count_stmt_slug = Query::select().expr(Expr::cust("COUNT(DISTINCT slug)")).from(Alias::new(cour::Entity.table_name())).and_where(Expr::col(Alias::new("slug")).is_not_null()).to_owned();
-            let count_row_slug = match db.query_one(&count_stmt_slug).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `cour.slug`: column not found in DB — {}", e); None } };
-            let total_slug = count_row_slug.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_slug = Query::select().distinct().expr(Expr::cust("CAST(slug AS TEXT)")).from(Alias::new(cour::Entity.table_name())).and_where(Expr::col(Alias::new("slug")).is_not_null()).limit(page_size_slug).offset(cur_page_slug * page_size_slug).to_owned();
-            let rows_slug = match db.query_all(&stmt_slug).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `cour.slug`: column not found in DB — {}", e); vec![] } };
-            let mut vals_slug: Vec<String> = rows_slug.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_slug.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_slug = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT slug)"))
+                .from(Alias::new(cour::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("slug")).is_not_null())
+                .to_owned();
+            let count_row_slug = match db.query_one(&count_stmt_slug).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `cour.slug`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_slug = count_row_slug
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_slug = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(slug AS TEXT)"))
+                .from(Alias::new(cour::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("slug")).is_not_null())
+                .limit(page_size_slug)
+                .offset(cur_page_slug * page_size_slug)
+                .to_owned();
+            let rows_slug = match db.query_all(&stmt_slug).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `cour.slug`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_slug: Vec<String> = rows_slug
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_slug.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("slug".to_string(), (vals_slug, total_slug));
             let page_size_lang = 10u64;
             let cur_page_lang = pages.get("lang").copied().unwrap_or(0);
-            let count_stmt_lang = Query::select().expr(Expr::cust("COUNT(DISTINCT lang)")).from(Alias::new(cour::Entity.table_name())).and_where(Expr::col(Alias::new("lang")).is_not_null()).to_owned();
-            let count_row_lang = match db.query_one(&count_stmt_lang).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `cour.lang`: column not found in DB — {}", e); None } };
-            let total_lang = count_row_lang.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_lang = Query::select().distinct().expr(Expr::cust("CAST(lang AS TEXT)")).from(Alias::new(cour::Entity.table_name())).and_where(Expr::col(Alias::new("lang")).is_not_null()).limit(page_size_lang).offset(cur_page_lang * page_size_lang).to_owned();
-            let rows_lang = match db.query_all(&stmt_lang).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `cour.lang`: column not found in DB — {}", e); vec![] } };
-            let mut vals_lang: Vec<String> = rows_lang.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_lang.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_lang = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT lang)"))
+                .from(Alias::new(cour::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("lang")).is_not_null())
+                .to_owned();
+            let count_row_lang = match db.query_one(&count_stmt_lang).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `cour.lang`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_lang = count_row_lang
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_lang = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(lang AS TEXT)"))
+                .from(Alias::new(cour::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("lang")).is_not_null())
+                .limit(page_size_lang)
+                .offset(cur_page_lang * page_size_lang)
+                .to_owned();
+            let rows_lang = match db.query_all(&stmt_lang).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `cour.lang`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_lang: Vec<String> = rows_lang
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_lang.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("lang".to_string(), (vals_lang, total_lang));
             let page_size_title = 10u64;
             let cur_page_title = pages.get("title").copied().unwrap_or(0);
-            let count_stmt_title = Query::select().expr(Expr::cust("COUNT(DISTINCT title)")).from(Alias::new(cour::Entity.table_name())).and_where(Expr::col(Alias::new("title")).is_not_null()).to_owned();
-            let count_row_title = match db.query_one(&count_stmt_title).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `cour.title`: column not found in DB — {}", e); None } };
-            let total_title = count_row_title.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_title = Query::select().distinct().expr(Expr::cust("CAST(title AS TEXT)")).from(Alias::new(cour::Entity.table_name())).and_where(Expr::col(Alias::new("title")).is_not_null()).limit(page_size_title).offset(cur_page_title * page_size_title).to_owned();
-            let rows_title = match db.query_all(&stmt_title).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `cour.title`: column not found in DB — {}", e); vec![] } };
-            let mut vals_title: Vec<String> = rows_title.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_title = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT title)"))
+                .from(Alias::new(cour::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .to_owned();
+            let count_row_title = match db.query_one(&count_stmt_title).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `cour.title`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_title = count_row_title
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_title = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(title AS TEXT)"))
+                .from(Alias::new(cour::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .limit(page_size_title)
+                .offset(cur_page_title * page_size_title)
+                .to_owned();
+            let rows_title = match db.query_all(&stmt_title).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `cour.title`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_title: Vec<String> = rows_title
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("title".to_string(), (vals_title, total_title));
             let page_size_theme = 10u64;
             let cur_page_theme = pages.get("theme").copied().unwrap_or(0);
-            let count_stmt_theme = Query::select().expr(Expr::cust("COUNT(DISTINCT theme)")).from(Alias::new(cour::Entity.table_name())).and_where(Expr::col(Alias::new("theme")).is_not_null()).to_owned();
-            let count_row_theme = match db.query_one(&count_stmt_theme).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `cour.theme`: column not found in DB — {}", e); None } };
-            let total_theme = count_row_theme.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_theme = Query::select().distinct().expr(Expr::cust("CAST(theme AS TEXT)")).from(Alias::new(cour::Entity.table_name())).and_where(Expr::col(Alias::new("theme")).is_not_null()).limit(page_size_theme).offset(cur_page_theme * page_size_theme).to_owned();
-            let rows_theme = match db.query_all(&stmt_theme).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `cour.theme`: column not found in DB — {}", e); vec![] } };
-            let mut vals_theme: Vec<String> = rows_theme.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_theme.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_theme = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT theme)"))
+                .from(Alias::new(cour::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("theme")).is_not_null())
+                .to_owned();
+            let count_row_theme = match db.query_one(&count_stmt_theme).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `cour.theme`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_theme = count_row_theme
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_theme = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(theme AS TEXT)"))
+                .from(Alias::new(cour::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("theme")).is_not_null())
+                .limit(page_size_theme)
+                .offset(cur_page_theme * page_size_theme)
+                .to_owned();
+            let rows_theme = match db.query_all(&stmt_theme).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `cour.theme`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_theme: Vec<String> = rows_theme
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_theme.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("theme".to_string(), (vals_theme, total_theme));
             let page_size_difficulte = 10u64;
             let cur_page_difficulte = pages.get("difficulte").copied().unwrap_or(0);
-            let count_stmt_difficulte = Query::select().expr(Expr::cust("COUNT(DISTINCT difficulte)")).from(Alias::new(cour::Entity.table_name())).and_where(Expr::col(Alias::new("difficulte")).is_not_null()).to_owned();
-            let count_row_difficulte = match db.query_one(&count_stmt_difficulte).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `cour.difficulte`: column not found in DB — {}", e); None } };
-            let total_difficulte = count_row_difficulte.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_difficulte = Query::select().distinct().expr(Expr::cust("CAST(difficulte AS TEXT)")).from(Alias::new(cour::Entity.table_name())).and_where(Expr::col(Alias::new("difficulte")).is_not_null()).limit(page_size_difficulte).offset(cur_page_difficulte * page_size_difficulte).to_owned();
-            let rows_difficulte = match db.query_all(&stmt_difficulte).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `cour.difficulte`: column not found in DB — {}", e); vec![] } };
-            let mut vals_difficulte: Vec<String> = rows_difficulte.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_difficulte.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
-            result.insert("difficulte".to_string(), (vals_difficulte, total_difficulte));
+            let count_stmt_difficulte = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT difficulte)"))
+                .from(Alias::new(cour::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("difficulte")).is_not_null())
+                .to_owned();
+            let count_row_difficulte = match db.query_one(&count_stmt_difficulte).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `cour.difficulte`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_difficulte = count_row_difficulte
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_difficulte = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(difficulte AS TEXT)"))
+                .from(Alias::new(cour::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("difficulte")).is_not_null())
+                .limit(page_size_difficulte)
+                .offset(cur_page_difficulte * page_size_difficulte)
+                .to_owned();
+            let rows_difficulte = match db.query_all(&stmt_difficulte).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `cour.difficulte`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_difficulte: Vec<String> = rows_difficulte
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_difficulte.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
+            result.insert(
+                "difficulte".to_string(),
+                (vals_difficulte, total_difficulte),
+            );
             let page_size_ordre = 10u64;
             let cur_page_ordre = pages.get("ordre").copied().unwrap_or(0);
-            let count_stmt_ordre = Query::select().expr(Expr::cust("COUNT(DISTINCT ordre)")).from(Alias::new(cour::Entity.table_name())).and_where(Expr::col(Alias::new("ordre")).is_not_null()).to_owned();
-            let count_row_ordre = match db.query_one(&count_stmt_ordre).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `cour.ordre`: column not found in DB — {}", e); None } };
-            let total_ordre = count_row_ordre.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_ordre = Query::select().distinct().expr(Expr::cust("CAST(ordre AS TEXT)")).from(Alias::new(cour::Entity.table_name())).and_where(Expr::col(Alias::new("ordre")).is_not_null()).limit(page_size_ordre).offset(cur_page_ordre * page_size_ordre).to_owned();
-            let rows_ordre = match db.query_all(&stmt_ordre).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `cour.ordre`: column not found in DB — {}", e); vec![] } };
-            let mut vals_ordre: Vec<String> = rows_ordre.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_ordre.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_ordre = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT ordre)"))
+                .from(Alias::new(cour::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("ordre")).is_not_null())
+                .to_owned();
+            let count_row_ordre = match db.query_one(&count_stmt_ordre).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `cour.ordre`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_ordre = count_row_ordre
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_ordre = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(ordre AS TEXT)"))
+                .from(Alias::new(cour::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("ordre")).is_not_null())
+                .limit(page_size_ordre)
+                .offset(cur_page_ordre * page_size_ordre)
+                .to_owned();
+            let rows_ordre = match db.query_all(&stmt_ordre).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `cour.ordre`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_ordre: Vec<String> = rows_ordre
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_ordre.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("ordre".to_string(), (vals_ordre, total_ordre));
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
-            let count_stmt_sort_order = Query::select().expr(Expr::cust("COUNT(DISTINCT sort_order)")).from(Alias::new(cour::Entity.table_name())).and_where(Expr::col(Alias::new("sort_order")).is_not_null()).to_owned();
-            let count_row_sort_order = match db.query_one(&count_stmt_sort_order).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `cour.sort_order`: column not found in DB — {}", e); None } };
-            let total_sort_order = count_row_sort_order.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_sort_order = Query::select().distinct().expr(Expr::cust("CAST(sort_order AS TEXT)")).from(Alias::new(cour::Entity.table_name())).and_where(Expr::col(Alias::new("sort_order")).is_not_null()).limit(page_size_sort_order).offset(cur_page_sort_order * page_size_sort_order).to_owned();
-            let rows_sort_order = match db.query_all(&stmt_sort_order).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `cour.sort_order`: column not found in DB — {}", e); vec![] } };
-            let mut vals_sort_order: Vec<String> = rows_sort_order.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
-            result.insert("sort_order".to_string(), (vals_sort_order, total_sort_order));
+            let count_stmt_sort_order = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT sort_order)"))
+                .from(Alias::new(cour::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .to_owned();
+            let count_row_sort_order = match db.query_one(&count_stmt_sort_order).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `cour.sort_order`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_sort_order = count_row_sort_order
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_sort_order = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(sort_order AS TEXT)"))
+                .from(Alias::new(cour::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .limit(page_size_sort_order)
+                .offset(cur_page_sort_order * page_size_sort_order)
+                .to_owned();
+            let rows_sort_order = match db.query_all(&stmt_sort_order).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `cour.sort_order`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_sort_order: Vec<String> = rows_sort_order
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
+            result.insert(
+                "sort_order".to_string(),
+                (vals_sort_order, total_sort_order),
+            );
             Ok(result)
         })
     });
@@ -2949,13 +7395,14 @@ pub fn admin_register() -> AdminRegistry {
         ResourceEntry::new(meta, form_builder)
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
+            .with_enum_label_fn(cour::apply_enum_labels)
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_unique_fields(cour::UNIQUE_FIELDS)
-            .with_filter_fn(filter_fn)
+            .with_filter_fn(filter_fn),
     );
 
     // ── Resource: chapitre ──
@@ -2966,54 +7413,106 @@ pub fn admin_register() -> AdminRegistry {
         "Chapitres",
         vec![],
     );
-    let form_builder: FormBuilder = Arc::new(|_db: ADb, _vec: Vec<std::string::String>, data: StrMap, tera: ATera, csrf: String, method: Method| {
-        Box::pin(async move {
-            let form = chapitre::AdminForm::build_with_data(&data, tera, &csrf, method).await;
-            Box::new(ChapitreAdminFormDynWrapper(form)) as Box<dyn DynForm>
-        })
-    });
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
+            Box::pin(async move {
+                let form = chapitre::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+                Box::new(ChapitreAdminFormDynWrapper(form)) as Box<dyn DynForm>
+            })
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            use sea_orm::{QueryFilter, sea_query::{Alias, Expr, ExprTrait, Order}};
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, ExprTrait, Order},
+            };
             let mut query = chapitre::Entity::find();
             const SORT_COLS: &[&str] = &["id", "cour_id", "slug", "title", "sort_order"];
             const FILTER_COLS: &[&str] = &["cour_id", "slug", "title", "sort_order"];
-            if let Some(ref col) = params.sort_by && SORT_COLS.contains(&col.as_str()) {
-                let order = if params.sort_dir == SortDir::Desc { Order::Desc } else { Order::Asc };
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                if !FILTER_COLS.contains(&col.as_str()) { continue; }
-                query = query.filter(Expr::col(Alias::new(col.as_str())).cast_as(Alias::new("TEXT")).eq(val.clone()));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
+            }
+            if let Some((col, val)) = &params.scope
+                && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+            {
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(chapitre::Entity => or("cour_id" icontains search_str, "slug" icontains search_str, "title" icontains search_str, "sort_order" icontains search_str));
                 query = query.filter(search_cond);
             }
-            let db_rows = query.offset(params.offset).limit(params.limit).all(&*db).await?;
-            let rows: Vec<serde_json::Value> = db_rows.into_iter()
+            let db_rows = query
+                .offset(params.offset)
+                .limit(params.limit)
+                .all(&*db)
+                .await?;
+            let rows: Vec<serde_json::Value> = db_rows
+                .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
                 .collect();
             Ok(rows)
         })
     });
 
-    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move {
-            use sea_orm::QueryFilter;
-            let mut query = chapitre::Entity::find();
-            if let Some(ref search_str) = _search {
-                let search_cond = search_cond!(chapitre::Entity => or("cour_id" icontains search_str, "slug" icontains search_str, "title" icontains search_str, "sort_order" icontains search_str));
-                query = query.filter(search_cond);
-            }
-            query.count(&*db).await
-        })
-    });
+    let count_fn: CountFn = Arc::new(
+        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+            Box::pin(async move {
+                use sea_orm::{
+                    QueryFilter,
+                    sea_query::{Alias, Expr, ExprTrait},
+                };
+                let mut query = chapitre::Entity::find();
+                if let Some(ref search_str) = _search {
+                    let search_cond = search_cond!(chapitre::Entity => or("cour_id" icontains search_str, "slug" icontains search_str, "title" icontains search_str, "sort_order" icontains search_str));
+                    query = query.filter(search_cond);
+                }
+                if let Some((col, val)) = &scope
+                    && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+                {
+                    query = query.filter(
+                        Expr::col(Alias::new(col.as_str()))
+                            .cast_as(Alias::new("TEXT"))
+                            .eq(val.clone()),
+                    );
+                }
+                query.count(&*db).await
+            })
+        },
+    );
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = chapitre::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -3021,76 +7520,261 @@ pub fn admin_register() -> AdminRegistry {
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            chapitre::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            chapitre::Entity::delete_by_id(id)
+                .exec(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
             chapitre::admin_from_form(&data, None)
-                .insert(&*db).await.map(|_| ())
+                .insert(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             chapitre::admin_from_form(&data, Some(id))
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             chapitre::admin_partial_update(&data, id)
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
-    let meta = meta.display(DisplayConfig::new().columns_include(vec![("cour_id", "Cours"), ("slug", "Slug"), ("title", "Titre"), ("sort_order", "Ordre")]).list_filter(vec![("cour_id", "Cours", 10u64), ("slug", "Slug", 10u64), ("title", "Titre", 10u64), ("sort_order", "Ordre", 10u64)]));
+    let meta = meta.display(
+        DisplayConfig::new()
+            .columns_include(vec![
+                ("cour_id", "Cours"),
+                ("slug", "Slug"),
+                ("title", "Titre"),
+                ("sort_order", "Ordre"),
+            ])
+            .list_filter(vec![
+                ("cour_id", "Cours", 10u64),
+                ("slug", "Slug", 10u64),
+                ("title", "Titre", 10u64),
+                ("sort_order", "Ordre", 10u64),
+            ]),
+    );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
+            use sea_orm::sea_query::{Alias, Expr, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
-            use sea_orm::sea_query::{Query, Alias, Expr};
-            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> = std::collections::HashMap::new();
+            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
+                std::collections::HashMap::new();
             let page_size_cour_id = 10u64;
             let cur_page_cour_id = pages.get("cour_id").copied().unwrap_or(0);
-            let count_stmt_cour_id = Query::select().expr(Expr::cust("COUNT(DISTINCT cour_id)")).from(Alias::new(chapitre::Entity.table_name())).and_where(Expr::col(Alias::new("cour_id")).is_not_null()).to_owned();
-            let count_row_cour_id = match db.query_one(&count_stmt_cour_id).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `chapitre.cour_id`: column not found in DB — {}", e); None } };
-            let total_cour_id = count_row_cour_id.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_cour_id = Query::select().distinct().expr(Expr::cust("CAST(cour_id AS TEXT)")).from(Alias::new(chapitre::Entity.table_name())).and_where(Expr::col(Alias::new("cour_id")).is_not_null()).limit(page_size_cour_id).offset(cur_page_cour_id * page_size_cour_id).to_owned();
-            let rows_cour_id = match db.query_all(&stmt_cour_id).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `chapitre.cour_id`: column not found in DB — {}", e); vec![] } };
-            let mut vals_cour_id: Vec<String> = rows_cour_id.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_cour_id.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_cour_id = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT cour_id)"))
+                .from(Alias::new(chapitre::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("cour_id")).is_not_null())
+                .to_owned();
+            let count_row_cour_id = match db.query_one(&count_stmt_cour_id).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `chapitre.cour_id`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_cour_id = count_row_cour_id
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_cour_id = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(cour_id AS TEXT)"))
+                .from(Alias::new(chapitre::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("cour_id")).is_not_null())
+                .limit(page_size_cour_id)
+                .offset(cur_page_cour_id * page_size_cour_id)
+                .to_owned();
+            let rows_cour_id = match db.query_all(&stmt_cour_id).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `chapitre.cour_id`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_cour_id: Vec<String> = rows_cour_id
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_cour_id.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("cour_id".to_string(), (vals_cour_id, total_cour_id));
             let page_size_slug = 10u64;
             let cur_page_slug = pages.get("slug").copied().unwrap_or(0);
-            let count_stmt_slug = Query::select().expr(Expr::cust("COUNT(DISTINCT slug)")).from(Alias::new(chapitre::Entity.table_name())).and_where(Expr::col(Alias::new("slug")).is_not_null()).to_owned();
-            let count_row_slug = match db.query_one(&count_stmt_slug).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `chapitre.slug`: column not found in DB — {}", e); None } };
-            let total_slug = count_row_slug.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_slug = Query::select().distinct().expr(Expr::cust("CAST(slug AS TEXT)")).from(Alias::new(chapitre::Entity.table_name())).and_where(Expr::col(Alias::new("slug")).is_not_null()).limit(page_size_slug).offset(cur_page_slug * page_size_slug).to_owned();
-            let rows_slug = match db.query_all(&stmt_slug).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `chapitre.slug`: column not found in DB — {}", e); vec![] } };
-            let mut vals_slug: Vec<String> = rows_slug.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_slug.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_slug = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT slug)"))
+                .from(Alias::new(chapitre::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("slug")).is_not_null())
+                .to_owned();
+            let count_row_slug = match db.query_one(&count_stmt_slug).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `chapitre.slug`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_slug = count_row_slug
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_slug = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(slug AS TEXT)"))
+                .from(Alias::new(chapitre::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("slug")).is_not_null())
+                .limit(page_size_slug)
+                .offset(cur_page_slug * page_size_slug)
+                .to_owned();
+            let rows_slug = match db.query_all(&stmt_slug).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `chapitre.slug`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_slug: Vec<String> = rows_slug
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_slug.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("slug".to_string(), (vals_slug, total_slug));
             let page_size_title = 10u64;
             let cur_page_title = pages.get("title").copied().unwrap_or(0);
-            let count_stmt_title = Query::select().expr(Expr::cust("COUNT(DISTINCT title)")).from(Alias::new(chapitre::Entity.table_name())).and_where(Expr::col(Alias::new("title")).is_not_null()).to_owned();
-            let count_row_title = match db.query_one(&count_stmt_title).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `chapitre.title`: column not found in DB — {}", e); None } };
-            let total_title = count_row_title.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_title = Query::select().distinct().expr(Expr::cust("CAST(title AS TEXT)")).from(Alias::new(chapitre::Entity.table_name())).and_where(Expr::col(Alias::new("title")).is_not_null()).limit(page_size_title).offset(cur_page_title * page_size_title).to_owned();
-            let rows_title = match db.query_all(&stmt_title).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `chapitre.title`: column not found in DB — {}", e); vec![] } };
-            let mut vals_title: Vec<String> = rows_title.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_title = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT title)"))
+                .from(Alias::new(chapitre::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .to_owned();
+            let count_row_title = match db.query_one(&count_stmt_title).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `chapitre.title`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_title = count_row_title
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_title = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(title AS TEXT)"))
+                .from(Alias::new(chapitre::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .limit(page_size_title)
+                .offset(cur_page_title * page_size_title)
+                .to_owned();
+            let rows_title = match db.query_all(&stmt_title).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `chapitre.title`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_title: Vec<String> = rows_title
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("title".to_string(), (vals_title, total_title));
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
-            let count_stmt_sort_order = Query::select().expr(Expr::cust("COUNT(DISTINCT sort_order)")).from(Alias::new(chapitre::Entity.table_name())).and_where(Expr::col(Alias::new("sort_order")).is_not_null()).to_owned();
-            let count_row_sort_order = match db.query_one(&count_stmt_sort_order).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `chapitre.sort_order`: column not found in DB — {}", e); None } };
-            let total_sort_order = count_row_sort_order.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_sort_order = Query::select().distinct().expr(Expr::cust("CAST(sort_order AS TEXT)")).from(Alias::new(chapitre::Entity.table_name())).and_where(Expr::col(Alias::new("sort_order")).is_not_null()).limit(page_size_sort_order).offset(cur_page_sort_order * page_size_sort_order).to_owned();
-            let rows_sort_order = match db.query_all(&stmt_sort_order).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `chapitre.sort_order`: column not found in DB — {}", e); vec![] } };
-            let mut vals_sort_order: Vec<String> = rows_sort_order.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
-            result.insert("sort_order".to_string(), (vals_sort_order, total_sort_order));
+            let count_stmt_sort_order = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT sort_order)"))
+                .from(Alias::new(chapitre::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .to_owned();
+            let count_row_sort_order = match db.query_one(&count_stmt_sort_order).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `chapitre.sort_order`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_sort_order = count_row_sort_order
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_sort_order = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(sort_order AS TEXT)"))
+                .from(Alias::new(chapitre::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .limit(page_size_sort_order)
+                .offset(cur_page_sort_order * page_size_sort_order)
+                .to_owned();
+            let rows_sort_order = match db.query_all(&stmt_sort_order).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `chapitre.sort_order`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_sort_order: Vec<String> = rows_sort_order
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
+            result.insert(
+                "sort_order".to_string(),
+                (vals_sort_order, total_sort_order),
+            );
             Ok(result)
         })
     });
@@ -3099,13 +7783,14 @@ pub fn admin_register() -> AdminRegistry {
         ResourceEntry::new(meta, form_builder)
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
+            .with_enum_label_fn(chapitre::apply_enum_labels)
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_unique_fields(chapitre::UNIQUE_FIELDS)
-            .with_filter_fn(filter_fn)
+            .with_filter_fn(filter_fn),
     );
 
     // ── Resource: cour_block ──
@@ -3116,54 +7801,107 @@ pub fn admin_register() -> AdminRegistry {
         "Cours — Blocs",
         vec![],
     );
-    let form_builder: FormBuilder = Arc::new(|_db: ADb, _vec: Vec<std::string::String>, data: StrMap, tera: ATera, csrf: String, method: Method| {
-        Box::pin(async move {
-            let form = cour_block::AdminForm::build_with_data(&data, tera, &csrf, method).await;
-            Box::new(CourBlockAdminFormDynWrapper(form)) as Box<dyn DynForm>
-        })
-    });
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
+            Box::pin(async move {
+                let form = cour_block::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+                Box::new(CourBlockAdminFormDynWrapper(form)) as Box<dyn DynForm>
+            })
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            use sea_orm::{QueryFilter, sea_query::{Alias, Expr, ExprTrait, Order}};
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, ExprTrait, Order},
+            };
             let mut query = cour_block::Entity::find();
-            const SORT_COLS: &[&str] = &["id", "chapitre_id", "block_type", "heading", "sort_order"];
+            const SORT_COLS: &[&str] =
+                &["id", "chapitre_id", "block_type", "heading", "sort_order"];
             const FILTER_COLS: &[&str] = &["chapitre_id", "block_type", "heading", "sort_order"];
-            if let Some(ref col) = params.sort_by && SORT_COLS.contains(&col.as_str()) {
-                let order = if params.sort_dir == SortDir::Desc { Order::Desc } else { Order::Asc };
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                if !FILTER_COLS.contains(&col.as_str()) { continue; }
-                query = query.filter(Expr::col(Alias::new(col.as_str())).cast_as(Alias::new("TEXT")).eq(val.clone()));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
+            }
+            if let Some((col, val)) = &params.scope
+                && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+            {
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(cour_block::Entity => or("chapitre_id" icontains search_str, "block_type" icontains search_str, "heading" icontains search_str, "sort_order" icontains search_str));
                 query = query.filter(search_cond);
             }
-            let db_rows = query.offset(params.offset).limit(params.limit).all(&*db).await?;
-            let rows: Vec<serde_json::Value> = db_rows.into_iter()
+            let db_rows = query
+                .offset(params.offset)
+                .limit(params.limit)
+                .all(&*db)
+                .await?;
+            let rows: Vec<serde_json::Value> = db_rows
+                .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
                 .collect();
             Ok(rows)
         })
     });
 
-    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move {
-            use sea_orm::QueryFilter;
-            let mut query = cour_block::Entity::find();
-            if let Some(ref search_str) = _search {
-                let search_cond = search_cond!(cour_block::Entity => or("chapitre_id" icontains search_str, "block_type" icontains search_str, "heading" icontains search_str, "sort_order" icontains search_str));
-                query = query.filter(search_cond);
-            }
-            query.count(&*db).await
-        })
-    });
+    let count_fn: CountFn = Arc::new(
+        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+            Box::pin(async move {
+                use sea_orm::{
+                    QueryFilter,
+                    sea_query::{Alias, Expr, ExprTrait},
+                };
+                let mut query = cour_block::Entity::find();
+                if let Some(ref search_str) = _search {
+                    let search_cond = search_cond!(cour_block::Entity => or("chapitre_id" icontains search_str, "block_type" icontains search_str, "heading" icontains search_str, "sort_order" icontains search_str));
+                    query = query.filter(search_cond);
+                }
+                if let Some((col, val)) = &scope
+                    && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+                {
+                    query = query.filter(
+                        Expr::col(Alias::new(col.as_str()))
+                            .cast_as(Alias::new("TEXT"))
+                            .eq(val.clone()),
+                    );
+                }
+                query.count(&*db).await
+            })
+        },
+    );
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = cour_block::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -3171,76 +7909,267 @@ pub fn admin_register() -> AdminRegistry {
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            cour_block::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            cour_block::Entity::delete_by_id(id)
+                .exec(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
             cour_block::admin_from_form(&data, None)
-                .insert(&*db).await.map(|_| ())
+                .insert(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             cour_block::admin_from_form(&data, Some(id))
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             cour_block::admin_partial_update(&data, id)
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
-    let meta = meta.display(DisplayConfig::new().columns_include(vec![("chapitre_id", "Chapitre"), ("block_type", "Type"), ("heading", "En-tête"), ("sort_order", "Ordre")]).list_filter(vec![("chapitre_id", "Chapitre", 10u64), ("block_type", "Type", 10u64), ("heading", "En-tête", 10u64), ("sort_order", "Ordre d'affichage", 10u64)]));
+    let meta = meta.display(
+        DisplayConfig::new()
+            .columns_include(vec![
+                ("chapitre_id", "Chapitre"),
+                ("block_type", "Type"),
+                ("heading", "En-tête"),
+                ("sort_order", "Ordre"),
+            ])
+            .list_filter(vec![
+                ("chapitre_id", "Chapitre", 10u64),
+                ("block_type", "Type", 10u64),
+                ("heading", "En-tête", 10u64),
+                ("sort_order", "Ordre d'affichage", 10u64),
+            ]),
+    );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
+            use sea_orm::sea_query::{Alias, Expr, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
-            use sea_orm::sea_query::{Query, Alias, Expr};
-            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> = std::collections::HashMap::new();
+            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
+                std::collections::HashMap::new();
             let page_size_chapitre_id = 10u64;
             let cur_page_chapitre_id = pages.get("chapitre_id").copied().unwrap_or(0);
-            let count_stmt_chapitre_id = Query::select().expr(Expr::cust("COUNT(DISTINCT chapitre_id)")).from(Alias::new(cour_block::Entity.table_name())).and_where(Expr::col(Alias::new("chapitre_id")).is_not_null()).to_owned();
-            let count_row_chapitre_id = match db.query_one(&count_stmt_chapitre_id).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `cour_block.chapitre_id`: column not found in DB — {}", e); None } };
-            let total_chapitre_id = count_row_chapitre_id.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_chapitre_id = Query::select().distinct().expr(Expr::cust("CAST(chapitre_id AS TEXT)")).from(Alias::new(cour_block::Entity.table_name())).and_where(Expr::col(Alias::new("chapitre_id")).is_not_null()).limit(page_size_chapitre_id).offset(cur_page_chapitre_id * page_size_chapitre_id).to_owned();
-            let rows_chapitre_id = match db.query_all(&stmt_chapitre_id).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `cour_block.chapitre_id`: column not found in DB — {}", e); vec![] } };
-            let mut vals_chapitre_id: Vec<String> = rows_chapitre_id.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_chapitre_id.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
-            result.insert("chapitre_id".to_string(), (vals_chapitre_id, total_chapitre_id));
+            let count_stmt_chapitre_id = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT chapitre_id)"))
+                .from(Alias::new(cour_block::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("chapitre_id")).is_not_null())
+                .to_owned();
+            let count_row_chapitre_id = match db.query_one(&count_stmt_chapitre_id).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `cour_block.chapitre_id`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_chapitre_id = count_row_chapitre_id
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_chapitre_id = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(chapitre_id AS TEXT)"))
+                .from(Alias::new(cour_block::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("chapitre_id")).is_not_null())
+                .limit(page_size_chapitre_id)
+                .offset(cur_page_chapitre_id * page_size_chapitre_id)
+                .to_owned();
+            let rows_chapitre_id = match db.query_all(&stmt_chapitre_id).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `cour_block.chapitre_id`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_chapitre_id: Vec<String> = rows_chapitre_id
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_chapitre_id.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
+            result.insert(
+                "chapitre_id".to_string(),
+                (vals_chapitre_id, total_chapitre_id),
+            );
             let page_size_block_type = 10u64;
             let cur_page_block_type = pages.get("block_type").copied().unwrap_or(0);
-            let count_stmt_block_type = Query::select().expr(Expr::cust("COUNT(DISTINCT block_type)")).from(Alias::new(cour_block::Entity.table_name())).and_where(Expr::col(Alias::new("block_type")).is_not_null()).to_owned();
-            let count_row_block_type = match db.query_one(&count_stmt_block_type).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `cour_block.block_type`: column not found in DB — {}", e); None } };
-            let total_block_type = count_row_block_type.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_block_type = Query::select().distinct().expr(Expr::cust("CAST(block_type AS TEXT)")).from(Alias::new(cour_block::Entity.table_name())).and_where(Expr::col(Alias::new("block_type")).is_not_null()).limit(page_size_block_type).offset(cur_page_block_type * page_size_block_type).to_owned();
-            let rows_block_type = match db.query_all(&stmt_block_type).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `cour_block.block_type`: column not found in DB — {}", e); vec![] } };
-            let mut vals_block_type: Vec<String> = rows_block_type.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_block_type.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
-            result.insert("block_type".to_string(), (vals_block_type, total_block_type));
+            let count_stmt_block_type = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT block_type)"))
+                .from(Alias::new(cour_block::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("block_type")).is_not_null())
+                .to_owned();
+            let count_row_block_type = match db.query_one(&count_stmt_block_type).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `cour_block.block_type`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_block_type = count_row_block_type
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_block_type = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(block_type AS TEXT)"))
+                .from(Alias::new(cour_block::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("block_type")).is_not_null())
+                .limit(page_size_block_type)
+                .offset(cur_page_block_type * page_size_block_type)
+                .to_owned();
+            let rows_block_type = match db.query_all(&stmt_block_type).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `cour_block.block_type`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_block_type: Vec<String> = rows_block_type
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_block_type.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
+            result.insert(
+                "block_type".to_string(),
+                (vals_block_type, total_block_type),
+            );
             let page_size_heading = 10u64;
             let cur_page_heading = pages.get("heading").copied().unwrap_or(0);
-            let count_stmt_heading = Query::select().expr(Expr::cust("COUNT(DISTINCT heading)")).from(Alias::new(cour_block::Entity.table_name())).and_where(Expr::col(Alias::new("heading")).is_not_null()).to_owned();
-            let count_row_heading = match db.query_one(&count_stmt_heading).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `cour_block.heading`: column not found in DB — {}", e); None } };
-            let total_heading = count_row_heading.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_heading = Query::select().distinct().expr(Expr::cust("CAST(heading AS TEXT)")).from(Alias::new(cour_block::Entity.table_name())).and_where(Expr::col(Alias::new("heading")).is_not_null()).limit(page_size_heading).offset(cur_page_heading * page_size_heading).to_owned();
-            let rows_heading = match db.query_all(&stmt_heading).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `cour_block.heading`: column not found in DB — {}", e); vec![] } };
-            let mut vals_heading: Vec<String> = rows_heading.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_heading.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_heading = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT heading)"))
+                .from(Alias::new(cour_block::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("heading")).is_not_null())
+                .to_owned();
+            let count_row_heading = match db.query_one(&count_stmt_heading).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `cour_block.heading`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_heading = count_row_heading
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_heading = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(heading AS TEXT)"))
+                .from(Alias::new(cour_block::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("heading")).is_not_null())
+                .limit(page_size_heading)
+                .offset(cur_page_heading * page_size_heading)
+                .to_owned();
+            let rows_heading = match db.query_all(&stmt_heading).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `cour_block.heading`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_heading: Vec<String> = rows_heading
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_heading.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("heading".to_string(), (vals_heading, total_heading));
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
-            let count_stmt_sort_order = Query::select().expr(Expr::cust("COUNT(DISTINCT sort_order)")).from(Alias::new(cour_block::Entity.table_name())).and_where(Expr::col(Alias::new("sort_order")).is_not_null()).to_owned();
-            let count_row_sort_order = match db.query_one(&count_stmt_sort_order).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `cour_block.sort_order`: column not found in DB — {}", e); None } };
-            let total_sort_order = count_row_sort_order.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_sort_order = Query::select().distinct().expr(Expr::cust("CAST(sort_order AS TEXT)")).from(Alias::new(cour_block::Entity.table_name())).and_where(Expr::col(Alias::new("sort_order")).is_not_null()).limit(page_size_sort_order).offset(cur_page_sort_order * page_size_sort_order).to_owned();
-            let rows_sort_order = match db.query_all(&stmt_sort_order).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `cour_block.sort_order`: column not found in DB — {}", e); vec![] } };
-            let mut vals_sort_order: Vec<String> = rows_sort_order.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
-            result.insert("sort_order".to_string(), (vals_sort_order, total_sort_order));
+            let count_stmt_sort_order = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT sort_order)"))
+                .from(Alias::new(cour_block::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .to_owned();
+            let count_row_sort_order = match db.query_one(&count_stmt_sort_order).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `cour_block.sort_order`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_sort_order = count_row_sort_order
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_sort_order = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(sort_order AS TEXT)"))
+                .from(Alias::new(cour_block::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
+                .limit(page_size_sort_order)
+                .offset(cur_page_sort_order * page_size_sort_order)
+                .to_owned();
+            let rows_sort_order = match db.query_all(&stmt_sort_order).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `cour_block.sort_order`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_sort_order: Vec<String> = rows_sort_order
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_sort_order.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
+            result.insert(
+                "sort_order".to_string(),
+                (vals_sort_order, total_sort_order),
+            );
             Ok(result)
         })
     });
@@ -3249,13 +8178,14 @@ pub fn admin_register() -> AdminRegistry {
         ResourceEntry::new(meta, form_builder)
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
+            .with_enum_label_fn(cour_block::apply_enum_labels)
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_unique_fields(cour_block::UNIQUE_FIELDS)
-            .with_filter_fn(filter_fn)
+            .with_filter_fn(filter_fn),
     );
 
     // ── Resource: runique_release ──
@@ -3266,54 +8196,107 @@ pub fn admin_register() -> AdminRegistry {
         "Releases Runique",
         vec![],
     );
-    let form_builder: FormBuilder = Arc::new(|_db: ADb, _vec: Vec<std::string::String>, data: StrMap, tera: ATera, csrf: String, method: Method| {
-        Box::pin(async move {
-            let form = runique_release::AdminForm::build_with_data(&data, tera, &csrf, method).await;
-            Box::new(RuniqueReleaseAdminFormDynWrapper(form)) as Box<dyn DynForm>
-        })
-    });
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
+            Box::pin(async move {
+                let form =
+                    runique_release::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+                Box::new(RuniqueReleaseAdminFormDynWrapper(form)) as Box<dyn DynForm>
+            })
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            use sea_orm::{QueryFilter, sea_query::{Alias, Expr, ExprTrait, Order}};
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, ExprTrait, Order},
+            };
             let mut query = runique_release::Entity::find();
             const SORT_COLS: &[&str] = &["id", "version", "github_url", "crates_url"];
             const FILTER_COLS: &[&str] = &["version"];
-            if let Some(ref col) = params.sort_by && SORT_COLS.contains(&col.as_str()) {
-                let order = if params.sort_dir == SortDir::Desc { Order::Desc } else { Order::Asc };
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                if !FILTER_COLS.contains(&col.as_str()) { continue; }
-                query = query.filter(Expr::col(Alias::new(col.as_str())).cast_as(Alias::new("TEXT")).eq(val.clone()));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
+            }
+            if let Some((col, val)) = &params.scope
+                && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+            {
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(runique_release::Entity => or("version" icontains search_str, "github_url" icontains search_str, "crates_url" icontains search_str));
                 query = query.filter(search_cond);
             }
-            let db_rows = query.offset(params.offset).limit(params.limit).all(&*db).await?;
-            let rows: Vec<serde_json::Value> = db_rows.into_iter()
+            let db_rows = query
+                .offset(params.offset)
+                .limit(params.limit)
+                .all(&*db)
+                .await?;
+            let rows: Vec<serde_json::Value> = db_rows
+                .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
                 .collect();
             Ok(rows)
         })
     });
 
-    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move {
-            use sea_orm::QueryFilter;
-            let mut query = runique_release::Entity::find();
-            if let Some(ref search_str) = _search {
-                let search_cond = search_cond!(runique_release::Entity => or("version" icontains search_str, "github_url" icontains search_str, "crates_url" icontains search_str));
-                query = query.filter(search_cond);
-            }
-            query.count(&*db).await
-        })
-    });
+    let count_fn: CountFn = Arc::new(
+        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+            Box::pin(async move {
+                use sea_orm::{
+                    QueryFilter,
+                    sea_query::{Alias, Expr, ExprTrait},
+                };
+                let mut query = runique_release::Entity::find();
+                if let Some(ref search_str) = _search {
+                    let search_cond = search_cond!(runique_release::Entity => or("version" icontains search_str, "github_url" icontains search_str, "crates_url" icontains search_str));
+                    query = query.filter(search_cond);
+                }
+                if let Some((col, val)) = &scope
+                    && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+                {
+                    query = query.filter(
+                        Expr::col(Alias::new(col.as_str()))
+                            .cast_as(Alias::new("TEXT"))
+                            .eq(val.clone()),
+                    );
+                }
+                query.count(&*db).await
+            })
+        },
+    );
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = runique_release::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -3321,48 +8304,110 @@ pub fn admin_register() -> AdminRegistry {
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            runique_release::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            runique_release::Entity::delete_by_id(id)
+                .exec(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
             runique_release::admin_from_form(&data, None)
-                .insert(&*db).await.map(|_| ())
+                .insert(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             runique_release::admin_from_form(&data, Some(id))
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             runique_release::admin_partial_update(&data, id)
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
-    let meta = meta.display(DisplayConfig::new().columns_include(vec![("version", "Version"), ("github_url", "GitHub"), ("crates_url", "Crates.io")]).list_filter(vec![("version", "Version", 10u64)]));
+    let meta = meta.display(
+        DisplayConfig::new()
+            .columns_include(vec![
+                ("version", "Version"),
+                ("github_url", "GitHub"),
+                ("crates_url", "Crates.io"),
+            ])
+            .list_filter(vec![("version", "Version", 10u64)]),
+    );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
+            use sea_orm::sea_query::{Alias, Expr, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
-            use sea_orm::sea_query::{Query, Alias, Expr};
-            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> = std::collections::HashMap::new();
+            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
+                std::collections::HashMap::new();
             let page_size_version = 10u64;
             let cur_page_version = pages.get("version").copied().unwrap_or(0);
-            let count_stmt_version = Query::select().expr(Expr::cust("COUNT(DISTINCT version)")).from(Alias::new(runique_release::Entity.table_name())).and_where(Expr::col(Alias::new("version")).is_not_null()).to_owned();
-            let count_row_version = match db.query_one(&count_stmt_version).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `runique_release.version`: column not found in DB — {}", e); None } };
-            let total_version = count_row_version.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_version = Query::select().distinct().expr(Expr::cust("CAST(version AS TEXT)")).from(Alias::new(runique_release::Entity.table_name())).and_where(Expr::col(Alias::new("version")).is_not_null()).limit(page_size_version).offset(cur_page_version * page_size_version).to_owned();
-            let rows_version = match db.query_all(&stmt_version).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `runique_release.version`: column not found in DB — {}", e); vec![] } };
-            let mut vals_version: Vec<String> = rows_version.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_version.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_version = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT version)"))
+                .from(Alias::new(runique_release::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("version")).is_not_null())
+                .to_owned();
+            let count_row_version = match db.query_one(&count_stmt_version).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `runique_release.version`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_version = count_row_version
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_version = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(version AS TEXT)"))
+                .from(Alias::new(runique_release::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("version")).is_not_null())
+                .limit(page_size_version)
+                .offset(cur_page_version * page_size_version)
+                .to_owned();
+            let rows_version = match db.query_all(&stmt_version).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `runique_release.version`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_version: Vec<String> = rows_version
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_version.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("version".to_string(), (vals_version, total_version));
             Ok(result)
         })
@@ -3372,13 +8417,14 @@ pub fn admin_register() -> AdminRegistry {
         ResourceEntry::new(meta, form_builder)
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
+            .with_enum_label_fn(runique_release::apply_enum_labels)
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
             .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_unique_fields(runique_release::UNIQUE_FIELDS)
-            .with_filter_fn(filter_fn)
+            .with_filter_fn(filter_fn),
     );
 
     // ── Resource: user_profile ──
@@ -3389,54 +8435,115 @@ pub fn admin_register() -> AdminRegistry {
         "Profils utilisateurs",
         vec![],
     );
-    let form_builder: FormBuilder = Arc::new(|_db: ADb, _vec: Vec<std::string::String>, data: StrMap, tera: ATera, csrf: String, method: Method| {
-        Box::pin(async move {
-            let form = user_profile::AdminForm::build_with_data(&data, tera, &csrf, method).await;
-            Box::new(UserProfileAdminFormDynWrapper(form)) as Box<dyn DynForm>
-        })
-    });
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
+            Box::pin(async move {
+                let form =
+                    user_profile::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+                Box::new(UserProfileAdminFormDynWrapper(form)) as Box<dyn DynForm>
+            })
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            use sea_orm::{QueryFilter, sea_query::{Alias, Expr, ExprTrait, Order}};
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, ExprTrait, Order},
+            };
             let mut query = user_profile::Entity::find();
-            const SORT_COLS: &[&str] = &["id", "username", "bio", "website", "phone", "birth_date", "is_verified"];
+            const SORT_COLS: &[&str] = &[
+                "id",
+                "username",
+                "bio",
+                "website",
+                "phone",
+                "birth_date",
+                "is_verified",
+            ];
             const FILTER_COLS: &[&str] = &["username", "is_verified"];
-            if let Some(ref col) = params.sort_by && SORT_COLS.contains(&col.as_str()) {
-                let order = if params.sort_dir == SortDir::Desc { Order::Desc } else { Order::Asc };
+            if let Some(ref col) = params.sort_by
+                && SORT_COLS.contains(&col.as_str())
+            {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
             for (col, val) in &params.column_filters {
-                if !FILTER_COLS.contains(&col.as_str()) { continue; }
-                query = query.filter(Expr::col(Alias::new(col.as_str())).cast_as(Alias::new("TEXT")).eq(val.clone()));
+                if !FILTER_COLS.contains(&col.as_str()) {
+                    continue;
+                }
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
+            }
+            if let Some((col, val)) = &params.scope
+                && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+            {
+                query = query.filter(
+                    Expr::col(Alias::new(col.as_str()))
+                        .cast_as(Alias::new("TEXT"))
+                        .eq(val.clone()),
+                );
             }
             if let Some(ref search_str) = params.search {
                 let search_cond = search_cond!(user_profile::Entity => or("username" icontains search_str, "bio" icontains search_str, "website" icontains search_str, "phone" icontains search_str, "birth_date" icontains search_str, "is_verified" icontains search_str));
                 query = query.filter(search_cond);
             }
-            let db_rows = query.offset(params.offset).limit(params.limit).all(&*db).await?;
-            let rows: Vec<serde_json::Value> = db_rows.into_iter()
+            let db_rows = query
+                .offset(params.offset)
+                .limit(params.limit)
+                .all(&*db)
+                .await?;
+            let rows: Vec<serde_json::Value> = db_rows
+                .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
                 .collect();
             Ok(rows)
         })
     });
 
-    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move {
-            use sea_orm::QueryFilter;
-            let mut query = user_profile::Entity::find();
-            if let Some(ref search_str) = _search {
-                let search_cond = search_cond!(user_profile::Entity => or("username" icontains search_str, "bio" icontains search_str, "website" icontains search_str, "phone" icontains search_str, "birth_date" icontains search_str, "is_verified" icontains search_str));
-                query = query.filter(search_cond);
-            }
-            query.count(&*db).await
-        })
-    });
+    let count_fn: CountFn = Arc::new(
+        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+            Box::pin(async move {
+                use sea_orm::{
+                    QueryFilter,
+                    sea_query::{Alias, Expr, ExprTrait},
+                };
+                let mut query = user_profile::Entity::find();
+                if let Some(ref search_str) = _search {
+                    let search_cond = search_cond!(user_profile::Entity => or("username" icontains search_str, "bio" icontains search_str, "website" icontains search_str, "phone" icontains search_str, "birth_date" icontains search_str, "is_verified" icontains search_str));
+                    query = query.filter(search_cond);
+                }
+                if let Some((col, val)) = &scope
+                    && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+                {
+                    query = query.filter(
+                        Expr::col(Alias::new(col.as_str()))
+                            .cast_as(Alias::new("TEXT"))
+                            .eq(val.clone()),
+                    );
+                }
+                query.count(&*db).await
+            })
+        },
+    );
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             let row = user_profile::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -3444,19 +8551,34 @@ pub fn admin_register() -> AdminRegistry {
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            user_profile::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            user_profile::Entity::delete_by_id(id)
+                .exec(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
             use sea_orm::ConnectionTrait;
-            let result = user_profile::admin_from_form(&data, None).insert(&*db).await?;
+            let result = user_profile::admin_from_form(&data, None)
+                .insert(&*db)
+                .await?;
             let inserted_id = result.id.to_string();
             for key in data.keys() {
-                if let Some(target_id) = key.strip_prefix("m2m_groupes__") && !target_id.is_empty() && target_id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
-                    let sql = format!("INSERT INTO eihwaz_users_groupes (user_id, groupe_id) VALUES ({}, {}) ON CONFLICT DO NOTHING", inserted_id, target_id);
+                if let Some(target_id) = key.strip_prefix("m2m_groupes__")
+                    && !target_id.is_empty()
+                    && target_id
+                        .chars()
+                        .all(|c| c.is_ascii_alphanumeric() || c == '-')
+                {
+                    let sql = format!(
+                        "INSERT INTO eihwaz_users_groupes (user_id, groupe_id) VALUES ({}, {}) ON CONFLICT DO NOTHING",
+                        inserted_id, target_id
+                    );
                     let _ = db.execute_unprepared(&sql).await;
                 }
             }
@@ -3466,14 +8588,31 @@ pub fn admin_register() -> AdminRegistry {
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             use sea_orm::ConnectionTrait;
             let id_str = id.to_string();
-            user_profile::admin_from_form(&data, Some(id)).update(&*db).await?;
-            let _ = db.execute_unprepared(&format!("DELETE FROM eihwaz_users_groupes WHERE user_id = {}", id_str)).await;
+            user_profile::admin_from_form(&data, Some(id))
+                .update(&*db)
+                .await?;
+            let _ = db
+                .execute_unprepared(&format!(
+                    "DELETE FROM eihwaz_users_groupes WHERE user_id = {}",
+                    id_str
+                ))
+                .await;
             for key in data.keys() {
-                if let Some(target_id) = key.strip_prefix("m2m_groupes__") && !target_id.is_empty() && target_id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
-                    let sql = format!("INSERT INTO eihwaz_users_groupes (user_id, groupe_id) VALUES ({}, {})", id_str, target_id);
+                if let Some(target_id) = key.strip_prefix("m2m_groupes__")
+                    && !target_id.is_empty()
+                    && target_id
+                        .chars()
+                        .all(|c| c.is_ascii_alphanumeric() || c == '-')
+                {
+                    let sql = format!(
+                        "INSERT INTO eihwaz_users_groupes (user_id, groupe_id) VALUES ({}, {})",
+                        id_str, target_id
+                    );
                     let _ = db.execute_unprepared(&sql).await;
                 }
             }
@@ -3483,29 +8622,61 @@ pub fn admin_register() -> AdminRegistry {
 
     let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             user_profile::admin_partial_update(&data, id)
-                .update(&*db).await.map(|_| ())
+                .update(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let m2m_loader: M2mLoaderFn = Arc::new(|db: ADb, object_id: Option<String>| {
         Box::pin(async move {
-            use sea_orm::{EntityTrait, ConnectionTrait};
+            use sea_orm::{ConnectionTrait, EntityTrait};
             let mut fields: Vec<M2mFieldOptions> = Vec::new();
             {
-                let rows = runique::admin::permissions::groupe::Entity::find().all(&*db).await.unwrap_or_default();
-                let choices: Vec<(String, String)> = rows.iter().map(|r| {
-                    let v = serde_json::to_value(r).unwrap_or_default();
-                    let id = v.get("id").map(|i| i.to_string().trim_matches('"').to_string()).unwrap_or_default();
-                    let label = v.get("nom").and_then(|n| n.as_str()).unwrap_or("").to_string();
-                    (id, label)
-                }).collect();
+                let rows = runique::admin::permissions::groupe::Entity::find()
+                    .all(&*db)
+                    .await
+                    .unwrap_or_default();
+                let choices: Vec<(String, String)> = rows
+                    .iter()
+                    .map(|r| {
+                        let v = serde_json::to_value(r).unwrap_or_default();
+                        let id = v
+                            .get("id")
+                            .map(|i| i.to_string().trim_matches('"').to_string())
+                            .unwrap_or_default();
+                        let label = v
+                            .get("nom")
+                            .and_then(|n| n.as_str())
+                            .unwrap_or("")
+                            .to_string();
+                        (id, label)
+                    })
+                    .collect();
                 let selected = if let Some(ref oid) = object_id {
-                    use sea_orm::sea_query::{Query, Alias, Expr, ExprTrait};
-                    let stmt = Query::select().expr(Expr::cust("CAST(groupe_id AS TEXT)")).from(Alias::new("eihwaz_users_groupes")).and_where(Expr::col(Alias::new("user_id")).cast_as(Alias::new("TEXT")).eq(oid.clone())).to_owned();
-                    db.query_all(&stmt).await.unwrap_or_default().iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect()
-                } else { vec![] };
+                    use sea_orm::sea_query::{Alias, Expr, ExprTrait, Query};
+                    let stmt = Query::select()
+                        .expr(Expr::cust("CAST(groupe_id AS TEXT)"))
+                        .from(Alias::new("eihwaz_users_groupes"))
+                        .and_where(
+                            Expr::col(Alias::new("user_id"))
+                                .cast_as(Alias::new("TEXT"))
+                                .eq(oid.clone()),
+                        )
+                        .to_owned();
+                    db.query_all(&stmt)
+                        .await
+                        .unwrap_or_default()
+                        .iter()
+                        .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                        .collect()
+                } else {
+                    vec![]
+                };
                 fields.push(M2mFieldOptions {
                     field_name: "groupes".to_string(),
                     label: "Groupes".to_string(),
@@ -3517,30 +8688,124 @@ pub fn admin_register() -> AdminRegistry {
         })
     });
 
-    let meta = meta.display(DisplayConfig::new().columns_include(vec![("username", "Utilisateur"), ("bio", "Bio"), ("website", "Site"), ("phone", "Téléphone"), ("birth_date", "Date de naissance"), ("is_verified", "Vérifié")]).list_filter(vec![("username", "Utilisateur", 10u64), ("is_verified", "Vérifié", 5u64)]));
+    let meta = meta.display(
+        DisplayConfig::new()
+            .columns_include(vec![
+                ("username", "Utilisateur"),
+                ("bio", "Bio"),
+                ("website", "Site"),
+                ("phone", "Téléphone"),
+                ("birth_date", "Date de naissance"),
+                ("is_verified", "Vérifié"),
+            ])
+            .list_filter(vec![
+                ("username", "Utilisateur", 10u64),
+                ("is_verified", "Vérifié", 5u64),
+            ]),
+    );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
+            use sea_orm::sea_query::{Alias, Expr, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
-            use sea_orm::sea_query::{Query, Alias, Expr};
-            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> = std::collections::HashMap::new();
+            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
+                std::collections::HashMap::new();
             let page_size_username = 10u64;
             let cur_page_username = pages.get("username").copied().unwrap_or(0);
-            let count_stmt_username = Query::select().expr(Expr::cust("COUNT(DISTINCT username)")).from(Alias::new(user_profile::Entity.table_name())).and_where(Expr::col(Alias::new("username")).is_not_null()).to_owned();
-            let count_row_username = match db.query_one(&count_stmt_username).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `user_profile.username`: column not found in DB — {}", e); None } };
-            let total_username = count_row_username.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_username = Query::select().distinct().expr(Expr::cust("CAST(username AS TEXT)")).from(Alias::new(user_profile::Entity.table_name())).and_where(Expr::col(Alias::new("username")).is_not_null()).limit(page_size_username).offset(cur_page_username * page_size_username).to_owned();
-            let rows_username = match db.query_all(&stmt_username).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `user_profile.username`: column not found in DB — {}", e); vec![] } };
-            let mut vals_username: Vec<String> = rows_username.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_username.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            let count_stmt_username = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT username)"))
+                .from(Alias::new(user_profile::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("username")).is_not_null())
+                .to_owned();
+            let count_row_username = match db.query_one(&count_stmt_username).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `user_profile.username`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_username = count_row_username
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_username = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(username AS TEXT)"))
+                .from(Alias::new(user_profile::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("username")).is_not_null())
+                .limit(page_size_username)
+                .offset(cur_page_username * page_size_username)
+                .to_owned();
+            let rows_username = match db.query_all(&stmt_username).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `user_profile.username`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_username: Vec<String> = rows_username
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_username.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
             result.insert("username".to_string(), (vals_username, total_username));
             let page_size_is_verified = 5u64;
             let cur_page_is_verified = pages.get("is_verified").copied().unwrap_or(0);
-            let count_stmt_is_verified = Query::select().expr(Expr::cust("COUNT(DISTINCT is_verified)")).from(Alias::new(user_profile::Entity.table_name())).and_where(Expr::col(Alias::new("is_verified")).is_not_null()).to_owned();
-            let count_row_is_verified = match db.query_one(&count_stmt_is_verified).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `user_profile.is_verified`: column not found in DB — {}", e); None } };
-            let total_is_verified = count_row_is_verified.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
-            let stmt_is_verified = Query::select().distinct().expr(Expr::cust("CAST(is_verified AS TEXT)")).from(Alias::new(user_profile::Entity.table_name())).and_where(Expr::col(Alias::new("is_verified")).is_not_null()).limit(page_size_is_verified).offset(cur_page_is_verified * page_size_is_verified).to_owned();
-            let rows_is_verified = match db.query_all(&stmt_is_verified).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `user_profile.is_verified`: column not found in DB — {}", e); vec![] } };
-            let mut vals_is_verified: Vec<String> = rows_is_verified.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_is_verified.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
-            result.insert("is_verified".to_string(), (vals_is_verified, total_is_verified));
+            let count_stmt_is_verified = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT is_verified)"))
+                .from(Alias::new(user_profile::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("is_verified")).is_not_null())
+                .to_owned();
+            let count_row_is_verified = match db.query_one(&count_stmt_is_verified).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `user_profile.is_verified`: column not found in DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_is_verified = count_row_is_verified
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_is_verified = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(is_verified AS TEXT)"))
+                .from(Alias::new(user_profile::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("is_verified")).is_not_null())
+                .limit(page_size_is_verified)
+                .offset(cur_page_is_verified * page_size_is_verified)
+                .to_owned();
+            let rows_is_verified = match db.query_all(&stmt_is_verified).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `user_profile.is_verified`: column not found in DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_is_verified: Vec<String> = rows_is_verified
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_is_verified.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => y.cmp(&x),
+                _ => b.cmp(a),
+            });
+            result.insert(
+                "is_verified".to_string(),
+                (vals_is_verified, total_is_verified),
+            );
             Ok(result)
         })
     });
@@ -3549,6 +8814,7 @@ pub fn admin_register() -> AdminRegistry {
         ResourceEntry::new(meta, form_builder)
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
+            .with_enum_label_fn(user_profile::apply_enum_labels)
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
@@ -3556,7 +8822,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_count_fn(count_fn)
             .with_unique_fields(user_profile::UNIQUE_FIELDS)
             .with_filter_fn(filter_fn)
-            .with_m2m_loader(m2m_loader)
+            .with_m2m_loader(m2m_loader),
     );
 
     registry.remove("users");
@@ -3569,8 +8835,25 @@ pub fn admin_register() -> AdminRegistry {
 pub fn routes(prefix: &str) -> runique::admin::AdminRoutes {
     let p = prefix.trim_end_matches('/');
     let router = runique::axum::Router::new()
-        .route(&format!("{}/{{resource}}/{{action}}", p), get(admin_get).post(admin_post))
-        .route(&format!("{}/{{resource}}/{{id}}/{{action}}", p), get(admin_get_id).post(admin_post_id));
+        .route(
+            &format!("{}/{{resource}}/{{action}}", p),
+            get(admin_get).post(admin_post),
+        )
+        .route(
+            &format!("{}/{{resource}}/{{id}}/{{action}}", p),
+            get(admin_get_id).post(admin_post_id),
+        )
+        .route(
+            &format!("{}/{{parent}}/{{parent_id}}/{{resource}}/{{action}}", p),
+            get(admin_nested_get).post(admin_nested_post),
+        )
+        .route(
+            &format!(
+                "{}/{{parent}}/{{parent_id}}/{{resource}}/{{id}}/{{action}}",
+                p
+            ),
+            get(admin_nested_get_id).post(admin_nested_post_id),
+        );
     runique::admin::AdminRoutes::new(p, router)
 }
 

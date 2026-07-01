@@ -37,6 +37,15 @@ classDiagram
         +DisplayConfig display
         +Option~String~ template_list/create/edit/detail/delete
         +HashMap~String,String~ extra_context
+        +Vec~(col,fk_table,label)~ fk_display
+        +Option~ParentScope~ parent_scope
+        +parent_scope(parent_key, fk_col, local_key) Self
+    }
+    class ParentScope {
+        +&str parent_key
+        +&str fk_col
+        +Option~&str~ local_key
+        +is_composite() bool
     }
     class DisplayConfig {
         +Option~String~ icon
@@ -47,7 +56,15 @@ classDiagram
     AdminRegistry "1" o-- "*" ResourceEntry
     ResourceEntry "1" *-- "1" AdminResource
     AdminResource "1" *-- "1" DisplayConfig
+    AdminResource "1" o-- "0..1" ParentScope
 ```
+
+`ParentScope` déclare une resource comme **enfant scopé** d'une autre (atteinte via
+`/{parent}/{parent_id}/{child}/…`) : la liste enfant est filtrée `WHERE fk_col = parent_id`,
+le formulaire fixe/masque `fk_col`, et le détail parent la rend en sous-liste inline.
+`local_key = Some(col)` = enfant composite (jonction, closure-id `"{parent_id}:{col}"`,
+ex. `groupes_droits`) ; `None` = enfant à PK propre. Un enfant scopé reste visible au
+top-level **et** inline (les deux coexistent) ; il n'est pas route-bloqué.
 
 `FormBuilder`/`ListFn`/`GetFn`/`DeleteFn`/`UpdateFn`/`CreateFn`/`CountFn`/`FilterFn`/
 `M2mLoaderFn` = closures `Arc<dyn Fn(...) -> BoxFuture<...>>` (effacement de type pour

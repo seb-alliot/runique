@@ -172,7 +172,7 @@ pub(super) fn user_entry() -> ResourceEntry {
         })
     });
 
-    let count_fn: CountFn = Arc::new(|db: ADb, _search| {
+    let count_fn: CountFn = Arc::new(|db: ADb, _search, _column_filters| {
         Box::pin(async move {
             use sea_orm::{
                 QueryFilter,

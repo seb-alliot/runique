@@ -24,10 +24,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     builder::new(config)
         .with_log(|l| {
-            l.dev().middleware(|m| {
-                m.host_validation(tracing::Level::WARN)
-                    .https(tracing::Level::INFO)
-            })
+            l.admin(
+                |a| {
+                    a.auth(Level::DEBUG) // décisions d'accès : granted=true/false + user/resource/action
+                        .crud(Level::DEBUG) // detail/create/edit/delete + résultat
+                        .bulk(Level::DEBUG) // group_set / bulk_delete
+                        .list(Level::DEBUG) // pagination / ordering / column resolution
+                        .filter_fn(Level::DEBUG)
+                }, // filter_fn failures
+            )
         })
         .routes(url::routes())
         .with_database(db)

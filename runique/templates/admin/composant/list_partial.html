@@ -84,7 +84,7 @@
 
   {% block list_group_action %}
   {% if can_bulk %}
-  <form id="bulk-form" method="POST" action="{{ admin_prefix }}/{{ resource.key }}/bulk">
+  <form id="bulk-form" method="POST" action="{{ resource_base }}/bulk">
     {% csrf %}
     <input type="hidden" name="bulk_action" id="bulk-action-input" value="">
     <input type="hidden" name="ids" id="bulk-ids-input" value="">
@@ -224,7 +224,7 @@
             </svg>
             <p class="admin-empty-state__title">{% if admin_list_empty_title %}{{ admin_list_empty_title }}{% endif %}</p>
             <p class="admin-empty-state__desc">{% if admin_list_empty_desc %}{{ admin_list_empty_desc }}{% endif %}</p>
-            {% if can_create %}<a href="{{ admin_prefix }}/{{ resource.key }}/create" class="btn btn-primary mt-sm">{% if admin_list_btn_create_first %}{{ admin_list_btn_create_first }}{% endif %}</a>{% endif %}
+            {% if can_create %}<a href="{{ resource_base }}/create" class="btn btn-primary mt-sm">{% if admin_list_btn_create_first %}{{ admin_list_btn_create_first }}{% endif %}</a>{% endif %}
           </div>
         {% endif %}
       </div>

@@ -16,7 +16,10 @@ pub mod forms;
 pub mod history;
 
 // Used by daemon-generated code in user projects (external crate) — must stay pub
-pub use admin_main::{PrototypeAdminState, admin_get, admin_get_id, admin_post, admin_post_id};
+pub use admin_main::{
+    PrototypeAdminState, admin_get, admin_get_id, admin_nested_get, admin_nested_get_id,
+    admin_nested_post, admin_nested_post_id, admin_post, admin_post_id,
+};
 pub use builtin::builtin_resources;
 pub use config::AdminConfig;
 pub use helper::{fetch_fk_label_map, fk_key, resolve_fk_labels, resolve_fk_labels_in_rows};
@@ -45,7 +48,8 @@ impl AdminRoutes {
 }
 pub use registry::AdminRegistry;
 pub use resource::{
-    AdminIdType, AdminResource, ColumnFilter, CrudOperation, DisplayConfig, ResourcePermissions,
+    AdminIdType, AdminResource, ColumnFilter, CrudOperation, DisplayConfig, ParentScope,
+    ResourcePermissions,
 };
 
 pub use table_admin::migrations_table::*;

@@ -152,6 +152,42 @@ impl RuniqueAppBuilder {
                     .unwrap_or(0);
                 crate::runique_log!(level, resources = count, "admin registry");
             }
+            // Close the `resource_key` referential-integrity gap: drop rights that
+            // point at a resource key no longer in the registry (see
+            // `prune_orphan_droits`). Static resources → boot is the only window.
+            let valid_keys: Vec<String> = self
+                .admin
+                .state
+                .as_ref()
+                .map(|s| s.registry.keys().into_iter().map(str::to_string).collect())
+                .unwrap_or_default();
+            if !valid_keys.is_empty() {
+                let refs: Vec<&str> = valid_keys.iter().map(String::as_str).collect();
+                let level = crate::utils::runique_log::get_log()
+                    .builder
+                    .as_ref()
+                    .and_then(|b| b.registry);
+                match crate::admin::permissions::prune_orphan_droits(engine.db.as_ref(), &refs)
+                    .await
+                {
+                    Ok(n) if n > 0 => {
+                        if let Some(level) = level {
+                            crate::runique_log!(
+                                level,
+                                pruned = n,
+                                "orphan group rights pruned at boot"
+                            );
+                        }
+                    }
+                    Ok(_) => {}
+                    Err(e) => {
+                        if let Some(level) = level {
+                            crate::runique_log!(level, error = %e, "orphan rights prune failed — stale grants may remain");
+                        }
+                    }
+                }
+            }
+
             let admin_router = build_admin_router(self.admin, engine.db.clone());
             add_urls(&engine);
             register_name_url(&engine, "admin", &admin_prefix);

@@ -6,7 +6,7 @@
 {% block title %}{% if admin_edit_title %}{{ admin_edit_title }}{% endif %} — {{ resource.title }}{% endblock %}
 {% block breadcrumb %}
   <span class="admin-topbar__sep">/</span>
-  <a href="{{ admin_prefix }}/{{ resource.key }}/list">{{ resource.title }}</a>
+  <a href="{{ resource_base }}/list">{{ resource.title }}</a>
   <span class="admin-topbar__sep">/</span>
   <span>Modification groupée ({{ bulk_count }})</span>
 {% endblock %}
@@ -33,7 +33,7 @@
   {% endif %}
 
   {% if current_user and can_edit %}
-  <form method="POST" action="{{ admin_prefix }}/{{ resource.key }}/bulk" id="bulk-edit-form">
+  <form method="POST" action="{{ resource_base }}/bulk" id="bulk-edit-form">
     {% csrf %}
     <input type="hidden" name="bulk_action" value="update-submit">
     <input type="hidden" name="ids" value="{{ bulk_ids }}">
@@ -75,7 +75,7 @@
 
     {% block group_edit_actions %}
     <div class="admin-form__actions">
-      <a href="{{ admin_prefix }}/{{ resource.key }}/list" class="btn btn-secondary">{% if admin_edit_btn_cancel %}{{ admin_edit_btn_cancel }}{% endif %}</a>
+      <a href="{{ resource_base }}/list" class="btn btn-secondary">{% if admin_edit_btn_cancel %}{{ admin_edit_btn_cancel }}{% endif %}</a>
       <button type="submit" class="btn btn-primary">Appliquer à {{ bulk_count }} élément(s)</button>
     </div>
     {% endblock %}

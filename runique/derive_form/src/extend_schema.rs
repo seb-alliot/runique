@@ -668,8 +668,39 @@ pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
 
     let enum_defs = generate_enum_defs(&dsl.enums);
 
+    // Same enum-label resolver as `model!` (admin display layer). No-op if no enum.
+    let enum_label_resolvers: Vec<TokenStream2> = dsl
+        .fields
+        .iter()
+        .filter_map(|ff| {
+            let def = field_enum_def(ff, &dsl.enums)?;
+            let col = ff.name.to_string();
+            let ename = &def.name;
+            Some(quote! {
+                {
+                    let current = row
+                        .get(#col)
+                        .and_then(|v| v.as_str())
+                        .map(::std::string::ToString::to_string);
+                    if let Some(s) = current
+                        && let Ok(e) = <#ename as ::std::str::FromStr>::from_str(&s)
+                    {
+                        row[#col] = ::runique::serde_json::Value::String(
+                            ::std::string::ToString::to_string(&e),
+                        );
+                    }
+                }
+            })
+        })
+        .collect();
+
     quote! {
         #enum_defs
+
+        pub fn apply_enum_labels(row: &mut ::runique::serde_json::Value) {
+            let _ = &row;
+            #(#enum_label_resolvers)*
+        }
 
         #[derive(
             Clone, Debug, PartialEq,

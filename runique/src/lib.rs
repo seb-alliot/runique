@@ -216,7 +216,10 @@ pub mod prelude {
 
     // Items used by daemon-generated code (external crate) via `use runique::prelude::*`
     pub use crate::admin::{
-        admin_main::{PrototypeAdminState, admin_get, admin_get_id, admin_post, admin_post_id},
+        admin_main::{
+            PrototypeAdminState, admin_get, admin_get_id, admin_nested_get, admin_nested_get_id,
+            admin_nested_post, admin_nested_post_id, admin_post, admin_post_id,
+        },
         builtin::builtin_resources,
         config::config_admin::AdminConfig,
         helper::{

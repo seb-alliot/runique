@@ -79,7 +79,11 @@ fn plaintext_filter(value: &Value, _: &JsonMap) -> TResult {
 // values, resource keys, column names), never to raw user data (a username like
 // `jean_dupont` would be silently altered).
 fn humanize_filter(value: &Value, _: &JsonMap) -> TResult {
-    let raw = value.as_str().unwrap_or("");
+    // Non-strings (numbers, bools) pass through untouched — applied on a generic
+    // value loop, humanizing a number must never blank it out.
+    let Some(raw) = value.as_str() else {
+        return Ok(value.clone());
+    };
     let humanized = raw
         .split(['_', '-'])
         .filter(|word| !word.is_empty())

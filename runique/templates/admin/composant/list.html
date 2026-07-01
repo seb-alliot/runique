@@ -3,6 +3,10 @@
 {% block breadcrumb %}
   <span class="admin-topbar__sep">/</span>
   <a href="{{ admin_prefix }}">{% if admin_list_breadcrumb_admin %}{{ admin_list_breadcrumb_admin }}{% endif %}</a>
+  {% if parent_key %}
+  <span class="admin-topbar__sep">/</span>
+  <a href="{{ parent_base }}/{{ parent_id }}/detail">{{ parent_title }}</a>
+  {% endif %}
   <span class="admin-topbar__sep">/</span>
   <span>{{ resource.title | default(value="Éléments") }}</span>
 {% endblock %}
@@ -32,7 +36,7 @@
     {% if can_create %}
     {# Desktop : bouton plein. Mobile : masqué (≤600px), l'action passe dans le kebab
        de ligne ; pour une liste vide, un bouton de repli est rendu dans l'état vide. #}
-    <a href="{{ admin_prefix }}/{{ resource.key }}/create" class="btn btn-primary admin-page__create-btn">
+    <a href="{{ resource_base }}/create" class="btn btn-primary admin-page__create-btn">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
         <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
       </svg>
