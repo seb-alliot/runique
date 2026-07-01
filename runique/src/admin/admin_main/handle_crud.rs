@@ -60,6 +60,12 @@ pub(super) async fn handle_detail(
     };
 
     if let Some(mut v) = object {
+        crate::admin::helper::resolve_fk_labels(
+            req.engine.db.as_ref(),
+            std::slice::from_mut(&mut v),
+            &entry.meta.fk_display,
+        )
+        .await;
         format_datetime(&mut v);
         req.context.insert(ctx_detail::ENTRY, &v);
     }
@@ -574,8 +580,14 @@ pub(super) async fn handle_delete_get(
         None => None,
     };
 
-    if let Some(v) = &object {
-        req.context.insert(ctx_detail::ENTRY, v);
+    if let Some(mut v) = object {
+        crate::admin::helper::resolve_fk_labels(
+            req.engine.db.as_ref(),
+            std::slice::from_mut(&mut v),
+            &entry.meta.fk_display,
+        )
+        .await;
+        req.context.insert(ctx_detail::ENTRY, &v);
     }
     req.context.insert(ctx_detail::OBJECT_ID, &id);
     let template = entry

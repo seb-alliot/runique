@@ -208,6 +208,12 @@ pub struct AdminResource {
     /// If true: injects a random hash into the empty "password" field upon creation.
     /// Automatically set by the daemon when `create_form:` is declared.
     pub inject_password: bool,
+
+    /// FK columns to resolve to a related label in **display** views (list,
+    /// detail, delete) — `[(col, fk_table, label_col)]`. Resolution happens at
+    /// the display layer (never in `get_fn`/`list_fn`) so edit forms keep the
+    /// raw id and pre-select the right option. Emitted by the daemon.
+    pub fk_display: Vec<(String, String, String)>,
 }
 
 impl AdminResource {
@@ -233,6 +239,7 @@ impl AdminResource {
             template_delete: None,
             extra_context: std::collections::HashMap::new(),
             inject_password: false,
+            fk_display: Vec::new(),
         }
     }
 
@@ -259,12 +266,21 @@ impl AdminResource {
             template_delete: None,
             extra_context: std::collections::HashMap::new(),
             inject_password: false,
+            fk_display: Vec::new(),
         }
     }
 
     /// Enables automatic injection of a random hash into the empty "password" field upon creation.
     pub fn inject_password(mut self, v: bool) -> Self {
         self.inject_password = v;
+        self
+    }
+
+    /// Declares the FK columns resolved to a label in display views.
+    /// `specs` = `[(col, fk_table, label_col)]`. Emitted by the daemon.
+    #[must_use]
+    pub fn fk_display(mut self, specs: Vec<(String, String, String)>) -> Self {
+        self.fk_display = specs;
         self
     }
 

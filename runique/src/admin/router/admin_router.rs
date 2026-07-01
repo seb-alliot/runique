@@ -434,6 +434,52 @@ fn resource_title_map<'a>(
     resources.iter().map(|r| (r.key, r.title)).collect()
 }
 
+/// Picks a human label from a fetched object's JSON for the history view.
+/// Tries the resource's primary display column first, then a few conventional
+/// label fields. Returns `None` if nothing usable is found (→ `#pk` fallback).
+fn object_label_from_json(obj: &serde_json::Value, preferred: Option<&str>) -> Option<String> {
+    fn stringify(v: &serde_json::Value) -> Option<String> {
+        match v {
+            serde_json::Value::String(s) if !s.is_empty() => Some(s.clone()),
+            serde_json::Value::Number(n) => Some(n.to_string()),
+            _ => None,
+        }
+    }
+    if let Some(col) = preferred
+        && let Some(s) = obj.get(col).and_then(stringify)
+    {
+        return Some(s);
+    }
+    const FALLBACK: &[&str] = &[
+        "nom", "name", "titre", "title", "libelle", "username", "label", "email",
+    ];
+    FALLBACK
+        .iter()
+        .find_map(|key| obj.get(*key).and_then(stringify))
+}
+
+/// Injects the context shared by every admin history view (flash messages, admin
+/// prefix, nav state, resource list + titles, site identity). Each handler adds
+/// its page-specific keys to `req`, then finishes with this call.
+fn inject_admin_chrome(
+    mut req: Request,
+    admin: &AdminState,
+    current_user: &crate::auth::session::CurrentUser,
+    resources: &[&crate::admin::AdminResource],
+    current_page: &str,
+) -> Request {
+    insert_admin_messages(&mut req.context, "base");
+    inject_admin_prefix(&mut req.context, &admin.config.prefix);
+    req.insert("current_page", current_page)
+        .insert("current_resource", &Option::<String>::None)
+        .insert("resources", resources)
+        .insert("resource_titles", resource_title_map(resources))
+        .insert("current_user", current_user)
+        .insert("site_title", &admin.config.site_title)
+        .insert("site_url", &admin.config.site_url)
+        .insert("lang", current_lang().code())
+}
+
 async fn admin_history(
     Extension(admin): Extension<Arc<AdminState>>,
     Extension(current_user): Extension<crate::auth::session::CurrentUser>,
@@ -475,6 +521,17 @@ async fn admin_history(
         query = query.filter(history::Column::Username.eq(user.clone()));
     }
 
+    // Access control: a non-superuser only sees audit rows for resources they can
+    // access. Without a registry (proto absent) we can't resolve perms, so a
+    // non-superuser sees nothing rather than everything.
+    if !current_user.is_superuser {
+        let allowed = proto
+            .as_ref()
+            .map(|Extension(s)| s.registry.accessible_keys(&current_user))
+            .unwrap_or_default();
+        query = query.filter(history::Column::ResourceKey.is_in(allowed));
+    }
+
     let paginator = query.paginate(req.engine.db.as_ref(), per_page);
     let total_pages = paginator.num_pages().await.unwrap_or(1);
     let raw_entries: Vec<history::Model> = paginator
@@ -500,6 +557,10 @@ async fn admin_history(
         summary: Option<String>,
         batch_id: Option<String>,
         batch_count: usize,
+        /// Human label of the target object (resolved read-time via the resource's
+        /// `get_fn`). `None` if the object was deleted or has no display column —
+        /// the template then falls back to `#object_pk`.
+        object_label: Option<String>,
     }
 
     let mut entries: Vec<HistoryRow> = Vec::new();
@@ -527,37 +588,58 @@ async fn admin_history(
             summary: e.summary,
             batch_id: e.batch_id,
             batch_count: 1,
+            object_label: None,
         });
     }
 
-    let resources: Vec<&crate::admin::AdminResource> = if let Some(Extension(ref state)) = proto {
-        state
-            .registry
-            .all()
-            .filter(|e| current_user.is_superuser || current_user.can_access_resource(e.meta.key))
-            .map(|e| &e.meta)
-            .collect()
-    } else {
-        Vec::new()
-    };
+    let resources = proto
+        .as_ref()
+        .map(|Extension(s)| s.registry.visible_to(&current_user))
+        .unwrap_or_default();
 
-    insert_admin_messages(&mut req.context, "base");
-    inject_admin_prefix(&mut req.context, &admin.config.prefix);
+    // Resolve object_pk -> human label via each resource's `get_fn` (read-time,
+    // deduped per (resource, pk)). Batch rows are skipped (no single object) and
+    // deleted objects stay unresolved -> the template falls back to `#object_pk`.
+    if let Some(Extension(ref state)) = proto {
+        let mut cache: std::collections::HashMap<(String, String), String> =
+            std::collections::HashMap::new();
+        for row in &entries {
+            if row.batch_count > 1 || row.object_pk.is_empty() {
+                continue;
+            }
+            let key = (row.resource_key.clone(), row.object_pk.clone());
+            if cache.contains_key(&key) {
+                continue;
+            }
+            let Some(res) = state.registry.get(&row.resource_key) else {
+                continue;
+            };
+            let Some(get_fn) = &res.get_fn else { continue };
+            let preferred = match &res.meta.display.columns {
+                crate::admin::ColumnFilter::Include(cols) => cols.first().map(|(c, _)| c.clone()),
+                _ => None,
+            };
+            if let Ok(Some(obj)) = get_fn(req.engine.db.clone(), row.object_pk.clone()).await
+                && let Some(label) = object_label_from_json(&obj, preferred.as_deref())
+            {
+                cache.insert(key, label);
+            }
+        }
+        for row in &mut entries {
+            row.object_label = cache
+                .get(&(row.resource_key.clone(), row.object_pk.clone()))
+                .cloned();
+        }
+    }
+
     req = req
         .insert("entries", &entries)
         .insert("page", page)
         .insert("total_pages", total_pages)
         .insert("filter_resource", &filter_resource)
         .insert("filter_action", &filter_action)
-        .insert("filter_user", &filter_user)
-        .insert("current_page", "history")
-        .insert("current_resource", &Option::<String>::None)
-        .insert("resources", &resources)
-        .insert("resource_titles", resource_title_map(&resources))
-        .insert("current_user", &current_user)
-        .insert("site_title", &admin.config.site_title)
-        .insert("site_url", &admin.config.site_url)
-        .insert("lang", current_lang().code());
+        .insert("filter_user", &filter_user);
+    req = inject_admin_chrome(req, &admin, &current_user, &resources, "history");
 
     req.render("admin/history.html")
 }
@@ -588,6 +670,16 @@ async fn admin_history_diff(
         .await
         .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?
         .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Entry not found"))))?;
+
+    // Access control: don't leak a diff for a resource the user can't access.
+    if !current_user.is_superuser && !current_user.can_access_resource(&entry.resource_key) {
+        req.notices
+            .error(t("admin.access.insufficient_rights").to_string())
+            .await;
+        return Ok(
+            axum::response::Redirect::to(&format!("{}/", admin.config.prefix)).into_response(),
+        );
+    }
 
     #[derive(serde::Serialize)]
     struct DiffField {
@@ -622,30 +714,15 @@ async fn admin_history_diff(
         })
         .unwrap_or_default();
 
-    let resources: Vec<&crate::admin::AdminResource> = if let Some(Extension(ref state)) = proto {
-        state
-            .registry
-            .all()
-            .filter(|e| current_user.is_superuser || current_user.can_access_resource(e.meta.key))
-            .map(|e| &e.meta)
-            .collect()
-    } else {
-        Vec::new()
-    };
+    let resources = proto
+        .as_ref()
+        .map(|Extension(s)| s.registry.visible_to(&current_user))
+        .unwrap_or_default();
 
-    insert_admin_messages(&mut req.context, "base");
-    inject_admin_prefix(&mut req.context, &admin.config.prefix);
     req = req
         .insert("entry", &entry)
-        .insert("diff_fields", &diff_fields)
-        .insert("current_page", "history")
-        .insert("current_resource", &Option::<String>::None)
-        .insert("resources", &resources)
-        .insert("resource_titles", resource_title_map(&resources))
-        .insert("current_user", &current_user)
-        .insert("site_title", &admin.config.site_title)
-        .insert("site_url", &admin.config.site_url)
-        .insert("lang", current_lang().code());
+        .insert("diff_fields", &diff_fields);
+    req = inject_admin_chrome(req, &admin, &current_user, &resources, "history");
 
     req.render("admin/history_diff.html")
 }
@@ -694,6 +771,15 @@ async fn admin_history_timeline(
         query = query.filter(history::Column::ObjectPk.eq(oid.clone()));
     }
 
+    // Access control: non-superuser sees only accessible resources (see admin_history).
+    if !current_user.is_superuser {
+        let allowed = proto
+            .as_ref()
+            .map(|Extension(s)| s.registry.accessible_keys(&current_user))
+            .unwrap_or_default();
+        query = query.filter(history::Column::ResourceKey.is_in(allowed));
+    }
+
     let paginator = query.paginate(req.engine.db.as_ref(), per_page);
     let total_pages = paginator.num_pages().await.unwrap_or(1);
     let total = paginator.num_items().await.unwrap_or(0);
@@ -719,19 +805,11 @@ async fn admin_history_timeline(
         "all"
     };
 
-    let resources: Vec<&crate::admin::AdminResource> = if let Some(Extension(ref state)) = proto {
-        state
-            .registry
-            .all()
-            .filter(|e| current_user.is_superuser || current_user.can_access_resource(e.meta.key))
-            .map(|e| &e.meta)
-            .collect()
-    } else {
-        Vec::new()
-    };
+    let resources = proto
+        .as_ref()
+        .map(|Extension(s)| s.registry.visible_to(&current_user))
+        .unwrap_or_default();
 
-    insert_admin_messages(&mut req.context, "base");
-    inject_admin_prefix(&mut req.context, &admin.config.prefix);
     req = req
         .insert("entries", &entries)
         .insert("page", page)
@@ -740,15 +818,8 @@ async fn admin_history_timeline(
         .insert("filter_type", filter_type)
         .insert("filter_user_id", filter_user_id)
         .insert("filter_resource", &filter_resource)
-        .insert("filter_object_id", &filter_object_id)
-        .insert("current_page", "history")
-        .insert("current_resource", &Option::<String>::None)
-        .insert("resources", &resources)
-        .insert("resource_titles", resource_title_map(&resources))
-        .insert("current_user", &current_user)
-        .insert("site_title", &admin.config.site_title)
-        .insert("site_url", &admin.config.site_url)
-        .insert("lang", current_lang().code());
+        .insert("filter_object_id", &filter_object_id);
+    req = inject_admin_chrome(req, &admin, &current_user, &resources, "history");
 
     req.render("admin/history_timeline.html")
 }
@@ -785,6 +856,20 @@ async fn admin_history_batch(
             "history batch fetch",
         )
         .unwrap_or_default();
+
+    // Access control: a batch belongs to a single resource — block if the user
+    // can't access it (an empty/unknown batch simply renders nothing).
+    if !current_user.is_superuser
+        && let Some(first) = entries.first()
+        && !current_user.can_access_resource(&first.resource_key)
+    {
+        req.notices
+            .error(t("admin.access.insufficient_rights").to_string())
+            .await;
+        return Ok(
+            axum::response::Redirect::to(&format!("{}/", admin.config.prefix)).into_response(),
+        );
+    }
 
     #[derive(serde::Serialize)]
     struct DiffField {
@@ -883,34 +968,19 @@ async fn admin_history_batch(
         });
     }
 
-    let resources: Vec<&crate::admin::AdminResource> = if let Some(Extension(ref state)) = proto {
-        state
-            .registry
-            .all()
-            .filter(|e| current_user.is_superuser || current_user.can_access_resource(e.meta.key))
-            .map(|e| &e.meta)
-            .collect()
-    } else {
-        Vec::new()
-    };
+    let resources = proto
+        .as_ref()
+        .map(|Extension(s)| s.registry.visible_to(&current_user))
+        .unwrap_or_default();
 
-    insert_admin_messages(&mut req.context, "base");
-    inject_admin_prefix(&mut req.context, &admin.config.prefix);
     req = req
         .insert("batch_id", &batch_id)
         .insert("batch_entries", &batch_entries)
         .insert("resource_key", &resource_key)
         .insert("username", &username)
         .insert("created_at", created_at)
-        .insert("action", &action)
-        .insert("current_page", "history")
-        .insert("current_resource", &Option::<String>::None)
-        .insert("resources", &resources)
-        .insert("resource_titles", resource_title_map(&resources))
-        .insert("current_user", &current_user)
-        .insert("site_title", &admin.config.site_title)
-        .insert("site_url", &admin.config.site_url)
-        .insert("lang", current_lang().code());
+        .insert("action", &action);
+    req = inject_admin_chrome(req, &admin, &current_user, &resources, "history");
 
     req.render("admin/history_batch.html")
 }

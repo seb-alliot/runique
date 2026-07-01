@@ -524,17 +524,7 @@ pub(super) fn inject_context(
     req.context
         .insert(ctx_list::GROUP_ACTIONS, &entry.group_actions);
 
-    let visible_resources: Vec<_> = state
-        .registry
-        .all()
-        .filter(|e| {
-            if current_user.is_superuser {
-                return true;
-            }
-            current_user.can_access_resource(e.meta.key)
-        })
-        .map(|e| &e.meta)
-        .collect();
+    let visible_resources = state.registry.visible_to(current_user);
     req.context
         .insert(ctx_common::RESOURCES, &visible_resources);
 

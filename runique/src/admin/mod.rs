@@ -19,6 +19,7 @@ pub mod history;
 pub use admin_main::{PrototypeAdminState, admin_get, admin_get_id, admin_post, admin_post_id};
 pub use builtin::builtin_resources;
 pub use config::AdminConfig;
+pub use helper::{fetch_fk_label_map, fk_key, resolve_fk_labels, resolve_fk_labels_in_rows};
 
 /// Carries the admin CRUD router and its URL prefix.
 ///

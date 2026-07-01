@@ -73,6 +73,28 @@ fn plaintext_filter(value: &Value, _: &JsonMap) -> TResult {
     Ok(Value::String(crate::utils::sanitizer::sanitize_strict(raw)))
 }
 
+// Humanizes a machine identifier for display: splits on `_`/`-` and capitalizes
+// each word ("changelog_entry" -> "Changelog Entry"). Output stays plain text
+// (auto-escaped by Tera). Opt-in per template — apply to identifiers (enum
+// values, resource keys, column names), never to raw user data (a username like
+// `jean_dupont` would be silently altered).
+fn humanize_filter(value: &Value, _: &JsonMap) -> TResult {
+    let raw = value.as_str().unwrap_or("");
+    let humanized = raw
+        .split(['_', '-'])
+        .filter(|word| !word.is_empty())
+        .map(|word| {
+            let mut chars = word.chars();
+            match chars.next() {
+                Some(first) => first.to_uppercase().chain(chars).collect::<String>(),
+                None => String::new(),
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ");
+    Ok(Value::String(humanized))
+}
+
 // Internal generic function to avoid repetition
 fn register_filter(base_url: String, version: String) -> impl Fn(&Value, &JsonMap) -> TResult {
     move |value: &Value, _: &JsonMap| {
@@ -122,6 +144,7 @@ pub fn register_asset_filters(
     tera.register_filter("sanitize", sanitize_filter);
     tera.register_filter("plaintext", plaintext_filter);
     tera.register_filter("format_date", format_date_filter);
+    tera.register_filter("humanize", humanize_filter);
     tera.register_function("csrf_token", CsrfTokenFunction);
     tera.register_function("link", LinkFunction { url_registry });
 }
