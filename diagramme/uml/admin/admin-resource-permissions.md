@@ -14,6 +14,8 @@ classDiagram
         +configure(key, DisplayConfig)
         +configure_group_actions(key, actions)
         +remove(key) / reorder(order)
+        +visible_to(user) Vec~&AdminResource~
+        +accessible_keys(user) Vec~String~
     }
     class ResourceEntry {
         +AdminResource meta
@@ -31,6 +33,7 @@ classDiagram
         +Option~M2mLoaderFn~ m2m_loader
         +&[&str] unique_fields
         +Option~&str~ own_field
+        +Option~EnumLabelFn~ enum_label_fn
     }
     class AdminResource {
         +&str key
@@ -120,6 +123,68 @@ classDiagram
     CollectionAction ..> ResourcePerms
     MemberAction ..> ResourcePerms
 ```
+
+## Ressources enfant scopées (nested) & intégrité
+
+[`admin_main/mod.rs`](../../../runique/src/admin/admin_main/mod.rs),
+[`admin_main/handle_inline.rs`](../../../runique/src/admin/admin_main/handle_inline.rs),
+[`permissions/mod.rs`](../../../runique/src/admin/permissions/mod.rs)
+
+Une resource déclarée `parent_scope(...)` (cf. `ParentScope` plus haut) est atteignable via
+`/{parent}/{parent_id}/{child}/…` **en plus** du top-level. Les 4 handlers plats
+(`admin_get/post/get_id/post_id`) et 4 handlers `admin_nested_*` délèguent tous aux **mêmes
+dispatchers** — un seul chemin flat/nested.
+
+```mermaid
+classDiagram
+    class RouteTarget {
+        +String resource_key
+        +String action
+        +Option~(parent_key,parent_id)~ parent
+        +flat(...) / nested(...)
+    }
+    class ParentBinding {
+        +String parent_key / parent_id
+        +&str fk_col
+        +Option~&str~ local_key
+        +is_composite() bool
+        +closure_id(local) String
+        +local_id(closure_id) &str
+        +base_path(prefix, child) String
+    }
+    class InlineList {
+        +String key / title / base
+        +bool can_create / can_update / can_delete
+        +Vec~String~ columns
+        +Vec~Value~ rows
+    }
+    RouteTarget ..> ParentBinding : resolve_scope() valide
+    ParentBinding ..> InlineList : build_inlines() (détail parent)
+```
+
+Fonctions clés (libres, `mod.rs`) :
+
+- `resolve_scope(meta, parent)` — valide le binding nested vs `ParentScope` (sinon 404, interdit
+  `/{parent_étranger}/{id}/{child}/…`) ; un flat sur enfant scopé est **autorisé** (juste masqué
+  du nav, pas route-bloqué → bypass superuser préservé).
+- `ParentBinding.closure_id()/local_id()` — reconstruit/strippe l'id composite `"{parent}:{local}"`
+  (enfant jonction, `local_key = Some`) → les closures CRUD restent **inchangées**.
+- `verify_scope_ownership()` — garde **IDOR** pour un enfant à PK propre (`local_key = None`) :
+  vérifie `row[fk_col] == parent_id` (erreur DB tracée, pas avalée).
+- `force_scope_values()` / `hide_scope_fields()` (handle_crud) — **force** `fk_col = parent_id`
+  depuis le path autorisé (jamais le body) + masque le champ FK/clé locale dans le form.
+- `scope_base()` — base d'URL scope-aware, injectée en contexte (`resource_base`), **source unique**
+  des liens templates.
+- `build_inlines()` → `Vec~InlineList~` — sous-listes du détail parent (filtrées `can_read`,
+  boutons gatés `can_create/update/delete`).
+
+**Intégrité — `prune_orphan_droits(db, valid_keys)`** ([permissions/mod.rs](../../../runique/src/admin/permissions/mod.rs)) :
+au **boot**, supprime les droits dont `resource_key ∉ registry` (réf. molle sans FK). Ferme la
+réutilisation-de-clé → grant périmé. No-op si `valid_keys` vide (jamais tout purger).
+
+> ⚠️ **Propriété de sécurité assumée** : `can_*` sur la resource `users` = **super-admin de fait**
+> (permet de fixer `is_superuser`/`is_staff` et de s'assigner un groupe). Granularité au niveau
+> resource ; pas de gate caché. Une vraie granularité « gérer sans élever » = feature niveau-champ.
 
 ## Anomalies / flux suspects
 
