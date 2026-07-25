@@ -91,6 +91,35 @@ impl TrustedProxies {
         Self { exact, cidrs }
     }
 
+    /// No trusted proxies — forwarded headers (`X-Forwarded-For`,
+    /// `X-Forwarded-Proto`) are never believed. Use for direct internet exposure;
+    /// auto-selected when Runique terminates TLS itself (ACME edge, no proxy).
+    pub fn none() -> Self {
+        Self {
+            exact: vec![],
+            cidrs: vec![],
+        }
+    }
+
+    /// The default trusted-proxy set when the app didn't configure one explicitly.
+    ///
+    /// - Not an ACME edge → trust the private ranges ([`default`](Self::default)):
+    ///   assumes a reverse proxy on a private network (nginx same-host, Docker,
+    ///   k8s), the common deployment.
+    /// - ACME edge (`acme_edge = true`) → [`none`](Self::none): Runique terminates
+    ///   TLS itself, so there is provably no proxy in front. Trusting private-range
+    ///   `X-Forwarded-*` there would let a same-network client spoof the client IP
+    ///   or scheme (SEC2), so nothing is trusted.
+    ///
+    /// An explicit `with_trusted_proxies(...)` always overrides this.
+    pub fn default_for_edge(acme_edge: bool) -> Self {
+        if acme_edge {
+            Self::none()
+        } else {
+            Self::default()
+        }
+    }
+
     pub fn is_trusted(&self, ip: &IpAddr) -> bool {
         if self.exact.contains(ip) {
             return true;
@@ -186,6 +215,37 @@ mod tests {
             b = b.header("x-forwarded-for", v);
         }
         b.body(Body::empty()).unwrap()
+    }
+
+    // ── default_for_edge (SEC2 — edge-aware default) ─────────────────
+
+    #[test]
+    fn default_for_edge_trusts_private_ranges_behind_proxy() {
+        // Not an ACME edge → private ranges trusted (behind-proxy default).
+        let tp = TrustedProxies::default_for_edge(false);
+        assert!(tp.is_trusted(&ip("10.0.0.1")), "10/8 trusted behind proxy");
+        assert!(tp.is_trusted(&ip("127.0.0.1")), "loopback trusted");
+    }
+
+    #[test]
+    fn default_for_edge_trusts_nothing_when_acme_edge() {
+        // ACME edge → no proxy in front → forwarded headers never trusted (SEC2).
+        let tp = TrustedProxies::default_for_edge(true);
+        assert!(
+            !tp.is_trusted(&ip("10.0.0.1")),
+            "private-range peer must NOT be trusted in edge mode"
+        );
+        assert!(!tp.is_trusted(&ip("127.0.0.1")), "loopback not trusted in edge mode");
+    }
+
+    #[test]
+    fn edge_mode_ignores_spoofed_xff() {
+        // End-to-end: in edge mode a same-network peer can't spoof the client IP.
+        let tp = TrustedProxies::default_for_edge(true);
+        let req = req_with_xff(Some("1.2.3.4"));
+        // Peer is a private IP (would be trusted by the old default); in edge mode
+        // it's untrusted, so XFF is ignored and the real peer is returned.
+        assert_eq!(tp.extract_client_ip(&req, Some(ip("10.0.0.9"))), ip("10.0.0.9"));
     }
 
     // ── canonicalize_ip ──────────────────────────────────────────────

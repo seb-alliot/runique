@@ -61,7 +61,11 @@ fn is_safe_redirect(location: &str, engine: &crate::engine::RuniqueEngine) -> bo
         return false;
     };
 
-    // Localhost destinations are always safe (unreachable by external attackers)
+    // Localhost destinations are allowed to support local development flows.
+    // Note: this is the *victim's* loopback, not the server's — redirecting there
+    // is an unusual vector (local services on the client). Accepted as a deliberate
+    // DX tradeoff; the phishing-to-attacker-domain case stays blocked by the host
+    // whitelist below.
     if is_local_host(host) {
         return true;
     }

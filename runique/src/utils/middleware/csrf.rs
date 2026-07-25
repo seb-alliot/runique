@@ -47,9 +47,10 @@ impl CsrfToken {
     }
 }
 
-/// HMAC-SHA256 generation for anonymous user
-#[must_use]
-pub fn generation_token(secret_key: &str, option: &str) -> String {
+/// HMAC-SHA256(secret, domain-tag ‖ option ‖ timestamp) as a hex token.
+/// The token is stored server-side in the session and compared constant-time;
+/// the HMAC + nanosecond timestamp only serve to make it unpredictable and unique.
+fn generation(secret_key: &str, option: &str) -> String {
     let mut mac =
         HmacSha256::new_from_slice(secret_key.as_bytes()).expect("HMAC can take key of any size");
 
@@ -58,32 +59,26 @@ pub fn generation_token(secret_key: &str, option: &str) -> String {
 
     let timestamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_nanos()
+        .map(|d| d.as_nanos())
+        .unwrap_or(0)
         .to_string();
     mac.update(timestamp.as_bytes());
 
     hex::encode(mac.finalize().into_bytes())
 }
 
-/// HMAC-SHA256 generation for authenticated user
+/// HMAC-SHA256 generation for an anonymous session (keyed on the session id).
+#[must_use]
+pub fn generation_token(secret_key: &str, option: &str) -> String {
+    generation(secret_key, option)
+}
+
+/// HMAC-SHA256 generation for an authenticated user (keyed on the user id).
+/// Identical construction to [`generation_token`] — the context only changes
+/// what `option` carries, not the algorithm.
 #[must_use]
 pub fn generation_user_token(secret_key: &str, option: &str) -> String {
-    let mut mac =
-        HmacSha256::new_from_slice(secret_key.as_bytes()).expect("HMAC can take key of any size");
-
-    mac.update(b"runique.middleware.csrf");
-    mac.update(option.as_bytes());
-
-    let timestamp: String = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_nanos()
-        .to_string();
-    mac.update(timestamp.as_bytes());
-
-    let result = mac.finalize();
-    hex::encode(result.into_bytes())
+    generation(secret_key, option)
 }
 
 /// Masking for BREACH protection

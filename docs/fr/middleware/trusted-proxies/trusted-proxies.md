@@ -36,6 +36,22 @@ Réseaux privés RFC 1918 et adresses de loopback :
 | `::1/128` | Loopback IPv6 |
 | `fc00::/7` | Local unique IPv6 |
 
+**Exception — edge TLS (ACME).** Si Runique termine lui-même le TLS (`ACME_ENABLED=true`) et que vous n'avez pas configuré `with_trusted_proxies`, le défaut bascule automatiquement en `none()` : quand Runique est le point d'entrée TLS, il n'y a **par construction** aucun proxy devant, donc `X-Forwarded-*` ne doit jamais être cru. Une configuration explicite reste prioritaire.
+
+---
+
+## Sécurité — quand utiliser `.none()`
+
+Le défaut « plages privées » est sûr **derrière un reverse proxy**. Il devient un risque si l'application est **exposée en direct** (sans proxy) tout en gardant ce défaut.
+
+Le danger : la confiance envers un réseau privé n'est sûre que si **seul votre proxy** vit dans ce réseau. Si un attaquant partage la plage privée de confiance — VPC voisin, conteneur latéral, autre machine du même LAN — son IP de connexion tombe dans `10.0.0.0/8` (etc.), il est donc traité comme un proxy de confiance, et il peut **forger `X-Forwarded-For`** pour usurper n'importe quelle IP cliente. Cela fausse tout ce qui repose sur l'IP : rate limiting, lockout, journaux.
+
+**Règle :**
+
+- Derrière un reverse proxy (nginx, Caddy) sur réseau privé → gardez le défaut, ou déclarez l'IP exacte du proxy avec `.proxy(...)` pour être strict.
+- Derrière un proxy à IP publique (Cloudflare…) → `.none()` puis `.proxy(...)`/`.cidr(...)` avec les plages du proxy.
+- Exposé en direct sans proxy (Runique fait le TLS) → `.none()` (automatique en mode ACME).
+
 ---
 
 ## Configuration via le builder

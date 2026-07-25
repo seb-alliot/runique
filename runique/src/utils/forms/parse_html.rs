@@ -226,16 +226,77 @@ async fn sweep_stale_staging(upload_dir: &Path) {
     }
 }
 
+/// Builds a safe on-disk name `{uuid}.{ext}`. The user-supplied basename is
+/// discarded (the UUID kills path traversal / name collisions); the extension is
+/// kept only as lowercase ASCII alphanumerics, capped at 10 chars. This strips
+/// exotic bytes — notably `:` which on NTFS would open an Alternate Data Stream
+/// (`photo.php:zone`) — and normalizes case to match the extension whitelist.
 fn sanitize_filename(filename: &str) -> String {
-    let ext = Path::new(filename)
+    let ext: String = Path::new(filename)
         .extension()
         .and_then(|e: &std::ffi::OsStr| e.to_str())
-        .unwrap_or("");
+        .unwrap_or("")
+        .chars()
+        .filter(char::is_ascii_alphanumeric)
+        .map(|c| c.to_ascii_lowercase())
+        .take(10)
+        .collect();
     let uuid = Uuid::new_v4().to_string();
     if ext.is_empty() {
         uuid
     } else {
         format!("{uuid}.{ext}")
+    }
+}
+
+#[cfg(test)]
+mod sanitize_tests {
+    use super::sanitize_filename;
+
+    fn ext_of(name: &str) -> String {
+        // sanitize_filename returns "{uuid}.{ext}" (or just "{uuid}"); grab the ext.
+        match name.rsplit_once('.') {
+            Some((_, ext)) => ext.to_string(),
+            None => String::new(),
+        }
+    }
+
+    #[test]
+    fn strips_ntfs_ads_colon_from_extension() {
+        // "photo.php:zone" → extension "php:zone". The security property is that the
+        // ':' (which opens an NTFS Alternate Data Stream) is removed; the remaining
+        // alphanumerics are concatenated, so "php:zone" → "phpzone" (no ':' left).
+        let name = sanitize_filename("photo.php:zone");
+        assert!(!name.contains(':'), "colon must be stripped: {name}");
+        assert_eq!(ext_of(&name), "phpzone");
+    }
+
+    #[test]
+    fn lowercases_and_keeps_alnum() {
+        assert_eq!(ext_of(&sanitize_filename("IMG.JPolice")), "jpolice");
+        assert_eq!(ext_of(&sanitize_filename("archive.PNG")), "png");
+    }
+
+    #[test]
+    fn drops_exotic_unicode_and_caps_length() {
+        // Non-ASCII stripped entirely.
+        assert_eq!(ext_of(&sanitize_filename("x.café")), "caf");
+        // Capped at 10 chars.
+        assert_eq!(ext_of(&sanitize_filename("x.abcdefghijklmnop")), "abcdefghij");
+    }
+
+    #[test]
+    fn no_extension_yields_bare_uuid() {
+        // No dot → no extension → bare uuid (no trailing dot).
+        assert!(!sanitize_filename("noext").contains('.'));
+        // Extension made entirely of stripped chars → treated as no extension.
+        assert!(!sanitize_filename("weird.:::").contains('.'));
+    }
+
+    #[test]
+    fn dotfile_has_no_extension() {
+        // ".htaccess" has no extension per Path semantics → bare uuid.
+        assert!(!sanitize_filename(".htaccess").contains('.'));
     }
 }
 

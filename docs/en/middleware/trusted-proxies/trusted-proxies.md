@@ -36,6 +36,22 @@ RFC 1918 private networks and loopback addresses:
 | `::1/128` | IPv6 loopback |
 | `fc00::/7` | IPv6 unique local |
 
+**Exception — edge TLS (ACME).** When Runique terminates TLS itself (`ACME_ENABLED=true`) and you did not configure `with_trusted_proxies`, the default automatically switches to `none()`: when Runique is the TLS entry point there is **by construction** no proxy in front, so `X-Forwarded-*` must never be believed. An explicit configuration still takes precedence.
+
+---
+
+## Security — when to use `.none()`
+
+The "private ranges" default is safe **behind a reverse proxy**. It becomes a risk if the application is **directly exposed** (no proxy) while keeping that default.
+
+The danger: trusting a private network is only safe if **only your proxy** lives in that network. If an attacker shares the trusted private range — neighboring VPC, sidecar container, another machine on the same LAN — their connection IP falls inside `10.0.0.0/8` (etc.), so they are treated as a trusted proxy and can **forge `X-Forwarded-For`** to spoof any client IP. This corrupts everything that relies on the IP: rate limiting, lockout, logs.
+
+**Rule:**
+
+- Behind a reverse proxy (nginx, Caddy) on a private network → keep the default, or declare the exact proxy IP with `.proxy(...)` to be strict.
+- Behind a public-IP proxy (Cloudflare…) → `.none()` then `.proxy(...)`/`.cidr(...)` with the proxy's ranges.
+- Directly exposed with no proxy (Runique does the TLS) → `.none()` (automatic in ACME mode).
+
 ---
 
 ## Configuration via the builder

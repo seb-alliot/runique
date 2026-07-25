@@ -166,16 +166,19 @@ pub async fn csrf_middleware(
         }
     }
 
-    // Token injection for the frontend
-    let masked = session_token
-        .masked()
-        .unwrap_or_else(|_| session_token.clone());
+    // Inject the raw session token for the request pipeline (form() validation).
     let extensions = RequestExtensions::new().with_csrf_token(session_token.clone());
     extensions.inject_request(&mut req);
 
     let mut res = next.run(req).await;
 
-    if let Ok(hv) = HeaderValue::from_str(masked.as_str()) {
+    // Expose the token to the frontend, masked per-response (BREACH mitigation).
+    // If masking ever fails (would only happen on a non-hex token, which the
+    // generator never produces), skip the header rather than leaking the raw
+    // unmasked session token in the response.
+    if let Ok(masked) = session_token.masked()
+        && let Ok(hv) = HeaderValue::from_str(masked.as_str())
+    {
         res.headers_mut().insert("X-CSRF-Token", hv);
     }
 
