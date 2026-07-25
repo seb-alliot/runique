@@ -94,7 +94,7 @@ Merise confirmée complète (7 tables réelles).
 - ~~**A1**/**A2**~~ → **NON-ISSUES vérifiés** : A1 closures ont des fallbacks (create/update→form.save, delete→erreur) ; A2 droits *_own par-user (pas de signal resource à valider), own_field=None = défaut sûr
 - **CFG1** secret_key vide = warning au lieu d'échec boot
 - **State process-local** (lockout AU1, rate-limit SEC1, cache AU2/AM4) → multi-instance
-- **SEC2** TrustedProxies défaut large si pas de proxy
+- ~~**SEC2** TrustedProxies défaut large si pas de proxy~~ → ✅ MITIGÉ (2026-07-26) : défaut edge-aware `default_for_edge(acme_enabled)` → `none()` en mode ACME + doc `.none()`. SEC2b (gate XFP) rejeté (casse Cloudflare). Aussi ce jour : NEW3 (charset ext), NEW4 (dédup CSRF + mask fail-safe), NEW6 (fallback rate-limit peer réel). Détail : `audit-securite-diagrammes.md` (racine)
 - ~~**CFG1** secret_key vide~~ → ✅ CORRIGÉ (échec boot prod, cf. section Correctifs)
 
 Registre complet : [anomalies.md](anomalies.md).
