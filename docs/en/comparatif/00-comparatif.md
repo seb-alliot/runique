@@ -59,7 +59,7 @@
 | Data access | `form.cleaned_data['key']` | `form.cleaned_string("key")`, `form.cleaned_i32(...)`, etc. |
 | Async validation | no | yes (DB access in `clean()`) |
 | Cross-field validation | `clean()` | `clean()` async |
-| File fields | `FileField` | `FileField` native multipart with type/size validation |
+| File fields | `FileField` (no content validation by default) | `FileField` native multipart — type/size validation, **magic bytes** for images, SVG rejected, written to **staging** before CSRF/validation then committed (**UUID** name, no path traversal) |
 | HTML sanitization | manual | `sanitize_rich` / `sanitize_strict` applied to `richtext` fields |
 
 ---
@@ -120,15 +120,15 @@
 |---------|--------|---------|
 | CSRF | native | native (constant-time validation) |
 | CSP | `django-csp` (3rd party) | native (`use_nonce: true` by default) |
-| HSTS | `SECURE_HSTS_SECONDS` | native |
+| HSTS | `SECURE_HSTS_SECONDS` | native — emitted **only over real HTTPS** (`enforce_https`/ACME), `max-age`/`includeSubDomains`/`preload` configurable (preload **opt-in**) |
 | SameSite cookies | configurable | `Strict` by default |
 | HttpOnly cookies | by default | always `true` |
-| Rate limiting | `django-ratelimit` (3rd party) | Native `RateLimiter` |
+| Rate limiting | `django-ratelimit` (3rd party) | Native `RateLimiter` — keyed on the real client IP (`ConnectInfo` peer, never a spoofable header) |
 | Open Redirect | — | native — all 3xx responses validated (slot 25) |
 | CORS | `django-cors-headers` (3rd party) | native via `.with_cors(...)` |
-| Permissions-Policy | — | native — secure preset by default |
-| Trusted Proxies / XFF | `SECURE_PROXY_SSL_HEADER` (partial) | native — full XFF chain validation, RFC 1918 preset |
-| Secret key | manual | auto-generated on `runique new` |
+| Permissions-Policy | — | native — secure preset by default (~20 features denied) |
+| Trusted Proxies / XFF | `SECURE_PROXY_SSL_HEADER` (partial) | native — full XFF chain validation (right→left), RFC 1918 preset, **edge-aware default**: auto `none()` when Runique terminates TLS (ACME = no proxy) |
+| Secret key | manual | auto-generated on `runique new` — **refuses to boot in prod** if missing / default value / < 32 chars |
 
 ---
 
