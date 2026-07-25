@@ -59,7 +59,7 @@
 | Accès aux données | `form.cleaned_data['clé']` | `form.cleaned_string("clé")`, `form.cleaned_i32(...)`, etc. |
 | Validation async | non | oui (accès DB dans `clean()`) |
 | Validation croisée | `clean()` | `clean()` async |
-| Fichiers | `FileField` | `FileField` multipart natif avec validation type/taille |
+| Fichiers | `FileField` (pas de validation de contenu par défaut) | `FileField` multipart natif — validation type/taille, **magic bytes** pour les images, SVG rejeté, écriture en **staging** avant CSRF/validation puis commit (nom **UUID**, pas de path traversal) |
 | Sanitisation HTML | non (à la main) | `sanitize_rich` / `sanitize_strict` appliquées aux champs `richtext` |
 
 ---
@@ -120,15 +120,15 @@
 |----------------|--------|---------|
 | CSRF | natif | natif (comparaison constant-time) |
 | CSP | `django-csp` (tiers) | natif (`use_nonce: true` par défaut) |
-| HSTS | `SECURE_HSTS_SECONDS` | natif |
+| HSTS | `SECURE_HSTS_SECONDS` | natif — émis **uniquement sur HTTPS réel** (`enforce_https`/ACME), `max-age`/`includeSubDomains`/`preload` configurables (preload **opt-in**) |
 | SameSite cookies | configurable | `Strict` par défaut |
 | HttpOnly cookies | par défaut | toujours `true` |
-| Rate limiting | `django-ratelimit` (tiers) | `RateLimiter` natif |
+| Rate limiting | `django-ratelimit` (tiers) | `RateLimiter` natif — clé = IP cliente réelle (peer `ConnectInfo`, jamais un header spoofable) |
 | Open Redirect | — | natif — toutes les réponses 3xx vérifiées (slot 25) |
 | CORS | `django-cors-headers` (tiers) | natif via `.with_cors(...)` |
-| Permissions-Policy | — | natif — preset sécurisé par défaut |
-| Trusted Proxies / XFF | `SECURE_PROXY_SSL_HEADER` (partiel) | natif — validation chaîne XFF complète, preset RFC 1918 |
-| Secret key | manuel | générée auto à `runique new` |
+| Permissions-Policy | — | natif — preset sécurisé par défaut (~20 features refusées) |
+| Trusted Proxies / XFF | `SECURE_PROXY_SSL_HEADER` (partiel) | natif — validation chaîne XFF complète (droite→gauche), preset RFC 1918, **défaut edge-aware** : `none()` auto quand Runique termine le TLS (ACME = pas de proxy) |
+| Secret key | manuel | générée auto à `runique new` — **refus de boot en prod** si absente / valeur par défaut / < 32 caractères |
 
 ---
 
