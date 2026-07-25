@@ -117,6 +117,9 @@ fn test_security_config_clone() {
         acme_domain: None,
         acme_email: None,
         acme_certs_dir: "./certs".to_string(),
+        hsts_max_age: 31_536_000,
+        hsts_include_subdomains: true,
+        hsts_preload: false,
     };
     let cloned = config.clone();
     assert_eq!(cloned.strict_csp, config.strict_csp);

@@ -19,6 +19,11 @@ Ne pas toucher `demo-app`. Écrire les diagrammes dans `diagramme/` (racine).
   divergent). Doc rustdoc concis + `docs/{fr,en}/middleware/sessions`. Test `ttl_tests`.
 - **CX2 + STRICT_CSP mort** : `strict_csp`→`enable_header_security`, HSTS gaté `should_emit_hsts`.
   Test `hsts_tests`.
+- **CX3 HSTS codé en dur** : header (`preload` inclus) codé en dur sur 3 sites → source unique
+  `hsts_header_value()`, preload opt-in (`HSTS_PRELOAD`), max-age/subdomains configurables,
+  warning boot si preload invalide. Statiques : HSTS retiré (host-scoped). Tests `hsts_value_*`.
+- **CFG1** : `secret_key` faible (vide/défaut/<32) → **échec boot en prod** via `cross_validate`
+  (`secret_key_is_weak`, build.rs:293). Debug → warning. Test `secret_key_tests`.
 - Tests ajoutés : finalize (2), parse_multipart staging (1), checked_data (1)
 
 ## Faux positifs vérifiés (NE PAS re-flaguer)
@@ -76,6 +81,7 @@ Merise confirmée complète (7 tables réelles).
 ### Doc-only restant
 - **D2** (history sans FK), **D4/S4** (cookie_id/session_id), **E3** (ordre .layer())
 - Docs fr/en pour S3 (503 saturation + accesseur login public) — à écrire
+- Docs `.env` fr/en + `.env.example` + CHANGELOG pour `HSTS_MAX_AGE`/`HSTS_INCLUDE_SUBDOMAINS`/`HSTS_PRELOAD` (CX3)
 - **A3** bug connu (`list_filter` dans `configure{}`), **AM4** multi-instance (roadmap)
 
 ## Anomalies réelles restantes (à corriger, TDD si testable)
@@ -89,5 +95,6 @@ Merise confirmée complète (7 tables réelles).
 - **CFG1** secret_key vide = warning au lieu d'échec boot
 - **State process-local** (lockout AU1, rate-limit SEC1, cache AU2/AM4) → multi-instance
 - **SEC2** TrustedProxies défaut large si pas de proxy
+- ~~**CFG1** secret_key vide~~ → ✅ CORRIGÉ (échec boot prod, cf. section Correctifs)
 
 Registre complet : [anomalies.md](anomalies.md).

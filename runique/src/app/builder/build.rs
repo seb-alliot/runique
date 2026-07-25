@@ -78,6 +78,17 @@ impl RuniqueAppBuilder {
         let config = new(config);
         crate::utils::password::password_init(config.password.clone());
 
+        // HSTS `preload` requires `includeSubDomains` + `max-age ≥ 1 an` to be
+        // accepted on the browser preload list — warn once at boot if the combo
+        // is invalid (the header would otherwise be silently ignored for preload).
+        if config.security.hsts_preload_misconfigured() {
+            tracing::warn!(
+                max_age = config.security.hsts_max_age,
+                include_subdomains = config.security.hsts_include_subdomains,
+                "HSTS_PRELOAD set but combo invalid (needs includeSubDomains + max-age ≥ 31536000) — ignored by browsers for preload"
+            );
+        }
+
         let engine = new(RuniqueEngine {
             config: (*config).clone(),
             tera: tera.clone(),
@@ -333,15 +344,16 @@ impl RuniqueAppBuilder {
         static_cache: &'static str,
         media_cache: &'static str,
     ) -> Router {
+        // HSTS is host-scoped: once any page emits it (via the CSP middleware,
+        // gated + configured by `SecurityConfig::hsts_header_value`), the browser
+        // applies it to the whole host, static assets included. So static file
+        // responses only carry the per-asset headers here — no HSTS to keep
+        // config as the single source of truth (never a hardcoded preload).
         let security_headers = || {
             tower::ServiceBuilder::new()
                 .layer(SetResponseHeaderLayer::if_not_present(
                     HeaderName::from_static("x-content-type-options"),
                     HeaderValue::from_static("nosniff"),
-                ))
-                .layer(SetResponseHeaderLayer::if_not_present(
-                    HeaderName::from_static("strict-transport-security"),
-                    HeaderValue::from_static("max-age=31536000; includeSubDomains; preload"),
                 ))
                 .layer(SetResponseHeaderLayer::if_not_present(
                     HeaderName::from_static("x-frame-options"),

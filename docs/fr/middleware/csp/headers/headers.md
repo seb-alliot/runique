@@ -13,7 +13,7 @@ Le middleware `security_headers_middleware` injecte automatiquement un ensemble 
 | `X-Frame-Options` | `DENY` | Interdit l'intégration de la page dans une iframe — protège contre le clickjacking |
 | `X-XSS-Protection` | `1; mode=block` | Active le filtre XSS des navigateurs legacy (IE/Edge ancien) |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` | Envoie le referrer complet en same-origin, seulement l'origine en cross-origin, rien en HTTP→HTTPS |
-| `Permissions-Policy` | `geolocation=(), microphone=(), camera=()` | Désactive l'accès à la géolocalisation, au micro et à la caméra |
+| `Permissions-Policy` | Preset sécurisé (voir ci-dessous) | Refuse ~20 features sensibles (caméra, micro, géoloc, USB, Bluetooth, paiement, capteurs…) ; autorise en same-origin WebAuthn, fullscreen et picture-in-picture |
 | `Cross-Origin-Embedder-Policy` | `require-corp` | Exige que les ressources cross-origin soient explicitement autorisées (CORP) |
 | `Cross-Origin-Opener-Policy` | `same-origin` | Isole le contexte de navigation — empêche les attaques cross-origin via `window.opener` |
 | `Cross-Origin-Resource-Policy` | `same-origin` | Interdit le chargement des ressources depuis d'autres origines |
@@ -69,7 +69,19 @@ location /media/ {
 }
 ```
 
-**HSTS (`Strict-Transport-Security`)** — Ce header est toujours envoyé, même si l'application tourne en HTTP derrière un reverse proxy. Le navigateur le respecte uniquement sur les connexions HTTPS. En production, assurez-vous que votre proxy (nginx, Caddy, Cloudflare…) termine le TLS.
+**HSTS (`Strict-Transport-Security`)** — Ce header n'est émis **que si Runique sert réellement du HTTPS** : soit `enforce_https`, soit ACME activé (`should_emit_hsts()`). L'émettre en HTTP simple est inutile (le navigateur l'ignore) et risqué (lock-in HTTPS d'un an sur un domaine pas encore prêt). Si votre proxy (nginx, Caddy, Cloudflare…) termine le TLS sans que Runique le sache, déclarez le header côté proxy.
+
+La valeur est **configurable** (source unique, mêmes réglages partout : middleware, pages d'erreur) :
+
+| Variable d'env | Défaut | Rôle |
+| --- | --- | --- |
+| `HSTS_MAX_AGE` | `31536000` (1 an) | Durée `max-age` en secondes |
+| `HSTS_INCLUDE_SUBDOMAINS` | `true` | Ajoute `includeSubDomains` — ⚠️ casse tout sous-domaine non-HTTPS |
+| `HSTS_PRELOAD` | `false` | Ajoute `preload` — **opt-in** : engagement quasi-irréversible (soumission à la liste des navigateurs). Requiert `includeSubDomains` + `max-age ≥ 1 an`, sinon warning au boot et ignoré pour le preload |
+
+Les fichiers statiques ne portent plus le header eux-mêmes : HSTS est *host-scoped*, une fois émis par une page dynamique le navigateur l'applique à tout l'hôte (assets inclus).
+
+**`Permissions-Policy` — preset par défaut** (source : `PermissionsPolicy::default`). Toutes ces features sont **refusées** (`=()`) : `accelerometer`, `ambient-light-sensor`, `bluetooth`, `camera`, `gyroscope`, `hid`, `magnetometer`, `microphone`, `midi`, `serial`, `usb`, `geolocation`, `idle-detection`, `display-capture`, `payment`, `interest-cohort`, `local-fonts`, `sync-xhr`, `xr-spatial-tracking`, `window-management`. **Autorisées en same-origin** (`=(self)`) : `publickey-credentials-create`, `publickey-credentials-get` (WebAuthn / passkeys), `fullscreen`, `picture-in-picture`. Personnalisable via `.with_permissions_policy(|p| …)`.
 
 **COEP (`Cross-Origin-Embedder-Policy: require-corp`)** — Ce header est requis pour utiliser `SharedArrayBuffer` et certaines APIs haute performance. Il peut bloquer le chargement de ressources cross-origin (images, scripts, fonts) qui ne renvoient pas le header `Cross-Origin-Resource-Policy`. Si vous chargez des ressources depuis des CDN tiers, vérifiez leur compatibilité ou désactivez COEP via une `SecurityPolicy` personnalisée.
 
