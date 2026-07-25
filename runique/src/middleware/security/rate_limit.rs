@@ -146,25 +146,19 @@ impl std::fmt::Debug for RateLimiter {
 
 /// Extracts the IP key from headers (`X-Forwarded-For`, `X-Real-IP`, fallback `"unknown"`).
 ///
-/// **Pre-requisite: trusted reverse proxy.**
-/// This function trusts the `X-Forwarded-For` header as it arrives.
-/// Without a front proxy (nginx, Caddy, Cloudflare…) that controls this header,
-/// a malicious client can forge it to bypass IP rate limiting.
+/// Fallback client key, used only when the `ClientIp` extension is absent — i.e.
+/// the `trusted_proxies` middleware is not in the stack (standalone use of this
+/// middleware). Keys on the **real socket peer** from `ConnectInfo`, never on the
+/// client-controlled `X-Forwarded-For`, so the fallback can't be spoofed.
 ///
-/// For brute-force protection on login, prefer [`LoginGuard`] which
-/// limits by username — non-bypassable by IP spoofing.
+/// Behind a proxy without `trusted_proxies`, every request shares the proxy's IP
+/// (one bucket) — add `trusted_proxies` (which injects `ClientIp`) for per-client
+/// limiting. For login brute-force, prefer [`LoginGuard`] (limits by username,
+/// never by IP).
 fn extract_ip(req: &Request<Body>) -> String {
-    req.headers()
-        .get("x-forwarded-for")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|v| v.split(',').next())
-        .map(|s| s.trim().to_string())
-        .or_else(|| {
-            req.headers()
-                .get("x-real-ip")
-                .and_then(|v| v.to_str().ok())
-                .map(|s| s.trim().to_string())
-        })
+    req.extensions()
+        .get::<axum::extract::ConnectInfo<std::net::SocketAddr>>()
+        .map(|ci| ci.0.ip().to_string())
         .unwrap_or_else(|| "unknown".to_string())
 }
 

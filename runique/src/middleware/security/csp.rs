@@ -299,8 +299,12 @@ pub async fn https_redirect_middleware(
         return next.run(req).await;
     }
 
-    // Check if the request is already in HTTPS
-    // Behind a proxy, check X-Forwarded-Proto
+    // Check if the request is already in HTTPS.
+    // Behind a proxy, check X-Forwarded-Proto. Note: this header is trusted
+    // unconditionally on purpose — gating it on a trusted peer would break
+    // public-IP proxies (e.g. Cloudflare) into a redirect loop, and forging
+    // `X-Forwarded-Proto: https` over plain HTTP only downgrades the attacker's
+    // own connection (no third-party impact), so the gate isn't worth the risk.
     let is_https = req
         .headers()
         .get("x-forwarded-proto")

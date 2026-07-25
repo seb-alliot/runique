@@ -113,13 +113,15 @@ impl RuniqueAppBuilder {
             )),
             csrf_exempt_paths: Arc::new(middleware.csrf_exempt_paths.clone()),
             permissions_policy: Arc::new(middleware.permissions_policy.take().unwrap_or_default()),
-            trusted_proxies: Arc::new(
-                middleware
-                    .trusted_proxies_config
-                    .take()
-                    .map(|c| c.build())
-                    .unwrap_or_default(),
-            ),
+            trusted_proxies: Arc::new(match middleware.trusted_proxies_config.take() {
+                // Explicit config always wins; otherwise the default is edge-aware
+                // (private ranges behind a proxy, but `none()` when Runique is the
+                // ACME TLS edge — closes SEC2). See `TrustedProxies::default_for_edge`.
+                Some(c) => c.build(),
+                None => crate::middleware::security::trusted_proxies::TrustedProxies::default_for_edge(
+                    config.security.acme_enabled,
+                ),
+            }),
             session_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
             session_db_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
             extensions,
