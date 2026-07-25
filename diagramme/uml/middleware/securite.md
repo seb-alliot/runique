@@ -51,13 +51,22 @@ Le compteur de requêtes vit dans une `HashMap` mémoire. En multi-instance, la 
 **par instance** → un client réparti sur N instances obtient N× le quota. Cohérent avec le
 mono-process actuel, mais à acter (avec AU1 lockout, AU2/AM4 cache : **thème state
 process-local** à externaliser le jour du multi-instance).
+> Note (2026-07-26) : le **fallback** d'extraction d'IP (`extract_ip`, quand l'extension
+> `ClientIp` n'est pas posée) lit désormais le **peer réel `ConnectInfo`**, plus le
+> `X-Forwarded-For` spoofable (NEW6). Voir `audit-securite-diagrammes.md` (racine).
 
-### 🟡 SEC2 — `TrustedProxies` par défaut fait confiance à tout le privé (RFC 1918 + loopback)
-[`trusted_proxies.rs:72`](../../../runique/src/middleware/security/trusted_proxies.rs#L72)
+### 🟡 SEC2 — `TrustedProxies` par défaut fait confiance à tout le privé — ✅ MITIGÉ (2026-07-26)
+[`trusted_proxies.rs`](../../../runique/src/middleware/security/trusted_proxies.rs)
 Défaut raisonnable derrière un reverse-proxy, mais si l'app est exposée **directement** (sans
 proxy) avec ce défaut, un client du même réseau privé pourrait usurper `X-Forwarded-For` →
-fausser `ClientIp` (donc rate-limit/lockout par IP). À documenter : `TrustedProxies::none()`
-quand pas de proxy.
+fausser `ClientIp` (rate-limit/lockout par IP).
+**Mitigé** : le défaut est désormais **edge-aware** — `TrustedProxies::default_for_edge(acme_enabled)`
+→ `none()` quand Runique termine le TLS lui-même (mode ACME = pas de proxy par construction),
+plages privées sinon (assemblé en [`build.rs`](../../../runique/src/app/builder/build.rs)). Le cas
+HTTP-direct-sans-ACME reste indétectable par le framework → couvert par la **doc** (encadré
+« Sécurité — quand utiliser `.none()` », docs trusted-proxies fr/en). Détail : `audit-securite-diagrammes.md` (racine).
+> Rejeté sciemment : gater `X-Forwarded-Proto` sur le peer trusted (SEC2b) — casserait les
+> proxies à IP publique (Cloudflare) en boucle de redirection, pour un gain sécurité ≈ 0.
 
 ### 🟢 SEC3 — OpenRedirect validé contre les hôtes autorisés (pas d'anomalie)
 `is_safe_redirect` empêche les redirections ouvertes en validant l'hôte cible. Sain.
