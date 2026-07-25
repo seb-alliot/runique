@@ -110,7 +110,7 @@ y ajouter les headers lui-même.
 location /media/ {
     alias /var/www/monprojet/media/;
     add_header Cache-Control "public, max-age=31536000, immutable";
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
     add_header X-Content-Type-Options "nosniff" always;
 }
 ```
@@ -154,7 +154,7 @@ server {
     location /media/ {
         alias /var/www/monprojet/media/;
         add_header Cache-Control "public, max-age=31536000, immutable";
-        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
         add_header X-Content-Type-Options "nosniff" always;
     }
 }

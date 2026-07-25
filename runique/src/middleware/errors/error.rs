@@ -199,7 +199,7 @@ fn log_runique_error(err: &RuniqueError, request_helper: &RequestInfoHelper) {
     }
 }
 
-fn inject_security_headers(headers: &mut axum::http::HeaderMap) {
+fn inject_security_headers(headers: &mut axum::http::HeaderMap, config: &RuniqueConfig) {
     let headers_to_add = [
         (
             "content-security-policy",
@@ -207,10 +207,6 @@ fn inject_security_headers(headers: &mut axum::http::HeaderMap) {
         ),
         ("x-content-type-options", "nosniff"),
         ("x-frame-options", "DENY"),
-        (
-            "strict-transport-security",
-            "max-age=31536000; includeSubDomains; preload",
-        ),
         ("referrer-policy", "strict-origin-when-cross-origin"),
     ];
 
@@ -221,6 +217,13 @@ fn inject_security_headers(headers: &mut axum::http::HeaderMap) {
         ) {
             headers.insert(name, val);
         }
+    }
+
+    // HSTS gaté + configurable (même source que le reste du framework).
+    if let Some(hsts) = config.security.hsts_header_value()
+        && let Ok(val) = HeaderValue::from_str(&hsts)
+    {
+        headers.insert(HeaderName::from_static("strict-transport-security"), val);
     }
 }
 
@@ -244,7 +247,7 @@ fn render_404(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -
         }
     };
 
-    inject_security_headers(response.headers_mut());
+    inject_security_headers(response.headers_mut(), config);
     response
 }
 
@@ -265,7 +268,7 @@ fn render_429(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -
             fallback_429_html()
         }
     };
-    inject_security_headers(response.headers_mut());
+    inject_security_headers(response.headers_mut(), config);
     response
 }
 
@@ -296,7 +299,7 @@ fn render_503(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -
             .headers_mut()
             .insert(axum::http::header::RETRY_AFTER, value);
     }
-    inject_security_headers(response.headers_mut());
+    inject_security_headers(response.headers_mut(), config);
     response
 }
 
@@ -317,7 +320,7 @@ fn render_500(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -
             fallback_500_html()
         }
     };
-    inject_security_headers(response.headers_mut());
+    inject_security_headers(response.headers_mut(), config);
     response
 }
 
@@ -356,7 +359,7 @@ fn render_debug_error_from_context(
             critical_error_html(&format!("Tera Rendering Error: {e}"))
         }
     };
-    inject_security_headers(response.headers_mut());
+    inject_security_headers(response.headers_mut(), config);
     response
 }
 
