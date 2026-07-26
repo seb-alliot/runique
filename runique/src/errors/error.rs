@@ -266,10 +266,9 @@ impl ErrorContext {
         self
     }
     #[must_use]
-    fn extract_tera_line(error: &tera::Error) -> Option<usize> {
-        let msg = error.to_string();
+    fn extract_tera_line(message: &str) -> Option<usize> {
         let re = regex::Regex::new(r"line (\d+)").ok()?;
-        re.captures(&msg)
+        re.captures(message)
             .and_then(|cap| cap.get(1))
             .and_then(|m| m.as_str().parse::<usize>().ok())
     }
@@ -283,7 +282,7 @@ impl ErrorContext {
         ctx.template_info = Some(TemplateInfo {
             name: template_name.to_string(),
             source: read_template_source(template_name),
-            line_number: Self::extract_tera_line(error),
+            line_number: Self::extract_tera_line(&error.to_string()),
             available_templates: tera
                 .get_template_names()
                 .filter(|name| !get_internal_templates().contains(name))
@@ -424,11 +423,16 @@ impl ErrorContext {
 
         ctx.build_stack_trace(err);
 
-        if let (RuniqueError::Template(_), Some(tera), Some(name)) = (err, tera, template_name) {
+        if let (RuniqueError::Template(msg), Some(tera), Some(name)) = (err, tera, template_name) {
             ctx.template_info = Some(TemplateInfo {
                 name: name.to_string(),
                 source: read_template_source(name),
-                line_number: ErrorContext::extract_tera_line(&tera.get_template(name).unwrap_err()),
+                // The line comes from the actual rendering error carried by the
+                // variant. The previous code called `tera.get_template(name)` and
+                // parsed its `unwrap_err()` — a "template not found" error that has
+                // no relation to where rendering failed (and `get_template` is now
+                // private in Tera 2).
+                line_number: Self::extract_tera_line(msg),
                 available_templates: tera
                     .get_template_names()
                     .map(std::string::ToString::to_string)

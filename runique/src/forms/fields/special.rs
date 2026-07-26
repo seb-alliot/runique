@@ -4,7 +4,7 @@ use crate::utils::trad::{t, tf};
 use serde::Serialize;
 use serde_json::json;
 use std::{net::IpAddr, sync::Arc};
-use tera::{Context, Tera};
+use tera::Tera;
 use uuid::Uuid;
 
 /// ColorField - HTML5 color selector
@@ -88,8 +88,7 @@ impl FormField for ColorField {
     }
 
     fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
-        let mut context = Context::new();
-        context.insert("field", &self.base);
+        let context = self.base_context();
 
         tera.render(&self.base.template_name, &context)
             .map_err(|e| {
@@ -191,8 +190,7 @@ impl FormField for SlugField {
     }
 
     fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
-        let mut context = Context::new();
-        context.insert("field", &self.base);
+        let mut context = self.base_context();
         context.insert("field_hint", &t("forms.hint_slug").to_string());
 
         tera.render(&self.base.template_name, &context)
@@ -273,8 +271,7 @@ impl FormField for UUIDField {
     }
 
     fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
-        let mut context = Context::new();
-        context.insert("field", &self.base);
+        let mut context = self.base_context();
         context.insert("field_hint", &t("forms.hint_uuid").to_string());
 
         tera.render(&self.base.template_name, &context)
@@ -362,11 +359,8 @@ impl FormField for JSONField {
     }
 
     fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
-        let mut context = Context::new();
-        context.insert("field", &self.base);
+        let mut context = self.base_context();
         context.insert("field_hint", &t("forms.hint_json").to_string());
-        context.insert("readonly", &self.to_json_readonly());
-        context.insert("disabled", &self.to_json_disabled());
         // Number of lines
         let rows = self
             .base
@@ -482,8 +476,7 @@ impl FormField for IPAddressField {
     }
 
     fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
-        let mut context = Context::new();
-        context.insert("field", &self.base);
+        let mut context = self.base_context();
 
         let hint = if self.ipv4_only {
             t("forms.hint_ip_v4").to_string()

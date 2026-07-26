@@ -235,7 +235,10 @@ mod tests {
             !tp.is_trusted(&ip("10.0.0.1")),
             "private-range peer must NOT be trusted in edge mode"
         );
-        assert!(!tp.is_trusted(&ip("127.0.0.1")), "loopback not trusted in edge mode");
+        assert!(
+            !tp.is_trusted(&ip("127.0.0.1")),
+            "loopback not trusted in edge mode"
+        );
     }
 
     #[test]
@@ -245,7 +248,10 @@ mod tests {
         let req = req_with_xff(Some("1.2.3.4"));
         // Peer is a private IP (would be trusted by the old default); in edge mode
         // it's untrusted, so XFF is ignored and the real peer is returned.
-        assert_eq!(tp.extract_client_ip(&req, Some(ip("10.0.0.9"))), ip("10.0.0.9"));
+        assert_eq!(
+            tp.extract_client_ip(&req, Some(ip("10.0.0.9"))),
+            ip("10.0.0.9")
+        );
     }
 
     // ── canonicalize_ip ──────────────────────────────────────────────

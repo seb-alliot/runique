@@ -10,7 +10,7 @@ use crate::utils::{
 };
 use serde::Serialize;
 use std::sync::Arc;
-use tera::{Context, Tera};
+use tera::Tera;
 use validator::{ValidateEmail, ValidateUrl};
 
 /// Single-line text input. Construct with [`TextField::text`], [`::email`](TextField::email),
@@ -92,6 +92,9 @@ impl TextField {
         Self::create(name, "richtext", SpecialFormat::RichText)
     }
     /// Password input. Value is auto-hashed on `finalize()` when password mode is `Auto`.
+    ///
+    /// La protection ne dépend pas de ce constructeur : `FieldConfig::new` marque
+    /// tout champ de type `password`.
     pub fn password(name: &str) -> Self {
         Self::create(name, "password", SpecialFormat::Password)
     }
@@ -261,20 +264,21 @@ impl FormField for TextField {
         Ok(())
     }
     fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
-        let mut context = Context::new();
+        let mut context = self.base_context();
 
-        // Prepare a "secured" version of the base
+        // Prepare a "secured" version of the base.
+        // Le vidage est piloté par `is_password` et non par `SpecialFormat`, pour
+        // qu'un champ marqué sensible autrement qu'en `SpecialField::password`
+        // bénéficie de la même règle.
         let mut base_data = self.base.clone();
-        if let SpecialFormat::Password = &self.format {
-            base_data.value = "".to_string();
+        if base_data.is_password() {
+            base_data.value = String::new();
         }
 
+        // Écrase le `field` du contexte de base : la valeur d'un mot de passe ne
+        // doit jamais repartir dans le HTML rendu.
         context.insert("field", &base_data);
         context.insert("input_type", &self.base.type_field);
-
-        // IMPORTANT: Inject readonly/disabled config
-        context.insert("readonly", &self.to_json_readonly());
-        context.insert("disabled", &self.to_json_disabled());
 
         if let Some(l) = &self.config.min_length {
             context.insert("min_length", &l.value);

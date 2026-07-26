@@ -5,14 +5,16 @@
 //!     (`rendered_js`), nonce CSP réel, jamais de tags Tera littéraux
 //!   - Le rendu d'un champ (même le dernier) n'auto-injecte plus les scripts
 
-use runique::context::tera::form::form_filter;
-use std::collections::HashMap;
-use tera::Value;
+use crate::helpers::tera::{kwargs, no_kwargs};
+use runique::context::tera::form::FormFilter;
+use serde_json::json;
+use tera::{Context, Filter, State, Value};
 
-/// Construit un Value simulant la sérialisation d'un Forms avec N champs
+/// Construit un Value simulant la sérialisation d'un Forms avec N champs.
+///
+/// La structure est bâtie en `serde_json` (comme le fait le vrai code de rendu)
+/// puis convertie une fois : le filtre reçoit un `tera::Value`.
 fn make_form_value(field_names_with_index: &[(&str, u64)], with_scripts: bool) -> Value {
-    use serde_json::json;
-
     let mut fields = serde_json::Map::new();
     fields.insert(
         "csrf_token".to_string(),
@@ -25,13 +27,10 @@ fn make_form_value(field_names_with_index: &[(&str, u64)], with_scripts: bool) -
     let mut rendered = serde_json::Map::new();
     rendered.insert(
         "csrf_token".to_string(),
-        Value::String(r#"<input type="hidden" name="csrf_token" value="tok123">"#.to_string()),
+        json!(r#"<input type="hidden" name="csrf_token" value="tok123">"#),
     );
     for (name, _) in field_names_with_index {
-        rendered.insert(
-            name.to_string(),
-            Value::String(format!("<input name=\"{}\">", name)),
-        );
+        rendered.insert(name.to_string(), json!(format!("<input name=\"{name}\">")));
     }
 
     // `rendered_js` is what `renderer::render_js` produces (real nonce + resolved
@@ -40,31 +39,30 @@ fn make_form_value(field_names_with_index: &[(&str, u64)], with_scripts: bool) -
     let (js_files, rendered_js) = if with_scripts {
         (
             json!(["filepicker.js"]),
-            Value::String(
-                r#"<script nonce="n0nc3" src="/static/filepicker.js" defer></script>"#.to_string(),
-            ),
+            json!(r#"<script nonce="n0nc3" src="/static/filepicker.js" defer></script>"#),
         )
     } else {
-        (json!([]), Value::String(String::new()))
+        (json!([]), json!(""))
     };
 
-    json!({
-        "fields": Value::Object(fields),
-        "rendered_fields": Value::Object(rendered),
+    Value::from_serializable(&json!({
+        "fields": serde_json::Value::Object(fields),
+        "rendered_fields": serde_json::Value::Object(rendered),
         "js_files": js_files,
         "rendered_js": rendered_js,
-    })
+    }))
 }
 
-/// Construit les args pour form_filter (HashMap<String, Value>)
-fn args_field(field_name: &str) -> HashMap<String, Value> {
-    let mut map = HashMap::new();
-    map.insert("field".to_string(), Value::String(field_name.to_string()));
-    map
-}
-
-fn args_empty() -> HashMap<String, Value> {
-    HashMap::new()
+/// Rend un champ nommé et renvoie le HTML produit.
+fn render_field(form: &Value, field_name: &'static str) -> String {
+    let ctx = Context::new();
+    let state = State::new(&ctx);
+    FormFilter
+        .call(form, kwargs([("field", Value::from(field_name))]), &state)
+        .unwrap()
+        .as_str()
+        .unwrap()
+        .to_string()
 }
 
 // ── CSRF injecté sur le premier champ (index min) ─────────────────────────────
@@ -72,10 +70,7 @@ fn args_empty() -> HashMap<String, Value> {
 #[test]
 fn test_form_filter_csrf_injected_on_first_field() {
     let form = make_form_value(&[("username", 0), ("email", 1)], false);
-    let args = args_field("username");
-
-    let result = form_filter(&form, &args).unwrap();
-    let html = result.as_str().unwrap();
+    let html = render_field(&form, "username");
 
     assert!(
         html.contains("csrf_token"),
@@ -88,10 +83,7 @@ fn test_form_filter_csrf_injected_on_first_field() {
 #[test]
 fn test_form_filter_csrf_not_injected_on_non_first_field() {
     let form = make_form_value(&[("username", 0), ("email", 1)], false);
-    let args = args_field("email");
-
-    let result = form_filter(&form, &args).unwrap();
-    let html = result.as_str().unwrap();
+    let html = render_field(&form, "email");
 
     assert!(
         !html.contains("csrf_token"),
@@ -103,8 +95,7 @@ fn test_form_filter_csrf_not_injected_on_non_first_field() {
 #[test]
 fn test_form_filter_csrf_injected_on_first_field_with_three_fields() {
     let form = make_form_value(&[("username", 0), ("email", 1), ("password", 2)], false);
-    let result = form_filter(&form, &args_field("username")).unwrap();
-    assert!(result.as_str().unwrap().contains("csrf_token"));
+    assert!(render_field(&form, "username").contains("csrf_token"));
 }
 
 #[test]
@@ -112,8 +103,7 @@ fn test_form_filter_csrf_not_injected_on_middle_or_last() {
     let form = make_form_value(&[("username", 0), ("email", 1), ("password", 2)], false);
 
     for field_name in ["email", "password"] {
-        let result = form_filter(&form, &args_field(field_name)).unwrap();
-        let html = result.as_str().unwrap();
+        let html = render_field(&form, field_name);
         assert!(
             !html.contains("csrf_token"),
             "CSRF ne doit pas apparaître sur '{}'. HTML: {}",
@@ -128,8 +118,7 @@ fn test_form_filter_csrf_not_injected_on_middle_or_last() {
 #[test]
 fn test_form_filter_js_accessor_returns_prerendered_block() {
     let form = make_form_value(&[("username", 0), ("email", 1)], true);
-    let result = form_filter(&form, &args_field("js")).unwrap();
-    let html = result.as_str().unwrap();
+    let html = render_field(&form, "js");
 
     assert!(
         html.contains("filepicker.js") && html.contains(r#"nonce="n0nc3""#),
@@ -141,8 +130,7 @@ fn test_form_filter_js_accessor_returns_prerendered_block() {
 #[test]
 fn test_form_filter_js_accessor_no_literal_tera_tags() {
     let form = make_form_value(&[("username", 0)], true);
-    let result = form_filter(&form, &args_field("js")).unwrap();
-    let html = result.as_str().unwrap();
+    let html = render_field(&form, "js");
 
     assert!(
         !html.contains("{% static") && !html.contains("{% csp %}"),
@@ -154,9 +142,8 @@ fn test_form_filter_js_accessor_no_literal_tera_tags() {
 #[test]
 fn test_form_filter_js_accessor_empty_when_no_scripts() {
     let form = make_form_value(&[("username", 0), ("email", 1)], false);
-    let result = form_filter(&form, &args_field("js")).unwrap();
     assert!(
-        result.as_str().unwrap().is_empty(),
+        render_field(&form, "js").is_empty(),
         "Sans js_files, l'accesseur js renvoie une chaîne vide"
     );
 }
@@ -168,8 +155,7 @@ fn test_form_filter_scripts_not_auto_injected_on_last_field() {
     // L'ancienne heuristique injectait les scripts après le dernier champ.
     // Désormais le js passe uniquement par l'accesseur explicite `{% form.x.js %}`.
     let form = make_form_value(&[("username", 0), ("email", 1)], true);
-    let result = form_filter(&form, &args_field("email")).unwrap();
-    let html = result.as_str().unwrap();
+    let html = render_field(&form, "email");
 
     assert!(
         !html.contains("filepicker.js") && !html.contains("<script"),
@@ -181,19 +167,20 @@ fn test_form_filter_scripts_not_auto_injected_on_last_field() {
 #[test]
 fn test_form_filter_scripts_not_injected_on_non_last_field() {
     let form = make_form_value(&[("username", 0), ("email", 1)], true);
-    let result = form_filter(&form, &args_field("username")).unwrap();
-    assert!(!result.as_str().unwrap().contains("filepicker.js"));
+    assert!(!render_field(&form, "username").contains("filepicker.js"));
 }
 
 // ── Rendu complet (sans field arg) ───────────────────────────────────────────
 
 #[test]
 fn test_form_filter_full_render_without_field_arg() {
-    use serde_json::json;
-    let form = json!({
+    let ctx = Context::new();
+    let state = State::new(&ctx);
+    let form = Value::from_serializable(&json!({
         "html": "<div class=\"form\">username + email</div>"
-    });
-    let result = form_filter(&form, &args_empty()).unwrap();
+    }));
+
+    let result = FormFilter.call(&form, no_kwargs(), &state).unwrap();
     assert!(result.as_str().unwrap().contains("form"));
 }
 
@@ -201,10 +188,27 @@ fn test_form_filter_full_render_without_field_arg() {
 
 #[test]
 fn test_form_filter_unknown_field_returns_error() {
+    let ctx = Context::new();
+    let state = State::new(&ctx);
     let form = make_form_value(&[("username", 0)], false);
-    let result = form_filter(&form, &args_field("nonexistent_field"));
+
+    let result = FormFilter.call(
+        &form,
+        kwargs([("field", Value::from("nonexistent_field"))]),
+        &state,
+    );
     assert!(
         result.is_err(),
         "Un champ inconnu doit retourner une erreur"
     );
+}
+
+// ── Contrat d'échappement ─────────────────────────────────────────────────────
+
+/// Le filtre déclare `is_safe()` : sa sortie est émise sans échappement. C'est ce
+/// qui remplace le `| safe` que le préprocesseur ajoutait à `{% form.x %}`. Si
+/// cette déclaration saute, tout le HTML des formulaires ressort échappé et visible.
+#[test]
+fn test_form_filter_is_safe() {
+    assert!(FormFilter.is_safe());
 }

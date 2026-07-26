@@ -56,7 +56,7 @@
         {% endif %}
 
         {# Table des matières auto depuis les headings #}
-        {% set headings = blocks | filter(attribute="heading") %}
+        {% set headings = [b for b in blocks if b.heading] %}
         {% if headings %}
         <nav class="doc-toc">
             <strong>In this chapter</strong>

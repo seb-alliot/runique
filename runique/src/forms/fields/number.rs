@@ -4,7 +4,7 @@ use crate::utils::trad::{t, tf};
 use serde::Serialize;
 use serde_json::json;
 use std::sync::Arc;
-use tera::{Context, Tera};
+use tera::Tera;
 
 /// Numeric input (integer, decimal, float, percent, or range slider).
 /// Construct with [`NumericField::integer`], [`::decimal`](NumericField::decimal),
@@ -263,11 +263,8 @@ impl FormField for NumericField {
     }
 
     fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
-        let mut context = Context::new();
-        context.insert("field", &self.base);
+        let mut context = self.base_context();
         context.insert("config", &self.config);
-        context.insert("readonly", &self.to_json_readonly());
-        context.insert("disabled", &self.to_json_disabled());
 
         tera.render(&self.base.template_name, &context)
             .map_err(|e| {

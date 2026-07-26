@@ -5,7 +5,7 @@ use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use serde::Serialize;
 use serde_json::json;
 use std::sync::Arc;
-use tera::{Context, Tera};
+use tera::Tera;
 
 /// Date input (`<input type="date">`). Validates `YYYY-MM-DD` format with optional min/max bounds.
 #[derive(Clone, Serialize, Debug)]
@@ -137,8 +137,7 @@ impl FormField for DateField {
     }
 
     fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
-        let mut context = Context::new();
-        context.insert("field", &self.base);
+        let mut context = self.base_context();
 
         if let Some(min) = &self.min_date {
             context.insert("min_date", &min.format("%Y-%m-%d").to_string());
@@ -283,8 +282,7 @@ impl FormField for TimeField {
     }
 
     fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
-        let mut context = Context::new();
-        context.insert("field", &self.base);
+        let mut context = self.base_context();
 
         if let Some(min) = &self.min_time {
             context.insert("min_time", &min.format("%H:%M").to_string());
@@ -429,8 +427,7 @@ impl FormField for DateTimeField {
     }
 
     fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
-        let mut context = Context::new();
-        context.insert("field", &self.base);
+        let mut context = self.base_context();
 
         if let Some(min) = &self.min_datetime {
             context.insert("min_datetime", &min.format("%Y-%m-%dT%H:%M").to_string());
@@ -574,10 +571,7 @@ impl FormField for DurationField {
     }
 
     fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
-        let mut context = Context::new();
-        context.insert("field", &self.base);
-        context.insert("readonly", &self.to_json_readonly());
-        context.insert("disabled", &self.to_json_disabled());
+        let mut context = self.base_context();
 
         if let Some(min) = &self.min_seconds {
             context.insert("min_seconds", min);

@@ -71,7 +71,7 @@
             {% csrf %}
             <button type="submit" class="admin-menu__item">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              {% if admin_detail_btn_reset_password %}{{ admin_detail_btn_reset_password }}{% else %}Réinitialiser{% endif %}
+              {% if admin_detail_btn_reset_password_short %}{{ admin_detail_btn_reset_password_short }}{% else %}Réinitialiser{% endif %}
             </button>
           </form>
           {% endif %}

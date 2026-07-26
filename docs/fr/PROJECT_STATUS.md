@@ -11,7 +11,7 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 ## Snapshot (au 17 juin 2026)
 
-- **Version workspace** : `2.1.21`
+- **Version workspace** : `2.2.0`
 - **derive_form** : `2.1.11`
 - **Licence** : MIT
 - **Branche** : `main`

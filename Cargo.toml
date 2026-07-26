@@ -8,7 +8,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "2.1.21"
+version = "2.2.0"
 edition = "2024"
 rust-version = "1.94"
 authors = ["Itsuki"]
@@ -18,9 +18,9 @@ homepage = "https://runique.io/"
 
 [workspace.dependencies]
 # Framework web
-axum = { version = "0.8.7", features = ["macros", "form" ,"multipart"] }
+axum = { version = "0.8.9", features = ["macros", "form" ,"multipart"] }
 tower = { version = "0.5.3", features = ["util"] }
-tower-http = { version = "0.6.8", features = ["fs", "util", "trace", "timeout","compression-full", "set-header", "cors"] }
+tower-http = { version = "0.7.0", features = ["fs", "util", "trace", "timeout","compression-full", "set-header", "cors"] }
 tower-sessions = "0.15.0"
 
 # Runtime asyn
@@ -31,31 +31,43 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_urlencoded = "0.7"
 form_urlencoded = "1"
-time = "=0.3.47"
+time = "=0.3.54"
 
 # Templates
-tera = { version = "1.20.1", features = ["builtins"] }
-indexmap = { version = "2.13.0", features = ["serde"] }
+tera = { version = "2.1" }
+# Filtres que Tera 1 fournissait via sa feature `builtins` et qui ont été sortis
+# du cœur en 2.0. Réenregistrés par Runique sous leurs noms amont + les noms
+# Tera 1 en alias, pour qu'aucun template de projet utilisateur ne casse.
+tera-contrib = { version = "0.2", features = [
+    "urlencode",
+    "slug",
+    "date",
+    "json",
+    "filesize_format",
+    "regex",
+    "rand",
+] }
+indexmap = { version = "2.14.0", features = ["serde"] }
 glob = "0.3"
 
 # ORM
-sea-orm = "=2.0.0-rc.40"
-sea-orm-migration = { version = "=2.0.0-rc.40" }
+sea-orm = "=2.0.0"
+sea-orm-migration = { version = "=2.0.0" }
 sea-query = "1.0.1"
 
 # Utilitaires
 dotenvy = "0.15"
-chrono = { version = "0.4.44", features = ["serde"] }
+chrono = { version = "0.4.45", features = ["serde"] }
 chrono-tz = "0.10"
 anyhow = "1.0"
-regex = "1.12.2"
+regex = "1.13"
 fancy-regex = "0.18.0"
 urlencoding = "2.1.3"
 byte = "0.2.7"
 http-body-util = "0.1"
-base64 = "0.22.1"
-uuid = { version = "1.19.0", features = ["v4"] }
-futures-util = "0.3.31"
+base64 = "0.23"
+uuid = { version = "1.24.0", features = ["v4"] }
+futures-util = "0.3.33"
 phone_number = "0.1.1"
 country = "0.5.0"
 postal-code = "0.3.0"
@@ -66,12 +78,13 @@ walkdir = "2.5.0"
 
 derive_form = { path = "runique/derive_form", version = "2.1.11" }
 rust_decimal = { version = "1", features = ["serde-float"] }
+
 # Logging
 tracing = "0.1"
 tracing-futures = "0.2.5"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 tracing-appender = "0.2"
-thiserror = "2.0.18"
+thiserror = "2.0.19"
 
 # Async
 async-trait = "0.1"
@@ -79,18 +92,18 @@ async-trait = "0.1"
 # Validation et sécurité
 validator = { version = "0.20", features = ["derive"] }
 argon2 = "0.5"
-bcrypt = "0.19.0"
+bcrypt = "0.19.2"
 scrypt = "0.11.0"
-password-hash = "0.6.0"
-rand = "0.10.0"
-ammonia = "4.1.2"
+password-hash = "0.6.1"
+rand = "0.10.2"
+ammonia = "4.1.4"
 html-escape = "0.2"
 
 # Documentation
-pulldown-cmark = "0.13.3"
+pulldown-cmark = "0.13.4"
 
 # Envoi email
-lettre = { version = "0.11.19", features = ["tokio1", "tokio1-native-tls", "builder"] }
+lettre = { version = "0.11.22", features = ["tokio1", "tokio1-native-tls", "builder"] }
 
 # CSRF
 hmac = "0.13"
@@ -99,12 +112,12 @@ hex = "0.4"
 subtle = "2"
 
 # CLI
-clap = { version = "4.5.55", features = ["derive"] }
-rpassword = "7.4.0"
+clap = { version = "4.6.4", features = ["derive"] }
+rpassword = "7.5.4"
 crossterm = "0.29.0"
 
 # Daemon admin
 notify = "8.2.0"
-syn = { version = "2", features = ["full", "visit"] }
+syn = { version = "3.0.3", features = ["full", "visit"] }
 quote = "1"
 proc-macro2 = "1"

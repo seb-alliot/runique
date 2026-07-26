@@ -278,7 +278,6 @@
       "username_too_short": "Имя пользователя слишком короткое (минимум 3 символа)",
       "invalid_email": "Неверный формат email адреса"
     },
-
     "login": {
       "title": "Вход",
       "subtitle": "Войдите для доступа к панели администратора",
@@ -308,7 +307,11 @@
       "btn_create": "Создать",
       "see_list": "Посмотреть список →",
       "empty_title": "Нет зарегистрированных ресурсов",
-      "empty_desc": "Объявите ваши ресурсы в src/admin.rs с макросом admin!{{}} затем запустите runique start"
+      "empty_desc": "Объявите ваши ресурсы в src/admin.rs с макросом admin!{{}} затем запустите runique start",
+      "kpi_resources": "Ресурсы",
+      "kpi_entries": "Всего записей",
+      "kpi_largest": "Наибольшая",
+      "th_count": "Записи"
     },
     "list": {
       "breadcrumb_admin": "Администрирование",
@@ -353,7 +356,9 @@
       "btn_list": "← Список",
       "btn_edit": "Изменить",
       "btn_delete": "Удалить",
-      "confirm_delete": "Удалить эту запись?"
+      "confirm_delete": "Удалить эту запись?",
+      "btn_reset_password": "Сбросить пароль",
+      "btn_reset_password_short": "Сбросить"
     },
     "reset_password": {
       "btn": "Сбросить пароль",
@@ -401,7 +406,9 @@
       "title": "Администрирование",
       "breadcrumb": "Админ",
       "toggle": "Свернуть меню",
-      "logout_title": "Выход"
+      "logout_title": "Выход",
+      "theme_toggle": "Сменить тему",
+      "back_to_site": "← Сайт"
     },
     "superuser_wizard": {
       "title": "=== Создать суперпользователя ===",

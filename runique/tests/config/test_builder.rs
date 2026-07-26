@@ -198,7 +198,7 @@ fn test_build_error_with_context_display() {
 
 #[test]
 fn test_build_error_from_tera_error() {
-    let tera_err = tera::Error::msg("Template manquant");
+    let tera_err = tera::Error::message("Template manquant");
     let build_err: BuildError = tera_err.into();
     assert!(matches!(
         build_err.kind,

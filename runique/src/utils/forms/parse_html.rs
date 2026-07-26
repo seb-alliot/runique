@@ -282,7 +282,10 @@ mod sanitize_tests {
         // Non-ASCII stripped entirely.
         assert_eq!(ext_of(&sanitize_filename("x.café")), "caf");
         // Capped at 10 chars.
-        assert_eq!(ext_of(&sanitize_filename("x.abcdefghijklmnop")), "abcdefghij");
+        assert_eq!(
+            ext_of(&sanitize_filename("x.abcdefghijklmnop")),
+            "abcdefghij"
+        );
     }
 
     #[test]

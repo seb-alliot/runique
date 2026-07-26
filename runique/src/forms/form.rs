@@ -126,7 +126,20 @@ impl Serialize for Forms {
                 field_map.insert("label".to_string(), json!(field.label()));
                 field_map.insert("field_type".to_string(), json!(field.field_type()));
                 field_map.insert("template_name".to_string(), json!(field.template_name()));
-                field_map.insert("value".to_string(), json!(field.value()));
+                // La valeur d'un champ sensible ne sort pas, même dans un contexte
+                // de template : `form_fields` est inséré tel quel dans les pages
+                // create/edit, et rien ne garantit qu'un template utilisateur ne
+                // l'affichera pas.
+                let is_password = field.is_password();
+                field_map.insert(
+                    "value".to_string(),
+                    if is_password {
+                        json!("")
+                    } else {
+                        json!(field.value())
+                    },
+                );
+                field_map.insert("is_password".to_string(), json!(is_password));
                 field_map.insert("placeholder".to_string(), json!(field.placeholder()));
                 field_map.insert("index".to_string(), json!(index));
                 field_map.insert("is_required".to_string(), field.to_json_required());
@@ -313,10 +326,14 @@ impl Forms {
         let is_edit = matches!(method, Method::PATCH | Method::PUT);
         let mut has_data = false;
         for field in self.fields.values_mut() {
-            if field.field_type() == "password" && !allow_password {
+            // `is_password()` et non `field_type() == "password"` : un champ portant
+            // un secret sans être de type password (clé d'API, jeton) hérite ainsi
+            // du même saut en GET et du même relâchement de contrainte en édition.
+            let is_password = field.is_password();
+            if is_password && !allow_password {
                 continue;
             }
-            if field.field_type() == "password" && is_edit {
+            if is_password && is_edit {
                 field.set_required(false, None);
             }
             if let Some(value) = data.get(field.name()) {
@@ -328,7 +345,7 @@ impl Forms {
                     .as_ref()
                     .and_then(|f| f.set_value)
                 {
-                    if field.field_type() == "password" {
+                    if is_password {
                         crate::runique_log!(level, field = %field.name(), "set_value [hidden]");
                     } else {
                         crate::runique_log!(level, field = %field.name(), value = %value, "set_value");

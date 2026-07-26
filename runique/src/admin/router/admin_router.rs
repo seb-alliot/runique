@@ -683,12 +683,19 @@ async fn admin_history_diff(
         new_val: String,
     }
 
+    // Second passage de redaction, côté lecture. Il ne fait pas doublon avec celui
+    // de l'écriture : il neutralise les lignes écrites **avant** que la règle
+    // n'existe, sans migration de données, et il garantit que la valeur n'entre
+    // jamais dans le contexte de rendu — un template d'historique surchargé par un
+    // projet, ou un `{{ __tera_context }}` en mode debug, ne peut donc pas la
+    // révéler.
     let diff_fields: Vec<DiffField> = entry
         .summary
         .as_deref()
         .and_then(|s| serde_json::from_str::<serde_json::Value>(s).ok())
         .and_then(|v| v.as_object().cloned())
-        .map(|map| {
+        .map(|mut map| {
+            crate::admin::history::redact_sensitive(&mut map);
             let mut fields: Vec<DiffField> = map
                 .into_iter()
                 .filter_map(|(k, v)| {
@@ -887,7 +894,10 @@ async fn admin_history_batch(
         summary
             .and_then(|s| serde_json::from_str::<serde_json::Value>(s).ok())
             .and_then(|v| v.as_object().cloned())
-            .map(|map| {
+            .map(|mut map| {
+                // Même redaction côté lecture que la vue diff : les lignes écrites
+                // avant l'existence de la règle passent aussi par ici.
+                crate::admin::history::redact_sensitive(&mut map);
                 let mut fields: Vec<DiffField> = map
                     .into_iter()
                     .filter_map(|(k, v)| {

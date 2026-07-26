@@ -2,7 +2,7 @@
 use crate::auth::session::is_authenticated;
 use crate::context::RequestExtensions;
 use crate::utils::{
-    aliases::{AEngine, JsonMap, TResult},
+    aliases::AEngine,
     constante::{session::CSRF_TOKEN_KEY, session_key::session::SESSION_USER_ID_KEY},
     csrf::{CsrfContext, CsrfToken},
 };
@@ -14,25 +14,30 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use subtle::ConstantTimeEq;
-use tera::{Function, Value};
+use tera::{Function, Kwargs, TeraResult, Value, escape_html};
 use tower_sessions::Session;
 
 pub struct CsrfTokenFunction;
 
-impl Function for CsrfTokenFunction {
+// `tera::State` is aliased locally: `axum::extract::State` is already imported above.
+impl Function<TeraResult<Value>> for CsrfTokenFunction {
     fn is_safe(&self) -> bool {
         true
     }
 
-    fn call(&self, args: &JsonMap) -> TResult {
-        let token_str = args
-            .get(CSRF_TOKEN_KEY)
-            .and_then(|v| v.as_str())
-            .unwrap_or("");
+    fn call(&self, kwargs: Kwargs, _: &tera::State) -> TeraResult<Value> {
+        let token = kwargs.get::<&str>(CSRF_TOKEN_KEY)?.unwrap_or("");
 
-        Ok(Value::String(format!(
-            r#"<input type="hidden" name="csrf_token" value="{}">"#,
-            token_str
+        // Escaped even though the generator only emits attribute-safe characters:
+        // the tag is emitted unescaped, so it must not depend on a guarantee made
+        // elsewhere. Mirrors the `csrf_field` filter.
+        let mut escaped = Vec::new();
+        escape_html(token, &mut escaped)
+            .map_err(|e| tera::Error::chain("csrf_token: failed to escape the token", e))?;
+        let token = String::from_utf8(escaped)?;
+
+        Ok(Value::safe_string(&format!(
+            r#"<input type="hidden" name="csrf_token" value="{token}">"#
         )))
     }
 }

@@ -155,6 +155,10 @@ pub const ADMIN_MESSAGE_KEYS: &[&str] = &[
     "admin.dashboard.see_list",
     "admin.dashboard.empty_title",
     "admin.dashboard.empty_desc",
+    "admin.dashboard.kpi_resources",
+    "admin.dashboard.kpi_entries",
+    "admin.dashboard.kpi_largest",
+    "admin.dashboard.th_count",
     // list
     "admin.list.breadcrumb_admin",
     "admin.list.entries_count_one",
@@ -194,6 +198,8 @@ pub const ADMIN_MESSAGE_KEYS: &[&str] = &[
     "admin.detail.btn_edit",
     "admin.detail.btn_delete",
     "admin.detail.confirm_delete",
+    "admin.detail.btn_reset_password",
+    "admin.detail.btn_reset_password_short",
     // delete
     "admin.delete.title",
     "admin.delete.breadcrumb",
@@ -211,6 +217,8 @@ pub const ADMIN_MESSAGE_KEYS: &[&str] = &[
     "admin.base.breadcrumb",
     "admin.base.toggle",
     "admin.base.logout_title",
+    "admin.base.theme_toggle",
+    "admin.base.back_to_site",
     // flash messages
     "admin.create.success",
     "admin.edit.success",

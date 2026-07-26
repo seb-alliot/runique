@@ -21,14 +21,16 @@ impl ContextHelper {
     }
 
     pub fn add<T: Serialize>(mut self, key: &str, value: T) -> Self {
-        self.inner.insert(key, &value);
+        // Tera 2 keys are `Cow<'static, str>`; owned here so the public signature
+        // keeps accepting a borrowed `&str`.
+        self.inner.insert(key.to_string(), &value);
         self
     }
 
     pub fn update(mut self, data: Value) -> Self {
         if let Some(obj) = data.as_object() {
             for (key, value) in obj {
-                self.inner.insert(key, value);
+                self.inner.insert(key.to_string(), value);
             }
         }
         self

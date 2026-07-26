@@ -278,7 +278,6 @@
       "username_too_short": "用户名太短（最少3个字符）",
       "invalid_email": "邮箱地址格式不正确"
     },
-
     "login": {
       "title": "登录",
       "subtitle": "请登录以访问管理面板",
@@ -307,7 +306,11 @@
       "btn_list": "列表",
       "btn_create": "创建",
       "empty_title": "未注册资源",
-      "empty_desc": "在src/admin.rs中使用admin!{{}}宏声明您的资源，然后运行runique start"
+      "empty_desc": "在src/admin.rs中使用admin!{{}}宏声明您的资源，然后运行runique start",
+      "kpi_resources": "资源",
+      "kpi_entries": "条目总数",
+      "kpi_largest": "最大",
+      "th_count": "条目"
     },
     "list": {
       "breadcrumb_admin": "管理",
@@ -352,7 +355,9 @@
       "btn_list": "← 列表",
       "btn_edit": "编辑",
       "btn_delete": "删除",
-      "confirm_delete": "删除此条目？"
+      "confirm_delete": "删除此条目？",
+      "btn_reset_password": "重置密码",
+      "btn_reset_password_short": "重置"
     },
     "reset_password": {
       "btn": "重置密码",
@@ -400,7 +405,9 @@
       "title": "管理",
       "breadcrumb": "管理",
       "toggle": "收起菜单",
-      "logout_title": "登出"
+      "logout_title": "登出",
+      "theme_toggle": "切换主题",
+      "back_to_site": "← 网站"
     },
     "superuser_wizard": {
       "title": "=== 创建超级用户 ===",

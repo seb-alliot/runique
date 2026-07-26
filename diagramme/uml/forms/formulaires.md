@@ -32,6 +32,8 @@ classDiagram
         +set_label()/set_placeholder()/set_value()
         +validate() bool
         +render()
+        +base_context() Context
+        +is_password() bool
         +model_max_size() Option~u64~
         +set_max_size_bounded(size) Result
     }
@@ -114,3 +116,35 @@ override possible vers le bas, jamais au-dessus du plafond. Pas de divergence.
 **avant** `fill()` (qui n'y touche jamais) ; `is_valid()` court-circuite dessus avant toute
 validation, et `is_save_allowed()` double-garde. Honeypot POST-only mais la garde CSRF couvre
 toutes les méthodes mutantes. Pas de contournement possible.
+
+### 🟠 F4 — `readonly` / `disabled` jamais posés sur 9 champs sur 18
+**Corrigé (2.2.0).** Les templates `base_datetime`, `base_file`, `base_special`, `base_string` et
+`base_hidden` testent tous `readonly.choice` / `disabled.choice`, mais **9 des 18 implémentations
+de `render()` ne les inséraient pas dans le contexte**. Tera 1 évaluant une variable absente à
+faux, l'attribut n'était simplement jamais émis — sans erreur, sans trace, sans test rouge. La
+fonctionnalité n'avait donc jamais fonctionné sur ces champs. `text.rs` portait même un
+commentaire `// IMPORTANT: Inject readonly/disabled config` suivi de rien.
+
+Le correctif ne complète pas les 9 rendus fautifs : il **collapse le contrat en un chemin unique**.
+`FormField::base_context()` fournit `field`, `readonly` et `disabled`, et les 18 rendus en partent.
+Un 19ᵉ type de champ hérite du contrat sans avoir à y penser — c'est ce qui empêche le 10ᵉ oubli.
+Révélé par la migration Tera 2, qui transforme la variable absente en erreur de rendu.
+
+### 🔴 F5 — Marquage des champs sensibles : conception non contournable
+**Ajouté (2.2.0).** `FieldConfig::is_password` est **privé**, **à sens unique** et **dérivé du
+type** :
+
+* privé — aucun code externe ne peut le remettre à `false`, il n'y a plus de champ public ;
+* `mark_password()` l'active, **aucune opération ne le désactive** — un champ déclaré sensible ne
+  peut pas cesser de l'être en cours d'exécution ;
+* `FieldConfig::new` le pose pour tout `type_field == "password"`, quel que soit le constructeur —
+  la protection ne peut donc pas être perdue par **omission**, qui est le mode de défaillance le
+  plus probable ;
+* le lecteur `is_password()` reteste le type en second rideau, si bien qu'une désérialisation
+  posant le drapeau à `false` reste sans effet.
+
+Il remplace les comparaisons `field_type() == "password"` jusque-là éparpillées dans `fill()` :
+un seul point d'interrogation pilote désormais le rendu du widget, le saut en GET, le relâchement
+de `required` en édition, le masquage dans les journaux et la sérialisation vers `form_fields`.
+Un champ portant un secret sans être de type password (clé d'API, jeton) hérite de tout cela via
+`mark_password()`, ce qu'un test sur le type ne permettra jamais.
