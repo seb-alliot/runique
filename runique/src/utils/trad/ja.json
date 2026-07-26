@@ -278,7 +278,6 @@
       "username_too_short": "ユーザー名が短すぎます（最小3文字以上）",
       "invalid_email": "無効なメールアドレス形式です"
     },
-
     "login": {
       "title": "ログイン",
       "subtitle": "管理パネルにアクセスするにはログインしてください",
@@ -307,7 +306,11 @@
       "btn_list": "一覧",
       "btn_create": "作成",
       "empty_title": "登録されたリソースがありません",
-      "empty_desc": "src/admin.rsでadmin!{{}}マクロを使用してリソースを宣言し、runique startを実行してください"
+      "empty_desc": "src/admin.rsでadmin!{{}}マクロを使用してリソースを宣言し、runique startを実行してください",
+      "kpi_resources": "リソース",
+      "kpi_entries": "エントリー総数",
+      "kpi_largest": "最大",
+      "th_count": "エントリー"
     },
     "list": {
       "breadcrumb_admin": "管理",
@@ -352,7 +355,9 @@
       "btn_list": "← 一覧",
       "btn_edit": "編集",
       "btn_delete": "削除",
-      "confirm_delete": "このエントリを削除しますか？"
+      "confirm_delete": "このエントリを削除しますか？",
+      "btn_reset_password": "パスワードをリセット",
+      "btn_reset_password_short": "リセット"
     },
     "reset_password": {
       "btn": "パスワードをリセット",
@@ -400,7 +405,9 @@
       "title": "管理",
       "breadcrumb": "管理",
       "toggle": "メニューを折りたたむ",
-      "logout_title": "ログアウト"
+      "logout_title": "ログアウト",
+      "theme_toggle": "テーマを切り替え",
+      "back_to_site": "← サイト"
     },
     "superuser_wizard": {
       "title": "=== スーパーユーザー作成 ===",

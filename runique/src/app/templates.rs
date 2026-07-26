@@ -96,19 +96,19 @@ impl TemplateLoader {
         content = content.replace("{% csp %}", r#"{% include "csp.html" %}"#);
 
         // Form processing (Isolated fields)
+        // No `| safe` is appended: the `form` filter declares `is_safe()`, so the
+        // HTML it returns is emitted unescaped on its own authority. Same for
+        // `| markdown` and `| sanitize`, which no longer need a rewrite at all.
         content = FORM_FIELD_REGEX
             .replace_all(&content, |caps: &Captures| {
-                format!(
-                    r"{{{{ {} | form(field='{}') | safe }}}}",
-                    &caps[1], &caps[2]
-                )
+                format!(r"{{{{ {} | form(field='{}') }}}}", &caps[1], &caps[2])
             })
             .to_string();
 
         // Form processing (Full form)
         content = FORM_FULL_REGEX
             .replace_all(&content, |caps: &Captures| {
-                format!("{{{{ {} | form | safe }}}}", &caps[1])
+                format!("{{{{ {} | form }}}}", &caps[1])
             })
             .to_string();
 
@@ -124,22 +124,6 @@ impl TemplateLoader {
                     Some(p) => format!(r"{{{{ link(link='{}', {}) }}}}", name, p),
                     None => format!(r"{{{{ link(link='{}') }}}}", name),
                 }
-            })
-            .to_string();
-
-        // Markdown processing ({{ var | markdown }} → {{ var | markdown | safe }})
-        content = MARKDOWN_REGEX
-            .replace_all(&content, |caps: &Captures| {
-                format!("{{{{ {} | markdown | safe }}}}", &caps[1])
-            })
-            .to_string();
-
-        // Sanitize processing ({{ var | sanitize }} → {{ var | sanitize | safe }})
-        // The filter re-runs ammonia on the value, so `| safe` only ever emits
-        // already-cleaned HTML — output-side sanitization, not trust on storage.
-        content = SANITIZE_REGEX
-            .replace_all(&content, |caps: &Captures| {
-                format!("{{{{ {} | sanitize | safe }}}}", &caps[1])
             })
             .to_string();
 
@@ -179,23 +163,35 @@ impl TemplateLoader {
     }
 
     /// Loads HTML templates embedded in the Runique binary (WITH preprocess)
+    ///
+    /// Added as a single batch, never one by one: Tera 2 resolves `{% include %}`
+    /// and `{% extends %}` when a template is added, so `add_raw_template` in a loop
+    /// rejects any template whose dependency comes later in the iteration order
+    /// (`debug.html` includes six partials declared after it). `add_raw_templates`
+    /// inserts the whole set before validating it once, and rolls the batch back
+    /// as a whole on failure.
     fn load_internal_templates(
         tera: &mut Tera,
         integrity_map: &HashMap<String, String>,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        for (name, content) in SIMPLE_TEMPLATES
+        let templates: Vec<(&str, String)> = SIMPLE_TEMPLATES
             .iter()
             .chain(ERROR_CORPS.iter())
             .chain(FIELD_TEMPLATES.iter())
             .chain(AUTH_TEMPLATES.iter())
             .chain(ADMIN_TEMPLATES.iter())
-        {
-            let processed = Self::process_content(content.to_string(), integrity_map);
+            .map(|(name, content)| {
+                (
+                    *name,
+                    Self::process_content(content.to_string(), integrity_map),
+                )
+            })
+            .collect();
 
-            if let Err(e) = tera.add_raw_template(name, &processed) {
-                tracing::error!(template = %name, error = %e, "internal template failed to load");
-                return Err(Box::new(e));
-            }
+        if let Err(e) = tera.add_raw_templates(templates) {
+            // Tera's error already names the offending template and line.
+            tracing::error!(error = %e, "internal templates failed to load");
+            return Err(Box::new(e));
         }
         Ok(())
     }

@@ -35,7 +35,7 @@
         <div id="doc-section-documentation">
             {% for key in ["Demarrage", "Web", "Database", "Security", "Admin", "Autres"] %}
                 {% set key_lower = key | lower %}
-                {% set group_sections = sections | filter(attribute="theme", value=key) %}
+                {% set group_sections = [s for s in sections if s.theme == key] %}
                 {% if group_sections | length > 0 %}
                 <div class="doc-index-subsection">
                     <button class="doc-index-section-title doc-subsection-title doc-theme--{{ key_lower }}" type="button" data-section="sub-{{ key_lower }}" aria-expanded="true">

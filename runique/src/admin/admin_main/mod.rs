@@ -937,7 +937,7 @@ pub(super) fn inject_context(
         .insert(ctx_common::RESOURCES, &visible_resources);
 
     for (k, v) in &entry.meta.extra_context {
-        req.context.insert(k, v);
+        req.context.insert(k.to_string(), v);
     }
 
     let perms = ResourcePerms::resolve(current_user, entry.meta.key);

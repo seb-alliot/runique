@@ -66,6 +66,7 @@ time.workspace = true
 
 # Templates
 tera.workspace = true
+tera-contrib.workspace = true
 glob.workspace = true
 indexmap.workspace = true
 

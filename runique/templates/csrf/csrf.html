@@ -1,10 +1,17 @@
-{# templates/csrf.html #}
+{# templates/csrf.html
+
+   Inclus de deux façons : par le rendu d'un formulaire (où `field` décrit le champ
+   CSRF), et par le tag `{% csrf %}` posé seul dans une page (où `field` n'existe
+   pas du tout).
+
+   D'où le chaînage optionnel `?.` : en Tera 2, `default` ne rattrape que l'absence
+   d'une clé du contexte, alors que `field.name` sur un `field` indéfini lève avant
+   même que le filtre s'applique. `?.` court-circuite l'accès, et `or` fournit la
+   valeur de repli. #}
 <input
-    type="{{ field.type_field | default(value='hidden') }}"
-    name="{{ field.name | default(value='csrf_token') }}"
-    id="id_{{ field.name | default(value='csrf_token') }}"
-    value="{{ csrf_token | default(value=field.value) }}"
+    type="{{ field?.type_field or 'hidden' }}"
+    name="{{ field?.name or 'csrf_token' }}"
+    id="id_{{ field?.name or 'csrf_token' }}"
+    value="{{ csrf_token or field?.value or '' }}"
     class="runique-csrf-field"
 >
-
-

@@ -68,8 +68,59 @@ pub async fn log_admin_action(db: &ADb, log: AdminActionLog<'_>) {
     }
 }
 
+/// Marqueur substitué à la valeur d'un champ sensible dans un diff d'audit.
+/// Le champ reste listé — savoir *qu'un* mot de passe a changé est une information
+/// d'audit légitime ; connaître sa valeur, jamais.
+pub const REDACTED: &str = "••••••";
+
+/// Fragments de nom qui rendent un champ sensible.
+///
+/// La table d'historique est lisible par quiconque possède le droit sur
+/// l'historique, y compris sans accès à la table concernée : y recopier un hash de
+/// mot de passe le sort de la seule table censée le détenir et fournit du matériel
+/// d'attaque hors-ligne. Le test porte sur le nom parce que c'est le seul signal
+/// disponible sur **tous** les chemins d'écriture — y compris un `update_fn` custom
+/// qui n'passe par aucun `PasswordField`.
+const SENSITIVE_HINTS: &[&str] = &[
+    "password",
+    "passwd",
+    "pwd",
+    "secret",
+    "token",
+    "api_key",
+    "apikey",
+    "private_key",
+];
+
+/// `true` si la valeur de ce champ ne doit jamais entrer dans l'audit.
+pub fn is_sensitive_key(key: &str) -> bool {
+    let k = key.to_lowercase();
+    SENSITIVE_HINTS.iter().any(|hint| k.contains(hint))
+}
+
+/// Neutralise les valeurs sensibles d'une carte de changements `{champ: {old, new}}`.
+///
+/// Point de passage **unique** : tous les chemins d'écriture d'historique (édition
+/// simple, bulk avec ou sans `get_fn`) transitent par ici, pour qu'un futur point
+/// d'écriture ne puisse pas contourner la règle en oubliant un filtre local.
+pub fn redact_sensitive(changes: &mut serde_json::Map<String, Value>) {
+    for (key, entry) in changes.iter_mut() {
+        if !is_sensitive_key(key) {
+            continue;
+        }
+        if let Value::Object(fields) = entry {
+            for v in fields.values_mut() {
+                *v = Value::String(REDACTED.to_string());
+            }
+        } else {
+            *entry = Value::String(REDACTED.to_string());
+        }
+    }
+}
+
 /// Compares an old DB object (`get_fn` result) against submitted form fields.
 /// Returns a compact JSON string of changed fields: `{"title":{"old":"a","new":"b"}}`.
+/// Les champs sensibles sont listés mais leurs valeurs remplacées par [`REDACTED`].
 /// Returns `None` if nothing changed or old state is unavailable.
 pub fn diff_fields(old: &Value, body: &StrMap) -> Option<String> {
     let Value::Object(map) = old else {
@@ -93,8 +144,9 @@ pub fn diff_fields(old: &Value, body: &StrMap) -> Option<String> {
         }
     }
     if changes.is_empty() {
-        None
-    } else {
-        serde_json::to_string(&changes).ok()
+        return None;
     }
+    let mut changes: serde_json::Map<String, Value> = changes.into_iter().collect();
+    redact_sensitive(&mut changes);
+    serde_json::to_string(&changes).ok()
 }

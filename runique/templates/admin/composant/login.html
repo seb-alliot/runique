@@ -9,7 +9,7 @@
         <link rel="icon" type="image/x-icon" href="{{ icon_image }}">
         <meta property="og:image" content="{{ og_image }}">
 
-        <title>{% if admin_login_title %}{{ admin_login_title }}{% endif %} — {{ site_title | default(value="Administration") }}</title>
+        <title>{% if admin_login_title %}{{ admin_login_title }}{% endif %} — {{ site_title | default(value="Administration", boolean=true) }}</title>
         {% block extra_css %}
             <link rel="stylesheet" href="{{ "css/admin/variables.css" | runique_static }}">
             <link rel="stylesheet" href="{{ "css/admin/layout.css" | runique_static }}">
@@ -26,7 +26,7 @@
             <div class="login-card">
                 <div class="login-header">
                     <div class="login-logo">R</div>
-                    <h1 class="login-title">{{ site_title | default(value="Runique Admin") }}</h1>
+                    <h1 class="login-title">{{ site_title | default(value="Runique Admin", boolean=true) }}</h1>
                     <p class="login-subtitle">{% if admin_login_subtitle %}{{ admin_login_subtitle }}{% endif %}</p>
                 </div>
                 {% if error %}
@@ -39,29 +39,32 @@
                     <div class="form-group">
                         <label class="form-label" for="username">{% if admin_login_label_username %}{{ admin_login_label_username }}{% endif %}</label>
                         <input
-                            class="form-input {% if errors.username %}error{% endif %}"
+                            class="form-input {% if errors?.username %}error{% endif %}"
                             type="text"
                             id="username"
                             name="username"
-                            value="{{ form.username | default(value='') }}"
+                            {# `form` n'est inséré par aucun des chemins de rendu du
+                               login : chaînage optionnel obligatoire, `default` ne
+                               rattrape pas un accès d'attribut sur un indéfini. #}
+                            value="{{ form?.username or '' }}"
                             autocomplete="username"
                             autofocus
                         >
-                        {% if errors.username %}
-                        <span class="form-error">{{ errors.username }}</span>
+                        {% if errors?.username %}
+                        <span class="form-error">{{ errors?.username }}</span>
                         {% endif %}
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="password">{% if admin_login_label_password %}{{ admin_login_label_password }}{% endif %}</label>
                         <input
-                            class="form-input {% if errors.password %}error{% endif %}"
+                            class="form-input {% if errors?.password %}error{% endif %}"
                             type="password"
                             id="password"
                             name="password"
                             autocomplete="current-password"
                         >
-                        {% if errors.password %}
-                        <span class="form-error">{{ errors.password }}</span>
+                        {% if errors?.password %}
+                        <span class="form-error">{{ errors?.password }}</span>
                         {% endif %}
                     </div>
                     <button type="submit" class="btn btn-primary login-btn">

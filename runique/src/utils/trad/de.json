@@ -278,7 +278,6 @@
       "username_too_short": "Benutzername ist zu kurz (min. 3 Zeichen)",
       "invalid_email": "Ungültiges E-Mail-Adressformat"
     },
-
     "login": {
       "title": "Anmeldung",
       "subtitle": "Melden Sie sich an, um auf das Admin-Panel zuzugreifen",
@@ -307,7 +306,11 @@
       "btn_list": "Liste",
       "btn_create": "Erstellen",
       "empty_title": "Keine Ressourcen registriert",
-      "empty_desc": "Deklarieren Sie Ihre Ressourcen in src/admin.rs mit dem admin!{{}}-Makro und führen Sie dann runique start aus"
+      "empty_desc": "Deklarieren Sie Ihre Ressourcen in src/admin.rs mit dem admin!{{}}-Makro und führen Sie dann runique start aus",
+      "kpi_resources": "Ressourcen",
+      "kpi_entries": "Einträge gesamt",
+      "kpi_largest": "Größte",
+      "th_count": "Einträge"
     },
     "list": {
       "breadcrumb_admin": "Administration",
@@ -350,7 +353,9 @@
       "btn_list": "← Liste",
       "btn_edit": "Bearbeiten",
       "btn_delete": "Löschen",
-      "confirm_delete": "Diesen Eintrag löschen?"
+      "confirm_delete": "Diesen Eintrag löschen?",
+      "btn_reset_password": "Passwort zurücksetzen",
+      "btn_reset_password_short": "Zurücksetzen"
     },
     "reset_password": {
       "btn": "Passwort zurücksetzen",
@@ -397,7 +402,9 @@
       "title": "Administration",
       "breadcrumb": "Admin",
       "toggle": "Menü einklappen",
-      "logout_title": "Abmelden"
+      "logout_title": "Abmelden",
+      "theme_toggle": "Design wechseln",
+      "back_to_site": "← Website"
     },
     "superuser_wizard": {
       "title": "=== Superbenutzer erstellen ===",

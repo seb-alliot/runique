@@ -283,7 +283,7 @@ impl Request {
                         // Detailed log of the Tera error with all sources
                         error!(
                             template = template,
-                            error_kind = ?e.kind,
+                            error_kind = ?e.kind(),
                             error_message = %e,
                             "Tera rendering failed in debug mode"
                         );
@@ -307,7 +307,7 @@ impl Request {
                         "Failed to initialize TemplateLoader in debug mode"
                     );
                     return Err(AppError::map_tera(
-                        tera::Error::msg(e.to_string()),
+                        tera::Error::message(e.to_string()),
                         template,
                         &self.engine.tera,
                     ));
@@ -325,7 +325,9 @@ impl Request {
 
     /// Fluent insertion with builder pattern
     pub fn insert(mut self, key: &str, value: impl serde::Serialize) -> Self {
-        self.context.insert(key, &value);
+        // Tera 2 stores keys as `Cow<'static, str>`; the borrowed `&str` of this
+        // public signature is owned here so callers keep passing plain `&str`.
+        self.context.insert(key.to_string(), &value);
         self
     }
 
@@ -336,7 +338,7 @@ impl Request {
         data: Vec<(&str, serde_json::Value)>,
     ) -> AppResult<Response> {
         for (k, v) in data {
-            self.context.insert(k, &v);
+            self.context.insert(k.to_string(), &v);
         }
         self.render(template)
     }

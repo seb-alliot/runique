@@ -19,6 +19,16 @@ pub struct FieldConfig {
     pub html_attributes: StrMap,
     pub template_name: String,
     pub extra_context: JsonMap,
+    /// Champ dont la valeur ne doit **jamais** ressortir : ni dans le widget rendu,
+    /// ni dans un audit, ni dans une vue d'administration.
+    ///
+    /// Privé et sans setter d'extinction : la seule façon de l'activer est
+    /// [`FieldConfig::mark_password`], il n'existe aucun moyen de le désactiver.
+    /// Se lit par [`FieldConfig::is_password`], qui vaut également `true` pour tout
+    /// champ de type `password` — un champ sensible reste donc protégé même si
+    /// personne n'a pensé à poser le drapeau.
+    #[serde(default)]
+    is_password: bool,
 }
 
 impl FieldConfig {
@@ -34,7 +44,30 @@ impl FieldConfig {
             html_attributes: HashMap::new(),
             template_name: template_name.to_string(),
             extra_context: HashMap::new(),
+            // Dérivé du type dès la construction : tout champ `password`, quel que
+            // soit le constructeur emprunté, naît protégé. Le drapeau ne peut donc
+            // pas être manqué par omission.
+            is_password: type_field == "password",
         }
+    }
+
+    /// `true` si la valeur de ce champ ne doit jamais être exposée.
+    ///
+    /// Le type l'emporte sur le drapeau : même si le champ a été construit à la
+    /// main sans passer par `mark_password`, un `type_field` valant `password`
+    /// suffit à le protéger.
+    #[must_use]
+    pub fn is_password(&self) -> bool {
+        self.is_password || self.type_field == "password"
+    }
+
+    /// Marque le champ comme portant un secret (clé d'API, jeton…).
+    ///
+    /// Sens unique, volontairement : il n'existe pas d'opération inverse. Un champ
+    /// déclaré sensible ne peut pas cesser de l'être en cours de route, ce qui
+    /// interdit qu'un chemin de code le « démasque » par erreur.
+    pub fn mark_password(&mut self) {
+        self.is_password = true;
     }
 }
 
@@ -76,6 +109,15 @@ pub struct Range {
 pub trait CommonFieldConfig {
     fn get_field_config(&self) -> &FieldConfig;
     fn get_field_config_mut(&mut self) -> &mut FieldConfig;
+
+    /// `true` si la valeur du champ ne doit jamais être exposée.
+    ///
+    /// Point d'interrogation unique du framework : rendu, remplissage, journaux et
+    /// audit passent tous par ici, plutôt que de comparer `field_type()` à la
+    /// chaîne `"password"` chacun de leur côté.
+    fn is_password(&self) -> bool {
+        self.get_field_config().is_password()
+    }
 }
 
 impl CommonFieldConfig for FieldConfig {
@@ -207,6 +249,22 @@ pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Syn
 
     /// Field-type specific validation
     fn validate(&mut self) -> bool;
+
+    /// Contexte de rendu commun à **tous** les champs.
+    ///
+    /// Chaque implémentation de [`FormField::render`] part de là et n'ajoute que
+    /// ses variables propres. Les templates de `field_html/` consomment tous
+    /// `field`, `readonly.choice` et `disabled.choice` : les oublier ne se voyait
+    /// pas sous Tera 1, qui évaluait une variable absente à faux — l'attribut
+    /// n'était alors jamais posé, sans la moindre erreur. Neuf rendus sur dix-huit
+    /// étaient dans ce cas.
+    fn base_context(&self) -> tera::Context {
+        let mut context = tera::Context::new();
+        context.insert("field", self.get_field_config());
+        context.insert("readonly", &self.to_json_readonly());
+        context.insert("disabled", &self.to_json_disabled());
+        context
+    }
 
     /// HTML rendering of the field
     fn render(&self, tera: &ATera) -> Result<String, String>;

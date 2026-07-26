@@ -17,22 +17,9 @@
   </header>
   {% endblock %}
 
-  {% set_global can_edit = false %}
-  {% if current_user %}
-    {% if current_user.is_superuser %}
-      {% set_global can_edit = true %}
-    {% else %}
-      {% for groupe in current_user.groupes %}
-        {% for perm in groupe.permissions %}
-          {% if perm.resource_key == resource.key and perm.can_update %}
-            {% set_global can_edit = true %}
-          {% endif %}
-        {% endfor %}
-      {% endfor %}
-    {% endif %}
-  {% endif %}
-
-  {% if current_user and can_edit %}
+  {# Aucun garde de permission ici : CollectionAction::Bulk.authorize_get exige
+     can_update et redirige vers la liste avant tout rendu. Tera 2 interdit par
+     ailleurs de placer un bloc dans une condition. #}
   <form method="POST" action="{{ resource_base }}/bulk" id="bulk-edit-form">
     {% csrf %}
     <input type="hidden" name="bulk_action" value="update-submit">
@@ -47,7 +34,7 @@
       </div>
       <div class="admin-card__body">
         <div id="bulk-fields-main" class="form-grid">
-          {% if form_fields is defined and form_fields.html is defined and form_fields.html %}
+          {% if form_fields?.html %}
             {{ form_fields.html | safe }}
           {% else %}
             <p>{% if admin_edit_no_fields %}{{ admin_edit_no_fields }}{% endif %}</p>
@@ -80,15 +67,4 @@
     </div>
     {% endblock %}
   </form>
-  {% else %}
-  {% block group_edit_denied %}
-  <div class="admin-card">
-    <div class="admin-card__body">
-      <div class="admin-empty-state">
-        <p class="admin-empty-state__desc">Vous n'avez pas les droits nécessaires pour modifier ces éléments.</p>
-      </div>
-    </div>
-  </div>
-  {% endblock %}
-  {% endif %}
 {% endblock %}

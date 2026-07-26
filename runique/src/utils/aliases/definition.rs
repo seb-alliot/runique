@@ -7,7 +7,7 @@ use crate::prelude::{HostPolicy, PermissionsPolicy, SecurityPolicy};
 use crate::utils::{csp_nonce::CspNonce, csrf::CsrfToken};
 use sea_orm::DatabaseConnection;
 use std::{collections::HashMap, result::Result, sync::Arc, sync::RwLock};
-use tera::{Result as TeraResult, Tera, Value};
+use tera::{Tera, TeraResult, Value};
 use tower_sessions::{SessionManagerLayer, SessionStore};
 
 // Import for new aliases
@@ -76,8 +76,11 @@ pub type StrMap = HashMap<String, String>;
 /// String-to-Vec<String> map (raw multipart/urlencoded form data)
 pub type StrVecMap = HashMap<String, Vec<String>>;
 
-/// String-to-JSON map (Tera args, serialized form data)
-pub type JsonMap = HashMap<String, Value>;
+/// String-to-JSON map (serialized form data, field `extra_context`).
+/// Deliberately `serde_json::Value`, not `tera::Value`: these maps are built with
+/// `json!()` and reach templates through `Context::insert` (which takes `Serialize`).
+/// Tera 2 passes filter/function arguments as `Kwargs`, so no alias is needed there.
+pub type JsonMap = HashMap<String, serde_json::Value>;
 
 /// Ordered form fields collection
 pub type FieldsMap = IndexMap<String, Box<dyn FormField>>;

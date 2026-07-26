@@ -278,7 +278,6 @@
       "username_too_short": "O nome de usuário é muito curto (min 3 car.)",
       "invalid_email": "Formato de endereço de e-mail inválido"
     },
-
     "login": {
       "title": "Entrar",
       "subtitle": "Faça login para acessar o painel de administração",
@@ -307,7 +306,11 @@
       "btn_list": "Lista",
       "btn_create": "Criar",
       "empty_title": "Nenhum recurso registrado",
-      "empty_desc": "Declare seus recursos em src/admin.rs com a macro admin!{{}} e depois execute runique start"
+      "empty_desc": "Declare seus recursos em src/admin.rs com a macro admin!{{}} e depois execute runique start",
+      "kpi_resources": "Recursos",
+      "kpi_entries": "Total de entradas",
+      "kpi_largest": "Maior",
+      "th_count": "Entradas"
     },
     "list": {
       "breadcrumb_admin": "Administração",
@@ -352,7 +355,9 @@
       "btn_list": "← Lista",
       "btn_edit": "Editar",
       "btn_delete": "Excluir",
-      "confirm_delete": "Excluir esta entrada?"
+      "confirm_delete": "Excluir esta entrada?",
+      "btn_reset_password": "Redefinir senha",
+      "btn_reset_password_short": "Redefinir"
     },
     "reset_password": {
       "btn": "Redefinir senha",
@@ -400,7 +405,9 @@
       "title": "Administração",
       "breadcrumb": "Admin",
       "toggle": "Recolher menu",
-      "logout_title": "Sair"
+      "logout_title": "Sair",
+      "theme_toggle": "Alternar tema",
+      "back_to_site": "← Site"
     },
     "superuser_wizard": {
       "title": "=== Criar superusuário ===",

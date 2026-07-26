@@ -63,7 +63,7 @@
         {% endif %}
 
         {# Table des matières — bloc sommaire (manuel) ou auto depuis les headings #}
-        {% set sommaire_blocks = blocks | filter(attribute="block_type", value="sommaire") %}
+        {% set sommaire_blocks = [b for b in blocks if b.block_type == "sommaire"] %}
         {% if sommaire_blocks %}
         <nav class="doc-toc">
             <strong>{% if lang == "fr" %}Sur cette page{% else %}On this page{% endif %}</strong>
@@ -72,7 +72,7 @@
             {% endfor %}
         </nav>
         {% else %}
-        {% set headings = blocks | filter(attribute="heading") %}
+        {% set headings = [b for b in blocks if b.heading] %}
         {% if headings %}
         <nav class="doc-toc">
             <strong>{% if lang == "fr" %}Sur cette page{% else %}On this page{% endif %}</strong>

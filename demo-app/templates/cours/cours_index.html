@@ -22,7 +22,7 @@
     <p class="cours-index-lead">From beginner to advanced — all courses to master Rust.</p>
 
     {% for niveau in niveaux %}
-    {% set niveau_cours = cours | filter(attribute="difficulte", value=niveau) %}
+    {% set niveau_cours = [c for c in cours if c.difficulte == niveau] %}
     {% if niveau_cours %}
     <section class="cours-niveau-section cours-niveau-section--{{ niveau }}">
         <h2>

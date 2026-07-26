@@ -73,6 +73,9 @@ classDiagram
         +type_field / template_name
         +StrMap html_attributes
         +JsonMap extra_context
+        -bool is_password
+        +is_password() bool
+        +mark_password()
     }
     class LengthConstraint { +u32 value +String message }
     class BoolChoice { +bool choice }

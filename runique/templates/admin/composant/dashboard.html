@@ -23,7 +23,9 @@
 {% set_global max_count = 0 %}
 {% set_global max_name = "—" %}
 {% for resource in resources %}
-    {% set c = resource_counts[resource.key] | int(default=0) %}
+    {# `int` a perdu son argument `default` en Tera 2 (il ne prend plus que `base`) :
+       le repli passe donc en tête de chaîne. #}
+    {% set c = resource_counts[resource.key] | default(value=0) | int %}
     {% set_global total_entries = total_entries + c %}
     {% if c > max_count %}{% set_global max_count = c %}{% set_global max_name = resource.title %}{% endif %}
 {% endfor %}

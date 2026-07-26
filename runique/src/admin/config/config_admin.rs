@@ -13,7 +13,10 @@ pub struct AdminConfig {
     /// Enables the hot reload daemon in development
     pub hot_reload: bool,
 
-    /// Title displayed in the admin interface
+    /// Title displayed in the admin interface (browser tab + sidebar).
+    /// Empty when the developer has not called [`AdminConfig::site_title`]:
+    /// templates then fall back to the translated `admin.base.title`, so a project
+    /// that sets nothing follows the active language instead of a hardcoded string.
     pub site_title: String,
 
     /// Return URL to the main site (default: "/")
@@ -103,7 +106,7 @@ impl AdminConfig {
         Self {
             prefix: "/admin".to_string(),
             hot_reload: is_debug(),
-            site_title: "Administration".to_string(),
+            site_title: String::new(),
             site_url: "/".to_string(),
             enabled: true,
             auth: None,

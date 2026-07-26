@@ -4,7 +4,7 @@ use crate::utils::trad::{t, tf};
 use serde::Serialize;
 use serde_json::{Value, json};
 use std::sync::Arc;
-use tera::{Context, Tera};
+use tera::Tera;
 
 /// Option for choice fields
 #[derive(Clone, Debug, Serialize)]
@@ -120,12 +120,9 @@ impl FormField for ChoiceField {
     }
 
     fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
-        let mut context = Context::new();
-        context.insert("field", &self.base);
+        let mut context = self.base_context();
         context.insert("choices", &self.choices);
         context.insert("multiple", &self.multiple);
-        context.insert("readonly", &self.to_json_readonly());
-        context.insert("disabled", &self.to_json_disabled());
 
         tera.render(&self.base.template_name, &context)
             .map_err(|e| {
@@ -217,8 +214,7 @@ impl FormField for RadioField {
     }
 
     fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
-        let mut context = Context::new();
-        context.insert("field", &self.base);
+        let mut context = self.base_context();
         context.insert("choices", &self.choices);
         context.insert("meta", &self.to_json_meta());
         tera.render(&self.base.template_name, &context)
@@ -335,8 +331,7 @@ impl FormField for CheckboxField {
     }
 
     fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
-        let mut context = Context::new();
-        context.insert("field", &self.base);
+        let mut context = self.base_context();
         context.insert("choices", &self.choices);
         context.insert("meta", &self.to_json_meta());
 

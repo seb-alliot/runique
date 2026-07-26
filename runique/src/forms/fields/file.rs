@@ -35,7 +35,7 @@ use image::ImageReader;
 use serde::Serialize;
 use std::path::Path;
 use std::sync::Arc;
-use tera::{Context, Tera};
+use tera::Tera;
 
 /// Deletes uploaded files from disk (cleanup on validation failure)
 fn cleanup_files(files: &[String]) {
@@ -606,11 +606,10 @@ impl FormField for FileField {
     }
 
     fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
-        let mut context = Context::new();
+        let mut context = self.base_context();
 
         let is_image = matches!(self.field_type, FileFieldType::Image);
 
-        context.insert("field", &self.base);
         context.insert("allowed_extensions", &self.allowed_extensions);
         context.insert("multiple", &(self.max_files.unwrap_or(1) > 1));
         context.insert("is_file", &true);
@@ -629,8 +628,6 @@ impl FormField for FileField {
         if let Some(h) = self.max_height {
             context.insert("max_height", &h);
         }
-        context.insert("readonly", &self.to_json_readonly());
-        context.insert("disabled", &self.to_json_disabled());
         tera.render(&self.base.template_name, &context)
             .map_err(|e| {
                 tf(

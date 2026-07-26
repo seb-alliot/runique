@@ -8,6 +8,7 @@
 //! | `db`          | SQLite en mémoire : `fresh_db()`, `exec()`, `count()`, …    |
 //! | `db_postgres` | PostgreSQL Docker : `connect()`, `exec()`, `count()`, …     |
 //! | `db_mariadb`  | MariaDB Docker : `connect()`, `exec()`, `count()`, …        |
+//! | `tera`        | Appel direct de filtres/fonctions : `kwargs()`, `no_kwargs()` |
 
 pub mod assert;
 pub mod db;
@@ -15,3 +16,4 @@ pub mod db_mariadb;
 pub mod db_postgres;
 pub mod request;
 pub mod server;
+pub mod tera;

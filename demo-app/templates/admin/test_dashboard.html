@@ -6,13 +6,9 @@
         <link rel="icon" type="image/png" href="{% media "favicon/favicon.ico" %}">
     {% endblock %}
 {% block title %}Administration{% endblock %}
-    {% block breadcrumb %}
-    <div class="breadcrumb">
-        <span>Admin</span>
-        <span class="breadcrumb-sep">/</span>
-        <span>Dashboard</span>
-    </div>
-    {% endblock %}
+    {# Pas de bloc `breadcrumb` ici : il appartient à admin_base.html, alors que ce
+       template étend admin_template.html — la coquille nue, sans sidebar ni topbar.
+       Le fil d'Ariane n'a donc jamais été rendu. #}
     {% block content %}
     <div class="page-header">
         <div>

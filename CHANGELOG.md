@@ -6,6 +6,73 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2.2.0] - 2026-07-27
+
+> Migration to **Tera 2.1**. Beyond the port itself, Tera 2 stops treating a missing value as a
+> false one: an undefined variable, a block with no parent, an unknown filter are now errors
+> instead of silence. That single change surfaced **ten latent defects**, all predating this
+> release and none detectable by the compiler, the test suite or normal use. They are listed
+> under *Fix* and *Security* below.
+
+### Breaking — `runique` (Tera 1.20 → 2.1)
+
+* **Template engine upgraded to Tera 2.1.** Project templates may need changes. The three rules that bite:
+  * a **`{% block %}` can no longer sit inside `{% if %}` or `{% for %}`** — inheritance resolves blocks statically, so a block whose existence depends on runtime state is rejected. Move the condition *inside* the block;
+  * a **block defined in a child but absent from the parent is now an error** (it was silently discarded);
+  * **`x.y is defined` no longer protects an undefined `x`** — the attribute access is evaluated first. Use the new optional chaining: `x?.y`.
+* **Filters moved out of Tera's core** into `tera-contrib`. Runique re-registers them so **no template change is required**, under both their upstream names and their Tera 1 names: `urlencode`, `urlencode_strict`, `date`, `json_encode`, `striptags`, `spaceless`, `regex_replace`, `slug` (alias `slugify`), `filesize_format` (alias `filesizeformat`), functions `now`, `get_random`, filter `shuffle`, tests `before`, `after`, `matching`.
+* **`filter(attribute=…)` was removed upstream with no replacement.** Rewrite as a list comprehension: `{% set x = items | filter(attribute="k", value=v) %}` → `{% set x = [i for i in items if i.k == v] %}`.
+* **`int` lost its `default` argument** (it now only takes `base`): use `value | default(value=0) | int`.
+* **Admin template blocks `create_denied`, `edit_denied`, `delete_denied`, `group_edit_denied` removed.** They were unreachable: the server denies and redirects before rendering. A project overriding them will now fail at template load.
+* **`AdminConfig::site_title` now defaults to empty** instead of `"Administration"`, so an unset title falls back to the translated `admin.base.title` rather than a hardcoded English-ish string. Set it explicitly via `.site_title(...)` to override.
+
+### Security — `runique` (password hashes written to the audit log and shown in the admin)
+
+* **`eihwaz_history` recorded the value of every changed field, password columns included.** Editing a user through the admin stored the old and new Argon2 hashes in the history table, and the history diff view displayed them. Impact: credential material duplicated outside the users table, retained indefinitely, and readable by anyone holding the *history* permission **without** access to the users table — a permission-boundary bypass, plus offline-cracking material for weak passwords.
+  Sensitive values are now replaced by `••••••` at **five** chokepoints — two on write (`diff_fields`, `summary_json` covering all four bulk paths) and two on read (`DiffField`, `parse_diff`). The field is still listed: *that* a password changed is legitimate audit data, its value is not. **Redaction on read also neutralizes rows written before this release, with no data migration.**
+
+### Security — `runique` (non-bypassable sensitive-field marking)
+
+* **`FieldConfig::is_password`**, private, one-way, derived from the type. Any field built with `type_field == "password"` is marked at construction — the protection cannot be lost by forgetting to ask for it. `mark_password()` sets it; **no operation clears it**. The reader `is_password()` also re-tests the type, so even a deserialization setting the flag to `false` is ineffective. It replaces the `field_type() == "password"` string comparisons previously scattered across `fill()`, and now drives widget rendering, the GET skip, the `required` relaxation on edit, and log masking.
+* **`form_fields` no longer carries password values.** They were serialized into the create/edit page context — not rendered by the built-in templates, but a project template iterating `form_fields` would have printed them.
+
+### Fix — `runique` (readonly/disabled never applied on nine field types)
+
+* `base_datetime.html`, `base_file.html`, `base_special.html`, `base_string.html` and `base_hidden.html` all test `readonly.choice` / `disabled.choice`, but **9 of the 18 field renderers never inserted them** — Tera 1 evaluated the missing variable as false, so the attribute was simply never emitted, silently. `text.rs` even carried an `// IMPORTANT: Inject readonly/disabled config` comment followed by nothing. Fixed by collapsing the contract into a single path: **`FormField::base_context()`** provides `field`, `readonly` and `disabled`, and all 18 renderers start from it. A new field type inherits the contract without thinking about it.
+
+### Fix — `runique` (admin templates duplicated the permission rules — and got them wrong)
+
+* Nine admin templates recomputed permissions in Tera by walking `current_user.groupes[].permissions[]`, **shadowing** the flags `inject_context` already provides. That copy tested only `can_update` / `can_delete` and **ignored `can_update_own` / `can_delete_own`**: a user holding own-record rights on a record they own was *granted* access by the server and *refused* by the UI. The duplicated computation is removed from `create`, `edit`, `delete` and `bulk_edit`, whose guards were unreachable anyway (`authorize_get` / `MemberAction::authorize` redirect before rendering).
+
+### Fix — `runique` (twenty-two inert `title` blocks, and a `<title>` ignoring `site_title`)
+
+* Eleven admin templates declared `{% block title %}` while the root template hardcoded its `<title>` with no such block: every admin page shared one browser-tab title. The root now declares the block, defaulting to `site_title`, then to the translated `admin.base.title` — so per-page titles work, an unset title is localized, and the value configured in `main.rs` finally reaches the tab.
+
+### Fix — `runique` (internal templates loaded one by one)
+
+* Tera 2 resolves `{% include %}` and `{% extends %}` when a template is *added*, so a loop over `add_raw_template` rejected any template whose dependency came later in iteration order (`debug.html` includes six partials declared after it) — **the framework would not boot**. Internal templates are now added as a single batch via `add_raw_templates`, which validates once at the end and rolls back atomically on failure.
+
+### Fix — `runique` (login page crashed; per-field errors never displayed)
+
+* `login.html` dereferenced `form.username` and `errors.username`, **neither of which is inserted by any of the five login render paths** — a fatal error under Tera 2. Beyond the crash, it means the per-field error messages of the login form could never be displayed: the only place inserting `errors` is a local `_context` in `renderer.rs` that is built and discarded.
+
+### Fix — `runique` (debug error page parsed a fabricated error)
+
+* `from_runique_error` called `tera.get_template(name).unwrap_err()` and parsed a line number out of the resulting *"template not found"* error — unrelated to where rendering actually failed. It now reads the message carried by `RuniqueError::Template`. (`get_template` also became private upstream.)
+
+### Fix — `runique` (eight missing i18n keys)
+
+* `admin.base.theme_toggle`, `admin.base.back_to_site`, `admin.dashboard.kpi_resources`, `admin.dashboard.kpi_entries`, `admin.dashboard.kpi_largest`, `admin.dashboard.th_count`, `admin.detail.btn_reset_password` and its new short variant were referenced by templates but existed **neither** in `ADMIN_MESSAGE_KEYS` **nor** in any translation file. The `{% if key %}…{% else %}French{% endif %}` pattern hid the gap: eight admin labels were hardcoded French in a framework shipping nine languages. Added across all nine.
+
+### Internal — `runique`
+
+* `JsonMap` is now `HashMap<String, serde_json::Value>`. It was typed on `tera::Value`, which in Tera 1 *was* `serde_json::Value`; the two types diverged in 2.0, dragging the whole forms layer into the migration for no reason. Tera 2 passes filter arguments as `Kwargs`, so no alias is needed there.
+* Custom filters and functions ported to the Tera 2 signature (`Fn(Arg, Kwargs, &State) -> Res`). `markdown`, `sanitize`, `form` and `csrf_field` now declare `is_safe()` and return `Value::safe_string`, which **removes `MARKDOWN_REGEX` and `SANITIZE_REGEX`** from the template preprocessor: safety is now an invariant sitting next to the sanitizer rather than a `| safe` injected into template source by a regex. `plaintext` is deliberately left escaped.
+* Both CSRF entry points (`csrf_field` filter, `csrf_token()` function) now run the token through `escape_html` before interpolation — the tag is emitted unescaped, so its safety must not depend on a guarantee made in another module.
+* Test helper `tests/helpers/tera.rs` (`kwargs()`, `no_kwargs()`) and a new `tests/context/test_autoescape.rs` covering the escaping contract end to end: a plain variable is escaped, `plaintext` stays escaped, `markdown` emits HTML without `| safe`, and the same value is escaped without the filter.
+
+---
+
 ## [2.1.21] - 2026-06-30
 
 > Security and robustness audit from a full reverse-engineering of the framework into

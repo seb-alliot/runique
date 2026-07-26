@@ -278,7 +278,6 @@
       "username_too_short": "Le nom d'utilisateur est trop court (min 3 car.)",
       "invalid_email": "Format d'adresse email invalide"
     },
-
     "login": {
       "title": "Connexion",
       "subtitle": "Connectez-vous pour accéder au panneau d'administration",
@@ -308,7 +307,11 @@
       "btn_create": "Créer",
       "see_list": "Voir la liste →",
       "empty_title": "Aucune ressource enregistrée",
-      "empty_desc": "Déclarez vos ressources dans src/admin.rs avec le macro admin!{{}} puis lancez runique start"
+      "empty_desc": "Déclarez vos ressources dans src/admin.rs avec le macro admin!{{}} puis lancez runique start",
+      "kpi_resources": "Ressources",
+      "kpi_entries": "Entrées totales",
+      "kpi_largest": "Plus grande",
+      "th_count": "Entrées"
     },
     "list": {
       "breadcrumb_admin": "Administration",
@@ -353,7 +356,9 @@
       "btn_list": "← Liste",
       "btn_edit": "Modifier",
       "btn_delete": "Supprimer",
-      "confirm_delete": "Supprimer cette entrée ?"
+      "confirm_delete": "Supprimer cette entrée ?",
+      "btn_reset_password": "Réinitialiser le mot de passe",
+      "btn_reset_password_short": "Réinitialiser"
     },
     "reset_password": {
       "btn": "Réinitialiser le mot de passe",
@@ -401,7 +406,9 @@
       "title": "Administration",
       "breadcrumb": "Admin",
       "toggle": "Réduire le menu",
-      "logout_title": "Déconnexion"
+      "logout_title": "Déconnexion",
+      "theme_toggle": "Basculer le thème",
+      "back_to_site": "← Site"
     },
     "superuser_wizard": {
       "title": "=== Créer un superutilisateur ===",

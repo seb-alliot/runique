@@ -278,7 +278,6 @@
       "username_too_short": "Username is too short (min 3 chars)",
       "invalid_email": "Invalid email address format"
     },
-
     "login": {
       "title": "Login",
       "subtitle": "Sign in to access the admin panel",
@@ -307,7 +306,11 @@
       "btn_list": "List",
       "btn_create": "Create",
       "empty_title": "No resources registered",
-      "empty_desc": "Declare your resources in src/admin.rs with the admin!{{}} macro then run runique start"
+      "empty_desc": "Declare your resources in src/admin.rs with the admin!{{}} macro then run runique start",
+      "kpi_resources": "Resources",
+      "kpi_entries": "Total entries",
+      "kpi_largest": "Largest",
+      "th_count": "Entries"
     },
     "list": {
       "breadcrumb_admin": "Administration",
@@ -352,7 +355,9 @@
       "btn_list": "← List",
       "btn_edit": "Edit",
       "btn_delete": "Delete",
-      "confirm_delete": "Delete this entry?"
+      "confirm_delete": "Delete this entry?",
+      "btn_reset_password": "Reset password",
+      "btn_reset_password_short": "Reset"
     },
     "reset_password": {
       "btn": "Reset password",
@@ -400,7 +405,9 @@
       "title": "Administration",
       "breadcrumb": "Admin",
       "toggle": "Collapse menu",
-      "logout_title": "Logout"
+      "logout_title": "Logout",
+      "theme_toggle": "Toggle theme",
+      "back_to_site": "← Site"
     },
     "superuser_wizard": {
       "title": "=== Create Superuser ===",

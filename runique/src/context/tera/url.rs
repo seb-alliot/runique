@@ -1,31 +1,36 @@
 //! Tera `link` function — named URL resolution from the global registry, with optional parameters.
-use crate::utils::aliases::{ARlockmap, JsonMap, TResult};
-use tera::{Function, Value};
+use crate::utils::aliases::{ARlockmap, JsonMap};
+use serde_json::Value;
+use tera::{Function, Kwargs, State, TeraResult};
 
 pub struct LinkFunction {
     pub url_registry: ARlockmap,
 }
 
-impl Function for LinkFunction {
-    fn call(&self, args: &JsonMap) -> TResult {
-        link_function(args, &self.url_registry)
+impl Function<TeraResult<String>> for LinkFunction {
+    fn call(&self, kwargs: Kwargs, _: &State) -> TeraResult<String> {
+        link_function(&kwargs, &self.url_registry)
     }
 }
 
-fn link_function(args: &JsonMap, url_registry: &ARlockmap) -> TResult {
-    let link_name = args
-        .get("link")
-        .and_then(|v| v.as_str())
-        .ok_or_else(|| tera::Error::msg("link() requires a 'link' argument"))?;
+fn link_function(kwargs: &Kwargs, url_registry: &ARlockmap) -> TeraResult<String> {
+    // A missing or non-string `link` is reported by Tera itself.
+    let link_name = kwargs.must_get::<&str>("link")?;
 
     let map = url_registry.read().unwrap_or_else(|e| e.into_inner());
     let pattern = map.get(link_name).cloned().ok_or_else(|| {
-        tera::Error::msg(format!(
+        tera::Error::message(format!(
             "Route '{}' not found.\n\nVerify that the route exists in your routes!",
             link_name
         ))
     })?;
     drop(map);
+
+    // The remaining arguments are route/query parameters of arbitrary shape
+    // (`query` may itself be an object). Deserializing into `serde_json::Value`
+    // keeps the pattern-matching below on a public enum — `tera::Value` has
+    // private fields and no variants to match on.
+    let args: JsonMap = kwargs.deserialize()?;
 
     // Substitute route parameters {id}, {slug}, etc.
     let mut result = args
@@ -67,7 +72,7 @@ fn link_function(args: &JsonMap, url_registry: &ARlockmap) -> TResult {
         }
     }
 
-    Ok(Value::String(result))
+    Ok(result)
 }
 
 // Usage examples in templates:

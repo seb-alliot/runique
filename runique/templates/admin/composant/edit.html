@@ -17,22 +17,10 @@
   </header>
   {% endblock %}
 
-  {% set_global can_edit = false %}
-  {% if current_user %}
-    {% if current_user.is_superuser %}
-      {% set_global can_edit = true %}
-    {% else %}
-      {% for groupe in current_user.groupes %}
-        {% for perm in groupe.permissions %}
-          {% if perm.resource_key == resource.key and perm.can_update %}
-            {% set_global can_edit = true %}
-          {% endif %}
-        {% endfor %}
-      {% endfor %}
-    {% endif %}
-  {% endif %}
-
-  {% if current_user and can_edit %}
+  {# Aucun garde de permission ici : MemberAction::Edit.authorize refuse l'accès et
+     redirige avant tout rendu, en tenant compte de can_update_own sur un
+     enregistrement possédé — ce que le calcul Tera supprimé ici ne faisait pas.
+     Tera 2 interdit par ailleurs de placer un bloc dans une condition. #}
   {% block edit_form %}
   <div class="admin-card admin-card--form" data-admin-auto-init>
     <div class="admin-card__header">
@@ -43,7 +31,7 @@
         {% csrf %}
         {% if orig_updated_at is defined %}
         <input type="hidden" name="__original_updated_at" value="{{ orig_updated_at }}">
-        {% elif object.updated_at is defined %}
+        {% elif object?.updated_at is defined %}
         <input type="hidden" name="__original_updated_at" value="{{ object.updated_at }}">
         {% endif %}
         {% if return_qs is defined and return_qs %}
@@ -51,7 +39,7 @@
         {% endif %}
         {% block edit_form_fields %}
         <div class="form-grid">
-          {% if form_fields is defined and form_fields.html is defined and form_fields.html %}
+          {% if form_fields?.html %}
             {{ form_fields.html }}
           {% else %}
             <p>{% if admin_edit_no_fields %}{{ admin_edit_no_fields }}{% endif %}</p>
@@ -86,18 +74,6 @@
     </div>
   </div>
   {% endblock %}
-  {% else %}
-  {% block edit_denied %}
-  <div class="admin-card">
-    <div class="admin-card__body">
-      <div class="admin-empty-state">
-        <p class="admin-empty-state__desc">{% if admin_access_denied %}{{ admin_access_denied }}{% else %}Vous n'avez pas les droits nécessaires pour modifier cet élément.{% endif %}</p>
-        <a href="{{ resource_base }}/list" class="btn btn-secondary">{% if admin_edit_btn_cancel %}{{ admin_edit_btn_cancel }}{% else %}Retour{% endif %}</a>
-      </div>
-    </div>
-  </div>
-  {% endblock %}
-  {% endif %}
 {% endblock %}
 {% block extra_js %}
 {{ super() }}

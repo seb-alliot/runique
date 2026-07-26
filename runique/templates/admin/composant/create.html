@@ -17,22 +17,10 @@
   </header>
   {% endblock %}
 
-  {% set_global can_create = false %}
-  {% if current_user %}
-    {% if current_user.is_superuser %}
-      {% set_global can_create = true %}
-    {% else %}
-      {% for groupe in current_user.groupes %}
-        {% for perm in groupe.permissions %}
-          {% if perm.resource_key == resource.key and perm.can_create %}
-            {% set_global can_create = true %}
-          {% endif %}
-        {% endfor %}
-      {% endfor %}
-    {% endif %}
-  {% endif %}
-
-  {% if current_user and can_create %}
+  {# Aucun garde de permission ici : CollectionAction::Create.authorize_get refuse
+     l'accès et redirige vers la liste avant tout rendu, donc ce template n'est
+     atteint qu'avec le droit can_create. Tera 2 interdit par ailleurs de placer
+     un bloc dans une condition. #}
   {% block create_form %}
   <div class="admin-card admin-card--form" data-admin-auto-init>
     <div class="admin-card__header">
@@ -42,7 +30,7 @@
       <form method="POST" action="{{ resource_base }}/create" enctype="multipart/form-data">
         {% block create_form_fields %}
         <div class="form-grid">
-          {% if form_fields is defined and form_fields.html is defined and form_fields.html %}
+          {% if form_fields?.html %}
             {% csrf %}
             {{ form_fields.html }}
           {% else %}
@@ -77,18 +65,6 @@
     </div>
   </div>
   {% endblock %}
-  {% else %}
-  {% block create_denied %}
-  <div class="admin-card">
-    <div class="admin-card__body">
-      <div class="admin-empty-state">
-        <p class="admin-empty-state__desc">{% if admin_access_denied %}{{ admin_access_denied }}{% else %}Vous n'avez pas les droits nécessaires pour créer cet élément.{% endif %}</p>
-        <a href="{{ resource_base }}/list" class="btn btn-secondary">{% if admin_create_btn_cancel %}{{ admin_create_btn_cancel }}{% else %}Retour{% endif %}</a>
-      </div>
-    </div>
-  </div>
-  {% endblock %}
-  {% endif %}
 {% endblock %}
 {% block extra_js %}
 {{ super() }}

@@ -6,6 +6,73 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ---
 
+## [2.2.0] - 2026-07-27
+
+> Migration vers **Tera 2.1**. Au-delà du portage lui-même, Tera 2 cesse de traiter une valeur
+> absente comme une valeur fausse : une variable indéfinie, un bloc sans parent, un filtre inconnu
+> deviennent des erreurs au lieu d'un silence. Ce seul changement a révélé **dix défauts latents**,
+> tous antérieurs à cette version et aucun détectable par la compilation, les tests ou l'usage
+> courant. Ils sont listés plus bas sous *Correctif* et *Sécurité*.
+
+### Rupture — `runique` (Tera 1.20 → 2.1)
+
+* **Moteur de templates passé à Tera 2.1.** Les templates d'un projet peuvent nécessiter des retouches. Les trois règles qui mordent :
+  * un **`{% block %}` ne peut plus se trouver dans un `{% if %}` ou un `{% for %}`** — l'héritage résout les blocs statiquement, un bloc dont l'existence dépend de l'exécution est donc refusé. Déplacer la condition *à l'intérieur* du bloc ;
+  * un **bloc déclaré dans un enfant mais absent du parent est désormais une erreur** (il était silencieusement ignoré) ;
+  * **`x.y is defined` ne protège plus un `x` indéfini** — l'accès à l'attribut est évalué en premier. Utiliser le nouveau chaînage optionnel : `x?.y`.
+* **Des filtres sont sortis du cœur de Tera** vers `tera-contrib`. Runique les réenregistre, donc **aucun template n'a besoin d'être modifié** : sous leur nom amont et sous leur nom Tera 1 — `urlencode`, `urlencode_strict`, `date`, `json_encode`, `striptags`, `spaceless`, `regex_replace`, `slug` (alias `slugify`), `filesize_format` (alias `filesizeformat`), les fonctions `now` et `get_random`, le filtre `shuffle`, les tests `before`, `after`, `matching`.
+* **`filter(attribute=…)` a été supprimé en amont sans remplacement.** À réécrire en compréhension de liste : `{% set x = items | filter(attribute="k", value=v) %}` → `{% set x = [i for i in items if i.k == v] %}`.
+* **`int` a perdu son argument `default`** (il ne prend plus que `base`) : utiliser `valeur | default(value=0) | int`.
+* **Les blocs `create_denied`, `edit_denied`, `delete_denied` et `group_edit_denied` sont supprimés.** Ils étaient inatteignables : le serveur refuse et redirige avant le rendu. Un projet qui les surchargeait échouera désormais au chargement du template.
+* **`AdminConfig::site_title` vaut désormais une chaîne vide par défaut** au lieu de `"Administration"` : un titre non configuré retombe sur la traduction `admin.base.title` plutôt que sur une chaîne codée en dur. Le définir explicitement via `.site_title(...)` pour l'emporter.
+
+### Sécurité — `runique` (hashes de mots de passe écrits dans l'audit et affichés dans l'admin)
+
+* **`eihwaz_history` enregistrait la valeur de chaque champ modifié, colonnes de mot de passe comprises.** Modifier un utilisateur par l'admin stockait l'ancien et le nouveau hash Argon2 dans la table d'historique, et la vue diff les affichait. Impact : du matériel d'authentification dupliqué hors de la table utilisateurs, conservé indéfiniment, et lisible par quiconque détient le droit *historique* **sans** accès à la table utilisateurs — un contournement de frontière de permission, plus du matériel de cassage hors-ligne pour un mot de passe faible.
+  Les valeurs sensibles sont désormais remplacées par `••••••` à **cinq** points de passage : deux en écriture (`diff_fields`, `summary_json` qui couvre les quatre variantes du bulk) et deux en lecture (`DiffField`, `parse_diff`). Le champ reste listé : *qu'un* mot de passe ait changé est une information d'audit légitime, sa valeur non. **La redaction en lecture neutralise aussi les lignes écrites avant cette version, sans migration de données.**
+
+### Sécurité — `runique` (marquage non contournable des champs sensibles)
+
+* **`FieldConfig::is_password`**, privé, à sens unique, dérivé du type. Tout champ construit avec `type_field == "password"` est marqué dès la construction — la protection ne peut pas être perdue en oubliant de la demander. `mark_password()` l'active ; **aucune opération ne la désactive**. Le lecteur `is_password()` reteste également le type, si bien qu'une désérialisation posant le drapeau à `false` reste sans effet. Il remplace les comparaisons de chaîne `field_type() == "password"` jusque-là éparpillées dans `fill()`, et pilote désormais le rendu du widget, le saut en GET, le relâchement de `required` en édition et le masquage dans les journaux.
+* **`form_fields` ne transporte plus la valeur des mots de passe.** Elle était sérialisée dans le contexte des pages create et edit — non rendue par les templates internes, mais un template de projet itérant `form_fields` l'aurait affichée.
+
+### Correctif — `runique` (readonly/disabled jamais appliqués sur neuf types de champs)
+
+* `base_datetime.html`, `base_file.html`, `base_special.html`, `base_string.html` et `base_hidden.html` testent tous `readonly.choice` / `disabled.choice`, mais **9 des 18 rendus de champs ne les inséraient jamais** — Tera 1 évaluait la variable absente à faux, l'attribut n'était donc simplement jamais posé, en silence. `text.rs` portait même un commentaire `// IMPORTANT: Inject readonly/disabled config` suivi de rien. Corrigé en collapsant le contrat en un chemin unique : **`FormField::base_context()`** fournit `field`, `readonly` et `disabled`, et les 18 rendus en partent. Un nouveau type de champ hérite du contrat sans y penser.
+
+### Correctif — `runique` (les templates admin dupliquaient les règles de permission — et les appliquaient mal)
+
+* Neuf templates admin recalculaient les permissions en Tera en parcourant `current_user.groupes[].permissions[]`, **écrasant** les drapeaux déjà fournis par `inject_context`. Cette copie ne testait que `can_update` / `can_delete` et **ignorait `can_update_own` / `can_delete_own`** : un utilisateur disposant de droits sur ses propres enregistrements se voyait *autorisé* par le serveur et *refusé* par l'affichage. Le calcul dupliqué est retiré de `create`, `edit`, `delete` et `bulk_edit`, dont les gardes étaient de toute façon inatteignables (`authorize_get` / `MemberAction::authorize` redirigent avant le rendu).
+
+### Correctif — `runique` (vingt-deux blocs `title` inertes, et un `<title>` qui ignorait `site_title`)
+
+* Onze templates admin déclaraient `{% block title %}` alors que le template racine écrivait son `<title>` en dur, sans bloc correspondant : toutes les pages de l'admin partageaient le même titre d'onglet. La racine déclare désormais le bloc, avec pour défaut `site_title` puis la traduction `admin.base.title` — les titres par page fonctionnent, un titre non configuré est traduit, et la valeur définie dans `main.rs` atteint enfin l'onglet.
+
+### Correctif — `runique` (templates internes chargés un par un)
+
+* Tera 2 résout `{% include %}` et `{% extends %}` au moment où le template est *ajouté* : une boucle sur `add_raw_template` refusait donc tout template dont une dépendance arrivait plus loin dans l'ordre d'itération (`debug.html` inclut six partiels déclarés après lui) — **le framework ne démarrait pas**. Les templates internes sont désormais ajoutés en un seul lot via `add_raw_templates`, qui valide une fois à la fin et annule le lot entier en cas d'échec.
+
+### Correctif — `runique` (page de login en erreur ; erreurs par champ jamais affichées)
+
+* `login.html` déréférençait `form.username` et `errors.username`, **qu'aucun des cinq chemins de rendu du login n'insère** — erreur fatale sous Tera 2. Au-delà du plantage, cela signifie que les messages d'erreur par champ du formulaire de connexion n'ont jamais pu s'afficher : le seul endroit qui insère `errors` est un `_context` local de `renderer.rs`, construit puis jeté.
+
+### Correctif — `runique` (la page d'erreur debug analysait une erreur fabriquée)
+
+* `from_runique_error` appelait `tera.get_template(name).unwrap_err()` et extrayait un numéro de ligne de l'erreur *« template introuvable »* obtenue — sans rapport avec l'endroit où le rendu avait réellement échoué. Il lit désormais le message porté par `RuniqueError::Template`. (`get_template` est par ailleurs devenu privé en amont.)
+
+### Correctif — `runique` (huit clés i18n manquantes)
+
+* `admin.base.theme_toggle`, `admin.base.back_to_site`, `admin.dashboard.kpi_resources`, `admin.dashboard.kpi_entries`, `admin.dashboard.kpi_largest`, `admin.dashboard.th_count`, `admin.detail.btn_reset_password` et sa nouvelle variante courte étaient référencées par les templates mais n'existaient **ni** dans `ADMIN_MESSAGE_KEYS` **ni** dans aucun fichier de traduction. Le motif `{% if clé %}…{% else %}français{% endif %}` masquait la lacune : huit libellés de l'admin étaient en français codé en dur, dans un framework livrant neuf langues. Ajoutées dans les neuf.
+
+### Interne — `runique`
+
+* `JsonMap` devient `HashMap<String, serde_json::Value>`. Il était typé sur `tera::Value`, qui en Tera 1 *était* `serde_json::Value` ; les deux types ont divergé en 2.0, entraînant toute la couche formulaires dans la migration sans raison. Tera 2 passe les arguments de filtre en `Kwargs`, aucun alias n'y est donc nécessaire.
+* Filtres et fonctions personnalisés portés vers la signature Tera 2 (`Fn(Arg, Kwargs, &State) -> Res`). `markdown`, `sanitize`, `form` et `csrf_field` déclarent désormais `is_safe()` et retournent `Value::safe_string`, ce qui **supprime `MARKDOWN_REGEX` et `SANITIZE_REGEX`** du préprocesseur de templates : la sûreté devient un invariant posé à côté de l'assainissement, au lieu d'un `| safe` injecté par regex dans le source des templates. `plaintext` reste volontairement échappé.
+* Les deux points d'entrée CSRF (filtre `csrf_field`, fonction `csrf_token()`) passent le jeton par `escape_html` avant interpolation — la balise est émise sans échappement, sa sûreté ne doit donc pas dépendre d'une garantie prise dans un autre module.
+* Helper de test `tests/helpers/tera.rs` (`kwargs()`, `no_kwargs()`) et nouveau `tests/context/test_autoescape.rs` couvrant le contrat d'échappement de bout en bout : une variable simple est échappée, `plaintext` reste échappé, `markdown` sort en HTML sans `| safe`, et la même valeur est échappée sans le filtre.
+
+---
+
 ## [2.1.21] - 2026-06-30
 
 > Audit de sécurité et de robustesse issu d'une rétro-ingénierie complète du framework en

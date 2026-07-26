@@ -14,7 +14,7 @@
 
         <div class="admin-sidebar__header">
             <div class="admin-sidebar__logo">R</div>
-            <span class="admin-sidebar__title">{{ site_title | default(value="Runique Admin") }}</span>
+            <span class="admin-sidebar__title">{{ site_title | default(value=admin_base_title, boolean=true) }}</span>
         </div>
 
         <nav class="admin-sidebar__nav">

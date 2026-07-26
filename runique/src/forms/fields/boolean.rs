@@ -3,7 +3,7 @@ use crate::forms::base::*;
 use crate::utils::trad::tf;
 use serde::Serialize;
 use std::sync::Arc;
-use tera::{Context, Tera};
+use tera::Tera;
 
 /// Checkbox or radio input for boolean values.
 /// Use [`BooleanField::new`] for a checkbox, [`::radio`](BooleanField::radio) for a radio button.
@@ -73,11 +73,8 @@ impl FormField for BooleanField {
     }
 
     fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
-        let mut context = Context::new();
-        context.insert("field", &self.base);
+        let mut context = self.base_context();
         context.insert("input_type", &self.base.type_field);
-        context.insert("readonly", &self.to_json_readonly());
-        context.insert("disabled", &self.to_json_disabled());
 
         // Add the "checked" state
         let is_checked = self.base.value == "true";

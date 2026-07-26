@@ -213,3 +213,46 @@ dans le flux liste admin et relier au bug connu.
 un bulk edit/delete exige `can_create` **en plus** du droit d'opération. Comportement
 historique préservé volontairement, mais probablement une sur-restriction non intentionnelle.
 À trancher.
+
+### 🔴 A5 — `eihwaz_history` recopiait la valeur des champs sensibles
+**Corrigé (2.2.0).** [`admin/history.rs`](../../../runique/src/admin/history.rs) `diff_fields`
+parcourait le corps POST et n'excluait que `csrf_token` et `__original_updated_at` : modifier un
+utilisateur par l'admin écrivait **l'ancien et le nouveau hash Argon2** dans la table d'audit, et
+la vue diff les affichait.
+
+Ce qui rend l'anomalie sérieuse n'est pas le hash en lui-même (Argon2id `m=19456,t=2` résiste
+bien) mais **la frontière de permission franchie** : un compte disposant du droit *historique*
+sans accès à la table utilisateurs pouvait lire les empreintes de tout le monde. La table d'audit
+devenait un contournement du contrôle d'accès, et conservait indéfiniment du matériel de cassage
+hors-ligne hors de la seule table censée le détenir.
+
+Redaction à **cinq points de passage** : deux en écriture (`diff_fields` ; `summary_json`, qui
+couvre les quatre variantes du bulk) et deux en lecture (`DiffField`, `parse_diff`). Le champ
+reste listé — *qu'un* mot de passe ait changé est une information d'audit légitime, sa valeur non.
+La redaction en lecture neutralise en outre **les lignes écrites avant le correctif**, sans
+migration de données.
+
+Le test porte sur le **nom** de colonne (`is_sensitive_key`) et non sur le type de champ,
+volontairement : l'historique travaille sur des lignes DB brutes, sans objet `FormField` sous la
+main — un `update_fn` custom peut écrire une colonne sensible sans jamais passer par un
+`PasswordField`. Voir F5 pour le signal typé, qui couvre les chemins où un formulaire existe.
+
+### 🟠 A6 — Les templates admin dupliquaient les règles de permission — et les appliquaient mal
+**Corrigé (2.2.0).** Neuf templates admin recalculaient les droits en Tera en parcourant
+`current_user.groupes[].permissions[]`, **écrasant** par `set_global` les drapeaux que
+`inject_context` fournit déjà depuis `ResourcePerms::resolve`. Deux implémentations d'une même
+règle d'accès, dont le commentaire de `ResourcePerms` affirmait pourtant qu'elle était
+*« single source of truth shared by the template context and the server-side access checks »*.
+
+La copie Tera ne testait que `can_update` / `can_delete` et **ignorait `can_update_own` /
+`can_delete_own`** : un utilisateur disposant de droits sur ses propres enregistrements était
+*autorisé* par le serveur et *refusé* par l'affichage. La fonctionnalité « droits sur ses propres
+enregistrements » était donc inutilisable dans l'UI — un refus indu, pas une faille, mais un
+défaut silencieux depuis l'origine.
+
+Le calcul dupliqué est retiré de `create`, `edit`, `delete` et `bulk_edit`, dont les gardes
+étaient de toute façon **inatteignables** : `authorize_get` et `MemberAction::authorize`
+redirigent avant tout rendu. Les cinq templates restants (`list`, `list_partial`, `dashboard`,
+`detail`, `kebab`) portent encore le recalcul — les corriger suppose que Rust injecte la décision
+**effective** par enregistrement (`owns_record` n'est connu qu'après `inject_context`), et pour
+`kebab`, rendu ligne par ligne, un `owns` porté par chaque ligne. Chantier ouvert.

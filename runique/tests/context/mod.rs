@@ -5,8 +5,10 @@
 //! | `test_csp_function`      | nonce_function : nonce CSP pour templates |
 //! | `test_static_tera`       | Filtres Tera : mask, csrf_field, static… |
 //! | `test_url_function`      | LinkFunction : résolution d'URLs nommées  |
+//! | `test_autoescape`        | Contrat d'échappement : ce qui sort en HTML |
 
 pub mod test_app_error;
+pub mod test_autoescape;
 pub mod test_request_extensions;
 pub mod test_runique_context;
 pub mod test_static_tera;

@@ -14,8 +14,16 @@ use uuid::Uuid;
 
 /// Serializes a history summary to JSON. A serialization error is traced (not
 /// swallowed) and yields `None` so the summary is omitted rather than lost silently.
-fn summary_json<T: serde::Serialize>(value: &T, resource_key: &str) -> Option<String> {
-    match serde_json::to_string(value) {
+///
+/// Prend la carte par valeur pour pouvoir y appliquer [`history::redact_sensitive`]
+/// avant sérialisation : c'est le point de passage unique des chemins bulk, aucun
+/// appelant n'a à se souvenir de filtrer.
+fn summary_json(
+    mut value: serde_json::Map<String, serde_json::Value>,
+    resource_key: &str,
+) -> Option<String> {
+    history::redact_sensitive(&mut value);
+    match serde_json::to_string(&value) {
         Ok(s) => Some(s),
         Err(e) => {
             if let Some(level) = crate::utils::runique_log::get_log()
@@ -236,7 +244,7 @@ async fn handle_bulk_update(
                                 (k.clone(), serde_json::json!({ "old": old_v, "new": new_v }))
                             })
                             .collect();
-                        summary_json(&changes, entry.meta.key)
+                        summary_json(changes, entry.meta.key)
                     } else {
                         None
                     }
@@ -246,7 +254,7 @@ async fn handle_bulk_update(
                 .iter()
                 .map(|(k, v)| (k.clone(), serde_json::json!({ "new": v })))
                 .collect();
-            summary_json(&map, entry.meta.key)
+            summary_json(map, entry.meta.key)
         };
 
         match update_fn(req.engine.db.clone(), cid.clone(), updates.clone()).await {
@@ -342,7 +350,7 @@ async fn handle_group_set(
                                 (k.clone(), serde_json::json!({ "old": old_v, "new": new_v }))
                             })
                             .collect();
-                        summary_json(&changes, entry.meta.key)
+                        summary_json(changes, entry.meta.key)
                     } else {
                         None
                     }
@@ -352,7 +360,7 @@ async fn handle_group_set(
                 .iter()
                 .map(|(k, v)| (k.clone(), serde_json::json!({ "new": v })))
                 .collect();
-            summary_json(&map, entry.meta.key)
+            summary_json(map, entry.meta.key)
         };
 
         update_fn(req.engine.db.clone(), cid.clone(), updates.clone())
