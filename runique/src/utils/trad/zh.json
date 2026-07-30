@@ -305,6 +305,7 @@
       "th_actions": "操作",
       "btn_list": "列表",
       "btn_create": "创建",
+      "see_list": "查看列表 →",
       "empty_title": "未注册资源",
       "empty_desc": "在src/admin.rs中使用admin!{{}}宏声明您的资源，然后运行runique start",
       "kpi_resources": "资源",

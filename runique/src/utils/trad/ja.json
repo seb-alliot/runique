@@ -305,6 +305,7 @@
       "th_actions": "アクション",
       "btn_list": "一覧",
       "btn_create": "作成",
+      "see_list": "リストを見る →",
       "empty_title": "登録されたリソースがありません",
       "empty_desc": "src/admin.rsでadmin!{{}}マクロを使用してリソースを宣言し、runique startを実行してください",
       "kpi_resources": "リソース",

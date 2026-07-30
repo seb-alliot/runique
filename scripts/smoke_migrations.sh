@@ -45,10 +45,26 @@ want() { for e in "${ENGINES[@]}"; do [ "$e" = "$1" ] && return 0; done; return 
 # ── Sauvegarde / restauration des migrations committées ───────────────────────
 BACKUP="$(mktemp -d)"
 cp -r "$MIG_SRC" "$BACKUP/src"
+
+# Le binaire runique fait dotenv_override() : le .env de demo-app ÉCRASE les
+# variables d'env passées en ligne de commande. On le pilote donc par moteur
+# (sauvegarde + restauration), comme la version PowerShell.
+ENV_FILE="demo-app/.env"
+ENV_BACKUP=""
+if [ -f "$ENV_FILE" ]; then
+    ENV_BACKUP="$(mktemp)"
+    cp "$ENV_FILE" "$ENV_BACKUP"
+fi
+
 cleanup() {
     rm -rf "$MIG_SRC"
     cp -r "$BACKUP/src" "$MIG_SRC"
     rm -rf "$BACKUP" "$SQLITE_FILE"
+    if [ -n "$ENV_BACKUP" ]; then
+        mv -f "$ENV_BACKUP" "$ENV_FILE"
+    else
+        rm -f "$ENV_FILE"
+    fi
     echo "--- migrations demo-app restaurées ---"
 }
 trap cleanup EXIT
@@ -65,6 +81,10 @@ run_engine() {
     echo "================== $name =================="
 
     clean_slate
+
+    # .env de demo-app forcé pour CE moteur (dotenv_override charge ce fichier
+    # et écraserait sinon les variables d'env ci-dessous).
+    printf 'DB_ENGINE=%s\nDB_URL=%s\nDATABASE_URL=%s\n' "$engine" "$url" "$url" > "$ENV_FILE"
 
     echo "--- makemigrations ($name) ---"
     if ! ( cd demo-app && DB_URL="$url" DATABASE_URL="$url" DB_ENGINE="$engine" \

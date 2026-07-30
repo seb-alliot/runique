@@ -10,6 +10,7 @@
 //! | `db_mariadb`  | MariaDB Docker : `connect()`, `exec()`, `count()`, …        |
 //! | `tera`        | Appel direct de filtres/fonctions : `kwargs()`, `no_kwargs()` |
 
+pub mod admin_server;
 pub mod assert;
 pub mod db;
 pub mod db_mariadb;

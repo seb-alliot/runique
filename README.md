@@ -197,11 +197,11 @@ Full reference: [Sessions](https://runique.io/docs/en/session)
 
 ## Tests and coverage
 
-- Reported tests: **2380+ passing**
-- Coverage snapshot (`2026-06-17`, package `runique`): functions **78.17%**, lines **77.26%**, regions **75.46%**
+- Reported tests: **2051+ passing**
+- Coverage snapshot (`2026-07-31`, package `runique`, admin module included): functions **70.43%**, lines **66.14%**, regions **65.02%**
 
 ```bash
-cargo llvm-cov --tests --package runique --ignore-filename-regex "admin" --summary-only
+cargo llvm-cov --package runique --summary-only
 ```
 
 Full per-file breakdown: [docs/couverture_test.md](docs/couverture_test.md)

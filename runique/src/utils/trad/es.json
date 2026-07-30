@@ -305,6 +305,7 @@
       "th_actions": "Acciones",
       "btn_list": "Lista",
       "btn_create": "Crear",
+      "see_list": "Ver la lista →",
       "empty_title": "No hay recursos registrados",
       "empty_desc": "Declare sus recursos en src/admin.rs con la macro admin!{{}} y luego ejecute runique start",
       "kpi_resources": "Recursos",
