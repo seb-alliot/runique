@@ -305,6 +305,7 @@
       "th_actions": "Aktionen",
       "btn_list": "Liste",
       "btn_create": "Erstellen",
+      "see_list": "Liste anzeigen →",
       "empty_title": "Keine Ressourcen registriert",
       "empty_desc": "Deklarieren Sie Ihre Ressourcen in src/admin.rs mit dem admin!{{}}-Makro und führen Sie dann runique start aus",
       "kpi_resources": "Ressourcen",
@@ -336,7 +337,8 @@
       "card_info": "Informationen",
       "no_fields": "Derzeit keine Felder verfügbar.",
       "btn_cancel": "Abbrechen",
-      "btn_submit": "Erstellen"
+      "btn_submit": "Erstellen",
+      "success": "Eintrag erfolgreich erstellt!"
     },
     "edit": {
       "title": "Bearbeiten",
@@ -344,7 +346,8 @@
       "card_info": "Informationen",
       "no_fields": "Derzeit keine Felder verfügbar.",
       "btn_cancel": "Abbrechen",
-      "btn_submit": "Speichern"
+      "btn_submit": "Speichern",
+      "success": "Eintrag erfolgreich aktualisiert!"
     },
     "detail": {
       "title": "Detail",
@@ -390,7 +393,8 @@
         "of": "aus der Ressource",
         "irreversible": "Diese Aktion ist unwiderruflich."
       },
-      "not_found": "Ressource nicht gefunden."
+      "not_found": "Ressource nicht gefunden.",
+      "success": "Eintrag erfolgreich gelöscht!"
     },
     "bulk": {
       "no_selection": "Keine Elemente ausgewählt.",

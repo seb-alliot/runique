@@ -3,9 +3,16 @@
 //! Ces tests vérifient le comportement du cache mémoire sans DB.
 //! Attention : le cache est global (LazyLock statique) — chaque test
 //! doit utiliser des `user_id` distincts pour éviter les interférences.
+//!
+//! `#[serial]` sur tous les tests qui touchent le cache : distinguer les
+//! `user_id` protège des collisions de clé, mais pas de `clear_cache()`
+//! (vide TOUT le cache, pas juste l'appelant) — sans sérialisation, un
+//! `clear_cache()` d'un autre test peut s'intercaler entre l'insert et la
+//! lecture d'un autre et faire échouer l'assertion de façon intermittente.
 
 use runique::admin::permissions::{Groupe, Permission};
 use runique::auth::guard::{cache_permissions, clear_cache, evict_permissions, get_permissions};
+use serial_test::serial;
 
 fn make_groupe(resource: &str, can_read: bool) -> Groupe {
     Groupe {
@@ -28,6 +35,7 @@ fn make_groupe(resource: &str, can_read: bool) -> Groupe {
 // ═══════════════════════════════════════════════════════════════
 
 #[test]
+#[serial]
 fn test_cache_puis_get_retourne_valeur() {
     let user_id = 10_001;
     cache_permissions(user_id, vec![make_groupe("articles", true)]);
@@ -37,6 +45,7 @@ fn test_cache_puis_get_retourne_valeur() {
 }
 
 #[test]
+#[serial]
 fn test_get_user_inconnu_retourne_none() {
     let user_id = 10_002;
     // Aucune entrée pour cet user
@@ -44,6 +53,7 @@ fn test_get_user_inconnu_retourne_none() {
 }
 
 #[test]
+#[serial]
 fn test_cache_ecrase_entree_existante() {
     let user_id = 10_003;
     cache_permissions(user_id, vec![make_groupe("articles", true)]);
@@ -58,6 +68,7 @@ fn test_cache_ecrase_entree_existante() {
 // ═══════════════════════════════════════════════════════════════
 
 #[test]
+#[serial]
 fn test_evict_retire_user_du_cache() {
     let user_id = 10_004;
     cache_permissions(user_id, vec![make_groupe("articles", true)]);
@@ -67,6 +78,7 @@ fn test_evict_retire_user_du_cache() {
 }
 
 #[test]
+#[serial]
 fn test_evict_user_inconnu_ne_panique_pas() {
     evict_permissions(99_999); // ne doit pas paniquer
 }
@@ -76,6 +88,7 @@ fn test_evict_user_inconnu_ne_panique_pas() {
 // ═══════════════════════════════════════════════════════════════
 
 #[test]
+#[serial]
 fn test_clear_cache_vide_tous_les_users() {
     let u1 = 10_005;
     let u2 = 10_006;
@@ -87,6 +100,7 @@ fn test_clear_cache_vide_tous_les_users() {
 }
 
 #[test]
+#[serial]
 fn test_clear_cache_puis_reinsert_fonctionne() {
     let user_id = 10_007;
     cache_permissions(user_id, vec![make_groupe("articles", true)]);
