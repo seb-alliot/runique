@@ -213,8 +213,10 @@ async fn build_admin_app() -> Router {
     seed_superuser(&dbc).await;
     seed_fixtures(&dbc).await;
 
-    let mut config = RuniqueConfig::default();
-    config.debug = true;
+    let mut config = RuniqueConfig {
+        debug: true,
+        ..Default::default()
+    };
     config.server.secret_key = TEST_SECRET.to_string();
 
     let state = Arc::new(PrototypeAdminState {
@@ -281,11 +283,7 @@ pub async fn login_as_superuser(base: &str) -> reqwest::Client {
         .send()
         .await
         .expect("GET admin/login");
-    assert_eq!(
-        get_resp.status(),
-        200,
-        "GET admin/login devrait rendre 200"
-    );
+    assert_eq!(get_resp.status(), 200, "GET admin/login devrait rendre 200");
     let token = get_resp
         .headers()
         .get("x-csrf-token")

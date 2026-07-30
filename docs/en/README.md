@@ -147,7 +147,7 @@ Selectable backends:
 
 ## Test and coverage snapshot
 
-- Reported tests: **2051+ passing**
+- Reported tests: **2336+ passing**
 - Coverage snapshot (`2026-07-31`, package `runique`, admin module included):
   - Functions: **70.43%**
   - Lines: **66.14%**

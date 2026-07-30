@@ -43,8 +43,7 @@ fn admin_message_keys_resolve_in_every_language() {
         .map(|(code, raw)| {
             (
                 *code,
-                serde_json::from_str(raw)
-                    .unwrap_or_else(|e| panic!("{code}.json invalide : {e}")),
+                serde_json::from_str(raw).unwrap_or_else(|e| panic!("{code}.json invalide : {e}")),
             )
         })
         .collect();
