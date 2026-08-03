@@ -19,9 +19,7 @@ use crate::utils::{
     aliases::{ADb, ATera, StrMap},
     constante::{
         admin_context::permission::GROUPES,
-        session_key::session::{
-            IS_ACTIVE, SESSION_USER_IS_STAFF_KEY, SESSION_USER_IS_SUPERUSER_KEY,
-        },
+        session_key::session::{IS_ACTIVE, SESSION_USER_IS_STAFF_KEY},
     },
     forms::parse_bool,
     trad::{t, tf},
@@ -250,7 +248,10 @@ pub(super) fn user_entry() -> ResourceEntry {
                 password: Set(data.get("password").cloned().unwrap_or_default()),
                 is_active: Set(parse_bool(&data, IS_ACTIVE)),
                 is_staff: Set(parse_bool(&data, SESSION_USER_IS_STAFF_KEY)),
-                is_superuser: Set(parse_bool(&data, SESSION_USER_IS_SUPERUSER_KEY)),
+                // `is_superuser` is intentionally never read from submitted data here:
+                // an admin account must never be grantable from within the admin panel,
+                // regardless of who is submitting the form (see UserAdminCreateForm).
+                is_superuser: Set(false),
                 created_at: Set(now),
                 updated_at: Set(now),
                 ..Default::default()
@@ -312,7 +313,7 @@ pub(super) fn user_entry() -> ResourceEntry {
                 email: Set(data.get("email").cloned().unwrap_or_default()),
                 is_active: Set(parse_bool(&data, IS_ACTIVE)),
                 is_staff: Set(parse_bool(&data, SESSION_USER_IS_STAFF_KEY)),
-                is_superuser: Set(parse_bool(&data, SESSION_USER_IS_SUPERUSER_KEY)),
+                // `is_superuser` intentionally left untouched here — see create_fn.
                 updated_at: Set(Some(chrono::Utc::now().naive_utc())),
                 ..Default::default()
             }
@@ -366,9 +367,8 @@ pub(super) fn user_entry() -> ResourceEntry {
             if data.contains_key(SESSION_USER_IS_STAFF_KEY) {
                 model.is_staff = Set(parse_bool(&data, SESSION_USER_IS_STAFF_KEY));
             }
-            if data.contains_key(SESSION_USER_IS_SUPERUSER_KEY) {
-                model.is_superuser = Set(parse_bool(&data, SESSION_USER_IS_SUPERUSER_KEY));
-            }
+            // `is_superuser` intentionally never applied from bulk/partial updates
+            // — see create_fn for the rationale.
             if let Some(v) = data.get("username").filter(|v| !v.is_empty()) {
                 model.username = Set(v.clone());
             }
