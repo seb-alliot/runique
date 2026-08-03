@@ -97,7 +97,12 @@ static EIHWAZ_USERS: &[PhantomColumn] = &[
     col!("password", PhantomType::String, FormWidget::Password),
     col!("is_active", PhantomType::Bool, FormWidget::Bool),
     col!("is_staff", PhantomType::Bool, FormWidget::Bool),
-    col!("is_superuser", PhantomType::Bool, FormWidget::Bool),
+    // FormWidget::Skip (not Bool): an admin account must never be grantable
+    // from a form, generated or handwritten — see admin/forms/mod.rs and
+    // admin/builtin/user.rs for the same rule applied to the builtin form.
+    // DB column defaults to false (migrations_table.rs), so NotSet on create
+    // is safe; NotSet on update correctly leaves the existing value untouched.
+    col!("is_superuser", PhantomType::Bool, FormWidget::Skip),
     col!(
         "created_at",
         PhantomType::NaiveDateTime,
