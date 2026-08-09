@@ -501,6 +501,7 @@
     "invalid_link": "Link inválido.",
     "invalid_or_expired": "O link de redefinição é inválido ou expirou.",
     "password_min_length": "A senha deve ter pelo menos {} caracteres.",
+    "password_weak": "A senha deve conter pelo menos uma maiúscula, uma minúscula, um dígito e um caractere especial (!@#$%...).",
     "password_mismatch": "As senhas não coincidem.",
     "check_inbox": "Se este endereço estiver associado a uma conta, você receberá um email de redefinição.",
     "email_subject": "Redefinição de senha",

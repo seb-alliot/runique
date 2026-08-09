@@ -92,11 +92,18 @@ impl RuniqueForm for PasswordResetForm {
             }
         }
 
+        const SPECIAL: &str = "!@#$%^&*()_+-=[]{}|;':\",./<>?";
         if password.len() < 10 {
             errors.insert(
                 "password".to_string(),
                 tf("reset.password_min_length", &["10"]).clone(),
             );
+        } else if !password.chars().any(|c| c.is_uppercase())
+            || !password.chars().any(|c| c.is_lowercase())
+            || !password.chars().any(|c| c.is_ascii_digit())
+            || !password.chars().any(|c| SPECIAL.contains(c))
+        {
+            errors.insert("password".to_string(), t("reset.password_weak").to_string());
         }
 
         if password != confirm {

@@ -462,6 +462,7 @@
     "invalid_link": "Invalid link.",
     "invalid_or_expired": "Reset link is invalid or expired.",
     "password_min_length": "Password must be at least {} characters.",
+    "password_weak": "Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character (!@#$%...).",
     "password_mismatch": "Passwords do not match.",
     "check_inbox": "If this address is associated with an account, you will receive a reset email.",
     "email_subject": "Password reset request",

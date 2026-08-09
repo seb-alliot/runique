@@ -462,6 +462,7 @@
     "invalid_link": "Lien invalide.",
     "invalid_or_expired": "Lien de réinitialisation invalide ou expiré.",
     "password_min_length": "Le mot de passe doit contenir au moins {} caractères.",
+    "password_weak": "Le mot de passe doit contenir au moins une majuscule, une minuscule, un chiffre et un caractère spécial (!@#$%...).",
     "password_mismatch": "Les mots de passe ne correspondent pas.",
     "check_inbox": "Si cette adresse est associée à un compte, vous recevrez un email de réinitialisation.",
     "email_subject": "Réinitialisation de votre mot de passe",
