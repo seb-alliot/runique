@@ -501,6 +501,7 @@
     "invalid_link": "Enlace inválido.",
     "invalid_or_expired": "El enlace de restablecimiento es inválido o ha expirado.",
     "password_min_length": "La contraseña debe tener al menos {} caracteres.",
+    "password_weak": "La contraseña debe contener al menos una mayúscula, una minúscula, un número y un carácter especial (!@#$%...).",
     "password_mismatch": "Las contraseñas no coinciden.",
     "check_inbox": "Si esta dirección está asociada a una cuenta, recibirá un correo de restablecimiento.",
     "email_subject": "Restablecer contraseña",

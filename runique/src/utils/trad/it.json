@@ -501,6 +501,7 @@
     "invalid_link": "Link non valido.",
     "invalid_or_expired": "Il link di reimpostazione non è valido o è scaduto.",
     "password_min_length": "La password deve contenere almeno {} caratteri.",
+    "password_weak": "La password deve contenere almeno una maiuscola, una minuscola, una cifra e un carattere speciale (!@#$%...).",
     "password_mismatch": "Le password non coincidono.",
     "check_inbox": "Se questo indirizzo è associato a un account, riceverà un'email di reimpostazione.",
     "email_subject": "Reimpostazione password",

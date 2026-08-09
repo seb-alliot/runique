@@ -34,12 +34,13 @@ impl RuniqueForm for RegisterForm {
                 "Password must be at least 10 characters long.".to_string(),
             );
         } else if !password.chars().any(|c| c.is_uppercase())
+            || !password.chars().any(|c| c.is_lowercase())
             || !password.chars().any(|c| c.is_ascii_digit())
             || !password.chars().any(|c| SPECIAL.contains(c))
         {
             errors.insert(
                 "password".to_string(),
-                "Password must contain at least one uppercase letter, one digit, and one special character (!@#$%...).".to_string(),
+                "Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character (!@#$%...).".to_string(),
             );
         }
 

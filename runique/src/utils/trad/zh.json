@@ -501,6 +501,7 @@
     "invalid_link": "无效链接。",
     "invalid_or_expired": "重置链接无效或已过期。",
     "password_min_length": "密码必须至少包含{}个字符。",
+    "password_weak": "密码必须包含至少一个大写字母、一个小写字母、一个数字和一个特殊字符(!@#$%...)。",
     "password_mismatch": "两次输入的密码不一致。",
     "check_inbox": "如果此地址与帐户关联，您将收到一封重置邮件。",
     "email_subject": "密码重置请求",

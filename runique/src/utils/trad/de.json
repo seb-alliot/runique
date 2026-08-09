@@ -501,6 +501,7 @@
     "invalid_link": "Ungültiger Link.",
     "invalid_or_expired": "Der Reset-Link ist ungültig oder abgelaufen.",
     "password_min_length": "Das Passwort muss mindestens {} Zeichen lang sein.",
+    "password_weak": "Das Passwort muss mindestens einen Großbuchstaben, einen Kleinbuchstaben, eine Ziffer und ein Sonderzeichen (!@#$%...) enthalten.",
     "password_mismatch": "Die Passwörter stimmen nicht überein.",
     "check_inbox": "Falls diese Adresse mit einem Konto verknüpft ist, erhalten Sie eine Reset-E-Mail.",
     "email_subject": "Passwort zurücksetzen",
