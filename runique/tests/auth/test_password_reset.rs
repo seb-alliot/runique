@@ -117,8 +117,8 @@ async fn test_reset_form_valid() {
     form.form.add_value("token", &token);
     form.form.add_value("encrypted_email", &encrypted);
     form.form.add_value("email", email);
-    form.form.add_value("password", "strongpassword1");
-    form.form.add_value("confirm", "strongpassword1");
+    form.form.add_value("password", "StrongPassword1!");
+    form.form.add_value("confirm", "StrongPassword1!");
 
     assert!(form.is_valid().await);
 }
