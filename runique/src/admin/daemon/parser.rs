@@ -1,16 +1,16 @@
 //! Parser for the `src/admin.rs` file: extracts resource declarations from the `admin!{}` macro.
-use crate::utils::trad::t;
+use crate::utils::trad::{t, tf};
 use proc_macro2::{Span, TokenStream};
 use syn::{
     Ident, LitBool, LitInt, LitStr, Macro, Path, Token, braced, bracketed,
     parse::{Parse, ParseStream},
     parse_file,
     punctuated::Punctuated,
+    spanned::Spanned,
     visit::Visit,
 };
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub(crate) struct ResourceDef {
     /// Resource key (e.g., "users")
     pub key: String,
@@ -76,7 +76,6 @@ pub(crate) struct FkDisplay {
 
 /// One M2M relation managed by the admin.
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub(crate) struct M2mFieldDef {
     /// Form field name (e.g., "allergenes") — used as context key and body prefix
     pub field_name: String,
@@ -138,6 +137,9 @@ pub(crate) fn parse_admin_file(source: &str) -> Result<ParsedAdmin, String> {
 struct AdminMacroVisitor {
     pub resources: Vec<ResourceDef>,
     pub configures: Vec<ConfigureDef>,
+    /// Source line of the first `admin!{}` found — a second one is a hard error,
+    /// since the generator only ever emits one registry.
+    pub first_block_line: Option<usize>,
     pub error: Option<String>,
 }
 
@@ -146,6 +148,7 @@ impl AdminMacroVisitor {
         Self {
             resources: Vec::new(),
             configures: Vec::new(),
+            first_block_line: None,
             error: None,
         }
     }
@@ -164,6 +167,19 @@ impl<'ast> Visit<'ast> for AdminMacroVisitor {
         if name != "admin" {
             return;
         }
+
+        // Keep the first failure: reporting the last one would hide the cause.
+        if self.error.is_some() {
+            return;
+        }
+
+        let line = mac.path.span().start().line;
+
+        if let Some(first) = self.first_block_line {
+            self.error = Some(tf("parser.multiple_admin_blocks", &[first, line]));
+            return;
+        }
+        self.first_block_line = Some(line);
 
         match parse_admin_tokens(mac.tokens.clone()) {
             Ok(parsed) => {

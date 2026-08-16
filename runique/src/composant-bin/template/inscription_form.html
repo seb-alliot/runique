@@ -7,9 +7,7 @@
 {% block content %}
     <h1>{{ title }}</h1>
 
-    {% block message %}
-        {% messages %}
-    {% endblock %}
+    {% messages %}
     <div id="form">
         <form method="post" action="/inscription">
             <!-- Les erreurs individuelles s'affichent automatiquement sous chaque champ -->

@@ -217,11 +217,8 @@
     "model_form_structs_only": "DeriveModelForm: 構造体のみ"
   },
   "parser": {
-    "array_expected": "権限のための [...] を期待していましたが、見つかったもの: {}",
-    "array_eof": "権限のための [...] を期待していましたが、ファイルの終端に達しました",
-    "role_required": "permissions: [...] には少なくとも1つのロールが必要です",
+    "multiple_admin_blocks": "admin!: 1ファイルにつき admin! ブロックは1つだけです（1つ目は{}行目、2つ目は{}行目）— 統合してください",
     "title_required": "admin!: 'title' は必須です",
-    "permissions_required": "admin!: 'permissions' は必須です",
     "list_display_exclude_exclusive": "admin!: 'list_display' と 'list_exclude' は同時に使用できません"
   },
   "TemplateMessage": {

@@ -217,11 +217,8 @@
     "model_form_structs_only": "DeriveModelForm: только структуры"
   },
   "parser": {
-    "array_expected": "Ожидался массив [...] для разрешений, найдено: {}",
-    "array_eof": "Ожидался массив [...] для разрешений, конец файла",
-    "role_required": "Требуется хотя бы одна роль в permissions: [...]",
+    "multiple_admin_blocks": "admin!: в одном файле допустим только один блок admin! (первый блок в строке {}, второй в строке {}) — объедините их",
     "title_required": "admin!: 'title' обязателен",
-    "permissions_required": "admin!: 'permissions' обязателен",
     "list_display_exclude_exclusive": "admin!: 'list_display' и 'list_exclude' взаимно исключают друг друга"
   },
   "TemplateMessage": {
