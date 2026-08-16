@@ -217,11 +217,8 @@
     "model_form_structs_only": "DeriveModelForm : structs uniquement"
   },
   "parser": {
-    "array_expected": "Tableau [...] attendu pour les permissions, trouvé : {}",
-    "array_eof": "Tableau [...] attendu pour les permissions, fin de fichier",
-    "role_required": "Au moins un rôle requis dans permissions: [...]",
+    "multiple_admin_blocks": "admin!: un seul bloc admin! est autorisé par fichier (premier bloc ligne {}, second ligne {}) — fusionnez-les",
     "title_required": "admin!: 'title' est requis",
-    "permissions_required": "admin!: 'permissions' est requis",
     "list_display_exclude_exclusive": "admin!: 'list_display' et 'list_exclude' sont mutuellement exclusifs"
   },
   "TemplateMessage": {
