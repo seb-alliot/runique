@@ -136,7 +136,8 @@
   "middleware": {
     "host_invalid": "Hôte invalide: '{}' (Hosts autorisés: {})",
     "host_debug": "Hôte invalide : '{}'. Ajoutez-le à RUNIQUE_ALLOWED_HOSTS.",
-    "bad_request": "Mauvaise requête"
+    "bad_request": "Mauvaise requête",
+    "slot_collision": "Collision de slot middleware Runique : « {} » et « {} » revendiquent tous les deux le slot {}. Enregistrez moins de middlewares custom ou donnez à celui-ci un slot explicite."
   },
   "html": {
     "404_title": "404",
@@ -216,13 +217,9 @@
     "model_form_structs_only": "DeriveModelForm : structs uniquement"
   },
   "parser": {
-    "string_expected": "Chaîne littérale attendue, trouvé : {}",
-    "string_eof": "Chaîne littérale attendue, fin de fichier",
     "array_expected": "Tableau [...] attendu pour les permissions, trouvé : {}",
     "array_eof": "Tableau [...] attendu pour les permissions, fin de fichier",
     "role_required": "Au moins un rôle requis dans permissions: [...]",
-    "punct_expected": "'{}' attendu, trouvé : {}",
-    "punct_eof": "'{}' attendu, fin de fichier",
     "title_required": "admin!: 'title' est requis",
     "permissions_required": "admin!: 'permissions' est requis",
     "list_display_exclude_exclusive": "admin!: 'list_display' et 'list_exclude' sont mutuellement exclusifs"

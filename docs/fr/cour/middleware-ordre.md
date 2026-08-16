@@ -56,9 +56,9 @@ Au lieu de dépendre de l'ordre de déclaration, Runique attribue un **slot num�
 
 ```
 Slots d'exécution (requête entrante) :
-Extensions(0) → Compression(5) → ErrorHandler(10) → Custom(20+)
+Extensions(0) → Compression(5) → ErrorHandler(10) → HostValidation(15) → Custom(20+)
 → CSP/Headers(30) → Cache(40) → Session(50) → SessionUpgrade(55)
-→ CSRF(60) → HostValidation(70) → Handler
+→ CSRF(60) → Handler
 ```
 
 ```rust
@@ -66,7 +66,7 @@ Extensions(0) → Compression(5) → ErrorHandler(10) → Custom(20+)
 RuniqueApp::builder(config)
     .middleware(|m| {
         m.with_csp(|c| c.policy(SecurityPolicy::strict()))  // slot 30
-         .with_allowed_hosts(|h| h.host("monsite.fr"))      // slot 70
+         .with_allowed_hosts(|h| h.host("monsite.fr"))      // slot 15
          .with_session_memory_limit(5 * 1024 * 1024, 10 * 1024 * 1024) // slot 50
     })
 ```

@@ -52,7 +52,7 @@ Le cookie de session utilise `Secure=true` quand `DEBUG=false`. Sur `http://loca
 
 ## Slot
 
-`65` — entre CSRF (60) et HostValidation (70). Nécessite que le middleware de session (slot 50) soit actif.
+`65` — juste après CSRF (60), avant le handler. Nécessite que le middleware de session (slot 50) soit actif.
 
 ## Retour au sommaire
 

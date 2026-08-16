@@ -136,7 +136,8 @@
   "middleware": {
     "host_invalid": "无效的主机名：'{}'（允许的主机：{}）",
     "host_debug": "无效的主机名：'{}'。请将其添加到 RUNIQUE_ALLOWED_HOSTS 环境变量中。",
-    "bad_request": "请求格式错误"
+    "bad_request": "请求格式错误",
+    "slot_collision": "Runique 中间件插槽冲突：'{}' 和 '{}' 都占用了插槽 {}。请减少自定义中间件的数量，或为其指定一个明确的插槽。"
   },
   "html": {
     "404_title": "404",
@@ -216,13 +217,9 @@
     "model_form_structs_only": "DeriveModelForm：仅适用于结构体"
   },
   "parser": {
-    "string_expected": "应为字符串字面量，实际得到：{}",
-    "string_eof": "应为字符串字面量，但已到达文件末尾",
     "array_expected": "权限列表应为 [...] 格式，实际得到：{}",
     "array_eof": "权限列表应为 [...] 格式，但已到达文件末尾",
     "role_required": "permissions: [...] 中至少需要指定一个角色",
-    "punct_expected": "应为 '{}'，实际得到：{}",
-    "punct_eof": "应为 '{}'，但已到达文件末尾",
     "title_required": "admin!: 'title' 是必填项",
     "permissions_required": "admin!: 'permissions' 是必填项",
     "list_display_exclude_exclusive": "admin!: 'list_display' 和 'list_exclude' 互斥"

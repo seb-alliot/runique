@@ -39,8 +39,8 @@ classDiagram
     RateLimiter ..> ClientIp : clé = IP réelle
 ```
 
-Middlewares correspondants (slots) : TrustedProxies(2), CORS(8), OpenRedirect(25),
-SecurityHeaders(30)/CSP(31), CSRF(60), AntiBot(65), HostValidation(70).
+Middlewares correspondants (slots) : TrustedProxies(2), CORS(8), HostValidation(15),
+OpenRedirect(25), SecurityHeaders(30)/CSP(31), CSRF(60), AntiBot(65).
 `open_redirect::is_safe_redirect` valide les `Location` de redirection contre les hôtes autorisés.
 
 ## Anomalies / flux suspects

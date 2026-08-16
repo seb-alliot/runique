@@ -83,7 +83,7 @@ attaché inconditionnellement (et seul le *niveau de détail* gouverné par le f
 
 ### 🟠 E2 — Deux chemins d'attache de middleware
 `RuniqueEngine::attach_middlewares` (ici) **et** le système de slots de `MiddlewareStaging`
-(architecture : Extensions 0 → … → HostValidation 70) coexistent. Deux mécanismes pour la
+(architecture : Extensions 0 → … → CSRF 60) coexistent. Deux mécanismes pour la
 même responsabilité = risque d'ordre incohérent ou de double-application (ex : CSRF appliqué
 ici **et** via staging). À cartographier précisément dans [../../flux](../../flux) pour
 confirmer lequel est réellement câblé au runtime.

@@ -136,7 +136,8 @@
   "middleware": {
     "host_invalid": "Неверный хост: '{}' (Разрешённые хосты: {})",
     "host_debug": "Неверный хост: '{}'. Добавьте его в RUNIQUE_ALLOWED_HOSTS.",
-    "bad_request": "Неверный запрос"
+    "bad_request": "Неверный запрос",
+    "slot_collision": "Коллизия слота middleware Runique: «{}» и «{}» оба используют слот {}. Зарегистрируйте меньше пользовательских middleware или задайте этому явный слот."
   },
   "html": {
     "404_title": "404",
@@ -216,13 +217,9 @@
     "model_form_structs_only": "DeriveModelForm: только структуры"
   },
   "parser": {
-    "string_expected": "Ожидалась строка, найдено: {}",
-    "string_eof": "Ожидалась строка, конец файла",
     "array_expected": "Ожидался массив [...] для разрешений, найдено: {}",
     "array_eof": "Ожидался массив [...] для разрешений, конец файла",
     "role_required": "Требуется хотя бы одна роль в permissions: [...]",
-    "punct_expected": "Ожидалось '{}', найдено: {}",
-    "punct_eof": "Ожидалось '{}', конец файла",
     "title_required": "admin!: 'title' обязателен",
     "permissions_required": "admin!: 'permissions' обязателен",
     "list_display_exclude_exclusive": "admin!: 'list_display' и 'list_exclude' взаимно исключают друг друга"

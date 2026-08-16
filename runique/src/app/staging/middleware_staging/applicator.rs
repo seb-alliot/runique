@@ -27,9 +27,13 @@
 //!   the lowest slot is applied LAST (.layer) = the most EXTERNAL
 //!
 //! RESULT on an incoming request:
-//!   → Extensions(0) → TrustedProxies(2) → CORS(8) → ErrorHandler(10) → Custom(20+)
-//!   → OpenRedirect(25) → CSP(30) → Cache(40) → Session(50) → CSRF(60)
-//!   → Host(70) → Handler
+//!   → Extensions(0) → TrustedProxies(2) → CORS(8) → ErrorHandler(10) → Host(15) → Custom(20+)
+//!   → OpenRedirect(25) → CSP(30) → Cache(40) → Session(50) → CSRF(60) → Handler
+//!
+//! Host validation sits right after ErrorHandler (still covered by its panic
+//! handling) but before Session/Auth/CSRF — a request with a spoofed Host
+//! header is rejected before paying for session load, auth lookup and CSRF
+//! checks. Moving it any lower than ErrorHandler would remove that panic net.
 
 use crate::context::RequestExtensions;
 use crate::middleware::session::CleaningMemoryStore;
@@ -64,7 +68,7 @@ const SLOT_SESSION_UPGRADE: u16 = 55; // After Session (reads/writes in session)
 const SLOT_AUTH: u16 = 57; // After Session — loads CurrentUser from the session
 const SLOT_CSRF: u16 = 60; // After Session (reads/writes in session)
 const SLOT_ANTI_BOT: u16 = 65; // After CSRF — injects honeypot field name extension
-const SLOT_HOST_VALIDATION: u16 = 70; // Last defense before handler
+const SLOT_HOST_VALIDATION: u16 = 15; // After ErrorHandler (still caught on panic), before Session/Auth/CSRF cost
 
 // ─── MiddlewareEntry ──────────────────────────────────────────────────────────
 
@@ -83,8 +87,8 @@ impl MiddlewareStaging {
     ///
     /// 1. Collects all entries (built-in + custom), each with a fixed slot
     /// 2. Sorts DESCENDING by slot (highest = most internal, applied first via `.layer()`)
-    /// 3. Applies in order — result on request: Extensions → ErrorHandler → Custom
-    ///    → CSP → Cache → Session → CSRF → Host → Handler
+    /// 3. Applies in order — result on request: Extensions → ErrorHandler → Host
+    ///    → Custom → CSP → Cache → Session → CSRF → Handler
     pub(crate) fn apply_to_router(
         self,
         router: Router,
@@ -192,7 +196,8 @@ impl MiddlewareStaging {
             });
         }
 
-        // Slot 70: Host validation — last defense before handler
+        // Slot 15: Host validation — after ErrorHandler (panic still caught),
+        // before Session/Auth/CSRF so a spoofed Host is rejected before that cost
         if self.features.enable_host_validation {
             let eng = engine.clone();
             entries.push(MiddlewareEntry {
@@ -363,6 +368,32 @@ impl MiddlewareStaging {
                 name: "Custom",
                 apply: custom_mw,
             });
+        }
+
+        // Fail loud on slot collisions instead of applying two middlewares in an
+        // undefined relative order (the exact class of silent bug this slot
+        // system exists to prevent — see the CSRF/Session story at the top of
+        // this file). Most likely trigger: enough custom middlewares registered
+        // that `SLOT_CUSTOM_BASE + i` walks into a fixed slot (e.g. 6+ custom
+        // middlewares reaches 25 = SLOT_OPEN_REDIRECT).
+        {
+            let mut seen: std::collections::HashMap<u16, &'static str> =
+                std::collections::HashMap::new();
+            for entry in &entries {
+                if let Some(existing) = seen.insert(entry.slot, entry.name) {
+                    panic!(
+                        "{}",
+                        crate::utils::trad::tf(
+                            "middleware.slot_collision",
+                            &[
+                                existing.to_string(),
+                                entry.name.to_string(),
+                                entry.slot.to_string()
+                            ]
+                        )
+                    );
+                }
+            }
         }
 
         // Descending sort: highest slot → first `.layer()` → most internal.

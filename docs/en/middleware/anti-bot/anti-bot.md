@@ -52,7 +52,7 @@ The session cookie uses `Secure=true` when `DEBUG=false`. On `http://localhost`,
 
 ## Slot
 
-`65` — between CSRF (60) and HostValidation (70). Requires the session middleware (slot 50) to be active.
+`65` — right after CSRF (60), before the handler. Requires the session middleware (slot 50) to be active.
 
 ## Back to summary
 

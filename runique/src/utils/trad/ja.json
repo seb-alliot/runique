@@ -136,7 +136,8 @@
   "middleware": {
     "host_invalid": "無効なホスト: '{}' (許可されたホスト: {})",
     "host_debug": "無効なホスト: '{}'。RUNIQUE_ALLOWED_HOSTS に追加してください。",
-    "bad_request": "不正なリクエスト"
+    "bad_request": "不正なリクエスト",
+    "slot_collision": "Runiqueミドルウェアスロットの衝突: '{}' と '{}' が両方ともスロット {} を要求しています。カスタムミドルウェアの登録数を減らすか、明示的なスロットを指定してください。"
   },
   "html": {
     "404_title": "404",
@@ -216,13 +217,9 @@
     "model_form_structs_only": "DeriveModelForm: 構造体のみ"
   },
   "parser": {
-    "string_expected": "文字列リテラルを期待していましたが、見つかったもの: {}",
-    "string_eof": "文字列リテラルを期待していましたが、ファイルの終端に達しました",
     "array_expected": "権限のための [...] を期待していましたが、見つかったもの: {}",
     "array_eof": "権限のための [...] を期待していましたが、ファイルの終端に達しました",
     "role_required": "permissions: [...] には少なくとも1つのロールが必要です",
-    "punct_expected": "'{}' を期待していましたが、見つかったもの: {}",
-    "punct_eof": "'{}' を期待していましたが、ファイルの終端に達しました",
     "title_required": "admin!: 'title' は必須です",
     "permissions_required": "admin!: 'permissions' は必須です",
     "list_display_exclude_exclusive": "admin!: 'list_display' と 'list_exclude' は同時に使用できません"

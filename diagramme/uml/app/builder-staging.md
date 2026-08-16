@@ -56,7 +56,8 @@ flowchart TB
     S2 --> S5[5 Compression]
     S5 --> S8[8 CORS: preflight OPTIONS hors CSRF]
     S8 --> S10[10 ErrorHandler: enveloppe toute la stack]
-    S10 --> S20[20+ Custom dev]
+    S10 --> S15[15 HostValidation: rejet avant coût session/auth/CSRF, encore couvert par ErrorHandler]
+    S15 --> S20[20+ Custom dev]
     S20 --> S25[25 OpenRedirect]
     S25 --> S30[30 SecurityHeaders]
     S30 --> S31[31 CSP]
@@ -66,8 +67,7 @@ flowchart TB
     S55 --> S57[57 Auth: charge CurrentUser]
     S57 --> S60[60 CSRF]
     S60 --> S65[65 AntiBot: honeypot]
-    S65 --> S70[70 HostValidation: dernière défense]
-    S70 --> H[Handler]
+    S65 --> H[Handler]
 ```
 
 ## Anomalies / flux suspects
@@ -86,3 +86,8 @@ explicitement (nom trompeur). Pas un bug par défaut.
 CORS (8) **hors** ErrorHandler (10) pour que le preflight OPTIONS n'atteigne jamais CSRF ;
 Session (50) avant CSRF (60) car CSRF en dépend ; Auth (57) après Session. Ordre sain,
 documenté slot par slot. À conserver tel quel.
+
+**HostValidation déplacé du slot 70 au slot 15** : auparavant dernier middleware avant le
+handler, il payait le coût Session/SessionUpgrade/Auth/CSRF/AntiBot sur une requête au Host
+invalide. Repositionné juste après ErrorHandler (10) — toujours couvert par son filet
+anti-panic, mais rejette désormais un Host invalide avant ce coût.
