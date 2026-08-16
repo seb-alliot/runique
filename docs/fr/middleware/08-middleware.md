@@ -29,6 +29,7 @@ slot  2  TrustedProxies      → IP client réelle depuis X-Forwarded-For (toujo
 slot  5  Compression         → Compression des réponses (toujours actif)
 slot  8  CORS                → Cross-Origin Resource Sharing (si with_cors() configuré)
 slot 10  ErrorHandler        → Capture et rendu des erreurs (toujours actif)
+slot 15  HostValidation      → Validation des hosts autorisés (si with_allowed_hosts() configuré)
 slot 20+ Custom              → Vos middlewares personnalisés
 slot 25  OpenRedirect        → Blocage redirections externes (toujours actif)
 slot 30  SecurityHeaders     → X-Frame-Options, HSTS, Permissions-Policy… (toujours actif)
@@ -39,7 +40,6 @@ slot 55  SessionUpgrade      → Upgrade session anonyme → authentifiée (touj
 slot 57  Auth                → Chargement CurrentUser depuis la session (toujours actif)
 slot 60  CSRF                → Protection Cross-Site Request Forgery (toujours actif)
 slot 65  AntiBotHoneypot     → Champ piège invisible, force_invalid si rempli (si with_anti_bot() configuré)
-slot 70  HostValidation      → Validation des hosts autorisés (si with_allowed_hosts() configuré)
     ↓
 Handler (votre code)
 ```

@@ -1,7 +1,13 @@
 //! Parser for the `src/admin.rs` file: extracts resource declarations from the `admin!{}` macro.
-use crate::utils::trad::{t, tf};
-use proc_macro2::TokenStream;
-use syn::{Macro, parse_file, visit::Visit};
+use crate::utils::trad::t;
+use proc_macro2::{Span, TokenStream};
+use syn::{
+    Ident, LitBool, LitInt, LitStr, Macro, Path, Token, braced, bracketed,
+    parse::{Parse, ParseStream},
+    parse_file,
+    punctuated::Punctuated,
+    visit::Visit,
+};
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
@@ -173,168 +179,169 @@ impl<'ast> Visit<'ast> for AdminMacroVisitor {
 //   key: path::Model => FormType {
 //       title: "...",
 //   }
+//
+// Grammar is expressed via `syn::parse::Parse` on small per-construct types
+// (Punctuated<Entry, Token![,]> for every bracketed list), instead of walking
+// raw `proc_macro2::TokenTree`s by hand. Unknown DSL fields and malformed
+// literals now produce a real `syn::Error` (span-attached) instead of being
+// silently skipped/defaulted.
 
 fn parse_admin_tokens(tokens: TokenStream) -> Result<ParsedAdmin, String> {
-    use proc_macro2::TokenTree;
-
-    let mut resources = Vec::new();
-    let mut configures = Vec::new();
-    let mut iter = tokens.into_iter().peekable();
-
-    while iter.peek().is_some() {
-        // 1. key (ident)
-        let key = match iter.next() {
-            Some(TokenTree::Ident(id)) => id.to_string(),
-            Some(other) => return Err(format!("Expected resource name, found: {}", other)),
-            None => break,
-        };
-
-        // configure { ... } block — display configuration for any resource (built-in or declared)
-        if key == "configure" {
-            let cfg = parse_configure_block(&mut iter)?;
-            configures.extend(cfg);
-            skip_optional_punct(&mut iter, ',');
-            continue;
-        }
-
-        expect_punct(&mut iter, ':')?;
-        let model_type = parse_path(&mut iter)?;
-        expect_punct(&mut iter, '=')?;
-        expect_punct(&mut iter, '>')?;
-
-        let _form_type = parse_path(&mut iter)?;
-
-        let body = match iter.next() {
-            Some(TokenTree::Group(group)) => parse_resource_body(group.stream())?,
-            Some(other) => return Err(format!("Expected '{{', found: {}", other)),
-            None => return Err("Expected '{{', end of file".to_string()),
-        };
-        let title = body.title.clone();
-
-        resources.push(ResourceDef {
-            key,
-            model_type,
-            title,
-            template_list: body.template_list,
-            template_create: body.template_create,
-            template_edit: body.template_edit,
-            template_detail: body.template_detail,
-            template_delete: body.template_delete,
-            extra_context: body.extra_context,
-            create_form_type: body.create_form_type,
-            edit_form_type: body.edit_form_type,
-            id_type: body.id_type,
-            list_filter: body.list_filter,
-            list_display: body.list_display,
-            list_exclude: body.list_exclude,
-            group_action: body.group_action,
-            bulk_create: body.bulk_create,
-            own_field: body.own_field,
-            m2m: body.m2m,
-        });
-
-        // Optional comma between resources
-        skip_optional_punct(&mut iter, ',');
-    }
-
+    let parsed: AdminMacroInput = syn::parse2(tokens).map_err(format_syn_error)?;
     Ok(ParsedAdmin {
-        resources,
-        configures,
+        resources: parsed.resources,
+        configures: parsed.configures,
     })
 }
 
-/// Parses the `configure { resource_key: { ... }, ... }` block
-fn parse_configure_block(iter: &mut TokenIter) -> Result<Vec<ConfigureDef>, String> {
-    use proc_macro2::TokenTree;
+/// Formats a `syn::Error` as `line:column: message` — meaningful here because
+/// this parser runs outside a real proc-macro invocation (a plain binary
+/// reading `src/admin.rs`), where `Span::start()` reports true source positions.
+fn format_syn_error(err: syn::Error) -> String {
+    let start = err.span().start();
+    format!("{}:{}: {}", start.line, start.column + 1, err)
+}
 
-    let group = match iter.next() {
-        Some(TokenTree::Group(g)) => g,
-        Some(other) => return Err(format!("Expected '{{' after configure, found: {}", other)),
-        None => return Err("Expected '{{' after configure, end of file".to_string()),
-    };
+struct AdminMacroInput {
+    resources: Vec<ResourceDef>,
+    configures: Vec<ConfigureDef>,
+}
 
+impl Parse for AdminMacroInput {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let mut resources = Vec::new();
+        let mut configures = Vec::new();
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+
+            if key == "configure" {
+                let content;
+                braced!(content in input);
+                configures.extend(parse_configure_block(&content)?);
+            } else {
+                input.parse::<Token![:]>()?;
+                let model_type: Path = input.parse()?;
+                input.parse::<Token![=>]>()?;
+                let _form_type: Path = input.parse()?;
+
+                let content;
+                braced!(content in input);
+                let fields = Punctuated::<ResourceField, Token![,]>::parse_terminated(&content)?;
+                resources.push(build_resource_def(
+                    key.to_string(),
+                    path_to_string(&model_type),
+                    fields,
+                )?);
+            }
+
+            if input.peek(Token![,]) {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(AdminMacroInput {
+            resources,
+            configures,
+        })
+    }
+}
+
+/// Parses the `configure { resource_key: { ... }, ... }` block body.
+fn parse_configure_block(input: ParseStream) -> syn::Result<Vec<ConfigureDef>> {
     let mut result = Vec::new();
-    let mut inner: TokenIter = group.stream().into_iter().peekable();
 
-    while inner.peek().is_some() {
-        let key = match inner.next() {
-            Some(TokenTree::Ident(id)) => id.to_string(),
-            Some(TokenTree::Punct(p)) if p.as_char() == ',' => continue,
-            Some(_) | None => continue,
-        };
+    while !input.is_empty() {
+        let key: Ident = input.parse()?;
+        input.parse::<Token![:]>()?;
 
-        expect_punct(&mut inner, ':')?;
+        let content;
+        braced!(content in input);
+        let fields = Punctuated::<ConfigureField, Token![,]>::parse_terminated(&content)?;
+        result.push(build_configure_def(key.to_string(), fields)?);
 
-        let body_group = match inner.next() {
-            Some(TokenTree::Group(g)) => g,
-            Some(other) => {
-                return Err(format!(
-                    "Expected '{{' for configure[\"{}\"] body, found: {}",
-                    key, other
-                ));
-            }
-            None => {
-                return Err(format!(
-                    "Expected '{{' for configure[\"{}\"] body, end of file",
-                    key
-                ));
-            }
-        };
-
-        let cfg = parse_configure_body(key, body_group.stream())?;
-        result.push(cfg);
-        skip_optional_punct(&mut inner, ',');
+        if input.peek(Token![,]) {
+            input.parse::<Token![,]>()?;
+        }
     }
 
     Ok(result)
 }
 
-/// Parses `{ list_display: [...], list_exclude: [...], list_filter: [...] }` for a `configure` item
-fn parse_configure_body(key: String, tokens: TokenStream) -> Result<ConfigureDef, String> {
-    use proc_macro2::TokenTree;
+/// One field of a `configure { key: { ... } }` body.
+enum ConfigureField {
+    ListDisplay(Vec<(String, String)>),
+    ListExclude(Vec<String>),
+    ListFilter(Vec<(String, String, u64)>),
+    GroupAction(Vec<(String, String, Option<String>)>),
+    Hidden(bool),
+}
 
-    let mut iter: TokenIter = tokens.into_iter().peekable();
+impl Parse for ConfigureField {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let field: Ident = input.parse()?;
+        input.parse::<Token![:]>()?;
+
+        Ok(match field.to_string().as_str() {
+            "list_display" => ConfigureField::ListDisplay(
+                parse_bracketed::<PairEntry>(input)?
+                    .into_iter()
+                    .map(Into::into)
+                    .collect(),
+            ),
+            "list_exclude" => ConfigureField::ListExclude(
+                parse_bracketed::<LitStr>(input)?
+                    .into_iter()
+                    .map(|s| s.value())
+                    .collect(),
+            ),
+            "list_filter" => ConfigureField::ListFilter(
+                parse_bracketed::<ListFilterEntry>(input)?
+                    .into_iter()
+                    .map(Into::into)
+                    .collect(),
+            ),
+            "group_action" => ConfigureField::GroupAction(
+                parse_bracketed::<GroupActionEntry>(input)?
+                    .into_iter()
+                    .map(Into::into)
+                    .collect(),
+            ),
+            "hidden" => ConfigureField::Hidden(input.parse::<LitBool>()?.value),
+            other => {
+                return Err(syn::Error::new(
+                    field.span(),
+                    format!("Unknown field in configure[]: '{other}'"),
+                ));
+            }
+        })
+    }
+}
+
+fn build_configure_def(
+    key: String,
+    fields: Punctuated<ConfigureField, Token![,]>,
+) -> syn::Result<ConfigureDef> {
     let mut list_display = Vec::new();
     let mut list_exclude = Vec::new();
     let mut list_filter = Vec::new();
     let mut group_action = Vec::new();
     let mut hidden = false;
 
-    while iter.peek().is_some() {
-        let field = match iter.next() {
-            Some(TokenTree::Ident(id)) => id.to_string(),
-            Some(TokenTree::Punct(p)) if p.as_char() == ',' => continue,
-            _ => continue,
-        };
-
-        expect_punct(&mut iter, ':')?;
-
-        match field.as_str() {
-            "list_display" => {
-                list_display = parse_pair_array(&mut iter)?;
-            }
-            "list_exclude" => {
-                list_exclude = parse_list_exclude(&mut iter)?;
-            }
-            "list_filter" => {
-                list_filter = parse_list_filter(&mut iter)?;
-            }
-            "group_action" => {
-                group_action = parse_group_action(&mut iter)?;
-            }
-            "hidden" => {
-                hidden = parse_bool(&mut iter)?;
-            }
-            other => {
-                skip_until_punct(&mut iter, ',');
-                eprintln!("  Unknown field in configure[\"{}\"]: '{}'", key, other);
-            }
+    for field in fields {
+        match field {
+            ConfigureField::ListDisplay(v) => list_display = v,
+            ConfigureField::ListExclude(v) => list_exclude = v,
+            ConfigureField::ListFilter(v) => list_filter = v,
+            ConfigureField::GroupAction(v) => group_action = v,
+            ConfigureField::Hidden(v) => hidden = v,
         }
     }
 
     if !list_display.is_empty() && !list_exclude.is_empty() {
-        return Err(format!(
-            "configure[\"{key}\"]: list_display and list_exclude are exclusive"
+        return Err(syn::Error::new(
+            Span::call_site(),
+            format!("configure[\"{key}\"]: list_display and list_exclude are exclusive"),
         ));
     }
 
@@ -348,608 +355,341 @@ fn parse_configure_body(key: String, tokens: TokenStream) -> Result<ConfigureDef
     })
 }
 
-struct ResourceBody {
-    title: String,
-    template_list: Option<String>,
-    template_create: Option<String>,
-    template_edit: Option<String>,
-    template_detail: Option<String>,
-    template_delete: Option<String>,
-    extra_context: Vec<(String, String)>,
-    create_form_type: Option<String>,
-    edit_form_type: Option<String>,
-    id_type: String,
-    list_filter: Vec<(String, String, u64)>,
-    list_display: Vec<(String, String, Option<FkDisplay>)>,
-    list_exclude: Vec<String>,
-    group_action: Vec<(String, String, Option<String>)>,
-    bulk_create: Option<String>,
-    own_field: Option<String>,
-    m2m: Vec<M2mFieldDef>,
+/// One field of a resource body (between `{ ... }` in `admin!{ key: Model => Form { ... } }`).
+enum ResourceField {
+    Title(String),
+    TemplateList(String),
+    TemplateCreate(String),
+    TemplateEdit(String),
+    TemplateDetail(String),
+    TemplateDelete(String),
+    CreateForm(String),
+    EditForm(String),
+    IdType(String),
+    Extra(Vec<(String, String)>),
+    ListFilter(Vec<(String, String, u64)>),
+    ListDisplay(Vec<(String, String, Option<FkDisplay>)>),
+    ListExclude(Vec<String>),
+    GroupAction(Vec<(String, String, Option<String>)>),
+    BulkCreate(String),
+    OwnField(String),
+    M2m(Vec<M2mFieldDef>),
 }
 
-fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
-    use proc_macro2::TokenTree;
+impl Parse for ResourceField {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let field: Ident = input.parse()?;
+        input.parse::<Token![:]>()?;
 
-    let mut iter = tokens.into_iter().peekable();
-    let mut body = ResourceBody {
-        title: String::new(),
-        template_list: None,
-        template_create: None,
-        template_edit: None,
-        template_detail: None,
-        template_delete: None,
-        extra_context: Vec::new(),
-        create_form_type: None,
-        edit_form_type: None,
-        id_type: "Pk".to_string(),
-        list_filter: Vec::new(),
-        list_display: Vec::new(),
-        list_exclude: Vec::new(),
-        group_action: Vec::new(),
-        bulk_create: None,
-        own_field: None,
-        m2m: Vec::new(),
-    };
-
-    while iter.peek().is_some() {
-        let field = match iter.next() {
-            Some(TokenTree::Ident(id)) => id.to_string(),
-            Some(TokenTree::Punct(p)) if p.as_char() == ',' => continue,
-            _ => continue,
-        };
-
-        expect_punct(&mut iter, ':')?;
-
-        match field.as_str() {
-            "title" => {
-                body.title = parse_string_literal(&mut iter)?;
-            }
-            "template_list" => {
-                body.template_list = Some(parse_string_literal(&mut iter)?);
-            }
-            "template_create" => {
-                body.template_create = Some(parse_string_literal(&mut iter)?);
-            }
-            "template_edit" => {
-                body.template_edit = Some(parse_string_literal(&mut iter)?);
-            }
-            "template_detail" => {
-                body.template_detail = Some(parse_string_literal(&mut iter)?);
-            }
-            "template_delete" => {
-                body.template_delete = Some(parse_string_literal(&mut iter)?);
-            }
-            "create_form" => {
-                body.create_form_type = Some(parse_path(&mut iter)?);
-            }
-            "edit_form" => {
-                body.edit_form_type = Some(parse_path(&mut iter)?);
-            }
-            "id_type" => {
-                body.id_type = parse_ident(&mut iter)?;
-            }
-            "extra" => {
-                body.extra_context = parse_extra_map(&mut iter)?;
-            }
-            "list_filter" => {
-                body.list_filter = parse_list_filter(&mut iter)?;
-            }
-            "list_display" => {
-                body.list_display = parse_list_display(&mut iter)?;
-            }
-            "list_exclude" => {
-                body.list_exclude = parse_list_exclude(&mut iter)?;
-            }
-            "group_action" => {
-                body.group_action = parse_group_action(&mut iter)?;
-            }
-            "bulk_create" => {
-                body.bulk_create = Some(parse_ident(&mut iter)?);
-            }
-            "own_field" => {
-                body.own_field = Some(parse_string_literal(&mut iter)?);
-            }
-            "m2m" => {
-                body.m2m = parse_m2m(&mut iter)?;
-            }
+        Ok(match field.to_string().as_str() {
+            "title" => ResourceField::Title(input.parse::<LitStr>()?.value()),
+            "template_list" => ResourceField::TemplateList(input.parse::<LitStr>()?.value()),
+            "template_create" => ResourceField::TemplateCreate(input.parse::<LitStr>()?.value()),
+            "template_edit" => ResourceField::TemplateEdit(input.parse::<LitStr>()?.value()),
+            "template_detail" => ResourceField::TemplateDetail(input.parse::<LitStr>()?.value()),
+            "template_delete" => ResourceField::TemplateDelete(input.parse::<LitStr>()?.value()),
+            "create_form" => ResourceField::CreateForm(path_to_string(&input.parse::<Path>()?)),
+            "edit_form" => ResourceField::EditForm(path_to_string(&input.parse::<Path>()?)),
+            "id_type" => ResourceField::IdType(input.parse::<Ident>()?.to_string()),
+            "extra" => ResourceField::Extra(parse_extra_map(input)?),
+            "list_filter" => ResourceField::ListFilter(
+                parse_bracketed::<ListFilterEntry>(input)?
+                    .into_iter()
+                    .map(Into::into)
+                    .collect(),
+            ),
+            "list_display" => ResourceField::ListDisplay(
+                parse_bracketed::<ListDisplayEntry>(input)?
+                    .into_iter()
+                    .map(Into::into)
+                    .collect(),
+            ),
+            "list_exclude" => ResourceField::ListExclude(
+                parse_bracketed::<LitStr>(input)?
+                    .into_iter()
+                    .map(|s| s.value())
+                    .collect(),
+            ),
+            "group_action" => ResourceField::GroupAction(
+                parse_bracketed::<GroupActionEntry>(input)?
+                    .into_iter()
+                    .map(Into::into)
+                    .collect(),
+            ),
+            "bulk_create" => ResourceField::BulkCreate(input.parse::<Ident>()?.to_string()),
+            "own_field" => ResourceField::OwnField(input.parse::<LitStr>()?.value()),
+            "m2m" => ResourceField::M2m(
+                parse_bracketed::<M2mEntry>(input)?
+                    .into_iter()
+                    .map(|e| e.0)
+                    .collect(),
+            ),
             other => {
-                skip_until_punct(&mut iter, ',');
-                eprintln!("  Unknown field in admin!{{}}: '{}'", other);
+                return Err(syn::Error::new(
+                    field.span(),
+                    format!("Unknown field in admin!{{}}: '{other}'"),
+                ));
             }
+        })
+    }
+}
+
+fn build_resource_def(
+    key: String,
+    model_type: String,
+    fields: Punctuated<ResourceField, Token![,]>,
+) -> syn::Result<ResourceDef> {
+    let mut title = String::new();
+    let mut template_list = None;
+    let mut template_create = None;
+    let mut template_edit = None;
+    let mut template_detail = None;
+    let mut template_delete = None;
+    let mut create_form_type = None;
+    let mut edit_form_type = None;
+    let mut id_type = "Pk".to_string();
+    let mut extra_context = Vec::new();
+    let mut list_filter = Vec::new();
+    let mut list_display = Vec::new();
+    let mut list_exclude = Vec::new();
+    let mut group_action = Vec::new();
+    let mut bulk_create = None;
+    let mut own_field = None;
+    let mut m2m = Vec::new();
+
+    for field in fields {
+        match field {
+            ResourceField::Title(v) => title = v,
+            ResourceField::TemplateList(v) => template_list = Some(v),
+            ResourceField::TemplateCreate(v) => template_create = Some(v),
+            ResourceField::TemplateEdit(v) => template_edit = Some(v),
+            ResourceField::TemplateDetail(v) => template_detail = Some(v),
+            ResourceField::TemplateDelete(v) => template_delete = Some(v),
+            ResourceField::CreateForm(v) => create_form_type = Some(v),
+            ResourceField::EditForm(v) => edit_form_type = Some(v),
+            ResourceField::IdType(v) => id_type = v,
+            ResourceField::Extra(v) => extra_context = v,
+            ResourceField::ListFilter(v) => list_filter = v,
+            ResourceField::ListDisplay(v) => list_display = v,
+            ResourceField::ListExclude(v) => list_exclude = v,
+            ResourceField::GroupAction(v) => group_action = v,
+            ResourceField::BulkCreate(v) => bulk_create = Some(v),
+            ResourceField::OwnField(v) => own_field = Some(v),
+            ResourceField::M2m(v) => m2m = v,
         }
     }
 
-    if body.title.is_empty() {
-        return Err(t("parser.title_required").to_string());
+    if title.is_empty() {
+        return Err(syn::Error::new(
+            Span::call_site(),
+            t("parser.title_required"),
+        ));
     }
-    if !body.list_display.is_empty() && !body.list_exclude.is_empty() {
-        return Err(t("parser.list_display_exclude_exclusive").to_string());
+    if !list_display.is_empty() && !list_exclude.is_empty() {
+        return Err(syn::Error::new(
+            Span::call_site(),
+            t("parser.list_display_exclude_exclusive"),
+        ));
     }
 
-    Ok(body)
+    Ok(ResourceDef {
+        key,
+        model_type,
+        title,
+        template_list,
+        template_create,
+        template_edit,
+        template_detail,
+        template_delete,
+        create_form_type,
+        edit_form_type,
+        id_type,
+        extra_context,
+        list_filter,
+        list_display,
+        list_exclude,
+        group_action,
+        bulk_create,
+        own_field,
+        m2m,
+    })
 }
 
-/// Parse list_display: [["col", "Label"], ...] or [["col", "Label", "table.col"], ...]
-fn parse_list_display(
-    iter: &mut TokenIter,
-) -> Result<Vec<(String, String, Option<FkDisplay>)>, String> {
-    use proc_macro2::TokenTree;
+/// Parses `[ entry, entry, ... ]` — outer brackets + comma-separated `T`, trailing comma optional.
+fn parse_bracketed<T: Parse>(input: ParseStream) -> syn::Result<Vec<T>> {
+    let content;
+    bracketed!(content in input);
+    let items = Punctuated::<T, Token![,]>::parse_terminated(&content)?;
+    Ok(items.into_iter().collect())
+}
 
-    match iter.next() {
-        Some(TokenTree::Group(outer)) => {
-            let mut entries = Vec::new();
-            let mut inner = outer.stream().into_iter().peekable();
-            while inner.peek().is_some() {
-                match inner.next() {
-                    Some(TokenTree::Punct(p)) if p.as_char() == ',' => continue,
-                    Some(TokenTree::Group(pair)) => {
-                        let mut t = pair.stream().into_iter().peekable();
-                        let col = parse_string_literal(&mut t)?;
-                        expect_punct(&mut t, ',')?;
-                        let label = parse_string_literal(&mut t)?;
-                        let fk = match t.next() {
-                            Some(TokenTree::Punct(p)) if p.as_char() == ',' => {
-                                let fk_spec = parse_string_literal(&mut t)?;
-                                let parts: Vec<&str> = fk_spec.splitn(2, '.').collect();
-                                if parts.len() == 2 {
-                                    Some(FkDisplay {
-                                        table: parts[0].to_string(),
-                                        col: parts[1].to_string(),
-                                    })
-                                } else {
-                                    return Err(format!(
-                                        "FK spec '{}' must be 'table.col'",
-                                        fk_spec
-                                    ));
-                                }
-                            }
-                            _ => None,
-                        };
-                        entries.push((col, label, fk));
-                    }
-                    Some(other) => {
-                        return Err(format!(
-                            "Expected [col, label] in list_display, found: {}",
-                            other
-                        ));
-                    }
-                    None => break,
-                }
+/// Parses the `"col", "label"` prefix shared by every `[col, label, ...]` entry below.
+fn parse_pair(content: ParseStream) -> syn::Result<(String, String)> {
+    let col: LitStr = content.parse()?;
+    content.parse::<Token![,]>()?;
+    let label: LitStr = content.parse()?;
+    Ok((col.value(), label.value()))
+}
+
+/// `["col", "Label"]` — used by `configure { list_display: [...] }` (no FK resolution).
+struct PairEntry(String, String);
+
+impl Parse for PairEntry {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let content;
+        bracketed!(content in input);
+        let (col, label) = parse_pair(&content)?;
+        Ok(PairEntry(col, label))
+    }
+}
+
+impl From<PairEntry> for (String, String) {
+    fn from(e: PairEntry) -> Self {
+        (e.0, e.1)
+    }
+}
+
+/// `["col_sql", "Label"]` or `["col_sql", "Label", 10]` — `list_filter` entries.
+struct ListFilterEntry(String, String, u64);
+
+impl Parse for ListFilterEntry {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let content;
+        bracketed!(content in input);
+        let (col, label) = parse_pair(&content)?;
+        let limit = if content.peek(Token![,]) {
+            content.parse::<Token![,]>()?;
+            content.parse::<LitInt>()?.base10_parse::<u64>()?
+        } else {
+            10
+        };
+        Ok(ListFilterEntry(col, label, limit))
+    }
+}
+
+impl From<ListFilterEntry> for (String, String, u64) {
+    fn from(e: ListFilterEntry) -> Self {
+        (e.0, e.1, e.2)
+    }
+}
+
+/// `["col", "Label"]` or `["col", "Label", "table.col"]` — `list_display` entries.
+struct ListDisplayEntry(String, String, Option<FkDisplay>);
+
+impl Parse for ListDisplayEntry {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let content;
+        bracketed!(content in input);
+        let (col, label) = parse_pair(&content)?;
+        let fk = if content.peek(Token![,]) {
+            content.parse::<Token![,]>()?;
+            let spec: LitStr = content.parse()?;
+            let value = spec.value();
+            let parts: Vec<&str> = value.splitn(2, '.').collect();
+            if parts.len() != 2 {
+                return Err(syn::Error::new(
+                    spec.span(),
+                    format!("FK spec '{value}' must be 'table.col'"),
+                ));
             }
-            Ok(entries)
-        }
-        Some(other) => Err(format!("Expected [...] for list_display, found: {}", other)),
-        None => Err("Expected [...] for list_display, end of file".to_string()),
+            Some(FkDisplay {
+                table: parts[0].to_string(),
+                col: parts[1].to_string(),
+            })
+        } else {
+            None
+        };
+        Ok(ListDisplayEntry(col, label, fk))
     }
 }
 
-/// Parse group_action / configure list_display: [["col", "Label"], ...]
-fn parse_pair_array(iter: &mut TokenIter) -> Result<Vec<(String, String)>, String> {
-    parse_str_pair_array(iter, "list_display")
-}
-
-/// Parse group_action: [["field", "Label"], ...] or [["field", "Label", "value"], ...]
-fn parse_group_action(
-    iter: &mut TokenIter,
-) -> Result<Vec<(String, String, Option<String>)>, String> {
-    use proc_macro2::TokenTree;
-
-    match iter.next() {
-        Some(TokenTree::Group(outer)) => {
-            let mut entries = Vec::new();
-            let mut inner = outer.stream().into_iter().peekable();
-            while inner.peek().is_some() {
-                match inner.next() {
-                    Some(TokenTree::Punct(p)) if p.as_char() == ',' => continue,
-                    Some(TokenTree::Group(pair)) => {
-                        let mut t = pair.stream().into_iter().peekable();
-                        let field = parse_string_literal(&mut t)?;
-                        match t.next() {
-                            Some(TokenTree::Punct(p)) if p.as_char() == ',' => {}
-                            _ => return Err("Expected ',' after field in group_action".to_string()),
-                        }
-                        let label = parse_string_literal(&mut t)?;
-                        let value = match t.next() {
-                            Some(TokenTree::Punct(p)) if p.as_char() == ',' => {
-                                Some(parse_string_literal(&mut t)?)
-                            }
-                            _ => None,
-                        };
-                        entries.push((field, label, value));
-                    }
-                    Some(other) => {
-                        return Err(format!(
-                            "Expected [field, label] in group_action, found: {}",
-                            other
-                        ));
-                    }
-                    None => break,
-                }
-            }
-            Ok(entries)
-        }
-        Some(other) => Err(format!("Expected [...] for group_action, got {:?}", other)),
-        None => Err("Expected [...] for group_action, end of file".to_string()),
+impl From<ListDisplayEntry> for (String, String, Option<FkDisplay>) {
+    fn from(e: ListDisplayEntry) -> Self {
+        (e.0, e.1, e.2)
     }
 }
 
-/// Parse list_exclude: ["col1", "col2", ...]
-fn parse_list_exclude(iter: &mut TokenIter) -> Result<Vec<String>, String> {
-    use proc_macro2::TokenTree;
+/// `["field", "Label"]` or `["field", "Label", "value"]` — `group_action` entries.
+struct GroupActionEntry(String, String, Option<String>);
 
-    match iter.next() {
-        Some(TokenTree::Group(outer)) => {
-            let mut cols = Vec::new();
-            let mut inner = outer.stream().into_iter().peekable();
-            while inner.peek().is_some() {
-                match inner.next() {
-                    Some(TokenTree::Punct(p)) if p.as_char() == ',' => continue,
-                    Some(TokenTree::Literal(lit)) => {
-                        let s = lit.to_string();
-                        if s.starts_with('"') && s.ends_with('"') {
-                            cols.push(s[1..s.len().saturating_sub(1)].to_string());
-                        } else {
-                            return Err(format!(
-                                "Expected string literal in list_exclude, found: {}",
-                                s
-                            ));
-                        }
-                    }
-                    Some(other) => {
-                        return Err(format!(
-                            "Expected string literal in list_exclude, found: {}",
-                            other
-                        ));
-                    }
-                    None => break,
-                }
-            }
-            Ok(cols)
-        }
-        Some(other) => Err(format!("Expected [...] for list_exclude, got {:?}", other)),
-        None => Err("Expected [...] for list_exclude, end of file".to_string()),
+impl Parse for GroupActionEntry {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let content;
+        bracketed!(content in input);
+        let (field, label) = parse_pair(&content)?;
+        let value = if content.peek(Token![,]) {
+            content.parse::<Token![,]>()?;
+            Some(content.parse::<LitStr>()?.value())
+        } else {
+            None
+        };
+        Ok(GroupActionEntry(field, label, value))
     }
 }
 
-/// Parse list_filter: [["col_sql", "Label"], ...] or [["col_sql", "Label", 10], ...]
-fn parse_list_filter(iter: &mut TokenIter) -> Result<Vec<(String, String, u64)>, String> {
-    use proc_macro2::TokenTree;
-
-    match iter.next() {
-        Some(TokenTree::Group(outer)) => {
-            let mut entries = Vec::new();
-            let mut inner = outer.stream().into_iter().peekable();
-            while inner.peek().is_some() {
-                match inner.next() {
-                    Some(TokenTree::Punct(p)) if p.as_char() == ',' => continue,
-                    Some(TokenTree::Group(pair)) => {
-                        let mut t = pair.stream().into_iter().peekable();
-                        let col = parse_string_literal(&mut t)?;
-                        match t.next() {
-                            Some(TokenTree::Punct(p)) if p.as_char() == ',' => {}
-                            _ => return Err("Expected ',' after col in list_filter".to_string()),
-                        }
-                        let label = parse_string_literal(&mut t)?;
-                        // 3rd optional element: limit
-                        let limit = match t.next() {
-                            Some(TokenTree::Punct(p)) if p.as_char() == ',' => {
-                                // comma present → read literal
-                                parse_integer_literal(&mut t).unwrap_or(10)
-                            }
-                            _ => 10, // no 3rd element → default 10
-                        };
-                        entries.push((col, label, limit));
-                    }
-                    Some(other) => {
-                        return Err(format!(
-                            "Expected [col, label] in list_filter, found: {}",
-                            other
-                        ));
-                    }
-                    None => break,
-                }
-            }
-            Ok(entries)
-        }
-        other => Err(format!("Expected [...] for list_filter, got {:?}", other)),
+impl From<GroupActionEntry> for (String, String, Option<String>) {
+    fn from(e: GroupActionEntry) -> Self {
+        (e.0, e.1, e.2)
     }
 }
 
-fn parse_integer_literal(iter: &mut TokenIter) -> Result<u64, String> {
-    use proc_macro2::TokenTree;
-    match iter.next() {
-        Some(TokenTree::Literal(lit)) => lit
-            .to_string()
-            .parse::<u64>()
-            .map_err(|_| format!("Expected integer literal, got '{}'", lit)),
-        other => Err(format!("Expected integer literal, got {:?}", other)),
+/// `["field", "Label", "junction_table", "self_fk", "target_fk", "entity::path", "target_display"]`
+struct M2mEntry(M2mFieldDef);
+
+impl Parse for M2mEntry {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let content;
+        bracketed!(content in input);
+        let field_name: LitStr = content.parse()?;
+        content.parse::<Token![,]>()?;
+        let label: LitStr = content.parse()?;
+        content.parse::<Token![,]>()?;
+        let junction_table: LitStr = content.parse()?;
+        content.parse::<Token![,]>()?;
+        let self_fk: LitStr = content.parse()?;
+        content.parse::<Token![,]>()?;
+        let target_fk: LitStr = content.parse()?;
+        content.parse::<Token![,]>()?;
+        let target_entity: LitStr = content.parse()?;
+        content.parse::<Token![,]>()?;
+        let target_display: LitStr = content.parse()?;
+
+        Ok(M2mEntry(M2mFieldDef {
+            field_name: field_name.value(),
+            label: label.value(),
+            junction_table: junction_table.value(),
+            self_fk: self_fk.value(),
+            target_fk: target_fk.value(),
+            target_entity: target_entity.value(),
+            target_display: target_display.value(),
+        }))
     }
 }
 
-/// Generic parser for `[["str1", "str2"], ...]` — used by `list_display` and `list_filter`
-fn parse_str_pair_array(
-    iter: &mut TokenIter,
-    field: &str,
-) -> Result<Vec<(String, String)>, String> {
-    use proc_macro2::TokenTree;
+/// Parses `extra: { "key" => "value", ... }`.
+fn parse_extra_map(input: ParseStream) -> syn::Result<Vec<(String, String)>> {
+    let content;
+    braced!(content in input);
+    let items = Punctuated::<ExtraEntry, Token![,]>::parse_terminated(&content)?;
+    Ok(items.into_iter().map(|e| (e.0, e.1)).collect())
+}
 
-    match iter.next() {
-        Some(TokenTree::Group(outer)) => {
-            let mut pairs = Vec::new();
-            let mut inner = outer.stream().into_iter().peekable();
-            while inner.peek().is_some() {
-                match inner.next() {
-                    Some(TokenTree::Punct(p)) if p.as_char() == ',' => continue,
-                    Some(TokenTree::Group(pair)) => {
-                        let mut t = pair.stream().into_iter().peekable();
-                        let col = parse_string_literal(&mut t)?;
-                        match t.next() {
-                            Some(TokenTree::Punct(p)) if p.as_char() == ',' => {}
-                            _ => {
-                                return Err(format!(
-                                    "Expected ',' between col and label in {}",
-                                    field
-                                ));
-                            }
-                        }
-                        let label = parse_string_literal(&mut t)?;
-                        pairs.push((col, label));
-                    }
-                    Some(other) => {
-                        return Err(format!(
-                            "Expected [col, label] in {}, found: {}",
-                            field, other
-                        ));
-                    }
-                    None => break,
-                }
-            }
-            Ok(pairs)
-        }
-        Some(other) => Err(format!("Expected [...] for {}, found: {}", field, other)),
-        None => Err(format!("Expected [...] for {}, end of file", field)),
+struct ExtraEntry(String, String);
+
+impl Parse for ExtraEntry {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let key: LitStr = input.parse()?;
+        input.parse::<Token![=>]>()?;
+        let value: LitStr = input.parse()?;
+        Ok(ExtraEntry(key.value(), value.value()))
     }
 }
 
-/// Parses `extra: { "key" => "value", ... }`
-fn parse_extra_map(iter: &mut TokenIter) -> Result<Vec<(String, String)>, String> {
-    use proc_macro2::TokenTree;
-
-    match iter.next() {
-        Some(TokenTree::Group(group)) => {
-            let mut pairs = Vec::new();
-            let mut inner = group.stream().into_iter().peekable();
-
-            while inner.peek().is_some() {
-                // "key"
-                let key = match inner.next() {
-                    Some(TokenTree::Literal(lit)) => {
-                        let s = lit.to_string();
-                        if s.starts_with('"') && s.ends_with('"') {
-                            s[1..s.len().saturating_sub(1)].to_string()
-                        } else {
-                            continue;
-                        }
-                    }
-                    Some(TokenTree::Punct(p)) if p.as_char() == ',' => continue,
-                    _ => continue,
-                };
-
-                // =>
-                // consume '='
-                match inner.next() {
-                    Some(TokenTree::Punct(p)) if p.as_char() == '=' => {}
-                    _ => return Err("Expected '=>' in extra map".to_string()),
-                }
-                // consume '>'
-                match inner.next() {
-                    Some(TokenTree::Punct(p)) if p.as_char() == '>' => {}
-                    _ => return Err("Expected '>' after '=' in extra map".to_string()),
-                }
-
-                // "value"
-                let value = match inner.next() {
-                    Some(TokenTree::Literal(lit)) => {
-                        let s = lit.to_string();
-                        if s.starts_with('"') && s.ends_with('"') {
-                            s[1..s.len().saturating_sub(1)].to_string()
-                        } else {
-                            return Err(format!(
-                                "Expected string value in extra map, found: {}",
-                                s
-                            ));
-                        }
-                    }
-                    Some(other) => {
-                        return Err(format!(
-                            "Expected string value in extra map, found: {}",
-                            other
-                        ));
-                    }
-                    None => {
-                        return Err("Expected string value in extra map, end of file".to_string());
-                    }
-                };
-
-                pairs.push((key, value));
-            }
-
-            Ok(pairs)
-        }
-        Some(other) => Err(format!(
-            "Expected '{{...}}' for extra map, found: {}",
-            other
-        )),
-        None => Err("Expected '{{...}}' for extra map, end of file".to_string()),
-    }
-}
-
-/// Parses `m2m: [["field", "Label", "junction_table", "self_fk", "target_fk", "entity::path"], ...]`
-fn parse_m2m(iter: &mut TokenIter) -> Result<Vec<M2mFieldDef>, String> {
-    use proc_macro2::TokenTree;
-
-    match iter.next() {
-        Some(TokenTree::Group(outer)) => {
-            let mut defs = Vec::new();
-            let mut inner = outer.stream().into_iter().peekable();
-            while inner.peek().is_some() {
-                match inner.next() {
-                    Some(TokenTree::Punct(p)) if p.as_char() == ',' => continue,
-                    Some(TokenTree::Group(entry)) => {
-                        let mut t = entry.stream().into_iter().peekable();
-                        let field_name = parse_string_literal(&mut t)?;
-                        expect_punct(&mut t, ',')?;
-                        let label = parse_string_literal(&mut t)?;
-                        expect_punct(&mut t, ',')?;
-                        let junction_table = parse_string_literal(&mut t)?;
-                        expect_punct(&mut t, ',')?;
-                        let self_fk = parse_string_literal(&mut t)?;
-                        expect_punct(&mut t, ',')?;
-                        let target_fk = parse_string_literal(&mut t)?;
-                        expect_punct(&mut t, ',')?;
-                        let target_entity = parse_string_literal(&mut t)?;
-                        expect_punct(&mut t, ',')?;
-                        let target_display = parse_string_literal(&mut t)?;
-                        defs.push(M2mFieldDef {
-                            field_name,
-                            label,
-                            junction_table,
-                            self_fk,
-                            target_fk,
-                            target_entity,
-                            target_display,
-                        });
-                    }
-                    Some(other) => {
-                        return Err(format!("Expected [...] entry in m2m, found: {}", other));
-                    }
-                    None => break,
-                }
-            }
-            Ok(defs)
-        }
-        Some(other) => Err(format!("Expected [...] for m2m, found: {}", other)),
-        None => Err("Expected [...] for m2m, end of file".to_string()),
-    }
-}
-
-type TokenIter = std::iter::Peekable<proc_macro2::token_stream::IntoIter>;
-
-/// Parses a type path (e.g., `users::Model`, `crate::models::users::Model`)
-fn parse_path(iter: &mut TokenIter) -> Result<String, String> {
-    use proc_macro2::TokenTree;
-
-    let mut path = String::new();
-
-    loop {
-        match iter.peek() {
-            Some(TokenTree::Ident(_)) => {
-                if let Some(TokenTree::Ident(id)) = iter.next() {
-                    path.push_str(&id.to_string());
-                }
-            }
-            Some(TokenTree::Punct(p)) if p.as_char() == ':' => {
-                iter.next(); // first ':'
-                // Check second ':'
-                match iter.peek() {
-                    Some(TokenTree::Punct(p2)) if p2.as_char() == ':' => {
-                        iter.next();
-                        path.push_str("::");
-                    }
-                    _ => break, // was the ':' of "key:"
-                }
-            }
-            _ => break,
-        }
-    }
-
-    if path.is_empty() {
-        Err("Expected type path (e.g., crate::users::Model)".to_string())
-    } else {
-        Ok(path)
-    }
-}
-
-/// Parses a string literal `"..."`
-fn parse_string_literal(iter: &mut TokenIter) -> Result<String, String> {
-    use proc_macro2::TokenTree;
-
-    match iter.next() {
-        Some(TokenTree::Literal(lit)) => {
-            let s = lit.to_string();
-            // Removes quotes
-            if s.starts_with('"') && s.ends_with('"') {
-                Ok(s[1..s.len().saturating_sub(1)].to_string())
-            } else {
-                Err(tf("parser.string_expected", &[&s]))
-            }
-        }
-        Some(other) => Err(tf("parser.string_expected", &[&other.to_string()])),
-        None => Err(t("parser.string_eof").to_string()),
-    }
-}
-
-fn parse_bool(iter: &mut TokenIter) -> Result<bool, String> {
-    use proc_macro2::TokenTree;
-    match iter.next() {
-        Some(TokenTree::Ident(id)) => match id.to_string().as_str() {
-            "true" => Ok(true),
-            "false" => Ok(false),
-            other => Err(format!("Expected true or false, found: {}", other)),
-        },
-        Some(other) => Err(format!("Expected true or false, found: {}", other)),
-        None => Err("Expected true or false, end of file".to_string()),
-    }
-}
-
-/// Parses a simple identifier (e.g., `I32`, `I64`, `Uuid`)
-fn parse_ident(iter: &mut TokenIter) -> Result<String, String> {
-    use proc_macro2::TokenTree;
-
-    match iter.next() {
-        Some(TokenTree::Ident(id)) => Ok(id.to_string()),
-        Some(other) => Err(format!("Expected identifier, found: {}", other)),
-        None => Err("Expected identifier, end of file".to_string()),
-    }
-}
-
-/// Verifies and consumes the expected punctuation
-fn expect_punct(iter: &mut TokenIter, expected: char) -> Result<(), String> {
-    use proc_macro2::TokenTree;
-
-    match iter.next() {
-        Some(TokenTree::Punct(p)) if p.as_char() == expected => Ok(()),
-        Some(other) => Err(tf(
-            "parser.punct_expected",
-            &[&expected.to_string(), &other.to_string()],
-        )),
-        None => Err(tf("parser.punct_eof", &[&expected.to_string()])),
-    }
-}
-
-/// Skips a punctuation if present (non-blocking)
-fn skip_optional_punct(iter: &mut TokenIter, ch: char) {
-    use proc_macro2::TokenTree;
-
-    if let Some(TokenTree::Punct(p)) = iter.peek()
-        && p.as_char() == ch
-    {
-        iter.next();
-    }
-}
-
-/// Skips tokens until a given punctuation is found
-fn skip_until_punct(iter: &mut TokenIter, ch: char) {
-    use proc_macro2::TokenTree;
-
-    while let Some(token) = iter.peek() {
-        if let TokenTree::Punct(p) = token
-            && p.as_char() == ch
-        {
-            iter.next();
-            return;
-        }
-        iter.next();
-    }
+/// Joins a `syn::Path`'s segments with `::` (drops generic args, same as before — the DSL never uses them).
+fn path_to_string(path: &Path) -> String {
+    path.segments
+        .iter()
+        .map(|s| s.ident.to_string())
+        .collect::<Vec<_>>()
+        .join("::")
 }
