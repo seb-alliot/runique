@@ -171,7 +171,7 @@ fn write_admin_register(out: &mut String, parsed: &ParsedAdmin) -> Result<(), St
     // routes() function — returns the Axum Router of the admin prototype
     let _ = writeln!(
         out,
-        "/// Builds the admin CRUD routes for the given prefix."
+        "/// Builds the admin CRUD routes for the given path."
     );
     let _ = writeln!(
         out,
@@ -179,13 +179,17 @@ fn write_admin_register(out: &mut String, parsed: &ParsedAdmin) -> Result<(), St
     );
     let _ = writeln!(
         out,
-        "/// The prefix is automatically propagated to `AdminConfig` — no need to call `.prefix()` separately."
+        "/// This is where the admin lives. To serve it behind an extra segment"
     );
     let _ = writeln!(
         out,
-        "pub fn routes(prefix: &str) -> runique::admin::AdminRoutes {{"
+        "/// (`/secret/admin/…`), add `.prefix(\"secret\")` — the two are independent."
     );
-    let _ = writeln!(out, "    let p = prefix.trim_end_matches('/');");
+    let _ = writeln!(
+        out,
+        "pub fn routes(path: &str) -> runique::admin::AdminRoutes {{"
+    );
+    let _ = writeln!(out, "    let p = path.trim_end_matches('/');");
     let _ = writeln!(out, "    let router = runique::axum::Router::new()");
     let _ = writeln!(
         out,

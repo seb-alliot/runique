@@ -134,8 +134,6 @@
     "acme_add_feature": "Cargo.toml に `acme` フィーチャーを追加してください。"
   },
   "middleware": {
-    "host_invalid": "無効なホスト: '{}' (許可されたホスト: {})",
-    "host_debug": "無効なホスト: '{}'。RUNIQUE_ALLOWED_HOSTS に追加してください。",
     "bad_request": "不正なリクエスト",
     "slot_collision": "Runiqueミドルウェアスロットの衝突: '{}' と '{}' が両方ともスロット {} を要求しています。カスタムミドルウェアの登録数を減らすか、明示的なスロットを指定してください。"
   },
@@ -165,18 +163,6 @@
     "info_demo": "これは情報メッセージです。",
     "warning_demo": "これは警告メッセージです。",
     "error_demo": "これはエラーメッセージです。"
-  },
-  "log": {
-    "db_connecting": "{} データベースに接続中...",
-    "db_connected": "データベースへの接続に成功しました ({})",
-    "db_failed": "データベースへの接続に失敗しました",
-    "db_engine": "エンジン: {}",
-    "template_render_error": "テンプレートレンダリングエラー",
-    "error_handler": "重大なエラーが発生しました",
-    "error_handled": "エラーを処理しました",
-    "files_count": "JSファイルをフォームに追加",
-    "js_file_skip": "JSファイルをスキップしています",
-    "already_initialized": "ロガーはすでに初期化されています"
   },
   "cli": {
     "creating_project": "プロジェクト '{}' を作成中...",
@@ -446,24 +432,8 @@
     }
   },
   "makemigrations": {
-    "scanning": "'{}'のエンティティをスキャン中...",
-    "found_schema": "-> スキーマが見つかりました: {}",
-    "found_extend": "-> フレームワークテーブルの拡張が見つかりました: {}",
-    "no_schema": "'{}'にschema()関数が見つかりません。",
-    "schema_count": "{}個のスキーマが見つかりました。",
-    "updated_lib": "更新しました: {}",
-    "no_changes": "変更は検出されませんでした。スキーマは最新です。",
     "destructive_detected": "破壊的な変更が検出されました:",
     "destructive_require_force": "--force を使用してこれらの破壊的な変更を適用してください。",
-    "generated": "生成しました: {}",
-    "snapshot_updated": "スナップショットを更新しました: {}",
-    "seaorm_alter": "SeaORM ALTERマイグレーションを生成しました: {}",
-    "batch_up": "バッチアップを生成しました: {}",
-    "batch_down": "バッチダウンを生成しました: {}",
-    "apply_hint": "'sea-orm-cli migrate up'を実行して適用してください。",
-    "extend_unknown_table": "extend!{{}} : \"{}\"は既知のフレームワークテーブルではありません。許可されたテーブル: {}。アプリテーブルを拡張するには、model!{{}}を直接変更してください。",
-    "extend_invalid_syntax": "extend!{{}} : 構文が無効です。期待される形式: table: \"テーブル名\", fields: {{ ... }}",
-    "admin_positioned": "AdminTableMigrationを'{}'マイグレーションの後に配置しました",
     "files_ready": "{}個のファイルが移行の準備ができています。"
   },
   "migrate": {

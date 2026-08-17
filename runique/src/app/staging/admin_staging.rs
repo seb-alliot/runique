@@ -19,6 +19,21 @@ pub struct AdminStaging {
     pub route_admin: Option<Router>,
     pub extra_routes: Vec<(String, axum::routing::MethodRouter)>,
     pub state: Option<Arc<PrototypeAdminState>>,
+
+    /// Segment mounted in front of the admin (`.prefix()`), empty by default.
+    /// Kept apart from `config.prefix` — which holds the admin's own path — so
+    /// the two never overwrite each other, whatever the call order.
+    pub(crate) mount_prefix: String,
+}
+
+/// `secret`, `/secret` and `/secret/` all yield `/secret`; empty stays empty.
+fn normalize_segment(raw: &str) -> String {
+    let trimmed = raw.trim().trim_matches('/');
+    if trimmed.is_empty() {
+        String::new()
+    } else {
+        format!("/{trimmed}")
+    }
 }
 
 impl AdminStaging {
@@ -31,6 +46,7 @@ impl AdminStaging {
             route_admin: None,
             extra_routes: Vec::new(),
             state: None,
+            mount_prefix: String::new(),
         }
     }
 
@@ -50,8 +66,12 @@ impl AdminStaging {
         self
     }
 
+    /// Mounts the generated CRUD routes and records the admin's own path.
+    ///
+    /// Independent from [`AdminStaging::prefix`]: this sets *where the admin
+    /// lives*, `prefix()` sets *what is put in front of it*.
     pub fn routes(mut self, admin_routes: AdminRoutes) -> Self {
-        self.config.prefix = admin_routes.prefix;
+        self.config.prefix = admin_routes.path;
         self.route_admin = Some(admin_routes.router);
         self
     }
@@ -117,10 +137,31 @@ impl AdminStaging {
         self
     }
 
-    /// Sets the prefix for admin routes (default: `/admin`).
+    /// Prepends a segment in front of the whole admin, without renaming it.
+    ///
+    /// The admin's own path comes from `.routes(admins::routes("/site-admin"))`;
+    /// this prefix is mounted in front of it, so `.prefix("secret")` serves it
+    /// under `/secret/site-admin/…`. The two are independent: calling them in
+    /// either order gives the same result.
+    ///
+    /// Leading and trailing slashes are optional — `secret`, `/secret` and
+    /// `/secret/` are equivalent.
     pub fn prefix(mut self, prefix: &str) -> Self {
-        self.config = self.config.prefix(prefix);
+        self.mount_prefix = normalize_segment(prefix);
         self
+    }
+
+    /// Public base URL of the admin: mount prefix + admin path.
+    ///
+    /// Single source for every generated link (`admin_prefix` in templates,
+    /// `scope_base`, redirects) — the router is mounted so that it answers
+    /// exactly here.
+    pub(crate) fn public_prefix(&self) -> String {
+        format!(
+            "{}{}",
+            self.mount_prefix,
+            self.config.prefix.trim_end_matches('/')
+        )
     }
 
     /// Sets the number of entries per page in the list view (default: 10).
