@@ -5,4 +5,4 @@ pub(crate) mod watcher;
 
 pub(crate) use generator::generate;
 pub(crate) use parser::parse_admin_file;
-pub(crate) use watcher::watch;
+pub(crate) use watcher::{generate_once, watch};

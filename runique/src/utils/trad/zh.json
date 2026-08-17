@@ -166,12 +166,12 @@
   },
   "cli": {
     "creating_project": "正在创建项目 '{}'……",
-    "admin_detected": "检测到 Admin 模块 → 正在启动守护进程",
+    "admin_detected": "检测到 admin → 正在生成 admin 代码",
     "add_admin_hint": "请在构建器中添加 .with_admin(...) 以启用管理后台。",
     "daemon_error": "[守护进程] 错误：{}",
     "cargo_run_failed": "应用服务器启动失败（cargo run）",
     "file_not_found": "未找到文件：{}\\n请确保您在 Runique 项目的根目录下运行此命令。",
-    "admin_not_found": "未找到 Admin 文件：{}\\n请使用 admin!{{}} 宏创建 src/admin.rs 文件。",
+    "admin_not_found": "未找到 Admin 文件：{}\\n请使用 admin!{} 宏创建 src/admin.rs 文件。",
     "name_empty": "项目名称不能为空",
     "name_invalid": "项目名称只能包含字母、数字、下划线或连字符",
     "name_dash": "项目名称不能以连字符开头",
@@ -180,19 +180,22 @@
     "project_created": "项目 '{}' 创建成功！",
     "getting_started": "开始使用：",
     "cd_hint": "cd {}",
-    "cargo_run_hint": "cargo run"
+    "cargo_run_hint": "cargo run",
+    "fmt_failed": "cargo fmt 失败 — 已跳过格式化：{}"
   },
   "daemon": {
     "modification_detected": "检测到文件变更 → 正在重新生成……",
     "unable_read": "无法读取：{}",
     "parse_error": "解析错误：{}",
-    "no_resource": "admin!{{}} 中未定义任何资源 — 无需生成",
+    "no_resource": "admin!{} 中未定义任何资源 — 无需生成",
     "with_admin_disabled": "with_admin 已禁用 → 守护进程已停止",
-    "operational": "守护进程运行中 → src/admin/generated.rs",
+    "operational": "守护进程运行中 → src/admins/admin.rs",
     "generation_error": "生成代码时出错：{}",
     "watcher_error": "文件监视器出错：{}",
     "unable_create": "无法创建文件监视器：{}",
-    "unable_watch": "无法监视 {}：{}"
+    "unable_watch": "无法监视 {}：{}",
+    "generated_header": "自动生成 — 请勿手动修改",
+    "generated_notice": "由 `runique start` 从 src/admin.rs 生成。任何修改都将被覆盖。"
   },
   "macro": {
     "named_fields_only": "仅支持具名字段的结构体",

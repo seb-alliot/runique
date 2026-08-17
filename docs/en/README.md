@@ -122,7 +122,7 @@ The workflow:
 Current beta limits:
 
 - mostly resource-level permissions
-- generated folder overwrite (`src/admins/`)
+- generated files are overwritten (`src/admins/admin.rs`, `mod.rs`, `README.md`)
 - iterative hardening still in progress
 
 Admin docs: [Admin](https://runique.io/docs/en/admin)

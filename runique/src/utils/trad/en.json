@@ -166,12 +166,12 @@
   },
   "cli": {
     "creating_project": "Creating project '{}'...",
-    "admin_detected": "Admin detected → starting the daemon",
+    "admin_detected": "Admin detected → generating admin code",
     "add_admin_hint": "Add .with_admin(...) in your builder to enable the AdminPanel.",
     "daemon_error": "[Daemon] Error: {}",
     "cargo_run_failed": "Application server failed to start correctly (cargo run)",
     "file_not_found": "File not found: {}\\nMake sure you're at the root of your Runique project.",
-    "admin_not_found": "Admin file not found: {}\\nCreate src/admin.rs with admin!{{}} macro.",
+    "admin_not_found": "Admin file not found: {}\\nCreate src/admin.rs with admin!{} macro.",
     "name_empty": "The project name cannot be empty",
     "name_invalid": "The project name must contain only letters, numbers, _ or -",
     "name_dash": "The project name cannot start with -",
@@ -180,19 +180,22 @@
     "project_created": "Project '{}' created successfully!",
     "getting_started": "To get started:",
     "cd_hint": "cd {}",
-    "cargo_run_hint": "cargo run"
+    "cargo_run_hint": "cargo run",
+    "fmt_failed": "cargo fmt failed — formatting skipped: {}"
   },
   "daemon": {
     "modification_detected": "Modification detected → regeneration...",
     "unable_read": "Unable to read: {}",
     "parse_error": "Parsing error: {}",
-    "no_resource": "No resource in admin!{{}} — nothing to generate",
+    "no_resource": "No resource in admin!{} — nothing to generate",
     "with_admin_disabled": "with_admin disabled → daemon stopped",
-    "operational": "Daemon operational → src/admin/generated.rs",
+    "operational": "Daemon operational → src/admins/admin.rs",
     "generation_error": "Generation error: {}",
     "watcher_error": "Watcher error: {}",
     "unable_create": "Unable to create watcher: {}",
-    "unable_watch": "Unable to watch {}: {}"
+    "unable_watch": "Unable to watch {}: {}",
+    "generated_header": "AUTO-GENERATED — DO NOT EDIT MANUALLY",
+    "generated_notice": "Produced by `runique start` from src/admin.rs. Any change will be overwritten."
   },
   "macro": {
     "named_fields_only": "Named fields structs only",

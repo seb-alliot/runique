@@ -1,5 +1,5 @@
-// AUTO-admin — DO NOT EDIT MANUALLY
-// admin by `runique start` from src/admin.rs
+// 自动生成 — 请勿手动修改
+// 由 `runique start` 从 src/admin.rs 生成。任何修改都将被覆盖。
 
 use runique::prelude::*;
 
@@ -8829,11 +8829,12 @@ pub fn admin_register() -> AdminRegistry {
     registry
 }
 
-/// Builds the admin CRUD routes for the given prefix.
+/// Builds the admin CRUD routes for the given path.
 /// To be passed to `.with_admin(|a| a.routes(admins::routes("/admin")))` in main.rs.
-/// The prefix is automatically propagated to `AdminConfig` — no need to call `.prefix()` separately.
-pub fn routes(prefix: &str) -> runique::admin::AdminRoutes {
-    let p = prefix.trim_end_matches('/');
+/// This is where the admin lives. To serve it behind an extra segment
+/// (`/secret/admin/…`), add `.prefix("secret")` — the two are independent.
+pub fn routes(path: &str) -> runique::admin::AdminRoutes {
+    let p = path.trim_end_matches('/');
     let router = runique::axum::Router::new()
         .route(
             &format!("{}/{{resource}}/{{action}}", p),

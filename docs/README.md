@@ -121,7 +121,7 @@ Le workflow :
 Limites actuelles de la bêta :
 
 - permissions principalement au niveau des ressources
-- écrasement du dossier généré (`src/admins/`)
+- écrasement des fichiers générés (`src/admins/admin.rs`, `mod.rs`, `README.md`)
 - durcissement itératif toujours en cours
 
 Documentation admin : [Admin](https://runique.io/docs/en/admin)

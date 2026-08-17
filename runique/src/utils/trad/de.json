@@ -166,12 +166,12 @@
   },
   "cli": {
     "creating_project": "Projekt '{}' wird erstellt...",
-    "admin_detected": "Admin erkannt → Daemon wird gestartet",
+    "admin_detected": "Admin erkannt → Admin-Code wird generiert",
     "add_admin_hint": "Fügen Sie .with_admin(...) in Ihren Builder ein, um das Admin-Panel zu aktivieren.",
     "daemon_error": "[Daemon] Fehler: {}",
     "cargo_run_failed": "Der Anwendungsserver wurde nicht korrekt gestartet (cargo run)",
     "file_not_found": "Datei nicht gefunden: {}\\nStellen Sie sicher, dass Sie sich im Stammverzeichnis Ihres Runique-Projekts befinden.",
-    "admin_not_found": "Admin-Datei nicht gefunden: {}\\nErstellen Sie src/admin.rs mit dem Makro admin!{{}}.",
+    "admin_not_found": "Admin-Datei nicht gefunden: {}\\nErstellen Sie src/admin.rs mit dem Makro admin!{}.",
     "name_empty": "Der Projektname darf nicht leer sein",
     "name_invalid": "Der Projektname darf nur Buchstaben, Zahlen, _ oder - enthalten",
     "name_dash": "Der Projektname darf nicht mit - beginnen",
@@ -180,19 +180,22 @@
     "project_created": "Projekt '{}' erfolgreich erstellt!",
     "getting_started": "Erste Schritte:",
     "cd_hint": "cd {}",
-    "cargo_run_hint": "cargo run"
+    "cargo_run_hint": "cargo run",
+    "fmt_failed": "cargo fmt fehlgeschlagen — Formatierung übersprungen: {}"
   },
   "daemon": {
     "modification_detected": "Änderung erkannt → wird neu generiert...",
     "unable_read": "Kann nicht lesen: {}",
     "parse_error": "Analysefehler: {}",
-    "no_resource": "Keine Ressource in admin!{{}} — nichts zu generieren",
+    "no_resource": "Keine Ressource in admin!{} — nichts zu generieren",
     "with_admin_disabled": "with_admin deaktiviert → Daemon gestoppt",
-    "operational": "Daemon läuft → src/admin/generated.rs",
+    "operational": "Daemon läuft → src/admins/admin.rs",
     "generation_error": "Generierungsfehler: {}",
     "watcher_error": "Watcher-Fehler: {}",
     "unable_create": "Watcher konnte nicht erstellt werden: {}",
-    "unable_watch": "Kann {} nicht überwachen: {}"
+    "unable_watch": "Kann {} nicht überwachen: {}",
+    "generated_header": "AUTOMATISCH GENERIERT — NICHT MANUELL BEARBEITEN",
+    "generated_notice": "Erzeugt von `runique start` aus src/admin.rs. Alle Änderungen werden überschrieben."
   },
   "macro": {
     "named_fields_only": "Nur Structs mit benannten Feldern",
