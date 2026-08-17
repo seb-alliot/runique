@@ -134,8 +134,6 @@
     "acme_add_feature": "Füge das Feature `acme` zu deiner Cargo.toml hinzu."
   },
   "middleware": {
-    "host_invalid": "Ungültiger Host: '{}' (Erlaubte Hosts: {})",
-    "host_debug": "Ungültiger Host: '{}'. Fügen Sie ihn zu RUNIQUE_ALLOWED_HOSTS hinzu.",
     "bad_request": "Ungültige Anfrage",
     "slot_collision": "Runique-Middleware-Slot-Kollision: „{}\" und „{}\" beanspruchen beide Slot {}. Registrieren Sie weniger benutzerdefinierte Middlewares oder weisen Sie diesem einen expliziten Slot zu."
   },
@@ -165,18 +163,6 @@
     "info_demo": "Dies ist eine Informationsmeldung.",
     "warning_demo": "Dies ist eine Warnmeldung.",
     "error_demo": "Dies ist eine Fehlermeldung."
-  },
-  "log": {
-    "db_connecting": "Verbindung zur {} Datenbank wird hergestellt...",
-    "db_connected": "Datenbankverbindung erfolgreich hergestellt ({})",
-    "db_failed": "Datenbankverbindung fehlgeschlagen",
-    "db_engine": "Engine: {}",
-    "template_render_error": "Template-Renderfehler",
-    "error_handler": "Kritischer Fehler aufgetreten",
-    "error_handled": "Fehler behandelt",
-    "files_count": "JS-Dateien zum Formular hinzufügen",
-    "js_file_skip": "JS-Datei wird übersprungen",
-    "already_initialized": "Logger bereits initialisiert"
   },
   "cli": {
     "creating_project": "Projekt '{}' wird erstellt...",
@@ -446,24 +432,8 @@
     }
   },
   "makemigrations": {
-    "scanning": "Entitäten in '{}' werden gescannt...",
-    "found_schema": "-> Schema gefunden: {}",
-    "found_extend": "-> Framework-Tabellenerweiterung gefunden: {}",
-    "no_schema": "Keine schema()-Funktionen in '{}' gefunden.",
-    "schema_count": "{} Schema(ta) gefunden.",
-    "updated_lib": "Aktualisiert {}",
-    "no_changes": "Keine Änderungen erkannt. Ihr Schema ist aktuell.",
     "destructive_detected": "Destruktive Änderungen erkannt:",
     "destructive_require_force": "Verwenden Sie --force, um diese destruktiven Änderungen anzuwenden.",
-    "generated": "Generiert: {}",
-    "snapshot_updated": "Snapshot aktualisiert: {}",
-    "seaorm_alter": "SeaORM ALTER-Migration generiert: {}",
-    "batch_up": "Batch up generiert: {}",
-    "batch_down": "Batch down generiert: {}",
-    "apply_hint": "Führen Sie 'sea-orm-cli migrate up' aus.",
-    "extend_unknown_table": "extend!{{}} : \"{}\" ist keine bekannte Framework-Tabelle. Erlaubte Tabellen: {}. Um eine App-Tabelle zu erweitern, ändern Sie deren model!{{}} direkt.",
-    "extend_invalid_syntax": "extend!{{}} : ungültige Syntax. Erwartet: table: \"tabellenname\", fields: {{ ... }}",
-    "admin_positioned": "AdminTableMigration nach der Migration von '{}' positioniert",
     "files_ready": "{} Datei(en) bereit für die Migration."
   },
   "migrate": {

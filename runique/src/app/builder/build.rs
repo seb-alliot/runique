@@ -151,7 +151,9 @@ impl RuniqueAppBuilder {
         };
 
         let router = if self.admin.enabled {
-            let admin_prefix = self.admin.config.prefix.trim_end_matches('/').to_string();
+            // Public base URL (mount prefix + admin path) — what `{% url %}`
+            // must resolve to, not the path the router is built from.
+            let admin_prefix = self.admin.public_prefix();
             let robots_txt = self.admin.robots_txt;
             let sitemap_url = self.admin.sitemap_url.clone();
             if let Some(level) = crate::utils::runique_log::get_log()
@@ -214,9 +216,15 @@ impl RuniqueAppBuilder {
                         let sitemap_line = sitemap_url
                             .map(|u| format!("Sitemap: {}\n", u))
                             .unwrap_or_default();
+                        // No `Disallow` for the admin prefix on purpose: this file
+                        // is public, so naming the path would publish the very
+                        // prefix a dev may have chosen to stay discreet — and it
+                        // would only ask crawlers not to fetch it, not to leave it
+                        // out of the index. De-indexing is handled where it cannot
+                        // leak, by the `X-Robots-Tag` header on the admin router.
                         let body = format!(
-                            "User-agent: *\nDisallow: {}/\n\n{}Content-Signal: ai-train=yes, search=yes, ai-input=yes\n",
-                            admin_prefix, sitemap_line
+                            "User-agent: *\n\n{}Content-Signal: ai-train=yes, search=yes, ai-input=yes\n",
+                            sitemap_line
                         );
                         async move { body }
                     }),

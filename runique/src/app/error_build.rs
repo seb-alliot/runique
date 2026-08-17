@@ -1,4 +1,5 @@
 //! Application construction phase errors (build-time).
+use crate::utils::trad::{t, tf};
 use std::fmt;
 
 /// Main build phase error
@@ -143,10 +144,10 @@ impl fmt::Display for BuildError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.kind {
             BuildErrorKind::ValidationFailed(msg) => {
-                write!(f, "Build validation failed: {}", msg)?;
+                write!(f, "{}", tf("build.validation_failed", &[msg]))?;
             }
             BuildErrorKind::CheckFailed(report) => {
-                writeln!(f, "Build failed with {} check error(s):", report.count())?;
+                writeln!(f, "{}", tf("build.check_failed", &[report.count()]))?;
                 writeln!(f)?;
                 for (i, err) in report.errors.iter().enumerate() {
                     write!(
@@ -165,16 +166,13 @@ impl fmt::Display for BuildError {
                 }
             }
             BuildErrorKind::TemplateLoadFailed(msg) => {
-                write!(f, "Template loading failed: {}", msg)?;
+                write!(f, "{}", tf("build.template_failed", &[msg]))?;
             }
             BuildErrorKind::DatabaseMissing => {
-                write!(
-                    f,
-                    "Database connection required when 'orm' feature is enabled"
-                )?;
+                write!(f, "{}", t("build.db_missing"))?;
             }
             BuildErrorKind::ComponentNotReady(component) => {
-                write!(f, "Component '{}' is not ready", component)?;
+                write!(f, "{}", tf("build.component_not_ready", &[component]))?;
             }
         }
 

@@ -53,6 +53,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .sitemap("https://runique.io/sitemap.xml")
                 .auth(RuniqueAdminAuth::new())
                 .routes(admins::routes("/admin-runique/"))
+                .prefix("/prefix-test")
                 .templates(|t| t.with_dashboard("admin/test_dashboard.html"))
                 .with_state(admins::admin_state())
                 .with_rate_limiter(RateLimiter::new().max_requests(20).retry_after(3600))

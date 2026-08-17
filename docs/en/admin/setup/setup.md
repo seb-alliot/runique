@@ -84,7 +84,7 @@ RuniqueApp::builder(config)
 
 | Method | Role |
 | --- | --- |
-| `.prefix("/admin")` | Admin route prefix (default: `/admin`) |
+| `.prefix("secret")` | Segment mounted **in front of** the admin (default: none) — see below |
 | `.site_title("…")` | Title displayed in the interface |
 | `.auth(RuniqueAdminAuth::new())` | Admin authentication (default) |
 | `.routes(admins::routes("/admin"))` | Mounts CRUD routes under `/admin` |
@@ -92,10 +92,42 @@ RuniqueApp::builder(config)
 | `.no_robots_txt()` | Disables the automatic `/robots.txt` |
 | `.extra_routes(vec![…])` | Custom routes protected by the admin middleware |
 
+### `.routes()` and `.prefix()` — two distinct settings
+
+`.routes(admins::routes("/site-admin"))` sets **where the admin lives**.
+`.prefix("secret")` sets **what is mounted in front of it**. They compose:
+
+| `routes(...)` | `.prefix(...)` | Admin URL |
+| --- | --- | --- |
+| `/site-admin` | — | `/site-admin/…` |
+| `/site-admin` | `secret` | `/secret/site-admin/…` |
+| *(not called)* | `secret` | `/secret/admin/…` (default path) |
+
+Call order does not matter, and slashes are optional: `secret`, `/secret` and
+`/secret/` are equivalent.
+
+> **Version note** — `.prefix()` used to *replace* the admin path, putting it in
+> competition with `.routes()`: the last call won, and swapping the two lines
+> silently changed the served URLs. It now prefixes, as its name promises. A project
+> that used `.prefix("/backoffice")` to *rename* the admin should pass that path to
+> `admins::routes("/backoffice")` instead.
+
+---
+
 > **Automatic robots.txt** — When the admin panel is active, Runique automatically
-> serves a `/robots.txt` route containing `Disallow: /admin/` to exclude the interface
-> from search engines. The prefix configured via `.prefix()` is respected.
-> Use `.no_robots_txt()` if you want to manage this file yourself.
+> serves a `/robots.txt` route (a `Sitemap:` line when `.sitemap(…)` is set, plus the
+> `Content-Signal` directives). Use `.no_robots_txt()` if you want to manage this file
+> yourself.
+>
+> **The admin prefix is deliberately absent from it.** `robots.txt` is a public file:
+> writing `Disallow: /my-prefix/` would publish the very path a custom prefix is often
+> meant to keep discreet. And `Disallow` asks crawlers not to *fetch*, not to *index* —
+> a URL known from elsewhere can still show up in results.
+>
+> Exclusion is handled by the `X-Robots-Tag: noindex, nofollow` header, which Runique
+> sets on **every** admin response — login page included, as well as redirects, errors
+> and JSON replies. It leaks no path and stays in place even if you override the admin
+> templates.
 
 ---
 

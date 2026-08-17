@@ -134,8 +134,6 @@
     "acme_add_feature": "Adicione a feature `acme` ao seu Cargo.toml."
   },
   "middleware": {
-    "host_invalid": "Host inválido: '{}' (Hosts permitidos: {})",
-    "host_debug": "Host inválido: '{}'. Adicione-o a RUNIQUE_ALLOWED_HOSTS.",
     "bad_request": "Requisição inválida",
     "slot_collision": "Colisão de slot de middleware Runique: '{}' e '{}' reivindicam ambos o slot {}. Registre menos middlewares personalizados ou atribua a este um slot explícito."
   },
@@ -165,18 +163,6 @@
     "info_demo": "Esta é uma mensagem de informação.",
     "warning_demo": "Esta é uma mensagem de aviso.",
     "error_demo": "Esta é uma mensagem de erro."
-  },
-  "log": {
-    "db_connecting": "Conectando ao banco de dados {}...",
-    "db_connected": "Banco de dados conectado com sucesso ({})",
-    "db_failed": "Falha na conexão com o banco de dados",
-    "db_engine": "Motor: {}",
-    "template_render_error": "Erro de renderização do template",
-    "error_handler": "Erro crítico ocorrido",
-    "error_handled": "Erro tratado",
-    "files_count": "adicionar arquivos JS ao formulário",
-    "js_file_skip": "Arquivo JS ignorado",
-    "already_initialized": "Logger já inicializado"
   },
   "cli": {
     "creating_project": "Criando projeto '{}'...",
@@ -446,24 +432,8 @@
     }
   },
   "makemigrations": {
-    "scanning": "Verificando entidades em '{}'...",
-    "found_schema": "-> Esquema encontrado: {}",
-    "found_extend": "-> Extensão de tabela de framework encontrada: {}",
-    "no_schema": "Nenhuma função schema() encontrada em '{}'.",
-    "schema_count": "{} esquema(s) encontrado(s).",
-    "updated_lib": "Atualizado {}",
-    "no_changes": "Nenhuma alteração detectada. Seu esquema está atualizado.",
     "destructive_detected": "Alterações destrutivas detectadas:",
     "destructive_require_force": "Use --force para aplicar estas alterações destrutivas.",
-    "generated": "Gerado: {}",
-    "snapshot_updated": "Instantâneo atualizado: {}",
-    "seaorm_alter": "Migração ALTER SeaORM gerada: {}",
-    "batch_up": "Lote up gerado: {}",
-    "batch_down": "Lote down gerado: {}",
-    "apply_hint": "Execute 'sea-orm-cli migrate up' para aplicar.",
-    "extend_unknown_table": "extend!{{}} : \"{}\" não é uma tabela de framework conhecida. Tabelas permitidas: {}. Para estender uma tabela de aplicação, modifique seu model!{{}} diretamente.",
-    "extend_invalid_syntax": "extend!{{}} : sintaxe inválida. Esperado: table: \"nome_tabela\", fields: {{ ... }}",
-    "admin_positioned": "AdminTableMigration posicionada após a migração de '{}'",
     "files_ready": "{} arquivo(s) pronto(s) para migrar."
   },
   "migrate": {

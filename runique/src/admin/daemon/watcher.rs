@@ -19,16 +19,26 @@ pub(crate) fn watch(admin_path: &Path, main_path: &Path) -> Result<(), String> {
     let (tx, rx) = mpsc::channel::<notify::Result<Event>>();
 
     let mut watcher: RecommendedWatcher = RecommendedWatcher::new(tx, Config::default())
-        .map_err(|e| format!("Unable to create watcher: {}", e))?;
+        .map_err(|e| tf("daemon.unable_create", &[e.to_string()]))?;
 
     watcher
         .watch(admin_path, RecursiveMode::NonRecursive)
-        .map_err(|e| format!("Unable to watch {}: {}", admin_path.display(), e))?;
+        .map_err(|e| {
+            tf(
+                "daemon.unable_watch",
+                &[admin_path.display().to_string(), e.to_string()],
+            )
+        })?;
 
     if main_path.exists() {
         watcher
             .watch(main_path, RecursiveMode::NonRecursive)
-            .map_err(|e| format!("Unable to watch {}: {}", main_path.display(), e))?;
+            .map_err(|e| {
+                tf(
+                    "daemon.unable_watch",
+                    &[main_path.display().to_string(), e.to_string()],
+                )
+            })?;
     }
 
     // Initial generation at startup

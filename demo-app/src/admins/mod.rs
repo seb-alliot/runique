@@ -1,2 +1,2 @@
 pub mod admin;
-pub use admin::{admin_state, routes};
+pub use admin::{routes, admin_state};

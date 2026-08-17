@@ -5,12 +5,13 @@ use std::sync::Arc;
 use axum::{
     Extension, Router,
     extract::Path,
-    http::StatusCode,
+    http::{HeaderName, HeaderValue, StatusCode},
     middleware,
     response::{IntoResponse, Redirect, Response},
     routing::{get, post},
 };
 use serde::Deserialize;
+use tower_http::set_header::SetResponseHeaderLayer;
 
 use crate::app::staging::AdminStaging;
 use crate::auth::{
@@ -49,12 +50,26 @@ struct AdminLoginData {
 }
 
 pub fn build_admin_router(admin_staging: AdminStaging, _db: crate::utils::aliases::ADb) -> Router {
-    let prefix = admin_staging
+    // Two independent values, never in competition:
+    //   `admin_path`   — the admin's own path (`/site-admin`), from `.routes()`
+    //   `mount_prefix` — the segment `.prefix()` puts in front (`/secret`)
+    //   `prefix`       — the public base (`/secret/site-admin`), what a visitor types
+    //
+    // Built-in routes are declared through `urlpatterns!`, which registers their
+    // name in the URL registry with the literal path given here — so they must be
+    // built with the PUBLIC base, otherwise `{% url "admin_login" %}` resolves to
+    // a path the router no longer serves. The generated CRUD router carries no
+    // names (its routes are dynamic `{resource}/{action}`), so it is the only one
+    // that gets `nest()`ed under the mount prefix.
+    let admin_path = admin_staging
         .config
         .prefix
         .trim_end_matches('/')
         .to_string();
-    let config = admin_staging.config;
+    let mount_prefix = admin_staging.mount_prefix.clone();
+    let prefix = format!("{mount_prefix}{admin_path}");
+    let mut config = admin_staging.config;
+    config.prefix = prefix.clone();
     let state = admin_staging.state;
 
     let login_guard = config.login_guard.clone();
@@ -102,13 +117,23 @@ pub fn build_admin_router(admin_staging: AdminStaging, _db: crate::utils::aliase
         Router::new()
     };
 
-    // Extra routes registered via .extra_routes() — protected by admin middleware
+    // Extra routes registered via .extra_routes() — protected by admin middleware.
+    // Built on `admin_path`, not the public base: they ride along with the
+    // generated router through the `nest()` below, which adds the mount prefix.
     let generated_router = admin_staging
         .extra_routes
         .into_iter()
         .fold(generated_router, |router, (path, method_router)| {
-            router.route(&format!("{}{}", prefix, path), method_router)
+            router.route(&format!("{}{}", admin_path, path), method_router)
         });
+
+    // Mount prefix applies here only — the generated routes are the ones whose
+    // literal paths still carry `admin_path`. `nest("")` panics, hence the guard.
+    let generated_router = if mount_prefix.is_empty() {
+        generated_router
+    } else {
+        Router::new().nest(&mount_prefix, generated_router)
+    };
 
     // Assembly: public + (protected + generated with middleware)
     let mut router = public_router
@@ -118,7 +143,19 @@ pub fn build_admin_router(admin_staging: AdminStaging, _db: crate::utils::aliase
                 .layer(middleware::from_fn(admin_required)),
         )
         .layer(middleware::from_fn_with_state(_db, load_user_middleware))
-        .layer(Extension(admin_state));
+        .layer(Extension(admin_state))
+        // Keep the admin out of search indexes without ever naming its path in a
+        // public file: a `Disallow` in robots.txt would publish the very prefix a
+        // dev picked to stay discreet, and it only asks crawlers not to *fetch* —
+        // a linked URL can still be listed. This header says "do not index" and
+        // applies to every admin response, login page included (it sits above
+        // `admin_required`, which covers protected routes only), so redirects,
+        // errors and JSON are covered too. `overriding`: no admin page has a
+        // legitimate reason to be indexed, so no handler may weaken it.
+        .layer(SetResponseHeaderLayer::overriding(
+            HeaderName::from_static("x-robots-tag"),
+            HeaderValue::from_static("noindex, nofollow"),
+        ));
 
     if let Some(state) = state {
         // Replace proto_state config with the one from AdminStaging

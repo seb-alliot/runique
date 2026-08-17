@@ -84,7 +84,7 @@ RuniqueApp::builder(config)
 
 | Méthode | Rôle |
 | --- | --- |
-| `.prefix("/admin")` | Préfixe des routes admin (défaut : `/admin`) |
+| `.prefix("secret")` | Segment monté **devant** l'admin (défaut : aucun) — voir ci-dessous |
 | `.site_title("…")` | Titre affiché dans l'interface |
 | `.auth(RuniqueAdminAuth::new())` | Authentification admin (par défaut) |
 | `.routes(admins::routes("/admin"))` | Monte les routes CRUD sous `/admin` |
@@ -92,10 +92,43 @@ RuniqueApp::builder(config)
 | `.no_robots_txt()` | Désactive le `/robots.txt` automatique |
 | `.extra_routes(vec![…])` | Routes custom protégées par le middleware admin |
 
+### `.routes()` et `.prefix()` — deux réglages distincts
+
+`.routes(admins::routes("/site-admin"))` définit **où vit l'admin**.
+`.prefix("secret")` définit **ce qui est monté devant**. Ils se composent :
+
+| `routes(...)` | `.prefix(...)` | URL de l'admin |
+| --- | --- | --- |
+| `/site-admin` | — | `/site-admin/…` |
+| `/site-admin` | `secret` | `/secret/site-admin/…` |
+| *(non appelé)* | `secret` | `/secret/admin/…` (chemin par défaut) |
+
+L'ordre des deux appels n'a aucune importance, et les slashs sont optionnels :
+`secret`, `/secret` et `/secret/` sont équivalents.
+
+> **Note de version** — `.prefix()` *remplaçait* auparavant le chemin de l'admin,
+> ce qui la mettait en concurrence avec `.routes()` : le dernier appelé gagnait, et
+> inverser les deux lignes changeait silencieusement les URLs servies. Elle préfixe
+> désormais, conformément à son nom. Un projet qui utilisait `.prefix("/backoffice")`
+> pour *renommer* l'admin doit passer ce chemin à `admins::routes("/backoffice")`.
+
+---
+
 > **robots.txt automatique** — Quand l'admin est actif, Runique génère automatiquement
-> une route `/robots.txt` contenant `Disallow: /admin/` pour exclure l'interface
-> des moteurs de recherche. Le préfixe configuré via `.prefix()` est respecté.
-> Utilisez `.no_robots_txt()` si vous souhaitez gérer ce fichier vous-même.
+> une route `/robots.txt` (ligne `Sitemap:` si `.sitemap(…)` est défini, plus les
+> signaux `Content-Signal`). Utilisez `.no_robots_txt()` si vous souhaitez gérer ce
+> fichier vous-même.
+>
+> **Le préfixe admin n'y figure pas, volontairement.** `robots.txt` est un fichier
+> public : y écrire `Disallow: /mon-prefixe/` publierait justement le chemin qu'un
+> préfixe personnalisé cherche souvent à garder discret. Et `Disallow` demande de ne
+> pas *parcourir*, pas de ne pas *indexer* — une URL connue par ailleurs peut
+> apparaître malgré tout dans les résultats.
+>
+> L'exclusion est assurée par l'en-tête `X-Robots-Tag: noindex, nofollow`, posé par
+> Runique sur **toutes** les réponses de l'admin — page de login incluse, ainsi que
+> les redirections, les erreurs et les réponses JSON. Il ne divulgue aucun chemin et
+> reste en place même si vous surchargez les templates admin.
 
 ---
 

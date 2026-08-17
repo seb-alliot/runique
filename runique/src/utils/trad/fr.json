@@ -134,8 +134,6 @@
     "acme_add_feature": "Ajoute la feature `acme` à ton Cargo.toml."
   },
   "middleware": {
-    "host_invalid": "Hôte invalide: '{}' (Hosts autorisés: {})",
-    "host_debug": "Hôte invalide : '{}'. Ajoutez-le à RUNIQUE_ALLOWED_HOSTS.",
     "bad_request": "Mauvaise requête",
     "slot_collision": "Collision de slot middleware Runique : « {} » et « {} » revendiquent tous les deux le slot {}. Enregistrez moins de middlewares custom ou donnez à celui-ci un slot explicite."
   },
@@ -165,18 +163,6 @@
     "info_demo": "Ceci est un message d'information.",
     "warning_demo": "Ceci est un message d'avertissement.",
     "error_demo": "Ceci est un message d'erreur."
-  },
-  "log": {
-    "db_connecting": "Connexion à la base de données {}...",
-    "db_connected": "Base de données connectée avec succès ({})",
-    "db_failed": "Échec de la connexion à la base de données",
-    "db_engine": "Moteur : {}",
-    "template_render_error": "Erreur de rendu du template",
-    "error_handler": "Erreur critique survenue",
-    "error_handled": "Erreur traitée",
-    "files_count": "ajout de fichiers JS au formulaire",
-    "js_file_skip": "Fichier JS ignoré",
-    "already_initialized": "Logger déjà initialisé"
   },
   "cli": {
     "creating_project": "Création du projet '{}'...",
@@ -463,24 +449,8 @@
     "email_body": "<p>Bonjour {},</p><p>Cliquez sur le lien suivant pour réinitialiser votre mot de passe (valide 1 heure) :</p><p><a href=\"{}\">{}</a></p>"
   },
   "makemigrations": {
-    "scanning": "Scan des entités dans '{}'...",
-    "found_schema": "-> Schéma trouvé : {}",
-    "found_extend": "-> Extension trouvée pour la table framework : {}",
-    "no_schema": "Aucune fonction schema() trouvée dans '{}'.",
-    "schema_count": "{} schéma(s) trouvé(s).",
-    "updated_lib": "Mis à jour {}",
-    "no_changes": "Aucun changement détecté. Votre schéma est à jour.",
     "destructive_detected": "Changements destructifs détectés :",
     "destructive_require_force": "Utilisez --force pour appliquer ces changements destructifs.",
-    "generated": "Généré : {}",
-    "snapshot_updated": "Snapshot mis à jour : {}",
-    "seaorm_alter": "Migration ALTER SeaORM générée : {}",
-    "batch_up": "Batch up généré : {}",
-    "batch_down": "Batch down généré : {}",
-    "apply_hint": "Lancez 'sea-orm-cli migrate up' pour appliquer.",
-    "extend_unknown_table": "extend!{{}} : \"{}\" n'est pas une table framework connue. Tables autorisées : {}. Pour étendre une table applicative, modifiez son model!{{}} directement.",
-    "extend_invalid_syntax": "extend!{{}} : syntaxe invalide. Attendu : table: \"nom_table\", fields: {{ ... }}",
-    "admin_positioned": "AdminTableMigration positionnée après la migration de '{}'",
     "files_ready": "{} fichier(s) prêt(s) à migrer."
   },
   "migrate": {

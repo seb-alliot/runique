@@ -24,20 +24,25 @@ pub use builtin::builtin_resources;
 pub use config::AdminConfig;
 pub use helper::{fetch_fk_label_map, fk_key, resolve_fk_labels, resolve_fk_labels_in_rows};
 
-/// Carries the admin CRUD router and its URL prefix.
+/// Carries the admin CRUD router and the path it is built for.
 ///
-/// Returned by the daemon-generated `admins::routes(prefix)`.
-/// Passed to `AdminStaging::routes()` which sets both the router and prefix automatically.
+/// Returned by the daemon-generated `admins::routes(path)`.
+/// Passed to `AdminStaging::routes()`, which records both.
+///
+/// `path` is the admin's own location (`/site-admin`), **not** a prefix: the
+/// segment added in front of it comes from `AdminStaging::prefix()` and is
+/// applied separately at mount time. Naming this field `prefix` made the two
+/// look like the same setting when they appear side by side in a builder chain.
 pub struct AdminRoutes {
     pub router: axum::Router,
-    pub prefix: String,
+    pub path: String,
 }
 
 impl AdminRoutes {
-    pub fn new(prefix: impl Into<String>, router: axum::Router) -> Self {
+    pub fn new(path: impl Into<String>, router: axum::Router) -> Self {
         Self {
             router,
-            prefix: prefix.into(),
+            path: path.into(),
         }
     }
 
