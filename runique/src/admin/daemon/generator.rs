@@ -169,10 +169,7 @@ fn write_admin_register(out: &mut String, parsed: &ParsedAdmin) -> Result<(), St
     let _ = writeln!(out);
 
     // routes() function — returns the Axum Router of the admin prototype
-    let _ = writeln!(
-        out,
-        "/// Builds the admin CRUD routes for the given path."
-    );
+    let _ = writeln!(out, "/// Builds the admin CRUD routes for the given path.");
     let _ = writeln!(
         out,
         "/// To be passed to `.with_admin(|a| a.routes(admins::routes(\"/admin\")))` in main.rs."
