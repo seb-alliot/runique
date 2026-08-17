@@ -120,12 +120,12 @@ pub fn build_admin_router(admin_staging: AdminStaging, _db: crate::utils::aliase
     // Extra routes registered via .extra_routes() — protected by admin middleware.
     // Built on `admin_path`, not the public base: they ride along with the
     // generated router through the `nest()` below, which adds the mount prefix.
-    let generated_router = admin_staging
-        .extra_routes
-        .into_iter()
-        .fold(generated_router, |router, (path, method_router)| {
+    let generated_router = admin_staging.extra_routes.into_iter().fold(
+        generated_router,
+        |router, (path, method_router)| {
             router.route(&format!("{}{}", admin_path, path), method_router)
-        });
+        },
+    );
 
     // Mount prefix applies here only — the generated routes are the ones whose
     // literal paths still carry `admin_path`. `nest("")` panics, hence the guard.
