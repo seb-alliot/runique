@@ -166,12 +166,12 @@
   },
   "cli": {
     "creating_project": "Criando projeto '{}'...",
-    "admin_detected": "Admin detectado → iniciando o daemon",
+    "admin_detected": "Admin detectado → gerando código admin",
     "add_admin_hint": "Adicione .with_admin(...) no seu builder para ativar o painel de administração.",
     "daemon_error": "[Daemon] Erro: {}",
     "cargo_run_failed": "O servidor da aplicação não iniciou corretamente (cargo run)",
     "file_not_found": "Arquivo não encontrado: {}\\nCertifique-se de estar na raiz do seu projeto Runique.",
-    "admin_not_found": "Arquivo admin não encontrado: {}\\nCrie src/admin.rs com a macro admin!{{}}.",
+    "admin_not_found": "Arquivo admin não encontrado: {}\\nCrie src/admin.rs com a macro admin!{}.",
     "name_empty": "O nome do projeto não pode estar vazio",
     "name_invalid": "O nome do projeto deve conter apenas letras, números, _ ou -",
     "name_dash": "O nome do projeto não pode começar com -",
@@ -180,19 +180,22 @@
     "project_created": "Projeto '{}' criado com sucesso!",
     "getting_started": "Para começar:",
     "cd_hint": "cd {}",
-    "cargo_run_hint": "cargo run"
+    "cargo_run_hint": "cargo run",
+    "fmt_failed": "cargo fmt falhou — formatação ignorada: {}"
   },
   "daemon": {
     "modification_detected": "Modificação detectada → regenerando...",
     "unable_read": "Impossível ler: {}",
     "parse_error": "Erro de análise: {}",
-    "no_resource": "Nenhum recurso em admin!{{}} — nada a gerar",
+    "no_resource": "Nenhum recurso em admin!{} — nada a gerar",
     "with_admin_disabled": "with_admin desativado → daemon parado",
-    "operational": "Daemon operacional → src/admin/generated.rs",
+    "operational": "Daemon operacional → src/admins/admin.rs",
     "generation_error": "Erro de geração: {}",
     "watcher_error": "Erro do watcher: {}",
     "unable_create": "Impossível criar o watcher: {}",
-    "unable_watch": "Impossível monitorar {} : {}"
+    "unable_watch": "Impossível monitorar {} : {}",
+    "generated_header": "GERADO AUTOMATICAMENTE — NÃO EDITAR MANUALMENTE",
+    "generated_notice": "Produzido por `runique start` a partir de src/admin.rs. Qualquer alteração será sobrescrita."
   },
   "macro": {
     "named_fields_only": "Apenas structs com campos nomeados",

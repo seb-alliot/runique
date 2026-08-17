@@ -166,12 +166,12 @@
   },
   "cli": {
     "creating_project": "プロジェクト '{}' を作成中...",
-    "admin_detected": "Admin を検出 → デーモンを起動中",
+    "admin_detected": "管理画面を検出 → 管理コードを生成中",
     "add_admin_hint": "管理パネルを有効にするには、ビルダーに .with_admin(...) を追加してください。",
     "daemon_error": "[Daemon] エラー: {}",
     "cargo_run_failed": "アプリケーションサーバーが正常に起動しませんでした (cargo run)",
     "file_not_found": "ファイルが見つかりません: {}\\nRunique プロジェクトのルートにいることを確認してください。",
-    "admin_not_found": "Admin ファイルが見つかりません: {}\\nadmin!{{}} マクロを使用して src/admin.rs を作成してください。",
+    "admin_not_found": "Admin ファイルが見つかりません: {}\\nadmin!{} マクロを使用して src/admin.rs を作成してください。",
     "name_empty": "プロジェクト名は空にできません",
     "name_invalid": "プロジェクト名には文字、数字、_ または - のみ使用できます",
     "name_dash": "プロジェクト名は - で始めることができません",
@@ -180,19 +180,22 @@
     "project_created": "プロジェクト '{}' を作成しました！",
     "getting_started": "始めるには：",
     "cd_hint": "cd {}",
-    "cargo_run_hint": "cargo run"
+    "cargo_run_hint": "cargo run",
+    "fmt_failed": "cargo fmt が失敗しました — フォーマットをスキップします: {}"
   },
   "daemon": {
     "modification_detected": "変更を検出 → 再生成中...",
     "unable_read": "読み取れません: {}",
     "parse_error": "解析エラー: {}",
-    "no_resource": "admin!{{}} にリソースがありません — 生成するものがありません",
+    "no_resource": "admin!{} にリソースがありません — 生成するものがありません",
     "with_admin_disabled": "with_admin が無効 → デーモン停止",
-    "operational": "デーモン稼働中 → src/admin/generated.rs",
+    "operational": "デーモン稼働中 → src/admins/admin.rs",
     "generation_error": "生成エラー: {}",
     "watcher_error": "ウォッチャーエラー: {}",
     "unable_create": "ウォッチャーを作成できません: {}",
-    "unable_watch": "{} を監視できません: {}"
+    "unable_watch": "{} を監視できません: {}",
+    "generated_header": "自動生成 — 手動で編集しないでください",
+    "generated_notice": "`runique start` により src/admin.rs から生成されました。変更は上書きされます。"
   },
   "macro": {
     "named_fields_only": "名前付きフィールドを持つ構造体のみ",

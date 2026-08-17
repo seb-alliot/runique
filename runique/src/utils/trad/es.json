@@ -166,12 +166,12 @@
   },
   "cli": {
     "creating_project": "Creando el proyecto '{}'...",
-    "admin_detected": "Admin detectado → iniciando el daemon",
+    "admin_detected": "Admin detectado → generando código admin",
     "add_admin_hint": "Añade .with_admin(...) en tu builder para activar el panel de administración.",
     "daemon_error": "[Daemon] Error: {}",
     "cargo_run_failed": "El servidor de aplicaciones no se inició correctamente (cargo run)",
     "file_not_found": "Archivo no encontrado: {}\\nAsegúrate de estar en la raíz de tu proyecto Runique.",
-    "admin_not_found": "Archivo admin no encontrado: {}\\nCrea src/admin.rs con la macro admin!{{}}.",
+    "admin_not_found": "Archivo admin no encontrado: {}\\nCrea src/admin.rs con la macro admin!{}.",
     "name_empty": "El nombre del proyecto no puede estar vacío",
     "name_invalid": "El nombre del proyecto solo debe contener letras, números, _ o -",
     "name_dash": "El nombre del proyecto no puede comenzar con -",
@@ -180,19 +180,22 @@
     "project_created": "¡Proyecto '{}' creado con éxito!",
     "getting_started": "Para comenzar:",
     "cd_hint": "cd {}",
-    "cargo_run_hint": "cargo run"
+    "cargo_run_hint": "cargo run",
+    "fmt_failed": "cargo fmt falló — formateo omitido: {}"
   },
   "daemon": {
     "modification_detected": "Modificación detectada → regenerando...",
     "unable_read": "No se puede leer: {}",
     "parse_error": "Error de análisis: {}",
-    "no_resource": "No hay recursos en admin!{{}} — nada que generar",
+    "no_resource": "No hay recursos en admin!{} — nada que generar",
     "with_admin_disabled": "with_admin desactivado → daemon detenido",
-    "operational": "Daemon operativo → src/admin/generated.rs",
+    "operational": "Daemon operativo → src/admins/admin.rs",
     "generation_error": "Error de generación: {}",
     "watcher_error": "Error del watcher: {}",
     "unable_create": "No se puede crear el watcher: {}",
-    "unable_watch": "No se puede monitorear {} : {}"
+    "unable_watch": "No se puede monitorear {} : {}",
+    "generated_header": "GENERADO AUTOMÁTICAMENTE — NO EDITAR MANUALMENTE",
+    "generated_notice": "Producido por `runique start` desde src/admin.rs. Cualquier cambio será sobrescrito."
   },
   "macro": {
     "named_fields_only": "Solo structs con campos nombrados",

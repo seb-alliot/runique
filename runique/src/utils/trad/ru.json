@@ -166,12 +166,12 @@
   },
   "cli": {
     "creating_project": "Создание проекта '{}'...",
-    "admin_detected": "Обнаружен admin → запуск daemon",
+    "admin_detected": "Админка обнаружена → генерация кода админки",
     "add_admin_hint": "Добавьте .with_admin(...) в ваш builder для активации панели администратора.",
     "daemon_error": "[Daemon] Ошибка: {}",
     "cargo_run_failed": "Приложение не запустилось корректно (cargo run)",
     "file_not_found": "Файл не найден: {}\nУбедитесь, что вы находитесь в корне вашего проекта Runique.",
-    "admin_not_found": "Файл admin не найден: {}\nСоздайте src/admin.rs с макросом admin!{{}}.",
+    "admin_not_found": "Файл admin не найден: {}\nСоздайте src/admin.rs с макросом admin!{}.",
     "name_empty": "Имя проекта не может быть пустым",
     "name_invalid": "Имя проекта должно содержать только буквы, цифры, _ или -",
     "name_dash": "Имя проекта не может начинаться с -",
@@ -180,19 +180,22 @@
     "project_created": "Проект '{}' успешно создан!",
     "getting_started": "Для начала:",
     "cd_hint": "cd {}",
-    "cargo_run_hint": "cargo run"
+    "cargo_run_hint": "cargo run",
+    "fmt_failed": "cargo fmt завершился с ошибкой — форматирование пропущено: {}"
   },
   "daemon": {
     "modification_detected": "Обнаружено изменение → регенерация...",
     "unable_read": "Невозможно прочитать: {}",
     "parse_error": "Ошибка разбора: {}",
-    "no_resource": "Нет ресурсов в admin!{{}} — нечего генерировать",
+    "no_resource": "Нет ресурсов в admin!{} — нечего генерировать",
     "with_admin_disabled": "with_admin отключён → daemon остановлен",
-    "operational": "Daemon работает → src/admin/generated.rs",
+    "operational": "Daemon работает → src/admins/admin.rs",
     "generation_error": "Ошибка генерации: {}",
     "watcher_error": "Ошибка наблюдателя: {}",
     "unable_create": "Невозможно создать наблюдателя: {}",
-    "unable_watch": "Невозможно наблюдать за {} : {}"
+    "unable_watch": "Невозможно наблюдать за {} : {}",
+    "generated_header": "СГЕНЕРИРОВАНО АВТОМАТИЧЕСКИ — НЕ РЕДАКТИРОВАТЬ ВРУЧНУЮ",
+    "generated_notice": "Создано `runique start` из src/admin.rs. Любые изменения будут перезаписаны."
   },
   "macro": {
     "named_fields_only": "Только структуры с именованными полями",

@@ -166,12 +166,12 @@
   },
   "cli": {
     "creating_project": "Création du projet '{}'...",
-    "admin_detected": "Admin détecté → démarrage du daemon",
+    "admin_detected": "Admin détecté → génération du code admin",
     "add_admin_hint": "Ajoutez .with_admin(...) dans votre builder pour activer le panneau admin.",
     "daemon_error": "[Daemon] Erreur : {}",
     "cargo_run_failed": "Le serveur applicatif n'a pas démarré correctement (cargo run)",
     "file_not_found": "Fichier non trouvé : {}\\nAssurez-vous d'être à la racine de votre projet Runique.",
-    "admin_not_found": "Fichier admin non trouvé : {}\\nCréez src/admin.rs avec la macro admin!{{}}.",
+    "admin_not_found": "Fichier admin non trouvé : {}\\nCréez src/admin.rs avec la macro admin!{}.",
     "name_empty": "Le nom du projet ne peut pas être vide",
     "name_invalid": "Le nom du projet ne doit contenir que des lettres, chiffres, _ ou -",
     "name_dash": "Le nom du projet ne peut pas commencer par -",
@@ -180,19 +180,22 @@
     "project_created": "Projet '{}' créé avec succès !",
     "getting_started": "Pour démarrer :",
     "cd_hint": "cd {}",
-    "cargo_run_hint": "cargo run"
+    "cargo_run_hint": "cargo run",
+    "fmt_failed": "cargo fmt a échoué — formatage ignoré : {}"
   },
   "daemon": {
     "modification_detected": "Modification détectée → régénération...",
     "unable_read": "Impossible de lire : {}",
     "parse_error": "Erreur d'analyse : {}",
-    "no_resource": "Aucune ressource dans admin!{{}} — rien à générer",
+    "no_resource": "Aucune ressource dans admin!{} — rien à générer",
     "with_admin_disabled": "with_admin désactivé → daemon arrêté",
-    "operational": "Daemon opérationnel → src/admin/generated.rs",
+    "operational": "Daemon opérationnel → src/admins/admin.rs",
     "generation_error": "Erreur de génération : {}",
     "watcher_error": "Erreur du watcher : {}",
     "unable_create": "Impossible de créer le watcher : {}",
-    "unable_watch": "Impossible de surveiller {} : {}"
+    "unable_watch": "Impossible de surveiller {} : {}",
+    "generated_header": "GÉNÉRÉ AUTOMATIQUEMENT — NE PAS MODIFIER MANUELLEMENT",
+    "generated_notice": "Produit par `runique start` depuis src/admin.rs. Toute modification sera écrasée."
   },
   "macro": {
     "named_fields_only": "Structs à champs nommés uniquement",

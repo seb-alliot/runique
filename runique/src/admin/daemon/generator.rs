@@ -1,5 +1,6 @@
 //! Generation of `src/admins/admin.rs` — `DynForm` wrappers and `admin_register()` from `ResourceDef`.
 use crate::admin::daemon::parser::{ParsedAdmin, ResourceDef};
+use crate::utils::trad::t;
 use std::{fmt::Write, fs, path::Path};
 
 /// Generates `src/admins/admin.rs` — the only file produced by the daemon.
@@ -9,10 +10,13 @@ use std::{fmt::Write, fs, path::Path};
 /// - `admin_register()` → `HashMap<String, ResourceEntry>` populated at boot
 pub(crate) fn generate(parsed: &ParsedAdmin) -> Result<(), String> {
     let admins_dir = Path::new("src/admins");
-    if admins_dir.exists() {
-        fs::remove_dir_all(admins_dir)
-            .map_err(|e| format!("Impossible to delete {}: {}", admins_dir.display(), e))?;
-    }
+
+    // The generator owns exactly the three files written below, and `fs::write`
+    // truncates them — so nothing has to be deleted first. Wiping the directory
+    // (former `remove_dir_all`) only ever destroyed what the generator does NOT
+    // own: a helper a developer dropped in there, which conflicted with nothing.
+    // Not deleting is also safer on failure: a write error leaves the previous
+    // `admin.rs` in place instead of an empty directory.
     fs::create_dir_all(admins_dir)
         .map_err(|e| format!("Impossible to create {}: {}", admins_dir.display(), e))?;
 
@@ -23,8 +27,15 @@ pub(crate) fn generate(parsed: &ParsedAdmin) -> Result<(), String> {
     Ok(())
 }
 
+/// The warning addressed to the developer — translated, unlike `tracing` messages
+/// which stay in English by convention: this one is read by a human opening the
+/// directory, not by whoever greps the logs.
 fn write_readme(dir: &Path) -> Result<(), String> {
-    let content = "<!-- AUTO-admin — DO NOT EDIT MANUALLY\n     admin by `runique start`. Any changes will be overwritten. -->\n";
+    let content = format!(
+        "<!-- {}\n     {} -->\n",
+        t("daemon.generated_header"),
+        t("daemon.generated_notice")
+    );
     fs::write(dir.join("README.md"), content)
         .map_err(|e| format!("Impossible to write README.md: {}", e))
 }
@@ -38,8 +49,8 @@ fn write_admin(parsed: &ParsedAdmin, dir: &Path) -> Result<(), String> {
     let resources = &parsed.resources;
     let mut out = String::new();
 
-    let _ = writeln!(out, "// AUTO-admin — DO NOT EDIT MANUALLY");
-    let _ = writeln!(out, "// admin by `runique start` from src/admin.rs");
+    let _ = writeln!(out, "// {}", t("daemon.generated_header"));
+    let _ = writeln!(out, "// {}", t("daemon.generated_notice"));
     let _ = writeln!(out);
     let _ = writeln!(out, "use runique::prelude::*;");
     let _ = writeln!(out);
