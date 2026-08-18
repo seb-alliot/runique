@@ -8,6 +8,11 @@
 //! ne doit casser l'échappement HTML.
 
 use crate::helpers::admin_server::{ADMIN_PREFIX, admin_server_addr, login_as_superuser};
+use serial_test::serial;
+
+// `#[serial]` : meme raison que `test_admin_route_crawl.rs` — le build unique
+// derriere `admin_server_addr()` (OnceLock) partage `PENDING_URLS` avec les
+// autres suites `#[serial]`. Voir `register_url.rs`.
 
 /// Signature d'un hash Argon2 (`$argon2id$...`) — si elle apparaît dans une page
 /// rendue, un secret est sorti en clair au lieu d'être masqué par le template.
@@ -17,6 +22,7 @@ const ARGON2_SIGNATURE: &str = "$argon2";
 /// dans la liste ni le détail admin — `admin/detail.html` est censé le
 /// remplacer par `••••••••` pour toute clé `password`/`password_hash`.
 #[tokio::test]
+#[serial]
 async fn test_admin_password_never_leaks_in_list_or_detail() {
     let addr = admin_server_addr();
     let base = format!("http://{addr}");
@@ -60,6 +66,7 @@ async fn test_admin_password_never_leaks_in_list_or_detail() {
 /// aucune balise valide — ils survivent à la sanitization d'entrée intacts et
 /// doivent ressortir échappés au rendu.
 #[tokio::test]
+#[serial]
 async fn test_admin_special_chars_are_escaped_in_list() {
     let addr = admin_server_addr();
     let base = format!("http://{addr}");

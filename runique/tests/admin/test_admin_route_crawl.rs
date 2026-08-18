@@ -15,8 +15,17 @@ use crate::helpers::admin_server::{
     ADMIN_PREFIX, SEED_GROUPE_ID, SEED_HISTORY_BATCH_ID, SUPERUSER_USERNAME, admin_server_addr,
     admin_test_client, assert_get_ok, droit_id, login_as_superuser,
 };
+use serial_test::serial;
+
+// `#[serial]` : `admin_server_addr()` ne construit le serveur qu'une fois (OnceLock),
+// mais ce build unique passe par le meme registre global `PENDING_URLS` que
+// `test_admin_prefix.rs`/`test_robots_txt.rs` (egalement `#[serial]`). Comme on ne
+// sait pas lequel de ces tests declenchera le build en premier, ils doivent tous
+// tenir le meme verrou pour garantir qu'aucun autre build ne s'execute en meme temps.
+// Voir `register_url.rs`.
 
 #[tokio::test]
+#[serial]
 async fn test_admin_crawl_dashboard_and_lists() {
     let addr = admin_server_addr();
     let base = format!("http://{addr}");
@@ -49,6 +58,7 @@ async fn test_admin_crawl_dashboard_and_lists() {
 }
 
 #[tokio::test]
+#[serial]
 async fn test_admin_crawl_detail_create_edit_delete_bulk() {
     let addr = admin_server_addr();
     let base = format!("http://{addr}");
@@ -89,6 +99,7 @@ async fn test_admin_crawl_detail_create_edit_delete_bulk() {
 }
 
 #[tokio::test]
+#[serial]
 async fn test_admin_crawl_history_views() {
     let addr = admin_server_addr();
     let base = format!("http://{addr}");
@@ -110,6 +121,7 @@ async fn test_admin_crawl_history_views() {
 /// C'est exactement le genre de branche que la migration Tera 2 a cassée en
 /// silence (cf. mémoire projet `project_tests_detection_bugs_muets`).
 #[tokio::test]
+#[serial]
 async fn test_admin_login_wrong_password_rerenders_form() {
     let addr = admin_server_addr();
     let base = format!("http://{addr}");
