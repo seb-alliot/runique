@@ -32,7 +32,6 @@ tower-http.workspace = true
 tower-sessions.workspace = true
 
 # Admin daemon
-notify.workspace = true
 syn.workspace = true
 quote.workspace = true
 proc-macro2.workspace = true

@@ -184,16 +184,11 @@
     "fmt_failed": "cargo fmt завершился с ошибкой — форматирование пропущено: {}"
   },
   "daemon": {
-    "modification_detected": "Обнаружено изменение → регенерация...",
     "unable_read": "Невозможно прочитать: {}",
     "parse_error": "Ошибка разбора: {}",
     "no_resource": "Нет ресурсов в admin!{} — нечего генерировать",
-    "with_admin_disabled": "with_admin отключён → daemon остановлен",
     "operational": "Daemon работает → src/admins/admin.rs",
     "generation_error": "Ошибка генерации: {}",
-    "watcher_error": "Ошибка наблюдателя: {}",
-    "unable_create": "Невозможно создать наблюдателя: {}",
-    "unable_watch": "Невозможно наблюдать за {} : {}",
     "generated_header": "СГЕНЕРИРОВАНО АВТОМАТИЧЕСКИ — НЕ РЕДАКТИРОВАТЬ ВРУЧНУЮ",
     "generated_notice": "Создано `runique start` из src/admin.rs. Любые изменения будут перезаписаны."
   },

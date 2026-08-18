@@ -184,16 +184,11 @@
     "fmt_failed": "cargo fmt が失敗しました — フォーマットをスキップします: {}"
   },
   "daemon": {
-    "modification_detected": "変更を検出 → 再生成中...",
     "unable_read": "読み取れません: {}",
     "parse_error": "解析エラー: {}",
     "no_resource": "admin!{} にリソースがありません — 生成するものがありません",
-    "with_admin_disabled": "with_admin が無効 → デーモン停止",
     "operational": "デーモン稼働中 → src/admins/admin.rs",
     "generation_error": "生成エラー: {}",
-    "watcher_error": "ウォッチャーエラー: {}",
-    "unable_create": "ウォッチャーを作成できません: {}",
-    "unable_watch": "{} を監視できません: {}",
     "generated_header": "自動生成 — 手動で編集しないでください",
     "generated_notice": "`runique start` により src/admin.rs から生成されました。変更は上書きされます。"
   },
