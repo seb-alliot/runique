@@ -184,16 +184,11 @@
     "fmt_failed": "cargo fmt 失败 — 已跳过格式化：{}"
   },
   "daemon": {
-    "modification_detected": "检测到文件变更 → 正在重新生成……",
     "unable_read": "无法读取：{}",
     "parse_error": "解析错误：{}",
     "no_resource": "admin!{} 中未定义任何资源 — 无需生成",
-    "with_admin_disabled": "with_admin 已禁用 → 守护进程已停止",
     "operational": "守护进程运行中 → src/admins/admin.rs",
     "generation_error": "生成代码时出错：{}",
-    "watcher_error": "文件监视器出错：{}",
-    "unable_create": "无法创建文件监视器：{}",
-    "unable_watch": "无法监视 {}：{}",
     "generated_header": "自动生成 — 请勿手动修改",
     "generated_notice": "由 `runique start` 从 src/admin.rs 生成。任何修改都将被覆盖。"
   },

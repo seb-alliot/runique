@@ -6,6 +6,11 @@ use runique::app::RuniqueApp;
 use runique::auth::session::{AdminAuth, AdminLoginResult};
 use runique::config::RuniqueConfig;
 use sea_orm::{Database, DatabaseConnection};
+use serial_test::serial;
+
+// `#[serial]` : chaque test construit une app admin complete, qui pousse ses
+// routes nommees dans le registre global `PENDING_URLS` (partage avec
+// `test_admin_prefix.rs`, egalement `#[serial]`). Voir `register_url.rs`.
 
 // ── Mock AdminAuth ────────────────────────────────────────────────────────────
 
@@ -65,6 +70,7 @@ async fn build_app_with_admin_no_robots(mount: &str) -> axum::Router {
 
 /// robots.txt est servi automatiquement quand l'admin est activé.
 #[tokio::test]
+#[serial]
 async fn test_robots_txt_present_quand_admin_active() {
     use axum::body::to_bytes;
     use axum::http::{Request, StatusCode};
@@ -89,6 +95,7 @@ async fn test_robots_txt_present_quand_admin_active() {
 /// public, et un préfixe personnalisé est souvent choisi pour rester discret.
 /// La désindexation passe par l'en-tête `X-Robots-Tag` (test suivant).
 #[tokio::test]
+#[serial]
 async fn test_robots_txt_ne_divulgue_pas_le_prefix() {
     use axum::body::to_bytes;
     use axum::http::{Request, StatusCode};
@@ -117,6 +124,7 @@ async fn test_robots_txt_ne_divulgue_pas_le_prefix() {
 /// admin atteignable sans compte, donc la seule réellement indexable. Elle est
 /// hors du middleware `admin_required`, d'où l'en-tête posé au-dessus.
 #[tokio::test]
+#[serial]
 async fn test_x_robots_tag_sur_login_admin() {
     use axum::http::Request;
     use tower::ServiceExt;
@@ -143,6 +151,7 @@ async fn test_x_robots_tag_sur_login_admin() {
 
 /// .no_robots_txt() désactive la route — le contenu robots.txt n'est pas servi.
 #[tokio::test]
+#[serial]
 async fn test_robots_txt_absent_avec_no_robots_txt() {
     use axum::http::{Request, StatusCode};
     use tower::ServiceExt;

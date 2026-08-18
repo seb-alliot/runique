@@ -184,16 +184,11 @@
     "fmt_failed": "cargo fmt è fallito — formattazione ignorata: {}"
   },
   "daemon": {
-    "modification_detected": "Modifica rilevata → rigenerazione...",
     "unable_read": "Impossibile leggere: {}",
     "parse_error": "Errore di parsing: {}",
     "no_resource": "Nessuna risorsa in admin!{} — nulla da generare",
-    "with_admin_disabled": "with_admin disabilitato → daemon fermato",
     "operational": "Daemon operativo → src/admins/admin.rs",
     "generation_error": "Errore di generazione: {}",
-    "watcher_error": "Errore del watcher: {}",
-    "unable_create": "Impossibile creare il watcher: {}",
-    "unable_watch": "Impossibile monitorare {} : {}",
     "generated_header": "GENERATO AUTOMATICAMENTE — NON MODIFICARE MANUALMENTE",
     "generated_notice": "Prodotto da `runique start` da src/admin.rs. Qualsiasi modifica verrà sovrascritta."
   },

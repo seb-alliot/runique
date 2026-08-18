@@ -12,6 +12,14 @@ use runique::app::RuniqueApp;
 use runique::auth::session::{AdminAuth, AdminLoginResult};
 use runique::config::RuniqueConfig;
 use sea_orm::{Database, DatabaseConnection};
+use serial_test::serial;
+
+// `#[serial]` sur tous les tests de ce fichier : chaque test construit une app
+// admin complete, ce qui pousse ses routes nommees (admin_login, admin_dashboard...)
+// dans le registre global `PENDING_URLS` avant de les drainer dans son propre
+// engine via `add_urls()`. Ce registre est partage par tout le process de test —
+// deux builds concurrents (y compris avec `test_robots_txt.rs`, egalement `#[serial]`)
+// se volent mutuellement leurs entrees. Voir `register_url.rs`.
 
 struct MockAdminAuth;
 
@@ -91,6 +99,7 @@ async fn status_of(app: Router, uri: &str) -> axum::http::StatusCode {
 
 /// Le prefixe s'ajoute devant le chemin de l'admin au lieu de le remplacer.
 #[tokio::test]
+#[serial]
 async fn test_prefix_se_compose_avec_le_chemin_admin() {
     let app = build("secret", "/site-admin", true).await;
     assert_eq!(
@@ -101,6 +110,7 @@ async fn test_prefix_se_compose_avec_le_chemin_admin() {
 
 /// Le chemin nu ne repond plus : l'admin n'est servi que derriere le prefixe.
 #[tokio::test]
+#[serial]
 async fn test_chemin_admin_seul_absent_quand_prefixe() {
     let app = build("secret", "/site-admin", true).await;
     assert_eq!(
@@ -111,6 +121,7 @@ async fn test_chemin_admin_seul_absent_quand_prefixe() {
 
 /// Le coeur de la regression : les deux ordres donnent la meme URL.
 #[tokio::test]
+#[serial]
 async fn test_ordre_des_appels_sans_effet() {
     let prefix_first = build("secret", "/site-admin", true).await;
     let routes_first = build("secret", "/site-admin", false).await;
@@ -123,6 +134,7 @@ async fn test_ordre_des_appels_sans_effet() {
 
 /// Sans `.prefix()`, les URLs restent exactement celles de `routes()`.
 #[tokio::test]
+#[serial]
 async fn test_sans_prefixe_urls_inchangees() {
     let app = build("", "/site-admin", true).await;
     assert_eq!(
@@ -138,6 +150,7 @@ async fn test_sans_prefixe_urls_inchangees() {
 /// monte via `nest()`, l'URL servie bouge mais le nom enregistre reste l'ancien,
 /// et `{% url "admin_login" %}` renvoie vers une page qui n'existe plus.
 #[tokio::test]
+#[serial]
 async fn test_url_nommee_admin_login_suit_le_prefixe() {
     use runique::macros::reverse;
 
@@ -149,6 +162,7 @@ async fn test_url_nommee_admin_login_suit_le_prefixe() {
 
 /// Idem pour le tableau de bord — c'est la cible des redirections apres login.
 #[tokio::test]
+#[serial]
 async fn test_url_nommee_dashboard_suit_le_prefixe() {
     use runique::macros::reverse;
 
@@ -163,6 +177,7 @@ async fn test_url_nommee_dashboard_suit_le_prefixe() {
 
 /// Les slashs sont optionnels : `secret`, `/secret` et `/secret/` sont equivalents.
 #[tokio::test]
+#[serial]
 async fn test_slashs_optionnels_dans_le_prefixe() {
     for mount in ["secret", "/secret", "/secret/"] {
         let app = build(mount, "/site-admin", true).await;

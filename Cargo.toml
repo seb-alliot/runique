@@ -117,7 +117,6 @@ rpassword = "7.5.4"
 crossterm = "0.29.0"
 
 # Daemon admin
-notify = "8.2.0"
 syn = { version = "3.0.3", features = ["full", "visit"] }
 quote = "1"
 proc-macro2 = { version = "1", features = ["span-locations"] }
