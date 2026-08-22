@@ -9,8 +9,9 @@ pub mod user_trait;
 pub use form::LoginAdmin;
 pub use guard::LoginGuard;
 pub use password::{
-    ForgotPasswordForm, PasswordResetAdapter, PasswordResetConfig, PasswordResetForm,
-    PasswordResetHandler, PasswordResetStaging, handle_forgot_password, handle_password_reset,
+    ExtraContextFn, ForgotPasswordForm, PasswordResetAdapter, PasswordResetConfig,
+    PasswordResetForm, PasswordResetHandler, PasswordResetStaging, handle_forgot_password,
+    handle_password_reset,
 };
 pub use session::{
     AdminAuth, AdminLoginResult, CurrentUser, DefaultAdminAuth, UserEntity, auth_login,
