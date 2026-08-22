@@ -5,6 +5,7 @@ use axum::{
     extract::{Path, State},
     response::{IntoResponse, Redirect, Response},
 };
+use futures_util::future::BoxFuture;
 use serde::Serialize;
 use std::{marker::PhantomData, sync::Arc, time::Duration};
 
@@ -125,6 +126,12 @@ impl RuniqueForm for PasswordResetForm {
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
+/// Hook run just before rendering, letting the host app inject template
+/// context this generic flow has no way to know about (e.g. site branding
+/// pulled from the app's own DB tables). Runs for both the forgot and reset
+/// templates.
+pub type ExtraContextFn = Arc<dyn for<'a> Fn(&'a mut Request) -> BoxFuture<'a, ()> + Send + Sync>;
+
 /// Password reset flow configuration registered via the builder.
 #[derive(Clone)]
 pub struct PasswordResetConfig {
@@ -139,6 +146,7 @@ pub struct PasswordResetConfig {
     pub retry_after: u64,
     /// Lifetime of a reset token before it expires. Default: 1 hour.
     pub token_ttl: Duration,
+    pub extra_context: Option<ExtraContextFn>,
 }
 
 impl Default for PasswordResetConfig {
@@ -154,6 +162,7 @@ impl Default for PasswordResetConfig {
             max_requests: 5,
             retry_after: 300,
             token_ttl: Duration::from_secs(3600),
+            extra_context: None,
         }
     }
 }
@@ -203,6 +212,20 @@ impl PasswordResetConfig {
         self.token_ttl = ttl;
         self
     }
+    /// Registers a hook run before each render, to inject app-specific
+    /// template context (e.g. site branding) this generic flow can't
+    /// provide on its own.
+    #[must_use]
+    pub fn extra_context(mut self, hook: ExtraContextFn) -> Self {
+        self.extra_context = Some(hook);
+        self
+    }
+}
+
+async fn apply_extra_context(request: &mut Request, hook: &Option<ExtraContextFn>) {
+    if let Some(hook) = hook {
+        hook(request).await;
+    }
 }
 
 // ─── handle_forgot_password ───────────────────────────────────────────────────
@@ -220,6 +243,7 @@ pub async fn handle_forgot_password<E: UserEntity + 'static>(
     let token_ttl = config.token_ttl;
     request.context.insert("lang", &current_lang().code());
     if request.is_get() {
+        apply_extra_context(request, &config.extra_context).await;
         context_update!(request => {
             "title"       => t("reset.forgot_title").as_ref(),
             "forgot_form" => &*form,
@@ -331,6 +355,7 @@ pub async fn handle_forgot_password<E: UserEntity + 'static>(
         return Ok(Redirect::to(forgot_route).into_response());
     }
 
+    apply_extra_context(request, &config.extra_context).await;
     context_update!(request => {
         "title"       => t("reset.forgot_title").as_ref(),
         "forgot_form" => &*form,
@@ -345,8 +370,9 @@ pub async fn handle_password_reset<E: UserEntity + 'static>(
     form: &mut PasswordResetForm,
     token: String,
     encrypted_email: String,
-    template: &str,
+    config: &PasswordResetConfig,
 ) -> AppResult<Response> {
+    let template = config.reset_template.as_str();
     request.context.insert("lang", &current_lang().code());
     logout(&request.session, None).await.trace(
         crate::utils::runique_log::get_log()
@@ -385,6 +411,7 @@ pub async fn handle_password_reset<E: UserEntity + 'static>(
         form.get_form_mut().add_value("token", &token);
         form.get_form_mut()
             .add_value("encrypted_email", &encrypted_email);
+        apply_extra_context(request, &config.extra_context).await;
         context_update!(request => {
             "title"           => t("reset.reset_title").as_ref(),
             "reset_form"      => &*form,
@@ -440,6 +467,7 @@ pub async fn handle_password_reset<E: UserEntity + 'static>(
                     crate::runique_log!(level, email = %email_clean, "password reset ok");
                 }
                 form.clear();
+                apply_extra_context(request, &config.extra_context).await;
                 context_update!(request => {
                     "title"           => t("reset.success_title").as_ref(),
                     "reset_form"      => &*form,
@@ -462,6 +490,7 @@ pub async fn handle_password_reset<E: UserEntity + 'static>(
         }
     }
 
+    apply_extra_context(request, &config.extra_context).await;
     context_update!(request => {
         "title"           => t("reset.reset_title").as_ref(),
         "reset_form"      => &*form,
@@ -517,14 +546,8 @@ async fn reset_view<E: UserEntity + 'static>(
     mut request: Request,
 ) -> AppResult<Response> {
     let mut form: PasswordResetForm = request.form();
-    handle_password_reset::<E>(
-        &mut request,
-        &mut form,
-        token,
-        encrypted_email,
-        &state.config.reset_template,
-    )
-    .await
+    handle_password_reset::<E>(&mut request, &mut form, token, encrypted_email, &state.config)
+        .await
 }
 
 impl<E: UserEntity + 'static> PasswordResetHandler for PasswordResetAdapter<E> {
