@@ -546,8 +546,14 @@ async fn reset_view<E: UserEntity + 'static>(
     mut request: Request,
 ) -> AppResult<Response> {
     let mut form: PasswordResetForm = request.form();
-    handle_password_reset::<E>(&mut request, &mut form, token, encrypted_email, &state.config)
-        .await
+    handle_password_reset::<E>(
+        &mut request,
+        &mut form,
+        token,
+        encrypted_email,
+        &state.config,
+    )
+    .await
 }
 
 impl<E: UserEntity + 'static> PasswordResetHandler for PasswordResetAdapter<E> {
