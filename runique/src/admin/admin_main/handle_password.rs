@@ -10,6 +10,9 @@ use axum::response::{IntoResponse, Redirect, Response};
 /// Default lifetime of an admin-issued reset link (1 hour), matching the prior behavior.
 const ADMIN_RESET_TTL: std::time::Duration = std::time::Duration::from_secs(3600);
 
+/// Returns whether the email actually went out — callers must not show a
+/// blanket success notice on top of the error notice this already pushes.
+#[must_use]
 pub(super) async fn send_user_created_email(
     req: &mut Request,
     _entry: &ResourceEntry,
@@ -18,15 +21,15 @@ pub(super) async fn send_user_created_email(
     email_template: Option<&str>,
     headers: &axum::http::HeaderMap,
     state: &super::PrototypeAdminState,
-) {
+) -> bool {
     // Resolve the just-created user to bind the token to their id (IDOR-safe).
     let Some(user) = BuiltinUserEntity::find_by_email(&req.engine.db, email).await else {
-        return;
+        return false;
     };
     let Ok(token) =
         crate::utils::reset_token::generate(&req.engine.db, user.user_id(), ADMIN_RESET_TTL).await
     else {
-        return;
+        return false;
     };
     let encrypted = crate::utils::reset_token::encrypt_email(&token, email);
 
@@ -80,6 +83,7 @@ pub(super) async fn send_user_created_email(
                         &[email],
                     ))
                     .await;
+                true
             }
             Err(e) => {
                 req.notices
@@ -88,6 +92,7 @@ pub(super) async fn send_user_created_email(
                         &[&e],
                     ))
                     .await;
+                false
             }
         }
     } else {
@@ -97,6 +102,7 @@ pub(super) async fn send_user_created_email(
                 &[&reset_url],
             ))
             .await;
+        true
     }
 }
 

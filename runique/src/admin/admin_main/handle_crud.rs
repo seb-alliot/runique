@@ -329,6 +329,7 @@ pub(super) async fn handle_create_post(
         )
         .await;
 
+        let mut email_ok = true;
         if entry.meta.inject_password
             && let Some(email) = body_for_create.get("email")
         {
@@ -337,7 +338,7 @@ pub(super) async fn handle_create_post(
                 .user_resources
                 .get(entry.meta.key)
                 .and_then(|t| t.as_deref());
-            super::handle_password::send_user_created_email(
+            email_ok = super::handle_password::send_user_created_email(
                 req,
                 entry,
                 email,
@@ -349,9 +350,14 @@ pub(super) async fn handle_create_post(
             .await;
         }
 
-        req.notices
-            .success(t("admin.create.success").to_string())
-            .await;
+        // send_user_created_email already pushed its own success/error notice
+        // when the email step ran and failed — a blanket "created" notice on
+        // top of it would misleadingly imply the whole operation succeeded.
+        if email_ok {
+            req.notices
+                .success(t("admin.create.success").to_string())
+                .await;
+        }
         return Ok(Redirect::to(&format!(
             "{}/list",
             scope_base(&state.config.prefix, entry, parent)
