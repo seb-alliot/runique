@@ -17,11 +17,14 @@
             {% if config.Integer.min %}min="{{ config.Integer.min }}"{% endif %}
             {% if config.Integer.max %}max="{{ config.Integer.max }}"{% endif %}
             step="1"
-        {% elif config.Float or config.Decimal %}
+        {% elif config.Float %}
             {% if config.Float.value %}
                 {% if config.Float.value.min %}min="{{ config.Float.value.min }}"{% endif %}
                 {% if config.Float.value.max %}max="{{ config.Float.value.max }}"{% endif %}
-            {% elif config.Decimal.value %}
+            {% endif %}
+            step="any"
+        {% elif config.Decimal %}
+            {% if config.Decimal.value %}
                 {% if config.Decimal.value.min %}min="{{ config.Decimal.value.min }}"{% endif %}
                 {% if config.Decimal.value.max %}max="{{ config.Decimal.value.max }}"{% endif %}
             {% endif %}
