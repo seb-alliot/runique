@@ -938,6 +938,36 @@ fn alter_type_change_emits_warning_not_modify() {
 }
 
 #[test]
+fn alter_type_change_only_body_uses_underscored_manager() {
+    // A type change emits only a `// WARNING` comment — no real statement touches `manager`.
+    // The generated fn must take `_manager`, otherwise the file fails to compile clean
+    // (`unused_variable: manager`).
+    let old = ParsedColumn {
+        name: "age".into(),
+        col_type: "Integer".into(),
+        ..Default::default()
+    };
+    let new = ParsedColumn {
+        name: "age".into(),
+        col_type: "BigInteger".into(),
+        ..Default::default()
+    };
+    let changes = Changes {
+        modified_columns: vec![(old, new)],
+        ..empty_changes()
+    };
+    let sql = generate_alter_file(&changes, &DbKind::Other);
+    assert!(
+        sql.contains("async fn up(&self, _manager: &SchemaManager)"),
+        "comment-only up body must use _manager:\n{sql}"
+    );
+    assert!(
+        sql.contains("async fn down(&self, _manager: &SchemaManager)"),
+        "empty down body must use _manager:\n{sql}"
+    );
+}
+
+#[test]
 fn alter_nullable_to_not_null_modifies_and_reverses() {
     // Same type, nullable → not_null is applied via modify_column (down restores nullable).
     let old = ParsedColumn {
