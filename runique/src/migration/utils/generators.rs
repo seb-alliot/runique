@@ -249,6 +249,14 @@ fn build_enum_drop_stmts_for_cols(cols: &[ParsedColumn], db_kind: &DbKind) -> St
     out
 }
 
+/// True if `body` has a line that isn't blank or a `//` comment — i.e. it actually calls `manager`.
+/// A type-change diff only emits a `// Manual migration required.` comment, which is non-empty
+/// text but no real statement, so a plain `is_empty()` check picks `manager` and leaves it unused.
+fn body_has_code(body: &str) -> bool {
+    body.lines()
+        .any(|line| !line.trim().is_empty() && !line.trim_start().starts_with("//"))
+}
+
 pub fn generate_alter_file(change: &Changes, db_kind: &DbKind) -> String {
     let (up_body, down_body) = build_alter_bodies(change, db_kind);
 
@@ -258,12 +266,12 @@ pub fn generate_alter_file(change: &Changes, db_kind: &DbKind) -> String {
     let full_up = format!("{}{}", enum_creates, up_body);
     let full_down = format!("{}{}", down_body, enum_drops);
 
-    let up_param = if !full_up.trim().is_empty() {
+    let up_param = if body_has_code(&full_up) {
         "manager"
     } else {
         "_manager"
     };
-    let down_param = if !full_down.trim().is_empty() {
+    let down_param = if body_has_code(&full_down) {
         "manager"
     } else {
         "_manager"
