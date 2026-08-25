@@ -573,9 +573,15 @@ pub(super) async fn handle_edit_post(
         let summary = old_obj
             .as_ref()
             .and_then(|v| history::diff_fields(v, &body_for_update));
-        let result = match &entry.update_fn {
-            Some(f) => f(req.engine.db.clone(), closure_id.clone(), body_for_update).await,
-            None => form.save(&req.engine.db).await,
+        // A custom edit_form_builder intentionally exposes a subset of the model's
+        // fields (e.g. to inject admin-only actions without duplicating every column).
+        // update_fn (admin_from_form) rebuilds the full ActiveModel from submitted data,
+        // so fields missing from that narrower form get overwritten with their default —
+        // partial_update_fn (Set only what's present, NotSet otherwise) avoids that.
+        let result = match (entry.edit_form_builder.is_some(), &entry.partial_update_fn, &entry.update_fn) {
+            (true, Some(f), _) => f(req.engine.db.clone(), closure_id.clone(), body_for_update).await,
+            (_, _, Some(f)) => f(req.engine.db.clone(), closure_id.clone(), body_for_update).await,
+            _ => form.save(&req.engine.db).await,
         };
         if let Err(e) = result {
             if let Some(level) = crate::utils::runique_log::get_log()
