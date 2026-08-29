@@ -60,7 +60,6 @@ These variables are injected into **all CRUD admin views** via `inject_context`,
 | `resource.display.icon` | `String` *(optional)* | Icon name declared in config |
 | `resource.display.pagination` | `usize` | Entries per page (default: `25`) |
 | `resource.extra_context` | `HashMap<String, String>` | Custom keys declared in `extra: {}` |
-| `resource.id_type` | `AdminIdType` | Primary key type (`I32`, `I64`, `Uuid`) |
 
 ---
 

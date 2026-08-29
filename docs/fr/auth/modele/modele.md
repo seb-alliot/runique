@@ -8,7 +8,7 @@ Runique inclut un modèle utilisateur prêt à l'emploi, sans aucune configurati
 
 | Champ | Type | Description |
 |---------------|----------|----------------------------------------|
-| `id` | `Pk` | Clé primaire (`i32` par défaut, `i64` avec la feature `big-pk`) |
+| `id` | `Pk` | Clé primaire (`i32` par défaut, `i64` avec `big-pk`, `Uuid` avec `pk-uuid`) |
 | `username` | `String` | Nom d'utilisateur unique |
 | `email` | `String` | Adresse email |
 | `password` | `String` | Hash Argon2 — jamais en clair |
@@ -25,14 +25,20 @@ Pour créer le premier superutilisateur :
 runique create-superuser
 ```
 
-### Clé primaire i64 (BigAutoField)
+### Clé primaire i64 ou UUID
 
-Par défaut, la clé primaire est un `i32`. Pour passer à `i64` :
+Par défaut, la clé primaire est un `i32`. Pour passer à `i64` ou `Uuid` — **une seule feature à
+la fois**, activer les deux ensemble est une erreur de compilation volontaire :
 
 ```toml
 # Cargo.toml du projet
-runique = { version = "...", features = ["big-pk"] }
+runique = { version = "...", features = ["big-pk"] }    # Pk = i64
+runique = { version = "...", features = ["pk-uuid"] }   # Pk = Uuid (Uuid::now_v7())
 ```
+
+Le choix doit être fait avant la première migration — voir
+[DSL `model!` & `extend!`](/docs/fr/model/dsl) pour le détail complet (types compatibles,
+contraintes FK, changement de mode après coup).
 
 ---
 
