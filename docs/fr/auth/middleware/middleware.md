@@ -58,7 +58,7 @@ Structure injectée par `load_user_middleware` dans les extensions de requête.
 
 ```rust
 pub struct CurrentUser {
-    pub id: Pk,      // i32 par défaut, i64 avec la feature "big-pk"
+    pub id: Pk,      // i32 par défaut, i64 avec "big-pk", Uuid avec "pk-uuid"
     pub username: String,
     pub is_staff: bool,
     pub is_superuser: bool,

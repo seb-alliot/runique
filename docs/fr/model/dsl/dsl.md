@@ -20,31 +20,11 @@ model! {
     table: "nom_table",     // 2. Nom de la table SQL
     pk: champ => type,      // 3. Clé primaire
     enums: { ... },         // 4. Optionnel — enums locaux
-    fields: { ... },        // 5. Champs (syntaxe v1 ou v2)
+    { ... },                // 5. Champs — bloc anonyme, types sémantiques
     relations: { ... },     // 6. Optionnel — relations SeaORM
     meta: { ... },          // 7. Optionnel — contraintes & tri
 }
 ```
-
-### Deux syntaxes de champs
-
-**Syntaxe v1 — types SQL explicites** (bloc nommé `fields:`) :
-
-```rust
-model! {
-    Article,
-    table: "articles",
-    pk: id => i32,
-    fields: {
-        titre:      String [required, max_len(150)],
-        contenu:    text   [required],
-        is_active:  bool,
-        created_at: datetime [auto_now],
-    },
-}
-```
-
-**Syntaxe v2 — types sémantiques** (bloc anonyme `{ ... }`) :
 
 ```rust
 model! {
@@ -60,7 +40,9 @@ model! {
 }
 ```
 
-> En syntaxe v2, le bloc anonyme remplace à la fois `fields:` et `form_fields:` — ces deux blocs nommés n'existent pas en v2. En v1, `form_fields:` est un bloc optionnel parsé après `meta:`, permettant d'ajouter des annotations sémantiques sur des champs déjà déclarés en SQL.
+> Le bloc de champs est **toujours** un bloc anonyme `{ ... }`, jamais précédé du mot-clé
+> `fields:`. Ne pas confondre avec `extend!{}`, qui lui exige `fields:` — deux macros
+> différentes, deux grammaires différentes (voir plus bas).
 
 ---
 
@@ -70,186 +52,163 @@ model! {
 pk: nom_champ => type
 ```
 
-| Type   | SQL Postgres        | SQL MySQL              | Auto-incrément | Création |
-|--------|---------------------|------------------------|----------------|----------|
-| `i32`  | `SERIAL`            | `INT AUTO_INCREMENT`   | ✅ Oui          | séquence DB |
-| `i64`  | `BIGSERIAL`         | `BIGINT AUTO_INCREMENT`| ✅ Oui          | séquence DB |
-| `uuid` | `UUID`              | `VARCHAR(36)`          | ❌ Non          | `Uuid::new_v4()` côté Rust |
-| `Pk`   | alias `i32` ou `i64`| idem                   | ✅ Oui          | selon feature `big-pk` |
+| Type   | SQL Postgres          | SQL MySQL               | Auto-incrément | Création                        |
+|--------|-----------------------|--------------------------|----------------|----------------------------------|
+| `i32`  | `SERIAL`              | `INT AUTO_INCREMENT`     | ✅ Oui          | séquence DB                      |
+| `i64`  | `BIGSERIAL`           | `BIGINT AUTO_INCREMENT`  | ✅ Oui          | séquence DB                      |
+| `uuid` | `UUID`                | `VARCHAR(36)`            | ❌ Non          | `Uuid::now_v7()` côté Rust        |
+| `Pk`   | alias `i32`/`i64`/`Uuid` | idem                   | selon le type   | selon la feature active          |
 
-**L'alias `Pk`** résout en `i32` par défaut, ou `i64` si la feature `big-pk` est activée :
+**L'alias `Pk`** défère au type global de l'application, résolu par feature Cargo — **une seule**
+peut être active à la fois (`compile_error!` si deux sont déclarées ensemble) :
 
 ```toml
 [dependencies]
-runique = { version = "2.2.0", features = ["big-pk"] }
+# rien de déclaré → Pk = i32 (défaut)
+runique = { version = "2.2.0", features = ["big-pk"] }    # Pk = i64
+runique = { version = "2.2.0", features = ["pk-uuid"] }   # Pk = Uuid (généré via Uuid::now_v7())
 ```
 
-Utilisez `big-pk` quand vous anticipez plus de ~2 milliards de lignes dans une table, ou pour interopérer avec un schéma existant utilisant des clés primaires `BIGINT`.
+Utilisez `big-pk` quand vous anticipez plus de ~2 milliards de lignes dans une table, ou pour interopérer avec un schéma existant utilisant des clés primaires `BIGINT`. Utilisez `pk-uuid` pour des identifiants non séquentiels (multi-tenant, génération côté client, exposition publique des ids sans révéler le volume de lignes).
 
-**Contraintes lors de l'activation de `big-pk` :**
+### `Pk` sur un champ normal (pas seulement la PK)
 
-- Chaque colonne FK pointant vers une clé primaire `Pk` doit aussi être déclarée `bigint`, sinon vous obtenez une erreur de type à la compilation :
+Le mot-clé `Pk` est aussi utilisable sur un **champ FK ordinaire**, pas uniquement dans
+`pk: id => Pk`. C'est la façon recommandée de déclarer une colonne qui référence la clé
+primaire d'une autre table : elle suit alors automatiquement la même feature, sans jamais se
+désynchroniser si vous changez `big-pk`/`pk-uuid` plus tard.
 
 ```rust
 model! {
-    Commande,
-    table: "commandes",
+    Chapitre,
+    table: "chapitre",
     pk: id => Pk,
-    fields: {
-        user_id: bigint [required]   // doit correspondre à users.id qui est Pk (i64)
+    {
+        cour_id: Pk [required],   // suit automatiquement le type de Cours.id
+        titre:   text [required],
     },
+    relations: {
+        belongs_to: Cour via cour_id,
+    }
 }
 ```
 
-- Le daemon admin génère `parse::<Pk>()` par défaut dans `admin.rs`, le code généré suit donc automatiquement la feature — aucun ajustement manuel nécessaire.
+**À éviter** : déclarer une FK avec un type figé (`cour_id: int [required]`) quand la table
+référencée utilise `pk: id => Pk`. Ça compile et fonctionne tant que `Pk` vaut `i32`, mais se
+désynchronise silencieusement dès qu'une feature (`big-pk`/`pk-uuid`) change — le même type de
+bug que documenté plus bas pour `big-pk`. Utiliser `Pk` sur le champ FK élimine le risque à la
+source, sans code de conversion (`.try_into()`) à maintenir.
 
-- Les fichiers de seeds et tout code manuel qui assigne `entity.id` (un `Pk`) à un champ FK `i32` doivent utiliser `.try_into().unwrap()` ou changer la colonne FK en `bigint`.
+**Contrainte lors de l'activation de `big-pk`/`pk-uuid`** : chaque colonne FK pointant vers une
+clé primaire `Pk` doit rester cohérente avec elle. La forme `cour_id: Pk` (ci-dessus) le garantit
+automatiquement ; une colonne figée en `bigint`/`int`/`uuid` doit être mise à jour manuellement
+si vous changez de feature après coup.
 
-> **`big-pk` doit être décidé avant la première migration.**
-> Une fois les migrations appliquées, basculer entre `big-pk` et le mode par défaut (`i32`) est un changement cassant : les colonnes en base sont déjà `INT` ou `BIGINT`, et changer la feature flag ne modifie que le type Rust — le schéma reste intact. Changer après coup nécessite une migration manuelle pour `ALTER` chaque colonne PK et FK, avec un risque de troncature des données si des IDs existants dépassent `i32::MAX`. Choisissez un mode au démarrage du projet et ne le changez pas.
-
----
-
-## Types de champs — syntaxe v1
-
-Types SQL déclarés directement :
-
-| Type DSL          | Type Rust généré          | Colonne SQL               |
-|-------------------|---------------------------|---------------------------|
-| `String`          | `String`                  | `VARCHAR(255)`            |
-| `text`            | `String`                  | `TEXT`                    |
-| `char`            | `String`                  | `CHAR`                    |
-| `varchar(n)`      | `String`                  | `VARCHAR(n)`              |
-| `i8`              | `i32`                     | `TINYINT`                 |
-| `i16`             | `i32`                     | `SMALLINT`                |
-| `i32`             | `i32`                     | `INTEGER`                 |
-| `i64`             | `i64`                     | `BIGINT`                  |
-| `u32`             | `u32`                     | `INTEGER UNSIGNED`        |
-| `u64`             | `u64`                     | `BIGINT UNSIGNED`         |
-| `f32`             | `f32`                     | `FLOAT`                   |
-| `f64`             | `f64`                     | `DOUBLE`                  |
-| `decimal`         | `Decimal`                 | `DECIMAL`                 |
-| `decimal(p, s)`   | `Decimal`                 | `DECIMAL(p, s)`           |
-| `bool`            | `bool`                    | `BOOLEAN`                 |
-| `date`            | `NaiveDate`               | `DATE`                    |
-| `time`            | `NaiveTime`               | `TIME`                    |
-| `datetime`        | `NaiveDateTime`           | `DATETIME`                |
-| `timestamp`       | `NaiveDateTime`           | `TIMESTAMP`               |
-| `timestamp_tz`    | `NaiveDateTime`           | `TIMESTAMPTZ`             |
-| `uuid`            | `Uuid`                    | `UUID`                    |
-| `json`            | `serde_json::Value`       | `JSON`                    |
-| `json_binary`     | `serde_json::Value`       | `JSON BINARY`             |
-| `binary`          | `Vec<u8>`                 | `BINARY`                  |
-| `binary(n)`       | `Vec<u8>`                 | `BINARY(n)`               |
-| `var_binary(n)`   | `Vec<u8>`                 | `VARBINARY(n)`            |
-| `blob`            | `Vec<u8>`                 | `BLOB`                    |
-| `inet`            | `String`                  | `INET`                    |
-| `cidr`            | `String`                  | `CIDR`                    |
-| `mac_address`     | `String`                  | `MACADDR`                 |
-| `interval`        | `String`                  | `INTERVAL`                |
-| `enum(NomEnum)`   | `NomEnum`                 | `INTEGER` / `ENUM` / `VARCHAR` |
+> **Le choix de `big-pk`/`pk-uuid` doit être fait avant la première migration.**
+> Une fois les migrations appliquées, basculer de mode est un changement cassant : les colonnes
+> en base ont déjà un type concret, et changer la feature ne modifie que le type Rust — le
+> schéma reste intact. Changer après coup nécessite une migration manuelle pour `ALTER` chaque
+> colonne PK et FK, avec un risque de troncature (`big-pk` → défaut) ou d'incompatibilité totale
+> de format (`pk-uuid` ↔ n'importe quel type entier). Choisissez un mode au démarrage du projet.
 
 ---
 
-## Types de champs — syntaxe v2 (sémantiques)
+## Types de champs
 
-Convertis automatiquement en types SQL :
+| Type DSL          | Type Rust généré          | Colonne SQL                    |
+|--------------------|---------------------------|---------------------------------|
+| `text`             | `String`                  | `VARCHAR(255)` ou `VARCHAR(n)` si `max_length: n` |
+| `char`             | `String`                  | `CHAR`                          |
+| `email`            | `String`                  | `VARCHAR(254)` — format validé  |
+| `password`         | `String`                  | `VARCHAR(255)` — haché automatiquement |
+| `richtext`         | `String`                  | `TEXT` — éditeur HTML           |
+| `textarea`         | `String`                  | `TEXT` — multi-ligne            |
+| `url`              | `String`                  | `VARCHAR(255)` — format validé  |
+| `slug`             | `String`                  | `VARCHAR(255)`                  |
+| `color`            | `String`                  | `VARCHAR(255)` — couleur hex    |
+| `phone`            | `String`                  | `VARCHAR(20)` ou `VARCHAR(n)` si `max_length: n` |
+| `i8`               | `i8`                      | `TINYINT`                       |
+| `i16`              | `i16`                     | `SMALLINT`                      |
+| `int`              | `i32`                     | `INTEGER`                       |
+| `bigint`           | `i64`                     | `BIGINT`                        |
+| `u32`              | `u32`                     | `INTEGER UNSIGNED`              |
+| `u64`              | `u64`                     | `BIGINT UNSIGNED`               |
+| `f32`              | `f32`                     | `FLOAT`                         |
+| `float`            | `f64`                     | `DOUBLE`                        |
+| `percent`          | `f64`                     | `DOUBLE` — stocké comme float   |
+| `decimal`          | `Decimal`                 | `DECIMAL`                       |
+| `bool`             | `bool`                    | `BOOLEAN`                       |
+| `date`             | `NaiveDate`                | `DATE`                          |
+| `time`             | `NaiveTime`                | `TIME`                          |
+| `datetime`         | `NaiveDateTime`            | `DATETIME`                      |
+| `timestamp`        | `NaiveDateTime`            | `TIMESTAMP`                     |
+| `timestamp_tz`     | `DateTime<Utc>`            | `TIMESTAMPTZ`                   |
+| `uuid`             | `Uuid`                     | `UUID`                          |
+| `Pk`               | `i32`/`i64`/`Uuid`         | selon la feature — voir ci-dessus |
+| `json`             | `serde_json::Value`        | `JSON`                          |
+| `json_binary`      | `serde_json::Value`        | `JSON BINARY`                   |
+| `binary`           | `Vec<u8>`                  | `BINARY` — taille via `max_length: n` |
+| `var_binary`       | `Vec<u8>`                  | `VARBINARY(n)` — `max_length: n` requis |
+| `blob`             | `Vec<u8>`                  | `BLOB`                          |
+| `ip`               | `String`                   | `INET`                          |
+| `cidr`             | `String`                   | `CIDR`                          |
+| `mac_address`      | `String`                   | `MACADDR`                       |
+| `interval`         | `String`                   | `INTERVAL`                      |
+| `image`            | `String`                   | `VARCHAR(255)` — chemin de fichier |
+| `document`         | `String`                   | `VARCHAR(255)` — chemin de fichier |
+| `file`             | `String`                   | `VARCHAR(255)` — chemin de fichier |
+| `choice`           | `EnumName`                 | `VARCHAR` / `ENUM` natif — requiert `enum(NomEnum)` |
+| `radio`            | `EnumName`                 | Idem `choice`, widget différent |
+| `checkbox`         | `EnumName`                 | Idem `choice`, widget différent |
 
-| Type sémantique | SQL généré                            | Notes                               |
-|-----------------|---------------------------------------|-------------------------------------|
-| `text`          | `VARCHAR(255)` ou `VARCHAR(n)` si `max_length: n` |                       |
-| `email`         | `VARCHAR(254)`                        | Format email validé                 |
-| `password`      | `VARCHAR(255)`                        | Haché automatiquement               |
-| `richtext`      | `TEXT`                                | Éditeur HTML                        |
-| `textarea`      | `TEXT`                                | Multi-ligne                         |
-| `url`           | `VARCHAR(255)`                        | Format URL validé                   |
-| `slug`          | `VARCHAR(255)`                        |                                     |
-| `color`         | `VARCHAR(255)`                        | Couleur hexadécimale                |
-| `ip`            | `INET`                                |                                     |
-| `phone`         | `VARCHAR(20)` ou `VARCHAR(n)` si `max_length: n` | `<input type="tel">` |
-| `int`           | `INTEGER`                             |                                     |
-| `bigint`        | `BIGINT`                              |                                     |
-| `float`         | `DOUBLE`                              |                                     |
-| `decimal`       | `DECIMAL`                             |                                     |
-| `percent`       | `DOUBLE`                              | Stocké comme float                  |
-| `bool`          | `BOOLEAN`                             |                                     |
-| `date`          | `DATE`                                |                                     |
-| `time`          | `TIME`                                |                                     |
-| `datetime`      | `DATETIME`                            |                                     |
-| `uuid`          | `UUID`                                |                                     |
-| `json`          | `TEXT`                                |                                     |
-| `image`         | `VARCHAR(255)`                        | Stocke le chemin du fichier         |
-| `document`      | `VARCHAR(255)`                        | Stocke le chemin du fichier         |
-| `file`          | `VARCHAR(255)`                        | Stocke le chemin du fichier         |
-| `choice`        | `VARCHAR` / `ENUM` natif              | Requiert `enum(NomEnum)`            |
-| `radio`         | Idem `choice`                         | Widget différent, même SQL          |
-| `checkbox`      | Idem `choice`                         | Widget différent, même SQL          |
+`binary`/`var_binary` réutilisent l'option `max_length: n` (même mécanisme que `text` +
+`max_length` → `VARCHAR(n)`) — il n'existe pas de syntaxe `binary(n)` inline séparée.
+
+> **Non disponible** : `decimal(precision, scale)` inline (ex. `decimal(10, 2)`) n'a pas
+> d'équivalent actuel — seul `decimal` sans paramètres est supporté. Contournement : appliquer
+> la précision/l'échelle côté validation applicative plutôt que dans le schéma.
 
 ---
 
-## Options de champ — syntaxe v1
+## Options de champ
 
-Dans un bloc `[...]`, séparées par des virgules :
-
-```rust
-username: String [required, max_len(150), unique],
-```
-
-| Option              | Description                                                    |
-|---------------------|----------------------------------------------------------------|
-| `required`          | Colonne `NOT NULL` + validation formulaire                     |
-| `nullable`          | Colonne `NULL` — type Rust `Option<T>`                         |
-| `unique`            | Contrainte `UNIQUE`                                            |
-| `index`             | Index simple (non unique)                                      |
-| `default(valeur)`   | Valeur par défaut SQL (`true`, `0`, `"draft"`, etc.)           |
-| `max_len(n)`        | Longueur max (validation + `VARCHAR(n)`)                       |
-| `min_len(n)`        | Longueur min (validation)                                      |
-| `max(n)`            | Valeur max entière (validation)                                |
-| `min(n)`            | Valeur min entière (validation)                                |
-| `max_f(n)`          | Valeur max flottante                                           |
-| `min_f(n)`          | Valeur min flottante                                           |
-| `auto_now`          | Assigné à `NOW()` à chaque `INSERT` — exclu des formulaires    |
-| `auto_now_update`   | Assigné à `NOW()` à chaque `UPDATE` — exclu des formulaires    |
-| `readonly`          | Exclu des formulaires générés                                  |
-| `select_as(str)`    | Alias SQL dans les SELECT                                      |
-| `label("str")`      | Libellé personnalisé dans les formulaires admin                |
-| `help("str")`       | Texte d'aide (réservé)                                        |
-| `fk(table.col, action)` | Contrainte clé étrangère (voir Relations)                 |
-| `file(kind)`        | Champ fichier — `image`, `document`, `any`                     |
-| `file(kind, "path")`| Champ fichier avec dossier d'upload explicite                  |
-| `max_size(n)`       | Taille max upload — `n KB`, `n MB`, `n GB`                     |
-
-## Options de champ — syntaxe v2
-
-Utilisent `:` au lieu de `()` pour les valeurs :
+Dans un bloc `[...]`, séparées par des virgules, valeur après `:` quand l'option en prend une :
 
 ```rust
 username: text [required, max_length: 150, unique],
 ```
 
-| Option v2              | Équivalent v1          | Notes                          |
-|------------------------|------------------------|--------------------------------|
-| `required`             | `required`             |                                |
-| `nullable`             | `nullable`             |                                |
-| `unique`               | `unique`               |                                |
-| `max_length: n`        | `max_len(n)`           |                                |
-| `min_length: n`        | `min_len(n)`           |                                |
-| `min: n`               | `min(n)`               |                                |
-| `max: n`               | `max(n)`               |                                |
-| `min: n.0`             | `min_f(n)`             |                                |
-| `max: n.0`             | `max_f(n)`             |                                |
-| `default: valeur`      | `default(valeur)`      |                                |
-| `auto_now`             | `auto_now`             |                                |
-| `auto_now_update`      | `auto_now_update`      |                                |
-| `upload_to: "path"`    | `file(kind, "path")`   |                                |
-| `max_size: n MB`       | `max_size(n MB)`       |                                |
-| `rows: n`              | —                      | V2 uniquement (textarea)       |
-| `step: n`              | —                      | V2 uniquement (numériques)     |
-| `fk(table.col, action)`| `fk(table.col, action)`|                                |
-| `enum(NomEnum)`        | `enum(NomEnum)`        |                                |
-| `renamed_from: "x"`    | `renamed_from("x")`    | Renomme (voir plus bas)        |
-| `skip`                 | `readonly`             |                                |
-| `no_hash`              | —                      | Champs `password` uniquement   |
+| Option                   | Description                                                     |
+|--------------------------|-------------------------------------------------------------------|
+| `required`               | Colonne `NOT NULL` + validation formulaire                       |
+| `nullable`               | Colonne `NULL` — type Rust `Option<T>`                           |
+| `unique`                 | Contrainte `UNIQUE`                                              |
+| `max_length: n`          | Longueur max (validation + taille de colonne)                    |
+| `min_length: n`          | Longueur min (validation)                                        |
+| `min: n`                 | Valeur min entière (validation)                                  |
+| `max: n`                 | Valeur max entière (validation)                                  |
+| `min: n.0`               | Valeur min flottante (validation)                                |
+| `max: n.0`               | Valeur max flottante (validation)                                |
+| `default: valeur`        | Valeur par défaut SQL (`true`, `0`, `"draft"`, etc.)             |
+| `auto_now`               | Assigné à `NOW()` à chaque `INSERT` — exclu des formulaires      |
+| `auto_now_update`        | Assigné à `NOW()` à chaque `UPDATE` — exclu des formulaires      |
+| `readonly`               | Exclu de la migration générée (colonne existe côté Rust, non gérée par `derive_form`) |
+| `label: "str"`           | Libellé personnalisé dans les formulaires admin                  |
+| `help: "str"`            | Réservé — pas encore branché au rendu                            |
+| `upload_to: "path"`      | Champ fichier — dossier d'upload                                 |
+| `max_size: n MB`         | Champ fichier — taille max (`KB`/`MB`/`GB`)                      |
+| `rows: n`                | `textarea`/`richtext` — hauteur du widget                        |
+| `step: n`                | Champs numériques — pas du widget                                |
+| `fk(table.col, action)`  | Contrainte clé étrangère (voir Relations)                        |
+| `enum(NomEnum)`          | Lie le champ à un enum déclaré dans `enums:`                     |
+| `renamed_from: "x"`      | Renomme la colonne (voir plus bas)                                |
+| `skip`                   | Exclu des formulaires générés                                    |
+| `no_hash`                | Champs `password` uniquement — désactive le hachage automatique  |
+
+> **`readonly`** (nouveau, DB-level) est distinct du `readonly` de `#[form]`
+> (`field_readonly()`, désactive un champ dans le rendu HTML d'une instance de formulaire
+> précise). `readonly` sur le champ du modèle exclut la colonne de la migration générée ;
+> `field_readonly()` désactive juste un widget au runtime. Les deux peuvent coexister.
 
 > **`auto_now` / `auto_now_update`** : ces champs sont exclus de `admin_from_form` et d'`admin_partial_update`. Leur valeur est gérée uniquement par la base. Ils apparaissent dans `Model` et `Column` comme `Option<T>`.
 
@@ -298,24 +257,39 @@ model! {
 }
 ```
 
-### Quatre formes de variant
+### Quatre formes de variant — à ne jamais confondre
 
-| Syntaxe                              | Valeur DB        | Libellé affiché (Display) |
-|--------------------------------------|------------------|---------------------------|
-| `Variant`                            | `"Variant"`      | `"Variant"`               |
-| `Variant: "Libellé"`                 | `"Variant"`      | `"Libellé"`               |
-| `Variant = "valeur_db"`              | `"valeur_db"`    | `"valeur_db"`             |
-| `Variant = ("valeur_db", "Libellé")` | `"valeur_db"`    | `"Libellé"`               |
+> **Attention, piège fréquent** : `:` et `=` ne font **pas** la même chose. Une seule
+> différence de symbole change complètement le comportement, sans erreur de compilation pour
+> vous avertir. Toujours vérifier sur ce tableau, ne pas deviner par analogie.
+
+| Syntaxe                              | Valeur stockée en DB | Libellé affiché (`Display`)                  |
+|---------------------------------------|----------------------|-----------------------------------------------|
+| `Variant`                             | `"Variant"` (le nom)  | `"Variant"` — retombe sur la valeur DB         |
+| `Variant: "Libellé"`                  | `"Variant"` (**inchangé**) | `"Libellé"`                               |
+| `Variant = "valeur_db"`               | `"valeur_db"`         | `"valeur_db"` — retombe sur la valeur DB, **pas** sur `Variant` |
+| `Variant = ("valeur_db", "Libellé")`  | `"valeur_db"`         | `"Libellé"`                                    |
+
+Résumé de la règle :
+- `:` (deux-points) ne touche **que l'affichage** — la valeur stockée reste toujours le nom du variant.
+- `=` seul (sans parenthèses) ne touche **que la valeur stockée** — l'affichage retombe dessus, jamais sur le nom du variant.
+- `= (a, b)` fixe les deux indépendamment — c'est la seule forme qui permet un nom de variant, une valeur DB et un libellé tous différents.
+
+**Le libellé est purement cosmétique.** Il n'affecte :
+- ni le stockage réel (`#[sea_orm(string_value = ...)]` / `#[sea_orm(num_value = ...)]` utilisent toujours la valeur DB, jamais le libellé),
+- ni la comparaison de parsing (`FromStr` compare en priorité contre la valeur DB et le nom du variant Rust — le libellé n'est accepté qu'en repli, seulement s'il diffère des deux autres).
+
+Changer un libellé (`Published: "Publié"` → `Published: "Mis en ligne"`) n'a donc **aucun** impact sur les données stockées ni sur le code qui compare des valeurs d'enum.
 
 > **La valeur DB est stockée exactement telle qu'écrite.** Aucune transformation automatique.
 
 ### Types de backing
 
 | Syntaxe              | Stockage DB                                     |
-|----------------------|-------------------------------------------------|
-| `NomEnum: [A, B]`    | `ENUM` natif (Postgres) ou `VARCHAR` (MySQL/SQLite) |
-| `NomEnum: i32 [...]` | `INTEGER`                                       |
-| `NomEnum: i64 [...]` | `BIGINT`                                        |
+|----------------------|--------------------------------------------------|
+| `NomEnum: [A, B]`     | `ENUM` natif (Postgres) ou `VARCHAR` (MySQL/SQLite) |
+| `NomEnum: i32 [...]`  | `INTEGER` — `=` fixe alors la valeur numérique, pas une chaîne |
+| `NomEnum: i64 [...]`  | `BIGINT` — idem                                   |
 
 ### Méthodes générées
 
@@ -384,7 +358,7 @@ relations: {
 ```
 
 | Type             | Contrainte DB   | Description                  |
-|------------------|-----------------|------------------------------|
+|------------------|-----------------|-------------------------------|
 | `belongs_to`     | ❌ code seul     | Relation N-1 (SeaORM)        |
 | `has_many`       | ❌ code seul     | Relation 1-N                 |
 | `has_one`        | ❌ code seul     | Relation 1-1                 |
@@ -419,24 +393,6 @@ meta: {
 
 ---
 
-## `label` et `help`
-
-Par défaut, le libellé est généré depuis le nom snake_case (`sort_order` → `Sort order`). L'option `label(...)` le remplace :
-
-```rust
-fields: {
-    titre:        text [required, label("Titre de l'article")],
-    sort_order:   i32  [label("Ordre d'affichage")],
-    is_published: bool [label("Publié")],
-},
-```
-
-> `label` et `help` sont des options **v1 uniquement** — non disponibles dans le bloc anonyme v2.
-
-Le libellé s'applique au formulaire admin et aux en-têtes de colonnes dans `list_display`. Il n'a aucun effet sur la migration.
-
----
-
 ## `extend!{}` — extension des tables framework
 
 Ajoute des colonnes à une table Runique et génère une entité SeaORM complète sur cette table.
@@ -463,9 +419,13 @@ extend! {
 }
 ```
 
+> `extend!{}` exige **toujours** le mot-clé `fields:` avant le bloc de champs — contrairement à
+> `model!{}` (bloc anonyme direct). Ce sont deux macros différentes, deux grammaires
+> différentes ; ne pas transposer la syntaxe de l'une à l'autre.
+
 Tables autorisées : `eihwaz_users`, `eihwaz_groupes`, `eihwaz_droits`, `eihwaz_sessions`, `eihwaz_users_groupes`, `eihwaz_groupes_droits`. Tout autre nom provoque une erreur à la compilation.
 
-Les champs déclarés dans `extend!{}` utilisent les mêmes types et options que la syntaxe v2 de `model!` (y compris `renamed_from`). Pas de bloc `relations:` dans `extend!{}` — les relations se déclarent dans `model!{}` cible avec `has_many(user_profile)` etc.
+Les champs déclarés dans `extend!{}` utilisent les mêmes types et options que `model!` (y compris `renamed_from`). Pas de bloc `relations:` dans `extend!{}` — les relations se déclarent dans `model!{}` cible avec `has_many(user_profile)` etc.
 
 ### Enums dans `extend!{}`
 

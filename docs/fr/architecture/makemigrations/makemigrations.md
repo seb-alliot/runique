@@ -81,7 +81,8 @@ Renommer un champ directement produit un `DROP` + `ADD` → données perdues. L'
 model! {
     Employe,
     table: "employes",
-    fields: {
+    pk: id => i32,
+    {
         // avant :  job_title: text,
         title: text [renamed_from: "job_title"],
     }
