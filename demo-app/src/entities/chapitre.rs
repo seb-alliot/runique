@@ -5,7 +5,7 @@ model! {
     table: "chapitre",
     pk: id => Pk,
     {
-        cour_id:    int [required],
+        cour_id:    Pk [required],
         slug:       text [required],
         title:      text [required],
         lead:       text,

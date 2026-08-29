@@ -7,8 +7,8 @@ model! {
     {
         context:       richtext [required],
         contraintes:   richtext [required],
-        contrainte_id: int [required],
-        cour_id:       int [required],
+        contrainte_id: Pk [required],
+        cour_id:       Pk [required],
         sort_order:    int [required],
     }
 }

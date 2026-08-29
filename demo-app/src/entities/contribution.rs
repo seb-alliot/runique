@@ -8,7 +8,7 @@ model! {
         ContributionType: [Runique="Runique", Cours="Cours"],
     },
     {
-        user_id:           int [required],
+        user_id:           Pk [required],
         contribution_type: choice [enum(ContributionType), required],
         title:             text [max_length: 200, required],
         content:           richtext [required],

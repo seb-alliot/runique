@@ -8,7 +8,7 @@ model! {
         BlockType: [Text="Text", Code="Code", Sommaire="Sommaire"],
     },
     {
-        page_id:    int [required],
+        page_id:    Pk [required],
         heading:    text,
         content:    richtext [rows: 12, required],
         block_type: choice [enum(BlockType), required],
