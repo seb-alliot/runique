@@ -1,5 +1,6 @@
 // Tests pour AdminLoginResult
 
+use crate::helpers::pk::pk;
 use runique::auth::session::AdminLoginResult;
 
 // ═══════════════════════════════════════════════════════════════
@@ -9,12 +10,12 @@ use runique::auth::session::AdminLoginResult;
 #[test]
 fn test_admin_login_result_champs_basiques() {
     let result = AdminLoginResult {
-        user_id: 42,
+        user_id: pk(42),
         username: "admin".to_string(),
         is_staff: true,
         is_superuser: false,
     };
-    assert_eq!(result.user_id, 42);
+    assert_eq!(result.user_id, pk(42));
     assert_eq!(result.username, "admin");
     assert!(result.is_staff);
     assert!(!result.is_superuser);
@@ -23,7 +24,7 @@ fn test_admin_login_result_champs_basiques() {
 #[test]
 fn test_admin_login_result_superuser() {
     let result = AdminLoginResult {
-        user_id: 1,
+        user_id: pk(1),
         username: "root".to_string(),
         is_staff: false,
         is_superuser: true,
@@ -35,7 +36,7 @@ fn test_admin_login_result_superuser() {
 #[test]
 fn test_admin_login_result_staff() {
     let result = AdminLoginResult {
-        user_id: 3,
+        user_id: pk(3),
         username: "mod".to_string(),
         is_staff: true,
         is_superuser: false,
@@ -51,7 +52,7 @@ fn test_admin_login_result_staff() {
 #[test]
 fn test_admin_login_result_clone() {
     let result = AdminLoginResult {
-        user_id: 7,
+        user_id: pk(7),
         username: "alice".to_string(),
         is_staff: true,
         is_superuser: true,
@@ -70,7 +71,7 @@ fn test_admin_login_result_clone() {
 #[test]
 fn test_admin_login_result_debug_contient_username() {
     let result = AdminLoginResult {
-        user_id: 1,
+        user_id: pk(1),
         username: "debug_user".to_string(),
         is_staff: false,
         is_superuser: false,

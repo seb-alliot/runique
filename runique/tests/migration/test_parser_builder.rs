@@ -12,7 +12,7 @@ fn blog_source() -> &'static str {
         Blog,
         table: "blog",
         pk: id => i32,
-        fields: {
+        {
             title: String,
             summary: String [nullable],
             views: i32,
@@ -29,7 +29,7 @@ fn users_source() -> &'static str {
         User,
         table: "users",
         pk: id => i64,
-        fields: {
+        {
             username: String [unique],
             email: String [unique],
             is_active: bool,
@@ -155,7 +155,7 @@ fn enum_string_source() -> &'static str {
         enums: {
             Status: String [Draft="Draft", Published="Published", Archived="Archive"],
         },
-        fields: {
+        {
             title: String,
             status: enum(Status),
         }
@@ -173,7 +173,7 @@ fn enum_i32_source() -> &'static str {
         enums: {
             Priority: i32 [Low=1, Medium=2, High=3],
         },
-        fields: {
+        {
             name: String,
             priority: enum(Priority),
         }

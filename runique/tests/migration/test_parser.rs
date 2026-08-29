@@ -15,7 +15,7 @@ fn full_types_source() -> &'static str {
         AllTypes,
         table: "all_types",
         pk: id => i32,
-        fields: {
+        {
             f_string: String,
             f_text: text,
             f_char: char,
@@ -58,7 +58,7 @@ fn options_source() -> &'static str {
         OptionsModel,
         table: "options_table",
         pk: id => i32,
-        fields: {
+        {
             required_field: String,
             nullable_field: String [nullable],
             unique_field: String [unique],
@@ -83,7 +83,7 @@ fn pk_i64_source() -> &'static str {
         BigTable,
         table: "big_table",
         pk: id => i64,
-        fields: {
+        {
             data: String,
         }
     }
@@ -97,7 +97,7 @@ fn pk_uuid_source() -> &'static str {
         UuidTable,
         table: "uuid_table",
         pk: slug => uuid,
-        fields: {
+        {
             title: String,
         }
     }
@@ -111,7 +111,7 @@ fn pk_generic_alias_source() -> &'static str {
         AliasTable,
         table: "alias_table",
         pk: id => Pk,
-        fields: {
+        {
             data: String,
         }
     }
@@ -125,7 +125,7 @@ fn relations_source() -> &'static str {
         Post,
         table: "posts",
         pk: id => i32,
-        fields: {
+        {
             title: String,
             user_id: i32,
         },
@@ -144,7 +144,7 @@ fn relations_cascade_source() -> &'static str {
         Comment,
         table: "comments",
         pk: id => i32,
-        fields: {
+        {
             body: String,
             post_id: i32,
             author_id: i32,
@@ -165,7 +165,7 @@ fn meta_source() -> &'static str {
         Article,
         table: "articles",
         pk: id => i32,
-        fields: {
+        {
             title: String,
             slug: String [unique],
         },
@@ -185,7 +185,7 @@ fn full_model_source() -> &'static str {
         UserProfile,
         table: "user_profiles",
         pk: id => i32,
-        fields: {
+        {
             username: String [unique],
             email: String [unique],
             bio: text [nullable],

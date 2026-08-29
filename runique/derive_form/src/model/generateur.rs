@@ -1304,6 +1304,14 @@ fn generate_form_field_decl(ff: &FormFieldDecl, model: &ModelInput) -> TokenStre
         FormFieldKind::Percent => {
             quote! { ::runique::forms::fields::NumericField::percent(#name_str).label(#label) }
         }
+        FormFieldKind::I8 | FormFieldKind::I16 | FormFieldKind::U32 | FormFieldKind::U64 => {
+            let extras = numeric_attrs_tokens(&ff.attrs);
+            quote! { ::runique::forms::fields::NumericField::integer(#name_str).label(#label) #extras }
+        }
+        FormFieldKind::F32 => {
+            let extras = numeric_attrs_tokens(&ff.attrs);
+            quote! { ::runique::forms::fields::NumericField::float(#name_str).label(#label) #extras }
+        }
 
         // ── Bool ──────────────────────────────────────────────────────
         FormFieldKind::Bool => {
@@ -1332,8 +1340,12 @@ fn generate_form_field_decl(ff: &FormFieldDecl, model: &ModelInput) -> TokenStre
         FormFieldKind::Time => {
             quote! { ::runique::forms::fields::TimeField::new(#name_str).label(#label) #required_suffix }
         }
-        FormFieldKind::Datetime => {
+        FormFieldKind::Datetime | FormFieldKind::Timestamp | FormFieldKind::TimestampTz => {
             quote! { ::runique::forms::fields::DateTimeField::new(#name_str).label(#label) #required_suffix }
+        }
+        FormFieldKind::Char => {
+            let extras = text_attrs_tokens(&ff.attrs, false);
+            quote! { ::runique::forms::fields::TextField::text(#name_str).label(#label) #extras #required_suffix }
         }
 
         // ── Files ──────────────────────────────────────────────────
@@ -1408,12 +1420,25 @@ fn generate_form_field_decl(ff: &FormFieldDecl, model: &ModelInput) -> TokenStre
         FormFieldKind::Uuid => {
             quote! { ::runique::forms::fields::UUIDField::new(#name_str).label(#label) #required_suffix }
         }
-        FormFieldKind::Json => {
+        FormFieldKind::Json | FormFieldKind::JsonBinary => {
             let rows_suffix = rows_token(&ff.attrs);
             quote! { ::runique::forms::fields::JSONField::new(#name_str).label(#label) #rows_suffix #required_suffix }
         }
         FormFieldKind::Ip => {
             quote! { ::runique::forms::fields::IPAddressField::new(#name_str).label(#label) #required_suffix }
+        }
+        // No dedicated widget for raw bytes / network / duration types — a plain text
+        // input (no format validation opinion) keeps the form usable rather than
+        // refusing to generate one, or worse, applying the wrong validator (e.g. a MAC
+        // address would fail IPAddressField's IPv4/IPv6 checks).
+        FormFieldKind::Binary
+        | FormFieldKind::VarBinary
+        | FormFieldKind::Blob
+        | FormFieldKind::Cidr
+        | FormFieldKind::MacAddress
+        | FormFieldKind::Interval => {
+            let extras = text_attrs_tokens(&ff.attrs, false);
+            quote! { ::runique::forms::fields::TextField::text(#name_str).label(#label) #extras #required_suffix }
         }
 
         FormFieldKind::Bigint => {
@@ -1504,7 +1529,6 @@ fn generate_option(opt: &FieldOption) -> TokenStream2 {
         FieldOption::Required => quote! { .required() },
         FieldOption::Nullable => quote! { .nullable() },
         FieldOption::Unique => quote! { .unique() },
-        FieldOption::Index => quote! {},
         FieldOption::AutoNow => quote! { .auto_now() },
         FieldOption::AutoNowUpdate => quote! { .auto_now_update() },
         FieldOption::Readonly => quote! { .ignore() },
@@ -1514,7 +1538,6 @@ fn generate_option(opt: &FieldOption) -> TokenStream2 {
         FieldOption::Min(n) => quote! { .min_i64(#n) },
         FieldOption::MaxF(n) => quote! { .max_f64(#n) },
         FieldOption::MinF(n) => quote! { .min_f64(#n) },
-        FieldOption::SelectAs(s) => quote! { .select_as(#s) },
         FieldOption::Default(lit) => quote! { .default(sea_query::Value::from(#lit)) },
         FieldOption::Label(_) | FieldOption::Help(_) => quote! {},
         FieldOption::File { kind, .. } => {

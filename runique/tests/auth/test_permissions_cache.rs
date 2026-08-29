@@ -10,6 +10,7 @@
 //! `clear_cache()` d'un autre test peut s'intercaler entre l'insert et la
 //! lecture d'un autre et faire échouer l'assertion de façon intermittente.
 
+use crate::helpers::pk::pk;
 use runique::admin::permissions::{Groupe, Permission};
 use runique::auth::guard::{cache_permissions, clear_cache, evict_permissions, get_permissions};
 use serial_test::serial;
@@ -37,7 +38,7 @@ fn make_groupe(resource: &str, can_read: bool) -> Groupe {
 #[test]
 #[serial]
 fn test_cache_puis_get_retourne_valeur() {
-    let user_id = 10_001;
+    let user_id = pk(10_001);
     cache_permissions(user_id, vec![make_groupe("articles", true)]);
     let cached = get_permissions(user_id);
     assert!(cached.is_some());
@@ -47,7 +48,7 @@ fn test_cache_puis_get_retourne_valeur() {
 #[test]
 #[serial]
 fn test_get_user_inconnu_retourne_none() {
-    let user_id = 10_002;
+    let user_id = pk(10_002);
     // Aucune entrée pour cet user
     assert!(get_permissions(user_id).is_none());
 }
@@ -55,7 +56,7 @@ fn test_get_user_inconnu_retourne_none() {
 #[test]
 #[serial]
 fn test_cache_ecrase_entree_existante() {
-    let user_id = 10_003;
+    let user_id = pk(10_003);
     cache_permissions(user_id, vec![make_groupe("articles", true)]);
     // Écrase avec des droits différents
     cache_permissions(user_id, vec![make_groupe("articles", false)]);
@@ -70,7 +71,7 @@ fn test_cache_ecrase_entree_existante() {
 #[test]
 #[serial]
 fn test_evict_retire_user_du_cache() {
-    let user_id = 10_004;
+    let user_id = pk(10_004);
     cache_permissions(user_id, vec![make_groupe("articles", true)]);
     assert!(get_permissions(user_id).is_some());
     evict_permissions(user_id);
@@ -80,7 +81,7 @@ fn test_evict_retire_user_du_cache() {
 #[test]
 #[serial]
 fn test_evict_user_inconnu_ne_panique_pas() {
-    evict_permissions(99_999); // ne doit pas paniquer
+    evict_permissions(pk(99_999)); // ne doit pas paniquer
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -90,8 +91,8 @@ fn test_evict_user_inconnu_ne_panique_pas() {
 #[test]
 #[serial]
 fn test_clear_cache_vide_tous_les_users() {
-    let u1 = 10_005;
-    let u2 = 10_006;
+    let u1 = pk(10_005);
+    let u2 = pk(10_006);
     cache_permissions(u1, vec![make_groupe("articles", true)]);
     cache_permissions(u2, vec![make_groupe("users", true)]);
     clear_cache();
@@ -102,7 +103,7 @@ fn test_clear_cache_vide_tous_les_users() {
 #[test]
 #[serial]
 fn test_clear_cache_puis_reinsert_fonctionne() {
-    let user_id = 10_007;
+    let user_id = pk(10_007);
     cache_permissions(user_id, vec![make_groupe("articles", true)]);
     clear_cache();
     assert!(get_permissions(user_id).is_none());
@@ -121,7 +122,7 @@ fn test_multi_groupes_or_permissions() {
     use runique::auth::session::CurrentUser;
 
     let user = CurrentUser {
-        id: 10_008,
+        id: pk(10_008),
         username: "alice".into(),
         is_staff: true,
         is_superuser: false,
@@ -170,7 +171,7 @@ fn test_can_access_resource_necessite_can_read() {
     use runique::auth::session::CurrentUser;
 
     let user = CurrentUser {
-        id: 10_009,
+        id: pk(10_009),
         username: "bob".into(),
         is_staff: true,
         is_superuser: false,
@@ -184,7 +185,7 @@ fn test_can_access_resource_avec_can_read() {
     use runique::auth::session::CurrentUser;
 
     let user = CurrentUser {
-        id: 10_010,
+        id: pk(10_010),
         username: "carol".into(),
         is_staff: true,
         is_superuser: false,

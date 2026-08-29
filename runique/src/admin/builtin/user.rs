@@ -282,7 +282,7 @@ pub(super) fn user_entry() -> ResourceEntry {
                     if id_str.is_empty() {
                         continue;
                     }
-                    if let Ok(groupe_id) = id_str.parse::<crate::utils::pk::Pk>()
+                    if let Ok(groupe_id) = id_str.parse::<i32>()
                         && let Err(e) = (users_groupes::ActiveModel {
                             user_id: Set(inserted.id),
                             groupe_id: Set(groupe_id),
@@ -334,7 +334,7 @@ pub(super) fn user_entry() -> ResourceEntry {
                     if id_str.is_empty() {
                         continue;
                     }
-                    if let Ok(groupe_id) = id_str.parse::<crate::utils::pk::Pk>()
+                    if let Ok(groupe_id) = id_str.parse::<i32>()
                         && let Err(e) = (users_groupes::ActiveModel {
                             user_id: Set(id),
                             groupe_id: Set(groupe_id),

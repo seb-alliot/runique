@@ -141,7 +141,7 @@ fn entity_user() -> &'static str {
         User,
         table: "users",
         pk: id => i32,
-        fields: {
+        {
             username: String [unique],
             email: String [unique],
             is_active: bool,
@@ -158,7 +158,7 @@ fn entity_post() -> &'static str {
         Post,
         table: "posts",
         pk: id => i64,
-        fields: {
+        {
             title: String,
             body: text [nullable],
             user_id: i32,
@@ -175,7 +175,7 @@ fn entity_product() -> &'static str {
         Product,
         table: "products",
         pk: id => i32,
-        fields: {
+        {
             name: String,
             price: f64,
             stock: i32,

@@ -14,6 +14,7 @@ use runique::admin::AdminRoutes;
 use runique::prelude::*;
 
 use crate::helpers::db;
+use crate::helpers::pk::pk_sql_literal;
 
 // ── Constantes ───────────────────────────────────────────────────────────────
 
@@ -22,8 +23,13 @@ pub const ADMIN_PREFIX: &str = "/admin";
 pub const SUPERUSER_USERNAME: &str = "crawler";
 pub const SUPERUSER_PASSWORD: &str = "crawler_password_123";
 
+// Sous pk-uuid, l'id du superuser n'est jamais auto-généré par la DB (pas
+// d'auto-increment possible pour un Uuid) — fourni explicitement au seed.
+const SEED_SUPERUSER_ID: u32 = 1;
+
 // Identifiants connus des lignes seedées ci-dessous — utilisés par les tests
-// de detail/edit/delete pour construire des URLs valides.
+// de detail/edit/delete pour construire des URLs valides. `eihwaz_groupes` a
+// son propre id, toujours INTEGER, indépendant de `Pk` (cf. migrations_table.rs).
 pub const SEED_GROUPE_ID: i64 = 1;
 // Doit être une clé de ressource RÉELLEMENT enregistrée dans le registre de
 // test (users/droits/groupes) : `prune_orphan_droits` (RuniqueAppBuilder::build)
@@ -34,6 +40,22 @@ pub const SEED_HISTORY_BATCH_ID: &str = "seed-batch-1";
 
 // ── Schéma SQLite minimal (users + sessions + permissions + historique) ───────
 
+#[cfg(feature = "pk-uuid")]
+const USERS_DDL: &str = "
+    CREATE TABLE eihwaz_users (
+        id          BLOB PRIMARY KEY,
+        username    TEXT NOT NULL UNIQUE,
+        email       TEXT NOT NULL UNIQUE,
+        password    TEXT NOT NULL,
+        is_active   INTEGER NOT NULL DEFAULT 1,
+        is_staff    INTEGER NOT NULL DEFAULT 0,
+        is_superuser INTEGER NOT NULL DEFAULT 0,
+        created_at  TEXT,
+        updated_at  TEXT
+    )
+";
+
+#[cfg(not(feature = "pk-uuid"))]
 const USERS_DDL: &str = "
     CREATE TABLE eihwaz_users (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,6 +70,19 @@ const USERS_DDL: &str = "
     )
 ";
 
+#[cfg(feature = "pk-uuid")]
+const SESSIONS_DDL: &str = "
+    CREATE TABLE eihwaz_sessions (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        cookie_id   TEXT NOT NULL UNIQUE,
+        user_id     BLOB NOT NULL,
+        session_id  TEXT NOT NULL,
+        session_data TEXT,
+        expires_at  TEXT NOT NULL
+    )
+";
+
+#[cfg(not(feature = "pk-uuid"))]
 const SESSIONS_DDL: &str = "
     CREATE TABLE eihwaz_sessions (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -80,6 +115,16 @@ const GROUPES_DROITS_DDL: &str = "
     )
 ";
 
+#[cfg(feature = "pk-uuid")]
+const USERS_GROUPES_DDL: &str = "
+    CREATE TABLE eihwaz_users_groupes (
+        user_id   BLOB NOT NULL,
+        groupe_id INTEGER NOT NULL,
+        PRIMARY KEY (user_id, groupe_id)
+    )
+";
+
+#[cfg(not(feature = "pk-uuid"))]
 const USERS_GROUPES_DDL: &str = "
     CREATE TABLE eihwaz_users_groupes (
         user_id   INTEGER NOT NULL,
@@ -88,6 +133,22 @@ const USERS_GROUPES_DDL: &str = "
     )
 ";
 
+#[cfg(feature = "pk-uuid")]
+const HISTORY_DDL: &str = "
+    CREATE TABLE eihwaz_history (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        resource_key  TEXT NOT NULL,
+        object_pk     TEXT NOT NULL,
+        action        TEXT NOT NULL,
+        user_id       BLOB NOT NULL,
+        username      TEXT NOT NULL,
+        created_at    TEXT NOT NULL,
+        summary       TEXT,
+        batch_id      TEXT
+    )
+";
+
+#[cfg(not(feature = "pk-uuid"))]
 const HISTORY_DDL: &str = "
     CREATE TABLE eihwaz_history (
         id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -139,16 +200,26 @@ fn build_admin_routes(prefix: &str) -> AdminRoutes {
 
 // ── Construction du serveur admin complet ──────────────────────────────────────
 
+#[cfg(feature = "pk-uuid")]
+fn seed_superuser_insert_sql(hash: &str) -> String {
+    format!(
+        "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_staff, is_superuser) \
+         VALUES ({}, '{SUPERUSER_USERNAME}', 'crawler@example.com', '{hash}', 1, 1, 1)",
+        pk_sql_literal(SEED_SUPERUSER_ID)
+    )
+}
+
+#[cfg(not(feature = "pk-uuid"))]
+fn seed_superuser_insert_sql(hash: &str) -> String {
+    format!(
+        "INSERT INTO eihwaz_users (username, email, password, is_active, is_staff, is_superuser) \
+         VALUES ('{SUPERUSER_USERNAME}', 'crawler@example.com', '{hash}', 1, 1, 1)"
+    )
+}
+
 async fn seed_superuser(dbc: &DatabaseConnection) {
     let hash = hash(SUPERUSER_PASSWORD).expect("hash mot de passe superuser");
-    db::exec(
-        dbc,
-        &format!(
-            "INSERT INTO eihwaz_users (username, email, password, is_active, is_staff, is_superuser) \
-             VALUES ('{SUPERUSER_USERNAME}', 'crawler@example.com', '{hash}', 1, 1, 1)"
-        ),
-    )
-    .await;
+    db::exec(dbc, &seed_superuser_insert_sql(&hash)).await;
 }
 
 /// Une ligne de chaque table annexe (groupe, droit, historique) pour que les
@@ -171,11 +242,12 @@ async fn seed_fixtures(dbc: &DatabaseConnection) {
     .await;
     // Deux entrées du même batch (comme une bulk action) pour couvrir la vue batch,
     // plus une entrée seule pour la vue diff.
+    let superuser_id = pk_sql_literal(SEED_SUPERUSER_ID);
     db::exec(
         dbc,
         &format!(
             "INSERT INTO eihwaz_history (resource_key, object_pk, action, user_id, username, created_at, summary, batch_id) \
-             VALUES ('groupes', '{SEED_GROUPE_ID}', 'update', 1, '{SUPERUSER_USERNAME}', '2026-07-30T00:00:00', \
+             VALUES ('groupes', '{SEED_GROUPE_ID}', 'update', {superuser_id}, '{SUPERUSER_USERNAME}', '2026-07-30T00:00:00', \
              '{{\"nom\":{{\"old\":\"Ancien\",\"new\":\"Éditeurs\"}}}}', '{SEED_HISTORY_BATCH_ID}')"
         ),
     )
@@ -184,7 +256,7 @@ async fn seed_fixtures(dbc: &DatabaseConnection) {
         dbc,
         &format!(
             "INSERT INTO eihwaz_history (resource_key, object_pk, action, user_id, username, created_at, summary, batch_id) \
-             VALUES ('groupes', '{SEED_GROUPE_ID}', 'update', 1, '{SUPERUSER_USERNAME}', '2026-07-30T00:01:00', NULL, '{SEED_HISTORY_BATCH_ID}')"
+             VALUES ('groupes', '{SEED_GROUPE_ID}', 'update', {superuser_id}, '{SUPERUSER_USERNAME}', '2026-07-30T00:01:00', NULL, '{SEED_HISTORY_BATCH_ID}')"
         ),
     )
     .await;
@@ -192,7 +264,7 @@ async fn seed_fixtures(dbc: &DatabaseConnection) {
         dbc,
         &format!(
             "INSERT INTO eihwaz_history (resource_key, object_pk, action, user_id, username, created_at, summary, batch_id) \
-             VALUES ('users', '1', 'create', 1, '{SUPERUSER_USERNAME}', '2026-07-30T00:02:00', NULL, NULL)"
+             VALUES ('users', '1', 'create', {superuser_id}, '{SUPERUSER_USERNAME}', '2026-07-30T00:02:00', NULL, NULL)"
         ),
     )
     .await;
@@ -200,6 +272,12 @@ async fn seed_fixtures(dbc: &DatabaseConnection) {
 
 pub fn droit_id() -> String {
     format!("{SEED_GROUPE_ID}:{SEED_DROIT_RESOURCE_KEY}")
+}
+
+/// Représentation URL (`.parse::<Pk>()`-compatible) de l'id du superuser seedé —
+/// `"1"` par défaut, l'Uuid déterministe correspondant sous `pk-uuid`.
+pub fn seed_superuser_id_str() -> String {
+    crate::helpers::pk::pk(SEED_SUPERUSER_ID).to_string()
 }
 
 async fn build_admin_app() -> Router {

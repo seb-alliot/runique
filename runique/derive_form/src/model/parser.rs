@@ -118,39 +118,18 @@ impl Parse for ModelInput {
             }
         }
 
-        // Style detection:
-        // New (v2): anonymous block `{ ... }` — semantic types, deriving SQL
-        // Old (v1): `fields: { ... }` — explicit SQL types
+        // Anonymous block `{ ... }` — semantic types, SQL derived from them.
         let mut fields = Vec::new();
         let mut form_fields_early: Vec<FormFieldDecl> = Vec::new();
 
-        if input.peek(syn::token::Brace) {
-            // ── New style: anonymous block ──────────────────────
-            let ff_content;
-            syn::braced!(ff_content in input);
-            while !ff_content.is_empty() {
-                let ff = FormFieldDecl::parse(&ff_content)?;
-                fields.push(form_field_to_field_def(&ff));
-                form_fields_early.push(ff);
-            }
-            let _ = input.parse::<Token![,]>();
-        } else {
-            // ── Old style: fields: { ... } ────────────────────
-            let fields_kw: Ident = input.parse()?;
-            if fields_kw != "fields" {
-                return Err(syn::Error::new(
-                    fields_kw.span(),
-                    "Expected: `fields` or an anonymous block `{ ... }` ",
-                ));
-            }
-            input.parse::<Token![:]>()?;
-            let fields_content;
-            syn::braced!(fields_content in input);
-            while !fields_content.is_empty() {
-                fields.push(FieldDef::parse(&fields_content)?);
-            }
-            let _ = input.parse::<Token![,]>();
+        let ff_content;
+        syn::braced!(ff_content in input);
+        while !ff_content.is_empty() {
+            let ff = FormFieldDecl::parse(&ff_content)?;
+            fields.push(form_field_to_field_def(&ff));
+            form_fields_early.push(ff);
         }
+        let _ = input.parse::<Token![,]>();
 
         // relations: { ... } optional
         let mut relations = Vec::new();
@@ -181,27 +160,7 @@ impl Parse for ModelInput {
             }
         }
 
-        // form_fields: { ... } optional (old style only — ignored if anonymous block already parsed)
-        let mut form_fields = if form_fields_early.is_empty() {
-            let mut ff = Vec::new();
-            if input.peek(Ident) {
-                let peek: Ident = input.fork().parse()?;
-                if peek == "form_fields" {
-                    input.parse::<Ident>()?;
-                    input.parse::<Token![:]>()?;
-                    let ff_content;
-                    syn::braced!(ff_content in input);
-                    while !ff_content.is_empty() {
-                        ff.push(FormFieldDecl::parse(&ff_content)?);
-                    }
-                    let _ = input.parse::<Token![,]>();
-                }
-            }
-            ff
-        } else {
-            form_fields_early
-        };
-        let _ = &mut form_fields; // silence unused_mut
+        let form_fields = form_fields_early;
 
         Ok(ModelInput {
             name,
@@ -248,249 +207,6 @@ impl Parse for PkDef {
             }
         };
         Ok(PkDef { name, ty })
-    }
-}
-
-impl Parse for FieldDef {
-    fn parse(input: ParseStream) -> Result<Self> {
-        // username: String [required, max_len(150)],
-        let name: Ident = input.parse()?;
-        input.parse::<Token![:]>()?;
-        let ty = FieldType::parse(input)?;
-
-        // options [ ... ] optional
-        let mut options = Vec::new();
-        if input.peek(token::Bracket) {
-            let options_content;
-            syn::bracketed!(options_content in input);
-            while !options_content.is_empty() {
-                // `renamed_from` is a migration-only directive — consume and ignore here.
-                if options_content.peek(Ident) {
-                    let peeked: Ident = options_content.fork().parse()?;
-                    if peeked == "renamed_from" {
-                        options_content.parse::<Ident>()?;
-                        if options_content.peek(token::Paren) {
-                            let content;
-                            syn::parenthesized!(content in options_content);
-                            let _: LitStr = content.parse()?;
-                        } else if options_content.peek(Token![:]) {
-                            options_content.parse::<Token![:]>()?;
-                            let _: LitStr = options_content.parse()?;
-                        }
-                        let _ = options_content.parse::<Token![,]>();
-                        continue;
-                    }
-                }
-                options.push(FieldOption::parse(&options_content)?);
-                let _ = options_content.parse::<Token![,]>();
-            }
-        }
-
-        // trailing comma
-        let _ = input.parse::<Token![,]>();
-
-        Ok(FieldDef { name, ty, options })
-    }
-}
-
-impl Parse for FieldType {
-    fn parse(input: ParseStream) -> Result<Self> {
-        // `enum` is a Rust keyword — separate treatment
-        if input.peek(Token![enum]) {
-            input.parse::<Token![enum]>()?;
-            let content;
-            syn::parenthesized!(content in input);
-            let name: Ident = content.parse()?;
-            return Ok(FieldType::Enum(name));
-        }
-
-        let ty_ident: Ident = input.parse()?;
-        match ty_ident.to_string().as_str() {
-            "String" => Ok(FieldType::String),
-            "text" => Ok(FieldType::Text),
-            "char" => Ok(FieldType::Char),
-            "varchar" => {
-                let content;
-                syn::parenthesized!(content in input);
-                let n: LitInt = content.parse()?;
-                Ok(FieldType::Varchar(n.base10_parse()?))
-            }
-            "i8" => Ok(FieldType::I8),
-            "i16" => Ok(FieldType::I16),
-            "i32" => Ok(FieldType::I32),
-            "i64" => Ok(FieldType::I64),
-            "u32" => Ok(FieldType::U32),
-            "u64" => Ok(FieldType::U64),
-            "f32" => Ok(FieldType::F32),
-            "f64" => Ok(FieldType::F64),
-            "decimal" => {
-                if input.peek(token::Paren) {
-                    let content;
-                    syn::parenthesized!(content in input);
-                    let precision: LitInt = content.parse()?;
-                    content.parse::<Token![,]>()?;
-                    let scale: LitInt = content.parse()?;
-                    Ok(FieldType::Decimal(Some((
-                        precision.base10_parse()?,
-                        scale.base10_parse()?,
-                    ))))
-                } else {
-                    Ok(FieldType::Decimal(None))
-                }
-            }
-            "bool" => Ok(FieldType::Bool),
-            "date" => Ok(FieldType::Date),
-            "time" => Ok(FieldType::Time),
-            "datetime" => Ok(FieldType::Datetime),
-            "timestamp" => Ok(FieldType::Timestamp),
-            "timestamp_tz" => Ok(FieldType::TimestampTz),
-            "uuid" => Ok(FieldType::Uuid),
-            "json" => Ok(FieldType::Json),
-            "json_binary" => Ok(FieldType::JsonBinary),
-            "binary" => {
-                if input.peek(token::Paren) {
-                    let content;
-                    syn::parenthesized!(content in input);
-                    let n: LitInt = content.parse()?;
-                    Ok(FieldType::Binary(Some(n.base10_parse()?)))
-                } else {
-                    Ok(FieldType::Binary(None))
-                }
-            }
-            "var_binary" => {
-                let content;
-                syn::parenthesized!(content in input);
-                let n: LitInt = content.parse()?;
-                Ok(FieldType::VarBinary(n.base10_parse()?))
-            }
-            "blob" => Ok(FieldType::Blob),
-            "inet" => Ok(FieldType::Inet),
-            "cidr" => Ok(FieldType::Cidr),
-            "mac_address" => Ok(FieldType::MacAddress),
-            "interval" => Ok(FieldType::Interval),
-            other => Err(syn::Error::new(
-                ty_ident.span(),
-                format!("Unknown field type: '{}'", other),
-            )),
-        }
-    }
-}
-
-impl Parse for FieldOption {
-    fn parse(input: ParseStream) -> Result<Self> {
-        let option_ident: Ident = input.parse()?;
-        match option_ident.to_string().as_str() {
-            "required" => Ok(FieldOption::Required),
-            "nullable" => Ok(FieldOption::Nullable),
-            "unique" => Ok(FieldOption::Unique),
-            "index" => Ok(FieldOption::Index),
-            "auto_now" => Ok(FieldOption::AutoNow),
-            "auto_now_update" => Ok(FieldOption::AutoNowUpdate),
-            "readonly" => Ok(FieldOption::Readonly),
-            "default" => {
-                let content;
-                syn::parenthesized!(content in input);
-                let lit: syn::Lit = content.parse()?;
-                Ok(FieldOption::Default(lit))
-            }
-            "max_len" => {
-                let content;
-                syn::parenthesized!(content in input);
-                let n: LitInt = content.parse()?;
-                Ok(FieldOption::MaxLen(n.base10_parse()?))
-            }
-            "min_len" => {
-                let content;
-                syn::parenthesized!(content in input);
-                let n: LitInt = content.parse()?;
-                Ok(FieldOption::MinLen(n.base10_parse()?))
-            }
-            "max" => {
-                let content;
-                syn::parenthesized!(content in input);
-                let n: LitInt = content.parse()?;
-                Ok(FieldOption::Max(n.base10_parse()?))
-            }
-            "min" => {
-                let content;
-                syn::parenthesized!(content in input);
-                let n: LitInt = content.parse()?;
-                Ok(FieldOption::Min(n.base10_parse()?))
-            }
-            "max_f" => {
-                let content;
-                syn::parenthesized!(content in input);
-                let n: LitFloat = content.parse()?;
-                Ok(FieldOption::MaxF(n.base10_parse()?))
-            }
-            "min_f" => {
-                let content;
-                syn::parenthesized!(content in input);
-                let n: LitFloat = content.parse()?;
-                Ok(FieldOption::MinF(n.base10_parse()?))
-            }
-            "select_as" => {
-                let content;
-                syn::parenthesized!(content in input);
-                let s: LitStr = content.parse()?;
-                Ok(FieldOption::SelectAs(s.value()))
-            }
-            "label" => {
-                let content;
-                syn::parenthesized!(content in input);
-                let s: LitStr = content.parse()?;
-                Ok(FieldOption::Label(s.value()))
-            }
-            "help" => {
-                let content;
-                syn::parenthesized!(content in input);
-                let s: LitStr = content.parse()?;
-                Ok(FieldOption::Help(s.value()))
-            }
-            "fk" => {
-                let content;
-                syn::parenthesized!(content in input);
-                let fk = FkDef::parse(&content)?;
-                Ok(FieldOption::Fk(fk))
-            }
-            "max_size" | "max_size_mb" => {
-                let content;
-                syn::parenthesized!(content in input);
-                let n = parse_size(&content)?;
-                Ok(FieldOption::MaxSize(n))
-            }
-            "file" => {
-                let content;
-                syn::parenthesized!(content in input);
-                let kind_ident: Ident = content.parse()?;
-                let kind = match kind_ident.to_string().as_str() {
-                    "image" => crate::model::ast::FileKind::Image,
-                    "document" => crate::model::ast::FileKind::Document,
-                    "any" => crate::model::ast::FileKind::Any,
-                    other => {
-                        return Err(syn::Error::new(
-                            kind_ident.span(),
-                            format!(
-                                "Unknown file type: '{}'. Expected: image, document, any",
-                                other
-                            ),
-                        ));
-                    }
-                };
-                let upload_to = if content.peek(Token![,]) {
-                    content.parse::<Token![,]>()?;
-                    let s: LitStr = content.parse()?;
-                    Some(s.value())
-                } else {
-                    None
-                };
-                Ok(FieldOption::File { kind, upload_to })
-            }
-            other => Err(syn::Error::new(
-                option_ident.span(),
-                format!("Unknown option: '{}'", other),
-            )),
-        }
     }
 }
 
@@ -755,7 +471,8 @@ fn form_field_to_field_def(ff: &FormFieldDecl) -> FieldDef {
         }
         Email => FieldType::Varchar(254),
         Password => FieldType::String,
-        Richtext | Textarea | Json => FieldType::Text,
+        Richtext | Textarea => FieldType::Text,
+        Json => FieldType::Json,
         Url => FieldType::String,
         Int => FieldType::I32,
         Float => FieldType::F64,
@@ -784,6 +501,23 @@ fn form_field_to_field_def(ff: &FormFieldDecl) -> FieldDef {
                 FieldType::Varchar(20)
             }
         }
+        Char => FieldType::Char,
+        I8 => FieldType::I8,
+        I16 => FieldType::I16,
+        U32 => FieldType::U32,
+        U64 => FieldType::U64,
+        F32 => FieldType::F32,
+        Timestamp => FieldType::Timestamp,
+        TimestampTz => FieldType::TimestampTz,
+        JsonBinary => FieldType::JsonBinary,
+        // Same mechanism as `text` + `max_length` → `Varchar(n)`: the byte length
+        // rides on the already-parsed `max_length` attribute, no new syntax needed.
+        Binary => FieldType::Binary(max_len),
+        VarBinary => FieldType::VarBinary(max_len.unwrap_or(255)),
+        Blob => FieldType::Blob,
+        Cidr => FieldType::Cidr,
+        MacAddress => FieldType::MacAddress,
+        Interval => FieldType::Interval,
     };
 
     let is_auto_now = ff.attrs.iter().any(|a| matches!(a, AutoNow));
@@ -822,6 +556,58 @@ fn form_field_to_field_def(ff: &FormFieldDecl) -> FieldDef {
         .find(|a| matches!(a, FormFieldAttr::MaxLength(_)))
     {
         options.push(FieldOption::MaxLen(*n));
+    }
+    if let Some(FormFieldAttr::MinLength(n)) = ff
+        .attrs
+        .iter()
+        .find(|a| matches!(a, FormFieldAttr::MinLength(_)))
+    {
+        options.push(FieldOption::MinLen(*n));
+    }
+    if let Some(FormFieldAttr::Min(n)) =
+        ff.attrs.iter().find(|a| matches!(a, FormFieldAttr::Min(_)))
+    {
+        options.push(FieldOption::Min(*n));
+    }
+    if let Some(FormFieldAttr::Max(n)) =
+        ff.attrs.iter().find(|a| matches!(a, FormFieldAttr::Max(_)))
+    {
+        options.push(FieldOption::Max(*n));
+    }
+    if let Some(FormFieldAttr::MinF(n)) = ff
+        .attrs
+        .iter()
+        .find(|a| matches!(a, FormFieldAttr::MinF(_)))
+    {
+        options.push(FieldOption::MinF(*n));
+    }
+    if let Some(FormFieldAttr::MaxF(n)) = ff
+        .attrs
+        .iter()
+        .find(|a| matches!(a, FormFieldAttr::MaxF(_)))
+    {
+        options.push(FieldOption::MaxF(*n));
+    }
+    if let Some(FormFieldAttr::MaxSize(n)) = ff
+        .attrs
+        .iter()
+        .find(|a| matches!(a, FormFieldAttr::MaxSize(_)))
+    {
+        options.push(FieldOption::MaxSize(*n));
+    }
+    if ff
+        .attrs
+        .iter()
+        .any(|a| matches!(a, FormFieldAttr::Readonly))
+    {
+        options.push(FieldOption::Readonly);
+    }
+    if let Some(FormFieldAttr::Label(s)) = ff
+        .attrs
+        .iter()
+        .find(|a| matches!(a, FormFieldAttr::Label(_)))
+    {
+        options.push(FieldOption::Label(s.clone()));
     }
     if let Some(FormFieldAttr::Fk(fk)) = ff.attrs.iter().find(|a| matches!(a, FormFieldAttr::Fk(_)))
     {
@@ -871,6 +657,38 @@ impl Parse for FormFieldDecl {
             "checkbox" => FormFieldKind::Checkbox,
             "bigint" => FormFieldKind::Bigint,
             "phone" => FormFieldKind::Phone,
+            "char" => FormFieldKind::Char,
+            "i8" => FormFieldKind::I8,
+            "i16" => FormFieldKind::I16,
+            "u32" => FormFieldKind::U32,
+            "u64" => FormFieldKind::U64,
+            "f32" => FormFieldKind::F32,
+            "timestamp" => FormFieldKind::Timestamp,
+            "timestamp_tz" => FormFieldKind::TimestampTz,
+            "json_binary" => FormFieldKind::JsonBinary,
+            "binary" => FormFieldKind::Binary,
+            "var_binary" => FormFieldKind::VarBinary,
+            "blob" => FormFieldKind::Blob,
+            "cidr" => FormFieldKind::Cidr,
+            "mac_address" => FormFieldKind::MacAddress,
+            "interval" => FormFieldKind::Interval,
+            // Defers to the global `Pk` alias — resolved immediately to the concrete
+            // kind so no downstream consumer needs to know "Pk" was ever written; same
+            // principle as the `pk: id => Pk` keyword for the primary key itself.
+            "Pk" => {
+                #[cfg(feature = "pk-uuid")]
+                {
+                    FormFieldKind::Uuid
+                }
+                #[cfg(all(feature = "big-pk", not(feature = "pk-uuid")))]
+                {
+                    FormFieldKind::Bigint
+                }
+                #[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
+                {
+                    FormFieldKind::Int
+                }
+            }
             other => {
                 let suggestion = suggest_form_field_type(other);
                 return Err(syn::Error::new(
@@ -973,6 +791,12 @@ impl Parse for FormFieldDecl {
                     "auto_now" => FormFieldAttr::AutoNow,
                     "auto_now_update" => FormFieldAttr::AutoNowUpdate,
                     "unique" => FormFieldAttr::Unique,
+                    "readonly" => FormFieldAttr::Readonly,
+                    "label" => {
+                        attrs_content.parse::<Token![:]>()?;
+                        let s: LitStr = attrs_content.parse()?;
+                        FormFieldAttr::Label(s.value())
+                    }
                     "fk" => {
                         let content;
                         syn::parenthesized!(content in attrs_content);
@@ -1002,9 +826,45 @@ impl Parse for FormFieldDecl {
 
 fn suggest_form_field_type(input: &str) -> String {
     let known = [
-        "text", "email", "password", "richtext", "textarea", "url", "int", "bigint", "float",
-        "decimal", "percent", "bool", "date", "time", "datetime", "image", "document", "file",
-        "color", "slug", "uuid", "json", "ip", "phone",
+        "text",
+        "email",
+        "password",
+        "richtext",
+        "textarea",
+        "url",
+        "int",
+        "bigint",
+        "float",
+        "decimal",
+        "percent",
+        "bool",
+        "date",
+        "time",
+        "datetime",
+        "image",
+        "document",
+        "file",
+        "color",
+        "slug",
+        "uuid",
+        "json",
+        "ip",
+        "phone",
+        "char",
+        "i8",
+        "i16",
+        "u32",
+        "u64",
+        "f32",
+        "timestamp",
+        "timestamp_tz",
+        "json_binary",
+        "binary",
+        "var_binary",
+        "blob",
+        "cidr",
+        "mac_address",
+        "interval",
     ];
     // Suggestion by common prefix (≥ 2 characters)
     let matches: Vec<&str> = known
@@ -1035,9 +895,11 @@ fn validate_form_field_attrs(
 
     for attr in attrs {
         let valid = match (attr, kind) {
-            // required / nullable / EnumRef — universal
+            // required / nullable / readonly / label — universal
             (Required, _) => true,
             (Nullable, _) => true,
+            (Readonly, _) => true,
+            (Label(_), _) => true,
             (
                 EnumRef(_),
                 FormFieldKind::Choice | FormFieldKind::Radio | FormFieldKind::Checkbox,
@@ -1048,22 +910,26 @@ fn validate_form_field_attrs(
             (NoHash, Password) => true,
             (NoHash, _) => false,
 
-            // max_length / min_length — textual types
-            (MaxLength(_), Text | Email | Password | Richtext | Textarea | Url | Phone) => true,
+            // max_length / min_length — textual types (also byte length for binary/var_binary)
+            (
+                MaxLength(_),
+                Text | Email | Password | Richtext | Textarea | Url | Phone | Char | Binary
+                | VarBinary,
+            ) => true,
             (MaxLength(_), _) => false,
-            (MinLength(_), Text | Textarea | Phone) => true,
+            (MinLength(_), Text | Textarea | Phone | Char) => true,
             (MinLength(_), _) => false,
 
-            // min / max integer — int only
-            (Min(_), Int) => true,
+            // min / max integer — integer types only
+            (Min(_), Int | Bigint | I8 | I16 | U32 | U64) => true,
             (Min(_), _) => false,
-            (Max(_), Int) => true,
+            (Max(_), Int | Bigint | I8 | I16 | U32 | U64) => true,
             (Max(_), _) => false,
 
             // min_f / max_f float — float, decimal
-            (MinF(_), Float | Decimal) => true,
+            (MinF(_), Float | Decimal | F32) => true,
             (MinF(_), _) => false,
-            (MaxF(_), Float | Decimal) => true,
+            (MaxF(_), Float | Decimal | F32) => true,
             (MaxF(_), _) => false,
 
             // default — all except files
@@ -1186,6 +1052,8 @@ fn attr_name_str(attr: &FormFieldAttr) -> &'static str {
         FormFieldAttr::AutoNow => "auto_now",
         FormFieldAttr::AutoNowUpdate => "auto_now_update",
         FormFieldAttr::Unique => "unique",
+        FormFieldAttr::Readonly => "readonly",
+        FormFieldAttr::Label(_) => "label",
         FormFieldAttr::Fk(_) => "fk",
         FormFieldAttr::Skip => "skip",
     }

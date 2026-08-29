@@ -152,7 +152,15 @@ impl CleaningMemoryStore {
         let Some(user_id) = record
             .data
             .get(crate::utils::constante::session_key::session::SESSION_USER_ID_KEY)
-            .and_then(|v| serde_json::from_value::<crate::utils::pk::Pk>(v.clone()).ok())
+            .and_then(|v| {
+                serde_json::from_value::<crate::utils::pk::Pk>(v.clone()).trace(
+                    crate::utils::runique_log::get_log()
+                        .session
+                        .as_ref()
+                        .and_then(|s| s.store),
+                    "decode session user_id for DB backup",
+                )
+            })
         else {
             return;
         };
@@ -207,7 +215,15 @@ impl CleaningMemoryStore {
             .filter(|(_, r)| {
                 r.data
                     .get(crate::utils::constante::session_key::session::SESSION_USER_ID_KEY)
-                    .and_then(|v| serde_json::from_value::<crate::utils::pk::Pk>(v.clone()).ok())
+                    .and_then(|v| {
+                        serde_json::from_value::<crate::utils::pk::Pk>(v.clone()).trace(
+                            crate::utils::runique_log::get_log()
+                                .session
+                                .as_ref()
+                                .and_then(|s| s.store),
+                            "decode session user_id for invalidate_user_sessions",
+                        )
+                    })
                     .is_some_and(|id| id == user_id)
             })
             .map(|(id, _)| *id)
@@ -418,7 +434,15 @@ impl SessionStore for CleaningMemoryStore {
             if let Some(user_id) = record
                 .data
                 .get(crate::utils::constante::session_key::session::SESSION_USER_ID_KEY)
-                .and_then(|v| serde_json::from_value::<crate::utils::pk::Pk>(v.clone()).ok())
+                .and_then(|v| {
+                    serde_json::from_value::<crate::utils::pk::Pk>(v.clone()).trace(
+                        crate::utils::runique_log::get_log()
+                            .session
+                            .as_ref()
+                            .and_then(|s| s.store),
+                        "decode session user_id (exclusive login check)",
+                    )
+                })
                 && !had_user
             {
                 let mut freed = 0usize;
@@ -428,7 +452,15 @@ impl SessionStore for CleaningMemoryStore {
                             **id != record.id
                                 && r.data
                                     .get(crate::utils::constante::session_key::session::SESSION_USER_ID_KEY)
-                                    .and_then(|v| serde_json::from_value::<crate::utils::pk::Pk>(v.clone()).ok())
+                                    .and_then(|v| {
+                                        serde_json::from_value::<crate::utils::pk::Pk>(v.clone()).trace(
+                                            crate::utils::runique_log::get_log()
+                                                .session
+                                                .as_ref()
+                                                .and_then(|s| s.store),
+                                            "decode other session's user_id (exclusive login sweep)",
+                                        )
+                                    })
                                     .is_some_and(|id| id == user_id)
                         })
                         .map(|(id, _)| *id)

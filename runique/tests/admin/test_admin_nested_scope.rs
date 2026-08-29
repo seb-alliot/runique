@@ -4,6 +4,7 @@
 
 use std::sync::Arc;
 
+use crate::helpers::pk::pk;
 use runique::admin::helper::resource_entry::{FormBuilder, ResourceEntry};
 use runique::admin::registry::AdminRegistry;
 use runique::admin::resource::AdminResource;
@@ -38,7 +39,7 @@ fn registry_with_child() -> AdminRegistry {
 
 fn superuser() -> CurrentUser {
     CurrentUser {
-        id: 1,
+        id: pk(1),
         username: "root".into(),
         is_staff: true,
         is_superuser: true,

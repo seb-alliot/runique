@@ -7,7 +7,9 @@
 //! aucune colonne sensible ne doit sortir en clair, et aucune valeur utilisateur
 //! ne doit casser l'échappement HTML.
 
-use crate::helpers::admin_server::{ADMIN_PREFIX, admin_server_addr, login_as_superuser};
+use crate::helpers::admin_server::{
+    ADMIN_PREFIX, admin_server_addr, login_as_superuser, seed_superuser_id_str,
+};
 use serial_test::serial;
 
 // `#[serial]` : meme raison que `test_admin_route_crawl.rs` — le build unique
@@ -41,10 +43,13 @@ async fn test_admin_password_never_leaks_in_list_or_detail() {
     );
 
     let detail_resp = client
-        .get(format!("{base}{ADMIN_PREFIX}/users/1/detail"))
+        .get(format!(
+            "{base}{ADMIN_PREFIX}/users/{}/detail",
+            seed_superuser_id_str()
+        ))
         .send()
         .await
-        .expect("GET users/1/detail");
+        .expect("GET users/{id}/detail");
     assert_eq!(detail_resp.status(), 200);
     let detail_body = detail_resp.text().await.unwrap_or_default();
     assert!(

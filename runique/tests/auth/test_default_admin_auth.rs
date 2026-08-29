@@ -1,6 +1,8 @@
 //! Tests — auth/session.rs : DefaultAdminAuth::authenticate()
 
 use crate::helpers::db;
+#[cfg(feature = "pk-uuid")]
+use crate::helpers::pk::pk_sql_literal;
 use runique::auth::{
     BuiltinUserEntity,
     session::{AdminAuth, DefaultAdminAuth},
@@ -8,6 +10,22 @@ use runique::auth::{
 
 // ─── DDL ──────────────────────────────────────────────────────────────────────
 
+#[cfg(feature = "pk-uuid")]
+const USERS_DDL: &str = "
+    CREATE TABLE eihwaz_users (
+        id          BLOB PRIMARY KEY,
+        username    TEXT NOT NULL UNIQUE,
+        email       TEXT NOT NULL UNIQUE,
+        password    TEXT NOT NULL,
+        is_active   INTEGER NOT NULL DEFAULT 1,
+        is_staff    INTEGER NOT NULL DEFAULT 0,
+        is_superuser INTEGER NOT NULL DEFAULT 0,
+        created_at  TEXT,
+        updated_at  TEXT
+    )
+";
+
+#[cfg(not(feature = "pk-uuid"))]
 const USERS_DDL: &str = "
     CREATE TABLE eihwaz_users (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -21,6 +39,26 @@ const USERS_DDL: &str = "
         updated_at  TEXT
     )
 ";
+
+// Sous pk-uuid, l'id n'est jamais généré côté DB (pas d'auto-increment possible
+// pour un Uuid) — chaque INSERT doit fournir sa propre valeur explicite.
+#[cfg(feature = "pk-uuid")]
+fn insert_user_columns() -> &'static str {
+    "id, username, email, password, is_active, is_staff, is_superuser"
+}
+#[cfg(not(feature = "pk-uuid"))]
+fn insert_user_columns() -> &'static str {
+    "username, email, password, is_active, is_staff, is_superuser"
+}
+
+#[cfg(feature = "pk-uuid")]
+fn insert_user_id_prefix(n: u32) -> String {
+    format!("{}, ", pk_sql_literal(n))
+}
+#[cfg(not(feature = "pk-uuid"))]
+fn insert_user_id_prefix(_n: u32) -> String {
+    String::new()
+}
 
 // ═══════════════════════════════════════════════════════════════
 // authenticate() — user inexistant
@@ -45,8 +83,9 @@ async fn test_authenticate_wrong_password() {
     db::exec(
         &db,
         &format!(
-            "INSERT INTO eihwaz_users (username, email, password, is_active, is_staff, is_superuser) \
-             VALUES ('admin', 'admin@example.com', '{hash}', 1, 1, 0)"
+            "INSERT INTO eihwaz_users ({}) VALUES ({}'admin', 'admin@example.com', '{hash}', 1, 1, 0)",
+            insert_user_columns(),
+            insert_user_id_prefix(1),
         ),
     )
     .await;
@@ -68,8 +107,9 @@ async fn test_authenticate_no_admin_access() {
     db::exec(
         &db,
         &format!(
-            "INSERT INTO eihwaz_users (username, email, password, is_active, is_staff, is_superuser) \
-             VALUES ('regular', 'regular@example.com', '{hash}', 1, 0, 0)"
+            "INSERT INTO eihwaz_users ({}) VALUES ({}'regular', 'regular@example.com', '{hash}', 1, 0, 0)",
+            insert_user_columns(),
+            insert_user_id_prefix(2),
         ),
     )
     .await;
@@ -91,8 +131,9 @@ async fn test_authenticate_inactive_user() {
     db::exec(
         &db,
         &format!(
-            "INSERT INTO eihwaz_users (username, email, password, is_active, is_staff, is_superuser) \
-             VALUES ('inactive', 'inactive@example.com', '{hash}', 0, 1, 0)"
+            "INSERT INTO eihwaz_users ({}) VALUES ({}'inactive', 'inactive@example.com', '{hash}', 0, 1, 0)",
+            insert_user_columns(),
+            insert_user_id_prefix(3),
         ),
     )
     .await;
@@ -113,8 +154,9 @@ async fn test_authenticate_success_staff() {
     db::exec(
         &db,
         &format!(
-            "INSERT INTO eihwaz_users (username, email, password, is_active, is_staff, is_superuser) \
-             VALUES ('staffuser', 'staff@example.com', '{hash}', 1, 1, 0)"
+            "INSERT INTO eihwaz_users ({}) VALUES ({}'staffuser', 'staff@example.com', '{hash}', 1, 1, 0)",
+            insert_user_columns(),
+            insert_user_id_prefix(4),
         ),
     )
     .await;
@@ -139,8 +181,9 @@ async fn test_authenticate_success_superuser() {
     db::exec(
         &db,
         &format!(
-            "INSERT INTO eihwaz_users (username, email, password, is_active, is_staff, is_superuser) \
-             VALUES ('superuser', 'super@example.com', '{hash}', 1, 0, 1)"
+            "INSERT INTO eihwaz_users ({}) VALUES ({}'superuser', 'super@example.com', '{hash}', 1, 0, 1)",
+            insert_user_columns(),
+            insert_user_id_prefix(5),
         ),
     )
     .await;

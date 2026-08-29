@@ -1,6 +1,7 @@
 //! Tests — CSRF token crypto
 //! Couvre : generation_token, generation_user_token, mask_csrf_token, unmask_csrf_token
 
+use crate::helpers::pk::pk;
 use runique::utils::csrf::{
     CsrfContext, CsrfToken, generation_token, generation_user_token, mask_csrf_token,
     unmask_csrf_token,
@@ -136,7 +137,7 @@ fn test_csrf_token_generate_anonymous() {
 #[test]
 fn test_csrf_token_generate_authenticated() {
     let token =
-        CsrfToken::generate_with_context(&CsrfContext::Authenticated { user_id: 42 }, SECRET);
+        CsrfToken::generate_with_context(&CsrfContext::Authenticated { user_id: pk(42) }, SECRET);
     assert_eq!(token.as_str().len(), 64);
     assert!(token.as_str().chars().all(|c| c.is_ascii_hexdigit()));
 }
@@ -163,6 +164,6 @@ fn test_csrf_token_unmasked_invalid_returns_error() {
 #[test]
 fn test_csrf_token_as_str_returns_hex() {
     let token =
-        CsrfToken::generate_with_context(&CsrfContext::Authenticated { user_id: 1 }, SECRET);
+        CsrfToken::generate_with_context(&CsrfContext::Authenticated { user_id: pk(1) }, SECRET);
     assert_eq!(token.as_str().len(), 64);
 }

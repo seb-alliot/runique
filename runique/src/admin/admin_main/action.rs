@@ -390,7 +390,7 @@ mod tests {
         perm.can_read = true;
         perm.can_update = true;
         let groupe = Groupe {
-            id: crate::utils::pk::Pk::default(),
+            id: 1,
             nom: "editors".to_string(),
             permissions: vec![perm],
         };

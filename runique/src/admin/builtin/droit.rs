@@ -31,11 +31,11 @@ use crate::utils::{
     trad::{t, tf},
 };
 
-pub(super) fn encode_droit_id(groupe_id: crate::utils::pk::Pk, resource_key: &str) -> String {
+pub(super) fn encode_droit_id(groupe_id: i32, resource_key: &str) -> String {
     format!("{}:{}", groupe_id, resource_key)
 }
 
-fn decode_droit_id(id: &str) -> Result<(crate::utils::pk::Pk, String), sea_orm::DbErr> {
+fn decode_droit_id(id: &str) -> Result<(i32, String), sea_orm::DbErr> {
     let mut parts = id.splitn(2, ':');
     let groupe_id = parts
         .next()
@@ -235,8 +235,8 @@ pub(super) fn droit_entry() -> ResourceEntry {
                 .all(&*db)
                 .await?;
 
-            let groupe_ids: Vec<crate::utils::pk::Pk> = rows.iter().map(|r| r.groupe_id).collect();
-            let groupes: HMap<crate::utils::pk::Pk, String> = groupe::Entity::find()
+            let groupe_ids: Vec<i32> = rows.iter().map(|r| r.groupe_id).collect();
+            let groupes: HMap<i32, String> = groupe::Entity::find()
                 .filter(groupe::Column::Id.is_in(groupe_ids))
                 .all(&*db)
                 .await
@@ -328,7 +328,7 @@ pub(super) fn droit_entry() -> ResourceEntry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            let groupe_id: crate::utils::pk::Pk = data
+            let groupe_id: i32 = data
                 .get(GROUPE_ID)
                 .and_then(|s| s.parse().ok())
                 .ok_or_else(|| {
@@ -379,7 +379,7 @@ pub(super) fn droit_entry() -> ResourceEntry {
             use sea_orm::{ColumnTrait, QueryFilter};
             let (old_groupe_id, old_resource_key) = decode_droit_id(&id)?;
 
-            let new_groupe_id: crate::utils::pk::Pk = data
+            let new_groupe_id: i32 = data
                 .get(GROUPE_ID)
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(old_groupe_id);

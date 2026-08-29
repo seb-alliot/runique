@@ -5,8 +5,9 @@ use sea_orm::entity::prelude::*;
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, serde::Serialize)]
 #[sea_orm(table_name = "eihwaz_groupes_droits")]
 pub struct Model {
+    // Toujours INTEGER, indépendant de `Pk` — cf. groupe.rs::Model::id.
     #[sea_orm(primary_key, auto_increment = false)]
-    pub groupe_id: crate::utils::pk::Pk,
+    pub groupe_id: i32,
     #[sea_orm(primary_key, auto_increment = false)]
     pub resource_key: String,
     pub can_create: bool,

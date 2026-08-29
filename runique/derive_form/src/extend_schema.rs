@@ -157,7 +157,21 @@ fn form_field_to_rust_type(kind: &FormFieldKind, nullable: bool) -> TokenStream2
         FormFieldKind::Time => quote! { ::chrono::NaiveTime },
         FormFieldKind::Datetime => quote! { ::chrono::NaiveDateTime },
         FormFieldKind::Uuid => quote! { ::sea_orm::prelude::Uuid },
-        FormFieldKind::Json => quote! { ::runique::serde_json::Value },
+        FormFieldKind::Json | FormFieldKind::JsonBinary => quote! { ::runique::serde_json::Value },
+        FormFieldKind::Char => quote! { String },
+        FormFieldKind::I8 => quote! { i8 },
+        FormFieldKind::I16 => quote! { i16 },
+        FormFieldKind::U32 => quote! { u32 },
+        FormFieldKind::U64 => quote! { u64 },
+        FormFieldKind::F32 => quote! { f32 },
+        FormFieldKind::Timestamp => quote! { ::chrono::NaiveDateTime },
+        FormFieldKind::TimestampTz => quote! { ::chrono::DateTime<::chrono::Utc> },
+        FormFieldKind::Binary | FormFieldKind::VarBinary | FormFieldKind::Blob => {
+            quote! { Vec<u8> }
+        }
+        FormFieldKind::Cidr | FormFieldKind::MacAddress | FormFieldKind::Interval => {
+            quote! { String }
+        }
     };
     if nullable {
         quote! { Option<#base> }
@@ -521,13 +535,18 @@ fn extend_form_field_registration(ff: &FormFieldDecl, enums: &[EnumDef]) -> Toke
         FormFieldKind::Uuid => {
             quote! { ::runique::forms::fields::UUIDField::new(#name_str).label(#label) #required }
         }
-        FormFieldKind::Json => {
+        FormFieldKind::Json | FormFieldKind::JsonBinary => {
             quote! { ::runique::forms::fields::JSONField::new(#name_str).label(#label) #required }
         }
-        FormFieldKind::Int | FormFieldKind::Bigint => {
+        FormFieldKind::Int
+        | FormFieldKind::Bigint
+        | FormFieldKind::I8
+        | FormFieldKind::I16
+        | FormFieldKind::U32
+        | FormFieldKind::U64 => {
             quote! { ::runique::forms::fields::NumericField::integer(#name_str).label(#label) }
         }
-        FormFieldKind::Float | FormFieldKind::Percent => {
+        FormFieldKind::Float | FormFieldKind::Percent | FormFieldKind::F32 => {
             quote! { ::runique::forms::fields::NumericField::float(#name_str).label(#label) }
         }
         FormFieldKind::Decimal => {
@@ -542,8 +561,21 @@ fn extend_form_field_registration(ff: &FormFieldDecl, enums: &[EnumDef]) -> Toke
         FormFieldKind::Time => {
             quote! { ::runique::forms::fields::TimeField::new(#name_str).label(#label) #required }
         }
-        FormFieldKind::Datetime => {
+        FormFieldKind::Datetime | FormFieldKind::Timestamp | FormFieldKind::TimestampTz => {
             quote! { ::runique::forms::fields::DateTimeField::new(#name_str).label(#label) #required }
+        }
+        FormFieldKind::Char => {
+            quote! { ::runique::forms::fields::TextField::text(#name_str).label(#label) #required }
+        }
+        // No dedicated widget for raw bytes / network types — a generic text input lets
+        // the form remain usable rather than refusing to generate one at all.
+        FormFieldKind::Binary
+        | FormFieldKind::VarBinary
+        | FormFieldKind::Blob
+        | FormFieldKind::Cidr
+        | FormFieldKind::MacAddress
+        | FormFieldKind::Interval => {
+            quote! { ::runique::forms::fields::TextField::text(#name_str).label(#label) #required }
         }
         FormFieldKind::Image => {
             let extras = extend_file_attrs(&ff.attrs);

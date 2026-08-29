@@ -129,7 +129,7 @@ pub(super) fn groupe_entry() -> ResourceEntry {
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<crate::utils::pk::Pk>()
+                .parse::<i32>()
                 .map_err(|_| sea_orm::DbErr::Custom(t("admin.builtin.invalid_id").into_owned()))?;
             let row = groupe::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
@@ -139,7 +139,7 @@ pub(super) fn groupe_entry() -> ResourceEntry {
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<crate::utils::pk::Pk>()
+                .parse::<i32>()
                 .map_err(|_| sea_orm::DbErr::Custom(t("admin.builtin.invalid_id").into_owned()))?;
             let result = groupe::Entity::delete_by_id(id)
                 .exec(&*db)
@@ -175,7 +175,7 @@ pub(super) fn groupe_entry() -> ResourceEntry {
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<crate::utils::pk::Pk>()
+                .parse::<i32>()
                 .map_err(|_| sea_orm::DbErr::Custom(t("admin.builtin.invalid_id").into_owned()))?;
             let nom = data.get("nom").cloned().unwrap_or_default();
             let result = groupe::ActiveModel {

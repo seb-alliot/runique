@@ -1,5 +1,6 @@
 // Tests pour CleaningMemoryStore — SessionStore + ExpiredDeletion + watermarks
 
+use crate::helpers::pk::pk;
 use runique::middleware::session::CleaningMemoryStore;
 use tower_sessions::{
     SessionStore,
@@ -227,7 +228,8 @@ async fn test_spawn_cleanup_does_not_panic() {
 /// Helper : enregistrement avec user_id → session protégée
 fn protected_record_user_id(secs_from_now: i64) -> Record {
     let mut r = fresh_record(secs_from_now);
-    r.data.insert("user_id".to_string(), serde_json::json!(42));
+    r.data
+        .insert("user_id".to_string(), serde_json::json!(pk(42)));
     r
 }
 
@@ -333,7 +335,7 @@ async fn test_exclusive_login_invalidates_previous_session() {
     store.create(&mut session1).await.unwrap();
     session1
         .data
-        .insert("user_id".to_string(), serde_json::json!(42));
+        .insert("user_id".to_string(), serde_json::json!(pk(42)));
     store.save(&session1).await.unwrap();
 
     // Session 2 — même user_id, nouvelle connexion
@@ -341,7 +343,7 @@ async fn test_exclusive_login_invalidates_previous_session() {
     store.create(&mut session2).await.unwrap();
     session2
         .data
-        .insert("user_id".to_string(), serde_json::json!(42));
+        .insert("user_id".to_string(), serde_json::json!(pk(42)));
     store.save(&session2).await.unwrap();
 
     // session1 doit avoir été invalidée
@@ -359,14 +361,14 @@ async fn test_exclusive_login_disabled_allows_multiple_sessions() {
     store.create(&mut session1).await.unwrap();
     session1
         .data
-        .insert("user_id".to_string(), serde_json::json!(42));
+        .insert("user_id".to_string(), serde_json::json!(pk(42)));
     store.save(&session1).await.unwrap();
 
     let mut session2 = fresh_record(3600);
     store.create(&mut session2).await.unwrap();
     session2
         .data
-        .insert("user_id".to_string(), serde_json::json!(42));
+        .insert("user_id".to_string(), serde_json::json!(pk(42)));
     store.save(&session2).await.unwrap();
 
     assert!(store.load(&session1.id).await.unwrap().is_some());
@@ -382,14 +384,14 @@ async fn test_exclusive_login_does_not_affect_other_users() {
     store.create(&mut session_a).await.unwrap();
     session_a
         .data
-        .insert("user_id".to_string(), serde_json::json!(1));
+        .insert("user_id".to_string(), serde_json::json!(pk(1)));
     store.save(&session_a).await.unwrap();
 
     let mut session_b = fresh_record(3600);
     store.create(&mut session_b).await.unwrap();
     session_b
         .data
-        .insert("user_id".to_string(), serde_json::json!(2));
+        .insert("user_id".to_string(), serde_json::json!(pk(2)));
     store.save(&session_b).await.unwrap();
 
     // Utilisateurs différents → les deux sessions coexistent
@@ -406,7 +408,7 @@ async fn test_exclusive_login_only_triggers_on_first_login() {
     store.create(&mut session1).await.unwrap();
     session1
         .data
-        .insert("user_id".to_string(), serde_json::json!(42));
+        .insert("user_id".to_string(), serde_json::json!(pk(42)));
     store.save(&session1).await.unwrap();
 
     // Mise à jour (user_id déjà présent) → ne doit pas s'auto-invalider

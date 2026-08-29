@@ -2,9 +2,21 @@
 //! Couvre : generate, consume, peek (DB-backed), encrypt_email, decrypt_email
 
 use crate::helpers::db;
+use crate::helpers::pk::pk;
 use runique::utils::reset_token::{consume, decrypt_email, encrypt_email, generate, peek};
 use std::time::Duration;
 
+#[cfg(feature = "pk-uuid")]
+const RESET_TOKENS_DDL: &str = "
+    CREATE TABLE eihwaz_reset_tokens (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        token_hash  TEXT NOT NULL UNIQUE,
+        user_id     TEXT NOT NULL,
+        expires_at  TEXT NOT NULL
+    )
+";
+
+#[cfg(not(feature = "pk-uuid"))]
 const RESET_TOKENS_DDL: &str = "
     CREATE TABLE eihwaz_reset_tokens (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,21 +37,21 @@ fn ttl() -> Duration {
 #[tokio::test]
 async fn test_generate_peek_valid() {
     let conn = db::fresh_db_with_schema(RESET_TOKENS_DDL).await;
-    let token = generate(&conn, 1, ttl()).await.unwrap();
+    let token = generate(&conn, pk(1), ttl()).await.unwrap();
     assert!(peek(&conn, &token).await);
 }
 
 #[tokio::test]
 async fn test_consume_returns_user_id() {
     let conn = db::fresh_db_with_schema(RESET_TOKENS_DDL).await;
-    let token = generate(&conn, 42, ttl()).await.unwrap();
-    assert_eq!(consume(&conn, &token).await, Some(42));
+    let token = generate(&conn, pk(42), ttl()).await.unwrap();
+    assert_eq!(consume(&conn, &token).await, Some(pk(42)));
 }
 
 #[tokio::test]
 async fn test_consume_single_use() {
     let conn = db::fresh_db_with_schema(RESET_TOKENS_DDL).await;
-    let token = generate(&conn, 1, ttl()).await.unwrap();
+    let token = generate(&conn, pk(1), ttl()).await.unwrap();
     let _ = consume(&conn, &token).await;
     assert_eq!(consume(&conn, &token).await, None);
 }
@@ -47,7 +59,7 @@ async fn test_consume_single_use() {
 #[tokio::test]
 async fn test_peek_after_consume_false() {
     let conn = db::fresh_db_with_schema(RESET_TOKENS_DDL).await;
-    let token = generate(&conn, 1, ttl()).await.unwrap();
+    let token = generate(&conn, pk(1), ttl()).await.unwrap();
     let _ = consume(&conn, &token).await;
     assert!(!peek(&conn, &token).await);
 }
