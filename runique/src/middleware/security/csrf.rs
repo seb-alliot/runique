@@ -104,7 +104,7 @@ pub async fn csrf_middleware(
                 .await
                 .ok()
                 .flatten()
-                .unwrap_or(0);
+                .unwrap_or_default();
             CsrfToken::generate_with_context(&CsrfContext::Authenticated { user_id }, secret)
         } else {
             let session_id = session.id().map(|id| id.to_string()).unwrap_or_default();

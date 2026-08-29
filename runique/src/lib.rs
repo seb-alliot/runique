@@ -231,8 +231,7 @@ pub mod prelude {
         },
         registry::AdminRegistry,
         resource::{
-            AdminIdType, AdminResource, ColumnFilter, CrudOperation, DisplayConfig,
-            ResourcePermissions,
+            AdminResource, ColumnFilter, CrudOperation, DisplayConfig, ResourcePermissions,
         },
         router::admin_router::AdminState,
         table_admin::migrations_table,

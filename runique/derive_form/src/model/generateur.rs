@@ -367,7 +367,7 @@ pub fn generate_from_str_map(model: &ModelInput) -> TokenStream2 {
         PkType::Uuid => quote! {
             #pk_name: match __id {
                 ::std::option::Option::Some(pk) => ::sea_orm::ActiveValue::Unchanged(pk),
-                ::std::option::Option::None    => ::sea_orm::ActiveValue::Set(::sea_orm::prelude::Uuid::new_v4()),
+                ::std::option::Option::None    => ::sea_orm::ActiveValue::Set(::sea_orm::prelude::Uuid::now_v7()),
             },
         },
     };
@@ -566,7 +566,7 @@ pub fn generate_from_str_map(model: &ModelInput) -> TokenStream2 {
                         #fname: ::sea_orm::ActiveValue::Set(
                             __data.get(#fname_str)
                                 .and_then(|v| ::sea_orm::prelude::Uuid::parse_str(v).ok())
-                                .unwrap_or_else(::sea_orm::prelude::Uuid::new_v4)
+                                .unwrap_or_default()
                         ),
                     }
                 }
@@ -662,7 +662,7 @@ pub fn generate_from_str_map(model: &ModelInput) -> TokenStream2 {
     quote! {
         /// Builds an `ActiveModel` from a form data map (admin view).
         /// - `id = Some(pk)` → update (Unchanged on PK)
-        /// - `id = None`     → creation (NotSet or Uuid::new_v4() depending on PK type)
+        /// - `id = None`     → creation (NotSet, or Uuid::now_v7() when the PK type is Uuid)
         #[allow(clippy::needless_update)]
         pub fn admin_from_form(
             __data: &::std::collections::HashMap<::std::string::String, ::std::string::String>,
@@ -762,8 +762,7 @@ pub fn generate_partial_update(model: &ModelInput) -> TokenStream2 {
                     quote! {
                         #fname: match __data.get(#fname_str) {
                             Some(v) => ::sea_orm::ActiveValue::Set(
-                                ::sea_orm::prelude::Uuid::parse_str(v)
-                                    .unwrap_or_else(|_| ::sea_orm::prelude::Uuid::new_v4())
+                                ::sea_orm::prelude::Uuid::parse_str(v).unwrap_or_default()
                             ),
                             None => ::sea_orm::ActiveValue::NotSet,
                         },

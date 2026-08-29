@@ -36,7 +36,7 @@ Les **type aliases** (alias de types) sont un outil puissant en Rust qui permet 
 
 - **Abstraction** : Masquer les détails d'implémentation 
 
-I **Note importante :** Les type aliases n'ajoutent AUCUN overhead au runtime. Le compilateur les remplace par le type réel lors de la compilation. C'est du _zero-cost abstraction_ . 
+> **Note importante :** Les type aliases n'ajoutent AUCUN overhead au runtime. Le compilateur les remplace par le type réel lors de la compilation. C'est du _zero-cost abstraction_ . 
 
 ## 2. Syntaxe et Utilisation Basique
 
@@ -78,7 +78,7 @@ Utilisation cohérente async fn get_user(pool: &DbPool;, id: Pk) -> DbResult
 }
 ```
 
-II **Attention :** Trop d'alias peut rendre le code _moins_ lisible. Utilisez-les avec parcimonie et seulement quand ils apportent une vraie valeur ajoutée. 
+> **Attention :** Trop d'alias peut rendre le code _moins_ lisible. Utilisez-les avec parcimonie et seulement quand ils apportent une vraie valeur ajoutée. 
 
 ## 3.3 Abstraire les détails d'implémentation
 
@@ -149,7 +149,7 @@ EventHandlers = Vec>; // State management type StateUpdater = Arc>; type
 SharedState = Arc>; // Async futures type AsyncResult = Pin> + Send>>;
 ```
 
-I **Astuce Pro :** Les type aliases génériques sont parfaits pour créer des APIs consistantes dans tout votre codebase. Définissez-les une fois dans un module central. 
+> **Astuce Pro :** Les type aliases génériques sont parfaits pour créer des APIs consistantes dans tout votre codebase. Définissez-les une fois dans un module central. 
 
 ## 6. Organisation et Bonnes Pratiques
 
@@ -193,7 +193,7 @@ type ComplexType = HashMap, Error>>>; fn process(data: ComplexType) { /* ... */
 `HashMap, Error>>>`, // found `HashMap, Error>>>`
 ```
 
-II **Limitation :** Les messages d'erreur montrent toujours le type réel, pas l'alias. Cela peut rendre les erreurs plus difficiles à comprendre. 
+> **Limitation :** Les messages d'erreur montrent toujours le type réel, pas l'alias. Cela peut rendre les erreurs plus difficiles à comprendre. 
 
 ## 7.3 Pas d'implémentation de traits
 
@@ -258,7 +258,7 @@ Box Pin>> + Send>; // Collections de handlers type EventHandlers = Vec; type
 Middleware = Vec Response + Send + Sync>>;
 ```
 
-I **Pattern Pro :** Combinez type aliases et génériques pour créer des APIs flexibles et faciles à utiliser. C'est exactement ce que fait la stdlib avec Result, Option, etc. 
+> **Pattern Pro :** Combinez type aliases et génériques pour créer des APIs flexibles et faciles à utiliser. C'est exactement ce que fait la stdlib avec Result, Option, etc. 
 
 ## 10. Exercices Pratiques
 

@@ -68,7 +68,40 @@ Les **modules** permettent d'organiser le code en namespaces. C'est essentiel po
 
 ## 1.1 - Module inline
 
-**`// Module défini directement dans le fichier mod network { fn connect() { println!("Connexion..."); } pub fn send_data() { connect();  // Peut appeler connect() (même module) println!("Envoi de données"); } } fn main() { // network::connect();  //`** I **`ERREUR : connect est privé network::send_data();   //`** I **`OK : send_data est pub } // Modules imbriqués mod reseau { pub mod tcp { pub fn connect() {} } pub mod udp { pub fn send() {} } } fn main() { reseau::tcp::connect(); reseau::udp::send(); }`** 
+```rust
+// Module défini directement dans le fichier
+mod network {
+    fn connect() {
+        println!("Connexion...");
+    }
+    pub fn send_data() {
+        connect();  // Peut appeler connect() (même module)
+        println!("Envoi de données");
+    }
+}
+
+fn main() {
+    // network::connect();  // ERREUR : connect est privé
+    network::send_data();   // OK : send_data est pub
+}
+```
+
+```rust
+// Modules imbriqués
+mod reseau {
+    pub mod tcp {
+        pub fn connect() {}
+    }
+    pub mod udp {
+        pub fn send() {}
+    }
+}
+
+fn main() {
+    reseau::tcp::connect();
+    reseau::udp::send();
+}
+```
 
 ## 1.2 - Module dans un fichier
 
@@ -99,7 +132,8 @@ pub mod udp;  // Cherche network/udp.rs
 pub fn common_function() {}
 ```
 
-I **Convention :** Utilise `mod.rs` pour les modules avec sous-modules, ou un fichier avec le nom du module. 
+> **Convention :** utiliser `mod.rs` pour les modules avec sous-modules, ou un fichier portant
+> le nom du module.
 
 ## 1.3 - Hiérarchie de modules
 
@@ -139,9 +173,44 @@ use mon_projet::database::connection::connect;
 
 ## 2.1 - Privé par défaut
 
-**`mod api { // Fonction privée (par défaut) fn interne() { println!("Fonction interne"); } // Fonction publique pub fn publique() { interne();  //`** I **`OK dans le même module println!("Fonction publique"); } // Struct privée struct Config { secret: String, } // Struct publique avec champ privé pub struct User { pub nom: String, mot_de_passe: String,  // Privé ! } impl User { pub fn new(nom: String, mdp: String) -> User { User { nom, mot_de_passe: mdp, } } } } fn main() { let user = api::User::new( String::from("Alice"), String::from("secret123") ); println!("{}", user.nom);  //`** I **`OK // println!("{}", user.mot_de_passe);  //`** I **`ERREUR : privé }`** 
+```rust
+mod api {
+    // Fonction privée (par défaut)
+    fn interne() {
+        println!("Fonction interne");
+    }
+    // Fonction publique
+    pub fn publique() {
+        interne();  // OK dans le même module
+        println!("Fonction publique");
+    }
+    // Struct privée
+    struct Config {
+        secret: String,
+    }
+    // Struct publique avec champ privé
+    pub struct User {
+        pub nom: String,
+        mot_de_passe: String,  // Privé !
+    }
+    impl User {
+        pub fn new(nom: String, mdp: String) -> User {
+            User { nom, mot_de_passe: mdp }
+        }
+    }
+}
 
-**2.2 - pub et pub(crate)** 
+fn main() {
+    let user = api::User::new(
+        String::from("Alice"),
+        String::from("secret123"),
+    );
+    println!("{}", user.nom);  // OK
+    // println!("{}", user.mot_de_passe);  // ERREUR : privé
+}
+```
+
+## 2.2 - pub et pub(crate)
 
 ```
 // pub : visible partout
@@ -273,7 +342,7 @@ mod parent {
 }
 ```
 
-**3.3 - use as et glob** 
+## 3.3 - use as et glob 
 
 ```
 // Renommer pour éviter les conflits
@@ -296,13 +365,23 @@ mod tests {
 }
 ```
 
-II **Évite use * :** Ça pollue le namespace et rend le code moins clair. Utilise-le seulement dans les tests ou pour le prelude. 
+> **Éviter `use *`** : ça pollue le namespace et rend le code moins clair. À réserver aux tests
+> ou au prelude.
 
 ## 4. Bibliothèques vs Binaires
 
 ## 4.1 - lib.rs vs main.rs
 
-**`// Structure projet : // mon_projet/ //   Cargo.toml //   src/ //     lib.rs`** ← **`Bibliothèque (optionnel) //     main.rs`** ← **`Binaire //     bin/`** ← **`Binaires additionnels (optionnel) //       autre.rs`** 
+```text
+// Structure projet :
+// mon_projet/
+//   Cargo.toml
+//   src/
+//     lib.rs      ← Bibliothèque (optionnel)
+//     main.rs     ← Binaire
+//     bin/        ← Binaires additionnels (optionnel)
+//       autre.rs
+```
 
 ```
 // Dans lib.rs :
@@ -466,47 +545,60 @@ pub mod xml_parser {
 
 Les **workspaces** permettent de gérer plusieurs crates dans un même dépôt. 
 
-**`# Structure : # mon_workspace/ #   Cargo.toml`** ← **`Workspace root #   ma_lib/ #     Cargo.toml #     src/lib.rs #   mon_app/ #     Cargo.toml #     src/main.rs #   mon_autre_lib/ #     Cargo.toml #     src/lib.rs # Dans mon_workspace/Cargo.toml : [workspace] members = [ "ma_lib", "mon_app", "mon_autre_lib" ] # Dépendances partagées [workspace.dependencies] serde = "1.0" tokio = "1.35" # Dans mon_app/Cargo.toml : [dependencies] ma_lib = { path = "../ma_lib" } serde = { workspace = true }`** 
+```text
+# Structure :
+# mon_workspace/
+#   Cargo.toml       ← Workspace root
+#   ma_lib/
+#     Cargo.toml
+#     src/lib.rs
+#   mon_app/
+#     Cargo.toml
+#     src/main.rs
+#   mon_autre_lib/
+#     Cargo.toml
+#     src/lib.rs
+```
 
-**`# Commandes : # cargo build`** ← **`Build tout le workspace # cargo test`** ← **`Test tout le workspace # cargo build -p mon_app`** ← **`Build une crate spécifique`** 
+```toml
+# Dans mon_workspace/Cargo.toml :
+[workspace]
+members = ["ma_lib", "mon_app", "mon_autre_lib"]
 
-## Avantages des workspaces :
+# Dépendances partagées
+[workspace.dependencies]
+serde = "1.0"
+tokio = "1.35"
+```
 
-• Dépendances partagées (une seule version) 
+```toml
+# Dans mon_app/Cargo.toml :
+[dependencies]
+ma_lib = { path = "../ma_lib" }
+serde = { workspace = true }
+```
 
-• Build et test unifiés 
+```bash
+cargo build              # Build tout le workspace
+cargo test                # Test tout le workspace
+cargo build -p mon_app    # Build une crate spécifique
+```
 
-• Facilite le développement de projets multi-crates 
+### Avantages des workspaces
+
+- Dépendances partagées (une seule version résolue).
+- Build et test unifiés.
+- Facilite le développement de projets multi-crates.
 
 ## 7. Best practices
 
-## • **1. Organisation claire** 
-
-Un module = une responsabilité. Évite les modules fourre-tout. 
-
-## • **2. API publique minimale** 
-
-N'expose que ce qui est nécessaire avec `pub` . 
-
-## • **3. Re-exports stratégiques** 
-
-Simplifie l'API avec `pub use` dans lib.rs. 
-
-## • **4. Documentation** 
-
-Documente tout ce qui est `pub` avec //!. 
-
-## • **5. Tests à côté du code** 
-
-Utilise `#[cfg(test)]` pour tests unitaires. 
-
-## • **6. Séparation lib/bin** 
-
-Logique dans lib.rs, CLI dans main.rs. 
-
-## • **7. Features optionnelles** 
-
-Utilise features pour dépendances lourdes optionnelles. 
+1. **Organisation claire** — un module = une responsabilité, éviter les modules fourre-tout.
+2. **API publique minimale** — n'exposer que ce qui est nécessaire avec `pub`.
+3. **Re-exports stratégiques** — simplifier l'API avec `pub use` dans `lib.rs`.
+4. **Documentation** — documenter tout ce qui est `pub` avec `//!`.
+5. **Tests à côté du code** — utiliser `#[cfg(test)]` pour les tests unitaires.
+6. **Séparation lib/bin** — la logique dans `lib.rs`, le CLI dans `main.rs`.
+7. **Features optionnelles** — utiliser les features pour les dépendances lourdes optionnelles.
 
 ## 8. Exemple complet
 
@@ -558,18 +650,11 @@ fn main() {
 }
 ```
 
-## Parfait !
+## Conclusion
 
-Tu sais maintenant organiser tes projets Rust ! 
+Points clés pour organiser un projet Rust :
 
-Points clés : 
-
-- Modules pour organiser le code 
-
-• pub pour contrôler la visibilité 
-
-• lib.rs pour bibliothèques 
-
-- Workspaces pour multi-crates 
-
-I **Ton code sera propre et maintenable !** I
+- Modules pour organiser le code.
+- `pub` pour contrôler la visibilité.
+- `lib.rs` pour les bibliothèques.
+- Workspaces pour les projets multi-crates.

@@ -245,7 +245,7 @@ async fn main() {
 }
 ```
 
-II **tokio::spawn requiert 'static :** Les tasks doivent posséder leurs données ou utiliser Arc pour partager. 
+> **tokio::spawn requiert 'static :** Les tasks doivent posséder leurs données ou utiliser Arc pour partager. 
 
 ## 3. Opérations async courantes
 

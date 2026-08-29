@@ -1,602 +1,444 @@
-## ■ **Rust : Send et Sync** 
+# Rust : Send et Sync
 
-**Guide Complet pour la Concurrence Thread-Safe** 
+**Guide complet pour la concurrence thread-safe** — comprendre les marker traits.
 
-Comprendre les Marker Traits 
+## Table des matières
 
-Décembre 2025 
+1. Introduction aux marker traits
+2. Le trait `Send`
+3. Le trait `Sync`
+4. `Send` vs `Sync` : différences clés
+5. Types courants et leurs propriétés
+6. Cas pratiques : Axum et async
+7. Erreurs courantes et solutions
+8. Exemple illustratif de trait Rust généralisé
+9. Bonnes pratiques
+10. Exercices
 
-## ■ **Table des matières** 
+## 1. Introduction aux marker traits
 
-1. Introduction aux Marker Traits 
+En Rust, `Send` et `Sync` sont des *marker traits* qui garantissent la sécurité de la concurrence
+à la compilation. Ils sont fondamentaux pour écrire du code concurrent sans data races.
 
-2. Le trait Send 
+### Qu'est-ce qu'un marker trait ?
 
-3. Le trait Sync 
+Un marker trait est un trait sans méthode qui sert uniquement à marquer un type avec une
+propriété particulière. `Send` et `Sync` sont implémentés automatiquement par le compilateur
+pour la plupart des types.
 
-4. Send vs Sync : Différences clés 
-
-5. Types courants et leurs propriétés 
-
-6. Cas pratiques : Axum et async 
-
-7. Erreurs courantes et solutions 
-
-8. Exemples concrets avec Runique 
-
-9. Best practices 
-
-10. Exercices 
-
-## 1. Introduction aux Marker Traits
-
-En  Rust, **Send** et **Sync** sont  des _marker  traits_ qui  garantissent  la  sécurité  de  la  concurrence  à  la compilation. Ils sont fondamentaux pour écrire du code concurrent sans data races. 
-
-## Qu'est-ce qu'un Marker Trait ?
-
-Un marker trait est un trait sans méthodes qui sert uniquement à marquer un type avec une propriété particulière.  Send  et  Sync  sont  implémentés  automatiquement  par  le  compilateur  pour  la  plupart  des types. 
-
-```
+```rust
 // Définitions dans std::marker
+pub unsafe auto trait Send {}
+pub unsafe auto trait Sync {}
+
+// auto trait = implémenté automatiquement par le compilateur pour tout type
+// composé uniquement de champs Send/Sync
+// unsafe = si implémenté manuellement, la responsabilité de la sécurité
+// retombe sur le développeur
 ```
 
-```
-pub unsafe auto trait Send { }
-pub unsafe auto trait Sync { }
-```
+## 2. Le trait `Send`
 
-```
-// auto trait = implémenté automatiquement
-```
+### Définition
 
-```
-// unsafe = si implémenté manuellement, responsabilité du développeur
-```
+`Send` signifie qu'une valeur peut être transférée (*moved*) entre threads en toute sécurité. Si
+un type implémente `Send`, on peut le déplacer d'un thread à un autre sans risque.
 
-## 2. Le trait Send
+### Exemple de base
 
-## Définition
-
-Send  signifie  qu'une  valeur  peut  être  transférée  (moved)  entre  threads  en  toute  sécurité.  Si  un  type implémente Send, vous pouvez le déplacer d'un thread à un autre sans risque. 
-
-## Exemple de base
-
-```
+```rust
 use std::thread;
-```
 
-```
 fn main() {
-```
+    let data = String::from("Hello");
 
-```
-    let data = String::from("Hello");  // String est Send
-```
-
-```
     thread::spawn(move || {
-```
-
-**`//`** ■ **`OK : String est Send, on peut le déplacer dans un autre thread println!("{}", data); });`** 
-
-```
+        // OK : String est Send, on peut le déplacer dans un autre thread
+        println!("{}", data);
+    });
 }
 ```
 
-## Types Send courants
+### Types `Send` courants
 
-|**Type**|**Send ?**|**Raison**|
+| Type | `Send` ? | Raison |
 |---|---|---|
-|String|■Oui|Donnéespossédées,pas de référencespartagées|
-|Vec<T>|■Oui (si T: Send)|Idem,possède ses données|
-|i32, u64, bool|■Oui|Typesprimitifs copiables|
-|Arc<T>|■Oui (si T: Send + Sync)|Pointeur atomique thread-safe|
-|Rc<T>|■Non|Compteur de références non atomique|
-|Cell<T>|■Non|Mutabilité intérieure non thread-safe|
+| `String` | ✅ Oui | Données possédées, pas de références partagées |
+| `Vec<T>` | ✅ Oui (si `T: Send`) | Idem, possède ses données |
+| `i32`, `u64`, `bool` | ✅ Oui | Types primitifs copiables |
+| `Arc<T>` | ✅ Oui (si `T: Send + Sync`) | Pointeur atomique thread-safe |
+| `Rc<T>` | ❌ Non | Compteur de références non atomique |
+| `Cell<T>` | ✅ Oui (si `T: Send`) | Possède sa donnée, mais pas thread-safe en partage (voir `Sync`) |
 
-## Exemple avec un type non-Send
+### Exemple avec un type non-`Send`
 
-```
+```rust
 use std::rc::Rc;
 use std::thread;
-```
 
-```
 fn main() {
     let data = Rc::new(String::from("Hello"));
+
+    // ERREUR : Rc<String> n'est pas Send !
+    thread::spawn(move || {
+        println!("{}", data);
+    });
+}
 ```
 
-**`//`** ■ **`ERREUR : Rc<String> n'est pas Send ! thread::spawn(move || { println!("{}", data); }); }`** 
-
-```
-// Erreur du compilateur :
-```
-
-```
-// error[E0277]: `Rc<String>` cannot be sent between threads safely
-//    = help: the trait `Send` is not implemented for `Rc<String>`
+```text
+error[E0277]: `Rc<String>` cannot be sent between threads safely
+   = help: the trait `Send` is not implemented for `Rc<String>`
 ```
 
-## 3. Le trait Sync
+## 3. Le trait `Sync`
 
-## Définition
+### Définition
 
-Sync signifie qu'une référence (&T;) peut être partagée entre threads en toute sécurité. Si T est Sync, alors &T; est Send. 
+`Sync` signifie qu'une référence (`&T`) peut être partagée entre threads en toute sécurité. Si
+`T` est `Sync`, alors `&T` est `Send`.
 
-## Formule magique
+### Règle fondamentale
 
-## `// Règle fondamentale`
-
-**`T is Sync`** ■ **`&T is Send`** 
-
-```
-// Si T implémente Sync, alors une référence &T peut être envoyée entre threads
+```text
+T is Sync  ⇒  &T is Send
 ```
 
-## Exemple de base
+Si `T` implémente `Sync`, une référence `&T` peut être envoyée entre threads.
 
-```
+### Exemple de base
+
+```rust
 use std::thread;
 use std::sync::Arc;
-```
 
-```
 fn main() {
-```
-
-```
     let data = Arc::new(String::from("Hello"));
-```
-
-```
     let data_ref = Arc::clone(&data);
-```
 
-```
     thread::spawn(move || {
-```
-
-**`//`** ■ **`OK : String est Sync, donc &String est Send`** 
-
-```
-        // Arc permet de partager la référence
+        // OK : String est Sync, donc &String est Send.
+        // Arc permet de partager la référence entre threads.
         println!("{}", data_ref);
     });
-```
 
-```
     println!("{}", data);
 }
 ```
 
-## Types Sync courants
+### Types `Sync` courants
 
-|**Type**|**Sync ?**|**Raison**|
+| Type | `Sync` ? | Raison |
 |---|---|---|
-|String|■Oui|Immuable, pas de mutabilité intérieure|
-|Vec<T>|■Oui (si T: Sync)|Idem|
-|i32, u64, bool|■Oui|Types primitifs|
-|Mutex<T>|■Oui (si T: Send)|Synchronisation explicite|
-|Arc<T>|■Oui (si T: Sync)|Pointeur atomique|
-|Rc<T>|■Non|Compteur non atomique|
-|Cell<T>|■Non|Mutabilité intérieure non atomique|
-|RefCell<T>|■Non|Vérifications à l'exécution non thread-safe|
+| `String` | ✅ Oui | Immuable une fois construite, pas de mutabilité intérieure |
+| `Vec<T>` | ✅ Oui (si `T: Sync`) | Idem |
+| `i32`, `u64`, `bool` | ✅ Oui | Types primitifs |
+| `Mutex<T>` | ✅ Oui (si `T: Send`) | Synchronisation explicite intégrée |
+| `Arc<T>` | ✅ Oui (si `T: Sync`) | Pointeur atomique |
+| `Rc<T>` | ❌ Non | Compteur de références non atomique |
+| `Cell<T>` | ❌ Non | Mutabilité intérieure non thread-safe |
+| `RefCell<T>` | ❌ Non | Vérifications d'emprunt à l'exécution, non thread-safe |
 
-## 4. Send vs Sync : Différences clés
+## 4. `Send` vs `Sync` : différences clés
 
-|**Aspect**|**Send**|**Sync**|
+| Aspect | `Send` | `Sync` |
 |---|---|---|
-|Signification|Je peux être déplacé entre threads|Ma référence peut être partagée entre threads|
-|Ownership|Transfert de propriété|Partage de référence|
-|Exemple usage|move dans thread::spawn|&T accessible depuis plusieurs threads|
-|Pattern typique|thread::spawn(move || data)|Arc<T> partagé entre threads|
-|Vérification|À la compilation|À la compilation|
+| Signification | La valeur peut être déplacée entre threads | Une référence vers la valeur peut être partagée entre threads |
+| Ownership | Transfert de propriété | Partage de référence |
+| Exemple d'usage | `move` dans `thread::spawn` | `&T` accessible depuis plusieurs threads |
+| Pattern typique | `thread::spawn(move \|\| data)` | `Arc<T>` partagé entre threads |
+| Vérification | À la compilation | À la compilation |
 
-## Diagramme mental
+### Diagramme mental
 
-|**Situation**|**Trait requis**|
+| Situation | Trait requis |
 |---|---|
-|Je déplace une valeur dans un autre thread|Send|
-|Je partage une référence entre threads|Sync|
-|J'utilise Arc<T> partagé|T: Send + Sync|
-|J'utilise Mutex<T> partagé|T: Send|
+| Je déplace une valeur dans un autre thread | `Send` |
+| Je partage une référence entre threads | `Sync` |
+| J'utilise un `Arc<T>` partagé | `T: Send + Sync` |
+| J'utilise un `Mutex<T>` partagé | `T: Send` |
 
-## 5. Types courants et leurs propriétés
+### Types courants et leurs propriétés (récapitulatif)
 
-|**Type**|**Send**|**Sync**|**Notes**|
+| Type | `Send` | `Sync` | Notes |
 |---|---|---|---|
-|String|■|■|Sûr pour concurrence|
-|Vec<T>|■*|■*|* si T: Send/Sync|
-|HashMap<K,V>|■*|■*|* si K,V: Send/Sync|
-|i32, u64, bool|■|■|Types primitifs|
-|Arc<T>|■*|■*|* si T: Send+Sync / T:Sync|
-|Rc<T>|■|■|Compteur non atomique|
-|Cell<T>|■*|■|* si T: Send, mais pas Sync|
-|RefCell<T>|■*|■|Borrow checking runtime|
-|Mutex<T>|■*|■*|* si T: Send|
-|RwLock<T>|■*|■*|* si T: Send+Sync|
+| `String` | ✅ | ✅ | Sûr pour la concurrence |
+| `Vec<T>` | ✅* | ✅* | *si `T: Send`/`Sync` |
+| `HashMap<K,V>` | ✅* | ✅* | *si `K`,`V`: `Send`/`Sync` |
+| `i32`, `u64`, `bool` | ✅ | ✅ | Types primitifs |
+| `Arc<T>` | ✅* | ✅* | *si `T: Send + Sync` |
+| `Rc<T>` | ❌ | ❌ | Compteur non atomique |
+| `Cell<T>` | ✅* | ❌ | *si `T: Send` — jamais `Sync` |
+| `RefCell<T>` | ✅* | ❌ | *si `T: Send` — vérif. d'emprunt runtime non thread-safe |
+| `Mutex<T>` | ✅* | ✅* | *si `T: Send` (pas besoin de `T: Sync`) |
+| `RwLock<T>` | ✅* | ✅* | *si `T: Send + Sync` |
 
-## 6. Cas pratiques : Axum et async
+## 5. Cas pratiques : Axum et async
 
-Dans Axum et Tokio, les traits Send et Sync sont cruciaux car les futures peuvent être déplacées entre threads. 
+Dans Axum et Tokio, les traits `Send` et `Sync` sont cruciaux car les futures peuvent être
+déplacées entre threads par l'exécuteur (le runtime multi-thread de Tokio peut migrer une tâche
+d'un thread worker à un autre entre deux points d'`.await`).
 
-## Pourquoi Sync est nécessaire dans les traits
+### Pourquoi `Sync` est nécessaire sur un trait de formulaire
 
-```
-// Trait pour formulaires Runique
-```
-
-**`pub trait FormulaireTrait: Send + Sync {  //`** ← **`Sync important !`** 
-
-```
+```rust
+// Trait générique illustratif pour un formulaire
+pub trait FormulaireTrait: Send + Sync {   // ← Sync important !
     fn new() -> Self;
-```
-
-```
     fn validate(&mut self, raw_data: &HashMap<String, String>) -> bool;
-```
-
-```
 }
-```
 
-```
-// Sans Sync, cette erreur peut survenir :
-```
-
-```
+// Sans Sync, une erreur de ce type peut survenir dans un extracteur Axum :
 #[async_trait]
 impl<S, T> FromRequest<S> for AxumForm<T>
 where
-```
-
-**`T: FormulaireTrait + 'static,  //`** ← **`Doit être Send + Sync`** 
-
-```
+    T: FormulaireTrait + 'static,   // ← doit être Send + Sync
 {
     async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
-```
-
-```
-        // Cette future peut être déplacée entre threads par Tokio
-```
-
-```
-        // Si T n'est pas Sync et qu'une référence &T existe,
-```
-
-```
-        // le compilateur rejettera le code
+        // Cette future peut être déplacée entre threads par Tokio.
+        // Si T n'est pas Sync et qu'une référence &T existe à travers un .await,
+        // le compilateur rejette le code.
     }
-```
-
-```
 }
 ```
 
-## Exemple concret avec Cell
+### Exemple concret : un type qui casse la compilation
 
-```
+```rust
 use std::cell::Cell;
-```
 
-**`//`** ■ **`Ce code ne compile PAS pub struct BadForm { inner: Forms, counter: Cell<u32>,  // Cell n'est pas Sync ! }`** 
+// Ce code ne compile PAS :
+pub struct BadForm {
+    inner: Forms,
+    counter: Cell<u32>,   // Cell n'est pas Sync !
+}
 
-```
 impl FormulaireTrait for BadForm {
     fn new() -> Self {
-        Self {
-            inner: Forms::new(),
-            counter: Cell::new(0),
-        }
+        Self { inner: Forms::new(), counter: Cell::new(0) }
     }
-```
-
-```
     fn validate(&mut self, raw_data: &HashMap<String, String>) -> bool {
         self.counter.set(self.counter.get() + 1);
         self.inner.is_valid()
     }
-```
-
-```
 }
 ```
 
-- **`// Erreur du compilateur :`** 
-
-```
-// error[E0277]: `Cell<u32>` cannot be shared between threads safely
-//    = help: the trait `Sync` is not implemented for `Cell<u32>`
+```text
+error[E0277]: `Cell<u32>` cannot be shared between threads safely
+   = help: the trait `Sync` is not implemented for `Cell<u32>`
 ```
 
-## Solution correcte
+### Solution correcte
 
-```
+```rust
 use std::sync::atomic::{AtomicU32, Ordering};
-```
 
-**`//`** ■ **`Ce code compile ! pub struct GoodForm { inner: Forms, counter: AtomicU32,  // AtomicU32 est Send + Sync } impl FormulaireTrait for GoodForm { fn new() -> Self { Self { inner: Forms::new(), counter: AtomicU32::new(0), } } fn validate(&mut self, raw_data: &HashMap<String, String>) -> bool { self.counter.fetch_add(1, Ordering::Relaxed); self.inner.is_valid() }`** 
-
-```
+// Ce code compile :
+pub struct GoodForm {
+    inner: Forms,
+    counter: AtomicU32,   // AtomicU32 est Send + Sync
 }
-```
 
-## 7. Erreurs courantes et solutions
-
-## Erreur 1 : Rc dans un contexte async
-
-**`//`** ■ **`Erreur use std::rc::Rc;`** 
-
-```
-async fn handler(data: Rc<String>) {
-    // Erreur : Rc is not Send
-}
-```
-
-**`//`** ■ **`Solution use std::sync::Arc;`** 
-
-```
-async fn handler(data: Arc<String>) {
-    // OK : Arc is Send + Sync
-}
-```
-
-## Erreur 2 : Cell/RefCell dans un trait Sync
-
-**`//`** ■ **`Erreur use std::cell::Cell;`** 
-
-```
-struct MyStruct {
-    value: Cell<i32>,  // Cell n'est pas Sync
-}
-```
-
-**`//`** ■ **`Solution : Utiliser des types atomiques use std::sync::atomic::{AtomicI32, Ordering};`** 
-
-```
-struct MyStruct {
-    value: AtomicI32,  // AtomicI32 est Send + Sync
-}
-```
-
-## Erreur 3 : Oublier Sync dans un trait
-
-**`//`** ■ **`Risque futur pub trait MyTrait: Send {  // Manque Sync // ... } //`** ■ **`Meilleure pratique pub trait MyTrait: Send + Sync {  // Complet et sûr // ...`** 
-
-```
-}
-```
-
-## 8. Exemples concrets avec Runique
-
-## Exemple 1 : Trait de formulaire correct
-
-**`//`** ■ **`Trait correct pour Axum pub trait FormulaireTrait: Send + Sync { fn new() -> Self; fn validate(&mut self, raw_data: &HashMap<String, String>) -> bool; }`** 
-
-```
-// Implémentation
-pub struct UserForm(Forms);
-impl FormulaireTrait for UserForm {
+impl FormulaireTrait for GoodForm {
     fn new() -> Self {
-        Self(Forms::new())
+        Self { inner: Forms::new(), counter: AtomicU32::new(0) }
     }
     fn validate(&mut self, raw_data: &HashMap<String, String>) -> bool {
-        // Validation...
-        self.0.is_valid()
-    }
-}
-// Extracteur Axum
-#[axum::async_trait]
-impl<S, T> FromRequest<S> for AxumForm<T>
-where
-    S: Send + Sync,
-    T: FormulaireTrait + 'static,  // T est automatiquement Send + Sync
-{
-    type Rejection = Response;
-    async fn from_request(req: Request<Body>,state: &S)→
-Result<Self,Self::Rejection> {
-        // Le compilateur garantit que c'est thread-safe
-        // ...
+        self.counter.fetch_add(1, Ordering::Relaxed);
+        self.inner.is_valid()
     }
 }
 ```
 
-## Exemple 2 : État partagé dans Axum
+## 6. Erreurs courantes et solutions
 
+### Erreur 1 — `Rc` dans un contexte async
+
+```rust
+// Erreur
+use std::rc::Rc;
+
+async fn handler(data: Rc<String>) {
+    // Erreur : Rc n'est pas Send
+}
 ```
+
+```rust
+// Solution
+use std::sync::Arc;
+
+async fn handler(data: Arc<String>) {
+    // OK : Arc est Send + Sync
+}
+```
+
+### Erreur 2 — `Cell`/`RefCell` dans un type censé être `Sync`
+
+```rust
+// Erreur
+use std::cell::Cell;
+
+struct MyStruct {
+    value: Cell<i32>,   // Cell n'est pas Sync
+}
+```
+
+```rust
+// Solution : utiliser un type atomique
+use std::sync::atomic::{AtomicI32, Ordering};
+
+struct MyStruct {
+    value: AtomicI32,   // AtomicI32 est Send + Sync
+}
+```
+
+### Erreur 3 — oublier `Sync` sur un trait public
+
+```rust
+// Risque futur : Send seul suffit aujourd'hui mais bloquera dès qu'un usage
+// exigera Sync
+pub trait MyTrait: Send {
+    // ...
+}
+
+// Meilleure pratique : poser les deux bounds dès le départ si le trait
+// est destiné à un contexte partagé/async
+pub trait MyTrait: Send + Sync {
+    // ...
+}
+```
+
+## 7. Exemple illustratif — état partagé dans Axum
+
+```rust
 use std::sync::Arc;
 use tokio::sync::Mutex;
+
 #[derive(Clone)]
 struct AppState {
-    counter: Arc<Mutex<i32>>,  // Mutex<T> est Sync si T: Send
+    counter: Arc<Mutex<i32>>,   // Mutex<T> est Sync si T: Send
     config: Arc<Settings>,      // Arc<T> est Sync si T: Sync
 }
-```
 
-## `async fn handler(`
-
-```
-    State(state): State<AppState>,
-```
-
-- **`) -> Response {`** 
-
-- **`//`** ■ **`OK : AppState est Send + Sync`** 
-
-```
+async fn handler(State(state): State<AppState>) -> Response {
+    // OK : AppState est Send + Sync
     let mut counter = state.counter.lock().await;
+    *counter += 1;
+    // ...
+}
 ```
 
-- **`*counter += 1;`** 
+## 8. Bonnes pratiques
 
-- **`// ...`** 
+1. **Ajouter `Send + Sync` aux traits publics destinés à un contexte async/partagé** — garantit
+   la compatibilité avec Tokio dès la conception, plutôt que de le découvrir à l'usage.
+2. **Préférer `Arc` à `Rc` dans tout code touché par async** — `Arc` est thread-safe, `Rc` ne
+   l'est jamais.
+3. **Utiliser `AtomicXxx` plutôt que `Cell`/`RefCell`** dès qu'un partage entre threads est
+   possible — mutabilité intérieure thread-safe.
+4. **Documenter les contraintes `Send`/`Sync`** explicitement dans les commentaires de trait —
+   facilite la compréhension pour les futurs développeurs.
+5. **Lire attentivement les erreurs du compilateur** — les messages `Send`/`Sync` nomment
+   précisément le type fautif et pourquoi.
 
-- **`}`** 
+## 9. Exercices
 
-## 9. Best practices
+### Exercice 1 — identifier `Send` et `Sync`
 
-## 1. Toujours ajouter Send + Sync aux traits publics
+Pour chaque type, déterminer s'il est `Send` et/ou `Sync` :
 
-Garantit la compatibilité avec async/await et Tokio. 
-
-## 2. Préférer Arc à Rc pour le code async
-
-Arc est thread-safe, Rc ne l'est pas. 
-
-## 3. Utiliser AtomicXxx au lieu de Cell/RefCell
-
-Pour la mutabilité intérieure thread-safe. 
-
-## 4. Documenter les contraintes Send/Sync
-
-Facilite la compréhension pour les futurs développeurs. 
-
-## 5. Tester avec des références Arc
-
-Vérifie que vos types sont bien Sync. 
-
-## 6. Comprendre les erreurs du compilateur
-
-Les messages d'erreur Send/Sync sont très précis. 
-
-## 10. Exercices
-
-## Exercice 1 : Identifier Send et Sync
-
-Pour chaque type, déterminez s'il est Send et/ou Sync : 
-
-|**Type**|**Send ?**|**Sync ?**|
+| Type | `Send` ? | `Sync` ? |
 |---|---|---|
-|String|?|?|
-|Vec<Rc<i32>>|?|?|
-|Arc<Mutex<String>>|?|?|
-|Cell<String>|?|?|
-|&str|?|?|
+| `String` | ? | ? |
+| `Vec<Rc<i32>>` | ? | ? |
+| `Arc<Mutex<String>>` | ? | ? |
+| `Cell<String>` | ? | ? |
+| `&str` | ? | ? |
 
-## Exercice 2 : Corriger le code
+### Exercice 2 — corriger le code
 
-## `// Ce code ne compile pas. Pourquoi ? Comment le corriger ?`
-
-```
+```rust
+// Ce code ne compile pas. Pourquoi ? Comment le corriger ?
 use std::rc::Rc;
 use std::thread;
-```
 
-## `fn main() {`
-
-```
+fn main() {
     let data = Rc::new(vec![1, 2, 3]);
-```
-
-```
     thread::spawn(move || {
         println!("{:?}", data);
     });
-```
-
-```
 }
 ```
 
-## `// À vous de jouer !`
+### Exercice 3 — implémenter un trait thread-safe
 
-## Exercice 3 : Implémenter un trait thread-safe
+Créer un trait `CacheTrait` qui :
+- soit utilisable dans du code async ;
+- permette de stocker et récupérer des valeurs ;
+- soit thread-safe.
 
-Créez un trait CacheTrait qui : 
+---
 
-- Soit utilisable dans du code async 
+## Solutions des exercices
 
-- Permette de stocker et récupérer des valeurs 
+### Solution Exercice 1
 
-- Soit thread-safe 
-
-## ■ **Solutions des exercices** 
-
-## Solution Exercice 1
-
-|**Type**|**Send**|**Sync**|**Explication**|
+| Type | `Send` | `Sync` | Explication |
 |---|---|---|---|
-|String|■|■|Type standard thread-safe|
-|Vec<Rc<i32>>|■|■|Rc n'est ni Send ni Sync|
-|Arc<Mutex<String>>|■|■|Arc + Mutex = thread-safe|
-|Cell<String>|■|■|Send car String:Send, mais pas Sync|
-|&str|■|■|Référence immuable|
+| `String` | ✅ | ✅ | Type standard thread-safe |
+| `Vec<Rc<i32>>` | ❌ | ❌ | `Rc` n'est ni `Send` ni `Sync`, donc le `Vec` qui le contient non plus |
+| `Arc<Mutex<String>>` | ✅ | ✅ | `Arc` + `Mutex` = combinaison thread-safe standard |
+| `Cell<String>` | ✅ | ❌ | `Send` car `String: Send`, mais jamais `Sync` (mutabilité intérieure) |
+| `&str` | ✅ | ✅ | Référence immuable vers des données `Sync` |
 
-## Solution Exercice 2
+### Solution Exercice 2
 
-```
-// Problème : Rc n'est pas Send
-```
-
-```
-// Solution : Utiliser Arc au lieu de Rc
-```
-
-**`use std::sync::Arc;  //`** ← **`Changement ici`** 
-
-```
+```rust
+// Problème : Rc n'est pas Send, impossible de le déplacer dans un thread.
+// Solution : utiliser Arc à la place.
+use std::sync::Arc;   // ← changement ici
 use std::thread;
-```
 
-## `fn main() {`
-
-**`let data = Arc::new(vec![1, 2, 3]);  //`** ← **`Arc au lieu de Rc`** 
-
-```
+fn main() {
+    let data = Arc::new(vec![1, 2, 3]);   // ← Arc au lieu de Rc
     thread::spawn(move || {
         println!("{:?}", data);
     });
 }
+// Compile et fonctionne.
 ```
 
-**`//`** ■ **`Compile et fonctionne !`** 
+### Solution Exercice 3
 
-## Solution Exercice 3
-
-```
+```rust
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
-```
 
-```
 // Trait thread-safe pour cache
 pub trait CacheTrait: Send + Sync {
     type Key: Send + Sync;
     type Value: Send + Sync;
-```
 
-```
     fn get(&self, key: &Self::Key) -> Option<Self::Value>;
     fn set(&self, key: Self::Key, value: Self::Value);
-```
-
-```
 }
-```
 
-```
 // Implémentation avec Mutex
 pub struct Cache<K, V> {
-```
-
-```
     data: Arc<Mutex<HashMap<K, V>>>,
 }
+
 impl<K, V> Cache<K, V>
 where
     K: Send + Sync + Eq + std::hash::Hash + Clone,
     V: Send + Sync + Clone,
 {
     pub fn new() -> Self {
-        Self {
-            data: Arc::new(Mutex::new(HashMap::new())),
-        }
+        Self { data: Arc::new(Mutex::new(HashMap::new())) }
     }
 }
-```
 
-```
 impl<K, V> CacheTrait for Cache<K, V>
 where
     K: Send + Sync + Eq + std::hash::Hash + Clone,
@@ -604,9 +446,7 @@ where
 {
     type Key = K;
     type Value = V;
-```
 
-```
     fn get(&self, key: &Self::Key) -> Option<Self::Value> {
         self.data.lock().unwrap().get(key).cloned()
     }
@@ -614,32 +454,24 @@ where
         self.data.lock().unwrap().insert(key, value);
     }
 }
+// Ce cache est Send + Sync et utilisable dans du code async.
 ```
 
-**`//`** ■ **`Ce cache est Send + Sync et utilisable dans du code async !`** 
+## Conclusion
 
-## ■ **Conclusion** 
+- `Send` = la valeur peut être déplacée entre threads.
+- `Sync` = une référence vers la valeur peut être partagée entre threads.
+- Vérification entièrement faite à la compilation : élimine les data races par construction.
+- Auto-implémenté par le compilateur pour la quasi-totalité des types.
+- Essentiel dès qu'on touche Axum, Tokio, ou async/await en général.
 
-Send et Sync sont les piliers de la programmation concurrente sûre en Rust. Le compilateur les vérifie automatiquement, éliminant toute possibilité de data races. 
+## Ressources
 
-■ Send = Peut être déplacé entre threads 
+- *The Rust Book* — chapitre 16 (Concurrency)
+- *Rust Nomicon* — Send and Sync
+- Documentation Tokio
+- Documentation Axum
 
-■ Sync = Peut être partagé (référence) entre threads 
-
-- Vérification à la compilation = Pas de data races 
-
-- Auto-implémenté pour la plupart des types 
-
-■ Essentiel pour Axum, Tokio et async/await 
-
-## ■ **Ressources** 
-
-- The Rust Book - Chapter 16 (Concurrency) 
-
-- Rust Nomicon - Send and Sync 
-
-- Tokio documentation 
-
-- Axum documentation 
-
-## ■ **Bonne programmation avec Rust !**
+> Pour voir `Send`/`Sync` appliqués à du vrai code Runique (pas un exemple générique), voir
+> `~/Bureau/revision/18_send_sync.md` — extraits réels de `runique/src/forms/base.rs` et
+> `field.rs`.

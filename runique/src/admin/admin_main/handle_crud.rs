@@ -578,8 +578,14 @@ pub(super) async fn handle_edit_post(
         // update_fn (admin_from_form) rebuilds the full ActiveModel from submitted data,
         // so fields missing from that narrower form get overwritten with their default —
         // partial_update_fn (Set only what's present, NotSet otherwise) avoids that.
-        let result = match (entry.edit_form_builder.is_some(), &entry.partial_update_fn, &entry.update_fn) {
-            (true, Some(f), _) => f(req.engine.db.clone(), closure_id.clone(), body_for_update).await,
+        let result = match (
+            entry.edit_form_builder.is_some(),
+            &entry.partial_update_fn,
+            &entry.update_fn,
+        ) {
+            (true, Some(f), _) => {
+                f(req.engine.db.clone(), closure_id.clone(), body_for_update).await
+            }
             (_, _, Some(f)) => f(req.engine.db.clone(), closure_id.clone(), body_for_update).await,
             _ => form.save(&req.engine.db).await,
         };

@@ -227,11 +227,15 @@ impl Parse for PkDef {
             "i64" => PkType::I64,
             "uuid" => PkType::Uuid,
             "Pk" => {
-                #[cfg(feature = "big-pk")]
+                #[cfg(feature = "pk-uuid")]
+                {
+                    PkType::Uuid
+                }
+                #[cfg(all(feature = "big-pk", not(feature = "pk-uuid")))]
                 {
                     PkType::I64
                 }
-                #[cfg(not(feature = "big-pk"))]
+                #[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
                 {
                     PkType::I32
                 }

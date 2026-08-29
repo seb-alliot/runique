@@ -1,68 +1,46 @@
-## ■ Structures de Contrôle en Rust
+# Structures de contrôle en Rust
 
-## Conditions, Boucles et Pattern Matching
+**Conditions, boucles et pattern matching** — maîtriser le flux de contrôle.
 
-Maîtriser le Flux de Contrôle 
+## Objectifs du cours
 
-## ■ Objectifs du cours
+À la fin de ce cours, tu sauras :
 
-À la fin de ce cours, tu sauras : 
+- Utiliser `if`, `else if` et `else`
+- Maîtriser les boucles (`loop`, `while`, `for`)
+- Contrôler le flux avec `break` et `continue`
+- Utiliser `match` pour le pattern matching
+- Appliquer `if let` et `while let`
 
-- Utiliser if, else if et else 
+## Table des matières
 
-- Maîtriser les boucles (loop, while, for) 
+1. Les conditions (`if`/`else`)
+   - 1.1 — `if` basique
+   - 1.2 — `else` et `else if`
+   - 1.3 — `if` comme expression
+2. Les boucles
+   - 2.1 — `loop` (boucle infinie)
+   - 2.2 — `while` (avec condition)
+   - 2.3 — `for` (itération)
+   - 2.4 — `break` et `continue`
+   - 2.5 — Labels de boucles
+3. Pattern matching (`match`)
+   - 3.1 — `match` basique
+   - 3.2 — Patterns avancés
+   - 3.3 — Guards (conditions)
+4. `if let` et `while let`
+5. Exemples pratiques
+6. Exercices
+7. Aide-mémoire
 
-- Contrôler le flux avec break et continue 
+## 1. Les conditions (`if`/`else`)
 
-- Utiliser match pour le pattern matching 
+Les conditions permettent d'exécuter du code selon qu'une expression est vraie ou fausse. En
+Rust, la condition doit toujours être un booléen (`bool`).
 
-- Appliquer if let et while let 
+### 1.1 — `if` basique
 
-## ■ Table des matières
-
-## 1. Les conditions (if/else)
-
-- 1.1 - if basique 
-
-1.2 - else et else if 
-
-1.3 - if comme expression 
-
-## 2. Les boucles
-
-- 2.1 - loop (boucle infinie) 
-
-- 2.2 - while (avec condition) 
-
-- 2.3 - for (itération) 
-
-- 2.4 - break et continue 
-
-2.5 - Labels de boucles 
-
-## 3. Pattern matching (match)
-
-- 3.1 - match basique 
-
-- 3.2 - Patterns avancés 
-
-3.3 - Guards (conditions) 
-
-**4. if let et while let** 
-
-**5. Exemples pratiques** 
-
-**6. Exercices** 
-
-**7. Aide-mémoire** 
-
-## 1. Les conditions (if/else)
-
-Les conditions permettent d'exécuter du code selon qu'une expression est vraie ou fausse. En Rust, la condition doit toujours être un booléen (bool). 
-
-## 1.1 - if basique
-
-```
+```rust
 // Condition simple
 fn main() {
     let nombre = 7;
@@ -72,29 +50,29 @@ fn main() {
 }
 ```
 
-```
-// ■■ Important : La condition DOIT être un bool
+```rust
+// Important : la condition DOIT être un bool
 let x = 5;
-// if x { } // ■ ERREUR ! x n'est pas un bool
-if x != 0 { } // ■ OK !
+// if x { }      // ERREUR ! x n'est pas un bool
+if x != 0 { }     // OK !
 ```
 
-## ■ Différence avec d'autres langages : En Rust, if n'accepte que des booléens. Pas de conversion implicite comme if (nombre) en JavaScript !
+> **Différence avec d'autres langages** : en Rust, `if` n'accepte que des booléens — pas de
+> conversion implicite comme `if (nombre)` en JavaScript.
 
-## 1.2 - else et else if
+### 1.2 — `else` et `else if`
 
-```
+```rust
 fn main() {
     let nombre = 7;
+
     // if-else
     if nombre % 2 == 0 {
         println!("Pair");
     } else {
         println!("Impair");
     }
-```
 
-```
     // if-else if-else
     if nombre < 0 {
         println!("Négatif");
@@ -103,28 +81,20 @@ fn main() {
     } else {
         println!("Positif");
     }
-```
-
-```
 }
 ```
 
-## 1.3 - if comme expression
+### 1.3 — `if` comme expression
 
-En Rust, if est une expression : il retourne une valeur ! 
+En Rust, `if` est une expression : il retourne une valeur.
 
-```
+```rust
 // if retourne une valeur
 fn main() {
     let condition = true;
-```
-
-```
     let nombre = if condition { 5 } else { 6 };
     println!("nombre = {}", nombre); // 5
-```
 
-```
     // Exemple pratique
     let age = 20;
     let statut = if age >= 18 { "Majeur" } else { "Mineur" };
@@ -132,27 +102,29 @@ fn main() {
 }
 ```
 
-```
-// ■■ Les types doivent correspondre !
+```rust
+// Les types des deux branches doivent correspondre !
 let x = if condition {
-    5 // Type: i32
+    5 // Type : i32
 } else {
-    // "six" // ■ ERREUR : types incompatibles
-    6 // ■ OK : même type
+    // "six" // ERREUR : types incompatibles
+    6 // OK : même type
 };
 ```
 
-**■ if comme expression : Les deux branches (if et else) doivent retourner le même type. Si une branche n'a pas de valeur de retour, elle retourne () (unit type).** 
+> **`if` comme expression** : les deux branches (`if` et `else`) doivent retourner le même
+> type. Si une branche n'a pas de valeur de retour, elle retourne `()` (le type unit).
 
 ## 2. Les boucles
 
-Rust propose trois types de boucles : loop (infinie), while (avec condition), et for (itération). 
+Rust propose trois types de boucles : `loop` (infinie), `while` (avec condition), et `for`
+(itération).
 
-## 2.1 - loop (boucle infinie)
+### 2.1 — `loop` (boucle infinie)
 
-loop crée une boucle infinie. On doit utiliser break pour en sortir. 
+`loop` crée une boucle infinie. On doit utiliser `break` pour en sortir.
 
-```
+```rust
 // Boucle infinie simple
 fn main() {
     let mut compteur = 0;
@@ -164,6 +136,9 @@ fn main() {
         }
     }
 }
+```
+
+```rust
 // loop peut retourner une valeur !
 fn main() {
     let mut compteur = 0;
@@ -177,20 +152,15 @@ fn main() {
 }
 ```
 
-## 2.2 - while (avec condition)
+### 2.2 — `while` (avec condition)
 
-while exécute une boucle tant qu'une condition est vraie. 
+`while` exécute une boucle tant qu'une condition est vraie.
 
-```
+```rust
 fn main() {
     let mut nombre = 3;
-```
 
-```
     // Compte à rebours
-```
-
-```
     while nombre != 0 {
         println!("{}!", nombre);
         nombre -= 1;
@@ -199,15 +169,15 @@ fn main() {
 }
 ```
 
-```
+```rust
 // Exemple pratique : saisie utilisateur
 use std::io;
+
 fn main() {
     let mut input = String::new();
     let mut essais = 3;
     while essais > 0 {
-        println!("Entrez le mot de passe ({} essais restants):",
-essais);
+        println!("Entrez le mot de passe ({} essais restants) :", essais);
         input.clear();
         io::stdin().read_line(&mut input).expect("Erreur de lecture");
         if input.trim() == "secret" {
@@ -219,11 +189,12 @@ essais);
 }
 ```
 
-## 2.3 - for (itération)
+### 2.3 — `for` (itération)
 
-for permet d'itérer sur une collection ou une plage de valeurs. C'est la boucle la plus utilisée en Rust ! 
+`for` permet d'itérer sur une collection ou une plage de valeurs. C'est la boucle la plus
+utilisée en Rust.
 
-```
+```rust
 // Itérer sur une plage
 fn main() {
     for i in 1..6 {
@@ -234,6 +205,9 @@ fn main() {
         println!("i = {}", i); // 1, 2, 3, 4, 5
     }
 }
+```
+
+```rust
 // Itérer sur un tableau
 fn main() {
     let nombres = [10, 20, 30, 40, 50];
@@ -245,27 +219,28 @@ fn main() {
         println!("Index {} : {}", index, valeur);
     }
 }
+```
+
+```rust
 // Itérer sur un vecteur
 fn main() {
     let fruits = vec!["pomme", "banane", "orange"];
     for fruit in &fruits {
         println!("Fruit : {}", fruit);
     }
-    // fruits est toujours utilisable ici
+    // fruits est toujours utilisable ici (on a itéré par référence)
     println!("Nombre de fruits : {}", fruits.len());
-```
-
-```
 }
 ```
 
-**■ for vs while : Préfère toujours for quand tu itères sur une collection. C'est plus sûr (pas de risque d'index hors limite) et plus idiomatique en Rust !** 
+> **`for` vs `while`** : préfère toujours `for` quand tu itères sur une collection — plus sûr
+> (pas de risque d'index hors limite) et plus idiomatique en Rust.
 
-## 2.4 - break et continue
+### 2.4 — `break` et `continue`
 
-break sort de la boucle, continue passe à l'itération suivante. 
+`break` sort de la boucle, `continue` passe à l'itération suivante.
 
-```
+```rust
 // break : sortir de la boucle
 fn main() {
     for i in 1..10 {
@@ -277,7 +252,7 @@ fn main() {
 }
 ```
 
-```
+```rust
 // continue : passer à l'itération suivante
 fn main() {
     for i in 1..10 {
@@ -289,7 +264,7 @@ fn main() {
 }
 ```
 
-```
+```rust
 // Exemple pratique : trouver un élément
 fn main() {
     let nombres = vec![1, 5, 8, 12, 15, 20];
@@ -305,25 +280,46 @@ fn main() {
     if !trouve {
         println!("Non trouvé");
     }
-```
-
-```
 }
 ```
 
-## 2.5 - Labels de boucles
+### 2.5 — Labels de boucles
 
-Les labels permettent de contrôler des boucles imbriquées. `// Boucles imbriquées avec labels fn main() { let mut compteur = 0; 'exterieur: loop { println!("Compteur extérieur = {}", compteur); let mut restant = 10; loop { println!("  Restant = {}", restant); if restant == 7 { break; // Sort de la boucle intérieure } if compteur == 2 { break 'exterieur; // Sort des DEUX boucles } restant -= 1; } compteur += 1; } }` 
+Les labels permettent de contrôler des boucles imbriquées.
 
-**■ Labels : Les labels commencent par ' (apostrophe) et permettent de break ou continue une boucle spécifique dans des boucles imbriquées.** 
-
-## 3. Pattern matching (match)
-
-match est l'outil le plus puissant de Rust pour le contrôle de flux. Il vérifie tous les cas possibles et le compilateur garantit que tu n'en oublies aucun ! 
-
-## 3.1 - match basique
-
+```rust
+// Boucles imbriquées avec labels
+fn main() {
+    let mut compteur = 0;
+    'exterieur: loop {
+        println!("Compteur extérieur = {}", compteur);
+        let mut restant = 10;
+        loop {
+            println!("  Restant = {}", restant);
+            if restant == 7 {
+                break; // Sort de la boucle intérieure
+            }
+            if compteur == 2 {
+                break 'exterieur; // Sort des DEUX boucles
+            }
+            restant -= 1;
+        }
+        compteur += 1;
+    }
+}
 ```
+
+> **Labels** : ils commencent par `'` (apostrophe) et permettent de `break`/`continue` une
+> boucle spécifique au milieu de boucles imbriquées.
+
+## 3. Pattern matching (`match`)
+
+`match` est l'outil le plus puissant de Rust pour le contrôle de flux. Il vérifie tous les cas
+possibles et le compilateur garantit qu'aucun n'est oublié.
+
+### 3.1 — `match` basique
+
+```rust
 // Match simple
 fn main() {
     let nombre = 3;
@@ -334,6 +330,9 @@ fn main() {
         _ => println!("Autre"), // _ = tous les autres cas
     }
 }
+```
+
+```rust
 // match retourne une valeur
 fn main() {
     let nombre = 2;
@@ -345,6 +344,9 @@ fn main() {
     };
     println!("C'est le {} nombre", resultat);
 }
+```
+
+```rust
 // Match avec Option
 fn diviser(a: i32, b: i32) -> Option<i32> {
     if b == 0 {
@@ -353,9 +355,7 @@ fn diviser(a: i32, b: i32) -> Option<i32> {
         Some(a / b)
     }
 }
-```
 
-```
 fn main() {
     let resultat = diviser(10, 2);
     match resultat {
@@ -365,11 +365,12 @@ fn main() {
 }
 ```
 
-**■■ Match exhaustif : Le compilateur vérifie que tu couvres TOUS les cas possibles. Utilise _ pour capturer tous les cas restants.** 
+> **Match exhaustif** : le compilateur vérifie que tous les cas possibles sont couverts.
+> Utiliser `_` pour capturer tous les cas restants.
 
-## 3.2 - Patterns avancés
+### 3.2 — Patterns avancés
 
-```
+```rust
 // Plusieurs valeurs (OR)
 fn main() {
     let nombre = 5;
@@ -379,6 +380,9 @@ fn main() {
         _ => println!("Hors plage"),
     }
 }
+```
+
+```rust
 // Plages de valeurs
 fn main() {
     let nombre = 42;
@@ -390,6 +394,9 @@ fn main() {
         _ => println!("Très grand"),
     }
 }
+```
+
+```rust
 // Déstructuration de tuples
 fn main() {
     let point = (0, 5);
@@ -402,19 +409,13 @@ fn main() {
 }
 ```
 
-## 3.3 - Guards (conditions)
+### 3.3 — Guards (conditions)
 
-Les guards ajoutent une condition supplémentaire après un pattern. 
+Les guards ajoutent une condition supplémentaire après un pattern.
 
-```
+```rust
 fn main() {
-```
-
-```
     let nombre = 4;
-```
-
-```
     match nombre {
         n if n < 0 => println!("Négatif : {}", n),
         n if n % 2 == 0 => println!("Pair : {}", n),
@@ -423,41 +424,36 @@ fn main() {
 }
 ```
 
-```
+```rust
 // Exemple avec Option
 fn main() {
     let nombre: Option<i32> = Some(7);
-```
-
-```
     match nombre {
         Some(n) if n < 5 => println!("Petit : {}", n),
         Some(n) if n >= 5 && n < 10 => println!("Moyen : {}", n),
         Some(n) => println!("Grand : {}", n),
         None => println!("Pas de valeur"),
     }
-```
-
-```
 }
 ```
 
-## 4. if let et while let
+## 4. `if let` et `while let`
 
-if let et while let sont des raccourcis pour match quand tu t'intéresses à un seul cas. 
+`if let` et `while let` sont des raccourcis pour `match` quand on ne s'intéresse qu'à un seul
+cas.
 
-```
+```rust
 // Sans if let (verbeux)
 fn main() {
     let nombre: Option<i32> = Some(5);
-```
-
-```
     match nombre {
         Some(n) => println!("Valeur : {}", n),
         _ => (), // Ignore None
     }
 }
+```
+
+```rust
 // Avec if let (concis)
 fn main() {
     let nombre: Option<i32> = Some(5);
@@ -465,6 +461,9 @@ fn main() {
         println!("Valeur : {}", n);
     }
 }
+```
+
+```rust
 // if let avec else
 fn main() {
     let nombre: Option<i32> = None;
@@ -474,29 +473,27 @@ fn main() {
         println!("Pas de valeur");
     }
 }
-// while let : boucle tant que pattern match
+```
+
+```rust
+// while let : boucle tant que le pattern correspond
 fn main() {
     let mut pile = vec![1, 2, 3, 4, 5];
     // Vide la pile
     while let Some(sommet) = pile.pop() {
         println!("Sommet : {}", sommet); // 5, 4, 3, 2, 1
-```
-
-```
     }
-```
-
-```
 }
 ```
 
-**■ Quand utiliser if let ? Quand tu t'intéresses à un seul cas et que tu veux ignorer les autres. Plus lisible que match avec _ quand approprié.** 
+> **Quand utiliser `if let` ?** Quand on ne s'intéresse qu'à un seul cas et qu'on veut ignorer
+> les autres — plus lisible qu'un `match` avec `_` dans ce cas précis.
 
 ## 5. Exemples pratiques
 
-**Exemple 1 : Calculatrice simple** 
+### Exemple 1 — calculatrice simple
 
-```
+```rust
 fn calculer(operateur: char, a: i32, b: i32) -> Option<i32> {
     match operateur {
         '+' => Some(a + b),
@@ -512,6 +509,7 @@ fn calculer(operateur: char, a: i32, b: i32) -> Option<i32> {
         _ => None,
     }
 }
+
 fn main() {
     let resultat = calculer('+', 10, 5);
     match resultat {
@@ -521,9 +519,9 @@ fn main() {
 }
 ```
 
-## Exemple 2 : FizzBuzz
+### Exemple 2 — FizzBuzz
 
-```
+```rust
 fn main() {
     for i in 1..=100 {
         match (i % 3, i % 5) {
@@ -536,13 +534,10 @@ fn main() {
 }
 ```
 
-## Exemple 3 : Recherche dans un tableau
+### Exemple 3 — recherche dans un tableau
 
-```
+```rust
 fn trouver_index(tableau: &[i32], valeur: i32) -> Option<usize> {
-```
-
-```
     for (index, &element) in tableau.iter().enumerate() {
         if element == valeur {
             return Some(index);
@@ -550,6 +545,7 @@ fn trouver_index(tableau: &[i32], valeur: i32) -> Option<usize> {
     }
     None
 }
+
 fn main() {
     let nombres = [10, 20, 30, 40, 50];
     if let Some(index) = trouver_index(&nombres, 30) {
@@ -562,21 +558,32 @@ fn main() {
 
 ## 6. Exercices pratiques
 
-**■ Exercice 1 : Classification d'âge** 
+### Exercice 1 — classification d'âge
 
-Écris une fonction qui classe un âge en catégorie : 
+Écrire une fonction qui classe un âge en catégorie :
 
-- 0-12 : Enfant 
+- 0-12 : Enfant
+- 13-17 : Adolescent
+- 18-64 : Adulte
+- 65+ : Senior
 
-- 13-17 : Adolescent 
-
-- 18-64 : Adulte 
-
-• 65+ : Senior `// Solution : fn classifier_age(age: u32) -> &'static str { match age { 0..=12 => "Enfant", 13..=17 => "Adolescent", 18..=64 => "Adulte", _ => "Senior", } }` 
-
-**■ Exercice 2 : Somme avec boucle** Calcule la somme des nombres de 1 à n. 
-
+```rust
+// Solution :
+fn classifier_age(age: u32) -> &'static str {
+    match age {
+        0..=12 => "Enfant",
+        13..=17 => "Adolescent",
+        18..=64 => "Adulte",
+        _ => "Senior",
+    }
+}
 ```
+
+### Exercice 2 — somme avec boucle
+
+Calculer la somme des nombres de 1 à n.
+
+```rust
 // Solution :
 fn somme_jusqua(n: i32) -> i32 {
     let mut somme = 0;
@@ -585,14 +592,17 @@ fn somme_jusqua(n: i32) -> i32 {
     }
     somme
 }
+
 fn main() {
     println!("Somme 1 à 10 : {}", somme_jusqua(10)); // 55
 }
 ```
 
-**■ Exercice 3 : Nombres premiers** Vérifie si un nombre est premier. 
+### Exercice 3 — nombres premiers
 
-```
+Vérifier si un nombre est premier.
+
+```rust
 // Solution :
 fn est_premier(n: u32) -> bool {
     if n < 2 {
@@ -601,16 +611,11 @@ fn est_premier(n: u32) -> bool {
     for i in 2..n {
         if n % i == 0 {
             return false;
-```
-
-```
         }
     }
     true
 }
-```
 
-```
 fn main() {
     for n in 2..=20 {
         if est_premier(n) {
@@ -622,79 +627,55 @@ fn main() {
 
 ## 7. Aide-mémoire
 
-## Conditions
+### Conditions
 
-```
+```rust
 if condition { } else { }
 if condition { } else if condition2 { } else { }
 let x = if condition { valeur1 } else { valeur2 };
 ```
 
-## Boucles
+### Boucles
 
-```
-loop { break; }                    // Infinie
-while condition { }                // Avec condition
-for i in 0..10 { }                 // 0 à 9
-for i in 0..=10 { }                // 0 à 10 (inclusif)
-for item in collection { }         // Itération
-break;                             // Sort de la boucle
-continue;                          // Itération suivante
+```rust
+loop { break; }                     // Infinie
+while condition { }                 // Avec condition
+for i in 0..10 { }                  // 0 à 9
+for i in 0..=10 { }                 // 0 à 10 (inclusif)
+for item in collection { }          // Itération
+break;                               // Sort de la boucle
+continue;                            // Itération suivante
 ```
 
-## Pattern Matching
+### Pattern matching
 
-```
+```rust
 match valeur {
-```
-
-- `1 => expression,` 
-
-- `2 | 3 => expression,` 
-
-- `4..=10 => expression,` 
-
-```
+    1 => expression,
+    2 | 3 => expression,
+    4..=10 => expression,
     n if n > 10 => expression,
-```
-
-- `_ => expression,` 
-
-```
+    _ => expression,
 }
 ```
 
-## Raccourcis
+### Raccourcis
 
+```rust
+if let Some(x) = option { }          // Match un seul cas
+while let Some(x) = iter.next() { }  // Boucle avec pattern
 ```
-if let Some(x) = option { }        // Match un seul cas
-while let Some(x) = iter.next() { } // Boucle avec pattern
-```
 
-## Points clés
+### Points clés
 
-- Les conditions doivent être des booléens 
+- Les conditions doivent être des booléens.
+- `if` peut retourner une valeur.
+- Préférer `for` aux boucles `while` avec index manuel.
+- `match` doit être exhaustif.
+- `if let` simplifie un `match` à un seul cas utile.
+- Les labels permettent de contrôler des boucles imbriquées.
 
-- if peut retourner une valeur 
+## Pour aller plus loin
 
-- Préfère for aux boucles while avec index 
-
-- match doit être exhaustif 
-
-- Utilise if let pour simplifier match avec un seul cas 
-
-- Les labels permettent de contrôler des boucles imbriquées 
-
-## ■ Félicitations !
-
-## Tu maîtrises les structures de contrôle !
-
-Tu peux maintenant : 
-
-- Contrôler le flux de ton programme 
-
-- • Utiliser les boucles efficacement • Maîtriser le pattern matching 
-
-- • Écrire du code Rust idiomatique 
-
-**■ Continue ton apprentissage avec les structures et les enums ! ■**
+Ce cours couvre le contrôle de flux. Voir `structures-enums.md` pour les structures, les enums,
+`Option`/`Result` en détail, et le pattern matching avancé sur des données structurées.

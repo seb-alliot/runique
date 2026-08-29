@@ -10,11 +10,16 @@ use sea_query::{
 /// Generates the `TableCreateStatement` for the `eihwaz_users` table.
 pub fn create_eihwaz_users_table() -> TableCreateStatement {
     let mut pk_col = ColumnDef::new(Alias::new("id"));
-    #[cfg(feature = "big-pk")]
+    #[cfg(feature = "pk-uuid")]
+    pk_col.uuid();
+    #[cfg(all(feature = "big-pk", not(feature = "pk-uuid")))]
     pk_col.big_integer();
-    #[cfg(not(feature = "big-pk"))]
+    #[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
     pk_col.integer();
-    pk_col.not_null().auto_increment().primary_key();
+    pk_col.not_null().primary_key();
+    // UUID primary keys are generated application-side (Uuid::now_v7()), never DB auto-increment.
+    #[cfg(not(feature = "pk-uuid"))]
+    pk_col.auto_increment();
 
     Table::create()
         .table(Alias::new("eihwaz_users"))
@@ -178,12 +183,14 @@ pub fn create_eihwaz_users_groupes_table() -> TableCreateStatement {
     let user_table = user_table_name();
     let fk_name = format!("fk_eihwaz_users_groupes_{}_id", user_table);
 
-    // user_id doit suivre le type de eihwaz_users.id (BIGINT sous feature big-pk),
+    // user_id doit suivre le type de eihwaz_users.id (BIGINT sous big-pk, UUID sous pk-uuid),
     // sinon la FK est de type incompatible et échoue à la création (Postgres strict).
     let mut user_id_col = ColumnDef::new(Alias::new("user_id"));
-    #[cfg(feature = "big-pk")]
+    #[cfg(feature = "pk-uuid")]
+    user_id_col.uuid();
+    #[cfg(all(feature = "big-pk", not(feature = "pk-uuid")))]
     user_id_col.big_integer();
-    #[cfg(not(feature = "big-pk"))]
+    #[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
     user_id_col.integer();
     user_id_col.not_null();
 
@@ -218,9 +225,11 @@ pub fn create_eihwaz_users_groupes_table() -> TableCreateStatement {
 /// Generates the `TableCreateStatement` for the `eihwaz_sessions` table.
 pub fn create_eihwaz_sessions_table() -> TableCreateStatement {
     let mut user_id_col = ColumnDef::new(Alias::new("user_id"));
-    #[cfg(feature = "big-pk")]
+    #[cfg(feature = "pk-uuid")]
+    user_id_col.uuid();
+    #[cfg(all(feature = "big-pk", not(feature = "pk-uuid")))]
     user_id_col.big_integer();
-    #[cfg(not(feature = "big-pk"))]
+    #[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
     user_id_col.integer();
     user_id_col.not_null();
 
@@ -297,9 +306,11 @@ impl sea_orm_migration::MigrationTrait for EihwazSessionsMigration {
 /// suppression. Ne pas « corriger » en ajoutant une FK CASCADE.
 pub fn create_eihwaz_history_table() -> TableCreateStatement {
     let mut user_id_col = ColumnDef::new(Alias::new("user_id"));
-    #[cfg(feature = "big-pk")]
+    #[cfg(feature = "pk-uuid")]
+    user_id_col.uuid();
+    #[cfg(all(feature = "big-pk", not(feature = "pk-uuid")))]
     user_id_col.big_integer();
-    #[cfg(not(feature = "big-pk"))]
+    #[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
     user_id_col.integer();
     user_id_col.not_null();
 
@@ -361,9 +372,11 @@ impl sea_orm_migration::MigrationTrait for EihwazHistoryMigration {
 /// from the token row — never from a URL/form field.
 pub fn create_eihwaz_reset_tokens_table() -> TableCreateStatement {
     let mut user_id_col = ColumnDef::new(Alias::new("user_id"));
-    #[cfg(feature = "big-pk")]
+    #[cfg(feature = "pk-uuid")]
+    user_id_col.uuid();
+    #[cfg(all(feature = "big-pk", not(feature = "pk-uuid")))]
     user_id_col.big_integer();
-    #[cfg(not(feature = "big-pk"))]
+    #[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
     user_id_col.integer();
     user_id_col.not_null();
 

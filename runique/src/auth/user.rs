@@ -176,11 +176,15 @@ pub type RuniqueAdminAuth = crate::auth::session::DefaultAdminAuth<BuiltinUserEn
 /// Returns the `ModelSchema` of the `eihwaz_users` table.
 /// Used by `#[form(schema = runique_users)]` — no need to declare the entity locally.
 pub fn schema() -> crate::migration::schema::ModelSchema {
-    #[cfg(feature = "big-pk")]
+    #[cfg(feature = "pk-uuid")]
+    let pk = crate::migration::PrimaryKeyDef::new("id")
+        .uuid()
+        .no_auto_increment();
+    #[cfg(all(feature = "big-pk", not(feature = "pk-uuid")))]
     let pk = crate::migration::PrimaryKeyDef::new("id")
         .i64()
         .auto_increment();
-    #[cfg(not(feature = "big-pk"))]
+    #[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
     let pk = crate::migration::PrimaryKeyDef::new("id")
         .i32()
         .auto_increment();

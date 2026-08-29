@@ -6,6 +6,7 @@
 //! | `test_parser_builder`   | parse_schema_from_source                     |
 //! | `test_parser_seaorm`    | Parsing depuis source SeaORM                 |
 //! | `test_diff`             | diff_schemas, db_columns, Changes            |
+//! | `test_eihwaz_tables_pk` | Colonnes PK/FK des tables eihwaz_* vs big-pk/pk-uuid |
 //! | `test_convertisseur`    | Conversion de noms (snake_case, PascalCase)  |
 //! | `test_helpers`          | col_type_to_method et utilitaires internes   |
 //! | `test_paths`            | snapshot_dir, migration_dir, chemins         |
@@ -22,6 +23,7 @@ pub mod test_column_def;
 pub mod test_column_def_extra;
 pub mod test_convertisseur;
 pub mod test_diff;
+pub mod test_eihwaz_tables_pk;
 pub mod test_foreign_key;
 pub mod test_generators;
 pub mod test_helpers;
