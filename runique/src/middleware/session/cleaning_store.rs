@@ -202,15 +202,13 @@ impl CleaningMemoryStore {
     pub async fn invalidate_user_sessions(&self, user_id: crate::utils::pk::Pk) {
         let mut guard = self.data.lock().await;
         let mut freed = 0usize;
-        #[allow(clippy::useless_conversion)]
-        let uid_i64: i64 = user_id.into();
         let to_delete: Vec<Id> = guard
             .iter()
             .filter(|(_, r)| {
                 r.data
                     .get(crate::utils::constante::session_key::session::SESSION_USER_ID_KEY)
-                    .and_then(serde_json::Value::as_i64)
-                    .is_some_and(|id| id == uid_i64)
+                    .and_then(|v| serde_json::from_value::<crate::utils::pk::Pk>(v.clone()).ok())
+                    .is_some_and(|id| id == user_id)
             })
             .map(|(id, _)| *id)
             .collect();
@@ -449,7 +447,7 @@ impl SessionStore for CleaningMemoryStore {
                     {
                         crate::runique_log!(
                             level,
-                            user_id = user_id,
+                            user_id = %user_id,
                             "exclusive_login: {} session(s) invalidated for user {}",
                             freed,
                             user_id

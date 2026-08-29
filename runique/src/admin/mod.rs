@@ -53,8 +53,7 @@ impl AdminRoutes {
 }
 pub use registry::AdminRegistry;
 pub use resource::{
-    AdminIdType, AdminResource, ColumnFilter, CrudOperation, DisplayConfig, ParentScope,
-    ResourcePermissions,
+    AdminResource, ColumnFilter, CrudOperation, DisplayConfig, ParentScope, ResourcePermissions,
 };
 
 pub use table_admin::migrations_table::*;

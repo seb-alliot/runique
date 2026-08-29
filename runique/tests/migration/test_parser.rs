@@ -104,6 +104,20 @@ fn pk_uuid_source() -> &'static str {
     "#
 }
 
+fn pk_generic_alias_source() -> &'static str {
+    r#"
+    use runique::prelude::*;
+    model! {
+        AliasTable,
+        table: "alias_table",
+        pk: id => Pk,
+        fields: {
+            data: String,
+        }
+    }
+    "#
+}
+
 fn relations_source() -> &'static str {
     r#"
     use runique::prelude::*;
@@ -254,6 +268,35 @@ fn test_pk_uuid() {
     let pk = s.primary_key.unwrap();
     assert_eq!(pk.name, "slug");
     assert_eq!(pk.col_type, "Uuid");
+}
+
+// `pk: id => Pk` defers to the global `runique::utils::config::Pk` alias — resolved column
+// type must follow whichever of `big-pk`/`pk-uuid` is active (or plain i32 by default).
+#[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
+#[test]
+fn test_pk_generic_alias_default() {
+    let s = parse_schema_from_source(pk_generic_alias_source())
+        .unwrap()
+        .1;
+    assert_eq!(s.primary_key.unwrap().col_type, "Integer");
+}
+
+#[cfg(all(feature = "big-pk", not(feature = "pk-uuid")))]
+#[test]
+fn test_pk_generic_alias_big_pk() {
+    let s = parse_schema_from_source(pk_generic_alias_source())
+        .unwrap()
+        .1;
+    assert_eq!(s.primary_key.unwrap().col_type, "BigInteger");
+}
+
+#[cfg(feature = "pk-uuid")]
+#[test]
+fn test_pk_generic_alias_pk_uuid() {
+    let s = parse_schema_from_source(pk_generic_alias_source())
+        .unwrap()
+        .1;
+    assert_eq!(s.primary_key.unwrap().col_type, "Uuid");
 }
 
 #[test]

@@ -9,6 +9,7 @@ pub mod test_mailer;
 pub mod test_parse_boolean;
 pub mod test_parse_html;
 pub mod test_password;
+pub mod test_pk_alias;
 pub mod test_reset_token;
 pub mod test_runique_log;
 pub mod test_sanitizer;

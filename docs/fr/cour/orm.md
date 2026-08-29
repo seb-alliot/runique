@@ -99,7 +99,7 @@ let p = Personne { nom: "Alice".to_string() };
 p.dire_bonjour();  // "Bonjour, je suis Alice"
 ```
 
-I **Pourquoi c'est important ?** Les traits permettent d'ajouter des méthodes à des types existants sans modifier leur code source ! 
+> **Pourquoi c'est important ?** Les traits permettent d'ajouter des méthodes à des types existants sans modifier leur code source ! 
 
 ## 2.2 - Les génériques
 
@@ -158,7 +158,7 @@ impl<E> Manager<E> {
 }
 ```
 
-I **Avantages :** Le compilateur vérifie les types correctement, mais aucune donnée n'est stockée en mémoire (taille = 0 octets). 
+> **Avantages :** Le compilateur vérifie les types correctement, mais aucune donnée n'est stockée en mémoire (taille = 0 octets). 
 
 ## 2.4 - const fn
 
@@ -225,10 +225,32 @@ impl User {
 
 Notre solution utilise trois composants principaux qui travaillent ensemble : 
 
-**==> picture [328 x 211] intentionally omitted <==**
-
-**----- Start of picture text -----**<br>
-IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII<br>I   User (entité SeaORM)                    I<br>I   + impl_objects!(Entity)                 I<br>IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII<br>I<br>M<br>IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII<br>I   Objects<User>                           I<br>I   - Constante créée par la macro          I<br>I   - Méthodes: filter(), exclude(), etc.   I<br>IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII<br>I<br>M<br>IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII<br>I   RuniqueQueryBuilder<User>                 I<br>I   - Encapsule Select<User>                I<br>I   - Méthodes chainables                   I<br>IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII<br>I<br>M<br>IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII<br>I   SeaORM Select<User>                     I<br>I   - Query SQL réelle                      I<br>IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII<br>**----- End of picture text -----**<br>
+```text
+┌───────────────────────────────────────────┐
+│  User (entité SeaORM)                      │
+│  + impl_objects!(Entity)                   │
+└───────────────────────────────────────────┘
+                      │
+                      ▼
+┌───────────────────────────────────────────┐
+│  Objects<User>                             │
+│  - Constante créée par la macro            │
+│  - Méthodes : filter(), exclude(), etc.    │
+└───────────────────────────────────────────┘
+                      │
+                      ▼
+┌───────────────────────────────────────────┐
+│  RuniqueQueryBuilder<User>                 │
+│  - Encapsule Select<User>                  │
+│  - Méthodes chaînables                     │
+└───────────────────────────────────────────┘
+                      │
+                      ▼
+┌───────────────────────────────────────────┐
+│  SeaORM Select<User>                       │
+│  - Query SQL réelle                        │
+└───────────────────────────────────────────┘
+```
 
 ## Flux de données :
 
@@ -312,7 +334,7 @@ impl<E: EntityTrait> Objects<E> {
 }
 ```
 
-I **Analogie :** `Objects<E>` est comme une **télécommande** pour contrôler `E` . 
+> **Analogie :** `Objects<E>` est comme une **télécommande** pour contrôler `E` . 
 
 ## 4.2 - query.rs (le QueryBuilder)
 
@@ -354,7 +376,7 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
 }
 ```
 
-I **Pattern Builder :** Les méthodes qui retournent `Self` sont **chainables** , celles qui consomment `self` sont **terminales** . 
+> **Pattern Builder :** Les méthodes qui retournent `Self` sont **chainables** , celles qui consomment `self` sont **terminales** . 
 
 ```
 // Chainable car retourne Self
@@ -489,7 +511,10 @@ pub enum Relation {}
 impl ActiveModelBehavior for ActiveModel {}
 ```
 
-**`//`** I **`Ajouter le support objects impl_objects!(Entity);`** 
+```rust
+// Ajouter le support objects
+impl_objects!(Entity);
+```
 
 ```
 // 2. Utilisation dans le code

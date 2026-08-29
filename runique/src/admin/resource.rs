@@ -4,35 +4,6 @@
 // (eihwaz_groupes_droits: groupe_id + resource_key + CRUD matrix), and not in admin!{}.
 // See: runique::auth::permissions_cache
 
-/// Type of the primary key for an admin resource
-#[derive(Debug, Clone, Copy, Default, serde::Serialize)]
-pub enum AdminIdType {
-    /// i32 (SeaORM default)
-    #[default]
-    I32,
-    /// i64
-    I64,
-    /// UUID
-    Uuid,
-}
-
-impl AdminIdType {
-    /// Generates the Rust code for conversion from a `String` captured in the route
-    pub fn parse_expr(&self) -> &'static str {
-        match self {
-            AdminIdType::I32 => {
-                "let id = id.parse::<i32>().map_err(|_| DbErr::Custom(\"invalid id\".into()))?;"
-            }
-            AdminIdType::I64 => {
-                "let id = id.parse::<i64>().map_err(|_| DbErr::Custom(\"invalid id\".into()))?;"
-            }
-            AdminIdType::Uuid => {
-                "let id = uuid::Uuid::parse_str(&id).map_err(|_| DbErr::Custom(\"invalid id\".into()))?;"
-            }
-        }
-    }
-}
-
 /// Granular permissions per CRUD operation
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct ResourcePermissions {
@@ -237,9 +208,6 @@ pub struct AdminResource {
     pub template_detail: Option<String>,
     pub template_delete: Option<String>,
 
-    /// Primary key type (for /{id}/ routes)
-    pub id_type: AdminIdType,
-
     /// Custom keys injected into the Tera context (defined via extra: {} in admin!{})
     pub extra_context: std::collections::HashMap<String, String>,
 
@@ -273,7 +241,6 @@ impl AdminResource {
             form_path,
             title,
             permissions: ResourcePermissions::uniform(roles),
-            id_type: AdminIdType::I32,
             display: DisplayConfig::new(),
             template_list: None,
             template_create: None,
@@ -301,7 +268,6 @@ impl AdminResource {
             form_path,
             title,
             permissions,
-            id_type: AdminIdType::I32,
             display: DisplayConfig::new(),
             template_list: None,
             template_create: None,
@@ -429,11 +395,6 @@ impl AdminResource {
 
     pub fn template_delete(mut self, path: &str) -> Self {
         self.template_delete = Some(path.to_string());
-        self
-    }
-
-    pub fn id_type(mut self, id_type: AdminIdType) -> Self {
-        self.id_type = id_type;
         self
     }
 

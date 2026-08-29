@@ -146,6 +146,7 @@ mysql = ["orm", "sea-orm/sqlx-mysql", "sea-orm/runtime-tokio-rustls"]
 mariadb = ["mysql"]
 all-databases = ["sqlite", "postgres", "mysql"]
 big-pk = ["derive_form/big-pk"]
+pk-uuid = ["derive_form/pk-uuid", "sea-orm/with-uuid"]
 acme = ["dep:instant-acme", "dep:axum-server", "dep:rustls"]
 
 

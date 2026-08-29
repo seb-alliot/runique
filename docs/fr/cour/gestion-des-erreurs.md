@@ -216,7 +216,7 @@ fn main() {
 }
 ```
 
-II **panic! termine le thread !** Dans une application web, ça peut tuer tout le serveur. Utilise `Result` pour les erreurs récupérables. 
+> **panic! termine le thread !** Dans une application web, ça peut tuer tout le serveur. Utilise `Result` pour les erreurs récupérables. 
 
 ## 2.2 - Quand utiliser Result
 
@@ -276,7 +276,10 @@ let x: Result<i32, &str> = Ok(5);
 let valeur = x.unwrap();  // 5
 ```
 
-**`let y: Result<i32, &str> = Err("erreur"); // let valeur = y.unwrap();  //`** I **`PANIC!`** 
+```rust
+let y: Result<i32, &str> = Err("erreur");
+// let valeur = y.unwrap();  // PANIC !
+```
 
 ```
 // expect() - panic avec message personnalisé
@@ -437,7 +440,7 @@ fn traiter() -> Result<(), AppError> {
 }
 ```
 
-I **thiserror** est parfait pour les **bibliothèques** où tu veux des types d'erreurs précis et bien définis. 
+> **thiserror** est parfait pour les **bibliothèques** où tu veux des types d'erreurs précis et bien définis. 
 
 ## 4. anyhow pour les applications
 
@@ -449,29 +452,23 @@ Pour les **applications** (pas les bibliothèques), `anyhow` simplifie énormém
 
 ## `// Type d'erreur générique`
 
-```
+```rust
 fn faire_tout() -> Result<String, Box<dyn Error>> {
     let contenu = std::fs::read_to_string("file.txt")?;
     let nombre: i32 = contenu.trim().parse()?;
     let resultat = fetch_data(&nombre.to_string()).await?;
     Ok(resultat)
+}
 ```
 
-## `}`
+**Avantages :**
+- Accepte n'importe quel type d'erreur
+- Simple pour débuter
 
-## `// Avantages:`
-
-**`//`** I **`Accepte n'importe quel type d'erreur`** 
-
-**`//`** I **`Simple pour débuter`** 
-
-## `// Inconvénients:`
-
-**`//`** I **`Allocation heap`** 
-
-**`//`** I **`Perd le type exact de l'erreur`** 
-
-**`//`** I **`Pas de downcast facile`** 
+**Inconvénients :**
+- Allocation heap
+- Perd le type exact de l'erreur
+- Pas de downcast facile
 
 ## 4.2 - anyhow::Result
 
@@ -496,17 +493,11 @@ fn charger_config() -> Result<Config> {
 }
 ```
 
-```
-// Avantages d'anyhow:
-```
-
-**`//`** I **`Messages d'erreur détaillés automatiques`** 
-
-**`//`** I **`Backtrace si RUST_BACKTRACE=1`** 
-
-**`//`** I **`Plus simple que Box<dyn Error>`** 
-
-- **`//`** I **`Conversion automatique de tous les types d'erreur`** 
+**Avantages d'`anyhow` :**
+- Messages d'erreur détaillés automatiques
+- Backtrace si `RUST_BACKTRACE=1`
+- Plus simple que `Box<dyn Error>`
+- Conversion automatique de tous les types d'erreur
 
 ## 4.3 - Context et with_context
 
@@ -773,4 +764,4 @@ Tu maîtrises maintenant la gestion d'erreurs en Rust !
 
 Points clés à retenir : • Utilise `?` pour propager • `thiserror` pour les libs • `anyhow` pour les apps • Toujours ajouter du contexte ! 
 
-I **Ton code sera robuste !** I
+> **Ton code sera robuste !**

@@ -58,9 +58,9 @@ Associated Types, Trait Objects et Plus
 
 ## 1. Traits de la stdlib
 
-**1.1 - Debug et Display** 
+## 1.1 - Debug et Display
 
-```
+```rust
 use std::fmt;
 #[derive(Debug)]  // Dérive automatiquement Debug
 struct Point {
@@ -88,13 +88,14 @@ enum Message {
 }
 ```
 
-### Debug vs Display :
+### `Debug` vs `Display`
 
-• `Debug` : Pour les développeurs (débogage) • `Display` : Pour les utilisateurs (affichage) 
+- `Debug` : pour les développeurs (débogage).
+- `Display` : pour les utilisateurs (affichage).
 
 ## 1.2 - Clone et Copy
 
-```
+```rust
 // Clone : copie explicite
 #[derive(Clone)]
 struct User {
@@ -114,17 +115,20 @@ struct Point {
 }
 ```
 
-```
+```rust
 let p1 = Point { x: 1, y: 2 };
 let p2 = p1;  // Copié automatiquement
 println!("{}, {}", p1.x, p2.x);  // p1 toujours valide !
 ```
 
-**`//`** II **`Copy seulement pour types sans heap allocation // String ne peut pas être Copy (contient des données heap)`** 
+```rust
+// Copy seulement pour les types sans allocation heap
+// String ne peut pas être Copy (contient des données heap)
+```
 
 ## 1.3 - Default
 
-```
+```rust
 #[derive(Default)]
 struct Config {
     host: String,     // Default = ""
@@ -154,7 +158,7 @@ impl Default for Config {
 
 ## 1.4 - PartialEq et Eq
 
-```
+```rust
 // PartialEq : égalité partielle
 #[derive(PartialEq)]
 struct Point {
@@ -166,7 +170,7 @@ let p2 = Point { x: 1, y: 2 };
 assert!(p1 == p2);
 ```
 
-```
+```rust
 // Eq : égalité totale (réflexive)
 // Pour les types sans NaN
 #[derive(PartialEq, Eq)]
@@ -176,13 +180,13 @@ struct User {
 }
 ```
 
-```
+```rust
 // f32 et f64 sont seulement PartialEq (à cause de NaN)
 let x = f64::NAN;
 assert!(x != x);  // NaN != NaN !
 ```
 
-```
+```rust
 // Implémentation manuelle
 impl PartialEq for Point {
     fn eq(&self, other: &Self) -> bool {
@@ -190,7 +194,7 @@ impl PartialEq for Point {
     }
 ```
 
-```
+```rust
 }
 ```
 
@@ -198,7 +202,7 @@ impl PartialEq for Point {
 
 ## 2.1 - Différence avec génériques
 
-```
+```rust
 // Avec générique (peut avoir plusieurs implémentations)
 trait Converter<T> {
     fn convert(&self, input: T) -> String;
@@ -224,22 +228,21 @@ impl Converter for IntConverter {
     type Output = i32;
 ```
 
-```
+```rust
     fn convert(&self, input: i32) -> String {
         input.to_string()
     }
 }
 ```
 
-## Quand utiliser quoi ?
+### Quand utiliser quoi ?
 
-• **Générique** : Plusieurs implémentations possibles pour un type 
-
-• **Associated type** : Une seule implémentation logique 
+- **Générique** : plusieurs implémentations possibles pour un même type.
+- **Associated type** : une seule implémentation logique.
 
 ## 2.2 - Exemples pratiques
 
-```
+```rust
 // Iterator utilise associated types
 trait Iterator {
     type Item;
@@ -283,7 +286,7 @@ Les **trait objects** permettent le polymorphisme dynamique : stocker différent
 
 ## 3.1 - Box
 
-```
+```rust
 trait Animal {
     fn faire_bruit(&self) -> String;
 }
@@ -316,45 +319,54 @@ fn faire_parler(animal: &dyn Animal) {
 }
 ```
 
-## II **Static vs Dynamic dispatch :** 
-
-• Génériques ( `<T: Trait>` ) : Static dispatch (plus rapide) 
-
-- Trait objects ( `dyn Trait` ) : Dynamic dispatch (plus flexible) 
+> **Static vs dynamic dispatch**
+>
+> - Génériques (`<T: Trait>`) : *static dispatch* (résolu à la compilation, plus rapide).
+> - Trait objects (`dyn Trait`) : *dynamic dispatch* (résolu à l'exécution, plus flexible).
 
 ## 3.2 - Object safety
 
-**`//`** I **`Object-safe (peut être dyn) trait Draw { fn draw(&self); }`** 
-
-**`//`** I **`Pas object-safe (ne peut pas être dyn) trait Clone { fn clone(&self) -> Self;  // Retourne Self }`** 
-
+```rust
+// Object-safe (peut être dyn)
+trait Draw {
+    fn draw(&self);
+}
 ```
+
+```rust
+// Pas object-safe (ne peut pas être dyn)
+trait Clone {
+    fn clone(&self) -> Self;  // Retourne Self
+}
+```
+
+```rust
 trait Generic {
     fn method<T>(&self, x: T);  // Méthode générique
 }
 ```
 
-```
+```rust
 // Règles d'object safety :
 // 1. Pas de méthodes retournant Self
 // 2. Pas de méthodes génériques
 // 3. Pas de associated functions (sans &self)
 ```
 
-```
+```rust
 // Solution : diviser le trait
 trait Draw {
     fn draw(&self);
 }
 ```
 
-```
+```rust
 trait Clone {
     fn clone_box(&self) -> Box<dyn Draw>;
 }
 ```
 
-```
+```rust
 // Maintenant on peut avoir :
 let shapes: Vec<Box<dyn Draw>> = vec![
     Box::new(Circle),
@@ -366,14 +378,14 @@ let shapes: Vec<Box<dyn Draw>> = vec![
 
 ## 4.1 - Where clauses
 
-```
+```rust
 // Sans where (devient illisible)
 fn fonction<T: Display + Clone, U: Clone + Debug>(t: T, u: U) -> i32 {
     // ...
 }
 ```
 
-```
+```rust
 // Avec where (plus lisible)
 fn fonction<T, U>(t: T, u: U) -> i32
 where
@@ -404,7 +416,7 @@ where
 
 ## 4.2 - Bounds multiples
 
-```
+```rust
 use std::fmt::Display;
 // Multiple bounds avec +
 fn notify<T: Display + Clone>(item: T) {
@@ -430,7 +442,7 @@ fn retourne_closure() -> Box<dyn Fn(i32) -> i32> {
 
 ## 5. Default Implementations
 
-```
+```rust
 trait Summary {
     fn summarize_author(&self) -> String;
     // Implémentation par défaut
@@ -464,11 +476,11 @@ impl Summary for Tweet {
 
 ## 6. Supertraits
 
-```
+```rust
 use std::fmt::Display;
 ```
 
-```
+```rust
 // OutlinePrint nécessite Display
 trait OutlinePrint: Display {
     fn outline_print(&self) {
@@ -494,7 +506,7 @@ impl Display for Point {
 impl OutlinePrint for Point {}
 ```
 
-```
+```rust
 // Utilisation
 let p = Point { x: 1, y: 3 };
 p.outline_print();
@@ -502,12 +514,12 @@ p.outline_print();
 
 ## 7. Patterns avancés
 
-```
+```rust
 // 1. Newtype pattern
 struct Wrapper(Vec<String>);
 ```
 
-```
+```rust
 impl Display for Wrapper {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "[{}]", self.0.join(", "))
@@ -515,7 +527,7 @@ impl Display for Wrapper {
 }
 ```
 
-```
+```rust
 // 2. Extension methods
 trait VecExt<T> {
     fn first_or_default(&self) -> T
@@ -524,7 +536,7 @@ trait VecExt<T> {
 }
 ```
 
-```
+```rust
 impl<T: Clone> VecExt<T> for Vec<T> {
     fn first_or_default(&self) -> T
     where
@@ -539,7 +551,7 @@ trait MyTrait {
 }
 ```
 
-```
+```rust
 impl<T: Display> MyTrait for T {
     fn method(&self) {
         println!("{}", self);
@@ -551,7 +563,7 @@ impl<T: Display> MyTrait for T {
 
 ### Exercice 1 : Créer un trait Shape
 
-```
+```rust
 // Crée un trait Shape avec:
 // - area() -> f64
 // - perimeter() -> f64
@@ -587,31 +599,23 @@ impl Shape for Circle {
 
 ## Aide-mémoire
 
-|**Trait**|**Usage**|
+| Trait | Usage |
 |---|---|
-|**`Debug`**|println!("{:?}", x)|
-|**`Display`**|println!("{}", x)|
-|**`Clone`**|x.clone()|
-|**`Copy`**|Copie implicite|
-|**`Default`**|T::default()|
-|**`PartialEq`**|x == y|
+| `Debug` | `println!("{:?}", x)` |
+| `Display` | `println!("{}", x)` |
+| `Clone` | `x.clone()` |
+| `Copy` | Copie implicite |
+| `Default` | `T::default()` |
+| `PartialEq` | `x == y` |
 
-- **Traits** = interfaces de Rust 
+- **Traits** = interfaces de Rust.
+- **Associated types** = un type par implémentation.
+- **`dyn Trait`** = polymorphisme dynamique.
+- **Where clauses** = contraintes lisibles.
+- **Implémentation par défaut** = comportement de base réutilisable.
+- **Supertraits** = dépendances entre traits.
 
-- **Associated types** = un type par implémentation 
+## Conclusion
 
-- **dyn Trait** = polymorphisme dynamique 
-
-- **Where clauses** = contraintes lisibles 
-
-- **Default impl** = comportement par défaut 
-
-- **Supertraits** = dépendances entre traits 
-
-### Bravo !
-
-Tu maîtrises les traits avancés ! 
-
-Tu peux maintenant créer des APIs flexibles et réutilisables. C'est la clé du polymorphisme en Rust ! 
-
-I **Expert Rust en approche !** I
+Les traits avancés (associated types, trait objects, supertraits, blanket implementations)
+permettent de construire des APIs flexibles et réutilisables — la clé du polymorphisme en Rust.

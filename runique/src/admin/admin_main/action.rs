@@ -363,7 +363,7 @@ mod tests {
 
     fn user(is_superuser: bool, groupes: Vec<Groupe>) -> CurrentUser {
         CurrentUser {
-            id: 1,
+            id: crate::utils::pk::Pk::default(),
             username: "tester".to_string(),
             is_staff: true,
             is_superuser,
@@ -390,7 +390,7 @@ mod tests {
         perm.can_read = true;
         perm.can_update = true;
         let groupe = Groupe {
-            id: 1,
+            id: crate::utils::pk::Pk::default(),
             nom: "editors".to_string(),
             permissions: vec![perm],
         };

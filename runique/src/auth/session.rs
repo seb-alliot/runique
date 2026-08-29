@@ -526,7 +526,7 @@ pub async fn logout(
         evict_permissions(user_id);
     }
 
-    session.remove::<i32>(SESSION_USER_ID_KEY).await?;
+    session.remove::<Pk>(SESSION_USER_ID_KEY).await?;
     session.remove::<String>(SESSION_USER_USERNAME_KEY).await?;
     session.remove::<bool>(SESSION_USER_IS_STAFF_KEY).await?;
     session

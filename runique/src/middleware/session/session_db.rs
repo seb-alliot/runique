@@ -139,7 +139,7 @@ impl RuniqueSessionStore {
     }
 
     /// Invalidates all sessions of a user (password change, etc.).
-    pub async fn invalidate_all(&self, user_id: i32) -> Result<(), DbErr> {
+    pub async fn invalidate_all(&self, user_id: crate::utils::pk::Pk) -> Result<(), DbErr> {
         Entity::delete_many()
             .filter(Column::UserId.eq(user_id))
             .exec(&*self.db)
@@ -199,7 +199,7 @@ impl RuniqueSessionStore {
     }
 
     /// Returns all active sessions for a user.
-    pub async fn find_by_user(&self, user_id: i32) -> Result<Vec<Model>, DbErr> {
+    pub async fn find_by_user(&self, user_id: crate::utils::pk::Pk) -> Result<Vec<Model>, DbErr> {
         let now = chrono::Utc::now().naive_utc();
         Entity::find()
             .filter(Column::UserId.eq(user_id))

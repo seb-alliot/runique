@@ -120,6 +120,18 @@ fn test_schema_has_primary_key() {
     assert_eq!(schema.primary_key.as_ref().unwrap().name, "id");
 }
 
+#[cfg(feature = "pk-uuid")]
+#[test]
+fn test_schema_pk_is_uuid_and_not_auto_increment() {
+    let schema = runique::auth::user::schema();
+    let pk = schema.primary_key.unwrap();
+    assert!(matches!(pk.col_type, sea_query::ColumnType::Uuid));
+    assert!(
+        !pk.auto_increment,
+        "une PK UUID est générée côté application, jamais en DB"
+    );
+}
+
 // ═══════════════════════════════════════════════════════════════
 // BuiltinUserEntity — DB tests
 // ═══════════════════════════════════════════════════════════════

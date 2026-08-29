@@ -115,7 +115,7 @@ v.extend(vec![4, 5, 6]);
 println!("{:?}", v);  // [1, 2, 3, 4, 5, 6]
 ```
 
-II **Attention !** `remove()` et `insert()` sont coûteux car ils déplacent tous les éléments après l'index. Préfère `push()` et `pop()` quand c'est possible. 
+> **Attention !** `remove()` et `insert()` sont coûteux car ils déplacent tous les éléments après l'index. Préfère `push()` et `pop()` quand c'est possible. 
 
 ## 1.3 - Accéder aux éléments
 
@@ -207,7 +207,7 @@ let scores: HashMap<_, _> = equipes
 // };
 ```
 
-I **Ownership :** Quand tu insères une valeur dans une HashMap, elle prend ownership des valeurs qui n'implémentent pas `Copy` . Pour `i32` , c'est copié. Pour `String` , c'est déplacé. 
+> **Ownership :** Quand tu insères une valeur dans une HashMap, elle prend ownership des valeurs qui n'implémentent pas `Copy` . Pour `i32` , c'est copié. Pour `String` , c'est déplacé. 
 
 ## 2.2 - Accès et modification
 
@@ -315,7 +315,7 @@ for valeur in scores.values_mut() {
 }
 ```
 
-II **Ordre non garanti !** Les HashMap ne maintiennent pas d'ordre. Si tu as besoin d'ordre, utilise `BTreeMap` ou garde une liste séparée des clés. 
+> **Ordre non garanti !** Les HashMap ne maintiennent pas d'ordre. Si tu as besoin d'ordre, utilise `BTreeMap` ou garde une liste séparée des clés. 
 
 ## 3. Les HashSet<T>
 
@@ -578,7 +578,7 @@ for (nom, age) in noms.iter().zip(ages.iter()) {
 }
 ```
 
-I **Itérateurs paresseux :** Les itérateurs ne font rien tant que tu n'appelles pas une méthode de consommation comme `collect()` , `sum()` , ou une boucle `for` . 
+> **Itérateurs paresseux :** Les itérateurs ne font rien tant que tu n'appelles pas une méthode de consommation comme `collect()` , `sum()` , ou une boucle `for` . 
 
 ## 5. Choisir la bonne collection
 
@@ -758,4 +758,4 @@ Tu maîtrises maintenant les collections en Rust !
 
 • Pratiquer avec des projets réels • Explorer les lifetimes • Apprendre les traits avancés • Découvrir la programmation asynchrone 
 
-I **Tu es maintenant un vrai Rustacean !** I
+> **Tu es maintenant un vrai Rustacean !**

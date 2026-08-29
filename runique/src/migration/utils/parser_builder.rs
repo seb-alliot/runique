@@ -555,11 +555,27 @@ fn dsl_field_type_to_col_type(ty: &str) -> String {
 
 fn dsl_pk_to_col_type(ty: &str) -> String {
     match ty {
-        "i32" | "Pk" => "Integer".to_string(),
+        "i32" => "Integer".to_string(),
         "i64" => "BigInteger".to_string(),
         "uuid" => "Uuid".to_string(),
+        "Pk" => pk_alias_col_type(),
         _ => "Integer".to_string(),
     }
+}
+
+/// Column type for the generic `Pk` DSL keyword — follows the same global alias as
+/// `runique::utils::config::Pk`, so the migration SQL matches the ORM's actual column type.
+#[cfg(feature = "pk-uuid")]
+fn pk_alias_col_type() -> String {
+    "Uuid".to_string()
+}
+#[cfg(all(feature = "big-pk", not(feature = "pk-uuid")))]
+fn pk_alias_col_type() -> String {
+    "BigInteger".to_string()
+}
+#[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
+fn pk_alias_col_type() -> String {
+    "Integer".to_string()
 }
 
 // ── Conversion to ParsedSchema ──────────────────────────────────────────────
