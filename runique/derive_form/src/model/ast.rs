@@ -79,6 +79,21 @@ pub enum FormFieldKind {
     Checkbox,
     Bigint,
     Phone,
+    Char,
+    I8,
+    I16,
+    U32,
+    U64,
+    F32,
+    Timestamp,
+    TimestampTz,
+    JsonBinary,
+    Binary,
+    VarBinary,
+    Blob,
+    Cidr,
+    MacAddress,
+    Interval,
 }
 
 pub enum FormFieldAttr {
@@ -104,6 +119,12 @@ pub enum FormFieldAttr {
     AutoNowUpdate,
     /// UNIQUE constraint on the SQL column.
     Unique,
+    /// Excludes the column from generated migrations (Rust field exists, `derive_form`
+    /// doesn't manage it) — distinct from `#[form]`'s `field_readonly()`, which only
+    /// affects HTML rendering of a specific form instance.
+    Readonly,
+    /// Overrides the default auto-generated form label for this field.
+    Label(String),
     /// Foreign key constraint — `fk(table.column, action)`.
     Fk(FkDef),
     /// Field present in SQL schema but excluded from generated forms.
@@ -170,7 +191,6 @@ pub enum FieldOption {
     Required,
     Nullable,
     Unique,
-    Index,
     Default(syn::Lit),
     MaxLen(u32),
     MinLen(u32),
@@ -181,7 +201,6 @@ pub enum FieldOption {
     AutoNow,
     AutoNowUpdate,
     Readonly,
-    SelectAs(String),
     Label(String),
     #[allow(dead_code)]
     Help(String),

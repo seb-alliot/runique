@@ -98,7 +98,13 @@ impl UserEntity for BuiltinUserEntity {
         search!(Entity => Username eq username)
             .first(db)
             .await
-            .ok()
+            .trace(
+                crate::utils::runique_log::get_log()
+                    .db
+                    .as_ref()
+                    .and_then(|d| d.query),
+                "find user by username",
+            )
             .flatten()
     }
 
@@ -106,7 +112,13 @@ impl UserEntity for BuiltinUserEntity {
         search!(Entity => Email eq email)
             .first(db)
             .await
-            .ok()
+            .trace(
+                crate::utils::runique_log::get_log()
+                    .db
+                    .as_ref()
+                    .and_then(|d| d.query),
+                "find user by email",
+            )
             .flatten()
     }
 

@@ -2,13 +2,14 @@
 //! Couvre : RuniqueUser trait, BuiltinUserEntity (DB), schema()
 
 use crate::helpers::db;
+use crate::helpers::pk::pk;
 use runique::auth::{BuiltinUserEntity, UserEntity, user::Model, user_trait::RuniqueUser};
 
 // ─── Helper ──────────────────────────────────────────────────────────────────
 
 fn make_model() -> Model {
     Model {
-        id: 1,
+        id: pk(1),
         username: "alice".to_string(),
         email: "alice@example.com".to_string(),
         password: "hashed".to_string(),
@@ -27,7 +28,7 @@ fn make_model() -> Model {
 #[test]
 fn test_runique_user_id() {
     let model = make_model();
-    assert_eq!(model.user_id(), 1);
+    assert_eq!(model.user_id(), pk(1));
 }
 
 #[test]
@@ -136,6 +137,22 @@ fn test_schema_pk_is_uuid_and_not_auto_increment() {
 // BuiltinUserEntity — DB tests
 // ═══════════════════════════════════════════════════════════════
 
+#[cfg(feature = "pk-uuid")]
+const USERS_DDL: &str = "
+    CREATE TABLE eihwaz_users (
+        id          BLOB PRIMARY KEY,
+        username    TEXT NOT NULL UNIQUE,
+        email       TEXT NOT NULL UNIQUE,
+        password    TEXT NOT NULL,
+        is_active   INTEGER NOT NULL DEFAULT 1,
+        is_staff    INTEGER NOT NULL DEFAULT 0,
+        is_superuser INTEGER NOT NULL DEFAULT 0,
+        created_at  TEXT,
+        updated_at  TEXT
+    )
+";
+
+#[cfg(not(feature = "pk-uuid"))]
 const USERS_DDL: &str = "
     CREATE TABLE eihwaz_users (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -150,6 +167,23 @@ const USERS_DDL: &str = "
     )
 ";
 
+// Doit rester en phase avec `pk(1)` sous pk-uuid — pas de génération DB-side
+// possible pour une PK Uuid, l'id est fourni explicitement.
+#[cfg(feature = "pk-uuid")]
+fn insert_alice_sql() -> String {
+    format!(
+        "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_staff, is_superuser)
+         VALUES ({}, 'alice', 'alice@example.com', 'hash123', 1, 0, 0)",
+        crate::helpers::pk::pk_sql_literal(1)
+    )
+}
+
+#[cfg(not(feature = "pk-uuid"))]
+fn insert_alice_sql() -> String {
+    INSERT_ALICE.to_string()
+}
+
+#[cfg(not(feature = "pk-uuid"))]
 const INSERT_ALICE: &str = "
     INSERT INTO eihwaz_users (username, email, password, is_active, is_staff, is_superuser)
     VALUES ('alice', 'alice@example.com', 'hash123', 1, 0, 0)
@@ -158,8 +192,8 @@ const INSERT_ALICE: &str = "
 #[tokio::test]
 async fn test_find_by_id_found() {
     let db = db::fresh_db_with_schema(USERS_DDL).await;
-    db::exec(&db, INSERT_ALICE).await;
-    let user = BuiltinUserEntity::find_by_id(&db, 1).await;
+    db::exec(&db, &insert_alice_sql()).await;
+    let user = BuiltinUserEntity::find_by_id(&db, pk(1)).await;
     assert!(user.is_some());
     assert_eq!(user.unwrap().username, "alice");
 }
@@ -167,14 +201,14 @@ async fn test_find_by_id_found() {
 #[tokio::test]
 async fn test_find_by_id_not_found() {
     let db = db::fresh_db_with_schema(USERS_DDL).await;
-    let user = BuiltinUserEntity::find_by_id(&db, 999).await;
+    let user = BuiltinUserEntity::find_by_id(&db, pk(999)).await;
     assert!(user.is_none());
 }
 
 #[tokio::test]
 async fn test_find_by_username_found() {
     let db = db::fresh_db_with_schema(USERS_DDL).await;
-    db::exec(&db, INSERT_ALICE).await;
+    db::exec(&db, &insert_alice_sql()).await;
     let user = BuiltinUserEntity::find_by_username(&db, "alice").await;
     assert!(user.is_some());
     assert_eq!(user.unwrap().email, "alice@example.com");
@@ -190,7 +224,7 @@ async fn test_find_by_username_not_found() {
 #[tokio::test]
 async fn test_find_by_email_found() {
     let db = db::fresh_db_with_schema(USERS_DDL).await;
-    db::exec(&db, INSERT_ALICE).await;
+    db::exec(&db, &insert_alice_sql()).await;
     let user = BuiltinUserEntity::find_by_email(&db, "alice@example.com").await;
     assert!(user.is_some());
     assert_eq!(user.unwrap().username, "alice");
@@ -206,7 +240,7 @@ async fn test_find_by_email_not_found() {
 #[tokio::test]
 async fn test_update_password_success() {
     let db = db::fresh_db_with_schema(USERS_DDL).await;
-    db::exec(&db, INSERT_ALICE).await;
+    db::exec(&db, &insert_alice_sql()).await;
     let result = BuiltinUserEntity::update_password(&db, "alice@example.com", "newhash").await;
     assert!(result.is_ok());
     let user = BuiltinUserEntity::find_by_email(&db, "alice@example.com")

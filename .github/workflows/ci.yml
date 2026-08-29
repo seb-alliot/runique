@@ -54,12 +54,17 @@ jobs:
         run: cargo clippy --all-targets --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme -- -D warnings
         continue-on-error: ${{ matrix.rust == 'nightly' }}
 
+      # working-directory: runique — sans ça, cargo cible tout le workspace (demo-app
+      # inclus), qui hérite de la feature par unification et casse pour du code qui
+      # ne l'a jamais demandée (cf. contribution.rs, seeds/*.rs en i32 en dur).
       - name: Run clippy (big-pk)
         run: cargo clippy --all-targets --features big-pk -- -D warnings
+        working-directory: runique
         continue-on-error: ${{ matrix.rust == 'nightly' }}
 
       - name: Run clippy (pk-uuid)
         run: cargo clippy --all-targets --features pk-uuid -- -D warnings
+        working-directory: runique
         continue-on-error: ${{ matrix.rust == 'nightly' }}
 
       - name: Build

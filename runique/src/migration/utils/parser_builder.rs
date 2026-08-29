@@ -186,32 +186,12 @@ impl Parse for DslModel {
             }
         }
 
-        // Style detection:
-        //   v2 — anonymous `{ ... }` block (semantic types)
-        //   v1 — `fields: { ... }` block (SQL types)
+        // Anonymous `{ ... }` block — semantic types, SQL derived from them.
         let mut fields = Vec::new();
-        if input.peek(syn::token::Brace) {
-            // v2
-            let fields_content;
-            braced!(fields_content in input);
-            while !fields_content.is_empty() {
-                fields.push(DslField::parse(&fields_content)?);
-            }
-        } else {
-            // v1
-            let kw: Ident = input.parse()?;
-            if kw != "fields" {
-                return Err(syn::Error::new(
-                    kw.span(),
-                    "expected 'fields' or a `{ ... }` block",
-                ));
-            }
-            input.parse::<Token![:]>()?;
-            let fields_content;
-            braced!(fields_content in input);
-            while !fields_content.is_empty() {
-                fields.push(DslField::parse(&fields_content)?);
-            }
+        let fields_content;
+        braced!(fields_content in input);
+        while !fields_content.is_empty() {
+            fields.push(DslField::parse(&fields_content)?);
         }
 
         // optional blocks: relations, meta, form_fields (ignored), etc.
@@ -539,6 +519,7 @@ fn dsl_field_type_to_col_type(ty: &str) -> String {
         "uuid" => "Uuid".to_string(),
         "json" | "json_binary" => "Json".to_string(),
         "binary" | "blob" => "Binary".to_string(),
+        "var_binary" => "VarBinary".to_string(),
         "inet" | "cidr" | "mac_address" | "interval" | "ip" => "String".to_string(),
         // v2 semantic text → String (VARCHAR) or Text
         "email" | "url" | "password" | "slug" | "color" | "phone" => "String".to_string(),

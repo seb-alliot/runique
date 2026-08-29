@@ -1,10 +1,11 @@
 // Tests pour CurrentUser (auth_session)
+use crate::helpers::pk::pk;
 use runique::auth::session::CurrentUser;
 
 #[test]
 fn test_current_user_superuser() {
     let user = CurrentUser {
-        id: 3,
+        id: pk(3),
         username: "root".to_string(),
         is_staff: false,
         is_superuser: true,

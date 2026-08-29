@@ -15,6 +15,7 @@ pub mod assert;
 pub mod db;
 pub mod db_mariadb;
 pub mod db_postgres;
+pub mod pk;
 pub mod request;
 pub mod server;
 pub mod tera;

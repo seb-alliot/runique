@@ -42,7 +42,7 @@ fn user_entity() -> &'static str {
         User,
         table: "users",
         pk: id => i32,
-        fields: {
+        {
             username: String [unique],
             email: String [unique],
             password: String,
@@ -62,7 +62,7 @@ fn post_entity() -> &'static str {
         Post,
         table: "posts",
         pk: id => i64,
-        fields: {
+        {
             title: String,
             body: text [nullable],
             slug: String [unique],
@@ -82,7 +82,7 @@ fn comment_entity() -> &'static str {
         Comment,
         table: "comments",
         pk: id => i32,
-        fields: {
+        {
             content: text,
             user_id: i32,
             post_id: i32,
@@ -99,7 +99,7 @@ fn tag_entity() -> &'static str {
         Tag,
         table: "tags",
         pk: id => i32,
-        fields: {
+        {
             name: String [unique],
             slug: String [unique],
             description: text [nullable],
@@ -119,7 +119,7 @@ fn product_entity() -> &'static str {
         Product,
         table: "products",
         pk: id => i32,
-        fields: {
+        {
             name: String,
             price: f64,
             stock: i32,

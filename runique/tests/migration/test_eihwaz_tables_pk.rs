@@ -1,10 +1,11 @@
 // Tests pour le type de colonne PK/FK des tables internes RBAC (eihwaz_*) —
 // doit suivre `big-pk`/`pk-uuid`, cf. admin/table_admin/migrations_table.rs.
 
+#[cfg(feature = "pk-uuid")]
 use runique::admin::{
     create_eihwaz_history_table, create_eihwaz_reset_tokens_table, create_eihwaz_sessions_table,
-    create_eihwaz_users_groupes_table, create_eihwaz_users_table,
 };
+use runique::admin::{create_eihwaz_users_groupes_table, create_eihwaz_users_table};
 use sea_query::ColumnType;
 
 fn col_type(stmt: &sea_query::TableCreateStatement, col_name: &str) -> ColumnType {

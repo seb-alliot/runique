@@ -1,6 +1,7 @@
 //! Tests — CurrentUser
 //! Couvre : permissions_effectives, can_access_resource, can_access_admin
 
+use crate::helpers::pk::pk;
 use runique::admin::{Groupe, permissions::Permission};
 use runique::auth::session::CurrentUser;
 
@@ -18,7 +19,7 @@ fn perm(resource: &str, create: bool, read: bool, update: bool, delete: bool) ->
 
 fn user(is_staff: bool, is_superuser: bool, permissions_v: Vec<Permission>) -> CurrentUser {
     CurrentUser {
-        id: 1,
+        id: pk(1),
         username: "alice".to_string(),
         is_staff,
         is_superuser,
@@ -73,7 +74,7 @@ fn test_can_access_admin() {
 #[test]
 fn test_permissions_effectives_merge() {
     let u = CurrentUser {
-        id: 1,
+        id: pk(1),
         username: "".into(),
         is_staff: false,
         is_superuser: false,

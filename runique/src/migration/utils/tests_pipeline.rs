@@ -561,14 +561,44 @@ fn model_pk(pk: &str) -> String {
     )
 }
 
+// `pk: id => Pk` défère à l'alias global `runique::utils::config::Pk` — le SQL
+// généré doit suivre big-pk/pk-uuid, cf. runique/tests/migration/test_parser.rs
+// pour la même vérification côté proc-macro.
+#[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
 #[test]
-fn pk_i32_is_autoincrement_integer() {
+fn pk_generic_alias_is_autoincrement_integer_by_default() {
     let sql = generate_create_file(&parse_model(&model_pk("Pk")), &DbKind::Postgres);
     assert!(
         sql.contains(
             r#".col(ColumnDef::new(Alias::new("id")).integer().not_null().auto_increment().primary_key())"#
         ),
         "{sql}"
+    );
+}
+
+#[cfg(all(feature = "big-pk", not(feature = "pk-uuid")))]
+#[test]
+fn pk_generic_alias_is_autoincrement_big_integer_under_big_pk() {
+    let sql = generate_create_file(&parse_model(&model_pk("Pk")), &DbKind::Postgres);
+    assert!(
+        sql.contains(
+            r#".col(ColumnDef::new(Alias::new("id")).big_integer().not_null().auto_increment().primary_key())"#
+        ),
+        "{sql}"
+    );
+}
+
+#[cfg(feature = "pk-uuid")]
+#[test]
+fn pk_generic_alias_is_uuid_no_autoincrement_under_pk_uuid() {
+    let sql = generate_create_file(&parse_model(&model_pk("Pk")), &DbKind::Postgres);
+    assert!(
+        sql.contains(r#".col(ColumnDef::new(Alias::new("id")).uuid().not_null().primary_key())"#),
+        "{sql}"
+    );
+    assert!(
+        !sql.contains("auto_increment"),
+        "generic Pk alias under pk-uuid must not auto_increment:\n{sql}"
     );
 }
 

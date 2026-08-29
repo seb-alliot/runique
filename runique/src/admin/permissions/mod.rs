@@ -49,7 +49,9 @@ impl Permission {
 /// Group (includes its permissions per resource).
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Groupe {
-    pub id: crate::utils::pk::Pk,
+    // Toujours INTEGER, indépendant de `Pk` (big-pk/pk-uuid) — cf.
+    // groupe.rs::Model::id / migrations_table.rs::create_eihwaz_groupes_table.
+    pub id: i32,
     pub nom: String,
     pub permissions: Vec<Permission>,
 }

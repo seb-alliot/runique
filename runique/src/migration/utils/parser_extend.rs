@@ -253,6 +253,8 @@ fn extend_field_type_to_col_type(ty: &str) -> String {
         "i16" => "SmallInteger".to_string(),
         "i32" | "integer" | "int" => "Integer".to_string(),
         "i64" | "bigint" | "big_integer" => "BigInteger".to_string(),
+        "u32" => "Unsigned".to_string(),
+        "u64" => "BigUnsigned".to_string(),
         // Floats
         "f32" => "Float".to_string(),
         "f64" | "float" | "percent" | "double" => "Double".to_string(),
@@ -268,6 +270,8 @@ fn extend_field_type_to_col_type(ty: &str) -> String {
         "uuid" => "Uuid".to_string(),
         "json" | "json_binary" => "Json".to_string(),
         "binary" | "blob" => "Binary".to_string(),
+        "var_binary" => "VarBinary".to_string(),
+        "inet" | "cidr" | "mac_address" | "interval" | "ip" => "String".to_string(),
         // Choice (enum) — stored as String
         "choice" | "radio" => "String".to_string(),
         _ => "String".to_string(),

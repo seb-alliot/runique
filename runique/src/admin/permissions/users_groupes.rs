@@ -7,8 +7,9 @@ use sea_orm::entity::prelude::*;
 pub struct Model {
     #[sea_orm(primary_key)]
     pub user_id: Pk,
+    // Toujours INTEGER, indépendant de `Pk` — cf. groupe.rs::Model::id.
     #[sea_orm(primary_key)]
-    pub groupe_id: crate::utils::pk::Pk,
+    pub groupe_id: i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

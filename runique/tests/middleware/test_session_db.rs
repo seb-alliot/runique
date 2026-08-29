@@ -1,9 +1,23 @@
 //! Tests — middleware/session/session_db.rs : RuniqueSessionStore
 
 use crate::helpers::db;
+use crate::helpers::pk::pk;
 use runique::middleware::session::session_db::RuniqueSessionStore;
 use std::sync::Arc;
 
+#[cfg(feature = "pk-uuid")]
+const SESSIONS_DDL: &str = "
+    CREATE TABLE eihwaz_sessions (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        cookie_id   TEXT NOT NULL UNIQUE,
+        user_id     TEXT NOT NULL,
+        session_id  TEXT NOT NULL,
+        session_data TEXT,
+        expires_at  TEXT NOT NULL
+    )
+";
+
+#[cfg(not(feature = "pk-uuid"))]
 const SESSIONS_DDL: &str = "
     CREATE TABLE eihwaz_sessions (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -42,7 +56,7 @@ async fn make_store() -> RuniqueSessionStore {
 async fn test_session_db_create_and_find() {
     let store = make_store().await;
     store
-        .create("cookie-1", 1, "sess-1", future_expiry())
+        .create("cookie-1", pk(1), "sess-1", future_expiry())
         .await
         .unwrap();
 
@@ -50,7 +64,7 @@ async fn test_session_db_create_and_find() {
     assert!(result.is_some());
     let s = result.unwrap();
     assert_eq!(s.cookie_id, "cookie-1");
-    assert_eq!(s.user_id, 1);
+    assert_eq!(s.user_id, pk(1));
 }
 
 #[tokio::test]
@@ -64,7 +78,7 @@ async fn test_session_db_find_absent_returns_none() {
 async fn test_session_db_find_expired_returns_none() {
     let store = make_store().await;
     store
-        .create("cookie-expired", 1, "sess-exp", past_expiry())
+        .create("cookie-expired", pk(1), "sess-exp", past_expiry())
         .await
         .unwrap();
 
@@ -80,7 +94,7 @@ async fn test_session_db_find_expired_returns_none() {
 async fn test_session_db_delete() {
     let store = make_store().await;
     store
-        .create("cookie-del", 1, "sess-del", future_expiry())
+        .create("cookie-del", pk(1), "sess-del", future_expiry())
         .await
         .unwrap();
     store.delete("cookie-del").await.unwrap();
@@ -104,21 +118,21 @@ async fn test_session_db_delete_nonexistent_ok() {
 async fn test_session_db_invalidate_other_sessions() {
     let store = make_store().await;
     store
-        .create("cookie-a", 5, "sess-a", future_expiry())
+        .create("cookie-a", pk(5), "sess-a", future_expiry())
         .await
         .unwrap();
     store
-        .create("cookie-b", 5, "sess-b", future_expiry())
+        .create("cookie-b", pk(5), "sess-b", future_expiry())
         .await
         .unwrap();
     store
-        .create("cookie-c", 5, "sess-c", future_expiry())
+        .create("cookie-c", pk(5), "sess-c", future_expiry())
         .await
         .unwrap();
 
     // Garde cookie-b, supprime les autres de l'user 5
     store
-        .invalidate_other_sessions(5, "cookie-b")
+        .invalidate_other_sessions(pk(5), "cookie-b")
         .await
         .unwrap();
 
@@ -135,15 +149,15 @@ async fn test_session_db_invalidate_other_sessions() {
 async fn test_session_db_invalidate_all() {
     let store = make_store().await;
     store
-        .create("cookie-x", 7, "sess-x", future_expiry())
+        .create("cookie-x", pk(7), "sess-x", future_expiry())
         .await
         .unwrap();
     store
-        .create("cookie-y", 7, "sess-y", future_expiry())
+        .create("cookie-y", pk(7), "sess-y", future_expiry())
         .await
         .unwrap();
 
-    store.invalidate_all(7).await.unwrap();
+    store.invalidate_all(pk(7)).await.unwrap();
 
     assert!(store.find_by_cookie_id("cookie-x").await.unwrap().is_none());
     assert!(store.find_by_cookie_id("cookie-y").await.unwrap().is_none());
@@ -159,7 +173,7 @@ async fn test_session_db_upsert_inserts_when_absent() {
     store
         .upsert_session(
             "cookie-up",
-            3,
+            pk(3),
             future_expiry(),
             Some("{\"key\":\"value\"}".to_string()),
         )
@@ -167,7 +181,7 @@ async fn test_session_db_upsert_inserts_when_absent() {
         .unwrap();
 
     let s = store.find_by_cookie_id("cookie-up").await.unwrap().unwrap();
-    assert_eq!(s.user_id, 3);
+    assert_eq!(s.user_id, pk(3));
     assert_eq!(s.session_data, Some("{\"key\":\"value\"}".to_string()));
 }
 
@@ -175,14 +189,14 @@ async fn test_session_db_upsert_inserts_when_absent() {
 async fn test_session_db_upsert_updates_data_on_existing() {
     let store = make_store().await;
     store
-        .create("cookie-ud", 2, "sess-ud", future_expiry())
+        .create("cookie-ud", pk(2), "sess-ud", future_expiry())
         .await
         .unwrap();
 
     store
         .upsert_session(
             "cookie-ud",
-            2,
+            pk(2),
             future_expiry(),
             Some("{\"v\":2}".to_string()),
         )
@@ -204,11 +218,11 @@ async fn test_session_db_upsert_refreshes_expiry_not_frozen() {
         .checked_add_signed(chrono::Duration::minutes(5))
         .unwrap();
     store
-        .upsert_session("cookie-exp", 4, soon, Some("{}".to_string()))
+        .upsert_session("cookie-exp", pk(4), soon, Some("{}".to_string()))
         .await
         .unwrap();
     store
-        .upsert_session("cookie-exp", 4, future_expiry(), Some("{}".to_string()))
+        .upsert_session("cookie-exp", pk(4), future_expiry(), Some("{}".to_string()))
         .await
         .unwrap();
 
@@ -232,19 +246,19 @@ async fn test_session_db_upsert_refreshes_expiry_not_frozen() {
 async fn test_session_db_find_by_user() {
     let store = make_store().await;
     store
-        .create("cookie-u1", 10, "sess-u1", future_expiry())
+        .create("cookie-u1", pk(10), "sess-u1", future_expiry())
         .await
         .unwrap();
     store
-        .create("cookie-u2", 10, "sess-u2", future_expiry())
+        .create("cookie-u2", pk(10), "sess-u2", future_expiry())
         .await
         .unwrap();
     store
-        .create("cookie-other", 99, "sess-other", future_expiry())
+        .create("cookie-other", pk(99), "sess-other", future_expiry())
         .await
         .unwrap();
 
-    let sessions = store.find_by_user(10).await.unwrap();
+    let sessions = store.find_by_user(pk(10)).await.unwrap();
     assert_eq!(sessions.len(), 2);
 }
 
@@ -252,15 +266,15 @@ async fn test_session_db_find_by_user() {
 async fn test_session_db_find_by_user_excludes_expired() {
     let store = make_store().await;
     store
-        .create("cookie-active", 11, "sess-act", future_expiry())
+        .create("cookie-active", pk(11), "sess-act", future_expiry())
         .await
         .unwrap();
     store
-        .create("cookie-old", 11, "sess-old", past_expiry())
+        .create("cookie-old", pk(11), "sess-old", past_expiry())
         .await
         .unwrap();
 
-    let sessions = store.find_by_user(11).await.unwrap();
+    let sessions = store.find_by_user(pk(11)).await.unwrap();
     assert_eq!(sessions.len(), 1);
     assert_eq!(sessions[0].cookie_id, "cookie-active");
 }

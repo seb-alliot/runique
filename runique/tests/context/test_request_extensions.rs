@@ -1,5 +1,6 @@
 // Tests pour RequestExtensions — builder pattern + inject
 
+use crate::helpers::pk::pk;
 use axum::{body::Body, http::Request};
 use runique::auth::session::CurrentUser;
 use runique::context::RequestExtensions;
@@ -49,7 +50,7 @@ fn test_with_csp_nonce() {
 #[test]
 fn test_with_current_user() {
     let user = CurrentUser {
-        id: 1,
+        id: pk(1),
         username: "alice".to_string(),
         is_staff: false,
         is_superuser: false,
@@ -89,7 +90,7 @@ fn test_inject_request_csp_nonce() {
 #[test]
 fn test_inject_request_current_user() {
     let user = CurrentUser {
-        id: 42,
+        id: pk(42),
         username: "bob".to_string(),
         is_staff: true,
         is_superuser: false,

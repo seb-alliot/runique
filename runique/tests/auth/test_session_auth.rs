@@ -18,6 +18,7 @@ use runique::utils::constante::{
 
 use crate::helpers::{
     assert::{assert_body_str, assert_status},
+    pk::pk,
     request,
 };
 
@@ -52,7 +53,7 @@ async fn test_is_authenticated_when_no_user_in_session() {
 async fn test_is_authenticated_after_login() {
     async fn handler(session: Session) -> impl IntoResponse {
         let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
-        login(&session, &db, 1, "alice", false, false, None, false)
+        login(&session, &db, pk(1), "alice", false, false, None, false)
             .await
             .unwrap();
         if is_authenticated(&session).await {
@@ -72,16 +73,16 @@ async fn test_is_authenticated_after_login() {
 async fn test_login_sets_id_and_username() {
     async fn handler(session: Session) -> impl IntoResponse {
         let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
-        login(&session, &db, 42, "bob", false, false, None, false)
+        login(&session, &db, pk(42), "bob", false, false, None, false)
             .await
             .unwrap();
-        let id = get_user_id(&session).await.unwrap_or(0);
+        let id = get_user_id(&session).await.unwrap_or_default();
         let username = get_username(&session).await.unwrap_or_default();
         format!("{}/{}", id, username)
     }
 
     let res = request::get(build_app(get(handler)), "/test").await;
-    assert_body_str(res, "42/bob").await;
+    assert_body_str(res, &format!("{}/bob", pk(42))).await;
 }
 
 // ── login — tous les champs ───────────────────────────────────────────────────
@@ -90,11 +91,11 @@ async fn test_login_sets_id_and_username() {
 async fn test_login_sets_all_fields() {
     async fn handler(session: Session) -> impl IntoResponse {
         let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
-        login(&session, &db, 7, "admin", true, true, None, false)
+        login(&session, &db, pk(7), "admin", true, true, None, false)
             .await
             .unwrap();
 
-        let id = get_user_id(&session).await.unwrap_or(0);
+        let id = get_user_id(&session).await.unwrap_or_default();
         let username = get_username(&session).await.unwrap_or_default();
         let is_staff = session
             .get::<bool>(SESSION_USER_IS_STAFF_KEY)
@@ -126,7 +127,7 @@ async fn test_login_sets_all_fields() {
     }
 
     let res = request::get(build_app(get(handler)), "/test").await;
-    assert_body_str(res, "7/admin/true/true/0").await;
+    assert_body_str(res, &format!("{}/admin/true/true/0", pk(7))).await;
 }
 
 // ── logout ────────────────────────────────────────────────────────────────────
@@ -135,7 +136,7 @@ async fn test_login_sets_all_fields() {
 async fn test_logout_clears_session_keys() {
     async fn handler(session: Session) -> impl IntoResponse {
         let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
-        login(&session, &db, 1, "alice", true, false, None, false)
+        login(&session, &db, pk(1), "alice", true, false, None, false)
             .await
             .unwrap();
         logout(&session, None).await.unwrap();
@@ -176,7 +177,7 @@ async fn test_logout_clears_session_keys() {
 async fn test_is_not_authenticated_after_logout() {
     async fn handler(session: Session) -> impl IntoResponse {
         let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
-        login(&session, &db, 1, "alice", false, false, None, false)
+        login(&session, &db, pk(1), "alice", false, false, None, false)
             .await
             .unwrap();
         logout(&session, None).await.unwrap();
@@ -211,7 +212,7 @@ async fn test_get_user_id_returns_none_when_not_logged_in() {
 async fn test_get_username_after_login() {
     async fn handler(session: Session) -> impl IntoResponse {
         let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
-        login(&session, &db, 1, "charlie", false, false, None, false)
+        login(&session, &db, pk(1), "charlie", false, false, None, false)
             .await
             .unwrap();
         get_username(&session).await.unwrap_or_default()
@@ -240,7 +241,7 @@ async fn test_is_admin_authenticated_not_logged_in() {
 async fn test_is_admin_authenticated_plain_user() {
     async fn handler(session: Session) -> impl IntoResponse {
         let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
-        login(&session, &db, 10, "user", false, false, None, false)
+        login(&session, &db, pk(10), "user", false, false, None, false)
             .await
             .unwrap();
         if is_admin_authenticated(&session).await {
@@ -257,7 +258,7 @@ async fn test_is_admin_authenticated_plain_user() {
 async fn test_is_admin_authenticated_staff() {
     async fn handler(session: Session) -> impl IntoResponse {
         let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
-        login(&session, &db, 11, "staff", true, false, None, false)
+        login(&session, &db, pk(11), "staff", true, false, None, false)
             .await
             .unwrap();
         if is_admin_authenticated(&session).await {
@@ -274,7 +275,7 @@ async fn test_is_admin_authenticated_staff() {
 async fn test_is_admin_authenticated_superuser() {
     async fn handler(session: Session) -> impl IntoResponse {
         let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
-        login(&session, &db, 12, "su", false, true, None, false)
+        login(&session, &db, pk(12), "su", false, true, None, false)
             .await
             .unwrap();
         if is_admin_authenticated(&session).await {

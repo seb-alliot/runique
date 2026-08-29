@@ -13,7 +13,7 @@
 
 use crate::helpers::admin_server::{
     ADMIN_PREFIX, SEED_GROUPE_ID, SEED_HISTORY_BATCH_ID, SUPERUSER_USERNAME, admin_server_addr,
-    admin_test_client, assert_get_ok, droit_id, login_as_superuser,
+    admin_test_client, assert_get_ok, droit_id, login_as_superuser, seed_superuser_id_str,
 };
 use serial_test::serial;
 
@@ -68,7 +68,7 @@ async fn test_admin_crawl_detail_create_edit_delete_bulk() {
     // users/groupes ont un id entier simple, droits un id composite
     // "{groupe_id}:{resource_key}".
     let ids: [(&str, String); 3] = [
-        ("users", "1".to_string()),
+        ("users", seed_superuser_id_str()),
         ("groupes", SEED_GROUPE_ID.to_string()),
         ("droits", droit_id()),
     ];
