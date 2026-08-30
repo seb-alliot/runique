@@ -171,7 +171,9 @@ fn test_templates_tracing_default_all_none() {
 
 #[test]
 fn test_templates_tracing_builder_chain() {
-    let tt = TemplatesTracing::new().load(Level::INFO).render(Level::WARN);
+    let tt = TemplatesTracing::new()
+        .load(Level::INFO)
+        .render(Level::WARN);
     assert_eq!(tt.load, Some(Level::INFO));
     assert_eq!(tt.render, Some(Level::WARN));
 }
