@@ -17,10 +17,10 @@ use runique::app::staging::{
     TrustedProxiesConfig,
 };
 use runique::app::{BuildError, BuildErrorKind, CheckError, CheckReport, RuniqueAppBuilder};
-use runique::middleware::TrustedProxies;
 use runique::auth::session::{AdminAuth, AdminLoginResult};
 use runique::config::app::RuniqueConfig;
 use runique::middleware::MiddlewareConfig;
+use runique::middleware::TrustedProxies;
 use sea_orm::DatabaseConnection;
 use tower_sessions::cookie::time::Duration;
 
@@ -510,7 +510,9 @@ fn test_middleware_staging_is_ready_toujours_true() {
 #[test]
 fn test_cors_wildcard_with_credentials_fails_validation() {
     let ms = MiddlewareStaging::new(true).with_cors(|c| c.any_origin().allow_credentials(true));
-    let err = ms.validate().expect_err("wildcard + credentials doit échouer");
+    let err = ms
+        .validate()
+        .expect_err("wildcard + credentials doit échouer");
     assert!(matches!(err.kind, BuildErrorKind::ValidationFailed(_)));
 }
 
@@ -540,7 +542,11 @@ fn test_cors_no_config_validates_ok() {
 #[test]
 fn test_permissions_policy_config_default_denies_geolocation() {
     let cfg = PermissionsPolicyConfig::default();
-    assert!(cfg.get_policy().to_header_value().contains("geolocation=()"));
+    assert!(
+        cfg.get_policy()
+            .to_header_value()
+            .contains("geolocation=()")
+    );
 }
 
 #[test]
@@ -575,8 +581,7 @@ fn test_permissions_policy_config_allow_any() {
 
 #[test]
 fn test_permissions_policy_config_allow_list() {
-    let cfg =
-        PermissionsPolicyConfig::default().allow("payment", vec!["https://pay.example.com"]);
+    let cfg = PermissionsPolicyConfig::default().allow("payment", vec!["https://pay.example.com"]);
     assert!(
         cfg.get_policy()
             .to_header_value()
@@ -620,9 +625,7 @@ fn test_trusted_proxies_config_none_trusts_nothing() {
 
 #[test]
 fn test_trusted_proxies_config_proxy_adds_exact_ip() {
-    let cfg = TrustedProxiesConfig::default()
-        .none()
-        .proxy("203.0.113.5");
+    let cfg = TrustedProxiesConfig::default().none().proxy("203.0.113.5");
     let proxies = cfg.get_proxies();
     assert!(proxies.is_trusted(&"203.0.113.5".parse().unwrap()));
     assert!(!proxies.is_trusted(&"203.0.113.6".parse().unwrap()));
@@ -630,7 +633,9 @@ fn test_trusted_proxies_config_proxy_adds_exact_ip() {
 
 #[test]
 fn test_trusted_proxies_config_cidr_adds_range() {
-    let cfg = TrustedProxiesConfig::default().none().cidr("203.0.113.0/24");
+    let cfg = TrustedProxiesConfig::default()
+        .none()
+        .cidr("203.0.113.0/24");
     let proxies = cfg.get_proxies();
     assert!(proxies.is_trusted(&"203.0.113.42".parse().unwrap()));
     assert!(!proxies.is_trusted(&"203.0.114.1".parse().unwrap()));

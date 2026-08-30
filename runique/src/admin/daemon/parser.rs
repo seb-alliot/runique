@@ -763,7 +763,9 @@ mod tests {
 
     #[test]
     fn missing_title_is_an_error() {
-        let result = parse_admin_file(&wrap(r#"users: users::Model => UserForm { id_type: Uuid }"#));
+        let result = parse_admin_file(&wrap(
+            r#"users: users::Model => UserForm { id_type: Uuid }"#,
+        ));
         assert!(result.is_err(), "title manquant devrait échouer");
     }
 
@@ -962,7 +964,10 @@ mod tests {
             }"#,
         ))
         .unwrap_err();
-        assert!(err.contains("must be 'table.col'"), "message inattendu: {err}");
+        assert!(
+            err.contains("must be 'table.col'"),
+            "message inattendu: {err}"
+        );
     }
 
     #[test]
@@ -973,7 +978,10 @@ mod tests {
                 list_exclude: ["password", "secret"]
             }"#,
         );
-        assert_eq!(r.list_exclude, vec!["password".to_string(), "secret".to_string()]);
+        assert_eq!(
+            r.list_exclude,
+            vec!["password".to_string(), "secret".to_string()]
+        );
     }
 
     #[test]
@@ -1069,8 +1077,7 @@ mod tests {
     fn resource_and_configure_block_together_are_parsed() {
         let source = format!(
             "admin! {{\n{}\nconfigure {{\n{}\n}}\n}}",
-            r#"users: users::Model => UserForm { title: "Users" }"#,
-            r#"droits: { hidden: true }"#
+            r#"users: users::Model => UserForm { title: "Users" }"#, r#"droits: { hidden: true }"#
         );
         let parsed = parse_admin_file(&source).expect("mix ressource + configure valide");
         assert_eq!(parsed.resources.len(), 1);
