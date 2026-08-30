@@ -104,19 +104,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## État de l'admin bêta
 
-Comportement du démon admin dans `start` :
+Comportement de `runique start` :
 
 - vérifie si `.with_admin(...)` existe dans `src/main.rs`
-- démarre le watcher admin quand activé
+- génère et lance uniquement si activé
 - sinon quitte avec un message explicite
 
 Les ressources admin sont déclarées dans `src/admin.rs` via `admin!`.
 
-Le workflow :
+Le workflow, séquentiel sur un seul thread :
 
 1. analyser les déclarations `admin!`
 2. générer le code admin sous `src/admins/`
-3. rafraîchir en cas de changement avec le mode watcher
+3. lancer `cargo run --release` (bloquant)
+
+Ce n'est pas un watcher : pour régénérer après une modification de `src/admin.rs`, relancez `runique start`.
 
 Limites actuelles de la bêta :
 

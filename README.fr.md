@@ -92,9 +92,10 @@ cd myapp
 cargo run            # votre app est un binaire Rust normal
 ```
 
-> `runique start` ne lance pas l'app — ça reste `cargo run`. C'est le
-> générateur de code admin : il surveille vos déclarations `admin!` et
-> régénère le code CRUD qui en découle (voir [Admin (bêta)](#admin-beta)).
+> `runique start` régénère le code CRUD admin depuis vos déclarations
+> `admin!`, puis lance `cargo run` lui-même — une étape de génération
+> one-shot enchaînée au lancement, pas un watcher en tâche de fond (voir
+> [Admin (bêta)](#admin-beta)). Un simple `cargo run` saute la régénération.
 
 Un `main.rs` allégé (version complète dans `demo-app/src/main.rs`) :
 
@@ -150,7 +151,7 @@ Version du workspace (source de vérité) : **2.2.0**.
 `runique` fournit :
 
 - `runique new <name>`
-- `runique start [--main src/main.rs] [--admin src/admin.rs]` — le générateur/watcher de code admin, pas le lanceur de l'app (ça, c'est `cargo run`)
+- `runique start [--main src/main.rs] [--admin src/admin.rs]` — régénère le code admin puis lance l'app (one-shot, pas un watcher)
 - `runique create-superuser`
 - `runique makemigrations --entities src/entities --migrations migration/src [--force false]`
 - `runique migration up|down|status --migrations migration/src`
@@ -166,13 +167,13 @@ Version du workspace (source de vérité) : **2.2.0**.
 
 ## Admin (bêta)
 
-Le daemon admin, lancé via `runique start`, fait trois choses :
+`runique start` fait trois choses, dans l'ordre, sur un seul thread :
 
 1. il parse vos déclarations `admin!` dans `src/admin.rs`
 2. il génère le code CRUD sous `src/admins/`
-3. il le régénère à chaque changement en mode watcher
+3. il lance `cargo run --release`, bloquant
 
-Il vérifie d'abord si `.with_admin(...)` existe dans `src/main.rs`, et ne démarre la surveillance que si c'est le cas — sinon il quitte avec un message expliquant pourquoi.
+Il vérifie d'abord si `.with_admin(...)` existe dans `src/main.rs`, et ne génère/lance que si c'est le cas — sinon il quitte avec un message expliquant pourquoi. Pas de surveillance continue : relancez `runique start` pour régénérer après une modification de `src/admin.rs`.
 
 C'est encore de la bêta : les permissions fonctionnent surtout au niveau des ressources pour l'instant, le dossier généré `src/admins/` est écrasé à chaque régénération, et le durcissement est en cours plutôt que terminé.
 

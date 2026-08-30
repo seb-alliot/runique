@@ -1,6 +1,6 @@
 # Génération de code admin
 
-## Comportement du daemon
+## Comportement de `runique start`
 
 `runique start` n'est **pas** un watcher en tâche de fond : c'est une génération **one-shot séquentielle**, suivie du lancement bloquant de l'application.
 

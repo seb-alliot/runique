@@ -92,9 +92,10 @@ cd myapp
 cargo run            # your app is a normal Rust binary
 ```
 
-> `runique start` doesn't launch the app — that's still `cargo run`. It's the
-> admin code generator: it watches your `admin!` declarations and regenerates
-> the CRUD code behind them (see [Admin (beta)](#admin-beta)).
+> `runique start` regenerates the admin CRUD code from your `admin!`
+> declarations, then launches `cargo run` itself — it's a one-shot generation
+> step chained into the launch, not a background watcher (see
+> [Admin (beta)](#admin-beta)). Plain `cargo run` skips regeneration.
 
 A trimmed-down `main.rs` (the full version lives in `demo-app/src/main.rs`):
 
@@ -150,7 +151,7 @@ Workspace version (source of truth): **2.2.0**.
 `runique` gives you:
 
 - `runique new <name>`
-- `runique start [--main src/main.rs] [--admin src/admin.rs]` — the admin code generator/watcher, not the app launcher (that's `cargo run`)
+- `runique start [--main src/main.rs] [--admin src/admin.rs]` — regenerates admin code, then launches the app (one-shot, not a watcher)
 - `runique create-superuser`
 - `runique makemigrations --entities src/entities --migrations migration/src [--force false]`
 - `runique migration up|down|status --migrations migration/src`
@@ -166,13 +167,13 @@ Workspace version (source of truth): **2.2.0**.
 
 ## Admin (beta)
 
-The admin daemon, started with `runique start`, does three things:
+`runique start` does three things, in order, on a single thread:
 
 1. parses your `admin!` declarations in `src/admin.rs`
 2. generates the CRUD code under `src/admins/`
-3. regenerates it on every change while running in watcher mode
+3. runs `cargo run --release`, blocking
 
-It checks for `.with_admin(...)` in `src/main.rs` first and only starts watching if that's present — otherwise it exits with a message telling you why.
+It checks for `.with_admin(...)` in `src/main.rs` first and only generates/launches if that's present — otherwise it exits with a message telling you why. There's no continuous watching: run `runique start` again to regenerate after editing `src/admin.rs`.
 
 It's still beta: permissions work mainly at the resource level for now, the generated `src/admins/` folder gets overwritten on each regeneration, and hardening is ongoing rather than finished.
 

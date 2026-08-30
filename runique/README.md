@@ -87,19 +87,21 @@ async fn main() {
 
 ## Admin beta status
 
-Admin daemon behavior in `start`:
+`runique start` behavior:
 
 - checks whether `.with_admin(...)` exists in `src/main.rs`
-- starts the admin watcher when enabled
+- generates and launches only when enabled
 - otherwise exits with an explicit hint
 
 Admin resources are declared in `src/admin.rs` using `admin!`.
 
-The workflow:
+The workflow, sequential on a single thread:
 
 1. parse `admin!` declarations
 2. generate admin code under `src/admins/`
-3. refresh on changes with watcher mode
+3. run `cargo run --release` (blocking)
+
+This is not a watcher: to regenerate after changing `src/admin.rs`, run `runique start` again.
 
 Current beta limits:
 
