@@ -51,7 +51,7 @@ Un ancien design lançait la génération dans un thread séparé en parallèle 
 
 | Section | Description |
 | --- | --- |
-| [Daemon & génération](/docs/fr/admin/declaration-daemon) | Watcher, fichiers
+| [Génération de code admin](/docs/fr/admin/declaration-daemon) | Fichiers générés
 | [Macro `admin!`](/docs/fr/admin/declaration-macro) | Déclaration des ressources administrables
 
 ## Voir aussi

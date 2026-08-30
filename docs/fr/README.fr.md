@@ -150,7 +150,7 @@ Version du workspace (source de vérité) : **2.2.0**.
 `runique` fournit :
 
 - `runique new <name>`
-- `runique start [--main src/main.rs] [--admin src/admin.rs]` — générateur/watcher de code admin, **pas** le lanceur de l'app (lancez l'app avec `cargo run`)
+- `runique start [--main src/main.rs] [--admin src/admin.rs]` — générateur de code admin (one-shot) + lancement de l'app en une seule commande
 - `runique create-superuser`
 - `runique makemigrations --entities src/entities --migrations migration/src [--force false]`
 - `runique migration up|down|status --migrations migration/src`
@@ -166,13 +166,13 @@ Version du workspace (source de vérité) : **2.2.0**.
 
 ## Admin (bêta)
 
-Le daemon admin, lancé via `runique start` :
+`runique start` exécute, séquentiellement sur un seul thread :
 
 1. parse vos déclarations `admin!` dans `src/admin.rs`
 2. génère le code CRUD sous `src/admins/`
-3. rafraîchit à chaque changement en mode watcher
+3. lance `cargo run --release` (bloquant)
 
-Il vérifie si `.with_admin(...)` existe dans `src/main.rs` et ne démarre le watcher que si c'est activé, sinon il quitte avec un message explicite.
+Il vérifie d'abord si `.with_admin(...)` existe dans `src/main.rs` et ne génère/lance que si c'est activé, sinon il quitte avec un message explicite. Ce n'est pas un watcher : pour régénérer après une modification de `src/admin.rs`, relancez `runique start`.
 
 Limites actuelles (bêta) : permissions principalement au niveau des ressources, le dossier généré `src/admins/` est écrasé, durcissement progressif en cours.
 

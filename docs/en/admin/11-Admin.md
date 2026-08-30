@@ -20,7 +20,7 @@ admin! {
 | --- | --- |
 | [Setup](/docs/en/admin/setup) | Wire the admin into an existing project, create a superuser |
 | [CLI](/docs/en/admin/declaration) | `runique start` command, general workflow |
-| [Daemon & generation](/docs/en/admin/declaration-daemon) | Generated files, watcher behaviour |
+| [Admin code generation](/docs/en/admin/declaration-daemon) | Generated files, `runique start` flow |
 | [Macro `admin!`](/docs/en/admin/declaration-macro) | Full syntax, required and optional fields |
 | [User creation](/docs/en/admin/user-creation) | Full flow creation → email → activation, custom model |
 | [List view](/docs/en/admin/list) | Pagination, sorting, search, `list_display`, `list_filter` |

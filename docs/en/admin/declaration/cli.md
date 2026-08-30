@@ -51,7 +51,7 @@ An earlier design ran generation on a separate thread in parallel with `cargo ru
 
 | Section | Description |
 | --- | --- |
-| [Daemon & generation](/docs/en/admin/declaration-daemon) | Watcher, generated files |
+| [Admin code generation](/docs/en/admin/declaration-daemon) | Generated files |
 | [Macro `admin!`](/docs/en/admin/declaration-macro) | Declaring administrable resources |
 
 ## See also

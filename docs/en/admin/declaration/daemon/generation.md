@@ -1,6 +1,6 @@
-# Daemon & code generation
+# Admin code generation
 
-## Daemon behaviour
+## `runique start` behaviour
 
 `runique start` is **not** a background watcher: it's a **sequential one-shot generation**, followed by a blocking launch of the application.
 
