@@ -98,3 +98,16 @@ Merise confirmée complète (7 tables réelles).
 - ~~**CFG1** secret_key vide~~ → ✅ CORRIGÉ (échec boot prod, cf. section Correctifs)
 
 Registre complet : [anomalies.md](anomalies.md).
+
+## Session 2026-08-30 — derive_form/proc-macro.md mis à jour (retrait v1)
+
+Chantier code (hors diagrammes) : suppression de la grammaire v1 de `model!{}` (`fields: {}`),
+parité v2 complétée (types manquants, `readonly`/`label`, `index`/`select_as` confirmés morts et
+supprimés), feature `pk-uuid` + `Pk` utilisable sur un champ normal (pas seulement `pk:`).
+Diagramme `derive_form/proc-macro.md` réécrit en conséquence : classe AST scindée en
+« grammaire DSL » (`FormFieldDecl`/`FormFieldKind`/`FormFieldAttr`, jusqu'ici absente du
+diagramme) et « représentation universelle » (`FieldDef`/`FieldType`/`FieldOption`, mise à jour
+avec les types actuels) ; pipeline étendu au flux `extend!{}` (jusqu'ici non représenté) ;
+nouvelle entrée **DF4** 🟢 documentant les 3 bugs silencieux fermés pendant l'audit v1→v2
+(`json` mal routé, 6 options v2 sans effet, `var_binary` mal mappé — détail dans
+`CHANGELOG.md [2.2.0]`).

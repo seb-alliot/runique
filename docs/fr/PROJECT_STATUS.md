@@ -9,7 +9,7 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 ---
 
-## Snapshot (au 17 juin 2026)
+## Snapshot (au 30 août 2026)
 
 - **Version workspace** : `2.2.0`
 - **derive_form** : `2.1.11`
@@ -76,6 +76,8 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 - `extend!{}` — extension de tables framework (ex. `eihwaz_users`)
 - `makemigrations` — plan → validate → **commit/rollback atomique** + snapshots ; `DROP COLUMN` sur colonnes supprimées (garde destructive)
 - Backends supportés : PostgreSQL, MariaDB, SQLite
+- Alias `Pk` : `i32` par défaut, `i64` (`big-pk`) ou `Uuid` via `Uuid::now_v7()` (`pk-uuid`) — features mutuellement exclusives (`compile_error!`). Utilisable sur n'importe quel champ (pas seulement la PK), typiquement une FK, pour rester automatiquement synchronisé avec le type de la table référencée
+- `model!{}` — syntaxe de champs unifiée (l'ancienne grammaire `fields: { name: SqlType }` est supprimée) : bloc anonyme unique, 43 types sémantiques, options `readonly`/`label` incluses
 
 ### I18n
 - 9 langues (en, fr, de, es, it, pt, ja, zh, ru), stockage `AtomicU8`, `RUNIQUE_LANG`
@@ -124,7 +126,7 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 - **TypeState form** : variante `validate() -> Result<ValidForm<T>, T>`
 
 ### Priorité basse
-- **Couverture ciblée** : `migration/migrate.rs` (22%), `engine/core.rs` (50%), `forms/fields/file.rs` (61%)
+- **Couverture ciblée** : `migration/migrate.rs` (22%), `engine/core.rs` (50%), `forms/fields/file.rs` (67%, en hausse depuis 61%)
 
 ---
 
@@ -136,5 +138,5 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 ---
 
-**Dernière mise à jour** : 25 juin 2026
+**Dernière mise à jour** : 30 août 2026
 **Statut global** : ✅ Framework stable · 🟡 Admin bêta mature · 🔒 Sécurité : tokens de reset durcis en DB, auth en temps constant · 📖 Documentation API publique complète (docs.rs)

@@ -139,6 +139,17 @@ fn mailer_tracing_send() {
     reset_log_for_test();
 }
 
+// ─── init_error::init::init_logging (utilisé par le CLI, pas par le builder) ──
+
+#[test]
+fn init_logging_does_not_panic() {
+    // `init_subscriber()` en dessous utilise `try_init()` (pas `.expect()`) —
+    // un second appel dans le même process ne panique pas, juste un warn.
+    // Cf. `test_init_subscriber_does_not_panic` (test_runique_log.rs) qui
+    // installe déjà un subscriber global dans ce binaire de tests.
+    let _guards = runique::utils::init_logging();
+}
+
 // ─── dev() global ────────────────────────────────────────────────────────────
 
 #[test]

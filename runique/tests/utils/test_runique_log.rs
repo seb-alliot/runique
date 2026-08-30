@@ -1,7 +1,7 @@
 //! Tests — utils/config/runique_log
 //! Couvre : RuniqueLog builder (arbre par module), dev(), subscriber_level
 
-use runique::utils::RuniqueLog;
+use runique::utils::{MigrationTracing, RuniqueLog, TemplatesTracing};
 use tracing::Level;
 
 #[test]
@@ -129,4 +129,56 @@ fn test_dev_does_not_panic() {
 fn test_init_subscriber_does_not_panic() {
     let log = RuniqueLog::new().subscriber_level("error");
     let _guards = log.init_subscriber();
+}
+
+// ─── MigrationTracing ──────────────────────────────────────────────────────────
+
+#[test]
+fn test_migration_tracing_default_all_none() {
+    let mt = MigrationTracing::new();
+    assert!(mt.plan.is_none());
+    assert!(mt.apply.is_none());
+    assert!(mt.rollback.is_none());
+}
+
+#[test]
+fn test_migration_tracing_builder_chain() {
+    let mt = MigrationTracing::new()
+        .plan(Level::INFO)
+        .apply(Level::WARN)
+        .rollback(Level::ERROR);
+    assert_eq!(mt.plan, Some(Level::INFO));
+    assert_eq!(mt.apply, Some(Level::WARN));
+    assert_eq!(mt.rollback, Some(Level::ERROR));
+}
+
+#[test]
+fn test_migration_tracing_dev_sets_all_debug() {
+    let mt = MigrationTracing::new().dev();
+    assert_eq!(mt.plan, Some(Level::DEBUG));
+    assert_eq!(mt.apply, Some(Level::DEBUG));
+    assert_eq!(mt.rollback, Some(Level::DEBUG));
+}
+
+// ─── TemplatesTracing ──────────────────────────────────────────────────────────
+
+#[test]
+fn test_templates_tracing_default_all_none() {
+    let tt = TemplatesTracing::new();
+    assert!(tt.load.is_none());
+    assert!(tt.render.is_none());
+}
+
+#[test]
+fn test_templates_tracing_builder_chain() {
+    let tt = TemplatesTracing::new().load(Level::INFO).render(Level::WARN);
+    assert_eq!(tt.load, Some(Level::INFO));
+    assert_eq!(tt.render, Some(Level::WARN));
+}
+
+#[test]
+fn test_templates_tracing_dev_sets_all_debug() {
+    let tt = TemplatesTracing::new().dev();
+    assert_eq!(tt.load, Some(Level::DEBUG));
+    assert_eq!(tt.render, Some(Level::DEBUG));
 }
