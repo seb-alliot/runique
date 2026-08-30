@@ -1,4 +1,4 @@
-# Daemon & génération de code
+# Génération de code admin
 
 ## Comportement du daemon
 
