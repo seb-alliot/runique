@@ -8,7 +8,7 @@ The application's main **shared state**:
 pub struct RuniqueEngine {
     pub db: Arc<DatabaseConnection>,
     pub tera: Arc<Tera>,
-    pub config: Arc<RuniqueConfig>,
+    pub config: RuniqueConfig,
 }
 ```
 

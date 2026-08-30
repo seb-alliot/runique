@@ -37,7 +37,7 @@ RuniqueApp::builder(config)
         .routes(Level::INFO)
         .statics(Level::INFO)
     )
-    .rate_limit(Level::WARN)
+    .middleware(|m| m.rate_limit(Level::WARN))
 )
 ```
 
@@ -98,15 +98,35 @@ RuniqueApp::builder(config)
 .with_log(|l| l.errors(|e| e.http(Level::INFO).render(Level::WARN)))
 ```
 
-### Flat fields on `RuniqueLog`
+### `middleware` — Security (`.middleware(|m| m....)`)
 
 | Field | When | Logged data |
 |-------|------|-------------|
-| `rate_limit` | Request blocked | ip, retry_after |
 | `csrf` | CSRF token detected in a GET URL | path |
-| `session` | Session store operations | event |
-| `db` | Database queries | query, duration |
+| `csp` | CSP violation or construction | — |
+| `cors` | CORS decision | — |
+| `rate_limit` | Request blocked | ip, retry_after |
 | `host_validation` | Host rejected | host |
+| `open_redirect` | Redirect refused | — |
+| `anti_bot` | Honeypot triggered | — |
+| `https` | HTTPS redirect | — |
+
+### `session` — Store (`.session(|s| s....)`)
+
+| Field | When | Logged data |
+|-------|------|-------------|
+| `store` | Session store operations (watermarks, purge) | event |
+| `cleanup` | Expired session purge | — |
+| `exclusive_login` | Invalidation of other sessions | — |
+
+### `db` — Database (`.db(\|d\| d....)`)
+
+| Field | When | Logged data |
+|-------|------|-------------|
+| `connect` | DB connection in progress / established | — |
+| `query` | Database queries | query, duration |
+
+These three domains have no direct method on `RuniqueLog` — each goes through its own closure (`.middleware(|m| ...)`, `.session(|s| ...)`, `.db(|d| ...)`), same as `forms`/`admin`/`auth` above.
 
 ---
 
@@ -172,8 +192,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_max_level(tracing::Level::INFO)
         .init();
 
+    let db = DatabaseConfig::from_env()?.build().connect().await?;
+
     RuniqueApp::builder(RuniqueConfig::from_env())
-        .with_database().await
+        .with_database(db)
         .routes(url::urlpatterns())
         .with_log(|l| l.external())   // Runique does not install its subscriber
         .build().await?

@@ -89,12 +89,12 @@ DB_LOGGING=true
 | Variable | Défaut | Description |
 |----------|--------|-------------|
 | `TEMPLATES_DIR` | `templates` | Répertoire templates |
-| `STATICFILES_DIRS` | `static` | Répertoire assets statiques |
-| `MEDIA_ROOT` | `media` | Répertoire médias (uploads) |
+| `STATICFILES_DIRS` | `static` | Répertoire assets statiques — **un seul dossier**, pas de liste (`String` unique, aucun split sur `:`) |
+| `MEDIA_ROOT` | `{BASE_DIR}/media` | Répertoire médias (uploads) |
 
 ```env
 TEMPLATES_DIR=templates
-STATICFILES_DIRS=static:demo-app/static
+STATICFILES_DIRS=static
 MEDIA_ROOT=uploads
 ```
 

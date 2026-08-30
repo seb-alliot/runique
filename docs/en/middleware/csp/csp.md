@@ -1,6 +1,6 @@
 # Content Security Policy (CSP)
 
-Runique applies a CSP policy via the security middleware, configured exclusively through the builder. A unique nonce is generated per request and injected into Tera templates.
+Runique applies a CSP policy **by default, with zero configuration** — the security middleware (headers + CSP) runs on every response, even if `.with_csp(...)` is never called. A unique nonce is generated per request and injected into Tera templates.
 
 ---
 
@@ -17,12 +17,12 @@ Runique applies a CSP policy via the security middleware, configured exclusively
 
 ## Quick start
 
-CSP is disabled by default — it is activated only through the builder:
+Without any configuration, the default CSP (`SecurityPolicy::default()`) and all security headers (X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, COEP/COOP/CORP, HSTS if actually served over HTTPS) are already sent on every response. `.with_csp(...)` doesn't **enable** them — it replaces the default policy with your own:
 
 ```rust
 RuniqueApp::builder(config)
     .middleware(|m| {
-        m.with_csp(|c| c)
+        m.with_csp(|c| c.policy(SecurityPolicy::strict()))
     })
     .build()
     .await?;
@@ -53,7 +53,7 @@ In your templates:
 
 ## Forced HTTPS (`enforce_https`)
 
-The `ENFORCE_HTTPS=true` directive enables a 301 redirect to HTTPS for all HTTP requests. This redirect relies on the `X-Forwarded-Proto` header to detect whether the request arrived over HTTP or HTTPS.
+The `ENFORCE_HTTPS=true` directive enables a **308** redirect (`Redirect::permanent()`) to HTTPS for all HTTP requests. This redirect relies on the `X-Forwarded-Proto` header to detect whether the request arrived over HTTP or HTTPS.
 
 > **⚠️ Proxy requirement:** `enforce_https` trusts the `X-Forwarded-Proto` header. Without a trusted reverse proxy (nginx, Caddy, etc.) controlling this header, an attacker can forge `X-Forwarded-Proto: https` to bypass the redirect.
 >

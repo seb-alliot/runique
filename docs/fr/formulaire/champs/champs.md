@@ -41,6 +41,9 @@ form.field(&TextField::textarea("summary").label("Résumé"));
 
 // RichText — sanitisation XSS automatique avant validation
 form.field(&TextField::richtext("content").label("Contenu"));
+
+// Phone — chiffres/espaces/tirets/parenthèses, '+' en tête uniquement, 7 à 15 chiffres
+form.field(&TextField::phone("telephone").label("Téléphone"));
 ```
 
 **Options du builder :**
@@ -65,6 +68,7 @@ TextField::text("nom")
 | `Password` | Standard | Hachage auto dans `finalize()` si config `Auto` et pas `.no_hash()`, valeur vidée au `render()` |
 | `RichText` | Standard | Sanitisation XSS (`sanitize()`) avant validation |
 | `Csrf` | Token session | — |
+| `Phone` | Caractères autorisés (chiffres/espaces/`-`/`()`), `+` en première position uniquement, 7 à 15 chiffres | — |
 
 **Utilitaires mot de passe :**
 
@@ -312,7 +316,7 @@ form.field(
 
 Le déplacement vers la destination finale s'effectue dans `finalize()`, **uniquement si la validation passe**. Le dossier est créé automatiquement s'il n'existe pas encore.
 
-> **Sécurité** : les fichiers `.svg` sont **toujours refusés** par défaut (risque XSS). La validation d'image utilise le crate `image` pour vérifier le format réel du fichier. Les fichiers vides (aucun fichier sélectionné) sont ignorés proprement — le champ `required` fonctionne correctement.
+> **Sécurité** : les fichiers `.svg` sont **toujours refusés** par défaut (risque XSS). La validation vérifie le format réel du fichier via lecture de ses magic bytes (pas seulement l'extension) ; le crate `image` intervient séparément, uniquement pour lire les dimensions (`max_dimensions`). Les fichiers vides (aucun fichier sélectionné) sont ignorés proprement — le champ `required` fonctionne correctement.
 
 ### Fichiers JS associés
 

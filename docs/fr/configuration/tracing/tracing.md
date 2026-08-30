@@ -37,7 +37,7 @@ RuniqueApp::builder(config)
         .routes(Level::INFO)
         .statics(Level::INFO)
     )
-    .rate_limit(Level::WARN)
+    .middleware(|m| m.rate_limit(Level::WARN))
 )
 ```
 
@@ -98,15 +98,35 @@ RuniqueApp::builder(config)
 .with_log(|l| l.errors(|e| e.http(Level::INFO).render(Level::WARN)))
 ```
 
-### Champs plats sur `RuniqueLog`
+### `middleware` — Sécurité (`.middleware(|m| m....)`)
 
 | Champ | Moment | Données loggées |
 |-------|--------|-----------------|
-| `rate_limit` | Requête bloquée | ip, retry_after |
 | `csrf` | Token CSRF détecté dans une URL GET | path |
-| `session` | Opérations session store | event |
-| `db` | Requêtes base de données | query, duration |
+| `csp` | Violation ou construction CSP | — |
+| `cors` | Décision CORS | — |
+| `rate_limit` | Requête bloquée | ip, retry_after |
 | `host_validation` | Hôte rejeté | host |
+| `open_redirect` | Redirection refusée | — |
+| `anti_bot` | Honeypot déclenché | — |
+| `https` | Redirection HTTPS | — |
+
+### `session` — Store (`.session(|s| s....)`)
+
+| Champ | Moment | Données loggées |
+|-------|--------|-----------------|
+| `store` | Opérations session store (watermarks, purge) | event |
+| `cleanup` | Purge de sessions expirées | — |
+| `exclusive_login` | Invalidation des autres sessions | — |
+
+### `db` — Base de données (`.db(\|d\| d....)`)
+
+| Champ | Moment | Données loggées |
+|-------|--------|-----------------|
+| `connect` | Connexion DB en cours / établie | — |
+| `query` | Requêtes base de données | query, duration |
+
+Ces trois domaines n'ont pas de méthode directe sur `RuniqueLog` — chacun passe par sa propre closure (`.middleware(|m| ...)`, `.session(|s| ...)`, `.db(|d| ...)`), au même titre que `forms`/`admin`/`auth` plus haut.
 
 ---
 
@@ -172,8 +192,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_max_level(tracing::Level::INFO)
         .init();
 
+    let db = DatabaseConfig::from_env()?.build().connect().await?;
+
     RuniqueApp::builder(RuniqueConfig::from_env())
-        .with_database().await
+        .with_database(db)
         .routes(url::urlpatterns())
         .with_log(|l| l.external())   // Runique n'installe pas son subscriber
         .build().await?

@@ -23,6 +23,8 @@ async fn my_handler(mut request: Request) -> AppResult<Response> {
     println!("Port: {}", config.server.port);
     println!("IP: {}", config.server.ip_server);
     println!("Secret key: {}", config.server.secret_key);
+
+    request.render("page.html")
 }
 ```
 

@@ -33,7 +33,7 @@ Runique pré-traite les templates pour transformer une syntaxe Django-like en sy
 </form>
 ```
 
-**Transformé en :** `{% include "csrf" %}`
+**Transformé en :** `{% include "csrf.html" %}`
 
 > Non nécessaire dans les formulaires Runique (`{% form.xxx %}`) — le token CSRF est injecté automatiquement.
 
@@ -45,7 +45,7 @@ Runique pré-traite les templates pour transformer une syntaxe Django-like en sy
 {% messages %}
 ```
 
-**Transformé en :** `{% include "message" %}`
+**Transformé en :** `{% include "message.html" %}`
 
 ---
 
@@ -57,7 +57,7 @@ Runique pré-traite les templates pour transformer une syntaxe Django-like en sy
 </script>
 ```
 
-**Transformé en :** `{% include "csp" %}`
+**Transformé en :** `{% include "csp.html" %}`
 
 ---
 
@@ -81,7 +81,7 @@ Runique pré-traite les templates pour transformer une syntaxe Django-like en sy
 </form>
 ```
 
-**Transformé en :** `{{ inscription_form | form | safe }}`
+**Transformé en :** `{{ inscription_form | form }}` (le filtre `form` déclare `is_safe()` — pas besoin de `| safe`)
 
 Rend l'intégralité du formulaire : tous les champs HTML, les erreurs de validation, le token CSRF, et les scripts JS nécessaires.
 
@@ -100,7 +100,7 @@ Rend l'intégralité du formulaire : tous les champs HTML, les erreurs de valida
 </form>
 ```
 
-**Transformé en :** `{{ inscription_form | form(field='username') | safe }}`
+**Transformé en :** `{{ inscription_form | form(field='username') }}`
 
 > En rendu champ par champ, les scripts JS du formulaire ne sont **pas** injectés automatiquement (contrairement à `{% form.xxx %}` complet). Place-les explicitement avec `{% form.xxx.js %}` — voir ci-dessous.
 
@@ -123,7 +123,7 @@ Rend l'intégralité du formulaire : tous les champs HTML, les erreurs de valida
 </form>
 ```
 
-**Transformé en :** `{{ inscription_form | form(field='js') | safe }}`
+**Transformé en :** `{{ inscription_form | form(field='js') }}`
 
 > Inutile avec `{% form.xxx %}` (rendu complet) : les scripts y sont déjà inclus, en dernière position. Ne combine pas les deux — tu obtiendrais les `<script>` en double.
 

@@ -62,12 +62,12 @@ pub async fn login(
 Un middleware s'exécute avant le handler et ne peut pas lire le body sans le consommer.
 `request.form()` extrait le formulaire une seule fois — le username n'est disponible qu'après cette extraction.
 
-La session connaît l'état d'authentification, mais au moment du login l'utilisateur n'est pas encore connecté : `session.username` serait toujours `"anonym"` sur cette route, ce qui ne protège pas le compte ciblé.
+La session connaît l'état d'authentification, mais au moment du login l'utilisateur n'est pas encore connecté : `get_username(&session)` retourne `None` sur cette route (rien n'y a encore été stocké), ce qui ne protège pas le compte ciblé.
 
 | Source | Disponible en middleware | Fiable pour LoginGuard |
 | --- | --- | --- |
 | Adresse IP | ✅ | ✅ (utilisée par `effective_key` pour anonym) |
-| Username (session) | ✅ | ❌ (toujours anonym sur `/login`) |
+| Username (session) | ✅ | ❌ (`None` sur `/login`, retombe sur anonym) |
 | Username (form body) | ❌ (consomme le body) | ✅ (via `request.form()` dans le handler) |
 
 ---

@@ -55,7 +55,7 @@ fn login_required(
 
 - Checks for a user identifier in the session
 - Authenticated → request passes through to the handler normally
-- Not authenticated → `302 Found` to `redirect_url`
+- Not authenticated → `303 See Other` to `redirect_url`
 - Compatible with all HTTP methods (GET, POST, etc.)
 
 ---

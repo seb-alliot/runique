@@ -124,12 +124,12 @@ Everything goes through `.with_log(|l| ...)` — the closure receives an empty `
 ```rust
 use tracing::Level;
 
-// Fine-grained per-category control
+// Fine-grained per-category control — each submodule takes its own closure
 RuniqueApp::builder(config)
     .with_log(|l| l
-        .csrf(Level::WARN)
-        .session(Level::WARN)
-        .db(Level::INFO)
+        .middleware(|m| m.csrf(Level::WARN))
+        .session(|s| s.store(Level::WARN))
+        .db(|d| d.connect(Level::INFO))
     )
     .routes(router)
     .build()
@@ -162,7 +162,7 @@ RuniqueApp::builder(config)
 
 // Dev with subscriber level override
 RuniqueApp::builder(config)
-    .with_log(|l| l.dev().subscriber_level("info").db(Level::INFO))
+    .with_log(|l| l.dev().subscriber_level("info").db(|d| d.connect(Level::INFO)))
     .routes(router)
     .build()
     .await?;
@@ -170,15 +170,17 @@ RuniqueApp::builder(config)
 
 #### Available categories
 
-| Category         | What is logged                                              |
-| ---------------- | ----------------------------------------------------------- |
-| `csrf`           | CSRF token detected in a GET URL (silent cleanup)           |
-| `exclusive_login`| Sessions invalidated on exclusive login                     |
-| `filter_fn`      | Failed `filter_fn` in the admin list view                   |
-| `roles`          | Errors accessing the admin roles registry                   |
-| `password_init`  | `password_init()` called more than once                     |
-| `session`        | Memory watermarks, large records, cleanup errors            |
-| `db`             | DB connection in progress / connection established          |
+`RuniqueLog` only exposes root methods per submodule (`forms`, `middleware`, `session`, `auth`, `admin`, `db`, `mailer`, `migration`, `templates`, `errors`, `builder`), each taking a closure into its own nested builder — there is no flat `.csrf()`/`.session()` method directly on `RuniqueLog`:
+
+| Category (nested leaf) | Access | What is logged |
+| ----------------------- | ------ | --------------- |
+| `csrf`            | `.middleware(\|m\| m.csrf(...))`         | CSRF token detected in a GET URL (silent cleanup) |
+| `exclusive_login` | `.session(\|s\| s.exclusive_login(...))` | Sessions invalidated on exclusive login |
+| `filter_fn`       | `.admin(\|a\| a.filter_fn(...))`         | Failed `filter_fn` in the admin list view |
+| `roles`           | `.admin(\|a\| a.roles(...))`             | Errors accessing the admin roles registry |
+| `password_init`   | `.auth(\|a\| a.password_init(...))`      | `password_init()` called more than once |
+| `store`           | `.session(\|s\| s.store(...))`           | Memory watermarks, large records, cleanup errors |
+| `connect`         | `.db(\|d\| d.connect(...))`              | DB connection in progress / connection established |
 
 ### Secondary database — `with_custom_db`
 
@@ -231,13 +233,13 @@ let app = RuniqueApp::builder(config)
 | Configuration | Default | Notes |
 | ------------ | ------- | ----- |
 | **Session duration** | 24 hours | |
-| **Session store** | `MemoryStore` | |
+| **Session store** | `CleaningMemoryStore` | |
 | **CSRF protection** | ✅ Always enabled | Cannot be disabled |
 | **Error handler** | ✅ Enabled | |
-| **CSP** | Debug: ❌ / Prod: ✅ | Depends on mode |
-| **Host validation** | Debug: ❌ / Prod: ✅ | Depends on mode |
-| **Cache control** | ✅ Enabled | No-cache in debug |
-| **Static files** | ❌ Disabled | Call `.statics()` |
+| **CSP + security headers** | ✅ Always on | Unconditional, regardless of mode; `.with_csp(...)` customizes, doesn't enable |
+| **Host validation** | ❌ Disabled | No `.env` variable controls it — call `.with_allowed_hosts(...)` |
+| **Cache control** | ✅ Enabled | No-cache in debug; `.with_cache(true)` turns it off |
+| **Static files** | ✅ Enabled | `.no_statics()` to disable |
 | **Admin hot reload** | Follows `DEBUG` | Automatic via `is_debug()` |
 | **Framework logs** | ❌ Disabled | Enable via `.with_log(\|l\| ...)` |
 

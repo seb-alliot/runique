@@ -6,7 +6,7 @@
 |----------|---------|-------------|
 | `STATICFILES_DIRS` | `static` | Static files directory |
 | `STATIC_URL` | `/static` | URL prefix for static files |
-| `MEDIA_ROOT` | `media` | Uploaded media files directory |
+| `MEDIA_ROOT` | `{BASE_DIR}/media` | Uploaded media files directory |
 | `MEDIA_URL` | `/media` | URL prefix for media files |
 | `TEMPLATES_DIR` | `templates` | Tera templates directory (comma-separated list allowed) |
 | `STATICFILES` | `default_storage` | Storage backend |
@@ -42,7 +42,7 @@ docker compose up -d
 
 | Section | Description |
 | --- | --- |
-| [Application & Server](/docs/en/env/application) | DEBUG, IP_SERVER, PORT, DB, Redirects |
+| [Application & Server](/docs/en/env/application) | DEBUG, IP_SERVER, PORT, DB |
 | [Security & sessions](/docs/en/env/security) | ALLOWED_HOSTS, CSP, Middlewares, Sessions |
 
 ## Back to summary

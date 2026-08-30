@@ -110,7 +110,7 @@ When you build your application using `RuniqueApp::builder(config).build().await
 - **Security**: is the `SECRET_KEY` safe (not default in prod)?
 - **Middleware integrity**: are dependencies between middlewares satisfied?
 
-If any check fails, the `build()` method returns a `BuildError::CheckFailed(CheckReport)` which displays a clear diagnostic in the terminal with suggestions.
+If any check fails, the `build()` method returns a `BuildError { kind: BuildErrorKind::CheckFailed(CheckReport), .. }` — `CheckFailed` is a variant of `BuildErrorKind`, not directly of `BuildError` — which displays a clear diagnostic in the terminal with suggestions.
 
 ---
 

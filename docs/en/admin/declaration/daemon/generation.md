@@ -2,18 +2,15 @@
 
 ## Daemon behaviour
 
-The daemon continuously watches `src/admin.rs` via `notify`.
+`runique start` is **not** a background watcher: it's a **sequential one-shot generation**, followed by a blocking launch of the application.
 
-On each detected change:
-
-1. `src/admin.rs` is re-read
+1. `src/admin.rs` is read once
 2. The `admin! { ... }` macro is parsed via `syn`, producing `ResourceDef` structures
-3. The `src/admins/` folder is deleted and fully regenerated
-4. Feedback is displayed (success or parsing error)
+3. The contents of `src/admins/` are rewritten in place (files are truncated and rewritten — the folder is never deleted beforehand)
+4. `cargo fmt --all` runs
+5. `cargo run --release` runs, blocking, in the same process
 
-A **debounce** mechanism (300 ms) prevents multiple regenerations from a single file save.
-
-An **initial generation** is performed on daemon startup, without waiting for a change.
+There is no continuous file watching and no debounce: an earlier implementation based on a separate thread was removed because it caused a race condition. To regenerate after a change, run `runique start` again.
 
 ---
 
@@ -23,28 +20,29 @@ An **initial generation** is performed on daemon startup, without waiting for a 
 src/admins/
   ├── README.md       ← warning: do not edit manually
   ├── mod.rs          ← exposes `routes` and `admin_state`
-  └── admin_panel.rs  ← main file: DynForm wrappers + admin_register()
+  └── admin.rs        ← main file: DynForm wrappers + admin_register()
 ```
 
-### `admin_panel.rs`
+### `admin.rs`
 
 Contains for each resource declared in `admin!`:
 
 - A `DynForm` wrapper around the concrete Runique form
-- The closures `list_fn`, `get_fn`, `create_fn`, `update_fn`, `delete_fn`, `count_fn`
+- The closures `list_fn`, `get_fn`, `create_fn`, `update_fn`, `delete_fn`, `count_fn`, `partial_update_fn` (always generated, used for bulk edit/group actions)
+- If `list_filter` is declared: a `filter_fn` closure per field, loading distinct values from the database (up to 10 by default)
 - The `admin_register()` function that builds the `HashMap<String, ResourceEntry>` loaded at boot
 
 ### `mod.rs`
 
-Re-exports `routes` and `admin_state` from `admin_panel`.
+Re-exports `routes` and `admin_state` from `admin`.
 
 ---
 
 ## The trade-off: automatic overwriting
 
-`runique start` **deletes and fully regenerates** `src/admins/` on every change to `src/admin.rs`.
+Every run of `runique start` **rewrites** the contents of `src/admins/` (files truncated and regenerated, never deleted beforehand).
 
-Any manual modifications inside this folder will be **lost** on the next regeneration.
+Any manual modifications inside this folder will be **lost** on the next `runique start`.
 
 ## When to switch to `cargo run`
 
@@ -54,7 +52,7 @@ If manual changes to the generated code are needed (specific business logic, cus
 cargo run
 ```
 
-In this mode, `src/admins/` is no longer watched or overwritten. Changes persist.
+In this mode, `runique start` never runs, so `src/admins/` is never rewritten. Changes persist.
 
 > The `README.md` generated inside `src/admins/` reminds you of this behaviour directly in the repository.
 

@@ -17,14 +17,14 @@ pub fn routes() -> Router {
         // ...
     }
     // Route unique
-    .rate_limit("/upload-image", "upload_image", view!(upload_image_submit), 5, 60)
+    .rate_limit("/upload-image", "upload_image", view!(upload_image_submit), 5, 60, vec![Method::POST])
 }
 ```
 
 Plusieurs routes partageant le **même compteur** :
 
 ```rust
-.rate_limit_many(5, 60, vec![
+.rate_limit_many(5, 60, vec![Method::POST], vec![
     ("/upload-image".into(), "upload_image".into(), view!(upload_image_submit)),
     ("/inscription".into(),  "inscription".into(),  view!(soumission_inscription)),
 ])
@@ -80,12 +80,12 @@ RateLimiter::new().max_requests(100).retry_after(60)  // 100 requêtes par minut
 
 ## Comportement
 
-- La clé de limitation est l'**adresse IP** de la requête
-- Supporte les headers `X-Forwarded-For` et `X-Real-IP` (reverse proxy)
+- La clé de limitation est l'**adresse IP** de la requête — l'extension `ClientIp` posée par le middleware `trusted_proxies` (toujours actif) si présente, sinon l'adresse TCP brute du pair (`ConnectInfo`)
+- Le support de `X-Forwarded-For` passe par ce mécanisme `trusted_proxies` (validation contre une liste de CIDR de confiance), pas par une lecture directe du header ici — `X-Real-IP` n'est lu nulle part dans le code
 - Fenêtre **fixe** : le compteur repart à zéro après `retry_after` secondes
 - Réponse `429 Too Many Requests` quand la limite est dépassée, avec header `Retry-After: <secondes>`
 
-> **⚠️ Sécurité :** Ce middleware fait confiance aux headers `X-Forwarded-For` et `X-Real-IP`. Assurez-vous que votre reverse proxy (nginx, etc.) contrôle ces headers et ne les laisse pas être forgés par les clients. Sans proxy de confiance, un attaquant peut contourner le rate limiting en modifiant ces headers.
+> **⚠️ Sécurité :** la fiabilité de la clé IP dépend entièrement de la configuration de `trusted_proxies` (voir [Trusted Proxies](/docs/fr/middleware/trusted-proxies)) — c'est elle qui détermine si `X-Forwarded-For` est validé ou ignoré. Sans reverse proxy de confiance correctement déclaré, un attaquant peut forger ce header pour changer de clé de rate limiting à volonté.
 
 ---
 

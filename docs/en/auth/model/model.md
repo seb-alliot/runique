@@ -15,7 +15,6 @@ Runique includes a ready-to-use user model that requires no configuration.
 | `is_active` | `bool` | Account active |
 | `is_staff` | `bool` | Admin panel access (limited) |
 | `is_superuser` | `bool` | Full access, bypasses all rules |
-| `roles` | `String` | Custom roles (nullable) |
 | `created_at` | datetime | Creation timestamp |
 | `updated_at` | datetime | Last update timestamp |
 

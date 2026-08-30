@@ -38,7 +38,7 @@ admin! {
 }
 ```
 
-La macro est parsée par le daemon (`runique start`) qui génère la fonction `admin_register()` dans `src/admins/admin_panel.rs`. Cette fonction construit le `HashMap<String, ResourceEntry>` chargé au boot.
+La macro est parsée par le daemon (`runique start`) qui génère la fonction `admin_register()` dans `src/admins/admin.rs`. Cette fonction construit le `HashMap<String, ResourceEntry>` chargé au boot.
 
 ---
 
@@ -57,7 +57,7 @@ La macro est parsée par le daemon (`runique start`) qui génère la fonction `a
 
 | Champ | Valeur par défaut | Description |
 | --- | --- | --- |
-| `id_type` | `I32` | Type de la clé primaire dans les routes — `I32`, `I64`, `Uuid` |
+| `id_type` | `Pk` | Type de la clé primaire dans les routes — `I32`, `I64`, `Uuid`, ou par défaut suit l'alias `Pk` du crate |
 | `create_form` | *(même que `form`)* | Formulaire distinct pour la création |
 | `edit_form` | *(même que `form`)* | Formulaire distinct pour l'édition |
 | `list_display` | *(vide — toutes colonnes)* | Colonnes visibles et leurs libellés dans la vue liste |
@@ -117,7 +117,7 @@ Le panel builtin "Utilisateurs" disparaît ; "Profils utilisateurs" le remplace 
 
 #### `id_type`
 
-Par défaut, le segment `{id}` des routes admin est converti en `i32`. Déclarer un type différent génère la conversion appropriée dans les closures CRUD :
+Par défaut (sans déclarer `id_type`), le segment `{id}` des routes admin suit l'alias `Pk` du crate — `i32` par défaut, `i64` avec la feature `big-pk`, `Uuid` avec `pk-uuid`. Déclarer `id_type` explicitement fige un type précis, indépendamment de la feature active :
 
 ```rust
 admin! {
@@ -128,7 +128,7 @@ admin! {
 }
 ```
 
-Types supportés : `I32` (défaut), `I64`, `Uuid`.
+Types supportés : `I32`, `I64`, `Uuid`. Sans cette clé, la conversion suit automatiquement `Pk` — ne la déclarez que si cette ressource doit rester sur un type fixe indépendant de la feature globale.
 
 > La colonne en base est définie par l'entité SeaORM, pas par `id_type`. Ce champ ne génère ni migration ni changement de schéma — il ajuste seulement la conversion String → type natif dans le handler admin.
 
@@ -198,7 +198,7 @@ list_display: [
 ]
 ```
 
-Le daemon génère une jointure SQL `LEFT JOIN themes ON menus.theme_id = themes.id` et expose la valeur résolue dans le contexte Tera.
+Ce n'est pas une jointure SQL : les valeurs de `theme_id` de la page sont collectées, puis une requête séparée par lot (`fk_resolve.rs`, `SELECT id, col FROM themes WHERE id IN (...)`) résout les libellés, remplacés en mémoire dans les lignes avant le rendu Tera.
 
 Si `list_display` est absent, **toutes les colonnes** de l'entité sont affichées (comportement par défaut).
 
@@ -360,7 +360,7 @@ admin! {
 }
 ```
 
-Le champ doit contenir l'ID de l'utilisateur propriétaire de l'enregistrement. Le daemon génère un appel `resource.own_field("author_id")` dans `admin_register()`, ce qui active la vérification dans `handle_edit` et `handle_delete`.
+Le champ doit contenir l'ID de l'utilisateur propriétaire de l'enregistrement. Le daemon génère un appel `.with_own_field("author_id")` sur le `ResourceEntry` dans `admin_register()`, ce qui active la vérification dans `handle_edit` et `handle_delete`.
 
 ---
 

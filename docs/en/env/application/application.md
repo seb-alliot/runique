@@ -6,6 +6,7 @@
 |----------|---------|-------------|
 | `DEBUG` | `false` | Global dev/prod switch — read **once** at startup via `LazyLock`. Enables: `debug` log level, detailed error pages, admin template hot reload. In production (`false`): `warn` level, generic errors. |
 | `BASE_DIR` | `.` | Application root directory |
+| `TZ` | `UTC` | IANA timezone for the application (e.g. `Europe/Paris`, `America/New_York`). Accessible via `config.timezone` — parse it with `chrono-tz` in your project. |
 | `LANG` | system locale | CLI language (`fr`, `en`, `de`, `es`, `it`, `pt`, `ja`, `zh`, `ru`). Priority: `.env` > system locale (`LC_ALL`, `LC_MESSAGES`) > `en` |
 
 ---
@@ -16,7 +17,7 @@
 |----------|---------|-------------|
 | `IP_SERVER` | `127.0.0.1` | Listening IP address |
 | `PORT` | `3000` | Listening port |
-| `SECRET_KEY` | `default_secret_key` | Secret key (CSRF, signatures) — **must be changed in production** |
+| `SECRET_KEY` | `default_secret_key` | Secret key (CSRF, signatures). In production (`DEBUG=false`), **boot fails** if it's empty, equal to the default, or under 32 characters |
 
 ---
 
@@ -32,7 +33,7 @@
 | `DB_PASSWORD` | — | Password (required except for SQLite) |
 | `DB_HOST` | `localhost` | Host |
 | `DB_PORT` | `5432` / `3306` | Port (default depends on engine) |
-| `DB_NAME` | `local_base.sqlite` | Database name |
+| `DB_NAME` | `local_base.sqlite` (SQLite only) | Database name — **required** for postgres/mysql/mariadb, startup fails if absent |
 
 ### Connection pool
 
@@ -60,14 +61,15 @@
 
 ## Secondary connections — `with_custom_db`
 
-To attach an additional database connection (Redis pool, secondary PostgreSQL, MongoDB client, etc.), use `.with_custom_db()` on the builder. The value is available in handlers via Axum's `Extension<T>`.
+To attach an additional database connection (Redis pool, secondary PostgreSQL, MongoDB client, etc.), use `.with_custom_db()` on the builder. The value is stored in a `HashMap<TypeId, Arc<dyn Any>>` internal to `RuniqueEngine` — **not** injected as an Axum `Extension`. Access it in handlers via `engine.custom_db::<T>()` (or its alias `engine.extension::<T>()`), which returns `Option<Arc<T>>`.
 
 ```rust
 // main.rs
 let redis = redis::Client::open("redis://127.0.0.1/")?;
+let db = DatabaseConfig::from_env()?.build().connect().await?;
 
 RuniqueAppBuilder::new(config)
-    .with_database().await
+    .with_database(db)
     .with_custom_db(redis)   // T: Any + Send + Sync + 'static
     .routes(url::urlpatterns())
     .build().await?
@@ -76,13 +78,10 @@ RuniqueAppBuilder::new(config)
 
 ```rust
 // handler
-use axum::Extension;
 use redis::Client;
 
-pub async fn my_handler(
-    Extension(redis): Extension<Client>,
-    mut req: Request,
-) -> AppResult<Response> {
+pub async fn my_handler(mut req: Request) -> AppResult<Response> {
+    let redis = req.engine.custom_db::<Client>().expect("redis not configured");
     let mut conn = redis.get_async_connection().await?;
     // ...
 }

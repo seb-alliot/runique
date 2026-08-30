@@ -22,7 +22,7 @@ The most common case: keep the Runique admin layout and only customise the conte
 <div class="card">
     <span>#{{ entry.id }}</span>
     <span>{{ entry.username }}</span>
-    <a href="/admin/{{ resource_key }}/{{ entry.id }}/edit">{{ admin_list_btn_edit }}</a>
+    <a href="{{ admin_prefix }}/{{ resource_key }}/{{ entry.id }}/edit">{{ admin_list_btn_edit }}</a>
 </div>
 {% endfor %}
 {% endblock %}
@@ -62,8 +62,8 @@ You have created your own `template.html` (see [Template override](/docs/en/admi
         <td>{{ entry.id }}</td>
         <td>{{ entry.username }}</td>
         <td>
-            <a href="/admin/{{ resource_key }}/{{ entry.id }}/detail">{{ admin_list_btn_detail }}</a>
-            <a href="/admin/{{ resource_key }}/{{ entry.id }}/delete" class="danger">
+            <a href="{{ admin_prefix }}/{{ resource_key }}/{{ entry.id }}/detail">{{ admin_list_btn_detail }}</a>
+            <a href="{{ admin_prefix }}/{{ resource_key }}/{{ entry.id }}/delete" class="danger">
                 {{ admin_list_btn_delete }}
             </a>
         </td>
@@ -115,7 +115,7 @@ No `{% extends %}` required. The template is a complete HTML file. Useful for fr
     <nav>
         <strong>{{ site_title }}</strong>
         {% for res in resources %}
-        <a href="/admin/{{ res.key }}/list"
+        <a href="{{ admin_prefix }}/{{ res.key }}/list"
            {% if res.key == current_resource %}class="active"{% endif %}>
             {{ res.title }}
         </a>
@@ -128,7 +128,7 @@ No `{% extends %}` required. The template is a complete HTML file. Useful for fr
         {# Flash messages #}
         {% messages %}
 
-        <a href="/admin/{{ resource_key }}/create">{{ admin_list_btn_create }}</a>
+        <a href="{{ admin_prefix }}/{{ resource_key }}/create">{{ admin_list_btn_create }}</a>
 
         {% for entry in entries %}
         <div>{{ entry.id }} — {{ entry.username }}</div>

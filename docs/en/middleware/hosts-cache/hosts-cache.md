@@ -55,9 +55,9 @@ In `DEBUG=true`, typically use `.enabled(!is_debug())` to disable validation dur
 
 ## Cache-Control
 
-### Development mode (`DEBUG=true`)
+### Development mode (`DEBUG=true` **and** accessed via `localhost`/`127.0.0.1`/`[::1]`)
 
-`no-cache` headers are added to force reloads:
+Both conditions are required — accessing with `DEBUG=true` through a different host name (LAN, tunnel, staging) won't trigger these headers. Added to force reloads:
 
 ```http
 Cache-Control: no-cache, no-store, must-revalidate

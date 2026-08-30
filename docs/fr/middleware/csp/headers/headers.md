@@ -1,6 +1,6 @@
 # Headers de sécurité
 
-Le middleware `security_headers_middleware` injecte automatiquement un ensemble de headers de sécurité à chaque réponse, en plus du header CSP. Il s'active via `.with_header_security(true)` dans le builder.
+Le middleware `security_headers_middleware` injecte automatiquement un ensemble de headers de sécurité à chaque réponse, en plus du header CSP. **Il est actif inconditionnellement**, sur toutes les réponses, sans aucun appel builder — `.with_header_security(true)` ne fait rien de plus, ces headers partent déjà.
 
 ---
 
@@ -23,7 +23,9 @@ Le middleware `security_headers_middleware` injecte automatiquement un ensemble 
 
 ## Activation
 
-### CSP seul (sans headers de sécurité additionnels)
+Ces headers partent sur toutes les réponses sans configuration. Il n'y a pas de variante "CSP seul, sans les autres headers" — les deux exemples suivants produisent le même résultat en pratique ; seul le second personnalise le nonce.
+
+### Défaut (rien à faire)
 
 ```rust
 .middleware(|m| {
@@ -31,13 +33,12 @@ Le middleware `security_headers_middleware` injecte automatiquement un ensemble 
 })
 ```
 
-### CSP + tous les headers de sécurité
+### Personnaliser le nonce
 
 ```rust
 .middleware(|m| {
     m.with_csp(|c| {
-        c.with_header_security(true)
-         .with_nonce(true)
+        c.with_nonce(true)
     })
 })
 ```
@@ -48,7 +49,6 @@ Le middleware `security_headers_middleware` injecte automatiquement un ensemble 
 .middleware(|m| {
     m.with_csp(|c| {
         c.policy(SecurityPolicy::strict())
-         .with_header_security(true)
     })
 })
 ```

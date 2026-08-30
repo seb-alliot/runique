@@ -15,12 +15,16 @@ pub async fn handler(request: Request) -> AppResult<Response> {
 
     // Destroy the entire session
     request.session.flush().await?;
+
+    request.render("page.html")
 }
 ```
 
 ---
 
-## `.env` configuration
+## Configuration (builder — no `.env` variable)
+
+Nothing controls the watermarks or the cleanup interval via `.env`: it's all builder-based.
 
 ```rust,ignore
 .middleware(|m| {

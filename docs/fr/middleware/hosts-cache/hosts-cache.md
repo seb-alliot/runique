@@ -55,9 +55,9 @@ En `DEBUG=true`, on passe généralement `.enabled(!is_debug())` pour désactive
 
 ## Cache-Control
 
-### Mode développement (`DEBUG=true`)
+### Mode développement (`DEBUG=true` **et** accès via `localhost`/`127.0.0.1`/`[::1]`)
 
-Headers `no-cache` ajoutés pour forcer le rechargement :
+Les deux conditions sont requises — un accès en `DEBUG=true` via un autre nom d'hôte (LAN, tunnel, staging) ne déclenche pas ces headers. Ajoutés pour forcer le rechargement :
 
 ```http
 Cache-Control: no-cache, no-store, must-revalidate

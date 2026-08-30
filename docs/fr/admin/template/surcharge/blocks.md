@@ -51,7 +51,6 @@ Définis dans le layout global, disponibles depuis tout template qui étend `adm
 | `create_form` | Card complète avec formulaire |
 | `create_form_fields` | Grille des champs + champs M2M |
 | `create_form_actions` | Boutons Annuler / Créer |
-| `create_denied` | Message accès refusé |
 
 ---
 
@@ -63,7 +62,6 @@ Définis dans le layout global, disponibles depuis tout template qui étend `adm
 | `edit_form` | Card complète avec formulaire |
 | `edit_form_fields` | Grille des champs + champs M2M |
 | `edit_form_actions` | Boutons Annuler / Enregistrer |
-| `edit_denied` | Message accès refusé |
 
 ---
 
@@ -84,7 +82,6 @@ Définis dans le layout global, disponibles depuis tout template qui étend `adm
 | `delete_header` | En-tête de page |
 | `delete_warning` | Bandeau d'avertissement |
 | `delete_actions` | Boutons Annuler / Confirmer la suppression |
-| `delete_denied` | Message accès refusé |
 
 ---
 
@@ -96,7 +93,6 @@ Définis dans le layout global, disponibles depuis tout template qui étend `adm
 | `group_edit_fields` | Section des champs non-booléens |
 | `group_edit_permissions` | Section des permissions booléennes (remplie par JS) |
 | `group_edit_actions` | Boutons Annuler / Appliquer |
-| `group_edit_denied` | Message accès refusé |
 
 ---
 

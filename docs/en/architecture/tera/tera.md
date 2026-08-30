@@ -6,13 +6,15 @@
 | --- | ------------- | ----------- |
 | `{% static "..." %}` | `{{ "..." \| static }}` | Static file URL |
 | `{% media "..." %}` | `{{ "..." \| media }}` | Media file URL |
-| `{% csrf %}` | `{% include "csrf" %}` | Hidden CSRF field |
-| `{% messages %}` | `{% include "message" %}` | Display flash messages |
-| `{% csp %}` | `{% include "csp" %}` | CSP nonce attribute |
+| `{% csrf %}` | `{% include "csrf.html" %}` | Hidden CSRF field |
+| `{% messages %}` | `{% include "message.html" %}` | Display flash messages |
+| `{% csp %}` | `{% include "csp.html" %}` | CSP nonce attribute |
 | `{% link "name" %}` | `{{ link(link='name') }}` | Named route URL |
-| `{% form.xxx %}` | `{{ xxx \| form \| safe }}` | Full form rendering |
-| `{% form.xxx.field %}` | `{{ xxx \| form(field='field') \| safe }}` | Single field rendering |
-| `{% form.xxx.js %}` | `{{ xxx \| form(field='js') \| safe }}` | Form JS scripts (field-by-field rendering) |
+| `{% form.xxx %}` | `{{ xxx \| form }}` | Full form rendering |
+| `{% form.xxx.field %}` | `{{ xxx \| form(field='field') }}` | Single field rendering |
+| `{% form.xxx.js %}` | `{{ xxx \| form(field='js') }}` | Form JS scripts (field-by-field rendering) |
+
+The `form` filter declares `is_safe()` — its HTML is emitted unescaped, `\| safe` is unnecessary.
 
 ---
 

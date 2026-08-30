@@ -44,9 +44,8 @@ The form provided by Runique (`runique::admin::UserAdminCreateForm`) exposes:
 | `email` | Email, required | Contact address + reset email recipient |
 | `password` | Hidden | Random hash injected automatically — not visible in the UI |
 | `is_staff` | Boolean | Read access to the admin panel |
-| `is_superuser` | Boolean | Full admin access |
 
-`is_active` is **not** in the form — accounts are always created inactive.
+`is_active` and `is_superuser` are **not** in the form — accounts are always created inactive, and superuser status can never be granted from the admin panel itself (protection against self-privilege-escalation).
 
 ---
 

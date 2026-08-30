@@ -15,7 +15,6 @@ Runique inclut un modèle utilisateur prêt à l'emploi, sans aucune configurati
 | `is_active` | `bool` | Compte actif |
 | `is_staff` | `bool` | Accès au panneau admin (limité) |
 | `is_superuser` | `bool` | Accès complet, bypass toutes les règles |
-| `roles` | `String` | Rôles personnalisés (nullable) |
 | `created_at` | datetime | Date de création |
 | `updated_at` | datetime | Date de mise à jour |
 

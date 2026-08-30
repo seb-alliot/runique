@@ -2,14 +2,14 @@
 
 ## Prerequisites
 
-- **Rust 1.88+** — [Install rustup](https://rustup.rs/)
+- **Rust 1.94+** — [Install rustup](https://rustup.rs/)
 - **PostgreSQL 12+** (or SQLite for development)
 
 ### Check Versions
 
 ```bash
-rustc --version    # Rust 1.88+
-cargo --version    # Cargo 1.88+
+rustc --version    # Rust 1.94+
+cargo --version    # Cargo 1.94+
 ```
 
 ---
@@ -72,11 +72,11 @@ cargo run
 **Expected output:**
 
 ```
-🦀 Runique Framework operational
-   Server running at http://127.0.0.1:3000
+   Runique is running
+      └──>  Server running at http://127.0.0.1:3000
 ```
 
-> `runique start` is reserved for projects using the administration panel — it starts the admin daemon alongside the server. For a project without admin, `cargo run` is sufficient.
+> `runique start` is reserved for projects using the administration panel — it chains admin code generation then `cargo run`, on the same thread. For a project without admin, `cargo run` is sufficient.
 
 ---
 

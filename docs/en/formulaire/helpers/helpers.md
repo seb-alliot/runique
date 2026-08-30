@@ -67,10 +67,10 @@ impl RegisterForm {
 
 ```rust
 // Route parameter: /article/{id}
-let id = request.path_param("id");       // Option<&str>
+let id = request.get_path("id");         // Option<&str>
 
 // Query string parameter: ?page=2
-let page = request.from_url("page");     // Option<&str>
+let page = request.get_query("page");    // Option<&str>
 ```
 
 ### From the form (Recommended)

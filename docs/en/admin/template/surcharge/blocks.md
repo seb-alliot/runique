@@ -51,7 +51,6 @@ Defined in the global layout, available from any template that extends `admin_ba
 | `create_form` | Full card with form |
 | `create_form_fields` | Field grid + M2M fields |
 | `create_form_actions` | Cancel / Create buttons |
-| `create_denied` | Access denied message |
 
 ---
 
@@ -63,7 +62,6 @@ Defined in the global layout, available from any template that extends `admin_ba
 | `edit_form` | Full card with form |
 | `edit_form_fields` | Field grid + M2M fields |
 | `edit_form_actions` | Cancel / Save buttons |
-| `edit_denied` | Access denied message |
 
 ---
 
@@ -84,7 +82,6 @@ Defined in the global layout, available from any template that extends `admin_ba
 | `delete_header` | Page header |
 | `delete_warning` | Warning banner |
 | `delete_actions` | Cancel / Confirm deletion buttons |
-| `delete_denied` | Access denied message |
 
 ---
 
@@ -96,7 +93,6 @@ Defined in the global layout, available from any template that extends `admin_ba
 | `group_edit_fields` | Non-boolean fields section |
 | `group_edit_permissions` | Boolean permissions section (populated by JS) |
 | `group_edit_actions` | Cancel / Apply buttons |
-| `group_edit_denied` | Access denied message |
 
 ---
 

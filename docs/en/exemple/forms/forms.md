@@ -40,7 +40,7 @@ impl RuniqueForm for RegisterForm {
     // Business validation — called automatically by is_valid()
     async fn clean(&mut self) -> Result<(), StrMap> {
         let mut errors = StrMap::new();
-        if !self.get_string("email").contains('@') {
+        if !self.cleaned_string("email").unwrap_or_default().contains('@') {
             errors.insert("email".to_string(), "Invalid email".to_string());
         }
         if errors.is_empty() { Ok(()) } else { Err(errors) }
@@ -65,13 +65,13 @@ impl RuniqueForm for RegisterForm {
 
     async fn clean(&mut self) -> Result<(), StrMap> {
         let mut errors = StrMap::new();
-        if self.get_string("username").len() < 3 {
+        if self.cleaned_string("username").unwrap_or_default().len() < 3 {
             errors.insert("username".to_string(), "Minimum 3 characters".to_string());
         }
-        if !self.get_string("email").contains('@') {
+        if !self.cleaned_string("email").unwrap_or_default().contains('@') {
             errors.insert("email".to_string(), "Invalid email".to_string());
         }
-        if self.get_string("password").len() < 10 {
+        if self.cleaned_string("password").unwrap_or_default().len() < 10 {
             errors.insert("password".to_string(), "Minimum 10 characters".to_string());
         }
         if errors.is_empty() { Ok(()) } else { Err(errors) }

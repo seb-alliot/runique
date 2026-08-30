@@ -53,11 +53,11 @@ Retirer un groupe d'un utilisateur prend effet à sa prochaine requête. Supprim
 
 ---
 
-## Ressources superuser uniquement
+## Ressources `groupes` et `groupes_droits`
 
-Les ressources `groupes` et `groupes_droits` ne peuvent être accédées que par un `is_superuser`. Aucun groupe ne peut débloquer leur accès pour un staff — règle fixe du framework.
+Ces deux ressources ne bénéficient d'**aucun traitement spécial** : elles suivent exactement la même logique générique que n'importe quelle ressource (`can_read`/`can_create`/`can_update`/`can_delete` via `eihwaz_groupes_droits`). Un superuser peut donc délibérément accorder `can_update` sur `"groupes"` à un groupe "Admin", qui pourra alors gérer les permissions d'autres groupes (par exemple pour déléguer à des modérateurs) — c'est un usage légitime, pas un contournement.
 
-Cela empêche l'escalade de privilèges : un staff ne peut jamais modifier ses propres permissions.
+**Ce que ça implique en pratique :** accorder des droits sur `groupes`/`groupes_droits` à un groupe non-superuser lui donne un contrôle réel sur les permissions — y compris, potentiellement, les siennes propres si son utilisateur appartient aussi à ce groupe. Il n'existe pas de garde-fou framework contre l'auto-élévation dans ce cas précis : c'est à qui configure les groupes de ne pas accorder ces droits à un rôle qui ne doit pas les avoir. Seul `is_superuser` reste un bypass total et non délégable (bit sur l'utilisateur, jamais accordé via un groupe).
 
 ---
 

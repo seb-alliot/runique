@@ -422,7 +422,7 @@ extend! {
 > `model!{}` (direct anonymous block). These are two different macros with two different
 > grammars; don't carry syntax from one over to the other.
 
-Allowed tables: `eihwaz_users`, `eihwaz_groupes`, `eihwaz_droits`, `eihwaz_sessions`, `eihwaz_users_groupes`, `eihwaz_groupes_droits`. Any other name causes a compile-time error.
+Allowed tables: `eihwaz_users`, `eihwaz_groupes`, `eihwaz_sessions`, `eihwaz_users_groupes`, `eihwaz_groupes_droits`. Any other name causes a compile-time error.
 
 Fields in `extend!{}` use the same types and options as `model!` (including `renamed_from`). No `relations:` block inside `extend!{}` — relations are declared in the target `model!{}` with `has_many(user_profile)` etc.
 

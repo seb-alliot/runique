@@ -17,7 +17,7 @@
 |----------|--------|-------------|
 | `IP_SERVER` | `127.0.0.1` | Adresse IP d'écoute |
 | `PORT` | `3000` | Port d'écoute |
-| `SECRET_KEY` | `default_secret_key` | Clé secrète (CSRF, signatures) — **à changer en production** |
+| `SECRET_KEY` | `default_secret_key` | Clé secrète (CSRF, signatures). En production (`DEBUG=false`), le **boot échoue** si elle est vide, égale au défaut, ou fait moins de 32 caractères |
 
 ---
 
@@ -33,7 +33,7 @@
 | `DB_PASSWORD` | — | Mot de passe (requis sauf SQLite) |
 | `DB_HOST` | `localhost` | Host |
 | `DB_PORT` | `5432` / `3306` | Port (défaut selon le moteur) |
-| `DB_NAME` | `local_base.sqlite` | Nom de la base de données |
+| `DB_NAME` | `local_base.sqlite` (SQLite uniquement) | Nom de la base — **requis** pour postgres/mysql/mariadb, échec au démarrage si absent |
 
 ### Pool de connexions
 
@@ -61,14 +61,15 @@
 
 ## Connexions secondaires — `with_custom_db`
 
-Pour attacher une connexion additionnelle (pool Redis, PostgreSQL secondaire, client MongoDB, etc.), utilisez `.with_custom_db()` sur le builder. La valeur est accessible dans les handlers via `Extension<T>` d'Axum.
+Pour attacher une connexion additionnelle (pool Redis, PostgreSQL secondaire, client MongoDB, etc.), utilisez `.with_custom_db()` sur le builder. La valeur est stockée dans une `HashMap<TypeId, Arc<dyn Any>>` interne à `RuniqueEngine` — **pas** injectée comme `Extension` Axum. Accès dans les handlers via `engine.custom_db::<T>()` (ou son alias `engine.extension::<T>()`), qui retourne `Option<Arc<T>>`.
 
 ```rust
 // main.rs
 let redis = redis::Client::open("redis://127.0.0.1/")?;
+let db = DatabaseConfig::from_env()?.build().connect().await?;
 
 RuniqueAppBuilder::new(config)
-    .with_database().await
+    .with_database(db)
     .with_custom_db(redis)   // T: Any + Send + Sync + 'static
     .routes(url::urlpatterns())
     .build().await?
@@ -77,13 +78,10 @@ RuniqueAppBuilder::new(config)
 
 ```rust
 // handler
-use axum::Extension;
 use redis::Client;
 
-pub async fn mon_handler(
-    Extension(redis): Extension<Client>,
-    mut req: Request,
-) -> AppResult<Response> {
+pub async fn mon_handler(mut req: Request) -> AppResult<Response> {
+    let redis = req.engine.custom_db::<Client>().expect("redis non configuré");
     let mut conn = redis.get_async_connection().await?;
     // ...
 }

@@ -20,7 +20,7 @@ Le dev écrit ensuite `impl RuniqueForm` avec `impl_form_access!(model)` :
 ```rust
 use runique::prelude::*;
 
-#[form(schema = user_schema, fields = [username, email])]
+#[form(schema = users, fields = [username, email])]
 pub struct UserForm;
 
 impl RuniqueForm for UserForm {
@@ -33,13 +33,13 @@ impl RuniqueForm for UserForm {
 En ajoutant `model = Entity`, le formulaire devient un point d'entrée direct pour les requêtes ORM, sans passer par l'entité.
 
 ```rust
-#[form(schema = user_schema, model = users::Entity)]
+#[form(schema = users, model = users::Entity)]
 pub struct UserForm;
 
-#[form(schema = blog_schema, model = blog::Entity)]
+#[form(schema = blog, model = blog::Entity)]
 pub struct BlogForm;
 
-#[form(schema = document_schema, model = document::Entity)]
+#[form(schema = document, model = document::Entity)]
 pub struct DocumentForm;
 ```
 
@@ -84,7 +84,7 @@ let results = search!(@BlogForm =>
 > `model` est compatible avec `fields` et `exclude` — ils peuvent être combinés librement.
 
 ```rust
-#[form(schema = user_schema, fields = [username, email], model = users::Entity)]
+#[form(schema = users, fields = [username, email], model = users::Entity)]
 pub struct UserForm;
 ```
 
@@ -94,7 +94,7 @@ Overrider `clean` directement dans `impl RuniqueForm` — comme Django.
 `#[async_trait]` est requis uniquement quand on override une méthode async :
 
 ```rust
-#[form(schema = user_schema, fields = [username, email, password])]
+#[form(schema = users, fields = [username, email, password])]
 pub struct RegisterForm;
 
 #[async_trait]
@@ -144,7 +144,7 @@ Il n'est pas possible aujourd'hui de personnaliser un seul champ (ex: ajouter `.
 
 ```rust
 // ❌ Pas encore possible
-#[form(schema = article_schema)]
+#[form(schema = article)]
 pub struct ArticleForm;
 
 impl RuniqueForm for ArticleForm {

@@ -32,7 +32,7 @@ Choice [1-4] (default: 1):
 [Enter] Confirm  [A] Change algorithm  [Ctrl+C] Cancel
 ```
 
-**Navigation:** `ESC` goes back to the previous step at any time.
+**Navigation:** `ESC` only works on the algorithm selection step. The username/email/password steps (text input) and the final review screen have no way back — `Ctrl+C` cancels at any time.
 
 > The CLI runs without the application runtime — it has no access to the `PasswordConfig` configured in `main.rs`. The algorithm is chosen explicitly at each run.
 >

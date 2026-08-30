@@ -21,7 +21,7 @@ Les limites mémoire et l'intervalle de cleanup sont configurés via le builder 
 
 | Section | Description |
 | --- | --- |
-| [Application & Serveur](/docs/fr/env/application) | DEBUG, IP_SERVER, PORT, DB, Redirections |
+| [Application & Serveur](/docs/fr/env/application) | DEBUG, IP_SERVER, PORT, DB |
 | [Assets & médias](/docs/fr/env/assets) | Fichiers statiques, médias, templates |
 
 ## Retour au sommaire

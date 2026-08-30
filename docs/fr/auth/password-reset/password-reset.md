@@ -56,14 +56,30 @@ Toutes les options sont optionnelles — les valeurs par défaut fonctionnent sa
 
 ## Modèle utilisateur custom — trait `UserEntity`
 
-Si tu n'utilises pas `BuiltinUserEntity`, implémente ce trait sur ton entité :
+Si tu n'utilises pas `BuiltinUserEntity`, implémente ce trait sur un type porteur (`type Model` associé à ton entité) — `find_by_id`, `find_by_username`, `find_by_email` et `update_password` sont toutes obligatoires (`update_password_by_id` a une implémentation par défaut) :
 
 ```rust
 use runique::prelude::UserEntity;
 
+pub struct UserRepo;
+
 #[async_trait::async_trait]
-impl UserEntity for user::Model {
-    async fn find_by_email(db: &DatabaseConnection, email: &str) -> Option<Self> {
+impl UserEntity for UserRepo {
+    type Model = user::Model;
+
+    async fn find_by_id(db: &DatabaseConnection, id: Pk) -> Option<Self::Model> {
+        user::Entity::find_by_id(id).one(db).await.ok()?
+    }
+
+    async fn find_by_username(db: &DatabaseConnection, username: &str) -> Option<Self::Model> {
+        user::Entity::find()
+            .filter(user::Column::Username.eq(username))
+            .one(db)
+            .await
+            .ok()?
+    }
+
+    async fn find_by_email(db: &DatabaseConnection, email: &str) -> Option<Self::Model> {
         user::Entity::find()
             .filter(user::Column::Email.eq(email))
             .one(db)
@@ -83,12 +99,10 @@ impl UserEntity for user::Model {
             .await?;
         Ok(())
     }
-
-    fn username(&self) -> &str {
-        &self.username
-    }
 }
 ```
+
+`username()` n'appartient pas à `UserEntity` — c'est une méthode du trait `RuniqueUser`, à implémenter sur `user::Model` lui-même (voir [Modèle utilisateur](/docs/fr/auth/modele)).
 
 Puis dans le builder :
 

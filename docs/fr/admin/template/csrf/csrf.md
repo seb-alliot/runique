@@ -8,9 +8,8 @@ Le fichier `admin_template.html` inscrit plusieurs éléments **hors blocks**, c
 |---|---|---|
 | `<meta name="csrf-token" content="{{ csrf_token }}">` | dans `<head>` | Expose le token CSRF pour JavaScript |
 | `<script src="…/csrf.js" defer></script>` | avant `</body>` | Intercepteur AJAX automatique |
-| Zone `{% block messages %}` | dans le body | Affichage des messages flash (erreur CSRF incluse) |
 
-Ces éléments **ne peuvent pas être supprimés** via une surcharge de block. Ils sont actifs sur toutes les pages héritant du contrat.
+Ces deux éléments sont **hors blocks** : impossibles à supprimer via une surcharge, actifs sur toutes les pages héritant du contrat. `{% block messages %}` (affichage des messages flash, erreur CSRF incluse) est en revanche un vrai block Tera — surchargeable, et donc supprimable par un template enfant qui ne l'inclut pas.
 
 ## Le token CSRF
 
@@ -25,7 +24,7 @@ Ces éléments **ne peuvent pas être supprimés** via une surcharge de block. I
 ```
 Requête POST
   └─ middleware CSRF
-       ├─ lit X-CSRF-Token (header) ou _csrf_token (form field)
+       ├─ lit X-CSRF-Token (header) ou csrf_token (form field)
        ├─ démasque la valeur reçue
        ├─ compare avec le token stable de la session
        └─ correspondance ? → continue | non → 403 Forbidden
@@ -65,7 +64,7 @@ Pour les formulaires HTML classiques (non gérés via `form_fields`), il faut in
 `{% csrf %}` génère un champ caché :
 
 ```html
-<input type="hidden" name="_csrf_token" value="…token masqué…">
+<input type="hidden" name="csrf_token" value="…token masqué…">
 ```
 
 Les formulaires rendus via `{{ form_fields.html }}` incluent ce champ automatiquement — le tag `{% csrf %}` n'est nécessaire que pour les formulaires écrits manuellement.
@@ -111,7 +110,7 @@ Si le template de login est personnalisé (hors `admin_template.html`), les troi
 
 | Situation | Risque | Solution |
 |---|---|---|
-| Override de `{% block content %}` avec un `<form>` manuel sans `{% csrf %}` | Le champ `_csrf_token` est absent → 403 sur soumission | Ajouter `{% csrf %}` dans le `<form>` |
+| Override de `{% block content %}` avec un `<form>` manuel sans `{% csrf %}` | Le champ `csrf_token` est absent → 403 sur soumission | Ajouter `{% csrf %}` dans le `<form>` |
 | Template qui n'hérite pas de `admin_template.html` | Ni la meta ni le script `csrf.js` ne sont présents | Ajouter manuellement les deux éléments (voir checklist) |
 | Appel `fetch()` dans un script chargé avant `csrf.js` | L'intercepteur n'est pas encore actif | Charger le script custom après `csrf.js` ou utiliser `{% block extra_js %}` |
 

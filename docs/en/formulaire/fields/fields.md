@@ -41,6 +41,9 @@ form.field(&TextField::textarea("summary").label("Summary"));
 
 // RichText — automatic XSS sanitization before validation
 form.field(&TextField::richtext("content").label("Content"));
+
+// Phone — digits/spaces/dashes/parentheses, leading '+' only, 7 to 15 digits
+form.field(&TextField::phone("phone").label("Phone"));
 ```
 
 **Builder options:**
@@ -65,6 +68,7 @@ TextField::text("name")
 | `Password` | Standard                   | Auto hash in `finalize()` if config is `Auto` and no `.no_hash()`, value cleared on `render()` |
 | `RichText` | Standard                   | XSS sanitization (`sanitize()`) before validation                                              |
 | `Csrf`     | Session token              | —                                                                                              |
+| `Phone`    | Allowed chars (digits/spaces/`-`/`()`), leading `+` only, 7 to 15 digits | — |
 
 **Password utilities:**
 
@@ -308,7 +312,7 @@ form.field(
 
 The move to the final destination happens in `finalize()`, **only if validation passes**. The directory is created automatically if it does not already exist.
 
-> **Security**: `.svg` files are **always rejected** by default (XSS risk). Image validation uses the `image` crate to check the real file format. Empty submissions (no file selected) are handled correctly — the `required` constraint works as expected.
+> **Security**: `.svg` files are **always rejected** by default (XSS risk). Validation checks the real file format by reading its magic bytes (not just the extension); the `image` crate is used separately, only to read dimensions (`max_dimensions`). Empty submissions (no file selected) are handled correctly — the `required` constraint works as expected.
 
 ### Associated JS files
 

@@ -3,7 +3,7 @@
 ## Fonctionnement
 
 - Token généré **automatiquement** pour chaque session
-- Pattern **Double Submit Cookie** (cookie + champ hidden)
+- Pattern **synchronizer token côté session** : le token est stocké côté serveur en session, exposé uniquement via un champ hidden ou le header `X-CSRF-Token` — pas de cookie séparé lisible en JS (le cookie de session lui-même est `HttpOnly`)
 - Vérifié sur les requêtes POST, PUT, PATCH, DELETE
 - Ignoré sur les requêtes GET, HEAD, OPTIONS
 
@@ -51,10 +51,11 @@ Utilisez `.csrf_exempt()` pour bypasser la validation CSRF sur des chemins spéc
 
 ```rust
 .middleware(|m| {
-    m.with_csrf()
-     .csrf_exempt(vec!["/webhook/stripe", "/api/callback"])
+    m.csrf_exempt(vec!["/webhook/stripe", "/api/callback"])
 })
 ```
+
+Le CSRF est toujours actif — il n'y a pas de méthode `.with_csrf()` à appeler, seule l'exemption existe.
 
 La correspondance est **exacte** — `/webhook/stripe` n'exempte pas `/webhook/stripe/sub`.
 

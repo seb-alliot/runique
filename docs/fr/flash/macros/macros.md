@@ -51,12 +51,14 @@ let msgs = flash_now!(warning => "Champ A incorrect", "Champ B manquant");
 
 ### Types disponibles
 
-| Type | Classe CSS générée |
+| Type | `MessageLevel::as_css_class()` |
 |------|-------------------|
 | `success` | `success-message` |
 | `error` | `error-message` |
 | `info` | `info-message` |
 | `warning` | `warning-message` |
+
+`as_css_class()` est une méthode disponible pour un rendu personnalisé — le tag intégré `{% messages %}` ne l'utilise pas : son template émet `class="message message-{{ message.level }}"`, où `message.level` se sérialise en `Success`/`Error`/`Warning`/`Info` (nom du variant Rust, capitalisé), pas ces classes-ci. Voir [Templates flash](/docs/fr/flash/templates) pour boucler manuellement avec la bonne casse.
 
 ### Injection dans le contexte
 
