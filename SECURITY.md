@@ -4,29 +4,26 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 1.0.x   | :white_check_mark: |
-| < 1.0   | :x:                |
+| 2.2.x   | :white_check_mark: |
+| < 2.0   | :x:                |
 
 ## Known Security Advisories
 
 ### Active Advisories
 
-#### RUSTSEC-2023-0071: RSA Marvin Attack
-- **Severity**: Medium (5.9)
-- **Affected**: `rsa 0.9.10` (transitive dependency via `sqlx-mysql`)
-- **Impact**: Potential timing sidechannel attack on RSA decryption
-- **Mitigation**:
-  - Use SQLite or PostgreSQL instead of MySQL in production
-  - If MySQL is required, this only affects SSL/TLS connections
-  - No fix available yet, waiting for upstream `sqlx` update
-- **Status**: Tracked, accepted risk for MySQL users
+None currently identified. The dependency tree was checked against the two advisories previously tracked here (below) — neither applies to the current lockfile.
 
-#### RUSTSEC-2025-0052: async-std Unmaintained
-- **Severity**: Warning
-- **Affected**: `async-std 1.13.2` (transitive dependency via `sea-orm`/`sqlx`)
-- **Impact**: None (indirect usage only, no security vulnerability)
-- **Mitigation**: None required
-- **Status**: Waiting for SeaORM 3.0 / sqlx migration to pure Tokio
+### Previously Tracked (now resolved)
+
+#### RUSTSEC-2023-0071: RSA Marvin Attack — no longer applicable
+- **Was affected via**: `rsa` (transitive dependency of an older `sqlx-mysql`)
+- **Current state**: `rsa` does not appear anywhere in `Cargo.lock` — `sqlx-mysql` (now `0.9.0`) no longer pulls it in.
+
+#### RUSTSEC-2025-0052: async-std Unmaintained — no longer applicable
+- **Was affected via**: `async-std` (transitive dependency of `sea-orm`/`sqlx`)
+- **Current state**: `async-std` does not appear anywhere in `Cargo.lock` — the SeaORM/sqlx stack Runique depends on has moved to pure Tokio.
+
+Re-checked against `Cargo.lock` on 2026-08-30. If you maintain a fork with different dependency versions, verify with `cargo audit` before relying on this section.
 
 ## Reporting a Vulnerability
 
@@ -50,9 +47,10 @@ When using Runique in production:
 2. **Set strong SECRET_KEY** (32+ random characters)
 3. **Configure ALLOWED_HOSTS** properly
 4. **Enable CSP** (`strict_csp = true`)
-5. **Use sanitize_inputs** (`sanitize_inputs = true`)
-6. **Keep dependencies updated**: `cargo update`
-7. **Run security audits**: `cargo audit`
+5. **Keep dependencies updated**: `cargo update`
+6. **Run security audits**: `cargo audit`
+
+HTML output sanitization (via `ammonia`) and Tera auto-escaping are on by default — there is no `sanitize_inputs` flag to set; this isn't an opt-in behavior.
 
 ## Vulnerability Disclosure Timeline
 

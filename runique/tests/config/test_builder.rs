@@ -12,8 +12,12 @@
 use async_trait::async_trait;
 use axum::{Router, routing::get};
 use runique::admin::{AdminConfig, AdminRoutes};
-use runique::app::staging::{AdminStaging, CoreStaging, MiddlewareStaging, StaticStaging};
+use runique::app::staging::{
+    AdminStaging, CoreStaging, MiddlewareStaging, PermissionsPolicyConfig, StaticStaging,
+    TrustedProxiesConfig,
+};
 use runique::app::{BuildError, BuildErrorKind, CheckError, CheckReport, RuniqueAppBuilder};
+use runique::middleware::TrustedProxies;
 use runique::auth::session::{AdminAuth, AdminLoginResult};
 use runique::config::app::RuniqueConfig;
 use runique::middleware::MiddlewareConfig;
@@ -495,6 +499,150 @@ fn test_middleware_staging_validate_prod_ok() {
 fn test_middleware_staging_is_ready_toujours_true() {
     assert!(MiddlewareStaging::new(true).is_ready());
     assert!(MiddlewareStaging::new(false).is_ready());
+}
+
+// ════════════════════════════════════════════════════════════════
+// CorsConfig — via MiddlewareStaging::validate() (mêmes champs pub(crate) que
+// l'applicator, pas d'accesseur dédié — la validation EST le comportement
+// de sécurité qui compte : wildcard + credentials = fuite de cookies cross-origin).
+// ════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_cors_wildcard_with_credentials_fails_validation() {
+    let ms = MiddlewareStaging::new(true).with_cors(|c| c.any_origin().allow_credentials(true));
+    let err = ms.validate().expect_err("wildcard + credentials doit échouer");
+    assert!(matches!(err.kind, BuildErrorKind::ValidationFailed(_)));
+}
+
+#[test]
+fn test_cors_wildcard_without_credentials_ok() {
+    let ms = MiddlewareStaging::new(true).with_cors(|c| c.any_origin());
+    assert!(ms.validate().is_ok());
+}
+
+#[test]
+fn test_cors_explicit_origin_with_credentials_ok() {
+    let ms = MiddlewareStaging::new(true)
+        .with_cors(|c| c.origin("https://app.example.com").allow_credentials(true));
+    assert!(ms.validate().is_ok());
+}
+
+#[test]
+fn test_cors_no_config_validates_ok() {
+    let ms = MiddlewareStaging::new(true);
+    assert!(ms.validate().is_ok());
+}
+
+// ════════════════════════════════════════════════════════════════
+// PermissionsPolicyConfig
+// ════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_permissions_policy_config_default_denies_geolocation() {
+    let cfg = PermissionsPolicyConfig::default();
+    assert!(cfg.get_policy().to_header_value().contains("geolocation=()"));
+}
+
+#[test]
+fn test_permissions_policy_config_deny() {
+    let cfg = PermissionsPolicyConfig::default().deny("test-feature");
+    assert!(
+        cfg.get_policy()
+            .to_header_value()
+            .contains("test-feature=()")
+    );
+}
+
+#[test]
+fn test_permissions_policy_config_allow_self() {
+    let cfg = PermissionsPolicyConfig::default().allow_self("test-feature");
+    assert!(
+        cfg.get_policy()
+            .to_header_value()
+            .contains("test-feature=(self)")
+    );
+}
+
+#[test]
+fn test_permissions_policy_config_allow_any() {
+    let cfg = PermissionsPolicyConfig::default().allow_any("test-feature");
+    assert!(
+        cfg.get_policy()
+            .to_header_value()
+            .contains("test-feature=*")
+    );
+}
+
+#[test]
+fn test_permissions_policy_config_allow_list() {
+    let cfg =
+        PermissionsPolicyConfig::default().allow("payment", vec!["https://pay.example.com"]);
+    assert!(
+        cfg.get_policy()
+            .to_header_value()
+            .contains("payment=(\"https://pay.example.com\")")
+    );
+}
+
+#[test]
+fn test_permissions_policy_config_overwrite_replaces_not_duplicates() {
+    // deny() puis allow_self() sur la même feature doit REMPLACER, pas
+    // dupliquer la directive (cf. `set()` dans permissions_policy_config.rs).
+    let cfg = PermissionsPolicyConfig::default()
+        .deny("geolocation")
+        .allow_self("geolocation");
+    let header = cfg.get_policy().to_header_value();
+    assert!(header.contains("geolocation=(self)"));
+    assert_eq!(header.matches("geolocation").count(), 1);
+}
+
+// ════════════════════════════════════════════════════════════════
+// TrustedProxiesConfig
+// ════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_trusted_proxies_config_default_trusts_private_networks() {
+    let cfg = TrustedProxiesConfig::default();
+    let proxies: TrustedProxies = cfg.get_proxies();
+    assert!(proxies.is_trusted(&"127.0.0.1".parse().unwrap()));
+    assert!(proxies.is_trusted(&"10.0.0.5".parse().unwrap()));
+    assert!(proxies.is_trusted(&"192.168.1.1".parse().unwrap()));
+    assert!(!proxies.is_trusted(&"8.8.8.8".parse().unwrap()));
+}
+
+#[test]
+fn test_trusted_proxies_config_none_trusts_nothing() {
+    let cfg = TrustedProxiesConfig::default().none();
+    let proxies = cfg.get_proxies();
+    assert!(!proxies.is_trusted(&"127.0.0.1".parse().unwrap()));
+    assert!(!proxies.is_trusted(&"10.0.0.5".parse().unwrap()));
+}
+
+#[test]
+fn test_trusted_proxies_config_proxy_adds_exact_ip() {
+    let cfg = TrustedProxiesConfig::default()
+        .none()
+        .proxy("203.0.113.5");
+    let proxies = cfg.get_proxies();
+    assert!(proxies.is_trusted(&"203.0.113.5".parse().unwrap()));
+    assert!(!proxies.is_trusted(&"203.0.113.6".parse().unwrap()));
+}
+
+#[test]
+fn test_trusted_proxies_config_cidr_adds_range() {
+    let cfg = TrustedProxiesConfig::default().none().cidr("203.0.113.0/24");
+    let proxies = cfg.get_proxies();
+    assert!(proxies.is_trusted(&"203.0.113.42".parse().unwrap()));
+    assert!(!proxies.is_trusted(&"203.0.114.1".parse().unwrap()));
+}
+
+#[test]
+fn test_trusted_proxies_config_proxy_invalid_ip_ignored() {
+    // `proxy()` prend `impl AsRef<str>` sans retour d'erreur — une IP
+    // invalide doit être silencieusement ignorée, pas paniquer.
+    let cfg = TrustedProxiesConfig::default().none().proxy("not-an-ip");
+    let proxies = cfg.get_proxies();
+    assert!(!proxies.is_trusted(&"127.0.0.1".parse().unwrap()));
 }
 
 // ════════════════════════════════════════════════════════════════

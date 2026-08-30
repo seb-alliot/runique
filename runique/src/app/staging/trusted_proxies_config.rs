@@ -140,6 +140,15 @@ impl TrustedProxiesConfig {
     pub(crate) fn build(self) -> TrustedProxies {
         TrustedProxies::new(self.exact, self.cidrs)
     }
+
+    // ═══════════════════════════════════════════════════
+    // ACCESSOR (used in tests)
+    // ═══════════════════════════════════════════════════
+
+    /// Returns the current trusted-proxy set for inspection.
+    pub fn get_proxies(&self) -> TrustedProxies {
+        TrustedProxies::new(self.exact.clone(), self.cidrs.clone())
+    }
 }
 
 fn parse_cidr(s: &str) -> Option<(IpAddr, u8)> {

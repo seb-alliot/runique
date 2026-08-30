@@ -71,6 +71,25 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 * Les deux points d'entrée CSRF (filtre `csrf_field`, fonction `csrf_token()`) passent le jeton par `escape_html` avant interpolation — la balise est émise sans échappement, sa sûreté ne doit donc pas dépendre d'une garantie prise dans un autre module.
 * Helper de test `tests/helpers/tera.rs` (`kwargs()`, `no_kwargs()`) et nouveau `tests/context/test_autoescape.rs` couvrant le contrat d'échappement de bout en bout : une variable simple est échappée, `plaintext` reste échappé, `markdown` sort en HTML sans `| safe`, et la même valeur est échappée sans le filtre.
 
+### Ajouté — `derive_form` (feature `pk-uuid`, `Pk` sur un champ normal)
+
+* Nouvelle feature Cargo **`pk-uuid`** : l'alias `Pk` résout vers `Uuid` (`Uuid::now_v7()`), mutuellement exclusive avec `big-pk` via un `compile_error!` si les deux sont activées.
+* Le **mot-clé `Pk` est désormais utilisable sur n'importe quel champ**, pas seulement la clé primaire — typiquement une clé étrangère qui pointe vers une table dont la PK est `Pk`. Il se résout immédiatement au parsing vers le type concret `i32`/`i64`/`Uuid` correspondant à la feature active, le même mécanisme que celui déjà utilisé pour `pk: id => Pk`. Ça ferme une vraie classe de bug de désynchronisation FK/PK : une clé étrangère codée en dur en `int` casse silencieusement (ou pire, tronque silencieusement) dès que la PK de la table référencée bascule en `big-pk`/`pk-uuid`. Cinq champs de ce type ont été trouvés et corrigés dans `demo-app`.
+
+### Rupture — `derive_form` (ancienne syntaxe `fields:` supprimée)
+
+* La grammaire v1 des champs (`fields: { name: SqlType [options] }` dans `model!{}`) est **supprimée**. La syntaxe en bloc anonyme (`{ name: TypeSémantique [options] }`) introduite en parallèle est désormais la seule forme acceptée. `extend!{}` n'est pas concerné — il a toujours requis `fields:` et continue de le requérir ; les deux macros ont des grammaires distinctes.
+* L'audit de cette suppression a révélé que v2 avait été livrée sans parité complète avec v1. Fermé avant de retirer v1 :
+  * types manquants ajoutés : `char`, `i8`, `i16`, `u32`, `u64`, `f32`, `timestamp`, `timestamp_tz`, `json_binary`, `binary`, `var_binary`, `blob`, `cidr`, `mac_address`, `interval` ;
+  * options manquantes ajoutées : `readonly`, `label: "..."` ;
+  * options confirmées mortes supprimées plutôt que portées : `index` (déjà un no-op sous v1), `select_as` (positionné mais jamais lu nulle part dans le code).
+
+### Correctif — `derive_form` (grammaire v2 : mauvais routage silencieux et options sans effet)
+
+* Les champs `json` déclarés sous la grammaire v2 étaient routés vers `FieldType::Text` au lieu de `FieldType::Json` — regroupés par erreur avec `richtext`/`textarea`.
+* `min_length`, `min`, `max`, `min_f`, `max_f` et `max_size` se parsaient sans erreur sous la grammaire v2 mais n'étaient jamais traduits dans la validation/le schéma généré — écrire `[max_size: 1000]` sur un champ v2 compilait et n'avait **aucun effet**.
+* `var_binary` retombait sur le mapping SQL générique `String`/`VARCHAR` au lieu de `VarBinary`, dans les deux parseurs de migration (`model!{}` et `extend!{}`).
+
 ---
 
 ## [2.1.21] - 2026-06-30

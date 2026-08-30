@@ -12,6 +12,7 @@ use std::{net::SocketAddr, sync::Arc, sync::OnceLock};
 use axum::{Router, routing::get};
 use runique::admin::AdminRoutes;
 use runique::prelude::*;
+use runique::sea_orm::DatabaseConnection;
 
 use crate::helpers::db;
 use crate::helpers::pk::pk_sql_literal;
@@ -163,6 +164,28 @@ const HISTORY_DDL: &str = "
     )
 ";
 
+// Table du flux reset-password (admin création d'user + reset manuel) — cf.
+// `tests/utils/test_reset_token.rs` pour le même schéma en isolation.
+#[cfg(feature = "pk-uuid")]
+const RESET_TOKENS_DDL: &str = "
+    CREATE TABLE eihwaz_reset_tokens (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        token_hash  TEXT NOT NULL UNIQUE,
+        user_id     BLOB NOT NULL,
+        expires_at  TEXT NOT NULL
+    )
+";
+
+#[cfg(not(feature = "pk-uuid"))]
+const RESET_TOKENS_DDL: &str = "
+    CREATE TABLE eihwaz_reset_tokens (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        token_hash  TEXT NOT NULL UNIQUE,
+        user_id     INTEGER NOT NULL,
+        expires_at  TEXT NOT NULL
+    )
+";
+
 // ── Registre + routes admin (équivalent minimal du code généré par le daemon,
 //    réduit aux ressources builtin — cf. `demo-app/src/admins/admin.rs::routes`
 //    et `::admin_register`, qui sont génériques et ne dépendent d'aucune
@@ -280,7 +303,14 @@ pub fn seed_superuser_id_str() -> String {
     crate::helpers::pk::pk(SEED_SUPERUSER_ID).to_string()
 }
 
-async fn build_admin_app() -> Router {
+/// `pub` (pas seulement pour `admin_server_addr()`) — permet à des tests qui ont
+/// besoin d'interroger la DB directement (ex: vérifier qu'un token est bien lié
+/// au bon `user_id`) de monter leur PROPRE instance locale sur leur runtime tokio,
+/// au lieu de partager `admin_server_db()` à travers des runtimes différents : un
+/// pool SQLite `:memory:` (taille 1) utilisé depuis le runtime d'un `#[tokio::test]`
+/// qui se termine devient inutilisable pour le serveur partagé — casse silencieuse
+/// de tous les logins suivants (trouvé en déboguant `test_admin_password_security.rs`).
+pub async fn build_admin_app() -> (Router, DatabaseConnection) {
     let dbc = db::fresh_db().await;
     db::exec(&dbc, USERS_DDL).await;
     db::exec(&dbc, SESSIONS_DDL).await;
@@ -288,6 +318,7 @@ async fn build_admin_app() -> Router {
     db::exec(&dbc, GROUPES_DROITS_DDL).await;
     db::exec(&dbc, USERS_GROUPES_DDL).await;
     db::exec(&dbc, HISTORY_DDL).await;
+    db::exec(&dbc, RESET_TOKENS_DDL).await;
     seed_superuser(&dbc).await;
     seed_fixtures(&dbc).await;
 
@@ -303,7 +334,7 @@ async fn build_admin_app() -> Router {
     });
 
     let app = RuniqueAppBuilder::new(config)
-        .with_database(dbc)
+        .with_database(dbc.clone())
         .no_statics()
         .with_admin(|a| {
             a.site_title("Test Admin")
@@ -315,7 +346,7 @@ async fn build_admin_app() -> Router {
         .await
         .expect("construction de l'app admin de test");
 
-    app.router
+    (app.router, dbc)
 }
 
 // ── Serveur partagé (une seule instance pour tous les tests qui l'utilisent) ──
@@ -328,7 +359,7 @@ pub fn admin_server_addr() -> SocketAddr {
         std::thread::spawn(move || {
             let rt = tokio::runtime::Runtime::new().expect("test runtime");
             rt.block_on(async {
-                let app = build_admin_app().await;
+                let (app, _dbc) = build_admin_app().await;
                 let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
                     .await
                     .expect("bind admin test server");
@@ -340,6 +371,13 @@ pub fn admin_server_addr() -> SocketAddr {
         rx.recv().expect("recv addr")
     })
 }
+
+// N'expose PAS la `DatabaseConnection` de ce serveur partagé : un pool SQLite
+// `:memory:` (taille 1) utilisé depuis le runtime tokio d'un `#[tokio::test]`
+// qui se termine devient inutilisable pour LE SERVEUR AUSSI (même pool) — casse
+// silencieuse de tous les logins suivants. Si un test a besoin d'interroger la
+// DB directement, il doit monter sa propre instance via `build_admin_app()` sur
+// son propre runtime (cf. `test_admin_password_security.rs::spawn_local_admin_server`).
 
 pub fn admin_test_client() -> reqwest::Client {
     reqwest::Client::builder()

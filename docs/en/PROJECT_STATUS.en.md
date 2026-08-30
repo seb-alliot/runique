@@ -9,7 +9,7 @@ This document consolidates the actual state of the repository from the reference
 
 ---
 
-## Snapshot (as of June 25, 2026)
+## Snapshot (as of August 30, 2026)
 
 - **Workspace version**: `2.2.0`
 - **derive_form**: `2.1.11`
@@ -82,6 +82,8 @@ This document consolidates the actual state of the repository from the reference
 - `extend!{}` — framework table extension (e.g. `eihwaz_users`)
 - `makemigrations` — plan → validate → **atomic commit/rollback** + snapshots; `DROP COLUMN` on removed columns (destructive guard)
 - Supported backends: PostgreSQL, MariaDB, SQLite
+- `Pk` alias: `i32` by default, `i64` (`big-pk`), or `Uuid` via `Uuid::now_v7()` (`pk-uuid`) — mutually exclusive features (`compile_error!`). Usable on any field (not just the PK), typically a foreign key, to stay automatically in sync with the referenced table's type
+- `model!{}` — unified field syntax (the legacy `fields: { name: SqlType }` grammar is removed): single anonymous block, 43 semantic types, including `readonly`/`label` options
 
 ### I18n
 
@@ -136,7 +138,7 @@ This document consolidates the actual state of the repository from the reference
 
 ### Low priority
 
-- **Targeted coverage**: `migration/migrate.rs` (22%), `engine/core.rs` (50%), `forms/fields/file.rs` (61%)
+- **Targeted coverage**: `migration/migrate.rs` (22%), `engine/core.rs` (50%), `forms/fields/file.rs` (67%, up from 61%)
 
 ---
 
@@ -148,5 +150,5 @@ This document consolidates the actual state of the repository from the reference
 
 ---
 
-**Last update**: June 25, 2026
+**Last update**: August 30, 2026
 **Global status**: ✅ Stable framework · 🟡 Admin mature beta · 🔒 Security: reset tokens DB-hardened, timing-safe auth · 📖 Full public API documentation (docs.rs)

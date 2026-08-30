@@ -71,6 +71,25 @@ All notable changes to this project will be documented in this file.
 * Both CSRF entry points (`csrf_field` filter, `csrf_token()` function) now run the token through `escape_html` before interpolation — the tag is emitted unescaped, so its safety must not depend on a guarantee made in another module.
 * Test helper `tests/helpers/tera.rs` (`kwargs()`, `no_kwargs()`) and a new `tests/context/test_autoescape.rs` covering the escaping contract end to end: a plain variable is escaped, `plaintext` stays escaped, `markdown` emits HTML without `| safe`, and the same value is escaped without the filter.
 
+### Added — `derive_form` (`pk-uuid` feature, `Pk` on regular fields)
+
+* New Cargo feature **`pk-uuid`**: the `Pk` alias resolves to `Uuid` (`Uuid::now_v7()`), mutually exclusive with `big-pk` via a `compile_error!` if both are enabled.
+* The **`Pk` keyword can now be used on any field**, not just the primary key — typically foreign keys pointing at a `Pk`-typed table. It resolves immediately at parse time to the concrete `i32`/`i64`/`Uuid` type behind the active feature, the same mechanism already used for `pk: id => Pk`. This closes a real FK/PK desync bug class: a foreign key hardcoded as `int` silently breaks (or worse, silently truncates) the moment the referenced table's PK switches to `big-pk`/`pk-uuid`. Five such fields were found and fixed in `demo-app`.
+
+### Breaking — `derive_form` (legacy `fields:` syntax removed)
+
+* The v1 field grammar (`fields: { name: SqlType [options] }` inside `model!{}`) is **removed**. The anonymous-block syntax (`{ name: SemanticType [options] }`) introduced alongside it is now the only accepted form. `extend!{}` is unaffected — it always required `fields:` and still does; the two macros have distinct grammars.
+* Auditing this removal surfaced that v2 had shipped without full parity with v1. Closed before removing v1:
+  * missing types added: `char`, `i8`, `i16`, `u32`, `u64`, `f32`, `timestamp`, `timestamp_tz`, `json_binary`, `binary`, `var_binary`, `blob`, `cidr`, `mac_address`, `interval`;
+  * missing options added: `readonly`, `label: "..."`;
+  * confirmed-dead options removed rather than ported: `index` (was already a no-op under v1), `select_as` (set but never read anywhere in the codebase).
+
+### Fix — `derive_form` (v2 grammar: silent misroutes and no-ops)
+
+* `json` fields declared under the v2 grammar were routed to `FieldType::Text` instead of `FieldType::Json` — grouped by mistake with `richtext`/`textarea`.
+* `min_length`, `min`, `max`, `min_f`, `max_f` and `max_size` parsed successfully under the v2 grammar but were never translated into the generated validation/schema — writing `[max_size: 1000]` on a v2 field compiled and had **zero effect**.
+* `var_binary` fell through to the generic `String`/`VARCHAR` SQL mapping instead of `VarBinary`, in both the `model!{}` and `extend!{}` migration parsers.
+
 ---
 
 ## [2.1.21] - 2026-06-30

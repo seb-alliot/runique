@@ -2,7 +2,7 @@
 
 Navigate the Runique Framework codebase.
 
-**Version**: 2.2.0 — **Updated**: 2026-07-27
+**Version**: 2.2.0 — **Updated**: 2026-08-30
 
 ---
 
@@ -156,7 +156,7 @@ runique/
 - **`middleware/csrf.rs`** — `CsrfToken`, `mask_csrf_token()`, `unmask_csrf_token()`
 - **`middleware/csp_nonce.rs`** — CSP nonce generation
 - **`password/`** — Argon2 hashing helpers
-- **`pk.rs`** — `Pk` type alias (`i32` par défaut, `i64` avec `big-pk`)
+- **`pk.rs`** — `Pk` type alias (`i32` par défaut, `i64` avec `big-pk`, `Uuid` avec `pk-uuid`)
 - **`reset_token/`** — secure token generation for password resets
 - **`resolve_ogimage/`** — Open Graph image resolution
 - **`runique_log.rs`** — structured log helpers
@@ -167,7 +167,7 @@ runique/
 
 ## Tests (`runique/tests/`)
 
-**2380+ tests passing** (2 ignored: SQLx Windows UTF-8 issue)
+**2361 tests passing** (2 ignored: SQLx Windows UTF-8 issue)
 
 ```
 tests/
@@ -281,4 +281,5 @@ cargo test --tests                         # integration only (no inline)
 | `mysql`          | MySQL only                               |
 | `mariadb`        | MariaDB only                             |
 | `big-pk`         | `Pk = i64` instead of `i32`          |
+| `pk-uuid`        | `Pk = Uuid` (`Uuid::now_v7()`), mutually exclusive with `big-pk` |
 | `acme`           | Automatic TLS via Let's Encrypt (ACME)   |

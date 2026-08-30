@@ -709,3 +709,386 @@ fn path_to_string(path: &Path) -> String {
         .collect::<Vec<_>>()
         .join("::")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn wrap(body: &str) -> String {
+        format!("admin! {{\n{body}\n}}")
+    }
+
+    fn parse_one(body: &str) -> ResourceDef {
+        let parsed = parse_admin_file(&wrap(body)).unwrap_or_else(|e| panic!("parse failed: {e}"));
+        assert_eq!(parsed.resources.len(), 1, "attendu exactement 1 ressource");
+        parsed.resources.into_iter().next().unwrap()
+    }
+
+    // ─── Cas minimal / valeurs par défaut ──────────────────────────────────
+
+    #[test]
+    fn minimal_resource_parses_with_defaults() {
+        let r = parse_one(r#"users: users::Model => UserForm { title: "Users" }"#);
+        assert_eq!(r.key, "users");
+        assert_eq!(r.model_type, "users::Model");
+        assert_eq!(r.title, "Users");
+        assert_eq!(r.id_type, "Pk");
+        assert!(r.template_list.is_none());
+        assert!(r.create_form_type.is_none());
+        assert!(r.extra_context.is_empty());
+        assert!(r.list_filter.is_empty());
+        assert!(r.list_display.is_empty());
+        assert!(r.list_exclude.is_empty());
+        assert!(r.group_action.is_empty());
+        assert!(r.bulk_create.is_none());
+        assert!(r.own_field.is_none());
+        assert!(r.m2m.is_empty());
+    }
+
+    #[test]
+    fn no_admin_macro_returns_empty_parsed() {
+        let parsed = parse_admin_file("fn main() {}").expect("fichier Rust valide sans admin!{}");
+        assert!(parsed.resources.is_empty());
+        assert!(parsed.configures.is_empty());
+    }
+
+    #[test]
+    fn invalid_rust_syntax_is_a_syntax_error() {
+        let err = parse_admin_file("this is not valid rust {{{").unwrap_err();
+        assert!(
+            err.contains("Rust syntax error"),
+            "message inattendu: {err}"
+        );
+    }
+
+    #[test]
+    fn missing_title_is_an_error() {
+        let result = parse_admin_file(&wrap(r#"users: users::Model => UserForm { id_type: Uuid }"#));
+        assert!(result.is_err(), "title manquant devrait échouer");
+    }
+
+    #[test]
+    fn multiple_admin_blocks_is_an_error() {
+        let source = format!(
+            "{}\n{}",
+            wrap(r#"users: users::Model => UserForm { title: "Users" }"#),
+            wrap(r#"droits: droits::Model => DroitForm { title: "Droits" }"#)
+        );
+        let err = parse_admin_file(&source).unwrap_err();
+        // Message traduit (`parser.multiple_admin_blocks`) — on ne fige pas le
+        // texte exact (dépend de la langue par défaut du process de test),
+        // seulement qu'une erreur est bien remontée.
+        assert!(!err.is_empty());
+    }
+
+    #[test]
+    fn unknown_resource_field_is_an_error() {
+        let err = parse_admin_file(&wrap(
+            r#"users: users::Model => UserForm { title: "Users", bogus_field: "x" }"#,
+        ))
+        .unwrap_err();
+        assert!(
+            err.contains("Unknown field in admin!{}: 'bogus_field'"),
+            "message inattendu: {err}"
+        );
+    }
+
+    #[test]
+    fn syn_error_message_includes_line_and_column() {
+        let err = parse_admin_file(&wrap(
+            r#"users: users::Model => UserForm { title: "Users", bogus_field: "x" }"#,
+        ))
+        .unwrap_err();
+        // Format attendu : "line:column: message" (cf. `format_syn_error`).
+        let prefix = err.split(':').take(2).collect::<Vec<_>>().join(":");
+        assert!(
+            prefix.chars().all(|c| c.is_ascii_digit() || c == ':'),
+            "le préfixe devrait être 'ligne:colonne', reçu: {err}"
+        );
+    }
+
+    #[test]
+    fn list_display_and_list_exclude_are_exclusive() {
+        let err = parse_admin_file(&wrap(
+            r#"users: users::Model => UserForm {
+                title: "Users",
+                list_display: [["nom", "Nom"]],
+                list_exclude: ["password"]
+            }"#,
+        ))
+        .unwrap_err();
+        assert!(!err.is_empty());
+    }
+
+    // ─── Champs simples ─────────────────────────────────────────────────────
+
+    #[test]
+    fn templates_are_parsed() {
+        let r = parse_one(
+            r#"users: users::Model => UserForm {
+                title: "Users",
+                template_list: "custom_list.html",
+                template_create: "custom_create.html",
+                template_edit: "custom_edit.html",
+                template_detail: "custom_detail.html",
+                template_delete: "custom_delete.html"
+            }"#,
+        );
+        assert_eq!(r.template_list.as_deref(), Some("custom_list.html"));
+        assert_eq!(r.template_create.as_deref(), Some("custom_create.html"));
+        assert_eq!(r.template_edit.as_deref(), Some("custom_edit.html"));
+        assert_eq!(r.template_detail.as_deref(), Some("custom_detail.html"));
+        assert_eq!(r.template_delete.as_deref(), Some("custom_delete.html"));
+    }
+
+    #[test]
+    fn create_and_edit_form_paths_are_parsed() {
+        let r = parse_one(
+            r#"users: users::Model => UserForm {
+                title: "Users",
+                create_form: crate::formulaire::UserCreateForm,
+                edit_form: crate::formulaire::UserEditForm
+            }"#,
+        );
+        assert_eq!(
+            r.create_form_type.as_deref(),
+            Some("crate::formulaire::UserCreateForm")
+        );
+        assert_eq!(
+            r.edit_form_type.as_deref(),
+            Some("crate::formulaire::UserEditForm")
+        );
+    }
+
+    #[test]
+    fn custom_id_type_is_parsed() {
+        let r = parse_one(r#"users: users::Model => UserForm { title: "Users", id_type: Uuid }"#);
+        assert_eq!(r.id_type, "Uuid");
+    }
+
+    #[test]
+    fn bulk_create_and_own_field_are_parsed() {
+        let r = parse_one(
+            r#"users: users::Model => UserForm {
+                title: "Users",
+                bulk_create: allergenes,
+                own_field: "user_id"
+            }"#,
+        );
+        assert_eq!(r.bulk_create.as_deref(), Some("allergenes"));
+        assert_eq!(r.own_field.as_deref(), Some("user_id"));
+    }
+
+    #[test]
+    fn extra_context_map_is_parsed() {
+        let r = parse_one(
+            r#"users: users::Model => UserForm {
+                title: "Users",
+                extra: { "foo" => "bar", "baz" => "qux" }
+            }"#,
+        );
+        assert_eq!(
+            r.extra_context,
+            vec![
+                ("foo".to_string(), "bar".to_string()),
+                ("baz".to_string(), "qux".to_string()),
+            ]
+        );
+    }
+
+    // ─── Listes bracketées ──────────────────────────────────────────────────
+
+    #[test]
+    fn list_filter_default_limit_is_ten() {
+        let r = parse_one(
+            r#"users: users::Model => UserForm {
+                title: "Users",
+                list_filter: [["statut", "Statut"]]
+            }"#,
+        );
+        assert_eq!(
+            r.list_filter,
+            vec![("statut".to_string(), "Statut".to_string(), 10)]
+        );
+    }
+
+    #[test]
+    fn list_filter_explicit_limit_is_used() {
+        let r = parse_one(
+            r#"users: users::Model => UserForm {
+                title: "Users",
+                list_filter: [["statut", "Statut", 25]]
+            }"#,
+        );
+        assert_eq!(
+            r.list_filter,
+            vec![("statut".to_string(), "Statut".to_string(), 25)]
+        );
+    }
+
+    #[test]
+    fn list_display_without_fk_is_parsed() {
+        let r = parse_one(
+            r#"users: users::Model => UserForm {
+                title: "Users",
+                list_display: [["nom", "Nom"]]
+            }"#,
+        );
+        assert_eq!(r.list_display.len(), 1);
+        assert_eq!(r.list_display[0].0, "nom");
+        assert_eq!(r.list_display[0].1, "Nom");
+        assert!(r.list_display[0].2.is_none());
+    }
+
+    #[test]
+    fn list_display_with_valid_fk_spec_is_parsed() {
+        let r = parse_one(
+            r#"users: users::Model => UserForm {
+                title: "Users",
+                list_display: [["menu_id", "Menu", "menus.titre"]]
+            }"#,
+        );
+        let fk = r.list_display[0].2.as_ref().expect("FkDisplay attendu");
+        assert_eq!(fk.table, "menus");
+        assert_eq!(fk.col, "titre");
+    }
+
+    #[test]
+    fn list_display_with_invalid_fk_spec_is_an_error() {
+        let err = parse_admin_file(&wrap(
+            r#"users: users::Model => UserForm {
+                title: "Users",
+                list_display: [["menu_id", "Menu", "invalid_no_dot"]]
+            }"#,
+        ))
+        .unwrap_err();
+        assert!(err.contains("must be 'table.col'"), "message inattendu: {err}");
+    }
+
+    #[test]
+    fn list_exclude_is_parsed() {
+        let r = parse_one(
+            r#"users: users::Model => UserForm {
+                title: "Users",
+                list_exclude: ["password", "secret"]
+            }"#,
+        );
+        assert_eq!(r.list_exclude, vec!["password".to_string(), "secret".to_string()]);
+    }
+
+    #[test]
+    fn group_action_with_and_without_value_is_parsed() {
+        let r = parse_one(
+            r#"users: users::Model => UserForm {
+                title: "Users",
+                group_action: [["is_active", "Activer", "true"], ["is_staff", "Toggle staff"]]
+            }"#,
+        );
+        assert_eq!(r.group_action.len(), 2);
+        assert_eq!(r.group_action[0].2.as_deref(), Some("true"));
+        assert!(r.group_action[1].2.is_none());
+    }
+
+    #[test]
+    fn m2m_entry_is_fully_parsed() {
+        let r = parse_one(
+            r#"users: users::Model => UserForm {
+                title: "Users",
+                m2m: [["allergenes", "Allergènes", "plat_allergene", "plat_id", "allergene_id", "crate::entities::allergene", "nom"]]
+            }"#,
+        );
+        assert_eq!(r.m2m.len(), 1);
+        let m = &r.m2m[0];
+        assert_eq!(m.field_name, "allergenes");
+        assert_eq!(m.label, "Allergènes");
+        assert_eq!(m.junction_table, "plat_allergene");
+        assert_eq!(m.self_fk, "plat_id");
+        assert_eq!(m.target_fk, "allergene_id");
+        assert_eq!(m.target_entity, "crate::entities::allergene");
+        assert_eq!(m.target_display, "nom");
+    }
+
+    // ─── configure {} ───────────────────────────────────────────────────────
+
+    #[test]
+    fn configure_block_hidden_is_parsed() {
+        let source = wrap(
+            r#"configure {
+                users: { hidden: true }
+            }"#,
+        );
+        let parsed = parse_admin_file(&source).expect("configure block valide");
+        assert_eq!(parsed.resources.len(), 0);
+        assert_eq!(parsed.configures.len(), 1);
+        assert_eq!(parsed.configures[0].key, "users");
+        assert!(parsed.configures[0].hidden);
+    }
+
+    #[test]
+    fn configure_block_list_display_is_parsed() {
+        let source = wrap(
+            r#"configure {
+                users: { list_display: [["nom", "Nom"]] }
+            }"#,
+        );
+        let parsed = parse_admin_file(&source).expect("configure block valide");
+        assert_eq!(
+            parsed.configures[0].list_display,
+            vec![("nom".to_string(), "Nom".to_string())]
+        );
+    }
+
+    #[test]
+    fn configure_block_list_display_and_exclude_are_exclusive() {
+        let source = wrap(
+            r#"configure {
+                users: {
+                    list_display: [["nom", "Nom"]],
+                    list_exclude: ["password"]
+                }
+            }"#,
+        );
+        assert!(parse_admin_file(&source).is_err());
+    }
+
+    #[test]
+    fn configure_block_unknown_field_is_an_error() {
+        let source = wrap(
+            r#"configure {
+                users: { bogus: true }
+            }"#,
+        );
+        let err = parse_admin_file(&source).unwrap_err();
+        assert!(
+            err.contains("Unknown field in configure[]: 'bogus'"),
+            "message inattendu: {err}"
+        );
+    }
+
+    #[test]
+    fn resource_and_configure_block_together_are_parsed() {
+        let source = format!(
+            "admin! {{\n{}\nconfigure {{\n{}\n}}\n}}",
+            r#"users: users::Model => UserForm { title: "Users" }"#,
+            r#"droits: { hidden: true }"#
+        );
+        let parsed = parse_admin_file(&source).expect("mix ressource + configure valide");
+        assert_eq!(parsed.resources.len(), 1);
+        assert_eq!(parsed.configures.len(), 1);
+        assert_eq!(parsed.resources[0].key, "users");
+        assert_eq!(parsed.configures[0].key, "droits");
+    }
+
+    #[test]
+    fn multiple_resources_in_one_block_are_parsed() {
+        let source = format!(
+            "admin! {{\n{},\n{}\n}}",
+            r#"users: users::Model => UserForm { title: "Users" }"#,
+            r#"groupes: groupes::Model => GroupeForm { title: "Groupes" }"#
+        );
+        let parsed = parse_admin_file(&source).expect("plusieurs ressources valides");
+        assert_eq!(parsed.resources.len(), 2);
+        assert_eq!(parsed.resources[0].key, "users");
+        assert_eq!(parsed.resources[1].key, "groupes");
+    }
+}
