@@ -63,13 +63,14 @@ As a result, migration files are **specific to the engine** they were generated 
 
 ## Framework Tables — Provided Automatically
 
-Runique automatically injects two migrations into your `lib.rs` without you having to define them:
+Runique automatically injects four migrations into your `lib.rs` without you having to define them:
 
 | Migration | Creates | Order |
 | --- | --- | --- |
 | `EihwazUsersMigration` | `eihwaz_users` (id, username, email, password, is_active, is_staff, is_superuser, created_at, updated_at) | 1st |
 | `EihwazSessionsMigration` | `eihwaz_sessions` (authenticated session persistence) | 2nd |
 | `AdminTableMigration` | `eihwaz_groupes`, `eihwaz_groupes_droits`, `eihwaz_users_groupes`, `eihwaz_history` | 3rd |
+| `EihwazResetTokensMigration` | `eihwaz_reset_tokens` (hashed password-reset tokens) | 4th |
 
 > You do not need to declare `eihwaz_users` in your entities.
 
@@ -98,8 +99,8 @@ The extension snapshot is stored in `migration/src/snapshots/runique/eihwaz_user
 **Extensible tables:**
 
 ```text
-eihwaz_users · eihwaz_groupes · eihwaz_droits
-eihwaz_sessions · eihwaz_users_groupes · eihwaz_groupes_droits
+eihwaz_users · eihwaz_groupes · eihwaz_sessions
+eihwaz_users_groupes · eihwaz_groupes_droits
 ```
 
 > Extending an unknown table triggers a **compile-time** error.
@@ -133,11 +134,13 @@ sea-orm-cli migrate status --migration-dir migration/src # Check migration statu
 ## Runique Wrapper — Atomic Rollback (advanced)
 
 ```bash
-runique migration down --migrations migration/src <file>
+runique migration down --migrations migration/src --files <file> [<file2> ...]
 runique migration down --migrations migration/src --batch <timestamp>
 runique migration status --migrations migration/src
 ```
 
+> Without `--files` or `--batch`, the command just lists available migrations without rolling anything back.
+>
 > These commands use the Runique batch system with transactional rollback.
 > Prefer `sea-orm-cli` for the normal workflow.
 

@@ -6,13 +6,15 @@
 | --- | ------------- | ----------- |
 | `{% static "..." %}` | `{{ "..." \| static }}` | URL d'un fichier statique |
 | `{% media "..." %}` | `{{ "..." \| media }}` | URL d'un fichier média |
-| `{% csrf %}` | `{% include "csrf" %}` | Champ CSRF caché |
-| `{% messages %}` | `{% include "message" %}` | Affichage messages flash |
-| `{% csp %}` | `{% include "csp" %}` | Attribut nonce CSP |
+| `{% csrf %}` | `{% include "csrf.html" %}` | Champ CSRF caché |
+| `{% messages %}` | `{% include "message.html" %}` | Affichage messages flash |
+| `{% csp %}` | `{% include "csp.html" %}` | Attribut nonce CSP |
 | `{% link "name" %}` | `{{ link(link='name') }}` | URL d'une route nommée |
-| `{% form.xxx %}` | `{{ xxx \| form \| safe }}` | Rendu formulaire complet |
-| `{% form.xxx.field %}` | `{{ xxx \| form(field='field') \| safe }}` | Rendu d'un champ |
-| `{% form.xxx.js %}` | `{{ xxx \| form(field='js') \| safe }}` | Scripts JS du form (rendu champ par champ) |
+| `{% form.xxx %}` | `{{ xxx \| form }}` | Rendu formulaire complet |
+| `{% form.xxx.field %}` | `{{ xxx \| form(field='field') }}` | Rendu d'un champ |
+| `{% form.xxx.js %}` | `{{ xxx \| form(field='js') }}` | Scripts JS du form (rendu champ par champ) |
+
+Le filtre `form` déclare `is_safe()` — son HTML est émis sans échappement, `\| safe` est inutile.
 
 ---
 

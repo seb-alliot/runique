@@ -17,14 +17,14 @@ pub fn routes() -> Router {
         // ...
     }
     // Single route
-    .rate_limit("/upload-image", "upload_image", view!(upload_image_submit), 5, 60)
+    .rate_limit("/upload-image", "upload_image", view!(upload_image_submit), 5, 60, vec![Method::POST])
 }
 ```
 
 Multiple routes sharing the **same counter**:
 
 ```rust
-.rate_limit_many(5, 60, vec![
+.rate_limit_many(5, 60, vec![Method::POST], vec![
     ("/upload-image".into(), "upload_image".into(), view!(upload_image_submit)),
     ("/register".into(),     "register".into(),     view!(register)),
 ])
@@ -80,12 +80,12 @@ RateLimiter::new().max_requests(100).retry_after(60)  // 100 requests per minute
 
 ## Behavior
 
-- The rate limit key is the request's **IP address**
-- Supports `X-Forwarded-For` and `X-Real-IP` headers (reverse proxy)
+- The rate limit key is the request's **IP address** — the `ClientIp` extension set by the `trusted_proxies` middleware (always active) if present, otherwise the raw TCP peer address (`ConnectInfo`)
+- `X-Forwarded-For` support goes through this `trusted_proxies` mechanism (validated against a trusted CIDR list), not a direct header read here — `X-Real-IP` is never read anywhere in the code
 - **Fixed window**: the counter resets after `retry_after` seconds
 - Returns `429 Too Many Requests` when the limit is exceeded, with a `Retry-After: <seconds>` header
 
-> **⚠️ Security:** This middleware trusts `X-Forwarded-For` and `X-Real-IP` headers. Ensure your reverse proxy (nginx, etc.) controls these headers and does not allow them to be forged by clients. Without a trusted proxy, an attacker can bypass rate limiting by modifying these headers.
+> **⚠️ Security:** the reliability of the IP key depends entirely on `trusted_proxies` configuration (see [Trusted Proxies](/docs/en/middleware/trusted-proxies)) — it decides whether `X-Forwarded-For` is validated or ignored. Without a correctly declared trusted reverse proxy, an attacker can forge that header to switch rate-limit keys at will.
 
 ---
 

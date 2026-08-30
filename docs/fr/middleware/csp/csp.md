@@ -1,6 +1,6 @@
 # Content Security Policy (CSP)
 
-Runique applique une politique CSP via le middleware de sécurité, configuré exclusivement via le builder. Un nonce unique est généré par requête et injecté dans les templates Tera.
+Runique applique une politique CSP **par défaut, sans configuration** — le middleware de sécurité (headers + CSP) est actif sur toutes les réponses, même sans jamais appeler `.with_csp(...)`. Un nonce unique est généré par requête et injecté dans les templates Tera.
 
 ---
 
@@ -17,12 +17,12 @@ Runique applique une politique CSP via le middleware de sécurité, configuré e
 
 ## Démarrage rapide
 
-La CSP est désactivée par défaut — elle s'active uniquement via le builder :
+Sans rien configurer, la CSP par défaut (`SecurityPolicy::default()`) et tous les headers de sécurité (X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, COEP/COOP/CORP, HSTS si HTTPS réel) sont déjà envoyés sur chaque réponse. `.with_csp(...)` ne les **active** pas — il remplace la politique par défaut par la vôtre :
 
 ```rust
 RuniqueApp::builder(config)
     .middleware(|m| {
-        m.with_csp(|c| c)
+        m.with_csp(|c| c.policy(SecurityPolicy::strict()))
     })
     .build()
     .await?;
@@ -53,7 +53,7 @@ Dans vos templates :
 
 ## HTTPS forcé (`enforce_https`)
 
-La directive `ENFORCE_HTTPS=true` active une redirection 301 vers HTTPS pour toutes les requêtes HTTP. Cette redirection repose sur le header `X-Forwarded-Proto` pour détecter si la requête arrive en HTTP ou HTTPS.
+La directive `ENFORCE_HTTPS=true` active une redirection **308** (`Redirect::permanent()`) vers HTTPS pour toutes les requêtes HTTP. Cette redirection repose sur le header `X-Forwarded-Proto` pour détecter si la requête arrive en HTTP ou HTTPS.
 
 > **⚠️ Prérequis proxy :** `enforce_https` fait confiance au header `X-Forwarded-Proto`. En l'absence d'un reverse proxy de confiance (nginx, Caddy, etc.) qui contrôle ce header, un attaquant peut forger `X-Forwarded-Proto: https` pour contourner la redirection.
 >

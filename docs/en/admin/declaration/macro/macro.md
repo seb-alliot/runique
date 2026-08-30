@@ -38,7 +38,7 @@ admin! {
 }
 ```
 
-The macro is parsed by the daemon (`runique start`) which generates the `admin_register()` function in `src/admins/admin_panel.rs`. This function builds the `HashMap<String, ResourceEntry>` loaded at boot.
+The macro is parsed by the daemon (`runique start`) which generates the `admin_register()` function in `src/admins/admin.rs`. This function builds the `HashMap<String, ResourceEntry>` loaded at boot.
 
 ---
 
@@ -57,7 +57,7 @@ The macro is parsed by the daemon (`runique start`) which generates the `admin_r
 
 | Field | Default value | Description |
 | --- | --- | --- |
-| `id_type` | `I32` | Primary key type in routes — `I32`, `I64`, `Uuid` |
+| `id_type` | `Pk` | Primary key type in routes — `I32`, `I64`, `Uuid`, or follows the crate's `Pk` alias by default |
 | `create_form` | *(same as `form`)* | Separate form type for create operations |
 | `edit_form` | *(same as `form`)* | Separate form type for edit operations |
 | `list_display` | *(empty — all columns)* | Visible columns and their labels in the list view |
@@ -117,7 +117,7 @@ The builtin "Users" panel disappears; "User profiles" replaces it with the full 
 
 #### `id_type`
 
-By default, the `{id}` route segment is converted to `i32`. Declaring a different type generates the appropriate conversion in the CRUD closures:
+By default (when `id_type` isn't declared), the `{id}` route segment follows the crate's `Pk` alias — `i32` by default, `i64` with the `big-pk` feature, `Uuid` with `pk-uuid`. Declaring `id_type` explicitly pins a specific type regardless of the active feature:
 
 ```rust
 admin! {
@@ -128,7 +128,7 @@ admin! {
 }
 ```
 
-Supported types: `I32` (default), `I64`, `Uuid`.
+Supported types: `I32`, `I64`, `Uuid`. Without this key, the conversion follows `Pk` automatically — only declare it when this resource needs to stay on a fixed type independent of the global feature.
 
 > The column type in the database is defined by the SeaORM entity, not by `id_type`. This field generates no migration or schema change — it only adjusts the String → native type conversion inside the admin handler.
 
@@ -328,6 +328,44 @@ Bulk edit requires no DSL declaration. When entries are selected in the list vie
 On submit, each record is updated independently. Only fields with non-empty submitted values are applied — leaving a select blank means "no change".
 
 The bulk edit form uses the same form type as the create/edit view. To customise the template, override `admin/bulk_edit.html`.
+
+---
+
+#### `own_field`
+
+Declares the entity field used for ownership checks (`can_update_own` / `can_delete_own`). Without this declaration, `own` permissions are ignored even if granted.
+
+```rust
+admin! {
+    articles: articles::Model => ArticleForm {
+        title: "Articles",
+        own_field: "author_id",   // checked against the current session's user_id
+    }
+}
+```
+
+The field must hold the id of the record's owning user. The daemon generates a `.with_own_field("author_id")` call on the `ResourceEntry` in `admin_register()`, which activates the check in `handle_edit` and `handle_delete`.
+
+---
+
+#### `template_list`, `template_create`, `template_edit`, `template_detail`, `template_delete`
+
+Overrides the template used for one specific operation on this resource only. Useful for customizing a single view without touching the global template.
+
+```rust
+admin! {
+    articles: articles::Model => ArticleForm {
+        title: "Articles",
+        template_list:   "admin/articles/list.html",
+        template_create: "admin/articles/create.html",
+        template_edit:   "admin/articles/edit.html",
+    }
+}
+```
+
+Only the declared operations are overridden — the others use the default admin template. The path is relative to the project's `templates/` folder.
+
+See [Template overrides](/docs/en/admin/template-surcharge) for the full list of available blocks.
 
 ---
 

@@ -55,7 +55,7 @@ fn login_required(
 
 - Vérifie la présence d'un identifiant utilisateur en session
 - Authentifié → la requête passe normalement au handler
-- Non authentifié → `302 Found` vers `redirect_url`
+- Non authentifié → `303 See Other` vers `redirect_url`
 - Compatible avec toutes les méthodes HTTP (GET, POST, etc.)
 
 ---

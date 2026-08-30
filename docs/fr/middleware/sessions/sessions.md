@@ -2,7 +2,7 @@
 
 ## Store par défaut
 
-Runique utilise `MemoryStore` par défaut (données en mémoire, perdues au redémarrage).
+Runique utilise `CleaningMemoryStore` par défaut — mémoire en premier lieu, avec nettoyage automatique des sessions expirées et fallback DB pour les sessions authentifiées (qui survivent aux redémarrages). Détail complet : [Sessions](/docs/fr/session).
 
 ---
 

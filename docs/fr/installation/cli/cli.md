@@ -32,7 +32,7 @@ Choix [1-4] (défaut: 1) :
 [Entrée] Confirmer  [A] Changer l'algo  [Ctrl+C] Annuler
 ```
 
-**Navigation :** `ESC` revient à l'étape précédente à tout moment.
+**Navigation :** `ESC` ne fonctionne que sur l'étape de sélection de l'algorithme. Les étapes username/email/password (saisie texte) et l'écran de récapitulatif final n'ont pas de retour en arrière — `Ctrl+C` annule à tout moment.
 
 > Le CLI s'exécute sans runtime applicatif — il n'a pas accès à la `PasswordConfig` configurée dans `main.rs`. L'algorithme est choisi explicitement à chaque exécution.
 >

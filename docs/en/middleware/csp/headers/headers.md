@@ -1,6 +1,6 @@
 # Security Headers
 
-The `security_headers_middleware` automatically injects a set of security headers into every response, in addition to the CSP header. It is activated via `.with_header_security(true)` in the builder.
+The `security_headers_middleware` automatically injects a set of security headers into every response, in addition to the CSP header. **It runs unconditionally**, on every response, with no builder call needed — `.with_header_security(true)` doesn't add anything, these headers already ship.
 
 ---
 
@@ -23,7 +23,9 @@ The `security_headers_middleware` automatically injects a set of security header
 
 ## Activation
 
-### CSP only (without additional security headers)
+These headers ship on every response with zero configuration. There is no "CSP only, without the other headers" variant — the two examples below produce the same result in practice; only the second customizes the nonce.
+
+### Default (nothing to do)
 
 ```rust
 .middleware(|m| {
@@ -31,13 +33,12 @@ The `security_headers_middleware` automatically injects a set of security header
 })
 ```
 
-### CSP + all security headers
+### Customize the nonce
 
 ```rust
 .middleware(|m| {
     m.with_csp(|c| {
-        c.with_header_security(true)
-         .with_nonce(true)
+        c.with_nonce(true)
     })
 })
 ```
@@ -48,7 +49,6 @@ The `security_headers_middleware` automatically injects a set of security header
 .middleware(|m| {
     m.with_csp(|c| {
         c.policy(SecurityPolicy::strict())
-         .with_header_security(true)
     })
 })
 ```

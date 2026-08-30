@@ -56,14 +56,30 @@ All options are optional — the defaults work without any changes.
 
 ## Custom user model — `UserEntity` trait
 
-If you don't use `BuiltinUserEntity`, implement this trait on your entity:
+If you don't use `BuiltinUserEntity`, implement this trait on a carrier type (`type Model` associated with your entity) — `find_by_id`, `find_by_username`, `find_by_email` and `update_password` are all required (`update_password_by_id` has a default implementation):
 
 ```rust
 use runique::prelude::UserEntity;
 
+pub struct UserRepo;
+
 #[async_trait::async_trait]
-impl UserEntity for user::Model {
-    async fn find_by_email(db: &DatabaseConnection, email: &str) -> Option<Self> {
+impl UserEntity for UserRepo {
+    type Model = user::Model;
+
+    async fn find_by_id(db: &DatabaseConnection, id: Pk) -> Option<Self::Model> {
+        user::Entity::find_by_id(id).one(db).await.ok()?
+    }
+
+    async fn find_by_username(db: &DatabaseConnection, username: &str) -> Option<Self::Model> {
+        user::Entity::find()
+            .filter(user::Column::Username.eq(username))
+            .one(db)
+            .await
+            .ok()?
+    }
+
+    async fn find_by_email(db: &DatabaseConnection, email: &str) -> Option<Self::Model> {
         user::Entity::find()
             .filter(user::Column::Email.eq(email))
             .one(db)
@@ -83,12 +99,10 @@ impl UserEntity for user::Model {
             .await?;
         Ok(())
     }
-
-    fn username(&self) -> &str {
-        &self.username
-    }
 }
 ```
+
+`username()` isn't part of `UserEntity` — it belongs to the `RuniqueUser` trait, implemented on `user::Model` itself (see [User model](/docs/en/auth/model)).
 
 Then in the builder:
 

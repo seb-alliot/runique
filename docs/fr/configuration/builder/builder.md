@@ -124,12 +124,12 @@ Tout passe par `.with_log(|l| ...)` — la closure reçoit un `RuniqueLog` vide 
 ```rust
 use tracing::Level;
 
-// Contrôle fin par catégorie
+// Contrôle fin par catégorie — chaque sous-module reçoit sa propre closure
 RuniqueApp::builder(config)
     .with_log(|l| l
-        .csrf(Level::WARN)
-        .session(Level::WARN)
-        .db(Level::INFO)
+        .middleware(|m| m.csrf(Level::WARN))
+        .session(|s| s.store(Level::WARN))
+        .db(|d| d.connect(Level::INFO))
     )
     .routes(router)
     .build()
@@ -162,7 +162,7 @@ RuniqueApp::builder(config)
 
 // Dev avec surcharge du niveau subscriber
 RuniqueApp::builder(config)
-    .with_log(|l| l.dev().subscriber_level("info").db(Level::INFO))
+    .with_log(|l| l.dev().subscriber_level("info").db(|d| d.connect(Level::INFO)))
     .routes(router)
     .build()
     .await?;
@@ -170,15 +170,17 @@ RuniqueApp::builder(config)
 
 #### Catégories disponibles
 
-| Catégorie        | Ce qui est journalisé                                      |
-| ---------------- | ---------------------------------------------------------- |
-| `csrf`           | Token CSRF détecté dans une URL GET (nettoyage silencieux) |
-| `exclusive_login`| Sessions invalidées lors d'une connexion exclusive         |
-| `filter_fn`      | Échec d'une `filter_fn` dans la vue liste admin            |
-| `roles`          | Erreurs d'accès au registre des rôles admin                |
-| `password_init`  | `password_init()` appelé plusieurs fois                    |
-| `session`        | Watermarks mémoire, records volumineux, erreurs cleanup    |
-| `db`             | Connexion DB en cours / connexion établie                  |
+`RuniqueLog` n'a que des méthodes racine par sous-module (`forms`, `middleware`, `session`, `auth`, `admin`, `db`, `mailer`, `migration`, `templates`, `errors`, `builder`), chacune prenant une closure vers son propre builder imbriqué — il n'y a pas de méthode plate `.csrf()`/`.session()` directement sur `RuniqueLog` :
+
+| Catégorie (feuille imbriquée)     | Accès                              | Ce qui est journalisé                                      |
+| ---------------------------------- | ----------------------------------- | ---------------------------------------------------------- |
+| `csrf`            | `.middleware(\|m\| m.csrf(...))`         | Token CSRF détecté dans une URL GET (nettoyage silencieux) |
+| `exclusive_login` | `.session(\|s\| s.exclusive_login(...))` | Sessions invalidées lors d'une connexion exclusive         |
+| `filter_fn`       | `.admin(\|a\| a.filter_fn(...))`         | Échec d'une `filter_fn` dans la vue liste admin            |
+| `roles`           | `.admin(\|a\| a.roles(...))`             | Erreurs d'accès au registre des rôles admin                |
+| `password_init`   | `.auth(\|a\| a.password_init(...))`      | `password_init()` appelé plusieurs fois                    |
+| `store`           | `.session(\|s\| s.store(...))`           | Watermarks mémoire, records volumineux, erreurs cleanup    |
+| `connect`         | `.db(\|d\| d.connect(...))`              | Connexion DB en cours / connexion établie                  |
 
 ### Base de données secondaire — `with_custom_db`
 
@@ -231,13 +233,13 @@ let app = RuniqueApp::builder(config)
 | Configuration | Défaut | Notes |
 | ------------ | ------ | ----- |
 | **Session duration** | 24 heures | |
-| **Session store** | `MemoryStore` | |
+| **Session store** | `CleaningMemoryStore` | |
 | **CSRF protection** | ✅ Toujours activé | Non désactivable |
 | **Error handler** | ✅ Activé | |
-| **CSP** | Debug: ❌ / Prod: ✅ | Selon le mode |
-| **Host validation** | Debug: ❌ / Prod: ✅ | Selon le mode |
-| **Cache control** | ✅ Activé | No-cache en debug |
-| **Static files** | ❌ Désactivé | Appeler `.statics()` |
+| **CSP + headers de sécurité** | ✅ Toujours actifs | Inconditionnel, quel que soit le mode ; `.with_csp(...)` personnalise, n'active pas |
+| **Host validation** | ❌ Désactivée | Aucune variable `.env` ne la contrôle — appeler `.with_allowed_hosts(...)` |
+| **Cache control** | ✅ Activé | No-cache en debug ; `.with_cache(true)` le désactive |
+| **Static files** | ✅ Activés | `.no_statics()` pour désactiver |
 | **Hot reload admin** | Selon `DEBUG` | Automatique via `is_debug()` |
 | **Logs framework** | ❌ Désactivés | Activer via `.with_log(\|l\| ...)` |
 

@@ -116,7 +116,7 @@ pub async fn edit_profile(mut request: Request) -> AppResult<Response> {
     }
 
     // In PATCH mode: the password field is no longer automatically required
-    if request.is_patch() {
+    if request.method == Method::PATCH {
         if form.is_valid().await {
             let new_password = form.cleaned_string("password");
 

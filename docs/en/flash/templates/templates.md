@@ -49,15 +49,17 @@ Place `{% messages %}` in your base template, just before the main content:
 
 To fully customize rendering, manually loop over `messages`:
 
+`MessageLevel` serializes as the Rust variant name (`"Success"`, `"Error"`, `"Warning"`, `"Info"`, capitalized) — compare against that exact casing, and pipe through `| lower` for a lowercase CSS class:
+
 ```html
 {% if messages %}
     {% for msg in messages %}
-        <div class="alert alert-{{ msg.level }}" role="alert">
+        <div class="alert alert-{{ msg.level | lower }}" role="alert">
             <strong>
-                {% if msg.level == "success" %}✅
-                {% elif msg.level == "error" %}❌
-                {% elif msg.level == "warning" %}⚠️
-                {% elif msg.level == "info" %}ℹ️
+                {% if msg.level == "Success" %}✅
+                {% elif msg.level == "Error" %}❌
+                {% elif msg.level == "Warning" %}⚠️
+                {% elif msg.level == "Info" %}ℹ️
                 {% endif %}
             </strong>
             {{ msg.content }}

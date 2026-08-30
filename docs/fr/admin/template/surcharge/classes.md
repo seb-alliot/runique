@@ -188,17 +188,6 @@ Voir [Surcharge des templates](/docs/fr/admin/template-surcharge) pour le mécan
 
 ---
 
-## `create_denied` / `edit_denied` / `delete_denied` / `group_edit_denied`
-
-| Classe | Élément | Rôle |
-| --- | --- | --- |
-| `.admin-card` | `<div>` | Container |
-| `.admin-card__body` | `<div>` | Corps |
-| `.admin-empty-state` | `<div>` | Container état vide |
-| `.admin-empty-state__desc` | `<p>` | Message d'accès refusé |
-
----
-
 ## `detail_header`
 
 | Classe | Élément | Rôle |

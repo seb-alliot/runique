@@ -51,12 +51,14 @@ let msgs = flash_now!(warning => "Field A is incorrect", "Field B is missing");
 
 ### Available Types
 
-| Type | Generated CSS Class |
+| Type | `MessageLevel::as_css_class()` |
 |------|---------------------|
 | `success` | `success-message` |
 | `error` | `error-message` |
 | `info` | `info-message` |
 | `warning` | `warning-message` |
+
+`as_css_class()` is a method available for custom rendering — the built-in `{% messages %}` tag doesn't use it: its template emits `class="message message-{{ message.level }}"`, where `message.level` serializes as `Success`/`Error`/`Warning`/`Info` (the Rust variant name, capitalized), not these classes. See [Flash templates](/docs/en/flash/templates) for looping manually with the correct casing.
 
 ### Injecting into the context
 

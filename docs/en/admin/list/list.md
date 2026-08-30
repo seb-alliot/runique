@@ -124,7 +124,7 @@ The current direction is shown by ▲ / ▼ in the header. Clicking the same col
 
 ## Search
 
-The search bar filters records across all visible text columns (`ILIKE '%term%'`). It preserves the active sort parameters.
+The search bar filters records across all visible text columns. The mechanism differs by resource type: builtin resources (users/groups/droits) use `LOWER(CAST(col AS TEXT)) LIKE LOWER('%term%')` (portable across SQLite/Postgres/MariaDB); resources declared via `admin!{}` go through the `search_cond!` macro (`icontains`, compiled to `ILIKE`). It preserves the active sort parameters.
 
 ```text
 /admin/users/list?search=alice&sort_by=email&sort_dir=asc

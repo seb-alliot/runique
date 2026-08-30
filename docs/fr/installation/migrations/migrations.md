@@ -63,13 +63,14 @@ Conséquence : les fichiers de migration sont **spécifiques au moteur** pour le
 
 ## Tables framework — fournies automatiquement
 
-Runique injecte automatiquement deux migrations dans votre `lib.rs` sans que vous ayez à les définir :
+Runique injecte automatiquement quatre migrations dans votre `lib.rs` sans que vous ayez à les définir :
 
 | Migration | Crée | Ordre |
 | --- | --- | --- |
 | `EihwazUsersMigration` | `eihwaz_users` (id, username, email, password, is_active, is_staff, is_superuser, created_at, updated_at) | 1er |
 | `EihwazSessionsMigration` | `eihwaz_sessions` (persistance des sessions authentifiées) | 2e |
 | `AdminTableMigration` | `eihwaz_groupes`, `eihwaz_groupes_droits`, `eihwaz_users_groupes`, `eihwaz_history` | 3e |
+| `EihwazResetTokensMigration` | `eihwaz_reset_tokens` (tokens de réinitialisation de mot de passe, hashés) | 4e |
 
 > Vous n'avez pas besoin de déclarer `eihwaz_users` dans vos entités.
 
@@ -98,8 +99,8 @@ Le snapshot d'extension est stocké dans `migration/src/snapshots/runique/eihwaz
 **Tables extensibles :**
 
 ```text
-eihwaz_users · eihwaz_groupes · eihwaz_droits
-eihwaz_sessions · eihwaz_users_groupes · eihwaz_groupes_droits
+eihwaz_users · eihwaz_groupes · eihwaz_sessions
+eihwaz_users_groupes · eihwaz_groupes_droits
 ```
 
 > Étendre une table inconnue déclenche une erreur à la **compilation**.
@@ -133,10 +134,12 @@ sea-orm-cli migrate status --migration-dir migration/src # Voir l'état des migr
 ## Wrapper Runique — rollback atomique (avancé)
 
 ```bash
-runique migration down --migrations migration/src <fichier>
+runique migration down --migrations migration/src --files <fichier> [<fichier2> ...]
 runique migration down --migrations migration/src --batch <timestamp>
 runique migration status --migrations migration/src
 ```
+
+> Sans `--files` ni `--batch`, la commande liste simplement les migrations disponibles sans rien annuler.
 
 > Ces commandes utilisent le système de batch Runique avec rollback transactionnel.
 > Préférer `sea-orm-cli` pour le workflow normal.

@@ -69,7 +69,7 @@ pub async fn register(mut request: Request) -> AppResult<Response> {
 Key points:
 
 - `request.form()` returns a ready-to-use form — no manual construction.
-- `form.is_valid().await` aggregates validation errors; they are rendered automatically by `{{ form.register_form | form | safe }}` in the template.
+- `form.is_valid().await` aggregates validation errors; they are rendered automatically by `{{ form.register_form | form }}` in the template.
 - `form.save(&request.engine.db).await` persists the entity and returns the created model.
 - `database_error(&err)` reports a DB error (e.g. email already taken) as a form error rather than a 500.
 

@@ -116,7 +116,7 @@ pub async fn modifier_profil(mut request: Request) -> AppResult<Response> {
     }
 
     // En PATCH : le champ password n''est plus requis automatiquement
-    if request.is_patch() {
+    if request.method == Method::PATCH {
         if form.is_valid().await {
             let new_password = form.cleaned_string("password");
 

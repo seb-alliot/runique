@@ -53,7 +53,7 @@ MEDIA_ROOT=media/
 
 ```rust
 FileField::image("img")     // jpg jpeg png gif webp avif
-FileField::document("doc")  // pdf doc docx odt
+FileField::document("doc")  // pdf doc docx txt odt
 FileField::any("f")         // no extension filter
 
 // Custom extensions:

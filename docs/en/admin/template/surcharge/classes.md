@@ -188,17 +188,6 @@ See [Template overriding](/docs/en/admin/template-surcharge) for the full mechan
 
 ---
 
-## `create_denied` / `edit_denied` / `delete_denied` / `group_edit_denied`
-
-| Class | Element | Role |
-| --- | --- | --- |
-| `.admin-card` | `<div>` | Container |
-| `.admin-card__body` | `<div>` | Body |
-| `.admin-empty-state` | `<div>` | Empty state container |
-| `.admin-empty-state__desc` | `<p>` | Access denied message |
-
----
-
 ## `detail_header`
 
 | Class | Element | Role |

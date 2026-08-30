@@ -7,14 +7,22 @@ Runique applies middlewares in an **optimal order** using the slot system:
 ```text
 Incoming request
     ↓
-1. Extensions (slot 0)     → Inject Tera, Config, Engine
-2. ErrorHandler (slot 10)  → Capture and render errors
-3. Custom (slot 20+)       → Custom middlewares
-4. CSP (slot 30)           → Content Security Policy & headers
-5. Cache (slot 40)         → No-cache in development
-6. Session (slot 50)       → Session management
-7. CSRF (slot 60)          → CSRF protection
-8. Host (slot 70)          → Allowed Hosts validation
+1.  Extensions (slot 0)       → Inject Tera, Config, Engine
+2.  TrustedProxies (slot 2)   → Real client IP
+3.  Compression (slot 5)      → External compression
+4.  CORS (slot 8)             → Before ErrorHandler (OPTIONS preflight)
+5.  ErrorHandler (slot 10)    → Capture and render errors
+6.  HostValidation (slot 15)  → Allowed Hosts validation
+7.  Custom (slot 20+)         → Custom middlewares
+8.  OpenRedirect (slot 25)    → Inspects 3xx responses
+9.  Security Headers (slot 30) → HSTS, X-Frame-Options, etc.
+10. CSP (slot 31)             → Content Security Policy
+11. Cache (slot 40)           → No-cache in development
+12. Session (slot 50)         → Session management
+13. SessionUpgrade (slot 55)  → Reads/writes in session
+14. Auth (slot 57)            → Loads CurrentUser from the session
+15. CSRF (slot 60)            → CSRF protection
+16. AntiBot (slot 65)         → Honeypot
     ↓
 Handler (your code)
     ↓

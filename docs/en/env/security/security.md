@@ -21,7 +21,7 @@ Session memory limits and cleanup interval are configured via the builder — se
 
 | Section | Description |
 | --- | --- |
-| [Application & Server](/docs/en/env/application) | DEBUG, IP_SERVER, PORT, DB, Redirects |
+| [Application & Server](/docs/en/env/application) | DEBUG, IP_SERVER, PORT, DB |
 | [Assets & media](/docs/en/env/assets) | Static files, media, templates |
 
 ## Back to summary

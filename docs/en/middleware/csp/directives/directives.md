@@ -8,9 +8,9 @@ Each CSP directive is configurable via the builder — environment variables are
 
 | Builder method | CSP Directive | Default |
 | --- | --- | --- |
-| `.default_src(vec![...])` | `default-src` | `'self'` |
+| `.default_src(vec![...])` | `default-src` | `'none'` |
 | `.scripts(vec![...])` | `script-src` | `'self'` |
-| `.styles(vec![...])` | `style-src` | `'self'` |
+| `.styles(vec![...])` | `style-src` | `'self'`, `'unsafe-inline'` |
 | `.images(vec![...])` | `img-src` | `'self'` |
 | `.fonts(vec![...])` | `font-src` | `'self'` |
 | `.connect(vec![...])` | `connect-src` | `'self'` |
@@ -20,6 +20,8 @@ Each CSP directive is configurable via the builder — environment variables are
 | `.frame_ancestors(vec![...])` | `frame-ancestors` | `'none'` |
 | `.base_uri(vec![...])` | `base-uri` | `'self'` |
 | `.form_action(vec![...])` | `form-action` | `'self'` |
+
+`style-src` includes `'unsafe-inline'` by default — required for libraries like htmx that inject inline styles (`style="display:none"`) without a nonce.
 
 ### Toggles
 
@@ -33,7 +35,7 @@ Each CSP directive is configurable via the builder — environment variables are
 
 | Builder method | Description |
 | --- | --- |
-| `.policy(SecurityPolicy::default())` | Default policy — `'self'` everywhere, nonce active |
+| `.policy(SecurityPolicy::default())` | Default policy — `'self'` on most directives (`default-src`/`object-src`/`frame-src`/`frame-ancestors` stay `'none'`), nonce active |
 | `.policy(SecurityPolicy::strict())` | Strict — mandatory nonce, `upgrade-insecure-requests`, `frame-ancestors 'none'` |
 | `.policy(SecurityPolicy::permissive())` | Permissive — `unsafe-eval` allowed, images from `https:` |
 
@@ -143,7 +145,7 @@ This ensures inline scripts without a nonce are blocked, even if `'unsafe-inline
 
 ```text
 # Generated header with active nonce:
-Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-abc123'; style-src 'self' 'nonce-abc123'; ...
+Content-Security-Policy: default-src 'none'; script-src 'self' 'nonce-abc123'; style-src 'self' 'unsafe-inline' 'nonce-abc123'; ...
 ```
 
 ---

@@ -1,7 +1,7 @@
 # `runique start`
 
 La commande `runique start` est le point d'entrée du workflow admin.
-Elle orchestre deux opérations en parallèle : la **surveillance de `src/admin.rs`** et le **lancement du serveur**.
+Elle enchaîne, **séquentiellement sur un seul thread** : génération du code admin, `cargo fmt`, puis lancement bloquant du serveur.
 
 ---
 
@@ -21,7 +21,7 @@ La détection se fait par simple recherche de chaîne dans le fichier source.
 
 | Résultat de la détection | Comportement |
 | --- | --- |
-| `.with_admin(` trouvé | Daemon + `cargo run` lancés |
+| `.with_admin(` trouvé | Génération + `cargo run` enchaînés |
 | Absent | Message d'information, arrêt propre |
 
 > Le chemin vers `main.rs` est configurable : `runique start --main src/main.rs`
@@ -30,18 +30,20 @@ La détection se fait par simple recherche de chaîne dans le fichier source.
 
 ## Ce qui se passe si `.with_admin(` est détecté
 
-`runique start` lance **deux processus simultanément** :
+`runique start` exécute, **dans l'ordre, sur le même thread** :
 
-1. **Le daemon admin** — thread séparé qui surveille `src/admin.rs` et régénère `src/admins/` à chaque modification
-2. **`cargo run`** — lance le serveur applicatif (bloquant jusqu'à arrêt du programme)
+1. **Génération** — lecture de `src/admin.rs`, parsing de `admin!{}`, réécriture de `src/admins/`
+2. **`cargo fmt --all`**
+3. **`cargo run --release`** — bloquant jusqu'à arrêt du programme
 
 ```text
 runique start
-  ├── thread daemon → watch(src/admin.rs) [génération initiale immédiate]
-  └── cargo run     → serveur HTTP (bloquant)
+  ├── generate_admin(src/admin.rs) → réécrit src/admins/
+  ├── cargo fmt --all
+  └── cargo run --release          → serveur HTTP (bloquant)
 ```
 
-Le daemon effectue une **génération initiale au démarrage** — il n'est pas nécessaire de modifier `src/admin.rs` pour que le code soit produit.
+Un ancien design lançait la génération dans un thread séparé en parallèle de `cargo run` : ça créait une race condition (le build pouvait lire un `admin.rs` à moitié écrit, échec non reproductible). Le flux est désormais strictement séquentiel pour l'éliminer. Il n'y a **pas de surveillance continue** : pour régénérer après une modification de `src/admin.rs`, relancez `runique start`.
 
 ---
 

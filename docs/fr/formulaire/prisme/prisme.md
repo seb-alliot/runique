@@ -69,7 +69,7 @@ pub async fn inscription(mut request: Request) -> AppResult<Response> {
 Points clés :
 
 - `request.form()` renvoie un formulaire utilisable directement — pas de construction manuelle.
-- `form.is_valid().await` agrège les erreurs de validation ; elles sont rendues automatiquement par `{{ form.inscription_form | form | safe }}` dans le template.
+- `form.is_valid().await` agrège les erreurs de validation ; elles sont rendues automatiquement par `{{ form.inscription_form | form }}` dans le template.
 - `form.save(&request.engine.db).await` persiste l'entité et renvoie le modèle créé.
 - `database_error(&err)` reporte une erreur DB (ex. email déjà pris) comme erreur de formulaire plutôt que comme 500.
 

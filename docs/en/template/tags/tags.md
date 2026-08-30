@@ -33,7 +33,7 @@ Runique pre-processes templates to transform Django-like syntax into standard Te
 </form>
 ```
 
-**Transformed into:** `{% include "csrf" %}`
+**Transformed into:** `{% include "csrf.html" %}`
 
 > Not required inside Runique forms (`{% form.xxx %}`) — the CSRF token is injected automatically.
 
@@ -45,7 +45,7 @@ Runique pre-processes templates to transform Django-like syntax into standard Te
 {% messages %}
 ```
 
-**Transformed into:** `{% include "message" %}`
+**Transformed into:** `{% include "message.html" %}`
 
 ---
 
@@ -57,7 +57,7 @@ Runique pre-processes templates to transform Django-like syntax into standard Te
 </script>
 ```
 
-**Transformed into:** `{% include "csp" %}`
+**Transformed into:** `{% include "csp.html" %}`
 
 ---
 
@@ -81,7 +81,7 @@ Runique pre-processes templates to transform Django-like syntax into standard Te
 </form>
 ```
 
-**Transformed into:** `{{ signup_form | form | safe }}`
+**Transformed into:** `{{ signup_form | form }}` (the `form` filter declares `is_safe()` — no `| safe` needed)
 
 Renders the entire form: all HTML fields, validation errors, the CSRF token, and required JS scripts.
 
@@ -100,7 +100,7 @@ Renders the entire form: all HTML fields, validation errors, the CSRF token, and
 </form>
 ```
 
-**Transformed into:** `{{ signup_form | form(field='username') | safe }}`
+**Transformed into:** `{{ signup_form | form(field='username') }}`
 
 > In field-by-field rendering, the form's JS scripts are **not** auto-injected (unlike full `{% form.xxx %}`). Place them explicitly with `{% form.xxx.js %}` — see below.
 
@@ -123,7 +123,7 @@ Emits the form's `<script>` block: one per file declared via `add_js`, with the 
 </form>
 ```
 
-**Transformed into:** `{{ signup_form | form(field='js') | safe }}`
+**Transformed into:** `{{ signup_form | form(field='js') }}`
 
 > Not needed with `{% form.xxx %}` (full rendering): scripts are already included there, in last position. Don't combine the two — you would get the `<script>` tags twice.
 

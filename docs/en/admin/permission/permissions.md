@@ -53,11 +53,11 @@ Removing a group from a user takes effect on their next request. Deleting a grou
 
 ---
 
-## Superuser-only resources
+## `groupes` and `groupes_droits` resources
 
-The `groupes` and `groupes_droits` resources can only be accessed by an `is_superuser`. No group can unlock their access for a staff user — this is a fixed framework rule.
+These two resources get **no special treatment**: they follow the exact same generic logic as any other resource (`can_read`/`can_create`/`can_update`/`can_delete` via `eihwaz_groupes_droits`). A superuser can therefore deliberately grant `can_update` on `"groupes"` to an "Admin" group, which can then manage other groups' permissions (for example, to delegate to moderators) — this is a legitimate use, not a bypass.
 
-This prevents privilege escalation: a staff user can never modify their own permissions.
+**What this means in practice:** granting rights on `groupes`/`groupes_droits` to a non-superuser group gives it real control over permissions — potentially including its own, if its user also belongs to that group. There's no framework safeguard against self-elevation in that specific case: it's up to whoever configures groups not to grant these rights to a role that shouldn't have them. Only `is_superuser` remains a total, non-delegatable bypass (a bit on the user, never granted through a group).
 
 ---
 

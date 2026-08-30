@@ -44,9 +44,8 @@ Le formulaire fourni par Runique (`runique::admin::UserAdminCreateForm`) expose 
 | `email` | Email requis | Adresse de contact + destinataire de l'email de reset |
 | `password` | Caché | Hash aléatoire injecté automatiquement — non visible dans l'interface |
 | `is_staff` | Booléen | Accès lecture au panel admin |
-| `is_superuser` | Booléen | Accès complet admin |
 
-`is_active` n'est **pas** dans le formulaire — le compte est toujours créé inactif.
+`is_active` et `is_superuser` ne sont **pas** dans le formulaire — le compte est toujours créé inactif, et le statut superuser ne peut jamais être accordé depuis le panel admin lui-même (protection contre l'auto-élévation de privilèges).
 
 ---
 

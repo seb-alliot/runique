@@ -2,7 +2,7 @@
 
 ## Default store
 
-Runique uses `MemoryStore` by default (in-memory data, lost on restart).
+Runique uses `CleaningMemoryStore` by default — memory-first, with automatic cleanup of expired sessions and a database fallback for authenticated sessions (which survive restarts). Full detail: [Sessions](/docs/en/session).
 
 ---
 

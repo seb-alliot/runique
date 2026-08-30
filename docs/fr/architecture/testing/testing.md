@@ -110,7 +110,7 @@ Lorsque vous construisez votre application via `RuniqueApp::builder(config).buil
 - **Sécurité** : la `SECRET_KEY` est-elle sûre (pas celle par défaut en prod) ?
 - **Intégrité middleware** : les dépendances entre middlewares sont-elles satisfaites ?
 
-Si une vérification échoue, la méthode `build()` retourne une erreur `BuildError::CheckFailed(CheckReport)` qui affiche un diagnostic clair dans le terminal avec des suggestions de correction.
+Si une vérification échoue, la méthode `build()` retourne une `BuildError { kind: BuildErrorKind::CheckFailed(CheckReport), .. }` — `CheckFailed` est une variante de `BuildErrorKind`, pas directement de `BuildError` — qui affiche un diagnostic clair dans le terminal avec des suggestions de correction.
 
 ---
 

@@ -2,7 +2,7 @@
 
 ## Route protection — recommended pattern
 
-`login_required` and `redirect_if_authenticated` have been removed. Protection is written directly in the handler, which is more explicit and gives the dev full control over the redirect URL.
+Two approaches coexist. The manual pattern below is written directly in the handler — more explicit, full control over the redirect URL. To protect an entire route without touching it, `login_required` (via the `RouterExt` trait, at the `urlpatterns!{}` level) is still available — see [Login Required](/docs/en/middleware/login-required).
 
 ```rust
 use runique::prelude::*;
@@ -43,8 +43,8 @@ Access in a handler:
 ```rust
 use runique::prelude::*;
 
-async fn profile(req: RuniqueRequest) -> impl IntoResponse {
-    if let Some(user) = req.extensions().current_user() {
+async fn profile(request: Request) -> impl IntoResponse {
+    if let Some(user) = &request.user {
         println!("Logged in as: {}", user.username);
     }
 }

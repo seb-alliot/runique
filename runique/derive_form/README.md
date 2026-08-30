@@ -56,7 +56,7 @@ model! {
 
 | Syntax           | Column type                                        | Notes             |
 |------------------|----------------------------------------------------|-------------------|
-| `pk: id => Pk`   | `INTEGER` (default) or `BIGINT` (feature `big-pk`) | Auto-increment    |
+| `pk: id => Pk`   | `INTEGER` default, `BIGINT` (feature `big-pk`), or `UUID` (feature `pk-uuid`) | Depends on active feature |
 | `pk: id => i32`  | `INTEGER` (32-bit)                                 | Auto-increment    |
 | `pk: id => i64`  | `BIGINT` (64-bit)                                  | Auto-increment    |
 | `pk: id => uuid` | `UUID`                                             | No auto-increment |

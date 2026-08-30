@@ -15,7 +15,7 @@
 |------------|----------------------------------------------------|----------------------------------|
 | `markdown` | Converts Markdown to HTML, sanitized (XSS-safe)    | `{{ page.content \| markdown }}` |
 
-> Runique's preprocessor automatically injects `\| safe` — no need to add it manually.
+> The `markdown` filter declares `is_safe()` — its HTML is emitted unescaped, so `\| safe` is unnecessary and doesn't need to be added manually.
 >
 > The output is **sanitized via ammonia**: dangerous raw HTML (`<script>`, `on*` handlers) and `javascript:` / `data:` URLs in links and images are stripped. Legitimate Markdown (headings, tables, lists, links, images, code) is preserved — user-authored Markdown can therefore be rendered safely.
 
@@ -28,7 +28,7 @@
 | `sanitize`  | Re-sanitizes stored rich HTML and renders it as HTML    | `{{ entry.description \| sanitize }}` |
 | `plaintext` | Strips all tags + decodes entities → plain-text preview | `{{ entry.description \| plaintext }}` |
 
-> `sanitize` runs **ammonia at render time**; the preprocessor injects `\| safe` automatically (like `markdown`), so the emitted HTML is always freshly cleaned — sanitization happens on **output**, never trusting what is stored. Use it to display a rich-text field as rendered HTML.
+> `sanitize` runs **ammonia at render time**; like `markdown`, it declares `is_safe()` directly (no `\| safe` to add), so the emitted HTML is always freshly cleaned — sanitization happens on **output**, never trusting what is stored. Use it to display a rich-text field as rendered HTML.
 >
 > `plaintext` projects a value to plain text via the strict sanitizer (tags removed, entities decoded). It stays **auto-escaped** (no `\| safe`), so a stored `&gt;` is shown as `>`. Use it for previews — e.g. list cells — where rendered block HTML would break the layout.
 >
@@ -40,9 +40,11 @@
 
 | Filter | Description | Example |
 |--------|-------------|---------|
-| `form` | Full form rendering | `{{ form.my_form \| form \| safe }}` |
-| `form(field='xxx')` | Single field rendering | `{{ form.my_form \| form(field='email') \| safe }}` |
-| `csrf_field` | Generates a hidden CSRF input | `{{ csrf_token \| csrf_field \| safe }}` |
+| `form` | Full form rendering | `{{ my_form \| form }}` |
+| `form(field='xxx')` | Single field rendering | `{{ my_form \| form(field='email') }}` |
+| `csrf_field` | Generates a hidden CSRF input | `{{ csrf_token \| csrf_field }}` |
+
+All three declare `is_safe()` — their output is emitted unescaped, `\| safe` is unnecessary.
 
 ---
 

@@ -8,9 +8,9 @@ Chaque directive CSP est configurable via le builder — plus via variables d'en
 
 | Méthode builder | Directive CSP | Défaut |
 | --- | --- | --- |
-| `.default_src(vec![...])` | `default-src` | `'self'` |
+| `.default_src(vec![...])` | `default-src` | `'none'` |
 | `.scripts(vec![...])` | `script-src` | `'self'` |
-| `.styles(vec![...])` | `style-src` | `'self'` |
+| `.styles(vec![...])` | `style-src` | `'self'`, `'unsafe-inline'` |
 | `.images(vec![...])` | `img-src` | `'self'` |
 | `.fonts(vec![...])` | `font-src` | `'self'` |
 | `.connect(vec![...])` | `connect-src` | `'self'` |
@@ -20,6 +20,8 @@ Chaque directive CSP est configurable via le builder — plus via variables d'en
 | `.frame_ancestors(vec![...])` | `frame-ancestors` | `'none'` |
 | `.base_uri(vec![...])` | `base-uri` | `'self'` |
 | `.form_action(vec![...])` | `form-action` | `'self'` |
+
+`style-src` inclut `'unsafe-inline'` par défaut — nécessaire pour des bibliothèques comme htmx qui injectent des styles inline (`style="display:none"`) sans nonce.
 
 ### Toggles
 
@@ -33,7 +35,7 @@ Chaque directive CSP est configurable via le builder — plus via variables d'en
 
 | Méthode builder | Description |
 | --- | --- |
-| `.policy(SecurityPolicy::default())` | Politique par défaut — `'self'` partout, nonce actif |
+| `.policy(SecurityPolicy::default())` | Politique par défaut — `'self'` sur la plupart des directives (`default-src`/`object-src`/`frame-src`/`frame-ancestors` restent `'none'`), nonce actif |
 | `.policy(SecurityPolicy::strict())` | Strict — nonce obligatoire, `upgrade-insecure-requests`, `frame-ancestors 'none'` |
 | `.policy(SecurityPolicy::permissive())` | Permissif — `unsafe-eval` autorisé, images depuis `https:` |
 
@@ -143,7 +145,7 @@ Cela garantit que les scripts inline sans nonce sont bloqués, même si `'unsafe
 
 ```text
 # Header généré avec nonce actif :
-Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-abc123'; style-src 'self' 'nonce-abc123'; ...
+Content-Security-Policy: default-src 'none'; script-src 'self' 'nonce-abc123'; style-src 'self' 'unsafe-inline' 'nonce-abc123'; ...
 ```
 
 ---

@@ -67,10 +67,10 @@ impl RegisterForm {
 
 ```rust
 // Paramètre de route : /article/{id}
-let id = request.path_param("id");       // Option<&str>
+let id = request.get_path("id");         // Option<&str>
 
 // Paramètre de query string : ?page=2
-let page = request.from_url("page");     // Option<&str>
+let page = request.get_query("page");    // Option<&str>
 ```
 
 ### Depuis le formulaire (Recommandé)
