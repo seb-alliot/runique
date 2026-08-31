@@ -432,7 +432,8 @@
   "makemigrations": {
     "destructive_detected": "Destruktive Änderungen erkannt:",
     "destructive_require_force": "Verwenden Sie --force, um diese destruktiven Änderungen anzuwenden.",
-    "files_ready": "{} Datei(en) bereit für die Migration."
+    "files_ready": "{} Datei(en) bereit für die Migration.",
+    "unknown_dsl_type": "Warnung: unbekannter Feldtyp '{}' — Standardwert '{}' wird verwendet. Prüfen Sie Ihr Modell auf einen Tippfehler."
   },
   "migrate": {
     "applying": "Migrationen aus '{}' werden angewendet...",

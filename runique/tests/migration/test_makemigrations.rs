@@ -337,6 +337,14 @@ fn col(name: &str, col_type: &str, nullable: bool) -> ParsedColumn {
     }
 }
 
+fn col_enum(name: &str, enum_name: &str, values: &[&str]) -> ParsedColumn {
+    ParsedColumn {
+        enum_name: Some(enum_name.to_string()),
+        enum_string_values: values.iter().map(|s| s.to_string()).collect(),
+        ..col(name, "String", false)
+    }
+}
+
 fn empty_changes(table: &str) -> Changes {
     Changes {
         table_name: table.to_string(),
@@ -381,6 +389,23 @@ fn type_change_detected() {
     assert!(msgs[0].contains("posts.views"));
     assert!(msgs[0].contains("int"));
     assert!(msgs[0].contains("bigint"));
+}
+
+#[test]
+fn string_to_enum_requires_force() {
+    // Bug J (2026-09-01) : `col_type` reste "String" des deux côtés pour un
+    // enum — sans le check dédié, ce changement passerait sans jamais demander
+    // `--force`, alors que la migration générée nécessite une intervention
+    // manuelle (cf. `diff.rs`/`generators.rs`).
+    let mut c = empty_changes("cour_block");
+    c.modified_columns.push((
+        col("block_type", "String", false),
+        col_enum("block_type", "CourBlockType", &["text", "code"]),
+    ));
+    let msgs = collect_destructive_messages(&[c]);
+    assert_eq!(msgs.len(), 1);
+    assert!(msgs[0].contains("cour_block.block_type"));
+    assert!(msgs[0].contains("enum"));
 }
 
 #[test]

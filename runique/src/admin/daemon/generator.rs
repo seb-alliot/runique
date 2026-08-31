@@ -271,7 +271,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     // `Result<(), DbErr>` has no clean "not found" of their own; the admin
     // handlers already check existence via `get_fn` before calling them, so
     // this remains a defensive branch, not the one users actually hit.
-    let id_parse_code_get_fn = match r.id_type.as_str() {
+    let id_parse_or_not_found = match r.id_type.as_str() {
         "I32" => "let Ok(id) = id.parse::<i32>() else { return Ok(None) }",
         "I64" => "let Ok(id) = id.parse::<i64>() else { return Ok(None) }",
         "Uuid" => "let Ok(id) = uuid::Uuid::parse_str(&id) else { return Ok(None) }",
@@ -492,7 +492,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         "    let get_fn: GetFn = Arc::new(|db: ADb, id: String| {{"
     );
     let _ = writeln!(out, "        Box::pin(async move {{");
-    let _ = writeln!(out, "            {};", id_parse_code_get_fn);
+    let _ = writeln!(out, "            {};", id_parse_or_not_found);
     let _ = writeln!(
         out,
         "            let row = {}::Entity::find_by_id(id).one(&*db).await?;",

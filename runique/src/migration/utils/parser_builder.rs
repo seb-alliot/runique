@@ -2,6 +2,7 @@
 //! Supports two syntaxes:
 //!   v1: `fields: { name: String [required], ... }`
 //!   v2: `{ name: text [required], ... }` (anonymous block, semantic types)
+use crate::utils::trad::tf;
 use syn::{
     Ident, LitStr, Token, braced, bracketed, parenthesized,
     parse::{Parse, ParseStream},
@@ -495,8 +496,17 @@ fn pascal_to_snake(s: &str) -> String {
 
 // ── Type Mapping ──────────────────────────────────────────────────────────
 
-/// Converts a DSL type (v1 SQL or v2 semantic) to a SeaORM type name.
-fn dsl_field_type_to_col_type(ty: &str) -> String {
+/// Converts a DSL type (v1 SQL or v2 semantic) to a SeaORM type name — the single
+/// mapping table shared by both the `pk:` position and ordinary fields.
+/// `default` covers a type name this table doesn't recognize; the two call
+/// sites below need different ones (a `pk:` position with no clear type still
+/// wants an auto-increment `Integer`, an ordinary unknown field is safest as
+/// `String`), but every OTHER type name must resolve identically everywhere —
+/// two separate match arms for the same table is exactly how a `Pk`-typed FK
+/// field ended up correctly resolved in the pk-position table but silently
+/// misclassified as `String` in the field one (fixed 2026-09-01, then
+/// collapsed here so the two can no longer drift apart again).
+fn dsl_type_to_col_type(ty: &str, default: &str) -> String {
     match ty {
         // v1 SQL
         "String" | "char" | "varchar" => "String".to_string(),
@@ -530,18 +540,22 @@ fn dsl_field_type_to_col_type(ty: &str) -> String {
         "choice" | "radio" => "String".to_string(),
         // explicit int
         "int" => "Integer".to_string(),
-        _ => "String".to_string(),
+        // `Pk` usable on any field, not just `pk:` (e.g. an FK typed `Pk` to stay in
+        // sync with the referenced table's PK type under big-pk/pk-uuid).
+        "Pk" => pk_alias_col_type(),
+        _ => {
+            eprintln!("{}", tf("makemigrations.unknown_dsl_type", &[ty, default]));
+            default.to_string()
+        }
     }
 }
 
+fn dsl_field_type_to_col_type(ty: &str) -> String {
+    dsl_type_to_col_type(ty, "String")
+}
+
 fn dsl_pk_to_col_type(ty: &str) -> String {
-    match ty {
-        "i32" => "Integer".to_string(),
-        "i64" => "BigInteger".to_string(),
-        "uuid" => "Uuid".to_string(),
-        "Pk" => pk_alias_col_type(),
-        _ => "Integer".to_string(),
-    }
+    dsl_type_to_col_type(ty, "Integer")
 }
 
 /// Column type for the generic `Pk` DSL keyword — follows the same global alias as

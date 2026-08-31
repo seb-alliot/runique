@@ -432,7 +432,8 @@
   "makemigrations": {
     "destructive_detected": "Cambios destructivos detectados:",
     "destructive_require_force": "Use --force para aplicar estos cambios destructivos.",
-    "files_ready": "{} archivo(s) listo(s) para migrar."
+    "files_ready": "{} archivo(s) listo(s) para migrar.",
+    "unknown_dsl_type": "Advertencia: tipo de campo desconocido '{}' — usando '{}' por defecto. Revise si hay un error tipográfico en su modelo."
   },
   "migrate": {
     "applying": "Aplicando migraciones desde '{}'...",

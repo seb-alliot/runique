@@ -97,6 +97,14 @@ pub fn diff_schemas(previous: &ParsedSchema, current: &ParsedSchema) -> Changes 
                     || prev.has_default_now != curr.has_default_now
                     || prev.updated_at != curr.updated_at
                     || prev.created_at != curr.created_at
+                    // Becoming (or stopping being) an enum: `col_type` alone doesn't
+                    // capture this (an enum column keeps col_type "String"), so without
+                    // this check the transition was invisible to `modified_columns` —
+                    // the dedicated enum-diff loop below only compares variants when
+                    // BOTH sides are already enums, it doesn't flag the shape change
+                    // itself. Two enums with different `enum_string_values` are still
+                    // handled there (renames/adds/drops), not here.
+                    || prev.enum_string_values.is_empty() != curr.enum_string_values.is_empty()
                 {
                     Some(((*prev).clone(), (*curr).clone()))
                 } else {
@@ -160,6 +168,17 @@ pub fn diff_schemas(previous: &ParsedSchema, current: &ParsedSchema) -> Changes 
             continue;
         }
         if let Some(prev) = prev_cols.get(name) {
+            // The column wasn't an enum before (e.g. a plain string turned into one) —
+            // this is a genuine type change, not a value added to an existing enum type.
+            // `prev.enum_string_values` empty here would make every current variant look
+            // "added" and emit `ALTER TYPE … ADD VALUE` on a type that was never created
+            // (`CREATE TYPE` is only ever emitted for a column's FIRST appearance as an
+            // enum). Let `modified_columns` handle it instead — it already detects
+            // `col_type` differing and emits a manual-migration warning, the same
+            // conservative fallback used for every other risky type change.
+            if prev.enum_string_values.is_empty() {
+                continue;
+            }
             let prev_set: HashSet<&str> =
                 prev.enum_string_values.iter().map(|s| s.as_str()).collect();
             let curr_set: HashSet<&str> =

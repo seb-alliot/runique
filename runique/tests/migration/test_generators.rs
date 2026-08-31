@@ -878,6 +878,110 @@ fn test_alter_file_other_db_enum_add_column_no_create_type() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// generate_alter_file — colonne string devenant un enum (bug J, 2026-09-01)
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_alter_file_string_to_enum_postgres_generates_create_type_and_cast() {
+    let old_col = ParsedColumn {
+        name: "block_type".to_string(),
+        col_type: "String".to_string(),
+        nullable: false,
+        ..ParsedColumn::default()
+    };
+    let new_col = ParsedColumn {
+        name: "block_type".to_string(),
+        col_type: "String".to_string(),
+        nullable: false,
+        enum_name: Some("CourBlockType".to_string()),
+        enum_string_values: vec!["text".to_string(), "code".to_string()],
+        ..ParsedColumn::default()
+    };
+    let changes = Changes {
+        table_name: "cour_block".to_string(),
+        added_columns: vec![],
+        dropped_columns: vec![],
+        modified_columns: vec![(old_col, new_col)],
+        added_fks: vec![],
+        dropped_fks: vec![],
+        added_indexes: vec![],
+        dropped_indexes: vec![],
+        is_new_table: false,
+        renamed_columns: vec![],
+        enum_renames: vec![],
+        enum_value_adds: vec![],
+        enum_value_drops: vec![],
+    };
+    let content = generate_alter_file(&changes, &DbKind::Postgres);
+
+    // Never the broken old behaviour: no manual-migration warning, no bare
+    // `ALTER TYPE ... ADD VALUE` on a type that doesn't exist yet.
+    assert!(!content.contains("Manual migration required"));
+    assert!(!content.contains("ADD VALUE"));
+
+    let up = content.split("async fn down").next().unwrap_or("");
+    assert!(
+        up.contains("CREATE TYPE CourBlockType AS ENUM"),
+        "UP doit créer le type avant de l'utiliser"
+    );
+    assert!(up.contains("'text'") && up.contains("'code'"));
+    assert!(
+        up.contains(".using(Expr::col(Alias::new(\"block_type\")).cast_as(Alias::new(\"CourBlockType\")))"),
+        "UP doit caster la colonne existante vers le nouvel enum"
+    );
+
+    let down = content.split("async fn down").nth(1).unwrap_or("");
+    assert!(
+        down.contains(".using(Expr::col(Alias::new(\"block_type\")).cast_as(Alias::new(\"text\")))"),
+        "DOWN doit recaster vers text en repassant en string"
+    );
+    assert!(
+        down.contains("DROP TYPE IF EXISTS CourBlockType"),
+        "DOWN doit supprimer le type après avoir déplacé la colonne dessus"
+    );
+}
+
+#[test]
+fn test_alter_file_string_to_enum_mysql_no_create_type() {
+    let old_col = ParsedColumn {
+        name: "block_type".to_string(),
+        col_type: "String".to_string(),
+        nullable: false,
+        ..ParsedColumn::default()
+    };
+    let new_col = ParsedColumn {
+        name: "block_type".to_string(),
+        col_type: "String".to_string(),
+        nullable: false,
+        enum_name: Some("CourBlockType".to_string()),
+        enum_string_values: vec!["text".to_string(), "code".to_string()],
+        ..ParsedColumn::default()
+    };
+    let changes = Changes {
+        table_name: "cour_block".to_string(),
+        added_columns: vec![],
+        dropped_columns: vec![],
+        modified_columns: vec![(old_col, new_col)],
+        added_fks: vec![],
+        dropped_fks: vec![],
+        added_indexes: vec![],
+        dropped_indexes: vec![],
+        is_new_table: false,
+        renamed_columns: vec![],
+        enum_renames: vec![],
+        enum_value_adds: vec![],
+        enum_value_drops: vec![],
+    };
+    let content = generate_alter_file(&changes, &DbKind::Mysql);
+    assert!(
+        !content.contains("CREATE TYPE"),
+        "MySQL/MariaDB n'a pas de type nommé séparé — l'enum est inline sur la colonne"
+    );
+    assert!(!content.contains("Manual migration required"));
+    assert!(content.contains("ColumnType::Enum"));
+}
+
+// ═══════════════════════════════════════════════════════════════
 // generate_snapshot_file
 // ═══════════════════════════════════════════════════════════════
 

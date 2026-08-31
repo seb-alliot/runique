@@ -256,6 +256,46 @@ fn test_parse_non_enum_field_pas_de_string_values() {
     assert!(title.enum_name.is_none());
 }
 
+// ── `Pk` sur un champ normal (FK) ──────────────────────────────────────────────
+
+fn contributions_source() -> &'static str {
+    r#"
+    use runique::prelude::*;
+    model! {
+        Contributions,
+        table: "contributions",
+        pk: id => Pk,
+        {
+            user_id: Pk [required],
+            title: String,
+        }
+    }
+    "#
+}
+
+#[test]
+fn test_parse_pk_typed_field_maps_to_integer() {
+    // Bug (2026-09-01) : `dsl_field_type_to_col_type` (champs normaux) n'avait
+    // pas de branche pour "Pk" — seule `dsl_pk_to_col_type` (position `pk:`)
+    // la gérait. Un FK typé `Pk` (convention documentée pour rester en phase
+    // avec big-pk/pk-uuid) tombait silencieusement dans le `_ => "String"`,
+    // détecté en vrai sur `contributions.user_id`/`chapitre.cour_id`/etc. via
+    // `runique makemigrations` sur demo-app (faux changements destructifs
+    // Integer -> String).
+    let schema = parse_schema_from_source(contributions_source())
+        .unwrap()
+        .1;
+    let user_id = schema
+        .columns
+        .iter()
+        .find(|c| c.name == "user_id")
+        .unwrap();
+    assert_eq!(
+        user_id.col_type, "Integer",
+        "un champ Pk (features par défaut) doit être Integer, pas String"
+    );
+}
+
 // ── Isolation entre tables ────────────────────────────────────────────────────
 
 #[test]
