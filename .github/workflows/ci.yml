@@ -70,9 +70,17 @@ jobs:
       - name: Build
         run: cargo build --verbose --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme
 
+      # RUST_LOG temporaire : reset_password_unknown_id_creates_no_token échoue
+      # de façon intermittente sur ce job (500 au lieu d'un id inconnu géré
+      # proprement), non reproduit en local même sous contrainte CPU identique
+      # (4 coeurs, cargo test complet) — objectif : capturer l'erreur réelle
+      # derrière le 500 au prochain échec CI. À retirer une fois diagnostiqué.
       - name: Run tests
         run: cargo test --verbose --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme
         working-directory: runique
+        env:
+          RUST_LOG: warn,runique::admin=trace,runique::auth=trace
+          RUST_BACKTRACE: "1"
 
       - name: Run tests (big-pk)
         run: cargo test --verbose --features big-pk
