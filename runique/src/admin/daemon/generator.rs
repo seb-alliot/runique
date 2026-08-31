@@ -264,6 +264,19 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
             "let id = id.parse::<Pk>().map_err(|_| DbErr::Custom(\"invalid id\".to_string()))?"
         }
     };
+    // `get_fn` alone can express "not found" cleanly (`Result<Option<Value>, _>`):
+    // a malformed id is indistinguishable from "no such record" to every caller,
+    // so it must never surface as a database error (never a 5xx on garbage input).
+    // delete_fn/update_fn/partial_update_fn keep `id_parse_code` above — their
+    // `Result<(), DbErr>` has no clean "not found" of their own; the admin
+    // handlers already check existence via `get_fn` before calling them, so
+    // this remains a defensive branch, not the one users actually hit.
+    let id_parse_code_get_fn = match r.id_type.as_str() {
+        "I32" => "let Ok(id) = id.parse::<i32>() else { return Ok(None) }",
+        "I64" => "let Ok(id) = id.parse::<i64>() else { return Ok(None) }",
+        "Uuid" => "let Ok(id) = uuid::Uuid::parse_str(&id) else { return Ok(None) }",
+        _ => "let Ok(id) = id.parse::<Pk>() else { return Ok(None) }",
+    };
 
     // AdminResource
     let _ = writeln!(out, "    // ── Resource: {} ──", key);
@@ -479,7 +492,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         "    let get_fn: GetFn = Arc::new(|db: ADb, id: String| {{"
     );
     let _ = writeln!(out, "        Box::pin(async move {{");
-    let _ = writeln!(out, "            {};", id_parse_code);
+    let _ = writeln!(out, "            {};", id_parse_code_get_fn);
     let _ = writeln!(
         out,
         "            let row = {}::Entity::find_by_id(id).one(&*db).await?;",
