@@ -1,5 +1,6 @@
 use runique::prelude::migrations_table;
 use sea_orm_migration::prelude::*;
+mod m20260831_232248_extend_eihwaz_users_table;
 mod m20260413_133022_create_blog_table;
 mod m20260413_133022_create_changelog_entry_table;
 mod m20260413_133022_create_chapitre_table;
@@ -77,6 +78,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260614_221003_alter_blog_table::Migration),
             Box::new(m20260614_221003_alter_changelog_entry_table::Migration),
             Box::new(m20260614_221003_extend_eihwaz_users_table::Migration),
+            Box::new(m20260831_232248_extend_eihwaz_users_table::Migration),
         ];
         migrations
     }
