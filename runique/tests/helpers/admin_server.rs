@@ -333,6 +333,15 @@ pub async fn build_admin_app() -> (Router, DatabaseConnection) {
         config: Arc::new(AdminConfig::new()),
     });
 
+    // `log_init()` (runique_log/mod.rs) est premier-arrivé-gagne, no-op
+    // silencieux ensuite, pour TOUT le process de test — n'importe lequel des
+    // centaines d'autres `.build()` de la suite (config vide par défaut) peut
+    // verrouiller la config globale avant nous, et notre `.with_log()` plus bas
+    // ne servirait alors à rien. `reset_log_for_test()` (prévu par le framework
+    // pour exactement ce cas, cf. `test_init_logging.rs`) rouvre le verrou juste
+    // avant notre propre `build()`.
+    runique::utils::runique_log::reset_log_for_test();
+
     let app = RuniqueAppBuilder::new(config)
         .with_database(dbc.clone())
         .no_statics()
