@@ -294,7 +294,11 @@ pub(super) fn droit_entry() -> ResourceEntry {
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             use sea_orm::{ColumnTrait, QueryFilter};
-            let (groupe_id, resource_key) = decode_droit_id(&id)?;
+            // A malformed composite id is indistinguishable from "no such
+            // record" to every caller — treat it as not-found, not a database error.
+            let Ok((groupe_id, resource_key)) = decode_droit_id(&id) else {
+                return Ok(None);
+            };
             let row = groupes_droits::Entity::find()
                 .filter(groupes_droits::Column::GroupeId.eq(groupe_id))
                 .filter(groupes_droits::Column::ResourceKey.eq(&resource_key))

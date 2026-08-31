@@ -529,6 +529,16 @@ pub(super) async fn handle_edit_post(
         None
     };
 
+    // A malformed/unknown id must 404 here, before `update_fn`/`partial_update_fn`
+    // are ever called on it — their own id-parse failure is a raw `DbErr`, not a
+    // clean "not found". Only enforced when `get_fn` actually confirmed absence
+    // (no `get_fn` configured means we can't tell, so don't block).
+    if is_form_valid && entry.get_fn.is_some() && old_obj.is_none() {
+        return Err(Box::new(AppError::new(ErrorContext::not_found(
+            t("error.not_found").as_ref(),
+        ))));
+    }
+
     if is_form_valid
         && let Some(orig_ts) = &orig_updated_at
         && let Some(current_obj) = &old_obj
@@ -709,6 +719,21 @@ pub(super) async fn handle_delete_post(
             t("admin.delete.not_found").as_ref(),
         )))
     })?;
+
+    // Confirm existence before deleting — a malformed/unknown id must 404, not
+    // reach `delete_fn` (whose own id-parse failure is a raw `DbErr`, not a
+    // clean "not found").
+    if let Some(get_fn) = &entry.get_fn {
+        let exists = get_fn(req.engine.db.clone(), closure_id.clone())
+            .await
+            .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?
+            .is_some();
+        if !exists {
+            return Err(Box::new(AppError::new(ErrorContext::not_found(
+                t("admin.delete.not_found").as_ref(),
+            ))));
+        }
+    }
 
     let delete_result = delete_fn(req.engine.db.clone(), closure_id.clone()).await;
     if let Some(level) = crate::utils::runique_log::get_log()

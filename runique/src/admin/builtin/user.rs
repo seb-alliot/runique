@@ -200,9 +200,12 @@ pub(super) fn user_entry() -> ResourceEntry {
             use crate::admin::permissions::users_groupes;
             use sea_orm::{ColumnTrait, QueryFilter};
 
-            let id = id
-                .parse::<Pk>()
-                .map_err(|_| sea_orm::DbErr::Custom(t("admin.builtin.invalid_id").into_owned()))?;
+            // A malformed id (e.g. not a valid Uuid under `pk-uuid`) is
+            // indistinguishable from "no such record" to every caller — treat
+            // it as not-found, not a database error (never a 5xx on garbage input).
+            let Ok(id) = id.parse::<Pk>() else {
+                return Ok(None);
+            };
             let row = user::Entity::find_by_id(id).one(&*db).await?;
             let Some(row) = row else { return Ok(None) };
 

@@ -128,9 +128,11 @@ pub(super) fn groupe_entry() -> ResourceEntry {
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id
-                .parse::<i32>()
-                .map_err(|_| sea_orm::DbErr::Custom(t("admin.builtin.invalid_id").into_owned()))?;
+            // A malformed id is indistinguishable from "no such record" to every
+            // caller — treat it as not-found, not a database error.
+            let Ok(id) = id.parse::<i32>() else {
+                return Ok(None);
+            };
             let row = groupe::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
