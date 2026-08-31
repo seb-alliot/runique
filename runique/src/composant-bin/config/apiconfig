@@ -2,7 +2,13 @@
 name = "{{PROJECT_NAME}}"
 version = "1.0.0"
 edition = "2024"
-rust-version = "1.88"
+rust-version = "1.94"
+
+[features]
+# Optionnel — clé primaire i64 ou UUID au lieu de i32 (mutuellement exclusives) :
+# `cargo build --features big-pk` ou `--features pk-uuid`
+big-pk = ["runique/big-pk"]
+pk-uuid = ["runique/pk-uuid"]
 
 [dependencies]
 
@@ -13,5 +19,5 @@ serde ="1"
 
 chrono = "0.4"
 tracing-subscriber = "0.3.22"
-sea-orm = "=2.0.0-rc.38"
-sea-orm-migration = "=2.0.0-rc.38"
+sea-orm = "=2.0.0"
+sea-orm-migration = "=2.0.0"

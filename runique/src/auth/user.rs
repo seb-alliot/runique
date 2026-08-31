@@ -12,7 +12,12 @@ use sea_orm::{
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, serde::Serialize, serde::Deserialize)]
 #[sea_orm(table_name = "eihwaz_users")]
 pub struct Model {
-    #[sea_orm(primary_key)]
+    // `Pk` is a type alias — SeaORM's derive macro infers `auto_increment` from
+    // the literal type name (i32/i64/…), so it can't see through the alias and
+    // silently defaults to `false`. Explicit per-feature attribute required,
+    // matching `schema()` below (i32/i64 auto-increment, Uuid never does).
+    #[cfg_attr(feature = "pk-uuid", sea_orm(primary_key, auto_increment = false))]
+    #[cfg_attr(not(feature = "pk-uuid"), sea_orm(primary_key, auto_increment = true))]
     pub id: Pk,
     pub username: String,
     pub email: String,
