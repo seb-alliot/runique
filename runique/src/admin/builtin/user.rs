@@ -242,11 +242,8 @@ pub(super) fn user_entry() -> ResourceEntry {
             let now = Some(chrono::Utc::now().naive_utc());
             let username = data.get("username").cloned().unwrap_or_default();
             let email = data.get("email").cloned().unwrap_or_default();
-            let inserted = user::ActiveModel {
-                // Uuid PKs are never DB auto-increment — must be generated
-                // application-side, unlike i32/i64 which SeaORM fills in itself.
-                #[cfg(feature = "pk-uuid")]
-                id: Set(::sea_orm::prelude::Uuid::now_v7()),
+            #[allow(unused_mut)]
+            let mut new_user = user::ActiveModel {
                 username: Set(username.clone()),
                 email: Set(email.clone()),
                 password: Set(data.get("password").cloned().unwrap_or_default()),
@@ -259,10 +256,17 @@ pub(super) fn user_entry() -> ResourceEntry {
                 created_at: Set(now),
                 updated_at: Set(now),
                 ..Default::default()
+            };
+            // Uuid PKs are never DB auto-increment — must be generated
+            // application-side, unlike i32/i64 which SeaORM fills in itself.
+            #[cfg(feature = "pk-uuid")]
+            {
+                new_user.id = Set(::sea_orm::prelude::Uuid::now_v7());
             }
-            .insert(&*db)
-            .await
-            .map_err(|e| {
+            let inserted = new_user
+                .insert(&*db)
+                .await
+                .map_err(|e| {
                 if super::is_unique_violation(&e) {
                     let msg = e.to_string().to_lowercase();
                     if msg.contains("username") {
