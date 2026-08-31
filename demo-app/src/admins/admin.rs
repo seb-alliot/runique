@@ -1,5 +1,5 @@
-// 自动生成 — 请勿手动修改
-// 由 `runique start` 从 src/admin.rs 生成。任何修改都将被覆盖。
+// GÉNÉRÉ AUTOMATIQUEMENT — NE PAS MODIFIER MANUELLEMENT
+// Produit par `runique start` depuis src/admin.rs. Toute modification sera écrasée.
 
 use runique::prelude::*;
 
@@ -578,9 +578,9 @@ pub fn admin_register() -> AdminRegistry {
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id
-                .parse::<Pk>()
-                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let Ok(id) = id.parse::<Pk>() else {
+                return Ok(None);
+            };
             let row = contribution::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -969,9 +969,9 @@ pub fn admin_register() -> AdminRegistry {
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id
-                .parse::<Pk>()
-                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let Ok(id) = id.parse::<Pk>() else {
+                return Ok(None);
+            };
             let row = blog::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -1416,9 +1416,9 @@ pub fn admin_register() -> AdminRegistry {
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id
-                .parse::<Pk>()
-                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let Ok(id) = id.parse::<Pk>() else {
+                return Ok(None);
+            };
             let row = changelog_entry::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -1928,9 +1928,9 @@ pub fn admin_register() -> AdminRegistry {
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id
-                .parse::<Pk>()
-                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let Ok(id) = id.parse::<Pk>() else {
+                return Ok(None);
+            };
             let row = roadmap_entry::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -2538,9 +2538,9 @@ pub fn admin_register() -> AdminRegistry {
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id
-                .parse::<Pk>()
-                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let Ok(id) = id.parse::<Pk>() else {
+                return Ok(None);
+            };
             let row = known_issue::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -2984,9 +2984,9 @@ pub fn admin_register() -> AdminRegistry {
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id
-                .parse::<Pk>()
-                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let Ok(id) = id.parse::<Pk>() else {
+                return Ok(None);
+            };
             let row = demo_category::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -3170,9 +3170,9 @@ pub fn admin_register() -> AdminRegistry {
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id
-                .parse::<Pk>()
-                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let Ok(id) = id.parse::<Pk>() else {
+                return Ok(None);
+            };
             let row = demo_page::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -3660,9 +3660,9 @@ pub fn admin_register() -> AdminRegistry {
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id
-                .parse::<Pk>()
-                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let Ok(id) = id.parse::<Pk>() else {
+                return Ok(None);
+            };
             let row = demo_section::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -4064,9 +4064,9 @@ pub fn admin_register() -> AdminRegistry {
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id
-                .parse::<Pk>()
-                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let Ok(id) = id.parse::<Pk>() else {
+                return Ok(None);
+            };
             let row = code_example::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -4552,9 +4552,9 @@ pub fn admin_register() -> AdminRegistry {
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id
-                .parse::<Pk>()
-                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let Ok(id) = id.parse::<Pk>() else {
+                return Ok(None);
+            };
             let row = page_doc_link::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -5006,9 +5006,9 @@ pub fn admin_register() -> AdminRegistry {
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id
-                .parse::<Pk>()
-                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let Ok(id) = id.parse::<Pk>() else {
+                return Ok(None);
+            };
             let row = form_field::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -5551,9 +5551,9 @@ pub fn admin_register() -> AdminRegistry {
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id
-                .parse::<Pk>()
-                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let Ok(id) = id.parse::<Pk>() else {
+                return Ok(None);
+            };
             let row = doc_section::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -5847,9 +5847,9 @@ pub fn admin_register() -> AdminRegistry {
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id
-                .parse::<Pk>()
-                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let Ok(id) = id.parse::<Pk>() else {
+                return Ok(None);
+            };
             let row = doc_page::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -6344,9 +6344,9 @@ pub fn admin_register() -> AdminRegistry {
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id
-                .parse::<Pk>()
-                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let Ok(id) = id.parse::<Pk>() else {
+                return Ok(None);
+            };
             let row = doc_block::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -6787,9 +6787,9 @@ pub fn admin_register() -> AdminRegistry {
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id
-                .parse::<Pk>()
-                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let Ok(id) = id.parse::<Pk>() else {
+                return Ok(None);
+            };
             let row = site_config::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -6975,9 +6975,9 @@ pub fn admin_register() -> AdminRegistry {
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id
-                .parse::<Pk>()
-                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let Ok(id) = id.parse::<Pk>() else {
+                return Ok(None);
+            };
             let row = cour::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -7510,9 +7510,9 @@ pub fn admin_register() -> AdminRegistry {
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id
-                .parse::<Pk>()
-                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let Ok(id) = id.parse::<Pk>() else {
+                return Ok(None);
+            };
             let row = chapitre::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -7899,9 +7899,9 @@ pub fn admin_register() -> AdminRegistry {
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id
-                .parse::<Pk>()
-                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let Ok(id) = id.parse::<Pk>() else {
+                return Ok(None);
+            };
             let row = cour_block::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -8294,9 +8294,9 @@ pub fn admin_register() -> AdminRegistry {
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id
-                .parse::<Pk>()
-                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let Ok(id) = id.parse::<Pk>() else {
+                return Ok(None);
+            };
             let row = runique_release::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -8541,9 +8541,9 @@ pub fn admin_register() -> AdminRegistry {
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id
-                .parse::<Pk>()
-                .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            let Ok(id) = id.parse::<Pk>() else {
+                return Ok(None);
+            };
             let row = user_profile::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
