@@ -263,10 +263,7 @@ pub(super) fn user_entry() -> ResourceEntry {
             {
                 new_user.id = Set(::sea_orm::prelude::Uuid::now_v7());
             }
-            let inserted = new_user
-                .insert(&*db)
-                .await
-                .map_err(|e| {
+            let inserted = new_user.insert(&*db).await.map_err(|e| {
                 if super::is_unique_violation(&e) {
                     let msg = e.to_string().to_lowercase();
                     if msg.contains("username") {
