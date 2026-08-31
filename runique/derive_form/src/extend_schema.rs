@@ -1,6 +1,6 @@
 use crate::model::ast::{EnumDef, FormFieldAttr, FormFieldDecl, FormFieldKind};
 use crate::model::generateur::generate_enum_defs;
-use crate::registry::{FormWidget, PhantomColumn, PkKind, phantom_columns};
+use crate::registry::{FormWidget, PhantomColumn, PhantomType, PkKind, phantom_columns};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 use syn::{Ident, LitStr, Token, braced, parse::ParseStream};
@@ -615,6 +615,34 @@ pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
     let table = &dsl.table;
     let base_cols = phantom_columns(table);
 
+    // `admin_from_form`/`admin_partial_update` need the REAL id type of this
+    // specific table, not a hardcoded one: `eihwaz_sessions.id` is a literal
+    // `i32` (always auto-increment, whatever feature is active), while
+    // `eihwaz_users.id`/`eihwaz_groupes.id` are the `Pk` alias (i32/i64/Uuid
+    // depending on `big-pk`/`pk-uuid`). Composite-PK tables (`eihwaz_users_groupes`,
+    // `eihwaz_groupes_droits`) have no single `id` column at all — `admin_from_form`
+    // for those is a separate, currently-unimplemented gap; not generated here.
+    let auto_pk_col = base_cols.iter().find(|c| matches!(c.pk, PkKind::Auto));
+    let id_ty = auto_pk_col
+        .map(|c| c.ty.to_tokens())
+        .unwrap_or_else(|| quote! { ::runique::utils::config::Pk });
+    let id_is_pk_alias = matches!(auto_pk_col.map(|c| &c.ty), Some(PhantomType::Pk));
+    // Only `Pk`-aliased tables need a feature-gated branch: under `pk-uuid` there is
+    // no DB auto-increment to fall back on, so a fresh id must be generated here;
+    // literal-typed tables (sessions) always rely on the DB, in every feature combo.
+    let id_none_arm = if id_is_pk_alias {
+        quote! {
+            #[cfg(feature = "pk-uuid")]
+            ::std::option::Option::None => ::sea_orm::ActiveValue::Set(::sea_orm::prelude::Uuid::now_v7()),
+            #[cfg(not(feature = "pk-uuid"))]
+            ::std::option::Option::None => ::sea_orm::ActiveValue::NotSet,
+        }
+    } else {
+        quote! {
+            ::std::option::Option::None => ::sea_orm::ActiveValue::NotSet,
+        }
+    };
+
     let phantom_fields: Vec<TokenStream2> = base_cols
         .iter()
         .map(|col| {
@@ -626,6 +654,17 @@ pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
                 base_ty
             };
             match col.pk {
+                // `PhantomType::Pk` emits the `Pk` alias (see `to_tokens` above), and
+                // SeaORM's derive macro infers `auto_increment` from the literal type
+                // name — it can't see through an alias, so it silently defaults to
+                // `false`. Explicit per-feature attribute required here; columns typed
+                // with a literal integer (e.g. `PhantomType::I32`) don't need it, SeaORM
+                // recognizes those directly.
+                PkKind::Auto if matches!(col.ty, PhantomType::Pk) => quote! {
+                    #[cfg_attr(feature = "pk-uuid", sea_orm(primary_key, auto_increment = false))]
+                    #[cfg_attr(not(feature = "pk-uuid"), sea_orm(primary_key, auto_increment = true))]
+                    pub #name: #ty,
+                },
                 PkKind::Auto => quote! {
                     #[sea_orm(primary_key)]
                     pub #name: #ty,
@@ -753,12 +792,12 @@ pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
 
         pub fn admin_from_form(
             __data: &::std::collections::HashMap<::std::string::String, ::std::string::String>,
-            __id: ::std::option::Option<::runique::utils::config::Pk>,
+            __id: ::std::option::Option<#id_ty>,
         ) -> ActiveModel {
             ActiveModel {
                 id: match __id {
                     ::std::option::Option::Some(pk) => ::sea_orm::ActiveValue::Unchanged(pk),
-                    ::std::option::Option::None     => ::sea_orm::ActiveValue::NotSet,
+                    #id_none_arm
                 },
                 #(#phantom_am_fields)*
                 #(#full_assignments)*
@@ -768,7 +807,7 @@ pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
 
         pub fn admin_partial_update(
             __data: &::std::collections::HashMap<::std::string::String, ::std::string::String>,
-            __id: ::runique::utils::config::Pk,
+            __id: #id_ty,
         ) -> ActiveModel {
             ActiveModel {
                 id: ::sea_orm::ActiveValue::Unchanged(__id),
