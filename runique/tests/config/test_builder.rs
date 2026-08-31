@@ -22,7 +22,14 @@ use runique::config::app::RuniqueConfig;
 use runique::middleware::MiddlewareConfig;
 use runique::middleware::TrustedProxies;
 use sea_orm::DatabaseConnection;
+use serial_test::serial;
 use tower_sessions::cookie::time::Duration;
+
+// `#[serial]` sur les tests `build()` : `RuniqueAppBuilder::build()` draine
+// inconditionnellement le registre global `PENDING_URLS` (partagé avec toutes
+// les autres suites `#[serial]` qui construisent une app). Un build concurrent
+// non serialisé peut voler les routes nommées d'un autre build en cours. Voir
+// `register_url.rs` et le commentaire identique dans `test_admin_password_security.rs`.
 
 // ─── Mock AdminAuth pour les tests ────────────────────────────────────────────
 
@@ -739,6 +746,7 @@ fn test_builder_chaine_complete_sync() {
 // ════════════════════════════════════════════════════════════════
 
 #[tokio::test]
+#[serial]
 async fn test_build_sans_db_retourne_check_failed() {
     let config = make_config();
     let result = RuniqueAppBuilder::new(config)
@@ -770,6 +778,7 @@ async fn test_build_sans_db_retourne_check_failed() {
 }
 
 #[tokio::test]
+#[serial]
 async fn test_build_avec_database_retourne_ok_ou_template_err() {
     use sea_orm::Database;
 
@@ -801,6 +810,7 @@ async fn test_build_avec_database_retourne_ok_ou_template_err() {
 }
 
 #[tokio::test]
+#[serial]
 async fn test_build_check_failed_display_utile() {
     let config = make_config();
     let result = RuniqueAppBuilder::new(config).no_statics().build().await;
@@ -816,6 +826,7 @@ async fn test_build_check_failed_display_utile() {
 
 /// Build avec statics activés → couvre attach_static_files
 #[tokio::test]
+#[serial]
 async fn test_build_avec_statics_couvre_attach_static_files() {
     use sea_orm::Database;
     let db = Database::connect("sqlite::memory:").await.unwrap();
@@ -849,6 +860,7 @@ async fn test_build_avec_statics_couvre_attach_static_files() {
 
 /// Build avec CSP + header_security activés via builder → couvre security_headers_middleware
 #[tokio::test]
+#[serial]
 async fn test_build_profil_production_couvre_csp_host_validation() {
     use sea_orm::Database;
     let db = Database::connect("sqlite::memory:").await.unwrap();

@@ -6,6 +6,13 @@ use runique::{
     config::RuniqueConfig,
 };
 use sea_orm::Database;
+use serial_test::serial;
+
+// `#[serial]` sur les tests `build()` : `RuniqueAppBuilder::build()` draine
+// inconditionnellement le registre global `PENDING_URLS` (partagé avec toutes
+// les autres suites `#[serial]` qui construisent une app). Un build concurrent
+// non serialisé peut voler les routes nommées d'un autre build en cours. Voir
+// `register_url.rs` et le commentaire identique dans `test_admin_password_security.rs`.
 
 // ── RuniqueApp::builder ───────────────────────────────────────────
 
@@ -48,6 +55,7 @@ fn test_builder_core_closure() {
 // ── build() avec base de données en mémoire ──────────────────────
 
 #[tokio::test]
+#[serial]
 async fn test_builder_build_avec_sqlite_memory() {
     let db = Database::connect("sqlite::memory:").await.unwrap();
     let mut config = RuniqueConfig::from_env();
@@ -65,6 +73,7 @@ async fn test_builder_build_avec_sqlite_memory() {
 }
 
 #[tokio::test]
+#[serial]
 async fn test_builder_build_retourne_runique_app() {
     let db = Database::connect("sqlite::memory:").await.unwrap();
     let mut config = RuniqueConfig::from_env();
