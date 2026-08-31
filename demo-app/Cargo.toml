@@ -3,6 +3,10 @@ name = "demo-app"
 version = "1.0.0"
 edition = "2024"
 
+[features]
+big-pk = ["runique/big-pk"]
+pk-uuid = ["runique/pk-uuid"]
+
 [dependencies]
 
 # Base de données : sqlite (défaut) | postgres | mysql | mariadb | all-databases

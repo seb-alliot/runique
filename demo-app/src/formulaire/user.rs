@@ -64,6 +64,10 @@ impl RegisterForm {
     ) -> Result<runique::prelude::user::Model, DbErr> {
         use runique::prelude::user::ActiveModel;
         let user = ActiveModel {
+            // Uuid PKs are never DB auto-increment — must be generated
+            // application-side, unlike i32/i64 which SeaORM fills in itself.
+            #[cfg(feature = "pk-uuid")]
+            id: Set(::sea_orm::prelude::Uuid::now_v7()),
             username: Set(self.cleaned_string("username").unwrap_or_default()),
             email: Set(self.cleaned_string("email").unwrap_or_default()),
             password: Set(self.cleaned_string("password").unwrap_or_default()),

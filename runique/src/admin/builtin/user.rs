@@ -243,6 +243,10 @@ pub(super) fn user_entry() -> ResourceEntry {
             let username = data.get("username").cloned().unwrap_or_default();
             let email = data.get("email").cloned().unwrap_or_default();
             let inserted = user::ActiveModel {
+                // Uuid PKs are never DB auto-increment — must be generated
+                // application-side, unlike i32/i64 which SeaORM fills in itself.
+                #[cfg(feature = "pk-uuid")]
+                id: Set(::sea_orm::prelude::Uuid::now_v7()),
                 username: Set(username.clone()),
                 email: Set(email.clone()),
                 password: Set(data.get("password").cloned().unwrap_or_default()),
