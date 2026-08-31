@@ -253,12 +253,32 @@ pub fn collect_destructive_messages(all_changes: &[Changes]) -> Vec<String> {
     let type_changes = all_changes.iter().flat_map(|c| {
         c.modified_columns
             .iter()
-            .filter(|(old, new)| old.col_type != new.col_type)
+            // `col_type` alone misses becoming (or stopping being) an enum — an enum
+            // column keeps col_type "String", the shape change lives in
+            // `enum_string_values` instead. Without this, a string->enum column would
+            // generate silently (no `--force` prompt) with only a code comment warning
+            // the developer might never see.
+            .filter(|(old, new)| {
+                old.col_type != new.col_type
+                    || old.enum_string_values.is_empty() != new.enum_string_values.is_empty()
+            })
             .map(|(old, new)| {
-                format!(
-                    "  {}.{}: type {} -> {}",
-                    c.table_name, old.name, old.col_type, new.col_type
-                )
+                if old.col_type != new.col_type {
+                    format!(
+                        "  {}.{}: type {} -> {}",
+                        c.table_name, old.name, old.col_type, new.col_type
+                    )
+                } else if new.enum_string_values.is_empty() {
+                    format!(
+                        "  {}.{}: enum -> {} (manual migration required)",
+                        c.table_name, old.name, new.col_type
+                    )
+                } else {
+                    format!(
+                        "  {}.{}: {} -> enum (manual migration required)",
+                        c.table_name, old.name, old.col_type
+                    )
+                }
             })
     });
 

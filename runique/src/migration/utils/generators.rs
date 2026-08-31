@@ -444,6 +444,17 @@ fn build_alter_bodies(change: &Changes, db_kind: &DbKind) -> (String, String) {
 
     // 4) MODIFY columns
     for (old, new) in &change.modified_columns {
+        // Becoming (or stopping being) an enum: `col_type` alone doesn't capture this
+        // (an enum column keeps col_type "String"), so this must be checked before the
+        // generic "type change => manual" fallback below, which would otherwise catch
+        // ordinary type changes but silently miss this one entirely.
+        if old.enum_string_values.is_empty() != new.enum_string_values.is_empty() {
+            let (up_op, down_op) = build_enum_transition(&change.table_name, old, new, db_kind);
+            up.push_str(&up_op);
+            down.push_str(&down_op);
+            continue;
+        }
+
         // type change => manual
         if old.col_type != new.col_type {
             up.push_str(&format!(
@@ -602,6 +613,104 @@ fn build_alter_bodies(change: &Changes, db_kind: &DbKind) -> (String, String) {
     }
 
     (up, down)
+}
+
+/// A column entering or leaving enum-ness, both directions (`up`: old -> new,
+/// `down`: new -> old) — reusing sea-query's builder (`ColumnDef::using`) rather
+/// than hand-written SQL for the `ALTER COLUMN ... TYPE ... USING` cast: bare
+/// `modify_column` renders `ALTER COLUMN x TYPE enum_type` with no `USING`
+/// clause at all, which Postgres rejects on an existing non-enum column (it
+/// requires an explicit cast to know how to reinterpret each row's data).
+/// `.using()` is Postgres-specific — the other backends' `TableAlterOption`
+/// renderers never read `column_def.spec.using`, so setting it unconditionally
+/// is harmless there; MySQL's `ENUM(...)` is inline (no separate type to create
+/// first) and SQLite has no native enum (plain column either way).
+fn build_enum_transition(
+    table: &str,
+    old: &ParsedColumn,
+    new: &ParsedColumn,
+    db_kind: &DbKind,
+) -> (String, String) {
+    let up = render_enum_column_change(table, old, new, db_kind);
+    let down = render_enum_column_change(table, new, old, db_kind);
+    (up, down)
+}
+
+/// Renders one direction of an enum-transition ALTER: `from` is the column's
+/// current shape, `to` is what it becomes after this statement runs.
+fn render_enum_column_change(
+    table: &str,
+    from: &ParsedColumn,
+    to: &ParsedColumn,
+    db_kind: &DbKind,
+) -> String {
+    let mut out = String::new();
+    let from_is_enum = !from.enum_string_values.is_empty();
+    let to_is_enum = !to.enum_string_values.is_empty();
+
+    // The enum TYPE must exist before any column can be cast into it — Postgres only,
+    // MySQL's enum is inline on the column, SQLite has no native enum type at all.
+    if *db_kind == DbKind::Postgres && to_is_enum && !from_is_enum {
+        let enum_name = to.enum_name.as_deref().unwrap_or(&to.name);
+        let variants = to
+            .enum_string_values
+            .iter()
+            .map(|v| format!("'{v}'"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        out.push_str(&format!(
+            "        manager.get_connection().execute_unprepared(\n            \"DO $$ BEGIN CREATE TYPE {enum_name} AS ENUM ({variants}); EXCEPTION WHEN duplicate_object THEN NULL; END $$\"\n        ).await?;\n\n",
+        ));
+    }
+
+    let col_def = if to_is_enum {
+        let enum_name = to.enum_name.as_deref().unwrap_or(&to.name);
+        let variants: Vec<String> = to
+            .enum_string_values
+            .iter()
+            .map(|v| format!("Alias::new(\"{}\").into_iden()", v))
+            .collect();
+        format!(
+            "ColumnDef::new_with_type(Alias::new(\"{col}\"), ColumnType::Enum {{ name: Alias::new(\"{enum_name}\").into_iden(), variants: vec![{variants}] }})",
+            col = to.name,
+            enum_name = enum_name,
+            variants = variants.join(", "),
+        )
+    } else {
+        format!(
+            "ColumnDef::new(Alias::new(\"{col}\")).{ty}",
+            col = to.name,
+            ty = col_type_to_method(&to.col_type),
+        )
+    };
+    let null = if to.nullable { ".null()" } else { ".not_null()" };
+    // Postgres reinterprets each existing row's value through this cast target —
+    // the enum name when entering it, `text` when leaving back to a plain column.
+    let cast_target = if to_is_enum {
+        to.enum_name.as_deref().unwrap_or(&to.name).to_string()
+    } else {
+        "text".to_string()
+    };
+
+    out.push_str(&format!(
+        "        manager\n            .alter_table(\n                Table::alter()\n                    .table(Alias::new(\"{table}\"))\n                    .modify_column({col_def}{null}.using(Expr::col(Alias::new(\"{col}\")).cast_as(Alias::new(\"{cast_target}\"))))\n                    .to_owned(),\n            )\n            .await?;\n\n",
+        table = table,
+        col_def = col_def,
+        null = null,
+        col = to.name,
+        cast_target = cast_target,
+    ));
+
+    // The old type is only droppable once nothing references it any more — after
+    // the ALTER above has moved the column off it.
+    if *db_kind == DbKind::Postgres && from_is_enum && !to_is_enum {
+        let enum_name = from.enum_name.as_deref().unwrap_or(&from.name);
+        out.push_str(&format!(
+            "        manager.get_connection().execute_unprepared(\n            \"DROP TYPE IF EXISTS {enum_name}\"\n        ).await?;\n\n",
+        ));
+    }
+
+    out
 }
 
 fn append_up_ops(change: &Changes, buf: &mut String) {

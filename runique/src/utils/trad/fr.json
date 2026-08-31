@@ -449,7 +449,8 @@
   "makemigrations": {
     "destructive_detected": "Changements destructifs détectés :",
     "destructive_require_force": "Utilisez --force pour appliquer ces changements destructifs.",
-    "files_ready": "{} fichier(s) prêt(s) à migrer."
+    "files_ready": "{} fichier(s) prêt(s) à migrer.",
+    "unknown_dsl_type": "Attention : type de champ inconnu '{}' — utilisation de '{}' par défaut. Vérifiez une faute de frappe dans votre modèle."
   },
   "migrate": {
     "applying": "Application des migrations depuis '{}'...",

@@ -432,7 +432,8 @@
   "makemigrations": {
     "destructive_detected": "破壊的な変更が検出されました:",
     "destructive_require_force": "--force を使用してこれらの破壊的な変更を適用してください。",
-    "files_ready": "{}個のファイルが移行の準備ができています。"
+    "files_ready": "{}個のファイルが移行の準備ができています。",
+    "unknown_dsl_type": "警告: 不明なフィールド型 '{}' — デフォルトの '{}' を使用します。モデルにタイプミスがないか確認してください。"
   },
   "migrate": {
     "applying": "'{}'からマイグレーションを適用中...",

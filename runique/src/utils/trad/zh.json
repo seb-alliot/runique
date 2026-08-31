@@ -432,7 +432,8 @@
   "makemigrations": {
     "destructive_detected": "检测到破坏性更改:",
     "destructive_require_force": "使用 --force 应用这些破坏性更改。",
-    "files_ready": "{}个文件已准备好迁移。"
+    "files_ready": "{}个文件已准备好迁移。",
+    "unknown_dsl_type": "警告：未知字段类型 '{}' — 默认使用 '{}'。请检查模型中是否有拼写错误。"
   },
   "migrate": {
     "applying": "正在从'{}'应用迁移...",

@@ -259,6 +259,36 @@ fn test_diff_enum_renames_in_changes_not_empty() {
     );
 }
 
+#[test]
+fn test_diff_string_devenu_enum_pas_de_value_add() {
+    // Bug J (2026-09-01) : une colonne string qui devient un enum ne doit
+    // jamais être vue comme "valeurs ajoutées à un enum existant" — l'enum
+    // lui-même n'a jamais été créé (`CREATE TYPE`), donc générer
+    // `ALTER TYPE ... ADD VALUE` planterait à l'exécution. C'est un vrai
+    // changement de type, laissé au chemin générique `modified_columns`
+    // (avertissement, migration manuelle) comme tout autre type change risqué.
+    let prev = schema("cour_block", "id", vec![col("block_type", "String")]);
+    let curr = schema(
+        "cour_block",
+        "id",
+        vec![col_enum("block_type", "CourBlockType", &["text", "code"])],
+    );
+    let changes = diff_schemas(&prev, &curr);
+    assert!(
+        changes.enum_value_adds.is_empty(),
+        "string→enum ne doit pas générer d'ajout de valeur d'enum"
+    );
+    assert!(
+        changes.enum_renames.is_empty(),
+        "string→enum ne doit pas générer de rename d'enum"
+    );
+    assert_eq!(
+        changes.modified_columns.len(),
+        1,
+        "le changement de type doit rester détecté via modified_columns"
+    );
+}
+
 // ── update_migration_lib ──────────────────────────────────────────────────────
 
 fn tmp_dir(suffix: &str) -> crate::utils::clean_tpm_test::TestTempDir {
