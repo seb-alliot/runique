@@ -58,11 +58,8 @@ impl RegisterForm {
         db: &DatabaseConnection,
     ) -> Result<runique::prelude::runique_users::Model, DbErr> {
         use runique::prelude::runique_users::ActiveModel;
-        let user = ActiveModel {
-            // Uuid PKs are never DB auto-increment — must be generated
-            // application-side, unlike i32/i64 which SeaORM fills in itself.
-            #[cfg(feature = "pk-uuid")]
-            id: Set(::sea_orm::prelude::Uuid::now_v7()),
+        #[allow(unused_mut)]
+        let mut user = ActiveModel {
             username: Set(self.cleaned_string("username").unwrap_or_default()),
             email: Set(self.cleaned_string("email").unwrap_or_default()),
             password: Set(self.cleaned_string("password").unwrap_or_default()),
@@ -73,6 +70,12 @@ impl RegisterForm {
             updated_at: Set(Some(chrono::Utc::now().naive_utc())),
             ..Default::default()
         };
+        // Uuid PKs are never DB auto-increment — must be generated
+        // application-side, unlike i32/i64 which SeaORM fills in itself.
+        #[cfg(feature = "pk-uuid")]
+        {
+            user.id = Set(::sea_orm::prelude::Uuid::now_v7());
+        }
         user.insert(db).await
     }
 }
