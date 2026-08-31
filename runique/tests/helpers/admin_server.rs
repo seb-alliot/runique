@@ -342,6 +342,16 @@ pub async fn build_admin_app() -> (Router, DatabaseConnection) {
                 .routes(build_admin_routes(ADMIN_PREFIX))
                 .with_state(state)
         })
+        // `get_log().admin.auth`/`.crud` sont `None` par défaut (zero-cost) —
+        // sans ça, `runique_log!()` n'est même pas appelé dans
+        // `dispatch_member_post`/`check_owns_record`/etc., quel que soit
+        // `RUST_LOG` : le filtre de subscriber ne peut rien voir passer sur un
+        // event qui n'est jamais émis. Nécessaire pour diagnostiquer le 500
+        // intermittent de `test_reset_password_unknown_id_creates_no_token`.
+        .with_log(|l| {
+            l.admin(|a| a.auth(Level::TRACE).crud(Level::TRACE))
+                .auth(|a| a.reset(Level::TRACE).login(Level::TRACE))
+        })
         .build()
         .await
         .expect("construction de l'app admin de test");
