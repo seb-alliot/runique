@@ -499,7 +499,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             use sea_orm::{
                 QueryFilter,
-                sea_query::{Alias, Expr, ExprTrait, Order},
+                sea_query::{Alias, Expr, Order},
             };
             let mut query = contribution::Entity::find();
             const SORT_COLS: &[&str] = &["id", "user_id", "contribution_type", "title", "content"];
@@ -518,23 +518,15 @@ pub fn admin_register() -> AdminRegistry {
                 if !FILTER_COLS.contains(&col.as_str()) {
                     continue;
                 }
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some((col, val)) = &params.scope
                 && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
             {
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some(ref search_str) = params.search {
-                let search_cond = search_cond!(contribution::Entity => or("user_id" icontains search_str, "contribution_type" icontains search_str, "title" icontains search_str, "content" icontains search_str));
+                let search_cond = search_cond!(&db => contribution::Entity => or("user_id" icontains search_str, "contribution_type" icontains search_str, "title" icontains search_str, "content" icontains search_str));
                 query = query.filter(search_cond);
             }
             let db_rows = query
@@ -553,23 +545,16 @@ pub fn admin_register() -> AdminRegistry {
     let count_fn: CountFn = Arc::new(
         |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
             Box::pin(async move {
-                use sea_orm::{
-                    QueryFilter,
-                    sea_query::{Alias, Expr, ExprTrait},
-                };
+                use sea_orm::QueryFilter;
                 let mut query = contribution::Entity::find();
                 if let Some(ref search_str) = _search {
-                    let search_cond = search_cond!(contribution::Entity => or("user_id" icontains search_str, "contribution_type" icontains search_str, "title" icontains search_str, "content" icontains search_str));
+                    let search_cond = search_cond!(&db => contribution::Entity => or("user_id" icontains search_str, "contribution_type" icontains search_str, "title" icontains search_str, "content" icontains search_str));
                     query = query.filter(search_cond);
                 }
                 if let Some((col, val)) = &scope
                     && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
                 {
-                    query = query.filter(
-                        Expr::col(Alias::new(col.as_str()))
-                            .cast_as(Alias::new("TEXT"))
-                            .eq(val.clone()),
-                    );
+                    query = query.filter(text_eq(&db, col.as_str(), val));
                 }
                 query.count(&*db).await
             })
@@ -674,7 +659,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_user_id = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(user_id AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(user_id AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(contribution::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("user_id")).is_not_null())
                 .limit(page_size_user_id)
@@ -724,7 +712,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_contribution_type = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(contribution_type AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(contribution_type AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(contribution::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("contribution_type")).is_not_null())
                 .limit(page_size_contribution_type)
@@ -774,7 +765,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_title = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(title AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(title AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(contribution::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .limit(page_size_title)
@@ -821,7 +815,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_content = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(content AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(content AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(contribution::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("content")).is_not_null())
                 .limit(page_size_content)
@@ -890,7 +887,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             use sea_orm::{
                 QueryFilter,
-                sea_query::{Alias, Expr, ExprTrait, Order},
+                sea_query::{Alias, Expr, Order},
             };
             let mut query = blog::Entity::find();
             const SORT_COLS: &[&str] = &["id", "title", "email", "website", "summary", "content"];
@@ -909,23 +906,15 @@ pub fn admin_register() -> AdminRegistry {
                 if !FILTER_COLS.contains(&col.as_str()) {
                     continue;
                 }
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some((col, val)) = &params.scope
                 && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
             {
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some(ref search_str) = params.search {
-                let search_cond = search_cond!(blog::Entity => or("title" icontains search_str, "email" icontains search_str, "website" icontains search_str, "summary" icontains search_str, "content" icontains search_str));
+                let search_cond = search_cond!(&db => blog::Entity => or("title" icontains search_str, "email" icontains search_str, "website" icontains search_str, "summary" icontains search_str, "content" icontains search_str));
                 query = query.filter(search_cond);
             }
             let db_rows = query
@@ -944,23 +933,16 @@ pub fn admin_register() -> AdminRegistry {
     let count_fn: CountFn = Arc::new(
         |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
             Box::pin(async move {
-                use sea_orm::{
-                    QueryFilter,
-                    sea_query::{Alias, Expr, ExprTrait},
-                };
+                use sea_orm::QueryFilter;
                 let mut query = blog::Entity::find();
                 if let Some(ref search_str) = _search {
-                    let search_cond = search_cond!(blog::Entity => or("title" icontains search_str, "email" icontains search_str, "website" icontains search_str, "summary" icontains search_str, "content" icontains search_str));
+                    let search_cond = search_cond!(&db => blog::Entity => or("title" icontains search_str, "email" icontains search_str, "website" icontains search_str, "summary" icontains search_str, "content" icontains search_str));
                     query = query.filter(search_cond);
                 }
                 if let Some((col, val)) = &scope
                     && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
                 {
-                    query = query.filter(
-                        Expr::col(Alias::new(col.as_str()))
-                            .cast_as(Alias::new("TEXT"))
-                            .eq(val.clone()),
-                    );
+                    query = query.filter(text_eq(&db, col.as_str(), val));
                 }
                 query.count(&*db).await
             })
@@ -1064,7 +1046,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_title = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(title AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(title AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(blog::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .limit(page_size_title)
@@ -1111,7 +1096,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_email = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(email AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(email AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(blog::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("email")).is_not_null())
                 .limit(page_size_email)
@@ -1158,7 +1146,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_website = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(website AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(website AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(blog::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("website")).is_not_null())
                 .limit(page_size_website)
@@ -1205,7 +1196,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_summary = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(summary AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(summary AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(blog::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("summary")).is_not_null())
                 .limit(page_size_summary)
@@ -1252,7 +1246,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_content = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(content AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(content AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(blog::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("content")).is_not_null())
                 .limit(page_size_content)
@@ -1322,7 +1319,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             use sea_orm::{
                 QueryFilter,
-                sea_query::{Alias, Expr, ExprTrait, Order},
+                sea_query::{Alias, Expr, Order},
             };
             let mut query = changelog_entry::Entity::find();
             const SORT_COLS: &[&str] = &[
@@ -1356,23 +1353,15 @@ pub fn admin_register() -> AdminRegistry {
                 if !FILTER_COLS.contains(&col.as_str()) {
                     continue;
                 }
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some((col, val)) = &params.scope
                 && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
             {
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some(ref search_str) = params.search {
-                let search_cond = search_cond!(changelog_entry::Entity => or("version" icontains search_str, "release_date" icontains search_str, "category" icontains search_str, "title" icontains search_str, "description" icontains search_str, "sort_order" icontains search_str));
+                let search_cond = search_cond!(&db => changelog_entry::Entity => or("version" icontains search_str, "release_date" icontains search_str, "category" icontains search_str, "title" icontains search_str, "description" icontains search_str, "sort_order" icontains search_str));
                 query = query.filter(search_cond);
             }
             let db_rows = query
@@ -1391,23 +1380,16 @@ pub fn admin_register() -> AdminRegistry {
     let count_fn: CountFn = Arc::new(
         |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
             Box::pin(async move {
-                use sea_orm::{
-                    QueryFilter,
-                    sea_query::{Alias, Expr, ExprTrait},
-                };
+                use sea_orm::QueryFilter;
                 let mut query = changelog_entry::Entity::find();
                 if let Some(ref search_str) = _search {
-                    let search_cond = search_cond!(changelog_entry::Entity => or("version" icontains search_str, "release_date" icontains search_str, "category" icontains search_str, "title" icontains search_str, "description" icontains search_str, "sort_order" icontains search_str));
+                    let search_cond = search_cond!(&db => changelog_entry::Entity => or("version" icontains search_str, "release_date" icontains search_str, "category" icontains search_str, "title" icontains search_str, "description" icontains search_str, "sort_order" icontains search_str));
                     query = query.filter(search_cond);
                 }
                 if let Some((col, val)) = &scope
                     && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
                 {
-                    query = query.filter(
-                        Expr::col(Alias::new(col.as_str()))
-                            .cast_as(Alias::new("TEXT"))
-                            .eq(val.clone()),
-                    );
+                    query = query.filter(text_eq(&db, col.as_str(), val));
                 }
                 query.count(&*db).await
             })
@@ -1516,7 +1498,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_version = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(version AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(version AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(changelog_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("version")).is_not_null())
                 .limit(page_size_version)
@@ -1563,7 +1548,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_release_date = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(release_date AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(release_date AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(changelog_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("release_date")).is_not_null())
                 .limit(page_size_release_date)
@@ -1613,7 +1601,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_category = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(category AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(category AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(changelog_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("category")).is_not_null())
                 .limit(page_size_category)
@@ -1660,7 +1651,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_title = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(title AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(title AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(changelog_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .limit(page_size_title)
@@ -1707,7 +1701,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_description = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(description AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(description AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(changelog_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("description")).is_not_null())
                 .limit(page_size_description)
@@ -1757,7 +1754,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_sort_order = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(sort_order AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(sort_order AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(changelog_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .limit(page_size_sort_order)
@@ -1830,7 +1830,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             use sea_orm::{
                 QueryFilter,
-                sea_query::{Alias, Expr, ExprTrait, Order},
+                sea_query::{Alias, Expr, Order},
             };
             let mut query = roadmap_entry::Entity::find();
             const SORT_COLS: &[&str] = &[
@@ -1868,23 +1868,15 @@ pub fn admin_register() -> AdminRegistry {
                 if !FILTER_COLS.contains(&col.as_str()) {
                     continue;
                 }
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some((col, val)) = &params.scope
                 && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
             {
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some(ref search_str) = params.search {
-                let search_cond = search_cond!(roadmap_entry::Entity => or("status" icontains search_str, "title" icontains search_str, "description" icontains search_str, "link_url" icontains search_str, "link_label" icontains search_str, "link_url_2" icontains search_str, "link_label_2" icontains search_str, "sort_order" icontains search_str));
+                let search_cond = search_cond!(&db => roadmap_entry::Entity => or("status" icontains search_str, "title" icontains search_str, "description" icontains search_str, "link_url" icontains search_str, "link_label" icontains search_str, "link_url_2" icontains search_str, "link_label_2" icontains search_str, "sort_order" icontains search_str));
                 query = query.filter(search_cond);
             }
             let db_rows = query
@@ -1903,23 +1895,16 @@ pub fn admin_register() -> AdminRegistry {
     let count_fn: CountFn = Arc::new(
         |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
             Box::pin(async move {
-                use sea_orm::{
-                    QueryFilter,
-                    sea_query::{Alias, Expr, ExprTrait},
-                };
+                use sea_orm::QueryFilter;
                 let mut query = roadmap_entry::Entity::find();
                 if let Some(ref search_str) = _search {
-                    let search_cond = search_cond!(roadmap_entry::Entity => or("status" icontains search_str, "title" icontains search_str, "description" icontains search_str, "link_url" icontains search_str, "link_label" icontains search_str, "link_url_2" icontains search_str, "link_label_2" icontains search_str, "sort_order" icontains search_str));
+                    let search_cond = search_cond!(&db => roadmap_entry::Entity => or("status" icontains search_str, "title" icontains search_str, "description" icontains search_str, "link_url" icontains search_str, "link_label" icontains search_str, "link_url_2" icontains search_str, "link_label_2" icontains search_str, "sort_order" icontains search_str));
                     query = query.filter(search_cond);
                 }
                 if let Some((col, val)) = &scope
                     && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
                 {
-                    query = query.filter(
-                        Expr::col(Alias::new(col.as_str()))
-                            .cast_as(Alias::new("TEXT"))
-                            .eq(val.clone()),
-                    );
+                    query = query.filter(text_eq(&db, col.as_str(), val));
                 }
                 query.count(&*db).await
             })
@@ -2032,7 +2017,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_status = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(status AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(status AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(roadmap_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("status")).is_not_null())
                 .limit(page_size_status)
@@ -2079,7 +2067,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_title = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(title AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(title AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(roadmap_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .limit(page_size_title)
@@ -2126,7 +2117,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_description = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(description AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(description AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(roadmap_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("description")).is_not_null())
                 .limit(page_size_description)
@@ -2176,7 +2170,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_link_url = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(link_url AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(link_url AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(roadmap_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("link_url")).is_not_null())
                 .limit(page_size_link_url)
@@ -2223,7 +2220,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_link_label = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(link_label AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(link_label AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(roadmap_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("link_label")).is_not_null())
                 .limit(page_size_link_label)
@@ -2273,7 +2273,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_link_url_2 = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(link_url_2 AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(link_url_2 AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(roadmap_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("link_url_2")).is_not_null())
                 .limit(page_size_link_url_2)
@@ -2323,7 +2326,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_link_label_2 = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(link_label_2 AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(link_label_2 AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(roadmap_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("link_label_2")).is_not_null())
                 .limit(page_size_link_label_2)
@@ -2373,7 +2379,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_sort_order = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(sort_order AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(sort_order AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(roadmap_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .limit(page_size_sort_order)
@@ -2446,7 +2455,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             use sea_orm::{
                 QueryFilter,
-                sea_query::{Alias, Expr, ExprTrait, Order},
+                sea_query::{Alias, Expr, Order},
             };
             let mut query = known_issue::Entity::find();
             const SORT_COLS: &[&str] = &[
@@ -2478,23 +2487,15 @@ pub fn admin_register() -> AdminRegistry {
                 if !FILTER_COLS.contains(&col.as_str()) {
                     continue;
                 }
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some((col, val)) = &params.scope
                 && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
             {
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some(ref search_str) = params.search {
-                let search_cond = search_cond!(known_issue::Entity => or("version" icontains search_str, "title" icontains search_str, "description" icontains search_str, "issue_type" icontains search_str, "sort_order" icontains search_str));
+                let search_cond = search_cond!(&db => known_issue::Entity => or("version" icontains search_str, "title" icontains search_str, "description" icontains search_str, "issue_type" icontains search_str, "sort_order" icontains search_str));
                 query = query.filter(search_cond);
             }
             let db_rows = query
@@ -2513,23 +2514,16 @@ pub fn admin_register() -> AdminRegistry {
     let count_fn: CountFn = Arc::new(
         |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
             Box::pin(async move {
-                use sea_orm::{
-                    QueryFilter,
-                    sea_query::{Alias, Expr, ExprTrait},
-                };
+                use sea_orm::QueryFilter;
                 let mut query = known_issue::Entity::find();
                 if let Some(ref search_str) = _search {
-                    let search_cond = search_cond!(known_issue::Entity => or("version" icontains search_str, "title" icontains search_str, "description" icontains search_str, "issue_type" icontains search_str, "sort_order" icontains search_str));
+                    let search_cond = search_cond!(&db => known_issue::Entity => or("version" icontains search_str, "title" icontains search_str, "description" icontains search_str, "issue_type" icontains search_str, "sort_order" icontains search_str));
                     query = query.filter(search_cond);
                 }
                 if let Some((col, val)) = &scope
                     && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
                 {
-                    query = query.filter(
-                        Expr::col(Alias::new(col.as_str()))
-                            .cast_as(Alias::new("TEXT"))
-                            .eq(val.clone()),
-                    );
+                    query = query.filter(text_eq(&db, col.as_str(), val));
                 }
                 query.count(&*db).await
             })
@@ -2636,7 +2630,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_version = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(version AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(version AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(known_issue::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("version")).is_not_null())
                 .limit(page_size_version)
@@ -2683,7 +2680,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_title = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(title AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(title AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(known_issue::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .limit(page_size_title)
@@ -2730,7 +2730,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_description = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(description AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(description AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(known_issue::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("description")).is_not_null())
                 .limit(page_size_description)
@@ -2780,7 +2783,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_issue_type = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(issue_type AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(issue_type AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(known_issue::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("issue_type")).is_not_null())
                 .limit(page_size_issue_type)
@@ -2830,7 +2836,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_sort_order = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(sort_order AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(sort_order AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(known_issue::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .limit(page_size_sort_order)
@@ -2903,7 +2912,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             use sea_orm::{
                 QueryFilter,
-                sea_query::{Alias, Expr, ExprTrait, Order},
+                sea_query::{Alias, Expr, Order},
             };
             let mut query = demo_category::Entity::find();
             const SORT_COLS: &[&str] = &["id"];
@@ -2922,24 +2931,16 @@ pub fn admin_register() -> AdminRegistry {
                 if !FILTER_COLS.contains(&col.as_str()) {
                     continue;
                 }
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some((col, val)) = &params.scope
                 && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
             {
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some(ref search_str) = params.search {
                 let search_cond =
-                    search_cond!(demo_category::Entity => all_columns icontains search_str);
+                    search_cond!(&db => demo_category::Entity => all_columns icontains search_str);
                 query = query.filter(search_cond);
             }
             let db_rows = query
@@ -2958,24 +2959,16 @@ pub fn admin_register() -> AdminRegistry {
     let count_fn: CountFn = Arc::new(
         |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
             Box::pin(async move {
-                use sea_orm::{
-                    QueryFilter,
-                    sea_query::{Alias, Expr, ExprTrait},
-                };
+                use sea_orm::QueryFilter;
                 let mut query = demo_category::Entity::find();
                 if let Some(ref search_str) = _search {
-                    let search_cond =
-                        search_cond!(demo_category::Entity => all_columns icontains search_str);
+                    let search_cond = search_cond!(&db => demo_category::Entity => all_columns icontains search_str);
                     query = query.filter(search_cond);
                 }
                 if let Some((col, val)) = &scope
                     && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
                 {
-                    query = query.filter(
-                        Expr::col(Alias::new(col.as_str()))
-                            .cast_as(Alias::new("TEXT"))
-                            .eq(val.clone()),
-                    );
+                    query = query.filter(text_eq(&db, col.as_str(), val));
                 }
                 query.count(&*db).await
             })
@@ -3076,7 +3069,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             use sea_orm::{
                 QueryFilter,
-                sea_query::{Alias, Expr, ExprTrait, Order},
+                sea_query::{Alias, Expr, Order},
             };
             let mut query = demo_page::Entity::find();
             const SORT_COLS: &[&str] = &[
@@ -3110,23 +3103,15 @@ pub fn admin_register() -> AdminRegistry {
                 if !FILTER_COLS.contains(&col.as_str()) {
                     continue;
                 }
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some((col, val)) = &params.scope
                 && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
             {
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some(ref search_str) = params.search {
-                let search_cond = search_cond!(demo_page::Entity => or("category_id" icontains search_str, "slug" icontains search_str, "title" icontains search_str, "lead" icontains search_str, "page_type" icontains search_str, "sort_order" icontains search_str));
+                let search_cond = search_cond!(&db => demo_page::Entity => or("category_id" icontains search_str, "slug" icontains search_str, "title" icontains search_str, "lead" icontains search_str, "page_type" icontains search_str, "sort_order" icontains search_str));
                 query = query.filter(search_cond);
             }
             let db_rows = query
@@ -3145,23 +3130,16 @@ pub fn admin_register() -> AdminRegistry {
     let count_fn: CountFn = Arc::new(
         |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
             Box::pin(async move {
-                use sea_orm::{
-                    QueryFilter,
-                    sea_query::{Alias, Expr, ExprTrait},
-                };
+                use sea_orm::QueryFilter;
                 let mut query = demo_page::Entity::find();
                 if let Some(ref search_str) = _search {
-                    let search_cond = search_cond!(demo_page::Entity => or("category_id" icontains search_str, "slug" icontains search_str, "title" icontains search_str, "lead" icontains search_str, "page_type" icontains search_str, "sort_order" icontains search_str));
+                    let search_cond = search_cond!(&db => demo_page::Entity => or("category_id" icontains search_str, "slug" icontains search_str, "title" icontains search_str, "lead" icontains search_str, "page_type" icontains search_str, "sort_order" icontains search_str));
                     query = query.filter(search_cond);
                 }
                 if let Some((col, val)) = &scope
                     && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
                 {
-                    query = query.filter(
-                        Expr::col(Alias::new(col.as_str()))
-                            .cast_as(Alias::new("TEXT"))
-                            .eq(val.clone()),
-                    );
+                    query = query.filter(text_eq(&db, col.as_str(), val));
                 }
                 query.count(&*db).await
             })
@@ -3270,7 +3248,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_category_id = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(category_id AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(category_id AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(demo_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("category_id")).is_not_null())
                 .limit(page_size_category_id)
@@ -3320,7 +3301,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_slug = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(slug AS TEXT)"))
+                .expr(Expr::cust(format!("CAST(slug AS {})", text_cast_type(&db))))
                 .from(Alias::new(demo_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("slug")).is_not_null())
                 .limit(page_size_slug)
@@ -3367,7 +3348,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_title = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(title AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(title AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(demo_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .limit(page_size_title)
@@ -3414,7 +3398,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_lead = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(lead AS TEXT)"))
+                .expr(Expr::cust(format!("CAST(lead AS {})", text_cast_type(&db))))
                 .from(Alias::new(demo_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("lead")).is_not_null())
                 .limit(page_size_lead)
@@ -3461,7 +3445,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_page_type = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(page_type AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(page_type AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(demo_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("page_type")).is_not_null())
                 .limit(page_size_page_type)
@@ -3508,7 +3495,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_sort_order = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(sort_order AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(sort_order AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(demo_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .limit(page_size_sort_order)
@@ -3581,7 +3571,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             use sea_orm::{
                 QueryFilter,
-                sea_query::{Alias, Expr, ExprTrait, Order},
+                sea_query::{Alias, Expr, Order},
             };
             let mut query = demo_section::Entity::find();
             const SORT_COLS: &[&str] = &["id", "page_id", "title", "content", "sort_order"];
@@ -3600,23 +3590,15 @@ pub fn admin_register() -> AdminRegistry {
                 if !FILTER_COLS.contains(&col.as_str()) {
                     continue;
                 }
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some((col, val)) = &params.scope
                 && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
             {
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some(ref search_str) = params.search {
-                let search_cond = search_cond!(demo_section::Entity => or("page_id" icontains search_str, "title" icontains search_str, "content" icontains search_str, "sort_order" icontains search_str));
+                let search_cond = search_cond!(&db => demo_section::Entity => or("page_id" icontains search_str, "title" icontains search_str, "content" icontains search_str, "sort_order" icontains search_str));
                 query = query.filter(search_cond);
             }
             let db_rows = query
@@ -3635,23 +3617,16 @@ pub fn admin_register() -> AdminRegistry {
     let count_fn: CountFn = Arc::new(
         |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
             Box::pin(async move {
-                use sea_orm::{
-                    QueryFilter,
-                    sea_query::{Alias, Expr, ExprTrait},
-                };
+                use sea_orm::QueryFilter;
                 let mut query = demo_section::Entity::find();
                 if let Some(ref search_str) = _search {
-                    let search_cond = search_cond!(demo_section::Entity => or("page_id" icontains search_str, "title" icontains search_str, "content" icontains search_str, "sort_order" icontains search_str));
+                    let search_cond = search_cond!(&db => demo_section::Entity => or("page_id" icontains search_str, "title" icontains search_str, "content" icontains search_str, "sort_order" icontains search_str));
                     query = query.filter(search_cond);
                 }
                 if let Some((col, val)) = &scope
                     && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
                 {
-                    query = query.filter(
-                        Expr::col(Alias::new(col.as_str()))
-                            .cast_as(Alias::new("TEXT"))
-                            .eq(val.clone()),
-                    );
+                    query = query.filter(text_eq(&db, col.as_str(), val));
                 }
                 query.count(&*db).await
             })
@@ -3756,7 +3731,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_page_id = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(page_id AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(page_id AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(demo_section::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("page_id")).is_not_null())
                 .limit(page_size_page_id)
@@ -3803,7 +3781,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_title = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(title AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(title AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(demo_section::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .limit(page_size_title)
@@ -3850,7 +3831,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_content = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(content AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(content AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(demo_section::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("content")).is_not_null())
                 .limit(page_size_content)
@@ -3897,7 +3881,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_sort_order = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(sort_order AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(sort_order AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(demo_section::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .limit(page_size_sort_order)
@@ -3970,7 +3957,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             use sea_orm::{
                 QueryFilter,
-                sea_query::{Alias, Expr, ExprTrait, Order},
+                sea_query::{Alias, Expr, Order},
             };
             let mut query = code_example::Entity::find();
             const SORT_COLS: &[&str] = &[
@@ -4004,23 +3991,15 @@ pub fn admin_register() -> AdminRegistry {
                 if !FILTER_COLS.contains(&col.as_str()) {
                     continue;
                 }
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some((col, val)) = &params.scope
                 && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
             {
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some(ref search_str) = params.search {
-                let search_cond = search_cond!(code_example::Entity => or("page_id" icontains search_str, "title" icontains search_str, "language" icontains search_str, "code" icontains search_str, "context" icontains search_str, "sort_order" icontains search_str));
+                let search_cond = search_cond!(&db => code_example::Entity => or("page_id" icontains search_str, "title" icontains search_str, "language" icontains search_str, "code" icontains search_str, "context" icontains search_str, "sort_order" icontains search_str));
                 query = query.filter(search_cond);
             }
             let db_rows = query
@@ -4039,23 +4018,16 @@ pub fn admin_register() -> AdminRegistry {
     let count_fn: CountFn = Arc::new(
         |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
             Box::pin(async move {
-                use sea_orm::{
-                    QueryFilter,
-                    sea_query::{Alias, Expr, ExprTrait},
-                };
+                use sea_orm::QueryFilter;
                 let mut query = code_example::Entity::find();
                 if let Some(ref search_str) = _search {
-                    let search_cond = search_cond!(code_example::Entity => or("page_id" icontains search_str, "title" icontains search_str, "language" icontains search_str, "code" icontains search_str, "context" icontains search_str, "sort_order" icontains search_str));
+                    let search_cond = search_cond!(&db => code_example::Entity => or("page_id" icontains search_str, "title" icontains search_str, "language" icontains search_str, "code" icontains search_str, "context" icontains search_str, "sort_order" icontains search_str));
                     query = query.filter(search_cond);
                 }
                 if let Some((col, val)) = &scope
                     && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
                 {
-                    query = query.filter(
-                        Expr::col(Alias::new(col.as_str()))
-                            .cast_as(Alias::new("TEXT"))
-                            .eq(val.clone()),
-                    );
+                    query = query.filter(text_eq(&db, col.as_str(), val));
                 }
                 query.count(&*db).await
             })
@@ -4164,7 +4136,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_page_id = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(page_id AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(page_id AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(code_example::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("page_id")).is_not_null())
                 .limit(page_size_page_id)
@@ -4211,7 +4186,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_title = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(title AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(title AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(code_example::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .limit(page_size_title)
@@ -4258,7 +4236,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_language = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(language AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(language AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(code_example::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("language")).is_not_null())
                 .limit(page_size_language)
@@ -4305,7 +4286,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_code = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(code AS TEXT)"))
+                .expr(Expr::cust(format!("CAST(code AS {})", text_cast_type(&db))))
                 .from(Alias::new(code_example::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("code")).is_not_null())
                 .limit(page_size_code)
@@ -4352,7 +4333,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_context = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(context AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(context AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(code_example::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("context")).is_not_null())
                 .limit(page_size_context)
@@ -4399,7 +4383,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_sort_order = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(sort_order AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(sort_order AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(code_example::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .limit(page_size_sort_order)
@@ -4472,7 +4459,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             use sea_orm::{
                 QueryFilter,
-                sea_query::{Alias, Expr, ExprTrait, Order},
+                sea_query::{Alias, Expr, Order},
             };
             let mut query = page_doc_link::Entity::find();
             const SORT_COLS: &[&str] =
@@ -4492,23 +4479,15 @@ pub fn admin_register() -> AdminRegistry {
                 if !FILTER_COLS.contains(&col.as_str()) {
                     continue;
                 }
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some((col, val)) = &params.scope
                 && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
             {
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some(ref search_str) = params.search {
-                let search_cond = search_cond!(page_doc_link::Entity => or("page_id" icontains search_str, "label" icontains search_str, "url" icontains search_str, "link_type" icontains search_str, "sort_order" icontains search_str));
+                let search_cond = search_cond!(&db => page_doc_link::Entity => or("page_id" icontains search_str, "label" icontains search_str, "url" icontains search_str, "link_type" icontains search_str, "sort_order" icontains search_str));
                 query = query.filter(search_cond);
             }
             let db_rows = query
@@ -4527,23 +4506,16 @@ pub fn admin_register() -> AdminRegistry {
     let count_fn: CountFn = Arc::new(
         |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
             Box::pin(async move {
-                use sea_orm::{
-                    QueryFilter,
-                    sea_query::{Alias, Expr, ExprTrait},
-                };
+                use sea_orm::QueryFilter;
                 let mut query = page_doc_link::Entity::find();
                 if let Some(ref search_str) = _search {
-                    let search_cond = search_cond!(page_doc_link::Entity => or("page_id" icontains search_str, "label" icontains search_str, "url" icontains search_str, "link_type" icontains search_str, "sort_order" icontains search_str));
+                    let search_cond = search_cond!(&db => page_doc_link::Entity => or("page_id" icontains search_str, "label" icontains search_str, "url" icontains search_str, "link_type" icontains search_str, "sort_order" icontains search_str));
                     query = query.filter(search_cond);
                 }
                 if let Some((col, val)) = &scope
                     && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
                 {
-                    query = query.filter(
-                        Expr::col(Alias::new(col.as_str()))
-                            .cast_as(Alias::new("TEXT"))
-                            .eq(val.clone()),
-                    );
+                    query = query.filter(text_eq(&db, col.as_str(), val));
                 }
                 query.count(&*db).await
             })
@@ -4650,7 +4622,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_page_id = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(page_id AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(page_id AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(page_doc_link::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("page_id")).is_not_null())
                 .limit(page_size_page_id)
@@ -4697,7 +4672,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_label = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(label AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(label AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(page_doc_link::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("label")).is_not_null())
                 .limit(page_size_label)
@@ -4744,7 +4722,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_url = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(url AS TEXT)"))
+                .expr(Expr::cust(format!("CAST(url AS {})", text_cast_type(&db))))
                 .from(Alias::new(page_doc_link::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("url")).is_not_null())
                 .limit(page_size_url)
@@ -4791,7 +4769,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_link_type = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(link_type AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(link_type AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(page_doc_link::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("link_type")).is_not_null())
                 .limit(page_size_link_type)
@@ -4838,7 +4819,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_sort_order = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(sort_order AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(sort_order AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(page_doc_link::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .limit(page_size_sort_order)
@@ -4910,7 +4894,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             use sea_orm::{
                 QueryFilter,
-                sea_query::{Alias, Expr, ExprTrait, Order},
+                sea_query::{Alias, Expr, Order},
             };
             let mut query = form_field::Entity::find();
             const SORT_COLS: &[&str] = &[
@@ -4946,23 +4930,15 @@ pub fn admin_register() -> AdminRegistry {
                 if !FILTER_COLS.contains(&col.as_str()) {
                     continue;
                 }
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some((col, val)) = &params.scope
                 && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
             {
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some(ref search_str) = params.search {
-                let search_cond = search_cond!(form_field::Entity => or("page_id" icontains search_str, "name" icontains search_str, "field_type" icontains search_str, "description" icontains search_str, "example" icontains search_str, "html_preview" icontains search_str, "sort_order" icontains search_str));
+                let search_cond = search_cond!(&db => form_field::Entity => or("page_id" icontains search_str, "name" icontains search_str, "field_type" icontains search_str, "description" icontains search_str, "example" icontains search_str, "html_preview" icontains search_str, "sort_order" icontains search_str));
                 query = query.filter(search_cond);
             }
             let db_rows = query
@@ -4981,23 +4957,16 @@ pub fn admin_register() -> AdminRegistry {
     let count_fn: CountFn = Arc::new(
         |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
             Box::pin(async move {
-                use sea_orm::{
-                    QueryFilter,
-                    sea_query::{Alias, Expr, ExprTrait},
-                };
+                use sea_orm::QueryFilter;
                 let mut query = form_field::Entity::find();
                 if let Some(ref search_str) = _search {
-                    let search_cond = search_cond!(form_field::Entity => or("page_id" icontains search_str, "name" icontains search_str, "field_type" icontains search_str, "description" icontains search_str, "example" icontains search_str, "html_preview" icontains search_str, "sort_order" icontains search_str));
+                    let search_cond = search_cond!(&db => form_field::Entity => or("page_id" icontains search_str, "name" icontains search_str, "field_type" icontains search_str, "description" icontains search_str, "example" icontains search_str, "html_preview" icontains search_str, "sort_order" icontains search_str));
                     query = query.filter(search_cond);
                 }
                 if let Some((col, val)) = &scope
                     && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
                 {
-                    query = query.filter(
-                        Expr::col(Alias::new(col.as_str()))
-                            .cast_as(Alias::new("TEXT"))
-                            .eq(val.clone()),
-                    );
+                    query = query.filter(text_eq(&db, col.as_str(), val));
                 }
                 query.count(&*db).await
             })
@@ -5108,7 +5077,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_page_id = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(page_id AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(page_id AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(form_field::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("page_id")).is_not_null())
                 .limit(page_size_page_id)
@@ -5155,7 +5127,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_name = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(name AS TEXT)"))
+                .expr(Expr::cust(format!("CAST(name AS {})", text_cast_type(&db))))
                 .from(Alias::new(form_field::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("name")).is_not_null())
                 .limit(page_size_name)
@@ -5202,7 +5174,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_field_type = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(field_type AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(field_type AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(form_field::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("field_type")).is_not_null())
                 .limit(page_size_field_type)
@@ -5252,7 +5227,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_description = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(description AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(description AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(form_field::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("description")).is_not_null())
                 .limit(page_size_description)
@@ -5302,7 +5280,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_example = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(example AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(example AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(form_field::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("example")).is_not_null())
                 .limit(page_size_example)
@@ -5349,7 +5330,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_html_preview = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(html_preview AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(html_preview AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(form_field::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("html_preview")).is_not_null())
                 .limit(page_size_html_preview)
@@ -5399,7 +5383,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_sort_order = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(sort_order AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(sort_order AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(form_field::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .limit(page_size_sort_order)
@@ -5472,7 +5459,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             use sea_orm::{
                 QueryFilter,
-                sea_query::{Alias, Expr, ExprTrait, Order},
+                sea_query::{Alias, Expr, Order},
             };
             let mut query = doc_section::Entity::find();
             const SORT_COLS: &[&str] = &["id", "slug", "lang", "title", "theme", "sort_order"];
@@ -5491,23 +5478,15 @@ pub fn admin_register() -> AdminRegistry {
                 if !FILTER_COLS.contains(&col.as_str()) {
                     continue;
                 }
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some((col, val)) = &params.scope
                 && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
             {
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some(ref search_str) = params.search {
-                let search_cond = search_cond!(doc_section::Entity => or("slug" icontains search_str, "lang" icontains search_str, "title" icontains search_str, "theme" icontains search_str, "sort_order" icontains search_str));
+                let search_cond = search_cond!(&db => doc_section::Entity => or("slug" icontains search_str, "lang" icontains search_str, "title" icontains search_str, "theme" icontains search_str, "sort_order" icontains search_str));
                 query = query.filter(search_cond);
             }
             let db_rows = query
@@ -5526,23 +5505,16 @@ pub fn admin_register() -> AdminRegistry {
     let count_fn: CountFn = Arc::new(
         |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
             Box::pin(async move {
-                use sea_orm::{
-                    QueryFilter,
-                    sea_query::{Alias, Expr, ExprTrait},
-                };
+                use sea_orm::QueryFilter;
                 let mut query = doc_section::Entity::find();
                 if let Some(ref search_str) = _search {
-                    let search_cond = search_cond!(doc_section::Entity => or("slug" icontains search_str, "lang" icontains search_str, "title" icontains search_str, "theme" icontains search_str, "sort_order" icontains search_str));
+                    let search_cond = search_cond!(&db => doc_section::Entity => or("slug" icontains search_str, "lang" icontains search_str, "title" icontains search_str, "theme" icontains search_str, "sort_order" icontains search_str));
                     query = query.filter(search_cond);
                 }
                 if let Some((col, val)) = &scope
                     && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
                 {
-                    query = query.filter(
-                        Expr::col(Alias::new(col.as_str()))
-                            .cast_as(Alias::new("TEXT"))
-                            .eq(val.clone()),
-                    );
+                    query = query.filter(text_eq(&db, col.as_str(), val));
                 }
                 query.count(&*db).await
             })
@@ -5643,7 +5615,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_lang = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(lang AS TEXT)"))
+                .expr(Expr::cust(format!("CAST(lang AS {})", text_cast_type(&db))))
                 .from(Alias::new(doc_section::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("lang")).is_not_null())
                 .limit(page_size_lang)
@@ -5690,7 +5662,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_theme = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(theme AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(theme AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(doc_section::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("theme")).is_not_null())
                 .limit(page_size_theme)
@@ -5759,7 +5734,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             use sea_orm::{
                 QueryFilter,
-                sea_query::{Alias, Expr, ExprTrait, Order},
+                sea_query::{Alias, Expr, Order},
             };
             let mut query = doc_page::Entity::find();
             const SORT_COLS: &[&str] = &[
@@ -5787,23 +5762,15 @@ pub fn admin_register() -> AdminRegistry {
                 if !FILTER_COLS.contains(&col.as_str()) {
                     continue;
                 }
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some((col, val)) = &params.scope
                 && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
             {
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some(ref search_str) = params.search {
-                let search_cond = search_cond!(doc_page::Entity => or("section_id" icontains search_str, "slug" icontains search_str, "lang" icontains search_str, "title" icontains search_str, "lead" icontains search_str, "sort_order" icontains search_str));
+                let search_cond = search_cond!(&db => doc_page::Entity => or("section_id" icontains search_str, "slug" icontains search_str, "lang" icontains search_str, "title" icontains search_str, "lead" icontains search_str, "sort_order" icontains search_str));
                 query = query.filter(search_cond);
             }
             let db_rows = query
@@ -5822,23 +5789,16 @@ pub fn admin_register() -> AdminRegistry {
     let count_fn: CountFn = Arc::new(
         |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
             Box::pin(async move {
-                use sea_orm::{
-                    QueryFilter,
-                    sea_query::{Alias, Expr, ExprTrait},
-                };
+                use sea_orm::QueryFilter;
                 let mut query = doc_page::Entity::find();
                 if let Some(ref search_str) = _search {
-                    let search_cond = search_cond!(doc_page::Entity => or("section_id" icontains search_str, "slug" icontains search_str, "lang" icontains search_str, "title" icontains search_str, "lead" icontains search_str, "sort_order" icontains search_str));
+                    let search_cond = search_cond!(&db => doc_page::Entity => or("section_id" icontains search_str, "slug" icontains search_str, "lang" icontains search_str, "title" icontains search_str, "lead" icontains search_str, "sort_order" icontains search_str));
                     query = query.filter(search_cond);
                 }
                 if let Some((col, val)) = &scope
                     && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
                 {
-                    query = query.filter(
-                        Expr::col(Alias::new(col.as_str()))
-                            .cast_as(Alias::new("TEXT"))
-                            .eq(val.clone()),
-                    );
+                    query = query.filter(text_eq(&db, col.as_str(), val));
                 }
                 query.count(&*db).await
             })
@@ -5947,7 +5907,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_section_id = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(section_id AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(section_id AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(doc_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("section_id")).is_not_null())
                 .limit(page_size_section_id)
@@ -5997,7 +5960,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_slug = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(slug AS TEXT)"))
+                .expr(Expr::cust(format!("CAST(slug AS {})", text_cast_type(&db))))
                 .from(Alias::new(doc_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("slug")).is_not_null())
                 .limit(page_size_slug)
@@ -6044,7 +6007,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_lang = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(lang AS TEXT)"))
+                .expr(Expr::cust(format!("CAST(lang AS {})", text_cast_type(&db))))
                 .from(Alias::new(doc_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("lang")).is_not_null())
                 .limit(page_size_lang)
@@ -6091,7 +6054,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_title = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(title AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(title AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(doc_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .limit(page_size_title)
@@ -6138,7 +6104,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_lead = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(lead AS TEXT)"))
+                .expr(Expr::cust(format!("CAST(lead AS {})", text_cast_type(&db))))
                 .from(Alias::new(doc_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("lead")).is_not_null())
                 .limit(page_size_lead)
@@ -6185,7 +6151,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_sort_order = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(sort_order AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(sort_order AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(doc_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .limit(page_size_sort_order)
@@ -6257,7 +6226,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             use sea_orm::{
                 QueryFilter,
-                sea_query::{Alias, Expr, ExprTrait, Order},
+                sea_query::{Alias, Expr, Order},
             };
             let mut query = doc_block::Entity::find();
             const SORT_COLS: &[&str] = &[
@@ -6284,23 +6253,15 @@ pub fn admin_register() -> AdminRegistry {
                 if !FILTER_COLS.contains(&col.as_str()) {
                     continue;
                 }
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some((col, val)) = &params.scope
                 && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
             {
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some(ref search_str) = params.search {
-                let search_cond = search_cond!(doc_block::Entity => or("page_id" icontains search_str, "content" icontains search_str, "block_type" icontains search_str, "heading" icontains search_str, "sort_order" icontains search_str));
+                let search_cond = search_cond!(&db => doc_block::Entity => or("page_id" icontains search_str, "content" icontains search_str, "block_type" icontains search_str, "heading" icontains search_str, "sort_order" icontains search_str));
                 query = query.filter(search_cond);
             }
             let db_rows = query
@@ -6319,23 +6280,16 @@ pub fn admin_register() -> AdminRegistry {
     let count_fn: CountFn = Arc::new(
         |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
             Box::pin(async move {
-                use sea_orm::{
-                    QueryFilter,
-                    sea_query::{Alias, Expr, ExprTrait},
-                };
+                use sea_orm::QueryFilter;
                 let mut query = doc_block::Entity::find();
                 if let Some(ref search_str) = _search {
-                    let search_cond = search_cond!(doc_block::Entity => or("page_id" icontains search_str, "content" icontains search_str, "block_type" icontains search_str, "heading" icontains search_str, "sort_order" icontains search_str));
+                    let search_cond = search_cond!(&db => doc_block::Entity => or("page_id" icontains search_str, "content" icontains search_str, "block_type" icontains search_str, "heading" icontains search_str, "sort_order" icontains search_str));
                     query = query.filter(search_cond);
                 }
                 if let Some((col, val)) = &scope
                     && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
                 {
-                    query = query.filter(
-                        Expr::col(Alias::new(col.as_str()))
-                            .cast_as(Alias::new("TEXT"))
-                            .eq(val.clone()),
-                    );
+                    query = query.filter(text_eq(&db, col.as_str(), val));
                 }
                 query.count(&*db).await
             })
@@ -6442,7 +6396,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_page_id = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(page_id AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(page_id AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(doc_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("page_id")).is_not_null())
                 .limit(page_size_page_id)
@@ -6489,7 +6446,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_heading = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(heading AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(heading AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(doc_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("heading")).is_not_null())
                 .limit(page_size_heading)
@@ -6536,7 +6496,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_content = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(content AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(content AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(doc_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("content")).is_not_null())
                 .limit(page_size_content)
@@ -6583,7 +6546,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_block_type = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(block_type AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(block_type AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(doc_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("block_type")).is_not_null())
                 .limit(page_size_block_type)
@@ -6633,7 +6599,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_sort_order = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(sort_order AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(sort_order AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(doc_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .limit(page_size_sort_order)
@@ -6706,7 +6675,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             use sea_orm::{
                 QueryFilter,
-                sea_query::{Alias, Expr, ExprTrait, Order},
+                sea_query::{Alias, Expr, Order},
             };
             let mut query = site_config::Entity::find();
             const SORT_COLS: &[&str] = &["id"];
@@ -6725,24 +6694,16 @@ pub fn admin_register() -> AdminRegistry {
                 if !FILTER_COLS.contains(&col.as_str()) {
                     continue;
                 }
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some((col, val)) = &params.scope
                 && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
             {
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some(ref search_str) = params.search {
                 let search_cond =
-                    search_cond!(site_config::Entity => all_columns icontains search_str);
+                    search_cond!(&db => site_config::Entity => all_columns icontains search_str);
                 query = query.filter(search_cond);
             }
             let db_rows = query
@@ -6761,24 +6722,16 @@ pub fn admin_register() -> AdminRegistry {
     let count_fn: CountFn = Arc::new(
         |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
             Box::pin(async move {
-                use sea_orm::{
-                    QueryFilter,
-                    sea_query::{Alias, Expr, ExprTrait},
-                };
+                use sea_orm::QueryFilter;
                 let mut query = site_config::Entity::find();
                 if let Some(ref search_str) = _search {
-                    let search_cond =
-                        search_cond!(site_config::Entity => all_columns icontains search_str);
+                    let search_cond = search_cond!(&db => site_config::Entity => all_columns icontains search_str);
                     query = query.filter(search_cond);
                 }
                 if let Some((col, val)) = &scope
                     && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
                 {
-                    query = query.filter(
-                        Expr::col(Alias::new(col.as_str()))
-                            .cast_as(Alias::new("TEXT"))
-                            .eq(val.clone()),
-                    );
+                    query = query.filter(text_eq(&db, col.as_str(), val));
                 }
                 query.count(&*db).await
             })
@@ -6879,7 +6832,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             use sea_orm::{
                 QueryFilter,
-                sea_query::{Alias, Expr, ExprTrait, Order},
+                sea_query::{Alias, Expr, Order},
             };
             let mut query = cour::Entity::find();
             const SORT_COLS: &[&str] = &[
@@ -6915,23 +6868,15 @@ pub fn admin_register() -> AdminRegistry {
                 if !FILTER_COLS.contains(&col.as_str()) {
                     continue;
                 }
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some((col, val)) = &params.scope
                 && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
             {
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some(ref search_str) = params.search {
-                let search_cond = search_cond!(cour::Entity => or("slug" icontains search_str, "lang" icontains search_str, "title" icontains search_str, "theme" icontains search_str, "difficulte" icontains search_str, "ordre" icontains search_str, "sort_order" icontains search_str));
+                let search_cond = search_cond!(&db => cour::Entity => or("slug" icontains search_str, "lang" icontains search_str, "title" icontains search_str, "theme" icontains search_str, "difficulte" icontains search_str, "ordre" icontains search_str, "sort_order" icontains search_str));
                 query = query.filter(search_cond);
             }
             let db_rows = query
@@ -6950,23 +6895,16 @@ pub fn admin_register() -> AdminRegistry {
     let count_fn: CountFn = Arc::new(
         |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
             Box::pin(async move {
-                use sea_orm::{
-                    QueryFilter,
-                    sea_query::{Alias, Expr, ExprTrait},
-                };
+                use sea_orm::QueryFilter;
                 let mut query = cour::Entity::find();
                 if let Some(ref search_str) = _search {
-                    let search_cond = search_cond!(cour::Entity => or("slug" icontains search_str, "lang" icontains search_str, "title" icontains search_str, "theme" icontains search_str, "difficulte" icontains search_str, "ordre" icontains search_str, "sort_order" icontains search_str));
+                    let search_cond = search_cond!(&db => cour::Entity => or("slug" icontains search_str, "lang" icontains search_str, "title" icontains search_str, "theme" icontains search_str, "difficulte" icontains search_str, "ordre" icontains search_str, "sort_order" icontains search_str));
                     query = query.filter(search_cond);
                 }
                 if let Some((col, val)) = &scope
                     && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
                 {
-                    query = query.filter(
-                        Expr::col(Alias::new(col.as_str()))
-                            .cast_as(Alias::new("TEXT"))
-                            .eq(val.clone()),
-                    );
+                    query = query.filter(text_eq(&db, col.as_str(), val));
                 }
                 query.count(&*db).await
             })
@@ -7074,7 +7012,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_slug = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(slug AS TEXT)"))
+                .expr(Expr::cust(format!("CAST(slug AS {})", text_cast_type(&db))))
                 .from(Alias::new(cour::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("slug")).is_not_null())
                 .limit(page_size_slug)
@@ -7121,7 +7059,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_lang = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(lang AS TEXT)"))
+                .expr(Expr::cust(format!("CAST(lang AS {})", text_cast_type(&db))))
                 .from(Alias::new(cour::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("lang")).is_not_null())
                 .limit(page_size_lang)
@@ -7168,7 +7106,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_title = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(title AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(title AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(cour::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .limit(page_size_title)
@@ -7215,7 +7156,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_theme = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(theme AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(theme AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(cour::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("theme")).is_not_null())
                 .limit(page_size_theme)
@@ -7262,7 +7206,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_difficulte = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(difficulte AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(difficulte AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(cour::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("difficulte")).is_not_null())
                 .limit(page_size_difficulte)
@@ -7312,7 +7259,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_ordre = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(ordre AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(ordre AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(cour::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("ordre")).is_not_null())
                 .limit(page_size_ordre)
@@ -7359,7 +7309,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_sort_order = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(sort_order AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(sort_order AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(cour::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .limit(page_size_sort_order)
@@ -7431,7 +7384,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             use sea_orm::{
                 QueryFilter,
-                sea_query::{Alias, Expr, ExprTrait, Order},
+                sea_query::{Alias, Expr, Order},
             };
             let mut query = chapitre::Entity::find();
             const SORT_COLS: &[&str] = &["id", "cour_id", "slug", "title", "sort_order"];
@@ -7450,23 +7403,15 @@ pub fn admin_register() -> AdminRegistry {
                 if !FILTER_COLS.contains(&col.as_str()) {
                     continue;
                 }
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some((col, val)) = &params.scope
                 && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
             {
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some(ref search_str) = params.search {
-                let search_cond = search_cond!(chapitre::Entity => or("cour_id" icontains search_str, "slug" icontains search_str, "title" icontains search_str, "sort_order" icontains search_str));
+                let search_cond = search_cond!(&db => chapitre::Entity => or("cour_id" icontains search_str, "slug" icontains search_str, "title" icontains search_str, "sort_order" icontains search_str));
                 query = query.filter(search_cond);
             }
             let db_rows = query
@@ -7485,23 +7430,16 @@ pub fn admin_register() -> AdminRegistry {
     let count_fn: CountFn = Arc::new(
         |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
             Box::pin(async move {
-                use sea_orm::{
-                    QueryFilter,
-                    sea_query::{Alias, Expr, ExprTrait},
-                };
+                use sea_orm::QueryFilter;
                 let mut query = chapitre::Entity::find();
                 if let Some(ref search_str) = _search {
-                    let search_cond = search_cond!(chapitre::Entity => or("cour_id" icontains search_str, "slug" icontains search_str, "title" icontains search_str, "sort_order" icontains search_str));
+                    let search_cond = search_cond!(&db => chapitre::Entity => or("cour_id" icontains search_str, "slug" icontains search_str, "title" icontains search_str, "sort_order" icontains search_str));
                     query = query.filter(search_cond);
                 }
                 if let Some((col, val)) = &scope
                     && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
                 {
-                    query = query.filter(
-                        Expr::col(Alias::new(col.as_str()))
-                            .cast_as(Alias::new("TEXT"))
-                            .eq(val.clone()),
-                    );
+                    query = query.filter(text_eq(&db, col.as_str(), val));
                 }
                 query.count(&*db).await
             })
@@ -7606,7 +7544,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_cour_id = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(cour_id AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(cour_id AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(chapitre::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("cour_id")).is_not_null())
                 .limit(page_size_cour_id)
@@ -7653,7 +7594,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_slug = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(slug AS TEXT)"))
+                .expr(Expr::cust(format!("CAST(slug AS {})", text_cast_type(&db))))
                 .from(Alias::new(chapitre::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("slug")).is_not_null())
                 .limit(page_size_slug)
@@ -7700,7 +7641,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_title = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(title AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(title AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(chapitre::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .limit(page_size_title)
@@ -7747,7 +7691,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_sort_order = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(sort_order AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(sort_order AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(chapitre::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .limit(page_size_sort_order)
@@ -7819,7 +7766,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             use sea_orm::{
                 QueryFilter,
-                sea_query::{Alias, Expr, ExprTrait, Order},
+                sea_query::{Alias, Expr, Order},
             };
             let mut query = cour_block::Entity::find();
             const SORT_COLS: &[&str] =
@@ -7839,23 +7786,15 @@ pub fn admin_register() -> AdminRegistry {
                 if !FILTER_COLS.contains(&col.as_str()) {
                     continue;
                 }
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some((col, val)) = &params.scope
                 && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
             {
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some(ref search_str) = params.search {
-                let search_cond = search_cond!(cour_block::Entity => or("chapitre_id" icontains search_str, "block_type" icontains search_str, "heading" icontains search_str, "sort_order" icontains search_str));
+                let search_cond = search_cond!(&db => cour_block::Entity => or("chapitre_id" icontains search_str, "block_type" icontains search_str, "heading" icontains search_str, "sort_order" icontains search_str));
                 query = query.filter(search_cond);
             }
             let db_rows = query
@@ -7874,23 +7813,16 @@ pub fn admin_register() -> AdminRegistry {
     let count_fn: CountFn = Arc::new(
         |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
             Box::pin(async move {
-                use sea_orm::{
-                    QueryFilter,
-                    sea_query::{Alias, Expr, ExprTrait},
-                };
+                use sea_orm::QueryFilter;
                 let mut query = cour_block::Entity::find();
                 if let Some(ref search_str) = _search {
-                    let search_cond = search_cond!(cour_block::Entity => or("chapitre_id" icontains search_str, "block_type" icontains search_str, "heading" icontains search_str, "sort_order" icontains search_str));
+                    let search_cond = search_cond!(&db => cour_block::Entity => or("chapitre_id" icontains search_str, "block_type" icontains search_str, "heading" icontains search_str, "sort_order" icontains search_str));
                     query = query.filter(search_cond);
                 }
                 if let Some((col, val)) = &scope
                     && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
                 {
-                    query = query.filter(
-                        Expr::col(Alias::new(col.as_str()))
-                            .cast_as(Alias::new("TEXT"))
-                            .eq(val.clone()),
-                    );
+                    query = query.filter(text_eq(&db, col.as_str(), val));
                 }
                 query.count(&*db).await
             })
@@ -7995,7 +7927,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_chapitre_id = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(chapitre_id AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(chapitre_id AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(cour_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("chapitre_id")).is_not_null())
                 .limit(page_size_chapitre_id)
@@ -8045,7 +7980,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_block_type = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(block_type AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(block_type AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(cour_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("block_type")).is_not_null())
                 .limit(page_size_block_type)
@@ -8095,7 +8033,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_heading = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(heading AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(heading AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(cour_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("heading")).is_not_null())
                 .limit(page_size_heading)
@@ -8142,7 +8083,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_sort_order = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(sort_order AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(sort_order AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(cour_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .limit(page_size_sort_order)
@@ -8215,7 +8159,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             use sea_orm::{
                 QueryFilter,
-                sea_query::{Alias, Expr, ExprTrait, Order},
+                sea_query::{Alias, Expr, Order},
             };
             let mut query = runique_release::Entity::find();
             const SORT_COLS: &[&str] = &["id", "version", "github_url", "crates_url"];
@@ -8234,23 +8178,15 @@ pub fn admin_register() -> AdminRegistry {
                 if !FILTER_COLS.contains(&col.as_str()) {
                     continue;
                 }
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some((col, val)) = &params.scope
                 && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
             {
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some(ref search_str) = params.search {
-                let search_cond = search_cond!(runique_release::Entity => or("version" icontains search_str, "github_url" icontains search_str, "crates_url" icontains search_str));
+                let search_cond = search_cond!(&db => runique_release::Entity => or("version" icontains search_str, "github_url" icontains search_str, "crates_url" icontains search_str));
                 query = query.filter(search_cond);
             }
             let db_rows = query
@@ -8269,23 +8205,16 @@ pub fn admin_register() -> AdminRegistry {
     let count_fn: CountFn = Arc::new(
         |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
             Box::pin(async move {
-                use sea_orm::{
-                    QueryFilter,
-                    sea_query::{Alias, Expr, ExprTrait},
-                };
+                use sea_orm::QueryFilter;
                 let mut query = runique_release::Entity::find();
                 if let Some(ref search_str) = _search {
-                    let search_cond = search_cond!(runique_release::Entity => or("version" icontains search_str, "github_url" icontains search_str, "crates_url" icontains search_str));
+                    let search_cond = search_cond!(&db => runique_release::Entity => or("version" icontains search_str, "github_url" icontains search_str, "crates_url" icontains search_str));
                     query = query.filter(search_cond);
                 }
                 if let Some((col, val)) = &scope
                     && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
                 {
-                    query = query.filter(
-                        Expr::col(Alias::new(col.as_str()))
-                            .cast_as(Alias::new("TEXT"))
-                            .eq(val.clone()),
-                    );
+                    query = query.filter(text_eq(&db, col.as_str(), val));
                 }
                 query.count(&*db).await
             })
@@ -8384,7 +8313,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_version = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(version AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(version AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(runique_release::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("version")).is_not_null())
                 .limit(page_size_version)
@@ -8454,7 +8386,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             use sea_orm::{
                 QueryFilter,
-                sea_query::{Alias, Expr, ExprTrait, Order},
+                sea_query::{Alias, Expr, Order},
             };
             let mut query = user_profile::Entity::find();
             const SORT_COLS: &[&str] = &[
@@ -8481,23 +8413,15 @@ pub fn admin_register() -> AdminRegistry {
                 if !FILTER_COLS.contains(&col.as_str()) {
                     continue;
                 }
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some((col, val)) = &params.scope
                 && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
             {
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some(ref search_str) = params.search {
-                let search_cond = search_cond!(user_profile::Entity => or("username" icontains search_str, "bio" icontains search_str, "website" icontains search_str, "phone" icontains search_str, "birth_date" icontains search_str, "is_verified" icontains search_str));
+                let search_cond = search_cond!(&db => user_profile::Entity => or("username" icontains search_str, "bio" icontains search_str, "website" icontains search_str, "phone" icontains search_str, "birth_date" icontains search_str, "is_verified" icontains search_str));
                 query = query.filter(search_cond);
             }
             let db_rows = query
@@ -8516,23 +8440,16 @@ pub fn admin_register() -> AdminRegistry {
     let count_fn: CountFn = Arc::new(
         |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
             Box::pin(async move {
-                use sea_orm::{
-                    QueryFilter,
-                    sea_query::{Alias, Expr, ExprTrait},
-                };
+                use sea_orm::QueryFilter;
                 let mut query = user_profile::Entity::find();
                 if let Some(ref search_str) = _search {
-                    let search_cond = search_cond!(user_profile::Entity => or("username" icontains search_str, "bio" icontains search_str, "website" icontains search_str, "phone" icontains search_str, "birth_date" icontains search_str, "is_verified" icontains search_str));
+                    let search_cond = search_cond!(&db => user_profile::Entity => or("username" icontains search_str, "bio" icontains search_str, "website" icontains search_str, "phone" icontains search_str, "birth_date" icontains search_str, "is_verified" icontains search_str));
                     query = query.filter(search_cond);
                 }
                 if let Some((col, val)) = &scope
                     && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
                 {
-                    query = query.filter(
-                        Expr::col(Alias::new(col.as_str()))
-                            .cast_as(Alias::new("TEXT"))
-                            .eq(val.clone()),
-                    );
+                    query = query.filter(text_eq(&db, col.as_str(), val));
                 }
                 query.count(&*db).await
             })
@@ -8658,15 +8575,14 @@ pub fn admin_register() -> AdminRegistry {
                     })
                     .collect();
                 let selected = if let Some(ref oid) = object_id {
-                    use sea_orm::sea_query::{Alias, Expr, ExprTrait, Query};
+                    use sea_orm::sea_query::{Alias, Expr, Query};
                     let stmt = Query::select()
-                        .expr(Expr::cust("CAST(groupe_id AS TEXT)"))
+                        .expr(Expr::cust(format!(
+                            "CAST(groupe_id AS {})",
+                            text_cast_type(&db)
+                        )))
                         .from(Alias::new("eihwaz_users_groupes"))
-                        .and_where(
-                            Expr::col(Alias::new("user_id"))
-                                .cast_as(Alias::new("TEXT"))
-                                .eq(oid.clone()),
-                        )
+                        .and_where(text_eq(&db, "user_id", oid))
                         .to_owned();
                     db.query_all(&stmt)
                         .await
@@ -8731,7 +8647,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_username = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(username AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(username AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(user_profile::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("username")).is_not_null())
                 .limit(page_size_username)
@@ -8778,7 +8697,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_is_verified = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(is_verified AS TEXT)"))
+                .expr(Expr::cust(format!(
+                    "CAST(is_verified AS {})",
+                    text_cast_type(&db)
+                )))
                 .from(Alias::new(user_profile::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("is_verified")).is_not_null())
                 .limit(page_size_is_verified)

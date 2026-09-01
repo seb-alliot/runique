@@ -1072,7 +1072,7 @@ fn write_search_conditions(
     if searchable.is_empty() {
         let _ = writeln!(
             out,
-            "                let search_cond = search_cond!({module}::Entity => all_columns icontains search_str);",
+            "                let search_cond = search_cond!(&db => {module}::Entity => all_columns icontains search_str);",
             module = module
         );
     } else {
@@ -1083,7 +1083,7 @@ fn write_search_conditions(
             .join(", ");
         let _ = writeln!(
             out,
-            "                let search_cond = search_cond!({module}::Entity => or({cols}));",
+            "                let search_cond = search_cond!(&db => {module}::Entity => or({cols}));",
             module = module,
             cols = cols
         );
