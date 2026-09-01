@@ -5,6 +5,7 @@ pub mod test_admin_password_security;
 pub mod test_admin_registry;
 pub mod test_admin_roles;
 pub mod test_admin_route_crawl;
+pub mod test_admin_user_crud;
 pub mod test_form_filter;
 pub mod test_form_renderer;
 pub mod test_url_registry;

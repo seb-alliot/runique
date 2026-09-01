@@ -273,20 +273,47 @@ fn contributions_source() -> &'static str {
     "#
 }
 
+// Bug (2026-09-01) : `dsl_field_type_to_col_type` (champs normaux) n'avait pas
+// de branche pour "Pk" — seule `dsl_pk_to_col_type` (position `pk:`) la
+// gérait. Un FK typé `Pk` (convention documentée pour rester en phase avec
+// big-pk/pk-uuid) tombait silencieusement dans le `_ => "String"`, détecté en
+// vrai sur `contributions.user_id`/`chapitre.cour_id`/etc. via
+// `runique makemigrations` sur demo-app (faux changements destructifs
+// Integer -> String). `Pk` change de type selon la feature active
+// (i32/i64/Uuid, cf. `test_eihwaz_tables_pk.rs`), donc l'assertion doit
+// suivre la même matrice plutôt que supposer les features par défaut — un
+// job CI `--features big-pk` a cassé la version non-gated de ce test.
+
+#[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
 #[test]
 fn test_parse_pk_typed_field_maps_to_integer() {
-    // Bug (2026-09-01) : `dsl_field_type_to_col_type` (champs normaux) n'avait
-    // pas de branche pour "Pk" — seule `dsl_pk_to_col_type` (position `pk:`)
-    // la gérait. Un FK typé `Pk` (convention documentée pour rester en phase
-    // avec big-pk/pk-uuid) tombait silencieusement dans le `_ => "String"`,
-    // détecté en vrai sur `contributions.user_id`/`chapitre.cour_id`/etc. via
-    // `runique makemigrations` sur demo-app (faux changements destructifs
-    // Integer -> String).
     let schema = parse_schema_from_source(contributions_source()).unwrap().1;
     let user_id = schema.columns.iter().find(|c| c.name == "user_id").unwrap();
     assert_eq!(
         user_id.col_type, "Integer",
-        "un champ Pk (features par défaut) doit être Integer, pas String"
+        "un champ Pk (features par défaut) doit être Integer"
+    );
+}
+
+#[cfg(all(feature = "big-pk", not(feature = "pk-uuid")))]
+#[test]
+fn test_parse_pk_typed_field_maps_to_big_integer() {
+    let schema = parse_schema_from_source(contributions_source()).unwrap().1;
+    let user_id = schema.columns.iter().find(|c| c.name == "user_id").unwrap();
+    assert_eq!(
+        user_id.col_type, "BigInteger",
+        "un champ Pk (feature big-pk) doit être BigInteger"
+    );
+}
+
+#[cfg(feature = "pk-uuid")]
+#[test]
+fn test_parse_pk_typed_field_maps_to_uuid() {
+    let schema = parse_schema_from_source(contributions_source()).unwrap().1;
+    let user_id = schema.columns.iter().find(|c| c.name == "user_id").unwrap();
+    assert_eq!(
+        user_id.col_type, "Uuid",
+        "un champ Pk (feature pk-uuid) doit être Uuid"
     );
 }
 

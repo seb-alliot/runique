@@ -185,14 +185,10 @@ async fn test_save_as_contexte_transmis_delete() {
 // ═══════════════════════════════════════════════════════════════
 // Rollback — before_save échoue
 // ═══════════════════════════════════════════════════════════════
-
-#[tokio::test]
-async fn test_before_save_echoue_retourne_err() {
-    let db = db::fresh_db().await;
-    let mut form = TrackerForm::new().with_fail_before();
-    let result = form.save_as(SaveContext::Create, &db).await;
-    assert!(result.is_err());
-}
+//
+// `test_before_save_echoue_retourne_err` (ne vérifiait que `is_err()`) a été
+// fusionné dans `test_before_save_echoue_rollback_db` plus bas, qui vérifie
+// la même chose ET l'état réel de la DB après rollback.
 
 #[tokio::test]
 async fn test_before_save_echoue_save_non_appele() {
@@ -206,14 +202,10 @@ async fn test_before_save_echoue_save_non_appele() {
 // ═══════════════════════════════════════════════════════════════
 // Rollback — on_save échoue
 // ═══════════════════════════════════════════════════════════════
-
-#[tokio::test]
-async fn test_on_save_echoue_retourne_err() {
-    let db = db::fresh_db().await;
-    let mut form = TrackerForm::new().with_fail_save();
-    let result = form.save_as(SaveContext::Create, &db).await;
-    assert!(result.is_err());
-}
+//
+// `test_on_save_echoue_retourne_err` (ne vérifiait que `is_err()`) a été
+// fusionné dans `test_on_save_echoue_rollback_db` plus bas, qui vérifie la
+// même chose ET l'état réel de la DB après rollback.
 
 #[tokio::test]
 async fn test_on_save_echoue_after_non_appele() {
@@ -226,14 +218,10 @@ async fn test_on_save_echoue_after_non_appele() {
 // ═══════════════════════════════════════════════════════════════
 // Rollback — after_save échoue
 // ═══════════════════════════════════════════════════════════════
-
-#[tokio::test]
-async fn test_after_save_echoue_retourne_err() {
-    let db = db::fresh_db().await;
-    let mut form = TrackerForm::new().with_fail_after();
-    let result = form.save_as(SaveContext::Create, &db).await;
-    assert!(result.is_err());
-}
+//
+// `test_after_save_echoue_retourne_err` (ne vérifiait que `is_err()`) a été
+// fusionné dans `test_after_save_echoue_rollback_db` ci-dessous, qui vérifie
+// la même chose ET l'état réel de la DB après rollback.
 
 #[tokio::test]
 async fn test_after_save_echoue_rollback_db() {
