@@ -331,7 +331,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     let _ = writeln!(out, "        Box::pin(async move {{");
     let _ = writeln!(
         out,
-        "            use sea_orm::{{QueryFilter, sea_query::{{Alias, Expr, ExprTrait, Order}}}};"
+        "            use sea_orm::{{QueryFilter, sea_query::{{Alias, Expr, Order}}}};"
     );
     let _ = writeln!(
         out,
@@ -393,7 +393,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     );
     let _ = writeln!(
         out,
-        "                query = query.filter(Expr::col(Alias::new(col.as_str())).cast_as(Alias::new(\"TEXT\")).eq(val.clone()));"
+        "                query = query.filter(text_eq(&db, col.as_str(), val));"
     );
     let _ = writeln!(out, "            }}");
     // Trusted parent scope (framework-injected) — applied unconditionally, bypasses FILTER_COLS.
@@ -403,7 +403,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     );
     let _ = writeln!(
         out,
-        "                query = query.filter(Expr::col(Alias::new(col.as_str())).cast_as(Alias::new(\"TEXT\")).eq(val.clone()));"
+        "                query = query.filter(text_eq(&db, col.as_str(), val));"
     );
     let _ = writeln!(out, "            }}");
     let _ = writeln!(
@@ -458,10 +458,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         "    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>, scope: Option<(String, String)>| {{"
     );
     let _ = writeln!(out, "        Box::pin(async move {{");
-    let _ = writeln!(
-        out,
-        "            use sea_orm::{{QueryFilter, sea_query::{{Alias, Expr, ExprTrait}}}};"
-    );
+    let _ = writeln!(out, "            use sea_orm::QueryFilter;");
     let _ = writeln!(
         out,
         "            let mut query = {}::Entity::find();",
@@ -478,7 +475,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     );
     let _ = writeln!(
         out,
-        "                query = query.filter(Expr::col(Alias::new(col.as_str())).cast_as(Alias::new(\"TEXT\")).eq(val.clone()));"
+        "                query = query.filter(text_eq(&db, col.as_str(), val));"
     );
     let _ = writeln!(out, "            }}");
     let _ = writeln!(out, "            query.count(&*db).await");
@@ -532,10 +529,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     let _ = writeln!(out, "        Box::pin(async move {{");
     if let Some(ref bulk_field) = r.bulk_create {
         // Bulk upsert: split the specified field by comma, update if exists, insert otherwise
-        let _ = writeln!(
-            out,
-            "            use sea_orm::{{QueryFilter, sea_query::{{Alias, Expr, ExprTrait}}}};"
-        );
+        let _ = writeln!(out, "            use sea_orm::QueryFilter;");
         let _ = writeln!(
             out,
             "            let raw = data.get(\"{bulk_field}\").cloned().unwrap_or_default();",
@@ -559,7 +553,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         );
         let _ = writeln!(
             out,
-            "                    .filter(Expr::col(Alias::new(\"{bulk_field}\")).cast_as(Alias::new(\"TEXT\")).eq(val.to_string()))",
+            "                    .filter(text_eq(&db, \"{bulk_field}\", val))",
             bulk_field = bulk_field
         );
         let _ = writeln!(out, "                    .one(&*db).await?");
@@ -740,11 +734,11 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
             );
             let _ = writeln!(
                 out,
-                "                    use sea_orm::sea_query::{{Query, Alias, Expr, ExprTrait}};"
+                "                    use sea_orm::sea_query::{{Query, Alias, Expr}};"
             );
             let _ = writeln!(
                 out,
-                "                    let stmt = Query::select().expr(Expr::cust(\"CAST({target_fk} AS TEXT)\")).from(Alias::new(\"{junction}\")).and_where(Expr::col(Alias::new(\"{self_fk}\")).cast_as(Alias::new(\"TEXT\")).eq(oid.clone())).to_owned();",
+                "                    let stmt = Query::select().expr(Expr::cust(format!(\"CAST({target_fk} AS {{}})\", text_cast_type(&db)))).from(Alias::new(\"{junction}\")).and_where(text_eq(&db, \"{self_fk}\", oid)).to_owned();",
                 target_fk = m2m.target_fk,
                 junction = m2m.junction_table,
                 self_fk = m2m.self_fk
@@ -850,7 +844,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
             );
             let _ = writeln!(
                 out,
-                "            let stmt_{col} = Query::select().distinct().expr(Expr::cust(\"CAST({col} AS TEXT)\")).from(Alias::new({module}::Entity.table_name())).and_where(Expr::col(Alias::new(\"{col}\")).is_not_null()).limit(page_size_{col}).offset(cur_page_{col} * page_size_{col}).to_owned();",
+                "            let stmt_{col} = Query::select().distinct().expr(Expr::cust(format!(\"CAST({col} AS {{}})\", text_cast_type(&db)))).from(Alias::new({module}::Entity.table_name())).and_where(Expr::col(Alias::new(\"{col}\")).is_not_null()).limit(page_size_{col}).offset(cur_page_{col} * page_size_{col}).to_owned();",
                 col = col,
                 module = module
             );
@@ -1029,7 +1023,7 @@ fn write_form_builder_closure_fk(
         let _ = writeln!(out, "                use sea_orm::ConnectionTrait;");
         let _ = writeln!(
             out,
-            "                let _fk_opt_stmt_{safe} = sea_orm::sea_query::Query::select().expr(sea_orm::sea_query::Expr::cust(\"CAST(id AS TEXT)\")).expr(sea_orm::sea_query::Expr::cust(\"{fk_col}\")).from(sea_orm::sea_query::Alias::new(\"{fk_table}\")).to_owned();",
+            "                let _fk_opt_stmt_{safe} = sea_orm::sea_query::Query::select().expr(sea_orm::sea_query::Expr::cust(format!(\"CAST(id AS {{}})\", runique::admin::helper::text_cast_type(&db)))).expr(sea_orm::sea_query::Expr::cust(\"{fk_col}\")).from(sea_orm::sea_query::Alias::new(\"{fk_table}\")).to_owned();",
             safe = safe_var,
             fk_col = fk.col,
             fk_table = fk.table,

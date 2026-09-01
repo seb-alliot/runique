@@ -11,6 +11,7 @@ use crate::admin::{
             CountFn, CreateFn, DeleteFn, FormBuilder, GetFn, ListFn, ListParams, ResourceEntry,
             SortDir, UpdateFn,
         },
+        sql_dialect::{ilike, text_eq},
     },
     resource::AdminResource,
 };
@@ -50,7 +51,7 @@ pub(super) fn groupe_entry() -> ResourceEntry {
         Box::pin(async move {
             use sea_orm::{
                 QueryFilter, QueryOrder,
-                sea_query::{Alias, Expr, ExprTrait, Func, Order},
+                sea_query::{Alias, Expr, Order},
             };
             let mut query = groupe::Entity::find();
             if let Some(ref col) = params.sort_by
@@ -69,23 +70,14 @@ pub(super) fn groupe_entry() -> ResourceEntry {
                 if col.is_empty() || !col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_') {
                     continue;
                 }
-                query = query.filter(
-                    Expr::col(Alias::new(col.as_str()))
-                        .cast_as(Alias::new("TEXT"))
-                        .eq(val.clone()),
-                );
+                query = query.filter(text_eq(&db, col.as_str(), val));
             }
             if let Some(ref search_str) = params.search {
                 let pattern = format!("%{}%", search_str.to_lowercase());
                 let mut search_cond = sea_orm::Condition::any();
                 let cols = vec!["id", "nom"];
                 for col in cols {
-                    search_cond = search_cond.add(
-                        Expr::expr(Func::lower(
-                            Expr::col(Alias::new(col)).cast_as(Alias::new("TEXT")),
-                        ))
-                        .like(pattern.clone()),
-                    );
+                    search_cond = search_cond.add(ilike(&db, col, &pattern));
                 }
                 query = query.filter(search_cond);
             }
@@ -103,22 +95,14 @@ pub(super) fn groupe_entry() -> ResourceEntry {
 
     let count_fn: CountFn = Arc::new(|db: ADb, _search, _column_filters| {
         Box::pin(async move {
-            use sea_orm::{
-                QueryFilter,
-                sea_query::{Alias, Expr, ExprTrait, Func},
-            };
+            use sea_orm::QueryFilter;
             let mut query = groupe::Entity::find();
             if let Some(ref search_str) = _search {
                 let pattern = format!("%{}%", search_str.to_lowercase());
                 let mut search_cond = sea_orm::Condition::any();
                 let cols = vec!["id", "nom"];
                 for col in cols {
-                    search_cond = search_cond.add(
-                        Expr::expr(Func::lower(
-                            Expr::col(Alias::new(col)).cast_as(Alias::new("TEXT")),
-                        ))
-                        .like(pattern.clone()),
-                    );
+                    search_cond = search_cond.add(ilike(&db, col, &pattern));
                 }
                 query = query.filter(search_cond);
             }
