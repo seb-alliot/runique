@@ -468,7 +468,7 @@ fn test_flow_generate_alter_ajout_colonne() {
         enum_value_adds: vec![],
         enum_value_drops: vec![],
     };
-    let content = generate_alter_file(&changes, &DbKind::Other);
+    let content = generate_alter_file(&changes);
 
     assert!(content.contains("pub struct Migration"));
     assert!(content.contains("phone"), "nouvelle colonne dans ALTER");
@@ -493,7 +493,7 @@ fn test_flow_generate_alter_suppression_colonne() {
         enum_value_adds: vec![],
         enum_value_drops: vec![],
     };
-    let content = generate_alter_file(&changes, &DbKind::Other);
+    let content = generate_alter_file(&changes);
 
     assert!(content.contains("bio"), "colonne supprimée dans ALTER");
     assert!(content.contains("drop_column") || content.contains("alter_table"));
@@ -519,7 +519,7 @@ fn test_flow_generate_alter_up_et_down_sont_inverses() {
         enum_value_adds: vec![],
         enum_value_drops: vec![],
     };
-    let content = generate_alter_file(&changes, &DbKind::Other);
+    let content = generate_alter_file(&changes);
 
     // Les deux colonnes doivent apparaître dans la migration
     assert!(content.contains("phone"));
@@ -550,7 +550,7 @@ fn test_flow_generate_alter_type_change_commente() {
         enum_value_adds: vec![],
         enum_value_drops: vec![],
     };
-    let content = generate_alter_file(&changes, &DbKind::Other);
+    let content = generate_alter_file(&changes);
 
     assert!(
         content.contains("WARNING") || content.contains("Manual migration required"),
@@ -724,7 +724,7 @@ fn test_flow_complet_migration_alter() {
     assert_eq!(changes.dropped_columns.len(), 1, "email supprimé");
 
     // Génère le fichier ALTER
-    let alter_content = generate_alter_file(&changes, &DbKind::Other);
+    let alter_content = generate_alter_file(&changes);
     let module = seaorm_alter_module_name(ts, "users");
     let alter_path = seaorm_alter_file_path(mig.to_str().unwrap(), ts, "users");
 

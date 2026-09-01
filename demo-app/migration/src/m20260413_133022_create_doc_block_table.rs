@@ -6,9 +6,13 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.get_connection().execute_unprepared(
-            "DO $$ BEGIN CREATE TYPE BlockType AS ENUM ('Text', 'Code', 'Sommaire'); EXCEPTION WHEN duplicate_object THEN NULL; END $$"
-        ).await?;
+        // `CREATE TYPE` is Postgres-only syntax — `ColumnType::Enum` below needs no
+        // such guard, sea-query already renders it correctly per backend on its own.
+        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {
+            manager.get_connection().execute_unprepared(
+                "DO $$ BEGIN CREATE TYPE BlockType AS ENUM ('Text', 'Code', 'Sommaire'); EXCEPTION WHEN duplicate_object THEN NULL; END $$"
+            ).await?;
+        }
 
         manager
             .create_table(
@@ -76,10 +80,12 @@ impl MigrationTrait for Migration {
         manager
             .drop_table(Table::drop().table(Alias::new("doc_block")).to_owned())
             .await?;
-        manager
-            .get_connection()
-            .execute_unprepared("DROP TYPE IF EXISTS BlockType")
-            .await?;
+        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {
+            manager
+                .get_connection()
+                .execute_unprepared("DROP TYPE IF EXISTS BlockType")
+                .await?;
+        }
 
         Ok(())
     }

@@ -433,7 +433,8 @@
     "destructive_detected": "Destruktive Änderungen erkannt:",
     "destructive_require_force": "Verwenden Sie --force, um diese destruktiven Änderungen anzuwenden.",
     "files_ready": "{} Datei(en) bereit für die Migration.",
-    "unknown_dsl_type": "Warnung: unbekannter Feldtyp '{}' — Standardwert '{}' wird verwendet. Prüfen Sie Ihr Modell auf einen Tippfehler."
+    "unknown_dsl_type": "Warnung: unbekannter Feldtyp '{}' — Standardwert '{}' wird verwendet. Prüfen Sie Ihr Modell auf einen Tippfehler.",
+    "unknown_db_engine": "Warnung: unbekannter DB_ENGINE '{}' — Rückgriff auf SQLite-artige Migrationen (keine native Enum-/Trigger-Unterstützung). Unterstützte Werte: postgres, mysql/mariadb, sqlite."
   },
   "migrate": {
     "applying": "Migrationen aus '{}' werden angewendet...",

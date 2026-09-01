@@ -6,10 +6,19 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.get_connection().execute_unprepared(
-            "DO $$ BEGIN CREATE TYPE ContributionType AS ENUM ('Runique', 'Cours'); EXCEPTION WHEN duplicate_object THEN NULL; END $$"
-        ).await?;
+        // `CREATE TYPE` is Postgres-only syntax — `ColumnType::Enum` below needs no
+        // such guard, sea-query already renders it correctly per backend on its own.
+        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {
+            manager.get_connection().execute_unprepared(
+                "DO $$ BEGIN CREATE TYPE ContributionType AS ENUM ('Runique', 'Cours'); EXCEPTION WHEN duplicate_object THEN NULL; END $$"
+            ).await?;
+        }
 
+        // FK declared inline on the CREATE TABLE itself, not via a separate
+        // `create_foreign_key` afterward: SQLite cannot add a FK constraint to an
+        // existing table (`Sqlite does not support modification of foreign key
+        // constraints to existing tables`) — it must be present at creation time.
+        // Inline is valid on every engine, not just required on SQLite.
         manager
             .create_table(
                 Table::create()
@@ -44,18 +53,14 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default(Expr::current_timestamp()),
                     )
-                    .to_owned(),
-            )
-            .await?;
-
-        manager
-            .create_foreign_key(
-                ForeignKey::create()
-                    .name("contributions_user_id_eihwaz_users_fkey")
-                    .from(Alias::new("contributions"), Alias::new("user_id"))
-                    .to(Alias::new("eihwaz_users"), Alias::new("id"))
-                    .on_delete(ForeignKeyAction::Cascade)
-                    .on_update(ForeignKeyAction::NoAction)
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("contributions_user_id_eihwaz_users_fkey")
+                            .from(Alias::new("contributions"), Alias::new("user_id"))
+                            .to(Alias::new("eihwaz_users"), Alias::new("id"))
+                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_update(ForeignKeyAction::NoAction),
+                    )
                     .to_owned(),
             )
             .await?;
@@ -64,22 +69,18 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager
-            .drop_foreign_key(
-                ForeignKey::drop()
-                    .table(Alias::new("contributions"))
-                    .name("contributions_user_id_eihwaz_users_fkey")
-                    .to_owned(),
-            )
-            .await?;
-
+        // No separate `drop_foreign_key` — SQLite can't ALTER-drop one any more than
+        // it can ALTER-add one, and dropping the table below already takes the FK
+        // with it on every engine (nothing else needs it kept around beforehand).
         manager
             .drop_table(Table::drop().table(Alias::new("contributions")).to_owned())
             .await?;
-        manager
-            .get_connection()
-            .execute_unprepared("DROP TYPE IF EXISTS ContributionType")
-            .await?;
+        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {
+            manager
+                .get_connection()
+                .execute_unprepared("DROP TYPE IF EXISTS ContributionType")
+                .await?;
+        }
 
         Ok(())
     }

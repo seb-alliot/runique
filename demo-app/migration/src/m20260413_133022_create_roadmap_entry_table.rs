@@ -6,9 +6,17 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.get_connection().execute_unprepared(
-            "DO $$ BEGIN CREATE TYPE RoadmapStatus AS ENUM ('Active', 'Planned', 'Future'); EXCEPTION WHEN duplicate_object THEN NULL; END $$"
-        ).await?;
+        // `CREATE TYPE` is Postgres-only syntax — this file was generated with
+        // `DB_ENGINE=postgres` and never regenerated for MariaDB, so it always ran
+        // this line unconditionally regardless of the actual target. `ColumnType::Enum`
+        // below needs no such guard: sea-query already renders it correctly per
+        // backend on its own (MySQL inlines `ENUM(...)` on the column, SQLite treats
+        // it as text) — only the separate named Postgres type needs this runtime check.
+        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {
+            manager.get_connection().execute_unprepared(
+                "DO $$ BEGIN CREATE TYPE RoadmapStatus AS ENUM ('Active', 'Planned', 'Future'); EXCEPTION WHEN duplicate_object THEN NULL; END $$"
+            ).await?;
+        }
 
         manager
             .create_table(
@@ -58,10 +66,12 @@ impl MigrationTrait for Migration {
         manager
             .drop_table(Table::drop().table(Alias::new("roadmap_entry")).to_owned())
             .await?;
-        manager
-            .get_connection()
-            .execute_unprepared("DROP TYPE IF EXISTS RoadmapStatus")
-            .await?;
+        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {
+            manager
+                .get_connection()
+                .execute_unprepared("DROP TYPE IF EXISTS RoadmapStatus")
+                .await?;
+        }
 
         Ok(())
     }
