@@ -199,8 +199,8 @@ Full reference: [Sessions](https://runique.io/docs/en/session)
 
 ## Tests and coverage
 
-- Tests reported: **2361 passing** (2 ignored)
-- Coverage snapshot (`2026-08-30`, package `runique`, admin module included): functions **74.24%**, lines **71.83%**, regions **70.55%**
+- Tests reported: **2370 passing** (2 ignored)
+- Coverage snapshot (`2026-09-01`, package `runique`, admin module included): functions **75.14%**, lines **73.04%**, regions **71.77%**
 
 ```bash
 cargo llvm-cov --package runique --summary-only

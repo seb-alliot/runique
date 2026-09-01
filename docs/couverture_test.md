@@ -1,10 +1,10 @@
 # Couverture de tests — package `runique`
 
-Snapshot du **2026-08-30** · commande : `cargo llvm-cov --package runique --summary-only`
+Snapshot du **2026-09-01** · commande : `cargo llvm-cov --package runique --summary-only`
 
 | | Régions | Fonctions | Lignes |
 |---|---|---|---|
-| **TOTAL** | **70.55 %** | **74.24 %** | **71.83 %** |
+| **TOTAL** | **71.77 %** | **75.14 %** | **73.04 %** |
 
 ---
 
@@ -14,18 +14,18 @@ Snapshot du **2026-08-30** · commande : `cargo llvm-cov --package runique --sum
 |---|---|---|---|
 | admin_main/action.rs | 98.29 % | 100.00 % | 99.51 % |
 | admin_main/handle_bulk.rs | 13.15 % | 11.11 % | 14.29 % |
-| admin_main/handle_crud.rs | 56.25 % | 52.00 % | 68.95 % |
+| admin_main/handle_crud.rs | 57.25 % | 50.98 % | 68.70 % |
 | admin_main/handle_inline.rs | 81.82 % | 100.00 % | 80.95 % |
 | admin_main/handle_list.rs | 52.89 % | 44.00 % | 62.68 % |
 | admin_main/handle_password.rs | 58.46 % | 85.71 % | 56.65 % |
-| admin_main/mod.rs | 68.36 % | 65.52 % | 68.02 % |
-| builtin/droit.rs | 74.42 % | 69.57 % | 74.02 % |
-| builtin/groupe.rs | 59.80 % | 74.07 % | 71.68 % |
+| admin_main/mod.rs | 70.29 % | 65.52 % | 68.47 % |
+| builtin/droit.rs | 74.38 % | 69.57 % | 73.84 % |
+| builtin/groupe.rs | 60.27 % | 76.92 % | 71.35 % |
 | builtin/mod.rs | 27.27 % | 50.00 % | 33.33 % |
-| builtin/user.rs | 52.48 % | 53.66 % | 53.45 % |
+| builtin/user.rs | 52.85 % | 55.00 % | 52.89 % |
 | config/config_admin.rs | 56.85 % | 38.89 % | 57.27 % |
 | daemon/generator.rs | 0.00 % | 0.00 % | 0.00 % |
-| daemon/parser.rs | 92.22 % | 98.39 % | 97.89 % |
+| daemon/parser.rs | 92.22 % | 98.39 % | 97.90 % |
 | daemon/watcher.rs | 0.00 % | 0.00 % | 0.00 % |
 | forms/mod.rs | 100.00 % | 100.00 % | 100.00 % |
 | helper/fk_resolve.rs | 5.17 % | 16.67 % | 11.69 % |
@@ -33,16 +33,16 @@ Snapshot du **2026-08-30** · commande : `cargo llvm-cov --package runique --sum
 | helper/roles.rs | 40.00 % | 100.00 % | 36.36 % |
 | helper/template.rs | 46.46 % | 52.17 % | 64.17 % |
 | history.rs | 85.58 % | 100.00 % | 80.95 % |
-| middleware/admin_middleware.rs | 46.67 % | 66.67 % | 57.14 % |
+| middleware/admin_middleware.rs | 66.67 % | 66.67 % | 80.00 % |
 | mod.rs | 36.36 % | 50.00 % | 60.00 % |
 | permissions/groupe.rs | 0.00 % | 0.00 % | 0.00 % |
 | permissions/groupes_droits.rs | 0.00 % | 0.00 % | 0.00 % |
-| permissions/mod.rs | 54.26 % | 70.00 % | 62.96 % |
-| permissions/users_groupes.rs | 36.36 % | 25.00 % | 33.33 % |
+| permissions/mod.rs | 95.74 % | 100.00 % | 97.53 % |
+| permissions/users_groupes.rs | 72.73 % | 50.00 % | 66.67 % |
 | registry.rs | 58.56 % | 78.95 % | 61.64 % |
 | resource.rs | 18.57 % | 13.16 % | 29.06 % |
 | router/admin_router.rs | 72.64 % | 65.75 % | 76.33 % |
-| table_admin/migrations_table.rs | 30.56 % | 16.67 % | 26.64 % |
+| table_admin/migrations_table.rs | 46.83 % | 25.00 % | 52.96 % |
 | trad/mod.rs | 100.00 % | 100.00 % | 100.00 % |
 
 ---
@@ -52,7 +52,7 @@ Snapshot du **2026-08-30** · commande : `cargo llvm-cov --package runique --sum
 | Fichier | Régions | Fonctions | Lignes |
 |---|---|---|---|
 | builder/build.rs | 78.32 % | 75.00 % | 77.64 % |
-| builder/mod.rs | 65.00 % | 64.71 % | 62.65 % |
+| builder/mod.rs | 70.00 % | 70.59 % | 67.47 % |
 | error_build.rs | 83.97 % | 100.00 % | 94.57 % |
 | runique_app.rs | 6.25 % | 14.29 % | 8.11 % |
 | staging/admin_staging.rs | 61.90 % | 65.22 % | 67.67 % |
@@ -76,7 +76,7 @@ Snapshot du **2026-08-30** · commande : `cargo llvm-cov --package runique --sum
 | form.rs | 100.00 % | 100.00 % | 100.00 % |
 | guard.rs | 64.62 % | 64.00 % | 65.08 % |
 | password.rs | 18.46 % | 43.24 % | 20.51 % |
-| session.rs | 79.47 % | 85.37 % | 80.99 % |
+| session.rs | 79.95 % | 85.37 % | 81.34 % |
 | user.rs | 67.27 % | 63.16 % | 74.23 % |
 | user_trait.rs | 100.00 % | 100.00 % | 100.00 % |
 
@@ -121,7 +121,7 @@ Snapshot du **2026-08-30** · commande : `cargo llvm-cov --package runique --sum
 | Fichier | Régions | Fonctions | Lignes |
 |---|---|---|---|
 | builder.rs | 100.00 % | 100.00 % | 100.00 % |
-| config.rs | 75.60 % | 100.00 % | 79.04 % |
+| config.rs | 78.00 % | 100.00 % | 83.23 % |
 | engine.rs | 96.77 % | 100.00 % | 75.00 % |
 
 ---
@@ -210,7 +210,7 @@ Snapshot du **2026-08-30** · commande : `cargo llvm-cov --package runique --sum
 | security/rate_limit.rs | 80.78 % | 75.00 % | 83.54 % |
 | security/trusted_proxies.rs | 93.15 % | 96.77 % | 92.79 % |
 | session/cleaning_store.rs | 75.65 % | 82.93 % | 77.72 % |
-| session/session_db.rs | 77.50 % | 88.89 % | 82.71 % |
+| session/session_db.rs | 80.00 % | 94.44 % | 84.96 % |
 | session/session_parametre.rs | 100.00 % | 100.00 % | 100.00 % |
 
 ---
@@ -227,14 +227,14 @@ Snapshot du **2026-08-30** · commande : `cargo llvm-cov --package runique --sum
 | relation/mod.rs | 85.71 % | 80.00 % | 91.18 % |
 | schema/mod.rs | 87.41 % | 87.50 % | 88.35 % |
 | utils/convertisseur.rs | 95.24 % | 100.00 % | 92.86 % |
-| utils/diff.rs | 95.81 % | 100.00 % | 97.65 % |
-| utils/generators.rs | 92.70 % | 100.00 % | 93.69 % |
+| utils/diff.rs | 95.58 % | 100.00 % | 97.13 % |
+| utils/generators.rs | 91.67 % | 100.00 % | 93.28 % |
 | utils/helpers.rs | 72.62 % | 100.00 % | 71.71 % |
-| utils/parser_builder.rs | 77.62 % | 100.00 % | 80.65 % |
+| utils/parser_builder.rs | 79.06 % | 100.00 % | 80.65 % |
 | utils/parser_extend.rs | 67.92 % | 100.00 % | 76.54 % |
 | utils/parser_seaorm.rs | 68.97 % | 61.90 % | 70.55 % |
 | utils/paths.rs | 98.25 % | 95.92 % | 96.91 % |
-| utils/tests_pipeline.rs | 99.93 % | 98.90 % | 99.89 % |
+| utils/tests_pipeline.rs | 99.92 % | 98.88 % | 99.89 % |
 | utils/types.rs | 100.00 % | 100.00 % | 100.00 % |
 
 ---
@@ -245,13 +245,13 @@ Snapshot du **2026-08-30** · commande : `cargo llvm-cov --package runique --sum
 |---|---|---|---|
 | aliases/helpers.rs | 69.23 % | 66.67 % | 66.67 % |
 | cli/cli_admin.rs | 0.00 % | 0.00 % | 0.00 % |
-| cli/makemigration.rs | 77.10 % | 88.71 % | 78.93 % |
-| cli/migrate.rs | 22.00 % | 39.47 % | 24.48 % |
+| cli/makemigration.rs | 77.66 % | 88.71 % | 78.98 % |
+| cli/migrate.rs | 67.58 % | 84.21 % | 68.56 % |
 | cli/new_project.rs | 0.00 % | 0.00 % | 0.00 % |
 | cli/start.rs | 0.00 % | 0.00 % | 0.00 % |
 | config/env.rs | 69.33 % | 70.00 % | 64.44 % |
 | config/integrity.rs | 95.45 % | 100.00 % | 100.00 % |
-| config/runique_log/admin.rs | 19.51 % | 22.22 % | 20.00 % |
+| config/runique_log/admin.rs | 39.02 % | 44.44 % | 40.00 % |
 | config/runique_log/auth.rs | 88.46 % | 83.33 % | 88.00 % |
 | config/runique_log/builder.rs | 90.32 % | 85.71 % | 90.00 % |
 | config/runique_log/db.rs | 50.00 % | 50.00 % | 57.14 % |
