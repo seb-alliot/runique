@@ -250,64 +250,56 @@ fn enum_rename_is_a_single_operation() {
 }
 
 #[test]
-fn enum_rename_uses_alter_type_rename_on_postgres() {
+fn enum_rename_branches_on_runtime_backend() {
+    // Which branch actually runs is now decided by `manager.get_database_backend()`
+    // at migration-run time, not baked in at generation time — a single generated
+    // file must carry BOTH branches (unlike before this collapse, where the
+    // generator picked one based on the `DbKind` passed to `generate_alter_file`,
+    // which no longer takes one at all).
     let changes = diff_schemas(&parse_model(ENUM_V1), &parse_model(ENUM_RENAMED));
-    let pg = generate_alter_file(&changes, &DbKind::Postgres);
+    let sql = generate_alter_file(&changes);
     assert!(
-        pg.contains("ALTER TYPE Status RENAME VALUE 'Published' TO 'Release'"),
-        "PG rename must use ALTER TYPE RENAME VALUE:\n{pg}"
+        sql.contains("get_database_backend() == sea_orm::DbBackend::Postgres"),
+        "must check the real backend at runtime:\n{sql}"
     );
+    // Postgres branch: `sea_query::extension::postgres::Type::alter()` builder
+    // (escapes values automatically), not a hand-written `ALTER TYPE` string.
     assert!(
-        !pg.contains("UPDATE"),
-        "PG rename must not UPDATE rows:\n{pg}"
+        sql.contains(".name(Alias::new(\"Status\"))")
+            && sql.contains(".rename_value(Alias::new(\"Published\"), Alias::new(\"Release\"))"),
+        "Postgres branch must use the Type::alter().rename_value() builder:\n{sql}"
     );
+    // non-Postgres branch: `Query::update()` builder, same reasoning.
     assert!(
-        !pg.contains("ADD VALUE"),
-        "PG rename must not ADD/DROP the value:\n{pg}"
-    );
-}
-
-#[test]
-fn enum_rename_updates_data_on_non_postgres() {
-    let changes = diff_schemas(&parse_model(ENUM_V1), &parse_model(ENUM_RENAMED));
-    let other = generate_alter_file(&changes, &DbKind::Other);
-    assert!(
-        other.contains("UPDATE post SET status = 'Release' WHERE status = 'Published'"),
-        "non-PG rename updates data:\n{other}"
-    );
-    assert!(
-        !other.contains("ALTER TYPE"),
-        "non-PG must not emit ALTER TYPE:\n{other}"
+        sql.contains(".table(Alias::new(\"post\"))")
+            && sql.contains(".value(Alias::new(\"status\"), \"Release\")")
+            && sql.contains(".eq(\"Published\")"),
+        "non-Postgres branch must use the Query::update() builder:\n{sql}"
     );
 }
 
 #[test]
 fn enum_create_type_is_postgres_only() {
-    // `CREATE TYPE … AS ENUM` is a PostgreSQL-only construct, gated by DbKind
-    // (resolved from DB_ENGINE / DB_URL at runtime). Other backends render the
-    // enum inline without a separate type.
+    // `CREATE TYPE … AS ENUM` is Postgres-only syntax, but the generated file no
+    // longer decides whether to include it from the `DbKind` passed at generation
+    // time — it's always emitted, wrapped in a runtime backend check, so the same
+    // generated file works no matter which engine actually runs it later.
     let schema = parse_model(ENUM_V2);
-    let pg = generate_create_file(&schema, &DbKind::Postgres);
-    assert!(
-        pg.contains("CREATE TYPE"),
-        "Postgres must emit CREATE TYPE:\n{pg}"
-    );
-    assert!(
-        pg.contains("DROP TYPE"),
-        "Postgres down() must drop the type:\n{pg}"
-    );
-
-    let other = generate_create_file(&schema, &DbKind::Other);
-    assert!(
-        !other.contains("CREATE TYPE"),
-        "non-Postgres must NOT emit CREATE TYPE:\n{other}"
-    );
-
-    let mysql = generate_create_file(&schema, &DbKind::Mysql);
-    assert!(
-        !mysql.contains("CREATE TYPE"),
-        "MySQL must NOT emit CREATE TYPE:\n{mysql}"
-    );
+    for kind in [DbKind::Postgres, DbKind::Mysql, DbKind::Other] {
+        let sql = generate_create_file(&schema, &kind);
+        assert!(
+            sql.contains("get_database_backend() == sea_orm::DbBackend::Postgres"),
+            "must check the real backend at runtime for {kind:?}:\n{sql}"
+        );
+        assert!(
+            sql.contains("CREATE TYPE"),
+            "CREATE TYPE must always be emitted (runtime-guarded) for {kind:?}:\n{sql}"
+        );
+        assert!(
+            sql.contains("DROP TYPE"),
+            "down() must always emit the matching DROP TYPE (runtime-guarded) for {kind:?}:\n{sql}"
+        );
+    }
 }
 
 // ── extend!{} default capture ──────────────────────────────────────────────────
@@ -383,16 +375,14 @@ fn extend_enum_column_emits_create_type_on_postgres() {
         enum_value_adds: vec![],
         enum_value_drops: vec![],
     };
-    let pg = generate_alter_file(&change, &DbKind::Postgres);
+    let sql = generate_alter_file(&change);
     assert!(
-        pg.contains("CREATE TYPE"),
-        "PG extend enum must CREATE TYPE:\n{pg}"
+        sql.contains("get_database_backend() == sea_orm::DbBackend::Postgres"),
+        "must check the real backend at runtime:\n{sql}"
     );
-
-    let other = generate_alter_file(&change, &DbKind::Other);
     assert!(
-        !other.contains("CREATE TYPE"),
-        "non-PG extend enum must not CREATE TYPE:\n{other}"
+        sql.contains("CREATE TYPE"),
+        "extend enum must emit CREATE TYPE, runtime-guarded to Postgres:\n{sql}"
     );
 }
 
@@ -475,7 +465,7 @@ fn column_rename_sql_is_portable_across_engines() {
     // RENAME COLUMN is supported by PG / MySQL+MariaDB / SQLite → same builder for all.
     let changes = diff_schemas(&parse_model(COL_BEFORE), &parse_model(COL_RENAMED));
     for kind in [DbKind::Postgres, DbKind::Mysql, DbKind::Other] {
-        let sql = generate_alter_file(&changes, &kind);
+        let sql = generate_alter_file(&changes);
         assert!(
             sql.contains(r#".rename_column(Alias::new("job_title"), Alias::new("title"))"#),
             "RENAME COLUMN missing for {kind:?}:\n{sql}"
@@ -494,7 +484,7 @@ fn column_rename_sql_is_portable_across_engines() {
 #[test]
 fn column_rename_down_reverses() {
     let changes = diff_schemas(&parse_model(COL_BEFORE), &parse_model(COL_RENAMED));
-    let sql = generate_alter_file(&changes, &DbKind::Postgres);
+    let sql = generate_alter_file(&changes);
     let down = sql.split("async fn down").nth(1).unwrap_or("");
     assert!(
         down.contains(r#".rename_column(Alias::new("title"), Alias::new("job_title"))"#),
@@ -546,7 +536,7 @@ fn extend_column_rename_is_detected() {
     );
     assert!(changes.added_columns.is_empty());
     assert!(changes.dropped_columns.is_empty());
-    let sql = generate_alter_file(&changes, &DbKind::Mysql);
+    let sql = generate_alter_file(&changes);
     assert!(
         sql.contains(r#".rename_column(Alias::new("job_title"), Alias::new("title"))"#),
         "extend rename must emit RENAME COLUMN:\n{sql}"
@@ -874,7 +864,7 @@ fn combined_alter_runs_rename_before_drop_and_add() {
         }],
         ..empty_changes()
     };
-    let sql = generate_alter_file(&changes, &DbKind::Other);
+    let sql = generate_alter_file(&changes);
     let up = sql.split("async fn down").next().unwrap();
     let rename_pos = up.find("rename_column").expect("rename present");
     let drop_pos = up.find("drop_column").expect("drop present");
@@ -905,7 +895,7 @@ fn alter_add_column_up_adds_down_drops() {
         }],
         ..empty_changes()
     };
-    let sql = generate_alter_file(&changes, &DbKind::Other);
+    let sql = generate_alter_file(&changes);
     let (up, down) = up_down(&sql);
     assert!(
         up.contains(r#".add_column(ColumnDef::new(Alias::new("nickname")).string().null())"#),
@@ -927,7 +917,7 @@ fn alter_drop_column_up_drops_down_recreates() {
         }],
         ..empty_changes()
     };
-    let sql = generate_alter_file(&changes, &DbKind::Other);
+    let sql = generate_alter_file(&changes);
     let (up, down) = up_down(&sql);
     assert!(
         up.contains(r#".drop_column(Alias::new("legacy"))"#),
@@ -956,7 +946,7 @@ fn alter_type_change_emits_warning_not_modify() {
         modified_columns: vec![(old, new)],
         ..empty_changes()
     };
-    let sql = generate_alter_file(&changes, &DbKind::Other);
+    let sql = generate_alter_file(&changes);
     assert!(
         sql.contains("WARNING: type change on column 'age': Integer -> BigInteger"),
         "type change must emit a manual WARNING:\n{sql}"
@@ -986,7 +976,7 @@ fn alter_type_change_only_body_uses_underscored_manager() {
         modified_columns: vec![(old, new)],
         ..empty_changes()
     };
-    let sql = generate_alter_file(&changes, &DbKind::Other);
+    let sql = generate_alter_file(&changes);
     assert!(
         sql.contains("async fn up(&self, _manager: &SchemaManager)"),
         "comment-only up body must use _manager:\n{sql}"
@@ -1016,7 +1006,7 @@ fn alter_nullable_to_not_null_modifies_and_reverses() {
         modified_columns: vec![(old, new)],
         ..empty_changes()
     };
-    let sql = generate_alter_file(&changes, &DbKind::Other);
+    let sql = generate_alter_file(&changes);
     let (up, down) = up_down(&sql);
     assert!(
         up.contains(r#".modify_column(ColumnDef::new(Alias::new("bio")).string().not_null())"#),
@@ -1046,7 +1036,7 @@ fn alter_add_fk_up_creates_down_drops() {
         added_fks: vec![fk("post_id", "post")],
         ..empty_changes()
     };
-    let sql = generate_alter_file(&changes, &DbKind::Other);
+    let sql = generate_alter_file(&changes);
     let (up, down) = up_down(&sql);
     assert!(up.contains(".create_foreign_key("), "up:\n{up}");
     assert!(up.contains(r#".name("t_post_id_post_fkey")"#), "up:\n{up}");
@@ -1059,7 +1049,7 @@ fn alter_drop_fk_up_drops_down_creates() {
         dropped_fks: vec![fk("post_id", "post")],
         ..empty_changes()
     };
-    let sql = generate_alter_file(&changes, &DbKind::Other);
+    let sql = generate_alter_file(&changes);
     let (up, down) = up_down(&sql);
     assert!(up.contains(".drop_foreign_key("), "up:\n{up}");
     assert!(down.contains(".create_foreign_key("), "down:\n{down}");
@@ -1077,7 +1067,7 @@ fn alter_add_unique_index_up_creates_down_drops() {
         }],
         ..empty_changes()
     };
-    let sql = generate_alter_file(&changes, &DbKind::Other);
+    let sql = generate_alter_file(&changes);
     let (up, down) = up_down(&sql);
     assert!(up.contains(".create_index("), "up:\n{up}");
     assert!(up.contains(r#".name("idx_t_email")"#), "up:\n{up}");
@@ -1098,7 +1088,7 @@ fn alter_drop_index_up_drops_down_recreates() {
         }],
         ..empty_changes()
     };
-    let sql = generate_alter_file(&changes, &DbKind::Other);
+    let sql = generate_alter_file(&changes);
     let (up, down) = up_down(&sql);
     assert!(
         up.contains(r#".drop_index(Index::drop().name("idx_t_slug")"#),
@@ -1222,7 +1212,7 @@ fn multiple_column_renames_all_emitted() {
         ],
         ..empty_changes()
     };
-    let sql = generate_alter_file(&changes, &DbKind::Other);
+    let sql = generate_alter_file(&changes);
     assert!(
         sql.contains(r#".rename_column(Alias::new("first"), Alias::new("given_name"))"#),
         "{sql}"
@@ -1443,7 +1433,7 @@ fn alter_add_unique_via_modify_column() {
         modified_columns: vec![(old, new)],
         ..empty_changes()
     };
-    let sql = generate_alter_file(&changes, &DbKind::Other);
+    let sql = generate_alter_file(&changes);
     let (up, down) = up_down(&sql);
     assert!(
         up.contains(r#".modify_column(ColumnDef::new(Alias::new("email")).string().not_null().unique_key())"#),
@@ -1476,7 +1466,7 @@ fn alter_multiple_added_columns_all_present() {
         ],
         ..empty_changes()
     };
-    let sql = generate_alter_file(&changes, &DbKind::Other);
+    let sql = generate_alter_file(&changes);
     assert!(
         sql.contains(r#".add_column(ColumnDef::new(Alias::new("a")).integer().null())"#),
         "{sql}"
@@ -1495,22 +1485,21 @@ fn enum_value_drop_warns_up_and_readds_down_on_postgres() {
         enum_value_drops: vec![("status".into(), "Status".into(), "Legacy".into())],
         ..empty_changes()
     };
-    let pg = generate_alter_file(&changes, &DbKind::Postgres);
-    let (up, down) = up_down(&pg);
+    let sql = generate_alter_file(&changes);
+    let (up, down) = up_down(&sql);
     assert!(
         up.contains("WARNING: value 'Legacy' removed"),
         "up warning:\n{up}"
     );
     assert!(
-        down.contains("ALTER TYPE Status ADD VALUE IF NOT EXISTS 'Legacy'"),
-        "down must re-add the value:\n{down}"
+        down.contains("get_database_backend() == sea_orm::DbBackend::Postgres"),
+        "down must check the real backend at runtime:\n{down}"
     );
-
-    // Non-PG: VARCHAR enums need no DDL for value drops.
-    let other = generate_alter_file(&changes, &DbKind::Other);
     assert!(
-        !other.contains("WARNING"),
-        "non-PG must not emit enum-drop handling:\n{other}"
+        down.contains(".name(Alias::new(\"Status\"))")
+            && down.contains(".add_value(Alias::new(\"Legacy\"))")
+            && down.contains(".if_not_exists()"),
+        "down must re-add the value on Postgres via the Type::alter() builder:\n{down}"
     );
 }
 
@@ -1593,22 +1582,18 @@ fn extend_enum_column_default_is_emitted_on_add_all_engines() {
         enum_value_adds: vec![],
         enum_value_drops: vec![],
     };
-    for kind in [DbKind::Postgres, DbKind::Mysql, DbKind::Other] {
-        let sql = generate_alter_file(&change, &kind);
-        assert!(
-            sql.contains(r#".not_null().default("Draft")"#),
-            "extend enum default missing on ADD COLUMN for {kind:?}:\n{sql}"
-        );
-    }
-    // CREATE TYPE stays Postgres-only.
+    // A single generated file now serves all engines — no more per-`DbKind` variants
+    // to loop over, `generate_alter_file` doesn't take one any more.
+    let sql = generate_alter_file(&change);
     assert!(
-        generate_alter_file(&change, &DbKind::Postgres).contains("CREATE TYPE"),
-        "PG must still CREATE TYPE for the enum"
+        sql.contains(r#".not_null().default("Draft")"#),
+        "extend enum default missing on ADD COLUMN:\n{sql}"
     );
     assert!(
-        !generate_alter_file(&change, &DbKind::Other).contains("CREATE TYPE"),
-        "non-PG must not CREATE TYPE"
+        sql.contains("get_database_backend() == sea_orm::DbBackend::Postgres"),
+        "CREATE TYPE must be runtime-guarded to Postgres:\n{sql}"
     );
+    assert!(sql.contains("CREATE TYPE"), "must still CREATE TYPE for the enum:\n{sql}");
 }
 
 // ── Topological sort: referenced tables created first ──────────────────────────

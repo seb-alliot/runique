@@ -433,7 +433,8 @@
     "destructive_detected": "检测到破坏性更改:",
     "destructive_require_force": "使用 --force 应用这些破坏性更改。",
     "files_ready": "{}个文件已准备好迁移。",
-    "unknown_dsl_type": "警告：未知字段类型 '{}' — 默认使用 '{}'。请检查模型中是否有拼写错误。"
+    "unknown_dsl_type": "警告：未知字段类型 '{}' — 默认使用 '{}'。请检查模型中是否有拼写错误。",
+    "unknown_db_engine": "警告：无法识别的 DB_ENGINE '{}' — 回退到 SQLite 风格的迁移（不支持原生 enum/trigger）。支持的值：postgres、mysql/mariadb、sqlite。"
   },
   "migrate": {
     "applying": "正在从'{}'应用迁移...",

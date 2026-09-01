@@ -139,14 +139,21 @@ fn detect_db_kind() -> crate::migration::utils::types::DbKind {
         return DbKind::Mysql;
     }
 
-    match std::env::var("DB_ENGINE")
-        .unwrap_or_default()
-        .to_lowercase()
-        .as_str()
-    {
+    let raw_engine = std::env::var("DB_ENGINE").unwrap_or_default();
+    match raw_engine.to_lowercase().as_str() {
         "postgres" | "postgresql" => DbKind::Postgres,
         "mysql" | "mariadb" => DbKind::Mysql,
-        _ => DbKind::Other,
+        // Explicit, not just the fallthrough below: SQLite has no native enum/trigger
+        // dialect, so it genuinely belongs on `DbKind::Other` — this makes that a
+        // deliberate case, not indistinguishable from an unrecognized value.
+        "" | "sqlite" => DbKind::Other,
+        _ => {
+            eprintln!(
+                "{}",
+                tf("makemigrations.unknown_db_engine", &[&raw_engine])
+            );
+            DbKind::Other
+        }
     }
 }
 
@@ -467,13 +474,7 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
         &timestamp,
         &db_kind,
     );
-    build_extend_plan(
-        &mut plan,
-        &extend_planned,
-        migrations_path,
-        &timestamp,
-        &db_kind,
-    );
+    build_extend_plan(&mut plan, &extend_planned, migrations_path, &timestamp);
 
     // ── One atomic commit: dirs → backups → write → lib.rs → admin positioning,
     //    with a single rollback covering all of it.
@@ -578,12 +579,12 @@ fn build_main_plan(
             let seaorm_path =
                 seaorm_alter_file_path(migrations_path, timestamp, &change.table_name);
             plan.files
-                .push((seaorm_path, generate_alter_file(change, db_kind)));
+                .push((seaorm_path, generate_alter_file(change)));
             plan.lib_modules.push(module_name);
 
             plan.files.push((
                 alter_file_path(migrations_path, &change.table_name, timestamp),
-                generate_alter_file(change, db_kind),
+                generate_alter_file(change),
             ));
             plan.files.push((
                 batch_up_path(migrations_path, &change.table_name, timestamp),
@@ -615,7 +616,6 @@ fn build_extend_plan(
     planned: &[(ParsedSchema, Changes)],
     migrations_path: &str,
     timestamp: &str,
-    db_kind: &crate::migration::utils::types::DbKind,
 ) {
     if planned.is_empty() {
         return;
@@ -633,7 +633,7 @@ fn build_extend_plan(
         let seaorm_path =
             seaorm_extend_file_path(migrations_path, timestamp, &ext_schema.table_name);
         plan.files
-            .push((seaorm_path, generate_alter_file(changes, db_kind)));
+            .push((seaorm_path, generate_alter_file(changes)));
         plan.lib_modules.push(module_name);
 
         plan.dirs
@@ -645,7 +645,7 @@ fn build_extend_plan(
 
         plan.files.push((
             alter_file_path(migrations_path, &ext_schema.table_name, timestamp),
-            generate_alter_file(changes, db_kind),
+            generate_alter_file(changes),
         ));
         plan.files.push((
             batch_up_path(migrations_path, &ext_schema.table_name, timestamp),

@@ -433,7 +433,8 @@
     "destructive_detected": "Cambios destructivos detectados:",
     "destructive_require_force": "Use --force para aplicar estos cambios destructivos.",
     "files_ready": "{} archivo(s) listo(s) para migrar.",
-    "unknown_dsl_type": "Advertencia: tipo de campo desconocido '{}' — usando '{}' por defecto. Revise si hay un error tipográfico en su modelo."
+    "unknown_dsl_type": "Advertencia: tipo de campo desconocido '{}' — usando '{}' por defecto. Revise si hay un error tipográfico en su modelo.",
+    "unknown_db_engine": "Advertencia: DB_ENGINE '{}' no reconocido — usando migraciones tipo SQLite (sin soporte nativo de enum/trigger). Valores admitidos: postgres, mysql/mariadb, sqlite."
   },
   "migrate": {
     "applying": "Aplicando migraciones desde '{}'...",
