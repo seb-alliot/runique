@@ -265,9 +265,10 @@ fn enum_rename_branches_on_runtime_backend() {
     // Postgres branch: `sea_query::extension::postgres::Type::alter()` builder
     // (escapes values automatically), not a hand-written `ALTER TYPE` string.
     assert!(
-        sql.contains(".name(Alias::new(\"Status\"))")
+        sql.contains(".name(Alias::new(\"status\"))")
             && sql.contains(".rename_value(Alias::new(\"Published\"), Alias::new(\"Release\"))"),
-        "Postgres branch must use the Type::alter().rename_value() builder:\n{sql}"
+        "Postgres branch must use the Type::alter().rename_value() builder, with the \
+         type name lowercased to match the unquoted CREATE TYPE's case-folded identity:\n{sql}"
     );
     // non-Postgres branch: `Query::update()` builder, same reasoning.
     assert!(
@@ -639,40 +640,30 @@ fn updated_at_uses_on_update_extra_on_mysql() {
         sql.contains(r#".extra("ON UPDATE CURRENT_TIMESTAMP")"#),
         "MySQL updated_at must use ON UPDATE extra:\n{sql}"
     );
-    assert!(
-        !sql.contains("CREATE TRIGGER"),
-        "MySQL must not use a trigger:\n{sql}"
-    );
 }
 
+// The trigger/function pair is always emitted into the generated file now — a
+// migration file is fixed forever once committed, so its content can't depend on
+// whatever engine `makemigrations` happened to run against. What varies at
+// *runtime* is whether the guard lets it execute, checked below regardless of
+// the generation-time `db_kind` passed to `generate_create_file`.
 #[test]
-fn updated_at_uses_trigger_on_postgres() {
-    let sql = generate_create_file(&parse_model(TS_MODEL), &DbKind::Postgres);
-    assert!(
-        sql.contains("CREATE TRIGGER trg_event_updated_at"),
-        "PG trigger:\n{sql}"
-    );
-    assert!(
-        sql.contains("set_updated_at_event"),
-        "PG trigger fn:\n{sql}"
-    );
-    assert!(
-        !sql.contains("ON UPDATE CURRENT_TIMESTAMP"),
-        "PG must not use the MySQL extra:\n{sql}"
-    );
-}
-
-#[test]
-fn updated_at_is_plain_on_sqlite() {
-    let sql = generate_create_file(&parse_model(TS_MODEL), &DbKind::Other);
-    assert!(
-        !sql.contains("CREATE TRIGGER"),
-        "SQLite: no trigger:\n{sql}"
-    );
-    assert!(
-        !sql.contains("ON UPDATE CURRENT_TIMESTAMP"),
-        "SQLite: no MySQL extra:\n{sql}"
-    );
+fn updated_at_trigger_is_runtime_guarded_on_every_engine() {
+    for db_kind in [DbKind::Postgres, DbKind::Mysql, DbKind::Other] {
+        let sql = generate_create_file(&parse_model(TS_MODEL), &db_kind);
+        assert!(
+            sql.contains("CREATE TRIGGER trg_event_updated_at"),
+            "trigger for {db_kind:?}:\n{sql}"
+        );
+        assert!(
+            sql.contains("set_updated_at_event"),
+            "trigger fn for {db_kind:?}:\n{sql}"
+        );
+        assert!(
+            sql.contains("get_database_backend() == sea_orm::DbBackend::Postgres"),
+            "trigger must be runtime-guarded for {db_kind:?}:\n{sql}"
+        );
+    }
 }
 
 // ── Foreign key actions (relations file) ──────────────────────────────────────
@@ -1286,9 +1277,11 @@ fn fk_round_trip_is_stable() {
 }
 
 #[test]
-fn sqlite_inlines_fk_in_create_table_but_pg_does_not() {
-    // SQLite cannot ALTER-ADD FKs, so they are inlined in CREATE TABLE.
-    // PG/MySQL keep them in the separate relations migration.
+fn fk_is_inlined_in_create_table_on_every_engine() {
+    // SQLite cannot ALTER-ADD FKs, so they must be inlined in CREATE TABLE — and since
+    // a migration file is fixed forever once committed, `generate_create_file` inlines
+    // on every engine rather than deciding at generation time (same reasoning as the
+    // enum/trigger runtime-guard fixes: no separate relations migration any more).
     let schema = ParsedSchema {
         table_name: "comment".into(),
         primary_key: Some(ParsedColumn {
@@ -1327,8 +1320,8 @@ fn sqlite_inlines_fk_in_create_table_but_pg_does_not() {
 
     let pg = generate_create_file(&schema, &DbKind::Postgres);
     assert!(
-        !pg.contains(".foreign_key("),
-        "PG must NOT inline FK in CREATE:\n{pg}"
+        pg.contains(".foreign_key("),
+        "PG must also inline FK in CREATE:\n{pg}"
     );
 
     // The snapshot never inlines (keeps round-trip stable).
@@ -1496,10 +1489,11 @@ fn enum_value_drop_warns_up_and_readds_down_on_postgres() {
         "down must check the real backend at runtime:\n{down}"
     );
     assert!(
-        down.contains(".name(Alias::new(\"Status\"))")
+        down.contains(".name(Alias::new(\"status\"))")
             && down.contains(".add_value(Alias::new(\"Legacy\"))")
             && down.contains(".if_not_exists()"),
-        "down must re-add the value on Postgres via the Type::alter() builder:\n{down}"
+        "down must re-add the value on Postgres via the Type::alter() builder, with the \
+         type name lowercased to match the unquoted CREATE TYPE's case-folded identity:\n{down}"
     );
 }
 

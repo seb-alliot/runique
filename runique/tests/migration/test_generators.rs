@@ -980,7 +980,9 @@ fn test_alter_file_string_to_enum_create_type_is_runtime_guarded() {
     // Un seul fichier généré sert les 3 moteurs désormais — le CREATE TYPE est
     // toujours présent dans le texte, gardé par un check du backend réel à
     // l'exécution (MySQL/MariaDB ignore la branche, pas de type nommé séparé
-    // nécessaire ; l'ALTER COLUMN via `.using()` marche nativement partout).
+    // nécessaire). Le `modify_column` via `.using()` est lui aussi gardé, mais à
+    // l'exclusion de SQLite (sea-query panique sur tout modify_column sur ce
+    // backend) — pas de perte fonctionnelle : SQLite n'a pas d'enum natif.
     assert!(
         content.contains("get_database_backend() == sea_orm::DbBackend::Postgres"),
         "doit checker le backend réel à l'exécution : {content}"

@@ -74,27 +74,35 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        manager.get_connection().execute_unprepared(
-            "CREATE OR REPLACE FUNCTION set_updated_at_test_all_fields() RETURNS TRIGGER AS $$ BEGIN NEW.updated_at = NOW(); RETURN NEW; END; $$ LANGUAGE plpgsql;"
-        ).await?;
-        manager.get_connection().execute_unprepared(
-            "CREATE TRIGGER trg_test_all_fields_updated_at BEFORE UPDATE ON test_all_fields FOR EACH ROW EXECUTE PROCEDURE set_updated_at_test_all_fields();"
-        ).await?;
+        // `updated_at` triggers are Postgres-only (MySQL handles it inline via
+        // `ON UPDATE CURRENT_TIMESTAMP`, SQLite has no trigger-based equivalent here) —
+        // guarded at runtime rather than baked in at generation time, so this file
+        // stays portable across engines.
+        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {
+            manager.get_connection().execute_unprepared(
+                "CREATE OR REPLACE FUNCTION set_updated_at_test_all_fields() RETURNS TRIGGER AS $$ BEGIN NEW.updated_at = NOW(); RETURN NEW; END; $$ LANGUAGE plpgsql;"
+            ).await?;
+            manager.get_connection().execute_unprepared(
+                "CREATE TRIGGER trg_test_all_fields_updated_at BEFORE UPDATE ON test_all_fields FOR EACH ROW EXECUTE PROCEDURE set_updated_at_test_all_fields();"
+            ).await?;
+        }
 
         Ok(())
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager
-            .get_connection()
-            .execute_unprepared(
-                "DROP TRIGGER IF EXISTS trg_test_all_fields_updated_at ON test_all_fields;",
-            )
-            .await?;
-        manager
-            .get_connection()
-            .execute_unprepared("DROP FUNCTION IF EXISTS set_updated_at_test_all_fields();")
-            .await?;
+        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {
+            manager
+                .get_connection()
+                .execute_unprepared(
+                    "DROP TRIGGER IF EXISTS trg_test_all_fields_updated_at ON test_all_fields;",
+                )
+                .await?;
+            manager
+                .get_connection()
+                .execute_unprepared("DROP FUNCTION IF EXISTS set_updated_at_test_all_fields();")
+                .await?;
+        }
 
         manager
             .drop_table(
