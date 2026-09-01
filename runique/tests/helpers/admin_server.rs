@@ -462,3 +462,28 @@ pub async fn assert_get_ok(client: &reqwest::Client, url: &str) {
         resp.text().await.unwrap_or_default()
     );
 }
+
+/// Trouve l'id d'une ligne de liste via le badge `#<id>` qui précède
+/// immédiatement le texte donné dans le HTML rendu (cf.
+/// `templates/admin/composant/list_partial.html`:
+/// `<span class="admin-badge--id">#{{ entry.id }}</span>` suivi des colonnes
+/// visibles, dont le texte recherché fait partie).
+///
+/// `[0-9a-fA-F-]+` plutôt que `\d+` : sous la feature `pk-uuid`, un id peut
+/// être un UUID (lettres hexa + tirets) — `\d+` ne capturerait qu'un fragment
+/// numérique du UUID, produisant un id invalide et un 404 sur les requêtes
+/// suivantes (bug réel trouvé sur `users` sous `pk-uuid`, 2026-09-01 — `groupes`/
+/// `droits` restent en INTEGER fixe dans ce harness donc pas affectés en
+/// pratique, mais toute future ressource au schéma variable selon la feature
+/// doit passer par cette version, pas en réintroduire une locale `\d+`).
+pub fn find_id_by_visible_text(list_body: &str, needle: &str) -> String {
+    let re = regex::Regex::new(r"#([0-9a-fA-F-]+)").expect("regex id valide");
+    let needle_pos = list_body
+        .find(needle)
+        .unwrap_or_else(|| panic!("texte '{needle}' introuvable dans la liste : {list_body}"));
+    let mut last_id = None;
+    for cap in re.captures_iter(&list_body[..needle_pos]) {
+        last_id = Some(cap[1].to_string());
+    }
+    last_id.unwrap_or_else(|| panic!("aucun badge #id avant '{needle}' dans la liste"))
+}
