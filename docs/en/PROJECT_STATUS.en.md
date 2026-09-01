@@ -9,7 +9,7 @@ This document consolidates the actual state of the repository from the reference
 
 ---
 
-## Snapshot (as of August 30, 2026)
+## Snapshot (as of September 1, 2026)
 
 - **Workspace version**: `2.2.0`
 - **derive_form**: `2.1.11`
@@ -84,6 +84,8 @@ This document consolidates the actual state of the repository from the reference
 - Supported backends: PostgreSQL, MariaDB, SQLite
 - `Pk` alias: `i32` by default, `i64` (`big-pk`), or `Uuid` via `Uuid::now_v7()` (`pk-uuid`) — mutually exclusive features (`compile_error!`). Usable on any field (not just the PK), typically a foreign key, to stay automatically in sync with the referenced table's type
 - `model!{}` — unified field syntax (the legacy `fields: { name: SqlType }` grammar is removed): single anonymous block, 43 semantic types, including `readonly`/`label` options
+- Migration generator hardened across engines (2026-09-01): runtime backend guards for `CREATE TYPE`/`updated_at` triggers (instead of a choice frozen at generation time), Postgres identifier case-folding fixed on `ALTER TYPE`, invalid `TYPE`/`USING` ordering fixed, `modify_column` skipped on SQLite (sea-query panic there); foreign keys always inline in `CREATE TABLE`
+- `makemigrations` now recognizes a `migration/` bootstrapped via `sea-orm-cli migrate init` (`lib.rs` canonically reformatted, `todo!()` placeholder removed) — see [Migrations](/docs/en/installation/migrations)
 
 ### I18n
 
@@ -150,5 +152,5 @@ This document consolidates the actual state of the repository from the reference
 
 ---
 
-**Last update**: August 30, 2026
+**Last update**: September 1, 2026
 **Global status**: ✅ Stable framework · 🟡 Admin mature beta · 🔒 Security: reset tokens DB-hardened, timing-safe auth · 📖 Full public API documentation (docs.rs)

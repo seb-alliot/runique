@@ -9,7 +9,7 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 ---
 
-## Snapshot (au 30 août 2026)
+## Snapshot (au 1er septembre 2026)
 
 - **Version workspace** : `2.2.0`
 - **derive_form** : `2.1.11`
@@ -78,6 +78,8 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 - Backends supportés : PostgreSQL, MariaDB, SQLite
 - Alias `Pk` : `i32` par défaut, `i64` (`big-pk`) ou `Uuid` via `Uuid::now_v7()` (`pk-uuid`) — features mutuellement exclusives (`compile_error!`). Utilisable sur n'importe quel champ (pas seulement la PK), typiquement une FK, pour rester automatiquement synchronisé avec le type de la table référencée
 - `model!{}` — syntaxe de champs unifiée (l'ancienne grammaire `fields: { name: SqlType }` est supprimée) : bloc anonyme unique, 43 types sémantiques, options `readonly`/`label` incluses
+- Générateur de migrations durci multi-moteurs (2026-09-01) : gardes runtime pour `CREATE TYPE`/triggers `updated_at` (au lieu d'un choix figé à la génération), casse d'identifiant Postgres corrigée sur `ALTER TYPE`, ordre `TYPE`/`USING` invalide corrigé, `modify_column` sauté sous SQLite (panique sea-query) ; FK toujours inline en `CREATE TABLE`
+- `makemigrations` reconnaît désormais un `migration/` initialisé via `sea-orm-cli migrate init` (`lib.rs` reformaté canoniquement, placeholder `todo!()` supprimé) — cf. [Migrations](/docs/fr/installation/migrations)
 
 ### I18n
 - 9 langues (en, fr, de, es, it, pt, ja, zh, ru), stockage `AtomicU8`, `RUNIQUE_LANG`
@@ -138,5 +140,5 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 ---
 
-**Dernière mise à jour** : 30 août 2026
+**Dernière mise à jour** : 1er septembre 2026
 **Statut global** : ✅ Framework stable · 🟡 Admin bêta mature · 🔒 Sécurité : tokens de reset durcis en DB, auth en temps constant · 📖 Documentation API publique complète (docs.rs)
