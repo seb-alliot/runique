@@ -149,11 +149,11 @@ Selectable backends:
 
 ## Test and coverage snapshot
 
-- Reported tests: **2361 passing** (2 ignored)
-- Coverage snapshot (`2026-08-30`, package `runique`, admin module included):
-  - Functions: **74.24%**
-  - Lines: **71.83%**
-  - Regions: **70.55%**
+- Reported tests: **2370 passing** (2 ignored)
+- Coverage snapshot (`2026-09-01`, package `runique`, admin module included):
+  - Functions: **75.14%**
+  - Lines: **73.04%**
+  - Regions: **71.77%**
 
 ```bash
 cargo llvm-cov --package runique --summary-only
