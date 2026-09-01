@@ -82,7 +82,10 @@ impl MigrationTrait for Migration {
                                     ],
                                 },
                             )
-                            .using(Expr::col(Alias::new("difficulte")).cast_as(Alias::new("Difficulte"))),
+                            .using(
+                                Expr::col(Alias::new("difficulte"))
+                                    .cast_as(Alias::new("Difficulte")),
+                            ),
                         )
                         .to_owned(),
                 )
@@ -112,9 +115,9 @@ impl MigrationTrait for Migration {
                     Table::alter()
                         .table(Alias::new("cour"))
                         .modify_column(
-                            ColumnDef::new(Alias::new("difficulte"))
-                                .string()
-                                .using(Expr::col(Alias::new("difficulte")).cast_as(Alias::new("text"))),
+                            ColumnDef::new(Alias::new("difficulte")).string().using(
+                                Expr::col(Alias::new("difficulte")).cast_as(Alias::new("text")),
+                            ),
                         )
                         .to_owned(),
                 )

@@ -148,10 +148,7 @@ fn detect_db_kind() -> crate::migration::utils::types::DbKind {
         // deliberate case, not indistinguishable from an unrecognized value.
         "" | "sqlite" => DbKind::Other,
         _ => {
-            eprintln!(
-                "{}",
-                tf("makemigrations.unknown_db_engine", &[&raw_engine])
-            );
+            eprintln!("{}", tf("makemigrations.unknown_db_engine", &[&raw_engine]));
             DbKind::Other
         }
     }
@@ -573,8 +570,7 @@ fn build_main_plan(
             let module_name = seaorm_alter_module_name(timestamp, &change.table_name);
             let seaorm_path =
                 seaorm_alter_file_path(migrations_path, timestamp, &change.table_name);
-            plan.files
-                .push((seaorm_path, generate_alter_file(change)));
+            plan.files.push((seaorm_path, generate_alter_file(change)));
             plan.lib_modules.push(module_name);
 
             plan.files.push((
@@ -615,8 +611,7 @@ fn build_extend_plan(
         let module_name = seaorm_extend_module_name(timestamp, &ext_schema.table_name);
         let seaorm_path =
             seaorm_extend_file_path(migrations_path, timestamp, &ext_schema.table_name);
-        plan.files
-            .push((seaorm_path, generate_alter_file(changes)));
+        plan.files.push((seaorm_path, generate_alter_file(changes)));
         plan.lib_modules.push(module_name);
 
         plan.dirs

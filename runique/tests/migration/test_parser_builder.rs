@@ -282,14 +282,8 @@ fn test_parse_pk_typed_field_maps_to_integer() {
     // détecté en vrai sur `contributions.user_id`/`chapitre.cour_id`/etc. via
     // `runique makemigrations` sur demo-app (faux changements destructifs
     // Integer -> String).
-    let schema = parse_schema_from_source(contributions_source())
-        .unwrap()
-        .1;
-    let user_id = schema
-        .columns
-        .iter()
-        .find(|c| c.name == "user_id")
-        .unwrap();
+    let schema = parse_schema_from_source(contributions_source()).unwrap().1;
+    let user_id = schema.columns.iter().find(|c| c.name == "user_id").unwrap();
     assert_eq!(
         user_id.col_type, "Integer",
         "un champ Pk (features par défaut) doit être Integer, pas String"

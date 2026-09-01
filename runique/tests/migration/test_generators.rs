@@ -930,13 +930,17 @@ fn test_alter_file_string_to_enum_postgres_generates_create_type_and_cast() {
     );
     assert!(up.contains("'text'") && up.contains("'code'"));
     assert!(
-        up.contains(".using(Expr::col(Alias::new(\"block_type\")).cast_as(Alias::new(\"CourBlockType\")))"),
+        up.contains(
+            ".using(Expr::col(Alias::new(\"block_type\")).cast_as(Alias::new(\"CourBlockType\")))"
+        ),
         "UP doit caster la colonne existante vers le nouvel enum"
     );
 
     let down = content.split("async fn down").nth(1).unwrap_or("");
     assert!(
-        down.contains(".using(Expr::col(Alias::new(\"block_type\")).cast_as(Alias::new(\"text\")))"),
+        down.contains(
+            ".using(Expr::col(Alias::new(\"block_type\")).cast_as(Alias::new(\"text\")))"
+        ),
         "DOWN doit recaster vers text en repassant en string"
     );
     assert!(

@@ -52,7 +52,9 @@ impl MigrationTrait for Migration {
                                     ],
                                 },
                             )
-                            .using(Expr::col(Alias::new("page_type")).cast_as(Alias::new("PageType"))),
+                            .using(
+                                Expr::col(Alias::new("page_type")).cast_as(Alias::new("PageType")),
+                            ),
                         )
                         .to_owned(),
                 )
@@ -69,9 +71,9 @@ impl MigrationTrait for Migration {
                     Table::alter()
                         .table(Alias::new("demo_page"))
                         .modify_column(
-                            ColumnDef::new(Alias::new("page_type"))
-                                .string()
-                                .using(Expr::col(Alias::new("page_type")).cast_as(Alias::new("text"))),
+                            ColumnDef::new(Alias::new("page_type")).string().using(
+                                Expr::col(Alias::new("page_type")).cast_as(Alias::new("text")),
+                            ),
                         )
                         .to_owned(),
                 )

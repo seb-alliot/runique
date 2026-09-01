@@ -1,6 +1,5 @@
 use runique::prelude::migrations_table;
 use sea_orm_migration::prelude::*;
-mod m20260831_232248_extend_eihwaz_users_table;
 mod m20260413_133022_create_blog_table;
 mod m20260413_133022_create_changelog_entry_table;
 mod m20260413_133022_create_chapitre_table;
@@ -34,6 +33,7 @@ mod m20260614_221003_alter_changelog_entry_table;
 mod m20260614_221003_alter_site_config_table;
 mod m20260614_221003_alter_test_all_fields_table;
 mod m20260614_221003_extend_eihwaz_users_table;
+mod m20260831_232248_extend_eihwaz_users_table;
 
 pub struct Migrator;
 
