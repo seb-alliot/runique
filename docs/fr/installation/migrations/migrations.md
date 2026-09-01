@@ -1,5 +1,34 @@
 # Migrations (SeaORM)
 
+## Initialisation de la crate `migration` (une seule fois)
+
+`runique makemigrations` écrit des fichiers `.rs` dans `migration/src/`, mais ne crée **ni** le `Cargo.toml` **ni** le binaire CLI qui les compile — `migration/` doit déjà exister comme crate Rust compilable avant la première génération.
+
+```bash
+sea-orm-cli migrate init --migration-dir migration/src
+```
+
+Deux ajustements manuels dans `migration/Cargo.toml` après l'init :
+
+- Activer au moins un runtime + un driver DB dans les `features` de `sea-orm-migration` — la liste générée par `migrate init` est vide (seulement des commentaires en exemple).
+- Ajouter `runique` en dépendance : les migrations générées référencent `runique::prelude::migrations_table` pour les tables `eihwaz_*` (cf. plus bas).
+
+```toml
+[dependencies]
+tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
+runique = { version = "2.2.0", features = ["orm", "sqlite"] }
+
+[dependencies.sea-orm-migration]
+version = "2.0.0"
+features = ["runtime-tokio-rustls", "sqlx-sqlite"]
+```
+
+> Adapter `sqlite`/`sqlx-sqlite` à votre moteur cible (`postgres`/`sqlx-postgres`, `mysql`/`sqlx-mysql`) — cf. [Base de données](/docs/fr/installation/base-de-donnees).
+
+> `runique makemigrations` écrase ensuite `migration/src/lib.rs` et supprime le fichier de migration placeholder que `sea-orm-cli migrate init` a créés — rien d'autre à faire de ce côté.
+
+---
+
 ## Workflow en deux étapes
 
 ### 1. Générer les fichiers de migration

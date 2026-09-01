@@ -84,41 +84,154 @@ pub fn scan_entities(entities_path: &str) -> Result<Vec<ParsedSchema>> {
 /// `module_name` must be in SeaORM format: `m{timestamp}_create_{table}_table`
 pub fn update_migration_lib(migrations_path: &str, module_name: &str) -> Result<()> {
     let lib = lib_path(migrations_path);
-    let mod_line = format!("mod {};", module_name);
-    let box_line = format!("            Box::new({}::Migration),", module_name);
+    let box_entry = format!("Box::new({}::Migration)", module_name);
 
-    if !Path::new(&lib).exists() {
-        let content = format!(
-            "use runique::prelude::migrations_table;\nuse sea_orm_migration::prelude::*;\n\n{}\n\npub struct Migrator;\n\n#[async_trait::async_trait]\nimpl MigratorTrait for Migrator {{\n    fn migrations() -> Vec<Box<dyn MigrationTrait>> {{\n        vec![\n{}\n        ]\n    }}\n}}\n",
-            mod_line, box_line
-        );
-        fs::write(&lib, content)?;
+    let mut state = if Path::new(&lib).exists() {
+        parse_lib_state(&fs::read_to_string(&lib)?)
     } else {
-        let existing = fs::read_to_string(&lib)?;
-        if existing.contains(&mod_line) {
-            return Ok(());
-        }
-        // Add `use migrations_table` if missing (`lib.rs` existing without it)
-        let existing = if !existing.contains("migrations_table") {
-            existing.replacen(
-                "use sea_orm_migration::prelude::*;",
-                "use runique::prelude::migrations_table;\nuse sea_orm_migration::prelude::*;",
-                1,
-            )
-        } else {
-            existing
-        };
-        let updated = existing
-            .replacen(
-                "use sea_orm_migration::prelude::*;",
-                &format!("use sea_orm_migration::prelude::*;\n{}", mod_line),
-                1,
-            )
-            .replacen("        ]", &format!("{}\n        ]", box_line), 1);
-        fs::write(&lib, updated)?;
-    }
+        LibState::default()
+    };
 
+    // Runs whether `lib.rs` pre-existed or not: `sea-orm-cli migrate init` always
+    // leaves this exact placeholder wired in (its `up()`/`down()` are both a bare
+    // `todo!()`, which panics the first time any migration actually runs).
+    strip_sea_orm_cli_placeholder_file(migrations_path);
+
+    if state.mods.contains(&module_name.to_string()) {
+        return Ok(());
+    }
+    state.mods.push(module_name.to_string());
+    state
+        .entries
+        .retain(|e| !e.contains(SEA_ORM_CLI_PLACEHOLDER_MODULE));
+    state.entries.push(box_entry);
+
+    fs::write(&lib, render_lib(&state))?;
     Ok(())
+}
+
+// ── lib.rs canonical rewriting ───────────────────────────────────────────────
+//
+// `sea-orm-cli migrate init` is the documented first step to bootstrap the
+// `migration` crate (Cargo.toml + main.rs) before ever running `makemigrations`
+// — its own generated `lib.rs` uses a different shape than Runique's (single-line
+// `vec![Box::new(X::Migration)]`, `pub use sea_orm_migration::prelude::*;`) that
+// broke the old line-based `.replacen(...)` patching: the `vec![` search matched
+// but inserted new entries *after* the whole (already-closed) vec statement
+// instead of inside it, and framework migrations landed outside `Migrator::migrations()`
+// entirely — syntactically invalid output. Parsing into a small in-memory model
+// and always re-rendering canonically sidesteps every formatting assumption.
+
+/// Literal placeholder module name `sea-orm-cli migrate init` always generates
+/// (a fixed string, not templated with a timestamp — confirmed by direct testing).
+const SEA_ORM_CLI_PLACEHOLDER_MODULE: &str = "m20220101_000001_create_table";
+
+/// Parsed, formatting-independent view of `Migrator::migrations()`'s `lib.rs`.
+#[derive(Default)]
+struct LibState {
+    uses_migrations_table: bool,
+    mods: Vec<String>,
+    entries: Vec<String>,
+}
+
+/// Finds the byte range of the `vec![ ... ]` inside `Migrator::migrations()`,
+/// by bracket-depth balance from the first `vec![` — robust whether it's
+/// Runique's own multi-line output or a single-line `vec![Box::new(...)]`.
+fn find_vec_span(content: &str) -> Option<(usize, usize)> {
+    let start = content.find("vec![")?;
+    let open = start + "vec![".len() - 1;
+    let mut depth = 0i32;
+    for (i, ch) in content[open..].char_indices() {
+        match ch {
+            '[' => depth += 1,
+            ']' => {
+                depth -= 1;
+                if depth == 0 {
+                    return Some((open, open + i + 1));
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
+/// Extracts each `Box::new(...)` entry inside a `vec![...]` span, in order —
+/// works regardless of the original line layout (one entry per line, several
+/// per line, or all on a single line).
+fn extract_box_entries(vec_content: &str) -> Vec<String> {
+    let mut entries = Vec::new();
+    let mut rest = vec_content;
+    while let Some(start) = rest.find("Box::new(") {
+        let after = &rest[start + "Box::new(".len()..];
+        let Some(end) = after.find(')') else { break };
+        entries.push(format!("Box::new({})", &after[..end]));
+        rest = &after[end + 1..];
+    }
+    entries
+}
+
+fn parse_lib_state(content: &str) -> LibState {
+    let uses_migrations_table = content.contains("migrations_table");
+    let mut mods = Vec::new();
+    for line in content.lines() {
+        if let Some(rest) = line.trim().strip_prefix("mod ")
+            && let Some(name) = rest.strip_suffix(';')
+            && name != SEA_ORM_CLI_PLACEHOLDER_MODULE
+            && !mods.contains(&name.to_string())
+        {
+            mods.push(name.to_string());
+        }
+    }
+    let entries = match find_vec_span(content) {
+        Some((s, e)) => extract_box_entries(&content[s..e])
+            .into_iter()
+            .filter(|entry| !entry.contains(SEA_ORM_CLI_PLACEHOLDER_MODULE))
+            .collect(),
+        None => Vec::new(),
+    };
+    LibState {
+        uses_migrations_table,
+        mods,
+        entries,
+    }
+}
+
+fn render_lib(state: &LibState) -> String {
+    let mut out = String::new();
+    if state.uses_migrations_table {
+        out.push_str("use runique::prelude::migrations_table;\n");
+    }
+    out.push_str("use sea_orm_migration::prelude::*;\n");
+    for m in &state.mods {
+        out.push_str(&format!("mod {};\n", m));
+    }
+    out.push('\n');
+    out.push_str("pub struct Migrator;\n\n");
+    out.push_str("#[async_trait::async_trait]\n");
+    out.push_str("impl MigratorTrait for Migrator {\n");
+    out.push_str("    fn migrations() -> Vec<Box<dyn MigrationTrait>> {\n        ");
+    if state.entries.is_empty() {
+        out.push_str("vec![]");
+    } else {
+        out.push_str("vec![\n");
+        for e in &state.entries {
+            out.push_str("            ");
+            out.push_str(e);
+            out.push_str(",\n");
+        }
+        out.push_str("        ]");
+    }
+    out.push_str("\n    }\n}\n");
+    out
+}
+
+/// Deletes the `sea-orm-cli migrate init` placeholder migration file, if present.
+fn strip_sea_orm_cli_placeholder_file(migrations_path: &str) {
+    let placeholder_file = format!("{}/{}.rs", migrations_path, SEA_ORM_CLI_PLACEHOLDER_MODULE);
+    if Path::new(&placeholder_file).exists() {
+        let _ = fs::remove_file(&placeholder_file);
+    }
 }
 
 // ── db kind detection ────────────────────────────────────────────────────────
@@ -737,22 +850,14 @@ pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
     }
 
     let content = fs::read_to_string(&lib_file)?;
+    strip_sea_orm_cli_placeholder_file(migrations_path);
+    let mut state = parse_lib_state(&content);
+    state.uses_migrations_table = true;
 
-    // Ensure `use runique::prelude::migrations_table;` is present
-    let content = if !content.contains("migrations_table") {
-        content.replacen(
-            "use sea_orm_migration::prelude::*;",
-            "use runique::prelude::migrations_table;\nuse sea_orm_migration::prelude::*;",
-            1,
-        )
-    } else {
-        content
-    };
-
-    let admin_box = "            Box::new(migrations_table::AdminTableMigration),";
-    let sessions_box = "            Box::new(migrations_table::EihwazSessionsMigration),";
-    let reset_box = "            Box::new(migrations_table::EihwazResetTokensMigration),";
-    let users_box = "            Box::new(migrations_table::EihwazUsersMigration),";
+    let admin_box = "Box::new(migrations_table::AdminTableMigration)".to_string();
+    let sessions_box = "Box::new(migrations_table::EihwazSessionsMigration)".to_string();
+    let reset_box = "Box::new(migrations_table::EihwazResetTokensMigration)".to_string();
+    let users_box = "Box::new(migrations_table::EihwazUsersMigration)".to_string();
     let user_pattern = format!("create_{}_table", user_table);
 
     let using_builtin_user = user_table == "eihwaz_users";
@@ -769,32 +874,25 @@ pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
 
     if using_builtin_user {
         // ── Default case: user table provided by the framework ──────────────
-        // Remove existing framework lines (we'll re-inject them at the top)
-        // and also filter app migrations duplicating framework tables.
-        let mut lines: Vec<String> = content
-            .lines()
-            .filter(|l| {
-                !l.contains("migrations_table::EihwazUsersMigration")
-                    && !l.contains("migrations_table::EihwazSessionsMigration")
-                    && !l.contains("migrations_table::EihwazResetTokensMigration")
-                    && !l.contains("migrations_table::AdminTableMigration")
-                    && !FRAMEWORK_TABLE_PATTERNS.iter().any(|pat| l.contains(pat))
-            })
-            .map(|l| l.to_string())
-            .collect();
+        // Remove existing framework entries/mods (we'll re-inject at the top)
+        // and also drop app migrations duplicating framework tables.
+        state
+            .entries
+            .retain(|e| e != &users_box && e != &sessions_box && e != &reset_box && e != &admin_box);
+        state
+            .mods
+            .retain(|m| !FRAMEWORK_TABLE_PATTERNS.iter().any(|pat| m.contains(pat)));
+        state.entries.splice(
+            0..0,
+            [
+                users_box.clone(),
+                sessions_box.clone(),
+                admin_box.clone(),
+                reset_box.clone(),
+            ],
+        );
 
-        // Insert all three framework migrations at the start of vec![
-        if let Some(idx) = lines
-            .iter()
-            .position(|l| l.trim() == "vec![" || l.contains("vec!["))
-        {
-            lines.insert(idx + 1, reset_box.to_string());
-            lines.insert(idx + 1, admin_box.to_string());
-            lines.insert(idx + 1, sessions_box.to_string());
-            lines.insert(idx + 1, users_box.to_string());
-        }
-
-        let result = lines.join("\n") + "\n";
+        let result = render_lib(&state);
         if result != content {
             fs::write(&lib_file, &result)?;
         }
@@ -802,25 +900,15 @@ pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
         // ── Custom case: the dev provides their own user table ──────────────────
         // AdminTableMigration positioned right after the migration of its table
         if !content.contains(&user_pattern) {
-            fs::write(&lib_file, &content)?;
             return Ok(());
         }
 
-        let mut lines: Vec<String> = content
-            .lines()
-            .filter(|l| {
-                !l.contains("migrations_table::AdminTableMigration")
-                    && !l.contains("migrations_table::EihwazResetTokensMigration")
-            })
-            .map(|l| l.to_string())
-            .collect();
-
-        if let Some(idx) = lines.iter().position(|l| l.contains(&user_pattern)) {
-            lines.insert(idx + 1, reset_box.to_string());
-            lines.insert(idx + 1, admin_box.to_string());
+        state.entries.retain(|e| e != &admin_box && e != &reset_box);
+        if let Some(idx) = state.entries.iter().position(|e| e.contains(&user_pattern)) {
+            state.entries.splice(idx + 1..idx + 1, [admin_box, reset_box]);
         }
 
-        let result = lines.join("\n") + "\n";
+        let result = render_lib(&state);
         if result != content {
             fs::write(&lib_file, &result)?;
         }
