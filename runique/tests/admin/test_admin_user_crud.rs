@@ -11,8 +11,9 @@
 //! Reste non couvert : bulk `update-submit`/`group_set` (pas de `group_action`
 //! configuré pour `users` dans ce harness de test) — à faire dans un futur passage.
 
-use crate::helpers::admin_server::{ADMIN_PREFIX, admin_server_addr, login_as_superuser};
-use regex::Regex;
+use crate::helpers::admin_server::{
+    ADMIN_PREFIX, admin_server_addr, find_id_by_visible_text, login_as_superuser,
+};
 use serial_test::serial;
 
 // `#[serial]` : même raison que les autres suites admin partageant
@@ -27,21 +28,6 @@ async fn csrf_token(client: &reqwest::Client, url: &str) -> String {
         .to_str()
         .expect("x-csrf-token non-UTF8")
         .to_string()
-}
-
-/// Trouve l'id d'une ligne de liste via le badge `#<id>` qui précède
-/// immédiatement le texte donné dans le HTML rendu (cf.
-/// `test_admin_groupe_droits_crud.rs::find_id_by_visible_text`).
-fn find_id_by_visible_text(list_body: &str, needle: &str) -> String {
-    let re = Regex::new(r"#(\d+)").expect("regex id valide");
-    let needle_pos = list_body
-        .find(needle)
-        .unwrap_or_else(|| panic!("texte '{needle}' introuvable dans la liste : {list_body}"));
-    let mut last_id = None;
-    for cap in re.captures_iter(&list_body[..needle_pos]) {
-        last_id = Some(cap[1].to_string());
-    }
-    last_id.unwrap_or_else(|| panic!("aucun badge #id avant '{needle}' dans la liste"))
 }
 
 #[tokio::test]

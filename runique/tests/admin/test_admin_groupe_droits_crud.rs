@@ -12,8 +12,9 @@
 //! pas d'accès direct à la DB, donc pas de risque de partage de connexion
 //! cross-runtime (cf. `test_admin_password_security.rs`).
 
-use crate::helpers::admin_server::{ADMIN_PREFIX, admin_server_addr, login_as_superuser};
-use regex::Regex;
+use crate::helpers::admin_server::{
+    ADMIN_PREFIX, admin_server_addr, find_id_by_visible_text, login_as_superuser,
+};
 use serial_test::serial;
 
 // `#[serial]` : même raison que les autres suites admin partageant
@@ -28,22 +29,6 @@ async fn csrf_token(client: &reqwest::Client, url: &str) -> String {
         .to_str()
         .expect("x-csrf-token non-UTF8")
         .to_string()
-}
-
-/// Trouve l'id d'une ligne de liste via le badge `#<id>` qui précède
-/// immédiatement le texte donné dans le HTML rendu (cf.
-/// `templates/admin/composant/list_partial.html`: `<span class="admin-badge--id">#{{ entry.id }}</span>`
-/// suivi des colonnes visibles, dont le texte recherché fait partie).
-fn find_id_by_visible_text(list_body: &str, needle: &str) -> String {
-    let re = Regex::new(r"#(\d+)").expect("regex id valide");
-    let needle_pos = list_body
-        .find(needle)
-        .unwrap_or_else(|| panic!("texte '{needle}' introuvable dans la liste : {list_body}"));
-    let mut last_id = None;
-    for cap in re.captures_iter(&list_body[..needle_pos]) {
-        last_id = Some(cap[1].to_string());
-    }
-    last_id.unwrap_or_else(|| panic!("aucun badge #id avant '{needle}' dans la liste"))
 }
 
 /// Vérifie si la checkbox `name="{field}"` est rendue `checked` dans le HTML
