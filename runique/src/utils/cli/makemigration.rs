@@ -876,9 +876,9 @@ pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
         // ── Default case: user table provided by the framework ──────────────
         // Remove existing framework entries/mods (we'll re-inject at the top)
         // and also drop app migrations duplicating framework tables.
-        state
-            .entries
-            .retain(|e| e != &users_box && e != &sessions_box && e != &reset_box && e != &admin_box);
+        state.entries.retain(|e| {
+            e != &users_box && e != &sessions_box && e != &reset_box && e != &admin_box
+        });
         state
             .mods
             .retain(|m| !FRAMEWORK_TABLE_PATTERNS.iter().any(|pat| m.contains(pat)));
@@ -905,7 +905,9 @@ pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
 
         state.entries.retain(|e| e != &admin_box && e != &reset_box);
         if let Some(idx) = state.entries.iter().position(|e| e.contains(&user_pattern)) {
-            state.entries.splice(idx + 1..idx + 1, [admin_box, reset_box]);
+            state
+                .entries
+                .splice(idx + 1..idx + 1, [admin_box, reset_box]);
         }
 
         let result = render_lib(&state);

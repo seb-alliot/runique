@@ -228,6 +228,7 @@ pub mod prelude {
                 CountFn, CreateFn, DeleteFn, FilterFn, FormBuilder, GetFn, GroupAction, ListFn,
                 ListParams, M2mFieldOptions, M2mLoaderFn, ResourceEntry, SortDir, UpdateFn,
             },
+            sql_dialect::{ilike, text_cast_type, text_eq},
         },
         registry::AdminRegistry,
         resource::{

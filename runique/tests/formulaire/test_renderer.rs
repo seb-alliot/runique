@@ -318,6 +318,74 @@ fn test_render_js_inclut_le_nonce_csp() {
     assert!(html.contains("form.js"));
 }
 
+// ═══════════════════════════════════════════════════════════════
+// render_js — vrai template interne (pas une copie tapée à la main),
+// et ordre de rendu des fichiers JS
+// ═══════════════════════════════════════════════════════════════
+//
+// Les tests ci-dessus (`test_render_js_inclut_le_nonce_csp`,
+// `test_render_js_sans_nonce_pas_d_attribut`) répliquent le contenu de
+// `runique/templates/asset/js.html` à la main — un drift entre la copie et le
+// vrai fichier passerait inaperçu. Celui-ci charge le vrai contenu via
+// `SIMPLE_TEMPLATES` (le même `include_str!` que `RuniqueEngine` utilise au
+// démarrage) et enregistre le vrai filtre `static`, pour vérifier le résultat
+// réellement produit — pas une reconstruction supposée équivalente.
+
+#[test]
+fn test_render_js_vrai_template_interne_ordre_et_nonce() {
+    use indexmap::IndexMap;
+    use runique::utils::constante::template::{ERROR_CORPS, SIMPLE_TEMPLATES};
+
+    let mut tera = Tera::default();
+    // Filtres d'abord : Tera 2 valide les filtres/fonctions au moment où les
+    // templates sont ajoutés (même raison que `add_raw_templates` en un seul
+    // lot pour `{% include %}`/`{% extends %}` — cf. commentaire de
+    // `load_internal_templates`), donc `static`/`runique_static` doivent déjà
+    // être enregistrés avant `add_raw_templates`.
+    runique::context::tera::static_tera::register_asset_filters(
+        &mut tera,
+        "/static".to_string(),
+        "/media".to_string(),
+        "/static".to_string(),
+        "/media".to_string(),
+        std::sync::Arc::new(std::sync::RwLock::new(std::collections::HashMap::new())),
+    );
+    // `SIMPLE_TEMPLATES` inclut `debug.html`, qui `{% include %}` les partiels
+    // de `ERROR_CORPS` — les deux doivent être ajoutés dans le même lot, sinon
+    // le lot entier échoue (même s'ils sont sans rapport avec `js_files.html`).
+    let templates: Vec<(&str, &str)> = SIMPLE_TEMPLATES
+        .iter()
+        .chain(ERROR_CORPS.iter())
+        .copied()
+        .collect();
+    tera.add_raw_templates(templates)
+        .expect("le vrai js_files.html (+ dépendances internes) doit charger");
+
+    let mut renderer = runique::forms::renderer::FormRenderer::new(Arc::new(tera));
+    renderer.set_nonce("n0nc3-xyz");
+    // Ordre volontairement non-alphabétique : si le rendu triait ou
+    // mélangeait, ce test le détecterait — l'ordre attendu est l'ordre de
+    // déclaration, pas un autre.
+    renderer.add_js(&["c.js", "a.js", "b.js"]);
+
+    let html = renderer
+        .render(&IndexMap::new(), &[])
+        .expect("le vrai template js_files.html doit rendre sans erreur — Bug I");
+
+    assert!(
+        html.contains(r#"nonce="n0nc3-xyz""#),
+        "le nonce doit apparaître avec le vrai template. HTML: {html}"
+    );
+
+    let pos_c = html.find("c.js").expect("c.js rendu");
+    let pos_a = html.find("a.js").expect("a.js rendu");
+    let pos_b = html.find("b.js").expect("b.js rendu");
+    assert!(
+        pos_c < pos_a && pos_a < pos_b,
+        "les fichiers JS doivent être rendus dans l'ordre de déclaration (c, a, b), pas trié ni mélangé. HTML: {html}"
+    );
+}
+
 #[test]
 fn test_render_js_sans_nonce_pas_d_attribut() {
     use indexmap::IndexMap;
