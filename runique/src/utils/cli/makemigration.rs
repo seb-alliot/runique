@@ -541,9 +541,6 @@ fn build_main_plan(
     timestamp: &str,
     db_kind: &crate::migration::utils::types::DbKind,
 ) {
-    // Schemas of new tables that have FK constraints — collected for the relations migration.
-    let mut schemas_with_fks: Vec<&ParsedSchema> = Vec::new();
-
     for change in all_changes {
         let schema = schemas
             .iter()
@@ -560,13 +557,11 @@ fn build_main_plan(
             let module_name = seaorm_create_module_name(timestamp, &change.table_name);
             let seaorm_path =
                 seaorm_create_file_path(migrations_path, timestamp, &change.table_name);
-            // CREATE TABLE without FK constraints — relations are added last via relations migration.
+            // FK constraints inline in the CREATE TABLE itself (see generate_create_file) —
+            // SQLite can't ALTER-ADD one later, and inline is valid on every engine.
             plan.files
                 .push((seaorm_path, generate_create_file(schema, db_kind)));
             plan.lib_modules.push(module_name);
-            if !schema.foreign_keys.is_empty() {
-                schemas_with_fks.push(schema);
-            }
         } else {
             plan.dirs
                 .push(table_applied_dir(migrations_path, &change.table_name));
@@ -595,18 +590,6 @@ fn build_main_plan(
                 generate_batch_down_file(&[change], timestamp),
             ));
         }
-    }
-
-    // Relations migration — all FK constraints grouped in a single migration, registered
-    // after every CREATE so the referenced tables already exist when constraints are added.
-    // SQLite is excluded: it cannot ALTER-ADD FKs, so they are inlined in each CREATE TABLE.
-    let inline_fk_engine = *db_kind == crate::migration::utils::types::DbKind::Other;
-    if !schemas_with_fks.is_empty() && !inline_fk_engine {
-        let module_name = format!("m{}_create_relations", timestamp);
-        let path = format!("{}/{}.rs", migrations_path, module_name);
-        plan.files
-            .push((path, generate_relations_file(&schemas_with_fks)));
-        plan.lib_modules.push(module_name);
     }
 }
 

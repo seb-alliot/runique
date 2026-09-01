@@ -68,10 +68,12 @@ impl MigrationTrait for Migration {
                     .to_owned(),
             )
             .await?;
-        manager
-            .get_connection()
-            .execute_unprepared("DROP TYPE IF EXISTS ChangelogCategory")
-            .await?;
+        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {
+            manager
+                .get_connection()
+                .execute_unprepared("DROP TYPE IF EXISTS ChangelogCategory")
+                .await?;
+        }
 
         Ok(())
     }

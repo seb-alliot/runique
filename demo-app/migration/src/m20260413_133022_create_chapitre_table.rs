@@ -27,18 +27,14 @@ impl MigrationTrait for Migration {
                             .integer()
                             .not_null(),
                     )
-                    .to_owned(),
-            )
-            .await?;
-
-        manager
-            .create_foreign_key(
-                ForeignKey::create()
-                    .name("chapitre_cour_id_cour_fkey")
-                    .from(Alias::new("chapitre"), Alias::new("cour_id"))
-                    .to(Alias::new("cour"), Alias::new("id"))
-                    .on_delete(ForeignKeyAction::Cascade)
-                    .on_update(ForeignKeyAction::NoAction)
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("chapitre_cour_id_cour_fkey")
+                            .from(Alias::new("chapitre"), Alias::new("cour_id"))
+                            .to(Alias::new("cour"), Alias::new("id"))
+                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_update(ForeignKeyAction::NoAction),
+                    )
                     .to_owned(),
             )
             .await?;
@@ -47,15 +43,6 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager
-            .drop_foreign_key(
-                ForeignKey::drop()
-                    .table(Alias::new("chapitre"))
-                    .name("chapitre_cour_id_cour_fkey")
-                    .to_owned(),
-            )
-            .await?;
-
         manager
             .drop_table(Table::drop().table(Alias::new("chapitre")).to_owned())
             .await?;

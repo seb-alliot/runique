@@ -4,17 +4,19 @@ use crate::migration::utils::{
     types::{Changes, DbKind, ParsedColumn, ParsedSchema},
 };
 
-/// Generates the migration file for a CREATE TABLE — no FK constraints (they go in the relations file).
-/// Also used for snapshots (via `DbKind::Other`) to enable FK diffing on subsequent runs.
+/// Generates the migration file for a CREATE TABLE.
 pub fn generate_create_file(schema: &ParsedSchema, db_kind: &DbKind) -> String {
-    // SQLite: FKs inline in CREATE TABLE (it cannot ALTER-ADD them later).
-    let cols = build_create_table_cols(schema, db_kind, *db_kind == DbKind::Other);
+    // FKs always inline in CREATE TABLE: SQLite cannot ALTER-ADD a foreign key
+    // constraint to an existing table, so a separately-created FK breaks it —
+    // inline is valid on every engine, not just required on SQLite (confirmed
+    // via the contributions-table fix earlier this session).
+    let cols = build_create_table_cols(schema, db_kind, true);
     let idx_stmts = build_index_create_stmts(schema);
-    let trigger_stmts = build_updated_at_trigger_stmts(schema, db_kind);
+    let trigger_stmts = build_updated_at_trigger_stmts(schema);
     let enum_stmts = build_enum_type_stmts(schema);
     let enum_drops = build_enum_type_drops(schema);
     let idx_drops = build_index_drop_stmts(schema);
-    let trigger_drops = build_updated_at_trigger_drops(schema, db_kind);
+    let trigger_drops = build_updated_at_trigger_drops(schema);
 
     let mut up = String::new();
     up.push_str(&enum_stmts);
@@ -547,14 +549,25 @@ fn build_alter_bodies(change: &Changes) -> (String, String) {
     // unlike hand-written SQL strings. Used here instead of raw `execute_unprepared`
     // for exactly that reason; only the idempotent `CREATE TYPE` DO-block above has
     // no builder equivalent at all (Postgres itself has no `CREATE TYPE IF NOT EXISTS`).
+    //
+    // The type NAME passed to `.name()` is lowercased here (only here): the raw
+    // `CREATE TYPE` DO-block above is never quoted, so Postgres folds it to lowercase
+    // at creation time — but `Type::alter()`'s own renderer always quotes its type
+    // name, preserving whatever case it's given. Passing the original mixed case
+    // (e.g. "ChangelogCategory") makes it look for `"ChangelogCategory"` — a
+    // different, non-existent identifier from the lowercase one actually stored.
+    // `CREATE`/`DROP TYPE` and `ColumnType::Enum` stay as-is: neither is ever quoted
+    // (confirmed in sea-query's Postgres backend), so both already resolve to the
+    // same lowercase-folded object regardless of the case written in the Rust source.
     for (col, enum_name, old_val, new_val) in &change.enum_renames {
+        let enum_name_lc = enum_name.to_lowercase();
         up.push_str(&format!(
-            "        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{\n            manager\n                .alter_type(\n                    sea_query::extension::postgres::Type::alter()\n                        .name(Alias::new(\"{enum_name}\"))\n                        .rename_value(Alias::new(\"{old}\"), Alias::new(\"{new}\"))\n                        .to_owned(),\n                )\n                .await?;\n        }} else {{\n            manager\n                .get_connection()\n                .execute(\n                    Query::update()\n                        .table(Alias::new(\"{table}\"))\n                        .value(Alias::new(\"{col}\"), \"{new}\")\n                        .and_where(Expr::col(Alias::new(\"{col}\")).eq(\"{old}\"))\n                        .to_owned(),\n                )\n                .await?;\n        }}\n\n",
-            enum_name = enum_name, old = old_val, new = new_val, table = change.table_name, col = col,
+            "        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{\n            manager\n                .alter_type(\n                    sea_query::extension::postgres::Type::alter()\n                        .name(Alias::new(\"{enum_name_lc}\"))\n                        .rename_value(Alias::new(\"{old}\"), Alias::new(\"{new}\"))\n                        .to_owned(),\n                )\n                .await?;\n        }} else {{\n            manager\n                .get_connection()\n                .execute(\n                    Query::update()\n                        .table(Alias::new(\"{table}\"))\n                        .value(Alias::new(\"{col}\"), \"{new}\")\n                        .and_where(Expr::col(Alias::new(\"{col}\")).eq(\"{old}\"))\n                        .to_owned(),\n                )\n                .await?;\n        }}\n\n",
+            enum_name_lc = enum_name_lc, old = old_val, new = new_val, table = change.table_name, col = col,
         ));
         down.push_str(&format!(
-            "        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{\n            manager\n                .alter_type(\n                    sea_query::extension::postgres::Type::alter()\n                        .name(Alias::new(\"{enum_name}\"))\n                        .rename_value(Alias::new(\"{new}\"), Alias::new(\"{old}\"))\n                        .to_owned(),\n                )\n                .await?;\n        }} else {{\n            manager\n                .get_connection()\n                .execute(\n                    Query::update()\n                        .table(Alias::new(\"{table}\"))\n                        .value(Alias::new(\"{col}\"), \"{old}\")\n                        .and_where(Expr::col(Alias::new(\"{col}\")).eq(\"{new}\"))\n                        .to_owned(),\n                )\n                .await?;\n        }}\n\n",
-            enum_name = enum_name, old = old_val, new = new_val, table = change.table_name, col = col,
+            "        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{\n            manager\n                .alter_type(\n                    sea_query::extension::postgres::Type::alter()\n                        .name(Alias::new(\"{enum_name_lc}\"))\n                        .rename_value(Alias::new(\"{new}\"), Alias::new(\"{old}\"))\n                        .to_owned(),\n                )\n                .await?;\n        }} else {{\n            manager\n                .get_connection()\n                .execute(\n                    Query::update()\n                        .table(Alias::new(\"{table}\"))\n                        .value(Alias::new(\"{col}\"), \"{old}\")\n                        .and_where(Expr::col(Alias::new(\"{col}\")).eq(\"{new}\"))\n                        .to_owned(),\n                )\n                .await?;\n        }}\n\n",
+            enum_name_lc = enum_name_lc, old = old_val, new = new_val, table = change.table_name, col = col,
         ));
     }
 
@@ -562,19 +575,21 @@ fn build_alter_bodies(change: &Changes) -> (String, String) {
     // enums (non-PG) accept any string, so no DDL is needed there. Guarded at
     // runtime rather than skipped at generation time, same reasoning as above.
     for (_col, enum_name, val) in &change.enum_value_adds {
+        let enum_name_lc = enum_name.to_lowercase();
         up.push_str(&format!(
-            "        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{\n            manager\n                .alter_type(\n                    sea_query::extension::postgres::Type::alter()\n                        .name(Alias::new(\"{enum_name}\"))\n                        .add_value(Alias::new(\"{val}\"))\n                        .if_not_exists()\n                        .to_owned(),\n                )\n                .await?;\n        }}\n\n",
-            enum_name = enum_name, val = val,
+            "        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{\n            manager\n                .alter_type(\n                    sea_query::extension::postgres::Type::alter()\n                        .name(Alias::new(\"{enum_name_lc}\"))\n                        .add_value(Alias::new(\"{val}\"))\n                        .if_not_exists()\n                        .to_owned(),\n                )\n                .await?;\n        }}\n\n",
+            enum_name_lc = enum_name_lc, val = val,
         ));
     }
     for (_col, enum_name, val) in &change.enum_value_drops {
+        let enum_name_lc = enum_name.to_lowercase();
         up.push_str(&format!(
             "        // WARNING: value '{val}' removed from {enum_name} — manual migration required (Postgres cannot drop an enum value).\n\n",
             val = val, enum_name = enum_name,
         ));
         down.push_str(&format!(
-            "        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{\n            manager\n                .alter_type(\n                    sea_query::extension::postgres::Type::alter()\n                        .name(Alias::new(\"{enum_name}\"))\n                        .add_value(Alias::new(\"{val}\"))\n                        .if_not_exists()\n                        .to_owned(),\n                )\n                .await?;\n        }}\n\n",
-            enum_name = enum_name, val = val,
+            "        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{\n            manager\n                .alter_type(\n                    sea_query::extension::postgres::Type::alter()\n                        .name(Alias::new(\"{enum_name_lc}\"))\n                        .add_value(Alias::new(\"{val}\"))\n                        .if_not_exists()\n                        .to_owned(),\n                )\n                .await?;\n        }}\n\n",
+            enum_name_lc = enum_name_lc, val = val,
         ));
     }
 
@@ -648,7 +663,6 @@ fn render_enum_column_change(table: &str, from: &ParsedColumn, to: &ParsedColumn
             ty = col_type_to_method(&to.col_type),
         )
     };
-    let null = if to.nullable { ".null()" } else { ".not_null()" };
     // Postgres reinterprets each existing row's value through this cast target —
     // the enum name when entering it, `text` when leaving back to a plain column.
     let cast_target = if to_is_enum {
@@ -657,11 +671,23 @@ fn render_enum_column_change(table: &str, from: &ParsedColumn, to: &ParsedColumn
         "text".to_string()
     };
 
+    // No `.null()`/`.not_null()` on this modify_column: sea-query's Postgres backend
+    // renders `spec.nullable` as a SEPARATE "ALTER COLUMN ... SET/DROP NOT NULL" clause,
+    // and `.using()` is appended at the very end of the whole statement regardless of
+    // which clause it "belongs" to — combining both produces the invalid
+    // "TYPE t, ALTER COLUMN x SET NOT NULL USING expr" (USING stranded after NOT NULL
+    // instead of right after TYPE). An enum transition never changes nullability
+    // anyway, so the column's existing NOT NULL/NULL constraint is simply left alone.
+    // sea-query's SQLite backend `panic!`s unconditionally on ANY `modify_column`
+    // (not a SQL-syntax rejection at runtime — the statement builder itself refuses
+    // to render one), so this whole ALTER must be skipped there rather than merely
+    // guarded like the CREATE/DROP TYPE calls. Harmless to skip: SQLite has no native
+    // enum (`ColumnType::Enum` renders as plain `enum_text`), so the column already
+    // behaves as free-form text before and after this migration on that engine.
     out.push_str(&format!(
-        "        manager\n            .alter_table(\n                Table::alter()\n                    .table(Alias::new(\"{table}\"))\n                    .modify_column({col_def}{null}.using(Expr::col(Alias::new(\"{col}\")).cast_as(Alias::new(\"{cast_target}\"))))\n                    .to_owned(),\n            )\n            .await?;\n\n",
+        "        if manager.get_connection().get_database_backend() != sea_orm::DbBackend::Sqlite {{\n            manager\n                .alter_table(\n                    Table::alter()\n                        .table(Alias::new(\"{table}\"))\n                        .modify_column({col_def}.using(Expr::col(Alias::new(\"{col}\")).cast_as(Alias::new(\"{cast_target}\"))))\n                        .to_owned(),\n                )\n                .await?;\n        }}\n\n",
         table = table,
         col_def = col_def,
-        null = null,
         col = to.name,
         cast_target = cast_target,
     ));
@@ -819,10 +845,11 @@ fn render_column_def(col: &ParsedColumn, db_kind: &DbKind) -> String {
 
 /// Generates PostgreSQL triggers for `updated_at` columns.
 /// For MySQL, handling is inline via `.extra("ON UPDATE CURRENT_TIMESTAMP")`.
-fn build_updated_at_trigger_stmts(schema: &ParsedSchema, db_kind: &DbKind) -> String {
-    if *db_kind != DbKind::Postgres {
-        return String::new();
-    }
+/// Always emitted into the generated file, wrapped in a runtime backend check —
+/// same reasoning as the enum CREATE/DROP helpers: a migration file is fixed
+/// forever once written, so deciding "include this or not" from whatever engine
+/// `makemigrations` happened to target freezes the file to that one engine.
+fn build_updated_at_trigger_stmts(schema: &ParsedSchema) -> String {
     let updated_at_cols: Vec<_> = schema.columns.iter().filter(|c| c.updated_at).collect();
     if updated_at_cols.is_empty() {
         return String::new();
@@ -833,18 +860,16 @@ fn build_updated_at_trigger_stmts(schema: &ParsedSchema, db_kind: &DbKind) -> St
     let trigger_name = format!("trg_{}_updated_at", table);
 
     format!(
-        "        manager.get_connection().execute_unprepared(\n            \"CREATE OR REPLACE FUNCTION {fn_name}() RETURNS TRIGGER AS $$ BEGIN NEW.updated_at = NOW(); RETURN NEW; END; $$ LANGUAGE plpgsql;\"\n        ).await?;\n        manager.get_connection().execute_unprepared(\n            \"CREATE TRIGGER {trigger_name} BEFORE UPDATE ON {table} FOR EACH ROW EXECUTE PROCEDURE {fn_name}();\"\n        ).await?;\n\n",
+        "        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{\n            manager.get_connection().execute_unprepared(\n                \"CREATE OR REPLACE FUNCTION {fn_name}() RETURNS TRIGGER AS $$ BEGIN NEW.updated_at = NOW(); RETURN NEW; END; $$ LANGUAGE plpgsql;\"\n            ).await?;\n            manager.get_connection().execute_unprepared(\n                \"CREATE TRIGGER {trigger_name} BEFORE UPDATE ON {table} FOR EACH ROW EXECUTE PROCEDURE {fn_name}();\"\n            ).await?;\n        }}\n\n",
         fn_name = fn_name,
         trigger_name = trigger_name,
         table = table,
     )
 }
 
-/// Drops PostgreSQL `updated_at` triggers in the `down` block.
-fn build_updated_at_trigger_drops(schema: &ParsedSchema, db_kind: &DbKind) -> String {
-    if *db_kind != DbKind::Postgres {
-        return String::new();
-    }
+/// Drops PostgreSQL `updated_at` triggers in the `down` block. Same runtime-guard
+/// reasoning as `build_updated_at_trigger_stmts` above.
+fn build_updated_at_trigger_drops(schema: &ParsedSchema) -> String {
     let has_updated_at = schema.columns.iter().any(|c| c.updated_at);
     if !has_updated_at {
         return String::new();
@@ -855,7 +880,7 @@ fn build_updated_at_trigger_drops(schema: &ParsedSchema, db_kind: &DbKind) -> St
     let trigger_name = format!("trg_{}_updated_at", table);
 
     format!(
-        "        manager.get_connection().execute_unprepared(\n            \"DROP TRIGGER IF EXISTS {trigger_name} ON {table};\"\n        ).await?;\n        manager.get_connection().execute_unprepared(\n            \"DROP FUNCTION IF EXISTS {fn_name}();\"\n        ).await?;\n\n",
+        "        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{\n            manager.get_connection().execute_unprepared(\n                \"DROP TRIGGER IF EXISTS {trigger_name} ON {table};\"\n            ).await?;\n            manager.get_connection().execute_unprepared(\n                \"DROP FUNCTION IF EXISTS {fn_name}();\"\n            ).await?;\n        }}\n\n",
         trigger_name = trigger_name,
         table = table,
         fn_name = fn_name,
@@ -906,8 +931,15 @@ fn push_modify_column(
 ) {
     let null = if nullable { ".null()" } else { ".not_null()" };
     let uniq = if unique { ".unique_key()" } else { "" };
+    // sea-query's SQLite backend `panic!`s unconditionally on ANY `modify_column`
+    // (its ALTER TABLE only ever supports ADD/RENAME/DROP COLUMN — a real SQLite
+    // limitation, not a sea-query gap), so this ALTER must be skipped there rather
+    // than merely guarded. Unlike the enum-transition case, skipping here genuinely
+    // loses the constraint change on SQLite (nullable/unique/type stays whatever it
+    // was) — flagged with a warning comment in the generated file rather than
+    // silently dropped, since there is no equivalent SQLite statement to fall back to.
     buf.push_str(&format!(
-        "        manager\n            .alter_table(\n                Table::alter()\n                    .table(Alias::new(\"{table}\"))\n                    .modify_column(ColumnDef::new(Alias::new(\"{col}\")).{ty}{null}{uniq})\n                    .to_owned(),\n            )\n            .await?;\n\n",
+        "        // WARNING: SQLite cannot ALTER a column's type/nullable/unique constraint\n        // (sea-query panics on any `modify_column` there) — this change only applies on\n        // Postgres/MySQL; on SQLite the column keeps its current definition unchanged.\n        if manager.get_connection().get_database_backend() != sea_orm::DbBackend::Sqlite {{\n            manager\n                .alter_table(\n                    Table::alter()\n                        .table(Alias::new(\"{table}\"))\n                        .modify_column(ColumnDef::new(Alias::new(\"{col}\")).{ty}{null}{uniq})\n                        .to_owned(),\n                )\n                .await?;\n        }}\n\n",
         table = table,
         col = col,
         ty = col_type_to_method(col_type),
