@@ -179,7 +179,11 @@ fn test_cleaned_uuid_valid() {
     let mut form = make_form();
     let uuid = "550e8400-e29b-41d4-a716-446655440000";
     form.form.add_value("uuid_field", uuid);
-    assert!(form.cleaned_uuid("uuid_field").is_some());
+    assert_eq!(
+        form.cleaned_uuid("uuid_field"),
+        Some(uuid::Uuid::parse_str(uuid).unwrap()),
+        "doit retourner l'UUID réellement parsé, pas juste Some(_)"
+    );
 }
 
 #[test]
@@ -197,7 +201,11 @@ fn test_cleaned_uuid_invalid_returns_none() {
 fn test_cleaned_naive_date_valid() {
     let mut form = make_form();
     form.form.add_value("date_field", "2024-06-15");
-    assert!(form.cleaned_naive_date("date_field").is_some());
+    assert_eq!(
+        form.cleaned_naive_date("date_field"),
+        Some(chrono::NaiveDate::from_ymd_opt(2024, 6, 15).unwrap()),
+        "doit retourner la date réellement parsée (une inversion jour/mois passerait avec juste .is_some())"
+    );
 }
 
 #[test]
@@ -211,7 +219,11 @@ fn test_cleaned_naive_date_invalid_returns_none() {
 fn test_cleaned_naive_time_valid() {
     let mut form = make_form();
     form.form.add_value("time_field", "14:30");
-    assert!(form.cleaned_naive_time("time_field").is_some());
+    assert_eq!(
+        form.cleaned_naive_time("time_field"),
+        Some(chrono::NaiveTime::from_hms_opt(14, 30, 0).unwrap()),
+        "doit retourner l'heure réellement parsée, pas juste Some(_)"
+    );
 }
 
 #[test]
@@ -225,7 +237,15 @@ fn test_cleaned_naive_time_invalid_returns_none() {
 fn test_cleaned_naive_datetime_valid() {
     let mut form = make_form();
     form.form.add_value("datetime_field", "2024-06-15T14:30");
-    assert!(form.cleaned_naive_datetime("datetime_field").is_some());
+    let expected = chrono::NaiveDate::from_ymd_opt(2024, 6, 15)
+        .unwrap()
+        .and_hms_opt(14, 30, 0)
+        .unwrap();
+    assert_eq!(
+        form.cleaned_naive_datetime("datetime_field"),
+        Some(expected),
+        "doit retourner la date+heure réellement parsée, pas juste Some(_)"
+    );
 }
 
 #[test]
@@ -243,7 +263,12 @@ fn test_cleaned_naive_datetime_invalid_returns_none() {
 fn test_cleaned_datetime_utc_valid() {
     let mut form = make_form();
     form.form.add_value("rfc3339_field", "2024-06-15T14:30:00Z");
-    assert!(form.cleaned_datetime_utc("rfc3339_field").is_some());
+    use chrono::TimeZone;
+    assert_eq!(
+        form.cleaned_datetime_utc("rfc3339_field"),
+        chrono::Utc.with_ymd_and_hms(2024, 6, 15, 14, 30, 0).single(),
+        "doit retourner l'instant réellement parsé, pas juste Some(_)"
+    );
 }
 
 #[test]

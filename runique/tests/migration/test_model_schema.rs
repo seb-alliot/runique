@@ -10,6 +10,15 @@ use runique::migration::{
     relation::RelationDef,
     schema::{ModelSchema, SchemaDiff},
 };
+use runique::sea_orm::{
+    ConnectionTrait,
+    sea_query::{Alias, Query},
+};
+
+use crate::helpers::db;
+use crate::helpers::db_mariadb as db_maria;
+use crate::helpers::db_postgres as db_pg;
+use serial_test::serial;
 
 // ═══════════════════════════════════════════════════════════════
 // ModelSchema::new() — conversion PascalCase → snake_case
@@ -183,24 +192,299 @@ fn test_schema_diff_new_est_vide() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// to_migration() — ne panique pas
+// to_migration() — exécution réelle contre une vraie DB (pas juste "ne panique pas")
+//
+// `to_migration()` retourne un `TableCreateStatement` typé, pas du texte à
+// parser : le vrai test consiste à l'exécuter pour de vrai (comme le ferait un
+// utilisateur du framework), puis à insérer/relire une ligne réelle — ça prouve
+// que les colonnes existent avec des types compatibles, pas seulement que le
+// builder n'a pas paniqué en mémoire. SQLite en mémoire ci-dessous, Postgres et
+// MariaDB via Docker plus bas.
 // ═══════════════════════════════════════════════════════════════
 
-#[test]
-fn test_schema_to_migration_compile() {
-    let s = ModelSchema::new("Post")
-        .primary_key(PrimaryKeyDef::new("id"))
-        .column(ColumnDef::new("title").string());
-    let _ = s.to_migration();
-}
+#[tokio::test]
+async fn test_schema_to_migration_creates_real_table_sqlite() {
+    let conn = db::fresh_db().await;
 
-#[test]
-fn test_schema_to_migration_avec_fk() {
-    let s = ModelSchema::new("Post")
+    let schema = ModelSchema::new("Widget")
         .primary_key(PrimaryKeyDef::new("id"))
         .column(ColumnDef::new("title").string())
-        .foreign_key(ForeignKeyDef::new("user_id").references("users"));
-    let _ = s.to_migration();
+        .column(ColumnDef::new("view_count").integer())
+        .column(ColumnDef::new("active").boolean());
+
+    conn.execute(&schema.to_migration())
+        .await
+        .expect("to_migration() doit produire un CREATE TABLE réellement accepté par SQLite");
+
+    // Insère comme le ferait un vrai appelant, puis relit — prouve que les
+    // colonnes existent avec les bons types, pas seulement en mémoire.
+    db::exec(
+        &conn,
+        "INSERT INTO widget (title, view_count, active) VALUES ('Widget A', 42, 1)",
+    )
+    .await;
+
+    let row = conn
+        .query_one(
+            &Query::select()
+                .columns([
+                    Alias::new("title"),
+                    Alias::new("view_count"),
+                    Alias::new("active"),
+                ])
+                .from(Alias::new("widget"))
+                .to_owned(),
+        )
+        .await
+        .expect("select échoué")
+        .expect("la ligne insérée doit être relisible depuis la vraie table");
+
+    assert_eq!(row.try_get::<String>("", "title").unwrap(), "Widget A");
+    assert_eq!(row.try_get::<i32>("", "view_count").unwrap(), 42);
+    assert!(row.try_get::<bool>("", "active").unwrap());
+}
+
+#[tokio::test]
+#[serial]
+async fn test_schema_to_migration_creates_real_table_postgres() {
+    let Some(conn) = db_pg::connect().await else {
+        return;
+    };
+    db_pg::exec(&conn, "DROP TABLE IF EXISTS widget").await;
+
+    let schema = ModelSchema::new("Widget")
+        .primary_key(PrimaryKeyDef::new("id"))
+        .column(ColumnDef::new("title").string())
+        .column(ColumnDef::new("view_count").integer())
+        .column(ColumnDef::new("active").boolean());
+
+    conn.execute(&schema.to_migration())
+        .await
+        .expect("to_migration() doit produire un CREATE TABLE réellement accepté par Postgres");
+
+    db_pg::exec(
+        &conn,
+        "INSERT INTO widget (title, view_count, active) VALUES ('Widget A', 42, true)",
+    )
+    .await;
+
+    let row = conn
+        .query_one(
+            &Query::select()
+                .columns([
+                    Alias::new("title"),
+                    Alias::new("view_count"),
+                    Alias::new("active"),
+                ])
+                .from(Alias::new("widget"))
+                .to_owned(),
+        )
+        .await
+        .expect("select échoué")
+        .expect("la ligne insérée doit être relisible depuis la vraie table");
+
+    assert_eq!(row.try_get::<String>("", "title").unwrap(), "Widget A");
+    assert_eq!(row.try_get::<i32>("", "view_count").unwrap(), 42);
+    assert!(row.try_get::<bool>("", "active").unwrap());
+
+    db_pg::exec(&conn, "DROP TABLE IF EXISTS widget").await;
+}
+
+#[tokio::test]
+#[serial]
+async fn test_schema_to_migration_creates_real_table_mariadb() {
+    let Some(conn) = db_maria::connect().await else {
+        return;
+    };
+    db_maria::exec(&conn, "DROP TABLE IF EXISTS widget").await;
+
+    let schema = ModelSchema::new("Widget")
+        .primary_key(PrimaryKeyDef::new("id"))
+        .column(ColumnDef::new("title").string())
+        .column(ColumnDef::new("view_count").integer())
+        .column(ColumnDef::new("active").boolean());
+
+    conn.execute(&schema.to_migration())
+        .await
+        .expect("to_migration() doit produire un CREATE TABLE réellement accepté par MariaDB");
+
+    db_maria::exec(
+        &conn,
+        "INSERT INTO widget (title, view_count, active) VALUES ('Widget A', 42, true)",
+    )
+    .await;
+
+    let row = conn
+        .query_one(
+            &Query::select()
+                .columns([
+                    Alias::new("title"),
+                    Alias::new("view_count"),
+                    Alias::new("active"),
+                ])
+                .from(Alias::new("widget"))
+                .to_owned(),
+        )
+        .await
+        .expect("select échoué")
+        .expect("la ligne insérée doit être relisible depuis la vraie table");
+
+    assert_eq!(row.try_get::<String>("", "title").unwrap(), "Widget A");
+    assert_eq!(row.try_get::<i32>("", "view_count").unwrap(), 42);
+    assert!(row.try_get::<bool>("", "active").unwrap());
+
+    db_maria::exec(&conn, "DROP TABLE IF EXISTS widget").await;
+}
+
+// ── FK — vraiment contrainte en DB, pas juste déclarée ─────────────────────────
+//
+// `to_migration()` ajoute la FK inline (`table.foreign_key(...)` dans le même
+// CREATE TABLE) — le test ne se contente pas de vérifier qu'elle est créée sans
+// erreur : il insère une ligne référençant un parent inexistant et s'attend à
+// un vrai rejet de la DB, la seule preuve que la contrainte est réellement active.
+
+#[tokio::test]
+#[serial]
+async fn test_schema_to_migration_fk_is_enforced_postgres() {
+    let Some(conn) = db_pg::connect().await else {
+        return;
+    };
+    db_pg::exec(&conn, "DROP TABLE IF EXISTS rq_test_fk_post").await;
+    db_pg::exec(&conn, "DROP TABLE IF EXISTS rq_test_fk_user").await;
+
+    let parent = ModelSchema::new("RqTestFkUser")
+        .table_name("rq_test_fk_user")
+        .primary_key(PrimaryKeyDef::new("id"));
+    conn.execute(&parent.to_migration())
+        .await
+        .expect("création de la table parent");
+
+    let child = ModelSchema::new("RqTestFkPost")
+        .table_name("rq_test_fk_post")
+        .primary_key(PrimaryKeyDef::new("id"))
+        .column(ColumnDef::new("user_id").integer())
+        .foreign_key(ForeignKeyDef::new("user_id").references("rq_test_fk_user"));
+    conn.execute(&child.to_migration())
+        .await
+        .expect("création de la table enfant avec FK inline");
+
+    db_pg::exec(&conn, "INSERT INTO rq_test_fk_user (id) VALUES (1)").await;
+    db_pg::exec(&conn, "INSERT INTO rq_test_fk_post (user_id) VALUES (1)").await;
+
+    let result = conn
+        .execute_unprepared("INSERT INTO rq_test_fk_post (user_id) VALUES (999)")
+        .await;
+    assert!(
+        result.is_err(),
+        "la contrainte FK doit rejeter une référence vers un parent inexistant"
+    );
+
+    db_pg::exec(&conn, "DROP TABLE IF EXISTS rq_test_fk_post").await;
+    db_pg::exec(&conn, "DROP TABLE IF EXISTS rq_test_fk_user").await;
+}
+
+#[tokio::test]
+#[serial]
+async fn test_schema_to_migration_fk_is_enforced_mariadb() {
+    let Some(conn) = db_maria::connect().await else {
+        return;
+    };
+    db_maria::exec(&conn, "DROP TABLE IF EXISTS rq_test_fk_post").await;
+    db_maria::exec(&conn, "DROP TABLE IF EXISTS rq_test_fk_user").await;
+
+    let parent = ModelSchema::new("RqTestFkUser")
+        .table_name("rq_test_fk_user")
+        .primary_key(PrimaryKeyDef::new("id"));
+    conn.execute(&parent.to_migration())
+        .await
+        .expect("création de la table parent");
+
+    let child = ModelSchema::new("RqTestFkPost")
+        .table_name("rq_test_fk_post")
+        .primary_key(PrimaryKeyDef::new("id"))
+        .column(ColumnDef::new("user_id").integer())
+        .foreign_key(ForeignKeyDef::new("user_id").references("rq_test_fk_user"));
+    conn.execute(&child.to_migration())
+        .await
+        .expect("création de la table enfant avec FK inline");
+
+    db_maria::exec(&conn, "INSERT INTO rq_test_fk_user (id) VALUES (1)").await;
+    db_maria::exec(&conn, "INSERT INTO rq_test_fk_post (user_id) VALUES (1)").await;
+
+    let result = conn
+        .execute_unprepared("INSERT INTO rq_test_fk_post (user_id) VALUES (999)")
+        .await;
+    assert!(
+        result.is_err(),
+        "la contrainte FK doit rejeter une référence vers un parent inexistant"
+    );
+
+    db_maria::exec(&conn, "DROP TABLE IF EXISTS rq_test_fk_post").await;
+    db_maria::exec(&conn, "DROP TABLE IF EXISTS rq_test_fk_user").await;
+}
+
+#[tokio::test]
+async fn test_schema_to_migration_fk_is_enforced_sqlite() {
+    let conn = db::fresh_db().await;
+    // SQLite n'impose les FK que si le pragma est activé sur la connexion —
+    // sinon la contrainte est acceptée en DDL mais jamais vérifiée à l'écriture.
+    conn.execute_unprepared("PRAGMA foreign_keys = ON;")
+        .await
+        .expect("activation du pragma FK");
+
+    let parent = ModelSchema::new("RqTestFkUser")
+        .table_name("rq_test_fk_user")
+        .primary_key(PrimaryKeyDef::new("id"));
+    conn.execute(&parent.to_migration())
+        .await
+        .expect("création de la table parent");
+
+    let child = ModelSchema::new("RqTestFkPost")
+        .table_name("rq_test_fk_post")
+        .primary_key(PrimaryKeyDef::new("id"))
+        .column(ColumnDef::new("user_id").integer())
+        .foreign_key(ForeignKeyDef::new("user_id").references("rq_test_fk_user"));
+    conn.execute(&child.to_migration())
+        .await
+        .expect("création de la table enfant avec FK inline");
+
+    db::exec(&conn, "INSERT INTO rq_test_fk_user (id) VALUES (1)").await;
+    db::exec(&conn, "INSERT INTO rq_test_fk_post (user_id) VALUES (1)").await;
+
+    let result = conn
+        .execute_unprepared("INSERT INTO rq_test_fk_post (user_id) VALUES (999)")
+        .await;
+    assert!(
+        result.is_err(),
+        "la contrainte FK doit rejeter une référence vers un parent inexistant"
+    );
+}
+
+// ── Colonne ignorée — vraiment absente de la table, pas juste hors du builder ──
+
+#[tokio::test]
+async fn test_schema_to_migration_ignored_column_is_really_absent() {
+    let conn = db::fresh_db().await;
+
+    let schema = ModelSchema::new("Secretive")
+        .primary_key(PrimaryKeyDef::new("id"))
+        .column(ColumnDef::new("name").string())
+        .column(ColumnDef::new("internal_cache").string().ignore());
+
+    conn.execute(&schema.to_migration())
+        .await
+        .expect("création de la table");
+
+    // Un vrai appelant qui sélectionne la colonne ignorée doit obtenir une
+    // vraie erreur SQL — preuve qu'elle n'existe pas dans la table réelle,
+    // pas seulement que le builder ne l'a pas émise en mémoire.
+    let result = conn
+        .execute_unprepared("SELECT internal_cache FROM secretive")
+        .await;
+    assert!(
+        result.is_err(),
+        "la colonne ignorée ne doit pas exister dans la vraie table"
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -330,6 +614,38 @@ fn test_schema_to_model_many_to_many() {
         code.contains("many_to_many") || code.contains("via"),
         "ManyToMany doit générer via"
     );
+}
+
+// `to_model()` produit une String — les tests ci-dessus vérifient que les bons
+// mots-clés/types apparaissent, mais aucun ne vérifie que le résultat est
+// syntaxiquement du Rust valide (un `format!` mal placé — virgule oubliée,
+// guillemet en trop — passerait `.contains(...)` sans problème). Les branches
+// relation (le plus de `format!` imbriqués) sont les plus fragiles ; ce test
+// exerce chaque variante de colonne ET chaque type de relation dans un seul
+// schéma et vérifie que `syn::parse_file` accepte le résultat.
+#[test]
+fn test_schema_to_model_generates_valid_rust_syntax() {
+    let s = ModelSchema::new("Comprehensive")
+        .primary_key(PrimaryKeyDef::new("id").i64())
+        .column(ColumnDef::new("title").string())
+        .column(ColumnDef::new("bio").text().nullable())
+        .column(ColumnDef::new("views").integer())
+        .column(ColumnDef::new("score").float())
+        .column(ColumnDef::new("lat").double())
+        .column(ColumnDef::new("active").boolean())
+        .column(ColumnDef::new("event_date").date())
+        .column(ColumnDef::new("uuid_val").uuid())
+        .column(ColumnDef::new("data").json())
+        .column(ColumnDef::new("internal").string().ignore())
+        .relation(RelationDef::belongs_to("User", "user_id", "id"))
+        .relation(RelationDef::has_many("comment"))
+        .relation(RelationDef::has_one("profile"))
+        .relation(RelationDef::many_to_many("tag", "comprehensive_tag"));
+
+    let code = s.to_model();
+    if let Err(e) = syn::parse_file(&code) {
+        panic!("to_model() a produit du Rust syntaxiquement invalide : {e}\n---\n{code}");
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -486,16 +802,6 @@ fn test_schema_fill_form_with_whitelist() {
     assert_eq!(form.fields.len() - before, 2);
 }
 
-// ═══════════════════════════════════════════════════════════════
-// to_migration() — avec colonnes ignorées
-// ═══════════════════════════════════════════════════════════════
-
-#[test]
-fn test_schema_to_migration_ignored_col_skipped() {
-    let s = ModelSchema::new("User")
-        .primary_key(PrimaryKeyDef::new("id"))
-        .column(ColumnDef::new("name").string())
-        .column(ColumnDef::new("cache_internal").string().ignore());
-    // Ne doit pas paniquer et ignorer le champ
-    let _ = s.to_migration();
-}
+// `test_schema_to_migration_ignored_col_skipped` remplacé par
+// `test_schema_to_migration_ignored_column_is_really_absent` plus haut, qui
+// vérifie l'absence réelle en DB plutôt que juste "ne panique pas".

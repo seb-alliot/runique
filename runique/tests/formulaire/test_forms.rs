@@ -333,6 +333,17 @@ mod tests {
         form.get_form_mut().add_value("username", "alice");
         form.get_form_mut().add_value("password", "secret");
         assert!(form.is_valid().await);
+        // `is_valid()` seul ne prouve pas que la valeur soumise a été réellement
+        // conservée telle quelle — un bug de mapping/troncature passerait cette
+        // seule assertion.
+        assert_eq!(
+            form.cleaned_string("username"),
+            Some("alice".to_string())
+        );
+        assert_eq!(
+            form.cleaned_string("password"),
+            Some("secret".to_string())
+        );
     }
 
     #[tokio::test]
@@ -401,6 +412,12 @@ mod tests {
         form.get_form_mut().add_value("password", "secret123");
         form.get_form_mut().add_value("confirm", "secret123");
         assert!(form.is_valid().await);
+        // Vérifie la valeur réellement retenue, pas seulement que la comparaison
+        // interne à clean() a réussi.
+        assert_eq!(
+            form.cleaned_string("password"),
+            Some("secret123".to_string())
+        );
     }
 
     #[tokio::test]
@@ -491,6 +508,10 @@ mod tests {
         UsernameForm::register_fields(&mut form.form);
         form.get_form_mut().add_value("username", "alice");
         assert!(form.is_valid().await);
+        assert_eq!(
+            form.cleaned_string("username"),
+            Some("alice".to_string())
+        );
     }
 
     #[tokio::test]
