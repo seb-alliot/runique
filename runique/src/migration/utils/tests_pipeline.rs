@@ -1587,7 +1587,10 @@ fn extend_enum_column_default_is_emitted_on_add_all_engines() {
         sql.contains("get_database_backend() == sea_orm::DbBackend::Postgres"),
         "CREATE TYPE must be runtime-guarded to Postgres:\n{sql}"
     );
-    assert!(sql.contains("CREATE TYPE"), "must still CREATE TYPE for the enum:\n{sql}");
+    assert!(
+        sql.contains("CREATE TYPE"),
+        "must still CREATE TYPE for the enum:\n{sql}"
+    );
 }
 
 // ── Topological sort: referenced tables created first ──────────────────────────

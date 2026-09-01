@@ -52,7 +52,10 @@ impl MigrationTrait for Migration {
                                     ],
                                 },
                             )
-                            .using(Expr::col(Alias::new("block_type")).cast_as(Alias::new("CourBlockType"))),
+                            .using(
+                                Expr::col(Alias::new("block_type"))
+                                    .cast_as(Alias::new("CourBlockType")),
+                            ),
                         )
                         .to_owned(),
                 )
@@ -69,9 +72,9 @@ impl MigrationTrait for Migration {
                     Table::alter()
                         .table(Alias::new("cour_block"))
                         .modify_column(
-                            ColumnDef::new(Alias::new("block_type"))
-                                .string()
-                                .using(Expr::col(Alias::new("block_type")).cast_as(Alias::new("text"))),
+                            ColumnDef::new(Alias::new("block_type")).string().using(
+                                Expr::col(Alias::new("block_type")).cast_as(Alias::new("text")),
+                            ),
                         )
                         .to_owned(),
                 )
