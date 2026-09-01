@@ -373,23 +373,25 @@ let result = users::Entity::delete_many()
 
 Retourne une `sea_orm::Condition` à injecter dans un query builder existant, au lieu de créer un nouveau builder.
 
+Chaque forme prend la connexion `&DatabaseConnection` en premier argument (même les deux formes `?Col in`/`not_in` qui ne l'utilisent pas en interne) — `all_columns`/`or(...)` en ont besoin pour choisir le type de `CAST` correct selon le moteur (`CHAR` sur MariaDB/MySQL, `TEXT` ailleurs, via `text_cast_type`), et une macro ne peut pas avoir des arms avec des signatures différentes sans ambiguïté de parsing.
+
 | Syntaxe | Résultat |
 | ------- | -------- |
-| `all_columns icontains val` | `OR ILIKE` sur toutes les colonnes |
-| `or("col1" icontains val, "col2" icontains val)` | `OR ILIKE` sur les colonnes nommées |
-| `?Col in (expr)` | `Condition::all().add(col IN (...))` — no-op si vide |
-| `?Col not_in (expr)` | `Condition::all().add(col NOT IN (...))` — no-op si vide |
+| `db => Entity => all_columns icontains val` | `OR ILIKE` sur toutes les colonnes |
+| `db => Entity => or("col1" icontains val, "col2" icontains val)` | `OR ILIKE` sur les colonnes nommées |
+| `db => Entity => ?Col in (expr)` | `Condition::all().add(col IN (...))` — no-op si vide |
+| `db => Entity => ?Col not_in (expr)` | `Condition::all().add(col NOT IN (...))` — no-op si vide |
 
 ```rust
 // Utilisé typiquement pour injecter une condition dans une requête déjà construite
-let cond = search_cond!(commande::Entity => or("numero" icontains q, "statut" icontains q));
+let cond = search_cond!(db => commande::Entity => or("numero" icontains q, "statut" icontains q));
 let results = commande::Entity::find()
     .filter(cond)
     .all(db).await?;
 
 // Filtre conditionnel sur une Vec (no-op si vide)
 let statuts: Vec<StatutCommande> = get_statuts_actifs();
-let cond = search_cond!(commande::Entity => ?Statut in (statuts));
+let cond = search_cond!(db => commande::Entity => ?Statut in (statuts));
 let results = commande::Entity::find()
     .filter(cond)
     .all(db).await?;

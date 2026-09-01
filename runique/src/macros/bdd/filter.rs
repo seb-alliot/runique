@@ -405,28 +405,37 @@ macro_rules! search {
 // Unlike `search!` which wraps an Objects query builder, `search_cond!` returns
 // a raw Condition to merge into an already-in-progress query.
 //
-//   all_columns icontains val      → OR ILIKE across all columns
-//   or("col" icontains val, ...)   → OR ILIKE across named columns
-//   ?Col in (expr)                 → IN (dynamic, no-op Condition if empty)
-//   ?Col not_in (expr)             → NOT IN (dynamic, no-op Condition if empty)
+// Every arm takes the live `&DatabaseConnection` as its first argument, even the
+// two IN/NOT_IN arms that don't need it — a mixed signature (some arms with db,
+// some without) makes the macro ambiguous to the parser, since a bare `$entity:ty`
+// leading token cannot be told apart from a `$db:expr` one before the second `=>`.
+//
+//   db => all_columns icontains val      → OR ILIKE across all columns
+//   db => or("col" icontains val, ...)   → OR ILIKE across named columns
+//   db => ?Col in (expr)                 → IN (dynamic, no-op Condition if empty)
+//   db => ?Col not_in (expr)             → NOT IN (dynamic, no-op Condition if empty)
 // ─────────────────────────────────────────────────────────────────────────────
 
 #[macro_export]
 macro_rules! search_cond {
     // ── all_columns icontains val — runtime LIKE across every column ──────────
-    ($entity:ty => all_columns icontains $val:expr) => {{
+    ($db:expr => $entity:ty => all_columns icontains $val:expr) => {{
         use sea_orm::{EntityTrait, Iterable, IdenStatic};
         use sea_orm::sea_query::ExprTrait;
         // Pattern lowered in Rust + LOWER() on the column → case-insensitive match.
         // The value is bound through a typed expression so sea-query emits the
-        // backend-correct placeholder ($1 on Postgres, ? on MySQL/SQLite).
+        // backend-correct placeholder ($1 on Postgres, ? on MySQL/SQLite). The
+        // cast target itself is NOT portable (sea-query never translates it),
+        // hence the runtime lookup via `text_cast_type` (CHAR on MySQL/MariaDB,
+        // TEXT elsewhere).
+        let __cast_ty = $crate::admin::helper::text_cast_type($db);
         let __val = format!("%{}%", $val.to_lowercase());
         let mut __cond = sea_orm::Condition::any();
         for col in <$entity as EntityTrait>::Column::iter() {
             __cond = __cond.add(
                 sea_orm::sea_query::Expr::expr(sea_orm::sea_query::Func::lower(
                     sea_orm::sea_query::Expr::col(sea_orm::sea_query::Alias::new(col.as_str()))
-                        .cast_as(sea_orm::sea_query::Alias::new("TEXT")),
+                        .cast_as(sea_orm::sea_query::Alias::new(__cast_ty)),
                 ))
                 .like(__val.clone()),
             );
@@ -435,8 +444,9 @@ macro_rules! search_cond {
     }};
 
     // ── or("col1" icontains val, "col2" icontains val, ...) ──────────────────
-    ($entity:ty => or($($col:literal icontains $val:expr),+ $(,)?)) => {{
+    ($db:expr => $entity:ty => or($($col:literal icontains $val:expr),+ $(,)?)) => {{
         use sea_orm::sea_query::ExprTrait;
+        let __cast_ty = $crate::admin::helper::text_cast_type($db);
         let mut __cond = sea_orm::Condition::any();
         $(
             {
@@ -444,7 +454,7 @@ macro_rules! search_cond {
                 __cond = __cond.add(
                     sea_orm::sea_query::Expr::expr(sea_orm::sea_query::Func::lower(
                         sea_orm::sea_query::Expr::col(sea_orm::sea_query::Alias::new($col))
-                            .cast_as(sea_orm::sea_query::Alias::new("TEXT")),
+                            .cast_as(sea_orm::sea_query::Alias::new(__cast_ty)),
                     ))
                     .like(__v),
                 );
@@ -454,8 +464,9 @@ macro_rules! search_cond {
     }};
 
     // ── ?Col in (expr) — Conditional IN (no-op Condition if empty) ───────────
-    ($entity:ty => ? $col:ident in ($val:expr)) => {{
+    ($db:expr => $entity:ty => ? $col:ident in ($val:expr)) => {{
         use sea_orm::ColumnTrait;
+        let _ = $db;
         let __vals: ::std::vec::Vec<_> = (&$val).into_iter().cloned().collect();
         if !__vals.is_empty() {
             sea_orm::Condition::all()
@@ -466,8 +477,9 @@ macro_rules! search_cond {
     }};
 
     // ── ?Col not_in (expr) — Conditional NOT IN (no-op Condition if empty) ───
-    ($entity:ty => ? $col:ident not_in ($val:expr)) => {{
+    ($db:expr => $entity:ty => ? $col:ident not_in ($val:expr)) => {{
         use sea_orm::ColumnTrait;
+        let _ = $db;
         let __vals: ::std::vec::Vec<_> = (&$val).into_iter().cloned().collect();
         if !__vals.is_empty() {
             sea_orm::Condition::all()

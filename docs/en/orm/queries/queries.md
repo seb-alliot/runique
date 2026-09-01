@@ -373,23 +373,25 @@ let result = users::Entity::delete_many()
 
 Returns a `sea_orm::Condition` to inject into an existing query builder, instead of creating a new one.
 
+Every arm takes the `&DatabaseConnection` as its first argument (even the two `?Col in`/`not_in` arms that don't use it internally) — `all_columns`/`or(...)` need it to pick the right `CAST` type per engine (`CHAR` on MariaDB/MySQL, `TEXT` elsewhere, via `text_cast_type`), and a macro can't have arms with differing signatures without parsing ambiguity.
+
 | Syntax | Result |
 | ------ | ------ |
-| `all_columns icontains val` | `OR ILIKE` across all columns |
-| `or("col1" icontains val, "col2" icontains val)` | `OR ILIKE` across named columns |
-| `?Col in (expr)` | `Condition::all().add(col IN (...))` — no-op if empty |
-| `?Col not_in (expr)` | `Condition::all().add(col NOT IN (...))` — no-op if empty |
+| `db => Entity => all_columns icontains val` | `OR ILIKE` across all columns |
+| `db => Entity => or("col1" icontains val, "col2" icontains val)` | `OR ILIKE` across named columns |
+| `db => Entity => ?Col in (expr)` | `Condition::all().add(col IN (...))` — no-op if empty |
+| `db => Entity => ?Col not_in (expr)` | `Condition::all().add(col NOT IN (...))` — no-op if empty |
 
 ```rust
 // Typically used to inject a condition into an already-in-progress query
-let cond = search_cond!(commande::Entity => or("numero" icontains q, "statut" icontains q));
+let cond = search_cond!(db => commande::Entity => or("numero" icontains q, "statut" icontains q));
 let results = commande::Entity::find()
     .filter(cond)
     .all(db).await?;
 
 // Conditional filter on a Vec (no-op if empty)
 let statuts: Vec<StatutCommande> = get_active_statuts();
-let cond = search_cond!(commande::Entity => ?Statut in (statuts));
+let cond = search_cond!(db => commande::Entity => ?Statut in (statuts));
 let results = commande::Entity::find()
     .filter(cond)
     .all(db).await?;
