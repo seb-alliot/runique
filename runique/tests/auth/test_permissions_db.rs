@@ -9,7 +9,7 @@
 //! - Après `clear_cache`, `get_permissions` retourne None
 
 use crate::helpers::db_postgres;
-use crate::helpers::pk::pk;
+use crate::helpers::pk::{pk, pk_sql_literal_pg};
 use serial_test::serial;
 
 // `#[serial]` : ces tests partagent la même base Postgres Docker que
@@ -115,10 +115,14 @@ async fn test_pull_groupes_db_retourne_permissions() {
     )
     .await;
     db_postgres::exec(&db, "INSERT INTO eihwaz_groupes_droits (groupe_id, resource_key, can_read, can_create, can_update, can_delete, can_update_own, can_delete_own) VALUES (1, 'articles', true, false, false, false, false, false)").await;
-    // Lie l'user 42 au groupe
+    // Lie l'user 42 au groupe — littéral adapté au type de `Pk` actif
+    // (entier ou UUID) : voir `pk_sql_literal_pg`.
     db_postgres::exec(
         &db,
-        "INSERT INTO eihwaz_users_groupes (user_id, groupe_id) VALUES (42, 1)",
+        &format!(
+            "INSERT INTO eihwaz_users_groupes (user_id, groupe_id) VALUES ({}, 1)",
+            pk_sql_literal_pg(42)
+        ),
     )
     .await;
 
@@ -154,7 +158,10 @@ async fn test_pull_groupes_db_multi_ressources() {
     db_postgres::exec(&db, "INSERT INTO eihwaz_groupes_droits (groupe_id, resource_key, can_read, can_create, can_update, can_delete, can_update_own, can_delete_own) VALUES (2, 'users', true, false, false, false, false, false)").await;
     db_postgres::exec(
         &db,
-        "INSERT INTO eihwaz_users_groupes (user_id, groupe_id) VALUES (43, 2)",
+        &format!(
+            "INSERT INTO eihwaz_users_groupes (user_id, groupe_id) VALUES ({}, 2)",
+            pk_sql_literal_pg(43)
+        ),
     )
     .await;
 
@@ -196,7 +203,10 @@ async fn test_refresh_cache_puis_clear() {
     db_postgres::exec(&db, "INSERT INTO eihwaz_groupes_droits (groupe_id, resource_key, can_read, can_create, can_update, can_delete, can_update_own, can_delete_own) VALUES (3, 'blog', true, true, false, false, false, false)").await;
     db_postgres::exec(
         &db,
-        "INSERT INTO eihwaz_users_groupes (user_id, groupe_id) VALUES (44, 3)",
+        &format!(
+            "INSERT INTO eihwaz_users_groupes (user_id, groupe_id) VALUES ({}, 3)",
+            pk_sql_literal_pg(44)
+        ),
     )
     .await;
 
