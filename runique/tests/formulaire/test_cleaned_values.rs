@@ -266,7 +266,9 @@ fn test_cleaned_datetime_utc_valid() {
     use chrono::TimeZone;
     assert_eq!(
         form.cleaned_datetime_utc("rfc3339_field"),
-        chrono::Utc.with_ymd_and_hms(2024, 6, 15, 14, 30, 0).single(),
+        chrono::Utc
+            .with_ymd_and_hms(2024, 6, 15, 14, 30, 0)
+            .single(),
         "doit retourner l'instant réellement parsé, pas juste Some(_)"
     );
 }

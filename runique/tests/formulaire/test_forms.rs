@@ -336,14 +336,8 @@ mod tests {
         // `is_valid()` seul ne prouve pas que la valeur soumise a été réellement
         // conservée telle quelle — un bug de mapping/troncature passerait cette
         // seule assertion.
-        assert_eq!(
-            form.cleaned_string("username"),
-            Some("alice".to_string())
-        );
-        assert_eq!(
-            form.cleaned_string("password"),
-            Some("secret".to_string())
-        );
+        assert_eq!(form.cleaned_string("username"), Some("alice".to_string()));
+        assert_eq!(form.cleaned_string("password"), Some("secret".to_string()));
     }
 
     #[tokio::test]
@@ -508,10 +502,7 @@ mod tests {
         UsernameForm::register_fields(&mut form.form);
         form.get_form_mut().add_value("username", "alice");
         assert!(form.is_valid().await);
-        assert_eq!(
-            form.cleaned_string("username"),
-            Some("alice".to_string())
-        );
+        assert_eq!(form.cleaned_string("username"), Some("alice".to_string()));
     }
 
     #[tokio::test]
