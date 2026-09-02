@@ -960,8 +960,9 @@ fn validate_form_field_attrs(
             (Unique, Image | Document | File | Bool) => false,
             (Unique, _) => true,
 
-            // fk — int/bigint only (FK column)
-            (FormFieldAttr::Fk(_), Int | Bigint) => true,
+            // fk — int/bigint/uuid only (FK column) — Uuid is reachable via the `Pk`
+            // alias under the `pk-uuid` feature, not just a literal `uuid` field.
+            (FormFieldAttr::Fk(_), Int | Bigint | Uuid) => true,
             (FormFieldAttr::Fk(_), _) => false,
 
             // skip — all types
