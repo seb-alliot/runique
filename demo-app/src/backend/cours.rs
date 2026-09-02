@@ -15,7 +15,7 @@ pub struct ExerciceResponse {
 
 const MAX_INPUT_LEN: usize = 500;
 const GROQ_API_URL: &str = "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_MODEL: &str = "llama-3.3-70b-versatile";
+const GROQ_MODEL: &str = "qwen/qwen3.8-27b";
 const GROQ_MAX_TOKENS: u32 = 512;
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
