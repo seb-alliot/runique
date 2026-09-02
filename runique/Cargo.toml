@@ -10,7 +10,7 @@ homepage.workspace = true
 description = "A Django-inspired web framework for Rust with ORM, templates, and comprehensive security middleware"
 keywords = ["web", "framework", "django", "sea-orm", "runique"]
 categories = ["web-programming::http-server"]
-readme = "readme.md"
+readme = "README.md"
 documentation = "https://runique.io/docs/en"
 
 exclude = [
