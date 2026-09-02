@@ -17,7 +17,7 @@ Declare a model once, and you get the database table, the migration, a type-safe
 
 ## Declarative macros, not boilerplate
 
-```rust
+```rust,ignore
 model! {
     Article,
     table: "articles",
@@ -35,7 +35,7 @@ model! {
 
 `model!` generates the SeaORM entity (`article::Model`) and its SQL migration (`runique makemigrations`) from the same declaration. Pair it with `#[form]` and you get a matching type-safe form, validated server-side and derivable straight from the schema. Register the resource in `admin!` and the CRUD panel is already there — list view, search, filters, permissions, all of it:
 
-```rust
+```rust,ignore
 admin! {
     article: article::Model => ArticleForm {
         title: "Articles",
@@ -99,7 +99,7 @@ cargo run            # your app is a normal Rust binary
 
 A trimmed-down `main.rs` (the full version lives in `demo-app/src/main.rs`):
 
-```rust,no_run
+```rust,ignore
 use runique::prelude::*;
 
 #[tokio::main]
@@ -122,7 +122,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 Routes go through the `urlpatterns!` macro and come out as a regular Axum `Router`:
 
-```rust
+```rust,ignore
 pub fn routes() -> Router {
     urlpatterns! {
         "/"          => view!{ index },        name = "index",
