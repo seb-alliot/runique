@@ -9,10 +9,10 @@ This document consolidates the actual state of the repository from the reference
 
 ---
 
-## Snapshot (as of September 1, 2026)
+## Snapshot (as of September 2, 2026)
 
 - **Workspace version**: `2.2.0`
-- **derive_form**: `2.1.11`
+- **derive_form**: `2.2.0`
 - **License**: MIT
 - **Branch**: `main`
 - **Stack**: Axum 0.8.7 + SeaORM 2.0.0-rc.40 + Tera 1.20.1 · Rust edition 2024 · Rust 1.94
@@ -75,6 +75,7 @@ This document consolidates the actual state of the repository from the reference
 - Secure redirects (open-redirect guard), `HttpOnly`/`SameSite=Strict`/`Secure` cookies
 - Timing-safe login (dummy-hash verify — no user enumeration)
 - DB-persisted password-reset tokens: SHA-256-hashed, single-use, IDOR-hardened (mutation keyed on the token-bound user id)
+- CSRF checked via both the `csrf_token` body field and the `X-CSRF-Token` header (2026-09-02) — needed for JSON/`fetch` clients that can't add a hidden form field; safe by construction, a cross-origin `fetch` setting this header triggers a CORS preflight Runique never allows by default (`CorsConfig` disabled, `any_origin() + allow_credentials(true)` is a build error)
 
 ### ORM / Migrations
 
@@ -86,6 +87,7 @@ This document consolidates the actual state of the repository from the reference
 - `model!{}` — unified field syntax (the legacy `fields: { name: SqlType }` grammar is removed): single anonymous block, 43 semantic types, including `readonly`/`label` options
 - Migration generator hardened across engines (2026-09-01): runtime backend guards for `CREATE TYPE`/`updated_at` triggers (instead of a choice frozen at generation time), Postgres identifier case-folding fixed on `ALTER TYPE`, invalid `TYPE`/`USING` ordering fixed, `modify_column` skipped on SQLite (sea-query panic there); foreign keys always inline in `CREATE TABLE`
 - `makemigrations` now recognizes a `migration/` bootstrapped via `sea-orm-cli migrate init` (`lib.rs` canonically reformatted, `todo!()` placeholder removed) — see [Migrations](/docs/en/installation/migrations)
+- Multi-engine-portable search/filters (2026-09-02): `CAST(col AS TEXT)` is invalid on MySQL/MariaDB (requires `CHAR`) — fixed via `text_cast_type`/`text_eq`/`ilike` helpers that detect the backend at runtime (`db.get_database_backend()`). `search_cond!` now takes the `db` connection as its first argument across all 4 forms — see [Queries](/docs/en/orm/queries)
 
 ### I18n
 
@@ -152,5 +154,5 @@ This document consolidates the actual state of the repository from the reference
 
 ---
 
-**Last update**: September 1, 2026
+**Last update**: September 2, 2026
 **Global status**: ✅ Stable framework · 🟡 Admin mature beta · 🔒 Security: reset tokens DB-hardened, timing-safe auth · 📖 Full public API documentation (docs.rs)

@@ -9,10 +9,10 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 ---
 
-## Snapshot (au 1er septembre 2026)
+## Snapshot (au 2 septembre 2026)
 
 - **Version workspace** : `2.2.0`
-- **derive_form** : `2.1.11`
+- **derive_form** : `2.2.0`
 - **Licence** : MIT
 - **Branche** : `main`
 - **Stack** : Axum 0.8.7 + SeaORM 2.0.0-rc.40 + Tera 1.20.1 · Rust edition 2024 · Rust 1.94
@@ -70,6 +70,7 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 - Redirections sécurisées (open-redirect guard), cookies `HttpOnly`/`SameSite=Strict`/`Secure`
 - Login en temps constant (verify contre dummy-hash — pas d'énumération d'utilisateurs)
 - Tokens de reset persistés en DB : hashés SHA-256, single-use, durcis IDOR (mutation par l'id utilisateur lié au token)
+- CSRF vérifié à la fois via le champ body `csrf_token` et le header `X-CSRF-Token` (2026-09-02) — nécessaire pour les clients JSON/`fetch` qui ne peuvent pas poser de champ de formulaire caché ; sûr par construction, un `fetch` cross-origin qui pose ce header déclenche un preflight CORS que Runique n'autorise jamais par défaut (`CorsConfig` désactivé, `any_origin() + allow_credentials(true)` = erreur au build)
 
 ### ORM / Migrations
 - `model!{}` DSL → entité SeaORM + migration SQL + AdminForm
@@ -80,6 +81,7 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 - `model!{}` — syntaxe de champs unifiée (l'ancienne grammaire `fields: { name: SqlType }` est supprimée) : bloc anonyme unique, 43 types sémantiques, options `readonly`/`label` incluses
 - Générateur de migrations durci multi-moteurs (2026-09-01) : gardes runtime pour `CREATE TYPE`/triggers `updated_at` (au lieu d'un choix figé à la génération), casse d'identifiant Postgres corrigée sur `ALTER TYPE`, ordre `TYPE`/`USING` invalide corrigé, `modify_column` sauté sous SQLite (panique sea-query) ; FK toujours inline en `CREATE TABLE`
 - `makemigrations` reconnaît désormais un `migration/` initialisé via `sea-orm-cli migrate init` (`lib.rs` reformaté canoniquement, placeholder `todo!()` supprimé) — cf. [Migrations](/docs/fr/installation/migrations)
+- Recherche/filtres portables multi-moteurs (2026-09-02) : `CAST(col AS TEXT)` invalide sur MySQL/MariaDB (exige `CHAR`) — corrigé via des helpers `text_cast_type`/`text_eq`/`ilike` détectant le moteur à l'exécution (`db.get_database_backend()`). `search_cond!` prend désormais la connexion `db` en premier argument sur ses 4 formes — cf. [Requêtes](/docs/fr/orm/requetes)
 
 ### I18n
 - 9 langues (en, fr, de, es, it, pt, ja, zh, ru), stockage `AtomicU8`, `RUNIQUE_LANG`
@@ -140,5 +142,5 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 ---
 
-**Dernière mise à jour** : 1er septembre 2026
+**Dernière mise à jour** : 2 septembre 2026
 **Statut global** : ✅ Framework stable · 🟡 Admin bêta mature · 🔒 Sécurité : tokens de reset durcis en DB, auth en temps constant · 📖 Documentation API publique complète (docs.rs)
