@@ -1,10 +1,10 @@
 # Couverture de tests — package `runique`
 
-Snapshot du **2026-09-01** · commande : `cargo llvm-cov --package runique --summary-only`
+Snapshot du **2026-09-02** · commande : `cargo llvm-cov --package runique --summary-only`
 
 | | Régions | Fonctions | Lignes |
 |---|---|---|---|
-| **TOTAL** | **71.77 %** | **75.14 %** | **73.04 %** |
+| **TOTAL** | **72.30 %** | **75.54 %** | **73.69 %** |
 
 ---
 
@@ -13,16 +13,16 @@ Snapshot du **2026-09-01** · commande : `cargo llvm-cov --package runique --sum
 | Fichier | Régions | Fonctions | Lignes |
 |---|---|---|---|
 | admin_main/action.rs | 98.29 % | 100.00 % | 99.51 % |
-| admin_main/handle_bulk.rs | 13.15 % | 11.11 % | 14.29 % |
+| admin_main/handle_bulk.rs | 29.19 % | 30.56 % | 32.88 % |
 | admin_main/handle_crud.rs | 57.25 % | 50.98 % | 68.70 % |
 | admin_main/handle_inline.rs | 81.82 % | 100.00 % | 80.95 % |
 | admin_main/handle_list.rs | 52.89 % | 44.00 % | 62.68 % |
 | admin_main/handle_password.rs | 58.46 % | 85.71 % | 56.65 % |
-| admin_main/mod.rs | 70.29 % | 65.52 % | 68.47 % |
-| builtin/droit.rs | 74.38 % | 69.57 % | 73.84 % |
-| builtin/groupe.rs | 60.27 % | 76.92 % | 71.35 % |
+| admin_main/mod.rs | 71.26 % | 65.52 % | 70.05 % |
+| builtin/droit.rs | 75.56 % | 69.57 % | 76.21 % |
+| builtin/groupe.rs | 63.93 % | 76.92 % | 77.22 % |
 | builtin/mod.rs | 27.27 % | 50.00 % | 33.33 % |
-| builtin/user.rs | 52.85 % | 55.00 % | 52.89 % |
+| builtin/user.rs | 65.14 % | 72.50 % | 67.72 % |
 | config/config_admin.rs | 56.85 % | 38.89 % | 57.27 % |
 | daemon/generator.rs | 0.00 % | 0.00 % | 0.00 % |
 | daemon/parser.rs | 92.22 % | 98.39 % | 97.90 % |
@@ -31,6 +31,7 @@ Snapshot du **2026-09-01** · commande : `cargo llvm-cov --package runique --sum
 | helper/fk_resolve.rs | 5.17 % | 16.67 % | 11.69 % |
 | helper/resource_entry.rs | 49.62 % | 55.00 % | 54.05 % |
 | helper/roles.rs | 40.00 % | 100.00 % | 36.36 % |
+| helper/sql_dialect.rs | 51.72 % | 66.67 % | 60.00 % |
 | helper/template.rs | 46.46 % | 52.17 % | 64.17 % |
 | history.rs | 85.58 % | 100.00 % | 80.95 % |
 | middleware/admin_middleware.rs | 66.67 % | 66.67 % | 80.00 % |
@@ -41,7 +42,7 @@ Snapshot du **2026-09-01** · commande : `cargo llvm-cov --package runique --sum
 | permissions/users_groupes.rs | 72.73 % | 50.00 % | 66.67 % |
 | registry.rs | 58.56 % | 78.95 % | 61.64 % |
 | resource.rs | 18.57 % | 13.16 % | 29.06 % |
-| router/admin_router.rs | 72.64 % | 65.75 % | 76.33 % |
+| router/admin_router.rs | 70.83 % | 61.64 % | 74.47 % |
 | table_admin/migrations_table.rs | 46.83 % | 25.00 % | 52.96 % |
 | trad/mod.rs | 100.00 % | 100.00 % | 100.00 % |
 
@@ -156,7 +157,7 @@ Snapshot du **2026-09-01** · commande : `cargo llvm-cov --package runique --sum
 | Fichier | Régions | Fonctions | Lignes |
 |---|---|---|---|
 | base.rs | 92.75 % | 87.50 % | 88.68 % |
-| extractor.rs | 92.25 % | 86.67 % | 89.09 % |
+| extractor.rs | 91.08 % | 81.25 % | 89.84 % |
 | field.rs | 69.38 % | 70.45 % | 70.18 % |
 | fields/boolean.rs | 100.00 % | 100.00 % | 100.00 % |
 | fields/choice.rs | 93.15 % | 88.89 % | 90.17 % |
@@ -225,7 +226,7 @@ Snapshot du **2026-09-01** · commande : `cargo llvm-cov --package runique --sum
 | index/mod.rs | 100.00 % | 100.00 % | 100.00 % |
 | primary_key/mod.rs | 97.62 % | 100.00 % | 100.00 % |
 | relation/mod.rs | 85.71 % | 80.00 % | 91.18 % |
-| schema/mod.rs | 87.41 % | 87.50 % | 88.35 % |
+| schema/mod.rs | 87.91 % | 87.50 % | 88.72 % |
 | utils/convertisseur.rs | 95.24 % | 100.00 % | 92.86 % |
 | utils/diff.rs | 95.58 % | 100.00 % | 97.13 % |
 | utils/generators.rs | 91.67 % | 100.00 % | 93.28 % |
@@ -245,7 +246,7 @@ Snapshot du **2026-09-01** · commande : `cargo llvm-cov --package runique --sum
 |---|---|---|---|
 | aliases/helpers.rs | 69.23 % | 66.67 % | 66.67 % |
 | cli/cli_admin.rs | 0.00 % | 0.00 % | 0.00 % |
-| cli/makemigration.rs | 77.66 % | 88.71 % | 78.98 % |
+| cli/makemigration.rs | 80.89 % | 91.04 % | 81.86 % |
 | cli/migrate.rs | 67.58 % | 84.21 % | 68.56 % |
 | cli/new_project.rs | 0.00 % | 0.00 % | 0.00 % |
 | cli/start.rs | 0.00 % | 0.00 % | 0.00 % |
@@ -269,7 +270,7 @@ Snapshot du **2026-09-01** · commande : `cargo llvm-cov --package runique --sum
 | constante/parse.rs | 100.00 % | 100.00 % | 100.00 % |
 | constante/regex_template.rs | 100.00 % | 100.00 % | 100.00 % |
 | forms/parse_boolean.rs | 100.00 % | 100.00 % | 100.00 % |
-| forms/parse_html.rs | 78.43 % | 77.78 % | 66.24 % |
+| forms/parse_html.rs | 77.16 % | 77.78 % | 65.40 % |
 | forms/sanitizer.rs | 91.64 % | 88.89 % | 90.13 % |
 | init_error/init.rs | 100.00 % | 100.00 % | 100.00 % |
 | mailer/mod.rs | 30.89 % | 34.29 % | 32.55 % |

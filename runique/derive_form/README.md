@@ -190,14 +190,22 @@ Declare the constraint directly on the field with `fk(table.column, action)`:
 
 **Actions:** `cascade`, `set_null`, `restrict`, `set_default`
 
+**Always type a foreign key field as `Pk`, never a hardcoded `int`/`i32`.** The whole
+ORM is built around the `Pk` alias — it resolves to `i32` by default, `i64` under
+`big-pk`, or `Uuid` under `pk-uuid` (same mechanism as `pk: id => Pk` for the primary
+key itself). A FK column typed `Pk` always matches whatever type the referenced
+table's primary key actually is, on any feature combination. A FK hardcoded as `int`
+silently breaks — or worse, silently truncates — the moment the referenced table's PK
+switches feature.
+
 ```rust
 model! {
     Comment,
     table: "comments",
     pk: id => Pk,
     {
-        post_id:    int  [required, fk(posts.id, cascade)],
-        author_id:  int  [fk(users.id, set_null)],
+        post_id:    Pk  [required, fk(posts.id, cascade)],
+        author_id:  Pk  [fk(users.id, set_null)],
         content:    textarea [required],
         created_at: datetime [auto_now],
     },
@@ -208,7 +216,7 @@ model! {
 }
 ```
 
-The `fk()` option is only valid on `int` and `bigint` fields.
+The `fk()` option is only valid on `int`, `bigint`, and `uuid`-resolving fields (so `Pk` under any feature).
 
 ---
 
@@ -304,7 +312,7 @@ model! {
     {
         title:      text     [required],
         slug:       slug     [required, unique],
-        author_id:  int      [required, fk(users.id, cascade)],
+        author_id:  Pk      [required, fk(users.id, cascade)],
         lang:       text     [required, max_length: 5],
         created_at: datetime [auto_now],
     },
@@ -354,7 +362,7 @@ model! {
     pk: id => Pk,
     {
         title:     text [required],
-        author_id: int  [required, fk(users.id, cascade)],
+        author_id: Pk  [required, fk(users.id, cascade)],
     },
     relations: {
         belongs_to: User via author_id,
@@ -368,7 +376,7 @@ model! {
     pk: id => Pk,
     {
         body:    textarea [required],
-        post_id: int      [required, fk(posts.id, cascade)],
+        post_id: Pk      [required, fk(posts.id, cascade)],
     },
     relations: {
         belongs_to: Post via post_id,
@@ -396,8 +404,8 @@ model! {
     table: "article_tags",
     pk: id => Pk,
     {
-        article_id: int [required, fk(articles.id, cascade)],
-        tag_id:     int [required, fk(tags.id, cascade)],
+        article_id: Pk [required, fk(articles.id, cascade)],
+        tag_id:     Pk [required, fk(tags.id, cascade)],
     },
     relations: {
         belongs_to: Article via article_id,
@@ -442,8 +450,8 @@ model! {
         content:      richtext [required],
         excerpt:      textarea,
         status:       choice   [enum(PostStatus), required, default: "draft"],
-        author_id:    int      [required, fk(users.id, cascade)],
-        category_id:  int      [fk(categories.id, set_null)],
+        author_id:    Pk      [required, fk(users.id, cascade)],
+        category_id:  Pk      [fk(categories.id, set_null)],
         views:        bigint   [required, default: 0],
         created_at:   datetime [auto_now],
         updated_at:   datetime [auto_now_update],
@@ -459,8 +467,8 @@ model! {
     table: "comments",
     pk: id => Pk,
     {
-        post_id:     int      [required, fk(posts.id, cascade)],
-        author_id:   int      [fk(users.id, set_null)],
+        post_id:     Pk      [required, fk(posts.id, cascade)],
+        author_id:   Pk      [fk(users.id, set_null)],
         content:     textarea [required],
         is_approved: bool     [required, default: false],
         created_at:  datetime [auto_now],
@@ -510,7 +518,7 @@ model! {
         title:        text [required],
         is_published: bool [required, default: false],
         views:        bigint [required, default: 0],
-        author_id:    int   [required, fk(users.id, cascade)],
+        author_id:    Pk   [required, fk(users.id, cascade)],
         created_at:   datetime [auto_now],
     }
 }
