@@ -1,7 +1,7 @@
 # Runique — the Django developer experience, in type-safe Rust
 
 ![Rust](https://img.shields.io/badge/rust-1.94%2B-orange)
-![Tests passing](https://img.shields.io/badge/tests-2361%20passing-green)
+![Tests passing](https://img.shields.io/badge/tests-2375%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Version](https://img.shields.io/badge/version-2.2.0-blue)
 [![Crates.io](https://img.shields.io/crates/v/runique)](https://crates.io/crates/runique)
