@@ -111,7 +111,7 @@ run_engine() {
 
 # ── Build unique du CLI runique (compile la lib lourde une seule fois) ─────────
 echo "--- build CLI runique (une fois) ---"
-if ! cargo build -q -p runique --bin runique; then
+if ! cargo build -q -p runique --bin runique --features all-databases; then
     echo "ECHEC: build du CLI runique"
     exit 1
 fi

@@ -1,15 +1,15 @@
 //! Password hashing and verification — Argon2, bcrypt, scrypt via `PasswordHasher` trait.
 
 // === password/hasher.rs ===
+// argon2 et scrypt sont désormais tous deux sur password-hash 0.6 — un seul
+// jeu d'imports partagé (contrairement à avant : scrypt était resté sur 0.5,
+// une version incompatible malgré le nom identique des traits/types).
 use argon2::{
     Argon2,
-    password_hash::{
-        PasswordHash, PasswordHasher as _, PasswordVerifier as ArgonPasswordVerifier, SaltString,
-        rand_core::OsRng,
-    },
+    password_hash::{PasswordHasher as _, PasswordVerifier as _, phc::PasswordHash},
 };
 use bcrypt::{DEFAULT_COST, hash as bcrypt_hash, verify as bcrypt_verify};
-use scrypt::{Scrypt, password_hash::SaltString as ScryptSaltString};
+use scrypt::Scrypt;
 
 use crate::utils::trad::{t, tf};
 use dyn_clone::DynClone;
@@ -73,10 +73,10 @@ impl BaseHash {
         if password.is_empty() {
             return Err(t("forms.password_empty").into_owned());
         }
-        let salt = SaltString::generate(&mut OsRng);
-        let argon2 = Argon2::default();
-        argon2
-            .hash_password(password.as_bytes(), &salt)
+        // argon2 0.6 : `hash_password` génère le sel en interne (via `getrandom`),
+        // il ne prend plus de `SaltString`/RNG explicite en paramètre.
+        Argon2::default()
+            .hash_password(password.as_bytes())
             .map(|h| h.to_string())
             .map_err(|e| tf("forms.hash_error", &[&e.to_string()]).clone())
     }
@@ -106,11 +106,10 @@ impl BaseHash {
         if password.is_empty() {
             return Err(t("forms.password_empty").into_owned());
         }
-
-        let salt = ScryptSaltString::generate(&mut OsRng);
-
-        Scrypt
-            .hash_password(password.as_bytes(), &salt)
+        // Comme argon2 0.6, `hash_password` génère le sel en interne (`getrandom`).
+        // `Scrypt` 0.12 n'est plus un unit struct (champ `params` privé) — passer par `default()`.
+        Scrypt::default()
+            .hash_password(password.as_bytes())
             .map(|h| h.to_string())
             .map_err(|e| tf("forms.hash_error", &[&e.to_string()]).clone())
     }
@@ -119,7 +118,7 @@ impl BaseHash {
         let Ok(parsed_hash) = PasswordHash::new(hash) else {
             return false;
         };
-        Scrypt
+        Scrypt::default()
             .verify_password(password.as_bytes(), &parsed_hash)
             .is_ok()
     }
