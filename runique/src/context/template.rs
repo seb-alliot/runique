@@ -246,7 +246,9 @@ impl Request {
             user: None,
             prisme: Prisme {
                 data: Default::default(),
-                csrf_valid: true,
+                // RuniqueContext (FromRequestParts) never runs check_csrf — no body access.
+                // Fail-closed: only `Request` via `request.form()` can actually validate CSRF.
+                csrf_valid: false,
             },
             honeypot_field_name: None,
         }

@@ -141,19 +141,15 @@ async fn test_is_valid_invalide_username_vide() {
 }
 
 #[tokio::test]
-async fn test_is_valid_valide_avec_username_rempli() {
+async fn test_is_valid_toujours_invalide_sans_password_meme_username_rempli() {
     let mut form = Forms::new("csrf_token");
     LoginAdmin::register_fields(&mut form);
     form.add_value("username", "admin");
-    // password est required aussi mais fill() le skip
-    // On utilise add_value directement
-    form.add_value("csrf_token", "csrf_token"); // token CSRF correspond
+    form.add_value("csrf_token", "csrf_token");
     let mut login = LoginAdmin::from_form(form);
-    // Le formulaire devrait passer la validation de base
-    // (username rempli, password non-required dans ce contexte)
-    // Note: password est required donc is_valid() reste false si vide
-    let _valid = login.is_valid().await;
-    // On vérifie juste que la méthode s'exécute sans panique
+    // password est required : même username + CSRF valides, is_valid() doit
+    // rester false tant que password n'est pas fourni.
+    assert!(!login.is_valid().await);
 }
 
 // ═══════════════════════════════════════════════════════════════

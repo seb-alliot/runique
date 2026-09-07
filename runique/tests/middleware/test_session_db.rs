@@ -284,8 +284,21 @@ async fn test_session_db_find_by_user_excludes_expired() {
 // ═══════════════════════════════════════════════════════════════
 
 #[tokio::test]
-async fn test_session_db_spawn_cleanup_no_panic() {
-    let store = make_store().await;
-    store.spawn_cleanup(tokio::time::Duration::from_secs(60));
-    // Tâche tokio en arrière-plan — on vérifie juste que ça ne panique pas
+async fn test_session_db_spawn_cleanup_actually_purges_expired() {
+    // `find_by_cookie_id` ne renvoie que les sessions ACTIVES (filtre `expires_at
+    // > now`), donc inutilisable pour vérifier la présence d'une session déjà
+    // expirée avant le cleanup — on compte la ligne brute dans la table à la place.
+    let db = std::sync::Arc::new(crate::helpers::db::fresh_db_with_schema(SESSIONS_DDL).await);
+    let store = RuniqueSessionStore::new(db.clone());
+    store
+        .create("cookie-expired", pk(1), "sess-expired", past_expiry())
+        .await
+        .unwrap();
+    crate::helpers::db::assert_count(&db, "eihwaz_sessions", 1).await;
+
+    // Intervalle court pour observer un vrai cycle de purge, pas juste l'absence de panic.
+    store.spawn_cleanup(tokio::time::Duration::from_millis(20));
+    tokio::time::sleep(tokio::time::Duration::from_millis(80)).await;
+
+    crate::helpers::db::assert_count(&db, "eihwaz_sessions", 0).await;
 }
