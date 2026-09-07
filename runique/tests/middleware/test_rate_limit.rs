@@ -168,10 +168,21 @@ async fn test_middleware_429_has_retry_after_header() {
 }
 
 #[tokio::test]
-async fn test_spawn_cleanup_no_panic() {
-    let limiter = RateLimiter::new().max_requests(10).retry_after(60);
-    limiter.spawn_cleanup(tokio::time::Duration::from_secs(3600));
-    // Pas de panique = OK
+async fn test_spawn_cleanup_does_not_corrupt_concurrent_limiting() {
+    // spawn_cleanup et is_allowed() se disputent le même mutex interne. Un
+    // intervalle de tick court qui chevauche des appels réels vérifie l'absence
+    // de deadlock/race entre les deux — pas juste que le spawn seul ne panique pas.
+    let limiter = RateLimiter::new().max_requests(3).retry_after(60);
+    limiter.spawn_cleanup(tokio::time::Duration::from_millis(15));
+
+    for _ in 0..3 {
+        assert!(limiter.is_allowed("race-key"));
+        tokio::time::sleep(tokio::time::Duration::from_millis(20)).await;
+    }
+    assert!(
+        !limiter.is_allowed("race-key"),
+        "la limite doit rester correcte malgré les ticks de cleanup concurrents"
+    );
 }
 
 // ── route_layer — pattern utilisé dans url.rs ─────────────────────────────────

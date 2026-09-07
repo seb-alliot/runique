@@ -119,6 +119,15 @@ async fn test_up_retourne_ok() {
     let migration_dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../demo-app/migration");
     let result = up(migration_dir).await;
     assert!(result.is_ok(), "up() Postgres doit Ok: {:?}", result);
+
+    // `Ok` seul ne prouve pas que le schéma existe réellement — `count()` panique
+    // si la table n'existe pas (requête SQL qui échoue), donc son succès prouve
+    // que la table framework ET une table métier demo-app ont bien été créées.
+    let Some(db) = db_pg::connect().await else {
+        return;
+    };
+    db_pg::count(&db, "eihwaz_users").await;
+    db_pg::count(&db, "blog").await;
 }
 
 // Ignoré sur Windows avec code page non-UTF-8 (bug SQLx sur Windows français)
@@ -136,6 +145,14 @@ async fn test_up_mariadb_retourne_ok() {
     let migration_dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../demo-app/migration");
     let result = up(migration_dir).await;
     assert!(result.is_ok(), "up() MariaDB doit Ok: {:?}", result);
+
+    // Idem Postgres : `count()` panique si la table n'existe pas, donc son succès
+    // prouve que le schéma a réellement été créé, pas juste que `up()` a retourné Ok.
+    let Some(db) = db_maria::connect().await else {
+        return;
+    };
+    db_maria::count(&db, "eihwaz_users").await;
+    db_maria::count(&db, "blog").await;
 }
 
 #[tokio::test]

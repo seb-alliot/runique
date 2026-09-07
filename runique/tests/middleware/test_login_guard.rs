@@ -109,11 +109,20 @@ fn test_effective_key_whitespace_username_uses_ip() {
 }
 
 #[tokio::test]
-async fn test_spawn_cleanup_does_not_panic() {
-    let guard = LoginGuard::new().max_attempts(3).lockout_secs(1);
+async fn test_spawn_cleanup_actually_removes_expired_entries() {
+    // lockout_secs(0) : l'entrée est éligible à la purge dès le premier tick.
+    let guard = LoginGuard::new().max_attempts(3).lockout_secs(0);
     guard.record_failure("tmp_user");
-    guard.spawn_cleanup(tokio::time::Duration::from_secs(1));
-    // Le task tourne en arrière-plan — on vérifie juste que ça ne panique pas
+    assert_eq!(guard.attempts("tmp_user"), 1, "l'échec doit être enregistré avant le cleanup");
+
+    guard.spawn_cleanup(tokio::time::Duration::from_millis(20));
+    tokio::time::sleep(tokio::time::Duration::from_millis(80)).await;
+
+    assert_eq!(
+        guard.attempts("tmp_user"),
+        0,
+        "la tâche de fond doit avoir retiré l'entrée dont le lockout est expiré"
+    );
 }
 
 #[test]

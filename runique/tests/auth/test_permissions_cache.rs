@@ -80,8 +80,11 @@ fn test_evict_retire_user_du_cache() {
 
 #[test]
 #[serial]
-fn test_evict_user_inconnu_ne_panique_pas() {
-    evict_permissions(pk(99_999)); // ne doit pas paniquer
+fn test_evict_user_inconnu_reste_absent_du_cache() {
+    let user_id = pk(99_999);
+    assert!(get_permissions(user_id).is_none(), "aucun cache avant l'évincement");
+    evict_permissions(user_id);
+    assert!(get_permissions(user_id).is_none(), "toujours absent après l'évincement d'une clé inconnue");
 }
 
 // ═══════════════════════════════════════════════════════════════

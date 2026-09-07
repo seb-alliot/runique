@@ -27,11 +27,24 @@ fn test_default_size_zero() {
     assert_eq!(store.size_bytes(), 0);
 }
 
-#[test]
-fn test_with_watermarks_stored() {
-    let store = CleaningMemoryStore::default().with_watermarks(1024, 2048);
-    // On vérifie juste que ça ne panique pas et que le store reste utilisable
-    assert_eq!(store.size_bytes(), 0);
+#[tokio::test]
+async fn test_with_watermarks_stored() {
+    // `is_saturated()` compare `size_bytes` au `high_watermark` interne — le
+    // vérifier avant/après une écriture prouve que la valeur passée à
+    // `with_watermarks` est réellement celle utilisée, pas juste acceptée sans effet.
+    let store = CleaningMemoryStore::default().with_watermarks(1, 1);
+    assert!(
+        !store.is_saturated(),
+        "store vide : jamais saturé, quel que soit le watermark"
+    );
+
+    let mut r = fresh_record(3600);
+    store.create(&mut r).await.unwrap();
+
+    assert!(
+        store.is_saturated(),
+        "high_watermark=1 octet doit être dépassé dès la première session créée"
+    );
 }
 
 // ── create ────────────────────────────────────────────────────────────────────
@@ -194,33 +207,48 @@ async fn test_delete_expired_reduces_size() {
 
 #[tokio::test]
 async fn test_high_watermark_refuses_when_exceeded() {
-    // Watermarks très bas pour forcer le dépassement
+    // Watermarks très bas pour forcer le dépassement dès la 2e session.
     let store = CleaningMemoryStore::default().with_watermarks(1, 1);
 
-    // Remplir le store avec des sessions expirées (non protégées)
-    for _ in 0..5 {
-        let mut r = fresh_record(-1); // expiré
-        // On ignore les erreurs ici — on veut juste saturer
-        let _ = store.create(&mut r).await;
-    }
+    // Première session : store vide (current=0 < high_watermark=1) donc pas de
+    // purge d'urgence déclenchée — elle passe toujours. Non-expirée, donc elle
+    // survivra à toute purge d'urgence ultérieure (seules les sessions expirées
+    // sont libérées).
+    let mut r1 = fresh_record(3600);
+    store.create(&mut r1).await.unwrap();
+    assert!(store.size_bytes() >= 1, "size_bytes doit dépasser 1 octet après une session réelle");
 
-    // Quand toutes les sessions expirées sont purgées et c'est encore dépassé → refus
-    let mut r = fresh_record(3600);
-    r.data
-        .insert("big_payload".into(), serde_json::json!("x".repeat(100)));
-    // Peut réussir ou échouer selon la purge — on vérifie juste que ça ne panique pas
-    let _ = store.create(&mut r).await;
+    // Deuxième session : current >= high_watermark(1) → purge d'urgence tentée,
+    // mais r1 n'est pas expirée donc rien n'est libéré → toujours saturé après
+    // purge → refus attendu (503 côté appelant HTTP), pas juste "pas de panic".
+    let mut r2 = fresh_record(3600);
+    let result = store.create(&mut r2).await;
+
+    assert!(
+        matches!(&result, Err(tower_sessions::session_store::Error::Backend(msg)) if msg.contains("capacity exceeded")),
+        "attendu un refus de capacité (Backend(\"...capacity exceeded\")), reçu {:?}",
+        result
+    );
 }
 
 // ── spawn_cleanup ─────────────────────────────────────────────────────────────
 
 #[tokio::test]
-async fn test_spawn_cleanup_does_not_panic() {
+async fn test_spawn_cleanup_actually_purges_expired_sessions() {
     let store = CleaningMemoryStore::default();
-    // spawn_cleanup lance une tâche tokio en arrière-plan
-    store.spawn_cleanup(tokio::time::Duration::from_secs(3600));
-    // Si on arrive ici sans panic, c'est bon
-    assert_eq!(store.size_bytes(), 0);
+    let mut r = fresh_record(-5); // déjà expirée
+    store.create(&mut r).await.unwrap();
+    assert!(store.size_bytes() > 0, "la session expirée doit occuper de la place avant le cleanup");
+
+    // Intervalle court pour observer un vrai cycle de purge, pas juste l'absence de panic.
+    store.spawn_cleanup(tokio::time::Duration::from_millis(20));
+    tokio::time::sleep(tokio::time::Duration::from_millis(80)).await;
+
+    assert_eq!(
+        store.size_bytes(),
+        0,
+        "la tâche de fond doit avoir purgé la session expirée après au moins un cycle"
+    );
 }
 
 // ── sessions anonymes / is_protected ─────────────────────────────────────────
