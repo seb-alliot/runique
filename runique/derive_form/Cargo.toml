@@ -18,6 +18,14 @@ proc-macro = true
 [features]
 big-pk = []
 pk-uuid = []
+# Reflètent la feature DB active sur `runique` (forwardée via runique/Cargo.toml),
+# pour que le moteur soit connu au compile-time du macro sans lire `.env`.
+sqlite = []
+postgres = []
+mysql = []
+# Échappatoire explicite au compile_error! de mutuelle exclusion, forwardée par
+# `runique/all-databases` — voir runique/Cargo.toml.
+all-databases = []
 
 [dependencies]
 syn = { version = "2", features = ["full", "extra-traits"] }

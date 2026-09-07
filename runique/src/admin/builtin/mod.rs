@@ -9,13 +9,23 @@ mod user;
 use crate::admin::helper::resource_entry::ResourceEntry;
 
 /// Checks for a unique constraint violation (Postgres SQLSTATE 23505 + textual fallback).
+///
+/// The structured check needs `sea_orm::sqlx`, available as soon as any real backend
+/// (`postgres`/`mysql`/`sqlite`, all of which enable sea-orm's `sqlx-dep`) is active —
+/// `orm`-only builds (no backend, e.g. a `makemigrations`-only install) lack it. The
+/// check itself only ever matches Postgres's SQLSTATE 23505 — MySQL/SQLite never had
+/// this code, so they already relied solely on the textual fallback below before this
+/// gate existed; nothing changes for them.
 pub(super) fn is_unique_violation(err: &sea_orm::DbErr) -> bool {
-    use sea_orm::{RuntimeErr, sqlx};
-    if let sea_orm::DbErr::Exec(RuntimeErr::SqlxError(arc_err)) = err
-        && let sqlx::Error::Database(db_err) = arc_err.as_ref()
-        && db_err.code().as_deref() == Some("23505")
+    #[cfg(any(feature = "postgres", feature = "mysql", feature = "sqlite"))]
     {
-        return true;
+        use sea_orm::{RuntimeErr, sqlx};
+        if let sea_orm::DbErr::Exec(RuntimeErr::SqlxError(arc_err)) = err
+            && let sqlx::Error::Database(db_err) = arc_err.as_ref()
+            && db_err.code().as_deref() == Some("23505")
+        {
+            return true;
+        }
     }
     let s = err.to_string();
     s.contains("23505")

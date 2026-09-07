@@ -1,5 +1,6 @@
-/// Database engine detected at compile time (from `.env`).
-/// Used by the proc-macro to adapt generation according to the target engine.
+/// Database engine detected at compile time — via the Cargo feature forwarded
+/// from `runique` in priority, `.env` as a fallback. Used by the proc-macro to
+/// adapt generation according to the target engine.
 #[derive(Debug, Clone, PartialEq)]
 pub enum DbEngine {
     Postgres,
@@ -9,14 +10,31 @@ pub enum DbEngine {
 }
 
 impl DbEngine {
-    /// Detects the engine from the build environment.
+    /// Detects the engine at compile time.
     ///
     /// Priority:
-    /// 1. `DB_ENGINE` variable (explicit override: `postgres`, `mysql`, `sqlite`)
-    /// 2. `DATABASE_URL` prefix (`postgres://`, `mysql://`, `sqlite:`)
-    /// 3. Search `.env` in CWD, then in parents up to 4 levels
-    /// 4. Fallback: `Unknown`
+    /// 1. Feature Cargo forwardée depuis `runique` (`postgres`/`mysql`/`sqlite`) —
+    ///    source de vérité : ne peut pas désynchroniser de ce qui est réellement
+    ///    compilé, contrairement à `.env` qui peut mentir (mauvais fichier, valeur
+    ///    oubliée après un changement de moteur).
+    /// 2. Fallback `.env` (`DB_ENGINE` puis `DATABASE_URL`) — pour un projet dont le
+    ///    `Cargo.toml` ne forwarde pas encore la feature vers `derive_form`.
     pub fn detect() -> Self {
+        if cfg!(feature = "postgres") {
+            return DbEngine::Postgres;
+        }
+        if cfg!(feature = "mysql") {
+            return DbEngine::Mysql;
+        }
+        if cfg!(feature = "sqlite") {
+            return DbEngine::Sqlite;
+        }
+        Self::detect_from_env()
+    }
+
+    /// Ancien mécanisme, conservé en repli tant que tous les projets n'ont pas
+    /// migré vers le forwarding de features `runique` -> `derive_form`.
+    fn detect_from_env() -> Self {
         // 1. CARGO_MANIFEST_DIR — path of the compiled crate (most reliable in proc-macro).
         if let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") {
             let candidate = std::path::Path::new(&manifest_dir).join(".env");

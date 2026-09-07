@@ -139,13 +139,19 @@ tracing-test = "0.2"
 syn.workspace = true
 
 [features]
-default = ["orm", "all-databases"]
+# `orm` est le plancher minimal : les sessions (middleware/session/session_db.rs)
+# dépendent de sea-orm sans condition, ce n'est pas une couche optionnelle.
+default = ["orm"]
 orm = ["dep:sea-orm", "dep:sea-orm-migration"]
-sqlite = ["orm", "sea-orm/sqlx-sqlite", "sea-orm/runtime-tokio-rustls"]
-postgres = ["orm", "sea-orm/sqlx-postgres", "sea-orm/runtime-tokio-rustls"]
-mysql = ["orm", "sea-orm/sqlx-mysql", "sea-orm/runtime-tokio-rustls"]
+sqlite = ["orm", "sea-orm/sqlx-sqlite", "sea-orm/runtime-tokio-rustls", "derive_form/sqlite"]
+postgres = ["orm", "sea-orm/sqlx-postgres", "sea-orm/runtime-tokio-rustls", "derive_form/postgres"]
+mysql = ["orm", "sea-orm/sqlx-mysql", "sea-orm/runtime-tokio-rustls", "derive_form/mysql"]
 mariadb = ["mysql"]
-all-databases = ["sqlite", "postgres", "mysql"]
+# Échappatoire explicite au compile_error! de mutuelle exclusion (lib.rs) — pour
+# docs.rs et les outils multi-moteur (ex: scripts/smoke_migrations.sh, un seul
+# binaire CLI parlant aux 3 moteurs au runtime via DATABASE_URL/DB_ENGINE).
+# Jamais activée implicitement : il faut la demander explicitement par son nom.
+all-databases = ["sqlite", "postgres", "mysql", "derive_form/all-databases"]
 big-pk = ["derive_form/big-pk"]
 pk-uuid = ["derive_form/pk-uuid", "sea-orm/with-uuid"]
 acme = ["dep:instant-acme", "dep:axum-server", "dep:rustls"]

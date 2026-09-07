@@ -1,6 +1,25 @@
 #![doc = include_str!("../README.md")]
 
 // ---------------------------------------------------------------------------
+// Moteurs de base de données mutuellement exclusifs
+// ---------------------------------------------------------------------------
+// Exemptions : cfg(doc) (docs.rs/`cargo doc`, qui compile avec `all-databases`
+// pour documenter chaque backend) et la feature `all-databases` elle-même,
+// demandée explicitement (outils multi-moteur — voir scripts/smoke_migrations.sh).
+#[cfg(all(not(doc), not(feature = "all-databases"), feature = "postgres", feature = "mysql"))]
+compile_error!(
+    "les features `postgres` et `mysql` sont mutuellement exclusives — choisis un seul moteur (ou `all-databases` explicitement pour du tooling multi-moteur)"
+);
+#[cfg(all(not(doc), not(feature = "all-databases"), feature = "postgres", feature = "sqlite"))]
+compile_error!(
+    "les features `postgres` et `sqlite` sont mutuellement exclusives — choisis un seul moteur (ou `all-databases` explicitement pour du tooling multi-moteur)"
+);
+#[cfg(all(not(doc), not(feature = "all-databases"), feature = "mysql", feature = "sqlite"))]
+compile_error!(
+    "les features `mysql` et `sqlite` sont mutuellement exclusives — choisis un seul moteur (ou `all-databases` explicitement pour du tooling multi-moteur)"
+);
+
+// ---------------------------------------------------------------------------
 // Main Modules
 // ---------------------------------------------------------------------------*
 pub mod app;
