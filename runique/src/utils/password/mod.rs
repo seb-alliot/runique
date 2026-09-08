@@ -31,6 +31,25 @@ impl Clone for Box<dyn PasswordHasher> {
 #[derive(Debug, Clone)]
 pub struct BaseHash;
 
+/// Runs `verify_once(hash)`. If it errors — the hash doesn't even parse — re-runs it
+/// against `dummy` to burn the same computation time before returning `false`: a
+/// malformed stored hash must not answer faster than a well-formed one with the wrong
+/// password, or timing leaks which stored hashes are well-formed (same principle as
+/// `dummy_hash()` for user enumeration, applied to the parse step of each algorithm).
+fn verify_constant_time<E>(
+    verify_once: impl Fn(&str) -> Result<bool, E>,
+    hash: &str,
+    dummy: &str,
+) -> bool {
+    match verify_once(hash) {
+        Ok(matched) => matched,
+        Err(_) => {
+            let _ = verify_once(dummy);
+            false
+        }
+    }
+}
+
 impl BaseHash {
     pub fn new() -> Self {
         Self
@@ -82,12 +101,14 @@ impl BaseHash {
     }
 
     fn verify_argon2(&self, password: &str, hash: &str) -> bool {
-        let Ok(parsed_hash) = PasswordHash::new(hash) else {
-            return false;
-        };
-        Argon2::default()
-            .verify_password(password.as_bytes(), &parsed_hash)
-            .is_ok()
+        verify_constant_time(
+            |h| {
+                PasswordHash::new(h)
+                    .map(|p| Argon2::default().verify_password(password.as_bytes(), &p).is_ok())
+            },
+            hash,
+            dummy_hash(),
+        )
     }
 
     fn hash_bcrypt(&self, password: &str) -> Result<String, String> {
@@ -99,7 +120,10 @@ impl BaseHash {
     }
 
     fn verify_bcrypt(&self, password: &str, hash: &str) -> bool {
-        bcrypt_verify(password, hash).unwrap_or(false)
+        // `bcrypt::verify` ne renvoie `Err` que si le hash ne parse pas (`split_hash`) —
+        // jamais pour "mot de passe faux", qui donne `Ok(false)`. Même traitement que
+        // les autres algorithmes : brûler le même temps sur un hash mal formé.
+        verify_constant_time(|h| bcrypt_verify(password, h), hash, &DUMMY_HASH_BCRYPT)
     }
 
     fn hash_scrypt(&self, password: &str) -> Result<String, String> {
@@ -115,12 +139,14 @@ impl BaseHash {
     }
 
     fn verify_scrypt(&self, password: &str, hash: &str) -> bool {
-        let Ok(parsed_hash) = PasswordHash::new(hash) else {
-            return false;
-        };
-        Scrypt::default()
-            .verify_password(password.as_bytes(), &parsed_hash)
-            .is_ok()
+        verify_constant_time(
+            |h| {
+                PasswordHash::new(h)
+                    .map(|p| Scrypt::default().verify_password(password.as_bytes(), &p).is_ok())
+            },
+            hash,
+            &DUMMY_HASH_SCRYPT,
+        )
     }
 }
 
@@ -393,6 +419,22 @@ static DUMMY_HASH: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
 pub fn dummy_hash() -> &'static str {
     &DUMMY_HASH
 }
+
+// Dummy hashes for bcrypt/scrypt — used only by `verify_constant_time` to burn the
+// same computation time when a stored hash fails to parse for that algorithm.
+// Unlike `dummy_hash()` (public, algorithm-agnostic, used for user-enumeration
+// defense), these are private: each `verify_*` needs a dummy in its own format.
+static DUMMY_HASH_BCRYPT: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
+    bcrypt_hash("__runique_dummy__", DEFAULT_COST)
+        .expect("bcrypt hashing a fixed short string should never fail")
+});
+
+static DUMMY_HASH_SCRYPT: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
+    Scrypt::default()
+        .hash_password(b"__runique_dummy__")
+        .map(|h| h.to_string())
+        .expect("scrypt hashing a fixed short string should never fail")
+});
 
 pub fn password_init(config: PasswordConfig) {
     if PASSWORD_CONFIG.set(config).is_err()
