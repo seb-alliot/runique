@@ -216,7 +216,10 @@ async fn test_high_watermark_refuses_when_exceeded() {
     // sont libérées).
     let mut r1 = fresh_record(3600);
     store.create(&mut r1).await.unwrap();
-    assert!(store.size_bytes() >= 1, "size_bytes doit dépasser 1 octet après une session réelle");
+    assert!(
+        store.size_bytes() >= 1,
+        "size_bytes doit dépasser 1 octet après une session réelle"
+    );
 
     // Deuxième session : current >= high_watermark(1) → purge d'urgence tentée,
     // mais r1 n'est pas expirée donc rien n'est libéré → toujours saturé après
@@ -238,7 +241,10 @@ async fn test_spawn_cleanup_actually_purges_expired_sessions() {
     let store = CleaningMemoryStore::default();
     let mut r = fresh_record(-5); // déjà expirée
     store.create(&mut r).await.unwrap();
-    assert!(store.size_bytes() > 0, "la session expirée doit occuper de la place avant le cleanup");
+    assert!(
+        store.size_bytes() > 0,
+        "la session expirée doit occuper de la place avant le cleanup"
+    );
 
     // Intervalle court pour observer un vrai cycle de purge, pas juste l'absence de panic.
     store.spawn_cleanup(tokio::time::Duration::from_millis(20));
