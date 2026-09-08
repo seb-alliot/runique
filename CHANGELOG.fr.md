@@ -6,6 +6,35 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ---
 
+## [2.2.1] - 2026-09-08
+
+### Rupture — `runique` (features base de données : builds mono-moteur par défaut)
+
+* **`default` n'entraîne plus tous les moteurs de base de données.** C'était `default = ["orm", "all-databases"]` : tout consommateur compilait SQLite + Postgres + MySQL/MariaDB peu importe celui réellement utilisé — y compris le scaffold (`runique new`) et le modèle de Dockerfile documenté pour la production (`cargo install runique --features "orm,postgres"`), qui *avaient l'air* de choisir un seul moteur mais récupéraient les trois quand même, rien ne désactivant le défaut. `default` est maintenant `["orm"]` : choisir explicitement un seul `sqlite`/`postgres`/`mysql` (`mariadb` est un alias de `mysql`).
+* **`postgres`/`mysql`/`sqlite` sont désormais mutuellement exclusives**, imposé par un `compile_error!` à la fois dans `runique` et `derive_form` (les features sont forwardées : le `postgres` de `runique` active aussi `derive_form/postgres`, etc.) — en activer deux à la fois est presque toujours une erreur maintenant que `default` ne le fait plus pour vous. L'échappatoire reste la feature `all-databases` existante, à demander **explicitement** : elle est exemptée du contrôle de mutuelle exclusion (avec `cfg(doc)`, pour docs.rs) et sert au tooling multi-moteur (`scripts/smoke_migrations.sh`, qui compile un seul binaire CLI parlant aux trois moteurs au runtime via `DATABASE_URL`/`DB_ENGINE`) et à la génération de documentation couvrant chaque backend.
+* **`derive_form::DbEngine::detect()` vérifie désormais la feature Cargo en priorité**, avec un repli sur l'ancien sniff `.env`/`DATABASE_URL` uniquement si aucune feature `postgres`/`mysql`/`sqlite` n'est active. L'ancien mécanisme était une seconde source de vérité indépendante, capable de désaccorder silencieusement avec ce qui était réellement compilé (ex : `runique` compilé avec `features = ["mysql"]` alors qu'un `.env` périmé disait encore `DATABASE_URL=postgres://...` — `derive_form` générait du code shape Postgres contre un build compilé pour MySQL seul). La feature Cargo ne peut pas dériver de ce qui est compilé, elle fait donc autorité quand elle est présente.
+
+### Correctif — `runique` (admin : la détection de contrainte unique ne compilait pas sans backend DB actif)
+
+* `admin/builtin/mod.rs::is_unique_violation` utilisait `sea_orm::sqlx` (le check structuré du SQLSTATE Postgres 23505) sans garde de feature — ce module n'existe qu'une fois `sqlx-dep` de sea-orm actif, ce qui arrive dès que `postgres`/`mysql`/`sqlite` est activé, mais pas pour `orm` seul. `orm` seul étant désormais une config valide (voir ci-dessus — suffisant pour `makemigrations`, aucun driver réel requis), ça cassait tout le crate dans ce cas. Corrigé en gardant le check structuré derrière `any(feature = "postgres", feature = "mysql", feature = "sqlite")` ; le repli textuel juste en dessous couvrait déjà les moteurs non-Postgres (le SQLSTATE 23505 est spécifique à Postgres — MySQL/SQLite n'ont jamais eu ce code et s'appuyaient déjà sur le repli avant cette garde, leur comportement est donc inchangé.
+
+### Rupture — dépendances (`argon2` 0.5 → 0.6, `scrypt` 0.11 → 0.12)
+
+* **`argon2` 0.6** : `password_hash::SaltString` a disparu. `PasswordHasher::hash_password` ne prend plus du tout de sel/RNG en paramètre — il en génère un en interne via `getrandom`. `hash_argon2` simplifié en conséquence (plus de `SaltString::generate(&mut OsRng)` explicite). `PasswordHash` a aussi changé de chemin : l'ancien ré-export `argon2::password_hash::PasswordHash` est déprécié au profit de `password_hash::phc::PasswordHash` (même forme, nouveau chemin — `verify_argon2` inchangé au-delà de l'import).
+* **`scrypt` 0.12** : contrairement à `argon2`, livré avec **zéro feature par défaut** — `Scrypt` lui-même n'existe pas sans demander explicitement `phc` (ou `kdf`/`mcf`), d'où `scrypt = { version = "0.12.0", features = ["phc", "getrandom"] }` désormais nécessaire. `Scrypt` n'est plus non plus un unit struct (il porte un champ privé `params`) — `Scrypt::default()` remplace l'ancienne valeur `Scrypt` nue. Maintenant sur le même `password-hash` 0.6 qu'`argon2`, donc `hash_scrypt`/`verify_scrypt` abandonnent leurs imports séparés `ScryptSaltString`/`ScryptPasswordHash` et partagent ceux d'`argon2`.
+
+### Sécurité — `runique` (vérification de mot de passe : oracle de timing sur échec de parsing)
+
+* **Un hash stocké mal formé renvoyait `false` avant tout calcul de hachage**, dans les trois `verify_argon2`/`verify_bcrypt`/`verify_scrypt`. Tout autre chemin de code (mauvais mot de passe contre un hash bien formé) paie le coût complet d'Argon2/bcrypt/scrypt ; un hash qui échoue à parser court-circuitait immédiatement — un écart de timing entre "mal formé" et "bien formé mais faux" pour tout appelant qui laisserait un attaquant influencer le hash comparé. Aucun appelant actuel ne le fait (`auth/session.rs` et `auth/user.rs` comparent tous deux contre un hash venant de la base ou du repli à temps constant `dummy_hash()`, jamais de l'entrée de la requête), donc ce n'était pas atteignable aujourd'hui — corrigé quand même en défense en profondeur, suivant le même principe déjà utilisé pour l'énumération d'utilisateurs (`dummy_hash()`). Le nouvel helper partagé `verify_constant_time` relance la même closure de vérification contre un hash bidon propre à chaque algorithme (`DUMMY_HASH_BCRYPT`/`DUMMY_HASH_SCRYPT` ajoutés à côté du `dummy_hash()` existant, qui reste au format Argon2 et sert déjà à `auth/*`) chaque fois que le parsing du hash réel échoue, pour qu'un hash mal formé coûte exactement autant qu'un hash bien formé.
+
+### Dépendances
+
+* `sea-orm` `=2.0.0` → `=2.0.2`, `sea-orm-migration` `=2.0.0` → `=2.0.2` (bumpé aussi dans `demo-app` et, depuis le `2.0.0-rc.32` sur lequel il était épinglé, dans `demo-app/migration`) — versions correctives, aucune API utilisée par Runique n'a changé.
+* `argon2` `0.5` → `0.6`, `scrypt` `0.11.0` → `0.12.0` — voir *Rupture* ci-dessus ; `scrypt` désormais déclaré en `{ version = "0.12.0", features = ["phc", "getrandom"] }` plutôt qu'en simple chaîne de version.
+* `tower-http` `0.7.0` → `0.7.1`, `time` `=0.3.54` → `=0.3.55`, `tera-contrib` `0.2` → `0.3.0`, `indexmap` `2.14.0` → `2.14.2`, `fancy-regex` `0.18.0` → `0.19.0`, `validator` `0.20` → `0.21.0`, `rust_decimal` non épinglé `1` → `1.43.0`, `syn` `3.0.3` → `3.0.5` — bumps mineurs/correctifs de routine, aucun changement de code nécessaire.
+
+---
+
 ## [2.2.0] - 2026-07-27
 
 > Migration vers **Tera 2.1**. Au-delà du portage lui-même, Tera 2 cesse de traiter une valeur
