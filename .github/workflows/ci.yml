@@ -83,11 +83,11 @@ jobs:
           RUST_BACKTRACE: "1"
 
       - name: Run tests (big-pk)
-        run: cargo test --verbose --features big-pk
+        run: cargo test --verbose --features big-pk,all-databases
         working-directory: runique
 
       - name: Run tests (pk-uuid)
-        run: cargo test --verbose --features pk-uuid
+        run: cargo test --verbose --features pk-uuid,all-databases
         working-directory: runique
 
   security:
