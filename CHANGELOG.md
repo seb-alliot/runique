@@ -27,6 +27,12 @@ All notable changes to this project will be documented in this file.
 
 * **A malformed stored hash returned `false` before running any hashing computation**, in all three `verify_argon2`/`verify_bcrypt`/`verify_scrypt`. Every other code path (wrong password against a well-formed hash) pays the full Argon2/bcrypt/scrypt cost; a hash that fails to parse short-circuited immediately — a timing gap between "malformed" and "well-formed but wrong" for any caller that lets an attacker influence the compared hash. No current caller does (`auth/session.rs` and `auth/user.rs` both compare against a hash sourced from the DB or the constant-time `dummy_hash()` fallback, never from request input), so this wasn't reachable today — fixed anyway as defense in depth, following the same principle already used for user-enumeration (`dummy_hash()`). New shared helper `verify_constant_time` reruns the same verify closure against a per-algorithm dummy hash (`DUMMY_HASH_BCRYPT`/`DUMMY_HASH_SCRYPT` added alongside the existing `dummy_hash()`, which stays Argon2-shaped and is what `auth/*` already uses) whenever parsing the real hash fails, so a malformed hash costs exactly as much as a well-formed one.
 
+### Dependencies
+
+* `sea-orm` `=2.0.0` → `=2.0.2`, `sea-orm-migration` `=2.0.0` → `=2.0.2` (also bumped in `demo-app` and, off the `2.0.0-rc.32` it had been pinned to, in `demo-app/migration`) — patch releases, no API changes exercised by Runique.
+* `argon2` `0.5` → `0.6`, `scrypt` `0.11.0` → `0.12.0` — see *Breaking* above; `scrypt` now declared as `{ version = "0.12.0", features = ["phc", "getrandom"] }` instead of a bare version string.
+* `tower-http` `0.7.0` → `0.7.1`, `time` `=0.3.54` → `=0.3.55`, `tera-contrib` `0.2` → `0.3.0`, `indexmap` `2.14.0` → `2.14.2`, `fancy-regex` `0.18.0` → `0.19.0`, `validator` `0.20` → `0.21.0`, `rust_decimal` unpinned `1` → `1.43.0`, `syn` `3.0.3` → `3.0.5` — routine patch/minor bumps, no code changes required.
+
 ---
 
 ## [2.2.0] - 2026-07-27
