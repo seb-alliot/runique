@@ -103,8 +103,11 @@ impl BaseHash {
     fn verify_argon2(&self, password: &str, hash: &str) -> bool {
         verify_constant_time(
             |h| {
-                PasswordHash::new(h)
-                    .map(|p| Argon2::default().verify_password(password.as_bytes(), &p).is_ok())
+                PasswordHash::new(h).map(|p| {
+                    Argon2::default()
+                        .verify_password(password.as_bytes(), &p)
+                        .is_ok()
+                })
             },
             hash,
             dummy_hash(),
@@ -141,8 +144,11 @@ impl BaseHash {
     fn verify_scrypt(&self, password: &str, hash: &str) -> bool {
         verify_constant_time(
             |h| {
-                PasswordHash::new(h)
-                    .map(|p| Scrypt::default().verify_password(password.as_bytes(), &p).is_ok())
+                PasswordHash::new(h).map(|p| {
+                    Scrypt::default()
+                        .verify_password(password.as_bytes(), &p)
+                        .is_ok()
+                })
             },
             hash,
             &DUMMY_HASH_SCRYPT,

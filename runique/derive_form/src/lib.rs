@@ -2,11 +2,26 @@ use proc_macro::TokenStream;
 
 // Mêmes garde-fous que `runique` (features forwardées) — voir runique/src/lib.rs
 // pour l'explication des exemptions cfg(doc) / `all-databases`.
-#[cfg(all(not(doc), not(feature = "all-databases"), feature = "postgres", feature = "mysql"))]
+#[cfg(all(
+    not(doc),
+    not(feature = "all-databases"),
+    feature = "postgres",
+    feature = "mysql"
+))]
 compile_error!("les features `postgres` et `mysql` sont mutuellement exclusives");
-#[cfg(all(not(doc), not(feature = "all-databases"), feature = "postgres", feature = "sqlite"))]
+#[cfg(all(
+    not(doc),
+    not(feature = "all-databases"),
+    feature = "postgres",
+    feature = "sqlite"
+))]
 compile_error!("les features `postgres` et `sqlite` sont mutuellement exclusives");
-#[cfg(all(not(doc), not(feature = "all-databases"), feature = "mysql", feature = "sqlite"))]
+#[cfg(all(
+    not(doc),
+    not(feature = "all-databases"),
+    feature = "mysql",
+    feature = "sqlite"
+))]
 compile_error!("les features `mysql` et `sqlite` sont mutuellement exclusives");
 
 mod extend_schema;
