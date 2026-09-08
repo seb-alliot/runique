@@ -6,6 +6,29 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2.2.1] - 2026-09-08
+
+### Breaking — `runique` (database features: single-engine builds by default)
+
+* **`default` no longer pulls in every database backend.** It was `default = ["orm", "all-databases"]`, so any consumer compiled SQLite + Postgres + MySQL/MariaDB regardless of which one they actually used — including the scaffold (`runique new`) and the Dockerfile pattern documented for production installs (`cargo install runique --features "orm,postgres"`), both of which *looked* like they picked one engine but silently got all three anyway since nothing disabled the default. `default` is now `["orm"]`: pick exactly one of `sqlite`/`postgres`/`mysql` (`mariadb` aliases `mysql`) explicitly.
+* **`postgres`/`mysql`/`sqlite` are now mutually exclusive**, enforced by a `compile_error!` in both `runique` and `derive_form` (features are forwarded: `runique`'s `postgres` also activates `derive_form/postgres`, etc.) — activating two at once is almost always an accident now that `default` doesn't do it for you. The escape hatch is the existing `all-databases` feature, which must be requested **explicitly**: it's exempted from the mutual-exclusion check (alongside `cfg(doc)`, for docs.rs) and stays intended for multi-engine tooling (`scripts/smoke_migrations.sh`, which builds one CLI binary that talks to all three engines at runtime via `DATABASE_URL`/`DB_ENGINE`) and for generating documentation that covers every backend.
+* **`derive_form::DbEngine::detect()` now checks the Cargo feature first**, falling back to the previous `.env`/`DATABASE_URL` sniffing only if no `postgres`/`mysql`/`sqlite` feature is active. The old mechanism was a second, independent source of truth that could silently disagree with what was actually compiled (e.g. `runique` built with `features = ["mysql"]` while a stale `.env` still said `DATABASE_URL=postgres://...` — `derive_form` would generate Postgres-shaped code against a MySQL-only build). The Cargo feature can't drift from what's compiled, so it's authoritative when present.
+
+### Fix — `runique` (admin: unique-constraint detection didn't compile without a live DB backend)
+
+* `admin/builtin/mod.rs::is_unique_violation` used `sea_orm::sqlx` (the structured Postgres SQLSTATE 23505 check) with no feature gate — it only compiles once `sea-orm`'s `sqlx-dep` is active, which happens as soon as *any* of `postgres`/`mysql`/`sqlite` is enabled, but not for `orm` alone. Since `orm`-only is now a legitimate build (see above — sufficient for `makemigrations`, no live driver needed), this broke the whole crate for that case. Fixed by gating the structured check behind `any(feature = "postgres", feature = "mysql", feature = "sqlite")`; the textual fallback below it already covered non-Postgres engines (SQLSTATE 23505 is Postgres-specific — MySQL/SQLite never had this code and relied on the fallback before this gate existed too, so their behavior is unchanged).
+
+### Breaking — dependencies (`argon2` 0.5 → 0.6, `scrypt` 0.11 → 0.12)
+
+* **`argon2` 0.6**: `password_hash::SaltString` is gone. `PasswordHasher::hash_password` no longer takes a salt/RNG argument at all — it generates one internally via `getrandom`. `hash_argon2` simplified accordingly (no more explicit `SaltString::generate(&mut OsRng)`). `PasswordHash` also moved: the old `argon2::password_hash::PasswordHash` re-export is deprecated in favor of `password_hash::phc::PasswordHash` (same shape, new path — `verify_argon2` unaffected beyond the import).
+* **`scrypt` 0.12**: unlike `argon2`, ships with **zero default features** — `Scrypt` itself doesn't exist without explicitly requesting `phc` (or `kdf`/`mcf`), so `scrypt = { version = "0.12.0", features = ["phc", "getrandom"] }` is now required. `Scrypt` is also no longer a unit struct (it carries a private `params` field) — `Scrypt::default()` replaces the previous bare `Scrypt` value. Now on the same `password-hash` 0.6 as `argon2`, so `hash_scrypt`/`verify_scrypt` dropped their separate `ScryptSaltString`/`ScryptPasswordHash` imports and share `argon2`'s.
+
+### Security — `runique` (password verification: parse-failure timing oracle)
+
+* **A malformed stored hash returned `false` before running any hashing computation**, in all three `verify_argon2`/`verify_bcrypt`/`verify_scrypt`. Every other code path (wrong password against a well-formed hash) pays the full Argon2/bcrypt/scrypt cost; a hash that fails to parse short-circuited immediately — a timing gap between "malformed" and "well-formed but wrong" for any caller that lets an attacker influence the compared hash. No current caller does (`auth/session.rs` and `auth/user.rs` both compare against a hash sourced from the DB or the constant-time `dummy_hash()` fallback, never from request input), so this wasn't reachable today — fixed anyway as defense in depth, following the same principle already used for user-enumeration (`dummy_hash()`). New shared helper `verify_constant_time` reruns the same verify closure against a per-algorithm dummy hash (`DUMMY_HASH_BCRYPT`/`DUMMY_HASH_SCRYPT` added alongside the existing `dummy_hash()`, which stays Argon2-shaped and is what `auth/*` already uses) whenever parsing the real hash fails, so a malformed hash costs exactly as much as a well-formed one.
+
+---
+
 ## [2.2.0] - 2026-07-27
 
 > Migration to **Tera 2.1**. Beyond the port itself, Tera 2 stops treating a missing value as a
