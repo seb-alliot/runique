@@ -17,10 +17,10 @@ pub use aliases::*;
 pub use config::runique_log;
 pub use config::*;
 pub use constante::*;
+pub use crypto::*;
 pub use env::is_debug;
 pub use forms::*;
 pub use init_error::init_logging;
-pub use crypto::*;
 pub use mailer::{
     Email, MailerConfig, dispatch_email, mailer_configured, mailer_init, mailer_init_from_env,
 };

@@ -11,8 +11,8 @@
 //! lecture d'un autre et faire échouer l'assertion de façon intermittente.
 
 use crate::helpers::pk::pk;
-use runique::auth::permissions::{Groupe, Permission};
 use runique::auth::guard::{cache_permissions, clear_cache, evict_permissions, get_permissions};
+use runique::auth::permissions::{Groupe, Permission};
 use serial_test::serial;
 
 fn make_groupe(resource: &str, can_read: bool) -> Groupe {

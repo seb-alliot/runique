@@ -79,10 +79,7 @@ fn write_project_files(project_dir: &Path, name: &str, version: &str) -> Result<
             include_bytes!("../composant-bin/code/formulaire_mod.rs"),
             "src/formulaire/mod.rs",
         ),
-        (
-            include_bytes!("../composant-bin/code/url.rs"),
-            "src/url.rs",
-        ),
+        (include_bytes!("../composant-bin/code/url.rs"), "src/url.rs"),
         (
             include_bytes!("../composant-bin/code/main.rs"),
             "src/main.rs",
@@ -158,8 +155,8 @@ fn write_project_files(project_dir: &Path, name: &str, version: &str) -> Result<
             acc
         },
     );
-    let env_file = include_str!("../composant-bin/config/secret")
-        .replace("your_secret_key_here", &secret_key);
+    let env_file =
+        include_str!("../composant-bin/config/secret").replace("your_secret_key_here", &secret_key);
     fs::write(project_dir.join(".env"), env_file)?;
 
     Ok(())

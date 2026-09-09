@@ -325,8 +325,8 @@ fn test_scan_entities_melange_valide_invalide() {
 // collect_destructive_messages
 // ═══════════════════════════════════════════════════════════════
 
-use runique::migration::utils::types::{Changes, ParsedColumn, ParsedFk};
 use runique::cli::makemigration::collect_destructive_messages;
+use runique::migration::utils::types::{Changes, ParsedColumn, ParsedFk};
 
 fn col(name: &str, col_type: &str, nullable: bool) -> ParsedColumn {
     ParsedColumn {
@@ -545,8 +545,8 @@ fn extend_file_path_termine_par_rs() {
 // merge_extend_schemas
 // ═══════════════════════════════════════════════════════════════
 
-use runique::migration::utils::types::ParsedSchema;
 use runique::cli::makemigration::merge_extend_schemas;
+use runique::migration::utils::types::ParsedSchema;
 
 fn extend_schema(table: &str, col_names: &[&str]) -> ParsedSchema {
     ParsedSchema {
