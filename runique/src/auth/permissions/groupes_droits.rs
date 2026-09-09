@@ -35,4 +35,26 @@ impl Related<super::groupe::Entity> for Entity {
     }
 }
 
-impl ActiveModelBehavior for ActiveModel {}
+// Une modification touche potentiellement tous les utilisateurs du groupe (pas
+// un seul, contrairement à `users_groupes`) — pas de clé utilisateur ici pour un
+// rafraîchissement ciblé, donc on vide tout le cache de permissions. Garantit
+// l'invalidation même pour du code qui bypasserait le CRUD admin contrôlé
+// (`admin/builtin/droit.rs`, qui appelle déjà `clear_cache()` à la main).
+#[async_trait::async_trait]
+impl ActiveModelBehavior for ActiveModel {
+    async fn after_save<C>(model: Model, _db: &C, _insert: bool) -> Result<Model, DbErr>
+    where
+        C: ConnectionTrait,
+    {
+        crate::auth::guard::clear_cache();
+        Ok(model)
+    }
+
+    async fn after_delete<C>(self, _db: &C) -> Result<Self, DbErr>
+    where
+        C: ConnectionTrait,
+    {
+        crate::auth::guard::clear_cache();
+        Ok(self)
+    }
+}

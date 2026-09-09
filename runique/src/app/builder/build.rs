@@ -184,8 +184,7 @@ impl RuniqueAppBuilder {
                     .builder
                     .as_ref()
                     .and_then(|b| b.registry);
-                match crate::auth::permissions::prune_orphan_droits(engine.db.as_ref(), &refs)
-                    .await
+                match crate::auth::permissions::prune_orphan_droits(engine.db.as_ref(), &refs).await
                 {
                     Ok(n) if n > 0 => {
                         if let Some(level) = level {

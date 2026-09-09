@@ -1,6 +1,6 @@
 //! User session, admin authentication, and authentication traits.
-use crate::auth::permissions::{Groupe, Permission, pull_groupes_db};
 use crate::auth::guard::{cache_permissions, evict_permissions, get_permissions};
+use crate::auth::permissions::{Groupe, Permission, pull_groupes_db};
 use crate::auth::user_trait::RuniqueUser;
 use crate::context::RequestExtensions;
 use crate::middleware::session::session_db::RuniqueSessionStore;
