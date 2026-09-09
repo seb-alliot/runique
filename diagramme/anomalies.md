@@ -55,7 +55,7 @@ Révélés par la mise en diagramme + suivi des flux de données. Sévérité :
 
 | ID | Hypothèse initiale | Réalité vérifiée |
 |----|--------------------|------------------|
-| **M1/AM1** | `makemigrations` ne gérerait pas les `ALTER COLUMN` | **Faux.** makemigrations utilise `diff_schemas` ([makemigration.rs:489](../runique/src/utils/cli/makemigration.rs#L489)) qui calcule `modified_columns` ([diff.rs:90](../runique/src/migration/utils/diff.rs#L90)). `ModelSchema::diff` (limité à add/drop) est un diff secondaire **non** utilisé par la CLI. |
+| **M1/AM1** | `makemigrations` ne gérerait pas les `ALTER COLUMN` | **Faux.** makemigrations utilise `diff_schemas` ([makemigration.rs:489](../runique/src/cli/makemigration.rs#L489)) qui calcule `modified_columns` ([diff.rs:90](../runique/src/migration/utils/diff.rs#L90)). `ModelSchema::diff` (limité à add/drop) est un diff secondaire **non** utilisé par la CLI. |
 | **E1 (sévérité)** | Pas de pages d'erreur en prod | **Faux par défaut.** `enable_debug_errors` vaut `true` dans tous les presets ; handler monté en prod. Reste seulement le risque si on le désactive (rétrogradé en 🟡). |
 | **AM2 (divergence)** | `session_id` divergent entre `create` et `upsert` | **Faux.** `save()`/`upsert_session` insère en 1er ; `create()` arrive en conflit et son `on_conflict` ne met à jour que `[UserId, ExpiresAt]` (jamais `session_id`). `session_id` final déterministe. Résidu réel = double écriture (perf 🟡). |
 | **TR1** | `ErrorContext` exposé en prod | **Faux.** Rendu gaté sur `config.debug` ([error.rs:96](../runique/src/middleware/errors/error.rs#L96)). |

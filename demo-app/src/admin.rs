@@ -342,7 +342,7 @@ admin! {
             ["is_verified", "Vérifié", 5],
         ],
         m2m: [
-            ["groupes", "Groupes", "eihwaz_users_groupes", "user_id", "groupe_id", "runique::admin::permissions::groupe", "nom"],
+            ["groupes", "Groupes", "eihwaz_users_groupes", "user_id", "groupe_id", "runique::auth::permissions::groupe", "nom"],
         ]
     }
 }

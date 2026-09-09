@@ -58,7 +58,7 @@ logge `file:line` + l'erreur puis renvoie `Option`, au lieu d'un `.ok()` muet.
 
 ## Tokens — CSRF & CSP nonce
 
-[`utils/middleware/`](../../../runique/src/utils/middleware/)
+[`utils/crypto/`](../../../runique/src/utils/crypto/)
 
 ```mermaid
 classDiagram

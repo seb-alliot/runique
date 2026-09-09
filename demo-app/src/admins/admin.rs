@@ -8554,7 +8554,7 @@ pub fn admin_register() -> AdminRegistry {
             use sea_orm::{ConnectionTrait, EntityTrait};
             let mut fields: Vec<M2mFieldOptions> = Vec::new();
             {
-                let rows = runique::admin::permissions::groupe::Entity::find()
+                let rows = runique::auth::permissions::groupe::Entity::find()
                     .all(&*db)
                     .await
                     .unwrap_or_default();
