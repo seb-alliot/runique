@@ -75,7 +75,7 @@ stocker des resources hétérogènes dans une seule map → pattern Strategy + t
 
 ## Permissions (RBAC) & dispatch
 
-[`permissions/mod.rs`](../../../runique/src/admin/permissions/mod.rs),
+[`permissions/mod.rs`](../../../runique/src/auth/permissions/mod.rs),
 [`admin_main/action.rs`](../../../runique/src/admin/admin_main/action.rs)
 
 ```mermaid
@@ -128,7 +128,7 @@ classDiagram
 
 [`admin_main/mod.rs`](../../../runique/src/admin/admin_main/mod.rs),
 [`admin_main/handle_inline.rs`](../../../runique/src/admin/admin_main/handle_inline.rs),
-[`permissions/mod.rs`](../../../runique/src/admin/permissions/mod.rs)
+[`permissions/mod.rs`](../../../runique/src/auth/permissions/mod.rs)
 
 Une resource déclarée `parent_scope(...)` (cf. `ParentScope` plus haut) est atteignable via
 `/{parent}/{parent_id}/{child}/…` **en plus** du top-level. Les 4 handlers plats
@@ -178,7 +178,7 @@ Fonctions clés (libres, `mod.rs`) :
 - `build_inlines()` → `Vec~InlineList~` — sous-listes du détail parent (filtrées `can_read`,
   boutons gatés `can_create/update/delete`).
 
-**Intégrité — `prune_orphan_droits(db, valid_keys)`** ([permissions/mod.rs](../../../runique/src/admin/permissions/mod.rs)) :
+**Intégrité — `prune_orphan_droits(db, valid_keys)`** ([permissions/mod.rs](../../../runique/src/auth/permissions/mod.rs)) :
 au **boot**, supprime les droits dont `resource_key ∉ registry` (réf. molle sans FK). Ferme la
 réutilisation-de-clé → grant périmé. No-op si `valid_keys` vide (jamais tout purger).
 

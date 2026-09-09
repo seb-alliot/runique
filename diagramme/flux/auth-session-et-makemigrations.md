@@ -55,7 +55,7 @@ sequenceDiagram
 ## Anomalies / flux suspects
 
 ### ❌ AM1 — FAUX POSITIF (makemigrations gère bien les `ALTER COLUMN`)
-La CLI utilise `diff_schemas` ([makemigration.rs:489](../../runique/src/utils/cli/makemigration.rs#L489))
+La CLI utilise `diff_schemas` ([makemigration.rs:489](../../runique/src/cli/makemigration.rs#L489))
 qui calcule `modified_columns`. Le `ModelSchema::diff` limité (add/drop) n'est **pas** le
 chemin de la CLI. Détecté en traçant le flux jusqu'au vrai `diff` appelé.
 
