@@ -1,12 +1,13 @@
 //! CLI binary `runique` — `new`, `start`, `makemigration`, `migrate` commands via clap.
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use runique::{utils::{
-     init_logging,
-    trad::{Lang, set_lang}},
-    cli::{create_superuser, makemigration, migrate, runique_start, create_new_project},
-}
-;
+use runique::{
+    cli::{create_new_project, create_superuser, makemigration, migrate, runique_start},
+    utils::{
+        init_logging,
+        trad::{Lang, set_lang},
+    },
+};
 
 #[derive(Parser)]
 #[command(name = "runique")]
