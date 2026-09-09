@@ -23,11 +23,11 @@ use crate::utils::{
 };
 
 pub(super) fn groupe_entry() -> ResourceEntry {
-    use crate::admin::permissions::groupe;
+    use crate::auth::permissions::groupe;
 
     let meta = AdminResource::new(
         GROUPES,
-        "runique::admin::permissions::groupe::Model",
+        "runique::auth::permissions::groupe::Model",
         "GroupeAdminForm",
         GROUPES,
         vec!["admin".to_string()],

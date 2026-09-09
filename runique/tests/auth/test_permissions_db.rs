@@ -126,7 +126,7 @@ async fn test_pull_groupes_db_retourne_permissions() {
     )
     .await;
 
-    let groupes = runique::admin::permissions::pull_groupes_db(&db, pk(42)).await;
+    let groupes = runique::auth::permissions::pull_groupes_db(&db, pk(42)).await;
 
     assert_eq!(groupes.len(), 1);
     assert_eq!(groupes[0].nom, "moderateur");
@@ -165,7 +165,7 @@ async fn test_pull_groupes_db_multi_ressources() {
     )
     .await;
 
-    let groupes = runique::admin::permissions::pull_groupes_db(&db, pk(43)).await;
+    let groupes = runique::auth::permissions::pull_groupes_db(&db, pk(43)).await;
 
     assert_eq!(groupes.len(), 1);
     assert_eq!(groupes[0].permissions.len(), 2);
@@ -184,7 +184,7 @@ async fn test_pull_groupes_db_multi_ressources() {
 #[tokio::test]
 #[serial]
 async fn test_refresh_cache_puis_clear() {
-    use runique::admin::permissions::refresh_cache_for_user;
+    use runique::auth::permissions::refresh_cache_for_user;
     use runique::auth::guard::{clear_cache, get_permissions};
 
     let Some(db) = db_postgres::connect().await else {
@@ -232,7 +232,7 @@ async fn test_pull_groupes_db_user_sans_groupe() {
     setup_rbac_tables(&db).await;
 
     // User 99 n'appartient à aucun groupe
-    let groupes = runique::admin::permissions::pull_groupes_db(&db, pk(99)).await;
+    let groupes = runique::auth::permissions::pull_groupes_db(&db, pk(99)).await;
     assert!(groupes.is_empty());
 
     teardown(&db).await;

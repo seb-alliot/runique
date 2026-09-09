@@ -50,7 +50,7 @@ pub(super) fn user_entry() -> ResourceEntry {
                 let mut form =
                     UserAdminCreateForm::build_with_data(&data, tera, &csrf, method).await;
 
-                let groupes = crate::admin::permissions::groupe::Entity::find()
+                let groupes = crate::auth::permissions::groupe::Entity::find()
                     .all(&*db)
                     .await
                     .unwrap_or_default();
@@ -82,7 +82,7 @@ pub(super) fn user_entry() -> ResourceEntry {
             Box::pin(async move {
                 let mut form = UserAdminEditForm::build_with_data(&data, tera, &csrf, method).await;
 
-                let groupes = crate::admin::permissions::groupe::Entity::find()
+                let groupes = crate::auth::permissions::groupe::Entity::find()
                     .all(&*db)
                     .await
                     .unwrap_or_default();
@@ -181,7 +181,7 @@ pub(super) fn user_entry() -> ResourceEntry {
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            use crate::admin::permissions::users_groupes;
+            use crate::auth::permissions::users_groupes;
             use sea_orm::{ColumnTrait, QueryFilter};
 
             // A malformed id (e.g. not a valid Uuid under `pk-uuid`) is
@@ -224,7 +224,7 @@ pub(super) fn user_entry() -> ResourceEntry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            use crate::admin::permissions::users_groupes;
+            use crate::auth::permissions::users_groupes;
 
             let now = Some(chrono::Utc::now().naive_utc());
             let username = data.get("username").cloned().unwrap_or_default();
@@ -293,7 +293,7 @@ pub(super) fn user_entry() -> ResourceEntry {
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            use crate::admin::permissions::users_groupes;
+            use crate::auth::permissions::users_groupes;
             use sea_orm::ColumnTrait;
 
             let id = id

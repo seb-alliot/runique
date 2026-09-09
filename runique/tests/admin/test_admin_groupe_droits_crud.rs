@@ -1,5 +1,5 @@
-//! Tests — CRUD complet sur les groupes de permissions (`admin/permissions/groupe.rs`
-//! + `groupes_droits.rs`, exposés via `builtin/groupe.rs` + `builtin/droit.rs`).
+//! Tests — CRUD complet sur les groupes de permissions (`auth/permissions/groupe.rs`
+//! + `groupes_droits.rs`, exposés via `admin/builtin/groupe.rs` + `admin/builtin/droit.rs`).
 //!
 //! Ces deux entités étaient à 0 % de couverture : le seul test existant qui les
 //! touche (`test_admin_route_crawl.rs`) ne fait que des GET (aucune 500), sans

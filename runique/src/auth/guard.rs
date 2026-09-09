@@ -1,5 +1,5 @@
 //! Brute-force protection, `login_required` middleware, and permission cache.
-use crate::admin::permissions::Groupe;
+use crate::auth::permissions::Groupe;
 use crate::utils::pk::Pk;
 use std::{
     collections::HashMap,

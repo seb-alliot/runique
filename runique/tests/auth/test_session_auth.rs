@@ -6,7 +6,7 @@
 use axum::{Router, response::IntoResponse, routing::get};
 use tower_sessions::{MemoryStore, Session, SessionManagerLayer};
 
-use runique::admin::Groupe;
+use runique::auth::permissions::Groupe;
 use runique::auth::session::{
     get_user_id, get_username, is_admin_authenticated, is_authenticated, login, logout,
     protect_session, unprotect_session,

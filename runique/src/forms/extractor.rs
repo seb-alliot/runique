@@ -3,7 +3,7 @@ use crate::forms::prisme::{aegis, sentinel};
 use crate::utils::aliases::{ARuniqueConfig, StrMap, StrVecMap};
 use crate::utils::trad::t;
 use crate::utils::{
-    constante::session_key::session::CSRF_TOKEN_KEY, middleware::csrf::unmask_csrf_token,
+    constante::session_key::session::CSRF_TOKEN_KEY, crypto::csrf::unmask_csrf_token,
 };
 
 use axum::{

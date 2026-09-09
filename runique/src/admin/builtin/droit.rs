@@ -50,11 +50,11 @@ fn decode_droit_id(id: &str) -> Result<(i32, String), sea_orm::DbErr> {
 }
 
 pub(super) fn droit_entry() -> ResourceEntry {
-    use crate::admin::permissions::groupes_droits;
+    use crate::auth::permissions::groupes_droits;
 
     let meta = AdminResource::new(
         SESSION_USER_DROITS_KEY,
-        "runique::admin::permissions::groupes_droits::Model",
+        "runique::auth::permissions::groupes_droits::Model",
         "DroitAdminForm",
         SESSION_USER_DROITS_KEY,
         vec!["admin".to_string()],
@@ -77,7 +77,7 @@ pub(super) fn droit_entry() -> ResourceEntry {
                 let mut form = DroitAdminForm::build_with_data(&data, tera, &csrf, method).await;
 
                 let submitted_groupe = data.get(GROUPE_ID).cloned().unwrap_or_default();
-                let groupes = crate::admin::permissions::groupe::Entity::find()
+                let groupes = crate::auth::permissions::groupe::Entity::find()
                     .all(&*db)
                     .await
                     .unwrap_or_default();
@@ -133,7 +133,7 @@ pub(super) fn droit_entry() -> ResourceEntry {
                 let mut form = DroitAdminForm::build_with_data(&data, tera, &csrf, method).await;
 
                 let current_groupe = data.get(GROUPE_ID).cloned().unwrap_or_default();
-                let groupes = crate::admin::permissions::groupe::Entity::find()
+                let groupes = crate::auth::permissions::groupe::Entity::find()
                     .all(&*db)
                     .await
                     .unwrap_or_default();
@@ -189,7 +189,7 @@ pub(super) fn droit_entry() -> ResourceEntry {
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            use crate::admin::permissions::groupe;
+            use crate::auth::permissions::groupe;
             use sea_orm::ColumnTrait;
             use sea_orm::{
                 QueryFilter, QueryOrder,

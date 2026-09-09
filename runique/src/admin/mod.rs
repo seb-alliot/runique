@@ -4,7 +4,6 @@ pub mod config;
 pub mod daemon;
 pub mod helper;
 pub mod middleware;
-pub mod permissions;
 pub mod registry;
 pub mod resource;
 pub mod router;
@@ -58,7 +57,6 @@ pub use resource::{
 
 pub use table_admin::migrations_table::*;
 
-pub use permissions::{Groupe, pull_groupes_db};
 pub use router::admin_router::AdminState;
 pub(crate) use router::build_admin_router;
 pub use trad::{inject_admin_prefix, insert_admin_messages};

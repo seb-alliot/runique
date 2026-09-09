@@ -9,7 +9,7 @@
 use axum::{Router, response::IntoResponse, routing::get};
 use tower_sessions::{MemoryStore, Session, SessionManagerLayer};
 
-use runique::admin::permissions::{Groupe, Permission};
+use runique::auth::permissions::{Groupe, Permission};
 use runique::auth::guard::{cache_permissions, get_permissions};
 use runique::auth::session::{get_user_id, get_username, is_authenticated, login, logout};
 
