@@ -50,9 +50,9 @@ pub mod macros;
 pub mod migration;
 
 pub mod admin;
+pub mod cli;
 pub mod errors;
 pub mod middleware;
-pub mod cli;
 
 pub mod utils;
 
