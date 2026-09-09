@@ -232,7 +232,7 @@ async fn admin_dashboard(
 
     // Groups with permission on each resource_key
     let resource_groups: std::collections::HashMap<String, Vec<String>> = {
-        use crate::admin::permissions::{groupe, groupes_droits};
+        use crate::auth::permissions::{groupe, groupes_droits};
         use sea_orm::EntityTrait;
         let groupes: std::collections::HashMap<_, String> = groupe::Entity::find()
             .all(&*db)
@@ -326,7 +326,7 @@ async fn admin_login_post(
     Extension(admin): Extension<Arc<AdminState>>,
     mut req: Request,
 ) -> Response {
-    use crate::utils::middleware::csrf::unmask_csrf_token;
+    use crate::utils::crypto::csrf::unmask_csrf_token;
     use subtle::ConstantTimeEq;
     if is_admin_authenticated(&req.session).await {
         return Redirect::to(&format!("{}/", admin.config.prefix)).into_response();

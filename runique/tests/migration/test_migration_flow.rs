@@ -11,7 +11,7 @@ use runique::migration::utils::{
     paths::*,
     types::{Changes, DbKind, ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema},
 };
-use runique::utils::cli::makemigration::{
+use runique::cli::makemigration::{
     scan_entities, seaorm_alter_file_path, seaorm_alter_module_name, update_migration_lib,
 };
 use std::fs;

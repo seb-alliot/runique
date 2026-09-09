@@ -2,7 +2,7 @@
 //! Couvre : permissions_effectives, can_access_resource, can_access_admin
 
 use crate::helpers::pk::pk;
-use runique::admin::{Groupe, permissions::Permission};
+use runique::auth::permissions::{Groupe, Permission};
 use runique::auth::session::CurrentUser;
 
 fn perm(resource: &str, create: bool, read: bool, update: bool, delete: bool) -> Permission {

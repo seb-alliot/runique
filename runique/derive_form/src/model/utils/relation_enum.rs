@@ -5,14 +5,14 @@ use quote::quote;
 /// Tables provided by the framework — their SeaORM entities are in `runique`, not in `super::`.
 const FRAMEWORK_TABLES: &[(&str, &str)] = &[
     ("eihwaz_users", "::runique::auth::user"),
-    ("eihwaz_groupes", "::runique::admin::permissions::groupe"),
+    ("eihwaz_groupes", "::runique::auth::permissions::groupe"),
     (
         "eihwaz_groupes_droits",
-        "::runique::admin::permissions::groupes_droits",
+        "::runique::auth::permissions::groupes_droits",
     ),
     (
         "eihwaz_users_groupes",
-        "::runique::admin::permissions::users_groupes",
+        "::runique::auth::permissions::users_groupes",
     ),
     (
         "eihwaz_sessions",

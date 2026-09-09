@@ -64,79 +64,79 @@ fn write_project_files(project_dir: &Path, name: &str, version: &str) -> Result<
     // Files -> destination mapping
     let files: &[(&[u8], &str)] = &[
         (
-            include_bytes!("../../composant-bin/code/views.rs"),
+            include_bytes!("../composant-bin/code/views.rs"),
             "src/views.rs",
         ),
         (
-            include_bytes!("../../composant-bin/code/forms.rs"),
+            include_bytes!("../composant-bin/code/forms.rs"),
             "src/formulaire/register.rs",
         ),
         (
-            include_bytes!("../../composant-bin/code/login_form.rs"),
+            include_bytes!("../composant-bin/code/login_form.rs"),
             "src/formulaire/login.rs",
         ),
         (
-            include_bytes!("../../composant-bin/code/formulaire_mod.rs"),
+            include_bytes!("../composant-bin/code/formulaire_mod.rs"),
             "src/formulaire/mod.rs",
         ),
         (
-            include_bytes!("../../composant-bin/code/url.rs"),
+            include_bytes!("../composant-bin/code/url.rs"),
             "src/url.rs",
         ),
         (
-            include_bytes!("../../composant-bin/code/main.rs"),
+            include_bytes!("../composant-bin/code/main.rs"),
             "src/main.rs",
         ),
         (
-            include_bytes!("../../composant-bin/template/index.html"),
+            include_bytes!("../composant-bin/template/index.html"),
             "templates/index.html",
         ),
         (
-            include_bytes!("../../composant-bin/template/about.html"),
+            include_bytes!("../composant-bin/template/about.html"),
             "templates/about/about.html",
         ),
         (
-            include_bytes!("../../composant-bin/template/inscription_form.html"),
+            include_bytes!("../composant-bin/template/inscription_form.html"),
             "templates/inscription_form.html",
         ),
         (
-            include_bytes!("../../composant-bin/css/main.css"),
+            include_bytes!("../composant-bin/css/main.css"),
             "static/css/main.css",
         ),
         (
-            include_bytes!("../../composant-bin/css/about.css"),
+            include_bytes!("../composant-bin/css/about.css"),
             "static/css/about.css",
         ),
         (
-            include_bytes!("../../composant-bin/css/variables.css"),
+            include_bytes!("../composant-bin/css/variables.css"),
             "static/css/variables.css",
         ),
         (
-            include_bytes!("../../composant-bin/css/inscription/inscription.css"),
+            include_bytes!("../composant-bin/css/inscription/inscription.css"),
             "static/css/inscription/inscription.css",
         ),
         (
-            include_bytes!("../../composant-bin/css/inscription/inscription-label.css"),
+            include_bytes!("../composant-bin/css/inscription/inscription-label.css"),
             "static/css/inscription/inscription-label.css",
         ),
         (
-            include_bytes!("../../composant-bin/image/toshiro.avif"),
+            include_bytes!("../composant-bin/image/toshiro.avif"),
             "media/toshiro.avif",
         ),
         (
-            include_bytes!("../../composant-bin/image/favicon.ico"),
+            include_bytes!("../composant-bin/image/favicon.ico"),
             "media/favicon/favicon.ico",
         ),
         (
-            include_bytes!("../../composant-bin/readme/README.md"),
+            include_bytes!("../composant-bin/readme/README.md"),
             "README.md",
         ),
         (
-            include_bytes!("../../composant-bin/readme/README.fr.md"),
+            include_bytes!("../composant-bin/readme/README.fr.md"),
             "README.fr.md",
         ),
         (
-            include_bytes!("../../composant-bin/config/ignore"),
+            include_bytes!("../composant-bin/config/ignore"),
             ".gitignore",
         ),
     ];
@@ -146,7 +146,7 @@ fn write_project_files(project_dir: &Path, name: &str, version: &str) -> Result<
     }
     fs::write(project_dir.join("src/entities/mod.rs"), "")?;
     // Cargo.toml and .env with substitutions
-    let cargo_toml = include_str!("../../composant-bin/config/apiconfig")
+    let cargo_toml = include_str!("../composant-bin/config/apiconfig")
         .replace("{{PROJECT_NAME}}", name)
         .replace("{{RUNIQUE_VERSION}}", version);
     fs::write(project_dir.join("Cargo.toml"), cargo_toml)?;
@@ -158,7 +158,7 @@ fn write_project_files(project_dir: &Path, name: &str, version: &str) -> Result<
             acc
         },
     );
-    let env_file = include_str!("../../composant-bin/config/secret")
+    let env_file = include_str!("../composant-bin/config/secret")
         .replace("your_secret_key_here", &secret_key);
     fs::write(project_dir.join(".env"), env_file)?;
 

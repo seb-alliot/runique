@@ -52,6 +52,7 @@ pub mod migration;
 pub mod admin;
 pub mod errors;
 pub mod middleware;
+pub mod cli;
 
 pub mod utils;
 

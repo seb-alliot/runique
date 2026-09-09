@@ -441,7 +441,7 @@ async fn auth_middleware(
     mut req: axum::http::Request<axum::body::Body>,
     next: axum::middleware::Next,
 ) -> axum::response::Response {
-    use crate::admin::permissions::Groupe;
+    use crate::auth::permissions::Groupe;
     use crate::auth::session::{CurrentUser, get_user_id, get_username};
     use crate::utils::constante::{
         admin_context::permission::GROUPES,

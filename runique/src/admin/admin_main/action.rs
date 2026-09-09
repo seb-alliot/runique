@@ -155,7 +155,7 @@ fn grant_if(allowed: bool) -> Access {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::admin::permissions::{Groupe, Permission};
+    use crate::auth::permissions::{Groupe, Permission};
     use crate::auth::session::CurrentUser;
 
     /// Builds a `ResourcePerms` from the six flags in declaration order:

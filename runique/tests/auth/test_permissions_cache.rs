@@ -11,7 +11,7 @@
 //! lecture d'un autre et faire échouer l'assertion de façon intermittente.
 
 use crate::helpers::pk::pk;
-use runique::admin::permissions::{Groupe, Permission};
+use runique::auth::permissions::{Groupe, Permission};
 use runique::auth::guard::{cache_permissions, clear_cache, evict_permissions, get_permissions};
 use serial_test::serial;
 
@@ -127,7 +127,7 @@ fn test_clear_cache_puis_reinsert_fonctionne() {
 
 #[test]
 fn test_multi_groupes_or_permissions() {
-    use runique::admin::permissions::Groupe;
+    use runique::auth::permissions::Groupe;
     use runique::auth::session::CurrentUser;
 
     let user = CurrentUser {

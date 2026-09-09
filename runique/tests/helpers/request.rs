@@ -41,7 +41,7 @@ use runique::{
     context::template::Request as HandlerReq,
     flash::Message,
     forms::Prisme,
-    utils::{aliases::StrMap, middleware::csrf::CsrfToken},
+    utils::{aliases::StrMap, crypto::csrf::CsrfToken},
 };
 use std::sync::{Arc, Mutex};
 use tera::Context;

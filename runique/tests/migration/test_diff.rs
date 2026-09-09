@@ -3,7 +3,7 @@
 
 use runique::migration::utils::diff::{db_columns, diff_schemas};
 use runique::migration::utils::types::{ParsedColumn, ParsedSchema};
-use runique::utils::cli::makemigration::update_migration_lib;
+use runique::cli::makemigration::update_migration_lib;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
