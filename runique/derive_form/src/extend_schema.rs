@@ -631,11 +631,14 @@ pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
     // no DB auto-increment to fall back on, so a fresh id must be generated here;
     // literal-typed tables (sessions) always rely on the DB, in every feature combo.
     let id_none_arm = if id_is_pk_alias {
-        quote! {
-            #[cfg(feature = "pk-uuid")]
-            ::std::option::Option::None => ::sea_orm::ActiveValue::Set(::sea_orm::prelude::Uuid::now_v7()),
-            #[cfg(not(feature = "pk-uuid"))]
-            ::std::option::Option::None => ::sea_orm::ActiveValue::NotSet,
+        if cfg!(feature = "pk-uuid") {
+            quote! {
+                ::std::option::Option::None => ::sea_orm::ActiveValue::Set(::sea_orm::prelude::Uuid::now_v7()),
+            }
+        } else {
+            quote! {
+                ::std::option::Option::None => ::sea_orm::ActiveValue::NotSet,
+            }
         }
     } else {
         quote! {
@@ -660,11 +663,13 @@ pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
                 // `false`. Explicit per-feature attribute required here; columns typed
                 // with a literal integer (e.g. `PhantomType::I32`) don't need it, SeaORM
                 // recognizes those directly.
-                PkKind::Auto if matches!(col.ty, PhantomType::Pk) => quote! {
-                    #[cfg_attr(feature = "pk-uuid", sea_orm(primary_key, auto_increment = false))]
-                    #[cfg_attr(not(feature = "pk-uuid"), sea_orm(primary_key, auto_increment = true))]
-                    pub #name: #ty,
-                },
+                PkKind::Auto if matches!(col.ty, PhantomType::Pk) => {
+                    let auto_increment = !cfg!(feature = "pk-uuid");
+                    quote! {
+                        #[sea_orm(primary_key, auto_increment = #auto_increment)]
+                        pub #name: #ty,
+                    }
+                }
                 PkKind::Auto => quote! {
                     #[sea_orm(primary_key)]
                     pub #name: #ty,
