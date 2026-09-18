@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## [2.2.1 Upcomming]
+## [2.2.1 Upcoming]
 
 ### Fix — `derive_form` (`model!{}` parser: malformed/unsafe input accepted silently)
 
