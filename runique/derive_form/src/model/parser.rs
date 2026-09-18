@@ -22,9 +22,7 @@ fn validate_sql_identifier(lit: &LitStr) -> Result<()> {
             .chars()
             .next()
             .is_some_and(|c| c.is_ascii_alphabetic() || c == '_')
-        && value
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '_');
+        && value.chars().all(|c| c.is_ascii_alphanumeric() || c == '_');
     if !valid {
         return Err(syn::Error::new(
             lit.span(),
@@ -262,7 +260,7 @@ impl Parse for ModelInput {
         // or renamed column silently produced dead/broken generated code instead of
         // failing here, where the mistake actually is.
         if let Some(m) = &meta {
-            let mut check = |ident: &Ident| -> Result<()> {
+            let check = |ident: &Ident| -> Result<()> {
                 if !seen_field_names.contains(&ident.to_string()) {
                     return Err(syn::Error::new(
                         ident.span(),
@@ -1429,5 +1427,302 @@ mod tests {
     fn nullable_universal() {
         ok("age: int [nullable]");
         ok("name: text [nullable]");
+    }
+
+    // ── field-level regressions fixed 2026-09-19 ────────────────────
+
+    #[test]
+    fn max_length_zero_rejected() {
+        err("name: text [max_length: 0]");
+    }
+
+    #[test]
+    fn max_length_nonzero_still_accepted() {
+        ok("name: text [max_length: 1]");
+    }
+
+    #[test]
+    fn default_str_on_text_accepted() {
+        ok(r#"name: text [default: "hello"]"#);
+    }
+
+    #[test]
+    fn default_str_on_int_rejected() {
+        err(r#"age: int [default: "abc"]"#);
+    }
+
+    #[test]
+    fn default_int_on_int_accepted() {
+        ok("age: int [default: 0]");
+    }
+
+    #[test]
+    fn default_bool_on_int_rejected() {
+        err("age: int [default: true]");
+    }
+
+    #[test]
+    fn default_bool_on_bool_accepted() {
+        ok("active: bool [default: true]");
+    }
+
+    #[test]
+    fn default_str_on_bool_rejected() {
+        err(r#"active: bool [default: "true"]"#);
+    }
+
+    #[test]
+    fn default_int_on_float_accepted() {
+        // an integer literal is a valid default for a float/decimal field
+        ok("price: decimal [default: 0]");
+    }
+
+    #[test]
+    fn default_float_on_float_accepted() {
+        ok("price: decimal [default: 0.59]");
+    }
+
+    #[test]
+    fn min_length_now_valid_on_email() {
+        ok("mail: email [min_length: 5]");
+    }
+
+    #[test]
+    fn min_length_now_valid_on_password() {
+        ok("pwd: password [min_length: 8]");
+    }
+
+    #[test]
+    fn min_length_now_valid_on_richtext() {
+        ok("body: richtext [min_length: 10]");
+    }
+
+    #[test]
+    fn min_length_now_valid_on_url() {
+        ok("site: url [min_length: 5]");
+    }
+
+    #[test]
+    fn min_length_now_valid_on_binary() {
+        ok("blob: binary [min_length: 1]");
+    }
+
+    #[test]
+    fn min_length_still_invalid_on_int() {
+        err("age: int [min_length: 1]");
+    }
+
+    #[test]
+    fn step_now_valid_on_percent() {
+        ok("rate: percent [step: 0.5]");
+    }
+
+    #[test]
+    fn step_still_invalid_on_int() {
+        err("age: int [step: 1.0]");
+    }
+
+    #[test]
+    fn auto_now_now_valid_on_timestamp() {
+        ok("created_at: timestamp [auto_now]");
+    }
+
+    #[test]
+    fn auto_now_now_valid_on_timestamp_tz() {
+        ok("created_at: timestamp_tz [auto_now]");
+    }
+
+    #[test]
+    fn auto_now_update_now_valid_on_timestamp() {
+        ok("updated_at: timestamp [auto_now_update]");
+    }
+
+    #[test]
+    fn auto_now_still_invalid_on_date() {
+        err("created_at: date [auto_now]");
+    }
+
+    #[test]
+    fn fk_now_valid_on_i8() {
+        ok("category_id: i8 [fk(categories.id, cascade)]");
+    }
+
+    #[test]
+    fn fk_now_valid_on_i16() {
+        ok("category_id: i16 [fk(categories.id, cascade)]");
+    }
+
+    #[test]
+    fn fk_now_valid_on_u32() {
+        ok("category_id: u32 [fk(categories.id, cascade)]");
+    }
+
+    #[test]
+    fn fk_now_valid_on_u64() {
+        ok("category_id: u64 [fk(categories.id, cascade)]");
+    }
+
+    #[test]
+    fn fk_still_invalid_on_text() {
+        err("category_id: text [fk(categories.id, cascade)]");
+    }
+
+    // ── model-level regressions fixed 2026-09-19 ────────────────────
+
+    /// Parses a full `model! { ... }` body from a DSL string.
+    fn parse_model(src: &str) -> syn::Result<ModelInput> {
+        syn::parse_str::<ModelInput>(src)
+    }
+
+    fn model_ok(src: &str) {
+        assert!(
+            parse_model(src).is_ok(),
+            "expected OK but error for: `{src}`"
+        );
+    }
+
+    fn model_err(src: &str) {
+        assert!(
+            parse_model(src).is_err(),
+            "expected ERROR but OK for: `{src}`"
+        );
+    }
+
+    const BASE_FIELDS: &str = r#"{ name: text, }"#;
+
+    #[test]
+    fn table_name_plain_identifier_accepted() {
+        model_ok(&format!(
+            r#"Test, table: "tests", pk: id => i32, {BASE_FIELDS},"#
+        ));
+    }
+
+    #[test]
+    fn table_name_with_quote_rejected() {
+        model_err(&format!(
+            r#"Test, table: "tests\"); //", pk: id => i32, {BASE_FIELDS},"#
+        ));
+    }
+
+    #[test]
+    fn table_name_starting_with_digit_rejected() {
+        model_err(&format!(
+            r#"Test, table: "1tests", pk: id => i32, {BASE_FIELDS},"#
+        ));
+    }
+
+    #[test]
+    fn table_name_empty_rejected() {
+        model_err(&format!(
+            r#"Test, table: "", pk: id => i32, {BASE_FIELDS},"#
+        ));
+    }
+
+    #[test]
+    fn table_keyword_typo_gives_clean_error() {
+        model_err(&format!(
+            r#"Test, tabel: "tests", pk: id => i32, {BASE_FIELDS},"#
+        ));
+    }
+
+    #[test]
+    fn pk_keyword_typo_gives_clean_error() {
+        model_err(r#"Test, table: "tests", primary: id => i32, { name: text, },"#);
+    }
+
+    #[test]
+    fn duplicate_field_names_rejected() {
+        model_err(r#"Test, table: "tests", pk: id => i32, { name: text, name: text, },"#);
+    }
+
+    #[test]
+    fn field_named_like_pk_rejected() {
+        model_err(r#"Test, table: "tests", pk: id => i32, { id: text, },"#);
+    }
+
+    #[test]
+    fn duplicate_enum_names_rejected() {
+        model_err(&format!(
+            r#"Test, table: "tests", pk: id => i32, enums: {{ Status: [Active], Status: [Inactive], }}, {BASE_FIELDS},"#
+        ));
+    }
+
+    #[test]
+    fn empty_enum_rejected() {
+        model_err(&format!(
+            r#"Test, table: "tests", pk: id => i32, enums: {{ Status: [], }}, {BASE_FIELDS},"#
+        ));
+    }
+
+    #[test]
+    fn duplicate_enum_variant_rejected() {
+        model_err(&format!(
+            r#"Test, table: "tests", pk: id => i32, enums: {{ Status: [Active, Active], }}, {BASE_FIELDS},"#
+        ));
+    }
+
+    #[test]
+    fn has_many_with_as_alias_now_parses() {
+        model_ok(&format!(
+            r#"Test, table: "tests", pk: id => i32, {BASE_FIELDS}, relations: {{ has_many: comment as user_comments, }},"#
+        ));
+    }
+
+    #[test]
+    fn has_one_with_as_alias_now_parses() {
+        model_ok(&format!(
+            r#"Test, table: "tests", pk: id => i32, {BASE_FIELDS}, relations: {{ has_one: profile as user_profile, }},"#
+        ));
+    }
+
+    #[test]
+    fn has_many_without_alias_still_parses() {
+        model_ok(&format!(
+            r#"Test, table: "tests", pk: id => i32, {BASE_FIELDS}, relations: {{ has_many: comment, }},"#
+        ));
+    }
+
+    #[test]
+    fn duplicate_relation_rejected() {
+        model_err(&format!(
+            r#"Test, table: "tests", pk: id => i32, {BASE_FIELDS}, relations: {{ has_many: comment, has_many: comment, }},"#
+        ));
+    }
+
+    #[test]
+    fn distinct_belongs_to_same_model_different_via_accepted() {
+        // two FKs toward the same target model, through different columns —
+        // must NOT be flagged as a duplicate relation.
+        model_ok(
+            r#"Test, table: "tests", pk: id => i32, { created_by: int [fk(users.id, cascade)], updated_by: int [fk(users.id, cascade)], }, relations: { belongs_to: users via created_by, belongs_to: users via updated_by, },"#,
+        );
+    }
+
+    #[test]
+    fn meta_ordering_unknown_field_rejected() {
+        model_err(&format!(
+            r#"Test, table: "tests", pk: id => i32, {BASE_FIELDS}, meta: {{ ordering: [does_not_exist], }}"#
+        ));
+    }
+
+    #[test]
+    fn meta_ordering_known_field_accepted() {
+        model_ok(&format!(
+            r#"Test, table: "tests", pk: id => i32, {BASE_FIELDS}, meta: {{ ordering: [name], }}"#
+        ));
+    }
+
+    #[test]
+    fn meta_ordering_on_pk_accepted() {
+        model_ok(&format!(
+            r#"Test, table: "tests", pk: id => i32, {BASE_FIELDS}, meta: {{ ordering: [id], }}"#
+        ));
+    }
+
+    #[test]
+    fn meta_unique_together_unknown_field_rejected() {
+        model_err(
+            r#"Test, table: "tests", pk: id => i32, { name: text, }, meta: { unique_together: [(name, ghost)], }"#,
+        );
     }
 }
