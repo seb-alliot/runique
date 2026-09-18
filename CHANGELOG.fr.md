@@ -6,6 +6,34 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ---
 
+## [2.1.1 A venir]
+
+### Correctif — `derive_form` (parser `model!{}` : entrées malformées/dangereuses acceptées silencieusement)
+
+* **Les noms de table n'étaient jamais validés.** `table: "..."` acceptait n'importe quelle chaîne, ensuite interpolée sans échappement dans le code Rust généré (fichiers de migration, `Alias::new("...")`) via de simples appels `format!` dans le générateur de migration — un `"` égaré dans un nom de table copié-collé pouvait corrompre, voire dans le pire cas injecter dans le fichier de migration généré, au lieu d'échouer au moment du parsing de la macro, là où l'erreur est faite. `table:` est désormais validé contre un identifiant SQL simple (`^[A-Za-z_][A-Za-z0-9_]*$`, ≤63 caractères) dès son analyse, avec un `syn::Error` pointant sur le littéral.
+* **Les doublons de noms de champs et d'enums n'étaient pas détectés au parsing.** `{ name: text, name: text }` ou deux entrées `enums: { Status: [...], Status: [...] }` s'analysaient sans erreur et échouaient seulement plus tard, avec un message Rust cryptique sur le code généré ("field `name` is already declared"). Les deux boucles suivent désormais les noms déjà vus et rejettent immédiatement un doublon, avec un `syn::Error` sur l'identifiant fautif.
+* **Une faute de frappe dans les mots-clés `table:`/`pk:` faisait planter le proc-macro** au lieu de renvoyer une erreur propre — `assert_eq!(table_kw.to_string(), "table")` (et l'équivalent pour `pk`) plantait avec un message d'assertion brut, sans span utile. Remplacé par une vérification explicite renvoyant un `syn::Error`.
+* **`max_length: 0` était accepté silencieusement**, produisant une colonne de forme `VARCHAR(0)` sans capacité utile. Désormais rejeté au parsing.
+* **`default:` acceptait un littéral de n'importe quel type, sans lien avec le type du champ** — `age: int [default: "abc"]` s'analysait et se validait sans erreur, pour seulement se manifester bien plus tard par une incohérence de type SeaORM/SQL confuse. Le littéral est maintenant vérifié contre le type du champ (littéral booléen pour `bool`, entier pour les types entiers, entier-ou-flottant pour float/decimal/percent, chaîne sinon) juste après le parsing.
+
+### Correctif — `derive_form` (parser `model!{}` : la matrice de validation avait des trous incohérents entre types sémantiquement équivalents)
+
+* `min_length` était accepté sur `text`/`textarea`/`phone`/`char` mais rejeté sur `email`/`password`/`richtext`/`url`/`binary`/`var_binary` — alors que `max_length` était déjà accepté sur tous ces types. Étendu pour correspondre à la liste de `max_length`.
+* `step` était accepté sur `float`/`decimal` mais rejeté sur `percent`, alors que `percent` mappe sur le même `f64` sous-jacent que `float`. Étendu à `percent`.
+* `auto_now`/`auto_now_update` n'étaient acceptés que sur `datetime`, rejetés sur `timestamp`/`timestamp_tz` — deux autres types temporels avec exactement le même besoin de "valeur automatique à l'insertion/mise à jour". Étendu aux trois.
+* `fk` n'était accepté que sur `int`/`bigint`/`uuid`, rejetant une clé étrangère vers une clé primaire typée `i8`/`i16`/`u32`/`u64`. Étendu à tous les types entiers plus `uuid`.
+
+### Correctif — `derive_form` (parser `model!{}` : deuxième passe d'audit — l'alias `has_many`/`has_one` était cassé silencieusement)
+
+* **`has_many: comments as user_comments` (et l'équivalent `has_one`) n'a jamais fonctionné.** `as` est un mot-clé Rust strict, et le code le sondait avec `input.peek(Ident)` — qui, structurellement, ne matche jamais un token mot-clé dans `syn`. La branche d'alias était du code mort : `as_name` restait `None` dans tous les cas, les tokens `as ...` restaient non consommés dans le flux, et l'itération *suivante* de la boucle échouait en tentant de parser `as` comme le `kind: Ident` d'une nouvelle relation, remontant une erreur trompeuse ("expected identifier, found keyword `as`") loin de la vraie erreur. Corrigé en sondant/consommant `Token![as]` au lieu d'un simple `Ident` — le bon idiome `syn` pour un mot-clé réservé, déjà utilisé ailleurs dans ce même fichier pour `Token![enum]`.
+* **Un enum sans aucune variante était accepté** (`enums: { Status: [] }`), générant un enum Rust non instanciable sans aucun indice à la compilation sur la raison. Désormais rejeté au parsing.
+* **Les doublons de variantes au sein d'un même enum n'étaient pas détectés** (`Status: [Active, Active]`), contrairement aux contrôles de doublons déjà existants pour les champs/enums de premier niveau. Désormais suivis et rejetés de la même façon.
+* **Un champ redéclarant le nom de la clé primaire** (`pk: id => Pk, { id: text, ... }`) n'était pas intercepté par le contrôle de doublons de champs ajouté plus haut, car le nom du PK n'était jamais intégré à l'ensemble de suivi. Corrigé.
+* **Les relations dupliquées n'étaient pas détectées** (ex : deux `has_many: comments,` identiques). Désormais rejetées, sur une clé (type, modèle cible, alias/via/through) — des relations légitimement distinctes vers le même modèle (colonne FK différente, alias différent) continuent donc de s'analyser normalement.
+* **`meta: { ordering:, unique_together:, indexes: }` ne vérifiait jamais que les noms de champs référencés existaient réellement.** Une faute de frappe ou une colonne renommée sans mise à jour s'analysait sans erreur et ne cassait que plus tard, dans du code généré loin de la vraie erreur. Chaque identifiant de ces trois listes est désormais vérifié contre les champs déclarés du modèle (PK inclus) juste après le parsing.
+
+---
+
 ## [2.2.1] - 2026-09-08
 
 ### Rupture — `runique` (features base de données : builds mono-moteur par défaut)

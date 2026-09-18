@@ -6,6 +6,34 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2.2.1 Upcomming]
+
+### Fix — `derive_form` (`model!{}` parser: malformed/unsafe input accepted silently)
+
+* **Table names were never validated.** `table: "..."` accepted any string and was later interpolated unescaped into generated Rust source (migration files, `Alias::new("...")`) via plain `format!` calls in the migration generator — a stray `"` in a copy-pasted table name would corrupt or, in the worst case, inject into the generated migration file instead of failing at macro-parse time where the mistake is made. `table:` is now validated against a plain SQL-identifier shape (`^[A-Za-z_][A-Za-z0-9_]*$`, ≤63 chars) as soon as it's parsed, with a `syn::Error` pointing at the literal.
+* **Duplicate field and enum names were undetected at parse time.** `{ name: text, name: text }` or two `enums: { Status: [...], Status: [...] }` entries parsed successfully and only failed later as a cryptic Rust compile error on the generated code ("field `name` is already declared"). Both loops now track seen names and reject a duplicate immediately, with a `syn::Error` on the offending identifier.
+* **A typo in the `table:`/`pk:` keywords panicked the proc-macro** instead of returning a clean error — `assert_eq!(table_kw.to_string(), "table")` (and the `pk` equivalent) aborted with a raw assertion-failure message and no useful span. Replaced with an explicit check returning `syn::Error`.
+* **`max_length: 0` was accepted silently**, producing a `VARCHAR(0)`-shaped column with no meaningful capacity. Now rejected at parse time.
+* **`default:` accepted a literal of any kind regardless of the field's type** — `age: int [default: "abc"]` parsed and validated without error, only surfacing as a confusing SeaORM/SQL type mismatch much later. The literal is now checked against the field kind (bool literal for `bool`, integer literal for integer kinds, integer-or-float for float/decimal/percent, string literal otherwise) right after parsing.
+
+### Fix — `derive_form` (`model!{}` parser: validation matrix had inconsistent gaps between semantically equivalent types)
+
+* `min_length` was accepted on `text`/`textarea`/`phone`/`char` but rejected on `email`/`password`/`richtext`/`url`/`binary`/`var_binary` — even though `max_length` was already accepted on all of them. Extended to match `max_length`'s type list.
+* `step` was accepted on `float`/`decimal` but rejected on `percent`, despite `percent` mapping to the same underlying `f64` as `float`. Extended to include `percent`.
+* `auto_now`/`auto_now_update` were accepted on `datetime` only, rejected on `timestamp`/`timestamp_tz` — two other temporal kinds with the identical "set automatically on insert/update" need. Extended to all three.
+* `fk` was accepted only on `int`/`bigint`/`uuid`, rejecting a foreign key toward a primary key typed `i8`/`i16`/`u32`/`u64`. Extended to cover every integer kind plus `uuid`.
+
+### Fix — `derive_form` (`model!{}` parser: second audit pass — `has_many`/`has_one` aliasing was silently broken)
+
+* **`has_many: comments as user_comments` (and the `has_one` equivalent) never worked.** `as` is a strict Rust keyword, and the code probed for it with `input.peek(Ident)` — which structurally never matches a keyword token in `syn`. The alias branch was dead code: `as_name` stayed `None` in every case, the `as ...` tokens were left unconsumed in the stream, and the *next* loop iteration failed trying to parse `as` as a fresh relation's `kind: Ident`, surfacing a misleading "expected identifier, found keyword `as`" error nowhere near the actual mistake. Fixed by peeking/consuming `Token![as]` instead of a plain `Ident` — the correct `syn` idiom for a reserved keyword, already used elsewhere in this same file for `Token![enum]`.
+* **An enum with zero variants was accepted** (`enums: { Status: [] }`), generating an uninstantiable Rust enum with no compile-time hint of why. Now rejected at parse time.
+* **Duplicate variant names within one enum went undetected** (`Status: [Active, Active]`), unlike the existing duplicate checks for top-level fields/enums. Now tracked and rejected the same way.
+* **A field re-declaring the primary key's name** (`pk: id => Pk, { id: text, ... }`) wasn't caught by the duplicate-field check added above, because the PK name was never seeded into the tracking set. Fixed.
+* **Duplicate relations went undetected** (e.g. two identical `has_many: comments,` entries). Now rejected, keyed on (kind, target model, alias/via/through) so legitimately distinct relations toward the same model — different FK column, different alias — still parse.
+* **`meta: { ordering:, unique_together:, indexes: }` never checked that the field names they reference actually exist.** A typo or a renamed-but-not-updated column parsed silently and only broke downstream, in generated code far from the actual mistake. Every identifier in these three lists is now checked against the model's declared fields (PK included) right after parsing.
+
+---
+
 ## [2.2.1] - 2026-09-08
 
 ### Breaking — `runique` (database features: single-engine builds by default)

@@ -3,11 +3,40 @@ use crate::model::ast::{
     FormFieldAttr, FormFieldDecl, FormFieldKind, MetaDef, ModelInput, PkDef, PkType, RelationDef,
 };
 use proc_macro2;
+use std::collections::HashSet;
 use syn::token;
 use syn::{
     Ident, LitFloat, LitInt, LitStr, Result, Token,
     parse::{Parse, ParseStream},
 };
+
+/// Rejects table names that are not a plain SQL identifier (letters/digits/underscore,
+/// not starting with a digit). This name is later interpolated unescaped into generated
+/// Rust source (migration files, `Alias::new("...")`), so a stray `"` or `;` in the DSL
+/// would corrupt or inject into that generated file rather than just failing to compile.
+fn validate_sql_identifier(lit: &LitStr) -> Result<()> {
+    let value = lit.value();
+    let valid = !value.is_empty()
+        && value.len() <= 63
+        && value
+            .chars()
+            .next()
+            .is_some_and(|c| c.is_ascii_alphabetic() || c == '_')
+        && value
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_');
+    if !valid {
+        return Err(syn::Error::new(
+            lit.span(),
+            format!(
+                "Invalid table name '{}': must be 1-63 characters, start with a letter or \
+                underscore, and contain only letters, digits, and underscores.",
+                value
+            ),
+        ));
+    }
+    Ok(())
+}
 
 impl Parse for EnumDef {
     fn parse(input: ParseStream) -> Result<Self> {
@@ -45,8 +74,18 @@ impl Parse for EnumDef {
         let content;
         syn::bracketed!(content in input);
         let mut variants = Vec::new();
+        let mut seen_variant_names: HashSet<String> = HashSet::new();
         while !content.is_empty() {
             let variant_name: Ident = content.parse()?;
+            if !seen_variant_names.insert(variant_name.to_string()) {
+                return Err(syn::Error::new(
+                    variant_name.span(),
+                    format!(
+                        "Variant '{}' is declared more than once in enum '{}'",
+                        variant_name, name
+                    ),
+                ));
+            }
             let (value, label) = if content.peek(Token![:]) {
                 content.parse::<Token![:]>()?;
                 (None, Some(content.parse::<syn::Lit>()?))
@@ -72,6 +111,12 @@ impl Parse for EnumDef {
             });
             let _ = content.parse::<Token![,]>();
         }
+        if variants.is_empty() {
+            return Err(syn::Error::new(
+                name.span(),
+                format!("Enum '{}' must declare at least one variant", name),
+            ));
+        }
         let _ = input.parse::<Token![,]>();
         Ok(EnumDef {
             name,
@@ -90,20 +135,26 @@ impl Parse for ModelInput {
 
         // table: "eihwaz_users",
         let table_kw: Ident = input.parse()?;
-        assert_eq!(table_kw.to_string(), "table");
+        if table_kw != "table" {
+            return Err(syn::Error::new(table_kw.span(), "Expected `table:`"));
+        }
         input.parse::<Token![:]>()?;
         let table: LitStr = input.parse()?;
+        validate_sql_identifier(&table)?;
         input.parse::<Token![,]>()?;
 
         // pk: id => i32,
         let pk_kw: Ident = input.parse()?;
-        assert_eq!(pk_kw.to_string(), "pk");
+        if pk_kw != "pk" {
+            return Err(syn::Error::new(pk_kw.span(), "Expected `pk:`"));
+        }
         input.parse::<Token![:]>()?;
         let pk = PkDef::parse(input)?;
         input.parse::<Token![,]>()?;
 
         // enums: { ... } optional
         let mut enums = Vec::new();
+        let mut seen_enum_names: HashSet<String> = HashSet::new();
         if input.peek(Ident) {
             let peek: Ident = input.fork().parse()?;
             if peek == "enums" {
@@ -112,7 +163,14 @@ impl Parse for ModelInput {
                 let enum_content;
                 syn::braced!(enum_content in input);
                 while !enum_content.is_empty() {
-                    enums.push(EnumDef::parse(&enum_content)?);
+                    let def = EnumDef::parse(&enum_content)?;
+                    if !seen_enum_names.insert(def.name.to_string()) {
+                        return Err(syn::Error::new(
+                            def.name.span(),
+                            format!("Enum '{}' is declared more than once", def.name),
+                        ));
+                    }
+                    enums.push(def);
                 }
                 let _ = input.parse::<Token![,]>();
             }
@@ -121,11 +179,20 @@ impl Parse for ModelInput {
         // Anonymous block `{ ... }` — semantic types, SQL derived from them.
         let mut fields = Vec::new();
         let mut form_fields_early: Vec<FormFieldDecl> = Vec::new();
+        // Seeded with the PK name so a field re-declaring it (`pk: id => i32, { id: text }`)
+        // is caught here instead of silently shadowing the primary key downstream.
+        let mut seen_field_names: HashSet<String> = HashSet::from([pk.name.to_string()]);
 
         let ff_content;
         syn::braced!(ff_content in input);
         while !ff_content.is_empty() {
             let ff = FormFieldDecl::parse(&ff_content)?;
+            if !seen_field_names.insert(ff.name.to_string()) {
+                return Err(syn::Error::new(
+                    ff.name.span(),
+                    format!("Field '{}' is declared more than once", ff.name),
+                ));
+            }
             fields.push(form_field_to_field_def(&ff));
             form_fields_early.push(ff);
         }
@@ -140,8 +207,38 @@ impl Parse for ModelInput {
                 input.parse::<Token![:]>()?;
                 let rel_content;
                 syn::braced!(rel_content in input);
+                let mut seen_relations: HashSet<(&'static str, String, String)> = HashSet::new();
                 while !rel_content.is_empty() {
-                    relations.push(RelationDef::parse(&rel_content)?);
+                    let rel = RelationDef::parse(&rel_content)?;
+                    let (kind, model_ident, disambiguator) = match &rel {
+                        RelationDef::BelongsTo { model, via } => {
+                            ("belongs_to", model, via.to_string())
+                        }
+                        RelationDef::HasMany { model, as_name } => (
+                            "has_many",
+                            model,
+                            as_name.as_ref().map(|a| a.to_string()).unwrap_or_default(),
+                        ),
+                        RelationDef::HasOne { model, as_name } => (
+                            "has_one",
+                            model,
+                            as_name.as_ref().map(|a| a.to_string()).unwrap_or_default(),
+                        ),
+                        RelationDef::ManyToMany { model, through, .. } => {
+                            ("many_to_many", model, through.to_string())
+                        }
+                    };
+                    let key = (kind, model_ident.to_string(), disambiguator);
+                    if !seen_relations.insert(key.clone()) {
+                        return Err(syn::Error::new(
+                            model_ident.span(),
+                            format!(
+                                "Relation '{}' toward '{}' is declared more than once",
+                                key.0, key.1
+                            ),
+                        ));
+                    }
+                    relations.push(rel);
                 }
                 let _ = input.parse::<Token![,]>();
             }
@@ -157,6 +254,30 @@ impl Parse for ModelInput {
                 let meta_content;
                 syn::braced!(meta_content in input);
                 meta = Some(MetaDef::parse(&meta_content)?);
+            }
+        }
+
+        // `meta: { ordering:, unique_together:, indexes: }` reference field names as
+        // free-standing idents with no link back to `fields` at parse time — a typo'd
+        // or renamed column silently produced dead/broken generated code instead of
+        // failing here, where the mistake actually is.
+        if let Some(m) = &meta {
+            let mut check = |ident: &Ident| -> Result<()> {
+                if !seen_field_names.contains(&ident.to_string()) {
+                    return Err(syn::Error::new(
+                        ident.span(),
+                        format!("'{}' in `meta` is not a declared field", ident),
+                    ));
+                }
+                Ok(())
+            };
+            for (_, ident) in &m.ordering {
+                check(ident)?;
+            }
+            for group in m.unique_together.iter().chain(m.indexes.iter()) {
+                for ident in group {
+                    check(ident)?;
+                }
             }
         }
 
@@ -270,28 +391,20 @@ impl Parse for RelationDef {
                 RelationDef::BelongsTo { model, via }
             }
             "has_many" => {
-                let as_name = if input.peek(Ident) {
-                    let as_kw: Ident = input.fork().parse()?;
-                    if as_kw == "as" {
-                        input.parse::<Ident>()?;
-                        Some(input.parse::<Ident>()?)
-                    } else {
-                        None
-                    }
+                // `as` is a strict Rust keyword — `input.peek(Ident)` structurally
+                // never matches it, it must be peeked/consumed via `Token![as]`.
+                let as_name = if input.peek(Token![as]) {
+                    input.parse::<Token![as]>()?;
+                    Some(input.parse::<Ident>()?)
                 } else {
                     None
                 };
                 RelationDef::HasMany { model, as_name }
             }
             "has_one" => {
-                let as_name = if input.peek(Ident) {
-                    let as_kw: Ident = input.fork().parse()?;
-                    if as_kw == "as" {
-                        input.parse::<Ident>()?;
-                        Some(input.parse::<Ident>()?)
-                    } else {
-                        None
-                    }
+                let as_name = if input.peek(Token![as]) {
+                    input.parse::<Token![as]>()?;
+                    Some(input.parse::<Ident>()?)
                 } else {
                     None
                 };
@@ -736,7 +849,14 @@ impl Parse for FormFieldDecl {
                     "max_length" => {
                         attrs_content.parse::<Token![:]>()?;
                         let n: LitInt = attrs_content.parse()?;
-                        FormFieldAttr::MaxLength(n.base10_parse()?)
+                        let val: u32 = n.base10_parse()?;
+                        if val == 0 {
+                            return Err(syn::Error::new(
+                                n.span(),
+                                "`max_length` must be greater than 0",
+                            ));
+                        }
+                        FormFieldAttr::MaxLength(val)
                     }
                     "min_length" => {
                         attrs_content.parse::<Token![:]>()?;
@@ -917,7 +1037,11 @@ fn validate_form_field_attrs(
                 | VarBinary,
             ) => true,
             (MaxLength(_), _) => false,
-            (MinLength(_), Text | Textarea | Phone | Char) => true,
+            (
+                MinLength(_),
+                Text | Email | Password | Richtext | Textarea | Url | Phone | Char | Binary
+                | VarBinary,
+            ) => true,
             (MinLength(_), _) => false,
 
             // min / max integer — integer types only
@@ -946,23 +1070,24 @@ fn validate_form_field_attrs(
             (Rows(_), Richtext | Textarea | Json) => true,
             (Rows(_), _) => false,
 
-            // step — float, decimal
-            (Step(_), Float | Decimal) => true,
+            // step — float, decimal, percent
+            (Step(_), Float | Decimal | Percent) => true,
             (Step(_), _) => false,
 
-            // auto_now / auto_now_update — datetime only
-            (AutoNow, Datetime) => true,
+            // auto_now / auto_now_update — temporal types
+            (AutoNow, Datetime | Timestamp | TimestampTz) => true,
             (AutoNow, _) => false,
-            (AutoNowUpdate, Datetime) => true,
+            (AutoNowUpdate, Datetime | Timestamp | TimestampTz) => true,
             (AutoNowUpdate, _) => false,
 
             // unique — all types except files/bool
             (Unique, Image | Document | File | Bool) => false,
             (Unique, _) => true,
 
-            // fk — int/bigint/uuid only (FK column) — Uuid is reachable via the `Pk`
-            // alias under the `pk-uuid` feature, not just a literal `uuid` field.
-            (FormFieldAttr::Fk(_), Int | Bigint | Uuid) => true,
+            // fk — any integer/uuid column can reference a PK of the same shape.
+            // Uuid is reachable via the `Pk` alias under the `pk-uuid` feature, not
+            // just a literal `uuid` field.
+            (FormFieldAttr::Fk(_), Int | Bigint | I8 | I16 | U32 | U64 | Uuid) => true,
             (FormFieldAttr::Fk(_), _) => false,
 
             // skip — all types
@@ -1028,6 +1153,29 @@ fn validate_form_field_attrs(
                 name, mn, mx
             ),
         ));
+    }
+
+    // `default` literal must roughly match the field's kind — catches copy/paste
+    // mistakes like `age: int [default: "abc"]` at parse time instead of a much
+    // later, cryptic SeaORM/SQL type error.
+    if let Some(Default(lit)) = attrs.iter().find(|a| matches!(a, Default(_))) {
+        let matches_kind = match kind {
+            Bool => matches!(lit, syn::Lit::Bool(_)),
+            Int | Bigint | I8 | I16 | U32 | U64 => matches!(lit, syn::Lit::Int(_)),
+            Float | Decimal | Percent | F32 => {
+                matches!(lit, syn::Lit::Int(_) | syn::Lit::Float(_))
+            }
+            _ => matches!(lit, syn::Lit::Str(_)),
+        };
+        if !matches_kind {
+            return Err(syn::Error::new(
+                name.span(),
+                format!(
+                    "`default` value type does not match field type `{}` (field: {})",
+                    kind_name, name
+                ),
+            ));
+        }
     }
 
     Ok(())
