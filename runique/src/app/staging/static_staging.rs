@@ -1,5 +1,6 @@
 //! Static files staging: enables or disables the asset service.
 use crate::{app::error_build::BuildError, config::static_files::resolve_media_root};
+use std::borrow::Cow;
 //
 // Controls whether static files (CSS, JS, media, Runique
 // internal assets) are served by the application.
@@ -17,9 +18,9 @@ pub struct StaticStaging {
     /// Indicates whether the static files service is enabled
     pub(crate) enabled: bool,
     /// Cache-Control header for static assets (/static/, /runique/static/)
-    pub(crate) static_cache: &'static str,
+    pub(crate) static_cache: Cow<'static, str>,
     /// Cache-Control header for user-uploaded media (/media/)
-    pub(crate) media_cache: &'static str,
+    pub(crate) media_cache: Cow<'static, str>,
 }
 
 impl StaticStaging {
@@ -27,8 +28,8 @@ impl StaticStaging {
     pub fn new() -> Self {
         Self {
             enabled: true,
-            static_cache: DEFAULT_STATIC_CACHE,
-            media_cache: DEFAULT_MEDIA_CACHE,
+            static_cache: Cow::Borrowed(DEFAULT_STATIC_CACHE),
+            media_cache: Cow::Borrowed(DEFAULT_MEDIA_CACHE),
         }
     }
 
@@ -36,30 +37,10 @@ impl StaticStaging {
     // Static files configuration
     // ═══════════════════════════════════════════════════
 
-    /// Enables the static files service
+    /// Enables or disables the static files service.
     ///
-    /// ```rust,ignore
-    /// .static_files(|s| s.enable())
-    /// ```
-    pub fn enable(mut self) -> Self {
-        self.enabled = true;
-        self
-    }
-
-    /// Disables the static files service
-    ///
-    /// Useful for pure APIs or when a CDN/reverse-proxy
-    /// manages static files.
-    ///
-    /// ```rust,ignore
-    /// .static_files(|s| s.disable())
-    /// ```
-    pub fn disable(mut self) -> Self {
-        self.enabled = false;
-        self
-    }
-
-    /// Enables or disables the static files service
+    /// Useful for pure APIs, when a CDN/reverse-proxy manages static files,
+    /// or to toggle on a computed flag (e.g. `s.enabled(!is_debug())`).
     ///
     /// ```rust,ignore
     /// .static_files(|s| s.enabled(false))
@@ -76,8 +57,8 @@ impl StaticStaging {
     /// ```rust,ignore
     /// .static_files(|s| s.static_cache("public, max-age=86400"))
     /// ```
-    pub fn static_cache(mut self, value: &'static str) -> Self {
-        self.static_cache = value;
+    pub fn static_cache(mut self, value: impl Into<Cow<'static, str>>) -> Self {
+        self.static_cache = value.into();
         self
     }
 
@@ -88,8 +69,8 @@ impl StaticStaging {
     /// ```rust,ignore
     /// .static_files(|s| s.media_cache("no-cache"))
     /// ```
-    pub fn media_cache(mut self, value: &'static str) -> Self {
-        self.media_cache = value;
+    pub fn media_cache(mut self, value: impl Into<Cow<'static, str>>) -> Self {
+        self.media_cache = value.into();
         self
     }
 
@@ -102,6 +83,26 @@ impl StaticStaging {
     pub fn validate(&self) -> Result<(), BuildError> {
         if !self.enabled {
             return Ok(());
+        }
+        for (label, value) in [
+            ("static_cache", &self.static_cache),
+            ("media_cache", &self.media_cache),
+        ] {
+            if axum::http::HeaderValue::from_str(value).is_err() {
+                return Err(BuildError::check({
+                    let mut report = crate::app::error_build::CheckReport::new();
+                    report.add(
+                        crate::app::error_build::CheckError::new(
+                            label,
+                            format!("Invalid Cache-Control header value: '{}'", value),
+                        )
+                        .with_suggestion(
+                            "Use only visible ASCII characters (no control characters, no newlines).",
+                        ),
+                    );
+                    report
+                }));
+            }
         }
         let media_root = resolve_media_root();
         std::fs::create_dir_all(&media_root).map_err(|e| {

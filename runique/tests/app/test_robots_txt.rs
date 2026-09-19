@@ -40,7 +40,7 @@ async fn build_app_with_admin(mount: &str) -> axum::Router {
     let app = RuniqueApp::builder(config)
         .with_database(db)
         .routes(Router::new().route("/", get(|| async { "ok" })))
-        .static_files(|s| s.disable())
+        .static_files(|s| s.enabled(false))
         .with_admin(|a| a.prefix(mount).auth(MockAdminAuth))
         .build()
         .await
@@ -57,7 +57,7 @@ async fn build_app_with_admin_no_robots(mount: &str) -> axum::Router {
     let app = RuniqueApp::builder(config)
         .with_database(db)
         .routes(Router::new().route("/", get(|| async { "ok" })))
-        .static_files(|s| s.disable())
+        .static_files(|s| s.enabled(false))
         .with_admin(|a| a.prefix(mount).auth(MockAdminAuth).no_robots_txt())
         .build()
         .await

@@ -63,7 +63,7 @@ fn cleanup_files(files: &[String]) {
 
 /// Checks if the file is a valid image using magic bytes.
 /// Covers JPEG, PNG, GIF, WebP, and ISO BMFF containers (AVIF, HEIC, HEIF).
-fn is_valid_path(path: &str) -> bool {
+fn is_valid_image_content(path: &str) -> bool {
     use std::io::Read;
 
     let p = Path::new(path);
@@ -495,7 +495,7 @@ impl FormField for FileField {
         // 4. Image validation: real format + dimensions
         if let FileFieldType::Image = self.field_type {
             for filename in &files {
-                if !blocking(|| is_valid_path(filename)) {
+                if !blocking(|| is_valid_image_content(filename)) {
                     cleanup_files(&files);
                     self.base.value.clear();
                     self.set_error(tf("forms.file_invalid_image", &[filename.as_str()]));

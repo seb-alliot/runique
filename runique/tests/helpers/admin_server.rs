@@ -478,12 +478,22 @@ pub async fn assert_get_ok(client: &reqwest::Client, url: &str) {
 /// doit passer par cette version, pas en réintroduire une locale `\d+`).
 pub fn find_id_by_visible_text(list_body: &str, needle: &str) -> String {
     let re = regex::Regex::new(r"#([0-9a-fA-F-]+)").expect("regex id valide");
-    let needle_pos = list_body
-        .find(needle)
-        .unwrap_or_else(|| panic!("texte '{needle}' introuvable dans la liste : {list_body}"));
-    let mut last_id = None;
-    for cap in re.captures_iter(&list_body[..needle_pos]) {
-        last_id = Some(cap[1].to_string());
+    let mut search_from = 0;
+    loop {
+        let Some(rel_pos) = list_body[search_from..].find(needle) else {
+            panic!("texte '{needle}' introuvable dans la liste (avec un badge #id précédent) : {list_body}");
+        };
+        let needle_pos = search_from + rel_pos;
+        let mut last_id = None;
+        for cap in re.captures_iter(&list_body[..needle_pos]) {
+            last_id = Some(cap[1].to_string());
+        }
+        if let Some(id) = last_id {
+            return id;
+        }
+        // Cette occurrence n'a aucun badge #id avant elle — ce n'est pas une
+        // ligne du tableau (ex: notice flash mentionnant la valeur avant que
+        // le tableau ne s'affiche). On essaie l'occurrence suivante.
+        search_from = needle_pos + needle.len();
     }
-    last_id.unwrap_or_else(|| panic!("aucun badge #id avant '{needle}' dans la liste"))
 }

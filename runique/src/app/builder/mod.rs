@@ -177,7 +177,7 @@ impl RuniqueAppBuilder {
     ///
     /// # Example
     /// ```rust,ignore
-    /// .static_files(|s| s.disable())
+    /// .static_files(|s| s.enabled(false))
     /// ```
     pub fn static_files(mut self, f: impl FnOnce(StaticStaging) -> StaticStaging) -> Self {
         self.statics = f(self.statics);
@@ -204,13 +204,13 @@ impl RuniqueAppBuilder {
 
     /// Shortcut: enables the static files service (enabled by default).
     pub fn statics(mut self) -> Self {
-        self.statics = self.statics.enable();
+        self.statics = self.statics.enabled(true);
         self
     }
 
     /// Shortcut: disables the static files service.
     pub fn no_statics(mut self) -> Self {
-        self.statics = self.statics.disable();
+        self.statics = self.statics.enabled(false);
         self
     }
 

@@ -50,7 +50,7 @@ async fn build_app(mount: &str, admin_path: &str) -> runique::app::RuniqueApp {
     RuniqueApp::builder(config)
         .with_database(db)
         .routes(Router::new().route("/", get(|| async { "ok" })))
-        .static_files(|s| s.disable())
+        .static_files(|s| s.enabled(false))
         .with_admin(|a| {
             a.auth(MockAdminAuth)
                 .prefix(mount)
@@ -70,7 +70,7 @@ async fn build(mount: &str, admin_path: &str, prefix_first: bool) -> Router {
     let app = RuniqueApp::builder(config)
         .with_database(db)
         .routes(Router::new().route("/", get(|| async { "ok" })))
-        .static_files(|s| s.disable())
+        .static_files(|s| s.enabled(false))
         .with_admin(|a| {
             let a = a.auth(MockAdminAuth);
             if prefix_first {
