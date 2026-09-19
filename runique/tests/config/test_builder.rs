@@ -244,23 +244,18 @@ fn test_static_staging_default_enabled() {
 }
 
 #[test]
-fn test_static_staging_disable() {
-    assert!(!StaticStaging::new().disable().is_enabled());
-}
-
-#[test]
-fn test_static_staging_enable_apres_disable() {
-    assert!(StaticStaging::new().disable().enable().is_enabled());
-}
-
-#[test]
 fn test_static_staging_enabled_false() {
     assert!(!StaticStaging::new().enabled(false).is_enabled());
 }
 
 #[test]
 fn test_static_staging_enabled_true() {
-    assert!(StaticStaging::new().disable().enabled(true).is_enabled());
+    assert!(
+        StaticStaging::new()
+            .enabled(false)
+            .enabled(true)
+            .is_enabled()
+    );
 }
 
 #[test]
@@ -271,14 +266,14 @@ fn test_static_staging_validate_ok() {
 
 #[test]
 fn test_static_staging_validate_disabled_ok() {
-    let s = StaticStaging::new().disable();
+    let s = StaticStaging::new().enabled(false);
     assert!(s.validate().is_ok());
 }
 
 #[test]
 fn test_static_staging_is_ready_toujours_true() {
     assert!(StaticStaging::new().is_ready());
-    assert!(StaticStaging::new().disable().is_ready());
+    assert!(StaticStaging::new().enabled(false).is_ready());
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -711,7 +706,7 @@ fn test_builder_middleware_chainable() {
 
 #[test]
 fn test_builder_static_files_chainable() {
-    let _b = RuniqueAppBuilder::new(make_config()).static_files(|s| s.disable());
+    let _b = RuniqueAppBuilder::new(make_config()).static_files(|s| s.enabled(false));
 }
 
 #[test]
@@ -736,7 +731,7 @@ fn test_builder_chaine_complete_sync() {
             m.with_cache(false)
                 .with_csp(|c| c.with_header_security(true))
         })
-        .static_files(|s| s.disable())
+        .static_files(|s| s.enabled(false))
         .core(|c| c)
         .with_admin(|a| a);
 }

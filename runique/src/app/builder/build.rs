@@ -352,8 +352,8 @@ impl RuniqueAppBuilder {
     pub(super) fn attach_static_files(
         mut router: Router,
         config: &RuniqueConfig,
-        static_cache: &'static str,
-        media_cache: &'static str,
+        static_cache: std::borrow::Cow<'static, str>,
+        media_cache: std::borrow::Cow<'static, str>,
     ) -> Router {
         // HSTS is host-scoped: once any page emits it (via the CSP middleware,
         // gated + configured by `SecurityConfig::hsts_header_value`), the browser
@@ -376,14 +376,16 @@ impl RuniqueAppBuilder {
                 ))
         };
 
+        // Value already validated in `StaticStaging::validate()` (build Step 1),
+        // run before this function — the header is well-formed by construction.
         let static_headers = security_headers().layer(SetResponseHeaderLayer::if_not_present(
             HeaderName::from_static("cache-control"),
-            HeaderValue::from_static(static_cache),
+            HeaderValue::from_str(&static_cache).expect("validated in StaticStaging::validate()"),
         ));
 
         let media_headers = security_headers().layer(SetResponseHeaderLayer::if_not_present(
             HeaderName::from_static("cache-control"),
-            HeaderValue::from_static(media_cache),
+            HeaderValue::from_str(&media_cache).expect("validated in StaticStaging::validate()"),
         ));
 
         router = router

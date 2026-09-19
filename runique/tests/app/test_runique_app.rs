@@ -65,7 +65,7 @@ async fn test_builder_build_avec_sqlite_memory() {
     let app = RuniqueApp::builder(config)
         .with_database(db)
         .routes(router)
-        .static_files(|s| s.disable())
+        .static_files(|s| s.enabled(false))
         .build()
         .await;
 
@@ -81,7 +81,7 @@ async fn test_builder_build_retourne_runique_app() {
 
     let app = RuniqueApp::builder(config)
         .with_database(db)
-        .static_files(|s| s.disable())
+        .static_files(|s| s.enabled(false))
         .build()
         .await
         .unwrap();
