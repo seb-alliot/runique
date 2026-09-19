@@ -37,14 +37,27 @@ use std::path::Path;
 use std::sync::Arc;
 use tera::Tera;
 
+/// Runs blocking file I/O off the async reactor thread. `validate`/`finalize`
+/// are sync trait methods (see [`FormField`]) called from async request handling,
+/// so a plain `std::fs` call would stall other tasks on that worker. Falls back
+/// to direct execution outside a Tokio runtime (unit tests, no runtime present).
+fn blocking<T>(f: impl FnOnce() -> T) -> T {
+    match tokio::runtime::Handle::try_current() {
+        Ok(_) => tokio::task::block_in_place(f),
+        Err(_) => f(),
+    }
+}
+
 /// Deletes uploaded files from disk (cleanup on validation failure)
 fn cleanup_files(files: &[String]) {
     for path in files {
-        if let Err(e) = std::fs::remove_file(path)
-            && e.kind() != std::io::ErrorKind::NotFound
-        {
-            tracing::warn!(path = %path, error = %e, "cleanup_files: remove failed");
-        }
+        blocking(|| {
+            if let Err(e) = std::fs::remove_file(path)
+                && e.kind() != std::io::ErrorKind::NotFound
+            {
+                tracing::warn!(path = %path, error = %e, "cleanup_files: remove failed");
+            }
+        });
     }
 }
 
@@ -88,6 +101,24 @@ fn is_valid_path(path: &str) -> bool {
         return true;
     }
     false
+}
+
+/// Moves a staged file to its destination. `rename` fails with `CrossesDevices`
+/// when the staging directory and `MEDIA_ROOT` are on different filesystems
+/// (e.g. `/tmp` on tmpfs vs. a mounted media volume) — falls back to copy+remove.
+fn move_file(src: &Path, dest: &Path) -> std::io::Result<()> {
+    match std::fs::rename(src, dest) {
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == std::io::ErrorKind::CrossesDevices => {
+            tracing::debug!(src = %src.display(), dest = %dest.display(), "cross-device move, falling back to copy");
+            std::fs::copy(src, dest)?;
+            if let Err(e) = std::fs::remove_file(src) {
+                tracing::warn!(path = %src.display(), error = %e, "cross-device move: leftover staged file removal failed");
+            }
+            Ok(())
+        }
+        Err(e) => Err(e),
+    }
 }
 
 /// Parses the field value into a list of file paths
@@ -442,7 +473,7 @@ impl FormField for FileField {
                 return false;
             }
             if let Some(max_bytes) = self.upload_config.max_size
-                && let Ok(metadata) = std::fs::metadata(filename)
+                && let Ok(metadata) = blocking(|| std::fs::metadata(filename))
             {
                 let file_size = metadata.len();
                 if file_size > max_bytes {
@@ -464,7 +495,7 @@ impl FormField for FileField {
         // 4. Image validation: real format + dimensions
         if let FileFieldType::Image = self.field_type {
             for filename in &files {
-                if !is_valid_path(filename) {
+                if !blocking(|| is_valid_path(filename)) {
                     cleanup_files(&files);
                     self.base.value.clear();
                     self.set_error(tf("forms.file_invalid_image", &[filename.as_str()]));
@@ -472,10 +503,9 @@ impl FormField for FileField {
                 }
 
                 if (self.max_width.is_some() || self.max_height.is_some())
-                    && let Ok(reader) = ImageReader::open(filename)
-                    && let Ok(dims) = reader.into_dimensions()
+                    && let Some((w, h)) =
+                        blocking(|| ImageReader::open(filename).ok()?.into_dimensions().ok())
                 {
-                    let (w, h) = dims;
                     if let Some(max_w) = self.max_width
                         && w > max_w
                     {
@@ -570,7 +600,7 @@ impl FormField for FileField {
                 continue;
             }
 
-            std::fs::create_dir_all(dest_dir_abs_path)
+            blocking(|| std::fs::create_dir_all(dest_dir_abs_path))
                 .map_err(|e| format!("upload dir '{}': {}", dest_dir_abs, e))?;
 
             let filename = src
@@ -579,7 +609,7 @@ impl FormField for FileField {
                 .unwrap_or(file_path.as_str());
             let dest_abs = dest_dir_abs_path.join(filename);
 
-            std::fs::rename(src, &dest_abs)
+            blocking(|| move_file(src, &dest_abs))
                 .map_err(|e| format!("move '{}': {}", dest_abs.display(), e))?;
 
             new_paths.push(to_rel(filename));
@@ -593,11 +623,13 @@ impl FormField for FileField {
                 if !new_paths.iter().any(|p| p == old_rel) {
                     let old_abs =
                         format!("{}/{}", media_root_clean, old_rel.trim_start_matches('/'));
-                    if let Err(e) = std::fs::remove_file(&old_abs)
-                        && e.kind() != std::io::ErrorKind::NotFound
-                    {
-                        tracing::warn!(path = %old_abs, error = %e, "old upload removal failed");
-                    }
+                    blocking(|| {
+                        if let Err(e) = std::fs::remove_file(&old_abs)
+                            && e.kind() != std::io::ErrorKind::NotFound
+                        {
+                            tracing::warn!(path = %old_abs, error = %e, "old upload removal failed");
+                        }
+                    });
                 }
             }
         }

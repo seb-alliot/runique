@@ -9,7 +9,9 @@ use crate::{app::error_build::BuildError, config::static_files::resolve_media_ro
 // ═══════════════════════════════════════════════════════════════
 
 const DEFAULT_STATIC_CACHE: &str = "public, max-age=31536000, immutable";
-const DEFAULT_MEDIA_CACHE: &str = "public, max-age=31536000, immutable";
+// Uploaded media keeps its original filename on replace (no content hash), so
+// `immutable` would let browsers serve a stale file for a year after an overwrite.
+const DEFAULT_MEDIA_CACHE: &str = "public, max-age=3600, must-revalidate";
 
 pub struct StaticStaging {
     /// Indicates whether the static files service is enabled
@@ -81,7 +83,7 @@ impl StaticStaging {
 
     /// Overrides the Cache-Control header for user-uploaded media.
     ///
-    /// Default: `"public, max-age=3600"`
+    /// Default: `"public, max-age=3600, must-revalidate"`
     ///
     /// ```rust,ignore
     /// .static_files(|s| s.media_cache("no-cache"))
