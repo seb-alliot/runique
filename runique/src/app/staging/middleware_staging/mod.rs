@@ -127,12 +127,6 @@ impl MiddlewareStaging {
         };
 
         let features = MiddlewareConfig {
-            // CSP configured only via the builder (.with_csp(true/false))
-            enable_csp: false,
-            // STRICT_CSP (.env, défaut true) pilote les headers de sécurité durcis
-            // (X-Frame, nosniff, COOP/CORP, HSTS conditionné HTTPS). Le builder
-            // `.with_csp(|c| c.with_header_security(...))` reste prioritaire (appliqué après).
-            enable_header_security: config.security.strict_csp,
             // host validation configured only via the builder (.with_allowed_hosts)
             enable_host_validation: false,
             enable_debug_errors: true, // always mounted — config.debug manages the content
@@ -167,16 +161,15 @@ impl MiddlewareStaging {
     /// Configures the Content Security Policy via a closure.
     ///
     /// The closure receives a [`CspConfig`] and returns the configured `CspConfig`.
-    /// Everything is disabled by default — explicitly enable what you need.
-    /// To disable CSP: do not call `.with_csp` at all.
+    /// CSP is always active (`security_headers_middleware` runs unconditionally) —
+    /// this only lets you customize the policy's directives; there is currently
+    /// no way to disable CSP entirely.
     ///
     /// # Example — custom configuration
     /// ```rust,ignore
     /// .middleware(|m| {
     ///     m.with_csp(|c| {
-    ///         c.with_header_security(true)
-    ///          .with_nonce(true)
-    ///          .scripts(vec!["'self'", "https://cdn.jsdelivr.net"])
+    ///         c.scripts(vec!["'self'", "https://cdn.jsdelivr.net"])
     ///          .styles(vec!["'self'", "https://cdn.jsdelivr.net"])
     ///          .images(vec!["'self'", "data:"])
     ///     })
@@ -190,7 +183,6 @@ impl MiddlewareStaging {
     /// .middleware(|m| {
     ///     m.with_csp(|c| {
     ///         c.policy(SecurityPolicy::strict())
-    ///          .with_header_security(true)
     ///     })
     /// })
     /// ```
@@ -201,8 +193,6 @@ impl MiddlewareStaging {
     /// ```
     pub fn with_csp(mut self, f: impl FnOnce(CspConfig) -> CspConfig) -> Self {
         let csp = f(CspConfig::default());
-        self.features.enable_csp = true;
-        self.features.enable_header_security = csp.enable_header_security;
         self.security_policy = Some(csp.policy);
         self
     }

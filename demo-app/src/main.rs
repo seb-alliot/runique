@@ -43,7 +43,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 })
                 .with_csp(|c| {
                     c.policy(SecurityPolicy::strict())
-                        .with_header_security(true)
                         .with_upgrade_insecure(!is_debug())
                         .scripts(vec!["'self'", "'strict-dynamic'"])
                 })

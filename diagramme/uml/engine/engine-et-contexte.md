@@ -22,7 +22,6 @@ classDiagram
         +HashMap~TypeId, Arc~Any~~ extensions
         +new(config, tera, db) Self
         +extension~T~() Option~Arc~T~~
-        +attach_middlewares(engine, router) Router
     }
     RuniqueEngine "1" o-- "1" CleaningMemoryStore : sessions anonymes + CSRF
     RuniqueEngine "1" o-- "1" RuniqueSessionStore : sessions authentifiées (DB)
@@ -81,19 +80,19 @@ middleware d'erreurs → les pages d'erreur custom risquent de disparaître au p
 réponses brutes d'Axum. Soit le nom du flag est trompeur, soit le handler devrait être
 attaché inconditionnellement (et seul le *niveau de détail* gouverné par le flag). À lever.
 
-### 🟠 E2 — Deux chemins d'attache de middleware
-`RuniqueEngine::attach_middlewares` (ici) **et** le système de slots de `MiddlewareStaging`
-(architecture : Extensions 0 → … → CSRF 60) coexistent. Deux mécanismes pour la
-même responsabilité = risque d'ordre incohérent ou de double-application (ex : CSRF appliqué
-ici **et** via staging). À cartographier précisément dans [../../flux](../../flux) pour
-confirmer lequel est réellement câblé au runtime.
+### ✅ E2 — Deux chemins d'attache de middleware — RÉSOLU (2026-09-21)
+`RuniqueEngine::attach_middlewares` coexistait avec le système de slots de `MiddlewareStaging`
+(architecture : Extensions 0 → … → CSRF 60). Confirmé code mort (zéro appelant, y compris
+en tests d'intégration réels) → fonction + son fichier de tests dédié supprimés. Seul le
+système de slots (`applicator.rs`) est câblé au runtime.
 
 ### 🟡 E3 — Ordre des couches Axum vs intention
-Les `.layer()` s'appliquent en ordre **inverse** d'ajout (Tower). Le code ajoute HTTPS→Host
-→CSRF→Cache→CSP→Errors, donc à l'exécution l'ordre est inversé : Errors d'abord (extérieur),
-HTTPS en dernier (intérieur). Le commentaire « Error Handler (Last, to catch errors from
-others) » est cohérent avec ça, mais l'écart ordre-d'écriture/ordre-d'exécution est un
-piège classique → à vérifier que l'intention (HTTPS tout en premier) tient vraiment.
+L'analyse ci-dessous portait sur `attach_middlewares` (désormais supprimé) ; le principe
+reste valable pour le pipeline vivant (`applicator.rs`). Les `.layer()` s'appliquent en ordre
+**inverse** d'ajout (Tower) : le dernier ajouté devient la couche la plus externe, et exécute
+son traitement de réponse **en dernier**. C'est exactement ce qui casse le nonce CSP dans
+`applicator.rs` (slot 31 ajouté après slot 30 → écrase son header en réponse) — voir l'entrée
+E3 détaillée dans [`../../anomalies.md`](../../anomalies.md), bug encore ouvert.
 
 ### 🟡 E4 — `session_store`/`session_db_store` en `LazyLock<RwLock<Option<Arc<…>>>>` — ✅ VÉRIFIÉ clean
 **Vérifié (2.1.21).** Aucun `unwrap`/`expect` sur ces stores : écritures gardées `if let Ok(write())`,

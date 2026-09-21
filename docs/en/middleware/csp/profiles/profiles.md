@@ -51,7 +51,6 @@ RuniqueApp::builder(config)
     .middleware(|m| {
         m.with_csp(|c| {
             c.policy(SecurityPolicy::strict())
-             .with_header_security(true)
         })
     })
     .build()
@@ -92,7 +91,6 @@ RuniqueApp::builder(config)
         m.with_csp(|c| {
             c.scripts(vec!["'self'", "https://cdn.example.com"])
              .images(vec!["'self'", "data:"])
-             .with_nonce(true)
         })
     })
     .build()

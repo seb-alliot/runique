@@ -67,17 +67,9 @@ Les scripts chargés depuis une URL autorisée dans `script-src` n'ont pas besoi
 
 ---
 
-## Désactiver le nonce
+## Le nonce ne peut pas être désactivé
 
-Non recommandé. Si votre application ne peut pas utiliser de nonce (ex. templates générés côté client) :
-
-```rust
-.middleware(|m| {
-    m.with_csp(|c| c.with_nonce(false))
-})
-```
-
-Sans nonce, les scripts inline sont bloqués sauf si `'unsafe-inline'` est ajouté à `script-src` — ce qui neutralise la protection CSP contre le XSS.
+Il est généré et injecté de façon inconditionnelle par `security_headers_middleware`, sur toutes les réponses — il n'existe actuellement aucune option builder pour le désactiver. Si votre application ne peut pas utiliser de nonce (ex. templates générés côté client), la seule solution est d'ajouter `'unsafe-inline'` à `script-src`/`style-src` via `.scripts(...)`/`.styles(...)` — ce qui neutralise la protection CSP contre le XSS pour ces directives.
 
 ---
 

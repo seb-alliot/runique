@@ -328,7 +328,6 @@ async fn test_core_staging_with_database_is_ready() {
 #[test]
 fn test_middleware_config_development() {
     let config = MiddlewareConfig::development();
-    assert!(!config.enable_csp);
     assert!(!config.enable_host_validation);
     assert!(config.enable_debug_errors);
     assert!(!config.enable_cache);
@@ -337,8 +336,6 @@ fn test_middleware_config_development() {
 #[test]
 fn test_middleware_config_production() {
     let config = MiddlewareConfig::production();
-    assert!(config.enable_csp);
-    assert!(!config.enable_header_security); // false par défaut — activé via builder
     assert!(config.enable_host_validation);
     assert!(config.enable_debug_errors);
     assert!(config.enable_cache);
@@ -351,7 +348,6 @@ fn test_middleware_config_production() {
 #[test]
 fn test_middleware_staging_new_debug_profil_dev() {
     let ms = MiddlewareStaging::new(true);
-    assert!(!ms.features().enable_csp);
     assert!(!ms.features().enable_host_validation);
     assert!(ms.features().enable_debug_errors);
     assert!(!ms.features().enable_cache);
@@ -360,56 +356,9 @@ fn test_middleware_staging_new_debug_profil_dev() {
 #[test]
 fn test_middleware_staging_new_prod_profil_prod() {
     let ms = MiddlewareStaging::new(false);
-    assert!(ms.features().enable_csp);
     assert!(ms.features().enable_host_validation);
     assert!(ms.features().enable_debug_errors);
     assert!(ms.features().enable_cache);
-}
-
-#[test]
-fn test_middleware_staging_from_config_debug() {
-    let mut config = RuniqueConfig {
-        debug: true,
-        ..Default::default()
-    };
-    config.debug = true;
-    let ms = MiddlewareStaging::from_config(&config);
-    assert!(!ms.features().enable_csp);
-}
-
-#[test]
-fn test_middleware_staging_from_config_prod() {
-    let mut config = RuniqueConfig {
-        debug: true,
-        ..Default::default()
-    };
-    config.debug = false;
-    let ms = MiddlewareStaging::from_config(&config);
-    // CSP configure uniquement via le builder — toujours false depuis from_config
-    assert!(!ms.features().enable_csp);
-    assert!(!ms.features().enable_header_security);
-}
-
-#[test]
-fn test_middleware_staging_with_csp_active() {
-    let ms = MiddlewareStaging::new(true).with_csp(|c| c);
-    assert!(ms.features().enable_csp);
-    assert!(!ms.features().enable_header_security);
-}
-
-#[test]
-fn test_middleware_staging_with_csp_avec_header_security() {
-    let ms = MiddlewareStaging::new(true).with_csp(|c| c.with_header_security(true));
-    assert!(ms.features().enable_csp);
-    assert!(ms.features().enable_header_security);
-}
-
-#[test]
-fn test_middleware_staging_without_csp_desactive() {
-    // Ne pas appeler with_csp = CSP desactive
-    let ms = MiddlewareStaging::new(true);
-    assert!(!ms.features().enable_csp);
-    assert!(!ms.features().enable_header_security);
 }
 
 #[test]
@@ -727,10 +676,7 @@ fn test_builder_chaine_complete_sync() {
         .no_statics()
         .with_session_duration(Duration::hours(8))
         .with_error_handler(false)
-        .middleware(|m| {
-            m.with_cache(false)
-                .with_csp(|c| c.with_header_security(true))
-        })
+        .middleware(|m| m.with_cache(false).with_csp(|c| c))
         .static_files(|s| s.enabled(false))
         .core(|c| c)
         .with_admin(|a| a);
@@ -867,7 +813,7 @@ async fn test_build_profil_production_couvre_csp_host_validation() {
         .routes(Router::new())
         .no_statics()
         .core(|c| c.with_database(db))
-        .middleware(|m| m.with_csp(|c| c.with_header_security(true).with_nonce(true)))
+        .middleware(|m| m.with_csp(|c| c))
         .build()
         .await;
 

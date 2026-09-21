@@ -78,7 +78,7 @@ Toute la configuration des middlewares passe par `.middleware(|m| { ... })` où 
 let app = RuniqueApp::builder(config)
     .routes(router)
     .middleware(|m| {
-        m.with_csp(|c| c.with_header_security(true))          // Active le CSP
+        m.with_csp(|c| c)              // CSP toujours actif — personnalisable ici
          .with_allowed_hosts(|h| h.enabled(true).host("mondomaine.fr"))  // Active la validation des hosts
          .with_cache(true)              // Active le no-cache en dev
          .with_debug_errors(true)       // Active les erreurs détaillées

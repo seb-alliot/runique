@@ -15,7 +15,7 @@
 //! `DATABASE_URL_MARIADB` in `.env.test`. Absent → each test returns
 //! immediately (skip), same convention as `test_user_model_multi_db.rs`.
 
-use crate::helpers::{db, db_mariadb, db_postgres, pk::pk};
+use crate::helpers::{db, db_mariadb, db_postgres};
 use runique::auth::user;
 use runique::macros::bdd::query::RuniqueQueryBuilder;
 use runique::sea_orm::{

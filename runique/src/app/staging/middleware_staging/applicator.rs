@@ -38,9 +38,9 @@
 use crate::context::RequestExtensions;
 use crate::middleware::session::CleaningMemoryStore;
 use crate::middleware::{
-    allowed_hosts_middleware, anti_bot_middleware, csp_middleware, csrf_middleware,
-    dev_no_cache_middleware, error_handler_middleware, open_redirect_middleware,
-    security_headers_middleware, trusted_proxies_middleware,
+    allowed_hosts_middleware, anti_bot_middleware, csrf_middleware, dev_no_cache_middleware,
+    error_handler_middleware, open_redirect_middleware, security_headers_middleware,
+    trusted_proxies_middleware,
 };
 use crate::utils::aliases::{AEngine, ARuniqueConfig, ATera};
 use axum::{self, Router, middleware};
@@ -61,7 +61,6 @@ const SLOT_ERROR_HANDLER: u16 = 10; // Catches errors of the WHOLE stack
 const SLOT_CUSTOM_BASE: u16 = 20; // Dev's custom middlewares start here
 const SLOT_OPEN_REDIRECT: u16 = 25; // After custom, before CSP — wraps response inspection
 const SLOT_SECURITY_HEADERS: u16 = 30;
-const SLOT_SECURITY_CSP: u16 = 31;
 const SLOT_CACHE: u16 = 40;
 const SLOT_SESSION: u16 = 50; // Before CSRF (CSRF depends on it)
 const SLOT_SESSION_UPGRADE: u16 = 55; // After Session (reads/writes in session)
@@ -300,7 +299,13 @@ impl MiddlewareStaging {
             });
         }
 
-        // Slot 30: Security headers — ALWAYS active
+        // Slot 30: Security headers (CSP + nonce + HSTS/X-Frame-Options/etc.) — ALWAYS active.
+        // `csp_middleware` (formerly slot 31, gated on `enable_csp`) used to also run here,
+        // setting the same Content-Security-Policy header without a nonce — since it was
+        // applied after this one, its `insert()` silently overwrote the nonce-bearing header
+        // from this middleware on every response where `.with_csp()` was used (the normal,
+        // documented usage). Removed 2026-09-21: this middleware already covers everything
+        // csp_middleware did, correctly. See `diagramme/anomalies.md` entry E3.
         {
             let eng = engine.clone();
             entries.push(MiddlewareEntry {
@@ -311,18 +316,6 @@ impl MiddlewareStaging {
                         eng,
                         security_headers_middleware,
                     ))
-                }),
-            });
-        }
-
-        // Slot 31: CSP — only if enabled
-        if self.features.enable_csp {
-            let eng = engine.clone();
-            entries.push(MiddlewareEntry {
-                slot: SLOT_SECURITY_CSP,
-                name: "CSP",
-                apply: Box::new(move |r| {
-                    r.layer(middleware::from_fn_with_state(eng, csp_middleware))
                 }),
             });
         }

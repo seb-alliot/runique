@@ -8,14 +8,6 @@ use serial_test::serial;
 
 #[test]
 #[serial]
-fn test_security_config_defaults_strict_csp() {
-    del_env("STRICT_CSP");
-    let config = SecurityConfig::from_env();
-    assert!(config.strict_csp, "strict_csp doit être true par défaut");
-}
-
-#[test]
-#[serial]
 fn test_security_config_defaults_rate_limiting() {
     del_env("RATE_LIMITING");
     let config = SecurityConfig::from_env();
@@ -52,15 +44,6 @@ fn test_security_config_defaults_allowed_hosts() {
 }
 
 // ── Lecture depuis variables d'environnement ───────────────────────────────────
-
-#[test]
-#[serial]
-fn test_security_config_strict_csp_false() {
-    set_env("STRICT_CSP", "false");
-    let config = SecurityConfig::from_env();
-    assert!(!config.strict_csp);
-    del_env("STRICT_CSP");
-}
 
 #[test]
 #[serial]
@@ -109,7 +92,6 @@ fn test_security_config_allowed_hosts_un_seul() {
 #[test]
 fn test_security_config_clone() {
     let config = SecurityConfig {
-        strict_csp: false,
         rate_limiting: true,
         enforce_https: true,
         allowed_hosts: vec!["localhost".to_string()],
@@ -122,7 +104,6 @@ fn test_security_config_clone() {
         hsts_preload: false,
     };
     let cloned = config.clone();
-    assert_eq!(cloned.strict_csp, config.strict_csp);
     assert_eq!(cloned.enforce_https, config.enforce_https);
     assert_eq!(cloned.allowed_hosts, config.allowed_hosts);
 }
@@ -131,7 +112,6 @@ fn test_security_config_clone() {
 fn test_security_config_default_trait() {
     let config = SecurityConfig::default();
     // Default via derive : tout à false/empty
-    assert!(!config.strict_csp);
     assert!(!config.rate_limiting);
     assert!(!config.enforce_https);
     assert!(config.allowed_hosts.is_empty());
