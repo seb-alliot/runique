@@ -8,9 +8,9 @@ use tower_sessions::Session;
 
 /// Main context for a Runique handler
 /// Contains:
-// — The main engine (`RuniqueEngine`)
-// — The template engine (`TemplateEngine`)
-// — The flash messages manager (`Message`)
+/// — The main engine (`RuniqueEngine`)
+/// — The template engine (`TemplateEngine`)
+/// — The flash messages manager (`Message`)
 pub struct RuniqueContext {
     pub engine: AEngine,
     pub tpl: Request,
