@@ -14,6 +14,9 @@ const DEFAULT_STATIC_CACHE: &str = "public, max-age=31536000, immutable";
 // `immutable` would let browsers serve a stale file for a year after an overwrite.
 const DEFAULT_MEDIA_CACHE: &str = "public, max-age=3600, must-revalidate";
 
+/// Controls whether Runique serves `/static/` and `/media/` itself, and what
+/// `Cache-Control` header each one gets. Enabled by default — turn it off when
+/// a CDN or reverse proxy already sits in front of the app serving these paths.
 pub struct StaticStaging {
     /// Indicates whether the static files service is enabled
     pub(crate) enabled: bool,

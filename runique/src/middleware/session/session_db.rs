@@ -9,6 +9,8 @@ use std::sync::Arc;
 // SeaORM Entity — eihwaz_sessions
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// SeaORM model for `eihwaz_sessions`: one row per authenticated session,
+/// keyed by the tower-sessions cookie id.
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, serde::Serialize, serde::Deserialize)]
 #[sea_orm(table_name = "eihwaz_sessions")]
 pub struct Model {
@@ -32,8 +34,11 @@ pub struct Model {
     pub expires_at: chrono::NaiveDateTime,
 }
 
+/// SeaORM relations for `eihwaz_sessions`.
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    /// Belongs to the owning `eihwaz_users` row; deleting the user cascades
+    /// to its sessions.
     #[sea_orm(
         belongs_to = "crate::auth::user::Entity",
         from = "Column::UserId",
@@ -67,6 +72,7 @@ pub struct RuniqueSessionStore {
 }
 
 impl RuniqueSessionStore {
+    /// Creates a store bound to the given database connection.
     pub fn new(db: Arc<DatabaseConnection>) -> Self {
         Self { db }
     }

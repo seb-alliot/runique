@@ -72,6 +72,8 @@ impl Default for PermissionsPolicy {
 }
 
 impl PermissionsPolicy {
+    /// Renders the configured directives into a `Permissions-Policy` header
+    /// value, comma-joining each `feature=(...)`/`feature=*`/`feature=()` entry.
     pub fn to_header_value(&self) -> String {
         self.directives
             .iter()

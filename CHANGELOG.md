@@ -8,6 +8,8 @@ All notable changes to this project will be documented in this file.
 
 ## [2.2.1 Upcoming]
 
+> 🔧 **In progress**: form validation lifecycle rework (`ValidationForm<F>`) — see [ROADMAP](ROADMAP.md). Not included in this version yet.
+
 ### Fix — `derive_form` (`model!{}` parser: malformed/unsafe input accepted silently)
 
 * **Table names were never validated.** `table: "..."` accepted any string and was later interpolated unescaped into generated Rust source (migration files, `Alias::new("...")`) via plain `format!` calls in the migration generator — a stray `"` in a copy-pasted table name would corrupt or, in the worst case, inject into the generated migration file instead of failing at macro-parse time where the mistake is made. `table:` is now validated against a plain SQL-identifier shape (`^[A-Za-z_][A-Za-z0-9_]*$`, ≤63 chars) as soon as it's parsed, with a `syn::Error` pointing at the literal.
@@ -32,10 +34,6 @@ All notable changes to this project will be documented in this file.
 * **Duplicate relations went undetected** (e.g. two identical `has_many: comments,` entries). Now rejected, keyed on (kind, target model, alias/via/through) so legitimately distinct relations toward the same model — different FK column, different alias — still parse.
 * **`meta: { ordering:, unique_together:, indexes: }` never checked that the field names they reference actually exist.** A typo or a renamed-but-not-updated column parsed silently and only broke downstream, in generated code far from the actual mistake. Every identifier in these three lists is now checked against the model's declared fields (PK included) right after parsing.
 
----
-
-## [2.2.1] - 2026-09-08
-
 ### Breaking — `runique` (database features: single-engine builds by default)
 
 * **`default` no longer pulls in every database backend.** It was `default = ["orm", "all-databases"]`, so any consumer compiled SQLite + Postgres + MySQL/MariaDB regardless of which one they actually used — including the scaffold (`runique new`) and the Dockerfile pattern documented for production installs (`cargo install runique --features "orm,postgres"`), both of which *looked* like they picked one engine but silently got all three anyway since nothing disabled the default. `default` is now `["orm"]`: pick exactly one of `sqlite`/`postgres`/`mysql` (`mariadb` aliases `mysql`) explicitly.
@@ -54,6 +52,23 @@ All notable changes to this project will be documented in this file.
 ### Security — `runique` (password verification: parse-failure timing oracle)
 
 * **A malformed stored hash returned `false` before running any hashing computation**, in all three `verify_argon2`/`verify_bcrypt`/`verify_scrypt`. Every other code path (wrong password against a well-formed hash) pays the full Argon2/bcrypt/scrypt cost; a hash that fails to parse short-circuited immediately — a timing gap between "malformed" and "well-formed but wrong" for any caller that lets an attacker influence the compared hash. No current caller does (`auth/session.rs` and `auth/user.rs` both compare against a hash sourced from the DB or the constant-time `dummy_hash()` fallback, never from request input), so this wasn't reachable today — fixed anyway as defense in depth, following the same principle already used for user-enumeration (`dummy_hash()`). New shared helper `verify_constant_time` reruns the same verify closure against a per-algorithm dummy hash (`DUMMY_HASH_BCRYPT`/`DUMMY_HASH_SCRYPT` added alongside the existing `dummy_hash()`, which stays Argon2-shaped and is what `auth/*` already uses) whenever parsing the real hash fails, so a malformed hash costs exactly as much as a well-formed one.
+
+### Fix — `runique` (media files: incorrect HTTP cache on replaced uploads)
+
+* **The media `Cache-Control` used `immutable` with a one-year `max-age`**, while a replaced file (same `upload_to`, same name) keeps the same path/URL — the filename is never rewritten with a content hash. Result: after replacing an image, say, the browser could keep serving the stale version from cache for a year without ever revalidating. `DEFAULT_MEDIA_CACHE` is now `"public, max-age=3600, must-revalidate"` (`static_cache` is unchanged — build-time static assets aren't affected by this). `StaticStaging::media_cache()`/`static_cache()` now accept `impl Into<Cow<'static, str>>` (instead of `&'static str` only) to allow a dynamically-built value, validated as a well-formed HTTP header as soon as `validate()` runs (a clean build failure instead of a runtime panic on a malformed value).
+
+### Fix — `runique` (`FileField`: blocking disk I/O during upload)
+
+* **Validating and finalizing a `FileField` did synchronous disk I/O** (metadata, magic-byte reads, image dimension decoding, moving the file) directly on the tokio worker thread handling the request — under load, an upload could stall other requests served by the same worker for the duration of the disk operation. These calls now go through `tokio::task::block_in_place` whenever a tokio runtime is active.
+* **Moving a staged file into `MEDIA_ROOT` failed with no fallback when the two directories sat on different filesystems** (`ErrorKind::CrossesDevices` — a common production topology, e.g. a temporary staging directory on `tmpfs`). A copy-then-remove fallback is now attempted automatically in that case.
+
+### Breaking — `runique` (`StaticStaging`: `enable()`/`disable()` API removed)
+
+* **`enable()` and `disable()` duplicated `enabled(bool)`** on `StaticStaging`, unlike every other `*Staging` in the framework, which exposes only one of the two shapes. `enabled(bool)` is kept alone — replace `.static_files(|s| s.disable())` with `.static_files(|s| s.enabled(false))` (and `.enable()` with `.enabled(true)`).
+
+### Breaking — `runique` (`RuniqueQueryBuilder::order_by_random()`: not portable to MariaDB/MySQL)
+
+* **`order_by_random()` emitted a hardcoded `RANDOM()`**, valid on SQLite/Postgres but rejected by MySQL/MariaDB (which expect `RAND()`) — the query broke on both despite Runique's advertised support for them. The method now takes `db: &DatabaseConnection` and picks the right function via `db.get_database_backend()`, the same pattern already used by `admin::helper::sql_dialect::text_cast_type`. Replace `.order_by_random()` with `.order_by_random(&db)`.
 
 ### Dependencies
 

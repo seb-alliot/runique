@@ -11,19 +11,23 @@ pub struct ErrorsTracing {
 }
 
 impl ErrorsTracing {
+    /// Creates a config with all error-handling channels disabled.
     pub fn new() -> Self {
         Self::default()
     }
+    /// Sets the level for HTTP error responses caught by the error middleware (status, path).
     #[must_use]
     pub fn http(mut self, level: Level) -> Self {
         self.http = Some(level);
         self
     }
+    /// Sets the level for error-page rendering (debug diagnostic vs production page).
     #[must_use]
     pub fn render(mut self, level: Level) -> Self {
         self.render = Some(level);
         self
     }
+    /// Enables every error-handling channel at `Level::DEBUG`.
     pub fn dev(self) -> Self {
         self.http(Level::DEBUG).render(Level::DEBUG)
     }

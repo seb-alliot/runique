@@ -8,6 +8,8 @@ use serde::Serialize;
 // WARNING: Do not declare non-entity models inside src/entities/.
 // `runique makemigrations` scans that folder and will attempt to generate
 // a migration for any model found there.
+/// Example manual (non-entity) form for a login page: declares `username` and
+/// `password` fields directly instead of deriving them from a schema.
 #[derive(Serialize, Debug, Clone)]
 #[serde(transparent)]
 pub struct LoginForm {

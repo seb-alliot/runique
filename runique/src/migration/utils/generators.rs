@@ -234,6 +234,9 @@ fn body_has_code(body: &str) -> bool {
         .any(|line| !line.trim().is_empty() && !line.trim_start().starts_with("//"))
 }
 
+/// Generates a standalone `ALTER TABLE` migration file from a single [`Changes`] set
+/// (renames, add/drop columns, FKs, indexes, enum transitions, etc.), each op emitted
+/// in dependency-safe order in both `up` and `down`.
 pub fn generate_alter_file(change: &Changes) -> String {
     let (up_body, down_body) = build_alter_bodies(change);
 
@@ -263,6 +266,9 @@ pub fn generate_alter_file(change: &Changes) -> String {
     )
 }
 
+/// Generates a single migration file whose `up` applies every op from all `changes`
+/// (across possibly several tables) and whose `down` is a no-op — the counterpart
+/// [`generate_batch_down_file`] carries the matching reverse operations instead.
 pub fn generate_batch_up_file(changes: &[&Changes], timestamp: &str) -> String {
     let mut body = String::new();
     for change in changes {
@@ -280,6 +286,8 @@ pub fn generate_batch_up_file(changes: &[&Changes], timestamp: &str) -> String {
     )
 }
 
+/// Generates the reverse counterpart of [`generate_batch_up_file`]: an `up` that does
+/// nothing and a `down` that undoes every op from all `changes`.
 pub fn generate_batch_down_file(changes: &[&Changes], timestamp: &str) -> String {
     let mut body = String::new();
     for change in changes {

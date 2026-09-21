@@ -2,6 +2,11 @@
 //! Composite PK: (groupe_id, resource_key).
 use sea_orm::entity::prelude::*;
 
+/// SeaORM model for `eihwaz_groupes_droits`: the CRUD permission flags a
+/// group holds on one resource, keyed by the composite primary key
+/// `(groupe_id, resource_key)`. `can_update_own`/`can_delete_own` scope the
+/// update/delete grant to rows owned by the acting user. Any save or delete
+/// clears the whole permission cache — see `ActiveModelBehavior` below.
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, serde::Serialize)]
 #[sea_orm(table_name = "eihwaz_groupes_droits")]
 pub struct Model {
@@ -18,8 +23,11 @@ pub struct Model {
     pub can_delete_own: bool,
 }
 
+/// SeaORM relations for `eihwaz_groupes_droits`.
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    /// The group this permission row belongs to; deleting the group cascades
+    /// to its permission rows.
     #[sea_orm(
         belongs_to = "super::groupe::Entity",
         from = "Column::GroupeId",

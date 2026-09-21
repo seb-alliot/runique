@@ -13,10 +13,13 @@ pub struct GuardContext {
 }
 
 impl GuardContext {
+    /// Returns whether a user id is present in the context, i.e. the request
+    /// is authenticated.
     pub fn is_authenticated(&self) -> bool {
         self.user_id.is_some()
     }
 
+    /// Returns whether `role` is among the context's roles.
     pub fn has_role(&self, role: &str) -> bool {
         self.roles.iter().any(|r| r == role)
     }
@@ -30,6 +33,8 @@ pub struct GuardRules {
 }
 
 impl GuardRules {
+    /// Rule requiring only that the request be authenticated; no specific
+    /// role is checked.
     pub fn login_required() -> Self {
         Self {
             login_required: true,
@@ -37,6 +42,8 @@ impl GuardRules {
         }
     }
 
+    /// Rule requiring the given role. Does not itself require authentication —
+    /// only role membership is checked (see [`evaluate_rules`]).
     pub fn role(role: impl Into<String>) -> Self {
         Self {
             login_required: false,
@@ -56,6 +63,7 @@ impl GuardRules {
         }
     }
 
+    /// Rule requiring both authentication and the given role.
     pub fn login_and_role(role: impl Into<String>) -> Self {
         Self {
             login_required: true,
@@ -75,6 +83,8 @@ impl GuardRules {
         }
     }
 
+    /// Adds an additional acceptable role to the rule; the check passes if
+    /// the context has any one of the accumulated roles.
     pub fn with_role(mut self, role: impl Into<String>) -> Self {
         self.roles.push(role.into());
         self

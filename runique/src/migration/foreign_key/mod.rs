@@ -16,6 +16,8 @@ pub struct ForeignKeyDef {
 }
 
 impl ForeignKeyDef {
+    /// Creates a foreign key from `from_column`, defaulting to `id` on the
+    /// referenced table with `NoAction` on both delete and update.
     pub fn new(from_column: impl Into<String>) -> Self {
         Self {
             from_column: from_column.into(),
@@ -26,21 +28,25 @@ impl ForeignKeyDef {
         }
     }
 
+    /// Sets the referenced table.
     pub fn references(mut self, table: impl Into<String>) -> Self {
         self.to_table = table.into();
         self
     }
 
+    /// Sets the referenced column (defaults to `id`).
     pub fn to_column(mut self, column: impl Into<String>) -> Self {
         self.to_column = column.into();
         self
     }
 
+    /// Sets the `ON DELETE` action.
     pub fn on_delete(mut self, action: ForeignKeyAction) -> Self {
         self.on_delete = action;
         self
     }
 
+    /// Sets the `ON UPDATE` action.
     pub fn on_update(mut self, action: ForeignKeyAction) -> Self {
         self.on_update = action;
         self

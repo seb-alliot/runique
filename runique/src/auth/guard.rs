@@ -12,6 +12,9 @@ use tokio::time::interval;
 // Global permission cache by user_id
 // ═══════════════════════════════════════════════════════════════
 
+/// A user's resolved group memberships, kept in the in-memory permission
+/// cache (`PERMISSIONS_CACHE`) between login/logout and rights-change events,
+/// to avoid re-querying groups on every permission check.
 #[derive(Clone, Debug)]
 pub struct CachedPermissions {
     pub groupes: Vec<Groupe>,

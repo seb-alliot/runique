@@ -14,22 +14,27 @@ pub struct ColorField {
 }
 
 impl ColorField {
+    /// Creates a new color field rendered as an HTML5 `<input type="color">`.
     pub fn new(name: &str) -> Self {
         Self {
             base: FieldConfig::new(name, "color", "base_color.html"),
         }
     }
 
+    /// Sets the field's display label.
     pub fn label(mut self, label: &str) -> Self {
         self.base.label = label.to_string();
         self
     }
 
+    /// Marks the field as required; empty input fails validation.
     pub fn required(mut self) -> Self {
         self.set_required(true, None);
         self
     }
 
+    /// Sets the default color value. Only accepted if it matches the `#RGB` or
+    /// `#RRGGBB` hex format; otherwise the value passed in is silently ignored.
     pub fn default_color(mut self, color: &str) -> Self {
         // Validate the hex format
         if color.starts_with('#') && (color.len() == 7 || color.len() == 4) {
@@ -105,6 +110,8 @@ impl FormField for ColorField {
 #[derive(Clone, Serialize, Debug)]
 pub struct SlugField {
     pub base: FieldConfig,
+    /// When `true`, allows unicode letters and digits in the slug in addition
+    /// to `-` and `_`; when `false` (the default), only ASCII alphanumerics are allowed.
     pub allow_unicode: bool,
 }
 
@@ -119,6 +126,7 @@ impl CommonFieldConfig for SlugField {
 }
 
 impl SlugField {
+    /// Creates a new slug field with ASCII-only validation by default.
     pub fn new(name: &str) -> Self {
         Self {
             base: FieldConfig::new(name, "text", "base_special.html"),
@@ -126,15 +134,19 @@ impl SlugField {
         }
     }
 
+    /// Enables unicode letters and digits in slug validation, instead of
+    /// restricting to ASCII alphanumerics.
     pub fn allow_unicode(mut self) -> Self {
         self.allow_unicode = true;
         self
     }
+    /// Sets the placeholder text shown in the empty input.
     pub fn placeholder(mut self, p: &str) -> Self {
         self.set_placeholder(p);
         self
     }
 
+    /// Sets the field's display label.
     pub fn label(mut self, label: &str) -> Self {
         self.set_label(label);
         self
@@ -211,22 +223,26 @@ pub struct UUIDField {
 }
 
 impl UUIDField {
+    /// Creates a new UUID field rendered as a plain text input.
     pub fn new(name: &str) -> Self {
         Self {
             base: FieldConfig::new(name, "text", "base_special.html"),
         }
     }
 
+    /// Sets the field's display label.
     pub fn label(mut self, label: &str) -> Self {
         self.base.label = label.to_string();
         self
     }
 
+    /// Marks the field as required; empty input fails validation.
     pub fn required(mut self) -> Self {
         self.set_required(true, None);
         self
     }
 
+    /// Sets the placeholder text shown in the empty input.
     pub fn placeholder(mut self, p: &str) -> Self {
         self.set_placeholder(p);
         self
@@ -292,27 +308,32 @@ pub struct JSONField {
 }
 
 impl JSONField {
+    /// Creates a new JSON field rendered as a textarea.
     pub fn new(name: &str) -> Self {
         Self {
             base: FieldConfig::new(name, "textarea", "base_special.html"),
         }
     }
 
+    /// Sets the field's display label.
     pub fn label(mut self, label: &str) -> Self {
         self.base.label = label.to_string();
         self
     }
 
+    /// Marks the field as required; empty input fails validation.
     pub fn required(mut self) -> Self {
         self.set_required(true, None);
         self
     }
 
+    /// Sets the placeholder text shown in the empty textarea.
     pub fn placeholder(mut self, p: &str) -> Self {
         self.base.placeholder = p.to_string();
         self
     }
 
+    /// Sets the number of visible rows on the rendered textarea (defaults to 10 if never set).
     pub fn rows(mut self, rows: usize) -> Self {
         self.base
             .extra_context
@@ -385,11 +406,16 @@ impl FormField for JSONField {
 #[derive(Clone, Serialize, Debug)]
 pub struct IPAddressField {
     pub base: FieldConfig,
+    /// When `true`, restricts validation to IPv6 addresses only. Set via
+    /// [`IPAddressField::ipv6_only`].
     pub ipv6_only: bool,
+    /// When `true`, restricts validation to IPv4 addresses only. Set via
+    /// [`IPAddressField::ipv4_only`].
     pub ipv4_only: bool,
 }
 
 impl IPAddressField {
+    /// Creates a new IP address field accepting both IPv4 and IPv6 by default.
     pub fn new(name: &str) -> Self {
         Self {
             base: FieldConfig::new(name, "text", "base_special.html"),
@@ -398,28 +424,33 @@ impl IPAddressField {
         }
     }
 
+    /// Restricts validation to IPv4 addresses only, clearing any prior `ipv6_only` setting.
     pub fn ipv4_only(mut self) -> Self {
         self.ipv4_only = true;
         self.ipv6_only = false;
         self
     }
 
+    /// Restricts validation to IPv6 addresses only, clearing any prior `ipv4_only` setting.
     pub fn ipv6_only(mut self) -> Self {
         self.ipv6_only = true;
         self.ipv4_only = false;
         self
     }
 
+    /// Sets the field's display label.
     pub fn label(mut self, label: &str) -> Self {
         self.base.label = label.to_string();
         self
     }
 
+    /// Marks the field as required; empty input fails validation.
     pub fn required(mut self) -> Self {
         self.set_required(true, None);
         self
     }
 
+    /// Sets the placeholder text shown in the empty input.
     pub fn placeholder(mut self, p: &str) -> Self {
         self.base.placeholder = p.to_string();
         self

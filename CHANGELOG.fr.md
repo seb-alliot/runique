@@ -6,7 +6,9 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ---
 
-## [2.1.1 A venir]
+## [2.2.1 A venir]
+
+> 🔧 **En cours** : refonte du cycle de validation des formulaires (`ValidationForm<F>`) — voir [ROADMAP](ROADMAP.md). Pas encore inclus dans cette version.
 
 ### Correctif — `derive_form` (parser `model!{}` : entrées malformées/dangereuses acceptées silencieusement)
 
@@ -32,10 +34,6 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 * **Les relations dupliquées n'étaient pas détectées** (ex : deux `has_many: comments,` identiques). Désormais rejetées, sur une clé (type, modèle cible, alias/via/through) — des relations légitimement distinctes vers le même modèle (colonne FK différente, alias différent) continuent donc de s'analyser normalement.
 * **`meta: { ordering:, unique_together:, indexes: }` ne vérifiait jamais que les noms de champs référencés existaient réellement.** Une faute de frappe ou une colonne renommée sans mise à jour s'analysait sans erreur et ne cassait que plus tard, dans du code généré loin de la vraie erreur. Chaque identifiant de ces trois listes est désormais vérifié contre les champs déclarés du modèle (PK inclus) juste après le parsing.
 
----
-
-## [2.2.1] - 2026-09-08
-
 ### Rupture — `runique` (features base de données : builds mono-moteur par défaut)
 
 * **`default` n'entraîne plus tous les moteurs de base de données.** C'était `default = ["orm", "all-databases"]` : tout consommateur compilait SQLite + Postgres + MySQL/MariaDB peu importe celui réellement utilisé — y compris le scaffold (`runique new`) et le modèle de Dockerfile documenté pour la production (`cargo install runique --features "orm,postgres"`), qui *avaient l'air* de choisir un seul moteur mais récupéraient les trois quand même, rien ne désactivant le défaut. `default` est maintenant `["orm"]` : choisir explicitement un seul `sqlite`/`postgres`/`mysql` (`mariadb` est un alias de `mysql`).
@@ -54,6 +52,23 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 ### Sécurité — `runique` (vérification de mot de passe : oracle de timing sur échec de parsing)
 
 * **Un hash stocké mal formé renvoyait `false` avant tout calcul de hachage**, dans les trois `verify_argon2`/`verify_bcrypt`/`verify_scrypt`. Tout autre chemin de code (mauvais mot de passe contre un hash bien formé) paie le coût complet d'Argon2/bcrypt/scrypt ; un hash qui échoue à parser court-circuitait immédiatement — un écart de timing entre "mal formé" et "bien formé mais faux" pour tout appelant qui laisserait un attaquant influencer le hash comparé. Aucun appelant actuel ne le fait (`auth/session.rs` et `auth/user.rs` comparent tous deux contre un hash venant de la base ou du repli à temps constant `dummy_hash()`, jamais de l'entrée de la requête), donc ce n'était pas atteignable aujourd'hui — corrigé quand même en défense en profondeur, suivant le même principe déjà utilisé pour l'énumération d'utilisateurs (`dummy_hash()`). Le nouvel helper partagé `verify_constant_time` relance la même closure de vérification contre un hash bidon propre à chaque algorithme (`DUMMY_HASH_BCRYPT`/`DUMMY_HASH_SCRYPT` ajoutés à côté du `dummy_hash()` existant, qui reste au format Argon2 et sert déjà à `auth/*`) chaque fois que le parsing du hash réel échoue, pour qu'un hash mal formé coûte exactement autant qu'un hash bien formé.
+
+### Correctif — `runique` (fichiers média : cache HTTP incorrect sur les uploads remplacés)
+
+* **Le `Cache-Control` des fichiers médias utilisait `immutable` avec un an de `max-age`**, alors qu'un fichier remplacé (même `upload_to`, même nom) garde le même chemin/URL — le nom n'est jamais réécrit avec un hash de contenu. Résultat : après remplacement d'une image par exemple, le navigateur pouvait continuer à servir l'ancienne version depuis son cache pendant un an, sans jamais revalider. `DEFAULT_MEDIA_CACHE` passe à `"public, max-age=3600, must-revalidate"` (`static_cache` reste inchangé — les assets statiques du build ne sont pas concernés). `StaticStaging::media_cache()`/`static_cache()` acceptent désormais `impl Into<Cow<'static, str>>` (au lieu de `&'static str` uniquement) pour une valeur construite dynamiquement, validée comme en-tête HTTP correct dès `validate()` (échec de build explicite plutôt qu'un panic runtime si la valeur est malformée).
+
+### Correctif — `runique` (`FileField` : I/O disque bloquante pendant l'upload)
+
+* **La validation et la finalisation d'un `FileField` faisaient de l'I/O disque synchrone** (métadonnées, lecture des magic bytes, décodage des dimensions d'image, déplacement du fichier) directement dans le thread worker tokio traitant la requête — sous charge, un upload pouvait geler d'autres requêtes servies par le même worker le temps de l'opération disque. Ces appels passent désormais par `tokio::task::block_in_place` lorsqu'un runtime tokio est actif.
+* **Déplacer un fichier stagé vers `MEDIA_ROOT` échouait sans repli si les deux répertoires étaient sur des systèmes de fichiers différents** (`ErrorKind::CrossesDevices` — topologie fréquente en production, ex. répertoire de staging temporaire sur `tmpfs`). Un repli copie+suppression est désormais tenté automatiquement dans ce cas.
+
+### Rupture — `runique` (`StaticStaging` : API `enable()`/`disable()` retirée)
+
+* **`enable()` et `disable()` faisaient doublon avec `enabled(bool)`**, contrairement aux autres `*Staging` du framework qui n'exposent qu'une seule des deux formes. `enabled(bool)` est conservée seule — remplacer `.static_files(|s| s.disable())` par `.static_files(|s| s.enabled(false))` (et `.enable()` par `.enabled(true)`).
+
+### Rupture — `runique` (`RuniqueQueryBuilder::order_by_random()` : non portable MariaDB/MySQL)
+
+* **`order_by_random()` émettait `RANDOM()` en dur**, valide sur SQLite/Postgres mais rejeté par MySQL/MariaDB (qui attendent `RAND()`) — requête cassée sur ces deux moteurs malgré leur support annoncé. La méthode prend désormais `db: &DatabaseConnection` et choisit la bonne fonction via `db.get_database_backend()`, même pattern que `admin::helper::sql_dialect::text_cast_type`. Remplacer `.order_by_random()` par `.order_by_random(&db)`.
 
 ### Dépendances
 

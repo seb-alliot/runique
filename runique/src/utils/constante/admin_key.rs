@@ -5,51 +5,96 @@
 pub mod admin_context {
     /// Shared keys — injected into all admin views
     pub mod common {
+        /// Current UI language code (e.g. `"en"`, `"fr"`), injected on every admin page.
         pub const LANG: &str = "lang";
+        /// Site title shown in the admin header/tab, taken from `AdminConfig`.
         pub const SITE_TITLE: &str = "site_title";
+        /// Base URL of the public site, used to build the "back to site" link.
         pub const SITE_URL: &str = "site_url";
+        /// Metadata (`ResourceEntry::meta`) of the resource currently being viewed.
         pub const RESOURCE: &str = "resource";
+        /// Key of the resource currently being viewed (e.g. `"menus"`), used to build URLs.
         pub const RESOURCE_KEY: &str = "resource_key";
+        /// Alias of [`RESOURCE_KEY`] kept for templates that highlight the active
+        /// entry in the resource navigation.
         pub const CURRENT_RESOURCE: &str = "current_resource";
+        /// List of resources visible to the current user, shown in the admin dashboard/nav.
         pub const RESOURCES: &str = "resources";
+        /// Roles registered via `admin!{}` (see `admin::helper::roles::get_roles()`).
         pub const REGISTERED_ROLES: &str = "registered_roles";
+        /// The object being shown, as a `serde_json::Value` row — used by the detail template.
         pub const ENTRY: &str = "entry";
+        /// Primary key of the object being viewed/edited/deleted.
         pub const OBJECT_ID: &str = "object_id";
+        /// Rendered form fields (`Forms::get_form()`), injected into create/edit/bulk_edit templates.
         pub const FORM_FIELDS: &str = "form_fields";
+        /// `true` on the edit form, `false` on create — lets the shared template adjust
+        /// labels/actions (e.g. "Save" vs "Create").
         pub const IS_EDIT: &str = "is_edit";
     }
 
+    /// Keys used by the droit (permission) admin form — each maps to a CRUD flag
+    /// or to the parent group scoping the droit.
     pub mod permission {
+        /// Whether the group can create objects of the resource.
         pub const CAN_CREATE: &str = "can_create";
+        /// Whether the group can read/list objects of the resource.
         pub const CAN_READ: &str = "can_read";
+        /// Whether the group can update any object of the resource.
         pub const CAN_UPDATE: &str = "can_update";
+        /// Whether the group can delete any object of the resource.
         pub const CAN_DELETE: &str = "can_delete";
+        /// Whether the group can update only the objects it owns.
         pub const CAN_UPDATE_OWN: &str = "can_update_own";
+        /// Whether the group can delete only the objects it owns.
         pub const CAN_DELETE_OWN: &str = "can_delete_own";
+        /// Form field holding the id of the parent group a droit belongs to.
         pub const GROUPE_ID: &str = "groupe_id";
+        /// Resource key of the `groupes` admin resource — droits are a scoped
+        /// child of it (`/groupes/{id}/droits/...`), see `ParentScope`.
         pub const GROUPES: &str = "groupes";
     }
 
     /// `list` template — resource list view
     pub mod list {
         pub use super::common::LANG;
+        /// Current page of rows, as `serde_json::Value` objects, after formatting
+        /// (e.g. datetimes) and column filtering.
         pub const ENTRIES: &str = "entries";
+        /// Total number of rows matching the current search/filters (all pages).
         pub const TOTAL: &str = "total";
+        /// Current page number (1-based).
         pub const PAGE: &str = "page";
+        /// Total number of pages for the current search/filters.
         pub const PAGE_COUNT: &str = "page_count";
+        /// Whether a previous page exists.
         pub const HAS_PREV: &str = "has_prev";
+        /// Whether a next page exists.
         pub const HAS_NEXT: &str = "has_next";
+        /// Page number to link to for "previous" (clamped, may be unused if `HAS_PREV` is false).
         pub const PREV_PAGE: &str = "prev_page";
+        /// Page number to link to for "next" (clamped, may be unused if `HAS_NEXT` is false).
         pub const NEXT_PAGE: &str = "next_page";
+        /// Columns to render, resolved from the resource's `ColumnFilter` (see `resolve_columns`).
         pub const VISIBLE_COLUMNS: &str = "visible_columns";
+        /// Column name → i18n label map, falling back to `permission.col.*` keys.
         pub const COLUMN_LABELS: &str = "column_labels";
+        /// Column currently used to sort the list.
         pub const SORT_BY: &str = "sort_by";
+        /// Current sort direction (`"asc"`/`"desc"`).
         pub const SORT_DIR: &str = "sort_dir";
+        /// Opposite of `SORT_DIR` — used to build the "click to reverse sort" link.
         pub const SORT_DIR_TOGGLE: &str = "sort_dir_toggle";
+        /// Current search query string, if any.
         pub const SEARCH: &str = "search";
+        /// Currently selected value for each column filter (`list_filter` in `admin!{}`).
         pub const FILTER_VALUES: &str = "filter_values";
+        /// Filters that are actually applied (non-empty), used to render active-filter chips.
         pub const ACTIVE_FILTERS: &str = "active_filters";
+        /// Query string fragment carrying the active filters, appended to pagination/sort links.
         pub const FILTER_QS: &str = "filter_qs";
+        /// Per-column filter pagination metadata (current page, total pages, prev/next query
+        /// strings) for filter dropdowns that page their own options.
         pub const FILTER_META: &str = "filter_meta";
         /// Full query string (sort + search + active filters) — pass to edit/delete links so the list
         /// state is restored after returning. Used by `kebab.html` to build the `?return_qs=` param.
@@ -127,6 +172,11 @@ pub mod admin_context {
     }
 }
 
+/// i18n message keys for the built-in admin templates, grouped by section
+/// (`admin.<section>.*`). [`insert_admin_messages`](crate::admin::trad::insert_admin_messages)
+/// filters this list by the `admin.<section>.` prefix and injects each match into the
+/// Tera context under its dotted key rewritten to `_` (e.g. `admin.login.title` →
+/// `admin_login_title`).
 pub const ADMIN_MESSAGE_KEYS: &[&str] = &[
     // login
     "admin.login.title",

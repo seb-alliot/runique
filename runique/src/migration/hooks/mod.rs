@@ -28,6 +28,7 @@ pub struct HooksDef {
 }
 
 impl HooksDef {
+    /// Creates an empty hook set.
     pub fn new() -> Self {
         Self::default()
     }
@@ -40,6 +41,9 @@ impl HooksDef {
         }
     }
 
+    /// Registers a hook of `hook_type` at `slot`, pointing to `handler`. Hooks
+    /// are kept sorted by slot after every insertion, so execution order is
+    /// always consistent regardless of registration order.
     pub fn add(mut self, hook_type: HookType, slot: u8, handler: impl Into<String>) -> Self {
         self.hooks.push(Hook {
             hook_type,
@@ -51,18 +55,22 @@ impl HooksDef {
         self
     }
 
+    /// Registers a `BeforeSave` hook at `slot`.
     pub fn before_save(self, slot: u8, handler: impl Into<String>) -> Self {
         self.add(HookType::BeforeSave, slot, handler)
     }
 
+    /// Registers an `AfterSave` hook at `slot`.
     pub fn after_save(self, slot: u8, handler: impl Into<String>) -> Self {
         self.add(HookType::AfterSave, slot, handler)
     }
 
+    /// Registers a `BeforeDelete` hook at `slot`.
     pub fn before_delete(self, slot: u8, handler: impl Into<String>) -> Self {
         self.add(HookType::BeforeDelete, slot, handler)
     }
 
+    /// Registers an `AfterDelete` hook at `slot`.
     pub fn after_delete(self, slot: u8, handler: impl Into<String>) -> Self {
         self.add(HookType::AfterDelete, slot, handler)
     }

@@ -35,6 +35,9 @@ use crate::{
     flash_now,
 };
 
+/// Shared admin state carried in an Axum `Extension`: the resolved config
+/// (with the public URL prefix already applied) and the optional login guard
+/// used by the login route to throttle brute-force attempts.
 #[derive(Clone)]
 pub struct AdminState {
     pub config: Arc<AdminConfig>,
@@ -49,6 +52,11 @@ struct AdminLoginData {
     csrf_token: String,
 }
 
+/// Builds the complete admin Axum router: public login routes, protected
+/// dashboard/history/logout routes, and the daemon-generated CRUD router —
+/// all mounted under the resolved public prefix (`mount_prefix` + admin's own
+/// `path`) and wrapped with the auth-required, session-loading and
+/// `X-Robots-Tag: noindex` layers.
 pub fn build_admin_router(admin_staging: AdminStaging, _db: crate::utils::aliases::ADb) -> Router {
     // Two independent values, never in competition:
     //   `admin_path`   — the admin's own path (`/site-admin`), from `.routes()`

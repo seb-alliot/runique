@@ -26,6 +26,10 @@ pub(crate) type CustomMiddleware = Box<dyn FnOnce(Router) -> Router + Send>;
 // MiddlewareStaging
 // ═══════════════════════════════════════════════════════════════
 
+/// Middleware stack configuration staged before the app is built: security
+/// features (CSP, host validation, CORS, permissions policy, trusted
+/// proxies), session parameters, CSRF exemptions, and developer-added custom
+/// middlewares.
 pub struct MiddlewareStaging {
     /// Middleware features configuration (CSP, Host, Cache, etc.)
     pub(crate) features: MiddlewareConfig,

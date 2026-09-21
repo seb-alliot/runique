@@ -23,49 +23,59 @@ pub struct MiddlewareTracing {
 }
 
 impl MiddlewareTracing {
+    /// Creates a config with all middleware channels disabled.
     pub fn new() -> Self {
         Self::default()
     }
+    /// Sets the level for CSRF-related events (GET-URL token cleanup, rejections).
     #[must_use]
     pub fn csrf(mut self, level: Level) -> Self {
         self.csrf = Some(level);
         self
     }
+    /// Sets the level for CSP policy build and nonce injection events.
     #[must_use]
     pub fn csp(mut self, level: Level) -> Self {
         self.csp = Some(level);
         self
     }
+    /// Sets the level for CORS middleware decisions.
     #[must_use]
     pub fn cors(mut self, level: Level) -> Self {
         self.cors = Some(level);
         self
     }
+    /// Sets the level for rate-limiter block events.
     #[must_use]
     pub fn rate_limit(mut self, level: Level) -> Self {
         self.rate_limit = Some(level);
         self
     }
+    /// Sets the level for Host-header validation rejections.
     #[must_use]
     pub fn host_validation(mut self, level: Level) -> Self {
         self.host_validation = Some(level);
         self
     }
+    /// Sets the level for blocked open-redirect attempts.
     #[must_use]
     pub fn open_redirect(mut self, level: Level) -> Self {
         self.open_redirect = Some(level);
         self
     }
+    /// Sets the level for anti-bot honeypot triggers.
     #[must_use]
     pub fn anti_bot(mut self, level: Level) -> Self {
         self.anti_bot = Some(level);
         self
     }
+    /// Sets the level for HTTPS/ACME-TLS lifecycle events.
     #[must_use]
     pub fn https(mut self, level: Level) -> Self {
         self.https = Some(level);
         self
     }
+    /// Enables every middleware channel at `Level::DEBUG`.
     pub fn dev(self) -> Self {
         self.csrf(Level::DEBUG)
             .csp(Level::DEBUG)

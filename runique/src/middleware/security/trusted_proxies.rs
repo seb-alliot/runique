@@ -87,6 +87,8 @@ impl Default for TrustedProxies {
 }
 
 impl TrustedProxies {
+    /// Builds a trusted-proxy set from explicit exact IPs and CIDR ranges
+    /// (each as a network address paired with its prefix length).
     pub fn new(exact: Vec<IpAddr>, cidrs: Vec<(IpAddr, u8)>) -> Self {
         Self { exact, cidrs }
     }
@@ -120,6 +122,8 @@ impl TrustedProxies {
         }
     }
 
+    /// Returns `true` if `ip` matches an exact trusted IP or falls inside one
+    /// of the trusted CIDR ranges.
     pub fn is_trusted(&self, ip: &IpAddr) -> bool {
         if self.exact.contains(ip) {
             return true;
@@ -183,6 +187,9 @@ impl TrustedProxies {
 
 use crate::utils::aliases::AEngine;
 
+/// Resolves the real client IP via `TrustedProxies::extract_client_ip` and
+/// inserts it into the request extensions as `ClientIp`, for downstream
+/// extraction with `Extension<ClientIp>`.
 pub async fn trusted_proxies_middleware(
     State(engine): State<AEngine>,
     mut req: Request<Body>,

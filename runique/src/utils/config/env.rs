@@ -1,5 +1,5 @@
 //! Execution environment — debug/production mode, `.env` loading, CSS token.
-use std::{path::Path, sync::LazyLock};
+use std::sync::LazyLock;
 
 /// Application execution mode.
 ///
@@ -11,22 +11,6 @@ use std::{path::Path, sync::LazyLock};
 pub enum RuniqueEnv {
     Development,
     Production,
-}
-
-pub fn load_env(files: Vec<&str>) {
-    files.iter().for_each(|file| {
-        if Path::new(file).exists()
-            && let Some(level) = crate::utils::runique_log::get_log()
-                .auth
-                .as_ref()
-                .and_then(|a| a.password_init)
-        {
-            crate::runique_log!(
-                level,
-                "password_init() called multiple times — initial configuration is kept"
-            );
-        }
-    });
 }
 
 impl RuniqueEnv {
@@ -88,6 +72,11 @@ fn hash_static_files(dir: &str) -> Option<String> {
     }
 }
 
+/// Returns the cache-busting token appended as `?v=` to static asset URLs.
+///
+/// Computed once (`LazyLock`) as a hash of every `.css`/`.js` file's content under
+/// `STATICFILES_DIRS` (default `"static"`), so it changes whenever those files
+/// change. Falls back to `"1000"` if the directory has no matching files.
 pub fn css_token() -> String {
     CSS_TOKEN.clone()
 }

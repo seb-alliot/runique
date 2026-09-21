@@ -10,6 +10,9 @@ pub enum DbKind {
     Other,
 }
 
+/// A table schema as reconstructed by the AST parsers (from a `model!{}` DSL
+/// source or a generated SeaORM snapshot). Feeds the diff engine that decides
+/// what a migration needs to change.
 #[derive(Debug, Clone)]
 pub struct ParsedSchema {
     pub table_name: String,
@@ -19,6 +22,9 @@ pub struct ParsedSchema {
     pub indexes: Vec<ParsedIndex>,
 }
 
+/// A single parsed column, as extracted from either the `model!{}` DSL or a
+/// generated SeaORM snapshot. Compared field-by-field between two schema
+/// versions to build a [`Changes`] set.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct ParsedColumn {
     pub name: String,
@@ -45,6 +51,7 @@ pub struct ParsedColumn {
     pub renamed_from: Option<String>,
 }
 
+/// A parsed foreign key constraint.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ParsedFk {
     pub from_column: String,
@@ -54,6 +61,7 @@ pub struct ParsedFk {
     pub on_update: String,
 }
 
+/// A parsed table index.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ParsedIndex {
     pub name: String,
@@ -61,6 +69,9 @@ pub struct ParsedIndex {
     pub unique: bool,
 }
 
+/// The set of DDL operations needed to bring a table from one [`ParsedSchema`]
+/// version to the next — the output of the diff step, consumed by the
+/// migration file generators to render `up`/`down` bodies.
 #[derive(Debug, Clone)]
 pub struct Changes {
     pub table_name: String,
@@ -84,6 +95,8 @@ pub struct Changes {
 }
 
 impl Changes {
+    /// True if this change set has no effect — a fresh migration would have
+    /// nothing to write.
     pub fn is_empty(&self) -> bool {
         !self.is_new_table
             && self.added_columns.is_empty()

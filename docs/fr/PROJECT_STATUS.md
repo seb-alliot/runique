@@ -124,10 +124,7 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 ### Priorité haute (v2.x)
 - **SQLi filtres via `configure {}`** : les filtres des ressources builtin passent par un chemin distinct, à vérifier
 - **Tests de non-régression sécurité** : ajouter tests couvrant la whitelist SQL, le cycle_id, les gardes par opération
-
-### Priorité moyenne (v3.0, breaking)
-- **Validation séquentielle S1/S2/S3** : `req.form()` → S1 CSRF → S2 règles → S3 données accessibles. Garantie structurelle que CSRF + validation précèdent tout accès aux données (~115 call sites)
-- **TypeState form** : variante `validate() -> Result<ValidForm<T>, T>`
+- **`ValidationForm<F>` — validation typestate** : `try_new() -> Result<ValidationForm<F>, F>`, `.save()` inaccessible sans validation réussie au niveau du type (garantie de compilation, pas un check runtime comme aujourd'hui) ; dispatch par défaut sur `Method::is_safe()`, hook `register_dynamic_fields` pour les champs ajoutés dynamiquement avant validation. **Additif** — contrairement à l'ancienne piste "validation séquentielle S1/S2/S3" (v3.0, breaking), ne nécessite ni version majeure ni migration forcée des call sites existants ; chantier détaillé dans [ROADMAP.md](../../ROADMAP.md)
 
 ### Priorité basse
 - **Couverture ciblée** : `migration/migrate.rs` (22%), `engine/core.rs` (50%), `forms/fields/file.rs` (67%, en hausse depuis 61%)

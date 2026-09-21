@@ -9,6 +9,9 @@ pub struct IndexDef {
 }
 
 impl IndexDef {
+    /// Creates an index over `columns`. Not unique and unnamed by default —
+    /// an unnamed index gets an auto-generated `idx_<table>_<columns>` name
+    /// from [`IndexDef::to_sea_index`].
     pub fn new(columns: Vec<impl Into<String>>) -> Self {
         Self {
             columns: columns.into_iter().map(|c| c.into()).collect(),
@@ -17,11 +20,13 @@ impl IndexDef {
         }
     }
 
+    /// Marks the index as unique.
     pub fn unique(mut self) -> Self {
         self.unique = true;
         self
     }
 
+    /// Sets an explicit index name, overriding the auto-generated one.
     pub fn name(mut self, name: impl Into<String>) -> Self {
         self.name = Some(name.into());
         self

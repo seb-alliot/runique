@@ -7,6 +7,10 @@ use axum::{
     response::{IntoResponse, Response},
 };
 
+/// Blocks redirects to untrusted destinations: inspects the `Location`
+/// header of any redirect response and replaces it with a `400 Bad Request`
+/// unless `is_safe_redirect` accepts it (same-origin relative path, the
+/// client's own loopback, or a host in the configured allowlist).
 pub async fn open_redirect_middleware(
     State(engine): State<AEngine>,
     req: Request<Body>,
@@ -74,6 +78,9 @@ fn is_safe_redirect(location: &str, engine: &crate::engine::RuniqueEngine) -> bo
     engine.security_hosts.is_host_allowed(host)
 }
 
+/// Extracts the host (with port, if any) from an absolute or
+/// protocol-relative URL (`https://host/path` or `//host/path`). Returns
+/// `None` for a relative path or an unparseable value.
 pub fn extract_host(location: &str) -> Option<&str> {
     // Strip scheme: "https://host/path" or "//host/path"
     let without_scheme = if let Some(rest) = location.strip_prefix("//") {
@@ -93,6 +100,9 @@ pub fn extract_host(location: &str) -> Option<&str> {
     Some(host)
 }
 
+/// Returns `true` if `host` (optionally with a port) is a loopback address:
+/// `localhost`, an IPv4 address in `127.0.0.0/8`, or an IPv6 loopback
+/// (`::1`, its expanded form, or an IPv4-mapped loopback).
 pub fn is_local_host(host: &str) -> bool {
     // IPv6: "[addr]" or "[addr]:port"
     if host.starts_with('[') {

@@ -25,6 +25,9 @@ use sea_orm::DatabaseConnection;
 //                                    connects during build
 // ═══════════════════════════════════════════════════════════════
 
+/// Mandatory core components staged before the app is built: the database
+/// connection (or its deferred config), the URL registry, and typed
+/// extensions for extra external connections (MongoDB, Redis, etc.).
 pub struct CoreStaging {
     /// Already established DB connection (path 1)
     #[cfg(feature = "orm")]

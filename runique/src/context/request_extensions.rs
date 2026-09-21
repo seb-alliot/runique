@@ -82,6 +82,7 @@ impl RequestExtensions {
             extensions.insert(current_user.clone());
         }
     }
+    /// Builder pattern - CSRF token
     pub fn with_csrf_token(mut self, csrf_token: CsrfToken) -> Self {
         self.csrf_token = Some(csrf_token);
         self

@@ -465,6 +465,9 @@ impl Forms {
         self.validated = false;
     }
 
+    /// Runs each field's finalize step (e.g. moving an uploaded file to its
+    /// destination, hashing a password) in registration order. Returns the
+    /// first error encountered, if any.
     pub fn finalize(&mut self) -> Result<(), String> {
         let log_finalize = crate::utils::runique_log::get_log()
             .forms
@@ -523,6 +526,9 @@ impl Forms {
         self.validated = true;
     }
 
+    /// Collects all current field and global errors into a map keyed by field
+    /// name, with a `"global"` entry for form-level errors (see
+    /// [`FormValidator::collect_errors`]).
     pub fn errors(&self) -> StrMap {
         FormValidator::collect_errors(&self.fields, &self.errors)
     }
@@ -533,6 +539,8 @@ impl Forms {
 // ============================================================================
 
 impl Forms {
+    /// Renders the form to HTML via the attached renderer. Fails if no
+    /// renderer was attached with [`Forms::set_renderer`].
     pub fn render(&self) -> Result<String, String> {
         self.renderer
             .as_ref()
@@ -556,6 +564,10 @@ impl Forms {
 // ============================================================================
 
 impl Forms {
+    /// Translates a database error into a user-facing form error. A
+    /// unique/duplicate-key violation is attributed to the offending field
+    /// when it can be identified from the error message, otherwise it is
+    /// added as a global error; any other error is added as a global error too.
     pub fn database_error(&mut self, db_err: &sea_orm::DbErr) {
         let err_msg = db_err.to_string();
 

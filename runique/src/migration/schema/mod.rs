@@ -33,6 +33,9 @@ pub struct ModelSchema {
 }
 
 impl ModelSchema {
+    /// Creates a schema for `model_name`, deriving its default table name via
+    /// PascalCase → snake_case conversion. The primary key must still be set
+    /// with [`ModelSchema::primary_key`] before [`ModelSchema::build`] succeeds.
     pub fn new(model_name: impl Into<String>) -> Self {
         let name: String = model_name.into();
         // PascalCase → snake_case conversion for table name
@@ -56,11 +59,13 @@ impl ModelSchema {
 
     // ── Configuration ───────────────────────────────────────────────────────
 
+    /// Overrides the default (auto-derived) table name.
     pub fn table_name(mut self, name: impl Into<String>) -> Self {
         self.table_name = name.into();
         self
     }
 
+    /// Sets the PostgreSQL schema the table lives in (e.g. `"public"`).
     pub fn schema(mut self, schema: impl Into<String>) -> Self {
         self.schema = Some(schema.into());
         self
@@ -68,6 +73,7 @@ impl ModelSchema {
 
     // ── Primary key ─────────────────────────────────────────────────────────
 
+    /// Sets the model's primary key. Required — [`ModelSchema::build`] fails without one.
     pub fn primary_key(mut self, pk: PrimaryKeyDef) -> Self {
         self.primary_key = Some(pk);
         self
@@ -75,6 +81,7 @@ impl ModelSchema {
 
     // ── Columns ─────────────────────────────────────────────────────────────
 
+    /// Appends a column to the schema.
     pub fn column(mut self, col: ColumnDef) -> Self {
         self.columns.push(col);
         self
@@ -82,6 +89,7 @@ impl ModelSchema {
 
     // ── Foreign keys ────────────────────────────────────────────────────────
 
+    /// Appends a foreign key constraint to the schema.
     pub fn foreign_key(mut self, fk: ForeignKeyDef) -> Self {
         self.foreign_keys.push(fk);
         self
@@ -89,6 +97,8 @@ impl ModelSchema {
 
     // ── Relations ───────────────────────────────────────────────────────────
 
+    /// Appends a SeaORM relation, consumed by [`ModelSchema::to_model`] to
+    /// generate the entity's `Relation` enum. Has no effect on the SQL schema itself.
     pub fn relation(mut self, rel: RelationDef) -> Self {
         self.relations.push(rel);
         self
@@ -96,6 +106,7 @@ impl ModelSchema {
 
     // ── Index ───────────────────────────────────────────────────────────────
 
+    /// Appends an index to the schema.
     pub fn index(mut self, idx: IndexDef) -> Self {
         self.indexes.push(idx);
         self
@@ -103,6 +114,7 @@ impl ModelSchema {
 
     // ── Hooks ───────────────────────────────────────────────────────────────
 
+    /// Attaches lifecycle hooks (before/after save/delete) to the model.
     pub fn hooks(mut self, hooks: HooksDef) -> Self {
         self.hooks = Some(hooks);
         self
@@ -110,21 +122,26 @@ impl ModelSchema {
 
     // ── Meta ────────────────────────────────────────────────────────────────
 
+    /// Appends a default ordering clause (`field`, direction). Multiple calls
+    /// build a multi-column ordering, applied in call order.
     pub fn order_by(mut self, field: impl Into<String>, dir: OrderDir) -> Self {
         self.ordering.push((field.into(), dir));
         self
     }
 
+    /// Adds a unique-together constraint over `fields`.
     pub fn unique_together(mut self, fields: Vec<String>) -> Self {
         self.unique_together.push(fields);
         self
     }
 
+    /// Sets the model's singular display name (used in admin UI).
     pub fn verbose_name(mut self, name: impl Into<String>) -> Self {
         self.verbose_name = Some(name.into());
         self
     }
 
+    /// Sets the model's plural display name (used in admin UI).
     pub fn verbose_name_plural(mut self, name: impl Into<String>) -> Self {
         self.verbose_name_plural = Some(name.into());
         self
@@ -132,6 +149,7 @@ impl ModelSchema {
 
     // ── Build ───────────────────────────────────────────────────────────────
 
+    /// Finalizes the schema, failing if no primary key was set.
     pub fn build(self) -> Result<ModelSchema, String> {
         if self.primary_key.is_none() {
             return Err(format!(
@@ -273,6 +291,9 @@ impl ModelSchema {
         }
     }
 
+    /// Generates the SeaORM entity source (`Model` struct, `Relation` enum,
+    /// `ActiveModelBehavior` impl, `impl_objects!`) for this schema as a Rust
+    /// source string, ready to be written to an `entities/` file.
     pub fn to_model(&self) -> String {
         let mut out = String::new();
         let table_name = &self.table_name;
@@ -368,6 +389,7 @@ impl ModelSchema {
             _ => "i32",
         }
     }
+    /// Finds `auto_now` columns (`created_at`-style, set once at insertion).
     pub fn auto_now_columns(&self) -> Vec<&ColumnDef> {
         self.columns.iter().filter(|c| c.auto_now).collect()
     }
@@ -393,6 +415,7 @@ pub struct SchemaDiff {
 }
 
 impl SchemaDiff {
+    /// Creates an empty diff for `table_name`.
     pub fn new(table_name: &str) -> Self {
         Self {
             table_name: table_name.to_string(),
@@ -402,6 +425,7 @@ impl SchemaDiff {
         }
     }
 
+    /// True if the diff carries no changes at all.
     pub fn is_empty(&self) -> bool {
         self.added_columns.is_empty()
             && self.dropped_columns.is_empty()

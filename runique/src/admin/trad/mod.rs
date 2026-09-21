@@ -2,6 +2,9 @@
 use crate::utils::{ADMIN_MESSAGE_KEYS, trad::t};
 use tera::Context;
 
+/// Injects every translated `admin.{section}.*` message key (as listed in
+/// `ADMIN_MESSAGE_KEYS`) into the Tera context, exposed as `{{ admin_section_key }}`
+/// variables (dots replaced with underscores).
 pub fn insert_admin_messages(context: &mut Context, section: &str) {
     let prefix = format!("admin.{section}.");
     for key in ADMIN_MESSAGE_KEYS.iter().filter(|k| k.starts_with(&prefix)) {

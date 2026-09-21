@@ -8,6 +8,9 @@ use serde_json::Value;
 
 // ─── SeaORM Entity — eihwaz_history ─────────────────────────────────────────
 
+/// SeaORM entity for the `eihwaz_history` audit log table: one row per admin
+/// CRUD action, recording who performed it, on which resource/object, and an
+/// optional JSON diff of the changed fields.
 #[derive(Clone, Debug, DeriveEntityModel, serde::Serialize)]
 #[sea_orm(table_name = "eihwaz_history")]
 pub struct Model {
@@ -23,6 +26,7 @@ pub struct Model {
     pub batch_id: Option<String>,
 }
 
+/// No relations are defined for the `eihwaz_history` entity.
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {}
 
@@ -30,6 +34,8 @@ impl ActiveModelBehavior for ActiveModel {}
 
 // ─── Public API ──────────────────────────────────────────────────────────────
 
+/// Input to [`log_admin_action`]: the actor, the resource/object acted on,
+/// the action name, and an optional diff summary to persist in the audit log.
 pub struct AdminActionLog<'a> {
     pub user_id: Pk,
     pub username: &'a str,

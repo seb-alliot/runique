@@ -78,6 +78,9 @@ pub(crate) fn format_datetime(value: &mut serde_json::Value) {
 
 // ─── Shared state ────────────────────────────────────────────
 
+/// Shared admin state passed through an Axum `Extension`: the resource
+/// registry and the resolved admin configuration, used by every CRUD
+/// dispatcher (`admin_get`, `admin_post`, and their nested variants).
 #[derive(Clone)]
 pub struct PrototypeAdminState {
     pub registry: Arc<AdminRegistry>,

@@ -8,6 +8,9 @@ use axum::{
     response::Response,
 };
 
+/// Forces `Cache-Control: no-cache, no-store, must-revalidate` (plus `Pragma`
+/// and `Expires`) on responses when the app is in debug mode and the request
+/// targets localhost, so local development never serves a stale cached page.
 pub async fn dev_no_cache_middleware(
     State(engine): State<AEngine>,
     req: Request<Body>,
@@ -31,6 +34,8 @@ pub async fn dev_no_cache_middleware(
     response
 }
 
+/// Returns `true` if the request's `Host` header starts with `localhost`,
+/// `127.0.0.1`, or `[::1]`.
 pub fn is_localhost(req: &Request<Body>) -> bool {
     req.headers()
         .get(header::HOST)

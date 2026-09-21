@@ -2,6 +2,9 @@ use base64::{Engine, engine::general_purpose::STANDARD};
 use sha2::{Digest, Sha384};
 use std::{collections::HashMap, fs, path::Path};
 
+/// Recursively walks `static_dir` and returns a map from each file's path
+/// (relative to `static_dir`, `/`-separated) to its Subresource Integrity hash
+/// (`sha384-<base64>`), for use in `integrity` attributes on `<script>`/`<link>` tags.
 pub fn build_integrity_map(static_dir: &Path) -> HashMap<String, String> {
     let mut map = HashMap::new();
     scan_dir(static_dir, static_dir, &mut map);

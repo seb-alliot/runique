@@ -60,7 +60,7 @@ let user = users::Entity::find_by_id(user_id)
 | `filter(cond)` | Add a WHERE condition (AND) |
 | `exclude(cond)` | Add a WHERE NOT condition |
 | `asc(col)` / `desc(col)` | Sort ascending / descending by column |
-| `order_by_random()` | Sort by `RANDOM()` — no raw SQL needed |
+| `order_by_random(db)` | Random order — picks `RANDOM()` or `RAND()` based on the backend |
 | `order_by_expr(expr, order)` | Sort by an arbitrary SeaORM expression |
 | `limit(n)` / `offset(n)` | Pagination |
 | `first(db)` | Execute and return the first result (`Option<Model>`) |
@@ -74,7 +74,7 @@ let user = users::Entity::find_by_id(user_id)
 ```rust
 let suggestion = MyForm::objects
     .all()
-    .order_by_random()
+    .order_by_random(&db)
     .limit(1)
     .first(&db)
     .await?;

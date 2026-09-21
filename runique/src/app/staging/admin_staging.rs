@@ -11,13 +11,25 @@ use axum::Router;
 
 use crate::admin::AdminRoutes;
 
+/// Admin panel configuration staged by the builder before the app is built.
+/// Disabled by default — enabled once `.routes()` and `.auth()` are both
+/// configured through `.with_admin(|a| ...)`.
 pub struct AdminStaging {
+    /// Resolved admin configuration: route prefix, auth handler, page size,
+    /// rate limiting, login guard and templates.
     pub config: AdminConfig,
+    /// Whether the admin panel is mounted at all.
     pub enabled: bool,
+    /// Whether `/robots.txt` is generated automatically. Enabled by default.
     pub robots_txt: bool,
+    /// `Sitemap:` directive added to the generated `/robots.txt`, if set.
     pub sitemap_url: Option<String>,
+    /// CRUD router built from `.routes()`, mounted at the admin prefix.
     pub route_admin: Option<Router>,
+    /// Extra routes registered via `.extra_routes()`, mounted within the
+    /// admin's authentication boundary.
     pub extra_routes: Vec<(String, axum::routing::MethodRouter)>,
+    /// Shared admin runtime state (registry, resources) injected via `.with_state()`.
     pub state: Option<Arc<PrototypeAdminState>>,
 
     /// Segment mounted in front of the admin (`.prefix()`), empty by default.
@@ -37,6 +49,7 @@ fn normalize_segment(raw: &str) -> String {
 }
 
 impl AdminStaging {
+    /// Creates a disabled `AdminStaging` with default configuration.
     pub fn new() -> Self {
         Self {
             config: AdminConfig::new(),
@@ -100,6 +113,7 @@ impl AdminStaging {
         self
     }
 
+    /// Injects the shared admin runtime state (registry and resources).
     pub fn with_state(mut self, state: Arc<PrototypeAdminState>) -> Self {
         self.state = Some(state);
         self
@@ -122,16 +136,19 @@ impl AdminStaging {
         self
     }
 
+    /// Enables or disables hot-reloading of admin templates.
     pub fn hot_reload(mut self, enabled: bool) -> Self {
         self.config = self.config.hot_reload(enabled);
         self
     }
 
+    /// Sets the site title shown in the admin interface.
     pub fn site_title(mut self, title: &str) -> Self {
         self.config = self.config.site_title(title);
         self
     }
 
+    /// Sets the public site URL used to build absolute links in the admin.
     pub fn site_url(mut self, url: &str) -> Self {
         self.config = self.config.site_url(url);
         self
@@ -215,12 +232,14 @@ impl AdminStaging {
         self
     }
 
+    /// Disables the admin panel entirely.
     pub fn disable(mut self) -> Self {
         self.enabled = false;
         self.config = self.config.disable();
         self
     }
 
+    /// Enables the admin panel.
     pub fn enable(mut self) -> Self {
         self.enabled = true;
         self
@@ -242,6 +261,9 @@ impl AdminStaging {
         self
     }
 
+    /// Checks the staged configuration when the admin is enabled: the route
+    /// prefix must be non-empty and an authentication handler must be set.
+    /// A no-op returning `Ok(())` when the admin is disabled.
     pub fn validate(&self) -> Result<(), BuildError> {
         if !self.enabled {
             return Ok(());
@@ -273,6 +295,8 @@ impl AdminStaging {
         Ok(())
     }
 
+    /// Returns `true` if the admin is disabled, or enabled with a non-empty
+    /// route prefix configured.
     pub fn is_ready(&self) -> bool {
         if !self.enabled {
             return true;

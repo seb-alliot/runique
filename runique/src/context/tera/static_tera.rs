@@ -18,6 +18,8 @@ fn mask_filter(value: &str, _: Kwargs, _: &State) -> String {
 // impl can override `is_safe()`, and that declaration is what replaces the `| safe`
 // the preprocessor used to inject into the template source. The rule for every
 // filter below is the same — sanitize (or build) the HTML first, mark it safe last.
+/// Tera filter rendering a hidden `<input type="hidden" name="csrf_token">` field
+/// from a raw CSRF token, HTML-escaping the token and marking the output safe.
 pub struct CsrfFieldFilter;
 
 impl Filter<&str, TeraResult<Value>> for CsrfFieldFilter {
@@ -50,6 +52,7 @@ fn format_date_filter(value: &str, _: Kwargs, _: &State) -> String {
 }
 
 // Markdown filter → HTML (tables, strikethrough, heading ids)
+/// Tera filter that renders Markdown to sanitized HTML, marked safe for direct output.
 pub struct MarkdownFilter;
 
 impl Filter<&str, Value> for MarkdownFilter {
@@ -75,6 +78,7 @@ impl Filter<&str, Value> for MarkdownFilter {
 // Re-sanitizes stored rich HTML at render time. The output is ammonia's own
 // (XSS-free by construction), re-cleaned here regardless of how the value reached
 // storage — sanitization happens on output, storage is never trusted.
+/// Tera filter that re-sanitizes stored rich-text HTML at render time via `sanitize_rich`.
 pub struct SanitizeFilter;
 
 impl Filter<&str, Value> for SanitizeFilter {
@@ -145,6 +149,11 @@ fn register_filter(base_url: String, version: String) -> impl Fn(&str, Kwargs, &
     }
 }
 
+/// Registers Runique's built-in Tera filters and functions on `tera`: contrib
+/// builtins (urlencode, slug, date…), `static`/`media`/`runique_static`/`runique_media`
+/// URL filters (versioned via a CSS cache-busting token), `form`, `csrf_field`,
+/// `markdown`, `sanitize`, `plaintext`, `format_date`, `humanize`, and the
+/// `csrf_token`/`link` functions.
 pub fn register_asset_filters(
     tera: &mut Tera,
     static_url: String,

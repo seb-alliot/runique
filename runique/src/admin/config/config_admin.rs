@@ -6,6 +6,9 @@ use crate::auth::{guard::LoginGuard, session::AdminAuth};
 use crate::middleware::security::RateLimiter;
 use crate::utils::env::is_debug;
 
+/// Configuration for the admin panel: route prefix, branding, hot reload,
+/// auth handler, template overrides, and per-panel security settings
+/// (rate limiting, login guard).
 pub struct AdminConfig {
     /// Prefix for admin routes (default: "/admin")
     pub prefix: String,
@@ -102,6 +105,9 @@ impl std::fmt::Debug for AdminConfig {
 }
 
 impl AdminConfig {
+    /// Builds the default admin configuration: prefix `/admin`, hot reload
+    /// following `is_debug()`, no auth handler, 10 rows per page, and
+    /// framework-default templates.
     pub fn new() -> Self {
         Self {
             prefix: "/admin".to_string(),
@@ -121,26 +127,32 @@ impl AdminConfig {
         }
     }
 
+    /// Sets the number of rows per page in list views (clamped to at least 1).
     pub fn page_size(mut self, size: u64) -> Self {
         self.page_size = size.max(1);
         self
     }
 
+    /// Sets the URL prefix under which every admin route is mounted (default `/admin`).
     pub fn prefix(mut self, prefix: &str) -> Self {
         self.prefix = prefix.to_string();
         self
     }
 
+    /// Enables or disables the admin hot reload daemon.
     pub fn hot_reload(mut self, enabled: bool) -> Self {
         self.hot_reload = enabled;
         self
     }
 
+    /// Sets the title shown in the admin browser tab and sidebar, overriding
+    /// the translated `admin.base.title` default.
     pub fn site_title(mut self, title: &str) -> Self {
         self.site_title = title.to_string();
         self
     }
 
+    /// Sets the return URL to the main site (default `/`).
     pub fn site_url(mut self, url: &str) -> Self {
         self.site_url = url.to_string();
         self
@@ -179,6 +191,7 @@ impl AdminConfig {
         self
     }
 
+    /// Disables the admin panel entirely.
     pub fn disable(mut self) -> Self {
         self.enabled = false;
         self

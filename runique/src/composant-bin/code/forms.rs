@@ -2,6 +2,8 @@ use runique::prelude::*;
 
 
 // registration
+/// Example user registration form: validates username length/charset and
+/// password strength, and persists a new (inactive) `runique_users` row.
 #[form(schema = runique_users, fields = [username, email, password])]
 pub struct RegisterForm;
 #[async_trait]

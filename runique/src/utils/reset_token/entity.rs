@@ -5,6 +5,8 @@
 //! up the row, so a DB read leak cannot be replayed.
 use sea_orm::entity::prelude::*;
 
+/// SeaORM model for a row of `eihwaz_reset_tokens` — one outstanding
+/// password-reset request for a user.
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "eihwaz_reset_tokens")]
 pub struct Model {
@@ -22,6 +24,7 @@ pub struct Model {
     pub expires_at: chrono::NaiveDateTime,
 }
 
+/// Relations from `eihwaz_reset_tokens`.
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(

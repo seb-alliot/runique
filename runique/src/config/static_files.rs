@@ -43,6 +43,9 @@ fn current_dir_str() -> String {
 #[cfg(test)]
 pub(crate) static MEDIA_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
+/// Resolves the media root directory, in priority order: the `MEDIA_ROOT` env
+/// var if set, otherwise `{BASE_DIR}/media` if `BASE_DIR` is set, otherwise
+/// `{cwd}/media`.
 pub fn resolve_media_root() -> String {
     if let Ok(root) = std::env::var("MEDIA_ROOT") {
         return root;

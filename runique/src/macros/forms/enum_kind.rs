@@ -1,5 +1,8 @@
 //! Macro `define_enum_kind!` — generates the `FieldKind` enum with one variant per field type.
 
+/// Generates the `FieldKind` enum with one variant per registered field type,
+/// plus a `From<$field_type> for GenericField` impl for each variant so any
+/// field type can be wrapped into a `GenericField` with `.into()`.
 #[macro_export]
 macro_rules! define_enum_kind {
     (

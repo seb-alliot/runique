@@ -6,6 +6,8 @@ use crate::utils::{
 };
 use tracing::warn;
 
+/// Renders a form's fields to HTML via Tera: global errors first, then each
+/// field in order, then any registered JS files (see [`FormRenderer::add_js`]).
 #[derive(Clone)]
 pub struct FormRenderer {
     tera: ATera,
@@ -14,6 +16,8 @@ pub struct FormRenderer {
 }
 
 impl FormRenderer {
+    /// Creates a renderer bound to the given Tera instance, with no registered
+    /// JS files and no CSP nonce set.
     pub fn new(tera: ATera) -> Self {
         Self {
             tera,
@@ -22,10 +26,15 @@ impl FormRenderer {
         }
     }
 
+    /// Sets the CSP nonce applied to the `<script>` tag when the registered
+    /// JS files are rendered.
     pub fn set_nonce(&mut self, nonce: impl Into<String>) {
         self.csp_nonce = Some(nonce.into());
     }
 
+    /// Registers JS files to render after the form's fields. Each path must be
+    /// relative, end in `.js`, and contain no `../` traversal; a path that
+    /// fails these checks is skipped with a warning instead of erroring.
     pub fn add_js(&mut self, files: &[&str]) {
         for file in files {
             if let Some(reason) = Self::validate_js_path(file) {
@@ -49,6 +58,9 @@ impl FormRenderer {
         None
     }
 
+    /// Renders the full form: global `errors` first, then each field in
+    /// `fields`, then the registered JS files, all joined with newlines.
+    /// Fails on the first field that errors during rendering.
     pub fn render(&self, fields: &FieldsMap, errors: &[String]) -> Result<String, String> {
         let log_render = crate::utils::runique_log::get_log()
             .forms
@@ -128,6 +140,8 @@ impl FormRenderer {
             .map_err(|e| tf("forms.render_js_error", &[&e]).to_owned())
     }
 
+    /// Renders a single field to HTML directly, bypassing the global-error
+    /// block and JS file output that a full [`FormRenderer::render`] produces.
     pub fn render_field(&self, field: &dyn FormField) -> Result<String, String> {
         field.render(&self.tera)
     }

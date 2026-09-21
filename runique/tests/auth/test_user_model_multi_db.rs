@@ -31,6 +31,7 @@ use crate::helpers::{db, db_mariadb, db_postgres, pk::pk};
 use runique::auth::{BuiltinUserEntity, UserEntity, user};
 use runique::sea_orm::{
     ActiveModelTrait, ActiveValue::Set, ConnectionTrait, DatabaseConnection, DbBackend, Schema,
+    TransactionTrait,
 };
 use serial_test::serial;
 
@@ -41,6 +42,15 @@ use serial_test::serial;
 // explicite ; MariaDB n'a pas cette syntaxe et refuse le DROP tant que
 // `foreign_key_checks` reste actif — désactivé le temps du DROP. SQLite n'a ni
 // CASCADE ni FK actives par défaut, un DROP nu suffit.
+//
+// MariaDB's `SET`/`DROP`/`SET` runs inside a transaction (`db.begin()`) to pin
+// all three statements to the *same* pooled connection — `FOREIGN_KEY_CHECKS`
+// is a session variable, and `DatabaseConnection` is backed by a connection
+// pool, so three separate `execute_unprepared()` calls on `db` directly are
+// not guaranteed to land on the same physical connection. If the `DROP` lands
+// on a different one than the `SET`, the constraint is still enforced there
+// and the drop fails with error 1451 (found 2026-09-20 while verifying an
+// unrelated `order_by_random()` fix — this file had the same latent bug).
 async fn recreate_users_table(db: &DatabaseConnection) {
     let backend = db.get_database_backend();
     match backend {
@@ -50,15 +60,17 @@ async fn recreate_users_table(db: &DatabaseConnection) {
                 .expect("drop eihwaz_users");
         }
         DbBackend::MySql => {
-            db.execute_unprepared("SET FOREIGN_KEY_CHECKS=0")
+            let txn = db.begin().await.expect("begin txn for FK-safe drop");
+            txn.execute_unprepared("SET FOREIGN_KEY_CHECKS=0")
                 .await
                 .expect("disable FK checks");
-            db.execute_unprepared("DROP TABLE IF EXISTS eihwaz_users")
+            txn.execute_unprepared("DROP TABLE IF EXISTS eihwaz_users")
                 .await
                 .expect("drop eihwaz_users");
-            db.execute_unprepared("SET FOREIGN_KEY_CHECKS=1")
+            txn.execute_unprepared("SET FOREIGN_KEY_CHECKS=1")
                 .await
                 .expect("re-enable FK checks");
+            txn.commit().await.expect("commit FK-safe drop txn");
         }
         DbBackend::Sqlite => {
             db.execute_unprepared("DROP TABLE IF EXISTS eihwaz_users")
@@ -182,7 +194,17 @@ async fn test_find_by_id_found_mariadb() {
     // inséré — pas juste un sous-ensemble des colonnes.
     assert_eq!(found, alice);
 
-    db_mariadb::exec(&db, "DROP TABLE IF EXISTS eihwaz_users").await;
+    let txn = db.begin().await.expect("begin txn for FK-safe cleanup");
+    txn.execute_unprepared("SET FOREIGN_KEY_CHECKS=0")
+        .await
+        .expect("disable FK checks");
+    txn.execute_unprepared("DROP TABLE IF EXISTS eihwaz_users")
+        .await
+        .expect("drop eihwaz_users");
+    txn.execute_unprepared("SET FOREIGN_KEY_CHECKS=1")
+        .await
+        .expect("re-enable FK checks");
+    txn.commit().await.expect("commit FK-safe cleanup txn");
 }
 
 #[tokio::test]
@@ -198,5 +220,15 @@ async fn test_find_by_id_not_found_mariadb() {
     let found = BuiltinUserEntity::find_by_id(&db, other).await;
     assert!(found.is_none());
 
-    db_mariadb::exec(&db, "DROP TABLE IF EXISTS eihwaz_users").await;
+    let txn = db.begin().await.expect("begin txn for FK-safe cleanup");
+    txn.execute_unprepared("SET FOREIGN_KEY_CHECKS=0")
+        .await
+        .expect("disable FK checks");
+    txn.execute_unprepared("DROP TABLE IF EXISTS eihwaz_users")
+        .await
+        .expect("drop eihwaz_users");
+    txn.execute_unprepared("SET FOREIGN_KEY_CHECKS=1")
+        .await
+        .expect("re-enable FK checks");
+    txn.commit().await.expect("commit FK-safe cleanup txn");
 }
