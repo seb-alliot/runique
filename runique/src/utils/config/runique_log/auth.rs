@@ -16,29 +16,35 @@ pub struct AuthTracing {
 }
 
 impl AuthTracing {
+    /// Creates a config with all auth channels disabled.
     pub fn new() -> Self {
         Self::default()
     }
+    /// Sets the level for login events (session creation, group loading, DB persistence, exclusive flag).
     #[must_use]
     pub fn login(mut self, level: Level) -> Self {
         self.login = Some(level);
         self
     }
+    /// Sets the level for password-reset flow events (token generated/sent, validated/consumed, password updated).
     #[must_use]
     pub fn reset(mut self, level: Level) -> Self {
         self.reset = Some(level);
         self
     }
+    /// Sets the level for the "`password_init()` called multiple times" warning.
     #[must_use]
     pub fn password_init(mut self, level: Level) -> Self {
         self.password_init = Some(level);
         self
     }
+    /// Sets the level for permission-cache reload events (a group's rights change taking effect).
     #[must_use]
     pub fn permissions(mut self, level: Level) -> Self {
         self.permissions = Some(level);
         self
     }
+    /// Enables every auth channel at `Level::DEBUG`.
     pub fn dev(self) -> Self {
         self.login(Level::DEBUG)
             .reset(Level::DEBUG)

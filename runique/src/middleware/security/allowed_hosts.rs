@@ -19,12 +19,19 @@ pub struct HostPolicy {
 }
 
 impl HostPolicy {
+    /// Creates a policy from an explicit allowlist and enabled flag.
     pub fn new(allowed_hosts: Vec<String>, enabled: bool) -> Self {
         Self {
             allowed_hosts,
             enabled,
         }
     }
+    /// Checks `host` (its port and IPv6 brackets are stripped first) against
+    /// the allowlist. An entry of `*` matches anything; an entry prefixed
+    /// with `.` matches that suffix and any subdomain of it, but not
+    /// look-alike domains (e.g. `.exemple.com` does not match
+    /// `malicious-exemple.com`). Does not consult `enabled` — that gate is
+    /// applied by the caller (see `HostPolicy::validate` and the middleware).
     #[must_use]
     pub fn is_host_allowed(&self, host: &str) -> bool {
         fn normalize_host(host: &str) -> &str {
@@ -57,6 +64,9 @@ impl HostPolicy {
         })
     }
 
+    /// Extracts the `Host` header and checks it via `is_host_allowed`,
+    /// returning a `400 Bad Request` with a generic message on a missing or
+    /// disallowed host.
     pub fn validate(&self, headers: &HeaderMap) -> Result<(), (StatusCode, String)> {
         let host = match headers.get(header::HOST) {
             Some(h) => h.to_str().unwrap_or("<invalid host header>"),

@@ -29,6 +29,10 @@ define_enum_kind!(
     Hidden => HiddenField,
 );
 
+/// Type-erased wrapper around any concrete field type (`TextField`,
+/// `NumericField`, `FileField`, …), dispatching every [`FormField`] call to
+/// the wrapped `kind` via `delegate_to_kind!`. Lets `Forms` store a single
+/// heterogeneous collection of fields.
 #[derive(Clone, Serialize, Debug)]
 pub struct GenericField {
     pub kind: FieldKind,

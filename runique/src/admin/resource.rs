@@ -128,6 +128,8 @@ pub struct DisplayConfig {
 }
 
 impl DisplayConfig {
+    /// Creates a `DisplayConfig` with framework defaults: no icon, all columns
+    /// shown, 25 rows per page, no sidebar filters.
     pub fn new() -> Self {
         Self {
             icon: None,
@@ -137,16 +139,20 @@ impl DisplayConfig {
         }
     }
 
+    /// Sets the icon shown next to this resource in the admin navigation.
     pub fn icon(mut self, icon: &str) -> Self {
         self.icon = Some(icon.to_string());
         self
     }
 
+    /// Sets the number of rows shown per page in the list view.
     pub fn pagination(mut self, per_page: usize) -> Self {
         self.pagination = per_page;
         self
     }
 
+    /// Restricts the list view to the given `(column, label)` pairs, in order,
+    /// replacing the default of showing every column.
     pub fn columns_include(mut self, cols: Vec<(&str, &str)>) -> Self {
         self.columns = ColumnFilter::Include(
             cols.iter()
@@ -156,6 +162,7 @@ impl DisplayConfig {
         self
     }
 
+    /// Displays every column in the list view except the given ones.
     pub fn columns_exclude(mut self, cols: Vec<&str>) -> Self {
         self.columns = ColumnFilter::Exclude(cols.iter().map(|s| s.to_string()).collect());
         self
@@ -228,6 +235,9 @@ pub struct AdminResource {
 }
 
 impl AdminResource {
+    /// Creates a new admin resource with uniform permissions (`roles` applied
+    /// to every CRUD operation) and framework defaults for display, templates
+    /// and FK resolution.
     pub fn new(
         key: &'static str,
         model_path: &'static str,
@@ -345,26 +355,36 @@ impl AdminResource {
 
     // ─── Template resolution (fallback to Runique defaults) ───
 
+    /// Resolves the template used for the list view: the resource-level
+    /// override if set, otherwise `admin/list.html`.
     pub fn resolve_list(&self) -> &str {
         self.template_list.as_deref().unwrap_or("admin/list.html")
     }
 
+    /// Resolves the template used for the create view: the resource-level
+    /// override if set, otherwise `admin/create.html`.
     pub fn resolve_create(&self) -> &str {
         self.template_create
             .as_deref()
             .unwrap_or("admin/create.html")
     }
 
+    /// Resolves the template used for the edit view: the resource-level
+    /// override if set, otherwise `admin/edit.html`.
     pub fn resolve_edit(&self) -> &str {
         self.template_edit.as_deref().unwrap_or("admin/edit.html")
     }
 
+    /// Resolves the template used for the detail view: the resource-level
+    /// override if set, otherwise `admin/detail.html`.
     pub fn resolve_detail(&self) -> &str {
         self.template_detail
             .as_deref()
             .unwrap_or("admin/detail.html")
     }
 
+    /// Resolves the template used for the delete confirmation view: the
+    /// resource-level override if set, otherwise `admin/delete.html`.
     pub fn resolve_delete(&self) -> &str {
         self.template_delete
             .as_deref()
@@ -373,37 +393,46 @@ impl AdminResource {
 
     // ─── Builder methods ──────────────────────────────────────────
 
+    /// Overrides the template used for the list view.
     pub fn template_list(mut self, path: &str) -> Self {
         self.template_list = Some(path.to_string());
         self
     }
 
+    /// Overrides the template used for the create view.
     pub fn template_create(mut self, path: &str) -> Self {
         self.template_create = Some(path.to_string());
         self
     }
 
+    /// Overrides the template used for the edit view.
     pub fn template_edit(mut self, path: &str) -> Self {
         self.template_edit = Some(path.to_string());
         self
     }
 
+    /// Overrides the template used for the detail view.
     pub fn template_detail(mut self, path: &str) -> Self {
         self.template_detail = Some(path.to_string());
         self
     }
 
+    /// Overrides the template used for the delete confirmation view.
     pub fn template_delete(mut self, path: &str) -> Self {
         self.template_delete = Some(path.to_string());
         self
     }
 
+    /// Adds a single custom key/value pair to the Tera context injected for
+    /// this resource (mirrors `extra: {}` in `admin!{}`).
     pub fn extra(mut self, key: &str, value: &str) -> Self {
         self.extra_context
             .insert(key.to_string(), value.to_string());
         self
     }
 
+    /// Merges a map of custom key/value pairs into the Tera context injected
+    /// for this resource.
     pub fn extra_map(mut self, map: std::collections::HashMap<String, String>) -> Self {
         self.extra_context.extend(map);
         self

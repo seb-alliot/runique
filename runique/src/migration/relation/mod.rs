@@ -19,6 +19,7 @@ pub struct RelationDef {
 }
 
 impl RelationDef {
+    /// Declares a one-to-one relation to `target`.
     pub fn has_one(target: impl Into<String>) -> Self {
         Self {
             kind: RelationKind::HasOne,
@@ -26,6 +27,7 @@ impl RelationDef {
         }
     }
 
+    /// Declares a one-to-many relation to `target`.
     pub fn has_many(target: impl Into<String>) -> Self {
         Self {
             kind: RelationKind::HasMany,
@@ -33,6 +35,8 @@ impl RelationDef {
         }
     }
 
+    /// Declares a many-to-one relation to `target`, where `from` is the local
+    /// foreign key column and `to` is the column it references on `target`.
     pub fn belongs_to(
         target: impl Into<String>,
         from: impl Into<String>,
@@ -47,6 +51,7 @@ impl RelationDef {
         }
     }
 
+    /// Declares a many-to-many relation to `target` through the join table/entity `via`.
     pub fn many_to_many(target: impl Into<String>, via: impl Into<String>) -> Self {
         Self {
             kind: RelationKind::ManyToMany { via: via.into() },

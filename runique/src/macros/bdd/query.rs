@@ -63,16 +63,22 @@ use sea_orm::{
 };
 use std::sync::Arc;
 
+/// Django-style query builder wrapping a SeaORM `Select<E>`. Built by
+/// [`Queryable::objects`] or the `search!{}` macro, and consumed by a
+/// terminal method (`.all()`, `.one()`, `.first()`, `.count()`, …).
 pub struct RuniqueQueryBuilder<E: EntityTrait> {
     query: Select<E>,
 }
 
 impl<E: EntityTrait> RuniqueQueryBuilder<E> {
+    /// Wraps an existing SeaORM `Select<E>` query.
     pub fn new(query: Select<E>) -> Self {
         Self { query }
     }
 
-    // Allows extracting the connection directly from the Engine
+    /// Runs the query using a connection obtained straight from `engine`,
+    /// for call sites that only have a `DatabaseConfig` and not an open
+    /// `DatabaseConnection`.
     pub async fn all_from_engine(
         self,
         engine: Arc<DatabaseConfig>,
@@ -80,6 +86,7 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
         let db = engine.connect().await?;
         self.query.all(&db).await
     }
+    /// Executes the query and returns every matching row.
     pub async fn all(self, db: &DatabaseConnection) -> Result<Vec<E::Model>, DbErr> {
         self.query.all(db).await
     }
@@ -87,6 +94,7 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
     // In impl<E: EntityTrait> RuniqueQueryBuilder<E>
 
     // === EXISTING (keeping current filter/exclude) ===
+    /// Adds a `WHERE` condition, ANDed with any condition already on the query.
     pub fn filter<C>(mut self, condition: C) -> Self
     where
         C: Into<Condition>,
@@ -95,6 +103,7 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
         self
     }
 
+    /// Adds the negation of `condition` — rows matching it are excluded from the result.
     pub fn exclude<C>(mut self, condition: C) -> Self
     where
         C: Into<Condition>,
@@ -104,6 +113,8 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
     }
 
     // === NEW : vector version, simplified syntax ===
+    /// Shorthand for filtering on several `(column, value)` equality pairs at once —
+    /// equivalent to calling `.filter(col.eq(val))` for each pair (conditions are ANDed).
     pub fn filter_many<C, V, I>(mut self, filters: I) -> Self
     where
         C: ColumnTrait,
@@ -116,6 +127,9 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
         self
     }
 
+    /// Shorthand for excluding rows on several `(column, value)` pairs at once —
+    /// equivalent to calling `.exclude(col.eq(val))` for each pair (conditions are ANDed,
+    /// so a row must differ from every pair's value to be kept).
     pub fn exclude_many<C, V, I>(mut self, filters: I) -> Self
     where
         C: ColumnTrait,
@@ -128,33 +142,48 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
         self
     }
 
+    /// Orders results by `column` ascending.
     pub fn order_by_asc<C: ColumnTrait>(mut self, column: C) -> Self {
         self.query = self.query.order_by_asc(column);
         self
     }
 
+    /// Orders results by `column` descending.
     pub fn order_by_desc<C: ColumnTrait>(mut self, column: C) -> Self {
         self.query = self.query.order_by_desc(column);
         self
     }
 
+    /// Alias for [`order_by_asc`](Self::order_by_asc), used by the `search!{}` macro's
+    /// `asc Column` syntax.
     pub fn asc<C: ColumnTrait>(mut self, column: C) -> Self {
         self.query = self.query.order_by_asc(column);
         self
     }
 
+    /// Alias for [`order_by_desc`](Self::order_by_desc), used by the `search!{}` macro's
+    /// `desc Column` syntax.
     pub fn desc<C: ColumnTrait>(mut self, column: C) -> Self {
         self.query = self.query.order_by_desc(column);
         self
     }
 
-    pub fn order_by_random(mut self) -> Self {
+    /// Orders results randomly. `RANDOM()` (SQLite/Postgres) vs `RAND()`
+    /// (MySQL/MariaDB) is picked from `db.get_database_backend()`, following
+    /// the same per-backend-fragment pattern as `admin::helper::sql_dialect`.
+    pub fn order_by_random(mut self, db: &sea_orm::DatabaseConnection) -> Self {
         use sea_orm::Order;
         use sea_query::Expr;
-        self.query = self.query.order_by(Expr::cust("RANDOM()"), Order::Asc);
+        let func = match db.get_database_backend() {
+            sea_orm::DbBackend::MySql => "RAND()",
+            _ => "RANDOM()",
+        };
+        self.query = self.query.order_by(Expr::cust(func), Order::Asc);
         self
     }
 
+    /// Orders results by an arbitrary SeaORM expression and direction, for
+    /// cases the `asc`/`desc` helpers can't express directly.
     pub fn order_by_expr<T>(mut self, expr: T, order: sea_orm::Order) -> Self
     where
         T: sea_orm::IntoSimpleExpr,
@@ -163,20 +192,26 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
         self
     }
 
+    /// Consumes the builder and returns the underlying SeaORM `Select<E>`,
+    /// to drop down to raw SeaORM query methods not exposed here (e.g.
+    /// `.select_only()`, `.column()`, `.into_tuple()`).
     pub fn into_select(self) -> Select<E> {
         self.query
     }
 
+    /// Caps the number of rows the query can return.
     pub fn limit(mut self, limit: u64) -> Self {
         self.query = self.query.limit(limit);
         self
     }
 
+    /// Skips the first `offset` rows before returning results.
     pub fn offset(mut self, offset: u64) -> Self {
         self.query = self.query.offset(offset);
         self
     }
 
+    /// Executes the query and returns the number of matching rows.
     pub async fn count(self, db: &DatabaseConnection) -> Result<u64, DbErr>
     where
         E::Model: Sync,
@@ -185,10 +220,16 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
         self.query.count(db).await
     }
 
+    /// Executes the query and returns the first matching row, or `None` if
+    /// there are no matches. Unlike [`one`](Self::one), this does not check
+    /// whether more than one row would match.
     pub async fn first(self, db: &DatabaseConnection) -> Result<Option<E::Model>, DbErr> {
         self.query.one(db).await
     }
 
+    /// Executes the query expecting exactly one match: fetches up to two
+    /// rows and returns `Err` if both come back, so callers can rely on the
+    /// result being unique instead of silently taking the first row.
     pub async fn one(self, db: &DatabaseConnection) -> Result<Option<E::Model>, DbErr>
     where
         E::Model: Sync,
@@ -204,11 +245,13 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
         }
     }
 
+    /// Adds an inner join on `rel`.
     pub fn join(mut self, rel: sea_orm::RelationDef) -> Self {
         self.query = self.query.join(JoinType::InnerJoin, rel);
         self
     }
 
+    /// Adds a left join on `rel`.
     pub fn left_join(mut self, rel: sea_orm::RelationDef) -> Self {
         self.query = self.query.join(JoinType::LeftJoin, rel);
         self

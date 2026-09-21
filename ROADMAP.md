@@ -105,7 +105,7 @@
 - [ ] **Modificateurs inline dans `urlpatterns!{}`** — `protect = "login_required"`, `rate_limit = (5, 60)` par route directement dans `url.rs`
 - [ ] **Middleware i18n auto** — détection langue (user DB → cookie → `Accept-Language`) au slot 57, `{{ lang }}` injecté dans chaque contexte Tera, route `/_runique/set-lang`
 - [ ] **`request.path_params` / `query_params` encapsulés** — rendre privés, exposer uniquement des getters (v2.2+)
-- [ ] **Validation séquentielle S1/S2/S3** — typestate form : CSRF → validation → cleaned_data ; CSRF mandatoire par construction (v3.0, breaking)
+- [ ] **`ValidationForm<F>` — validation typestate** — `.save()`/action inaccessible sans validation réussie (erreur de compilation, pas un check runtime) ; dispatch par défaut sur `Method::is_safe()` (GET ne valide pas, POST/PUT/PATCH/DELETE valident, surchargeable par formulaire) ; hook `register_dynamic_fields` pour les champs ajoutés au moment de la requête avant validation. Inspiré de `FormMixin`/`form_valid()` Django, adapté aux garanties de typage statique Rust — **additif, pas de version majeure requise** (remplace l'ancienne piste "validation séquentielle S1/S2/S3", non-breaking contrairement à ce qui était noté)
 - [ ] **Guard mot de passe en clair** — `tracing::warn!` si `cleaned_string("password")` retourne du plaintext non hashé après `finalize()`
 
 ---

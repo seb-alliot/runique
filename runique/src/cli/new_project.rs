@@ -4,6 +4,10 @@ use anyhow::Result;
 use rand::RngExt;
 use std::{fmt::Write, fs, path::Path};
 
+/// Scaffolds a new Runique project named `name`: creates the standard directory
+/// layout, writes the bundled example files (views, forms, templates, CSS,
+/// `Cargo.toml`), and generates a fresh random `SECRET_KEY` into `.env`.
+/// Fails if `name` is invalid or a folder with that name already exists.
 pub fn create_new_project(name: &str) -> Result<()> {
     validate_project_name(name)?;
 

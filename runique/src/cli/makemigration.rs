@@ -10,6 +10,7 @@ pub use crate::utils::*;
 
 // ── public parse entry points ────────────────────────────────────────────────
 
+/// Reads a snapshot/migration file from disk and parses it into a `ParsedSchema`.
 pub fn parse_create_file(path: &str) -> Result<ParsedSchema> {
     let source: String =
         fs::read_to_string(path).with_context(|| format!("Cannot read file: {}", path))?;
@@ -29,6 +30,10 @@ const FRAMEWORK_TABLES: &[&str] = &[
     "eihwaz_reset_tokens",
 ];
 
+/// Scans every `.rs` file in `entities_path` for `derive_form!{}`/model schemas,
+/// parses each one, and resolves FK `to_table` references from model names to
+/// their actual table names. Skips the framework's own tables (`eihwaz_*`) when
+/// the app uses the built-in user table.
 pub fn scan_entities(entities_path: &str) -> Result<Vec<ParsedSchema>> {
     dotenvy::dotenv().ok();
     let using_builtin_user = std::env::var("RUNIQUE_USER_TABLE")
@@ -360,6 +365,10 @@ pub(crate) fn topological_sort_changes(
 
 // ── destructive change guard ─────────────────────────────────────────────────
 
+/// Scans a set of changes for destructive operations (dropped columns, type
+/// changes, nullable-to-required, dropped FKs, new `ON DELETE CASCADE` on an
+/// existing table) and returns one human-readable warning per finding. An
+/// empty result means the changes are safe to apply without `--force`.
 pub fn collect_destructive_messages(all_changes: &[Changes]) -> Vec<String> {
     let dropped = all_changes.iter().flat_map(|c| {
         c.dropped_columns
@@ -462,10 +471,12 @@ fn check_destructive(all_changes: &[Changes], force: bool) -> Result<()> {
 }
 
 // ── run ──────────────────────────────────────────────────────────────────────
+/// Builds the SeaORM module name for an ALTER migration on `table` (`m{timestamp}_alter_{table}_table`).
 pub fn seaorm_alter_module_name(timestamp: &str, table: &str) -> String {
     format!("m{}_alter_{}_table", timestamp, table)
 }
 
+/// Builds the file path of the SeaORM ALTER migration for `table`.
 pub fn seaorm_alter_file_path(migrations_path: &str, timestamp: &str, table: &str) -> String {
     format!(
         "{}/{}.rs",
@@ -474,10 +485,12 @@ pub fn seaorm_alter_file_path(migrations_path: &str, timestamp: &str, table: &st
     )
 }
 
+/// Builds the SeaORM module name for an `extend!{}` migration on `table` (`m{timestamp}_extend_{table}_table`).
 pub fn seaorm_extend_module_name(timestamp: &str, table: &str) -> String {
     format!("m{}_extend_{}_table", timestamp, table)
 }
 
+/// Builds the file path of the SeaORM `extend!{}` migration for `table`.
 pub fn seaorm_extend_file_path(migrations_path: &str, timestamp: &str, table: &str) -> String {
     format!(
         "{}/m{}_extend_{}_table.rs",
@@ -548,6 +561,9 @@ pub fn merge_extend_schemas(schemas: Vec<ParsedSchema>) -> Vec<ParsedSchema> {
         })
         .collect()
 }
+/// Entry point of the `makemigrations` command: scans models and `extend!{}`
+/// blocks, diffs them against their last snapshot, blocks on destructive
+/// changes unless `force` is set, then writes the full migration plan atomically.
 pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()> {
     let schemas = scan_entities(entities_path)?;
 

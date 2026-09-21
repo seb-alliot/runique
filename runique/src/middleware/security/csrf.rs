@@ -17,6 +17,9 @@ use subtle::ConstantTimeEq;
 use tera::{Function, Kwargs, TeraResult, Value, escape_html};
 use tower_sessions::Session;
 
+/// Tera function backing the `{{ csrf_token(...) }}` template call: renders
+/// the current request's CSRF token as a hidden `<input>`, HTML-escaping it
+/// before emitting the unescaped tag markup.
 pub struct CsrfTokenFunction;
 
 // `tera::State` is aliased locally: `axum::extract::State` is already imported above.
@@ -42,6 +45,20 @@ impl Function<TeraResult<Value>> for CsrfTokenFunction {
     }
 }
 
+/// Issues/refreshes the session's CSRF token and enforces it on mutating
+/// requests (POST/PUT/DELETE/PATCH), unless the path is in
+/// `csrf_exempt_paths`.
+///
+/// An `X-CSRF-Token` header is checked with a constant-time comparison
+/// (`ct_eq`) against the session token, so a wrong guess can't be
+/// distinguished from a right one by response timing. Requests without that
+/// header are only allowed through when they are form submissions
+/// (urlencoded/multipart) — Prisme then validates the `csrf_token` form
+/// field itself; a JSON request with no header is rejected outright. The
+/// token exposed back to the client via the `X-CSRF-Token` response header
+/// is masked per response (`session_token.masked()`) as a BREACH mitigation,
+/// and a GET/HEAD request's own `csrf_token` query parameter is stripped via
+/// redirect so a token never lingers in browser history or referrer headers.
 pub async fn csrf_middleware(
     State(engine): State<AEngine>,
     session: Session,

@@ -218,6 +218,10 @@ where
 }
 
 impl Request {
+    /// Builds a bare `Request` outside of the normal `FromRequest` extraction path
+    /// (e.g. for tests or internally-constructed requests), with empty path/query
+    /// params, no user, and `prisme.csrf_valid` fixed to `false` since no body was
+    /// ever parsed to validate a CSRF token against.
     pub fn new(engine: AEngine, session: Session, csrf_token: CsrfToken, method: Method) -> Self {
         let mut context = tera::Context::new();
         // mod reload for templates in debug mode

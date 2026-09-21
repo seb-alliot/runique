@@ -9,6 +9,7 @@ pub struct UrlParams<'a> {
 }
 
 impl<'a> UrlParams<'a> {
+    /// Wraps the given path and query maps for whitelisted lookup via [`get`](Self::get).
     pub fn new(path: &'a HashMap<String, String>, query: &'a HashMap<String, String>) -> Self {
         Self { path, query }
     }

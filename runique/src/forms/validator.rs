@@ -5,10 +5,15 @@ use crate::utils::{
 };
 use std::fmt;
 
+/// Error returned when form validation fails to complete or produces errors.
 #[derive(Debug, Clone)]
 pub enum ValidationError {
+    /// Validation recursed past the maximum allowed depth (re-entrant
+    /// `Forms::validate` calls) and was aborted as a safety guard.
     StackOverflow,
+    /// Per-field validation errors, keyed by field name.
     FieldValidation(StrMap),
+    /// Errors that apply to the form as a whole rather than a specific field.
     GlobalErrors(Vec<String>),
 }
 
@@ -30,6 +35,7 @@ impl fmt::Display for ValidationError {
 
 impl std::error::Error for ValidationError {}
 
+/// Stateless helper that validates a form's fields and reports resulting errors.
 pub struct FormValidator;
 
 impl FormValidator {
@@ -97,10 +103,13 @@ impl FormValidator {
         Ok(true)
     }
 
+    /// Returns whether any global error is present or any field currently has an error set.
     pub fn has_errors(fields: &FieldsMap, global_errors: &[String]) -> bool {
         !global_errors.is_empty() || fields.values().any(|f| f.error().is_some())
     }
 
+    /// Collects all field errors into a map keyed by field name, plus a
+    /// `"global"` entry joining `global_errors` with `" | "` if any are present.
     pub fn collect_errors(fields: &FieldsMap, global_errors: &[String]) -> StrMap {
         let mut errs: StrMap = fields
             .iter()

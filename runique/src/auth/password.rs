@@ -27,6 +27,8 @@ use crate::{context_update, impl_form_access};
 
 // ─── ForgotPasswordForm ───────────────────────────────────────────────────────
 
+/// "Forgot password" form: a single required email field, used to trigger a
+/// reset token email without revealing whether the address exists.
 #[derive(Serialize, Debug, Clone)]
 #[serde(transparent)]
 pub struct ForgotPasswordForm {
@@ -47,6 +49,10 @@ impl RuniqueForm for ForgotPasswordForm {
 
 // ─── PasswordResetForm ────────────────────────────────────────────────────────
 
+/// Password reset form submitted from the emailed link: carries the token and
+/// encrypted email as hidden fields, plus email/password/confirm for the user
+/// to fill in. `clean()` checks the token decrypts to the submitted email and
+/// enforces the password policy (10+ chars, upper/lower/digit/special).
 #[derive(Serialize, Debug, Clone)]
 #[serde(transparent)]
 pub struct PasswordResetForm {
@@ -135,17 +141,36 @@ pub type ExtraContextFn = Arc<dyn for<'a> Fn(&'a mut Request) -> BoxFuture<'a, (
 /// Password reset flow configuration registered via the builder.
 #[derive(Clone)]
 pub struct PasswordResetConfig {
+    /// Path of the "forgot password" GET/POST route. Default: `/forgot-password`.
     pub forgot_route: String,
+    /// Path prefix of the reset route; the token and encrypted email are
+    /// appended as path segments (`{reset_route}/{token}/{encrypted_email}`).
+    /// Default: `/reset-password`.
     pub reset_route: String,
+    /// Template rendered for the "forgot password" page.
     pub forgot_template: String,
+    /// Template rendered for the reset-password page (both the form and the
+    /// post-reset success state).
     pub reset_template: String,
+    /// Template used to render the reset email body. When `None`, a plain
+    /// HTML body is built from the `reset.email_body` translation string instead.
     pub email_template: Option<String>,
+    /// Configured redirect target for a successful reset. Not currently read
+    /// by the built-in reset flow, which re-renders `reset_template` in place
+    /// with `reset_done = true` instead of redirecting.
     pub success_redirect: String,
+    /// Base URL used to build the reset link sent by email. When `None`, it
+    /// is derived from the request's `Host` header (falling back to
+    /// `http://localhost:3000`).
     pub base_url: Option<String>,
+    /// Maximum number of requests allowed per rate-limit window on the
+    /// forgot/reset routes.
     pub max_requests: u64,
+    /// Rate-limit window length, in seconds, paired with `max_requests`.
     pub retry_after: u64,
     /// Lifetime of a reset token before it expires. Default: 1 hour.
     pub token_ttl: Duration,
+    /// Optional hook to inject extra template context before rendering.
     pub extra_context: Option<ExtraContextFn>,
 }
 
@@ -168,39 +193,50 @@ impl Default for PasswordResetConfig {
 }
 
 impl PasswordResetConfig {
+    /// Creates a config with the default routes, templates and rate limits.
     pub fn new() -> Self {
         Self::default()
     }
+    /// Overrides the "forgot password" route path (default: `/forgot-password`).
     #[must_use]
     pub fn forgot_route(mut self, route: &str) -> Self {
         self.forgot_route = route.to_string();
         self
     }
+    /// Overrides the reset route path prefix (default: `/reset-password`).
     #[must_use]
     pub fn reset_route(mut self, route: &str) -> Self {
         self.reset_route = route.to_string();
         self
     }
+    /// Overrides the template rendered for the "forgot password" page.
     #[must_use]
     pub fn forgot_template(mut self, template: &str) -> Self {
         self.forgot_template = template.to_string();
         self
     }
+    /// Overrides the template rendered for the reset-password page.
     #[must_use]
     pub fn reset_template(mut self, template: &str) -> Self {
         self.reset_template = template.to_string();
         self
     }
+    /// Sets the redirect target recorded for a successful reset. See the
+    /// `success_redirect` field doc: the built-in flow does not currently
+    /// read this value.
     #[must_use]
     pub fn success_redirect(mut self, redirect: &str) -> Self {
         self.success_redirect = redirect.to_string();
         self
     }
+    /// Sets the base URL used to build the reset link sent by email, instead
+    /// of deriving it from the request's `Host` header.
     #[must_use]
     pub fn base_url(mut self, url: &str) -> Self {
         self.base_url = Some(url.to_string());
         self
     }
+    /// Sets the template used to render the reset email body.
     #[must_use]
     pub fn email_template(mut self, template: &str) -> Self {
         self.email_template = Some(template.to_string());
@@ -230,6 +266,13 @@ async fn apply_extra_context(request: &mut Request, hook: &Option<ExtraContextFn
 
 // ─── handle_forgot_password ───────────────────────────────────────────────────
 
+/// Handles both the GET (render the form) and POST (issue a reset token)
+/// sides of the "forgot password" page.
+///
+/// On POST, whether or not the email matches a user, the response is the same
+/// success notice and redirect: the handler never reveals account existence
+/// through its response, and the SMTP send is fired via `tokio::spawn` rather
+/// than awaited, so an existing account can't be enumerated via response timing.
 pub async fn handle_forgot_password<E: UserEntity + 'static>(
     request: &mut Request,
     form: &mut ForgotPasswordForm,
@@ -365,6 +408,15 @@ pub async fn handle_forgot_password<E: UserEntity + 'static>(
 
 // ─── handle_password_reset ────────────────────────────────────────────────────
 
+/// Handles the reset-password page reached from the emailed link: verifies
+/// the token, logs out any existing session, then renders the form (GET) or
+/// consumes the token and updates the password (POST).
+///
+/// The token is single-use (`consume`) and resolves to a server-side
+/// `user_id`; the password update is applied by that id, not by the email
+/// taken from the URL, and the URL email is only cross-checked against the
+/// account's real email as a UX sanity check — the URL alone cannot be used
+/// to reset an arbitrary account's password.
 pub async fn handle_password_reset<E: UserEntity + 'static>(
     request: &mut Request,
     form: &mut PasswordResetForm,
@@ -504,6 +556,8 @@ pub async fn handle_password_reset<E: UserEntity + 'static>(
 
 /// Type erasure trait for the staging builder.
 pub trait PasswordResetHandler: Send + Sync + 'static {
+    /// Builds the merged forgot+reset router, with rate limiting applied to
+    /// both routes.
     fn build_router(&self, config: Arc<PasswordResetConfig>) -> Router;
 }
 
@@ -511,6 +565,7 @@ pub trait PasswordResetHandler: Send + Sync + 'static {
 pub struct PasswordResetAdapter<E: UserEntity>(PhantomData<E>);
 
 impl<E: UserEntity + 'static> PasswordResetAdapter<E> {
+    /// Creates an adapter for the given `UserEntity` implementation.
     pub fn new() -> Self {
         Self(PhantomData)
     }
@@ -599,6 +654,9 @@ impl<E: UserEntity + 'static> PasswordResetHandler for PasswordResetAdapter<E> {
 
 /// Staging stored in the builder before construction.
 pub struct PasswordResetStaging {
+    /// Type-erased adapter used to build the forgot+reset router for the
+    /// configured `UserEntity`.
     pub handler: Box<dyn PasswordResetHandler>,
+    /// Resolved configuration applied when the router is built.
     pub config: PasswordResetConfig,
 }

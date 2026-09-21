@@ -32,6 +32,9 @@ pub struct FieldConfig {
 }
 
 impl FieldConfig {
+    /// Creates a config with the given name, semantic `type_field` (e.g. `"text"`,
+    /// `"password"`), and Tera `template_name`. `is_password` is derived from
+    /// `type_field` here, so a `"password"` type is always protected from the start.
     pub fn new(name: &str, type_field: &str, template_name: &str) -> Self {
         Self {
             name: name.to_string(),
@@ -71,12 +74,17 @@ impl FieldConfig {
     }
 }
 
+/// Length constraints for text-like fields (min/max character length).
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct TextConfig {
     pub max_length: Option<LengthConstraint>,
     pub min_length: Option<LengthConstraint>,
 }
 
+/// Per-kind numeric validation state. Which variant a field holds depends on
+/// its semantic (integer, float, decimal, percent, or a stepped range slider);
+/// [`NumericField::min`](crate::forms::fields::NumericField::min) and `::max`
+/// match on it to update the right bound representation.
 #[derive(Clone, Serialize, Debug)]
 pub enum NumericConfig {
     Integer {
@@ -89,9 +97,12 @@ pub enum NumericConfig {
     Decimal {
         value: Option<Range>,
     },
+    /// Bounded `0.0..=100.0` by default (see [`NumericField::percent`](crate::forms::fields::NumericField::percent)).
     Percent {
         value: Range,
     },
+    /// Backs an `<input type="range">`; `default` is the initial value and
+    /// `step` the increment.
     Range {
         value: Range,
         default: f64,
@@ -99,6 +110,7 @@ pub enum NumericConfig {
     },
 }
 
+/// An inclusive `min..=max` bound used by [`NumericConfig`] variants.
 #[derive(Clone, Serialize, Debug)]
 pub struct Range {
     pub min: f64,
@@ -130,6 +142,11 @@ impl CommonFieldConfig for FieldConfig {
     }
 }
 
+/// Behavior every form field widget implements: validation, HTML rendering,
+/// and JSON serialization for client-side use. Most getters/setters have
+/// default implementations built on [`CommonFieldConfig`]; only
+/// [`FormField::validate`] and [`FormField::render`] are field-type specific
+/// and have no default.
 pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Sync {
     // ========================================================================
     // GETTERS - Default implementation via CommonFieldConfig

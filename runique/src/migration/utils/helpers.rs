@@ -41,6 +41,9 @@ pub fn col_type_to_method(col_type: &str) -> &str {
     }
 }
 
+/// Infers the semantic column type name (e.g. `"Integer"`, `"Text"`, `"Uuid"`) from
+/// the set of builder method names called in a `ColumnDef` chain (as parsed from the
+/// `model!{}` DSL builder syntax). Falls back to `"String"` when nothing matches.
 pub fn detect_col_type_builder(methods: &[String]) -> String {
     // Binaries
     if methods.contains(&"blob".to_string()) {
@@ -120,6 +123,9 @@ pub fn detect_col_type_builder(methods: &[String]) -> String {
     }
 }
 
+/// Same as [`detect_col_type_builder`], but for method chains found in a generated
+/// SeaORM snapshot — recognizes a few additional SeaORM-specific spellings (e.g.
+/// `date_time`, `timestamp_with_time_zone`) and PostgreSQL/enum-specific methods.
 pub fn detect_col_type_seaorm(methods: &[String]) -> String {
     // Binaries
     if methods.contains(&"blob".to_string()) {
@@ -241,6 +247,8 @@ pub fn to_snake_case(s: &str) -> String {
 // AST extraction helpers
 // ============================================================
 
+/// Flattens a chained method-call expression (`a.b().c().d()`) into its individual
+/// calls, in source (left-to-right, i.e. call-order) sequence.
 pub fn collect_chain(expr: &Expr) -> Vec<&ExprMethodCall> {
     let mut chain = Vec::new();
     let mut current = expr;
@@ -252,6 +260,8 @@ pub fn collect_chain(expr: &Expr) -> Vec<&ExprMethodCall> {
     chain
 }
 
+/// Walks down a method-call chain and returns its receiver at the root
+/// (e.g. `ColumnDef::new("x")` in `ColumnDef::new("x").integer().unique()`).
 pub fn get_root_expr(expr: &Expr) -> &Expr {
     let mut current = expr;
     loop {
@@ -263,6 +273,7 @@ pub fn get_root_expr(expr: &Expr) -> &Expr {
     }
 }
 
+/// Returns the value of `mc`'s first argument if it is a string literal.
 pub fn first_str_arg(mc: &ExprMethodCall) -> Option<String> {
     if let Some(Expr::Lit(ExprLit {
         lit: Lit::Str(s), ..
@@ -274,6 +285,9 @@ pub fn first_str_arg(mc: &ExprMethodCall) -> Option<String> {
     }
 }
 
+/// Collects every method and function-call name reachable from `expr`, recursing
+/// through receivers and arguments — used to detect which builder methods were
+/// called anywhere in a column definition, regardless of call order.
 pub fn method_names_in_expr(expr: &Expr) -> Vec<String> {
     let mut names = Vec::new();
     collect_method_names(expr, &mut names);
@@ -299,6 +313,8 @@ fn collect_method_names(expr: &Expr, names: &mut Vec<String>) {
     }
 }
 
+/// Searches `expr` (a method-call or function-call chain) for the first string
+/// literal argument, checking the receiver before sibling arguments.
 pub fn extract_str_from_call(expr: &Expr) -> Option<String> {
     match expr {
         Expr::MethodCall(mc) => {
@@ -330,6 +346,8 @@ pub fn extract_str_from_call(expr: &Expr) -> Option<String> {
     }
 }
 
+/// Collects every string literal reachable from `expr`, including inside
+/// `vec![...]` macro invocations (e.g. a list of enum variant names).
 pub fn extract_all_str_args(expr: &Expr) -> Vec<String> {
     let mut result = Vec::new();
     collect_str_args(expr, &mut result);
@@ -375,6 +393,9 @@ fn collect_str_args(expr: &Expr, result: &mut Vec<String>) {
     }
 }
 
+/// Finds a `.references(...)` call anywhere in `expr` and returns
+/// `(to_table, to_column)`, defaulting the column to `"id"` when only the
+/// table is given.
 pub fn extract_references_from_expr(expr: &Expr) -> Option<(String, String)> {
     if let Expr::MethodCall(mc) = expr {
         if mc.method == "references" {
@@ -397,6 +418,9 @@ pub fn extract_references_from_expr(expr: &Expr) -> Option<(String, String)> {
     None
 }
 
+/// Finds a call to `method_name` (e.g. `"on_delete"`/`"on_update"`) anywhere in
+/// `expr` and resolves its argument to a `ForeignKeyAction` name. Returns
+/// `"NoAction"` if the method isn't called or its argument isn't recognized.
 pub fn extract_fk_action(expr: &Expr, method_name: &str) -> String {
     if let Expr::MethodCall(mc) = expr {
         if mc.method == method_name
@@ -418,6 +442,8 @@ pub fn extract_fk_action(expr: &Expr, method_name: &str) -> String {
     "NoAction".to_string()
 }
 
+/// Maps a path expression (e.g. `ForeignKeyAction::Cascade`) to its action name.
+/// Anything unrecognized, including a bare path with no last segment, resolves to `"NoAction"`.
 pub fn extract_fk_action_value(expr: &Expr) -> String {
     if let Expr::Path(p) = expr
         && let Some(seg) = p.path.segments.last()
@@ -432,6 +458,9 @@ pub fn extract_fk_action_value(expr: &Expr) -> String {
     "NoAction".to_string()
 }
 
+/// Searches `expr` for a call shaped like `sea_query::Alias::new("name")` (or
+/// `Alias::new("name")`) anywhere in a method/function-call chain and returns
+/// the literal `"name"`.
 pub fn extract_alias_new_str(expr: &Expr) -> Option<String> {
     match expr {
         Expr::MethodCall(mc) => {
@@ -470,6 +499,9 @@ pub fn extract_alias_new_str(expr: &Expr) -> Option<String> {
     }
 }
 
+/// Same as [`extract_alias_new_str`], but only matches when `expr` itself is
+/// directly the `Alias::new(...)` call — it does not recurse into a receiver
+/// or nested arguments.
 pub fn extract_alias_new_str_inner(expr: &Expr) -> Option<String> {
     if let Expr::Call(ExprCall { func, args, .. }) = expr {
         let is_alias = if let Expr::Path(p) = func.as_ref() {

@@ -134,11 +134,7 @@ This document consolidates the actual state of the repository from the reference
 
 - **SQLi filters via `configure {}`**: builtin resource filters go through a separate path, to be verified
 - **Security non-regression tests**: add tests covering SQL whitelist, cycle_id, operation guards
-
-### Medium priority (v3.0, breaking)
-
-- **Sequential validation S1/S2/S3**: `req.form()` → S1 CSRF → S2 rules → S3 accessible data. Structural guarantee that CSRF + validation precede all data access (~115 call sites)
-- **TypeState form**: variant `validate() -> Result<ValidForm<T>, T>`
+- **`ValidationForm<F>` — typestate validation**: `try_new() -> Result<ValidationForm<F>, F>`, `.save()` unreachable without a successful validation at the type level (a compile-time guarantee instead of today's runtime check); defaults to dispatching on `Method::is_safe()`, with a `register_dynamic_fields` hook for fields added at request time before validation. **Additive** — unlike the earlier "sequential validation S1/S2/S3" plan (v3.0, breaking), requires neither a major version nor a forced migration of existing call sites; full plan in [ROADMAP.md](../../ROADMAP.md)
 
 ### Low priority
 

@@ -807,6 +807,11 @@ impl<'ast> Visit<'ast> for DslVisitor {
 
 // ── Public entry point ─────────────────────────────────────────────────────
 
+/// Parses a `model!{}` DSL invocation out of a Rust source file and returns
+/// the model's snake_case name together with its [`ParsedSchema`]. Supports
+/// both the legacy v1 syntax (`fields: { name: String [required], ... }`) and
+/// the v2 semantic-type syntax (`{ name: text [required], ... }`). Returns
+/// `None` if the source doesn't parse or contains no `model!{}` call.
 pub fn parse_schema_from_source(source: &str) -> Option<(String, ParsedSchema)> {
     let file = syn::parse_str::<syn::File>(source).ok()?;
     let mut visitor = DslVisitor::new();

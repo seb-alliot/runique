@@ -38,6 +38,7 @@ pub struct AdminRoutes {
 }
 
 impl AdminRoutes {
+    /// Wraps an Axum router together with the admin panel's own location path.
     pub fn new(path: impl Into<String>, router: axum::Router) -> Self {
         Self {
             router,
@@ -45,6 +46,7 @@ impl AdminRoutes {
         }
     }
 
+    /// Merges another router into this one, keeping the recorded `path`.
     pub fn merge(mut self, other: axum::Router) -> Self {
         self.router = self.router.merge(other);
         self

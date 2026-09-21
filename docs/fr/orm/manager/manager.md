@@ -60,7 +60,7 @@ let user = users::Entity::find_by_id(user_id)
 | `filter(cond)` | Ajoute une condition WHERE (AND) |
 | `exclude(cond)` | Ajoute une condition WHERE NOT |
 | `asc(col)` / `desc(col)` | Tri ascendant / descendant par colonne |
-| `order_by_random()` | Tri par `RANDOM()` — sans SQL brut |
+| `order_by_random(db)` | Tri aléatoire — `RANDOM()` ou `RAND()` choisi selon le moteur |
 | `order_by_expr(expr, order)` | Tri par une expression SeaORM arbitraire |
 | `limit(n)` / `offset(n)` | Pagination |
 | `first(db)` | Exécute et retourne le premier résultat (`Option<Model>`) |
@@ -74,7 +74,7 @@ let user = users::Entity::find_by_id(user_id)
 ```rust
 let suggestion = MonForm::objects
     .all()
-    .order_by_random()
+    .order_by_random(&db)
     .limit(1)
     .first(&db)
     .await?;

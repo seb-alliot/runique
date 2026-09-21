@@ -4,6 +4,10 @@ use anyhow::Result;
 
 use std::{fs, path::Path, process::Command};
 
+/// Entry point of the `start` command: if `main_path` calls `.with_admin(...)`,
+/// regenerates `src/admins/` from `admin_path` and runs `cargo fmt --all` before
+/// launching `cargo run --release`, so the build never picks up a half-written
+/// admin module. No-ops (with a hint) when admin isn't enabled.
 pub fn runique_start(main_path: &str, admin_path: &str) -> Result<()> {
     let main_file = Path::new(main_path);
 

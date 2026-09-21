@@ -202,31 +202,42 @@ pub enum ErrorType {
     Validation,
 }
 
+/// Diagnostic details about a failed template render, used to build the debug error page.
 #[derive(Debug, Serialize, Clone)]
 pub struct TemplateInfo {
+    /// Name of the template that failed to render.
     pub name: String,
+    /// Raw source of the template, read from disk when available.
     pub source: Option<String>,
+    /// Line number where rendering failed, parsed from the Tera error message.
     pub line_number: Option<usize>,
+    /// Names of templates known to Tera, excluding Runique's internal/builtin templates.
     pub available_templates: Vec<String>,
 }
 
+/// HTTP request metadata captured for the debug error page.
 #[derive(Debug, Serialize, Clone)]
 pub struct RequestInfo {
     pub method: String,
     pub path: String,
     pub query: Option<String>,
+    /// Request headers with `authorization`, `cookie`, and `token` entries stripped.
     pub headers: StrMap,
 }
 
+/// One level of the underlying error chain, captured via `Error::source()`.
 #[derive(Debug, Serialize, Clone)]
 pub struct StackFrame {
+    /// Depth in the error chain, starting at 0 for the top-level error.
     pub level: usize,
     pub message: String,
     /// `{:?}` representation of this error in the chain
     pub debug_repr: Option<String>,
+    /// Source location of this error, when available (currently always `None`).
     pub location: Option<String>,
 }
 
+/// Runtime environment metadata shown on the debug error page.
 #[derive(Debug, Serialize, Clone)]
 pub struct EnvironmentInfo {
     pub debug_mode: bool,
@@ -255,6 +266,8 @@ impl ErrorContext {
             },
         }
     }
+    /// Attaches request info from a `RequestInfoHelper` snapshot, for use when the
+    /// original `Request` is no longer available (e.g. from within middleware).
     #[must_use]
     pub fn with_request_helper(mut self, helper: &RequestInfoHelper) -> Self {
         self.request_info = Some(RequestInfo {
@@ -272,6 +285,8 @@ impl ErrorContext {
             .and_then(|cap| cap.get(1))
             .and_then(|m| m.as_str().parse::<usize>().ok())
     }
+    /// Builds an `ErrorContext` from a Tera rendering error, resolving the failing
+    /// template's source and the line number reported in the error message.
     pub fn from_tera_error(error: &tera::Error, template_name: &str, tera: &tera::Tera) -> Self {
         let mut ctx = Self::new(
             ErrorType::Template,
@@ -292,6 +307,7 @@ impl ErrorContext {
         ctx.build_stack_trace(error);
         ctx
     }
+    /// Builds an `ErrorContext` for a database error, capturing its full source chain.
     pub fn database(error: impl std::error::Error) -> Self {
         let mut ctx = Self::new(
             ErrorType::Database,
@@ -302,6 +318,7 @@ impl ErrorContext {
         ctx.build_stack_trace(&error);
         ctx
     }
+    /// Builds a 404 `ErrorContext` for the given request path.
     pub fn not_found(path: &str) -> Self {
         Self::new(
             ErrorType::NotFound,
@@ -310,6 +327,7 @@ impl ErrorContext {
             &tf("error.path_not_found", &[path]),
         )
     }
+    /// Builds an `ErrorContext` with an arbitrary status code and the generic `Internal` type.
     pub fn generic(status: StatusCode, message: &str) -> Self {
         Self::new(
             ErrorType::Internal,
@@ -318,6 +336,8 @@ impl ErrorContext {
             message,
         )
     }
+    /// Builds an `ErrorContext` from an `anyhow::Error`, capturing its full debug
+    /// representation and recording each cause in its chain as a stack frame.
     pub fn from_anyhow(error: &anyhow::Error) -> Self {
         let mut ctx = Self::new(
             ErrorType::Internal,
@@ -339,6 +359,8 @@ impl ErrorContext {
         ctx
     }
 
+    /// Attaches request info extracted directly from an Axum `Request`, stripping
+    /// `authorization`, `cookie`, and `token` headers before storing them.
     pub fn with_request(mut self, request: &axum::extract::Request) -> Self {
         self.request_info = Some(RequestInfo {
             method: request.method().to_string(),
@@ -358,12 +380,15 @@ impl ErrorContext {
         });
         self
     }
+    /// Attaches free-form additional details to the error context.
     #[must_use]
     pub fn with_details(mut self, details: &str) -> Self {
         self.details = Some(details.to_string());
         self
     }
 
+    /// Walks the error's `source()` chain, recording one `StackFrame` per level and
+    /// the root error's `{:?}` debug representation.
     pub fn build_stack_trace(&mut self, error: &dyn std::error::Error) {
         // Capture the `{:?}` of the root error on the ErrorContext
         self.debug_repr = Some(format!("{error:?}"));
@@ -381,6 +406,8 @@ impl ErrorContext {
             level = level.saturating_add(1);
         }
     }
+    /// Builds an `ErrorContext` from a `RuniqueError`, mapping each variant to a
+    /// status code and title, then enriching it with request and template info when available.
     pub fn from_runique_error(
         err: &RuniqueError,
         path: Option<&str>,
@@ -442,6 +469,8 @@ impl ErrorContext {
         ctx
     }
 }
+/// Reads a template's raw source from the `templates/` directory, returning `None`
+/// if the file doesn't exist or can't be read.
 pub fn read_template_source(template_name: &str) -> Option<String> {
     let template_path = format!("templates/{template_name}");
     std::fs::read_to_string(&template_path).ok()

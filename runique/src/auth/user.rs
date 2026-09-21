@@ -9,6 +9,7 @@ use sea_orm::{
 
 // ─── SeaORM Model ───────────────────────────────────────────────────────────
 
+/// SeaORM model for Runique's built-in user table `eihwaz_users`.
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, serde::Serialize, serde::Deserialize)]
 #[sea_orm(table_name = "eihwaz_users")]
 pub struct Model {
@@ -31,10 +32,13 @@ pub struct Model {
 
 impl_objects!(Entity);
 
+/// SeaORM relations for `eihwaz_users`.
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    /// Group memberships (`eihwaz_users_groupes`) for this user.
     #[sea_orm(has_many = "crate::auth::permissions::users_groupes::Entity")]
     UsersGroupes,
+    /// Authenticated sessions (`eihwaz_sessions`) owned by this user.
     #[sea_orm(has_many = "crate::middleware::session::session_db::Entity")]
     Sessions,
 }
@@ -79,6 +83,9 @@ impl RuniqueUser for Model {
 }
 
 // ─── UserEntity ──────────────────────────────────────────────────────────────
+/// Zero-sized `UserEntity` implementation backed by the built-in
+/// `eihwaz_users` table. Used as the default when no custom user model is
+/// configured (see `RuniqueAdminAuth`).
 pub struct BuiltinUserEntity;
 
 #[async_trait::async_trait]

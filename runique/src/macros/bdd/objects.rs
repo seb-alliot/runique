@@ -79,12 +79,16 @@ impl<E: EntityTrait> Default for Objects<E> {
 }
 
 impl<E: EntityTrait> Objects<E> {
+    /// Creates an empty manager. Holds no state beyond `PhantomData<E>`,
+    /// which is what lets `Objects<E>` be declared as an associated `const`
+    /// (see `impl_objects!`).
     pub const fn new() -> Self {
         Self {
             _phantom: PhantomData,
         }
     }
 
+    /// Returns a builder over every row of the entity — equivalent to `E::find()`.
     pub fn all(&self) -> RuniqueQueryBuilder<E> {
         RuniqueQueryBuilder::new(E::find())
     }
@@ -92,6 +96,7 @@ impl<E: EntityTrait> Objects<E> {
     // In impl<E: EntityTrait> Objects<E>
 
     // === EXISTING (keeping current filter/exclude) ===
+    /// Starts a query builder with a `WHERE` condition already applied.
     pub fn filter<C>(&self, condition: C) -> RuniqueQueryBuilder<E>
     where
         C: Into<Condition>,
@@ -99,6 +104,7 @@ impl<E: EntityTrait> Objects<E> {
         RuniqueQueryBuilder::new(E::find()).filter(condition.into())
     }
 
+    /// Starts a query builder that excludes rows matching `condition`.
     pub fn exclude<C>(&self, condition: C) -> RuniqueQueryBuilder<E>
     where
         C: Into<Condition>,
@@ -107,6 +113,9 @@ impl<E: EntityTrait> Objects<E> {
     }
 
     // === NEW : simplified vector filter ===
+    /// Starts a query builder filtered on several `(column, value)` equality
+    /// pairs at once (conditions are ANDed). See
+    /// [`RuniqueQueryBuilder::filter_many`].
     pub fn filter_many<C, V, I>(&self, filters: I) -> RuniqueQueryBuilder<E>
     where
         C: ColumnTrait,
@@ -116,6 +125,8 @@ impl<E: EntityTrait> Objects<E> {
         RuniqueQueryBuilder::new(E::find()).filter_many(filters)
     }
 
+    /// Starts a query builder that excludes rows matching any of several
+    /// `(column, value)` pairs. See [`RuniqueQueryBuilder::exclude_many`].
     pub fn exclude_many<C, V, I>(&self, filters: I) -> RuniqueQueryBuilder<E>
     where
         C: ColumnTrait,
@@ -125,6 +136,7 @@ impl<E: EntityTrait> Objects<E> {
         RuniqueQueryBuilder::new(E::find()).exclude_many(filters)
     }
 
+    /// Fetches the row with primary key `id`, or `DbErr::RecordNotFound` if none exists.
     pub async fn get(
         &self,
         db: &DatabaseConnection,
@@ -136,6 +148,8 @@ impl<E: EntityTrait> Objects<E> {
             .ok_or(DbErr::RecordNotFound("Record not found".to_string()))
     }
 
+    /// Fetches the row with primary key `id`, returning `None` instead of an
+    /// error if it doesn't exist.
     pub async fn get_optional(
         &self,
         db: &DatabaseConnection,
@@ -144,6 +158,7 @@ impl<E: EntityTrait> Objects<E> {
         E::find_by_id(id).one(db).await
     }
 
+    /// Returns the total number of rows in the entity's table.
     pub async fn count(&self, db: &DatabaseConnection) -> Result<u64, DbErr>
     where
         E::Model: Sync,
@@ -151,6 +166,9 @@ impl<E: EntityTrait> Objects<E> {
         use sea_orm::PaginatorTrait;
         E::find().count(db).await
     }
+    /// Fetches the row with primary key `id` and returns it, or renders
+    /// `404.html` as an early `Err` response if it doesn't exist (or
+    /// `500.html` if the lookup itself fails).
     pub async fn get_or_404(
         &self,
         db: &DatabaseConnection,

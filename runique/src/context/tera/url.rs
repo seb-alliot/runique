@@ -3,6 +3,9 @@ use crate::utils::aliases::{ARlockmap, JsonMap};
 use serde_json::Value;
 use tera::{Function, Kwargs, State, TeraResult};
 
+/// Tera `{% link %}` function: resolves a named route to its URL, substituting
+/// `{param}` placeholders from the given kwargs and appending a `?query` string
+/// built from a `query` kwarg (raw string or object).
 pub struct LinkFunction {
     pub url_registry: ARlockmap,
 }

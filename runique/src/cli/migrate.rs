@@ -9,6 +9,8 @@ use std::{fs, path::Path};
 // Public API
 // ============================================================
 
+/// Runs `sea-orm-cli migrate up` against `migrations_path` (its trailing `/src`
+/// stripped, since `sea-orm-cli` expects the migration crate root).
 pub async fn up(migrations_path: &str) -> Result<()> {
     dotenvy::dotenv().ok();
 
@@ -34,6 +36,10 @@ pub async fn up(migrations_path: &str) -> Result<()> {
     Ok(())
 }
 
+/// Rolls back specific migration files, or a whole batch (by timestamp), by
+/// parsing their `down()` function and executing the resulting SQL in a single
+/// transaction. With no `files` and no `batch`, lists what's available instead.
+/// Enforces most-recent-first rollback order per table (or per batch).
 pub async fn down(migrations_path: &str, files: Vec<String>, batch: Option<String>) -> Result<()> {
     if files.is_empty() && batch.is_none() {
         list_available(migrations_path)?;
@@ -61,6 +67,7 @@ pub async fn down(migrations_path: &str, files: Vec<String>, batch: Option<Strin
     Ok(())
 }
 
+/// Prints all applied migration files (per table and per batch) available for rollback.
 pub fn status(migrations_path: &str) -> Result<()> {
     println!("{}", tf("migrate.available_for", &[migrations_path]));
     list_available(migrations_path)?;

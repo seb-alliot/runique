@@ -481,7 +481,9 @@ pub fn find_id_by_visible_text(list_body: &str, needle: &str) -> String {
     let mut search_from = 0;
     loop {
         let Some(rel_pos) = list_body[search_from..].find(needle) else {
-            panic!("texte '{needle}' introuvable dans la liste (avec un badge #id précédent) : {list_body}");
+            panic!(
+                "texte '{needle}' introuvable dans la liste (avec un badge #id précédent) : {list_body}"
+            );
         };
         let needle_pos = search_from + rel_pos;
         let mut last_id = None;

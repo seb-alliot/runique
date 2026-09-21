@@ -3,6 +3,10 @@ use serde::Serialize;
 use serde_json::Value;
 use tera::Context;
 
+/// Chainable wrapper around `tera::Context`, backing the `context!{}` macro.
+/// Lets a template context be built as `ContextHelper::new().add(...).add(...)`
+/// instead of mutating a `Context` in place; derefs to `Context` for anything
+/// not covered by `.add()`/`.update()`.
 pub struct ContextHelper {
     inner: Context,
 }
@@ -14,12 +18,14 @@ impl Default for ContextHelper {
 }
 
 impl ContextHelper {
+    /// Creates an empty context.
     pub fn new() -> Self {
         Self {
             inner: Context::new(),
         }
     }
 
+    /// Inserts `value` under `key` and returns `self`, for chaining.
     pub fn add<T: Serialize>(mut self, key: &str, value: T) -> Self {
         // Tera 2 keys are `Cow<'static, str>`; owned here so the public signature
         // keeps accepting a borrowed `&str`.
@@ -27,6 +33,8 @@ impl ContextHelper {
         self
     }
 
+    /// Merges the top-level keys of a JSON object into the context. Does
+    /// nothing if `data` is not a JSON object.
     pub fn update(mut self, data: Value) -> Self {
         if let Some(obj) = data.as_object() {
             for (key, value) in obj {

@@ -10,6 +10,9 @@ use crate::impl_form_access;
 use crate::utils::aliases::definition::StrMap;
 use crate::utils::trad::t;
 
+/// Built-in admin form for editing a `droit` (permission) entry: the target
+/// group, the scoped resource key, and a boolean per CRUD operation
+/// (including the `_own` variants).
 #[derive(serde::Serialize, Debug, Clone)]
 #[serde(transparent)]
 pub struct DroitAdminForm {
@@ -37,6 +40,7 @@ impl RuniqueForm for DroitAdminForm {
 
 // ─── GroupeAdminForm ─────────────────────────────────────────────────────────
 
+/// Built-in admin form for creating/editing a `groupe`: just its name.
 #[derive(serde::Serialize, Debug, Clone)]
 #[serde(transparent)]
 pub struct GroupeAdminForm {
@@ -126,6 +130,9 @@ impl RuniqueForm for UserAdminCreateForm {
 
 // ─── UserAdminEditForm ────────────────────────────────────────────────────────
 
+/// Built-in form for editing an existing admin user: username, email,
+/// active/staff flags, and group membership. Unlike [`UserAdminCreateForm`],
+/// it has no password field and cannot grant `is_superuser`.
 #[derive(serde::Serialize, Debug, Clone)]
 #[serde(transparent)]
 pub struct UserAdminEditForm {

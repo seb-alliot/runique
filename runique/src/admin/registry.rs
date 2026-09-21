@@ -16,6 +16,7 @@ pub struct AdminRegistry {
 }
 
 impl AdminRegistry {
+    /// Creates an empty registry.
     pub fn new() -> Self {
         Self {
             resources: IndexMap::new(),
@@ -32,6 +33,7 @@ impl AdminRegistry {
         self.resources.get(key)
     }
 
+    /// Iterates over every registered resource entry, in insertion/display order.
     pub fn all(&self) -> impl Iterator<Item = &ResourceEntry> {
         self.resources.values()
     }
@@ -63,18 +65,22 @@ impl AdminRegistry {
             .collect()
     }
 
+    /// Returns true if no resource is registered.
     pub fn is_empty(&self) -> bool {
         self.resources.is_empty()
     }
 
+    /// Returns the number of registered resources.
     pub fn len(&self) -> usize {
         self.resources.len()
     }
 
+    /// Returns true if a resource is registered under `key`.
     pub fn contains(&self, key: &str) -> bool {
         self.resources.contains_key(key)
     }
 
+    /// Returns the URL keys of every registered resource, in order.
     pub fn keys(&self) -> Vec<&str> {
         self.resources.keys().map(|k| k.as_str()).collect()
     }

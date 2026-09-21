@@ -168,6 +168,9 @@ impl AllowedExtensions {
         Self { extensions: vec![] }
     }
 
+    /// Returns whether `filename`'s extension passes this whitelist.
+    /// Always rejects `.svg` regardless of the list; an empty list allows
+    /// any other extension.
     pub fn is_allowed(&self, filename: &str) -> bool {
         if filename.to_lowercase().ends_with(".svg") {
             return false;
@@ -198,19 +201,24 @@ pub type UploadPathFn = Option<Arc<dyn Fn(&str) -> String + Send + Sync>>;
 pub struct FileSize(u64);
 
 impl FileSize {
+    /// Creates a size expressed in raw bytes.
     pub fn bytes(n: u64) -> Self {
         Self(n)
     }
+    /// Creates a size expressed in kilobytes (`n * 1024` bytes).
     pub fn kb(n: u64) -> Self {
         Self(n * 1024)
     }
+    /// Creates a size expressed in megabytes (`n * 1024 * 1024` bytes).
     pub fn mb(n: u64) -> Self {
         Self(n * 1024 * 1024)
     }
+    /// Creates a size expressed in gigabytes (`n * 1024 * 1024 * 1024` bytes).
     pub fn gb(n: u64) -> Self {
         Self(n * 1024 * 1024 * 1024)
     }
 
+    /// Returns the size in bytes.
     pub fn as_bytes(self) -> u64 {
         self.0
     }
@@ -252,16 +260,19 @@ impl std::fmt::Debug for FileUploadConfig {
 }
 
 impl FileUploadConfig {
+    /// Creates a config with no upload path set and the default 10 MB max size.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Sets a fixed upload destination path, overriding the field-name-derived default.
     pub fn upload_to(mut self, path: String) -> Self {
         let f = Arc::new(move |_field_name: &str| path.clone());
         self.upload_to = Some(f);
         self
     }
 
+    /// Sets the maximum accepted upload size.
     pub fn max_size(mut self, size: FileSize) -> Self {
         self.max_size = Some(size.as_bytes());
         self

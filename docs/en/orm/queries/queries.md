@@ -237,7 +237,7 @@ search!(users::Entity =>
 
 ```rust
 let picks = search!(product::Entity => Available eq true)
-    .order_by_random()
+    .order_by_random(&*db)
     .limit(5)
     .all(&*db).await?;
 ```

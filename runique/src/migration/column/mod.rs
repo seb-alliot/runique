@@ -42,6 +42,8 @@ pub struct ColumnDef {
 }
 
 impl ColumnDef {
+    /// Creates a column named `name`, defaulting to an unbounded, non-nullable
+    /// `VARCHAR` with no constraints.
     pub fn new(name: impl Into<String>) -> Self {
         Self {
             name: name.into(),
@@ -68,21 +70,25 @@ impl ColumnDef {
     }
 
     // __ size of size
+    /// Sets the column type to a tiny (8-bit) integer.
     pub fn tiny_integer(mut self) -> Self {
         self.col_type = ColumnType::TinyInteger;
         self
     }
 
+    /// Sets the column type to a small (16-bit) integer.
     pub fn small_integer(mut self) -> Self {
         self.col_type = ColumnType::SmallInteger;
         self
     }
 
+    /// Sets the column type to an unsigned 32-bit integer.
     pub fn unsigned(mut self) -> Self {
         self.col_type = ColumnType::Unsigned;
         self
     }
 
+    /// Sets the column type to an unsigned 64-bit integer.
     pub fn big_unsigned(mut self) -> Self {
         self.col_type = ColumnType::BigUnsigned;
         self
@@ -111,116 +117,142 @@ impl ColumnDef {
         self
     }
 
+    /// Sets the column type to a variable-length binary column of `len` bytes.
     pub fn var_binary(mut self, len: u32) -> Self {
         self.col_type = ColumnType::VarBinary(sea_query::StringLen::N(len));
         self
     }
 
+    /// Sets the column type to an unbounded binary blob.
     pub fn blob(mut self) -> Self {
         self.col_type = ColumnType::Blob;
         self
     }
 
+    /// Sets the column type to a fixed-length `CHAR` with no explicit length.
     pub fn char(mut self) -> Self {
         self.col_type = ColumnType::Char(None);
         self
     }
 
+    /// Sets the column type to a fixed-length `CHAR(len)`.
     pub fn char_len(mut self, len: u32) -> Self {
         self.col_type = ColumnType::Char(Some(len));
         self
     }
 
+    /// Sets the column type to an unbounded `VARCHAR` (the default).
     pub fn string(mut self) -> Self {
         self.col_type = ColumnType::String(sea_query::StringLen::None);
         self
     }
 
+    /// Sets the column type to a `VARCHAR(len)`.
     pub fn varchar(mut self, len: u32) -> Self {
         self.col_type = ColumnType::String(sea_query::StringLen::N(len));
         self
     }
 
+    /// Sets the column type to an unbounded `TEXT`.
     pub fn text(mut self) -> Self {
         self.col_type = ColumnType::Text;
         self
     }
 
+    /// Sets the column type to a 32-bit integer.
     pub fn integer(mut self) -> Self {
         self.col_type = ColumnType::Integer;
         self
     }
 
+    /// Sets the column type to a 64-bit integer.
     pub fn big_integer(mut self) -> Self {
         self.col_type = ColumnType::BigInteger;
         self
     }
 
+    /// Sets the column type to a single-precision float.
     pub fn float(mut self) -> Self {
         self.col_type = ColumnType::Float;
         self
     }
 
+    /// Sets the column type to a double-precision float.
     pub fn double(mut self) -> Self {
         self.col_type = ColumnType::Double;
         self
     }
 
+    /// Sets the column type to a boolean.
     pub fn boolean(mut self) -> Self {
         self.col_type = ColumnType::Boolean;
         self
     }
 
+    /// Sets the column type to a timezone-less date-and-time value.
     pub fn datetime(mut self) -> Self {
         self.col_type = ColumnType::DateTime;
         self
     }
 
+    /// Sets the column type to a SQL `TIMESTAMP`.
     pub fn timestamp(mut self) -> Self {
         self.col_type = ColumnType::Timestamp;
         self
     }
 
+    /// Sets the column type to a `TIMESTAMP WITH TIME ZONE`.
     pub fn timestamp_tz(mut self) -> Self {
         self.col_type = ColumnType::TimestampWithTimeZone;
         self
     }
 
+    /// Sets the column type to a date with no time component.
     pub fn date(mut self) -> Self {
         self.col_type = ColumnType::Date;
         self
     }
 
+    /// Sets the column type to a time with no date component.
     pub fn time(mut self) -> Self {
         self.col_type = ColumnType::Time;
         self
     }
 
+    /// Sets the column type to a UUID.
     pub fn uuid(mut self) -> Self {
         self.col_type = ColumnType::Uuid;
         self
     }
 
+    /// Sets the column type to JSON stored as text.
     pub fn json(mut self) -> Self {
         self.col_type = ColumnType::Json;
         self
     }
 
+    /// Sets the column type to JSON stored in a binary format (e.g. Postgres `JSONB`).
     pub fn json_binary(mut self) -> Self {
         self.col_type = ColumnType::JsonBinary;
         self
     }
 
+    /// Sets the column type to a decimal with no explicit precision/scale.
     pub fn decimal(mut self) -> Self {
         self.col_type = ColumnType::Decimal(None);
         self
     }
 
+    /// Sets the column type to a decimal with explicit `precision` (total digits)
+    /// and `scale` (digits after the decimal point).
     pub fn decimal_len(mut self, precision: u32, scale: u32) -> Self {
         self.col_type = ColumnType::Decimal(Some((precision, scale)));
         self
     }
 
+    /// Sets the column type to a native SQL enum named `name` with the given
+    /// `variants`, and records the variant list on `enum_variants` for
+    /// downstream form-field generation.
     pub fn enum_type(mut self, name: impl Into<String>, variants: Vec<String>) -> Self {
         use sea_query::DynIden;
         let name_str = name.into();
@@ -237,66 +269,81 @@ impl ColumnDef {
     }
 
     // ── Modifiers ───────────────────────────────────────────────────────────
+    /// Sets the maximum length validation used when rendering the corresponding form field.
     pub fn max_len(mut self, len: u32) -> Self {
         self.max_length = Some(len);
         self
     }
 
+    /// Sets the minimum length validation used when rendering the corresponding form field.
     pub fn min_len(mut self, len: u32) -> Self {
         self.min_length = Some(len);
         self
     }
 
+    /// Sets the maximum integer value validation used when rendering the corresponding form field.
     pub fn max_i64(mut self, val: i64) -> Self {
         self.max_value = Some(val);
         self
     }
 
+    /// Sets the minimum integer value validation used when rendering the corresponding form field.
     pub fn min_i64(mut self, val: i64) -> Self {
         self.min_value = Some(val);
         self
     }
 
+    /// Sets the maximum float value validation used when rendering the corresponding form field.
     pub fn max_f64(mut self, val: f64) -> Self {
         self.max_float = Some(val);
         self
     }
 
+    /// Sets the minimum float value validation used when rendering the corresponding form field.
     pub fn min_f64(mut self, val: f64) -> Self {
         self.min_float = Some(val);
         self
     }
 
+    /// Marks the column `NOT NULL` (the default).
     pub fn required(mut self) -> Self {
         self.nullable = false;
         self
     }
 
+    /// Marks the column nullable.
     pub fn nullable(mut self) -> Self {
         self.nullable = true;
         self
     }
 
+    /// Adds a unique constraint on the column.
     pub fn unique(mut self) -> Self {
         self.unique = true;
         self
     }
 
+    /// Sets a literal `DEFAULT` value for the column.
     pub fn default(mut self, value: sea_query::Value) -> Self {
         self.default = Some(value);
         self
     }
 
+    /// Sets an alternate column name to read from when selecting (e.g. a
+    /// legacy column name kept in the DB but exposed under a new field name).
     pub fn select_as(mut self, alias: impl Into<String>) -> Self {
         self.select_as = Some(alias.into());
         self
     }
 
+    /// Sets an alternate column name to write to when saving.
     pub fn save_as(mut self, alias: impl Into<String>) -> Self {
         self.save_as = Some(alias.into());
         self
     }
 
+    /// Excludes the column from generated SQL (`to_sea_column`) and from
+    /// generated form fields — it exists on the model but not in the schema.
     pub fn ignore(mut self) -> Self {
         self.ignored = true;
         self
@@ -316,12 +363,14 @@ impl ColumnDef {
         self
     }
 
+    /// Marks the column as a `created_at`-style timestamp: set once, at insertion.
     pub fn auto_now(mut self) -> Self {
         self.col_type = ColumnType::DateTime;
         self.auto_now = true;
         self
     }
 
+    /// Marks the column as an `updated_at`-style timestamp: refreshed on every update.
     pub fn auto_now_update(mut self) -> Self {
         self.col_type = ColumnType::DateTime;
         self.auto_now_update = true;
@@ -359,21 +408,25 @@ impl ColumnDef {
     }
 
     //__ variant of postgres
+    /// Sets the column type to a PostgreSQL `INET` address.
     pub fn inet(mut self) -> Self {
         self.col_type = ColumnType::Inet;
         self
     }
 
+    /// Sets the column type to a PostgreSQL `CIDR` network.
     pub fn cidr(mut self) -> Self {
         self.col_type = ColumnType::Cidr;
         self
     }
 
+    /// Sets the column type to a PostgreSQL `MACADDR`.
     pub fn mac_address(mut self) -> Self {
         self.col_type = ColumnType::MacAddr;
         self
     }
 
+    /// Sets the column type to a PostgreSQL `INTERVAL`.
     pub fn interval(mut self) -> Self {
         self.col_type = ColumnType::Interval(None, None);
         self

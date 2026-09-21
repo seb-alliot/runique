@@ -12,6 +12,8 @@
 //! ```
 use tracing::Level;
 
+/// Extension trait on `Result` for logging a swallowed error before discarding it,
+/// replacing silent `.ok()` / `.unwrap_or_default()` call sites (see module docs).
 pub trait TraceResult<T> {
     /// Logs the error (caller `file:line` + `ctx`) at `level` if `Some`, returns `Option<T>`.
     #[track_caller]

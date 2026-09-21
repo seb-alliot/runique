@@ -61,6 +61,9 @@ pub struct HoneypotField {
 }
 
 impl HoneypotField {
+    /// Creates a honeypot field with the given name. Always validates as
+    /// `true` — the anti-bot middleware, not the field itself, checks
+    /// whether it was filled in and rejects the submission.
     pub fn new(name: &str) -> Self {
         Self {
             base: FieldConfig::new(name, "text", "base_honeypot.html"),

@@ -1,6 +1,10 @@
 //! Built-in framework template constants (errors, base, CSRF, admin…).
 use crate::tpls;
 
+/// Built-in templates with no dependency on other internal templates —
+/// `(tera_name, embedded_content)` pairs, content embedded at compile time via
+/// `include_str!` (see the `tpls!` macro). Registered into Tera by
+/// `Templates::load_internal_templates`.
 pub const SIMPLE_TEMPLATES: &[(&str, &str)] = tpls![
     ("base_index.html", "runique_index/base_index.html"),
     ("message.html", "message/message.html"),
@@ -13,6 +17,8 @@ pub const SIMPLE_TEMPLATES: &[(&str, &str)] = tpls![
     ("js_files.html", "asset/js.html"),
 ];
 
+/// Partials composing the built-in error page body (`errors/corps-error/`),
+/// `(tera_name, embedded_content)` pairs — see [`SIMPLE_TEMPLATES`].
 pub const ERROR_CORPS: &[(&str, &str)] = tpls![
     ("header-error.html", "errors/corps-error/header-error.html"),
     (
@@ -28,6 +34,8 @@ pub const ERROR_CORPS: &[(&str, &str)] = tpls![
     ("footer-error.html", "errors/corps-error/footer-error.html"),
 ];
 
+/// Per-type field renderers used by the forms renderer (one per `FormField`
+/// widget kind), `(tera_name, embedded_content)` pairs — see [`SIMPLE_TEMPLATES`].
 pub const FIELD_TEMPLATES: &[(&str, &str)] = tpls![
     ("base_boolean.html", "field_html/base_boolean.html"),
     ("base_checkbox.html", "field_html/base_checkbox.html"),
@@ -43,11 +51,16 @@ pub const FIELD_TEMPLATES: &[(&str, &str)] = tpls![
     ("base_honeypot.html", "field_html/base_honeypot.html"),
 ];
 
+/// Built-in authentication pages (forgot/reset password), `(tera_name,
+/// embedded_content)` pairs — see [`SIMPLE_TEMPLATES`].
 pub const AUTH_TEMPLATES: &[(&str, &str)] = tpls![
     ("auth/forgot_password.html", "auth/forgot_password.html"),
     ("auth/reset_password.html", "auth/reset_password.html"),
 ];
 
+/// Built-in admin panel templates (login, dashboard, CRUD views, history,
+/// notification emails…), `(tera_name, embedded_content)` pairs — see
+/// [`SIMPLE_TEMPLATES`].
 pub const ADMIN_TEMPLATES: &[(&str, &str)] = tpls![
     ("admin/admin_template.html", "admin/admin_template.html"),
     ("admin_base.html", "admin/admin_base.html"),

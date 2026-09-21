@@ -22,6 +22,10 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 
+/// Content-Security-Policy directive set rendered into the
+/// `Content-Security-Policy` header. Use `SecurityPolicy::default()` for the
+/// framework's baseline policy, `strict()` for a tighter preset, or
+/// `permissive()` for local development.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SecurityPolicy {
     pub default_src: Vec<String>,
@@ -39,7 +43,11 @@ pub struct SecurityPolicy {
     pub frame_ancestors: Vec<String>,
     pub base_uri: Vec<String>,
     pub form_action: Vec<String>,
+    /// Adds the `upgrade-insecure-requests` directive when `true`.
     pub upgrade_insecure_requests: bool,
+    /// Intended to select nonce-based CSP generation; currently not read by
+    /// `to_header_value` or the CSP middleware, which decide whether to pass
+    /// a nonce independently of this flag.
     pub use_nonce: bool,
 }
 
@@ -74,6 +82,10 @@ impl Default for SecurityPolicy {
 }
 
 impl SecurityPolicy {
+    /// A tighter preset: no `'unsafe-inline'` anywhere and
+    /// `upgrade-insecure-requests` enabled. Note this drops the
+    /// `'unsafe-inline'` style-src fallback htmx relies on for its injected
+    /// inline styles — pair with `merge_htmx_hashes()` if htmx is in use.
     pub fn strict() -> Self {
         Self {
             default_src: vec!["'none'".into()],
@@ -92,6 +104,9 @@ impl SecurityPolicy {
             use_nonce: true,
         }
     }
+    /// A looser preset for local development: allows `'unsafe-inline'` and
+    /// `'unsafe-eval'` in `script-src`, `https:`/`data:` in a few source
+    /// lists, and disables nonce generation. Not intended for production.
     pub fn permissive() -> Self {
         Self {
             default_src: vec!["'none'".into()],
@@ -128,6 +143,11 @@ impl SecurityPolicy {
             }
         }
     }
+    /// Renders this policy into a `Content-Security-Policy` header value,
+    /// joining non-empty directives with `; `. Whenever a non-empty `nonce`
+    /// is given (independently of `use_nonce`), it is appended to
+    /// `script-src`/`style-src` and `'unsafe-inline'` — and, for styles,
+    /// `'unsafe-hashes'` — is stripped from those directives.
     #[must_use]
     pub fn to_header_value(&self, nonce: Option<&str>) -> String {
         let mut directives = Vec::new();

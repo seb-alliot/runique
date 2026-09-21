@@ -91,6 +91,7 @@ pub struct RuniqueLog {
 }
 
 impl RuniqueLog {
+    /// Creates an empty log configuration: every category disabled, single colored stdout output.
     pub fn new() -> Self {
         Self::default()
     }

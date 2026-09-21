@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MiddlewareConfig {
+    /// Enables the Content-Security-Policy middleware.
     pub enable_csp: bool,
     /// Enables additional security headers (HSTS, X-Frame-Options, COEP, COOP, CORP,
     /// Referrer-Policy, Permissions-Policy). Has no effect if `enable_csp` is false.
@@ -21,11 +22,15 @@ pub struct MiddlewareConfig {
     /// When `true`: uses `security_headers_middleware` (CSP + additional headers).
     /// When `false`: uses `csp_middleware` (CSP only).
     pub enable_header_security: bool,
+    /// Enables `Host` header validation against the allowed hosts list.
     pub enable_host_validation: bool,
     /// Enables `error_handler` middleware which intercepts 4xx/5xx errors.
     /// Disable only if you handle errors manually in each handler.
     pub enable_debug_errors: bool,
+    /// Enables the HTTP cache middleware.
     pub enable_cache: bool,
+    /// When `true`, a new login invalidates the user's other active sessions
+    /// (only one device connected at a time).
     pub exclusive_login: bool,
 }
 
@@ -43,6 +48,10 @@ impl Default for MiddlewareConfig {
 }
 
 impl MiddlewareConfig {
+    /// Builds a config from environment variables, with CSP and host
+    /// validation left disabled (those are configured only through the
+    /// builder). Currently only `enable_cache` reads `RUNIQUE_ENABLE_CACHE`;
+    /// the other flags use fixed defaults.
     pub fn from_env() -> Self {
         let get_bool = |key: &str, default: bool| {
             std::env::var(key)

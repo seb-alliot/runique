@@ -136,7 +136,7 @@ pub mod prelude {
     // ========================================================================
     use crate::chrono;
     pub use crate::config::{security::SecurityConfig, server::ServerConfig};
-    pub use crate::utils::env::{is_debug, load_env};
+    pub use crate::utils::env::is_debug;
     pub use crate::utils::trad::{Lang, current_lang, set_lang};
     pub use dotenvy;
 

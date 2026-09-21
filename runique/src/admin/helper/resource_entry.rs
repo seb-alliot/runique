@@ -21,6 +21,7 @@ pub enum SortDir {
 }
 
 impl SortDir {
+    /// Returns the query-string representation of this direction (`"asc"` or `"desc"`).
     #[must_use]
     pub fn as_str(&self) -> &'static str {
         match self {
@@ -28,6 +29,8 @@ impl SortDir {
             SortDir::Desc => "desc",
         }
     }
+    /// Returns the opposite direction as a string, used to flip sort order
+    /// when the same column header is clicked again.
     #[must_use]
     pub fn toggle(&self) -> &'static str {
         match self {
@@ -183,6 +186,8 @@ pub struct ResourceEntry {
 }
 
 impl ResourceEntry {
+    /// Creates a resource entry with only metadata and a form builder set;
+    /// every CRUD closure defaults to `None` until wired up via the `with_*` builders.
     pub fn new(meta: AdminResource, form_builder: FormBuilder) -> Self {
         Self {
             meta,
@@ -203,71 +208,94 @@ impl ResourceEntry {
             enum_label_fn: None,
         }
     }
+    /// Registers the enum-label resolver used to turn raw enum db values into
+    /// display labels in list/detail/delete views. Used by generated admin
+    /// resource code; not typically called directly.
     #[must_use]
     pub fn with_enum_label_fn(mut self, f: EnumLabelFn) -> Self {
         self.enum_label_fn = Some(f);
         self
     }
+    /// Registers the closure that loads many-to-many field options for the
+    /// create/edit form.
     #[must_use]
     pub fn with_m2m_loader(mut self, f: M2mLoaderFn) -> Self {
         self.m2m_loader = Some(f);
         self
     }
+    /// Registers a dedicated form builder for the edit view, used instead of
+    /// `form_builder` when the edit form differs from the create form.
     #[must_use]
     pub fn with_edit_form_builder(mut self, f: FormBuilder) -> Self {
         self.edit_form_builder = Some(f);
         self
     }
+    /// Registers the closure that returns a page of resource entries for the list view.
     #[must_use]
     pub fn with_list_fn(mut self, f: ListFn) -> Self {
         self.list_fn = Some(f);
         self
     }
+    /// Registers the closure that fetches a single entry by its ID.
     #[must_use]
     pub fn with_get_fn(mut self, f: GetFn) -> Self {
         self.get_fn = Some(f);
         self
     }
+    /// Registers the closure that deletes an entry by its ID.
     #[must_use]
     pub fn with_delete_fn(mut self, f: DeleteFn) -> Self {
         self.delete_fn = Some(f);
         self
     }
+    /// Registers the closure that fully updates an entry from validated form data.
     #[must_use]
     pub fn with_update_fn(mut self, f: UpdateFn) -> Self {
         self.update_fn = Some(f);
         self
     }
+    /// Registers the closure used for partial updates (e.g. group/bulk field updates).
     #[must_use]
     pub fn with_partial_update_fn(mut self, f: UpdateFn) -> Self {
         self.partial_update_fn = Some(f);
         self
     }
+    /// Registers the closure that creates a new entry from validated form data.
     #[must_use]
     pub fn with_create_fn(mut self, f: CreateFn) -> Self {
         self.create_fn = Some(f);
         self
     }
+    /// Registers the closure that returns the total row count, used for pagination.
     #[must_use]
     pub fn with_count_fn(mut self, f: CountFn) -> Self {
         self.count_fn = Some(f);
         self
     }
+    /// Registers the closure that returns the distinct values available for
+    /// each `list_filter` sidebar column.
     #[must_use]
     pub fn with_filter_fn(mut self, f: FilterFn) -> Self {
         self.filter_fn = Some(f);
         self
     }
+    /// Declares which field names carry a unique DB constraint on the underlying
+    /// model. Used to exclude them from bulk edit, since applying the same value
+    /// to multiple rows would violate the constraint.
     #[must_use]
     pub fn with_unique_fields(mut self, fields: &'static [&'static str]) -> Self {
         self.unique_fields = fields;
         self
     }
+    /// Declares the field used to verify record ownership when
+    /// `can_update_own`/`can_delete_own` permissions are set.
     #[must_use]
     pub fn with_own_field(mut self, field: &'static str) -> Self {
         self.own_field = Some(field);
         self
     }
+    /// Registers the bulk (group) actions available in the list view, merging
+    /// choices together for actions declared multiple times on the same field.
     #[must_use]
     pub fn with_group_actions(mut self, actions: Vec<GroupAction>) -> Self {
         let mut merged: Vec<GroupAction> = Vec::new();

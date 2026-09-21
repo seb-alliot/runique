@@ -6,5 +6,6 @@
 //! | `test_register_url`      | register_pending, reverse, reverse_with_params |
 
 pub mod test_context_helper;
+pub mod test_order_by_random;
 pub mod test_register_url;
 pub mod test_router_ext;
