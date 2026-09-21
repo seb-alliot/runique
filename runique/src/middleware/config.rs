@@ -14,14 +14,6 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MiddlewareConfig {
-    /// Enables the Content-Security-Policy middleware.
-    pub enable_csp: bool,
-    /// Enables additional security headers (HSTS, X-Frame-Options, COEP, COOP, CORP,
-    /// Referrer-Policy, Permissions-Policy). Has no effect if `enable_csp` is false.
-    ///
-    /// When `true`: uses `security_headers_middleware` (CSP + additional headers).
-    /// When `false`: uses `csp_middleware` (CSP only).
-    pub enable_header_security: bool,
     /// Enables `Host` header validation against the allowed hosts list.
     pub enable_host_validation: bool,
     /// Enables `error_handler` middleware which intercepts 4xx/5xx errors.
@@ -37,8 +29,6 @@ pub struct MiddlewareConfig {
 impl Default for MiddlewareConfig {
     fn default() -> Self {
         Self {
-            enable_csp: true,
-            enable_header_security: false,
             enable_host_validation: true,
             enable_debug_errors: true,
             enable_cache: true,
@@ -48,10 +38,10 @@ impl Default for MiddlewareConfig {
 }
 
 impl MiddlewareConfig {
-    /// Builds a config from environment variables, with CSP and host
-    /// validation left disabled (those are configured only through the
-    /// builder). Currently only `enable_cache` reads `RUNIQUE_ENABLE_CACHE`;
-    /// the other flags use fixed defaults.
+    /// Builds a config from environment variables, with host validation left
+    /// disabled (configured only through the builder). Currently only
+    /// `enable_cache` reads `RUNIQUE_ENABLE_CACHE`; the other flags use fixed
+    /// defaults.
     pub fn from_env() -> Self {
         let get_bool = |key: &str, default: bool| {
             std::env::var(key)
@@ -60,9 +50,7 @@ impl MiddlewareConfig {
         };
 
         Self {
-            // CSP and host validation configured only via the builder
-            enable_csp: false,
-            enable_header_security: false,
+            // Host validation configured only via the builder
             enable_host_validation: false,
             enable_debug_errors: true, // always mounted — config.debug handles content
             enable_cache: get_bool("RUNIQUE_ENABLE_CACHE", true),
@@ -73,8 +61,6 @@ impl MiddlewareConfig {
     /// Configuration for production (maximum security)
     pub fn production() -> Self {
         Self {
-            enable_csp: true,
-            enable_header_security: false,
             enable_host_validation: true,
             enable_debug_errors: true,
             enable_cache: true,
@@ -85,8 +71,6 @@ impl MiddlewareConfig {
     /// Configuration for development (more permissive)
     pub fn development() -> Self {
         Self {
-            enable_csp: false,
-            enable_header_security: false,
             enable_host_validation: false,
             enable_debug_errors: true,
             enable_cache: false,
@@ -97,8 +81,6 @@ impl MiddlewareConfig {
     /// Configuration for API (minimal)
     pub fn api() -> Self {
         Self {
-            enable_csp: false,
-            enable_header_security: false,
             enable_host_validation: true,
             enable_debug_errors: true,
             enable_cache: true,
@@ -112,13 +94,6 @@ impl MiddlewareConfig {
     }
 
     // Chainable methods for fine-grained configuration
-
-    /// Enables or disables the CSP middleware.
-    #[must_use]
-    pub fn with_csp(mut self, enable: bool) -> Self {
-        self.enable_csp = enable;
-        self
-    }
 
     /// Enables or disables debug error pages (4xx/5xx intercepted by `error_handler`).
     #[must_use]

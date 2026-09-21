@@ -4,7 +4,10 @@
 //! soit défini dans `.env.test` ou dans l'environnement.
 //!
 //! Si la variable est absente, les tests appelant ce module retournent
-//! immédiatement (`skip` implicite).
+//! immédiatement (`skip` implicite — personne n'a demandé ces tests).
+//! Si elle est définie mais le container n'est pas joignable, `connect()`
+//! **panique** — un test qui ne peut pas vérifier ce qu'il est censé vérifier
+//! ne doit pas se rapporter comme "passed". Visible par défaut, sans flag.
 //!
 //! # Lancer les containers
 //! ```bash
@@ -31,8 +34,16 @@ use runique::sea_orm::{
 /// Retourne `None` si `DATABASE_URL_MARIADB` n'est pas défini (test ignoré).
 pub async fn connect() -> Option<DatabaseConnection> {
     let _ = dotenvy::from_filename(".env.test");
-    let url = std::env::var("DATABASE_URL_MARIADB").ok()?;
-    Database::connect(&url).await.ok()
+    let Ok(url) = std::env::var("DATABASE_URL_MARIADB") else {
+        return None;
+    };
+    match Database::connect(&url).await {
+        Ok(db) => Some(db),
+        Err(e) => panic!(
+            "DATABASE_URL_MARIADB is set ({url}) but the MariaDB container is unreachable: {e}\n\
+             Run `docker compose up -d`, or unset DATABASE_URL_MARIADB in .env.test to skip MariaDB tests."
+        ),
+    }
 }
 
 /// Exécute une instruction SQL brute et retourne le nombre de lignes affectées.

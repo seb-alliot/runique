@@ -8,7 +8,7 @@ use crate::helpers::{
 use axum::{Router, middleware, routing::get};
 use runique::app::staging::CspConfig;
 use runique::middleware::security::csp::{
-    SecurityPolicy, csp_middleware, https_redirect_middleware, security_headers_middleware,
+    SecurityPolicy, https_redirect_middleware, security_headers_middleware,
 };
 use runique::utils::aliases::AEngine;
 
@@ -19,20 +19,17 @@ fn test_security_policy_default() {
     assert!(policy.script_src.contains(&"'self'".to_string()));
     assert!(policy.style_src.contains(&"'self'".to_string()));
     assert!(policy.img_src.contains(&"'self'".to_string()));
-    assert!(policy.use_nonce);
 }
 
 #[test]
 fn test_security_policy_strict() {
     let policy = SecurityPolicy::strict();
-    assert!(policy.use_nonce);
     assert_eq!(policy.frame_ancestors, vec!["'none'".to_string()]);
 }
 
 #[test]
 fn test_security_policy_permissive() {
     let policy = SecurityPolicy::permissive();
-    assert!(!policy.use_nonce);
     assert!(policy.script_src.contains(&"'unsafe-eval'".to_string()));
     assert!(policy.img_src.contains(&"https:".to_string()));
 }
@@ -42,7 +39,6 @@ fn test_csp_config_default_policy() {
     // CspConfig::default() demarre avec SecurityPolicy::default()
     let csp = CspConfig::default();
     assert!(csp.get_policy().default_src.contains(&"'none'".to_string()));
-    assert!(!csp.header_security_enabled());
 }
 
 #[test]
@@ -57,11 +53,7 @@ fn test_to_header_value_basic() {
 
 #[test]
 fn test_to_header_value_with_nonce() {
-    let mut policy = SecurityPolicy {
-        use_nonce: true,
-        ..Default::default()
-    };
-    policy.use_nonce = true;
+    let policy = SecurityPolicy::default();
     let header = policy.to_header_value(Some("abc123"));
     assert!(header.contains("'nonce-abc123'"));
 }
@@ -128,24 +120,6 @@ fn test_csp_config_custom_scripts() {
 }
 
 #[test]
-fn test_csp_config_nonce_false() {
-    let csp = CspConfig::default().with_nonce(false);
-    assert!(!csp.get_policy().use_nonce);
-}
-
-#[test]
-fn test_csp_config_nonce_true_par_defaut() {
-    let csp = CspConfig::default();
-    assert!(csp.get_policy().use_nonce);
-}
-
-#[test]
-fn test_csp_config_header_security() {
-    let csp = CspConfig::default().with_header_security(true);
-    assert!(csp.header_security_enabled());
-}
-
-#[test]
 fn test_csp_config_upgrade_insecure() {
     let csp = CspConfig::default().with_upgrade_insecure(true);
     assert!(csp.get_policy().upgrade_insecure_requests);
@@ -154,7 +128,6 @@ fn test_csp_config_upgrade_insecure() {
 #[test]
 fn test_csp_config_preset_strict() {
     let csp = CspConfig::default().policy(SecurityPolicy::strict());
-    assert!(csp.get_policy().use_nonce);
     assert!(csp.get_policy().upgrade_insecure_requests);
 }
 
@@ -247,7 +220,6 @@ fn test_csp_config_form_action() {
 #[test]
 fn test_csp_config_preset_permissive() {
     let csp = CspConfig::default().policy(SecurityPolicy::permissive());
-    assert!(!csp.get_policy().use_nonce);
     assert!(
         csp.get_policy()
             .script_src
@@ -283,12 +255,6 @@ fn test_to_header_value_object_media_frame_src() {
 
 // ── Middlewares HTTP ──────────────────────────────────────────────────────────
 
-fn csp_app(engine: AEngine) -> Router {
-    Router::new()
-        .route("/", get(|| async { "ok" }))
-        .layer(middleware::from_fn_with_state(engine, csp_middleware))
-}
-
 fn security_headers_app(engine: AEngine) -> Router {
     Router::new()
         .route("/", get(|| async { "ok" }))
@@ -305,27 +271,6 @@ fn https_redirect_app(engine: AEngine) -> Router {
             engine,
             https_redirect_middleware,
         ))
-}
-
-#[tokio::test]
-async fn test_csp_middleware_ajoute_header() {
-    let engine = build_engine().await;
-    let resp = request::get(csp_app(engine), "/").await;
-    assert_status(&resp, 200);
-    assert_has_header(&resp, "content-security-policy");
-}
-
-#[tokio::test]
-async fn test_csp_middleware_header_contient_default_src() {
-    let engine = build_engine().await;
-    let resp = request::get(csp_app(engine), "/").await;
-    let csp = resp
-        .headers()
-        .get("content-security-policy")
-        .unwrap()
-        .to_str()
-        .unwrap();
-    assert!(csp.contains("default-src"));
 }
 
 #[tokio::test]
@@ -350,7 +295,7 @@ async fn test_security_headers_middleware_nonce_injecte_dans_csp() {
         .unwrap()
         .to_str()
         .unwrap();
-    // use_nonce = true par défaut → nonce présent dans script-src
+    // security_headers_middleware generates and injects a nonce unconditionally.
     assert!(csp.contains("nonce-"));
 }
 

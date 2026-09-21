@@ -19,9 +19,7 @@ async fn main() {
         .middleware(|m| {
             m.with_session_duration(tower_sessions::cookie::time::Duration::hours(2))
              .with_csp(|c| {
-                 c.with_header_security(true)
-                  .with_nonce(true)
-                  .scripts(vec!["'self'"])
+                 c.scripts(vec!["'self'"])
                   .images(vec!["'self'", "data:"])
              })
         })

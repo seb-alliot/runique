@@ -119,7 +119,7 @@
 | Fonctionnalité | Django | Runique |
 |----------------|--------|---------|
 | CSRF | natif | natif (comparaison constant-time) |
-| CSP | `django-csp` (tiers) | natif (`use_nonce: true` par défaut) |
+| CSP | `django-csp` (tiers) | natif (nonce par requête toujours actif) |
 | HSTS | `SECURE_HSTS_SECONDS` | natif — émis **uniquement sur HTTPS réel** (`enforce_https`/ACME), `max-age`/`includeSubDomains`/`preload` configurables (preload **opt-in**) |
 | SameSite cookies | configurable | `Strict` par défaut |
 | HttpOnly cookies | par défaut | toujours `true` |

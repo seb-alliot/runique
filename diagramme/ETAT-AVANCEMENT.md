@@ -17,8 +17,11 @@ Ne pas toucher `demo-app`. Écrire les diagrammes dans `diagramme/` (racine).
 - **AM3 (final)** : durée session lue du builder (`OnceLock` posé au build depuis
   `session_duration`, login + middleware = source unique, défaut 24h, warn si re-set
   divergent). Doc rustdoc concis + `docs/{fr,en}/middleware/sessions`. Test `ttl_tests`.
-- **CX2 + STRICT_CSP mort** : `strict_csp`→`enable_header_security`, HSTS gaté `should_emit_hsts`.
-  Test `hsts_tests`.
+- **CX2 + STRICT_CSP mort** : fix 2.1.21 (`strict_csp`→`enable_header_security`) reliait un flag mort
+  à un autre flag tout aussi mort (rien ne consommait `enable_header_security` non plus —
+  `security_headers_middleware` tournait déjà inconditionnellement). Les trois flags supprimés
+  le 2026-09-21 (`enable_csp`/`enable_header_security`/`strict_csp`), comportement réel inchangé.
+  HSTS reste gaté `should_emit_hsts`. Test `hsts_tests`.
 - **CX3 HSTS codé en dur** : header (`preload` inclus) codé en dur sur 3 sites → source unique
   `hsts_header_value()`, preload opt-in (`HSTS_PRELOAD`), max-age/subdomains configurables,
   warning boot si preload invalide. Statiques : HSTS retiré (host-scoped). Tests `hsts_value_*`.
@@ -31,7 +34,7 @@ Ne pas toucher `demo-app`. Écrire les diagrammes dans `diagramme/` (racine).
 - **AM1/M1** : makemigrations gère les ALTER (`diff_schemas`/`Changes.modified_columns`)
 - **AM2** divergence session_id : faux (on_conflict disjoints, jamais session_id) — résidu perf
 - **TR1** : ErrorContext gaté sur `config.debug`
-- **E1** : `enable_debug_errors=true` par défaut · **E2** : `attach_middlewares` code mort
+- **E1** : `enable_debug_errors=true` par défaut · **E2** : `attach_middlewares` code mort → ✅ supprimé (2026-09-21) · **E3** : bug réel ouvert (nonce CSP écrasé par slot 31, voir `anomalies.md`)
 
 ## Diagrammes FAITS
 
@@ -59,7 +62,7 @@ code framework runtime) ; `cli/` couvert en flux (fonctions, pas de struct porte
 
 ## Nouvelles anomalies trouvées via diagrammes
 
-- **CX2** 🟠 `enable_header_security=false` même en `production()` → HSTS/X-Frame absents en prod.
+- **CX2** 🟠 ~~`enable_header_security=false` même en `production()` → HSTS/X-Frame absents en prod~~ → faux, `security_headers_middleware` les pose déjà inconditionnellement ; le flag lui-même supprimé (2026-09-21).
 - **CFG1** 🟡 `secret_key` vide = warning, pas échec boot.
 
 ## Session 2026-06-29 — fin de la partie « code »

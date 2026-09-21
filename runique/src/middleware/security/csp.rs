@@ -45,10 +45,6 @@ pub struct SecurityPolicy {
     pub form_action: Vec<String>,
     /// Adds the `upgrade-insecure-requests` directive when `true`.
     pub upgrade_insecure_requests: bool,
-    /// Intended to select nonce-based CSP generation; currently not read by
-    /// `to_header_value` or the CSP middleware, which decide whether to pass
-    /// a nonce independently of this flag.
-    pub use_nonce: bool,
 }
 
 impl Default for SecurityPolicy {
@@ -76,7 +72,6 @@ impl Default for SecurityPolicy {
             base_uri: vec!["'self'".into()],
             form_action: vec!["'self'".into()],
             upgrade_insecure_requests: false,
-            use_nonce: true,
         }
     }
 }
@@ -101,12 +96,11 @@ impl SecurityPolicy {
             base_uri: vec!["'self'".into()],
             form_action: vec!["'self'".into()],
             upgrade_insecure_requests: true,
-            use_nonce: true,
         }
     }
     /// A looser preset for local development: allows `'unsafe-inline'` and
-    /// `'unsafe-eval'` in `script-src`, `https:`/`data:` in a few source
-    /// lists, and disables nonce generation. Not intended for production.
+    /// `'unsafe-eval'` in `script-src` and `https:`/`data:` in a few source
+    /// lists. Not intended for production.
     pub fn permissive() -> Self {
         Self {
             default_src: vec!["'none'".into()],
@@ -126,7 +120,6 @@ impl SecurityPolicy {
             base_uri: vec!["'self'".into()],
             form_action: vec!["'self'".into()],
             upgrade_insecure_requests: false,
-            use_nonce: false,
         }
     }
 
@@ -145,9 +138,9 @@ impl SecurityPolicy {
     }
     /// Renders this policy into a `Content-Security-Policy` header value,
     /// joining non-empty directives with `; `. Whenever a non-empty `nonce`
-    /// is given (independently of `use_nonce`), it is appended to
-    /// `script-src`/`style-src` and `'unsafe-inline'` — and, for styles,
-    /// `'unsafe-hashes'` — is stripped from those directives.
+    /// is given, it is appended to `script-src`/`style-src` and
+    /// `'unsafe-inline'` — and, for styles, `'unsafe-hashes'` — is stripped
+    /// from those directives.
     #[must_use]
     pub fn to_header_value(&self, nonce: Option<&str>) -> String {
         let mut directives = Vec::new();
@@ -212,24 +205,6 @@ impl SecurityPolicy {
 
         directives.join("; ")
     }
-}
-
-/// Standard CSP Middleware
-pub async fn csp_middleware(
-    State(engine): State<AEngine>,
-    req: Request<Body>,
-    next: Next,
-) -> Response {
-    let mut response: axum::http::Response<Body> = next.run(req).await;
-
-    let csp_value = engine.security_csp.to_header_value(None);
-    if let Ok(header) = HeaderValue::from_str(&csp_value) {
-        response
-            .headers_mut()
-            .insert(axum::http::header::CONTENT_SECURITY_POLICY, header);
-    }
-
-    response
 }
 
 /// Global security middleware (CSP + miscellaneous headers)

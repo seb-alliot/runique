@@ -4,8 +4,6 @@ use serde::{Deserialize, Serialize};
 /// Security settings read from the environment.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SecurityConfig {
-    /// Enables strict Content Security Policy (env: `STRICT_CSP`, default: `true`).
-    pub strict_csp: bool,
     /// Enables global rate limiting (env: `RATE_LIMITING`, default: `true`).
     pub rate_limiting: bool,
     /// Redirects HTTP to HTTPS (env: `ENFORCE_HTTPS`, default: `false`).
@@ -38,7 +36,6 @@ impl Default for SecurityConfig {
     /// preload. Emission stays gated by `should_emit_hsts()`.
     fn default() -> Self {
         Self {
-            strict_csp: false,
             rate_limiting: false,
             enforce_https: false,
             allowed_hosts: Vec::new(),
@@ -56,9 +53,6 @@ impl Default for SecurityConfig {
 impl SecurityConfig {
     /// Loads configuration from environment variables.
     pub fn from_env() -> Self {
-        let strict_csp = std::env::var("STRICT_CSP")
-            .map(|v| v.parse().unwrap_or(true))
-            .unwrap_or(true);
         let rate_limiting = std::env::var("RATE_LIMITING")
             .map(|v| v.parse().unwrap_or(true))
             .unwrap_or(true);
@@ -89,7 +83,6 @@ impl SecurityConfig {
             .unwrap_or(false);
 
         Self {
-            strict_csp,
             rate_limiting,
             enforce_https,
             allowed_hosts,
@@ -146,7 +139,6 @@ mod hsts_tests {
 
     fn cfg(enforce_https: bool, acme: bool) -> SecurityConfig {
         SecurityConfig {
-            strict_csp: true,
             rate_limiting: true,
             enforce_https,
             allowed_hosts: vec![],

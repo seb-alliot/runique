@@ -72,10 +72,11 @@ flowchart TB
 
 ## Anomalies / flux suspects
 
-### 🟡 AP1 — `RuniqueEngine::attach_middlewares` est du code mort (confirme E2)
-Le pipeline réel est `MiddlewareStaging::apply_to_router` (slots ci-dessus).
-[`engine/core.rs:110`](../../../runique/src/engine/core.rs#L110) `attach_middlewares` n'a aucun
-appelant → à supprimer pour éviter la confusion (deux ordres de middleware « apparents »).
+### ✅ AP1 — `RuniqueEngine::attach_middlewares` était du code mort (confirmait E2) — SUPPRIMÉ (2026-09-21)
+Le pipeline réel est `MiddlewareStaging::apply_to_router` (slots ci-dessus). Trouvé en creusant
+un bug réel du chemin vivant : slot 30 (`security_headers_middleware`, toujours actif) écrasé
+par slot 31 (`csp_middleware`, ajouté dès `.with_csp()`) — le nonce CSP disparaît du header final.
+Voir E3 dans `anomalies.md` pour ce bug encore ouvert.
 
 ### 🟡 AP2 — ErrorHandler (slot 10) gaté par `enable_debug_errors` (confirme E1, rétrogradé)
 [`applicator.rs:348`](../../../runique/src/app/staging/middleware_staging/applicator.rs#L348)

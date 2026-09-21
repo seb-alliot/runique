@@ -33,8 +33,7 @@ Pour personnaliser :
 ```rust
 .middleware(|m| {
     m.with_csp(|c| {
-        c.with_nonce(true)
-         .scripts(vec!["'self'", "https://cdn.example.com"])
+        c.scripts(vec!["'self'", "https://cdn.example.com"])
          .images(vec!["'self'", "data:"])
     })
 })

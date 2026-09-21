@@ -46,7 +46,7 @@ When using Runique in production:
 1. **Always use HTTPS** (`enforce_https = true` in settings)
 2. **Set strong SECRET_KEY** (32+ random characters)
 3. **Configure ALLOWED_HOSTS** properly
-4. **Enable CSP** (`strict_csp = true`)
+4. **Use the strict CSP preset** (`.with_csp(|c| c.policy(SecurityPolicy::strict()))`) — CSP itself is always active by default
 5. **Keep dependencies updated**: `cargo update`
 6. **Run security audits**: `cargo audit`
 

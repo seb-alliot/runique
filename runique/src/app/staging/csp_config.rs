@@ -9,19 +9,17 @@ use crate::middleware::SecurityPolicy;
 //
 //   .middleware(|m| {
 //       m.with_csp(|c| {
-//           c.with_header_security(true)
-//            .with_nonce(true)
-//            .scripts(vec!["'self'", "https://cdn.jsdelivr.net"])
+//           c.scripts(vec!["'self'", "https://cdn.jsdelivr.net"])
 //            .images(vec!["'self'", "data:"])
 //       })
 //   })
 //
-// Everything is `false`/default — you explicitly enable what you need.
+// CSP (and HSTS, X-Frame-Options, COEP, COOP, CORP, ...) is always active,
+// regardless of whether `.with_csp` is called — this closure only lets you
+// customize the policy's directives.
 //
 // TOGGLES:
-//   .with_header_security(bool) → HSTS, X-Frame-Options, COEP, COOP, CORP...
-//   .with_nonce(bool)           → CSP nonce per request
-//   .with_upgrade_insecure(bool)→ upgrade-insecure-requests
+//   .with_upgrade_insecure(bool) → upgrade-insecure-requests
 //
 // PRESET:
 //   .policy(SecurityPolicy::strict())
@@ -37,15 +35,14 @@ use crate::middleware::SecurityPolicy;
 
 /// Content Security Policy configuration, passed via closure to `.with_csp(|c| { ... })`.
 ///
-/// Everything is disabled or at its default value — explicitly enable what you need.
+/// CSP is always active — this closure only lets you customize the policy's
+/// directives; there is currently no way to disable CSP entirely.
 ///
 /// # Full Example
 /// ```rust,ignore
 /// .middleware(|m| {
 ///     m.with_csp(|c| {
-///         c.with_header_security(true)
-///          .with_nonce(true)
-///          .with_upgrade_insecure(true)
+///         c.with_upgrade_insecure(true)
 ///          .scripts(vec!["'self'", "https://cdn.jsdelivr.net"])
 ///          .styles(vec!["'self'", "https://cdn.jsdelivr.net"])
 ///          .images(vec!["'self'", "data:"])
@@ -58,38 +55,18 @@ use crate::middleware::SecurityPolicy;
 /// .middleware(|m| {
 ///     m.with_csp(|c| {
 ///         c.policy(SecurityPolicy::strict())
-///          .with_header_security(true)
 ///     })
 /// })
 /// ```
-///
-/// # Disable CSP — do not call `.with_csp` at all.
 #[derive(Default)]
 pub struct CspConfig {
     pub(crate) policy: SecurityPolicy,
-    /// Enables additional security headers (HSTS, X-Frame-Options,
-    /// X-Content-Type-Options, Referrer-Policy, Permissions-Policy, COEP, COOP, CORP).
-    pub(crate) enable_header_security: bool,
 }
 
 impl CspConfig {
     // ═══════════════════════════════════════════════════
     // TOGGLES — true/false
     // ═══════════════════════════════════════════════════
-
-    /// Enables additional security headers alongside CSP:
-    /// HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy,
-    /// Permissions-Policy, COEP, COOP, CORP.
-    pub fn with_header_security(mut self, enable: bool) -> Self {
-        self.enable_header_security = enable;
-        self
-    }
-
-    /// Enables or disables the CSP nonce (injected per request into `script-src` and `style-src`).
-    pub fn with_nonce(mut self, enable: bool) -> Self {
-        self.policy.use_nonce = enable;
-        self
-    }
 
     /// Enables or disables `upgrade-insecure-requests`.
     pub fn with_upgrade_insecure(mut self, enable: bool) -> Self {
@@ -195,10 +172,5 @@ impl CspConfig {
     /// Returns the current CSP policy.
     pub fn get_policy(&self) -> &SecurityPolicy {
         &self.policy
-    }
-
-    /// Indicates whether additional security headers are enabled.
-    pub fn header_security_enabled(&self) -> bool {
-        self.enable_header_security
     }
 }

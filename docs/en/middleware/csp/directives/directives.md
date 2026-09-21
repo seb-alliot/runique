@@ -27,16 +27,16 @@ Each CSP directive is configurable via the builder — environment variables are
 
 | Builder method | Default | Description |
 | --- | --- | --- |
-| `.with_nonce(bool)` | `true` | Per-request nonce injected into `script-src` and `style-src` |
-| `.with_header_security(bool)` | `false` | HSTS, X-Frame-Options, COEP, COOP, CORP… |
 | `.with_upgrade_insecure(bool)` | `false` | `upgrade-insecure-requests` |
+
+HSTS, X-Frame-Options, COEP, COOP, CORP, and the per-request nonce (injected into `script-src`/`style-src`) are not toggles: `security_headers_middleware` generates and injects them unconditionally, on every response.
 
 ### Presets
 
 | Builder method | Description |
 | --- | --- |
-| `.policy(SecurityPolicy::default())` | Default policy — `'self'` on most directives (`default-src`/`object-src`/`frame-src`/`frame-ancestors` stay `'none'`), nonce active |
-| `.policy(SecurityPolicy::strict())` | Strict — mandatory nonce, `upgrade-insecure-requests`, `frame-ancestors 'none'` |
+| `.policy(SecurityPolicy::default())` | Default policy — `'self'` on most directives (`default-src`/`object-src`/`frame-src`/`frame-ancestors` stay `'none'`) |
+| `.policy(SecurityPolicy::strict())` | Strict — `upgrade-insecure-requests`, `frame-ancestors 'none'` |
 | `.policy(SecurityPolicy::permissive())` | Permissive — `unsafe-eval` allowed, images from `https:` |
 
 ---
@@ -104,9 +104,7 @@ RuniqueApp::builder(config)
 RuniqueApp::builder(config)
     .middleware(|m| {
         m.with_csp(|c| {
-            c.with_header_security(true)
-             .with_nonce(true)
-             .with_upgrade_insecure(true)
+            c.with_upgrade_insecure(true)
              .scripts(vec!["'self'", "https://cdn.jsdelivr.net"])
              .styles(vec!["'self'", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com"])
              .fonts(vec!["'self'", "https://fonts.gstatic.com"])
@@ -118,14 +116,13 @@ RuniqueApp::builder(config)
     .await?;
 ```
 
-### Strict preset with security headers
+### Strict preset
 
 ```rust,ignore
 RuniqueApp::builder(config)
     .middleware(|m| {
         m.with_csp(|c| {
             c.policy(SecurityPolicy::strict())
-             .with_header_security(true)
         })
     })
     .build()
@@ -136,7 +133,7 @@ RuniqueApp::builder(config)
 
 ## Nonce behavior on `script-src` and `style-src`
 
-When the nonce is active (`.with_nonce(true)`):
+The nonce is always active — on every response:
 
 - `'nonce-{value}'` is automatically appended to `script-src` and `style-src`
 - `'unsafe-inline'` is **automatically removed** from those directives if present

@@ -11,7 +11,6 @@ let app = RuniqueApp::builder(config)
     .middleware(|m| {
         m.with_csp(|c| {
               c.policy(SecurityPolicy::strict())
-               .with_header_security(true)
            })
          .with_allowed_hosts(|h| {
               h.enabled(true)
