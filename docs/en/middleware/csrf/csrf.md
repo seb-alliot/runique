@@ -44,6 +44,35 @@ fetch('/api/endpoint', {
 
 ---
 
+## Token expiry & automatic refresh
+
+The CSRF token lives in the session. **Anonymous** sessions (visitor not logged in) expire
+by default after **5 minutes of inactivity** (`with_anonymous_session_duration`, see
+[Sessions](/docs/en/middleware/sessions)) — a tab left open longer on a public form
+(`/login`, `/register`, etc.) then carries a stale token by the time it's submitted.
+
+Runique handles this at two levels:
+
+- **Explicit message**: a CSRF failure sets a global error on the form (i18n key
+  `csrf.invalid_or_missing`), rendered via `{% messages %}` — never a silent failure.
+- **Refresh before submission**: `js/csrf.js` intercepts every submission of a form
+  carrying a `csrf_token` field, does a lightweight GET to the current page to fetch a
+  fresh token (every response carries an `X-CSRF-Token` header), updates the field, then
+  submits — works even if the session fully expired (the server just issues a new one).
+  The user never loses what they typed, and only sees the CSRF failure if the network is
+  down at the moment of submission.
+
+This script is **not loaded automatically** in an application's templates — include it
+explicitly in your base layout:
+
+```html
+<script {% csp %} src="{{ "js/csrf.js" | runique_static }}" defer></script>
+```
+
+(the admin panel already loads it itself, via `runique_static`).
+
+---
+
 ## Exempt paths (webhooks, APIs)
 
 Some endpoints receive POST requests without a CSRF token — Stripe webhooks, third-party callbacks, JSON APIs called by other servers.

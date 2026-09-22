@@ -10,6 +10,7 @@ mod url;
 mod views;
 
 use runique::app::builder::RuniqueAppBuilder as builder;
+use sea_orm::sea_query::prelude::time::ext::NumericalDuration;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -34,6 +35,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .middleware(|m| {
             m.with_session_memory_limit(5 * 1024 * 1024, 10 * 1024 * 1024)
                 .with_session_cleanup_interval(5)
+                .with_anonymous_session_duration(600_i64.seconds())
                 .with_allowed_hosts(|h| {
                     h.enabled(!is_debug())
                         .host("runique.io")

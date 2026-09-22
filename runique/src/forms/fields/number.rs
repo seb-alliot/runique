@@ -1,6 +1,7 @@
 //! Numeric fields: `NumericField` (integer, decimal) with min/max validation and precision.
 use crate::forms::base::*;
 use crate::utils::trad::{t, tf};
+use async_trait::async_trait;
 use serde::Serialize;
 use serde_json::json;
 use std::sync::Arc;
@@ -168,8 +169,9 @@ impl NumericField {
 }
 
 // --- Trait Implementation ---
+#[async_trait]
 impl FormField for NumericField {
-    fn validate(&mut self) -> bool {
+    async fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
         if self.base.is_required.choice && val.is_empty() {
             self.set_error(

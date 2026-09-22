@@ -15,6 +15,20 @@ pub struct ContributionForm;
 impl RuniqueForm for ContributionForm {
     impl_form_access!(model);
 
+    // Replaces the schema-generated `contribution_type` field with a proper
+    // `ChoiceField` (labeled options) instead of the raw text/enum widget
+    // `to_form_field()` would derive. Static choices, no request dependency —
+    // `customize()` already runs right after `register_fields()` on every
+    // construction path (`impl_form_access!(model)`), so this is always in
+    // place before validation, including the very first GET render.
+    fn customize(form: &mut Forms) {
+        form.field(
+            &ChoiceField::new("contribution_type")
+                .label("Contribution type")
+                .choices(contribution_type_choices()),
+        );
+    }
+
     async fn clean(&mut self) -> Result<(), StrMap> {
         let title = self.cleaned_string("title").unwrap_or_default();
         let content = self.cleaned_string("content").unwrap_or_default();

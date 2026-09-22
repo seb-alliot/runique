@@ -10,6 +10,7 @@ use crate::forms::{
 use crate::impl_from_error;
 use crate::middleware::security::anti_bot::HoneypotFieldName;
 use crate::utils::aliases::{AEngine, AppResult};
+use crate::utils::trad::t;
 use crate::utils::url_params::UrlParams;
 use crate::utils::{csp_nonce::CspNonce, csrf::CsrfToken};
 use axum::{
@@ -258,25 +259,6 @@ impl Request {
         }
     }
 
-    /// Returns `true` if the request method is GET.
-    pub fn is_get(&self) -> bool {
-        self.method == Method::GET
-    }
-
-    /// Returns `true` if the request method is POST.
-    pub fn is_post(&self) -> bool {
-        self.method == Method::POST
-    }
-
-    /// Returns `true` if the request method is PUT.
-    pub fn is_put(&self) -> bool {
-        self.method == Method::PUT
-    }
-
-    /// Returns `true` if the request method is DELETE.
-    pub fn is_delete(&self) -> bool {
-        self.method == Method::DELETE
-    }
     /// Unique generic rendering to avoid duplication
     pub fn render(&mut self, template: &str) -> AppResult<Response> {
         let html_result = if self.engine.config.debug {
@@ -403,7 +385,9 @@ impl Request {
 
         if let Some(ref hp_name) = self.honeypot_field_name {
             form.get_form_mut().set_honeypot(hp_name);
-            if self.is_post() && self.prisme.data.get(hp_name).is_some_and(|v| !v.is_empty()) {
+            if self.method == Method::POST
+                && self.prisme.data.get(hp_name).is_some_and(|v| !v.is_empty())
+            {
                 form.get_form_mut().force_invalid = true;
             }
         }
@@ -411,8 +395,17 @@ impl Request {
         // CSRF enforcement: Prisme computes `csrf_valid` but never rejects on its own.
         // Without this, a mutating request with a missing/invalid token silently passes
         // is_valid(). Fail closed on any non-safe method (same policy as the pipeline).
+        //
+        // `force_invalid` short-circuits `Forms::is_valid()` before field validation
+        // ever runs — `HiddenField::validate()`'s own CSRF branch (`csrf.missing`/
+        // `csrf.invalid`) never fires this way, and never did (its `expected_value`
+        // is set by nothing outside unit tests). Push a message here directly so a
+        // failed submission isn't silently indistinguishable from an untouched form —
+        // reuses the same key already shown by the admin CSRF check (`admin_router.rs`).
         if csrf_required(&self.method) && !self.prisme.csrf_valid {
-            form.get_form_mut().force_invalid = true;
+            let csrf = form.get_form_mut();
+            csrf.force_invalid = true;
+            csrf.errors.push(t("csrf.invalid_or_missing").into_owned());
         }
 
         form.get_form_mut()

@@ -30,4 +30,5 @@ pub mod test_prisme_rules;
 pub mod test_prisme_sentinel;
 pub mod test_renderer;
 pub mod test_special_fields;
+pub mod test_validation_form;
 pub mod test_validator;

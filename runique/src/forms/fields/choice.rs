@@ -1,6 +1,7 @@
 //! Selection field: `ChoiceField` with groups, multi-select, and dynamic options.
 use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
 use crate::utils::trad::{t, tf};
+use async_trait::async_trait;
 use serde::Serialize;
 use serde_json::{Value, json};
 use std::sync::Arc;
@@ -91,8 +92,9 @@ impl CommonFieldConfig for ChoiceField {
     }
 }
 
+#[async_trait]
 impl FormField for ChoiceField {
-    fn validate(&mut self) -> bool {
+    async fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
         if self.base.is_required.choice && val.is_empty() {
@@ -186,8 +188,9 @@ impl CommonFieldConfig for RadioField {
     }
 }
 
+#[async_trait]
 impl FormField for RadioField {
-    fn validate(&mut self) -> bool {
+    async fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
         if self.base.is_required.choice && val.is_empty() {
@@ -290,6 +293,7 @@ impl CommonFieldConfig for CheckboxField {
     }
 }
 
+#[async_trait]
 impl FormField for CheckboxField {
     fn set_value(&mut self, value: &str) {
         // Expected format: "value1,value2,value3"
@@ -301,7 +305,7 @@ impl FormField for CheckboxField {
         }
     }
 
-    fn validate(&mut self) -> bool {
+    async fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
         if self.base.is_required.choice && val.is_empty() {

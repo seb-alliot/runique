@@ -1,4 +1,5 @@
 //! `RuniqueForm` trait: common interface for all Runique forms.
+use crate::context::Request;
 pub use crate::forms::{
     base::FormField, form::Forms, renderer::FormRenderer, validator::ValidationError,
 };
@@ -253,6 +254,29 @@ pub trait RuniqueForm: Sized + Send + Sync {
         Ok(())
     }
 
+    /// Hook to add fields that depend on the request (e.g. choices loaded from
+    /// the DB) after extraction but before validation. Default: no-op.
+    /// Called by [`ValidationForm::try_new`](crate::forms::ValidationForm::try_new)
+    /// before dispatching to `validator_get`/`validator_post`.
+    async fn register_dynamic_fields(&mut self, _request: &Request) {}
+
+    /// Whether [`ValidationForm`](crate::forms::ValidationForm) should attempt
+    /// validation on a GET-class request (GET, HEAD, OPTIONS, TRACE). Default:
+    /// reuses `Forms::is_submitted()` — always `false` on a bare first load,
+    /// `true` as soon as this form's fields carry data (e.g. a GET search
+    /// form with query params).
+    fn validator_get(&self, _request: &Request) -> bool {
+        self.get_form().is_submitted()
+    }
+
+    /// Whether [`ValidationForm`](crate::forms::ValidationForm) should attempt
+    /// validation on a POST-class request (POST, PUT, PATCH, DELETE, CONNECT).
+    /// Default: reuses `Forms::is_submitted()` — effectively always `true`,
+    /// since these methods are always submissions regardless of field content.
+    fn validator_post(&self, _request: &Request) -> bool {
+        self.get_form().is_submitted()
+    }
+
     async fn is_valid(&mut self) -> bool {
         // If the form has no submitted data (e.g. first GET with no params), return false
         // without setting any field errors. This prevents showing validation errors on the
@@ -262,7 +286,7 @@ pub trait RuniqueForm: Sized + Send + Sync {
             return false;
         }
 
-        let mut fields_valid = match self.get_form_mut().is_valid() {
+        let mut fields_valid = match self.get_form_mut().is_valid().await {
             Ok(valid) => valid,
             Err(ValidationError::StackOverflow) => {
                 self.get_form_mut()
@@ -286,7 +310,7 @@ pub trait RuniqueForm: Sized + Send + Sync {
 
         match self.clean().await {
             Ok(_) => {
-                if let Err(e) = self.get_form_mut().finalize() {
+                if let Err(e) = self.get_form_mut().finalize().await {
                     self.get_form_mut().errors.push(e);
                     return false;
                 }

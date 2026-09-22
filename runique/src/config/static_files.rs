@@ -41,7 +41,7 @@ fn current_dir_str() -> String {
 /// Sérialise les tests qui mutent la variable d'env process-globale `MEDIA_ROOT`
 /// (sinon course inter-tests sous `cargo test` parallèle).
 #[cfg(test)]
-pub(crate) static MEDIA_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+pub(crate) static MEDIA_ENV_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
 /// Resolves the media root directory, in priority order: the `MEDIA_ROOT` env
 /// var if set, otherwise `{BASE_DIR}/media` if `BASE_DIR` is set, otherwise
@@ -144,7 +144,7 @@ mod tests {
 
     #[test]
     fn resolve_media_root_explicit_wins() {
-        let _lock = ENV_LOCK.lock().unwrap();
+        let _lock = ENV_LOCK.blocking_lock();
         unsafe {
             std::env::set_var("MEDIA_ROOT", "/custom/media");
             std::env::remove_var("BASE_DIR");
@@ -156,7 +156,7 @@ mod tests {
 
     #[test]
     fn resolve_media_root_uses_base_dir() {
-        let _lock = ENV_LOCK.lock().unwrap();
+        let _lock = ENV_LOCK.blocking_lock();
         unsafe {
             std::env::remove_var("MEDIA_ROOT");
             std::env::set_var("BASE_DIR", "/var/www/app");
@@ -168,7 +168,7 @@ mod tests {
 
     #[test]
     fn resolve_media_root_falls_back_to_cwd() {
-        let _lock = ENV_LOCK.lock().unwrap();
+        let _lock = ENV_LOCK.blocking_lock();
         unsafe {
             std::env::remove_var("MEDIA_ROOT");
             std::env::remove_var("BASE_DIR");

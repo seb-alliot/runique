@@ -26,9 +26,10 @@ sequenceDiagram
     P-->>EX: Prisme { data, csrf_valid }
     EX-->>H: Request (prisme posé)
     H->>F: req.form()
-    Note over F: si !GET/HEAD && !csrf_valid<br/>→ force_invalid = true
-    F-->>H: form (force_invalid si CSRF KO)
-    H->>H: if form.is_valid() { ... } else { rejet }
+    Note over F: si !GET/HEAD && !csrf_valid<br/>→ force_invalid = true<br/>+ push t("csrf.invalid_or_missing") dans errors (2026-09-22)
+    F-->>H: form (force_invalid + message si CSRF KO)
+    H->>H: ValidationForm::try_new(form, &request).await
+    Note over H: dispatch validator_get/validator_post<br/>selon method.is_safe() → is_valid().await<br/>Ok(ValidationForm) ou Err(form, avec message)
     Note over H: 🔴 fichier déjà écrit en MEDIA_ROOT,<br/>jamais supprimé au rejet
 ```
 
@@ -42,7 +43,13 @@ sequenceDiagram
 - **`prisme_pipeline`** ([extractor.rs:27](../../runique/src/forms/extractor.rs#L27)) : sentinel →
   aegis (parse) → `check_csrf` (flag seulement, **ne rejette pas**).
 - **Enforcement réel** : `req.form()` ([template.rs:406](../../runique/src/context/template.rs#L406))
-  pose `force_invalid = true` si CSRF KO → `is_save_allowed()` renvoie false.
+  pose `force_invalid = true` si CSRF KO → `is_save_allowed()` renvoie false, et
+  pousse désormais un message (`t("csrf.invalid_or_missing")`) dans `Forms.errors`
+  (2026-09-22 — avant ça, l'échec était totalement silencieux, cf. C6).
+- **Handler** : le boilerplate `if request.is_post() && form.is_valid() {...}`
+  est remplacé par `ValidationForm::try_new(form, &request).await`, qui
+  dispatche lui-même sur `validator_get`/`validator_post` selon
+  `request.method.is_safe()`. Détail : [../uml/forms/formulaires.md](../uml/forms/formulaires.md).
 
 ## Anomalies / flux suspects
 
@@ -90,3 +97,17 @@ en MEDIA_ROOT après un rejet (CSRF/honeypot/validation).
 **Durci (2.1.21).** Politique CSRF par méthode collapsée en source unique `csrf_required()`
 (GET/HEAD exemptés, tout le reste exige un token, fail-closed), partagée par le pipeline et
 `Request::form()` → plus de dérive possible entre les deux sites. Comportement identique.
+
+### 🟠 C6 — Échec CSRF totalement silencieux (aucun message) — ✅ CORRIGÉ (2026-09-22)
+`force_invalid` court-circuite `is_valid()` avant que `HiddenField::validate()`
+n'atteigne sa propre branche de message d'erreur CSRF — branche **morte** de toute
+façon, car elle dépendait de `set_expected_value()`, jamais appelé en production.
+Un CSRF invalide ou expiré (TTL session anonyme, cf.
+[../uml/middleware/sessions.md](../uml/middleware/sessions.md)) faisait donc
+revenir le formulaire **vide, sans aucune explication** — trouvé en testant en
+conditions réelles `ValidationForm<F>` (pas un problème introduit par lui).
+Corrigé au niveau framework, dans `Request::form()` : `t("csrf.invalid_or_missing")`
+est poussé dans `Forms.errors` dès la détection, avant le court-circuit — bénéficie
+à toute app Runique, pas seulement demo-app. Doublé d'un rafraîchissement JS du
+token au `submit` (`runique/static/js/csrf.js`) pour réduire l'occurrence réelle
+(TTL session anonyme par défaut 10 min).

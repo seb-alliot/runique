@@ -1,29 +1,25 @@
-// Tests pour context::template::Request — from_request_parts, is_get/post/put/delete,
-// render (erreur et succès), insert, render_with, map_tera.
+// Tests pour context::template::Request — from_request_parts, render (erreur
+// et succès), insert, render_with, map_tera.
 //
-// Deux stacks :
-//  • csrf_router  — csrf_middleware (GET seulement, token validé)
-//  • method_router — inject bypass (POST/PUT/DELETE : token injecté sans validation)
+// Stack : csrf_router — csrf_middleware (GET seulement, token validé).
 
 use crate::helpers::{assert::body_str, request, server::build_engine};
 use axum::{
     Router,
     body::Body,
     extract::State,
-    http::{Method, Request, StatusCode},
+    http::{Request, StatusCode},
     middleware::{self, Next},
     response::{IntoResponse, Response},
-    routing::{delete, get, post, put},
+    routing::get,
 };
 use runique::{
     context::{RequestExtensions, template::Request as TplRequest},
     middleware::security::csrf::csrf_middleware,
     utils::aliases::AEngine,
-    utils::csrf::CsrfToken,
 };
 use std::sync::Arc;
 use tera::Tera;
-use tower::ServiceExt;
 use tower_sessions::{MemoryStore, SessionManagerLayer};
 
 // ── Middlewares d'injection ─────────────────────────────────────────────────
@@ -42,30 +38,13 @@ async fn engine_inject(
     next.run(req).await
 }
 
-/// Injecte engine + config + CsrfToken factice — pour tester POST/PUT/DELETE
-/// sans passer par la validation CSRF (on teste juste la méthode HTTP).
-async fn full_bypass_inject(
-    State(engine): State<AEngine>,
-    mut req: Request<Body>,
-    next: Next,
-) -> Response {
-    let config = Arc::new(engine.config.clone());
-    let dummy_token = CsrfToken("test_bypass_token".to_string());
-    RequestExtensions::new()
-        .with_engine(engine)
-        .with_config(config)
-        .inject_request(&mut req);
-    req.extensions_mut().insert(dummy_token);
-    next.run(req).await
-}
-
 // ── Routers ─────────────────────────────────────────────────────────────────
 
 /// Router GET seulement — utilise csrf_middleware (token réel).
 fn csrf_router(engine: AEngine) -> Router {
     let session_layer = SessionManagerLayer::new(MemoryStore::default());
     Router::new()
-        .route("/", get(handler_is_get))
+        .route("/", get(handler_get_ok))
         .route("/render_err", get(handler_render_err))
         .route("/insert", get(handler_insert))
         .route("/render_with_err", get(handler_render_with_err))
@@ -80,60 +59,14 @@ fn csrf_router(engine: AEngine) -> Router {
         .layer(session_layer)
 }
 
-/// Router méthodes — bypass CSRF pour tester POST/PUT/DELETE.
-fn method_router(engine: AEngine) -> Router {
-    let session_layer = SessionManagerLayer::new(MemoryStore::default());
-    Router::new()
-        .route("/post", post(handler_is_post))
-        .route("/put", put(handler_is_put))
-        .route("/delete", delete(handler_is_delete))
-        .layer(middleware::from_fn_with_state(
-            engine.clone(),
-            full_bypass_inject,
-        ))
-        .layer(session_layer)
-}
-
 async fn default_csrf_app() -> Router {
     csrf_router(build_engine().await)
 }
 
-async fn default_method_app() -> Router {
-    method_router(build_engine().await)
-}
-
 // ── Handlers ────────────────────────────────────────────────────────────────
 
-async fn handler_is_get(tpl: TplRequest) -> impl IntoResponse {
-    if tpl.is_get() {
-        StatusCode::OK
-    } else {
-        StatusCode::INTERNAL_SERVER_ERROR
-    }
-}
-
-async fn handler_is_post(tpl: TplRequest) -> impl IntoResponse {
-    if tpl.is_post() {
-        StatusCode::OK
-    } else {
-        StatusCode::INTERNAL_SERVER_ERROR
-    }
-}
-
-async fn handler_is_put(tpl: TplRequest) -> impl IntoResponse {
-    if tpl.is_put() {
-        StatusCode::OK
-    } else {
-        StatusCode::INTERNAL_SERVER_ERROR
-    }
-}
-
-async fn handler_is_delete(tpl: TplRequest) -> impl IntoResponse {
-    if tpl.is_delete() {
-        StatusCode::OK
-    } else {
-        StatusCode::INTERNAL_SERVER_ERROR
-    }
+async fn handler_get_ok(_tpl: TplRequest) -> impl IntoResponse {
+    StatusCode::OK
 }
 
 /// Render avec Tera vide → tera::Error → AppError::map_tera → 500.
@@ -163,41 +96,11 @@ async fn handler_render_ok(mut tpl: TplRequest) -> Response {
         .unwrap_or_else(|e| e.into_response())
 }
 
-// ── Tests — from_request_parts + méthodes ───────────────────────────────────
+// ── Tests — from_request_parts ──────────────────────────────────────────────
 
 #[tokio::test]
 async fn test_request_extraction_get_200() {
     let resp = request::get(default_csrf_app().await, "/").await;
-    assert_eq!(resp.status(), StatusCode::OK);
-}
-
-#[tokio::test]
-async fn test_request_is_get_true() {
-    let resp = request::get(default_csrf_app().await, "/").await;
-    assert_eq!(resp.status(), StatusCode::OK);
-}
-
-#[tokio::test]
-async fn test_request_is_post_true() {
-    let resp = request::post(default_method_app().await, "/post").await;
-    assert_eq!(resp.status(), StatusCode::OK);
-}
-
-#[tokio::test]
-async fn test_request_is_put_true() {
-    let app = default_method_app().await;
-    let req = Request::builder()
-        .method(Method::PUT)
-        .uri("/put")
-        .body(Body::empty())
-        .unwrap();
-    let resp = app.oneshot(req).await.unwrap();
-    assert_eq!(resp.status(), StatusCode::OK);
-}
-
-#[tokio::test]
-async fn test_request_is_delete_true() {
-    let resp = request::delete(default_method_app().await, "/delete").await;
     assert_eq!(resp.status(), StatusCode::OK);
 }
 
@@ -291,7 +194,7 @@ async fn test_request_extraction_sans_engine_retourne_500() {
 
     // Pas de engine_inject → AEngine absent → extraction échoue → 500
     let app = Router::new()
-        .route("/", get(handler_is_get))
+        .route("/", get(handler_get_ok))
         .layer(middleware::from_fn_with_state(
             engine.clone(),
             csrf_middleware,

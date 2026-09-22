@@ -1052,8 +1052,17 @@ fn write_form_builder_closure_fk(
     let _ = writeln!(out);
 }
 
-/// Emits a `search_cond!` call for the search block.
-/// FK columns are skipped — searching a raw FK ID makes no sense.
+/// Emits a `search_cond!` call for the search block, then folds in one `is_in`
+/// branch per FK-displayed column.
+///
+/// A FK column (e.g. `commandes.user_id`) can't be searched as literal text —
+/// `search_cond!`'s `icontains` would match the raw id, not the related label
+/// the admin actually displays (e.g. `eihwaz_users.username`). Instead, the
+/// pattern is first resolved against the related table via
+/// [`fetch_fk_matching_ids`](crate::admin::helper::fetch_fk_matching_ids),
+/// and the matching parent ids are OR'd into the condition against the FK
+/// column itself — the same "resolve the join, then constrain by id" trick
+/// `resolve_fk_labels` uses for display, applied to filtering instead.
 fn write_search_conditions(
     out: &mut String,
     list_display: &[(
@@ -1068,12 +1077,30 @@ fn write_search_conditions(
         .filter(|(_, _, fk)| fk.is_none())
         .map(|(col, _, _)| col.as_str())
         .collect();
+    let fk_searchable: Vec<(&str, &crate::admin::daemon::parser::FkDisplay)> = list_display
+        .iter()
+        .filter_map(|(col, _, fk)| fk.as_ref().map(|f| (col.as_str(), f)))
+        .collect();
 
-    if searchable.is_empty() {
+    // `search_cond` is only reassigned below when there's at least one
+    // FK-displayed searchable column — `mut` on an all-literal search would
+    // otherwise trigger an unused-mut warning in the generated code.
+    let mut_kw = if fk_searchable.is_empty() { "" } else { "mut " };
+
+    if searchable.is_empty() && fk_searchable.is_empty() {
         let _ = writeln!(
             out,
-            "                let search_cond = search_cond!(&db => {module}::Entity => all_columns icontains search_str);",
+            "                let {mut_kw}search_cond = search_cond!(&db => {module}::Entity => all_columns icontains search_str);",
+            mut_kw = mut_kw,
             module = module
+        );
+    } else if searchable.is_empty() {
+        // Only FK-displayed columns are searchable — start from an empty OR so
+        // only the FK id sets resolved below can add a match.
+        let _ = writeln!(
+            out,
+            "                let {mut_kw}search_cond = sea_orm::Condition::any();",
+            mut_kw = mut_kw
         );
     } else {
         let cols = searchable
@@ -1083,10 +1110,33 @@ fn write_search_conditions(
             .join(", ");
         let _ = writeln!(
             out,
-            "                let search_cond = search_cond!(&db => {module}::Entity => or({cols}));",
+            "                let {mut_kw}search_cond = search_cond!(&db => {module}::Entity => or({cols}));",
+            mut_kw = mut_kw,
             module = module,
             cols = cols
         );
+    }
+
+    for (col, fk) in &fk_searchable {
+        let _ = writeln!(out, "                {{");
+        let _ = writeln!(
+            out,
+            "                    let __fk_ids = runique::admin::helper::fetch_fk_matching_ids(&*db, \"{table}\", \"{fk_col}\", search_str).await;",
+            table = fk.table,
+            fk_col = fk.col,
+        );
+        let _ = writeln!(out, "                    if !__fk_ids.is_empty() {{");
+        let _ = writeln!(
+            out,
+            "                        use sea_orm::sea_query::ExprTrait;"
+        );
+        let _ = writeln!(
+            out,
+            "                        search_cond = search_cond.add(sea_orm::sea_query::Expr::col(sea_orm::sea_query::Alias::new(\"{col}\")).cast_as(sea_orm::sea_query::Alias::new(runique::admin::helper::text_cast_type(&db))).is_in(__fk_ids));",
+            col = col,
+        );
+        let _ = writeln!(out, "                    }}");
+        let _ = writeln!(out, "                }}");
     }
 }
 

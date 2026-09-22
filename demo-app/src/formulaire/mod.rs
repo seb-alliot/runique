@@ -65,7 +65,7 @@ pub mod login;
 pub use login::LoginForm;
 
 pub mod contribution;
-pub use contribution::{ContributionForm, contribution_type_choices};
+pub use contribution::ContributionForm;
 
 pub mod search_demo;
 pub use search_demo::SearchDemoForm;

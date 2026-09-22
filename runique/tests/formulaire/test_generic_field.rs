@@ -84,19 +84,19 @@ fn test_generic_set_value() {
     assert_eq!(gf.value(), "nouvelle valeur");
 }
 
-#[test]
-fn test_generic_validate_required_empty_invalid() {
+#[tokio::test]
+async fn test_generic_validate_required_empty_invalid() {
     let mut gf = GenericField::from(TextField::text("champ"));
     gf.set_required(true, None);
-    assert!(!gf.validate());
+    assert!(!gf.validate().await);
 }
 
-#[test]
-fn test_generic_validate_required_filled_valid() {
+#[tokio::test]
+async fn test_generic_validate_required_filled_valid() {
     let mut gf = GenericField::from(TextField::text("champ"));
     gf.set_required(true, None);
     gf.set_value("contenu");
-    assert!(gf.validate());
+    assert!(gf.validate().await);
 }
 
 // ── From<HiddenField> → GenericField ────────────────────────────
@@ -140,17 +140,17 @@ fn test_generic_to_json_meta_not_null() {
 
 // ── set_readonly / set_disabled ──────────────────────────────────
 
-#[test]
-fn test_generic_set_readonly() {
+#[tokio::test]
+async fn test_generic_set_readonly() {
     let mut gf = GenericField::from(TextField::text("champ"));
     gf.set_readonly(true, None);
     // readonly ne change pas la validation sur un champ vide non-requis
-    assert!(gf.validate());
+    assert!(gf.validate().await);
 }
 
-#[test]
-fn test_generic_set_disabled() {
+#[tokio::test]
+async fn test_generic_set_disabled() {
     let mut gf = GenericField::from(TextField::text("champ"));
     gf.set_disabled(true, None);
-    assert!(gf.validate());
+    assert!(gf.validate().await);
 }

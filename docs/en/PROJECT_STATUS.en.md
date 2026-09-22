@@ -33,7 +33,9 @@ This document consolidates the actual state of the repository from the reference
 ### Forms
 
 - Typed form system: `#[form]`, `RuniqueForm`, validation, HTML rendering via Tera
-- Integrated CSRF protection (masked token anti-BREACH, constant-time comparison)
+- `FormField::validate`/`finalize` are async — genuinely non-blocking I/O (file upload via `tokio::fs`, password hashing) under `is_valid()`'s already-async surface
+- `ValidationForm<F>` (`forms/validation_form.rs`): `try_new(form, request) -> Result<ValidationForm<F>, F>`, type-level proof a handler validated before acting — additive, doesn't replace `RuniqueForm::is_valid()`; defaults to dispatching on `Method::is_safe()`, with overridable `register_dynamic_fields`/`validator_get`/`validator_post` hooks
+- Integrated CSRF protection (masked token anti-BREACH, constant-time comparison); a CSRF failure now sets an explicit message (`csrf.invalid_or_missing`) instead of failing silently, and `js/csrf.js` refreshes the token right before every form submission
 - Structured per-domain tracing (`RuniqueLog` tree) over the full pipeline (field, set_value, validate, finalize, render)
 - All field types: Text, Numeric, Boolean, Choice, Radio, Checkbox, Date, Time, DateTime, Duration, File, Color, Slug, UUID, JSON, IP, Hidden, Honeypot
 - `save()` / `save_as()` guard: returns `Err` if `is_valid()` was not called or returned `false` — prevents any persistence without prior validation
@@ -134,7 +136,6 @@ This document consolidates the actual state of the repository from the reference
 
 - **SQLi filters via `configure {}`**: builtin resource filters go through a separate path, to be verified
 - **Security non-regression tests**: add tests covering SQL whitelist, cycle_id, operation guards
-- **`ValidationForm<F>` — typestate validation**: `try_new() -> Result<ValidationForm<F>, F>`, `.save()` unreachable without a successful validation at the type level (a compile-time guarantee instead of today's runtime check); defaults to dispatching on `Method::is_safe()`, with a `register_dynamic_fields` hook for fields added at request time before validation. **Additive** — unlike the earlier "sequential validation S1/S2/S3" plan (v3.0, breaking), requires neither a major version nor a forced migration of existing call sites; full plan in [ROADMAP.md](../../ROADMAP.md)
 
 ### Low priority
 

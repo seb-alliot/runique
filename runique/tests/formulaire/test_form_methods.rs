@@ -31,40 +31,40 @@ fn test_fill_post_sets_values() {
     assert_eq!(form.fields.get("name").unwrap().value(), "Alice");
 }
 
-#[test]
-fn test_fill_post_marks_submitted() {
+#[tokio::test]
+async fn test_fill_post_marks_submitted() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::text("name"));
     let data = strmap(&[("name", "Bob")]);
     form.fill(&data, Method::POST);
     // POST est toujours submitted même si données vides
-    assert!(form.is_valid().is_ok());
+    assert!(form.is_valid().await.is_ok());
 }
 
-#[test]
-fn test_fill_patch_relaxes_password_required() {
+#[tokio::test]
+async fn test_fill_patch_relaxes_password_required() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::password("pwd").required());
     form.fill(&HashMap::new(), Method::PATCH);
     // required relâché en PATCH → valide sans mot de passe
-    assert!(form.is_valid().is_ok());
+    assert!(form.is_valid().await.is_ok());
 }
 
-#[test]
-fn test_fill_put_relaxes_password_required() {
+#[tokio::test]
+async fn test_fill_put_relaxes_password_required() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::password("pwd").required());
     form.fill(&HashMap::new(), Method::PUT);
-    assert!(form.is_valid().is_ok());
+    assert!(form.is_valid().await.is_ok());
 }
 
-#[test]
-fn test_fill_get_not_submitted_if_empty() {
+#[tokio::test]
+async fn test_fill_get_not_submitted_if_empty() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::text("q"));
     form.fill(&HashMap::new(), Method::GET);
     // GET sans données → non soumis → is_valid renvoie Ok(false) sans erreur
-    let result = form.is_valid();
+    let result = form.is_valid().await;
     assert!(result.is_ok());
 }
 
@@ -100,14 +100,14 @@ fn test_clear_values_resets_fields() {
     assert_eq!(form.fields.get("name").unwrap().value(), "");
 }
 
-#[test]
-fn test_clear_values_resets_submitted() {
+#[tokio::test]
+async fn test_clear_values_resets_submitted() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::text("name"));
     form.add_value("name", "Alice");
     form.clear_values();
     // après clear, form non soumis → is_valid() synchrone retourne Ok(false) sans erreur required
-    let result = form.is_valid();
+    let result = form.is_valid().await;
     // le champ name n'est pas required donc Ok(true) même vide
     assert!(result.is_ok());
 }
@@ -116,12 +116,12 @@ fn test_clear_values_resets_submitted() {
 // finalize()
 // ═══════════════════════════════════════════════════════════════
 
-#[test]
-fn test_finalize_ok_on_valid_form() {
+#[tokio::test]
+async fn test_finalize_ok_on_valid_form() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::text("name"));
     form.add_value("name", "Alice");
-    assert!(form.finalize().is_ok());
+    assert!(form.finalize().await.is_ok());
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -231,21 +231,21 @@ fn test_database_error_duplicate_entry() {
 // errors() / has_errors()
 // ═══════════════════════════════════════════════════════════════
 
-#[test]
-fn test_errors_returns_map_with_failed_fields() {
+#[tokio::test]
+async fn test_errors_returns_map_with_failed_fields() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::text("name").required());
-    let _ = form.is_valid();
+    let _ = form.is_valid().await;
     let errors = form.errors();
     assert!(errors.contains_key("name"));
 }
 
-#[test]
-fn test_has_errors_false_when_valid() {
+#[tokio::test]
+async fn test_has_errors_false_when_valid() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::text("name"));
     form.add_value("name", "Alice");
-    let _ = form.is_valid();
+    let _ = form.is_valid().await;
     assert!(!form.has_errors());
 }
 
@@ -262,12 +262,12 @@ fn test_serialize_form_contains_fields_key() {
     assert!(json.get("fields").is_some());
 }
 
-#[test]
-fn test_serialize_form_errors_empty_when_valid() {
+#[tokio::test]
+async fn test_serialize_form_errors_empty_when_valid() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::text("name"));
     form.add_value("name", "Bob");
-    let _ = form.is_valid();
+    let _ = form.is_valid().await;
     let json = serde_json::to_value(&form).unwrap();
     let errors = json.get("errors").unwrap().as_object().unwrap();
     assert!(errors.is_empty());

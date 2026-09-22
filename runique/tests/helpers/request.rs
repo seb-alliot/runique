@@ -20,11 +20,12 @@
 //! # Exemple handler unitaire
 //! ```rust
 //! use crate::helpers::{db, request::build_handler_req, server::build_engine};
+//! use axum::http::Method;
 //!
 //! #[tokio::test]
 //! async fn mon_handler() {
 //!     let engine = build_engine().await;
-//!     let mut req = build_handler_req(engine, None, Default::default()).await;
+//!     let mut req = build_handler_req(engine, None, Default::default(), Method::POST).await;
 //!     // appelle le handler directement avec &mut req
 //! }
 //! ```
@@ -58,12 +59,14 @@ use tower_sessions::{MemoryStore, Session, SessionManagerLayer};
 /// - `engine` : moteur de test (voir `server::build_engine()`)
 /// - `user`   : utilisateur injecté (`None` = non authentifié)
 /// - `body`   : données de formulaire simulées (vides par défaut)
+/// - `method` : méthode HTTP simulée
 ///
-/// CSRF marqué valide, méthode POST, session en mémoire isolée.
+/// CSRF marqué valide, session en mémoire isolée.
 pub async fn build_handler_req(
     engine: Arc<runique::engine::RuniqueEngine>,
     user: Option<CurrentUser>,
     body: StrMap,
+    method: Method,
 ) -> HandlerReq {
     // Capture la session via un handler oneshot — seul moyen d'obtenir
     // une Session valide sans passer par le pipeline HTTP complet.
@@ -111,7 +114,7 @@ pub async fn build_handler_req(
         session,
         csrf_token: CsrfToken("test-csrf-token".to_string()),
         context,
-        method: Method::POST,
+        method,
         path_params: Default::default(),
         raw_query: String::new(),
         query_params: Default::default(),

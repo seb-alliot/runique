@@ -38,4 +38,30 @@ if (!window.rustiCsrfInitialized) {
 
         return response;
     };
+
+    // Refresh the token right before a native form submission, not on a timer.
+    // A tab left open past the anonymous session's inactivity window (5 min
+    // default, see MiddlewareStaging::anonymous_session_duration) carries a
+    // stale embedded token — submitting as-is fails CSRF with no recovery
+    // but re-typing everything. A lightweight GET just before submit reuses
+    // the rotation above (any response carries a fresh X-CSRF-Token header,
+    // csrf.rs) and updates every csrf_token input on the page, including
+    // this form's. Works even if the session fully expired: the server just
+    // issues a new one, and the real submission that follows is consistent
+    // with it. `form.submit()` (not `.requestSubmit()`) is used deliberately
+    // to bypass this same listener on the second, real submission.
+    document.addEventListener('submit', async (e) => {
+        const form = e.target;
+        if (!(form instanceof HTMLFormElement)) return;
+        if (!form.querySelector('input[name="csrf_token"]')) return;
+
+        e.preventDefault();
+        try {
+            await fetch(window.location.href);
+        } catch (_) {
+            // Network unavailable — fall through and submit with whatever
+            // token is already on the page rather than blocking the user.
+        }
+        form.submit();
+    });
 }

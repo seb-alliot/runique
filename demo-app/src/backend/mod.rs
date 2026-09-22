@@ -28,6 +28,25 @@ pub async fn inject_auth(request: &mut Request) {
     }
 }
 
+/// Global (non-field) errors on `form` as flash messages — `None` if there
+/// are none. Covers cases like an invalid/missing CSRF token: `Forms::force_invalid`
+/// short-circuits before field-level validation ever runs, so no *field* ever
+/// gets its own error — the message lands in `Forms::errors` (global) instead.
+/// Callers fall back to their own generic "correct the errors" message when this is `None`.
+pub fn form_error_flash<F: RuniqueForm>(form: &F) -> Option<Vec<FlashMessage>> {
+    let errors = &form.get_form().errors;
+    if errors.is_empty() {
+        None
+    } else {
+        Some(
+            errors
+                .iter()
+                .map(|e| FlashMessage::error(e.clone()))
+                .collect(),
+        )
+    }
+}
+
 pub async fn inject_globals(request: &mut Request) {
     inject_auth(request).await;
     let user = &request.user;

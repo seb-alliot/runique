@@ -220,10 +220,10 @@ fn test_to_json_meta_retourne_objet_vide() {
 // finalize — implémentation par défaut (Ok(()))
 // ═══════════════════════════════════════════════════════════════
 
-#[test]
-fn test_finalize_retourne_ok_par_defaut() {
+#[tokio::test]
+async fn test_finalize_retourne_ok_par_defaut() {
     let mut field = TextField::text("champ");
-    let result = field.finalize();
+    let result = field.finalize().await;
     assert!(result.is_ok());
 }
 

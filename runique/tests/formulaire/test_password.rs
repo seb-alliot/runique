@@ -70,34 +70,34 @@ fn test_double_hash_prevention() {
 // TextField — finalize auto hash
 // ============================================================================
 
-#[test]
-fn test_textfield_password_auto_hash_on_finalize() {
+#[tokio::test]
+async fn test_textfield_password_auto_hash_on_finalize() {
     password_init(PasswordConfig::auto());
     let mut field = TextField::password("password");
     field.set_value("monpassword");
-    field.finalize().unwrap();
+    field.finalize().await.unwrap();
     assert!(field.value().starts_with("$argon2"));
 }
 
-#[test]
-fn test_textfield_password_no_double_hash() {
+#[tokio::test]
+async fn test_textfield_password_no_double_hash() {
     password_init(PasswordConfig::auto());
     let service = PasswordService::new(PasswordConfig::auto());
     let already_hashed = service.hash("monpassword").unwrap();
 
     let mut field = TextField::password("password");
     field.set_value(&already_hashed);
-    field.finalize().unwrap();
+    field.finalize().await.unwrap();
     // La valeur ne doit pas avoir changé
     assert_eq!(field.value(), already_hashed);
 }
 
-#[test]
-fn test_textfield_no_hash_flag() {
+#[tokio::test]
+async fn test_textfield_no_hash_flag() {
     password_init(PasswordConfig::auto());
     let mut field = TextField::password("password").no_hash();
     field.set_value("monpassword");
-    field.finalize().unwrap();
+    field.finalize().await.unwrap();
     // Pas de hash car no_hash()
     assert_eq!(field.value(), "monpassword");
 }

@@ -1,6 +1,7 @@
 //! Hidden field `HiddenField` for non-displayed data (tokens, internal IDs).
 use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
 use crate::utils::trad::{t, tf};
+use async_trait::async_trait;
 use serde::Serialize;
 use std::sync::Arc;
 use subtle::ConstantTimeEq;
@@ -81,8 +82,9 @@ impl CommonFieldConfig for HoneypotField {
     }
 }
 
+#[async_trait]
 impl FormField for HoneypotField {
-    fn validate(&mut self) -> bool {
+    async fn validate(&mut self) -> bool {
         true
     }
 
@@ -99,8 +101,9 @@ impl FormField for HoneypotField {
     }
 }
 
+#[async_trait]
 impl FormField for HiddenField {
-    fn validate(&mut self) -> bool {
+    async fn validate(&mut self) -> bool {
         // For a CSRF field, check that the value matches the expected one
         if self.base.name == "csrf_token"
             && let Some(expected) = &self.expected_value

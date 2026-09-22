@@ -1,6 +1,7 @@
 //! Special fields: `ColorField`, `UUIDField`, `IPAddressField`, `JSONField`, `SlugField`.
 use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
 use crate::utils::trad::{t, tf};
+use async_trait::async_trait;
 use serde::Serialize;
 use serde_json::json;
 use std::{net::IpAddr, sync::Arc};
@@ -54,8 +55,9 @@ impl CommonFieldConfig for ColorField {
     }
 }
 
+#[async_trait]
 impl FormField for ColorField {
-    fn validate(&mut self) -> bool {
+    async fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
         if self.base.is_required.choice && val.is_empty() {
@@ -153,8 +155,9 @@ impl SlugField {
     }
 }
 
+#[async_trait]
 impl FormField for SlugField {
-    fn validate(&mut self) -> bool {
+    async fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
         if self.base.is_required.choice && val.is_empty() {
@@ -259,8 +262,9 @@ impl CommonFieldConfig for UUIDField {
     }
 }
 
+#[async_trait]
 impl FormField for UUIDField {
-    fn validate(&mut self) -> bool {
+    async fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
         if self.base.is_required.choice && val.is_empty() {
@@ -352,8 +356,9 @@ impl CommonFieldConfig for JSONField {
     }
 }
 
+#[async_trait]
 impl FormField for JSONField {
-    fn validate(&mut self) -> bool {
+    async fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
         if self.base.is_required.choice && val.is_empty() {
@@ -467,8 +472,9 @@ impl CommonFieldConfig for IPAddressField {
     }
 }
 
+#[async_trait]
 impl FormField for IPAddressField {
-    fn validate(&mut self) -> bool {
+    async fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
         if self.base.is_required.choice && val.is_empty() {
