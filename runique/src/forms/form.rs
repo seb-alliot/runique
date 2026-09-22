@@ -181,21 +181,33 @@ impl Serialize for Forms {
 use std::cell::Cell;
 const MAX_VALIDATION_DEPTH: usize = 10;
 
-thread_local! {
-    static VALIDATION_DEPTH: Cell<usize> = const { Cell::new(0) };
+// Task-local, not thread-local: `validate_fields` now awaits (`FormField::validate`
+// is async), so recursion (a custom `FormField` re-entering `Forms::validate`) spans
+// suspension points. A `thread_local!` cell can be incremented on one worker thread
+// and, after the task resumes on a different one post-`.await`, decremented on that
+// other thread's own counter — corrupting an unrelated task's depth. `task_local!`
+// follows the task itself across worker-thread migrations instead.
+tokio::task_local! {
+    static VALIDATION_DEPTH: Cell<usize>;
 }
 impl Forms {
-    fn validate(fields: &mut FieldsMap, errors: &[String]) -> Result<bool, ValidationError> {
-        VALIDATION_DEPTH.with(|depth| {
-            let current = depth.get();
+    async fn validate(fields: &mut FieldsMap, errors: &[String]) -> Result<bool, ValidationError> {
+        if VALIDATION_DEPTH.try_with(|_| ()).is_ok() {
+            // Re-entrant call within the same task's already-established scope.
+            let current = VALIDATION_DEPTH.with(Cell::get);
             if current > MAX_VALIDATION_DEPTH {
                 return Err(ValidationError::StackOverflow);
             }
-            depth.set(current.saturating_add(1));
-            let result = FormValidator::validate_fields(fields, errors);
-            depth.set(current);
+            VALIDATION_DEPTH.with(|d| d.set(current + 1));
+            let result = FormValidator::validate_fields(fields, errors).await;
+            VALIDATION_DEPTH.with(|d| d.set(current));
             result
-        })
+        } else {
+            // First entry on this task: open the scope at depth 1.
+            VALIDATION_DEPTH
+                .scope(Cell::new(1), FormValidator::validate_fields(fields, errors))
+                .await
+        }
     }
 
     /// Creates a `Forms` container pre-loaded with a CSRF hidden field set to `csrf_token`.
@@ -468,13 +480,13 @@ impl Forms {
     /// Runs each field's finalize step (e.g. moving an uploaded file to its
     /// destination, hashing a password) in registration order. Returns the
     /// first error encountered, if any.
-    pub fn finalize(&mut self) -> Result<(), String> {
+    pub async fn finalize(&mut self) -> Result<(), String> {
         let log_finalize = crate::utils::runique_log::get_log()
             .forms
             .as_ref()
             .and_then(|f| f.finalize);
         for (name, field) in self.fields.iter_mut() {
-            match field.finalize() {
+            match field.finalize().await {
                 Ok(()) => {
                     if let Some(level) = log_finalize {
                         crate::runique_log!(level, field = %name, kind = %field.field_type(), "finalize ok");
@@ -497,15 +509,15 @@ impl Forms {
 // ============================================================================
 
 impl Forms {
-    /// Synchronous validation — runs all field validators in order.
+    /// Runs all field validators in order.
     /// Returns `Ok(false)` if the form was force-invalidated (honeypot).
     /// Used internally by [`RuniqueForm::is_valid`].
-    pub fn is_valid(&mut self) -> Result<bool, ValidationError> {
+    pub async fn is_valid(&mut self) -> Result<bool, ValidationError> {
         if self.force_invalid {
             return Ok(false);
         }
         self.validated = true;
-        Self::validate(&mut self.fields, &self.errors)
+        Self::validate(&mut self.fields, &self.errors).await
     }
     /// Returns `true` if any field or form-level error is present.
     pub fn has_errors(&self) -> bool {

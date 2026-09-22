@@ -1,6 +1,7 @@
 //! `FormField` trait and `FieldConfig` structure: common base for all form fields.
 use crate::forms::options::*;
 use crate::utils::aliases::*;
+use async_trait::async_trait;
 use dyn_clone::DynClone;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -147,6 +148,7 @@ impl CommonFieldConfig for FieldConfig {
 /// default implementations built on [`CommonFieldConfig`]; only
 /// [`FormField::validate`] and [`FormField::render`] are field-type specific
 /// and have no default.
+#[async_trait]
 pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Sync {
     // ========================================================================
     // GETTERS - Default implementation via CommonFieldConfig
@@ -265,7 +267,7 @@ pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Syn
     }
 
     /// Field-type specific validation
-    fn validate(&mut self) -> bool;
+    async fn validate(&mut self) -> bool;
 
     /// Contexte de rendu commun à **tous** les champs.
     ///
@@ -287,7 +289,7 @@ pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Syn
     fn render(&self, tera: &ATera) -> Result<String, String>;
 
     /// Finalization (e.g., password hashing)
-    fn finalize(&mut self) -> Result<(), String> {
+    async fn finalize(&mut self) -> Result<(), String> {
         Ok(())
     }
 

@@ -38,30 +38,37 @@ pub async fn save_blog(
     blog.save(db).await.map(|_| ())
 }
 
-pub async fn handle_blog_save(request: &mut Request, blog: &mut BlogForm) -> AppResult<Response> {
+pub async fn handle_blog_save(request: &mut Request, blog: BlogForm) -> AppResult<Response> {
     crate::backend::inject_globals(request).await;
     let template = "blog/blog.html";
-    if request.is_get() {
-        context_update!(request => { "title" => "Create a blog post", "blog_form" => &blog });
-        return request.render(template);
-    }
-    if request.is_post() && blog.is_valid().await {
-        match save_blog(blog, &request.engine.db).await {
-            Ok(_) => {
-                success!(request.notices => "Article saved!");
-                return Ok(Redirect::to("/blog/liste").into_response());
+
+    let mut blog = match ValidationForm::try_new(blog, request).await {
+        Ok(validated) => validated.into_inner(),
+        Err(blog) => {
+            if request.method.is_safe() {
+                context_update!(request => { "title" => "Create a blog post", "blog_form" => &blog });
+            } else {
+                let messages = crate::backend::form_error_flash(&blog)
+                    .unwrap_or_else(|| flash_now!(error => "Please correct the errors below"));
+                context_update!(request => {
+                    "title"     => "Validation error",
+                    "blog_form" => &blog,
+                    "messages"  => messages,
+                });
             }
-            Err(err) => {
-                blog.get_form_mut().database_error(&err);
-                context_update!(request => { "title" => "Database error", "blog_form" => &blog });
-                return request.render(template);
-            }
+            return request.render(template);
+        }
+    };
+
+    match save_blog(&mut blog, &request.engine.db).await {
+        Ok(_) => {
+            success!(request.notices => "Article saved!");
+            Ok(Redirect::to("/blog/liste").into_response())
+        }
+        Err(err) => {
+            blog.get_form_mut().database_error(&err);
+            context_update!(request => { "title" => "Database error", "blog_form" => &blog });
+            request.render(template)
         }
     }
-    context_update!(request => {
-        "title"     => "Validation error",
-        "blog_form" => &*blog,
-        "messages"  => flash_now!(error => "Please correct the errors below"),
-    });
-    request.render(template)
 }

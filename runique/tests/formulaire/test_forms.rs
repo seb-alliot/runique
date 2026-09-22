@@ -13,255 +13,255 @@ mod tests {
     use std::collections::HashMap;
 
     // ── TextField ────────────────────────────────────────────────────────────────
-    #[test]
-    fn test_formulaire_get_valide() {
+    #[tokio::test]
+    async fn test_formulaire_get_valide() {
         let mut form = Forms::new("csrf");
         form.field(&TextField::text("search").required());
         // Simule un GET avec un champ rempli
         form.add_value("search", "rust");
-        assert!(form.is_valid().is_ok());
+        assert!(form.is_valid().await.is_ok());
     }
-    #[test]
-    fn test_text_required_empty() {
+    #[tokio::test]
+    async fn test_text_required_empty() {
         let mut field = TextField::text("username").required();
         field.set_value("");
-        assert!(!field.validate());
+        assert!(!field.validate().await);
         assert!(field.error().is_some());
     }
 
-    #[test]
-    fn test_text_required_filled() {
+    #[tokio::test]
+    async fn test_text_required_filled() {
         let mut field = TextField::text("username").required();
         field.set_value("alice");
-        assert!(field.validate());
+        assert!(field.validate().await);
         assert!(field.error().is_none());
     }
 
-    #[test]
-    fn test_text_not_required_empty_is_valid() {
+    #[tokio::test]
+    async fn test_text_not_required_empty_is_valid() {
         let mut field = TextField::text("optional");
         field.set_value("");
-        assert!(field.validate());
+        assert!(field.validate().await);
     }
 
-    #[test]
-    fn test_text_min_length_too_short() {
+    #[tokio::test]
+    async fn test_text_min_length_too_short() {
         let mut field = TextField::text("name").min_length(3, "Trop court");
         field.set_value("ab");
-        assert!(!field.validate());
+        assert!(!field.validate().await);
         assert_eq!(field.error().map(String::as_str), Some("Trop court"));
     }
 
-    #[test]
-    fn test_text_min_length_exact() {
+    #[tokio::test]
+    async fn test_text_min_length_exact() {
         let mut field = TextField::text("name").min_length(3, "Trop court");
         field.set_value("abc");
-        assert!(field.validate());
+        assert!(field.validate().await);
     }
 
-    #[test]
-    fn test_text_max_length_too_long() {
+    #[tokio::test]
+    async fn test_text_max_length_too_long() {
         let mut field = TextField::text("name").max_length(5, "Trop long");
         field.set_value("toolongvalue");
-        assert!(!field.validate());
+        assert!(!field.validate().await);
         assert_eq!(field.error().map(String::as_str), Some("Trop long"));
     }
 
-    #[test]
-    fn test_text_max_length_exact() {
+    #[tokio::test]
+    async fn test_text_max_length_exact() {
         let mut field = TextField::text("name").max_length(5, "Trop long");
         field.set_value("alice");
-        assert!(field.validate());
+        assert!(field.validate().await);
     }
 
-    #[test]
-    fn test_text_min_max_length_combined_invalid() {
+    #[tokio::test]
+    async fn test_text_min_max_length_combined_invalid() {
         let mut field = TextField::text("code").min_length(3, "").max_length(6, "");
         field.set_value("ab");
-        assert!(!field.validate());
+        assert!(!field.validate().await);
     }
 
-    #[test]
-    fn test_text_min_max_length_combined_valid() {
+    #[tokio::test]
+    async fn test_text_min_max_length_combined_valid() {
         let mut field = TextField::text("code").min_length(3, "").max_length(6, "");
         field.set_value("hello");
-        assert!(field.validate());
+        assert!(field.validate().await);
     }
 
     // ── Email ────────────────────────────────────────────────────────────────────
 
-    #[test]
-    fn test_email_invalid() {
+    #[tokio::test]
+    async fn test_email_invalid() {
         let mut field = TextField::email("email");
         field.set_value("not-an-email");
-        assert!(!field.validate());
+        assert!(!field.validate().await);
         assert!(field.error().is_some());
     }
 
-    #[test]
-    fn test_email_valid() {
+    #[tokio::test]
+    async fn test_email_valid() {
         let mut field = TextField::email("email");
         field.set_value("test@example.com");
-        assert!(field.validate());
+        assert!(field.validate().await);
         assert!(field.error().is_none());
     }
 
-    #[test]
-    fn test_email_trimmed_and_lowercased() {
+    #[tokio::test]
+    async fn test_email_trimmed_and_lowercased() {
         let mut field = TextField::email("email");
         field.set_value("Test@Example.COM");
-        assert!(field.validate());
+        assert!(field.validate().await);
         assert_eq!(field.value(), "test@example.com");
     }
 
-    #[test]
-    fn test_email_optional_empty_is_valid() {
+    #[tokio::test]
+    async fn test_email_optional_empty_is_valid() {
         let mut field = TextField::email("email");
         field.set_value("");
-        assert!(field.validate());
+        assert!(field.validate().await);
     }
 
     // ── URL ──────────────────────────────────────────────────────────────────────
 
-    #[test]
-    fn test_url_invalid() {
+    #[tokio::test]
+    async fn test_url_invalid() {
         let mut field = TextField::url("website");
         field.set_value("not-a-url");
-        assert!(!field.validate());
+        assert!(!field.validate().await);
         assert!(field.error().is_some());
     }
 
-    #[test]
-    fn test_url_valid() {
+    #[tokio::test]
+    async fn test_url_valid() {
         let mut field = TextField::url("website");
         field.set_value("https://example.com");
-        assert!(field.validate());
+        assert!(field.validate().await);
         assert!(field.error().is_none());
     }
 
     // ── NumericField ─────────────────────────────────────────────────────────────
 
-    #[test]
-    fn test_integer_required_empty() {
+    #[tokio::test]
+    async fn test_integer_required_empty() {
         let mut field = NumericField::integer("age");
         field.set_required(true, None);
         field.set_value("");
-        assert!(!field.validate());
+        assert!(!field.validate().await);
         assert!(field.error().is_some());
     }
 
-    #[test]
-    fn test_integer_valid() {
+    #[tokio::test]
+    async fn test_integer_valid() {
         let mut field = NumericField::integer("age");
         field.set_value("25");
-        assert!(field.validate());
+        assert!(field.validate().await);
         assert!(field.error().is_none());
     }
 
-    #[test]
-    fn test_integer_invalid_text() {
+    #[tokio::test]
+    async fn test_integer_invalid_text() {
         let mut field = NumericField::integer("age");
         field.set_value("abc");
-        assert!(!field.validate());
+        assert!(!field.validate().await);
         assert!(field.error().is_some());
     }
 
-    #[test]
-    fn test_integer_optional_empty_is_valid() {
+    #[tokio::test]
+    async fn test_integer_optional_empty_is_valid() {
         let mut field = NumericField::integer("age");
         field.set_value("");
-        assert!(field.validate());
+        assert!(field.validate().await);
     }
 
-    #[test]
-    fn test_integer_min_too_low() {
+    #[tokio::test]
+    async fn test_integer_min_too_low() {
         let mut field = NumericField::integer("age").min(18.0, "");
         field.set_value("16");
-        assert!(!field.validate());
+        assert!(!field.validate().await);
         assert!(field.error().is_some());
     }
 
-    #[test]
-    fn test_integer_min_ok() {
+    #[tokio::test]
+    async fn test_integer_min_ok() {
         let mut field = NumericField::integer("age").min(18.0, "Minimum 18");
         field.set_value("18");
-        assert!(field.validate());
+        assert!(field.validate().await);
     }
 
-    #[test]
-    fn test_integer_max_too_high() {
+    #[tokio::test]
+    async fn test_integer_max_too_high() {
         let mut field = NumericField::integer("qty").max(100.0, "");
         field.set_value("150");
-        assert!(!field.validate());
+        assert!(!field.validate().await);
         assert!(field.error().is_some());
     }
 
-    #[test]
-    fn test_integer_max_ok() {
+    #[tokio::test]
+    async fn test_integer_max_ok() {
         let mut field = NumericField::integer("qty").max(100.0, "Maximum 100");
         field.set_value("99");
-        assert!(field.validate());
+        assert!(field.validate().await);
     }
 
-    #[test]
-    fn test_float_valid() {
+    #[tokio::test]
+    async fn test_float_valid() {
         let mut field = NumericField::float("price");
         field.set_value("19.99");
-        assert!(field.validate());
+        assert!(field.validate().await);
     }
 
-    #[test]
-    fn test_float_comma_separator() {
+    #[tokio::test]
+    async fn test_float_comma_separator() {
         let mut field = NumericField::float("price");
         field.set_value("19,99");
-        assert!(field.validate());
+        assert!(field.validate().await);
     }
 
     // ── BooleanField ─────────────────────────────────────────────────────────────
 
-    #[test]
-    fn test_boolean_required_unchecked() {
+    #[tokio::test]
+    async fn test_boolean_required_unchecked() {
         let mut field = BooleanField::new("accept").required();
         field.set_value("false"); // Une valeur est présente (false), donc valide
-        assert!(field.validate());
+        assert!(field.validate().await);
         assert!(field.error().is_none());
     }
 
-    #[test]
-    fn test_boolean_required_checked() {
+    #[tokio::test]
+    async fn test_boolean_required_checked() {
         let mut field = BooleanField::new("accept").required();
         field.set_value("true");
-        assert!(field.validate());
+        assert!(field.validate().await);
         assert!(field.error().is_none());
     }
 
-    #[test]
-    fn test_boolean_not_required_false_is_valid() {
+    #[tokio::test]
+    async fn test_boolean_not_required_false_is_valid() {
         let mut field = BooleanField::new("newsletter");
         field.set_value("false");
-        assert!(field.validate());
+        assert!(field.validate().await);
     }
 
     // ── Forms struct ─────────────────────────────────────────────────────────────
 
-    #[test]
-    fn test_forms_is_valid_ok() {
+    #[tokio::test]
+    async fn test_forms_is_valid_ok() {
         let mut form = Forms::new("csrf");
         form.field(&TextField::text("name").required());
         form.add_value("name", "Alice");
-        assert!(form.is_valid().is_ok());
+        assert!(form.is_valid().await.is_ok());
     }
 
-    #[test]
-    fn test_forms_is_valid_missing_required() {
+    #[tokio::test]
+    async fn test_forms_is_valid_missing_required() {
         let mut form = Forms::new("csrf");
         form.field(&TextField::text("name").required());
         // name not filled → validation fails
-        assert!(form.is_valid().is_err());
+        assert!(form.is_valid().await.is_err());
     }
 
-    #[test]
-    fn test_forms_fill_patch_relaxes_password_required() {
+    #[tokio::test]
+    async fn test_forms_fill_patch_relaxes_password_required() {
         // In edit mode (PATCH), a required password field left empty must not fail validation.
         // An empty password means "keep existing" — NotSet at DB level.
         let mut form = Forms::new("csrf");
@@ -271,33 +271,33 @@ mod tests {
         form.fill(&data, Method::PATCH);
 
         // required is relaxed → valid even with no password
-        assert!(form.is_valid().is_ok());
+        assert!(form.is_valid().await.is_ok());
     }
 
-    #[test]
-    fn test_forms_has_errors_after_invalid() {
+    #[tokio::test]
+    async fn test_forms_has_errors_after_invalid() {
         let mut form = Forms::new("csrf");
         form.field(&TextField::text("name").required());
-        let _ = form.is_valid();
+        let _ = form.is_valid().await;
         assert!(form.has_errors());
     }
 
-    #[test]
-    fn test_forms_has_no_errors_when_valid() {
+    #[tokio::test]
+    async fn test_forms_has_no_errors_when_valid() {
         let mut form = Forms::new("csrf");
         form.field(&TextField::text("name"));
         form.add_value("name", "Alice");
-        let _ = form.is_valid();
+        let _ = form.is_valid().await;
         assert!(!form.has_errors());
     }
 
-    #[test]
-    fn test_forms_errors_map() {
+    #[tokio::test]
+    async fn test_forms_errors_map() {
         let mut form = Forms::new("csrf");
         form.field(&TextField::text("email").required());
         form.field(&NumericField::integer("age").min(0.0, ""));
         form.add_value("age", "-1");
-        let _ = form.is_valid();
+        let _ = form.is_valid().await;
         let errors = form.errors();
         assert!(errors.contains_key("email"));
     }

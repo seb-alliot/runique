@@ -214,65 +214,65 @@ fn test_file_field_upload_to_env() {
 // FileField::validate()
 // ═══════════════════════════════════════════════════════════════
 
-#[test]
-fn test_file_field_validate_required_empty_fails() {
+#[tokio::test]
+async fn test_file_field_validate_required_empty_fails() {
     let mut f = FileField::image("photo").required();
     f.set_value("");
-    assert!(!f.validate());
+    assert!(!f.validate().await);
     assert!(f.error().is_some());
 }
 
-#[test]
-fn test_file_field_validate_not_required_empty_passes() {
+#[tokio::test]
+async fn test_file_field_validate_not_required_empty_passes() {
     let mut f = FileField::image("photo");
     f.set_value("");
-    assert!(f.validate());
+    assert!(f.validate().await);
     assert!(f.error().is_none());
 }
 
-#[test]
-fn test_file_field_validate_extension_blocked() {
+#[tokio::test]
+async fn test_file_field_validate_extension_blocked() {
     let mut f = FileField::image("photo");
     // .svg is always blocked
     f.set_value("photo.svg");
-    assert!(!f.validate());
+    assert!(!f.validate().await);
     assert!(f.error().is_some());
 }
 
-#[test]
-fn test_file_field_validate_custom_extension_blocked() {
+#[tokio::test]
+async fn test_file_field_validate_custom_extension_blocked() {
     let mut f = FileField::any("file").allowed_extensions(vec!["pdf"]);
     f.set_value("script.exe");
-    assert!(!f.validate());
+    assert!(!f.validate().await);
     assert!(f.error().is_some());
 }
 
-#[test]
-fn test_file_field_validate_max_files_exceeded() {
+#[tokio::test]
+async fn test_file_field_validate_max_files_exceeded() {
     let mut f = FileField::any("gallery").max_files(2);
     // 3 files, max is 2 → fail
     f.set_value("a.jpg,b.jpg,c.jpg");
-    assert!(!f.validate());
+    assert!(!f.validate().await);
     assert!(f.error().is_some());
 }
 
-#[test]
-fn test_file_field_validate_max_files_exact() {
+#[tokio::test]
+async fn test_file_field_validate_max_files_exact() {
     let mut f = FileField::document("docs").max_files(2);
     // Extension "pdf" is allowed, 2 files exactly at limit
     // Files don't exist → image validation (FileFieldType::Document) skips is_valid_path
     // Size check uses metadata → Err (file not found) → skipped
     f.set_value("a.pdf,b.pdf");
     // Should pass extension + count, and no image check for Document type
-    assert!(f.validate());
+    assert!(f.validate().await);
 }
 
-#[test]
-fn test_file_field_validate_image_not_found_fails() {
+#[tokio::test]
+async fn test_file_field_validate_image_not_found_fails() {
     let mut f = FileField::image("photo");
     // jpg extension passes, but file doesn't exist → is_valid_path returns false
     f.set_value("nonexistent_file_abc.jpg");
-    assert!(!f.validate());
+    assert!(!f.validate().await);
     assert!(f.error().is_some());
 }
 
@@ -335,25 +335,25 @@ fn test_model_ceiling_preserved_after_override() {
 // FileField::finalize()
 // ═══════════════════════════════════════════════════════════════
 
-#[test]
-fn test_file_field_finalize_no_upload_to_ok() {
+#[tokio::test]
+async fn test_file_field_finalize_no_upload_to_ok() {
     let mut f = FileField::any("file");
     f.set_value("some.pdf");
-    assert!(f.finalize().is_ok());
+    assert!(f.finalize().await.is_ok());
 }
 
-#[test]
-fn test_file_field_finalize_empty_value_ok() {
+#[tokio::test]
+async fn test_file_field_finalize_empty_value_ok() {
     let mut f = FileField::any("file").upload_to("media/files");
     f.set_value("");
-    assert!(f.finalize().is_ok());
+    assert!(f.finalize().await.is_ok());
 }
 
-#[test]
-fn test_file_field_finalize_nonexistent_file_keeps_path() {
+#[tokio::test]
+async fn test_file_field_finalize_nonexistent_file_keeps_path() {
     let mut f = FileField::any("file").upload_to("media/files");
     f.set_value("nonexistent_xyz.pdf");
     // File doesn't exist → path kept as-is, no error
-    assert!(f.finalize().is_ok());
+    assert!(f.finalize().await.is_ok());
     assert!(f.value().contains("nonexistent_xyz.pdf"));
 }

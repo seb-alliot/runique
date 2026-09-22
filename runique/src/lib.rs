@@ -125,6 +125,7 @@ pub mod prelude {
         },
         generic::{FieldKind, GenericField},
         model_form::ModelForm,
+        validation_form::ValidationForm,
     };
     pub use crate::migration::schema::ModelSchema;
     pub use crate::utils::aliases::*;

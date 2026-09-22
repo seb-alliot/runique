@@ -58,43 +58,43 @@ fn test_choice_field_multiple() {
     assert_eq!(field.base.type_field, "select-multiple");
 }
 
-#[test]
-fn test_choice_field_vide_non_requis() {
+#[tokio::test]
+async fn test_choice_field_vide_non_requis() {
     let mut field = ChoiceField::new("pays").choices(options());
     field.set_value("");
-    assert!(field.validate());
+    assert!(field.validate().await);
 }
 
-#[test]
-fn test_choice_field_vide_requis() {
+#[tokio::test]
+async fn test_choice_field_vide_requis() {
     let mut field = ChoiceField::new("pays").choices(options()).required();
     field.set_value("");
-    assert!(!field.validate());
+    assert!(!field.validate().await);
     assert!(field.error().is_some());
 }
 
-#[test]
-fn test_choice_field_requis_message_custom() {
+#[tokio::test]
+async fn test_choice_field_requis_message_custom() {
     let mut field = ChoiceField::new("pays").choices(options());
     field.set_required(true, Some("Veuillez choisir"));
     field.set_value("");
-    assert!(!field.validate());
+    assert!(!field.validate().await);
     assert_eq!(field.error().unwrap(), "Veuillez choisir");
 }
 
-#[test]
-fn test_choice_field_valide() {
+#[tokio::test]
+async fn test_choice_field_valide() {
     let mut field = ChoiceField::new("pays").choices(options());
     field.set_value("a");
-    assert!(field.validate());
+    assert!(field.validate().await);
     assert!(field.error().is_none());
 }
 
-#[test]
-fn test_choice_field_choix_invalide() {
+#[tokio::test]
+async fn test_choice_field_choix_invalide() {
     let mut field = ChoiceField::new("pays").choices(options());
     field.set_value("z");
-    assert!(!field.validate());
+    assert!(!field.validate().await);
     assert!(field.error().is_some());
 }
 
@@ -123,43 +123,43 @@ fn test_radio_field_new() {
     assert_eq!(field.base.type_field, "radio");
 }
 
-#[test]
-fn test_radio_field_vide_non_requis() {
+#[tokio::test]
+async fn test_radio_field_vide_non_requis() {
     let mut field = RadioField::new("genre").choices(options());
     field.set_value("");
-    assert!(field.validate());
+    assert!(field.validate().await);
 }
 
-#[test]
-fn test_radio_field_vide_requis() {
+#[tokio::test]
+async fn test_radio_field_vide_requis() {
     let mut field = RadioField::new("genre").choices(options()).required();
     field.set_value("");
-    assert!(!field.validate());
+    assert!(!field.validate().await);
     assert!(field.error().is_some());
 }
 
-#[test]
-fn test_radio_field_requis_message_custom() {
+#[tokio::test]
+async fn test_radio_field_requis_message_custom() {
     let mut field = RadioField::new("genre").choices(options());
     field.set_required(true, Some("Choix requis"));
     field.set_value("");
-    assert!(!field.validate());
+    assert!(!field.validate().await);
     assert_eq!(field.error().unwrap(), "Choix requis");
 }
 
-#[test]
-fn test_radio_field_valide() {
+#[tokio::test]
+async fn test_radio_field_valide() {
     let mut field = RadioField::new("genre").choices(options());
     field.set_value("b");
-    assert!(field.validate());
+    assert!(field.validate().await);
     assert!(field.error().is_none());
 }
 
-#[test]
-fn test_radio_field_choix_invalide() {
+#[tokio::test]
+async fn test_radio_field_choix_invalide() {
     let mut field = RadioField::new("genre").choices(options());
     field.set_value("x");
-    assert!(!field.validate());
+    assert!(!field.validate().await);
     assert!(field.error().is_some());
 }
 
@@ -188,59 +188,59 @@ fn test_checkbox_field_new() {
     assert_eq!(field.base.type_field, "checkbox");
 }
 
-#[test]
-fn test_checkbox_field_vide_non_requis() {
+#[tokio::test]
+async fn test_checkbox_field_vide_non_requis() {
     let mut field = CheckboxField::new("interets").choices(options());
     field.set_value("");
-    assert!(field.validate());
+    assert!(field.validate().await);
 }
 
-#[test]
-fn test_checkbox_field_vide_requis() {
+#[tokio::test]
+async fn test_checkbox_field_vide_requis() {
     let mut field = CheckboxField::new("interets").choices(options()).required();
     field.set_value("");
-    assert!(!field.validate());
+    assert!(!field.validate().await);
     assert!(field.error().is_some());
 }
 
-#[test]
-fn test_checkbox_field_requis_message_custom() {
+#[tokio::test]
+async fn test_checkbox_field_requis_message_custom() {
     let mut field = CheckboxField::new("interets").choices(options());
     field.set_required(true, Some("Sélectionnez au moins un"));
     field.set_value("");
-    assert!(!field.validate());
+    assert!(!field.validate().await);
     assert_eq!(field.error().unwrap(), "Sélectionnez au moins un");
 }
 
-#[test]
-fn test_checkbox_field_une_valeur_valide() {
+#[tokio::test]
+async fn test_checkbox_field_une_valeur_valide() {
     let mut field = CheckboxField::new("interets").choices(options());
     field.set_value("a");
-    assert!(field.validate());
+    assert!(field.validate().await);
     assert!(field.error().is_none());
 }
 
-#[test]
-fn test_checkbox_field_plusieurs_valides() {
+#[tokio::test]
+async fn test_checkbox_field_plusieurs_valides() {
     let mut field = CheckboxField::new("interets").choices(options());
     field.set_value("a,b,c");
-    assert!(field.validate());
+    assert!(field.validate().await);
     assert!(field.error().is_none());
 }
 
-#[test]
-fn test_checkbox_field_valeur_invalide() {
+#[tokio::test]
+async fn test_checkbox_field_valeur_invalide() {
     let mut field = CheckboxField::new("interets").choices(options());
     field.set_value("z");
-    assert!(!field.validate());
+    assert!(!field.validate().await);
     assert!(field.error().is_some());
 }
 
-#[test]
-fn test_checkbox_field_mix_valide_invalide() {
+#[tokio::test]
+async fn test_checkbox_field_mix_valide_invalide() {
     let mut field = CheckboxField::new("interets").choices(options());
     field.set_value("a,z");
-    assert!(!field.validate());
+    assert!(!field.validate().await);
     assert!(field.error().is_some());
 }
 

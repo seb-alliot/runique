@@ -29,7 +29,7 @@ pub async fn find_user_by_id(
 
 pub async fn handle_inscription(
     request: &mut Request,
-    form: &mut RegisterForm,
+    form: RegisterForm,
     headers: &HeaderMap,
 ) -> AppResult<Response> {
     crate::backend::inject_globals(request).await;
@@ -39,53 +39,72 @@ pub async fn handle_inscription(
     let template = "auth/inscription.html";
     let db = request.engine.db.clone();
     let (code_examples, doc_links) = crate::backend::fetch_page_examples("inscription", &db).await;
-    if request.is_get() {
-        context_update!(request => {
-            "title"            => "User registration",
-            "inscription_form" => &*form,
-            "code_examples"    => &code_examples,
-            "doc_links"        => &doc_links,
-        });
-        return request.render(template);
-    }
-    if request.is_post() && form.is_valid().await {
-        match register_user(form, &request.engine.db).await {
-            Ok(user) => {
-                let token = reset_token::generate(
-                    &request.engine.db,
-                    user.id,
-                    std::time::Duration::from_secs(86_400),
-                )
-                .await
-                .unwrap_or_default();
-                let encrypted = reset_token::encrypt_email(&token, &user.email);
-                let base_url = headers
-                    .get("host")
-                    .and_then(|v| v.to_str().ok())
-                    .map(|h| format!("http://{h}"))
-                    .unwrap_or_else(|| "http://localhost:3000".to_string());
-                let activate_url = format!("{}/activate/{}/{}", base_url, token, encrypted);
-                if mailer_configured() {
-                    Email::new()
-                        .to(user.email.clone())
-                        .subject("Activez votre compte")
-                        .html(format!(
-                            "<p>Bonjour {},</p><p>Cliquez sur ce lien pour activer votre compte :</p><p><a href=\"{}\">Activer mon compte</a></p>",
-                            user.username, activate_url
-                        ))
-                        .send()
-                        .await
-                        .ok();
-                }
-                success!(request.notices => "Compte créé ! Consultez vos emails pour l'activer.");
-                return Ok(Redirect::to("/login").into_response());
+
+    let mut validated = match ValidationForm::try_new(form, request).await {
+        Ok(validated) => validated,
+        Err(form) => {
+            // GET (nothing submitted yet): blank form, no flash. Submitted but
+            // invalid (POST, or PUT/DELETE/PATCH since `view!{}` registers all
+            // methods on this route): re-render with the validation-error flash.
+            if request.method.is_safe() {
+                context_update!(request => {
+                    "title"            => "User registration",
+                    "inscription_form" => &form,
+                    "code_examples"    => &code_examples,
+                    "doc_links"        => &doc_links,
+                });
+            } else {
+                let messages = crate::backend::form_error_flash(&form)
+                    .unwrap_or_else(|| flash_now!(error => "Please correct the errors"));
+                context_update!(request => {
+                    "title"            => "Validation error",
+                    "inscription_form" => &form,
+                    "code_examples"    => &code_examples,
+                    "doc_links"        => &doc_links,
+                    "messages"         => messages,
+                });
             }
-            Err(err) => form.get_form_mut().database_error(&err),
+            return request.render(template);
         }
+    };
+
+    match register_user(&validated, &request.engine.db).await {
+        Ok(user) => {
+            let token = reset_token::generate(
+                &request.engine.db,
+                user.id,
+                std::time::Duration::from_secs(86_400),
+            )
+            .await
+            .unwrap_or_default();
+            let encrypted = reset_token::encrypt_email(&token, &user.email);
+            let base_url = headers
+                .get("host")
+                .and_then(|v| v.to_str().ok())
+                .map(|h| format!("http://{h}"))
+                .unwrap_or_else(|| "http://localhost:3000".to_string());
+            let activate_url = format!("{}/activate/{}/{}", base_url, token, encrypted);
+            if mailer_configured() {
+                Email::new()
+                    .to(user.email.clone())
+                    .subject("Activez votre compte")
+                    .html(format!(
+                        "<p>Bonjour {},</p><p>Cliquez sur ce lien pour activer votre compte :</p><p><a href=\"{}\">Activer mon compte</a></p>",
+                        user.username, activate_url
+                    ))
+                    .send()
+                    .await
+                    .ok();
+            }
+            success!(request.notices => "Compte créé ! Consultez vos emails pour l'activer.");
+            return Ok(Redirect::to("/login").into_response());
+        }
+        Err(err) => validated.database_error(&err),
     }
+
     context_update!(request => {
         "title"            => "Validation error",
-        "inscription_form" => &*form,
+        "inscription_form" => &*validated,
         "code_examples"    => &code_examples,
         "doc_links"        => &doc_links,
         "messages"         => flash_now!(error => "Please correct the errors"),
@@ -139,7 +158,7 @@ pub async fn handle_activate(
     Ok(Redirect::to("/profil").into_response())
 }
 
-pub async fn handle_login(request: &mut Request, form: &mut LoginForm) -> AppResult<Response> {
+pub async fn handle_login(request: &mut Request, form: LoginForm) -> AppResult<Response> {
     crate::backend::inject_globals(request).await;
     if is_authenticated(&request.session).await {
         return Ok(Redirect::to("/profil").into_response());
@@ -147,42 +166,47 @@ pub async fn handle_login(request: &mut Request, form: &mut LoginForm) -> AppRes
     let template = "auth/login.html";
     let db = request.engine.db.clone();
     let (code_examples, doc_links) = crate::backend::fetch_page_examples("login", &db).await;
-    if request.is_get() {
-        context_update!(request => {
-            "title"         => "Login",
-            "login_form"    => form,
-            "code_examples" => &code_examples,
-            "doc_links"     => &doc_links,
-        });
-        return request.render(template);
-    }
-    if request.is_post() && form.is_valid().await {
-        let credentials = get_credentials(form);
-        if let Some((username_val, password_val)) = &credentials
-            && let Some(user) =
-                authenticate_user(&request.engine.db, username_val, password_val).await
-        {
-            auth_login(&request.session, &request.engine.db, user.id)
-                .await
-                .ok();
-            success!(request.notices => format!("Welcome {}!", user.username));
-            return Ok(Redirect::to("/profil").into_response());
+
+    let validated = match ValidationForm::try_new(form, request).await {
+        Ok(validated) => validated,
+        Err(form) => {
+            match crate::backend::form_error_flash(&form) {
+                Some(messages) => context_update!(request => {
+                    "title"         => "Login",
+                    "login_form"    => &form,
+                    "code_examples" => &code_examples,
+                    "doc_links"     => &doc_links,
+                    "messages"      => messages,
+                }),
+                None => context_update!(request => {
+                    "title"         => "Login",
+                    "login_form"    => &form,
+                    "code_examples" => &code_examples,
+                    "doc_links"     => &doc_links,
+                }),
+            }
+            return request.render(template);
         }
-        context_update!(request => {
-            "title"         => "Login",
-            "login_form"    => form,
-            "auth_error"    => &true,
-            "code_examples" => &code_examples,
-            "doc_links"     => &doc_links,
-            "messages"      => flash_now!(error => "Invalid credentials"),
-        });
-        return request.render(template);
+    };
+
+    let credentials = get_credentials(&validated);
+    if let Some((username_val, password_val)) = &credentials
+        && let Some(user) = authenticate_user(&request.engine.db, username_val, password_val).await
+    {
+        auth_login(&request.session, &request.engine.db, user.id)
+            .await
+            .ok();
+        success!(request.notices => format!("Welcome {}!", user.username));
+        return Ok(Redirect::to("/profil").into_response());
     }
+
     context_update!(request => {
         "title"         => "Login",
-        "login_form"    => form,
+        "login_form"    => &*validated,
+        "auth_error"    => &true,
         "code_examples" => &code_examples,
         "doc_links"     => &doc_links,
+        "messages"      => flash_now!(error => "Invalid credentials"),
     });
     request.render(template)
 }

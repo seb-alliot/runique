@@ -20,7 +20,7 @@ pub async fn index(mut request: Request) -> AppResult<Response> {
 
 /// Inscription
 pub async fn soumission_inscription(mut request: Request) -> AppResult<Response> {
-    let mut form: RegisterForm = request.form();
+    let form: RegisterForm = request.form();
     inject_auth(&mut request).await;
 
     if is_authenticated(&request.session).await {
@@ -29,35 +29,46 @@ pub async fn soumission_inscription(mut request: Request) -> AppResult<Response>
 
     let template = "inscription_form.html";
 
-    if request.is_get() {
-        context_update!(request => {
-            "title" => "Inscription",
-            "inscription_form" => &form,
-        });
-        return request.render(template);
-    }
+    // GET (nothing submitted yet): blank form, no flash. Submitted but invalid
+    // (POST, or PUT/DELETE/PATCH since `view!{}` registers all methods): shared
+    // error render below, `save()` is never attempted.
+    let mut form = match ValidationForm::try_new(form, &request).await {
+        Ok(validated) => validated.into_inner(),
+        Err(form) => {
+            if request.method.is_safe() {
+                context_update!(request => {
+                    "title" => "Inscription",
+                    "inscription_form" => &form,
+                });
+                return request.render(template);
+            }
+            context_update!(request => {
+                "title" => "Inscription",
+                "inscription_form" => &form,
+                "messages" => flash_now!(error => "An error occurred while registering. Please try again."),
+            });
+            return request.render(template);
+        }
+    };
 
-    if request.is_post() && form.is_valid().await {
-        match form.save(&request.engine.db).await {
-            Ok(user) => {
-                auth_login(&request.session, &request.engine.db, user.id)
-                    .await
-                    .ok();
-                success!(request.notices => format!("Welcome {} !", user.username));
-                return Ok(Redirect::to("/").into_response());
-            }
-            Err(err) => {
-                form.get_form_mut().database_error(&err);
-            }
+    match form.save(&request.engine.db).await {
+        Ok(user) => {
+            auth_login(&request.session, &request.engine.db, user.id)
+                .await
+                .ok();
+            success!(request.notices => format!("Welcome {} !", user.username));
+            Ok(Redirect::to("/").into_response())
+        }
+        Err(err) => {
+            form.get_form_mut().database_error(&err);
+            context_update!(request => {
+                "title" => "Inscription",
+                "inscription_form" => &form,
+                "messages" => flash_now!(error => "An error occurred while registering. Please try again."),
+            });
+            request.render(template)
         }
     }
-
-    context_update!(request => {
-        "title" => "Inscription",
-        "inscription_form" => &form,
-        "messages" => flash_now!(error => "An error occurred while registering. Please try again."),
-    });
-    request.render(template)
 }
 
 /// About page

@@ -9,6 +9,7 @@ pub mod model_form;
 pub mod options;
 pub mod prisme;
 pub mod renderer;
+pub mod validation_form;
 pub mod validator;
 
 pub use base::*;
@@ -21,6 +22,7 @@ pub use model_form::*;
 pub use options::*;
 pub use prisme::*;
 pub use renderer::*;
+pub use validation_form::*;
 pub use validator::*;
 
 /// Associates a form with a SeaORM entity.

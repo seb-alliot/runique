@@ -43,7 +43,9 @@ This value applies **everywhere, consistently**:
 diverge**. If `with_session_duration` is never called, the default is **24h** (86,400 s).
 
 > **Anonymous** sessions (logged-out visitors) have their own, shorter duration via
-> `with_anonymous_session_duration(Duration)` (default 5 min).
+> `with_anonymous_session_duration(Duration)` (default 5 min). The CSRF token lives in the
+> session, so a public form left open longer than that will have its token expire — see
+> [CSRF Protection](/docs/en/middleware/csrf), "Token expiry & automatic refresh" section.
 
 ### "Remember me" (per-session duration)
 

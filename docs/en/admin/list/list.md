@@ -57,7 +57,7 @@ The third element syntax is `"table.column"`. The daemon automatically generates
 
 Resolution is compatible with `i32`, `i64` and UUID — the identifier is cast to `TEXT` before comparison.
 
-FK columns are automatically **excluded from full-text search** (searching a raw ID is meaningless). Non-FK columns remain indexed normally.
+A FK column stays **searchable through its displayed label**, not the raw ID: the daemon first resolves the search text against the related table (`table.column`), then filters the current table on the matching IDs (`FK IN (...)`). Non-FK columns remain indexed normally, and both sets combine with `OR`.
 
 ### Common examples
 

@@ -45,14 +45,6 @@ async fn ctx_handler(ctx: RuniqueContext) -> impl IntoResponse {
     StatusCode::OK
 }
 
-async fn ctx_method_handler(ctx: RuniqueContext) -> impl IntoResponse {
-    if ctx.tpl.is_get() {
-        StatusCode::OK
-    } else {
-        StatusCode::IM_A_TEAPOT
-    }
-}
-
 // ── Builder du router de test ────────────────────────────────────────────────
 
 async fn ctx_app() -> Router {
@@ -61,7 +53,6 @@ async fn ctx_app() -> Router {
 
     Router::new()
         .route("/ctx", get(ctx_handler))
-        .route("/ctx/method", get(ctx_method_handler))
         // Ordre des layers (dernier = outermost = premier à traiter la requête)
         .layer(middleware::from_fn_with_state(
             engine.clone(),
@@ -79,12 +70,6 @@ async fn ctx_app() -> Router {
 #[tokio::test]
 async fn test_runique_context_get_200() {
     let resp = request::get(ctx_app().await, "/ctx").await;
-    assert_eq!(resp.status(), StatusCode::OK);
-}
-
-#[tokio::test]
-async fn test_runique_context_is_get_true() {
-    let resp = request::get(ctx_app().await, "/ctx/method").await;
     assert_eq!(resp.status(), StatusCode::OK);
 }
 

@@ -24,13 +24,14 @@ classDiagram
         +field_attr(name, k, v) &mut Self
         +field_max_size(name, size) Result
         +fill(raw, method)
-        +finalize() / validate() / render()
+        +finalize() / validate() / render() [async]
     }
     class FormField {
-        <<trait>>
+        <<trait, async_trait>>
         +name()/label()/placeholder()/value()
         +set_label()/set_placeholder()/set_value()
-        +validate() bool
+        +validate() bool [async]
+        +finalize() [async, défaut no-op]
         +render()
         +base_context() Context
         +is_password() bool
@@ -62,13 +63,22 @@ classDiagram
 ```mermaid
 classDiagram
     class RuniqueForm {
-        <<trait>>
+        <<trait, async_trait>>
         +register_fields(form)*
         +from_form(form) Self*
         +get_form() / get_form_mut()*
-        +customize(form) [défaut no-op]
+        +customize(form) [défaut no-op, statique]
+        +register_dynamic_fields(request) [async, défaut no-op]
+        +validator_get(request) bool [défaut is_submitted()]
+        +validator_post(request) bool [défaut is_submitted()]
         +label/placeholder/required/readonly/disabled/attr(name,..)
         +cleaned_string/i32/i64/...(name)
+    }
+    class ValidationForm~F~ {
+        -F form
+        +try_new(form, request)$ Result~Self,F~
+        +into_inner() F
+        +database_error(msg) &mut Self
     }
     class ModelForm {
         <<trait>>
@@ -89,12 +99,24 @@ classDiagram
     RuniqueForm ..> Forms
     ModelForm ..> ModelSchema : schema().fill_form()
     ModelForm ..> RuniqueForm : via impl_form_access!(model)
+    ValidationForm~F~ o-- F : Deref (lecture seule)
+    ValidationForm~F~ ..> RuniqueForm : F: RuniqueForm
 ```
 
 Flux de construction d'un `#[form(schema=…)]` :
 `build/build_with_data` → `register_fields` → `model_register_fields` →
 `ModelSchema::fill_form` → `ColumnDef::to_form_field` (recrée chaque champ) →
 **`Self::customize(form)`** (hook ajouté) → `fill(raw)` → `validate`.
+
+Flux `ValidationForm<F>::try_new(form, request)` (remplace le boilerplate
+`if request.is_post() && form.is_valid() {...} else {...}` désormais **supprimé**) :
+`register_dynamic_fields(request).await` (champs dépendants de la requête) →
+dispatch `validator_get`/`validator_post` selon `request.method.is_safe()` → si
+`false`, retour `Err(form)` **sans validation** (pas d'erreur de champ posée) →
+si `true`, `form.is_valid().await` → `Ok(ValidationForm(form))` ou `Err(form)`
+(erreurs déjà peuplées par `is_valid()`). `into_inner()` n'est atteignable
+qu'après un `Ok` : impossible d'agir sur un form non validé (garantie de type,
+pas seulement runtime).
 
 ## Anomalies / flux suspects
 
@@ -148,3 +170,24 @@ un seul point d'interrogation pilote désormais le rendu du widget, le saut en G
 de `required` en édition, le masquage dans les journaux et la sérialisation vers `form_fields`.
 Un champ portant un secret sans être de type password (clé d'API, jeton) hérite de tout cela via
 `mark_password()`, ce qu'un test sur le type ne permettra jamais.
+
+### 🟠 F6 — Échec CSRF totalement silencieux — ✅ CORRIGÉ (2026-09-22)
+`force_invalid` (posé par `Request::form()` sur CSRF KO, cf. F3 ci-dessus)
+court-circuite `is_valid()` **avant** que `HiddenField::validate()` ne puisse
+poser son propre message d'erreur CSRF — lequel dépendait de
+`set_expected_value()`, **jamais appelé en production** (code mort). Résultat :
+un CSRF invalide/expiré échouait sans **aucun** message nulle part — l'utilisateur
+voyait juste le formulaire revenir vide, sans explication. Corrigé dans
+`Request::form()` (`context/template.rs`) : `t("csrf.invalid_or_missing")` est
+poussé directement dans `Forms.errors` dès la détection, avant le court-circuit.
+Détail complet : [../../flux/requete-csrf-upload.md](../../flux/requete-csrf-upload.md) (C6).
+
+### 🟡 F7 — `Request::is_get/is_post/is_put/is_delete` supprimées — RUPTURE D'API (2026-09-22)
+Ces 4 méthodes n'avaient plus qu'un seul usage réel dans tout le framework : le
+check honeypot (`self.is_post()` → inliné en `self.method == Method::POST`).
+Leur unique raison d'être historique était le boilerplate de validation
+`if request.is_post() && form.is_valid() {...} else {...}`, remplacé par
+`ValidationForm::try_new()` (ci-dessus), qui dispatche lui-même sur la méthode
+via `http::Method::is_safe()`. Supprimées avec les tests associés ; nouveaux
+tests de régression honeypot ajoutés (`test_validation_form.rs`) puisque ce
+comportement n'était pas testé directement avant.

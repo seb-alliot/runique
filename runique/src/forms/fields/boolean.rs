@@ -1,6 +1,7 @@
 //! Boolean field `BooleanField`: HTML checkbox with unchecked case management.
 use crate::forms::base::*;
 use crate::utils::trad::tf;
+use async_trait::async_trait;
 use serde::Serialize;
 use std::sync::Arc;
 use tera::Tera;
@@ -63,8 +64,9 @@ impl BooleanField {
     }
 }
 
+#[async_trait]
 impl FormField for BooleanField {
-    fn validate(&mut self) -> bool {
+    async fn validate(&mut self) -> bool {
         // A boolean field is always valid: "true" or "false" (unchecked = false).
         // required = NOT NULL in DB, not "must be checked".
         // To force the check (e.g., TOS), use clean() with a custom error.

@@ -45,7 +45,9 @@ Cette valeur s'applique **partout et de façon cohérente** :
 **24h** (86 400 s).
 
 > Les sessions **anonymes** (visiteurs non connectés) ont leur propre durée, plus courte,
-> via `with_anonymous_session_duration(Duration)` (défaut 5 min).
+> via `with_anonymous_session_duration(Duration)` (défaut 5 min). Le token CSRF vivant dans
+> la session, un formulaire public resté ouvert plus longtemps voit son token expirer —
+> voir [Protection CSRF](/docs/fr/middleware/csrf), section "Expiration du token & rafraîchissement automatique".
 
 ### « Se souvenir de moi » (durée par session)
 

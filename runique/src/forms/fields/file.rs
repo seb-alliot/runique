@@ -31,52 +31,36 @@ impl IntoUploadPath for &StaticConfig {
         self.media_root.clone()
     }
 }
+use async_trait::async_trait;
 use image::ImageReader;
 use serde::Serialize;
 use std::path::Path;
 use std::sync::Arc;
 use tera::Tera;
-
-/// Runs blocking file I/O off the async reactor thread. `validate`/`finalize`
-/// are sync trait methods (see [`FormField`]) called from async request handling,
-/// so a plain `std::fs` call would stall other tasks on that worker. Falls back
-/// to direct execution outside a Tokio runtime (unit tests, no runtime present).
-fn blocking<T>(f: impl FnOnce() -> T) -> T {
-    match tokio::runtime::Handle::try_current() {
-        Ok(_) => tokio::task::block_in_place(f),
-        Err(_) => f(),
-    }
-}
+use tokio::io::AsyncReadExt;
 
 /// Deletes uploaded files from disk (cleanup on validation failure)
-fn cleanup_files(files: &[String]) {
+async fn cleanup_files(files: &[String]) {
     for path in files {
-        blocking(|| {
-            if let Err(e) = std::fs::remove_file(path)
-                && e.kind() != std::io::ErrorKind::NotFound
-            {
-                tracing::warn!(path = %path, error = %e, "cleanup_files: remove failed");
-            }
-        });
+        if let Err(e) = tokio::fs::remove_file(path).await
+            && e.kind() != std::io::ErrorKind::NotFound
+        {
+            tracing::warn!(path = %path, error = %e, "cleanup_files: remove failed");
+        }
     }
 }
 
 /// Checks if the file is a valid image using magic bytes.
 /// Covers JPEG, PNG, GIF, WebP, and ISO BMFF containers (AVIF, HEIC, HEIF).
-fn is_valid_image_content(path: &str) -> bool {
-    use std::io::Read;
-
-    let p = Path::new(path);
-    if !p.exists() {
-        return false;
-    }
+async fn is_valid_image_content(path: &str) -> bool {
     if path.to_lowercase().ends_with(".svg") {
         return false;
     }
+    let Ok(mut f) = tokio::fs::File::open(path).await else {
+        return false;
+    };
     let mut buf = [0u8; 12];
-    let n = std::fs::File::open(p)
-        .and_then(|mut f| f.read(&mut buf))
-        .unwrap_or(0);
+    let n = f.read(&mut buf).await.unwrap_or(0);
     if n < 4 {
         return false;
     }
@@ -106,13 +90,13 @@ fn is_valid_image_content(path: &str) -> bool {
 /// Moves a staged file to its destination. `rename` fails with `CrossesDevices`
 /// when the staging directory and `MEDIA_ROOT` are on different filesystems
 /// (e.g. `/tmp` on tmpfs vs. a mounted media volume) — falls back to copy+remove.
-fn move_file(src: &Path, dest: &Path) -> std::io::Result<()> {
-    match std::fs::rename(src, dest) {
+async fn move_file(src: &Path, dest: &Path) -> std::io::Result<()> {
+    match tokio::fs::rename(src, dest).await {
         Ok(()) => Ok(()),
         Err(e) if e.kind() == std::io::ErrorKind::CrossesDevices => {
             tracing::debug!(src = %src.display(), dest = %dest.display(), "cross-device move, falling back to copy");
-            std::fs::copy(src, dest)?;
-            if let Err(e) = std::fs::remove_file(src) {
+            tokio::fs::copy(src, dest).await?;
+            if let Err(e) = tokio::fs::remove_file(src).await {
                 tracing::warn!(path = %src.display(), error = %e, "cross-device move: leftover staged file removal failed");
             }
             Ok(())
@@ -419,6 +403,7 @@ impl FileField {
     }
 }
 
+#[async_trait]
 impl FormField for FileField {
     fn model_max_size(&self) -> Option<u64> {
         self.model_max_size
@@ -436,7 +421,7 @@ impl FormField for FileField {
         self.base.value = value.to_string();
     }
 
-    fn validate(&mut self) -> bool {
+    async fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
         // 1. Presence validation
@@ -465,7 +450,7 @@ impl FormField for FileField {
         if let Some(max) = self.max_files
             && files.len() > max
         {
-            cleanup_files(&files);
+            cleanup_files(&files).await;
             self.base.value.clear();
             self.set_error(tf("forms.file_max_count", &[&max]));
             return false;
@@ -475,7 +460,7 @@ impl FormField for FileField {
         for filename in &files {
             if !self.allowed_extensions.is_allowed(filename) {
                 let exts = self.allowed_extensions.extensions.join(", ");
-                cleanup_files(&files);
+                cleanup_files(&files).await;
                 self.base.value.clear();
                 self.set_error(tf(
                     "forms.file_extension_blocked",
@@ -484,7 +469,7 @@ impl FormField for FileField {
                 return false;
             }
             if let Some(max_bytes) = self.upload_config.max_size
-                && let Ok(metadata) = blocking(|| std::fs::metadata(filename))
+                && let Ok(metadata) = tokio::fs::metadata(filename).await
             {
                 let file_size = metadata.len();
                 if file_size > max_bytes {
@@ -492,7 +477,7 @@ impl FormField for FileField {
                     let max_mb = max_bytes as f64 / (1024.0 * 1024.0);
                     let size_str = format!("{:.1}", size_mb);
                     let max_mb_str = format!("{:.1}", max_mb);
-                    cleanup_files(&files);
+                    cleanup_files(&files).await;
                     self.base.value.clear();
                     self.set_error(tf(
                         "forms.file_too_large",
@@ -506,22 +491,30 @@ impl FormField for FileField {
         // 4. Image validation: real format + dimensions
         if let FileFieldType::Image = self.field_type {
             for filename in &files {
-                if !blocking(|| is_valid_image_content(filename)) {
-                    cleanup_files(&files);
+                if !is_valid_image_content(filename).await {
+                    cleanup_files(&files).await;
                     self.base.value.clear();
                     self.set_error(tf("forms.file_invalid_image", &[filename.as_str()]));
                     return false;
                 }
 
-                if (self.max_width.is_some() || self.max_height.is_some())
-                    && let Some((w, h)) =
-                        blocking(|| ImageReader::open(filename).ok()?.into_dimensions().ok())
-                {
+                let dims = if self.max_width.is_some() || self.max_height.is_some() {
+                    let filename = filename.clone();
+                    tokio::task::spawn_blocking(move || {
+                        ImageReader::open(&filename).ok()?.into_dimensions().ok()
+                    })
+                    .await
+                    .ok()
+                    .flatten()
+                } else {
+                    None
+                };
+                if let Some((w, h)) = dims {
                     if let Some(max_w) = self.max_width
                         && w > max_w
                     {
                         let (w_s, mw_s) = (w.to_string(), max_w.to_string());
-                        cleanup_files(&files);
+                        cleanup_files(&files).await;
                         self.base.value.clear();
                         self.set_error(tf(
                             "forms.image_too_wide",
@@ -533,7 +526,7 @@ impl FormField for FileField {
                         && h > max_h
                     {
                         let (h_s, mh_s) = (h.to_string(), max_h.to_string());
-                        cleanup_files(&files);
+                        cleanup_files(&files).await;
                         self.base.value.clear();
                         self.set_error(tf(
                             "forms.image_too_tall",
@@ -549,7 +542,7 @@ impl FormField for FileField {
         true
     }
 
-    fn finalize(&mut self) -> Result<(), String> {
+    async fn finalize(&mut self) -> Result<(), String> {
         let val = self.base.value.trim().to_string();
         if val.is_empty() {
             return Ok(());
@@ -611,7 +604,8 @@ impl FormField for FileField {
                 continue;
             }
 
-            blocking(|| std::fs::create_dir_all(dest_dir_abs_path))
+            tokio::fs::create_dir_all(dest_dir_abs_path)
+                .await
                 .map_err(|e| format!("upload dir '{}': {}", dest_dir_abs, e))?;
 
             let filename = src
@@ -620,7 +614,8 @@ impl FormField for FileField {
                 .unwrap_or(file_path.as_str());
             let dest_abs = dest_dir_abs_path.join(filename);
 
-            blocking(|| move_file(src, &dest_abs))
+            move_file(src, &dest_abs)
+                .await
                 .map_err(|e| format!("move '{}': {}", dest_abs.display(), e))?;
 
             new_paths.push(to_rel(filename));
@@ -634,13 +629,11 @@ impl FormField for FileField {
                 if !new_paths.iter().any(|p| p == old_rel) {
                     let old_abs =
                         format!("{}/{}", media_root_clean, old_rel.trim_start_matches('/'));
-                    blocking(|| {
-                        if let Err(e) = std::fs::remove_file(&old_abs)
-                            && e.kind() != std::io::ErrorKind::NotFound
-                        {
-                            tracing::warn!(path = %old_abs, error = %e, "old upload removal failed");
-                        }
-                    });
+                    if let Err(e) = tokio::fs::remove_file(&old_abs).await
+                        && e.kind() != std::io::ErrorKind::NotFound
+                    {
+                        tracing::warn!(path = %old_abs, error = %e, "old upload removal failed");
+                    }
                 }
             }
         }
@@ -697,11 +690,9 @@ mod finalize_tests {
     /// Sans `upload_to`, `finalize` doit committer le fichier stagé en racine de
     /// MEDIA_ROOT et stocker un chemin RELATIF (pas l'absolu du staging).
     /// Prérequis du passage de `parse_multipart` vers un staging non servi.
-    #[test]
-    fn finalize_without_upload_to_commits_staged_file_to_media_root() {
-        let _g = crate::config::static_files::MEDIA_ENV_LOCK
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+    #[tokio::test]
+    async fn finalize_without_upload_to_commits_staged_file_to_media_root() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
         let media = unique_dir("media");
         let staging = unique_dir("staging");
         let staged = staging.join("photo.png");
@@ -714,7 +705,7 @@ mod finalize_tests {
         let mut f = FileField::any("doc");
         f.base.value = staged.to_string_lossy().to_string();
 
-        f.finalize().expect("finalize should succeed");
+        f.finalize().await.expect("finalize should succeed");
 
         assert_eq!(f.base.value, "photo.png", "valeur normalisée en relatif");
         assert!(
@@ -732,11 +723,9 @@ mod finalize_tests {
 
     /// Cas flux actuel : fichier déjà en racine media_root → finalize normalise en
     /// relatif sans déplacer (idempotent).
-    #[test]
-    fn finalize_without_upload_to_normalizes_in_place() {
-        let _g = crate::config::static_files::MEDIA_ENV_LOCK
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+    #[tokio::test]
+    async fn finalize_without_upload_to_normalizes_in_place() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
         let media = unique_dir("media2");
         let in_root = media.join("already.png");
         fs::write(&in_root, b"data").unwrap();
@@ -748,7 +737,7 @@ mod finalize_tests {
         let mut f = FileField::any("doc");
         f.base.value = in_root.to_string_lossy().to_string();
 
-        f.finalize().expect("finalize should succeed");
+        f.finalize().await.expect("finalize should succeed");
 
         assert_eq!(f.base.value, "already.png");
         assert!(in_root.exists());

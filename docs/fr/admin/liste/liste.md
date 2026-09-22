@@ -57,7 +57,7 @@ La syntaxe du 3ème élément est `"table.colonne"` — le daemon génère autom
 
 La résolution est compatible `i32`, `i64` et UUID — l'identifiant est converti en `TEXT` avant la comparaison.
 
-La colonne FK est automatiquement **exclue de la recherche plein-texte** (chercher dans un ID brut n'a pas de sens). Les colonnes non-FK restent indexées normalement.
+La colonne FK reste **cherchable via son libellé affiché**, pas via l'ID brut : le daemon résout d'abord le texte cherché contre la table liée (`table.colonne`), puis filtre la table courante sur les ID correspondants (`FK IN (...)`). Les colonnes non-FK restent indexées normalement, et les deux se combinent en `OR`.
 
 ### Exemples courants
 

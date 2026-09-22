@@ -8,7 +8,7 @@ use std::collections::{HashMap, HashSet};
 
 use sea_orm::{
     ConnectionTrait,
-    sea_query::{Alias, Expr, ExprTrait, Query},
+    sea_query::{Alias, Expr, ExprTrait, Func, Query},
 };
 use serde_json::Value;
 
@@ -56,6 +56,39 @@ pub async fn fetch_fk_label_map<C: ConnectionTrait>(
             let label = row.try_get_by_index::<String>(1).ok()?;
             Some((id, label))
         })
+        .collect()
+}
+
+/// Fetches the ids from `fk_table` whose `fk_col` matches `pattern` (case-insensitive
+/// substring), so a free-text admin search can reach a FK-displayed column.
+///
+/// The list/count search only ever runs against the child entity's own columns
+/// ([`fetch_fk_label_map`] relabels rows already fetched — it can't filter a
+/// `WHERE` clause). Resolving the pattern against the related table first, then
+/// folding the matching ids into the child's raw FK column via `is_in`, is the
+/// only way to search a FK-displayed column without a real SQL join.
+///
+/// SQL-injection safe on the same grounds as `fetch_fk_label_map`: `fk_table`/
+/// `fk_col` are static identifiers from the `admin!{}` DSL, never user input;
+/// `pattern` is bound through `like`. Returns an empty `Vec` on query error —
+/// callers treat that as "no match", never as "match everything".
+pub async fn fetch_fk_matching_ids<C: ConnectionTrait>(
+    db: &C,
+    fk_table: &str,
+    fk_col: &str,
+    pattern: &str,
+) -> Vec<String> {
+    let needle = format!("%{}%", pattern.to_lowercase());
+    let stmt = Query::select()
+        .expr(Expr::cust("CAST(id AS TEXT)"))
+        .from(Alias::new(fk_table))
+        .and_where(Expr::expr(Func::lower(Expr::col(Alias::new(fk_col)))).like(needle))
+        .to_owned();
+    db.query_all(&stmt)
+        .await
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|row| row.try_get_by_index::<String>(0).ok())
         .collect()
 }
 

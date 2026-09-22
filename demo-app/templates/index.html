@@ -78,6 +78,7 @@
             <a href="{% link "changelog" %}">Changelog</a>
             <a href="{% link "contribution_list" %}">Contribute</a>
             <a href="{% link "rust_django_framework" %}">Runique</a>
+            <a href="{% link "search-user" %}">User Search</a>
         </div>
         <div class="site-nav-actions">
             {% if user %}
@@ -130,6 +131,7 @@
     </footer>
     <script {% csp %} src="{% static "js/theme.js" %}"></script>
     <script {% csp %} src="{% static "js/site_nav.js" %}"></script>
+    <script {% csp %} src="{{ "js/csrf.js" | runique_static }}" defer></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

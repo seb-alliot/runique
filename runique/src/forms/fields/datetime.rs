@@ -1,6 +1,7 @@
 //! Date/time fields: `DateField`, `TimeField`, `DateTimeField` with min/max validation.
 use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
 use crate::utils::trad::{t, tf};
+use async_trait::async_trait;
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use serde::Serialize;
 use serde_json::json;
@@ -76,8 +77,9 @@ impl CommonFieldConfig for DateField {
     }
 }
 
+#[async_trait]
 impl FormField for DateField {
-    fn validate(&mut self) -> bool {
+    async fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
         if self.base.is_required.choice && val.is_empty() {
@@ -219,8 +221,9 @@ impl CommonFieldConfig for TimeField {
         &mut self.base
     }
 }
+#[async_trait]
 impl FormField for TimeField {
-    fn validate(&mut self) -> bool {
+    async fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
         if self.base.is_required.choice && val.is_empty() {
@@ -364,8 +367,9 @@ impl CommonFieldConfig for DateTimeField {
     }
 }
 
+#[async_trait]
 impl FormField for DateTimeField {
-    fn validate(&mut self) -> bool {
+    async fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
         if self.base.is_required.choice && val.is_empty() {
@@ -510,8 +514,9 @@ impl CommonFieldConfig for DurationField {
     }
 }
 
+#[async_trait]
 impl FormField for DurationField {
-    fn validate(&mut self) -> bool {
+    async fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
         if self.base.is_required.choice && val.is_empty() {

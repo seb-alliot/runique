@@ -49,20 +49,20 @@ fn test_boolean_field_required() {
     assert!(f.base.is_required.choice);
 }
 
-#[test]
-fn test_boolean_field_validate_always_true() {
+#[tokio::test]
+async fn test_boolean_field_validate_always_true() {
     let mut f = BooleanField::new("accept");
     f.set_value("false");
-    assert!(f.validate());
+    assert!(f.validate().await);
     assert!(f.error().is_none());
 }
 
-#[test]
-fn test_boolean_field_validate_clears_error() {
+#[tokio::test]
+async fn test_boolean_field_validate_clears_error() {
     let mut f = BooleanField::new("accept");
     // Même avec une valeur vide, validate() retourne true
     f.set_value("");
-    assert!(f.validate());
+    assert!(f.validate().await);
 }
 
 #[test]

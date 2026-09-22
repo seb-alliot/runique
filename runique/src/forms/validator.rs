@@ -39,7 +39,7 @@ impl std::error::Error for ValidationError {}
 pub struct FormValidator;
 
 impl FormValidator {
-    pub(crate) fn validate_fields(
+    pub(crate) async fn validate_fields(
         fields: &mut FieldsMap,
         global_errors: &[String],
     ) -> Result<bool, ValidationError> {
@@ -61,7 +61,7 @@ impl FormValidator {
                 }
                 continue;
             }
-            let valid = field.validate();
+            let valid = field.validate().await;
             if let Some(level) = log_validate {
                 crate::runique_log!(
                     level,

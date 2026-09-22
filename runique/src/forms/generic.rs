@@ -5,6 +5,7 @@ use crate::forms::{
 };
 use crate::utils::aliases::ATera;
 use crate::{define_enum_kind, delegate_to_kind};
+use async_trait::async_trait;
 use serde::Serialize;
 use serde_json::Value;
 
@@ -48,6 +49,7 @@ impl CommonFieldConfig for GenericField {
     }
 }
 
+#[async_trait]
 impl FormField for GenericField {
     // --- Getters ---
 
@@ -123,8 +125,8 @@ impl FormField for GenericField {
 
     // --- Business logic ---
 
-    fn validate(&mut self) -> bool {
-        delegate_to_kind!(mut self, validate)
+    async fn validate(&mut self) -> bool {
+        delegate_to_kind!(mut self, validate).await
     }
 
     fn render(&self, tera: &ATera) -> Result<String, String> {
@@ -148,7 +150,7 @@ impl FormField for GenericField {
     fn to_json_meta(&self) -> Value {
         delegate_to_kind!(self, to_json_meta)
     }
-    fn finalize(&mut self) -> Result<(), String> {
-        delegate_to_kind!(mut self, finalize)
+    async fn finalize(&mut self) -> Result<(), String> {
+        delegate_to_kind!(mut self, finalize).await
     }
 }

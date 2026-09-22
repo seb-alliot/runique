@@ -32,8 +32,8 @@ pub async fn soumission_inscription(
     headers: HeaderMap,
     mut request: Request,
 ) -> AppResult<Response> {
-    let mut form: RegisterForm = request.form();
-    handle_inscription(&mut request, &mut form, &headers).await
+    let form: RegisterForm = request.form();
+    handle_inscription(&mut request, form, &headers).await
 }
 
 pub async fn activate_account(
@@ -44,8 +44,8 @@ pub async fn activate_account(
 }
 
 pub async fn login_user(mut request: Request) -> AppResult<Response> {
-    let mut form: LoginForm = request.form();
-    handle_login(&mut request, &mut form).await
+    let form: LoginForm = request.form();
+    handle_login(&mut request, form).await
 }
 
 pub async fn deconnexion(request: Request) -> AppResult<Response> {
@@ -72,35 +72,46 @@ pub async fn profil(mut request: Request) -> AppResult<Response> {
 }
 
 pub async fn info_user(mut request: Request) -> AppResult<Response> {
-    let mut form: UsernameForm = request.form();
+    let form: UsernameForm = request.form();
     inject_globals(&mut request).await;
     let template = "profile/view_user.html";
-    if request.is_get() && form.is_valid().await {
-        let username_val = form.cleaned_string("username").unwrap_or_default();
-        let user_opt = find_user_by_username(&request.engine.db, &username_val).await;
-        match user_opt {
-            Some(user) => {
-                context_update!(request => {
-                    "title"      => "User view",
-                    "username"   => &user.username,
-                    "email"      => &user.email,
-                    "found_user" => &user,
-                    "user"       => &form,
-                    "messages"   => flash_now!(success => "User found!"),
-                });
+    // `view_user.html` reads `username`/`email`/`age` unconditionally
+    // (`{% if username or email or age %}`) — Tera errors on an undefined
+    // variable rather than treating it as falsy, so every branch below must
+    // see these keys, even empty. Pre-existing gap: only the "user found"
+    // branch ever set them, so a bare GET/POST fallback 500'd.
+    context_update!(request => { "username" => "", "email" => "", "age" => "" });
+    match ValidationForm::try_new(form, &request).await {
+        Ok(validated) => {
+            let form = validated.into_inner();
+            let username_val = form.cleaned_string("username").unwrap_or_default();
+            let user_opt = find_user_by_username(&request.engine.db, &username_val).await;
+            match user_opt {
+                Some(user) => {
+                    context_update!(request => {
+                        "title"       => "User view",
+                        "username"    => &user.username,
+                        "email"       => &user.email,
+                        "found_user"  => &user,
+                        "search_form" => &form,
+                        "messages"    => flash_now!(success => "User found!"),
+                    });
+                }
+                None => {
+                    context_update!(request => {
+                        "title"       => "User view",
+                        "search_form" => &form,
+                        "messages"    => flash_now!(warning => "User not found."),
+                    });
+                }
             }
-            None => {
-                context_update!(request => {
-                    "title"    => "User view",
-                    "user"     => &form,
-                    "messages" => flash_now!(warning => "User not found."),
-                });
-            }
+            request.render(template)
         }
-        return request.render(template);
+        Err(form) => {
+            context_update!(request => { "title" => "User view", "search_form" => &form });
+            request.render(template)
+        }
     }
-    context_update!(request => { "title" => "User view", "user" => &form });
-    request.render(template)
 }
 
 // ─── Blog ─────────────────────────────────────────────────────────────────────
@@ -120,12 +131,12 @@ pub async fn blog_list(mut request: Request) -> AppResult<Response> {
 }
 
 pub async fn blog_save(mut request: Request) -> AppResult<Response> {
-    let mut blog: BlogForm = request.form();
+    let blog: BlogForm = request.form();
     if !is_authenticated(&request.session).await {
         warning!(request.notices => "Please log in to access your profile.");
         return Ok(Redirect::to("/login").into_response());
     }
-    handle_blog_save(&mut request, &mut blog).await
+    handle_blog_save(&mut request, blog).await
 }
 
 pub async fn blog_detail(Path(id): Path<i32>, mut request: Request) -> AppResult<Response> {
@@ -142,12 +153,12 @@ pub async fn blog_detail(Path(id): Path<i32>, mut request: Request) -> AppResult
 // ─── Forms ───────────────────────────────────────────────────────────────────
 
 pub async fn upload_image_submit(mut request: Request) -> AppResult<Response> {
-    let mut form: ImageForm = request.form();
+    let form: ImageForm = request.form();
     if !is_authenticated(&request.session).await {
         warning!(request.notices => "Please log in to access your profile.");
         return Ok(Redirect::to("/login").into_response());
     }
-    handle_upload_image(&mut request, &mut form).await
+    handle_upload_image(&mut request, form).await
 }
 
 pub async fn test_fields(mut request: Request) -> AppResult<Response> {
@@ -187,12 +198,12 @@ pub async fn formulaires_helpers(mut request: Request) -> AppResult<Response> {
 // ─── Contribution ─────────────────────────────────────────────────────────────
 
 pub async fn contribution_submit(mut request: Request) -> AppResult<Response> {
-    let mut form: ContributionForm = request.form();
+    let form: ContributionForm = request.form();
     if !is_authenticated(&request.session).await {
         warning!(request.notices => "Please log in to access your profile.");
         return Ok(Redirect::to("/login").into_response());
     }
-    handle_contribution_submit(&mut request, &mut form).await
+    handle_contribution_submit(&mut request, form).await
 }
 
 pub async fn contribution_list(mut request: Request) -> AppResult<Response> {

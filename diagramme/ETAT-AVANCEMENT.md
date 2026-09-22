@@ -114,3 +114,27 @@ avec les types actuels) ; pipeline étendu au flux `extend!{}` (jusqu'ici non re
 nouvelle entrée **DF4** 🟢 documentant les 3 bugs silencieux fermés pendant l'audit v1→v2
 (`json` mal routé, 6 options v2 sans effet, `var_binary` mal mappé — détail dans
 `CHANGELOG.md [2.2.0]`).
+
+## Session 2026-09-22 — ValidationForm<F>, FormField async, fix silence CSRF, suppression is_get/is_post/is_put/is_delete
+
+Chantier code (branche `validation`) : `FormField::validate`/`finalize` passés en
+`async fn` réels (I/O fichier migrée vers `tokio::fs`, bug de fond
+`thread_local!`→`tokio::task_local!` corrigé au passage sur le garde de
+récursion) ; nouveau type `ValidationForm<F>` (`forms/validation_form.rs`),
+garantie de **type** (pas seulement runtime) qu'un form a été validé avant
+qu'on puisse agir dessus, avec 3 nouveaux hooks `RuniqueForm`
+(`register_dynamic_fields`, `validator_get`, `validator_post`) ; tous les
+handlers de demo-app + `auth/password.rs` + le scaffold `runique new` migrés
+vers ce pattern. Trouvé en route : un vrai bug de sécurité/UX préexistant —
+l'échec CSRF était **totalement silencieux** (aucun message nulle part),
+corrigé au niveau framework. Décision finale (après reconsidération) :
+`Request::is_get/is_post/is_put/is_delete` **supprimées** (rupture d'API,
+2.2.0 déjà publiée) — leur unique usage restant (honeypot) est inliné,
+plus aucune raison d'être une fois `ValidationForm` en place.
+
+Diagrammes mis à jour en conséquence : `uml/forms/formulaires.md` (trait
+`FormField`/`RuniqueForm` async + hooks, nouvelle classe `ValidationForm<F>`,
+entrées **F6** silence CSRF et **F7** suppression is_get&co) ;
+`flux/requete-csrf-upload.md` (séquence POST → `ValidationForm::try_new`,
+nouvelle entrée **C6**) ; `anomalies.md` (C6 ajoutée en 🟠 Sérieux). Détail
+complet du chantier : mémoire `project_form_auto_validate_idea.md` (hors dépôt).

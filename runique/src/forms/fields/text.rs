@@ -8,6 +8,7 @@ use crate::utils::{
     password::{PasswordConfig, PasswordService},
     trad::{t, tf},
 };
+use async_trait::async_trait;
 use serde::Serialize;
 use std::sync::Arc;
 use tera::Tera;
@@ -152,6 +153,7 @@ impl TextField {
     }
 }
 
+#[async_trait]
 impl FormField for TextField {
     fn set_value(&mut self, value: &str) {
         let cleaned = match self.format {
@@ -164,7 +166,7 @@ impl FormField for TextField {
         };
         self.base.value = cleaned;
     }
-    fn validate(&mut self) -> bool {
+    async fn validate(&mut self) -> bool {
         // Initial trim
         let mut val = self.base.value.trim().to_string();
 
@@ -246,7 +248,7 @@ impl FormField for TextField {
         true
     }
 
-    fn finalize(&mut self) -> Result<(), String> {
+    async fn finalize(&mut self) -> Result<(), String> {
         if let SpecialFormat::Password = &self.format
             && self.hash_password
             && !self.base.value.is_empty()

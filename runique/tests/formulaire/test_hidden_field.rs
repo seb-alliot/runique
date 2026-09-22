@@ -47,86 +47,86 @@ fn test_set_expected_value() {
 
 // ── Validation : champ non-CSRF ────────────────────────────────────────────────
 
-#[test]
-fn test_non_csrf_field_toujours_valide() {
+#[tokio::test]
+async fn test_non_csrf_field_toujours_valide() {
     let mut field = HiddenField::new("autre_champ");
     field.set_value("n-importe-quoi");
-    assert!(field.validate());
+    assert!(field.validate().await);
     assert!(field.error().is_none());
 }
 
-#[test]
-fn test_non_csrf_field_vide_valide() {
+#[tokio::test]
+async fn test_non_csrf_field_vide_valide() {
     let mut field = HiddenField::new("autre_champ");
     field.set_value("");
-    assert!(field.validate());
+    assert!(field.validate().await);
     assert!(field.error().is_none());
 }
 
 // ── Validation : champ CSRF sans expected_value ────────────────────────────────
 
-#[test]
-fn test_csrf_sans_expected_value_passe() {
+#[tokio::test]
+async fn test_csrf_sans_expected_value_passe() {
     let mut field = HiddenField::new_csrf();
     field.set_value("n-importe-quoi");
     // Sans expected_value défini, la validation passe toujours
-    assert!(field.validate());
+    assert!(field.validate().await);
     assert!(field.error().is_none());
 }
 
 // ── Validation : champ CSRF avec expected_value ────────────────────────────────
 
-#[test]
-fn test_csrf_valeur_correcte_passe() {
+#[tokio::test]
+async fn test_csrf_valeur_correcte_passe() {
     let mut field = HiddenField::new_csrf();
     field.set_expected_value("token_secret");
     field.set_value("token_secret");
-    assert!(field.validate());
+    assert!(field.validate().await);
     assert!(field.error().is_none());
 }
 
-#[test]
-fn test_csrf_valeur_incorrecte_echoue() {
+#[tokio::test]
+async fn test_csrf_valeur_incorrecte_echoue() {
     let mut field = HiddenField::new_csrf();
     field.set_expected_value("token_secret");
     field.set_value("mauvais_token");
-    assert!(!field.validate());
+    assert!(!field.validate().await);
     assert!(field.error().is_some());
 }
 
-#[test]
-fn test_csrf_valeur_vide_echoue() {
+#[tokio::test]
+async fn test_csrf_valeur_vide_echoue() {
     let mut field = HiddenField::new_csrf();
     field.set_expected_value("token_secret");
     field.set_value("");
-    assert!(!field.validate());
+    assert!(!field.validate().await);
     let err = field.error().unwrap();
     assert!(err.to_lowercase().contains("csrf") || err.to_lowercase().contains("manquant"));
 }
 
-#[test]
-fn test_csrf_message_erreur_valeur_invalide() {
+#[tokio::test]
+async fn test_csrf_message_erreur_valeur_invalide() {
     let mut field = HiddenField::new_csrf();
     field.set_expected_value("token_secret");
     field.set_value("mauvais");
-    field.validate();
+    field.validate().await;
     let err = field.error().unwrap();
     assert!(err.to_lowercase().contains("invalid") || err.to_lowercase().contains("invalide"));
 }
 
 // ── Validation : effacement d'erreur ──────────────────────────────────────────
 
-#[test]
-fn test_csrf_clear_error_apres_correction() {
+#[tokio::test]
+async fn test_csrf_clear_error_apres_correction() {
     let mut field = HiddenField::new_csrf();
     field.set_expected_value("token");
     field.set_value("mauvais");
-    field.validate();
+    field.validate().await;
     assert!(field.error().is_some());
 
     // Correction de la valeur
     field.set_value("token");
-    field.validate();
+    field.validate().await;
     assert!(field.error().is_none());
 }
 
