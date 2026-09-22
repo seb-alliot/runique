@@ -300,7 +300,7 @@ pub async fn handle_forgot_password<E: UserEntity + 'static>(
     request.context.insert("lang", &current_lang().code());
 
     let form = match crate::forms::ValidationForm::try_new(form, request).await {
-        Ok(validated) => validated.into_inner(),
+        Ok(validated) => validated.into_form(),
         Err(form) => {
             apply_extra_context(request, &config.extra_context).await;
             context_update!(request => {
@@ -467,7 +467,7 @@ pub async fn handle_password_reset<E: UserEntity + 'static>(
     }
 
     let mut form = match crate::forms::ValidationForm::try_new(form, request).await {
-        Ok(validated) => validated.into_inner(),
+        Ok(validated) => validated.into_form(),
         Err(mut form) => {
             if request.method.is_safe() {
                 form.get_form_mut().add_value("token", &token);

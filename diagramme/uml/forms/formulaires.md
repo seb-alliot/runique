@@ -77,7 +77,7 @@ classDiagram
     class ValidationForm~F~ {
         -F form
         +try_new(form, request)$ Result~Self,F~
-        +into_inner() F
+        +into_form() F
         +database_error(msg) &mut Self
     }
     class ModelForm {
@@ -114,7 +114,7 @@ Flux `ValidationForm<F>::try_new(form, request)` (remplace le boilerplate
 dispatch `validator_get`/`validator_post` selon `request.method.is_safe()` → si
 `false`, retour `Err(form)` **sans validation** (pas d'erreur de champ posée) →
 si `true`, `form.is_valid().await` → `Ok(ValidationForm(form))` ou `Err(form)`
-(erreurs déjà peuplées par `is_valid()`). `into_inner()` n'est atteignable
+(erreurs déjà peuplées par `is_valid()`). `into_form()` n'est atteignable
 qu'après un `Ok` : impossible d'agir sur un form non validé (garantie de type,
 pas seulement runtime).
 

@@ -43,7 +43,7 @@ pub async fn handle_blog_save(request: &mut Request, blog: BlogForm) -> AppResul
     let template = "blog/blog.html";
 
     let mut blog = match ValidationForm::try_new(blog, request).await {
-        Ok(validated) => validated.into_inner(),
+        Ok(validated) => validated.into_form(),
         Err(blog) => {
             if request.method.is_safe() {
                 context_update!(request => { "title" => "Create a blog post", "blog_form" => &blog });
