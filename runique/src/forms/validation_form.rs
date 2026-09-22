@@ -32,14 +32,14 @@ impl<F: RuniqueForm> ValidationForm<F> {
     }
 
     /// Reclaims the validated form to act on it (custom save, dispatch email, etc.).
-    pub fn into_inner(self) -> F {
+    pub fn into_form(self) -> F {
         self.form
     }
 
     /// Records a DB error on the validated form's error state — e.g. a unique
     /// constraint violation caught by the caller's own save logic, after
     /// `is_valid()` already passed. Lets the caller re-render the form with
-    /// that error without unwrapping it via `into_inner()` first.
+    /// that error without unwrapping it via `into_form()` first.
     pub fn database_error(&mut self, err: &sea_orm::DbErr) {
         self.form.database_error(err);
     }

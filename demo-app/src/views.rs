@@ -83,7 +83,7 @@ pub async fn info_user(mut request: Request) -> AppResult<Response> {
     context_update!(request => { "username" => "", "email" => "", "age" => "" });
     match ValidationForm::try_new(form, &request).await {
         Ok(validated) => {
-            let form = validated.into_inner();
+            let form = validated.into_form();
             let username_val = form.cleaned_string("username").unwrap_or_default();
             let user_opt = find_user_by_username(&request.engine.db, &username_val).await;
             match user_opt {

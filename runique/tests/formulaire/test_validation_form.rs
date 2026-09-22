@@ -88,7 +88,7 @@ async fn post_missing_required_field_is_err_with_field_error() {
 }
 
 #[tokio::test]
-async fn post_with_data_validates_and_into_inner_returns_the_form() {
+async fn post_with_data_validates_and_into_form_returns_the_form() {
     let engine = build_engine().await;
     let mut data = HashMap::new();
     data.insert("q".to_string(), "runique".to_string());
@@ -99,7 +99,7 @@ async fn post_with_data_validates_and_into_inner_returns_the_form() {
         .await
         .unwrap_or_else(|_| panic!("POST with valid data must validate"));
 
-    let form = validated.into_inner();
+    let form = validated.into_form();
     assert_eq!(form.cleaned_string("q"), Some("runique".to_string()));
 }
 

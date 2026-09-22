@@ -43,7 +43,7 @@ pub async fn handle_contribution_submit(
     }
 
     let mut form = match ValidationForm::try_new(form, request).await {
-        Ok(validated) => validated.into_inner(),
+        Ok(validated) => validated.into_form(),
         Err(form) => {
             if request.method.is_safe() {
                 context_update!(request => { "title" => "Submit a contribution", "contribution_form" => &form });

@@ -33,7 +33,7 @@ pub async fn soumission_inscription(mut request: Request) -> AppResult<Response>
     // (POST, or PUT/DELETE/PATCH since `view!{}` registers all methods): shared
     // error render below, `save()` is never attempted.
     let mut form = match ValidationForm::try_new(form, &request).await {
-        Ok(validated) => validated.into_inner(),
+        Ok(validated) => validated.into_form(),
         Err(form) => {
             if request.method.is_safe() {
                 context_update!(request => {
