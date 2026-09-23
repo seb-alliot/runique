@@ -54,6 +54,8 @@ Generated files are therefore **engine-specific**: to switch engines, regenerate
 The passes above only *compute* a plan in memory — nothing is written until the full plan (`model!{}` changes plus `extend!{}` changes) is assembled and validated:
 
 1. **Destructive guard**: `DROP COLUMN`, column type changes, `nullable → not null`, dropped foreign keys and newly added `ON DELETE CASCADE` constraints are blocked unless `makemigrations --force` is passed. The guard covers both `model!{}` and `extend!{}` changes.
+
+   > **Exception — column type change**: `--force` unblocks the command, but it **never** generates the actual `ALTER` for a type change (`String → Decimal`, etc.). The generated file only ever contains a `// Manual migration required.` comment — you write the real migration yourself, regardless of `--force`. The other 4 destructive categories (DROP COLUMN, nullable → not null, DROP FK, ADD FK CASCADE) do emit real SQL once `--force` is passed. This is deliberate: there's no reliable cross-engine cast rule for a generic type change (Postgres requires an explicit `USING`, MariaDB silently coerces invalid values with no error, SQLite doesn't support `ALTER COLUMN TYPE` at all).
 2. **Single commit**: directory creation, file writes, `lib.rs` registration and `AdminTableMigration` positioning all run under one rollback. On any write error, generated files are removed and pre-existing snapshots and `lib.rs` are restored to their previous content.
 
 ---
@@ -121,6 +123,9 @@ runique makemigrations
 # type change, FK removal) are blocked by default.
 # To allow them explicitly:
 runique makemigrations --force
+# NB: for a column type change, --force only unblocks the run — the
+# generated file still just has a "Manual migration required." comment,
+# never a real ALTER (see the note above).
 
 # Custom paths (defaults: src/entities and migration/src)
 runique makemigrations --entities src/entities --migrations migration/src
