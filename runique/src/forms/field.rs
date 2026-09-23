@@ -262,11 +262,23 @@ pub trait RuniqueForm: Sized + Send + Sync {
 
     /// Whether [`ValidationForm`](crate::forms::ValidationForm) should attempt
     /// validation on a GET-class request (GET, HEAD, OPTIONS, TRACE). Default:
-    /// reuses `Forms::is_submitted()` — always `false` on a bare first load,
-    /// `true` as soon as this form's fields carry data (e.g. a GET search
-    /// form with query params).
+    /// **`false`**, unconditionally.
+    ///
+    /// GET/HEAD are the only methods CSRF-exempt (`csrf_required()`), so a form
+    /// that auto-validated on GET by default would let its `is_valid()`-gated
+    /// side effects (DB write, login, email) run from a plain crafted link —
+    /// `?field=value` query params, no CSRF token needed. Defaulting to `false`
+    /// means every form is safe unless it deliberately opts in.
+    ///
+    /// A read-only GET search/filter form is the one legitimate case that
+    /// *should* auto-validate — override explicitly:
+    /// ```ignore
+    /// fn validator_get(&self, _request: &Request) -> bool {
+    ///     self.get_form().is_submitted()
+    /// }
+    /// ```
     fn validator_get(&self, _request: &Request) -> bool {
-        self.get_form().is_submitted()
+        false
     }
 
     /// Whether [`ValidationForm`](crate::forms::ValidationForm) should attempt

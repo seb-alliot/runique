@@ -48,12 +48,10 @@ pub async fn handle_contribution_submit(
             if request.method.is_safe() {
                 context_update!(request => { "title" => "Submit a contribution", "contribution_form" => &form });
             } else {
-                let messages = crate::backend::form_error_flash(&form)
-                    .unwrap_or_else(|| flash_now!(error => "Please correct the errors below"));
                 context_update!(request => {
                     "title"             => "Validation error",
                     "contribution_form" => &form,
-                    "messages"          => messages,
+                    "messages"          => flash_now!(error => "Please correct the errors below"),
                 });
             }
             return request.render(template);

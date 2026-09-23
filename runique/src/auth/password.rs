@@ -45,13 +45,8 @@ impl RuniqueForm for ForgotPasswordForm {
     }
 
     impl_form_access!();
-
-    // Never trigger the reset-token flow from a GET, regardless of query
-    // string content — this issues a token and fires an email send, a
-    // state-changing action that must never run on a "safe" HTTP method.
-    fn validator_get(&self, _request: &Request) -> bool {
-        false
-    }
+    // `validator_get` defaults to `false` — the reset-token email send (a
+    // state-changing action) never runs on a GET, no override needed.
 }
 
 // ─── PasswordResetForm ────────────────────────────────────────────────────────
@@ -135,12 +130,8 @@ impl RuniqueForm for PasswordResetForm {
     }
 
     impl_form_access!();
-
-    // Never trigger the actual password update from a GET — this form is only
-    // ever legitimately validated on the POST that submits the new password.
-    fn validator_get(&self, _request: &Request) -> bool {
-        false
-    }
+    // `validator_get` defaults to `false` — the password update never runs on
+    // a GET, no override needed.
 }
 
 // ─── Config ───────────────────────────────────────────────────────────────────
