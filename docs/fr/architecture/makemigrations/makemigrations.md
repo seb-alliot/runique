@@ -54,6 +54,8 @@ Les fichiers générés sont donc **spécifiques au moteur** : pour en changer, 
 Les phases ci-dessus ne font que *calculer* un plan en mémoire — rien n'est écrit tant que le plan complet (changements `model!{}` plus changements `extend!{}`) n'est pas assemblé et validé :
 
 1. **Garde destructif** : `DROP COLUMN`, changements de type de colonne, `nullable → not null`, suppression de clés étrangères et ajout de contraintes `ON DELETE CASCADE` sont bloqués sauf si `makemigrations --force` est passé. Le contrôle couvre aussi bien les changements `model!{}` que `extend!{}`.
+
+   > **Exception — changement de type de colonne** : `--force` débloque l'exécution de la commande, mais ne génère **jamais** l'`ALTER` réel pour un changement de type (`String → Decimal`, etc.). Le fichier généré contient uniquement un commentaire `// Manual migration required.` — à écrire vous-même, quel que soit `--force`. Les 4 autres catégories destructives (DROP COLUMN, nullable → not null, DROP FK, ADD FK CASCADE), elles, génèrent le vrai SQL dès que `--force` est passé. Cette exception est volontaire : une conversion de type générique n'a pas de règle de cast fiable inter-moteurs (Postgres exige un `USING` explicite, MariaDB caste silencieusement sans erreur en cas de valeur invalide, SQLite ne supporte pas `ALTER COLUMN TYPE` du tout).
 2. **Commit unique** : la création des dossiers, l'écriture des fichiers, l'enregistrement dans `lib.rs` et le positionnement de `AdminTableMigration` s'exécutent sous un rollback unique. En cas d'erreur d'écriture, les fichiers générés sont supprimés et les snapshots ainsi que `lib.rs` préexistants sont restaurés dans leur état précédent.
 
 ---
@@ -121,6 +123,9 @@ runique makemigrations
 # changement de type, suppression de FK) sont bloqués par défaut.
 # Pour les autoriser explicitement :
 runique makemigrations --force
+# NB : pour un changement de type de colonne, --force débloque juste
+# l'exécution — le fichier généré reste un commentaire "Manual migration
+# required.", jamais un vrai ALTER (voir l'encart plus haut).
 
 # Chemins personnalisés (défauts : src/entities et migration/src)
 runique makemigrations --entities src/entities --migrations migration/src

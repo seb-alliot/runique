@@ -20,7 +20,7 @@ async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
                     .col(ColumnDef::new(Alias::new("f_richtext")).text().null())
                     .col(ColumnDef::new(Alias::new("f_integer")).integer().null())
                     .col(ColumnDef::new(Alias::new("f_float")).double().null())
-                    .col(ColumnDef::new(Alias::new("f_decimal")).string().null())
+                    .col(ColumnDef::new(Alias::new("f_decimal")).decimal().null())
                     .col(ColumnDef::new(Alias::new("f_percent")).double().null())
                     .col(ColumnDef::new(Alias::new("f_range")).integer().null())
                     .col(ColumnDef::new(Alias::new("f_checkbox")).boolean().null())
@@ -47,10 +47,26 @@ async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
             )
             .await?;
 
+        manager
+            .create_index(
+                Index::create()
+                    .name("test_all_fields_f_text_f_integer_uniq")
+                    .table(Alias::new("test_all_fields"))
+                    .col(Alias::new("f_text"))
+                    .col(Alias::new("f_integer"))
+                    .unique()
+                    .to_owned(),
+            )
+            .await?;
+
         Ok(())
 }
 
 async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .drop_index(Index::drop().name("test_all_fields_f_text_f_integer_uniq").table(Alias::new("test_all_fields")).to_owned())
+            .await?;
+
         manager
             .drop_table(Table::drop()
                 .table(Alias::new("test_all_fields"))

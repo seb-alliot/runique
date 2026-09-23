@@ -34,13 +34,19 @@ mod m20260614_221003_alter_site_config_table;
 mod m20260614_221003_alter_test_all_fields_table;
 mod m20260614_221003_extend_eihwaz_users_table;
 mod m20260831_232248_extend_eihwaz_users_table;
+mod m20260923_215427_create_test_relation_parent_table;
+mod m20260923_215427_create_test_relation_tag_table;
+mod m20260923_215427_create_test_relation_child_table;
+mod m20260923_215427_create_test_relation_profile_table;
+mod m20260923_215427_create_test_relation_parent_tag_table;
+mod m20260923_215427_alter_test_all_fields_table;
 
 pub struct Migrator;
 
 #[async_trait::async_trait]
 impl MigratorTrait for Migrator {
     fn migrations() -> Vec<Box<dyn MigrationTrait>> {
-        let migrations: Vec<Box<dyn MigrationTrait>> = vec![
+        vec![
             Box::new(migrations_table::EihwazUsersMigration),
             Box::new(migrations_table::EihwazSessionsMigration),
             Box::new(migrations_table::AdminTableMigration),
@@ -79,7 +85,12 @@ impl MigratorTrait for Migrator {
             Box::new(m20260614_221003_alter_changelog_entry_table::Migration),
             Box::new(m20260614_221003_extend_eihwaz_users_table::Migration),
             Box::new(m20260831_232248_extend_eihwaz_users_table::Migration),
-        ];
-        migrations
+            Box::new(m20260923_215427_create_test_relation_parent_table::Migration),
+            Box::new(m20260923_215427_create_test_relation_tag_table::Migration),
+            Box::new(m20260923_215427_create_test_relation_child_table::Migration),
+            Box::new(m20260923_215427_create_test_relation_profile_table::Migration),
+            Box::new(m20260923_215427_create_test_relation_parent_tag_table::Migration),
+            Box::new(m20260923_215427_alter_test_all_fields_table::Migration),
+        ]
     }
 }
