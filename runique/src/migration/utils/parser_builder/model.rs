@@ -11,6 +11,13 @@ use syn::{
 use super::field::DslField;
 use super::relation::DslRelation;
 
+/// `(unique_together, indexes)` — both column-group lists parsed from `meta:`.
+type ColumnGroups = (Vec<Vec<String>>, Vec<Vec<String>>);
+
+/// `(relations, unique_together, indexes)` — everything gathered from the
+/// trailing `relations:`/`meta:` blocks.
+type TrailingBlocks = (Vec<DslRelation>, Vec<Vec<String>>, Vec<Vec<String>>);
+
 pub(super) struct DslModel {
     pub name: String,
     pub table: String,
@@ -208,7 +215,7 @@ fn parse_relations_block(input: ParseStream) -> Vec<DslRelation> {
 /// here (both column-group lists, see [`parse_column_group_list`]); every
 /// other key (`ordering`, `verbose_name`, `abstract`, ...) is consumed and
 /// ignored — this parser only extracts what the migration generator needs.
-fn parse_meta_block(input: ParseStream) -> syn::Result<(Vec<Vec<String>>, Vec<Vec<String>>)> {
+fn parse_meta_block(input: ParseStream) -> syn::Result<ColumnGroups> {
     let mut unique_together: Vec<Vec<String>> = Vec::new();
     let mut indexes: Vec<Vec<String>> = Vec::new();
     while !input.is_empty() {
@@ -233,9 +240,7 @@ fn parse_meta_block(input: ParseStream) -> syn::Result<(Vec<Vec<String>>, Vec<Ve
 /// Trailing optional blocks after the fields block — `relations:`, `meta:`,
 /// and anything else (`form_fields:`, etc.), which is present in source but
 /// irrelevant to migrations and simply skipped.
-fn parse_trailing_blocks(
-    input: ParseStream,
-) -> syn::Result<(Vec<DslRelation>, Vec<Vec<String>>, Vec<Vec<String>>)> {
+fn parse_trailing_blocks(input: ParseStream) -> syn::Result<TrailingBlocks> {
     let mut relations = Vec::new();
     let mut unique_together: Vec<Vec<String>> = Vec::new();
     let mut indexes: Vec<Vec<String>> = Vec::new();

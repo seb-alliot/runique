@@ -13,7 +13,7 @@ model! {
         f_richtext:        richtext,
         f_integer:         int,
         f_float:           float,
-        f_decimal:         text,
+        f_decimal:         decimal,
         f_percent:         percent,
         f_range:           int,
         f_checkbox:        bool,
@@ -36,5 +36,8 @@ model! {
         f_ip:              ip,
         created_at:        datetime [auto_now],
         updated_at:        datetime [auto_now_update],
+    },
+    meta: {
+        unique_together: [(f_text, f_integer)],
     }
 }

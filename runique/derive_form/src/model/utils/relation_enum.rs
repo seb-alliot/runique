@@ -72,8 +72,11 @@ pub fn generate_relation_enum(model: &ModelInput) -> TokenStream2 {
 
     let explicit_variants: Vec<TokenStream2> =
         model.relations.iter().map(generate_variant).collect();
-    let explicit_related: Vec<TokenStream2> =
-        model.relations.iter().map(generate_related_impl).collect();
+    let explicit_related: Vec<TokenStream2> = model
+        .relations
+        .iter()
+        .map(|r| generate_related_impl(r, &model.name))
+        .collect();
 
     let fk_variants: Vec<TokenStream2> = auto_fks
         .iter()
@@ -196,7 +199,7 @@ fn generate_variant(rel: &RelationDef) -> TokenStream2 {
     }
 }
 
-fn generate_related_impl(rel: &RelationDef) -> TokenStream2 {
+fn generate_related_impl(rel: &RelationDef, self_model: &syn::Ident) -> TokenStream2 {
     match rel {
         RelationDef::BelongsTo { model: target, .. }
         | RelationDef::HasMany { model: target, .. }
@@ -215,16 +218,19 @@ fn generate_related_impl(rel: &RelationDef) -> TokenStream2 {
         RelationDef::ManyToMany {
             model: target,
             through,
-            via_self,
+            ..
         } => {
             let target_entity = related_module_tokens(&to_snake_case(&target.to_string()));
             let through_name = to_snake_case(&through.to_string());
             let through_module = quote::format_ident!("{}", through_name);
             let target_variant = ident_pascal(target);
-            // via_self is a FK column name (e.g. "menu_id") — strip "_id" to get the relation variant
-            let via_self_str = via_self.to_string();
-            let via_self_model = via_self_str.strip_suffix("_id").unwrap_or(&via_self_str);
-            let via_self_variant = quote::format_ident!("{}", pascal_case(via_self_model));
+            // The through entity's `belongs_to` pointing back to *this* model is
+            // named after this model itself (`belongs_to`'s variant naming is
+            // always `ident_pascal(target)`) — using the real model name directly
+            // is exact, unlike guessing it from the `via_self` column string
+            // (only coincidentally correct when the column happens to be named
+            // `{self_model_snake_case}_id`).
+            let via_self_variant = ident_pascal(self_model);
 
             quote! {
                 impl ::sea_orm::Related<#target_entity> for Entity {

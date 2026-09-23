@@ -111,7 +111,7 @@ fn generate_relations(model: &ModelInput) -> Vec<TokenStream2> {
                     .relation(::runique::migration::RelationDef::has_one(#model_str).as_name(#as_str))
                 }
             }
-            RelationDef::ManyToMany { model, through, via_self: _ } => {
+            RelationDef::ManyToMany { model, through } => {
                 let model_str = to_snake_case(&model.to_string());
                 let through_str = to_snake_case(&through.to_string());
                 quote! {

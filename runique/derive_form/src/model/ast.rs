@@ -258,7 +258,6 @@ pub enum RelationDef {
     ManyToMany {
         model: syn::Ident,
         through: syn::Ident,
-        via_self: syn::Ident, // ← new macro model
     },
 }
 
