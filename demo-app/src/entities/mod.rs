@@ -20,6 +20,11 @@ pub mod roadmap_entry;
 pub mod runique_release;
 pub mod site_config;
 pub mod test_all_field;
+pub mod test_relation_child;
+pub mod test_relation_parent;
+pub mod test_relation_parent_tag;
+pub mod test_relation_profile;
+pub mod test_relation_tag;
 
 pub mod model_derive;
 pub mod user_profile;
