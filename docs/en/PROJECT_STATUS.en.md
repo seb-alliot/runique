@@ -34,7 +34,7 @@ This document consolidates the actual state of the repository from the reference
 
 - Typed form system: `#[form]`, `RuniqueForm`, validation, HTML rendering via Tera
 - `FormField::validate`/`finalize` are async — genuinely non-blocking I/O (file upload via `tokio::fs`, password hashing) under `is_valid()`'s already-async surface
-- `ValidationForm<F>` (`forms/validation_form.rs`): `try_new(form, request) -> Result<ValidationForm<F>, F>`, type-level proof a handler validated before acting — additive, doesn't replace `RuniqueForm::is_valid()`; defaults to dispatching on `Method::is_safe()`, with overridable `register_dynamic_fields`/`validator_get`/`validator_post` hooks
+- `ValidationForm<F>` (`forms/validation_form.rs`): `try_new(form, request) -> Result<ValidationForm<F>, F>`, type-level proof a handler validated before acting — additive, doesn't replace `RuniqueForm::is_valid()`; defaults to dispatching on `Method::is_safe()`, with overridable `register_dynamic_fields`/`allow_get`/`allow_post` hooks
 - Integrated CSRF protection (masked token anti-BREACH, constant-time comparison); a CSRF failure now sets an explicit message (`csrf.invalid_or_missing`) instead of failing silently, and `js/csrf.js` refreshes the token right before every form submission
 - Structured per-domain tracing (`RuniqueLog` tree) over the full pipeline (field, set_value, validate, finalize, render)
 - All field types: Text, Numeric, Boolean, Choice, Radio, Checkbox, Date, Time, DateTime, Duration, File, Color, Slug, UUID, JSON, IP, Hidden, Honeypot

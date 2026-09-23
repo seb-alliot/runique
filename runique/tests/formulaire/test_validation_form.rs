@@ -1,5 +1,5 @@
 //! Tests — `ValidationForm<F>` (`forms/validation_form.rs`) et les hooks
-//! `register_dynamic_fields`/`validator_get`/`validator_post` de `RuniqueForm`.
+//! `register_dynamic_fields`/`allow_get`/`allow_post` de `RuniqueForm`.
 //!
 //! Chaque test vérifie un résultat concret (Ok/Err, contenu des erreurs, valeur
 //! nettoyée), pas seulement "ça n'a pas planté".
@@ -11,8 +11,8 @@ use runique::prelude::ValidationForm;
 use std::collections::HashMap;
 
 // ═══════════════════════════════════════════════════════════════
-// Formulaire minimal — un seul champ requis. `validator_post` retombe sur le
-// défaut (`is_submitted()`) ; `validator_get` est explicitement surchargé —
+// Formulaire minimal — un seul champ requis. `allow_post` retombe sur le
+// défaut (`is_submitted()`) ; `allow_get` est explicitement surchargé —
 // son défaut est `false` (sécurité), un formulaire de recherche GET est le
 // cas qui doit explicitement opter pour l'auto-validation.
 // ═══════════════════════════════════════════════════════════════
@@ -34,8 +34,8 @@ impl RuniqueForm for SearchForm {
     fn get_form_mut(&mut self) -> &mut Forms {
         &mut self.form
     }
-    fn validator_get(&self, _request: &runique::context::Request) -> bool {
-        self.get_form().is_submitted()
+    fn allow_get(&self, _request: &runique::context::Request) -> bool {
+        self.is_submitted()
     }
 }
 
@@ -48,7 +48,7 @@ async fn get_without_data_is_err_and_has_no_field_errors() {
     match ValidationForm::try_new(form, &request).await {
         Ok(_) => panic!("a bare GET with no data must not validate"),
         Err(form) => {
-            // validator_get() returned false before is_valid() ever ran — no
+            // allow_get() returned false before is_valid() ever ran — no
             // "required" error should have been set on the field.
             assert!(
                 !form.get_form().has_errors(),
@@ -162,7 +162,7 @@ async fn register_dynamic_fields_runs_before_validation() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// validator_get/validator_post — surcharge explicite
+// allow_get/allow_post — surcharge explicite
 // ═══════════════════════════════════════════════════════════════
 
 struct AlwaysPostOnlyForm {
@@ -184,13 +184,13 @@ impl RuniqueForm for AlwaysPostOnlyForm {
     }
     // Explicit override matching the (now-default) `false` — kept to assert
     // the override mechanism itself still works, independent of the default.
-    fn validator_get(&self, _request: &runique::context::Request) -> bool {
+    fn allow_get(&self, _request: &runique::context::Request) -> bool {
         false
     }
 }
 
 #[tokio::test]
-async fn explicit_validator_get_false_blocks_validation_even_with_data() {
+async fn explicit_allow_get_false_blocks_validation_even_with_data() {
     let engine = build_engine().await;
     let mut data = HashMap::new();
     data.insert("name".to_string(), "alice".to_string());
@@ -198,7 +198,7 @@ async fn explicit_validator_get_false_blocks_validation_even_with_data() {
     let form: AlwaysPostOnlyForm = request.form();
 
     match ValidationForm::try_new(form, &request).await {
-        Ok(_) => panic!("validator_get() override returning false must block validation"),
+        Ok(_) => panic!("allow_get() override returning false must block validation"),
         Err(form) => {
             // Never attempted: no error should have been recorded either.
             assert!(!form.get_form().has_errors());

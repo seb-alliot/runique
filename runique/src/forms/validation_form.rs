@@ -13,15 +13,15 @@ pub struct ValidationForm<F: RuniqueForm> {
 
 impl<F: RuniqueForm> ValidationForm<F> {
     /// Registers dynamic fields, decides whether to attempt validation based on
-    /// the HTTP method (`validator_get`/`validator_post`), then validates.
+    /// the HTTP method (`allow_get`/`allow_post`), then validates.
     /// Returns `form` unchanged on failure (method not applicable, or invalid
     /// fields) so the caller can re-render it with its field errors.
     pub async fn try_new(mut form: F, request: &Request) -> Result<Self, F> {
         form.register_dynamic_fields(request).await;
 
         let validate = match request.method.is_safe() {
-            true => form.validator_get(request),
-            false => form.validator_post(request),
+            true => form.allow_get(request),
+            false => form.allow_post(request),
         };
 
         if validate && form.is_valid().await {

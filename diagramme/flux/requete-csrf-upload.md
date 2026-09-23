@@ -29,7 +29,7 @@ sequenceDiagram
     Note over F: si !GET/HEAD && !csrf_valid<br/>→ force_invalid = true<br/>+ push t("csrf.invalid_or_missing") dans errors (2026-09-22)
     F-->>H: form (force_invalid + message si CSRF KO)
     H->>H: ValidationForm::try_new(form, &request).await
-    Note over H: dispatch validator_get/validator_post<br/>selon method.is_safe() → is_valid().await<br/>Ok(ValidationForm) ou Err(form, avec message)
+    Note over H: dispatch allow_get/allow_post<br/>selon method.is_safe() → is_valid().await<br/>Ok(ValidationForm) ou Err(form, avec message)
     Note over H: 🔴 fichier déjà écrit en MEDIA_ROOT,<br/>jamais supprimé au rejet
 ```
 
@@ -48,7 +48,7 @@ sequenceDiagram
   (2026-09-22 — avant ça, l'échec était totalement silencieux, cf. C6).
 - **Handler** : le boilerplate `if request.is_post() && form.is_valid() {...}`
   est remplacé par `ValidationForm::try_new(form, &request).await`, qui
-  dispatche lui-même sur `validator_get`/`validator_post` selon
+  dispatche lui-même sur `allow_get`/`allow_post` selon
   `request.method.is_safe()`. Détail : [../uml/forms/formulaires.md](../uml/forms/formulaires.md).
 
 ## Anomalies / flux suspects
