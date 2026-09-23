@@ -25,7 +25,12 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_index(Index::drop().name("test_all_fields_f_text_f_integer_uniq").table(Alias::new("test_all_fields")).to_owned())
+            .drop_index(
+                Index::drop()
+                    .name("test_all_fields_f_text_f_integer_uniq")
+                    .table(Alias::new("test_all_fields"))
+                    .to_owned(),
+            )
             .await?;
         Ok(())
     }

@@ -5,7 +5,7 @@ pub struct Migration;
 
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
-async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
             .create_table(
                 Table::create()
@@ -47,18 +47,20 @@ async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
             .await?;
 
         Ok(())
-}
+    }
 
-async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
             .drop_index(Index::drop().name("test_relation_parent_tag_test_relation_parent_id_test_relation_tag_id_uniq").table(Alias::new("test_relation_parent_tag")).to_owned())
             .await?;
 
         manager
-            .drop_table(Table::drop()
-                .table(Alias::new("test_relation_parent_tag"))
-                .to_owned())
+            .drop_table(
+                Table::drop()
+                    .table(Alias::new("test_relation_parent_tag"))
+                    .to_owned(),
+            )
             .await?;
         Ok(())
-}
+    }
 }
