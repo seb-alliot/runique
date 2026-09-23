@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## [2.2.1 Upcoming]
+## [2.3.0 Upcoming]
 
 ### Added — Forms (`ValidationForm<F>` — typestate validation lifecycle)
 

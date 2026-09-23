@@ -6,7 +6,7 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ---
 
-## [2.2.1 A venir]
+## [2.3.0 A venir]
 
 ### Ajout — Formulaires (`ValidationForm<F>` — cycle de validation typestate)
 
