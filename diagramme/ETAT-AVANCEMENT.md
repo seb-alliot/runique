@@ -123,7 +123,7 @@ Chantier code (branche `validation`) : `FormField::validate`/`finalize` passés 
 récursion) ; nouveau type `ValidationForm<F>` (`forms/validation_form.rs`),
 garantie de **type** (pas seulement runtime) qu'un form a été validé avant
 qu'on puisse agir dessus, avec 3 nouveaux hooks `RuniqueForm`
-(`register_dynamic_fields`, `validator_get`, `validator_post`) ; tous les
+(`register_dynamic_fields`, `allow_get`, `allow_post`) ; tous les
 handlers de demo-app + `auth/password.rs` + le scaffold `runique new` migrés
 vers ce pattern. Trouvé en route : un vrai bug de sécurité/UX préexistant —
 l'échec CSRF était **totalement silencieux** (aucun message nulle part),
@@ -140,7 +140,7 @@ nouvelle entrée **C6**) ; `anomalies.md` (C6 ajoutée en 🟠 Sérieux). Détai
 complet du chantier : mémoire `project_form_auto_validate_idea.md` (hors dépôt).
 
 **Suite (même jour)** : migration de Campanile (repo séparé) vers
-`ValidationForm`, qui a révélé **F8** — le défaut `validator_get` (`is_submitted()`)
+`ValidationForm`, qui a révélé **F8** — le défaut `allow_get` (`is_submitted()`)
 aurait exigé une surcharge manuelle `-> false` sur chaque formulaire mutant de
 l'app (login/inscription/contact/devis), répétant un garde de sécurité qui
 doit vivre dans le framework. Défaut basculé à `false` inconditionnel dans

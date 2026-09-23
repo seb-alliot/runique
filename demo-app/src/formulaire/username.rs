@@ -17,13 +17,13 @@ impl RuniqueForm for UsernameForm {
     // `/view-user` is registered for every method (`view!{}`), but this form
     // is a GET-only search — never attempt validation on POST/PUT/PATCH/DELETE,
     // matching the handler's previous explicit `request.is_get() && ...` check.
-    fn validator_post(&self, _request: &Request) -> bool {
+    fn allow_post(&self, _request: &Request) -> bool {
         false
     }
 
     // Opt-in: a read-only search form is the one case where auto-validating
-    // on GET is safe and desired (`validator_get` defaults to `false`).
-    fn validator_get(&self, _request: &Request) -> bool {
-        self.get_form().is_submitted()
+    // on GET is safe and desired (`allow_get` defaults to `false`).
+    fn allow_get(&self, _request: &Request) -> bool {
+        self.is_submitted()
     }
 }

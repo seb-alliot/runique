@@ -257,8 +257,17 @@ pub trait RuniqueForm: Sized + Send + Sync {
     /// Hook to add fields that depend on the request (e.g. choices loaded from
     /// the DB) after extraction but before validation. Default: no-op.
     /// Called by [`ValidationForm::try_new`](crate::forms::ValidationForm::try_new)
-    /// before dispatching to `validator_get`/`validator_post`.
+    /// before dispatching to `allow_get`/`allow_post`.
     async fn register_dynamic_fields(&mut self, _request: &Request) {}
+
+    /// Whether this form has been submitted — `true` unconditionally once a
+    /// POST-class request is reached, `true` for a GET-class request only
+    /// once its fields actually carry data (thin wrapper over
+    /// `Forms::is_submitted()`, exposed here so external forms never need to
+    /// reach into `Forms` directly to opt into `allow_get`, below).
+    fn is_submitted(&self) -> bool {
+        self.get_form().is_submitted()
+    }
 
     /// Whether [`ValidationForm`](crate::forms::ValidationForm) should attempt
     /// validation on a GET-class request (GET, HEAD, OPTIONS, TRACE). Default:
@@ -273,20 +282,21 @@ pub trait RuniqueForm: Sized + Send + Sync {
     /// A read-only GET search/filter form is the one legitimate case that
     /// *should* auto-validate — override explicitly:
     /// ```ignore
-    /// fn validator_get(&self, _request: &Request) -> bool {
-    ///     self.get_form().is_submitted()
+    /// fn allow_get(&self, _request: &Request) -> bool {
+    ///     self.is_submitted()
     /// }
     /// ```
-    fn validator_get(&self, _request: &Request) -> bool {
+    fn allow_get(&self, _request: &Request) -> bool {
         false
     }
 
     /// Whether [`ValidationForm`](crate::forms::ValidationForm) should attempt
     /// validation on a POST-class request (POST, PUT, PATCH, DELETE, CONNECT).
-    /// Default: reuses `Forms::is_submitted()` — effectively always `true`,
-    /// since these methods are always submissions regardless of field content.
-    fn validator_post(&self, _request: &Request) -> bool {
-        self.get_form().is_submitted()
+    /// Default: reuses [`is_submitted`](Self::is_submitted) — effectively
+    /// always `true`, since these methods are always submissions regardless
+    /// of field content.
+    fn allow_post(&self, _request: &Request) -> bool {
+        self.is_submitted()
     }
 
     async fn is_valid(&mut self) -> bool {
@@ -294,7 +304,7 @@ pub trait RuniqueForm: Sized + Send + Sync {
         // without setting any field errors. This prevents showing validation errors on the
         // initial page load, and lets GET search forms fall through to their else branch
         // cleanly. Note: Forms::is_valid() (sync) does not have this guard.
-        if !self.get_form().is_submitted() {
+        if !self.is_submitted() {
             return false;
         }
 

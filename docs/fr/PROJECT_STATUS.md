@@ -33,7 +33,7 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 ### Formulaires
 - Système de formulaires typés : `#[form]`, `RuniqueForm`, validation, rendu HTML via Tera
 - `FormField::validate`/`finalize` async — I/O réellement non-bloquant (upload de fichier via `tokio::fs`, hash de mot de passe) sous la façade déjà async de `is_valid()`
-- `ValidationForm<F>` (`forms/validation_form.rs`) : `try_new(form, request) -> Result<ValidationForm<F>, F>`, preuve par le type qu'un handler a validé avant d'agir — additif, ne remplace pas `RuniqueForm::is_valid()` ; dispatch par défaut sur `Method::is_safe()`, hooks `register_dynamic_fields`/`validator_get`/`validator_post` surchargeables
+- `ValidationForm<F>` (`forms/validation_form.rs`) : `try_new(form, request) -> Result<ValidationForm<F>, F>`, preuve par le type qu'un handler a validé avant d'agir — additif, ne remplace pas `RuniqueForm::is_valid()` ; dispatch par défaut sur `Method::is_safe()`, hooks `register_dynamic_fields`/`allow_get`/`allow_post` surchargeables
 - Protection CSRF intégrée (token masqué anti-BREACH, comparaison temps constant) ; échec CSRF pose désormais un message explicite (`csrf.invalid_or_missing`) au lieu d'échouer silencieusement, et `js/csrf.js` rafraîchit le token juste avant chaque soumission de formulaire
 - Tracing structuré par domaine (arbre `RuniqueLog`) sur tout le pipeline (field, set_value, validate, finalize, render)
 - Tous les types de champs : Text, Numeric, Boolean, Choice, Radio, Checkbox, Date, Time, DateTime, Duration, File, Color, Slug, UUID, JSON, IP, Hidden, Honeypot
