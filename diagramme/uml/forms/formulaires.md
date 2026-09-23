@@ -69,7 +69,7 @@ classDiagram
         +get_form() / get_form_mut()*
         +customize(form) [défaut no-op, statique]
         +register_dynamic_fields(request) [async, défaut no-op]
-        +validator_get(request) bool [défaut is_submitted()]
+        +validator_get(request) bool [défaut false — sécurité, opt-in]
         +validator_post(request) bool [défaut is_submitted()]
         +label/placeholder/required/readonly/disabled/attr(name,..)
         +cleaned_string/i32/i64/...(name)
@@ -191,3 +191,21 @@ Leur unique raison d'être historique était le boilerplate de validation
 via `http::Method::is_safe()`. Supprimées avec les tests associés ; nouveaux
 tests de régression honeypot ajoutés (`test_validation_form.rs`) puisque ce
 comportement n'était pas testé directement avant.
+
+### 🟠 F8 — `validator_get` par défaut sur `is_submitted()` : footgun CSRF par défaut — ✅ CORRIGÉ (2026-09-22)
+GET/HEAD sont les **seules** méthodes exemptées de CSRF (`csrf_required()`).
+Le défaut initial de `validator_get` (`Forms::is_submitted()`, `true` dès que
+les champs portent des données) signifiait que **tout** formulaire — y
+compris login/inscription/contact, qui modifient l'état — auto-validait sur
+GET dès que la query string correspondait aux noms de champs, et exécutait
+donc son effet de bord (connexion, écriture DB, envoi d'email) **sans aucun
+token CSRF**. Trouvé en migrant Campanile vers `ValidationForm` : chaque
+formulaire mutant y aurait nécessité une surcharge manuelle
+(`validator_get() -> false`) — répétée sur 4 formulaires côté app, en plus des
+2 déjà nécessaires côté framework (`ForgotPasswordForm`/`PasswordResetForm`).
+Le vrai défaut sûr doit vivre dans le framework, pas être délégué à chaque
+auteur d'app. `validator_get` retombe maintenant sur **`false`**
+inconditionnellement ; seul un formulaire de recherche/filtre GET (lecture
+seule) doit opter explicitement pour `is_submitted()` — cas du `UsernameForm`
+de demo-app. Les surcharges désormais redondantes (`ForgotPasswordForm`,
+`PasswordResetForm`, et les 4 formulaires Campanile) ont été retirées.

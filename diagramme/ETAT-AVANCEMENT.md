@@ -138,3 +138,12 @@ entrées **F6** silence CSRF et **F7** suppression is_get&co) ;
 `flux/requete-csrf-upload.md` (séquence POST → `ValidationForm::try_new`,
 nouvelle entrée **C6**) ; `anomalies.md` (C6 ajoutée en 🟠 Sérieux). Détail
 complet du chantier : mémoire `project_form_auto_validate_idea.md` (hors dépôt).
+
+**Suite (même jour)** : migration de Campanile (repo séparé) vers
+`ValidationForm`, qui a révélé **F8** — le défaut `validator_get` (`is_submitted()`)
+aurait exigé une surcharge manuelle `-> false` sur chaque formulaire mutant de
+l'app (login/inscription/contact/devis), répétant un garde de sécurité qui
+doit vivre dans le framework. Défaut basculé à `false` inconditionnel dans
+`forms/field.rs` ; les surcharges devenues redondantes retirées côté framework
+(`ForgotPasswordForm`/`PasswordResetForm`) et côté Campanile (4 formulaires).
+Seul cas d'opt-in réel : `UsernameForm` (demo-app, recherche GET-only).

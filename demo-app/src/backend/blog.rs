@@ -48,12 +48,10 @@ pub async fn handle_blog_save(request: &mut Request, blog: BlogForm) -> AppResul
             if request.method.is_safe() {
                 context_update!(request => { "title" => "Create a blog post", "blog_form" => &blog });
             } else {
-                let messages = crate::backend::form_error_flash(&blog)
-                    .unwrap_or_else(|| flash_now!(error => "Please correct the errors below"));
                 context_update!(request => {
                     "title"     => "Validation error",
                     "blog_form" => &blog,
-                    "messages"  => messages,
+                    "messages"  => flash_now!(error => "Please correct the errors below"),
                 });
             }
             return request.render(template);

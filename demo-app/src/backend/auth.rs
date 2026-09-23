@@ -54,14 +54,12 @@ pub async fn handle_inscription(
                     "doc_links"        => &doc_links,
                 });
             } else {
-                let messages = crate::backend::form_error_flash(&form)
-                    .unwrap_or_else(|| flash_now!(error => "Please correct the errors"));
                 context_update!(request => {
                     "title"            => "Validation error",
                     "inscription_form" => &form,
                     "code_examples"    => &code_examples,
                     "doc_links"        => &doc_links,
-                    "messages"         => messages,
+                    "messages"         => flash_now!(error => "Please correct the errors"),
                 });
             }
             return request.render(template);
@@ -170,21 +168,15 @@ pub async fn handle_login(request: &mut Request, form: LoginForm) -> AppResult<R
     let validated = match ValidationForm::try_new(form, request).await {
         Ok(validated) => validated,
         Err(form) => {
-            match crate::backend::form_error_flash(&form) {
-                Some(messages) => context_update!(request => {
-                    "title"         => "Login",
-                    "login_form"    => &form,
-                    "code_examples" => &code_examples,
-                    "doc_links"     => &doc_links,
-                    "messages"      => messages,
-                }),
-                None => context_update!(request => {
-                    "title"         => "Login",
-                    "login_form"    => &form,
-                    "code_examples" => &code_examples,
-                    "doc_links"     => &doc_links,
-                }),
-            }
+            // No flash here: a global error (e.g. CSRF) is already rendered
+            // inline by `{% form.login_form %}` (Forms::render() puts global
+            // errors first) — a flash would just repeat the same text.
+            context_update!(request => {
+                "title"         => "Login",
+                "login_form"    => &form,
+                "code_examples" => &code_examples,
+                "doc_links"     => &doc_links,
+            });
             return request.render(template);
         }
     };

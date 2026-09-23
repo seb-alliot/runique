@@ -20,4 +20,10 @@ impl RuniqueForm for UsernameForm {
     fn validator_post(&self, _request: &Request) -> bool {
         false
     }
+
+    // Opt-in: a read-only search form is the one case where auto-validating
+    // on GET is safe and desired (`validator_get` defaults to `false`).
+    fn validator_get(&self, _request: &Request) -> bool {
+        self.get_form().is_submitted()
+    }
 }

@@ -11,8 +11,10 @@ use runique::prelude::ValidationForm;
 use std::collections::HashMap;
 
 // ═══════════════════════════════════════════════════════════════
-// Formulaire minimal — un seul champ requis, défauts inchangés
-// (validator_get/validator_post retombent sur is_submitted())
+// Formulaire minimal — un seul champ requis. `validator_post` retombe sur le
+// défaut (`is_submitted()`) ; `validator_get` est explicitement surchargé —
+// son défaut est `false` (sécurité), un formulaire de recherche GET est le
+// cas qui doit explicitement opter pour l'auto-validation.
 // ═══════════════════════════════════════════════════════════════
 
 struct SearchForm {
@@ -31,6 +33,9 @@ impl RuniqueForm for SearchForm {
     }
     fn get_form_mut(&mut self) -> &mut Forms {
         &mut self.form
+    }
+    fn validator_get(&self, _request: &runique::context::Request) -> bool {
+        self.get_form().is_submitted()
     }
 }
 
@@ -177,15 +182,15 @@ impl RuniqueForm for AlwaysPostOnlyForm {
     fn get_form_mut(&mut self) -> &mut Forms {
         &mut self.form
     }
-    // Never validate on GET, regardless of submitted data — overrides the
-    // is_submitted()-based default.
+    // Explicit override matching the (now-default) `false` — kept to assert
+    // the override mechanism itself still works, independent of the default.
     fn validator_get(&self, _request: &runique::context::Request) -> bool {
         false
     }
 }
 
 #[tokio::test]
-async fn overridden_validator_get_blocks_validation_even_with_data() {
+async fn explicit_validator_get_false_blocks_validation_even_with_data() {
     let engine = build_engine().await;
     let mut data = HashMap::new();
     data.insert("name".to_string(), "alice".to_string());
