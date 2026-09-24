@@ -10,6 +10,6 @@ model! {
         name: text [required, unique],
     },
     relations: {
-        many_to_many: TestRelationParent through TestRelationParentTag via test_relation_tag_id,
+        many_to_many: TestRelationParent through TestRelationParentTag via tag_id,
     }
 }

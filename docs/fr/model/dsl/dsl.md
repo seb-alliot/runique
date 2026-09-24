@@ -65,8 +65,8 @@ peut être active à la fois (`compile_error!` si deux sont déclarées ensemble
 ```toml
 [dependencies]
 # rien de déclaré → Pk = i32 (défaut)
-runique = { version = "2.2.0", features = ["big-pk"] }    # Pk = i64
-runique = { version = "2.2.0", features = ["pk-uuid"] }   # Pk = Uuid (généré via Uuid::now_v7())
+runique = { version = "2.3.0", features = ["big-pk"] }    # Pk = i64
+runique = { version = "2.3.0", features = ["pk-uuid"] }   # Pk = Uuid (généré via Uuid::now_v7())
 ```
 
 Utilisez `big-pk` quand vous anticipez plus de ~2 milliards de lignes dans une table, ou pour interopérer avec un schéma existant utilisant des clés primaires `BIGINT`. Utilisez `pk-uuid` pour des identifiants non séquentiels (multi-tenant, génération côté client, exposition publique des ids sans révéler le volume de lignes).

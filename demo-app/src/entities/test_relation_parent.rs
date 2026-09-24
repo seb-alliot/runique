@@ -12,6 +12,6 @@ model! {
     relations: {
         has_many: TestRelationChild,
         has_one: TestRelationProfile,
-        many_to_many: TestRelationTag through TestRelationParentTag via test_relation_parent_id,
+        many_to_many: TestRelationTag through TestRelationParentTag via parent_id,
     }
 }

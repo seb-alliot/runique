@@ -432,6 +432,8 @@
   "makemigrations": {
     "destructive_detected": "破壊的な変更が検出されました:",
     "destructive_require_force": "--force を使用してこれらの破壊的な変更を適用してください。",
+    "long_identifier_detected": "生成されたSQL識別子が長すぎます（MariaDB/MySQLの上限：64文字）：",
+    "long_identifier_rename_required": "関係するテーブル名/カラム名を短くしてください — Runiqueは識別子を自動的に切り詰めません。",
     "files_ready": "{}個のファイルが移行の準備ができています。",
     "unknown_dsl_type": "警告: 不明なフィールド型 '{}' — デフォルトの '{}' を使用します。モデルにタイプミスがないか確認してください。",
     "unknown_db_engine": "警告: 認識されない DB_ENGINE '{}' — SQLite形式のマイグレーションにフォールバックします（enum/トリガーのネイティブサポートなし）。サポートされる値: postgres, mysql/mariadb, sqlite。"

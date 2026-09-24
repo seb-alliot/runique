@@ -65,8 +65,8 @@ pk: field_name => type
 ```toml
 [dependencies]
 # nothing declared → Pk = i32 (default)
-runique = { version = "2.2.0", features = ["big-pk"] }    # Pk = i64
-runique = { version = "2.2.0", features = ["pk-uuid"] }   # Pk = Uuid (generated via Uuid::now_v7())
+runique = { version = "2.3.0", features = ["big-pk"] }    # Pk = i64
+runique = { version = "2.3.0", features = ["pk-uuid"] }   # Pk = Uuid (generated via Uuid::now_v7())
 ```
 
 Use `big-pk` when you expect more than ~2 billion rows in a table, or when you need to interoperate with an existing schema using `BIGINT` primary keys. Use `pk-uuid` for non-sequential identifiers (multi-tenant setups, client-side generation, exposing ids publicly without leaking row volume).

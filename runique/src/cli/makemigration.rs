@@ -456,18 +456,91 @@ pub fn collect_destructive_messages(all_changes: &[Changes]) -> Vec<String> {
         .collect()
 }
 
-fn check_destructive(all_changes: &[Changes], force: bool) -> Result<()> {
-    let blocking = collect_destructive_messages(all_changes);
-
-    if blocking.is_empty() || force {
+/// Prints `messages` under the translated `header_key`, then bails with the translated
+/// `bail_key` — the shared "list every violation, then stop" shape behind both
+/// `check_destructive` (forceable) and `check_identifier_lengths` (never forceable, always
+/// passes `force: false`). An empty `messages` or `force: true` is a silent no-op.
+fn report_and_bail_if_any(
+    messages: &[String],
+    header_key: &str,
+    bail_key: &str,
+    force: bool,
+) -> Result<()> {
+    if messages.is_empty() || force {
         return Ok(());
     }
 
-    eprintln!("\n{}", t("makemigrations.destructive_detected"));
-    for msg in &blocking {
+    eprintln!("\n{}", t(header_key));
+    for msg in messages {
         eprintln!("{}", msg);
     }
-    anyhow::bail!("{}", t("makemigrations.destructive_require_force"));
+    anyhow::bail!("{}", t(bail_key));
+}
+
+fn check_destructive(all_changes: &[Changes], force: bool) -> Result<()> {
+    let blocking = collect_destructive_messages(all_changes);
+    report_and_bail_if_any(
+        &blocking,
+        "makemigrations.destructive_detected",
+        "makemigrations.destructive_require_force",
+        force,
+    )
+}
+
+// ── generated-identifier length guard ──────────────────────────────────────────
+
+/// Scans a set of changes for FK constraint / index names that would exceed
+/// MariaDB/MySQL's 64-character identifier limit (63 used here as the shared safe bound —
+/// Postgres's own NAMEDATALEN-1 limit is one byte tighter). Checked once, upfront, over
+/// the whole plan — before any migration file is generated — so the string-building
+/// generators (`generators.rs`) and the DSL-to-schema conversion (`to_schema.rs`) stay
+/// pure and infallible. There is no `--force` escape hatch here, unlike
+/// `check_destructive`: Runique won't guess a shortened name for you (that would make it
+/// unpredictable from the `model!{}` declaration alone), so a human has to rename
+/// something regardless.
+fn collect_long_identifier_messages(all_changes: &[Changes]) -> Vec<String> {
+    const MAX_LEN: usize = 63;
+    let mut messages = Vec::new();
+
+    for change in all_changes {
+        for fk in change.added_fks.iter().chain(change.dropped_fks.iter()) {
+            let name = format!(
+                "{}_{}_{}_fkey",
+                change.table_name, fk.from_column, fk.to_table
+            );
+            if name.len() > MAX_LEN {
+                messages.push(format!(
+                    "  {name} ({len} characters, max {MAX_LEN}) — shorten the table name, '{col}', or the target table name",
+                    len = name.len(),
+                    col = fk.from_column,
+                ));
+            }
+        }
+        for idx in change
+            .added_indexes
+            .iter()
+            .chain(change.dropped_indexes.iter())
+        {
+            if idx.name.len() > MAX_LEN {
+                messages.push(format!(
+                    "  {} ({} characters, max {MAX_LEN}) — shorten the table or column names in this index",
+                    idx.name,
+                    idx.name.len(),
+                ));
+            }
+        }
+    }
+    messages
+}
+
+fn check_identifier_lengths(all_changes: &[Changes]) -> Result<()> {
+    let long_ids = collect_long_identifier_messages(all_changes);
+    report_and_bail_if_any(
+        &long_ids,
+        "makemigrations.long_identifier_detected",
+        "makemigrations.long_identifier_rename_required",
+        false,
+    )
 }
 
 // ── run ──────────────────────────────────────────────────────────────────────
@@ -583,6 +656,7 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
     let mut destructive_set: Vec<Changes> = main_changes.clone();
     destructive_set.extend(extend_planned.iter().map(|(_, c)| c.clone()));
     check_destructive(&destructive_set, force)?;
+    check_identifier_lengths(&destructive_set)?;
 
     let timestamp = Utc::now().format("%Y%m%d_%H%M%S").to_string();
     let db_kind = detect_db_kind();
