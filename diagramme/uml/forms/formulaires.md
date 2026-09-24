@@ -191,6 +191,10 @@ Leur unique raison d'être historique était le boilerplate de validation
 via `http::Method::is_safe()`. Supprimées avec les tests associés ; nouveaux
 tests de régression honeypot ajoutés (`test_validation_form.rs`) puisque ce
 comportement n'était pas testé directement avant.
+**Addendum (2026-09-24)** : 5 exemples de code dans `demo-app/seed.sql` (contenu du site de démo,
+hors framework) utilisaient encore `request.is_post()` — trouvés et corrigés un mois après cette
+suppression, lors d'un audit complet des exemples affichés sur le site (voir
+[[project_derive_form_v1_removal]] addendum pour la leçon générale sur cette 3ᵉ surface manquée).
 
 ### 🟠 F8 — `allow_get` par défaut sur `is_submitted()` : footgun CSRF par défaut — ✅ CORRIGÉ (2026-09-22)
 GET/HEAD sont les **seules** méthodes exemptées de CSRF (`csrf_required()`).

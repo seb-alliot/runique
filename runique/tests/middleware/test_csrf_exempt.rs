@@ -2,7 +2,7 @@ use crate::helpers::{assert::assert_status, server::build_engine};
 use axum::{
     Router,
     body::Body,
-    http::Request,
+    http::{Request, StatusCode},
     middleware,
     routing::{get, post},
 };
@@ -12,6 +12,7 @@ use runique::{
         config::MiddlewareConfig,
         security::{allowed_hosts::HostPolicy, csp::SecurityPolicy, csrf::csrf_middleware},
     },
+    utils::crypto::csrf::CsrfToken,
 };
 use std::sync::Arc;
 use tower::ServiceExt;
@@ -38,6 +39,18 @@ async fn engine_with_exempt(paths: Vec<&str>) -> Arc<RuniqueEngine> {
     })
 }
 
+/// Returns 200 if a `CsrfToken` extension is present on the request, 404 otherwise —
+/// used to check that exempting a path from CSRF *validation* doesn't also skip
+/// *generating* the token (which would break `Request`/`RuniqueContext` for any
+/// exempt handler that still wants them).
+async fn check_csrf_extension(req: Request<Body>) -> StatusCode {
+    if req.extensions().get::<CsrfToken>().is_some() {
+        StatusCode::OK
+    } else {
+        StatusCode::NOT_FOUND
+    }
+}
+
 fn csrf_app(engine: Arc<RuniqueEngine>) -> Router {
     Router::new()
         .route("/", get(|| async { "ok" }))
@@ -45,6 +58,7 @@ fn csrf_app(engine: Arc<RuniqueEngine>) -> Router {
         .route("/webhook/stripe", post(|| async { "ok" }))
         .route("/webhook/github", post(|| async { "ok" }))
         .route("/webhook/stripe/sub", post(|| async { "ok" }))
+        .route("/webhook/check-token", post(check_csrf_extension))
         .layer(middleware::from_fn_with_state(engine, csrf_middleware))
         .layer(SessionManagerLayer::new(MemoryStore::default()))
 }
@@ -139,4 +153,20 @@ async fn liste_vide_bloque_tout() {
     let app = csrf_app(engine);
     let resp = app.oneshot(json_post("/webhook/stripe")).await.unwrap();
     assert_status(&resp, 403);
+}
+
+// ── Le token reste généré/injecté même sur un chemin exempté ────────────────────
+// Régression : `csrf_exempt()` ne doit sauter que la *validation*, pas la
+// génération du token — sinon `Request`/`RuniqueContext` plantent (500) sur tout
+// handler exempté qui les utilise pour autre chose que le CSRF.
+
+#[tokio::test]
+async fn chemin_exempte_a_quand_meme_le_token_en_extension() {
+    let engine = engine_with_exempt(vec!["/webhook/check-token"]).await;
+    let app = csrf_app(engine);
+    let resp = app
+        .oneshot(json_post("/webhook/check-token"))
+        .await
+        .unwrap();
+    assert_status(&resp, 200);
 }

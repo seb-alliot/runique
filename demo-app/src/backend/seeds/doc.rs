@@ -206,7 +206,7 @@ fn parse_blocks(content: &str) -> Vec<(Option<String>, String, String)> {
 }
 
 async fn insert_page_with_blocks(
-    section_id: i32,
+    section_id: Pk,
     slug: &str,
     lang: &str,
     content: &str,
@@ -441,7 +441,7 @@ fn collect_section_pages(section_slug: &str, section_path: &Path) -> Vec<(String
 async fn seed_section_pages(
     section_slug: &str,
     lang: &str,
-    section_id: i32,
+    section_id: Pk,
     section_path: &Path,
     db: &DatabaseConnection,
 ) {

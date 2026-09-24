@@ -139,7 +139,7 @@ pub async fn blog_save(mut request: Request) -> AppResult<Response> {
     handle_blog_save(&mut request, blog).await
 }
 
-pub async fn blog_detail(Path(id): Path<i32>, mut request: Request) -> AppResult<Response> {
+pub async fn blog_detail(Path(id): Path<Pk>, mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
     if let Some(a) = get_article(&request.engine.db, id).await {
         context_update!(request => { "title" => &a.title, "article" => &a });

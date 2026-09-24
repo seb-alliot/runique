@@ -7,7 +7,7 @@ séparée qui a toujours requis `fields:` et le requiert toujours — ne pas con
 d'un audit.
 
 Flux `model!{}` :
-`DSL source (bloc anonyme) → parser.rs (syn) → FormFieldDecl (grammaire DSL) → form_field_to_field_def() → FieldDef/FieldType/FieldOption (représentation universelle) → generateur.rs → TokenStream Rust`.
+`DSL source (bloc anonyme) → parser/ (syn, splitté en modules depuis le 2026-09-23) → FormFieldDecl (grammaire DSL) → form_field_to_field_def() → FieldDef/FieldType/FieldOption (représentation universelle) → generateur.rs → TokenStream Rust`.
 
 Flux `extend!{}` : pipeline **séparé** dans `extend_schema.rs` (`ExtendDsl::parse` →
 `generate_entity`/`generate_schema_fn`), mêmes types de champs/options que `model!{}` mais
@@ -88,7 +88,7 @@ classDiagram
     FieldOption ..> FkDef
 ```
 
-`form_field_to_field_def()` (`parser.rs`) traduit `FormFieldDecl` → `FieldDef` : c'est le seul
+`form_field_to_field_def()` (`parser/form_field/to_field_def.rs`) traduit `FormFieldDecl` → `FieldDef` : c'est le seul
 endroit où une option v2 parsée peut finir **sans effet** si la traduction oublie de la
 transcrire (cf. DF4 ci-dessous — classe de bug réelle, pas hypothétique).
 
@@ -96,7 +96,7 @@ transcrire (cf. DF4 ci-dessous — classe de bug réelle, pas hypothétique).
 
 ```mermaid
 flowchart LR
-    SRC[DSL model! bloc anonyme] --> PAR[parser.rs syn → FormFieldDecl]
+    SRC[DSL model! bloc anonyme] --> PAR[parser/ syn → FormFieldDecl]
     PAR -->|syn::Error spanné| CE[compile_error! inline]
     PAR --> TR[form_field_to_field_def]
     TR --> AST[AST: ModelInput / FieldDef…]

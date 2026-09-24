@@ -14,7 +14,7 @@ model! {
         ],
     },
     {
-        category_id: int [required],
+        category_id: Pk [required],
         slug:        text [required],
         title:       text [required],
         lead:        text,

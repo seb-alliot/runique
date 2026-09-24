@@ -23,7 +23,7 @@ pub async fn list_articles(
 
 pub async fn get_article(
     db: &sea_orm::DatabaseConnection,
-    id: i32,
+    id: Pk,
 ) -> Option<crate::entities::blog::Model> {
     search!(BlogEntity => Id eq id)
         .first(db)

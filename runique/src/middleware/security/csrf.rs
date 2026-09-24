@@ -1,6 +1,7 @@
 //! CSRF Middleware: generates and stores the token in session, validates mutating requests.
 use crate::auth::session::is_authenticated;
 use crate::context::RequestExtensions;
+use crate::forms::extractor::{csrf_required, is_csrf_exempt};
 use crate::utils::{
     aliases::AEngine,
     constante::{session::CSRF_TOKEN_KEY, session_key::session::SESSION_USER_ID_KEY},
@@ -45,9 +46,20 @@ impl Function<TeraResult<Value>> for CsrfTokenFunction {
     }
 }
 
-/// Issues/refreshes the session's CSRF token and enforces it on mutating
-/// requests (POST/PUT/DELETE/PATCH), unless the path is in
-/// `csrf_exempt_paths`.
+/// Issues/refreshes the session's CSRF token — always, on every request,
+/// exempt or not — and enforces it on every non-safe method (`csrf_required`
+/// — everything except GET/HEAD, so also OPTIONS/TRACE, fail-closed), unless
+/// the path is in `csrf_exempt_paths` (`is_csrf_exempt`). Both checks are
+/// shared with `Request::form()`'s own guard (`forms/extractor.rs`) so this
+/// middleware and the extractor can never silently diverge. OPTIONS
+/// preflight never actually reaches this far when CORS is configured — see
+/// `SLOT_CORS`'s doc comment.
+///
+/// `csrf_exempt_paths` only skips *validation* — the token is still
+/// generated and injected into request extensions for exempt paths too, so
+/// `Request`/`RuniqueContext` (which unconditionally expect a `CsrfToken`
+/// extension) keep working for a handler that's exempt from CSRF but still
+/// wants everything else `Request` provides (session, template context, …).
 ///
 /// An `X-CSRF-Token` header is checked with a constant-time comparison
 /// (`ct_eq`) against the session token, so a wrong guess can't be
@@ -92,14 +104,14 @@ pub async fn csrf_middleware(
         }
     }
 
-    // Skip CSRF for exempt paths (webhooks with their own signature verification)
-    if engine
-        .csrf_exempt_paths
-        .iter()
-        .any(|p| p == req.uri().path())
-    {
-        return next.run(req).await;
-    }
+    // Exempt paths (webhooks with their own signature verification) still get a token
+    // generated and injected below — only the *validation* is skipped further down.
+    // Bailing out here entirely used to also skip token generation, which meant
+    // `Request`/`RuniqueContext` (which unconditionally expect a `CsrfToken` extension)
+    // failed with a 500 on any exempt handler that used them for anything else
+    // (session access, template context, …) — exempting a path from CSRF checks
+    // shouldn't also break an unrelated feature.
+    let exempt = is_csrf_exempt(req.uri().path(), &engine.csrf_exempt_paths);
 
     let secret = &engine.config.server.secret_key;
 
@@ -138,13 +150,7 @@ pub async fn csrf_middleware(
         token
     };
 
-    // CSRF verification **ONLY for AJAX requests with header**
-    let requires_csrf = matches!(
-        req.method(),
-        &Method::POST | &Method::PUT | &Method::DELETE | &Method::PATCH
-    );
-
-    if requires_csrf {
+    if !exempt && csrf_required(req.method()) {
         let has_header = req.headers().contains_key("X-CSRF-Token");
 
         // If header present, we validate (AJAX request)

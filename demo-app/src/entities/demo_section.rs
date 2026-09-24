@@ -5,7 +5,7 @@ model! {
     table: "demo_section",
     pk: id => Pk,
     {
-        page_id:    int [required],
+        page_id:    Pk [required],
         title:      text [required],
         content:    text,
         sort_order: int [required],

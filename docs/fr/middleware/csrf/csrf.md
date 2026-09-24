@@ -92,6 +92,8 @@ La correspondance est **exacte** — `/webhook/stripe` n'exempte pas `/webhook/s
 > Après avoir exempté un chemin, vérifiez l'authenticité de la requête par d'autres moyens dans votre handler
 > (ex : HMAC-SHA256 sur l'en-tête `Stripe-Signature` pour les webhooks Stripe).
 
+`csrf_exempt()` ne saute que la *vérification* — le token CSRF est toujours généré et disponible, donc un handler sur un chemin exempté peut continuer à utiliser `Request`/`RuniqueContext` normalement (session, contexte de template, …) en plus de sa propre logique de vérification.
+
 ---
 
 ## Voir aussi

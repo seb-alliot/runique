@@ -5,7 +5,7 @@ model! {
     table: "code_example",
     pk: id => Pk,
     {
-        page_id:    int [required],
+        page_id:    Pk [required],
         title:      text [required],
         language:   text [required],
         code:       richtext [required],
