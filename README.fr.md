@@ -5,6 +5,7 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Version](https://img.shields.io/badge/version-2.3.0-blue)
 [![Crates.io](https://img.shields.io/crates/v/runique)](https://crates.io/crates/runique)
+[![GitHub stars](https://img.shields.io/github/stars/seb-alliot/runique?style=social)](https://github.com/seb-alliot/runique)
 [![Runique](https://img.shields.io/badge/Runique-brightgreen)](https://runique.io)
 
 Déclarez un modèle une fois, et vous récupérez la table en base, la migration, un formulaire type-safe et un panel admin complet — sans câblage supplémentaire. Runique apporte la productivité de Django à Rust sans vous demander de renoncer à sa sécurité ni à ses performances. Construit sur Axum, SeaORM et Tera, il s'efface une fois le code répétitif écarté.
@@ -232,7 +233,7 @@ Détail complet par fichier : [docs/couverture_test.md](docs/couverture_test.md)
 ## État du projet & ressources
 
 - [État du projet](https://github.com/seb-alliot/runique/blob/main/docs/en/PROJECT_STATUS.en.md) — tenu à jour au fil de l'avancement
-- [Changelog](https://runique.io/changelog)
+- [Changelog](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.fr.md)
 - [Runique vs Django — comparatif des fonctionnalités](https://runique.io/docs/fr/comparatif)
 - [Crates.io](https://crates.io/crates/runique)
 - [Politique de sécurité](https://github.com/seb-alliot/runique/blob/main/SECURITY.md)
