@@ -45,7 +45,7 @@ pub async fn index(mut request: Request) -> AppResult<Response> {
 **Methods:**
 
 - `request.render("template.html")` — Render with the current context
-- `request.is_get()` / `request.is_post()` — Check the HTTP method
+- `request.method.is_safe()` — Check the HTTP method (GET/HEAD)
 
 ---
 
@@ -53,12 +53,15 @@ pub async fn index(mut request: Request) -> AppResult<Response> {
 
 ```rust
 pub async fn handler(mut request: Request) -> AppResult<Response> {
-    let mut form: RegisterForm = request.form();
-    if request.is_post() && form.is_valid().await {
-        let user = form.save(&request.engine.db).await?;
-        success!(request.notices => "User created!");
-        return Ok(Redirect::to("/").into_response());
-    }
+    let form: RegisterForm = request.form();
+    let form = match ValidationForm::try_new(form, &request).await {
+        Ok(validated) => {
+            let user = validated.save(&request.engine.db).await?;
+            success!(request.notices => "User created!");
+            return Ok(Redirect::to("/").into_response());
+        }
+        Err(form) => form,
+    };
 
     context_update!(request => {
         "form" => &form,

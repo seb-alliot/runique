@@ -88,37 +88,28 @@ impl RuniqueForm for RegisterForm {
 
 ```rust
 pub async fn signup(mut request: Request) -> AppResult<Response> {
-    let mut form: RegisterForm = request.form();
+    let form: RegisterForm = request.form();
     let template = "signup_form.html";
 
-    if request.is_get() {
-        context_update!(request => {
-            "title" => "Sign Up",
-            "signup_form" => &form,
-        });
-        return request.render(template);
-    }
-
-    if request.is_post() {
-        if form.is_valid().await {
-            let user = form.save(&request.engine.db).await.map_err(|err| {
-                form.get_form_mut().database_error(&err);
-                AppError::from(err)
-            })?;
-
-            success!(request.notices => format!("Welcome {}!", user.username));
-            return Ok(Redirect::to("/").into_response());
+    let mut validated = match ValidationForm::try_new(form, &request).await {
+        Ok(validated) => validated,
+        Err(form) => {
+            context_update!(request => {
+                "title" => "Validation Error",
+                "signup_form" => &form,
+                "messages" => flash_now!(error => "Please fix the errors"),
+            });
+            return request.render(template);
         }
+    };
 
-        context_update!(request => {
-            "title" => "Validation Error",
-            "signup_form" => &form,
-            "messages" => flash_now!(error => "Please fix the errors"),
-        });
-        return request.render(template);
-    }
+    let user = validated.save(&request.engine.db).await.map_err(|err| {
+        validated.database_error(&err);
+        AppError::from(err)
+    })?;
 
-    request.render(template)
+    success!(request.notices => format!("Welcome {}!", user.username));
+    Ok(Redirect::to("/").into_response())
 }
 ```
 
@@ -161,6 +152,17 @@ impl RuniqueForm for UsernameForm {
         );
     }
     impl_form_access!();
+
+    // This form only serves the GET search — never validate on POST.
+    fn allow_post(&self, _request: &Request) -> bool {
+        false
+    }
+
+    // Explicit opt-in: a read-only search form is the one case that should
+    // auto-validate on GET (`allow_get` defaults to `false`).
+    fn allow_get(&self, _request: &Request) -> bool {
+        self.is_submitted()
+    }
 }
 ```
 
@@ -168,42 +170,46 @@ impl RuniqueForm for UsernameForm {
 
 ```rust
 pub async fn info_user(mut request: Request) -> AppResult<Response> {
-    let mut form: UsernameForm = request.form();
+    let form: UsernameForm = request.form();
     let template = "profile/view_user.html";
 
-    if request.is_get() && form.is_valid().await {
-        let username = form.cleaned_string("username").unwrap_or_default();
-        let db = request.engine.db.clone();
+    match ValidationForm::try_new(form, &request).await {
+        Ok(validated) => {
+            let form = validated.into_form();
+            let username = form.cleaned_string("username").unwrap_or_default();
+            let db = request.engine.db.clone();
 
-        let user_opt = UserEntity::find()
-            .filter(user::Column::Username.eq(&username))
-            .one(&*db)
-            .await
-            .unwrap_or(None);
+            let user_opt = UserEntity::find()
+                .filter(user::Column::Username.eq(&username))
+                .one(&*db)
+                .await
+                .unwrap_or(None);
 
-        match user_opt {
-            Some(user) => {
-                context_update!(request => {
-                    "title" => "User view",
-                    "found_user" => &user,  // ⚠️ DO NOT name it "user" → collision with the form
-                    "user" => &form,
-                    "messages" => flash_now!(success => "User found!"),
-                });
+            match user_opt {
+                Some(user) => {
+                    context_update!(request => {
+                        "title" => "User view",
+                        "found_user" => &user,  // ⚠️ DO NOT name it "user" → collision with the form
+                        "user" => &form,
+                        "messages" => flash_now!(success => "User found!"),
+                    });
+                }
+                None => {
+                    context_update!(request => {
+                        "title" => "User view",
+                        "user" => &form,
+                        "messages" => flash_now!(warning => "User not found"),
+                    });
+                }
             }
-            None => {
-                context_update!(request => {
-                    "title" => "User view",
-                    "user" => &form,
-                    "messages" => flash_now!(warning => "User not found"),
-                });
-            }
+
+            request.render(template)
         }
-
-        return request.render(template);
+        Err(form) => {
+            context_update!(request => { "title" => "Search a user", "user" => &form });
+            request.render(template)
+        }
     }
-
-    context_update!(request => { "title" => "Search a user", "user" => &form });
-    request.render(template)
 }
 ```
 

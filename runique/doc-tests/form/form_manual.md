@@ -4,57 +4,59 @@
 use runique::prelude::*;
 use runique::forms::{Forms, fields::text::TextField, fields::number::NumericField};
 
-async fn register_handler(ctx: Request, Form(data): Form<HashMap<String, String>>) -> Response {
-    let csrf_token = ctx.csrf_token();
+pub struct RegisterForm {
+    pub form: Forms,
+}
 
-    // Création du formulaire
-    let mut form = Forms::new(&csrf_token);
-    form.set_renderer(ctx.engine.renderer());
-
-    // Ajout des champs
-    form.field(&TextField::text("username").label("Nom d'utilisateur").required(true, None));
-    form.field(&TextField::email("email").label("Email").required(true, None));
-    form.field(&NumericField::integer("age").label("Âge"));
-    form.field(&TextField::password("password").label("Mot de passe").required(true, None));
-
-    // Si POST : remplissage et validation
-    if ctx.is_post() {
-        form.fill(&data);
-
-        if form.is_valid().unwrap_or(false) {
-            let username = form.get_string("username");
-            let email    = form.get_string("email");
-            let age      = form.get_i32("age");
-
-            // Logique métier...
-
-            return Redirect::to("/success").into_response();
-        }
+impl RuniqueForm for RegisterForm {
+    fn register_fields(form: &mut Forms) {
+        form.field(&TextField::text("username").label("Nom d'utilisateur").required());
+        form.field(&TextField::email("email").label("Email").required());
+        form.field(&NumericField::integer("age").label("Âge"));
+        form.field(&TextField::password("password").label("Mot de passe").required());
     }
+    impl_form_access!();
+}
 
-    // Rendu du formulaire (GET ou POST invalide)
-    let mut context = ctx.context.clone();
-    context.insert("form", &form);
-    ctx.render("register.html", &context)
+async fn register_handler(mut request: Request) -> AppResult<Response> {
+    let form: RegisterForm = request.form();
+
+    let validated = match ValidationForm::try_new(form, &request).await {
+        Ok(validated) => validated,
+        Err(form) => {
+            // GET (rien soumis) ou soumission invalide — ré-afficher avec les erreurs
+            context_update!(request => { "form" => &form });
+            return request.render("register.html");
+        }
+    };
+
+    let username = validated.cleaned_string("username");
+    let email = validated.cleaned_string("email");
+    let age = validated.cleaned_i32("age");
+
+    // Logique métier...
+
+    Ok(Redirect::to("/success").into_response())
 }
 ```
 
+`request.form()` construit le formulaire, extrait le body et vérifie le CSRF en coulisses — pas de `Forms::new(&csrf_token)` ni de `set_renderer()` manuel. `ValidationForm::try_new(form, &request)` remplace le `if ctx.is_post() { form.fill(&data); if form.is_valid()... }` : il dispatche lui-même sur la méthode HTTP (`allow_get`/`allow_post`) puis valide.
+
 ## Récupération des valeurs
+
+Les accesseurs `cleaned_*` renvoient toujours un `Option<T>` (le champ peut être absent, vide, ou invalide) :
 
 ```rust,ignore
 // Chaîne de caractères
-let username: String = form.get_string("username");
+let username: Option<String> = form.cleaned_string("username");
 
 // Entiers et décimaux
-let age: i32   = form.get_i32("age");
-let score: f64 = form.get_f64("score");
+let age: Option<i32> = form.cleaned_i32("age");
+let score: Option<f64> = form.cleaned_f64("score");
 
-// Booléen (true si "true", "1" ou "on")
-let active: bool = form.get_bool("active");
-
-// Optionnels (None si champ vide)
-let bio: Option<String> = form.get_option("bio");
+// Booléen
+let active: Option<bool> = form.cleaned_bool("active");
 
 // Dates
-let birthday: chrono::NaiveDate = form.get_naive_date("birthday");
+let birthday: Option<chrono::NaiveDate> = form.cleaned_naive_date("birthday");
 ```

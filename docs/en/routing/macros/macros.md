@@ -50,7 +50,7 @@ urlpatterns! {
 
 ## Macro view!
 
-A single handler handles GET and POST as well as PUT and DELETE (recommended pattern with `request.is_get()` / `request.is_post()`):
+A single handler handles GET and POST as well as PUT and DELETE (recommended pattern with `ValidationForm::try_new(form, &request)`, which dispatches on the HTTP method itself):
 
 ```rust
 // In routes
@@ -60,18 +60,17 @@ A single handler handles GET and POST as well as PUT and DELETE (recommended pat
 ```rust
 // In handler
 pub async fn inscription(mut request: Request) -> AppResult<Response> {
-    let mut form: RegisterForm = request.form();
-    if request.is_get() {
-        context_update!(request => { "form" => &form });
-        return request.render("form.html");
-    }
+    let form: RegisterForm = request.form();
 
-    if request.is_post() {
-        if form.is_valid().await {
-            // ...
+    let validated = match ValidationForm::try_new(form, &request).await {
+        Ok(validated) => validated,
+        Err(form) => {
+            context_update!(request => { "form" => &form });
+            return request.render("form.html");
         }
-    }
+    };
 
+    // ...
     request.render("form.html")
 }
 ```
@@ -80,7 +79,7 @@ pub async fn inscription(mut request: Request) -> AppResult<Response> {
 
 ## Routing a specific method (GET / POST / PUT…)
 
-`view!{ handler }` wires the **same** handler onto all five methods (GET, POST, PUT, DELETE, PATCH). This is the recommended pattern when a single handler serves the form on both GET and POST via `request.is_get()` / `request.is_post()`.
+`view!{ handler }` wires the **same** handler onto all five methods (GET, POST, PUT, DELETE, PATCH). This is the recommended pattern when a single handler serves the form on both GET and POST via `ValidationForm::try_new(form, &request)`.
 
 When you want **a distinct handler per method**, don't use `view!`: pass the Axum combinators directly (`get`, `post`, `put`, `delete`, `patch`), already re-exported by the prelude. `urlpatterns!` accepts any expression that produces a `MethodRouter` as a handler:
 
@@ -91,7 +90,7 @@ use runique::urlpatterns;
 
 pub fn routes() -> Router {
     urlpatterns! {
-        // Single handler, all methods (dispatch via request.is_get/is_post)
+        // Single handler, all methods (dispatch via ValidationForm::try_new)
         "/inscription"   => view!{ views::inscription },                     name = "inscription",
 
         // Distinct handlers per method

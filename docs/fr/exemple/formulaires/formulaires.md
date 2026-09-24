@@ -88,37 +88,28 @@ impl RuniqueForm for RegisterForm {
 
 ```rust
 pub async fn inscription(mut request: Request) -> AppResult<Response> {
-    let mut form: RegisterForm = request.form();
+    let form: RegisterForm = request.form();
     let template = "inscription_form.html";
 
-    if request.is_get() {
-        context_update!(request => {
-            "title" => "Inscription",
-            "inscription_form" => &form,
-        });
-        return request.render(template);
-    }
-
-    if request.is_post() {
-        if form.is_valid().await {
-            let user = form.save(&request.engine.db).await.map_err(|err| {
-                form.get_form_mut().database_error(&err);
-                AppError::from(err)
-            })?;
-
-            success!(request.notices => format!("Bienvenue {} !", user.username));
-            return Ok(Redirect::to("/").into_response());
+    let mut validated = match ValidationForm::try_new(form, &request).await {
+        Ok(validated) => validated,
+        Err(form) => {
+            context_update!(request => {
+                "title" => "Erreur de validation",
+                "inscription_form" => &form,
+                "messages" => flash_now!(error => "Veuillez corriger les erreurs"),
+            });
+            return request.render(template);
         }
+    };
 
-        context_update!(request => {
-            "title" => "Erreur de validation",
-            "inscription_form" => &form,
-            "messages" => flash_now!(error => "Veuillez corriger les erreurs"),
-        });
-        return request.render(template);
-    }
+    let user = validated.save(&request.engine.db).await.map_err(|err| {
+        validated.database_error(&err);
+        AppError::from(err)
+    })?;
 
-    request.render(template)
+    success!(request.notices => format!("Bienvenue {} !", user.username));
+    Ok(Redirect::to("/").into_response())
 }
 ```
 
@@ -161,6 +152,17 @@ impl RuniqueForm for UsernameForm {
         );
     }
     impl_form_access!();
+
+    // Ce formulaire ne sert que la recherche GET — jamais de validation POST.
+    fn allow_post(&self, _request: &Request) -> bool {
+        false
+    }
+
+    // Opt-in explicite : un formulaire de recherche/lecture seule est le cas
+    // qui doit auto-valider sur GET (`allow_get` retombe sur `false` par défaut).
+    fn allow_get(&self, _request: &Request) -> bool {
+        self.is_submitted()
+    }
 }
 ```
 
@@ -171,39 +173,43 @@ pub async fn info_user(mut request: Request) -> AppResult<Response> {
     let mut form: UsernameForm = request.form();
     let template = "profile/view_user.html";
 
-    if request.is_get() && form.is_valid().await {
-        let username = form.cleaned_string("username").unwrap_or_default();
-        let db = request.engine.db.clone();
+    match ValidationForm::try_new(form, &request).await {
+        Ok(validated) => {
+            let form = validated.into_form();
+            let username = form.cleaned_string("username").unwrap_or_default();
+            let db = request.engine.db.clone();
 
-        let user_opt = UserEntity::find()
-            .filter(user::Column::Username.eq(&username))
-            .one(&*db)
-            .await
-            .unwrap_or(None);
+            let user_opt = UserEntity::find()
+                .filter(user::Column::Username.eq(&username))
+                .one(&*db)
+                .await
+                .unwrap_or(None);
 
-        match user_opt {
-            Some(user) => {
-                context_update!(request => {
-                    "title" => "Vue utilisateur",
-                    "found_user" => &user,  // ⚠️ NE PAS nommer "user" → collision avec le form
-                    "user" => &form,
-                    "messages" => flash_now!(success => "Utilisateur trouvé !"),
-                });
+            match user_opt {
+                Some(user) => {
+                    context_update!(request => {
+                        "title" => "Vue utilisateur",
+                        "found_user" => &user,  // ⚠️ NE PAS nommer "user" → collision avec le form
+                        "user" => &form,
+                        "messages" => flash_now!(success => "Utilisateur trouvé !"),
+                    });
+                }
+                None => {
+                    context_update!(request => {
+                        "title" => "Vue utilisateur",
+                        "user" => &form,
+                        "messages" => flash_now!(warning => "Utilisateur introuvable"),
+                    });
+                }
             }
-            None => {
-                context_update!(request => {
-                    "title" => "Vue utilisateur",
-                    "user" => &form,
-                    "messages" => flash_now!(warning => "Utilisateur introuvable"),
-                });
-            }
+
+            request.render(template)
         }
-
-        return request.render(template);
+        Err(form) => {
+            context_update!(request => { "title" => "Rechercher un utilisateur", "user" => &form });
+            request.render(template)
+        }
     }
-
-    context_update!(request => { "title" => "Rechercher un utilisateur", "user" => &form });
-    request.render(template)
 }
 ```
 

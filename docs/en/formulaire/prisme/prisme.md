@@ -15,11 +15,9 @@
 use runique::prelude::*;
 
 pub async fn register(mut request: Request) -> AppResult<Response> {
-    let mut form: RegisterForm = request.form();
-    if request.is_post() {
-        if form.is_valid().await {
-            // Valid form → processing
-        }
+    let form: RegisterForm = request.form();
+    if let Ok(validated) = ValidationForm::try_new(form, &request).await {
+        // Valid form → processing
     }
     // ...
 }
@@ -37,31 +35,31 @@ A single handler serves both display (GET) and submission (POST). `request.form(
 use runique::prelude::*;
 
 pub async fn register(mut request: Request) -> AppResult<Response> {
-    let mut form: RegisterForm = request.form();
+    let form: RegisterForm = request.form();
     let template = "register_form.html";
 
-    // GET — render the empty form
-    if request.is_get() {
-        context_update!(request => { "register_form" => &form });
-        return request.render(template);
-    }
+    // GET (nothing submitted) or invalid POST — re-render with errors
+    let mut validated = match ValidationForm::try_new(form, &request).await {
+        Ok(validated) => validated,
+        Err(form) => {
+            context_update!(request => { "register_form" => &form });
+            return request.render(template);
+        }
+    };
 
-    // POST — validate then save
-    if request.is_post() && form.is_valid().await {
-        match form.save(&request.engine.db).await {
-            Ok(user) => {
-                success!(request.notices => format!("Welcome {} !", user.username));
-                return Ok(Redirect::to("/").into_response());
-            }
-            Err(err) => {
-                // DB error (e.g. unique constraint) reported on the form
-                form.database_error(&err);
-            }
+    // Valid POST — save
+    match validated.save(&request.engine.db).await {
+        Ok(user) => {
+            success!(request.notices => format!("Welcome {} !", user.username));
+            return Ok(Redirect::to("/").into_response());
+        }
+        Err(err) => {
+            // DB error (e.g. unique constraint) reported on the form
+            validated.database_error(&err);
         }
     }
 
-    // Invalid POST or DB error — re-render with errors
-    context_update!(request => { "register_form" => &form });
+    context_update!(request => { "register_form" => &*validated });
     request.render(template)
 }
 ```
@@ -69,9 +67,9 @@ pub async fn register(mut request: Request) -> AppResult<Response> {
 Key points:
 
 - `request.form()` returns a ready-to-use form — no manual construction.
-- `form.is_valid().await` aggregates validation errors; they are rendered automatically by `{{ form.register_form | form }}` in the template.
-- `form.save(&request.engine.db).await` persists the entity and returns the created model.
-- `database_error(&err)` reports a DB error (e.g. email already taken) as a form error rather than a 500.
+- `ValidationForm::try_new(form, &request).await` dispatches on the HTTP method (`allow_get`/`allow_post`) then validates; `Ok` proves at the type level the form was validated, `Err` returns the form with its field errors to re-render (rendered automatically by `{{ form.register_form | form }}`).
+- `validated.save(&request.engine.db).await` persists the entity and returns the created model.
+- `database_error(&err)` reports a DB error (e.g. email already taken) as a form error rather than a 500 — callable directly on `ValidationForm` without going through `into_form()`.
 
 ---
 

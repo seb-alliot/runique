@@ -21,34 +21,38 @@ impl RuniqueForm for LoginForm {
 }
 
 pub async fn login_post(mut request: Request) -> AppResult<Response> {
-    let mut form: LoginForm = request.form();
-    if request.is_post() && form.is_valid().await {
-        let db = request.engine.db.clone();
-        let username = form.cleaned_string("username").unwrap_or_default();
-        let password = form.cleaned_string("password").unwrap_or_default();
-
-        // 1. Find the user by username via search!
-        let query = search!(users::Entity => Username eq username.trim());
-        let user = query.first(&db).await.unwrap_or(None);
-
-        if let Some(user) = user
-            && user.is_active
-            && verify(&password, &user.password)
-        {
-            // 2. Open the session — session-fixation-safe cycle_id() included
-            auth_login(&request.session, &db, user.id).await.ok();
-            return Ok(Redirect::to("/dashboard").into_response());
+    let form: LoginForm = request.form();
+    let validated = match ValidationForm::try_new(form, &request).await {
+        Ok(validated) => validated,
+        Err(form) => {
+            context_update!(request => { "login_form" => &form });
+            return request.render("login.html");
         }
+    };
 
-        // Invalid credentials (generic message — don't distinguish unknown user / wrong password)
-        context_update!(request => {
-            "login_form" => &form,
-            "messages" => flash_now!(error => "Invalid credentials"),
-        });
-    } else {
-        context_update!(request => { "login_form" => &form });
+    let db = request.engine.db.clone();
+    let username = validated.cleaned_string("username").unwrap_or_default();
+    let password = validated.cleaned_string("password").unwrap_or_default();
+
+    // 1. Find the user by username via search!
+    let query = search!(users::Entity => Username eq username.trim());
+    let user = query.first(&db).await.unwrap_or(None);
+
+    if let Some(user) = user
+        && user.is_active
+        && verify(&password, &user.password)
+    {
+        // 2. Open the session — session-fixation-safe cycle_id() included
+        auth_login(&request.session, &db, user.id).await.ok();
+        return Ok(Redirect::to("/dashboard").into_response());
     }
 
+    // Invalid credentials (generic message — don't distinguish unknown user / wrong password)
+    let form = validated.into_form();
+    context_update!(request => {
+        "login_form" => &form,
+        "messages" => flash_now!(error => "Invalid credentials"),
+    });
     request.render("login.html")
 }
 

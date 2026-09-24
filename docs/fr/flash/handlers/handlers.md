@@ -4,37 +4,32 @@
 
 ```rust
 pub async fn soumission_inscription(mut request: Request) -> AppResult<Response> {
-    let mut form: RegisterForm = request.form();
-    if request.is_post() {
-        if form.is_valid().await {
-            let user = form.save(&request.engine.db).await.map_err(|err| {
-                form.get_form_mut().database_error(&err);
-                AppError::from(err)
-            })?;
+    let form: RegisterForm = request.form();
 
-            // ✅ Message flash → affiché après le redirect
-            success!(request.notices => format!(
-                "Bienvenue {}, votre compte est créé !",
-                user.username
-            ));
-            return Ok(Redirect::to("/").into_response());
+    let mut validated = match ValidationForm::try_new(form, &request).await {
+        Ok(validated) => validated,
+        Err(form) => {
+            // ❌ Validation échouée → message immédiat (pas de redirect)
+            context_update!(request => {
+                "title" => "Erreur de validation",
+                "inscription_form" => &form,
+                "messages" => flash_now!(error => "Veuillez corriger les erreurs"),
+            });
+            return request.render("inscription_form.html");
         }
+    };
 
-        // ❌ Validation échouée → message immédiat (pas de redirect)
-        context_update!(request => {
-            "title" => "Erreur de validation",
-            "inscription_form" => &form,
-            "messages" => flash_now!(error => "Veuillez corriger les erreurs"),
-        });
-        return request.render("inscription_form.html");
-    }
+    let user = validated.save(&request.engine.db).await.map_err(|err| {
+        validated.database_error(&err);
+        AppError::from(err)
+    })?;
 
-    // GET → afficher le formulaire
-    context_update!(request => {
-        "title" => "Inscription",
-        "inscription_form" => &form,
-    });
-    request.render("inscription_form.html")
+    // ✅ Message flash → affiché après le redirect
+    success!(request.notices => format!(
+        "Bienvenue {}, votre compte est créé !",
+        user.username
+    ));
+    Ok(Redirect::to("/").into_response())
 }
 ```
 

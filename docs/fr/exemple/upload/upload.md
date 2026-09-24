@@ -66,27 +66,19 @@ FileField::any("data").allowed_extensions(vec!["csv", "json"])
 
 ```rust
 pub async fn upload_image(mut request: Request) -> AppResult<Response> {
-    let mut form: ImageForm = request.form();
+    let form: ImageForm = request.form();
     let template = "forms/upload_image.html";
 
-    if request.is_get() {
+    if let Err(form) = ValidationForm::try_new(form, &request).await {
         context_update!(request => {
-            "title" => "Uploader un fichier",
+            "title" => "Erreur",
             "image_form" => &form,
         });
         return request.render(template);
     }
 
-    if request.is_post() && form.is_valid().await {
-        success!(request.notices => "Fichier uploadé avec succès !");
-        return Ok(Redirect::to("/").into_response());
-    }
-
-    context_update!(request => {
-        "title" => "Erreur",
-        "image_form" => &form,
-    });
-    request.render(template)
+    success!(request.notices => "Fichier uploadé avec succès !");
+    Ok(Redirect::to("/").into_response())
 }
 ```
 

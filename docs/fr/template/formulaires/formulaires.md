@@ -27,34 +27,26 @@ Quand vous utilisez `{% form.inscription_form %}`, les erreurs de validation son
 ```rust
 // Handler Rust
 pub async fn inscription(mut request: Request) -> AppResult<Response> {
-    let mut form: RegisterForm = request.form();
-    if request.is_get() {
-        context_update!(request => {
-            "title" => "Inscription",
-            "inscription_form" => &form,
-        });
-        return request.render("inscription.html");
-    }
+    let form: RegisterForm = request.form();
 
-    if request.is_post() {
-        if form.is_valid().await {
-            let user = form.save(&request.engine.db).await.map_err(|err| {
-                form.get_form_mut().database_error(&err);
-                AppError::from(err)
-            })?;
-            success!(request.notices => format!("Bienvenue {} !", user.username));
-            return Ok(Redirect::to("/").into_response());
+    let mut validated = match ValidationForm::try_new(form, &request).await {
+        Ok(validated) => validated,
+        Err(form) => {
+            context_update!(request => {
+                "title" => "Inscription",
+                "inscription_form" => &form,
+                "messages" => flash_now!(error => "Veuillez corriger les erreurs"),
+            });
+            return request.render("inscription.html");
         }
+    };
 
-        context_update!(request => {
-            "title" => "Erreur de validation",
-            "inscription_form" => &form,
-            "messages" => flash_now!(error => "Veuillez corriger les erreurs"),
-        });
-        return request.render("inscription.html");
-    }
-
-    request.render("inscription.html")
+    let user = validated.save(&request.engine.db).await.map_err(|err| {
+        validated.database_error(&err);
+        AppError::from(err)
+    })?;
+    success!(request.notices => format!("Bienvenue {} !", user.username));
+    Ok(Redirect::to("/").into_response())
 }
 ```
 
