@@ -353,7 +353,6 @@ pub(super) fn droit_entry() -> ResourceEntry {
                     }
                 })?;
             }
-            crate::auth::guard::clear_cache();
             Ok(())
         })
     });
@@ -400,7 +399,6 @@ pub(super) fn droit_entry() -> ResourceEntry {
                 }
             })?;
 
-            crate::auth::guard::clear_cache();
             Ok(())
         })
     });
@@ -449,7 +447,6 @@ pub(super) fn droit_entry() -> ResourceEntry {
                 active.can_delete_own = NotSet;
             }
             active.update(&*db).await?;
-            crate::auth::guard::clear_cache();
             Ok(())
         })
     });
