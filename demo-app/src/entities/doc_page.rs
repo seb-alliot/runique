@@ -5,7 +5,7 @@ model! {
     table: "doc_page",
     pk: id => Pk,
     {
-        section_id: int [required],
+        section_id: Pk [required],
         slug:       text [required],
         lang:       text [required],
         title:      text [required],

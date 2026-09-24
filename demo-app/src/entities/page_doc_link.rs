@@ -5,7 +5,7 @@ model! {
     table: "page_doc_link",
     pk: id => Pk,
     {
-        page_id:    int [required],
+        page_id:    Pk [required],
         label:      text [required],
         url:        url [required],
         link_type:  text [required],

@@ -66,3 +66,20 @@ genre. À confirmer dans le flux makemigrations (03), mais la structure le prouv
 ### 🟡 M3 — `max_size`/`is_file` côté schéma vs AdminForm généré (rappel F2) — ✅ VÉRIFIÉ clean
 **Vérifié (2.1.21).** Voir F2 : le plafond modèle (`model_max_size`) borne tout override via
 `set_max_size_bounded` (rejet si dépassement). Pas de divergence entre les chemins.
+
+### 🟠 M4 — noms de contrainte FK/index générés sans limite de longueur — ✅ CORRIGÉ (2026-09-24)
+[`cli/makemigration.rs`](../../../runique/src/cli/makemigration.rs)
+MariaDB/MySQL rejette tout identifiant > 64 caractères ; Postgres tronque silencieusement à 63
+(donc invisible sur cet engine). Trouvé en exerçant `many_to_many`/`unique_together` pour de vrai
+sur des noms de table/colonne un peu longs. Pas de troncature auto (imprévisible depuis
+`model!{}`) ni `panic!` (fuite du fichier/ligne interne au CLI) — validation en amont sur tout le
+plan, même pattern que M1 aurait dû suivre si porté : `check_identifier_lengths` factorisé avec
+`check_destructive` via `report_and_bail_if_any`. Détail : [[project_bugs_generateur]] Bug K.
+
+### 🟠 M5 — `drop_index` avant `drop_table` cassait MariaDB si l'index servait une FK — ✅ CORRIGÉ (2026-09-24)
+[`generators.rs::generate_create_file`](../../../runique/src/migration/utils/generators.rs)
+Le `down()` d'une migration CREATE TABLE faisait un `drop_index` explicite avant `drop_table` —
+redondant (`DROP TABLE` supprime déjà ses index) et cassé sur MariaDB (erreur 1553) quand l'index
+encore actif servait de support à une FK. `generate_snapshot_file` avait déjà le bon ordre
+(`fk_drops` avant `idx_drops`) — seul `generate_create_file` en manquait. Fix : suppression pure
+du `drop_index` explicite. Détail : [[project_bugs_generateur]] Bug L.

@@ -66,11 +66,11 @@
 <span class="hc-kw">pub struct</span> <span class="hc-ty">UserForm</span>;
 
 <span class="hc-cm">// Typed search via form</span>
-<span class="hc-fn">search!</span>(<span class="hc-attr">@UserForm</span> <span class="hc-op">=></span> Username <span class="hc-op">=</span> <span class="hc-str">"alice"</span>)
+<span class="hc-fn">search!</span>(<span class="hc-attr">@UserForm</span> <span class="hc-op">=></span> Username <span class="hc-op">eq</span> <span class="hc-str">"alice"</span>)
     .all(<span class="hc-op">&amp;</span>db).<span class="hc-fn">await</span>?;
 
 <span class="hc-cm">// Direct access via objects</span>
-<span class="hc-ty">UserForm</span>::objects.<span class="hc-fn">filter</span>(...).<span class="hc-fn">first</span>(<span class="hc-op">&amp;</span>db).<span class="hc-fn">await</span>?;</code></pre>
+<span class="hc-ty">users::Entity</span>::objects.<span class="hc-fn">filter</span>(...).<span class="hc-fn">first</span>(<span class="hc-op">&amp;</span>db).<span class="hc-fn">await</span>?;</code></pre>
 
             <pre class="hero-code-body hero-tab-panel" data-panel="route"><code><span class="hc-fn">urlpatterns!</span> {
     <span class="hc-str">"/"</span>           <span class="hc-op">=&gt;</span> <span class="hc-fn">view!</span>{ index },         name <span class="hc-op">=</span> <span class="hc-str">"index"</span>,
@@ -80,7 +80,7 @@
 
 <span class="hc-cm">// Handler — DB accessible via request.engine.db</span>
 <span class="hc-kw">pub async fn</span> <span class="hc-fn">detail</span>(<span class="hc-kw">mut</span> request: <span class="hc-ty">Request</span>) <span class="hc-op">-&gt;</span> <span class="hc-ty">AppResult</span>&lt;<span class="hc-ty">Response</span>&gt; {
-    <span class="hc-kw">let</span> id <span class="hc-op">=</span> request.<span class="hc-fn">get_path_as</span>::&lt;<span class="hc-kw">i32</span>&gt;(<span class="hc-str">"id"</span>).<span class="hc-fn">unwrap_or</span>(<span class="hc-kw">0</span>);
+    <span class="hc-kw">let</span> id <span class="hc-op">=</span> request.<span class="hc-fn">get_path_as</span>::&lt;<span class="hc-ty">Pk</span>&gt;(<span class="hc-str">"id"</span>)<span class="hc-op">...</span>;
     <span class="hc-op">...</span>
 }</code></pre>
 

@@ -8,7 +8,7 @@ model! {
         CourBlockType: [Code = "code", Text = "text", Table = "table", List = "list", Warning = "warning"],
     },
     {
-        chapitre_id: int [required],
+        chapitre_id: Pk [required],
         heading:     text,
         content:     richtext [required],
         block_type:  choice [enum(CourBlockType), required],

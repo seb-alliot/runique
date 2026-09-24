@@ -20,7 +20,7 @@ fn find_ia_dir() -> Option<PathBuf> {
     None
 }
 
-async fn build_context(cour_id: i32, db: &DatabaseConnection) -> String {
+async fn build_context(cour_id: Pk, db: &DatabaseConnection) -> String {
     let chapitres = chapitre::Entity::find()
         .filter(chapitre::Column::CourId.eq(cour_id))
         .order_by_asc(chapitre::Column::SortOrder)

@@ -91,6 +91,8 @@ Matching is **exact** — `/webhook/stripe` does not exempt `/webhook/stripe/sub
 > After exempting a path, verify the request authenticity by other means in your handler
 > (e.g. `Stripe-Signature` HMAC-SHA256 for Stripe webhooks).
 
+`csrf_exempt()` only skips *validation* — the CSRF token is still generated and available, so a handler on an exempt path can still use `Request`/`RuniqueContext` normally (session, template context, …) alongside its own verification logic.
+
 ---
 
 ## See also

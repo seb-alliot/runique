@@ -121,6 +121,15 @@ pub(crate) fn csrf_required(method: &Method) -> bool {
     !matches!(*method, Method::GET | Method::HEAD)
 }
 
+/// Source **unique** de la politique d'exemption CSRF par chemin : `true` si `path` est
+/// dans `exempt_paths` (webhooks avec leur propre vérification de signature). Une route
+/// exemptée ici est censée rester hors du pipeline `Request`/Prisme — elle doit utiliser
+/// les extracteurs axum bruts, pas `Request` (qui exige toujours un `CsrfToken` en
+/// extension, sans regarder cette liste ; voir la doc CSRF pour cette contrainte).
+pub(crate) fn is_csrf_exempt(path: &str, exempt_paths: &[String]) -> bool {
+    exempt_paths.iter().any(|p| p == path)
+}
+
 /// Returns true if CSRF is valid or not required (safe method).
 ///
 /// The token is read from the `csrf_token` body/query field first, falling back to the
@@ -209,5 +218,18 @@ mod checked_data_tests {
         ] {
             assert!(csrf_required(&m), "{m} doit exiger un token CSRF");
         }
+    }
+
+    #[test]
+    fn is_csrf_exempt_matches_exact_path_only() {
+        let exempt = vec!["/webhooks/stripe".to_string(), "/health".to_string()];
+        assert!(is_csrf_exempt("/webhooks/stripe", &exempt));
+        assert!(is_csrf_exempt("/health", &exempt));
+        assert!(
+            !is_csrf_exempt("/webhooks/stripe/extra", &exempt),
+            "pas de match par préfixe"
+        );
+        assert!(!is_csrf_exempt("/other", &exempt));
+        assert!(!is_csrf_exempt("/webhooks/stripe", &[]), "liste vide");
     }
 }
