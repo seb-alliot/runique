@@ -165,28 +165,39 @@ form.max_size("photo", FileSize::mb(6))?;   // Err — dépasse le plafond du mo
 
 ## `is_valid()` — appel sur GET et POST
 
-`is_valid()` est conçu pour être appelé indifféremment sur GET et POST :
+`is_valid()` valide indifféremment sur GET et POST, mais **ne regarde jamais la méthode HTTP** — c'est `ValidationForm::try_new(form, &request)` qui décide, via `allow_get`/`allow_post`, si la validation doit même être tentée. Par défaut `allow_get` est `false` (protection CSRF : GET est la seule méthode exemptée, un formulaire mutant ne doit jamais s'auto-valider dessus). Un formulaire de recherche en lecture seule est le cas qui doit **explicitement** lever cette garde :
 
-- **Premier GET (formulaire vide)** — `is_valid()` retourne `false`, aucune erreur n'est posée sur les champs. Le template affiche un formulaire propre.
-- **GET avec query params (formulaire de recherche)** — `is_valid()` valide normalement. Permet de faire des recherches via GET sans code supplémentaire.
-- **POST** — comportement standard : valide, pose les erreurs sur les champs si invalide.
+- **Premier GET (formulaire vide)** — `allow_get` retombe sur `is_submitted()` → `false`, `try_new` renvoie `Err` sans tenter la validation, aucune erreur posée. Le template affiche un formulaire propre.
+- **GET avec query params (formulaire de recherche)** — `is_submitted()` → `true`, `try_new` valide et renvoie `Ok`. Permet de faire des recherches via GET sans code supplémentaire.
+- **POST** — comportement standard : valide, pose les erreurs sur les champs si invalide (nécessite aussi un `allow_post` qui l'autorise — le défaut couvre déjà ce cas).
 
 ```rust
+impl RuniqueForm for SearchForm {
+    // ...
+    fn allow_get(&self, _request: &Request) -> bool {
+        self.is_submitted()
+    }
+}
+
 // Handler GET+POST unifié — fonctionne sans if/else sur la méthode
 pub async fn search(mut request: Request) -> AppResult<Response> {
-    let mut form: SearchForm = request.form();
-    if form.is_valid().await {
-        let query = form.cleaned_string("q").unwrap_or_default();
-        // lancer la recherche...
-    }
-    // Premier GET : is_valid() == false, aucune erreur → formulaire vide
-    // GET soumis invalide : is_valid() == false, erreurs affichées
+    let form: SearchForm = request.form();
+    let form = match ValidationForm::try_new(form, &request).await {
+        Ok(validated) => {
+            let query = validated.cleaned_string("q").unwrap_or_default();
+            // lancer la recherche...
+            validated.into_form()
+        }
+        // Premier GET ou GET/POST invalide : aucune erreur si rien n'a été
+        // soumis, erreurs de champ posées sinon.
+        Err(form) => form,
+    };
     context_update!(request => { "search_form" => &form });
     request.render("search.html")
 }
 ```
 
-> Pour distinguer explicitement "premier affichage" de "formulaire soumis sans données valides", utilise `request.is_post()`.
+> Pour distinguer explicitement "premier affichage" de "formulaire soumis sans données valides", utilise `request.method.is_safe()` (GET/HEAD).
 
 ---
 

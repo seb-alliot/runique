@@ -21,34 +21,38 @@ impl RuniqueForm for LoginForm {
 }
 
 pub async fn login_post(mut request: Request) -> AppResult<Response> {
-    let mut form: LoginForm = request.form();
-    if request.is_post() && form.is_valid().await {
-        let db = request.engine.db.clone();
-        let username = form.cleaned_string("username").unwrap_or_default();
-        let password = form.cleaned_string("password").unwrap_or_default();
-
-        // 1. Chercher l'utilisateur par username via search!
-        let query = search!(users::Entity => Username eq username.trim());
-        let user = query.first(&db).await.unwrap_or(None);
-
-        if let Some(user) = user
-            && user.is_active
-            && verify(&password, &user.password)
-        {
-            // 2. Ouvrir la session — cycle_id() anti-fixation de session inclus
-            auth_login(&request.session, &db, user.id).await.ok();
-            return Ok(Redirect::to("/dashboard").into_response());
+    let form: LoginForm = request.form();
+    let validated = match ValidationForm::try_new(form, &request).await {
+        Ok(validated) => validated,
+        Err(form) => {
+            context_update!(request => { "login_form" => &form });
+            return request.render("login.html");
         }
+    };
 
-        // Identifiants invalides (message générique — ne pas distinguer user inconnu / mdp faux)
-        context_update!(request => {
-            "login_form" => &form,
-            "messages"   => flash_now!(error => "Identifiants invalides"),
-        });
-    } else {
-        context_update!(request => { "login_form" => &form });
+    let db = request.engine.db.clone();
+    let username = validated.cleaned_string("username").unwrap_or_default();
+    let password = validated.cleaned_string("password").unwrap_or_default();
+
+    // 1. Chercher l'utilisateur par username via search!
+    let query = search!(users::Entity => Username eq username.trim());
+    let user = query.first(&db).await.unwrap_or(None);
+
+    if let Some(user) = user
+        && user.is_active
+        && verify(&password, &user.password)
+    {
+        // 2. Ouvrir la session — cycle_id() anti-fixation de session inclus
+        auth_login(&request.session, &db, user.id).await.ok();
+        return Ok(Redirect::to("/dashboard").into_response());
     }
 
+    // Identifiants invalides (message générique — ne pas distinguer user inconnu / mdp faux)
+    let form = validated.into_form();
+    context_update!(request => {
+        "login_form" => &form,
+        "messages"   => flash_now!(error => "Identifiants invalides"),
+    });
     request.render("login.html")
 }
 

@@ -27,34 +27,35 @@ When using `{% form.signup_form %}`, validation errors are **automatically rende
 ```rust
 // Rust handler
 pub async fn signup(mut request: Request) -> AppResult<Response> {
-    let mut form: RegisterForm = request.form();
-    if request.is_get() {
-        context_update!(request => {
-            "title" => "Sign Up",
-            "signup_form" => &form,
-        });
-        return request.render("signup.html");
-    }
+    let form: RegisterForm = request.form();
 
-    if request.is_post() {
-        if form.is_valid().await {
-            let user = form.save(&request.engine.db).await.map_err(|err| {
-                form.get_form_mut().database_error(&err);
-                AppError::from(err)
-            })?;
-            success!(request.notices => format!("Welcome {}!", user.username));
-            return Ok(Redirect::to("/").into_response());
+    let mut validated = match ValidationForm::try_new(form, &request).await {
+        Ok(validated) => validated,
+        Err(form) => {
+            // GET (nothing submitted): blank form, no flash.
+            // Submitted but invalid: re-render with the error flash.
+            if request.method.is_safe() {
+                context_update!(request => {
+                    "title" => "Sign Up",
+                    "signup_form" => &form,
+                });
+            } else {
+                context_update!(request => {
+                    "title" => "Validation Error",
+                    "signup_form" => &form,
+                    "messages" => flash_now!(error => "Please fix the errors"),
+                });
+            }
+            return request.render("signup.html");
         }
+    };
 
-        context_update!(request => {
-            "title" => "Validation Error",
-            "signup_form" => &form,
-            "messages" => flash_now!(error => "Please fix the errors"),
-        });
-        return request.render("signup.html");
-    }
-
-    request.render("signup.html")
+    let user = validated.save(&request.engine.db).await.map_err(|err| {
+        validated.database_error(&err);
+        AppError::from(err)
+    })?;
+    success!(request.notices => format!("Welcome {}!", user.username));
+    Ok(Redirect::to("/").into_response())
 }
 ```
 

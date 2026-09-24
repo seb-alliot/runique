@@ -57,43 +57,52 @@ impl RegisterForm {
 
 ### GET/POST handler
 
+`ValidationForm::try_new(form, &request)` replaces the `if request.is_get() {...} if request.is_post() {...}` boilerplate: it dispatches on the HTTP method itself (`allow_get`/`allow_post`), validates, and returns `Ok(ValidationForm<F>)` (a type-level proof the form has been validated) or `Err(F)` (the form with its field errors, ready to re-render).
+
 ```rust
 pub async fn register(mut request: Request) -> AppResult<Response> {
-    let mut form: RegisterForm = request.form();
+    let form: RegisterForm = request.form();
     let template = "profile/register_form.html";
 
-    if request.is_get() {
-        context_update!(request => {
-            "title" => "Sign up",
-            "register_form" => &form,
-        });
-        return request.render(template);
-    }
-
-    if request.is_post() {
-        if form.is_valid().await {
-            match form.save(&request.engine.db).await {
-                Ok(_) => {
-                    success!(request.notices => "Registration successful!");
-                    return Ok(Redirect::to("/").into_response());
-                }
-                Err(err) => {
-                    form.database_error(&err);
-                }
+    let mut validated = match ValidationForm::try_new(form, &request).await {
+        Ok(validated) => validated,
+        Err(form) => {
+            // GET (nothing submitted): blank form, no flash.
+            // Submitted but invalid: re-render with the error flash.
+            if request.method.is_safe() {
+                context_update!(request => {
+                    "title" => "Sign up",
+                    "register_form" => &form,
+                });
+            } else {
+                context_update!(request => {
+                    "title" => "Error",
+                    "register_form" => &form,
+                    "messages" => flash_now!(error => "Please correct the errors"),
+                });
             }
+            return request.render(template);
         }
+    };
 
-        context_update!(request => {
-            "title" => "Error",
-            "register_form" => &form,
-            "messages" => flash_now!(error => "Please correct the errors"),
-        });
-        return request.render(template);
+    match validated.save(&request.engine.db).await {
+        Ok(_) => {
+            success!(request.notices => "Registration successful!");
+            return Ok(Redirect::to("/").into_response());
+        }
+        Err(err) => validated.database_error(&err),
     }
 
+    context_update!(request => {
+        "title" => "Error",
+        "register_form" => &*validated,
+        "messages" => flash_now!(error => "Please correct the errors"),
+    });
     request.render(template)
 }
 ```
+
+> **💡** `validated` (type `ValidationForm<RegisterForm>`) implements `Deref<Target = RegisterForm>`: `&*validated` gives access to the form to serialize it into the context. `database_error()` stays callable directly on `ValidationForm` — no need for `into_form()` first to record a save error.
 
 ---
 
@@ -103,44 +112,35 @@ In `PATCH` mode, `fill()` automatically relaxes the `required` constraint on `Pa
 
 ```rust
 pub async fn edit_profile(mut request: Request) -> AppResult<Response> {
-    let mut form: EditProfileForm = request.form();
+    let form: EditProfileForm = request.form();
     let template = "profile/edit.html";
     let user = get_current_user(&request).await?;
 
-    if request.is_get() {
-        context_update!(request => {
-            "title" => "Edit profile",
-            "edit_form" => &form,
-        });
-        return request.render(template);
-    }
+    let validated = match ValidationForm::try_new(form, &request).await {
+        Ok(validated) => validated,
+        Err(form) => {
+            context_update!(request => {
+                "title" => "Edit profile",
+                "edit_form" => &form,
+            });
+            return request.render(template);
+        }
+    };
 
     // In PATCH mode: the password field is no longer automatically required
-    if request.method == Method::PATCH {
-        if form.is_valid().await {
-            let new_password = form.cleaned_string("password");
+    let new_password = validated.cleaned_string("password");
 
-            let mut active: users::ActiveModel = user.into();
-            active.username = Set(form.cleaned_string("username").unwrap_or_default());
+    let mut active: users::ActiveModel = user.into();
+    active.username = Set(validated.cleaned_string("username").unwrap_or_default());
 
-            // If the password field is filled → new hash; otherwise → unchanged
-            if let Some(pwd) = new_password {
-                active.password = Set(pwd); // already hashed by finalize()
-            }
-
-            active.update(&request.engine.db).await?;
-            success!(request.notices => "Profile updated!");
-            return Ok(Redirect::to("/profile").into_response());
-        }
-
-        context_update!(request => {
-            "title" => "Error",
-            "edit_form" => &form,
-        });
-        return request.render(template);
+    // If the password field is filled → new hash; otherwise → unchanged
+    if let Some(pwd) = new_password {
+        active.password = Set(pwd); // already hashed by finalize()
     }
 
-    request.render(template)
+    active.update(&request.engine.db).await?;
+    success!(request.notices => "Profile updated!");
+    Ok(Redirect::to("/profile").into_response())
 }
 ```
 

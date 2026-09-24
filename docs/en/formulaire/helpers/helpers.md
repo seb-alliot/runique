@@ -80,7 +80,7 @@ The `cleaned_*` variants automatically merge data from the request body and the 
 Example — pre-fill a field from the URL (`GET /edit?title=My+Article`):
 
 ```rust
-if request.is_get() {
+if request.method.is_safe() {
     if let Some(t) = form.cleaned_string("title") {
         form.get_form_mut().add_value("title", &t);
     }

@@ -4,37 +4,32 @@
 
 ```rust
 pub async fn submit_signup(mut request: Request) -> AppResult<Response> {
-    let mut form: RegisterForm = request.form();
-    if request.is_post() {
-        if form.is_valid().await {
-            let user = form.save(&request.engine.db).await.map_err(|err| {
-                form.get_form_mut().database_error(&err);
-                AppError::from(err)
-            })?;
+    let form: RegisterForm = request.form();
 
-            // ✅ Flash message → displayed after redirect
-            success!(request.notices => format!(
-                "Welcome {}, your account has been created!",
-                user.username
-            ));
-            return Ok(Redirect::to("/").into_response());
+    let mut validated = match ValidationForm::try_new(form, &request).await {
+        Ok(validated) => validated,
+        Err(form) => {
+            // ❌ Validation failed → immediate message (no redirect)
+            context_update!(request => {
+                "title" => "Validation error",
+                "signup_form" => &form,
+                "messages" => flash_now!(error => "Please fix the errors"),
+            });
+            return request.render("signup_form.html");
         }
+    };
 
-        // ❌ Validation failed → immediate message (no redirect)
-        context_update!(request => {
-            "title" => "Validation error",
-            "signup_form" => &form,
-            "messages" => flash_now!(error => "Please fix the errors"),
-        });
-        return request.render("signup_form.html");
-    }
+    let user = validated.save(&request.engine.db).await.map_err(|err| {
+        validated.database_error(&err);
+        AppError::from(err)
+    })?;
 
-    // GET → display form
-    context_update!(request => {
-        "title" => "Sign up",
-        "signup_form" => &form,
-    });
-    request.render("signup_form.html")
+    // ✅ Flash message → displayed after redirect
+    success!(request.notices => format!(
+        "Welcome {}, your account has been created!",
+        user.username
+    ));
+    Ok(Redirect::to("/").into_response())
 }
 ```
 

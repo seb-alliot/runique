@@ -51,13 +51,16 @@ Les macros se combinent dans un handler typique :
 use runique::prelude::*;
 
 pub async fn contact(mut request: Request) -> AppResult<Response> {
-    let mut form: ContactForm = request.form();
+    let form: ContactForm = request.form();
 
-    if request.is_post() && form.is_valid().await {
-        // Flash en session + redirection (pattern Post/Redirect/Get)
-        success!(request.notices => "Message envoyé !");
-        return Ok(Redirect::to("/contact").into_response());
-    }
+    let form = match ValidationForm::try_new(form, &request).await {
+        Ok(_validated) => {
+            // Flash en session + redirection (pattern Post/Redirect/Get)
+            success!(request.notices => "Message envoyé !");
+            return Ok(Redirect::to("/contact").into_response());
+        }
+        Err(form) => form,
+    };
 
     // Ajoute des variables au contexte de la requête
     context_update!(request => {
