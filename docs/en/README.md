@@ -5,6 +5,7 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Version](https://img.shields.io/badge/version-2.3.0-blue)
 [![Crates.io](https://img.shields.io/crates/v/runique)](https://crates.io/crates/runique)
+[![GitHub stars](https://img.shields.io/github/stars/seb-alliot/runique?style=social)](https://github.com/seb-alliot/runique)
 [![Runique](https://img.shields.io/badge/Runique-brightgreen)](https://runique.io)
 
 Declare a model once, and you get the database table, the migration, a type-safe form, and a full admin panel — no extra wiring. Runique brings Django's productivity to Rust without asking you to give up Rust's safety or performance. It's built on Axum, SeaORM and Tera, and it stays out of your way once the boilerplate is gone.
@@ -232,7 +233,7 @@ Full per-file breakdown: [docs/couverture_test.md](docs/couverture_test.md)
 ## Project status & resources
 
 - [Project status](https://github.com/seb-alliot/runique/blob/main/docs/en/PROJECT_STATUS.en.md) — kept up to date as the project moves
-- [Changelog](https://runique.io/changelog)
+- [Changelog](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md)
 - [Runique vs Django — feature comparison](https://runique.io/docs/en/comparatif)
 - [Crates.io](https://crates.io/crates/runique)
 - [Security policy](https://github.com/seb-alliot/runique/blob/main/SECURITY.md)

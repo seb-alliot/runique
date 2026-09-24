@@ -149,7 +149,7 @@
 | Custom admin routes | `get_urls()` | `.extra_routes(vec![...])` |
 | Custom templates | yes | yes (Tera hierarchy) |
 | Permissions | per resource | Dynamic RBAC (Groups / Scoped permissions) |
-| Change history | `django-simple-history` (3rd party) | native history (created/modified/deleted) with field diff |
+| Change history | `django-simple-history` (3rd party) | native history (created/modified/deleted) with field diff, timeline view and filters (resource/action/user) |
 | Builtin config | — | `configure {}` block in `admin!{}` |
 | Optimistic locking | — | native — detects concurrent edits (`__original_updated_at`) |
 | Admin login brute-force protection | `django-axes` (3rd party) | native — `LoginGuard` + rate limiter on admin login |
@@ -211,7 +211,7 @@
 
 - **Image resizing**: no server-side auto resize/cropping.
 - **Generic public CRUD views**: no equivalent to Django's `DetailView`, `ListView`, `CreateView` for public views — planned via `crud!{}` (in development). The admin panel covers backoffice CRUD via `admin!{}`.
-- **Model signals / hooks**: `before_save`, `after_save`, `before_delete`, `after_delete` — infrastructure in place, generator integration in progress.
+- **Model signals / hooks**: `before_save`, `after_save`, `before_delete`, `after_delete` — not implemented, still at the planning stage (roadmap).
 - **Management commands**: no equivalent to `manage.py custom_command` — one-shot operations go through `src/bin/`.
 - **Built-in test client**: no native HTTP test client — use `reqwest` or `axum::test`.
 - **Fixtures**: no `loaddata`/`dumpdata` — seeds are plain Rust functions.

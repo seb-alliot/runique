@@ -4,8 +4,9 @@
 ![Rust](https://img.shields.io/badge/rust-1.94%2B-orange)
 ![Tests passing](https://img.shields.io/badge/tests-2365%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-2.3.0.0-blue)
+![Version](https://img.shields.io/badge/version-2.3.0-blue)
 [![Crates.io](https://img.shields.io/crates/v/runique)](https://crates.io/crates/runique)
+[![GitHub stars](https://img.shields.io/github/stars/seb-alliot/runique?style=social)](https://github.com/seb-alliot/runique)
 [![Runique](https://img.shields.io/badge/Runique-brightgreen)](https://runique.io)
 
 Runique est un framework web construit sur Axum, axé sur les formulaires fortement typés, les middlewares de sécurité, le rendu de templates, l'intégration ORM et un workflow d'administration généré par code.
@@ -216,7 +217,7 @@ Pour le rapport d'état détaillé et continuellement mis à jour, voir [PROJECT
 
 ## Ressources
 
-- [Changelog](https://runique.io/changelog)
+- [Changelog](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.fr.md)
 - [Runique vs Django — Comparaison des fonctionnalités](https://runique.io/docs/en/comparatif)
 - [Crates.io](https://crates.io/crates/runique)
 - [Politique de sécurité](https://github.com/seb-alliot/runique/blob/main/SECURITY.md)
