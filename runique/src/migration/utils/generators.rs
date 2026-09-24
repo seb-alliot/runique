@@ -4,6 +4,15 @@ use crate::migration::utils::{
     types::{Changes, DbKind, ParsedColumn, ParsedSchema},
 };
 
+/// Builds the FK constraint name. Length (MariaDB/MySQL hard-reject over 64 characters) is
+/// validated upfront, over the whole change set, before any file generation runs — see
+/// `check_identifier_lengths` in `cli/makemigration.rs` — so this stays a pure formatter.
+/// The create and drop statements for the same FK must always agree on the exact name, so
+/// this is the single place that builds it.
+fn fk_constraint_name(table: &str, from: &str, to_table: &str) -> String {
+    format!("{table}_{from}_{to_table}_fkey")
+}
+
 /// Generates the migration file for a CREATE TABLE.
 pub fn generate_create_file(schema: &ParsedSchema, db_kind: &DbKind) -> String {
     // FKs always inline in CREATE TABLE: SQLite cannot ALTER-ADD a foreign key
@@ -15,7 +24,6 @@ pub fn generate_create_file(schema: &ParsedSchema, db_kind: &DbKind) -> String {
     let trigger_stmts = build_updated_at_trigger_stmts(schema);
     let enum_stmts = build_enum_type_stmts(schema);
     let enum_drops = build_enum_type_drops(schema);
-    let idx_drops = build_index_drop_stmts(schema);
     let trigger_drops = build_updated_at_trigger_drops(schema);
 
     let mut up = String::new();
@@ -38,7 +46,10 @@ pub fn generate_create_file(schema: &ParsedSchema, db_kind: &DbKind) -> String {
 
     let mut down = String::new();
     down.push_str(&trigger_drops);
-    down.push_str(&idx_drops);
+    // No explicit drop_index here: DROP TABLE already removes every index defined on it,
+    // and dropping one by name first fails on MariaDB/MySQL when it's still backing an
+    // active FK constraint (error 1553) — the FK's own drop only happens implicitly with
+    // the table, never explicitly before this point in a CREATE-table migration's down().
     down.push_str("        manager\n");
     down.push_str("            .drop_table(Table::drop()\n");
     down.push_str(&format!(
@@ -324,7 +335,8 @@ fn build_create_table_cols(schema: &ParsedSchema, db_kind: &DbKind, inline_fks: 
     if inline_fks {
         for fk in &schema.foreign_keys {
             cols.push_str(&format!(
-                "                    .foreign_key(\n                        ForeignKey::create()\n                            .name(\"{table}_{from}_{to_table}_fkey\")\n                            .from(Alias::new(\"{table}\"), Alias::new(\"{from}\"))\n                            .to(Alias::new(\"{to_table}\"), Alias::new(\"{to_col}\"))\n                            .on_delete(ForeignKeyAction::{on_delete})\n                            .on_update(ForeignKeyAction::{on_update})\n                    )\n",
+                "                    .foreign_key(\n                        ForeignKey::create()\n                            .name(\"{fk_name}\")\n                            .from(Alias::new(\"{table}\"), Alias::new(\"{from}\"))\n                            .to(Alias::new(\"{to_table}\"), Alias::new(\"{to_col}\"))\n                            .on_delete(ForeignKeyAction::{on_delete})\n                            .on_update(ForeignKeyAction::{on_update})\n                    )\n",
+                fk_name = fk_constraint_name(&schema.table_name, &fk.from_column, &fk.to_table),
                 table = schema.table_name,
                 from = fk.from_column,
                 to_table = fk.to_table,
@@ -342,7 +354,8 @@ fn build_fk_create_stmts(schema: &ParsedSchema) -> String {
     let mut out = String::new();
     for fk in &schema.foreign_keys {
         out.push_str(&format!(
-            "        manager\n            .create_foreign_key(\n                ForeignKey::create()\n                    .name(\"{table}_{from}_{to_table}_fkey\")\n                    .from(Alias::new(\"{table}\"), Alias::new(\"{from}\"))\n                    .to(Alias::new(\"{to_table}\"), Alias::new(\"{to_col}\"))\n                    .on_delete(ForeignKeyAction::{on_delete})\n                    .on_update(ForeignKeyAction::{on_update})\n                    .to_owned(),\n            )\n            .await?;\n\n",
+            "        manager\n            .create_foreign_key(\n                ForeignKey::create()\n                    .name(\"{fk_name}\")\n                    .from(Alias::new(\"{table}\"), Alias::new(\"{from}\"))\n                    .to(Alias::new(\"{to_table}\"), Alias::new(\"{to_col}\"))\n                    .on_delete(ForeignKeyAction::{on_delete})\n                    .on_update(ForeignKeyAction::{on_update})\n                    .to_owned(),\n            )\n            .await?;\n\n",
+            fk_name = fk_constraint_name(&schema.table_name, &fk.from_column, &fk.to_table),
             table = schema.table_name,
             from = fk.from_column,
             to_table = fk.to_table,
@@ -372,10 +385,9 @@ fn build_fk_drop_stmts(schema: &ParsedSchema) -> String {
     let mut out = String::new();
     for fk in &schema.foreign_keys {
         out.push_str(&format!(
-            "        manager\n            .drop_foreign_key(\n                ForeignKey::drop()\n                    .table(Alias::new(\"{table}\"))\n                    .name(\"{table}_{from}_{to}_fkey\")\n                    .to_owned(),\n            )\n            .await?;\n\n",
+            "        manager\n            .drop_foreign_key(\n                ForeignKey::drop()\n                    .table(Alias::new(\"{table}\"))\n                    .name(\"{fk_name}\")\n                    .to_owned(),\n            )\n            .await?;\n\n",
+            fk_name = fk_constraint_name(&schema.table_name, &fk.from_column, &fk.to_table),
             table = schema.table_name,
-            from = fk.from_column,
-            to = fk.to_table
         ));
     }
     out
@@ -905,10 +917,9 @@ fn push_drop_index(buf: &mut String, table: &str, idx_name: &str) {
 
 fn push_drop_fk(buf: &mut String, table: &str, from_col: &str, to_table: &str) {
     buf.push_str(&format!(
-        "        manager\n            .drop_foreign_key(\n                ForeignKey::drop()\n                    .table(Alias::new(\"{table}\"))\n                    .name(\"{table}_{from}_{to}_fkey\")\n                    .to_owned(),\n            )\n            .await?;\n\n",
+        "        manager\n            .drop_foreign_key(\n                ForeignKey::drop()\n                    .table(Alias::new(\"{table}\"))\n                    .name(\"{fk_name}\")\n                    .to_owned(),\n            )\n            .await?;\n\n",
+        fk_name = fk_constraint_name(table, from_col, to_table),
         table = table,
-        from = from_col,
-        to = to_table
     ));
 }
 
@@ -974,7 +985,8 @@ fn push_create_fk(
     on_update: &str,
 ) {
     buf.push_str(&format!(
-        "        manager\n            .create_foreign_key(\n                ForeignKey::create()\n                    .name(\"{table}_{from}_{to_table}_fkey\")\n                    .from(Alias::new(\"{table}\"), Alias::new(\"{from}\"))\n                    .to(Alias::new(\"{to_table}\"), Alias::new(\"{to_col}\"))\n                    .on_delete(ForeignKeyAction::{on_delete})\n                    .on_update(ForeignKeyAction::{on_update})\n                    .to_owned(),\n            )\n            .await?;\n\n",
+        "        manager\n            .create_foreign_key(\n                ForeignKey::create()\n                    .name(\"{fk_name}\")\n                    .from(Alias::new(\"{table}\"), Alias::new(\"{from}\"))\n                    .to(Alias::new(\"{to_table}\"), Alias::new(\"{to_col}\"))\n                    .on_delete(ForeignKeyAction::{on_delete})\n                    .on_update(ForeignKeyAction::{on_update})\n                    .to_owned(),\n            )\n            .await?;\n\n",
+        fk_name = fk_constraint_name(table, from_col, to_table),
         table = table,
         from = from_col,
         to_table = to_table,

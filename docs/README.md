@@ -2,9 +2,9 @@
 # Runique — Framework Rust inspiré de Django
 
 ![Rust](https://img.shields.io/badge/rust-1.94%2B-orange)
-![Tests passing](https://img.shields.io/badge/tests-2375%20passing-green)
+![Tests passing](https://img.shields.io/badge/tests-2365%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-2.2.0-blue)
+![Version](https://img.shields.io/badge/version-2.3.0.0-blue)
 [![Crates.io](https://img.shields.io/crates/v/runique)](https://crates.io/crates/runique)
 [![Runique](https://img.shields.io/badge/Runique-brightgreen)](https://runique.io)
 
@@ -23,7 +23,7 @@ Runique est un framework web construit sur Axum, axé sur les formulaires fortem
 - `demo-app/` → application de test/validation pour le développement du framework
 - `docs/` → documentation EN/FR
 
-Version du workspace (source de vérité) : **2.2.0**.
+Version du workspace (source de vérité) : **2.3.0**.
 
 ---
 
@@ -132,12 +132,11 @@ Documentation admin : [Admin](https://runique.io/docs/en/admin)
 
 ## Fonctionnalités et backends de base de données
 
-Fonctionnalités par défaut :
+Fonctionnalité par défaut :
 
 - `orm`
-- `all-databases`
 
-Backends sélectionnables :
+Backends sélectionnables (mutuellement exclusifs) :
 
 - `sqlite`
 - `postgres`
@@ -148,14 +147,14 @@ Backends sélectionnables :
 
 ## Aperçu des tests et de la couverture
 
-- Tests rapportés : **2375 passants** (2 ignorés)
-- Aperçu de la couverture (`2026-09-02`, package `runique`, module admin inclus) :
-  - Fonctions : **75,54 %**
-  - Lignes : **73,69 %**
-  - Régions : **72,30 %**
+- Tests rapportés : **2365 passants** (2 ignorés)
+- Aperçu de la couverture (`2026-09-24`, package `runique`, module admin inclus) :
+  - Fonctions : **75,83 %**
+  - Lignes : **73,26 %**
+  - Régions : **71,95 %**
 
 ```bash
-cargo llvm-cov --package runique --summary-only
+cargo llvm-cov --package runique --features all-databases --summary-only
 ```
 
 Répartition complète par fichier : [docs/couverture_test.md](docs/couverture_test.md)

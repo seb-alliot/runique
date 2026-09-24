@@ -1,9 +1,9 @@
 # Runique — l'expérience développeur Django, en Rust type-safe
 
 ![Rust](https://img.shields.io/badge/rust-1.94%2B-orange)
-![Tests passing](https://img.shields.io/badge/tests-2375%20passing-green)
+![Tests passing](https://img.shields.io/badge/tests-2365%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-2.2.0-blue)
+![Version](https://img.shields.io/badge/version-2.3.0-blue)
 [![Crates.io](https://img.shields.io/crates/v/runique)](https://crates.io/crates/runique)
 [![Runique](https://img.shields.io/badge/Runique-brightgreen)](https://runique.io)
 
@@ -142,7 +142,7 @@ Pour le guide complet : [Installation](https://runique.io/docs/fr/installation)
 - `demo-app/` — une vraie application construite contre le framework, utilisée pour le valider
 - `docs/` — documentation en anglais et en français
 
-Version du workspace (source de vérité) : **2.2.0**.
+Version du workspace (source de vérité) : **2.3.0**.
 
 ---
 
@@ -183,9 +183,9 @@ Documentation admin : [Admin](https://runique.io/docs/fr/admin)
 
 ## Features et bases de données
 
-Activées par défaut : `orm`, `all-databases`.
+Activée par défaut : `orm` seule.
 
-Backends sélectionnables individuellement : `sqlite`, `postgres`, `mysql`, `mariadb`.
+Choisir explicitement un seul backend : `sqlite`, `postgres`, `mysql`, `mariadb` (mutuellement exclusifs — en activer deux à la fois est une erreur de compilation). La feature `all-databases` reste disponible pour le tooling multi-moteur qui doit parler à tous les backends à la fois.
 
 ---
 
@@ -199,11 +199,11 @@ Référence complète : [Sessions](https://runique.io/docs/fr/session)
 
 ## Tests et couverture
 
-- Tests rapportés : **2375 réussis** (2 ignorés)
-- Snapshot de couverture (`2026-09-02`, package `runique`, module admin inclus) : fonctions **75.54%**, lignes **73.69%**, régions **72.30%**
+- Tests rapportés : **2365 réussis** (2 ignorés)
+- Snapshot de couverture (`2026-09-24`, package `runique`, module admin inclus) : fonctions **75.83%**, lignes **73.26%**, régions **71.95%**
 
 ```bash
-cargo llvm-cov --package runique --summary-only
+cargo llvm-cov --package runique --features all-databases --summary-only
 ```
 
 Détail complet par fichier : [docs/couverture_test.md](docs/couverture_test.md)

@@ -16,7 +16,7 @@ Deux ajustements manuels dans `migration/Cargo.toml` après l'init :
 ```toml
 [dependencies]
 tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
-runique = { version = "2.2.0", features = ["orm", "sqlite"] }
+runique = { version = "2.3.0", features = ["orm", "sqlite"] }
 
 [dependencies.sea-orm-migration]
 version = "2.0.0"

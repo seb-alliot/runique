@@ -449,6 +449,8 @@
   "makemigrations": {
     "destructive_detected": "Changements destructifs détectés :",
     "destructive_require_force": "Utilisez --force pour appliquer ces changements destructifs.",
+    "long_identifier_detected": "Identifiants SQL générés trop longs (limite MariaDB/MySQL : 64 caractères) :",
+    "long_identifier_rename_required": "Raccourcissez les noms de table/colonne concernés — aucune troncature automatique n'est appliquée.",
     "files_ready": "{} fichier(s) prêt(s) à migrer.",
     "unknown_dsl_type": "Attention : type de champ inconnu '{}' — utilisation de '{}' par défaut. Vérifiez une faute de frappe dans votre modèle.",
     "unknown_db_engine": "Attention : DB_ENGINE '{}' non reconnu — repli sur des migrations façon SQLite (pas d'enum/trigger natifs). Valeurs supportées : postgres, mysql/mariadb, sqlite."

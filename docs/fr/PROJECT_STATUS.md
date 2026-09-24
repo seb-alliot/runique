@@ -11,8 +11,8 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 ## Snapshot (au 2 septembre 2026)
 
-- **Version workspace** : `2.2.0`
-- **derive_form** : `2.2.0`
+- **Version workspace** : `2.3.0`
+- **derive_form** : `2.3.0`
 - **Licence** : MIT
 - **Branche** : `main`
 - **Stack** : Axum 0.8.7 + SeaORM 2.0.0-rc.40 + Tera 1.20.1 · Rust edition 2024 · Rust 1.94

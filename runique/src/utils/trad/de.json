@@ -432,6 +432,8 @@
   "makemigrations": {
     "destructive_detected": "Destruktive Änderungen erkannt:",
     "destructive_require_force": "Verwenden Sie --force, um diese destruktiven Änderungen anzuwenden.",
+    "long_identifier_detected": "Generierte SQL-Bezeichner sind zu lang (MariaDB/MySQL-Limit: 64 Zeichen):",
+    "long_identifier_rename_required": "Kürzen Sie die betroffenen Tabellen-/Spaltennamen — Runique kürzt Bezeichner nicht automatisch.",
     "files_ready": "{} Datei(en) bereit für die Migration.",
     "unknown_dsl_type": "Warnung: unbekannter Feldtyp '{}' — Standardwert '{}' wird verwendet. Prüfen Sie Ihr Modell auf einen Tippfehler.",
     "unknown_db_engine": "Warnung: unbekannter DB_ENGINE '{}' — Rückgriff auf SQLite-artige Migrationen (keine native Enum-/Trigger-Unterstützung). Unterstützte Werte: postgres, mysql/mariadb, sqlite."
