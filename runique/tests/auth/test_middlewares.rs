@@ -4,6 +4,7 @@
 // Chaque test crée son propre client reqwest (cookie jar isolé → session distincte).
 
 use crate::helpers::pk::pk;
+use crate::helpers::user::test_user;
 use axum::{Extension, Router, middleware, routing::get, routing::post};
 use runique::auth::{CurrentUser, load_user_middleware, login};
 use sea_orm::DatabaseConnection;
@@ -51,7 +52,7 @@ fn auth_mw_addr() -> SocketAddr {
                         post(
                             |session: Session,
                             Extension(db): Extension<Arc<DatabaseConnection>>| async move {
-                                login(&session, &db, pk(2), "bob", true, false, None, false).await.unwrap();
+                                login(&session, &db, &test_user(pk(2), "bob", true, false), None, false).await.unwrap();
                                 "ok"
                             },
                         ),

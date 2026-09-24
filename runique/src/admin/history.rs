@@ -74,19 +74,19 @@ pub async fn log_admin_action(db: &ADb, log: AdminActionLog<'_>) {
     }
 }
 
-/// Marqueur substitué à la valeur d'un champ sensible dans un diff d'audit.
-/// Le champ reste listé — savoir *qu'un* mot de passe a changé est une information
-/// d'audit légitime ; connaître sa valeur, jamais.
+/// Marker substituted for a sensitive field's value in an audit diff.
+/// The field itself stays listed — knowing *that* a password changed is
+/// legitimate audit information; knowing its value, never.
 pub const REDACTED: &str = "••••••";
 
-/// Fragments de nom qui rendent un champ sensible.
+/// Name fragments that make a field sensitive.
 ///
-/// La table d'historique est lisible par quiconque possède le droit sur
-/// l'historique, y compris sans accès à la table concernée : y recopier un hash de
-/// mot de passe le sort de la seule table censée le détenir et fournit du matériel
-/// d'attaque hors-ligne. Le test porte sur le nom parce que c'est le seul signal
-/// disponible sur **tous** les chemins d'écriture — y compris un `update_fn` custom
-/// qui n'passe par aucun `PasswordField`.
+/// The history table is readable by anyone with the history permission, even
+/// without access to the table in question: copying a password hash into it
+/// takes it out of the one table meant to hold it and hands out offline attack
+/// material. The check is name-based because that's the only signal available
+/// on **every** write path — including a custom `update_fn` that never goes
+/// through any `PasswordField`.
 const SENSITIVE_HINTS: &[&str] = &[
     "password",
     "passwd",
@@ -98,17 +98,17 @@ const SENSITIVE_HINTS: &[&str] = &[
     "private_key",
 ];
 
-/// `true` si la valeur de ce champ ne doit jamais entrer dans l'audit.
+/// `true` if this field's value must never enter the audit trail.
 pub fn is_sensitive_key(key: &str) -> bool {
     let k = key.to_lowercase();
     SENSITIVE_HINTS.iter().any(|hint| k.contains(hint))
 }
 
-/// Neutralise les valeurs sensibles d'une carte de changements `{champ: {old, new}}`.
+/// Redacts sensitive values in a `{field: {old, new}}` changes map.
 ///
-/// Point de passage **unique** : tous les chemins d'écriture d'historique (édition
-/// simple, bulk avec ou sans `get_fn`) transitent par ici, pour qu'un futur point
-/// d'écriture ne puisse pas contourner la règle en oubliant un filtre local.
+/// **Single** pass-through point: every history write path (plain edit, bulk
+/// with or without `get_fn`) goes through here, so a future write path can't
+/// bypass the rule by forgetting a local filter.
 pub fn redact_sensitive(changes: &mut serde_json::Map<String, Value>) {
     for (key, entry) in changes.iter_mut() {
         if !is_sensitive_key(key) {
@@ -126,7 +126,7 @@ pub fn redact_sensitive(changes: &mut serde_json::Map<String, Value>) {
 
 /// Compares an old DB object (`get_fn` result) against submitted form fields.
 /// Returns a compact JSON string of changed fields: `{"title":{"old":"a","new":"b"}}`.
-/// Les champs sensibles sont listés mais leurs valeurs remplacées par [`REDACTED`].
+/// Sensitive fields are listed, but their values are replaced with [`REDACTED`].
 /// Returns `None` if nothing changed or old state is unavailable.
 pub fn diff_fields(old: &Value, body: &StrMap) -> Option<String> {
     let Value::Object(map) = old else {

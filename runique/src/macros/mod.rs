@@ -1,4 +1,4 @@
-//! Macros du framework — admin, BDD (objects), contexte Tera, formulaires, routeur, templates.
+//! Framework macros — admin, DB (objects), Tera context, forms, router, templates.
 pub mod admin;
 pub mod bdd;
 pub mod context;

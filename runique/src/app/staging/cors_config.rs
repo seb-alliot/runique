@@ -3,17 +3,17 @@
 /// Disabled by default — explicitly configure origins.
 /// Validation at build time: wildcard origin + `allow_credentials(true)` = BuildError.
 ///
-/// # Example — frontend séparé
+/// # Example — separate frontend
 /// ```rust,ignore
 /// .middleware(|m| {
 ///     m.with_cors(|c| {
-///         c.origin("https://app.monsite.com")
+///         c.origin("https://app.mysite.com")
 ///          .allow_credentials(true)
 ///     })
 /// })
 /// ```
 ///
-/// # Example — API publique sans session
+/// # Example — public API without a session
 /// ```rust,ignore
 /// m.with_cors(|c| c.any_origin())
 /// ```
@@ -25,26 +25,26 @@ pub struct CorsConfig {
 }
 
 impl CorsConfig {
-    /// Autorise une origine spécifique (appelable plusieurs fois).
+    /// Allows one specific origin (can be called several times).
     pub fn origin(mut self, origin: impl Into<String>) -> Self {
         self.origins.push(origin.into());
         self
     }
 
-    /// Autorise toutes les origines (`*`). Incompatible avec `allow_credentials(true)`.
+    /// Allows every origin (`*`). Incompatible with `allow_credentials(true)`.
     pub fn any_origin(mut self) -> Self {
         self.origins = vec!["*".to_string()];
         self
     }
 
-    /// Autorise les cookies et headers d'auth cross-origin.
-    /// Interdit si `any_origin()` est configuré — BuildError au démarrage.
+    /// Allows cross-origin cookies and auth headers.
+    /// Forbidden if `any_origin()` is configured — BuildError at startup.
     pub fn allow_credentials(mut self, allow: bool) -> Self {
         self.allow_credentials = allow;
         self
     }
 
-    /// Durée de mise en cache des réponses preflight (secondes, défaut: 3600).
+    /// How long preflight responses are cached (seconds, default: 3600).
     pub fn max_age(mut self, secs: u64) -> Self {
         self.max_age_secs = secs;
         self

@@ -19,18 +19,18 @@ use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
 use tower_sessions::Session;
 
-/// Défaut si le builder n'a jamais fixé de durée (24h), pour que `login` ne casse
-/// jamais même appelé hors d'un build complet (test, usage bibliothèque).
+/// Default when the builder never set a duration (24h), so `login` never breaks
+/// even when called outside a full build (tests, library usage).
 const DEFAULT_AUTH_SESSION_TTL_SECS: i64 = 86_400;
 
-/// Durée de vie d'une session authentifiée (cookie ET ligne DB), en secondes.
-/// Posée **une fois** au build depuis `MiddlewareStaging.session_duration`
-/// (builder `.with_session_duration(...)`). Source unique → cookie, ligne
-/// `eihwaz_sessions` et rafraîchissement par requête ne peuvent plus diverger.
+/// Lifetime of an authenticated session (cookie AND DB row), in seconds.
+/// Set **once** at build time from `MiddlewareStaging.session_duration`
+/// (builder `.with_session_duration(...)`). Single source → the cookie, the
+/// `eihwaz_sessions` row, and the per-request refresh can no longer diverge.
 static AUTH_SESSION_TTL_SECS: std::sync::OnceLock<i64> = std::sync::OnceLock::new();
 
-/// Appelé une fois au build. Idempotent. Un second appel avec une valeur
-/// **différente** (deux apps dans le même process) est **loggé**, jamais avalé.
+/// Called once at build time. Idempotent. A second call with a **different**
+/// value (two apps in the same process) is **logged**, never swallowed.
 pub fn set_auth_session_ttl_secs(secs: i64) {
     match AUTH_SESSION_TTL_SECS.get() {
         None => {
@@ -49,12 +49,12 @@ pub fn set_auth_session_ttl_secs(secs: i64) {
     }
 }
 
-/// Résolution pure du TTL (testable sans toucher au global).
+/// Pure TTL resolution (testable without touching the global).
 fn resolve_ttl_secs(configured: Option<i64>) -> i64 {
     configured.unwrap_or(DEFAULT_AUTH_SESSION_TTL_SECS)
 }
 
-/// TTL effectif des sessions authentifiées (builder, sinon défaut).
+/// Effective TTL for authenticated sessions (builder value, else default).
 fn auth_session_ttl_secs() -> i64 {
     resolve_ttl_secs(AUTH_SESSION_TTL_SECS.get().copied())
 }
@@ -65,9 +65,9 @@ mod ttl_tests {
 
     #[test]
     fn ttl_uses_builder_value_else_default() {
-        // Builder a fixé une durée → on l'utilise telle quelle (cookie + DB alignés).
+        // Builder set a duration → use it as-is (cookie + DB stay aligned).
         assert_eq!(resolve_ttl_secs(Some(172_800)), 172_800);
-        // Builder absent → défaut explicite 24h, jamais 0/panique.
+        // No builder → explicit 24h default, never 0/a panic.
         assert_eq!(resolve_ttl_secs(None), DEFAULT_AUTH_SESSION_TTL_SECS);
         assert_eq!(DEFAULT_AUTH_SESSION_TTL_SECS, 86_400);
     }
@@ -84,6 +84,32 @@ pub struct AdminLoginResult {
     pub username: String,
     pub is_staff: bool,
     pub is_superuser: bool,
+}
+
+impl RuniqueUser for AdminLoginResult {
+    fn user_id(&self) -> Pk {
+        self.user_id
+    }
+    fn username(&self) -> &str {
+        &self.username
+    }
+    fn email(&self) -> &str {
+        ""
+    }
+    fn password_hash(&self) -> &str {
+        ""
+    }
+    fn is_active(&self) -> bool {
+        // Already gated by `AdminAuth::authenticate`, which returns `None` for
+        // inactive accounts — reaching this point means the account is active.
+        true
+    }
+    fn is_staff(&self) -> bool {
+        self.is_staff
+    }
+    fn is_superuser(&self) -> bool {
+        self.is_superuser
+    }
 }
 
 /// Trait to implement for plugging in admin login verification
@@ -339,19 +365,20 @@ pub async fn get_username(session: &Session) -> Option<String> {
 /// If `exclusive` is `true`, invalidates other sessions for the user.
 ///
 /// ```rust,ignore
-/// login(&session, &db, user.id, &user.username, user.is_staff, user.is_superuser, None, false).await?;
+/// login(&session, &db, &user, None, false).await?;
 /// ```
-#[allow(clippy::too_many_arguments)]
 pub async fn login(
     session: &Session,
     db: &DatabaseConnection,
-    user_id: Pk,
-    username: &str,
-    is_staff: bool,
-    is_superuser: bool,
+    user: &impl RuniqueUser,
     db_store: Option<&RuniqueSessionStore>,
     exclusive: bool,
 ) -> Result<(), tower_sessions::session::Error> {
+    let user_id = user.user_id();
+    let username = user.username();
+    let is_staff = user.is_staff();
+    let is_superuser = user.is_superuser();
+
     // If another session is already active, perform a clean logout before login
     let existing_id: Option<_> = session.get::<Pk>(SESSION_USER_ID_KEY).await.ok().flatten();
     let is_privilege_elevation = existing_id != Some(user_id);
@@ -490,17 +517,7 @@ pub async fn auth_login(
         return Ok(());
     }
     let store = RuniqueSessionStore::new(std::sync::Arc::new(db.clone()));
-    login(
-        session,
-        db,
-        user.user_id(),
-        user.username(),
-        user.is_staff(),
-        user.is_superuser(),
-        Some(&store),
-        false,
-    )
-    .await
+    login(session, db, &user, Some(&store), false).await
 }
 
 /// Logs out a user — removes the memory session and the DB entry if provided.

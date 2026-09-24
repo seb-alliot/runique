@@ -687,9 +687,9 @@ mod finalize_tests {
         p
     }
 
-    /// Sans `upload_to`, `finalize` doit committer le fichier stagé en racine de
-    /// MEDIA_ROOT et stocker un chemin RELATIF (pas l'absolu du staging).
-    /// Prérequis du passage de `parse_multipart` vers un staging non servi.
+    /// Without `upload_to`, `finalize` must commit the staged file at the root
+    /// of MEDIA_ROOT and store a RELATIVE path (not the staging's absolute one).
+    /// A prerequisite for `parse_multipart`'s move to an unserved staging area.
     #[tokio::test]
     async fn finalize_without_upload_to_commits_staged_file_to_media_root() {
         let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
@@ -721,8 +721,8 @@ mod finalize_tests {
         let _ = fs::remove_dir_all(&staging);
     }
 
-    /// Cas flux actuel : fichier déjà en racine media_root → finalize normalise en
-    /// relatif sans déplacer (idempotent).
+    /// Current-flow case: file already at the media_root root → finalize
+    /// normalizes it to a relative path without moving it (idempotent).
     #[tokio::test]
     async fn finalize_without_upload_to_normalizes_in_place() {
         let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;

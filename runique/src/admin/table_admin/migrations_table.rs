@@ -300,10 +300,10 @@ impl sea_orm_migration::MigrationTrait for EihwazSessionsMigration {
 
 /// Generates the `TableCreateStatement` for the `eihwaz_history` table.
 ///
-/// `user_id` n'a **volontairement aucune FK** vers la table user : l'audit doit
-/// survivre à la suppression d'un utilisateur (une FK CASCADE effacerait l'historique
-/// de ses actions). `username` est dénormalisé pour garder une trace lisible même après
-/// suppression. Ne pas « corriger » en ajoutant une FK CASCADE.
+/// `user_id` **deliberately has no FK** to the user table: the audit trail must
+/// survive a user's deletion (a CASCADE FK would erase the history of their
+/// actions). `username` is denormalized to keep a readable trace even after
+/// deletion. Don't "fix" this by adding a CASCADE FK.
 pub fn create_eihwaz_history_table() -> TableCreateStatement {
     let mut user_id_col = ColumnDef::new(Alias::new("user_id"));
     #[cfg(feature = "pk-uuid")]

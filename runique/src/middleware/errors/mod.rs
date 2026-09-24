@@ -1,3 +1,3 @@
-//! Gestion des erreurs HTTP — middleware de rendu des pages d'erreur 404/429/500 via Tera.
+//! HTTP error handling — middleware that renders 404/429/500 error pages via Tera.
 pub mod error;
 pub use error::*;

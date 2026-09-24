@@ -38,8 +38,8 @@ fn current_dir_str() -> String {
 }
 
 /// Priority: `MEDIA_ROOT` → `{BASE_DIR}/media` → `{cwd}/media` → `./media`.
-/// Sérialise les tests qui mutent la variable d'env process-globale `MEDIA_ROOT`
-/// (sinon course inter-tests sous `cargo test` parallèle).
+/// Serializes tests that mutate the process-global `MEDIA_ROOT` env var
+/// (otherwise a cross-test race under parallel `cargo test`).
 #[cfg(test)]
 pub(crate) static MEDIA_ENV_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 

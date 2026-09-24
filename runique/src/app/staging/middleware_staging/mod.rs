@@ -61,9 +61,9 @@ pub struct MiddlewareStaging {
     /// Allowed hosts defined via the builder
     pub(crate) allowed_hosts: Vec<String>,
 
-    /// CORS configuration (None = CORS désactivé)
+    /// CORS configuration (None = CORS disabled)
     pub(crate) cors_config: Option<CorsConfig>,
-    /// Chemins exemptés de la validation CSRF (ex: endpoints webhook)
+    /// Paths exempt from CSRF validation (e.g., webhook endpoints)
     pub(crate) csrf_exempt_paths: Vec<String>,
     /// Permissions-Policy header configuration (None = default secure preset)
     pub(crate) permissions_policy: Option<PermissionsPolicy>,
@@ -351,11 +351,11 @@ impl MiddlewareStaging {
     // CSRF exemptions
     // ═══════════════════════════════════════════════════
 
-    /// Exempte des chemins de la validation CSRF.
+    /// Exempts paths from CSRF validation.
     ///
-    /// À utiliser pour les endpoints qui reçoivent des requêtes tierces signées
-    /// (webhooks Stripe, GitHub, etc.) — ces endpoints doivent implémenter
-    /// leur propre vérification de signature en remplacement du CSRF.
+    /// Use this for endpoints that receive signed third-party requests
+    /// (Stripe, GitHub webhooks, etc.) — these endpoints must implement their
+    /// own signature check in place of CSRF.
     ///
     /// # Example
     /// ```rust,ignore
@@ -372,22 +372,22 @@ impl MiddlewareStaging {
     // CORS
     // ═══════════════════════════════════════════════════
 
-    /// Configure CORS via une closure.
+    /// Configures CORS via a closure.
     ///
-    /// Désactivé par défaut. Appeler `.origin()` ou `.any_origin()` pour activer.
-    /// La combinaison `any_origin()` + `allow_credentials(true)` déclenche un `BuildError`.
+    /// Disabled by default. Call `.origin()` or `.any_origin()` to enable it.
+    /// Combining `any_origin()` + `allow_credentials(true)` triggers a `BuildError`.
     ///
-    /// # Example — frontend cross-origin authentifié
+    /// # Example — authenticated cross-origin frontend
     /// ```rust,ignore
     /// .middleware(|m| {
     ///     m.with_cors(|c| {
-    ///         c.origin("https://app.monsite.com")
+    ///         c.origin("https://app.mysite.com")
     ///          .allow_credentials(true)
     ///     })
     /// })
     /// ```
     ///
-    /// # Example — API publique sans session
+    /// # Example — public API without a session
     /// ```rust,ignore
     /// m.with_cors(|c| c.any_origin())
     /// ```

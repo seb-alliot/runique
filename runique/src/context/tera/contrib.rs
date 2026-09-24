@@ -1,15 +1,16 @@
-//! Réenregistrement des filtres/fonctions/tests que Tera 1 fournissait via sa
-//! feature `builtins` et que Tera 2 a sortis du cœur vers le crate `tera-contrib`.
+//! Re-registers the filters/functions/tests that Tera 1 shipped via its
+//! `builtins` feature and that Tera 2 moved out of core into the `tera-contrib`
+//! crate.
 //!
-//! Chaque élément est enregistré sous **son nom amont** et, quand Tera 1 utilisait
-//! un nom différent, sous **l'ancien nom en alias**. Un template écrit pour
-//! Runique 2.1 continue donc de fonctionner tel quel, sans que la documentation
-//! du framework ait à diverger de celle de Tera.
+//! Each item is registered under **its upstream name** and, when Tera 1 used a
+//! different name, also under **the old name as an alias**. A template written
+//! for Runique 2.1 therefore keeps working as-is, with no need for the
+//! framework's documentation to diverge from Tera's.
 //!
-//! `register_filter` accepte n'importe quel nom, donc un alias ne coûte qu'une
-//! entrée de plus dans la table — la fonction, elle, n'existe qu'une fois.
+//! `register_filter` accepts any name, so an alias only costs one extra table
+//! entry — the underlying function still exists just once.
 //!
-//! Les deux seuls renommages amont, dont l'ancien nom reste accepté :
+//! The only two upstream renames, whose old name is still accepted:
 //! `slugify` → `slug`, `filesizeformat` → `filesize_format`.
 
 use tera::Tera;
@@ -23,13 +24,12 @@ use tera_contrib::{
     urlencode::{urlencode, urlencode_strict},
 };
 
-/// Enregistre les filtres, fonctions et tests issus de `tera-contrib`.
+/// Registers the filters, functions and tests coming from `tera-contrib`.
 ///
-/// Appelé par `register_asset_filters` avant tout chargement de template : Tera 2
-/// vérifie l'existence des filtres au moment où le template est ajouté, pas au
-/// rendu.
+/// Called by `register_asset_filters` before any template is loaded: Tera 2
+/// checks that a filter exists when the template is added, not at render time.
 pub(crate) fn register_contrib(tera: &mut Tera) {
-    // ── Filtres au nom inchangé depuis Tera 1 ────────────────────────────────
+    // ── Filters with an unchanged name since Tera 1 ──────────────────────────
     tera.register_filter("urlencode", urlencode);
     tera.register_filter("urlencode_strict", urlencode_strict);
     tera.register_filter("date", date);
@@ -38,13 +38,13 @@ pub(crate) fn register_contrib(tera: &mut Tera) {
     tera.register_filter("spaceless", spaceless);
     tera.register_filter("regex_replace", RegexReplace::default());
 
-    // ── Filtres renommés en amont : nom amont + alias Tera 1 ─────────────────
+    // ── Filters renamed upstream: upstream name + Tera 1 alias ───────────────
     tera.register_filter("slug", slug);
     tera.register_filter("slugify", slug);
     tera.register_filter("filesize_format", filesize_format);
     tera.register_filter("filesizeformat", filesize_format);
 
-    // ── Fonctions ────────────────────────────────────────────────────────────
+    // ── Functions ────────────────────────────────────────────────────────────
     tera.register_function("now", now);
     tera.register_function("get_random", get_random);
     tera.register_filter("shuffle", shuffle);

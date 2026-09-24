@@ -186,9 +186,9 @@ pub async fn parse_multipart(
     Ok(data)
 }
 
-/// Best-effort purge des dossiers `.staging-*` orphelins (uploads rejetés avant
-/// `finalize`). Supprime ceux plus vieux que `STAGING_TTL_SECS`. Les échecs sont
-/// loggés, jamais avalés silencieusement.
+/// Best-effort cleanup of orphaned `.staging-*` folders (uploads rejected before
+/// `finalize`). Removes those older than `STAGING_TTL_SECS`. Failures are
+/// logged, never silently swallowed.
 async fn sweep_stale_staging(upload_dir: &Path) {
     let mut entries = match tokio::fs::read_dir(upload_dir).await {
         Ok(e) => e,
@@ -325,9 +325,9 @@ mod staging_tests {
             .unwrap()
     }
 
-    /// L'upload ne doit PAS être commité en racine media_root pendant le parse :
-    /// il reste en staging (`.staging-*`), `finalize` committera plus tard, après
-    /// CSRF + validation. Sécurise C1 (pas d'écriture servie avant contrôle).
+    /// The upload must NOT be committed under the media_root during parsing:
+    /// it stays in staging (`.staging-*`), `finalize` will commit it later, after
+    /// CSRF + validation. Secures C1 (no served write before it's been checked).
     #[tokio::test]
     async fn parse_multipart_stages_file_without_eager_commit() {
         let media = std::env::temp_dir().join(format!("rq_pm_{}", uuid::Uuid::new_v4()));

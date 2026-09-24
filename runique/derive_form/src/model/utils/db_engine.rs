@@ -13,12 +13,12 @@ impl DbEngine {
     /// Detects the engine at compile time.
     ///
     /// Priority:
-    /// 1. Feature Cargo forwardée depuis `runique` (`postgres`/`mysql`/`sqlite`) —
-    ///    source de vérité : ne peut pas désynchroniser de ce qui est réellement
-    ///    compilé, contrairement à `.env` qui peut mentir (mauvais fichier, valeur
-    ///    oubliée après un changement de moteur).
-    /// 2. Fallback `.env` (`DB_ENGINE` puis `DATABASE_URL`) — pour un projet dont le
-    ///    `Cargo.toml` ne forwarde pas encore la feature vers `derive_form`.
+    /// 1. Cargo feature forwarded from `runique` (`postgres`/`mysql`/`sqlite`) —
+    ///    the source of truth: it can't drift from what's actually compiled,
+    ///    unlike `.env`, which can lie (wrong file, value forgotten after
+    ///    switching engines).
+    /// 2. `.env` fallback (`DB_ENGINE` then `DATABASE_URL`) — for a project whose
+    ///    `Cargo.toml` doesn't yet forward the feature to `derive_form`.
     pub fn detect() -> Self {
         if cfg!(feature = "postgres") {
             return DbEngine::Postgres;
@@ -32,8 +32,8 @@ impl DbEngine {
         Self::detect_from_env()
     }
 
-    /// Ancien mécanisme, conservé en repli tant que tous les projets n'ont pas
-    /// migré vers le forwarding de features `runique` -> `derive_form`.
+    /// Older mechanism, kept as a fallback until every project has migrated to
+    /// the `runique` -> `derive_form` feature forwarding.
     fn detect_from_env() -> Self {
         // 1. CARGO_MANIFEST_DIR — path of the compiled crate (most reliable in proc-macro).
         if let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") {
