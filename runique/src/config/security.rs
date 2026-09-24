@@ -18,13 +18,13 @@ pub struct SecurityConfig {
     pub acme_email: Option<String>,
     /// Directory where TLS certificates are stored (env: `ACME_CERTS_DIR`, default: `./certs`).
     pub acme_certs_dir: String,
-    /// HSTS `max-age` in seconds (env: `HSTS_MAX_AGE`, default: `31536000` = 1 an).
+    /// HSTS `max-age` in seconds (env: `HSTS_MAX_AGE`, default: `31536000` = 1 year).
     pub hsts_max_age: u64,
     /// HSTS `includeSubDomains` (env: `HSTS_INCLUDE_SUBDOMAINS`, default: `true`).
-    /// ⚠️ footgun : casse tout sous-domaine qui n'est pas en HTTPS.
+    /// ⚠️ footgun: breaks any subdomain that isn't on HTTPS.
     pub hsts_include_subdomains: bool,
-    /// HSTS `preload` (env: `HSTS_PRELOAD`, default: `false`). Engagement quasi-
-    /// irréversible (soumission à la liste des navigateurs) → opt-in explicite.
+    /// HSTS `preload` (env: `HSTS_PRELOAD`, default: `false`). Near-irreversible
+    /// commitment (submission to the browser preload list) → explicit opt-in.
     pub hsts_preload: bool,
 }
 
@@ -96,10 +96,11 @@ impl SecurityConfig {
         }
     }
 
-    /// HSTS ne doit être émis QUE si Runique sert réellement du HTTPS : terminaison TLS
-    /// via ACME, ou redirection HTTPS forcée. En HTTP simple le header serait ignoré, et
-    /// surtout on évite le lock-in HTTPS d'un an (`max-age` + `includeSubDomains`/`preload`)
-    /// sur un déploiement qui n'est pas (encore) en HTTPS.
+    /// HSTS must be emitted ONLY if Runique actually serves HTTPS: TLS termination
+    /// via ACME, or forced HTTPS redirection. Over plain HTTP the header would be
+    /// ignored, and more importantly this avoids a year-long HTTPS lock-in
+    /// (`max-age` + `includeSubDomains`/`preload`) on a deployment that isn't
+    /// (yet) on HTTPS.
     #[must_use]
     pub fn should_emit_hsts(&self) -> bool {
         self.enforce_https || self.acme_enabled
@@ -152,7 +153,7 @@ mod hsts_tests {
         }
     }
 
-    /// HSTS gaté sur HTTPS réel : pas de lock-in HTTPS forcé en HTTP simple.
+    /// HSTS gated on real HTTPS: no forced HTTPS lock-in over plain HTTP.
     #[test]
     fn hsts_only_over_real_https() {
         assert!(

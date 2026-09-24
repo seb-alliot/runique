@@ -18,18 +18,17 @@ use subtle::ConstantTimeEq;
 /// On POST: contains body params, csrf_valid = CSRF check result.
 #[derive(Clone)]
 pub struct Prisme {
-    /// Données du corps/query parsées. **Privé au crate** : le code utilisateur ne peut
-    /// PAS lire le body brut sans passer par la porte CSRF (cf. anomalie C2). Accès
-    /// externe uniquement via `checked_data()` (fail-closed) ou `req.form()`.
+    /// Parsed body/query data. **Crate-private**: user code can NOT read the raw
+    /// body without going through the CSRF gate (see anomaly C2). External access
+    /// only via `checked_data()` (fail-closed) or `req.form()`.
     pub(crate) data: StrMap,
     pub csrf_valid: bool,
 }
 
 impl Prisme {
-    /// Accesseur **fail-closed** : renvoie les données du corps uniquement si la CSRF
-    /// est valide. Seule porte d'accès au body depuis un handler utilisateur qui ne
-    /// passe pas par `req.form()`. Sur CSRF invalide → `None` (la requête forgée ne
-    /// voit aucune donnée).
+    /// **Fail-closed** accessor: returns the body data only if CSRF is valid.
+    /// The only door into the body for a user handler that doesn't go through
+    /// `req.form()`. On invalid CSRF → `None` (a forged request sees no data).
     pub fn checked_data(&self) -> Option<&StrMap> {
         if self.csrf_valid {
             Some(&self.data)
@@ -38,11 +37,11 @@ impl Prisme {
         }
     }
 
-    /// **Test-only.** Construit un `Prisme` avec des données arbitraires.
+    /// **Test-only.** Builds a `Prisme` with arbitrary data.
     ///
-    /// Le pipeline réel passe par [`prisme_pipeline`] ; ce constructeur n'existe que pour
-    /// les tests d'intégration (crate séparée) qui fabriquent une `Request` à la main.
-    /// Ne jamais l'utiliser en code de production : il court-circuite la validation CSRF.
+    /// The real pipeline goes through [`prisme_pipeline`]; this constructor only
+    /// exists for integration tests (a separate crate) that build a `Request` by
+    /// hand. Never use this in production code: it bypasses CSRF validation.
     #[doc(hidden)]
     pub fn for_test(data: StrMap, csrf_valid: bool) -> Self {
         Self { data, csrf_valid }
@@ -112,20 +111,21 @@ where
     Ok(Prisme { data, csrf_valid })
 }
 
-/// Source **unique** de la politique CSRF par méthode HTTP : seules GET/HEAD (sûres, sans
-/// effet de bord attendu) sont exemptées. **Toute** autre méthode — POST/PUT/PATCH/DELETE,
-/// mais aussi OPTIONS/TRACE/méthodes inconnues — exige un token valide (fail-closed).
-/// Partagée par le pipeline (`check_csrf`) et la garde de `Request::form()` pour qu'elles
-/// ne puissent jamais diverger.
+/// **Single** source of truth for the per-method CSRF policy: only GET/HEAD (safe,
+/// no expected side effect) are exempt. **Every** other method — POST/PUT/PATCH/DELETE,
+/// but also OPTIONS/TRACE/unknown methods — requires a valid token (fail-closed).
+/// Shared by the pipeline (`check_csrf`) and the guard in `Request::form()` so they
+/// can never drift apart.
 pub(crate) fn csrf_required(method: &Method) -> bool {
     !matches!(*method, Method::GET | Method::HEAD)
 }
 
-/// Source **unique** de la politique d'exemption CSRF par chemin : `true` si `path` est
-/// dans `exempt_paths` (webhooks avec leur propre vérification de signature). Une route
-/// exemptée ici est censée rester hors du pipeline `Request`/Prisme — elle doit utiliser
-/// les extracteurs axum bruts, pas `Request` (qui exige toujours un `CsrfToken` en
-/// extension, sans regarder cette liste ; voir la doc CSRF pour cette contrainte).
+/// **Single** source of truth for the per-path CSRF exemption policy: `true` if
+/// `path` is in `exempt_paths` (webhooks with their own signature check). An
+/// exempt path only skips **validation** — the CSRF token is still generated and
+/// injected unconditionally by `csrf_middleware`, so `Request`/`RuniqueContext`
+/// keep working normally on exempt routes for anything unrelated to CSRF
+/// (session, template context, etc.); see the CSRF docs for the full behavior.
 pub(crate) fn is_csrf_exempt(path: &str, exempt_paths: &[String]) -> bool {
     exempt_paths.iter().any(|p| p == path)
 }
@@ -178,8 +178,8 @@ fn convert_for_form(parsed: StrVecMap) -> StrMap {
 mod checked_data_tests {
     use super::*;
 
-    /// C2 : `checked_data` est fail-closed — None tant que la CSRF n'est pas validée,
-    /// même si `.data` (brut) contient des champs.
+    /// C2: `checked_data` is fail-closed — None as long as CSRF isn't validated,
+    /// even if `.data` (raw) contains fields.
     #[test]
     fn checked_data_gates_on_csrf_valid() {
         let mut data = StrMap::new();
@@ -202,8 +202,8 @@ mod checked_data_tests {
         assert!(valid.checked_data().is_some(), "CSRF OK → données dispo");
     }
 
-    /// C5 : seules GET/HEAD sont exemptées ; toute autre méthode (y compris
-    /// OPTIONS/TRACE) exige un token (fail-closed). Source unique de la politique.
+    /// C5: only GET/HEAD are exempt; every other method (including
+    /// OPTIONS/TRACE) requires a token (fail-closed). Single source of the policy.
     #[test]
     fn csrf_required_only_exempts_safe_methods() {
         assert!(!csrf_required(&Method::GET), "GET exempté");

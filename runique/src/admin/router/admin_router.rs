@@ -422,10 +422,7 @@ async fn admin_login_post(
         if login(
             &req.session,
             &req.engine.db,
-            user.user_id,
-            &user.username,
-            user.is_staff,
-            user.is_superuser,
+            &user,
             db_store.as_deref(),
             exclusive,
         )
@@ -465,9 +462,9 @@ async fn admin_login_post(
     }
 }
 
-/// Map clé de ressource → titre nav, pour que l'historique affiche le nom lisible
-/// ("Profils utilisateurs") plutôt que la clé/table brute ("user_profile").
-/// L'historique stocke `resource_key` = `meta.key`, donc la résolution est directe.
+/// Maps resource key → nav title, so the history view shows the readable name
+/// ("User profiles") instead of the raw key/table ("user_profile").
+/// History stores `resource_key` = `meta.key`, so the lookup is direct.
 fn resource_title_map<'a>(
     resources: &[&'a crate::admin::AdminResource],
 ) -> std::collections::HashMap<&'a str, &'a str> {

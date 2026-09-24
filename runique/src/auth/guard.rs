@@ -45,7 +45,7 @@ pub fn get_permissions(user_id: Pk) -> Option<Arc<CachedPermissions>> {
 }
 
 /// Removes a user's permissions from the cache (logout).
-/// Sauter cette opération laisserait des permissions périmées → on récupère + logge.
+/// Skipping this would leave stale permissions behind → recover + log instead.
 pub fn evict_permissions(user_id: Pk) {
     let mut cache = PERMISSIONS_CACHE.write().unwrap_or_else(|p| {
         tracing::warn!("permissions cache lock poisoned (recovered, evict)");
@@ -89,7 +89,7 @@ type Store = Arc<Mutex<HashMap<String, (u32, Instant)>>>;
 /// match authenticate(&username, &password, &db).await {
 ///     Some(user) => {
 ///         guard.record_success(&username);
-///         login(&session, user.id, &user.username).await?;
+///         login(&session, &db, &user, None, false).await?;
 ///     }
 ///     None => {
 ///         guard.record_failure(&username);

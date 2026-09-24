@@ -4,12 +4,12 @@ use std::env;
 
 const DEFAULT_SECRET_KEY: &str = "default_secret_key";
 
-/// Longueur minimale d'une `SECRET_KEY` exploitable (HMAC-SHA256 = 256 bits = 32 octets).
+/// Minimum length for a usable `SECRET_KEY` (HMAC-SHA256 = 256 bits = 32 bytes).
 pub const MIN_SECRET_KEY_LEN: usize = 32;
 
-/// Une clé est **inexploitable** pour le HMAC/CSRF si elle est vide, vaut la valeur par
-/// défaut, ou fait moins de [`MIN_SECRET_KEY_LEN`] caractères. La boot validation s'en sert
-/// pour refuser le démarrage en production (en debug : simple warning).
+/// A key is **unusable** for HMAC/CSRF if it's empty, equals the default value, or is
+/// shorter than [`MIN_SECRET_KEY_LEN`] characters. Boot validation uses this to refuse
+/// starting in production (in debug: just a warning).
 #[must_use]
 pub fn secret_key_is_weak(key: &str) -> bool {
     let k = key.trim();

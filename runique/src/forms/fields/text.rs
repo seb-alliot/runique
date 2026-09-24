@@ -94,8 +94,8 @@ impl TextField {
     }
     /// Password input. Value is auto-hashed on `finalize()` when password mode is `Auto`.
     ///
-    /// La protection ne dépend pas de ce constructeur : `FieldConfig::new` marque
-    /// tout champ de type `password`.
+    /// The protection doesn't depend on this constructor: `FieldConfig::new`
+    /// marks every field of type `password`.
     pub fn password(name: &str) -> Self {
         Self::create(name, "password", SpecialFormat::Password)
     }

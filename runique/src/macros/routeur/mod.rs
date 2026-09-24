@@ -1,4 +1,4 @@
-//! Macros et helpers routeur — `get_post!`, `urlpatterns!`, registre des noms d'URL, `RouterExt`.
+//! Router macros and helpers — `get_post!`, `urlpatterns!`, URL name registry, `RouterExt`.
 pub mod get_post;
 pub mod register_url;
 pub mod router;

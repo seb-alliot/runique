@@ -17,6 +17,7 @@ use crate::helpers::{
     assert::{assert_body_str, assert_status},
     pk::pk,
     request,
+    user::test_user,
 };
 
 // ── Helper ────────────────────────────────────────────────────────────────────
@@ -55,16 +56,28 @@ async fn test_login_user_different_nettoie_session_precedente() {
         let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
 
         // User A se connecte
-        login(&session, &db, pk(1), "setsuna", true, false, None, false)
-            .await
-            .unwrap();
+        login(
+            &session,
+            &db,
+            &test_user(pk(1), "setsuna", true, false),
+            None,
+            false,
+        )
+        .await
+        .unwrap();
         let id_apres_login_a = get_user_id(&session).await;
         assert_eq!(id_apres_login_a, Some(pk(1)));
 
         // User B se connecte sur la même session (collision)
-        login(&session, &db, pk(2), "itsuki", true, true, None, false)
-            .await
-            .unwrap();
+        login(
+            &session,
+            &db,
+            &test_user(pk(2), "itsuki", true, true),
+            None,
+            false,
+        )
+        .await
+        .unwrap();
         let id_apres_login_b = get_user_id(&session).await;
         let username_apres_login_b = get_username(&session).await;
 
@@ -85,13 +98,25 @@ async fn test_login_meme_user_ne_reinitialise_pas_session() {
     async fn handler(session: Session) -> impl IntoResponse {
         let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
 
-        login(&session, &db, pk(1), "alice", true, false, None, false)
-            .await
-            .unwrap();
+        login(
+            &session,
+            &db,
+            &test_user(pk(1), "alice", true, false),
+            None,
+            false,
+        )
+        .await
+        .unwrap();
         // Re-login du même user (refresh de session)
-        login(&session, &db, pk(1), "alice", true, false, None, false)
-            .await
-            .unwrap();
+        login(
+            &session,
+            &db,
+            &test_user(pk(1), "alice", true, false),
+            None,
+            false,
+        )
+        .await
+        .unwrap();
 
         let id = get_user_id(&session).await;
         assert_eq!(id, Some(pk(1)));
@@ -112,9 +137,15 @@ async fn test_logout_vide_session_completement() {
     async fn handler(session: Session) -> impl IntoResponse {
         let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
 
-        login(&session, &db, pk(1), "alice", true, false, None, false)
-            .await
-            .unwrap();
+        login(
+            &session,
+            &db,
+            &test_user(pk(1), "alice", true, false),
+            None,
+            false,
+        )
+        .await
+        .unwrap();
         assert!(is_authenticated(&session).await);
 
         logout(&session, None).await.unwrap();
@@ -140,9 +171,15 @@ async fn test_logout_evicte_cache_permissions() {
 
     async fn handler(session: Session) -> impl IntoResponse {
         let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
-        login(&session, &db, pk(20_001), "bob", true, false, None, false)
-            .await
-            .unwrap();
+        login(
+            &session,
+            &db,
+            &test_user(pk(20_001), "bob", true, false),
+            None,
+            false,
+        )
+        .await
+        .unwrap();
         logout(&session, None).await.unwrap();
         "ok"
     }
@@ -164,18 +201,30 @@ async fn test_deux_sessions_independantes() {
     // Session A : user 1
     async fn handler_a(session: Session) -> impl IntoResponse {
         let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
-        login(&session, &db, pk(1), "alice", true, false, None, false)
-            .await
-            .unwrap();
+        login(
+            &session,
+            &db,
+            &test_user(pk(1), "alice", true, false),
+            None,
+            false,
+        )
+        .await
+        .unwrap();
         get_username(&session).await.unwrap_or_default()
     }
 
     // Session B : user 2 (router séparé = session store séparé)
     async fn handler_b(session: Session) -> impl IntoResponse {
         let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
-        login(&session, &db, pk(2), "bob", false, false, None, false)
-            .await
-            .unwrap();
+        login(
+            &session,
+            &db,
+            &test_user(pk(2), "bob", false, false),
+            None,
+            false,
+        )
+        .await
+        .unwrap();
         get_username(&session).await.unwrap_or_default()
     }
 
@@ -216,18 +265,30 @@ async fn test_login_collision_nettoie_cache_ancien_user() {
         let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
 
         // User A login — cache chargé
-        login(&session, &db, pk(20_004), "carol", true, false, None, false)
-            .await
-            .unwrap();
+        login(
+            &session,
+            &db,
+            &test_user(pk(20_004), "carol", true, false),
+            None,
+            false,
+        )
+        .await
+        .unwrap();
 
         // Injecte manuellement des permissions pour A
         cache_permissions(pk(20_004), vec![make_groupe("articles")]);
         assert!(get_permissions(pk(20_004)).is_some());
 
         // User B prend la session (collision)
-        login(&session, &db, pk(20_005), "dave", true, false, None, false)
-            .await
-            .unwrap();
+        login(
+            &session,
+            &db,
+            &test_user(pk(20_005), "dave", true, false),
+            None,
+            false,
+        )
+        .await
+        .unwrap();
 
         // Le cache de A doit être évincé (logout interne)
         // B n'a pas de permissions en DB (sqlite memory vide) → cache vide

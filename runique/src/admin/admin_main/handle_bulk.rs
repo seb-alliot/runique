@@ -15,9 +15,9 @@ use uuid::Uuid;
 /// Serializes a history summary to JSON. A serialization error is traced (not
 /// swallowed) and yields `None` so the summary is omitted rather than lost silently.
 ///
-/// Prend la carte par valeur pour pouvoir y appliquer [`history::redact_sensitive`]
-/// avant sérialisation : c'est le point de passage unique des chemins bulk, aucun
-/// appelant n'a à se souvenir de filtrer.
+/// Takes the map by value so [`history::redact_sensitive`] can be applied to it
+/// before serialization: this is the single pass-through point for all bulk
+/// paths, so no caller has to remember to filter.
 fn summary_json(
     mut value: serde_json::Map<String, serde_json::Value>,
     resource_key: &str,

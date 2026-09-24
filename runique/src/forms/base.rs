@@ -20,14 +20,14 @@ pub struct FieldConfig {
     pub html_attributes: StrMap,
     pub template_name: String,
     pub extra_context: JsonMap,
-    /// Champ dont la valeur ne doit **jamais** ressortir : ni dans le widget rendu,
-    /// ni dans un audit, ni dans une vue d'administration.
+    /// Field whose value must **never** leak out: not in the rendered widget,
+    /// not in an audit trail, not in an admin view.
     ///
-    /// Privé et sans setter d'extinction : la seule façon de l'activer est
-    /// [`FieldConfig::mark_password`], il n'existe aucun moyen de le désactiver.
-    /// Se lit par [`FieldConfig::is_password`], qui vaut également `true` pour tout
-    /// champ de type `password` — un champ sensible reste donc protégé même si
-    /// personne n'a pensé à poser le drapeau.
+    /// Private, with no way to turn it back off: the only way to set it is
+    /// [`FieldConfig::mark_password`] — there's no way to unset it. Read via
+    /// [`FieldConfig::is_password`], which also returns `true` for any field of
+    /// type `password` — so a sensitive field stays protected even if no one
+    /// thought to set the flag.
     #[serde(default)]
     is_password: bool,
 }
@@ -48,28 +48,28 @@ impl FieldConfig {
             html_attributes: HashMap::new(),
             template_name: template_name.to_string(),
             extra_context: HashMap::new(),
-            // Dérivé du type dès la construction : tout champ `password`, quel que
-            // soit le constructeur emprunté, naît protégé. Le drapeau ne peut donc
-            // pas être manqué par omission.
+            // Derived from the type right at construction: any `password` field,
+            // whatever constructor was used, is born protected. The flag can
+            // therefore never be missed by omission.
             is_password: type_field == "password",
         }
     }
 
-    /// `true` si la valeur de ce champ ne doit jamais être exposée.
+    /// `true` if this field's value must never be exposed.
     ///
-    /// Le type l'emporte sur le drapeau : même si le champ a été construit à la
-    /// main sans passer par `mark_password`, un `type_field` valant `password`
-    /// suffit à le protéger.
+    /// The type wins over the flag: even if the field was built by hand without
+    /// going through `mark_password`, a `type_field` of `password` is enough to
+    /// protect it.
     #[must_use]
     pub fn is_password(&self) -> bool {
         self.is_password || self.type_field == "password"
     }
 
-    /// Marque le champ comme portant un secret (clé d'API, jeton…).
+    /// Marks the field as carrying a secret (API key, token…).
     ///
-    /// Sens unique, volontairement : il n'existe pas d'opération inverse. Un champ
-    /// déclaré sensible ne peut pas cesser de l'être en cours de route, ce qui
-    /// interdit qu'un chemin de code le « démasque » par erreur.
+    /// One-way, on purpose: there is no reverse operation. A field declared
+    /// sensitive can't stop being sensitive along the way, which rules out any
+    /// code path accidentally "unmasking" it.
     pub fn mark_password(&mut self) {
         self.is_password = true;
     }
@@ -123,11 +123,11 @@ pub trait CommonFieldConfig {
     fn get_field_config(&self) -> &FieldConfig;
     fn get_field_config_mut(&mut self) -> &mut FieldConfig;
 
-    /// `true` si la valeur du champ ne doit jamais être exposée.
+    /// `true` if the field's value must never be exposed.
     ///
-    /// Point d'interrogation unique du framework : rendu, remplissage, journaux et
-    /// audit passent tous par ici, plutôt que de comparer `field_type()` à la
-    /// chaîne `"password"` chacun de leur côté.
+    /// The framework's single point of truth on this: rendering, filling,
+    /// logging and auditing all go through here instead of each comparing
+    /// `field_type()` to the string `"password"` on their own.
     fn is_password(&self) -> bool {
         self.get_field_config().is_password()
     }
@@ -269,14 +269,14 @@ pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Syn
     /// Field-type specific validation
     async fn validate(&mut self) -> bool;
 
-    /// Contexte de rendu commun à **tous** les champs.
+    /// Rendering context shared by **every** field.
     ///
-    /// Chaque implémentation de [`FormField::render`] part de là et n'ajoute que
-    /// ses variables propres. Les templates de `field_html/` consomment tous
-    /// `field`, `readonly.choice` et `disabled.choice` : les oublier ne se voyait
-    /// pas sous Tera 1, qui évaluait une variable absente à faux — l'attribut
-    /// n'était alors jamais posé, sans la moindre erreur. Neuf rendus sur dix-huit
-    /// étaient dans ce cas.
+    /// Every [`FormField::render`] implementation starts from this and only adds
+    /// its own variables. The `field_html/` templates all consume `field`,
+    /// `readonly.choice` and `disabled.choice`: forgetting them was invisible
+    /// under Tera 1, which evaluated a missing variable as false — the attribute
+    /// was then simply never emitted, with no error at all. Nine renders out of
+    /// eighteen were in that state.
     fn base_context(&self) -> tera::Context {
         let mut context = tera::Context::new();
         context.insert("field", self.get_field_config());

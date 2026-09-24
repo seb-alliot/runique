@@ -9,6 +9,7 @@
 //! | `db_postgres` | PostgreSQL Docker : `connect()`, `exec()`, `count()`, …     |
 //! | `db_mariadb`  | MariaDB Docker : `connect()`, `exec()`, `count()`, …        |
 //! | `tera`        | Appel direct de filtres/fonctions : `kwargs()`, `no_kwargs()` |
+//! | `user`        | `TestUser`/`test_user(...)` : `RuniqueUser` minimal pour `login()` |
 
 pub mod admin_server;
 pub mod assert;
@@ -19,3 +20,4 @@ pub mod pk;
 pub mod request;
 pub mod server;
 pub mod tera;
+pub mod user;
