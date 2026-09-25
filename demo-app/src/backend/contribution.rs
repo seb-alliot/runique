@@ -10,10 +10,10 @@ pub struct ContributionItem {
     pub username: Option<String>,
 }
 
-pub async fn list_contributions(db: &sea_orm::DatabaseConnection) -> Vec<ContributionItem> {
+pub async fn list_contributions(db: &ADb) -> Vec<ContributionItem> {
     search!(ContributionEntity => desc Id,)
         .also_related(runique_users::Entity)
-        .all(db)
+        .all(db.as_ref())
         .await
         .unwrap_or_default()
         .into_iter()
@@ -26,7 +26,7 @@ pub async fn list_contributions(db: &sea_orm::DatabaseConnection) -> Vec<Contrib
 
 pub async fn save_contribution(
     form: &mut ContributionForm,
-    db: &sea_orm::DatabaseConnection,
+    db: &ADb,
     user_id: runique::utils::pk::Pk,
 ) -> Result<(), sea_orm::DbErr> {
     form.save(db, user_id).await.map(|_| ())

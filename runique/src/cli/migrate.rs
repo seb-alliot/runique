@@ -1,8 +1,9 @@
 //! `migrate` command — applies SeaORM migrations in the database.
+use crate::utils::aliases::ADb;
 use crate::utils::config::TraceResult;
 use crate::utils::trad::{t, tf};
 use anyhow::{Context, Result};
-use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend, TransactionTrait};
+use sea_orm::{ConnectionTrait, Database, DbBackend, TransactionTrait};
 use std::{fs, path::Path};
 
 // ============================================================
@@ -51,9 +52,11 @@ pub async fn down(migrations_path: &str, files: Vec<String>, batch: Option<Strin
     let db_url = std::env::var("DATABASE_URL")
         .with_context(|| "DATABASE_URL not set. Add it to your .env file.")?;
 
-    let db = Database::connect(&db_url)
-        .await
-        .with_context(|| "Failed to connect to database.")?;
+    let db: ADb = std::sync::Arc::new(
+        Database::connect(&db_url)
+            .await
+            .with_context(|| "Failed to connect to database.")?,
+    );
 
     if let Some(batch_ts) = batch {
         rollback_batch(migrations_path, &batch_ts, &db).await?;
@@ -78,11 +81,7 @@ pub fn status(migrations_path: &str) -> Result<()> {
 // Rollback: batch + file
 // ============================================================
 
-async fn rollback_batch(
-    migrations_path: &str,
-    timestamp: &str,
-    db: &DatabaseConnection,
-) -> Result<()> {
+async fn rollback_batch(migrations_path: &str, timestamp: &str, db: &ADb) -> Result<()> {
     let by_time_dir = format!("{}/applied/by_time", migrations_path);
     let batch_file = format!("{}/{}.rs", by_time_dir, timestamp);
 
@@ -106,11 +105,7 @@ async fn rollback_batch(
     Ok(())
 }
 
-async fn rollback_file(
-    migrations_path: &str,
-    file_arg: &str,
-    db: &DatabaseConnection,
-) -> Result<()> {
+async fn rollback_file(migrations_path: &str, file_arg: &str, db: &ADb) -> Result<()> {
     let applied_dir = format!("{}/applied", migrations_path);
 
     let file_path = if file_arg.ends_with(".rs") {
@@ -263,7 +258,8 @@ fn list_available(migrations_path: &str) -> Result<()> {
 // Core: execute down()
 // ============================================================
 
-async fn execute_down_block(source: &str, db: &DatabaseConnection) -> Result<()> {
+async fn execute_down_block(source: &str, db: &ADb) -> Result<()> {
+    let db = db.as_ref();
     let backend = db.get_database_backend();
 
     // 1) capture down() block safely

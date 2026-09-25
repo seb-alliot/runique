@@ -4,6 +4,7 @@ use crate::auth::permissions::{Groupe, Permission, pull_groupes_db};
 use crate::auth::user_trait::RuniqueUser;
 use crate::context::RequestExtensions;
 use crate::middleware::session::session_db::RuniqueSessionStore;
+use crate::utils::aliases::ADb;
 use crate::utils::config::TraceResult;
 use crate::utils::constante::{
     admin_key::admin_context::permission::GROUPES,
@@ -14,7 +15,6 @@ use crate::utils::constante::{
 };
 use crate::utils::pk::Pk;
 use axum::{extract::Request, middleware::Next, response::Response};
-use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
 use tower_sessions::Session;
@@ -132,7 +132,7 @@ pub trait AdminAuth: Send + Sync + 'static {
         &self,
         username: &str,
         password: &str,
-        db: &DatabaseConnection,
+        db: &ADb,
     ) -> Option<AdminLoginResult>;
 }
 
@@ -146,10 +146,8 @@ pub trait AdminAuth: Send + Sync + 'static {
 /// impl UserEntity for users::Entity {
 ///     type Model = users::Model;
 ///
-///     async fn find_by_username(
-///         db: &DatabaseConnection,
-///         username: &str,
-///     ) -> Option<Self::Model> {
+///     async fn find_by_username(db: &ADb, username: &str) -> Option<Self::Model> {
+///         let db = db.as_ref();
 ///         users::Entity::find()
 ///             .filter(users::Column::Username.eq(username))
 ///             .one(db)
@@ -165,20 +163,16 @@ pub trait UserEntity: Send + Sync + 'static {
     type Model: RuniqueUser;
 
     /// Searches for a user by id in the database
-    async fn find_by_id(db: &DatabaseConnection, id: crate::utils::pk::Pk) -> Option<Self::Model>;
+    async fn find_by_id(db: &ADb, id: crate::utils::pk::Pk) -> Option<Self::Model>;
     /// Searches for a user by username in the database
-    async fn find_by_username(db: &DatabaseConnection, username: &str) -> Option<Self::Model>;
+    async fn find_by_username(db: &ADb, username: &str) -> Option<Self::Model>;
     /// Searches for a user by email in the database
-    async fn find_by_email(db: &DatabaseConnection, email: &str) -> Option<Self::Model>;
+    async fn find_by_email(db: &ADb, email: &str) -> Option<Self::Model>;
 
     /// Updates the password of a user identified by their email.
     ///
     /// `new_hash` is already hashed (Prisme forms automatically hash password fields).
-    async fn update_password(
-        db: &DatabaseConnection,
-        email: &str,
-        new_hash: &str,
-    ) -> Result<(), sea_orm::DbErr>;
+    async fn update_password(db: &ADb, email: &str, new_hash: &str) -> Result<(), sea_orm::DbErr>;
 
     /// Updates the password of a user identified by their **primary key**.
     ///
@@ -187,7 +181,7 @@ pub trait UserEntity: Send + Sync + 'static {
     /// (IDOR-safe). The default resolves the user by id then delegates to
     /// [`update_password`]; override for a single-query path.
     async fn update_password_by_id(
-        db: &DatabaseConnection,
+        db: &ADb,
         id: crate::utils::pk::Pk,
         new_hash: &str,
     ) -> Result<(), sea_orm::DbErr> {
@@ -224,7 +218,7 @@ impl<E: UserEntity> AdminAuth for DefaultAdminAuth<E> {
         &self,
         username: &str,
         password: &str,
-        db: &DatabaseConnection,
+        db: &ADb,
     ) -> Option<AdminLoginResult> {
         // 1. Retrieve the user from the DB
         let user_opt = E::find_by_username(db, username).await;
@@ -369,11 +363,12 @@ pub async fn get_username(session: &Session) -> Option<String> {
 /// ```
 pub async fn login(
     session: &Session,
-    db: &DatabaseConnection,
+    db: &ADb,
     user: &impl RuniqueUser,
     db_store: Option<&RuniqueSessionStore>,
     exclusive: bool,
 ) -> Result<(), tower_sessions::session::Error> {
+    let db = db.as_ref();
     let user_id = user.user_id();
     let username = user.username();
     let is_staff = user.is_staff();
@@ -507,7 +502,7 @@ pub async fn login(
 /// Uses [`BuiltinUserEntity`] for searching. For a custom model, use [`login`] directly.
 pub async fn auth_login(
     session: &Session,
-    db: &DatabaseConnection,
+    db: &ADb,
     user_id: Pk,
 ) -> Result<(), tower_sessions::session::Error> {
     let Some(user) = crate::auth::user::BuiltinUserEntity::find_by_id(db, user_id).await else {
@@ -516,7 +511,7 @@ pub async fn auth_login(
     if !user.is_active() {
         return Ok(());
     }
-    let store = RuniqueSessionStore::new(std::sync::Arc::new(db.clone()));
+    let store = RuniqueSessionStore::new(db.clone());
     login(session, db, &user, Some(&store), false).await
 }
 

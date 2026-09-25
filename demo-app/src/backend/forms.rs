@@ -3,9 +3,7 @@ use crate::entities::{code_example, demo_page, form_field, page_doc_link};
 use crate::formulaire::ImageForm;
 use runique::prelude::*;
 
-pub async fn fetch_upload_data(
-    db: &sea_orm::DatabaseConnection,
-) -> (Vec<code_example::Model>, Vec<page_doc_link::Model>) {
+pub async fn fetch_upload_data(db: &ADb) -> (Vec<code_example::Model>, Vec<page_doc_link::Model>) {
     crate::backend::fetch_page_examples("upload_image", db).await
 }
 
@@ -60,7 +58,7 @@ pub async fn handle_upload_image(request: &mut Request, form: ImageForm) -> AppR
     }
 }
 
-pub async fn get_field_groups(db: &sea_orm::DatabaseConnection) -> Vec<FieldGroup> {
+pub async fn get_field_groups(db: &ADb) -> Vec<FieldGroup> {
     let page = search!(demo_page::Entity => Slug eq "formulaires_champs")
         .first(db)
         .await
@@ -70,7 +68,7 @@ pub async fn get_field_groups(db: &sea_orm::DatabaseConnection) -> Vec<FieldGrou
         form_field::Entity::find()
             .filter(form_field::Column::PageId.eq(p.id))
             .order_by_asc(form_field::Column::SortOrder)
-            .all(db)
+            .all(db.as_ref())
             .await
             .unwrap_or_default()
     } else {

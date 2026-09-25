@@ -155,6 +155,12 @@ all-databases = ["sqlite", "postgres", "mysql", "derive_form/all-databases"]
 big-pk = ["derive_form/big-pk"]
 pk-uuid = ["derive_form/pk-uuid", "sea-orm/with-uuid"]
 acme = ["dep:instant-acme", "dep:axum-server", "dep:rustls"]
+# Test-only DB isolation (RuniqueDb enum: real connection or an open test
+# transaction, rolled back at the end of each test). Declare it under
+# [dev-dependencies] in consuming apps, never [dependencies] — see
+# docs/*/testing for why. A boot-time eprintln warns if it ends up compiled
+# into a non-debug build regardless.
+test-utils = ["orm"]
 
 
 [package.metadata.docs.rs]

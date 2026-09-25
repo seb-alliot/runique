@@ -131,7 +131,8 @@
     "stop_hint": "按 Ctrl + C 停止",
     "shutting_down": "正在关闭 Runique 服务器...",
     "acme_not_compiled": "ACME_ENABLED=true，但未编译 `acme` 功能。",
-    "acme_add_feature": "请在你的 Cargo.toml 中添加 `acme` 功能。"
+    "acme_add_feature": "请在你的 Cargo.toml 中添加 `acme` 功能。",
+    "test_utils_feature_enabled": "此构建中已编译 `test-utils` 特性 — 部署到生产环境前，请确保它位于 [dev-dependencies] 而非 [dependencies] 中。"
   },
   "middleware": {
     "bad_request": "请求格式错误",

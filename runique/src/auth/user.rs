@@ -1,11 +1,10 @@
 //! Runique's built-in user entity (table `eihwaz_users`).
 pub use crate::auth::{session::UserEntity, user_trait::RuniqueUser};
+use crate::utils::aliases::ADb;
 use crate::utils::config::TraceResult;
 use crate::utils::pk::Pk;
 use crate::{impl_objects, search};
-use sea_orm::{
-    ActiveModelTrait, ActiveValue::Set, DatabaseConnection, EntityTrait, entity::prelude::*,
-};
+use sea_orm::{ActiveModelTrait, ActiveValue::Set, EntityTrait, entity::prelude::*};
 
 // ─── SeaORM Model ───────────────────────────────────────────────────────────
 
@@ -92,7 +91,8 @@ pub struct BuiltinUserEntity;
 impl UserEntity for BuiltinUserEntity {
     type Model = Model;
 
-    async fn find_by_id(db: &DatabaseConnection, id: Pk) -> Option<Self::Model> {
+    async fn find_by_id(db: &ADb, id: Pk) -> Option<Self::Model> {
+        let db = db.as_ref();
         Entity::find_by_id(id)
             .one(db)
             .await
@@ -106,7 +106,7 @@ impl UserEntity for BuiltinUserEntity {
             .flatten()
     }
 
-    async fn find_by_username(db: &DatabaseConnection, username: &str) -> Option<Self::Model> {
+    async fn find_by_username(db: &ADb, username: &str) -> Option<Self::Model> {
         search!(Entity => Username eq username)
             .first(db)
             .await
@@ -120,7 +120,7 @@ impl UserEntity for BuiltinUserEntity {
             .flatten()
     }
 
-    async fn find_by_email(db: &DatabaseConnection, email: &str) -> Option<Self::Model> {
+    async fn find_by_email(db: &ADb, email: &str) -> Option<Self::Model> {
         search!(Entity => Email eq email)
             .first(db)
             .await
@@ -134,11 +134,7 @@ impl UserEntity for BuiltinUserEntity {
             .flatten()
     }
 
-    async fn update_password(
-        db: &DatabaseConnection,
-        email: &str,
-        new_hash: &str,
-    ) -> Result<(), sea_orm::DbErr> {
+    async fn update_password(db: &ADb, email: &str, new_hash: &str) -> Result<(), sea_orm::DbErr> {
         let user = search!(Entity => Email eq email)
             .first(db)
             .await?
@@ -147,15 +143,12 @@ impl UserEntity for BuiltinUserEntity {
         let mut active: ActiveModel = user.into();
         active.password = Set(new_hash.to_string());
         active.is_active = Set(true);
-        active.update(db).await?;
+        active.update(db.as_ref()).await?;
         Ok(())
     }
 
-    async fn update_password_by_id(
-        db: &DatabaseConnection,
-        id: Pk,
-        new_hash: &str,
-    ) -> Result<(), sea_orm::DbErr> {
+    async fn update_password_by_id(db: &ADb, id: Pk, new_hash: &str) -> Result<(), sea_orm::DbErr> {
+        let db = db.as_ref();
         let user = Entity::find_by_id(id)
             .one(db)
             .await?
@@ -172,11 +165,7 @@ impl UserEntity for BuiltinUserEntity {
 /// Authenticates a user by username and password against the built-in user table.
 ///
 /// Returns `None` if the user is not found, the account is inactive, or the password is wrong.
-pub async fn authenticate_user(
-    db: &DatabaseConnection,
-    username: &str,
-    password: &str,
-) -> Option<Model> {
+pub async fn authenticate_user(db: &ADb, username: &str, password: &str) -> Option<Model> {
     let user_opt = BuiltinUserEntity::find_by_username(db, username).await;
     // Always run verify regardless of whether the user exists — prevents user enumeration
     // via timing differences (`ct_eq` equivalent at the hash layer).

@@ -131,7 +131,8 @@
     "stop_hint": "ctrl + c para parar",
     "shutting_down": "Encerrando o servidor Runique...",
     "acme_not_compiled": "ACME_ENABLED=true mas a feature `acme` não está compilada.",
-    "acme_add_feature": "Adicione a feature `acme` ao seu Cargo.toml."
+    "acme_add_feature": "Adicione a feature `acme` ao seu Cargo.toml.",
+    "test_utils_feature_enabled": "O recurso `test-utils` está compilado neste build — certifique-se de que esteja em [dev-dependencies], nunca em [dependencies], antes de um deploy em produção."
   },
   "middleware": {
     "bad_request": "Requisição inválida",

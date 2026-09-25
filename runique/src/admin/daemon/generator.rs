@@ -947,7 +947,7 @@ fn write_dyn_form_wrapper(
     let _ = writeln!(out);
     let _ = writeln!(
         out,
-        "    async fn save(&mut self, {}: &DatabaseConnection) -> Result<(), DbErr> {{",
+        "    async fn save(&mut self, {}: &ADb) -> Result<(), DbErr> {{",
         save_param
     );
     let _ = writeln!(out, "        {}", save_body);

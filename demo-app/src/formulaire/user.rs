@@ -58,10 +58,8 @@ impl RuniqueForm for RegisterForm {
 }
 
 impl RegisterForm {
-    pub async fn save(
-        &self,
-        db: &DatabaseConnection,
-    ) -> Result<runique::prelude::user::Model, DbErr> {
+    pub async fn save(&self, db: &ADb) -> Result<runique::prelude::user::Model, DbErr> {
+        let db = db.as_ref();
         use runique::prelude::user::ActiveModel;
         #[allow(unused_mut)]
         let mut user = ActiveModel {

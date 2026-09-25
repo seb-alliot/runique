@@ -5,13 +5,13 @@ use runique::prelude::*;
 
 pub async fn register_user(
     form: &RegisterForm,
-    db: &sea_orm::DatabaseConnection,
+    db: &ADb,
 ) -> Result<runique::prelude::runique_users::Model, sea_orm::DbErr> {
     form.save(db).await
 }
 
 pub async fn find_user_by_username(
-    db: &sea_orm::DatabaseConnection,
+    db: &ADb,
     username: &str,
 ) -> Option<runique::prelude::runique_users::Model> {
     // Build the query
@@ -21,9 +21,10 @@ pub async fn find_user_by_username(
 }
 
 pub async fn find_user_by_id(
-    db: &sea_orm::DatabaseConnection,
+    db: &ADb,
     id: runique::utils::pk::Pk,
 ) -> Option<runique::prelude::runique_users::Model> {
+    let db = db.as_ref();
     UserEntity::find_by_id(id).one(db).await.unwrap_or(None)
 }
 
@@ -211,7 +212,7 @@ pub fn get_credentials(form: &LoginForm) -> Option<(String, String)> {
 
 pub async fn get_profile_user(
     user_id: Option<runique::utils::pk::Pk>,
-    db: &sea_orm::DatabaseConnection,
+    db: &ADb,
 ) -> Option<runique::prelude::runique_users::Model> {
     find_user_by_id(db, user_id?).await
 }

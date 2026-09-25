@@ -6,14 +6,13 @@
 //! the token row (server-derived) — never a URL/form field (IDOR-safe).
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use hmac::{Hmac, KeyInit, Mac};
-use sea_orm::{
-    ActiveValue::Set, ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait, QueryFilter,
-};
+use sea_orm::{ActiveValue::Set, ColumnTrait, Condition, DbErr, EntityTrait, QueryFilter};
 use sha2::{Digest, Sha256};
 use std::time::Duration;
 use subtle::ConstantTimeEq;
 use uuid::Uuid;
 
+use crate::utils::aliases::ADb;
 use crate::utils::pk::Pk;
 
 mod entity;
@@ -30,11 +29,8 @@ fn hash_token(token: &str) -> String {
 ///
 /// Requesting a new token drops the user's previous tokens (a fresh link
 /// invalidates older ones) and any globally expired row.
-pub async fn generate(
-    db: &DatabaseConnection,
-    user_id: Pk,
-    ttl: Duration,
-) -> Result<String, DbErr> {
+pub async fn generate(db: &ADb, user_id: Pk, ttl: Duration) -> Result<String, DbErr> {
+    let db = db.as_ref();
     let token = Uuid::new_v4().to_string();
     let now = chrono::Utc::now().naive_utc();
     let expires_at = chrono::Duration::from_std(ttl)
@@ -70,7 +66,8 @@ pub async fn generate(
 ///
 /// The row is claimed by deleting it: under a concurrent double-submit both reads
 /// may see the row, but only the delete that affects exactly one row wins.
-pub async fn consume(db: &DatabaseConnection, token: &str) -> Option<Pk> {
+pub async fn consume(db: &ADb, token: &str) -> Option<Pk> {
+    let db = db.as_ref();
     let now = chrono::Utc::now().naive_utc();
     let row = entity::Entity::find()
         .filter(entity::Column::TokenHash.eq(hash_token(token)))
@@ -84,7 +81,8 @@ pub async fn consume(db: &DatabaseConnection, token: &str) -> Option<Pk> {
 }
 
 /// Checks a token's validity without consuming it (to display the reset form).
-pub async fn peek(db: &DatabaseConnection, token: &str) -> bool {
+pub async fn peek(db: &ADb, token: &str) -> bool {
+    let db = db.as_ref();
     let now = chrono::Utc::now().naive_utc();
     entity::Entity::find()
         .filter(entity::Column::TokenHash.eq(hash_token(token)))

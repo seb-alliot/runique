@@ -59,10 +59,11 @@
 /// ```
 use super::query::RuniqueQueryBuilder;
 use crate::context::template::Request;
+use crate::utils::aliases::ADb;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::response::Response;
-use sea_orm::{ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait};
+use sea_orm::{ColumnTrait, Condition, DbErr, EntityTrait};
 use std::marker::PhantomData;
 
 /// Django-style ORM manager for entities
@@ -139,9 +140,10 @@ impl<E: EntityTrait> Objects<E> {
     /// Fetches the row with primary key `id`, or `DbErr::RecordNotFound` if none exists.
     pub async fn get(
         &self,
-        db: &DatabaseConnection,
+        db: &ADb,
         id: impl Into<<E::PrimaryKey as sea_orm::PrimaryKeyTrait>::ValueType>,
     ) -> Result<E::Model, DbErr> {
+        let db = db.as_ref();
         E::find_by_id(id)
             .one(db)
             .await?
@@ -152,18 +154,20 @@ impl<E: EntityTrait> Objects<E> {
     /// error if it doesn't exist.
     pub async fn get_optional(
         &self,
-        db: &DatabaseConnection,
+        db: &ADb,
         id: impl Into<<E::PrimaryKey as sea_orm::PrimaryKeyTrait>::ValueType>,
     ) -> Result<Option<E::Model>, DbErr> {
+        let db = db.as_ref();
         E::find_by_id(id).one(db).await
     }
 
     /// Returns the total number of rows in the entity's table.
-    pub async fn count(&self, db: &DatabaseConnection) -> Result<u64, DbErr>
+    pub async fn count(&self, db: &ADb) -> Result<u64, DbErr>
     where
         E::Model: Sync,
     {
         use sea_orm::PaginatorTrait;
+        let db = db.as_ref();
         E::find().count(db).await
     }
     /// Fetches the row with primary key `id` and returns it, or renders
@@ -171,7 +175,7 @@ impl<E: EntityTrait> Objects<E> {
     /// `500.html` if the lookup itself fails).
     pub async fn get_or_404(
         &self,
-        db: &DatabaseConnection,
+        db: &ADb,
         id: impl Into<<E::PrimaryKey as sea_orm::PrimaryKeyTrait>::ValueType>,
         ctx: &Request,
         error_msg: &str,
@@ -247,7 +251,7 @@ mod tests {
     }
 
     // Helper function for DB setup
-    async fn setup_db() -> Result<DatabaseConnection, DbErr> {
+    async fn setup_db() -> Result<ADb, DbErr> {
         let db = sea_orm::Database::connect("sqlite::memory:").await?;
 
         use sea_orm::Schema;
@@ -255,7 +259,7 @@ mod tests {
         let stmt = schema.create_table_from_entity(Entity);
         db.execute(&stmt).await?;
 
-        Ok(db)
+        Ok(std::sync::Arc::new(db))
     }
 
     #[tokio::test]
@@ -267,7 +271,7 @@ mod tests {
             age: Set(25),
             ..Default::default()
         };
-        user.insert(&db).await?;
+        user.insert(db.as_ref()).await?;
 
         let users = Entity::objects.all().all(&db).await?;
         assert_eq!(users.len(), 1);
@@ -288,8 +292,8 @@ mod tests {
             age: Set(25),
             ..Default::default()
         };
-        young.insert(&db).await?;
-        adult.insert(&db).await?;
+        young.insert(db.as_ref()).await?;
+        adult.insert(db.as_ref()).await?;
 
         let adults = Entity::objects.filter(Column::Age.gte(18)).all(&db).await?;
         assert_eq!(adults.len(), 1);
@@ -311,8 +315,8 @@ mod tests {
             age: Set(30),
             ..Default::default()
         };
-        alice.insert(&db).await?;
-        banned.insert(&db).await?;
+        alice.insert(db.as_ref()).await?;
+        banned.insert(db.as_ref()).await?;
 
         let active_users = Entity::objects.exclude(Column::Age.eq(30)).all(&db).await?;
         assert_eq!(active_users.len(), 1);
@@ -330,7 +334,7 @@ mod tests {
                 age: Set(20 + i),
                 ..Default::default()
             };
-            user.insert(&db).await?;
+            user.insert(db.as_ref()).await?;
         }
 
         let count = Entity::objects.count(&db).await?;
@@ -346,7 +350,7 @@ mod tests {
             age: Set(28),
             ..Default::default()
         }
-        .insert(&db)
+        .insert(db.as_ref())
         .await?;
 
         let user = Entity::objects.get(&db, inserted.id).await?;
@@ -370,7 +374,7 @@ mod tests {
             age: Set(22),
             ..Default::default()
         }
-        .insert(&db)
+        .insert(db.as_ref())
         .await?;
 
         let result = Entity::objects.get_optional(&db, inserted.id).await?;
@@ -396,7 +400,7 @@ mod tests {
                 age: Set(age),
                 ..Default::default()
             }
-            .insert(&db)
+            .insert(db.as_ref())
             .await?;
         }
         let result = Entity::objects
@@ -416,7 +420,7 @@ mod tests {
                 age: Set(age),
                 ..Default::default()
             }
-            .insert(&db)
+            .insert(db.as_ref())
             .await?;
         }
         let result = Entity::objects

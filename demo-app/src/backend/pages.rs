@@ -3,7 +3,7 @@ use runique::prelude::*;
 
 pub async fn fetch_page_examples(
     slug: &str,
-    db: &sea_orm::DatabaseConnection,
+    db: &ADb,
 ) -> (Vec<code_example::Model>, Vec<page_doc_link::Model>) {
     let page = search!(demo_page::Entity => Slug eq slug)
         .first(db)

@@ -131,7 +131,8 @@
     "stop_hint": "ctrl + c para detener",
     "shutting_down": "Deteniendo el servidor Runique...",
     "acme_not_compiled": "ACME_ENABLED=true pero la feature `acme` no está compilada.",
-    "acme_add_feature": "Añade la feature `acme` a tu Cargo.toml."
+    "acme_add_feature": "Añade la feature `acme` a tu Cargo.toml.",
+    "test_utils_feature_enabled": "La función `test-utils` está compilada en este build — asegúrate de que esté en [dev-dependencies], nunca en [dependencies], antes de desplegar a producción."
   },
   "middleware": {
     "bad_request": "Solicitud incorrecta",

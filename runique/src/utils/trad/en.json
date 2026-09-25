@@ -131,7 +131,8 @@
     "stop_hint": "ctrl + c to stop",
     "shutting_down": "Shutting down Runique server...",
     "acme_not_compiled": "ACME_ENABLED=true but the `acme` feature is not compiled in.",
-    "acme_add_feature": "Add the `acme` feature to your Cargo.toml."
+    "acme_add_feature": "Add the `acme` feature to your Cargo.toml.",
+    "test_utils_feature_enabled": "`test-utils` feature compiled into this build — make sure it's under [dev-dependencies], never [dependencies], before deploying to production."
   },
   "middleware": {
     "bad_request": "Bad Request",

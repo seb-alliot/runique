@@ -6,7 +6,7 @@ use runique::auth::{
     session::{DefaultAdminAuth, UserEntity},
     user::RuniqueUser,
 };
-use sea_orm::DatabaseConnection;
+use runique::utils::ADb;
 
 // ═══════════════════════════════════════════════════════════════
 // Mock minimal implémentant RuniqueUser
@@ -142,23 +142,20 @@ struct MockUserEntity;
 impl UserEntity for MockUserEntity {
     type Model = MockUser;
 
-    async fn find_by_username(_db: &DatabaseConnection, _username: &str) -> Option<Self::Model> {
+    async fn find_by_username(_db: &ADb, _username: &str) -> Option<Self::Model> {
         None
     }
 
-    async fn find_by_email(_db: &DatabaseConnection, _email: &str) -> Option<Self::Model> {
+    async fn find_by_email(_db: &ADb, _email: &str) -> Option<Self::Model> {
         None
     }
 
-    async fn find_by_id(
-        _db: &DatabaseConnection,
-        _id: runique::utils::pk::Pk,
-    ) -> Option<Self::Model> {
+    async fn find_by_id(_db: &ADb, _id: runique::utils::pk::Pk) -> Option<Self::Model> {
         None
     }
 
     async fn update_password(
-        _db: &DatabaseConnection,
+        _db: &ADb,
         _email: &str,
         _new_hash: &str,
     ) -> Result<(), sea_orm::DbErr> {
