@@ -15,6 +15,11 @@ admin! {
         users: {
             hidden: true
         }
+        droits: {
+            list_filter: [
+                ["can_read", "Lecture", 5],
+            ]
+        }
     }
     contribution: contribution::Model => ContributionForm {
         title: "Contribution",

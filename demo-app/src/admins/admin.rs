@@ -8554,7 +8554,7 @@ pub fn admin_register() -> AdminRegistry {
             use sea_orm::{ConnectionTrait, EntityTrait};
             let mut fields: Vec<M2mFieldOptions> = Vec::new();
             {
-                let rows = runique::auth::permissions::groupe::Entity::find()
+                let rows = runique::prelude::groupe::Entity::find()
                     .all(&*db)
                     .await
                     .unwrap_or_default();
@@ -8748,6 +8748,10 @@ pub fn admin_register() -> AdminRegistry {
     );
 
     registry.remove("users");
+    registry.configure(
+        "droits",
+        DisplayConfig::new().list_filter(vec![("can_read", "Lecture", 5u64)]),
+    );
     registry
 }
 
