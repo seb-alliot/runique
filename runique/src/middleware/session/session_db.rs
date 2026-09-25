@@ -1,9 +1,7 @@
 //! Persistent session store in the database (table `eihwaz_sessions`).
-use sea_orm::{
-    ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, entity::prelude::*,
-};
+use crate::utils::aliases::ADb;
+use sea_orm::{ActiveValue::Set, ColumnTrait, EntityTrait, QueryFilter, entity::prelude::*};
 use sea_query::OnConflict;
-use std::sync::Arc;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SeaORM Entity — eihwaz_sessions
@@ -68,12 +66,12 @@ impl ActiveModelBehavior for ActiveModel {}
 /// Called explicitly at login and logout.
 #[derive(Clone, Debug)]
 pub struct RuniqueSessionStore {
-    db: Arc<DatabaseConnection>,
+    db: ADb,
 }
 
 impl RuniqueSessionStore {
     /// Creates a store bound to the given database connection.
-    pub fn new(db: Arc<DatabaseConnection>) -> Self {
+    pub fn new(db: ADb) -> Self {
         Self { db }
     }
 
