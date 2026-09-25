@@ -256,3 +256,19 @@ redirigent avant tout rendu. Les cinq templates restants (`list`, `list_partial`
 `detail`, `kebab`) portent encore le recalcul — les corriger suppose que Rust injecte la décision
 **effective** par enregistrement (`owns_record` n'est connu qu'après `inject_context`), et pour
 `kebab`, rendu ligne par ligne, un `owns` porté par chaque ligne. Chantier ouvert.
+
+### 🟠 A7 — Pas de point d'accroche pour un filtre métier arbitraire dans `get_fn`/`list_fn`
+[`resource_entry.rs:71-72`](../../../runique/src/admin/helper/resource_entry.rs#L71),
+[`admin_main/mod.rs:1041`](../../../runique/src/admin/admin_main/mod.rs#L1041)
+`get_fn`/`list_fn` sont bien le point unique traversé par liste, détail, édition, bulk et
+`check_owns_record` — architecturalement le bon endroit pour un filtre métier type « n'afficher
+que les commandes de sa région ». Mais rien n'y accroche : aucun mot-clé dans le DSL `admin!{}`
+pour fournir un `get_fn`/`list_fn` custom, et le fichier généré (`src/admins/admin.rs`) est
+réécrit sans fusion à chaque `runique start` — une modification manuelle du `get_fn` généré serait
+effacée à la régénération suivante. Contrairement à l'ownership (`own_field`/`check_owns_record`,
+correctement revérifié à la source sur GET et POST — pas de trou IDOR), un filtre conditionnel non
+exprimable comme « égalité à un champ propriétaire » doit être répliqué manuellement sur chaque
+route touchant la resource, sans garantie de cohérence entre elles. Discuté avec Sébastien
+(comparaison Django `get_queryset()`, 2026-09-25), noté au backlog framework item #38 — non
+implémenté, piste : mot-clé DSL type `get_fn: "chemin::vers::ma_fn"` référençant une fonction
+écrite à la main hors du fichier régénéré.
