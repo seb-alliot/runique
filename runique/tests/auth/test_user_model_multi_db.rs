@@ -116,7 +116,7 @@ async fn test_find_by_id_found_sqlite() {
     recreate_users_table(&db).await;
     let alice = insert_alice(&db).await;
 
-    let found = BuiltinUserEntity::find_by_id(&db, alice.id).await;
+    let found = BuiltinUserEntity::find_by_id(&std::sync::Arc::new(db.clone()), alice.id).await;
 
     let found = found.expect("alice doit être relue depuis SQLite");
     assert_eq!(found, alice);
@@ -129,7 +129,7 @@ async fn test_find_by_id_not_found_sqlite() {
     insert_alice(&db).await;
 
     let other = pk(999);
-    let found = BuiltinUserEntity::find_by_id(&db, other).await;
+    let found = BuiltinUserEntity::find_by_id(&std::sync::Arc::new(db.clone()), other).await;
     assert!(found.is_none());
 }
 
@@ -146,7 +146,7 @@ async fn test_find_by_id_found_pg() {
     recreate_users_table(&db).await;
     let alice = insert_alice(&db).await;
 
-    let found = BuiltinUserEntity::find_by_id(&db, alice.id).await;
+    let found = BuiltinUserEntity::find_by_id(&std::sync::Arc::new(db.clone()), alice.id).await;
 
     let found = found.expect("alice doit être relue depuis Postgres");
     // Comparaison champ à champ complète (id inclus) contre ce qui a été
@@ -168,7 +168,7 @@ async fn test_find_by_id_not_found_pg() {
     // Un id bien typé mais qui ne correspond à aucune ligne doit rester
     // `None` — jamais une erreur DB, sur aucun moteur.
     let other = pk(999);
-    let found = BuiltinUserEntity::find_by_id(&db, other).await;
+    let found = BuiltinUserEntity::find_by_id(&std::sync::Arc::new(db.clone()), other).await;
     assert!(found.is_none());
 
     db_postgres::exec(&db, "DROP TABLE IF EXISTS eihwaz_users CASCADE").await;
@@ -187,7 +187,7 @@ async fn test_find_by_id_found_mariadb() {
     recreate_users_table(&db).await;
     let alice = insert_alice(&db).await;
 
-    let found = BuiltinUserEntity::find_by_id(&db, alice.id).await;
+    let found = BuiltinUserEntity::find_by_id(&std::sync::Arc::new(db.clone()), alice.id).await;
 
     let found = found.expect("alice doit être relue depuis MariaDB");
     // Comparaison champ à champ complète (id inclus) contre ce qui a été
@@ -217,7 +217,7 @@ async fn test_find_by_id_not_found_mariadb() {
     insert_alice(&db).await;
 
     let other = pk(999);
-    let found = BuiltinUserEntity::find_by_id(&db, other).await;
+    let found = BuiltinUserEntity::find_by_id(&std::sync::Arc::new(db.clone()), other).await;
     assert!(found.is_none());
 
     let txn = db.begin().await.expect("begin txn for FK-safe cleanup");

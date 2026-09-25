@@ -1,8 +1,9 @@
 //! `DynForm` trait: object-safe abstraction of Runique forms for admin dynamic dispatch.
 use async_trait::async_trait;
-use sea_orm::{DatabaseConnection, DbErr};
+use sea_orm::DbErr;
 
 use crate::forms::form::Forms;
+use crate::utils::aliases::ADb;
 
 /// Object-safe trait wrapping `RuniqueForm` for admin dynamic dispatch.
 ///
@@ -15,7 +16,7 @@ pub trait DynForm: Send + Sync {
     async fn is_valid(&mut self) -> bool;
 
     /// Database save with transaction
-    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr>;
+    async fn save(&mut self, db: &ADb) -> Result<(), DbErr>;
 
     /// Access to the underlying `Forms` for Tera rendering
     fn get_form(&self) -> &Forms;

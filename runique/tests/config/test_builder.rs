@@ -21,7 +21,7 @@ use runique::auth::session::{AdminAuth, AdminLoginResult};
 use runique::config::app::RuniqueConfig;
 use runique::middleware::MiddlewareConfig;
 use runique::middleware::TrustedProxies;
-use sea_orm::DatabaseConnection;
+use runique::utils::ADb;
 use serial_test::serial;
 use tower_sessions::cookie::time::Duration;
 
@@ -41,7 +41,7 @@ impl AdminAuth for MockAdminAuth {
         &self,
         _username: &str,
         _password: &str,
-        _db: &DatabaseConnection,
+        _db: &ADb,
     ) -> Option<AdminLoginResult> {
         None
     }

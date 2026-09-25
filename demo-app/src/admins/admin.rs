@@ -33,7 +33,7 @@ impl DynForm for ContributionAdminFormDynWrapper {
         self.0.is_valid().await
     }
 
-    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {
+    async fn save(&mut self, db: &ADb) -> Result<(), DbErr> {
         self.0.save(db).await
     }
 
@@ -55,7 +55,7 @@ impl DynForm for BlogAdminFormDynWrapper {
         self.0.is_valid().await
     }
 
-    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {
+    async fn save(&mut self, db: &ADb) -> Result<(), DbErr> {
         self.0.save(db).await
     }
 
@@ -77,7 +77,7 @@ impl DynForm for ChangelogEntryAdminFormDynWrapper {
         self.0.is_valid().await
     }
 
-    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {
+    async fn save(&mut self, db: &ADb) -> Result<(), DbErr> {
         self.0.save(db).await
     }
 
@@ -99,7 +99,7 @@ impl DynForm for RoadmapEntryAdminFormDynWrapper {
         self.0.is_valid().await
     }
 
-    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {
+    async fn save(&mut self, db: &ADb) -> Result<(), DbErr> {
         self.0.save(db).await
     }
 
@@ -121,7 +121,7 @@ impl DynForm for KnownIssueAdminFormDynWrapper {
         self.0.is_valid().await
     }
 
-    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {
+    async fn save(&mut self, db: &ADb) -> Result<(), DbErr> {
         self.0.save(db).await
     }
 
@@ -143,7 +143,7 @@ impl DynForm for DemoCategoryAdminFormDynWrapper {
         self.0.is_valid().await
     }
 
-    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {
+    async fn save(&mut self, db: &ADb) -> Result<(), DbErr> {
         self.0.save(db).await
     }
 
@@ -165,7 +165,7 @@ impl DynForm for DemoPageAdminFormDynWrapper {
         self.0.is_valid().await
     }
 
-    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {
+    async fn save(&mut self, db: &ADb) -> Result<(), DbErr> {
         self.0.save(db).await
     }
 
@@ -187,7 +187,7 @@ impl DynForm for DemoSectionAdminFormDynWrapper {
         self.0.is_valid().await
     }
 
-    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {
+    async fn save(&mut self, db: &ADb) -> Result<(), DbErr> {
         self.0.save(db).await
     }
 
@@ -209,7 +209,7 @@ impl DynForm for CodeExampleAdminFormDynWrapper {
         self.0.is_valid().await
     }
 
-    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {
+    async fn save(&mut self, db: &ADb) -> Result<(), DbErr> {
         self.0.save(db).await
     }
 
@@ -231,7 +231,7 @@ impl DynForm for PageDocLinkAdminFormDynWrapper {
         self.0.is_valid().await
     }
 
-    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {
+    async fn save(&mut self, db: &ADb) -> Result<(), DbErr> {
         self.0.save(db).await
     }
 
@@ -253,7 +253,7 @@ impl DynForm for FormFieldAdminFormDynWrapper {
         self.0.is_valid().await
     }
 
-    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {
+    async fn save(&mut self, db: &ADb) -> Result<(), DbErr> {
         self.0.save(db).await
     }
 
@@ -275,7 +275,7 @@ impl DynForm for DocSectionAdminFormDynWrapper {
         self.0.is_valid().await
     }
 
-    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {
+    async fn save(&mut self, db: &ADb) -> Result<(), DbErr> {
         self.0.save(db).await
     }
 
@@ -297,7 +297,7 @@ impl DynForm for DocPageAdminFormDynWrapper {
         self.0.is_valid().await
     }
 
-    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {
+    async fn save(&mut self, db: &ADb) -> Result<(), DbErr> {
         self.0.save(db).await
     }
 
@@ -319,7 +319,7 @@ impl DynForm for DocBlockAdminFormDynWrapper {
         self.0.is_valid().await
     }
 
-    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {
+    async fn save(&mut self, db: &ADb) -> Result<(), DbErr> {
         self.0.save(db).await
     }
 
@@ -341,7 +341,7 @@ impl DynForm for SiteConfigAdminFormDynWrapper {
         self.0.is_valid().await
     }
 
-    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {
+    async fn save(&mut self, db: &ADb) -> Result<(), DbErr> {
         self.0.save(db).await
     }
 
@@ -363,7 +363,7 @@ impl DynForm for CourAdminFormDynWrapper {
         self.0.is_valid().await
     }
 
-    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {
+    async fn save(&mut self, db: &ADb) -> Result<(), DbErr> {
         self.0.save(db).await
     }
 
@@ -385,7 +385,7 @@ impl DynForm for ChapitreAdminFormDynWrapper {
         self.0.is_valid().await
     }
 
-    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {
+    async fn save(&mut self, db: &ADb) -> Result<(), DbErr> {
         self.0.save(db).await
     }
 
@@ -407,7 +407,7 @@ impl DynForm for CourBlockAdminFormDynWrapper {
         self.0.is_valid().await
     }
 
-    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {
+    async fn save(&mut self, db: &ADb) -> Result<(), DbErr> {
         self.0.save(db).await
     }
 
@@ -429,7 +429,7 @@ impl DynForm for RuniqueReleaseAdminFormDynWrapper {
         self.0.is_valid().await
     }
 
-    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {
+    async fn save(&mut self, db: &ADb) -> Result<(), DbErr> {
         self.0.save(db).await
     }
 
@@ -451,7 +451,7 @@ impl DynForm for UserProfileAdminFormDynWrapper {
         self.0.is_valid().await
     }
 
-    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {
+    async fn save(&mut self, db: &ADb) -> Result<(), DbErr> {
         self.0.save(db).await
     }
 

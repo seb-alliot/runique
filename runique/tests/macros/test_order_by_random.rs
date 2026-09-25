@@ -24,6 +24,7 @@ use runique::sea_orm::{
     ActiveModelTrait, ActiveValue::Set, ConnectionTrait, DatabaseConnection, DbBackend,
     EntityTrait, Schema, TransactionTrait,
 };
+use runique::utils::ADb;
 use serial_test::serial;
 use std::collections::HashSet;
 
@@ -113,7 +114,7 @@ async fn seed_users(db: &DatabaseConnection) -> HashSet<runique::utils::config::
 /// randomizing, not silently falling back to a stable default order — which
 /// a mere "not empty"/"no SQL error" check would miss entirely).
 async fn assert_order_by_random_result(
-    db: &DatabaseConnection,
+    db: &ADb,
     expected_ids: &HashSet<runique::utils::config::Pk>,
 ) {
     let mut orderings = Vec::with_capacity(RUNS);
@@ -151,7 +152,7 @@ async fn test_order_by_random_sqlite() {
     let db = db::fresh_db().await;
     recreate_users_table(&db).await;
     let ids = seed_users(&db).await;
-    assert_order_by_random_result(&db, &ids).await;
+    assert_order_by_random_result(&std::sync::Arc::new(db), &ids).await;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -166,7 +167,7 @@ async fn test_order_by_random_pg() {
     };
     recreate_users_table(&db).await;
     let ids = seed_users(&db).await;
-    assert_order_by_random_result(&db, &ids).await;
+    assert_order_by_random_result(&std::sync::Arc::new(db.clone()), &ids).await;
 
     db_postgres::exec(&db, "DROP TABLE IF EXISTS eihwaz_users CASCADE").await;
 }
@@ -183,7 +184,7 @@ async fn test_order_by_random_mariadb() {
     };
     recreate_users_table(&db).await;
     let ids = seed_users(&db).await;
-    assert_order_by_random_result(&db, &ids).await;
+    assert_order_by_random_result(&std::sync::Arc::new(db.clone()), &ids).await;
 
     let txn = db.begin().await.expect("begin txn for FK-safe cleanup");
     txn.execute_unprepared("SET FOREIGN_KEY_CHECKS=0")

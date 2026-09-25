@@ -131,7 +131,8 @@
     "stop_hint": "Strg + C zum Beenden",
     "shutting_down": "Runique-Server wird heruntergefahren...",
     "acme_not_compiled": "ACME_ENABLED=true, aber das Feature `acme` ist nicht einkompiliert.",
-    "acme_add_feature": "Füge das Feature `acme` zu deiner Cargo.toml hinzu."
+    "acme_add_feature": "Füge das Feature `acme` zu deiner Cargo.toml hinzu.",
+    "test_utils_feature_enabled": "Feature `test-utils` ist in diesem Build kompiliert — stelle sicher, dass sie unter [dev-dependencies] steht, niemals unter [dependencies], vor einem Produktions-Deployment."
   },
   "middleware": {
     "bad_request": "Ungültige Anfrage",

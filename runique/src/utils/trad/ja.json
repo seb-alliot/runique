@@ -131,7 +131,8 @@
     "stop_hint": "停止するには Ctrl + C",
     "shutting_down": "Runique サーバーをシャットダウンしています...",
     "acme_not_compiled": "ACME_ENABLED=true ですが、`acme` フィーチャーがコンパイルされていません。",
-    "acme_add_feature": "Cargo.toml に `acme` フィーチャーを追加してください。"
+    "acme_add_feature": "Cargo.toml に `acme` フィーチャーを追加してください。",
+    "test_utils_feature_enabled": "`test-utils` フィーチャーがこのビルドに含まれています — 本番環境にデプロイする前に、[dependencies] ではなく [dev-dependencies] に設定されていることを確認してください。"
   },
   "middleware": {
     "bad_request": "不正なリクエスト",

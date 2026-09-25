@@ -21,10 +21,7 @@ pub struct CardSection {
     pub entries: Vec<CardEntry>,
 }
 
-pub async fn fetch_changelog_paged(
-    db: &sea_orm::DatabaseConnection,
-    page: usize,
-) -> (Vec<CardSection>, usize, usize) {
+pub async fn fetch_changelog_paged(db: &ADb, page: usize) -> (Vec<CardSection>, usize, usize) {
     let all = fetch_changelog(db).await;
     let total = all.len();
     let page = page.max(1).min(total.max(1));
@@ -32,7 +29,7 @@ pub async fn fetch_changelog_paged(
     (sections, page, total)
 }
 
-pub async fn fetch_changelog(db: &sea_orm::DatabaseConnection) -> Vec<CardSection> {
+pub async fn fetch_changelog(db: &ADb) -> Vec<CardSection> {
     // `desc Id` orders releases newest-first (id tracks insertion chronology — the
     // version string can't be sorted reliably: "2.1.9" would land above "2.1.18").
     // We then group by version in Rust so that `sort_order` controls the order WITHIN
@@ -81,7 +78,7 @@ pub async fn fetch_changelog(db: &sea_orm::DatabaseConnection) -> Vec<CardSectio
         .collect()
 }
 
-pub async fn fetch_known_issues(db: &sea_orm::DatabaseConnection) -> Vec<CardSection> {
+pub async fn fetch_known_issues(db: &ADb) -> Vec<CardSection> {
     let all = search!(KnownIssueEntity => desc Version, asc SortOrder)
         .all(db)
         .await
@@ -121,7 +118,7 @@ pub async fn fetch_known_issues(db: &sea_orm::DatabaseConnection) -> Vec<CardSec
     sections
 }
 
-pub async fn fetch_roadmap(db: &sea_orm::DatabaseConnection) -> Vec<CardSection> {
+pub async fn fetch_roadmap(db: &ADb) -> Vec<CardSection> {
     let all = search!(RoadmapEntryEntity => asc SortOrder)
         .all(db)
         .await

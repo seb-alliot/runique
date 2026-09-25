@@ -152,7 +152,7 @@ impl RuniqueForm for TrackerForm {
 
 #[tokio::test]
 async fn test_save_as_ordre_appel() {
-    let db = db::fresh_db().await;
+    let db = std::sync::Arc::new(db::fresh_db().await);
     let mut form = TrackerForm::new();
     form.save_as(SaveContext::Create, &db).await.unwrap();
     assert_eq!(form.calls, ["before", "save", "after"]);
@@ -160,7 +160,7 @@ async fn test_save_as_ordre_appel() {
 
 #[tokio::test]
 async fn test_save_as_contexte_transmis_create() {
-    let db = db::fresh_db().await;
+    let db = std::sync::Arc::new(db::fresh_db().await);
     let mut form = TrackerForm::new();
     form.save_as(SaveContext::Create, &db).await.unwrap();
     assert_eq!(form.contexts, [SaveContext::Create, SaveContext::Create]);
@@ -168,7 +168,7 @@ async fn test_save_as_contexte_transmis_create() {
 
 #[tokio::test]
 async fn test_save_as_contexte_transmis_update() {
-    let db = db::fresh_db().await;
+    let db = std::sync::Arc::new(db::fresh_db().await);
     let mut form = TrackerForm::new();
     form.save_as(SaveContext::Update, &db).await.unwrap();
     assert_eq!(form.contexts, [SaveContext::Update, SaveContext::Update]);
@@ -176,7 +176,7 @@ async fn test_save_as_contexte_transmis_update() {
 
 #[tokio::test]
 async fn test_save_as_contexte_transmis_delete() {
-    let db = db::fresh_db().await;
+    let db = std::sync::Arc::new(db::fresh_db().await);
     let mut form = TrackerForm::new();
     form.save_as(SaveContext::Delete, &db).await.unwrap();
     assert_eq!(form.contexts, [SaveContext::Delete, SaveContext::Delete]);
@@ -192,7 +192,7 @@ async fn test_save_as_contexte_transmis_delete() {
 
 #[tokio::test]
 async fn test_before_save_echoue_save_non_appele() {
-    let db = db::fresh_db().await;
+    let db = std::sync::Arc::new(db::fresh_db().await);
     let mut form = TrackerForm::new().with_fail_before();
     let _ = form.save_as(SaveContext::Create, &db).await;
     assert!(!form.calls.contains(&"save".to_string()));
@@ -209,7 +209,7 @@ async fn test_before_save_echoue_save_non_appele() {
 
 #[tokio::test]
 async fn test_on_save_echoue_after_non_appele() {
-    let db = db::fresh_db().await;
+    let db = std::sync::Arc::new(db::fresh_db().await);
     let mut form = TrackerForm::new().with_fail_save();
     let _ = form.save_as(SaveContext::Create, &db).await;
     assert!(!form.calls.contains(&"after".to_string()));
@@ -233,7 +233,9 @@ async fn test_after_save_echoue_rollback_db() {
         .with_sql("INSERT INTO hook_test (val) VALUES ('test')")
         .with_fail_after();
 
-    let result = form.save_as(SaveContext::Create, &db).await;
+    let result = form
+        .save_as(SaveContext::Create, &std::sync::Arc::new(db.clone()))
+        .await;
     assert!(result.is_err());
     db::assert_count(&db, "hook_test", 0).await;
 }
@@ -247,7 +249,9 @@ async fn test_commit_si_tous_hooks_ok() {
 
     let mut form = TrackerForm::new().with_sql("INSERT INTO hook_test_ok (val) VALUES ('test')");
 
-    form.save_as(SaveContext::Create, &db).await.unwrap();
+    form.save_as(SaveContext::Create, &std::sync::Arc::new(db.clone()))
+        .await
+        .unwrap();
     db::assert_count(&db, "hook_test_ok", 1).await;
 }
 
@@ -263,7 +267,9 @@ async fn test_on_save_echoue_rollback_db() {
         .with_sql("INSERT INTO hook_test_save_fail (val) VALUES ('test')")
         .with_fail_save();
 
-    let result = form.save_as(SaveContext::Create, &db).await;
+    let result = form
+        .save_as(SaveContext::Create, &std::sync::Arc::new(db.clone()))
+        .await;
     assert!(result.is_err());
     db::assert_count(&db, "hook_test_save_fail", 0).await;
 }
@@ -280,7 +286,9 @@ async fn test_before_save_echoue_rollback_db() {
         .with_before_sql("INSERT INTO hook_test_before_fail (val) VALUES ('test')")
         .with_fail_before();
 
-    let result = form.save_as(SaveContext::Create, &db).await;
+    let result = form
+        .save_as(SaveContext::Create, &std::sync::Arc::new(db.clone()))
+        .await;
     assert!(result.is_err());
     db::assert_count(&db, "hook_test_before_fail", 0).await;
 }

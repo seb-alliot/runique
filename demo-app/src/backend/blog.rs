@@ -2,10 +2,7 @@ use crate::entities::blog::Entity as BlogEntity;
 use crate::formulaire::BlogForm;
 use runique::prelude::*;
 
-pub async fn list_articles(
-    db: &sea_orm::DatabaseConnection,
-    search: Option<&str>,
-) -> Vec<crate::entities::blog::Model> {
+pub async fn list_articles(db: &ADb, search: Option<&str>) -> Vec<crate::entities::blog::Model> {
     if let Some(term) = search.filter(|s| !s.is_empty()) {
         search!(BlogEntity => or(Title icontains term, Summary icontains term))
             .order_by_desc(crate::entities::blog::Column::Id)
@@ -21,20 +18,14 @@ pub async fn list_articles(
     }
 }
 
-pub async fn get_article(
-    db: &sea_orm::DatabaseConnection,
-    id: Pk,
-) -> Option<crate::entities::blog::Model> {
+pub async fn get_article(db: &ADb, id: Pk) -> Option<crate::entities::blog::Model> {
     search!(BlogEntity => Id eq id)
         .first(db)
         .await
         .unwrap_or(None)
 }
 
-pub async fn save_blog(
-    blog: &mut BlogForm,
-    db: &sea_orm::DatabaseConnection,
-) -> Result<(), sea_orm::DbErr> {
+pub async fn save_blog(blog: &mut BlogForm, db: &ADb) -> Result<(), sea_orm::DbErr> {
     blog.save(db).await.map(|_| ())
 }
 

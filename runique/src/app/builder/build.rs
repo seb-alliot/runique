@@ -59,6 +59,10 @@ impl RuniqueAppBuilder {
         //   - `with_database_config(cfg)` → `connect()` during build
         #[cfg(feature = "orm")]
         let db = self.core.connect().await?;
+        // Wrapped in `RuniqueDb::Conn` so `db: new(db)` below always matches
+        // `ADb`'s definition, whether or not `test-utils` is enabled.
+        #[cfg(all(feature = "orm", feature = "test-utils"))]
+        let db = crate::db::RuniqueDb::Conn(db);
 
         // Step 3: destructuring
         let extensions = self.core.extensions;

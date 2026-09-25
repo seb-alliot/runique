@@ -56,10 +56,8 @@ impl RuniqueForm for BlogForm {
 
 #[allow(dead_code)]
 impl BlogForm {
-    pub async fn save(
-        &mut self,
-        db: &DatabaseConnection,
-    ) -> Result<crate::entities::blog::Model, DbErr> {
+    pub async fn save(&mut self, db: &ADb) -> Result<crate::entities::blog::Model, DbErr> {
+        let db = db.as_ref();
         let new_blog = crate::entities::blog::ActiveModel {
             title: Set(self.cleaned_string("title").unwrap_or_default()),
             email: Set(self.cleaned_string("email").unwrap_or_default()),

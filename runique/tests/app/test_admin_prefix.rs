@@ -11,7 +11,8 @@ use runique::admin::AdminRoutes;
 use runique::app::RuniqueApp;
 use runique::auth::session::{AdminAuth, AdminLoginResult};
 use runique::config::RuniqueConfig;
-use sea_orm::{Database, DatabaseConnection};
+use runique::utils::ADb;
+use sea_orm::Database;
 use serial_test::serial;
 
 // `#[serial]` sur tous les tests de ce fichier : chaque test construit une app
@@ -29,7 +30,7 @@ impl AdminAuth for MockAdminAuth {
         &self,
         _username: &str,
         _password: &str,
-        _db: &DatabaseConnection,
+        _db: &ADb,
     ) -> Option<AdminLoginResult> {
         None
     }

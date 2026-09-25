@@ -4,13 +4,13 @@ pub use crate::forms::{
     base::FormField, form::Forms, renderer::FormRenderer, validator::ValidationError,
 };
 use crate::utils::{
-    aliases::{ATera, StrMap},
+    aliases::{ADb, ATera, StrMap},
     trad::t,
 };
 
 use async_trait::async_trait;
 use axum::http::Method;
-use sea_orm::{DatabaseConnection, DatabaseTransaction, DbErr, TransactionTrait};
+use sea_orm::{DatabaseTransaction, DbErr, TransactionTrait};
 
 /// Context passed to `before_save` and `after_save` hooks.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -379,7 +379,8 @@ pub trait RuniqueForm: Sized + Send + Sync {
     }
 
     /// Atomic wrapper: explicit transaction (avoids the 'static futures trap)
-    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {
+    async fn save(&mut self, db: &ADb) -> Result<(), DbErr> {
+        let db = db.as_ref();
         if !self.get_form().is_save_allowed() {
             return Err(DbErr::Custom(
                 "save() requires a successful is_valid() call — form not validated or invalid"
@@ -404,7 +405,8 @@ pub trait RuniqueForm: Sized + Send + Sync {
     /// Like `save`, but with explicit context for hooks.
     /// Order: `before_save` → `on_save` → `after_save` → commit.
     /// Any failure triggers rollback and returns the original error.
-    async fn save_as(&mut self, ctx: SaveContext, db: &DatabaseConnection) -> Result<(), DbErr> {
+    async fn save_as(&mut self, ctx: SaveContext, db: &ADb) -> Result<(), DbErr> {
+        let db = db.as_ref();
         if !self.get_form().is_save_allowed() {
             return Err(DbErr::Custom(
                 "save_as() requires a successful is_valid() call — form not validated or invalid"

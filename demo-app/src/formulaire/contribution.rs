@@ -58,9 +58,10 @@ impl RuniqueForm for ContributionForm {
 impl ContributionForm {
     pub async fn save(
         &mut self,
-        db: &DatabaseConnection,
+        db: &ADb,
         user_pk: Pk,
     ) -> Result<crate::entities::contribution::Model, DbErr> {
+        let db = db.as_ref();
         let new_contribution = crate::entities::contribution::ActiveModel {
             user_id: Set(user_pk),
             contribution_type: Set(self

@@ -71,6 +71,8 @@ impl RuniqueApp {
                 "          └──>  {}",
                 tf("server.connected_db", &[format!("{moteur_db:?}"), db_name])
             );
+            #[cfg(feature = "test-utils")]
+            eprintln!("          └──>  {}", t("server.test_utils_feature_enabled"));
             println!("              └──> {}", t("server.stop_hint"));
         }
 
@@ -255,6 +257,8 @@ impl RuniqueApp {
                 "          └──>  {}",
                 tf("server.connected_db", &[format!("{moteur_db:?}"), db_name])
             );
+            #[cfg(feature = "test-utils")]
+            eprintln!("          └──>  {}", t("server.test_utils_feature_enabled"));
         }
         println!("              └──> ctrl + c to stop");
 

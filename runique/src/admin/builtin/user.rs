@@ -389,7 +389,7 @@ impl DynForm for UserCreateDynWrapper {
     async fn is_valid(&mut self) -> bool {
         self.0.is_valid().await
     }
-    async fn save(&mut self, _db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::DbErr> {
+    async fn save(&mut self, _db: &crate::utils::aliases::ADb) -> Result<(), sea_orm::DbErr> {
         Ok(())
     }
     fn get_form(&self) -> &crate::forms::form::Forms {
@@ -406,7 +406,7 @@ impl DynForm for UserEditDynWrapper {
     async fn is_valid(&mut self) -> bool {
         self.0.is_valid().await
     }
-    async fn save(&mut self, _db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::DbErr> {
+    async fn save(&mut self, _db: &crate::utils::aliases::ADb) -> Result<(), sea_orm::DbErr> {
         Ok(())
     }
     fn get_form(&self) -> &crate::forms::form::Forms {

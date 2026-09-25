@@ -9,7 +9,7 @@ use crate::forms::{
 };
 use crate::impl_from_error;
 use crate::middleware::security::anti_bot::HoneypotFieldName;
-use crate::utils::aliases::{AEngine, AppResult};
+use crate::utils::aliases::{ADb, AEngine, AppResult};
 use crate::utils::trad::t;
 use crate::utils::url_params::UrlParams;
 use crate::utils::{csp_nonce::CspNonce, csrf::CsrfToken};
@@ -332,7 +332,7 @@ impl Request {
     }
 
     /// Returns a reference to the database connection.
-    pub fn db(&self) -> &sea_orm::DatabaseConnection {
+    pub fn db(&self) -> &ADb {
         &self.engine.db
     }
 
