@@ -143,7 +143,6 @@ impl<E: EntityTrait> Objects<E> {
         db: &ADb,
         id: impl Into<<E::PrimaryKey as sea_orm::PrimaryKeyTrait>::ValueType>,
     ) -> Result<E::Model, DbErr> {
-        let db = db.as_ref();
         E::find_by_id(id)
             .one(db)
             .await?
@@ -157,7 +156,6 @@ impl<E: EntityTrait> Objects<E> {
         db: &ADb,
         id: impl Into<<E::PrimaryKey as sea_orm::PrimaryKeyTrait>::ValueType>,
     ) -> Result<Option<E::Model>, DbErr> {
-        let db = db.as_ref();
         E::find_by_id(id).one(db).await
     }
 
@@ -167,7 +165,6 @@ impl<E: EntityTrait> Objects<E> {
         E::Model: Sync,
     {
         use sea_orm::PaginatorTrait;
-        let db = db.as_ref();
         E::find().count(db).await
     }
     /// Fetches the row with primary key `id` and returns it, or renders
@@ -259,7 +256,7 @@ mod tests {
         let stmt = schema.create_table_from_entity(Entity);
         db.execute(&stmt).await?;
 
-        Ok(std::sync::Arc::new(db))
+        Ok(ADb::from_connection(db))
     }
 
     #[tokio::test]
@@ -271,7 +268,7 @@ mod tests {
             age: Set(25),
             ..Default::default()
         };
-        user.insert(db.as_ref()).await?;
+        user.insert(&db).await?;
 
         let users = Entity::objects.all().all(&db).await?;
         assert_eq!(users.len(), 1);
@@ -292,8 +289,8 @@ mod tests {
             age: Set(25),
             ..Default::default()
         };
-        young.insert(db.as_ref()).await?;
-        adult.insert(db.as_ref()).await?;
+        young.insert(&db).await?;
+        adult.insert(&db).await?;
 
         let adults = Entity::objects.filter(Column::Age.gte(18)).all(&db).await?;
         assert_eq!(adults.len(), 1);
@@ -315,8 +312,8 @@ mod tests {
             age: Set(30),
             ..Default::default()
         };
-        alice.insert(db.as_ref()).await?;
-        banned.insert(db.as_ref()).await?;
+        alice.insert(&db).await?;
+        banned.insert(&db).await?;
 
         let active_users = Entity::objects.exclude(Column::Age.eq(30)).all(&db).await?;
         assert_eq!(active_users.len(), 1);
@@ -334,7 +331,7 @@ mod tests {
                 age: Set(20 + i),
                 ..Default::default()
             };
-            user.insert(db.as_ref()).await?;
+            user.insert(&db).await?;
         }
 
         let count = Entity::objects.count(&db).await?;
@@ -350,7 +347,7 @@ mod tests {
             age: Set(28),
             ..Default::default()
         }
-        .insert(db.as_ref())
+        .insert(&db)
         .await?;
 
         let user = Entity::objects.get(&db, inserted.id).await?;
@@ -374,7 +371,7 @@ mod tests {
             age: Set(22),
             ..Default::default()
         }
-        .insert(db.as_ref())
+        .insert(&db)
         .await?;
 
         let result = Entity::objects.get_optional(&db, inserted.id).await?;
@@ -400,7 +397,7 @@ mod tests {
                 age: Set(age),
                 ..Default::default()
             }
-            .insert(db.as_ref())
+            .insert(&db)
             .await?;
         }
         let result = Entity::objects
@@ -420,7 +417,7 @@ mod tests {
                 age: Set(age),
                 ..Default::default()
             }
-            .insert(db.as_ref())
+            .insert(&db)
             .await?;
         }
         let result = Entity::objects

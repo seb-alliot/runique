@@ -68,7 +68,7 @@ pub async fn get_field_groups(db: &ADb) -> Vec<FieldGroup> {
         form_field::Entity::find()
             .filter(form_field::Column::PageId.eq(p.id))
             .order_by_asc(form_field::Column::SortOrder)
-            .all(db.as_ref())
+            .all(db)
             .await
             .unwrap_or_default()
     } else {

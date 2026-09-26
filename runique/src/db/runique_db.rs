@@ -20,6 +20,7 @@ use std::pin::Pin;
 /// Either a real [`DatabaseConnection`], or a [`DatabaseTransaction`] already
 /// open (used by the test harness to wrap one test's body — nothing it
 /// writes is ever actually committed).
+#[derive(Debug)]
 pub enum RuniqueDb {
     Conn(DatabaseConnection),
     Txn(DatabaseTransaction),

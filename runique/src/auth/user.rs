@@ -92,7 +92,6 @@ impl UserEntity for BuiltinUserEntity {
     type Model = Model;
 
     async fn find_by_id(db: &ADb, id: Pk) -> Option<Self::Model> {
-        let db = db.as_ref();
         Entity::find_by_id(id)
             .one(db)
             .await
@@ -143,12 +142,11 @@ impl UserEntity for BuiltinUserEntity {
         let mut active: ActiveModel = user.into();
         active.password = Set(new_hash.to_string());
         active.is_active = Set(true);
-        active.update(db.as_ref()).await?;
+        active.update(db).await?;
         Ok(())
     }
 
     async fn update_password_by_id(db: &ADb, id: Pk, new_hash: &str) -> Result<(), sea_orm::DbErr> {
-        let db = db.as_ref();
         let user = Entity::find_by_id(id)
             .one(db)
             .await?

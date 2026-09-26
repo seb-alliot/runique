@@ -3,7 +3,6 @@
 use crate::helpers::db;
 use crate::helpers::pk::pk;
 use runique::middleware::session::session_db::RuniqueSessionStore;
-use std::sync::Arc;
 
 #[cfg(feature = "pk-uuid")]
 const SESSIONS_DDL: &str = "
@@ -45,7 +44,7 @@ fn past_expiry() -> chrono::NaiveDateTime {
 
 async fn make_store() -> RuniqueSessionStore {
     let db = db::fresh_db_with_schema(SESSIONS_DDL).await;
-    RuniqueSessionStore::new(Arc::new(db))
+    RuniqueSessionStore::new(runique::db::ADb::from_connection(db))
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -288,17 +287,17 @@ async fn test_session_db_spawn_cleanup_actually_purges_expired() {
     // `find_by_cookie_id` ne renvoie que les sessions ACTIVES (filtre `expires_at
     // > now`), donc inutilisable pour vérifier la présence d'une session déjà
     // expirée avant le cleanup — on compte la ligne brute dans la table à la place.
-    let db = std::sync::Arc::new(crate::helpers::db::fresh_db_with_schema(SESSIONS_DDL).await);
-    let store = RuniqueSessionStore::new(db.clone());
+    let conn = crate::helpers::db::fresh_db_with_schema(SESSIONS_DDL).await;
+    let store = RuniqueSessionStore::new(runique::db::ADb::from_connection(conn.clone()));
     store
         .create("cookie-expired", pk(1), "sess-expired", past_expiry())
         .await
         .unwrap();
-    crate::helpers::db::assert_count(&db, "eihwaz_sessions", 1).await;
+    crate::helpers::db::assert_count(&conn, "eihwaz_sessions", 1).await;
 
     // Intervalle court pour observer un vrai cycle de purge, pas juste l'absence de panic.
     store.spawn_cleanup(tokio::time::Duration::from_millis(20));
     tokio::time::sleep(tokio::time::Duration::from_millis(80)).await;
 
-    crate::helpers::db::assert_count(&db, "eihwaz_sessions", 0).await;
+    crate::helpers::db::assert_count(&conn, "eihwaz_sessions", 0).await;
 }

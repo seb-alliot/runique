@@ -61,7 +61,6 @@ impl ContributionForm {
         db: &ADb,
         user_pk: Pk,
     ) -> Result<crate::entities::contribution::Model, DbErr> {
-        let db = db.as_ref();
         let new_contribution = crate::entities::contribution::ActiveModel {
             user_id: Set(user_pk),
             contribution_type: Set(self

@@ -285,7 +285,7 @@ pub async fn create_superuser() -> Result<()> {
     dotenvy::dotenv_override().ok();
 
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be defined in .env");
-    let db: ADb = std::sync::Arc::new(sea_orm::Database::connect(&database_url).await?);
+    let db: ADb = ADb::from_connection(sea_orm::Database::connect(&database_url).await?);
 
     println!("{}", t("admin.superuser_wizard.title"));
 
@@ -371,7 +371,7 @@ pub async fn create_superuser() -> Result<()> {
         ..Default::default()
     };
 
-    let inserted = new_user.insert(db.as_ref()).await?;
+    let inserted = new_user.insert(&db).await?;
 
     println!("\n{}", t("admin.superuser_wizard.success"));
     println!("{}", tf("admin.superuser_wizard.id_line", &[&inserted.id]));

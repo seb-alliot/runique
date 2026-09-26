@@ -88,12 +88,8 @@ pub(super) async fn handle_list(
     );
     let mut entries =
         entries_result.map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?;
-    crate::admin::helper::resolve_fk_labels(
-        req.engine.db.as_ref(),
-        &mut entries,
-        &entry.meta.fk_display,
-    )
-    .await;
+    crate::admin::helper::resolve_fk_labels(&req.engine.db, &mut entries, &entry.meta.fk_display)
+        .await;
     if let Some(apply_enum_labels) = entry.enum_label_fn {
         for row in &mut entries {
             apply_enum_labels(row);

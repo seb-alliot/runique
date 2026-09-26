@@ -88,8 +88,7 @@ pub(super) async fn build_inlines(
             }
         };
 
-        crate::admin::helper::resolve_fk_labels(db.as_ref(), &mut rows, &child.meta.fk_display)
-            .await;
+        crate::admin::helper::resolve_fk_labels(&db, &mut rows, &child.meta.fk_display).await;
         if let Some(apply_enum_labels) = child.enum_label_fn {
             for row in &mut rows {
                 apply_enum_labels(row);

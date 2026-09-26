@@ -52,7 +52,7 @@ pub async fn down(migrations_path: &str, files: Vec<String>, batch: Option<Strin
     let db_url = std::env::var("DATABASE_URL")
         .with_context(|| "DATABASE_URL not set. Add it to your .env file.")?;
 
-    let db: ADb = std::sync::Arc::new(
+    let db: ADb = ADb::from_connection(
         Database::connect(&db_url)
             .await
             .with_context(|| "Failed to connect to database.")?,
@@ -259,7 +259,6 @@ fn list_available(migrations_path: &str) -> Result<()> {
 // ============================================================
 
 async fn execute_down_block(source: &str, db: &ADb) -> Result<()> {
-    let db = db.as_ref();
     let backend = db.get_database_backend();
 
     // 1) capture down() block safely

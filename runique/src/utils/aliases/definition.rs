@@ -23,16 +23,10 @@ use indexmap::IndexMap;
 pub type ATera = Arc<Tera>;
 pub type OATera = Option<ATera>;
 
-/// Database connection — either a real [`DatabaseConnection`], or (under the
-/// `test-utils` feature) [`RuniqueDb`](crate::db::RuniqueDb), which also
-/// accepts an already-open test transaction. Every function taking `&ADb`
-/// works unchanged in both cases via `ConnectionTrait`/`TransactionTrait`
-/// (call `.as_ref()` to reach the concrete type when a raw SeaORM method
-/// needs it directly instead of the trait).
-#[cfg(not(feature = "test-utils"))]
-pub type ADb = Arc<DatabaseConnection>;
-#[cfg(feature = "test-utils")]
-pub type ADb = Arc<crate::db::RuniqueDb>;
+/// Database connection — see [`crate::db::ADb`]. Re-exported here so
+/// existing `use runique::utils::ADb;` / `use runique::utils::aliases::ADb;`
+/// import paths keep working.
+pub use crate::db::ADb;
 
 pub type Bdd = Option<DatabaseConnection>;
 pub type OADb = Option<ADb>;

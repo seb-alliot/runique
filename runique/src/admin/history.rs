@@ -64,7 +64,7 @@ pub async fn log_admin_action(db: &ADb, log: AdminActionLog<'_>) {
         batch_id: Set(log.batch_id),
         ..Default::default()
     };
-    if let Err(e) = Entity::insert(entry).exec(db.as_ref()).await {
+    if let Err(e) = Entity::insert(entry).exec(db).await {
         tracing::warn!(
             resource = %resource_key,
             object_pk = %object_pk,

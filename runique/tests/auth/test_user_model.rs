@@ -193,7 +193,7 @@ const INSERT_ALICE: &str = "
 async fn test_find_by_id_found() {
     let db = db::fresh_db_with_schema(USERS_DDL).await;
     db::exec(&db, &insert_alice_sql()).await;
-    let adb = std::sync::Arc::new(db);
+    let adb = runique::db::ADb::from_connection(db);
     let user = BuiltinUserEntity::find_by_id(&adb, pk(1)).await;
     assert!(user.is_some());
     assert_eq!(user.unwrap().username, "alice");
@@ -202,7 +202,7 @@ async fn test_find_by_id_found() {
 #[tokio::test]
 async fn test_find_by_id_not_found() {
     let db = db::fresh_db_with_schema(USERS_DDL).await;
-    let adb = std::sync::Arc::new(db);
+    let adb = runique::db::ADb::from_connection(db);
     let user = BuiltinUserEntity::find_by_id(&adb, pk(999)).await;
     assert!(user.is_none());
 }
@@ -211,7 +211,7 @@ async fn test_find_by_id_not_found() {
 async fn test_find_by_username_found() {
     let db = db::fresh_db_with_schema(USERS_DDL).await;
     db::exec(&db, &insert_alice_sql()).await;
-    let adb = std::sync::Arc::new(db);
+    let adb = runique::db::ADb::from_connection(db);
     let user = BuiltinUserEntity::find_by_username(&adb, "alice").await;
     assert!(user.is_some());
     assert_eq!(user.unwrap().email, "alice@example.com");
@@ -220,7 +220,7 @@ async fn test_find_by_username_found() {
 #[tokio::test]
 async fn test_find_by_username_not_found() {
     let db = db::fresh_db_with_schema(USERS_DDL).await;
-    let adb = std::sync::Arc::new(db);
+    let adb = runique::db::ADb::from_connection(db);
     let user = BuiltinUserEntity::find_by_username(&adb, "nobody").await;
     assert!(user.is_none());
 }
@@ -229,7 +229,7 @@ async fn test_find_by_username_not_found() {
 async fn test_find_by_email_found() {
     let db = db::fresh_db_with_schema(USERS_DDL).await;
     db::exec(&db, &insert_alice_sql()).await;
-    let adb = std::sync::Arc::new(db);
+    let adb = runique::db::ADb::from_connection(db);
     let user = BuiltinUserEntity::find_by_email(&adb, "alice@example.com").await;
     assert!(user.is_some());
     assert_eq!(user.unwrap().username, "alice");
@@ -238,7 +238,7 @@ async fn test_find_by_email_found() {
 #[tokio::test]
 async fn test_find_by_email_not_found() {
     let db = db::fresh_db_with_schema(USERS_DDL).await;
-    let adb = std::sync::Arc::new(db);
+    let adb = runique::db::ADb::from_connection(db);
     let user = BuiltinUserEntity::find_by_email(&adb, "ghost@example.com").await;
     assert!(user.is_none());
 }
@@ -247,7 +247,7 @@ async fn test_find_by_email_not_found() {
 async fn test_update_password_success() {
     let db = db::fresh_db_with_schema(USERS_DDL).await;
     db::exec(&db, &insert_alice_sql()).await;
-    let adb = std::sync::Arc::new(db);
+    let adb = runique::db::ADb::from_connection(db);
     let result = BuiltinUserEntity::update_password(&adb, "alice@example.com", "newhash").await;
     assert!(result.is_ok());
     let user = BuiltinUserEntity::find_by_email(&adb, "alice@example.com")
@@ -259,7 +259,7 @@ async fn test_update_password_success() {
 #[tokio::test]
 async fn test_update_password_not_found() {
     let db = db::fresh_db_with_schema(USERS_DDL).await;
-    let adb = std::sync::Arc::new(db);
+    let adb = runique::db::ADb::from_connection(db);
     let result = BuiltinUserEntity::update_password(&adb, "ghost@example.com", "hash").await;
     assert!(result.is_err());
 }
