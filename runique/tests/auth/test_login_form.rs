@@ -160,7 +160,7 @@ async fn test_is_valid_toujours_invalide_sans_password_meme_username_rempli() {
 async fn test_save_avec_impl_par_defaut_retourne_ok() {
     use crate::helpers::db::fresh_db;
     let mut login = login_form_validated();
-    let db = std::sync::Arc::new(fresh_db().await);
+    let db = runique::db::ADb::from_connection(fresh_db().await);
     // L'implémentation par défaut de on_save retourne Ok(()),
     // donc save() doit réussir (commit vide)
     let result = login.save(&db).await;

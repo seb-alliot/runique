@@ -152,7 +152,7 @@ async fn test_order_by_random_sqlite() {
     let db = db::fresh_db().await;
     recreate_users_table(&db).await;
     let ids = seed_users(&db).await;
-    assert_order_by_random_result(&std::sync::Arc::new(db), &ids).await;
+    assert_order_by_random_result(&runique::db::ADb::from_connection(db), &ids).await;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -167,7 +167,7 @@ async fn test_order_by_random_pg() {
     };
     recreate_users_table(&db).await;
     let ids = seed_users(&db).await;
-    assert_order_by_random_result(&std::sync::Arc::new(db.clone()), &ids).await;
+    assert_order_by_random_result(&runique::db::ADb::from_connection(db.clone()), &ids).await;
 
     db_postgres::exec(&db, "DROP TABLE IF EXISTS eihwaz_users CASCADE").await;
 }
@@ -184,7 +184,7 @@ async fn test_order_by_random_mariadb() {
     };
     recreate_users_table(&db).await;
     let ids = seed_users(&db).await;
-    assert_order_by_random_result(&std::sync::Arc::new(db.clone()), &ids).await;
+    assert_order_by_random_result(&runique::db::ADb::from_connection(db.clone()), &ids).await;
 
     let txn = db.begin().await.expect("begin txn for FK-safe cleanup");
     txn.execute_unprepared("SET FOREIGN_KEY_CHECKS=0")

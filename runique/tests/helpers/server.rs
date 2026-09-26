@@ -97,7 +97,7 @@ async fn build_engine_cfg(enforce_https: bool) -> Arc<RuniqueEngine> {
     Arc::new(RuniqueEngine {
         config,
         tera: Arc::new(Tera::default()),
-        db: Arc::new(db),
+        db: runique::db::ADb::from_connection(db),
         url_registry: Arc::new(std::sync::RwLock::new(std::collections::HashMap::new())),
         features: MiddlewareConfig::default(),
         security_csp: Arc::new(SecurityPolicy::default()),

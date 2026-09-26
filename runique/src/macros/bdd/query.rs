@@ -89,7 +89,6 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
     }
     /// Executes the query and returns every matching row.
     pub async fn all(self, db: &ADb) -> Result<Vec<E::Model>, DbErr> {
-        let db = db.as_ref();
         self.query.all(db).await
     }
 
@@ -176,7 +175,6 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
     pub fn order_by_random(mut self, db: &ADb) -> Self {
         use sea_orm::Order;
         use sea_query::Expr;
-        let db = db.as_ref();
         let func = match db.get_database_backend() {
             sea_orm::DbBackend::MySql => "RAND()",
             _ => "RANDOM()",
@@ -220,7 +218,6 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
         E::Model: Sync,
     {
         use sea_orm::PaginatorTrait;
-        let db = db.as_ref();
         self.query.count(db).await
     }
 
@@ -228,7 +225,6 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
     /// there are no matches. Unlike [`one`](Self::one), this does not check
     /// whether more than one row would match.
     pub async fn first(self, db: &ADb) -> Result<Option<E::Model>, DbErr> {
-        let db = db.as_ref();
         self.query.one(db).await
     }
 
@@ -240,7 +236,6 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
         E::Model: Sync,
     {
         use sea_orm::PaginatorTrait;
-        let db = db.as_ref();
         let mut results = self.query.paginate(db, 2).fetch_page(0).await?;
         match results.len() {
             0 => Ok(None),
@@ -370,7 +365,7 @@ mod tests {
         let stmt = schema.create_table_from_entity(Entity);
         db.execute(&stmt).await?;
 
-        Ok(std::sync::Arc::new(db))
+        Ok(ADb::from_connection(db))
     }
 
     #[tokio::test]
@@ -382,7 +377,7 @@ mod tests {
             age: Set(25),
             ..Default::default()
         };
-        user.insert(db.as_ref()).await?;
+        user.insert(&db).await?;
 
         let users = RuniqueQueryBuilder::new(Entity::find()).all(&db).await?;
         assert_eq!(users.len(), 1);
@@ -403,8 +398,8 @@ mod tests {
             age: Set(30),
             ..Default::default()
         };
-        alice.insert(db.as_ref()).await?;
-        bob.insert(db.as_ref()).await?;
+        alice.insert(&db).await?;
+        bob.insert(&db).await?;
 
         let adults = RuniqueQueryBuilder::new(Entity::find())
             .filter(Column::Age.gte(26))
@@ -433,7 +428,7 @@ mod tests {
                 age: Set(20 + i),
                 ..Default::default()
             };
-            user.insert(db.as_ref()).await?;
+            user.insert(&db).await?;
         }
 
         let count = RuniqueQueryBuilder::new(Entity::find()).count(&db).await?;
@@ -464,7 +459,7 @@ mod tests {
                 age: Set(age),
                 ..Default::default()
             }
-            .insert(db.as_ref())
+            .insert(&db)
             .await?;
         }
         let result = RuniqueQueryBuilder::new(Entity::find())
@@ -484,7 +479,7 @@ mod tests {
                 age: Set(age),
                 ..Default::default()
             }
-            .insert(db.as_ref())
+            .insert(&db)
             .await?;
         }
         let result = RuniqueQueryBuilder::new(Entity::find())
@@ -505,7 +500,7 @@ mod tests {
                 age: Set(20 + i),
                 ..Default::default()
             }
-            .insert(db.as_ref())
+            .insert(&db)
             .await?;
         }
         let result = RuniqueQueryBuilder::new(Entity::find())
@@ -526,7 +521,7 @@ mod tests {
                 age: Set(20 + i),
                 ..Default::default()
             }
-            .insert(db.as_ref())
+            .insert(&db)
             .await?;
         }
         let asc_first = RuniqueQueryBuilder::new(Entity::find())
@@ -554,7 +549,7 @@ mod tests {
                 age: Set(i),
                 ..Default::default()
             }
-            .insert(db.as_ref())
+            .insert(&db)
             .await?;
         }
         let result = RuniqueQueryBuilder::new(Entity::find())
@@ -576,7 +571,7 @@ mod tests {
             age: Set(25),
             ..Default::default()
         }
-        .insert(db.as_ref())
+        .insert(&db)
         .await?;
         let select = RuniqueQueryBuilder::new(Entity::find()).into_select();
         let result = select.all(&db).await?;

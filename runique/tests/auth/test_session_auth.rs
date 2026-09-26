@@ -53,7 +53,9 @@ async fn test_is_authenticated_when_no_user_in_session() {
 #[tokio::test]
 async fn test_is_authenticated_after_login() {
     async fn handler(session: Session) -> impl IntoResponse {
-        let db = std::sync::Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let db = runique::db::ADb::from_connection(
+            sea_orm::Database::connect("sqlite::memory:").await.unwrap(),
+        );
         login(
             &session,
             &db,
@@ -79,7 +81,9 @@ async fn test_is_authenticated_after_login() {
 #[tokio::test]
 async fn test_login_sets_id_and_username() {
     async fn handler(session: Session) -> impl IntoResponse {
-        let db = std::sync::Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let db = runique::db::ADb::from_connection(
+            sea_orm::Database::connect("sqlite::memory:").await.unwrap(),
+        );
         login(
             &session,
             &db,
@@ -103,7 +107,9 @@ async fn test_login_sets_id_and_username() {
 #[tokio::test]
 async fn test_login_sets_all_fields() {
     async fn handler(session: Session) -> impl IntoResponse {
-        let db = std::sync::Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let db = runique::db::ADb::from_connection(
+            sea_orm::Database::connect("sqlite::memory:").await.unwrap(),
+        );
         login(
             &session,
             &db,
@@ -154,7 +160,9 @@ async fn test_login_sets_all_fields() {
 #[tokio::test]
 async fn test_logout_clears_session_keys() {
     async fn handler(session: Session) -> impl IntoResponse {
-        let db = std::sync::Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let db = runique::db::ADb::from_connection(
+            sea_orm::Database::connect("sqlite::memory:").await.unwrap(),
+        );
         login(
             &session,
             &db,
@@ -201,7 +209,9 @@ async fn test_logout_clears_session_keys() {
 #[tokio::test]
 async fn test_is_not_authenticated_after_logout() {
     async fn handler(session: Session) -> impl IntoResponse {
-        let db = std::sync::Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let db = runique::db::ADb::from_connection(
+            sea_orm::Database::connect("sqlite::memory:").await.unwrap(),
+        );
         login(
             &session,
             &db,
@@ -242,7 +252,9 @@ async fn test_get_user_id_returns_none_when_not_logged_in() {
 #[tokio::test]
 async fn test_get_username_after_login() {
     async fn handler(session: Session) -> impl IntoResponse {
-        let db = std::sync::Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let db = runique::db::ADb::from_connection(
+            sea_orm::Database::connect("sqlite::memory:").await.unwrap(),
+        );
         login(
             &session,
             &db,
@@ -277,7 +289,9 @@ async fn test_is_admin_authenticated_not_logged_in() {
 #[tokio::test]
 async fn test_is_admin_authenticated_plain_user() {
     async fn handler(session: Session) -> impl IntoResponse {
-        let db = std::sync::Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let db = runique::db::ADb::from_connection(
+            sea_orm::Database::connect("sqlite::memory:").await.unwrap(),
+        );
         login(
             &session,
             &db,
@@ -300,7 +314,9 @@ async fn test_is_admin_authenticated_plain_user() {
 #[tokio::test]
 async fn test_is_admin_authenticated_staff() {
     async fn handler(session: Session) -> impl IntoResponse {
-        let db = std::sync::Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let db = runique::db::ADb::from_connection(
+            sea_orm::Database::connect("sqlite::memory:").await.unwrap(),
+        );
         login(
             &session,
             &db,
@@ -323,7 +339,9 @@ async fn test_is_admin_authenticated_staff() {
 #[tokio::test]
 async fn test_is_admin_authenticated_superuser() {
     async fn handler(session: Session) -> impl IntoResponse {
-        let db = std::sync::Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let db = runique::db::ADb::from_connection(
+            sea_orm::Database::connect("sqlite::memory:").await.unwrap(),
+        );
         login(
             &session,
             &db,

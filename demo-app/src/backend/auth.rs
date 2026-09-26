@@ -24,7 +24,6 @@ pub async fn find_user_by_id(
     db: &ADb,
     id: runique::utils::pk::Pk,
 ) -> Option<runique::prelude::runique_users::Model> {
-    let db = db.as_ref();
     UserEntity::find_by_id(id).one(db).await.unwrap_or(None)
 }
 

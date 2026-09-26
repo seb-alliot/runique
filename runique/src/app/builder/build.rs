@@ -26,7 +26,7 @@ use crate::config::RuniqueConfig;
 use crate::engine::RuniqueEngine;
 use crate::macros::{add_urls, register_name_url};
 use crate::middleware::HostPolicy;
-use crate::utils::aliases::new;
+use crate::utils::aliases::{ADb, new};
 use crate::utils::runique_log::log_init;
 
 #[cfg(feature = "orm")]
@@ -59,10 +59,6 @@ impl RuniqueAppBuilder {
         //   - `with_database_config(cfg)` → `connect()` during build
         #[cfg(feature = "orm")]
         let db = self.core.connect().await?;
-        // Wrapped in `RuniqueDb::Conn` so `db: new(db)` below always matches
-        // `ADb`'s definition, whether or not `test-utils` is enabled.
-        #[cfg(all(feature = "orm", feature = "test-utils"))]
-        let db = crate::db::RuniqueDb::Conn(db);
 
         // Step 3: destructuring
         let extensions = self.core.extensions;
@@ -97,7 +93,7 @@ impl RuniqueAppBuilder {
             config: (*config).clone(),
             tera: tera.clone(),
             #[cfg(feature = "orm")]
-            db: new(db),
+            db: ADb::from_connection(db),
             features: {
                 let mut f = middleware.features.clone();
                 f.exclusive_login = middleware.exclusive_login;
@@ -188,8 +184,7 @@ impl RuniqueAppBuilder {
                     .builder
                     .as_ref()
                     .and_then(|b| b.registry);
-                match crate::auth::permissions::prune_orphan_droits(engine.db.as_ref(), &refs).await
-                {
+                match crate::auth::permissions::prune_orphan_droits(&engine.db, &refs).await {
                     Ok(n) if n > 0 => {
                         if let Some(level) = level {
                             crate::runique_log!(

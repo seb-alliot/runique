@@ -16,7 +16,7 @@ pub async fn doc_index(lang: &str, request: &mut Request) -> AppResult<Response>
         .column(cour::Column::Difficulte)
         .distinct()
         .into_tuple::<String>()
-        .all(db.as_ref())
+        .all(&db)
         .await
         .unwrap_or_default();
 

@@ -36,21 +36,21 @@ fn ttl() -> Duration {
 
 #[tokio::test]
 async fn test_generate_peek_valid() {
-    let conn = std::sync::Arc::new(db::fresh_db_with_schema(RESET_TOKENS_DDL).await);
+    let conn = runique::db::ADb::from_connection(db::fresh_db_with_schema(RESET_TOKENS_DDL).await);
     let token = generate(&conn, pk(1), ttl()).await.unwrap();
     assert!(peek(&conn, &token).await);
 }
 
 #[tokio::test]
 async fn test_consume_returns_user_id() {
-    let conn = std::sync::Arc::new(db::fresh_db_with_schema(RESET_TOKENS_DDL).await);
+    let conn = runique::db::ADb::from_connection(db::fresh_db_with_schema(RESET_TOKENS_DDL).await);
     let token = generate(&conn, pk(42), ttl()).await.unwrap();
     assert_eq!(consume(&conn, &token).await, Some(pk(42)));
 }
 
 #[tokio::test]
 async fn test_consume_single_use() {
-    let conn = std::sync::Arc::new(db::fresh_db_with_schema(RESET_TOKENS_DDL).await);
+    let conn = runique::db::ADb::from_connection(db::fresh_db_with_schema(RESET_TOKENS_DDL).await);
     let token = generate(&conn, pk(1), ttl()).await.unwrap();
     let _ = consume(&conn, &token).await;
     assert_eq!(consume(&conn, &token).await, None);
@@ -58,7 +58,7 @@ async fn test_consume_single_use() {
 
 #[tokio::test]
 async fn test_peek_after_consume_false() {
-    let conn = std::sync::Arc::new(db::fresh_db_with_schema(RESET_TOKENS_DDL).await);
+    let conn = runique::db::ADb::from_connection(db::fresh_db_with_schema(RESET_TOKENS_DDL).await);
     let token = generate(&conn, pk(1), ttl()).await.unwrap();
     let _ = consume(&conn, &token).await;
     assert!(!peek(&conn, &token).await);
@@ -66,13 +66,13 @@ async fn test_peek_after_consume_false() {
 
 #[tokio::test]
 async fn test_consume_unknown_token() {
-    let conn = std::sync::Arc::new(db::fresh_db_with_schema(RESET_TOKENS_DDL).await);
+    let conn = runique::db::ADb::from_connection(db::fresh_db_with_schema(RESET_TOKENS_DDL).await);
     assert_eq!(consume(&conn, "non-existent-token-xyz").await, None);
 }
 
 #[tokio::test]
 async fn test_peek_unknown_token() {
-    let conn = std::sync::Arc::new(db::fresh_db_with_schema(RESET_TOKENS_DDL).await);
+    let conn = runique::db::ADb::from_connection(db::fresh_db_with_schema(RESET_TOKENS_DDL).await);
     assert!(!peek(&conn, "non-existent-token-abc").await);
 }
 

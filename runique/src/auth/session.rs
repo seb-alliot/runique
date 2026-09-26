@@ -147,7 +147,6 @@ pub trait AdminAuth: Send + Sync + 'static {
 ///     type Model = users::Model;
 ///
 ///     async fn find_by_username(db: &ADb, username: &str) -> Option<Self::Model> {
-///         let db = db.as_ref();
 ///         users::Entity::find()
 ///             .filter(users::Column::Username.eq(username))
 ///             .one(db)
@@ -368,7 +367,6 @@ pub async fn login(
     db_store: Option<&RuniqueSessionStore>,
     exclusive: bool,
 ) -> Result<(), tower_sessions::session::Error> {
-    let db = db.as_ref();
     let user_id = user.user_id();
     let username = user.username();
     let is_staff = user.is_staff();

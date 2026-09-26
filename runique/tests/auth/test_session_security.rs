@@ -53,7 +53,9 @@ fn make_groupe(resource: &str) -> Groupe {
 #[tokio::test]
 async fn test_login_user_different_nettoie_session_precedente() {
     async fn handler(session: Session) -> impl IntoResponse {
-        let db = std::sync::Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let db = runique::db::ADb::from_connection(
+            sea_orm::Database::connect("sqlite::memory:").await.unwrap(),
+        );
 
         // User A se connecte
         login(
@@ -96,7 +98,9 @@ async fn test_login_user_different_nettoie_session_precedente() {
 #[tokio::test]
 async fn test_login_meme_user_ne_reinitialise_pas_session() {
     async fn handler(session: Session) -> impl IntoResponse {
-        let db = std::sync::Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let db = runique::db::ADb::from_connection(
+            sea_orm::Database::connect("sqlite::memory:").await.unwrap(),
+        );
 
         login(
             &session,
@@ -135,7 +139,9 @@ async fn test_login_meme_user_ne_reinitialise_pas_session() {
 #[tokio::test]
 async fn test_logout_vide_session_completement() {
     async fn handler(session: Session) -> impl IntoResponse {
-        let db = std::sync::Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let db = runique::db::ADb::from_connection(
+            sea_orm::Database::connect("sqlite::memory:").await.unwrap(),
+        );
 
         login(
             &session,
@@ -170,7 +176,9 @@ async fn test_logout_evicte_cache_permissions() {
     assert!(get_permissions(user_id).is_some());
 
     async fn handler(session: Session) -> impl IntoResponse {
-        let db = std::sync::Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let db = runique::db::ADb::from_connection(
+            sea_orm::Database::connect("sqlite::memory:").await.unwrap(),
+        );
         login(
             &session,
             &db,
@@ -200,7 +208,9 @@ async fn test_logout_evicte_cache_permissions() {
 async fn test_deux_sessions_independantes() {
     // Session A : user 1
     async fn handler_a(session: Session) -> impl IntoResponse {
-        let db = std::sync::Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let db = runique::db::ADb::from_connection(
+            sea_orm::Database::connect("sqlite::memory:").await.unwrap(),
+        );
         login(
             &session,
             &db,
@@ -215,7 +225,9 @@ async fn test_deux_sessions_independantes() {
 
     // Session B : user 2 (router séparé = session store séparé)
     async fn handler_b(session: Session) -> impl IntoResponse {
-        let db = std::sync::Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let db = runique::db::ADb::from_connection(
+            sea_orm::Database::connect("sqlite::memory:").await.unwrap(),
+        );
         login(
             &session,
             &db,
@@ -262,7 +274,9 @@ async fn test_cache_permissions_isole_par_user_id() {
 #[tokio::test]
 async fn test_login_collision_nettoie_cache_ancien_user() {
     async fn handler(session: Session) -> impl IntoResponse {
-        let db = std::sync::Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let db = runique::db::ADb::from_connection(
+            sea_orm::Database::connect("sqlite::memory:").await.unwrap(),
+        );
 
         // User A login — cache chargé
         login(

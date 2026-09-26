@@ -13,7 +13,7 @@ pub struct ContributionItem {
 pub async fn list_contributions(db: &ADb) -> Vec<ContributionItem> {
     search!(ContributionEntity => desc Id,)
         .also_related(runique_users::Entity)
-        .all(db.as_ref())
+        .all(db)
         .await
         .unwrap_or_default()
         .into_iter()

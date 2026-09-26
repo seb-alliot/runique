@@ -69,7 +69,11 @@ async fn test_authenticate_user_not_found() {
     let db = db::fresh_db_with_schema(USERS_DDL).await;
     let auth = DefaultAdminAuth::<BuiltinUserEntity>::new();
     let result = auth
-        .authenticate("unknown", "password", &std::sync::Arc::new(db.clone()))
+        .authenticate(
+            "unknown",
+            "password",
+            &runique::db::ADb::from_connection(db.clone()),
+        )
         .await;
     assert!(result.is_none());
 }
@@ -94,7 +98,11 @@ async fn test_authenticate_wrong_password() {
 
     let auth = DefaultAdminAuth::<BuiltinUserEntity>::new();
     let result = auth
-        .authenticate("admin", "wrong_password", &std::sync::Arc::new(db.clone()))
+        .authenticate(
+            "admin",
+            "wrong_password",
+            &runique::db::ADb::from_connection(db.clone()),
+        )
         .await;
     assert!(result.is_none());
 }
@@ -120,7 +128,11 @@ async fn test_authenticate_no_admin_access() {
 
     let auth = DefaultAdminAuth::<BuiltinUserEntity>::new();
     let result = auth
-        .authenticate("regular", "password123", &std::sync::Arc::new(db.clone()))
+        .authenticate(
+            "regular",
+            "password123",
+            &runique::db::ADb::from_connection(db.clone()),
+        )
         .await;
     assert!(result.is_none());
 }
@@ -146,7 +158,11 @@ async fn test_authenticate_inactive_user() {
 
     let auth = DefaultAdminAuth::<BuiltinUserEntity>::new();
     let result = auth
-        .authenticate("inactive", "password123", &std::sync::Arc::new(db.clone()))
+        .authenticate(
+            "inactive",
+            "password123",
+            &runique::db::ADb::from_connection(db.clone()),
+        )
         .await;
     assert!(result.is_none());
 }
@@ -171,7 +187,11 @@ async fn test_authenticate_success_staff() {
 
     let auth = DefaultAdminAuth::<BuiltinUserEntity>::new();
     let result = auth
-        .authenticate("staffuser", "securepass1", &std::sync::Arc::new(db.clone()))
+        .authenticate(
+            "staffuser",
+            "securepass1",
+            &runique::db::ADb::from_connection(db.clone()),
+        )
         .await;
     assert!(result.is_some());
     let r = result.unwrap();
@@ -200,7 +220,11 @@ async fn test_authenticate_success_superuser() {
 
     let auth = DefaultAdminAuth::<BuiltinUserEntity>::new();
     let result = auth
-        .authenticate("superuser", "superpass1", &std::sync::Arc::new(db.clone()))
+        .authenticate(
+            "superuser",
+            "superpass1",
+            &runique::db::ADb::from_connection(db.clone()),
+        )
         .await;
     assert!(result.is_some());
     let r = result.unwrap();

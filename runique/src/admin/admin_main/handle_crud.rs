@@ -103,7 +103,7 @@ pub(super) async fn handle_detail(
 
     if let Some(mut v) = object {
         crate::admin::helper::resolve_fk_labels(
-            req.engine.db.as_ref(),
+            &req.engine.db,
             std::slice::from_mut(&mut v),
             &entry.meta.fk_display,
         )
@@ -686,7 +686,7 @@ pub(super) async fn handle_delete_get(
 
     if let Some(mut v) = object {
         crate::admin::helper::resolve_fk_labels(
-            req.engine.db.as_ref(),
+            &req.engine.db,
             std::slice::from_mut(&mut v),
             &entry.meta.fk_display,
         )

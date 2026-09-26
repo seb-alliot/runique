@@ -226,7 +226,7 @@ async fn test_reset_password_binds_token_to_target_not_actor() {
     let body = detail_resp.text().await.unwrap_or_default();
     let raw_token = extract_reset_token(&body);
 
-    let bound_user_id = consume(&std::sync::Arc::new(dbc.clone()), &raw_token)
+    let bound_user_id = consume(&runique::db::ADb::from_connection(dbc.clone()), &raw_token)
         .await
         .expect("le token émis doit résoudre un user_id valide");
 
@@ -306,7 +306,7 @@ async fn test_create_user_token_binds_to_new_user_not_creator() {
     let body = list_resp.text().await.unwrap_or_default();
     let raw_token = extract_reset_token(&body);
 
-    let bound_user_id = consume(&std::sync::Arc::new(dbc.clone()), &raw_token)
+    let bound_user_id = consume(&runique::db::ADb::from_connection(dbc.clone()), &raw_token)
         .await
         .expect("le token émis à la création doit résoudre un user_id valide");
 

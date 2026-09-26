@@ -62,7 +62,7 @@ impl RuniqueEngine {
         Self {
             config,
             tera: new(tera),
-            db: new(db),
+            db: ADb::from_connection(db),
             url_registry: new_registry(),
             features,
             security_csp: new(security_csp),

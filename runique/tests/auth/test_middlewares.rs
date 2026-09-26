@@ -7,8 +7,8 @@ use crate::helpers::pk::pk;
 use crate::helpers::user::test_user;
 use axum::{Extension, Router, middleware, routing::get, routing::post};
 use runique::auth::{CurrentUser, load_user_middleware, login};
-use sea_orm::DatabaseConnection;
-use std::{net::SocketAddr, sync::Arc, sync::OnceLock};
+use runique::db::ADb;
+use std::{net::SocketAddr, sync::OnceLock};
 use tower_sessions::{MemoryStore, Session, SessionManagerLayer};
 
 // ═══════════════════════════════════════════════════════════════
@@ -27,7 +27,7 @@ fn auth_mw_addr() -> SocketAddr {
                 let db = sea_orm::Database::connect("sqlite::memory:")
                     .await
                     .expect("sqlite:memory");
-                let db: Arc<DatabaseConnection> = Arc::new(db);
+                let db: ADb = ADb::from_connection(db);
 
                 let store = MemoryStore::default();
                 let session_layer = SessionManagerLayer::new(store).with_secure(false);
@@ -43,20 +43,29 @@ fn auth_mw_addr() -> SocketAddr {
                             }
                         }),
                     )
-                    .layer(middleware::from_fn_with_state(db.clone(), load_user_middleware));
+                    .layer(middleware::from_fn_with_state(
+                        db.clone(),
+                        load_user_middleware,
+                    ));
 
                 // Routes publiques (pas de middleware auth)
-                let public = Router::new()
-                    .route(
-                        "/do_login_full",
-                        post(
-                            |session: Session,
-                            Extension(db): Extension<Arc<DatabaseConnection>>| async move {
-                                login(&session, &db, &test_user(pk(2), "bob", true, false), None, false).await.unwrap();
-                                "ok"
-                            },
-                        ),
-                    );
+                let public = Router::new().route(
+                    "/do_login_full",
+                    post(
+                        |session: Session, Extension(db): Extension<ADb>| async move {
+                            login(
+                                &session,
+                                &db,
+                                &test_user(pk(2), "bob", true, false),
+                                None,
+                                false,
+                            )
+                            .await
+                            .unwrap();
+                            "ok"
+                        },
+                    ),
+                );
 
                 let app = Router::new()
                     .merge(user_area)

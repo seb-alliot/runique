@@ -569,7 +569,7 @@ async fn admin_history(
         query = query.filter(history::Column::ResourceKey.is_in(allowed));
     }
 
-    let paginator = query.paginate(req.engine.db.as_ref(), per_page);
+    let paginator = query.paginate(&req.engine.db, per_page);
     let total_pages = paginator.num_pages().await.unwrap_or(1);
     let raw_entries: Vec<history::Model> = paginator
         .fetch_page(page - 1)
@@ -703,7 +703,7 @@ async fn admin_history_diff(
     }
 
     let entry = history::Entity::find_by_id(entry_id)
-        .one(req.engine.db.as_ref())
+        .one(&req.engine.db)
         .await
         .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?
         .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Entry not found"))))?;
@@ -824,7 +824,7 @@ async fn admin_history_timeline(
         query = query.filter(history::Column::ResourceKey.is_in(allowed));
     }
 
-    let paginator = query.paginate(req.engine.db.as_ref(), per_page);
+    let paginator = query.paginate(&req.engine.db, per_page);
     let total_pages = paginator.num_pages().await.unwrap_or(1);
     let total = paginator.num_items().await.unwrap_or(0);
     let entries: Vec<history::Model> = paginator
@@ -890,7 +890,7 @@ async fn admin_history_batch(
     let entries: Vec<history::Model> = history::Entity::find()
         .filter(history::Column::BatchId.eq(batch_id.clone()))
         .order_by_asc(history::Column::Id)
-        .all(req.engine.db.as_ref())
+        .all(&req.engine.db)
         .await
         .trace(
             crate::utils::runique_log::get_log()
