@@ -4,8 +4,9 @@
 //! human-readable value instead of a raw id. Consumed by the generated
 //! `list_fn`/`get_fn` (via [`resolve_fk_labels_in_rows`]) and reusable on
 //! any other admin view (detail, history) that holds FK ids as JSON.
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
+use crate::utils::aliases::StrMap;
 use sea_orm::{
     ConnectionTrait,
     sea_query::{Alias, Expr, ExprTrait, Func, Query},
@@ -37,9 +38,9 @@ pub async fn fetch_fk_label_map<C: ConnectionTrait>(
     fk_table: &str,
     fk_col: &str,
     ids: &[String],
-) -> HashMap<String, String> {
+) -> StrMap {
     if ids.is_empty() {
-        return HashMap::new();
+        return StrMap::new();
     }
     let stmt = Query::select()
         .expr(Expr::cust("CAST(id AS TEXT)"))

@@ -7,7 +7,7 @@ use crate::auth::session::CurrentUser;
 use crate::context::template::{AppError, Request};
 use crate::errors::error::ErrorContext;
 use crate::utils::{
-    aliases::AppResult,
+    aliases::{AppResult, JsonMap, StrMap, StrVecMap},
     constante::admin_context::list as list_ctx,
     trad::{current_lang, t},
 };
@@ -123,7 +123,7 @@ pub(super) async fn handle_list(
         );
     }
 
-    let filter_values: HashMap<String, Vec<String>> = filter_result
+    let filter_values: StrVecMap = filter_result
         .iter()
         .map(|(k, (vals, _))| (k.clone(), vals.clone()))
         .collect();
@@ -147,7 +147,7 @@ pub(super) async fn handle_list(
         .filter(|s| s == "id" || visible_columns.contains(s))
         .unwrap_or_default();
 
-    let mut active_filters: HashMap<String, String> = entry
+    let mut active_filters: StrMap = entry
         .meta
         .display
         .list_filter
@@ -195,7 +195,7 @@ pub(super) async fn handle_list(
         }
         parts.join("&")
     };
-    let filter_meta: HashMap<String, serde_json::Value> = entry
+    let filter_meta: JsonMap = entry
         .meta
         .display
         .list_filter
@@ -304,7 +304,7 @@ pub(super) async fn handle_list(
 pub(super) fn resolve_columns(
     entry: &ResourceEntry,
     entries: &[serde_json::Value],
-) -> (Vec<String>, HashMap<String, String>) {
+) -> (Vec<String>, StrMap) {
     let all_cols: Vec<String> = entries
         .first()
         .and_then(|v| v.as_object())
@@ -316,9 +316,9 @@ pub(super) fn resolve_columns(
         })
         .unwrap_or_default();
 
-    let (visible_columns, mut column_labels): (Vec<String>, HashMap<String, String>) =
+    let (visible_columns, mut column_labels): (Vec<String>, StrMap) =
         match &entry.meta.display.columns {
-            ColumnFilter::All => (all_cols, HashMap::new()),
+            ColumnFilter::All => (all_cols, StrMap::new()),
             ColumnFilter::Include(cols) => {
                 let filtered: Vec<(String, String)> = cols
                     .iter()
@@ -336,7 +336,7 @@ pub(super) fn resolve_columns(
                     .into_iter()
                     .filter(|c| !excluded.contains(c))
                     .collect(),
-                HashMap::new(),
+                StrMap::new(),
             ),
         };
 

@@ -1,7 +1,7 @@
 //! `RuniqueEngine` implementation — construction, middleware attachment, store access.
 use crate::middleware::session::{CleaningMemoryStore, session_db::RuniqueSessionStore};
 use crate::utils::aliases::{
-    ADb, ARlockmap, ASecurityCsp, ASecurityHosts, ATera, new, new_registry,
+    ADb, APermissionsPolicy, ARlockmap, ASecurityCsp, ASecurityHosts, ATera, new, new_registry,
 };
 use std::any::TypeId;
 use std::collections::HashMap;
@@ -38,7 +38,7 @@ pub struct RuniqueEngine {
     /// Paths exempt from CSRF validation (ex: webhook endpoints).
     pub csrf_exempt_paths: Arc<Vec<String>>,
     /// Active Permissions-Policy header configuration.
-    pub permissions_policy: Arc<PermissionsPolicy>,
+    pub permissions_policy: APermissionsPolicy,
     /// Trusted proxy IPs/CIDRs for real client IP extraction.
     pub trusted_proxies: Arc<TrustedProxies>,
     /// Memory store — anonymous sessions + CSRF.

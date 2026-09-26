@@ -10,7 +10,7 @@ use crate::forms::{
 use crate::middleware::errors::error::html_escape;
 use crate::utils::config::TraceResult;
 use crate::utils::{
-    aliases::{FieldsMap, StrMap},
+    aliases::{FieldsMap, JsonMap, StrMap},
     constante::session_key::session::CSRF_TOKEN_KEY,
     trad::{t, tf},
 };
@@ -21,7 +21,6 @@ use serde::{
     ser::{SerializeStruct, Serializer},
 };
 use serde_json::{Value, json};
-use std::collections::HashMap;
 
 /// Container of form fields with validation and HTML rendering
 ///
@@ -34,8 +33,8 @@ pub struct Forms {
     renderer: Option<FormRenderer>,
     submitted: bool,
     validated: bool,
-    pub(crate) path_params: HashMap<String, String>,
-    pub(crate) query_params: HashMap<String, String>,
+    pub(crate) path_params: StrMap,
+    pub(crate) query_params: StrMap,
     /// Set to true by anti-bot middleware when honeypot field was filled.
     pub(crate) force_invalid: bool,
     /// Honeypot field name injected by anti-bot middleware (for rendering).
@@ -95,7 +94,7 @@ impl Serialize for Forms {
         };
         state.serialize_field("html", &rendered_html)?;
 
-        let rendered_fields: HashMap<String, String> = match &self.renderer {
+        let rendered_fields: StrMap = match &self.renderer {
             Some(renderer) => self
                 .fields
                 .iter()
@@ -112,11 +111,11 @@ impl Serialize for Forms {
                         .map(|html| (name.clone(), html))
                 })
                 .collect(),
-            None => HashMap::new(),
+            None => StrMap::new(),
         };
         state.serialize_field("rendered_fields", &rendered_fields)?;
 
-        let fields_data: HashMap<String, serde_json::Value> = self
+        let fields_data: JsonMap = self
             .fields
             .iter()
             .enumerate()
@@ -233,8 +232,8 @@ impl Forms {
             renderer: None,
             submitted: false,
             validated: false,
-            path_params: HashMap::new(),
-            query_params: HashMap::new(),
+            path_params: StrMap::new(),
+            query_params: StrMap::new(),
             force_invalid: false,
             honeypot_field_name: None,
         }
@@ -248,8 +247,8 @@ impl Forms {
     /// Injects path and query parameters so `cleaned_*` methods can read them (GET search forms).
     pub fn set_url_params(
         &mut self,
-        path: &HashMap<String, String>,
-        query: &HashMap<String, String>,
+        path: &StrMap,
+        query: &StrMap,
     ) {
         self.path_params = path.clone();
         self.query_params = query.clone();

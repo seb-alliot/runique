@@ -1,11 +1,11 @@
 //! Special fields: `ColorField`, `UUIDField`, `IPAddressField`, `JSONField`, `SlugField`.
 use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
+use crate::utils::aliases::ATera;
 use crate::utils::trad::{t, tf};
 use async_trait::async_trait;
 use serde::Serialize;
 use serde_json::json;
-use std::{net::IpAddr, sync::Arc};
-use tera::Tera;
+use std::net::IpAddr;
 use uuid::Uuid;
 
 /// ColorField - HTML5 color selector
@@ -94,7 +94,7 @@ impl FormField for ColorField {
         true
     }
 
-    fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
+    fn render(&self, tera: &ATera) -> Result<String, String> {
         let context = self.base_context();
 
         tera.render(&self.base.template_name, &context)
@@ -204,7 +204,7 @@ impl FormField for SlugField {
         true
     }
 
-    fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
+    fn render(&self, tera: &ATera) -> Result<String, String> {
         let mut context = self.base_context();
         context.insert("field_hint", &t("forms.hint_slug").to_string());
 
@@ -290,7 +290,7 @@ impl FormField for UUIDField {
         true
     }
 
-    fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
+    fn render(&self, tera: &ATera) -> Result<String, String> {
         let mut context = self.base_context();
         context.insert("field_hint", &t("forms.hint_uuid").to_string());
 
@@ -384,7 +384,7 @@ impl FormField for JSONField {
         true
     }
 
-    fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
+    fn render(&self, tera: &ATera) -> Result<String, String> {
         let mut context = self.base_context();
         context.insert("field_hint", &t("forms.hint_json").to_string());
         // Number of lines
@@ -512,7 +512,7 @@ impl FormField for IPAddressField {
         true
     }
 
-    fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
+    fn render(&self, tera: &ATera) -> Result<String, String> {
         let mut context = self.base_context();
 
         let hint = if self.ipv4_only {

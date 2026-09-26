@@ -1,11 +1,10 @@
 //! Selection field: `ChoiceField` with groups, multi-select, and dynamic options.
 use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
+use crate::utils::aliases::ATera;
 use crate::utils::trad::{t, tf};
 use async_trait::async_trait;
 use serde::Serialize;
 use serde_json::{Value, json};
-use std::sync::Arc;
-use tera::Tera;
 
 /// Option for choice fields
 #[derive(Clone, Debug, Serialize)]
@@ -121,7 +120,7 @@ impl FormField for ChoiceField {
         true
     }
 
-    fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
+    fn render(&self, tera: &ATera) -> Result<String, String> {
         let mut context = self.base_context();
         context.insert("choices", &self.choices);
         context.insert("multiple", &self.multiple);
@@ -216,7 +215,7 @@ impl FormField for RadioField {
         true
     }
 
-    fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
+    fn render(&self, tera: &ATera) -> Result<String, String> {
         let mut context = self.base_context();
         context.insert("choices", &self.choices);
         context.insert("meta", &self.to_json_meta());
@@ -334,7 +333,7 @@ impl FormField for CheckboxField {
         true
     }
 
-    fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
+    fn render(&self, tera: &ATera) -> Result<String, String> {
         let mut context = self.base_context();
         context.insert("choices", &self.choices);
         context.insert("meta", &self.to_json_meta());

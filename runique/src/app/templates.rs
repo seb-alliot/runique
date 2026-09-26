@@ -1,10 +1,10 @@
 //! Loading and initialization of the Tera template engine (internal + user).
 use crate::config::RuniqueConfig;
 use crate::context::tera::static_tera;
-use crate::utils::aliases::ARlockmap;
+use crate::utils::aliases::{ARlockmap, StrMap};
 use crate::utils::constante::*;
 use regex::Captures;
-use std::{collections::HashMap, path::Path};
+use std::path::Path;
 use tera::Tera;
 
 /// Loads and configures the Tera instance with internal framework templates and project templates.
@@ -89,7 +89,7 @@ impl TemplateLoader {
     }
 
     /// Applies all Runique transformations on a template content
-    fn process_content(mut content: String, integrity_map: &HashMap<String, String>) -> String {
+    fn process_content(mut content: String, integrity_map: &StrMap) -> String {
         // Simple replacements (Runique DSL)
         content = content.replace("{% csrf %}", r#"{% include "csrf.html" %}"#);
         content = content.replace("{% messages %}", r#"{% include "message.html" %}"#);
@@ -172,7 +172,7 @@ impl TemplateLoader {
     /// as a whole on failure.
     fn load_internal_templates(
         tera: &mut Tera,
-        integrity_map: &HashMap<String, String>,
+        integrity_map: &StrMap,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let templates: Vec<(&str, String)> = SIMPLE_TEMPLATES
             .iter()

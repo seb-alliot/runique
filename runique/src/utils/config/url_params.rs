@@ -1,16 +1,16 @@
 //! Lightweight `UrlParams` container for URL parameters (path + query) — unified and whitelisted access.
-use std::collections::HashMap;
+use crate::utils::aliases::StrMap;
 
 /// Lightweight container for URL parameters (path + query).
 /// Passed to form methods for whitelisted access.
 pub struct UrlParams<'a> {
-    pub path: &'a HashMap<String, String>,
-    pub query: &'a HashMap<String, String>,
+    pub path: &'a StrMap,
+    pub query: &'a StrMap,
 }
 
 impl<'a> UrlParams<'a> {
     /// Wraps the given path and query maps for whitelisted lookup via [`get`](Self::get).
-    pub fn new(path: &'a HashMap<String, String>, query: &'a HashMap<String, String>) -> Self {
+    pub fn new(path: &'a StrMap, query: &'a StrMap) -> Self {
         Self { path, query }
     }
 

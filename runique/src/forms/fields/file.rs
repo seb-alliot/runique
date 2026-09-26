@@ -1,5 +1,6 @@
 //! File Field: `FileField` with type, size, and upload path validation.
 use crate::config::static_files::resolve_media_root;
+use crate::utils::aliases::ATera;
 use crate::utils::trad::{t, tf};
 use crate::{
     config::StaticConfig,
@@ -36,7 +37,6 @@ use image::ImageReader;
 use serde::Serialize;
 use std::path::Path;
 use std::sync::Arc;
-use tera::Tera;
 use tokio::io::AsyncReadExt;
 
 /// Deletes uploaded files from disk (cleanup on validation failure)
@@ -641,7 +641,7 @@ impl FormField for FileField {
         Ok(())
     }
 
-    fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
+    fn render(&self, tera: &ATera) -> Result<String, String> {
         let mut context = self.base_context();
 
         let is_image = matches!(self.field_type, FileFieldType::Image);

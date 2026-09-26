@@ -1,10 +1,9 @@
 //! Boolean field `BooleanField`: HTML checkbox with unchecked case management.
 use crate::forms::base::*;
+use crate::utils::aliases::ATera;
 use crate::utils::trad::tf;
 use async_trait::async_trait;
 use serde::Serialize;
-use std::sync::Arc;
-use tera::Tera;
 
 /// Checkbox or radio input for boolean values.
 /// Use [`BooleanField::new`] for a checkbox, [`::radio`](BooleanField::radio) for a radio button.
@@ -74,7 +73,7 @@ impl FormField for BooleanField {
         true
     }
 
-    fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
+    fn render(&self, tera: &ATera) -> Result<String, String> {
         let mut context = self.base_context();
         context.insert("input_type", &self.base.type_field);
 

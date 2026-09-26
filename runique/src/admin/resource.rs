@@ -216,7 +216,7 @@ pub struct AdminResource {
     pub template_delete: Option<String>,
 
     /// Custom keys injected into the Tera context (defined via extra: {} in admin!{})
-    pub extra_context: std::collections::HashMap<String, String>,
+    pub extra_context: crate::utils::aliases::StrMap,
 
     /// If true: injects a random hash into the empty "password" field upon creation.
     /// Automatically set by the daemon when `create_form:` is declared.
@@ -433,7 +433,7 @@ impl AdminResource {
 
     /// Merges a map of custom key/value pairs into the Tera context injected
     /// for this resource.
-    pub fn extra_map(mut self, map: std::collections::HashMap<String, String>) -> Self {
+    pub fn extra_map(mut self, map: crate::utils::aliases::StrMap) -> Self {
         self.extra_context.extend(map);
         self
     }

@@ -1,17 +1,18 @@
+use crate::utils::aliases::StrMap;
 use base64::{Engine, engine::general_purpose::STANDARD};
 use sha2::{Digest, Sha384};
-use std::{collections::HashMap, fs, path::Path};
+use std::{fs, path::Path};
 
 /// Recursively walks `static_dir` and returns a map from each file's path
 /// (relative to `static_dir`, `/`-separated) to its Subresource Integrity hash
 /// (`sha384-<base64>`), for use in `integrity` attributes on `<script>`/`<link>` tags.
-pub fn build_integrity_map(static_dir: &Path) -> HashMap<String, String> {
-    let mut map = HashMap::new();
+pub fn build_integrity_map(static_dir: &Path) -> StrMap {
+    let mut map = StrMap::new();
     scan_dir(static_dir, static_dir, &mut map);
     map
 }
 
-fn scan_dir(root: &Path, dir: &Path, map: &mut HashMap<String, String>) {
+fn scan_dir(root: &Path, dir: &Path, map: &mut StrMap) {
     let Ok(entries) = fs::read_dir(dir) else {
         return;
     };

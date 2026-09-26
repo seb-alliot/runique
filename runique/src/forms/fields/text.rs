@@ -5,13 +5,12 @@ use crate::forms::{
     options::LengthConstraint,
 };
 use crate::utils::{
+    aliases::ATera,
     password::{PasswordConfig, PasswordService},
     trad::{t, tf},
 };
 use async_trait::async_trait;
 use serde::Serialize;
-use std::sync::Arc;
-use tera::Tera;
 use validator::{ValidateEmail, ValidateUrl};
 
 /// Single-line text input. Construct with [`TextField::text`], [`::email`](TextField::email),
@@ -265,7 +264,7 @@ impl FormField for TextField {
         }
         Ok(())
     }
-    fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
+    fn render(&self, tera: &ATera) -> Result<String, String> {
         let mut context = self.base_context();
 
         // Prepare a "secured" version of the base.
