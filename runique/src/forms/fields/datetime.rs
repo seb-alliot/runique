@@ -1,12 +1,11 @@
 //! Date/time fields: `DateField`, `TimeField`, `DateTimeField` with min/max validation.
 use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
+use crate::utils::aliases::ATera;
 use crate::utils::trad::{t, tf};
 use async_trait::async_trait;
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use serde::Serialize;
 use serde_json::json;
-use std::sync::Arc;
-use tera::Tera;
 
 /// Date input (`<input type="date">`). Validates `YYYY-MM-DD` format with optional min/max bounds.
 #[derive(Clone, Serialize, Debug)]
@@ -138,7 +137,7 @@ impl FormField for DateField {
         true
     }
 
-    fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
+    fn render(&self, tera: &ATera) -> Result<String, String> {
         let mut context = self.base_context();
 
         if let Some(min) = &self.min_date {
@@ -284,7 +283,7 @@ impl FormField for TimeField {
         true
     }
 
-    fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
+    fn render(&self, tera: &ATera) -> Result<String, String> {
         let mut context = self.base_context();
 
         if let Some(min) = &self.min_time {
@@ -430,7 +429,7 @@ impl FormField for DateTimeField {
         true
     }
 
-    fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
+    fn render(&self, tera: &ATera) -> Result<String, String> {
         let mut context = self.base_context();
 
         if let Some(min) = &self.min_datetime {
@@ -575,7 +574,7 @@ impl FormField for DurationField {
         true
     }
 
-    fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
+    fn render(&self, tera: &ATera) -> Result<String, String> {
         let mut context = self.base_context();
 
         if let Some(min) = &self.min_seconds {

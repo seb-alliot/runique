@@ -1,6 +1,6 @@
 //! Session parameters — `SessionBackend` (Memory/Custom), memory limits, lifetime.
-use std::sync::Arc;
-use tower_sessions::{SessionStore, cookie::time::Duration};
+use crate::utils::aliases::ASessionStore;
+use tower_sessions::cookie::time::Duration;
 
 /// Selects the `tower_sessions::SessionStore` backend used for anonymous and
 /// CSRF sessions (authenticated sessions are always persisted through
@@ -9,7 +9,7 @@ pub enum SessionBackend {
     /// In-memory store — the default; state is lost on restart.
     Memory,
     /// A caller-provided `SessionStore` implementation (e.g. Redis-backed).
-    Custom(Arc<dyn SessionStore + Send + Sync>),
+    Custom(ASessionStore),
 }
 
 /// Session middleware configuration: backend and cookie lifetime.

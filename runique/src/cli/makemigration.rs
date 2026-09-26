@@ -42,8 +42,7 @@ pub fn scan_entities(entities_path: &str) -> Result<Vec<ParsedSchema>> {
         || std::env::var("RUNIQUE_USER_TABLE").unwrap_or_default() == "eihwaz_users";
 
     let mut schemas = Vec::new();
-    let mut model_table_map: std::collections::HashMap<String, String> =
-        std::collections::HashMap::new();
+    let mut model_table_map: StrMap = StrMap::new();
     let entries = fs::read_dir(entities_path)
         .with_context(|| format!("Cannot read entities directory: {}", entities_path))?;
 
@@ -304,7 +303,7 @@ pub(crate) fn topological_sort_changes(
     }
 
     // dependents[B] = [A] : when B is processed, we can decrement the in_degree of A
-    let mut dependents: HashMap<String, Vec<String>> = HashMap::new();
+    let mut dependents: StrVecMap = StrVecMap::new();
     for (table, table_deps) in &deps {
         for dep in table_deps {
             dependents
@@ -858,8 +857,7 @@ fn commit_plan(plan: &Plan, migrations_path: &str) -> Result<()> {
     // Back up the previous content of any target that already exists (snapshots especially),
     // so the rollback restores it instead of deleting it — a deleted snapshot would make the
     // next run regenerate a full CREATE for an already-migrated table.
-    let mut file_backups: std::collections::HashMap<String, String> =
-        std::collections::HashMap::new();
+    let mut file_backups: StrMap = StrMap::new();
     for (path, _) in &plan.files {
         if Path::new(path).exists()
             && let Ok(prev) = fs::read_to_string(path)

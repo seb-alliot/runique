@@ -1,11 +1,10 @@
 //! Hidden field `HiddenField` for non-displayed data (tokens, internal IDs).
 use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
+use crate::utils::aliases::ATera;
 use crate::utils::trad::{t, tf};
 use async_trait::async_trait;
 use serde::Serialize;
-use std::sync::Arc;
 use subtle::ConstantTimeEq;
-use tera::Tera;
 
 /// Hidden input field. Used internally for CSRF tokens; also available for opaque data
 /// that should be submitted with the form but not displayed to the user.
@@ -88,7 +87,7 @@ impl FormField for HoneypotField {
         true
     }
 
-    fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
+    fn render(&self, tera: &ATera) -> Result<String, String> {
         let context = self.base_context();
         tera.render(&self.base.template_name, &context)
             .map_err(|e| {
@@ -125,7 +124,7 @@ impl FormField for HiddenField {
         true
     }
 
-    fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
+    fn render(&self, tera: &ATera) -> Result<String, String> {
         let mut context = self.base_context();
         context.insert("input_type", &self.base.type_field);
 

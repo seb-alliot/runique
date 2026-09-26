@@ -9,7 +9,7 @@ use crate::forms::{
 };
 use crate::impl_from_error;
 use crate::middleware::security::anti_bot::HoneypotFieldName;
-use crate::utils::aliases::{ADb, AEngine, AppResult};
+use crate::utils::aliases::{ADb, AEngine, AppResult, StrMap};
 use crate::utils::trad::t;
 use crate::utils::url_params::UrlParams;
 use crate::utils::{csp_nonce::CspNonce, csrf::CsrfToken};
@@ -21,7 +21,6 @@ use axum::{
 };
 use sea_orm::DbErr;
 use serde::de::DeserializeOwned;
-use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
 use tera::Context;
@@ -107,11 +106,11 @@ pub struct Request {
     /// HTTP headers of the request.
     pub headers: axum::http::HeaderMap,
     /// Path parameters (`/{id}`).
-    pub path_params: HashMap<String, String>,
+    pub path_params: StrMap,
     /// Raw query string (`?a=1&b=2`), preserved for typed deserialization.
     pub raw_query: String,
     /// Query string parameters.
-    pub query_params: HashMap<String, String>,
+    pub query_params: StrMap,
     /// Current user (None if not authenticated).
     pub user: Option<CurrentUser>,
     /// Parsed form data from the request (query params on GET, body on POST).
@@ -170,7 +169,7 @@ where
             context.insert("current_user", u);
         }
 
-        let path_params = Path::<HashMap<String, String>>::from_request_parts(&mut parts, state)
+        let path_params = Path::<StrMap>::from_request_parts(&mut parts, state)
             .await
             .map(|Path(p)| p)
             .unwrap_or_default();
@@ -191,7 +190,7 @@ where
 
         let raw_query = parts.uri.query().unwrap_or_default().to_string();
         let query_params =
-            serde_urlencoded::from_str::<HashMap<String, String>>(&raw_query).unwrap_or_default();
+            serde_urlencoded::from_str::<StrMap>(&raw_query).unwrap_or_default();
 
         let method = parts.method.clone();
         let headers = parts.headers.clone();
@@ -245,9 +244,9 @@ impl Request {
             context,
             method,
             headers: axum::http::HeaderMap::new(),
-            path_params: HashMap::new(),
+            path_params: StrMap::new(),
             raw_query: String::new(),
-            query_params: HashMap::new(),
+            query_params: StrMap::new(),
             user: None,
             prisme: Prisme {
                 data: Default::default(),

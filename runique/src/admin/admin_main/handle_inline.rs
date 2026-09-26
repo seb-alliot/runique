@@ -1,6 +1,5 @@
 //! Parent-detail inline sub-lists: every resource declared as a scoped child of
 //! the viewed parent (via `ParentScope`), listed filtered to the parent id.
-use std::collections::HashMap;
 
 use serde::Serialize;
 
@@ -10,7 +9,7 @@ use super::format_datetime;
 use super::handle_list::resolve_columns;
 use crate::admin::helper::resource_entry::{ListParams, ResourceEntry, SortDir};
 use crate::auth::session::CurrentUser;
-use crate::utils::aliases::ADb;
+use crate::utils::aliases::{ADb, StrMap};
 
 /// A scoped child rendered as a sub-list under its parent's detail page.
 #[derive(Serialize)]
@@ -28,7 +27,7 @@ pub(super) struct InlineList {
     pub can_update: bool,
     pub can_delete: bool,
     pub columns: Vec<String>,
-    pub column_labels: HashMap<String, String>,
+    pub column_labels: StrMap,
     /// Scoped rows, with the composite parent prefix stripped from `id`.
     pub rows: Vec<serde_json::Value>,
 }

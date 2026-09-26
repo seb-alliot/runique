@@ -22,7 +22,7 @@ use crate::context::template::Request;
 use crate::middleware::security::rate_limit_middleware;
 use crate::urlpatterns;
 use crate::utils::{
-    aliases::AppResult,
+    aliases::{AppResult, StrMap, StrVecMap},
     trad::{current_lang, t, tf},
 };
 use crate::{
@@ -239,7 +239,7 @@ async fn admin_dashboard(
     };
 
     // Groups with permission on each resource_key
-    let resource_groups: std::collections::HashMap<String, Vec<String>> = {
+    let resource_groups: StrVecMap = {
         use crate::auth::permissions::{groupe, groupes_droits};
         use sea_orm::EntityTrait;
         let groupes: std::collections::HashMap<_, String> = groupe::Entity::find()
@@ -267,8 +267,7 @@ async fn admin_dashboard(
                 "load groupes_droits for permission map",
             )
             .unwrap_or_default();
-        let mut map: std::collections::HashMap<String, Vec<String>> =
-            std::collections::HashMap::new();
+        let mut map: StrVecMap = StrVecMap::new();
         for r in rows {
             let nom = groupes
                 .get(&r.groupe_id)
@@ -312,7 +311,7 @@ async fn admin_dashboard(
 
 async fn admin_login_get(
     Extension(admin): Extension<Arc<AdminState>>,
-    axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
+    axum::extract::Query(params): axum::extract::Query<StrMap>,
     mut req: Request,
 ) -> AppResult<Response> {
     let from_logout = params.get("from").is_some_and(|v| v == "logout");
@@ -521,7 +520,7 @@ async fn admin_history(
     Extension(admin): Extension<Arc<AdminState>>,
     Extension(current_user): Extension<crate::auth::session::CurrentUser>,
     proto: Option<Extension<Arc<PrototypeAdminState>>>,
-    axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
+    axum::extract::Query(params): axum::extract::Query<StrMap>,
     mut req: Request,
 ) -> AppResult<Response> {
     use crate::admin::history;
@@ -775,7 +774,7 @@ async fn admin_history_timeline(
     Extension(admin): Extension<Arc<AdminState>>,
     Extension(current_user): Extension<crate::auth::session::CurrentUser>,
     proto: Option<Extension<Arc<PrototypeAdminState>>>,
-    axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
+    axum::extract::Query(params): axum::extract::Query<StrMap>,
     mut req: Request,
 ) -> AppResult<Response> {
     use crate::admin::history;

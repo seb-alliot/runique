@@ -1,7 +1,6 @@
 //! Aegis: extraction and normalization of the request body (multipart, urlencoded, JSON, GET).
-use crate::config::RuniqueConfig;
 use crate::utils::{
-    aliases::{StrMap, StrVecMap},
+    aliases::{ARuniqueConfig, StrMap, StrVecMap},
     parse_html::parse_multipart,
     trad::{t, tf},
 };
@@ -13,7 +12,7 @@ use axum::{
 };
 use form_urlencoded;
 use http_body_util::BodyExt;
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 use tracing::warn;
 
 /// Aegis: unique extraction of the body (multipart/urlencoded/json) and normalization.
@@ -21,7 +20,7 @@ use tracing::warn;
 pub async fn aegis<S>(
     req: Request<Body>,
     state: &S,
-    config: Arc<RuniqueConfig>,
+    config: ARuniqueConfig,
     content_type: &str,
 ) -> Result<StrVecMap, Response>
 where

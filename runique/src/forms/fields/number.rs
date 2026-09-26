@@ -1,11 +1,10 @@
 //! Numeric fields: `NumericField` (integer, decimal) with min/max validation and precision.
 use crate::forms::base::*;
+use crate::utils::aliases::ATera;
 use crate::utils::trad::{t, tf};
 use async_trait::async_trait;
 use serde::Serialize;
 use serde_json::json;
-use std::sync::Arc;
-use tera::Tera;
 
 /// Numeric input (integer, decimal, float, percent, or range slider).
 /// Construct with [`NumericField::integer`], [`::decimal`](NumericField::decimal),
@@ -264,7 +263,7 @@ impl FormField for NumericField {
         true
     }
 
-    fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
+    fn render(&self, tera: &ATera) -> Result<String, String> {
         let mut context = self.base_context();
         context.insert("config", &self.config);
 
