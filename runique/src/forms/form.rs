@@ -245,11 +245,7 @@ impl Forms {
     }
 
     /// Injects path and query parameters so `cleaned_*` methods can read them (GET search forms).
-    pub fn set_url_params(
-        &mut self,
-        path: &StrMap,
-        query: &StrMap,
-    ) {
+    pub fn set_url_params(&mut self, path: &StrMap, query: &StrMap) {
         self.path_params = path.clone();
         self.query_params = query.clone();
     }

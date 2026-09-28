@@ -45,6 +45,14 @@ impl ADb {
         Self::new(crate::db::RuniqueDb::Conn(conn))
     }
 
+    /// Takes the inner handle back, or `None` if another clone is still alive.
+    /// The test builder needs ownership to roll its transaction back
+    /// (`DatabaseTransaction::rollback` consumes `self`).
+    #[cfg(feature = "test-utils")]
+    pub(crate) fn into_inner(self) -> Option<Inner> {
+        Arc::into_inner(self.0)
+    }
+
     /// Inherent shortcut mirroring `DatabaseConnection`'s own inherent method
     /// of the same name — without it, `db.get_database_backend()` would only
     /// resolve through `ConnectionTrait`, requiring callers to import it just

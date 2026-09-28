@@ -56,6 +56,9 @@ pub mod middleware;
 
 pub mod utils;
 
+#[cfg(feature = "test-utils")]
+pub mod runique_test;
+
 pub use forms::Prisme;
 // ---------------------------------------------------------------------------
 // Main Dependencies Re-exports
