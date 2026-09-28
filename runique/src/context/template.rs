@@ -189,8 +189,7 @@ where
         context.insert("current_path", parts.uri.path());
 
         let raw_query = parts.uri.query().unwrap_or_default().to_string();
-        let query_params =
-            serde_urlencoded::from_str::<StrMap>(&raw_query).unwrap_or_default();
+        let query_params = serde_urlencoded::from_str::<StrMap>(&raw_query).unwrap_or_default();
 
         let method = parts.method.clone();
         let headers = parts.headers.clone();

@@ -18,9 +18,11 @@ use super::engine::{DatabaseEngine, verify_database_driver};
 /// Contains all parameters needed to establish and manage a database
 /// connection, including connection pools and timeouts.
 #[doc = include_str!("../../doc-tests/db/db_config_advanced.md")]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct DatabaseConfig {
     /// Database connection URL
+    // Carries the password in clear: never serialized, and masked by the manual `Debug` impl.
+    #[serde(skip_serializing)]
     pub url: String,
     /// Database type (PostgreSQL, MySQL, MariaDB, SQLite)
     pub engine: DatabaseEngine,
@@ -296,8 +298,24 @@ impl DatabaseConfig {
     }
 }
 
+impl std::fmt::Debug for DatabaseConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DatabaseConfig")
+            .field("url", &mask_password(&self.url))
+            .field("engine", &self.engine)
+            .field("max_connections", &self.max_connections)
+            .field("min_connections", &self.min_connections)
+            .field("connect_timeout", &self.connect_timeout)
+            .field("acquire_timeout", &self.acquire_timeout)
+            .field("idle_timeout", &self.idle_timeout)
+            .field("max_lifetime", &self.max_lifetime)
+            .field("sqlx_logging", &self.sqlx_logging)
+            .finish()
+    }
+}
+
 /// Masks the password in a URL for logging purposes.
-fn mask_password(url: &str) -> String {
+pub(crate) fn mask_password(url: &str) -> String {
     let Some(idx) = url.find("://") else {
         return url.to_string();
     };
@@ -305,7 +323,8 @@ fn mask_password(url: &str) -> String {
     let Some(after_protocol) = protocol_end else {
         return url.to_string();
     };
-    let Some(at_idx) = url[after_protocol..].find('@') else {
+    // Last `@`, not the first: a host can't contain one, a raw password can.
+    let Some(at_idx) = url[after_protocol..].rfind('@') else {
         return url.to_string();
     };
     let at_pos = after_protocol.saturating_add(at_idx);
@@ -335,6 +354,33 @@ mod tests {
         let url = "sqlite://local.db";
         let masked = mask_password(url);
         assert_eq!(masked, "sqlite://local.db");
+    }
+
+    #[test]
+    fn test_mask_password_with_at_in_password() {
+        let url = "postgres://myuser:p@ss@localhost:5432/mydb";
+        let masked = mask_password(url);
+        assert_eq!(masked, "postgres://myuser:****@localhost:5432/mydb");
+    }
+
+    #[test]
+    fn test_debug_masks_password() {
+        let config = DatabaseConfig::from_url("postgres://myuser:secret123@localhost:5432/mydb")
+            .unwrap()
+            .build();
+        let debug = format!("{config:?}");
+        assert!(!debug.contains("secret123"));
+        assert!(debug.contains("myuser:****@localhost"));
+    }
+
+    #[test]
+    fn test_serialize_skips_url() {
+        let config = DatabaseConfig::from_url("postgres://myuser:secret123@localhost:5432/mydb")
+            .unwrap()
+            .build();
+        let json = serde_json::to_value(&config).unwrap();
+        assert!(json.get("url").is_none());
+        assert!(!json.to_string().contains("secret123"));
     }
 
     #[test]

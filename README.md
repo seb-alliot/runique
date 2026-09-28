@@ -1,7 +1,7 @@
 # Runique — the Django developer experience, in type-safe Rust
 
 ![Rust](https://img.shields.io/badge/rust-1.94%2B-orange)
-![Tests passing](https://img.shields.io/badge/tests-2365%20passing-green)
+![Tests passing](https://img.shields.io/badge/tests-2408%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Version](https://img.shields.io/badge/version-2.3.0-blue)
 [![Crates.io](https://img.shields.io/crates/v/runique)](https://crates.io/crates/runique)
@@ -200,7 +200,7 @@ Full reference: [Sessions](https://runique.io/docs/en/session)
 
 ## Tests and coverage
 
-- Tests reported: **2365 passing** (2 ignored)
+- Tests reported: **2408 passing** (114 ignored)
 - Coverage snapshot (`2026-09-24`, package `runique`, admin module included): functions **75.83%**, lines **73.26%**, regions **71.95%**
 
 ```bash

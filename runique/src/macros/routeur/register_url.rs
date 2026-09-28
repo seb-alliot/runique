@@ -15,11 +15,7 @@ pub fn register_pending(name: impl Into<String>, path: impl Into<String>) {
 // --- 2. Functions directly using RuniqueEngine (Runtime) ---
 
 /// Registers a URL in the engine
-pub fn register_name_url(
-    engine: &AEngine,
-    name: impl Into<String>,
-    path: impl Into<String>,
-) {
+pub fn register_name_url(engine: &AEngine, name: impl Into<String>, path: impl Into<String>) {
     let mut map = engine
         .url_registry
         .write()
