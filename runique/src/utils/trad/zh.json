@@ -171,8 +171,8 @@
     "add_admin_hint": "请在构建器中添加 .with_admin(...) 以启用管理后台。",
     "daemon_error": "[守护进程] 错误：{}",
     "cargo_run_failed": "应用服务器启动失败（cargo run）",
-    "file_not_found": "未找到文件：{}\\n请确保您在 Runique 项目的根目录下运行此命令。",
-    "admin_not_found": "未找到 Admin 文件：{}\\n请使用 admin!{} 宏创建 src/admin.rs 文件。",
+    "file_not_found": "未找到文件：{}\n请确保您在 Runique 项目的根目录下运行此命令。",
+    "admin_not_found": "未找到 Admin 文件：{}\n请使用 admin!{} 宏创建 src/admin.rs 文件。",
     "name_empty": "项目名称不能为空",
     "name_invalid": "项目名称只能包含字母、数字、下划线或连字符",
     "name_dash": "项目名称不能以连字符开头",
@@ -487,5 +487,37 @@
       "resource_key": "资源",
       "actions": "操作"
     }
+  },
+  "runique_test": {
+    "connect_failed": "无法连接：{}",
+    "begin_failed": "无法开启测试事务：{}",
+    "env_read_failed": "无法读取 {}：{}",
+    "env_parse_failed": "无法解析 {}：{}",
+    "env_line_malformed": "无法解析 {}：某一行在第 {} 个字符处格式错误（该行可能包含密码，因此不予显示）",
+    "no_panic_message": "无消息",
+    "query_failed": "失败",
+    "panicked": "panic：{}",
+    "rollback_failed": "回滚：{}",
+    "test_failed": "{} 失败，请查看上方输出",
+    "clone_outlived": "测试连接的一个克隆比处理函数存活得更久；该克隆被释放时事务才会回滚",
+    "not_a_transaction": "测试未在事务中运行，因此无法回滚任何内容"
+  },
+  "test_runner": {
+    "no_cargo_toml": "此处没有 Cargo.toml：请在您的项目根目录运行 `runique test`。",
+    "test_utils_missing": "Cargo.toml 中未为 runique 启用 `test-utils` 特性。\n请将其添加为 dev-dependency，确保它永远不会进入发布构建：\n    cargo add --dev runique --features test-utils",
+    "test_utils_shipped": "Cargo.toml 在 [dev-dependencies] 之外启用了 `test-utils`，测试构建器将进入您的发布构建。\n请从 [dependencies]（以及所有 [features] 条目）中移除它，然后仅作为 dev-dependency 添加：\n    cargo add --dev runique --features test-utils",
+    "no_mod_file": "缺少 src/runique_test/mod.rs：请创建它，并在其中声明每个测试文件（`mod user;`）。",
+    "module_not_declared": "src/main.rs 未声明测试模块。请添加：\n    #[cfg(test)]\n    mod runique_test;",
+    "module_not_gated": "runique_test 模块没有放在 `cfg(test)` 之后，因此会进入每一次构建。\n请在 src/main.rs 中 `mod runique_test;` 的正上方加上 `#[cfg(test)]`。",
+    "file_not_declared_warning": "警告：src/runique_test/{}.rs 未在 mod.rs 中声明，其测试不会运行。请在 mod.rs 中添加 `mod {};`。",
+    "no_test_file": "没有 src/runique_test/{}.rs。测试文件：{}",
+    "file_not_declared": "src/runique_test/{}.rs 未在 mod.rs 中声明：请添加 `mod {};`。",
+    "cargo_spawn_failed": "无法运行 cargo。",
+    "output_failed": "无法显示 cargo 的输出。",
+    "cargo_wait_failed": "cargo test 未正常结束。",
+    "tests_failed": "cargo test 失败，请查看上方输出。",
+    "build_failed": "cargo 无法编译测试，请查看上方错误。",
+    "no_such_test": "测试 \"{}\" 不在 {}.rs 中。可用的测试：{}",
+    "dir_read_failed": "无法读取 {}"
   }
 }

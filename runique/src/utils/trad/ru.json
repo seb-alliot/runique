@@ -487,5 +487,37 @@
       "resource_key": "Ресурс",
       "actions": "Действия"
     }
+  },
+  "runique_test": {
+    "connect_failed": "не удалось подключиться: {}",
+    "begin_failed": "не удалось открыть тестовую транзакцию: {}",
+    "env_read_failed": "не удалось прочитать {}: {}",
+    "env_parse_failed": "не удалось разобрать {}: {}",
+    "env_line_malformed": "не удалось разобрать {}: строка некорректна в символе {} (строка не показана, в ней может быть пароль)",
+    "no_panic_message": "нет сообщения",
+    "query_failed": "ошибка",
+    "panicked": "паника: {}",
+    "rollback_failed": "откат: {}",
+    "test_failed": "{} не прошёл, см. вывод выше",
+    "clone_outlived": "клон тестового соединения пережил обработчик; транзакция откатится, когда этот клон будет освобождён",
+    "not_a_transaction": "тест выполнялся вне транзакции, поэтому откатить ничего не удалось"
+  },
+  "test_runner": {
+    "no_cargo_toml": "Здесь нет Cargo.toml: запустите `runique test` из корня вашего проекта.",
+    "test_utils_missing": "Фича `test-utils` не включена для runique в Cargo.toml.\nДобавьте её как dev-dependency, чтобы она никогда не попала в релизную сборку:\n    cargo add --dev runique --features test-utils",
+    "test_utils_shipped": "Cargo.toml включает `test-utils` вне [dev-dependencies], поэтому тестовый builder попадёт в вашу релизную сборку.\nУдалите её из [dependencies] (и из всех записей [features]), затем добавьте только как dev-dependency:\n    cargo add --dev runique --features test-utils",
+    "no_mod_file": "Нет src/runique_test/mod.rs: создайте его и объявите в нём каждый тестовый файл (`mod user;`).",
+    "module_not_declared": "src/main.rs не объявляет тестовый модуль. Добавьте:\n    #[cfg(test)]\n    mod runique_test;",
+    "module_not_gated": "Модуль runique_test не закрыт `cfg(test)`, поэтому попадёт в каждую сборку.\nПоставьте `#[cfg(test)]` прямо над `mod runique_test;` в src/main.rs.",
+    "file_not_declared_warning": "предупреждение: src/runique_test/{}.rs не объявлен в mod.rs, поэтому его тесты не будут запущены. Добавьте `mod {};` в mod.rs.",
+    "no_test_file": "Нет src/runique_test/{}.rs. Тестовые файлы: {}",
+    "file_not_declared": "src/runique_test/{}.rs не объявлен в mod.rs: добавьте в него `mod {};`.",
+    "cargo_spawn_failed": "Не удалось запустить cargo.",
+    "output_failed": "Не удалось показать вывод cargo.",
+    "cargo_wait_failed": "cargo test завершился некорректно.",
+    "tests_failed": "cargo test завершился с ошибкой, см. вывод выше.",
+    "build_failed": "cargo не смог собрать тесты, см. ошибки выше.",
+    "no_such_test": "Нет теста \"{}\" в {}.rs. Доступные тесты: {}",
+    "dir_read_failed": "Не удалось прочитать {}"
   }
 }

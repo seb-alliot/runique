@@ -91,13 +91,8 @@ async fn main() -> Result<()> {
     let _log_guards = init_logging();
     dotenvy::dotenv_override().ok();
 
-    let lang_str = std::env::var("LANG")
-        .ok()
-        .or_else(|| std::env::var("LC_ALL").ok())
-        .or_else(|| std::env::var("LC_MESSAGES").ok());
-
-    if let Some(lang) = lang_str {
-        set_lang(Lang::from(lang.as_str()));
+    if let Some(lang) = Lang::from_env() {
+        set_lang(lang);
     }
 
     let cli = Cli::parse();

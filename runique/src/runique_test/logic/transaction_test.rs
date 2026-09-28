@@ -1,7 +1,7 @@
 //! `TestTransaction`: how a database engine opens a throwaway transaction for
 //! a test and rolls it back afterwards. Runique ships the `ADb` (SeaORM)
 //! implementation; any other engine (MongoDB…) can implement it for its own client.
-use super::struct_test::{QueryTrace, TraceSink};
+use super::struct_test::{QueryTrace, TraceSink, msg};
 use crate::db::config::mask_password;
 use crate::db::{ADb, DatabaseConfig, RuniqueDb};
 use crate::utils::aliases::StrMap;
@@ -83,11 +83,13 @@ impl TestTransaction for ADb {
     async fn rollback_test(self) -> Result<(), DbErr> {
         match self.into_inner() {
             Some(RuniqueDb::Txn(txn)) => txn.rollback().await,
-            Some(RuniqueDb::Conn(_)) => unreachable!("begin_test always opens a transaction"),
+            // Can't happen, since `begin_test` always opens one; still an error
+            // rather than a panic, because this runs outside the panic guard.
+            Some(RuniqueDb::Conn(_)) => Err(DbErr::Custom(
+                msg("runique_test.not_a_transaction").into_owned(),
+            )),
             None => Err(DbErr::Custom(
-                "a clone of the test connection outlived the handler; \
-                 the transaction rolls back when that clone is dropped"
-                    .to_string(),
+                msg("runique_test.clone_outlived").into_owned(),
             )),
         }
     }

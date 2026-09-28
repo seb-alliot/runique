@@ -1,11 +1,26 @@
 //! What each `runique_test` run gives back: its result, the SQL it ran, and
 //! how that gets printed.
+use crate::utils::trad::Lang;
+use std::borrow::Cow;
 use std::fmt;
 use std::io::IsTerminal;
 use std::{
-    sync::{Arc, Mutex},
+    sync::{Arc, LazyLock, Mutex},
     time::Duration,
 };
+
+/// The language everything the test builder prints is in, from the user's
+/// locale. Not `set_lang`: that one is process-wide, and the app's other tests
+/// share this binary and may count on the default language.
+static LANG: LazyLock<Lang> = LazyLock::new(|| Lang::from_env().unwrap_or_default());
+
+pub(super) fn msg(key: &str) -> Cow<'static, str> {
+    LANG.get(key)
+}
+
+pub(super) fn msgf<T: fmt::Display>(key: &str, args: &[T]) -> String {
+    LANG.format(key, args)
+}
 
 /// One statement a test ran, as caught by the connection's metric callback.
 pub struct QueryTrace {
@@ -18,11 +33,38 @@ pub struct QueryTrace {
 /// Where the connection drops every statement it runs.
 pub type TraceSink = Arc<Mutex<Vec<QueryTrace>>>;
 
-/// How a test turned out: the handler returned `Ok`, or here's its error.
+/// How a test turned out.
 pub enum Reason<E> {
+    /// The handler returned `Ok`.
     Win,
+    /// The handler returned this error.
     Error(E),
+    /// The handler panicked, with this message. The transaction still got rolled back.
+    Panic(String),
+    /// The test never reached its handler: env file, config, connection or transaction.
+    Setup(String),
 }
+
+/// What a failed `runique_test` hands back to cargo. The details are already
+/// printed by then, so it only names the test.
+pub struct TestFailure {
+    pub name_test: String,
+}
+
+// Cargo shows a failing test's `Err` through `Debug`.
+impl fmt::Debug for TestFailure {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&msgf("runique_test.test_failed", &[&self.name_test]))
+    }
+}
+
+impl fmt::Display for TestFailure {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
+    }
+}
+
+impl std::error::Error for TestFailure {}
 
 /// Everything a test produced. Its `Display` impl is what gets printed.
 pub struct FormatResult<E> {
@@ -53,7 +95,11 @@ impl<E: fmt::Display> fmt::Display for FormatResult<E> {
             } else {
                 format!("{n:>2}.")
             };
-            let failed = if query.failed { "  ✗ failed" } else { "" };
+            let failed = if query.failed {
+                format!("  ✗ {}", msg("runique_test.query_failed"))
+            } else {
+                String::new()
+            };
             writeln!(
                 f,
                 "    {step} {:>6.1} ms  {}{failed}",
@@ -61,11 +107,16 @@ impl<E: fmt::Display> fmt::Display for FormatResult<E> {
                 shorten_sql(&query.sql)
             )?;
         }
-        if let Reason::Error(e) = &self.reason {
-            writeln!(f, "    ✗ {e}")?;
+        match &self.reason {
+            Reason::Win => {}
+            Reason::Error(e) => writeln!(f, "    ✗ {e}")?,
+            Reason::Panic(message) => {
+                writeln!(f, "    ✗ {}", msgf("runique_test.panicked", &[message]))?
+            }
+            Reason::Setup(message) => writeln!(f, "    ✗ {message}")?,
         }
         if let Some(e) = &self.rollback_error {
-            writeln!(f, "    ✗ rollback: {e}")?;
+            writeln!(f, "    ✗ {}", msgf("runique_test.rollback_failed", &[e]))?;
         }
         Ok(())
     }

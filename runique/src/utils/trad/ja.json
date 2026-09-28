@@ -171,8 +171,8 @@
     "add_admin_hint": "管理パネルを有効にするには、ビルダーに .with_admin(...) を追加してください。",
     "daemon_error": "[Daemon] エラー: {}",
     "cargo_run_failed": "アプリケーションサーバーが正常に起動しませんでした (cargo run)",
-    "file_not_found": "ファイルが見つかりません: {}\\nRunique プロジェクトのルートにいることを確認してください。",
-    "admin_not_found": "Admin ファイルが見つかりません: {}\\nadmin!{} マクロを使用して src/admin.rs を作成してください。",
+    "file_not_found": "ファイルが見つかりません: {}\nRunique プロジェクトのルートにいることを確認してください。",
+    "admin_not_found": "Admin ファイルが見つかりません: {}\nadmin!{} マクロを使用して src/admin.rs を作成してください。",
     "name_empty": "プロジェクト名は空にできません",
     "name_invalid": "プロジェクト名には文字、数字、_ または - のみ使用できます",
     "name_dash": "プロジェクト名は - で始めることができません",
@@ -487,5 +487,37 @@
       "resource_key": "リソース",
       "actions": "操作"
     }
+  },
+  "runique_test": {
+    "connect_failed": "接続できません: {}",
+    "begin_failed": "テスト用トランザクションを開始できません: {}",
+    "env_read_failed": "{} を読み込めません: {}",
+    "env_parse_failed": "{} を解析できません: {}",
+    "env_line_malformed": "{} を解析できません: {} 文字目で行の形式が不正です（パスワードを含む可能性があるため、行は表示しません）",
+    "no_panic_message": "メッセージなし",
+    "query_failed": "失敗",
+    "panicked": "パニック: {}",
+    "rollback_failed": "ロールバック: {}",
+    "test_failed": "{} が失敗しました。上の出力を確認してください",
+    "clone_outlived": "テスト接続のクローンがハンドラーより長く生存しています。そのクローンが破棄された時点でトランザクションはロールバックされます",
+    "not_a_transaction": "テストがトランザクション内で実行されなかったため、何もロールバックできませんでした"
+  },
+  "test_runner": {
+    "no_cargo_toml": "ここに Cargo.toml がありません。プロジェクトのルートで `runique test` を実行してください。",
+    "test_utils_missing": "Cargo.toml で runique の `test-utils` フィーチャーが有効になっていません。\nリリースビルドに含まれないよう、dev-dependency として追加してください:\n    cargo add --dev runique --features test-utils",
+    "test_utils_shipped": "Cargo.toml が [dev-dependencies] 以外で `test-utils` を有効にしているため、テストビルダーがリリースビルドに含まれてしまいます。\n[dependencies]（および [features] のすべてのエントリ）から削除し、dev-dependency としてのみ追加してください:\n    cargo add --dev runique --features test-utils",
+    "no_mod_file": "src/runique_test/mod.rs がありません。作成して、各テストファイルを宣言してください（`mod user;`）。",
+    "module_not_declared": "src/main.rs がテストモジュールを宣言していません。次を追加してください:\n    #[cfg(test)]\n    mod runique_test;",
+    "module_not_gated": "runique_test モジュールが `cfg(test)` で保護されていないため、すべてのビルドに含まれてしまいます。\nsrc/main.rs の `mod runique_test;` の直前に `#[cfg(test)]` を置いてください。",
+    "file_not_declared_warning": "警告: src/runique_test/{}.rs が mod.rs で宣言されていないため、そのテストは実行されません。mod.rs に `mod {};` を追加してください。",
+    "no_test_file": "src/runique_test/{}.rs がありません。テストファイル: {}",
+    "file_not_declared": "src/runique_test/{}.rs が mod.rs で宣言されていません。`mod {};` を追加してください。",
+    "cargo_spawn_failed": "cargo を実行できませんでした。",
+    "output_failed": "cargo の出力を表示できませんでした。",
+    "cargo_wait_failed": "cargo test が正常に終了しませんでした。",
+    "tests_failed": "cargo test が失敗しました。上の出力を確認してください。",
+    "build_failed": "cargo がテストをビルドできませんでした。上のエラーを確認してください。",
+    "no_such_test": "テスト \"{}\" は {}.rs にありません。利用可能なテスト: {}",
+    "dir_read_failed": "{} を読み込めません"
   }
 }

@@ -79,6 +79,16 @@ impl From<String> for Lang {
 }
 
 impl Lang {
+    /// The language of the user's locale, read from `LANG`, then `LC_ALL`,
+    /// then `LC_MESSAGES`. `None` when none of them is set.
+    #[must_use]
+    pub fn from_env() -> Option<Lang> {
+        ["LANG", "LC_ALL", "LC_MESSAGES"]
+            .iter()
+            .find_map(|key| std::env::var(key).ok())
+            .map(Lang::from)
+    }
+
     fn as_u8(self) -> u8 {
         match self {
             Lang::Fr => 0,
