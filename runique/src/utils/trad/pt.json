@@ -171,8 +171,8 @@
     "add_admin_hint": "Adicione .with_admin(...) no seu builder para ativar o painel de administração.",
     "daemon_error": "[Daemon] Erro: {}",
     "cargo_run_failed": "O servidor da aplicação não iniciou corretamente (cargo run)",
-    "file_not_found": "Arquivo não encontrado: {}\\nCertifique-se de estar na raiz do seu projeto Runique.",
-    "admin_not_found": "Arquivo admin não encontrado: {}\\nCrie src/admin.rs com a macro admin!{}.",
+    "file_not_found": "Arquivo não encontrado: {}\nCertifique-se de estar na raiz do seu projeto Runique.",
+    "admin_not_found": "Arquivo admin não encontrado: {}\nCrie src/admin.rs com a macro admin!{}.",
     "name_empty": "O nome do projeto não pode estar vazio",
     "name_invalid": "O nome do projeto deve conter apenas letras, números, _ ou -",
     "name_dash": "O nome do projeto não pode começar com -",
@@ -487,5 +487,37 @@
       "resource_key": "Recurso",
       "actions": "Ações"
     }
+  },
+  "runique_test": {
+    "connect_failed": "não foi possível conectar: {}",
+    "begin_failed": "não foi possível abrir a transação de teste: {}",
+    "env_read_failed": "não foi possível ler {}: {}",
+    "env_parse_failed": "não foi possível analisar {}: {}",
+    "env_line_malformed": "não foi possível analisar {}: uma linha está malformada no caractere {} (a linha não é exibida, pode conter uma senha)",
+    "no_panic_message": "sem mensagem",
+    "query_failed": "falhou",
+    "panicked": "pânico: {}",
+    "rollback_failed": "rollback: {}",
+    "test_failed": "{} falhou, veja a saída acima",
+    "clone_outlived": "um clone da conexão de teste sobreviveu ao handler; a transação será revertida quando esse clone for liberado",
+    "not_a_transaction": "o teste não foi executado dentro de uma transação, então nada pôde ser revertido"
+  },
+  "test_runner": {
+    "no_cargo_toml": "Nenhum Cargo.toml aqui: execute `runique test` a partir da raiz do seu projeto.",
+    "test_utils_missing": "A feature `test-utils` não está ativada para o runique no Cargo.toml.\nAdicione-a como dev-dependency para que nunca chegue a um build de release:\n    cargo add --dev runique --features test-utils",
+    "test_utils_shipped": "O Cargo.toml ativa `test-utils` fora de [dev-dependencies], então o builder de testes acabaria no seu build de release.\nRemova-a de [dependencies] (e de qualquer entrada de [features]) e adicione-a apenas como dev-dependency:\n    cargo add --dev runique --features test-utils",
+    "no_mod_file": "Nenhum src/runique_test/mod.rs: crie-o e declare nele cada arquivo de teste (`mod user;`).",
+    "module_not_declared": "src/main.rs não declara o módulo de testes. Adicione:\n    #[cfg(test)]\n    mod runique_test;",
+    "module_not_gated": "O módulo runique_test não está atrás de `cfg(test)`, então acabaria em todos os builds.\nColoque `#[cfg(test)]` logo acima de `mod runique_test;` em src/main.rs.",
+    "file_not_declared_warning": "aviso: src/runique_test/{}.rs não está declarado em mod.rs, então seus testes não serão executados. Adicione `mod {};` ao mod.rs.",
+    "no_test_file": "Nenhum src/runique_test/{}.rs. Arquivos de teste: {}",
+    "file_not_declared": "src/runique_test/{}.rs não está declarado em mod.rs: adicione `mod {};` nele.",
+    "cargo_spawn_failed": "Não foi possível executar o cargo.",
+    "output_failed": "Não foi possível exibir a saída do cargo.",
+    "cargo_wait_failed": "cargo test não terminou corretamente.",
+    "tests_failed": "cargo test falhou, veja a saída acima.",
+    "build_failed": "O cargo não conseguiu compilar os testes, veja os erros acima.",
+    "no_such_test": "Nenhum teste \"{}\" em {}.rs. Testes disponíveis: {}",
+    "dir_read_failed": "Não foi possível ler {}"
   }
 }

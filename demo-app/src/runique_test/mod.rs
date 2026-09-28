@@ -2,4 +2,6 @@
 pub const ENV: &str = ".env";
 
 mod blog;
+mod contribution;
+mod expected_failures;
 mod user;
