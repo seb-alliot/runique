@@ -2,7 +2,7 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use runique::{
-    cli::{create_new_project, create_superuser, makemigration, migrate, runique_start},
+    cli::{create_new_project, create_superuser, makemigration, migrate, run_tests, runique_start},
     utils::{
         init_logging,
         trad::{Lang, set_lang},
@@ -40,6 +40,18 @@ enum Commands {
     },
     /// Create an admin superuser
     CreateSuperuser,
+
+    /// Run the project's runique tests (src/runique_test/)
+    ///
+    /// Each test runs against your database inside a transaction that always
+    /// gets rolled back. `runique test` runs them all, `runique test user` only
+    /// src/runique_test/user.rs, `runique test user add_email` a single test.
+    Test {
+        /// Test file in src/runique_test/, without the .rs
+        file: Option<String>,
+        /// Test function in that file
+        test: Option<String>,
+    },
     Migration {
         #[command(subcommand)]
         action: MigrateAction,
@@ -94,6 +106,7 @@ async fn main() -> Result<()> {
         Commands::New { name } => create_new_project(&name)?,
         Commands::Start { main, admin } => runique_start(&main, &admin)?,
         Commands::CreateSuperuser => create_superuser().await?,
+        Commands::Test { file, test } => run_tests(file.as_deref(), test.as_deref())?,
         Commands::Migration { action } => match action {
             MigrateAction::Up { migrations } => {
                 migrate::up(&migrations).await?;

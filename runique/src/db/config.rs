@@ -21,7 +21,7 @@ use super::engine::{DatabaseEngine, verify_database_driver};
 #[derive(Clone, Serialize, Deserialize)]
 pub struct DatabaseConfig {
     /// Database connection URL
-    // Carries the password in clear: never serialized, and masked by the manual `Debug` impl.
+    // Holds the password in plain text, so it's never serialized and the hand-written `Debug` masks it.
     #[serde(skip_serializing)]
     pub url: String,
     /// Database type (PostgreSQL, MySQL, MariaDB, SQLite)
@@ -138,12 +138,25 @@ impl DatabaseConfig {
     /// Returns an error if required variables are missing.
     pub fn from_env() -> Result<DatabaseConfigBuilder, String> {
         dotenv().ok();
+        Self::from_lookup(|key| env::var(key).ok())
+    }
 
+    /// Same as [`from_env`](Self::from_env), but reads each variable through
+    /// `get` instead of the process environment. The test builder relies on it
+    /// to read an env file without modifying the environment, which isn't safe
+    /// while other test threads may be reading it.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if required variables are missing.
+    pub fn from_lookup(
+        get: impl Fn(&str) -> Option<String>,
+    ) -> Result<DatabaseConfigBuilder, String> {
         // DATABASE_URL takes priority over component variables (compatible with sea-orm-cli)
-        let url = if let Ok(direct_url) = env::var("DATABASE_URL") {
+        let url = if let Some(direct_url) = get("DATABASE_URL") {
             direct_url
         } else {
-            let engine = env::var("DB_ENGINE").unwrap_or_else(|_| "sqlite".to_string());
+            let engine = get("DB_ENGINE").unwrap_or_else(|| "sqlite".to_string());
 
             match engine.as_str() {
                 "postgres" | "postgresql" | "mysql" | "mariadb" => {
@@ -154,16 +167,16 @@ impl DatabaseConfig {
                         _ => unreachable!(),
                     };
 
-                    let user = env::var("DB_USER")
-                        .map_err(|_| format!(" DB_USER not set for {}\n\nRequired variables:\n  - DB_USER\n  - DB_PASSWORD\n  - DB_HOST (optional, default: localhost)\n  - DB_PORT (optional, default: {})\n  - DB_NAME", db_type.2, db_type.1))?;
+                    let user = get("DB_USER")
+                        .ok_or_else(|| format!(" DB_USER not set for {}\n\nRequired variables:\n  - DB_USER\n  - DB_PASSWORD\n  - DB_HOST (optional, default: localhost)\n  - DB_PORT (optional, default: {})\n  - DB_NAME", db_type.2, db_type.1))?;
 
-                    let password = env::var("DB_PASSWORD")
-                        .map_err(|_| format!(" DB_PASSWORD not set for {}", db_type.2))?;
+                    let password = get("DB_PASSWORD")
+                        .ok_or_else(|| format!(" DB_PASSWORD not set for {}", db_type.2))?;
 
-                    let host = env::var("DB_HOST").unwrap_or_else(|_| "localhost".to_string());
-                    let port = env::var("DB_PORT").unwrap_or_else(|_| db_type.1.to_string());
-                    let name = env::var("DB_NAME")
-                        .map_err(|_| format!(" DB_NAME not set for {}", db_type.2))?;
+                    let host = get("DB_HOST").unwrap_or_else(|| "localhost".to_string());
+                    let port = get("DB_PORT").unwrap_or_else(|| db_type.1.to_string());
+                    let name = get("DB_NAME")
+                        .ok_or_else(|| format!(" DB_NAME not set for {}", db_type.2))?;
 
                     format!(
                         "{}://{}:{}@{}:{}/{}",
@@ -171,8 +184,7 @@ impl DatabaseConfig {
                     )
                 }
                 "sqlite" => {
-                    let name =
-                        env::var("DB_NAME").unwrap_or_else(|_| "local_base.sqlite".to_string());
+                    let name = get("DB_NAME").unwrap_or_else(|| "local_base.sqlite".to_string());
                     format!("sqlite://{}?mode=rwc", name)
                 }
                 other => {
@@ -186,37 +198,37 @@ impl DatabaseConfig {
 
         let mut builder = Self::from_url(url)?;
 
-        if let Ok(v) = env::var("DB_MAX_CONNECTIONS")
+        if let Some(v) = get("DB_MAX_CONNECTIONS")
             && let Ok(n) = v.parse::<u32>()
         {
             builder.config.max_connections = n;
         }
-        if let Ok(v) = env::var("DB_MIN_CONNECTIONS")
+        if let Some(v) = get("DB_MIN_CONNECTIONS")
             && let Ok(n) = v.parse::<u32>()
         {
             builder.config.min_connections = n;
         }
-        if let Ok(v) = env::var("DB_CONNECT_TIMEOUT")
+        if let Some(v) = get("DB_CONNECT_TIMEOUT")
             && let Ok(n) = v.parse::<u64>()
         {
             builder.config.connect_timeout = Duration::from_secs(n);
         }
-        if let Ok(v) = env::var("DB_ACQUIRE_TIMEOUT")
+        if let Some(v) = get("DB_ACQUIRE_TIMEOUT")
             && let Ok(n) = v.parse::<u64>()
         {
             builder.config.acquire_timeout = Duration::from_millis(n);
         }
-        if let Ok(v) = env::var("DB_IDLE_TIMEOUT")
+        if let Some(v) = get("DB_IDLE_TIMEOUT")
             && let Ok(n) = v.parse::<u64>()
         {
             builder.config.idle_timeout = Duration::from_secs(n);
         }
-        if let Ok(v) = env::var("DB_MAX_LIFETIME")
+        if let Some(v) = get("DB_MAX_LIFETIME")
             && let Ok(n) = v.parse::<u64>()
         {
             builder.config.max_lifetime = Duration::from_secs(n);
         }
-        if let Ok(v) = env::var("DB_LOGGING") {
+        if let Some(v) = get("DB_LOGGING") {
             builder.config.sqlx_logging = matches!(v.to_lowercase().as_str(), "true" | "1" | "yes");
         }
 
@@ -314,7 +326,7 @@ impl std::fmt::Debug for DatabaseConfig {
     }
 }
 
-/// Masks the password in a URL for logging purposes.
+/// Hides the password in a connection URL so it's safe to log.
 pub(crate) fn mask_password(url: &str) -> String {
     let Some(idx) = url.find("://") else {
         return url.to_string();
@@ -323,7 +335,7 @@ pub(crate) fn mask_password(url: &str) -> String {
     let Some(after_protocol) = protocol_end else {
         return url.to_string();
     };
-    // Last `@`, not the first: a host can't contain one, a raw password can.
+    // Split on the last `@`, not the first: hosts never contain one, but a raw password might.
     let Some(at_idx) = url[after_protocol..].rfind('@') else {
         return url.to_string();
     };
@@ -371,6 +383,34 @@ mod tests {
         let debug = format!("{config:?}");
         assert!(!debug.contains("secret123"));
         assert!(debug.contains("myuser:****@localhost"));
+    }
+
+    #[test]
+    fn test_from_lookup_builds_url_from_components() {
+        let vars: std::collections::HashMap<&str, &str> = [
+            ("DB_ENGINE", "postgres"),
+            ("DB_USER", "bob"),
+            ("DB_PASSWORD", "secret"),
+            ("DB_NAME", "app"),
+        ]
+        .into();
+        let config = DatabaseConfig::from_lookup(|key| vars.get(key).map(|v| v.to_string()))
+            .unwrap()
+            .build();
+        assert_eq!(config.url, "postgres://bob:secret@localhost:5432/app");
+    }
+
+    #[test]
+    fn test_from_lookup_database_url_wins() {
+        let vars: std::collections::HashMap<&str, &str> = [
+            ("DATABASE_URL", "sqlite://direct.db"),
+            ("DB_ENGINE", "postgres"),
+        ]
+        .into();
+        let config = DatabaseConfig::from_lookup(|key| vars.get(key).map(|v| v.to_string()))
+            .unwrap()
+            .build();
+        assert_eq!(config.url, "sqlite://direct.db");
     }
 
     #[test]

@@ -18,7 +18,7 @@
 
 {% block content %}
 
-{# ── Barre mobile ── #}
+{# ── Mobile bar ── #}
 <div class="doc-mobile-bar">
     <span class="doc-mobile-bar-title">{{ cour.title }}</span>
     <button class="doc-hamburger" id="doc-hamburger-btn" aria-label="Navigation">☰</button>
@@ -47,7 +47,7 @@
         </nav>
     </aside>
 
-    {# ── Contenu principal ── #}
+    {# ── Main content ── #}
     <main class="doc-content">
         <h1>{{ chapitre_courant.title }}</h1>
 
@@ -55,7 +55,7 @@
         <div class="doc-lead">{{ chapitre_courant.lead | markdown }}</div>
         {% endif %}
 
-        {# Table des matières auto depuis les headings #}
+        {# Table of contents, built from the headings #}
         {% set headings = [b for b in blocks if b.heading] %}
         {% if headings %}
         <nav class="doc-toc">
@@ -70,7 +70,7 @@
         </nav>
         {% endif %}
 
-        {# Blocs de contenu #}
+        {# Content blocks #}
         {% for block in blocks %}
         <div class="doc-block doc-block-{{ block.block_type }}">
             {% if block.heading %}
@@ -82,7 +82,7 @@
         </div>
         {% endfor %}
 
-        {# Navigation chapitre précédent / suivant #}
+        {# Previous / next chapter navigation #}
         <div class="cours-nav-chapitres">
             {% if chapitre_precedent %}
             <a href="/cours/{{ cour.slug }}/{{ chapitre_precedent.slug }}" class="cours-nav-btn cours-nav-prev">

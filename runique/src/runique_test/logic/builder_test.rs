@@ -1,116 +1,85 @@
-//! `RuniqueTest`: runs business-logic tests against a real database, each one
-//! inside its own transaction, always rolled back.
-use super::struct_test::{FormatResult, Reason, RuniqueTest, SetupError, TraceSink};
+//! `runique_test`: runs one piece of business logic against a real database,
+//! inside a transaction that always gets rolled back, and prints the SQL it ran.
+use super::struct_test::{FormatResult, Reason, TraceSink};
 use super::transaction_test::TestTransaction;
-use std::{
-    process::ExitCode,
-    sync::{
-        Mutex,
-        atomic::{AtomicUsize, Ordering},
-    },
-};
+use crate::utils::aliases::StrMap;
+use std::sync::Once;
 
-impl<C: TestTransaction> RuniqueTest<C> {
-    /// Loads `env_file` — its values override anything already set, so the
-    /// file named here always decides which database is used — then connects.
-    pub async fn new(env_file: &str) -> Result<Self, SetupError<C::Error>> {
-        dotenvy::from_filename_override(env_file)
-            .map_err(|e| SetupError::EnvFile(format!("{env_file}: {e}")))?;
-        let config = C::load_config().map_err(SetupError::Engine)?;
-        Self::with_config(&config).await.map_err(SetupError::Engine)
-    }
+/// One test at a time across the whole test process: cargo runs tests on
+/// several threads, and a SQLite pool only has one connection.
+static SERIAL: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
-    /// Connects with an explicit config, without reading any env file.
-    pub async fn with_config(config: &C::Config) -> Result<Self, C::Error> {
-        println!("runique test → {}", C::describe(config));
-        let trace = TraceSink::default();
-        let connection = C::connect(config, trace.clone()).await?;
-        Ok(Self {
-            connection,
-            trace,
-            filter: None,
-            seen: Mutex::default(),
-            passed: AtomicUsize::new(0),
-            failed: AtomicUsize::new(0),
-            serial: tokio::sync::Mutex::new(()),
-        })
-    }
+/// Shows the target database once, not before every single test.
+static TARGET_SHOWN: Once = Once::new();
 
-    /// Runs only the test named `name`; `None` runs them all.
-    pub fn filter(mut self, name: Option<String>) -> Self {
-        self.filter = name;
-        self
-    }
+/// Runs `handler` in a fresh transaction on the database `env_file` points to,
+/// prints the result and the SQL trace, then rolls back.
+///
+/// Meant to be called from a `#[tokio::test]`. The handler only borrows the
+/// connection, so once it's done this function owns it again and can roll it
+/// back. Any failure panics, which is how cargo knows the test failed.
+///
+/// # Panics
+///
+/// When the env file can't be read, the database can't be reached, the handler
+/// returns an error, or the transaction can't be rolled back.
+pub async fn runique_test<C: TestTransaction>(
+    env_file: &str,
+    handler: impl AsyncFnOnce(&C) -> Result<(), C::Error>,
+) {
+    let name_test = current_test_name();
+    let _serial = SERIAL.lock().await;
 
-    /// Runs `handler` in a fresh transaction, prints the verdict and the SQL
-    /// trace, then rolls back. `handler` only borrows the connection, so the
-    /// builder owns it again afterwards and can roll back.
-    pub async fn run<F>(&self, name: &str, handler: F)
-    where
-        F: AsyncFnOnce(&C) -> Result<(), C::Error>,
-    {
-        self.seen
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .push(name.to_string());
-        if let Some(filter) = &self.filter
-            && filter != name
-        {
-            return;
-        }
+    let vars = read_env_file(env_file).unwrap_or_else(|e| panic!("{name_test}: {e}"));
+    let config = C::load_config(&vars).unwrap_or_else(|e| panic!("{name_test}: {e}"));
+    // Leading newline: cargo has already printed `test … ...` on this line.
+    TARGET_SHOWN.call_once(|| println!("\nrunique test → {}", C::describe(&config)));
 
-        let _serial = self.serial.lock().await;
-        self.trace.lock().unwrap_or_else(|e| e.into_inner()).clear();
-        println!("▶ {name}");
+    let trace = TraceSink::default();
+    let connection = C::connect(&config, trace.clone())
+        .await
+        .unwrap_or_else(|e| panic!("{name_test}: can't connect: {e}"));
+    let db = C::begin_test(&connection)
+        .await
+        .unwrap_or_else(|e| panic!("{name_test}: can't open the test transaction: {e}"));
 
-        let mut rollback_error = None;
-        let reason = match C::begin_test(&self.connection).await {
+    let outcome = handler(&db).await;
+    let rollback_error = db.rollback_test().await.err().map(|e| e.to_string());
+
+    let result = FormatResult {
+        name_test,
+        reason: match outcome {
+            Ok(()) => Reason::Win,
             Err(e) => Reason::Error(e),
-            Ok(db) => {
-                let outcome = handler(&db).await;
-                if let Err(e) = db.rollback_test().await {
-                    rollback_error = Some(e.to_string());
-                }
-                match outcome {
-                    Ok(()) => Reason::Win,
-                    Err(e) => Reason::Error(e),
-                }
-            }
-        };
+        },
+        trace: std::mem::take(&mut *trace.lock().unwrap_or_else(|e| e.into_inner())),
+        rollback_error,
+    };
+    print!("{result}");
+    assert!(
+        result.passed(),
+        "{} failed, see the output above",
+        result.name_test
+    );
+}
 
-        let result = FormatResult {
-            name_test: name.to_string(),
-            reason,
-            trace: std::mem::take(&mut *self.trace.lock().unwrap_or_else(|e| e.into_inner())),
-            rollback_error,
-        };
-        print!("{result}");
-        let counter = if result.passed() {
-            &self.passed
-        } else {
-            &self.failed
-        };
-        counter.fetch_add(1, Ordering::Relaxed);
-    }
+/// The running test's name, taken from the thread cargo's test harness starts
+/// for it: `runique_test::user::add_email` shows up as `user::add_email`.
+fn current_test_name() -> String {
+    let name = std::thread::current()
+        .name()
+        .unwrap_or("unnamed test")
+        .to_string();
+    name.strip_prefix("runique_test::")
+        .map(str::to_string)
+        .unwrap_or(name)
+}
 
-    /// Prints the summary. Fails if a test failed, or if the requested test
-    /// does not exist — then listing the ones that do.
-    pub fn finish(self) -> ExitCode {
-        let seen = self.seen.into_inner().unwrap_or_else(|e| e.into_inner());
-        if let Some(filter) = &self.filter
-            && !seen.iter().any(|name| name == filter)
-        {
-            eprintln!("✗ no test named \"{filter}\"");
-            eprintln!("  available tests: {}", seen.join(", "));
-            return ExitCode::FAILURE;
-        }
-        let passed = self.passed.into_inner();
-        let failed = self.failed.into_inner();
-        println!("\n{passed} passed, {failed} failed");
-        if failed == 0 {
-            ExitCode::SUCCESS
-        } else {
-            ExitCode::FAILURE
-        }
-    }
+/// Reads `path` into key/value pairs without touching the process
+/// environment, which other test threads may be reading at the same time.
+fn read_env_file(path: &str) -> Result<StrMap, String> {
+    dotenvy::from_filename_iter(path)
+        .map_err(|e| format!("can't read {path}: {e}"))?
+        .map(|item| item.map_err(|e| format!("can't parse {path}: {e}")))
+        .collect()
 }

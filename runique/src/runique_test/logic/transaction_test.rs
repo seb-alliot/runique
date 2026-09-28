@@ -1,28 +1,26 @@
 //! `TestTransaction`: how a database engine opens a throwaway transaction for
-//! one test and rolls it back. `ADb` (SeaORM) is the implementation Runique
-//! ships; another engine (MongoDB…) can implement the trait on its own client.
+//! a test and rolls it back afterwards. Runique ships the `ADb` (SeaORM)
+//! implementation; any other engine (MongoDB…) can implement it for its own client.
 use super::struct_test::{QueryTrace, TraceSink};
 use crate::db::config::mask_password;
 use crate::db::{ADb, DatabaseConfig, RuniqueDb};
-use sea_orm::{
-    sea_query::{Value, Values},
-    {DatabaseConnection, DbErr, Statement, TransactionTrait},
-};
+use crate::utils::aliases::StrMap;
+use sea_orm::{DatabaseConnection, DbErr, TransactionTrait};
 
 #[async_trait::async_trait]
 pub trait TestTransaction: Sized + Send + Sync {
     type Config: Send + Sync;
-    /// Opened once per `RuniqueTest`, shared by all its tests.
+    /// Opened for a single test, then dropped.
     type Connection: Send + Sync;
     type Error: std::fmt::Display + Send;
 
-    /// Builds the config from the process environment, after the env file was loaded.
-    fn load_config() -> Result<Self::Config, Self::Error>;
+    /// Builds the config from the values of the env file the test named.
+    fn load_config(vars: &StrMap) -> Result<Self::Config, Self::Error>;
 
-    /// Human-readable target shown before the run. Must never contain credentials.
+    /// A readable description of the target, shown before the run. Never put credentials in it.
     fn describe(config: &Self::Config) -> String;
 
-    /// Connects, and wires every executed statement into `trace`.
+    /// Connects, and hooks every statement it runs into `trace`.
     async fn connect(
         config: &Self::Config,
         trace: TraceSink,
@@ -39,10 +37,18 @@ impl TestTransaction for ADb {
     type Connection = DatabaseConnection;
     type Error = DbErr;
 
-    fn load_config() -> Result<DatabaseConfig, DbErr> {
-        DatabaseConfig::from_env()
-            .map(|builder| builder.build())
-            .map_err(DbErr::Custom)
+    fn load_config(vars: &StrMap) -> Result<DatabaseConfig, DbErr> {
+        // The file wins; a key it doesn't set falls back to the environment,
+        // which is only read here, never written.
+        let mut config = DatabaseConfig::from_lookup(|key| {
+            vars.get(key).cloned().or_else(|| std::env::var(key).ok())
+        })
+        .map(|builder| builder.build())
+        .map_err(DbErr::Custom)?;
+        // A test only ever needs the one connection its transaction runs on.
+        config.max_connections = 1;
+        config.min_connections = 1;
+        Ok(config)
     }
 
     fn describe(config: &DatabaseConfig) -> String {
@@ -54,13 +60,15 @@ impl TestTransaction for ADb {
         trace: TraceSink,
     ) -> Result<DatabaseConnection, DbErr> {
         let mut conn = config.connect().await?;
-        // Transactions opened from `conn` inherit this callback, savepoints included.
+        // Transactions opened from `conn` pick up this callback too, savepoints included.
         conn.set_metric_callback(move |info| {
             trace
                 .lock()
                 .unwrap_or_else(|e| e.into_inner())
                 .push(QueryTrace {
-                    sql: mask_hashes(info.statement).to_string(),
+                    // Placeholders only (`$1`, `?`): no value from the database
+                    // ever reaches the console.
+                    sql: info.statement.sql.clone(),
                     elapsed: info.elapsed,
                     failed: info.failed,
                 });
@@ -82,58 +90,5 @@ impl TestTransaction for ADb {
                     .to_string(),
             )),
         }
-    }
-}
-
-/// Copy of `stmt` whose password-hash values are replaced, so the trace
-/// never prints them.
-fn mask_hashes(stmt: &Statement) -> Statement {
-    let values = stmt.values.as_ref().map(|values| {
-        Values(
-            values
-                .0
-                .iter()
-                .map(|value| match value {
-                    Value::String(Some(s)) if is_password_hash(s) => {
-                        Value::String(Some("****".to_string()))
-                    }
-                    other => other.clone(),
-                })
-                .collect(),
-        )
-    });
-    Statement {
-        sql: stmt.sql.clone(),
-        values,
-        db_backend: stmt.db_backend,
-    }
-}
-
-/// PHC/bcrypt prefixes of the hash formats Runique writes (argon2, bcrypt, scrypt).
-fn is_password_hash(s: &str) -> bool {
-    ["$argon2", "$2a$", "$2b$", "$2y$", "$scrypt$"]
-        .iter()
-        .any(|prefix| s.starts_with(prefix))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use sea_orm::DbBackend;
-
-    #[test]
-    fn test_mask_hashes_hides_password_hash_only() {
-        let stmt = Statement::from_sql_and_values(
-            DbBackend::Postgres,
-            "INSERT INTO users (username, password) VALUES ($1, $2)",
-            [
-                "bob".into(),
-                "$argon2id$v=19$m=19456,t=2,p=1$c2FsdA$aGFzaA".into(),
-            ],
-        );
-        let shown = mask_hashes(&stmt).to_string();
-        assert!(shown.contains("'bob'"));
-        assert!(shown.contains("'****'"));
-        assert!(!shown.contains("argon2"));
     }
 }

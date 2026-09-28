@@ -4,20 +4,20 @@ version = "1.0.0"
 edition = "2024"
 rust-version = "1.94"
 
-[features]
-# Optionnel — clé primaire i64 ou UUID au lieu de i32 (mutuellement exclusives) :
-# `cargo build --features big-pk` ou `--features pk-uuid`
-big-pk = ["runique/big-pk"]
-pk-uuid = ["runique/pk-uuid"]
-
 [dependencies]
 
-# Base de données : sqlite (défaut) | postgres | mysql | mariadb | all-databases
+# Database: sqlite (default), postgres, mysql, mariadb or all-databases.
+#
+# Primary keys are i32 by default. Want i64 or UUIDs instead? Add "big-pk" or
+# "pk-uuid" to runique's features (pick one, not both):
+#   runique = { version = "{{RUNIQUE_VERSION}}", features = ["orm", "sqlite", "pk-uuid"] }
+# Make that call before your first migration: switching later leaves your code
+# and your schema out of sync.
 runique = { version = "{{RUNIQUE_VERSION}}", features = ["orm", "sqlite"] }
 
 serde ="1"
 
 chrono = "0.4"
 tracing-subscriber = "0.3.22"
-sea-orm = "=2.0.0"
-sea-orm-migration = "=2.0.0"
+sea-orm = "=2.0.4"
+sea-orm-migration = "=2.0.4"

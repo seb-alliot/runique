@@ -14,3 +14,6 @@ pub use start::runique_start;
 
 pub mod cli_admin;
 pub use cli_admin::create_superuser;
+
+pub mod test_runner;
+pub use test_runner::run_tests;
