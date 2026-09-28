@@ -9,6 +9,9 @@ mod formulaire;
 mod url;
 mod views;
 
+#[cfg(test)]
+mod runique_test;
+
 use runique::app::builder::RuniqueAppBuilder as builder;
 use sea_orm::sea_query::prelude::time::ext::NumericalDuration;
 

@@ -1,13 +1,13 @@
-//! `ADb`: the framework's database handle — the type behind every `&ADb`
-//! signature across the framework (`search!`, forms, admin, auth).
+//! `ADb`: the framework's database handle, the type behind every `&ADb`
+//! parameter in the framework (`search!`, forms, admin, auth).
 //!
-//! Wraps either a real [`DatabaseConnection`], or (under the `test-utils`
-//! feature) [`RuniqueDb`](crate::db::RuniqueDb), behind an `Arc`. Unlike a
+//! It wraps either a real [`DatabaseConnection`] or, with the `test-utils`
+//! feature, a [`RuniqueDb`](crate::db::RuniqueDb), behind an `Arc`. Unlike a
 //! bare `Arc<T>`, `ADb` implements `ConnectionTrait`/`TransactionTrait`
-//! **directly** — `Arc<T>` cannot (`Arc` isn't `#[fundamental]`, so a
-//! blanket impl from this crate would violate the orphan rule). That direct
-//! impl is the whole point: every native SeaORM call (`.insert(db)`,
-//! `.one(db)`, `db.begin()`, …) accepts `&ADb` with no `.as_ref()` needed.
+//! itself. `Arc<T>` can't get those impls from this crate: `Arc` isn't
+//! `#[fundamental]`, so the orphan rule rules it out. And that's the whole
+//! point: every native SeaORM call (`.insert(db)`, `.one(db)`, `db.begin()`, …)
+//! takes `&ADb` as is, no `.as_ref()` needed.
 use sea_orm::{
     AccessMode, ConnectionTrait, DatabaseTransaction, DbBackend, DbErr, ExecResult, IsolationLevel,
     QueryResult, Statement, TransactionError, TransactionOptions, TransactionTrait,
@@ -21,7 +21,7 @@ type Inner = sea_orm::DatabaseConnection;
 #[cfg(feature = "test-utils")]
 type Inner = crate::db::RuniqueDb;
 
-/// Thread-safe, cheaply-cloneable database handle — see module docs.
+/// Thread-safe database handle that's cheap to clone. See the module docs.
 #[derive(Clone, Debug)]
 pub struct ADb(Arc<Inner>);
 
@@ -30,34 +30,34 @@ impl ADb {
         Self(Arc::new(inner))
     }
 
-    /// Builds an `ADb` from a freshly-opened [`DatabaseConnection`] — the
-    /// common case (boot, CLI tools, test setup). Absorbs the
-    /// `RuniqueDb::Conn` wrap internally when `test-utils` is active, so
-    /// callers never need to know `Inner` differs per feature.
+    /// Builds an `ADb` from a freshly opened [`DatabaseConnection`], which is
+    /// what you want most of the time (boot, CLI tools, test setup). With
+    /// `test-utils` on, it also does the `RuniqueDb::Conn` wrapping for you, so
+    /// callers never have to care that `Inner` changes with the feature.
     #[cfg(not(feature = "test-utils"))]
     pub fn from_connection(conn: sea_orm::DatabaseConnection) -> Self {
         Self::new(conn)
     }
 
-    /// See the `not(test-utils)` variant above.
+    /// Same as the `not(test-utils)` version above.
     #[cfg(feature = "test-utils")]
     pub fn from_connection(conn: sea_orm::DatabaseConnection) -> Self {
         Self::new(crate::db::RuniqueDb::Conn(conn))
     }
 
-    /// Takes the inner handle back, or `None` if another clone is still alive.
-    /// The test builder needs ownership to roll its transaction back
-    /// (`DatabaseTransaction::rollback` consumes `self`).
+    /// Hands back the inner handle, or `None` if another clone is still around.
+    /// The test builder has to own the transaction to roll it back, since
+    /// `DatabaseTransaction::rollback` takes `self`.
     #[cfg(feature = "test-utils")]
     pub(crate) fn into_inner(self) -> Option<Inner> {
         Arc::into_inner(self.0)
     }
 
-    /// Inherent shortcut mirroring `DatabaseConnection`'s own inherent method
-    /// of the same name — without it, `db.get_database_backend()` would only
-    /// resolve through `ConnectionTrait`, requiring callers to import it just
-    /// for this one call (`ConnectionTrait` method resolution doesn't fall
-    /// through to `Inner`'s own inherent method past the first match).
+    /// The same shortcut `DatabaseConnection` has. Without it,
+    /// `db.get_database_backend()` would only resolve through `ConnectionTrait`,
+    /// so callers would have to import the trait for this one call: method
+    /// lookup stops at the first match and never falls through to `Inner`'s
+    /// own inherent method.
     pub fn get_database_backend(&self) -> DbBackend {
         ConnectionTrait::get_database_backend(self)
     }
@@ -99,9 +99,9 @@ impl ConnectionTrait for ADb {
     }
 }
 
-// `Transaction = DatabaseTransaction` in both configurations — `DatabaseConnection`
-// and `RuniqueDb` already resolve to that same associated type on their own impl,
-// so this is a pure one-line delegation per method, never recursive nesting.
+// `Transaction = DatabaseTransaction` either way: `DatabaseConnection` and
+// `RuniqueDb` already use that type in their own impls, so each method here is a
+// plain one-line delegation, with no recursive nesting to worry about.
 #[async_trait::async_trait]
 impl TransactionTrait for ADb {
     type Transaction = DatabaseTransaction;

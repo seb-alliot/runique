@@ -16,13 +16,10 @@
             <link rel="canonical" href="https://runique.io{% if canonical %}{{ canonical }}{% elif current_path %}{{ current_path }}{% else %}/{% endif %}">
             <link rel="alternate" type="text/plain" href="https://runique.io/llms.txt" title="LLM-readable site summary">
             <link rel="alternate" type="text/plain" href="https://runique.io/llms-full.txt" title="LLM-readable full reference">
-            <link rel="alternate" hreflang="fr" href="https://runique.io/docs/fr">
-            <link rel="alternate" hreflang="en" href="https://runique.io/docs/en">
-            <link rel="alternate" hreflang="x-default" href="https://runique.io/">
             <meta property="og:type" content="website">
             <meta property="og:site_name" content="Runique">
             <meta property="og:url" content="https://runique.io{% if canonical %}{{ canonical }}{% elif current_path %}{{ current_path }}{% else %}/{% endif %}">
-            <meta property="og:title" content="{% if title %}{{ title }} — Runique{% else %}Runique — Framework web Rust{% endif %}">
+            <meta property="og:title" content="{% if title %}{{ title }} — Runique{% elif lang == "fr" %}Runique — Framework web Rust inspiré de Django{% else %}Runique — Rust web framework inspired by Django{% endif %}">
         {% if lang == "fr" %}
             <meta property="og:description" content="{% if description %}{{ description }}{% else %}Framework web Rust inspiré de Django — Axum, SeaORM, Tera. Formulaires typés, admin généré, sécurité intégrée.{% endif %}">
         {% else %}
@@ -37,7 +34,7 @@
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
       "name": "Runique",
-      "description": "Framework web Rust inspiré de Django — Axum, SeaORM, Tera",
+      "description": "{% if lang == "fr" %}Framework web Rust inspiré de Django — Axum, SeaORM, Tera{% else %}Rust web framework inspired by Django, built on Axum, SeaORM and Tera{% endif %}",
       "applicationCategory": "DeveloperApplication",
       "operatingSystem": "Linux, macOS, Windows",
       "url": "https://runique.io",
@@ -46,7 +43,7 @@
         "https://crates.io/crates/runique"
       ],
       "programmingLanguage": "Rust",
-      "keywords": "framework web Rust, Rust web framework, Django Rust, Axum framework, SeaORM"
+      "keywords": "{% if lang == "fr" %}framework web Rust, Rust web framework, Django Rust, Axum framework, SeaORM{% else %}Rust web framework, Django Rust, Axum framework, SeaORM{% endif %}"
     }
     </script>
     {% endblock %}

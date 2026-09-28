@@ -23,7 +23,7 @@
             .<span class="fn_">auth</span>(<span class="ty">RuniqueAdminAuth</span>::<span class="fn_">new</span>())
             .<span class="fn_">routes</span>(admins::<span class="fn_">routes</span>(<span class="st">"/admin"</span>))
             .<span class="fn_">templates</span>(|t| {
-                t.<span class="fn_">with_dashboard</span>(<span class="st">"admin/mon_dashboard.html"</span>)
+                t.<span class="fn_">with_dashboard</span>(<span class="st">"admin/my_dashboard.html"</span>)
             })
             .<span class="fn_">with_state</span>(admins::<span class="fn_">admin_state</span>())
     })</code></pre>
@@ -42,21 +42,21 @@
         <div class="demo-code">
             <div class="demo-code-title">Overridable templates</div>
             <pre><code><span class="cm">// All views (full CRUD)</span>
-t.<span class="fn_">with_dashboard</span>(<span class="st">"admin/mon_dashboard.html"</span>)
-t.<span class="fn_">with_list</span>(<span class="st">"admin/mon_list.html"</span>)
-t.<span class="fn_">with_create</span>(<span class="st">"admin/mon_create.html"</span>)
-t.<span class="fn_">with_edit</span>(<span class="st">"admin/mon_edit.html"</span>)
-t.<span class="fn_">with_detail</span>(<span class="st">"admin/mon_detail.html"</span>)
-t.<span class="fn_">with_delete</span>(<span class="st">"admin/mon_delete.html"</span>)
+t.<span class="fn_">with_dashboard</span>(<span class="st">"admin/my_dashboard.html"</span>)
+t.<span class="fn_">with_list</span>(<span class="st">"admin/my_list.html"</span>)
+t.<span class="fn_">with_create</span>(<span class="st">"admin/my_create.html"</span>)
+t.<span class="fn_">with_edit</span>(<span class="st">"admin/my_edit.html"</span>)
+t.<span class="fn_">with_detail</span>(<span class="st">"admin/my_detail.html"</span>)
+t.<span class="fn_">with_delete</span>(<span class="st">"admin/my_delete.html"</span>)
 
 <span class="cm">// Global interface views</span>
-t.<span class="fn_">with_login</span>(<span class="st">"admin/mon_login.html"</span>)
-t.<span class="fn_">with_base</span>(<span class="st">"admin/mon_base.html"</span>)</code></pre>
+t.<span class="fn_">with_login</span>(<span class="st">"admin/my_login.html"</span>)
+t.<span class="fn_">with_base</span>(<span class="st">"admin/my_base.html"</span>)</code></pre>
 
             <div class="demo-code-title">Keys injected by Runique (required)</div>
             <pre><code><span class="cm">// For the dashboard:</span>
-{% raw %}{{ site_title }}{% endraw %}       <span class="cm">// titre configuré dans .site_title()</span>
-{% raw %}{{ resources }}{% endraw %}        <span class="cm">// liste des ressources</span>
+{% raw %}{{ site_title }}{% endraw %}       <span class="cm">// title set with .site_title()</span>
+{% raw %}{{ resources }}{% endraw %}        <span class="cm">// list of resources</span>
 {% raw %}{{ admin_dashboard_title }}{% endraw %} <span class="cm">// i18n translation</span>
 
 <span class="cm">// For the list view (required):</span>
@@ -82,13 +82,13 @@ t.<span class="fn_">with_base</span>(<span class="st">"admin/mon_base.html"</spa
             <div class="demo-code-title">Extra keys via with_state()</div>
             <pre><code><span class="cm">// Custom data passed via extra_context in admin_state().</span>
 <span class="cm">// E.g.: logged-in user, business stats, etc.</span>
-{% raw %}{{ resource_counts[resource.key] }}{% endraw %}  <span class="cm">// exemple démo</span></code></pre>
+{% raw %}{{ resource_counts[resource.key] }}{% endraw %}  <span class="cm">// from this demo</span></code></pre>
 
             <div class="demo-code-title">Concrete example</div>
             <pre><code><span class="cm">// The dashboard shown in this demo's admin view</span>
 <span class="cm">// is itself an override template.</span>
 <span class="cm">// demo-app/templates/admin/test_dashboard.html</span></code></pre>
-            <a href="https://github.com/seb-alliot/runique/blob/main/demo-app/templates/admin/test_dashboard.html" target="_blank" class="btn btn-secondary">Voir sur GitHub</a>
+            <a href="https://github.com/seb-alliot/runique/blob/main/demo-app/templates/admin/test_dashboard.html" target="_blank" class="btn btn-secondary">View on GitHub</a>
         </div>
 
     </div>

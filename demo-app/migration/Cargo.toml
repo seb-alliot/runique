@@ -4,8 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-# On utilise la v2-rc pour matcher le framework runique
-sea-orm-migration = { version = "2.0.2", features = [
+sea-orm-migration = { version = "2.0.4", features = [
     "runtime-tokio-rustls",
     "sqlx-postgres",
     "sqlx-mysql",

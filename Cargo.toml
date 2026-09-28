@@ -51,8 +51,8 @@ indexmap = { version = "2.14.2", features = ["serde"] }
 glob = "0.3"
 
 # ORM
-sea-orm = "=2.0.2"
-sea-orm-migration = { version = "=2.0.2" }
+sea-orm = "=2.0.4"
+sea-orm-migration = { version = "=2.0.4" }
 sea-query = "1.0.1"
 
 # Utilitaires
@@ -95,7 +95,7 @@ argon2 = "0.6"
 bcrypt = "0.19.2"
 scrypt = { version = "0.12.0", features = ["phc", "getrandom"] }
 password-hash = "0.6.1"
-rand = "0.10.2"
+rand = "0.10.3"
 ammonia = "4.1.4"
 html-escape = "0.2"
 
@@ -117,6 +117,6 @@ rpassword = "7.5.4"
 crossterm = "0.29.0"
 
 # Daemon admin
-syn = { version = "3.0.5", features = ["full", "visit"] }
+syn = { version = "3.0.6", features = ["full", "visit"] }
 quote = "1"
 proc-macro2 = { version = "1", features = ["span-locations"] }

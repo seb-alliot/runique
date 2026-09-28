@@ -26,13 +26,13 @@
 
 {% block content %}
 
-{# ── Barre mobile (hamburger) ── #}
+{# ── Mobile bar (hamburger) ── #}
 <div class="doc-mobile-bar">
     <span class="doc-mobile-bar-title">{{ section.title }}</span>
     <button class="doc-hamburger" id="doc-hamburger-btn" aria-label="Navigation">☰</button>
 </div>
 
-{# Overlay sidebar mobile #}
+{# Mobile sidebar overlay #}
 <div class="doc-sidebar-overlay" id="doc-sidebar-overlay"></div>
 
 <div class="doc-layout">
@@ -53,7 +53,7 @@
         </nav>
     </aside>
 
-    {# ── Contenu principal ── #}
+    {# ── Main content ── #}
     <main class="doc-content">
         <div class="doc-padding">
         <h1>{{ page.title }}</h1>
@@ -62,7 +62,7 @@
         <div class="doc-lead">{{ page.lead | markdown }}</div>
         {% endif %}
 
-        {# Table des matières — bloc sommaire (manuel) ou auto depuis les headings #}
+        {# Table of contents: the manual summary block, or built from the headings #}
         {% set sommaire_blocks = [b for b in blocks if b.block_type == "sommaire"] %}
         {% if sommaire_blocks %}
         <nav class="doc-toc">
@@ -87,7 +87,7 @@
         {% endif %}
         {% endif %}
 
-        {# Blocs de contenu (hors sommaire) #}
+        {# Content blocks (summary excluded) #}
         {% for block in blocks %}
         {% if block.block_type != "sommaire" %}
         <div class="doc-block doc-block-{{ block.block_type }}">

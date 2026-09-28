@@ -320,6 +320,14 @@ main {
     letter-spacing: 0.02em;
 }
 
+/* The h1 wraps the whole hero line for SEO but must not change the layout:
+   `display: contents` keeps its spans as flex items of .hero-visual-text,
+   and `font: inherit` cancels the browser's default h1 sizing. */
+.hero-heading {
+    display: contents;
+    font: inherit;
+}
+
 .hero-title {
     font-size: clamp(1rem, 2.5vw, 2.2rem);
     font-weight: 700;

@@ -1,12 +1,12 @@
-//! `RuniqueDb`: a database handle that is either a real connection or an
-//! already-open transaction — the type behind [`ADb`](crate::utils::aliases::ADb)
-//! when the `test-utils` feature is enabled.
+//! `RuniqueDb`: a database handle that's either a real connection or a
+//! transaction that's already open. It's what [`ADb`](crate::utils::aliases::ADb)
+//! wraps when the `test-utils` feature is on.
 //!
-//! The whole point: every function written against `&ADb` (the framework's
-//! entire DB-facing surface — `search!`, forms, admin) works unchanged
-//! whether it's handed a real connection or a transaction opened by the test
-//! harness for one test body, rolled back at the end (Django `TestCase`
-//! style) — no `#[serial]`, no shared-DB test isolation bugs.
+//! The point: every function written against `&ADb` (the framework's whole
+//! database-facing side: `search!`, forms, admin) works the same whether it
+//! gets a real connection or a transaction the test harness opened for a single
+//! test and rolls back at the end, Django `TestCase` style. No `#[serial]`, no
+//! tests stepping on each other in a shared database.
 #![cfg(feature = "test-utils")]
 
 use sea_orm::{
@@ -17,9 +17,9 @@ use sea_orm::{
 use std::future::Future;
 use std::pin::Pin;
 
-/// Either a real [`DatabaseConnection`], or a [`DatabaseTransaction`] already
-/// open (used by the test harness to wrap one test's body — nothing it
-/// writes is ever actually committed).
+/// Either a real [`DatabaseConnection`] or an already-open
+/// [`DatabaseTransaction`]. The test harness uses the latter to wrap a test,
+/// so nothing that test writes ever actually gets committed.
 #[derive(Debug)]
 pub enum RuniqueDb {
     Conn(DatabaseConnection),
@@ -64,12 +64,10 @@ impl ConnectionTrait for RuniqueDb {
     }
 }
 
-// `Transaction = DatabaseTransaction` on purpose in both branches — never
-// `Self` — see the module doc. `Conn(c).begin()` opens a normal transaction;
-// `Txn(t).begin()` opens a savepoint. Both are already a real
-// `DatabaseTransaction` on their own, which already satisfies
-// `TransactionTrait<Transaction = Self::Transaction>` by itself, so nothing
-// here has to re-implement the recursive nesting.
+// `Transaction = DatabaseTransaction` in both branches on purpose, never `Self`.
+// `Conn(c).begin()` opens a normal transaction and `Txn(t).begin()` opens a
+// savepoint, but either way you get a real `DatabaseTransaction`, which already
+// handles nesting on its own. So there's no recursive nesting to reimplement here.
 #[async_trait::async_trait]
 impl TransactionTrait for RuniqueDb {
     type Transaction = DatabaseTransaction;

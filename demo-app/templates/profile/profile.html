@@ -60,7 +60,7 @@
             <a href='{% link "index" %}' class="btn btn-secondary">Back to home</a>
             <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/session/14-sessions.md" target="_blank" class="btn btn-secondary">Doc FR</a>
             <a href="https://github.com/seb-alliot/runique/blob/main/docs/en/session/14-sessions.md" target="_blank" class="btn btn-secondary">Doc EN</a>
-            {# CSP strict : utiliser class="form-inline" plutôt que style="display:inline" #}
+            {# Strict CSP: use class="form-inline", not an inline style="display:inline" #}
             <form method="post" action='{% link "logout" %}' class="form-inline">
                 {% csrf %}
                 <button type="submit" class="btn btn-danger">Sign out</button>
