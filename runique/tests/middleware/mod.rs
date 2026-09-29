@@ -7,6 +7,7 @@ pub mod test_csrf;
 pub mod test_csrf_crypto;
 pub mod test_csrf_exempt;
 pub mod test_csrf_integration;
+pub mod test_csrf_login_rotation;
 pub mod test_dev_cache;
 pub mod test_errors;
 pub mod test_login_guard;

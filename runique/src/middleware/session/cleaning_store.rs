@@ -611,7 +611,7 @@ impl SessionStore for CleaningMemoryStore {
         drop(guard);
 
         // Remove from DB too (covers cycle_id() old-ID cleanup and explicit session.delete()).
-        // logout() already calls store.delete() before session.delete(), so this is idempotent.
+        // logout() already calls store.delete() before session.flush(), so this is idempotent.
         #[cfg(feature = "orm")]
         if let Some(ref db) = self.db_fallback {
             db.delete(&session_id.to_string()).await.trace(

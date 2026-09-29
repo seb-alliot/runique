@@ -3,15 +3,13 @@ use crate::auth::guard::{cache_permissions, evict_permissions, get_permissions};
 use crate::auth::permissions::{Groupe, Permission, pull_groupes_db};
 use crate::auth::user_trait::RuniqueUser;
 use crate::context::RequestExtensions;
+use crate::middleware::security::csrf::rotate_csrf_token;
 use crate::middleware::session::session_db::RuniqueSessionStore;
 use crate::utils::aliases::ADb;
 use crate::utils::config::TraceResult;
-use crate::utils::constante::{
-    admin_key::admin_context::permission::GROUPES,
-    session_key::session::{
-        SESSION_ACTIVE_KEY, SESSION_USER_ID_KEY, SESSION_USER_IS_STAFF_KEY,
-        SESSION_USER_IS_SUPERUSER_KEY, SESSION_USER_USERNAME_KEY,
-    },
+use crate::utils::constante::session_key::session::{
+    SESSION_ACTIVE_KEY, SESSION_USER_ID_KEY, SESSION_USER_IS_STAFF_KEY,
+    SESSION_USER_IS_SUPERUSER_KEY, SESSION_USER_USERNAME_KEY,
 };
 use crate::utils::pk::Pk;
 use axum::{extract::Request, middleware::Next, response::Response};
@@ -398,6 +396,9 @@ pub async fn login(
             tracing::Level::WARN,
             "cycle session id (session fixation protection)",
         );
+        // The CSRF token has to go with the old session id: whoever planted
+        // the anonymous session knows its token too.
+        rotate_csrf_token(session).await?;
     }
 
     let groupes = pull_groupes_db(db, user_id).await;
@@ -514,10 +515,18 @@ pub async fn auth_login(
 }
 
 /// Logs out a user — removes the memory session and the DB entry if provided.
+/// Does nothing when no one is logged in.
 pub async fn logout(
     session: &Session,
     db_store: Option<&RuniqueSessionStore>,
 ) -> Result<(), tower_sessions::session::Error> {
+    // The password reset page calls this on every visit, usually from an
+    // anonymous session: flushing it would only throw away its CSRF token, and
+    // a form shown again on the same page would then carry a dead one.
+    let Some(user_id) = session.get::<Pk>(SESSION_USER_ID_KEY).await.ok().flatten() else {
+        return Ok(());
+    };
+
     // DB deletion before clearing the session (cookie_id still accessible)
     if let Some(store) = db_store
         && let Some(cookie_id) = session.id().map(|id| id.to_string())
@@ -531,20 +540,17 @@ pub async fn logout(
         );
     }
 
-    // Clear permission cache
-    if let Some(user_id) = session.get::<Pk>(SESSION_USER_ID_KEY).await.ok().flatten() {
-        evict_permissions(user_id);
-    }
+    evict_permissions(user_id);
 
-    session.remove::<Pk>(SESSION_USER_ID_KEY).await?;
-    session.remove::<String>(SESSION_USER_USERNAME_KEY).await?;
-    session.remove::<bool>(SESSION_USER_IS_STAFF_KEY).await?;
-    session
-        .remove::<bool>(SESSION_USER_IS_SUPERUSER_KEY)
-        .await?;
-    session.remove::<Vec<Groupe>>(GROUPES).await?;
-    session.remove::<i64>(SESSION_ACTIVE_KEY).await?;
-    session.delete().await
+    // `delete()` alone only drops the stored copy: the request's own copy still
+    // holds its id and data, and the session layer saves it right back at the
+    // end of the request. `flush()` empties that copy too, the CSRF token with
+    // it. It keeps the record's old id though, and the store only picks a new
+    // one on a collision; since the CSRF middleware writes a new token before
+    // the response leaves, the session would be recreated under the same id.
+    // `cycle_id()` gives it a fresh one.
+    session.flush().await?;
+    session.cycle_id().await
 }
 
 /// Protects an anonymous session from cleanup.

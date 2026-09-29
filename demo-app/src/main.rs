@@ -29,6 +29,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     builder::new(config)
         .routes(url::routes())
         .with_database(db)
+        .with_log(
+        |l| l.dev())
         .with_mailer_from_env()
         .with_password_reset::<BuiltinUserEntity>(|pr| {
             pr.forgot_template("auth/forgot_password.html")
