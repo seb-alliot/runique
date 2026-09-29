@@ -115,39 +115,8 @@ pub async fn csrf_middleware(
 
     let secret = &engine.config.server.secret_key;
 
-    // Retrieve or generate the session token
-    let session_token: CsrfToken = if let Some(t) = session
-        .get::<CsrfToken>(CSRF_TOKEN_KEY)
-        .await
-        .ok()
-        .flatten()
-    {
-        if session.insert(CSRF_TOKEN_KEY, &t).await.is_err() {
-            return (StatusCode::INTERNAL_SERVER_ERROR, "Session write error").into_response();
-        }
-        t
-    } else {
-        let token = if is_authenticated(&session).await {
-            let user_id: crate::utils::pk::Pk = session
-                .get::<crate::utils::pk::Pk>(SESSION_USER_ID_KEY)
-                .await
-                .ok()
-                .flatten()
-                .unwrap_or_default();
-            CsrfToken::generate_with_context(&CsrfContext::Authenticated { user_id }, secret)
-        } else {
-            let session_id = session.id().map(|id| id.to_string()).unwrap_or_default();
-            CsrfToken::generate_with_context(
-                &CsrfContext::Anonymous {
-                    session_id: &session_id,
-                },
-                secret,
-            )
-        };
-        if session.insert(CSRF_TOKEN_KEY, &token).await.is_err() {
-            return (StatusCode::INTERNAL_SERVER_ERROR, "Session write error").into_response();
-        }
-        token
+    let Some(session_token) = session_csrf_token(&session, secret).await else {
+        return (StatusCode::INTERNAL_SERVER_ERROR, "Session write error").into_response();
     };
 
     if !exempt && csrf_required(req.method()) {
@@ -200,15 +169,65 @@ pub async fn csrf_middleware(
 
     let mut res = next.run(req).await;
 
+    // Read the token again: the handler may have rotated it (`login()` and
+    // `logout()` do), and handing the old one back would leave the
+    // frontend with a token the session no longer accepts. If the session
+    // can't be written, no header at all rather than a stale token.
+    let exposed = session_csrf_token(&session, secret).await;
+
     // Expose the token to the frontend, masked per-response (BREACH mitigation).
     // If masking ever fails (would only happen on a non-hex token, which the
     // generator never produces), skip the header rather than leaking the raw
     // unmasked session token in the response.
-    if let Ok(masked) = session_token.masked()
+    if let Some(token) = exposed
+        && let Ok(masked) = token.masked()
         && let Ok(hv) = HeaderValue::from_str(masked.as_str())
     {
         res.headers_mut().insert("X-CSRF-Token", hv);
     }
 
     res
+}
+
+/// Drops the session's CSRF token so the next one is a new one. Call it
+/// whenever the privilege level changes: `login()` and `logout()` do. The CSRF
+/// middleware issues the replacement before the response leaves, so a custom
+/// auth flow only has to call this.
+pub async fn rotate_csrf_token(session: &Session) -> Result<(), tower_sessions::session::Error> {
+    session.remove_value(CSRF_TOKEN_KEY).await.map(|_| ())
+}
+
+/// The session's CSRF token, created and stored first when the session has
+/// none: a new visitor, or a session whose token was just rotated. A new
+/// token is bound to the user when someone is logged in, to the session
+/// otherwise. `None` when the session can't be written.
+async fn session_csrf_token(session: &Session, secret: &str) -> Option<CsrfToken> {
+    if let Some(token) = session
+        .get::<CsrfToken>(CSRF_TOKEN_KEY)
+        .await
+        .ok()
+        .flatten()
+    {
+        session.insert(CSRF_TOKEN_KEY, &token).await.ok()?;
+        return Some(token);
+    }
+    let token = if is_authenticated(session).await {
+        let user_id: crate::utils::pk::Pk = session
+            .get::<crate::utils::pk::Pk>(SESSION_USER_ID_KEY)
+            .await
+            .ok()
+            .flatten()
+            .unwrap_or_default();
+        CsrfToken::generate_with_context(&CsrfContext::Authenticated { user_id }, secret)
+    } else {
+        let session_id = session.id().map(|id| id.to_string()).unwrap_or_default();
+        CsrfToken::generate_with_context(
+            &CsrfContext::Anonymous {
+                session_id: &session_id,
+            },
+            secret,
+        )
+    };
+    session.insert(CSRF_TOKEN_KEY, &token).await.ok()?;
+    Some(token)
 }
