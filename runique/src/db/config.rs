@@ -326,8 +326,13 @@ impl std::fmt::Debug for DatabaseConfig {
     }
 }
 
-/// Hides the password in a connection URL so it's safe to log.
+/// Hides the password in a connection URL so it's safe to log: the one in
+/// `user:password@`, and any passed as a query parameter (`?password=…`).
 pub(crate) fn mask_password(url: &str) -> String {
+    mask_query_secrets(&mask_userinfo(url))
+}
+
+fn mask_userinfo(url: &str) -> String {
     let Some(idx) = url.find("://") else {
         return url.to_string();
     };
@@ -348,6 +353,24 @@ pub(crate) fn mask_password(url: &str) -> String {
     };
     let user = &creds[..colon];
     format!("{}{}:****{}", before, user, after)
+}
+
+/// libpq, MySQL and sqlx all accept the password as a query parameter too.
+fn mask_query_secrets(url: &str) -> String {
+    const SECRET_KEYS: [&str; 5] = ["password", "pass", "pwd", "passwd", "sslpassword"];
+    let Some((base, query)) = url.split_once('?') else {
+        return url.to_string();
+    };
+    let params: Vec<String> = query
+        .split('&')
+        .map(|param| match param.split_once('=') {
+            Some((key, _)) if SECRET_KEYS.contains(&key.to_ascii_lowercase().as_str()) => {
+                format!("{key}=****")
+            }
+            _ => param.to_string(),
+        })
+        .collect();
+    format!("{base}?{}", params.join("&"))
 }
 
 #[cfg(test)]
@@ -373,6 +396,25 @@ mod tests {
         let url = "postgres://myuser:p@ss@localhost:5432/mydb";
         let masked = mask_password(url);
         assert_eq!(masked, "postgres://myuser:****@localhost:5432/mydb");
+    }
+
+    #[test]
+    fn test_mask_password_in_query_parameter() {
+        let masked = mask_password(
+            "postgres://db.example.com/app?user=bob&password=hunter2&sslmode=require",
+        );
+        assert!(!masked.contains("hunter2"), "{masked}");
+        assert!(masked.contains("password=****"));
+        assert!(masked.contains("sslmode=require"));
+    }
+
+    #[test]
+    fn test_mask_password_in_both_places() {
+        let masked = mask_password("mysql://bob:secret1@db:3306/app?PWD=secret2");
+        assert!(
+            !masked.contains("secret1") && !masked.contains("secret2"),
+            "{masked}"
+        );
     }
 
     #[test]

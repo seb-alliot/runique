@@ -53,6 +53,12 @@ impl ADb {
         Arc::into_inner(self.0)
     }
 
+    /// Whether another clone of this handle is still alive.
+    #[cfg(feature = "test-utils")]
+    pub(crate) fn is_shared(&self) -> bool {
+        Arc::strong_count(&self.0) > 1
+    }
+
     /// The same shortcut `DatabaseConnection` has. Without it,
     /// `db.get_database_backend()` would only resolve through `ConnectionTrait`,
     /// so callers would have to import the trait for this one call: method
@@ -87,7 +93,14 @@ impl ConnectionTrait for ADb {
     }
 
     async fn execute_unprepared(&self, sql: &str) -> Result<ExecResult, DbErr> {
-        self.0.execute_unprepared(sql).await
+        #[cfg(feature = "test-utils")]
+        let started = std::time::Instant::now();
+        let result = self.0.execute_unprepared(sql).await;
+        // SeaORM's metric callback skips this call, so a `COMMIT` or a DDL
+        // statement run this way would never show in a test's trace.
+        #[cfg(feature = "test-utils")]
+        crate::runique_test::logic::builder_test::record(sql, started.elapsed(), result.is_err());
+        result
     }
 
     async fn query_one_raw(&self, stmt: Statement) -> Result<Option<QueryResult>, DbErr> {

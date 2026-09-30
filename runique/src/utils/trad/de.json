@@ -500,7 +500,17 @@
     "rollback_failed": "Rollback: {}",
     "test_failed": "{} ist fehlgeschlagen, siehe Ausgabe oben",
     "clone_outlived": "Ein Klon der Testverbindung hat den Handler überlebt; die Transaktion wird zurückgerollt, sobald dieser Klon freigegeben wird",
-    "not_a_transaction": "Der Test lief nicht in einer Transaktion, daher konnte nichts zurückgerollt werden"
+    "not_a_transaction": "Der Test lief nicht in einer Transaktion, daher konnte nichts zurückgerollt werden",
+    "nested": "runique_test kann nicht innerhalb eines anderen runique_test laufen: Es würde endlos auf seinen eigenen Aufrufer warten",
+    "timed_out": "Der Handler wurde nicht innerhalb von {} s fertig: ein Deadlock oder eine von einer anderen Verbindung gesperrte Zeile? RUNIQUE_TEST_TIMEOUT in der env-Datei ändert das Limit",
+    "bad_timeout": "{} muss eine ganze Anzahl Sekunden größer als 0 sein, erhalten: \"{}\"",
+    "transaction_ended": "Die Transaktion des Tests wurde innerhalb des Tests beendet (ein COMMIT oder DDL unter MariaDB/MySQL): Alles, was davor geschrieben wurde, ist jetzt in der Datenbank",
+    "swallowed_failures": "Fehlgeschlagene Abfragen: {}, trotzdem hat der Handler Ok zurückgegeben: Irgendwo wurde ein Fehler verschluckt (umschließen Sie erwartete Fehler mit expect_db_error)",
+    "rollback_timed_out": "Das Rollback wurde nicht innerhalb von {} s fertig",
+    "expected": "erwartet",
+    "not_refused": "Die Datenbank hat akzeptiert, was der Test abgelehnt sehen wollte",
+    "no_db_config": "Die env-Datei setzt weder DATABASE_URL noch DB_ENGINE: Die Testdatenbank muss dort angegeben werden, aus der Shell wird nichts übernommen",
+    "in_memory": "im Speicher: Jeder Test beginnt mit einer leeren Datenbank"
   },
   "test_runner": {
     "no_cargo_toml": "Hier gibt es keine Cargo.toml: Führen Sie `runique test` im Stammverzeichnis Ihres Projekts aus.",

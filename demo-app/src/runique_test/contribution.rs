@@ -5,8 +5,8 @@ use crate::backend::contribution::list_contributions;
 use crate::entities::contribution::{ActiveModel as ContributionActiveModel, ContributionType};
 use runique::prelude::runique_users::{ActiveModel as UserActiveModel, Entity as UserEntity};
 use runique::prelude::*;
-use runique::runique_test::{TestFailure, runique_test};
-use sea_orm::{DbErr, TransactionTrait};
+use runique::runique_test::{TestFailure, expect_db_error, runique_test};
+use sea_orm::DbErr;
 
 const TITLE: &str = "runique_test contribution";
 
@@ -31,25 +31,6 @@ fn contribution(user_id: Pk, title: Option<&str>) -> ContributionActiveModel {
         title: title.map_or(NotSet, |title| Set(title.to_string())),
         content: Set("<p>Written by a runique test.</p>".to_string()),
         ..Default::default()
-    }
-}
-
-/// Tries an insert the database should refuse. It runs in a savepoint: on
-/// Postgres a failed statement spoils the whole transaction, and the test
-/// still has queries to run afterwards.
-async fn insert_expecting_rejection(
-    db: &ADb,
-    model: ContributionActiveModel,
-) -> Result<DbErr, DbErr> {
-    let savepoint = db.begin().await?;
-    let attempt = model.insert(&savepoint).await;
-    savepoint.rollback().await?;
-    match attempt {
-        Err(e) => Ok(e),
-        Ok(saved) => Err(DbErr::Custom(format!(
-            "the database accepted contribution #{} when it should have refused it",
-            saved.id
-        ))),
     }
 }
 
@@ -98,7 +79,13 @@ async fn contribution_from_a_deleted_user_is_rejected() -> Result<(), TestFailur
         UserEntity::delete_by_id(user.id).exec(db).await?;
         eprintln!("    data: user #{} created, then deleted", user.id);
 
-        let refused = insert_expecting_rejection(db, contribution(user.id, Some(TITLE))).await?;
+        // `expect_db_error` runs it in a savepoint (on Postgres a failed
+        // statement spoils the whole transaction) and tells the builder this
+        // failure is wanted, so it isn't taken for a swallowed error.
+        let refused = expect_db_error(db, async |sp| {
+            contribution(user.id, Some(TITLE)).insert(sp).await
+        })
+        .await?;
         eprintln!("    ✓ refused as expected: {refused}");
 
         if is_listed(db, TITLE).await {
@@ -116,7 +103,8 @@ async fn contribution_without_a_title_is_rejected() -> Result<(), TestFailure> {
         let user = new_user(db, "runique_test_untitled").await?;
         eprintln!("    data: user #{}, contribution with no title", user.id);
 
-        let refused = insert_expecting_rejection(db, contribution(user.id, None)).await?;
+        let refused =
+            expect_db_error(db, async |sp| contribution(user.id, None).insert(sp).await).await?;
         eprintln!("    ✓ refused as expected: {refused}");
         Ok(())
     })

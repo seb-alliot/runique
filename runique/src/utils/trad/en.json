@@ -500,7 +500,17 @@
     "rollback_failed": "rollback: {}",
     "test_failed": "{} failed, see the output above",
     "clone_outlived": "a clone of the test connection outlived the handler; the transaction rolls back when that clone is dropped",
-    "not_a_transaction": "the test didn't run inside a transaction, so nothing could be rolled back"
+    "not_a_transaction": "the test didn't run inside a transaction, so nothing could be rolled back",
+    "nested": "runique_test can't run inside another runique_test: it would wait for its own caller forever",
+    "timed_out": "the handler didn't finish within {} s: a deadlock, or a row another connection keeps locked? RUNIQUE_TEST_TIMEOUT in the env file changes the limit",
+    "bad_timeout": "{} must be a whole number of seconds above 0, got \"{}\"",
+    "transaction_ended": "the test's transaction was ended from inside the test (a COMMIT, or DDL on MariaDB/MySQL): everything written before that is now in the database",
+    "swallowed_failures": "failed queries: {}, yet the handler returned Ok: an error got swallowed somewhere (wrap the failures you expect in expect_db_error)",
+    "rollback_timed_out": "the rollback didn't finish within {} s",
+    "expected": "expected",
+    "not_refused": "the database accepted what the test expected it to refuse",
+    "no_db_config": "the env file sets neither DATABASE_URL nor DB_ENGINE: the test database has to be named in it, nothing is taken from the shell",
+    "in_memory": "in-memory: every test starts from an empty database"
   },
   "test_runner": {
     "no_cargo_toml": "No Cargo.toml here: run `runique test` from your project's root.",

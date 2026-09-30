@@ -500,7 +500,17 @@
     "rollback_failed": "rollback : {}",
     "test_failed": "{} a échoué, voir la sortie ci-dessus",
     "clone_outlived": "un clone de la connexion de test a survécu au handler ; la transaction sera annulée quand ce clone sera libéré",
-    "not_a_transaction": "le test ne s'est pas exécuté dans une transaction : rien n'a pu être annulé"
+    "not_a_transaction": "le test ne s'est pas exécuté dans une transaction : rien n'a pu être annulé",
+    "nested": "runique_test ne peut pas tourner à l'intérieur d'un autre runique_test : il attendrait indéfiniment son propre appelant",
+    "timed_out": "le handler n'a pas fini en {} s : un interblocage, ou une ligne verrouillée par une autre connexion ? RUNIQUE_TEST_TIMEOUT dans le fichier env change la limite",
+    "bad_timeout": "{} doit être un nombre entier de secondes supérieur à 0, reçu \"{}\"",
+    "transaction_ended": "la transaction du test a été terminée depuis le test lui-même (un COMMIT, ou du DDL sous MariaDB/MySQL) : tout ce qui a été écrit avant est maintenant en base",
+    "swallowed_failures": "requêtes en échec : {}, et pourtant le handler a renvoyé Ok : une erreur a été avalée quelque part (entourez les échecs attendus avec expect_db_error)",
+    "rollback_timed_out": "le rollback n'a pas fini en {} s",
+    "expected": "attendu",
+    "not_refused": "la base a accepté ce que le test s'attendait à la voir refuser",
+    "no_db_config": "le fichier env ne définit ni DATABASE_URL ni DB_ENGINE : la base de test doit y être nommée, rien n'est repris du shell",
+    "in_memory": "en mémoire : chaque test part d'une base vide"
   },
   "test_runner": {
     "no_cargo_toml": "Pas de Cargo.toml ici : lancez `runique test` depuis la racine de votre projet.",

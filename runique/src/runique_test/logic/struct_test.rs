@@ -22,18 +22,21 @@ pub(super) fn msgf<T: fmt::Display>(key: &str, args: &[T]) -> String {
     LANG.format(key, args)
 }
 
-/// One statement a test ran, as caught by the connection's metric callback.
+/// One statement a test ran, as caught by the connection's metric callback
+/// (or by `ADb` itself for `execute_unprepared`, which SeaORM doesn't report).
 pub struct QueryTrace {
     /// The SQL with placeholders instead of values, so no data leaks to the console.
     pub sql: String,
     pub elapsed: Duration,
     pub failed: bool,
+    /// Ran inside `expect_db_error`: a failure here is what the test asked for.
+    pub expected: bool,
 }
 
 /// Where the connection drops every statement it runs.
 pub type TraceSink = Arc<Mutex<Vec<QueryTrace>>>;
 
-/// How a test turned out.
+/// How the handler turned out.
 pub enum Reason<E> {
     /// The handler returned `Ok`.
     Win,
@@ -41,14 +44,41 @@ pub enum Reason<E> {
     Error(E),
     /// The handler panicked, with this message. The transaction still got rolled back.
     Panic(String),
+    /// The handler was still running when the time limit ran out, in seconds.
+    TimedOut(u64),
     /// The test never reached its handler: env file, config, connection or transaction.
     Setup(String),
 }
 
+/// Something the builder caught on its own, whatever the handler returned.
+pub enum Issue {
+    /// The transaction was ended from inside the test (a `COMMIT`, or DDL on
+    /// MariaDB/MySQL): what the test wrote before that is now in the database.
+    TransactionEnded,
+    /// Queries failed but the handler still returned `Ok`: an error got
+    /// swallowed somewhere. Failures inside `expect_db_error` don't count.
+    SwallowedFailures(usize),
+    /// The transaction couldn't be rolled back explicitly, with the reason.
+    RollbackFailed(String),
+}
+
+impl fmt::Display for Issue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Issue::TransactionEnded => f.write_str(&msg("runique_test.transaction_ended")),
+            Issue::SwallowedFailures(n) => {
+                f.write_str(&msgf("runique_test.swallowed_failures", &[n]))
+            }
+            Issue::RollbackFailed(e) => f.write_str(&msgf("runique_test.rollback_failed", &[e])),
+        }
+    }
+}
+
 /// What a failed `runique_test` hands back to cargo. The details are already
-/// printed by then, so it only names the test.
+/// printed by then; `message` repeats the main one so a test can check it.
 pub struct TestFailure {
     pub name_test: String,
+    pub message: String,
 }
 
 // Cargo shows a failing test's `Err` through `Debug`.
@@ -71,14 +101,28 @@ pub struct FormatResult<E> {
     pub name_test: String,
     pub reason: Reason<E>,
     pub trace: Vec<QueryTrace>,
-    /// Set when the transaction couldn't be rolled back explicitly, with the reason.
-    pub rollback_error: Option<String>,
+    pub issues: Vec<Issue>,
 }
 
-impl<E> FormatResult<E> {
-    /// A test only passes if its handler succeeded and its transaction got rolled back.
+impl<E: fmt::Display> FormatResult<E> {
+    /// A test only passes if its handler succeeded and the builder caught nothing.
     pub fn passed(&self) -> bool {
-        matches!(self.reason, Reason::Win) && self.rollback_error.is_none()
+        matches!(self.reason, Reason::Win) && self.issues.is_empty()
+    }
+
+    /// The first thing that went wrong, as printed. `None` for a test that passed.
+    pub fn failure_message(&self) -> Option<String> {
+        reason_message(&self.reason).or_else(|| self.issues.first().map(Issue::to_string))
+    }
+}
+
+fn reason_message<E: fmt::Display>(reason: &Reason<E>) -> Option<String> {
+    match reason {
+        Reason::Win => None,
+        Reason::Error(e) => Some(e.to_string()),
+        Reason::Panic(message) => Some(msgf("runique_test.panicked", &[message])),
+        Reason::TimedOut(secs) => Some(msgf("runique_test.timed_out", &[secs])),
+        Reason::Setup(message) => Some(message.clone()),
     }
 }
 
@@ -95,10 +139,14 @@ impl<E: fmt::Display> fmt::Display for FormatResult<E> {
             } else {
                 format!("{n:>2}.")
             };
-            let failed = if query.failed {
-                format!("  ✗ {}", msg("runique_test.query_failed"))
-            } else {
-                String::new()
+            let failed = match (query.failed, query.expected) {
+                (false, _) => String::new(),
+                (true, false) => format!("  ✗ {}", msg("runique_test.query_failed")),
+                (true, true) => format!(
+                    "  ✗ {} ({})",
+                    msg("runique_test.query_failed"),
+                    msg("runique_test.expected")
+                ),
             };
             writeln!(
                 f,
@@ -107,16 +155,11 @@ impl<E: fmt::Display> fmt::Display for FormatResult<E> {
                 shorten_sql(&query.sql)
             )?;
         }
-        match &self.reason {
-            Reason::Win => {}
-            Reason::Error(e) => writeln!(f, "    ✗ {e}")?,
-            Reason::Panic(message) => {
-                writeln!(f, "    ✗ {}", msgf("runique_test.panicked", &[message]))?
-            }
-            Reason::Setup(message) => writeln!(f, "    ✗ {message}")?,
+        if let Some(message) = reason_message(&self.reason) {
+            writeln!(f, "    ✗ {message}")?;
         }
-        if let Some(e) = &self.rollback_error {
-            writeln!(f, "    ✗ {}", msgf("runique_test.rollback_failed", &[e]))?;
+        for issue in &self.issues {
+            writeln!(f, "    ✗ {issue}")?;
         }
         Ok(())
     }

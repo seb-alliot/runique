@@ -42,4 +42,6 @@ pub mod helpers;
 pub mod macros;
 pub mod middleware;
 pub mod migration;
+#[cfg(feature = "test-utils")]
+pub mod test_builder;
 pub mod utils;

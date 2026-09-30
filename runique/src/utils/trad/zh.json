@@ -500,7 +500,17 @@
     "rollback_failed": "回滚：{}",
     "test_failed": "{} 失败，请查看上方输出",
     "clone_outlived": "测试连接的一个克隆比处理函数存活得更久；该克隆被释放时事务才会回滚",
-    "not_a_transaction": "测试未在事务中运行，因此无法回滚任何内容"
+    "not_a_transaction": "测试未在事务中运行，因此无法回滚任何内容",
+    "nested": "runique_test 不能在另一个 runique_test 内部运行：它会永远等待自己的调用者",
+    "timed_out": "处理函数未在 {} 秒内完成：是死锁，还是某行被另一个连接锁住？可通过 env 文件中的 RUNIQUE_TEST_TIMEOUT 修改上限",
+    "bad_timeout": "{} 必须是大于 0 的整数秒数，实际收到 \"{}\"",
+    "transaction_ended": "测试的事务在测试内部被结束（COMMIT，或 MariaDB/MySQL 上的 DDL）：此前写入的所有内容现在都留在数据库中",
+    "swallowed_failures": "失败的查询：{}，但处理函数仍返回了 Ok：某处吞掉了错误（请用 expect_db_error 包裹预期的失败）",
+    "rollback_timed_out": "回滚未在 {} 秒内完成",
+    "expected": "预期",
+    "not_refused": "数据库接受了测试预期它会拒绝的操作",
+    "no_db_config": "env 文件既没有设置 DATABASE_URL 也没有设置 DB_ENGINE：测试数据库必须在其中明确指定，不会从 shell 读取任何内容",
+    "in_memory": "内存数据库：每个测试都从空数据库开始"
   },
   "test_runner": {
     "no_cargo_toml": "此处没有 Cargo.toml：请在您的项目根目录运行 `runique test`。",
