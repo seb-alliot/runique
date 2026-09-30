@@ -1,4 +1,5 @@
 //! Global security settings (CSP, rate limiting, HTTPS, allowed hosts).
+use crate::utils::config::env::env_flag;
 use serde::{Deserialize, Serialize};
 
 /// Security settings read from the environment.
@@ -53,18 +54,12 @@ impl Default for SecurityConfig {
 impl SecurityConfig {
     /// Loads configuration from environment variables.
     pub fn from_env() -> Self {
-        let rate_limiting = std::env::var("RATE_LIMITING")
-            .map(|v| v.parse().unwrap_or(true))
-            .unwrap_or(true);
-        let enforce_https = std::env::var("ENFORCE_HTTPS")
-            .map(|v| v.parse().unwrap_or(false))
-            .unwrap_or(false);
+        let rate_limiting = env_flag("RATE_LIMITING", true);
+        let enforce_https = env_flag("ENFORCE_HTTPS", false);
         let allowed_hosts: Vec<String> = std::env::var("ALLOWED_HOSTS")
             .map(|v| v.split(',').map(|s| s.trim().to_string()).collect())
             .unwrap_or_else(|_| vec!["localhost".to_string(), "127.0.0.1".to_string()]);
-        let acme_enabled = std::env::var("ACME_ENABLED")
-            .map(|v| v.parse().unwrap_or(false))
-            .unwrap_or(false);
+        let acme_enabled = env_flag("ACME_ENABLED", false);
         let acme_domain = std::env::var("ACME_DOMAIN").ok().filter(|s| !s.is_empty());
         let acme_email = std::env::var("ACME_EMAIL").ok().filter(|s| !s.is_empty());
         let acme_certs_dir = std::env::var("ACME_CERTS_DIR")
@@ -75,12 +70,8 @@ impl SecurityConfig {
             .ok()
             .and_then(|v| v.parse().ok())
             .unwrap_or(31_536_000);
-        let hsts_include_subdomains = std::env::var("HSTS_INCLUDE_SUBDOMAINS")
-            .map(|v| v.parse().unwrap_or(true))
-            .unwrap_or(true);
-        let hsts_preload = std::env::var("HSTS_PRELOAD")
-            .map(|v| v.parse().unwrap_or(false))
-            .unwrap_or(false);
+        let hsts_include_subdomains = env_flag("HSTS_INCLUDE_SUBDOMAINS", true);
+        let hsts_preload = env_flag("HSTS_PRELOAD", false);
 
         Self {
             rate_limiting,

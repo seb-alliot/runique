@@ -256,8 +256,8 @@ fn detect_db_kind() -> crate::migration::utils::types::DbKind {
         return DbKind::Mysql;
     }
 
-    let raw_engine = std::env::var("DB_ENGINE").unwrap_or_default();
-    match raw_engine.to_lowercase().as_str() {
+    let engine = crate::utils::config::env::env_keyword("DB_ENGINE").unwrap_or_default();
+    match engine.as_str() {
         "postgres" | "postgresql" => DbKind::Postgres,
         "mysql" | "mariadb" => DbKind::Mysql,
         // Explicit, not just the fallthrough below: SQLite has no native enum/trigger
@@ -265,7 +265,7 @@ fn detect_db_kind() -> crate::migration::utils::types::DbKind {
         // deliberate case, not indistinguishable from an unrecognized value.
         "" | "sqlite" => DbKind::Other,
         _ => {
-            eprintln!("{}", tf("makemigrations.unknown_db_engine", &[&raw_engine]));
+            eprintln!("{}", tf("makemigrations.unknown_db_engine", &[&engine]));
             DbKind::Other
         }
     }

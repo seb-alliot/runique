@@ -443,17 +443,12 @@ du framework (environnement, token CSS, configuration de session, nettoyage de t
 ```rust
 use std::sync::LazyLock;
 
-// Lecture du .env une seule fois au démarrage
-static ENV: LazyLock<RuniqueEnv> = LazyLock::new(|| {
-    dotenvy::dotenv().ok();
-    match std::env::var("DEBUG").as_deref() {
-        Ok("true") => RuniqueEnv::Development,
-        _          => RuniqueEnv::Production,
-    }
-});
+// Lecture de DEBUG une seule fois au démarrage
+static DEBUG: LazyLock<bool> =
+    LazyLock::new(|| debug_from(std::env::var("DEBUG").ok().as_deref()));
 
 pub fn is_debug() -> bool {
-    matches!(*ENV, RuniqueEnv::Development)
+    *DEBUG
 }
 
 pub fn css_token() -> String {

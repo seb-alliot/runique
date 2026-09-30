@@ -54,6 +54,21 @@ fn test_security_config_enforce_https_true() {
     del_env("ENFORCE_HTTPS");
 }
 
+// Regression: `str::parse::<bool>()` only took `true`, so `True` fell back to
+// the default `false` and HTTPS wasn't enforced, without a word.
+#[test]
+#[serial]
+fn test_security_config_enforce_https_whatever_the_case() {
+    for value in ["True", "TRUE", "1", "yes", "On"] {
+        set_env("ENFORCE_HTTPS", value);
+        assert!(
+            SecurityConfig::from_env().enforce_https,
+            "ENFORCE_HTTPS={value} must enforce HTTPS"
+        );
+    }
+    del_env("ENFORCE_HTTPS");
+}
+
 #[test]
 #[serial]
 fn test_security_config_rate_limiting_false() {

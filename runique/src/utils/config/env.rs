@@ -1,33 +1,59 @@
-//! Execution environment — debug/production mode, `.env` loading, CSS token.
+//! Execution environment — debug mode, CSS token.
 use std::sync::LazyLock;
 
-/// Application execution mode.
-///
-/// Determined once at startup from `DEBUG` in `.env`.
-/// - `DEBUG=true` or `DEBUG=1` → [`Development`](RuniqueEnv::Development)
-/// - Any other value or absent → [`Production`](RuniqueEnv::Production)
-///
-/// Use [`is_debug()`] to access the mode from anywhere.
-pub enum RuniqueEnv {
-    Development,
-    Production,
-}
+/// `DEBUG` from `.env`, read once at startup.
+static DEBUG: LazyLock<bool> = LazyLock::new(|| debug_from(std::env::var("DEBUG").ok().as_deref()));
 
-impl RuniqueEnv {
-    fn from_env() -> Self {
-        match std::env::var("DEBUG").as_deref() {
-            Ok("true" | "1") => Self::Development,
-            _ => Self::Production,
-        }
+/// Reads a yes/no value, whatever its case and surrounding spaces: `true`,
+/// `1`, `yes`, `on` or `false`, `0`, `no`, `off`. `None` for anything else.
+///
+/// Rust's own `str::parse::<bool>()` only takes `true`/`false` exactly: with it,
+/// `ENFORCE_HTTPS=True` was quietly read as the default, and HTTPS wasn't enforced.
+#[must_use]
+pub fn flag_from(value: &str) -> Option<bool> {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "true" | "1" | "yes" | "on" => Some(true),
+        "false" | "0" | "no" | "off" => Some(false),
+        _ => None,
     }
 }
 
-static ENV: LazyLock<RuniqueEnv> = LazyLock::new(RuniqueEnv::from_env);
+/// The yes/no environment variable `key` (see [`flag_from`]), or `default` when
+/// it isn't set. A value that's neither yes nor no gets a warning and the
+/// default, rather than being silently taken for one or the other.
+#[must_use]
+pub fn env_flag(key: &str, default: bool) -> bool {
+    let Ok(raw) = std::env::var(key) else {
+        return default;
+    };
+    flag_from(&raw).unwrap_or_else(|| {
+        tracing::warn!(key, value = %raw, default, "not a yes/no value, using the default");
+        default
+    })
+}
 
-/// Returns `true` if the application is running in development mode (`DEBUG=true`).
+/// A keyword-valued environment variable (`DB_ENGINE=Postgres`,
+/// `EMAIL_BACKEND=Console`), trimmed and lowercased so it compares the same
+/// way everywhere. Never for secrets, URLs, paths or table names: those are
+/// case-sensitive.
+#[must_use]
+pub fn env_keyword(key: &str) -> Option<String> {
+    std::env::var(key)
+        .ok()
+        .map(|value| value.trim().to_ascii_lowercase())
+}
+
+/// Whether a `DEBUG` value turns debug mode on (see [`flag_from`]); unset or
+/// unreadable means off.
+#[must_use]
+pub fn debug_from(value: Option<&str>) -> bool {
+    value.and_then(flag_from).unwrap_or(false)
+}
+
+/// Returns `true` when `DEBUG` turns debug mode on (see [`debug_from`]).
 ///
-/// Read once at startup from `.env`, stored in `LazyLock`.
-/// Available everywhere in the framework without passing parameters.
+/// Read once at startup, stored in a `LazyLock`, available everywhere in the
+/// framework without passing parameters.
 ///
 /// # Example
 /// ```rust,ignore
@@ -39,7 +65,7 @@ static ENV: LazyLock<RuniqueEnv> = LazyLock::new(RuniqueEnv::from_env);
 /// ```
 #[must_use]
 pub fn is_debug() -> bool {
-    matches!(*ENV, RuniqueEnv::Development)
+    *DEBUG
 }
 
 use std::{
@@ -79,4 +105,33 @@ fn hash_static_files(dir: &str) -> Option<String> {
 /// change. Falls back to `"1000"` if the directory has no matching files.
 pub fn css_token() -> String {
     CSS_TOKEN.clone()
+}
+
+#[cfg(test)]
+mod debug_tests {
+    use super::{debug_from, flag_from};
+
+    #[test]
+    fn flags_are_read_whatever_the_case() {
+        for on in ["true", "True", "TRUE", "1", "yes", "On", " true "] {
+            assert_eq!(flag_from(on), Some(true), "{on:?}");
+        }
+        for off in ["false", "False", "0", "no", "OFF"] {
+            assert_eq!(flag_from(off), Some(false), "{off:?}");
+        }
+        for neither in ["", "treu", "prod", "2"] {
+            assert_eq!(flag_from(neither), None, "{neither:?}");
+        }
+    }
+
+    #[test]
+    fn debug_values_are_read_whatever_the_case() {
+        for on in ["true", "True", "TRUE", "1", "yes", "On", " true "] {
+            assert!(debug_from(Some(on)), "{on:?} should turn debug on");
+        }
+        for off in ["false", "False", "0", "no", "", "prod"] {
+            assert!(!debug_from(Some(off)), "{off:?} should leave debug off");
+        }
+        assert!(!debug_from(None));
+    }
 }

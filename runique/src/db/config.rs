@@ -156,7 +156,9 @@ impl DatabaseConfig {
         let url = if let Some(direct_url) = get("DATABASE_URL") {
             direct_url
         } else {
-            let engine = get("DB_ENGINE").unwrap_or_else(|| "sqlite".to_string());
+            let engine = get("DB_ENGINE")
+                .map(|engine| engine.trim().to_ascii_lowercase())
+                .unwrap_or_else(|| "sqlite".to_string());
 
             match engine.as_str() {
                 "postgres" | "postgresql" | "mysql" | "mariadb" => {
@@ -229,7 +231,7 @@ impl DatabaseConfig {
             builder.config.max_lifetime = Duration::from_secs(n);
         }
         if let Some(v) = get("DB_LOGGING") {
-            builder.config.sqlx_logging = matches!(v.to_lowercase().as_str(), "true" | "1" | "yes");
+            builder.config.sqlx_logging = crate::utils::config::env::flag_from(&v).unwrap_or(false);
         }
 
         Ok(builder)

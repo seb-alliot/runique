@@ -43,17 +43,11 @@ impl MiddlewareConfig {
     /// `enable_cache` reads `RUNIQUE_ENABLE_CACHE`; the other flags use fixed
     /// defaults.
     pub fn from_env() -> Self {
-        let get_bool = |key: &str, default: bool| {
-            std::env::var(key)
-                .map(|v| v.parse::<bool>().unwrap_or(default))
-                .unwrap_or(default)
-        };
-
         Self {
             // Host validation configured only via the builder
             enable_host_validation: false,
             enable_debug_errors: true, // always mounted — config.debug handles content
-            enable_cache: get_bool("RUNIQUE_ENABLE_CACHE", true),
+            enable_cache: crate::utils::config::env::env_flag("RUNIQUE_ENABLE_CACHE", true),
             exclusive_login: false,
         }
     }

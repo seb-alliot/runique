@@ -36,7 +36,7 @@ impl RuniqueConfig {
             password: PasswordConfig::auto(),
             static_files: StaticConfig::from_env(),
             base_dir: std::env::var("BASE_DIR").unwrap_or_else(|_| ".".to_string()),
-            debug: matches!(std::env::var("DEBUG").as_deref(), Ok("true" | "1")),
+            debug: crate::utils::config::env::debug_from(std::env::var("DEBUG").ok().as_deref()),
             timezone: std::env::var("TZ").unwrap_or_else(|_| "UTC".to_string()),
             log: RuniqueLog::default(),
         }
