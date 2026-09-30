@@ -358,7 +358,7 @@ impl Forms {
                         crate::runique_log!(level, field = %field.name(), value = %value, "set_value");
                     }
                 }
-                field.set_value(value);
+                field.set_submitted_value(value);
             }
         }
         // Normalizes checkboxes/radios absent from POST → "false".

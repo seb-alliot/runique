@@ -3,7 +3,7 @@ use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
 use crate::utils::aliases::ATera;
 use crate::utils::trad::{t, tf};
 use async_trait::async_trait;
-use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
+use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Timelike};
 use serde::Serialize;
 use serde_json::json;
 
@@ -386,12 +386,9 @@ impl FormField for DateTimeField {
             return true;
         }
 
-        // Parse the datetime — accept HTML (YYYY-MM-DDTHH:MM) and ISO with seconds only
-        let datetime = match NaiveDateTime::parse_from_str(val, "%Y-%m-%dT%H:%M")
-            .or_else(|_| NaiveDateTime::parse_from_str(val, "%Y-%m-%dT%H:%M:%S"))
-        {
-            Ok(dt) => dt,
-            Err(_) => {
+        let datetime = match parse_datetime_local(val) {
+            Some(dt) => dt,
+            None => {
                 self.set_error(t("forms.date_invalid").to_string());
                 return false;
             }
@@ -431,6 +428,22 @@ impl FormField for DateTimeField {
 
     fn render(&self, tera: &ATera) -> Result<String, String> {
         let mut context = self.base_context();
+
+        if let Some(dt) = parse_datetime_local(&self.base.value) {
+            let mut field = self.base.clone();
+            field.value = if dt.second() == 0 && dt.nanosecond() == 0 {
+                dt.format("%Y-%m-%dT%H:%M").to_string()
+            } else {
+                // The input's default step is 60 s: a value with seconds would
+                // be refused by the browser on submit unless the step allows them.
+                field
+                    .html_attributes
+                    .entry("step".to_string())
+                    .or_insert_with(|| "1".to_string());
+                dt.format("%Y-%m-%dT%H:%M:%S").to_string()
+            };
+            context.insert("field", &field);
+        }
 
         if let Some(min) = &self.min_datetime {
             context.insert("min_datetime", &min.format("%Y-%m-%dT%H:%M").to_string());
@@ -593,4 +606,25 @@ impl FormField for DurationField {
                 .to_string()
             })
     }
+}
+
+/// Reads a `DateTimeField` value: what the `datetime-local` input sends
+/// (`YYYY-MM-DDTHH:MM[:SS]`), and what a form filled from a model holds — a
+/// `timestamp` with a fractional part, or a `timestamp_tz` in RFC 3339, taken
+/// in UTC like `parse_utc_datetime` stores it. The input shows neither an
+/// offset nor more than seconds, so `render` rewrites the value into its shape.
+pub(crate) fn parse_datetime_local(value: &str) -> Option<NaiveDateTime> {
+    if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(value) {
+        return Some(dt.naive_utc());
+    }
+    NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%M:%S%.f")
+        .or_else(|_| NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%M"))
+        .ok()
+}
+
+/// Reads a value meant for a `timestamp_tz` column. An RFC 3339 value keeps its
+/// offset; the `YYYY-MM-DDTHH:MM[:SS]` a `datetime-local` input sends carries
+/// none, so it's taken as UTC — the browser gives no way to know the user's zone.
+pub fn parse_utc_datetime(value: &str) -> Option<chrono::DateTime<chrono::Utc>> {
+    parse_datetime_local(value).map(|dt| dt.and_utc())
 }

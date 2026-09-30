@@ -119,6 +119,8 @@ subtle.workspace = true
 
 # Procedural macros
 derive_form.workspace = true
+# DSL types, read at runtime by forms built from a schema.
+runique_dsl.workspace = true
 
 # ACME / TLS (feature acme)
 instant-acme = { version = "0.8.5", features = ["rcgen"], optional = true }
@@ -152,8 +154,8 @@ mariadb = ["mysql"]
 # binaire CLI parlant aux 3 moteurs au runtime via DATABASE_URL/DB_ENGINE).
 # Jamais activée implicitement : il faut la demander explicitement par son nom.
 all-databases = ["sqlite", "postgres", "mysql", "derive_form/all-databases"]
-big-pk = ["derive_form/big-pk"]
-pk-uuid = ["derive_form/pk-uuid", "sea-orm/with-uuid"]
+big-pk = ["derive_form/big-pk", "runique_dsl/big-pk"]
+pk-uuid = ["derive_form/pk-uuid", "runique_dsl/pk-uuid", "sea-orm/with-uuid"]
 acme = ["dep:instant-acme", "dep:axum-server", "dep:rustls"]
 # Test-only DB isolation (RuniqueDb enum: real connection or an open test
 # transaction, rolled back at the end of each test). Declare it under

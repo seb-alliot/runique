@@ -1,7 +1,6 @@
 //! `relations: { belongs_to: ..., has_many: ..., has_one: ..., many_to_many: ... }`
 //! entry parsing.
-use crate::model::ast::RelationDef;
-use proc_macro2;
+use crate::ast::RelationDef;
 use syn::{
     Ident, Result, Token,
     parse::{Parse, ParseStream},

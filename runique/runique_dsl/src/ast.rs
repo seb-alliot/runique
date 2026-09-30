@@ -1,4 +1,4 @@
-// model_macro/src/model/ast.rs — structures representing the parsed DSL
+//! Structures representing the parsed `model!{}` / `extend!{}` DSL.
 
 pub enum EnumBackingType {
     /// Detected from `.env`: native Postgres (`CREATE TYPE … AS ENUM`) if engine = Postgres,
@@ -51,6 +51,7 @@ pub struct ModelInput {
 
 // ── form_fields: block — semantic types ──────────────────────
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FormFieldKind {
     Text,
     Email,
@@ -150,12 +151,16 @@ pub enum PkType {
 
 pub struct FieldDef {
     pub name: syn::Ident,
+    /// The DSL type the field was declared with — see [`crate::types`].
+    pub kind: FormFieldKind,
     pub ty: FieldType,
     pub options: Vec<FieldOption>,
 }
 
 pub enum FieldType {
     String,
+    /// A `String` column the generated code hashes before saving.
+    Password,
     Text,
     Char,
     Varchar(u32),
@@ -212,6 +217,7 @@ pub enum FieldOption {
     MaxSize(u64),
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FileKind {
     Image,
     Document,

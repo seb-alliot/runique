@@ -16,6 +16,10 @@ pub struct NumericField {
     pub config: NumericConfig,
     pub min_digits: Option<usize>,
     pub max_digits: Option<usize>,
+    /// What the Rust field behind an integer can hold (`integer_in`); `i64`
+    /// otherwise. Checked before the `min`/`max` the developer adds.
+    #[serde(skip)]
+    pub int_range: Option<(i128, i128)>,
 }
 
 impl CommonFieldConfig for NumericField {
@@ -35,6 +39,7 @@ impl NumericField {
             config,
             min_digits: None,
             max_digits: None,
+            int_range: None,
         }
     }
     /// Constrains the number of decimal digits (e.g. `digits(2, 4)` for `12.34` to `12.3456`).
@@ -53,6 +58,20 @@ impl NumericField {
                 max: None,
             },
         )
+    }
+
+    /// Integer input limited to `min..=max`: what the Rust field it's saved
+    /// into can hold (`-128..=127` for an `i8`, `0..=u64::MAX` for a `u64`).
+    pub fn integer_in(name: &str, min: i128, max: i128) -> Self {
+        let mut field = Self::integer(name);
+        field.int_range = Some((min, max));
+        field
+    }
+
+    /// Marks the field as required (empty value fails validation).
+    pub fn required(mut self) -> Self {
+        self.set_required(true, None);
+        self
     }
 
     /// Sets the HTML `placeholder` attribute.
@@ -170,6 +189,14 @@ impl NumericField {
 // --- Trait Implementation ---
 #[async_trait]
 impl FormField for NumericField {
+    fn set_type_bounds(&mut self, min: i128, max: i128) -> bool {
+        if !matches!(self.config, NumericConfig::Integer { .. }) {
+            return false;
+        }
+        self.int_range = Some((min, max));
+        true
+    }
+
     async fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
         if self.base.is_required.choice && val.is_empty() {
@@ -207,58 +234,64 @@ impl FormField for NumericField {
         }
 
         // --- STEP 2: Value bounds validation (min/max) ---
-        match &self.config {
+        let canonical = match &self.config {
             NumericConfig::Integer { min, max } => {
-                if let Ok(v) = normalized.parse::<i64>() {
-                    if let Some(m) = min
-                        && v < *m
-                    {
-                        self.set_error(tf("forms.min_value", &[m]));
-                        return false;
-                    }
-                    if let Some(m) = max
-                        && v > *m
-                    {
-                        self.set_error(tf("forms.max_value", &[m]));
-                        return false;
-                    }
-                } else {
+                let Ok(v) = normalized.parse::<i128>() else {
                     self.set_error(t("forms.integer_required").to_string());
                     return false;
-                }
-            }
-            NumericConfig::Decimal { value, .. } | NumericConfig::Float { value } => {
-                if let Ok(v) = normalized.parse::<f64>() {
-                    if let Some(f) = value.as_ref() {
-                        if v < f.min {
-                            self.set_error(tf("forms.min_value", &[&f.min]));
-                            return false;
-                        }
-                        if v > f.max {
-                            self.set_error(tf("forms.max_value", &[&f.max]));
-                            return false;
-                        }
-                    }
-                } else {
-                    self.set_error(t("forms.number_invalid").to_string());
+                };
+                let (lo, hi) = self.int_range.unwrap_or((i64::MIN.into(), i64::MAX.into()));
+                let lo = min.map_or(lo, |m| lo.max(m.into()));
+                let hi = max.map_or(hi, |m| hi.min(m.into()));
+                if v < lo {
+                    self.set_error(tf("forms.min_value", &[&lo]));
                     return false;
                 }
+                if v > hi {
+                    self.set_error(tf("forms.max_value", &[&hi]));
+                    return false;
+                }
+                v.to_string()
+            }
+            NumericConfig::Decimal { value, .. } | NumericConfig::Float { value } => {
+                // A decimal is read the way it's saved (`Decimal`, exact, no
+                // exponent), not as an `f64` that would accept `1e5` and round.
+                let parsed = if matches!(self.config, NumericConfig::Decimal { .. }) {
+                    rust_decimal::Decimal::from_str_exact(&normalized)
+                        .ok()
+                        .and_then(|d| rust_decimal::prelude::ToPrimitive::to_f64(&d))
+                } else {
+                    normalized.parse::<f64>().ok().filter(|v| v.is_finite())
+                };
+                let Some(v) = parsed else {
+                    self.set_error(t("forms.number_invalid").to_string());
+                    return false;
+                };
+                if let Some(f) = value.as_ref() {
+                    if v < f.min {
+                        self.set_error(tf("forms.min_value", &[&f.min]));
+                        return false;
+                    }
+                    if v > f.max {
+                        self.set_error(tf("forms.max_value", &[&f.max]));
+                        return false;
+                    }
+                }
+                normalized
             }
             NumericConfig::Percent { value } | NumericConfig::Range { value, .. } => {
                 match normalized.parse::<f64>() {
-                    Ok(v) => {
-                        if v < value.min || v > value.max {
-                            self.set_error(t("forms.number_invalid").to_string());
-                            return false;
-                        }
-                    }
-                    Err(_) => {
+                    Ok(v) if v >= value.min && v <= value.max => normalized,
+                    _ => {
                         self.set_error(t("forms.number_invalid").to_string());
                         return false;
                     }
                 }
             }
-        }
+        };
+        // What gets saved is the value that was checked: the conversion after
+        // validation parses this string again, without the `,` → `.` or the trim.
+        self.base.value = canonical;
         self.clear_error();
         true
     }

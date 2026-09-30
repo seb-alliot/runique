@@ -4,9 +4,7 @@
 //! trailing blocks) so a parsing failure in one area points at a small,
 //! independently readable/testable function instead of a single ~170-line
 //! `parse`.
-use crate::model::ast::{
-    EnumDef, FieldDef, FormFieldDecl, MetaDef, ModelInput, PkDef, RelationDef,
-};
+use crate::ast::{EnumDef, FieldDef, FormFieldDecl, MetaDef, ModelInput, PkDef, RelationDef};
 use std::collections::HashSet;
 use syn::{
     Ident, LitStr, Result, Token,

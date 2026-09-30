@@ -1,6 +1,6 @@
 //! `enums: { Name [Variant, ...], ... }` entry parsing — one `EnumDef` per
 //! `Name: [...]` line.
-use crate::model::ast::{EnumBackingType, EnumDef, EnumVariant};
+use crate::ast::{EnumBackingType, EnumDef, EnumVariant};
 use std::collections::HashSet;
 use syn::{
     Ident, Result, Token,

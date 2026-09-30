@@ -1,0 +1,20 @@
+[package]
+name = "runique_dsl"
+version = "0.0.1-test.1"
+edition = "2024"
+authors = ["Itsuki"]
+license = "MIT"
+description = "Parser for the Runique model!{} and extend!{} DSL, shared by the derive_form macros and the runique CLI"
+repository = "https://github.com/seb-alliot/runique"
+homepage = "https://runique.io/"
+keywords = ["runique", "dsl", "parser", "syn"]
+categories = ["parsing"]
+
+[features]
+# Resolve the `Pk` alias: forwarded runique -> derive_form -> runique_dsl.
+big-pk = []
+pk-uuid = []
+
+[dependencies]
+syn = { workspace = true, features = ["extra-traits"] }
+proc-macro2 = "1"

@@ -14,6 +14,7 @@ define_enum_kind!(
     Numeric => NumericField,
     #[serde(skip)]
     File => FileField,
+    Binary => BinaryField,
     Boolean => BooleanField,
     Choice => ChoiceField,
     Radio => RadioField,
@@ -97,6 +98,22 @@ impl FormField for GenericField {
 
     fn set_value(&mut self, value: &str) {
         delegate_to_kind!(mut self, set_value, value);
+    }
+
+    fn set_submitted_value(&mut self, value: &str) {
+        delegate_to_kind!(mut self, set_submitted_value, value);
+    }
+
+    fn set_type_bounds(&mut self, min: i128, max: i128) -> bool {
+        delegate_to_kind!(mut self, set_type_bounds, min, max)
+    }
+
+    fn cap_max_length(&mut self, max: u32) {
+        delegate_to_kind!(mut self, cap_max_length, max);
+    }
+
+    fn cap_max_size(&mut self, bytes: u64) {
+        delegate_to_kind!(mut self, cap_max_size, bytes);
     }
 
     fn set_placeholder(&mut self, placeholder: &str) {

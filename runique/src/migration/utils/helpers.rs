@@ -22,7 +22,7 @@ pub fn col_type_to_method(col_type: &str) -> &str {
         "Boolean" => "boolean()",
         "DateTime" => "date_time()",
         "Timestamp" => "timestamp()",
-        "TimestampWithTimeZone" => "timestamp_tz()",
+        "TimestampWithTimeZone" => "timestamp_with_time_zone()",
         "Date" => "date()",
         "Time" => "time()",
         "Uuid" => "uuid()",

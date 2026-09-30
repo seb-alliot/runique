@@ -1,5 +1,5 @@
 //! `fk(table.column, action)` foreign key declaration parsing.
-use crate::model::ast::{FkAction, FkDef};
+use crate::ast::{FkAction, FkDef};
 use syn::{
     Ident, Result, Token,
     parse::{Parse, ParseStream},

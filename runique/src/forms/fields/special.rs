@@ -153,6 +153,12 @@ impl SlugField {
         self.set_label(label);
         self
     }
+
+    /// Marks the field as required (empty value fails validation).
+    pub fn required(mut self) -> Self {
+        self.set_required(true, None);
+        self
+    }
 }
 
 #[async_trait]

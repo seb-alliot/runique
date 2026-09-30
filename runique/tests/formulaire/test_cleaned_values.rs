@@ -322,3 +322,66 @@ fn test_clear_resets_field_values() {
     form.clear();
     assert_eq!(form.cleaned_string("str_field"), None);
 }
+
+// ── The getters read what the fields accept ─────────────────────────────────
+// Regressions: a valid value the field accepted came back `None`.
+
+#[test]
+fn cleaned_datetime_utc_reads_what_a_datetime_local_input_sends() {
+    let mut form = make_form();
+    form.form.add_value("datetime_field", "2026-10-01T14:30");
+    let dt = form
+        .cleaned_datetime_utc("datetime_field")
+        .expect("read as UTC");
+    assert_eq!(dt.to_rfc3339(), "2026-10-01T14:30:00+00:00");
+}
+
+#[test]
+fn cleaned_datetime_reads_seconds() {
+    let mut form = make_form();
+    form.form.add_value("datetime_field", "2026-10-01T14:30:15");
+    assert!(form.cleaned_naive_datetime("datetime_field").is_some());
+    form.form.add_value("time_field", "14:30:15");
+    assert!(form.cleaned_naive_time("time_field").is_some());
+}
+
+#[test]
+fn cleaned_float_accepts_an_exponent_like_the_field() {
+    let mut form = make_form();
+    form.form.add_value("float_field", "1e5");
+    assert_eq!(form.cleaned_f64("float_field"), Some(100000.0));
+}
+
+#[test]
+fn cleaned_decimal_is_exact() {
+    let mut form = make_form();
+    form.form.add_value("float_field", "12,50");
+    assert_eq!(
+        form.cleaned_decimal("float_field").map(|d| d.to_string()),
+        Some("12.50".to_string())
+    );
+    form.form.add_value("float_field", "1e5");
+    assert_eq!(
+        form.cleaned_decimal("float_field"),
+        None,
+        "no exponent, like the field"
+    );
+}
+
+#[test]
+fn cleaned_small_integers() {
+    let mut form = make_form();
+    form.form.add_value("int_field", "-5");
+    assert_eq!(form.cleaned_i8("int_field"), Some(-5));
+    assert_eq!(form.cleaned_i16("int_field"), Some(-5));
+    form.form.add_value("int_field", "300");
+    assert_eq!(form.cleaned_i8("int_field"), None, "doesn't fit an i8");
+}
+
+#[test]
+fn cleaned_bytes_decodes_a_finalized_binary_value() {
+    let mut form = make_form();
+    // What `BinaryField::finalize` leaves: the upload, base64-encoded.
+    form.form.add_value("str_field", "QUJD");
+    assert_eq!(form.cleaned_bytes("str_field"), Some(b"ABC".to_vec()));
+}

@@ -11,4 +11,8 @@ pub trait ModelForm: Sized + Send + Sync {
     fn model_register_fields(form: &mut crate::forms::Forms) {
         Self::schema().fill_form(form, Self::fields(), Self::exclude());
     }
+    /// Called after `customize`: see [`ModelSchema::enforce_limits`](crate::migration::schema::ModelSchema::enforce_limits).
+    fn enforce_schema_limits(form: &mut crate::forms::Forms) {
+        Self::schema().enforce_limits(form);
+    }
 }

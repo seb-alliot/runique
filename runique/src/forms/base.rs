@@ -253,6 +253,26 @@ pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Syn
         );
     }
 
+    /// Sets a value that came from the request (`Forms::fill`), as opposed to
+    /// one set by code. Same as `set_value` unless the field has to check where
+    /// the value comes from — a file field only takes a path to a file this
+    /// request uploaded.
+    fn set_submitted_value(&mut self, value: &str) {
+        self.set_value(value);
+    }
+
+    /// Holds an integer field to what its Rust column type can store. `false`
+    /// if this isn't an integer field.
+    fn set_type_bounds(&mut self, _min: i128, _max: i128) -> bool {
+        false
+    }
+
+    /// Lowers the accepted length to the column's, if the field allows more.
+    fn cap_max_length(&mut self, _max: u32) {}
+
+    /// Lowers the accepted upload size to the column's, if the field allows more.
+    fn cap_max_size(&mut self, _bytes: u64) {}
+
     /// Model-defined ceiling for max_size (file fields only). None for other field types.
     fn model_max_size(&self) -> Option<u64> {
         None

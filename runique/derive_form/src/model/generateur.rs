@@ -373,284 +373,8 @@ pub fn generate_from_str_map(model: &ModelInput) -> TokenStream2 {
     };
 
     // One assignment per field (auto_now/auto_now_update fields are excluded from Model → ignored)
-    let field_assignments: Vec<TokenStream2> = model.fields.iter().filter_map(|field| {
-        let fname = &field.name;
-        let fname_str = fname.to_string();
-
-        let is_auto_now = field.options.iter().any(|o| matches!(o, FieldOption::AutoNow));
-        let is_auto_now_update = field.options.iter().any(|o| matches!(o, FieldOption::AutoNowUpdate));
-        let is_nullable = field.options.iter().any(|o| matches!(o, FieldOption::Nullable));
-
-        // These fields do not exist in the ActiveModel (filtered by generate_sea_model) → skipping them
-        if is_auto_now || is_auto_now_update {
-            return None;
-        }
-
-        let ts = match &field.ty {
-            FieldType::Bool => {
-                if is_nullable {
-                    quote! {
-                        #fname: ::sea_orm::ActiveValue::Set(
-                            __data.get(#fname_str).map(|v| {
-                                let s = v.as_str();
-                                s == "true" || s == "1" || s == "on"
-                            })
-                        ),
-                    }
-                } else {
-                    quote! {
-                        #fname: ::sea_orm::ActiveValue::Set(
-                            __data.get(#fname_str)
-                                .map(|v| { let s = v.as_str(); s == "true" || s == "1" || s == "on" })
-                                .unwrap_or(false)
-                        ),
-                    }
-                }
-            }
-            FieldType::I8 | FieldType::I16 | FieldType::I32 | FieldType::U32 => {
-                if is_nullable {
-                    quote! {
-                        #fname: ::sea_orm::ActiveValue::Set(
-                            __data.get(#fname_str).and_then(|v| v.parse().ok())
-                        ),
-                    }
-                } else {
-                    quote! {
-                        #fname: ::sea_orm::ActiveValue::Set(
-                            __data.get(#fname_str).and_then(|v| v.parse().ok()).unwrap_or_default()
-                        ),
-                    }
-                }
-            }
-            FieldType::I64 | FieldType::U64 => {
-                if is_nullable {
-                    quote! {
-                        #fname: ::sea_orm::ActiveValue::Set(
-                            __data.get(#fname_str).and_then(|v| v.parse().ok())
-                        ),
-                    }
-                } else {
-                    quote! {
-                        #fname: ::sea_orm::ActiveValue::Set(
-                            __data.get(#fname_str).and_then(|v| v.parse().ok()).unwrap_or_default()
-                        ),
-                    }
-                }
-            }
-            FieldType::F32 | FieldType::F64 | FieldType::Decimal(_) => {
-                if is_nullable {
-                    quote! {
-                        #fname: ::sea_orm::ActiveValue::Set(
-                            __data.get(#fname_str).and_then(|v| v.parse().ok())
-                        ),
-                    }
-                } else {
-                    quote! {
-                        #fname: ::sea_orm::ActiveValue::Set(
-                            __data.get(#fname_str).and_then(|v| v.parse().ok()).unwrap_or_default()
-                        ),
-                    }
-                }
-            }
-            FieldType::Time => {
-                if is_nullable {
-                    quote! {
-                        #fname: ::sea_orm::ActiveValue::Set(
-                            __data.get(#fname_str).and_then(|v| {
-                                if v.is_empty() { return None; }
-                                ::chrono::NaiveTime::parse_from_str(v, "%H:%M:%S")
-                                    .or_else(|_| ::chrono::NaiveTime::parse_from_str(v, "%H:%M"))
-                                    .ok()
-                            })
-                        ),
-                    }
-                } else {
-                    quote! {
-                        #fname: ::sea_orm::ActiveValue::Set(
-                            __data.get(#fname_str)
-                                .filter(|v| !v.is_empty())
-                                .and_then(|v| {
-                                    ::chrono::NaiveTime::parse_from_str(v, "%H:%M:%S")
-                                        .or_else(|_| ::chrono::NaiveTime::parse_from_str(v, "%H:%M"))
-                                        .ok()
-                                })
-                                .unwrap_or_default()
-                        ),
-                    }
-                }
-            }
-            FieldType::Date => {
-                if is_nullable {
-                    quote! {
-                        #fname: ::sea_orm::ActiveValue::Set(
-                            __data.get(#fname_str).and_then(|v| {
-                                if v.is_empty() { return None; }
-                                ::chrono::NaiveDate::parse_from_str(v, "%Y-%m-%d").ok()
-                            })
-                        ),
-                    }
-                } else {
-                    quote! {
-                        #fname: ::sea_orm::ActiveValue::Set(
-                            __data.get(#fname_str)
-                                .filter(|v| !v.is_empty())
-                                .and_then(|v| ::chrono::NaiveDate::parse_from_str(v, "%Y-%m-%d").ok())
-                                .unwrap_or_default()
-                        ),
-                    }
-                }
-            }
-            FieldType::Datetime | FieldType::Timestamp => {
-                if is_nullable {
-                    quote! {
-                        #fname: ::sea_orm::ActiveValue::Set(
-                            __data.get(#fname_str).and_then(|v| {
-                                if v.is_empty() { return None; }
-                                ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M:%S")
-                                    .or_else(|_| ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M"))
-                                    .ok()
-                            })
-                        ),
-                    }
-                } else {
-                    quote! {
-                        #fname: ::sea_orm::ActiveValue::Set(
-                            __data.get(#fname_str)
-                                .filter(|v| !v.is_empty())
-                                .and_then(|v| {
-                                    ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M:%S")
-                                        .or_else(|_| ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M"))
-                                        .ok()
-                                })
-                                .unwrap_or_default()
-                        ),
-                    }
-                }
-            }
-            FieldType::TimestampTz => {
-                if is_nullable {
-                    quote! {
-                        #fname: ::sea_orm::ActiveValue::Set(
-                            __data.get(#fname_str).and_then(|v| {
-                                if v.is_empty() { return None; }
-                                ::chrono::DateTime::parse_from_rfc3339(v)
-                                    .map(|dt| dt.with_timezone(&::chrono::Utc))
-                                    .ok()
-                            })
-                        ),
-                    }
-                } else {
-                    quote! {
-                        #fname: ::sea_orm::ActiveValue::Set(
-                            __data.get(#fname_str)
-                                .filter(|v| !v.is_empty())
-                                .and_then(|v| {
-                                    ::chrono::DateTime::parse_from_rfc3339(v)
-                                        .map(|dt| dt.with_timezone(&::chrono::Utc))
-                                        .ok()
-                                })
-                                .unwrap_or_else(|| ::chrono::Utc::now())
-                        ),
-                    }
-                }
-            }
-            FieldType::Uuid => {
-                if is_nullable {
-                    quote! {
-                        #fname: ::sea_orm::ActiveValue::Set(
-                            __data.get(#fname_str).and_then(|v| ::sea_orm::prelude::Uuid::parse_str(v).ok())
-                        ),
-                    }
-                } else {
-                    quote! {
-                        #fname: ::sea_orm::ActiveValue::Set(
-                            __data.get(#fname_str)
-                                .and_then(|v| ::sea_orm::prelude::Uuid::parse_str(v).ok())
-                                .unwrap_or_default()
-                        ),
-                    }
-                }
-            }
-            FieldType::Json | FieldType::JsonBinary => {
-                if is_nullable {
-                    quote! {
-                        #fname: ::sea_orm::ActiveValue::Set(
-                            __data.get(#fname_str)
-                                .filter(|v| !v.is_empty())
-                                .and_then(|v| ::runique::serde_json::from_str(v).ok())
-                        ),
-                    }
-                } else {
-                    quote! {
-                        #fname: ::sea_orm::ActiveValue::Set(
-                            __data.get(#fname_str)
-                                .and_then(|v| ::runique::serde_json::from_str(v).ok())
-                                .unwrap_or(::runique::serde_json::Value::Null)
-                        ),
-                    }
-                }
-            }
-            FieldType::Enum(enum_name) => {
-                if is_nullable {
-                    quote! {
-                        #fname: ::sea_orm::ActiveValue::Set(
-                            __data.get(#fname_str)
-                                .filter(|v| !v.is_empty())
-                                .and_then(|v| v.parse::<#enum_name>().ok())
-                        ),
-                    }
-                } else {
-                    quote! {
-                        #fname: ::sea_orm::ActiveValue::Set(
-                            __data.get(#fname_str)
-                                .and_then(|v| v.parse::<#enum_name>().ok())
-                                .unwrap_or_default()
-                        ),
-                    }
-                }
-            }
-            // String, Text, Char, Varchar, Blob, Inet, Cidr, MacAddress, Interval, Binary, VarBinary
-            _ => {
-                let is_password = fname_str.contains("password");
-                if is_password {
-                    // Password fields: automatic hashing via developer's global config.
-                    // If empty → NotSet (do not overwrite during an edit without a new password).
-                    if is_nullable {
-                        quote! {
-                            #fname: match __data.get(#fname_str).map(|v| v.trim().to_string()).filter(|v| !v.is_empty()) {
-                                Some(v) => ::sea_orm::ActiveValue::Set(
-                                    Some(::runique::utils::password::hash(&v).unwrap_or_else(|_| v.clone()))
-                                ),
-                                None => ::sea_orm::ActiveValue::Set(None),
-                            },
-                        }
-                    } else {
-                        quote! {
-                            #fname: match __data.get(#fname_str).map(|v| v.trim().to_string()).filter(|v| !v.is_empty()) {
-                                Some(v) => ::sea_orm::ActiveValue::Set(
-                                    ::runique::utils::password::hash(&v).unwrap_or_else(|_| v.clone())
-                                ),
-                                None => ::sea_orm::ActiveValue::NotSet,
-                            },
-                        }
-                    }
-                } else if is_nullable {
-                    quote! {
-                        #fname: ::sea_orm::ActiveValue::Set(
-                            __data.get(#fname_str).map(|v| v.trim().to_string()).filter(|v| !v.is_empty())
-                        ),
-                    }
-                } else {
-                    quote! {
-                        #fname: ::sea_orm::ActiveValue::Set(
-                            __data.get(#fname_str).map(|v| v.trim().to_string()).unwrap_or_default()
-                        ),
-                    }
-                }
-            }
-        };
-        Some(ts)
-    }).collect();
+    let field_assignments: Vec<TokenStream2> =
+        model.fields.iter().filter_map(field_from_form).collect();
 
     // PK type for signature
     let pk_type = match model.pk.ty {
@@ -697,256 +421,8 @@ pub fn generate_partial_update(model: &ModelInput) -> TokenStream2 {
         PkType::Uuid => quote! { ::sea_orm::prelude::Uuid },
     };
 
-    let field_assignments: Vec<TokenStream2> = model.fields.iter().filter_map(|field| {
-        let fname = &field.name;
-        let fname_str = fname.to_string();
-
-        let is_auto_now = field.options.iter().any(|o| matches!(o, FieldOption::AutoNow));
-        let is_auto_now_update = field.options.iter().any(|o| matches!(o, FieldOption::AutoNowUpdate));
-        let is_nullable = field.options.iter().any(|o| matches!(o, FieldOption::Nullable));
-
-        if is_auto_now || is_auto_now_update {
-            return None;
-        }
-
-        let ts = match &field.ty {
-            FieldType::Bool => {
-                if is_nullable {
-                    quote! {
-                        #fname: match __data.get(#fname_str) {
-                            Some(v) => ::sea_orm::ActiveValue::Set(Some({
-                                let s = v.as_str(); s == "true" || s == "1" || s == "on"
-                            })),
-                            None => ::sea_orm::ActiveValue::NotSet,
-                        },
-                    }
-                } else {
-                    quote! {
-                        #fname: match __data.get(#fname_str) {
-                            Some(v) => ::sea_orm::ActiveValue::Set({
-                                let s = v.as_str(); s == "true" || s == "1" || s == "on"
-                            }),
-                            None => ::sea_orm::ActiveValue::NotSet,
-                        },
-                    }
-                }
-            }
-            FieldType::I8 | FieldType::I16 | FieldType::I32 | FieldType::U32
-            | FieldType::I64 | FieldType::U64 | FieldType::F32 | FieldType::F64
-            | FieldType::Decimal(_) => {
-                if is_nullable {
-                    quote! {
-                        #fname: match __data.get(#fname_str) {
-                            Some(v) => ::sea_orm::ActiveValue::Set(v.parse().ok()),
-                            None => ::sea_orm::ActiveValue::NotSet,
-                        },
-                    }
-                } else {
-                    quote! {
-                        #fname: match __data.get(#fname_str) {
-                            Some(v) => ::sea_orm::ActiveValue::Set(v.parse().unwrap_or_default()),
-                            None => ::sea_orm::ActiveValue::NotSet,
-                        },
-                    }
-                }
-            }
-            FieldType::Uuid => {
-                if is_nullable {
-                    quote! {
-                        #fname: match __data.get(#fname_str) {
-                            Some(v) => ::sea_orm::ActiveValue::Set(::sea_orm::prelude::Uuid::parse_str(v).ok()),
-                            None => ::sea_orm::ActiveValue::NotSet,
-                        },
-                    }
-                } else {
-                    quote! {
-                        #fname: match __data.get(#fname_str) {
-                            Some(v) => ::sea_orm::ActiveValue::Set(
-                                ::sea_orm::prelude::Uuid::parse_str(v).unwrap_or_default()
-                            ),
-                            None => ::sea_orm::ActiveValue::NotSet,
-                        },
-                    }
-                }
-            }
-            FieldType::Json | FieldType::JsonBinary => {
-                if is_nullable {
-                    quote! {
-                        #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
-                            Some(v) => ::sea_orm::ActiveValue::Set(::runique::serde_json::from_str(v).ok()),
-                            None => ::sea_orm::ActiveValue::NotSet,
-                        },
-                    }
-                } else {
-                    quote! {
-                        #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
-                            Some(v) => ::sea_orm::ActiveValue::Set(
-                                ::runique::serde_json::from_str(v).unwrap_or(::runique::serde_json::Value::Null)
-                            ),
-                            None => ::sea_orm::ActiveValue::NotSet,
-                        },
-                    }
-                }
-            }
-            FieldType::Enum(enum_name) => {
-                if is_nullable {
-                    quote! {
-                        #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
-                            Some(v) => ::sea_orm::ActiveValue::Set(v.parse::<#enum_name>().ok()),
-                            None => ::sea_orm::ActiveValue::NotSet,
-                        },
-                    }
-                } else {
-                    quote! {
-                        #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
-                            Some(v) => ::sea_orm::ActiveValue::Set(v.parse::<#enum_name>().unwrap_or_default()),
-                            None => ::sea_orm::ActiveValue::NotSet,
-                        },
-                    }
-                }
-            }
-            FieldType::Time => {
-                if is_nullable {
-                    quote! {
-                        #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
-                            Some(v) => ::sea_orm::ActiveValue::Set(
-                                ::chrono::NaiveTime::parse_from_str(v, "%H:%M:%S")
-                                    .or_else(|_| ::chrono::NaiveTime::parse_from_str(v, "%H:%M"))
-                                    .ok()
-                            ),
-                            None => ::sea_orm::ActiveValue::NotSet,
-                        },
-                    }
-                } else {
-                    quote! {
-                        #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
-                            Some(v) => match ::chrono::NaiveTime::parse_from_str(v, "%H:%M:%S")
-                                .or_else(|_| ::chrono::NaiveTime::parse_from_str(v, "%H:%M"))
-                            {
-                                Ok(t) => ::sea_orm::ActiveValue::Set(t),
-                                Err(_) => ::sea_orm::ActiveValue::NotSet,
-                            },
-                            None => ::sea_orm::ActiveValue::NotSet,
-                        },
-                    }
-                }
-            }
-            FieldType::Date => {
-                if is_nullable {
-                    quote! {
-                        #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
-                            Some(v) => ::sea_orm::ActiveValue::Set(
-                                ::chrono::NaiveDate::parse_from_str(v, "%Y-%m-%d").ok()
-                            ),
-                            None => ::sea_orm::ActiveValue::NotSet,
-                        },
-                    }
-                } else {
-                    quote! {
-                        #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
-                            Some(v) => match ::chrono::NaiveDate::parse_from_str(v, "%Y-%m-%d") {
-                                Ok(d) => ::sea_orm::ActiveValue::Set(d),
-                                Err(_) => ::sea_orm::ActiveValue::NotSet,
-                            },
-                            None => ::sea_orm::ActiveValue::NotSet,
-                        },
-                    }
-                }
-            }
-            FieldType::Datetime | FieldType::Timestamp => {
-                if is_nullable {
-                    quote! {
-                        #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
-                            Some(v) => ::sea_orm::ActiveValue::Set(
-                                ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M:%S")
-                                    .or_else(|_| ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M"))
-                                    .ok()
-                            ),
-                            None => ::sea_orm::ActiveValue::NotSet,
-                        },
-                    }
-                } else {
-                    quote! {
-                        #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
-                            Some(v) => match ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M:%S")
-                                .or_else(|_| ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M"))
-                            {
-                                Ok(dt) => ::sea_orm::ActiveValue::Set(dt),
-                                Err(_) => ::sea_orm::ActiveValue::NotSet,
-                            },
-                            None => ::sea_orm::ActiveValue::NotSet,
-                        },
-                    }
-                }
-            }
-            FieldType::TimestampTz => {
-                if is_nullable {
-                    quote! {
-                        #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
-                            Some(v) => ::sea_orm::ActiveValue::Set(
-                                ::chrono::DateTime::parse_from_rfc3339(v)
-                                    .map(|dt| dt.with_timezone(&::chrono::Utc))
-                                    .ok()
-                            ),
-                            None => ::sea_orm::ActiveValue::NotSet,
-                        },
-                    }
-                } else {
-                    quote! {
-                        #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
-                            Some(v) => match ::chrono::DateTime::parse_from_rfc3339(v) {
-                                Ok(dt) => ::sea_orm::ActiveValue::Set(dt.with_timezone(&::chrono::Utc)),
-                                Err(_) => ::sea_orm::ActiveValue::NotSet,
-                            },
-                            None => ::sea_orm::ActiveValue::NotSet,
-                        },
-                    }
-                }
-            }
-            _ => {
-                let is_password = fname_str.contains("password");
-                if is_password {
-                    // Same behavior as admin_from_form: NotSet when empty
-                    if is_nullable {
-                        quote! {
-                            #fname: match __data.get(#fname_str).map(|v| v.trim().to_string()).filter(|v| !v.is_empty()) {
-                                Some(v) => ::sea_orm::ActiveValue::Set(
-                                    Some(::runique::utils::password::hash(&v).unwrap_or_else(|_| v.clone()))
-                                ),
-                                None => ::sea_orm::ActiveValue::NotSet,
-                            },
-                        }
-                    } else {
-                        quote! {
-                            #fname: match __data.get(#fname_str).map(|v| v.trim().to_string()).filter(|v| !v.is_empty()) {
-                                Some(v) => ::sea_orm::ActiveValue::Set(
-                                    ::runique::utils::password::hash(&v).unwrap_or_else(|_| v.clone())
-                                ),
-                                None => ::sea_orm::ActiveValue::NotSet,
-                            },
-                        }
-                    }
-                } else if is_nullable {
-                    quote! {
-                        #fname: match __data.get(#fname_str) {
-                            Some(v) => ::sea_orm::ActiveValue::Set(
-                                Some(v.trim().to_string()).filter(|s| !s.is_empty())
-                            ),
-                            None => ::sea_orm::ActiveValue::NotSet,
-                        },
-                    }
-                } else {
-                    quote! {
-                        #fname: match __data.get(#fname_str) {
-                            Some(v) => ::sea_orm::ActiveValue::Set(v.trim().to_string()),
-                            None => ::sea_orm::ActiveValue::NotSet,
-                        },
-                    }
-                }
-            }
-        };
-        Some(ts)
-    }).collect();
+    let field_assignments: Vec<TokenStream2> =
+        model.fields.iter().filter_map(field_from_partial).collect();
 
     quote! {
         /// Builds an `ActiveModel` for partial updates: only fields present in `data` are set.
@@ -984,15 +460,36 @@ pub fn generate_column(field: &FieldDef, enums: &[EnumDef]) -> TokenStream2 {
     let name = field.name.to_string();
     let ty = generate_field_type(&field.ty, enums);
     let options: Vec<TokenStream2> = field.options.iter().map(generate_option).collect();
+    let kind = kind_tokens(field.kind);
+    // The form needs the choices on every engine; only Postgres also gets
+    // them in the SQL type (`enum_type` above).
+    let choices = match &field.ty {
+        FieldType::Enum(enum_name) => enums
+            .iter()
+            .find(|e| e.name == *enum_name)
+            .map(|def| {
+                let values: Vec<String> = def.variants.iter().map(|v| v.db_str()).collect();
+                quote! { .choices(vec![#(#values.to_string()),*]) }
+            })
+            .unwrap_or_default(),
+        _ => quote! {},
+    };
 
     quote! {
-        .column(::runique::migration::ColumnDef::new(#name) #ty #(#options)*)
+        .column(::runique::migration::ColumnDef::new(#name) #ty #kind #choices #(#options)*)
     }
+}
+
+/// `.kind(FormFieldKind::…)`: the DSL type travels with the column, so the
+/// form rebuilt from the schema gets that type's field.
+pub(crate) fn kind_tokens(kind: FormFieldKind) -> TokenStream2 {
+    let variant = quote::format_ident!("{}", format!("{kind:?}"));
+    quote! { .kind(::runique::runique_dsl::ast::FormFieldKind::#variant) }
 }
 
 fn generate_field_type(ty: &FieldType, enums: &[EnumDef]) -> TokenStream2 {
     match ty {
-        FieldType::String => quote! { .string() },
+        FieldType::String | FieldType::Password => quote! { .string() },
         FieldType::Text => quote! { .text() },
         FieldType::Char => quote! { .char() },
         FieldType::Varchar(n) => quote! { .varchar(#n) },
@@ -1065,7 +562,7 @@ pub fn generate_admin_form(model: &ModelInput) -> TokenStream2 {
         model
             .form_fields
             .iter()
-            .map(|ff| generate_form_field_decl(ff, model))
+            .map(|ff| generate_form_field_decl(ff, &model.enums))
             .collect()
     } else {
         model.fields.iter().filter_map(|field| {
@@ -1170,7 +667,7 @@ pub fn generate_admin_form(model: &ModelInput) -> TokenStream2 {
             },
             // String, Text, Char, Varchar, Uuid, Blob, Inet, Cidr, MacAddress, Interval, Binary, VarBinary
             _ => {
-                let is_password = fname_str.contains("password");
+                let is_password = matches!(field.ty, FieldType::Password);
                 if is_password {
                     quote! {
                         form.field(&::runique::forms::fields::TextField::password(#fname_str).label(#label) #required_suffix);
@@ -1221,7 +718,7 @@ pub fn generate_admin_form(model: &ModelInput) -> TokenStream2 {
 
 /// Generates `form.field(&...)` from a `FormFieldDecl` declaration (form_fields: block).
 /// `model` is passed to allow resolution of enum variants for `Choice`/`Radio`.
-fn generate_form_field_decl(ff: &FormFieldDecl, model: &ModelInput) -> TokenStream2 {
+pub(crate) fn generate_form_field_decl(ff: &FormFieldDecl, enums: &[EnumDef]) -> TokenStream2 {
     // auto_now / auto_now_update / skip fields: excluded from generated forms.
     if ff.attrs.iter().any(|a| {
         matches!(
@@ -1235,8 +732,14 @@ fn generate_form_field_decl(ff: &FormFieldDecl, model: &ModelInput) -> TokenStre
     let name = &ff.name;
     let name_str = name.to_string();
 
-    // Auto-generated label from snake_case name (same logic as SQL inference)
-    let label = {
+    // `[label: "…"]` if declared, otherwise derived from the snake_case name.
+    let declared_label = ff.attrs.iter().find_map(|a| match a {
+        FormFieldAttr::Label(s) => Some(s.clone()),
+        _ => None,
+    });
+    let label = if let Some(declared) = declared_label {
+        declared
+    } else {
         let s = name_str.replace('_', " ");
         let mut chars = s.chars();
         match chars.next() {
@@ -1289,28 +792,28 @@ fn generate_form_field_decl(ff: &FormFieldDecl, model: &ModelInput) -> TokenStre
         }
 
         // ── Numeric fields ─────────────────────────────────────────
-        FormFieldKind::Int => {
+        FormFieldKind::Int
+        | FormFieldKind::Bigint
+        | FormFieldKind::I8
+        | FormFieldKind::I16
+        | FormFieldKind::U32
+        | FormFieldKind::U64 => {
+            let runique_dsl::types::Widget::Integer { min, max } = ff.kind.widget() else {
+                unreachable!("integer kinds map to Widget::Integer");
+            };
             let extras = numeric_attrs_tokens(&ff.attrs);
-            quote! { ::runique::forms::fields::NumericField::integer(#name_str).label(#label) #extras }
+            quote! { ::runique::forms::fields::NumericField::integer_in(#name_str, #min, #max).label(#label) #extras #required_suffix }
         }
-        FormFieldKind::Float => {
+        FormFieldKind::Float | FormFieldKind::F32 => {
             let extras = numeric_attrs_tokens(&ff.attrs);
-            quote! { ::runique::forms::fields::NumericField::float(#name_str).label(#label) #extras }
+            quote! { ::runique::forms::fields::NumericField::float(#name_str).label(#label) #extras #required_suffix }
         }
         FormFieldKind::Decimal => {
             let extras = numeric_attrs_tokens(&ff.attrs);
-            quote! { ::runique::forms::fields::NumericField::decimal(#name_str).label(#label) #extras }
+            quote! { ::runique::forms::fields::NumericField::decimal(#name_str).label(#label) #extras #required_suffix }
         }
         FormFieldKind::Percent => {
-            quote! { ::runique::forms::fields::NumericField::percent(#name_str).label(#label) }
-        }
-        FormFieldKind::I8 | FormFieldKind::I16 | FormFieldKind::U32 | FormFieldKind::U64 => {
-            let extras = numeric_attrs_tokens(&ff.attrs);
-            quote! { ::runique::forms::fields::NumericField::integer(#name_str).label(#label) #extras }
-        }
-        FormFieldKind::F32 => {
-            let extras = numeric_attrs_tokens(&ff.attrs);
-            quote! { ::runique::forms::fields::NumericField::float(#name_str).label(#label) #extras }
+            quote! { ::runique::forms::fields::NumericField::percent(#name_str).label(#label) #required_suffix }
         }
 
         // ── Bool ──────────────────────────────────────────────────────
@@ -1372,21 +875,7 @@ fn generate_form_field_decl(ff: &FormFieldDecl, model: &ModelInput) -> TokenStre
                     None
                 }
             });
-            let enum_def = enum_ident
-                .and_then(|id| model.enums.iter().find(|e| e.name == *id))
-                .or_else(|| {
-                    model
-                        .fields
-                        .iter()
-                        .find(|f| f.name == ff.name)
-                        .and_then(|field| {
-                            if let FieldType::Enum(ename) = &field.ty {
-                                model.enums.iter().find(|e| e.name == *ename)
-                            } else {
-                                None
-                            }
-                        })
-                });
+            let enum_def = enum_ident.and_then(|id| enums.iter().find(|e| e.name == *id));
 
             let choices: Vec<TokenStream2> = enum_def
                 .map(|e| {
@@ -1415,7 +904,7 @@ fn generate_form_field_decl(ff: &FormFieldDecl, model: &ModelInput) -> TokenStre
             quote! { ::runique::forms::fields::ColorField::new(#name_str).label(#label) #required_suffix }
         }
         FormFieldKind::Slug => {
-            quote! { ::runique::forms::fields::SlugField::new(#name_str).label(#label) }
+            quote! { ::runique::forms::fields::SlugField::new(#name_str).label(#label) #required_suffix }
         }
         FormFieldKind::Uuid => {
             quote! { ::runique::forms::fields::UUIDField::new(#name_str).label(#label) #required_suffix }
@@ -1431,19 +920,24 @@ fn generate_form_field_decl(ff: &FormFieldDecl, model: &ModelInput) -> TokenStre
         // input (no format validation opinion) keeps the form usable rather than
         // refusing to generate one, or worse, applying the wrong validator (e.g. a MAC
         // address would fail IPAddressField's IPv4/IPv6 checks).
-        FormFieldKind::Binary
-        | FormFieldKind::VarBinary
-        | FormFieldKind::Blob
-        | FormFieldKind::Cidr
-        | FormFieldKind::MacAddress
-        | FormFieldKind::Interval => {
+        FormFieldKind::Binary | FormFieldKind::VarBinary | FormFieldKind::Blob => {
+            let max_length = ff.attrs.iter().find_map(|a| match a {
+                FormFieldAttr::MaxLength(n) => Some(*n),
+                _ => None,
+            });
+            let limit = ff
+                .kind
+                .byte_limit(max_length)
+                .map(|n| {
+                    let n = u64::from(n);
+                    quote! { .max_size(#n) }
+                })
+                .unwrap_or_default();
+            quote! { ::runique::forms::fields::BinaryField::new(#name_str).label(#label) #limit #required_suffix }
+        }
+        FormFieldKind::Cidr | FormFieldKind::MacAddress | FormFieldKind::Interval => {
             let extras = text_attrs_tokens(&ff.attrs, false);
             quote! { ::runique::forms::fields::TextField::text(#name_str).label(#label) #extras #required_suffix }
-        }
-
-        FormFieldKind::Bigint => {
-            let extras = numeric_attrs_tokens(&ff.attrs);
-            quote! { ::runique::forms::fields::NumericField::integer(#name_str).label(#label) #extras }
         }
 
         FormFieldKind::Phone => {
@@ -1539,7 +1033,8 @@ fn generate_option(opt: &FieldOption) -> TokenStream2 {
         FieldOption::MaxF(n) => quote! { .max_f64(#n) },
         FieldOption::MinF(n) => quote! { .min_f64(#n) },
         FieldOption::Default(lit) => quote! { .default(sea_query::Value::from(#lit)) },
-        FieldOption::Label(_) | FieldOption::Help(_) => quote! {},
+        FieldOption::Label(label) => quote! { .label(#label) },
+        FieldOption::Help(_) => quote! {},
         FieldOption::File { kind, .. } => {
             let kind_tok = match kind {
                 FileKind::Image => quote! { ::runique::migration::FileKind::Image },
@@ -1580,4 +1075,592 @@ pub fn generate_unique_fields(model: &ModelInput) -> TokenStream2 {
     quote! {
         pub const UNIQUE_FIELDS: &[&str] = &[#(#names),*];
     }
+}
+
+/// `field: value,` read from the form data for `admin_from_form`; `None` for
+/// columns the form never sets (`auto_now`, `auto_now_update`).
+pub(crate) fn field_from_form(field: &FieldDef) -> Option<TokenStream2> {
+    let fname = &field.name;
+    let fname_str = fname.to_string();
+
+    let is_auto_now = field
+        .options
+        .iter()
+        .any(|o| matches!(o, FieldOption::AutoNow));
+    let is_auto_now_update = field
+        .options
+        .iter()
+        .any(|o| matches!(o, FieldOption::AutoNowUpdate));
+    let is_nullable = field
+        .options
+        .iter()
+        .any(|o| matches!(o, FieldOption::Nullable));
+
+    // These fields do not exist in the ActiveModel (filtered by generate_sea_model) → skipping them
+    if is_auto_now || is_auto_now_update {
+        return None;
+    }
+
+    let ts = match &field.ty {
+        FieldType::Bool => {
+            if is_nullable {
+                quote! {
+                    #fname: ::sea_orm::ActiveValue::Set(
+                        __data.get(#fname_str).map(|v| {
+                            let s = v.as_str();
+                            s == "true" || s == "1" || s == "on"
+                        })
+                    ),
+                }
+            } else {
+                quote! {
+                    #fname: ::sea_orm::ActiveValue::Set(
+                        __data.get(#fname_str)
+                            .map(|v| { let s = v.as_str(); s == "true" || s == "1" || s == "on" })
+                            .unwrap_or(false)
+                    ),
+                }
+            }
+        }
+        FieldType::I8 | FieldType::I16 | FieldType::I32 | FieldType::U32 => {
+            if is_nullable {
+                quote! {
+                    #fname: ::sea_orm::ActiveValue::Set(
+                        __data.get(#fname_str).and_then(|v| v.parse().ok())
+                    ),
+                }
+            } else {
+                quote! {
+                    #fname: ::sea_orm::ActiveValue::Set(
+                        __data.get(#fname_str).and_then(|v| v.parse().ok()).unwrap_or_default()
+                    ),
+                }
+            }
+        }
+        FieldType::I64 | FieldType::U64 => {
+            if is_nullable {
+                quote! {
+                    #fname: ::sea_orm::ActiveValue::Set(
+                        __data.get(#fname_str).and_then(|v| v.parse().ok())
+                    ),
+                }
+            } else {
+                quote! {
+                    #fname: ::sea_orm::ActiveValue::Set(
+                        __data.get(#fname_str).and_then(|v| v.parse().ok()).unwrap_or_default()
+                    ),
+                }
+            }
+        }
+        FieldType::F32 | FieldType::F64 | FieldType::Decimal(_) => {
+            if is_nullable {
+                quote! {
+                    #fname: ::sea_orm::ActiveValue::Set(
+                        __data.get(#fname_str).and_then(|v| v.parse().ok())
+                    ),
+                }
+            } else {
+                quote! {
+                    #fname: ::sea_orm::ActiveValue::Set(
+                        __data.get(#fname_str).and_then(|v| v.parse().ok()).unwrap_or_default()
+                    ),
+                }
+            }
+        }
+        FieldType::Time => {
+            if is_nullable {
+                quote! {
+                    #fname: ::sea_orm::ActiveValue::Set(
+                        __data.get(#fname_str).and_then(|v| {
+                            if v.is_empty() { return None; }
+                            ::chrono::NaiveTime::parse_from_str(v, "%H:%M:%S")
+                                .or_else(|_| ::chrono::NaiveTime::parse_from_str(v, "%H:%M"))
+                                .ok()
+                        })
+                    ),
+                }
+            } else {
+                quote! {
+                    #fname: ::sea_orm::ActiveValue::Set(
+                        __data.get(#fname_str)
+                            .filter(|v| !v.is_empty())
+                            .and_then(|v| {
+                                ::chrono::NaiveTime::parse_from_str(v, "%H:%M:%S")
+                                    .or_else(|_| ::chrono::NaiveTime::parse_from_str(v, "%H:%M"))
+                                    .ok()
+                            })
+                            .unwrap_or_default()
+                    ),
+                }
+            }
+        }
+        FieldType::Date => {
+            if is_nullable {
+                quote! {
+                    #fname: ::sea_orm::ActiveValue::Set(
+                        __data.get(#fname_str).and_then(|v| {
+                            if v.is_empty() { return None; }
+                            ::chrono::NaiveDate::parse_from_str(v, "%Y-%m-%d").ok()
+                        })
+                    ),
+                }
+            } else {
+                quote! {
+                    #fname: ::sea_orm::ActiveValue::Set(
+                        __data.get(#fname_str)
+                            .filter(|v| !v.is_empty())
+                            .and_then(|v| ::chrono::NaiveDate::parse_from_str(v, "%Y-%m-%d").ok())
+                            .unwrap_or_default()
+                    ),
+                }
+            }
+        }
+        FieldType::Datetime | FieldType::Timestamp => {
+            if is_nullable {
+                quote! {
+                    #fname: ::sea_orm::ActiveValue::Set(
+                        __data.get(#fname_str).and_then(|v| {
+                            if v.is_empty() { return None; }
+                            ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M:%S")
+                                .or_else(|_| ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M"))
+                                .ok()
+                        })
+                    ),
+                }
+            } else {
+                quote! {
+                    #fname: ::sea_orm::ActiveValue::Set(
+                        __data.get(#fname_str)
+                            .filter(|v| !v.is_empty())
+                            .and_then(|v| {
+                                ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M:%S")
+                                    .or_else(|_| ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M"))
+                                    .ok()
+                            })
+                            .unwrap_or_default()
+                    ),
+                }
+            }
+        }
+        FieldType::TimestampTz => {
+            if is_nullable {
+                quote! {
+                    #fname: ::sea_orm::ActiveValue::Set(
+                        __data.get(#fname_str).and_then(|v| {
+                            if v.is_empty() { return None; }
+                            ::runique::forms::parse_utc_datetime(v)
+                        })
+                    ),
+                }
+            } else {
+                quote! {
+                    #fname: ::sea_orm::ActiveValue::Set(
+                        __data.get(#fname_str)
+                            .filter(|v| !v.is_empty())
+                            .and_then(|v| ::runique::forms::parse_utc_datetime(v))
+                            .unwrap_or_default()
+                    ),
+                }
+            }
+        }
+        FieldType::Uuid => {
+            if is_nullable {
+                quote! {
+                    #fname: ::sea_orm::ActiveValue::Set(
+                        __data.get(#fname_str).and_then(|v| ::sea_orm::prelude::Uuid::parse_str(v).ok())
+                    ),
+                }
+            } else {
+                quote! {
+                    #fname: ::sea_orm::ActiveValue::Set(
+                        __data.get(#fname_str)
+                            .and_then(|v| ::sea_orm::prelude::Uuid::parse_str(v).ok())
+                            .unwrap_or_default()
+                    ),
+                }
+            }
+        }
+        FieldType::Binary(_) | FieldType::VarBinary(_) | FieldType::Blob => {
+            // `BinaryField::finalize` hands the bytes on as base64. Nothing
+            // uploaded (or not decodable) leaves the stored bytes as they are.
+            let set = if is_nullable {
+                quote! { ::sea_orm::ActiveValue::Set(Some(bytes)) }
+            } else {
+                quote! { ::sea_orm::ActiveValue::Set(bytes) }
+            };
+            quote! {
+                #fname: match __data
+                    .get(#fname_str)
+                    .filter(|v| !v.is_empty())
+                    .and_then(|v| ::runique::forms::fields::decode_binary(v))
+                {
+                    Some(bytes) => #set,
+                    None => ::sea_orm::ActiveValue::NotSet,
+                },
+            }
+        }
+        FieldType::Json | FieldType::JsonBinary => {
+            if is_nullable {
+                quote! {
+                    #fname: ::sea_orm::ActiveValue::Set(
+                        __data.get(#fname_str)
+                            .filter(|v| !v.is_empty())
+                            .and_then(|v| ::runique::serde_json::from_str(v).ok())
+                    ),
+                }
+            } else {
+                quote! {
+                    #fname: ::sea_orm::ActiveValue::Set(
+                        __data.get(#fname_str)
+                            .and_then(|v| ::runique::serde_json::from_str(v).ok())
+                            .unwrap_or(::runique::serde_json::Value::Null)
+                    ),
+                }
+            }
+        }
+        FieldType::Enum(enum_name) => {
+            if is_nullable {
+                quote! {
+                    #fname: ::sea_orm::ActiveValue::Set(
+                        __data.get(#fname_str)
+                            .filter(|v| !v.is_empty())
+                            .and_then(|v| v.parse::<#enum_name>().ok())
+                    ),
+                }
+            } else {
+                quote! {
+                    #fname: ::sea_orm::ActiveValue::Set(
+                        __data.get(#fname_str)
+                            .and_then(|v| v.parse::<#enum_name>().ok())
+                            .unwrap_or_default()
+                    ),
+                }
+            }
+        }
+        // String, Text, Char, Varchar, Blob, Inet, Cidr, MacAddress, Interval, Binary, VarBinary
+        _ => {
+            let is_password = matches!(field.ty, FieldType::Password);
+            if is_password {
+                // Password fields: automatic hashing via developer's global config.
+                // If empty → NotSet (do not overwrite during an edit without a new password).
+                if is_nullable {
+                    quote! {
+                        #fname: match __data.get(#fname_str).map(|v| v.trim().to_string()).filter(|v| !v.is_empty()) {
+                            Some(v) => ::sea_orm::ActiveValue::Set(
+                                Some(::runique::utils::password::hash(&v).unwrap_or_else(|_| v.clone()))
+                            ),
+                            None => ::sea_orm::ActiveValue::Set(None),
+                        },
+                    }
+                } else {
+                    quote! {
+                        #fname: match __data.get(#fname_str).map(|v| v.trim().to_string()).filter(|v| !v.is_empty()) {
+                            Some(v) => ::sea_orm::ActiveValue::Set(
+                                ::runique::utils::password::hash(&v).unwrap_or_else(|_| v.clone())
+                            ),
+                            None => ::sea_orm::ActiveValue::NotSet,
+                        },
+                    }
+                }
+            } else if is_nullable {
+                quote! {
+                    #fname: ::sea_orm::ActiveValue::Set(
+                        __data.get(#fname_str).map(|v| v.trim().to_string()).filter(|v| !v.is_empty())
+                    ),
+                }
+            } else {
+                quote! {
+                    #fname: ::sea_orm::ActiveValue::Set(
+                        __data.get(#fname_str).map(|v| v.trim().to_string()).unwrap_or_default()
+                    ),
+                }
+            }
+        }
+    };
+    Some(ts)
+}
+
+/// Same as [`field_from_form`] for `admin_partial_update`: a key absent from
+/// the data leaves the column untouched (`NotSet`).
+pub(crate) fn field_from_partial(field: &FieldDef) -> Option<TokenStream2> {
+    let fname = &field.name;
+    let fname_str = fname.to_string();
+
+    let is_auto_now = field
+        .options
+        .iter()
+        .any(|o| matches!(o, FieldOption::AutoNow));
+    let is_auto_now_update = field
+        .options
+        .iter()
+        .any(|o| matches!(o, FieldOption::AutoNowUpdate));
+    let is_nullable = field
+        .options
+        .iter()
+        .any(|o| matches!(o, FieldOption::Nullable));
+
+    if is_auto_now || is_auto_now_update {
+        return None;
+    }
+
+    let ts = match &field.ty {
+        FieldType::Bool => {
+            if is_nullable {
+                quote! {
+                    #fname: match __data.get(#fname_str) {
+                        Some(v) => ::sea_orm::ActiveValue::Set(Some({
+                            let s = v.as_str(); s == "true" || s == "1" || s == "on"
+                        })),
+                        None => ::sea_orm::ActiveValue::NotSet,
+                    },
+                }
+            } else {
+                quote! {
+                    #fname: match __data.get(#fname_str) {
+                        Some(v) => ::sea_orm::ActiveValue::Set({
+                            let s = v.as_str(); s == "true" || s == "1" || s == "on"
+                        }),
+                        None => ::sea_orm::ActiveValue::NotSet,
+                    },
+                }
+            }
+        }
+        FieldType::I8
+        | FieldType::I16
+        | FieldType::I32
+        | FieldType::U32
+        | FieldType::I64
+        | FieldType::U64
+        | FieldType::F32
+        | FieldType::F64
+        | FieldType::Decimal(_) => {
+            if is_nullable {
+                quote! {
+                    #fname: match __data.get(#fname_str) {
+                        Some(v) => ::sea_orm::ActiveValue::Set(v.parse().ok()),
+                        None => ::sea_orm::ActiveValue::NotSet,
+                    },
+                }
+            } else {
+                quote! {
+                    #fname: match __data.get(#fname_str) {
+                        Some(v) => ::sea_orm::ActiveValue::Set(v.parse().unwrap_or_default()),
+                        None => ::sea_orm::ActiveValue::NotSet,
+                    },
+                }
+            }
+        }
+        FieldType::Uuid => {
+            if is_nullable {
+                quote! {
+                    #fname: match __data.get(#fname_str) {
+                        Some(v) => ::sea_orm::ActiveValue::Set(::sea_orm::prelude::Uuid::parse_str(v).ok()),
+                        None => ::sea_orm::ActiveValue::NotSet,
+                    },
+                }
+            } else {
+                quote! {
+                    #fname: match __data.get(#fname_str) {
+                        Some(v) => ::sea_orm::ActiveValue::Set(
+                            ::sea_orm::prelude::Uuid::parse_str(v).unwrap_or_default()
+                        ),
+                        None => ::sea_orm::ActiveValue::NotSet,
+                    },
+                }
+            }
+        }
+        FieldType::Binary(_) | FieldType::VarBinary(_) | FieldType::Blob => {
+            // `BinaryField::finalize` hands the bytes on as base64. Nothing
+            // uploaded (or not decodable) leaves the stored bytes as they are.
+            let set = if is_nullable {
+                quote! { ::sea_orm::ActiveValue::Set(Some(bytes)) }
+            } else {
+                quote! { ::sea_orm::ActiveValue::Set(bytes) }
+            };
+            quote! {
+                #fname: match __data
+                    .get(#fname_str)
+                    .filter(|v| !v.is_empty())
+                    .and_then(|v| ::runique::forms::fields::decode_binary(v))
+                {
+                    Some(bytes) => #set,
+                    None => ::sea_orm::ActiveValue::NotSet,
+                },
+            }
+        }
+        FieldType::Json | FieldType::JsonBinary => {
+            if is_nullable {
+                quote! {
+                    #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
+                        Some(v) => ::sea_orm::ActiveValue::Set(::runique::serde_json::from_str(v).ok()),
+                        None => ::sea_orm::ActiveValue::NotSet,
+                    },
+                }
+            } else {
+                quote! {
+                    #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
+                        Some(v) => ::sea_orm::ActiveValue::Set(
+                            ::runique::serde_json::from_str(v).unwrap_or(::runique::serde_json::Value::Null)
+                        ),
+                        None => ::sea_orm::ActiveValue::NotSet,
+                    },
+                }
+            }
+        }
+        FieldType::Enum(enum_name) => {
+            if is_nullable {
+                quote! {
+                    #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
+                        Some(v) => ::sea_orm::ActiveValue::Set(v.parse::<#enum_name>().ok()),
+                        None => ::sea_orm::ActiveValue::NotSet,
+                    },
+                }
+            } else {
+                quote! {
+                    #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
+                        Some(v) => ::sea_orm::ActiveValue::Set(v.parse::<#enum_name>().unwrap_or_default()),
+                        None => ::sea_orm::ActiveValue::NotSet,
+                    },
+                }
+            }
+        }
+        FieldType::Time => {
+            if is_nullable {
+                quote! {
+                    #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
+                        Some(v) => ::sea_orm::ActiveValue::Set(
+                            ::chrono::NaiveTime::parse_from_str(v, "%H:%M:%S")
+                                .or_else(|_| ::chrono::NaiveTime::parse_from_str(v, "%H:%M"))
+                                .ok()
+                        ),
+                        None => ::sea_orm::ActiveValue::NotSet,
+                    },
+                }
+            } else {
+                quote! {
+                    #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
+                        Some(v) => match ::chrono::NaiveTime::parse_from_str(v, "%H:%M:%S")
+                            .or_else(|_| ::chrono::NaiveTime::parse_from_str(v, "%H:%M"))
+                        {
+                            Ok(t) => ::sea_orm::ActiveValue::Set(t),
+                            Err(_) => ::sea_orm::ActiveValue::NotSet,
+                        },
+                        None => ::sea_orm::ActiveValue::NotSet,
+                    },
+                }
+            }
+        }
+        FieldType::Date => {
+            if is_nullable {
+                quote! {
+                    #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
+                        Some(v) => ::sea_orm::ActiveValue::Set(
+                            ::chrono::NaiveDate::parse_from_str(v, "%Y-%m-%d").ok()
+                        ),
+                        None => ::sea_orm::ActiveValue::NotSet,
+                    },
+                }
+            } else {
+                quote! {
+                    #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
+                        Some(v) => match ::chrono::NaiveDate::parse_from_str(v, "%Y-%m-%d") {
+                            Ok(d) => ::sea_orm::ActiveValue::Set(d),
+                            Err(_) => ::sea_orm::ActiveValue::NotSet,
+                        },
+                        None => ::sea_orm::ActiveValue::NotSet,
+                    },
+                }
+            }
+        }
+        FieldType::Datetime | FieldType::Timestamp => {
+            if is_nullable {
+                quote! {
+                    #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
+                        Some(v) => ::sea_orm::ActiveValue::Set(
+                            ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M:%S")
+                                .or_else(|_| ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M"))
+                                .ok()
+                        ),
+                        None => ::sea_orm::ActiveValue::NotSet,
+                    },
+                }
+            } else {
+                quote! {
+                    #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
+                        Some(v) => match ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M:%S")
+                            .or_else(|_| ::chrono::NaiveDateTime::parse_from_str(v, "%Y-%m-%dT%H:%M"))
+                        {
+                            Ok(dt) => ::sea_orm::ActiveValue::Set(dt),
+                            Err(_) => ::sea_orm::ActiveValue::NotSet,
+                        },
+                        None => ::sea_orm::ActiveValue::NotSet,
+                    },
+                }
+            }
+        }
+        FieldType::TimestampTz => {
+            if is_nullable {
+                quote! {
+                    #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
+                        Some(v) => ::sea_orm::ActiveValue::Set(
+                            ::runique::forms::parse_utc_datetime(v)
+                        ),
+                        None => ::sea_orm::ActiveValue::NotSet,
+                    },
+                }
+            } else {
+                quote! {
+                    #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
+                        Some(v) => match ::runique::forms::parse_utc_datetime(v) {
+                            Some(dt) => ::sea_orm::ActiveValue::Set(dt),
+                            None => ::sea_orm::ActiveValue::NotSet,
+                        },
+                        None => ::sea_orm::ActiveValue::NotSet,
+                    },
+                }
+            }
+        }
+        _ => {
+            let is_password = matches!(field.ty, FieldType::Password);
+            if is_password {
+                // Same behavior as admin_from_form: NotSet when empty
+                if is_nullable {
+                    quote! {
+                        #fname: match __data.get(#fname_str).map(|v| v.trim().to_string()).filter(|v| !v.is_empty()) {
+                            Some(v) => ::sea_orm::ActiveValue::Set(
+                                Some(::runique::utils::password::hash(&v).unwrap_or_else(|_| v.clone()))
+                            ),
+                            None => ::sea_orm::ActiveValue::NotSet,
+                        },
+                    }
+                } else {
+                    quote! {
+                        #fname: match __data.get(#fname_str).map(|v| v.trim().to_string()).filter(|v| !v.is_empty()) {
+                            Some(v) => ::sea_orm::ActiveValue::Set(
+                                ::runique::utils::password::hash(&v).unwrap_or_else(|_| v.clone())
+                            ),
+                            None => ::sea_orm::ActiveValue::NotSet,
+                        },
+                    }
+                }
+            } else if is_nullable {
+                quote! {
+                    #fname: match __data.get(#fname_str) {
+                        Some(v) => ::sea_orm::ActiveValue::Set(
+                            Some(v.trim().to_string()).filter(|s| !s.is_empty())
+                        ),
+                        None => ::sea_orm::ActiveValue::NotSet,
+                    },
+                }
+            } else {
+                quote! {
+                    #fname: match __data.get(#fname_str) {
+                        Some(v) => ::sea_orm::ActiveValue::Set(v.trim().to_string()),
+                        None => ::sea_orm::ActiveValue::NotSet,
+                    },
+                }
+            }
+        }
+    };
+    Some(ts)
 }

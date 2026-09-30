@@ -154,6 +154,17 @@ impl TextField {
 
 #[async_trait]
 impl FormField for TextField {
+    fn cap_max_length(&mut self, max: u32) {
+        let current = self.config.max_length.as_ref().map(|l| l.value);
+        if current.is_none_or(|c| c > max) {
+            let message = self.config.max_length.take().and_then(|l| l.message);
+            self.config.max_length = Some(LengthConstraint {
+                value: max,
+                message,
+            });
+        }
+    }
+
     fn set_value(&mut self, value: &str) {
         let cleaned = match self.format {
             SpecialFormat::Password | SpecialFormat::Csrf => value.to_string(),

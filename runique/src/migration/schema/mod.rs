@@ -241,6 +241,56 @@ impl ModelSchema {
         }
     }
 
+    /// Re-applies, after `customize`, what each column's DSL type imposes on
+    /// its form field: an integer keeps its Rust type's range, a text its
+    /// column length, an upload its size limit — `customize` can tighten
+    /// them, not loosen them. Replacing a field in a way that breaks what the
+    /// column needs is a programming error, refused the same way as an
+    /// unknown field in `fill_form`: a `password` column must stay a password
+    /// field (hashed, never sent back), an integer column an integer field.
+    pub fn enforce_limits(&self, form: &mut crate::forms::Forms) {
+        use runique_dsl::types::Widget;
+
+        for col in self.columns.iter().filter(|c| !c.ignored) {
+            let Some(kind) = col.kind else { continue };
+            let Some(field) = form.fields.get_mut(&col.name) else {
+                continue;
+            };
+            match kind.widget() {
+                Widget::Password if field.field_type() != "password" || !field.is_password() => {
+                    panic!(
+                        "ModelForm '{}': field '{}' is declared `password`; `customize` replaced it with a `{}` field, which would neither hash nor hide it",
+                        self.model_name,
+                        col.name,
+                        field.field_type()
+                    );
+                }
+                Widget::Integer { min, max } if !field.set_type_bounds(min, max) => {
+                    panic!(
+                        "ModelForm '{}': field '{}' is declared `{:?}`; `customize` replaced it with a `{}` field, but it must stay an integer field",
+                        self.model_name,
+                        col.name,
+                        kind,
+                        field.field_type()
+                    );
+                }
+                _ => {}
+            }
+            if let Some(max) = col.max_length
+                && !matches!(kind.widget(), Widget::Binary)
+            {
+                field.cap_max_length(max);
+            }
+            let size = kind
+                .byte_limit(col.max_length)
+                .map(u64::from)
+                .or(col.max_size);
+            if let Some(bytes) = size {
+                field.cap_max_size(bytes);
+            }
+        }
+    }
+
     /// Diff between two ModelSchema — returns the changes to apply
     pub fn diff(&self, other: &ModelSchema) -> SchemaDiff {
         let mut diff = SchemaDiff::new(&self.table_name);
