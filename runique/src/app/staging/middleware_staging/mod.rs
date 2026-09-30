@@ -120,11 +120,7 @@ impl MiddlewareStaging {
         };
 
         // .env variables take priority over the profile
-        let get_env_or = |key: &str, default: bool| -> bool {
-            std::env::var(key)
-                .map(|v| v.parse::<bool>().unwrap_or(default))
-                .unwrap_or(default)
-        };
+        let get_env_or = crate::utils::config::env::env_flag;
 
         let features = MiddlewareConfig {
             // host validation configured only via the builder (.with_allowed_hosts)

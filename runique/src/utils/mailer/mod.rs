@@ -66,7 +66,10 @@ impl MailerConfig {
     /// missing), plus optional `SMTP_PORT` (default `587`) and `SMTP_STARTTLS`
     /// (default `true`).
     pub fn from_env() -> Option<Self> {
-        let backend = match var("EMAIL_BACKEND").as_deref().unwrap_or("smtp") {
+        let backend = match crate::utils::config::env::env_keyword("EMAIL_BACKEND")
+            .as_deref()
+            .unwrap_or("smtp")
+        {
             "console" => MailerBackend::Console,
             _ => MailerBackend::Smtp,
         };

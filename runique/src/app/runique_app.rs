@@ -37,7 +37,7 @@ impl RuniqueApp {
     /// - Otherwise: serves HTTP on the configured port.
     pub async fn run(self) -> Result<(), Box<dyn std::error::Error>> {
         #[cfg(not(feature = "acme"))]
-        if std::env::var("ACME_ENABLED").as_deref() == Ok("true") {
+        if crate::utils::config::env::env_flag("ACME_ENABLED", false) {
             eprintln!("⚠  {}", t("server.acme_not_compiled"));
             eprintln!("   {}", t("server.acme_add_feature"));
         }
