@@ -32,6 +32,11 @@ pub fn cache_permissions(user_id: Pk, groupes: Vec<Groupe>) {
         tracing::warn!("permissions cache lock poisoned (recovered, insert)");
         p.into_inner()
     });
+    #[cfg(feature = "test-utils")]
+    crate::runique_test::logic::builder_test::note_permission_change(
+        user_id,
+        cache.get(&user_id).cloned(),
+    );
     cache.insert(user_id, Arc::new(CachedPermissions { groupes }));
 }
 
@@ -51,6 +56,11 @@ pub fn evict_permissions(user_id: Pk) {
         tracing::warn!("permissions cache lock poisoned (recovered, evict)");
         p.into_inner()
     });
+    #[cfg(feature = "test-utils")]
+    crate::runique_test::logic::builder_test::note_permission_change(
+        user_id,
+        cache.get(&user_id).cloned(),
+    );
     cache.remove(&user_id);
 }
 
@@ -60,7 +70,30 @@ pub fn clear_cache() {
         tracing::warn!("permissions cache lock poisoned (recovered, clear)");
         p.into_inner()
     });
+    #[cfg(feature = "test-utils")]
+    for (user_id, was) in cache.iter() {
+        crate::runique_test::logic::builder_test::note_permission_change(
+            *user_id,
+            Some(was.clone()),
+        );
+    }
     cache.clear();
+}
+
+/// Puts back the entries a `runique_test` handler changed: each one gets its
+/// value from before the test, or goes if it didn't exist then.
+#[cfg(feature = "test-utils")]
+pub(crate) fn restore_permissions(touched: HashMap<Pk, Option<Arc<CachedPermissions>>>) {
+    let mut cache = PERMISSIONS_CACHE.write().unwrap_or_else(|p| {
+        tracing::warn!("permissions cache lock poisoned (recovered, restore)");
+        p.into_inner()
+    });
+    for (user_id, before) in touched {
+        match before {
+            Some(was) => cache.insert(user_id, was),
+            None => cache.remove(&user_id),
+        };
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════

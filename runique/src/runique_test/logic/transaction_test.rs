@@ -5,7 +5,12 @@ use super::struct_test::{QueryTrace, TraceSink, msg};
 use crate::db::config::mask_password;
 use crate::db::{ADb, DatabaseConfig, RuniqueDb};
 use crate::utils::aliases::StrMap;
-use sea_orm::{DatabaseConnection, DbErr, TransactionTrait};
+use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, DbErr, Statement, TransactionTrait};
+use std::time::{Duration, Instant};
+
+/// How long `rollback_test` waits for a clone of the test connection (kept
+/// by a task the handler spawned) to be dropped before giving up.
+const CLONE_GRACE: Duration = Duration::from_secs(3);
 
 #[async_trait::async_trait]
 pub trait TestTransaction: Sized + Send + Sync {
@@ -14,7 +19,8 @@ pub trait TestTransaction: Sized + Send + Sync {
     type Connection: Send + Sync;
     type Error: std::fmt::Display + Send;
 
-    /// Builds the config from the values of the env file the test named.
+    /// Builds the config from the values of the env file the test named, and
+    /// only from them: nothing is read from the shell's environment.
     fn load_config(vars: &StrMap) -> Result<Self::Config, Self::Error>;
 
     /// A readable description of the target, shown before the run. Never put credentials in it.
@@ -28,6 +34,15 @@ pub trait TestTransaction: Sized + Send + Sync {
 
     async fn begin_test(conn: &Self::Connection) -> Result<Self, Self::Error>;
 
+    /// Whether the test transaction is still the one `begin_test` opened, after
+    /// the handler. `false` when the handler ended it (a `COMMIT`, or DDL on an
+    /// engine that commits implicitly): the final rollback can't undo anything
+    /// then, and some engines don't even report it. Answer `true` when the
+    /// engine can't tell.
+    async fn still_open(&self) -> Result<bool, Self::Error> {
+        Ok(true)
+    }
+
     async fn rollback_test(self) -> Result<(), Self::Error>;
 }
 
@@ -38,13 +53,16 @@ impl TestTransaction for ADb {
     type Error = DbErr;
 
     fn load_config(vars: &StrMap) -> Result<DatabaseConfig, DbErr> {
-        // The file wins; a key it doesn't set falls back to the environment,
-        // which is only read here, never written.
-        let mut config = DatabaseConfig::from_lookup(|key| {
-            vars.get(key).cloned().or_else(|| std::env::var(key).ok())
-        })
-        .map(|builder| builder.build())
-        .map_err(DbErr::Custom)?;
+        // Without either key, the config would quietly fall back to a local
+        // SQLite file: the test database has to be named on purpose.
+        if !vars.contains_key("DATABASE_URL") && !vars.contains_key("DB_ENGINE") {
+            return Err(DbErr::Custom(msg("runique_test.no_db_config").into_owned()));
+        }
+        // The file only: a key missing from it must not be filled in from the
+        // shell, where it could point anywhere (production included).
+        let mut config = DatabaseConfig::from_lookup(|key| vars.get(key).cloned())
+            .map(|builder| builder.build())
+            .map_err(DbErr::Custom)?;
         // A test only ever needs the one connection its transaction runs on.
         config.max_connections = 1;
         config.min_connections = 1;
@@ -52,7 +70,12 @@ impl TestTransaction for ADb {
     }
 
     fn describe(config: &DatabaseConfig) -> String {
-        format!("{} — {}", config.engine.name(), mask_password(&config.url))
+        let target = format!("{} — {}", config.engine.name(), mask_password(&config.url));
+        if config.url.contains(":memory:") || config.url.contains("mode=memory") {
+            format!("{target} ({})", msg("runique_test.in_memory"))
+        } else {
+            target
+        }
     }
 
     async fn connect(
@@ -66,11 +89,12 @@ impl TestTransaction for ADb {
                 .lock()
                 .unwrap_or_else(|e| e.into_inner())
                 .push(QueryTrace {
-                    // Placeholders only (`$1`, `?`): no value from the database
-                    // ever reaches the console.
+                    // Placeholders only (`$1`, `?`) for queries SeaORM builds.
+                    // SQL written by hand with its values inlined shows them.
                     sql: info.statement.sql.clone(),
                     elapsed: info.elapsed,
                     failed: info.failed,
+                    expected: false,
                 });
         });
         Ok(conn)
@@ -80,7 +104,39 @@ impl TestTransaction for ADb {
         Ok(ADb::new(RuniqueDb::Txn(conn.begin().await?)))
     }
 
+    async fn still_open(&self) -> Result<bool, DbErr> {
+        match self.get_database_backend() {
+            // Inside a transaction, the id stays the same from one statement to
+            // the next; once it's committed, every statement gets a new one.
+            DbBackend::Postgres => {
+                let first = scalar(self, "SELECT txid_current()::text AS v").await;
+                let second = scalar(self, "SELECT txid_current()::text AS v").await;
+                match (first, second) {
+                    (Ok(a), Ok(b)) => Ok(a == b),
+                    // Only a transaction left aborted by a failed statement
+                    // refuses these, and that one is still open.
+                    _ => Ok(true),
+                }
+            }
+            // MariaDB has the variable; MySQL doesn't, and then there's no way to tell.
+            DbBackend::MySql => {
+                match scalar(self, "SELECT CAST(@@in_transaction AS CHAR) AS v").await {
+                    Ok(v) => Ok(v != "0"),
+                    Err(_) => Ok(true),
+                }
+            }
+            // SQLite already refuses to roll back a transaction that's gone.
+            _ => Ok(true),
+        }
+    }
+
     async fn rollback_test(self) -> Result<(), DbErr> {
+        // A task the handler spawned may still hold a clone for a moment
+        // (sending a mail, say); give it a chance to finish before giving up.
+        let deadline = Instant::now() + CLONE_GRACE;
+        while self.is_shared() && Instant::now() < deadline {
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
         match self.into_inner() {
             Some(RuniqueDb::Txn(txn)) => txn.rollback().await,
             // Can't happen, since `begin_test` always opens one; still an error
@@ -93,4 +149,12 @@ impl TestTransaction for ADb {
             )),
         }
     }
+}
+
+/// The single text value `sql` returns, read from its `v` column.
+async fn scalar(db: &ADb, sql: &str) -> Result<String, DbErr> {
+    db.query_one_raw(Statement::from_string(db.get_database_backend(), sql))
+        .await?
+        .ok_or_else(|| DbErr::RecordNotFound(sql.to_string()))?
+        .try_get::<String>("", "v")
 }

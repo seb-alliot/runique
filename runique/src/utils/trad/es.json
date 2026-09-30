@@ -500,7 +500,17 @@
     "rollback_failed": "rollback: {}",
     "test_failed": "{} falló, consulta la salida de arriba",
     "clone_outlived": "un clon de la conexión de prueba sobrevivió al handler; la transacción se revertirá cuando ese clon se libere",
-    "not_a_transaction": "la prueba no se ejecutó dentro de una transacción, así que no se pudo revertir nada"
+    "not_a_transaction": "la prueba no se ejecutó dentro de una transacción, así que no se pudo revertir nada",
+    "nested": "runique_test no puede ejecutarse dentro de otro runique_test: esperaría indefinidamente a su propio llamador",
+    "timed_out": "el handler no terminó en {} s: ¿un interbloqueo, o una fila bloqueada por otra conexión? RUNIQUE_TEST_TIMEOUT en el archivo env cambia el límite",
+    "bad_timeout": "{} debe ser un número entero de segundos mayor que 0, se recibió \"{}\"",
+    "transaction_ended": "la transacción del test se terminó desde dentro del propio test (un COMMIT, o DDL en MariaDB/MySQL): todo lo escrito antes ya está en la base de datos",
+    "swallowed_failures": "consultas fallidas: {}, y aun así el handler devolvió Ok: un error se tragó en algún sitio (envuelve los fallos esperados en expect_db_error)",
+    "rollback_timed_out": "el rollback no terminó en {} s",
+    "expected": "esperado",
+    "not_refused": "la base de datos aceptó lo que el test esperaba que rechazara",
+    "no_db_config": "el archivo env no define ni DATABASE_URL ni DB_ENGINE: la base de datos de prueba debe indicarse en él, no se toma nada del shell",
+    "in_memory": "en memoria: cada test empieza con una base de datos vacía"
   },
   "test_runner": {
     "no_cargo_toml": "No hay Cargo.toml aquí: ejecuta `runique test` desde la raíz de tu proyecto.",
