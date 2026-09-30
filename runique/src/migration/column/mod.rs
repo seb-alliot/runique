@@ -39,6 +39,11 @@ pub struct ColumnDef {
     pub is_file: bool,
     pub file_kind: Option<FileKind>,
     pub max_size: Option<u64>, // bytes
+    /// The DSL type the column was declared with, when it comes from `model!{}`
+    /// or `extend!{}`. Decides the form field; ignored by `to_sea_column`.
+    pub kind: Option<runique_dsl::ast::FormFieldKind>,
+    /// Form label declared in the DSL (`[label: "…"]`).
+    pub label: Option<String>,
 }
 
 impl ColumnDef {
@@ -66,6 +71,8 @@ impl ColumnDef {
             is_file: false,
             file_kind: None,
             max_size: None,
+            kind: None,
+            label: None,
         }
     }
 
@@ -357,6 +364,27 @@ impl ColumnDef {
         self
     }
 
+    /// Records the DSL type the column was declared with: the form built from
+    /// the schema then gets that type's field (`runique_dsl::types`), whatever
+    /// the column's name.
+    pub fn kind(mut self, kind: runique_dsl::ast::FormFieldKind) -> Self {
+        self.kind = Some(kind);
+        self
+    }
+
+    /// Form label for this column, instead of the one derived from its name.
+    pub fn label(mut self, label: impl Into<String>) -> Self {
+        self.label = Some(label.into());
+        self
+    }
+
+    /// Choices of an enum column, for its form field — without touching the
+    /// SQL type, which only Postgres makes a native enum.
+    pub fn choices(mut self, variants: Vec<String>) -> Self {
+        self.enum_variants = variants;
+        self
+    }
+
     /// Model-defined upload ceiling in bytes. Bounds any form-level override.
     pub fn max_size_bytes(mut self, bytes: u64) -> Self {
         self.max_size = Some(bytes);
@@ -454,14 +482,17 @@ impl ColumnDef {
         }
 
         let name = self.name.as_str();
-        let label = self.format_label();
+        let label = self.label.clone().unwrap_or_else(|| self.format_label());
         let required = !self.nullable;
 
         // A file column is stored as String at the SQL level, so the file
         // marker must be checked before the col_type match would route it to a
         // TextField. `max_size` sets the model ceiling, which later bounds any
         // form-level override via `set_max_size_bounded`.
-        let mut field: GenericField = if self.is_file {
+        // Declared in the DSL: its type decides, never the column's name.
+        let mut field: GenericField = if let Some(kind) = self.kind {
+            self.widget_field(kind.widget())
+        } else if self.is_file {
             let mut ff = match self.file_kind {
                 Some(FileKind::Image) => FileField::image(name),
                 Some(FileKind::Document) => FileField::document(name),
@@ -603,6 +634,118 @@ impl ColumnDef {
         }
 
         Some(field)
+    }
+
+    /// The form field for a DSL type (`runique_dsl::types`), with the bounds
+    /// declared on the column.
+    fn widget_field(
+        &self,
+        widget: runique_dsl::types::Widget,
+    ) -> crate::forms::generic::GenericField {
+        use crate::forms::base::NumericConfig;
+        use crate::forms::fields::{
+            FileSize,
+            boolean::BooleanField,
+            choice::{CheckboxField, ChoiceField, RadioField},
+            datetime::{DateField, DateTimeField, TimeField},
+            file::FileField,
+            number::NumericField,
+            special::{ColorField, IPAddressField, JSONField, SlugField, UUIDField},
+            text::TextField,
+        };
+        use runique_dsl::types::Widget;
+
+        let name = self.name.as_str();
+        let text = |tf: TextField| -> crate::forms::generic::GenericField {
+            let mut tf = tf;
+            if let Some(max_model) = self.max_length {
+                let current = tf.config.max_length.as_ref().map(|c| c.value);
+                tf = tf.max_length(current.map_or(max_model, |f| max_model.min(f)), "Too long");
+            }
+            if let Some(min) = self.min_length {
+                tf = tf.min_length(min, "");
+            }
+            tf.into()
+        };
+        let float = |nf: NumericField| -> crate::forms::generic::GenericField {
+            let mut nf = nf;
+            if let Some(min) = self.min_float {
+                nf = nf.min(min, "");
+            }
+            if let Some(max) = self.max_float {
+                nf = nf.max(max, "");
+            }
+            nf.into()
+        };
+        let choices = |mut f: ChoiceField| {
+            for v in &self.enum_variants {
+                f = f.add_choice(v, v);
+            }
+            f
+        };
+
+        match widget {
+            Widget::Text => text(TextField::text(name)),
+            Widget::Textarea => text(TextField::textarea(name)),
+            Widget::Richtext => text(TextField::richtext(name)),
+            Widget::Email => text(TextField::email(name)),
+            Widget::Url => text(TextField::url(name)),
+            Widget::Phone => text(TextField::phone(name)),
+            Widget::Password => text(TextField::password(name)),
+            Widget::Integer { min, max } => {
+                let mut nf = NumericField::integer_in(name, min, max);
+                nf.config = NumericConfig::Integer {
+                    min: self.min_value,
+                    max: self.max_value,
+                };
+                nf.into()
+            }
+            Widget::Float => float(NumericField::float(name)),
+            Widget::Decimal => float(NumericField::decimal(name)),
+            Widget::Percent => NumericField::percent(name).into(),
+            Widget::Bool => BooleanField::new(name).into(),
+            Widget::Date => DateField::new(name).into(),
+            Widget::Time => TimeField::new(name).into(),
+            Widget::DateTime => DateTimeField::new(name).into(),
+            Widget::File(kind) => {
+                let mut ff = match kind {
+                    runique_dsl::ast::FileKind::Image => FileField::image(name),
+                    runique_dsl::ast::FileKind::Document => FileField::document(name),
+                    runique_dsl::ast::FileKind::Any => FileField::any(name),
+                };
+                if let Some(bytes) = self.max_size {
+                    ff = ff.max_size(FileSize::bytes(bytes));
+                }
+                ff.into()
+            }
+            Widget::Binary => {
+                let mut bf = crate::forms::fields::BinaryField::new(name);
+                if let Some(limit) = self.kind.and_then(|k| k.byte_limit(self.max_length)) {
+                    bf = bf.max_size(limit.into());
+                }
+                bf.into()
+            }
+            Widget::Choice => choices(ChoiceField::new(name)).into(),
+            Widget::Radio => {
+                let mut f = RadioField::new(name);
+                for v in &self.enum_variants {
+                    f = f.add_choice(v, v);
+                }
+                f.into()
+            }
+            Widget::Checkbox => {
+                let mut f = CheckboxField::new(name);
+                for v in &self.enum_variants {
+                    f = f.add_choice(v, v);
+                }
+                f.into()
+            }
+            Widget::Color => ColorField::new(name).into(),
+            Widget::Slug => SlugField::new(name).into(),
+            Widget::Uuid => UUIDField::new(name).into(),
+            Widget::Json => JSONField::new(name).into(),
+            Widget::Ip => IPAddressField::new(name).into(),
+        }
     }
 
     fn format_label(&self) -> String {

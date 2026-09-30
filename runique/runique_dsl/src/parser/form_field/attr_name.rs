@@ -1,5 +1,5 @@
 //! Maps a parsed `FormFieldAttr` back to its DSL keyword, for error messages.
-use crate::model::ast::FormFieldAttr;
+use crate::ast::FormFieldAttr;
 
 pub(super) fn attr_name_str(attr: &FormFieldAttr) -> &'static str {
     match attr {

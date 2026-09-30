@@ -1,6 +1,6 @@
 //! `{ name: type [attr1, attr2, ...], ... }` field declaration parsing —
 //! the anonymous-block v2 grammar.
-use crate::model::ast::{FormFieldAttr, FormFieldDecl, FormFieldKind};
+use crate::ast::{FormFieldAttr, FormFieldDecl, FormFieldKind};
 use syn::{
     Ident, LitFloat, LitInt, LitStr, Result, Token,
     parse::{Parse, ParseStream},
@@ -10,7 +10,7 @@ use syn::{
 use super::size::parse_size;
 use super::suggest_type::suggest_form_field_type;
 use super::validate_attrs::validate_form_field_attrs;
-use crate::model::ast::FkDef;
+use crate::ast::FkDef;
 
 impl Parse for FormFieldDecl {
     fn parse(input: ParseStream) -> Result<Self> {

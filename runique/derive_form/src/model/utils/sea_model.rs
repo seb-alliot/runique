@@ -32,7 +32,7 @@ fn generate_pk_field(model: &ModelInput) -> TokenStream2 {
     }
 }
 
-fn generate_model_field(field: &FieldDef) -> TokenStream2 {
+pub(crate) fn generate_model_field(field: &FieldDef) -> TokenStream2 {
     let name = &field.name;
     let is_auto = field
         .options
@@ -58,10 +58,16 @@ fn generate_model_field(field: &FieldDef) -> TokenStream2 {
 
 fn field_type_to_rust(ty: &FieldType) -> TokenStream2 {
     match ty {
-        FieldType::String | FieldType::Text | FieldType::Char | FieldType::Varchar(_) => {
+        FieldType::String
+        | FieldType::Password
+        | FieldType::Text
+        | FieldType::Char
+        | FieldType::Varchar(_) => {
             quote! { String }
         }
-        FieldType::I8 | FieldType::I16 | FieldType::I32 => quote! { i32 },
+        FieldType::I8 => quote! { i8 },
+        FieldType::I16 => quote! { i16 },
+        FieldType::I32 => quote! { i32 },
         FieldType::I64 => quote! { i64 },
         FieldType::U32 => quote! { u32 },
         FieldType::U64 => quote! { u64 },
@@ -71,9 +77,8 @@ fn field_type_to_rust(ty: &FieldType) -> TokenStream2 {
         FieldType::Bool => quote! { bool },
         FieldType::Date => quote! { ::chrono::NaiveDate },
         FieldType::Time => quote! { ::chrono::NaiveTime },
-        FieldType::Datetime | FieldType::Timestamp | FieldType::TimestampTz => {
-            quote! { ::chrono::NaiveDateTime }
-        }
+        FieldType::Datetime | FieldType::Timestamp => quote! { ::chrono::NaiveDateTime },
+        FieldType::TimestampTz => quote! { ::chrono::DateTime<::chrono::Utc> },
         FieldType::Uuid => quote! { ::sea_orm::prelude::Uuid },
         FieldType::Json | FieldType::JsonBinary => quote! { runique::serde_json::Value },
         FieldType::Binary(_) | FieldType::VarBinary(_) | FieldType::Blob => quote! { Vec<u8> },

@@ -1,9 +1,9 @@
 //! Converts a `FormFieldDecl` (anonymous block v2) into an equivalent SQL
 //! `FieldDef`. SQL types are inferred from semantic types.
-use crate::model::ast::{FieldDef, FieldOption, FieldType, FormFieldAttr, FormFieldDecl};
+use crate::ast::{FieldDef, FieldOption, FieldType, FormFieldAttr, FormFieldDecl};
 
-pub(crate) fn form_field_to_field_def(ff: &FormFieldDecl) -> FieldDef {
-    use crate::model::ast::{FileKind, FormFieldAttr::*, FormFieldKind::*};
+pub fn form_field_to_field_def(ff: &FormFieldDecl) -> FieldDef {
+    use crate::ast::{FileKind, FormFieldAttr::*, FormFieldKind::*};
 
     let is_required = ff.attrs.iter().any(|a| matches!(a, Required));
     let is_nullable = ff.attrs.iter().any(|a| matches!(a, Nullable)) || !is_required; // without required -> implicit nullable
@@ -43,7 +43,7 @@ pub(crate) fn form_field_to_field_def(ff: &FormFieldDecl) -> FieldDef {
             }
         }
         Email => FieldType::Varchar(254),
-        Password => FieldType::String,
+        Password => FieldType::Password,
         Richtext | Textarea => FieldType::Text,
         Json => FieldType::Json,
         Url => FieldType::String,
@@ -189,7 +189,31 @@ pub(crate) fn form_field_to_field_def(ff: &FormFieldDecl) -> FieldDef {
 
     FieldDef {
         name: ff.name.clone(),
+        kind: ff.kind,
         ty,
         options,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::form_field_to_field_def;
+    use crate::ast::{FieldType, FormFieldDecl};
+
+    fn field_type(src: &str) -> FieldType {
+        form_field_to_field_def(&syn::parse_str::<FormFieldDecl>(src).expect("parses")).ty
+    }
+
+    // The generated code hashes on the declared type, never on the field's name.
+    #[test]
+    fn password_keeps_its_own_type_whatever_the_name() {
+        assert!(matches!(
+            field_type("secret: password"),
+            FieldType::Password
+        ));
+        assert!(matches!(
+            field_type("password_hint: text"),
+            FieldType::String
+        ));
     }
 }

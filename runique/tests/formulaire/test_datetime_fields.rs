@@ -480,3 +480,56 @@ async fn test_duration_field_zero_valide() {
     field.set_value("0");
     assert!(field.validate().await);
 }
+
+// ═══════════════════════════════════════════════════════════════
+// DateTimeField — values filled from a model
+// ═══════════════════════════════════════════════════════════════
+
+/// Renders the input's `value` and `step` attributes only.
+fn render_datetime(value: &str) -> String {
+    let mut tera = tera::Tera::default();
+    tera.add_raw_template(
+        "base_datetime.html",
+        r#"{{ field.value }}|{{ field.html_attributes.step | default(value="") }}"#,
+    )
+    .unwrap();
+    let mut field = DateTimeField::new("rdv");
+    field.set_value(value);
+    field.render(&std::sync::Arc::new(tera)).unwrap()
+}
+
+#[test]
+fn test_datetime_field_displays_a_timestamp_tz_in_utc() {
+    assert_eq!(render_datetime("2026-09-30T14:30:00Z"), "2026-09-30T14:30|");
+    assert_eq!(
+        render_datetime("2026-09-30T16:30:00+02:00"),
+        "2026-09-30T14:30|"
+    );
+}
+
+#[test]
+fn test_datetime_field_keeps_seconds_and_allows_them() {
+    assert_eq!(
+        render_datetime("2026-09-30T14:30:15.123456"),
+        "2026-09-30T14:30:15|1"
+    );
+}
+
+#[test]
+fn test_datetime_field_leaves_what_it_cant_read() {
+    assert_eq!(render_datetime("pas une date"), "pas une date|");
+    assert_eq!(render_datetime(""), "|");
+}
+
+#[tokio::test]
+async fn test_datetime_field_validates_a_timestamp_tz() {
+    let mut field = DateTimeField::new("rdv").min(
+        NaiveDateTime::parse_from_str("2026-09-30T15:00", "%Y-%m-%dT%H:%M").unwrap(),
+        "",
+    );
+    // 16:30 at +02:00 is 14:30 UTC, before the minimum.
+    field.set_value("2026-09-30T16:30:00+02:00");
+    assert!(!field.validate().await);
+    field.set_value("2026-09-30T17:30:00+02:00");
+    assert!(field.validate().await);
+}

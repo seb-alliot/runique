@@ -107,6 +107,12 @@ pub trait RuniqueForm: Sized + Send + Sync {
         cleaned_value(self.get_form(), name)
     }
     /// `i32` — `None` if unknown, empty, or not parseable.
+    fn cleaned_i8(&self, name: &str) -> Option<i8> {
+        coerce(self.get_form(), name)
+    }
+    fn cleaned_i16(&self, name: &str) -> Option<i16> {
+        coerce(self.get_form(), name)
+    }
     fn cleaned_i32(&self, name: &str) -> Option<i32> {
         coerce(self.get_form(), name)
     }
@@ -122,19 +128,27 @@ pub trait RuniqueForm: Sized + Send + Sync {
     fn cleaned_u64(&self, name: &str) -> Option<u64> {
         coerce(self.get_form(), name)
     }
-    /// `f32` — handles `,` → `.`, parses via `Decimal` for precision. `None` if unknown, empty, or not parseable.
+    /// `f32`, read like `NumericField::float` reads it (`,` or `.`, exponent
+    /// allowed). `None` if unknown, empty, or not parseable.
     fn cleaned_f32(&self, name: &str) -> Option<f32> {
-        use rust_decimal::prelude::ToPrimitive;
         let raw = cleaned_value(self.get_form(), name)?;
-        let v = raw.replace(',', ".");
-        log_coerce(name, &raw, rust_decimal::Decimal::from_str_exact(&v))?.to_f32()
+        log_coerce(name, &raw, raw.replace(',', ".").parse::<f32>()).filter(|v| v.is_finite())
     }
-    /// `f64` — handles `,` → `.`, parses via `Decimal` for precision. `None` if unknown, empty, or not parseable.
+    /// `f64`, read like `NumericField::float` reads it (`,` or `.`, exponent
+    /// allowed). `None` if unknown, empty, or not parseable.
     fn cleaned_f64(&self, name: &str) -> Option<f64> {
-        use rust_decimal::prelude::ToPrimitive;
         let raw = cleaned_value(self.get_form(), name)?;
-        let v = raw.replace(',', ".");
-        log_coerce(name, &raw, rust_decimal::Decimal::from_str_exact(&v))?.to_f64()
+        log_coerce(name, &raw, raw.replace(',', ".").parse::<f64>()).filter(|v| v.is_finite())
+    }
+    /// `Decimal`, read like `NumericField::decimal` reads it: exact, no
+    /// exponent. `None` if unknown, empty, or not parseable.
+    fn cleaned_decimal(&self, name: &str) -> Option<rust_decimal::Decimal> {
+        let raw = cleaned_value(self.get_form(), name)?;
+        log_coerce(
+            name,
+            &raw,
+            rust_decimal::Decimal::from_str_exact(&raw.replace(',', ".")),
+        )
     }
     /// `bool` — `true` for `"true"`, `"1"`, `"on"` (case-insensitive).
     /// Returns `None` if the field does not exist in the form.
@@ -160,27 +174,47 @@ pub trait RuniqueForm: Sized + Send + Sync {
         )
     }
 
-    /// `NaiveTime` — `None` if unknown, empty, or not parseable.
+    /// `NaiveTime`, `HH:MM` or `HH:MM:SS` like `TimeField`. `None` if
+    /// unknown, empty, or not parseable.
     fn cleaned_naive_time(&self, name: &str) -> Option<chrono::NaiveTime> {
         let raw = cleaned_value(self.get_form(), name)?;
-        log_coerce(name, &raw, chrono::NaiveTime::parse_from_str(&raw, "%H:%M"))
+        log_coerce(
+            name,
+            &raw,
+            chrono::NaiveTime::parse_from_str(&raw, "%H:%M")
+                .or_else(|_| chrono::NaiveTime::parse_from_str(&raw, "%H:%M:%S")),
+        )
     }
 
-    /// `NaiveDateTime` — `None` if unknown, empty, or not parseable.
+    /// `NaiveDateTime`: whatever `DateTimeField` accepts — what a
+    /// `datetime-local` input sends, with or without seconds, or RFC 3339
+    /// (taken in UTC). `None` if unknown, empty, or not parseable.
     fn cleaned_naive_datetime(&self, name: &str) -> Option<chrono::NaiveDateTime> {
         let raw = cleaned_value(self.get_form(), name)?;
         log_coerce(
             name,
             &raw,
-            chrono::NaiveDateTime::parse_from_str(&raw, "%Y-%m-%dT%H:%M"),
+            crate::forms::fields::datetime::parse_datetime_local(&raw).ok_or("not a date-time"),
         )
     }
 
-    /// `DateTime<Utc>` — `None` if unknown, empty, or not parseable.
+    /// `DateTime<Utc>`, for a `timestamp_tz`: RFC 3339 keeps its offset, a
+    /// `datetime-local` value (no offset) is taken as UTC — the way the
+    /// generated code saves it. `None` if unknown, empty, or not parseable.
     fn cleaned_datetime_utc(&self, name: &str) -> Option<chrono::DateTime<chrono::Utc>> {
         let raw = cleaned_value(self.get_form(), name)?;
-        log_coerce(name, &raw, chrono::DateTime::parse_from_rfc3339(&raw))
-            .map(|dt| dt.with_timezone(&chrono::Utc))
+        log_coerce(
+            name,
+            &raw,
+            crate::forms::fields::parse_utc_datetime(&raw).ok_or("not a date-time"),
+        )
+    }
+
+    /// Bytes of a `BinaryField`. Available once the form is valid (`is_valid`
+    /// runs `finalize`, which reads the upload) — `None` inside `clean()`.
+    fn cleaned_bytes(&self, name: &str) -> Option<Vec<u8>> {
+        let raw = cleaned_value(self.get_form(), name)?;
+        crate::forms::fields::decode_binary(&raw)
     }
 
     /// SeaORM `ActiveEnum` — `None` if unknown, empty, or not a valid variant.

@@ -40,8 +40,33 @@ use std::sync::Arc;
 use tokio::io::AsyncReadExt;
 
 /// Deletes uploaded files from disk (cleanup on validation failure)
+/// Whether `path` is a file `parse_multipart` staged for this kind of request:
+/// directly inside `{MEDIA_ROOT}/.staging-<uuid>/`. Resolved on disk, so `..`
+/// or a symlink can't make another file pass for one.
+///
+/// A file field's value can also arrive as plain text (urlencoded body, or a
+/// multipart part without a filename): only a staged path may ever be read,
+/// moved or deleted by the field.
+pub(crate) fn is_staged_upload(path: &str) -> bool {
+    let (Ok(file), Ok(root)) = (
+        std::fs::canonicalize(path),
+        std::fs::canonicalize(resolve_media_root()),
+    ) else {
+        return false;
+    };
+    let Some(dir) = file.parent() else {
+        return false;
+    };
+    file.is_file()
+        && dir.parent() == Some(root.as_path())
+        && dir
+            .file_name()
+            .and_then(|n| n.to_str())
+            .is_some_and(|n| n.starts_with(".staging-"))
+}
+
 async fn cleanup_files(files: &[String]) {
-    for path in files {
+    for path in files.iter().filter(|p| is_staged_upload(p)) {
         if let Err(e) = tokio::fs::remove_file(path).await
             && e.kind() != std::io::ErrorKind::NotFound
         {
@@ -405,12 +430,28 @@ impl FileField {
 
 #[async_trait]
 impl FormField for FileField {
+    fn cap_max_size(&mut self, bytes: u64) {
+        if self.upload_config.max_size.is_none_or(|s| s > bytes) {
+            self.upload_config.max_size = Some(bytes);
+        }
+    }
+
     fn model_max_size(&self) -> Option<u64> {
         self.model_max_size
     }
 
     fn set_max_size_bounded(&mut self, size: FileSize) -> Result<(), String> {
         self.apply_max_size_bounded(size)
+    }
+
+    fn set_submitted_value(&mut self, value: &str) {
+        let staged = parse_file_list(value).iter().all(|p| is_staged_upload(p));
+        if !staged {
+            // Not an upload from this request: the client sent a path as text.
+            tracing::warn!(field = %self.base.name, "file field: submitted value is not a staged upload, ignored");
+            return;
+        }
+        self.set_value(value);
     }
 
     fn set_value(&mut self, value: &str) {
@@ -604,6 +645,11 @@ impl FormField for FileField {
                 continue;
             }
 
+            // Only an upload is ever moved: any other existing file stays where it is.
+            if !is_staged_upload(file_path) {
+                return Err(format!("'{file_path}' is not an upload"));
+            }
+
             tokio::fs::create_dir_all(dest_dir_abs_path)
                 .await
                 .map_err(|e| format!("upload dir '{}': {}", dest_dir_abs, e))?;
@@ -694,7 +740,9 @@ mod finalize_tests {
     async fn finalize_without_upload_to_commits_staged_file_to_media_root() {
         let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
         let media = unique_dir("media");
-        let staging = unique_dir("staging");
+        // Where `parse_multipart` stages an upload.
+        let staging = media.join(format!(".staging-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&staging).unwrap();
         let staged = staging.join("photo.png");
         fs::write(&staged, b"data").unwrap();
 
@@ -718,7 +766,65 @@ mod finalize_tests {
             std::env::remove_var("MEDIA_ROOT");
         }
         let _ = fs::remove_dir_all(&media);
-        let _ = fs::remove_dir_all(&staging);
+    }
+
+    /// A path the client sent as text is never taken for an upload: `fill`
+    /// ignores it, and neither `validate` nor `finalize` touch that file.
+    #[tokio::test]
+    async fn a_path_that_is_not_an_upload_is_never_touched() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let media = unique_dir("media3");
+        let outside = unique_dir("outside");
+        let victim = outside.join("app.db");
+        fs::write(&victim, b"server file").unwrap();
+        unsafe {
+            std::env::set_var("MEDIA_ROOT", media.to_str().unwrap());
+        }
+        let path = victim.to_string_lossy().to_string();
+
+        let mut submitted = FileField::image("avatar");
+        submitted.set_submitted_value(&path);
+        assert_eq!(submitted.base.value, "", "ignored when submitted");
+
+        // Set by code instead: rejected by validation, but not deleted.
+        let mut by_code = FileField::image("avatar");
+        by_code.set_value(&path);
+        assert!(!by_code.validate().await);
+        assert!(victim.exists(), "a failed validation must not delete it");
+
+        let mut moved = FileField::any("doc");
+        moved.base.value = path.clone();
+        assert!(moved.finalize().await.is_err(), "not an upload: refused");
+        assert!(victim.exists(), "and not moved into MEDIA_ROOT");
+
+        unsafe {
+            std::env::remove_var("MEDIA_ROOT");
+        }
+        let _ = fs::remove_dir_all(&media);
+        let _ = fs::remove_dir_all(&outside);
+    }
+
+    /// A staged upload is still accepted from the request.
+    #[tokio::test]
+    async fn a_staged_upload_is_accepted_when_submitted() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let media = unique_dir("media4");
+        let staging = media.join(format!(".staging-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&staging).unwrap();
+        let staged = staging.join("doc.pdf");
+        fs::write(&staged, b"%PDF").unwrap();
+        unsafe {
+            std::env::set_var("MEDIA_ROOT", media.to_str().unwrap());
+        }
+
+        let mut f = FileField::document("doc");
+        f.set_submitted_value(&staged.to_string_lossy());
+        assert_eq!(f.base.value, staged.to_string_lossy());
+
+        unsafe {
+            std::env::remove_var("MEDIA_ROOT");
+        }
+        let _ = fs::remove_dir_all(&media);
     }
 
     /// Current-flow case: file already at the media_root root → finalize

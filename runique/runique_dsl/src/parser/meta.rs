@@ -1,6 +1,6 @@
 //! `meta: { ordering:, unique_together:, indexes:, verbose_name:, ... }`
 //! block parsing.
-use crate::model::ast::MetaDef;
+use crate::ast::MetaDef;
 use syn::{
     Ident, LitStr, Result, Token,
     parse::{Parse, ParseStream},

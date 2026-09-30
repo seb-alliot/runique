@@ -1,5 +1,5 @@
 //! `pk: name => type` primary key declaration parsing.
-use crate::model::ast::{PkDef, PkType};
+use crate::ast::{PkDef, PkType};
 use syn::{
     Ident, Result, Token,
     parse::{Parse, ParseStream},

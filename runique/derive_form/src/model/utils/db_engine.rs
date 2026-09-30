@@ -97,3 +97,82 @@ impl DbEngine {
         matches!(self, DbEngine::Unknown)
     }
 }
+
+/// Refuses the types the compiled engine can't read back (see
+/// `FormFieldKind::unsupported_on`): better a compile error than a runtime one
+/// on the first read. Only the Cargo feature counts here, not `.env`, and
+/// nothing is refused under `all-databases`, where no single engine is targeted.
+pub fn check_engine_support(model: &crate::model::ast::ModelInput) -> syn::Result<()> {
+    use crate::model::ast::FormFieldKind;
+    use runique_dsl::types::Engine;
+
+    if cfg!(feature = "all-databases") {
+        return Ok(());
+    }
+    let (engine, engine_name) = if cfg!(feature = "postgres") {
+        (Engine::Postgres, "Postgres")
+    } else if cfg!(feature = "sqlite") {
+        (Engine::Sqlite, "SQLite")
+    } else {
+        return Ok(());
+    };
+    for field in &model.fields {
+        if !field.kind.unsupported_on().contains(&engine) {
+            continue;
+        }
+        let instead = match field.kind {
+            FormFieldKind::I8 => "`i16`",
+            _ => "`bigint` (i64)",
+        };
+        let kind = format!("{:?}", field.kind).to_lowercase();
+        return Err(syn::Error::new(
+            field.name.span(),
+            format!(
+                "`{kind}` isn't supported on {engine_name}: the column can't be read back as a Rust `{kind}`. Use {instead} instead."
+            ),
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::check_engine_support;
+    use crate::model::ast::ModelInput;
+
+    fn check(field: &str) -> syn::Result<()> {
+        let src = format!(r#"Case, table: "cases", pk: id => i32, {{ v: {field} [required], }}"#);
+        check_engine_support(&syn::parse_str::<ModelInput>(&src).expect("parses"))
+    }
+
+    #[test]
+    #[cfg(all(feature = "postgres", not(feature = "all-databases")))]
+    fn postgres_refuses_what_it_cant_read_back() {
+        for kind in ["i8", "u32", "u64"] {
+            assert!(check(kind).is_err(), "{kind} must be refused on Postgres");
+        }
+        for kind in ["i16", "int", "bigint", "timestamp_tz"] {
+            assert!(check(kind).is_ok(), "{kind} must be accepted on Postgres");
+        }
+    }
+
+    #[test]
+    #[cfg(all(feature = "sqlite", not(feature = "all-databases")))]
+    fn sqlite_refuses_only_u64() {
+        assert!(check("u64").is_err());
+        for kind in ["i8", "u32", "int"] {
+            assert!(check(kind).is_ok(), "{kind} must be accepted on SQLite");
+        }
+    }
+
+    #[test]
+    #[cfg(any(
+        feature = "all-databases",
+        not(any(feature = "postgres", feature = "sqlite"))
+    ))]
+    fn nothing_refused_without_a_single_strict_engine() {
+        for kind in ["i8", "u32", "u64"] {
+            assert!(check(kind).is_ok(), "{kind} must be accepted");
+        }
+    }
+}

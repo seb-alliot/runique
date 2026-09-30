@@ -47,4 +47,10 @@ presentation_runique.pdf
 presentation_securite_ecf.md
 presentation_poo.md
 presentation_poo.pdf
-hooks_signaux_recap.mdfallback_ci.md
+hooks_signaux_recap.md
+fallback_ci.md
+
+# Notes de travail (récapitulatifs locaux)
+recap-extraction-dsl-runique.md
+recap-trous-builder-test.md
+recap-types-dsl-seaorm.md

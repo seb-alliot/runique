@@ -58,6 +58,50 @@ fn force_scope_values(data: &mut StrMap, parent: &ParentBinding, local_id: Optio
     }
 }
 
+/// What a create/update function receives: the values the form validated
+/// (after `finalize`), plus the many-to-many checkboxes (`m2m_<field>__<id>`),
+/// which the templates render outside the form and the generated code checks.
+/// Any other key the client added to the request is dropped: a column the form
+/// doesn't show must not become writable by adding it to the request body.
+fn accepted_data(form: &crate::forms::Forms, body: &StrMap) -> StrMap {
+    let mut data: StrMap = form
+        .fields
+        .iter()
+        .map(|(name, field)| (name.clone(), field.value().to_string()))
+        .collect();
+    data.extend(
+        body.iter()
+            .filter(|(key, _)| key.starts_with("m2m_"))
+            .map(|(key, value)| (key.clone(), value.clone())),
+    );
+    data
+}
+
+/// For a resource that creates accounts through the reset-email flow
+/// (`inject_password`): the password is a random one nobody knows, unless the
+/// form has a real password input the admin typed into. A hidden or missing
+/// field never lets the submitted value through — the account's owner sets
+/// their password from the email.
+fn inject_random_password(form: &crate::forms::Forms, data: &mut StrMap) {
+    let typed_by_admin = form
+        .fields
+        .get("password")
+        .is_some_and(|f| f.field_type() == "password" && !f.value().is_empty());
+    if typed_by_admin {
+        return;
+    }
+    let temp_pw = uuid::Uuid::new_v4().to_string();
+    match crate::utils::password::hash(&temp_pw) {
+        Ok(hash) => {
+            data.insert("password".to_string(), hash);
+        }
+        // Never keep the submitted value in its place.
+        Err(_) => {
+            data.remove("password");
+        }
+    }
+}
+
 /// Replaces the parent-scope fields in a built form with hidden inputs carrying
 /// the fixed values, so the picker (FK select / local-key widget) disappears and
 /// the value is submitted as-is. `local_id` = `Some` on edit (pins the local key
@@ -203,14 +247,7 @@ pub(super) async fn handle_create_post(
     if let Some(p) = parent {
         force_scope_values(&mut body, p, None);
     }
-    if entry.meta.inject_password && body.get("password").is_some_and(|p| p.is_empty()) {
-        let temp_pw = uuid::Uuid::new_v4().to_string();
-        if let Ok(hash) = crate::utils::password::hash(&temp_pw) {
-            body.insert("password".to_string(), hash);
-        }
-    }
-
-    let mut body_for_create = body.clone();
+    let raw_body = body.clone();
     let tera = req.engine.tera.clone();
     let csrf = req
         .csrf_token
@@ -244,9 +281,12 @@ pub(super) async fn handle_create_post(
         crate::runique_log!(level, resource = %entry.meta.key, valid, "create POST — form validation");
     }
     if valid {
-        // Sync finalized field values (e.g. file paths moved by finalize()) into body
-        for (name, field) in &form.get_form().fields {
-            body_for_create.insert(name.clone(), field.value().to_string());
+        let mut body_for_create = accepted_data(form.get_form(), &raw_body);
+        if let Some(p) = parent {
+            force_scope_values(&mut body_for_create, p, None);
+        }
+        if entry.meta.inject_password {
+            inject_random_password(form.get_form(), &mut body_for_create);
         }
         let result = match &entry.create_fn {
             Some(f) => f(req.engine.db.clone(), body_for_create.clone()).await,
@@ -551,9 +591,9 @@ pub(super) async fn handle_edit_post(
     }
 
     if !is_locked && !form.get_form().has_errors() {
-        // Sync finalized field values (e.g. file paths moved by finalize()) into body
-        for (name, field) in &form.get_form().fields {
-            body_for_update.insert(name.clone(), field.value().to_string());
+        body_for_update = accepted_data(form.get_form(), &body_for_update);
+        if let Some(p) = parent {
+            force_scope_values(&mut body_for_update, p, Some(&id));
         }
         // Delete old files replaced by a new upload
         if let Some(ref old) = old_obj {
@@ -781,4 +821,68 @@ pub(super) async fn handle_delete_post(
         None => format!("{}/list", base),
     };
     Ok(Redirect::to(&list_url).into_response())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{accepted_data, inject_random_password};
+    use crate::forms::Forms;
+    use crate::forms::fields::{HiddenField, TextField};
+    use crate::utils::aliases::StrMap;
+
+    fn body(pairs: &[(&str, &str)]) -> StrMap {
+        pairs
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect()
+    }
+
+    #[test]
+    fn accepted_data_keeps_form_fields_and_m2m_only() {
+        let mut form = Forms::new("csrf");
+        form.field(&TextField::text("username"));
+        form.fields
+            .get_mut("username")
+            .expect("field")
+            .set_value("alice");
+        let raw = body(&[
+            ("username", "tampered"),
+            ("is_active", "true"),
+            ("m2m_tags__3", "on"),
+        ]);
+        let data = accepted_data(&form, &raw);
+        assert_eq!(data.get("username").map(String::as_str), Some("alice"));
+        assert!(!data.contains_key("is_active"), "not a form field");
+        assert!(
+            data.contains_key("m2m_tags__3"),
+            "m2m checkboxes live outside the form"
+        );
+    }
+
+    #[test]
+    fn hidden_password_is_always_replaced() {
+        let mut form = Forms::new("csrf");
+        form.field(&HiddenField::new("password"));
+        let mut data = body(&[("password", "$argon2id$chosen-by-the-client")]);
+        inject_random_password(&form, &mut data);
+        let stored = data.get("password").expect("password set");
+        assert_ne!(stored, "$argon2id$chosen-by-the-client");
+        assert!(stored.starts_with("$argon2"));
+    }
+
+    #[test]
+    fn typed_password_is_kept() {
+        let mut form = Forms::new("csrf");
+        form.field(&TextField::password("password"));
+        form.fields
+            .get_mut("password")
+            .expect("field")
+            .set_value("$argon2id$hashed-by-finalize");
+        let mut data = body(&[("password", "$argon2id$hashed-by-finalize")]);
+        inject_random_password(&form, &mut data);
+        assert_eq!(
+            data.get("password").map(String::as_str),
+            Some("$argon2id$hashed-by-finalize")
+        );
+    }
 }

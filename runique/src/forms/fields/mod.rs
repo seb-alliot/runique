@@ -1,4 +1,5 @@
-//! Form field types — text, number, boolean, choice, datetime, file, hidden, special.
+//! Form field types — text, number, boolean, choice, datetime, file, binary, hidden, special.
+pub mod binary;
 pub mod boolean;
 pub mod choice;
 pub mod datetime;
@@ -8,6 +9,7 @@ pub mod number;
 pub mod special;
 pub mod text;
 
+pub use binary::*;
 pub use boolean::*;
 pub use choice::*;
 pub use datetime::*;

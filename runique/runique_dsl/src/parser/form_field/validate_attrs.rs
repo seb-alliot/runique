@@ -1,6 +1,6 @@
 //! Cross-checks a `FormFieldDecl`'s parsed attributes against its kind
 //! (e.g. `max_length` only makes sense on textual types).
-use crate::model::ast::{FormFieldAttr, FormFieldKind};
+use crate::ast::{FormFieldAttr, FormFieldKind};
 use syn::{Ident, Result};
 
 use super::attr_name::attr_name_str;

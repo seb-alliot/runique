@@ -16,8 +16,8 @@ readme = "README.md"
 proc-macro = true
 
 [features]
-big-pk = []
-pk-uuid = []
+big-pk = ["runique_dsl/big-pk"]
+pk-uuid = ["runique_dsl/pk-uuid"]
 # Reflètent la feature DB active sur `runique` (forwardée via runique/Cargo.toml),
 # pour que le moteur soit connu au compile-time du macro sans lire `.env`.
 sqlite = []
@@ -28,7 +28,9 @@ mysql = []
 all-databases = []
 
 [dependencies]
-syn = { version = "2", features = ["full", "extra-traits"] }
+runique_dsl.workspace = true
+# Same syn as runique_dsl (3.x): syn types don't mix across majors.
+syn = { workspace = true, features = ["extra-traits"] }
 quote = "1"
 proc-macro2 = "1"
 serde = { version = "1", features = ["derive"] }

@@ -1398,7 +1398,7 @@ fn date_time_types_map_to_methods() {
     assert!(sql.contains(r#"Alias::new("d")).date()"#), "date:\n{sql}");
     assert!(sql.contains(r#"Alias::new("t")).time()"#), "time:\n{sql}");
     assert!(
-        sql.contains(r#"Alias::new("tz")).timestamp_tz()"#),
+        sql.contains(r#"Alias::new("tz")).timestamp_with_time_zone()"#),
         "timestamptz:\n{sql}"
     );
 }

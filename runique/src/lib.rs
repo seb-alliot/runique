@@ -70,6 +70,7 @@ pub use axum;
 pub use chrono;
 pub use hmac;
 pub use regex;
+pub use runique_dsl;
 #[cfg(feature = "orm")]
 pub use sea_orm;
 pub use serde;

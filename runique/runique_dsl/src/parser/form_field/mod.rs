@@ -7,4 +7,4 @@ pub(crate) mod suggest_type;
 pub(crate) mod to_field_def;
 pub(crate) mod validate_attrs;
 
-pub(crate) use to_field_def::form_field_to_field_def;
+pub use to_field_def::form_field_to_field_def;

@@ -6,6 +6,7 @@ macro_rules! impl_form_access {
         fn register_fields(form: &mut $crate::forms::Forms) {
             <Self as $crate::forms::model_form::ModelForm>::model_register_fields(form);
             Self::customize(form);
+            <Self as $crate::forms::model_form::ModelForm>::enforce_schema_limits(form);
         }
         fn from_form(form: $crate::forms::Forms) -> Self {
             Self { form }
