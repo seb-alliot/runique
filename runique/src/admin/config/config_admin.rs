@@ -1,13 +1,13 @@
-//! Admin panel configuration: prefix, title, hot reload, auth, and templates.
+//! Admin panel configuration: prefix, title, hot reload, and templates.
 use std::sync::Arc;
 
 use crate::admin::helper::AdminTemplate;
-use crate::auth::{guard::LoginGuard, session::AdminAuth};
+use crate::auth::guard::LoginGuard;
 use crate::middleware::security::RateLimiter;
 use crate::utils::env::is_debug;
 
 /// Configuration for the admin panel: route prefix, branding, hot reload,
-/// auth handler, template overrides, and per-panel security settings
+/// template overrides, and per-panel security settings
 /// (rate limiting, login guard).
 pub struct AdminConfig {
     /// Prefix for admin routes (default: "/admin")
@@ -27,11 +27,6 @@ pub struct AdminConfig {
 
     /// Entirely enables or disables the `AdminPanel`
     pub enabled: bool,
-
-    /// Admin login verification handler
-    ///
-    /// See `crate::auth::AdminAuth`.
-    pub auth: Option<Arc<dyn AdminAuth>>,
 
     /// Admin template overrides (dashboard, login, list, etc.)
     pub templates: AdminTemplate,
@@ -77,7 +72,6 @@ impl Clone for AdminConfig {
             site_title: self.site_title.clone(),
             site_url: self.site_url.clone(),
             enabled: self.enabled,
-            auth: self.auth.clone(),
             templates: self.templates.clone(),
             page_size: self.page_size,
             reset_password_url: self.reset_password_url.clone(),
@@ -98,7 +92,6 @@ impl std::fmt::Debug for AdminConfig {
             .field("site_title", &self.site_title)
             .field("site_url", &self.site_url)
             .field("enabled", &self.enabled)
-            .field("auth", &self.auth.as_ref().map(|_| "<AdminAuth>"))
             .field("templates", &self.templates)
             .finish()
     }
@@ -106,7 +99,7 @@ impl std::fmt::Debug for AdminConfig {
 
 impl AdminConfig {
     /// Builds the default admin configuration: prefix `/admin`, hot reload
-    /// following `is_debug()`, no auth handler, 10 rows per page, and
+    /// following `is_debug()`, 10 rows per page, and
     /// framework-default templates.
     pub fn new() -> Self {
         Self {
@@ -115,7 +108,6 @@ impl AdminConfig {
             site_title: String::new(),
             site_url: "/".to_string(),
             enabled: true,
-            auth: None,
             templates: AdminTemplate::new(),
             page_size: 10,
             reset_password_url: None,
@@ -176,18 +168,6 @@ impl AdminConfig {
     /// ```
     pub fn reset_password_url(mut self, url: &str) -> Self {
         self.reset_password_url = Some(url.to_string());
-        self
-    }
-
-    /// Attaches the admin authentication handler
-    ///
-    /// ```rust,ignore
-    /// AdminConfig::new().auth(RuniqueAdminAuth::new())
-    ///
-    /// AdminConfig::new().auth(DefaultAdminAuth::<users::Entity>::new())
-    /// ```
-    pub fn auth<A: AdminAuth>(mut self, handler: A) -> Self {
-        self.auth = Some(Arc::new(handler));
         self
     }
 

@@ -64,7 +64,7 @@ const SLOT_SECURITY_HEADERS: u16 = 30;
 const SLOT_CACHE: u16 = 40;
 const SLOT_SESSION: u16 = 50; // Before CSRF (CSRF depends on it)
 const SLOT_SESSION_UPGRADE: u16 = 55; // After Session (reads/writes in session)
-const SLOT_AUTH: u16 = 57; // After Session — loads CurrentUser from the session
+const SLOT_AUTH: u16 = 57; // After Session — reads the signed-in account from the DB
 const SLOT_CSRF: u16 = 60; // After Session (reads/writes in session)
 const SLOT_ANTI_BOT: u16 = 65; // After CSRF — injects honeypot field name extension
 const SLOT_HOST_VALIDATION: u16 = 15; // After ErrorHandler (still caught on panic), before Session/Auth/CSRF cost
@@ -338,7 +338,7 @@ impl MiddlewareStaging {
             });
         }
 
-        // Slot 57: Auth — loads CurrentUser from the session, injects into extensions
+        // Slot 57: Auth — reads the signed-in account from the DB, injects CurrentUser
         entries.push(MiddlewareEntry {
             slot: SLOT_AUTH,
             name: "Auth",
@@ -429,50 +429,59 @@ async fn session_ttl_upgrade(
     next.run(req).await
 }
 
-/// Loads `CurrentUser` from the session and injects it into request extensions.
+/// Injects the signed-in user as the database knows them now.
+///
+/// The session only holds who signed in: the account is read on every request
+/// of a signed-in user (one lookup by primary key), so deactivating it applies
+/// to the next request — its session is closed and `req.user` is `None`.
+/// Groups and rights are not loaded here (`Request::load_user_rights`).
 async fn auth_middleware(
     mut req: axum::http::Request<axum::body::Body>,
     next: axum::middleware::Next,
 ) -> axum::response::Response {
-    use crate::auth::permissions::Groupe;
-    use crate::auth::session::{CurrentUser, get_user_id, get_username};
-    use crate::utils::constante::{
-        admin_context::permission::GROUPES,
-        session_key::session::{SESSION_USER_IS_STAFF_KEY, SESSION_USER_IS_SUPERUSER_KEY},
-    };
+    use crate::auth::session::{CurrentUser, get_user_id, logout};
+    use crate::auth::user::BuiltinUserEntity;
+    use crate::utils::config::TraceResult;
 
-    if let Some(session) = req.extensions().get::<tower_sessions::Session>().cloned()
-        && let (Some(id), Some(username)) =
-            (get_user_id(&session).await, get_username(&session).await)
+    let session = req.extensions().get::<tower_sessions::Session>().cloned();
+    let engine = req
+        .extensions()
+        .get::<crate::utils::aliases::AEngine>()
+        .cloned();
+    if let (Some(session), Some(engine)) = (session, engine)
+        && let Some(id) = get_user_id(&session).await
     {
-        let is_staff = session
-            .get::<bool>(SESSION_USER_IS_STAFF_KEY)
+        match BuiltinUserEntity::find_by_id(&engine.db, id)
             .await
-            .ok()
-            .flatten()
-            .unwrap_or(false);
-        let is_superuser = session
-            .get::<bool>(SESSION_USER_IS_SUPERUSER_KEY)
-            .await
-            .ok()
-            .flatten()
-            .unwrap_or(false);
-        let groupes = session
-            .get::<Vec<Groupe>>(GROUPES)
-            .await
-            .ok()
-            .flatten()
-            .unwrap_or_default();
-        let current_user = CurrentUser {
-            id,
-            username,
-            is_staff,
-            is_superuser,
-            groupes,
-        };
-        RequestExtensions::new()
-            .with_current_user(current_user)
-            .inject_request(&mut req);
+            .filter(crate::auth::user_trait::RuniqueUser::can_sign_in)
+        {
+            Some(user) => {
+                let current_user = CurrentUser {
+                    id,
+                    username: user.username,
+                    is_staff: user.is_staff,
+                    is_superuser: user.is_superuser,
+                    groupes: Vec::new(),
+                };
+                RequestExtensions::new()
+                    .with_current_user(current_user)
+                    .inject_request(&mut req);
+            }
+            None => {
+                let db_store = engine
+                    .session_db_store
+                    .read()
+                    .ok()
+                    .and_then(|g| g.as_ref().cloned());
+                logout(&session, db_store.as_deref()).await.trace(
+                    crate::utils::runique_log::get_log()
+                        .session
+                        .as_ref()
+                        .and_then(|s| s.store),
+                    "close the session of a deleted or inactive account",
+                );
+            }
+        }
     }
     next.run(req).await
 }

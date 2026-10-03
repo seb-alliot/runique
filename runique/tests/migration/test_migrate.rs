@@ -111,9 +111,8 @@ impl MigrationTrait for Migration {{
 #[serial]
 async fn test_up_retourne_ok() {
     dotenvy::from_filename(".env.test").ok();
-    let pg_url = match std::env::var("DATABASE_URL_PG") {
-        Ok(url) => url,
-        Err(_) => return, // skip si pas de Docker
+    let Some(pg_url) = crate::helpers::db_isolation::isolated_url("DATABASE_URL_PG").await else {
+        return; // skip si pas de Docker
     };
     unsafe { std::env::set_var("DATABASE_URL", &pg_url) };
     let migration_dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../demo-app/migration");
@@ -137,9 +136,9 @@ async fn test_up_retourne_ok() {
 #[serial]
 async fn test_up_mariadb_retourne_ok() {
     dotenvy::from_filename(".env.test").ok();
-    let maria_url = match std::env::var("DATABASE_URL_MARIADB") {
-        Ok(url) => url,
-        Err(_) => return, // skip si pas de Docker
+    let Some(maria_url) = crate::helpers::db_isolation::isolated_url("DATABASE_URL_MARIADB").await
+    else {
+        return; // skip si pas de Docker
     };
     unsafe { std::env::set_var("DATABASE_URL", &maria_url) };
     let migration_dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../demo-app/migration");
@@ -308,9 +307,8 @@ async fn test_down_fichier_inexistant_retourne_err() {
     // En fait, down() vérifie le fichier APRÈS la connexion.
     // On skip si Docker pas disponible.
     let _ = dotenvy::from_filename(".env.test");
-    let pg_url = match std::env::var("DATABASE_URL_PG") {
-        Ok(url) => url,
-        Err(_) => return,
+    let Some(pg_url) = crate::helpers::db_isolation::isolated_url("DATABASE_URL_PG").await else {
+        return;
     };
     unsafe {
         std::env::set_var("DATABASE_URL", &pg_url);
@@ -340,9 +338,8 @@ async fn test_down_fichier_inexistant_retourne_err() {
 #[serial]
 async fn test_down_batch_inexistant_retourne_err() {
     let _ = dotenvy::from_filename(".env.test");
-    let pg_url = match std::env::var("DATABASE_URL_PG") {
-        Ok(url) => url,
-        Err(_) => return,
+    let Some(pg_url) = crate::helpers::db_isolation::isolated_url("DATABASE_URL_PG").await else {
+        return;
     };
     unsafe {
         std::env::set_var("DATABASE_URL", &pg_url);
@@ -375,7 +372,9 @@ async fn test_down_drop_table_postgres() {
         return;
     };
 
-    let pg_url = std::env::var("DATABASE_URL_PG").unwrap();
+    let pg_url = crate::helpers::db_isolation::isolated_url("DATABASE_URL_PG")
+        .await
+        .unwrap();
     unsafe {
         std::env::set_var("DATABASE_URL", &pg_url);
     }
@@ -424,7 +423,9 @@ async fn test_down_drop_column_postgres() {
         return;
     };
 
-    let pg_url = std::env::var("DATABASE_URL_PG").unwrap();
+    let pg_url = crate::helpers::db_isolation::isolated_url("DATABASE_URL_PG")
+        .await
+        .unwrap();
     unsafe {
         std::env::set_var("DATABASE_URL", &pg_url);
     }
@@ -480,7 +481,9 @@ async fn test_down_drop_table_mariadb() {
         return;
     };
 
-    let mariadb_url = std::env::var("DATABASE_URL_MARIADB").unwrap();
+    let mariadb_url = crate::helpers::db_isolation::isolated_url("DATABASE_URL_MARIADB")
+        .await
+        .unwrap();
     let mysql_url = if mariadb_url.starts_with("mysql://") {
         mariadb_url
     } else {
@@ -541,7 +544,9 @@ async fn test_down_batch_postgres() {
         return;
     };
 
-    let pg_url = std::env::var("DATABASE_URL_PG").unwrap();
+    let pg_url = crate::helpers::db_isolation::isolated_url("DATABASE_URL_PG")
+        .await
+        .unwrap();
     unsafe {
         std::env::set_var("DATABASE_URL", &pg_url);
     }

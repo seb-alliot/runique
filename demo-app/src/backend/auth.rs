@@ -1,5 +1,4 @@
 use crate::formulaire::{LoginForm, RegisterForm};
-use runique::prelude::runique_users::ActiveModel as UserActiveModel;
 use runique::prelude::runique_users::Entity as UserEntity;
 use runique::prelude::*;
 
@@ -138,15 +137,17 @@ pub async fn handle_activate(
         return Ok(Redirect::to("/login").into_response());
     };
 
-    // Activate the account
-    let active_model = UserActiveModel {
-        id: Set(user.id),
-        is_active: Set(true),
-        ..Default::default()
-    };
-    if active_model.update(&*db).await.is_err() {
-        warning!(request.notices => "Something went wrong while activating your account.");
-        return Ok(Redirect::to("/login").into_response());
+    // Activate the account — only a pending one: a blocked account stays blocked.
+    match BuiltinUserEntity::activate_pending(&db, user.id).await {
+        Ok(true) => {}
+        Ok(false) => {
+            warning!(request.notices => "This account is already activated or has been blocked.");
+            return Ok(Redirect::to("/login").into_response());
+        }
+        Err(_) => {
+            warning!(request.notices => "Something went wrong while activating your account.");
+            return Ok(Redirect::to("/login").into_response());
+        }
     }
 
     // Directly log in

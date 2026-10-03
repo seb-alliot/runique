@@ -1,17 +1,13 @@
 //! Converts a `FormFieldDecl` (anonymous block v2) into an equivalent SQL
 //! `FieldDef`. SQL types are inferred from semantic types.
-use crate::ast::{FieldDef, FieldOption, FieldType, FormFieldAttr, FormFieldDecl};
+use crate::ast::{FieldDef, FieldOption, FormFieldAttr, FormFieldDecl};
 
 pub fn form_field_to_field_def(ff: &FormFieldDecl) -> FieldDef {
     use crate::ast::{FileKind, FormFieldAttr::*, FormFieldKind::*};
 
+    // Nullable unless `[required]` (the parser refuses both at once).
     let is_required = ff.attrs.iter().any(|a| matches!(a, Required));
-    let is_nullable = ff.attrs.iter().any(|a| matches!(a, Nullable)) || !is_required; // without required -> implicit nullable
 
-    let max_len = ff
-        .attrs
-        .iter()
-        .find_map(|a| if let MaxLength(n) = a { Some(*n) } else { None });
     let default = ff.attrs.iter().find_map(|a| {
         if let Default(lit) = a {
             Some(lit.clone())
@@ -34,65 +30,6 @@ pub fn form_field_to_field_def(ff: &FormFieldDecl) -> FieldDef {
         }
     });
 
-    let ty = match &ff.kind {
-        Text => {
-            if let Some(n) = max_len {
-                FieldType::Varchar(n)
-            } else {
-                FieldType::String
-            }
-        }
-        Email => FieldType::Varchar(254),
-        Password => FieldType::Password,
-        Richtext | Textarea => FieldType::Text,
-        Json => FieldType::Json,
-        Url => FieldType::String,
-        Int => FieldType::I32,
-        Float => FieldType::F64,
-        Decimal => FieldType::Decimal(None),
-        Percent => FieldType::F64,
-        Bool => FieldType::Bool,
-        Date => FieldType::Date,
-        Time => FieldType::Time,
-        Datetime => FieldType::Datetime,
-        Uuid => FieldType::Uuid,
-        Ip => FieldType::Inet,
-        Color | Slug => FieldType::String,
-        Image | Document | File => FieldType::String,
-        Choice | Radio | Checkbox => {
-            if let Some(ident) = enum_ref {
-                FieldType::Enum(ident)
-            } else {
-                FieldType::String
-            }
-        }
-        Bigint => FieldType::I64,
-        Phone => {
-            if let Some(n) = max_len {
-                FieldType::Varchar(n)
-            } else {
-                FieldType::Varchar(20)
-            }
-        }
-        Char => FieldType::Char,
-        I8 => FieldType::I8,
-        I16 => FieldType::I16,
-        U32 => FieldType::U32,
-        U64 => FieldType::U64,
-        F32 => FieldType::F32,
-        Timestamp => FieldType::Timestamp,
-        TimestampTz => FieldType::TimestampTz,
-        JsonBinary => FieldType::JsonBinary,
-        // Same mechanism as `text` + `max_length` → `Varchar(n)`: the byte length
-        // rides on the already-parsed `max_length` attribute, no new syntax needed.
-        Binary => FieldType::Binary(max_len),
-        VarBinary => FieldType::VarBinary(max_len.unwrap_or(255)),
-        Blob => FieldType::Blob,
-        Cidr => FieldType::Cidr,
-        MacAddress => FieldType::MacAddress,
-        Interval => FieldType::Interval,
-    };
-
     let is_auto_now = ff.attrs.iter().any(|a| matches!(a, AutoNow));
     let is_auto_now_update = ff.attrs.iter().any(|a| matches!(a, AutoNowUpdate));
 
@@ -101,9 +38,9 @@ pub fn form_field_to_field_def(ff: &FormFieldDecl) -> FieldDef {
         options.push(FieldOption::AutoNow);
     } else if is_auto_now_update {
         options.push(FieldOption::AutoNowUpdate);
-    } else if is_required && !is_nullable {
+    } else if is_required {
         options.push(FieldOption::Required);
-    } else if is_nullable && !is_required {
+    } else {
         options.push(FieldOption::Nullable);
     }
     if ff.attrs.iter().any(|a| matches!(a, FormFieldAttr::Unique)) {
@@ -190,7 +127,7 @@ pub fn form_field_to_field_def(ff: &FormFieldDecl) -> FieldDef {
     FieldDef {
         name: ff.name.clone(),
         kind: ff.kind,
-        ty,
+        enum_ref,
         options,
     }
 }
@@ -198,22 +135,77 @@ pub fn form_field_to_field_def(ff: &FormFieldDecl) -> FieldDef {
 #[cfg(test)]
 mod tests {
     use super::form_field_to_field_def;
-    use crate::ast::{FieldType, FormFieldDecl};
+    use crate::ast::{FieldType, FormFieldDecl, FormFieldKind};
 
-    fn field_type(src: &str) -> FieldType {
-        form_field_to_field_def(&syn::parse_str::<FormFieldDecl>(src).expect("parses")).ty
+    fn field(src: &str) -> crate::ast::FieldDef {
+        form_field_to_field_def(&syn::parse_str::<FormFieldDecl>(src).expect("parses"))
     }
 
     // The generated code hashes on the declared type, never on the field's name.
     #[test]
     fn password_keeps_its_own_type_whatever_the_name() {
+        let secret = field("secret: password");
+        assert_eq!(secret.kind, FormFieldKind::Password);
+        assert!(matches!(secret.column_type(), FieldType::String));
+        assert_eq!(field("password_hint: text").kind, FormFieldKind::Text);
+    }
+
+    #[test]
+    fn column_type_follows_the_declared_lengths_and_enum() {
         assert!(matches!(
-            field_type("secret: password"),
-            FieldType::Password
+            field("t: text [max_length: 80]").column_type(),
+            FieldType::Varchar(80)
         ));
         assert!(matches!(
-            field_type("password_hint: text"),
-            FieldType::String
+            field("e: email").column_type(),
+            FieldType::Varchar(254)
         ));
+        assert!(matches!(
+            field("p: phone").column_type(),
+            FieldType::Varchar(20)
+        ));
+        assert!(matches!(
+            field("b: var_binary").column_type(),
+            FieldType::VarBinary(255)
+        ));
+        assert!(matches!(
+            field("s: choice [enum(Status)]").column_type(),
+            FieldType::Enum(id) if id == "Status"
+        ));
+    }
+
+    fn has(def: &crate::ast::FieldDef, wanted: fn(&crate::ast::FieldOption) -> bool) -> bool {
+        def.options.iter().any(wanted)
+    }
+
+    #[test]
+    fn required_nullable_and_auto_now_options() {
+        use crate::ast::FieldOption::*;
+        let plain = field("a: int");
+        assert!(has(&plain, |o| matches!(o, Nullable)) && !has(&plain, |o| matches!(o, Required)));
+        let req = field("a: int [required]");
+        assert!(has(&req, |o| matches!(o, Required)) && !has(&req, |o| matches!(o, Nullable)));
+        let created = field("a: datetime [auto_now]");
+        assert!(has(&created, |o| matches!(o, AutoNow)));
+        assert!(!has(&created, |o| matches!(o, Nullable | Required)));
+        let updated = field("a: datetime [auto_now_update]");
+        assert!(has(&updated, |o| matches!(o, AutoNowUpdate)));
+    }
+
+    #[test]
+    fn upload_kind_follows_the_declared_type() {
+        use crate::ast::{FieldOption, FileKind};
+        let kind = |src: &str| {
+            field(src).options.iter().find_map(|o| match o {
+                FieldOption::File { kind, .. } => Some(*kind),
+                _ => None,
+            })
+        };
+        assert_eq!(kind(r#"a: image [upload_to: "x/"]"#), Some(FileKind::Image));
+        assert_eq!(
+            kind(r#"a: document [upload_to: "x/"]"#),
+            Some(FileKind::Document)
+        );
+        assert_eq!(kind(r#"a: file [upload_to: "x/"]"#), Some(FileKind::Any));
     }
 }

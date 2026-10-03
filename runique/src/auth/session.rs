@@ -1,8 +1,6 @@
 //! User session, admin authentication, and authentication traits.
-use crate::auth::guard::{cache_permissions, evict_permissions, get_permissions};
-use crate::auth::permissions::{Groupe, Permission, pull_groupes_db};
+use crate::auth::permissions::{Groupe, Permission};
 use crate::auth::user_trait::RuniqueUser;
-use crate::context::RequestExtensions;
 use crate::middleware::security::csrf::rotate_csrf_token;
 use crate::middleware::session::session_db::RuniqueSessionStore;
 use crate::utils::aliases::ADb;
@@ -12,9 +10,7 @@ use crate::utils::constante::session_key::session::{
     SESSION_USER_IS_SUPERUSER_KEY, SESSION_USER_USERNAME_KEY,
 };
 use crate::utils::pk::Pk;
-use axum::{extract::Request, middleware::Next, response::Response};
 use serde::{Deserialize, Serialize};
-use std::marker::PhantomData;
 use tower_sessions::Session;
 
 /// Default when the builder never set a duration (24h), so `login` never breaks
@@ -68,180 +64,6 @@ mod ttl_tests {
         // No builder → explicit 24h default, never 0/a panic.
         assert_eq!(resolve_ttl_secs(None), DEFAULT_AUTH_SESSION_TTL_SECS);
         assert_eq!(DEFAULT_AUTH_SESSION_TTL_SECS, 86_400);
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// AdminAuth — trait + result
-// ═══════════════════════════════════════════════════════════════
-
-/// Data returned after a successful admin authentication
-#[derive(Debug, Clone)]
-pub struct AdminLoginResult {
-    pub user_id: Pk,
-    pub username: String,
-    pub is_staff: bool,
-    pub is_superuser: bool,
-}
-
-impl RuniqueUser for AdminLoginResult {
-    fn user_id(&self) -> Pk {
-        self.user_id
-    }
-    fn username(&self) -> &str {
-        &self.username
-    }
-    fn email(&self) -> &str {
-        ""
-    }
-    fn password_hash(&self) -> &str {
-        ""
-    }
-    fn is_active(&self) -> bool {
-        // Already gated by `AdminAuth::authenticate`, which returns `None` for
-        // inactive accounts — reaching this point means the account is active.
-        true
-    }
-    fn is_staff(&self) -> bool {
-        self.is_staff
-    }
-    fn is_superuser(&self) -> bool {
-        self.is_superuser
-    }
-}
-
-/// Trait to implement for plugging in admin login verification
-///
-/// Returns `None` if:
-/// - The user does not exist
-/// - The password is incorrect
-/// - The account is inactive
-/// - The user does not have admin rights
-///
-/// ## Quick implementation with `DefaultAdminAuth`:
-/// ```rust,ignore
-/// use runique::auth::DefaultAdminAuth;
-///
-/// .with_admin(|a| a.auth(DefaultAdminAuth::<users::Entity>::new()))
-/// ```
-#[async_trait::async_trait]
-pub trait AdminAuth: Send + Sync + 'static {
-    async fn authenticate(
-        &self,
-        username: &str,
-        password: &str,
-        db: &ADb,
-    ) -> Option<AdminLoginResult>;
-}
-
-// ═══════════════════════════════════════════════════════════════
-// UserEntity — DB trait
-// ═══════════════════════════════════════════════════════════════
-
-/// Database-side trait: how to retrieve a user by username.
-///
-/// ```rust,ignore
-/// impl UserEntity for users::Entity {
-///     type Model = users::Model;
-///
-///     async fn find_by_username(db: &ADb, username: &str) -> Option<Self::Model> {
-///         users::Entity::find()
-///             .filter(users::Column::Username.eq(username))
-///             .one(db)
-///             .await
-///             .ok()
-///             .flatten()
-///     }
-/// }
-/// ```
-#[async_trait::async_trait]
-pub trait UserEntity: Send + Sync + 'static {
-    /// The model returned by the query (must implement `RuniqueUser`)
-    type Model: RuniqueUser;
-
-    /// Searches for a user by id in the database
-    async fn find_by_id(db: &ADb, id: crate::utils::pk::Pk) -> Option<Self::Model>;
-    /// Searches for a user by username in the database
-    async fn find_by_username(db: &ADb, username: &str) -> Option<Self::Model>;
-    /// Searches for a user by email in the database
-    async fn find_by_email(db: &ADb, email: &str) -> Option<Self::Model>;
-
-    /// Updates the password of a user identified by their email.
-    ///
-    /// `new_hash` is already hashed (Prisme forms automatically hash password fields).
-    async fn update_password(db: &ADb, email: &str, new_hash: &str) -> Result<(), sea_orm::DbErr>;
-
-    /// Updates the password of a user identified by their **primary key**.
-    ///
-    /// Preferred in flows where the id comes from a secret (e.g. a reset token):
-    /// the mutation never depends on an attacker-controlled email/URL field
-    /// (IDOR-safe). The default resolves the user by id then delegates to
-    /// [`update_password`]; override for a single-query path.
-    async fn update_password_by_id(
-        db: &ADb,
-        id: crate::utils::pk::Pk,
-        new_hash: &str,
-    ) -> Result<(), sea_orm::DbErr> {
-        let user = Self::find_by_id(db, id)
-            .await
-            .ok_or_else(|| sea_orm::DbErr::RecordNotFound("User not found".into()))?;
-        Self::update_password(db, user.email(), new_hash).await
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// DefaultAdminAuth<E>
-// ═══════════════════════════════════════════════════════════════
-
-/// Generic adapter that transforms any entity implementing `UserEntity` into `AdminAuth`.
-pub struct DefaultAdminAuth<E: UserEntity>(PhantomData<E>);
-
-impl<E: UserEntity> DefaultAdminAuth<E> {
-    /// Creates a new `DefaultAdminAuth` for the given entity type.
-    pub fn new() -> Self {
-        Self(PhantomData)
-    }
-}
-
-impl<E: UserEntity> Default for DefaultAdminAuth<E> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[async_trait::async_trait]
-impl<E: UserEntity> AdminAuth for DefaultAdminAuth<E> {
-    async fn authenticate(
-        &self,
-        username: &str,
-        password: &str,
-        db: &ADb,
-    ) -> Option<AdminLoginResult> {
-        // 1. Retrieve the user from the DB
-        let user_opt = E::find_by_username(db, username).await;
-
-        // 2. Always verify password — prevents user enumeration via timing differences.
-        // If the user is not found, verify against a dummy hash to burn the same time.
-        let hash = user_opt
-            .as_ref()
-            .map(|u| u.password_hash())
-            .unwrap_or(crate::utils::password::dummy_hash());
-        let password_ok = crate::utils::password::verify(password, hash);
-
-        // 3. Short-circuit only after verify has run
-        let user = user_opt?;
-
-        if !user.can_access_admin() || !password_ok {
-            return None;
-        }
-
-        // 4. Everything is fine — return the session info
-        Some(AdminLoginResult {
-            user_id: user.user_id(),
-            username: user.username().to_string(),
-            is_staff: user.is_staff(),
-            is_superuser: user.is_superuser(),
-        })
     }
 }
 
@@ -350,7 +172,8 @@ pub async fn get_username(session: &Session) -> Option<String> {
 // Unified Login
 // ═══════════════════════════════════════════════════════════════
 
-/// Logs in a user — loads their rights and groups from the DB.
+/// Logs in a user: stores their identity in the session. Their rights and
+/// account state are read from the database on each request, not stored here.
 ///
 /// If `db_store` is provided, persists the session in DB (multi-device).
 /// If `exclusive` is `true`, invalidates other sessions for the user.
@@ -360,7 +183,7 @@ pub async fn get_username(session: &Session) -> Option<String> {
 /// ```
 pub async fn login(
     session: &Session,
-    db: &ADb,
+    _db: &ADb,
     user: &impl RuniqueUser,
     db_store: Option<&RuniqueSessionStore>,
     exclusive: bool,
@@ -400,11 +223,6 @@ pub async fn login(
         // the anonymous session knows its token too.
         rotate_csrf_token(session).await?;
     }
-
-    let groupes = pull_groupes_db(db, user_id).await;
-
-    // Memory cache — single access point for load_user_middleware and point 6 (internal)
-    cache_permissions(user_id, groupes.clone());
 
     if let Some(level) = crate::utils::runique_log::get_log()
         .auth
@@ -498,7 +316,7 @@ pub async fn login(
 ///
 /// Returns `Ok(())` without creating a session if the account is inactive (`is_active = false`).
 ///
-/// Uses [`BuiltinUserEntity`] for searching. For a custom model, use [`login`] directly.
+/// Looks the account up in `eihwaz_users` ([`BuiltinUserEntity`]).
 pub async fn auth_login(
     session: &Session,
     db: &ADb,
@@ -507,7 +325,7 @@ pub async fn auth_login(
     let Some(user) = crate::auth::user::BuiltinUserEntity::find_by_id(db, user_id).await else {
         return Ok(());
     };
-    if !user.is_active() {
+    if !user.can_sign_in() {
         return Ok(());
     }
     let store = RuniqueSessionStore::new(db.clone());
@@ -523,9 +341,15 @@ pub async fn logout(
     // The password reset page calls this on every visit, usually from an
     // anonymous session: flushing it would only throw away its CSRF token, and
     // a form shown again on the same page would then carry a dead one.
-    let Some(user_id) = session.get::<Pk>(SESSION_USER_ID_KEY).await.ok().flatten() else {
+    if session
+        .get::<Pk>(SESSION_USER_ID_KEY)
+        .await
+        .ok()
+        .flatten()
+        .is_none()
+    {
         return Ok(());
-    };
+    }
 
     // DB deletion before clearing the session (cookie_id still accessible)
     if let Some(store) = db_store
@@ -539,8 +363,6 @@ pub async fn logout(
             "delete session from DB on logout",
         );
     }
-
-    evict_permissions(user_id);
 
     // `delete()` alone only drops the stored copy: the request's own copy still
     // holds its id and data, and the session layer saves it right back at the
@@ -571,63 +393,3 @@ pub async fn unprotect_session(session: &Session) -> Result<(), tower_sessions::
 // ═══════════════════════════════════════════════════════════════
 // Axum Middlewares
 // ═══════════════════════════════════════════════════════════════
-
-/// Middleware: loads user info into the request extensions.
-pub async fn load_user_middleware(
-    axum::extract::State(db): axum::extract::State<crate::utils::aliases::ADb>,
-    session: Session,
-    mut request: Request,
-    next: Next,
-) -> Response {
-    if let (Some(user_id), Some(username)) =
-        (get_user_id(&session).await, get_username(&session).await)
-    {
-        let is_staff = session_bool(&session, SESSION_USER_IS_STAFF_KEY).await;
-        let is_superuser = session_bool(&session, SESSION_USER_IS_SUPERUSER_KEY).await;
-
-        // Groups from cache — DB reload if cache is empty (after clear_cache).
-        // The reload is the moment a rights change becomes visible in this user's
-        // context; trace it so that effect is observable (`auth.permissions`).
-        let groupes = match get_permissions(user_id) {
-            Some(cached) => cached.groupes.clone(),
-            None => {
-                let groupes = pull_groupes_db(&*db, user_id).await;
-                if let Some(level) = crate::utils::runique_log::get_log()
-                    .auth
-                    .as_ref()
-                    .and_then(|a| a.permissions)
-                {
-                    crate::runique_log!(
-                        level,
-                        user = %username,
-                        groupes = groupes.len(),
-                        "permission cache miss — reloaded from DB (context refreshed)"
-                    );
-                }
-                cache_permissions(user_id, groupes.clone());
-                groupes
-            }
-        };
-
-        let current_user = CurrentUser {
-            id: user_id,
-            username,
-            is_staff,
-            is_superuser,
-            groupes,
-        };
-
-        let extensions = RequestExtensions::new().with_current_user(current_user);
-        extensions.inject_request(&mut request);
-    } else if session.id().is_some() {
-        session.delete().await.trace(
-            crate::utils::runique_log::get_log()
-                .session
-                .as_ref()
-                .and_then(|s| s.store),
-            "delete anonymous session",
-        );
-    }
-
-    next.run(request).await
-}

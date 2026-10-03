@@ -13,7 +13,6 @@ sequenceDiagram
 
     H->>S: existing? logout si user différent
     H->>S: cycle_id() si élévation de privilège (anti-fixation)
-    H->>H: pull_groupes_db + cache_permissions
     H->>S: insert(user_id, username, is_staff, is_superuser)
     H->>S: set_expiry(24h)
     H->>S: save() → persist_to_db → upsert_session
@@ -68,7 +67,6 @@ touche `session_id`. `upsert` (1ʳᵉ) le fixe, `create` (2ᵉ) ne fait qu'un UP
 ### 🟡 AM3 — TTL 24h codé en dur en double — ✅ CORRIGÉ
 Extrait en constante unique `AUTH_SESSION_TTL_HOURS` (cookie + DB).
 
-### 🟡 AM4 — `pull_groupes_db` à chaque login + cache mémoire process-local
-`cache_permissions` est un cache mémoire. En multi-process/multi-instance, le cache d'une
-instance ignore les changements de droits faits via une autre → permissions périmées jusqu'au
-prochain login/évict. À acter (cohérent avec le modèle mono-process actuel).
+### 🟡 AM4 — `pull_groupes_db` à chaque login + cache mémoire process-local — ✅ CORRIGÉ (2026-10-03)
+Cache supprimé. L'état du compte et les droits sont relus en base à chaque requête admin
+(`load_admin_user`) ; la session ne garde que l'identité.

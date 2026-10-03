@@ -43,7 +43,6 @@ classDiagram
         +usize max_text_field_kb
         +from_env()
     }
-    class RuniqueRouter
     RuniqueConfig *-- ServerConfig
     RuniqueConfig *-- SecurityConfig
     RuniqueConfig *-- StaticConfig

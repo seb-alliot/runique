@@ -125,7 +125,10 @@ mod tests {
 
     #[test]
     fn deprecated_string_backing_type_rejected() {
-        assert!(parse("Status: String [Active]").is_err());
+        let Err(e) = parse("Status: String [Active]") else {
+            panic!("String backing type is refused");
+        };
+        assert!(e.to_string().contains("deprecated"), "says why: {e}");
     }
 
     #[test]

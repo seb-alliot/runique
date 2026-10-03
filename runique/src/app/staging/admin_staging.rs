@@ -5,17 +5,30 @@ use std::sync::Arc;
 use crate::admin::PrototypeAdminState;
 use crate::admin::{AdminConfig, helper::AdminTemplate};
 use crate::app::error_build::{BuildError, CheckError, CheckReport};
-use crate::auth::{guard::LoginGuard, session::AdminAuth};
+use crate::auth::guard::LoginGuard;
 use crate::middleware::security::RateLimiter;
 use axum::Router;
 
 use crate::admin::AdminRoutes;
+use crate::admin::resource::CrudOperation;
+
+/// A custom admin route and the right it requires.
+pub struct ExtraRoute {
+    /// Path relative to the admin prefix, with a leading `/`.
+    pub path: String,
+    /// Key of the registered resource the route works on.
+    pub resource: String,
+    /// Operation the route performs on it — decides which right is checked.
+    pub operation: CrudOperation,
+    pub router: axum::routing::MethodRouter,
+}
 
 /// Admin panel configuration staged by the builder before the app is built.
-/// Disabled by default — enabled once `.routes()` and `.auth()` are both
-/// configured through `.with_admin(|a| ...)`.
+/// Disabled by default — enabled and configured by `.with_admin(|a| ...)`.
+/// Accounts are those of `eihwaz_users`, let in when active and staff or
+/// superuser.
 pub struct AdminStaging {
-    /// Resolved admin configuration: route prefix, auth handler, page size,
+    /// Resolved admin configuration: route prefix, page size,
     /// rate limiting, login guard and templates.
     pub config: AdminConfig,
     /// Whether the admin panel is mounted at all.
@@ -27,8 +40,8 @@ pub struct AdminStaging {
     /// CRUD router built from `.routes()`, mounted at the admin prefix.
     pub route_admin: Option<Router>,
     /// Extra routes registered via `.extra_routes()`, mounted within the
-    /// admin's authentication boundary.
-    pub extra_routes: Vec<(String, axum::routing::MethodRouter)>,
+    /// admin's authentication boundary, each behind its resource's right.
+    pub extra_routes: Vec<ExtraRoute>,
     /// Shared admin runtime state (registry, resources) injected via `.with_state()`.
     pub state: Option<Arc<PrototypeAdminState>>,
 
@@ -91,24 +104,38 @@ impl AdminStaging {
 
     /// Registers additional routes within the admin middleware boundary.
     ///
+    /// Each route names the resource it works on and the operation it
+    /// performs: the signed-in user needs that right on that resource, from
+    /// their groups (`View`/`List` → read, `Create`, `Edit` → update,
+    /// `Delete`), the same check as the generated CRUD pages. A resource that
+    /// isn't registered is a build error. Which rows and which columns the
+    /// handler then touches is up to the handler.
+    ///
     /// Paths are relative to the admin prefix — the framework prepends it automatically.
     /// These routes inherit admin authentication, `AdminState` and `PrototypeAdminState`.
     ///
     /// ```rust,ignore
     /// // url.rs
-    /// pub fn admin_extra_routes() -> Vec<(&'static str, runique::axum::routing::MethodRouter)> {
+    /// pub fn admin_extra_routes() -> Vec<(&'static str, &'static str, CrudOperation, MethodRouter)> {
     ///     vec![
-    ///         ("/commandes/{numero}/detail", view!{ admin_commande_detail }),
+    ///         ("/commandes/{numero}/detail", "commandes", CrudOperation::View, view!{ admin_commande_detail }),
     ///     ]
     /// }
     ///
     /// // main.rs
     /// .with_admin(|a| a.extra_routes(url::admin_extra_routes()))
     /// ```
-    pub fn extra_routes(mut self, routes: Vec<(&str, axum::routing::MethodRouter)>) -> Self {
-        for (path, method_router) in routes {
-            let path = format!("/{}", path.trim_start_matches('/'));
-            self.extra_routes.push((path, method_router));
+    pub fn extra_routes(
+        mut self,
+        routes: Vec<(&str, &str, CrudOperation, axum::routing::MethodRouter)>,
+    ) -> Self {
+        for (path, resource, operation, router) in routes {
+            self.extra_routes.push(ExtraRoute {
+                path: format!("/{}", path.trim_start_matches('/')),
+                resource: resource.to_string(),
+                operation,
+                router,
+            });
         }
         self
     }
@@ -187,31 +214,6 @@ impl AdminStaging {
         self
     }
 
-    /// Connects the admin authentication handler.
-    ///
-    /// ## With built-in User (zero config):
-    /// ```rust,ignore
-    /// use runique::auth::RuniqueAdminAuth;
-    ///
-    /// .with_admin(|a| a
-    ///     .site_title("My Admin")
-    ///     .auth(RuniqueAdminAuth::new())
-    /// )
-    /// ```
-    ///
-    /// ## With a custom model:
-    /// ```rust,ignore
-    /// use runique::auth::{DefaultAdminAuth, UserEntity};
-    ///
-    /// impl UserEntity for users::Entity { ... }
-    ///
-    /// .with_admin(|a| a.auth(DefaultAdminAuth::<users::Entity>::new()))
-    /// ```
-    pub fn auth<A: AdminAuth>(mut self, handler: A) -> Self {
-        self.config = self.config.auth(handler);
-        self
-    }
-
     /// Enables rate limiting on the admin login route.
     ///
     /// ```rust,ignore
@@ -278,14 +280,23 @@ impl AdminStaging {
             );
         }
 
-        if self.config.auth.is_none() {
-            report.add(
-                CheckError::new("AdminPanel", "No authentication handler configured")
-                    .with_suggestion(
-                        "Add .auth(RuniqueAdminAuth::new()) to use the built-in User, \
-                    or implement UserEntity on your own model",
-                    ),
-            );
+        for route in &self.extra_routes {
+            let registered = self
+                .state
+                .as_ref()
+                .is_some_and(|s| s.registry.contains(&route.resource));
+            if !registered {
+                report.add(
+                    CheckError::new(
+                        "AdminPanel",
+                        format!(
+                            "Extra route `{}` names resource `{}`, which isn't registered",
+                            route.path, route.resource
+                        ),
+                    )
+                    .with_suggestion("Use the key of a resource declared in admin!{}"),
+                );
+            }
         }
 
         if report.has_errors() {

@@ -7,7 +7,7 @@ When an admin creates a user through the panel, the cycle is:
 ```
 Admin fills in the form
         ↓
-Account created in database (is_active = false)
+Account created in database, pending (is_active = false, activated_at empty)
 Random hash injected into the password field
         ↓
 Reset email sent to the user
@@ -15,7 +15,7 @@ Reset email sent to the user
 User clicks the link
 Sets their password
         ↓
-update_password → is_active = true
+Activation: is_active = true, activated_at set
         ↓
 User can log in
 ```
@@ -29,8 +29,10 @@ User can log in
 | Creation via admin | `is_active = false` — account is inactive at creation |
 | `password` field | Random hash injected — the user never sees this value |
 | Email | Reset link sent to the address provided in the form |
-| Password setup | `is_active` is set to `true` automatically via `update_password` |
-| Login | `auth_login()` blocks accounts with `is_active = false` |
+| Password setup | The pending account is activated: `is_active = true` and `activated_at` set. An account activated before (deactivated since) is **not** reactivated |
+| Login | Refused until the account is active and activated (`can_sign_in()`) |
+| Lost email | The user asks for a new link through "forgot password" |
+| Activation by an admin | Not possible: ticking `is_active` on a pending account is refused — the first activation belongs to the email's owner |
 
 ---
 
@@ -103,16 +105,6 @@ In production, configure `reset_password_url` in the builder to generate an abso
 
 Without this configuration, the URL is built from the `Host` header of the HTTP request
 (`http://{host}/reset-password/...`).
-
----
-
-## Custom model
-
-If the project uses its own user model (not `runique_users`), it must implement
-`UserEntity` and handle `is_active` in `update_password` itself.
-
-`auth_login()` uses `BuiltinUserEntity` — projects with a custom model call
-`login()` directly and control the `is_active` check in their own handler.
 
 ---
 

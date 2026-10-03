@@ -1,5 +1,5 @@
 //! Runique's built-in user entity (table `eihwaz_users`).
-pub use crate::auth::{session::UserEntity, user_trait::RuniqueUser};
+pub use crate::auth::user_trait::RuniqueUser;
 use crate::utils::aliases::ADb;
 use crate::utils::config::TraceResult;
 use crate::utils::pk::Pk;
@@ -27,6 +27,10 @@ pub struct Model {
     pub is_superuser: bool,
     pub created_at: Option<chrono::NaiveDateTime>,
     pub updated_at: Option<chrono::NaiveDateTime>,
+    /// When the account's owner first took it over through the emailed link.
+    /// `None` while the account waits for that; never cleared afterwards. The
+    /// database refuses `is_active` without it.
+    pub activated_at: Option<chrono::NaiveDateTime>,
 }
 
 impl_objects!(Entity);
@@ -73,6 +77,9 @@ impl RuniqueUser for Model {
     fn is_active(&self) -> bool {
         self.is_active
     }
+    fn can_sign_in(&self) -> bool {
+        self.is_active && self.activated_at.is_some()
+    }
     fn is_staff(&self) -> bool {
         self.is_staff
     }
@@ -81,17 +88,14 @@ impl RuniqueUser for Model {
     }
 }
 
-// ─── UserEntity ──────────────────────────────────────────────────────────────
-/// Zero-sized `UserEntity` implementation backed by the built-in
-/// `eihwaz_users` table. Used as the default when no custom user model is
-/// configured (see `RuniqueAdminAuth`).
+// ─── Account lookups ─────────────────────────────────────────────────────────
+/// Access to the accounts of `eihwaz_users` — the framework's only user model,
+/// extended with `extend!{ table: "eihwaz_users", ... }`.
 pub struct BuiltinUserEntity;
 
-#[async_trait::async_trait]
-impl UserEntity for BuiltinUserEntity {
-    type Model = Model;
-
-    async fn find_by_id(db: &ADb, id: Pk) -> Option<Self::Model> {
+impl BuiltinUserEntity {
+    /// The account with this id.
+    pub async fn find_by_id(db: &ADb, id: Pk) -> Option<Model> {
         Entity::find_by_id(id)
             .one(db)
             .await
@@ -105,7 +109,8 @@ impl UserEntity for BuiltinUserEntity {
             .flatten()
     }
 
-    async fn find_by_username(db: &ADb, username: &str) -> Option<Self::Model> {
+    /// The account with this username.
+    pub async fn find_by_username(db: &ADb, username: &str) -> Option<Model> {
         search!(Entity => Username eq username)
             .first(db)
             .await
@@ -119,7 +124,8 @@ impl UserEntity for BuiltinUserEntity {
             .flatten()
     }
 
-    async fn find_by_email(db: &ADb, email: &str) -> Option<Self::Model> {
+    /// The account with this email.
+    pub async fn find_by_email(db: &ADb, email: &str) -> Option<Model> {
         search!(Entity => Email eq email)
             .first(db)
             .await
@@ -133,7 +139,12 @@ impl UserEntity for BuiltinUserEntity {
             .flatten()
     }
 
-    async fn update_password(db: &ADb, email: &str, new_hash: &str) -> Result<(), sea_orm::DbErr> {
+    /// Sets the password (already hashed) of the account with this email.
+    pub async fn update_password(
+        db: &ADb,
+        email: &str,
+        new_hash: &str,
+    ) -> Result<(), sea_orm::DbErr> {
         let user = search!(Entity => Email eq email)
             .first(db)
             .await?
@@ -141,12 +152,18 @@ impl UserEntity for BuiltinUserEntity {
 
         let mut active: ActiveModel = user.into();
         active.password = Set(new_hash.to_string());
-        active.is_active = Set(true);
         active.update(db).await?;
         Ok(())
     }
 
-    async fn update_password_by_id(db: &ADb, id: Pk, new_hash: &str) -> Result<(), sea_orm::DbErr> {
+    /// Sets the password (already hashed) of the account with this id — the
+    /// path for flows where the id comes from a secret (a reset token), never
+    /// from a field the client controls.
+    pub async fn update_password_by_id(
+        db: &ADb,
+        id: Pk,
+        new_hash: &str,
+    ) -> Result<(), sea_orm::DbErr> {
         let user = Entity::find_by_id(id)
             .one(db)
             .await?
@@ -154,8 +171,38 @@ impl UserEntity for BuiltinUserEntity {
 
         let mut active: ActiveModel = user.into();
         active.password = Set(new_hash.to_string());
-        active.is_active = Set(true);
         active.update(db).await?;
+        Ok(())
+    }
+
+    /// Activates an account still waiting for its first activation —
+    /// `is_active` and `activated_at` together — and says whether it did. An
+    /// account activated before, deactivated since or active, is left as it
+    /// is (`false`): activation happens once, reactivation is the staff's.
+    pub async fn activate_pending(db: &ADb, id: Pk) -> Result<bool, sea_orm::DbErr> {
+        let user = Entity::find_by_id(id)
+            .one(db)
+            .await?
+            .ok_or_else(|| sea_orm::DbErr::RecordNotFound("User not found".into()))?;
+        if user.activated_at.is_some() {
+            return Ok(false);
+        }
+        let mut active: ActiveModel = user.into();
+        active.is_active = Set(true);
+        active.activated_at = Set(Some(chrono::Utc::now().naive_utc()));
+        active.update(db).await?;
+        Ok(true)
+    }
+
+    /// The owner sets their password through the emailed link: a pending
+    /// account is activated by it, any other only gets the new password.
+    pub async fn set_password_and_activate(
+        db: &ADb,
+        id: Pk,
+        new_hash: &str,
+    ) -> Result<(), sea_orm::DbErr> {
+        Self::update_password_by_id(db, id, new_hash).await?;
+        Self::activate_pending(db, id).await?;
         Ok(())
     }
 }
@@ -172,15 +219,21 @@ pub async fn authenticate_user(db: &ADb, username: &str, password: &str) -> Opti
         .map(|u| u.password.as_str())
         .unwrap_or(crate::utils::password::dummy_hash());
     let password_ok = crate::utils::password::verify(password, hash);
-    if password_ok && user_opt.as_ref().is_some_and(|u| u.is_active) {
+    if password_ok && user_opt.as_ref().is_some_and(RuniqueUser::can_sign_in) {
         user_opt
     } else {
         None
     }
 }
 
-// ─── Handy Alias ───────────────────────────────────────────────────────────
-pub type RuniqueAdminAuth = crate::auth::session::DefaultAdminAuth<BuiltinUserEntity>;
+/// The account behind an admin sign-in: right password, active, and staff or
+/// superuser. The password is checked first whatever the account, so an
+/// unknown or non-admin username takes as long as a real one.
+pub async fn authenticate_admin(db: &ADb, username: &str, password: &str) -> Option<Model> {
+    authenticate_user(db, username, password)
+        .await
+        .filter(RuniqueUser::can_access_admin)
+}
 
 // ─── Form Schema ────────────────────────────────────────────────────────
 
@@ -244,6 +297,13 @@ pub fn schema() -> crate::migration::schema::ModelSchema {
             crate::migration::ColumnDef::new("updated_at")
                 .datetime()
                 .nullable(),
+        )
+        // Written only by the owner's activation link: never a form field.
+        .column(
+            crate::migration::ColumnDef::new("activated_at")
+                .datetime()
+                .nullable()
+                .ignore(),
         )
         .build()
         .unwrap()

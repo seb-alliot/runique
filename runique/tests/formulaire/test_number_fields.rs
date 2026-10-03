@@ -328,3 +328,77 @@ fn test_range_step() {
     let field = NumericField::range("volume", 0.0, 100.0, 50.0).step(5.0);
     assert_eq!(field.base.name, "volume");
 }
+
+// Written from cargo-mutants survivors (2026-10-02): the message given to
+// `min` / `max` was stored but never shown — the default always won.
+async fn error_for(mut field: NumericField, value: &str) -> Option<String> {
+    field.set_value(value);
+    if field.validate().await {
+        None
+    } else {
+        field.error().cloned()
+    }
+}
+
+#[tokio::test]
+async fn test_min_max_custom_messages_replace_the_default() {
+    let int = || {
+        NumericField::integer("n")
+            .min(1.0, "Trop petit")
+            .max(9.0, "Trop grand")
+    };
+    assert_eq!(error_for(int(), "0").await.as_deref(), Some("Trop petit"));
+    assert_eq!(error_for(int(), "10").await.as_deref(), Some("Trop grand"));
+    assert_eq!(error_for(int(), "5").await, None);
+
+    let dec = || {
+        NumericField::decimal("d")
+            .min(0.5, "Min 0,5")
+            .max(2.5, "Max 2,5")
+    };
+    assert_eq!(error_for(dec(), "0.4").await.as_deref(), Some("Min 0,5"));
+    assert_eq!(error_for(dec(), "2.6").await.as_deref(), Some("Max 2,5"));
+
+    let pct = || {
+        NumericField::percent("p")
+            .min(10.0, "Au moins 10")
+            .max(90.0, "Au plus 90")
+    };
+    assert_eq!(error_for(pct(), "5").await.as_deref(), Some("Au moins 10"));
+    assert_eq!(error_for(pct(), "95").await.as_deref(), Some("Au plus 90"));
+}
+
+#[tokio::test]
+async fn test_min_max_without_message_keep_the_default() {
+    let field = || NumericField::integer("n").min(1.0, "").max(9.0, "");
+    let low = error_for(field(), "0").await.expect("refused");
+    let high = error_for(field(), "10").await.expect("refused");
+    assert!(!low.is_empty() && !high.is_empty());
+    assert_ne!(low, high, "each bound its own default message");
+    assert!(!field().base.extra_context.contains_key("min_message"));
+}
+
+#[tokio::test]
+async fn test_digits_upper_bound_is_inclusive() {
+    let field = || NumericField::decimal("d").digits(0, 2);
+    assert_eq!(error_for(field(), "1.25").await, None);
+    assert!(error_for(field(), "1.255").await.is_some());
+}
+
+#[tokio::test]
+async fn test_min_max_bounds_are_inclusive() {
+    let int = || NumericField::integer("n").min(1.0, "").max(9.0, "");
+    assert_eq!(error_for(int(), "1").await, None);
+    assert_eq!(error_for(int(), "9").await, None);
+    let typed = || NumericField::integer_in("n", -128, 127);
+    assert_eq!(error_for(typed(), "-128").await, None);
+    assert_eq!(error_for(typed(), "127").await, None);
+    assert!(error_for(typed(), "128").await.is_some());
+    assert!(error_for(typed(), "-129").await.is_some());
+    let dec = || NumericField::decimal("d").min(0.5, "").max(2.5, "");
+    assert_eq!(error_for(dec(), "0.5").await, None);
+    assert_eq!(error_for(dec(), "2.5").await, None);
+    let pct = || NumericField::percent("p").min(10.0, "").max(90.0, "");
+    assert_eq!(error_for(pct(), "10").await, None);
+    assert_eq!(error_for(pct(), "90").await, None);
+}

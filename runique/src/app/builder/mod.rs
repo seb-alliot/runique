@@ -5,9 +5,7 @@ use axum::Router;
 use tower_sessions::cookie::time::Duration;
 
 use super::staging::{AdminStaging, CoreStaging, MiddlewareStaging, StaticStaging};
-use crate::auth::{
-    PasswordResetAdapter, PasswordResetConfig, PasswordResetStaging, session::UserEntity,
-};
+use crate::auth::{PasswordResetConfig, PasswordResetStaging};
 use crate::config::RuniqueConfig;
 use crate::utils::runique_log::RuniqueLog;
 
@@ -233,7 +231,7 @@ impl RuniqueAppBuilder {
 
     // ─── Password reset ───────────────────────────────────────────────────────
 
-    /// Enables the built-in password reset flow for a given entity.
+    /// Enables the built-in password reset flow (accounts of `eihwaz_users`).
     ///
     /// Automatically registers two routes:
     ///   - `{config.forgot_route}` — email form (step 1)
@@ -241,26 +239,23 @@ impl RuniqueAppBuilder {
     ///
     /// Minimal example (built-in entity):
     /// ```rust,ignore
-    /// .with_password_reset::<BuiltinUserEntity>(|pr| pr)
+    /// .with_password_reset(|pr| pr)
     /// ```
     ///
     /// With custom config:
     /// ```rust,ignore
-    /// .with_password_reset::<MyEntity>(|pr| pr
+    /// .with_password_reset(|pr| pr
     ///     .forgot_route("/forgot-password")
     ///     .reset_route("/reset")
     ///     .base_url("https://mysite.com")
     /// )
     /// ```
-    pub fn with_password_reset<E: UserEntity + 'static>(
+    pub fn with_password_reset(
         mut self,
         f: impl FnOnce(PasswordResetConfig) -> PasswordResetConfig,
     ) -> Self {
         let config = f(PasswordResetConfig::default());
-        self.password_reset = Some(PasswordResetStaging {
-            handler: Box::new(PasswordResetAdapter::<E>::new()),
-            config,
-        });
+        self.password_reset = Some(PasswordResetStaging { config });
         self
     }
 }

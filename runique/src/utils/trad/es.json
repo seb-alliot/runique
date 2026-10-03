@@ -36,6 +36,9 @@
     "date_too_far": "Demasiado lejano (máx: {})",
     "time_invalid": "Formato de hora no válido",
     "file_required": "Por favor selecciona al menos un archivo",
+    "data_invalid": "Valor no válido para «{}»",
+    "data_required": "«{}» es obligatorio",
+    "data_password": "No se pudo generar el hash de la contraseña de «{}»; no se guardó nada",
     "file_extension_blocked": "Archivo '{}' no permitido. Extensiones: {}",
     "finalize_error": "Error al finalizar el campo '{}': {}",
     "template_missing": "Plantilla faltante: {}",
@@ -255,7 +258,8 @@
     "active": "Activo",
     "user": {
       "username_too_short": "El nombre de usuario es demasiado corto (min 3 car.)",
-      "invalid_email": "Formato de dirección de correo electrónico no válido"
+      "invalid_email": "Formato de dirección de correo electrónico no válido",
+      "not_activated": "Esta cuenta aún no ha sido activada por su usuario: lo será cuando haya elegido su contraseña mediante el correo recibido."
     },
     "login": {
       "title": "Inicio de sesión",
@@ -271,7 +275,6 @@
       "success": "Sesión cerrada correctamente."
     },
     "access": {
-      "no_auth_handler": "No hay ningún controlador de autenticación configurado. Llame a .auth(MyAuth) en AdminConfig.",
       "insufficient_rights": "Permisos insuficientes para acceder a la administración"
     },
     "dashboard": {
@@ -436,8 +439,7 @@
     "long_identifier_detected": "Los identificadores SQL generados son demasiado largos (límite de MariaDB/MySQL: 64 caracteres):",
     "long_identifier_rename_required": "Acorte los nombres de tabla/columna involucrados — Runique no trunca automáticamente los identificadores.",
     "files_ready": "{} archivo(s) listo(s) para migrar.",
-    "unknown_dsl_type": "Advertencia: tipo de campo desconocido '{}' — usando '{}' por defecto. Revise si hay un error tipográfico en su modelo.",
-    "unknown_db_engine": "Advertencia: DB_ENGINE '{}' no reconocido — usando migraciones tipo SQLite (sin soporte nativo de enum/trigger). Valores admitidos: postgres, mysql/mariadb, sqlite."
+    "unknown_dsl_type": "Advertencia: tipo de campo desconocido '{}' — usando '{}' por defecto. Revise si hay un error tipográfico en su modelo."
   },
   "migrate": {
     "applying": "Aplicando migraciones desde '{}'...",
@@ -470,7 +472,9 @@
     "password_min_length": "La contraseña debe tener al menos {} caracteres.",
     "password_weak": "La contraseña debe contener al menos una mayúscula, una minúscula, un número y un carácter especial (!@#$%...).",
     "password_mismatch": "Las contraseñas no coinciden.",
-    "check_inbox": "Si esta dirección está asociada a una cuenta, recibirá un correo de restablecimiento.",
+    "check_inbox": "Si esta dirección está asociada a una cuenta, recibirá un correo con los pasos a seguir.",
+    "blocked_subject": "Su cuenta está bloqueada",
+    "blocked_body": "<p>Hola {},</p><p>Se solicitó un restablecimiento de contraseña para su cuenta, pero esta cuenta está bloqueada. Contacte con el administrador del sitio para desbloquearla.</p><p>Si usted no hizo esta solicitud, ignore este correo.</p>",
     "email_subject": "Restablecer contraseña",
     "email_body": "<p>Hola {},</p><p>Haga clic en el siguiente enlace para restablecer su contraseña (válido durante 1 hora):</p><p><a href=\"{}\">{}</a></p>"
   },

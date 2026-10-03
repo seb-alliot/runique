@@ -35,7 +35,7 @@ sequenceDiagram
     participant FP as handle_forgot_password
     participant RT as reset_token (DB hashé)
     participant RP as handle_password_reset
-    participant DB as UserEntity
+    participant DB as BuiltinUserEntity
 
     U->>FP: POST email
     FP->>RT: generate() → token brut (mail) + hash en DB + expires_at

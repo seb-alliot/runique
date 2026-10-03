@@ -94,3 +94,17 @@ fn generate_admin(admin_path: &str) -> Result<()> {
 
     Ok(())
 }
+
+/// Written from cargo-mutants survivors (2026-10-02).
+#[cfg(test)]
+mod has_admin_tests {
+    use super::has_admin;
+
+    #[test]
+    fn only_an_active_with_admin_call_counts() {
+        assert!(has_admin("    .with_admin(|a| a.auth(x))\n"));
+        assert!(!has_admin("    // .with_admin(|a| a)\n"));
+        assert!(!has_admin("    .with_database(db)\n"));
+        assert!(has_admin("// setup\n.with_admin(|a| a)\n"));
+    }
+}

@@ -7,11 +7,12 @@ use axum::{
 };
 use futures_util::future::BoxFuture;
 use serde::Serialize;
-use std::{marker::PhantomData, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 
 use async_trait::async_trait;
 
-use crate::auth::session::{UserEntity, logout};
+use crate::auth::session::logout;
+use crate::auth::user::BuiltinUserEntity;
 use crate::auth::user_trait::RuniqueUser;
 use crate::context::template::Request;
 use crate::forms::{
@@ -277,7 +278,7 @@ async fn apply_extra_context(request: &mut Request, hook: &Option<ExtraContextFn
 /// success notice and redirect: the handler never reveals account existence
 /// through its response, and the SMTP send is fired via `tokio::spawn` rather
 /// than awaited, so an existing account can't be enumerated via response timing.
-pub async fn handle_forgot_password<E: UserEntity + 'static>(
+pub async fn handle_forgot_password(
     request: &mut Request,
     form: ForgotPasswordForm,
     config: &PasswordResetConfig,
@@ -307,7 +308,35 @@ pub async fn handle_forgot_password<E: UserEntity + 'static>(
 
     let db = request.engine.db.clone();
 
-    if let Some(user) = E::find_by_email(&db, &email).await
+    let user = BuiltinUserEntity::find_by_email(&db, &email).await;
+    // Activated once, inactive now: the staff blocked it. No link — only its
+    // owner hears about it, through the mailbox; the page says the same thing
+    // for every address.
+    let blocked = user
+        .as_ref()
+        .is_some_and(|u| u.activated_at.is_some() && !u.is_active);
+    if blocked {
+        if let Some(user) = &user
+            && crate::utils::mailer_configured()
+        {
+            let mail = crate::utils::Email::new()
+                .to(email.clone())
+                .subject(t("reset.blocked_subject").to_string())
+                .html(tf("reset.blocked_body", &[user.username()]).to_string());
+            let log_level = crate::utils::runique_log::get_log()
+                .auth
+                .as_ref()
+                .and_then(|a| a.reset);
+            // Fire-and-forget, like the other emails of this page.
+            tokio::spawn(async move {
+                mail.send().await.trace_or(
+                    log_level,
+                    tracing::Level::WARN,
+                    "blocked account email send",
+                );
+            });
+        }
+    } else if let Some(user) = user
         && let Ok(token) = crate::utils::reset_token::generate(&db, user.user_id(), token_ttl).await
     {
         let encrypted_email = crate::utils::reset_token::encrypt_email(&token, &email);
@@ -415,7 +444,7 @@ pub async fn handle_forgot_password<E: UserEntity + 'static>(
 /// taken from the URL, and the URL email is only cross-checked against the
 /// account's real email as a UX sanity check — the URL alone cannot be used
 /// to reset an arbitrary account's password.
-pub async fn handle_password_reset<E: UserEntity + 'static>(
+pub async fn handle_password_reset(
     request: &mut Request,
     form: PasswordResetForm,
     token: String,
@@ -493,7 +522,7 @@ pub async fn handle_password_reset<E: UserEntity + 'static>(
 
     // The token binds the reset to one user_id (server-derived). Resolve and
     // mutate by that id (IDOR-safe); the URL email is only a UX cross-check.
-    let Some(user) = E::find_by_id(&db, user_id).await else {
+    let Some(user) = BuiltinUserEntity::find_by_id(&db, user_id).await else {
         request
             .notices
             .error(t("reset.invalid_or_expired").to_string())
@@ -511,7 +540,7 @@ pub async fn handle_password_reset<E: UserEntity + 'static>(
     let email_clean = form.cleaned_string("email").unwrap_or_default();
     let new_hash = form.cleaned_string("password").unwrap_or_default();
 
-    match E::update_password_by_id(&db, user_id, &new_hash).await {
+    match BuiltinUserEntity::set_password_and_activate(&db, user_id, &new_hash).await {
         Ok(()) => {
             if let Some(level) = crate::utils::runique_log::get_log()
                 .auth
@@ -555,29 +584,6 @@ pub async fn handle_password_reset<E: UserEntity + 'static>(
 
 // ─── Builder — auto-registered routes ──────────────────────────────────────
 
-/// Type erasure trait for the staging builder.
-pub trait PasswordResetHandler: Send + Sync + 'static {
-    /// Builds the merged forgot+reset router, with rate limiting applied to
-    /// both routes.
-    fn build_router(&self, config: Arc<PasswordResetConfig>) -> Router;
-}
-
-/// Generic adapter: implements `PasswordResetHandler` for any E: `UserEntity`.
-pub struct PasswordResetAdapter<E: UserEntity>(PhantomData<E>);
-
-impl<E: UserEntity + 'static> PasswordResetAdapter<E> {
-    /// Creates an adapter for the given `UserEntity` implementation.
-    pub fn new() -> Self {
-        Self(PhantomData)
-    }
-}
-
-impl<E: UserEntity + 'static> Default for PasswordResetAdapter<E> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 #[derive(Clone)]
 struct ForgotState {
     config: Arc<PasswordResetConfig>,
@@ -588,69 +594,65 @@ struct ResetState {
     config: Arc<PasswordResetConfig>,
 }
 
-async fn forgot_view<E: UserEntity + 'static>(
+async fn forgot_view(
     State(state): State<ForgotState>,
     mut request: Request,
 ) -> AppResult<Response> {
     let form: ForgotPasswordForm = request.form();
-    handle_forgot_password::<E>(&mut request, form, &state.config).await
+    handle_forgot_password(&mut request, form, &state.config).await
 }
 
-async fn reset_view<E: UserEntity + 'static>(
+async fn reset_view(
     State(state): State<ResetState>,
     Path((token, encrypted_email)): Path<(String, String)>,
     mut request: Request,
 ) -> AppResult<Response> {
     let form: PasswordResetForm = request.form();
-    handle_password_reset::<E>(&mut request, form, token, encrypted_email, &state.config).await
+    handle_password_reset(&mut request, form, token, encrypted_email, &state.config).await
 }
 
-impl<E: UserEntity + 'static> PasswordResetHandler for PasswordResetAdapter<E> {
-    fn build_router(&self, config: Arc<PasswordResetConfig>) -> Router {
-        use crate::middleware::security::rate_limit::{RateLimiter, rate_limit_middleware};
-        use axum::middleware;
-        use axum::routing::any;
+/// The merged forgot + reset router, with rate limiting applied to both routes.
+pub fn build_router(config: Arc<PasswordResetConfig>) -> Router {
+    use crate::middleware::security::rate_limit::{RateLimiter, rate_limit_middleware};
+    use axum::middleware;
+    use axum::routing::any;
 
-        let limiter = Arc::new(
-            RateLimiter::new()
-                .max_requests(u32::try_from(config.max_requests).unwrap_or(u32::MAX))
-                .retry_after(config.retry_after),
-        );
+    let limiter = Arc::new(
+        RateLimiter::new()
+            .max_requests(u32::try_from(config.max_requests).unwrap_or(u32::MAX))
+            .retry_after(config.retry_after),
+    );
 
-        let forgot_state = ForgotState {
-            config: config.clone(),
-        };
-        let reset_state = ResetState { config };
+    let forgot_state = ForgotState {
+        config: config.clone(),
+    };
+    let reset_state = ResetState { config };
 
-        let forgot_route = Router::new()
-            .route(&forgot_state.config.forgot_route, any(forgot_view::<E>))
-            .with_state(forgot_state)
-            .route_layer(middleware::from_fn_with_state(
-                limiter.clone(),
-                rate_limit_middleware,
-            ));
+    let forgot_route = Router::new()
+        .route(&forgot_state.config.forgot_route, any(forgot_view))
+        .with_state(forgot_state)
+        .route_layer(middleware::from_fn_with_state(
+            limiter.clone(),
+            rate_limit_middleware,
+        ));
 
-        let reset_path = format!(
-            "{}/{{token}}/{{encrypted_email}}",
-            reset_state.config.reset_route.trim_end_matches('/')
-        );
-        let reset_route = Router::new()
-            .route(&reset_path, any(reset_view::<E>))
-            .with_state(reset_state)
-            .route_layer(middleware::from_fn_with_state(
-                limiter,
-                rate_limit_middleware,
-            ));
+    let reset_path = format!(
+        "{}/{{token}}/{{encrypted_email}}",
+        reset_state.config.reset_route.trim_end_matches('/')
+    );
+    let reset_route = Router::new()
+        .route(&reset_path, any(reset_view))
+        .with_state(reset_state)
+        .route_layer(middleware::from_fn_with_state(
+            limiter,
+            rate_limit_middleware,
+        ));
 
-        forgot_route.merge(reset_route)
-    }
+    forgot_route.merge(reset_route)
 }
 
 /// Staging stored in the builder before construction.
 pub struct PasswordResetStaging {
-    /// Type-erased adapter used to build the forgot+reset router for the
-    /// configured `UserEntity`.
-    pub handler: Box<dyn PasswordResetHandler>,
     /// Resolved configuration applied when the router is built.
     pub config: PasswordResetConfig,
 }

@@ -1,5 +1,7 @@
 use super::format_datetime;
+use super::gate::{FormOp, force_scope_values, form_grant};
 use super::{ParentBinding, closure_id_of, scope_base};
+use crate::admin::builtin::is_unique_violation;
 use crate::admin::helper::resource_entry::ResourceEntry;
 use crate::admin::history;
 use crate::auth::session::CurrentUser;
@@ -25,9 +27,15 @@ fn inject_csp_nonce(
     }
 }
 
-fn is_unique_violation(e: &sea_orm::DbErr) -> bool {
-    let msg = e.to_string();
-    msg.contains("unique") || msg.contains("UNIQUE") || msg.contains("Duplicate")
+/// Where a stored upload lives under `media_root` — `None` when the stored value
+/// could point anywhere else (`..`, a root): the column holds whatever was written
+/// to it, and a value that never came from an upload must not get a file outside
+/// the media folder deleted.
+fn stored_upload_path(media_root: &str, stored: &str) -> Option<std::path::PathBuf> {
+    let rel = std::path::Path::new(stored.trim_start_matches('/'));
+    rel.components()
+        .all(|c| matches!(c, std::path::Component::Normal(_)))
+        .then(|| std::path::Path::new(media_root).join(rel))
 }
 
 pub(super) fn value_to_strmap(v: Value) -> StrMap {
@@ -45,61 +53,6 @@ pub(super) fn value_to_strmap(v: Value) -> StrMap {
         }
     }
     map
-}
-
-/// Forces the parent-scope identity columns into submitted data, so a nested
-/// create/edit always writes the parent from the (authorized) URL path — never
-/// a value the client could tamper with in the hidden field. On edit the local
-/// key is also pinned so a composite child's identity can't drift.
-fn force_scope_values(data: &mut StrMap, parent: &ParentBinding, local_id: Option<&str>) {
-    data.insert(parent.fk_col.to_string(), parent.parent_id.clone());
-    if let (Some(col), Some(local)) = (parent.local_key, local_id) {
-        data.insert(col.to_string(), local.to_string());
-    }
-}
-
-/// What a create/update function receives: the values the form validated
-/// (after `finalize`), plus the many-to-many checkboxes (`m2m_<field>__<id>`),
-/// which the templates render outside the form and the generated code checks.
-/// Any other key the client added to the request is dropped: a column the form
-/// doesn't show must not become writable by adding it to the request body.
-fn accepted_data(form: &crate::forms::Forms, body: &StrMap) -> StrMap {
-    let mut data: StrMap = form
-        .fields
-        .iter()
-        .map(|(name, field)| (name.clone(), field.value().to_string()))
-        .collect();
-    data.extend(
-        body.iter()
-            .filter(|(key, _)| key.starts_with("m2m_"))
-            .map(|(key, value)| (key.clone(), value.clone())),
-    );
-    data
-}
-
-/// For a resource that creates accounts through the reset-email flow
-/// (`inject_password`): the password is a random one nobody knows, unless the
-/// form has a real password input the admin typed into. A hidden or missing
-/// field never lets the submitted value through — the account's owner sets
-/// their password from the email.
-fn inject_random_password(form: &crate::forms::Forms, data: &mut StrMap) {
-    let typed_by_admin = form
-        .fields
-        .get("password")
-        .is_some_and(|f| f.field_type() == "password" && !f.value().is_empty());
-    if typed_by_admin {
-        return;
-    }
-    let temp_pw = uuid::Uuid::new_v4().to_string();
-    match crate::utils::password::hash(&temp_pw) {
-        Ok(hash) => {
-            data.insert("password".to_string(), hash);
-        }
-        // Never keep the submitted value in its place.
-        Err(_) => {
-            data.remove("password");
-        }
-    }
 }
 
 /// Replaces the parent-scope fields in a built form with hidden inputs carrying
@@ -281,13 +234,7 @@ pub(super) async fn handle_create_post(
         crate::runique_log!(level, resource = %entry.meta.key, valid, "create POST — form validation");
     }
     if valid {
-        let mut body_for_create = accepted_data(form.get_form(), &raw_body);
-        if let Some(p) = parent {
-            force_scope_values(&mut body_for_create, p, None);
-        }
-        if entry.meta.inject_password {
-            inject_random_password(form.get_form(), &mut body_for_create);
-        }
+        let body_for_create = form_grant(form.get_form(), &raw_body, entry, parent, FormOp::Create);
         let result = match &entry.create_fn {
             Some(f) => f(req.engine.db.clone(), body_for_create.clone()).await,
             None => form.save(&req.engine.db).await,
@@ -591,10 +538,13 @@ pub(super) async fn handle_edit_post(
     }
 
     if !is_locked && !form.get_form().has_errors() {
-        body_for_update = accepted_data(form.get_form(), &body_for_update);
-        if let Some(p) = parent {
-            force_scope_values(&mut body_for_update, p, Some(&id));
-        }
+        body_for_update = form_grant(
+            form.get_form(),
+            &body_for_update,
+            entry,
+            parent,
+            FormOp::Edit { local_id: &id },
+        );
         // Delete old files replaced by a new upload
         if let Some(ref old) = old_obj {
             let media_root = resolve_media_root();
@@ -611,11 +561,14 @@ pub(super) async fn handle_edit_post(
                     && !old_val.is_empty()
                     && old_val != new_val
                 {
-                    let old_abs = format!("{}/{}", media_root, old_val.trim_start_matches('/'));
+                    let Some(old_abs) = stored_upload_path(media_root, old_val) else {
+                        tracing::warn!(stored = %old_val, "old upload outside MEDIA_ROOT, not removed (edit)");
+                        continue;
+                    };
                     if let Err(e) = std::fs::remove_file(&old_abs)
                         && e.kind() != std::io::ErrorKind::NotFound
                     {
-                        tracing::warn!(path = %old_abs, error = %e, "old upload removal failed (edit)");
+                        tracing::warn!(path = %old_abs.display(), error = %e, "old upload removal failed (edit)");
                     }
                 }
             }
@@ -647,9 +600,16 @@ pub(super) async fn handle_edit_post(
             {
                 crate::runique_log!(level, resource = %entry.meta.key, id = %id, error = %e, unique = is_unique_violation(&e), "edit POST — DB error");
             }
-            form.get_form_mut().database_error(&e);
-            if !is_unique_violation(&e) {
-                return Err(Box::new(AppError::new(ErrorContext::database(e))));
+            if let sea_orm::DbErr::Custom(msg) = &e {
+                // A value the form data couldn't turn into its column's type, or a
+                // refusal from the resource's own update function: shown on the
+                // form, the same as on create.
+                form.get_form_mut().errors.push(msg.clone());
+            } else {
+                form.get_form_mut().database_error(&e);
+                if !is_unique_violation(&e) {
+                    return Err(Box::new(AppError::new(ErrorContext::database(e))));
+                }
             }
         } else {
             if let Some(level) = crate::utils::runique_log::get_log()
@@ -824,65 +784,22 @@ pub(super) async fn handle_delete_post(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{accepted_data, inject_random_password};
-    use crate::forms::Forms;
-    use crate::forms::fields::{HiddenField, TextField};
-    use crate::utils::aliases::StrMap;
-
-    fn body(pairs: &[(&str, &str)]) -> StrMap {
-        pairs
-            .iter()
-            .map(|(k, v)| (k.to_string(), v.to_string()))
-            .collect()
-    }
+mod stored_upload_tests {
+    use super::stored_upload_path;
+    use std::path::PathBuf;
 
     #[test]
-    fn accepted_data_keeps_form_fields_and_m2m_only() {
-        let mut form = Forms::new("csrf");
-        form.field(&TextField::text("username"));
-        form.fields
-            .get_mut("username")
-            .expect("field")
-            .set_value("alice");
-        let raw = body(&[
-            ("username", "tampered"),
-            ("is_active", "true"),
-            ("m2m_tags__3", "on"),
-        ]);
-        let data = accepted_data(&form, &raw);
-        assert_eq!(data.get("username").map(String::as_str), Some("alice"));
-        assert!(!data.contains_key("is_active"), "not a form field");
-        assert!(
-            data.contains_key("m2m_tags__3"),
-            "m2m checkboxes live outside the form"
-        );
-    }
-
-    #[test]
-    fn hidden_password_is_always_replaced() {
-        let mut form = Forms::new("csrf");
-        form.field(&HiddenField::new("password"));
-        let mut data = body(&[("password", "$argon2id$chosen-by-the-client")]);
-        inject_random_password(&form, &mut data);
-        let stored = data.get("password").expect("password set");
-        assert_ne!(stored, "$argon2id$chosen-by-the-client");
-        assert!(stored.starts_with("$argon2"));
-    }
-
-    #[test]
-    fn typed_password_is_kept() {
-        let mut form = Forms::new("csrf");
-        form.field(&TextField::password("password"));
-        form.fields
-            .get_mut("password")
-            .expect("field")
-            .set_value("$argon2id$hashed-by-finalize");
-        let mut data = body(&[("password", "$argon2id$hashed-by-finalize")]);
-        inject_random_password(&form, &mut data);
+    fn only_paths_inside_media_root_are_resolved() {
         assert_eq!(
-            data.get("password").map(String::as_str),
-            Some("$argon2id$hashed-by-finalize")
+            stored_upload_path("/srv/media", "avatars/a.png"),
+            Some(PathBuf::from("/srv/media/avatars/a.png"))
         );
+        assert_eq!(
+            stored_upload_path("/srv/media", "/avatars/a.png"),
+            Some(PathBuf::from("/srv/media/avatars/a.png"))
+        );
+        for escape in ["../../etc/passwd", "avatars/../../x", "./a.png"] {
+            assert_eq!(stored_upload_path("/srv/media", escape), None, "{escape}");
+        }
     }
 }

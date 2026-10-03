@@ -29,6 +29,9 @@ pub struct ColumnDef {
     pub auto_now: bool,        // created_at: value at creation
     pub auto_now_update: bool, // updated_at: value at each update
     pub enum_variants: Vec<String>,
+    /// Label shown for each of `enum_variants`, same order; the value itself
+    /// when empty.
+    pub enum_labels: Vec<String>,
     pub max_length: Option<u32>,
     pub min_length: Option<u32>,
     pub max_value: Option<i64>,
@@ -62,6 +65,7 @@ impl ColumnDef {
             auto_now: false,
             auto_now_update: false,
             enum_variants: Vec::new(),
+            enum_labels: Vec::new(),
             max_length: None,
             min_length: None,
             max_value: None,
@@ -378,11 +382,21 @@ impl ColumnDef {
         self
     }
 
-    /// Choices of an enum column, for its form field — without touching the
-    /// SQL type, which only Postgres makes a native enum.
-    pub fn choices(mut self, variants: Vec<String>) -> Self {
-        self.enum_variants = variants;
+    /// Choices of an enum column for its form field, as `(stored value,
+    /// label shown)` — without touching the SQL type, which only Postgres
+    /// makes a native enum.
+    pub fn choices(mut self, choices: Vec<(String, String)>) -> Self {
+        (self.enum_variants, self.enum_labels) = choices.into_iter().unzip();
         self
+    }
+
+    /// `(value, label)` pairs for the form, the value standing in for a
+    /// missing label.
+    fn labeled_choices(&self) -> impl Iterator<Item = (&str, &str)> {
+        self.enum_variants.iter().enumerate().map(|(i, v)| {
+            let label = self.enum_labels.get(i).unwrap_or(v);
+            (v.as_str(), label.as_str())
+        })
     }
 
     /// Model-defined upload ceiling in bytes. Bounds any form-level override.
@@ -608,8 +622,8 @@ impl ColumnDef {
                 ColumnType::Uuid => UUIDField::new(name).into(),
                 ColumnType::Enum { .. } => {
                     let mut f = ChoiceField::new(name);
-                    for v in &self.enum_variants {
-                        f = f.add_choice(v, v);
+                    for (value, label) in self.labeled_choices() {
+                        f = f.add_choice(value, label);
                     }
                     f.into()
                 }
@@ -678,8 +692,8 @@ impl ColumnDef {
             nf.into()
         };
         let choices = |mut f: ChoiceField| {
-            for v in &self.enum_variants {
-                f = f.add_choice(v, v);
+            for (value, label) in self.labeled_choices() {
+                f = f.add_choice(value, label);
             }
             f
         };
@@ -728,15 +742,15 @@ impl ColumnDef {
             Widget::Choice => choices(ChoiceField::new(name)).into(),
             Widget::Radio => {
                 let mut f = RadioField::new(name);
-                for v in &self.enum_variants {
-                    f = f.add_choice(v, v);
+                for (value, label) in self.labeled_choices() {
+                    f = f.add_choice(value, label);
                 }
                 f.into()
             }
             Widget::Checkbox => {
                 let mut f = CheckboxField::new(name);
-                for v in &self.enum_variants {
-                    f = f.add_choice(v, v);
+                for (value, label) in self.labeled_choices() {
+                    f = f.add_choice(value, label);
                 }
                 f.into()
             }

@@ -1,10 +1,7 @@
 //! `ModelSchema`: single source of truth for a model — columns, primary keys, FKs, indexes, hooks.
 use crate::migration::{
-    utils::to_pascal_case,
-    {
-        RelationKind, column::ColumnDef, foreign_key::ForeignKeyDef, hooks::HooksDef,
-        index::IndexDef, primary_key::PrimaryKeyDef, relation::RelationDef,
-    },
+    column::ColumnDef, foreign_key::ForeignKeyDef, hooks::HooksDef, index::IndexDef,
+    primary_key::PrimaryKeyDef, relation::RelationDef,
 };
 
 /// Sort direction for `ModelSchema::order_by`.
@@ -97,8 +94,7 @@ impl ModelSchema {
 
     // ── Relations ───────────────────────────────────────────────────────────
 
-    /// Appends a SeaORM relation, consumed by [`ModelSchema::to_model`] to
-    /// generate the entity's `Relation` enum. Has no effect on the SQL schema itself.
+    /// Appends a SeaORM relation. Has no effect on the SQL schema itself.
     pub fn relation(mut self, rel: RelationDef) -> Self {
         self.relations.push(rel);
         self
@@ -311,133 +307,6 @@ impl ModelSchema {
         }
 
         diff
-    }
-
-    fn col_to_rust_type(col: &ColumnDef) -> String {
-        use sea_query::ColumnType::*;
-        let base = match &col.col_type {
-            String(_) | Text | Char(_) => "String".to_string(),
-            Integer | TinyInteger | SmallInteger => "i32".to_string(),
-            BigInteger => "i64".to_string(),
-            Unsigned => "u32".to_string(),
-            BigUnsigned => "u64".to_string(),
-            Float => "f32".to_string(),
-            Double => "f64".to_string(),
-            Boolean => "bool".to_string(),
-            Date => "chrono::NaiveDate".to_string(),
-            Time => "chrono::NaiveTime".to_string(),
-            DateTime | Timestamp | TimestampWithTimeZone => "chrono::NaiveDateTime".to_string(),
-            Uuid => "Uuid".to_string(),
-            Json | JsonBinary => "serde_json::Value".to_string(),
-            Decimal(_) => "rust_decimal::Decimal".to_string(),
-            Enum { .. } => "String".to_string(),
-            _ => "String".to_string(),
-        };
-
-        if col.nullable {
-            format!("Option<{}>", base)
-        } else {
-            base
-        }
-    }
-
-    /// Generates the SeaORM entity source (`Model` struct, `Relation` enum,
-    /// `ActiveModelBehavior` impl, `impl_objects!`) for this schema as a Rust
-    /// source string, ready to be written to an `entities/` file.
-    pub fn to_model(&self) -> String {
-        let mut out = String::new();
-        let table_name = &self.table_name;
-
-        // Imports
-        out.push_str("use sea_orm::entity::prelude::*;\n");
-        out.push_str("use serde::{Serialize, Deserialize};\n");
-        out.push_str("use runique::impl_objects;\n\n");
-
-        // Struct Model
-        out.push_str(
-            "#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]\n",
-        );
-        out.push_str(&format!("#[sea_orm(table_name = \"{}\")]\n", table_name));
-        out.push_str("pub struct Model {\n");
-
-        // Primary key
-        if let Some(ref pk) = self.primary_key {
-            if pk.auto_increment {
-                out.push_str("    #[sea_orm(primary_key)]\n");
-            } else {
-                out.push_str("    #[sea_orm(primary_key, auto_increment = false)]\n");
-            }
-            out.push_str(&format!(
-                "    pub {}: {},\n",
-                pk.name,
-                Self::pk_to_rust_type(pk)
-            ));
-        }
-
-        // Columns
-        for col in &self.columns {
-            if col.ignored {
-                continue;
-            }
-            let rust_type = Self::col_to_rust_type(col);
-            out.push_str(&format!("    pub {}: {},\n", col.name, rust_type));
-        }
-
-        out.push_str("}\n\n");
-
-        // Relation
-        out.push_str("#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]\n");
-        out.push_str("pub enum Relation {\n");
-        for rel in &self.relations {
-            match &rel.kind {
-                RelationKind::BelongsTo { from, to } => {
-                    out.push_str(&format!(
-                        "    #[sea_orm(belongs_to = \"super::{}::Entity\", from = \"Column::{}\", to = \"super::{}::Column::{}\")]\n    {},\n",
-                        rel.target,
-                        to_pascal_case(from),
-                        rel.target,
-                        to_pascal_case(to),
-                        to_pascal_case(&rel.target)
-                    ));
-                }
-                RelationKind::HasMany | RelationKind::HasOne => {
-                    out.push_str(&format!(
-                        "    #[sea_orm(has_many = \"super::{}::Entity\")]\n    {},\n",
-                        rel.target,
-                        to_pascal_case(&rel.target)
-                    ));
-                }
-                RelationKind::ManyToMany { via } => {
-                    out.push_str(&format!(
-                        "    #[sea_orm(many_to_many = \"super::{}::Entity\", via = \"super::{}::Entity\")]\n    {},\n",
-                        rel.target,
-                        via,
-                        to_pascal_case(&rel.target)
-                    ));
-                }
-            }
-        }
-        out.push_str("}\n\n");
-
-        // ActiveModelBehavior
-        out.push_str("impl ActiveModelBehavior for ActiveModel {}\n\n");
-
-        // impl_objects
-        out.push_str("impl_objects!(Entity);\n");
-
-        out
-    }
-
-    fn pk_to_rust_type(pk: &PrimaryKeyDef) -> &'static str {
-        use sea_query::ColumnType::*;
-        match &pk.col_type {
-            Integer | TinyInteger | SmallInteger => "i32",
-            BigInteger => "i64",
-            Unsigned => "u32",
-            BigUnsigned => "u64",
-            Uuid => "Uuid",
-            _ => "i32",
-        }
     }
     /// Finds `auto_now` columns (`created_at`-style, set once at insertion).
     pub fn auto_now_columns(&self) -> Vec<&ColumnDef> {

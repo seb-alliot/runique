@@ -14,6 +14,7 @@
 pub mod admin_server;
 pub mod assert;
 pub mod db;
+pub mod db_isolation;
 pub mod db_mariadb;
 pub mod db_postgres;
 pub mod pk;

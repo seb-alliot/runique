@@ -190,7 +190,6 @@ pub const ADMIN_MESSAGE_KEYS: &[&str] = &[
     // logout
     "admin.logout.success",
     // access
-    "admin.access.no_auth_handler",
     "admin.access.insufficient_rights",
     // dashboard
     "admin.dashboard.title",

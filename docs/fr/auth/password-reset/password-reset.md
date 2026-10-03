@@ -4,7 +4,7 @@
 
 ---
 
-> **Mode `Auto` requis pour le reset built-in :** la route intégrée (`with_password_reset`) lit la valeur du formulaire après `finalize()` et l'écrit en base. En mode `Auto`, `finalize()` hache automatiquement le mot de passe — tout est correct. En mode `Manual`, `Custom` ou `Delegated`, `finalize()` ne hache pas : le mot de passe serait stocké en clair. Si tu n'utilises pas `PasswordConfig::auto()`, écris ta propre route de reset ou implémente `UserEntity::update_password` de façon à hacher la valeur reçue. Voir → [Configuration des mots de passe](/docs/fr/configuration/password)
+> **Mode `Auto` requis pour le reset built-in :** la route intégrée (`with_password_reset`) lit la valeur du formulaire après `finalize()` et l'écrit en base. En mode `Auto`, `finalize()` hache automatiquement le mot de passe — tout est correct. En mode `Manual`, `Custom` ou `Delegated`, `finalize()` ne hache pas : le mot de passe serait stocké en clair. Si tu n'utilises pas `PasswordConfig::auto()`, écris ta propre route de reset qui hache la valeur reçue. Voir → [Configuration des mots de passe](/docs/fr/configuration/password)
 
 ## Ce que le framework fournit
 
@@ -17,6 +17,7 @@ Runique intègre un système complet, prêt à l'emploi :
 - Rate limiting intégré (5 requêtes / 5 min par défaut)
 - Messages i18n inclus
 - Déconnexion automatique à l'accès au formulaire de reset
+- Selon l'état du compte : lien d'activation (compte en attente), lien de réinitialisation (compte actif), email « compte bloqué » sans lien (compte désactivé) — la page répond toujours la même chose. Voir [États d'un compte](/docs/fr/auth/modele)
 
 ---
 
@@ -25,14 +26,14 @@ Runique intègre un système complet, prêt à l'emploi :
 ```rust
 RuniqueAppBuilder::new(config)
     .with_mailer_from_env()
-    .with_password_reset::<BuiltinUserEntity>(|pr| pr
+    .with_password_reset(|pr| pr
         .base_url("https://monsite.com")  // optionnel en dev, obligatoire en prod
     )
     .build()
     .await?
 ```
 
-> **`BuiltinUserEntity`** — utilise la table `eihwaz_users` fournie par le framework. Si ton projet a un modèle utilisateur custom, implémente le trait `UserEntity` (voir ci-dessous).
+> Les comptes sont ceux de `eihwaz_users`, la table utilisateur du framework — à enrichir avec `extend!{ table: "eihwaz_users", ... }`.
 
 ---
 
@@ -41,7 +42,7 @@ RuniqueAppBuilder::new(config)
 Toutes les options sont optionnelles — les valeurs par défaut fonctionnent sans rien changer.
 
 ```rust
-.with_password_reset::<BuiltinUserEntity>(|pr| pr
+.with_password_reset(|pr| pr
     .forgot_route("/mot-de-passe-oublie")       // défaut : /forgot-password
     .reset_route("/reinitialiser")               // défaut : /reset-password
     .forgot_template("auth/oubli.html")          // défaut : auth/forgot_password.html
@@ -50,64 +51,6 @@ Toutes les options sont optionnelles — les valeurs par défaut fonctionnent sa
     .success_redirect("/connexion")              // défaut : /
     .base_url("https://monsite.com")             // pour construire le lien dans l'email
 )
-```
-
----
-
-## Modèle utilisateur custom — trait `UserEntity`
-
-Si tu n'utilises pas `BuiltinUserEntity`, implémente ce trait sur un type porteur (`type Model` associé à ton entité) — `find_by_id`, `find_by_username`, `find_by_email` et `update_password` sont toutes obligatoires (`update_password_by_id` a une implémentation par défaut) :
-
-```rust
-use runique::prelude::UserEntity;
-
-pub struct UserRepo;
-
-#[async_trait::async_trait]
-impl UserEntity for UserRepo {
-    type Model = user::Model;
-
-    async fn find_by_id(db: &DatabaseConnection, id: Pk) -> Option<Self::Model> {
-        user::Entity::find_by_id(id).one(db).await.ok()?
-    }
-
-    async fn find_by_username(db: &DatabaseConnection, username: &str) -> Option<Self::Model> {
-        user::Entity::find()
-            .filter(user::Column::Username.eq(username))
-            .one(db)
-            .await
-            .ok()?
-    }
-
-    async fn find_by_email(db: &DatabaseConnection, email: &str) -> Option<Self::Model> {
-        user::Entity::find()
-            .filter(user::Column::Email.eq(email))
-            .one(db)
-            .await
-            .ok()?
-    }
-
-    async fn update_password(
-        db: &DatabaseConnection,
-        email: &str,
-        hash: &str,
-    ) -> Result<(), sea_orm::DbErr> {
-        user::Entity::update_many()
-            .col_expr(user::Column::Password, sea_orm::sea_query::Expr::value(hash))
-            .filter(user::Column::Email.eq(email))
-            .exec(db)
-            .await?;
-        Ok(())
-    }
-}
-```
-
-`username()` n'appartient pas à `UserEntity` — c'est une méthode du trait `RuniqueUser`, à implémenter sur `user::Model` lui-même (voir [Modèle utilisateur](/docs/fr/auth/modele)).
-
-Puis dans le builder :
-
-```rust
-.with_password_reset::<user::Model>(|pr| pr)
 ```
 
 ---

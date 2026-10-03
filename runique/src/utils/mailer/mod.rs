@@ -352,3 +352,157 @@ impl Default for Email {
 pub async fn dispatch_email(to: &str, subject: &str, body: &str) -> Result<(), String> {
     Email::new().to(to).subject(subject).text(body).send().await
 }
+
+/// Written from cargo-mutants survivors (2026-10-02).
+#[cfg(test)]
+mod guarantees {
+    use super::*;
+
+    // `from_env` reads the process environment: one test at a time.
+    static ENV_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
+    fn set(vars: &[(&str, Option<&str>)]) {
+        for (k, v) in vars {
+            match v {
+                Some(v) => unsafe { std::env::set_var(k, v) },
+                None => unsafe { std::env::remove_var(k) },
+            }
+        }
+    }
+
+    const SMTP_VARS: [&str; 7] = [
+        "EMAIL_BACKEND",
+        "SMTP_HOST",
+        "SMTP_USER",
+        "SMTP_PASS",
+        "SMTP_FROM",
+        "SMTP_PORT",
+        "SMTP_STARTTLS",
+    ];
+
+    fn clear() {
+        set(&SMTP_VARS.map(|k| (k, None)));
+    }
+
+    fn smtp_config() -> MailerConfig {
+        MailerConfig {
+            backend: MailerBackend::Smtp,
+            host: "smtp.example".into(),
+            port: 587,
+            username: "user".into(),
+            password: "hunter2-secret".into(),
+            from: "noreply@example.com".into(),
+            starttls: true,
+        }
+    }
+
+    #[test]
+    fn debug_never_prints_the_smtp_password() {
+        let shown = format!("{:?}", smtp_config());
+        assert!(
+            shown.contains("smtp.example") && shown.contains("***"),
+            "{shown}"
+        );
+        assert!(!shown.contains("hunter2-secret"), "{shown}");
+    }
+
+    #[tokio::test]
+    async fn from_env_reads_each_backend() {
+        let _g = ENV_LOCK.lock().await;
+        clear();
+        set(&[("EMAIL_BACKEND", Some("console"))]);
+        let console = MailerConfig::from_env().expect("console needs no credentials");
+        assert!(matches!(console.backend, MailerBackend::Console));
+        assert_eq!(console.from, "noreply@localhost");
+
+        set(&[
+            ("EMAIL_BACKEND", Some("smtp")),
+            ("SMTP_HOST", Some("smtp.example")),
+        ]);
+        assert!(
+            MailerConfig::from_env().is_none(),
+            "smtp without credentials"
+        );
+        set(&[
+            ("SMTP_USER", Some("user@example.com")),
+            ("SMTP_PASS", Some("pw")),
+        ]);
+        let smtp = MailerConfig::from_env().expect("smtp");
+        assert!(matches!(smtp.backend, MailerBackend::Smtp));
+        assert_eq!(
+            smtp.from, "user@example.com",
+            "From defaults to the SMTP user"
+        );
+        assert_eq!(smtp.port, 587);
+        assert!(smtp.starttls);
+
+        set(&[("SMTP_PORT", Some("465")), ("SMTP_STARTTLS", Some("false"))]);
+        let smtps = MailerConfig::from_env().unwrap();
+        assert_eq!(smtps.port, 465);
+        assert!(!smtps.starttls);
+        clear();
+    }
+
+    #[test]
+    fn builders_set_what_they_name() {
+        let mut tera = tera::Tera::default();
+        tera.add_raw_template("mail.html", "Bonjour {{ name }}")
+            .unwrap();
+        let mut ctx = tera::Context::new();
+        ctx.insert("name", "Ada");
+        let email = Email::new()
+            .to("ada@example.com")
+            .subject("Sujet")
+            .reply_to("support@example.com")
+            .template(&tera, "mail.html", ctx)
+            .unwrap();
+        assert_eq!(email.to, "ada@example.com");
+        assert_eq!(email.subject, "Sujet");
+        assert_eq!(email.reply_to.as_deref(), Some("support@example.com"));
+        assert_eq!(email.html.as_deref(), Some("Bonjour Ada"));
+        assert!(
+            Email::new()
+                .template(&tera, "missing.html", tera::Context::new())
+                .is_err()
+        );
+    }
+
+    #[tokio::test]
+    async fn smtp_refuses_invalid_addresses_before_connecting() {
+        let ok = || Email::new().to("ada@example.com").subject("s").text("b");
+        let err = |e: Email| async move { e.send_smtp(&smtp_config()).await.unwrap_err() };
+        assert!(err(ok().to("not an address")).await.contains("recipient"));
+        assert!(err(ok().reply_to("nope")).await.contains("Reply-To"));
+        let mut bad_from = smtp_config();
+        bad_from.from = "nope".into();
+        assert!(
+            ok().send_smtp(&bad_from)
+                .await
+                .unwrap_err()
+                .contains("sender")
+        );
+        let empty = Email::new().to("ada@example.com").subject("s");
+        assert!(
+            empty
+                .send_smtp(&smtp_config())
+                .await
+                .unwrap_err()
+                .contains("content")
+        );
+    }
+
+    #[tokio::test]
+    async fn sending_needs_a_configured_mailer() {
+        let _g = ENV_LOCK.lock().await;
+        // The global config is set at most once per process: only this test sets it.
+        if !mailer_configured() {
+            assert!(dispatch_email("ada@example.com", "s", "b").await.is_err());
+            clear();
+            set(&[("EMAIL_BACKEND", Some("console"))]);
+            mailer_init_from_env();
+            clear();
+        }
+        assert!(mailer_configured());
+        assert!(dispatch_email("ada@example.com", "s", "b").await.is_ok());
+    }
+}

@@ -49,3 +49,4 @@ pub mod test_relation_kind;
 pub mod test_run;
 pub mod test_sea_migrate;
 pub mod test_types;
+pub mod test_users_activation;

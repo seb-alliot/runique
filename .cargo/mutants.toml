@@ -1,0 +1,18 @@
+# cargo-mutants, run from the workspace root.
+#
+# Every mutant reruns the whole test suite, and `runique` alone has about
+# 4 500 of them (days of work): run it on the files you changed, e.g.
+#   cargo mutants -p runique -f runique/src/forms/form_data.rs
+#   cargo mutants -p runique_dsl              # small and pure: the whole crate
+#
+# Tests that need Postgres/MariaDB return early without the Docker databases.
+
+# Same features as the full test suite.
+features = ["runique/all-databases", "runique/test-utils"]
+# The suite takes ~45 s; leave room for a slower machine before calling a
+# mutant "timed out".
+timeout_multiplier = 3.0
+
+# Generated code: mutating it only tests the generator, already covered by
+# runique's own tests (`runique start` writes admins/, makemigrations migration/).
+exclude_globs = ["demo-app/src/admins/**", "demo-app/migration/**"]

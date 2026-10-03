@@ -8,28 +8,32 @@ mod user;
 
 use crate::admin::helper::resource_entry::ResourceEntry;
 
-/// Checks for a unique constraint violation (Postgres SQLSTATE 23505 + textual fallback).
+/// Checks for a unique constraint violation, on every engine.
 ///
-/// The structured check needs `sea_orm::sqlx`, available as soon as any real backend
-/// (`postgres`/`mysql`/`sqlite`, all of which enable sea-orm's `sqlx-dep`) is active —
-/// `orm`-only builds (no backend, e.g. a `makemigrations`-only install) lack it. The
-/// check itself only ever matches Postgres's SQLSTATE 23505 — MySQL/SQLite never had
-/// this code, so they already relied solely on the textual fallback below before this
-/// gate existed; nothing changes for them.
-pub(super) fn is_unique_violation(err: &sea_orm::DbErr) -> bool {
+/// The structured check asks sqlx (`is_unique_violation`), which knows each
+/// engine's code; it needs `sea_orm::sqlx`, available as soon as a real backend
+/// (`postgres`/`mysql`/`sqlite`) is active — `orm`-only builds lack it. Errors
+/// that never reached the driver fall back to their wording, case-insensitively:
+/// the old check only matched Postgres, SQLite's `UNIQUE constraint failed` and
+/// MySQL's `Duplicate entry` slipped through.
+pub(crate) fn is_unique_violation(err: &sea_orm::DbErr) -> bool {
     #[cfg(any(feature = "postgres", feature = "mysql", feature = "sqlite"))]
     {
         use sea_orm::{RuntimeErr, sqlx};
-        if let sea_orm::DbErr::Exec(RuntimeErr::SqlxError(arc_err)) = err
+        // sqlx knows each engine's code (Postgres 23505, MySQL 1062, SQLite 2067).
+        if let sea_orm::DbErr::Exec(RuntimeErr::SqlxError(arc_err))
+        | sea_orm::DbErr::Query(RuntimeErr::SqlxError(arc_err)) = err
             && let sqlx::Error::Database(db_err) = arc_err.as_ref()
-            && db_err.code().as_deref() == Some("23505")
         {
-            return true;
+            return db_err.is_unique_violation();
         }
     }
-    let s = err.to_string();
+    // Errors that never reached the driver: their wording, whatever the case
+    // (SQLite says "UNIQUE constraint failed", MySQL "Duplicate entry").
+    let s = err.to_string().to_lowercase();
     s.contains("23505")
         || s.contains("duplicate key")
+        || s.contains("duplicate entry")
         || s.contains("unique constraint")
         || s.contains("duplicated")
 }
@@ -42,4 +46,51 @@ pub fn builtin_resources() -> Vec<ResourceEntry> {
         droit::droit_entry(),
         groupe::groupe_entry(),
     ]
+}
+
+/// Written from cargo-mutants survivors (2026-10-02).
+#[cfg(test)]
+mod unique_violation_tests {
+    use super::is_unique_violation;
+    use sea_orm::DbErr;
+
+    #[test]
+    fn each_engine_wording_is_a_unique_violation() {
+        for msg in [
+            "SQLSTATE 23505",
+            "duplicate key value violates unique constraint \"users_email_key\"",
+            "UNIQUE constraint failed: users.email (unique constraint)",
+            "Duplicate entry: duplicated value",
+        ] {
+            assert!(is_unique_violation(&DbErr::Custom(msg.into())), "{msg}");
+        }
+        assert!(!is_unique_violation(&DbErr::Custom(
+            "connection reset".into()
+        )));
+    }
+
+    /// A real driver error goes through the SQLSTATE check first: only a
+    /// unique violation counts, not any database error.
+    #[cfg(feature = "sqlite")]
+    #[tokio::test]
+    async fn a_real_not_null_error_is_not_a_unique_violation() {
+        use sea_orm::{ConnectionTrait, Database};
+        let db = Database::connect("sqlite::memory:").await.unwrap();
+        db.execute_unprepared("CREATE TABLE t (v TEXT NOT NULL UNIQUE)")
+            .await
+            .unwrap();
+        let not_null = db
+            .execute_unprepared("INSERT INTO t (v) VALUES (NULL)")
+            .await
+            .unwrap_err();
+        assert!(!is_unique_violation(&not_null), "{not_null}");
+        db.execute_unprepared("INSERT INTO t (v) VALUES ('a')")
+            .await
+            .unwrap();
+        let dup = db
+            .execute_unprepared("INSERT INTO t (v) VALUES ('a')")
+            .await
+            .unwrap_err();
+        assert!(is_unique_violation(&dup), "{dup}");
+    }
 }

@@ -59,7 +59,6 @@ password_init(PasswordConfig::manual(Manual::Argon2));
 > Solutions:
 > - Stay in `Auto` mode for any project using `with_password_reset` or the admin panel with password management.
 > - Or write a custom reset route that calls `hash()` explicitly before updating.
-> - Or implement `UserEntity::update_password` to hash the received value before persisting it.
 
 ### `Delegated` — External authentication (OAuth / SSO)
 

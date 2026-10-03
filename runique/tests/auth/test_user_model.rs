@@ -3,7 +3,7 @@
 
 use crate::helpers::db;
 use crate::helpers::pk::pk;
-use runique::auth::{BuiltinUserEntity, UserEntity, user::Model, user_trait::RuniqueUser};
+use runique::auth::{BuiltinUserEntity, user::Model, user_trait::RuniqueUser};
 
 // ─── Helper ──────────────────────────────────────────────────────────────────
 
@@ -18,6 +18,7 @@ fn make_model() -> Model {
         is_superuser: false,
         created_at: None,
         updated_at: None,
+        activated_at: Some(chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap().into()),
     }
 }
 
@@ -148,7 +149,8 @@ const USERS_DDL: &str = "
         is_staff    INTEGER NOT NULL DEFAULT 0,
         is_superuser INTEGER NOT NULL DEFAULT 0,
         created_at  TEXT,
-        updated_at  TEXT
+        updated_at  TEXT,
+        activated_at TEXT
     )
 ";
 
@@ -163,7 +165,8 @@ const USERS_DDL: &str = "
         is_staff    INTEGER NOT NULL DEFAULT 0,
         is_superuser INTEGER NOT NULL DEFAULT 0,
         created_at  TEXT,
-        updated_at  TEXT
+        updated_at  TEXT,
+        activated_at TEXT
     )
 ";
 
@@ -172,8 +175,8 @@ const USERS_DDL: &str = "
 #[cfg(feature = "pk-uuid")]
 fn insert_alice_sql() -> String {
     format!(
-        "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_staff, is_superuser)
-         VALUES ({}, 'alice', 'alice@example.com', 'hash123', 1, 0, 0)",
+        "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_staff, is_superuser, activated_at)
+         VALUES ({}, 'alice', 'alice@example.com', 'hash123', 1, 0, 0, '2026-01-01 00:00:00')",
         crate::helpers::pk::pk_sql_literal(1)
     )
 }
@@ -185,8 +188,8 @@ fn insert_alice_sql() -> String {
 
 #[cfg(not(feature = "pk-uuid"))]
 const INSERT_ALICE: &str = "
-    INSERT INTO eihwaz_users (username, email, password, is_active, is_staff, is_superuser)
-    VALUES ('alice', 'alice@example.com', 'hash123', 1, 0, 0)
+    INSERT INTO eihwaz_users (username, email, password, is_active, is_staff, is_superuser, activated_at)
+    VALUES ('alice', 'alice@example.com', 'hash123', 1, 0, 0, '2026-01-01 00:00:00')
 ";
 
 #[tokio::test]

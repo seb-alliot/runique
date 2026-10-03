@@ -93,6 +93,18 @@ impl CommonFieldConfig for ChoiceField {
 
 #[async_trait]
 impl FormField for ChoiceField {
+    /// A `multiple()` select sends one value per selected option, which reach
+    /// the field joined as `"a,b"`: each one is marked selected for re-display.
+    fn set_value(&mut self, value: &str) {
+        self.base.value = value.to_string();
+        if self.multiple {
+            let selected: Vec<&str> = value.split(',').map(str::trim).collect();
+            for choice in &mut self.choices {
+                choice.selected = selected.contains(&choice.value.as_str());
+            }
+        }
+    }
+
     async fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
@@ -107,7 +119,15 @@ impl FormField for ChoiceField {
             return false;
         }
 
-        if !val.is_empty() {
+        if !val.is_empty() && self.multiple {
+            // Every selected value must be one of the choices, not the joined string.
+            for selected in val.split(',').map(str::trim) {
+                if !self.choices.iter().any(|c| c.value == selected) {
+                    self.set_error(tf("forms.choice_invalid_value", &[selected]));
+                    return false;
+                }
+            }
+        } else if !val.is_empty() {
             // Check that the value exists in the choices
             let valid = self.choices.iter().any(|c| c.value == val);
             if !valid {

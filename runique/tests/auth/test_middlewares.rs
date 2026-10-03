@@ -1,89 +1,63 @@
-// Tests pour load_user_middleware
-//
-// Stratégie : serveur persistant (OnceLock) avec MemoryStore.
-// Chaque test crée son propre client reqwest (cookie jar isolé → session distincte).
+//! Tests — the app-wide auth middleware: `req.user` is the signed-in account
+//! as the database knows it now, not the copy taken into the session at login.
 
-use crate::helpers::pk::pk;
-use crate::helpers::user::test_user;
-use axum::{Extension, Router, middleware, routing::get, routing::post};
-use runique::auth::{CurrentUser, load_user_middleware, login};
-use runique::db::ADb;
-use std::{net::SocketAddr, sync::OnceLock};
-use tower_sessions::{MemoryStore, Session, SessionManagerLayer};
+use crate::helpers::admin_server::USERS_DDL;
+use crate::helpers::db;
+use crate::helpers::pk::{pk, pk_sql_literal};
+use axum::{Router, routing::get};
+use runique::app::RuniqueApp;
+use runique::auth::{BuiltinUserEntity, login};
+use runique::config::RuniqueConfig;
+use runique::context::template::Request;
+use runique::sea_orm::{ConnectionTrait, DatabaseConnection};
+use serial_test::serial;
 
-// ═══════════════════════════════════════════════════════════════
-// Serveur de test partagé
-// ═══════════════════════════════════════════════════════════════
+async fn sign_in(req: Request) -> &'static str {
+    let user = BuiltinUserEntity::find_by_id(&req.engine.db, pk(1))
+        .await
+        .expect("seeded account");
+    login(&req.session, &req.engine.db, &user, None, false)
+        .await
+        .expect("login");
+    "ok"
+}
 
-static AUTH_MW_SERVER: OnceLock<SocketAddr> = OnceLock::new();
-
-fn auth_mw_addr() -> SocketAddr {
-    *AUTH_MW_SERVER.get_or_init(|| {
-        let (tx, rx) = std::sync::mpsc::channel();
-
-        std::thread::spawn(move || {
-            let rt = tokio::runtime::Runtime::new().expect("rt auth_mw");
-            rt.block_on(async {
-                let db = sea_orm::Database::connect("sqlite::memory:")
-                    .await
-                    .expect("sqlite:memory");
-                let db: ADb = ADb::from_connection(db);
-
-                let store = MemoryStore::default();
-                let session_layer = SessionManagerLayer::new(store).with_secure(false);
-
-                // Routes avec load_user_middleware
-                let user_area = Router::new()
-                    .route(
-                        "/whoami",
-                        get(|ext: Option<Extension<CurrentUser>>| async move {
-                            match ext {
-                                Some(Extension(u)) => u.username,
-                                None => "anonymous".to_string(),
-                            }
-                        }),
-                    )
-                    .layer(middleware::from_fn_with_state(
-                        db.clone(),
-                        load_user_middleware,
-                    ));
-
-                // Routes publiques (pas de middleware auth)
-                let public = Router::new().route(
-                    "/do_login_full",
-                    post(
-                        |session: Session, Extension(db): Extension<ADb>| async move {
-                            login(
-                                &session,
-                                &db,
-                                &test_user(pk(2), "bob", true, false),
-                                None,
-                                false,
-                            )
-                            .await
-                            .unwrap();
-                            "ok"
-                        },
-                    ),
-                );
-
-                let app = Router::new()
-                    .merge(user_area)
-                    .merge(public)
-                    .layer(Extension(db))
-                    .layer(session_layer);
-
-                let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
-                    .await
-                    .expect("bind auth_mw");
-                let addr = listener.local_addr().unwrap();
-                tx.send(addr).unwrap();
-                axum::serve(listener, app).await.unwrap();
-            });
-        });
-
-        rx.recv().unwrap()
+async fn whoami(req: Request) -> String {
+    req.user.map_or("anonymous".into(), |u| {
+        format!("{}|{}", u.username, u.is_staff)
     })
+}
+
+async fn spawn() -> (String, DatabaseConnection) {
+    let dbc = db::fresh_db().await;
+    db::exec(&dbc, USERS_DDL).await;
+    db::exec(
+        &dbc,
+        &format!(
+            "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_staff, is_superuser, activated_at) \
+             VALUES ({}, 'alice', 'alice@example.com', 'x', 1, 1, 0, '2026-01-01 00:00:00')",
+            pk_sql_literal(1)
+        ),
+    )
+    .await;
+
+    let mut config = RuniqueConfig::from_env();
+    config.debug = true;
+    let app = RuniqueApp::builder(config)
+        .with_database(dbc.clone())
+        .routes(
+            Router::new()
+                .route("/sign-in", get(sign_in))
+                .route("/whoami", get(whoami)),
+        )
+        .static_files(|s| s.enabled(false))
+        .build()
+        .await
+        .expect("app");
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move { axum::serve(listener, app.router).await.unwrap() });
+    (format!("http://{addr}"), dbc)
 }
 
 fn client() -> reqwest::Client {
@@ -94,31 +68,54 @@ fn client() -> reqwest::Client {
         .unwrap()
 }
 
-// ═══════════════════════════════════════════════════════════════
-// load_user_middleware
-// ═══════════════════════════════════════════════════════════════
-
-#[tokio::test]
-async fn test_load_user_anonyme_pas_dextension() {
-    let addr = auth_mw_addr();
-    let c = client();
-
-    let resp = c.get(format!("http://{addr}/whoami")).send().await.unwrap();
-
-    assert_eq!(resp.text().await.unwrap(), "anonymous");
+async fn get_text(client: &reqwest::Client, url: String) -> String {
+    client.get(url).send().await.unwrap().text().await.unwrap()
 }
 
 #[tokio::test]
-async fn test_load_user_connecte_injecte_current_user() {
-    let addr = auth_mw_addr();
-    let c = client();
+#[serial]
+async fn an_anonymous_visitor_has_no_user() {
+    let (base, _db) = spawn().await;
+    assert_eq!(
+        get_text(&client(), format!("{base}/whoami")).await,
+        "anonymous"
+    );
+}
 
-    c.post(format!("http://{addr}/do_login_full"))
-        .send()
+#[tokio::test]
+#[serial]
+async fn the_user_reflects_the_database_on_every_request() {
+    let (base, db) = spawn().await;
+    let c = client();
+    assert_eq!(get_text(&c, format!("{base}/sign-in")).await, "ok");
+    assert_eq!(get_text(&c, format!("{base}/whoami")).await, "alice|true");
+
+    db.execute_unprepared("UPDATE eihwaz_users SET is_staff = 0")
         .await
         .unwrap();
+    assert_eq!(
+        get_text(&c, format!("{base}/whoami")).await,
+        "alice|false",
+        "read from the database, not from the session"
+    );
+}
 
-    let resp = c.get(format!("http://{addr}/whoami")).send().await.unwrap();
+#[tokio::test]
+#[serial]
+async fn a_deactivated_account_is_signed_out_on_its_next_request() {
+    let (base, db) = spawn().await;
+    let c = client();
+    get_text(&c, format!("{base}/sign-in")).await;
+    assert_eq!(get_text(&c, format!("{base}/whoami")).await, "alice|true");
 
-    assert_eq!(resp.text().await.unwrap(), "bob");
+    db.execute_unprepared("UPDATE eihwaz_users SET is_active = 0")
+        .await
+        .unwrap();
+    assert_eq!(get_text(&c, format!("{base}/whoami")).await, "anonymous");
+
+    // Closed, not just hidden: reactivating doesn't bring the session back.
+    db.execute_unprepared("UPDATE eihwaz_users SET is_active = 1")
+        .await
+        .unwrap();
+    assert_eq!(get_text(&c, format!("{base}/whoami")).await, "anonymous");
 }

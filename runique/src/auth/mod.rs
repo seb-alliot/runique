@@ -10,14 +10,12 @@ pub mod user_trait;
 pub use form::LoginAdmin;
 pub use guard::LoginGuard;
 pub use password::{
-    ExtraContextFn, ForgotPasswordForm, PasswordResetAdapter, PasswordResetConfig,
-    PasswordResetForm, PasswordResetHandler, PasswordResetStaging, handle_forgot_password,
-    handle_password_reset,
+    ExtraContextFn, ForgotPasswordForm, PasswordResetConfig, PasswordResetForm,
+    PasswordResetStaging, handle_forgot_password, handle_password_reset,
 };
 pub use permissions::{Groupe, Permission, pull_groupes_db};
 pub use session::{
-    AdminAuth, AdminLoginResult, CurrentUser, DefaultAdminAuth, UserEntity, auth_login,
-    get_user_id, get_username, is_admin_authenticated, is_authenticated, load_user_middleware,
+    CurrentUser, auth_login, get_user_id, get_username, is_admin_authenticated, is_authenticated,
     login, logout, protect_session, unprotect_session,
 };
-pub use user::{BuiltinUserEntity, RuniqueAdminAuth, authenticate_user};
+pub use user::{BuiltinUserEntity, authenticate_admin, authenticate_user};

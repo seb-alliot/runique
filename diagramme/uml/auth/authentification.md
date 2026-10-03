@@ -5,7 +5,7 @@
 [`auth/password.rs`](../../../runique/src/auth/password.rs),
 [`auth/user.rs`](../../../runique/src/auth/user.rs)
 
-## Traits & entité utilisateur
+## Trait & comptes (`eihwaz_users`, seul modèle utilisateur)
 
 ```mermaid
 classDiagram
@@ -16,29 +16,21 @@ classDiagram
         +password_hash() &str
         +is_staff() / is_superuser() bool
     }
-    class UserEntity {
-        <<trait>>
+    class BuiltinUserEntity {
+        <<unit>>
         +find_by_id/email/username(...)
         +update_password(...)
         +update_password_by_id(...)
     }
-    class AdminAuth {
-        <<trait>>
-        +authenticate(username, password, db) Option~AdminLoginResult~
+    class authenticate_admin {
+        <<fn>>
+        password vérifié d'abord, puis actif et staff/superuser
     }
-    class BuiltinUserEntity {
-        <<unit>>
-    }
-    class DefaultAdminAuth~E~ {
-        PhantomData~E~
-    }
-    BuiltinUserEntity ..|> UserEntity
-    DefaultAdminAuth ..|> AdminAuth
-    DefaultAdminAuth ..> UserEntity : E
+    authenticate_admin ..> BuiltinUserEntity
     BuiltinUserEntity ..> RuniqueUser : Model eihwaz_users
 ```
 
-## Lockout & cache permissions (process-local)
+## Lockout (process-local)
 
 ```mermaid
 classDiagram
@@ -50,14 +42,7 @@ classDiagram
         +spawn_cleanup(period)
         +record_failure / is_locked / reset
     }
-    class PermissionCache {
-        <<static mémoire>>
-        +cache_permissions(user_id, groupes)
-        +get_permissions(user_id)
-        +evict_permissions(user_id)
-    }
     note for LoginGuard "Store en mémoire process-local"
-    note for PermissionCache "Cache process-local"
 ```
 
 ## Reset password (token haché, single-use)
@@ -88,10 +73,12 @@ classDiagram
         +NaiveDateTime expires_at
         +generate() / consume() / peek()
     }
-    class PasswordResetAdapter~E~
-    PasswordResetAdapter ..> UserEntity : E
-    PasswordResetAdapter ..> PasswordResetConfig
-    PasswordResetAdapter ..> ResetToken
+    class build_router {
+        <<fn>>
+    }
+    build_router ..> BuiltinUserEntity
+    build_router ..> PasswordResetConfig
+    build_router ..> ResetToken
     ForgotPasswordForm ..> ResetToken : génère (hashé)
     PasswordResetForm ..> ResetToken : consume (single-use)
 ```
@@ -107,11 +94,11 @@ Sécurité reset (vérifié) : token **stocké haché** (jamais brut), **single-
 Le compteur d'échecs vit dans une `HashMap` mémoire. En multi-process/multi-instance,
 le lockout d'une instance n'est pas vu par les autres → un attaquant réparti sur N instances
 multiplie les tentatives par N avant blocage. Cohérent avec le modèle mono-process actuel,
-mais à acter (même famille que AM4 cache permissions).
+mais à acter.
 
-### 🟡 AU2 — Cache permissions sans invalidation cross-instance (rappel AM4)
-`cache_permissions`/`evict_permissions` process-local : un changement de droits via une autre
-instance n'évince pas le cache local → permissions périmées jusqu'au prochain login.
+### 🟡 AU2 — Cache permissions sans invalidation cross-instance (rappel AM4) — ✅ CORRIGÉ (2026-10-03)
+Cache supprimé : `load_admin_user` relit l'état du compte (`BuiltinUserEntity::find_by_id`) et les droits
+(`pull_groupes_db`, 2 requêtes) à chaque requête admin. Plus aucune copie à invalider.
 
 ### Rappels (déjà listés ailleurs)
 - **AM2** double écriture `eihwaz_sessions` au login (`session_id` divergent).

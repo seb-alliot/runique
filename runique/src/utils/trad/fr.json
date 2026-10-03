@@ -36,6 +36,9 @@
     "date_too_far": "Trop loin (max : {})",
     "time_invalid": "Format de temps invalide",
     "file_required": "Veuillez sélectionner au moins un fichier",
+    "data_invalid": "Valeur invalide pour « {} »",
+    "data_required": "« {} » est obligatoire",
+    "data_password": "Le mot de passe de « {} » n'a pas pu être haché : rien n'a été enregistré",
     "file_extension_blocked": "Fichier '{}' non autorisé. Extensions : {}",
     "finalize_error": "Erreur lors de la finalisation du champ '{}': {}",
     "template_missing": "Template manquant: {}",
@@ -255,7 +258,8 @@
     "active": "Actif",
     "user": {
       "username_too_short": "Le nom d'utilisateur est trop court (min 3 car.)",
-      "invalid_email": "Format d'adresse email invalide"
+      "invalid_email": "Format d'adresse email invalide",
+      "not_activated": "Ce compte n'a pas encore été activé par son utilisateur : il le sera quand celui-ci aura choisi son mot de passe via l'email reçu."
     },
     "login": {
       "title": "Connexion",
@@ -271,7 +275,6 @@
       "success": "Déconnexion réussie."
     },
     "access": {
-      "no_auth_handler": "Aucun handler d'authentification configuré. Appelez .auth(MyAuth) sur AdminConfig.",
       "insufficient_rights": "Droits insuffisants pour accéder à l'administration"
     },
     "dashboard": {
@@ -443,7 +446,9 @@
     "password_min_length": "Le mot de passe doit contenir au moins {} caractères.",
     "password_weak": "Le mot de passe doit contenir au moins une majuscule, une minuscule, un chiffre et un caractère spécial (!@#$%...).",
     "password_mismatch": "Les mots de passe ne correspondent pas.",
-    "check_inbox": "Si cette adresse est associée à un compte, vous recevrez un email de réinitialisation.",
+    "check_inbox": "Si cette adresse est associée à un compte, vous recevrez un email avec la marche à suivre.",
+    "blocked_subject": "Votre compte est bloqué",
+    "blocked_body": "<p>Bonjour {},</p><p>Une demande de réinitialisation de mot de passe a été faite pour votre compte, mais ce compte est bloqué. Contactez l'administrateur du site pour le débloquer.</p><p>Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>",
     "email_subject": "Réinitialisation de votre mot de passe",
     "email_body": "<p>Bonjour {},</p><p>Cliquez sur le lien suivant pour réinitialiser votre mot de passe (valide 1 heure) :</p><p><a href=\"{}\">{}</a></p>"
   },
@@ -453,8 +458,7 @@
     "long_identifier_detected": "Identifiants SQL générés trop longs (limite MariaDB/MySQL : 64 caractères) :",
     "long_identifier_rename_required": "Raccourcissez les noms de table/colonne concernés — aucune troncature automatique n'est appliquée.",
     "files_ready": "{} fichier(s) prêt(s) à migrer.",
-    "unknown_dsl_type": "Attention : type de champ inconnu '{}' — utilisation de '{}' par défaut. Vérifiez une faute de frappe dans votre modèle.",
-    "unknown_db_engine": "Attention : DB_ENGINE '{}' non reconnu — repli sur des migrations façon SQLite (pas d'enum/trigger natifs). Valeurs supportées : postgres, mysql/mariadb, sqlite."
+    "unknown_dsl_type": "Attention : type de champ inconnu '{}' — utilisation de '{}' par défaut. Vérifiez une faute de frappe dans votre modèle."
   },
   "migrate": {
     "applying": "Application des migrations depuis '{}'...",

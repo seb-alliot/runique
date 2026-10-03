@@ -341,7 +341,11 @@ L'édition en masse ne nécessite aucune déclaration DSL. Quand des entrées so
 
 Les **champs à contrainte unique** sont automatiquement exclus du formulaire d'édition en masse — appliquer la même valeur unique sur plusieurs enregistrements violerait la contrainte. Ces champs sont détectés via la constante `UNIQUE_FIELDS` générée par `model!{}` pour chaque entité.
 
-À la soumission, chaque enregistrement est mis à jour indépendamment. Seuls les champs avec une valeur non vide sont appliqués — laisser un select vide signifie « sans changement ».
+Sont aussi exclus : les colonnes du parent sous une route imbriquée (fixées par l'URL), les fichiers, les mots de passe et les champs cachés.
+
+À la soumission, chaque enregistrement est mis à jour indépendamment. Seuls les champs avec une valeur non vide sont appliqués — laisser un select vide signifie « sans changement ». Chaque valeur soumise est vérifiée par son propre champ, comme pour une édition unitaire. La requête est refusée en bloc si elle contient un champ que le formulaire d'édition en masse n'affiche pas, une valeur que son champ refuse, ou, sous une route imbriquée, un id appartenant à un autre parent.
+
+Les actions de groupe suivent la même règle : seules les actions déclarées dans `group_action`, avec l'une des valeurs qu'elles proposent, sont appliquées.
 
 Le formulaire d'édition en masse utilise le même type de formulaire que la vue création/édition. Pour personnaliser le template, surcharger `admin/bulk_edit.html`.
 

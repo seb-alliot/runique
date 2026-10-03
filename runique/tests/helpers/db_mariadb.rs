@@ -33,10 +33,7 @@ use runique::sea_orm::{
 /// Charge `.env.test` si présent, puis retourne une connexion MariaDB.
 /// Retourne `None` si `DATABASE_URL_MARIADB` n'est pas défini (test ignoré).
 pub async fn connect() -> Option<DatabaseConnection> {
-    let _ = dotenvy::from_filename(".env.test");
-    let Ok(url) = std::env::var("DATABASE_URL_MARIADB") else {
-        return None;
-    };
+    let url = super::db_isolation::isolated_url("DATABASE_URL_MARIADB").await?;
     match Database::connect(&url).await {
         Ok(db) => Some(db),
         Err(e) => panic!(

@@ -22,11 +22,17 @@ pub trait RuniqueUser: Send + Sync {
         vec![]
     }
 
+    /// Whether the account may sign in. Default: `is_active()`. The built-in
+    /// model also requires the account to have been activated.
+    fn can_sign_in(&self) -> bool {
+        self.is_active()
+    }
+
     /// Checks if the user can access the admin.
     ///
-    /// Default: active account + (`is_staff` OR `is_superuser`).
+    /// Default: account that may sign in + (`is_staff` OR `is_superuser`).
     /// Can be overridden for custom logic.
     fn can_access_admin(&self) -> bool {
-        self.is_active() && (self.is_staff() || self.is_superuser())
+        self.can_sign_in() && (self.is_staff() || self.is_superuser())
     }
 }

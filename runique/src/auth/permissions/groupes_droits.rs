@@ -5,8 +5,8 @@ use sea_orm::entity::prelude::*;
 /// SeaORM model for `eihwaz_groupes_droits`: the CRUD permission flags a
 /// group holds on one resource, keyed by the composite primary key
 /// `(groupe_id, resource_key)`. `can_update_own`/`can_delete_own` scope the
-/// update/delete grant to rows owned by the acting user. Any save or delete
-/// clears the whole permission cache — see `ActiveModelBehavior` below.
+/// update/delete grant to rows owned by the acting user. Read on every admin
+/// request (`pull_groupes_db`), so a change applies to the next one.
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, serde::Serialize)]
 #[sea_orm(table_name = "eihwaz_groupes_droits")]
 pub struct Model {
@@ -43,26 +43,4 @@ impl Related<super::groupe::Entity> for Entity {
     }
 }
 
-// Une modification touche potentiellement tous les utilisateurs du groupe (pas
-// un seul, contrairement à `users_groupes`) — pas de clé utilisateur ici pour un
-// rafraîchissement ciblé, donc on vide tout le cache de permissions. Garantit
-// l'invalidation même pour du code qui bypasserait le CRUD admin contrôlé
-// (`admin/builtin/droit.rs`, qui appelle déjà `clear_cache()` à la main).
-#[async_trait::async_trait]
-impl ActiveModelBehavior for ActiveModel {
-    async fn after_save<C>(model: Model, _db: &C, _insert: bool) -> Result<Model, DbErr>
-    where
-        C: ConnectionTrait,
-    {
-        crate::auth::guard::clear_cache();
-        Ok(model)
-    }
-
-    async fn after_delete<C>(self, _db: &C) -> Result<Self, DbErr>
-    where
-        C: ConnectionTrait,
-    {
-        crate::auth::guard::clear_cache();
-        Ok(self)
-    }
-}
+impl ActiveModelBehavior for ActiveModel {}

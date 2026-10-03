@@ -1,8 +1,5 @@
 //! CLI for creating an admin superuser with a choice of hashing algorithm.
-use crate::auth::{
-    session::UserEntity,
-    user::{ActiveModel, BuiltinUserEntity},
-};
+use crate::auth::user::{ActiveModel, BuiltinUserEntity};
 use crate::utils::{
     aliases::ADb,
     password::{BaseHash, Manual},
@@ -368,6 +365,9 @@ pub async fn create_superuser() -> Result<()> {
         is_superuser: Set(true),
         created_at: Set(Some(chrono::Utc::now().naive_utc())),
         updated_at: Set(Some(chrono::Utc::now().naive_utc())),
+        // Created from the command line by whoever runs the server: active
+        // straight away, so activated at once.
+        activated_at: Set(Some(chrono::Utc::now().naive_utc())),
         ..Default::default()
     };
 
@@ -382,4 +382,74 @@ pub async fn create_superuser() -> Result<()> {
     println!("{}", tf("admin.superuser_wizard.email_line", &[&email]));
 
     Ok(())
+}
+
+/// Written from cargo-mutants survivors (2026-10-02): the hashing half of the
+/// wizard, which runs without a terminal.
+#[cfg(test)]
+mod hashing_tests {
+    use super::*;
+
+    #[test]
+    fn labels_name_the_algorithm() {
+        assert_eq!(AlgoChoice::Argon2.label(), "Argon2");
+        assert_eq!(AlgoChoice::Bcrypt.label(), "Bcrypt");
+        assert_eq!(AlgoChoice::Scrypt.label(), "Scrypt");
+        assert_eq!(
+            AlgoChoice::Custom("/bin/h".into()).label(),
+            "Custom (/bin/h)"
+        );
+    }
+
+    #[test]
+    fn argon2_gives_a_verifiable_hash() {
+        let hash = hash_password("s3cret-pass", &AlgoChoice::Argon2).unwrap();
+        assert!(hash.starts_with("$argon2"), "{hash}");
+        assert!(BaseHash::new().verify("s3cret-pass", &hash));
+    }
+
+    #[cfg(unix)]
+    fn script(dir: &std::path::Path, name: &str, body: &str) -> String {
+        use std::os::unix::fs::PermissionsExt;
+        let path = dir.join(name);
+        std::fs::write(&path, format!("#!/bin/sh\n{body}\n")).unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        path.to_string_lossy().into_owned()
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_provider_gets_the_password_on_stdin_and_its_answer_is_the_hash() {
+        let dir = std::env::temp_dir().join(format!("rq_provider_{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+
+        let echo = script(&dir, "echo.sh", "read pw; printf '  hashed:%s\\n' \"$pw\"");
+        assert_eq!(hash_via_provider("pa ss", &echo).unwrap(), "hashed:pa ss");
+        let failing = script(&dir, "fail.sh", "exit 3");
+        assert!(
+            hash_via_provider("x", &failing)
+                .unwrap_err()
+                .contains("exit code")
+        );
+
+        assert!(
+            hash_via_provider("x", &dir.join("none").to_string_lossy())
+                .unwrap_err()
+                .contains("not found")
+        );
+        assert!(
+            hash_via_provider("x", &dir.to_string_lossy())
+                .unwrap_err()
+                .contains("not a file")
+        );
+        let link = dir.join("link.sh");
+        std::os::unix::fs::symlink(&echo, &link).unwrap();
+        assert!(
+            hash_via_provider("x", &link.to_string_lossy())
+                .unwrap_err()
+                .contains("symbolic link")
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }

@@ -193,5 +193,9 @@ mod hsts_tests {
         c.hsts_include_subdomains = true;
         c.hsts_max_age = 31_536_000;
         assert!(!c.hsts_preload_misconfigured());
+        c.hsts_max_age = 31_535_999; // un an moins une seconde → refusé par la liste
+        assert!(c.hsts_preload_misconfigured());
+        c.hsts_max_age = 63_072_000;
+        assert!(!c.hsts_preload_misconfigured());
     }
 }

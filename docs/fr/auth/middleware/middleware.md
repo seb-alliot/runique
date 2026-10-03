@@ -26,19 +26,15 @@ async fn login_page(mut request: Request) -> AppResult<Response> {
 
 ---
 
-## `load_user_middleware` — charger le contexte utilisateur
+## `request.user` — l'utilisateur connecté
 
-Injecte un `CurrentUser` dans les extensions de la requête. Permet d'accéder aux informations de l'utilisateur dans vos handlers.
+Aucun middleware à ajouter : Runique injecte un `CurrentUser` dans chaque requête d'un
+utilisateur connecté, accessible par `request.user`.
 
-```rust
-use runique::prelude::*;
-
-let app = Router::new()
-    .route("/profile", get(profile))
-    .layer(axum::middleware::from_fn(load_user_middleware));
-```
-
-Accès dans un handler :
+La session ne garde que **qui** s'est connecté. Le compte (actif, staff, superuser) est relu en
+base à chaque requête — une lecture par clé primaire. Un compte supprimé ou désactivé voit donc
+sa session fermée dès sa requête suivante : `request.user` vaut `None` et `is_authenticated`
+renvoie `false`, quel que soit le chemin de la modification (admin, CLI, SQL, autre instance).
 
 ```rust
 use runique::prelude::*;
@@ -50,11 +46,7 @@ async fn profile(request: Request) -> impl IntoResponse {
 }
 ```
 
----
-
 ## CurrentUser
-
-Structure injectée par `load_user_middleware` dans les extensions de requête.
 
 ```rust
 pub struct CurrentUser {
@@ -63,6 +55,21 @@ pub struct CurrentUser {
     pub is_staff: bool,
     pub is_superuser: bool,
     pub groupes: Vec<Groupe>,
+}
+```
+
+Les groupes et leurs droits ne sont **pas** chargés par défaut : la plupart des pages ne les
+consultent jamais. Une vue qui vérifie un droit les charge d'abord — ils sont relus en base, et
+`current_user` est mis à jour dans le contexte du template :
+
+```rust
+async fn articles(mut request: Request) -> AppResult<Response> {
+    request.load_user_rights().await;
+    let can_edit = request
+        .user
+        .as_ref()
+        .is_some_and(|u| u.permission_for("articles").is_some_and(|p| p.can_update));
+    // ...
 }
 ```
 

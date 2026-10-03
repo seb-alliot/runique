@@ -5,6 +5,7 @@
 //! - `GET/POST /admin/{resource}/{id}/{action}` → [`admin_get_id`] / [`admin_post_id`]
 
 mod action;
+pub(in crate::admin) mod gate;
 mod handle_bulk;
 mod handle_crud;
 mod handle_inline;
@@ -582,6 +583,7 @@ async fn dispatch_collection_post(
                 body,
                 &state,
                 &current_user,
+                &perms,
                 parent.as_ref(),
             )
             .await
@@ -663,17 +665,25 @@ async fn dispatch_member_get(
     if !perms.can_read {
         return Ok(permission_denied_dashboard(&req.notices, &state.config.prefix).await);
     }
-    let closure_id = closure_id_of(parent.as_ref(), &id);
-    if let Some(p) = parent.as_ref()
-        && !verify_scope_ownership(entry, req.engine.db.clone(), &closure_id, p).await
+    let access = match gate::member_gate(
+        entry,
+        req.engine.db.clone(),
+        &perms,
+        parent.as_ref(),
+        current_user.id,
+        &id,
+        &act,
+    )
+    .await
     {
-        return Err(Box::new(AppError::new(ErrorContext::not_found(
-            "Resource not found",
-        ))));
-    }
-    let owns_record =
-        check_owns_record(entry, req.engine.db.clone(), &closure_id, current_user.id).await;
-    let access = act.authorize(&perms, owns_record);
+        gate::RowCheck::OutOfScope => {
+            return Err(Box::new(AppError::new(ErrorContext::not_found(
+                "Resource not found",
+            ))));
+        }
+        gate::RowCheck::Granted => Access::Granted,
+        gate::RowCheck::Denied(access) => access,
+    };
     if let Some(level) = crate::utils::runique_log::get_log()
         .admin
         .as_ref()
@@ -806,17 +816,25 @@ async fn dispatch_member_post(
             "Unknown action",
         ))));
     };
-    let closure_id = closure_id_of(parent.as_ref(), &id);
-    if let Some(p) = parent.as_ref()
-        && !verify_scope_ownership(entry, req.engine.db.clone(), &closure_id, p).await
+    let access = match gate::member_gate(
+        entry,
+        req.engine.db.clone(),
+        &perms,
+        parent.as_ref(),
+        current_user.id,
+        &id,
+        &act,
+    )
+    .await
     {
-        return Err(Box::new(AppError::new(ErrorContext::not_found(
-            "Resource not found",
-        ))));
-    }
-    let owns_record =
-        check_owns_record(entry, req.engine.db.clone(), &closure_id, current_user.id).await;
-    let access = act.authorize(&perms, owns_record);
+        gate::RowCheck::OutOfScope => {
+            return Err(Box::new(AppError::new(ErrorContext::not_found(
+                "Resource not found",
+            ))));
+        }
+        gate::RowCheck::Granted => Access::Granted,
+        gate::RowCheck::Denied(access) => access,
+    };
     if let Some(level) = crate::utils::runique_log::get_log()
         .admin
         .as_ref()
@@ -1126,7 +1144,7 @@ mod tests {
     use crate::admin::resource::AdminResource;
 
     fn meta_child() -> AdminResource {
-        AdminResource::new("droits", "M", "F", "Droits", vec![]).parent_scope(
+        AdminResource::new("droits", "M", "F", "Droits").parent_scope(
             "groupes",
             "groupe_id",
             Some("resource_key"),
@@ -1134,7 +1152,7 @@ mod tests {
     }
 
     fn meta_own_pk_child() -> AdminResource {
-        AdminResource::new("lignes", "M", "F", "Lignes", vec![]).parent_scope(
+        AdminResource::new("lignes", "M", "F", "Lignes").parent_scope(
             "commandes",
             "commande_id",
             None,
@@ -1142,7 +1160,7 @@ mod tests {
     }
 
     fn meta_flat() -> AdminResource {
-        AdminResource::new("menus", "M", "F", "Menus", vec![])
+        AdminResource::new("menus", "M", "F", "Menus")
     }
 
     fn binding_composite() -> ParentBinding {
@@ -1168,6 +1186,23 @@ mod tests {
         let b = binding_composite();
         assert!(b.is_composite());
         assert_eq!(b.closure_id("changelog_entry"), "2:changelog_entry");
+    }
+
+    #[test]
+    fn format_datetime_rewrites_dates_wherever_they_are() {
+        let mut row = serde_json::json!({
+            "created_at": "2026-10-02T08:30:00",
+            "nested": { "at": "2026-10-02 08:30:00.5" },
+            "list": ["2026-10-02T08:30:00.123"],
+            "title": "not a date",
+            "count": 3
+        });
+        super::format_datetime(&mut row);
+        assert_eq!(row["created_at"], "02/10/2026 08:30");
+        assert_eq!(row["nested"]["at"], "02/10/2026 08:30");
+        assert_eq!(row["list"][0], "02/10/2026 08:30");
+        assert_eq!(row["title"], "not a date");
+        assert_eq!(row["count"], 3);
     }
 
     #[test]
@@ -1239,5 +1274,110 @@ mod tests {
         let binding = r.ok().flatten().expect("some");
         assert!(!binding.is_composite());
         assert_eq!(binding.fk_col, "commande_id");
+    }
+
+    // Written from cargo-mutants survivors (2026-10-02): the two IDOR guards
+    // in front of edit/delete. A record must never be granted on a missing
+    // field, a failed load or a near-miss value.
+    mod ownership {
+        use super::*;
+        use crate::admin::helper::resource_entry::{FormBuilder, GetFn};
+        use crate::utils::pk::Pk;
+
+        fn form_builder() -> FormBuilder {
+            Arc::new(|_, _, _, _, _, _| Box::pin(async { unreachable!() }))
+        }
+
+        fn db() -> crate::utils::aliases::ADb {
+            crate::utils::aliases::ADb::from_connection(sea_orm::DatabaseConnection::default())
+        }
+
+        fn get_fn(row: Result<Option<serde_json::Value>, &'static str>) -> GetFn {
+            Arc::new(move |_, _| {
+                let row = row.clone().map_err(|e| sea_orm::DbErr::Custom(e.into()));
+                Box::pin(async move { row })
+            })
+        }
+
+        fn entry(own_field: Option<&'static str>, get: Option<GetFn>) -> ResourceEntry {
+            let mut e = ResourceEntry::new(meta_own_pk_child(), form_builder());
+            e.own_field = own_field;
+            e.get_fn = get;
+            e
+        }
+
+        #[cfg(feature = "pk-uuid")]
+        fn user(n: u32) -> Pk {
+            uuid::Uuid::from_u128(u128::from(n))
+        }
+
+        #[cfg(not(feature = "pk-uuid"))]
+        fn user(n: u32) -> Pk {
+            n as Pk
+        }
+
+        async fn owns(e: &ResourceEntry, owner: u32) -> bool {
+            check_owns_record(e, db(), "9", user(owner)).await
+        }
+
+        #[tokio::test]
+        async fn a_record_is_owned_only_through_its_declared_field() {
+            let row = serde_json::json!({ "author_id": user(7), "other_id": user(8) });
+            let full = entry(Some("author_id"), Some(get_fn(Ok(Some(row.clone())))));
+            assert!(owns(&full, 7).await);
+            assert!(!owns(&full, 8).await, "another user's record");
+
+            let as_text = serde_json::json!({ "author_id": user(7).to_string() });
+            assert!(
+                owns(
+                    &entry(Some("author_id"), Some(get_fn(Ok(Some(as_text))))),
+                    7
+                )
+                .await
+            );
+
+            assert!(
+                !owns(&entry(None, Some(get_fn(Ok(Some(row.clone()))))), 7).await,
+                "no own_field"
+            );
+            assert!(!owns(&entry(Some("author_id"), None), 7).await, "no get_fn");
+            assert!(!owns(&entry(Some("missing"), Some(get_fn(Ok(Some(row))))), 7).await);
+            assert!(!owns(&entry(Some("author_id"), Some(get_fn(Ok(None)))), 7).await);
+            assert!(!owns(&entry(Some("author_id"), Some(get_fn(Err("down")))), 7).await);
+        }
+
+        async fn in_scope(e: &ResourceEntry, parent: &ParentBinding) -> bool {
+            verify_scope_ownership(e, db(), "9", parent).await
+        }
+
+        #[tokio::test]
+        async fn a_child_is_in_scope_only_under_its_own_parent() {
+            let parent = binding_own_pk();
+            let row = |v: serde_json::Value| {
+                Some(get_fn(Ok(Some(serde_json::json!({ "commande_id": v })))))
+            };
+            assert!(in_scope(&entry(None, row(serde_json::json!(5))), &parent).await);
+            assert!(in_scope(&entry(None, row(serde_json::json!("5"))), &parent).await);
+            assert!(
+                !in_scope(&entry(None, row(serde_json::json!(6))), &parent).await,
+                "other parent"
+            );
+            assert!(!in_scope(&entry(None, row(serde_json::json!(55))), &parent).await);
+            assert!(!in_scope(&entry(None, row(serde_json::Value::Null)), &parent).await);
+            let elsewhere = Some(get_fn(Ok(Some(serde_json::json!({ "other": 5 })))));
+            assert!(
+                !in_scope(&entry(None, elsewhere), &parent).await,
+                "fk column absent"
+            );
+            assert!(!in_scope(&entry(None, Some(get_fn(Ok(None)))), &parent).await);
+            assert!(!in_scope(&entry(None, Some(get_fn(Err("down")))), &parent).await);
+            assert!(!in_scope(&entry(None, None), &parent).await, "no get_fn");
+        }
+
+        #[tokio::test]
+        async fn a_composite_child_needs_no_lookup() {
+            // The parent id is part of the closure id itself.
+            assert!(in_scope(&entry(None, None), &binding_composite()).await);
+        }
     }
 }

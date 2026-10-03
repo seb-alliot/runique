@@ -1,5 +1,4 @@
 use crate::admin::helper::resource_entry::ResourceEntry;
-use crate::auth::session::UserEntity;
 use crate::auth::user::BuiltinUserEntity;
 use crate::auth::user_trait::RuniqueUser;
 use crate::context::template::{AppError, Request};

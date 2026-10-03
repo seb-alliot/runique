@@ -160,3 +160,58 @@ impl FormField for BinaryField {
             })
     }
 }
+
+/// Written from cargo-mutants survivors (2026-10-02).
+#[cfg(test)]
+mod guarantees {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn cap_max_size_only_ever_lowers_the_limit() {
+        let mut field = BinaryField::new("blob").max_size(100);
+        field.cap_max_size(200);
+        assert_eq!(field.max_size, Some(100));
+        field.cap_max_size(100);
+        assert_eq!(field.max_size, Some(100));
+        field.cap_max_size(40);
+        assert_eq!(field.max_size, Some(40));
+        let mut unbounded = BinaryField::new("blob");
+        unbounded.cap_max_size(70);
+        assert_eq!(unbounded.max_size, Some(70));
+    }
+
+    #[tokio::test]
+    async fn an_upload_of_exactly_the_limit_is_accepted() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let root = std::env::temp_dir().join(format!("rq_bin_{}", uuid::Uuid::new_v4()));
+        let staging = root.join(format!(".staging-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&staging).unwrap();
+        unsafe { std::env::set_var("MEDIA_ROOT", root.to_str().unwrap()) };
+
+        let exact = staging.join("exact.bin");
+        fs::write(&exact, [7u8; 8]).unwrap();
+        let mut field = BinaryField::new("thumb").max_size(8);
+        field.set_value(&exact.to_string_lossy());
+        assert!(field.validate().await, "8 bytes in an 8-byte column");
+
+        unsafe { std::env::remove_var("MEDIA_ROOT") };
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn render_gives_the_limit_and_never_the_bytes() {
+        let mut tera = tera::Tera::default();
+        tera.add_raw_template(
+            "base_file.html",
+            "{{ max_size_mb }}|{{ field.value }}|{{ is_file }}",
+        )
+        .unwrap();
+        let mut field = BinaryField::new("blob").max_size(1_572_864);
+        field.set_value("c2VjcmV0");
+        assert_eq!(
+            field.render(&std::sync::Arc::new(tera)).unwrap(),
+            "1.5||true"
+        );
+    }
+}

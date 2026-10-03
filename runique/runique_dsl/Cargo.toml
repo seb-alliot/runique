@@ -18,3 +18,7 @@ pk-uuid = []
 [dependencies]
 syn = { workspace = true, features = ["extra-traits"] }
 proc-macro2 = "1"
+
+[dev-dependencies]
+# Generated inputs for the parser: it must answer with an AST or an error, never panic.
+proptest = "1"

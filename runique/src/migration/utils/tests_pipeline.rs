@@ -90,7 +90,7 @@ fn literal_default_is_parsed() {
 
 #[test]
 fn literal_default_is_emitted_in_create() {
-    let sql = generate_create_file(&parse_model(BLOG_SRC), &DbKind::Postgres);
+    let sql = generate_create_file(&parse_model(BLOG_SRC));
     assert!(sql.contains(".default(0)"), "int default missing:\n{sql}");
     assert!(
         sql.contains(".default(true)"),
@@ -287,17 +287,17 @@ fn enum_create_type_is_postgres_only() {
     // generated file works no matter which engine actually runs it later.
     let schema = parse_model(ENUM_V2);
     for kind in [DbKind::Postgres, DbKind::Mysql, DbKind::Other] {
-        let sql = generate_create_file(&schema, &kind);
+        let sql = generate_create_file(&schema);
         assert!(
             sql.contains("get_database_backend() == sea_orm::DbBackend::Postgres"),
             "must check the real backend at runtime for {kind:?}:\n{sql}"
         );
         assert!(
-            sql.contains("CREATE TYPE"),
-            "CREATE TYPE must always be emitted (runtime-guarded) for {kind:?}:\n{sql}"
+            sql.contains("Type::create()") && sql.contains(".as_enum(Alias::new(\"status\"))"),
+            "the enum type must always be created (runtime-guarded) for {kind:?}:\n{sql}"
         );
         assert!(
-            sql.contains("DROP TYPE"),
+            sql.contains("Type::drop()"),
             "down() must always emit the matching DROP TYPE (runtime-guarded) for {kind:?}:\n{sql}"
         );
     }
@@ -382,8 +382,8 @@ fn extend_enum_column_emits_create_type_on_postgres() {
         "must check the real backend at runtime:\n{sql}"
     );
     assert!(
-        sql.contains("CREATE TYPE"),
-        "extend enum must emit CREATE TYPE, runtime-guarded to Postgres:\n{sql}"
+        sql.contains("Type::create()"),
+        "extend enum must create its type, runtime-guarded to Postgres:\n{sql}"
     );
 }
 
@@ -558,7 +558,7 @@ fn model_pk(pk: &str) -> String {
 #[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
 #[test]
 fn pk_generic_alias_is_autoincrement_integer_by_default() {
-    let sql = generate_create_file(&parse_model(&model_pk("Pk")), &DbKind::Postgres);
+    let sql = generate_create_file(&parse_model(&model_pk("Pk")));
     assert!(
         sql.contains(
             r#".col(ColumnDef::new(Alias::new("id")).integer().not_null().auto_increment().primary_key())"#
@@ -570,7 +570,7 @@ fn pk_generic_alias_is_autoincrement_integer_by_default() {
 #[cfg(all(feature = "big-pk", not(feature = "pk-uuid")))]
 #[test]
 fn pk_generic_alias_is_autoincrement_big_integer_under_big_pk() {
-    let sql = generate_create_file(&parse_model(&model_pk("Pk")), &DbKind::Postgres);
+    let sql = generate_create_file(&parse_model(&model_pk("Pk")));
     assert!(
         sql.contains(
             r#".col(ColumnDef::new(Alias::new("id")).big_integer().not_null().auto_increment().primary_key())"#
@@ -582,7 +582,7 @@ fn pk_generic_alias_is_autoincrement_big_integer_under_big_pk() {
 #[cfg(feature = "pk-uuid")]
 #[test]
 fn pk_generic_alias_is_uuid_no_autoincrement_under_pk_uuid() {
-    let sql = generate_create_file(&parse_model(&model_pk("Pk")), &DbKind::Postgres);
+    let sql = generate_create_file(&parse_model(&model_pk("Pk")));
     assert!(
         sql.contains(r#".col(ColumnDef::new(Alias::new("id")).uuid().not_null().primary_key())"#),
         "{sql}"
@@ -595,7 +595,7 @@ fn pk_generic_alias_is_uuid_no_autoincrement_under_pk_uuid() {
 
 #[test]
 fn pk_i64_is_big_integer_autoincrement() {
-    let sql = generate_create_file(&parse_model(&model_pk("i64")), &DbKind::Postgres);
+    let sql = generate_create_file(&parse_model(&model_pk("i64")));
     assert!(
         sql.contains(".big_integer().not_null().auto_increment().primary_key()"),
         "{sql}"
@@ -604,7 +604,7 @@ fn pk_i64_is_big_integer_autoincrement() {
 
 #[test]
 fn pk_uuid_has_no_autoincrement() {
-    let sql = generate_create_file(&parse_model(&model_pk("uuid")), &DbKind::Postgres);
+    let sql = generate_create_file(&parse_model(&model_pk("uuid")));
     assert!(sql.contains(".uuid().not_null().primary_key()"), "{sql}");
     assert!(
         !sql.contains("auto_increment"),
@@ -629,40 +629,25 @@ model! {
 
 #[test]
 fn created_at_defaults_to_current_timestamp() {
-    let sql = generate_create_file(&parse_model(TS_MODEL), &DbKind::Other);
+    let sql = generate_create_file(&parse_model(TS_MODEL));
     assert!(sql.contains(".default(Expr::current_timestamp())"), "{sql}");
 }
 
+// `updated_at` is the entity's job (`[auto_now_update]` → `before_save`, the
+// same on every engine): the migration adds no trigger, function or
+// `ON UPDATE` clause, and no raw SQL at all.
 #[test]
-fn updated_at_uses_on_update_extra_on_mysql() {
-    let sql = generate_create_file(&parse_model(TS_MODEL), &DbKind::Mysql);
-    assert!(
-        sql.contains(r#".extra("ON UPDATE CURRENT_TIMESTAMP")"#),
-        "MySQL updated_at must use ON UPDATE extra:\n{sql}"
-    );
-}
-
-// The trigger/function pair is always emitted into the generated file now — a
-// migration file is fixed forever once committed, so its content can't depend on
-// whatever engine `makemigrations` happened to run against. What varies at
-// *runtime* is whether the guard lets it execute, checked below regardless of
-// the generation-time `db_kind` passed to `generate_create_file`.
-#[test]
-fn updated_at_trigger_is_runtime_guarded_on_every_engine() {
+fn updated_at_is_left_to_the_entity() {
     for db_kind in [DbKind::Postgres, DbKind::Mysql, DbKind::Other] {
-        let sql = generate_create_file(&parse_model(TS_MODEL), &db_kind);
-        assert!(
-            sql.contains("CREATE TRIGGER trg_event_updated_at"),
-            "trigger for {db_kind:?}:\n{sql}"
-        );
-        assert!(
-            sql.contains("set_updated_at_event"),
-            "trigger fn for {db_kind:?}:\n{sql}"
-        );
-        assert!(
-            sql.contains("get_database_backend() == sea_orm::DbBackend::Postgres"),
-            "trigger must be runtime-guarded for {db_kind:?}:\n{sql}"
-        );
+        let sql = generate_create_file(&parse_model(TS_MODEL));
+        for raw in [
+            "TRIGGER",
+            "plpgsql",
+            "ON UPDATE CURRENT_TIMESTAMP",
+            "execute_unprepared",
+        ] {
+            assert!(!sql.contains(raw), "{raw} for {db_kind:?}:\n{sql}");
+        }
     }
 }
 
@@ -724,7 +709,7 @@ fn i32_backed_enum_is_integer_column_without_create_type() {
         prio.enum_string_values.is_empty(),
         "i32-backed enum carries no string variants"
     );
-    let pg = generate_create_file(&schema, &DbKind::Postgres);
+    let pg = generate_create_file(&schema);
     assert!(
         !pg.contains("CREATE TYPE"),
         "i32 enum must not CREATE TYPE:\n{pg}"
@@ -1108,7 +1093,7 @@ model! {
 
 #[test]
 fn string_literal_default_is_emitted() {
-    let sql = generate_create_file(&parse_model(STR_DEFAULT), &DbKind::Other);
+    let sql = generate_create_file(&parse_model(STR_DEFAULT));
     assert!(sql.contains(r#".default("guest")"#), "{sql}");
 }
 
@@ -1126,7 +1111,7 @@ model! {
 
 #[test]
 fn unique_required_column_renders_unique_key_not_null() {
-    let sql = generate_create_file(&parse_model(UNIQUE_COL), &DbKind::Other);
+    let sql = generate_create_file(&parse_model(UNIQUE_COL));
     assert!(
         sql.contains(
             r#".col(ColumnDef::new(Alias::new("email")).string().not_null().unique_key())"#
@@ -1154,7 +1139,7 @@ model! {
 
 #[test]
 fn semantic_types_map_to_seaorm_methods() {
-    let sql = generate_create_file(&parse_model(TYPES_MODEL), &DbKind::Other);
+    let sql = generate_create_file(&parse_model(TYPES_MODEL));
     for needle in [
         ".decimal()",
         ".boolean()",
@@ -1304,7 +1289,7 @@ fn fk_is_inlined_in_create_table_on_every_engine() {
         indexes: vec![],
     };
 
-    let sqlite = generate_create_file(&schema, &DbKind::Other);
+    let sqlite = generate_create_file(&schema);
     assert!(
         sqlite.contains(".foreign_key("),
         "SQLite must inline FK in CREATE:\n{sqlite}"
@@ -1318,7 +1303,7 @@ fn fk_is_inlined_in_create_table_on_every_engine() {
         "inline FK action:\n{sqlite}"
     );
 
-    let pg = generate_create_file(&schema, &DbKind::Postgres);
+    let pg = generate_create_file(&schema);
     assert!(
         pg.contains(".foreign_key("),
         "PG must also inline FK in CREATE:\n{pg}"
@@ -1365,7 +1350,7 @@ fn readonly_column_is_excluded_from_migration() {
         col(&schema, "note").ignored,
         "readonly column must be flagged ignored"
     );
-    let sql = generate_create_file(&schema, &DbKind::Other);
+    let sql = generate_create_file(&schema);
     assert!(
         sql.contains(r#"Alias::new("visible")"#),
         "visible column expected:\n{sql}"
@@ -1394,7 +1379,7 @@ model! {
 
 #[test]
 fn date_time_types_map_to_methods() {
-    let sql = generate_create_file(&parse_model(DT_TYPES), &DbKind::Other);
+    let sql = generate_create_file(&parse_model(DT_TYPES));
     assert!(sql.contains(r#"Alias::new("d")).date()"#), "date:\n{sql}");
     assert!(sql.contains(r#"Alias::new("t")).time()"#), "time:\n{sql}");
     assert!(
@@ -1531,7 +1516,7 @@ fn enum_default_reaches_parsed_column() {
 fn enum_column_default_is_emitted_in_create_on_all_engines() {
     let schema = parse_model(ENUM_DEFAULT_MODEL);
     for kind in [DbKind::Postgres, DbKind::Mysql, DbKind::Other] {
-        let sql = generate_create_file(&schema, &kind);
+        let sql = generate_create_file(&schema);
         assert!(
             sql.contains("ColumnType::Enum"),
             "enum coldef missing for {kind:?}:\n{sql}"
@@ -1588,8 +1573,8 @@ fn extend_enum_column_default_is_emitted_on_add_all_engines() {
         "CREATE TYPE must be runtime-guarded to Postgres:\n{sql}"
     );
     assert!(
-        sql.contains("CREATE TYPE"),
-        "must still CREATE TYPE for the enum:\n{sql}"
+        sql.contains("Type::create()"),
+        "must still create the enum type:\n{sql}"
     );
 }
 

@@ -389,7 +389,6 @@ meta: {
 | `indexes`             | `[(col1, col2)]`      | Index simple multi-colonnes                 |
 | `verbose_name`        | `"chaîne"`            | Nom singulier dans l'interface admin        |
 | `verbose_name_plural` | `"chaîne"`            | Nom pluriel dans l'interface admin          |
-| `abstract`            | `true`                | Modèle abstrait — aucune table générée      |
 
 ---
 

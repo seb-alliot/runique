@@ -89,6 +89,7 @@ async fn seed_user(db: &runique::sea_orm::DatabaseConnection, id: runique::utils
         is_superuser: Set(false),
         created_at: Set(None),
         updated_at: Set(None),
+        activated_at: Set(Some(chrono::Utc::now().naive_utc())),
     };
     am.insert(db).await.expect("seed user");
 }
@@ -183,9 +184,8 @@ async fn test_pull_groupes_db_multi_ressources() {
 
 #[tokio::test]
 #[serial]
-async fn test_refresh_cache_puis_clear() {
-    use runique::auth::guard::{clear_cache, get_permissions};
-    use runique::auth::permissions::refresh_cache_for_user;
+async fn test_pull_groupes_db_voit_un_changement_aussitot() {
+    use runique::auth::permissions::pull_groupes_db;
 
     let Some(db) = db_postgres::connect().await else {
         return;
@@ -209,14 +209,15 @@ async fn test_refresh_cache_puis_clear() {
         ),
     )
     .await;
+    assert!(pull_groupes_db(&db, pk(44)).await[0].permissions[0].can_create);
 
-    // Charge en cache
-    refresh_cache_for_user(&db, pk(44)).await;
-    assert!(get_permissions(pk(44)).is_some());
-
-    // Invalide tout le cache (simule une modif admin)
-    clear_cache();
-    assert!(get_permissions(pk(44)).is_none());
+    // A change made straight in SQL, outside any framework code path.
+    db_postgres::exec(
+        &db,
+        "UPDATE eihwaz_groupes_droits SET can_create = false WHERE groupe_id = 3",
+    )
+    .await;
+    assert!(!pull_groupes_db(&db, pk(44)).await[0].permissions[0].can_create);
 
     teardown(&db).await;
 }

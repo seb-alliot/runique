@@ -3,9 +3,8 @@ use crate::utils::pk::Pk;
 use sea_orm::entity::prelude::*;
 
 /// SeaORM model for `eihwaz_users_groupes`, the user-to-group junction table
-/// (composite primary key `(user_id, groupe_id)`). Saving or deleting a row
-/// refreshes the cached permissions for the affected user — see
-/// `ActiveModelBehavior` below.
+/// (composite primary key `(user_id, groupe_id)`). Read on every admin
+/// request (`pull_groupes_db`), so a change applies to the next one.
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, serde::Serialize, serde::Deserialize)]
 #[sea_orm(table_name = "eihwaz_users_groupes")]
 pub struct Model {
@@ -49,25 +48,4 @@ impl Related<super::groupe::Entity> for Entity {
     }
 }
 
-#[async_trait::async_trait]
-impl ActiveModelBehavior for ActiveModel {
-    async fn after_save<C>(model: Model, db: &C, _insert: bool) -> Result<Model, DbErr>
-    where
-        C: ConnectionTrait,
-    {
-        super::refresh_cache_for_user(db, model.user_id).await;
-        Ok(model)
-    }
-
-    async fn after_delete<C>(self, db: &C) -> Result<Self, DbErr>
-    where
-        C: ConnectionTrait,
-    {
-        if let sea_orm::ActiveValue::Set(uid) | sea_orm::ActiveValue::Unchanged(uid) =
-            self.user_id.clone()
-        {
-            super::refresh_cache_for_user(db, uid).await;
-        }
-        Ok(self)
-    }
-}
+impl ActiveModelBehavior for ActiveModel {}

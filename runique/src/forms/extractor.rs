@@ -233,3 +233,79 @@ mod checked_data_tests {
         assert!(!is_csrf_exempt("/webhooks/stripe", &[]), "liste vide");
     }
 }
+
+/// Written from cargo-mutants survivors (2026-10-02): the CSRF check that
+/// protects every HTML form going through Prisme had no POST test at all —
+/// it could have accepted anything without a test failing.
+#[cfg(test)]
+mod csrf_tests {
+    use super::*;
+    use crate::utils::crypto::csrf::mask_csrf_token;
+
+    const SESSION: &str = "a3f1c2d4e5b60718293a4b5c6d7e8f90a3f1c2d4e5b60718293a4b5c6d7e8f90";
+    const OTHER: &str = "0000000000000000000000000000000000000000000000000000000000000000";
+
+    fn body(token: Option<&str>) -> StrVecMap {
+        let mut parsed = StrVecMap::new();
+        if let Some(t) = token {
+            parsed.insert(CSRF_TOKEN_KEY.to_string(), vec![t.to_string()]);
+        }
+        parsed
+    }
+
+    #[test]
+    fn a_post_needs_the_session_token() {
+        let good = mask_csrf_token(SESSION).unwrap();
+        let other = mask_csrf_token(OTHER).unwrap();
+        assert!(check_csrf(&body(Some(&good)), SESSION, &Method::POST, None));
+        assert!(
+            !check_csrf(&body(Some(&other)), SESSION, &Method::POST, None),
+            "another token"
+        );
+        assert!(
+            !check_csrf(&body(Some("garbage")), SESSION, &Method::POST, None),
+            "not a token"
+        );
+        assert!(
+            !check_csrf(&body(None), SESSION, &Method::POST, None),
+            "no token"
+        );
+    }
+
+    #[test]
+    fn the_header_is_a_fallback_never_an_override() {
+        let good = mask_csrf_token(SESSION).unwrap();
+        let other = mask_csrf_token(OTHER).unwrap();
+        assert!(
+            check_csrf(&body(None), SESSION, &Method::POST, Some(&good)),
+            "header alone"
+        );
+        assert!(
+            !check_csrf(&body(Some(&other)), SESSION, &Method::POST, Some(&good)),
+            "a wrong body token isn't rescued by a right header"
+        );
+    }
+
+    #[test]
+    fn every_unsafe_method_is_checked_safe_ones_are_not() {
+        for method in [Method::PUT, Method::PATCH, Method::DELETE] {
+            assert!(!check_csrf(&body(None), SESSION, &method, None), "{method}");
+        }
+        for method in [Method::GET, Method::HEAD] {
+            assert!(check_csrf(&body(None), SESSION, &method, None), "{method}");
+        }
+    }
+
+    #[test]
+    fn the_csrf_token_is_never_joined_other_fields_are() {
+        let mut parsed = StrVecMap::new();
+        parsed.insert(
+            CSRF_TOKEN_KEY.to_string(),
+            vec!["first".into(), "second".into()],
+        );
+        parsed.insert("tags".to_string(), vec!["a".into(), "b".into()]);
+        let data = convert_for_form(parsed);
+        assert_eq!(data[CSRF_TOKEN_KEY], "first");
+        assert_eq!(data["tags"], "a,b");
+    }
+}

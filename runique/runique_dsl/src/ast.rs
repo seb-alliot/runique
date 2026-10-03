@@ -153,14 +153,13 @@ pub struct FieldDef {
     pub name: syn::Ident,
     /// The DSL type the field was declared with — see [`crate::types`].
     pub kind: FormFieldKind,
-    pub ty: FieldType,
+    /// The enum a `choice` / `radio` / `checkbox` field draws from (`[enum(X)]`).
+    pub enum_ref: Option<syn::Ident>,
     pub options: Vec<FieldOption>,
 }
 
 pub enum FieldType {
     String,
-    /// A `String` column the generated code hashes before saving.
-    Password,
     Text,
     Char,
     Varchar(u32),
@@ -207,8 +206,6 @@ pub enum FieldOption {
     AutoNowUpdate,
     Readonly,
     Label(String),
-    #[allow(dead_code)]
-    Help(String),
     Fk(FkDef),
     File {
         kind: FileKind,
@@ -272,7 +269,31 @@ pub struct MetaDef {
     pub unique_together: Vec<Vec<syn::Ident>>,
     pub verbose_name: Option<String>,
     pub verbose_name_plural: Option<String>,
-    #[allow(dead_code)]
-    pub abstract_model: bool,
     pub indexes: Vec<Vec<syn::Ident>>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::EnumDef;
+
+    fn variants(src: &str) -> Vec<(String, String)> {
+        syn::parse_str::<EnumDef>(src)
+            .expect("parses")
+            .variants
+            .iter()
+            .map(|v| (v.db_str(), v.display_str()))
+            .collect()
+    }
+
+    #[test]
+    fn stored_value_and_label_of_a_variant() {
+        assert_eq!(
+            variants(r#"Status: [Draft, Active: "Actif", Gone=("gone", "Parti")]"#),
+            [
+                ("Draft".to_string(), "Draft".to_string()),
+                ("Active".to_string(), "Actif".to_string()),
+                ("gone".to_string(), "Parti".to_string()),
+            ]
+        );
+    }
 }

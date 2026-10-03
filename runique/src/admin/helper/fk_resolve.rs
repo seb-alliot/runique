@@ -27,7 +27,8 @@ pub fn fk_key(value: &Value) -> Option<String> {
 
 /// Fetches an `id -> label` map for `ids` from `fk_table`.
 ///
-/// `CAST(id AS TEXT)` keeps the lookup engine-agnostic (i32, i64, UUID).
+/// `id` cast to text for the real backend (`TEXT`, or `CHAR` on MySQL/MariaDB)
+/// keeps the lookup engine-agnostic (i32, i64, UUID).
 ///
 /// SQL-injection safe: `ids` are bound through `is_in`; `fk_table` and
 /// `fk_col` are static identifiers emitted by the `derive_form` macro, never
@@ -42,11 +43,16 @@ pub async fn fetch_fk_label_map<C: ConnectionTrait>(
     if ids.is_empty() {
         return StrMap::new();
     }
+    let id_text = || {
+        Expr::col(Alias::new("id")).cast_as(Alias::new(super::text_cast_type_of(
+            db.get_database_backend(),
+        )))
+    };
     let stmt = Query::select()
-        .expr(Expr::cust("CAST(id AS TEXT)"))
+        .expr(id_text())
         .expr(Expr::col(Alias::new(fk_col)))
         .from(Alias::new(fk_table))
-        .and_where(Expr::cust("CAST(id AS TEXT)").is_in(ids.to_vec()))
+        .and_where(id_text().is_in(ids.to_vec()))
         .to_owned();
     db.query_all(&stmt)
         .await
@@ -81,7 +87,11 @@ pub async fn fetch_fk_matching_ids<C: ConnectionTrait>(
 ) -> Vec<String> {
     let needle = format!("%{}%", pattern.to_lowercase());
     let stmt = Query::select()
-        .expr(Expr::cust("CAST(id AS TEXT)"))
+        .expr(
+            Expr::col(Alias::new("id")).cast_as(Alias::new(super::text_cast_type_of(
+                db.get_database_backend(),
+            ))),
+        )
         .from(Alias::new(fk_table))
         .and_where(Expr::expr(Func::lower(Expr::col(Alias::new(fk_col)))).like(needle))
         .to_owned();

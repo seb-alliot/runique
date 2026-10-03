@@ -2,7 +2,8 @@
 //! Usable by developers in their own `up` migrations.
 
 use sea_query::{
-    Alias, ColumnDef, ForeignKey, ForeignKeyAction, Index, Table, TableCreateStatement,
+    Alias, Check, ColumnDef, Expr, ExprTrait, ForeignKey, ForeignKeyAction, Index, Table,
+    TableCreateStatement,
 };
 
 // ── EihwazUsersMigration ──────────────────────────────────────────────────────
@@ -58,6 +59,20 @@ pub fn create_eihwaz_users_table() -> TableCreateStatement {
         )
         .col(ColumnDef::new(Alias::new("created_at")).date_time().null())
         .col(ColumnDef::new(Alias::new("updated_at")).date_time().null())
+        // When the account's owner first took it over through the emailed link.
+        .col(
+            ColumnDef::new(Alias::new("activated_at"))
+                .date_time()
+                .null(),
+        )
+        // The database itself refuses an active account that was never
+        // activated, whatever writes it — the ORM, raw SQL, a script.
+        .check(Check::named(
+            ACTIVE_NEEDS_ACTIVATION,
+            Expr::col(Alias::new("is_active"))
+                .not()
+                .or(Expr::col(Alias::new("activated_at")).is_not_null()),
+        ))
         .to_owned()
 }
 
@@ -83,6 +98,10 @@ impl sea_orm_migration::MigrationTrait for EihwazUsersMigration {
             .await
     }
 }
+
+/// Name of the `CHECK` constraint "an active account has been activated", so a
+/// refusal can be recognised whatever the engine.
+pub const ACTIVE_NEEDS_ACTIVATION: &str = "eihwaz_users_active_needs_activation";
 
 /// Generates the `TableCreateStatement` for the `eihwaz_groupes` table.
 pub fn create_eihwaz_groupes_table() -> TableCreateStatement {

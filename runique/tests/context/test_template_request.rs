@@ -204,3 +204,54 @@ async fn test_request_extraction_sans_engine_retourne_500() {
     let resp = request::get(app, "/").await;
     assert_eq!(resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
 }
+
+// ── Path and query getters — written from cargo-mutants survivors (2026-10-02)
+
+#[derive(serde::Deserialize, Default, Debug)]
+struct ListQuery {
+    page: Option<i32>,
+    q: Option<String>,
+}
+
+async fn handler_params(tpl: TplRequest) -> String {
+    let query: ListQuery = tpl.query();
+    format!(
+        "{:?}|{:?}|{:?}|{:?}|{:?}",
+        tpl.get_path("id"),
+        tpl.get_path("other"),
+        tpl.get_query("page"),
+        query.page,
+        query.q
+    )
+}
+
+async fn params_app() -> Router {
+    let engine = build_engine().await;
+    Router::new()
+        .route("/items/{id}", get(handler_params))
+        .layer(middleware::from_fn_with_state(
+            engine.clone(),
+            csrf_middleware,
+        ))
+        .layer(middleware::from_fn_with_state(engine, engine_inject))
+        .layer(SessionManagerLayer::new(MemoryStore::default()))
+}
+
+#[tokio::test]
+async fn test_path_and_query_getters() {
+    let resp = request::get(params_app().await, "/items/42?page=3&q=rust").await;
+    assert_eq!(
+        body_str(resp).await,
+        r#"Some("42")|None|Some("3")|Some(3)|Some("rust")"#
+    );
+}
+
+#[tokio::test]
+async fn test_an_empty_query_value_does_not_reset_the_others() {
+    // `page=` can't be read as an i32: dropped, instead of failing the whole struct.
+    let resp = request::get(params_app().await, "/items/1?page=&q=rust").await;
+    assert_eq!(
+        body_str(resp).await,
+        r#"Some("1")|None|Some("")|None|Some("rust")"#
+    );
+}

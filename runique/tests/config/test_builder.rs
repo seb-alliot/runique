@@ -9,7 +9,6 @@
 //! - AdminStaging (new, enable/disable, validate, is_ready, hot_reload, routes…)
 //! - RuniqueAppBuilder (construction, méthodes chainables, build())
 
-use async_trait::async_trait;
 use axum::{Router, routing::get};
 use runique::admin::{AdminConfig, AdminRoutes};
 use runique::app::staging::{
@@ -17,11 +16,9 @@ use runique::app::staging::{
     TrustedProxiesConfig,
 };
 use runique::app::{BuildError, BuildErrorKind, CheckError, CheckReport, RuniqueAppBuilder};
-use runique::auth::session::{AdminAuth, AdminLoginResult};
 use runique::config::app::RuniqueConfig;
 use runique::middleware::MiddlewareConfig;
 use runique::middleware::TrustedProxies;
-use runique::utils::ADb;
 use serial_test::serial;
 use tower_sessions::cookie::time::Duration;
 
@@ -32,20 +29,6 @@ use tower_sessions::cookie::time::Duration;
 // `register_url.rs` et le commentaire identique dans `test_admin_password_security.rs`.
 
 // ─── Mock AdminAuth pour les tests ────────────────────────────────────────────
-
-struct MockAdminAuth;
-
-#[async_trait]
-impl AdminAuth for MockAdminAuth {
-    async fn authenticate(
-        &self,
-        _username: &str,
-        _password: &str,
-        _db: &ADb,
-    ) -> Option<AdminLoginResult> {
-        None
-    }
-}
 
 // ════════════════════════════════════════════════════════════════
 // CheckError
@@ -902,33 +885,9 @@ fn test_admin_staging_validate_disabled_ok() {
 }
 
 #[test]
-fn test_admin_staging_validate_enabled_sans_auth_retourne_err() {
+fn test_admin_staging_validate_enabled_ok() {
+    // Accounts come from `eihwaz_users`: nothing else to configure.
     let a = AdminStaging::new().enable();
-    let result = a.validate();
-    assert!(result.is_err());
-    if let Err(e) = result {
-        if let BuildErrorKind::CheckFailed(report) = &e.kind {
-            assert!(
-                report
-                    .errors
-                    .iter()
-                    .any(|e| e.component.contains("AdminPanel"))
-            );
-        } else {
-            panic!("Attendu CheckFailed, obtenu {:?}", e.kind);
-        }
-    }
-}
-
-#[test]
-fn test_admin_staging_auth_avec_mock() {
-    let a = AdminStaging::new().auth(MockAdminAuth);
-    assert!(a.config.auth.is_some());
-}
-
-#[test]
-fn test_admin_staging_validate_enabled_avec_auth_ok() {
-    let a = AdminStaging::new().enable().auth(MockAdminAuth);
     assert!(a.validate().is_ok());
 }
 
@@ -957,12 +916,6 @@ fn test_admin_config_disable() {
 }
 
 #[test]
-fn test_admin_config_auth() {
-    let c = AdminConfig::new().auth(MockAdminAuth);
-    assert!(c.auth.is_some());
-}
-
-#[test]
 fn test_admin_config_debug() {
     let c = AdminConfig::new();
     assert!(format!("{:?}", c).contains("AdminConfig"));
@@ -973,4 +926,13 @@ fn test_admin_config_clone() {
     let c = AdminConfig::new().site_title("Clone Test");
     let c2 = c.clone();
     assert_eq!(c2.site_title, "Clone Test");
+}
+
+// Host validation is configured through the builder only (`.with_allowed_hosts`),
+// never switched on by the environment.
+#[test]
+fn test_middleware_config_from_env_leaves_host_validation_to_the_builder() {
+    let config = MiddlewareConfig::from_env();
+    assert!(!config.enable_host_validation);
+    assert!(config.enable_debug_errors);
 }

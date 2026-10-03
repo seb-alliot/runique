@@ -139,7 +139,6 @@ La pagination est calculée côté SQL (`LIMIT` / `OFFSET`). La taille de page e
 ```rust
 .with_admin(|a| {
     a.site_title("Administration")
-     .auth(RuniqueAdminAuth::new())
      .page_size(15)   // ← entrées par page (liste ET historique)
 })
 ```

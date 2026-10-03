@@ -1,4 +1,5 @@
-use crate::admin::admin_main::{ParentBinding, closure_id_of, scope_base};
+use crate::admin::admin_main::gate::{BulkGrant, BulkOp, BulkRefusal, bulk_form, bulk_gate};
+use crate::admin::admin_main::{ParentBinding, ResourcePerms, permission_denied, scope_base};
 use crate::admin::helper::resource_entry::ResourceEntry;
 use crate::admin::history;
 use crate::auth::session::CurrentUser;
@@ -73,18 +74,6 @@ async fn fetch_old_for_summary(
     }
 }
 
-fn parse_bulk_ids(body: &StrMap) -> Vec<String> {
-    body.get("ids")
-        .map(|s| {
-            s.split(',')
-                .map(str::trim)
-                .filter(|s| !s.is_empty())
-                .map(String::from)
-                .collect()
-        })
-        .unwrap_or_default()
-}
-
 pub(super) async fn handle_bulk_edit_get(
     req: &mut Request,
     entry: &ResourceEntry,
@@ -93,55 +82,8 @@ pub(super) async fn handle_bulk_edit_get(
     parent: Option<&ParentBinding>,
 ) -> AppResult<Response> {
     let ids_raw = params.get("ids").cloned().unwrap_or_default();
-    let ids: Vec<&str> = ids_raw
-        .split(',')
-        .map(str::trim)
-        .filter(|s| !s.is_empty())
-        .collect();
-    let bulk_count = ids.len();
-
-    let tera = req.engine.tera.clone();
-    let csrf = req
-        .csrf_token
-        .masked()
-        .unwrap_or_else(|_| req.csrf_token.clone())
-        .as_str()
-        .to_string();
-    let resource_keys = state
-        .registry
-        .all()
-        .map(|e| e.meta.key.to_string())
-        .collect::<Vec<_>>();
-    let mut form = (entry.form_builder)(
-        req.engine.db.clone(),
-        resource_keys,
-        StrMap::new(),
-        tera,
-        csrf,
-        axum::http::Method::GET,
-    )
-    .await;
-
-    // Remove unique-constrained fields: bulk edit cannot set the same unique value on multiple rows.
-    {
-        let forms = form.get_form_mut();
-        for field_name in entry.unique_fields {
-            forms.fields.shift_remove(*field_name);
-        }
-        // Scoped child: the parent FK (and local key) are fixed by the scope,
-        // never bulk-editable.
-        if let Some(p) = parent {
-            forms.fields.shift_remove(p.fk_col);
-            if let Some(col) = p.local_key {
-                forms.fields.shift_remove(col);
-            }
-        }
-        for field in forms.fields.values_mut() {
-            if field.field_type() == "select" && field.placeholder().is_empty() {
-                field.set_placeholder("— sans changement —");
-            }
-        }
-    }
+    let bulk_count = ids_raw.split(',').filter(|s| !s.trim().is_empty()).count();
+    let form = bulk_form(req, entry, state, parent).await;
     req.context.insert(ctx_create::FORM_FIELDS, form.get_form());
     req.context.insert(
         crate::utils::constante::admin_context::common::LANG,
@@ -158,62 +100,71 @@ pub(super) async fn handle_bulk_action(
     body: StrMap,
     state: &super::PrototypeAdminState,
     current_user: &CurrentUser,
+    perms: &ResourcePerms,
     parent: Option<&ParentBinding>,
 ) -> AppResult<Response> {
-    let ids = parse_bulk_ids(&body);
-    let list_url = format!("{}/list", scope_base(&state.config.prefix, entry, parent));
-
-    if ids.is_empty() {
-        req.notices
-            .warning(t("admin.bulk.no_selection").to_string())
-            .await;
-        return Ok(Redirect::to(&list_url).into_response());
-    }
-
-    let bulk_action = body.get("bulk_action").map(String::as_str).unwrap_or("");
-    match bulk_action {
-        "delete" => handle_bulk_delete(req, entry, ids, state, current_user, parent).await,
-        "group_set" => handle_group_set(req, entry, ids, body, state, current_user, parent).await,
-        "update-submit" => {
-            handle_bulk_update(req, entry, ids, body, state, current_user, parent).await
-        }
-        _ => Err(Box::new(AppError::new(ErrorContext::not_found(
+    let base = scope_base(&state.config.prefix, entry, parent);
+    let list_url = format!("{base}/list");
+    let Some(op) = BulkOp::parse(body.get("bulk_action").map_or("", String::as_str)) else {
+        return Err(Box::new(AppError::new(ErrorContext::not_found(
             "Unknown bulk action",
-        )))),
+        ))));
+    };
+
+    let grant = match bulk_gate(req, entry, state, perms, parent, op, &body).await {
+        Ok(grant) => grant,
+        Err(refusal) => {
+            if let Some(level) = crate::utils::runique_log::get_log()
+                .admin
+                .as_ref()
+                .and_then(|a| a.bulk)
+            {
+                crate::runique_log!(level, resource = entry.meta.key, user = %current_user.username, refusal = ?refusal, "bulk refused");
+            }
+            return match refusal {
+                BulkRefusal::NoSelection => {
+                    req.notices
+                        .warning(t("admin.bulk.no_selection").to_string())
+                        .await;
+                    Ok(Redirect::to(&list_url).into_response())
+                }
+                BulkRefusal::NothingToApply => {
+                    req.notices
+                        .warning(t("admin.bulk.no_field_selected").to_string())
+                        .await;
+                    Ok(Redirect::to(&list_url).into_response())
+                }
+                BulkRefusal::Forbidden | BulkRefusal::NotOffered(_) => {
+                    Ok(permission_denied(&req.notices, &base).await)
+                }
+                BulkRefusal::OutOfScope => Err(Box::new(AppError::new(ErrorContext::not_found(
+                    "Resource not found",
+                )))),
+                BulkRefusal::Invalid(msg) => {
+                    req.notices.error(msg).await;
+                    Ok(Redirect::to(&list_url).into_response())
+                }
+            };
+        }
+    };
+
+    match op {
+        BulkOp::Delete => handle_bulk_delete(req, entry, grant, current_user, &list_url).await,
+        BulkOp::Update | BulkOp::GroupSet => {
+            handle_bulk_update(req, entry, grant, current_user, &list_url).await
+        }
     }
 }
 
+/// Writes what the gate accepted on every granted row, with one history entry each.
 async fn handle_bulk_update(
     req: &mut Request,
     entry: &ResourceEntry,
-    ids: Vec<String>,
-    body: StrMap,
-    state: &super::PrototypeAdminState,
+    grant: BulkGrant,
     current_user: &CurrentUser,
-    parent: Option<&ParentBinding>,
+    list_url: &str,
 ) -> AppResult<Response> {
-    let list_url = format!("{}/list", scope_base(&state.config.prefix, entry, parent));
-
-    // Only fields with non-empty values are applied; unique fields are always excluded.
-    let updates: StrMap = body
-        .iter()
-        .filter(|(k, v)| {
-            !v.is_empty()
-                && k.as_str() != "bulk_action"
-                && k.as_str() != "ids"
-                && k.as_str() != crate::utils::session_key::session::CSRF_TOKEN_KEY
-                && !entry.unique_fields.contains(&k.as_str())
-        })
-        .map(|(k, v)| (k.clone(), v.clone()))
-        .collect();
-
-    if updates.is_empty() {
-        req.notices
-            .warning(t("admin.bulk.no_field_selected").to_string())
-            .await;
-        return Ok(Redirect::to(&list_url).into_response());
-    }
-
+    let BulkGrant { ids, data: updates } = grant;
     let update_fn = entry
         .partial_update_fn
         .as_ref()
@@ -226,28 +177,26 @@ async fn handle_bulk_update(
 
     let batch_id = Some(Uuid::new_v4().to_string());
     let count = ids.len();
-    for id in &ids {
-        let cid = closure_id_of(parent, id);
+    for cid in &ids {
         let summary = if entry.get_fn.is_some() {
-            fetch_old_for_summary(entry, &req.engine.db, &cid)
+            fetch_old_for_summary(entry, &req.engine.db, cid)
                 .await
                 .and_then(|old_val| {
-                    if let serde_json::Value::Object(map) = &old_val {
-                        let changes: serde_json::Map<_, _> = updates
-                            .iter()
-                            .map(|(k, new_v)| {
-                                let old_v = match map.get(k) {
-                                    Some(serde_json::Value::String(s)) => s.clone(),
-                                    Some(v) => v.to_string(),
-                                    None => String::new(),
-                                };
-                                (k.clone(), serde_json::json!({ "old": old_v, "new": new_v }))
-                            })
-                            .collect();
-                        summary_json(changes, entry.meta.key)
-                    } else {
-                        None
-                    }
+                    let serde_json::Value::Object(map) = &old_val else {
+                        return None;
+                    };
+                    let changes: serde_json::Map<_, _> = updates
+                        .iter()
+                        .map(|(k, new_v)| {
+                            let old_v = match map.get(k) {
+                                Some(serde_json::Value::String(s)) => s.clone(),
+                                Some(v) => v.to_string(),
+                                None => String::new(),
+                            };
+                            (k.clone(), serde_json::json!({ "old": old_v, "new": new_v }))
+                        })
+                        .collect();
+                    summary_json(changes, entry.meta.key)
                 })
         } else {
             let map: serde_json::Map<_, _> = updates
@@ -259,11 +208,16 @@ async fn handle_bulk_update(
 
         match update_fn(req.engine.db.clone(), cid.clone(), updates.clone()).await {
             Ok(()) => {}
-            Err(e) if is_unique_violation(&e) => {
+            Err(e) if crate::admin::builtin::is_unique_violation(&e) => {
                 req.notices
                     .error(t("forms.unique_constraint_violated").to_string())
                     .await;
-                return Ok(Redirect::to(&list_url).into_response());
+                return Ok(Redirect::to(list_url).into_response());
+            }
+            // A refusal from the resource's own update function, meant for the admin.
+            Err(sea_orm::DbErr::Custom(msg)) => {
+                req.notices.error(msg).await;
+                return Ok(Redirect::to(list_url).into_response());
             }
             Err(e) => return Err(Box::new(AppError::new(ErrorContext::database(e)))),
         }
@@ -273,7 +227,7 @@ async fn handle_bulk_update(
                 user_id: current_user.id,
                 username: &current_user.username,
                 resource_key: entry.meta.key,
-                object_pk: &cid,
+                object_pk: cid,
                 action: "edit",
                 summary,
                 batch_id: batch_id.clone(),
@@ -285,115 +239,15 @@ async fn handle_bulk_update(
     req.notices
         .success(format!("{count} {}", t("admin.bulk.update_success")))
         .await;
-    Ok(Redirect::to(&list_url).into_response())
-}
-
-fn is_unique_violation(e: &sea_orm::DbErr) -> bool {
-    let msg = e.to_string();
-    msg.contains("unique") || msg.contains("UNIQUE") || msg.contains("Duplicate")
-}
-
-async fn handle_group_set(
-    req: &mut Request,
-    entry: &ResourceEntry,
-    ids: Vec<String>,
-    body: StrMap,
-    state: &super::PrototypeAdminState,
-    current_user: &CurrentUser,
-    parent: Option<&ParentBinding>,
-) -> AppResult<Response> {
-    let list_url = format!("{}/list", scope_base(&state.config.prefix, entry, parent));
-
-    let updates: StrMap = body
-        .iter()
-        .filter_map(|(k, v)| {
-            k.strip_prefix("ga_")
-                .filter(|_| !v.is_empty())
-                .map(|field| (field.to_string(), v.clone()))
-        })
-        .collect();
-
-    if updates.is_empty() {
-        req.notices
-            .warning(t("admin.bulk.no_field_selected").to_string())
-            .await;
-        return Ok(Redirect::to(&list_url).into_response());
-    }
-
-    let update_fn = entry
-        .partial_update_fn
-        .as_ref()
-        .or(entry.update_fn.as_ref())
-        .ok_or_else(|| {
-            Box::new(AppError::new(ErrorContext::not_found(
-                t("admin.delete.not_found").as_ref(),
-            )))
-        })?;
-
-    let batch_id = Some(Uuid::new_v4().to_string());
-    let count = ids.len();
-    for id in &ids {
-        let cid = closure_id_of(parent, id);
-        let summary = if entry.get_fn.is_some() {
-            fetch_old_for_summary(entry, &req.engine.db, &cid)
-                .await
-                .and_then(|old_val| {
-                    if let serde_json::Value::Object(map) = &old_val {
-                        let changes: serde_json::Map<_, _> = updates
-                            .iter()
-                            .map(|(k, new_v)| {
-                                let old_v = match map.get(k) {
-                                    Some(serde_json::Value::String(s)) => s.clone(),
-                                    Some(v) => v.to_string(),
-                                    None => String::new(),
-                                };
-                                (k.clone(), serde_json::json!({ "old": old_v, "new": new_v }))
-                            })
-                            .collect();
-                        summary_json(changes, entry.meta.key)
-                    } else {
-                        None
-                    }
-                })
-        } else {
-            let map: serde_json::Map<_, _> = updates
-                .iter()
-                .map(|(k, v)| (k.clone(), serde_json::json!({ "new": v })))
-                .collect();
-            summary_json(map, entry.meta.key)
-        };
-
-        update_fn(req.engine.db.clone(), cid.clone(), updates.clone())
-            .await
-            .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?;
-        history::log_admin_action(
-            &req.engine.db,
-            history::AdminActionLog {
-                user_id: current_user.id,
-                username: &current_user.username,
-                resource_key: entry.meta.key,
-                object_pk: &cid,
-                action: "edit",
-                summary,
-                batch_id: batch_id.clone(),
-            },
-        )
-        .await;
-    }
-
-    req.notices
-        .success(format!("{count} {}", t("admin.bulk.update_success")))
-        .await;
-    Ok(Redirect::to(&list_url).into_response())
+    Ok(Redirect::to(list_url).into_response())
 }
 
 async fn handle_bulk_delete(
     req: &mut Request,
     entry: &ResourceEntry,
-    ids: Vec<String>,
-    state: &super::PrototypeAdminState,
+    grant: BulkGrant,
     current_user: &CurrentUser,
-    parent: Option<&ParentBinding>,
+    list_url: &str,
 ) -> AppResult<Response> {
     let delete_fn = entry.delete_fn.as_ref().ok_or_else(|| {
         Box::new(AppError::new(ErrorContext::not_found(
@@ -402,9 +256,8 @@ async fn handle_bulk_delete(
     })?;
 
     let batch_id = Some(Uuid::new_v4().to_string());
-    let count = ids.len();
-    for id in &ids {
-        let cid = closure_id_of(parent, id);
+    let count = grant.ids.len();
+    for cid in &grant.ids {
         delete_fn(req.engine.db.clone(), cid.clone())
             .await
             .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?;
@@ -414,7 +267,7 @@ async fn handle_bulk_delete(
                 user_id: current_user.id,
                 username: &current_user.username,
                 resource_key: entry.meta.key,
-                object_pk: &cid,
+                object_pk: cid,
                 action: "delete",
                 summary: None,
                 batch_id: batch_id.clone(),
@@ -426,9 +279,5 @@ async fn handle_bulk_delete(
     req.notices
         .success(format!("{count} {}", t("admin.bulk.delete_success")))
         .await;
-    Ok(Redirect::to(&format!(
-        "{}/list",
-        scope_base(&state.config.prefix, entry, parent)
-    ))
-    .into_response())
+    Ok(Redirect::to(list_url).into_response())
 }

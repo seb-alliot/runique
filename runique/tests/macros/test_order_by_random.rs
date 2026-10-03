@@ -121,7 +121,7 @@ async fn assert_order_by_random_result(
 
     for run in 0..RUNS {
         let rows = RuniqueQueryBuilder::new(user::Entity::find())
-            .order_by_random(db)
+            .order_by_random()
             .all(db)
             .await
             .expect("order_by_random() must execute without a SQL error on this engine");

@@ -238,39 +238,6 @@ fn strip_sea_orm_cli_placeholder_file(migrations_path: &str) {
     }
 }
 
-// ── db kind detection ────────────────────────────────────────────────────────
-
-/// Detects the DB backend from `DB_URL` or `DB_ENGINE` in `.env`.
-/// Used to generate DB-specific SQL (trigger vs ON UPDATE).
-fn detect_db_kind() -> crate::migration::utils::types::DbKind {
-    dotenvy::dotenv().ok();
-    use crate::migration::utils::types::DbKind;
-
-    let url = std::env::var("DB_URL")
-        .or_else(|_| std::env::var("DATABASE_URL"))
-        .unwrap_or_default();
-
-    if url.starts_with("postgres://") || url.starts_with("postgresql://") {
-        return DbKind::Postgres;
-    } else if url.starts_with("mysql://") || url.starts_with("mariadb://") {
-        return DbKind::Mysql;
-    }
-
-    let engine = crate::utils::config::env::env_keyword("DB_ENGINE").unwrap_or_default();
-    match engine.as_str() {
-        "postgres" | "postgresql" => DbKind::Postgres,
-        "mysql" | "mariadb" => DbKind::Mysql,
-        // Explicit, not just the fallthrough below: SQLite has no native enum/trigger
-        // dialect, so it genuinely belongs on `DbKind::Other` — this makes that a
-        // deliberate case, not indistinguishable from an unrecognized value.
-        "" | "sqlite" => DbKind::Other,
-        _ => {
-            eprintln!("{}", tf("makemigrations.unknown_db_engine", &[&engine]));
-            DbKind::Other
-        }
-    }
-}
-
 // ── topological sort ─────────────────────────────────────────────────────────
 
 /// Sorts `Changes` by FK dependency order.
@@ -658,7 +625,6 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
     check_identifier_lengths(&destructive_set)?;
 
     let timestamp = Utc::now().format("%Y%m%d_%H%M%S").to_string();
-    let db_kind = detect_db_kind();
 
     // referenced tables created before those referencing them
     main_changes = topological_sort_changes(main_changes);
@@ -671,7 +637,6 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
         &schemas,
         migrations_path,
         &timestamp,
-        &db_kind,
     );
     build_extend_plan(&mut plan, &extend_planned, migrations_path, &timestamp);
 
@@ -738,7 +703,6 @@ fn build_main_plan(
     schemas: &[ParsedSchema],
     migrations_path: &str,
     timestamp: &str,
-    db_kind: &crate::migration::utils::types::DbKind,
 ) {
     for change in all_changes {
         let schema = schemas
@@ -758,8 +722,7 @@ fn build_main_plan(
                 seaorm_create_file_path(migrations_path, timestamp, &change.table_name);
             // FK constraints inline in the CREATE TABLE itself (see generate_create_file) —
             // SQLite can't ALTER-ADD one later, and inline is valid on every engine.
-            plan.files
-                .push((seaorm_path, generate_create_file(schema, db_kind)));
+            plan.files.push((seaorm_path, generate_create_file(schema)));
             plan.lib_modules.push(module_name);
         } else {
             plan.dirs
@@ -807,7 +770,7 @@ fn build_extend_plan(
         // Snapshot updated (without PK, just extension columns)
         plan.files.push((
             extend_snapshot_file_path(migrations_path, &ext_schema.table_name),
-            generate_create_file(ext_schema, &crate::migration::utils::types::DbKind::Other),
+            generate_create_file(ext_schema),
         ));
 
         let module_name = seaorm_extend_module_name(timestamp, &ext_schema.table_name);

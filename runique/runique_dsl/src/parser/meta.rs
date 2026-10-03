@@ -32,7 +32,6 @@ impl Parse for MetaDef {
         let mut unique_together = Vec::new();
         let mut verbose_name = None;
         let mut verbose_name_plural = None;
-        let mut abstract_model = false;
         let mut indexes = Vec::new();
 
         while !input.is_empty() {
@@ -63,13 +62,6 @@ impl Parse for MetaDef {
                     let s: LitStr = input.parse()?;
                     verbose_name_plural = Some(s.value());
                 }
-                // `abstract` is a reserved Rust keyword — `Ident::parse` structurally
-                // cannot accept it, so this DSL key was unreachable under that name
-                // (found via a test exercising it directly). `is_abstract` isn't reserved.
-                "is_abstract" => {
-                    let b: syn::LitBool = input.parse()?;
-                    abstract_model = b.value();
-                }
                 "indexes" => indexes = parse_ident_group_list(input)?,
                 other => {
                     return Err(syn::Error::new(
@@ -87,7 +79,6 @@ impl Parse for MetaDef {
             unique_together,
             verbose_name,
             verbose_name_plural,
-            abstract_model,
             indexes,
         })
     }
@@ -136,10 +127,12 @@ mod tests {
         assert_eq!(m.verbose_name_plural.as_deref(), Some("Articles"));
     }
 
+    // Abstract models (Django's `abstract = True`) don't exist in Runique:
+    // there's no model inheritance for them to feed. The key used to be read
+    // and then ignored, so the table was generated anyway.
     #[test]
-    fn abstract_flag() {
-        let m = parse("is_abstract: true").unwrap();
-        assert!(m.abstract_model);
+    fn is_abstract_rejected() {
+        assert!(parse("is_abstract: true").is_err());
     }
 
     #[test]

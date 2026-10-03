@@ -139,7 +139,6 @@ Pagination is computed at the SQL level (`LIMIT` / `OFFSET`). Page size is confi
 ```rust
 .with_admin(|a| {
     a.site_title("Administration")
-     .auth(RuniqueAdminAuth::new())
      .page_size(15)   // ← entries per page (list views AND history)
 })
 ```

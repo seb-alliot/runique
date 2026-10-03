@@ -54,3 +54,7 @@ fallback_ci.md
 recap-extraction-dsl-runique.md
 recap-trous-builder-test.md
 recap-types-dsl-seaorm.md
+
+# cargo-mutants reports
+mutants.out/
+mutants.out.old/

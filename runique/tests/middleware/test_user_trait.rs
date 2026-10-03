@@ -1,12 +1,7 @@
 // Tests pour RuniqueUser (trait + implémentations par défaut)
-// et DefaultAdminAuth (construction uniquement, sans DB)
 
 use crate::helpers::pk::pk;
-use runique::auth::{
-    session::{DefaultAdminAuth, UserEntity},
-    user::RuniqueUser,
-};
-use runique::utils::ADb;
+use runique::auth::user::RuniqueUser;
 
 // ═══════════════════════════════════════════════════════════════
 // Mock minimal implémentant RuniqueUser
@@ -130,49 +125,4 @@ fn test_can_access_admin_inactif_superuser_refuse() {
 #[test]
 fn test_can_access_admin_actif_sans_droits_refuse() {
     assert!(!mock_user(true, false, false).can_access_admin());
-}
-
-// ═══════════════════════════════════════════════════════════════
-// Mock UserEntity (sans appels DB réels)
-// ═══════════════════════════════════════════════════════════════
-
-struct MockUserEntity;
-
-#[async_trait::async_trait]
-impl UserEntity for MockUserEntity {
-    type Model = MockUser;
-
-    async fn find_by_username(_db: &ADb, _username: &str) -> Option<Self::Model> {
-        None
-    }
-
-    async fn find_by_email(_db: &ADb, _email: &str) -> Option<Self::Model> {
-        None
-    }
-
-    async fn find_by_id(_db: &ADb, _id: runique::utils::pk::Pk) -> Option<Self::Model> {
-        None
-    }
-
-    async fn update_password(
-        _db: &ADb,
-        _email: &str,
-        _new_hash: &str,
-    ) -> Result<(), sea_orm::DbErr> {
-        Ok(())
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// Tests — DefaultAdminAuth construction
-// ═══════════════════════════════════════════════════════════════
-
-#[test]
-fn test_default_admin_auth_new() {
-    let _auth = DefaultAdminAuth::<MockUserEntity>::new();
-}
-
-#[test]
-fn test_default_admin_auth_default() {
-    let _auth = DefaultAdminAuth::<MockUserEntity>::default();
 }
