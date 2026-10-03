@@ -58,3 +58,36 @@ impl Parse for ExtendDsl {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::ExtendDsl;
+
+    fn parse(src: &str) -> syn::Result<ExtendDsl> {
+        syn::parse_str::<ExtendDsl>(src)
+    }
+
+    #[test]
+    fn table_enums_and_fields_are_read() {
+        let dsl = parse(
+            r#"table: "eihwaz_users", enums: { A: [X], B: [Y, Z] }, fields: { bio: textarea, age: int, }"#,
+        )
+        .expect("parses");
+        assert_eq!(dsl.table, "eihwaz_users");
+        assert_eq!(dsl.enums.len(), 2);
+        assert_eq!(dsl.fields.len(), 2);
+    }
+
+    #[test]
+    fn enums_block_is_optional() {
+        let dsl = parse(r#"table: "eihwaz_users", fields: { bio: textarea }"#).expect("parses");
+        assert!(dsl.enums.is_empty());
+        assert_eq!(dsl.fields.len(), 1);
+    }
+
+    #[test]
+    fn misplaced_keywords_are_refused() {
+        assert!(parse(r#"tbl: "eihwaz_users", fields: { bio: text }"#).is_err());
+        assert!(parse(r#"table: "eihwaz_users", columns: { bio: text }"#).is_err());
+    }
+}

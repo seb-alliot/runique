@@ -388,7 +388,6 @@ meta: {
 | `indexes`             | `[(col1, col2)]`      | Multi-column simple index                     |
 | `verbose_name`        | `"string"`            | Singular name in the admin interface          |
 | `verbose_name_plural` | `"string"`            | Plural name in the admin interface            |
-| `abstract`            | `true`                | Abstract model — no table generated           |
 
 ---
 

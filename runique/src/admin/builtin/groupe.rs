@@ -30,7 +30,6 @@ pub(super) fn groupe_entry() -> ResourceEntry {
         "runique::auth::permissions::groupe::Model",
         "GroupeAdminForm",
         GROUPES,
-        vec!["admin".to_string()],
     );
 
     let form_builder: FormBuilder = Arc::new(
@@ -127,14 +126,10 @@ pub(super) fn groupe_entry() -> ResourceEntry {
             let id = id
                 .parse::<i32>()
                 .map_err(|_| sea_orm::DbErr::Custom(t("admin.builtin.invalid_id").into_owned()))?;
-            let result = groupe::Entity::delete_by_id(id)
+            groupe::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
-                .map(|_| ());
-            if result.is_ok() {
-                crate::auth::guard::clear_cache();
-            }
-            result
+                .map(|_| ())
         })
     });
 
@@ -164,17 +159,13 @@ pub(super) fn groupe_entry() -> ResourceEntry {
                 .parse::<i32>()
                 .map_err(|_| sea_orm::DbErr::Custom(t("admin.builtin.invalid_id").into_owned()))?;
             let nom = data.get("nom").cloned().unwrap_or_default();
-            let result = groupe::ActiveModel {
+            groupe::ActiveModel {
                 id: Set(id),
                 nom: Set(nom),
             }
             .update(&*db)
             .await
-            .map(|_| ());
-            if result.is_ok() {
-                crate::auth::guard::clear_cache();
-            }
-            result
+            .map(|_| ())
         })
     });
 

@@ -1,10 +1,11 @@
-pub mod test_admin_auth;
+pub mod test_auth_guarantees;
 pub mod test_current_user;
+pub mod test_current_user_permissions;
 pub mod test_default_admin_auth;
+pub mod test_forgot_password_states;
 pub mod test_login_form;
 pub mod test_middlewares;
 pub mod test_password_reset;
-pub mod test_permissions_cache;
 pub mod test_permissions_db;
 pub mod test_session_auth;
 pub mod test_session_security;

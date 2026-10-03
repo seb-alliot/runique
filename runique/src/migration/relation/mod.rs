@@ -1,6 +1,4 @@
 //! SeaORM relation definitions — HasOne, HasMany, BelongsTo, ManyToMany.
-//!
-//! These structs feed the `to_model()` code generation in [`crate::migration::ModelSchema`].
 
 /// Types of relations between two entities.
 #[derive(Debug, Clone)]

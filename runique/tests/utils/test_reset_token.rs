@@ -126,3 +126,46 @@ fn test_encrypt_different_tokens_give_different_output() {
     let enc2 = encrypt_email("token-two", email);
     assert_ne!(enc1, enc2);
 }
+
+// Written from cargo-mutants survivors (2026-10-02): every test above passes
+// with a `hash_token` that returns the same value for every token — then any
+// made-up token would find the last row stored and reset that user's password.
+#[tokio::test]
+async fn test_a_live_token_never_lets_another_one_through() {
+    let conn = runique::db::ADb::from_connection(db::fresh_db_with_schema(RESET_TOKENS_DDL).await);
+    let alice = generate(&conn, pk(1), ttl()).await.unwrap();
+    let bob = generate(&conn, pk(2), ttl()).await.unwrap();
+
+    assert!(!peek(&conn, "made-up-token").await);
+    assert_eq!(consume(&conn, "made-up-token").await, None);
+    assert_eq!(consume(&conn, &bob).await, Some(pk(2)));
+    assert_eq!(consume(&conn, &alice).await, Some(pk(1)));
+}
+
+#[tokio::test]
+async fn test_only_the_token_hash_is_stored() {
+    use runique::sea_orm::{ConnectionTrait, Statement};
+    let conn = runique::db::ADb::from_connection(db::fresh_db_with_schema(RESET_TOKENS_DDL).await);
+    let token = generate(&conn, pk(1), ttl()).await.unwrap();
+    let stored: String = conn
+        .query_one_raw(Statement::from_string(
+            conn.get_database_backend(),
+            "SELECT token_hash FROM eihwaz_reset_tokens",
+        ))
+        .await
+        .unwrap()
+        .unwrap()
+        .try_get("", "token_hash")
+        .unwrap();
+    assert_ne!(stored, token);
+    assert!(!stored.contains(&token));
+    // base64url of a SHA-256 digest, without padding.
+    assert_eq!(stored.len(), 43);
+}
+
+#[test]
+fn test_decrypt_accepts_the_shortest_value() {
+    // 16 bytes of tag + 1 byte of ciphertext: a one-character email.
+    let encoded = encrypt_email("token", "a");
+    assert_eq!(decrypt_email("token", &encoded).as_deref(), Some("a"));
+}

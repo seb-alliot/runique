@@ -36,6 +36,9 @@
     "date_too_far": "日期过晚（最晚：{}）",
     "time_invalid": "时间格式无效",
     "file_required": "请至少选择一个文件",
+    "data_invalid": "“{}”的值无效",
+    "data_required": "“{}”为必填项",
+    "data_password": "无法对“{}”的密码进行哈希处理，未保存任何内容",
     "file_extension_blocked": "文件 '{}' 类型不允许。允许的扩展名：{}",
     "finalize_error": "字段 '{}' 处理出错：{}",
     "template_missing": "缺少模板：{}",
@@ -255,7 +258,8 @@
     "active": "激活",
     "user": {
       "username_too_short": "用户名太短（最少3个字符）",
-      "invalid_email": "邮箱地址格式不正确"
+      "invalid_email": "邮箱地址格式不正确",
+      "not_activated": "该账户尚未被其用户激活：用户通过收到的邮件设置密码后即会激活。"
     },
     "login": {
       "title": "登录",
@@ -271,7 +275,6 @@
       "success": "已成功登出。"
     },
     "access": {
-      "no_auth_handler": "未配置身份验证处理程序。请在AdminConfig上调用.auth(MyAuth)。",
       "insufficient_rights": "访问管理权限不足"
     },
     "dashboard": {
@@ -436,8 +439,7 @@
     "long_identifier_detected": "生成的 SQL 标识符过长（MariaDB/MySQL 限制：64 个字符）：",
     "long_identifier_rename_required": "请缩短相关的表名/列名 — Runique 不会自动截断标识符。",
     "files_ready": "{}个文件已准备好迁移。",
-    "unknown_dsl_type": "警告：未知字段类型 '{}' — 默认使用 '{}'。请检查模型中是否有拼写错误。",
-    "unknown_db_engine": "警告：无法识别的 DB_ENGINE '{}' — 回退到 SQLite 风格的迁移（不支持原生 enum/trigger）。支持的值：postgres、mysql/mariadb、sqlite。"
+    "unknown_dsl_type": "警告：未知字段类型 '{}' — 默认使用 '{}'。请检查模型中是否有拼写错误。"
   },
   "migrate": {
     "applying": "正在从'{}'应用迁移...",
@@ -470,7 +472,9 @@
     "password_min_length": "密码必须至少包含{}个字符。",
     "password_weak": "密码必须包含至少一个大写字母、一个小写字母、一个数字和一个特殊字符(!@#$%...)。",
     "password_mismatch": "两次输入的密码不一致。",
-    "check_inbox": "如果此地址与帐户关联，您将收到一封重置邮件。",
+    "check_inbox": "如果该地址关联了账户，您将收到一封包含操作说明的邮件。",
+    "blocked_subject": "您的账户已被封禁",
+    "blocked_body": "<p>{}，您好：</p><p>有人为您的账户申请了密码重置，但该账户已被封禁。请联系网站管理员解除封禁。</p><p>如果这不是您本人的操作，请忽略此邮件。</p>",
     "email_subject": "密码重置请求",
     "email_body": "<p>您好 {}，</p><p>请点击以下链接重置您的密码（有效期1小时）：</p><p><a href=\"{}\">{}</a></p>"
   },

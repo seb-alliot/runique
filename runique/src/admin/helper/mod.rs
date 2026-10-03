@@ -1,5 +1,6 @@
 pub mod dyn_form;
 pub mod fk_resolve;
+pub mod m2m;
 pub mod resource_entry;
 pub mod roles;
 pub mod sql_dialect;
@@ -14,5 +15,5 @@ pub use resource_entry::{
     ListParams, ResourceEntry, SortDir, UpdateFn,
 };
 pub use roles::{get_roles, register_roles};
-pub use sql_dialect::{ilike, text_cast_type, text_eq};
+pub use sql_dialect::{ilike, text_cast_type, text_cast_type_of, text_eq};
 pub(crate) use template::AdminTemplate;

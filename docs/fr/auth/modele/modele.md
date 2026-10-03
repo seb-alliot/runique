@@ -17,6 +17,7 @@ Runique inclut un modèle utilisateur prêt à l'emploi, sans aucune configurati
 | `is_superuser` | `bool` | Accès complet, bypass toutes les règles |
 | `created_at` | datetime | Date de création |
 | `updated_at` | datetime | Date de mise à jour |
+| `activated_at` | datetime | Activation par le propriétaire (vide tant que le compte est en attente) |
 
 Pour créer le premier superutilisateur :
 
@@ -41,47 +42,37 @@ contraintes FK, changement de mode après coup).
 
 ---
 
-## Trait RuniqueUser
+## États d'un compte
 
-Si vous utilisez votre propre modèle utilisateur à la place du built-in, vous devez implémenter `RuniqueUser`.
+`eihwaz_users` est le seul modèle utilisateur : pour y ajouter des champs, utiliser
+`extend!{ table: "eihwaz_users", ... }`.
 
-```rust
-use runique::prelude::*;
+Deux colonnes décrivent l'état d'un compte : `is_active` (est-il actif ?) et `activated_at`
+(quand son propriétaire l'a-t-il activé, via le lien reçu par email ?).
 
-impl RuniqueUser for users::Model {
-    fn user_id(&self) -> Pk      { self.id }
-    fn username(&self) -> &str       { &self.username }
-    fn email(&self) -> &str          { &self.email }
-    fn password_hash(&self) -> &str  { &self.password }
-    fn is_active(&self) -> bool      { self.is_active }
-    fn is_staff(&self) -> bool       { self.is_staff }
-    fn is_superuser(&self) -> bool   { self.is_superuser }
+| `is_active` | `activated_at` | État | Connexion | « Mot de passe oublié » |
+| --- | --- | --- | --- | --- |
+| `false` | vide | **En attente** — créé, jamais activé | Refusée | Lien qui **active** le compte |
+| `true` | rempli | **Actif** | Autorisée | Lien de réinitialisation |
+| `false` | rempli | **Désactivé** par le staff | Refusée | Email « compte bloqué », sans lien |
+| `true` | vide | Impossible — refusé par la base | — | — |
 
-    // Optionnel — logique d'accès admin sur mesure
-    fn can_access_admin(&self) -> bool {
-        self.is_active() && (self.is_staff() || self.is_superuser())
-    }
-}
-```
+- La **première activation** appartient au propriétaire de l'email : un admin ne peut pas cocher
+  `is_active` sur un compte en attente.
+- **Désactiver et réactiver** un compte déjà activé est le rôle du staff (`can_update` sur `users`).
+- Changer de mot de passe **ne réactive jamais** un compte désactivé.
+- La page « mot de passe oublié » répond la même chose quel que soit l'état ou l'existence du compte.
+- Pour annuler une invitation (compte en attente), supprimer le compte.
 
-### Méthodes obligatoires
+La garantie « pas de `is_active` sans `activated_at` » est posée **en base** : une contrainte
+`CHECK` créée avec la table `eihwaz_users`, sur les trois moteurs. Elle s'applique aussi au SQL brut.
 
-| Méthode | Retour | Description |
-|------------------|-------------|--------------------------------|
-| `user_id()` | `Pk` | Identifiant unique |
-| `username()` | `&str` | Nom d'utilisateur |
-| `email()` | `&str` | Adresse email |
-| `password_hash()` | `&str` | Hash du mot de passe |
-| `is_active()` | `bool` | Compte actif |
-| `is_staff()` | `bool` | Accès admin limité |
-| `is_superuser()` | `bool` | Accès admin complet |
+Côté code, le modèle implémente le trait `RuniqueUser` :
 
-### Méthodes avec valeur par défaut
-
-| Méthode | Défaut | Description |
-|--------------------|-------------------------------------|------------------------------|
-| `roles()` | `vec![]` | Rôles personnalisés |
-| `can_access_admin()` | `is_active && (is_staff \|\| is_superuser)` | Logique d'accès admin |
+| Méthode | Description |
+| --- | --- |
+| `can_sign_in()` | `is_active` **et** `activated_at` rempli |
+| `can_access_admin()` | `can_sign_in()` et (`is_staff` ou `is_superuser`) |
 
 ---
 

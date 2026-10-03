@@ -214,6 +214,17 @@ impl Parse for FormFieldDecl {
 
         // Validate attributes vs type
         validate_form_field_attrs(&name, &kind_ident, &kind, &attrs)?;
+        let has = |wanted: fn(&FormFieldAttr) -> bool| attrs.iter().any(wanted);
+        if has(|a| matches!(a, FormFieldAttr::Required))
+            && has(|a| matches!(a, FormFieldAttr::Nullable))
+        {
+            return Err(syn::Error::new(
+                name.span(),
+                format!(
+                    "field `{name}`: `required` and `nullable` contradict each other — keep one"
+                ),
+            ));
+        }
 
         let _ = input.parse::<Token![,]>();
         Ok(FormFieldDecl { name, kind, attrs })
@@ -555,5 +566,21 @@ mod tests {
     #[test]
     fn fk_still_invalid_on_text() {
         err("category_id: text [fk(categories.id, cascade)]");
+    }
+
+    #[test]
+    fn a_refused_attribute_is_named_in_the_error() {
+        let Err(err) = parse_field("flag: bool [max_length: 3]") else {
+            panic!("max_length is refused on bool");
+        };
+        let err = err.to_string();
+        assert!(err.contains("max_length"), "{err}");
+    }
+
+    #[test]
+    fn required_and_nullable_together_are_refused() {
+        err("name: text [required, nullable]");
+        ok("name: text [required]");
+        ok("name: text [nullable]");
     }
 }

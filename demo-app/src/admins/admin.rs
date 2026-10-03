@@ -478,7 +478,6 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::contribution::Model",
         "AdminForm",
         "Contribution",
-        vec![],
     );
     let form_builder: FormBuilder = Arc::new(
         |_db: ADb,
@@ -585,7 +584,7 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            contribution::admin_from_form(&data, None)
+            contribution::admin_from_form(&data, None)?
                 .insert(&*db)
                 .await
                 .map(|_| ())
@@ -597,7 +596,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            contribution::admin_from_form(&data, Some(id))
+            contribution::admin_from_form(&data, Some(id))?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -609,7 +608,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            contribution::admin_partial_update(&data, id)
+            contribution::admin_partial_update(&data, id)?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -640,7 +639,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_user_id = 5u64;
             let cur_page_user_id = pages.get("user_id").copied().unwrap_or(0);
             let count_stmt_user_id = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT user_id)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("user_id"),
+                )))
                 .from(Alias::new(contribution::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("user_id")).is_not_null())
                 .to_owned();
@@ -659,10 +660,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_user_id = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(user_id AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("user_id")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(contribution::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("user_id")).is_not_null())
                 .limit(page_size_user_id)
@@ -690,7 +688,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_contribution_type = 5u64;
             let cur_page_contribution_type = pages.get("contribution_type").copied().unwrap_or(0);
             let count_stmt_contribution_type = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT contribution_type)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("contribution_type"),
+                )))
                 .from(Alias::new(contribution::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("contribution_type")).is_not_null())
                 .to_owned();
@@ -712,10 +712,10 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_contribution_type = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(contribution_type AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(
+                    Expr::col(Alias::new("contribution_type"))
+                        .cast_as(Alias::new(text_cast_type(&db))),
+                )
                 .from(Alias::new(contribution::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("contribution_type")).is_not_null())
                 .limit(page_size_contribution_type)
@@ -746,7 +746,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_title = 5u64;
             let cur_page_title = pages.get("title").copied().unwrap_or(0);
             let count_stmt_title = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT title)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("title"),
+                )))
                 .from(Alias::new(contribution::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .to_owned();
@@ -765,10 +767,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_title = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(title AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("title")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(contribution::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .limit(page_size_title)
@@ -796,7 +795,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_content = 5u64;
             let cur_page_content = pages.get("content").copied().unwrap_or(0);
             let count_stmt_content = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT content)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("content"),
+                )))
                 .from(Alias::new(contribution::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("content")).is_not_null())
                 .to_owned();
@@ -815,10 +816,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_content = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(content AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("content")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(contribution::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("content")).is_not_null())
                 .limit(page_size_content)
@@ -867,7 +865,6 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::blog::Model",
         "AdminForm",
         "Articles",
-        vec![],
     );
     let form_builder: FormBuilder = Arc::new(
         |_db: ADb,
@@ -970,7 +967,7 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            blog::admin_from_form(&data, None)
+            blog::admin_from_form(&data, None)?
                 .insert(&*db)
                 .await
                 .map(|_| ())
@@ -982,7 +979,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            blog::admin_from_form(&data, Some(id))
+            blog::admin_from_form(&data, Some(id))?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -994,7 +991,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            blog::admin_partial_update(&data, id)
+            blog::admin_partial_update(&data, id)?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -1027,7 +1024,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_title = 10u64;
             let cur_page_title = pages.get("title").copied().unwrap_or(0);
             let count_stmt_title = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT title)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("title"),
+                )))
                 .from(Alias::new(blog::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .to_owned();
@@ -1046,10 +1045,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_title = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(title AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("title")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(blog::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .limit(page_size_title)
@@ -1077,7 +1073,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_email = 10u64;
             let cur_page_email = pages.get("email").copied().unwrap_or(0);
             let count_stmt_email = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT email)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("email"),
+                )))
                 .from(Alias::new(blog::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("email")).is_not_null())
                 .to_owned();
@@ -1096,10 +1094,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_email = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(email AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("email")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(blog::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("email")).is_not_null())
                 .limit(page_size_email)
@@ -1127,7 +1122,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_website = 10u64;
             let cur_page_website = pages.get("website").copied().unwrap_or(0);
             let count_stmt_website = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT website)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("website"),
+                )))
                 .from(Alias::new(blog::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("website")).is_not_null())
                 .to_owned();
@@ -1146,10 +1143,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_website = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(website AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("website")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(blog::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("website")).is_not_null())
                 .limit(page_size_website)
@@ -1177,7 +1171,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_summary = 10u64;
             let cur_page_summary = pages.get("summary").copied().unwrap_or(0);
             let count_stmt_summary = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT summary)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("summary"),
+                )))
                 .from(Alias::new(blog::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("summary")).is_not_null())
                 .to_owned();
@@ -1196,10 +1192,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_summary = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(summary AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("summary")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(blog::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("summary")).is_not_null())
                 .limit(page_size_summary)
@@ -1227,7 +1220,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_content = 10u64;
             let cur_page_content = pages.get("content").copied().unwrap_or(0);
             let count_stmt_content = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT content)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("content"),
+                )))
                 .from(Alias::new(blog::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("content")).is_not_null())
                 .to_owned();
@@ -1246,10 +1241,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_content = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(content AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("content")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(blog::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("content")).is_not_null())
                 .limit(page_size_content)
@@ -1298,7 +1290,6 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::changelog_entry::Model",
         "AdminForm",
         "Changelog",
-        vec![],
     );
     let form_builder: FormBuilder = Arc::new(
         |_db: ADb,
@@ -1420,7 +1411,7 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            changelog_entry::admin_from_form(&data, None)
+            changelog_entry::admin_from_form(&data, None)?
                 .insert(&*db)
                 .await
                 .map(|_| ())
@@ -1432,7 +1423,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            changelog_entry::admin_from_form(&data, Some(id))
+            changelog_entry::admin_from_form(&data, Some(id))?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -1444,7 +1435,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            changelog_entry::admin_partial_update(&data, id)
+            changelog_entry::admin_partial_update(&data, id)?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -1479,7 +1470,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_version = 10u64;
             let cur_page_version = pages.get("version").copied().unwrap_or(0);
             let count_stmt_version = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT version)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("version"),
+                )))
                 .from(Alias::new(changelog_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("version")).is_not_null())
                 .to_owned();
@@ -1498,10 +1491,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_version = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(version AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("version")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(changelog_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("version")).is_not_null())
                 .limit(page_size_version)
@@ -1529,7 +1519,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_release_date = 10u64;
             let cur_page_release_date = pages.get("release_date").copied().unwrap_or(0);
             let count_stmt_release_date = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT release_date)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("release_date"),
+                )))
                 .from(Alias::new(changelog_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("release_date")).is_not_null())
                 .to_owned();
@@ -1548,10 +1540,9 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_release_date = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(release_date AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(
+                    Expr::col(Alias::new("release_date")).cast_as(Alias::new(text_cast_type(&db))),
+                )
                 .from(Alias::new(changelog_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("release_date")).is_not_null())
                 .limit(page_size_release_date)
@@ -1582,7 +1573,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_category = 10u64;
             let cur_page_category = pages.get("category").copied().unwrap_or(0);
             let count_stmt_category = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT category)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("category"),
+                )))
                 .from(Alias::new(changelog_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("category")).is_not_null())
                 .to_owned();
@@ -1601,10 +1594,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_category = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(category AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("category")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(changelog_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("category")).is_not_null())
                 .limit(page_size_category)
@@ -1632,7 +1622,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_title = 10u64;
             let cur_page_title = pages.get("title").copied().unwrap_or(0);
             let count_stmt_title = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT title)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("title"),
+                )))
                 .from(Alias::new(changelog_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .to_owned();
@@ -1651,10 +1643,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_title = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(title AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("title")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(changelog_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .limit(page_size_title)
@@ -1682,7 +1671,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_description = 10u64;
             let cur_page_description = pages.get("description").copied().unwrap_or(0);
             let count_stmt_description = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT description)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("description"),
+                )))
                 .from(Alias::new(changelog_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("description")).is_not_null())
                 .to_owned();
@@ -1701,10 +1692,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_description = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(description AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("description")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(changelog_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("description")).is_not_null())
                 .limit(page_size_description)
@@ -1735,7 +1723,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
             let count_stmt_sort_order = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT sort_order)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("sort_order"),
+                )))
                 .from(Alias::new(changelog_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .to_owned();
@@ -1754,10 +1744,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_sort_order = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(sort_order AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("sort_order")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(changelog_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .limit(page_size_sort_order)
@@ -1809,7 +1796,6 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::roadmap_entry::Model",
         "AdminForm",
         "Roadmap",
-        vec![],
     );
     let form_builder: FormBuilder = Arc::new(
         |_db: ADb,
@@ -1935,7 +1921,7 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            roadmap_entry::admin_from_form(&data, None)
+            roadmap_entry::admin_from_form(&data, None)?
                 .insert(&*db)
                 .await
                 .map(|_| ())
@@ -1947,7 +1933,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            roadmap_entry::admin_from_form(&data, Some(id))
+            roadmap_entry::admin_from_form(&data, Some(id))?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -1959,7 +1945,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            roadmap_entry::admin_partial_update(&data, id)
+            roadmap_entry::admin_partial_update(&data, id)?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -1998,7 +1984,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_status = 10u64;
             let cur_page_status = pages.get("status").copied().unwrap_or(0);
             let count_stmt_status = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT status)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("status"),
+                )))
                 .from(Alias::new(roadmap_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("status")).is_not_null())
                 .to_owned();
@@ -2017,10 +2005,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_status = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(status AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("status")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(roadmap_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("status")).is_not_null())
                 .limit(page_size_status)
@@ -2048,7 +2033,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_title = 10u64;
             let cur_page_title = pages.get("title").copied().unwrap_or(0);
             let count_stmt_title = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT title)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("title"),
+                )))
                 .from(Alias::new(roadmap_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .to_owned();
@@ -2067,10 +2054,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_title = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(title AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("title")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(roadmap_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .limit(page_size_title)
@@ -2098,7 +2082,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_description = 10u64;
             let cur_page_description = pages.get("description").copied().unwrap_or(0);
             let count_stmt_description = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT description)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("description"),
+                )))
                 .from(Alias::new(roadmap_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("description")).is_not_null())
                 .to_owned();
@@ -2117,10 +2103,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_description = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(description AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("description")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(roadmap_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("description")).is_not_null())
                 .limit(page_size_description)
@@ -2151,7 +2134,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_link_url = 10u64;
             let cur_page_link_url = pages.get("link_url").copied().unwrap_or(0);
             let count_stmt_link_url = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT link_url)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("link_url"),
+                )))
                 .from(Alias::new(roadmap_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("link_url")).is_not_null())
                 .to_owned();
@@ -2170,10 +2155,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_link_url = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(link_url AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("link_url")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(roadmap_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("link_url")).is_not_null())
                 .limit(page_size_link_url)
@@ -2201,7 +2183,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_link_label = 10u64;
             let cur_page_link_label = pages.get("link_label").copied().unwrap_or(0);
             let count_stmt_link_label = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT link_label)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("link_label"),
+                )))
                 .from(Alias::new(roadmap_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("link_label")).is_not_null())
                 .to_owned();
@@ -2220,10 +2204,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_link_label = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(link_label AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("link_label")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(roadmap_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("link_label")).is_not_null())
                 .limit(page_size_link_label)
@@ -2254,7 +2235,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_link_url_2 = 10u64;
             let cur_page_link_url_2 = pages.get("link_url_2").copied().unwrap_or(0);
             let count_stmt_link_url_2 = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT link_url_2)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("link_url_2"),
+                )))
                 .from(Alias::new(roadmap_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("link_url_2")).is_not_null())
                 .to_owned();
@@ -2273,10 +2256,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_link_url_2 = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(link_url_2 AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("link_url_2")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(roadmap_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("link_url_2")).is_not_null())
                 .limit(page_size_link_url_2)
@@ -2307,7 +2287,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_link_label_2 = 10u64;
             let cur_page_link_label_2 = pages.get("link_label_2").copied().unwrap_or(0);
             let count_stmt_link_label_2 = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT link_label_2)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("link_label_2"),
+                )))
                 .from(Alias::new(roadmap_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("link_label_2")).is_not_null())
                 .to_owned();
@@ -2326,10 +2308,9 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_link_label_2 = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(link_label_2 AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(
+                    Expr::col(Alias::new("link_label_2")).cast_as(Alias::new(text_cast_type(&db))),
+                )
                 .from(Alias::new(roadmap_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("link_label_2")).is_not_null())
                 .limit(page_size_link_label_2)
@@ -2360,7 +2341,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
             let count_stmt_sort_order = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT sort_order)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("sort_order"),
+                )))
                 .from(Alias::new(roadmap_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .to_owned();
@@ -2379,10 +2362,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_sort_order = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(sort_order AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("sort_order")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(roadmap_entry::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .limit(page_size_sort_order)
@@ -2434,7 +2414,6 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::known_issue::Model",
         "AdminForm",
         "Problèmes connus",
-        vec![],
     );
     let form_builder: FormBuilder = Arc::new(
         |_db: ADb,
@@ -2554,7 +2533,7 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            known_issue::admin_from_form(&data, None)
+            known_issue::admin_from_form(&data, None)?
                 .insert(&*db)
                 .await
                 .map(|_| ())
@@ -2566,7 +2545,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            known_issue::admin_from_form(&data, Some(id))
+            known_issue::admin_from_form(&data, Some(id))?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -2578,7 +2557,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            known_issue::admin_partial_update(&data, id)
+            known_issue::admin_partial_update(&data, id)?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -2611,7 +2590,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_version = 10u64;
             let cur_page_version = pages.get("version").copied().unwrap_or(0);
             let count_stmt_version = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT version)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("version"),
+                )))
                 .from(Alias::new(known_issue::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("version")).is_not_null())
                 .to_owned();
@@ -2630,10 +2611,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_version = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(version AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("version")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(known_issue::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("version")).is_not_null())
                 .limit(page_size_version)
@@ -2661,7 +2639,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_title = 10u64;
             let cur_page_title = pages.get("title").copied().unwrap_or(0);
             let count_stmt_title = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT title)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("title"),
+                )))
                 .from(Alias::new(known_issue::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .to_owned();
@@ -2680,10 +2660,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_title = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(title AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("title")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(known_issue::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .limit(page_size_title)
@@ -2711,7 +2688,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_description = 10u64;
             let cur_page_description = pages.get("description").copied().unwrap_or(0);
             let count_stmt_description = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT description)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("description"),
+                )))
                 .from(Alias::new(known_issue::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("description")).is_not_null())
                 .to_owned();
@@ -2730,10 +2709,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_description = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(description AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("description")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(known_issue::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("description")).is_not_null())
                 .limit(page_size_description)
@@ -2764,7 +2740,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_issue_type = 10u64;
             let cur_page_issue_type = pages.get("issue_type").copied().unwrap_or(0);
             let count_stmt_issue_type = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT issue_type)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("issue_type"),
+                )))
                 .from(Alias::new(known_issue::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("issue_type")).is_not_null())
                 .to_owned();
@@ -2783,10 +2761,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_issue_type = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(issue_type AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("issue_type")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(known_issue::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("issue_type")).is_not_null())
                 .limit(page_size_issue_type)
@@ -2817,7 +2792,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
             let count_stmt_sort_order = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT sort_order)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("sort_order"),
+                )))
                 .from(Alias::new(known_issue::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .to_owned();
@@ -2836,10 +2813,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_sort_order = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(sort_order AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("sort_order")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(known_issue::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .limit(page_size_sort_order)
@@ -2891,7 +2865,6 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::demo_category::Model",
         "AdminForm",
         "Catégories",
-        vec![],
     );
     let form_builder: FormBuilder = Arc::new(
         |_db: ADb,
@@ -2999,7 +2972,7 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            demo_category::admin_from_form(&data, None)
+            demo_category::admin_from_form(&data, None)?
                 .insert(&*db)
                 .await
                 .map(|_| ())
@@ -3011,7 +2984,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            demo_category::admin_from_form(&data, Some(id))
+            demo_category::admin_from_form(&data, Some(id))?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -3023,7 +2996,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            demo_category::admin_partial_update(&data, id)
+            demo_category::admin_partial_update(&data, id)?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -3049,7 +3022,6 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::demo_page::Model",
         "AdminForm",
         "Pages",
-        vec![],
     );
     let form_builder: FormBuilder = Arc::new(
         |_db: ADb,
@@ -3170,7 +3142,7 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            demo_page::admin_from_form(&data, None)
+            demo_page::admin_from_form(&data, None)?
                 .insert(&*db)
                 .await
                 .map(|_| ())
@@ -3182,7 +3154,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            demo_page::admin_from_form(&data, Some(id))
+            demo_page::admin_from_form(&data, Some(id))?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -3194,7 +3166,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            demo_page::admin_partial_update(&data, id)
+            demo_page::admin_partial_update(&data, id)?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -3229,7 +3201,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_category_id = 10u64;
             let cur_page_category_id = pages.get("category_id").copied().unwrap_or(0);
             let count_stmt_category_id = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT category_id)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("category_id"),
+                )))
                 .from(Alias::new(demo_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("category_id")).is_not_null())
                 .to_owned();
@@ -3248,10 +3222,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_category_id = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(category_id AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("category_id")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(demo_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("category_id")).is_not_null())
                 .limit(page_size_category_id)
@@ -3282,7 +3253,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_slug = 10u64;
             let cur_page_slug = pages.get("slug").copied().unwrap_or(0);
             let count_stmt_slug = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT slug)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("slug"),
+                )))
                 .from(Alias::new(demo_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("slug")).is_not_null())
                 .to_owned();
@@ -3301,7 +3274,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_slug = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!("CAST(slug AS {})", text_cast_type(&db))))
+                .expr(Expr::col(Alias::new("slug")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(demo_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("slug")).is_not_null())
                 .limit(page_size_slug)
@@ -3329,7 +3302,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_title = 10u64;
             let cur_page_title = pages.get("title").copied().unwrap_or(0);
             let count_stmt_title = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT title)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("title"),
+                )))
                 .from(Alias::new(demo_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .to_owned();
@@ -3348,10 +3323,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_title = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(title AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("title")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(demo_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .limit(page_size_title)
@@ -3379,7 +3351,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_lead = 10u64;
             let cur_page_lead = pages.get("lead").copied().unwrap_or(0);
             let count_stmt_lead = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT lead)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("lead"),
+                )))
                 .from(Alias::new(demo_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("lead")).is_not_null())
                 .to_owned();
@@ -3398,7 +3372,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_lead = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!("CAST(lead AS {})", text_cast_type(&db))))
+                .expr(Expr::col(Alias::new("lead")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(demo_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("lead")).is_not_null())
                 .limit(page_size_lead)
@@ -3426,7 +3400,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_page_type = 10u64;
             let cur_page_page_type = pages.get("page_type").copied().unwrap_or(0);
             let count_stmt_page_type = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT page_type)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("page_type"),
+                )))
                 .from(Alias::new(demo_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("page_type")).is_not_null())
                 .to_owned();
@@ -3445,10 +3421,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_page_type = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(page_type AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("page_type")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(demo_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("page_type")).is_not_null())
                 .limit(page_size_page_type)
@@ -3476,7 +3449,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
             let count_stmt_sort_order = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT sort_order)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("sort_order"),
+                )))
                 .from(Alias::new(demo_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .to_owned();
@@ -3495,10 +3470,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_sort_order = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(sort_order AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("sort_order")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(demo_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .limit(page_size_sort_order)
@@ -3550,7 +3522,6 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::demo_section::Model",
         "AdminForm",
         "Sections",
-        vec![],
     );
     let form_builder: FormBuilder = Arc::new(
         |_db: ADb,
@@ -3657,7 +3628,7 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            demo_section::admin_from_form(&data, None)
+            demo_section::admin_from_form(&data, None)?
                 .insert(&*db)
                 .await
                 .map(|_| ())
@@ -3669,7 +3640,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            demo_section::admin_from_form(&data, Some(id))
+            demo_section::admin_from_form(&data, Some(id))?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -3681,7 +3652,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            demo_section::admin_partial_update(&data, id)
+            demo_section::admin_partial_update(&data, id)?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -3712,7 +3683,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_page_id = 10u64;
             let cur_page_page_id = pages.get("page_id").copied().unwrap_or(0);
             let count_stmt_page_id = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT page_id)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("page_id"),
+                )))
                 .from(Alias::new(demo_section::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("page_id")).is_not_null())
                 .to_owned();
@@ -3731,10 +3704,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_page_id = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(page_id AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("page_id")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(demo_section::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("page_id")).is_not_null())
                 .limit(page_size_page_id)
@@ -3762,7 +3732,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_title = 10u64;
             let cur_page_title = pages.get("title").copied().unwrap_or(0);
             let count_stmt_title = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT title)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("title"),
+                )))
                 .from(Alias::new(demo_section::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .to_owned();
@@ -3781,10 +3753,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_title = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(title AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("title")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(demo_section::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .limit(page_size_title)
@@ -3812,7 +3781,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_content = 10u64;
             let cur_page_content = pages.get("content").copied().unwrap_or(0);
             let count_stmt_content = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT content)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("content"),
+                )))
                 .from(Alias::new(demo_section::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("content")).is_not_null())
                 .to_owned();
@@ -3831,10 +3802,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_content = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(content AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("content")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(demo_section::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("content")).is_not_null())
                 .limit(page_size_content)
@@ -3862,7 +3830,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
             let count_stmt_sort_order = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT sort_order)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("sort_order"),
+                )))
                 .from(Alias::new(demo_section::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .to_owned();
@@ -3881,10 +3851,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_sort_order = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(sort_order AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("sort_order")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(demo_section::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .limit(page_size_sort_order)
@@ -3936,7 +3903,6 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::code_example::Model",
         "AdminForm",
         "Exemples de code",
-        vec![],
     );
     let form_builder: FormBuilder = Arc::new(
         |_db: ADb,
@@ -4058,7 +4024,7 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            code_example::admin_from_form(&data, None)
+            code_example::admin_from_form(&data, None)?
                 .insert(&*db)
                 .await
                 .map(|_| ())
@@ -4070,7 +4036,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            code_example::admin_from_form(&data, Some(id))
+            code_example::admin_from_form(&data, Some(id))?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -4082,7 +4048,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            code_example::admin_partial_update(&data, id)
+            code_example::admin_partial_update(&data, id)?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -4117,7 +4083,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_page_id = 10u64;
             let cur_page_page_id = pages.get("page_id").copied().unwrap_or(0);
             let count_stmt_page_id = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT page_id)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("page_id"),
+                )))
                 .from(Alias::new(code_example::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("page_id")).is_not_null())
                 .to_owned();
@@ -4136,10 +4104,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_page_id = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(page_id AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("page_id")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(code_example::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("page_id")).is_not_null())
                 .limit(page_size_page_id)
@@ -4167,7 +4132,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_title = 10u64;
             let cur_page_title = pages.get("title").copied().unwrap_or(0);
             let count_stmt_title = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT title)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("title"),
+                )))
                 .from(Alias::new(code_example::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .to_owned();
@@ -4186,10 +4153,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_title = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(title AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("title")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(code_example::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .limit(page_size_title)
@@ -4217,7 +4181,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_language = 10u64;
             let cur_page_language = pages.get("language").copied().unwrap_or(0);
             let count_stmt_language = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT language)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("language"),
+                )))
                 .from(Alias::new(code_example::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("language")).is_not_null())
                 .to_owned();
@@ -4236,10 +4202,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_language = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(language AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("language")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(code_example::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("language")).is_not_null())
                 .limit(page_size_language)
@@ -4267,7 +4230,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_code = 10u64;
             let cur_page_code = pages.get("code").copied().unwrap_or(0);
             let count_stmt_code = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT code)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("code"),
+                )))
                 .from(Alias::new(code_example::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("code")).is_not_null())
                 .to_owned();
@@ -4286,7 +4251,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_code = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!("CAST(code AS {})", text_cast_type(&db))))
+                .expr(Expr::col(Alias::new("code")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(code_example::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("code")).is_not_null())
                 .limit(page_size_code)
@@ -4314,7 +4279,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_context = 10u64;
             let cur_page_context = pages.get("context").copied().unwrap_or(0);
             let count_stmt_context = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT context)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("context"),
+                )))
                 .from(Alias::new(code_example::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("context")).is_not_null())
                 .to_owned();
@@ -4333,10 +4300,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_context = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(context AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("context")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(code_example::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("context")).is_not_null())
                 .limit(page_size_context)
@@ -4364,7 +4328,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
             let count_stmt_sort_order = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT sort_order)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("sort_order"),
+                )))
                 .from(Alias::new(code_example::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .to_owned();
@@ -4383,10 +4349,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_sort_order = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(sort_order AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("sort_order")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(code_example::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .limit(page_size_sort_order)
@@ -4438,7 +4401,6 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::page_doc_link::Model",
         "AdminForm",
         "Liens documentation",
-        vec![],
     );
     let form_builder: FormBuilder = Arc::new(
         |_db: ADb,
@@ -4546,7 +4508,7 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            page_doc_link::admin_from_form(&data, None)
+            page_doc_link::admin_from_form(&data, None)?
                 .insert(&*db)
                 .await
                 .map(|_| ())
@@ -4558,7 +4520,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            page_doc_link::admin_from_form(&data, Some(id))
+            page_doc_link::admin_from_form(&data, Some(id))?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -4570,7 +4532,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            page_doc_link::admin_partial_update(&data, id)
+            page_doc_link::admin_partial_update(&data, id)?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -4603,7 +4565,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_page_id = 10u64;
             let cur_page_page_id = pages.get("page_id").copied().unwrap_or(0);
             let count_stmt_page_id = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT page_id)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("page_id"),
+                )))
                 .from(Alias::new(page_doc_link::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("page_id")).is_not_null())
                 .to_owned();
@@ -4622,10 +4586,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_page_id = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(page_id AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("page_id")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(page_doc_link::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("page_id")).is_not_null())
                 .limit(page_size_page_id)
@@ -4653,7 +4614,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_label = 10u64;
             let cur_page_label = pages.get("label").copied().unwrap_or(0);
             let count_stmt_label = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT label)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("label"),
+                )))
                 .from(Alias::new(page_doc_link::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("label")).is_not_null())
                 .to_owned();
@@ -4672,10 +4635,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_label = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(label AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("label")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(page_doc_link::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("label")).is_not_null())
                 .limit(page_size_label)
@@ -4703,7 +4663,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_url = 10u64;
             let cur_page_url = pages.get("url").copied().unwrap_or(0);
             let count_stmt_url = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT url)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("url"),
+                )))
                 .from(Alias::new(page_doc_link::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("url")).is_not_null())
                 .to_owned();
@@ -4722,7 +4684,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_url = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!("CAST(url AS {})", text_cast_type(&db))))
+                .expr(Expr::col(Alias::new("url")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(page_doc_link::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("url")).is_not_null())
                 .limit(page_size_url)
@@ -4750,7 +4712,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_link_type = 10u64;
             let cur_page_link_type = pages.get("link_type").copied().unwrap_or(0);
             let count_stmt_link_type = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT link_type)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("link_type"),
+                )))
                 .from(Alias::new(page_doc_link::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("link_type")).is_not_null())
                 .to_owned();
@@ -4769,10 +4733,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_link_type = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(link_type AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("link_type")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(page_doc_link::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("link_type")).is_not_null())
                 .limit(page_size_link_type)
@@ -4800,7 +4761,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
             let count_stmt_sort_order = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT sort_order)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("sort_order"),
+                )))
                 .from(Alias::new(page_doc_link::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .to_owned();
@@ -4819,10 +4782,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_sort_order = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(sort_order AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("sort_order")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(page_doc_link::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .limit(page_size_sort_order)
@@ -4874,7 +4834,6 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::form_field::Model",
         "AdminForm",
         "Champs formulaire",
-        vec![],
     );
     let form_builder: FormBuilder = Arc::new(
         |_db: ADb,
@@ -4997,7 +4956,7 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            form_field::admin_from_form(&data, None)
+            form_field::admin_from_form(&data, None)?
                 .insert(&*db)
                 .await
                 .map(|_| ())
@@ -5009,7 +4968,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            form_field::admin_from_form(&data, Some(id))
+            form_field::admin_from_form(&data, Some(id))?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -5021,7 +4980,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            form_field::admin_partial_update(&data, id)
+            form_field::admin_partial_update(&data, id)?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -5058,7 +5017,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_page_id = 10u64;
             let cur_page_page_id = pages.get("page_id").copied().unwrap_or(0);
             let count_stmt_page_id = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT page_id)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("page_id"),
+                )))
                 .from(Alias::new(form_field::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("page_id")).is_not_null())
                 .to_owned();
@@ -5077,10 +5038,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_page_id = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(page_id AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("page_id")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(form_field::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("page_id")).is_not_null())
                 .limit(page_size_page_id)
@@ -5108,7 +5066,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_name = 10u64;
             let cur_page_name = pages.get("name").copied().unwrap_or(0);
             let count_stmt_name = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT name)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("name"),
+                )))
                 .from(Alias::new(form_field::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("name")).is_not_null())
                 .to_owned();
@@ -5127,7 +5087,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_name = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!("CAST(name AS {})", text_cast_type(&db))))
+                .expr(Expr::col(Alias::new("name")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(form_field::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("name")).is_not_null())
                 .limit(page_size_name)
@@ -5155,7 +5115,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_field_type = 10u64;
             let cur_page_field_type = pages.get("field_type").copied().unwrap_or(0);
             let count_stmt_field_type = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT field_type)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("field_type"),
+                )))
                 .from(Alias::new(form_field::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("field_type")).is_not_null())
                 .to_owned();
@@ -5174,10 +5136,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_field_type = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(field_type AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("field_type")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(form_field::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("field_type")).is_not_null())
                 .limit(page_size_field_type)
@@ -5208,7 +5167,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_description = 10u64;
             let cur_page_description = pages.get("description").copied().unwrap_or(0);
             let count_stmt_description = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT description)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("description"),
+                )))
                 .from(Alias::new(form_field::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("description")).is_not_null())
                 .to_owned();
@@ -5227,10 +5188,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_description = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(description AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("description")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(form_field::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("description")).is_not_null())
                 .limit(page_size_description)
@@ -5261,7 +5219,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_example = 10u64;
             let cur_page_example = pages.get("example").copied().unwrap_or(0);
             let count_stmt_example = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT example)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("example"),
+                )))
                 .from(Alias::new(form_field::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("example")).is_not_null())
                 .to_owned();
@@ -5280,10 +5240,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_example = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(example AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("example")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(form_field::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("example")).is_not_null())
                 .limit(page_size_example)
@@ -5311,7 +5268,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_html_preview = 10u64;
             let cur_page_html_preview = pages.get("html_preview").copied().unwrap_or(0);
             let count_stmt_html_preview = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT html_preview)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("html_preview"),
+                )))
                 .from(Alias::new(form_field::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("html_preview")).is_not_null())
                 .to_owned();
@@ -5330,10 +5289,9 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_html_preview = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(html_preview AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(
+                    Expr::col(Alias::new("html_preview")).cast_as(Alias::new(text_cast_type(&db))),
+                )
                 .from(Alias::new(form_field::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("html_preview")).is_not_null())
                 .limit(page_size_html_preview)
@@ -5364,7 +5322,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
             let count_stmt_sort_order = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT sort_order)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("sort_order"),
+                )))
                 .from(Alias::new(form_field::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .to_owned();
@@ -5383,10 +5343,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_sort_order = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(sort_order AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("sort_order")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(form_field::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .limit(page_size_sort_order)
@@ -5438,7 +5395,6 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::doc_section::Model",
         "AdminForm",
         "Doc — Sections",
-        vec![],
     );
     let form_builder: FormBuilder = Arc::new(
         |_db: ADb,
@@ -5545,7 +5501,7 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            doc_section::admin_from_form(&data, None)
+            doc_section::admin_from_form(&data, None)?
                 .insert(&*db)
                 .await
                 .map(|_| ())
@@ -5557,7 +5513,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            doc_section::admin_from_form(&data, Some(id))
+            doc_section::admin_from_form(&data, Some(id))?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -5569,7 +5525,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            doc_section::admin_partial_update(&data, id)
+            doc_section::admin_partial_update(&data, id)?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -5596,7 +5552,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_lang = 10u64;
             let cur_page_lang = pages.get("lang").copied().unwrap_or(0);
             let count_stmt_lang = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT lang)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("lang"),
+                )))
                 .from(Alias::new(doc_section::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("lang")).is_not_null())
                 .to_owned();
@@ -5615,7 +5573,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_lang = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!("CAST(lang AS {})", text_cast_type(&db))))
+                .expr(Expr::col(Alias::new("lang")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(doc_section::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("lang")).is_not_null())
                 .limit(page_size_lang)
@@ -5643,7 +5601,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_theme = 10u64;
             let cur_page_theme = pages.get("theme").copied().unwrap_or(0);
             let count_stmt_theme = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT theme)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("theme"),
+                )))
                 .from(Alias::new(doc_section::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("theme")).is_not_null())
                 .to_owned();
@@ -5662,10 +5622,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_theme = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(theme AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("theme")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(doc_section::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("theme")).is_not_null())
                 .limit(page_size_theme)
@@ -5714,7 +5671,6 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::doc_page::Model",
         "AdminForm",
         "Doc — Pages",
-        vec![],
     );
     let form_builder: FormBuilder = Arc::new(
         |_db: ADb,
@@ -5829,7 +5785,7 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            doc_page::admin_from_form(&data, None)
+            doc_page::admin_from_form(&data, None)?
                 .insert(&*db)
                 .await
                 .map(|_| ())
@@ -5841,7 +5797,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            doc_page::admin_from_form(&data, Some(id))
+            doc_page::admin_from_form(&data, Some(id))?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -5853,7 +5809,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            doc_page::admin_partial_update(&data, id)
+            doc_page::admin_partial_update(&data, id)?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -5888,7 +5844,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_section_id = 10u64;
             let cur_page_section_id = pages.get("section_id").copied().unwrap_or(0);
             let count_stmt_section_id = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT section_id)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("section_id"),
+                )))
                 .from(Alias::new(doc_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("section_id")).is_not_null())
                 .to_owned();
@@ -5907,10 +5865,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_section_id = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(section_id AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("section_id")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(doc_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("section_id")).is_not_null())
                 .limit(page_size_section_id)
@@ -5941,7 +5896,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_slug = 10u64;
             let cur_page_slug = pages.get("slug").copied().unwrap_or(0);
             let count_stmt_slug = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT slug)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("slug"),
+                )))
                 .from(Alias::new(doc_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("slug")).is_not_null())
                 .to_owned();
@@ -5960,7 +5917,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_slug = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!("CAST(slug AS {})", text_cast_type(&db))))
+                .expr(Expr::col(Alias::new("slug")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(doc_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("slug")).is_not_null())
                 .limit(page_size_slug)
@@ -5988,7 +5945,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_lang = 10u64;
             let cur_page_lang = pages.get("lang").copied().unwrap_or(0);
             let count_stmt_lang = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT lang)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("lang"),
+                )))
                 .from(Alias::new(doc_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("lang")).is_not_null())
                 .to_owned();
@@ -6007,7 +5966,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_lang = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!("CAST(lang AS {})", text_cast_type(&db))))
+                .expr(Expr::col(Alias::new("lang")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(doc_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("lang")).is_not_null())
                 .limit(page_size_lang)
@@ -6035,7 +5994,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_title = 10u64;
             let cur_page_title = pages.get("title").copied().unwrap_or(0);
             let count_stmt_title = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT title)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("title"),
+                )))
                 .from(Alias::new(doc_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .to_owned();
@@ -6054,10 +6015,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_title = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(title AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("title")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(doc_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .limit(page_size_title)
@@ -6085,7 +6043,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_lead = 10u64;
             let cur_page_lead = pages.get("lead").copied().unwrap_or(0);
             let count_stmt_lead = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT lead)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("lead"),
+                )))
                 .from(Alias::new(doc_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("lead")).is_not_null())
                 .to_owned();
@@ -6104,7 +6064,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_lead = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!("CAST(lead AS {})", text_cast_type(&db))))
+                .expr(Expr::col(Alias::new("lead")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(doc_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("lead")).is_not_null())
                 .limit(page_size_lead)
@@ -6132,7 +6092,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
             let count_stmt_sort_order = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT sort_order)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("sort_order"),
+                )))
                 .from(Alias::new(doc_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .to_owned();
@@ -6151,10 +6113,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_sort_order = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(sort_order AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("sort_order")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(doc_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .limit(page_size_sort_order)
@@ -6206,7 +6165,6 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::doc_block::Model",
         "AdminForm",
         "Doc — Blocs",
-        vec![],
     );
     let form_builder: FormBuilder = Arc::new(
         |_db: ADb,
@@ -6320,7 +6278,7 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            doc_block::admin_from_form(&data, None)
+            doc_block::admin_from_form(&data, None)?
                 .insert(&*db)
                 .await
                 .map(|_| ())
@@ -6332,7 +6290,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            doc_block::admin_from_form(&data, Some(id))
+            doc_block::admin_from_form(&data, Some(id))?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -6344,7 +6302,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            doc_block::admin_partial_update(&data, id)
+            doc_block::admin_partial_update(&data, id)?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -6377,7 +6335,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_page_id = 10u64;
             let cur_page_page_id = pages.get("page_id").copied().unwrap_or(0);
             let count_stmt_page_id = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT page_id)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("page_id"),
+                )))
                 .from(Alias::new(doc_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("page_id")).is_not_null())
                 .to_owned();
@@ -6396,10 +6356,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_page_id = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(page_id AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("page_id")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(doc_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("page_id")).is_not_null())
                 .limit(page_size_page_id)
@@ -6427,7 +6384,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_heading = 10u64;
             let cur_page_heading = pages.get("heading").copied().unwrap_or(0);
             let count_stmt_heading = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT heading)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("heading"),
+                )))
                 .from(Alias::new(doc_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("heading")).is_not_null())
                 .to_owned();
@@ -6446,10 +6405,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_heading = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(heading AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("heading")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(doc_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("heading")).is_not_null())
                 .limit(page_size_heading)
@@ -6477,7 +6433,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_content = 10u64;
             let cur_page_content = pages.get("content").copied().unwrap_or(0);
             let count_stmt_content = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT content)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("content"),
+                )))
                 .from(Alias::new(doc_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("content")).is_not_null())
                 .to_owned();
@@ -6496,10 +6454,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_content = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(content AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("content")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(doc_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("content")).is_not_null())
                 .limit(page_size_content)
@@ -6527,7 +6482,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_block_type = 10u64;
             let cur_page_block_type = pages.get("block_type").copied().unwrap_or(0);
             let count_stmt_block_type = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT block_type)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("block_type"),
+                )))
                 .from(Alias::new(doc_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("block_type")).is_not_null())
                 .to_owned();
@@ -6546,10 +6503,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_block_type = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(block_type AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("block_type")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(doc_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("block_type")).is_not_null())
                 .limit(page_size_block_type)
@@ -6580,7 +6534,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
             let count_stmt_sort_order = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT sort_order)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("sort_order"),
+                )))
                 .from(Alias::new(doc_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .to_owned();
@@ -6599,10 +6555,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_sort_order = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(sort_order AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("sort_order")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(doc_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .limit(page_size_sort_order)
@@ -6654,7 +6607,6 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::site_config::Model",
         "AdminForm",
         "Configuration site",
-        vec![],
     );
     let form_builder: FormBuilder = Arc::new(
         |_db: ADb,
@@ -6762,7 +6714,7 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            site_config::admin_from_form(&data, None)
+            site_config::admin_from_form(&data, None)?
                 .insert(&*db)
                 .await
                 .map(|_| ())
@@ -6774,7 +6726,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            site_config::admin_from_form(&data, Some(id))
+            site_config::admin_from_form(&data, Some(id))?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -6786,7 +6738,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            site_config::admin_partial_update(&data, id)
+            site_config::admin_partial_update(&data, id)?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -6807,13 +6759,7 @@ pub fn admin_register() -> AdminRegistry {
     );
 
     // ── Resource: cour ──
-    let meta = AdminResource::new(
-        "cour",
-        "crate::entities::cour::Model",
-        "AdminForm",
-        "Cours",
-        vec![],
-    );
+    let meta = AdminResource::new("cour", "crate::entities::cour::Model", "AdminForm", "Cours");
     let form_builder: FormBuilder = Arc::new(
         |_db: ADb,
          _vec: Vec<std::string::String>,
@@ -6932,7 +6878,7 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            cour::admin_from_form(&data, None)
+            cour::admin_from_form(&data, None)?
                 .insert(&*db)
                 .await
                 .map(|_| ())
@@ -6944,7 +6890,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            cour::admin_from_form(&data, Some(id))
+            cour::admin_from_form(&data, Some(id))?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -6956,7 +6902,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            cour::admin_partial_update(&data, id)
+            cour::admin_partial_update(&data, id)?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -6993,7 +6939,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_slug = 10u64;
             let cur_page_slug = pages.get("slug").copied().unwrap_or(0);
             let count_stmt_slug = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT slug)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("slug"),
+                )))
                 .from(Alias::new(cour::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("slug")).is_not_null())
                 .to_owned();
@@ -7012,7 +6960,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_slug = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!("CAST(slug AS {})", text_cast_type(&db))))
+                .expr(Expr::col(Alias::new("slug")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(cour::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("slug")).is_not_null())
                 .limit(page_size_slug)
@@ -7040,7 +6988,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_lang = 10u64;
             let cur_page_lang = pages.get("lang").copied().unwrap_or(0);
             let count_stmt_lang = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT lang)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("lang"),
+                )))
                 .from(Alias::new(cour::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("lang")).is_not_null())
                 .to_owned();
@@ -7059,7 +7009,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_lang = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!("CAST(lang AS {})", text_cast_type(&db))))
+                .expr(Expr::col(Alias::new("lang")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(cour::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("lang")).is_not_null())
                 .limit(page_size_lang)
@@ -7087,7 +7037,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_title = 10u64;
             let cur_page_title = pages.get("title").copied().unwrap_or(0);
             let count_stmt_title = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT title)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("title"),
+                )))
                 .from(Alias::new(cour::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .to_owned();
@@ -7106,10 +7058,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_title = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(title AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("title")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(cour::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .limit(page_size_title)
@@ -7137,7 +7086,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_theme = 10u64;
             let cur_page_theme = pages.get("theme").copied().unwrap_or(0);
             let count_stmt_theme = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT theme)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("theme"),
+                )))
                 .from(Alias::new(cour::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("theme")).is_not_null())
                 .to_owned();
@@ -7156,10 +7107,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_theme = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(theme AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("theme")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(cour::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("theme")).is_not_null())
                 .limit(page_size_theme)
@@ -7187,7 +7135,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_difficulte = 10u64;
             let cur_page_difficulte = pages.get("difficulte").copied().unwrap_or(0);
             let count_stmt_difficulte = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT difficulte)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("difficulte"),
+                )))
                 .from(Alias::new(cour::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("difficulte")).is_not_null())
                 .to_owned();
@@ -7206,10 +7156,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_difficulte = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(difficulte AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("difficulte")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(cour::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("difficulte")).is_not_null())
                 .limit(page_size_difficulte)
@@ -7240,7 +7187,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_ordre = 10u64;
             let cur_page_ordre = pages.get("ordre").copied().unwrap_or(0);
             let count_stmt_ordre = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT ordre)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("ordre"),
+                )))
                 .from(Alias::new(cour::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("ordre")).is_not_null())
                 .to_owned();
@@ -7259,10 +7208,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_ordre = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(ordre AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("ordre")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(cour::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("ordre")).is_not_null())
                 .limit(page_size_ordre)
@@ -7290,7 +7236,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
             let count_stmt_sort_order = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT sort_order)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("sort_order"),
+                )))
                 .from(Alias::new(cour::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .to_owned();
@@ -7309,10 +7257,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_sort_order = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(sort_order AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("sort_order")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(cour::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .limit(page_size_sort_order)
@@ -7364,7 +7309,6 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::chapitre::Model",
         "AdminForm",
         "Chapitres",
-        vec![],
     );
     let form_builder: FormBuilder = Arc::new(
         |_db: ADb,
@@ -7470,7 +7414,7 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            chapitre::admin_from_form(&data, None)
+            chapitre::admin_from_form(&data, None)?
                 .insert(&*db)
                 .await
                 .map(|_| ())
@@ -7482,7 +7426,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            chapitre::admin_from_form(&data, Some(id))
+            chapitre::admin_from_form(&data, Some(id))?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -7494,7 +7438,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            chapitre::admin_partial_update(&data, id)
+            chapitre::admin_partial_update(&data, id)?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -7525,7 +7469,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_cour_id = 10u64;
             let cur_page_cour_id = pages.get("cour_id").copied().unwrap_or(0);
             let count_stmt_cour_id = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT cour_id)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("cour_id"),
+                )))
                 .from(Alias::new(chapitre::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("cour_id")).is_not_null())
                 .to_owned();
@@ -7544,10 +7490,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_cour_id = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(cour_id AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("cour_id")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(chapitre::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("cour_id")).is_not_null())
                 .limit(page_size_cour_id)
@@ -7575,7 +7518,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_slug = 10u64;
             let cur_page_slug = pages.get("slug").copied().unwrap_or(0);
             let count_stmt_slug = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT slug)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("slug"),
+                )))
                 .from(Alias::new(chapitre::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("slug")).is_not_null())
                 .to_owned();
@@ -7594,7 +7539,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_slug = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!("CAST(slug AS {})", text_cast_type(&db))))
+                .expr(Expr::col(Alias::new("slug")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(chapitre::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("slug")).is_not_null())
                 .limit(page_size_slug)
@@ -7622,7 +7567,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_title = 10u64;
             let cur_page_title = pages.get("title").copied().unwrap_or(0);
             let count_stmt_title = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT title)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("title"),
+                )))
                 .from(Alias::new(chapitre::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .to_owned();
@@ -7641,10 +7588,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_title = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(title AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("title")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(chapitre::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .limit(page_size_title)
@@ -7672,7 +7616,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
             let count_stmt_sort_order = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT sort_order)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("sort_order"),
+                )))
                 .from(Alias::new(chapitre::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .to_owned();
@@ -7691,10 +7637,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_sort_order = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(sort_order AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("sort_order")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(chapitre::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .limit(page_size_sort_order)
@@ -7746,7 +7689,6 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::cour_block::Model",
         "AdminForm",
         "Cours — Blocs",
-        vec![],
     );
     let form_builder: FormBuilder = Arc::new(
         |_db: ADb,
@@ -7853,7 +7795,7 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            cour_block::admin_from_form(&data, None)
+            cour_block::admin_from_form(&data, None)?
                 .insert(&*db)
                 .await
                 .map(|_| ())
@@ -7865,7 +7807,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            cour_block::admin_from_form(&data, Some(id))
+            cour_block::admin_from_form(&data, Some(id))?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -7877,7 +7819,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            cour_block::admin_partial_update(&data, id)
+            cour_block::admin_partial_update(&data, id)?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -7908,7 +7850,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_chapitre_id = 10u64;
             let cur_page_chapitre_id = pages.get("chapitre_id").copied().unwrap_or(0);
             let count_stmt_chapitre_id = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT chapitre_id)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("chapitre_id"),
+                )))
                 .from(Alias::new(cour_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("chapitre_id")).is_not_null())
                 .to_owned();
@@ -7927,10 +7871,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_chapitre_id = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(chapitre_id AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("chapitre_id")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(cour_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("chapitre_id")).is_not_null())
                 .limit(page_size_chapitre_id)
@@ -7961,7 +7902,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_block_type = 10u64;
             let cur_page_block_type = pages.get("block_type").copied().unwrap_or(0);
             let count_stmt_block_type = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT block_type)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("block_type"),
+                )))
                 .from(Alias::new(cour_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("block_type")).is_not_null())
                 .to_owned();
@@ -7980,10 +7923,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_block_type = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(block_type AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("block_type")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(cour_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("block_type")).is_not_null())
                 .limit(page_size_block_type)
@@ -8014,7 +7954,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_heading = 10u64;
             let cur_page_heading = pages.get("heading").copied().unwrap_or(0);
             let count_stmt_heading = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT heading)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("heading"),
+                )))
                 .from(Alias::new(cour_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("heading")).is_not_null())
                 .to_owned();
@@ -8033,10 +7975,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_heading = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(heading AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("heading")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(cour_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("heading")).is_not_null())
                 .limit(page_size_heading)
@@ -8064,7 +8003,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
             let count_stmt_sort_order = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT sort_order)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("sort_order"),
+                )))
                 .from(Alias::new(cour_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .to_owned();
@@ -8083,10 +8024,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_sort_order = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(sort_order AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("sort_order")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(cour_block::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
                 .limit(page_size_sort_order)
@@ -8138,7 +8076,6 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::runique_release::Model",
         "AdminForm",
         "Releases Runique",
-        vec![],
     );
     let form_builder: FormBuilder = Arc::new(
         |_db: ADb,
@@ -8245,7 +8182,7 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            runique_release::admin_from_form(&data, None)
+            runique_release::admin_from_form(&data, None)?
                 .insert(&*db)
                 .await
                 .map(|_| ())
@@ -8257,7 +8194,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            runique_release::admin_from_form(&data, Some(id))
+            runique_release::admin_from_form(&data, Some(id))?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -8269,7 +8206,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            runique_release::admin_partial_update(&data, id)
+            runique_release::admin_partial_update(&data, id)?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -8294,7 +8231,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_version = 10u64;
             let cur_page_version = pages.get("version").copied().unwrap_or(0);
             let count_stmt_version = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT version)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("version"),
+                )))
                 .from(Alias::new(runique_release::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("version")).is_not_null())
                 .to_owned();
@@ -8313,10 +8252,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_version = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(version AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("version")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(runique_release::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("version")).is_not_null())
                 .limit(page_size_version)
@@ -8365,7 +8301,6 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::user_profile::Model",
         "AdminForm",
         "Profils utilisateurs",
-        vec![],
     );
     let form_builder: FormBuilder = Arc::new(
         |_db: ADb,
@@ -8480,26 +8415,23 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            use sea_orm::ConnectionTrait;
-            let result = user_profile::admin_from_form(&data, None)
-                .insert(&*db)
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = user_profile::admin_from_form(&data, None)?
+                .insert(&txn)
                 .await?;
-            let inserted_id = result.id.to_string();
-            for key in data.keys() {
-                if let Some(target_id) = key.strip_prefix("m2m_groupes__")
-                    && !target_id.is_empty()
-                    && target_id
-                        .chars()
-                        .all(|c| c.is_ascii_alphanumeric() || c == '-')
-                {
-                    let sql = format!(
-                        "INSERT INTO eihwaz_users_groupes (user_id, groupe_id) VALUES ({}, {}) ON CONFLICT DO NOTHING",
-                        inserted_id, target_id
-                    );
-                    let _ = db.execute_unprepared(&sql).await;
-                }
-            }
-            Ok(())
+            runique::admin::helper::m2m::write_links(
+                &txn,
+                "eihwaz_users_groupes",
+                "user_id",
+                "groupe_id",
+                result.id.into(),
+                &data,
+                "m2m_groupes__",
+                false,
+            )
+            .await?;
+            txn.commit().await
         })
     });
 
@@ -8508,32 +8440,23 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            use sea_orm::ConnectionTrait;
-            let id_str = id.to_string();
-            user_profile::admin_from_form(&data, Some(id))
-                .update(&*db)
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            user_profile::admin_from_form(&data, Some(id))?
+                .update(&txn)
                 .await?;
-            let _ = db
-                .execute_unprepared(&format!(
-                    "DELETE FROM eihwaz_users_groupes WHERE user_id = {}",
-                    id_str
-                ))
-                .await;
-            for key in data.keys() {
-                if let Some(target_id) = key.strip_prefix("m2m_groupes__")
-                    && !target_id.is_empty()
-                    && target_id
-                        .chars()
-                        .all(|c| c.is_ascii_alphanumeric() || c == '-')
-                {
-                    let sql = format!(
-                        "INSERT INTO eihwaz_users_groupes (user_id, groupe_id) VALUES ({}, {})",
-                        id_str, target_id
-                    );
-                    let _ = db.execute_unprepared(&sql).await;
-                }
-            }
-            Ok(())
+            runique::admin::helper::m2m::write_links(
+                &txn,
+                "eihwaz_users_groupes",
+                "user_id",
+                "groupe_id",
+                id.into(),
+                &data,
+                "m2m_groupes__",
+                true,
+            )
+            .await?;
+            txn.commit().await
         })
     });
 
@@ -8542,7 +8465,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            user_profile::admin_partial_update(&data, id)
+            user_profile::admin_partial_update(&data, id)?
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -8575,12 +8498,12 @@ pub fn admin_register() -> AdminRegistry {
                     })
                     .collect();
                 let selected = if let Some(ref oid) = object_id {
-                    use sea_orm::sea_query::{Alias, Expr, Query};
+                    use sea_orm::sea_query::{Alias, Expr, ExprTrait, Query};
                     let stmt = Query::select()
-                        .expr(Expr::cust(format!(
-                            "CAST(groupe_id AS {})",
-                            text_cast_type(&db)
-                        )))
+                        .expr(
+                            Expr::col(Alias::new("groupe_id"))
+                                .cast_as(Alias::new(text_cast_type(&db))),
+                        )
                         .from(Alias::new("eihwaz_users_groupes"))
                         .and_where(text_eq(&db, "user_id", oid))
                         .to_owned();
@@ -8628,7 +8551,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_username = 10u64;
             let cur_page_username = pages.get("username").copied().unwrap_or(0);
             let count_stmt_username = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT username)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("username"),
+                )))
                 .from(Alias::new(user_profile::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("username")).is_not_null())
                 .to_owned();
@@ -8647,10 +8572,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_username = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(username AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("username")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(user_profile::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("username")).is_not_null())
                 .limit(page_size_username)
@@ -8678,7 +8600,9 @@ pub fn admin_register() -> AdminRegistry {
             let page_size_is_verified = 5u64;
             let cur_page_is_verified = pages.get("is_verified").copied().unwrap_or(0);
             let count_stmt_is_verified = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT is_verified)"))
+                .expr(sea_orm::sea_query::Func::count_distinct(Expr::col(
+                    Alias::new("is_verified"),
+                )))
                 .from(Alias::new(user_profile::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("is_verified")).is_not_null())
                 .to_owned();
@@ -8697,10 +8621,7 @@ pub fn admin_register() -> AdminRegistry {
                 .unwrap_or(0) as u64;
             let stmt_is_verified = Query::select()
                 .distinct()
-                .expr(Expr::cust(format!(
-                    "CAST(is_verified AS {})",
-                    text_cast_type(&db)
-                )))
+                .expr(Expr::col(Alias::new("is_verified")).cast_as(Alias::new(text_cast_type(&db))))
                 .from(Alias::new(user_profile::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("is_verified")).is_not_null())
                 .limit(page_size_is_verified)

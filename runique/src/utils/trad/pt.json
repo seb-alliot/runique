@@ -36,6 +36,9 @@
     "date_too_far": "Muito distante (máx: {})",
     "time_invalid": "Formato de hora inválido",
     "file_required": "Por favor selecione pelo menos um arquivo",
+    "data_invalid": "Valor inválido para «{}»",
+    "data_required": "«{}» é obrigatório",
+    "data_password": "Não foi possível gerar o hash da senha de «{}»; nada foi salvo",
     "file_extension_blocked": "Arquivo '{}' não permitido. Extensões: {}",
     "finalize_error": "Erro ao finalizar o campo '{}': {}",
     "template_missing": "Template ausente: {}",
@@ -255,7 +258,8 @@
     "active": "Ativo",
     "user": {
       "username_too_short": "O nome de usuário é muito curto (min 3 car.)",
-      "invalid_email": "Formato de endereço de e-mail inválido"
+      "invalid_email": "Formato de endereço de e-mail inválido",
+      "not_activated": "Esta conta ainda não foi ativada pelo seu usuário: será quando ele tiver escolhido a senha pelo e-mail recebido."
     },
     "login": {
       "title": "Entrar",
@@ -271,7 +275,6 @@
       "success": "Desconectado com sucesso."
     },
     "access": {
-      "no_auth_handler": "Nenhum manipulador de autenticação configurado. Chame .auth(MyAuth) em AdminConfig.",
       "insufficient_rights": "Direitos insuficientes para acessar a administração"
     },
     "dashboard": {
@@ -436,8 +439,7 @@
     "long_identifier_detected": "Os identificadores SQL gerados são muito longos (limite do MariaDB/MySQL: 64 caracteres):",
     "long_identifier_rename_required": "Encurte os nomes de tabela/coluna envolvidos — o Runique não trunca identificadores automaticamente.",
     "files_ready": "{} arquivo(s) pronto(s) para migrar.",
-    "unknown_dsl_type": "Aviso: tipo de campo desconhecido '{}' — usando '{}' por padrão. Verifique se há um erro de digitação no seu modelo.",
-    "unknown_db_engine": "Aviso: DB_ENGINE '{}' não reconhecido — usando migrações no estilo SQLite (sem suporte nativo a enum/trigger). Valores suportados: postgres, mysql/mariadb, sqlite."
+    "unknown_dsl_type": "Aviso: tipo de campo desconhecido '{}' — usando '{}' por padrão. Verifique se há um erro de digitação no seu modelo."
   },
   "migrate": {
     "applying": "Aplicando migrações de '{}'...",
@@ -470,7 +472,9 @@
     "password_min_length": "A senha deve ter pelo menos {} caracteres.",
     "password_weak": "A senha deve conter pelo menos uma maiúscula, uma minúscula, um dígito e um caractere especial (!@#$%...).",
     "password_mismatch": "As senhas não coincidem.",
-    "check_inbox": "Se este endereço estiver associado a uma conta, você receberá um email de redefinição.",
+    "check_inbox": "Se este endereço estiver associado a uma conta, você receberá um e-mail com as instruções.",
+    "blocked_subject": "Sua conta está bloqueada",
+    "blocked_body": "<p>Olá {},</p><p>Foi solicitada a redefinição de senha da sua conta, mas esta conta está bloqueada. Entre em contato com o administrador do site para desbloqueá-la.</p><p>Se você não fez esta solicitação, ignore este e-mail.</p>",
     "email_subject": "Redefinição de senha",
     "email_body": "<p>Olá {},</p><p>Clique no link a seguir para redefinir sua senha (válido por 1 hora):</p><p><a href=\"{}\">{}</a></p>"
   },

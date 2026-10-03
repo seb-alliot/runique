@@ -260,7 +260,7 @@ fn test_flow_scan_modele_avec_meta() {
 #[test]
 fn test_flow_generate_create_users() {
     let schema = schema_users();
-    let content = generate_create_file(&schema, &DbKind::Other);
+    let content = generate_create_file(&schema);
 
     assert!(content.contains("users"), "nom de table présent");
     assert!(content.contains("pub struct Migration"));
@@ -277,7 +277,7 @@ fn test_flow_generate_create_users() {
 #[test]
 fn test_flow_generate_create_posts_avec_fk() {
     let schema = schema_posts();
-    let content = generate_create_file(&schema, &DbKind::Other);
+    let content = generate_create_file(&schema);
 
     assert!(content.contains("posts"), "nom de table présent");
     assert!(content.contains("user_id"), "colonne FK présente");
@@ -286,7 +286,7 @@ fn test_flow_generate_create_posts_avec_fk() {
 #[test]
 fn test_flow_generate_create_posts_avec_index() {
     let schema = schema_posts();
-    let content = generate_create_file(&schema, &DbKind::Other);
+    let content = generate_create_file(&schema);
 
     assert!(content.contains("idx_posts_slug"), "nom de l'index présent");
 }
@@ -294,7 +294,7 @@ fn test_flow_generate_create_posts_avec_index() {
 #[test]
 fn test_flow_generate_create_contient_pk_auto_increment() {
     let schema = schema_users();
-    let content = generate_create_file(&schema, &DbKind::Other);
+    let content = generate_create_file(&schema);
 
     assert!(
         content.contains("auto_increment"),
@@ -311,7 +311,7 @@ fn test_flow_generate_create_pk_uuid_sans_auto_increment() {
         foreign_keys: vec![],
         indexes: vec![],
     };
-    let content = generate_create_file(&schema, &DbKind::Other);
+    let content = generate_create_file(&schema);
 
     assert!(content.contains("sessions"));
     // UUID PKs ne doivent pas avoir auto_increment
@@ -333,7 +333,7 @@ fn test_flow_generate_create_colonne_nullable() {
         foreign_keys: vec![],
         indexes: vec![],
     };
-    let content = generate_create_file(&schema, &DbKind::Other);
+    let content = generate_create_file(&schema);
     assert!(content.contains(".null()"), "colonne nullable → .null()");
     assert!(
         content.contains(".not_null()"),
@@ -350,7 +350,7 @@ fn test_flow_generate_create_colonne_unique() {
         foreign_keys: vec![],
         indexes: vec![],
     };
-    let content = generate_create_file(&schema, &DbKind::Other);
+    let content = generate_create_file(&schema);
     assert!(
         content.contains(".unique_key()"),
         "colonne unique → .unique_key()"
@@ -653,7 +653,7 @@ fn test_flow_complet_premiere_migration() {
         let file_path = seaorm_create_file_path(mig.to_str().unwrap(), ts, &schema.table_name);
         let snap_path = snapshot_file_path(mig.to_str().unwrap(), &schema.table_name);
 
-        let content = generate_create_file(schema, &DbKind::Other);
+        let content = generate_create_file(schema);
         fs::write(&file_path, &content).unwrap();
         fs::write(&snap_path, &content).unwrap();
 
@@ -867,7 +867,7 @@ fn test_flow_generate_create_float_types() {
     fs::write(ent.join("product.rs"), product_entity()).unwrap();
 
     let schemas = scan_entities(ent.to_str().unwrap()).unwrap();
-    let content = generate_create_file(&schemas[0], &DbKind::Other);
+    let content = generate_create_file(&schemas[0]);
 
     assert!(content.contains("products"), "table products présente");
     assert!(content.contains("price"), "colonne price présente");

@@ -484,6 +484,35 @@ mod tests {
         assert_eq!(test_utils_placement(toml), TestUtils::Missing);
     }
 
+    // Written from cargo-mutants survivors (2026-10-02): a multi-line entry must
+    // close on its last brace, or the next section's lines land in it.
+    #[test]
+    fn test_utils_after_a_closed_multiline_entry_stays_dev_only() {
+        let toml = "[dependencies]\nrunique = {\n  version = \"2.3.0\",\n}\n\n[dev-dependencies]\nrunique = { version = \"2.3.0\", features = [\"test-utils\"] }\n";
+        assert_eq!(test_utils_placement(toml), TestUtils::DevOnly);
+    }
+
+    #[test]
+    fn only_a_cfg_naming_test_gates_the_module() {
+        assert!(module_file_is_gated(
+            "#![cfg(all(test, feature = \"x\"))]\n"
+        ));
+        assert!(!module_file_is_gated("#![allow(dead_code)]\n"));
+        assert!(!module_file_is_gated("#![cfg_attr(test, allow(unused))]\n"));
+        assert!(!module_file_is_gated("#![cfg(feature = \"my_test\")]\n"));
+    }
+
+    #[test]
+    fn test_files_lists_rust_files_but_mod() {
+        let dir = std::env::temp_dir().join(format!("rq_tests_{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&dir).unwrap();
+        for name in ["user.rs", "mod.rs", "notes.txt", "blog.rs"] {
+            fs::write(dir.join(name), "").unwrap();
+        }
+        assert_eq!(test_files(&dir).unwrap(), ["blog", "user"]);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
     #[test]
     fn declaration_gated_in_main() {
         let src = "mod views;\n#[cfg(test)]\nmod runique_test;\nfn main() {}\n";

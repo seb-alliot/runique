@@ -66,52 +66,8 @@ pub async fn logout_view(mut request: Request) -> AppResult<Response> {
 
 ## Authentication for the AdminPanel
 
-### With the built-in User (zero config)
-
-```rust
-.with_admin(|a| a.auth(RuniqueAdminAuth::new()))
-```
-
-### With a custom model
-
-```rust
-use runique::prelude::*;
-
-// 1. Implement UserEntity on your entity
-impl UserEntity for users::Entity {
-    type Model = users::Model;
-
-    async fn find_by_id(db: &DatabaseConnection, id: Pk) -> Option<Self::Model> {
-        users::Entity::find_by_id(id).one(db).await.ok().flatten()
-    }
-
-    async fn find_by_username(db: &DatabaseConnection, username: &str) -> Option<Self::Model> {
-        users::Entity::find()
-            .filter(users::Column::Username.eq(username))
-            .one(db)
-            .await
-            .ok()
-            .flatten()
-    }
-
-    async fn find_by_email(db: &DatabaseConnection, email: &str) -> Option<Self::Model> {
-        users::Entity::find()
-            .filter(users::Column::Email.eq(email))
-            .one(db)
-            .await
-            .ok()
-            .flatten()
-    }
-
-    async fn update_password(db: &DatabaseConnection, email: &str, new_hash: &str) -> Result<(), sea_orm::DbErr> {
-        // update password hash implementation
-        todo!()
-    }
-}
-
-// 2. Pass DefaultAdminAuth to the admin config
-.with_admin(|a| a.auth(DefaultAdminAuth::<users::Entity>::new()))
-```
+Nothing to configure: the admin signs in accounts of `eihwaz_users` that are active and staff
+or superuser. To add fields to the user model, use `extend!{ table: "eihwaz_users", ... }`.
 
 To connect authentication to the admin panel, see also [11-Admin.md](/docs/en/admin).
 

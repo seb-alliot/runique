@@ -1,13 +1,9 @@
 //! Whatever the handler does, nothing it wrote survives, and the next test
 //! isn't held up or fed stale state.
 use super::helpers::{Scratch, count, insert};
-use crate::helpers::pk::pk;
-use runique::auth::guard::{cache_permissions, evict_permissions, get_permissions};
-use runique::auth::permissions::Groupe;
 use runique::db::ADb;
 use runique::runique_test::runique_test;
 use runique::sea_orm::DbErr;
-use serial_test::serial;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -167,39 +163,4 @@ async fn a_clone_kept_too_long_is_reported_and_still_rolled_back() {
     handle.await.expect("task");
     // Once the last clone is gone, the transaction is rolled back on drop.
     assert_eq!(count(&outside).await, 0);
-}
-
-fn group(id: i32) -> Vec<Groupe> {
-    vec![Groupe {
-        id,
-        nom: format!("group {id}"),
-        permissions: Vec::new(),
-    }]
-}
-
-// `#[serial]`, like every test touching this global cache: another test's
-// `clear_cache()` could otherwise wipe `kept` between the setup and the check.
-#[tokio::test]
-#[serial]
-async fn the_permission_cache_is_put_back() {
-    let scratch = Scratch::new("cache");
-    scratch.outside().await;
-    let (kept, added) = (pk(990_001), pk(990_002));
-    cache_permissions(kept, group(1));
-
-    let outcome = runique_test::<ADb>(&scratch.sqlite_env(&[]), async |_| {
-        cache_permissions(added, group(2));
-        evict_permissions(kept);
-        Ok(())
-    })
-    .await;
-
-    assert!(outcome.is_ok(), "{outcome:?}");
-    assert!(
-        get_permissions(added).is_none(),
-        "an entry the test added must go"
-    );
-    let restored = get_permissions(kept).expect("an entry the test removed must come back");
-    assert_eq!(restored.groupes[0].id, 1);
-    evict_permissions(kept);
 }

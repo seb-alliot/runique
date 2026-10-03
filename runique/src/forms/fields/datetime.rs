@@ -613,7 +613,7 @@ impl FormField for DurationField {
 /// `timestamp` with a fractional part, or a `timestamp_tz` in RFC 3339, taken
 /// in UTC like `parse_utc_datetime` stores it. The input shows neither an
 /// offset nor more than seconds, so `render` rewrites the value into its shape.
-pub(crate) fn parse_datetime_local(value: &str) -> Option<NaiveDateTime> {
+pub fn parse_datetime_local(value: &str) -> Option<NaiveDateTime> {
     if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(value) {
         return Some(dt.naive_utc());
     }

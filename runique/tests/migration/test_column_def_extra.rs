@@ -299,3 +299,74 @@ fn test_format_label_triple() {
     let label = field.label();
     assert_eq!(label, "Date Of Birth");
 }
+
+// Written from cargo-mutants survivors (2026-10-02): the `is_some()` tests
+// above pass whatever field the name leads to. A column with no DSL type
+// (builtin tables, `extend!{}`) gets its widget from its name — each
+// alternative of each rule, alone, must lead to that widget.
+async fn guessed(col: ColumnDef) -> String {
+    let mut field = col.to_form_field().expect("field");
+    let (ty, tpl) = (
+        field.field_type().to_string(),
+        field.template_name().to_string(),
+    );
+    if (ty.as_str(), tpl.as_str()) == ("text", "base_special.html") {
+        field.set_value("a-b");
+        return if field.validate().await { "slug" } else { "ip" }.to_string();
+    }
+    if tpl == "base_string.html" {
+        ty
+    } else {
+        format!("{ty}@{tpl}")
+    }
+}
+
+#[tokio::test]
+async fn a_column_without_a_dsl_type_gets_its_widget_from_its_name() {
+    let string = |n: &str| ColumnDef::new(n).string();
+    let cases: &[(&str, &str)] = &[
+        ("email", "email"),
+        ("contact_email", "email"),
+        ("password", "password"),
+        ("user_password", "password"),
+        ("pin_pwd", "password"),
+        ("url", "url"),
+        ("home_url", "url"),
+        ("website", "url"),
+        ("company_website", "url"),
+        ("http_link", "url"),
+        ("slug", "slug"),
+        ("post_slug", "slug"),
+        ("color", "color@base_color.html"),
+        ("bg_color", "color@base_color.html"),
+        ("colour", "color@base_color.html"),
+        ("bg_colour", "color@base_color.html"),
+        ("ip", "ip"),
+        ("client_ip", "ip"),
+        ("last_ip_address", "ip"),
+        ("title", "text"),
+    ];
+    for (name, widget) in cases {
+        assert_eq!(
+            guessed(string(name)).await,
+            *widget,
+            "string column `{name}`"
+        );
+    }
+
+    for name in [
+        "description",
+        "short_bio",
+        "content",
+        "message",
+        "summary",
+        "richtext_body",
+    ] {
+        assert_eq!(
+            guessed(ColumnDef::new(name).text()).await,
+            "richtext",
+            "text column `{name}`"
+        );
+    }
+    assert_eq!(guessed(ColumnDef::new("notes").text()).await, "textarea");
+}

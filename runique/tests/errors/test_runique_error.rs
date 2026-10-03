@@ -620,3 +620,28 @@ fn test_from_tera_error_template_name_stored() {
     let info = ctx.template_info.unwrap();
     assert_eq!(info.name, "mytemplate.html");
 }
+
+// Written from cargo-mutants survivors (2026-10-02).
+#[test]
+fn test_to_error_context_keeps_the_error_category() {
+    let db = RuniqueError::Database("down".into()).to_error_context();
+    assert!(matches!(db.error_type, ErrorType::Database));
+    let tpl = RuniqueError::Template("broken".into()).to_error_context();
+    assert!(matches!(tpl.error_type, ErrorType::Template));
+    assert_ne!(db.title, tpl.title);
+}
+
+#[test]
+fn test_from_tera_error_reads_the_line_and_hides_internal_templates() {
+    let mut tera = tera::Tera::default();
+    tera.add_raw_template("home.html", "x").unwrap();
+    tera.add_raw_template("404.html", "y").unwrap(); // a Runique builtin name
+    let err = tera::Error::message("Failed to render: unexpected token at line 12, column 3");
+    let ctx = ErrorContext::from_tera_error(&err, "home.html", &tera);
+    let info = ctx.template_info.expect("template info");
+    assert_eq!(info.line_number, Some(12));
+    assert_eq!(info.available_templates, ["home.html"]);
+
+    let no_line = ErrorContext::from_tera_error(&tera::Error::message("oops"), "home.html", &tera);
+    assert_eq!(no_line.template_info.unwrap().line_number, None);
+}

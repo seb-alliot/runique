@@ -13,6 +13,7 @@ pub mod test_password;
 pub mod test_pk_alias;
 pub mod test_pk_fk_uuid;
 pub mod test_reset_token;
+pub mod test_resolve_ogimage;
 pub mod test_runique_log;
 pub mod test_sanitizer;
 pub mod test_url_params;

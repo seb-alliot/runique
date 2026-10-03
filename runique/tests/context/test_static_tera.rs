@@ -217,3 +217,64 @@ fn test_static_base_url_trailing_slash_normalise() {
     let result = tera.render("t", &ctx).unwrap();
     assert_eq!(result, format!("/static/style.css?v={}", css_token()));
 }
+
+// Written from cargo-mutants survivors (2026-10-02). The tests above render a
+// template named "t": Tera autoescapes `.html` / `.xml` only, so whether a
+// filter's output is marked safe was never exercised.
+fn render_html(src: &str, val: &str) -> String {
+    let mut tera = make_tera();
+    tera.add_raw_template("t.html", src).unwrap();
+    let mut ctx = Context::new();
+    ctx.insert("val", val);
+    tera.render("t.html", &ctx).unwrap()
+}
+
+#[test]
+fn test_html_filters_emit_markup_not_escaped_text() {
+    assert_eq!(
+        render_html("{{ val | csrf_field }}", "tok"),
+        r#"<input type="hidden" name="csrf_token" value="tok">"#
+    );
+    assert!(render_html("{{ val | markdown }}", "**gras**").contains("<strong>gras</strong>"));
+    assert!(render_html("{{ val | sanitize }}", "<p>texte</p>").contains("<p>texte</p>"));
+}
+
+#[test]
+fn test_html_filters_still_strip_scripts() {
+    let md = render_html(
+        "{{ val | markdown }}",
+        "<script>alert(1)</script>\n\n[x](javascript:alert(1))",
+    );
+    assert!(!md.contains("<script"), "{md}");
+    assert!(md.contains("<a") && !md.contains("javascript:"), "{md}");
+    let rich = render_html(
+        "{{ val | sanitize }}",
+        r#"<p onclick="x()">a</p><script>b</script>"#,
+    );
+    assert!(
+        !rich.contains("<script") && !rich.contains("onclick"),
+        "{rich}"
+    );
+    let csrf = render_html("{{ val | csrf_field }}", r#""><script>"#);
+    assert!(!csrf.contains("<script"), "{csrf}");
+}
+
+#[test]
+fn test_format_date_and_humanize() {
+    assert_eq!(
+        render_html("{{ val | format_date }}", "2026-10-02T08:30:00"),
+        "02/10/2026 08:30"
+    );
+    assert_eq!(
+        render_html("{{ val | format_date }}", "2026-10-02T08:30:00.5"),
+        "02/10/2026 08:30"
+    );
+    assert_eq!(
+        render_html("{{ val | format_date }}", "pas une date"),
+        "pas une date"
+    );
+    assert_eq!(
+        render_html("{{ val | humanize }}", "changelog__entry-x"),
+        "Changelog Entry X"
+    );
+}

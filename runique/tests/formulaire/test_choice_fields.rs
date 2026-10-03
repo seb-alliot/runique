@@ -300,3 +300,27 @@ fn test_checkbox_field_render_ok() {
     let field = CheckboxField::new("tags").add_choice("a", "A");
     assert!(field.render(&tera).is_ok());
 }
+
+// Regression: a `multiple()` select with two options picked was refused — the
+// joined value "fr,de" was compared whole to each choice.
+#[tokio::test]
+async fn test_choice_field_multiple_accepts_several_values() {
+    use runique::forms::base::FormField;
+    let mut field = ChoiceField::new("pays")
+        .multiple()
+        .add_choice("fr", "France")
+        .add_choice("de", "Allemagne")
+        .add_choice("it", "Italie");
+    field.set_value("fr,de");
+    assert!(field.validate().await, "{:?}", field.error());
+    let selected: Vec<&str> = field
+        .choices
+        .iter()
+        .filter(|c| c.selected)
+        .map(|c| c.value.as_str())
+        .collect();
+    assert_eq!(selected, ["fr", "de"], "marked for re-display");
+
+    field.set_value("fr,xx");
+    assert!(!field.validate().await, "an unknown value is still refused");
+}

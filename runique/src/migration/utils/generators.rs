@@ -1,7 +1,7 @@
 //! SeaORM migration Rust code generation — `up`/`down` files, CREATE TABLE, FK, indexes, triggers.
 use crate::migration::utils::{
     helpers::col_type_to_method,
-    types::{Changes, DbKind, ParsedColumn, ParsedSchema},
+    types::{Changes, ParsedColumn, ParsedSchema},
 };
 
 /// Builds the FK constraint name. Length (MariaDB/MySQL hard-reject over 64 characters) is
@@ -14,17 +14,15 @@ fn fk_constraint_name(table: &str, from: &str, to_table: &str) -> String {
 }
 
 /// Generates the migration file for a CREATE TABLE.
-pub fn generate_create_file(schema: &ParsedSchema, db_kind: &DbKind) -> String {
+pub fn generate_create_file(schema: &ParsedSchema) -> String {
     // FKs always inline in CREATE TABLE: SQLite cannot ALTER-ADD a foreign key
     // constraint to an existing table, so a separately-created FK breaks it —
     // inline is valid on every engine, not just required on SQLite (confirmed
     // via the contributions-table fix earlier this session).
-    let cols = build_create_table_cols(schema, db_kind, true);
+    let cols = build_create_table_cols(schema, true);
     let idx_stmts = build_index_create_stmts(schema);
-    let trigger_stmts = build_updated_at_trigger_stmts(schema);
     let enum_stmts = build_enum_type_stmts(schema);
     let enum_drops = build_enum_type_drops(schema);
-    let trigger_drops = build_updated_at_trigger_drops(schema);
 
     let mut up = String::new();
     up.push_str(&enum_stmts);
@@ -41,11 +39,9 @@ pub fn generate_create_file(schema: &ParsedSchema, db_kind: &DbKind) -> String {
     up.push_str("            )\n");
     up.push_str("            .await?;\n\n");
     up.push_str(&idx_stmts);
-    up.push_str(&trigger_stmts);
     up.push_str("        Ok(())\n");
 
     let mut down = String::new();
-    down.push_str(&trigger_drops);
     // No explicit drop_index here: DROP TABLE already removes every index defined on it,
     // and dropping one by name first fails on MariaDB/MySQL when it's still backing an
     // active FK constraint (error 1553) — the FK's own drop only happens implicitly with
@@ -82,7 +78,7 @@ pub fn generate_create_file(schema: &ParsedSchema, db_kind: &DbKind) -> String {
 /// Generates the snapshot file (includes FK stmts so diffs detect FK additions/removals).
 pub fn generate_snapshot_file(schema: &ParsedSchema) -> String {
     // Snapshot keeps FKs as separate stmts (never inline) so parser_seaorm round-trip is stable.
-    let cols = build_create_table_cols(schema, &DbKind::Other, false);
+    let cols = build_create_table_cols(schema, false);
     let fk_stmts = build_fk_create_stmts(schema);
     let idx_stmts = build_index_create_stmts(schema);
     let fk_drops = build_fk_drop_stmts(schema);
@@ -197,44 +193,49 @@ fn build_enum_type_drops(schema: &ParsedSchema) -> String {
 }
 
 fn build_enum_create_stmts_for_cols(cols: &[ParsedColumn]) -> String {
-    let mut out = String::new();
-    for col in cols {
-        if col.enum_string_values.is_empty() {
-            continue;
-        }
-        let name = col.enum_name.as_deref().unwrap_or(&col.name);
-        // No builder alternative exists for this idempotent form (Postgres itself has
-        // no `CREATE TYPE IF NOT EXISTS`, and sea-query's `TypeCreateStatement` has no
-        // `if_not_exists()` either — confirmed against its full method list) — raw SQL
-        // stays, but the values it interpolates are escaped like any other SQL string
-        // literal (`'` doubled), which the builder does automatically and this doesn't.
-        let variants: Vec<String> = col
-            .enum_string_values
-            .iter()
-            .map(|v| format!("'{}'", v.replace('\'', "''")))
-            .collect();
-        out.push_str(&format!(
-            "        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{\n            manager.get_connection().execute_unprepared(\n                \"DO $$ BEGIN CREATE TYPE {name} AS ENUM ({variants}); EXCEPTION WHEN duplicate_object THEN NULL; END $$\"\n            ).await?;\n        }}\n\n",
-            name = name,
-            variants = variants.join(", "),
-        ));
-    }
-    out
+    cols.iter()
+        .filter(|col| !col.enum_string_values.is_empty())
+        .map(|col| {
+            enum_create_stmt(
+                col.enum_name.as_deref().unwrap_or(&col.name),
+                &col.enum_string_values,
+            )
+        })
+        .collect()
 }
 
 fn build_enum_drop_stmts_for_cols(cols: &[ParsedColumn]) -> String {
-    let mut out = String::new();
-    for col in cols {
-        if col.enum_string_values.is_empty() {
-            continue;
-        }
-        let name = col.enum_name.as_deref().unwrap_or(&col.name);
-        out.push_str(&format!(
-            "        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{\n            manager.get_connection().execute_unprepared(\"DROP TYPE IF EXISTS {name}\").await?;\n        }}\n\n",
-            name = name,
-        ));
-    }
-    out
+    cols.iter()
+        .filter(|col| !col.enum_string_values.is_empty())
+        .map(|col| enum_drop_stmt(col.enum_name.as_deref().unwrap_or(&col.name)))
+        .collect()
+}
+
+/// Creates the Postgres enum type `name`, unless it exists already — Postgres
+/// has no `CREATE TYPE IF NOT EXISTS`, so the catalogue is looked up first (an
+/// enum shared by several tables is created by the first migration only).
+///
+/// The name is lowercased: the builder quotes type names, and every other
+/// reference to the type (`ColumnType::Enum`, `Type::alter()` below) uses the
+/// lowercase form.
+fn enum_create_stmt(name: &str, values: &[String]) -> String {
+    let name = name.to_lowercase();
+    let values = values
+        .iter()
+        .map(|v| format!("Alias::new({v:?})"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!(
+        "        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{\n            let exists = manager\n                .get_connection()\n                .query_one(\n                    &Query::select()\n                        .expr(Expr::val(1))\n                        .from((Alias::new(\"pg_catalog\"), Alias::new(\"pg_type\")))\n                        .and_where(Expr::col(Alias::new(\"typname\")).eq({name:?}))\n                        .to_owned(),\n                )\n                .await?\n                .is_some();\n            if !exists {{\n                manager\n                    .create_type(\n                        sea_query::extension::postgres::Type::create()\n                            .as_enum(Alias::new({name:?}))\n                            .values([{values}])\n                            .to_owned(),\n                    )\n                    .await?;\n            }}\n        }}\n\n"
+    )
+}
+
+/// Drops the Postgres enum type `name` if it exists.
+fn enum_drop_stmt(name: &str) -> String {
+    let name = name.to_lowercase();
+    format!(
+        "        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{\n            manager\n                .drop_type(\n                    sea_query::extension::postgres::Type::drop()\n                        .if_exists()\n                        .name(Alias::new({name:?}))\n                        .to_owned(),\n                )\n                .await?;\n        }}\n\n"
+    )
 }
 
 /// True if `body` has a line that isn't blank or a `//` comment — i.e. it actually calls `manager`.
@@ -316,7 +317,7 @@ pub fn generate_batch_down_file(changes: &[&Changes], timestamp: &str) -> String
     )
 }
 
-fn build_create_table_cols(schema: &ParsedSchema, db_kind: &DbKind, inline_fks: bool) -> String {
+fn build_create_table_cols(schema: &ParsedSchema, inline_fks: bool) -> String {
     let mut cols = String::new();
 
     if let Some(ref pk) = schema.primary_key {
@@ -326,7 +327,7 @@ fn build_create_table_cols(schema: &ParsedSchema, db_kind: &DbKind, inline_fks: 
     for col in schema.columns.iter().filter(|c| !c.ignored) {
         cols.push_str(&format!(
             "                    .col({})\n",
-            render_column_def(col, db_kind)
+            render_column_def(col)
         ));
     }
 
@@ -563,30 +564,17 @@ fn build_alter_bodies(change: &Changes) -> (String, String) {
     // migration-run time via the real backend, not baked in at generation time
     // (a migration file is fixed forever once written — see the enum CREATE/DROP
     // helpers above for the same reasoning).
-    // Both `ALTER TYPE ... RENAME VALUE`/`ADD VALUE` (Postgres) have a builder —
-    // `sea_query::extension::postgres::Type` — that escapes values the same way
-    // every other sea-query statement does (`prepare_value`, doubled single quotes),
-    // unlike hand-written SQL strings. Used here instead of raw `execute_unprepared`
-    // for exactly that reason; only the idempotent `CREATE TYPE` DO-block above has
-    // no builder equivalent at all (Postgres itself has no `CREATE TYPE IF NOT EXISTS`).
-    //
-    // The type NAME passed to `.name()` is lowercased here (only here): the raw
-    // `CREATE TYPE` DO-block above is never quoted, so Postgres folds it to lowercase
-    // at creation time — but `Type::alter()`'s own renderer always quotes its type
-    // name, preserving whatever case it's given. Passing the original mixed case
-    // (e.g. "ChangelogCategory") makes it look for `"ChangelogCategory"` — a
-    // different, non-existent identifier from the lowercase one actually stored.
-    // `CREATE`/`DROP TYPE` and `ColumnType::Enum` stay as-is: neither is ever quoted
-    // (confirmed in sea-query's Postgres backend), so both already resolve to the
-    // same lowercase-folded object regardless of the case written in the Rust source.
+    // `ALTER TYPE ... RENAME VALUE`/`ADD VALUE` go through
+    // `sea_query::extension::postgres::Type`, like the CREATE/DROP TYPE helpers
+    // above; the type name is lowercased the same way (the builder quotes it).
     for (col, enum_name, old_val, new_val) in &change.enum_renames {
         let enum_name_lc = enum_name.to_lowercase();
         up.push_str(&format!(
-            "        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{\n            manager\n                .alter_type(\n                    sea_query::extension::postgres::Type::alter()\n                        .name(Alias::new(\"{enum_name_lc}\"))\n                        .rename_value(Alias::new(\"{old}\"), Alias::new(\"{new}\"))\n                        .to_owned(),\n                )\n                .await?;\n        }} else {{\n            manager\n                .get_connection()\n                .execute(\n                    Query::update()\n                        .table(Alias::new(\"{table}\"))\n                        .value(Alias::new(\"{col}\"), \"{new}\")\n                        .and_where(Expr::col(Alias::new(\"{col}\")).eq(\"{old}\"))\n                        .to_owned(),\n                )\n                .await?;\n        }}\n\n",
+            "        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{\n            manager\n                .alter_type(\n                    sea_query::extension::postgres::Type::alter()\n                        .name(Alias::new(\"{enum_name_lc}\"))\n                        .rename_value(Alias::new(\"{old}\"), Alias::new(\"{new}\"))\n                        .to_owned(),\n                )\n                .await?;\n        }} else {{\n            manager\n                .get_connection()\n                .execute(\n                    &Query::update()\n                        .table(Alias::new(\"{table}\"))\n                        .value(Alias::new(\"{col}\"), \"{new}\")\n                        .and_where(Expr::col(Alias::new(\"{col}\")).eq(\"{old}\"))\n                        .to_owned(),\n                )\n                .await?;\n        }}\n\n",
             enum_name_lc = enum_name_lc, old = old_val, new = new_val, table = change.table_name, col = col,
         ));
         down.push_str(&format!(
-            "        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{\n            manager\n                .alter_type(\n                    sea_query::extension::postgres::Type::alter()\n                        .name(Alias::new(\"{enum_name_lc}\"))\n                        .rename_value(Alias::new(\"{new}\"), Alias::new(\"{old}\"))\n                        .to_owned(),\n                )\n                .await?;\n        }} else {{\n            manager\n                .get_connection()\n                .execute(\n                    Query::update()\n                        .table(Alias::new(\"{table}\"))\n                        .value(Alias::new(\"{col}\"), \"{old}\")\n                        .and_where(Expr::col(Alias::new(\"{col}\")).eq(\"{new}\"))\n                        .to_owned(),\n                )\n                .await?;\n        }}\n\n",
+            "        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{\n            manager\n                .alter_type(\n                    sea_query::extension::postgres::Type::alter()\n                        .name(Alias::new(\"{enum_name_lc}\"))\n                        .rename_value(Alias::new(\"{new}\"), Alias::new(\"{old}\"))\n                        .to_owned(),\n                )\n                .await?;\n        }} else {{\n            manager\n                .get_connection()\n                .execute(\n                    &Query::update()\n                        .table(Alias::new(\"{table}\"))\n                        .value(Alias::new(\"{col}\"), \"{old}\")\n                        .and_where(Expr::col(Alias::new(\"{col}\")).eq(\"{new}\"))\n                        .to_owned(),\n                )\n                .await?;\n        }}\n\n",
             enum_name_lc = enum_name_lc, old = old_val, new = new_val, table = change.table_name, col = col,
         ));
     }
@@ -650,17 +638,7 @@ fn render_enum_column_change(table: &str, from: &ParsedColumn, to: &ParsedColumn
     // reasoning as the enum CREATE/DROP helpers above).
     if to_is_enum && !from_is_enum {
         let enum_name = to.enum_name.as_deref().unwrap_or(&to.name);
-        // See `build_enum_create_stmts_for_cols` above: no builder alternative for this
-        // idempotent form exists, so values are escaped like any other SQL string literal.
-        let variants = to
-            .enum_string_values
-            .iter()
-            .map(|v| format!("'{}'", v.replace('\'', "''")))
-            .collect::<Vec<_>>()
-            .join(", ");
-        out.push_str(&format!(
-            "        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{\n            manager.get_connection().execute_unprepared(\n                \"DO $$ BEGIN CREATE TYPE {enum_name} AS ENUM ({variants}); EXCEPTION WHEN duplicate_object THEN NULL; END $$\"\n            ).await?;\n        }}\n\n",
-        ));
+        out.push_str(&enum_create_stmt(enum_name, &to.enum_string_values));
     }
 
     let col_def = if to_is_enum {
@@ -716,9 +694,7 @@ fn render_enum_column_change(table: &str, from: &ParsedColumn, to: &ParsedColumn
     // the ALTER above has moved the column off it.
     if from_is_enum && !to_is_enum {
         let enum_name = from.enum_name.as_deref().unwrap_or(&from.name);
-        out.push_str(&format!(
-            "        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{\n            manager.get_connection().execute_unprepared(\"DROP TYPE IF EXISTS {enum_name}\").await?;\n        }}\n\n",
-        ));
+        out.push_str(&enum_drop_stmt(enum_name));
     }
 
     out
@@ -812,7 +788,7 @@ fn render_pk_col(pk: &ParsedColumn) -> String {
     s
 }
 
-fn render_column_def(col: &ParsedColumn, db_kind: &DbKind) -> String {
+fn render_column_def(col: &ParsedColumn) -> String {
     let null = if col.nullable {
         ".null()"
     } else {
@@ -825,11 +801,6 @@ fn render_column_def(col: &ParsedColumn, db_kind: &DbKind) -> String {
         format!(".default({})", v)
     } else {
         String::new()
-    };
-    let on_update = if col.updated_at && *db_kind == DbKind::Mysql {
-        ".extra(\"ON UPDATE CURRENT_TIMESTAMP\")"
-    } else {
-        ""
     };
 
     if !col.enum_string_values.is_empty() {
@@ -852,59 +823,14 @@ fn render_column_def(col: &ParsedColumn, db_kind: &DbKind) -> String {
     } else {
         let ty = col_type_to_method(&col.col_type);
         format!(
-            "ColumnDef::new(Alias::new(\"{name}\")).{ty}{null}{uniq}{default}{on_update}",
+            "ColumnDef::new(Alias::new(\"{name}\")).{ty}{null}{uniq}{default}",
             name = col.name,
             ty = ty,
             null = null,
             uniq = uniq,
             default = default,
-            on_update = on_update,
         )
     }
-}
-
-/// Generates PostgreSQL triggers for `updated_at` columns.
-/// For MySQL, handling is inline via `.extra("ON UPDATE CURRENT_TIMESTAMP")`.
-/// Always emitted into the generated file, wrapped in a runtime backend check —
-/// same reasoning as the enum CREATE/DROP helpers: a migration file is fixed
-/// forever once written, so deciding "include this or not" from whatever engine
-/// `makemigrations` happened to target freezes the file to that one engine.
-fn build_updated_at_trigger_stmts(schema: &ParsedSchema) -> String {
-    let updated_at_cols: Vec<_> = schema.columns.iter().filter(|c| c.updated_at).collect();
-    if updated_at_cols.is_empty() {
-        return String::new();
-    }
-
-    let table = &schema.table_name;
-    let fn_name = format!("set_updated_at_{}", table);
-    let trigger_name = format!("trg_{}_updated_at", table);
-
-    format!(
-        "        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{\n            manager.get_connection().execute_unprepared(\n                \"CREATE OR REPLACE FUNCTION {fn_name}() RETURNS TRIGGER AS $$ BEGIN NEW.updated_at = NOW(); RETURN NEW; END; $$ LANGUAGE plpgsql;\"\n            ).await?;\n            manager.get_connection().execute_unprepared(\n                \"CREATE TRIGGER {trigger_name} BEFORE UPDATE ON {table} FOR EACH ROW EXECUTE PROCEDURE {fn_name}();\"\n            ).await?;\n        }}\n\n",
-        fn_name = fn_name,
-        trigger_name = trigger_name,
-        table = table,
-    )
-}
-
-/// Drops PostgreSQL `updated_at` triggers in the `down` block. Same runtime-guard
-/// reasoning as `build_updated_at_trigger_stmts` above.
-fn build_updated_at_trigger_drops(schema: &ParsedSchema) -> String {
-    let has_updated_at = schema.columns.iter().any(|c| c.updated_at);
-    if !has_updated_at {
-        return String::new();
-    }
-
-    let table = &schema.table_name;
-    let fn_name = format!("set_updated_at_{}", table);
-    let trigger_name = format!("trg_{}_updated_at", table);
-
-    format!(
-        "        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{\n            manager.get_connection().execute_unprepared(\n                \"DROP TRIGGER IF EXISTS {trigger_name} ON {table};\"\n            ).await?;\n            manager.get_connection().execute_unprepared(\n                \"DROP FUNCTION IF EXISTS {fn_name}();\"\n            ).await?;\n        }}\n\n",
-        trigger_name = trigger_name,
-        table = table,
-        fn_name = fn_name,
-    )
 }
 
 fn push_drop_index(buf: &mut String, table: &str, idx_name: &str) {
@@ -971,7 +897,7 @@ fn push_add_column(buf: &mut String, table: &str, col: &ParsedColumn) {
     buf.push_str(&format!(
         "        manager\n            .alter_table(\n                Table::alter()\n                    .table(Alias::new(\"{table}\"))\n                    .add_column({coldef})\n                    .to_owned(),\n            )\n            .await?;\n\n",
         table = table,
-        coldef = render_column_def(col, &DbKind::Other),
+        coldef = render_column_def(col),
     ));
 }
 

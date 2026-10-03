@@ -91,12 +91,9 @@ impl RuniqueApp {
 
         Ok(())
     }
-
-    /// Returns true if the certificate should be renewed (missing or past renewal date).
-    #[cfg(feature = "acme")]
-    async fn _cert_needs_renewal_placeholder() {}
 }
 
+/// Returns true if the certificate should be renewed (missing or past renewal date).
 #[cfg(feature = "acme")]
 async fn cert_needs_renewal(expires_path: &std::path::Path) -> bool {
     let Ok(content) = tokio::fs::read_to_string(expires_path).await else {
@@ -273,5 +270,30 @@ impl RuniqueApp {
             .await?;
 
         Ok(())
+    }
+}
+
+/// Written from cargo-mutants survivors (2026-10-02).
+#[cfg(all(test, feature = "acme"))]
+mod cert_renewal_tests {
+    use super::cert_needs_renewal;
+
+    #[tokio::test]
+    async fn a_certificate_is_renewed_once_its_date_is_past_or_unreadable() {
+        let dir = std::env::temp_dir().join(format!("rq_acme_{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("expires.txt");
+        let write =
+            |when: chrono::DateTime<chrono::Utc>| std::fs::write(&path, when.to_rfc3339()).unwrap();
+
+        assert!(cert_needs_renewal(&path).await, "no renewal date on disk");
+        std::fs::write(&path, "not a date").unwrap();
+        assert!(cert_needs_renewal(&path).await, "unreadable date");
+        write(chrono::Utc::now() + chrono::Duration::days(30));
+        assert!(!cert_needs_renewal(&path).await, "still valid");
+        write(chrono::Utc::now() - chrono::Duration::seconds(1));
+        assert!(cert_needs_renewal(&path).await, "date passed");
+
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

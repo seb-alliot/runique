@@ -487,76 +487,6 @@ async fn test_schema_to_migration_ignored_column_is_really_absent() {
     );
 }
 
-// ═══════════════════════════════════════════════════════════════
-// to_model() — contenu de la chaîne générée
-// ═══════════════════════════════════════════════════════════════
-
-#[test]
-fn test_schema_to_model_contient_struct_model() {
-    let s = ModelSchema::new("Article").primary_key(PrimaryKeyDef::new("id"));
-    let code = s.to_model();
-    assert!(code.contains("pub struct Model"));
-}
-
-#[test]
-fn test_schema_to_model_contient_table_name() {
-    let s = ModelSchema::new("BlogPost").primary_key(PrimaryKeyDef::new("id"));
-    let code = s.to_model();
-    assert!(
-        code.contains("blog_post"),
-        "doit contenir le nom de table snake_case"
-    );
-}
-
-#[test]
-fn test_schema_to_model_pk_i32() {
-    let s = ModelSchema::new("User").primary_key(PrimaryKeyDef::new("id").i32());
-    let code = s.to_model();
-    assert!(code.contains("i32"));
-}
-
-#[test]
-fn test_schema_to_model_pk_i64() {
-    let s = ModelSchema::new("BigTable").primary_key(PrimaryKeyDef::new("id").i64());
-    let code = s.to_model();
-    assert!(code.contains("i64"));
-}
-
-#[test]
-fn test_schema_to_model_colonne_nullable() {
-    let s = ModelSchema::new("User")
-        .primary_key(PrimaryKeyDef::new("id"))
-        .column(ColumnDef::new("bio").text().nullable());
-    let code = s.to_model();
-    assert!(
-        code.contains("Option<"),
-        "colonne nullable doit générer Option<T>"
-    );
-}
-
-#[test]
-fn test_schema_to_model_colonne_ignoree_absente() {
-    let s = ModelSchema::new("User")
-        .primary_key(PrimaryKeyDef::new("id"))
-        .column(ColumnDef::new("internal_cache").string().ignore());
-    let code = s.to_model();
-    assert!(
-        !code.contains("internal_cache"),
-        "champ ignoré ne doit pas apparaître"
-    );
-}
-
-#[test]
-fn test_schema_to_model_contient_active_model_behavior() {
-    let s = ModelSchema::new("User").primary_key(PrimaryKeyDef::new("id"));
-    let code = s.to_model();
-    assert!(code.contains("ActiveModelBehavior"));
-}
-
-// ═══════════════════════════════════════════════════════════════
-// Clone
-// ═══════════════════════════════════════════════════════════════
-
 #[test]
 fn test_schema_clone() {
     let s = ModelSchema::new("User")
@@ -568,157 +498,6 @@ fn test_schema_clone() {
     assert_eq!(cloned.columns.len(), 1);
     assert!(cloned.primary_key.is_some());
 }
-
-// ═══════════════════════════════════════════════════════════════
-// to_model() — relations
-// ═══════════════════════════════════════════════════════════════
-
-#[test]
-fn test_schema_to_model_belongs_to() {
-    let s = ModelSchema::new("Post")
-        .primary_key(PrimaryKeyDef::new("id"))
-        .relation(RelationDef::belongs_to("User", "user_id", "id"));
-    let code = s.to_model();
-    assert!(
-        code.contains("belongs_to"),
-        "BelongsTo doit générer belongs_to"
-    );
-    assert!(code.contains("user_id") || code.contains("UserId"));
-}
-
-#[test]
-fn test_schema_to_model_has_many() {
-    let s = ModelSchema::new("User")
-        .primary_key(PrimaryKeyDef::new("id"))
-        .relation(RelationDef::has_many("post"));
-    let code = s.to_model();
-    assert!(code.contains("has_many"), "HasMany doit générer has_many");
-}
-
-#[test]
-fn test_schema_to_model_has_one() {
-    let s = ModelSchema::new("User")
-        .primary_key(PrimaryKeyDef::new("id"))
-        .relation(RelationDef::has_one("profile"));
-    let code = s.to_model();
-    assert!(code.contains("has_many") || code.contains("has_one") || code.contains("Profile"));
-}
-
-#[test]
-fn test_schema_to_model_many_to_many() {
-    let s = ModelSchema::new("Post")
-        .primary_key(PrimaryKeyDef::new("id"))
-        .relation(RelationDef::many_to_many("tag", "post_tag"));
-    let code = s.to_model();
-    assert!(
-        code.contains("many_to_many") || code.contains("via"),
-        "ManyToMany doit générer via"
-    );
-}
-
-// `to_model()` produit une String — les tests ci-dessus vérifient que les bons
-// mots-clés/types apparaissent, mais aucun ne vérifie que le résultat est
-// syntaxiquement du Rust valide (un `format!` mal placé — virgule oubliée,
-// guillemet en trop — passerait `.contains(...)` sans problème). Les branches
-// relation (le plus de `format!` imbriqués) sont les plus fragiles ; ce test
-// exerce chaque variante de colonne ET chaque type de relation dans un seul
-// schéma et vérifie que `syn::parse_file` accepte le résultat.
-#[test]
-fn test_schema_to_model_generates_valid_rust_syntax() {
-    let s = ModelSchema::new("Comprehensive")
-        .primary_key(PrimaryKeyDef::new("id").i64())
-        .column(ColumnDef::new("title").string())
-        .column(ColumnDef::new("bio").text().nullable())
-        .column(ColumnDef::new("views").integer())
-        .column(ColumnDef::new("score").float())
-        .column(ColumnDef::new("lat").double())
-        .column(ColumnDef::new("active").boolean())
-        .column(ColumnDef::new("event_date").date())
-        .column(ColumnDef::new("uuid_val").uuid())
-        .column(ColumnDef::new("data").json())
-        .column(ColumnDef::new("internal").string().ignore())
-        .relation(RelationDef::belongs_to("User", "user_id", "id"))
-        .relation(RelationDef::has_many("comment"))
-        .relation(RelationDef::has_one("profile"))
-        .relation(RelationDef::many_to_many("tag", "comprehensive_tag"));
-
-    let code = s.to_model();
-    if let Err(e) = syn::parse_file(&code) {
-        panic!("to_model() a produit du Rust syntaxiquement invalide : {e}\n---\n{code}");
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// to_model() — col_to_rust_type() variants
-// ═══════════════════════════════════════════════════════════════
-
-#[test]
-fn test_schema_to_model_float_col() {
-    let s = ModelSchema::new("Metrics")
-        .primary_key(PrimaryKeyDef::new("id"))
-        .column(ColumnDef::new("score").float());
-    let code = s.to_model();
-    assert!(code.contains("f32"), "float doit générer f32");
-}
-
-#[test]
-fn test_schema_to_model_double_col() {
-    let s = ModelSchema::new("Metrics")
-        .primary_key(PrimaryKeyDef::new("id"))
-        .column(ColumnDef::new("lat").double());
-    let code = s.to_model();
-    assert!(code.contains("f64"), "double doit générer f64");
-}
-
-#[test]
-fn test_schema_to_model_boolean_col() {
-    let s = ModelSchema::new("User")
-        .primary_key(PrimaryKeyDef::new("id"))
-        .column(ColumnDef::new("active").boolean());
-    let code = s.to_model();
-    assert!(code.contains("bool"), "boolean doit générer bool");
-}
-
-#[test]
-fn test_schema_to_model_date_col() {
-    let s = ModelSchema::new("Event")
-        .primary_key(PrimaryKeyDef::new("id"))
-        .column(ColumnDef::new("event_date").date());
-    let code = s.to_model();
-    assert!(code.contains("NaiveDate"), "date doit générer NaiveDate");
-}
-
-#[test]
-fn test_schema_to_model_uuid_col() {
-    let s = ModelSchema::new("Token")
-        .primary_key(PrimaryKeyDef::new("id"))
-        .column(ColumnDef::new("uuid_val").uuid());
-    let code = s.to_model();
-    assert!(code.contains("Uuid"), "uuid doit générer Uuid");
-}
-
-#[test]
-fn test_schema_to_model_json_col() {
-    let s = ModelSchema::new("Config")
-        .primary_key(PrimaryKeyDef::new("id"))
-        .column(ColumnDef::new("data").json());
-    let code = s.to_model();
-    assert!(
-        code.contains("serde_json::Value"),
-        "json doit générer serde_json::Value"
-    );
-}
-
-#[test]
-fn test_schema_to_model_pk_uuid() {
-    let s = ModelSchema::new("Token").primary_key(PrimaryKeyDef::new("id").uuid());
-    let code = s.to_model();
-    assert!(code.contains("Uuid"), "PK uuid doit générer Uuid");
-}
-
-// ═══════════════════════════════════════════════════════════════
-// auto_now_columns / auto_now_update_columns / has_auto_timestamps
-// ═══════════════════════════════════════════════════════════════
 
 #[test]
 fn test_schema_auto_now_columns() {
@@ -805,3 +584,17 @@ fn test_schema_fill_form_with_whitelist() {
 // `test_schema_to_migration_ignored_col_skipped` remplacé par
 // `test_schema_to_migration_ignored_column_is_really_absent` plus haut, qui
 // vérifie l'absence réelle en DB plutôt que juste "ne panique pas".
+
+// The whitelist takes the columns it names, not the same number of others.
+#[test]
+fn test_schema_fill_form_whitelist_takes_the_named_columns() {
+    let s = ModelSchema::new("User")
+        .primary_key(PrimaryKeyDef::new("id"))
+        .column(ColumnDef::new("username").string())
+        .column(ColumnDef::new("email").string())
+        .column(ColumnDef::new("bio").text());
+    let mut form = Forms::new("dummy_token");
+    s.fill_form(&mut form, Some(&["bio"]), None);
+    assert!(form.fields.contains_key("bio"));
+    assert!(!form.fields.contains_key("username"));
+}

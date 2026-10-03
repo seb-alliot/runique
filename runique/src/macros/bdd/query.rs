@@ -169,17 +169,12 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
         self
     }
 
-    /// Orders results randomly. `RANDOM()` (SQLite/Postgres) vs `RAND()`
-    /// (MySQL/MariaDB) is picked from `db.get_database_backend()`, following
-    /// the same per-backend-fragment pattern as `admin::helper::sql_dialect`.
-    pub fn order_by_random(mut self, db: &ADb) -> Self {
+    /// Orders results randomly (`RANDOM()`, or `RAND()` on MySQL/MariaDB —
+    /// sea-query picks it from the backend).
+    pub fn order_by_random(mut self) -> Self {
         use sea_orm::Order;
-        use sea_query::Expr;
-        let func = match db.get_database_backend() {
-            sea_orm::DbBackend::MySql => "RAND()",
-            _ => "RANDOM()",
-        };
-        self.query = self.query.order_by(Expr::cust(func), Order::Asc);
+        use sea_query::Func;
+        self.query = self.query.order_by(Func::random(), Order::Asc);
         self
     }
 

@@ -196,3 +196,40 @@ impl TemplateLoader {
         Ok(())
     }
 }
+
+/// Written from cargo-mutants survivors (2026-10-02): the preprocessor's
+/// rewrites, checked on their exact output.
+#[cfg(test)]
+mod process_content_tests {
+    use super::TemplateLoader;
+    use crate::utils::aliases::StrMap;
+
+    fn process(src: &str) -> String {
+        TemplateLoader::process_content(src.to_string(), &StrMap::new())
+    }
+
+    #[test]
+    fn runique_tags_become_tera() {
+        assert_eq!(process("{% csrf %}"), r#"{% include "csrf.html" %}"#);
+        assert_eq!(process("{% messages %}"), r#"{% include "message.html" %}"#);
+        assert_eq!(process("{% csp %}"), r#"{% include "csp.html" %}"#);
+        assert_eq!(
+            process("{% form.contact.email %}"),
+            "{{ contact | form(field='email') }}"
+        );
+        assert_eq!(process("{% form.contact %}"), "{{ contact | form }}");
+        assert_eq!(
+            process("{{ form_fields.html }}"),
+            "{{ form_fields.html | safe }}"
+        );
+    }
+
+    #[test]
+    fn link_passes_its_parameters_only_when_there_are_some() {
+        assert_eq!(process(r#"{% link "home" %}"#), "{{ link(link='home') }}");
+        assert_eq!(
+            process(r#"{% link "post", id=post.id %}"#),
+            "{{ link(link='post', id=post.id) }}"
+        );
+    }
+}

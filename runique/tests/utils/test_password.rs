@@ -267,3 +267,94 @@ fn test_auto_config_default_pas_de_hook() {
     let cfg = AutoConfig::default();
     assert!(cfg.pre_hash_hook.is_none());
 }
+
+// ── Written from cargo-mutants survivors (2026-10-02) ───────────────────────
+
+mod guarantees {
+    use runique::forms::FormField;
+    use runique::forms::fields::TextField;
+    use runique::utils::password::{
+        AutoConfig, BaseHash, PasswordConfig, PasswordHandler, PasswordService, dummy_hash,
+    };
+
+    /// A scrypt hash of "s3cret" with the cheapest parameters (ln=4), made
+    /// outside Rust (Python `hashlib.scrypt`): verification reads its cost
+    /// from the hash, so this runs in milliseconds where hashing with the
+    /// default cost takes ~30 s in a debug build.
+    const SCRYPT_S3CRET: &str =
+        "$scrypt$ln=4,r=8,p=1$cnVuaXF1ZXRlc3RzYWx0IQ$IrYGuYkWi1qLJdbUB8hBYvQLZ+VwWD821t29b3yqt9s";
+
+    #[test]
+    fn scrypt_verifies_the_right_password_only() {
+        let base = BaseHash::new();
+        assert!(base.verify("s3cret", SCRYPT_S3CRET), "right password");
+        assert!(!base.verify("other", SCRYPT_S3CRET), "wrong password");
+    }
+
+    /// The hash an unknown username is checked against, so the response takes
+    /// as long as for a real account (no user enumeration by timing).
+    #[test]
+    fn the_dummy_hash_is_a_real_argon2_hash() {
+        assert!(dummy_hash().starts_with("$argon2"), "{}", dummy_hash());
+        assert!(!BaseHash::new().verify("anything", dummy_hash()));
+    }
+
+    #[test]
+    fn an_empty_password_is_refused_by_default() {
+        let service = PasswordService::new(PasswordConfig::auto());
+        let err = service.hash("").unwrap_err();
+        assert!(
+            err.contains("Empty password not allowed"),
+            "refused by the policy: {err}"
+        );
+    }
+
+    #[test]
+    fn auto_config_clone_and_debug_keep_its_settings() {
+        let config = AutoConfig {
+            allow_empty: true,
+            ..Default::default()
+        };
+        assert!(config.clone().allow_empty);
+        assert!(format!("{config:?}").contains("allow_empty: true"));
+        assert!(matches!(
+            PasswordConfig::auto(),
+            PasswordConfig::Auto(AutoConfig {
+                allow_empty: false,
+                ..
+            })
+        ));
+    }
+
+    #[derive(Clone)]
+    struct Plain;
+
+    impl PasswordHandler for Plain {
+        fn name(&self) -> &str {
+            "plain-handler"
+        }
+        fn create_field(&self, name: &str) -> Box<dyn FormField> {
+            Box::new(TextField::password(name))
+        }
+        fn validate_input(&self, _input: &str) -> Result<(), String> {
+            Ok(())
+        }
+        fn transform(&self, input: &str) -> Result<String, String> {
+            Ok(format!("plain:{input}"))
+        }
+        fn verify(&self, input: &str, stored: &str) -> bool {
+            stored == format!("plain:{input}")
+        }
+    }
+
+    #[test]
+    fn a_custom_handler_is_used_and_named() {
+        let config = PasswordConfig::custom(Plain);
+        let PasswordConfig::Custom(handler) = &config else {
+            panic!("custom() gives a Custom config");
+        };
+        assert!(format!("{handler:?}").contains("plain-handler"));
+        let service = PasswordService::new(config);
+        assert_eq!(service.hash("pw").unwrap(), "plain:pw");
+    }
+}

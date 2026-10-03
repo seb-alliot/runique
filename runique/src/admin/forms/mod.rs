@@ -67,7 +67,6 @@ impl RuniqueForm for GroupeAdminForm {
 /// ```rust,ignore
 /// users: eihwaz_users::Model => MyForm {
 ///     title: "Users",
-///     permissions: ["admin"],
 ///     create_form: runique::admin::forms::UserAdminCreateForm,
 ///     edit_form: crate::formulaire::UserEditForm,
 /// }

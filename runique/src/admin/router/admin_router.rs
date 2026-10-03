@@ -5,7 +5,7 @@ use std::sync::Arc;
 use axum::{
     Extension, Router,
     extract::Path,
-    http::{HeaderName, HeaderValue, StatusCode},
+    http::{HeaderName, HeaderValue},
     middleware,
     response::{IntoResponse, Redirect, Response},
     routing::{get, post},
@@ -16,7 +16,7 @@ use tower_http::set_header::SetResponseHeaderLayer;
 use crate::app::staging::AdminStaging;
 use crate::auth::{
     guard::LoginGuard,
-    session::{is_admin_authenticated, load_user_middleware, login, logout},
+    session::{is_admin_authenticated, login, logout},
 };
 use crate::context::template::Request;
 use crate::middleware::security::rate_limit_middleware;
@@ -125,15 +125,21 @@ pub fn build_admin_router(admin_staging: AdminStaging, _db: crate::utils::aliase
         Router::new()
     };
 
-    // Extra routes registered via .extra_routes() — protected by admin middleware.
-    // Built on `admin_path`, not the public base: they ride along with the
-    // generated router through the `nest()` below, which adds the mount prefix.
-    let generated_router = admin_staging.extra_routes.into_iter().fold(
-        generated_router,
-        |router, (path, method_router)| {
-            router.route(&format!("{}{}", admin_path, path), method_router)
-        },
-    );
+    // Extra routes registered via .extra_routes() — protected by admin middleware,
+    // and each by its resource's right (`extra_route_gate`). Built on `admin_path`,
+    // not the public base: they ride along with the generated router through the
+    // `nest()` below, which adds the mount prefix.
+    let generated_router =
+        admin_staging
+            .extra_routes
+            .into_iter()
+            .fold(generated_router, |router, route| {
+                let gated = route.router.layer(middleware::from_fn_with_state(
+                    (route.resource, route.operation),
+                    crate::admin::admin_main::gate::extra_route_gate,
+                ));
+                router.route(&format!("{}{}", admin_path, route.path), gated)
+            });
 
     // Mount prefix applies here only — the generated routes are the ones whose
     // literal paths still carry `admin_path`. `nest("")` panics, hence the guard.
@@ -150,7 +156,9 @@ pub fn build_admin_router(admin_staging: AdminStaging, _db: crate::utils::aliase
                 .merge(generated_router)
                 .layer(middleware::from_fn(admin_required)),
         )
-        .layer(middleware::from_fn_with_state(_db, load_user_middleware))
+        .layer(middleware::from_fn(
+            crate::admin::middleware::admin_middleware::load_admin_user,
+        ))
         .layer(Extension(admin_state))
         // Keep the admin out of search indexes without ever naming its path in a
         // public file: a `Disallow` in robots.txt would publish the very prefix a
@@ -393,17 +401,8 @@ async fn admin_login_post(
         }
     }
 
-    let Some(auth) = &admin.config.auth else {
-        return (
-            StatusCode::NOT_IMPLEMENTED,
-            t("admin.access.no_auth_handler").to_string(),
-        )
-            .into_response();
-    };
-
-    let result = auth
-        .authenticate(&data.username, &data.password, &req.engine.db)
-        .await;
+    let result =
+        crate::auth::authenticate_admin(&req.engine.db, &data.username, &data.password).await;
 
     if let Some(user) = result {
         if let Some(guard) = &admin.login_guard {

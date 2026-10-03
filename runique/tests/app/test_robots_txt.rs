@@ -3,9 +3,7 @@
 use axum::Router;
 use axum::routing::get;
 use runique::app::RuniqueApp;
-use runique::auth::session::{AdminAuth, AdminLoginResult};
 use runique::config::RuniqueConfig;
-use runique::utils::ADb;
 use sea_orm::Database;
 use serial_test::serial;
 
@@ -14,20 +12,6 @@ use serial_test::serial;
 // `test_admin_prefix.rs`, egalement `#[serial]`). Voir `register_url.rs`.
 
 // ── Mock AdminAuth ────────────────────────────────────────────────────────────
-
-struct MockAdminAuth;
-
-#[async_trait::async_trait]
-impl AdminAuth for MockAdminAuth {
-    async fn authenticate(
-        &self,
-        _username: &str,
-        _password: &str,
-        _db: &ADb,
-    ) -> Option<AdminLoginResult> {
-        None
-    }
-}
 
 // ── Helper ────────────────────────────────────────────────────────────────────
 
@@ -42,7 +26,7 @@ async fn build_app_with_admin(mount: &str) -> axum::Router {
         .with_database(db)
         .routes(Router::new().route("/", get(|| async { "ok" })))
         .static_files(|s| s.enabled(false))
-        .with_admin(|a| a.prefix(mount).auth(MockAdminAuth))
+        .with_admin(|a| a.prefix(mount))
         .build()
         .await
         .unwrap();
@@ -59,7 +43,7 @@ async fn build_app_with_admin_no_robots(mount: &str) -> axum::Router {
         .with_database(db)
         .routes(Router::new().route("/", get(|| async { "ok" })))
         .static_files(|s| s.enabled(false))
-        .with_admin(|a| a.prefix(mount).auth(MockAdminAuth).no_robots_txt())
+        .with_admin(|a| a.prefix(mount).no_robots_txt())
         .build()
         .await
         .unwrap();

@@ -93,7 +93,7 @@ fn simple_changes(table: &str) -> Changes {
 #[test]
 fn test_create_file_contient_nom_table() {
     let schema = simple_schema("users");
-    let content = generate_create_file(&schema, &DbKind::Other);
+    let content = generate_create_file(&schema);
     assert!(
         content.contains("users"),
         "Le nom de la table doit apparaître"
@@ -103,7 +103,7 @@ fn test_create_file_contient_nom_table() {
 #[test]
 fn test_create_file_contient_struct_migration() {
     let schema = simple_schema("users");
-    let content = generate_create_file(&schema, &DbKind::Other);
+    let content = generate_create_file(&schema);
     assert!(content.contains("pub struct Migration"));
     assert!(content.contains("impl MigrationTrait for Migration"));
 }
@@ -111,7 +111,7 @@ fn test_create_file_contient_struct_migration() {
 #[test]
 fn test_create_file_contient_up_et_down() {
     let schema = simple_schema("users");
-    let content = generate_create_file(&schema, &DbKind::Other);
+    let content = generate_create_file(&schema);
     assert!(content.contains("async fn up("));
     assert!(content.contains("async fn down("));
 }
@@ -119,7 +119,7 @@ fn test_create_file_contient_up_et_down() {
 #[test]
 fn test_create_file_contient_colonnes() {
     let schema = simple_schema("users");
-    let content = generate_create_file(&schema, &DbKind::Other);
+    let content = generate_create_file(&schema);
     assert!(
         content.contains("name"),
         "La colonne 'name' doit être présente"
@@ -129,7 +129,7 @@ fn test_create_file_contient_colonnes() {
 #[test]
 fn test_create_file_avec_cle_etrangere() {
     let schema = schema_with_fk();
-    let content = generate_create_file(&schema, &DbKind::Other);
+    let content = generate_create_file(&schema);
     assert!(
         content.contains("user_id"),
         "La FK 'user_id' doit apparaître"
@@ -139,7 +139,7 @@ fn test_create_file_avec_cle_etrangere() {
 #[test]
 fn test_create_file_avec_index() {
     let schema = schema_with_index();
-    let content = generate_create_file(&schema, &DbKind::Other);
+    let content = generate_create_file(&schema);
     assert!(
         content.contains("idx_articles_slug"),
         "L'index doit apparaître"
@@ -155,7 +155,7 @@ fn test_create_file_schema_vide_colonnes() {
         foreign_keys: vec![],
         indexes: vec![],
     };
-    let content = generate_create_file(&schema, &DbKind::Other);
+    let content = generate_create_file(&schema);
     assert!(content.contains("empty_table"));
 }
 
@@ -168,7 +168,7 @@ fn test_create_file_sans_pk() {
         foreign_keys: vec![],
         indexes: vec![],
     };
-    let content = generate_create_file(&schema, &DbKind::Other);
+    let content = generate_create_file(&schema);
     assert!(content.contains("junction_table"));
 }
 
@@ -425,12 +425,14 @@ fn test_create_file_postgres_enum_stmts() {
         foreign_keys: vec![],
         indexes: vec![],
     };
-    let content = generate_create_file(&schema, &DbKind::Postgres);
+    let content = generate_create_file(&schema);
     assert!(
-        content.contains("CREATE TYPE"),
+        content.contains("Type::create()"),
         "Postgres doit créer un type enum"
     );
-    assert!(content.contains("'Draft'") && content.contains("'Published'"));
+    assert!(
+        content.contains("Alias::new(\"Draft\")") && content.contains("Alias::new(\"Published\")")
+    );
 }
 
 #[test]
@@ -447,15 +449,15 @@ fn test_create_file_postgres_enum_drops() {
         foreign_keys: vec![],
         indexes: vec![],
     };
-    let content = generate_create_file(&schema, &DbKind::Postgres);
+    let content = generate_create_file(&schema);
     assert!(
-        content.contains("DROP TYPE IF EXISTS"),
+        content.contains("Type::drop()"),
         "Postgres down doit supprimer le type"
     );
 }
 
 #[test]
-fn test_create_file_postgres_updated_at_trigger() {
+fn test_create_file_postgres_updated_at_has_no_trigger() {
     let schema = ParsedSchema {
         table_name: "posts".to_string(),
         primary_key: Some(col("id", "i32")),
@@ -468,19 +470,15 @@ fn test_create_file_postgres_updated_at_trigger() {
         foreign_keys: vec![],
         indexes: vec![],
     };
-    let content = generate_create_file(&schema, &DbKind::Postgres);
-    assert!(
-        content.contains("CREATE TRIGGER"),
-        "Postgres doit créer un trigger updated_at"
-    );
-    assert!(
-        content.contains("DROP TRIGGER IF EXISTS"),
-        "Down doit supprimer le trigger"
-    );
+    // `updated_at` is the entity's job (`[auto_now_update]` → `before_save`):
+    // no trigger in the migration any more.
+    let content = generate_create_file(&schema);
+    assert!(!content.contains("TRIGGER"), "{content}");
+    assert!(!content.contains("execute_unprepared"), "{content}");
 }
 
 #[test]
-fn test_create_file_mysql_updated_at_on_update() {
+fn test_create_file_mysql_updated_at_has_no_on_update() {
     let schema = ParsedSchema {
         table_name: "posts".to_string(),
         primary_key: Some(col("id", "i32")),
@@ -493,10 +491,11 @@ fn test_create_file_mysql_updated_at_on_update() {
         foreign_keys: vec![],
         indexes: vec![],
     };
-    let content = generate_create_file(&schema, &DbKind::Mysql);
+    // Same on MySQL: no `ON UPDATE` clause, the entity keeps `updated_at`.
+    let content = generate_create_file(&schema);
     assert!(
-        content.contains("ON UPDATE CURRENT_TIMESTAMP"),
-        "MySQL doit utiliser ON UPDATE CURRENT_TIMESTAMP"
+        !content.contains("ON UPDATE CURRENT_TIMESTAMP"),
+        "{content}"
     );
 }
 
@@ -516,7 +515,7 @@ fn test_create_file_col_nullable_unique_default_now() {
         foreign_keys: vec![],
         indexes: vec![],
     };
-    let content = generate_create_file(&schema, &DbKind::Other);
+    let content = generate_create_file(&schema);
     assert!(
         content.contains(".null()"),
         "Colonne nullable doit contenir .null()"
@@ -546,7 +545,7 @@ fn test_create_file_col_enum_values_columndef_with_type() {
         foreign_keys: vec![],
         indexes: vec![],
     };
-    let content = generate_create_file(&schema, &DbKind::Other);
+    let content = generate_create_file(&schema);
     assert!(
         content.contains("ColumnDef::new_with_type"),
         "Colonne enum doit utiliser new_with_type"
@@ -566,7 +565,7 @@ fn test_create_file_pk_non_integer_no_autoinc() {
         foreign_keys: vec![],
         indexes: vec![],
     };
-    let content = generate_create_file(&schema, &DbKind::Other);
+    let content = generate_create_file(&schema);
     assert!(
         !content.contains(".auto_increment()"),
         "PK String ne doit pas avoir auto_increment"
@@ -834,16 +833,16 @@ fn test_alter_file_postgres_enum_add_column_generates_create_type() {
     let content = generate_alter_file(&changes);
     let up = content.split("async fn down").next().unwrap_or("");
     assert!(
-        up.contains("CREATE TYPE article_status AS ENUM"),
+        up.contains(".as_enum(Alias::new(\"article_status\"))"),
         "UP Postgres doit créer le type enum avant ADD COLUMN"
     );
     assert!(
-        up.contains("'draft'") && up.contains("'published'"),
+        up.contains("Alias::new(\"draft\")") && up.contains("Alias::new(\"published\")"),
         "UP doit contenir les valeurs de l'enum"
     );
     let down = content.split("async fn down").nth(1).unwrap_or("");
     assert!(
-        down.contains("DROP TYPE IF EXISTS article_status"),
+        down.contains(".name(Alias::new(\"article_status\"))"),
         "DOWN doit supprimer le type enum après DROP COLUMN"
     );
 }
@@ -878,7 +877,7 @@ fn test_alter_file_enum_add_column_create_type_is_runtime_guarded() {
         content.contains("get_database_backend() == sea_orm::DbBackend::Postgres"),
         "CREATE TYPE doit être gardé par un check runtime, pas absent : {content}"
     );
-    assert!(content.contains("CREATE TYPE"));
+    assert!(content.contains("Type::create()"));
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -925,10 +924,10 @@ fn test_alter_file_string_to_enum_postgres_generates_create_type_and_cast() {
 
     let up = content.split("async fn down").next().unwrap_or("");
     assert!(
-        up.contains("CREATE TYPE CourBlockType AS ENUM"),
+        up.contains(".as_enum(Alias::new(\"courblocktype\"))"),
         "UP doit créer le type avant de l'utiliser"
     );
-    assert!(up.contains("'text'") && up.contains("'code'"));
+    assert!(up.contains("Alias::new(\"text\")") && up.contains("Alias::new(\"code\")"));
     assert!(
         up.contains(
             ".using(Expr::col(Alias::new(\"block_type\")).cast_as(Alias::new(\"CourBlockType\")))"
@@ -944,7 +943,7 @@ fn test_alter_file_string_to_enum_postgres_generates_create_type_and_cast() {
         "DOWN doit recaster vers text en repassant en string"
     );
     assert!(
-        down.contains("DROP TYPE IF EXISTS CourBlockType"),
+        down.contains(".name(Alias::new(\"courblocktype\"))"),
         "DOWN doit supprimer le type après avoir déplacé la colonne dessus"
     );
 }
@@ -991,7 +990,7 @@ fn test_alter_file_string_to_enum_create_type_is_runtime_guarded() {
         content.contains("get_database_backend() == sea_orm::DbBackend::Postgres"),
         "doit checker le backend réel à l'exécution : {content}"
     );
-    assert!(content.contains("CREATE TYPE"));
+    assert!(content.contains("Type::create()"));
     assert!(!content.contains("Manual migration required"));
     assert!(content.contains("ColumnType::Enum"));
 }

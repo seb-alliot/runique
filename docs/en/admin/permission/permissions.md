@@ -49,7 +49,7 @@ A user with no group sees no resources in the nav (except superuser).
 
 ### Immediate revocation
 
-Removing a group from a user takes effect on their next request. Deleting a group clears the permissions cache for all its members instantly.
+Rights, and the account's state (active, staff, superuser), are read from the database on every admin request: the session only keeps who the user is. Removing a right or a group, deactivating an account or taking away its staff status therefore applies to its next request, whatever made the change (admin, CLI, SQL, another instance). An account that is deactivated or no longer has admin access gets its session closed.
 
 ---
 

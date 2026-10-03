@@ -9,9 +9,7 @@ use axum::Router;
 use axum::routing::get;
 use runique::admin::AdminRoutes;
 use runique::app::RuniqueApp;
-use runique::auth::session::{AdminAuth, AdminLoginResult};
 use runique::config::RuniqueConfig;
-use runique::utils::ADb;
 use sea_orm::Database;
 use serial_test::serial;
 
@@ -21,20 +19,6 @@ use serial_test::serial;
 // engine via `add_urls()`. Ce registre est partage par tout le process de test —
 // deux builds concurrents (y compris avec `test_robots_txt.rs`, egalement `#[serial]`)
 // se volent mutuellement leurs entrees. Voir `register_url.rs`.
-
-struct MockAdminAuth;
-
-#[async_trait::async_trait]
-impl AdminAuth for MockAdminAuth {
-    async fn authenticate(
-        &self,
-        _username: &str,
-        _password: &str,
-        _db: &ADb,
-    ) -> Option<AdminLoginResult> {
-        None
-    }
-}
 
 fn fake_admin_routes(path: &str) -> AdminRoutes {
     let p = path.trim_end_matches('/');
@@ -52,11 +36,7 @@ async fn build_app(mount: &str, admin_path: &str) -> runique::app::RuniqueApp {
         .with_database(db)
         .routes(Router::new().route("/", get(|| async { "ok" })))
         .static_files(|s| s.enabled(false))
-        .with_admin(|a| {
-            a.auth(MockAdminAuth)
-                .prefix(mount)
-                .routes(fake_admin_routes(admin_path))
-        })
+        .with_admin(|a| a.prefix(mount).routes(fake_admin_routes(admin_path)))
         .build()
         .await
         .unwrap()
@@ -73,7 +53,6 @@ async fn build(mount: &str, admin_path: &str, prefix_first: bool) -> Router {
         .routes(Router::new().route("/", get(|| async { "ok" })))
         .static_files(|s| s.enabled(false))
         .with_admin(|a| {
-            let a = a.auth(MockAdminAuth);
             if prefix_first {
                 a.prefix(mount).routes(fake_admin_routes(admin_path))
             } else {
@@ -188,4 +167,18 @@ async fn test_slashs_optionnels_dans_le_prefixe() {
             "prefixe '{mount}' non normalise"
         );
     }
+}
+
+/// L'URL nommée `admin` (base publique) suit aussi le préfixe — écrit à partir
+/// des survivants cargo-mutants (2026-10-02).
+#[tokio::test]
+#[serial]
+async fn test_url_nommee_admin_est_la_base_publique() {
+    use runique::macros::reverse;
+
+    let app = build_app("secret", "/site-admin").await;
+    assert_eq!(
+        reverse(&app.engine, "admin").as_deref(),
+        Some("/secret/site-admin")
+    );
 }

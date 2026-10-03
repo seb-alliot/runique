@@ -1,10 +1,8 @@
 //! Tests — auth/password.rs
 //! Couvre : PasswordResetConfig builder, PasswordResetForm::clean() (5 branches),
-//!          ForgotPasswordForm, PasswordResetAdapter
+//!          ForgotPasswordForm
 
-use runique::auth::{
-    ForgotPasswordForm, PasswordResetConfig, PasswordResetForm, password::PasswordResetAdapter,
-};
+use runique::auth::{ForgotPasswordForm, PasswordResetConfig, PasswordResetForm};
 use runique::forms::{field::RuniqueForm, form::Forms};
 use runique::utils::reset_token;
 
@@ -83,16 +81,6 @@ fn test_forgot_password_form_has_email_field() {
     };
     ForgotPasswordForm::register_fields(&mut form.form);
     assert!(form.form.fields.contains_key("email"));
-}
-
-// ═══════════════════════════════════════════════════════════════
-// PasswordResetAdapter
-// ═══════════════════════════════════════════════════════════════
-
-#[test]
-fn test_password_reset_adapter_new() {
-    use runique::auth::BuiltinUserEntity;
-    let _adapter = PasswordResetAdapter::<BuiltinUserEntity>::new();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -187,4 +175,54 @@ async fn test_reset_form_password_mismatch() {
 
     assert!(!form.is_valid().await);
     assert!(form.form.errors().contains_key("confirm"));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Password rules — from cargo-mutants survivors (2026-10-02)
+// ═══════════════════════════════════════════════════════════════
+
+/// Errors `clean()` reports for `password`, everything else valid.
+async fn password_error(password: &str) -> bool {
+    let email = "test@example.com";
+    let token = "test-reset-token".to_string();
+    let encrypted = reset_token::encrypt_email(&token, email);
+    let mut form = make_reset_form();
+    form.form.add_value("token", &token);
+    form.form.add_value("encrypted_email", &encrypted);
+    form.form.add_value("email", email);
+    form.form.add_value("password", password);
+    form.form.add_value("confirm", password);
+    let _ = form.is_valid().await;
+    form.form.errors().contains_key("password")
+}
+
+#[tokio::test]
+async fn test_reset_password_length_limit_is_ten() {
+    assert!(password_error("Abcdef1!x").await, "9 characters refused");
+    assert!(
+        !password_error("Abcdef1!xy").await,
+        "10 characters accepted"
+    );
+}
+
+#[tokio::test]
+async fn test_reset_password_needs_every_character_class() {
+    assert!(password_error("abcdefgh1!").await, "no uppercase");
+    assert!(password_error("ABCDEFGH1!").await, "no lowercase");
+    assert!(password_error("Abcdefghi!").await, "no digit");
+    assert!(password_error("Abcdefgh12").await, "no special character");
+    assert!(!password_error("Abcdefgh1!").await, "all four");
+}
+
+#[test]
+fn test_config_email_template_ttl_and_hook_are_kept() {
+    use std::sync::Arc;
+    let hook: runique::auth::password::ExtraContextFn = Arc::new(|_req| Box::pin(async {}));
+    let config = PasswordResetConfig::default()
+        .email_template("emails/reset.html")
+        .token_ttl(std::time::Duration::from_secs(90))
+        .extra_context(hook);
+    assert_eq!(config.email_template.as_deref(), Some("emails/reset.html"));
+    assert_eq!(config.token_ttl, std::time::Duration::from_secs(90));
+    assert!(config.extra_context.is_some());
 }

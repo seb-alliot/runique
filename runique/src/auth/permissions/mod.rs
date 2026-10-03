@@ -82,45 +82,58 @@ pub async fn prune_orphan_droits<C: ConnectionTrait>(
         )
         .exec(db)
         .await?;
-    if res.rows_affected > 0 {
-        crate::auth::guard::clear_cache();
-    }
     Ok(res.rows_affected)
 }
 
-/// Refreshes the memory cache of permissions for a given user.
-pub async fn refresh_cache_for_user<C: ConnectionTrait>(db: &C, user_id: crate::utils::pk::Pk) {
-    use crate::auth::guard::cache_permissions;
-    let groupes = pull_groupes_db(db, user_id).await;
-    cache_permissions(user_id, groupes);
-}
-
-/// Loads a user's groups with their permissions from the DB.
+/// Loads a user's groups with their permissions from the DB — two queries
+/// whatever the number of groups. A database error grants nothing (no group)
+/// and is traced, never swallowed silently.
 pub async fn pull_groupes_db<C: ConnectionTrait>(
     db: &C,
     user_id: crate::utils::pk::Pk,
 ) -> Vec<Groupe> {
-    let groupe_rows = users_groupes::Entity::find()
+    let trace_err = |what: &str, e: &sea_orm::DbErr| {
+        tracing::error!(user_id = %user_id, error = %e, "{what} failed — no rights granted for this request");
+    };
+    let rows = match users_groupes::Entity::find()
         .filter(users_groupes::Column::UserId.eq(user_id))
         .find_also_related(groupe::Entity)
         .all(db)
         .await
-        .unwrap_or_default();
+    {
+        Ok(rows) => rows,
+        Err(e) => {
+            trace_err("loading groups", &e);
+            return Vec::new();
+        }
+    };
+    let mut groupes: Vec<Groupe> = rows
+        .into_iter()
+        .filter_map(|(_, g)| g)
+        .map(|g| Groupe {
+            id: g.id,
+            nom: g.nom,
+            permissions: Vec::new(),
+        })
+        .collect();
+    if groupes.is_empty() {
+        return groupes;
+    }
 
-    let mut groupes = Vec::new();
-
-    for (_, maybe_groupe) in groupe_rows {
-        let Some(g) = maybe_groupe else { continue };
-
-        let droits = groupes_droits::Entity::find()
-            .filter(groupes_droits::Column::GroupeId.eq(g.id))
-            .all(db)
-            .await
-            .unwrap_or_default();
-
-        let permissions = droits
-            .into_iter()
-            .map(|m| Permission {
+    let droits = match groupes_droits::Entity::find()
+        .filter(groupes_droits::Column::GroupeId.is_in(groupes.iter().map(|g| g.id)))
+        .all(db)
+        .await
+    {
+        Ok(droits) => droits,
+        Err(e) => {
+            trace_err("loading rights", &e);
+            return Vec::new();
+        }
+    };
+    for m in droits {
+        if let Some(g) = groupes.iter_mut().find(|g| g.id == m.groupe_id) {
+            g.permissions.push(Permission {
                 resource_key: m.resource_key,
                 can_create: m.can_create,
                 can_read: m.can_read,
@@ -128,15 +141,8 @@ pub async fn pull_groupes_db<C: ConnectionTrait>(
                 can_delete: m.can_delete,
                 can_update_own: m.can_update_own,
                 can_delete_own: m.can_delete_own,
-            })
-            .collect();
-
-        groupes.push(Groupe {
-            id: g.id,
-            nom: g.nom,
-            permissions,
-        });
+            });
+        }
     }
-
     groupes
 }

@@ -854,3 +854,275 @@ mod finalize_tests {
         let _ = fs::remove_dir_all(&media);
     }
 }
+
+/// Written from cargo-mutants survivors (2026-10-02): each test fails when
+/// the matching check is altered, not only when the field misbehaves today.
+#[cfg(test)]
+mod guarantees {
+    use super::*;
+    use crate::forms::base::FormField;
+    use std::fs;
+    use std::path::{Path, PathBuf};
+
+    fn temp_dir(tag: &str) -> PathBuf {
+        let p = std::env::temp_dir().join(format!("rq_fg_{tag}_{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&p).unwrap();
+        p
+    }
+
+    /// `MEDIA_ROOT` for the test, with one staging directory inside it.
+    struct Media {
+        root: PathBuf,
+        staging: PathBuf,
+    }
+
+    impl Media {
+        fn new() -> Self {
+            let root = temp_dir("media");
+            let staging = root.join(format!(".staging-{}", uuid::Uuid::new_v4()));
+            fs::create_dir_all(&staging).unwrap();
+            unsafe { std::env::set_var("MEDIA_ROOT", root.to_str().unwrap()) };
+            Self { root, staging }
+        }
+
+        fn staged(&self, name: &str, bytes: &[u8]) -> String {
+            let p = self.staging.join(name);
+            fs::write(&p, bytes).unwrap();
+            p.to_string_lossy().into_owned()
+        }
+    }
+
+    impl Drop for Media {
+        fn drop(&mut self) {
+            unsafe { std::env::remove_var("MEDIA_ROOT") };
+            let _ = fs::remove_dir_all(&self.root);
+        }
+    }
+
+    // ── is_staged_upload ───────────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn only_a_file_directly_in_a_staging_dir_under_media_root_is_an_upload() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        let staged = media.staged("a.png", b"x");
+        assert!(is_staged_upload(&staged));
+
+        let at_root = media.root.join("b.png");
+        fs::write(&at_root, b"x").unwrap();
+        assert!(
+            !is_staged_upload(at_root.to_str().unwrap()),
+            "in MEDIA_ROOT itself"
+        );
+
+        let other_dir = media.root.join("avatars");
+        fs::create_dir_all(&other_dir).unwrap();
+        fs::write(other_dir.join("c.png"), b"x").unwrap();
+        assert!(
+            !is_staged_upload(other_dir.join("c.png").to_str().unwrap()),
+            "not a staging dir"
+        );
+
+        let elsewhere = temp_dir("elsewhere").join(".staging-x");
+        fs::create_dir_all(&elsewhere).unwrap();
+        fs::write(elsewhere.join("d.png"), b"x").unwrap();
+        assert!(
+            !is_staged_upload(elsewhere.join("d.png").to_str().unwrap()),
+            "staging dir outside MEDIA_ROOT"
+        );
+
+        let a_dir = media.staging.join("sub");
+        fs::create_dir_all(&a_dir).unwrap();
+        assert!(
+            !is_staged_upload(a_dir.to_str().unwrap()),
+            "a directory isn't a file"
+        );
+        assert!(!is_staged_upload(
+            &media.staging.join("missing.png").to_string_lossy()
+        ));
+    }
+
+    #[tokio::test]
+    async fn cleanup_removes_staged_uploads_only() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        let staged = media.staged("rejected.png", b"x");
+        let kept = media.root.join("kept.png");
+        fs::write(&kept, b"x").unwrap();
+        cleanup_files(&[staged.clone(), kept.to_string_lossy().into_owned()]).await;
+        assert!(
+            !Path::new(&staged).exists(),
+            "the refused upload is removed"
+        );
+        assert!(kept.exists(), "anything else stays");
+    }
+
+    // ── is_valid_image_content ─────────────────────────────────────────────
+
+    async fn image(name: &str, bytes: &[u8]) -> bool {
+        let dir = temp_dir("img");
+        let p = dir.join(name);
+        fs::write(&p, bytes).unwrap();
+        let ok = is_valid_image_content(&p.to_string_lossy()).await;
+        let _ = fs::remove_dir_all(&dir);
+        ok
+    }
+
+    #[tokio::test]
+    async fn each_image_format_is_recognised_by_its_magic_bytes() {
+        assert!(
+            image("a.jpg", &[0xFF, 0xD8, 0xFF, 0xE0, 0, 0, 0, 0, 0, 0, 0, 0]).await,
+            "jpeg"
+        );
+        assert!(
+            image("a.png", &[0x89, 0x50, 0x4E, 0x47]).await,
+            "png, exactly 4 bytes"
+        );
+        assert!(image("a.gif", b"GIF89a").await, "gif");
+        assert!(
+            image("a.webp", b"RIFF\0\0\0\0WEBP").await,
+            "webp, exactly 12 bytes"
+        );
+        assert!(
+            image("a.avif", b"\0\0\0\x18ftyp").await,
+            "avif/heic, exactly 8 bytes"
+        );
+    }
+
+    #[tokio::test]
+    async fn anything_else_is_not_an_image() {
+        assert!(!image("a.png", &[0x89, 0x50, 0x4E]).await, "under 4 bytes");
+        assert!(!image("a.png", b"hello world!").await, "text");
+        assert!(
+            !image("a.wav", b"RIFF\0\0\0\0WAVE").await,
+            "RIFF but not WEBP"
+        );
+        assert!(
+            !image("a.webp", b"XXXX\0\0\0\0WEBP").await,
+            "WEBP without RIFF"
+        );
+        assert!(!image("a.mp4", b"\0\0\0\x18ftyq").await, "no ftyp box");
+        assert!(
+            !image("a.svg", &[0x89, 0x50, 0x4E, 0x47]).await,
+            "svg never, whatever its bytes"
+        );
+        assert!(!image("empty.png", b"").await, "empty");
+        assert!(
+            !is_valid_image_content("/nonexistent/x.png").await,
+            "unreadable"
+        );
+    }
+
+    // ── Sizes ──────────────────────────────────────────────────────────────
+
+    #[test]
+    fn file_sizes_in_bytes() {
+        assert_eq!(FileSize::kb(3).as_bytes(), 3 * 1024);
+        assert_eq!(FileSize::mb(3).as_bytes(), 3 * 1024 * 1024);
+        assert_eq!(FileSize::gb(3).as_bytes(), 3 * 1024 * 1024 * 1024);
+        assert_eq!(u64::from(FileSize::kb(2)), 2048);
+    }
+
+    #[test]
+    fn the_model_ceiling_bounds_form_overrides() {
+        let mut field = FileField::any("doc").max_size(FileSize::mb(2));
+        assert_eq!(field.model_max_size(), Some(2 * 1024 * 1024));
+        let err = field.set_max_size_bounded(FileSize::mb(3)).unwrap_err();
+        assert!(err.contains("3.0MB") && err.contains("2.0MB"), "{err}");
+        field.set_max_size_bounded(FileSize::mb(1)).unwrap();
+        assert_eq!(field.upload_config.max_size, Some(1024 * 1024));
+    }
+
+    #[test]
+    fn cap_max_size_only_ever_lowers_the_limit() {
+        let mut field = FileField::any("doc").max_size(FileSize::bytes(100));
+        field.cap_max_size(200);
+        assert_eq!(field.upload_config.max_size, Some(100), "never raised");
+        field.cap_max_size(100);
+        assert_eq!(field.upload_config.max_size, Some(100));
+        field.cap_max_size(50);
+        assert_eq!(field.upload_config.max_size, Some(50));
+        let mut unbounded = FileField::any("doc");
+        unbounded.upload_config.max_size = None;
+        unbounded.cap_max_size(70);
+        assert_eq!(unbounded.upload_config.max_size, Some(70));
+    }
+
+    #[tokio::test]
+    async fn an_upload_of_exactly_the_limit_is_accepted_one_byte_more_is_not() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        let mut field = FileField::any("doc").max_size(FileSize::bytes(10));
+        field.set_value(&media.staged("ok.txt", &[b'a'; 10]));
+        assert!(field.validate().await);
+        let mut field = FileField::any("doc").max_size(FileSize::bytes(10));
+        field.set_value(&media.staged("big.txt", &[b'a'; 11]));
+        assert!(!field.validate().await);
+    }
+
+    // ── Previous value and replaced files ─────────────────────────────────
+
+    #[test]
+    fn the_previous_value_is_kept_only_when_it_changes() {
+        let mut field = FileField::any("doc");
+        field.set_value("a.pdf");
+        assert_eq!(field.prev_value, None, "nothing before");
+        field.set_value("a.pdf");
+        assert_eq!(field.prev_value, None, "same value");
+        field.set_value("b.pdf");
+        assert_eq!(field.prev_value.as_deref(), Some("a.pdf"));
+    }
+
+    #[tokio::test]
+    async fn a_replaced_file_is_deleted_an_unchanged_one_is_kept() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        fs::write(media.root.join("old.pdf"), b"old").unwrap();
+        let mut field = FileField::any("doc");
+        field.set_value("old.pdf");
+        field.set_value(&media.staged("new.pdf", b"new"));
+        field.finalize().await.unwrap();
+        assert!(!media.root.join("old.pdf").exists(), "replaced: removed");
+        assert!(media.root.join("new.pdf").exists());
+
+        fs::write(media.root.join("same.pdf"), b"same").unwrap();
+        let mut field = FileField::any("doc");
+        field.set_value("same.pdf");
+        field.prev_value = Some("same.pdf".into());
+        field.finalize().await.unwrap();
+        assert!(
+            media.root.join("same.pdf").exists(),
+            "still referenced: kept"
+        );
+    }
+
+    // ── Rendering ─────────────────────────────────────────────────────────
+
+    #[test]
+    fn render_tells_the_template_the_size_and_whether_several_files_are_allowed() {
+        let mut tera = tera::Tera::default();
+        tera.add_raw_template(
+            "base_file.html",
+            "{{ max_size_mb }}|{{ multiple }}|{{ is_image }}|{{ max_files | default(value=0) }}",
+        )
+        .unwrap();
+        let tera = std::sync::Arc::new(tera);
+        let one = FileField::image("pic").max_size(FileSize::bytes(1_572_864));
+        assert_eq!(one.render(&tera).unwrap(), "1.5|false|true|0");
+        let several = FileField::document("docs").max_files(3);
+        assert_eq!(
+            several.render(&tera).unwrap(),
+            "10.0|true|false|3",
+            "default 10 MB limit, several files"
+        );
+    }
+
+    #[test]
+    fn upload_config_debug_shows_its_settings() {
+        let shown = format!("{:?}", FileUploadConfig::default());
+        assert!(
+            shown.contains("FileUploadConfig") && shown.contains("max_size"),
+            "{shown}"
+        );
+    }
+}

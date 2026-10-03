@@ -22,6 +22,8 @@ pub mod test_dsl_widgets;
 pub mod test_extend_types;
 pub mod test_file_field;
 pub mod test_file_field_path_guard;
+pub mod test_form_data_conversion;
+pub mod test_form_guarantees;
 pub mod test_form_methods;
 pub mod test_forms;
 pub mod test_generic_field;

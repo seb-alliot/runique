@@ -142,7 +142,7 @@ impl RuniqueAppBuilder {
                 "{}/{{token}}/{{encrypted_email}}",
                 pr.config.reset_route.trim_end_matches('/')
             );
-            let pr_router = pr.handler.build_router(Arc::new(pr.config));
+            let pr_router = crate::auth::password::build_router(Arc::new(pr.config));
             register_name_url(&engine, "forgot_password", &forgot_path);
             register_name_url(&engine, "reset_password", &reset_path);
             router.merge(pr_router)

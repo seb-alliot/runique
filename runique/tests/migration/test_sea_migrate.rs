@@ -63,7 +63,9 @@ async fn test_sea_migrate_fresh_postgres() {
     let Some(db) = db_pg::connect().await else {
         return;
     };
-    let pg_url = std::env::var("DATABASE_URL_PG").unwrap();
+    let pg_url = crate::helpers::db_isolation::isolated_url("DATABASE_URL_PG")
+        .await
+        .unwrap();
 
     let out = sea_migrate(&pg_url, &["fresh"]);
     assert!(
@@ -88,7 +90,9 @@ async fn test_sea_migrate_status_postgres() {
     let Some(_) = db_pg::connect().await else {
         return;
     };
-    let pg_url = std::env::var("DATABASE_URL_PG").unwrap();
+    let pg_url = crate::helpers::db_isolation::isolated_url("DATABASE_URL_PG")
+        .await
+        .unwrap();
 
     sea_migrate(&pg_url, &["fresh"]);
 
@@ -112,7 +116,9 @@ async fn test_sea_migrate_reset_postgres() {
     let Some(db) = db_pg::connect().await else {
         return;
     };
-    let pg_url = std::env::var("DATABASE_URL_PG").unwrap();
+    let pg_url = crate::helpers::db_isolation::isolated_url("DATABASE_URL_PG")
+        .await
+        .unwrap();
 
     sea_migrate(&pg_url, &["fresh"]);
 
@@ -143,7 +149,9 @@ async fn test_sea_migrate_fresh_mariadb() {
     let Some(db) = db_maria::connect().await else {
         return;
     };
-    let mariadb_url = std::env::var("DATABASE_URL_MARIADB").unwrap();
+    let mariadb_url = crate::helpers::db_isolation::isolated_url("DATABASE_URL_MARIADB")
+        .await
+        .unwrap();
     let mysql_url = if mariadb_url.starts_with("mysql://") {
         mariadb_url
     } else {
@@ -173,7 +181,9 @@ async fn test_sea_migrate_reset_mariadb() {
     let Some(db) = db_maria::connect().await else {
         return;
     };
-    let mariadb_url = std::env::var("DATABASE_URL_MARIADB").unwrap();
+    let mariadb_url = crate::helpers::db_isolation::isolated_url("DATABASE_URL_MARIADB")
+        .await
+        .unwrap();
     let mysql_url = if mariadb_url.starts_with("mysql://") {
         mariadb_url
     } else {

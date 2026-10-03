@@ -26,19 +26,15 @@ async fn login_page(mut request: Request) -> AppResult<Response> {
 
 ---
 
-## `load_user_middleware` — load user context
+## `request.user` — the signed-in user
 
-Injects a `CurrentUser` into request extensions, making user information available in all handlers down the chain.
+No middleware to add: Runique injects a `CurrentUser` into every request of a signed-in user,
+available as `request.user`.
 
-```rust
-use runique::prelude::*;
-
-let app = Router::new()
-    .route("/profile", get(profile))
-    .layer(axum::middleware::from_fn(load_user_middleware));
-```
-
-Access in a handler:
+The session only keeps **who** signed in. The account (active, staff, superuser) is read from
+the database on every request — one lookup by primary key. A deleted or deactivated account
+therefore has its session closed on its next request: `request.user` is `None` and
+`is_authenticated` returns `false`, whatever made the change (admin, CLI, SQL, another instance).
 
 ```rust
 use runique::prelude::*;
@@ -50,11 +46,7 @@ async fn profile(request: Request) -> impl IntoResponse {
 }
 ```
 
----
-
 ## CurrentUser
-
-Struct injected by `load_user_middleware` into request extensions.
 
 ```rust
 pub struct CurrentUser {
@@ -63,6 +55,21 @@ pub struct CurrentUser {
     pub is_staff: bool,
     pub is_superuser: bool,
     pub groupes: Vec<Groupe>,
+}
+```
+
+Groups and their rights are **not** loaded by default: most pages never look at them. A view
+that checks a right loads them first — they are read from the database, and `current_user` is
+updated in the template context:
+
+```rust
+async fn articles(mut request: Request) -> AppResult<Response> {
+    request.load_user_rights().await;
+    let can_edit = request
+        .user
+        .as_ref()
+        .is_some_and(|u| u.permission_for("articles").is_some_and(|p| p.can_update));
+    // ...
 }
 ```
 

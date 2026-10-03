@@ -36,6 +36,9 @@
     "date_too_far": "Too far (max: {})",
     "time_invalid": "Invalid time format",
     "file_required": "Please select at least one file",
+    "data_invalid": "Invalid value for '{}'",
+    "data_required": "'{}' is required",
+    "data_password": "The password for '{}' could not be hashed; nothing was saved",
     "file_extension_blocked": "File '{}' not allowed. Extensions: {}",
     "finalize_error": "Error finalizing field '{}': {}",
     "template_missing": "Missing template: {}",
@@ -255,7 +258,8 @@
     "active": "Active",
     "user": {
       "username_too_short": "Username is too short (min 3 chars)",
-      "invalid_email": "Invalid email address format"
+      "invalid_email": "Invalid email address format",
+      "not_activated": "This account has not been activated by its user yet: it will be once they have chosen their password through the email they received."
     },
     "login": {
       "title": "Login",
@@ -271,7 +275,6 @@
       "success": "Successfully logged out."
     },
     "access": {
-      "no_auth_handler": "No authentication handler configured. Call .auth(MyAuth) on AdminConfig.",
       "insufficient_rights": "Insufficient rights to access administration"
     },
     "dashboard": {
@@ -443,7 +446,9 @@
     "password_min_length": "Password must be at least {} characters.",
     "password_weak": "Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character (!@#$%...).",
     "password_mismatch": "Passwords do not match.",
-    "check_inbox": "If this address is associated with an account, you will receive a reset email.",
+    "check_inbox": "If this address is linked to an account, you will receive an email with instructions.",
+    "blocked_subject": "Your account is blocked",
+    "blocked_body": "<p>Hello {},</p><p>A password reset was requested for your account, but this account is blocked. Contact the site administrator to unblock it.</p><p>If you did not make this request, ignore this email.</p>",
     "email_subject": "Password reset request",
     "email_body": "<p>Hello {},</p><p>Click the link below to reset your password (valid for 1 hour):</p><p><a href=\"{}\">{}</a></p>"
   },
@@ -453,8 +458,7 @@
     "long_identifier_detected": "Generated SQL identifiers are too long (MariaDB/MySQL limit: 64 characters):",
     "long_identifier_rename_required": "Shorten the table/column names involved — Runique doesn't auto-truncate identifiers.",
     "files_ready": "{} file(s) ready to migrate.",
-    "unknown_dsl_type": "Warning: unknown field type '{}' — defaulting to '{}'. Check for a typo in your model.",
-    "unknown_db_engine": "Warning: unrecognized DB_ENGINE '{}' — falling back to SQLite-style migrations (no native enum/trigger support). Supported values: postgres, mysql/mariadb, sqlite."
+    "unknown_dsl_type": "Warning: unknown field type '{}' — defaulting to '{}'. Check for a typo in your model."
   },
   "migrate": {
     "applying": "Applying migrations from '{}'...",

@@ -131,3 +131,27 @@ fn test_security_config_default_trait() {
     assert!(!config.enforce_https);
     assert!(config.allowed_hosts.is_empty());
 }
+
+// Empty ACME values mean "not set" — from cargo-mutants survivors (2026-10-02).
+#[test]
+#[serial]
+fn test_security_config_empty_acme_values_are_not_set() {
+    set_env("ACME_DOMAIN", "");
+    set_env("ACME_EMAIL", "");
+    set_env("ACME_CERTS_DIR", "");
+    let config = SecurityConfig::from_env();
+    assert_eq!(config.acme_domain, None);
+    assert_eq!(config.acme_email, None);
+    assert_eq!(config.acme_certs_dir, "./certs");
+
+    set_env("ACME_DOMAIN", "example.com");
+    set_env("ACME_EMAIL", "ops@example.com");
+    set_env("ACME_CERTS_DIR", "/etc/certs");
+    let config = SecurityConfig::from_env();
+    assert_eq!(config.acme_domain.as_deref(), Some("example.com"));
+    assert_eq!(config.acme_email.as_deref(), Some("ops@example.com"));
+    assert_eq!(config.acme_certs_dir, "/etc/certs");
+    del_env("ACME_DOMAIN");
+    del_env("ACME_EMAIL");
+    del_env("ACME_CERTS_DIR");
+}

@@ -166,13 +166,12 @@ pub mod prelude {
     // ========================================================================
     // MIDDLEWARE
     // ========================================================================
-    pub use crate::auth::session::UserEntity;
     pub use crate::auth::user as runique_users;
-    pub use crate::auth::user::{BuiltinUserEntity, RuniqueAdminAuth};
+    pub use crate::auth::user::BuiltinUserEntity;
     pub use crate::auth::*;
     pub use crate::auth::{
-        ForgotPasswordForm, PasswordResetAdapter, PasswordResetConfig, PasswordResetForm,
-        handle_forgot_password, handle_password_reset,
+        ForgotPasswordForm, PasswordResetConfig, PasswordResetForm, handle_forgot_password,
+        handle_password_reset,
     };
     pub use crate::middleware::{
         allowed_hosts::*, cache::*, config::*, csp::*, csrf::*, errors::*, permissions_policy::*,
@@ -271,9 +270,7 @@ pub mod prelude {
             sql_dialect::{ilike, text_cast_type, text_eq},
         },
         registry::AdminRegistry,
-        resource::{
-            AdminResource, ColumnFilter, CrudOperation, DisplayConfig, ResourcePermissions,
-        },
+        resource::{AdminResource, ColumnFilter, CrudOperation, DisplayConfig},
         router::admin_router::AdminState,
         table_admin::migrations_table,
         trad::{inject_admin_prefix, insert_admin_messages},

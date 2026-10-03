@@ -1,12 +1,9 @@
-//! Tests — auth/session.rs : DefaultAdminAuth::authenticate()
+//! Tests — auth/user.rs : authenticate_admin()
 
 use crate::helpers::db;
 #[cfg(feature = "pk-uuid")]
 use crate::helpers::pk::pk_sql_literal;
-use runique::auth::{
-    BuiltinUserEntity,
-    session::{AdminAuth, DefaultAdminAuth},
-};
+use runique::auth::authenticate_admin;
 
 // ─── DDL ──────────────────────────────────────────────────────────────────────
 
@@ -21,7 +18,8 @@ const USERS_DDL: &str = "
         is_staff    INTEGER NOT NULL DEFAULT 0,
         is_superuser INTEGER NOT NULL DEFAULT 0,
         created_at  TEXT,
-        updated_at  TEXT
+        updated_at  TEXT,
+        activated_at TEXT
     )
 ";
 
@@ -36,7 +34,8 @@ const USERS_DDL: &str = "
         is_staff    INTEGER NOT NULL DEFAULT 0,
         is_superuser INTEGER NOT NULL DEFAULT 0,
         created_at  TEXT,
-        updated_at  TEXT
+        updated_at  TEXT,
+        activated_at TEXT
     )
 ";
 
@@ -44,11 +43,11 @@ const USERS_DDL: &str = "
 // pour un Uuid) — chaque INSERT doit fournir sa propre valeur explicite.
 #[cfg(feature = "pk-uuid")]
 fn insert_user_columns() -> &'static str {
-    "id, username, email, password, is_active, is_staff, is_superuser"
+    "id, username, email, password, is_active, is_staff, is_superuser, activated_at"
 }
 #[cfg(not(feature = "pk-uuid"))]
 fn insert_user_columns() -> &'static str {
-    "username, email, password, is_active, is_staff, is_superuser"
+    "username, email, password, is_active, is_staff, is_superuser, activated_at"
 }
 
 #[cfg(feature = "pk-uuid")]
@@ -67,14 +66,12 @@ fn insert_user_id_prefix(_n: u32) -> String {
 #[tokio::test]
 async fn test_authenticate_user_not_found() {
     let db = db::fresh_db_with_schema(USERS_DDL).await;
-    let auth = DefaultAdminAuth::<BuiltinUserEntity>::new();
-    let result = auth
-        .authenticate(
-            "unknown",
-            "password",
-            &runique::db::ADb::from_connection(db.clone()),
-        )
-        .await;
+    let result = authenticate_admin(
+        &runique::db::ADb::from_connection(db.clone()),
+        "unknown",
+        "password",
+    )
+    .await;
     assert!(result.is_none());
 }
 
@@ -89,21 +86,19 @@ async fn test_authenticate_wrong_password() {
     db::exec(
         &db,
         &format!(
-            "INSERT INTO eihwaz_users ({}) VALUES ({}'admin', 'admin@example.com', '{hash}', 1, 1, 0)",
+            "INSERT INTO eihwaz_users ({}) VALUES ({}'admin', 'admin@example.com', '{hash}', 1, 1, 0, '2026-01-01 00:00:00')",
             insert_user_columns(),
             insert_user_id_prefix(1),
         ),
     )
     .await;
 
-    let auth = DefaultAdminAuth::<BuiltinUserEntity>::new();
-    let result = auth
-        .authenticate(
-            "admin",
-            "wrong_password",
-            &runique::db::ADb::from_connection(db.clone()),
-        )
-        .await;
+    let result = authenticate_admin(
+        &runique::db::ADb::from_connection(db.clone()),
+        "admin",
+        "wrong_password",
+    )
+    .await;
     assert!(result.is_none());
 }
 
@@ -119,21 +114,19 @@ async fn test_authenticate_no_admin_access() {
     db::exec(
         &db,
         &format!(
-            "INSERT INTO eihwaz_users ({}) VALUES ({}'regular', 'regular@example.com', '{hash}', 1, 0, 0)",
+            "INSERT INTO eihwaz_users ({}) VALUES ({}'regular', 'regular@example.com', '{hash}', 1, 0, 0, '2026-01-01 00:00:00')",
             insert_user_columns(),
             insert_user_id_prefix(2),
         ),
     )
     .await;
 
-    let auth = DefaultAdminAuth::<BuiltinUserEntity>::new();
-    let result = auth
-        .authenticate(
-            "regular",
-            "password123",
-            &runique::db::ADb::from_connection(db.clone()),
-        )
-        .await;
+    let result = authenticate_admin(
+        &runique::db::ADb::from_connection(db.clone()),
+        "regular",
+        "password123",
+    )
+    .await;
     assert!(result.is_none());
 }
 
@@ -149,21 +142,19 @@ async fn test_authenticate_inactive_user() {
     db::exec(
         &db,
         &format!(
-            "INSERT INTO eihwaz_users ({}) VALUES ({}'inactive', 'inactive@example.com', '{hash}', 0, 1, 0)",
+            "INSERT INTO eihwaz_users ({}) VALUES ({}'inactive', 'inactive@example.com', '{hash}', 0, 1, 0, '2026-01-01 00:00:00')",
             insert_user_columns(),
             insert_user_id_prefix(3),
         ),
     )
     .await;
 
-    let auth = DefaultAdminAuth::<BuiltinUserEntity>::new();
-    let result = auth
-        .authenticate(
-            "inactive",
-            "password123",
-            &runique::db::ADb::from_connection(db.clone()),
-        )
-        .await;
+    let result = authenticate_admin(
+        &runique::db::ADb::from_connection(db.clone()),
+        "inactive",
+        "password123",
+    )
+    .await;
     assert!(result.is_none());
 }
 
@@ -178,21 +169,19 @@ async fn test_authenticate_success_staff() {
     db::exec(
         &db,
         &format!(
-            "INSERT INTO eihwaz_users ({}) VALUES ({}'staffuser', 'staff@example.com', '{hash}', 1, 1, 0)",
+            "INSERT INTO eihwaz_users ({}) VALUES ({}'staffuser', 'staff@example.com', '{hash}', 1, 1, 0, '2026-01-01 00:00:00')",
             insert_user_columns(),
             insert_user_id_prefix(4),
         ),
     )
     .await;
 
-    let auth = DefaultAdminAuth::<BuiltinUserEntity>::new();
-    let result = auth
-        .authenticate(
-            "staffuser",
-            "securepass1",
-            &runique::db::ADb::from_connection(db.clone()),
-        )
-        .await;
+    let result = authenticate_admin(
+        &runique::db::ADb::from_connection(db.clone()),
+        "staffuser",
+        "securepass1",
+    )
+    .await;
     assert!(result.is_some());
     let r = result.unwrap();
     assert_eq!(r.username, "staffuser");
@@ -211,21 +200,19 @@ async fn test_authenticate_success_superuser() {
     db::exec(
         &db,
         &format!(
-            "INSERT INTO eihwaz_users ({}) VALUES ({}'superuser', 'super@example.com', '{hash}', 1, 0, 1)",
+            "INSERT INTO eihwaz_users ({}) VALUES ({}'superuser', 'super@example.com', '{hash}', 1, 0, 1, '2026-01-01 00:00:00')",
             insert_user_columns(),
             insert_user_id_prefix(5),
         ),
     )
     .await;
 
-    let auth = DefaultAdminAuth::<BuiltinUserEntity>::new();
-    let result = auth
-        .authenticate(
-            "superuser",
-            "superpass1",
-            &runique::db::ADb::from_connection(db.clone()),
-        )
-        .await;
+    let result = authenticate_admin(
+        &runique::db::ADb::from_connection(db.clone()),
+        "superuser",
+        "superpass1",
+    )
+    .await;
     assert!(result.is_some());
     let r = result.unwrap();
     assert!(!r.is_staff);

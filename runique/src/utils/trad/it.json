@@ -36,6 +36,9 @@
     "date_too_far": "Troppo lontana (max: {})",
     "time_invalid": "Formato dell'ora non valido",
     "file_required": "Seleziona almeno un file",
+    "data_invalid": "Valore non valido per «{}»",
+    "data_required": "«{}» è obbligatorio",
+    "data_password": "Impossibile calcolare l'hash della password di «{}»: non è stato salvato nulla",
     "file_extension_blocked": "File '{}' non autorizzato. Estensioni: {}",
     "finalize_error": "Errore durante la finalizzazione del campo '{}': {}",
     "template_missing": "Template mancante: {}",
@@ -255,7 +258,8 @@
     "active": "Attivo",
     "user": {
       "username_too_short": "Il nome utente è troppo corto (min 3 car.)",
-      "invalid_email": "Formato dell'indirizzo email non valido"
+      "invalid_email": "Formato dell'indirizzo email non valido",
+      "not_activated": "Questo account non è ancora stato attivato dal suo utente: lo sarà quando avrà scelto la password tramite l'email ricevuta."
     },
     "login": {
       "title": "Accesso",
@@ -271,7 +275,6 @@
       "success": "Disconnessione riuscita."
     },
     "access": {
-      "no_auth_handler": "Nessun gestore di autenticazione configurato. Chiama .auth(MyAuth) su AdminConfig.",
       "insufficient_rights": "Diritti insufficienti per accedere all'amministrazione"
     },
     "dashboard": {
@@ -436,8 +439,7 @@
     "long_identifier_detected": "Gli identificatori SQL generati sono troppo lunghi (limite MariaDB/MySQL: 64 caratteri):",
     "long_identifier_rename_required": "Accorcia i nomi di tabella/colonna coinvolti — Runique non tronca automaticamente gli identificatori.",
     "files_ready": "{} file pronti per la migrazione.",
-    "unknown_dsl_type": "Attenzione: tipo di campo sconosciuto '{}' — uso di '{}' come predefinito. Controlla un errore di battitura nel tuo modello.",
-    "unknown_db_engine": "Attenzione: DB_ENGINE '{}' non riconosciuto — ripiego su migrazioni in stile SQLite (nessun supporto enum/trigger nativo). Valori supportati: postgres, mysql/mariadb, sqlite."
+    "unknown_dsl_type": "Attenzione: tipo di campo sconosciuto '{}' — uso di '{}' come predefinito. Controlla un errore di battitura nel tuo modello."
   },
   "migrate": {
     "applying": "Applicazione migrazioni da '{}'...",
@@ -470,7 +472,9 @@
     "password_min_length": "La password deve contenere almeno {} caratteri.",
     "password_weak": "La password deve contenere almeno una maiuscola, una minuscola, una cifra e un carattere speciale (!@#$%...).",
     "password_mismatch": "Le password non coincidono.",
-    "check_inbox": "Se questo indirizzo è associato a un account, riceverà un'email di reimpostazione.",
+    "check_inbox": "Se questo indirizzo è associato a un account, riceverai un'email con le istruzioni.",
+    "blocked_subject": "Il tuo account è bloccato",
+    "blocked_body": "<p>Ciao {},</p><p>È stata richiesta la reimpostazione della password per il tuo account, ma questo account è bloccato. Contatta l'amministratore del sito per sbloccarlo.</p><p>Se non hai fatto tu questa richiesta, ignora questa email.</p>",
     "email_subject": "Reimpostazione password",
     "email_body": "<p>Ciao {},</p><p>Clicca sul link seguente per reimpostare la password (valido per 1 ora):</p><p><a href=\"{}\">{}</a></p>"
   },

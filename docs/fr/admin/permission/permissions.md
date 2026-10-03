@@ -49,7 +49,7 @@ Un utilisateur sans groupe ne voit aucune ressource dans la nav (sauf superuser)
 
 ### Révocation immédiate
 
-Retirer un groupe d'un utilisateur prend effet à sa prochaine requête. Supprimer un groupe vide le cache de permissions de tous ses membres instantanément.
+Les droits, et l'état du compte (actif, staff, superuser), sont relus en base à chaque requête admin : la session ne garde que l'identité de l'utilisateur. Retirer un droit ou un groupe, désactiver un compte ou lui retirer le statut staff prend donc effet à sa requête suivante, quel que soit le chemin de la modification (admin, CLI, SQL, autre instance). Un compte désactivé ou qui n'a plus accès à l'admin voit sa session fermée.
 
 ---
 

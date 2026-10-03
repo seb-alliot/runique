@@ -61,7 +61,10 @@ async fn handler(multipart: Multipart) -> String {
         .iter()
         .map(|(k, f)| (k.clone(), f.value().to_string()))
         .collect();
-    let model = docs::admin_from_form(&values, None);
+    let model = match docs::admin_from_form(&values, None) {
+        Ok(model) => model,
+        Err(e) => return format!("error: {e}"),
+    };
     let text = |value: runique::sea_orm::ActiveValue<Option<Vec<u8>>>| match value {
         runique::sea_orm::ActiveValue::Set(bytes) => {
             String::from_utf8_lossy(&bytes.unwrap_or_default()).into_owned()

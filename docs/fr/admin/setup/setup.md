@@ -72,7 +72,6 @@ RuniqueApp::builder(config)
     .with_database(db)
     .with_admin(|a| {
         a.site_title("Administration")
-         .auth(RuniqueAdminAuth::new())
          .routes(admins::routes("/admin"))
          .with_state(admins::admin_state())
     })
@@ -86,11 +85,10 @@ RuniqueApp::builder(config)
 | --- | --- |
 | `.prefix("secret")` | Segment monté **devant** l'admin (défaut : aucun) — voir ci-dessous |
 | `.site_title("…")` | Titre affiché dans l'interface |
-| `.auth(RuniqueAdminAuth::new())` | Authentification admin (par défaut) |
 | `.routes(admins::routes("/admin"))` | Monte les routes CRUD sous `/admin` |
 | `.with_state(…)` | État partagé généré par le daemon |
 | `.no_robots_txt()` | Désactive le `/robots.txt` automatique |
-| `.extra_routes(vec![…])` | Routes custom protégées par le middleware admin |
+| `.extra_routes(vec![…])` | Routes custom, chacune derrière le droit qu'elle déclare sur une ressource |
 
 ### `.routes()` et `.prefix()` — deux réglages distincts
 
@@ -141,12 +139,30 @@ enregistrez-les via `.extra_routes()`.
 Ces routes héritent automatiquement du middleware admin : authentification, `AdminState`,
 `PrototypeAdminState` (sidebar), et `CurrentUser`.
 
+Chaque route déclare aussi **la ressource sur laquelle elle travaille** et **l'opération
+qu'elle effectue** (`CrudOperation`). L'utilisateur connecté doit avoir le droit
+correspondant sur cette ressource, via ses groupes — le même contrôle que les pages générées :
+
+| `CrudOperation` | Droit vérifié |
+| --- | --- |
+| `List`, `View` | `can_read` |
+| `Create` | `can_create` |
+| `Edit` | `can_update` |
+| `Delete` | `can_delete` |
+
+Sans ce droit, l'utilisateur est renvoyé au tableau de bord avec un message « droits
+insuffisants ». Une clé de ressource non enregistrée est une erreur au démarrage. Les lignes
+et les colonnes que le handler lit ou écrit ensuite restent sous sa responsabilité.
+
 **`url.rs`**
 
 ```rust
-pub fn admin_extra_routes() -> Vec<(&'static str, runique::axum::routing::MethodRouter)> {
+use runique::admin::resource::CrudOperation;
+use runique::axum::routing::MethodRouter;
+
+pub fn admin_extra_routes() -> Vec<(&'static str, &'static str, CrudOperation, MethodRouter)> {
     vec![
-        ("/commandes/{numero}/detail", view!{ admin_commande_detail }),
+        ("/commandes/{numero}/detail", "commandes", CrudOperation::View, view!{ admin_commande_detail }),
     ]
 }
 ```

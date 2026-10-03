@@ -165,3 +165,20 @@ fn write_project_files(project_dir: &Path, name: &str, version: &str) -> Result<
 
     Ok(())
 }
+
+/// Written from cargo-mutants survivors (2026-10-02): the name becomes a
+/// directory, so nothing that could leave the current one may pass.
+#[cfg(test)]
+mod name_tests {
+    use super::validate_project_name;
+
+    #[test]
+    fn only_plain_names_are_accepted() {
+        for ok in ["blog", "my_app", "my-app-2", "Été"] {
+            assert!(validate_project_name(ok).is_ok(), "{ok}");
+        }
+        for bad in ["", "../escape", "a/b", "a b", "a.b", "-flag", "C:\\x"] {
+            assert!(validate_project_name(bad).is_err(), "{bad:?}");
+        }
+    }
+}

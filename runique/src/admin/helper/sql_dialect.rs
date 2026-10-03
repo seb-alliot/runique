@@ -13,7 +13,13 @@ use sea_query::{Alias, Expr, ExprTrait, Func};
 /// `db.get_database_backend()` is sea-orm's own detection — this function only
 /// supplies the one mapping sea-orm has no way to know on its own.
 pub fn text_cast_type(db: &ADb) -> &'static str {
-    match db.get_database_backend() {
+    text_cast_type_of(db.get_database_backend())
+}
+
+/// Same as [`text_cast_type`], from the backend alone — for code generic over
+/// any `ConnectionTrait`.
+pub fn text_cast_type_of(backend: sea_orm::DbBackend) -> &'static str {
+    match backend {
         sea_orm::DbBackend::MySql => "CHAR",
         _ => "TEXT",
     }

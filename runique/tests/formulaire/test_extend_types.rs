@@ -38,7 +38,7 @@ fn extend_converts_every_declared_type() {
     data.insert("rank".into(), "12".into());
     data.insert("weight".into(), "1.5".into());
     data.insert("seen_tz".into(), "2026-09-30T14:30".into());
-    let model = groups::admin_from_form(&data, None);
+    let model = groups::admin_from_form(&data, None).expect("every value converts");
     assert_eq!(model.rank.clone().unwrap(), 12i16);
     assert_eq!(model.weight.clone().unwrap(), Some(1.5f32));
     assert!(model.seen_tz.clone().unwrap().is_some());

@@ -390,4 +390,14 @@ mod tests {
             r#"Test, table: "tests", pk: id => i32, { name: text, }, meta: { unique_together: [(name, ghost)], }"#,
         );
     }
+
+    #[test]
+    fn enums_block_is_read() {
+        let m = parse_model(
+            r#"Test, table: "tests", pk: id => i32, enums: { A: [X], B: [Y, Z] }, { name: text, },"#,
+        )
+        .expect("parses");
+        assert_eq!(m.enums.len(), 2);
+        assert_eq!(m.enums[1].variants.len(), 2);
+    }
 }

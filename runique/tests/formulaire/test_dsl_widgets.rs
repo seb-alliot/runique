@@ -16,7 +16,7 @@ mod shop {
         table: "items",
         pk: id => i32,
         enums: {
-            Status: [Draft, Published],
+            Status: [Draft: "Brouillon", Published],
         },
         {
             contact: email,
@@ -109,6 +109,29 @@ async fn a_decimal_is_checked_as_a_decimal() {
         assert_eq!(
             check(&mut form, "price", "12,50").await,
             (true, "12.50".to_string())
+        );
+    }
+}
+
+/// The options a `<select>` gets, as `value=label;…`.
+fn rendered_choices(form: &Forms, name: &str) -> String {
+    let mut tera = tera::Tera::default();
+    tera.add_raw_template(
+        "base_select.html",
+        "{% for c in choices %}{{ c.value }}={{ c.label }};{% endfor %}",
+    )
+    .unwrap();
+    form.fields[name]
+        .render(&std::sync::Arc::new(tera))
+        .expect("renders")
+}
+
+#[test]
+fn both_forms_show_the_enum_labels_declared_in_the_dsl() {
+    for form in [schema_form(), admin_form()] {
+        assert_eq!(
+            rendered_choices(&form, "status"),
+            "Draft=Brouillon;Published=Published;"
         );
     }
 }

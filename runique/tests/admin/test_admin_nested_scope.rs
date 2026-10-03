@@ -15,14 +15,11 @@ fn form_builder() -> FormBuilder {
 }
 
 fn flat_entry(key: &'static str, title: &'static str) -> ResourceEntry {
-    ResourceEntry::new(
-        AdminResource::new(key, "M", "F", title, vec![]),
-        form_builder(),
-    )
+    ResourceEntry::new(AdminResource::new(key, "M", "F", title), form_builder())
 }
 
 fn scoped_child_entry() -> ResourceEntry {
-    let meta = AdminResource::new("droits", "M", "F", "Droits", vec![]).parent_scope(
+    let meta = AdminResource::new("droits", "M", "F", "Droits").parent_scope(
         "groupes",
         "groupe_id",
         Some("resource_key"),

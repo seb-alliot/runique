@@ -44,6 +44,12 @@ schema_form!(PasswordAsText, |form| {
     form.field(&TextField::text("secret"));
 });
 
+schema_form!(PasswordAsSecretText, |form| {
+    let mut secret = TextField::text("secret");
+    secret.base.mark_password();
+    form.field(&secret);
+});
+
 schema_form!(IntegerAsText, |form| {
     form.field(&TextField::text("qty"));
 });
@@ -83,4 +89,13 @@ fn customize_cannot_turn_a_password_into_plain_text() {
 fn customize_cannot_turn_an_integer_into_text() {
     let mut form = Forms::new("csrf");
     IntegerAsText::register_fields(&mut form);
+}
+
+// Marked secret is not enough: a `password` column needs the password field
+// itself (hashed), not a text field that only hides its value.
+#[test]
+#[should_panic(expected = "is declared `password`")]
+fn customize_cannot_turn_a_password_into_secret_text() {
+    let mut form = Forms::new("csrf");
+    PasswordAsSecretText::register_fields(&mut form);
 }

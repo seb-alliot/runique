@@ -317,6 +317,17 @@ impl Request {
         self
     }
 
+    /// Loads the signed-in user's groups and rights from the database into
+    /// `self.user` and the template's `current_user`, for a view that checks a
+    /// right (`can_access_resource`, `permission_for`). Not loaded by default:
+    /// most pages never look at them.
+    pub async fn load_user_rights(&mut self) {
+        if let Some(user) = self.user.as_mut() {
+            user.groupes = crate::auth::pull_groupes_db(&self.engine.db, user.id).await;
+            self.context.insert("current_user", &*user);
+        }
+    }
+
     /// Immediate rendering with additional data
     pub fn render_with(
         mut self,

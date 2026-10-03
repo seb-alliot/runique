@@ -86,7 +86,7 @@ fn phantom_active_model_field(col: &PhantomColumn, partial: bool) -> Option<Toke
         FormWidget::Password => Some(quote! {
             #name: match __data.get(#name_str).map(|v| v.trim().to_string()).filter(|v| !v.is_empty()) {
                 Some(v) => ::sea_orm::ActiveValue::Set(
-                    ::runique::utils::password::hash(&v).unwrap_or_else(|_| v.clone())
+                    ::runique::forms::form_data::password(&v, #name_str)?
                 ),
                 None => ::sea_orm::ActiveValue::NotSet,
             },
@@ -209,6 +209,7 @@ pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
     // Extended columns go through the same generators as `model!{}` fields:
     // same Rust type, same conversion, same form field.
     let extended_defs: Vec<FieldDef> = dsl.fields.iter().map(form_field_to_field_def).collect();
+    let behavior = crate::model::utils::generate_active_model_behavior(&extended_defs);
     let extended_fields: Vec<TokenStream2> =
         extended_defs.iter().map(generate_model_field).collect();
 
@@ -293,14 +294,14 @@ pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
         #[derive(Copy, Clone, Debug, ::sea_orm::EnumIter, ::sea_orm::DeriveRelation)]
         pub enum Relation {}
 
-        impl ::sea_orm::ActiveModelBehavior for ActiveModel {}
+        #behavior
 
         #[allow(clippy::needless_update)]
         pub fn admin_from_form(
             __data: &::std::collections::HashMap<::std::string::String, ::std::string::String>,
             __id: ::std::option::Option<#id_ty>,
-        ) -> ActiveModel {
-            ActiveModel {
+        ) -> ::std::result::Result<ActiveModel, ::runique::forms::FormDataError> {
+            ::std::result::Result::Ok(ActiveModel {
                 id: match __id {
                     ::std::option::Option::Some(pk) => ::sea_orm::ActiveValue::Unchanged(pk),
                     #id_none_arm
@@ -308,20 +309,20 @@ pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
                 #(#phantom_am_fields)*
                 #(#full_assignments)*
                 ..::std::default::Default::default()
-            }
+            })
         }
 
         #[allow(clippy::needless_update)]
         pub fn admin_partial_update(
             __data: &::std::collections::HashMap<::std::string::String, ::std::string::String>,
             __id: #id_ty,
-        ) -> ActiveModel {
-            ActiveModel {
+        ) -> ::std::result::Result<ActiveModel, ::runique::forms::FormDataError> {
+            ::std::result::Result::Ok(ActiveModel {
                 id: ::sea_orm::ActiveValue::Unchanged(__id),
                 #(#phantom_am_fields_partial)*
                 #(#partial_assignments)*
                 ..::std::default::Default::default()
-            }
+            })
         }
 
         pub type AdminForm = #form_name;

@@ -31,7 +31,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_database(db)
         .with_log(|l| l.dev())
         .with_mailer_from_env()
-        .with_password_reset::<BuiltinUserEntity>(|pr| {
+        .with_password_reset(|pr| {
             pr.forgot_template("auth/forgot_password.html")
                 .reset_template("auth/reset_password.html")
         })
@@ -56,7 +56,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_admin(|a| {
             a.site_title("Administration")
                 .sitemap("https://runique.io/sitemap.xml")
-                .auth(RuniqueAdminAuth::new())
                 .routes(admins::routes("/admin-runique/"))
                 .prefix("/prefix-test")
                 .templates(|t| t.with_dashboard("admin/test_dashboard.html"))

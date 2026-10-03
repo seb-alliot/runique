@@ -186,6 +186,17 @@ impl NumericField {
     }
 }
 
+impl NumericField {
+    /// The message given to `min` / `max` for this bound, else the default.
+    fn bound_message(&self, key: &str, default: impl FnOnce() -> String) -> String {
+        self.base
+            .extra_context
+            .get(key)
+            .and_then(|v| v.as_str())
+            .map_or_else(default, str::to_string)
+    }
+}
+
 // --- Trait Implementation ---
 #[async_trait]
 impl FormField for NumericField {
@@ -244,11 +255,13 @@ impl FormField for NumericField {
                 let lo = min.map_or(lo, |m| lo.max(m.into()));
                 let hi = max.map_or(hi, |m| hi.min(m.into()));
                 if v < lo {
-                    self.set_error(tf("forms.min_value", &[&lo]));
+                    let msg = self.bound_message("min_message", || tf("forms.min_value", &[&lo]));
+                    self.set_error(msg);
                     return false;
                 }
                 if v > hi {
-                    self.set_error(tf("forms.max_value", &[&hi]));
+                    let msg = self.bound_message("max_message", || tf("forms.max_value", &[&hi]));
+                    self.set_error(msg);
                     return false;
                 }
                 v.to_string()
@@ -268,20 +281,36 @@ impl FormField for NumericField {
                     return false;
                 };
                 if let Some(f) = value.as_ref() {
-                    if v < f.min {
-                        self.set_error(tf("forms.min_value", &[&f.min]));
+                    let (min, max) = (f.min, f.max);
+                    if v < min {
+                        let msg =
+                            self.bound_message("min_message", || tf("forms.min_value", &[&min]));
+                        self.set_error(msg);
                         return false;
                     }
-                    if v > f.max {
-                        self.set_error(tf("forms.max_value", &[&f.max]));
+                    if v > max {
+                        let msg =
+                            self.bound_message("max_message", || tf("forms.max_value", &[&max]));
+                        self.set_error(msg);
                         return false;
                     }
                 }
                 normalized
             }
             NumericConfig::Percent { value } | NumericConfig::Range { value, .. } => {
+                let (min, max) = (value.min, value.max);
                 match normalized.parse::<f64>() {
-                    Ok(v) if v >= value.min && v <= value.max => normalized,
+                    Ok(v) if v >= min && v <= max => normalized,
+                    Ok(v) if v.is_finite() => {
+                        let key = if v < min {
+                            "min_message"
+                        } else {
+                            "max_message"
+                        };
+                        let msg = self.bound_message(key, || t("forms.number_invalid").to_string());
+                        self.set_error(msg);
+                        return false;
+                    }
                     _ => {
                         self.set_error(t("forms.number_invalid").to_string());
                         return false;

@@ -7,7 +7,7 @@ Quand l'admin crée un utilisateur via le panel, le cycle est le suivant :
 ```
 Admin remplit le formulaire
         ↓
-Compte créé en base (is_active = false)
+Compte créé en base, en attente (is_active = false, activated_at vide)
 Hash aléatoire injecté dans le champ password
         ↓
 Email de reset envoyé à l'utilisateur
@@ -15,7 +15,7 @@ Email de reset envoyé à l'utilisateur
 L'utilisateur clique le lien
 Définit son mot de passe
         ↓
-update_password → is_active = true
+Activation : is_active = true, activated_at rempli
         ↓
 L'utilisateur peut se connecter
 ```
@@ -29,8 +29,10 @@ L'utilisateur peut se connecter
 | Création via admin | `is_active = false` — le compte est inactif à la création |
 | Champ `password` | Hash aléatoire injecté — l'utilisateur ne connaît pas ce mot de passe |
 | Email | Lien de reset envoyé à l'adresse fournie dans le formulaire |
-| Définition du mot de passe | `is_active` passe à `true` automatiquement via `update_password` |
-| Connexion | `auth_login()` bloque les comptes avec `is_active = false` |
+| Définition du mot de passe | Le compte en attente est activé : `is_active = true` et `activated_at` rempli. Un compte déjà activé (désactivé depuis) n'est **pas** réactivé |
+| Connexion | Refusée tant que le compte n'est pas actif et activé (`can_sign_in()`) |
+| Email perdu | L'utilisateur redemande un lien via « mot de passe oublié » |
+| Activation par l'admin | Impossible : cocher `is_active` sur un compte en attente est refusé — la première activation appartient au propriétaire de l'email |
 
 ---
 
@@ -103,16 +105,6 @@ En production, configurer `reset_password_url` dans le builder pour générer un
 
 Sans cette configuration, l'URL est construite depuis le header `Host` de la requête HTTP
 (`http://{host}/reset-password/...`).
-
----
-
-## Modèle custom
-
-Si le projet utilise son propre modèle utilisateur (pas `runique_users`), il doit implémenter
-`UserEntity` et gérer `is_active` dans `update_password` lui-même.
-
-`auth_login()` utilise `BuiltinUserEntity` — les projets avec un modèle custom appellent
-`login()` directement et contrôlent la vérification `is_active` dans leur propre handler.
 
 ---
 

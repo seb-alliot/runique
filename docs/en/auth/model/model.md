@@ -17,6 +17,7 @@ Runique includes a ready-to-use user model that requires no configuration.
 | `is_superuser` | `bool` | Full access, bypasses all rules |
 | `created_at` | datetime | Creation timestamp |
 | `updated_at` | datetime | Last update timestamp |
+| `activated_at` | datetime | Activation by the owner (empty while the account is pending) |
 
 To create the first superuser:
 
@@ -41,47 +42,38 @@ constraints, switching mode after the fact).
 
 ---
 
-## RuniqueUser Trait
+## Account states
 
-If you use your own user model instead of the built-in one, you must implement `RuniqueUser`.
+`eihwaz_users` is the only user model: to add fields to it, use
+`extend!{ table: "eihwaz_users", ... }`.
 
-```rust
-use runique::prelude::*;
+Two columns describe an account's state: `is_active` (is it active?) and `activated_at` (when
+did its owner activate it, through the emailed link?).
 
-impl RuniqueUser for users::Model {
-    fn user_id(&self) -> Pk      { self.id }
-    fn username(&self) -> &str       { &self.username }
-    fn email(&self) -> &str          { &self.email }
-    fn password_hash(&self) -> &str  { &self.password }
-    fn is_active(&self) -> bool      { self.is_active }
-    fn is_staff(&self) -> bool       { self.is_staff }
-    fn is_superuser(&self) -> bool   { self.is_superuser }
+| `is_active` | `activated_at` | State | Sign-in | "Forgot password" |
+| --- | --- | --- | --- | --- |
+| `false` | empty | **Pending** — created, never activated | Refused | Link that **activates** the account |
+| `true` | set | **Active** | Allowed | Reset link |
+| `false` | set | **Deactivated** by the staff | Refused | "Account blocked" email, no link |
+| `true` | empty | Impossible — refused by the database | — | — |
 
-    // Optional — custom admin access logic
-    fn can_access_admin(&self) -> bool {
-        self.is_active() && (self.is_staff() || self.is_superuser())
-    }
-}
-```
+- The **first activation** belongs to the email's owner: an admin can't tick `is_active` on a
+  pending account.
+- **Deactivating and reactivating** an account activated before is the staff's role
+  (`can_update` on `users`).
+- Changing the password **never reactivates** a deactivated account.
+- The "forgot password" page answers the same whatever the account's state or existence.
+- To cancel an invitation (pending account), delete the account.
 
-### Required Methods
+The guarantee "no `is_active` without `activated_at`" is set **in the database**: a `CHECK`
+constraint created with the `eihwaz_users` table, on all three engines. It applies to raw SQL too.
 
-| Method | Return | Description |
-|------------------|-------------|--------------------------------|
-| `user_id()` | `Pk` | Unique identifier |
-| `username()` | `&str` | Username |
-| `email()` | `&str` | Email address |
-| `password_hash()` | `&str` | Password hash |
-| `is_active()` | `bool` | Account is active |
-| `is_staff()` | `bool` | Limited admin access |
-| `is_superuser()` | `bool` | Full admin access |
+In code, the model implements the `RuniqueUser` trait:
 
-### Methods With Default Implementation
-
-| Method | Default | Description |
-|--------------------|-------------------------------------|------------------------------|
-| `roles()` | `vec![]` | Custom roles |
-| `can_access_admin()` | `is_active && (is_staff \|\| is_superuser)` | Admin access logic |
+| Method | Description |
+| --- | --- |
+| `can_sign_in()` | `is_active` **and** `activated_at` set |
+| `can_access_admin()` | `can_sign_in()` and (`is_staff` or `is_superuser`) |
 
 ---
 

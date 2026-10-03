@@ -4,12 +4,9 @@ use super::struct_test::{
     FormatResult, Issue, QueryTrace, Reason, TestFailure, TraceSink, msg, msgf,
 };
 use super::transaction_test::TestTransaction;
-use crate::auth::guard::CachedPermissions;
 use crate::utils::aliases::StrMap;
-use crate::utils::pk::Pk;
 use futures_util::FutureExt;
 use std::any::Any;
-use std::collections::HashMap;
 use std::panic::AssertUnwindSafe;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -28,17 +25,14 @@ const DEFAULT_TIMEOUT: Duration = Duration::from_secs(30);
 /// How long the rollback and the transaction check get once the handler is done.
 const CLEANUP_TIMEOUT: Duration = Duration::from_secs(15);
 
-/// What the running test leaves behind outside the database, for the
-/// builder to undo: its trace, and the permission cache entries it touched.
+/// What the running test reports to outside the database: its SQL trace.
 pub(crate) struct TestScope {
     trace: TraceSink,
-    /// Each entry the handler changed, with its value from before the first change.
-    permissions: Mutex<HashMap<Pk, Option<Arc<CachedPermissions>>>>,
 }
 
 tokio::task_local! {
     /// Set for the whole handler, so code deeper down can report to it
-    /// (`ADb::execute_unprepared`, `expect_db_error`, the permission cache),
+    /// (`ADb::execute_unprepared`, `expect_db_error`),
     /// and so a `runique_test` started from inside a handler can tell.
     static CURRENT: Arc<TestScope>;
 }
@@ -76,20 +70,11 @@ pub async fn runique_test<C: TestTransaction>(
     let trace = TraceSink::default();
     let scope = Arc::new(TestScope {
         trace: trace.clone(),
-        permissions: Mutex::default(),
     });
 
     let (reason, issues) = CURRENT
         .scope(scope.clone(), run::<C>(env_file, &trace, handler))
         .await;
-
-    // The rollback undid the database, not the process: put back the
-    // permission cache entries the handler changed, so the next test doesn't
-    // read groups that no longer exist. Only those: a snapshot of the whole
-    // cache would also undo what other tests, running meanwhile on other
-    // threads, did to it.
-    let touched = std::mem::take(&mut *scope.permissions.lock().unwrap_or_else(|e| e.into_inner()));
-    crate::auth::guard::restore_permissions(touched);
 
     report(FormatResult {
         name_test,
@@ -247,20 +232,6 @@ pub(crate) fn mark_expected_from(start: usize) {
         for query in lock(&scope.trace).iter_mut().skip(start) {
             query.expected = true;
         }
-    });
-}
-
-/// Called by the permission cache before it changes `user_id`'s entry, with
-/// the value it had. Only the first change of each entry counts: that's the
-/// value to put back.
-pub(crate) fn note_permission_change(user_id: Pk, before: Option<Arc<CachedPermissions>>) {
-    let _ = CURRENT.try_with(|scope| {
-        scope
-            .permissions
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .entry(user_id)
-            .or_insert(before);
     });
 }
 

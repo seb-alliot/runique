@@ -43,7 +43,7 @@ pub(crate) fn generate_model_field(field: &FieldDef) -> TokenStream2 {
             .options
             .iter()
             .any(|o| matches!(o, FieldOption::Nullable));
-    let base_ty = field_type_to_rust(&field.ty);
+    let base_ty = field_type_to_rust(&field.column_type());
 
     let ty = if nullable {
         quote! { Option<#base_ty> }
@@ -56,13 +56,9 @@ pub(crate) fn generate_model_field(field: &FieldDef) -> TokenStream2 {
     }
 }
 
-fn field_type_to_rust(ty: &FieldType) -> TokenStream2 {
+pub(crate) fn field_type_to_rust(ty: &FieldType) -> TokenStream2 {
     match ty {
-        FieldType::String
-        | FieldType::Password
-        | FieldType::Text
-        | FieldType::Char
-        | FieldType::Varchar(_) => {
+        FieldType::String | FieldType::Text | FieldType::Char | FieldType::Varchar(_) => {
             quote! { String }
         }
         FieldType::I8 => quote! { i8 },

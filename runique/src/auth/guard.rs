@@ -1,100 +1,10 @@
-//! Brute-force protection, `login_required` middleware, and permission cache.
-use crate::auth::permissions::Groupe;
-use crate::utils::pk::Pk;
+//! Brute-force protection and the `login_required` middleware.
 use std::{
     collections::HashMap,
-    sync::{Arc, LazyLock, Mutex, RwLock},
+    sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
 use tokio::time::interval;
-
-// ═══════════════════════════════════════════════════════════════
-// Global permission cache by user_id
-// ═══════════════════════════════════════════════════════════════
-
-/// A user's resolved group memberships, kept in the in-memory permission
-/// cache (`PERMISSIONS_CACHE`) between login/logout and rights-change events,
-/// to avoid re-querying groups on every permission check.
-#[derive(Clone, Debug)]
-pub struct CachedPermissions {
-    pub groupes: Vec<Groupe>,
-}
-
-static PERMISSIONS_CACHE: LazyLock<RwLock<HashMap<Pk, Arc<CachedPermissions>>>> =
-    LazyLock::new(|| RwLock::new(HashMap::new()));
-
-/// Inserts or updates a user's permissions in the cache.
-/// Called upon login and when a rights change signal occurs.
-pub fn cache_permissions(user_id: Pk, groupes: Vec<Groupe>) {
-    // Récupère le lock même empoisonné (un thread a paniqué) et logge : ne jamais
-    // avaler ni sauter l'opération (la cohérence du cache de droits est sécuritaire).
-    let mut cache = PERMISSIONS_CACHE.write().unwrap_or_else(|p| {
-        tracing::warn!("permissions cache lock poisoned (recovered, insert)");
-        p.into_inner()
-    });
-    #[cfg(feature = "test-utils")]
-    crate::runique_test::logic::builder_test::note_permission_change(
-        user_id,
-        cache.get(&user_id).cloned(),
-    );
-    cache.insert(user_id, Arc::new(CachedPermissions { groupes }));
-}
-
-/// Returns the cached permissions for a user.
-pub fn get_permissions(user_id: Pk) -> Option<Arc<CachedPermissions>> {
-    let cache = PERMISSIONS_CACHE.read().unwrap_or_else(|p| {
-        tracing::warn!("permissions cache lock poisoned (recovered, read)");
-        p.into_inner()
-    });
-    cache.get(&user_id).cloned()
-}
-
-/// Removes a user's permissions from the cache (logout).
-/// Skipping this would leave stale permissions behind → recover + log instead.
-pub fn evict_permissions(user_id: Pk) {
-    let mut cache = PERMISSIONS_CACHE.write().unwrap_or_else(|p| {
-        tracing::warn!("permissions cache lock poisoned (recovered, evict)");
-        p.into_inner()
-    });
-    #[cfg(feature = "test-utils")]
-    crate::runique_test::logic::builder_test::note_permission_change(
-        user_id,
-        cache.get(&user_id).cloned(),
-    );
-    cache.remove(&user_id);
-}
-
-/// Entirely clears the cache (restart, maintenance).
-pub fn clear_cache() {
-    let mut cache = PERMISSIONS_CACHE.write().unwrap_or_else(|p| {
-        tracing::warn!("permissions cache lock poisoned (recovered, clear)");
-        p.into_inner()
-    });
-    #[cfg(feature = "test-utils")]
-    for (user_id, was) in cache.iter() {
-        crate::runique_test::logic::builder_test::note_permission_change(
-            *user_id,
-            Some(was.clone()),
-        );
-    }
-    cache.clear();
-}
-
-/// Puts back the entries a `runique_test` handler changed: each one gets its
-/// value from before the test, or goes if it didn't exist then.
-#[cfg(feature = "test-utils")]
-pub(crate) fn restore_permissions(touched: HashMap<Pk, Option<Arc<CachedPermissions>>>) {
-    let mut cache = PERMISSIONS_CACHE.write().unwrap_or_else(|p| {
-        tracing::warn!("permissions cache lock poisoned (recovered, restore)");
-        p.into_inner()
-    });
-    for (user_id, before) in touched {
-        match before {
-            Some(was) => cache.insert(user_id, was),
-            None => cache.remove(&user_id),
-        };
-    }
-}
 
 // ═══════════════════════════════════════════════════════════════
 // LoginGuard

@@ -88,3 +88,22 @@ fn test_index_to_sea_index_unique() {
     let idx = IndexDef::new(vec!["email"]).unique();
     let _ = idx.to_sea_index("users");
 }
+
+// Written from cargo-mutants survivors (2026-10-02): the tests above only
+// build the statement.
+#[test]
+fn test_index_to_sea_index_sql() {
+    use sea_query::SqliteQueryBuilder;
+    let sql = |idx: IndexDef, table: &str| idx.to_sea_index(table).to_string(SqliteQueryBuilder);
+    assert_eq!(
+        sql(IndexDef::new(vec!["last_name", "first_name"]), "contacts"),
+        r#"CREATE INDEX "idx_contacts_last_name_first_name" ON "contacts" ("last_name", "first_name")"#
+    );
+    assert_eq!(
+        sql(
+            IndexDef::new(vec!["email"]).name("idx_custom").unique(),
+            "users"
+        ),
+        r#"CREATE UNIQUE INDEX "idx_custom" ON "users" ("email")"#
+    );
+}

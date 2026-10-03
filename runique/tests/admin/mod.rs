@@ -1,5 +1,8 @@
+pub mod test_admin_access_control;
+pub mod test_admin_config_guarantees;
 pub mod test_admin_escaping_contract;
 pub mod test_admin_groupe_droits_crud;
+pub mod test_admin_guarantees;
 pub mod test_admin_nested_scope;
 pub mod test_admin_password_security;
 pub mod test_admin_raw_body;

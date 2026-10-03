@@ -7,6 +7,7 @@
 //! `tests/admin/test_admin_escaping_contract.rs` — factorisé ici pour éviter
 //! que les deux dérivent (schéma, registre, login) au fil des évolutions.
 
+use runique::admin::resource::CrudOperation;
 use std::{net::SocketAddr, sync::Arc, sync::OnceLock};
 
 use axum::{Router, routing::get};
@@ -31,6 +32,9 @@ const SEED_SUPERUSER_ID: u32 = 1;
 // Identifiants connus des lignes seedées ci-dessous — utilisés par les tests
 // de detail/edit/delete pour construire des URLs valides. `eihwaz_groupes` a
 // son propre id, toujours INTEGER, indépendant de `Pk` (cf. migrations_table.rs).
+/// Resource key of a right seeded before `build()` for a resource that is not
+/// registered: pruned at boot.
+pub const ORPHAN_DROIT_RESOURCE_KEY: &str = "ghost_resource";
 pub const SEED_GROUPE_ID: i64 = 1;
 // Doit être une clé de ressource RÉELLEMENT enregistrée dans le registre de
 // test (users/droits/groupes) : `prune_orphan_droits` (RuniqueAppBuilder::build)
@@ -42,7 +46,7 @@ pub const SEED_HISTORY_BATCH_ID: &str = "seed-batch-1";
 // ── Schéma SQLite minimal (users + sessions + permissions + historique) ───────
 
 #[cfg(feature = "pk-uuid")]
-const USERS_DDL: &str = "
+pub const USERS_DDL: &str = "
     CREATE TABLE eihwaz_users (
         id          BLOB PRIMARY KEY,
         username    TEXT NOT NULL UNIQUE,
@@ -52,12 +56,13 @@ const USERS_DDL: &str = "
         is_staff    INTEGER NOT NULL DEFAULT 0,
         is_superuser INTEGER NOT NULL DEFAULT 0,
         created_at  TEXT,
-        updated_at  TEXT
+        updated_at  TEXT,
+        activated_at TEXT
     )
 ";
 
 #[cfg(not(feature = "pk-uuid"))]
-const USERS_DDL: &str = "
+pub const USERS_DDL: &str = "
     CREATE TABLE eihwaz_users (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
         username    TEXT NOT NULL UNIQUE,
@@ -67,12 +72,13 @@ const USERS_DDL: &str = "
         is_staff    INTEGER NOT NULL DEFAULT 0,
         is_superuser INTEGER NOT NULL DEFAULT 0,
         created_at  TEXT,
-        updated_at  TEXT
+        updated_at  TEXT,
+        activated_at TEXT
     )
 ";
 
 #[cfg(feature = "pk-uuid")]
-const SESSIONS_DDL: &str = "
+pub const SESSIONS_DDL: &str = "
     CREATE TABLE eihwaz_sessions (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
         cookie_id   TEXT NOT NULL UNIQUE,
@@ -84,7 +90,7 @@ const SESSIONS_DDL: &str = "
 ";
 
 #[cfg(not(feature = "pk-uuid"))]
-const SESSIONS_DDL: &str = "
+pub const SESSIONS_DDL: &str = "
     CREATE TABLE eihwaz_sessions (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
         cookie_id   TEXT NOT NULL UNIQUE,
@@ -95,14 +101,14 @@ const SESSIONS_DDL: &str = "
     )
 ";
 
-const GROUPES_DDL: &str = "
+pub const GROUPES_DDL: &str = "
     CREATE TABLE eihwaz_groupes (
         id  INTEGER PRIMARY KEY AUTOINCREMENT,
         nom TEXT NOT NULL
     )
 ";
 
-const GROUPES_DROITS_DDL: &str = "
+pub const GROUPES_DROITS_DDL: &str = "
     CREATE TABLE eihwaz_groupes_droits (
         groupe_id      INTEGER NOT NULL,
         resource_key   TEXT NOT NULL,
@@ -117,7 +123,7 @@ const GROUPES_DROITS_DDL: &str = "
 ";
 
 #[cfg(feature = "pk-uuid")]
-const USERS_GROUPES_DDL: &str = "
+pub const USERS_GROUPES_DDL: &str = "
     CREATE TABLE eihwaz_users_groupes (
         user_id   BLOB NOT NULL,
         groupe_id INTEGER NOT NULL,
@@ -126,7 +132,7 @@ const USERS_GROUPES_DDL: &str = "
 ";
 
 #[cfg(not(feature = "pk-uuid"))]
-const USERS_GROUPES_DDL: &str = "
+pub const USERS_GROUPES_DDL: &str = "
     CREATE TABLE eihwaz_users_groupes (
         user_id   INTEGER NOT NULL,
         groupe_id INTEGER NOT NULL,
@@ -135,7 +141,7 @@ const USERS_GROUPES_DDL: &str = "
 ";
 
 #[cfg(feature = "pk-uuid")]
-const HISTORY_DDL: &str = "
+pub const HISTORY_DDL: &str = "
     CREATE TABLE eihwaz_history (
         id            INTEGER PRIMARY KEY AUTOINCREMENT,
         resource_key  TEXT NOT NULL,
@@ -150,7 +156,7 @@ const HISTORY_DDL: &str = "
 ";
 
 #[cfg(not(feature = "pk-uuid"))]
-const HISTORY_DDL: &str = "
+pub const HISTORY_DDL: &str = "
     CREATE TABLE eihwaz_history (
         id            INTEGER PRIMARY KEY AUTOINCREMENT,
         resource_key  TEXT NOT NULL,
@@ -167,7 +173,7 @@ const HISTORY_DDL: &str = "
 // Table du flux reset-password (admin création d'user + reset manuel) — cf.
 // `tests/utils/test_reset_token.rs` pour le même schéma en isolation.
 #[cfg(feature = "pk-uuid")]
-const RESET_TOKENS_DDL: &str = "
+pub const RESET_TOKENS_DDL: &str = "
     CREATE TABLE eihwaz_reset_tokens (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
         token_hash  TEXT NOT NULL UNIQUE,
@@ -177,7 +183,7 @@ const RESET_TOKENS_DDL: &str = "
 ";
 
 #[cfg(not(feature = "pk-uuid"))]
-const RESET_TOKENS_DDL: &str = "
+pub const RESET_TOKENS_DDL: &str = "
     CREATE TABLE eihwaz_reset_tokens (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
         token_hash  TEXT NOT NULL UNIQUE,
@@ -226,8 +232,8 @@ fn build_admin_routes(prefix: &str) -> AdminRoutes {
 #[cfg(feature = "pk-uuid")]
 fn seed_superuser_insert_sql(hash: &str) -> String {
     format!(
-        "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_staff, is_superuser) \
-         VALUES ({}, '{SUPERUSER_USERNAME}', 'crawler@example.com', '{hash}', 1, 1, 1)",
+        "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_staff, is_superuser, activated_at) \
+         VALUES ({}, '{SUPERUSER_USERNAME}', 'crawler@example.com', '{hash}', 1, 1, 1, '2026-01-01 00:00:00')",
         pk_sql_literal(SEED_SUPERUSER_ID)
     )
 }
@@ -235,8 +241,8 @@ fn seed_superuser_insert_sql(hash: &str) -> String {
 #[cfg(not(feature = "pk-uuid"))]
 fn seed_superuser_insert_sql(hash: &str) -> String {
     format!(
-        "INSERT INTO eihwaz_users (username, email, password, is_active, is_staff, is_superuser) \
-         VALUES ('{SUPERUSER_USERNAME}', 'crawler@example.com', '{hash}', 1, 1, 1)"
+        "INSERT INTO eihwaz_users (username, email, password, is_active, is_staff, is_superuser, activated_at) \
+         VALUES ('{SUPERUSER_USERNAME}', 'crawler@example.com', '{hash}', 1, 1, 1, '2026-01-01 00:00:00')"
     )
 }
 
@@ -260,6 +266,16 @@ async fn seed_fixtures(dbc: &DatabaseConnection) {
             "INSERT INTO eihwaz_groupes_droits \
              (groupe_id, resource_key, can_create, can_read, can_update, can_delete, can_update_own, can_delete_own) \
              VALUES ({SEED_GROUPE_ID}, '{SEED_DROIT_RESOURCE_KEY}', 0, 1, 0, 0, 0, 0)"
+        ),
+    )
+    .await;
+    // A right on a resource no longer registered: `build()` must prune it.
+    db::exec(
+        dbc,
+        &format!(
+            "INSERT INTO eihwaz_groupes_droits \
+             (groupe_id, resource_key, can_create, can_read, can_update, can_delete, can_update_own, can_delete_own) \
+             VALUES ({SEED_GROUPE_ID}, '{ORPHAN_DROIT_RESOURCE_KEY}', 1, 1, 1, 1, 0, 0)"
         ),
     )
     .await;
@@ -311,6 +327,18 @@ pub fn seed_superuser_id_str() -> String {
 /// qui se termine devient inutilisable pour le serveur partagé — casse silencieuse
 /// de tous les logins suivants (trouvé en déboguant `test_admin_password_security.rs`).
 pub async fn build_admin_app() -> (Router, DatabaseConnection) {
+    build_admin_app_with_extra_routes(Vec::new()).await
+}
+
+/// Same admin app, with custom admin routes (`.extra_routes()`).
+pub async fn build_admin_app_with_extra_routes(
+    extra_routes: Vec<(
+        &'static str,
+        &'static str,
+        CrudOperation,
+        axum::routing::MethodRouter,
+    )>,
+) -> (Router, DatabaseConnection) {
     let dbc = db::fresh_db().await;
     db::exec(&dbc, USERS_DDL).await;
     db::exec(&dbc, SESSIONS_DDL).await;
@@ -347,8 +375,8 @@ pub async fn build_admin_app() -> (Router, DatabaseConnection) {
         .no_statics()
         .with_admin(|a| {
             a.site_title("Test Admin")
-                .auth(RuniqueAdminAuth::new())
                 .routes(build_admin_routes(ADMIN_PREFIX))
+                .extra_routes(extra_routes)
                 .with_state(state)
         })
         // `get_log().admin.auth`/`.crud` sont `None` par défaut (zero-cost) —

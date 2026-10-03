@@ -401,9 +401,8 @@ fn test_from_env_engine_inconnu_sans_db_url_retourne_err() {
 #[tokio::test]
 async fn test_connect_postgres_docker() {
     let _ = dotenvy::from_filename(".env.test");
-    let pg_url = match std::env::var("DATABASE_URL_PG") {
-        Ok(url) => url,
-        Err(_) => return, // skip si Docker non disponible
+    let Some(pg_url) = crate::helpers::db_isolation::isolated_url("DATABASE_URL_PG").await else {
+        return; // skip si Docker non disponible
     };
 
     let config = DatabaseConfig::from_url(&pg_url)
@@ -420,9 +419,10 @@ async fn test_connect_postgres_docker() {
 #[tokio::test]
 async fn test_connect_mariadb_docker() {
     let _ = dotenvy::from_filename(".env.test");
-    let mariadb_url = match std::env::var("DATABASE_URL_MARIADB") {
-        Ok(url) => url,
-        Err(_) => return, // skip si Docker non disponible
+    let Some(mariadb_url) =
+        crate::helpers::db_isolation::isolated_url("DATABASE_URL_MARIADB").await
+    else {
+        return; // skip si Docker non disponible
     };
 
     // Le driver SeaORM utilise mysql:// même pour MariaDB

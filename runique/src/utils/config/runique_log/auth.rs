@@ -10,8 +10,7 @@ pub struct AuthTracing {
     pub reset: Option<Level>,
     /// Warns if `password_init()` is called multiple times.
     pub password_init: Option<Level>,
-    /// Permission cache lifecycle: reload from DB after invalidation
-    /// (`clear_cache`) — i.e. a request seeing a group's rights change take effect.
+    /// Rights and account state loaded from the database for a request.
     pub permissions: Option<Level>,
 }
 

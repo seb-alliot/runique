@@ -26,6 +26,69 @@ use crate::utils::{
     trad::{t, tf},
 };
 
+/// Replaces a user's group memberships with the comma-separated group ids in
+/// `groupes`, all or nothing.
+async fn replace_user_groupes(
+    db: &ADb,
+    user_id: crate::utils::pk::Pk,
+    groupes: &str,
+) -> Result<(), sea_orm::DbErr> {
+    use sea_orm::TransactionTrait;
+
+    let txn = db.begin().await?;
+    write_user_groupes(&txn, user_id, groupes).await?;
+    txn.commit().await
+}
+
+async fn write_user_groupes(
+    txn: &sea_orm::DatabaseTransaction,
+    user_id: crate::utils::pk::Pk,
+    groupes: &str,
+) -> Result<(), sea_orm::DbErr> {
+    use crate::auth::permissions::users_groupes;
+    use sea_orm::{ColumnTrait, QueryFilter};
+
+    users_groupes::Entity::delete_many()
+        .filter(users_groupes::Column::UserId.eq(user_id))
+        .exec(txn)
+        .await?;
+    for groupe_id in groupes
+        .split(',')
+        .filter_map(|g| g.trim().parse::<i32>().ok())
+    {
+        users_groupes::ActiveModel {
+            user_id: Set(user_id),
+            groupe_id: Set(groupe_id),
+        }
+        .insert(txn)
+        .await?;
+    }
+    Ok(())
+}
+
+/// Refuses to make active an account its owner never activated: the first
+/// activation is the owner's, through the emailed link. Checked here for a
+/// clear message — the database refuses it anyway.
+async fn ensure_activatable(
+    db: &ADb,
+    id: crate::utils::pk::Pk,
+    wants_active: bool,
+) -> Result<(), sea_orm::DbErr> {
+    if !wants_active {
+        return Ok(());
+    }
+    let never_activated = crate::auth::user::Entity::find_by_id(id)
+        .one(db)
+        .await?
+        .is_some_and(|u| u.activated_at.is_none());
+    if never_activated {
+        return Err(sea_orm::DbErr::Custom(
+            t("admin.user.not_activated").into_owned(),
+        ));
+    }
+    Ok(())
+}
+
 pub(super) fn user_entry() -> ResourceEntry {
     use crate::auth::user;
     use crate::utils::pk::Pk;
@@ -35,7 +98,6 @@ pub(super) fn user_entry() -> ResourceEntry {
         "runique::auth::user::Model",
         "UserAdminCreateForm",
         "Users",
-        vec!["admin".to_string()],
     )
     .inject_password(true);
 
@@ -293,12 +355,10 @@ pub(super) fn user_entry() -> ResourceEntry {
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            use crate::auth::permissions::users_groupes;
-            use sea_orm::ColumnTrait;
-
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| sea_orm::DbErr::Custom(t("admin.builtin.invalid_id").into_owned()))?;
+            ensure_activatable(&db, id, parse_bool(&data, IS_ACTIVE)).await?;
             user::ActiveModel {
                 id: Set(id),
                 username: Set(data.get("username").cloned().unwrap_or_default()),
@@ -312,34 +372,7 @@ pub(super) fn user_entry() -> ResourceEntry {
             .update(&*db)
             .await?;
 
-            {
-                use sea_orm::QueryFilter;
-                users_groupes::Entity::delete_many()
-                    .filter(users_groupes::Column::UserId.eq(id))
-                    .exec(&*db)
-                    .await?;
-            }
-
-            if let Some(groupes_str) = data.get(GROUPES) {
-                for id_str in groupes_str.split(',') {
-                    let id_str = id_str.trim();
-                    if id_str.is_empty() {
-                        continue;
-                    }
-                    if let Ok(groupe_id) = id_str.parse::<i32>()
-                        && let Err(e) = (users_groupes::ActiveModel {
-                            user_id: Set(id),
-                            groupe_id: Set(groupe_id),
-                        }
-                        .insert(&*db)
-                        .await)
-                    {
-                        tracing::warn!(user_id = %id, groupe_id = %groupe_id, error = %e, "user→group assignment failed (update)");
-                    }
-                }
-            }
-
-            Ok(())
+            replace_user_groupes(&db, id, data.get(GROUPES).map_or("", String::as_str)).await
         })
     });
 
@@ -354,6 +387,7 @@ pub(super) fn user_entry() -> ResourceEntry {
                 ..Default::default()
             };
             if data.contains_key(IS_ACTIVE) {
+                ensure_activatable(&db, id, parse_bool(&data, IS_ACTIVE)).await?;
                 model.is_active = Set(parse_bool(&data, IS_ACTIVE));
             }
             if data.contains_key(SESSION_USER_IS_STAFF_KEY) {
@@ -368,6 +402,12 @@ pub(super) fn user_entry() -> ResourceEntry {
                 model.email = Set(v.clone());
             }
             model.update(&*db).await?;
+            // The edit form always sends `groupes` (empty when every box is
+            // unchecked); a bulk update sends it only when the admin picked
+            // groups, and leaves memberships alone otherwise.
+            if let Some(groupes) = data.get(GROUPES) {
+                replace_user_groupes(&db, id, groupes).await?;
+            }
             Ok(())
         })
     });

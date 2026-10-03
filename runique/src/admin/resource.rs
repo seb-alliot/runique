@@ -2,54 +2,9 @@
 //
 // Resource access permissions are managed in the database via per-group scoped rights
 // (eihwaz_groupes_droits: groupe_id + resource_key + CRUD matrix), and not in admin!{}.
-// See: runique::auth::permissions_cache
 
-/// Granular permissions per CRUD operation
-#[derive(Debug, Clone, serde::Serialize)]
-pub struct ResourcePermissions {
-    // Authorized roles for each operation
-    pub list: Vec<String>,
-
-    pub view: Vec<String>,
-
-    pub create: Vec<String>,
-
-    pub edit: Vec<String>,
-
-    pub delete: Vec<String>,
-}
-
-impl ResourcePermissions {
-    /// Creates uniform permissions for all actions
-    pub fn uniform(roles: Vec<String>) -> Self {
-        Self {
-            list: roles.clone(),
-            view: roles.clone(),
-            create: roles.clone(),
-            edit: roles.clone(),
-            delete: roles,
-        }
-    }
-
-    /// Checks if a role is authorized for a given operation
-    pub fn can(&self, operation: CrudOperation, role: &str) -> bool {
-        let allowed = match operation {
-            CrudOperation::List => &self.list,
-            CrudOperation::View => &self.view,
-            CrudOperation::Create => &self.create,
-            CrudOperation::Edit => &self.edit,
-            CrudOperation::Delete => &self.delete,
-        };
-        allowed.iter().any(|r| r == role)
-    }
-
-    /// Checks if any of the provided roles are authorized for an operation
-    pub fn can_any(&self, operation: CrudOperation, roles: &[&str]) -> bool {
-        roles.iter().any(|role| self.can(operation, role))
-    }
-}
-
-/// Available CRUD operations on an admin resource
+/// An operation on an admin resource — what a custom admin route declares it
+/// performs (`extra_routes`), to check the matching right.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 pub enum CrudOperation {
     List,
@@ -202,9 +157,6 @@ pub struct AdminResource {
     /// Title displayed in the admin interface
     pub title: &'static str,
 
-    /// CRUD permissions for this resource
-    pub permissions: ResourcePermissions,
-
     /// Display configuration (columns, pagination, icon)
     pub display: DisplayConfig,
 
@@ -235,49 +187,20 @@ pub struct AdminResource {
 }
 
 impl AdminResource {
-    /// Creates a new admin resource with uniform permissions (`roles` applied
-    /// to every CRUD operation) and framework defaults for display, templates
-    /// and FK resolution.
+    /// Creates a new admin resource with framework defaults for display,
+    /// templates and FK resolution. Who may use it is decided by the groups'
+    /// rights in the database (`eihwaz_groupes_droits`), not here.
     pub fn new(
         key: &'static str,
         model_path: &'static str,
         form_path: &'static str,
         title: &'static str,
-        roles: Vec<String>,
     ) -> Self {
         Self {
             key,
             model_path,
             form_path,
             title,
-            permissions: ResourcePermissions::uniform(roles),
-            display: DisplayConfig::new(),
-            template_list: None,
-            template_create: None,
-            template_edit: None,
-            template_detail: None,
-            template_delete: None,
-            extra_context: std::collections::HashMap::new(),
-            inject_password: false,
-            fk_display: Vec::new(),
-            parent_scope: None,
-        }
-    }
-
-    /// Creates a resource with granular permissions
-    pub fn with_permissions(
-        key: &'static str,
-        model_path: &'static str,
-        form_path: &'static str,
-        title: &'static str,
-        permissions: ResourcePermissions,
-    ) -> Self {
-        Self {
-            key,
-            model_path,
-            form_path,
-            title,
-            permissions,
             display: DisplayConfig::new(),
             template_list: None,
             template_create: None,
@@ -329,66 +252,6 @@ impl AdminResource {
     pub fn display(mut self, display: DisplayConfig) -> Self {
         self.display = display;
         self
-    }
-
-    /// Returns the list route path for this resource
-    ///
-    /// Ex: resource.key = "users" → "/users/list"
-    pub fn list_route(&self) -> String {
-        format!("/{}/list", self.key)
-    }
-
-    /// Returns the creation route path for this resource
-    pub fn create_route(&self) -> String {
-        format!("/{}/create", self.key)
-    }
-
-    /// Returns the detail/edit route path for this resource
-    pub fn detail_route(&self) -> String {
-        format!("/{}/{{id}}", self.key)
-    }
-
-    /// Returns the delete route path for this resource
-    pub fn delete_route(&self) -> String {
-        format!("/{}/{{id}}/delete", self.key)
-    }
-
-    // ─── Template resolution (fallback to Runique defaults) ───
-
-    /// Resolves the template used for the list view: the resource-level
-    /// override if set, otherwise `admin/list.html`.
-    pub fn resolve_list(&self) -> &str {
-        self.template_list.as_deref().unwrap_or("admin/list.html")
-    }
-
-    /// Resolves the template used for the create view: the resource-level
-    /// override if set, otherwise `admin/create.html`.
-    pub fn resolve_create(&self) -> &str {
-        self.template_create
-            .as_deref()
-            .unwrap_or("admin/create.html")
-    }
-
-    /// Resolves the template used for the edit view: the resource-level
-    /// override if set, otherwise `admin/edit.html`.
-    pub fn resolve_edit(&self) -> &str {
-        self.template_edit.as_deref().unwrap_or("admin/edit.html")
-    }
-
-    /// Resolves the template used for the detail view: the resource-level
-    /// override if set, otherwise `admin/detail.html`.
-    pub fn resolve_detail(&self) -> &str {
-        self.template_detail
-            .as_deref()
-            .unwrap_or("admin/detail.html")
-    }
-
-    /// Resolves the template used for the delete confirmation view: the
-    /// resource-level override if set, otherwise `admin/delete.html`.
-    pub fn resolve_delete(&self) -> &str {
-        self.template_delete
-            .as_deref()
-            .unwrap_or("admin/delete.html")
     }
 
     // ─── Builder methods ──────────────────────────────────────────

@@ -57,7 +57,6 @@ pub(super) fn droit_entry() -> ResourceEntry {
         "runique::auth::permissions::groupes_droits::Model",
         "DroitAdminForm",
         SESSION_USER_DROITS_KEY,
-        vec!["admin".to_string()],
     )
     // Scoped child of `groupes`: a droit is only reachable through its group
     // (/groupes/{id}/droits/...). Composite id `"{groupe_id}:{resource_key}"` is
@@ -297,16 +296,12 @@ pub(super) fn droit_entry() -> ResourceEntry {
         Box::pin(async move {
             use sea_orm::{ColumnTrait, QueryFilter};
             let (groupe_id, resource_key) = decode_droit_id(&id)?;
-            let result = groupes_droits::Entity::delete_many()
+            groupes_droits::Entity::delete_many()
                 .filter(groupes_droits::Column::GroupeId.eq(groupe_id))
                 .filter(groupes_droits::Column::ResourceKey.eq(resource_key))
                 .exec(&*db)
                 .await
-                .map(|_| ());
-            if result.is_ok() {
-                crate::auth::guard::clear_cache();
-            }
-            result
+                .map(|_| ())
         })
     });
 
@@ -359,7 +354,7 @@ pub(super) fn droit_entry() -> ResourceEntry {
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            use sea_orm::{ColumnTrait, QueryFilter};
+            use sea_orm::{ColumnTrait, QueryFilter, TransactionTrait};
             let (old_groupe_id, old_resource_key) = decode_droit_id(&id)?;
 
             let new_groupe_id: i32 = data
@@ -373,10 +368,13 @@ pub(super) fn droit_entry() -> ResourceEntry {
                 .trim()
                 .to_string();
 
+            // Delete + insert (the key may change) as one step: a failed insert
+            // must not leave the right deleted.
+            let txn = db.begin().await?;
             groupes_droits::Entity::delete_many()
                 .filter(groupes_droits::Column::GroupeId.eq(old_groupe_id))
                 .filter(groupes_droits::Column::ResourceKey.eq(&old_resource_key))
-                .exec(&*db)
+                .exec(&txn)
                 .await?;
 
             groupes_droits::ActiveModel {
@@ -389,7 +387,7 @@ pub(super) fn droit_entry() -> ResourceEntry {
                 can_update_own: Set(parse_bool(&data, CAN_UPDATE_OWN)),
                 can_delete_own: Set(parse_bool(&data, CAN_DELETE_OWN)),
             }
-            .insert(&*db)
+            .insert(&txn)
             .await
             .map_err(|e| {
                 if super::is_unique_violation(&e) {
@@ -399,7 +397,7 @@ pub(super) fn droit_entry() -> ResourceEntry {
                 }
             })?;
 
-            Ok(())
+            txn.commit().await
         })
     });
 
