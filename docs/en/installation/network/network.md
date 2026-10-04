@@ -83,8 +83,9 @@ PORT=3000
 IP_SERVER=127.0.0.1
 ```
 
-For HTTPS redirection, let the proxy handle it and disable `ENFORCE_HTTPS` on
-Runique's side to avoid a double redirect.
+HTTPS redirection can be done by the proxy, by Runique (`ENFORCE_HTTPS=true`), or
+both without a double redirect: see [Forced HTTPS](/docs/en/middleware/csp).
+The proxy must pass `Host` and `X-Forwarded-Proto`.
 
 ## Nginx — recommended production configuration
 

@@ -30,7 +30,6 @@ pub(super) fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
         default_value: None,
         enum_name: None,
         enum_string_values: Vec::new(),
-        enum_is_pg: false,
         renamed_from: None,
     });
 
@@ -122,16 +121,15 @@ pub(super) fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
             };
 
             // Enum string values for diff (only string-backed enums)
-            let (enum_name, enum_string_values, enum_is_pg) = if is_enum_field {
+            let (enum_name, enum_string_values) = if is_enum_field {
                 match enum_entry {
                     Some((name, backing, values)) if backing != "i32" && backing != "i64" => {
-                        // Auto → `enum_is_pg = false`, the generator decides via DbKind
-                        (Some(name.clone()), values.clone(), false)
+                        (Some(name.clone()), values.clone())
                     }
-                    _ => (None, Vec::new(), false),
+                    _ => (None, Vec::new()),
                 }
             } else {
-                (None, Vec::new(), false)
+                (None, Vec::new())
             };
 
             let ignored = f.options.contains(&"readonly".to_string()) || f.name == "cache_key";
@@ -151,7 +149,6 @@ pub(super) fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
                 default_value: f.default_value,
                 enum_name,
                 enum_string_values,
-                enum_is_pg,
                 renamed_from: f.renamed_from,
             }
         })

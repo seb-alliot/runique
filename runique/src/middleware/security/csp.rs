@@ -283,7 +283,10 @@ pub async fn security_headers_middleware(
     response
 }
 
-/// HTTPS redirection middleware
+/// HTTPS redirection behind a TLS-terminating proxy (`ENFORCE_HTTPS`): a
+/// request the proxy received over HTTP gets a 308 to the same URL in HTTPS.
+/// Not mounted when ACME is active: Runique then serves TLS itself and its
+/// port-80 listener already redirects.
 pub async fn https_redirect_middleware(
     State(engine): State<AEngine>,
     req: Request<Body>,
@@ -294,19 +297,21 @@ pub async fn https_redirect_middleware(
         return next.run(req).await;
     }
 
-    // Check if the request is already in HTTPS.
-    // Behind a proxy, check X-Forwarded-Proto. Note: this header is trusted
-    // unconditionally on purpose — gating it on a trusted peer would break
-    // public-IP proxies (e.g. Cloudflare) into a redirect loop, and forging
-    // `X-Forwarded-Proto: https` over plain HTTP only downgrades the attacker's
-    // own connection (no third-party impact), so the gate isn't worth the risk.
-    let is_https = req
+    // Only a proxy saying `X-Forwarded-Proto: http` triggers the redirect. A
+    // request without the header can't be told apart from one a proxy forwarded
+    // over HTTPS without saying so: redirecting it would loop forever.
+    // The header is trusted unconditionally on purpose — gating it on a trusted
+    // peer would break public-IP proxies (e.g. Cloudflare) into a redirect loop,
+    // and forging it over plain HTTP only affects the attacker's own connection.
+    // With several proxies the first value is the client-facing one.
+    let forwarded_over_http = req
         .headers()
         .get("x-forwarded-proto")
         .and_then(|v| v.to_str().ok())
-        .is_some_and(|v| v.eq_ignore_ascii_case("https"));
+        .and_then(|v| v.split(',').next())
+        .is_some_and(|proto| proto.trim().eq_ignore_ascii_case("http"));
 
-    if is_https {
+    if !forwarded_over_http {
         return next.run(req).await;
     }
 
@@ -325,6 +330,5 @@ pub async fn https_redirect_middleware(
         uri.path_and_query().map_or("", |pq| pq.as_str())
     );
 
-    // Redirect with 301
     Redirect::permanent(&https_url).into_response()
 }

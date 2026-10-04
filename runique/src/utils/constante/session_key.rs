@@ -10,8 +10,6 @@ pub mod session {
     /// Session key storing the CSRF token for the session; also the name of the
     /// hidden form field / header carrying it back on submit.
     pub const CSRF_TOKEN_KEY: &str = "csrf_token";
-    /// Session key storing the per-request CSP nonce.
-    pub const NONCE_KEY: &str = "csp_nonce";
     /// Session key storing the authenticated user's id.
     pub const SESSION_USER_ID_KEY: &str = "user_id";
     /// Session key storing the Unix timestamp until which an anonymous session
@@ -25,8 +23,6 @@ pub mod session {
     pub const SESSION_USER_IS_STAFF_KEY: &str = "is_staff";
     /// Session key storing whether the authenticated user is a superuser.
     pub const SESSION_USER_IS_SUPERUSER_KEY: &str = "is_superuser";
-    /// Session key storing the authenticated user's roles.
-    pub const SESSION_USER_ROLES_KEY: &str = "roles";
     /// Session key storing the authenticated user's droits (permissions).
     pub const SESSION_USER_DROITS_KEY: &str = "droits";
     /// Form field name for the `is_active` flag on the built-in user admin form.

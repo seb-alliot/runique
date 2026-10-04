@@ -163,9 +163,14 @@ impl RuniqueApp {
                     },
                 ),
             )
-            .fallback(move || {
+            // Same path and query in HTTPS; the host comes from the config,
+            // never from the request's `Host` header.
+            .fallback(move |uri: axum::http::Uri| {
                 let domain = domain_clone.clone();
-                async move { Redirect::permanent(&format!("https://{domain}")) }
+                async move {
+                    let path = uri.path_and_query().map_or("/", |pq| pq.as_str());
+                    Redirect::permanent(&format!("https://{domain}{path}"))
+                }
             })
             .with_state(store_clone);
 

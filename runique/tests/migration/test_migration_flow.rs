@@ -12,7 +12,7 @@ use runique::migration::utils::{
     diff::{db_columns, diff_schemas},
     generators::{generate_alter_file, generate_create_file},
     paths::*,
-    types::{Changes, DbKind, ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema},
+    types::{Changes, ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema},
 };
 use std::fs;
 use std::path::{Path, PathBuf};

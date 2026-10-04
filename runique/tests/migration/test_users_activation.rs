@@ -9,7 +9,7 @@ use crate::helpers::{db, db_mariadb, db_postgres};
 use runique::admin::table_admin::migrations_table::{
     ACTIVE_NEEDS_ACTIVATION, EihwazUsersMigration,
 };
-use runique::sea_orm::{ConnectionTrait, DatabaseConnection};
+use runique::sea_orm::{ConnectionTrait, DatabaseConnection, TransactionTrait};
 use sea_orm_migration::{MigrationTrait, SchemaManager};
 use serial_test::serial;
 
@@ -99,19 +99,29 @@ async fn postgres_refuses_an_active_account_never_activated() {
         .unwrap();
 }
 
+/// Drops `eihwaz_users` despite the tables of other tests referencing it on the
+/// shared MariaDB. `FOREIGN_KEY_CHECKS` is a per-connection variable and the
+/// connection is a pool: the transaction pins `SET`/`DROP`/`SET` to a single
+/// connection (the `DROP` commits it implicitly, the connection stays the same).
+async fn drop_users_mariadb(db: &DatabaseConnection) {
+    let txn = db.begin().await.unwrap();
+    for sql in [
+        "SET FOREIGN_KEY_CHECKS = 0",
+        "DROP TABLE IF EXISTS eihwaz_users",
+        "SET FOREIGN_KEY_CHECKS = 1",
+    ] {
+        txn.execute_unprepared(sql).await.unwrap();
+    }
+    txn.commit().await.unwrap();
+}
+
 #[tokio::test]
 #[serial]
 async fn mariadb_refuses_an_active_account_never_activated() {
     let Some(conn) = db_mariadb::connect().await else {
         return;
     };
-    sql(&conn, "SET FOREIGN_KEY_CHECKS = 0").await.unwrap();
-    sql(&conn, "DROP TABLE IF EXISTS eihwaz_users")
-        .await
-        .unwrap();
+    drop_users_mariadb(&conn).await;
     check_guarantee(&conn, pk_sql_literal_pg).await;
-    sql(&conn, "DROP TABLE IF EXISTS eihwaz_users")
-        .await
-        .unwrap();
-    sql(&conn, "SET FOREIGN_KEY_CHECKS = 1").await.unwrap();
+    drop_users_mariadb(&conn).await;
 }

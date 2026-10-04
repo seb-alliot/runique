@@ -13,7 +13,7 @@ impl RuniqueForm for ImageForm {
         form.field(
             &FileField::image("image")
                 .label("Choisissez une image à uploader")
-                .upload_to("media/uploads/images")
+                .upload_to("uploads/images")
                 .required()
                 .max_size(FileSize::mb(5))
                 .max_files(3)

@@ -265,7 +265,7 @@ form.field(
 form.field(
     &FileField::image("avatar")
         .label("Photo de profil")
-        .upload_to("uploads/avatars")   // → uploads/avatars/
+        .upload_to("uploads/avatars")   // → {MEDIA_ROOT}/uploads/avatars/
         .max_size(FileSize::mb(5))
         .max_files(1)
         .max_dimensions(1920, 1080)
@@ -310,8 +310,8 @@ form.field(
 
 | Méthode | Destination |
 | --- | --- |
-| `.upload_to("uploads/images")` | `uploads/images/` (chemin exact) |
-| `.upload_to_env()` | `{MEDIA_ROOT}/{nom_du_champ}/` (depuis `.env`) |
+| `.upload_to("uploads/images")` | `{MEDIA_ROOT}/uploads/images/` (relatif à `MEDIA_ROOT`) |
+| `.upload_to_env()` | `{MEDIA_ROOT}/{nom_du_champ}/` |
 | *(aucune)* | `MEDIA_ROOT` directement (pas de sous-dossier) |
 
 Le déplacement vers la destination finale s'effectue dans `finalize()`, **uniquement si la validation passe**. Le dossier est créé automatiquement s'il n'existe pas encore.

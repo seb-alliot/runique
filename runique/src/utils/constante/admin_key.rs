@@ -20,8 +20,6 @@ pub mod admin_context {
         pub const CURRENT_RESOURCE: &str = "current_resource";
         /// List of resources visible to the current user, shown in the admin dashboard/nav.
         pub const RESOURCES: &str = "resources";
-        /// Roles registered via `admin!{}` (see `admin::helper::roles::get_roles()`).
-        pub const REGISTERED_ROLES: &str = "registered_roles";
         /// The object being shown, as a `serde_json::Value` row — used by the detail template.
         pub const ENTRY: &str = "entry";
         /// Primary key of the object being viewed/edited/deleted.

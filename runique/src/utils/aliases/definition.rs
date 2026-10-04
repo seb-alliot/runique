@@ -5,10 +5,9 @@ use crate::context::template::AppError;
 use crate::engine::RuniqueEngine;
 use crate::prelude::{HostPolicy, PermissionsPolicy, SecurityPolicy};
 use crate::utils::{csp_nonce::CspNonce, csrf::CsrfToken};
-use sea_orm::DatabaseConnection;
 use std::{collections::HashMap, result::Result, sync::Arc, sync::RwLock};
-use tera::{Tera, TeraResult, Value};
-use tower_sessions::{SessionManagerLayer, SessionStore};
+use tera::Tera;
+use tower_sessions::SessionManagerLayer;
 
 // Import for new aliases
 use crate::flash::FlashMessage;
@@ -28,16 +27,11 @@ pub type OATera = Option<ATera>;
 /// import paths keep working.
 pub use crate::db::ADb;
 
-pub type Bdd = Option<DatabaseConnection>;
-pub type OADb = Option<ADb>;
-
 /// Security Policy CSP
 pub type ASecurityCsp = Arc<SecurityPolicy>;
-pub type OSecurityCsp = Option<ASecurityCsp>;
 
 /// Security Policy Hosts
 pub type ASecurityHosts = Arc<HostPolicy>;
-pub type OSecurityHosts = Option<ASecurityHosts>;
 
 /// Permissions Policy
 pub type APermissionsPolicy = Arc<PermissionsPolicy>;
@@ -49,9 +43,6 @@ pub type OAEngine = Option<AEngine>;
 /// Runique Config
 pub type ARuniqueConfig = Arc<RuniqueConfig>;
 pub type OARuniqueConfig = Option<ARuniqueConfig>;
-
-/// Session Store (for `SessionBackend::Custom`)
-pub type ASessionStore = Arc<dyn SessionStore + Send + Sync>;
 
 // ============================================================================
 // OPTION<T> ALIASES - OPTIONAL TYPES
@@ -111,10 +102,3 @@ pub type Session<S> = SessionManagerLayer<S>;
 
 /// Application Result Type
 pub type AppResult<T> = Result<T, Box<AppError>>;
-
-/// Tera Result Type
-pub type TResult = TeraResult<Value>;
-
-/// Database Result Type (optional, for `SeaORM`)
-#[cfg(feature = "orm")]
-pub type DbResult<T> = Result<T, sea_orm::DbErr>;

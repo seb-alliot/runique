@@ -63,6 +63,7 @@
     "aegis_json_error": "JSONボディの解析に失敗: {}",
     "auth_required": "認証が必要です",
     "role_insufficient": "権限が不足しています",
+    "unknown_group": "GuardRules: roles([...]) に存在しないグループがあります: {}",
     "time_too_old": "早すぎます（最小: {}）",
     "time_too_far": "遅すぎます（最大: {}）",
     "datetime_too_old": "早すぎます（最小: {}）",

@@ -1,14 +1,14 @@
 //! Tests — migration/utils/generators.rs
 //! Couvre : generate_create_file, generate_alter_file,
 //!          generate_batch_up_file, generate_batch_down_file,
-//!          generate_snapshot_file, generate_relations_file
+//!          generate_snapshot_file
 
 use runique::migration::utils::{
     generators::{
         generate_alter_file, generate_batch_down_file, generate_batch_up_file,
-        generate_create_file, generate_relations_file, generate_snapshot_file,
+        generate_create_file, generate_snapshot_file,
     },
-    types::{Changes, DbKind, ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema},
+    types::{Changes, ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema},
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -1031,63 +1031,4 @@ fn snapshot_avec_fk_contient_add_fk() {
     let content = generate_snapshot_file(&schema_with_fk());
     assert!(content.contains("user_id"));
     assert!(content.contains("users"));
-}
-
-// ═══════════════════════════════════════════════════════════════
-// generate_relations_file
-// ═══════════════════════════════════════════════════════════════
-
-#[test]
-fn relations_sans_fk_utilise_underscore_manager() {
-    let schema = simple_schema("tags"); // no FKs
-    let content = generate_relations_file(&[&schema]);
-    assert!(content.contains("_manager"));
-    assert!(!content.contains("add_foreign_key"));
-}
-
-#[test]
-fn relations_avec_fk_utilise_manager() {
-    let schema = schema_with_fk();
-    let content = generate_relations_file(&[&schema]);
-    assert!(!content.contains("_manager"));
-    assert!(content.contains("create_foreign_key"));
-}
-
-#[test]
-fn relations_avec_fk_contient_table_cible() {
-    let schema = schema_with_fk();
-    let content = generate_relations_file(&[&schema]);
-    assert!(content.contains("users"));
-    assert!(content.contains("user_id"));
-}
-
-#[test]
-fn relations_contient_struct_migration() {
-    let schema = schema_with_fk();
-    let content = generate_relations_file(&[&schema]);
-    assert!(content.contains("pub struct Migration"));
-    assert!(content.contains("impl MigrationTrait for Migration"));
-}
-
-#[test]
-fn relations_plusieurs_schemas_toutes_fks_presentes() {
-    let s1 = schema_with_fk(); // posts.user_id -> users
-
-    let s2 = ParsedSchema {
-        table_name: "comments".to_string(),
-        primary_key: Some(col("id", "i32")),
-        columns: vec![col("body", "String"), col("post_id", "i32")],
-        foreign_keys: vec![ParsedFk {
-            from_column: "post_id".to_string(),
-            to_table: "posts".to_string(),
-            to_column: "id".to_string(),
-            on_delete: "Cascade".to_string(),
-            on_update: "NoAction".to_string(),
-        }],
-        indexes: vec![],
-    };
-
-    let content = generate_relations_file(&[&s1, &s2]);
-    assert!(content.contains("user_id"));
-    assert!(content.contains("post_id"));
 }

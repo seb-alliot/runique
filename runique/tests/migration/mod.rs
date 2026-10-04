@@ -7,7 +7,6 @@
 //! | `test_parser_seaorm`    | Parsing depuis source SeaORM                 |
 //! | `test_diff`             | diff_schemas, db_columns, Changes            |
 //! | `test_eihwaz_tables_pk` | Colonnes PK/FK des tables eihwaz_* vs big-pk/pk-uuid |
-//! | `test_convertisseur`    | Conversion de noms (snake_case, PascalCase)  |
 //! | `test_helpers`          | col_type_to_method et utilitaires internes   |
 //! | `test_paths`            | snapshot_dir, migration_dir, chemins         |
 //! | `test_relation_kind`    | Enum RelationKind                            |
@@ -21,7 +20,6 @@
 
 pub mod test_column_def;
 pub mod test_column_def_extra;
-pub mod test_convertisseur;
 pub mod test_diff;
 // Needs every engine compiled in: under a single one, `model!{}` refuses the
 // types that engine can't read back, which this test exercises on purpose.

@@ -158,3 +158,70 @@ async fn production_refuses_a_weak_secret_key() {
         .is_ok()
     );
 }
+
+// ── ENFORCE_HTTPS: mounted behind a proxy, never alongside ACME ──────────────
+
+async fn spawn_https_app(acme: bool) -> String {
+    let db = Database::connect("sqlite::memory:").await.unwrap();
+    let mut config = RuniqueConfig::from_env();
+    config.debug = true;
+    config.security.enforce_https = true;
+    config.security.acme_enabled = acme;
+    config.security.acme_domain = Some("example.com".into());
+    config.security.acme_email = Some("admin@example.com".into());
+    let app = RuniqueApp::builder(config)
+        .with_database(db)
+        .routes(Router::new().route("/page", get(|| async { "ok" })))
+        .static_files(|s| s.enabled(false))
+        .build()
+        .await
+        .unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    let router = app.router;
+    tokio::spawn(async move {
+        axum::serve(
+            listener,
+            router.into_make_service_with_connect_info::<SocketAddr>(),
+        )
+        .await
+        .unwrap()
+    });
+    format!("http://{addr}")
+}
+
+async fn get_forwarded(base: &str, proto: &str) -> reqwest::Response {
+    reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .unwrap()
+        .get(format!("{base}/page?x=1"))
+        .header("x-forwarded-proto", proto)
+        .send()
+        .await
+        .unwrap()
+}
+
+#[tokio::test]
+#[serial]
+async fn enforce_https_redirects_what_the_proxy_received_over_http() {
+    let base = spawn_https_app(false).await;
+    let resp = get_forwarded(&base, "http").await;
+    assert_eq!(resp.status().as_u16(), 308);
+    let host = base.trim_start_matches("http://");
+    assert_eq!(
+        header(&resp, "location"),
+        format!("https://{host}/page?x=1")
+    );
+    assert_eq!(get_forwarded(&base, "https").await.status().as_u16(), 200);
+}
+
+// With ACME, Runique serves TLS itself: no request carries the header, and its
+// port-80 listener already redirects — mounting it would only risk a loop.
+#[cfg(feature = "acme")]
+#[tokio::test]
+#[serial]
+async fn enforce_https_is_not_mounted_alongside_acme() {
+    let base = spawn_https_app(true).await;
+    assert_eq!(get_forwarded(&base, "http").await.status().as_u16(), 200);
+}

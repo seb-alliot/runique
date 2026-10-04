@@ -89,16 +89,6 @@ mod helpers_migration {
     }
 
     #[test]
-    fn test_first_str_arg() {
-        let expr: Expr = parse_str("foo.bar(\"hello\")").unwrap();
-        if let Expr::MethodCall(mc) = expr {
-            use runique::migration;
-            let arg = migration::first_str_arg(&mc);
-            assert_eq!(arg, Some("hello".to_string()));
-        }
-    }
-
-    #[test]
     fn test_method_names_in_expr() {
         let expr: Expr = parse_str("foo.bar().baz()").unwrap();
         use runique::migration;

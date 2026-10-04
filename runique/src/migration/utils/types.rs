@@ -1,15 +1,5 @@
 //! Shared data types between migration utilities: parsed schemas, columns, FKs, indexes, diffs.
 
-/// Target database backend — used to generate DB-specific SQL
-/// (e.g., ON UPDATE CURRENT_TIMESTAMP for MySQL, trigger for PostgreSQL).
-#[derive(Debug, Clone, PartialEq, Default)]
-pub enum DbKind {
-    Postgres,
-    Mysql,
-    #[default]
-    Other,
-}
-
 /// A table schema as reconstructed by the AST parsers (from a `model!{}` DSL
 /// source or a generated SeaORM snapshot). Feeds the diff engine that decides
 /// what a migration needs to change.
@@ -44,7 +34,6 @@ pub struct ParsedColumn {
     pub enum_name: Option<String>,
     /// Current DB values for string enum columns (e.g., ["Fix", "Feature", "Added"]).
     pub enum_string_values: Vec<String>,
-    pub enum_is_pg: bool,
     /// Explicit rename directive (`[renamed_from: "old_name"]`). Transient: it lives in the
     /// source model only and is NEVER written to snapshots (the snapshot holds the new name).
     /// Consumed by the diff to emit `RENAME COLUMN` instead of DROP + ADD (no data loss).

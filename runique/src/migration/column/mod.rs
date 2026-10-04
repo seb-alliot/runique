@@ -1,8 +1,7 @@
-//! Table column definition — type, constraints, validation, and SeaQuery generation.
+//! Table column definition — type, constraints, validation.
 //!
 //! [`ColumnDef`] is the entry point. It follows the builder pattern:
 //! `ColumnDef::new("slug").varchar(200).unique().nullable()`.
-//! The [`ColumnDef::to_sea_column`] method produces the corresponding [`sea_query::ColumnDef`].
 //! The [`ColumnDef::to_form_field`] method automatically generates the appropriate form field.
 use sea_query::{ColumnType, IntoIden};
 
@@ -38,12 +37,12 @@ pub struct ColumnDef {
     pub min_value: Option<i64>,
     pub max_float: Option<f64>,
     pub min_float: Option<f64>,
-    /// File upload metadata — pure form concern, ignored by `to_sea_column`.
+    /// File upload metadata — pure form concern.
     pub is_file: bool,
     pub file_kind: Option<FileKind>,
     pub max_size: Option<u64>, // bytes
     /// The DSL type the column was declared with, when it comes from `model!{}`
-    /// or `extend!{}`. Decides the form field; ignored by `to_sea_column`.
+    /// or `extend!{}`. Decides the form field.
     pub kind: Option<runique_dsl::ast::FormFieldKind>,
     /// Form label declared in the DSL (`[label: "…"]`).
     pub label: Option<String>,
@@ -353,8 +352,8 @@ impl ColumnDef {
         self
     }
 
-    /// Excludes the column from generated SQL (`to_sea_column`) and from
-    /// generated form fields — it exists on the model but not in the schema.
+    /// Excludes the column from generated form fields — it exists on the
+    /// model but not in the schema.
     pub fn ignore(mut self) -> Self {
         self.ignored = true;
         self
@@ -417,36 +416,6 @@ impl ColumnDef {
         self.col_type = ColumnType::DateTime;
         self.auto_now_update = true;
         self
-    }
-
-    /// Generates the corresponding SeaQuery ColumnDef
-    pub fn to_sea_column(&self) -> sea_query::ColumnDef {
-        let mut col = sea_query::ColumnDef::new_with_type(
-            sea_query::Alias::new(&self.name),
-            self.col_type.clone(),
-        );
-
-        if self.nullable {
-            col.null();
-        } else {
-            col.not_null();
-        }
-
-        if self.unique {
-            col.unique_key();
-        }
-
-        if let Some(ref val) = self.default {
-            col.default(val.clone());
-        } else if self.auto_now {
-            // created_at: default value on insertion
-            col.extra("DEFAULT CURRENT_TIMESTAMP".to_string());
-        } else if self.auto_now_update {
-            // updated_at: ON UPDATE for MySQL; trigger handled separately for Postgres
-            col.extra("DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP".to_string());
-        }
-
-        col
     }
 
     //__ variant of postgres

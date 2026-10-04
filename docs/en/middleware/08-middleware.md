@@ -30,6 +30,7 @@ slot  5  Compression         → Response compression (always active)
 slot  8  CORS                → Cross-Origin Resource Sharing (if with_cors() configured)
 slot 10  ErrorHandler        → Capture and render errors (always active)
 slot 15  HostValidation      → Allowed host validation (if with_allowed_hosts() configured)
+slot 17  HttpsRedirect       → HTTPS redirect behind a proxy (if ENFORCE_HTTPS, never with ACME)
 slot 20+ Custom              → Your custom middlewares
 slot 25  OpenRedirect        → Block external redirects (always active)
 slot 30  SecurityHeaders     → X-Frame-Options, HSTS, Permissions-Policy… (always active)

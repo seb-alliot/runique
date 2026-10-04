@@ -261,7 +261,7 @@ form.field(
 form.field(
     &FileField::image("avatar")
         .label("Profile picture")
-        .upload_to("uploads/avatars")   // → uploads/avatars/
+        .upload_to("uploads/avatars")   // → {MEDIA_ROOT}/uploads/avatars/
         .max_size(FileSize::mb(5))
         .max_files(1)
         .max_dimensions(1920, 1080)
@@ -306,8 +306,8 @@ form.field(
 
 | Method | Destination |
 | --- | --- |
-| `.upload_to("uploads/images")` | `uploads/images/` (exact path) |
-| `.upload_to_env()` | `{MEDIA_ROOT}/{field_name}/` (from `.env`) |
+| `.upload_to("uploads/images")` | `{MEDIA_ROOT}/uploads/images/` (relative to `MEDIA_ROOT`) |
+| `.upload_to_env()` | `{MEDIA_ROOT}/{field_name}/` |
 | *(none)* | `MEDIA_ROOT` directly (no subdirectory) |
 
 The move to the final destination happens in `finalize()`, **only if validation passes**. The directory is created automatically if it does not already exist.

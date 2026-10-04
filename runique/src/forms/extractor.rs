@@ -37,11 +37,12 @@ impl Prisme {
         }
     }
 
-    /// **Test-only.** Builds a `Prisme` with arbitrary data.
+    /// **Test-only** (`test-utils` feature). Builds a `Prisme` with arbitrary data.
     ///
     /// The real pipeline goes through [`prisme_pipeline`]; this constructor only
     /// exists for integration tests (a separate crate) that build a `Request` by
-    /// hand. Never use this in production code: it bypasses CSRF validation.
+    /// hand. It bypasses CSRF validation, hence out of normal builds.
+    #[cfg(feature = "test-utils")]
     #[doc(hidden)]
     pub fn for_test(data: StrMap, csrf_valid: bool) -> Self {
         Self { data, csrf_valid }
@@ -66,7 +67,7 @@ where
                 .into_response()
         })?;
 
-    sentinel(&req, &config).map_err(|boxed| *boxed)?;
+    sentinel(&req).await.map_err(|boxed| *boxed)?;
 
     let csrf_session = req
         .extensions()

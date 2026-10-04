@@ -147,7 +147,6 @@ impl SeaOrmVisitor {
                         default_value: None,
                         enum_name: None,
                         enum_string_values: Vec::new(),
-                        enum_is_pg: false,
                         renamed_from: None,
                     });
                 } else {
@@ -163,7 +162,6 @@ impl SeaOrmVisitor {
                         updated_at: is_updated_at,
                         has_default_now: is_ts_default || is_created_at || is_updated_at,
                         default_value,
-                        enum_is_pg: !enum_string_values.is_empty(),
                         enum_name,
                         enum_string_values,
                         renamed_from: None,

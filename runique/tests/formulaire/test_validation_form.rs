@@ -4,7 +4,7 @@
 //! Chaque test vérifie un résultat concret (Ok/Err, contenu des erreurs, valeur
 //! nettoyée), pas seulement "ça n'a pas planté".
 
-use crate::helpers::{request::build_handler_req, server::build_engine};
+use crate::helpers::{handler_req::build_handler_req, server::build_engine};
 use axum::http::Method;
 use runique::forms::{field::RuniqueForm, fields::text::TextField, form::Forms};
 use runique::prelude::ValidationForm;

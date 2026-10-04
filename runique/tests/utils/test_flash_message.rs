@@ -49,24 +49,20 @@ fn test_flash_message_accepts_string_owned() {
 
 // ── CSS classes ───────────────────────────────────────────────────────────────
 
+// `message.html` builds the class from the serialized level
+// (`message-{{ message.level }}`): both must give the same lowercase class.
 #[test]
-fn test_message_level_success_css_class() {
-    assert_eq!(MessageLevel::Success.as_css_class(), "success-message");
-}
-
-#[test]
-fn test_message_level_error_css_class() {
-    assert_eq!(MessageLevel::Error.as_css_class(), "error-message");
-}
-
-#[test]
-fn test_message_level_info_css_class() {
-    assert_eq!(MessageLevel::Info.as_css_class(), "info-message");
-}
-
-#[test]
-fn test_message_level_warning_css_class() {
-    assert_eq!(MessageLevel::Warning.as_css_class(), "warning-message");
+fn test_css_class_matches_what_the_template_renders() {
+    for (level, class) in [
+        (MessageLevel::Success, "message-success"),
+        (MessageLevel::Error, "message-error"),
+        (MessageLevel::Info, "message-info"),
+        (MessageLevel::Warning, "message-warning"),
+    ] {
+        let serialized = serde_json::to_value(&level).unwrap();
+        assert_eq!(format!("message-{}", serialized.as_str().unwrap()), class);
+        assert_eq!(level.as_css_class(), class);
+    }
 }
 
 // ── flash_now! macro ──────────────────────────────────────────────────────────

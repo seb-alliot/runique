@@ -372,7 +372,7 @@ pub async fn build_admin_app_with_extra_routes(
 
     let app = RuniqueAppBuilder::new(config)
         .with_database(dbc.clone())
-        .no_statics()
+        .static_files(|s| s.enabled(false))
         .with_admin(|a| {
             a.site_title("Test Admin")
                 .routes(build_admin_routes(ADMIN_PREFIX))

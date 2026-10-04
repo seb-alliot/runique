@@ -164,12 +164,6 @@ impl RuniqueAppBuilder {
         self
     }
 
-    /// Shortcut: enables/disables debug error pages.
-    pub fn with_error_handler(mut self, enable: bool) -> Self {
-        self.middleware = self.middleware.with_debug_errors(enable);
-        self
-    }
-
     // ─── Static files ─────────────────────────────────────────────────────────
 
     /// Configures static files via a closure.
@@ -204,12 +198,6 @@ impl RuniqueAppBuilder {
     /// Shortcut: enables the static files service (enabled by default).
     pub fn statics(mut self) -> Self {
         self.statics = self.statics.enabled(true);
-        self
-    }
-
-    /// Shortcut: disables the static files service.
-    pub fn no_statics(mut self) -> Self {
-        self.statics = self.statics.enabled(false);
         self
     }
 

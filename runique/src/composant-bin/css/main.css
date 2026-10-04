@@ -126,7 +126,7 @@ header::after {
 }
 
 /* ERROR */
-.message-Error {
+.message-error {
     color: #fecaca;
     border-left: 4px solid #ef4444;
     background: linear-gradient(
@@ -137,7 +137,7 @@ header::after {
 }
 
 /* SUCCESS */
-.message-Success {
+.message-success {
     color: #bbf7d0;
     border-left: 4px solid #22c55e;
     background: linear-gradient(
@@ -148,7 +148,7 @@ header::after {
 }
 
 /* INFO */
-.message-Info {
+.message-info {
     color: #bfdbfe;
     border-left: 4px solid #3b82f6;
     background: linear-gradient(
@@ -159,7 +159,7 @@ header::after {
 }
 
 /* WARNING */
-.message-Warning {
+.message-warning {
     color: #fde68a;
     border-left: 4px solid #f59e0b;
     background: linear-gradient(

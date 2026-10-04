@@ -51,17 +51,4 @@ impl PrimaryKeyDef {
         self.auto_increment = false;
         self
     }
-
-    /// Generates the corresponding SeaQuery ColumnDef
-    pub fn to_sea_column(&self) -> sea_query::ColumnDef {
-        let mut col = sea_query::ColumnDef::new_with_type(
-            sea_query::Alias::new(&self.name),
-            self.col_type.clone(),
-        );
-        col.not_null().primary_key();
-        if self.auto_increment {
-            col.auto_increment();
-        }
-        col
-    }
 }

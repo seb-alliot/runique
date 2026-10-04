@@ -542,6 +542,9 @@ pub async fn handle_password_reset(
 
     match BuiltinUserEntity::set_password_and_activate(&db, user_id, &new_hash).await {
         Ok(()) => {
+            // Every device signs in again with the new password — a stolen
+            // session included. This request's own was closed on arrival.
+            request.engine.close_user_sessions(user_id).await;
             if let Some(level) = crate::utils::runique_log::get_log()
                 .auth
                 .as_ref()

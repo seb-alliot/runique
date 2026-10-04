@@ -1,5 +1,4 @@
 //! Migration utilities — schema diffing, SQL generation, AST parsers, string helpers.
-pub mod convertisseur;
 pub mod diff;
 pub mod generators;
 pub mod helpers;
@@ -12,7 +11,6 @@ pub mod types;
 #[cfg(test)]
 mod tests_pipeline;
 
-pub use convertisseur::*;
 pub use diff::*;
 pub use generators::*;
 pub use helpers::*;

@@ -13,12 +13,10 @@ use axum::{Router, routing::get};
 use runique::admin::{AdminConfig, AdminRoutes};
 use runique::app::staging::{
     AdminStaging, CoreStaging, MiddlewareStaging, PermissionsPolicyConfig, StaticStaging,
-    TrustedProxiesConfig,
 };
 use runique::app::{BuildError, BuildErrorKind, CheckError, CheckReport, RuniqueAppBuilder};
 use runique::config::app::RuniqueConfig;
 use runique::middleware::MiddlewareConfig;
-use runique::middleware::TrustedProxies;
 use serial_test::serial;
 use tower_sessions::cookie::time::Duration;
 
@@ -217,31 +215,6 @@ fn test_build_error_est_error_trait() {
 // ════════════════════════════════════════════════════════════════
 
 #[test]
-fn test_static_staging_new_enabled_par_defaut() {
-    assert!(StaticStaging::new().is_enabled());
-}
-
-#[test]
-fn test_static_staging_default_enabled() {
-    assert!(StaticStaging::default().is_enabled());
-}
-
-#[test]
-fn test_static_staging_enabled_false() {
-    assert!(!StaticStaging::new().enabled(false).is_enabled());
-}
-
-#[test]
-fn test_static_staging_enabled_true() {
-    assert!(
-        StaticStaging::new()
-            .enabled(false)
-            .enabled(true)
-            .is_enabled()
-    );
-}
-
-#[test]
 fn test_static_staging_validate_ok() {
     let s = StaticStaging::new();
     assert!(s.validate().is_ok());
@@ -410,14 +383,6 @@ fn test_middleware_staging_session_duration_defaut_24h() {
 }
 
 #[test]
-fn test_middleware_staging_add_custom_incremente_count() {
-    let ms = MiddlewareStaging::new(true)
-        .add_custom(|r| r)
-        .add_custom(|r| r);
-    assert_eq!(ms.custom_count(), 2);
-}
-
-#[test]
 fn test_middleware_staging_validate_ok() {
     let ms = MiddlewareStaging::new(true);
     assert!(ms.validate().is_ok());
@@ -536,55 +501,6 @@ fn test_permissions_policy_config_overwrite_replaces_not_duplicates() {
 }
 
 // ════════════════════════════════════════════════════════════════
-// TrustedProxiesConfig
-// ════════════════════════════════════════════════════════════════
-
-#[test]
-fn test_trusted_proxies_config_default_trusts_private_networks() {
-    let cfg = TrustedProxiesConfig::default();
-    let proxies: TrustedProxies = cfg.get_proxies();
-    assert!(proxies.is_trusted(&"127.0.0.1".parse().unwrap()));
-    assert!(proxies.is_trusted(&"10.0.0.5".parse().unwrap()));
-    assert!(proxies.is_trusted(&"192.168.1.1".parse().unwrap()));
-    assert!(!proxies.is_trusted(&"8.8.8.8".parse().unwrap()));
-}
-
-#[test]
-fn test_trusted_proxies_config_none_trusts_nothing() {
-    let cfg = TrustedProxiesConfig::default().none();
-    let proxies = cfg.get_proxies();
-    assert!(!proxies.is_trusted(&"127.0.0.1".parse().unwrap()));
-    assert!(!proxies.is_trusted(&"10.0.0.5".parse().unwrap()));
-}
-
-#[test]
-fn test_trusted_proxies_config_proxy_adds_exact_ip() {
-    let cfg = TrustedProxiesConfig::default().none().proxy("203.0.113.5");
-    let proxies = cfg.get_proxies();
-    assert!(proxies.is_trusted(&"203.0.113.5".parse().unwrap()));
-    assert!(!proxies.is_trusted(&"203.0.113.6".parse().unwrap()));
-}
-
-#[test]
-fn test_trusted_proxies_config_cidr_adds_range() {
-    let cfg = TrustedProxiesConfig::default()
-        .none()
-        .cidr("203.0.113.0/24");
-    let proxies = cfg.get_proxies();
-    assert!(proxies.is_trusted(&"203.0.113.42".parse().unwrap()));
-    assert!(!proxies.is_trusted(&"203.0.114.1".parse().unwrap()));
-}
-
-#[test]
-fn test_trusted_proxies_config_proxy_invalid_ip_ignored() {
-    // `proxy()` prend `impl AsRef<str>` sans retour d'erreur — une IP
-    // invalide doit être silencieusement ignorée, pas paniquer.
-    let cfg = TrustedProxiesConfig::default().none().proxy("not-an-ip");
-    let proxies = cfg.get_proxies();
-    assert!(!proxies.is_trusted(&"127.0.0.1".parse().unwrap()));
-}
-
-// ════════════════════════════════════════════════════════════════
 // RuniqueAppBuilder — construction et méthodes chainables (sync)
 // ════════════════════════════════════════════════════════════════
 
@@ -607,11 +523,6 @@ fn test_builder_routes_chainable() {
 }
 
 #[test]
-fn test_builder_no_statics_chainable() {
-    let _b = RuniqueAppBuilder::new(make_config()).no_statics();
-}
-
-#[test]
 fn test_builder_statics_chainable() {
     let _b = RuniqueAppBuilder::new(make_config()).statics();
 }
@@ -619,16 +530,6 @@ fn test_builder_statics_chainable() {
 #[test]
 fn test_builder_with_session_duration_chainable() {
     let _b = RuniqueAppBuilder::new(make_config()).with_session_duration(Duration::hours(1));
-}
-
-#[test]
-fn test_builder_with_error_handler_true_chainable() {
-    let _b = RuniqueAppBuilder::new(make_config()).with_error_handler(true);
-}
-
-#[test]
-fn test_builder_with_error_handler_false_chainable() {
-    let _b = RuniqueAppBuilder::new(make_config()).with_error_handler(false);
 }
 
 #[test]
@@ -656,9 +557,8 @@ fn test_builder_chaine_complete_sync() {
     let router = Router::new().route("/", get(|| async { "ok" }));
     let _b = RuniqueAppBuilder::new(make_config())
         .routes(router)
-        .no_statics()
         .with_session_duration(Duration::hours(8))
-        .with_error_handler(false)
+        .middleware(|m| m.with_debug_errors(false))
         .middleware(|m| m.with_cache(false).with_csp(|c| c))
         .static_files(|s| s.enabled(false))
         .core(|c| c)
@@ -675,7 +575,7 @@ async fn test_build_sans_db_retourne_check_failed() {
     let config = make_config();
     let result = RuniqueAppBuilder::new(config)
         .routes(Router::new())
-        .no_statics()
+        .static_files(|s| s.enabled(false))
         .build()
         .await;
 
@@ -711,7 +611,7 @@ async fn test_build_avec_database_retourne_ok_ou_template_err() {
     let router = Router::new().route("/", get(|| async { "ok" }));
     let result = RuniqueAppBuilder::new(make_config())
         .routes(router)
-        .no_statics()
+        .static_files(|s| s.enabled(false))
         .core(|c| c.with_database(db))
         .build()
         .await;
@@ -737,7 +637,10 @@ async fn test_build_avec_database_retourne_ok_ou_template_err() {
 #[serial]
 async fn test_build_check_failed_display_utile() {
     let config = make_config();
-    let result = RuniqueAppBuilder::new(config).no_statics().build().await;
+    let result = RuniqueAppBuilder::new(config)
+        .static_files(|s| s.enabled(false))
+        .build()
+        .await;
 
     assert!(result.is_err());
     let err = match result {
@@ -794,7 +697,7 @@ async fn test_build_profil_production_couvre_csp_host_validation() {
 
     let result = RuniqueAppBuilder::new(config)
         .routes(Router::new())
-        .no_statics()
+        .static_files(|s| s.enabled(false))
         .core(|c| c.with_database(db))
         .middleware(|m| m.with_csp(|c| c))
         .build()

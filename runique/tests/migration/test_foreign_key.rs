@@ -76,7 +76,7 @@ fn test_foreign_key_builder_complet() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Clone + to_sea_foreign_key (ne panique pas)
+// Clone
 // ═══════════════════════════════════════════════════════════════
 
 #[test]
@@ -87,12 +87,4 @@ fn test_foreign_key_clone() {
     let cloned = fk.clone();
     assert_eq!(cloned.from_column, "user_id");
     assert_eq!(cloned.to_table, "users");
-}
-
-#[test]
-fn test_foreign_key_to_sea_foreign_key_compile() {
-    let fk = ForeignKeyDef::new("user_id")
-        .references("users")
-        .on_delete(ForeignKeyAction::Cascade);
-    let _ = fk.to_sea_foreign_key("posts");
 }

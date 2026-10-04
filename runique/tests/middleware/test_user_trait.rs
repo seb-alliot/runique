@@ -78,16 +78,6 @@ fn test_runique_user_getters() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Tests — roles() par défaut
-// ═══════════════════════════════════════════════════════════════
-
-#[test]
-fn test_roles_default_retourne_vec_vide() {
-    let user = mock_user(true, true, false);
-    assert!(user.roles().is_empty());
-}
-
-// ═══════════════════════════════════════════════════════════════
 // Tests — can_access_admin() logique par défaut
 // ═══════════════════════════════════════════════════════════════
 

@@ -21,7 +21,6 @@ fn test_middleware_config_production() {
 #[test]
 fn test_middleware_config_development() {
     let config = MiddlewareConfig::development();
-    assert!(!config.enable_host_validation);
     assert!(config.enable_debug_errors);
     assert!(!config.enable_cache);
 }
@@ -38,9 +37,7 @@ fn test_middleware_config_api() {
 fn test_middleware_config_custom_chain() {
     let config = MiddlewareConfig::custom()
         .with_debug_errors(false)
-        .with_cache(false)
-        .with_host_validation(false);
+        .with_cache(false);
     assert!(!config.enable_debug_errors);
     assert!(!config.enable_cache);
-    assert!(!config.enable_host_validation);
 }

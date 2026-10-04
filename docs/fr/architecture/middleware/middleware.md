@@ -13,16 +13,17 @@ Requête entrante
 4.  CORS (slot 8)             → Avant ErrorHandler (preflight OPTIONS)
 5.  ErrorHandler (slot 10)    → Capture et rendu des erreurs
 6.  HostValidation (slot 15)  → Validation Allowed Hosts
-7.  Custom (slot 20+)         → Middlewares personnalisés
-8.  OpenRedirect (slot 25)    → Inspection des réponses 3xx
-9.  Security Headers (slot 30) → HSTS, X-Frame-Options, etc.
-10. CSP (slot 31)             → Content Security Policy
-11. Cache (slot 40)           → No-cache en développement
-12. Session (slot 50)         → Gestion des sessions
-13. SessionUpgrade (slot 55)  → Lecture/écriture en session
-14. Auth (slot 57)            → Charge CurrentUser depuis la session
-15. CSRF (slot 60)            → Protection CSRF
-16. AntiBot (slot 65)         → Honeypot
+7.  HttpsRedirect (slot 17)   → Redirection HTTPS derrière un proxy (ENFORCE_HTTPS, sans ACME)
+8.  Custom (slot 20+)         → Middlewares personnalisés
+9.  OpenRedirect (slot 25)    → Inspection des réponses 3xx
+10. Security Headers (slot 30) → HSTS, X-Frame-Options, etc.
+11. CSP (slot 31)             → Content Security Policy
+12. Cache (slot 40)           → No-cache en développement
+13. Session (slot 50)         → Gestion des sessions
+14. SessionUpgrade (slot 55)  → Lecture/écriture en session
+15. Auth (slot 57)            → Charge CurrentUser depuis la session
+16. CSRF (slot 60)            → Protection CSRF
+17. AntiBot (slot 65)         → Honeypot
     ↓
 Handler (votre code)
     ↓

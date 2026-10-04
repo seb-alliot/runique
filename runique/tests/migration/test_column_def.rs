@@ -263,16 +263,6 @@ fn test_column_save_as() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// to_sea_column (ne panique pas)
-// ═══════════════════════════════════════════════════════════════
-
-#[test]
-fn test_column_to_sea_column_compile() {
-    let col = ColumnDef::new("email").string().unique().nullable();
-    let _ = col.to_sea_column();
-}
-
-// ═══════════════════════════════════════════════════════════════
 // to_form_field — dispatch par type
 // ═══════════════════════════════════════════════════════════════
 

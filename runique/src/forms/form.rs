@@ -524,10 +524,10 @@ impl Forms {
         !self.force_invalid && self.validated && !self.has_errors()
     }
 
-    /// **Test-only.** Marks the form as validated without calling `is_valid()`.
-    ///
-    /// Use this in tests that verify save/hook behavior independently of field validation.
-    /// Calling this in production code bypasses all validation — never use outside `#[cfg(test)]`.
+    /// **Test-only** (`test-utils` feature). Marks the form as validated without
+    /// calling `is_valid()`, for tests of save/hook behavior independent of field
+    /// validation. It bypasses all validation, hence out of normal builds.
+    #[cfg(feature = "test-utils")]
     #[doc(hidden)]
     pub fn mark_validated(&mut self) {
         self.validated = true;

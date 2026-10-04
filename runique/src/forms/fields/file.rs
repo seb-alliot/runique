@@ -27,9 +27,11 @@ impl IntoUploadPath for String {
     }
 }
 
+/// The root of `MEDIA_ROOT` itself: `finalize` already prefixes every upload
+/// path with it, so passing it again would nest it into itself.
 impl IntoUploadPath for &StaticConfig {
     fn into_upload_path(self) -> String {
-        self.media_root.clone()
+        String::new()
     }
 }
 use async_trait::async_trait;
@@ -357,16 +359,18 @@ impl FileField {
         self
     }
 
-    /// Destination directory for uploaded files. Accepts `"media/avatars"`, `String`, or `&StaticConfig`.
+    /// Destination directory, relative to `MEDIA_ROOT` (`"avatars"` →
+    /// `{MEDIA_ROOT}/avatars/`). Accepts `&str`, `String`, or `&StaticConfig`
+    /// for the root of `MEDIA_ROOT`.
     pub fn upload_to(mut self, path: impl IntoUploadPath) -> Self {
         self.upload_config = self.upload_config.upload_to(path.into_upload_path());
         self
     }
 
-    /// Uses `MEDIA_ROOT` from environment as upload root, with subdirectory named after the field.
+    /// A subdirectory named after the field, under `MEDIA_ROOT`
+    /// (`"avatar"` → `{MEDIA_ROOT}/avatar/`).
     pub fn upload_to_env(mut self) -> Self {
-        let media_root = resolve_media_root();
-        let f = Arc::new(move |field_name: &str| format!("{}/{}", media_root, field_name));
+        let f = Arc::new(|field_name: &str| field_name.to_string());
         self.upload_config.upload_to = Some(f);
         self
     }
@@ -765,6 +769,48 @@ mod finalize_tests {
         unsafe {
             std::env::remove_var("MEDIA_ROOT");
         }
+        let _ = fs::remove_dir_all(&media);
+    }
+
+    /// Stages `photo.png` under a fresh MEDIA_ROOT, runs `finalize` on `field`,
+    /// and returns the stored value with the media root to check against.
+    async fn finalize_staged(mut field: FileField) -> (String, std::path::PathBuf) {
+        let media = unique_dir("media");
+        let staging = media.join(format!(".staging-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&staging).unwrap();
+        let staged = staging.join("photo.png");
+        fs::write(&staged, b"data").unwrap();
+        unsafe {
+            std::env::set_var("MEDIA_ROOT", media.to_str().unwrap());
+        }
+        field.base.value = staged.to_string_lossy().to_string();
+        field.finalize().await.expect("finalize should succeed");
+        unsafe {
+            std::env::remove_var("MEDIA_ROOT");
+        }
+        (field.base.value, media)
+    }
+
+    /// `upload_to_env` is a subdirectory named after the field, under
+    /// MEDIA_ROOT — not MEDIA_ROOT nested into itself, which would also put
+    /// the server's absolute path into the stored value and the public URL.
+    #[tokio::test]
+    async fn upload_to_env_commits_under_a_folder_named_after_the_field() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let (stored, media) = finalize_staged(FileField::any("avatar").upload_to_env()).await;
+        assert_eq!(stored, "avatar/photo.png");
+        assert!(media.join("avatar/photo.png").exists());
+        let _ = fs::remove_dir_all(&media);
+    }
+
+    /// `upload_to(&StaticConfig)` is the root of MEDIA_ROOT.
+    #[tokio::test]
+    async fn upload_to_static_config_commits_at_the_media_root() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let config = StaticConfig::from_env();
+        let (stored, media) = finalize_staged(FileField::any("doc").upload_to(&config)).await;
+        assert_eq!(stored, "photo.png");
+        assert!(media.join("photo.png").exists());
         let _ = fs::remove_dir_all(&media);
     }
 

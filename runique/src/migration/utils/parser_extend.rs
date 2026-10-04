@@ -325,7 +325,6 @@ fn extend_field_to_col(
         default_value: f.default_value,
         enum_name,
         enum_string_values,
-        enum_is_pg: false,
         renamed_from: f.renamed_from,
     }
 }

@@ -97,6 +97,28 @@ impl RuniqueEngine {
             .unwrap_or(false)
     }
 
+    /// Closes every session of `user_id`, whatever the device: its rows in
+    /// `eihwaz_sessions` first, then its sessions in memory. In that order: a
+    /// session dropped from memory first could be read back from the database
+    /// by a request arriving in between. A store plugged in with
+    /// `with_session_store()` can't be searched by user and is left as is.
+    pub async fn close_user_sessions(&self, user_id: crate::utils::pk::Pk) {
+        let db_store = self.session_db_store.read().ok().and_then(|g| g.clone());
+        if let Some(store) = db_store
+            && let Err(e) = store.invalidate_all(user_id).await
+        {
+            tracing::error!(
+                user_id = %user_id,
+                error = %e,
+                "closing the user's sessions in the database failed"
+            );
+        }
+        let memory_store = self.session_store.read().ok().and_then(|g| g.clone());
+        if let Some(store) = memory_store {
+            store.invalidate_user_sessions(user_id).await;
+        }
+    }
+
     /// Retrieves a custom extension registered via `with_custom_db()`.
     ///
     /// Returns `Option<Arc<T>>` — `None` if this type was not registered.

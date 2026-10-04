@@ -63,6 +63,7 @@
     "aegis_json_error": "Ошибка разбора JSON тела: {}",
     "auth_required": "Требуется аутентификация",
     "role_insufficient": "Недостаточно прав",
+    "unknown_group": "GuardRules: несуществующие группы в roles([...]): {}",
     "time_too_old": "Слишком рано (мин : {})",
     "time_too_far": "Слишком поздно (макс : {})",
     "datetime_too_old": "Слишком рано (мин : {})",

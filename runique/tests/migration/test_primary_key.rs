@@ -68,10 +68,3 @@ fn test_primary_key_clone() {
     assert_eq!(cloned.name, "pk");
     assert!(!cloned.auto_increment);
 }
-
-#[test]
-fn test_primary_key_to_sea_column_compile() {
-    // Vérifie que la génération ne panique pas
-    let pk = PrimaryKeyDef::new("id").i32();
-    let _ = pk.to_sea_column();
-}

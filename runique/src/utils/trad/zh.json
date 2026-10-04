@@ -63,6 +63,7 @@
     "aegis_json_error": "解析JSON正文失败: {}",
     "auth_required": "需要进行身份验证",
     "role_insufficient": "权限不足",
+    "unknown_group": "GuardRules：roles([...]) 中存在不存在的组：{}",
     "time_too_old": "时间过早（最早：{}）",
     "time_too_far": "时间过晚（最晚：{}）",
     "datetime_too_old": "日期时间过早（最早：{}）",

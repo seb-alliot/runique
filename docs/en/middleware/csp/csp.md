@@ -52,22 +52,42 @@ In your templates:
 
 ## Forced HTTPS (`enforce_https`)
 
-The `ENFORCE_HTTPS=true` directive enables a **308** redirect (`Redirect::permanent()`) to HTTPS for all HTTP requests. This redirect relies on the `X-Forwarded-Proto` header to detect whether the request arrived over HTTP or HTTPS.
+`ENFORCE_HTTPS=true` is for deployments **behind a reverse proxy that terminates TLS** (nginx, Caddy, Cloudflare…): Runique runs over HTTP behind it and can't see by itself whether the client came over HTTP or HTTPS. It reads it from the `X-Forwarded-Proto` header set by the proxy.
 
-> **⚠️ Proxy requirement:** `enforce_https` trusts the `X-Forwarded-Proto` header. Without a trusted reverse proxy (nginx, Caddy, etc.) controlling this header, an attacker can forge `X-Forwarded-Proto: https` to bypass the redirect.
+| `X-Forwarded-Proto` received | Effect |
+| --- | --- |
+| `http` | **308** redirect to the same URL in `https://` (same host, path and query) |
+| `https` | the request goes through |
+| missing | the request goes through — without the header, nothing tells an HTTP request apart from one the proxy received over HTTPS without saying so; redirecting it would loop forever |
+
+With several proxies in a chain (`http, https`), only the first value counts: it's the one the client saw.
+
+The redirect URL's host is read from the `Host` header. The redirect runs right after Host validation (slot 17, after slot 15): with `ALLOWED_HOSTS` set, a forged `Host` is refused before it's used.
+
+**With ACME** (`ACME_ENABLED=true`), the redirect is **not mounted**: Runique then serves TLS itself, no request carries `X-Forwarded-Proto`, and its port-80 listener already redirects to HTTPS (keeping the path and query). `ENFORCE_HTTPS` has no effect on redirection in that mode.
+
+Either way, `ENFORCE_HTTPS` or ACME also enables the HSTS header (see [Security headers](/docs/en/middleware/csp-headers)).
+
+> **⚠️ Required proxy configuration:**
+> - the proxy must **set** `X-Forwarded-Proto` itself from the actual connection, overwriting any value sent by the client;
+> - it must pass the original host in `Host`, otherwise the redirect would point to Runique's internal address (e.g. `https://127.0.0.1:3000/...`);
+> - if it doesn't send `X-Forwarded-Proto`, no redirect happens (never a loop).
 >
-> **In production**, always place Runique behind a reverse proxy that controls this header:
-> strip any client-supplied `X-Forwarded-Proto` headers and inject the correct value (`https` or `http`) based on the actual connection.
+> A client forging `X-Forwarded-Proto: https` over direct HTTP only escapes the redirect for its own connection: no impact on other users.
 
 ```env
 # .env
 ENFORCE_HTTPS=true
+ALLOWED_HOSTS=mysite.com
 ```
 
 ```nginx
-# nginx — correct configuration example
+# nginx — headers to pass to Runique
+proxy_set_header Host $host;
 proxy_set_header X-Forwarded-Proto $scheme;
 ```
+
+If the proxy already redirects HTTP to HTTPS itself, Runique's redirect never fires (every request reaches it with `X-Forwarded-Proto: https`): no double redirect, and `ENFORCE_HTTPS=true` remains useful for HSTS.
 
 ---
 

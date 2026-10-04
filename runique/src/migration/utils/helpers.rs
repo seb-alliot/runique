@@ -273,18 +273,6 @@ pub fn get_root_expr(expr: &Expr) -> &Expr {
     }
 }
 
-/// Returns the value of `mc`'s first argument if it is a string literal.
-pub fn first_str_arg(mc: &ExprMethodCall) -> Option<String> {
-    if let Some(Expr::Lit(ExprLit {
-        lit: Lit::Str(s), ..
-    })) = mc.args.first()
-    {
-        Some(s.value())
-    } else {
-        None
-    }
-}
-
 /// Collects every method and function-call name reachable from `expr`, recursing
 /// through receivers and arguments — used to detect which builder methods were
 /// called anywhere in a column definition, regardless of call order.

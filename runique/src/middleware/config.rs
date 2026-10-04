@@ -102,11 +102,4 @@ impl MiddlewareConfig {
         self.enable_cache = enable;
         self
     }
-
-    /// Enables or disables `Host` header validation against the allowed hosts list.
-    #[must_use]
-    pub fn with_host_validation(mut self, enable: bool) -> Self {
-        self.enable_host_validation = enable;
-        self
-    }
 }

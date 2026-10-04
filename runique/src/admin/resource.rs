@@ -293,11 +293,4 @@ impl AdminResource {
             .insert(key.to_string(), value.to_string());
         self
     }
-
-    /// Merges a map of custom key/value pairs into the Tera context injected
-    /// for this resource.
-    pub fn extra_map(mut self, map: crate::utils::aliases::StrMap) -> Self {
-        self.extra_context.extend(map);
-        self
-    }
 }

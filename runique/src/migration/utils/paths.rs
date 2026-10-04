@@ -47,16 +47,6 @@ pub fn alter_file_path(migrations_path: &str, table_name: &str, timestamp: &str)
     )
 }
 
-/// Root applied/by_time/ directory (for listing)
-pub fn by_time_dir(migrations_path: &str) -> String {
-    format!("{}/applied/by_time", migrations_path)
-}
-
-/// applied/by_time/<table>/ directory
-pub fn by_time_table_dir(migrations_path: &str, table_name: &str) -> String {
-    format!("{}/applied/by_time/{}", migrations_path, table_name)
-}
-
 /// applied/by_time/<table>/up/ directory
 pub fn batch_up_dir(migrations_path: &str, table_name: &str) -> String {
     format!("{}/applied/by_time/{}/up", migrations_path, table_name)
@@ -232,21 +222,6 @@ mod tests {
         assert!(path.starts_with("m/applied/users/20251231_235959_alter_users_table.rs"));
     }
 
-    // ── by_time_dir / by_time_table_dir ─────────────────────────────────────
-
-    #[test]
-    fn by_time_dir_standard() {
-        assert_eq!(by_time_dir(BASE), "/project/migration/src/applied/by_time");
-    }
-
-    #[test]
-    fn by_time_table_dir_standard() {
-        assert_eq!(
-            by_time_table_dir(BASE, TABLE),
-            "/project/migration/src/applied/by_time/eihwaz_users"
-        );
-    }
-
     // ── batch_up_dir / batch_down_dir ────────────────────────────────────────
 
     #[test]
@@ -356,13 +331,6 @@ mod tests {
         let dir = batch_down_dir(BASE, TABLE);
         let path = batch_down_path(BASE, TABLE, TS);
         assert!(path.starts_with(&dir));
-    }
-
-    #[test]
-    fn batch_table_dir_is_inside_by_time_dir() {
-        let root = by_time_dir(BASE);
-        let table = by_time_table_dir(BASE, TABLE);
-        assert!(table.starts_with(&root));
     }
 
     #[test]

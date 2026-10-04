@@ -27,7 +27,8 @@
 //!   the lowest slot is applied LAST (.layer) = the most EXTERNAL
 //!
 //! RESULT on an incoming request:
-//!   → Extensions(0) → TrustedProxies(2) → CORS(8) → ErrorHandler(10) → Host(15) → Custom(20+)
+//!   → Extensions(0) → TrustedProxies(2) → CORS(8) → ErrorHandler(10) → Host(15)
+//!   → HttpsRedirect(17) → Custom(20+)
 //!   → OpenRedirect(25) → CSP(30) → Cache(40) → Session(50) → CSRF(60) → Handler
 //!
 //! Host validation sits right after ErrorHandler (still covered by its panic
@@ -39,8 +40,8 @@ use crate::context::RequestExtensions;
 use crate::middleware::session::CleaningMemoryStore;
 use crate::middleware::{
     allowed_hosts_middleware, anti_bot_middleware, csrf_middleware, dev_no_cache_middleware,
-    error_handler_middleware, open_redirect_middleware, security_headers_middleware,
-    trusted_proxies_middleware,
+    error_handler_middleware, https_redirect_middleware, open_redirect_middleware,
+    security_headers_middleware, trusted_proxies_middleware,
 };
 use crate::utils::aliases::{AEngine, ARuniqueConfig, ATera};
 use axum::{self, Router, middleware};
@@ -68,6 +69,7 @@ const SLOT_AUTH: u16 = 57; // After Session — reads the signed-in account from
 const SLOT_CSRF: u16 = 60; // After Session (reads/writes in session)
 const SLOT_ANTI_BOT: u16 = 65; // After CSRF — injects honeypot field name extension
 const SLOT_HOST_VALIDATION: u16 = 15; // After ErrorHandler (still caught on panic), before Session/Auth/CSRF cost
+const SLOT_HTTPS_REDIRECT: u16 = 17; // After HostValidation: the redirect is built from a checked Host
 
 // ─── MiddlewareEntry ──────────────────────────────────────────────────────────
 
@@ -206,6 +208,24 @@ impl MiddlewareStaging {
                     r.layer(middleware::from_fn_with_state(
                         eng,
                         allowed_hosts_middleware,
+                    ))
+                }),
+            });
+        }
+
+        // Slot 17: HTTPS redirect behind a TLS-terminating proxy. Not with ACME:
+        // Runique serves TLS itself there, no request carries `X-Forwarded-Proto`,
+        // and its port-80 listener already redirects.
+        let acme_active = cfg!(feature = "acme") && engine.config.security.acme_enabled;
+        if engine.config.security.enforce_https && !acme_active {
+            let eng = engine.clone();
+            entries.push(MiddlewareEntry {
+                slot: SLOT_HTTPS_REDIRECT,
+                name: "HttpsRedirect",
+                apply: Box::new(move |r| {
+                    r.layer(middleware::from_fn_with_state(
+                        eng,
+                        https_redirect_middleware,
                     ))
                 }),
             });

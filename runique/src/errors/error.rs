@@ -359,34 +359,6 @@ impl ErrorContext {
         ctx
     }
 
-    /// Attaches request info extracted directly from an Axum `Request`, stripping
-    /// `authorization`, `cookie`, and `token` headers before storing them.
-    pub fn with_request(mut self, request: &axum::extract::Request) -> Self {
-        self.request_info = Some(RequestInfo {
-            method: request.method().to_string(),
-            path: request.uri().path().to_string(),
-            query: request.uri().query().map(std::string::ToString::to_string),
-            headers: request
-                .headers()
-                .iter()
-                .filter(|(k, _)| {
-                    let key = k.as_str().to_lowercase();
-                    !key.contains("authorization")
-                        && !key.contains("cookie")
-                        && !key.contains("token")
-                })
-                .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or("").to_string()))
-                .collect(),
-        });
-        self
-    }
-    /// Attaches free-form additional details to the error context.
-    #[must_use]
-    pub fn with_details(mut self, details: &str) -> Self {
-        self.details = Some(details.to_string());
-        self
-    }
-
     /// Walks the error's `source()` chain, recording one `StackFrame` per level and
     /// the root error's `{:?}` debug representation.
     pub fn build_stack_trace(&mut self, error: &dyn std::error::Error) {

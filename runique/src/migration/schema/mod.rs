@@ -158,34 +158,6 @@ impl ModelSchema {
 
     // ── Migration generation ─────────────────────────────────────────────────
 
-    /// Generates the SeaQuery TableCreateStatement from the schema
-    /// This replaces the syn parser — the source of truth is here
-    pub fn to_migration(&self) -> sea_query::TableCreateStatement {
-        let mut table = sea_query::Table::create();
-        table
-            .table(sea_query::Alias::new(&self.table_name))
-            .if_not_exists();
-
-        // Primary key
-        if let Some(ref pk) = self.primary_key {
-            table.col(pk.to_sea_column());
-        }
-
-        // Columns (ignored fields are skipped)
-        for col in &self.columns {
-            if !col.ignored {
-                table.col(col.to_sea_column());
-            }
-        }
-
-        // Foreign keys
-        for fk in &self.foreign_keys {
-            table.foreign_key(&mut fk.to_sea_foreign_key(&self.table_name));
-        }
-
-        table.to_owned()
-    }
-
     /// Fills a Forms with fields generated from the schema.
     /// - `fields`: whitelist (only these fields are included, in this order)
     /// - `exclude`: blacklist (these fields are excluded)
@@ -307,20 +279,6 @@ impl ModelSchema {
         }
 
         diff
-    }
-    /// Finds `auto_now` columns (`created_at`-style, set once at insertion).
-    pub fn auto_now_columns(&self) -> Vec<&ColumnDef> {
-        self.columns.iter().filter(|c| c.auto_now).collect()
-    }
-
-    /// Finds auto_now_update columns (updated_at)
-    pub fn auto_now_update_columns(&self) -> Vec<&ColumnDef> {
-        self.columns.iter().filter(|c| c.auto_now_update).collect()
-    }
-
-    /// Checks if the model needs automatic timestamps
-    pub fn has_auto_timestamps(&self) -> bool {
-        self.columns.iter().any(|c| c.auto_now || c.auto_now_update)
     }
 }
 

@@ -1,6 +1,6 @@
 //! Tests supplémentaires — column/mod.rs
 //! Couvre : to_form_field (types manquants), format_label, postgres types,
-//!          to_sea_column avec default, binary/char/var_binary
+//!          binary/char/var_binary
 
 use runique::forms::base::FormField;
 use runique::migration::column::ColumnDef;
@@ -71,30 +71,6 @@ fn test_column_unsigned() {
 fn test_column_big_unsigned() {
     let col = ColumnDef::new("big").big_unsigned();
     assert!(matches!(col.col_type, ColumnType::BigUnsigned));
-}
-
-// ═══════════════════════════════════════════════════════════════
-// to_sea_column avec valeur par défaut
-// ═══════════════════════════════════════════════════════════════
-
-#[test]
-fn test_to_sea_column_avec_default() {
-    let col = ColumnDef::new("actif")
-        .boolean()
-        .default(sea_query::Value::Bool(Some(true)));
-    let _ = col.to_sea_column();
-}
-
-#[test]
-fn test_to_sea_column_nullable() {
-    let col = ColumnDef::new("bio").text().nullable();
-    let _ = col.to_sea_column();
-}
-
-#[test]
-fn test_to_sea_column_unique() {
-    let col = ColumnDef::new("email").string().unique();
-    let _ = col.to_sea_column();
 }
 
 // ═══════════════════════════════════════════════════════════════

@@ -2,10 +2,12 @@
 //! a test and rolls it back afterwards. Runique ships the `ADb` (SeaORM)
 //! implementation; any other engine (MongoDB…) can implement it for its own client.
 use super::struct_test::{QueryTrace, TraceSink, msg};
+use crate::admin::helper::text_cast_type;
 use crate::db::config::mask_password;
 use crate::db::{ADb, DatabaseConfig, RuniqueDb};
 use crate::utils::aliases::StrMap;
-use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, DbErr, Statement, TransactionTrait};
+use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, DbErr, TransactionTrait};
+use sea_query::{Alias, Expr, ExprTrait, Func, Query};
 use std::time::{Duration, Instant};
 
 /// How long `rollback_test` waits for a clone of the test connection (kept
@@ -109,8 +111,9 @@ impl TestTransaction for ADb {
             // Inside a transaction, the id stays the same from one statement to
             // the next; once it's committed, every statement gets a new one.
             DbBackend::Postgres => {
-                let first = scalar(self, "SELECT txid_current()::text AS v").await;
-                let second = scalar(self, "SELECT txid_current()::text AS v").await;
+                let txid = || Expr::expr(Func::cust(Alias::new("txid_current")));
+                let first = scalar(self, txid()).await;
+                let second = scalar(self, txid()).await;
                 match (first, second) {
                     (Ok(a), Ok(b)) => Ok(a == b),
                     // Only a transaction left aborted by a failed statement
@@ -119,8 +122,9 @@ impl TestTransaction for ADb {
                 }
             }
             // MariaDB has the variable; MySQL doesn't, and then there's no way to tell.
+            // sea-query has no system variable, `custom_keyword` is its documented way out.
             DbBackend::MySql => {
-                match scalar(self, "SELECT CAST(@@in_transaction AS CHAR) AS v").await {
+                match scalar(self, Expr::custom_keyword(Alias::new("@@in_transaction"))).await {
                     Ok(v) => Ok(v != "0"),
                     Err(_) => Ok(true),
                 }
@@ -151,10 +155,13 @@ impl TestTransaction for ADb {
     }
 }
 
-/// The single text value `sql` returns, read from its `v` column.
-async fn scalar(db: &ADb, sql: &str) -> Result<String, DbErr> {
-    db.query_one_raw(Statement::from_string(db.get_database_backend(), sql))
+/// `SELECT expr`, read back as text.
+async fn scalar(db: &ADb, expr: Expr) -> Result<String, DbErr> {
+    let stmt = Query::select()
+        .expr(expr.cast_as(Alias::new(text_cast_type(db))))
+        .to_owned();
+    db.query_one(&stmt)
         .await?
-        .ok_or_else(|| DbErr::RecordNotFound(sql.to_string()))?
-        .try_get::<String>("", "v")
+        .ok_or_else(|| DbErr::RecordNotFound("SELECT".into()))?
+        .try_get_by_index::<String>(0)
 }
