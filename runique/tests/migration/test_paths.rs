@@ -39,9 +39,4 @@ mod paths_migration {
         let path = alter_file_path("users", "test", "test");
         assert!(path.contains("users"));
     }
-
-    #[test]
-    fn test_by_time_dir() {
-        assert!(by_time_dir("test").contains("by_time"));
-    }
 }

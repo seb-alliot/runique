@@ -76,13 +76,6 @@ fn test_runique_user_is_superuser_true() {
 }
 
 #[test]
-fn test_runique_user_roles_default_vide() {
-    // roles() retourne toujours vec![] (implémentation par défaut du trait)
-    let model = make_model();
-    assert!(model.roles().is_empty());
-}
-
-#[test]
 fn test_runique_user_can_access_admin_false() {
     let model = make_model();
     assert!(!model.can_access_admin());
@@ -244,25 +237,4 @@ async fn test_find_by_email_not_found() {
     let adb = runique::db::ADb::from_connection(db);
     let user = BuiltinUserEntity::find_by_email(&adb, "ghost@example.com").await;
     assert!(user.is_none());
-}
-
-#[tokio::test]
-async fn test_update_password_success() {
-    let db = db::fresh_db_with_schema(USERS_DDL).await;
-    db::exec(&db, &insert_alice_sql()).await;
-    let adb = runique::db::ADb::from_connection(db);
-    let result = BuiltinUserEntity::update_password(&adb, "alice@example.com", "newhash").await;
-    assert!(result.is_ok());
-    let user = BuiltinUserEntity::find_by_email(&adb, "alice@example.com")
-        .await
-        .unwrap();
-    assert_eq!(user.password, "newhash");
-}
-
-#[tokio::test]
-async fn test_update_password_not_found() {
-    let db = db::fresh_db_with_schema(USERS_DDL).await;
-    let adb = runique::db::ADb::from_connection(db);
-    let result = BuiltinUserEntity::update_password(&adb, "ghost@example.com", "hash").await;
-    assert!(result.is_err());
 }

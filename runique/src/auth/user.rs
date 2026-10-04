@@ -139,23 +139,6 @@ impl BuiltinUserEntity {
             .flatten()
     }
 
-    /// Sets the password (already hashed) of the account with this email.
-    pub async fn update_password(
-        db: &ADb,
-        email: &str,
-        new_hash: &str,
-    ) -> Result<(), sea_orm::DbErr> {
-        let user = search!(Entity => Email eq email)
-            .first(db)
-            .await?
-            .ok_or(sea_orm::DbErr::RecordNotFound("User not found".into()))?;
-
-        let mut active: ActiveModel = user.into();
-        active.password = Set(new_hash.to_string());
-        active.update(db).await?;
-        Ok(())
-    }
-
     /// Sets the password (already hashed) of the account with this id — the
     /// path for flows where the id comes from a secret (a reset token), never
     /// from a field the client controls.
@@ -210,6 +193,7 @@ impl BuiltinUserEntity {
 /// Authenticates a user by username and password against the built-in user table.
 ///
 /// Returns `None` if the user is not found, the account is inactive, or the password is wrong.
+/// A hash made with an algorithm that is no longer the configured one is rewritten on success.
 pub async fn authenticate_user(db: &ADb, username: &str, password: &str) -> Option<Model> {
     let user_opt = BuiltinUserEntity::find_by_username(db, username).await;
     // Always run verify regardless of whether the user exists — prevents user enumeration
@@ -219,11 +203,35 @@ pub async fn authenticate_user(db: &ADb, username: &str, password: &str) -> Opti
         .map(|u| u.password.as_str())
         .unwrap_or(crate::utils::password::dummy_hash());
     let password_ok = crate::utils::password::verify(password, hash);
-    if password_ok && user_opt.as_ref().is_some_and(RuniqueUser::can_sign_in) {
-        user_opt
+    if password_ok && let Some(user) = user_opt.filter(RuniqueUser::can_sign_in) {
+        Some(rehash_if_outdated(db, user, password).await)
     } else {
         None
     }
+}
+
+/// Rewrites the hash of `user` with the configured algorithm when it was made
+/// with another one. Only possible right after a successful sign-in: it's the
+/// one moment the plain password is at hand. A failed rewrite doesn't fail the
+/// sign-in — the next one tries again.
+async fn rehash_if_outdated(db: &ADb, mut user: Model, password: &str) -> Model {
+    if crate::utils::password::is_algorithm_current(&user.password) {
+        return user;
+    }
+    let rehashed = match crate::utils::password::hash(password) {
+        Ok(rehashed) => rehashed,
+        Err(e) => {
+            tracing::error!(user_id = %user.id, error = %e, "password rehash failed");
+            return user;
+        }
+    };
+    match BuiltinUserEntity::update_password_by_id(db, user.id, &rehashed).await {
+        Ok(()) => user.password = rehashed,
+        Err(e) => {
+            tracing::error!(user_id = %user.id, error = %e, "saving the rehashed password failed")
+        }
+    }
+    user
 }
 
 /// The account behind an admin sign-in: right password, active, and staff or

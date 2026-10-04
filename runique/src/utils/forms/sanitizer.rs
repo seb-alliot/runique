@@ -139,17 +139,6 @@ pub fn is_suspicious_content(input: &str) -> bool {
         || lower.contains("data:text/html")
 }
 
-/// Cleans with fallback if suspicious content is detected
-#[must_use]
-pub fn sanitize_with_fallback(field: &str, input: &str, fallback: &str) -> String {
-    let cleaned = sanitize(field, input);
-    if is_suspicious_content(&cleaned) {
-        fallback.to_string()
-    } else {
-        cleaned
-    }
-}
-
 /// =============================
 /// XSS TESTS (OWASP + extras)
 /// =============================

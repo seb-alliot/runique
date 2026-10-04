@@ -140,15 +140,6 @@ impl TrustedProxiesConfig {
     pub(crate) fn build(self) -> TrustedProxies {
         TrustedProxies::new(self.exact, self.cidrs)
     }
-
-    // ═══════════════════════════════════════════════════
-    // ACCESSOR (used in tests)
-    // ═══════════════════════════════════════════════════
-
-    /// Returns the current trusted-proxy set for inspection.
-    pub fn get_proxies(&self) -> TrustedProxies {
-        TrustedProxies::new(self.exact.clone(), self.cidrs.clone())
-    }
 }
 
 fn parse_cidr(s: &str) -> Option<(IpAddr, u8)> {
@@ -156,4 +147,54 @@ fn parse_cidr(s: &str) -> Option<(IpAddr, u8)> {
     let ip: IpAddr = ip_str.trim().parse().ok()?;
     let prefix: u8 = prefix_str.trim().parse().ok()?;
     Some((ip, prefix))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::TrustedProxiesConfig;
+
+    fn trusted(cfg: TrustedProxiesConfig, ip: &str) -> bool {
+        cfg.build().is_trusted(&ip.parse().unwrap())
+    }
+
+    #[test]
+    fn default_trusts_private_networks() {
+        assert!(trusted(TrustedProxiesConfig::default(), "127.0.0.1"));
+        assert!(trusted(TrustedProxiesConfig::default(), "10.0.0.5"));
+        assert!(trusted(TrustedProxiesConfig::default(), "192.168.1.1"));
+        assert!(!trusted(TrustedProxiesConfig::default(), "8.8.8.8"));
+    }
+
+    #[test]
+    fn none_trusts_nothing() {
+        assert!(!trusted(
+            TrustedProxiesConfig::default().none(),
+            "127.0.0.1"
+        ));
+        assert!(!trusted(TrustedProxiesConfig::default().none(), "10.0.0.5"));
+    }
+
+    #[test]
+    fn proxy_adds_exact_ip() {
+        let cfg = || TrustedProxiesConfig::default().none().proxy("203.0.113.5");
+        assert!(trusted(cfg(), "203.0.113.5"));
+        assert!(!trusted(cfg(), "203.0.113.6"));
+    }
+
+    #[test]
+    fn cidr_adds_range() {
+        let cfg = || {
+            TrustedProxiesConfig::default()
+                .none()
+                .cidr("203.0.113.0/24")
+        };
+        assert!(trusted(cfg(), "203.0.113.42"));
+        assert!(!trusted(cfg(), "203.0.114.1"));
+    }
+
+    #[test]
+    fn invalid_proxy_ip_is_ignored() {
+        let cfg = TrustedProxiesConfig::default().none().proxy("not-an-ip");
+        assert!(!trusted(cfg, "127.0.0.1"));
+    }
 }

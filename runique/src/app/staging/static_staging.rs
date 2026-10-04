@@ -130,11 +130,6 @@ impl StaticStaging {
         })
     }
 
-    /// Returns `true` if the static files service is enabled
-    pub fn is_enabled(&self) -> bool {
-        self.enabled
-    }
-
     /// Static files are always ready
     pub fn is_ready(&self) -> bool {
         true

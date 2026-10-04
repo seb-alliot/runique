@@ -1,5 +1,4 @@
 //! `RuniqueQueryBuilder<E>` — Django-style query builder: filter, exclude, order_by, limit, all, get, count…
-use crate::db::DatabaseConfig;
 /// Django-inspired query builder for SeaORM
 ///
 /// This struct wraps SeaORM's `Select<E>` and provides convenient,
@@ -62,7 +61,6 @@ use sea_orm::{
     ColumnTrait, Condition, DbErr, EntityTrait, ExprTrait, JoinType, QueryFilter, QueryOrder,
     QuerySelect, Select,
 };
-use std::sync::Arc;
 
 /// Django-style query builder wrapping a SeaORM `Select<E>`. Built by
 /// [`Queryable::objects`] or the `search!{}` macro, and consumed by a
@@ -77,16 +75,6 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
         Self { query }
     }
 
-    /// Runs the query using a connection obtained straight from `engine`,
-    /// for call sites that only have a `DatabaseConfig` and not an open
-    /// `DatabaseConnection`.
-    pub async fn all_from_engine(
-        self,
-        engine: Arc<DatabaseConfig>,
-    ) -> Result<Vec<E::Model>, DbErr> {
-        let db = engine.connect().await?;
-        self.query.all(&db).await
-    }
     /// Executes the query and returns every matching row.
     pub async fn all(self, db: &ADb) -> Result<Vec<E::Model>, DbErr> {
         self.query.all(db).await

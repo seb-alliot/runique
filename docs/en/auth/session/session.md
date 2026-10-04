@@ -67,31 +67,17 @@ logout(&session, Some(&store)).await?;
 
 ## Revoking sessions
 
-`logout()` only ends the current session. To invalidate **all** of a user's sessions ("log out everywhere", account compromise, password change), call the store methods explicitly.
+`logout()` only ends the current session. To invalidate **all** of a user's sessions ("log out everywhere", account compromise, password change), you go through the stores.
 
-> **Important:** the built-in password reset (`with_password_reset`) does **not** invalidate active sessions — an already-open session (including a stolen one) stays valid until it expires. If you want to revoke sessions on password change, do it in your own handler after the update. This is a deliberate choice: the framework provides the primitives, you decide the policy.
+The built-in password reset (`with_password_reset`) already does it once the new password is saved. In your own handler (password change from a profile page, compromised account…), one method is enough:
 
 ```rust
-// DB-persisted sessions (with_db_fallback)
-if let Some(store) = engine
-    .session_db_store
-    .read()
-    .ok()
-    .and_then(|g| g.as_ref().cloned())
-{
-    store.invalidate_all(user_id).await?;
-}
-
-// In-memory sessions (default store)
-if let Some(mem) = engine
-    .session_store
-    .read()
-    .ok()
-    .and_then(|g| g.as_ref().cloned())
-{
-    mem.invalidate_user_sessions(user_id).await;
-}
+engine.close_user_sessions(user_id).await;
 ```
+
+It deletes the account's sessions from the database (`eihwaz_sessions`) first, then from memory. The order matters: a session dropped from memory first could be read back from the database by a request arriving in between. A database error is traced, not returned.
+
+> **Limit:** a store plugged in with `with_session_store()` (Redis…) can't be searched by user; its sessions are not closed.
 
 To revoke only the **other** devices while keeping the current session, use `invalidate_other_sessions(user_id, &cookie_id)` on the DB store — this is exactly what [exclusive login](#login) does.
 

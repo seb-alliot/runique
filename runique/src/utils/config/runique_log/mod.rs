@@ -66,7 +66,7 @@ pub struct RuniqueLog {
     pub session: Option<SessionTracing>,
     /// Auth tracing (login, reset, password_init).
     pub auth: Option<AuthTracing>,
-    /// Admin panel tracing (auth, crud, list, bulk, filter_fn, roles, daemon).
+    /// Admin panel tracing (auth, crud, list, bulk, filter_fn, daemon).
     pub admin: Option<AdminTracing>,
     /// Database tracing (connect, query).
     pub db: Option<DbTracing>,

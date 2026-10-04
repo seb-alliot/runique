@@ -120,17 +120,14 @@ fn test_into_upload_path_string() {
     assert_eq!(f("doc"), "media/docs");
 }
 
+// The root of MEDIA_ROOT: `finalize` prefixes every upload path with it, so
+// returning it here would nest it into itself.
 #[test]
 fn test_into_upload_path_static_config() {
     let config = StaticConfig::from_env();
     let field = FileField::image("pic").upload_to(&config);
     let f = field.upload_config.upload_to.unwrap();
-    let result = f("pic");
-    assert!(
-        result.ends_with("/media") || result.ends_with("\\media") || result == "media",
-        "expected upload path to end with media, got: {}",
-        result
-    );
+    assert_eq!(f("pic"), "");
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -207,7 +204,8 @@ fn test_file_field_allowed_extensions_override() {
 #[test]
 fn test_file_field_upload_to_env() {
     let f = FileField::image("avatar").upload_to_env();
-    assert!(f.upload_config.upload_to.is_some());
+    let upload_to = f.upload_config.upload_to.unwrap();
+    assert_eq!(upload_to("avatar"), "avatar", "relative to MEDIA_ROOT");
 }
 
 // ═══════════════════════════════════════════════════════════════

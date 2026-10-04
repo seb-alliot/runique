@@ -132,7 +132,7 @@ Available variables:
    - Redirects to success_redirect (default: /)
 ```
 
-> **Active sessions after reset:** updating the password does **not** invalidate already-open sessions. If you want to force a log-out everywhere on password change, call `invalidate_all(user_id)` in your own reset route — see [Revoking sessions](/docs/en/auth/session#revoking-sessions).
+> **Active sessions after reset:** once the new password is saved, **every session of the account is closed**, on every device — a stolen one included. The user signs in again with the new password. Other accounts are left alone. Only Runique's stores are covered: a store plugged in with `with_session_store()` (Redis…) can't be searched by user — see [Revoking sessions](/docs/en/auth/session#revoking-sessions).
 
 ---
 

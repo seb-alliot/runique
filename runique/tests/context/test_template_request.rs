@@ -1,5 +1,5 @@
 // Tests pour context::template::Request — from_request_parts, render (erreur
-// et succès), insert, render_with, map_tera.
+// et succès), insert, map_tera.
 //
 // Stack : csrf_router — csrf_middleware (GET seulement, token validé).
 
@@ -47,7 +47,6 @@ fn csrf_router(engine: AEngine) -> Router {
         .route("/", get(handler_get_ok))
         .route("/render_err", get(handler_render_err))
         .route("/insert", get(handler_insert))
-        .route("/render_with_err", get(handler_render_with_err))
         .layer(middleware::from_fn_with_state(
             engine.clone(),
             csrf_middleware,
@@ -81,15 +80,6 @@ async fn handler_insert(tpl: TplRequest) -> impl IntoResponse {
     StatusCode::OK
 }
 
-/// render_with() avec Tera vide → erreur → 500.
-async fn handler_render_with_err(tpl: TplRequest) -> Response {
-    tpl.render_with(
-        "nonexistent.html",
-        vec![("extra", serde_json::json!("data"))],
-    )
-    .unwrap_or_else(|e| e.into_response())
-}
-
 /// render() succès — engine avec un vrai template.
 async fn handler_render_ok(mut tpl: TplRequest) -> Response {
     tpl.render("hello.html")
@@ -109,12 +99,6 @@ async fn test_request_extraction_get_200() {
 #[tokio::test]
 async fn test_render_template_not_found_returns_500() {
     let resp = request::get(default_csrf_app().await, "/render_err").await;
-    assert_eq!(resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
-}
-
-#[tokio::test]
-async fn test_render_with_template_not_found_returns_500() {
-    let resp = request::get(default_csrf_app().await, "/render_with_err").await;
     assert_eq!(resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
 }
 

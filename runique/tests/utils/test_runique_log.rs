@@ -58,12 +58,6 @@ fn test_filter_fn_builder() {
 }
 
 #[test]
-fn test_roles_builder() {
-    let log = RuniqueLog::new().admin(|a| a.roles(Level::INFO));
-    assert_eq!(log.admin.as_ref().and_then(|a| a.roles), Some(Level::INFO));
-}
-
-#[test]
 fn test_password_init_builder() {
     let log = RuniqueLog::new().auth(|a| a.password_init(Level::WARN));
     assert_eq!(

@@ -159,7 +159,7 @@ impl RuniqueForm for ArticleForm {
         form.field(&TextField::text("title").label("Title").required());
         form.field(
             &FileField::image("image")
-                .upload_to("media/articles")
+                .upload_to("articles")
                 .max_size(FileSize::mb(5)),
         );
     }

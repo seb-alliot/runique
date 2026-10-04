@@ -16,6 +16,7 @@ use runique::utils::constante::session_key::session::{
     SESSION_USER_ID_KEY, SESSION_USER_IS_STAFF_KEY, SESSION_USER_IS_SUPERUSER_KEY,
     SESSION_USER_USERNAME_KEY,
 };
+use runique::utils::password::{Manual, PasswordConfig, PasswordService};
 use std::sync::Arc;
 use tower_sessions::{MemoryStore, Session};
 
@@ -30,6 +31,10 @@ async fn users_db() -> ADb {
 
 async fn insert_user(db: &ADb, n: u32, username: &str, active: bool) {
     let hash = runique::utils::password::hash(PASSWORD).expect("hash");
+    insert_user_hashed(db, n, username, active, &hash).await;
+}
+
+async fn insert_user_hashed(db: &ADb, n: u32, username: &str, active: bool, hash: &str) {
     runique::sea_orm::ConnectionTrait::execute_unprepared(
         db,
         &format!(
@@ -70,6 +75,74 @@ async fn authenticate_user_needs_the_right_password_and_an_active_account() {
     assert!(
         authenticate_user(&db, "nobody", PASSWORD).await.is_none(),
         "unknown user"
+    );
+}
+
+// ── rehash at sign-in ────────────────────────────────────────────────────────
+
+fn bcrypt_hash() -> String {
+    PasswordService::new(PasswordConfig::auto_with(Manual::Bcrypt))
+        .hash(PASSWORD)
+        .expect("bcrypt hash")
+}
+
+async fn stored_hash(db: &ADb, username: &str) -> String {
+    BuiltinUserEntity::find_by_username(db, username)
+        .await
+        .expect("account")
+        .password
+}
+
+#[tokio::test]
+async fn a_sign_in_rewrites_a_hash_made_with_another_algorithm() {
+    let db = users_db().await;
+    insert_user_hashed(&db, 1, "alice", true, &bcrypt_hash()).await;
+
+    let user = authenticate_user(&db, "alice", PASSWORD)
+        .await
+        .expect("signed in");
+    let stored = stored_hash(&db, "alice").await;
+    assert!(
+        stored.starts_with("$argon2"),
+        "rewritten with the configured algorithm: {stored}"
+    );
+    assert_eq!(
+        user.password, stored,
+        "the returned account carries the new hash"
+    );
+    assert!(
+        authenticate_user(&db, "alice", PASSWORD).await.is_some(),
+        "the same password still signs in"
+    );
+}
+
+#[tokio::test]
+async fn a_sign_in_leaves_a_current_hash_untouched() {
+    let db = users_db().await;
+    insert_user(&db, 1, "alice", true).await;
+    let before = stored_hash(&db, "alice").await;
+
+    authenticate_user(&db, "alice", PASSWORD)
+        .await
+        .expect("signed in");
+    assert_eq!(stored_hash(&db, "alice").await, before);
+}
+
+#[tokio::test]
+async fn a_failed_sign_in_never_rewrites_the_hash() {
+    let db = users_db().await;
+    let old = bcrypt_hash();
+    insert_user_hashed(&db, 1, "alice", true, &old).await;
+    insert_user_hashed(&db, 2, "bob", false, &bcrypt_hash()).await;
+    let bob_before = stored_hash(&db, "bob").await;
+
+    assert!(authenticate_user(&db, "alice", "wrong").await.is_none());
+    assert_eq!(stored_hash(&db, "alice").await, old, "wrong password");
+    assert!(authenticate_user(&db, "bob", PASSWORD).await.is_none());
+    assert_eq!(
+        stored_hash(&db, "bob").await,
+        bob_before,
+        "inactive account"
     );
 }
 

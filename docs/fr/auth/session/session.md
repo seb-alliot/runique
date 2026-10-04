@@ -67,31 +67,17 @@ logout(&session, Some(&store)).await?;
 
 ## Révocation des sessions
 
-`logout()` ne ferme que la session courante. Pour invalider **toutes** les sessions d'un utilisateur (« se déconnecter partout », compromission de compte, changement de mot de passe), appelez explicitement les méthodes des stores.
+`logout()` ne ferme que la session courante. Pour invalider **toutes** les sessions d'un utilisateur (« se déconnecter partout », compromission de compte, changement de mot de passe), il faut passer par les stores.
 
-> **Important :** le reset de mot de passe intégré (`with_password_reset`) **n'invalide pas** les sessions actives — une session déjà ouverte (y compris volée) reste valide jusqu'à expiration. Si vous voulez révoquer les sessions au changement de mot de passe, faites-le dans votre propre handler après la mise à jour. C'est un choix délibéré : le framework fournit les primitives, vous décidez de la politique.
+Le reset de mot de passe intégré (`with_password_reset`) le fait déjà une fois le nouveau mot de passe enregistré. Dans votre propre handler (changement de mot de passe depuis le profil, compte compromis…), une seule méthode suffit :
 
 ```rust
-// Sessions persistées en DB (with_db_fallback)
-if let Some(store) = engine
-    .session_db_store
-    .read()
-    .ok()
-    .and_then(|g| g.as_ref().cloned())
-{
-    store.invalidate_all(user_id).await?;
-}
-
-// Sessions en mémoire (store par défaut)
-if let Some(mem) = engine
-    .session_store
-    .read()
-    .ok()
-    .and_then(|g| g.as_ref().cloned())
-{
-    mem.invalidate_user_sessions(user_id).await;
-}
+engine.close_user_sessions(user_id).await;
 ```
+
+Elle supprime d'abord les sessions du compte en base (`eihwaz_sessions`), puis en mémoire. L'ordre compte : une session retirée de la mémoire en premier pourrait être relue depuis la base par une requête arrivant entre les deux. Une erreur de base est tracée, pas renvoyée.
+
+> **Limite :** un store branché avec `with_session_store()` (Redis…) ne peut pas être parcouru par utilisateur ; ses sessions ne sont pas fermées.
 
 Pour ne révoquer que les **autres** appareils en gardant la session courante, utilisez `invalidate_other_sessions(user_id, &cookie_id)` côté DB — c'est exactement ce que fait la [connexion exclusive](#connexion).
 

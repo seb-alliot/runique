@@ -340,10 +340,6 @@ impl PasswordConfig {
     pub fn manual(algorithm: Manual) -> Self {
         Self::Manual(algorithm)
     }
-    /// `Delegated` mode using the given external provider.
-    pub fn oauth(provider: External) -> Self {
-        Self::Delegated(provider)
-    }
 
     /// `Custom` mode using the given [`PasswordHandler`] implementation.
     pub fn custom<H: PasswordHandler + 'static>(handler: H) -> Self {
@@ -463,23 +459,26 @@ impl PasswordService {
         }
     }
     /// In `Auto` mode, whether `hash` was produced with the currently
-    /// configured algorithm — used to trigger a rehash-on-login upgrade after
-    /// changing the configured algorithm. Always `true` for `Manual`/`Custom`/
-    /// `Delegated`, since automatic rehashing only applies to the `Auto` path.
+    /// configured algorithm — `false` triggers the rehash at the next sign-in
+    /// (see [`crate::auth::authenticate_user`]). Only `false` when that is
+    /// certain: a configured built-in algorithm and a recognised prefix that
+    /// differs. A custom algorithm or an unknown prefix can't be told apart,
+    /// and answering `false` would rewrite the password on every sign-in.
+    /// Always `true` for `Manual`/`Custom`/`Delegated`.
     #[must_use]
     pub fn is_algorithm_current(&self, hash: &str) -> bool {
-        match &self.config {
-            PasswordConfig::Auto(config) => {
-                let detected = self.hasher.detect_algorithm(hash);
-                matches!(
-                    (&detected, &config.algorithm),
-                    (Some("argon2"), Manual::Argon2)
-                        | (Some("bcrypt"), Manual::Bcrypt)
-                        | (Some("scrypt"), Manual::Scrypt)
-                )
-            }
-            _ => true,
-        }
+        let PasswordConfig::Auto(config) = &self.config else {
+            return true;
+        };
+        let configured = match config.algorithm {
+            Manual::Argon2 => "argon2",
+            Manual::Bcrypt => "bcrypt",
+            Manual::Scrypt => "scrypt",
+            Manual::Custom(_) => return true,
+        };
+        self.hasher
+            .detect_algorithm(hash)
+            .is_none_or(|detected| detected == configured)
     }
     /// Whether `value` already carries one of the recognized hash prefixes
     /// (argon2id/argon2i/argon2d, bcrypt `$2*`, scrypt `$scrypt$`) — used to
@@ -565,6 +564,12 @@ pub fn password_get() -> PasswordConfig {
 pub fn hash(password: &str) -> Result<String, String> {
     let svc = PasswordService::new(password_get());
     svc.hash(password)
+}
+/// Whether `hash` was produced with the globally configured algorithm — see
+/// [`PasswordService::is_algorithm_current`].
+#[must_use]
+pub fn is_algorithm_current(hash: &str) -> bool {
+    PasswordService::new(password_get()).is_algorithm_current(hash)
 }
 /// Verifies `password` against `hash` using the globally configured
 /// [`PasswordConfig`] — shorthand for `PasswordService::new(password_get()).verify(...)`.

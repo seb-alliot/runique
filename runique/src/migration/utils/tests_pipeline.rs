@@ -251,11 +251,9 @@ fn enum_rename_is_a_single_operation() {
 
 #[test]
 fn enum_rename_branches_on_runtime_backend() {
-    // Which branch actually runs is now decided by `manager.get_database_backend()`
-    // at migration-run time, not baked in at generation time — a single generated
-    // file must carry BOTH branches (unlike before this collapse, where the
-    // generator picked one based on the `DbKind` passed to `generate_alter_file`,
-    // which no longer takes one at all).
+    // Which branch runs is decided by `manager.get_database_backend()` at
+    // migration-run time, not at generation time: a single generated file must
+    // carry BOTH branches.
     let changes = diff_schemas(&parse_model(ENUM_V1), &parse_model(ENUM_RENAMED));
     let sql = generate_alter_file(&changes);
     assert!(
@@ -281,26 +279,23 @@ fn enum_rename_branches_on_runtime_backend() {
 
 #[test]
 fn enum_create_type_is_postgres_only() {
-    // `CREATE TYPE … AS ENUM` is Postgres-only syntax, but the generated file no
-    // longer decides whether to include it from the `DbKind` passed at generation
-    // time — it's always emitted, wrapped in a runtime backend check, so the same
-    // generated file works no matter which engine actually runs it later.
+    // `CREATE TYPE … AS ENUM` is Postgres-only syntax: it's always emitted,
+    // wrapped in a runtime backend check, so the same generated file works no
+    // matter which engine actually runs it later.
     let schema = parse_model(ENUM_V2);
-    for kind in [DbKind::Postgres, DbKind::Mysql, DbKind::Other] {
-        let sql = generate_create_file(&schema);
-        assert!(
-            sql.contains("get_database_backend() == sea_orm::DbBackend::Postgres"),
-            "must check the real backend at runtime for {kind:?}:\n{sql}"
-        );
-        assert!(
-            sql.contains("Type::create()") && sql.contains(".as_enum(Alias::new(\"status\"))"),
-            "the enum type must always be created (runtime-guarded) for {kind:?}:\n{sql}"
-        );
-        assert!(
-            sql.contains("Type::drop()"),
-            "down() must always emit the matching DROP TYPE (runtime-guarded) for {kind:?}:\n{sql}"
-        );
-    }
+    let sql = generate_create_file(&schema);
+    assert!(
+        sql.contains("get_database_backend() == sea_orm::DbBackend::Postgres"),
+        "must check the real backend at runtime:\n{sql}"
+    );
+    assert!(
+        sql.contains("Type::create()") && sql.contains(".as_enum(Alias::new(\"status\"))"),
+        "the enum type must always be created (runtime-guarded):\n{sql}"
+    );
+    assert!(
+        sql.contains("Type::drop()"),
+        "down() must always emit the matching DROP TYPE (runtime-guarded):\n{sql}"
+    );
 }
 
 // ── extend!{} default capture ──────────────────────────────────────────────────
@@ -465,21 +460,13 @@ fn column_rename_without_hint_is_drop_add() {
 fn column_rename_sql_is_portable_across_engines() {
     // RENAME COLUMN is supported by PG / MySQL+MariaDB / SQLite → same builder for all.
     let changes = diff_schemas(&parse_model(COL_BEFORE), &parse_model(COL_RENAMED));
-    for kind in [DbKind::Postgres, DbKind::Mysql, DbKind::Other] {
-        let sql = generate_alter_file(&changes);
-        assert!(
-            sql.contains(r#".rename_column(Alias::new("job_title"), Alias::new("title"))"#),
-            "RENAME COLUMN missing for {kind:?}:\n{sql}"
-        );
-        assert!(
-            !sql.contains("drop_column"),
-            "rename must not DROP for {kind:?}:\n{sql}"
-        );
-        assert!(
-            !sql.contains("add_column"),
-            "rename must not ADD for {kind:?}:\n{sql}"
-        );
-    }
+    let sql = generate_alter_file(&changes);
+    assert!(
+        sql.contains(r#".rename_column(Alias::new("job_title"), Alias::new("title"))"#),
+        "RENAME COLUMN missing:\n{sql}"
+    );
+    assert!(!sql.contains("drop_column"), "rename must not DROP:\n{sql}");
+    assert!(!sql.contains("add_column"), "rename must not ADD:\n{sql}");
 }
 
 #[test]
@@ -638,37 +625,41 @@ fn created_at_defaults_to_current_timestamp() {
 // `ON UPDATE` clause, and no raw SQL at all.
 #[test]
 fn updated_at_is_left_to_the_entity() {
-    for db_kind in [DbKind::Postgres, DbKind::Mysql, DbKind::Other] {
-        let sql = generate_create_file(&parse_model(TS_MODEL));
-        for raw in [
-            "TRIGGER",
-            "plpgsql",
-            "ON UPDATE CURRENT_TIMESTAMP",
-            "execute_unprepared",
-        ] {
-            assert!(!sql.contains(raw), "{raw} for {db_kind:?}:\n{sql}");
-        }
+    let sql = generate_create_file(&parse_model(TS_MODEL));
+    for raw in [
+        "TRIGGER",
+        "plpgsql",
+        "ON UPDATE CURRENT_TIMESTAMP",
+        "execute_unprepared",
+    ] {
+        assert!(!sql.contains(raw), "{raw}:\n{sql}");
     }
 }
 
-// ── Foreign key actions (relations file) ──────────────────────────────────────
+// ── Foreign key actions (inline in the CREATE file) ───────────────────────────
+
+fn fk_schema(table: &str, fk: ParsedFk) -> ParsedSchema {
+    ParsedSchema {
+        table_name: table.into(),
+        primary_key: None,
+        columns: vec![],
+        foreign_keys: vec![fk],
+        indexes: vec![],
+    }
+}
 
 #[test]
 fn fk_cascade_action_is_rendered() {
-    let schema = ParsedSchema {
-        table_name: "comment".into(),
-        primary_key: None,
-        columns: vec![],
-        foreign_keys: vec![ParsedFk {
+    let sql = generate_create_file(&fk_schema(
+        "comment",
+        ParsedFk {
             from_column: "post_id".into(),
             to_table: "post".into(),
             to_column: "id".into(),
             on_delete: "Cascade".into(),
             on_update: "NoAction".into(),
-        }],
-        indexes: vec![],
-    };
-    let sql = generate_relations_file(&[&schema]);
+        },
+    ));
     assert!(
         sql.contains(".on_delete(ForeignKeyAction::Cascade)"),
         "{sql}"
@@ -679,6 +670,28 @@ fn fk_cascade_action_is_rendered() {
     );
     assert!(
         sql.contains(r#".to(Alias::new("post"), Alias::new("id"))"#),
+        "{sql}"
+    );
+}
+
+#[test]
+fn fk_set_null_and_restrict_actions_render() {
+    let sql = generate_create_file(&fk_schema(
+        "child",
+        ParsedFk {
+            from_column: "a_id".into(),
+            to_table: "a".into(),
+            to_column: "id".into(),
+            on_delete: "SetNull".into(),
+            on_update: "Restrict".into(),
+        },
+    ));
+    assert!(
+        sql.contains(".on_delete(ForeignKeyAction::SetNull)"),
+        "{sql}"
+    );
+    assert!(
+        sql.contains(".on_update(ForeignKeyAction::Restrict)"),
         "{sql}"
     );
 }
@@ -1201,32 +1214,6 @@ fn multiple_column_renames_all_emitted() {
 
 // ── FK actions: SetNull / Restrict (relations file) ────────────────────────────
 
-#[test]
-fn fk_set_null_and_restrict_actions_render() {
-    let schema = ParsedSchema {
-        table_name: "child".into(),
-        primary_key: None,
-        columns: vec![],
-        foreign_keys: vec![ParsedFk {
-            from_column: "a_id".into(),
-            to_table: "a".into(),
-            to_column: "id".into(),
-            on_delete: "SetNull".into(),
-            on_update: "Restrict".into(),
-        }],
-        indexes: vec![],
-    };
-    let sql = generate_relations_file(&[&schema]);
-    assert!(
-        sql.contains(".on_delete(ForeignKeyAction::SetNull)"),
-        "{sql}"
-    );
-    assert!(
-        sql.contains(".on_update(ForeignKeyAction::Restrict)"),
-        "{sql}"
-    );
-}
-
 // ── FK snapshot round-trip is stable ───────────────────────────────────────────
 
 #[test]
@@ -1515,17 +1502,15 @@ fn enum_default_reaches_parsed_column() {
 #[test]
 fn enum_column_default_is_emitted_in_create_on_all_engines() {
     let schema = parse_model(ENUM_DEFAULT_MODEL);
-    for kind in [DbKind::Postgres, DbKind::Mysql, DbKind::Other] {
-        let sql = generate_create_file(&schema);
-        assert!(
-            sql.contains("ColumnType::Enum"),
-            "enum coldef missing for {kind:?}:\n{sql}"
-        );
-        assert!(
-            sql.contains(r#".not_null().default("Draft")"#),
-            "enum default dropped for {kind:?}:\n{sql}"
-        );
-    }
+    let sql = generate_create_file(&schema);
+    assert!(
+        sql.contains("ColumnType::Enum"),
+        "enum coldef missing:\n{sql}"
+    );
+    assert!(
+        sql.contains(r#".not_null().default("Draft")"#),
+        "enum default dropped:\n{sql}"
+    );
 }
 
 const EXTEND_ENUM_DEFAULT_SRC: &str = r#"
@@ -1561,8 +1546,7 @@ fn extend_enum_column_default_is_emitted_on_add_all_engines() {
         enum_value_adds: vec![],
         enum_value_drops: vec![],
     };
-    // A single generated file now serves all engines — no more per-`DbKind` variants
-    // to loop over, `generate_alter_file` doesn't take one any more.
+    // A single generated file serves all engines.
     let sql = generate_alter_file(&change);
     assert!(
         sql.contains(r#".not_null().default("Draft")"#),

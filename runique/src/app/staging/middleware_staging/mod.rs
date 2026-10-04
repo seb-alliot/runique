@@ -488,9 +488,4 @@ impl MiddlewareStaging {
     pub fn session_duration(&self) -> Duration {
         self.session_duration
     }
-
-    /// Returns the number of custom middlewares added
-    pub fn custom_count(&self) -> usize {
-        self.custom_middlewares.len()
-    }
 }

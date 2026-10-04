@@ -328,18 +328,6 @@ impl Request {
         }
     }
 
-    /// Immediate rendering with additional data
-    pub fn render_with(
-        mut self,
-        template: &str,
-        data: Vec<(&str, serde_json::Value)>,
-    ) -> AppResult<Response> {
-        for (k, v) in data {
-            self.context.insert(k.to_string(), &v);
-        }
-        self.render(template)
-    }
-
     /// Returns a reference to the database connection.
     pub fn db(&self) -> &ADb {
         &self.engine.db

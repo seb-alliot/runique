@@ -12,7 +12,7 @@ impl RuniqueForm for ImageForm {
         form.field(
             &FileField::image("image")
                 .label("Image")
-                .upload_to_env()        // reads MEDIA_ROOT from .env
+                .upload_to_env()        // → {MEDIA_ROOT}/image/
                 .max_size(FileSize::mb(5))
                 .max_files(1)
                 .max_dimensions(1920, 1080)
@@ -27,19 +27,21 @@ impl RuniqueForm for ImageForm {
 
 ## Configuring the upload path
 
-`upload_to` accepts three forms:
+The folder is always **relative to `MEDIA_ROOT`**: the file is moved there on validation, and the database stores the relative path (`avatars/photo.png`), served under `/media/`. Three forms:
 
 ```rust
-// 1 — direct path
-FileField::image("avatar").upload_to("media/avatars")
+// 1 — explicit subfolder → {MEDIA_ROOT}/avatars/
+FileField::image("avatar").upload_to("avatars")
 
-// 2 — reads MEDIA_ROOT from .env (recommended)
+// 2 — subfolder named after the field → {MEDIA_ROOT}/img/
 FileField::image("img").upload_to_env()
 
-// 3 — from an existing StaticConfig
+// 3 — root of MEDIA_ROOT (same as no upload_to)
 let config = StaticConfig::from_env();
 FileField::image("img").upload_to(&config)
 ```
+
+Don't include `MEDIA_ROOT` in the path: `upload_to("media/avatars")` with `MEDIA_ROOT=media/` would give `media/media/avatars/`.
 
 `.env` configuration:
 

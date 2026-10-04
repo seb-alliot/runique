@@ -63,6 +63,7 @@
     "aegis_json_error": "Fehler beim Parsen des JSON-Body: {}",
     "auth_required": "Authentifizierung erforderlich",
     "role_insufficient": "Unzureichende Rolle",
+    "unknown_group": "GuardRules: nicht vorhandene Gruppe(n) in roles([...]): {}",
     "time_too_old": "Zu früh (min: {})",
     "time_too_far": "Zu spät (max: {})",
     "datetime_too_old": "Zu früh (min: {})",

@@ -2,7 +2,6 @@
 //!
 //! [`ForeignKeyDef`] follows the builder pattern:
 //! `ForeignKeyDef::new("user_id").references("users").on_delete(ForeignKeyAction::Cascade)`.
-//! The [`ForeignKeyDef::to_sea_foreign_key`] method produces the [`sea_query::ForeignKeyCreateStatement`].
 use sea_query::ForeignKeyAction;
 
 /// Foreign key definition.
@@ -50,21 +49,5 @@ impl ForeignKeyDef {
     pub fn on_update(mut self, action: ForeignKeyAction) -> Self {
         self.on_update = action;
         self
-    }
-
-    /// Generates the corresponding SeaQuery ForeignKey
-    pub fn to_sea_foreign_key(&self, from_table: &str) -> sea_query::ForeignKeyCreateStatement {
-        sea_query::ForeignKey::create()
-            .from(
-                sea_query::Alias::new(from_table),
-                sea_query::Alias::new(&self.from_column),
-            )
-            .to(
-                sea_query::Alias::new(&self.to_table),
-                sea_query::Alias::new(&self.to_column),
-            )
-            .on_delete(self.on_delete)
-            .on_update(self.on_update)
-            .to_owned()
     }
 }

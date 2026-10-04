@@ -319,90 +319,64 @@ async fn test_security_headers_middleware_hsts_present() {
     assert!(hsts.contains("max-age=31536000"));
 }
 
+/// `GET /path?x=1` with `Host: example.com` and the given `X-Forwarded-Proto`.
+async fn https_redirect_get(
+    engine: AEngine,
+    forwarded_proto: Option<&str>,
+) -> axum::response::Response {
+    use axum::body::Body;
+    use axum::http::Request;
+    use tower::ServiceExt;
+    let mut req = Request::builder()
+        .uri("/path?x=1")
+        .header("host", "example.com");
+    if let Some(proto) = forwarded_proto {
+        req = req.header("x-forwarded-proto", proto);
+    }
+    https_redirect_app(engine)
+        .oneshot(req.body(Body::empty()).unwrap())
+        .await
+        .unwrap()
+}
+
 #[tokio::test]
 async fn test_https_redirect_disabled_par_defaut() {
-    // enforce_https = false par défaut → pas de redirection
-    let engine = build_engine().await;
-    let resp = request::get(https_redirect_app(engine), "/path").await;
+    // enforce_https = false par défaut → pas de redirection, même en HTTP
+    let resp = https_redirect_get(build_engine().await, Some("http")).await;
     assert_status(&resp, 200);
 }
 
 #[tokio::test]
-async fn test_https_redirect_redirige_quand_actif() {
-    use runique::engine::RuniqueEngine;
-    use runique::middleware::{
-        config::MiddlewareConfig,
-        security::{allowed_hosts::HostPolicy, csp::SecurityPolicy},
-    };
-    use std::sync::Arc;
-
-    let engine = build_engine().await;
-    let mut config = engine.config.clone();
-    config.security.enforce_https = true;
-
-    let engine_https = Arc::new(RuniqueEngine {
-        config,
-        tera: engine.tera.clone(),
-        db: engine.db.clone(),
-        url_registry: engine.url_registry.clone(),
-        features: MiddlewareConfig::default(),
-        security_csp: Arc::new(SecurityPolicy::default()),
-        security_hosts: Arc::new(HostPolicy::new(vec![], true)),
-        csrf_exempt_paths: Arc::new(vec![]),
-        permissions_policy: Arc::new(runique::middleware::PermissionsPolicy::default()),
-        trusted_proxies: Arc::new(runique::middleware::TrustedProxies::default()),
-        session_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
-        session_db_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
-        extensions: std::collections::HashMap::new(),
-    });
-
-    // Requête sans X-Forwarded-Proto: https → redirection (308 Permanent Redirect)
-    let resp = request::get(https_redirect_app(engine_https), "/path").await;
-    assert!(
-        resp.status().is_redirection(),
-        "Redirection attendue, reçu {}",
-        resp.status()
+async fn test_https_redirect_redirige_ce_que_le_proxy_a_recu_en_http() {
+    let resp = https_redirect_get(build_engine_https().await, Some("http")).await;
+    assert_eq!(resp.status().as_u16(), 308);
+    assert_eq!(
+        resp.headers().get("location").unwrap(),
+        "https://example.com/path?x=1",
+        "même hôte, même chemin, même query"
     );
 }
 
 #[tokio::test]
 async fn test_https_redirect_passe_si_deja_https() {
-    use axum::body::Body;
-    use axum::http::Request;
-    use runique::engine::RuniqueEngine;
-    use runique::middleware::{
-        config::MiddlewareConfig,
-        security::{allowed_hosts::HostPolicy, csp::SecurityPolicy},
-    };
-    use std::sync::Arc;
-    use tower::ServiceExt;
+    let resp = https_redirect_get(build_engine_https().await, Some("https")).await;
+    assert_status(&resp, 200);
+}
 
-    let engine = build_engine().await;
-    let mut config = engine.config.clone();
-    config.security.enforce_https = true;
+// Sans l'en-tête, rien ne distingue une requête HTTP d'une requête qu'un proxy
+// a reçue en HTTPS sans le dire : la rediriger bouclerait à l'infini.
+#[tokio::test]
+async fn test_https_redirect_sans_en_tete_ne_redirige_pas() {
+    let resp = https_redirect_get(build_engine_https().await, None).await;
+    assert_status(&resp, 200);
+}
 
-    let engine_https = Arc::new(RuniqueEngine {
-        config,
-        tera: engine.tera.clone(),
-        db: engine.db.clone(),
-        url_registry: engine.url_registry.clone(),
-        features: MiddlewareConfig::default(),
-        security_csp: Arc::new(SecurityPolicy::default()),
-        security_hosts: Arc::new(HostPolicy::new(vec![], true)),
-        csrf_exempt_paths: Arc::new(vec![]),
-        permissions_policy: Arc::new(runique::middleware::PermissionsPolicy::default()),
-        trusted_proxies: Arc::new(runique::middleware::TrustedProxies::default()),
-        session_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
-        session_db_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
-        extensions: std::collections::HashMap::new(),
-    });
-
-    let app = https_redirect_app(engine_https);
-    let req = Request::builder()
-        .uri("/path")
-        .header("x-forwarded-proto", "https")
-        .body(Body::empty())
-        .unwrap();
-    let resp = app.oneshot(req).await.unwrap();
-    assert_eq!(resp.status().as_u16(), 200);
+// Plusieurs proxys : la première valeur est celle vue par le client.
+#[tokio::test]
+async fn test_https_redirect_lit_la_premiere_valeur() {
+    let engine = build_engine_https().await;
+    let resp = https_redirect_get(engine.clone(), Some("http, https")).await;
+    assert_eq!(resp.status().as_u16(), 308);
+    let resp = https_redirect_get(engine, Some("https, http")).await;
+    assert_status(&resp, 200);
 }

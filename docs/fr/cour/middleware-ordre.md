@@ -56,7 +56,7 @@ Au lieu de dépendre de l'ordre de déclaration, Runique attribue un **slot num�
 
 ```
 Slots d'exécution (requête entrante) :
-Extensions(0) → Compression(5) → ErrorHandler(10) → HostValidation(15) → Custom(20+)
+Extensions(0) → Compression(5) → ErrorHandler(10) → HostValidation(15) → HttpsRedirect(17) → Custom(20+)
 → CSP/Headers(30) → Cache(40) → Session(50) → SessionUpgrade(55)
 → CSRF(60) → Handler
 ```

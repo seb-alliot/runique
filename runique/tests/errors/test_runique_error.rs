@@ -228,13 +228,6 @@ fn test_error_context_generic_500() {
 }
 
 #[test]
-fn test_error_context_with_details() {
-    let ctx =
-        ErrorContext::generic(StatusCode::BAD_REQUEST, "err").with_details("Détail supplémentaire");
-    assert_eq!(ctx.details, Some("Détail supplémentaire".to_string()));
-}
-
-#[test]
 fn test_error_context_timestamp_non_vide() {
     let ctx = ErrorContext::generic(StatusCode::OK, "ok");
     assert!(!ctx.timestamp.is_empty());
@@ -556,46 +549,6 @@ fn test_with_request_helper_no_query() {
     let ctx =
         ErrorContext::generic(StatusCode::NOT_FOUND, "not found").with_request_helper(&helper);
     assert!(ctx.request_info.unwrap().query.is_none());
-}
-
-// ═══════════════════════════════════════════════════════════════
-// ErrorContext::with_request
-// ═══════════════════════════════════════════════════════════════
-
-#[test]
-fn test_with_request_captures_method_and_path() {
-    use axum::body::Body;
-    use axum::http::Request;
-    let req = Request::builder()
-        .method("GET")
-        .uri("/resource?id=1")
-        .header("x-trace-id", "abc")
-        .body(Body::empty())
-        .unwrap();
-    let ctx = ErrorContext::generic(StatusCode::NOT_FOUND, "not found").with_request(&req);
-    let info = ctx.request_info.unwrap();
-    assert_eq!(info.method, "GET");
-    assert_eq!(info.path, "/resource");
-    assert_eq!(info.query, Some("id=1".to_string()));
-}
-
-#[test]
-fn test_with_request_filters_sensitive_headers() {
-    use axum::body::Body;
-    use axum::http::Request;
-    let req = Request::builder()
-        .method("POST")
-        .uri("/login")
-        .header("authorization", "Bearer secret")
-        .header("cookie", "session=abc")
-        .header("x-request-id", "123")
-        .body(Body::empty())
-        .unwrap();
-    let ctx = ErrorContext::generic(StatusCode::FORBIDDEN, "interdit").with_request(&req);
-    let headers = ctx.request_info.unwrap().headers;
-    assert!(!headers.contains_key("authorization"));
-    assert!(!headers.contains_key("cookie"));
-    assert!(headers.contains_key("x-request-id"));
 }
 
 // ═══════════════════════════════════════════════════════════════

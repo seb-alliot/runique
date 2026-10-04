@@ -14,8 +14,6 @@ pub struct AdminTracing {
     pub bulk: Option<Level>,
     /// `filter_fn` failures in the admin list view.
     pub filter_fn: Option<Level>,
-    /// Admin roles registry access errors.
-    pub roles: Option<Level>,
     /// Admin daemon / generated resource events.
     pub daemon: Option<Level>,
 }
@@ -55,12 +53,6 @@ impl AdminTracing {
         self.filter_fn = Some(level);
         self
     }
-    /// Sets the level for admin roles registry access errors.
-    #[must_use]
-    pub fn roles(mut self, level: Level) -> Self {
-        self.roles = Some(level);
-        self
-    }
     /// Sets the level for admin daemon / generated resource events.
     #[must_use]
     pub fn daemon(mut self, level: Level) -> Self {
@@ -74,7 +66,6 @@ impl AdminTracing {
             .list(Level::DEBUG)
             .bulk(Level::DEBUG)
             .filter_fn(Level::DEBUG)
-            .roles(Level::DEBUG)
             .daemon(Level::DEBUG)
     }
 }

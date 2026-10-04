@@ -183,6 +183,38 @@ fn test_is_algorithm_current_manual_toujours_true() {
     assert!(svc.is_algorithm_current("$2b$12$nimportequoi"));
 }
 
+// Only "outdated" when certain — anything else would rewrite the password at
+// every sign-in.
+#[test]
+fn test_is_algorithm_current_unknown_prefix_is_left_alone() {
+    let svc = PasswordService::new(PasswordConfig::auto());
+    assert!(svc.is_algorithm_current("pbkdf2_sha256$600000$salt$hash"));
+}
+
+#[derive(Debug, Clone)]
+struct Reversed;
+
+impl runique::utils::password::PasswordHasher for Reversed {
+    fn hash(&self, password: &str) -> Result<String, String> {
+        Ok(password.chars().rev().collect())
+    }
+    fn verify(&self, password: &str, hash: &str) -> bool {
+        password.chars().rev().collect::<String>() == hash
+    }
+    fn algorithm_name(&self) -> &str {
+        "reversed"
+    }
+}
+
+#[test]
+fn test_is_algorithm_current_custom_algorithm_is_left_alone() {
+    let svc = PasswordService::new(PasswordConfig::auto_with(Manual::Custom(Box::new(
+        Reversed,
+    ))));
+    assert!(svc.is_algorithm_current("$argon2id$v=19$whatever"));
+    assert!(svc.is_algorithm_current("terces"));
+}
+
 // ═══════════════════════════════════════════════════════════════
 // PasswordService — mode Manual(Argon2)
 // ═══════════════════════════════════════════════════════════════
@@ -201,13 +233,13 @@ fn test_manual_argon2_roundtrip() {
 
 #[test]
 fn test_delegated_hash_retourne_erreur() {
-    let svc = PasswordService::new(PasswordConfig::oauth(External::GoogleOAuth));
+    let svc = PasswordService::new(PasswordConfig::Delegated(External::GoogleOAuth));
     assert!(svc.hash("password").is_err());
 }
 
 #[test]
 fn test_delegated_verify_retourne_false() {
-    let svc = PasswordService::new(PasswordConfig::oauth(External::GoogleOAuth));
+    let svc = PasswordService::new(PasswordConfig::Delegated(External::GoogleOAuth));
     assert!(!svc.verify("password", "$argon2id$fake"));
 }
 
@@ -239,7 +271,7 @@ fn test_password_config_manual_scrypt() {
 
 #[test]
 fn test_password_config_oauth_google() {
-    let cfg = PasswordConfig::oauth(External::GoogleOAuth);
+    let cfg = PasswordConfig::Delegated(External::GoogleOAuth);
     assert!(matches!(
         cfg,
         PasswordConfig::Delegated(External::GoogleOAuth)

@@ -10,6 +10,7 @@
 //! | `test_integration`     | Flux complets formulaire → validation   |
 
 pub mod test_aegis;
+pub mod test_auto_now;
 pub mod test_base_field;
 pub mod test_binary_field;
 pub mod test_bool_choice;
@@ -23,11 +24,13 @@ pub mod test_extend_types;
 pub mod test_file_field;
 pub mod test_file_field_path_guard;
 pub mod test_form_data_conversion;
+#[cfg(feature = "test-utils")]
 pub mod test_form_guarantees;
 pub mod test_form_methods;
 pub mod test_forms;
 pub mod test_generic_field;
 pub mod test_hidden_field;
+#[cfg(feature = "test-utils")]
 pub mod test_hooks;
 pub mod test_model_form;
 pub mod test_number_fields;
@@ -38,5 +41,6 @@ pub mod test_prisme_rules;
 pub mod test_prisme_sentinel;
 pub mod test_renderer;
 pub mod test_special_fields;
+#[cfg(feature = "test-utils")]
 pub mod test_validation_form;
 pub mod test_validator;

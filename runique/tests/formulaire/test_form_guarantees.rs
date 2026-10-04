@@ -1,7 +1,7 @@
 //! Form engine guarantees, written from cargo-mutants survivors (2026-10-02):
 //! each test fails when the matching check is altered — not only when the
 //! form misbehaves today.
-use crate::helpers::{request::build_handler_req, server::build_engine};
+use crate::helpers::{handler_req::build_handler_req, server::build_engine};
 use axum::http::Method;
 use runique::forms::base::{CommonFieldConfig, FormField};
 use runique::forms::field::RuniqueForm;

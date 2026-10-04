@@ -17,11 +17,6 @@ pub trait RuniqueUser: Send + Sync {
     /// Full admin access — bypasses all permission checks.
     fn is_superuser(&self) -> bool;
 
-    /// Custom roles. Returns an empty Vec by default.
-    fn roles(&self) -> Vec<String> {
-        vec![]
-    }
-
     /// Whether the account may sign in. Default: `is_active()`. The built-in
     /// model also requires the account to have been activated.
     fn can_sign_in(&self) -> bool {

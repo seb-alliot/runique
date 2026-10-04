@@ -4,6 +4,7 @@
 //! | ------------- | ------------------------------------------------------------ |
 //! | `server`      | Démarrer le moteur et le routeur de test                     |
 //! | `request`     | Builders oneshot : `get`, `post`, `delete`, …               |
+//! | `handler_req` | `build_handler_req` : `Request` de handler sans serveur (`test-utils`) |
 //! | `assert`      | Assertions HTTP : `assert_status`, `assert_has_header`, …   |
 //! | `db`          | SQLite en mémoire : `fresh_db()`, `exec()`, `count()`, …    |
 //! | `db_postgres` | PostgreSQL Docker : `connect()`, `exec()`, `count()`, …     |
@@ -17,6 +18,8 @@ pub mod db;
 pub mod db_isolation;
 pub mod db_mariadb;
 pub mod db_postgres;
+#[cfg(feature = "test-utils")]
+pub mod handler_req;
 pub mod pk;
 pub mod request;
 pub mod server;

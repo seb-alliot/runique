@@ -132,48 +132,6 @@ pub fn generate_snapshot_file(schema: &ParsedSchema) -> String {
     )
 }
 
-/// Generates a single migration that adds all FK constraints for a batch of new tables.
-/// Placed last in lib.rs so all tables exist before FK constraints are applied.
-pub fn generate_relations_file(schemas: &[&ParsedSchema]) -> String {
-    let mut up = String::new();
-    let mut down = String::new();
-
-    for schema in schemas {
-        up.push_str(&build_fk_create_stmts(schema));
-    }
-    for schema in schemas.iter().rev() {
-        down.push_str(&build_fk_drop_stmts(schema));
-    }
-
-    let up_param = if !up.trim().is_empty() {
-        "manager"
-    } else {
-        "_manager"
-    };
-    let down_param = if !down.trim().is_empty() {
-        "manager"
-    } else {
-        "_manager"
-    };
-
-    format!(
-        "use sea_orm_migration::prelude::*;\n\n\
-    #[derive(DeriveMigrationName)]\n\
-    pub struct Migration;\n\n\
-    #[async_trait::async_trait]\n\
-    impl MigrationTrait for Migration {{\n\
-        async fn up(&self, {up_param}: &SchemaManager) -> Result<(), DbErr> {{\n\
-    {up}        Ok(())\n\
-        }}\n\n\
-        async fn down(&self, {down_param}: &SchemaManager) -> Result<(), DbErr> {{\n\
-    {down}        Ok(())\n\
-        }}\n\
-    }}\n",
-        up = up,
-        down = down,
-    )
-}
-
 // Every function below writes a `CREATE TYPE`/`DROP TYPE` — Postgres-only syntax —
 // unconditionally into the generated migration, wrapped in a runtime
 // `manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres`
