@@ -221,7 +221,7 @@ COMMIT;
 
 ### Rupture — DSL (`runique_dsl` : un seul lecteur pour la macro et la CLI)
 
-> Le DSL `model!{}` / `extend!{}` est désormais lu par une seule crate, `runique_dsl`, commune aux macros de `derive_form` et à `runique makemigrations` : un modèle refusé par l'une est refusé par l'autre, avec le fichier, la ligne et la colonne. Grammaire, règles, table des types et migration pas à pas : [README de `runique_dsl`](https://github.com/seb-alliot/runique/blob/main/runique/runique_dsl/README.fr.md).
+> Le DSL `model!{}` / `extend!{}` est désormais lu par une seule crate, `runique_dsl`, commune aux macros de `derive_form` et à `runique makemigrations` : un modèle refusé par l'une est refusé par l'autre, avec le fichier, la ligne et la colonne. Grammaire, règles, table des types et migration pas à pas : [README de `runique_dsl`](/runique/runique_dsl/README.fr.md).
 
 * **NOT NULL par défaut** : une colonne n'accepte NULL que déclarée `nullable` ; `required` ne rend plus que le champ du formulaire obligatoire. Ajouter `nullable` aux champs facultatifs existants, sinon `makemigrations` s'arrête sur `nullable -> not_null`.
 * **`fk(...)` supprimé** : les clés étrangères se déclarent uniquement par `belongs_to: cible via colonne [on_delete, on_update]`.

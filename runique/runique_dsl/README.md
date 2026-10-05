@@ -1,4 +1,4 @@
-🌍 **Languages**: [English](https://github.com/seb-alliot/runique/blob/main/runique/runique_dsl/README.md) | [Français](https://github.com/seb-alliot/runique/blob/main/runique/runique_dsl/README.fr.md)
+🌍 **Languages**: [English](/runique/runique_dsl/README.md) | [Français](/runique/runique_dsl/README.fr.md)
 
 # runique_dsl
 

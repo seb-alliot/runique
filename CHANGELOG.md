@@ -221,7 +221,7 @@ COMMIT;
 
 ### Breaking — DSL (`runique_dsl`: one reader for the macro and the CLI)
 
-> The `model!{}` / `extend!{}` DSL is now read by a single crate, `runique_dsl`, shared by the `derive_form` macros and `runique makemigrations`: a model one refuses, the other refuses too, with file, line and column. Grammar, rules, type table and step-by-step migration: [`runique_dsl` README](https://github.com/seb-alliot/runique/blob/main/runique/runique_dsl/README.md).
+> The `model!{}` / `extend!{}` DSL is now read by a single crate, `runique_dsl`, shared by the `derive_form` macros and `runique makemigrations`: a model one refuses, the other refuses too, with file, line and column. Grammar, rules, type table and step-by-step migration: [`runique_dsl` README](/runique/runique_dsl/README.md).
 
 * **NOT NULL by default**: a column accepts NULL only when declared `nullable`; `required` only makes the form field mandatory. Add `nullable` to existing optional fields, otherwise `makemigrations` stops on `nullable -> not_null`.
 * **`fk(...)` removed**: foreign keys are declared only with `belongs_to: target via column [on_delete, on_update]`.
