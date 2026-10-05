@@ -8,7 +8,7 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ## [3.0.0 A venir]
 
-> Trois nouveautés structurantes : `ValidationForm<F>` (une validation prouvée par le type), `ADb` (un seul type de connexion à la base, identique en production et en test) et le builder de test `runique_test` avec sa commande `runique test`. En testant aux frontières du framework (lecture du `.env`, sessions, dépendances), cette version corrige aussi plusieurs failles : token CSRF qui survivait à la connexion, session qui survivait à la déconnexion, `ENFORCE_HTTPS=True` ignoré, mot de passe de la base exposé par `Debug`. L'admin et l'authentification sont ensuite passés en revue complète : toute écriture admin passe par une porte unique, comptes et droits sont relus en base à chaque requête, la base garantit elle-même l'état d'un compte, un reset de mot de passe ferme toutes les sessions, et une passe de `cargo mutants` a conduit à supprimer des API mortes ou en double. Toutes les ruptures sont regroupées sous *Rupture*.
+> Trois nouveautés structurantes : `ValidationForm<F>` (une validation prouvée par le type), `ADb` (un seul type de connexion à la base, identique en production et en test) et le builder de test `runique_test` avec sa commande `runique test` ; le DSL des modèles est désormais lu par une seule crate, `runique_dsl`, commune à la macro et à la CLI. En testant aux frontières du framework (lecture du `.env`, sessions, dépendances), cette version corrige aussi plusieurs failles : token CSRF qui survivait à la connexion, session qui survivait à la déconnexion, `ENFORCE_HTTPS=True` ignoré, mot de passe de la base exposé par `Debug`. L'admin et l'authentification sont ensuite passés en revue complète : toute écriture admin passe par une porte unique, comptes et droits sont relus en base à chaque requête, la base garantit elle-même l'état d'un compte, un reset de mot de passe ferme toutes les sessions, et une passe de `cargo mutants` a conduit à supprimer des API mortes ou en double. Toutes les ruptures sont regroupées sous *Rupture*.
 
 ### Sécurité — `runique` (CSRF : le token n'était pas renouvelé à la connexion)
 
@@ -218,6 +218,19 @@ COMMIT;
 ### Rupture — `runique` (builder : réglages à appel unique vérifiés à la compilation)
 
 * `with_public_url`, `routes`, `with_log`, `with_password_reset`, `with_database`/`with_database_config`, `with_session_duration` et `with_mailer`/`with_mailer_from_env` acceptaient un second appel qui remplaçait le premier sans rien dire — un second `routes()` perdait toutes les routes du premier ; un second appel au mailer était *ignoré* sans rien dire. Ils ne s'appellent plus qu'une fois par builder : un second appel ne compile pas, avec une erreur qui nomme le réglage (`#[diagnostic::on_unimplemented]`). L'état est porté par le type du builder (`RuniqueAppBuilder<S>`, avec une valeur par défaut, invisible tant qu'on enchaîne les appels) ; une fonction qui renvoie un builder à mi-chemin l'écrit avec `app::builder::state::{No, Yes}`. Les réglages qui composent (`core`, `middleware`, `static_files`, `with_admin`, `with_custom_db`, `statics`) ne changent pas. Protégé par des doctests `compile_fail`.
+
+### Rupture — DSL (`runique_dsl` : un seul lecteur pour la macro et la CLI)
+
+> Le DSL `model!{}` / `extend!{}` est désormais lu par une seule crate, `runique_dsl`, commune aux macros de `derive_form` et à `runique makemigrations` : un modèle refusé par l'une est refusé par l'autre, avec le fichier, la ligne et la colonne. Grammaire, règles, table des types et migration pas à pas : [README de `runique_dsl`](https://github.com/seb-alliot/runique/blob/main/runique/runique_dsl/README.fr.md).
+
+* **NOT NULL par défaut** : une colonne n'accepte NULL que déclarée `nullable` ; `required` ne rend plus que le champ du formulaire obligatoire. Ajouter `nullable` aux champs facultatifs existants, sinon `makemigrations` s'arrête sur `nullable -> not_null`.
+* **`fk(...)` supprimé** : les clés étrangères se déclarent uniquement par `belongs_to: cible via colonne [on_delete, on_update]`.
+* **`auto_now` / `auto_now_update`** : le champ Rust est `T`, plus `Option<T>`.
+* **Lecture stricte par la CLI** : un modèle illisible, un type v1 (`String`, `i32`…), deux `model!{}` dans un fichier ou une cible de `belongs_to` introuvable sont des erreurs, plus des modèles ignorés.
+* **Enums `i32` / `i64`** : chaque variante doit avoir une valeur entière unique, dans les limites du type (elles valaient toutes `0` sans valeur).
+* **`customize`** : desserrer `min_length`, `max_length`, `min` ou `max` provoque un panic à la construction du formulaire.
+* **`runique::migration::RelationDef`, `RelationKind` et `ModelSchema::relation()` supprimés** : jamais lus.
+* Sans rupture, décrit dans le README : `max_length` dans les migrations (`VARCHAR(n)`, `BINARY(n)`, `VARBINARY(n)`), suivi par les snapshots et le diff, `blob` avec son propre type de colonne, `belongs_to` vers la vraie clé primaire de la cible avec ses actions.
 
 ### Ajout — `runique` (builder de test `runique_test` et commande `runique test`)
 

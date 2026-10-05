@@ -461,7 +461,8 @@
     "destructive_require_force": "--force を使用してこれらの破壊的な変更を適用してください。",
     "long_identifier_detected": "生成されたSQL識別子が長すぎます（MariaDB/MySQLの上限：64文字）：",
     "long_identifier_rename_required": "関係するテーブル名/カラム名を短くしてください — Runiqueは識別子を自動的に切り詰めません。",
-    "files_ready": "{}個のファイルが移行の準備ができています。"
+    "files_ready": "{}個のファイルが移行の準備ができています。",
+    "snapshots_upgraded": "{}個のスナップショットを列の長さを記録するよう更新しました（マイグレーションなし）。"
   },
   "migrate": {
     "applying": "'{}'からマイグレーションを適用中...",

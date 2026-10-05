@@ -480,7 +480,8 @@
     "destructive_require_force": "Utilisez --force pour appliquer ces changements destructifs.",
     "long_identifier_detected": "Identifiants SQL générés trop longs (limite MariaDB/MySQL : 64 caractères) :",
     "long_identifier_rename_required": "Raccourcissez les noms de table/colonne concernés — aucune troncature automatique n'est appliquée.",
-    "files_ready": "{} fichier(s) prêt(s) à migrer."
+    "files_ready": "{} fichier(s) prêt(s) à migrer.",
+    "snapshots_upgraded": "{} snapshot(s) mis à jour pour enregistrer les longueurs de colonnes (aucune migration)."
   },
   "migrate": {
     "applying": "Application des migrations depuis '{}'...",

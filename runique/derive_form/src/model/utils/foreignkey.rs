@@ -4,20 +4,6 @@ use crate::model::{ModelInput, RelationDef};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 
-fn to_snake_case(s: &str) -> String {
-    if s.contains('_') || s.chars().all(|c| c.is_lowercase()) {
-        return s.to_string();
-    }
-    let mut result = String::new();
-    for (i, ch) in s.chars().enumerate() {
-        if ch.is_uppercase() && i > 0 {
-            result.push('_');
-        }
-        result.push(ch.to_ascii_lowercase());
-    }
-    result
-}
-
 // ── FK dans generate_schema ───────────────────────────────────
 
 pub fn generate_schema(model: &ModelInput) -> TokenStream2 {
@@ -30,7 +16,6 @@ pub fn generate_schema(model: &ModelInput) -> TokenStream2 {
         .map(|f| generate_column(f, &model.enums))
         .collect();
     let fks: Vec<TokenStream2> = generate_foreign_keys(model);
-    let relations: Vec<TokenStream2> = generate_relations(model);
     let meta = generate_meta(model);
 
     quote! {
@@ -40,7 +25,6 @@ pub fn generate_schema(model: &ModelInput) -> TokenStream2 {
                 #pk
                 #(#columns)*
                 #(#fks)*
-                #(#relations)*
                 #meta
                 .build()
                 .unwrap()
@@ -80,41 +64,6 @@ fn generate_foreign_keys(model: &ModelInput) -> Vec<TokenStream2> {
             })
         })
         .collect()
-}
-
-fn generate_relations(model: &ModelInput) -> Vec<TokenStream2> {
-    model.relations.iter().map(|rel| {
-        match rel {
-            RelationDef::BelongsTo { model, via, .. } => {
-                let model_str = to_snake_case(&model.to_string());
-                let via_str = via.to_string();
-                quote! {
-                    .relation(::runique::migration::RelationDef::belongs_to(#model_str, #via_str, "id"))
-                }
-            }
-            RelationDef::HasMany { model, as_name } => {
-                let model_str = to_snake_case(&model.to_string());
-                let as_str = as_name.as_ref().map(|a| a.to_string()).unwrap_or_default();
-                quote! {
-                    .relation(::runique::migration::RelationDef::has_many(#model_str).as_name(#as_str))
-                }
-            }
-            RelationDef::HasOne { model, as_name } => {
-                let model_str = to_snake_case(&model.to_string());
-                let as_str = as_name.as_ref().map(|a| a.to_string()).unwrap_or_default();
-                quote! {
-                    .relation(::runique::migration::RelationDef::has_one(#model_str).as_name(#as_str))
-                }
-            }
-            RelationDef::ManyToMany { model, through } => {
-                let model_str = to_snake_case(&model.to_string());
-                let through_str = to_snake_case(&through.to_string());
-                quote! {
-                    .relation(::runique::migration::RelationDef::many_to_many(#model_str, #through_str))
-                }
-            }
-        }
-    }).collect()
 }
 
 fn generate_meta(model: &ModelInput) -> TokenStream2 {

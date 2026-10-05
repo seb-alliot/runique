@@ -66,10 +66,7 @@ pub fn generate_enum_defs(enums: &[EnumDef]) -> TokenStream2 {
                     let db_values: Vec<i32> = e
                         .variants
                         .iter()
-                        .map(|v| match &v.value {
-                            Some(syn::Lit::Int(n)) => n.base10_parse::<i32>().unwrap_or(0),
-                            _ => 0,
-                        })
+                        .filter_map(|v| v.int_value().and_then(|n| i32::try_from(n).ok()))
                         .collect();
                     let display_values: Vec<String> =
                         e.variants.iter().map(|v| v.display_str()).collect();
@@ -127,10 +124,7 @@ pub fn generate_enum_defs(enums: &[EnumDef]) -> TokenStream2 {
                     let db_values: Vec<i64> = e
                         .variants
                         .iter()
-                        .map(|v| match &v.value {
-                            Some(syn::Lit::Int(n)) => n.base10_parse::<i64>().unwrap_or(0),
-                            _ => 0,
-                        })
+                        .filter_map(|v| v.int_value())
                         .collect();
                     let display_values: Vec<String> =
                         e.variants.iter().map(|v| v.display_str()).collect();

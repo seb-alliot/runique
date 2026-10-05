@@ -7,6 +7,40 @@ use syn::{
     parse::{Parse, ParseStream},
 };
 
+/// An `i32`/`i64` enum stores each variant as its number: every variant needs
+/// one, within the type's range, and no two may share it — otherwise rows
+/// written as one variant would be read back as another.
+fn validate_int_values(
+    name: &Ident,
+    backing_type: &EnumBackingType,
+    variants: &[EnumVariant],
+) -> Result<()> {
+    let (ty, min, max) = match backing_type {
+        EnumBackingType::I32 => ("i32", i64::from(i32::MIN), i64::from(i32::MAX)),
+        EnumBackingType::I64 => ("i64", i64::MIN, i64::MAX),
+        EnumBackingType::Auto => return Ok(()),
+    };
+    let mut seen: HashSet<i64> = HashSet::new();
+    for variant in variants {
+        let v = &variant.name;
+        let Some(value) = variant.int_value().filter(|n| (min..=max).contains(n)) else {
+            return Err(syn::Error::new(
+                v.span(),
+                format!(
+                    "Enum '{name}' is `{ty}`: variant '{v}' needs an integer value that fits in `{ty}` — `{v} = 1` or `{v} = (1, \"label\")`"
+                ),
+            ));
+        };
+        if !seen.insert(value) {
+            return Err(syn::Error::new(
+                v.span(),
+                format!("Enum '{name}': variant '{v}' reuses the value {value}"),
+            ));
+        }
+    }
+    Ok(())
+}
+
 impl Parse for EnumDef {
     fn parse(input: ParseStream) -> Result<Self> {
         // Status: [Active, Inactive] or Status: String [Fix="fix"] or Priority: i32 [Low=1]
@@ -86,6 +120,7 @@ impl Parse for EnumDef {
                 format!("Enum '{}' must declare at least one variant", name),
             ));
         }
+        validate_int_values(&name, &backing_type, &variants)?;
         let _ = input.parse::<Token![,]>();
         Ok(EnumDef {
             name,
@@ -113,14 +148,30 @@ mod tests {
 
     #[test]
     fn explicit_i32_backing_type() {
-        let e = parse("Priority: i32 [Low, High]").unwrap();
+        let e = parse("Priority: i32 [Low = 1, High = (2, \"Haute\")]").unwrap();
         assert!(matches!(e.backing_type, EnumBackingType::I32));
+        let values: Vec<_> = e.variants.iter().map(|v| v.int_value()).collect();
+        assert_eq!(values, [Some(1), Some(2)]);
     }
 
     #[test]
     fn explicit_i64_backing_type() {
-        let e = parse("BigEnum: i64 [A, B]").unwrap();
+        let e = parse("BigEnum: i64 [A = 1, B = 5000000000]").unwrap();
         assert!(matches!(e.backing_type, EnumBackingType::I64));
+    }
+
+    #[test]
+    fn integer_enum_needs_a_value_per_variant() {
+        assert!(parse("Priority: i32 [Low, High]").is_err());
+        assert!(parse("Priority: i32 [Low = 1, High]").is_err());
+        assert!(parse("Priority: i32 [Low: \"Basse\"]").is_err());
+        assert!(parse("Priority: i32 [Low = \"low\"]").is_err());
+    }
+
+    #[test]
+    fn integer_enum_value_must_fit_and_be_unique() {
+        assert!(parse("Priority: i32 [Low = 3000000000]").is_err());
+        assert!(parse("Priority: i32 [Low = 1, High = 1]").is_err());
     }
 
     #[test]

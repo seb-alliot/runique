@@ -17,13 +17,60 @@ pub fn parse_create_file(path: &str) -> Result<ParsedSchema> {
     parse_seaorm_source(&source).with_context(|| format!("Cannot parse: {}", path))
 }
 
+/// An `extend!{}` snapshot: the extension columns, marked as recording lengths.
+fn extend_snapshot_content(ext_schema: &ParsedSchema) -> String {
+    format!(
+        "{SNAPSHOT_LENGTHS_MARKER}\n{}",
+        generate_create_file(ext_schema)
+    )
+}
+
+fn records_lengths(path: &str) -> Result<bool> {
+    Ok(fs::read_to_string(path)?.starts_with(SNAPSHOT_LENGTHS_MARKER))
+}
+
+/// Snapshots written before column lengths were recorded, for tables this
+/// run doesn't otherwise touch: rewritten once with the model's lengths, so
+/// later length changes are diffed instead of adopted forever. No migration.
+fn snapshot_upgrades(
+    entities_path: &str,
+    schemas: &[ParsedSchema],
+    main_changes: &[Changes],
+    extend_planned: &[(ParsedSchema, Changes)],
+    migrations_path: &str,
+) -> Result<Vec<(String, String)>> {
+    let mut upgrades = Vec::new();
+    for schema in schemas {
+        let path = snapshot_file_path(migrations_path, &schema.table_name);
+        if Path::new(&path).exists()
+            && !main_changes
+                .iter()
+                .any(|c| c.table_name == schema.table_name)
+            && !records_lengths(&path)?
+        {
+            upgrades.push((path, generate_snapshot_file(schema)));
+        }
+    }
+    for ext_schema in merge_extend_schemas(scan_extend_blocks(entities_path)?) {
+        let path = extend_snapshot_file_path(migrations_path, &ext_schema.table_name);
+        if Path::new(&path).exists()
+            && !extend_planned
+                .iter()
+                .any(|(s, _)| s.table_name == ext_schema.table_name)
+            && !records_lengths(&path)?
+        {
+            upgrades.push((path, extend_snapshot_content(&ext_schema)));
+        }
+    }
+    Ok(upgrades)
+}
+
 /// The previous snapshot of a table, to diff `current` against. A snapshot
 /// written before column lengths were recorded doesn't know them: it takes
 /// `current`'s, so upgrading never produces a length migration on its own.
 pub(crate) fn previous_snapshot(path: &str, current: &ParsedSchema) -> Result<ParsedSchema> {
     let mut previous = parse_create_file(path)?;
-    let recorded = fs::read_to_string(path)?.starts_with(SNAPSHOT_LENGTHS_MARKER);
-    if !recorded {
+    if !records_lengths(path)? {
         for col in &mut previous.columns {
             if let Some(cur) = current.columns.iter().find(|c| c.name == col.name) {
                 col.max_length = cur.max_length;
@@ -687,7 +734,24 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
     let mut main_changes = compute_main_changes(&schemas, migrations_path)?;
     let extend_planned = plan_extend_changes(entities_path, migrations_path)?;
 
+    let upgrades = snapshot_upgrades(
+        entities_path,
+        &schemas,
+        &main_changes,
+        &extend_planned,
+        migrations_path,
+    )?;
+
     if main_changes.is_empty() && extend_planned.is_empty() {
+        for (path, content) in &upgrades {
+            fs::write(path, content)?;
+        }
+        if !upgrades.is_empty() {
+            println!(
+                "{}",
+                tf("makemigrations.snapshots_upgraded", &[upgrades.len()])
+            );
+        }
         return Ok(());
     }
 
@@ -712,6 +776,7 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
         &timestamp,
     );
     build_extend_plan(&mut plan, &extend_planned, migrations_path, &timestamp);
+    plan.files.extend(upgrades);
 
     // ── One atomic commit: dirs → backups → write → lib.rs → admin positioning,
     //    with a single rollback covering all of it.
@@ -843,7 +908,7 @@ fn build_extend_plan(
         // Snapshot updated (without PK, just extension columns)
         plan.files.push((
             extend_snapshot_file_path(migrations_path, &ext_schema.table_name),
-            generate_create_file(ext_schema),
+            extend_snapshot_content(ext_schema),
         ));
 
         let module_name = seaorm_extend_module_name(timestamp, &ext_schema.table_name);
