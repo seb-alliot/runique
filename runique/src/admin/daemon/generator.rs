@@ -454,7 +454,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     // CountFn closure
     let _ = writeln!(
         out,
-        "    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>, scope: Option<(String, String)>| {{"
+        "    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>, column_filters: Vec<(String, String)>, scope: Option<(String, String)>| {{"
     );
     let _ = writeln!(out, "        Box::pin(async move {{");
     let _ = writeln!(out, "            use sea_orm::QueryFilter;");
@@ -463,6 +463,22 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         "            let mut query = {}::Entity::find();",
         module
     );
+    // Same filters as list_fn, through the same allowlist: otherwise pagination
+    // counts the rows a sidebar filter hides.
+    let _ = writeln!(
+        out,
+        "            const FILTER_COLS: &[&str] = &[{filter_cols_literal}];"
+    );
+    let _ = writeln!(out, "            for (col, val) in &column_filters {{");
+    let _ = writeln!(
+        out,
+        "                if !FILTER_COLS.contains(&col.as_str()) {{ continue; }}"
+    );
+    let _ = writeln!(
+        out,
+        "                query = query.filter(text_eq(&db, col.as_str(), val));"
+    );
+    let _ = writeln!(out, "            }}");
     let _ = writeln!(out, "            if let Some(ref search_str) = _search {{");
     write_search_conditions(out, &r.list_display, &module);
     let _ = writeln!(out, "                query = query.filter(search_cond);");

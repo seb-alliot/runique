@@ -150,12 +150,9 @@ async fn a_failed_sign_in_never_rewrites_the_hash() {
 
 #[tokio::test]
 async fn admin_login_stores_exactly_who_logged_in_and_their_rights() {
-    let db = users_db().await;
     let session = session();
     let staff = crate::helpers::user::test_user(pk(7), "staffer", true, false);
-    login(&session, &db, &staff, None, false)
-        .await
-        .expect("login");
+    login(&session, &staff, None, false).await.expect("login");
 
     assert_eq!(
         session.get::<Pk>(SESSION_USER_ID_KEY).await.unwrap(),
@@ -195,12 +192,9 @@ async fn admin_login_stores_exactly_who_logged_in_and_their_rights() {
 
 #[tokio::test]
 async fn admin_login_keeps_a_superuser_superuser_and_nothing_more() {
-    let db = users_db().await;
     let session = session();
     let admin = crate::helpers::user::test_user(pk(8), "root", false, true);
-    login(&session, &db, &admin, None, false)
-        .await
-        .expect("login");
+    login(&session, &admin, None, false).await.expect("login");
     assert_eq!(
         session
             .get::<bool>(SESSION_USER_IS_STAFF_KEY)

@@ -126,7 +126,29 @@
     "check_failed": "ビルドが {} 個のチェックエラーで失敗しました",
     "template_failed": "テンプレートの読み込みに失敗しました: {}",
     "db_missing": "'orm' 機能が有効な場合、データベース接続が必要です",
-    "component_not_ready": "コンポーネント '{}' の準備ができていません"
+    "component_not_ready": "コンポーネント '{}' の準備ができていません",
+    "check": {
+      "db_required": "データベース接続または設定が必要です（`orm` feature が有効）",
+      "db_required_hint": "構築チェーンに .with_database(db) または .with_database_config(config) を追加してください",
+      "admin_prefix_empty": "管理画面のルート接頭辞は空にできません",
+      "admin_prefix_empty_hint": ".prefix(\"/admin\") を使うか、既定値のままにしてください",
+      "extra_route_unknown": "追加ルート `{}` はリソース `{}` を指していますが、登録されていません",
+      "extra_route_unknown_hint": "admin!{} で宣言したリソースのキーを使ってください",
+      "cache_control_invalid": "Cache-Control ヘッダーの値が無効です: '{}'",
+      "cache_control_invalid_hint": "表示可能な ASCII 文字のみを使ってください（制御文字・改行は不可）。",
+      "media_root_unusable": "MEDIA_ROOT ディレクトリ '{}' を作成またはアクセスできません: {}",
+      "media_root_unusable_hint": ".env で MEDIA_ROOT に書き込み可能な絶対パスを設定し（例: MEDIA_ROOT=/var/www/myapp/media）、プロセスに書き込み権限があることを確認してください。",
+      "secret_key_weak": "SECRET_KEY が未設定・空・既定値、または 32 文字未満です",
+      "secret_key_weak_hint": ".env で SECRET_KEY に 32 文字以上のランダムな文字列を設定してください（`runique` CLI で生成できます）",
+      "site_url_missing": "SITE_URL が設定されていません: リセットリンクがリクエストの Host ヘッダーから作られてしまいます",
+      "site_url_missing_hint": ".env に SITE_URL=https://mysite.com を設定するか、builder で .site_url(\"https://mysite.com\") を指定してください",
+      "acme_domain_missing": "ACME_ENABLED=true ですが ACME_DOMAIN が設定されていません",
+      "acme_domain_missing_hint": ".env で ACME_DOMAIN に本番ドメインを設定してください",
+      "acme_email_missing": "ACME_ENABLED=true ですが ACME_EMAIL が設定されていません",
+      "acme_email_missing_hint": ".env で ACME_EMAIL に Let's Encrypt の連絡先メールを設定してください",
+      "suggestion": "提案",
+      "context": "コンテキスト"
+    }
   },
   "server": {
     "operational": "Runique は稼働中です",

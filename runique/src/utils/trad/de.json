@@ -126,7 +126,29 @@
     "check_failed": "Build fehlgeschlagen mit {} Prüffehler(n)",
     "template_failed": "Template-Laden fehlgeschlagen: {}",
     "db_missing": "Datenbankverbindung erforderlich, wenn das Feature 'orm' aktiviert ist",
-    "component_not_ready": "Komponente '{}' ist nicht bereit"
+    "component_not_ready": "Komponente '{}' ist nicht bereit",
+    "check": {
+      "db_required": "Datenbankverbindung oder -konfiguration erforderlich (Feature `orm` aktiviert)",
+      "db_required_hint": "Fügen Sie .with_database(db) oder .with_database_config(config) zu Ihrer Builder-Kette hinzu",
+      "admin_prefix_empty": "Das Routenpräfix des Admins darf nicht leer sein",
+      "admin_prefix_empty_hint": "Verwenden Sie .prefix(\"/admin\") oder behalten Sie den Standardwert",
+      "extra_route_unknown": "Die zusätzliche Route `{}` verweist auf die Ressource `{}`, die nicht registriert ist",
+      "extra_route_unknown_hint": "Verwenden Sie den Schlüssel einer in admin!{} deklarierten Ressource",
+      "cache_control_invalid": "Ungültiger Wert für den Cache-Control-Header: '{}'",
+      "cache_control_invalid_hint": "Verwenden Sie nur sichtbare ASCII-Zeichen (keine Steuerzeichen, keine Zeilenumbrüche).",
+      "media_root_unusable": "Das MEDIA_ROOT-Verzeichnis '{}' kann nicht erstellt oder geöffnet werden: {}",
+      "media_root_unusable_hint": "Setzen Sie MEDIA_ROOT in Ihrer .env auf einen absoluten, beschreibbaren Pfad (z. B. MEDIA_ROOT=/var/www/meineapp/media) und stellen Sie sicher, dass der Prozess Schreibrechte hat.",
+      "secret_key_weak": "SECRET_KEY fehlt, ist leer, hat den Standardwert oder ist kürzer als 32 Zeichen",
+      "secret_key_weak_hint": "Setzen Sie SECRET_KEY in Ihrer .env auf eine zufällige Zeichenkette mit mindestens 32 Zeichen (die `runique`-CLI kann eine erzeugen)",
+      "site_url_missing": "SITE_URL ist nicht gesetzt: Reset-Links würden aus dem Host-Header der Anfrage gebaut",
+      "site_url_missing_hint": "Setzen Sie SITE_URL=https://meineseite.de in Ihrer .env oder .site_url(\"https://meineseite.de\") im Builder",
+      "acme_domain_missing": "ACME_ENABLED=true, aber ACME_DOMAIN ist nicht gesetzt",
+      "acme_domain_missing_hint": "Setzen Sie ACME_DOMAIN in Ihrer .env auf Ihre Produktionsdomain",
+      "acme_email_missing": "ACME_ENABLED=true, aber ACME_EMAIL ist nicht gesetzt",
+      "acme_email_missing_hint": "Setzen Sie ACME_EMAIL in Ihrer .env auf Ihre Let's-Encrypt-Kontaktadresse",
+      "suggestion": "Vorschlag",
+      "context": "Kontext"
+    }
   },
   "server": {
     "operational": "Runique ist betriebsbereit",

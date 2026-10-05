@@ -275,8 +275,11 @@ impl AdminStaging {
 
         if self.config.prefix.is_empty() {
             report.add(
-                CheckError::new("AdminPanel", "The admin route prefix cannot be empty")
-                    .with_suggestion("Use .prefix(\"/admin\") or leave the default value"),
+                CheckError::new(
+                    "AdminPanel",
+                    crate::utils::trad::t("build.check.admin_prefix_empty"),
+                )
+                .with_suggestion(crate::utils::trad::t("build.check.admin_prefix_empty_hint")),
             );
         }
 
@@ -289,12 +292,14 @@ impl AdminStaging {
                 report.add(
                     CheckError::new(
                         "AdminPanel",
-                        format!(
-                            "Extra route `{}` names resource `{}`, which isn't registered",
-                            route.path, route.resource
+                        crate::utils::trad::tf(
+                            "build.check.extra_route_unknown",
+                            &[&route.path, &route.resource],
                         ),
                     )
-                    .with_suggestion("Use the key of a resource declared in admin!{}"),
+                    .with_suggestion(crate::utils::trad::t(
+                        "build.check.extra_route_unknown_hint",
+                    )),
                 );
             }
         }

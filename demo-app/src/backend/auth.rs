@@ -75,11 +75,22 @@ pub async fn handle_inscription(
             .await
             .unwrap_or_default();
             let encrypted = reset_token::encrypt_email(&token, &user.email);
-            let base_url = headers
-                .get("host")
-                .and_then(|v| v.to_str().ok())
-                .map(|h| format!("http://{h}"))
-                .unwrap_or_else(|| "http://localhost:3000".to_string());
+            // SITE_URL, never the request's Host outside debug: a forged Host
+            // would send the activation link — and its token — elsewhere.
+            let config = &request.engine.config;
+            let base_url = config.server.site_url.clone().or_else(|| {
+                config
+                    .debug
+                    .then(|| headers.get("host").and_then(|v| v.to_str().ok()))
+                    .flatten()
+                    .map(|h| format!("http://{h}"))
+            });
+            let Some(base_url) = base_url else {
+                return Err(Box::new(AppError::new(ErrorContext::generic(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "SITE_URL is not set",
+                ))));
+            };
             let activate_url = format!("{}/activate/{}/{}", base_url, token, encrypted);
             if mailer_configured() {
                 Email::new()

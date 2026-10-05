@@ -339,6 +339,33 @@ pub async fn build_admin_app_with_extra_routes(
         axum::routing::MethodRouter,
     )>,
 ) -> (Router, DatabaseConnection) {
+    build_admin_app_full(build_registry(), extra_routes, |b| b).await
+}
+
+/// Same admin app, with the builder adjusted by `customize` before `build()`.
+pub async fn build_admin_app_customized(
+    customize: impl FnOnce(RuniqueAppBuilder) -> RuniqueAppBuilder,
+) -> (Router, DatabaseConnection) {
+    build_admin_app_full(build_registry(), Vec::new(), customize).await
+}
+
+/// Same admin app, serving the resources of `registry` instead of the built-ins.
+pub async fn build_admin_app_with_registry(
+    registry: AdminRegistry,
+) -> (Router, DatabaseConnection) {
+    build_admin_app_full(registry, Vec::new(), |b| b).await
+}
+
+async fn build_admin_app_full(
+    registry: AdminRegistry,
+    extra_routes: Vec<(
+        &'static str,
+        &'static str,
+        CrudOperation,
+        axum::routing::MethodRouter,
+    )>,
+    customize: impl FnOnce(RuniqueAppBuilder) -> RuniqueAppBuilder,
+) -> (Router, DatabaseConnection) {
     let dbc = db::fresh_db().await;
     db::exec(&dbc, USERS_DDL).await;
     db::exec(&dbc, SESSIONS_DDL).await;
@@ -357,7 +384,7 @@ pub async fn build_admin_app_with_extra_routes(
     config.server.secret_key = TEST_SECRET.to_string();
 
     let state = Arc::new(PrototypeAdminState {
-        registry: Arc::new(build_registry()),
+        registry: Arc::new(registry),
         config: Arc::new(AdminConfig::new()),
     });
 
@@ -370,28 +397,30 @@ pub async fn build_admin_app_with_extra_routes(
     // avant notre propre `build()`.
     runique::utils::runique_log::reset_log_for_test();
 
-    let app = RuniqueAppBuilder::new(config)
-        .with_database(dbc.clone())
-        .static_files(|s| s.enabled(false))
-        .with_admin(|a| {
-            a.site_title("Test Admin")
-                .routes(build_admin_routes(ADMIN_PREFIX))
-                .extra_routes(extra_routes)
-                .with_state(state)
-        })
-        // `get_log().admin.auth`/`.crud` sont `None` par défaut (zero-cost) —
-        // sans ça, `runique_log!()` n'est même pas appelé dans
-        // `dispatch_member_post`/`check_owns_record`/etc., quel que soit
-        // `RUST_LOG` : le filtre de subscriber ne peut rien voir passer sur un
-        // event qui n'est jamais émis. Nécessaire pour diagnostiquer le 500
-        // intermittent de `test_reset_password_unknown_id_creates_no_token`.
-        .with_log(|l| {
-            l.admin(|a| a.auth(Level::TRACE).crud(Level::TRACE))
-                .auth(|a| a.reset(Level::TRACE).login(Level::TRACE))
-        })
-        .build()
-        .await
-        .expect("construction de l'app admin de test");
+    let app = customize(
+        RuniqueAppBuilder::new(config)
+            .with_database(dbc.clone())
+            .static_files(|s| s.enabled(false))
+            .with_admin(|a| {
+                a.site_title("Test Admin")
+                    .routes(build_admin_routes(ADMIN_PREFIX))
+                    .extra_routes(extra_routes)
+                    .with_state(state)
+            })
+            // `get_log().admin.auth`/`.crud` sont `None` par défaut (zero-cost) —
+            // sans ça, `runique_log!()` n'est même pas appelé dans
+            // `dispatch_member_post`/`check_owns_record`/etc., quel que soit
+            // `RUST_LOG` : le filtre de subscriber ne peut rien voir passer sur un
+            // event qui n'est jamais émis. Nécessaire pour diagnostiquer le 500
+            // intermittent de `test_reset_password_unknown_id_creates_no_token`.
+            .with_log(|l| {
+                l.admin(|a| a.auth(Level::TRACE).crud(Level::TRACE))
+                    .auth(|a| a.reset(Level::TRACE).login(Level::TRACE))
+            }),
+    )
+    .build()
+    .await
+    .expect("construction de l'app admin de test");
 
     (app.router, dbc)
 }

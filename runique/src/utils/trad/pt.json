@@ -126,7 +126,29 @@
     "check_failed": "Build falhou com {} erro(s) de verificação",
     "template_failed": "Falha no carregamento do template: {}",
     "db_missing": "Conexão com banco de dados necessária quando o recurso 'orm' está habilitado",
-    "component_not_ready": "O componente '{}' não está pronto"
+    "component_not_ready": "O componente '{}' não está pronto",
+    "check": {
+      "db_required": "Conexão ou configuração de banco de dados obrigatória (feature `orm` ativada)",
+      "db_required_hint": "Adicione .with_database(db) ou .with_database_config(config) à sua cadeia de construção",
+      "admin_prefix_empty": "O prefixo de rota do admin não pode estar vazio",
+      "admin_prefix_empty_hint": "Use .prefix(\"/admin\") ou mantenha o valor padrão",
+      "extra_route_unknown": "A rota adicional `{}` indica o recurso `{}`, que não está registrado",
+      "extra_route_unknown_hint": "Use a chave de um recurso declarado em admin!{}",
+      "cache_control_invalid": "Valor de cabeçalho Cache-Control inválido: '{}'",
+      "cache_control_invalid_hint": "Use apenas caracteres ASCII visíveis (sem caracteres de controle nem quebras de linha).",
+      "media_root_unusable": "Não é possível criar ou acessar o diretório MEDIA_ROOT '{}': {}",
+      "media_root_unusable_hint": "Defina MEDIA_ROOT como um caminho absoluto gravável no seu .env (ex.: MEDIA_ROOT=/var/www/meuapp/media) e garanta que o processo tenha permissão de escrita.",
+      "secret_key_weak": "SECRET_KEY está ausente, vazia, com o valor padrão ou tem menos de 32 caracteres",
+      "secret_key_weak_hint": "Defina SECRET_KEY como uma string aleatória de pelo menos 32 caracteres no seu .env (a CLI `runique` pode gerar uma)",
+      "site_url_missing": "SITE_URL não está definido: os links de redefinição seriam construídos a partir do cabeçalho Host da requisição",
+      "site_url_missing_hint": "Defina SITE_URL=https://meusite.com no seu .env, ou .site_url(\"https://meusite.com\") no builder",
+      "acme_domain_missing": "ACME_ENABLED=true mas ACME_DOMAIN não está definido",
+      "acme_domain_missing_hint": "Defina ACME_DOMAIN com seu domínio de produção no seu .env",
+      "acme_email_missing": "ACME_ENABLED=true mas ACME_EMAIL não está definido",
+      "acme_email_missing_hint": "Defina ACME_EMAIL com seu email de contato do Let's Encrypt no seu .env",
+      "suggestion": "Sugestão",
+      "context": "Contexto"
+    }
   },
   "server": {
     "operational": "Runique está operacional",

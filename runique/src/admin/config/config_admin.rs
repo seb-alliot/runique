@@ -34,14 +34,10 @@ pub struct AdminConfig {
     /// Number of entries per page in the list view (default: 10)
     pub page_size: u64,
 
-    /// Base URL for password reset (default: None)
-    /// The token will be added automatically: `{reset_password_url}/{token}`
-    ///
-    /// In production with a mailer, must be an absolute URL:
-    /// `"https://mysite.com/reset-password"`
-    ///
-    /// If None, the link is displayed in the flash message (dev without mailer).
-    pub reset_password_url: Option<String>,
+    /// Route of the reset page the admin's emailed links point to, on
+    /// `SITE_URL`. Set by the builder from `with_password_reset()`'s
+    /// `reset_route` (default: `/reset-password`).
+    pub reset_route: String,
 
     /// "User" resources: resource key → optional email template.
     /// Enable via `.user_resource("users")`.
@@ -74,7 +70,7 @@ impl Clone for AdminConfig {
             enabled: self.enabled,
             templates: self.templates.clone(),
             page_size: self.page_size,
-            reset_password_url: self.reset_password_url.clone(),
+            reset_route: self.reset_route.clone(),
             user_resources: self.user_resources.clone(),
             reset_password_email_template: self.reset_password_email_template.clone(),
             resource_order: self.resource_order.clone(),
@@ -110,7 +106,7 @@ impl AdminConfig {
             enabled: true,
             templates: AdminTemplate::new(),
             page_size: 10,
-            reset_password_url: None,
+            reset_route: "/reset-password".to_string(),
             user_resources: std::collections::HashMap::new(),
             reset_password_email_template: None,
             resource_order: Vec::new(),
@@ -147,27 +143,6 @@ impl AdminConfig {
     /// Sets the return URL to the main site (default `/`).
     pub fn site_url(mut self, url: &str) -> Self {
         self.site_url = url.to_string();
-        self
-    }
-
-    /// Base URL for password reset on the project side.
-    /// The token will be added automatically: `{url}/{token}`
-    ///
-    /// In production (with a mailer), pass an absolute URL:
-    /// ```rust,ignore
-    /// .with_admin(|a| a.reset_password_url("https://mysite.com/reset-password"))
-    /// ```
-    ///
-    /// To read from the environment in `main.rs`:
-    /// ```rust,ignore
-    /// let reset_url = std::env::var("RESET_PASSWORD_URL").ok();
-    /// .with_admin(|a| {
-    ///     let a = match &reset_url { Some(u) => a.reset_password_url(u), None => a };
-    ///     a
-    /// })
-    /// ```
-    pub fn reset_password_url(mut self, url: &str) -> Self {
-        self.reset_password_url = Some(url.to_string());
         self
     }
 

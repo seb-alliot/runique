@@ -179,11 +179,10 @@ pub async fn get_username(session: &Session) -> Option<String> {
 /// If `exclusive` is `true`, invalidates other sessions for the user.
 ///
 /// ```rust,ignore
-/// login(&session, &db, &user, None, false).await?;
+/// login(&session, &user, None, false).await?;
 /// ```
 pub async fn login(
     session: &Session,
-    _db: &ADb,
     user: &impl RuniqueUser,
     db_store: Option<&RuniqueSessionStore>,
     exclusive: bool,
@@ -329,7 +328,7 @@ pub async fn auth_login(
         return Ok(());
     }
     let store = RuniqueSessionStore::new(db.clone());
-    login(session, db, &user, Some(&store), false).await
+    login(session, &user, Some(&store), false).await
 }
 
 /// Logs out a user — removes the memory session and the DB entry if provided.

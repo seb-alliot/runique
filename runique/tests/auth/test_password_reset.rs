@@ -18,7 +18,6 @@ fn test_config_default_values() {
     assert_eq!(cfg.success_redirect, "/");
     assert_eq!(cfg.max_requests, 5);
     assert_eq!(cfg.retry_after, 300);
-    assert!(cfg.base_url.is_none());
 }
 
 #[test]
@@ -52,21 +51,13 @@ fn test_config_success_redirect() {
 }
 
 #[test]
-fn test_config_base_url() {
-    let cfg = PasswordResetConfig::new().base_url("https://example.com");
-    assert_eq!(cfg.base_url, Some("https://example.com".to_string()));
-}
-
-#[test]
 fn test_config_chained_builders() {
     let cfg = PasswordResetConfig::new()
         .forgot_route("/forgot")
         .reset_route("/reset")
-        .base_url("https://example.com")
         .success_redirect("/home");
     assert_eq!(cfg.forgot_route, "/forgot");
     assert_eq!(cfg.reset_route, "/reset");
-    assert_eq!(cfg.base_url, Some("https://example.com".to_string()));
     assert_eq!(cfg.success_redirect, "/home");
 }
 

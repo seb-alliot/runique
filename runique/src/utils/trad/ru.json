@@ -126,7 +126,29 @@
     "check_failed": "Ошибка сборки с {} ошибками проверки",
     "template_failed": "Ошибка загрузки шаблона: {}",
     "db_missing": "Требуется подключение к базе данных при включённой функции 'orm'",
-    "component_not_ready": "Компонент '{}' не готов"
+    "component_not_ready": "Компонент '{}' не готов",
+    "check": {
+      "db_required": "Требуется подключение или конфигурация базы данных (включена feature `orm`)",
+      "db_required_hint": "Добавьте .with_database(db) или .with_database_config(config) в цепочку построения",
+      "admin_prefix_empty": "Префикс маршрута админки не может быть пустым",
+      "admin_prefix_empty_hint": "Используйте .prefix(\"/admin\") или оставьте значение по умолчанию",
+      "extra_route_unknown": "Дополнительный маршрут `{}` ссылается на ресурс `{}`, который не зарегистрирован",
+      "extra_route_unknown_hint": "Используйте ключ ресурса, объявленного в admin!{}",
+      "cache_control_invalid": "Недопустимое значение заголовка Cache-Control: '{}'",
+      "cache_control_invalid_hint": "Используйте только видимые символы ASCII (без управляющих символов и переводов строки).",
+      "media_root_unusable": "Не удаётся создать каталог MEDIA_ROOT '{}' или получить к нему доступ: {}",
+      "media_root_unusable_hint": "Укажите в .env абсолютный путь с правом записи для MEDIA_ROOT (например, MEDIA_ROOT=/var/www/myapp/media) и убедитесь, что у процесса есть право записи.",
+      "secret_key_weak": "SECRET_KEY отсутствует, пуст, имеет значение по умолчанию или короче 32 символов",
+      "secret_key_weak_hint": "Задайте в .env для SECRET_KEY случайную строку не короче 32 символов (CLI `runique` может её сгенерировать)",
+      "site_url_missing": "SITE_URL не задан: ссылки сброса строились бы из заголовка Host запроса",
+      "site_url_missing_hint": "Задайте SITE_URL=https://mysite.com в .env или .site_url(\"https://mysite.com\") в builder",
+      "acme_domain_missing": "ACME_ENABLED=true, но ACME_DOMAIN не задан",
+      "acme_domain_missing_hint": "Задайте в .env для ACME_DOMAIN ваш производственный домен",
+      "acme_email_missing": "ACME_ENABLED=true, но ACME_EMAIL не задан",
+      "acme_email_missing_hint": "Задайте в .env для ACME_EMAIL ваш контактный email для Let's Encrypt",
+      "suggestion": "Рекомендация",
+      "context": "Контекст"
+    }
   },
   "server": {
     "operational": "Runique работает",

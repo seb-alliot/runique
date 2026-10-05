@@ -41,6 +41,22 @@ fn errors_render_level() -> Level {
         .unwrap_or(Level::WARN)
 }
 
+/// A header whose name holds one of these is left off the debug page: such a
+/// page ends up in screenshots, shared screens and issues. `auth` also covers
+/// `authorization` and `authenticate`.
+const SENSITIVE_HEADER_WORDS: &[&str] = &[
+    "auth",
+    "cookie",
+    "session",
+    "token",
+    "key",
+    "secret",
+    "password",
+    "passwd",
+    "credential",
+    "signature",
+];
+
 /// Transport for request info used in contextual debug
 pub struct RequestInfoHelper {
     pub method: String,
@@ -74,8 +90,10 @@ pub async fn error_handler_middleware(
             .headers()
             .iter()
             .filter(|(k, _)| {
-                let key = k.as_str().to_lowercase();
-                !key.contains("authorization") && !key.contains("cookie") && !key.contains("token")
+                let name = k.as_str().to_lowercase();
+                !SENSITIVE_HEADER_WORDS
+                    .iter()
+                    .any(|word| name.contains(word))
             })
             .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or("").to_string()))
             .collect(),

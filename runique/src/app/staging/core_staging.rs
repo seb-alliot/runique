@@ -112,13 +112,8 @@ impl CoreStaging {
         #[cfg(feature = "orm")]
         if self.db.is_none() && self.db_config.is_none() {
             report.add(
-                CheckError::new(
-                    "Database",
-                    "Database connection or configuration required (`orm` feature enabled)",
-                )
-                .with_suggestion(
-                    "Add .with_database(db) or .with_database_config(config) to your construction chain",
-                ),
+                CheckError::new("Database", crate::utils::trad::t("build.check.db_required"))
+                    .with_suggestion(crate::utils::trad::t("build.check.db_required_hint")),
             );
         }
 

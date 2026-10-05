@@ -3,11 +3,33 @@ use crate::auth::user::BuiltinUserEntity;
 use crate::auth::user_trait::RuniqueUser;
 use crate::context::template::{AppError, Request};
 use crate::errors::error::ErrorContext;
-use crate::utils::{aliases::AppResult, trad::t};
+use crate::utils::{
+    aliases::AppResult,
+    trad::{t, tf},
+};
 use axum::response::{IntoResponse, Redirect, Response};
 
 /// Default lifetime of an admin-issued reset link (1 hour), matching the prior behavior.
 const ADMIN_RESET_TTL: std::time::Duration = std::time::Duration::from_secs(3600);
+
+/// The reset page the admin's links point to: the reset route on `SITE_URL`
+/// (see [`reset_link_base`](crate::auth::password::reset_link_base)).
+fn admin_reset_base(
+    req: &Request,
+    state: &super::PrototypeAdminState,
+    headers: &axum::http::HeaderMap,
+) -> Option<String> {
+    let config = &req.engine.config;
+    let origin = crate::auth::password::reset_link_base(
+        config.server.site_url.as_deref(),
+        headers,
+        config.debug,
+    )?;
+    Some(format!(
+        "{origin}/{}",
+        state.config.reset_route.trim_matches('/')
+    ))
+}
 
 /// Returns whether the email actually went out — callers must not show a
 /// blanket success notice on top of the error notice this already pushes.
@@ -25,22 +47,25 @@ pub(super) async fn send_user_created_email(
     let Some(user) = BuiltinUserEntity::find_by_email(&req.engine.db, email).await else {
         return false;
     };
-    let Ok(token) =
-        crate::utils::reset_token::generate(&req.engine.db, user.user_id(), ADMIN_RESET_TTL).await
-    else {
-        return false;
+    let token = match crate::utils::reset_token::generate(
+        &req.engine.db,
+        user.user_id(),
+        ADMIN_RESET_TTL,
+    )
+    .await
+    {
+        Ok(token) => token,
+        Err(e) => {
+            tracing::error!(user_id = %user.user_id(), error = %e, "reset token generation failed");
+            return false;
+        }
     };
     let encrypted = crate::utils::reset_token::encrypt_email(&token, email);
 
-    let reset_url = if let Some(base) = &state.config.reset_password_url {
-        format!("{}/{}/{}", base.trim_end_matches('/'), token, encrypted)
-    } else {
-        let host = headers
-            .get(axum::http::header::HOST)
-            .and_then(|v| v.to_str().ok())
-            .unwrap_or("localhost");
-        format!("http://{}/reset-password/{}/{}", host, token, encrypted)
+    let Some(reset_base) = admin_reset_base(req, state, headers) else {
+        return false;
     };
+    let reset_url = format!("{reset_base}/{token}/{encrypted}");
 
     let template_name = email_template.unwrap_or("admin/user_created_email.html");
     let username_str = username.unwrap_or(email);
@@ -152,33 +177,26 @@ pub(super) async fn handle_reset_password(
             .await;
         return Ok(Redirect::to(&detail_url).into_response());
     };
-    let Ok(token) =
-        crate::utils::reset_token::generate(&req.engine.db, user_id, ADMIN_RESET_TTL).await
-    else {
+    let token =
+        match crate::utils::reset_token::generate(&req.engine.db, user_id, ADMIN_RESET_TTL).await {
+            Ok(token) => token,
+            Err(e) => {
+                tracing::error!(user_id = %user_id, error = %e, "reset token generation failed");
+                req.notices
+                    .error(t("admin.reset_password.error_no_email"))
+                    .await;
+                return Ok(Redirect::to(&detail_url).into_response());
+            }
+        };
+    let encrypted_email = crate::utils::reset_token::encrypt_email(&token, &email);
+
+    let Some(reset_base) = admin_reset_base(req, state, headers) else {
         req.notices
-            .error(t("admin.reset_password.error_no_email"))
+            .error(tf("admin.reset_password.error_send", &["SITE_URL"]))
             .await;
         return Ok(Redirect::to(&detail_url).into_response());
     };
-    let encrypted_email = crate::utils::reset_token::encrypt_email(&token, &email);
-
-    let reset_url = if let Some(base) = &state.config.reset_password_url {
-        format!(
-            "{}/{}/{}",
-            base.trim_end_matches('/'),
-            token,
-            encrypted_email
-        )
-    } else {
-        let host = headers
-            .get(axum::http::header::HOST)
-            .and_then(|v| v.to_str().ok())
-            .unwrap_or("localhost");
-        format!(
-            "http://{}/reset-password/{}/{}",
-            host, token, encrypted_email
-        )
-    };
+    let reset_url = format!("{reset_base}/{token}/{encrypted_email}");
 
     if crate::utils::mailer_configured() {
         let template_name = state

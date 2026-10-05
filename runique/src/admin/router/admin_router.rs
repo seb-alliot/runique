@@ -57,7 +57,7 @@ struct AdminLoginData {
 /// all mounted under the resolved public prefix (`mount_prefix` + admin's own
 /// `path`) and wrapped with the auth-required, session-loading and
 /// `X-Robots-Tag: noindex` layers.
-pub fn build_admin_router(admin_staging: AdminStaging, _db: crate::utils::aliases::ADb) -> Router {
+pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
     // Two independent values, never in competition:
     //   `admin_path`   — the admin's own path (`/site-admin`), from `.routes()`
     //   `mount_prefix` — the segment `.prefix()` puts in front (`/secret`)
@@ -231,7 +231,7 @@ async fn admin_dashboard(
     let resources: Vec<&crate::admin::AdminResource> = if let Some(Extension(ref state)) = proto {
         for (key, entry) in &state.registry.resources {
             if let Some(count_fn) = &entry.count_fn
-                && let Ok(n) = (count_fn)(db.clone(), None, None).await
+                && let Ok(n) = (count_fn)(db.clone(), None, Vec::new(), None).await
             {
                 resource_counts.insert(key.clone(), n);
             }
@@ -417,15 +417,9 @@ async fn admin_login_post(
             .ok()
             .and_then(|g| g.as_ref().cloned());
         let exclusive = req.engine.features.exclusive_login;
-        if login(
-            &req.session,
-            &req.engine.db,
-            &user,
-            db_store.as_deref(),
-            exclusive,
-        )
-        .await
-        .is_err()
+        if login(&req.session, &user, db_store.as_deref(), exclusive)
+            .await
+            .is_err()
         {
             insert_admin_messages(&mut req.context, "login");
             insert_admin_messages(&mut req.context, "base");

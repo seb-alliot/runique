@@ -136,6 +136,17 @@ impl RuniqueAppBuilder {
         // merging after means admin routes run without Session/CSRF/Extensions.
         let router = router.unwrap_or_default();
 
+        // The admin's emailed reset links point to the reset page this app
+        // serves, and its "back to site" link left at "/" is the site itself.
+        if let Some(pr) = &self.password_reset {
+            self.admin.config.reset_route = pr.config.reset_route.clone();
+        }
+        if self.admin.config.site_url == "/"
+            && let Some(site) = &engine.config.server.site_url
+        {
+            self.admin.config.site_url = site.clone();
+        }
+
         let router = if let Some(pr) = self.password_reset {
             let forgot_path = pr.config.forgot_route.clone();
             let reset_path = format!(
@@ -203,7 +214,7 @@ impl RuniqueAppBuilder {
                 }
             }
 
-            let admin_router = build_admin_router(self.admin, engine.db.clone());
+            let admin_router = build_admin_router(self.admin);
             add_urls(&engine);
             register_name_url(&engine, "admin", &admin_prefix);
             let mut r = router.merge(admin_router);
@@ -304,11 +315,23 @@ impl RuniqueAppBuilder {
             report.add(
                 CheckError::new(
                     "Security",
-                    "SECRET_KEY is missing, empty, the default value, or shorter than 32 characters",
+                    crate::utils::trad::t("build.check.secret_key_weak"),
                 )
-                .with_suggestion(
-                    "Set SECRET_KEY to a random 32+ character string in your .env file (the `runique` CLI can generate one)",
-                ),
+                .with_suggestion(crate::utils::trad::t("build.check.secret_key_weak_hint")),
+            );
+        }
+
+        // Without SITE_URL, a reset link would be built from the request's
+        // `Host` header: someone asking a reset for a victim's address with
+        // `Host: evil.com` would get the victim's token mailed in a link to
+        // their own site.
+        if (self.password_reset.is_some() || self.admin.enabled) && srv.site_url.is_none() {
+            report.add(
+                CheckError::new(
+                    "SiteUrl",
+                    crate::utils::trad::t("build.check.site_url_missing"),
+                )
+                .with_suggestion(crate::utils::trad::t("build.check.site_url_missing_hint")),
             );
         }
 
@@ -316,18 +339,22 @@ impl RuniqueAppBuilder {
         if sec.acme_enabled {
             if sec.acme_domain.is_none() {
                 report.add(
-                    CheckError::new("ACME", "ACME_ENABLED=true but ACME_DOMAIN is not set")
-                        .with_suggestion(
-                            "Set ACME_DOMAIN to your production domain in your .env file",
-                        ),
+                    CheckError::new(
+                        "ACME",
+                        crate::utils::trad::t("build.check.acme_domain_missing"),
+                    )
+                    .with_suggestion(crate::utils::trad::t(
+                        "build.check.acme_domain_missing_hint",
+                    )),
                 );
             }
             if sec.acme_email.is_none() {
                 report.add(
-                    CheckError::new("ACME", "ACME_ENABLED=true but ACME_EMAIL is not set")
-                        .with_suggestion(
-                            "Set ACME_EMAIL to your Let's Encrypt contact email in your .env file",
-                        ),
+                    CheckError::new(
+                        "ACME",
+                        crate::utils::trad::t("build.check.acme_email_missing"),
+                    )
+                    .with_suggestion(crate::utils::trad::t("build.check.acme_email_missing_hint")),
                 );
             }
         }

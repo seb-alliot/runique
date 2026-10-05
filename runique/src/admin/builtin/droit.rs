@@ -197,9 +197,19 @@ pub(super) fn droit_entry() -> ResourceEntry {
             use std::collections::HashMap as HMap;
 
             let mut query = groupes_droits::Entity::find();
+            // The columns shown in the list: any other `sort_by` is ignored.
+            const SORT_COLS: &[&str] = &[
+                "groupe_id",
+                "resource_key",
+                "can_create",
+                "can_read",
+                "can_update",
+                "can_delete",
+                "can_update_own",
+                "can_delete_own",
+            ];
             if let Some(ref col) = params.sort_by
-                && !col.is_empty()
-                && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+                && SORT_COLS.contains(&col.as_str())
             {
                 let order = if params.sort_dir == SortDir::Desc {
                     Order::Desc
@@ -252,7 +262,7 @@ pub(super) fn droit_entry() -> ResourceEntry {
         })
     });
 
-    let count_fn: CountFn = Arc::new(|db: ADb, _search, scope| {
+    let count_fn: CountFn = Arc::new(|db: ADb, _search, _column_filters, scope| {
         Box::pin(async move {
             use sea_orm::QueryFilter;
             let mut query = groupes_droits::Entity::find();

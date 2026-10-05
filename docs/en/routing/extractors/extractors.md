@@ -89,12 +89,10 @@ The full HTTP header map is available directly on `Request`. Useful for reading 
 
 ```rust
 async fn handler(mut request: Request) -> AppResult<Response> {
-    // Build an absolute URL from the Host header
-    let base_url = request.headers
-        .get("host")
-        .and_then(|v| v.to_str().ok())
-        .map(|h| format!("https://{h}"))
-        .unwrap_or_else(|| "http://localhost:3000".to_string());
+    // An absolute URL (a link sent by email…) is built on SITE_URL, never on
+    // the Host header: the client chooses it, and a link to their own site
+    // would carry away the token it holds.
+    let base_url = request.engine.config.server.site_url.clone();
 
     // Read any header
     let lang = request.headers

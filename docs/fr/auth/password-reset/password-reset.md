@@ -26,12 +26,18 @@ Runique intègre un système complet, prêt à l'emploi :
 ```rust
 RuniqueAppBuilder::new(config)
     .with_mailer_from_env()
-    .with_password_reset(|pr| pr
-        .base_url("https://monsite.com")  // optionnel en dev, obligatoire en prod
-    )
+    .with_password_reset(|pr| pr)
     .build()
     .await?
 ```
+
+Les liens envoyés par email partent de `SITE_URL`, l'URL publique du site, lue dans le `.env` (ou `.site_url("https://monsite.com")` dans le builder) :
+
+```env
+SITE_URL=https://monsite.com
+```
+
+En production, l'application refuse de démarrer sans `SITE_URL` : sinon le lien serait construit à partir de l'en-tête `Host` de la requête, qu'un attaquant choisit (`Host: evil.com` → le jeton de la victime part chez lui). En debug, le `Host` reste le repli, avec un avertissement.
 
 > Les comptes sont ceux de `eihwaz_users`, la table utilisateur du framework — à enrichir avec `extend!{ table: "eihwaz_users", ... }`.
 
@@ -49,7 +55,6 @@ Toutes les options sont optionnelles — les valeurs par défaut fonctionnent sa
     .reset_template("auth/reset.html")           // défaut : auth/reset_password.html
     .email_template("emails/reset.html")         // défaut : template intégré
     .success_redirect("/connexion")              // défaut : /
-    .base_url("https://monsite.com")             // pour construire le lien dans l'email
 )
 ```
 
@@ -140,14 +145,7 @@ Variables disponibles :
 
 Si l'admin est activé avec `.user_resource()`, le panel peut envoyer des liens de reset directement depuis la fiche utilisateur.
 
-Configuration dans `config_admin.rs` (généré par le daemon) :
-
-```rust
-admin_config
-    .user_resource("users")
-    .reset_password_url("https://monsite.com/reset-password")
-    // optionnel — si absent, le lien s'affiche dans un flash message
-```
+Le lien part de `SITE_URL` et de la route du reset configurée (`reset_route`, `/reset-password` par défaut) : rien à régler côté admin. Sans mailer configuré, le lien s'affiche dans un flash message.
 
 Template email admin (optionnel, sinon template par défaut) :
 - `templates/admin/reset_password_email.html`

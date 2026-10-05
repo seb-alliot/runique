@@ -89,12 +89,10 @@ La map HTTP complète des en-têtes est accessible directement sur `Request`. Ut
 
 ```rust
 async fn handler(mut request: Request) -> AppResult<Response> {
-    // Construire une URL absolue depuis le header Host
-    let base_url = request.headers
-        .get("host")
-        .and_then(|v| v.to_str().ok())
-        .map(|h| format!("https://{h}"))
-        .unwrap_or_else(|| "http://localhost:3000".to_string());
+    // Une URL absolue (lien envoyé par email…) part de SITE_URL, jamais du
+    // header Host : le client le choisit, et un lien vers son site emporterait
+    // le jeton qu'il contient.
+    let base_url = request.engine.config.server.site_url.clone();
 
     // Lire n'importe quel header
     let lang = request.headers
