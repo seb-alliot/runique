@@ -9,12 +9,10 @@
 //! | `test_eihwaz_tables_pk` | Colonnes PK/FK des tables eihwaz_* vs big-pk/pk-uuid |
 //! | `test_helpers`          | col_type_to_method et utilitaires internes   |
 //! | `test_paths`            | snapshot_dir, migration_dir, chemins         |
-//! | `test_relation_kind`    | Enum RelationKind                            |
 //! | `test_types`            | ParsedSchema et types de colonnes            |
 //! | `test_hooks_def`        | HooksDef, Hook, HookType                     |
 //! | `test_index_def`        | IndexDef                                     |
 //! | `test_model_schema`     | ModelSchema, SchemaDiff                      |
-//! | `test_relation_def`     | RelationDef                                  |
 //! | `test_makemigrations`   | scan_entities, update_migration_lib, paths   |
 //! | `test_migration_flow`   | Flux complet end-to-end (scan→gen→fichiers)  |
 
@@ -43,8 +41,6 @@ pub mod test_parser_seaorm;
 pub mod test_parser_seaorm_extra;
 pub mod test_paths;
 pub mod test_primary_key;
-pub mod test_relation_def;
-pub mod test_relation_kind;
 pub mod test_run;
 pub mod test_sea_migrate;
 pub mod test_types;

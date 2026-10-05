@@ -7,7 +7,6 @@ use runique::migration::{
     hooks::HooksDef,
     index::IndexDef,
     primary_key::PrimaryKeyDef,
-    relation::RelationDef,
     schema::{ModelSchema, SchemaDiff},
 };
 
@@ -35,7 +34,6 @@ fn test_schema_new_defauts() {
     assert!(s.primary_key.is_none());
     assert!(s.columns.is_empty());
     assert!(s.foreign_keys.is_empty());
-    assert!(s.relations.is_empty());
     assert!(s.indexes.is_empty());
     assert!(s.hooks.is_none());
     assert!(s.schema.is_none());
@@ -58,7 +56,7 @@ fn test_schema_set_schema() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Builders — primary_key, column, foreign_key, relation, index, hooks
+// Builders — primary_key, column, foreign_key, index, hooks
 // ═══════════════════════════════════════════════════════════════
 
 #[test]
@@ -88,12 +86,6 @@ fn test_schema_foreign_key_ajout() {
     let s = ModelSchema::new("Post").foreign_key(ForeignKeyDef::new("user_id").references("users"));
     assert_eq!(s.foreign_keys.len(), 1);
     assert_eq!(s.foreign_keys[0].from_column, "user_id");
-}
-
-#[test]
-fn test_schema_relation_ajout() {
-    let s = ModelSchema::new("Post").relation(RelationDef::has_one("profile"));
-    assert_eq!(s.relations.len(), 1);
 }
 
 #[test]

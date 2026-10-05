@@ -3,138 +3,16 @@ use crate::model::ast::*;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 
-/// Generates `{ModelName}AdminForm` — auto-generated form from model.
-/// If `form_fields:` is declared in DSL, use explicit declarations.
-/// Otherwise, infer widgets from SQL types (legacy behavior).
+/// Generates `{ModelName}AdminForm` — the form registering each declared field.
 pub fn generate_admin_form(model: &ModelInput) -> TokenStream2 {
     let model_name = &model.name;
     let form_name = quote::format_ident!("{}AdminForm", model_name);
 
-    let field_registrations: Vec<TokenStream2> = if !model.form_fields.is_empty() {
-        model
-            .form_fields
-            .iter()
-            .map(|ff| generate_form_field_decl(ff, &model.enums))
-            .collect()
-    } else {
-        model.fields.iter().filter_map(|field| {
-        let fname = &field.name;
-        let fname_str = fname.to_string();
-
-        let is_auto_now = field.options.iter().any(|o| matches!(o, FieldOption::AutoNow));
-        let is_auto_now_update = field.options.iter().any(|o| matches!(o, FieldOption::AutoNowUpdate));
-        let is_required = field.options.iter().any(|o| matches!(o, FieldOption::Required));
-        let is_nullable = field.options.iter().any(|o| matches!(o, FieldOption::Nullable));
-
-        if is_auto_now || is_auto_now_update {
-            return None;
-        }
-
-        // Label: Use label("...") option if defined, otherwise generate from snake_case
-        let label = if let Some(FieldOption::Label(lbl)) = field.options.iter().find(|o| matches!(o, FieldOption::Label(_))) {
-            lbl.clone()
-        } else {
-            let s = fname_str.replace('_', " ");
-            let mut chars = s.chars();
-            match chars.next() {
-                None => s,
-                Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
-            }
-        };
-
-        let required_suffix = if is_required && !is_nullable {
-            quote! { .required() }
-        } else {
-            quote! {}
-        };
-
-        // File field — priority over type inference
-        if let Some(file_opt) = field.options.iter().find_map(|o| {
-            if let FieldOption::File { kind, upload_to } = o { Some((kind, upload_to)) } else { None }
-        }) {
-            let (kind, upload_to) = file_opt;
-            let file_constructor = match kind {
-                FileKind::Image    => quote! { ::runique::forms::fields::FileField::image(#fname_str) },
-                FileKind::Document => quote! { ::runique::forms::fields::FileField::document(#fname_str) },
-                FileKind::Any      => quote! { ::runique::forms::fields::FileField::any(#fname_str) },
-            };
-            let upload_suffix = match upload_to {
-                Some(path) => quote! { .upload_to(#path) },
-                None       => quote! {},
-            };
-            // Search for max size option
-            let size_suffix = if let Some(FieldOption::MaxSize(bytes)) = field.options.iter().find(|o| matches!(o, FieldOption::MaxSize(_))) {
-                quote! { .max_size(::runique::forms::fields::FileSize::bytes(#bytes)) }
-            } else {
-                quote! {}
-            };
-            return Some(quote! {
-                form.field(&#file_constructor.label(#label) #upload_suffix #size_suffix #required_suffix);
-            });
-        }
-
-        let registration = match &field.column_type() {
-            FieldType::Bool => quote! {
-                form.field(&::runique::forms::fields::BooleanField::new(#fname_str).label(#label) #required_suffix);
-            },
-            FieldType::I8 | FieldType::I16 | FieldType::I32 | FieldType::U32
-            | FieldType::I64 | FieldType::U64 => quote! {
-                form.field(&::runique::forms::fields::NumericField::integer(#fname_str).label(#label));
-            },
-            FieldType::F32 | FieldType::F64 => quote! {
-                form.field(&::runique::forms::fields::NumericField::float(#fname_str).label(#label));
-            },
-            FieldType::Decimal(_) => quote! {
-                form.field(&::runique::forms::fields::NumericField::decimal(#fname_str).label(#label));
-            },
-            FieldType::Date => quote! {
-                form.field(&::runique::forms::fields::DateField::new(#fname_str).label(#label) #required_suffix);
-            },
-            FieldType::Time => quote! {
-                form.field(&::runique::forms::fields::TimeField::new(#fname_str).label(#label) #required_suffix);
-            },
-            FieldType::Datetime | FieldType::Timestamp | FieldType::TimestampTz => quote! {
-                form.field(&::runique::forms::fields::DateTimeField::new(#fname_str).label(#label) #required_suffix);
-            },
-            FieldType::Json | FieldType::JsonBinary => quote! {
-                form.field(&::runique::forms::fields::TextField::textarea(#fname_str).label(#label) #required_suffix);
-            },
-            FieldType::Enum(enum_name) => {
-                let choices: Vec<proc_macro2::TokenStream> = model.enums.iter()
-                    .find(|e| e.name == *enum_name)
-                    .map(|e| e.variants.iter().map(|v| {
-                        let db_val = v.db_str();
-                        let display = v.display_str();
-                        quote! { .add_choice(#db_val, #display) }
-                    }).collect())
-                    .unwrap_or_default();
-                quote! {
-                    form.field(
-                        &::runique::forms::fields::ChoiceField::new(#fname_str)
-                            .label(#label)
-                            #(#choices)*
-                            #required_suffix
-                    );
-                }
-            },
-            // String, Text, Char, Varchar, Uuid, Blob, Inet, Cidr, MacAddress, Interval, Binary, VarBinary
-            _ => {
-                let is_password = field.kind == FormFieldKind::Password;
-                if is_password {
-                    quote! {
-                        form.field(&::runique::forms::fields::TextField::password(#fname_str).label(#label) #required_suffix);
-                    }
-                } else {
-                    quote! {
-                        form.field(&::runique::forms::fields::TextField::text(#fname_str).label(#label) #required_suffix);
-                    }
-                }
-            }
-        };
-
-        Some(registration)
-    }).collect()
-    }; // end of if form_fields
+    let field_registrations: Vec<TokenStream2> = model
+        .form_fields
+        .iter()
+        .map(|ff| generate_form_field_decl(ff, &model.enums))
+        .collect();
 
     quote! {
         /// Stable alias used by the `runique start` daemon to reference this form.

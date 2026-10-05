@@ -677,3 +677,61 @@ async fn test_run_drop_colonne_avec_force_genere_migration() {
     std::fs::remove_dir_all(&entities).ok();
     std::fs::remove_dir_all(&migrations).ok();
 }
+
+// ═══════════════════════════════════════════════════════════════
+// Longueurs de colonnes — snapshot antérieur aux longueurs
+// ═══════════════════════════════════════════════════════════════
+
+fn post_with_title_length(len: u32) -> String {
+    format!(
+        r#"model! {{ Post, table: "posts", pk: id => i32, {{ title: text [required, max_length: {len}] }} }}"#
+    )
+}
+
+fn migration_files(dir: &std::path::Path) -> usize {
+    fs::read_dir(dir)
+        .unwrap()
+        .filter(|e| {
+            let name = e.as_ref().unwrap().file_name();
+            let name = name.to_string_lossy();
+            name.starts_with('m') && name.ends_with(".rs")
+        })
+        .count()
+}
+
+#[tokio::test]
+async fn test_run_snapshot_ancien_rafraichi_puis_longueur_suivie() {
+    use runique::migration::utils::generators::SNAPSHOT_LENGTHS_MARKER;
+    set_env("RUNIQUE_TEST", "1");
+    let entities = temp_dir("run_len_ent");
+    let migrations = temp_dir("run_len_mig");
+    let (ent, mig) = (entities.to_str().unwrap(), migrations.to_str().unwrap());
+
+    fs::write(entities.join("post.rs"), post_with_title_length(80)).unwrap();
+    run(ent, mig, false).unwrap();
+    let snapshot = migrations.join("snapshots/posts.rs");
+    let first = migration_files(&migrations);
+
+    // Snapshot écrit avant les longueurs : sans marqueur ni longueur.
+    let old = fs::read_to_string(&snapshot)
+        .unwrap()
+        .replacen(&format!("{SNAPSHOT_LENGTHS_MARKER}\n"), "", 1)
+        .replace(".string_len(80)", ".string()");
+    fs::write(&snapshot, old).unwrap();
+
+    run(ent, mig, false).unwrap();
+    assert_eq!(migration_files(&migrations), first, "aucune migration");
+    let refreshed = fs::read_to_string(&snapshot).unwrap();
+    assert!(
+        refreshed.starts_with(SNAPSHOT_LENGTHS_MARKER),
+        "snapshot rafraîchi"
+    );
+    assert!(refreshed.contains(".string_len(80)"));
+
+    // La longueur est désormais suivie : l'agrandir produit une migration.
+    fs::write(entities.join("post.rs"), post_with_title_length(120)).unwrap();
+    run(ent, mig, false).unwrap();
+    assert_eq!(migration_files(&migrations), first + 1);
+
+    del_env("RUNIQUE_TEST");
+}

@@ -8,7 +8,7 @@ All notable changes to this project will be documented in this file.
 
 ## [3.0.0 Upcoming]
 
-> Three structural additions: `ValidationForm<F>` (validation proven by the type system), `ADb` (a single database handle type, identical in production and in tests) and the `runique_test` test builder with its `runique test` command. Testing at the framework's edges (reading `.env`, sessions, dependencies) also turned up several security holes, fixed here: a CSRF token that survived login, a session that survived logout, `ENFORCE_HTTPS=True` being ignored, and the database password exposed through `Debug`. The admin and authentication then went through a full review: every admin write now passes a single gate, accounts and rights are read from the database on every request, the database itself guarantees an account's state, a password reset closes every session, and a run of `cargo mutants` led to removing dead and duplicate APIs. Every breaking change is grouped under *Breaking*.
+> Three structural additions: `ValidationForm<F>` (validation proven by the type system), `ADb` (a single database handle type, identical in production and in tests) and the `runique_test` test builder with its `runique test` command; the model DSL is now read by a single crate, `runique_dsl`, shared by the macro and the CLI. Testing at the framework's edges (reading `.env`, sessions, dependencies) also turned up several security holes, fixed here: a CSRF token that survived login, a session that survived logout, `ENFORCE_HTTPS=True` being ignored, and the database password exposed through `Debug`. The admin and authentication then went through a full review: every admin write now passes a single gate, accounts and rights are read from the database on every request, the database itself guarantees an account's state, a password reset closes every session, and a run of `cargo mutants` led to removing dead and duplicate APIs. Every breaking change is grouped under *Breaking*.
 
 ### Security — `runique` (CSRF: the token wasn't renewed at login)
 
@@ -218,6 +218,19 @@ COMMIT;
 ### Breaking — `runique` (builder: once-only settings checked at compile time)
 
 * `with_public_url`, `routes`, `with_log`, `with_password_reset`, `with_database`/`with_database_config`, `with_session_duration` and `with_mailer`/`with_mailer_from_env` used to accept a second call that silently replaced the first — a second `routes()` dropped every route of the first; a second mailer call was silently *ignored*. They're now called once per builder: a second call doesn't compile, with an error naming the setting (`#[diagnostic::on_unimplemented]`). The state lives in the builder's type (`RuniqueAppBuilder<S>`, defaulted, invisible while calls are chained); a function returning a half-built builder spells it with `app::builder::state::{No, Yes}`. Settings that compose (`core`, `middleware`, `static_files`, `with_admin`, `with_custom_db`, `statics`) are unchanged. Guarded by `compile_fail` doctests.
+
+### Breaking — DSL (`runique_dsl`: one reader for the macro and the CLI)
+
+> The `model!{}` / `extend!{}` DSL is now read by a single crate, `runique_dsl`, shared by the `derive_form` macros and `runique makemigrations`: a model one refuses, the other refuses too, with file, line and column. Grammar, rules, type table and step-by-step migration: [`runique_dsl` README](https://github.com/seb-alliot/runique/blob/main/runique/runique_dsl/README.md).
+
+* **NOT NULL by default**: a column accepts NULL only when declared `nullable`; `required` only makes the form field mandatory. Add `nullable` to existing optional fields, otherwise `makemigrations` stops on `nullable -> not_null`.
+* **`fk(...)` removed**: foreign keys are declared only with `belongs_to: target via column [on_delete, on_update]`.
+* **`auto_now` / `auto_now_update`**: the Rust field is `T`, no longer `Option<T>`.
+* **Strict reading by the CLI**: an unreadable model, a v1 type (`String`, `i32`…), two `model!{}` in one file or an unresolved `belongs_to` target are errors, no longer skipped models.
+* **`i32` / `i64` enums**: every variant needs a unique integer value within the type's range (variants without one were all `0`).
+* **`customize`**: loosening `min_length`, `max_length`, `min` or `max` panics when the form is built.
+* **`runique::migration::RelationDef`, `RelationKind` and `ModelSchema::relation()` removed**: never read.
+* Non-breaking, described in the README: `max_length` in migrations (`VARCHAR(n)`, `BINARY(n)`, `VARBINARY(n)`), followed by snapshots and the diff, `blob` with its own column type, `belongs_to` targeting the related entity's real primary key with its actions.
 
 ### Added — `runique` (`runique_test` test builder and `runique test` command)
 

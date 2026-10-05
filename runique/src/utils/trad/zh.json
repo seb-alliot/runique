@@ -461,7 +461,8 @@
     "destructive_require_force": "使用 --force 应用这些破坏性更改。",
     "long_identifier_detected": "生成的 SQL 标识符过长（MariaDB/MySQL 限制：64 个字符）：",
     "long_identifier_rename_required": "请缩短相关的表名/列名 — Runique 不会自动截断标识符。",
-    "files_ready": "{}个文件已准备好迁移。"
+    "files_ready": "{}个文件已准备好迁移。",
+    "snapshots_upgraded": "已更新 {} 个快照以记录列长度（无迁移）。"
   },
   "migrate": {
     "applying": "正在从'{}'应用迁移...",

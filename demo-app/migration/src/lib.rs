@@ -35,6 +35,11 @@ mod m20260614_221003_alter_test_all_fields_table;
 mod m20260614_221003_extend_eihwaz_users_table;
 mod m20260831_232248_extend_eihwaz_users_table;
 mod m20260923_215427_alter_test_all_fields_table;
+mod m20261005_181617_create_test_relation_child_table;
+mod m20261005_181617_create_test_relation_parent_table;
+mod m20261005_181617_create_test_relation_parent_tag_table;
+mod m20261005_181617_create_test_relation_profile_table;
+mod m20261005_181617_create_test_relation_tag_table;
 
 pub struct Migrator;
 
@@ -81,6 +86,11 @@ impl MigratorTrait for Migrator {
             Box::new(m20260614_221003_extend_eihwaz_users_table::Migration),
             Box::new(m20260831_232248_extend_eihwaz_users_table::Migration),
             Box::new(m20260923_215427_alter_test_all_fields_table::Migration),
+            Box::new(m20261005_181617_create_test_relation_parent_table::Migration),
+            Box::new(m20261005_181617_create_test_relation_tag_table::Migration),
+            Box::new(m20261005_181617_create_test_relation_child_table::Migration),
+            Box::new(m20261005_181617_create_test_relation_profile_table::Migration),
+            Box::new(m20261005_181617_create_test_relation_parent_tag_table::Migration),
         ]
     }
 }

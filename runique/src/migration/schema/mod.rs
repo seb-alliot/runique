@@ -1,7 +1,7 @@
 //! `ModelSchema`: single source of truth for a model — columns, primary keys, FKs, indexes, hooks.
 use crate::migration::{
     column::ColumnDef, foreign_key::ForeignKeyDef, hooks::HooksDef, index::IndexDef,
-    primary_key::PrimaryKeyDef, relation::RelationDef,
+    primary_key::PrimaryKeyDef,
 };
 
 /// Sort direction for `ModelSchema::order_by`.
@@ -20,7 +20,6 @@ pub struct ModelSchema {
     pub primary_key: Option<PrimaryKeyDef>,
     pub columns: Vec<ColumnDef>,
     pub foreign_keys: Vec<ForeignKeyDef>,
-    pub relations: Vec<RelationDef>,
     pub indexes: Vec<IndexDef>,
     pub hooks: Option<HooksDef>,
     pub ordering: Vec<(String, OrderDir)>,
@@ -44,7 +43,6 @@ impl ModelSchema {
             primary_key: None,
             columns: Vec::new(),
             foreign_keys: Vec::new(),
-            relations: Vec::new(),
             indexes: Vec::new(),
             hooks: None,
             ordering: Vec::new(),
@@ -89,14 +87,6 @@ impl ModelSchema {
     /// Appends a foreign key constraint to the schema.
     pub fn foreign_key(mut self, fk: ForeignKeyDef) -> Self {
         self.foreign_keys.push(fk);
-        self
-    }
-
-    // ── Relations ───────────────────────────────────────────────────────────
-
-    /// Appends a SeaORM relation. Has no effect on the SQL schema itself.
-    pub fn relation(mut self, rel: RelationDef) -> Self {
-        self.relations.push(rel);
         self
     }
 

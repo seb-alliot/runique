@@ -23,6 +23,15 @@ impl EnumVariant {
         }
     }
 
+    /// Stored value of a variant of an `i32`/`i64` enum. The parser refuses
+    /// such an enum unless every variant has an integer value that fits.
+    pub fn int_value(&self) -> Option<i64> {
+        match &self.value {
+            Some(syn::Lit::Int(n)) => n.base10_parse().ok(),
+            _ => None,
+        }
+    }
+
     /// Displayed label (admin form): explicit label, otherwise db_str.
     pub fn display_str(&self) -> String {
         match &self.label {
