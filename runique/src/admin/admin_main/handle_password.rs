@@ -12,7 +12,7 @@ use axum::response::{IntoResponse, Redirect, Response};
 /// Default lifetime of an admin-issued reset link (1 hour), matching the prior behavior.
 const ADMIN_RESET_TTL: std::time::Duration = std::time::Duration::from_secs(3600);
 
-/// The reset page the admin's links point to: the reset route on `SITE_URL`
+/// The reset page the admin's links point to: the reset route on the site URL
 /// (see [`reset_link_base`](crate::auth::password::reset_link_base)).
 fn admin_reset_base(
     req: &Request,
@@ -21,7 +21,7 @@ fn admin_reset_base(
 ) -> Option<String> {
     let config = &req.engine.config;
     let origin = crate::auth::password::reset_link_base(
-        config.server.site_url.as_deref(),
+        config.server.public_url.as_deref(),
         headers,
         config.debug,
     )?;
@@ -192,7 +192,7 @@ pub(super) async fn handle_reset_password(
 
     let Some(reset_base) = admin_reset_base(req, state, headers) else {
         req.notices
-            .error(tf("admin.reset_password.error_send", &["SITE_URL"]))
+            .error(tf("admin.reset_password.error_send", &["with_public_url"]))
             .await;
         return Ok(Redirect::to(&detail_url).into_response());
     };

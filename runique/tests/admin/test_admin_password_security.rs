@@ -327,9 +327,9 @@ async fn test_create_user_token_binds_to_new_user_not_creator() {
 
 #[tokio::test]
 #[serial]
-async fn test_reset_link_uses_site_url_and_the_configured_reset_route() {
+async fn test_reset_link_uses_public_url_and_the_configured_reset_route() {
     let (router, dbc) = admin_server::build_admin_app_customized(|b| {
-        b.site_url("https://mysite.test")
+        b.with_public_url("https://mysite.test")
             .with_password_reset(|pr| pr.reset_route("/reinit"))
     })
     .await;
@@ -360,6 +360,6 @@ async fn test_reset_link_uses_site_url_and_the_configured_reset_route() {
         .unwrap();
     assert!(body.contains("https://mysite.test/reinit/"), "{body}");
     assert!(!body.contains(&format!("{base}/reset-password/")), "{body}");
-    // The admin's "back to site" link, left at its default, is SITE_URL.
+    // The admin's "view site" link, left unset, is the public URL.
     assert!(body.contains(r#"href="https://mysite.test""#), "{body}");
 }

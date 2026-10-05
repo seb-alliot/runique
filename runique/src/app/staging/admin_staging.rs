@@ -175,9 +175,11 @@ impl AdminStaging {
         self
     }
 
-    /// Sets the public site URL used to build absolute links in the admin.
-    pub fn site_url(mut self, url: &str) -> Self {
-        self.config = self.config.site_url(url);
+    /// Sets the admin's "view site" link, when the public site is served by
+    /// another project than the admin. By default it follows the app's public
+    /// URL (`.with_public_url()`), else `/`.
+    pub fn view_site_url(mut self, url: &str) -> Self {
+        self.config = self.config.view_site_url(url);
         self
     }
 

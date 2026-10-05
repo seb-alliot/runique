@@ -18,7 +18,6 @@
 | `IP_SERVER` | `127.0.0.1` | Listening IP address |
 | `PORT` | `3000` | Listening port |
 | `SECRET_KEY` | `default_secret_key` | Secret key (CSRF, signatures). In production (`DEBUG=false`), **boot fails** if it's empty, equal to the default, or under 32 characters |
-| `SITE_URL` | — | Public URL of the site (`https://mysite.com`), base of the absolute links the app sends out (password reset). In production, **boot fails** without it when the password reset or the admin is enabled; in debug, the request's `Host` is the fallback |
 
 ---
 

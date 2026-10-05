@@ -35,7 +35,7 @@ These variables are injected into **all CRUD admin views** via `inject_context`,
 | --- | --- | --- |
 | `lang` | `String` | Current language code (e.g. `"en"`) |
 | `site_title` | `String` | Site title configured in `AdminConfig` |
-| `site_url` | `String` | Base URL configured in `AdminConfig` |
+| `site_url` | `String` | "View site" link: the admin's `view_site_url`, else the public URL (`.with_public_url()`), else `/` |
 | `resource_key` | `&str` | Key of the current resource (e.g. `"users"`) |
 | `current_resource` | `&str` | Same as `resource_key` |
 | `resource` | `AdminResource` | Full metadata of the current resource (see below) |

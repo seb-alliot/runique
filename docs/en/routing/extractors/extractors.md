@@ -89,10 +89,11 @@ The full HTTP header map is available directly on `Request`. Useful for reading 
 
 ```rust
 async fn handler(mut request: Request) -> AppResult<Response> {
-    // An absolute URL (a link sent by email…) is built on SITE_URL, never on
+    // An absolute URL (a link sent by email…) is built on the public URL
+    // (`.with_public_url()`), never on
     // the Host header: the client chooses it, and a link to their own site
     // would carry away the token it holds.
-    let base_url = request.engine.config.server.site_url.clone();
+    let base_url = request.engine.config.server.public_url.clone();
 
     // Read any header
     let lang = request.headers

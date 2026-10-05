@@ -103,7 +103,7 @@ All notable changes to this project will be documented in this file.
 ### Security — `runique` (password reset links built from the request's `Host`)
 
 * **Without a configured base URL, the reset link was built from the request's `Host` header** — on the "forgot password" page and on both admin paths. Asking a reset for a victim's address with `Host: evil.com` mailed the victim a genuine email whose link led to the attacker's site, carrying the victim's token. Host validation didn't stop it by default (only with `.with_allowed_hosts(...)`).
-* **Every reset link is now built on `SITE_URL`**, the site's public URL (`.env`, or `.site_url(…)` in the builder): the public pages with their `reset_route`, the admin with the same route — it used to hardcode `/reset-password`. **Production refuses to boot without `SITE_URL`** when the password reset or the admin is enabled; in debug, the request's `Host` stays the fallback, with a warning. The admin's "back to site" link, left at its default, is `SITE_URL` too. The demo-app's own activation link had the same flaw: fixed the same way, and the extractors docs no longer teach building an absolute URL from `Host`. Tests: `tests/app/test_reset_link_base.rs`, `test_reset_link_uses_site_url_and_the_configured_reset_route`, unit tests of `reset_link_base`.
+* **Every reset link is now built on the site's public URL**, set with `.with_public_url(…)` in the builder: the public pages with their `reset_route`, the admin with the same route — it used to hardcode `/reset-password`. **Production refuses to boot without it** when the password reset or the admin is enabled; in debug, the request's `Host` stays the fallback, with a warning. The admin's "view site" link follows it unless the admin sets its own (`view_site_url`, which replaces `site_url`). The demo-app's own activation link had the same flaw: fixed the same way, and the extractors docs no longer teach building an absolute URL from `Host`. Tests: `tests/app/test_reset_link_base.rs`, `test_reset_link_uses_site_url_and_the_configured_reset_route`, unit tests of `reset_link_base`.
 
 ### Breaking — `runique` (`ADb`: one database handle type across the framework)
 
@@ -207,13 +207,17 @@ COMMIT;
 
 * `login(&session, &user, db_store, exclusive)`: the `db` parameter was never used. Remove the second argument at each call. `auth_login()`, which does load the user, keeps it.
 
-### Breaking — `runique` (`SITE_URL` replaces the reset base URLs)
+### Breaking — `runique` (`with_public_url()` replaces the reset base URLs)
 
-* A consequence of *Security — password reset links built from the request's `Host`*: `PasswordResetConfig::base_url()` and `AdminConfig::reset_password_url()` are removed. Set `SITE_URL=https://mysite.com` in the production `.env` (or `.site_url(…)` in the builder), or the app doesn't boot when the password reset or the admin is enabled.
+* A consequence of *Security — password reset links built from the request's `Host`*: `PasswordResetConfig::base_url()` and `AdminConfig::reset_password_url()` are removed. Set `.with_public_url("https://mysite.com")` in the builder — once: a second call doesn't compile — or the app doesn't boot when the password reset or the admin is enabled.
 
 ### Breaking — `runique` (`CountFn` receives the column filters)
 
 * `CountFn` is now `(ADb, search, column_filters, scope)`: it must apply the same column filters as `ListFn`, through the same allowlist. Regenerate `src/admins/` (`runique start`); a hand-written `count_fn` takes one more argument.
+
+### Breaking — `runique` (builder: once-only settings checked at compile time)
+
+* `with_public_url`, `routes`, `with_log`, `with_password_reset`, `with_database`/`with_database_config`, `with_session_duration` and `with_mailer`/`with_mailer_from_env` used to accept a second call that silently replaced the first — a second `routes()` dropped every route of the first; a second mailer call was silently *ignored*. They're now called once per builder: a second call doesn't compile, with an error naming the setting (`#[diagnostic::on_unimplemented]`). The state lives in the builder's type (`RuniqueAppBuilder<S>`, defaulted, invisible while calls are chained); a function returning a half-built builder spells it with `app::builder::state::{No, Yes}`. Settings that compose (`core`, `middleware`, `static_files`, `with_admin`, `with_custom_db`, `statics`) are unchanged. Guarded by `compile_fail` doctests.
 
 ### Added — `runique` (`runique_test` test builder and `runique test` command)
 
@@ -349,7 +353,7 @@ COMMIT;
 
 ### Fix — `runique` (boot checks: messages always in English)
 
-* The boot report's header was translated, but none of its checks were: database, admin prefix, extra routes, Cache-Control, `MEDIA_ROOT`, `SECRET_KEY`, `SITE_URL`, ACME — messages and suggestions now go through i18n (`build.check.*`, 9 languages), along with the "Suggestion" and "Context" labels. The English texts are unchanged. Test: the report in French.
+* The boot report's header was translated, but none of its checks were: database, admin prefix, extra routes, Cache-Control, `MEDIA_ROOT`, `SECRET_KEY`, public URL, ACME — messages and suggestions now go through i18n (`build.check.*`, 9 languages), along with the "Suggestion" and "Context" labels. The English texts are unchanged. Test: the report in French.
 
 ### Docs — `makemigrations` (`--force` and column type changes)
 

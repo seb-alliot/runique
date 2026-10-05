@@ -918,7 +918,7 @@ pub(super) fn inject_context(
     req.context
         .insert(ctx_common::SITE_TITLE, &state.config.site_title);
     req.context
-        .insert(ctx_common::SITE_URL, &state.config.site_url);
+        .insert(ctx_common::SITE_URL, state.config.view_site_href());
     inject_admin_prefix(&mut req.context, &state.config.prefix);
     req.context.insert(ctx_common::RESOURCE_KEY, entry.meta.key);
     req.context

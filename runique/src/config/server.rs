@@ -27,12 +27,12 @@ pub struct ServerConfig {
     pub port: u16,
     /// Secret key for HMAC/CSRF (env: `SECRET_KEY`). A warning is issued if missing.
     pub secret_key: String,
-    /// Public URL of the site, without trailing slash (env: `SITE_URL`, e.g.
-    /// `https://mysite.com`). The base of every absolute link sent out of the
-    /// app — password reset links among them. Required in production when the
-    /// password reset or the admin is enabled; in debug, the request's `Host`
-    /// stands in for it.
-    pub site_url: Option<String>,
+    /// Public URL of the application, without trailing slash
+    /// (`https://mysite.com`), set with the builder's `.with_public_url()`. The base of every absolute
+    /// link sent out of the app — password reset links among them. Required in
+    /// production when the password reset or the admin is enabled; in debug,
+    /// the request's `Host` stands in for it.
+    pub public_url: Option<String>,
 }
 
 impl ServerConfig {
@@ -58,10 +58,7 @@ impl ServerConfig {
                 }
                 key
             },
-            site_url: env::var("SITE_URL")
-                .ok()
-                .map(|url| url.trim().trim_end_matches('/').to_string())
-                .filter(|url| !url.is_empty()),
+            public_url: None,
         }
     }
 }

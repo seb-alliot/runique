@@ -301,7 +301,7 @@ async fn admin_dashboard(
     req = req
         .insert("current_user", &current_user)
         .insert("site_title", &admin.config.site_title)
-        .insert("site_url", &admin.config.site_url)
+        .insert("site_url", admin.config.view_site_href())
         .insert("resources", &resources)
         .insert("resource_groups", &resource_groups)
         .insert("resource_counts", &resource_counts)
@@ -332,7 +332,7 @@ async fn admin_login_get(
 
     req = req
         .insert("site_title", &admin.config.site_title)
-        .insert("site_url", &admin.config.site_url)
+        .insert("site_url", admin.config.view_site_href())
         .insert("lang", current_lang().code());
     req.render(admin.config.templates.login.resolve())
 }
@@ -376,7 +376,7 @@ async fn admin_login_post(
         req = req
             .insert("lang", current_lang().code())
             .insert("site_title", &admin.config.site_title)
-            .insert("site_url", &admin.config.site_url)
+            .insert("site_url", admin.config.view_site_href())
             .insert("error", t("csrf.invalid_or_missing").to_string());
         return req
             .render(admin.config.templates.login.resolve())
@@ -393,7 +393,7 @@ async fn admin_login_post(
             req = req
                 .insert("lang", current_lang().code())
                 .insert("site_title", &admin.config.site_title)
-                .insert("site_url", &admin.config.site_url)
+                .insert("site_url", admin.config.view_site_href())
                 .insert("error", tf("admin.login.error_locked", &[secs]));
             return req
                 .render(admin.config.templates.login.resolve())
@@ -427,7 +427,7 @@ async fn admin_login_post(
             req = req
                 .insert("lang", current_lang().code())
                 .insert("site_title", &admin.config.site_title)
-                .insert("site_url", &admin.config.site_url)
+                .insert("site_url", admin.config.view_site_href())
                 .insert("error", t("admin.login.error_session").to_string());
             return req
                 .render(admin.config.templates.login.resolve())
@@ -447,7 +447,7 @@ async fn admin_login_post(
         req = req
             .insert("lang", current_lang().code())
             .insert("site_title", &admin.config.site_title)
-            .insert("site_url", &admin.config.site_url)
+            .insert("site_url", admin.config.view_site_href())
             .insert("error", t("admin.login.error_credentials").to_string());
         req.render(admin.config.templates.login.resolve())
             .unwrap_or_else(axum::response::IntoResponse::into_response)
@@ -505,7 +505,7 @@ fn inject_admin_chrome(
         .insert("resource_titles", resource_title_map(resources))
         .insert("current_user", current_user)
         .insert("site_title", &admin.config.site_title)
-        .insert("site_url", &admin.config.site_url)
+        .insert("site_url", admin.config.view_site_href())
         .insert("lang", current_lang().code())
 }
 

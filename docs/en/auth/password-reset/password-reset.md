@@ -31,13 +31,9 @@ RuniqueAppBuilder::new(config)
     .await?
 ```
 
-The links sent by email are built on `SITE_URL`, the site's public URL, read from the `.env` (or `.site_url("https://mysite.com")` in the builder):
+The links sent by email are built on the site's public URL, set in the builder with `.with_public_url("https://mysite.com")` (see [Builder](/docs/en/configuration/builder)).
 
-```env
-SITE_URL=https://mysite.com
-```
-
-In production, the app refuses to boot without `SITE_URL`: otherwise the link would be built from the request's `Host` header, which an attacker chooses (`Host: evil.com` → the victim's token goes to them). In debug, the `Host` stays the fallback, with a warning.
+In production, the app refuses to boot without it: otherwise the link would be built from the request's `Host` header, which an attacker chooses (`Host: evil.com` → the victim's token goes to them). In debug, the `Host` stays the fallback, with a warning.
 
 > Accounts are those of `eihwaz_users`, the framework's user table — extend it with `extend!{ table: "eihwaz_users", ... }`.
 
@@ -145,7 +141,7 @@ Available variables:
 
 If the admin is activated with `.user_resource()`, the panel can send reset links directly from the user detail view.
 
-The link is built on `SITE_URL` and the configured reset route (`reset_route`, `/reset-password` by default): nothing to set on the admin side. Without a mailer, the link is shown in a flash message.
+The link is built on the public URL (`.with_public_url()`) and the configured reset route (`reset_route`, `/reset-password` by default): nothing to set on the admin side. Without a mailer, the link is shown in a flash message.
 
 Optional admin email templates (framework defaults otherwise):
 - `templates/admin/reset_password_email.html`

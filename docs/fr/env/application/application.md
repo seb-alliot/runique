@@ -18,7 +18,6 @@
 | `IP_SERVER` | `127.0.0.1` | Adresse IP d'écoute |
 | `PORT` | `3000` | Port d'écoute |
 | `SECRET_KEY` | `default_secret_key` | Clé secrète (CSRF, signatures). En production (`DEBUG=false`), le **boot échoue** si elle est vide, égale au défaut, ou fait moins de 32 caractères |
-| `SITE_URL` | — | URL publique du site (`https://monsite.fr`), base des liens absolus envoyés par l'application (reset de mot de passe). En production, le **boot échoue** sans elle si le reset ou l'admin est activé ; en debug, le `Host` de la requête sert de repli |
 
 ---
 

@@ -251,8 +251,8 @@ impl PasswordResetConfig {
     }
 }
 
-/// The origin a reset link is built on: `SITE_URL`, else — in debug only — the
-/// request's `Host`. Production refuses to boot without `SITE_URL`
+/// The origin a reset link is built on: the public URL (`.with_public_url()`), else
+/// — in debug only — the request's `Host`. Production refuses to boot without it
 /// (`cross_validate`): the `Host` header is the client's to choose, and a reset
 /// link pointing at someone else's site would hand them the token.
 pub(crate) fn reset_link_base(
@@ -270,7 +270,7 @@ pub(crate) fn reset_link_base(
         .get(axum::http::header::HOST)
         .and_then(|v| v.to_str().ok())?;
     tracing::warn!(
-        "reset link built from the request's Host header: set SITE_URL before production"
+        "reset link built from the request's Host header: set .with_public_url() before production"
     );
     Some(format!("http://{host}"))
 }
@@ -370,7 +370,7 @@ pub async fn handle_forgot_password(
         }
 
         let Some(host) = reset_link_base(
-            request.engine.config.server.site_url.as_deref(),
+            request.engine.config.server.public_url.as_deref(),
             &request.headers,
             request.engine.config.debug,
         ) else {

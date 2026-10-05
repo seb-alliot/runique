@@ -22,8 +22,10 @@ pub struct AdminConfig {
     /// that sets nothing follows the active language instead of a hardcoded string.
     pub site_title: String,
 
-    /// Return URL to the main site (default: "/")
-    pub site_url: String,
+    /// The "view site" link of the admin's header. `None` follows the app's
+    /// public URL (`.with_public_url()`), else `/`. Only set it when the public
+    /// site is served by another project than the admin.
+    pub view_site_url: Option<String>,
 
     /// Entirely enables or disables the `AdminPanel`
     pub enabled: bool,
@@ -35,7 +37,7 @@ pub struct AdminConfig {
     pub page_size: u64,
 
     /// Route of the reset page the admin's emailed links point to, on
-    /// `SITE_URL`. Set by the builder from `with_password_reset()`'s
+    /// the site URL. Set by the builder from `with_password_reset()`'s
     /// `reset_route` (default: `/reset-password`).
     pub reset_route: String,
 
@@ -66,7 +68,7 @@ impl Clone for AdminConfig {
             prefix: self.prefix.clone(),
             hot_reload: self.hot_reload,
             site_title: self.site_title.clone(),
-            site_url: self.site_url.clone(),
+            view_site_url: self.view_site_url.clone(),
             enabled: self.enabled,
             templates: self.templates.clone(),
             page_size: self.page_size,
@@ -86,7 +88,7 @@ impl std::fmt::Debug for AdminConfig {
             .field("prefix", &self.prefix)
             .field("hot_reload", &self.hot_reload)
             .field("site_title", &self.site_title)
-            .field("site_url", &self.site_url)
+            .field("view_site_url", &self.view_site_url)
             .field("enabled", &self.enabled)
             .field("templates", &self.templates)
             .finish()
@@ -102,7 +104,7 @@ impl AdminConfig {
             prefix: "/admin".to_string(),
             hot_reload: is_debug(),
             site_title: String::new(),
-            site_url: "/".to_string(),
+            view_site_url: None,
             enabled: true,
             templates: AdminTemplate::new(),
             page_size: 10,
@@ -140,10 +142,16 @@ impl AdminConfig {
         self
     }
 
-    /// Sets the return URL to the main site (default `/`).
-    pub fn site_url(mut self, url: &str) -> Self {
-        self.site_url = url.to_string();
+    /// Changes the URL of the "view site" link, when the public site is served
+    /// by another project than the admin.
+    pub fn view_site_url(mut self, url: &str) -> Self {
+        self.view_site_url = Some(url.to_string());
         self
+    }
+
+    /// Where the "view site" link leads: [`view_site_url`](Self::view_site_url), else `/`.
+    pub fn view_site_href(&self) -> &str {
+        self.view_site_url.as_deref().unwrap_or("/")
     }
 
     /// Disables the admin panel entirely.
