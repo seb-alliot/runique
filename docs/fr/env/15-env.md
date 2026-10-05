@@ -8,7 +8,7 @@ Toutes les clés configurables via `.env`. Les valeurs indiquées sont les défa
 
 | Section | Contenu |
 | --- | --- |
-| [Application & Serveur](/docs/fr/env/application) | DEBUG, BASE_DIR, IP_SERVER, PORT, SECRET_KEY, DB |
+| [Application & Serveur](/docs/fr/env/application) | DEBUG, BASE_DIR, IP_SERVER, PORT, SECRET_KEY, SITE_URL, DB |
 | [Assets & médias](/docs/fr/env/assets) | STATICFILES_DIRS, MEDIA_ROOT, TEMPLATES_DIR et URLs associées |
 | [Sécurité & sessions](/docs/fr/env/securite) | ALLOWED_HOSTS, CSP, Middlewares, Sessions |
 

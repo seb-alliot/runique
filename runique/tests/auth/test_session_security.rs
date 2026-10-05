@@ -35,14 +35,9 @@ fn build_app(handler: axum::routing::MethodRouter) -> Router {
 #[tokio::test]
 async fn test_login_user_different_nettoie_session_precedente() {
     async fn handler(session: Session) -> impl IntoResponse {
-        let db = runique::db::ADb::from_connection(
-            sea_orm::Database::connect("sqlite::memory:").await.unwrap(),
-        );
-
         // User A se connecte
         login(
             &session,
-            &db,
             &test_user(pk(1), "setsuna", true, false),
             None,
             false,
@@ -55,7 +50,6 @@ async fn test_login_user_different_nettoie_session_precedente() {
         // User B se connecte sur la même session (collision)
         login(
             &session,
-            &db,
             &test_user(pk(2), "itsuki", true, true),
             None,
             false,
@@ -80,13 +74,8 @@ async fn test_login_user_different_nettoie_session_precedente() {
 #[tokio::test]
 async fn test_login_meme_user_ne_reinitialise_pas_session() {
     async fn handler(session: Session) -> impl IntoResponse {
-        let db = runique::db::ADb::from_connection(
-            sea_orm::Database::connect("sqlite::memory:").await.unwrap(),
-        );
-
         login(
             &session,
-            &db,
             &test_user(pk(1), "alice", true, false),
             None,
             false,
@@ -96,7 +85,6 @@ async fn test_login_meme_user_ne_reinitialise_pas_session() {
         // Re-login du même user (refresh de session)
         login(
             &session,
-            &db,
             &test_user(pk(1), "alice", true, false),
             None,
             false,
@@ -121,13 +109,8 @@ async fn test_login_meme_user_ne_reinitialise_pas_session() {
 #[tokio::test]
 async fn test_logout_vide_session_completement() {
     async fn handler(session: Session) -> impl IntoResponse {
-        let db = runique::db::ADb::from_connection(
-            sea_orm::Database::connect("sqlite::memory:").await.unwrap(),
-        );
-
         login(
             &session,
-            &db,
             &test_user(pk(1), "alice", true, false),
             None,
             false,
@@ -157,12 +140,8 @@ async fn test_logout_vide_session_completement() {
 async fn test_deux_sessions_independantes() {
     // Session A : user 1
     async fn handler_a(session: Session) -> impl IntoResponse {
-        let db = runique::db::ADb::from_connection(
-            sea_orm::Database::connect("sqlite::memory:").await.unwrap(),
-        );
         login(
             &session,
-            &db,
             &test_user(pk(1), "alice", true, false),
             None,
             false,
@@ -174,12 +153,8 @@ async fn test_deux_sessions_independantes() {
 
     // Session B : user 2 (router séparé = session store séparé)
     async fn handler_b(session: Session) -> impl IntoResponse {
-        let db = runique::db::ADb::from_connection(
-            sea_orm::Database::connect("sqlite::memory:").await.unwrap(),
-        );
         login(
             &session,
-            &db,
             &test_user(pk(2), "bob", false, false),
             None,
             false,
@@ -203,14 +178,9 @@ async fn test_deux_sessions_independantes() {
 #[tokio::test]
 async fn test_login_collision_bascule_sur_le_nouvel_user() {
     async fn handler(session: Session) -> impl IntoResponse {
-        let db = runique::db::ADb::from_connection(
-            sea_orm::Database::connect("sqlite::memory:").await.unwrap(),
-        );
-
         // User A login
         login(
             &session,
-            &db,
             &test_user(pk(20_004), "carol", true, false),
             None,
             false,
@@ -221,7 +191,6 @@ async fn test_login_collision_bascule_sur_le_nouvel_user() {
         // User B prend la session (collision)
         login(
             &session,
-            &db,
             &test_user(pk(20_005), "dave", true, false),
             None,
             false,

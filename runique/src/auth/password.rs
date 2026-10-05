@@ -164,10 +164,6 @@ pub struct PasswordResetConfig {
     /// by the built-in reset flow, which re-renders `reset_template` in place
     /// with `reset_done = true` instead of redirecting.
     pub success_redirect: String,
-    /// Base URL used to build the reset link sent by email. When `None`, it
-    /// is derived from the request's `Host` header (falling back to
-    /// `http://localhost:3000`).
-    pub base_url: Option<String>,
     /// Maximum number of requests allowed per rate-limit window on the
     /// forgot/reset routes.
     pub max_requests: u64,
@@ -188,7 +184,6 @@ impl Default for PasswordResetConfig {
             reset_template: "auth/reset_password.html".to_string(),
             email_template: None,
             success_redirect: "/".to_string(),
-            base_url: None,
             max_requests: 5,
             retry_after: 300,
             token_ttl: Duration::from_secs(3600),
@@ -234,13 +229,6 @@ impl PasswordResetConfig {
         self.success_redirect = redirect.to_string();
         self
     }
-    /// Sets the base URL used to build the reset link sent by email, instead
-    /// of deriving it from the request's `Host` header.
-    #[must_use]
-    pub fn base_url(mut self, url: &str) -> Self {
-        self.base_url = Some(url.to_string());
-        self
-    }
     /// Sets the template used to render the reset email body.
     #[must_use]
     pub fn email_template(mut self, template: &str) -> Self {
@@ -261,6 +249,30 @@ impl PasswordResetConfig {
         self.extra_context = Some(hook);
         self
     }
+}
+
+/// The origin a reset link is built on: `SITE_URL`, else — in debug only — the
+/// request's `Host`. Production refuses to boot without `SITE_URL`
+/// (`cross_validate`): the `Host` header is the client's to choose, and a reset
+/// link pointing at someone else's site would hand them the token.
+pub(crate) fn reset_link_base(
+    configured: Option<&str>,
+    headers: &axum::http::HeaderMap,
+    debug: bool,
+) -> Option<String> {
+    if let Some(base) = configured {
+        return Some(base.trim_end_matches('/').to_string());
+    }
+    if !debug {
+        return None;
+    }
+    let host = headers
+        .get(axum::http::header::HOST)
+        .and_then(|v| v.to_str().ok())?;
+    tracing::warn!(
+        "reset link built from the request's Host header: set SITE_URL before production"
+    );
+    Some(format!("http://{host}"))
 }
 
 async fn apply_extra_context(request: &mut Request, hook: &Option<ExtraContextFn>) {
@@ -286,7 +298,6 @@ pub async fn handle_forgot_password(
     let template = config.forgot_template.as_str();
     let forgot_route = config.forgot_route.as_str();
     let reset_path = config.reset_route.as_str();
-    let base_url = config.base_url.as_deref();
     let email_template = config.email_template.as_deref();
     let token_ttl = config.token_ttl;
     request.context.insert("lang", &current_lang().code());
@@ -337,7 +348,16 @@ pub async fn handle_forgot_password(
             });
         }
     } else if let Some(user) = user
-        && let Ok(token) = crate::utils::reset_token::generate(&db, user.user_id(), token_ttl).await
+        && let Some(token) = crate::utils::reset_token::generate(&db, user.user_id(), token_ttl)
+            .await
+            .trace_or(
+                crate::utils::runique_log::get_log()
+                    .auth
+                    .as_ref()
+                    .and_then(|a| a.reset),
+                tracing::Level::ERROR,
+                "reset token generation failed",
+            )
     {
         let encrypted_email = crate::utils::reset_token::encrypt_email(&token, &email);
 
@@ -349,16 +369,18 @@ pub async fn handle_forgot_password(
             crate::runique_log!(level, %email, "reset token generated");
         }
 
-        let host = base_url
-            .map(std::string::ToString::to_string)
-            .unwrap_or_else(|| {
-                request
-                    .headers
-                    .get("host")
-                    .and_then(|v| v.to_str().ok())
-                    .map(|h| format!("http://{h}"))
-                    .unwrap_or_else(|| "http://localhost:3000".to_string())
-            });
+        let Some(host) = reset_link_base(
+            request.engine.config.server.site_url.as_deref(),
+            &request.headers,
+            request.engine.config.debug,
+        ) else {
+            // Production doesn't boot without a base URL: never reached there.
+            request
+                .notices
+                .success(t("reset.check_inbox").to_string())
+                .await;
+            return Ok(Redirect::to(forgot_route).into_response());
+        };
 
         let reset_url = format!(
             "{}/{}/{}/{}",
@@ -658,4 +680,41 @@ pub fn build_router(config: Arc<PasswordResetConfig>) -> Router {
 pub struct PasswordResetStaging {
     /// Resolved configuration applied when the router is built.
     pub config: PasswordResetConfig,
+}
+
+#[cfg(test)]
+mod reset_link_base_tests {
+    use super::reset_link_base;
+    use axum::http::{HeaderMap, HeaderValue, header::HOST};
+
+    fn with_host(host: &str) -> HeaderMap {
+        let mut headers = HeaderMap::new();
+        headers.insert(HOST, HeaderValue::from_str(host).unwrap());
+        headers
+    }
+
+    #[test]
+    fn the_configured_base_wins_over_the_host() {
+        let headers = with_host("evil.com");
+        for debug in [true, false] {
+            assert_eq!(
+                reset_link_base(Some("https://mysite.com/"), &headers, debug).as_deref(),
+                Some("https://mysite.com")
+            );
+        }
+    }
+
+    #[test]
+    fn production_never_uses_the_host() {
+        assert_eq!(reset_link_base(None, &with_host("evil.com"), false), None);
+    }
+
+    #[test]
+    fn debug_falls_back_on_the_host() {
+        assert_eq!(
+            reset_link_base(None, &with_host("localhost:3000"), true).as_deref(),
+            Some("http://localhost:3000")
+        );
+        assert_eq!(reset_link_base(None, &HeaderMap::new(), true), None);
+    }
 }

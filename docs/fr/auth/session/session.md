@@ -42,7 +42,7 @@ login(
 Pour n'autoriser qu'un seul appareil connecté à la fois, passer `exclusive: true` :
 
 ```rust
-login(&session, &db, user.id, &user.username, false, false, Some(&store), true).await?;
+login(&session, &user, Some(&store), true).await?;
 ```
 
 Ou via le builder pour activer globalement :

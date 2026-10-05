@@ -23,14 +23,8 @@ use tower::ServiceExt;
 use tower_sessions::{MemoryStore, Session, SessionManagerLayer};
 
 async fn log_in(session: Session) -> &'static str {
-    let db = runique::db::ADb::from_connection(
-        sea_orm::Database::connect("sqlite::memory:")
-            .await
-            .expect("sqlite::memory: connect"),
-    );
     login(
         &session,
-        &db,
         &test_user(pk(1), "setsuna", true, false),
         None,
         false,

@@ -9,7 +9,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "2.3.0"
+version = "3.0.0"
 edition = "2024"
 rust-version = "1.94"
 authors = ["Itsuki"]
@@ -78,7 +78,7 @@ dialoguer = "0.12"
 walkdir = "2.5.0"
 
 runique_dsl = { path = "runique/runique_dsl", version = "0.0.1-test.1" }
-derive_form = { path = "runique/derive_form", version = "2.3.0" }
+derive_form = { path = "runique/derive_form", version = "3.0.0" }
 rust_decimal = { version = "1.43.0", features = ["serde-float"] }
 
 # Logging

@@ -3,7 +3,7 @@
 ![Rust](https://img.shields.io/badge/rust-1.94%2B-orange)
 ![Tests passing](https://img.shields.io/badge/tests-2408%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-2.3.0-blue)
+![Version](https://img.shields.io/badge/version-3.0.0-blue)
 [![Crates.io](https://img.shields.io/crates/v/runique)](https://crates.io/crates/runique)
 [![GitHub stars](https://img.shields.io/github/stars/seb-alliot/runique?style=social)](https://github.com/seb-alliot/runique)
 [![Runique](https://img.shields.io/badge/Runique-brightgreen)](https://runique.io)
@@ -143,7 +143,7 @@ Pour le guide complet : [Installation](https://runique.io/docs/fr/installation)
 - `demo-app/` — une vraie application construite contre le framework, utilisée pour le valider
 - `docs/` — documentation en anglais et en français
 
-Version du workspace (source de vérité) : **2.3.0**.
+Version du workspace (source de vérité) : **3.0.0**.
 
 ---
 

@@ -32,7 +32,7 @@ type Store = Arc<Mutex<HashMap<String, (u32, Instant)>>>;
 /// match authenticate(&username, &password, &db).await {
 ///     Some(user) => {
 ///         guard.record_success(&username);
-///         login(&session, &db, &user, None, false).await?;
+///         login(&session, &user, None, false).await?;
 ///     }
 ///     None => {
 ///         guard.record_failure(&username);

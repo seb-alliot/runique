@@ -42,7 +42,7 @@ login(
 To allow only one active session per user at a time, pass `exclusive: true`:
 
 ```rust
-login(&session, &db, user.id, &user.username, false, false, Some(&store), true).await?;
+login(&session, &user, Some(&store), true).await?;
 ```
 
 Or enable globally via the builder:

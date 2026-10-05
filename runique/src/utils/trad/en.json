@@ -126,7 +126,29 @@
     "check_failed": "Build failed with {} check error(s)",
     "template_failed": "Template loading failed: {}",
     "db_missing": "Database connection required when 'orm' feature is enabled",
-    "component_not_ready": "Component '{}' is not ready"
+    "component_not_ready": "Component '{}' is not ready",
+    "check": {
+      "db_required": "Database connection or configuration required (`orm` feature enabled)",
+      "db_required_hint": "Add .with_database(db) or .with_database_config(config) to your construction chain",
+      "admin_prefix_empty": "The admin route prefix cannot be empty",
+      "admin_prefix_empty_hint": "Use .prefix(\"/admin\") or leave the default value",
+      "extra_route_unknown": "Extra route `{}` names resource `{}`, which isn't registered",
+      "extra_route_unknown_hint": "Use the key of a resource declared in admin!{}",
+      "cache_control_invalid": "Invalid Cache-Control header value: '{}'",
+      "cache_control_invalid_hint": "Use only visible ASCII characters (no control characters, no newlines).",
+      "media_root_unusable": "Cannot create or access MEDIA_ROOT directory '{}': {}",
+      "media_root_unusable_hint": "Set MEDIA_ROOT to an absolute writable path in your .env (e.g. MEDIA_ROOT=/var/www/myapp/media) and ensure the process has write permission.",
+      "secret_key_weak": "SECRET_KEY is missing, empty, the default value, or shorter than 32 characters",
+      "secret_key_weak_hint": "Set SECRET_KEY to a random 32+ character string in your .env file (the `runique` CLI can generate one)",
+      "site_url_missing": "SITE_URL is not set: password reset links would be built from the request's Host header",
+      "site_url_missing_hint": "Set SITE_URL=https://mysite.com in your .env, or .site_url(\"https://mysite.com\") in the builder",
+      "acme_domain_missing": "ACME_ENABLED=true but ACME_DOMAIN is not set",
+      "acme_domain_missing_hint": "Set ACME_DOMAIN to your production domain in your .env file",
+      "acme_email_missing": "ACME_ENABLED=true but ACME_EMAIL is not set",
+      "acme_email_missing_hint": "Set ACME_EMAIL to your Let's Encrypt contact email in your .env file",
+      "suggestion": "Suggestion",
+      "context": "Context"
+    }
   },
   "server": {
     "operational": "Runique is operational",

@@ -21,7 +21,7 @@ async fn sign_in(Path(id): Path<u32>, req: Request) -> &'static str {
     let user = BuiltinUserEntity::find_by_id(&req.engine.db, pk(id))
         .await
         .expect("seeded account");
-    login(&req.session, &req.engine.db, &user, None, false)
+    login(&req.session, &user, None, false)
         .await
         .expect("login");
     "ok"

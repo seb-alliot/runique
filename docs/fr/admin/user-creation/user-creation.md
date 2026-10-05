@@ -83,7 +83,7 @@ Contexte Tera disponible dans le template :
 | --- | --- |
 | `username` | Nom d'utilisateur |
 | `email` | Adresse email |
-| `reset_url` | Lien complet de reset (absolu si `reset_password_url` configuré) |
+| `reset_url` | Lien complet de reset, absolu (sur `SITE_URL`) |
 
 ---
 
@@ -92,18 +92,10 @@ Contexte Tera disponible dans le template :
 L'URL construite suit le schéma :
 
 ```
-{base_url}/reset-password/{token}/{encrypted_email}
+{SITE_URL}{reset_route}/{token}/{encrypted_email}
 ```
 
-En production, configurer `reset_password_url` dans le builder pour générer une URL absolue :
-
-```rust
-.with_admin(|a| a
-    .reset_password_url("https://monsite.fr/reset-password")
-)
-```
-
-Sans cette configuration, l'URL est construite depuis le header `Host` de la requête HTTP
+`SITE_URL` vient du `.env` (ou de `.site_url(…)` dans le builder) ; `reset_route` est celle de `with_password_reset()` (`/reset-password` par défaut). En production, l'application refuse de démarrer sans `SITE_URL`. En debug seulement, l'URL est construite depuis le header `Host` de la requête HTTP
 (`http://{host}/reset-password/...`).
 
 ---

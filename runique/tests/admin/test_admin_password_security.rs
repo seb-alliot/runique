@@ -319,3 +319,47 @@ async fn test_create_user_token_binds_to_new_user_not_creator() {
         "IDOR: le token de création ne doit jamais se lier au superuser créateur"
     );
 }
+
+// ═══════════════════════════════════════════════════════════════
+// handle_reset_password — le lien part de SITE_URL et de la route du reset
+// configurée, jamais du `Host` de la requête.
+// ═══════════════════════════════════════════════════════════════
+
+#[tokio::test]
+#[serial]
+async fn test_reset_link_uses_site_url_and_the_configured_reset_route() {
+    let (router, dbc) = admin_server::build_admin_app_customized(|b| {
+        b.site_url("https://mysite.test")
+            .with_password_reset(|pr| pr.reset_route("/reinit"))
+    })
+    .await;
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let base = format!("http://{}", listener.local_addr().unwrap());
+    tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+
+    let client = login_as_superuser(&base).await;
+    let target_id = find_superuser_id(&dbc).await;
+    let detail_url = format!("{base}{ADMIN_PREFIX}/users/{target_id}/detail");
+    let token = csrf_token(&client, &detail_url).await;
+    client
+        .post(format!(
+            "{base}{ADMIN_PREFIX}/users/{target_id}/reset-password"
+        ))
+        .form(&[("csrf_token", token.as_str())])
+        .send()
+        .await
+        .expect("POST reset-password");
+
+    let body = client
+        .get(&detail_url)
+        .send()
+        .await
+        .unwrap()
+        .text()
+        .await
+        .unwrap();
+    assert!(body.contains("https://mysite.test/reinit/"), "{body}");
+    assert!(!body.contains(&format!("{base}/reset-password/")), "{body}");
+    // The admin's "back to site" link, left at its default, is SITE_URL.
+    assert!(body.contains(r#"href="https://mysite.test""#), "{body}");
+}

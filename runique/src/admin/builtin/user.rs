@@ -11,7 +11,7 @@ use crate::admin::{
             CountFn, CreateFn, DeleteFn, FormBuilder, GetFn, ListFn, ListParams, ResourceEntry,
             SortDir, UpdateFn,
         },
-        sql_dialect::{ilike, text_eq},
+        sql_dialect::ilike,
     },
     resource::AdminResource,
 };
@@ -185,9 +185,20 @@ pub(super) fn user_entry() -> ResourceEntry {
                 sea_query::{Alias, Expr, Order},
             };
             let mut query = user::Entity::find();
+            // The columns shown in the list: any other `sort_by` is ignored.
+            const SORT_COLS: &[&str] = &[
+                "id",
+                "username",
+                "email",
+                "is_active",
+                "is_staff",
+                "is_superuser",
+                "created_at",
+                "updated_at",
+                "activated_at",
+            ];
             if let Some(ref col) = params.sort_by
-                && !col.is_empty()
-                && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+                && SORT_COLS.contains(&col.as_str())
             {
                 let order = if params.sort_dir == SortDir::Desc {
                     Order::Desc
@@ -196,13 +207,8 @@ pub(super) fn user_entry() -> ResourceEntry {
                 };
                 query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
             }
-            for (col, val) in &params.column_filters {
-                // Identifier guard (blocks injection on every backend) + bound value.
-                if col.is_empty() || !col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_') {
-                    continue;
-                }
-                query = query.filter(text_eq(&db, col.as_str(), val));
-            }
+            // No sidebar filter is declared: a `filter_*` from the query string
+            // is ignored rather than turned into a condition on any column.
             if let Some(ref search_str) = params.search {
                 let pattern = format!("%{}%", search_str.to_lowercase());
                 let mut search_cond = sea_orm::Condition::any();
@@ -224,7 +230,7 @@ pub(super) fn user_entry() -> ResourceEntry {
         })
     });
 
-    let count_fn: CountFn = Arc::new(|db: ADb, _search, _column_filters| {
+    let count_fn: CountFn = Arc::new(|db: ADb, _search, _column_filters, _scope| {
         Box::pin(async move {
             use sea_orm::QueryFilter;
             let mut query = user::Entity::find();

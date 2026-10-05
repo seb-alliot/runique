@@ -97,11 +97,11 @@ impl StaticStaging {
                     report.add(
                         crate::app::error_build::CheckError::new(
                             label,
-                            format!("Invalid Cache-Control header value: '{}'", value),
+                            crate::utils::trad::tf("build.check.cache_control_invalid", &[&value]),
                         )
-                        .with_suggestion(
-                            "Use only visible ASCII characters (no control characters, no newlines).",
-                        ),
+                        .with_suggestion(crate::utils::trad::t(
+                            "build.check.cache_control_invalid_hint",
+                        )),
                     );
                     report
                 }));
@@ -114,16 +114,14 @@ impl StaticStaging {
                 report.add(
                     crate::app::error_build::CheckError::new(
                         "MediaRoot",
-                        format!(
-                            "Cannot create or access MEDIA_ROOT directory '{}': {}",
-                            media_root, e
+                        crate::utils::trad::tf(
+                            "build.check.media_root_unusable",
+                            &[media_root.to_string(), e.to_string()],
                         ),
                     )
-                    .with_suggestion(
-                        "Set MEDIA_ROOT to an absolute writable path in your .env \
-                         (e.g. MEDIA_ROOT=/var/www/myapp/media) and ensure the process \
-                         has write permission.",
-                    ),
+                    .with_suggestion(crate::utils::trad::t(
+                        "build.check.media_root_unusable_hint",
+                    )),
                 );
                 report
             })

@@ -86,15 +86,20 @@ pub type UpdateFn =
 /// Closure creating a new entry from validated form data.
 pub type CreateFn = Arc<dyn Fn(ADb, StrMap) -> BoxFuture<'static, Result<(), DbErr>> + Send + Sync>;
 
-/// Closure returning the total number of entries.
+/// Closure returning the total number of entries the list shows.
 ///
-/// Receives the optional search term **and** the trusted parent scope
-/// (`Some((fk_col, parent_id))`), so a scoped child list
-/// (`WHERE {fk_col} = {parent_id}`) paginates on the scoped total rather than
-/// the whole table. The scope is framework-injected (never from the query
-/// string), so it bypasses the sidebar-filter allowlist.
+/// Receives what `ListFn` filters on — the optional search term, the column
+/// filters, the trusted parent scope (`Some((fk_col, parent_id))`) — and must
+/// apply it the same way, or pagination counts rows the list doesn't show.
+/// Column filters go through the same allowlist as the list's; the scope is
+/// framework-injected (never from the query string), so it bypasses it.
 pub type CountFn = Arc<
-    dyn Fn(ADb, Option<String>, Option<(String, String)>) -> BoxFuture<'static, Result<u64, DbErr>>
+    dyn Fn(
+            ADb,
+            Option<String>,
+            Vec<(String, String)>,
+            Option<(String, String)>,
+        ) -> BoxFuture<'static, Result<u64, DbErr>>
         + Send
         + Sync,
 >;

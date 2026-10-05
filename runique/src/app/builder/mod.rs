@@ -217,6 +217,17 @@ impl RuniqueAppBuilder {
         self
     }
 
+    // ─── Public site URL ──────────────────────────────────────────────────────
+
+    /// Sets the public URL of the site (`https://mysite.com`), overriding
+    /// `SITE_URL` from the `.env`. Every absolute link the app sends out —
+    /// password reset links among them — is built on it.
+    pub fn site_url(mut self, url: &str) -> Self {
+        let url = url.trim().trim_end_matches('/');
+        self.config.server.site_url = (!url.is_empty()).then(|| url.to_string());
+        self
+    }
+
     // ─── Password reset ───────────────────────────────────────────────────────
 
     /// Enables the built-in password reset flow (accounts of `eihwaz_users`).
@@ -235,7 +246,6 @@ impl RuniqueAppBuilder {
     /// .with_password_reset(|pr| pr
     ///     .forgot_route("/forgot-password")
     ///     .reset_route("/reset")
-    ///     .base_url("https://mysite.com")
     /// )
     /// ```
     pub fn with_password_reset(

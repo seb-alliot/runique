@@ -2,7 +2,7 @@
 
 Navigate the Runique Framework codebase.
 
-**Version**: 2.3.0 — **Updated**: 2026-09-24
+**Version**: 3.0.0 — **Updated**: 2026-10-05
 
 ---
 

@@ -6,9 +6,9 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## [2.3.0 Upcoming]
+## [3.0.0 Upcoming]
 
-> Three structural additions: `ValidationForm<F>` (validation proven by the type system), `ADb` (a single database handle type, identical in production and in tests) and the `runique_test` test builder with its `runique test` command. Testing at the framework's edges (reading `.env`, sessions, dependencies) also turned up several security holes, fixed here: a CSRF token that survived login, a session that survived logout, `ENFORCE_HTTPS=True` being ignored, and the database password exposed through `Debug`. Every breaking change is grouped under *Breaking*.
+> Three structural additions: `ValidationForm<F>` (validation proven by the type system), `ADb` (a single database handle type, identical in production and in tests) and the `runique_test` test builder with its `runique test` command. Testing at the framework's edges (reading `.env`, sessions, dependencies) also turned up several security holes, fixed here: a CSRF token that survived login, a session that survived logout, `ENFORCE_HTTPS=True` being ignored, and the database password exposed through `Debug`. The admin and authentication then went through a full review: every admin write now passes a single gate, accounts and rights are read from the database on every request, the database itself guarantees an account's state, a password reset closes every session, and a run of `cargo mutants` led to removing dead and duplicate APIs. Every breaking change is grouped under *Breaking*.
 
 ### Security — `runique` (CSRF: the token wasn't renewed at login)
 
@@ -46,9 +46,68 @@ All notable changes to this project will be documented in this file.
 
 * **The `Content-Security-Policy` header with a nonce is systematically overwritten by a second, nonce-less header.** `security_headers_middleware` (always active) generates a nonce, injects it into the request extensions (which correctly feeds `{% csp %}`/`{{ csp_nonce }}` in templates), and sets the CSP header **with** that nonce. But `csp_middleware`, added as soon as `.with_csp(...)` is called — the normal, documented usage — sets the **same** header **without** a nonce, and runs afterward (the outermost layer in Axum/Tower's `.layer()` ordering): its `insert()` fully replaces the first value. Result: the rendered HTML carries valid `nonce="..."` attributes, but the final CSP header declares none — the browser **blocks** the nonce-tagged inline scripts/styles. This was invisible via `use_nonce`/`.with_nonce()` (removed in this version): that field never did anything either way. **✅ Fixed** — `csp_middleware`/slot 31 removed from `applicator.rs`, redundant with slot 30. While digging, `RuniqueEngine::attach_middlewares` (a second wiring path, never actually called) and the `enable_csp`/`enable_header_security` flags (`MiddlewareConfig`), `enable_header_security`/`.with_header_security()` (`CspConfig`), and `strict_csp`/`STRICT_CSP` (`SecurityConfig`) all turned out to be inert once the duplicate was removed — removed too, real behavior unchanged. Details in `diagramme/anomalies.md` (entries E2/E3/CX2).
 
+### Security — `runique` (`FileField`: any server file could be deleted or moved)
+
+* **A `FileField` took its value from `Forms::fill` without checking it came from an upload.** Sending `avatar=/path/to/app.db` as plain form text (or a multipart part without a filename) was enough: a failed validation made `cleanup_files` **delete** that file; a passing one made `finalize` **move** it into `MEDIA_ROOT`, where it's publicly served.
+* New `is_staged_upload(path)`: a real file directly inside `{MEDIA_ROOT}/.staging-<uuid>/`, canonicalized (`..` and symlinks don't get through). New `FormField::set_submitted_value` (defaults to `set_value`), called by `Forms::fill`; `FileField` overrides it and drops (with a warning) any value that isn't a staged upload. Defense in depth: `cleanup_files` only deletes staged files, `finalize` refuses to move an existing file that wasn't staged, and the admin edit only deletes a replaced file that lies under `MEDIA_ROOT`.
+* Tests: `tests/formulaire/test_file_field_path_guard.rs`, including the real chain `parse_multipart` → `fill` → `validate` → `finalize`.
+
+### Security — `runique` (admin: the raw request body reached every write)
+
+* **Create and edit passed the whole request body to `create_fn`/`update_fn`**, the form's fields only overwriting their own keys. Any other key the client sent was written. Concrete case, user creation: `is_active=true` created an active account (the docs promise an inactive one, activated by its owner), and a `password` holding an Argon2 hash chosen by the creator was stored as is — an active account whose password the creator knows.
+* **Bulk edit and `group_set` did the same**: `update-submit` sent every raw key to `partial_update_fn` (scope foreign key, read-only fields, password, a file path…), `group_set` accepted any `ga_<column>` key, and no row was checked against a nested route's parent.
+* **All admin writes now go through a single gate** (`admin/admin_main/gate.rs`), in three checks: *who* (the signed-in user's rights, from their groups), *which rows* (`verify_scope_ownership`, `_own` ownership), *what* (only the declared form fields, validated and finalized; only the configured group actions and their offered values; the parent forced from the URL; a random password on creation). Create, edit, delete, bulk and `group_set` use it.
+* Tests: `tests/admin/test_admin_raw_body.rs`, `tests/admin/test_admin_access_control.rs`.
+
+### Security — `runique` (admin: `extra_routes` checked no right at all)
+
+* **A route added with `extra_routes` was reachable by any signed-in staff member**, whatever their rights on the resource it belonged to. It now passes through the gate (`extra_route_gate`): list/view → `can_read`, create → `can_create`, edit → `can_update`, delete → `can_delete`; a refusal goes back to the dashboard. An unknown resource name is a build error. See *Breaking — admin*.
+
+### Security — `runique` (deactivating an account or removing a right didn't take effect)
+
+* **`is_active`, `is_staff` and `is_superuser` were copied into the session at login and never read again**, and group rights lived in an in-memory cache invalidated by hand (by hooks that `delete_many`, a rollback, raw SQL or another instance all bypassed). Deactivating an account or removing a right left the open session as it was.
+* **The account and its rights are now read from the database on every request**: `load_admin_user` in the admin, `auth_middleware` across the whole app. An account that is gone, deactivated or no longer staff has its session closed — and reactivating it doesn't bring that session back. The permission cache is removed (see *Breaking — permission cache*). Changing a right is atomic (transaction).
+* Tests: rights removed in SQL refused at the next request; deactivated account signed out.
+
+### Security — `runique` (a password reset reactivated a deactivated account)
+
+* **Resetting the password set `is_active = true`**: a user blocked by the staff got back in through "forgot password". The account now has two columns: `is_active` (its state) and `activated_at` (when its owner first took it over, written once). Pending = (false, empty), active = (true, set), deactivated = (false, set). A reset activates a pending account once, never a deactivated one.
+* **Guaranteed by the database itself**: `CHECK (NOT is_active OR activated_at IS NOT NULL)` (`eihwaz_users_active_needs_activation`), checked on SQLite, Postgres and MariaDB. In code, `RuniqueUser::can_sign_in()` (`is_active && activated_at` for the built-in model) is used by every sign-in path.
+* "Forgot password" by state: pending → activation link, active → reset link, blocked → an "account blocked" email with no link; the page answers the same for every address. The admin can reactivate a deactivated account but can't activate a pending one (`admin.user.not_activated`). See *Breaking — `eihwaz_users`*.
+
+### Security — `runique` (a password reset left the other sessions open)
+
+* **Setting a new password through the reset link closed no session**: a stolen session stayed valid. Once the new password is saved, every session of the account is now closed, on every device, through `RuniqueEngine::close_user_sessions(user_id)`: database rows first, then memory — in that order, since a session dropped from memory first could be read back from the database by a request arriving in between. Other accounts are left alone. Done when the password is set, never when the reset is requested: otherwise anyone could sign anyone out by typing their email.
+* Limit: a store plugged in with `with_session_store()` (Redis…) can't be searched by user. Test: `tests/auth/test_reset_closes_sessions.rs` (fails without the fix).
+
+### Security — `runique` (`ENFORCE_HTTPS`: the redirect was never mounted)
+
+* **`https_redirect_middleware` existed but nothing mounted it**: behind a TLS-terminating proxy, `ENFORCE_HTTPS=true` emitted HSTS but redirected nothing. It's now mounted at slot 17 (right after Host validation, so the redirect is built from a checked `Host`).
+* It only redirects when the proxy says `X-Forwarded-Proto: http` (first value of a chain). Without the header, the request goes through: nothing tells it apart from a request the proxy received over HTTPS without saying so, and redirecting it would loop forever. Not mounted when ACME is active: Runique then serves TLS itself, and its port-80 listener already redirects — which now keeps the path and query (it sent everything to the site root).
+* Docs (`middleware/csp`, `installation/network`) state the exact behavior and the proxy configuration it requires (`Host`, `X-Forwarded-Proto`).
+
+### Security — `runique` (`upload_to_env()`: the server's absolute path in public URLs)
+
+* **`upload_to_env()` returned `{MEDIA_ROOT}/{field}` while `finalize` treats the upload folder as relative to `MEDIA_ROOT`**: the folder was nested into itself (`/srv/app/media/srv/app/media/avatar/`), and the stored value — so the public URL — held the server's absolute path. `upload_to(&StaticConfig)` had the same bug. Now `{MEDIA_ROOT}/{field}/` and the root of `MEDIA_ROOT` respectively. `model!{}`/`#[form]` (`[upload_to: "avatars/"]`, relative) were not affected.
+* The docs said `upload_to("uploads/images")` was an exact path: it's `{MEDIA_ROOT}/uploads/images/`. Don't include `MEDIA_ROOT` in it.
+
+### Security — `runique` (debug error page: API keys, secrets and signatures shown in clear)
+
+* **The debug page hid only the headers whose name holds `authorization`, `cookie` or `token`**: `X-Api-Key`, `X-Client-Secret`, `X-Hub-Signature-256`, `X-Session-Id`, `X-Password`… were listed in clear (17 of 30 common sensitive headers). The filter now covers `auth`, `cookie`, `session`, `token`, `key`, `secret`, `password`, `passwd`, `credential` and `signature`. Only shown with `debug=true`; the production error page lists no header at all.
+* Tests: `tests/middleware/test_debug_page_headers.rs`, on the real page rendered by a real app (the previous tests used an empty Tera that never rendered the header table): 30 sensitive headers, a visible one as a witness, 500 and 404 in debug, production. Removing any word from the filter fails them.
+
+### Security — `runique` (built-in admin lists: sorting and filtering on any column)
+
+* **The users, groups and rights lists turned any `sort_by` and `filter_*` from the query string into SQL**, guarded only against injection: `filter_password=…` compared password hashes, `sort_by=password` ordered by them. They now only sort by the columns they show, and — declaring no sidebar filter — ignore every `filter_*`, like generated resources (`SORT_COLS`/`FILTER_COLS`). As a side effect, sorting the rights list by `id` no longer fails on Postgres and MariaDB, where `eihwaz_groupes_droits` has no such column. Tests: `tests/admin/test_builtin_list_params.rs`.
+
+### Security — `runique` (password reset links built from the request's `Host`)
+
+* **Without a configured base URL, the reset link was built from the request's `Host` header** — on the "forgot password" page and on both admin paths. Asking a reset for a victim's address with `Host: evil.com` mailed the victim a genuine email whose link led to the attacker's site, carrying the victim's token. Host validation didn't stop it by default (only with `.with_allowed_hosts(...)`).
+* **Every reset link is now built on `SITE_URL`**, the site's public URL (`.env`, or `.site_url(…)` in the builder): the public pages with their `reset_route`, the admin with the same route — it used to hardcode `/reset-password`. **Production refuses to boot without `SITE_URL`** when the password reset or the admin is enabled; in debug, the request's `Host` stays the fallback, with a warning. The admin's "back to site" link, left at its default, is `SITE_URL` too. The demo-app's own activation link had the same flaw: fixed the same way, and the extractors docs no longer teach building an absolute URL from `Host`. Tests: `tests/app/test_reset_link_base.rs`, `test_reset_link_uses_site_url_and_the_configured_reset_route`, unit tests of `reset_link_base`.
+
 ### Breaking — `runique` (`ADb`: one database handle type across the framework)
 
-* **Public signatures that took `&DatabaseConnection` or `Arc<DatabaseConnection>` now take `&ADb`** (`db/adb.rs`): the `UserEntity` trait methods (`find_by_username`, `find_by_email`, `find_by_id`, `update_password`), `RuniqueSessionStore::new`, `RuniqueQueryBuilder::order_by_random`, the `engine.db` field, and everything that receives the framework's database (`search!`, forms, admin, auth).
+* **Public signatures that took `&DatabaseConnection` or `Arc<DatabaseConnection>` now take `&ADb`** (`db/adb.rs`): the `BuiltinUserEntity` lookups, `RuniqueSessionStore::new`, `RuniqueQueryBuilder::order_by_random`, the `engine.db` field, and everything that receives the framework's database (`search!`, forms, admin, auth).
 * `ADb` is a handle that's cheap to clone (`Arc` inside) and implements `ConnectionTrait` and `TransactionTrait` **directly**: `.insert(db)`, `.one(db)` or `db.begin()` work as is, no `.as_ref()`. That's why it's a type of its own: the orphan rule forbids implementing those traits on `Arc<DatabaseConnection>`. With the `test-utils` feature, the same type also wraps a test transaction, so business code runs identically in production and in tests.
 * The builder's `.with_database(DatabaseConnection)` is unchanged; `ADb::from_connection(conn)` builds one by hand. Migration: replace `&DatabaseConnection` with `&ADb` in functions that receive the framework's database.
 
@@ -92,9 +151,69 @@ All notable changes to this project will be documented in this file.
 
 * **`attach_middlewares` was a second middleware-wiring path, never actually used by the framework** — the real pipeline runs entirely through `MiddlewareStaging`/the slot applicator. Zero callers anywhere in the crate, including in real integration tests (its own dedicated test file only exercised it in isolation, giving a false sense of coverage). Found while digging into a real bug on that live path (see *Security — CSP: the per-request nonce never reaches the browser*). Removed along with its dedicated test file; if any external code called it directly (unlikely — no trace of it in the docs), use the standard builder (`RuniqueAppBuilder::build()`) instead.
 
-### Breaking — `runique` (`RuniqueQueryBuilder::order_by_random()`: not portable to MariaDB/MySQL)
+### Breaking — `runique` (a single user model: `eihwaz_users`)
 
-* **`order_by_random()` emitted a hardcoded `RANDOM()`**, valid on SQLite/Postgres but rejected by MySQL/MariaDB (which expect `RAND()`) — the query broke on both despite Runique's advertised support for them. The method now takes `db: &ADb` and picks the right function via `db.get_database_backend()`, the same pattern already used by `admin::helper::sql_dialect::text_cast_type`. Replace `.order_by_random()` with `.order_by_random(&db)`.
+* **Removed**: the `UserEntity` and `AdminAuth` traits, `DefaultAdminAuth<E>`, `AdminLoginResult`, `RuniqueAdminAuth`, `.auth()` on the admin builder, `PasswordResetAdapter`/`PasswordResetHandler`, and the type parameter of `with_password_reset::<E>()`. Accounts are `eihwaz_users`, extended with `extend!{}`; a second user model wasn't supported anywhere else.
+* **Instead**: `BuiltinUserEntity::find_by_id`/`find_by_username`/`find_by_email`/`update_password_by_id`/`activate_pending`/`set_password_and_activate`, `auth::authenticate_admin()` (password checked first whatever the account, then admin access), `with_password_reset(|pr| …)` with no type parameter. `authenticate_user()` is unchanged.
+
+### Breaking — `runique` (`eihwaz_users`: `activated_at` column and `CHECK` constraint)
+
+* A consequence of *Security — a password reset reactivated a deactivated account*: `eihwaz_users` gets an `activated_at` column and the `eihwaz_users_active_needs_activation` constraint, created by the framework's table. An existing database needs upgrading — without dropping the table, which would cascade to sessions, group links and `extend!{}` columns. On Postgres:
+
+```sql
+BEGIN;
+ALTER TABLE eihwaz_users ADD COLUMN activated_at timestamp without time zone;
+UPDATE eihwaz_users SET activated_at = COALESCE(created_at, now()) WHERE is_active;
+ALTER TABLE eihwaz_users ADD CONSTRAINT eihwaz_users_active_needs_activation
+    CHECK (NOT is_active OR activated_at IS NOT NULL);
+COMMIT;
+```
+
+* An inactive account that can't be told apart from a never-activated one becomes pending: its owner activates it through the link.
+
+### Breaking — `runique` (permission cache removed, groups loaded on demand)
+
+* A consequence of *Security — deactivating an account or removing a right didn't take effect*: `cache_permissions`, `get_permissions`, `evict_permissions`, `clear_cache`, `restore_permissions`, `CachedPermissions`, `refresh_cache_for_user`, `load_user_middleware` and the cache hooks of `groupes_droits`/`users_groupes` are gone. Nothing replaces them: rights are read from the database when needed.
+* Outside the admin, `CurrentUser.groupes` is empty unless the handler calls `req.load_user_rights().await` (two queries) — most pages never look at groups.
+
+### Breaking — `runique` (admin: `extra_routes`, `AdminResource`)
+
+* `extra_routes` takes `(path, resource, CrudOperation, MethodRouter)`: the operation decides the right checked (see *Security — `extra_routes`*).
+* `ResourcePermissions`, `AdminResource::with_permissions`, the `permissions` field and the `roles` parameter of `AdminResource::new` (4 arguments now) are removed, along with the admin roles registry (`register_roles`/`get_roles`) — rights come from groups. Regenerate `src/admins/` (`runique start`).
+
+### Breaking — `runique` (`GuardRules`: checked against the signed-in account, roles are groups)
+
+* **`GuardContext` is removed**: nothing in the framework ever filled it, so any rule refused every request. Sentinel now reads the `CurrentUser` that `auth_middleware` read from the database.
+* Roles are group names (`eihwaz_groupes`): a single method, `roles(["editeur"])`, any one of them is enough. `role`, `login_and_role`, `login_and_roles` and `with_role` are removed. New `staff()` and `superuser()`. Every rule requires a signed-in account; a superuser passes the staff and role checks. A failed group lookup refuses.
+
+### Breaking — `runique` (flash messages: lowercase levels)
+
+* **`MessageLevel` is serialized in lowercase**: `message.html` builds the CSS class from it, which gave `message-Success` while a stylesheet written the usual way expects `message-success` (Campanile's flash messages showed unstyled). Rename `.message-Success`/`Error`/`Info`/`Warning` to lowercase in your CSS. `as_css_class()` returns the same class as the template (`message-success`…).
+
+### Breaking — `runique` (dead and duplicate APIs removed)
+
+* Duplicates of a working API: `no_statics()` → `.static_files(|s| s.enabled(false))`; `with_error_handler(b)` → `.middleware(|m| m.with_debug_errors(b))`; `SessionConfig`/`SessionBackend`/`ASessionStore` → `with_session_duration()`, `with_session_store()`; `PasswordConfig::oauth(p)` → `PasswordConfig::Delegated(p)`; `Request::render_with` → `insert` then `render`; `ErrorContext::with_request` → `with_request_helper`; `MiddlewareConfig::with_host_validation`.
+* Never called: `ModelSchema::to_migration` and `to_sea_column`/`to_sea_foreign_key`/`to_sea_index` (migrations come from the `model!{}` parser, and this path didn't create indexes), `auto_now_columns`/`auto_now_update_columns`/`has_auto_timestamps`, `generate_relations_file` (foreign keys are created inline), `by_time_dir`/`by_time_table_dir`, `first_str_arg`, `to_pascal_case`, `DbKind`, `ParsedColumn::enum_is_pg`, `RuniqueUser::roles`, `update_password` (by email), `RuniqueQueryBuilder::all_from_engine` (opened a connection pool on every call), `sanitize_with_fallback`, `AdminResource::extra_map`, `ErrorContext::with_details`, the `roles` admin log level, the aliases `Bdd`/`OADb`/`OSecurityCsp`/`OSecurityHosts`/`TResult`/`DbResult`, the constants `NONCE_KEY`/`SESSION_USER_ROLES_KEY`/`REGISTERED_ROLES`, and the inspection getters `TrustedProxiesConfig::get_proxies`/`StaticStaging::is_enabled`/`MiddlewareStaging::custom_count`.
+
+### Breaking — `runique` (`Prisme::for_test` and `Forms::mark_validated` behind `test-utils`)
+
+* Both bypass a check (CSRF, form validation) and only exist for integration tests: they're now compiled only with the `test-utils` feature.
+
+### Breaking — `derive_form` (`auto_now`: set by the entity, not by the database)
+
+* `[auto_now]` and `[auto_now_update]` are now filled by a generated `ActiveModelBehavior::before_save` — `auto_now` on insert unless already set, `auto_now_update` on every save — the same on every engine. Migrations no longer emit a Postgres trigger or a MySQL `ON UPDATE CURRENT_TIMESTAMP`, and the column name `updated_at` no longer means anything on its own: the attribute decides. Generated conversions return a `Result` (`FormDataError`). Regenerate the entities and republish `derive_form` before `runique`.
+
+### Breaking — `runique` (`login()` no longer takes the database)
+
+* `login(&session, &user, db_store, exclusive)`: the `db` parameter was never used. Remove the second argument at each call. `auth_login()`, which does load the user, keeps it.
+
+### Breaking — `runique` (`SITE_URL` replaces the reset base URLs)
+
+* A consequence of *Security — password reset links built from the request's `Host`*: `PasswordResetConfig::base_url()` and `AdminConfig::reset_password_url()` are removed. Set `SITE_URL=https://mysite.com` in the production `.env` (or `.site_url(…)` in the builder), or the app doesn't boot when the password reset or the admin is enabled.
+
+### Breaking — `runique` (`CountFn` receives the column filters)
+
+* `CountFn` is now `(ADb, search, column_filters, scope)`: it must apply the same column filters as `ListFn`, through the same allowlist. Regenerate `src/admins/` (`runique start`); a hand-written `count_fn` takes one more argument.
 
 ### Added — `runique` (`runique_test` test builder and `runique test` command)
 
@@ -104,7 +223,7 @@ All notable changes to this project will be documented in this file.
   - A query that fails while the handler returns `Ok` fails the test: an error got swallowed somewhere (`.ok()`, `unwrap_or_default()`…). `expect_db_error(db, async |sp| …)` runs a refusal you want (unique constraint, foreign key, `NOT NULL`) in a savepoint and marks it as expected.
   - A transaction ended from inside the test (a raw `COMMIT`, or DDL on MariaDB/MySQL, which commits implicitly) fails the test. On Postgres and MariaDB the final `ROLLBACK` used to succeed without undoing anything: the builder now checks for itself (`txid_current()` on Postgres, `@@in_transaction` on MariaDB).
   - `execute_unprepared`, which SeaORM doesn't report, still shows up in the trace.
-* **Isolation.** Before rolling back, it waits (3 s at most) for a clone of the connection kept by a spawned task to be dropped; permission cache entries the test changed are put back; tests are serialized within the process.
+* **Isolation.** Before rolling back, it waits (3 s at most) for a clone of the connection kept by a spawned task to be dropped; tests are serialized within the process.
 * **Configuration read from the env file only**, with no fallback to the shell, where `DATABASE_URL` could point anywhere. The file has to name its database (`DATABASE_URL` or `DB_ENGINE`): otherwise the test is refused, rather than a local SQLite file being quietly created. The target is shown again whenever it changes, with the file's path and the password masked; a malformed line is never echoed (it may be `DATABASE_URL=…`).
 * **`TestTransaction` trait**: `ADb` (SeaORM) is the implementation provided; another engine (MongoDB…) can implement its own.
 * **`runique test [file] [test]` command**: checks the setup (`runique_test` module behind `cfg(test)`, files declared, `test-utils` as a dev-dependency — refused when it reaches a release build through `[dependencies]`, `[workspace.dependencies]` or a `[features]` entry), then runs `cargo test` one test at a time, with shortened names (`blog::created_article…`) in soft orange and spaced-out results.
@@ -113,7 +232,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added — `runique` (public type aliases)
 
-* `utils::aliases` exposes the types used across the framework: `StrMap`, `StrVecMap`, `JsonMap`, `ATera`, `AEngine`, `APermissionsPolicy`, `ARuniqueConfig`, `ASessionStore`, and their `Option` variants (`OATera`, `OAEngine`…). Additive.
+* `utils::aliases` exposes the types used across the framework: `StrMap`, `StrVecMap`, `JsonMap`, `ATera`, `AEngine`, `APermissionsPolicy`, `ARuniqueConfig`, and their `Option` variants (`OATera`, `OAEngine`…). Additive.
 
 ### Added — `runique` (`Lang::from_env()`)
 
@@ -125,6 +244,18 @@ All notable changes to this project will be documented in this file.
 * **Three new `RuniqueForm` hooks**, all overridable per form: `register_dynamic_fields(&mut self, request)` (fields depending on the request, registered before validation runs — e.g. choices loaded from the DB); `allow_get`/`allow_post(&self, request) -> bool` decide whether to attempt validation for GET-class (GET/HEAD/OPTIONS/TRACE) and POST-class (POST/PUT/PATCH/DELETE/CONNECT) requests respectively. Both default to the new `RuniqueForm::is_submitted()` — a thin wrapper over `Forms::is_submitted()` (kept `pub(crate)`; external forms go through the trait method instead) — except `allow_get`, overridden to **`false`** unconditionally: GET/HEAD are the only CSRF-exempt methods, so a form that auto-validated on GET by default would let its `is_valid()`-gated side effects (DB write, login, email) run from a plain crafted link, no CSRF token needed. A read-only GET search/filter form is the one legitimate case that should auto-validate — it opts in explicitly (`fn allow_get(&self, _r: &Request) -> bool { self.is_submitted() }`), one line, rather than every state-changing form having to remember to opt out.
 * `ValidationForm::database_error(&mut self, err)` and `.into_form()` let a handler either keep working with the wrapper (read-only access via `Deref<Target = F>`, e.g. to record a DB error without unwrapping) or reclaim the plain `F` when it needs `&mut F`/owned `F` for its own save logic.
 * Every handler using the old `is_get()`/`is_post()` pattern migrated — `demo-app` (`info_user`, `handle_inscription`, `handle_login`, `handle_contribution_submit`, `handle_blog_save`, `handle_upload_image`), the framework's own built-in `forgot_password`/`password_reset` (`auth/password.rs`), and the project scaffold `runique new` generates (`composant-bin/code/views.rs`, verified by scaffolding a real test project and compiling it against the local source). `ForgotPasswordForm`/`PasswordResetForm` need no `allow_get` override at all — a state-changing action (issuing a reset token, updating a password) never runs on a "safe" HTTP method, which `allow_get`'s `false` default already guarantees. `demo-app`'s `UsernameForm` (GET-only search) is the one form that opts in, overriding `allow_get` to `Forms::is_submitted()`.
+
+### Added — `runique` (password rehash at sign-in)
+
+* After changing the configured algorithm (bcrypt → Argon2, say), stored hashes used to keep the old one forever. `authenticate_user` now rewrites a hash made with another algorithm right after a successful sign-in — the only moment the plain password is at hand — the practice OWASP recommends and Django follows. A failed rewrite doesn't fail the sign-in; the next one tries again. `is_algorithm_current` only answers "outdated" when it's certain: with a custom hasher or an unknown prefix, it used to answer "outdated", which would have rewritten the password at every sign-in.
+
+### Added — `runique` (`GuardRules`: an unknown group is an error)
+
+* A misspelt name in `roles([...])` refused everyone but superusers, silently. When a role rule refuses, the names are now checked against `eihwaz_groupes`: an unknown one raises an error naming it — on the debug page with `debug=true`, a plain 500 (and a log line) otherwise. Granted requests pay nothing. New i18n key `forms.unknown_group` in the 9 languages.
+
+### Added — `runique` (`RuniqueEngine::close_user_sessions`)
+
+* Closes every session of a user, database then memory. Used by the password reset; available to your own handlers (password change from a profile page, compromised account).
 
 ### Fix — `runique` (i18n: a literal `\n` in two CLI messages)
 
@@ -189,6 +320,36 @@ All notable changes to this project will be documented in this file.
 
 * **Validating and finalizing a `FileField` did synchronous disk I/O** (metadata, magic-byte reads, image dimension decoding, moving the file) directly on the tokio worker thread handling the request — under load, an upload could stall other requests served by the same worker for the duration of the disk operation. Initially mitigated with `tokio::task::block_in_place`; superseded (see *Breaking — `FormField` trait*) by real `tokio::fs` I/O once `validate`/`finalize` became `async fn` — `block_in_place` no longer appears anywhere in `file.rs`.
 * **Moving a staged file into `MEDIA_ROOT` failed with no fallback when the two directories sat on different filesystems** (`ErrorKind::CrossesDevices` — a common production topology, e.g. a temporary staging directory on `tmpfs`). A copy-then-remove fallback is still attempted automatically in that case (now via `tokio::fs::rename`/`copy`).
+
+### Fix — `runique` (`order_by_random()` on MariaDB/MySQL)
+
+* It emitted a hardcoded `RANDOM()`, rejected by MariaDB/MySQL (`RAND()`). It now uses sea-query's `Func::random()`, rendered per engine. The signature is unchanged from 2.2: no parameter.
+
+### Fix — `runique` (admin on MariaDB: empty foreign-key labels, many-to-many links)
+
+* **Foreign-key labels and search were empty on MariaDB, with no error**: `CAST(id AS TEXT)` is rejected there (`CHAR` is required) and the error was swallowed. Now `Expr::col(id).cast_as(...)` with the type picked per engine (`text_cast_type_of`). Confirmed by putting the old code back.
+* **Generated many-to-many writes** used raw SQL (`ON CONFLICT DO NOTHING`, invalid on MariaDB), ignored their errors and ran outside any transaction. They now go through `admin::helper::m2m::write_links` (sea-query, typed values, same transaction as the row, errors returned). Regenerate `src/admins/`.
+* Tests: `tests/admin/test_native_sql.rs`, on SQLite, Postgres and MariaDB.
+
+### Fix — `runique` (admin: editing a user's groups was ignored)
+
+* The built-in users resource dropped the group changes on edit. They're now replaced in the same transaction as the account.
+
+### Fix — `runique_dsl` (`[max_size: 500KB]` read as 500 MB)
+
+* A unit glued to the number was read as a literal suffix: `500KB` became 500 MB and `5GB` 5 MB. `parse_size` now reads the unit, with overflow checks. Found by `cargo mutants`; the parser is also covered by `proptest` properties (never panics on arbitrary input).
+
+### Fix — `runique` (password reset: token generation errors were silent)
+
+* A failed reset token generation sent no email and logged nothing, on the "forgot password" page and on both admin paths (account creation, "send a reset link"). It's now always traced (`ERROR`); the page still answers the same.
+
+### Fix — `runique` (admin: wrong pagination with a sidebar filter)
+
+* The list was filtered but its count wasn't: with a filter on, the total and the page count were those of the whole table, and the last pages came up empty. The count now receives the column filters, and the generated one applies them like the list. Test: `tests/admin/test_list_count_filters.rs` (fails without the fix).
+
+### Fix — `runique` (boot checks: messages always in English)
+
+* The boot report's header was translated, but none of its checks were: database, admin prefix, extra routes, Cache-Control, `MEDIA_ROOT`, `SECRET_KEY`, `SITE_URL`, ACME — messages and suggestions now go through i18n (`build.check.*`, 9 languages), along with the "Suggestion" and "Context" labels. The English texts are unchanged. Test: the report in French.
 
 ### Docs — `makemigrations` (`--force` and column type changes)
 

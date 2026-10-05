@@ -126,7 +126,29 @@
     "check_failed": "构建检查失败，共 {} 个错误",
     "template_failed": "模板加载失败：{}",
     "db_missing": "启用 'orm' 功能时需要数据库连接",
-    "component_not_ready": "组件 '{}' 尚未就绪"
+    "component_not_ready": "组件 '{}' 尚未就绪",
+    "check": {
+      "db_required": "需要数据库连接或配置（已启用 `orm` feature）",
+      "db_required_hint": "请在构建链中添加 .with_database(db) 或 .with_database_config(config)",
+      "admin_prefix_empty": "管理后台的路由前缀不能为空",
+      "admin_prefix_empty_hint": "请使用 .prefix(\"/admin\") 或保留默认值",
+      "extra_route_unknown": "附加路由 `{}` 指向的资源 `{}` 未注册",
+      "extra_route_unknown_hint": "请使用在 admin!{} 中声明的资源键",
+      "cache_control_invalid": "无效的 Cache-Control 头值：'{}'",
+      "cache_control_invalid_hint": "只能使用可见的 ASCII 字符（不能有控制字符或换行）。",
+      "media_root_unusable": "无法创建或访问 MEDIA_ROOT 目录 '{}'：{}",
+      "media_root_unusable_hint": "请在 .env 中将 MEDIA_ROOT 设为可写的绝对路径（例如 MEDIA_ROOT=/var/www/myapp/media），并确保进程有写入权限。",
+      "secret_key_weak": "SECRET_KEY 缺失、为空、为默认值或少于 32 个字符",
+      "secret_key_weak_hint": "请在 .env 中将 SECRET_KEY 设为至少 32 个字符的随机字符串（`runique` CLI 可以生成）",
+      "site_url_missing": "未设置 SITE_URL：重置链接将根据请求的 Host 头生成",
+      "site_url_missing_hint": "请在 .env 中设置 SITE_URL=https://mysite.com，或在 builder 中使用 .site_url(\"https://mysite.com\")",
+      "acme_domain_missing": "ACME_ENABLED=true 但未设置 ACME_DOMAIN",
+      "acme_domain_missing_hint": "请在 .env 中将 ACME_DOMAIN 设为你的生产域名",
+      "acme_email_missing": "ACME_ENABLED=true 但未设置 ACME_EMAIL",
+      "acme_email_missing_hint": "请在 .env 中将 ACME_EMAIL 设为你的 Let's Encrypt 联系邮箱",
+      "suggestion": "建议",
+      "context": "上下文"
+    }
   },
   "server": {
     "operational": "Runique 正在运行",

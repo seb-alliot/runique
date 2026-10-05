@@ -177,7 +177,7 @@ impl fmt::Display for BuildError {
         }
 
         if let Some(ctx) = &self.context {
-            write!(f, "\nContext: {}", ctx)?;
+            write!(f, "\n{}: {}", t("build.check.context"), ctx)?;
         }
 
         Ok(())
@@ -188,7 +188,7 @@ impl fmt::Display for CheckError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "[{}] {}", self.component, self.message)?;
         if let Some(suggestion) = &self.suggestion {
-            write!(f, " (Suggestion: {})", suggestion)?;
+            write!(f, " ({}: {})", t("build.check.suggestion"), suggestion)?;
         }
         Ok(())
     }

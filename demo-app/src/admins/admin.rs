@@ -542,10 +542,20 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(
-        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+        |db: ADb,
+         _search: Option<String>,
+         column_filters: Vec<(String, String)>,
+         scope: Option<(String, String)>| {
             Box::pin(async move {
                 use sea_orm::QueryFilter;
                 let mut query = contribution::Entity::find();
+                const FILTER_COLS: &[&str] = &["user_id", "contribution_type", "title", "content"];
+                for (col, val) in &column_filters {
+                    if !FILTER_COLS.contains(&col.as_str()) {
+                        continue;
+                    }
+                    query = query.filter(text_eq(&db, col.as_str(), val));
+                }
                 if let Some(ref search_str) = _search {
                     let search_cond = search_cond!(&db => contribution::Entity => or("user_id" icontains search_str, "contribution_type" icontains search_str, "title" icontains search_str, "content" icontains search_str));
                     query = query.filter(search_cond);
@@ -928,10 +938,20 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(
-        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+        |db: ADb,
+         _search: Option<String>,
+         column_filters: Vec<(String, String)>,
+         scope: Option<(String, String)>| {
             Box::pin(async move {
                 use sea_orm::QueryFilter;
                 let mut query = blog::Entity::find();
+                const FILTER_COLS: &[&str] = &["title", "email", "website", "summary", "content"];
+                for (col, val) in &column_filters {
+                    if !FILTER_COLS.contains(&col.as_str()) {
+                        continue;
+                    }
+                    query = query.filter(text_eq(&db, col.as_str(), val));
+                }
                 if let Some(ref search_str) = _search {
                     let search_cond = search_cond!(&db => blog::Entity => or("title" icontains search_str, "email" icontains search_str, "website" icontains search_str, "summary" icontains search_str, "content" icontains search_str));
                     query = query.filter(search_cond);
@@ -1369,10 +1389,27 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(
-        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+        |db: ADb,
+         _search: Option<String>,
+         column_filters: Vec<(String, String)>,
+         scope: Option<(String, String)>| {
             Box::pin(async move {
                 use sea_orm::QueryFilter;
                 let mut query = changelog_entry::Entity::find();
+                const FILTER_COLS: &[&str] = &[
+                    "version",
+                    "release_date",
+                    "category",
+                    "title",
+                    "description",
+                    "sort_order",
+                ];
+                for (col, val) in &column_filters {
+                    if !FILTER_COLS.contains(&col.as_str()) {
+                        continue;
+                    }
+                    query = query.filter(text_eq(&db, col.as_str(), val));
+                }
                 if let Some(ref search_str) = _search {
                     let search_cond = search_cond!(&db => changelog_entry::Entity => or("version" icontains search_str, "release_date" icontains search_str, "category" icontains search_str, "title" icontains search_str, "description" icontains search_str, "sort_order" icontains search_str));
                     query = query.filter(search_cond);
@@ -1879,10 +1916,29 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(
-        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+        |db: ADb,
+         _search: Option<String>,
+         column_filters: Vec<(String, String)>,
+         scope: Option<(String, String)>| {
             Box::pin(async move {
                 use sea_orm::QueryFilter;
                 let mut query = roadmap_entry::Entity::find();
+                const FILTER_COLS: &[&str] = &[
+                    "status",
+                    "title",
+                    "description",
+                    "link_url",
+                    "link_label",
+                    "link_url_2",
+                    "link_label_2",
+                    "sort_order",
+                ];
+                for (col, val) in &column_filters {
+                    if !FILTER_COLS.contains(&col.as_str()) {
+                        continue;
+                    }
+                    query = query.filter(text_eq(&db, col.as_str(), val));
+                }
                 if let Some(ref search_str) = _search {
                     let search_cond = search_cond!(&db => roadmap_entry::Entity => or("status" icontains search_str, "title" icontains search_str, "description" icontains search_str, "link_url" icontains search_str, "link_label" icontains search_str, "link_url_2" icontains search_str, "link_label_2" icontains search_str, "sort_order" icontains search_str));
                     query = query.filter(search_cond);
@@ -2491,10 +2547,26 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(
-        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+        |db: ADb,
+         _search: Option<String>,
+         column_filters: Vec<(String, String)>,
+         scope: Option<(String, String)>| {
             Box::pin(async move {
                 use sea_orm::QueryFilter;
                 let mut query = known_issue::Entity::find();
+                const FILTER_COLS: &[&str] = &[
+                    "version",
+                    "title",
+                    "description",
+                    "issue_type",
+                    "sort_order",
+                ];
+                for (col, val) in &column_filters {
+                    if !FILTER_COLS.contains(&col.as_str()) {
+                        continue;
+                    }
+                    query = query.filter(text_eq(&db, col.as_str(), val));
+                }
                 if let Some(ref search_str) = _search {
                     let search_cond = search_cond!(&db => known_issue::Entity => or("version" icontains search_str, "title" icontains search_str, "description" icontains search_str, "issue_type" icontains search_str, "sort_order" icontains search_str));
                     query = query.filter(search_cond);
@@ -2930,10 +3002,20 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(
-        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+        |db: ADb,
+         _search: Option<String>,
+         column_filters: Vec<(String, String)>,
+         scope: Option<(String, String)>| {
             Box::pin(async move {
                 use sea_orm::QueryFilter;
                 let mut query = demo_category::Entity::find();
+                const FILTER_COLS: &[&str] = &[];
+                for (col, val) in &column_filters {
+                    if !FILTER_COLS.contains(&col.as_str()) {
+                        continue;
+                    }
+                    query = query.filter(text_eq(&db, col.as_str(), val));
+                }
                 if let Some(ref search_str) = _search {
                     let search_cond = search_cond!(&db => demo_category::Entity => all_columns icontains search_str);
                     query = query.filter(search_cond);
@@ -3100,10 +3182,27 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(
-        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+        |db: ADb,
+         _search: Option<String>,
+         column_filters: Vec<(String, String)>,
+         scope: Option<(String, String)>| {
             Box::pin(async move {
                 use sea_orm::QueryFilter;
                 let mut query = demo_page::Entity::find();
+                const FILTER_COLS: &[&str] = &[
+                    "category_id",
+                    "slug",
+                    "title",
+                    "lead",
+                    "page_type",
+                    "sort_order",
+                ];
+                for (col, val) in &column_filters {
+                    if !FILTER_COLS.contains(&col.as_str()) {
+                        continue;
+                    }
+                    query = query.filter(text_eq(&db, col.as_str(), val));
+                }
                 if let Some(ref search_str) = _search {
                     let search_cond = search_cond!(&db => demo_page::Entity => or("category_id" icontains search_str, "slug" icontains search_str, "title" icontains search_str, "lead" icontains search_str, "page_type" icontains search_str, "sort_order" icontains search_str));
                     query = query.filter(search_cond);
@@ -3586,10 +3685,20 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(
-        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+        |db: ADb,
+         _search: Option<String>,
+         column_filters: Vec<(String, String)>,
+         scope: Option<(String, String)>| {
             Box::pin(async move {
                 use sea_orm::QueryFilter;
                 let mut query = demo_section::Entity::find();
+                const FILTER_COLS: &[&str] = &["page_id", "title", "content", "sort_order"];
+                for (col, val) in &column_filters {
+                    if !FILTER_COLS.contains(&col.as_str()) {
+                        continue;
+                    }
+                    query = query.filter(text_eq(&db, col.as_str(), val));
+                }
                 if let Some(ref search_str) = _search {
                     let search_cond = search_cond!(&db => demo_section::Entity => or("page_id" icontains search_str, "title" icontains search_str, "content" icontains search_str, "sort_order" icontains search_str));
                     query = query.filter(search_cond);
@@ -3982,10 +4091,27 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(
-        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+        |db: ADb,
+         _search: Option<String>,
+         column_filters: Vec<(String, String)>,
+         scope: Option<(String, String)>| {
             Box::pin(async move {
                 use sea_orm::QueryFilter;
                 let mut query = code_example::Entity::find();
+                const FILTER_COLS: &[&str] = &[
+                    "page_id",
+                    "title",
+                    "language",
+                    "code",
+                    "context",
+                    "sort_order",
+                ];
+                for (col, val) in &column_filters {
+                    if !FILTER_COLS.contains(&col.as_str()) {
+                        continue;
+                    }
+                    query = query.filter(text_eq(&db, col.as_str(), val));
+                }
                 if let Some(ref search_str) = _search {
                     let search_cond = search_cond!(&db => code_example::Entity => or("page_id" icontains search_str, "title" icontains search_str, "language" icontains search_str, "code" icontains search_str, "context" icontains search_str, "sort_order" icontains search_str));
                     query = query.filter(search_cond);
@@ -4466,10 +4592,21 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(
-        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+        |db: ADb,
+         _search: Option<String>,
+         column_filters: Vec<(String, String)>,
+         scope: Option<(String, String)>| {
             Box::pin(async move {
                 use sea_orm::QueryFilter;
                 let mut query = page_doc_link::Entity::find();
+                const FILTER_COLS: &[&str] =
+                    &["page_id", "label", "url", "link_type", "sort_order"];
+                for (col, val) in &column_filters {
+                    if !FILTER_COLS.contains(&col.as_str()) {
+                        continue;
+                    }
+                    query = query.filter(text_eq(&db, col.as_str(), val));
+                }
                 if let Some(ref search_str) = _search {
                     let search_cond = search_cond!(&db => page_doc_link::Entity => or("page_id" icontains search_str, "label" icontains search_str, "url" icontains search_str, "link_type" icontains search_str, "sort_order" icontains search_str));
                     query = query.filter(search_cond);
@@ -4914,10 +5051,28 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(
-        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+        |db: ADb,
+         _search: Option<String>,
+         column_filters: Vec<(String, String)>,
+         scope: Option<(String, String)>| {
             Box::pin(async move {
                 use sea_orm::QueryFilter;
                 let mut query = form_field::Entity::find();
+                const FILTER_COLS: &[&str] = &[
+                    "page_id",
+                    "name",
+                    "field_type",
+                    "description",
+                    "example",
+                    "html_preview",
+                    "sort_order",
+                ];
+                for (col, val) in &column_filters {
+                    if !FILTER_COLS.contains(&col.as_str()) {
+                        continue;
+                    }
+                    query = query.filter(text_eq(&db, col.as_str(), val));
+                }
                 if let Some(ref search_str) = _search {
                     let search_cond = search_cond!(&db => form_field::Entity => or("page_id" icontains search_str, "name" icontains search_str, "field_type" icontains search_str, "description" icontains search_str, "example" icontains search_str, "html_preview" icontains search_str, "sort_order" icontains search_str));
                     query = query.filter(search_cond);
@@ -5459,10 +5614,20 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(
-        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+        |db: ADb,
+         _search: Option<String>,
+         column_filters: Vec<(String, String)>,
+         scope: Option<(String, String)>| {
             Box::pin(async move {
                 use sea_orm::QueryFilter;
                 let mut query = doc_section::Entity::find();
+                const FILTER_COLS: &[&str] = &["lang", "theme"];
+                for (col, val) in &column_filters {
+                    if !FILTER_COLS.contains(&col.as_str()) {
+                        continue;
+                    }
+                    query = query.filter(text_eq(&db, col.as_str(), val));
+                }
                 if let Some(ref search_str) = _search {
                     let search_cond = search_cond!(&db => doc_section::Entity => or("slug" icontains search_str, "lang" icontains search_str, "title" icontains search_str, "theme" icontains search_str, "sort_order" icontains search_str));
                     query = query.filter(search_cond);
@@ -5743,10 +5908,21 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(
-        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+        |db: ADb,
+         _search: Option<String>,
+         column_filters: Vec<(String, String)>,
+         scope: Option<(String, String)>| {
             Box::pin(async move {
                 use sea_orm::QueryFilter;
                 let mut query = doc_page::Entity::find();
+                const FILTER_COLS: &[&str] =
+                    &["section_id", "slug", "lang", "title", "lead", "sort_order"];
+                for (col, val) in &column_filters {
+                    if !FILTER_COLS.contains(&col.as_str()) {
+                        continue;
+                    }
+                    query = query.filter(text_eq(&db, col.as_str(), val));
+                }
                 if let Some(ref search_str) = _search {
                     let search_cond = search_cond!(&db => doc_page::Entity => or("section_id" icontains search_str, "slug" icontains search_str, "lang" icontains search_str, "title" icontains search_str, "lead" icontains search_str, "sort_order" icontains search_str));
                     query = query.filter(search_cond);
@@ -6236,10 +6412,21 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(
-        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+        |db: ADb,
+         _search: Option<String>,
+         column_filters: Vec<(String, String)>,
+         scope: Option<(String, String)>| {
             Box::pin(async move {
                 use sea_orm::QueryFilter;
                 let mut query = doc_block::Entity::find();
+                const FILTER_COLS: &[&str] =
+                    &["page_id", "heading", "content", "block_type", "sort_order"];
+                for (col, val) in &column_filters {
+                    if !FILTER_COLS.contains(&col.as_str()) {
+                        continue;
+                    }
+                    query = query.filter(text_eq(&db, col.as_str(), val));
+                }
                 if let Some(ref search_str) = _search {
                     let search_cond = search_cond!(&db => doc_block::Entity => or("page_id" icontains search_str, "content" icontains search_str, "block_type" icontains search_str, "heading" icontains search_str, "sort_order" icontains search_str));
                     query = query.filter(search_cond);
@@ -6672,10 +6859,20 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(
-        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+        |db: ADb,
+         _search: Option<String>,
+         column_filters: Vec<(String, String)>,
+         scope: Option<(String, String)>| {
             Box::pin(async move {
                 use sea_orm::QueryFilter;
                 let mut query = site_config::Entity::find();
+                const FILTER_COLS: &[&str] = &[];
+                for (col, val) in &column_filters {
+                    if !FILTER_COLS.contains(&col.as_str()) {
+                        continue;
+                    }
+                    query = query.filter(text_eq(&db, col.as_str(), val));
+                }
                 if let Some(ref search_str) = _search {
                     let search_cond = search_cond!(&db => site_config::Entity => all_columns icontains search_str);
                     query = query.filter(search_cond);
@@ -6839,10 +7036,28 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(
-        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+        |db: ADb,
+         _search: Option<String>,
+         column_filters: Vec<(String, String)>,
+         scope: Option<(String, String)>| {
             Box::pin(async move {
                 use sea_orm::QueryFilter;
                 let mut query = cour::Entity::find();
+                const FILTER_COLS: &[&str] = &[
+                    "slug",
+                    "lang",
+                    "title",
+                    "theme",
+                    "difficulte",
+                    "ordre",
+                    "sort_order",
+                ];
+                for (col, val) in &column_filters {
+                    if !FILTER_COLS.contains(&col.as_str()) {
+                        continue;
+                    }
+                    query = query.filter(text_eq(&db, col.as_str(), val));
+                }
                 if let Some(ref search_str) = _search {
                     let search_cond = search_cond!(&db => cour::Entity => or("slug" icontains search_str, "lang" icontains search_str, "title" icontains search_str, "theme" icontains search_str, "difficulte" icontains search_str, "ordre" icontains search_str, "sort_order" icontains search_str));
                     query = query.filter(search_cond);
@@ -7372,10 +7587,20 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(
-        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+        |db: ADb,
+         _search: Option<String>,
+         column_filters: Vec<(String, String)>,
+         scope: Option<(String, String)>| {
             Box::pin(async move {
                 use sea_orm::QueryFilter;
                 let mut query = chapitre::Entity::find();
+                const FILTER_COLS: &[&str] = &["cour_id", "slug", "title", "sort_order"];
+                for (col, val) in &column_filters {
+                    if !FILTER_COLS.contains(&col.as_str()) {
+                        continue;
+                    }
+                    query = query.filter(text_eq(&db, col.as_str(), val));
+                }
                 if let Some(ref search_str) = _search {
                     let search_cond = search_cond!(&db => chapitre::Entity => or("cour_id" icontains search_str, "slug" icontains search_str, "title" icontains search_str, "sort_order" icontains search_str));
                     query = query.filter(search_cond);
@@ -7753,10 +7978,21 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(
-        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+        |db: ADb,
+         _search: Option<String>,
+         column_filters: Vec<(String, String)>,
+         scope: Option<(String, String)>| {
             Box::pin(async move {
                 use sea_orm::QueryFilter;
                 let mut query = cour_block::Entity::find();
+                const FILTER_COLS: &[&str] =
+                    &["chapitre_id", "block_type", "heading", "sort_order"];
+                for (col, val) in &column_filters {
+                    if !FILTER_COLS.contains(&col.as_str()) {
+                        continue;
+                    }
+                    query = query.filter(text_eq(&db, col.as_str(), val));
+                }
                 if let Some(ref search_str) = _search {
                     let search_cond = search_cond!(&db => cour_block::Entity => or("chapitre_id" icontains search_str, "block_type" icontains search_str, "heading" icontains search_str, "sort_order" icontains search_str));
                     query = query.filter(search_cond);
@@ -8140,10 +8376,20 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(
-        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+        |db: ADb,
+         _search: Option<String>,
+         column_filters: Vec<(String, String)>,
+         scope: Option<(String, String)>| {
             Box::pin(async move {
                 use sea_orm::QueryFilter;
                 let mut query = runique_release::Entity::find();
+                const FILTER_COLS: &[&str] = &["version"];
+                for (col, val) in &column_filters {
+                    if !FILTER_COLS.contains(&col.as_str()) {
+                        continue;
+                    }
+                    query = query.filter(text_eq(&db, col.as_str(), val));
+                }
                 if let Some(ref search_str) = _search {
                     let search_cond = search_cond!(&db => runique_release::Entity => or("version" icontains search_str, "github_url" icontains search_str, "crates_url" icontains search_str));
                     query = query.filter(search_cond);
@@ -8373,10 +8619,20 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(
-        |db: ADb, _search: Option<String>, scope: Option<(String, String)>| {
+        |db: ADb,
+         _search: Option<String>,
+         column_filters: Vec<(String, String)>,
+         scope: Option<(String, String)>| {
             Box::pin(async move {
                 use sea_orm::QueryFilter;
                 let mut query = user_profile::Entity::find();
+                const FILTER_COLS: &[&str] = &["username", "is_verified"];
+                for (col, val) in &column_filters {
+                    if !FILTER_COLS.contains(&col.as_str()) {
+                        continue;
+                    }
+                    query = query.filter(text_eq(&db, col.as_str(), val));
+                }
                 if let Some(ref search_str) = _search {
                     let search_cond = search_cond!(&db => user_profile::Entity => or("username" icontains search_str, "bio" icontains search_str, "website" icontains search_str, "phone" icontains search_str, "birth_date" icontains search_str, "is_verified" icontains search_str));
                     query = query.filter(search_cond);

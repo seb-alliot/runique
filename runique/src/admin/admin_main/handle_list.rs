@@ -68,7 +68,15 @@ pub(super) async fn handle_list(
         },
         async {
             match &entry.count_fn {
-                Some(f) => f(req.engine.db.clone(), search.clone(), scope.clone()).await,
+                Some(f) => {
+                    f(
+                        req.engine.db.clone(),
+                        search.clone(),
+                        column_filters.clone(),
+                        scope.clone(),
+                    )
+                    .await
+                }
                 None => Ok(0u64),
             }
         },
