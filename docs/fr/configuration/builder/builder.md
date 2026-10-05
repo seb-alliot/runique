@@ -64,7 +64,7 @@ let app = RuniqueApp::builder(config)
 
 ```rust
 let app = RuniqueApp::builder(config)
-    .with_error_handler(true)   // Active le handler d'erreurs (défaut : true)
+    .middleware(|m| m.with_debug_errors(true))  // Pages d'erreur détaillées (défaut : true)
     .routes(router)
     .build()
     .await?;
@@ -111,6 +111,27 @@ Ou via `.middleware()` pour les options avancées :
      .with_anonymous_session_duration(Duration::minutes(5))
      .with_session_memory_limit(128 * 1024 * 1024, 256 * 1024 * 1024)
 })
+```
+
+### URL publique — `with_public_url`
+
+L'adresse publique de l'application, celle que tape un visiteur : la base de tous les liens absolus qu'elle envoie — les liens de reset de mot de passe, côté public comme depuis l'admin — et du lien « voir le site » de l'admin s'il n'en définit pas un lui-même :
+
+```rust
+let app = RuniqueApp::builder(config)
+    .with_public_url("https://monsite.fr")
+    .with_password_reset(|pr| pr)
+    .build()
+    .await?;
+```
+
+En production (`DEBUG=false`), l'application **refuse de démarrer** sans elle dès que le reset de mot de passe ou l'admin est activé : un lien construit à partir de l'en-tête `Host` de la requête irait là où le client le décide (`Host: evil.com` → le jeton de reset part chez l'attaquant). En debug, le `Host` sert de repli, avec un avertissement.
+
+Elle ne s'appelle **qu'une fois** : un second `.with_public_url(...)` ne compile pas (« `with_public_url()` has already been called on this builder »), plutôt que de remplacer le premier sans rien dire. Pour distinguer le local de la production, une condition suffit :
+
+```rust
+let builder = RuniqueApp::builder(config);
+let builder = if is_debug() { builder } else { builder.with_public_url("https://monsite.fr") };
 ```
 
 ### Logs framework
@@ -221,10 +242,34 @@ async fn mon_handler(req: Request) -> Response {
 let app = RuniqueApp::builder(config)
     .statics()     // Active les fichiers statiques
     // ou
-    .no_statics()  // Désactive explicitement
+    .static_files(|s| s.enabled(false))  // Désactive explicitement
     .build()
     .await?;
 ```
+
+## Réglages à appel unique
+
+Certains réglages remplacent leur valeur à chaque appel : les déclarer deux fois perdrait le premier sans rien dire. Ils ne s'appellent donc **qu'une fois par builder**, et un second appel **ne compile pas** :
+
+| Réglage | Remarque |
+| --- | --- |
+| `.with_public_url(…)` | |
+| `.routes(…)` | construire un seul `Router` (fusionner ou imbriquer les autres dedans) |
+| `.with_log(…)` | régler toutes les catégories dans le même appel |
+| `.with_password_reset(…)` | |
+| `.with_database(…)` / `.with_database_config(…)` | l'une **ou** l'autre, une fois |
+| `.with_session_duration(…)` | |
+| `.with_mailer(…)` / `.with_mailer_from_env()` | l'une **ou** l'autre, une fois |
+
+L'erreur nomme le réglage, par exemple :
+
+```
+error[E0277]: `routes()` has already been called on this builder
+```
+
+Les réglages qui **composent** — `.core(…)`, `.middleware(…)`, `.static_files(…)`, `.with_admin(…)`, `.with_custom_db(…)`, `.statics()` — reprennent l'état existant : on peut les appeler plusieurs fois.
+
+L'état est porté par le type du builder (`RuniqueAppBuilder<S>`), invisible tant qu'on enchaîne les appels. Une fonction qui renvoie un builder à mi-chemin doit l'écrire : `runique::app::builder::state::{No, Yes}`, un emplacement par réglage, dans l'ordre du tableau ci-dessus.
 
 ---
 
@@ -239,7 +284,8 @@ let app = RuniqueApp::builder(config)
 | **CSP + headers de sécurité** | ✅ Toujours actifs | Inconditionnel, quel que soit le mode ; `.with_csp(...)` personnalise, n'active pas |
 | **Host validation** | ❌ Désactivée | Aucune variable `.env` ne la contrôle — appeler `.with_allowed_hosts(...)` |
 | **Cache control** | ✅ Activé | No-cache en debug ; `.with_cache(true)` le désactive |
-| **Static files** | ✅ Activés | `.no_statics()` pour désactiver |
+| **Static files** | ✅ Activés | `.static_files(\|s\| s.enabled(false))` pour désactiver |
+| **URL publique** | — | Obligatoire en production si le reset ou l'admin est activé — `.with_public_url(...)` |
 | **Hot reload admin** | Selon `DEBUG` | Automatique via `is_debug()` |
 | **Logs framework** | ❌ Désactivés | Activer via `.with_log(\|l\| ...)` |
 

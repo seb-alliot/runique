@@ -32,7 +32,7 @@ use crate::utils::runique_log::log_init;
 #[cfg(feature = "orm")]
 use crate::middleware::session::session_db::RuniqueSessionStore;
 
-impl RuniqueAppBuilder {
+impl<P> RuniqueAppBuilder<P> {
     /// Validates and builds the application.
     ///
     /// # Construction Pipeline
@@ -137,14 +137,12 @@ impl RuniqueAppBuilder {
         let router = router.unwrap_or_default();
 
         // The admin's emailed reset links point to the reset page this app
-        // serves, and its "back to site" link left at "/" is the site itself.
+        // serves, and its "view site" link, unless set, is the app's public URL.
         if let Some(pr) = &self.password_reset {
             self.admin.config.reset_route = pr.config.reset_route.clone();
         }
-        if self.admin.config.site_url == "/"
-            && let Some(site) = &engine.config.server.site_url
-        {
-            self.admin.config.site_url = site.clone();
+        if self.admin.config.view_site_url.is_none() {
+            self.admin.config.view_site_url = engine.config.server.public_url.clone();
         }
 
         let router = if let Some(pr) = self.password_reset {
@@ -321,17 +319,17 @@ impl RuniqueAppBuilder {
             );
         }
 
-        // Without SITE_URL, a reset link would be built from the request's
+        // Without a public URL, a reset link would be built from the request's
         // `Host` header: someone asking a reset for a victim's address with
         // `Host: evil.com` would get the victim's token mailed in a link to
         // their own site.
-        if (self.password_reset.is_some() || self.admin.enabled) && srv.site_url.is_none() {
+        if (self.password_reset.is_some() || self.admin.enabled) && srv.public_url.is_none() {
             report.add(
                 CheckError::new(
-                    "SiteUrl",
-                    crate::utils::trad::t("build.check.site_url_missing"),
+                    "PublicUrl",
+                    crate::utils::trad::t("build.check.public_url_missing"),
                 )
-                .with_suggestion(crate::utils::trad::t("build.check.site_url_missing_hint")),
+                .with_suggestion(crate::utils::trad::t("build.check.public_url_missing_hint")),
             );
         }
 

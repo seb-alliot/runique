@@ -102,7 +102,7 @@ fn test_server_config_clone() {
         domain_server: "192.168.1.1:3000".to_string(),
         port: 3000,
         secret_key: "secret".to_string(),
-        site_url: None,
+        public_url: None,
     };
     let cloned = config.clone();
     assert_eq!(cloned.ip_server, config.ip_server);

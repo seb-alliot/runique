@@ -31,13 +31,9 @@ RuniqueAppBuilder::new(config)
     .await?
 ```
 
-Les liens envoyés par email partent de `SITE_URL`, l'URL publique du site, lue dans le `.env` (ou `.site_url("https://monsite.com")` dans le builder) :
+Les liens envoyés par email partent de l'URL publique du site, définie dans le builder par `.with_public_url("https://monsite.com")` (voir [Builder](/docs/fr/configuration/builder)).
 
-```env
-SITE_URL=https://monsite.com
-```
-
-En production, l'application refuse de démarrer sans `SITE_URL` : sinon le lien serait construit à partir de l'en-tête `Host` de la requête, qu'un attaquant choisit (`Host: evil.com` → le jeton de la victime part chez lui). En debug, le `Host` reste le repli, avec un avertissement.
+En production, l'application refuse de démarrer sans elle : sinon le lien serait construit à partir de l'en-tête `Host` de la requête, qu'un attaquant choisit (`Host: evil.com` → le jeton de la victime part chez lui). En debug, le `Host` reste le repli, avec un avertissement.
 
 > Les comptes sont ceux de `eihwaz_users`, la table utilisateur du framework — à enrichir avec `extend!{ table: "eihwaz_users", ... }`.
 
@@ -145,7 +141,7 @@ Variables disponibles :
 
 Si l'admin est activé avec `.user_resource()`, le panel peut envoyer des liens de reset directement depuis la fiche utilisateur.
 
-Le lien part de `SITE_URL` et de la route du reset configurée (`reset_route`, `/reset-password` par défaut) : rien à régler côté admin. Sans mailer configuré, le lien s'affiche dans un flash message.
+Le lien part de l'URL publique (`.with_public_url()`) et de la route du reset configurée (`reset_route`, `/reset-password` par défaut) : rien à régler côté admin. Sans mailer configuré, le lien s'affiche dans un flash message.
 
 Template email admin (optionnel, sinon template par défaut) :
 - `templates/admin/reset_password_email.html`

@@ -78,7 +78,7 @@ pub async fn handle_inscription(
             // SITE_URL, never the request's Host outside debug: a forged Host
             // would send the activation link — and its token — elsewhere.
             let config = &request.engine.config;
-            let base_url = config.server.site_url.clone().or_else(|| {
+            let base_url = config.server.public_url.clone().or_else(|| {
                 config
                     .debug
                     .then(|| headers.get("host").and_then(|v| v.to_str().ok()))

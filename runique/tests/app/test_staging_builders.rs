@@ -18,7 +18,7 @@ fn admin_staging_builders_keep_every_setting() {
         .no_robots_txt()
         .sitemap("https://site.example/sitemap.xml")
         .page_size(7)
-        .site_url("https://site.example")
+        .view_site_url("https://site.example")
         .resource_order(["users", "posts"])
         .with_login_guard(LoginGuard::new().max_attempts(3))
         .templates(|t| t.with_list("theme/list.html"))
@@ -39,7 +39,7 @@ fn admin_staging_builders_keep_every_setting() {
         Some("https://site.example/sitemap.xml")
     );
     assert_eq!(a.config.page_size, 7);
-    assert_eq!(a.config.site_url, "https://site.example");
+    assert_eq!(a.config.view_site_href(), "https://site.example");
     assert_eq!(a.config.resource_order, ["users", "posts"]);
     assert_eq!(
         a.config.login_guard.as_ref().map(|g| g.max_attempts),

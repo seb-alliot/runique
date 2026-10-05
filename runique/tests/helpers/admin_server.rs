@@ -8,6 +8,7 @@
 //! que les deux dérivent (schéma, registre, login) au fil des évolutions.
 
 use runique::admin::resource::CrudOperation;
+use runique::app::builder::state::{No, Yes};
 use std::{net::SocketAddr, sync::Arc, sync::OnceLock};
 
 use axum::{Router, routing::get};
@@ -342,9 +343,13 @@ pub async fn build_admin_app_with_extra_routes(
     build_admin_app_full(build_registry(), extra_routes, |b| b).await
 }
 
+/// The test admin's builder as `customize` receives it: database and logs set
+/// (their slots taken), everything else still open.
+pub type AdminTestBuilder = RuniqueAppBuilder<(No, No, Yes, No, Yes, No, No)>;
+
 /// Same admin app, with the builder adjusted by `customize` before `build()`.
-pub async fn build_admin_app_customized(
-    customize: impl FnOnce(RuniqueAppBuilder) -> RuniqueAppBuilder,
+pub async fn build_admin_app_customized<P>(
+    customize: impl FnOnce(AdminTestBuilder) -> RuniqueAppBuilder<P>,
 ) -> (Router, DatabaseConnection) {
     build_admin_app_full(build_registry(), Vec::new(), customize).await
 }
@@ -356,7 +361,7 @@ pub async fn build_admin_app_with_registry(
     build_admin_app_full(registry, Vec::new(), |b| b).await
 }
 
-async fn build_admin_app_full(
+async fn build_admin_app_full<P>(
     registry: AdminRegistry,
     extra_routes: Vec<(
         &'static str,
@@ -364,7 +369,7 @@ async fn build_admin_app_full(
         CrudOperation,
         axum::routing::MethodRouter,
     )>,
-    customize: impl FnOnce(RuniqueAppBuilder) -> RuniqueAppBuilder,
+    customize: impl FnOnce(AdminTestBuilder) -> RuniqueAppBuilder<P>,
 ) -> (Router, DatabaseConnection) {
     let dbc = db::fresh_db().await;
     db::exec(&dbc, USERS_DDL).await;

@@ -64,7 +64,7 @@ let app = RuniqueApp::builder(config)
 
 ```rust
 let app = RuniqueApp::builder(config)
-    .with_error_handler(true)   // Enable error handler (default: true)
+    .middleware(|m| m.with_debug_errors(true))  // Detailed error pages (default: true)
     .routes(router)
     .build()
     .await?;
@@ -111,6 +111,27 @@ Or via `.middleware()` for advanced options:
      .with_anonymous_session_duration(Duration::minutes(5))
      .with_session_memory_limit(128 * 1024 * 1024, 256 * 1024 * 1024)
 })
+```
+
+### Public URL — `with_public_url`
+
+The application's public address, the one a visitor types: the base of every absolute link it sends out — password reset links, from the public pages and from the admin — and of the admin's "view site" link unless the admin sets its own:
+
+```rust
+let app = RuniqueApp::builder(config)
+    .with_public_url("https://mysite.com")
+    .with_password_reset(|pr| pr)
+    .build()
+    .await?;
+```
+
+In production (`DEBUG=false`), the app **refuses to boot** without it as soon as the password reset or the admin is enabled: a link built from the request's `Host` header would go wherever the client decides (`Host: evil.com` → the reset token goes to the attacker). In debug, the `Host` is the fallback, with a warning.
+
+It's called **once**: a second `.with_public_url(...)` doesn't compile ("`with_public_url()` has already been called on this builder"), rather than silently replacing the first. To tell local from production apart, a condition is enough:
+
+```rust
+let builder = RuniqueApp::builder(config);
+let builder = if is_debug() { builder } else { builder.with_public_url("https://mysite.com") };
 ```
 
 ### Framework logs
@@ -221,10 +242,34 @@ async fn my_handler(req: Request) -> Response {
 let app = RuniqueApp::builder(config)
     .statics()     // Enable static files
     // or
-    .no_statics()  // Explicitly disable
+    .static_files(|s| s.enabled(false))  // Explicitly disable
     .build()
     .await?;
 ```
+
+## Once-only settings
+
+Some settings replace their value on every call: declaring them twice would silently lose the first. So they're called **once per builder**, and a second call **doesn't compile**:
+
+| Setting | Note |
+| --- | --- |
+| `.with_public_url(…)` | |
+| `.routes(…)` | build a single `Router` (merge or nest the others into it) |
+| `.with_log(…)` | set every category in the same call |
+| `.with_password_reset(…)` | |
+| `.with_database(…)` / `.with_database_config(…)` | one **or** the other, once |
+| `.with_session_duration(…)` | |
+| `.with_mailer(…)` / `.with_mailer_from_env()` | one **or** the other, once |
+
+The error names the setting, for instance:
+
+```
+error[E0277]: `routes()` has already been called on this builder
+```
+
+Settings that **compose** — `.core(…)`, `.middleware(…)`, `.static_files(…)`, `.with_admin(…)`, `.with_custom_db(…)`, `.statics()` — continue from the existing state: they can be called several times.
+
+The state lives in the builder's type (`RuniqueAppBuilder<S>`), invisible while calls are chained. A function returning a half-built builder has to spell it: `runique::app::builder::state::{No, Yes}`, one slot per setting, in the order of the table above.
 
 ---
 
@@ -239,7 +284,8 @@ let app = RuniqueApp::builder(config)
 | **CSP + security headers** | ✅ Always on | Unconditional, regardless of mode; `.with_csp(...)` customizes, doesn't enable |
 | **Host validation** | ❌ Disabled | No `.env` variable controls it — call `.with_allowed_hosts(...)` |
 | **Cache control** | ✅ Enabled | No-cache in debug; `.with_cache(true)` turns it off |
-| **Static files** | ✅ Enabled | `.no_statics()` to disable |
+| **Static files** | ✅ Enabled | `.static_files(\|s\| s.enabled(false))` to disable |
+| **Public URL** | — | Required in production when the password reset or the admin is enabled — `.with_public_url(...)` |
 | **Admin hot reload** | Follows `DEBUG` | Automatic via `is_debug()` |
 | **Framework logs** | ❌ Disabled | Enable via `.with_log(\|l\| ...)` |
 

@@ -35,7 +35,7 @@ Ces variables sont injectées sur **toutes les vues CRUD admin** via `inject_con
 | --- | --- | --- |
 | `lang` | `String` | Code de langue courant (ex: `"fr"`) |
 | `site_title` | `String` | Titre du site configuré dans `AdminConfig` |
-| `site_url` | `String` | URL de base du site configurée dans `AdminConfig` |
+| `site_url` | `String` | Lien « voir le site » : `view_site_url` de l'admin, sinon l'URL publique (`.with_public_url()`), sinon `/` |
 | `resource_key` | `&str` | Clé de la ressource courante (ex: `"users"`) |
 | `current_resource` | `&str` | Identique à `resource_key` |
 | `resource` | `AdminResource` | Métadonnées complètes de la ressource courante (voir ci-dessous) |

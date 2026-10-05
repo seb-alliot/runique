@@ -13,6 +13,7 @@ features = ["runique/all-databases", "runique/test-utils"]
 # mutant "timed out".
 timeout_multiplier = 3.0
 
-# Generated code: mutating it only tests the generator, already covered by
-# runique's own tests (`runique start` writes admins/, makemigrations migration/).
-exclude_globs = ["demo-app/src/admins/**", "demo-app/migration/**"]
+# The demo app is an example, not the framework: its generated code (admins/,
+# migration/) only tests the generators, already covered by runique's own
+# tests, and the rest is application code.
+exclude_globs = ["demo-app/**"]

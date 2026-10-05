@@ -103,7 +103,7 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 ### Sécurité — `runique` (liens de reset de mot de passe construits depuis le `Host` de la requête)
 
 * **Sans URL de base configurée, le lien de reset était construit à partir de l'en-tête `Host` de la requête** — sur la page « mot de passe oublié » et sur les deux chemins de l'admin. Demander un reset pour l'adresse d'une victime avec `Host: evil.com` lui envoyait un vrai email dont le lien menait chez l'attaquant, avec le jeton de la victime. La validation du Host ne l'empêchait pas par défaut (seulement avec `.with_allowed_hosts(...)`).
-* **Tout lien de reset part désormais de `SITE_URL`**, l'URL publique du site (`.env`, ou `.site_url(…)` dans le builder) : les pages publiques avec leur `reset_route`, l'admin avec la même route — il codait `/reset-password` en dur. **La production refuse de démarrer sans `SITE_URL`** quand le reset ou l'admin est activé ; en debug, le `Host` de la requête reste le repli, avec un avertissement. Le lien « retour au site » de l'admin, laissé à sa valeur par défaut, devient lui aussi `SITE_URL`. Le lien d'activation de la demo-app avait la même faille : corrigé de la même façon, et la doc des extracteurs n'enseigne plus à construire une URL absolue depuis `Host`. Tests : `tests/app/test_reset_link_base.rs`, `test_reset_link_uses_site_url_and_the_configured_reset_route`, tests unitaires de `reset_link_base`.
+* **Tout lien de reset part désormais de l'URL publique du site**, définie par `.with_public_url(…)` dans le builder : les pages publiques avec leur `reset_route`, l'admin avec la même route — il codait `/reset-password` en dur. **La production refuse de démarrer sans elle** quand le reset ou l'admin est activé ; en debug, le `Host` de la requête reste le repli, avec un avertissement. Le lien « voir le site » de l'admin la suit, sauf si l'admin définit le sien (`view_site_url`, qui remplace `site_url`). Le lien d'activation de la demo-app avait la même faille : corrigé de la même façon, et la doc des extracteurs n'enseigne plus à construire une URL absolue depuis `Host`. Tests : `tests/app/test_reset_link_base.rs`, `test_reset_link_uses_site_url_and_the_configured_reset_route`, tests unitaires de `reset_link_base`.
 
 ### Rupture — `runique` (`ADb` : un seul type de connexion à la base dans tout le framework)
 
@@ -207,13 +207,17 @@ COMMIT;
 
 * `login(&session, &user, db_store, exclusive)` : le paramètre `db` n'était jamais utilisé. Retirer le deuxième argument à chaque appel. `auth_login()`, qui charge vraiment l'utilisateur, le garde.
 
-### Rupture — `runique` (`SITE_URL` remplace les URL de base du reset)
+### Rupture — `runique` (`with_public_url()` remplace les URL de base du reset)
 
-* Conséquence de *Sécurité — liens de reset construits depuis le `Host` de la requête* : `PasswordResetConfig::base_url()` et `AdminConfig::reset_password_url()` sont supprimées. Définir `SITE_URL=https://monsite.fr` dans le `.env` de production (ou `.site_url(…)` dans le builder), sinon l'application ne démarre pas quand le reset ou l'admin est activé.
+* Conséquence de *Sécurité — liens de reset construits depuis le `Host` de la requête* : `PasswordResetConfig::base_url()` et `AdminConfig::reset_password_url()` sont supprimées. Définir `.with_public_url("https://monsite.fr")` dans le builder — une seule fois : un second appel ne compile pas — sinon l'application ne démarre pas quand le reset ou l'admin est activé.
 
 ### Rupture — `runique` (`CountFn` reçoit les filtres de colonne)
 
 * `CountFn` devient `(ADb, search, column_filters, scope)` : il doit appliquer les mêmes filtres de colonne que `ListFn`, avec la même liste blanche. Régénérer `src/admins/` (`runique start`) ; un `count_fn` écrit à la main prend un argument de plus.
+
+### Rupture — `runique` (builder : réglages à appel unique vérifiés à la compilation)
+
+* `with_public_url`, `routes`, `with_log`, `with_password_reset`, `with_database`/`with_database_config`, `with_session_duration` et `with_mailer`/`with_mailer_from_env` acceptaient un second appel qui remplaçait le premier sans rien dire — un second `routes()` perdait toutes les routes du premier ; un second appel au mailer était *ignoré* sans rien dire. Ils ne s'appellent plus qu'une fois par builder : un second appel ne compile pas, avec une erreur qui nomme le réglage (`#[diagnostic::on_unimplemented]`). L'état est porté par le type du builder (`RuniqueAppBuilder<S>`, avec une valeur par défaut, invisible tant qu'on enchaîne les appels) ; une fonction qui renvoie un builder à mi-chemin l'écrit avec `app::builder::state::{No, Yes}`. Les réglages qui composent (`core`, `middleware`, `static_files`, `with_admin`, `with_custom_db`, `statics`) ne changent pas. Protégé par des doctests `compile_fail`.
 
 ### Ajout — `runique` (builder de test `runique_test` et commande `runique test`)
 
@@ -349,7 +353,7 @@ COMMIT;
 
 ### Correctif — `runique` (vérifications au démarrage : messages toujours en anglais)
 
-* L'en-tête du rapport de démarrage était traduit, mais aucune de ses vérifications : base de données, préfixe admin, routes supplémentaires, Cache-Control, `MEDIA_ROOT`, `SECRET_KEY`, `SITE_URL`, ACME — messages et suggestions passent désormais par l'i18n (`build.check.*`, 9 langues), ainsi que les étiquettes « Suggestion » et « Contexte ». Les textes anglais ne changent pas. Test : le rapport en français.
+* L'en-tête du rapport de démarrage était traduit, mais aucune de ses vérifications : base de données, préfixe admin, routes supplémentaires, Cache-Control, `MEDIA_ROOT`, `SECRET_KEY`, URL publique, ACME — messages et suggestions passent désormais par l'i18n (`build.check.*`, 9 langues), ainsi que les étiquettes « Suggestion » et « Contexte ». Les textes anglais ne changent pas. Test : le rapport en français.
 
 ### Documentation — `makemigrations` (`--force` et changements de type de colonne)
 

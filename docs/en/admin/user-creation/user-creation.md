@@ -83,7 +83,7 @@ Tera context available in the template:
 | --- | --- |
 | `username` | Username |
 | `email` | Email address |
-| `reset_url` | Full reset link, absolute (on `SITE_URL`) |
+| `reset_url` | Full reset link, absolute (on the public URL) |
 
 ---
 
@@ -92,10 +92,10 @@ Tera context available in the template:
 The constructed URL follows this pattern:
 
 ```
-{SITE_URL}{reset_route}/{token}/{encrypted_email}
+{public_url}{reset_route}/{token}/{encrypted_email}
 ```
 
-`SITE_URL` comes from the `.env` (or `.site_url(…)` in the builder); `reset_route` is the one of `with_password_reset()` (`/reset-password` by default). In production, the app refuses to boot without `SITE_URL`. In debug only, the URL is built from the `Host` header of the HTTP request
+`public_url` comes from `.with_public_url(…)` in the builder; `reset_route` is the one of `with_password_reset()` (`/reset-password` by default). In production, the app refuses to boot without it. In debug only, the URL is built from the `Host` header of the HTTP request
 (`http://{host}/reset-password/...`).
 
 ---
