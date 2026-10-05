@@ -9,8 +9,8 @@ model! {
         name:         text [required],
         field_type:   text [required],
         description:  text [required],
-        example:      text,
-        html_preview: text,
+        example:      text [nullable],
+        html_preview: text [nullable],
         sort_order:   int [required],
     }
 }

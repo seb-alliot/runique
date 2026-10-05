@@ -8,8 +8,8 @@ model! {
         username:  text [required],
         email:     email [required],
         password:  password [required],
-        bio:       textarea,
-        website:   url,
+        bio:       textarea [nullable],
+        website:   url [nullable],
         is_active: bool [required],
     }
 }

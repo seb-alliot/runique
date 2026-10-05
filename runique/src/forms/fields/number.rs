@@ -200,6 +200,27 @@ impl NumericField {
 // --- Trait Implementation ---
 #[async_trait]
 impl FormField for NumericField {
+    fn bounds(&self) -> crate::forms::base::FieldBounds {
+        use crate::forms::base::FieldBounds;
+        match &self.config {
+            NumericConfig::Integer { min, max } => FieldBounds {
+                min_int: *min,
+                max_int: *max,
+                ..Default::default()
+            },
+            NumericConfig::Float { value } | NumericConfig::Decimal { value } => FieldBounds {
+                min_float: value.as_ref().map(|r| r.min),
+                max_float: value.as_ref().map(|r| r.max),
+                ..Default::default()
+            },
+            NumericConfig::Percent { value } | NumericConfig::Range { value, .. } => FieldBounds {
+                min_float: Some(value.min),
+                max_float: Some(value.max),
+                ..Default::default()
+            },
+        }
+    }
+
     fn set_type_bounds(&mut self, min: i128, max: i128) -> bool {
         if !matches!(self.config, NumericConfig::Integer { .. }) {
             return false;

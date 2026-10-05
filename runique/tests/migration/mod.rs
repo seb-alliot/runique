@@ -18,6 +18,7 @@
 //! | `test_makemigrations`   | scan_entities, update_migration_lib, paths   |
 //! | `test_migration_flow`   | Flux complet end-to-end (scan→gen→fichiers)  |
 
+pub mod test_belongs_to;
 pub mod test_column_def;
 pub mod test_column_def_extra;
 pub mod test_diff;

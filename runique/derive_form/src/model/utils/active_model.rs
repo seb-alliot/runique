@@ -30,7 +30,7 @@ pub fn generate_active_model_behavior(fields: &[FieldDef]) -> TokenStream2 {
             let name = &f.name;
             Some(quote! {
                 if insert && ::sea_orm::ActiveValue::is_not_set(&self.#name) {
-                    self.#name = ::sea_orm::ActiveValue::Set(::std::option::Option::Some(#now));
+                    self.#name = ::sea_orm::ActiveValue::Set(#now);
                 }
             })
         })
@@ -41,7 +41,7 @@ pub fn generate_active_model_behavior(fields: &[FieldDef]) -> TokenStream2 {
             let now = stamped(f, |o| matches!(o, FieldOption::AutoNowUpdate))?;
             let name = &f.name;
             Some(quote! {
-                self.#name = ::sea_orm::ActiveValue::Set(::std::option::Option::Some(#now));
+                self.#name = ::sea_orm::ActiveValue::Set(#now);
             })
         })
         .collect();

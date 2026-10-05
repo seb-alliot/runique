@@ -87,14 +87,9 @@ pub(super) fn validate_form_field_attrs(
             (Unique, Image | Document | File | Bool) => false,
             (Unique, _) => true,
 
-            // fk — any integer/uuid column can reference a PK of the same shape.
-            // Uuid is reachable via the `Pk` alias under the `pk-uuid` feature, not
-            // just a literal `uuid` field.
-            (FormFieldAttr::Fk(_), Int | Bigint | I8 | I16 | U32 | U64 | Uuid) => true,
-            (FormFieldAttr::Fk(_), _) => false,
-
-            // skip — all types
+            // skip / renamed_from — all types
             (FormFieldAttr::Skip, _) => true,
+            (RenamedFrom(_), _) => true,
         };
 
         if !valid {

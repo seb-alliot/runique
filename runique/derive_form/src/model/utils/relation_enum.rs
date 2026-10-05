@@ -1,4 +1,4 @@
-use crate::model::{FieldOption, FkDef, ModelInput, RelationDef};
+use crate::model::{FkAction, ModelInput, RelationDef};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 
@@ -20,14 +20,6 @@ const FRAMEWORK_TABLES: &[(&str, &str)] = &[
     ),
 ];
 
-fn entity_path(table_name: &str) -> String {
-    if let Some((_, module)) = FRAMEWORK_TABLES.iter().find(|(t, _)| *t == table_name) {
-        format!("{}::Entity", module)
-    } else {
-        format!("super::{}::Entity", table_name)
-    }
-}
-
 fn related_module_tokens(table_name: &str) -> TokenStream2 {
     if let Some((_, module)) = FRAMEWORK_TABLES.iter().find(|(t, _)| *t == table_name) {
         let path: syn::Path = syn::parse_str(&format!("{}::Entity", module)).unwrap();
@@ -38,163 +30,106 @@ fn related_module_tokens(table_name: &str) -> TokenStream2 {
     }
 }
 
+/// The target entity of a relation, as a path expression.
+pub(crate) fn target_entity(target: &syn::Ident) -> TokenStream2 {
+    related_module_tokens(&to_snake_case(&target.to_string()))
+}
+
+/// The target entity's primary key column, read from the entity: a
+/// `belongs_to` references it whatever it is named.
+pub(crate) fn target_pk_column(target: &syn::Ident) -> TokenStream2 {
+    let entity = target_entity(target);
+    quote! {
+        ::sea_orm::PrimaryKeyToColumn::into_column(
+            <<#entity as ::sea_orm::EntityTrait>::PrimaryKey as ::sea_orm::Iterable>::iter()
+                .next()
+                .expect("an entity has a primary key"),
+        )
+    }
+}
+
+pub(crate) fn fk_action_tokens(action: FkAction) -> TokenStream2 {
+    match action {
+        FkAction::NoAction => quote! { ::sea_orm::sea_query::ForeignKeyAction::NoAction },
+        FkAction::Cascade => quote! { ::sea_orm::sea_query::ForeignKeyAction::Cascade },
+        FkAction::SetNull => quote! { ::sea_orm::sea_query::ForeignKeyAction::SetNull },
+        FkAction::Restrict => quote! { ::sea_orm::sea_query::ForeignKeyAction::Restrict },
+        FkAction::SetDefault => quote! { ::sea_orm::sea_query::ForeignKeyAction::SetDefault },
+    }
+}
+
+/// `Relation` and its `RelationTrait`, written out rather than derived: a
+/// `belongs_to` targets the related entity's real primary key and carries
+/// its ON DELETE / ON UPDATE actions.
 pub fn generate_relation_enum(model: &ModelInput) -> TokenStream2 {
-    // FK fields already covered by an explicit belongs_to (matched by via field name)
-    let explicit_vias: std::collections::HashSet<String> = model
-        .relations
-        .iter()
-        .filter_map(|r| {
-            if let RelationDef::BelongsTo { via, .. } = r {
-                Some(via.to_string())
-            } else {
-                None
-            }
-        })
-        .collect();
-
-    // FK fields not already covered → auto-generate BelongsTo for pivot tables
-    let auto_fks: Vec<(&syn::Ident, &FkDef)> = model
-        .fields
-        .iter()
-        .filter_map(|f| {
-            if explicit_vias.contains(&f.name.to_string()) {
-                return None;
-            }
-            f.options.iter().find_map(|opt| {
-                if let FieldOption::Fk(fk) = opt {
-                    Some((&f.name, fk))
-                } else {
-                    None
-                }
-            })
-        })
-        .collect();
-
-    let explicit_variants: Vec<TokenStream2> =
-        model.relations.iter().map(generate_variant).collect();
-    let explicit_related: Vec<TokenStream2> = model
+    let variants: Vec<syn::Ident> = model.relations.iter().map(variant_name).collect();
+    let defs: Vec<TokenStream2> = model.relations.iter().map(relation_def).collect();
+    let related: Vec<TokenStream2> = model
         .relations
         .iter()
         .map(|r| generate_related_impl(r, &model.name))
         .collect();
 
-    let fk_variants: Vec<TokenStream2> = auto_fks
-        .iter()
-        .map(|(name, fk)| generate_fk_variant(name, fk))
-        .collect();
-    let fk_related: Vec<TokenStream2> = auto_fks
-        .iter()
-        .map(|(name, fk)| generate_fk_related_impl(name, fk))
-        .collect();
-
-    if explicit_variants.is_empty() && fk_variants.is_empty() {
-        return quote! {
-            #[derive(Copy, Clone, Debug, ::sea_orm::EnumIter, ::sea_orm::DeriveRelation)]
-            pub enum Relation {}
-        };
-    }
-
     quote! {
-        #[derive(Copy, Clone, Debug, ::sea_orm::EnumIter, ::sea_orm::DeriveRelation)]
+        #[derive(Copy, Clone, Debug, ::sea_orm::EnumIter)]
         pub enum Relation {
-            #(#explicit_variants)*
-            #(#fk_variants)*
+            #(#variants,)*
         }
 
-        #(#explicit_related)*
-        #(#fk_related)*
-    }
-}
-
-fn generate_fk_variant(field_name: &syn::Ident, fk_def: &FkDef) -> TokenStream2 {
-    let field_str = field_name.to_string();
-    let variant_base = field_str.strip_suffix("_id").unwrap_or(&field_str);
-    let variant = quote::format_ident!("{}", pascal_case(variant_base));
-    let module = table_to_module(&fk_def.table.to_string());
-    let mod_path = entity_path(&module);
-    let to_col = pascal_case(&fk_def.column.to_string());
-    let to_path = format!(
-        "{}::Column::{}",
-        &mod_path[..mod_path.len() - "::Entity".len()],
-        to_col
-    );
-    let via_col = format!("Column::{}", pascal_case(&field_str));
-    quote! {
-        #[sea_orm(
-            belongs_to = #mod_path,
-            from = #via_col,
-            to = #to_path
-        )]
-        #variant,
-    }
-}
-
-fn generate_fk_related_impl(field_name: &syn::Ident, fk_def: &FkDef) -> TokenStream2 {
-    let field_str = field_name.to_string();
-    let variant_base = field_str.strip_suffix("_id").unwrap_or(&field_str);
-    let variant = quote::format_ident!("{}", pascal_case(variant_base));
-    let module = table_to_module(&fk_def.table.to_string());
-    let entity_tokens = related_module_tokens(&module);
-    quote! {
-        impl ::sea_orm::Related<#entity_tokens> for Entity {
-            fn to() -> ::sea_orm::RelationDef {
-                Relation::#variant.def()
+        impl ::sea_orm::RelationTrait for Relation {
+            fn def(&self) -> ::sea_orm::RelationDef {
+                match *self {
+                    #(Self::#variants => #defs,)*
+                }
             }
         }
+
+        #(#related)*
     }
 }
 
-fn generate_variant(rel: &RelationDef) -> TokenStream2 {
+fn variant_name(rel: &RelationDef) -> syn::Ident {
     match rel {
-        RelationDef::BelongsTo { model: target, via } => {
-            let variant = ident_pascal(target);
-            let via_col = format!("Column::{}", ident_pascal(via));
-            let table = to_snake_case(&target.to_string());
-            let mod_path = entity_path(&table);
-            let to_path = format!(
-                "{}::Column::Id",
-                &mod_path[..mod_path.len() - "::Entity".len()]
-            );
-            quote! {
-                #[sea_orm(
-                    belongs_to = #mod_path,
-                    from = #via_col,
-                    to = #to_path
-                )]
-                #variant,
-            }
-        }
+        RelationDef::BelongsTo { model, .. }
+        | RelationDef::HasMany { model, .. }
+        | RelationDef::HasOne { model, .. }
+        | RelationDef::ManyToMany { model, .. } => ident_pascal(model),
+    }
+}
 
-        RelationDef::HasMany { model: target, .. } => {
-            let variant = ident_pascal(target);
-            let mod_path = entity_path(&to_snake_case(&target.to_string()));
-            quote! {
-                #[sea_orm(has_many = #mod_path)]
-                #variant,
-            }
-        }
-
-        RelationDef::HasOne { model: target, .. } => {
-            let variant = ident_pascal(target);
-            let mod_path = entity_path(&to_snake_case(&target.to_string()));
-            quote! {
-                #[sea_orm(has_one = #mod_path)]
-                #variant,
-            }
-        }
-
-        RelationDef::ManyToMany {
+fn relation_def(rel: &RelationDef) -> TokenStream2 {
+    match rel {
+        RelationDef::BelongsTo {
             model: target,
-            through,
-            ..
+            via,
+            on_delete,
+            on_update,
         } => {
-            let variant = ident_pascal(target);
-            let through_mod = to_snake_case(&through.to_string());
-            let mod_path = format!("super::{}::Entity", through_mod);
+            let entity = target_entity(target);
+            let via_col = ident_pascal(via);
+            let pk_column = target_pk_column(target);
+            let on_delete = fk_action_tokens(*on_delete);
+            let on_update = fk_action_tokens(*on_update);
             quote! {
-                #[sea_orm(has_many = #mod_path)]
-                #variant,
+                <Entity as ::sea_orm::EntityTrait>::belongs_to(#entity)
+                    .from(Column::#via_col)
+                    .to(#pk_column)
+                    .on_delete(#on_delete)
+                    .on_update(#on_update)
+                    .into()
             }
+        }
+        RelationDef::HasMany { model: target, .. } => {
+            let entity = target_entity(target);
+            quote! { <Entity as ::sea_orm::EntityTrait>::has_many(#entity).into() }
+        }
+        RelationDef::HasOne { model: target, .. } => {
+            let entity = target_entity(target);
+            quote! { <Entity as ::sea_orm::EntityTrait>::has_one(#entity).into() }
+        }
+        RelationDef::ManyToMany { through, .. } => {
+            let through_module = quote::format_ident!("{}", to_snake_case(&through.to_string()));
+            quote! { <Entity as ::sea_orm::EntityTrait>::has_many(super::#through_module::Entity).into() }
         }
     }
 }
@@ -244,20 +179,6 @@ fn generate_related_impl(rel: &RelationDef, self_model: &syn::Ident) -> TokenStr
                 }
             }
         }
-    }
-}
-
-/// Convert a SQL table name (often plural) to the Rust module name (singular model snake_case).
-/// Framework tables are left as-is since they're matched by FRAMEWORK_TABLES.
-/// Simple heuristic: strip trailing `s` unless it's `ss` or the table doesn't end with `s`.
-fn table_to_module(table_name: &str) -> String {
-    if FRAMEWORK_TABLES.iter().any(|(t, _)| *t == table_name) {
-        return table_name.to_string();
-    }
-    if table_name.ends_with('s') && !table_name.ends_with("ss") {
-        table_name[..table_name.len() - 1].to_string()
-    } else {
-        table_name.to_string()
     }
 }
 

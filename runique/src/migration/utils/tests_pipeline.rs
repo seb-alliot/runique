@@ -14,6 +14,7 @@ use crate::cli::makemigration::{collect_destructive_messages, topological_sort_c
 
 fn parse_model(src: &str) -> ParsedSchema {
     parse_schema_from_source(src)
+        .unwrap()
         .expect("model! source should parse")
         .1
 }
@@ -99,12 +100,19 @@ fn literal_default_is_emitted_in_create() {
 }
 
 #[test]
-fn bool_without_required_is_nullable() {
-    // `bool` is now a v2 type → nullable unless `required`.
-    assert!(
-        col(&parse_model(BLOG_SRC), "is_active").nullable,
-        "bool without `required` should be nullable"
+fn columns_are_not_null_unless_declared_nullable() {
+    let schema = parse_model(
+        r#"model! { T, table: "t", pk: id => i32, {
+            flag: bool [default: true],
+            name: text,
+            count: int [required],
+            note: int [nullable],
+        } }"#,
     );
+    assert!(!col(&schema, "flag").nullable);
+    assert!(!col(&schema, "name").nullable);
+    assert!(!col(&schema, "count").nullable);
+    assert!(col(&schema, "note").nullable);
 }
 
 // ── Snapshot round-trip (the golden stability test) ────────────────────────────
@@ -305,15 +313,15 @@ use runique::prelude::*;
 extend! {
     table: "eihwaz_users",
     fields: {
-        is_verified: bool [default: false],
-        job_title:   text,
+        is_verified: bool [nullable, default: false],
+        job_title:   text [nullable],
     }
 }
 "#;
 
 #[test]
 fn extend_captures_literal_default() {
-    let schemas = parse_extend_blocks_from_source(EXTEND_SRC);
+    let schemas = parse_extend_blocks_from_source(EXTEND_SRC).unwrap();
     let schema = schemas.first().expect("one extend block");
     assert_eq!(
         col(schema, "is_verified").default_value.as_deref(),
@@ -337,7 +345,7 @@ extend! {
 
 #[test]
 fn extend_resolves_enum_column() {
-    let schemas = parse_extend_blocks_from_source(EXTEND_ENUM_SRC);
+    let schemas = parse_extend_blocks_from_source(EXTEND_ENUM_SRC).unwrap();
     let schema = schemas.first().expect("one extend block");
     let role = col(schema, "role");
     assert_eq!(role.enum_name.as_deref(), Some("Role"));
@@ -355,7 +363,7 @@ fn extend_resolves_enum_column() {
 
 #[test]
 fn extend_enum_column_emits_create_type_on_postgres() {
-    let schema = &parse_extend_blocks_from_source(EXTEND_ENUM_SRC)[0];
+    let schema = &parse_extend_blocks_from_source(EXTEND_ENUM_SRC).unwrap()[0];
     let change = Changes {
         table_name: schema.table_name.clone(),
         added_columns: schema.columns.clone(),
@@ -391,8 +399,8 @@ model! {
     table: "person",
     pk: id => Pk,
     {
-        job_title: text,
-        age: int,
+        job_title: text [nullable],
+        age: int [nullable],
     }
 }
 "#;
@@ -404,8 +412,8 @@ model! {
     table: "person",
     pk: id => Pk,
     {
-        title: text [renamed_from: "job_title"],
-        age: int,
+        title: text [nullable, renamed_from: "job_title"],
+        age: int [nullable],
     }
 }
 "#;
@@ -417,8 +425,8 @@ model! {
     table: "person",
     pk: id => Pk,
     {
-        title: text,
-        age: int,
+        title: text [nullable],
+        age: int [nullable],
     }
 }
 "#;
@@ -498,7 +506,7 @@ use runique::prelude::*;
 extend! {
     table: "eihwaz_users",
     fields: {
-        job_title: text,
+        job_title: text [nullable],
     }
 }
 "#;
@@ -508,15 +516,19 @@ use runique::prelude::*;
 extend! {
     table: "eihwaz_users",
     fields: {
-        title: text [renamed_from: "job_title"],
+        title: text [nullable, renamed_from: "job_title"],
     }
 }
 "#;
 
 #[test]
 fn extend_column_rename_is_detected() {
-    let prev = parse_extend_blocks_from_source(EXTEND_COL_BEFORE).remove(0);
-    let curr = parse_extend_blocks_from_source(EXTEND_COL_RENAMED).remove(0);
+    let prev = parse_extend_blocks_from_source(EXTEND_COL_BEFORE)
+        .unwrap()
+        .remove(0);
+    let curr = parse_extend_blocks_from_source(EXTEND_COL_RENAMED)
+        .unwrap()
+        .remove(0);
     let changes = diff_schemas(&prev, &curr);
     assert_eq!(
         changes.renamed_columns,
@@ -608,8 +620,8 @@ model! {
     table: "event",
     pk: id => Pk,
     {
-        created_at: datetime,
-        updated_at: datetime,
+        created_at: datetime [nullable],
+        updated_at: datetime [nullable],
     }
 }
 "#;
@@ -1099,7 +1111,7 @@ model! {
     table: "cfg",
     pk: id => Pk,
     {
-        role: text [default: "guest"],
+        role: text [nullable, default: "guest"],
     }
 }
 "#;
@@ -1140,12 +1152,12 @@ model! {
     table: "mix",
     pk: id => Pk,
     {
-        price:   decimal,
-        active:  bool,
-        ref_id:  uuid,
-        payload: json,
-        big:     bigint,
-        ratio:   float,
+        price:   decimal [nullable],
+        active:  bool [nullable],
+        ref_id:  uuid [nullable],
+        payload: json [nullable],
+        big:     bigint [nullable],
+        ratio:   float [nullable],
     }
 }
 "#;
@@ -1324,8 +1336,8 @@ model! {
     table: "sec",
     pk: id => Pk,
     {
-        visible: text,
-        note: text [readonly],
+        visible: text [nullable],
+        note: text [nullable, readonly],
     }
 }
 "#;
@@ -1357,9 +1369,9 @@ model! {
     table: "sched",
     pk: id => Pk,
     {
-        d:  date,
-        t:  time,
-        tz: timestamp_tz,
+        d:  date [nullable],
+        t:  time [nullable],
+        tz: timestamp_tz [nullable],
     }
 }
 "#;
@@ -1530,7 +1542,7 @@ extend! {
 fn extend_enum_column_default_is_emitted_on_add_all_engines() {
     // The production scenario: ADD COLUMN <enum> NOT NULL on an existing, populated
     // table must carry a DEFAULT so Postgres can backfill instead of erroring.
-    let schema = &parse_extend_blocks_from_source(EXTEND_ENUM_DEFAULT_SRC)[0];
+    let schema = &parse_extend_blocks_from_source(EXTEND_ENUM_DEFAULT_SRC).unwrap()[0];
     let change = Changes {
         table_name: schema.table_name.clone(),
         added_columns: schema.columns.clone(),
@@ -1611,4 +1623,78 @@ fn topological_sort_ignores_fk_to_existing_table() {
     let sorted = topological_sort_changes(vec![new_table("comment", vec![fk("user_id", "users")])]);
     assert_eq!(sorted.len(), 1);
     assert_eq!(sorted[0].table_name, "comment");
+}
+
+// ── Column lengths ───────────────────────────────────────────────────────────
+
+fn titled(len: u32) -> ParsedSchema {
+    parse_model(&format!(
+        r#"model! {{ Post, table: "post", pk: id => i32, {{ title: text [required, max_length: {len}] }} }}"#
+    ))
+}
+
+#[test]
+fn declared_length_reaches_the_create_file() {
+    assert_eq!(col(&titled(80), "title").max_length, Some(80));
+    let sql = generate_create_file(&titled(80));
+    assert!(sql.contains(".string_len(80)"), "{sql}");
+}
+
+#[test]
+fn email_and_binary_columns_get_their_length() {
+    let schema = parse_model(
+        r#"model! { T, table: "t", pk: id => i32, { mail: email [required], raw: binary [required], bytes: var_binary [required, max_length: 16] } }"#,
+    );
+    let sql = generate_create_file(&schema);
+    assert!(sql.contains(".string_len(254)"), "{sql}");
+    assert!(sql.contains(".binary_len(255)"), "{sql}");
+    assert!(sql.contains(".var_binary(16)"), "{sql}");
+}
+
+#[test]
+fn snapshot_round_trips_the_length() {
+    let schema = titled(80);
+    let reparsed = parse_seaorm_source(&generate_snapshot_file(&schema)).unwrap();
+    assert_eq!(col(&reparsed, "title").max_length, Some(80));
+    assert!(diff_schemas(&reparsed, &schema).is_empty());
+}
+
+#[test]
+fn growing_a_length_is_a_plain_alter() {
+    let changes = diff_schemas(&titled(80), &titled(120));
+    assert_eq!(changes.modified_columns.len(), 1);
+    let alter = generate_alter_file(&changes);
+    assert!(alter.contains(".string_len(120)"), "{alter}");
+    assert!(collect_destructive_messages(&[changes]).is_empty());
+}
+
+#[test]
+fn shrinking_a_length_needs_force() {
+    let changes = diff_schemas(&titled(120), &titled(80));
+    let messages = collect_destructive_messages(&[changes]);
+    assert!(
+        messages.iter().any(|m| m.contains("length 120 -> 80")),
+        "{messages:?}"
+    );
+}
+
+#[test]
+fn a_snapshot_from_before_lengths_takes_the_model_lengths() {
+    let current = titled(80);
+    let old = generate_snapshot_file(&parse_model(
+        r#"model! { Post, table: "post", pk: id => i32, { title: text [required] } }"#,
+    ));
+    let old = old
+        .strip_prefix(crate::migration::utils::generators::SNAPSHOT_LENGTHS_MARKER)
+        .unwrap()
+        .to_string();
+    let dir = std::env::temp_dir().join(format!("runique_len_{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("post.rs");
+    std::fs::write(&path, old).unwrap();
+
+    let previous =
+        crate::cli::makemigration::previous_snapshot(path.to_str().unwrap(), &current).unwrap();
+    std::fs::remove_dir_all(&dir).ok();
+    assert!(diff_schemas(&previous, &current).is_empty());
 }

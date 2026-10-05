@@ -209,13 +209,13 @@ impl ModelSchema {
         }
     }
 
-    /// Re-applies, after `customize`, what each column's DSL type imposes on
-    /// its form field: an integer keeps its Rust type's range, a text its
-    /// column length, an upload its size limit — `customize` can tighten
-    /// them, not loosen them. Replacing a field in a way that breaks what the
-    /// column needs is a programming error, refused the same way as an
-    /// unknown field in `fill_form`: a `password` column must stay a password
-    /// field (hashed, never sent back), an integer column an integer field.
+    /// Checks, after `customize`, what each column's DSL declaration imposes
+    /// on its form field: an integer keeps its Rust type's range, an upload
+    /// its size limit, and the declared `min_length`/`max_length`/`min`/`max`
+    /// may be tightened, never loosened. Breaking what the column needs is a
+    /// programming error, refused the same way as an unknown field in
+    /// `fill_form`: a `password` column must stay a password field (hashed,
+    /// never sent back), an integer column an integer field.
     pub fn enforce_limits(&self, form: &mut crate::forms::Forms) {
         use runique_dsl::types::Widget;
 
@@ -244,10 +244,68 @@ impl ModelSchema {
                 }
                 _ => {}
             }
+            let bounds = field.bounds();
+            let loosened = |what: &str, model: String, form: String| -> ! {
+                panic!(
+                    "ModelForm '{}': field '{}' — `customize` loosened `{what}`: the model declares {model}, the form allows {form}",
+                    self.model_name, col.name
+                )
+            };
+            let shown = |v: Option<String>| v.unwrap_or_else(|| "no limit".to_string());
             if let Some(max) = col.max_length
                 && !matches!(kind.widget(), Widget::Binary)
+                && bounds.max_length.is_none_or(|f| f > max)
             {
-                field.cap_max_length(max);
+                loosened(
+                    "max_length",
+                    max.to_string(),
+                    shown(bounds.max_length.map(|v| v.to_string())),
+                );
+            }
+            if let Some(min) = col.min_length
+                && bounds.min_length.is_none_or(|f| f < min)
+            {
+                loosened(
+                    "min_length",
+                    min.to_string(),
+                    shown(bounds.min_length.map(|v| v.to_string())),
+                );
+            }
+            if let Some(max) = col.max_value
+                && bounds.max_int.is_none_or(|f| f > max)
+            {
+                loosened(
+                    "max",
+                    max.to_string(),
+                    shown(bounds.max_int.map(|v| v.to_string())),
+                );
+            }
+            if let Some(min) = col.min_value
+                && bounds.min_int.is_none_or(|f| f < min)
+            {
+                loosened(
+                    "min",
+                    min.to_string(),
+                    shown(bounds.min_int.map(|v| v.to_string())),
+                );
+            }
+            if let Some(max) = col.max_float
+                && bounds.max_float.is_none_or(|f| f > max)
+            {
+                loosened(
+                    "max",
+                    max.to_string(),
+                    shown(bounds.max_float.map(|v| v.to_string())),
+                );
+            }
+            if let Some(min) = col.min_float
+                && bounds.min_float.is_none_or(|f| f < min)
+            {
+                loosened(
+                    "min",
+                    min.to_string(),
+                    shown(bounds.min_float.map(|v| v.to_string())),
+                );
             }
             let size = kind
                 .byte_limit(col.max_length)

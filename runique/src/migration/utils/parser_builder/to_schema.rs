@@ -1,202 +1,199 @@
-//! Conversion from the parsed DSL AST ([`DslModel`]) to the engine-agnostic
+//! Conversion from the `runique_dsl` AST to the engine-agnostic
 //! [`ParsedSchema`] the migration generator consumes.
-use super::model::DslModel;
-use super::relation::DslRelationKind;
-use super::type_mapping::{dsl_field_type_to_col_type, dsl_pk_to_col_type};
+use quote::ToTokens;
+use runique_dsl::ast::{
+    EnumBackingType, EnumDef, FieldOption, FieldType, FkAction, FormFieldAttr, FormFieldDecl,
+    ModelInput, PkType, RelationDef,
+};
+use runique_dsl::form_field_to_field_def;
+
 use crate::migration::utils::types::{ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema};
 
 /// PascalCase → snake_case to derive target table name from model
-pub(super) fn pascal_to_snake(s: &str) -> String {
+pub(crate) fn pascal_to_snake(s: &str) -> String {
     let mut result = String::new();
     for (i, ch) in s.chars().enumerate() {
         if ch.is_uppercase() && i > 0 {
             result.push('_');
         }
-        result.push(ch.to_lowercase().next().unwrap());
+        result.extend(ch.to_lowercase());
     }
     result
 }
 
-pub(super) fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
-    let primary_key = Some(ParsedColumn {
-        name: model.pk.name,
-        col_type: dsl_pk_to_col_type(&model.pk.ty),
-        nullable: false,
-        unique: false,
-        ignored: false,
-        created_at: false,
-        updated_at: false,
-        has_default_now: false,
-        default_value: None,
-        enum_name: None,
-        enum_string_values: Vec::new(),
-        renamed_from: None,
+fn fk_action(action: FkAction) -> String {
+    match action {
+        FkAction::NoAction => "NoAction",
+        FkAction::Cascade => "Cascade",
+        FkAction::SetNull => "SetNull",
+        FkAction::Restrict => "Restrict",
+        FkAction::SetDefault => "SetDefault",
+    }
+    .to_string()
+}
+
+/// The column type name the migration generator writes for a SQL type.
+/// `ip`/`cidr`/`mac_address`/`interval` stay strings: their native types
+/// exist only on Postgres.
+fn col_type(ty: &FieldType, enums: &[EnumDef]) -> String {
+    match ty {
+        FieldType::String | FieldType::Varchar(_) | FieldType::Char => "String",
+        FieldType::Text => "Text",
+        FieldType::I8 => "TinyInteger",
+        FieldType::I16 => "SmallInteger",
+        FieldType::I32 => "Integer",
+        FieldType::I64 => "BigInteger",
+        FieldType::U32 => "Unsigned",
+        FieldType::U64 => "BigUnsigned",
+        FieldType::F32 => "Float",
+        FieldType::F64 => "Double",
+        FieldType::Decimal(_) => "Decimal",
+        FieldType::Bool => "Boolean",
+        FieldType::Date => "Date",
+        FieldType::Time => "Time",
+        FieldType::Datetime | FieldType::Timestamp => "DateTime",
+        FieldType::TimestampTz => "TimestampWithTimeZone",
+        FieldType::Uuid => "Uuid",
+        FieldType::Json | FieldType::JsonBinary => "Json",
+        FieldType::Binary(_) => "Binary",
+        FieldType::VarBinary(_) => "VarBinary",
+        FieldType::Blob => "Blob",
+        FieldType::Inet | FieldType::Cidr | FieldType::MacAddress | FieldType::Interval => "String",
+        FieldType::Enum(name) => match find_enum(enums, name).map(|e| &e.backing_type) {
+            Some(EnumBackingType::I32) => "Integer",
+            Some(EnumBackingType::I64) => "BigInteger",
+            _ => "String",
+        },
+    }
+    .to_string()
+}
+
+fn find_enum<'a>(enums: &'a [EnumDef], name: &syn::Ident) -> Option<&'a EnumDef> {
+    enums.iter().find(|e| e.name == *name)
+}
+
+/// One declared field as a migration column. Shared by `model!{}` and
+/// `extend!{}`, which declare fields with the same grammar.
+pub(crate) fn decl_to_column(decl: &FormFieldDecl, enums: &[EnumDef]) -> ParsedColumn {
+    let field = form_field_to_field_def(decl);
+    let has = |wanted: fn(&FieldOption) -> bool| field.options.iter().any(wanted);
+    let auto_now = has(|o| matches!(o, FieldOption::AutoNow));
+    let auto_now_update = has(|o| matches!(o, FieldOption::AutoNowUpdate));
+    let name = field.name.to_string();
+    let is_created_at = name == "created_at";
+    let is_updated_at = name == "updated_at";
+
+    let ty = field.column_type();
+    let max_length = match &ty {
+        FieldType::Varchar(n) | FieldType::VarBinary(n) => Some(*n),
+        FieldType::Binary(n) => field.kind.byte_limit(*n),
+        _ => None,
+    };
+    let col_type = if auto_now || auto_now_update {
+        "DateTime".to_string()
+    } else {
+        col_type(&ty, enums)
+    };
+
+    // Only string-backed enums carry values (the generator emits CREATE TYPE for them on PG).
+    let (enum_name, enum_string_values) = match &ty {
+        FieldType::Enum(id) => match find_enum(enums, id) {
+            Some(e) if matches!(e.backing_type, EnumBackingType::Auto) => (
+                Some(e.name.to_string()),
+                e.variants.iter().map(|v| v.db_str()).collect(),
+            ),
+            _ => (None, Vec::new()),
+        },
+        _ => (None, Vec::new()),
+    };
+
+    let default_value = field.options.iter().find_map(|o| match o {
+        FieldOption::Default(lit) => Some(lit.to_token_stream().to_string()),
+        _ => None,
+    });
+    let renamed_from = decl.attrs.iter().find_map(|a| match a {
+        FormFieldAttr::RenamedFrom(old) => Some(old.clone()),
+        _ => None,
     });
 
-    let enum_types = model.enum_types;
+    ParsedColumn {
+        col_type,
+        nullable: has(|o| matches!(o, FieldOption::Nullable)),
+        unique: has(|o| matches!(o, FieldOption::Unique)),
+        ignored: has(|o| matches!(o, FieldOption::Readonly)) || name == "cache_key",
+        created_at: auto_now || is_created_at,
+        updated_at: auto_now_update || is_updated_at,
+        has_default_now: auto_now || auto_now_update || is_created_at || is_updated_at,
+        default_value,
+        enum_name,
+        enum_string_values,
+        renamed_from,
+        max_length,
+        name,
+    }
+}
+
+pub(super) fn model_to_parsed_schema(model: &ModelInput) -> ParsedSchema {
+    let pk_type = match model.pk.ty {
+        PkType::I32 => "Integer",
+        PkType::I64 => "BigInteger",
+        PkType::Uuid => "Uuid",
+    };
+    let primary_key = Some(ParsedColumn {
+        name: model.pk.name.to_string(),
+        col_type: pk_type.to_string(),
+        ..ParsedColumn::default()
+    });
 
     let columns = model
-        .fields
-        .into_iter()
-        .map(|f| {
-            let has_auto_now = f.options.contains(&"auto_now".to_string());
-            let has_auto_now_update = f.options.contains(&"auto_now_update".to_string());
-            let has_required = f.options.contains(&"required".to_string());
-            let has_nullable = f.options.contains(&"nullable".to_string());
-            let is_created_at = f.name == "created_at";
-            let is_updated_at = f.name == "updated_at";
-
-            // Semantic v2 types (lowercase): lack of `required` → nullable by default.
-            // v1 types (SQL / Rust: String, i32...): only explicit `[nullable]` makes it nullable.
-            // auto_now / auto_now_update → never nullable in both cases.
-            const V2_TYPES: &[&str] = &[
-                "text",
-                "email",
-                "password",
-                "richtext",
-                "textarea",
-                "url",
-                "int",
-                "bool",
-                "boolean",
-                "float",
-                "decimal",
-                "percent",
-                "date",
-                "time",
-                "datetime",
-                "timestamp",
-                "timestamp_tz",
-                "image",
-                "document",
-                "file",
-                "color",
-                "slug",
-                "uuid",
-                "json",
-                "json_binary",
-                "ip",
-                "choice",
-                "radio",
-                "bigint",
-                "binary",
-                "blob",
-                "inet",
-                "cidr",
-                "mac_address",
-                "interval",
-                "phone",
-            ];
-            let is_v2 = V2_TYPES.contains(&f.ty.as_str());
-            let nullable = if has_auto_now || has_auto_now_update || has_required {
-                false
-            } else if has_nullable {
-                true
-            } else {
-                is_v2 // v2 without required → nullable ; v1 without explicit nullable → not nullable
-            };
-
-            let unique = f.options.contains(&"unique".to_string());
-
-            // Resolution of the associated enum (v1: ty=="enum", v2: ty=="choice"/"radio")
-            let is_enum_field = f.ty == "enum" || f.ty == "choice" || f.ty == "radio";
-            let enum_entry = if is_enum_field {
-                f.enum_name
-                    .as_deref()
-                    .and_then(|n| enum_types.iter().find(|(name, _, _)| name == n))
-            } else {
-                None
-            };
-
-            let col_type = if has_auto_now || has_auto_now_update {
-                "DateTime".to_string()
-            } else if is_enum_field {
-                match enum_entry.map(|(_, bt, _)| bt.as_str()).unwrap_or("Auto") {
-                    "i32" => "Integer".to_string(),
-                    "i64" => "BigInteger".to_string(),
-                    _ => "String".to_string(), // Auto / String → VARCHAR
-                }
-            } else {
-                dsl_field_type_to_col_type(&f.ty)
-            };
-
-            // Enum string values for diff (only string-backed enums)
-            let (enum_name, enum_string_values) = if is_enum_field {
-                match enum_entry {
-                    Some((name, backing, values)) if backing != "i32" && backing != "i64" => {
-                        (Some(name.clone()), values.clone())
-                    }
-                    _ => (None, Vec::new()),
-                }
-            } else {
-                (None, Vec::new())
-            };
-
-            let ignored = f.options.contains(&"readonly".to_string()) || f.name == "cache_key";
-
-            ParsedColumn {
-                name: f.name,
-                col_type,
-                nullable,
-                unique,
-                ignored,
-                created_at: has_auto_now || is_created_at,
-                updated_at: has_auto_now_update || is_updated_at,
-                has_default_now: has_auto_now
-                    || has_auto_now_update
-                    || is_created_at
-                    || is_updated_at,
-                default_value: f.default_value,
-                enum_name,
-                enum_string_values,
-                renamed_from: f.renamed_from,
-            }
-        })
+        .form_fields
+        .iter()
+        .map(|decl| decl_to_column(decl, &model.enums))
         .collect();
 
     let foreign_keys = model
         .relations
         .iter()
-        .filter_map(|rel| {
-            if let DslRelationKind::BelongsTo {
-                from_column,
+        .filter_map(|rel| match rel {
+            RelationDef::BelongsTo {
+                model: target,
+                via,
                 on_delete,
                 on_update,
-            } = &rel.kind
-            {
-                Some(ParsedFk {
-                    from_column: from_column.clone(),
-                    to_table: pascal_to_snake(&rel.target),
-                    to_column: "id".to_string(),
-                    on_delete: on_delete.clone(),
-                    on_update: on_update.clone(),
-                })
-            } else {
-                None
-            }
+            } => Some(ParsedFk {
+                from_column: via.to_string(),
+                // The target's module name; `scan_entities` swaps in its real
+                // table and primary key.
+                to_table: pascal_to_snake(&target.to_string()),
+                to_column: "id".to_string(),
+                on_delete: fk_action(*on_delete),
+                on_update: fk_action(*on_update),
+            }),
+            _ => None,
         })
         .collect();
 
     let table = model.table.clone();
-
-    // unique_together → unique indexes
-    let mut parsed_indexes: Vec<ParsedIndex> = model
-        .unique_together
-        .iter()
-        .map(|cols| ParsedIndex {
-            name: format!("{}_{}_uniq", table, cols.join("_")),
-            columns: cols.clone(),
-            unique: true,
-        })
-        .collect();
-
-    // indexes → non-unique indexes
-    for cols in &model.indexes {
-        parsed_indexes.push(ParsedIndex {
-            name: format!("idx_{}_{}", table, cols.join("_")),
-            columns: cols.clone(),
-            unique: false,
-        });
+    let names =
+        |cols: &[syn::Ident]| -> Vec<String> { cols.iter().map(|c| c.to_string()).collect() };
+    let mut indexes = Vec::new();
+    if let Some(meta) = &model.meta {
+        for cols in &meta.unique_together {
+            let columns = names(cols);
+            indexes.push(ParsedIndex {
+                name: format!("{}_{}_uniq", table, columns.join("_")),
+                columns,
+                unique: true,
+            });
+        }
+        for cols in &meta.indexes {
+            let columns = names(cols);
+            indexes.push(ParsedIndex {
+                name: format!("idx_{}_{}", table, columns.join("_")),
+                columns,
+                unique: false,
+            });
+        }
     }
 
     ParsedSchema {
@@ -204,6 +201,6 @@ pub(super) fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
         primary_key,
         columns,
         foreign_keys,
-        indexes: parsed_indexes,
+        indexes,
     }
 }

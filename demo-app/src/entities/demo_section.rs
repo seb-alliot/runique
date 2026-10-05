@@ -7,7 +7,7 @@ model! {
     {
         page_id:    Pk [required],
         title:      text [required],
-        content:    text,
+        content:    text [nullable],
         sort_order: int [required],
     },
     relations: {

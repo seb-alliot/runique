@@ -9,7 +9,7 @@ model! {
         title:      text [required],
         language:   text [required],
         code:       richtext [required],
-        context:    text,
+        context:    text [nullable],
         sort_order: int [required],
     },
     relations: {

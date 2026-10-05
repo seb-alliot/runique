@@ -17,7 +17,7 @@ model! {
         category_id: Pk [required],
         slug:        text [required],
         title:       text [required],
-        lead:        text,
+        lead:        text [nullable],
         page_type:   choice [enum(PageType), required],
         sort_order:  int [required],
     },

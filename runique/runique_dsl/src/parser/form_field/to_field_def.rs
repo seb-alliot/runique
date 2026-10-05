@@ -5,8 +5,8 @@ use crate::ast::{FieldDef, FieldOption, FormFieldAttr, FormFieldDecl};
 pub fn form_field_to_field_def(ff: &FormFieldDecl) -> FieldDef {
     use crate::ast::{FileKind, FormFieldAttr::*, FormFieldKind::*};
 
-    // Nullable unless `[required]` (the parser refuses both at once).
     let is_required = ff.attrs.iter().any(|a| matches!(a, Required));
+    let is_nullable = ff.attrs.iter().any(|a| matches!(a, Nullable));
 
     let default = ff.attrs.iter().find_map(|a| {
         if let Default(lit) = a {
@@ -33,14 +33,17 @@ pub fn form_field_to_field_def(ff: &FormFieldDecl) -> FieldDef {
     let is_auto_now = ff.attrs.iter().any(|a| matches!(a, AutoNow));
     let is_auto_now_update = ff.attrs.iter().any(|a| matches!(a, AutoNowUpdate));
 
+    // NOT NULL unless `[nullable]`; `required` only makes the form field mandatory.
     let mut options: Vec<FieldOption> = Vec::new();
     if is_auto_now {
         options.push(FieldOption::AutoNow);
     } else if is_auto_now_update {
         options.push(FieldOption::AutoNowUpdate);
-    } else if is_required {
+    }
+    if is_required {
         options.push(FieldOption::Required);
-    } else {
+    }
+    if is_nullable {
         options.push(FieldOption::Nullable);
     }
     if ff.attrs.iter().any(|a| matches!(a, FormFieldAttr::Unique)) {
@@ -119,10 +122,6 @@ pub fn form_field_to_field_def(ff: &FormFieldDecl) -> FieldDef {
     {
         options.push(FieldOption::Label(s.clone()));
     }
-    if let Some(FormFieldAttr::Fk(fk)) = ff.attrs.iter().find(|a| matches!(a, FormFieldAttr::Fk(_)))
-    {
-        options.push(FieldOption::Fk(fk.clone()));
-    }
 
     FieldDef {
         name: ff.name.clone(),
@@ -169,7 +168,7 @@ mod tests {
             FieldType::VarBinary(255)
         ));
         assert!(matches!(
-            field("s: choice [enum(Status)]").column_type(),
+            field("s: choice [enum(Status), required]").column_type(),
             FieldType::Enum(id) if id == "Status"
         ));
     }
@@ -181,8 +180,13 @@ mod tests {
     #[test]
     fn required_nullable_and_auto_now_options() {
         use crate::ast::FieldOption::*;
-        let plain = field("a: int");
-        assert!(has(&plain, |o| matches!(o, Nullable)) && !has(&plain, |o| matches!(o, Required)));
+        let plain = field("a: text");
+        assert!(
+            !has(&plain, |o| matches!(o, Nullable | Required)),
+            "NOT NULL by default"
+        );
+        let null = field("a: int [nullable]");
+        assert!(has(&null, |o| matches!(o, Nullable)) && !has(&null, |o| matches!(o, Required)));
         let req = field("a: int [required]");
         assert!(has(&req, |o| matches!(o, Required)) && !has(&req, |o| matches!(o, Nullable)));
         let created = field("a: datetime [auto_now]");

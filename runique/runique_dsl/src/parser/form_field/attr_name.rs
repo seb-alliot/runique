@@ -23,7 +23,7 @@ pub(super) fn attr_name_str(attr: &FormFieldAttr) -> &'static str {
         FormFieldAttr::Unique => "unique",
         FormFieldAttr::Readonly => "readonly",
         FormFieldAttr::Label(_) => "label",
-        FormFieldAttr::Fk(_) => "fk",
         FormFieldAttr::Skip => "skip",
+        FormFieldAttr::RenamedFrom(_) => "renamed_from",
     }
 }

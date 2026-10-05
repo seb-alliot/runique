@@ -10,10 +10,10 @@ model! {
     {
         title:   text [required],
         email:   email [required],
-        website: url,
+        website: url [nullable],
         summary: textarea [rows: 3, required],
         content: richtext [rows: 15, required],
         status:     choice [enum(BlogStatus), default: "Draft", required],
-        view_count: int [default: 0],
+        view_count: int [nullable, default: 0],
     }
 }

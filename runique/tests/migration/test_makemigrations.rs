@@ -142,9 +142,9 @@ fn entity_user() -> &'static str {
         table: "users",
         pk: id => i32,
         {
-            username: String [unique],
-            email: String [unique],
-            is_active: bool,
+            username: text [required, unique],
+            email: email [required, unique],
+            is_active: bool [nullable, default: true],
             created_at: datetime [auto_now],
         }
     }
@@ -159,9 +159,9 @@ fn entity_post() -> &'static str {
         table: "posts",
         pk: id => i64,
         {
-            title: String,
-            body: text [nullable],
-            user_id: i32,
+            title: text [required],
+            body: textarea [nullable],
+            user_id: int [required],
             published_at: datetime [nullable],
         }
     }
@@ -176,11 +176,11 @@ fn entity_product() -> &'static str {
         table: "products",
         pk: id => i32,
         {
-            name: String,
-            price: f64,
-            stock: i32,
-            sku: String [unique],
-            description: text [nullable],
+            name: text [required],
+            price: float [required],
+            stock: int [required],
+            sku: text [required, unique],
+            description: textarea [nullable],
         }
     }
     "#
@@ -310,15 +310,80 @@ fn test_scan_entities_melange_valide_invalide() {
     let dir = temp_dir("scan_mixed");
     fs::write(dir.join("user.rs"), entity_user()).unwrap();
     fs::write(dir.join("garbage.rs"), "let x = !!@@;").unwrap();
-    // Le fichier invalide est ignoré silencieusement (parse error → pas de schema)
-    // Mais scan_entities retourne quand même Ok si le fichier est du Rust invalide
-    // (parse_schema_from_source retourne None pour du Rust invalide)
-    let result = scan_entities(dir.to_str().unwrap());
-    // Si scan_entities propage l'erreur de lecture/parse : Err
-    // Si scan_entities utilise parse_schema_from_source (qui retourne None) : Ok avec 1 schéma
-    // Selon l'implémentation, l'un ou l'autre est acceptable.
-    // On vérifie juste que ça ne panique pas.
-    let _ = result;
+    let err = scan_entities(dir.to_str().unwrap())
+        .expect_err("un fichier illisible arrête le scan au lieu d'être ignoré");
+    assert!(
+        format!("{err:#}").contains("garbage.rs"),
+        "l'erreur nomme le fichier : {err:#}"
+    );
+}
+
+#[test]
+fn test_scan_entities_modele_invalide_est_une_erreur() {
+    let dir = temp_dir("scan_bad_model");
+    fs::write(
+        dir.join("post.rs"),
+        r#"model! { Post, table: "posts", pk: id => i32, { title: texte [required] } }"#,
+    )
+    .unwrap();
+    let err = scan_entities(dir.to_str().unwrap()).expect_err("type inconnu refusé");
+    let msg = format!("{err:#}");
+    assert!(msg.contains("post.rs") && msg.contains("texte"), "{msg}");
+}
+
+#[test]
+fn test_scan_entities_belongs_to_vise_la_vraie_table_et_pk() {
+    let dir = temp_dir("scan_belongs_to");
+    fs::write(
+        dir.join("shelf.rs"),
+        r#"model! { Shelf, table: "library_shelves", pk: code => i32, { label: text [required] } }"#,
+    )
+    .unwrap();
+    fs::write(
+        dir.join("book.rs"),
+        r#"model! { Book, table: "library_books", pk: id => i32, { shelf_code: int [required] },
+            relations: { belongs_to: shelf via shelf_code [cascade] } }"#,
+    )
+    .unwrap();
+    let schemas = scan_entities(dir.to_str().unwrap()).unwrap();
+    let book = schemas
+        .iter()
+        .find(|s| s.table_name == "library_books")
+        .unwrap();
+    let fk = &book.foreign_keys[0];
+    assert_eq!(fk.to_table, "library_shelves");
+    assert_eq!(fk.to_column, "code");
+    assert_eq!(fk.on_delete, "Cascade");
+}
+
+#[test]
+fn test_scan_entities_belongs_to_cible_inconnue_est_une_erreur() {
+    let dir = temp_dir("scan_belongs_to_unknown");
+    fs::write(
+        dir.join("book.rs"),
+        r#"model! { Book, table: "library_books", pk: id => i32, { shelf_code: int [required] },
+            relations: { belongs_to: shelf via shelf_code } }"#,
+    )
+    .unwrap();
+    let err = scan_entities(dir.to_str().unwrap()).expect_err("cible introuvable");
+    assert!(format!("{err:#}").contains("shelf"), "{err:#}");
+}
+
+#[test]
+fn test_scan_entities_belongs_to_table_framework() {
+    let dir = temp_dir("scan_belongs_to_framework");
+    fs::write(
+        dir.join("note.rs"),
+        r#"model! { Note, table: "notes", pk: id => i32, { author_id: int [required] },
+            relations: { belongs_to: eihwaz_users via author_id [cascade] } }"#,
+    )
+    .unwrap();
+    let schemas = scan_entities(dir.to_str().unwrap()).unwrap();
+    let fk = &schemas[0].foreign_keys[0];
+    assert_eq!(
+        (fk.to_table.as_str(), fk.to_column.as_str()),
+        ("eihwaz_users", "id")
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════

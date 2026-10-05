@@ -9,7 +9,7 @@ model! {
     pk: id => Pk,
     {
         parent_id: Pk [required, unique],
-        bio:       text,
+        bio:       text [nullable],
     },
     relations: {
         belongs_to: TestRelationParent via parent_id [cascade],

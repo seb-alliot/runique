@@ -142,22 +142,6 @@ fn generate_option(opt: &FieldOption) -> TokenStream2 {
         FieldOption::MaxSize(n) => {
             quote! { .max_size_bytes(#n) }
         }
-        FieldOption::Fk(fk) => {
-            let table = fk.table.to_string();
-            let column = fk.column.to_string();
-            let action = match fk.action {
-                FkAction::Cascade => quote! { ::sea_orm::sea_query::ForeignKeyAction::Cascade },
-                FkAction::SetNull => quote! { ::sea_orm::sea_query::ForeignKeyAction::SetNull },
-                FkAction::Restrict => quote! { ::sea_orm::sea_query::ForeignKeyAction::Restrict },
-                FkAction::SetDefault => {
-                    quote! { ::sea_orm::sea_query::ForeignKeyAction::SetDefault }
-                }
-            };
-
-            // note: FKs will be generated separately
-            let _ = (table, column, action);
-            quote! {}
-        }
     }
 }
 

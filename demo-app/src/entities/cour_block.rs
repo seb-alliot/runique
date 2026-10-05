@@ -9,7 +9,7 @@ model! {
     },
     {
         chapitre_id: Pk [required],
-        heading:     text,
+        heading:     text [nullable],
         content:     richtext [required],
         block_type:  choice [enum(CourBlockType), required],
         sort_order:  int [required],

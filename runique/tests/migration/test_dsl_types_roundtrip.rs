@@ -9,7 +9,7 @@
 //! Postgres/MariaDB need `docker compose up -d` and `DATABASE_URL_PG` /
 //! `DATABASE_URL_MARIADB` in `.env.test`; without them those tests return early.
 use crate::helpers::{db_mariadb, db_postgres};
-use runique::migration::utils::helpers::col_type_to_method;
+use runique::migration::utils::helpers::col_type_method;
 use runique::migration::utils::parser_builder::parse_schema_from_source;
 use runique::sea_orm::{
     ConnectionTrait, Database, DatabaseConnection,
@@ -133,17 +133,18 @@ fn cases() -> Vec<(&'static str, &'static str, &'static str, RoundTrip)> {
 
 /// The column the CLI would generate for this declaration: its type name, and
 /// the sea-query method a migration file would call for it.
-fn cli_column(source: &str) -> (String, String) {
-    let (_, schema) = parse_schema_from_source(source).expect("the CLI parses the model");
-    let col_type = schema.columns[0].col_type.clone();
-    let method = col_type_to_method(&col_type).to_string();
-    (col_type, method)
+fn cli_column(source: &str) -> (String, Option<u32>, String) {
+    let (_, schema) = parse_schema_from_source(source)
+        .unwrap()
+        .expect("the CLI parses the model");
+    let column = &schema.columns[0];
+    let method = col_type_method(&column.col_type, column.max_length);
+    (column.col_type.clone(), column.max_length, method)
 }
 
-/// Builds the column with the real sea-query method for `col_type`. When the
-/// CLI's method name doesn't exist in sea-query, the correct one is used here
-/// so the round trip can still be tested; the mismatch is reported apart.
-fn column_def(col_type: &str) -> Result<ColumnDef, String> {
+/// Builds the column with the sea-query method the CLI writes for `col_type`
+/// and its length.
+fn column_def(col_type: &str, max_length: Option<u32>) -> Result<ColumnDef, String> {
     let mut column = ColumnDef::new(Alias::new("v"));
     match col_type {
         "TinyInteger" => column.tiny_integer(),
@@ -154,13 +155,18 @@ fn column_def(col_type: &str) -> Result<ColumnDef, String> {
         "BigUnsigned" => column.big_unsigned(),
         "Float" => column.float(),
         "Double" => column.double(),
-        "String" => column.string(),
+        "String" => match max_length {
+            Some(n) => column.string_len(n),
+            None => column.string(),
+        },
         "Char" => column.char(),
         "DateTime" => column.date_time(),
         "TimestampWithTimeZone" => column.timestamp_with_time_zone(),
-        "Binary" => column.binary(),
-        // The CLI writes `.var_binary()`, which sea-query doesn't have without a length.
-        "VarBinary" => column.var_binary(255),
+        "Binary" => match max_length {
+            Some(n) => column.binary_len(n),
+            None => column.binary(),
+        },
+        "VarBinary" => column.var_binary(max_length.unwrap_or(255)),
         "Blob" => column.blob(),
         other => return Err(format!("col_type {other} not handled by this test")),
     };
@@ -174,14 +180,14 @@ async fn run_all(db: &DatabaseConnection, engine: &str) -> Vec<String> {
     // One table per type: Postgres caches prepared statements by their SQL
     // text, so reusing a table name with another column type trips the cache.
     for (kind, table, source, round_trip) in cases() {
-        let (col_type, method) = cli_column(source);
+        let (col_type, max_length, method) = cli_column(source);
         let drop = Table::drop()
             .table(Alias::new(table))
             .if_exists()
             .to_owned();
         db.execute(&drop).await.expect("drop");
 
-        let outcome = match column_def(&col_type) {
+        let outcome = match column_def(&col_type, max_length) {
             Err(e) => Err(e),
             Ok(mut column) => {
                 let create = Table::create()
@@ -228,12 +234,10 @@ async fn run_all(db: &DatabaseConnection, engine: &str) -> Vec<String> {
 /// - `u64`: sqlx only handles it on MySQL/MariaDB.
 const KNOWN_FAILING_SQLITE: &[&str] = &["u64"];
 const KNOWN_FAILING_POSTGRES: &[&str] = &["i8", "u32", "u64"];
-/// - `blob`, `binary` (MariaDB): bugs of the CLI's own type table, fixed when
-///   it moves onto `runique_dsl` (chantier C): `blob` becomes a `Binary`
-///   column, and `.binary()` without a length is a one-byte `BINARY(1)`. The
-///   CLI also writes `.var_binary()` without a length, which sea-query lacks
-///   (this test builds that one with 255).
-const KNOWN_FAILING_MARIADB: &[&str] = &["blob", "binary"];
+/// - `binary` (MariaDB): `BINARY(n)` is fixed-length — MariaDB pads the
+///   value with `0x00` up to `n` bytes, so 4 bytes written come back as 255.
+///   `var_binary` keeps the exact bytes.
+const KNOWN_FAILING_MARIADB: &[&str] = &["binary"];
 
 fn check(engine: &str, failures: Vec<String>, known: &[&str]) {
     assert_eq!(

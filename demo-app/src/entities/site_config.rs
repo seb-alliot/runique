@@ -7,8 +7,8 @@ model! {
     {
         key:         text [required],
         value:       text [required],
-        description: text,
-        is_public:   bool [default: true],
-        sort_order:  int [default: 0],
+        description: text [nullable],
+        is_public:   bool [nullable, default: true],
+        sort_order:  int [nullable, default: 0],
     }
 }

@@ -17,6 +17,23 @@ fn extract_default_arg(expr: &Expr) -> Option<String> {
     None
 }
 
+/// The length argument of `.string_len(n)`, `.binary_len(n)` or `.var_binary(n)`.
+fn extract_length_arg(expr: &Expr) -> Option<u32> {
+    collect_chain(expr).into_iter().find_map(|mc| {
+        let method = mc.method.to_string();
+        if !matches!(method.as_str(), "string_len" | "binary_len" | "var_binary") {
+            return None;
+        }
+        match mc.args.first()? {
+            Expr::Lit(syn::ExprLit {
+                lit: syn::Lit::Int(n),
+                ..
+            }) => n.base10_parse().ok(),
+            _ => None,
+        }
+    })
+}
+
 use crate::migration::utils::{
     helpers::{
         collect_chain, detect_col_type_seaorm, extract_alias_new_str, extract_alias_new_str_inner,
@@ -148,11 +165,13 @@ impl SeaOrmVisitor {
                         enum_name: None,
                         enum_string_values: Vec::new(),
                         renamed_from: None,
+                        max_length: None,
                     });
                 } else {
                     let is_created_at = n == "created_at";
                     let is_updated_at = n == "updated_at";
                     self.columns.push(ParsedColumn {
+                        max_length: extract_length_arg(arg),
                         name: n,
                         col_type,
                         nullable,

@@ -11,6 +11,6 @@ model! {
         lang:       text [required],
         title:      text [required],
         sort_order: int [required],
-        theme:      choice [enum(SectionTheme)],
+        theme:      choice [nullable, enum(SectionTheme)],
     }
 }

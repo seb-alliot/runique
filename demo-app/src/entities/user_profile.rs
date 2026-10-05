@@ -3,11 +3,11 @@ use runique::prelude::*;
 extend! {
     table: "eihwaz_users",
     fields: {
-        bio: textarea,
-        avatar: image [upload_to: "avatars/"],
-        website: url,
-        phone: phone,
-        birth_date: date,
-        is_verified: bool [default: false],
+        bio: textarea [nullable],
+        avatar: image [nullable, upload_to: "avatars/"],
+        website: url [nullable],
+        phone: phone [nullable],
+        birth_date: date [nullable],
+        is_verified: bool [nullable, default: false],
     }
 }

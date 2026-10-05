@@ -1,6 +1,6 @@
 //! SeaORM migration Rust code generation — `up`/`down` files, CREATE TABLE, FK, indexes, triggers.
 use crate::migration::utils::{
-    helpers::col_type_to_method,
+    helpers::{col_type_method, col_type_to_method},
     types::{Changes, ParsedColumn, ParsedSchema},
 };
 
@@ -76,6 +76,10 @@ pub fn generate_create_file(schema: &ParsedSchema) -> String {
 }
 
 /// Generates the snapshot file (includes FK stmts so diffs detect FK additions/removals).
+/// First line of every snapshot that records column lengths. A snapshot
+/// without it predates them: its `None` lengths mean "unknown", not "none".
+pub const SNAPSHOT_LENGTHS_MARKER: &str = "// runique: column lengths recorded";
+
 pub fn generate_snapshot_file(schema: &ParsedSchema) -> String {
     // Snapshot keeps FKs as separate stmts (never inline) so parser_seaorm round-trip is stable.
     let cols = build_create_table_cols(schema, false);
@@ -115,7 +119,8 @@ pub fn generate_snapshot_file(schema: &ParsedSchema) -> String {
     down.push_str("        Ok(())\n");
 
     format!(
-        "use sea_orm_migration::prelude::*;\n\n\
+        "{SNAPSHOT_LENGTHS_MARKER}\n\
+    use sea_orm_migration::prelude::*;\n\n\
     #[derive(DeriveMigrationName)]\n\
     pub struct Migration;\n\n\
     #[async_trait::async_trait]\n\
@@ -425,42 +430,14 @@ fn build_alter_bodies(change: &Changes) -> (String, String) {
         // nullable -> not_null => destructive unless you backfill
         if old.nullable && !new.nullable {
             // Generates modify_column anyway (risky if NULLs exist)
-            push_modify_column(
-                &mut up,
-                &change.table_name,
-                &new.name,
-                &new.col_type,
-                new.nullable,
-                new.unique,
-            );
-            push_modify_column(
-                &mut down,
-                &change.table_name,
-                &old.name,
-                &old.col_type,
-                old.nullable,
-                old.unique,
-            );
+            push_modify_column(&mut up, &change.table_name, new);
+            push_modify_column(&mut down, &change.table_name, old);
             continue;
         }
 
         // safe modify
-        push_modify_column(
-            &mut up,
-            &change.table_name,
-            &new.name,
-            &new.col_type,
-            new.nullable,
-            new.unique,
-        );
-        push_modify_column(
-            &mut down,
-            &change.table_name,
-            &old.name,
-            &old.col_type,
-            old.nullable,
-            old.unique,
-        );
+        push_modify_column(&mut up, &change.table_name, new);
+        push_modify_column(&mut down, &change.table_name, old);
     }
 
     // 5) ADD columns
@@ -616,7 +593,7 @@ fn render_enum_column_change(table: &str, from: &ParsedColumn, to: &ParsedColumn
         format!(
             "ColumnDef::new(Alias::new(\"{col}\")).{ty}",
             col = to.name,
-            ty = col_type_to_method(&to.col_type),
+            ty = col_type_method(&to.col_type, to.max_length),
         )
     };
     // Postgres reinterprets each existing row's value through this cast target —
@@ -779,7 +756,7 @@ fn render_column_def(col: &ParsedColumn) -> String {
             default = default,
         )
     } else {
-        let ty = col_type_to_method(&col.col_type);
+        let ty = col_type_method(&col.col_type, col.max_length);
         format!(
             "ColumnDef::new(Alias::new(\"{name}\")).{ty}{null}{uniq}{default}",
             name = col.name,
@@ -824,14 +801,10 @@ fn push_drop_column(buf: &mut String, table: &str, col: &str) {
     ));
 }
 
-fn push_modify_column(
-    buf: &mut String,
-    table: &str,
-    col: &str,
-    col_type: &str,
-    nullable: bool,
-    unique: bool,
-) {
+fn push_modify_column(buf: &mut String, table: &str, column: &ParsedColumn) {
+    let col = &column.name;
+    let nullable = column.nullable;
+    let unique = column.unique;
     let null = if nullable { ".null()" } else { ".not_null()" };
     let uniq = if unique { ".unique_key()" } else { "" };
     // sea-query's SQLite backend `panic!`s unconditionally on ANY `modify_column`
@@ -845,7 +818,7 @@ fn push_modify_column(
         "        // WARNING: SQLite cannot ALTER a column's type/nullable/unique constraint\n        // (sea-query panics on any `modify_column` there) — this change only applies on\n        // Postgres/MySQL; on SQLite the column keeps its current definition unchanged.\n        if manager.get_connection().get_database_backend() != sea_orm::DbBackend::Sqlite {{\n            manager\n                .alter_table(\n                    Table::alter()\n                        .table(Alias::new(\"{table}\"))\n                        .modify_column(ColumnDef::new(Alias::new(\"{col}\")).{ty}{null}{uniq})\n                        .to_owned(),\n                )\n                .await?;\n        }}\n\n",
         table = table,
         col = col,
-        ty = col_type_to_method(col_type),
+        ty = col_type_method(&column.col_type, column.max_length),
         null = null,
         uniq = uniq
     ));

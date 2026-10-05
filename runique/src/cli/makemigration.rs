@@ -17,6 +17,22 @@ pub fn parse_create_file(path: &str) -> Result<ParsedSchema> {
     parse_seaorm_source(&source).with_context(|| format!("Cannot parse: {}", path))
 }
 
+/// The previous snapshot of a table, to diff `current` against. A snapshot
+/// written before column lengths were recorded doesn't know them: it takes
+/// `current`'s, so upgrading never produces a length migration on its own.
+pub(crate) fn previous_snapshot(path: &str, current: &ParsedSchema) -> Result<ParsedSchema> {
+    let mut previous = parse_create_file(path)?;
+    let recorded = fs::read_to_string(path)?.starts_with(SNAPSHOT_LENGTHS_MARKER);
+    if !recorded {
+        for col in &mut previous.columns {
+            if let Some(cur) = current.columns.iter().find(|c| c.name == col.name) {
+                col.max_length = cur.max_length;
+            }
+        }
+    }
+    Ok(previous)
+}
+
 // ── scan ─────────────────────────────────────────────────────────────────────
 
 /// Tables created by `EihwazUsersMigration` + `AdminTableMigration`.
@@ -30,10 +46,13 @@ const FRAMEWORK_TABLES: &[&str] = &[
     "eihwaz_reset_tokens",
 ];
 
-/// Scans every `.rs` file in `entities_path` for `derive_form!{}`/model schemas,
-/// parses each one, and resolves FK `to_table` references from model names to
-/// their actual table names. Skips the framework's own tables (`eihwaz_*`) when
-/// the app uses the built-in user table.
+/// Scans every `.rs` file in `entities_path` for `model!{}` schemas and
+/// parses each one. A `belongs_to` target is resolved the way the `model!{}`
+/// macro resolves it — the entity module of that name, i.e. the file
+/// `<target>.rs`, or a framework table — and its FK then references that
+/// model's real table and primary key; a target that matches nothing is an
+/// error. Skips the framework's own tables (`eihwaz_*`) when the app uses the
+/// built-in user table.
 pub fn scan_entities(entities_path: &str) -> Result<Vec<ParsedSchema>> {
     dotenvy::dotenv().ok();
     let using_builtin_user = std::env::var("RUNIQUE_USER_TABLE")
@@ -42,41 +61,62 @@ pub fn scan_entities(entities_path: &str) -> Result<Vec<ParsedSchema>> {
         || std::env::var("RUNIQUE_USER_TABLE").unwrap_or_default() == "eihwaz_users";
 
     let mut schemas = Vec::new();
-    let mut model_table_map: StrMap = StrMap::new();
-    let entries = fs::read_dir(entities_path)
-        .with_context(|| format!("Cannot read entities directory: {}", entities_path))?;
+    // module name → (table, primary key column)
+    let mut targets: std::collections::HashMap<String, (String, String)> = FRAMEWORK_TABLES
+        .iter()
+        .map(|t| (t.to_string(), (t.to_string(), "id".to_string())))
+        .collect();
+    let mut entries: Vec<_> = fs::read_dir(entities_path)
+        .with_context(|| format!("Cannot read entities directory: {}", entities_path))?
+        .collect::<std::io::Result<_>>()?;
+    entries.sort_by_key(|e| e.path());
 
     for entry in entries {
-        let entry = entry?;
         let path = entry.path();
         if path.extension().and_then(|e| e.to_str()) != Some("rs") {
             continue;
         }
-        if path.file_name().and_then(|n| n.to_str()) == Some("mod.rs") {
+        let Some(module) = path.file_stem().and_then(|n| n.to_str()) else {
+            continue;
+        };
+        if module == "mod" {
             continue;
         }
 
         let source = fs::read_to_string(&path)
             .with_context(|| format!("Cannot read file: {}", path.display()))?;
 
-        if let Some((model_name, schema)) = parse_schema_from_source(&source) {
+        if let Some((_, schema)) = parse_schema_from_source(&source)
+            .with_context(|| format!("Invalid model!{{}} in {}", path.display()))?
+        {
+            let pk = schema
+                .primary_key
+                .as_ref()
+                .map_or_else(|| "id".to_string(), |pk| pk.name.clone());
+            targets.insert(module.to_string(), (schema.table_name.clone(), pk));
             // Ignore tables provided by the framework (`EihwazUsersMigration` + `AdminTableMigration`)
             if using_builtin_user && FRAMEWORK_TABLES.contains(&schema.table_name.as_str()) {
                 continue;
-            }
-            if !model_name.is_empty() {
-                model_table_map.insert(model_name, schema.table_name.clone());
             }
             schemas.push(schema);
         }
     }
 
-    // Fix FK to_table: pascal_to_snake(ModelName) → actual table_name from meta
     for schema in &mut schemas {
         for fk in &mut schema.foreign_keys {
-            if let Some(table) = model_table_map.get(&fk.to_table) {
-                fk.to_table = table.clone();
-            }
+            let Some((table, pk)) = targets.get(&fk.to_table) else {
+                anyhow::bail!(
+                    "{}: `belongs_to: {} via {}` — no model `{}` ({}/{}.rs) and no framework table of that name",
+                    schema.table_name,
+                    fk.to_table,
+                    fk.from_column,
+                    fk.to_table,
+                    entities_path,
+                    fk.to_table
+                );
+            };
+            fk.to_table = table.clone();
+            fk.to_column = pk.clone();
         }
     }
 
@@ -386,6 +426,25 @@ pub fn collect_destructive_messages(all_changes: &[Changes]) -> Vec<String> {
             })
     });
 
+    let length_shrinks = all_changes.iter().flat_map(|c| {
+        c.modified_columns
+            .iter()
+            .filter(|(old, new)| {
+                old.col_type == new.col_type && length_may_shrink(old.max_length, new.max_length)
+            })
+            .map(|(old, new)| {
+                let len =
+                    |l: Option<u32>| l.map_or_else(|| "default".to_string(), |n| n.to_string());
+                format!(
+                    "  {}.{}: length {} -> {} (longer values would be cut or refused)",
+                    c.table_name,
+                    new.name,
+                    len(old.max_length),
+                    len(new.max_length)
+                )
+            })
+    });
+
     let dropped_fks = all_changes.iter().flat_map(|c| {
         c.dropped_fks.iter().map(|fk| {
             format!(
@@ -417,9 +476,22 @@ pub fn collect_destructive_messages(all_changes: &[Changes]) -> Vec<String> {
     dropped
         .chain(type_changes)
         .chain(nullable_to_required)
+        .chain(length_shrinks)
         .chain(dropped_fks)
         .chain(cascade_fks)
         .collect()
+}
+
+/// Whether going from `old` to `new` column length can drop data on some
+/// engine. No length is unbounded on Postgres but `VARCHAR(255)` on MySQL, so
+/// both directions out of "no length" are checked against each.
+fn length_may_shrink(old: Option<u32>, new: Option<u32>) -> bool {
+    match (old, new) {
+        (Some(old), Some(new)) => new < old,
+        (None, Some(_)) => true,
+        (Some(old), None) => old > 255,
+        (None, None) => false,
+    }
 }
 
 /// Prints `messages` under the translated `header_key`, then bails with the translated
@@ -560,7 +632,8 @@ pub fn scan_extend_blocks(entities_path: &str) -> Result<Vec<ParsedSchema>> {
         let source = fs::read_to_string(&path)
             .with_context(|| format!("Cannot read file: {}", path.display()))?;
 
-        let blocks = parse_extend_blocks_from_source(&source);
+        let blocks = parse_extend_blocks_from_source(&source)
+            .with_context(|| format!("Invalid extend!{{}} in {}", path.display()))?;
         for schema in blocks {
             schemas.push(schema);
         }
@@ -670,7 +743,7 @@ fn compute_main_changes(schemas: &[ParsedSchema], migrations_path: &str) -> Resu
     for schema in schemas {
         let snap_path = snapshot_file_path(migrations_path, &schema.table_name);
         let changes = if Path::new(&snap_path).exists() {
-            let previous = parse_create_file(&snap_path)?;
+            let previous = previous_snapshot(&snap_path, schema)?;
             diff_schemas(&previous, schema)
         } else {
             Changes {
@@ -990,7 +1063,7 @@ fn plan_extend_changes(
         let snap_path = extend_snapshot_file_path(migrations_path, &ext_schema.table_name);
 
         let changes = if Path::new(&snap_path).exists() {
-            let previous = parse_create_file(&snap_path)?;
+            let previous = previous_snapshot(&snap_path, &ext_schema)?;
             diff_schemas(&previous, &ext_schema)
         } else {
             // First time — all columns are new (ADD COLUMN)

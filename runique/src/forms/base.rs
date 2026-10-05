@@ -111,6 +111,18 @@ pub enum NumericConfig {
     },
 }
 
+/// The bounds a field accepts: lengths for text, values for numbers. Read
+/// after `customize` to check it didn't loosen what the model declares.
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
+pub struct FieldBounds {
+    pub min_length: Option<u32>,
+    pub max_length: Option<u32>,
+    pub min_int: Option<i64>,
+    pub max_int: Option<i64>,
+    pub min_float: Option<f64>,
+    pub max_float: Option<f64>,
+}
+
 /// An inclusive `min..=max` bound used by [`NumericConfig`] variants.
 #[derive(Clone, Serialize, Debug)]
 pub struct Range {
@@ -267,8 +279,10 @@ pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Syn
         false
     }
 
-    /// Lowers the accepted length to the column's, if the field allows more.
-    fn cap_max_length(&mut self, _max: u32) {}
+    /// The lengths or values this field accepts; none by default.
+    fn bounds(&self) -> FieldBounds {
+        FieldBounds::default()
+    }
 
     /// Lowers the accepted upload size to the column's, if the field allows more.
     fn cap_max_size(&mut self, _bytes: u64) {}
