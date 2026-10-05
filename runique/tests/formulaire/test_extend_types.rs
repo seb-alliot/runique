@@ -13,10 +13,10 @@ mod groups {
         table: "eihwaz_groupes",
         fields: {
             rank: i16 [required],
-            weight: f32,
-            seen_at: timestamp,
-            seen_tz: timestamp_tz,
-            code: char,
+            weight: f32 [nullable],
+            seen_at: timestamp [nullable],
+            seen_tz: timestamp_tz [nullable],
+            code: char [nullable],
         }
     }
 }

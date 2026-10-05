@@ -5,14 +5,13 @@ use runique::migration::parse_extend_blocks_from_source;
 
 #[test]
 fn test_empty_source_returns_empty() {
-    let result = parse_extend_blocks_from_source("");
+    let result = parse_extend_blocks_from_source("").unwrap();
     assert!(result.is_empty());
 }
 
 #[test]
-fn test_invalid_syntax_returns_empty() {
-    let result = parse_extend_blocks_from_source("fn foo( {{{");
-    assert!(result.is_empty());
+fn test_invalid_syntax_is_an_error() {
+    assert!(parse_extend_blocks_from_source("fn foo( {{{").is_err());
 }
 
 #[test]
@@ -22,7 +21,7 @@ fn test_no_extend_block_returns_empty() {
             println!("hello");
         }
     "#;
-    let result = parse_extend_blocks_from_source(source);
+    let result = parse_extend_blocks_from_source(source).unwrap();
     assert!(result.is_empty());
 }
 
@@ -32,11 +31,11 @@ fn test_single_extend_block() {
         extend! {
             table: "eihwaz_users",
             fields: {
-                bio: textarea,
+                bio: textarea [nullable],
             }
         }
     "#;
-    let result = parse_extend_blocks_from_source(source);
+    let result = parse_extend_blocks_from_source(source).unwrap();
     assert_eq!(result.len(), 1);
     assert_eq!(result[0].table_name, "eihwaz_users");
     assert_eq!(result[0].columns.len(), 1);
@@ -49,11 +48,11 @@ fn test_primary_key_is_none() {
         extend! {
             table: "my_table",
             fields: {
-                title: text,
+                title: text [nullable],
             }
         }
     "#;
-    let result = parse_extend_blocks_from_source(source);
+    let result = parse_extend_blocks_from_source(source).unwrap();
     assert_eq!(result.len(), 1);
     assert!(result[0].primary_key.is_none());
 }
@@ -64,13 +63,13 @@ fn test_multiple_fields() {
         extend! {
             table: "profiles",
             fields: {
-                avatar: image,
-                website: url,
-                age: integer,
+                avatar: image [nullable, upload_to: "avatars"],
+                website: url [nullable],
+                age: int [nullable],
             }
         }
     "#;
-    let result = parse_extend_blocks_from_source(source);
+    let result = parse_extend_blocks_from_source(source).unwrap();
     assert_eq!(result.len(), 1);
     let cols = &result[0].columns;
     assert_eq!(cols.len(), 3);
@@ -89,7 +88,7 @@ fn test_required_field_not_nullable() {
             }
         }
     "#;
-    let result = parse_extend_blocks_from_source(source);
+    let result = parse_extend_blocks_from_source(source).unwrap();
     assert_eq!(result.len(), 1);
     assert!(!result[0].columns[0].nullable);
 }
@@ -100,11 +99,11 @@ fn test_optional_field_is_nullable() {
         extend! {
             table: "profiles",
             fields: {
-                bio: textarea,
+                bio: textarea [nullable],
             }
         }
     "#;
-    let result = parse_extend_blocks_from_source(source);
+    let result = parse_extend_blocks_from_source(source).unwrap();
     assert_eq!(result.len(), 1);
     assert!(result[0].columns[0].nullable);
 }
@@ -115,11 +114,11 @@ fn test_unique_flag() {
         extend! {
             table: "profiles",
             fields: {
-                handle: text [unique],
+                handle: text [nullable, unique],
             }
         }
     "#;
-    let result = parse_extend_blocks_from_source(source);
+    let result = parse_extend_blocks_from_source(source).unwrap();
     assert!(result[0].columns[0].unique);
 }
 
@@ -129,17 +128,17 @@ fn test_multiple_extend_blocks() {
         extend! {
             table: "eihwaz_users",
             fields: {
-                bio: textarea,
+                bio: textarea [nullable],
             }
         }
         extend! {
             table: "posts",
             fields: {
-                slug: text,
+                slug: text [nullable],
             }
         }
     "#;
-    let result = parse_extend_blocks_from_source(source);
+    let result = parse_extend_blocks_from_source(source).unwrap();
     assert_eq!(result.len(), 2);
     assert_eq!(result[0].table_name, "eihwaz_users");
     assert_eq!(result[1].table_name, "posts");
@@ -151,11 +150,11 @@ fn test_col_type_text_maps_to_string() {
         extend! {
             table: "t",
             fields: {
-                name: text,
+                name: text [nullable],
             }
         }
     "#;
-    let result = parse_extend_blocks_from_source(source);
+    let result = parse_extend_blocks_from_source(source).unwrap();
     assert_eq!(result[0].columns[0].col_type, "String");
 }
 
@@ -165,11 +164,11 @@ fn test_col_type_integer_maps_to_integer() {
         extend! {
             table: "t",
             fields: {
-                count: integer,
+                count: int [nullable],
             }
         }
     "#;
-    let result = parse_extend_blocks_from_source(source);
+    let result = parse_extend_blocks_from_source(source).unwrap();
     assert_eq!(result[0].columns[0].col_type, "Integer");
 }
 
@@ -179,10 +178,10 @@ fn test_col_type_bool_maps_to_boolean() {
         extend! {
             table: "t",
             fields: {
-                active: bool,
+                active: bool [nullable],
             }
         }
     "#;
-    let result = parse_extend_blocks_from_source(source);
+    let result = parse_extend_blocks_from_source(source).unwrap();
     assert_eq!(result[0].columns[0].col_type, "Boolean");
 }

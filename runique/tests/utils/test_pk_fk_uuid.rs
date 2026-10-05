@@ -1,11 +1,9 @@
-// Regression test: `Pk` on a `fk()` field under `pk-uuid`.
+// Regression test: `Pk` on a `belongs_to` column under `pk-uuid`.
 //
-// `Pk` resolves to `FormFieldKind::Uuid` under this feature (derive_form
-// parser.rs:678-691). The attribute-validity gate used to only allow `fk()`
-// on `Int | Bigint` (parser.rs:963-965), rejecting this at compile time —
-// found 2026-09-02 while about to document `Pk` as the standard for FK
-// fields; the "5 fields fixed in demo-app" claim in the CHANGELOG never
-// actually exercised `pk-uuid` (demo-app runs under `postgres` only).
+// `Pk` resolves to `FormFieldKind::Uuid` under this feature. The FK
+// declaration (then `fk()`) used to only accept `Int | Bigint`, rejecting
+// this at compile time — found 2026-09-02; demo-app runs under `postgres`
+// only, so it never exercised `pk-uuid`.
 #[cfg(feature = "pk-uuid")]
 mod scratch_parent_uuid_check {
     use runique::prelude::*;
@@ -29,7 +27,10 @@ mod scratch_child {
         table: "scratch_child_uuid_check",
         pk: id => Pk,
         {
-            parent_id: Pk [required, fk(scratch_parent_uuid_check.id, cascade)],
+            parent_id: Pk [required],
+        },
+        relations: {
+            belongs_to: scratch_parent_uuid_check via parent_id [cascade],
         }
     }
 

@@ -9,7 +9,7 @@ model! {
     },
     {
         page_id:    Pk [required],
-        heading:    text,
+        heading:    text [nullable],
         content:    richtext [rows: 12, required],
         block_type: choice [enum(BlockType), required],
         sort_order: int [required],

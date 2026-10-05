@@ -70,7 +70,7 @@ mod tests {
     #[test]
     fn table_enums_and_fields_are_read() {
         let dsl = parse(
-            r#"table: "eihwaz_users", enums: { A: [X], B: [Y, Z] }, fields: { bio: textarea, age: int, }"#,
+            r#"table: "eihwaz_users", enums: { A: [X], B: [Y, Z] }, fields: { bio: textarea, age: int [nullable], }"#,
         )
         .expect("parses");
         assert_eq!(dsl.table, "eihwaz_users");

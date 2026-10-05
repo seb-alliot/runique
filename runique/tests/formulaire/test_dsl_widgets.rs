@@ -19,12 +19,12 @@ mod shop {
             Status: [Draft: "Brouillon", Published],
         },
         {
-            contact: email,
+            contact: email [nullable],
             qty: i16 [required, min: 0, label: "Quantité"],
-            ratio: float,
-            price: decimal,
-            status: choice [enum(Status)],
-            photo: image [upload_to: "photos/"],
+            ratio: float [nullable],
+            price: decimal [nullable],
+            status: choice [nullable, enum(Status)],
+            photo: image [nullable, upload_to: "photos/"],
         }
     }
 }

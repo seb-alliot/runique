@@ -1,6 +1,7 @@
 //! `relations: { belongs_to: ..., has_many: ..., has_one: ..., many_to_many: ... }`
 //! entry parsing.
-use crate::ast::RelationDef;
+use super::fk::parse_fk_action;
+use crate::ast::{FkAction, RelationDef};
 use syn::{
     Ident, Result, Token,
     parse::{Parse, ParseStream},
@@ -23,16 +24,29 @@ impl Parse for RelationDef {
                     return Err(syn::Error::new(via_kw.span(), "Expected: 'via'"));
                 }
                 let via: Ident = input.parse()?;
-                // Optional FK options: [cascade], [cascade, restrict], etc.
-                // consumed here, handled by migration system
+                // [on_delete] or [on_delete, on_update]
+                let mut actions = Vec::new();
                 if input.peek(syn::token::Bracket) {
                     let opts;
                     syn::bracketed!(opts in input);
-                    while !opts.is_empty() {
-                        opts.parse::<proc_macro2::TokenTree>().ok();
+                    let parsed = opts.parse_terminated(Ident::parse, Token![,])?;
+                    if parsed.len() > 2 {
+                        return Err(syn::Error::new(
+                            via.span(),
+                            "belongs_to takes at most two actions: [on_delete, on_update]",
+                        ));
+                    }
+                    for ident in &parsed {
+                        actions.push(parse_fk_action(ident)?);
                     }
                 }
-                RelationDef::BelongsTo { model, via }
+                let mut actions = actions.into_iter();
+                RelationDef::BelongsTo {
+                    model,
+                    via,
+                    on_delete: actions.next().unwrap_or(FkAction::NoAction),
+                    on_update: actions.next().unwrap_or(FkAction::NoAction),
+                }
             }
             "has_many" => {
                 // `as` is a strict Rust keyword — `input.peek(Ident)` structurally
@@ -103,7 +117,7 @@ mod tests {
     fn belongs_to_basic() {
         let rel = parse("belongs_to: User via user_id").unwrap();
         match rel {
-            RelationDef::BelongsTo { model, via } => {
+            RelationDef::BelongsTo { model, via, .. } => {
                 assert_eq!(model.to_string(), "User");
                 assert_eq!(via.to_string(), "user_id");
             }
@@ -117,10 +131,37 @@ mod tests {
     }
 
     #[test]
-    fn belongs_to_with_fk_options_consumed() {
-        // Options are consumed here but interpreted by the migration system,
-        // not stored on RelationDef — just confirm they don't break parsing.
-        assert!(parse("belongs_to: User via user_id [cascade]").is_ok());
+    fn belongs_to_actions_are_read() {
+        let RelationDef::BelongsTo {
+            on_delete,
+            on_update,
+            ..
+        } = parse("belongs_to: User via user_id [cascade, set_null]").unwrap()
+        else {
+            panic!("expected BelongsTo");
+        };
+        assert_eq!(on_delete, FkAction::Cascade);
+        assert_eq!(on_update, FkAction::SetNull);
+    }
+
+    #[test]
+    fn belongs_to_actions_default_to_no_action() {
+        let RelationDef::BelongsTo {
+            on_delete,
+            on_update,
+            ..
+        } = parse("belongs_to: User via user_id").unwrap()
+        else {
+            panic!("expected BelongsTo");
+        };
+        assert_eq!(on_delete, FkAction::NoAction);
+        assert_eq!(on_update, FkAction::NoAction);
+    }
+
+    #[test]
+    fn belongs_to_unknown_or_extra_action_rejected() {
+        assert!(parse("belongs_to: User via user_id [cascad]").is_err());
+        assert!(parse("belongs_to: User via user_id [cascade, cascade, cascade]").is_err());
     }
 
     #[test]

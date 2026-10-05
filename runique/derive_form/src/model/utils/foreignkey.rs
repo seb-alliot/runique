@@ -1,5 +1,6 @@
 use crate::model::generateur::{generate_column, generate_pk};
-use crate::model::{FieldOption, FkAction, ModelInput, RelationDef};
+use crate::model::utils::relation_enum::{fk_action_tokens, target_entity, target_pk_column};
+use crate::model::{ModelInput, RelationDef};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 
@@ -47,41 +48,35 @@ pub fn generate_schema(model: &ModelInput) -> TokenStream2 {
     }
 }
 
+/// One FK constraint per `belongs_to`: its column references the target
+/// entity's table and primary key, read from the entity itself.
 fn generate_foreign_keys(model: &ModelInput) -> Vec<TokenStream2> {
     model
-        .fields
+        .relations
         .iter()
-        .filter_map(|field| {
-            let col_name = field.name.to_string();
-            field.options.iter().find_map(|opt| {
-                if let FieldOption::Fk(fk) = opt {
-                    let table = fk.table.to_string();
-                    let column = fk.column.to_string();
-                    let action = match fk.action {
-                        FkAction::Cascade => {
-                            quote! { ::runique::migration::ForeignKeyAction::Cascade }
-                        }
-                        FkAction::SetNull => {
-                            quote! { ::runique::migration::ForeignKeyAction::SetNull }
-                        }
-                        FkAction::Restrict => {
-                            quote! { ::runique::migration::ForeignKeyAction::Restrict }
-                        }
-                        FkAction::SetDefault => {
-                            quote! { ::runique::migration::ForeignKeyAction::SetDefault }
-                        }
-                    };
-                    Some(quote! {
-                        .foreign_key(
-                            ::runique::migration::ForeignKeyDef::new(#col_name)
-                                .references(#table)
-                                .to_column(#column)
-                                .on_delete(#action)
-                        )
-                    })
-                } else {
-                    None
-                }
+        .filter_map(|rel| {
+            let RelationDef::BelongsTo {
+                model: target,
+                via,
+                on_delete,
+                on_update,
+            } = rel
+            else {
+                return None;
+            };
+            let via = via.to_string();
+            let entity = target_entity(target);
+            let pk_column = target_pk_column(target);
+            let on_delete = fk_action_tokens(*on_delete);
+            let on_update = fk_action_tokens(*on_update);
+            Some(quote! {
+                .foreign_key(
+                    ::runique::migration::ForeignKeyDef::new(#via)
+                        .references(::sea_orm::EntityName::table_name(&#entity))
+                        .to_column(::sea_orm::IdenStatic::as_str(&#pk_column))
+                        .on_delete(#on_delete)
+                        .on_update(#on_update)
+                )
             })
         })
         .collect()
@@ -90,7 +85,7 @@ fn generate_foreign_keys(model: &ModelInput) -> Vec<TokenStream2> {
 fn generate_relations(model: &ModelInput) -> Vec<TokenStream2> {
     model.relations.iter().map(|rel| {
         match rel {
-            RelationDef::BelongsTo { model, via } => {
+            RelationDef::BelongsTo { model, via, .. } => {
                 let model_str = to_snake_case(&model.to_string());
                 let via_str = via.to_string();
                 quote! {

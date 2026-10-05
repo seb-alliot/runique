@@ -7,6 +7,16 @@ use syn::{Expr, ExprCall, ExprLit, ExprMethodCall, Lit};
 
 /// Returns the method name associated with a column type.
 #[doc = include_str!("../../../doc-tests/migration/migration_col_type.md")]
+/// The `ColumnDef` type method for a column, with its length when it has one.
+pub fn col_type_method(col_type: &str, max_length: Option<u32>) -> String {
+    match (col_type, max_length) {
+        ("String", Some(n)) => format!("string_len({n})"),
+        ("Binary", Some(n)) => format!("binary_len({n})"),
+        ("VarBinary", n) => format!("var_binary({})", n.unwrap_or(255)),
+        _ => col_type_to_method(col_type).to_string(),
+    }
+}
+
 pub fn col_type_to_method(col_type: &str) -> &str {
     match col_type {
         "Text" => "text()",

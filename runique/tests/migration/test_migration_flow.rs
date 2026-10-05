@@ -43,10 +43,10 @@ fn user_entity() -> &'static str {
         table: "users",
         pk: id => i32,
         {
-            username: String [unique],
-            email: String [unique],
-            password: String,
-            is_active: bool,
+            username: text [required, unique],
+            email: text [required, unique],
+            password: text [required],
+            is_active: bool [required],
             bio: text [nullable],
             created_at: datetime [auto_now],
             updated_at: datetime [auto_now_update],
@@ -63,12 +63,12 @@ fn post_entity() -> &'static str {
         table: "posts",
         pk: id => i64,
         {
-            title: String,
+            title: text [required],
             body: text [nullable],
-            slug: String [unique],
-            user_id: i32,
-            view_count: i32,
-            published: bool,
+            slug: text [required, unique],
+            user_id: int [required],
+            view_count: int [required],
+            published: bool [required],
             created_at: datetime [auto_now],
         }
     }
@@ -83,9 +83,9 @@ fn comment_entity() -> &'static str {
         table: "comments",
         pk: id => i32,
         {
-            content: text,
-            user_id: i32,
-            post_id: i32,
+            content: text [required],
+            user_id: int [required],
+            post_id: int [required],
             created_at: datetime [auto_now],
         }
     }
@@ -100,8 +100,8 @@ fn tag_entity() -> &'static str {
         table: "tags",
         pk: id => i32,
         {
-            name: String [unique],
-            slug: String [unique],
+            name: text [required, unique],
+            slug: text [required, unique],
             description: text [nullable],
         },
         meta: {
@@ -120,12 +120,12 @@ fn product_entity() -> &'static str {
         table: "products",
         pk: id => i32,
         {
-            name: String,
-            price: f64,
-            stock: i32,
-            sku: String [unique],
+            name: text [required],
+            price: float [required],
+            stock: int [required],
+            sku: text [required, unique],
             description: text [nullable],
-            is_available: bool,
+            is_available: bool [required],
             weight: f32 [nullable],
             created_at: datetime [auto_now],
         }

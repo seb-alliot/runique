@@ -4,7 +4,10 @@
 //! trailing blocks) so a parsing failure in one area points at a small,
 //! independently readable/testable function instead of a single ~170-line
 //! `parse`.
-use crate::ast::{EnumDef, FieldDef, FormFieldDecl, MetaDef, ModelInput, PkDef, RelationDef};
+use crate::ast::{
+    EnumDef, FieldDef, FieldOption, FkAction, FormFieldDecl, MetaDef, ModelInput, PkDef,
+    RelationDef,
+};
 use std::collections::HashSet;
 use syn::{
     Ident, LitStr, Result, Token,
@@ -129,7 +132,7 @@ fn parse_optional_relations_block(input: ParseStream) -> Result<Vec<RelationDef>
     while !rel_content.is_empty() {
         let rel = RelationDef::parse(&rel_content)?;
         let (kind, model_ident, disambiguator) = match &rel {
-            RelationDef::BelongsTo { model, via } => ("belongs_to", model, via.to_string()),
+            RelationDef::BelongsTo { model, via, .. } => ("belongs_to", model, via.to_string()),
             RelationDef::HasMany { model, as_name } => (
                 "has_many",
                 model,
@@ -207,6 +210,42 @@ fn validate_meta_field_refs(
     Ok(())
 }
 
+/// A `belongs_to` column must be a declared field, and `nullable` when an
+/// action sets it to NULL.
+fn validate_belongs_to(relations: &[RelationDef], fields: &[FieldDef]) -> Result<()> {
+    for rel in relations {
+        let RelationDef::BelongsTo {
+            via,
+            on_delete,
+            on_update,
+            ..
+        } = rel
+        else {
+            continue;
+        };
+        let Some(field) = fields.iter().find(|f| f.name == *via) else {
+            return Err(syn::Error::new(
+                via.span(),
+                format!("belongs_to: `{via}` is not a declared field"),
+            ));
+        };
+        let set_null = [on_delete, on_update]
+            .iter()
+            .any(|a| matches!(a, FkAction::SetNull));
+        let nullable = field
+            .options
+            .iter()
+            .any(|o| matches!(o, FieldOption::Nullable));
+        if set_null && !nullable {
+            return Err(syn::Error::new(
+                via.span(),
+                format!("belongs_to: `set_null` needs `{via}` to be declared `nullable`"),
+            ));
+        }
+    }
+    Ok(())
+}
+
 impl Parse for ModelInput {
     fn parse(input: ParseStream) -> Result<Self> {
         let header = parse_header(input)?;
@@ -216,6 +255,7 @@ impl Parse for ModelInput {
         let relations = parse_optional_relations_block(input)?;
         let meta = parse_optional_meta_block(input)?;
         validate_meta_field_refs(&meta, &seen_field_names)?;
+        validate_belongs_to(&relations, &fields)?;
 
         Ok(ModelInput {
             name: header.name,
@@ -359,7 +399,27 @@ mod tests {
         // two FKs toward the same target model, through different columns —
         // must NOT be flagged as a duplicate relation.
         model_ok(
-            r#"Test, table: "tests", pk: id => i32, { created_by: int [fk(users.id, cascade)], updated_by: int [fk(users.id, cascade)], }, relations: { belongs_to: users via created_by, belongs_to: users via updated_by, },"#,
+            r#"Test, table: "tests", pk: id => i32, { created_by: int [required], updated_by: int [required], }, relations: { belongs_to: users via created_by, belongs_to: users via updated_by, },"#,
+        );
+    }
+
+    #[test]
+    fn belongs_to_via_must_be_a_declared_field() {
+        model_err(
+            r#"Test, table: "tests", pk: id => i32, { name: text }, relations: { belongs_to: users via user_id },"#,
+        );
+    }
+
+    #[test]
+    fn belongs_to_set_null_needs_a_nullable_column() {
+        model_err(
+            r#"Test, table: "tests", pk: id => i32, { user_id: int [required] }, relations: { belongs_to: users via user_id [set_null] },"#,
+        );
+        model_err(
+            r#"Test, table: "tests", pk: id => i32, { user_id: int [required] }, relations: { belongs_to: users via user_id [cascade, set_null] },"#,
+        );
+        model_ok(
+            r#"Test, table: "tests", pk: id => i32, { user_id: int [nullable] }, relations: { belongs_to: users via user_id [set_null] },"#,
         );
     }
 

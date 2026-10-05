@@ -14,10 +14,10 @@ mod items {
         pk: id => i32,
         {
             qty: int [required],
-            note: int,
+            note: int [nullable],
             title: text [required],
-            secret: password,
-            photo: image [upload_to: "photos/"],
+            secret: password [nullable],
+            photo: image [nullable, upload_to: "photos/"],
             active: bool [required],
         }
     }

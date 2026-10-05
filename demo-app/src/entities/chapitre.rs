@@ -8,7 +8,7 @@ model! {
         cour_id:    Pk [required],
         slug:       text [required],
         title:      text [required],
-        lead:       text,
+        lead:       text [nullable],
         sort_order: int [required],
     },
     relations: {

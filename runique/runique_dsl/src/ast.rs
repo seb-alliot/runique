@@ -126,10 +126,11 @@ pub enum FormFieldAttr {
     Readonly,
     /// Overrides the default auto-generated form label for this field.
     Label(String),
-    /// Foreign key constraint — `fk(table.column, action)`.
-    Fk(FkDef),
     /// Field present in SQL schema but excluded from generated forms.
     Skip,
+    /// `renamed_from: "old"` — migration-only: the column used to be called
+    /// `old`, so `makemigrations` renames it instead of dropping and re-adding it.
+    RenamedFrom(String),
 }
 
 pub struct FormFieldDecl {
@@ -206,7 +207,6 @@ pub enum FieldOption {
     AutoNowUpdate,
     Readonly,
     Label(String),
-    Fk(FkDef),
     File {
         kind: FileKind,
         upload_to: Option<String>,
@@ -221,24 +221,9 @@ pub enum FileKind {
     Any,
 }
 
-pub struct FkDef {
-    pub table: syn::Ident,
-    pub column: syn::Ident,
-    pub action: FkAction,
-}
-
-impl Clone for FkDef {
-    fn clone(&self) -> Self {
-        FkDef {
-            table: self.table.clone(),
-            column: self.column.clone(),
-            action: self.action.clone(),
-        }
-    }
-}
-
-#[derive(Clone)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FkAction {
+    NoAction,
     Cascade,
     SetNull,
     Restrict,
@@ -246,9 +231,13 @@ pub enum FkAction {
 }
 
 pub enum RelationDef {
+    /// `belongs_to: Model via column [on_delete, on_update]` — both actions
+    /// default to `NoAction`.
     BelongsTo {
         model: syn::Ident,
         via: syn::Ident,
+        on_delete: FkAction,
+        on_update: FkAction,
     },
     HasMany {
         model: syn::Ident,

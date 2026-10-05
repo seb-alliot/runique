@@ -11,10 +11,10 @@ model! {
         status:       choice [enum(RoadmapStatus), required],
         title:        text [required],
         description:  richtext [rows: 5, required],
-        link_url:     url,
-        link_label:   text,
-        link_url_2:   url,
-        link_label_2: text,
+        link_url:     url [nullable],
+        link_label:   text [nullable],
+        link_url_2:   url [nullable],
+        link_label_2: text [nullable],
         sort_order:   int [required],
     }
 }

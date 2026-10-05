@@ -38,6 +38,9 @@ pub struct ParsedColumn {
     /// source model only and is NEVER written to snapshots (the snapshot holds the new name).
     /// Consumed by the diff to emit `RENAME COLUMN` instead of DROP + ADD (no data loss).
     pub renamed_from: Option<String>,
+    /// Declared column length: `VARCHAR(n)` for text, `BINARY(n)`/`VARBINARY(n)`
+    /// for bytes. `None` leaves the engine's default length.
+    pub max_length: Option<u32>,
 }
 
 /// A parsed foreign key constraint.

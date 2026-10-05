@@ -34,15 +34,10 @@ fn generate_pk_field(model: &ModelInput) -> TokenStream2 {
 
 pub(crate) fn generate_model_field(field: &FieldDef) -> TokenStream2 {
     let name = &field.name;
-    let is_auto = field
+    let nullable = field
         .options
         .iter()
-        .any(|o| matches!(o, FieldOption::AutoNow | FieldOption::AutoNowUpdate));
-    let nullable = is_auto
-        || field
-            .options
-            .iter()
-            .any(|o| matches!(o, FieldOption::Nullable));
+        .any(|o| matches!(o, FieldOption::Nullable));
     let base_ty = field_type_to_rust(&field.column_type());
 
     let ty = if nullable {

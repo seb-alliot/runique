@@ -24,8 +24,8 @@ mod docs {
         table: "docs",
         pk: id => i32,
         {
-            thumb: var_binary [max_length: 8],
-            body: blob,
+            thumb: var_binary [nullable, max_length: 8],
+            body: blob [nullable],
         }
     }
 }
@@ -36,7 +36,7 @@ mod users_ext {
     extend! {
         table: "eihwaz_users",
         fields: {
-            signature: blob,
+            signature: blob [nullable],
         }
     }
 }

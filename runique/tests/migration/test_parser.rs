@@ -16,36 +16,34 @@ fn full_types_source() -> &'static str {
         table: "all_types",
         pk: id => i32,
         {
-            f_string: String,
-            f_text: text,
-            f_char: char,
-            f_varchar: varchar,
-            f_i8: i8,
-            f_i16: i16,
-            f_i32: i32,
-            f_integer: integer,
-            f_i64: i64,
-            f_big_integer: big_integer,
-            f_u32: u32,
-            f_u64: u64,
-            f_f32: f32,
-            f_f64: f64,
-            f_decimal: decimal,
-            f_bool: bool,
-            f_date: date,
-            f_time: time,
-            f_datetime: datetime,
-            f_timestamp: timestamp,
-            f_timestamp_tz: timestamp_tz,
-            f_uuid: uuid,
-            f_json: json,
-            f_json_binary: json_binary,
-            f_binary: binary,
-            f_blob: blob,
-            f_inet: inet,
-            f_cidr: cidr,
-            f_mac_address: mac_address,
-            f_interval: interval,
+            f_text: text [nullable],
+            f_textarea: textarea [nullable],
+            f_char: char [nullable],
+            f_i8: i8 [nullable],
+            f_i16: i16 [nullable],
+            f_i32: int [nullable],
+            f_i64: bigint [nullable],
+            f_u32: u32 [nullable],
+            f_u64: u64 [nullable],
+            f_f32: f32 [nullable],
+            f_f64: float [nullable],
+            f_decimal: decimal [nullable],
+            f_bool: bool [nullable],
+            f_date: date [nullable],
+            f_time: time [nullable],
+            f_datetime: datetime [nullable],
+            f_timestamp: timestamp [nullable],
+            f_timestamp_tz: timestamp_tz [nullable],
+            f_uuid: uuid [nullable],
+            f_json: json [nullable],
+            f_json_binary: json_binary [nullable],
+            f_binary: binary [nullable],
+            f_var_binary: var_binary [nullable],
+            f_blob: blob [nullable],
+            f_inet: ip [nullable],
+            f_cidr: cidr [nullable],
+            f_mac_address: mac_address [nullable],
+            f_interval: interval [nullable],
         }
     }
     "#
@@ -59,18 +57,17 @@ fn options_source() -> &'static str {
         table: "options_table",
         pk: id => i32,
         {
-            required_field: String,
-            nullable_field: String [nullable],
-            unique_field: String [unique],
-            both_field: String [nullable, unique],
+            required_field: text [required],
+            nullable_field: text [nullable],
+            unique_field: text [required, unique],
+            both_field: text [nullable, unique],
             auto_now_field: datetime [auto_now],
             auto_now_update_field: datetime [auto_now_update],
-            readonly_field: String [readonly],
-            max_len_field: String [max_len(255)],
-            min_len_field: String [min_len(3)],
-            select_as_field: String [select_as(some_expr)],
-            label_field: String [label(Mon_Label)],
-            help_field: String [help(Aide_Saisie)],
+            readonly_field: text [nullable, readonly],
+            max_len_field: text [nullable, max_length: 255],
+            min_len_field: text [nullable, min_length: 3],
+            label_field: text [nullable, label: "Mon label"],
+            renamed_field: text [nullable, renamed_from: "old_name"],
         }
     }
     "#
@@ -84,7 +81,7 @@ fn pk_i64_source() -> &'static str {
         table: "big_table",
         pk: id => i64,
         {
-            data: String,
+            data: text [nullable],
         }
     }
     "#
@@ -98,7 +95,7 @@ fn pk_uuid_source() -> &'static str {
         table: "uuid_table",
         pk: slug => uuid,
         {
-            title: String,
+            title: text [nullable],
         }
     }
     "#
@@ -112,7 +109,7 @@ fn pk_generic_alias_source() -> &'static str {
         table: "alias_table",
         pk: id => Pk,
         {
-            data: String,
+            data: text [nullable],
         }
     }
     "#
@@ -126,8 +123,8 @@ fn relations_source() -> &'static str {
         table: "posts",
         pk: id => i32,
         {
-            title: String,
-            user_id: i32,
+            title: text [required],
+            user_id: int [required],
         },
         relations: {
             belongs_to: User via user_id,
@@ -145,9 +142,9 @@ fn relations_cascade_source() -> &'static str {
         table: "comments",
         pk: id => i32,
         {
-            body: String,
-            post_id: i32,
-            author_id: i32,
+            body: text [nullable],
+            post_id: int [required],
+            author_id: int [required],
         },
         relations: {
             belongs_to: Post via post_id [cascade],
@@ -166,11 +163,11 @@ fn meta_source() -> &'static str {
         table: "articles",
         pk: id => i32,
         {
-            title: String,
-            slug: String [unique],
+            title: text [required],
+            slug: text [required, unique],
         },
         meta: {
-            ordering: [title, -created_at],
+            ordering: [title, -slug],
             unique_together: [(title, slug)],
             verbose_name: "Article",
         }
@@ -186,19 +183,19 @@ fn full_model_source() -> &'static str {
         table: "user_profiles",
         pk: id => i32,
         {
-            username: String [unique],
-            email: String [unique],
-            bio: text [nullable],
-            age: i32,
-            score: f64,
-            is_active: bool,
+            username: text [required, unique],
+            email: email [required, unique],
+            bio: textarea [nullable],
+            age: int [required],
+            score: float [required],
+            is_active: bool [nullable, default: true],
             birth_date: date [nullable],
             created_at: datetime [auto_now],
             updated_at: datetime [auto_now_update],
             avatar_data: binary [nullable],
             metadata: json [nullable],
-            ip_addr: inet [nullable],
-            cache_key: String [readonly],
+            ip_addr: ip [nullable],
+            cache_key: text [nullable, readonly],
         },
         relations: {
             has_many: Post,
@@ -217,23 +214,27 @@ fn full_model_source() -> &'static str {
 
 #[test]
 fn test_parse_returns_some_for_valid_dsl() {
-    assert!(parse_schema_from_source(full_types_source()).is_some());
+    assert!(
+        parse_schema_from_source(full_types_source())
+            .unwrap()
+            .is_some()
+    );
 }
 
 #[test]
 fn test_parse_empty_returns_none() {
-    assert!(parse_schema_from_source("").is_none());
+    assert!(parse_schema_from_source("").unwrap().is_none());
 }
 
 #[test]
 fn test_parse_no_model_macro_returns_none() {
     let src = r#"pub struct Foo { pub id: i32 }"#;
-    assert!(parse_schema_from_source(src).is_none());
+    assert!(parse_schema_from_source(src).unwrap().is_none());
 }
 
 #[test]
-fn test_parse_invalid_rust_returns_none() {
-    assert!(parse_schema_from_source("let x = !!@@@#").is_none());
+fn test_parse_invalid_rust_is_an_error() {
+    assert!(parse_schema_from_source("let x = !!@@@#").is_err());
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -242,13 +243,19 @@ fn test_parse_invalid_rust_returns_none() {
 
 #[test]
 fn test_table_name_preserved() {
-    let s = parse_schema_from_source(full_types_source()).unwrap().1;
+    let s = parse_schema_from_source(full_types_source())
+        .unwrap()
+        .unwrap()
+        .1;
     assert_eq!(s.table_name, "all_types");
 }
 
 #[test]
 fn test_pk_name_i32() {
-    let s = parse_schema_from_source(full_types_source()).unwrap().1;
+    let s = parse_schema_from_source(full_types_source())
+        .unwrap()
+        .unwrap()
+        .1;
     let pk = s.primary_key.unwrap();
     assert_eq!(pk.name, "id");
     assert_eq!(pk.col_type, "Integer");
@@ -256,7 +263,10 @@ fn test_pk_name_i32() {
 
 #[test]
 fn test_pk_name_i64() {
-    let s = parse_schema_from_source(pk_i64_source()).unwrap().1;
+    let s = parse_schema_from_source(pk_i64_source())
+        .unwrap()
+        .unwrap()
+        .1;
     let pk = s.primary_key.unwrap();
     assert_eq!(pk.name, "id");
     assert_eq!(pk.col_type, "BigInteger");
@@ -264,7 +274,10 @@ fn test_pk_name_i64() {
 
 #[test]
 fn test_pk_uuid() {
-    let s = parse_schema_from_source(pk_uuid_source()).unwrap().1;
+    let s = parse_schema_from_source(pk_uuid_source())
+        .unwrap()
+        .unwrap()
+        .1;
     let pk = s.primary_key.unwrap();
     assert_eq!(pk.name, "slug");
     assert_eq!(pk.col_type, "Uuid");
@@ -277,6 +290,7 @@ fn test_pk_uuid() {
 fn test_pk_generic_alias_default() {
     let s = parse_schema_from_source(pk_generic_alias_source())
         .unwrap()
+        .unwrap()
         .1;
     assert_eq!(s.primary_key.unwrap().col_type, "Integer");
 }
@@ -285,6 +299,7 @@ fn test_pk_generic_alias_default() {
 #[test]
 fn test_pk_generic_alias_big_pk() {
     let s = parse_schema_from_source(pk_generic_alias_source())
+        .unwrap()
         .unwrap()
         .1;
     assert_eq!(s.primary_key.unwrap().col_type, "BigInteger");
@@ -295,13 +310,17 @@ fn test_pk_generic_alias_big_pk() {
 fn test_pk_generic_alias_pk_uuid() {
     let s = parse_schema_from_source(pk_generic_alias_source())
         .unwrap()
+        .unwrap()
         .1;
     assert_eq!(s.primary_key.unwrap().col_type, "Uuid");
 }
 
 #[test]
 fn test_pk_not_nullable() {
-    let s = parse_schema_from_source(pk_i64_source()).unwrap().1;
+    let s = parse_schema_from_source(pk_i64_source())
+        .unwrap()
+        .unwrap()
+        .1;
     assert!(!s.primary_key.unwrap().nullable);
 }
 
@@ -310,7 +329,7 @@ fn test_pk_not_nullable() {
 // ═══════════════════════════════════════════════════════════════
 
 fn col_type(src: &str, field: &str) -> String {
-    let s = parse_schema_from_source(src).unwrap().1;
+    let s = parse_schema_from_source(src).unwrap().unwrap().1;
     s.columns
         .iter()
         .find(|c| c.name == field)
@@ -320,8 +339,8 @@ fn col_type(src: &str, field: &str) -> String {
 }
 
 #[test]
-fn test_type_string_maps_to_string() {
-    assert_eq!(col_type(full_types_source(), "f_string"), "String");
+fn test_type_textarea_maps_to_text() {
+    assert_eq!(col_type(full_types_source(), "f_textarea"), "Text");
 }
 
 #[test]
@@ -332,11 +351,6 @@ fn test_type_text_maps_to_string() {
 #[test]
 fn test_type_char_maps_to_string() {
     assert_eq!(col_type(full_types_source(), "f_char"), "String");
-}
-
-#[test]
-fn test_type_varchar_maps_to_string() {
-    assert_eq!(col_type(full_types_source(), "f_varchar"), "String");
 }
 
 #[test]
@@ -355,18 +369,8 @@ fn test_type_i32_maps_to_integer() {
 }
 
 #[test]
-fn test_type_integer_maps_to_integer() {
-    assert_eq!(col_type(full_types_source(), "f_integer"), "Integer");
-}
-
-#[test]
 fn test_type_i64_maps_to_biginteger() {
     assert_eq!(col_type(full_types_source(), "f_i64"), "BigInteger");
-}
-
-#[test]
-fn test_type_big_integer_maps_to_biginteger() {
-    assert_eq!(col_type(full_types_source(), "f_big_integer"), "BigInteger");
 }
 
 #[test]
@@ -435,8 +439,13 @@ fn test_type_binary_maps_to_binary() {
 }
 
 #[test]
-fn test_type_blob_maps_to_binary() {
-    assert_eq!(col_type(full_types_source(), "f_blob"), "Binary");
+fn test_type_var_binary_maps_to_varbinary() {
+    assert_eq!(col_type(full_types_source(), "f_var_binary"), "VarBinary");
+}
+
+#[test]
+fn test_type_blob_maps_to_blob() {
+    assert_eq!(col_type(full_types_source(), "f_blob"), "Blob");
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -482,16 +491,22 @@ fn test_type_interval_maps_to_string() {
 
 #[test]
 fn test_field_count_all_types() {
-    let s = parse_schema_from_source(full_types_source()).unwrap().1;
-    // 30 champs déclarés
-    assert_eq!(s.columns.len(), 30);
+    let s = parse_schema_from_source(full_types_source())
+        .unwrap()
+        .unwrap()
+        .1;
+    // 28 champs déclarés
+    assert_eq!(s.columns.len(), 28);
 }
 
 #[test]
 fn test_field_count_options_model() {
-    let s = parse_schema_from_source(options_source()).unwrap().1;
-    // 12 champs déclarés
-    assert_eq!(s.columns.len(), 12);
+    let s = parse_schema_from_source(options_source())
+        .unwrap()
+        .unwrap()
+        .1;
+    // 11 champs déclarés
+    assert_eq!(s.columns.len(), 11);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -500,7 +515,10 @@ fn test_field_count_options_model() {
 
 #[test]
 fn test_option_required_field_not_nullable() {
-    let s = parse_schema_from_source(options_source()).unwrap().1;
+    let s = parse_schema_from_source(options_source())
+        .unwrap()
+        .unwrap()
+        .1;
     let f = s
         .columns
         .iter()
@@ -513,7 +531,10 @@ fn test_option_required_field_not_nullable() {
 
 #[test]
 fn test_option_nullable_field() {
-    let s = parse_schema_from_source(options_source()).unwrap().1;
+    let s = parse_schema_from_source(options_source())
+        .unwrap()
+        .unwrap()
+        .1;
     let f = s
         .columns
         .iter()
@@ -524,7 +545,10 @@ fn test_option_nullable_field() {
 
 #[test]
 fn test_option_unique_field() {
-    let s = parse_schema_from_source(options_source()).unwrap().1;
+    let s = parse_schema_from_source(options_source())
+        .unwrap()
+        .unwrap()
+        .1;
     let f = s.columns.iter().find(|c| c.name == "unique_field").unwrap();
     assert!(f.unique, "unique_field doit être unique");
     assert!(!f.nullable);
@@ -532,7 +556,10 @@ fn test_option_unique_field() {
 
 #[test]
 fn test_option_nullable_and_unique() {
-    let s = parse_schema_from_source(options_source()).unwrap().1;
+    let s = parse_schema_from_source(options_source())
+        .unwrap()
+        .unwrap()
+        .1;
     let f = s.columns.iter().find(|c| c.name == "both_field").unwrap();
     assert!(f.nullable);
     assert!(f.unique);
@@ -540,7 +567,10 @@ fn test_option_nullable_and_unique() {
 
 #[test]
 fn test_option_auto_now_is_ignored_and_datetime() {
-    let s = parse_schema_from_source(options_source()).unwrap().1;
+    let s = parse_schema_from_source(options_source())
+        .unwrap()
+        .unwrap()
+        .1;
     let f = s
         .columns
         .iter()
@@ -553,7 +583,10 @@ fn test_option_auto_now_is_ignored_and_datetime() {
 
 #[test]
 fn test_option_auto_now_update_is_ignored_and_datetime() {
-    let s = parse_schema_from_source(options_source()).unwrap().1;
+    let s = parse_schema_from_source(options_source())
+        .unwrap()
+        .unwrap()
+        .1;
     let f = s
         .columns
         .iter()
@@ -569,7 +602,10 @@ fn test_option_auto_now_update_is_ignored_and_datetime() {
 
 #[test]
 fn test_option_readonly_is_ignored() {
-    let s = parse_schema_from_source(options_source()).unwrap().1;
+    let s = parse_schema_from_source(options_source())
+        .unwrap()
+        .unwrap()
+        .1;
     let f = s
         .columns
         .iter()
@@ -580,32 +616,66 @@ fn test_option_readonly_is_ignored() {
 
 #[test]
 fn test_option_max_len_does_not_break_parsing() {
-    let s = parse_schema_from_source(options_source()).unwrap().1;
+    let s = parse_schema_from_source(options_source())
+        .unwrap()
+        .unwrap()
+        .1;
     assert!(s.columns.iter().any(|c| c.name == "max_len_field"));
 }
 
 #[test]
 fn test_option_min_len_does_not_break_parsing() {
-    let s = parse_schema_from_source(options_source()).unwrap().1;
+    let s = parse_schema_from_source(options_source())
+        .unwrap()
+        .unwrap()
+        .1;
     assert!(s.columns.iter().any(|c| c.name == "min_len_field"));
 }
 
 #[test]
-fn test_option_select_as_does_not_break_parsing() {
-    let s = parse_schema_from_source(options_source()).unwrap().1;
-    assert!(s.columns.iter().any(|c| c.name == "select_as_field"));
-}
-
-#[test]
 fn test_option_label_does_not_break_parsing() {
-    let s = parse_schema_from_source(options_source()).unwrap().1;
+    let s = parse_schema_from_source(options_source())
+        .unwrap()
+        .unwrap()
+        .1;
     assert!(s.columns.iter().any(|c| c.name == "label_field"));
 }
 
 #[test]
-fn test_option_help_does_not_break_parsing() {
-    let s = parse_schema_from_source(options_source()).unwrap().1;
-    assert!(s.columns.iter().any(|c| c.name == "help_field"));
+fn test_option_renamed_from_is_read() {
+    let s = parse_schema_from_source(options_source())
+        .unwrap()
+        .unwrap()
+        .1;
+    let f = s
+        .columns
+        .iter()
+        .find(|c| c.name == "renamed_field")
+        .unwrap();
+    assert_eq!(f.renamed_from.as_deref(), Some("old_name"));
+}
+
+#[test]
+fn test_unknown_type_is_an_error_with_its_position() {
+    let src = "model! {\n    Post,\n    table: \"posts\",\n    pk: id => i32,\n    { title: texte [required] }\n}";
+    let err = parse_schema_from_source(src).unwrap_err().to_string();
+    assert!(err.starts_with("5:"), "ligne de l'erreur : {err}");
+    assert!(err.contains("texte"), "{err}");
+}
+
+#[test]
+fn test_unknown_fk_action_is_an_error() {
+    let src = r#"model! { Post, table: "posts", pk: id => i32, { user_id: int [required] }, relations: { belongs_to: User via user_id [cascad] } }"#;
+    assert!(parse_schema_from_source(src).is_err());
+}
+
+#[test]
+fn test_two_models_in_one_file_is_an_error() {
+    let src = r#"
+        model! { A, table: "a", pk: id => i32, { x: text } }
+        model! { B, table: "b", pk: id => i32, { y: text } }
+    "#;
+    assert!(parse_schema_from_source(src).is_err());
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -615,20 +685,28 @@ fn test_option_help_does_not_break_parsing() {
 #[test]
 fn test_parse_with_relations_returns_some() {
     assert!(
-        parse_schema_from_source(relations_source()).is_some(),
+        parse_schema_from_source(relations_source())
+            .unwrap()
+            .is_some(),
         "un modèle avec relations doit parser correctement"
     );
 }
 
 #[test]
 fn test_parse_relations_table_name() {
-    let s = parse_schema_from_source(relations_source()).unwrap().1;
+    let s = parse_schema_from_source(relations_source())
+        .unwrap()
+        .unwrap()
+        .1;
     assert_eq!(s.table_name, "posts");
 }
 
 #[test]
 fn test_parse_relations_fields_intact() {
-    let s = parse_schema_from_source(relations_source()).unwrap().1;
+    let s = parse_schema_from_source(relations_source())
+        .unwrap()
+        .unwrap()
+        .1;
     assert!(s.columns.iter().any(|c| c.name == "title"));
     assert!(s.columns.iter().any(|c| c.name == "user_id"));
 }
@@ -640,20 +718,20 @@ fn test_parse_relations_fields_intact() {
 #[test]
 fn test_parse_with_meta_returns_some() {
     assert!(
-        parse_schema_from_source(meta_source()).is_some(),
+        parse_schema_from_source(meta_source()).unwrap().is_some(),
         "un modèle avec meta doit parser correctement"
     );
 }
 
 #[test]
 fn test_parse_meta_table_name() {
-    let s = parse_schema_from_source(meta_source()).unwrap().1;
+    let s = parse_schema_from_source(meta_source()).unwrap().unwrap().1;
     assert_eq!(s.table_name, "articles");
 }
 
 #[test]
 fn test_parse_meta_fields_intact() {
-    let s = parse_schema_from_source(meta_source()).unwrap().1;
+    let s = parse_schema_from_source(meta_source()).unwrap().unwrap().1;
     assert!(s.columns.iter().any(|c| c.name == "title"));
     let slug = s.columns.iter().find(|c| c.name == "slug").unwrap();
     assert!(slug.unique);
@@ -665,13 +743,19 @@ fn test_parse_meta_fields_intact() {
 
 #[test]
 fn test_full_model_parses_successfully() {
-    let s = parse_schema_from_source(full_model_source()).unwrap().1;
+    let s = parse_schema_from_source(full_model_source())
+        .unwrap()
+        .unwrap()
+        .1;
     assert_eq!(s.table_name, "user_profiles");
 }
 
 #[test]
 fn test_full_model_pk() {
-    let s = parse_schema_from_source(full_model_source()).unwrap().1;
+    let s = parse_schema_from_source(full_model_source())
+        .unwrap()
+        .unwrap()
+        .1;
     let pk = s.primary_key.as_ref().unwrap();
     assert_eq!(pk.name, "id");
     assert_eq!(pk.col_type, "Integer");
@@ -679,7 +763,10 @@ fn test_full_model_pk() {
 
 #[test]
 fn test_full_model_unique_fields() {
-    let s = parse_schema_from_source(full_model_source()).unwrap().1;
+    let s = parse_schema_from_source(full_model_source())
+        .unwrap()
+        .unwrap()
+        .1;
     let email = s.columns.iter().find(|c| c.name == "email").unwrap();
     assert!(email.unique);
     let username = s.columns.iter().find(|c| c.name == "username").unwrap();
@@ -688,7 +775,10 @@ fn test_full_model_unique_fields() {
 
 #[test]
 fn test_full_model_nullable_fields() {
-    let s = parse_schema_from_source(full_model_source()).unwrap().1;
+    let s = parse_schema_from_source(full_model_source())
+        .unwrap()
+        .unwrap()
+        .1;
     for name in &["bio", "birth_date", "avatar_data", "metadata", "ip_addr"] {
         let f = s.columns.iter().find(|c| c.name == *name).unwrap();
         assert!(f.nullable, "{} doit être nullable", name);
@@ -697,7 +787,10 @@ fn test_full_model_nullable_fields() {
 
 #[test]
 fn test_full_model_ignored_fields() {
-    let s = parse_schema_from_source(full_model_source()).unwrap().1;
+    let s = parse_schema_from_source(full_model_source())
+        .unwrap()
+        .unwrap()
+        .1;
     {
         let name = &"cache_key";
         let f = s.columns.iter().find(|c| c.name == *name).unwrap();
@@ -711,7 +804,10 @@ fn test_full_model_ignored_fields() {
 
 #[test]
 fn test_full_model_type_mappings() {
-    let s = parse_schema_from_source(full_model_source()).unwrap().1;
+    let s = parse_schema_from_source(full_model_source())
+        .unwrap()
+        .unwrap()
+        .1;
     let age = s.columns.iter().find(|c| c.name == "age").unwrap();
     assert_eq!(age.col_type, "Integer");
     let score = s.columns.iter().find(|c| c.name == "score").unwrap();
@@ -730,8 +826,14 @@ fn test_full_model_type_mappings() {
 
 #[test]
 fn test_two_models_are_independent() {
-    let a = parse_schema_from_source(pk_i64_source()).unwrap().1;
-    let b = parse_schema_from_source(pk_uuid_source()).unwrap().1;
+    let a = parse_schema_from_source(pk_i64_source())
+        .unwrap()
+        .unwrap()
+        .1;
+    let b = parse_schema_from_source(pk_uuid_source())
+        .unwrap()
+        .unwrap()
+        .1;
     assert_ne!(a.table_name, b.table_name);
     assert_ne!(
         a.primary_key.unwrap().col_type,
@@ -741,8 +843,14 @@ fn test_two_models_are_independent() {
 
 #[test]
 fn test_multiple_calls_same_source_return_equal_results() {
-    let s1 = parse_schema_from_source(relations_source()).unwrap().1;
-    let s2 = parse_schema_from_source(relations_source()).unwrap().1;
+    let s1 = parse_schema_from_source(relations_source())
+        .unwrap()
+        .unwrap()
+        .1;
+    let s2 = parse_schema_from_source(relations_source())
+        .unwrap()
+        .unwrap()
+        .1;
     assert_eq!(s1.table_name, s2.table_name);
     assert_eq!(s1.columns.len(), s2.columns.len());
 }
@@ -753,7 +861,10 @@ fn test_multiple_calls_same_source_return_equal_results() {
 
 #[test]
 fn test_belongs_to_genere_une_fk() {
-    let s = parse_schema_from_source(relations_source()).unwrap().1;
+    let s = parse_schema_from_source(relations_source())
+        .unwrap()
+        .unwrap()
+        .1;
     assert_eq!(
         s.foreign_keys.len(),
         1,
@@ -763,14 +874,20 @@ fn test_belongs_to_genere_une_fk() {
 
 #[test]
 fn test_belongs_to_from_column() {
-    let s = parse_schema_from_source(relations_source()).unwrap().1;
+    let s = parse_schema_from_source(relations_source())
+        .unwrap()
+        .unwrap()
+        .1;
     let fk = &s.foreign_keys[0];
     assert_eq!(fk.from_column, "user_id");
 }
 
 #[test]
 fn test_belongs_to_to_table_pascal_vers_snake() {
-    let s = parse_schema_from_source(relations_source()).unwrap().1;
+    let s = parse_schema_from_source(relations_source())
+        .unwrap()
+        .unwrap()
+        .1;
     let fk = &s.foreign_keys[0];
     // User → user
     assert_eq!(fk.to_table, "user");
@@ -778,14 +895,20 @@ fn test_belongs_to_to_table_pascal_vers_snake() {
 
 #[test]
 fn test_belongs_to_to_column_defaut_id() {
-    let s = parse_schema_from_source(relations_source()).unwrap().1;
+    let s = parse_schema_from_source(relations_source())
+        .unwrap()
+        .unwrap()
+        .1;
     let fk = &s.foreign_keys[0];
     assert_eq!(fk.to_column, "id");
 }
 
 #[test]
 fn test_belongs_to_on_delete_no_action_par_defaut() {
-    let s = parse_schema_from_source(relations_source()).unwrap().1;
+    let s = parse_schema_from_source(relations_source())
+        .unwrap()
+        .unwrap()
+        .1;
     let fk = &s.foreign_keys[0];
     assert_eq!(fk.on_delete, "NoAction");
     assert_eq!(fk.on_update, "NoAction");
@@ -793,7 +916,10 @@ fn test_belongs_to_on_delete_no_action_par_defaut() {
 
 #[test]
 fn test_has_many_ne_genere_pas_de_fk() {
-    let s = parse_schema_from_source(relations_source()).unwrap().1;
+    let s = parse_schema_from_source(relations_source())
+        .unwrap()
+        .unwrap()
+        .1;
     // only belongs_to generates FK — has_many does not
     assert!(
         s.foreign_keys
@@ -805,6 +931,7 @@ fn test_has_many_ne_genere_pas_de_fk() {
 #[test]
 fn test_belongs_to_cascade_on_delete() {
     let s = parse_schema_from_source(relations_cascade_source())
+        .unwrap()
         .unwrap()
         .1;
     let fk = s
@@ -820,6 +947,7 @@ fn test_belongs_to_cascade_on_delete() {
 fn test_belongs_to_cascade_et_restrict() {
     let s = parse_schema_from_source(relations_cascade_source())
         .unwrap()
+        .unwrap()
         .1;
     let fk = s
         .foreign_keys
@@ -834,6 +962,7 @@ fn test_belongs_to_cascade_et_restrict() {
 fn test_plusieurs_belongs_to_generent_plusieurs_fk() {
     let s = parse_schema_from_source(relations_cascade_source())
         .unwrap()
+        .unwrap()
         .1;
     assert_eq!(s.foreign_keys.len(), 2, "2 belongs_to → 2 FK");
 }
@@ -841,6 +970,7 @@ fn test_plusieurs_belongs_to_generent_plusieurs_fk() {
 #[test]
 fn test_belongs_to_table_cible_pascal_to_snake_composee() {
     let s = parse_schema_from_source(relations_cascade_source())
+        .unwrap()
         .unwrap()
         .1;
     let fk = s
@@ -856,6 +986,7 @@ fn test_belongs_to_table_cible_pascal_to_snake_composee() {
 fn test_has_one_ne_genere_pas_de_fk() {
     let s = parse_schema_from_source(relations_cascade_source())
         .unwrap()
+        .unwrap()
         .1;
     // has_one: CommentMeta ne doit pas créer de FK
     assert!(
@@ -868,6 +999,7 @@ fn test_has_one_ne_genere_pas_de_fk() {
 #[test]
 fn test_relations_champs_intacts_avec_cascade() {
     let s = parse_schema_from_source(relations_cascade_source())
+        .unwrap()
         .unwrap()
         .1;
     assert!(s.columns.iter().any(|c| c.name == "body"));

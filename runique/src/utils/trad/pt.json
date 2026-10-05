@@ -461,8 +461,7 @@
     "destructive_require_force": "Use --force para aplicar estas alterações destrutivas.",
     "long_identifier_detected": "Os identificadores SQL gerados são muito longos (limite do MariaDB/MySQL: 64 caracteres):",
     "long_identifier_rename_required": "Encurte os nomes de tabela/coluna envolvidos — o Runique não trunca identificadores automaticamente.",
-    "files_ready": "{} arquivo(s) pronto(s) para migrar.",
-    "unknown_dsl_type": "Aviso: tipo de campo desconhecido '{}' — usando '{}' por padrão. Verifique se há um erro de digitação no seu modelo."
+    "files_ready": "{} arquivo(s) pronto(s) para migrar."
   },
   "migrate": {
     "applying": "Aplicando migrações de '{}'...",

@@ -9,7 +9,7 @@ model! {
         slug:       text [required],
         lang:       text [required],
         title:      text [required],
-        lead:       text,
+        lead:       text [nullable],
         sort_order: int [required],
     },
     relations: {

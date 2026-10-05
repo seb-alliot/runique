@@ -10,7 +10,6 @@ use syn::{
 use super::size::parse_size;
 use super::suggest_type::suggest_form_field_type;
 use super::validate_attrs::validate_form_field_attrs;
-use crate::ast::FkDef;
 
 impl Parse for FormFieldDecl {
     fn parse(input: ParseStream) -> Result<Self> {
@@ -109,15 +108,6 @@ impl Parse for FormFieldDecl {
 
                 let attr_ident: Ident = attrs_content.parse()?;
 
-                // `renamed_from: "old"` is a migration-only directive (RENAME COLUMN).
-                // It does not affect the generated entity/form, so consume and ignore it here.
-                if attr_ident == "renamed_from" {
-                    attrs_content.parse::<Token![:]>()?;
-                    let _: LitStr = attrs_content.parse()?;
-                    let _ = attrs_content.parse::<Token![,]>();
-                    continue;
-                }
-
                 let attr = match attr_ident.to_string().as_str() {
                     "required" => FormFieldAttr::Required,
                     "nullable" => FormFieldAttr::Nullable,
@@ -194,12 +184,19 @@ impl Parse for FormFieldDecl {
                         FormFieldAttr::Label(s.value())
                     }
                     "fk" => {
-                        let content;
-                        syn::parenthesized!(content in attrs_content);
-                        let fk = FkDef::parse(&content)?;
-                        FormFieldAttr::Fk(fk)
+                        return Err(syn::Error::new(
+                            attr_ident.span(),
+                            format!(
+                                "`fk(...)` was removed (field: {name}) — declare the relation in `relations: {{ belongs_to: Model via {name} [action] }}`"
+                            ),
+                        ));
                     }
                     "skip" => FormFieldAttr::Skip,
+                    "renamed_from" => {
+                        attrs_content.parse::<Token![:]>()?;
+                        let s: LitStr = attrs_content.parse()?;
+                        FormFieldAttr::RenamedFrom(s.value())
+                    }
                     other => {
                         return Err(syn::Error::new(
                             attr_ident.span(),
@@ -226,9 +223,80 @@ impl Parse for FormFieldDecl {
             ));
         }
 
+        validate_nullability(&name, &kind_ident, &kind, &attrs)?;
+
         let _ = input.parse::<Token![,]>();
         Ok(FormFieldDecl { name, kind, attrs })
     }
+}
+
+/// Types whose form field always submits something storable in a NOT NULL
+/// column: an empty text, no file, no bytes, an unchecked box (`false`).
+fn has_empty_value(kind: &FormFieldKind) -> bool {
+    use FormFieldKind::*;
+    matches!(
+        kind,
+        Text | Email
+            | Password
+            | Richtext
+            | Textarea
+            | Url
+            | Color
+            | Slug
+            | Phone
+            | Char
+            | Image
+            | Document
+            | File
+            | Binary
+            | VarBinary
+            | Blob
+            | Bool
+    )
+}
+
+/// A column is NOT NULL unless declared `nullable`. Refuses `nullable` on a
+/// column the framework always fills, and a NOT NULL column whose optional
+/// form field can come back empty with nothing to store.
+fn validate_nullability(
+    name: &Ident,
+    kind_ident: &Ident,
+    kind: &FormFieldKind,
+    attrs: &[FormFieldAttr],
+) -> Result<()> {
+    let has = |wanted: fn(&FormFieldAttr) -> bool| attrs.iter().any(wanted);
+    let nullable = has(|a| matches!(a, FormFieldAttr::Nullable));
+    let auto = has(|a| matches!(a, FormFieldAttr::AutoNow | FormFieldAttr::AutoNowUpdate));
+
+    if nullable && auto {
+        return Err(syn::Error::new(
+            name.span(),
+            format!(
+                "field `{name}`: `auto_now`/`auto_now_update` always fill the column — it can't be `nullable`"
+            ),
+        ));
+    }
+
+    let filled = nullable
+        || auto
+        || has(|a| {
+            matches!(
+                a,
+                FormFieldAttr::Required
+                    | FormFieldAttr::Default(_)
+                    | FormFieldAttr::Skip
+                    | FormFieldAttr::Readonly
+            )
+        });
+    if !filled && !has_empty_value(kind) {
+        return Err(syn::Error::new(
+            name.span(),
+            format!(
+                "field `{name}` (`{kind_ident}`): the column is NOT NULL, but an empty optional field has no `{kind_ident}` value to store — add `required`, `nullable` or `default: …`"
+            ),
+        ));
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -253,6 +321,37 @@ mod tests {
             parse_field(src).is_err(),
             "expected ERROR but OK for: `{src}`"
         );
+    }
+
+    // ── nullability ───────────────────────────────────────────────
+
+    #[test]
+    fn a_column_without_an_empty_value_must_say_how_it_is_filled() {
+        err("age: int");
+        err("born: date");
+        err("status: choice [enum(Status)]");
+        err("meta: json");
+        ok("age: int [required]");
+        ok("age: int [nullable]");
+        ok("age: int [default: 0]");
+        ok("age: int [skip]");
+        ok("age: int [readonly]");
+    }
+
+    #[test]
+    fn a_column_with_an_empty_value_may_stay_optional() {
+        ok("name: text");
+        ok("bio: textarea");
+        ok("active: bool");
+        ok(r#"avatar: image [upload_to: "a/"]"#);
+        ok("raw: blob");
+    }
+
+    #[test]
+    fn auto_filled_columns_refuse_nullable() {
+        err("created: datetime [auto_now, nullable]");
+        err("updated: datetime [auto_now_update, nullable]");
+        ok("created: datetime [auto_now]");
     }
 
     // ── max_length ────────────────────────────────────────────────
@@ -306,7 +405,7 @@ mod tests {
 
     #[test]
     fn min_max_valid_on_int() {
-        ok("age: int [min: 0, max: 150]");
+        ok("age: int [required, min: 0, max: 150]");
     }
 
     #[test]
@@ -342,19 +441,19 @@ mod tests {
 
     #[test]
     fn min_less_than_max_accepted() {
-        ok("age: int [min: 0, max: 120]");
+        ok("age: int [required, min: 0, max: 120]");
     }
 
     // ── min / max (float) ──────────────────────────────────────
 
     #[test]
     fn min_f_max_f_valid_on_float() {
-        ok("score: float [min: 0.0, max: 20.0]");
+        ok("score: float [required, min: 0.0, max: 20.0]");
     }
 
     #[test]
     fn min_f_max_f_valid_on_decimal() {
-        ok("price: decimal [min: 0.0, max: 9999.99]");
+        ok("price: decimal [required, min: 0.0, max: 9999.99]");
     }
 
     #[test]
@@ -515,7 +614,7 @@ mod tests {
 
     #[test]
     fn step_now_valid_on_percent() {
-        ok("rate: percent [step: 0.5]");
+        ok("rate: percent [required, step: 0.5]");
     }
 
     #[test]
@@ -544,28 +643,12 @@ mod tests {
     }
 
     #[test]
-    fn fk_now_valid_on_i8() {
-        ok("category_id: i8 [fk(categories.id, cascade)]");
-    }
-
-    #[test]
-    fn fk_now_valid_on_i16() {
-        ok("category_id: i16 [fk(categories.id, cascade)]");
-    }
-
-    #[test]
-    fn fk_now_valid_on_u32() {
-        ok("category_id: u32 [fk(categories.id, cascade)]");
-    }
-
-    #[test]
-    fn fk_now_valid_on_u64() {
-        ok("category_id: u64 [fk(categories.id, cascade)]");
-    }
-
-    #[test]
-    fn fk_still_invalid_on_text() {
-        err("category_id: text [fk(categories.id, cascade)]");
+    fn fk_attribute_points_to_belongs_to() {
+        let Err(err) = parse_field("category_id: int [required, fk(categories.id, cascade)]")
+        else {
+            panic!("fk(...) is refused");
+        };
+        assert!(err.to_string().contains("belongs_to"), "{err}");
     }
 
     #[test]

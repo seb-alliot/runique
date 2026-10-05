@@ -108,8 +108,8 @@ impl FormField for GenericField {
         delegate_to_kind!(mut self, set_type_bounds, min, max)
     }
 
-    fn cap_max_length(&mut self, max: u32) {
-        delegate_to_kind!(mut self, cap_max_length, max);
+    fn bounds(&self) -> crate::forms::base::FieldBounds {
+        delegate_to_kind!(self, bounds)
     }
 
     fn cap_max_size(&mut self, bytes: u64) {

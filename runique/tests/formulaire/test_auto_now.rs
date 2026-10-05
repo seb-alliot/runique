@@ -22,8 +22,8 @@ mod stamps {
 const DDL: &str = "CREATE TABLE auto_now_stamps (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     label TEXT NOT NULL,
-    created_at TEXT,
-    updated_at TEXT
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
 )";
 
 fn old() -> chrono::NaiveDateTime {
@@ -43,28 +43,28 @@ async fn an_insert_stamps_both_and_an_update_only_updated_at() {
     .insert(&conn)
     .await
     .expect("insert");
-    assert!(created.created_at.is_some() && created.updated_at.is_some());
+    assert!(created.created_at > old() && created.updated_at > old());
 
     // Back-date both, then edit: only `updated_at` moves.
     let mut row = created.into_active_model();
-    row.created_at = Set(Some(old()));
-    row.updated_at = Set(Some(old()));
+    row.created_at = Set(old());
+    row.updated_at = Set(old());
     let backdated = row.update(&conn).await.expect("update");
     assert_eq!(
         backdated.created_at,
-        Some(old()),
+        old(),
         "auto_now is set on insert only"
     );
     assert!(
-        backdated.updated_at > Some(old()),
+        backdated.updated_at > old(),
         "auto_now_update on every save"
     );
 
     let mut row = backdated.into_active_model();
     row.label = Set("b".into());
     let edited = row.update(&conn).await.expect("update");
-    assert_eq!(edited.created_at, Some(old()));
-    assert!(edited.updated_at > Some(old()));
+    assert_eq!(edited.created_at, old());
+    assert!(edited.updated_at > old());
 
     let stored = stamps::Entity::find_by_id(edited.id)
         .one(&conn)
@@ -79,11 +79,11 @@ async fn an_explicit_creation_date_is_kept() {
     let conn = db::fresh_db_with_schema(DDL).await;
     let row = stamps::ActiveModel {
         label: Set("seeded".into()),
-        created_at: Set(Some(old())),
+        created_at: Set(old()),
         ..Default::default()
     }
     .insert(&conn)
     .await
     .expect("insert");
-    assert_eq!(row.created_at, Some(old()));
+    assert_eq!(row.created_at, old());
 }

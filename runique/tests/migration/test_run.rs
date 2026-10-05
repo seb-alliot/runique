@@ -24,9 +24,9 @@ fn entity_user() -> &'static str {
         table: "users",
         pk: id => i32,
         {
-            username: String [unique],
-            email: String [unique],
-            is_active: bool,
+            username: text [required, unique],
+            email: text [required, unique],
+            is_active: bool [required],
         }
     }
     "#
@@ -40,9 +40,9 @@ fn entity_user_with_bio() -> &'static str {
         table: "users",
         pk: id => i32,
         {
-            username: String [unique],
-            email: String [unique],
-            is_active: bool,
+            username: text [required, unique],
+            email: text [required, unique],
+            is_active: bool [required],
             bio: text [nullable],
         }
     }
@@ -57,9 +57,9 @@ fn entity_post() -> &'static str {
         table: "posts",
         pk: id => i64,
         {
-            title: String,
+            title: text [required],
             body: text [nullable],
-            user_id: i32,
+            user_id: int [required],
             description: text [nullable],
         }
     }
@@ -74,10 +74,10 @@ fn entity_product() -> &'static str {
         table: "products",
         pk: id => i32,
         {
-            name: String,
-            price: f64,
-            stock: i32,
-            sku: String [unique],
+            name: text [required],
+            price: float [required],
+            stock: int [required],
+            sku: text [required, unique],
         }
     }
     "#
@@ -567,8 +567,8 @@ fn entity_user_without_email() -> &'static str {
         table: "users",
         pk: id => i32,
         {
-            username: String [unique],
-            is_active: bool,
+            username: text [required, unique],
+            is_active: bool [required],
         }
     }
     "#
