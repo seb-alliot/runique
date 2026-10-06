@@ -105,6 +105,7 @@
     "template": "Erreur template: {}",
     "custom": "Erreur custom: {}",
     "title": {
+      "bad_request": "Requête invalide",
       "not_found": "Page non trouvée",
       "forbidden": "Accès interdit",
       "validation": "Erreur de validation",
@@ -112,6 +113,7 @@
       "template": "Erreur de rendu de template",
       "internal": "Erreur serveur interne"
     },
+    "invalid_query": "Paramètres d'URL invalides : {}",
     "path_not_found": "Le chemin demandé '{}' n'a pas été trouvé",
     "internal_occurred": "Une erreur interne est survenue",
     "context_occurred": "Erreur AppError survenue"
@@ -165,6 +167,8 @@
     "slot_collision": "Collision de slot middleware Runique : « {} » et « {} » revendiquent tous les deux le slot {}. Enregistrez moins de middlewares custom ou donnez à celui-ci un slot explicite."
   },
   "html": {
+    "400_title": "400",
+    "400_text": "Requête invalide : les paramètres de l'adresse ne sont pas valides.",
     "404_title": "404",
     "404_text": "Page non trouvée",
     "500_title": "500",
@@ -431,7 +435,8 @@
       "email_invalid": "Email invalide.",
       "email_taken": "Un utilisateur avec cet email existe déjà.",
       "password_prompt": "[4/5] Mot de passe",
-      "password_too_short": "Le mot de passe doit contenir au moins 10 caractères.",
+      "password_too_short": "Le mot de passe doit contenir au moins 12 caractères.",
+      "password_weak": "Le mot de passe doit contenir au moins une minuscule, une majuscule, un chiffre et un caractère spécial.",
       "confirm_prompt": "[5/5] Confirmer le mot de passe",
       "password_mismatch": "Les mots de passe ne correspondent pas. Veuillez réessayer.",
       "review_algo": "  Algorithme  : {}",

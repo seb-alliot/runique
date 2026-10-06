@@ -58,6 +58,24 @@ async fn test_fill_put_relaxes_password_required() {
     assert!(form.is_valid().await.is_ok());
 }
 
+#[test]
+fn test_fill_patch_keeps_other_fields_required() {
+    let mut form = Forms::new("csrf");
+    form.field(&TextField::text("name").required());
+    form.field(&TextField::password("pwd").required());
+    form.fill(&HashMap::new(), Method::PATCH);
+    assert!(form.fields.get("name").unwrap().required());
+    assert!(!form.fields.get("pwd").unwrap().required());
+}
+
+#[test]
+fn test_fill_post_keeps_password_required() {
+    let mut form = Forms::new("csrf");
+    form.field(&TextField::password("pwd").required());
+    form.fill(&HashMap::new(), Method::POST);
+    assert!(form.fields.get("pwd").unwrap().required());
+}
+
 #[tokio::test]
 async fn test_fill_get_not_submitted_if_empty() {
     let mut form = Forms::new("csrf");

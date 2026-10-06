@@ -8,9 +8,11 @@ use crate::tpls;
 pub const SIMPLE_TEMPLATES: &[(&str, &str)] = tpls![
     ("base_index.html", "runique_index/base_index.html"),
     ("message.html", "message/message.html"),
+    ("400.html", "errors/400.html"),
     ("404.html", "errors/404.html"),
     ("429.html", "errors/429.html"),
     ("500.html", "errors/500.html"),
+    ("503.html", "errors/503.html"),
     ("debug.html", "errors/debug_error.html"),
     ("csrf.html", "csrf/csrf.html"),
     ("csp.html", "csp/csp.html"),

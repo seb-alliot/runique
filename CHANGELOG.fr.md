@@ -8,418 +8,91 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ## [3.0.0 A venir]
 
-> Trois nouveautés structurantes : `ValidationForm<F>` (une validation prouvée par le type), `ADb` (un seul type de connexion à la base, identique en production et en test) et le builder de test `runique_test` avec sa commande `runique test` ; le DSL des modèles est désormais lu par une seule crate, `runique_dsl`, commune à la macro et à la CLI. En testant aux frontières du framework (lecture du `.env`, sessions, dépendances), cette version corrige aussi plusieurs failles : token CSRF qui survivait à la connexion, session qui survivait à la déconnexion, `ENFORCE_HTTPS=True` ignoré, mot de passe de la base exposé par `Debug`. L'admin et l'authentification sont ensuite passés en revue complète : toute écriture admin passe par une porte unique, comptes et droits sont relus en base à chaque requête, la base garantit elle-même l'état d'un compte, un reset de mot de passe ferme toutes les sessions, et une passe de `cargo mutants` a conduit à supprimer des API mortes ou en double. Toutes les ruptures sont regroupées sous *Rupture*.
-
-### Sécurité — `runique` (CSRF : le token n'était pas renouvelé à la connexion)
-
-* **Le token CSRF d'une session anonyme survivait à la connexion.** `login()` changeait bien l'identifiant de session (`cycle_id()`, contre la fixation de session), mais laissait `CSRF_TOKEN_KEY` en place, et `csrf_middleware` ne génère un token que s'il n'en existe pas. Quelqu'un qui impose sa propre session anonyme à une victime connaît le token de cette session : après la connexion de la victime, ce token restait valide sur sa session authentifiée et permettait de forger des requêtes en son nom. Django renouvelle le token au login (`rotate_token()`) pour cette raison.
-* Nouvelle fonction publique `rotate_csrf_token(session)` (`middleware/security/csrf.rs`), appelée par `login()` à chaque élévation de privilège (anonyme → connecté, ou changement d'utilisateur). Un flux d'authentification personnalisé qui n'utilise pas `login()` n'a qu'à l'appeler.
-* `csrf_middleware` relit désormais le token **après** le handler (`session_csrf_token()`, la même fonction qu'avant le handler) : sans ça, l'en-tête `X-CSRF-Token` de la réponse au login renvoyait l'ancien token, `csrf.js` le reprenait, et la requête AJAX suivante était refusée en 403. Si la session ne peut pas être écrite, la réponse part sans en-tête plutôt qu'avec un token périmé.
-* Tests : `tests/middleware/test_csrf_login_rotation.rs` (nouveau token à la connexion et à la déconnexion, ancien token refusé en 403, nouveau accepté, déconnexion sans utilisateur connecté sans effet sur le token).
-
-### Sécurité — `runique` (déconnexion : la session survivait sous le même identifiant)
-
-* **`logout()` ne détruisait pas la session.** Il retirait les clés de l'utilisateur puis appelait `session.delete()`, qui (tower-sessions 0.15) ne supprime que l'enregistrement du store : la copie de travail de la requête gardait son identifiant et ses autres données (dont le token CSRF), et le layer de session, voyant une session modifiée et non vide, la réenregistrait en fin de requête sous le **même identifiant**.
-* `logout()` fait maintenant `session.flush()` puis `session.cycle_id()`. `flush()` seul ne suffit pas : l'enregistrement garde son ancien identifiant, et `MemoryStore` comme `CleaningMemoryStore` n'en tirent un nouveau qu'en cas de collision. Comme le middleware CSRF réécrit un token en fin de requête, la session aurait été recréée sous l'ancien identifiant. Vérifié en réel : après la déconnexion, rejouer l'ancien cookie renvoie vers la page de connexion, avec un nouvel identifiant.
-* `logout()` ne fait plus rien quand personne n'est connecté : la page de réinitialisation du mot de passe l'appelle à chaque visite, le plus souvent depuis une session anonyme, et vider celle-ci aurait tué le token CSRF de son formulaire réaffiché. Voir aussi *Rupture — `logout()` vide toute la session*.
-
-### Sécurité — `runique` (`.env` : `ENFORCE_HTTPS=True` n'imposait pas HTTPS)
-
-* **Les drapeaux du `.env` étaient lus avec `str::parse::<bool>()`, qui n'accepte que `true` ou `false` exactement.** `True`, `TRUE`, `1` ou `yes` retombaient sur la valeur par défaut, sans avertissement : `ENFORCE_HTTPS=True` laissait HTTPS non imposé. Même lecture pour `HSTS_INCLUDE_SUBDOMAINS`, `HSTS_PRELOAD` et `ACME_ENABLED` (lu à deux endroits, de deux façons différentes). `DEBUG` n'acceptait que `true` ou `1`, en respectant la casse.
-* Côté mots-clés, `EMAIL_BACKEND=Console` basculait sur l'envoi SMTP avec des identifiants vides, et `DB_ENGINE` était mis en minuscules par `makemigrations` mais pas par `DatabaseConfig` (`Postgres` accepté par l'un, refusé par l'autre).
-* Tout passe désormais par trois fonctions publiques de `utils/config/env.rs` :
-  - `flag_from()` : `true`, `1`, `yes`, `on` / `false`, `0`, `no`, `off`, quelle que soit la casse, espaces autour ignorés ;
-  - `env_flag(clé, défaut)` : une valeur qui n'est ni oui ni non (`ENFORCE_HTTPS=treu`) déclenche un avertissement dans les logs et prend la valeur par défaut, au lieu de passer en silence ;
-  - `env_keyword(clé)` : espaces retirés et minuscules, uniquement pour les mots-clés — jamais pour les secrets, URLs, chemins ou noms de table, qui sont sensibles à la casse.
-* Test de non-régression : `test_security_config_enforce_https_whatever_the_case`.
-
-### Sécurité — `runique` (`DatabaseConfig` : mot de passe exposé par `Debug` et `Serialize`)
-
-* **`DatabaseConfig` dérivait `Debug` et `Serialize` sur son champ `url`, qui contient le mot de passe en clair** : un `{:?}` dans un log ou une sérialisation l'affichait. `Debug` est désormais écrit à la main (URL masquée) et `url` est exclu de la sérialisation (`#[serde(skip_serializing)]`).
-* `mask_password` masque aussi un mot de passe passé en paramètre d'URL (`?password=`, `pass`, `pwd`, `passwd`, `sslpassword`, forme acceptée par libpq, MySQL et sqlx), en plus de la forme `utilisateur:motdepasse@`.
-
-### Sécurité — `runique` (vérification de mot de passe : oracle de timing sur échec de parsing)
-
-* **Un hash stocké mal formé renvoyait `false` avant tout calcul de hachage**, dans les trois `verify_argon2`/`verify_bcrypt`/`verify_scrypt`. Tout autre chemin de code (mauvais mot de passe contre un hash bien formé) paie le coût complet d'Argon2/bcrypt/scrypt ; un hash qui échoue à parser court-circuitait immédiatement — un écart de timing entre "mal formé" et "bien formé mais faux" pour tout appelant qui laisserait un attaquant influencer le hash comparé. Aucun appelant actuel ne le fait (`auth/session.rs` et `auth/user.rs` comparent tous deux contre un hash venant de la base ou du repli à temps constant `dummy_hash()`, jamais de l'entrée de la requête), donc ce n'était pas atteignable aujourd'hui — corrigé quand même en défense en profondeur, suivant le même principe déjà utilisé pour l'énumération d'utilisateurs (`dummy_hash()`). Le nouvel helper partagé `verify_constant_time` relance la même closure de vérification contre un hash bidon propre à chaque algorithme (`DUMMY_HASH_BCRYPT`/`DUMMY_HASH_SCRYPT` ajoutés à côté du `dummy_hash()` existant, qui reste au format Argon2 et sert déjà à `auth/*`) chaque fois que le parsing du hash réel échoue, pour qu'un hash mal formé coûte exactement autant qu'un hash bien formé.
-
-### Sécurité — `runique` (CSP : le nonce par requête n'atteint jamais le navigateur dès que `.with_csp()` est utilisé)
-
-* **Le header `Content-Security-Policy` avec nonce est systématiquement écrasé par un second header sans nonce.** `security_headers_middleware` (toujours actif) génère un nonce, l'injecte dans les extensions de requête (ce qui alimente correctement `{% csp %}`/`{{ csp_nonce }}` dans les templates) et pose le header CSP **avec** ce nonce. Mais `csp_middleware`, ajouté dès que `.with_csp(...)` est appelé — l'usage normal et documenté — pose le **même** header **sans** nonce, et s'exécute après (couche la plus externe dans l'ordre `.layer()` d'Axum/Tower) : son `insert()` remplace entièrement la valeur du premier. Résultat : le HTML contient des `nonce="..."` valides, mais le header CSP final n'en déclare aucun — le navigateur **bloque** les scripts/styles inline nonce-tagués. Ce n'était pas visible via `use_nonce`/`.with_nonce()` (supprimés dans cette version) : ce champ n'a jamais rien fait, dans un sens comme dans l'autre. **✅ Corrigé** — `csp_middleware`/slot 31 retiré de `applicator.rs`, redondant avec le slot 30. En creusant, `RuniqueEngine::attach_middlewares` (une deuxième voie de câblage, jamais appelée en vrai) et les flags `enable_csp`/`enable_header_security` (`MiddlewareConfig`), `enable_header_security`/`.with_header_security()` (`CspConfig`) et `strict_csp`/`STRICT_CSP` (`SecurityConfig`) se sont tous révélés inertes une fois le doublon retiré — supprimés aussi, comportement réel inchangé. Détail dans `diagramme/anomalies.md` (entrées E2/E3/CX2).
-
-### Sécurité — `runique` (`FileField` : n'importe quel fichier du serveur pouvait être supprimé ou déplacé)
-
-* **Un `FileField` prenait sa valeur dans `Forms::fill` sans vérifier qu'elle venait d'un envoi de fichier.** Il suffisait d'envoyer `avatar=/chemin/vers/app.db` en simple texte de formulaire (ou une partie multipart sans nom de fichier) : si la validation échouait, `cleanup_files` **supprimait** ce fichier ; si elle passait, `finalize` le **déplaçait** dans `MEDIA_ROOT`, servi publiquement.
-* Nouveau `is_staged_upload(path)` : un vrai fichier directement dans `{MEDIA_ROOT}/.staging-<uuid>/`, chemin canonicalisé (`..` et liens symboliques ne passent pas). Nouvelle méthode `FormField::set_submitted_value` (par défaut `set_value`), appelée par `Forms::fill` ; `FileField` la surcharge et écarte (avec un avertissement) toute valeur qui n'est pas un envoi en staging. Défense en profondeur : `cleanup_files` ne supprime que des fichiers en staging, `finalize` refuse de déplacer un fichier existant qui n'y est pas, et l'édition admin ne supprime un fichier remplacé que s'il est sous `MEDIA_ROOT`.
-* Tests : `tests/formulaire/test_file_field_path_guard.rs`, dont la vraie chaîne `parse_multipart` → `fill` → `validate` → `finalize`.
-
-### Sécurité — `runique` (admin : le corps brut de la requête atteignait toutes les écritures)
-
-* **La création et l'édition passaient tout le corps de la requête à `create_fn`/`update_fn`**, les champs du formulaire n'écrasant que leur propre clé. Toute autre clé envoyée par le client était écrite. Cas concret, la création d'un utilisateur : `is_active=true` créait un compte actif (la doc promet un compte inactif, activé par son propriétaire), et un `password` contenant un hash Argon2 choisi par le créateur était enregistré tel quel — un compte actif dont le créateur connaît le mot de passe.
-* **L'édition en masse et `group_set` faisaient de même** : `update-submit` envoyait toutes les clés brutes à `partial_update_fn` (clé étrangère de portée, champs en lecture seule, mot de passe, chemin de fichier…), `group_set` acceptait n'importe quelle clé `ga_<colonne>`, et aucune ligne n'était vérifiée par rapport au parent d'une route imbriquée.
-* **Toutes les écritures admin passent désormais par une porte unique** (`admin/admin_main/gate.rs`), en trois vérifications : *qui* (les droits de l'utilisateur connecté, issus de ses groupes), *quelles lignes* (`verify_scope_ownership`, propriété `_own`), *quoi* (seulement les champs déclarés du formulaire, validés et finalisés ; seulement les actions de groupe configurées et leurs valeurs proposées ; le parent imposé par l'URL ; un mot de passe aléatoire à la création). Création, édition, suppression, édition en masse et `group_set` l'utilisent.
-* Tests : `tests/admin/test_admin_raw_body.rs`, `tests/admin/test_admin_access_control.rs`.
-
-### Sécurité — `runique` (admin : `extra_routes` ne vérifiait aucun droit)
-
-* **Une route ajoutée avec `extra_routes` était accessible à tout membre du staff connecté**, quels que soient ses droits sur la ressource à laquelle elle appartient. Elle passe désormais par la porte (`extra_route_gate`) : liste/consultation → `can_read`, création → `can_create`, édition → `can_update`, suppression → `can_delete` ; un refus renvoie au tableau de bord. Un nom de ressource inconnu est une erreur au build. Voir *Rupture — admin*.
-
-### Sécurité — `runique` (désactiver un compte ou retirer un droit n'avait pas d'effet)
-
-* **`is_active`, `is_staff` et `is_superuser` étaient copiés en session à la connexion et jamais relus**, et les droits des groupes vivaient dans un cache mémoire invalidé à la main (par des hooks que `delete_many`, un rollback, du SQL brut ou une autre instance contournaient). Désactiver un compte ou retirer un droit laissait la session ouverte telle quelle.
-* **Le compte et ses droits sont désormais relus en base à chaque requête** : `load_admin_user` dans l'admin, `auth_middleware` dans toute l'application. Un compte supprimé, désactivé ou qui n'est plus staff voit sa session fermée — et le réactiver ne la rouvre pas. Le cache de permissions est supprimé (voir *Rupture — cache de permissions*). La modification d'un droit est atomique (transaction).
-* Tests : droit retiré en SQL refusé dès la requête suivante ; compte désactivé déconnecté.
-
-### Sécurité — `runique` (un reset de mot de passe réactivait un compte désactivé)
-
-* **Réinitialiser le mot de passe posait `is_active = true`** : un utilisateur bloqué par le staff revenait par « mot de passe oublié ». Le compte a désormais deux colonnes : `is_active` (son état) et `activated_at` (le moment où son propriétaire l'a pris en main, écrit une seule fois). En attente = (false, vide), actif = (true, rempli), désactivé = (false, rempli). Un reset active une seule fois un compte en attente, jamais un compte désactivé.
-* **Garanti par la base elle-même** : `CHECK (NOT is_active OR activated_at IS NOT NULL)` (`eihwaz_users_active_needs_activation`), vérifié sur SQLite, Postgres et MariaDB. Côté code, `RuniqueUser::can_sign_in()` (`is_active && activated_at` pour le modèle intégré) est utilisé par tous les chemins de connexion.
-* « Mot de passe oublié » selon l'état : en attente → lien d'activation, actif → lien de reset, bloqué → un email « compte bloqué » sans lien ; la page répond la même chose pour toute adresse. L'admin peut réactiver un compte désactivé mais pas activer un compte en attente (`admin.user.not_activated`). Voir *Rupture — `eihwaz_users`*.
-
-### Sécurité — `runique` (un reset de mot de passe laissait les autres sessions ouvertes)
-
-* **Définir un nouveau mot de passe via le lien de reset ne fermait aucune session** : une session volée restait valide. Une fois le nouveau mot de passe enregistré, toutes les sessions du compte sont désormais fermées, sur tous les appareils, par `RuniqueEngine::close_user_sessions(user_id)` : la base d'abord, puis la mémoire — dans cet ordre, car une session retirée de la mémoire en premier pourrait être relue depuis la base par une requête arrivant entre les deux. Les autres comptes ne sont pas touchés. Fait au moment où le mot de passe est défini, jamais au moment où le reset est demandé : sinon n'importe qui pourrait déconnecter n'importe qui en tapant son email.
-* Limite : un store branché avec `with_session_store()` (Redis…) ne peut pas être parcouru par utilisateur. Test : `tests/auth/test_reset_closes_sessions.rs` (échoue sans le correctif).
-
-### Sécurité — `runique` (`ENFORCE_HTTPS` : la redirection n'était jamais montée)
-
-* **`https_redirect_middleware` existait mais rien ne le montait** : derrière un proxy qui termine le TLS, `ENFORCE_HTTPS=true` émettait HSTS mais ne redirigeait rien. Il est désormais monté au slot 17 (juste après la validation du Host, pour que la redirection soit construite sur un `Host` vérifié).
-* Il ne redirige que si le proxy indique `X-Forwarded-Proto: http` (première valeur d'une chaîne). Sans l'en-tête, la requête passe : rien ne la distingue d'une requête que le proxy a reçue en HTTPS sans le dire, et la rediriger bouclerait à l'infini. Non monté quand ACME est actif : Runique sert alors le TLS lui-même, et son écouteur du port 80 redirige déjà — en conservant désormais le chemin et la query (il renvoyait tout à la racine du site).
-* La doc (`middleware/csp`, `installation/network`) décrit le comportement exact et la configuration du proxy qu'il exige (`Host`, `X-Forwarded-Proto`).
-
-### Sécurité — `runique` (`upload_to_env()` : le chemin absolu du serveur dans les URL publiques)
-
-* **`upload_to_env()` renvoyait `{MEDIA_ROOT}/{champ}` alors que `finalize` traite le dossier d'upload comme relatif à `MEDIA_ROOT`** : le dossier était imbriqué dans lui-même (`/srv/app/media/srv/app/media/avatar/`), et la valeur stockée — donc l'URL publique — contenait le chemin absolu du serveur. `upload_to(&StaticConfig)` avait le même bug. Désormais `{MEDIA_ROOT}/{champ}/` et la racine de `MEDIA_ROOT` respectivement. `model!{}`/`#[form]` (`[upload_to: "avatars/"]`, relatif) n'étaient pas concernés.
-* La doc annonçait `upload_to("uploads/images")` comme un chemin exact : c'est `{MEDIA_ROOT}/uploads/images/`. Ne pas y inclure `MEDIA_ROOT`.
-
-### Sécurité — `runique` (page d'erreur de debug : clés d'API, secrets et signatures affichés en clair)
-
-* **La page de debug ne masquait que les en-têtes dont le nom contient `authorization`, `cookie` ou `token`** : `X-Api-Key`, `X-Client-Secret`, `X-Hub-Signature-256`, `X-Session-Id`, `X-Password`… s'affichaient en clair (17 en-têtes sensibles courants sur 30). Le filtre couvre désormais `auth`, `cookie`, `session`, `token`, `key`, `secret`, `password`, `passwd`, `credential` et `signature`. Affichée seulement avec `debug=true` ; la page d'erreur de production ne liste aucun en-tête.
-* Tests : `tests/middleware/test_debug_page_headers.rs`, sur la vraie page rendue par une vraie application (les tests précédents utilisaient un Tera vide qui ne rendait jamais le tableau des en-têtes) : 30 en-têtes sensibles, un en-tête visible comme témoin, 500 et 404 en debug, production. Retirer n'importe quel mot du filtre les fait échouer.
-
-### Sécurité — `runique` (listes admin intégrées : tri et filtre sur n'importe quelle colonne)
-
-* **Les listes des utilisateurs, des groupes et des droits transformaient tout `sort_by` et tout `filter_*` de la query string en SQL**, avec pour seule garde l'anti-injection : `filter_password=…` comparait des hashes de mots de passe, `sort_by=password` triait dessus. Elles ne trient désormais que sur les colonnes qu'elles affichent et, ne déclarant aucun filtre latéral, ignorent tout `filter_*`, comme les ressources générées (`SORT_COLS`/`FILTER_COLS`). Au passage, trier la liste des droits par `id` n'échoue plus sous Postgres et MariaDB, où `eihwaz_groupes_droits` n'a pas cette colonne. Tests : `tests/admin/test_builtin_list_params.rs`.
-
-### Sécurité — `runique` (liens de reset de mot de passe construits depuis le `Host` de la requête)
-
-* **Sans URL de base configurée, le lien de reset était construit à partir de l'en-tête `Host` de la requête** — sur la page « mot de passe oublié » et sur les deux chemins de l'admin. Demander un reset pour l'adresse d'une victime avec `Host: evil.com` lui envoyait un vrai email dont le lien menait chez l'attaquant, avec le jeton de la victime. La validation du Host ne l'empêchait pas par défaut (seulement avec `.with_allowed_hosts(...)`).
-* **Tout lien de reset part désormais de l'URL publique du site**, définie par `.with_public_url(…)` dans le builder : les pages publiques avec leur `reset_route`, l'admin avec la même route — il codait `/reset-password` en dur. **La production refuse de démarrer sans elle** quand le reset ou l'admin est activé ; en debug, le `Host` de la requête reste le repli, avec un avertissement. Le lien « voir le site » de l'admin la suit, sauf si l'admin définit le sien (`view_site_url`, qui remplace `site_url`). Le lien d'activation de la demo-app avait la même faille : corrigé de la même façon, et la doc des extracteurs n'enseigne plus à construire une URL absolue depuis `Host`. Tests : `tests/app/test_reset_link_base.rs`, `test_reset_link_uses_site_url_and_the_configured_reset_route`, tests unitaires de `reset_link_base`.
-
-### Rupture — `runique` (`ADb` : un seul type de connexion à la base dans tout le framework)
-
-* **Les signatures publiques qui prenaient `&DatabaseConnection` ou `Arc<DatabaseConnection>` prennent désormais `&ADb`** (`db/adb.rs`) : recherches de `BuiltinUserEntity`, `RuniqueSessionStore::new`, `RuniqueQueryBuilder::order_by_random`, le champ `engine.db`, et tout ce qui reçoit la base du framework (`search!`, formulaires, admin, auth).
-* `ADb` est un handle bon marché à cloner (`Arc` interne) qui implémente **directement** `ConnectionTrait` et `TransactionTrait` : `.insert(db)`, `.one(db)` ou `db.begin()` s'écrivent tels quels, sans `.as_ref()`. C'est la raison d'un type dédié : la règle orpheline interdit d'implémenter ces traits sur `Arc<DatabaseConnection>`. Avec la feature `test-utils`, le même type enveloppe aussi une transaction de test, et le code métier tourne à l'identique en production et en test.
-* `.with_database(DatabaseConnection)` du builder est inchangé ; `ADb::from_connection(conn)` construit un `ADb` à la main. Migration : remplacer `&DatabaseConnection` par `&ADb` dans les fonctions qui reçoivent la base du framework.
-
-### Rupture — `runique` (`login()` prend l'utilisateur plutôt que ses champs)
-
-* **`login()` reçoit l'utilisateur lui-même** : `login(&session, &db, &user, db_store, exclusive)`, avec `user: &impl RuniqueUser`, remplace les quatre paramètres `user_id`, `username`, `is_staff` et `is_superuser`, qui ne peuvent plus être passés dans le désordre. `auth_login()` (inscription, OAuth, lien magique) est inchangé.
-
-### Rupture — `runique` (`logout()` vide toute la session)
-
-* Conséquence de *Sécurité — déconnexion* : `logout()` vide désormais **toute** la session (messages flash, préférences…), comme la déconnexion de Django, au lieu de ne retirer que les clés de l'utilisateur. Un message flash à afficher après la déconnexion doit être ajouté **après** l'appel à `logout()` — c'est déjà le cas dans demo-app, l'admin et la réinitialisation du mot de passe.
-
-### Rupture — `runique` (`RuniqueEnv` supprimé, `DEBUG` lu sans tenir compte de la casse)
-
-* **L'enum public `RuniqueEnv { Development, Production }` est supprimé** : il n'était qu'un intermédiaire pour `is_debug()`, qui reste la façon de lire le mode. `DEBUG` était lu à deux endroits avec la même logique recopiée (`is_debug()` et `RuniqueConfig.debug`) ; les deux passent désormais par `debug_from()`.
-* `DEBUG=True`, `YES` ou `On` activent maintenant le mode debug, alors qu'ils le laissaient désactivé. À vérifier : qu'aucun `.env` de production ne contient une telle valeur par erreur.
-
-### Rupture — `runique` (trait `FormField` : `validate`/`finalize` désormais `async fn`)
-
-* **`FormField::validate`/`finalize` sont désormais des `async fn`** (trait + les 19 implémentations par type de champ) — nécessaire pour que `ValidationForm::try_new` puisse `.await` la validation de bout en bout. L'I/O d'upload de fichier de `file.rs` passe maintenant par du vrai `tokio::fs` + `spawn_blocking` au lieu du `block_in_place` précédent (voir *Correctif — `FileField` : I/O disque bloquante*) — un upload de fichier ou un hash de mot de passe dans un formulaire ne bloque plus le thread worker async sous la façade déjà async d'`is_valid()`. Un garde de récursion basé sur `tokio::task_local!` remplace un `thread_local!` devenu non fiable une fois la validation de champ capable de suspendre à travers un `.await` (une tâche reprenant sur un thread worker différent après suspension pouvait sinon corrompre le compteur de récursion d'une tâche sans rapport). `FormField` est `pub` (réexporté via le prelude) : tout code externe l'implémentant directement pour un type de champ personnalisé doit ajouter `#[async_trait::async_trait]` au-dessus de son `impl` et passer `validate`/`finalize` (si surchargées) en `async fn` — une `fn` simple ne satisfait plus le trait.
-
-### Rupture — `runique` (`Request::is_get`/`is_post`/`is_put`/`is_delete` supprimées)
-
-* Ces quatre méthodes n'existaient que pour porter le boilerplate `if request.is_get() { ... } if request.is_post() && form.is_valid().await { ... }` que `ValidationForm` remplace maintenant — chaque appel réel dans tout le code (`demo-app`, les handlers du framework lui-même, le scaffold `runique new`) était lié à exactement ce pattern, aucun à un usage indépendant. Le pattern disparu, leur raison d'être aussi ; les garder aurait été de l'API spéculative sans consommateur réel. Si ton propre code les appelle directement, remplace `request.is_get()`/`.is_post()`/`.is_put()`/`.is_delete()` par `request.method == Method::GET` (`axum::http::Method`), etc.
-
-### Rupture — `runique` (features base de données : builds mono-moteur par défaut)
-
-* **`default` n'entraîne plus tous les moteurs de base de données.** C'était `default = ["orm", "all-databases"]` : tout consommateur compilait SQLite + Postgres + MySQL/MariaDB peu importe celui réellement utilisé — y compris le scaffold (`runique new`) et le modèle de Dockerfile documenté pour la production (`cargo install runique --features "orm,postgres"`), qui *avaient l'air* de choisir un seul moteur mais récupéraient les trois quand même, rien ne désactivant le défaut. `default` est maintenant `["orm"]` : choisir explicitement un seul `sqlite`/`postgres`/`mysql` (`mariadb` est un alias de `mysql`).
-* **`postgres`/`mysql`/`sqlite` sont désormais mutuellement exclusives**, imposé par un `compile_error!` à la fois dans `runique` et `derive_form` (les features sont forwardées : le `postgres` de `runique` active aussi `derive_form/postgres`, etc.) — en activer deux à la fois est presque toujours une erreur maintenant que `default` ne le fait plus pour vous. L'échappatoire reste la feature `all-databases` existante, à demander **explicitement** : elle est exemptée du contrôle de mutuelle exclusion (avec `cfg(doc)`, pour docs.rs) et sert au tooling multi-moteur (`scripts/smoke_migrations.sh`, qui compile un seul binaire CLI parlant aux trois moteurs au runtime via `DATABASE_URL`/`DB_ENGINE`) et à la génération de documentation couvrant chaque backend.
-* **`derive_form::DbEngine::detect()` vérifie désormais la feature Cargo en priorité**, avec un repli sur l'ancien sniff `.env`/`DATABASE_URL` uniquement si aucune feature `postgres`/`mysql`/`sqlite` n'est active. L'ancien mécanisme était une seconde source de vérité indépendante, capable de désaccorder silencieusement avec ce qui était réellement compilé (ex : `runique` compilé avec `features = ["mysql"]` alors qu'un `.env` périmé disait encore `DATABASE_URL=postgres://...` — `derive_form` générait du code shape Postgres contre un build compilé pour MySQL seul). La feature Cargo ne peut pas dériver de ce qui est compilé, elle fait donc autorité quand elle est présente.
-
-### Rupture — dépendances (`argon2` 0.5 → 0.6, `scrypt` 0.11 → 0.12)
-
-* **`argon2` 0.6** : `password_hash::SaltString` a disparu. `PasswordHasher::hash_password` ne prend plus du tout de sel/RNG en paramètre — il en génère un en interne via `getrandom`. `hash_argon2` simplifié en conséquence (plus de `SaltString::generate(&mut OsRng)` explicite). `PasswordHash` a aussi changé de chemin : l'ancien ré-export `argon2::password_hash::PasswordHash` est déprécié au profit de `password_hash::phc::PasswordHash` (même forme, nouveau chemin — `verify_argon2` inchangé au-delà de l'import).
-* **`scrypt` 0.12** : contrairement à `argon2`, livré avec **zéro feature par défaut** — `Scrypt` lui-même n'existe pas sans demander explicitement `phc` (ou `kdf`/`mcf`), d'où `scrypt = { version = "0.12.0", features = ["phc", "getrandom"] }` désormais nécessaire. `Scrypt` n'est plus non plus un unit struct (il porte un champ privé `params`) — `Scrypt::default()` remplace l'ancienne valeur `Scrypt` nue. Maintenant sur le même `password-hash` 0.6 qu'`argon2`, donc `hash_scrypt`/`verify_scrypt` abandonnent leurs imports séparés `ScryptSaltString`/`ScryptPasswordHash` et partagent ceux d'`argon2`.
-
-### Rupture — `runique` (`StaticStaging` : API `enable()`/`disable()` retirée)
-
-* **`enable()` et `disable()` faisaient doublon avec `enabled(bool)`**, contrairement aux autres `*Staging` du framework qui n'exposent qu'une seule des deux formes. `enabled(bool)` est conservée seule — remplacer `.static_files(|s| s.disable())` par `.static_files(|s| s.enabled(false))` (et `.enable()` par `.enabled(true)`).
-
-### Rupture — `runique` (`RuniqueEngine::attach_middlewares` supprimée : code mort, chemin dupliqué)
-
-* **`attach_middlewares` était une deuxième voie de câblage des middlewares, jamais utilisée par le framework** — le vrai pipeline passe entièrement par `MiddlewareStaging`/l'applicator à slots. Zéro appelant dans tout le crate, y compris en tests d'intégration réels (son propre fichier de tests l'exerçait en isolation, donnant une fausse impression de couverture). Trouvée en creusant un bug réel de ce chemin vivant (voir *Sécurité — CSP : le nonce par requête n'atteint jamais le navigateur*). Supprimée avec son fichier de tests dédié ; si du code externe l'appelait directement (peu probable, aucune trace dans la doc), passer par le builder standard (`RuniqueAppBuilder::build()`).
-
-### Rupture — `runique` (un seul modèle utilisateur : `eihwaz_users`)
-
-* **Supprimés** : les traits `UserEntity` et `AdminAuth`, `DefaultAdminAuth<E>`, `AdminLoginResult`, `RuniqueAdminAuth`, `.auth()` sur le builder admin, `PasswordResetAdapter`/`PasswordResetHandler`, et le paramètre de type de `with_password_reset::<E>()`. Les comptes sont `eihwaz_users`, étendus avec `extend!{}` ; un second modèle utilisateur n'était pris en charge nulle part ailleurs.
-* **À la place** : `BuiltinUserEntity::find_by_id`/`find_by_username`/`find_by_email`/`update_password_by_id`/`activate_pending`/`set_password_and_activate`, `auth::authenticate_admin()` (mot de passe vérifié d'abord quel que soit le compte, puis l'accès admin), `with_password_reset(|pr| …)` sans paramètre de type. `authenticate_user()` ne change pas.
-
-### Rupture — `runique` (`eihwaz_users` : colonne `activated_at` et contrainte `CHECK`)
-
-* Conséquence de *Sécurité — un reset de mot de passe réactivait un compte désactivé* : `eihwaz_users` reçoit une colonne `activated_at` et la contrainte `eihwaz_users_active_needs_activation`, créées par la table du framework. Une base existante doit être mise à niveau — sans supprimer la table, ce qui partirait en cascade sur les sessions, les liens de groupes et les colonnes de `extend!{}`. Sous Postgres :
-
-```sql
-BEGIN;
-ALTER TABLE eihwaz_users ADD COLUMN activated_at timestamp without time zone;
-UPDATE eihwaz_users SET activated_at = COALESCE(created_at, now()) WHERE is_active;
-ALTER TABLE eihwaz_users ADD CONSTRAINT eihwaz_users_active_needs_activation
-    CHECK (NOT is_active OR activated_at IS NOT NULL);
-COMMIT;
-```
-
-* Un compte inactif qu'on ne peut pas distinguer d'un compte jamais activé passe en attente : son propriétaire l'active par le lien.
-
-### Rupture — `runique` (cache de permissions supprimé, groupes chargés à la demande)
-
-* Conséquence de *Sécurité — désactiver un compte ou retirer un droit n'avait pas d'effet* : `cache_permissions`, `get_permissions`, `evict_permissions`, `clear_cache`, `restore_permissions`, `CachedPermissions`, `refresh_cache_for_user`, `load_user_middleware` et les hooks de cache de `groupes_droits`/`users_groupes` disparaissent. Rien ne les remplace : les droits sont lus en base quand on en a besoin.
-* Hors admin, `CurrentUser.groupes` est vide tant que le handler n'appelle pas `req.load_user_rights().await` (deux requêtes) — la plupart des pages ne regardent jamais les groupes.
-
-### Rupture — `runique` (admin : `extra_routes`, `AdminResource`)
-
-* `extra_routes` prend `(chemin, ressource, CrudOperation, MethodRouter)` : l'opération décide du droit vérifié (voir *Sécurité — `extra_routes`*).
-* `ResourcePermissions`, `AdminResource::with_permissions`, le champ `permissions` et le paramètre `roles` de `AdminResource::new` (4 arguments désormais) sont supprimés, ainsi que le registre de rôles de l'admin (`register_roles`/`get_roles`) — les droits viennent des groupes. Régénérer `src/admins/` (`runique start`).
-
-### Rupture — `runique` (`GuardRules` : vérifié contre le compte connecté, les rôles sont les groupes)
-
-* **`GuardContext` est supprimé** : rien dans le framework ne le remplissait, donc toute règle refusait toutes les requêtes. Sentinel lit désormais le `CurrentUser` qu'`auth_middleware` a relu en base.
-* Les rôles sont des noms de groupe (`eihwaz_groupes`) : une seule méthode, `roles(["editeur"])`, l'un d'eux suffit. `role`, `login_and_role`, `login_and_roles` et `with_role` sont supprimées. Nouvelles `staff()` et `superuser()`. Toute règle exige un compte connecté ; un superuser passe les vérifications staff et de rôle. Une lecture des groupes en échec refuse.
-
-### Rupture — `runique` (messages flash : niveaux en minuscules)
-
-* **`MessageLevel` est sérialisé en minuscules** : `message.html` en tire la classe CSS, ce qui donnait `message-Success` alors qu'une feuille de style écrite de façon habituelle attend `message-success` (les messages flash de Campanile s'affichaient sans style). Renommer `.message-Success`/`Error`/`Info`/`Warning` en minuscules dans vos CSS. `as_css_class()` renvoie la même classe que le template (`message-success`…).
-
-### Rupture — `runique` (API mortes ou en double supprimées)
-
-* Doublons d'une API qui fonctionne : `no_statics()` → `.static_files(|s| s.enabled(false))` ; `with_error_handler(b)` → `.middleware(|m| m.with_debug_errors(b))` ; `SessionConfig`/`SessionBackend`/`ASessionStore` → `with_session_duration()`, `with_session_store()` ; `PasswordConfig::oauth(p)` → `PasswordConfig::Delegated(p)` ; `Request::render_with` → `insert` puis `render` ; `ErrorContext::with_request` → `with_request_helper` ; `MiddlewareConfig::with_host_validation`.
-* Jamais appelées : `ModelSchema::to_migration` et `to_sea_column`/`to_sea_foreign_key`/`to_sea_index` (les migrations viennent du parseur de `model!{}`, et ce chemin ne créait pas les index), `auto_now_columns`/`auto_now_update_columns`/`has_auto_timestamps`, `generate_relations_file` (les clés étrangères sont créées dans le `CREATE`), `by_time_dir`/`by_time_table_dir`, `first_str_arg`, `to_pascal_case`, `DbKind`, `ParsedColumn::enum_is_pg`, `RuniqueUser::roles`, `update_password` (par email), `RuniqueQueryBuilder::all_from_engine` (ouvrait un pool de connexions à chaque appel), `sanitize_with_fallback`, `AdminResource::extra_map`, `ErrorContext::with_details`, le niveau de log admin `roles`, les alias `Bdd`/`OADb`/`OSecurityCsp`/`OSecurityHosts`/`TResult`/`DbResult`, les constantes `NONCE_KEY`/`SESSION_USER_ROLES_KEY`/`REGISTERED_ROLES`, et les getters d'inspection `TrustedProxiesConfig::get_proxies`/`StaticStaging::is_enabled`/`MiddlewareStaging::custom_count`.
-
-### Rupture — `runique` (`Prisme::for_test` et `Forms::mark_validated` derrière `test-utils`)
-
-* Les deux contournent une vérification (CSRF, validation du formulaire) et n'existent que pour les tests d'intégration : elles ne sont plus compilées qu'avec la feature `test-utils`.
-
-### Rupture — `derive_form` (`auto_now` : posé par l'entité, plus par la base)
-
-* `[auto_now]` et `[auto_now_update]` sont désormais remplis par un `ActiveModelBehavior::before_save` généré — `auto_now` à l'insertion s'il n'est pas déjà posé, `auto_now_update` à chaque sauvegarde — de la même façon sur tous les moteurs. Les migrations n'émettent plus de trigger Postgres ni de `ON UPDATE CURRENT_TIMESTAMP` MySQL, et le nom de colonne `updated_at` ne signifie plus rien à lui seul : c'est l'attribut qui décide. Les conversions générées renvoient un `Result` (`FormDataError`). Régénérer les entités et republier `derive_form` avant `runique`.
-
-### Rupture — `runique` (`login()` ne prend plus la base)
-
-* `login(&session, &user, db_store, exclusive)` : le paramètre `db` n'était jamais utilisé. Retirer le deuxième argument à chaque appel. `auth_login()`, qui charge vraiment l'utilisateur, le garde.
-
-### Rupture — `runique` (`with_public_url()` remplace les URL de base du reset)
-
-* Conséquence de *Sécurité — liens de reset construits depuis le `Host` de la requête* : `PasswordResetConfig::base_url()` et `AdminConfig::reset_password_url()` sont supprimées. Définir `.with_public_url("https://monsite.fr")` dans le builder — une seule fois : un second appel ne compile pas — sinon l'application ne démarre pas quand le reset ou l'admin est activé.
-
-### Rupture — `runique` (`CountFn` reçoit les filtres de colonne)
-
-* `CountFn` devient `(ADb, search, column_filters, scope)` : il doit appliquer les mêmes filtres de colonne que `ListFn`, avec la même liste blanche. Régénérer `src/admins/` (`runique start`) ; un `count_fn` écrit à la main prend un argument de plus.
-
-### Rupture — `runique` (builder : réglages à appel unique vérifiés à la compilation)
-
-* `with_public_url`, `routes`, `with_log`, `with_password_reset`, `with_database`/`with_database_config`, `with_session_duration` et `with_mailer`/`with_mailer_from_env` acceptaient un second appel qui remplaçait le premier sans rien dire — un second `routes()` perdait toutes les routes du premier ; un second appel au mailer était *ignoré* sans rien dire. Ils ne s'appellent plus qu'une fois par builder : un second appel ne compile pas, avec une erreur qui nomme le réglage (`#[diagnostic::on_unimplemented]`). L'état est porté par le type du builder (`RuniqueAppBuilder<S>`, avec une valeur par défaut, invisible tant qu'on enchaîne les appels) ; une fonction qui renvoie un builder à mi-chemin l'écrit avec `app::builder::state::{No, Yes}`. Les réglages qui composent (`core`, `middleware`, `static_files`, `with_admin`, `with_custom_db`, `statics`) ne changent pas. Protégé par des doctests `compile_fail`.
-
-### Rupture — DSL (`runique_dsl` : un seul lecteur pour la macro et la CLI)
-
-> Le DSL `model!{}` / `extend!{}` est désormais lu par une seule crate, `runique_dsl`, commune aux macros de `derive_form` et à `runique makemigrations` : un modèle refusé par l'une est refusé par l'autre, avec le fichier, la ligne et la colonne. Grammaire, règles, table des types et migration pas à pas : [README de `runique_dsl`](/runique/runique_dsl/README.fr.md).
-
-* **NOT NULL par défaut** : une colonne n'accepte NULL que déclarée `nullable` ; `required` ne rend plus que le champ du formulaire obligatoire. Ajouter `nullable` aux champs facultatifs existants, sinon `makemigrations` s'arrête sur `nullable -> not_null`.
-* **`fk(...)` supprimé** : les clés étrangères se déclarent uniquement par `belongs_to: cible via colonne [on_delete, on_update]`.
-* **`auto_now` / `auto_now_update`** : le champ Rust est `T`, plus `Option<T>`.
-* **Lecture stricte par la CLI** : un modèle illisible, un type v1 (`String`, `i32`…), deux `model!{}` dans un fichier ou une cible de `belongs_to` introuvable sont des erreurs, plus des modèles ignorés.
-* **Enums `i32` / `i64`** : chaque variante doit avoir une valeur entière unique, dans les limites du type (elles valaient toutes `0` sans valeur).
-* **`customize`** : desserrer `min_length`, `max_length`, `min` ou `max` provoque un panic à la construction du formulaire.
-* **`runique::migration::RelationDef`, `RelationKind` et `ModelSchema::relation()` supprimés** : jamais lus.
-* **`checkbox [enum(X)]` devient une liste** : il stockait une seule valeur dans une colonne (cocher deux cases échouait à la conversion) ; c'est maintenant un champ liste stocké dans sa propre table, comme le nouveau `multichoice` (voir *Ajout — DSL (champs liste)*).
-* **Le nom d'une colonne ne décide plus de rien** : une colonne `created_at` / `updated_at` sans `auto_now` n'a plus de `DEFAULT CURRENT_TIMESTAMP` (le prochain `makemigrations` propose de le retirer), et une colonne `cache_key` n'est plus exclue des migrations. Seuls `auto_now`, `auto_now_update` et `readonly` comptent.
-* Sans rupture, décrit dans le README : `max_length` dans les migrations (`VARCHAR(n)`, `BINARY(n)`, `VARBINARY(n)`), suivi par les snapshots et le diff, `belongs_to` vers la vraie clé primaire de la cible avec ses actions, index sur les clés étrangères et cycles (voir *Ajout — `makemigrations`*).
-
-### Rupture — `runique` (`runique migration down` / `status` supprimés)
-
-* Le rollback de Runique relisait le texte des fichiers `applied/` pour fabriquer du SQL brut : **il ne mettait jamais à jour `seaql_migrations`** (une migration annulée restait marquée appliquée, et un `migrate up` ne la rejouait pas), et le rollback par lot cherchait un chemin (`applied/by_time/<horodatage>.rs`) que `makemigrations` n'écrivait pas.
-* Les deux commandes sont supprimées, ainsi que le dossier `applied/` (copies des migrations et `by_time`), que `makemigrations` ne génère plus et qu'on peut effacer d'un projet existant. Annuler et lister passent par SeaORM, qui exécute le vrai `down()` et tient `seaql_migrations` à jour : `sea-orm-cli migrate down -n N` et `sea-orm-cli migrate status`. `runique migration up` reste.
-
-### Rupture — `runique` (`RUNIQUE_USER_TABLE` supprimé)
-
-* Reste de l'époque où l'on pouvait fournir sa propre table utilisateur : `eihwaz_users` est le seul modèle d'utilisateur. `makemigrations` exclut toujours les tables `eihwaz_*` de `src/entities/` et place toujours les migrations du framework en tête de `lib.rs` ; les clés étrangères des tables de l'admin visent `eihwaz_users`. Les noms de contraintes ne changent pas : aucune base existante n'est touchée.
-
-### Rupture — `runique` (`RATE_LIMITING`, `ALLOWED_HOSTS` et `RUNIQUE_ENABLE_CACHE` ne sont plus lus dans le `.env`)
-
-* `RUNIQUE_ENABLE_CACHE` était un reliquat des anciens modes dev/prod : le cache HTTP suit désormais `DEBUG` (en-têtes no-cache en debug, sur `localhost`), et `.middleware(|m| m.with_cache(bool))` le surcharge.
-* `RATE_LIMITING` et `ALLOWED_HOSTS` étaient lus dans `SecurityConfig.rate_limiting` / `.allowed_hosts`, que rien n'utilisait : `ALLOWED_HOSTS=monsite.fr` laissait la validation du Host désactivée, `RATE_LIMITING=false` ne désactivait rien. Les deux champs sont supprimés. La validation du Host se règle avec `.middleware(|m| m.with_allowed_hosts(|h| h.enabled(true).host("monsite.fr")))` ; les limites de débit avec `.rate_limit(...)` sur les routes, `with_rate_limiter(...)` sur l'admin, et le reset de mot de passe a la sienne.
-
-### Rupture — `runique` (`cleaned_enum` passe sur `FromStr`)
-
-* `cleaned_enum::<T>()` exigeait `ActiveEnum<Value = String>` et ne lisait donc que les enums texte. Il s'appuie maintenant sur `FromStr`, qui couvre aussi les enums entiers (`i8` à `i64`). Les enums générés par `model!{}` ont tous `FromStr` ; un `ActiveEnum` écrit à la main sans `FromStr` ne passe plus.
-
-### Ajout — `runique` (builder de test `runique_test` et commande `runique test`)
-
-* **Tester la logique métier contre une vraie base, dans une transaction toujours annulée.** Feature `test-utils`, à déclarer uniquement en `[dev-dependencies]`. Dans un `#[tokio::test]` qui renvoie `Result<(), TestFailure>`, `runique_test::<ADb>(ENV, async |db| { … }).await` ouvre une transaction, exécute le handler, l'annule quoi qu'il arrive, puis affiche la trace SQL : placeholders seulement pour les requêtes construites par SeaORM, jamais les valeurs ; numéros d'étape en couleur ; requêtes en échec marquées.
-* **Ne panique jamais.** Une erreur du handler, une panique ou un dépassement du délai maximal (`RUNIQUE_TEST_TIMEOUT` dans le fichier env, 30 s par défaut) sont rattrapés, la transaction est annulée, et le test renvoie `Err(TestFailure)` avec son message (`TestFailure.message`). Un `runique_test` appelé depuis un handler est refusé au lieu de bloquer indéfiniment.
-* **Ne ment pas sur son verdict.**
-  - Une requête qui échoue alors que le handler renvoie `Ok` fait échouer le test : une erreur a été avalée quelque part (`.ok()`, `unwrap_or_default()`…). `expect_db_error(db, async |sp| …)` exécute un refus voulu (contrainte unique, clé étrangère, `NOT NULL`) dans un savepoint et le marque comme attendu.
-  - Une transaction terminée depuis le test (`COMMIT` en SQL brut, ou DDL sous MariaDB/MySQL, qui valide implicitement) fait échouer le test. Sous Postgres et MariaDB, le `ROLLBACK` final réussissait sans rien annuler : le builder le vérifie lui-même (`txid_current()` sous Postgres, `@@in_transaction` sous MariaDB).
-  - `execute_unprepared`, que SeaORM ne signale pas, apparaît quand même dans la trace.
-* **Isolation.** Avant l'annulation, attente (3 s au plus) qu'un clone de la connexion gardé par une tâche lancée soit relâché ; tests sérialisés dans le processus.
-* **Configuration lue dans le fichier env seul**, sans repli sur le shell, où `DATABASE_URL` pourrait pointer n'importe où. Le fichier doit nommer sa base (`DATABASE_URL` ou `DB_ENGINE`) : sinon refus, plutôt qu'un fichier SQLite local créé en douce. La cible est réaffichée dès qu'elle change, avec le chemin du fichier et le mot de passe masqué ; une ligne mal formée n'est jamais recopiée (elle peut être `DATABASE_URL=…`).
-* **Trait `TestTransaction`** : `ADb` (SeaORM) en est l'implémentation fournie ; un autre moteur (MongoDB…) peut implémenter la sienne.
-* **Commande `runique test [fichier] [test]`** : vérifie l'installation (module `runique_test` derrière `cfg(test)`, fichiers déclarés, `test-utils` en dev-dependency — refus si elle atteint un build de release via `[dependencies]`, `[workspace.dependencies]` ou une entrée `[features]`), puis lance `cargo test` un test à la fois, noms raccourcis (`blog::created_article…`) en orange doux, résultats espacés.
-* Messages traduits dans les 9 langues. 20 tests dédiés (`tests/test_builder/`, SQLite et Postgres/MariaDB via Docker, lancés avec `--features test-utils,all-databases`) ; chaque mécanisme vérifié en le désactivant volontairement (11 mutations, toutes détectées).
-* En cours pour cette version : une base de test dédiée `test_{DB_NAME}`, sur le même moteur que la base de dev, remplacera le paramètre de fichier env.
-
-### Ajout — `runique` (alias de types publics)
-
-* `utils::aliases` expose les types utilisés dans tout le framework : `StrMap`, `StrVecMap`, `JsonMap`, `ATera`, `AEngine`, `APermissionsPolicy`, `ARuniqueConfig`, et leurs variantes `Option` (`OATera`, `OAEngine`…). Additif.
-
-### Ajout — `runique` (`Lang::from_env()`)
-
-* Langue déduite de `LANG`, puis `LC_ALL`, puis `LC_MESSAGES` ; utilisée par la CLI et par le builder de test (sans modifier la langue globale du processus, sur laquelle les autres tests peuvent compter).
-
-### Ajout — Formulaires (`ValidationForm<F>` — cycle de validation typestate)
-
-* **Nouvelle `ValidationForm<F>`** (`forms/validation_form.rs`) : `ValidationForm::try_new(form, request) -> Result<ValidationForm<F>, F>` — la seule façon d'en obtenir une est une validation réussie, donc une fonction qui prend `ValidationForm<F>` plutôt que `&mut F` prouve au niveau du type que son appelant a déjà validé, sans avoir à revérifier `is_valid()` ni à faire confiance à une convention. Remplace le boilerplate `if request.is_get() { ... } if request.is_post() && form.is_valid().await { ... }` répété dans chaque handler par un seul `match ValidationForm::try_new(form, &request).await { Ok(validated) => ..., Err(form) => ... }`. Additif — `RuniqueForm::is_valid()` reste inchangée et pleinement utilisable directement pour les handlers qui n'adoptent pas ce nouveau type.
-* **Trois nouveaux hooks `RuniqueForm`**, tous surchargeables par formulaire : `register_dynamic_fields(&mut self, request)` (champs dépendant de la requête, enregistrés avant que la validation ne tourne — ex. choix chargés depuis la base) ; `allow_get`/`allow_post(&self, request) -> bool` décident s'il faut tenter la validation pour les méthodes classe GET (GET/HEAD/OPTIONS/TRACE) et classe POST (POST/PUT/PATCH/DELETE/CONNECT) respectivement. Les deux retombent par défaut sur le nouveau `RuniqueForm::is_submitted()` — une fine enveloppe autour de `Forms::is_submitted()` (restée `pub(crate)` ; les formulaires externes passent par la méthode du trait) — sauf `allow_get`, surchargé à **`false`** sans condition : GET/HEAD sont les seules méthodes exemptées de CSRF, donc un formulaire qui auto-validerait sur GET par défaut laisserait ses effets de bord protégés par `is_valid()` (écriture en base, login, email) s'exécuter depuis un simple lien forgé, sans aucun token CSRF. Un formulaire de recherche/filtre en GET, en lecture seule, est le seul cas légitime qui doit auto-valider — il l'active explicitement (`fn allow_get(&self, _r: &Request) -> bool { self.is_submitted() }`), une ligne, plutôt que chaque formulaire qui modifie l'état doive penser à s'en désactiver.
-* `ValidationForm::database_error(&mut self, err)` et `.into_form()` laissent un handler soit continuer à travailler avec le wrapper (accès lecture seule via `Deref<Target = F>`, ex. pour enregistrer une erreur DB sans déballer), soit récupérer le `F` brut quand il a besoin de `&mut F`/`F` possédé pour sa propre logique de sauvegarde.
-* Tous les handlers utilisant l'ancien pattern `is_get()`/`is_post()` migrés — `demo-app` (`info_user`, `handle_inscription`, `handle_login`, `handle_contribution_submit`, `handle_blog_save`, `handle_upload_image`), les handlers intégrés du framework (`forgot_password`/`password_reset`, `auth/password.rs`), et le scaffold que `runique new` génère (`composant-bin/code/views.rs`, vérifié en scaffoldant un vrai projet test et en le compilant contre la source locale). `ForgotPasswordForm`/`PasswordResetForm` n'ont besoin d'aucune surcharge de `allow_get` — une action qui modifie l'état (émettre un token de reset, changer un mot de passe) ne se déclenche jamais sur une méthode "safe", ce que le défaut `false` de `allow_get` garantit déjà. Le `UsernameForm` de `demo-app` (recherche GET-only) est le seul formulaire qui active l'option, en surchargeant `allow_get` vers `Forms::is_submitted()`.
-
-### Ajout — `runique` (hash du mot de passe refait à la connexion)
-
-* Après un changement de l'algorithme configuré (bcrypt → Argon2, par exemple), les hashes enregistrés gardaient l'ancien indéfiniment. `authenticate_user` refait désormais un hash produit par un autre algorithme juste après une connexion réussie — le seul moment où le mot de passe en clair est disponible — comme le recommande l'OWASP et comme le fait Django. Une réécriture en échec ne fait pas échouer la connexion ; la suivante réessaie. `is_algorithm_current` ne répond « périmé » que lorsqu'il en est sûr : avec un hacheur personnalisé ou un préfixe inconnu, il répondait « périmé », ce qui aurait réécrit le mot de passe à chaque connexion.
-
-### Ajout — `runique` (`GuardRules` : un groupe inconnu est une erreur)
-
-* Un nom mal orthographié dans `roles([...])` refusait tout le monde sauf les superusers, sans rien dire. Quand une règle de rôles refuse, les noms sont désormais vérifiés dans `eihwaz_groupes` : un nom inconnu lève une erreur qui le nomme — sur la page de debug avec `debug=true`, une 500 générique (et une ligne de log) sinon. Les requêtes autorisées ne paient rien. Nouvelle clé i18n `forms.unknown_group` dans les 9 langues.
-
-### Ajout — `runique` (`RuniqueEngine::close_user_sessions`)
-
-* Ferme toutes les sessions d'un utilisateur, en base puis en mémoire. Utilisée par le reset de mot de passe ; disponible pour vos propres handlers (changement de mot de passe depuis un profil, compte compromis).
-
-### Ajout — DSL (champs liste `multichoice` / `checkbox`)
-
-* Un champ liste contient plusieurs valeurs d'un enum : `genres: checkbox [enum(Genre), required]` (cases à cocher) ou `multichoice [enum(Genre)]` (`<select multiple>`). Il n'a pas de colonne : `makemigrations` crée une table `{table}_{champ}` (`owner_id` en `ON DELETE CASCADE`, `value`, index unique `(owner_id, value)` et index `(value, owner_id)`). Les mesures sur Postgres ont guidé ce choix plutôt qu'un tableau : à lecture égale, la table annexe filtre 3 à 4 fois plus vite et marche sur les trois moteurs.
-* La macro génère `livre.genres(&db)`, `livre.set_genres(&db, valeurs)` (en transaction, sans doublon) et `Model::load_genres(&db, &livres)` (une page entière en une requête), plus `List::Genres` pour filtrer : `search!(livre::Entity => Genres has Genre::Roman)`, `has_any`, `has_all`, `!Genres has …`, ou `objects.filter(livre::List::Genres.has(…))`. Filtres portables et typés.
-* Avec la feature `postgres`, `List::Genres.fetch_with(&db, requête)` renvoie les lignes **avec** leur liste en un seul aller-retour (`string_agg`).
-* L'admin affiche le champ, enregistre la ligne et sa liste dans la même transaction et pré-remplit l'édition (régénérer `src/admins/` avec `runique start`) ; dans un formulaire, `cleaned_enums::<Genre>("genres")` lit les valeurs cochées. Chaque enum généré gagne `form_value()`.
-* Refusé à la compilation : liste sans enum, attribut de colonne (`nullable`, `unique`, `default`…), liste dans `extend!{}`, `meta` ou `belongs_to`, nom qui masquerait une méthode de SeaORM.
-
-### Ajout — DSL (enums `i8` / `i16`)
-
-* `Niveau: i8 [Bas = 1, Haut = 2]` et `Code: i16 [...]`, stockés en `TINYINT` / `SMALLINT`, avec la même vérification que `i32` / `i64` (une valeur par variante, dans les limites, sans doublon). Un enum `i8` est refusé sous Postgres, qui ne sait pas le relire.
-
-### Ajout — `makemigrations` (index des clés étrangères, cycles, longueurs)
-
-* **Index** : chaque colonne de `belongs_to` reçoit un index `idx_<table>_<colonne>`, comme Django, sauf si elle est déjà `unique` ou en tête d'un index de `meta`. Sur un projet existant, le prochain `makemigrations` propose un `CREATE INDEX` par clé étrangère : attendu et sans risque (MySQL supprime alors son index implicite).
-* **Cycles** : deux nouvelles tables qui se référencent l'une l'autre ne font plus échouer la migration. Sous SQLite la clé reste dans le `CREATE TABLE` ; sous Postgres et MySQL, celle qui ferme le cycle est ajoutée par un `ALTER TABLE` après la création de sa cible. Le choix se fait à l'exécution : le même fichier marche sur les trois moteurs.
-* **Longueurs** : `max_length` donne la taille de la colonne et passe par les snapshots ; agrandir = `ALTER`, réduire = `--force`. Un snapshot antérieur reprend une fois les longueurs du modèle, puis est réécrit (« N snapshot(s) mis à jour pour enregistrer les longueurs de colonnes »), sans migration.
-
-### Correctif — `makemigrations` (types binaires, ordre des tables)
-
-* `blob` était créé comme `BINARY`, `binary` sans longueur comme `BINARY(1)` (toute valeur de plus d'un octet refusée sous MariaDB), et `var_binary` produisait un `.var_binary()` sans longueur, qui ne compilait pas. Chacun a maintenant sa colonne et sa longueur (255 par défaut).
-* L'ordre des tables indépendantes, et des tables en cycle, sortait d'une `HashMap` : il changeait d'un lancement à l'autre. Il est maintenant déterministe.
-
-### Correctif — `runique` (i18n : `\n` littéral dans deux messages de la CLI)
-
-* `cli.file_not_found` et `cli.admin_not_found` contenaient un antislash échappé (`\\n` dans le JSON) au lieu d'un saut de ligne, dans 8 langues sur 9 : `runique start` affichait `\n` en toutes lettres. Nouveau test `tests/utils/test_i18n_key_parity.rs` : chaque langue a exactement les clés de `en.json`, avec le même nombre de `{}`, et aucune traduction ne contient de `\n` littéral.
-
-### Correctif — `derive_form` (`model!{}` : types qui ne compilaient pas ou ne se relisaient pas)
-
-* **`timestamp_tz` ne compilait pas.** L'entité déclarait le champ en `NaiveDateTime` alors que la conversion depuis le formulaire produisait un `DateTime<Utc>`. Le champ est maintenant un `chrono::DateTime<chrono::Utc>` partout. La conversion (nouvelle fonction publique `forms::parse_utc_datetime`) accepte une valeur RFC 3339 avec son décalage, et le `AAAA-MM-JJTHH:MM[:SS]` d'un champ `datetime-local` comme de l'UTC : elle n'acceptait que le RFC 3339, donc toute valeur envoyée par le navigateur était perdue.
-* **`DateTimeField` affichait un champ vide à l'édition d'un `timestamp_tz` (ou d'un `timestamp` avec fraction de seconde)** : la valeur du modèle arrivait sous la forme `2026-09-30T14:30:00Z` ou `…:15.123456`, deux formes que `datetime-local` n'affiche pas. `render` la réécrit maintenant en `AAAA-MM-JJTHH:MM`, en UTC, et garde les secondes quand il y en a (avec `step="1"`, sans quoi le navigateur les refuse à l'envoi). La validation lit les mêmes formes : `min`/`max` comparent un `timestamp_tz` en UTC.
-* **`makemigrations` écrivait `.timestamp_tz()` dans les fichiers de migration**, une méthode qui n'existe pas dans sea-query : c'est `.timestamp_with_time_zone()`. La relecture des anciens fichiers accepte toujours les deux.
-* **`i8` et `i16` produisaient un champ `i32`**, que Postgres refuse de lire depuis une colonne `SMALLINT`. Le champ a maintenant le type déclaré.
-* **Les types que le moteur ne sait pas relire sont refusés à la compilation**, avec un message sur le champ : `i8`, `u32` et `u64` sous `postgres` (pas d'entiers non signés ni sur un octet ; sqlx envoie un `i8` comme le type `"char"`), `u64` sous `sqlite` (non géré par sqlx). Ils compilaient avant, puis échouaient à la première requête. Sous `all-databases`, rien n'est refusé.
-* Nouveau test `tests/migration/test_dsl_types_roundtrip.rs` : chaque type du DSL est écrit puis relu sur SQLite, Postgres et MariaDB, dans une colonne construite comme dans une migration générée.
-
-### Correctif — Middleware (les échecs CSRF étaient totalement silencieux)
-
-* **Un token CSRF manquant ou invalide ne produisait aucun message nulle part** — ni erreur de champ, ni flash, rien. `Request::form()` pose `Forms.force_invalid = true` sur échec CSRF, ce qui fait retourner `Ok(false)` à `Forms::is_valid()` *avant* que la validation par champ ne tourne — donc la propre branche CSRF dédiée de `HiddenField::validate()` (messages `csrf.missing`/`csrf.invalid`, comparaison en temps constant) ne se déclenchait jamais. Elle ne pouvait d'ailleurs jamais se déclencher : cette branche ne s'active qu'une fois `set_expected_value()` appelé sur le champ, et le seul appelant de `set_expected_value()` dans tout le code était un test unitaire — zéro appel en production. `Request::form()` pousse maintenant le message existant `csrf.invalid_or_missing` (déjà utilisé par le check CSRF admin) dans les erreurs globales du formulaire au moment de poser `force_invalid`, donc une soumission ratée — y compris le cas courant d'une session anonyme dont la courte fenêtre d'inactivité (`with_anonymous_session_duration`, 5 min par défaut) expire pendant qu'un visiteur remplit un formulaire public — affiche désormais un message explicite et traduit au lieu de ressembler silencieusement à un formulaire jamais touché.
-* **`js/csrf.js` rafraîchit maintenant le token juste avant une soumission de formulaire native** plutôt que de laisser un token périmé échouer : un listener `submit` fait un `fetch()` léger vers la page courante juste avant de soumettre (réutilise la rotation de token déjà présente dans le script via le header de réponse), met à jour tous les champs `csrf_token` de la page, puis soumet — fonctionne même si la session a totalement expiré, puisque la requête de pré-vol se voit simplement attribuer un token frais par le serveur. Ne perd jamais la saisie de l'utilisateur, contrairement à un rechargement complet de page. Auparavant chargé uniquement par le template du panel admin ; désormais documenté comme quelque chose que chaque application devrait inclure dans son propre layout de base (voir [doc CSRF](docs/fr/middleware/csrf/csrf.md)).
-* **Un chemin exempté via `.csrf_exempt()` cassait entièrement `Request`/`RuniqueContext` (500 `csrf missing`)** pour tout handler qui les utilisait pour autre chose que le CSRF — accès à la session, contexte de template, etc. `csrf_middleware` sortait tôt pour un chemin exempté *avant* de générer/injecter l'extension `CsrfToken`, donc l'extension n'était tout simplement jamais là pour `Request` (qui l'attend sans condition), peu importe ce que faisait réellement le handler exempté. `.csrf_exempt()` n'est censé sauter que la *vérification*, pas retirer une fonctionnalité sans rapport — le token est désormais toujours généré et injecté, exempté ou non ; seule l'étape de vérification elle-même est sautée sur les chemins exemptés. Unifié au passage le contrôle de méthode propre à `csrf_middleware` avec la politique partagée `csrf_required()` (`forms/extractor.rs`) — il utilisait auparavant sa propre liste plus étroite `POST|PUT|DELETE|PATCH`, excluant silencieusement OPTIONS/TRACE du défaut fail-closed déjà utilisé partout ailleurs (sans conséquence en pratique : le préflight CORS OPTIONS n'atteint jamais ce middleware — voir le commentaire de `SLOT_CORS` — mais une troisième copie indépendante de la même politique de sécurité quand même), et factorisé au passage la vérification de chemin exempté elle-même dans une nouvelle `is_csrf_exempt()` à côté de `csrf_required()`, pour la même raison.
-
-### Correctif — `derive_form` (parser `model!{}` : entrées malformées/dangereuses acceptées silencieusement)
-
-* **Les noms de table n'étaient jamais validés.** `table: "..."` acceptait n'importe quelle chaîne, ensuite interpolée sans échappement dans le code Rust généré (fichiers de migration, `Alias::new("...")`) via de simples appels `format!` dans le générateur de migration — un `"` égaré dans un nom de table copié-collé pouvait corrompre, voire dans le pire cas injecter dans le fichier de migration généré, au lieu d'échouer au moment du parsing de la macro, là où l'erreur est faite. `table:` est désormais validé contre un identifiant SQL simple (`^[A-Za-z_][A-Za-z0-9_]*$`, ≤63 caractères) dès son analyse, avec un `syn::Error` pointant sur le littéral.
-* **Les doublons de noms de champs et d'enums n'étaient pas détectés au parsing.** `{ name: text, name: text }` ou deux entrées `enums: { Status: [...], Status: [...] }` s'analysaient sans erreur et échouaient seulement plus tard, avec un message Rust cryptique sur le code généré ("field `name` is already declared"). Les deux boucles suivent désormais les noms déjà vus et rejettent immédiatement un doublon, avec un `syn::Error` sur l'identifiant fautif.
-* **Une faute de frappe dans les mots-clés `table:`/`pk:` faisait planter le proc-macro** au lieu de renvoyer une erreur propre — `assert_eq!(table_kw.to_string(), "table")` (et l'équivalent pour `pk`) plantait avec un message d'assertion brut, sans span utile. Remplacé par une vérification explicite renvoyant un `syn::Error`.
-* **`max_length: 0` était accepté silencieusement**, produisant une colonne de forme `VARCHAR(0)` sans capacité utile. Désormais rejeté au parsing.
-* **`default:` acceptait un littéral de n'importe quel type, sans lien avec le type du champ** — `age: int [default: "abc"]` s'analysait et se validait sans erreur, pour seulement se manifester bien plus tard par une incohérence de type SeaORM/SQL confuse. Le littéral est maintenant vérifié contre le type du champ (littéral booléen pour `bool`, entier pour les types entiers, entier-ou-flottant pour float/decimal/percent, chaîne sinon) juste après le parsing.
-
-### Correctif — `derive_form` (parser `model!{}` : la matrice de validation avait des trous incohérents entre types sémantiquement équivalents)
-
-* `min_length` était accepté sur `text`/`textarea`/`phone`/`char` mais rejeté sur `email`/`password`/`richtext`/`url`/`binary`/`var_binary` — alors que `max_length` était déjà accepté sur tous ces types. Étendu pour correspondre à la liste de `max_length`.
-* `step` était accepté sur `float`/`decimal` mais rejeté sur `percent`, alors que `percent` mappe sur le même `f64` sous-jacent que `float`. Étendu à `percent`.
-* `auto_now`/`auto_now_update` n'étaient acceptés que sur `datetime`, rejetés sur `timestamp`/`timestamp_tz` — deux autres types temporels avec exactement le même besoin de "valeur automatique à l'insertion/mise à jour". Étendu aux trois.
-* `fk` n'était accepté que sur `int`/`bigint`/`uuid`, rejetant une clé étrangère vers une clé primaire typée `i8`/`i16`/`u32`/`u64`. Étendu à tous les types entiers plus `uuid`.
-
-### Correctif — `derive_form` (parser `model!{}` : deuxième passe d'audit — l'alias `has_many`/`has_one` était cassé silencieusement)
-
-* **`has_many: comments as user_comments` (et l'équivalent `has_one`) n'a jamais fonctionné.** `as` est un mot-clé Rust strict, et le code le sondait avec `input.peek(Ident)` — qui, structurellement, ne matche jamais un token mot-clé dans `syn`. La branche d'alias était du code mort : `as_name` restait `None` dans tous les cas, les tokens `as ...` restaient non consommés dans le flux, et l'itération *suivante* de la boucle échouait en tentant de parser `as` comme le `kind: Ident` d'une nouvelle relation, remontant une erreur trompeuse ("expected identifier, found keyword `as`") loin de la vraie erreur. Corrigé en sondant/consommant `Token![as]` au lieu d'un simple `Ident` — le bon idiome `syn` pour un mot-clé réservé, déjà utilisé ailleurs dans ce même fichier pour `Token![enum]`.
-* **Un enum sans aucune variante était accepté** (`enums: { Status: [] }`), générant un enum Rust non instanciable sans aucun indice à la compilation sur la raison. Désormais rejeté au parsing.
-* **Les doublons de variantes au sein d'un même enum n'étaient pas détectés** (`Status: [Active, Active]`), contrairement aux contrôles de doublons déjà existants pour les champs/enums de premier niveau. Désormais suivis et rejetés de la même façon.
-* **Un champ redéclarant le nom de la clé primaire** (`pk: id => Pk, { id: text, ... }`) n'était pas intercepté par le contrôle de doublons de champs ajouté plus haut, car le nom du PK n'était jamais intégré à l'ensemble de suivi. Corrigé.
-* **Les relations dupliquées n'étaient pas détectées** (ex : deux `has_many: comments,` identiques). Désormais rejetées, sur une clé (type, modèle cible, alias/via/through) — des relations légitimement distinctes vers le même modèle (colonne FK différente, alias différent) continuent donc de s'analyser normalement.
-* **`meta: { ordering:, unique_together:, indexes: }` ne vérifiait jamais que les noms de champs référencés existaient réellement.** Une faute de frappe ou une colonne renommée sans mise à jour s'analysait sans erreur et ne cassait que plus tard, dans du code généré loin de la vraie erreur. Chaque identifiant de ces trois listes est désormais vérifié contre les champs déclarés du modèle (PK inclus) juste après le parsing.
-
-### Correctif — `derive_form` (`many_to_many` : mauvais variant `Relation` SeaORM deviné côté retour de la table intermédiaire)
-
-* **Le `Related::via()` généré pour une relation `many_to_many` devinait le nom du variant `belongs_to` auto-référent de la table intermédiaire à partir de la chaîne de colonne `via`** (en retirant `_id`, puis en passant en PascalCase) au lieu d'utiliser le vrai nom du modèle déclarant. `belongs_to` nomme toujours son variant d'après le modèle *cible*, peu importe le nom de la colonne FK — la déduction n'était donc correcte que par coïncidence, quand la colonne s'appelait justement `{nom_du_modèle_snake_case}_id`. Tout autre nommage produisait une erreur de compilation `E0599: no variant found` sur l'entité générée. Trouvé en ajoutant une vraie entité de test pour une table intermédiaire `many_to_many` (jusque-là jamais exercée nulle part dans le code). Corrigé en faisant passer le vrai nom du modèle déclarant au lieu de le déduire de la colonne. Le token `via <colonne>` reste obligatoire dans la grammaire pour la lisibilité au site d'appel, mais sa valeur n'est plus stockée sur `RelationDef::ManyToMany` (analysée puis jetée) — aucun changement de code généré pour les modèles qui suivaient déjà la convention de nommage par coïncidence.
-
-### Correctif — `runique` (`makemigrations` : le type des colonnes d'un index composite était silencieusement corrompu dans les snapshots)
-
-* **Une colonne référencée par un index composite `unique_together`/`indexes:` était détectée à tort comme étant de type `String` à chaque exécution de `makemigrations` suivant sa création**, peu importe son vrai type — la signalant comme un changement de type destructif pour toujours, même sans aucune modification réelle de l'entité. Cause racine : le parseur de snapshot (`parser_seaorm.rs::SeaOrmVisitor::try_extract`) traitait n'importe quel appel `.col(...)` trouvé n'importe où dans le corps `up()` d'une migration comme une définition de colonne — y compris les appels `Index::create()...col(Alias::new(nom))`, utilisés pour référencer une colonne existante par son nom au sein d'un index composite, qui ne portent aucune information de type. Comme le code de création d'index s'exécute après le code de création de table dans le fichier généré, cette entrée bidon sans type (retombant par défaut sur `String`) écrasait silencieusement la vraie lors de la construction de la table de colonnes utilisée pour le diff. Corrigé avec un garde exigeant que la racine du chain d'un argument `.col(...)` soit `ColumnDef::new(...)` avant d'être traité comme une définition de colonne — une référence issue d'`Index::create()` ne qualifie plus.
-
-### Correctif — `runique` (admin : la détection de contrainte unique ne compilait pas sans backend DB actif)
-
-* `admin/builtin/mod.rs::is_unique_violation` utilisait `sea_orm::sqlx` (le check structuré du SQLSTATE Postgres 23505) sans garde de feature — ce module n'existe qu'une fois `sqlx-dep` de sea-orm actif, ce qui arrive dès que `postgres`/`mysql`/`sqlite` est activé, mais pas pour `orm` seul. `orm` seul étant désormais une config valide (voir *Rupture — features base de données* — suffisant pour `makemigrations`, aucun driver réel requis), ça cassait tout le crate dans ce cas. Corrigé en gardant le check structuré derrière `any(feature = "postgres", feature = "mysql", feature = "sqlite")` ; le repli textuel juste en dessous couvrait déjà les moteurs non-Postgres (le SQLSTATE 23505 est spécifique à Postgres — MySQL/SQLite n'ont jamais eu ce code et s'appuyaient déjà sur le repli avant cette garde, leur comportement est donc inchangé.
-
-### Correctif — `runique` (fichiers média : cache HTTP incorrect sur les uploads remplacés)
-
-* **Le `Cache-Control` des fichiers médias utilisait `immutable` avec un an de `max-age`**, alors qu'un fichier remplacé (même `upload_to`, même nom) garde le même chemin/URL — le nom n'est jamais réécrit avec un hash de contenu. Résultat : après remplacement d'une image par exemple, le navigateur pouvait continuer à servir l'ancienne version depuis son cache pendant un an, sans jamais revalider. `DEFAULT_MEDIA_CACHE` passe à `"public, max-age=3600, must-revalidate"` (`static_cache` reste inchangé — les assets statiques du build ne sont pas concernés). `StaticStaging::media_cache()`/`static_cache()` acceptent désormais `impl Into<Cow<'static, str>>` (au lieu de `&'static str` uniquement) pour une valeur construite dynamiquement, validée comme en-tête HTTP correct dès `validate()` (échec de build explicite plutôt qu'un panic runtime si la valeur est malformée).
-
-### Correctif — `runique` (`FileField` : I/O disque bloquante pendant l'upload)
-
-* **La validation et la finalisation d'un `FileField` faisaient de l'I/O disque synchrone** (métadonnées, lecture des magic bytes, décodage des dimensions d'image, déplacement du fichier) directement dans le thread worker tokio traitant la requête — sous charge, un upload pouvait geler d'autres requêtes servies par le même worker le temps de l'opération disque. Mitigé initialement via `tokio::task::block_in_place` ; remplacé ensuite (voir *Rupture — trait `FormField`*) par de la vraie I/O `tokio::fs` une fois `validate`/`finalize` passés en `async fn` — `block_in_place` n'apparaît plus nulle part dans `file.rs`.
-* **Déplacer un fichier stagé vers `MEDIA_ROOT` échouait sans repli si les deux répertoires étaient sur des systèmes de fichiers différents** (`ErrorKind::CrossesDevices` — topologie fréquente en production, ex. répertoire de staging temporaire sur `tmpfs`). Un repli copie+suppression est toujours tenté automatiquement dans ce cas (désormais via `tokio::fs::rename`/`copy`).
-
-### Correctif — `runique` (`order_by_random()` sous MariaDB/MySQL)
-
-* Il émettait un `RANDOM()` en dur, refusé par MariaDB/MySQL (`RAND()`). Il utilise désormais `Func::random()` de sea-query, rendu selon le moteur. La signature ne change pas par rapport à la 2.2 : aucun paramètre.
-
-### Correctif — `runique` (admin sous MariaDB : libellés de clés étrangères vides, liens many-to-many)
-
-* **Les libellés et la recherche sur clés étrangères étaient vides sous MariaDB, sans erreur** : `CAST(id AS TEXT)` y est refusé (il faut `CHAR`) et l'erreur était avalée. Désormais `Expr::col(id).cast_as(...)` avec le type choisi selon le moteur (`text_cast_type_of`). Confirmé en remettant l'ancien code.
-* **Les écritures many-to-many générées** passaient par du SQL brut (`ON CONFLICT DO NOTHING`, invalide sous MariaDB), ignoraient leurs erreurs et tournaient hors de toute transaction. Elles passent désormais par `admin::helper::m2m::write_links` (sea-query, valeurs typées, même transaction que la ligne, erreurs remontées). Régénérer `src/admins/`.
-* Tests : `tests/admin/test_native_sql.rs`, sous SQLite, Postgres et MariaDB.
-
-### Correctif — `runique` (admin : modifier les groupes d'un utilisateur était ignoré)
-
-* La ressource intégrée des utilisateurs perdait les changements de groupes à l'édition. Ils sont désormais remplacés dans la même transaction que le compte.
-
-### Correctif — `runique_dsl` (`[max_size: 500KB]` lu comme 500 Mo)
-
-* Une unité collée au nombre était lue comme un suffixe de littéral : `500KB` devenait 500 Mo et `5GB` 5 Mo. `parse_size` lit désormais l'unité, avec contrôle de débordement. Trouvé par `cargo mutants` ; le parseur est aussi couvert par des propriétés `proptest` (jamais de panic sur une entrée quelconque).
-
-### Correctif — `runique` (reset de mot de passe : erreurs de génération du jeton silencieuses)
-
-* Une génération de jeton de reset en échec n'envoyait aucun email et ne laissait aucune trace, sur la page « mot de passe oublié » et sur les deux chemins de l'admin (création de compte, « envoyer un lien de reset »). Elle est désormais toujours tracée (`ERROR`) ; la page répond toujours la même chose.
-
-### Correctif — `runique` (admin : pagination fausse avec un filtre latéral)
-
-* La liste était filtrée, mais pas son compteur : avec un filtre actif, le total et le nombre de pages étaient ceux de toute la table, et les dernières pages s'affichaient vides. Le compteur reçoit désormais les filtres de colonne, et celui qui est généré les applique comme la liste. Test : `tests/admin/test_list_count_filters.rs` (échoue sans le correctif).
-
-### Correctif — `runique` (vérifications au démarrage : messages toujours en anglais)
-
-* L'en-tête du rapport de démarrage était traduit, mais aucune de ses vérifications : base de données, préfixe admin, routes supplémentaires, Cache-Control, `MEDIA_ROOT`, `SECRET_KEY`, URL publique, ACME — messages et suggestions passent désormais par l'i18n (`build.check.*`, 9 langues), ainsi que les étiquettes « Suggestion » et « Contexte ». Les textes anglais ne changent pas. Test : le rapport en français.
-
-### Documentation — `makemigrations` (`--force` et changements de type de colonne)
-
-* Documenté (`docs/fr` et `docs/en`, `architecture/makemigrations/makemigrations.md`) que `--force` ne génère jamais de vrai `ALTER` pour un changement de type de colonne — il ne fait que débloquer l'exécution de la commande ; le fichier généré ne porte toujours qu'un commentaire `// Manual migration required.`, contrairement aux quatre autres catégories destructives (`DROP COLUMN`, `nullable → not null`, suppression de FK, ajout de `ON DELETE CASCADE`), qui émettent bien du vrai SQL une fois forcées. Volontaire : il n'existe pas de règle de cast fiable inter-moteurs pour un changement de type générique (Postgres exige un `USING` explicite, MariaDB caste silencieusement les valeurs invalides sans erreur, SQLite ne supporte pas du tout `ALTER COLUMN TYPE`).
+> Trois nouveautés structurantes : `ValidationForm<F>` (une validation prouvée par le type), `ADb` (un seul type de connexion à la base, identique en production et en test) et le builder de test `runique_test` avec sa commande `runique test`. Le DSL des modèles est désormais lu par une seule crate, `runique_dsl`, partagée par la macro et la CLI. L'authentification et l'admin ont fait l'objet d'une revue de sécurité complète, et une passe `cargo mutants` a supprimé les API mortes ou en double.
+>
+> **Pour passer de la 2.x : suivez le [guide de migration](MIGRATION-3.0.fr.md)**, qui reprend chaque rupture ci-dessous avec le code avant et après.
+
+### Sécurité
+
+* **CSRF** : le token d'une session anonyme survivait à la connexion ; il est maintenant renouvelé à chaque changement de privilège (`rotate_csrf_token`).
+* **Déconnexion** : la session était réenregistrée sous le même identifiant ; `logout()` la vide et change son identifiant.
+* **Drapeaux du `.env`** : `ENFORCE_HTTPS=True` (ou `TRUE`, `1`, `yes`) n'imposait pas HTTPS ; les drapeaux sont lus quelle que soit la casse, et une valeur illisible est signalée.
+* **`ENFORCE_HTTPS`** : la redirection HTTPS n'était jamais montée ; elle l'est, derrière un proxy qui envoie `X-Forwarded-Proto`.
+* **`DatabaseConfig`** : le mot de passe de la base était affiché par `Debug` et `Serialize`.
+* **Vérification du mot de passe** : un hash stocké mal formé répondait plus vite qu'un mauvais mot de passe ; les deux coûtent maintenant pareil.
+* **CSP** : un second en-tête sans nonce écrasait celui qui le portait dès que `.with_csp()` était utilisé.
+* **`FileField`** : une simple valeur texte pouvait faire supprimer ou déplacer n'importe quel fichier du serveur ; seuls les fichiers réellement téléversés sont acceptés.
+* **Admin** : la création, la modification et les actions groupées écrivaient toutes les clés du corps brut de la requête ; toute écriture de l'admin passe maintenant par une porte unique (qui, quelles lignes, quels champs).
+* **`extra_routes` de l'admin** : accessibles à tout membre du staff ; elles vérifient maintenant le droit de l'opération qu'elles déclarent.
+* **Comptes** : désactiver un compte ou retirer un droit n'affectait pas les sessions ouvertes ; compte et droits sont relus en base à chaque requête.
+* **Réinitialisation du mot de passe** : elle réactivait un compte désactivé par l'équipe (empêché désormais par une contrainte `CHECK`) et laissait ouvertes les autres sessions du compte (toutes fermées désormais).
+* **Liens de réinitialisation** : construits sur l'en-tête `Host` de la requête, un attaquant pouvait faire envoyer le token d'une victime vers son propre site ; ils utilisent maintenant `.with_public_url()`, obligatoire en production.
+* **`upload_to_env()`** : mettait le chemin absolu du serveur dans les URL publiques des fichiers.
+* **Page d'erreur de debug** : les clés d'API, secrets et signatures des en-têtes étaient affichés en clair.
+* **Listes intégrées de l'admin** (utilisateurs, groupes, droits) : le tri et le filtrage acceptaient n'importe quelle colonne, hashes des mots de passe compris.
+* **Open redirect** : tout hôte commençant par `127.` (comme `127.evil.com`) était considéré comme local ; l'adresse est maintenant analysée.
+* **Validation d'hôte** : un en-tête `Host` avec un `[` non fermé faisait paniquer la requête.
+* **`sanitize_strict`** : certains caractères Unicode le faisaient paniquer, et `javajavascript:script:` redonnait `javascript:` après un passage.
+* **`link()` dans les templates** : les paramètres de chemin n'étaient pas encodés, une valeur contenant `/` ou `?` changeait la route atteinte.
+* **Création d'un utilisateur dans l'admin** : un échec du hachage créait le compte avec un hash vide ; la création échoue maintenant.
+
+### Rupture
+
+* **Features Cargo** : `default` n'active plus tous les moteurs, et `postgres` / `mysql` / `sqlite` s'excluent mutuellement.
+* **Dépendances** : `argon2` 0.6 et `scrypt` 0.12.
+* **`ADb`** remplace `&DatabaseConnection` dans toutes les signatures publiques.
+* **`login()`** prend l'utilisateur au lieu de ses champs, et ne prend plus la base.
+* **`logout()`** vide toute la session, messages flash compris.
+* **Un seul modèle utilisateur, `eihwaz_users`** : `UserEntity`, `AdminAuth`, `RuniqueAdminAuth`, `.auth()` et le paramètre de type de `with_password_reset` sont supprimés.
+* **`eihwaz_users`** reçoit une colonne `activated_at` et une contrainte `CHECK` (SQL de mise à jour dans le guide de migration).
+* **Cache des permissions supprimé** : les droits sont lus en base ; `req.load_user_rights()` les charge hors de l'admin.
+* **`GuardRules`** : les rôles sont des noms de groupes (`roles([...])`, `staff()`, `superuser()`) ; `GuardContext` et les méthodes `*_role` sont supprimés.
+* **`with_public_url()`** remplace `PasswordResetConfig::base_url()` et `AdminConfig::reset_password_url()`.
+* **Builder** : les réglages uniques (`routes`, `with_public_url`, `with_database`…) ne compilent plus s'ils sont appelés deux fois.
+* **`.env`** : `RATE_LIMITING`, `ALLOWED_HOSTS`, `RUNIQUE_ENABLE_CACHE` et `RUNIQUE_USER_TABLE` ne sont plus lus ; `DEBUG` est lu quelle que soit la casse ; `RuniqueEnv` est supprimé.
+* **`Request::is_get` / `is_post` / `is_put` / `is_delete`** sont supprimées.
+* **`request.query::<T>()`** renvoie `AppResult<T>` : une query string qui ne correspond pas donne une 400.
+* **`FormField`** : `validate` et `finalize` sont des `async fn`.
+* **`cleaned_enum`** s'appuie sur `FromStr`.
+* **`Prisme::for_test` et `Forms::mark_validated`** demandent la feature `test-utils`.
+* **Messages flash** : classes CSS en minuscules (`message-success`).
+* **Admin** : `extra_routes` nomme son `CrudOperation` ; `ResourcePermissions` et le registre des rôles sont supprimés ; `CountFn` reçoit les filtres de colonnes.
+* **DSL des modèles** (`runique_dsl`) : colonnes NOT NULL par défaut (`nullable`), `fk()` remplacé par `belongs_to`, `auto_now` rempli par l'entité, lecture stricte par la CLI, `checkbox [enum]` devient une liste.
+* **`runique migration down` / `status`** sont supprimées (utilisez `sea-orm-cli`), ainsi que le dossier `applied/`.
+* **API mortes ou en double supprimées** : `no_statics`, `with_error_handler`, `SessionConfig`, `PasswordConfig::oauth`, `StaticStaging::enable` / `disable`, `attach_middlewares`, `render_with` et les autres listées dans le guide de migration.
+
+### Ajout
+
+* Builder de test **`runique_test`** et commande **`runique test`** : la logique métier testée contre une vraie base, dans une transaction toujours annulée, avec la trace SQL et la détection des erreurs avalées.
+* **`ValidationForm<F>`** : un formulaire qu'on ne peut obtenir qu'en le validant.
+* **DSL des modèles** : champs liste `multichoice` / `checkbox`, enums `i8` / `i16`.
+* **`makemigrations`** : index sur les clés étrangères, tables qui se référencent mutuellement, longueurs de colonnes (`max_length`).
+* **Re-hachage du mot de passe à la connexion** après un changement d'algorithme.
+* **`RuniqueEngine::close_user_sessions`**, **`request.public_url()`**, **`Lang::from_env()`**, alias de types publics (`utils::aliases`).
+* **`GuardRules`** : un nom de groupe inconnu est une erreur au lieu d'un refus silencieux.
+* **`400.html`** : la page d'une requête mal formée, surchargeable comme `404.html`.
+* **`runique create-superuser`** : le mot de passe demande 12 caractères, avec une minuscule, une majuscule, un chiffre et un caractère spécial.
+
+### Correctif
+
+* **`makemigrations`** : types binaires, ordre des tables qui changeait d'une exécution à l'autre, colonnes d'index composite lues comme `String` dans les snapshots.
+* **`derive_form`** : `timestamp_tz` ne compilait pas, `i8` / `i16` produisaient un `i32`, les types que le moteur ne sait pas relire sont refusés à la compilation, le parseur acceptait des entrées mal formées (noms de table, doublons, alias `has_many … as`), et des attributs étaient refusés sur certains types mais acceptés sur des types équivalents (`min_length`, `step`, `auto_now`).
+* **`many_to_many`** : mauvaise variante `Relation` SeaORM générée côté table de liaison.
+* **`[max_size: 500KB]`** était lu comme 500 Mo.
+* **Admin** : la pagination ignorait les filtres de la barre latérale, la modification des groupes d'un utilisateur était ignorée, les libellés de clés étrangères et les écritures many-to-many échouaient sous MariaDB.
+* **`order_by_random()`** échouait sous MariaDB / MySQL.
+* **CSRF** : un échec n'affichait aucun message, `.csrf_exempt()` cassait `Request` sur le chemin exempté, et `csrf.js` rafraîchit maintenant le token juste avant l'envoi d'un formulaire.
+* **Fichiers média** : un fichier remplacé restait en cache un an.
+* **`FileField`** : entrées/sorties disque bloquantes pendant le téléversement, et aucun repli quand le dossier média est sur un autre système de fichiers.
+* **Réinitialisation du mot de passe** : les erreurs de génération du token n'étaient pas tracées.
+* **Contrôles au démarrage** et deux messages de la CLI n'étaient pas traduits.
+* **Compilation avec `orm` seul** (sans pilote de base) : elle échouait.
+* **`503.html`** n'était jamais enregistré : la page de repli s'affichait toujours.
+* **Messages `compile_error!`** (features de base de données) passés en anglais.
 
 ### Dépendances
 
-* `sea-orm` `=2.0.0` → `=2.0.2`, `sea-orm-migration` `=2.0.0` → `=2.0.2` (bumpé aussi dans `demo-app` et, depuis le `2.0.0-rc.32` sur lequel il était épinglé, dans `demo-app/migration`) — versions correctives, aucune API utilisée par Runique n'a changé.
-* `argon2` `0.5` → `0.6`, `scrypt` `0.11.0` → `0.12.0` — voir *Rupture — dépendances* ; `scrypt` désormais déclaré en `{ version = "0.12.0", features = ["phc", "getrandom"] }` plutôt qu'en simple chaîne de version.
-* `tower-http` `0.7.0` → `0.7.1`, `time` `=0.3.54` → `=0.3.55`, `tera-contrib` `0.2` → `0.3.0`, `indexmap` `2.14.0` → `2.14.2`, `fancy-regex` `0.18.0` → `0.19.0`, `validator` `0.20` → `0.21.0`, `rust_decimal` non épinglé `1` → `1.43.0`, `syn` `3.0.3` → `3.0.5` — bumps mineurs/correctifs de routine, aucun changement de code nécessaire.
+* `sea-orm` / `sea-orm-migration` `=2.0.4`, `argon2` 0.6, `scrypt` 0.12, et mises à jour courantes (`tower-http`, `time`, `tera-contrib`, `indexmap`, `fancy-regex`, `validator`, `rust_decimal`, `syn`).
 
 ---
 

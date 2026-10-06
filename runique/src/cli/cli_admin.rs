@@ -144,8 +144,8 @@ fn step_password() -> Option<String> {
             .interact()
             .ok()?;
 
-        if pass1.len() < 10 {
-            println!("{}", t("admin.superuser_wizard.password_too_short"));
+        if let Some(key) = superuser_password_weakness(&pass1) {
+            println!("{}", t(key));
             continue;
         }
 
@@ -160,6 +160,28 @@ fn step_password() -> Option<String> {
         }
 
         return Some(pass1);
+    }
+}
+
+const SUPERUSER_PASSWORD_MIN_CHARS: usize = 12;
+
+/// The translation key of what the superuser's password lacks, `None` when it
+/// is strong enough. Length is counted in characters, not bytes: `len()` let
+/// four 3-byte characters pass a 12 minimum.
+fn superuser_password_weakness(password: &str) -> Option<&'static str> {
+    if password.chars().count() < SUPERUSER_PASSWORD_MIN_CHARS {
+        return Some("admin.superuser_wizard.password_too_short");
+    }
+    let has_lower = password.chars().any(char::is_lowercase);
+    let has_upper = password.chars().any(char::is_uppercase);
+    let has_digit = password.chars().any(|c| c.is_ascii_digit());
+    let has_special = password
+        .chars()
+        .any(|c| !c.is_alphanumeric() && !c.is_whitespace());
+    if has_lower && has_upper && has_digit && has_special {
+        None
+    } else {
+        Some("admin.superuser_wizard.password_weak")
     }
 }
 
@@ -454,5 +476,47 @@ mod hashing_tests {
         );
 
         let _ = std::fs::remove_dir_all(&dir);
+    }
+}
+
+#[cfg(test)]
+mod password_rule_tests {
+    use super::superuser_password_weakness as weakness;
+
+    #[test]
+    fn a_long_mixed_password_passes() {
+        assert_eq!(weakness("Campanile-2026"), None);
+        assert_eq!(
+            weakness("Aa1€aaaaaaaa"),
+            None,
+            "any non-alphanumeric symbol counts"
+        );
+    }
+
+    #[test]
+    fn under_twelve_characters_is_too_short() {
+        assert_eq!(
+            weakness("Aa1!aaaaaaa"),
+            Some("admin.superuser_wizard.password_too_short")
+        );
+        // 4 characters, 12 bytes: counted in characters
+        assert_eq!(
+            weakness("日本語!"),
+            Some("admin.superuser_wizard.password_too_short")
+        );
+    }
+
+    #[test]
+    fn each_missing_class_is_refused() {
+        let weak = Some("admin.superuser_wizard.password_weak");
+        assert_eq!(weakness("aa1!aaaaaaaa"), weak, "no uppercase");
+        assert_eq!(weakness("AA1!AAAAAAAA"), weak, "no lowercase");
+        assert_eq!(weakness("Aa!aaaaaaaaa"), weak, "no digit");
+        assert_eq!(weakness("Aa1aaaaaaaaa"), weak, "no special character");
+        assert_eq!(
+            weakness("Aa1 aaaaaaaa"),
+            weak,
+            "a space isn't a special character"
+        );
     }
 }

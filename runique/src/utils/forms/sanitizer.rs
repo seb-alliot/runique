@@ -61,28 +61,46 @@ pub fn sanitize_strict(input: &str) -> String {
     // Strip all HTML tags — ammonia encodes `&` → `&amp;` as a side effect,
     // so we decode entities afterwards to store plain text.
     let stripped = Builder::new().tags(HashSet::new()).clean(input).to_string();
-    // Remove dangerous protocols (case-insensitive)
-    const PROTOCOLS: &[&str] = &["javascript:", "vbscript:", "data:", "file:"];
-    let mut result: String = html_escape::decode_html_entities(&stripped).into_owned();
-    for proto in PROTOCOLS {
-        let lower = result.to_lowercase();
-        if !lower.contains(proto) {
-            continue;
-        }
-        let mut new_result = String::with_capacity(result.len());
-        let mut last_end = 0;
-        let mut search_from = 0;
-        while let Some(pos) = lower[search_from..].find(proto) {
-            let abs_pos = search_from + pos;
-            new_result.push_str(&result[last_end..abs_pos]);
-            last_end = abs_pos + proto.len();
-            search_from = last_end;
-        }
-        new_result.push_str(&result[last_end..]);
-        result = new_result;
-    }
+    let decoded = html_escape::decode_html_entities(&stripped);
+    strip_protocols(&decoded).trim().to_string()
+}
 
-    result.trim().to_string()
+/// Removes `javascript:`, `vbscript:`, `data:` and `file:`, ASCII
+/// case-insensitively — the way browsers read a URL scheme.
+///
+/// Matched on the input itself: offsets taken from a `to_lowercase()` copy
+/// don't line up with the original once a character changes byte length
+/// (`K` U+212A → `k`), which panicked on a non-char boundary. Repeated until
+/// nothing is left, so `javajavascript:script:` can't rebuild `javascript:`.
+fn strip_protocols(input: &str) -> String {
+    const PROTOCOLS: &[&str] = &["javascript:", "vbscript:", "data:", "file:"];
+    let mut current = input.to_string();
+    loop {
+        let mut out = String::with_capacity(current.len());
+        let mut rest = current.as_str();
+        let mut removed = false;
+        while !rest.is_empty() {
+            // Protocols are ASCII: a match ends on a char boundary.
+            if let Some(proto) = PROTOCOLS.iter().find(|p| {
+                rest.as_bytes()
+                    .get(..p.len())
+                    .is_some_and(|head| head.eq_ignore_ascii_case(p.as_bytes()))
+            }) {
+                rest = &rest[proto.len()..];
+                removed = true;
+                continue;
+            }
+            let mut chars = rest.chars();
+            if let Some(ch) = chars.next() {
+                out.push(ch);
+            }
+            rest = chars.as_str();
+        }
+        if !removed {
+            return out;
+        }
+        current = out;
+    }
 }
 
 // =============================

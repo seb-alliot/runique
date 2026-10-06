@@ -45,6 +45,24 @@ fn test_strict_retire_javascript_protocol() {
 }
 
 #[test]
+fn test_strict_caractere_qui_change_de_longueur_en_minuscule() {
+    // `K` (U+212A, 3 octets) devient `k` (1 octet) : ne doit ni paniquer ni décaler
+    let out = sanitize_strict("\u{212A}javascript:alert(1)");
+    assert_eq!(out, "\u{212A}alert(1)");
+    let out = sanitize_strict("\u{130}\u{130}JavaScript:x");
+    assert_eq!(out, "\u{130}\u{130}x");
+}
+
+#[test]
+fn test_strict_protocole_reconstruit_apres_suppression() {
+    assert_eq!(
+        sanitize_strict("javajavascript:script:alert(1)"),
+        "alert(1)"
+    );
+    assert_eq!(sanitize_strict("dadata:ta:x"), "x");
+}
+
+#[test]
 fn test_strict_retire_vbscript_protocol() {
     let out = sanitize_strict("vbscript:alert(1)");
     assert!(!out.contains("vbscript:"));

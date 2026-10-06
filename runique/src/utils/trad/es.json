@@ -105,6 +105,7 @@
     "template": "Error de plantilla: {}",
     "custom": "Error personalizado: {}",
     "title": {
+      "bad_request": "Solicitud incorrecta",
       "not_found": "Página no encontrada",
       "forbidden": "Acceso prohibido",
       "validation": "Error de validación",
@@ -112,6 +113,7 @@
       "template": "Error de renderizado de plantilla",
       "internal": "Error interno del servidor"
     },
+    "invalid_query": "Parámetros de consulta no válidos: {}",
     "path_not_found": "La ruta solicitada '{}' no fue encontrada",
     "internal_occurred": "Ocurrió un error interno",
     "context_occurred": "Error AppError ocurrido"
@@ -165,6 +167,8 @@
     "slot_collision": "Colisión de slot de middleware Runique: '{}' y '{}' reclaman ambos el slot {}. Registre menos middlewares personalizados o asigne a este un slot explícito."
   },
   "html": {
+    "400_title": "400",
+    "400_text": "Solicitud incorrecta: los parámetros de la dirección no son válidos.",
     "404_title": "404",
     "404_text": "Página no encontrada",
     "500_title": "500",
@@ -431,7 +435,8 @@
       "email_invalid": "Correo electrónico inválido.",
       "email_taken": "Ya existe un usuario con este correo.",
       "password_prompt": "[4/5] Contraseña",
-      "password_too_short": "La contraseña debe tener al menos 10 caracteres.",
+      "password_too_short": "La contraseña debe tener al menos 12 caracteres.",
+      "password_weak": "La contraseña debe contener al menos una minúscula, una mayúscula, un dígito y un carácter especial.",
       "confirm_prompt": "[5/5] Confirmar contraseña",
       "password_mismatch": "Las contraseñas no coinciden. Por favor, inténtelo de nuevo.",
       "review_algo": "  Algoritmo  : {}",

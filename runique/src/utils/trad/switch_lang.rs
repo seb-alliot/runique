@@ -114,7 +114,13 @@ impl Lang {
             6 => Lang::Ja,
             7 => Lang::Zh,
             8 => Lang::Ru,
-            9_u8..=u8::MAX => todo!(),
+            other => {
+                tracing::warn!(
+                    value = other,
+                    "unknown language code, falling back to the default"
+                );
+                Lang::default()
+            }
         }
     }
 

@@ -105,6 +105,7 @@
     "template": "Template error: {}",
     "custom": "Custom error: {}",
     "title": {
+      "bad_request": "Bad Request",
       "not_found": "Page Not Found",
       "forbidden": "Access Forbidden",
       "validation": "Validation Error",
@@ -112,6 +113,7 @@
       "template": "Template Rendering Error",
       "internal": "Internal Server Error"
     },
+    "invalid_query": "Invalid query parameters: {}",
     "path_not_found": "The requested path '{}' was not found",
     "internal_occurred": "An internal error occurred",
     "context_occurred": "AppError occurred"
@@ -165,6 +167,8 @@
     "slot_collision": "Runique middleware slot collision: '{}' and '{}' both claim slot {}. Register fewer custom middlewares or give this one an explicit slot."
   },
   "html": {
+    "400_title": "400",
+    "400_text": "Bad request: the address parameters are not valid.",
     "404_title": "404",
     "404_text": "Page not found",
     "500_title": "500",
@@ -431,7 +435,8 @@
       "email_invalid": "Invalid email.",
       "email_taken": "A user with this email already exists.",
       "password_prompt": "[4/5] Password",
-      "password_too_short": "Password must be at least 10 characters.",
+      "password_too_short": "Password must be at least 12 characters.",
+      "password_weak": "Password must contain at least one lowercase letter, one uppercase letter, one digit and one special character.",
       "confirm_prompt": "[5/5] Confirm password",
       "password_mismatch": "Passwords do not match. Please try again.",
       "review_algo": "  Algorithm   : {}",

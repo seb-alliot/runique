@@ -13,7 +13,7 @@
     feature = "mysql"
 ))]
 compile_error!(
-    "les features `postgres` et `mysql` sont mutuellement exclusives — choisis un seul moteur (ou `all-databases` explicitement pour du tooling multi-moteur)"
+    "features `postgres` and `mysql` are mutually exclusive — pick a single engine (or `all-databases` explicitly for multi-engine tooling)"
 );
 #[cfg(all(
     not(doc),
@@ -22,7 +22,7 @@ compile_error!(
     feature = "sqlite"
 ))]
 compile_error!(
-    "les features `postgres` et `sqlite` sont mutuellement exclusives — choisis un seul moteur (ou `all-databases` explicitement pour du tooling multi-moteur)"
+    "features `postgres` and `sqlite` are mutually exclusive — pick a single engine (or `all-databases` explicitly for multi-engine tooling)"
 );
 #[cfg(all(
     not(doc),
@@ -31,7 +31,7 @@ compile_error!(
     feature = "sqlite"
 ))]
 compile_error!(
-    "les features `mysql` et `sqlite` sont mutuellement exclusives — choisis un seul moteur (ou `all-databases` explicitement pour du tooling multi-moteur)"
+    "features `mysql` and `sqlite` are mutually exclusive — pick a single engine (or `all-databases` explicitly for multi-engine tooling)"
 );
 
 // ---------------------------------------------------------------------------

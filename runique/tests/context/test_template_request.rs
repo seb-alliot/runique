@@ -16,7 +16,7 @@ use axum::{
 use runique::{
     context::{RequestExtensions, template::Request as TplRequest},
     middleware::security::csrf::csrf_middleware,
-    utils::aliases::AEngine,
+    utils::aliases::{AEngine, AppResult},
 };
 use std::sync::Arc;
 use tera::Tera;
@@ -197,16 +197,16 @@ struct ListQuery {
     q: Option<String>,
 }
 
-async fn handler_params(tpl: TplRequest) -> String {
-    let query: ListQuery = tpl.query();
-    format!(
+async fn handler_params(tpl: TplRequest) -> AppResult<String> {
+    let query: ListQuery = tpl.query()?;
+    Ok(format!(
         "{:?}|{:?}|{:?}|{:?}|{:?}",
         tpl.get_path("id"),
         tpl.get_path("other"),
         tpl.get_query("page"),
         query.page,
         query.q
-    )
+    ))
 }
 
 async fn params_app() -> Router {
@@ -238,6 +238,12 @@ async fn test_an_empty_query_value_does_not_reset_the_others() {
         body_str(resp).await,
         r#"Some("1")|None|Some("")|None|Some("rust")"#
     );
+}
+
+#[tokio::test]
+async fn test_a_query_that_does_not_fit_is_a_bad_request() {
+    let resp = request::get(params_app().await, "/items/1?page=abc&q=rust").await;
+    assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
 }
 
 // ── Tests — public_url ──────────────────────────────────────────────────────

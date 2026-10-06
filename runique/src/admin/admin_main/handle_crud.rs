@@ -234,7 +234,12 @@ pub(super) async fn handle_create_post(
         crate::runique_log!(level, resource = %entry.meta.key, valid, "create POST — form validation");
     }
     if valid {
-        let body_for_create = form_grant(form.get_form(), &raw_body, entry, parent, FormOp::Create);
+        let body_for_create = form_grant(form.get_form(), &raw_body, entry, parent, FormOp::Create)
+            .map_err(|e| {
+                Box::new(AppError::new(ErrorContext::database(
+                    sea_orm::DbErr::Custom(e),
+                )))
+            })?;
         let result = match &entry.create_fn {
             Some(f) => f(req.engine.db.clone(), body_for_create.clone()).await,
             None => form.save(&req.engine.db).await,
@@ -544,7 +549,12 @@ pub(super) async fn handle_edit_post(
             entry,
             parent,
             FormOp::Edit { local_id: &id },
-        );
+        )
+        .map_err(|e| {
+            Box::new(AppError::new(ErrorContext::database(
+                sea_orm::DbErr::Custom(e),
+            )))
+        })?;
         // Delete old files replaced by a new upload
         if let Some(ref old) = old_obj {
             let media_root = resolve_media_root();

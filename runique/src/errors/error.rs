@@ -200,6 +200,9 @@ pub enum ErrorType {
     Internal,
     Database,
     Validation,
+    /// A request the client got wrong (e.g. a query string that doesn't
+    /// deserialize): rendered as `400.html`.
+    BadRequest,
 }
 
 /// Diagnostic details about a failed template render, used to build the debug error page.
@@ -326,6 +329,24 @@ impl ErrorContext {
             &t("error.title.not_found"),
             &tf("error.path_not_found", &[path]),
         )
+    }
+    /// Builds a 400 `ErrorContext`: the request itself is malformed. `message`
+    /// is shown on the debug page only, never in production.
+    pub fn bad_request(message: &str) -> Self {
+        let mut ctx = Self::new(
+            ErrorType::BadRequest,
+            StatusCode::BAD_REQUEST,
+            &t("error.title.bad_request"),
+            message,
+        );
+        // The debug page shows the first frame as the reason.
+        ctx.stack_trace.push(StackFrame {
+            level: 0,
+            message: message.to_string(),
+            debug_repr: None,
+            location: None,
+        });
+        ctx
     }
     /// Builds an `ErrorContext` with an arbitrary status code and the generic `Internal` type.
     pub fn generic(status: StatusCode, message: &str) -> Self {

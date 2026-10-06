@@ -102,6 +102,70 @@ async fn test_login_meme_user_ne_reinitialise_pas_session() {
     assert_body_str(res, "ok").await;
 }
 
+#[tokio::test]
+async fn test_login_user_different_efface_les_donnees_de_a() {
+    async fn handler(session: Session) -> impl IntoResponse {
+        login(
+            &session,
+            &test_user(pk(1), "setsuna", true, false),
+            None,
+            false,
+        )
+        .await
+        .unwrap();
+        session.insert("panier", "article de A").await.unwrap();
+
+        login(
+            &session,
+            &test_user(pk(2), "itsuki", true, false),
+            None,
+            false,
+        )
+        .await
+        .unwrap();
+
+        let panier: Option<String> = session.get("panier").await.unwrap();
+        assert_eq!(panier, None, "les données de A ne doivent pas passer à B");
+        "ok"
+    }
+
+    let res = request::get(build_app(get(handler)), "/test").await;
+    assert_status(&res, 200);
+    assert_body_str(res, "ok").await;
+}
+
+#[tokio::test]
+async fn test_relogin_meme_user_garde_ses_donnees() {
+    async fn handler(session: Session) -> impl IntoResponse {
+        login(
+            &session,
+            &test_user(pk(1), "alice", true, false),
+            None,
+            false,
+        )
+        .await
+        .unwrap();
+        session.insert("panier", "article").await.unwrap();
+
+        login(
+            &session,
+            &test_user(pk(1), "alice", true, false),
+            None,
+            false,
+        )
+        .await
+        .unwrap();
+
+        let panier: Option<String> = session.get("panier").await.unwrap();
+        assert_eq!(panier.as_deref(), Some("article"));
+        "ok"
+    }
+
+    let res = request::get(build_app(get(handler)), "/test").await;
+    assert_status(&res, 200);
+    assert_body_str(res, "ok").await;
+}
+
 // ═══════════════════════════════════════════════════════════════
 // Logout — nettoyage complet
 // ═══════════════════════════════════════════════════════════════

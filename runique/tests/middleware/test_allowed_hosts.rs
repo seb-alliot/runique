@@ -11,6 +11,14 @@ fn test_host_policy_basic() {
 }
 
 #[test]
+fn test_ipv6_host_without_closing_bracket_does_not_panic() {
+    let policy = HostPolicy::new(vec!["[::1]".to_string()], false);
+    assert!(!policy.is_host_allowed("[::1"));
+    assert!(!policy.is_host_allowed("["));
+    assert!(policy.is_host_allowed("[::1]:8080"));
+}
+
+#[test]
 fn test_exact_match() {
     let validator = HostPolicy::new(vec!["exemple.com".to_string()], false);
     assert!(validator.is_host_allowed("exemple.com"));

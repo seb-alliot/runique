@@ -36,7 +36,8 @@ impl HostPolicy {
     pub fn is_host_allowed(&self, host: &str) -> bool {
         fn normalize_host(host: &str) -> &str {
             if host.starts_with('[') {
-                host.split(']').next().map_or(host, |h| &host[..=h.len()])
+                // No `]` (e.g. `Host: [::1`): kept whole, it matches no entry.
+                host.find(']').map_or(host, |end| &host[..=end])
             } else {
                 host.split(':').next().unwrap_or(host)
             }

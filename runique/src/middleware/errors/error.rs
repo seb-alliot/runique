@@ -105,10 +105,19 @@ pub async fn error_handler_middleware(
 
     let status = response.status();
 
+    // Only the 400s Runique built itself (`ErrorType::BadRequest`, e.g. a bad
+    // query string): an API's own 400 body is left untouched.
+    let framework_bad_request = status == StatusCode::BAD_REQUEST
+        && response
+            .extensions()
+            .get::<Arc<ErrorContext>>()
+            .is_some_and(|ctx| matches!(ctx.error_type, ErrorType::BadRequest));
+
     // --- Error handling ---
     if status.is_server_error()
         || status == StatusCode::NOT_FOUND
         || status == StatusCode::TOO_MANY_REQUESTS
+        || framework_bad_request
     {
         // 429: direct rendering, no debug page
         if status == StatusCode::TOO_MANY_REQUESTS {
@@ -128,6 +137,7 @@ pub async fn error_handler_middleware(
         } else {
             return match error_ctx.error_type {
                 ErrorType::NotFound => render_404(&tera, &config, csrf_token),
+                ErrorType::BadRequest => render_400(&tera, &config, csrf_token),
                 _ => render_500(&tera, &config, csrf_token),
             };
         }
@@ -246,6 +256,28 @@ fn inject_security_headers(headers: &mut axum::http::HeaderMap, config: &Runique
 }
 
 // --- Render Helpers ---
+
+fn render_400(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -> Response {
+    let mut context = Context::new();
+    inject_global_vars(&mut context, config, csrf_token);
+    context.insert("error_title", &t("html.400_title"));
+    context.insert("error_text", &t("html.400_text"));
+    context.insert("back_home", &t("html.back_home"));
+
+    let rendered = tera
+        .render("400.html", &context)
+        .or_else(|_| tera.render("400", &context));
+    let mut response = match rendered {
+        Ok(html) => (StatusCode::BAD_REQUEST, Html(html)).into_response(),
+        Err(e) => {
+            crate::runique_log!(errors_render_level(), error = %e, template = "400.html", "failed to render error template");
+            fallback_400_html()
+        }
+    };
+
+    inject_security_headers(response.headers_mut(), config);
+    response
+}
 
 fn render_404(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -> Response {
     let mut context = Context::new();
@@ -392,6 +424,14 @@ fn inject_global_vars(context: &mut Context, config: &RuniqueConfig, csrf_token:
 }
 
 // --- FALLBACKS ---
+
+fn fallback_400_html() -> Response {
+    let html = format!(
+        "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>400</title></head><body><h1>400</h1><p>{}</p></body></html>",
+        html_escape(&t("html.400_text"))
+    );
+    (StatusCode::BAD_REQUEST, Html(html)).into_response()
+}
 
 fn fallback_404_html() -> Response {
     let lang = crate::utils::trad::current_lang().code();

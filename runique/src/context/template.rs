@@ -10,7 +10,7 @@ use crate::forms::{
 use crate::impl_from_error;
 use crate::middleware::security::anti_bot::HoneypotFieldName;
 use crate::utils::aliases::{ADb, AEngine, AppResult, StrMap};
-use crate::utils::trad::t;
+use crate::utils::trad::{t, tf};
 use crate::utils::url_params::UrlParams;
 use crate::utils::{csp_nonce::CspNonce, csrf::CsrfToken};
 use axum::{
@@ -362,19 +362,26 @@ impl Request {
         self.query_params.get(key).map(|s| s.as_str())
     }
 
-    /// Deserializes the full query string into a typed struct.
-    /// The struct must derive `serde::Deserialize` and `Default`.
-    /// Unknown keys are ignored; missing keys produce the `Default` value.
-    /// Empty values (`key=`) are dropped so that `Option<i32>` fields receive `None`
-    /// rather than causing a parse failure that silently resets the whole struct.
-    pub fn query<T: DeserializeOwned + Default>(&self) -> T {
+    /// Deserializes the full query string into a typed struct deriving
+    /// `serde::Deserialize`. Unknown keys are ignored; empty values (`key=`)
+    /// are dropped, so an `Option` field gets `None` rather than failing.
+    ///
+    /// A query string that doesn't fit `T` (`?page=abc` for a `u32`) is a
+    /// `400 Bad Request`: `request.query::<Filters>()?` in a handler renders
+    /// `400.html` (overridable), with the reason on the debug page.
+    pub fn query<T: DeserializeOwned>(&self) -> AppResult<T> {
         let cleaned = self
             .raw_query
             .split('&')
             .filter(|pair| pair.split('=').nth(1).is_none_or(|v| !v.is_empty()))
             .collect::<Vec<_>>()
             .join("&");
-        serde_urlencoded::from_str(&cleaned).unwrap_or_default()
+        serde_urlencoded::from_str(&cleaned).map_err(|e| {
+            Box::new(AppError::new(ErrorContext::bad_request(&tf(
+                "error.invalid_query",
+                &[e.to_string()],
+            ))))
+        })
     }
 
     /// Returns an `UrlParams` combining path and query — to be passed to `form.cleaned()`

@@ -105,6 +105,7 @@
     "template": "Template-Fehler: {}",
     "custom": "Benutzerdefinierter Fehler: {}",
     "title": {
+      "bad_request": "Ungültige Anfrage",
       "not_found": "Seite nicht gefunden",
       "forbidden": "Zugriff verboten",
       "validation": "Validierungsfehler",
@@ -112,6 +113,7 @@
       "template": "Template-Renderfehler",
       "internal": "Interner Serverfehler"
     },
+    "invalid_query": "Ungültige Query-Parameter: {}",
     "path_not_found": "Der angeforderte Pfad '{}' wurde nicht gefunden",
     "internal_occurred": "Ein interner Fehler ist aufgetreten",
     "context_occurred": "AppError aufgetreten"
@@ -165,6 +167,8 @@
     "slot_collision": "Runique-Middleware-Slot-Kollision: „{}\" und „{}\" beanspruchen beide Slot {}. Registrieren Sie weniger benutzerdefinierte Middlewares oder weisen Sie diesem einen expliziten Slot zu."
   },
   "html": {
+    "400_title": "400",
+    "400_text": "Ungültige Anfrage: Die Parameter der Adresse sind ungültig.",
     "404_title": "404",
     "404_text": "Seite nicht gefunden",
     "500_title": "500",
@@ -431,7 +435,8 @@
       "email_invalid": "Ungültige E-Mail.",
       "email_taken": "Ein Benutzer mit dieser E-Mail existiert bereits.",
       "password_prompt": "[4/5] Passwort",
-      "password_too_short": "Das Passwort muss mindestens 10 Zeichen lang sein.",
+      "password_too_short": "Das Passwort muss mindestens 12 Zeichen lang sein.",
+      "password_weak": "Das Passwort muss mindestens einen Kleinbuchstaben, einen Großbuchstaben, eine Ziffer und ein Sonderzeichen enthalten.",
       "confirm_prompt": "[5/5] Passwort bestätigen",
       "password_mismatch": "Passwörter stimmen nicht überein. Bitte erneut versuchen.",
       "review_algo": "  Algorithmus : {}",
