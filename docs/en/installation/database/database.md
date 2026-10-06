@@ -1,5 +1,22 @@
 # Database Configuration
 
+## Choosing the engine (Cargo features)
+
+| Feature | What it brings |
+|---|---|
+| `orm` (default) | SeaORM: entities, queries, migrations, sessions. **No driver**: the code compiles and `makemigrations` works, but the app can't connect to any database. |
+| `sqlite`, `postgres`, `mysql` | The engine's driver. Each one enables `orm` too. |
+| `mariadb` | Alias of `mysql`. |
+| `all-databases` | All three drivers at once, for multi-engine tooling. |
+
+An app enables **a single** engine: enabling two is a compile error (except through `all-databases`). `orm` doesn't need to be written:
+
+```toml
+runique = { version = "3.0.0", features = ["postgres"] }
+```
+
+---
+
 ## SQLite (Development)
 
 ### 1. Modify `demo-app/Cargo.toml`

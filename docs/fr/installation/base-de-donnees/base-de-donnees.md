@@ -1,5 +1,22 @@
 # Configuration Base de Données
 
+## Choisir le moteur (features Cargo)
+
+| Feature | Ce qu'elle apporte |
+|---|---|
+| `orm` (par défaut) | SeaORM : entités, requêtes, migrations, sessions. **Aucun pilote** : le code compile et `makemigrations` fonctionne, mais l'application ne peut se connecter à aucune base. |
+| `sqlite`, `postgres`, `mysql` | Le pilote du moteur. Chacun active aussi `orm`. |
+| `mariadb` | Alias de `mysql`. |
+| `all-databases` | Les trois pilotes à la fois, pour les outils multi-moteurs. |
+
+Une application active **un seul** moteur : en activer deux est une erreur de compilation (sauf via `all-databases`). `orm` n'a pas besoin d'être écrite :
+
+```toml
+runique = { version = "3.0.0", features = ["postgres"] }
+```
+
+---
+
 ## SQLite (Développement)
 
 ### 1. Modifier `demo-app/Cargo.toml`

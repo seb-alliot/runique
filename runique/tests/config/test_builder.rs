@@ -743,6 +743,22 @@ fn test_admin_staging_disable_apres_enable() {
 }
 
 #[test]
+fn test_admin_staging_disable_keeps_the_rest_of_the_config() {
+    let a = AdminStaging::new().enable().site_title("Back-office").disable();
+    assert!(!a.config.enabled);
+    assert_eq!(a.config.site_title, "Back-office");
+}
+
+#[test]
+fn test_admin_staging_with_rate_limiter_is_kept() {
+    let a = AdminStaging::new()
+        .site_title("Back-office")
+        .with_rate_limiter(runique::middleware::security::rate_limit::RateLimiter::new());
+    assert!(a.config.rate_limiter.is_some());
+    assert_eq!(a.config.site_title, "Back-office");
+}
+
+#[test]
 fn test_admin_staging_hot_reload() {
     let a = AdminStaging::new().hot_reload(true);
     assert!(a.config.hot_reload);
