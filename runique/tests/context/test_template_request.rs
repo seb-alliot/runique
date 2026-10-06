@@ -274,7 +274,10 @@ async fn public_url_app(public_url: Option<&str>, debug: bool) -> Router {
     });
     Router::new()
         .route("/u", get(handler_public_url))
-        .layer(middleware::from_fn_with_state(engine.clone(), csrf_middleware))
+        .layer(middleware::from_fn_with_state(
+            engine.clone(),
+            csrf_middleware,
+        ))
         .layer(middleware::from_fn_with_state(engine, engine_inject))
         .layer(SessionManagerLayer::new(MemoryStore::default()))
 }

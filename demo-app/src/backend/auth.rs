@@ -26,10 +26,7 @@ pub async fn find_user_by_id(
     UserEntity::find_by_id(id).one(db).await.unwrap_or(None)
 }
 
-pub async fn handle_inscription(
-    request: &mut Request,
-    form: RegisterForm,
-) -> AppResult<Response> {
+pub async fn handle_inscription(request: &mut Request, form: RegisterForm) -> AppResult<Response> {
     crate::backend::inject_globals(request).await;
     if is_authenticated(&request.session).await {
         return Ok(Redirect::to("/profil").into_response());
