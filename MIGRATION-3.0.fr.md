@@ -54,7 +54,7 @@ Pour construire vous-même un lien absolu, utilisez `request.public_url()`.
 | `.no_statics()` | `.static_files(\|s\| s.enabled(false))` |
 | `StaticStaging::enable()` / `disable()` | `.enabled(true)` / `.enabled(false)` |
 | `.with_error_handler(b)` | `.middleware(\|m\| m.with_debug_errors(b))` |
-| `SessionConfig`, `SessionBackend`, `ASessionStore` | `.with_session_duration(...)`, `.with_session_store(...)` |
+| `SessionConfig`, `SessionBackend`, `ASessionStore` | `.with_session_duration(...)` sur le builder, `.middleware(\|m\| m.with_session_store(...))` |
 | `PasswordConfig::oauth(p)` | `PasswordConfig::Delegated(p)` |
 | `MiddlewareConfig::with_host_validation` | `.middleware(\|m\| m.with_allowed_hosts(...))` |
 | `RuniqueEngine::attach_middlewares` | le builder (elle n'était jamais appelée) |

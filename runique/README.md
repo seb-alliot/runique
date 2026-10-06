@@ -183,9 +183,9 @@ Admin docs: [Admin](https://runique.io/docs/en/admin)
 
 ## Features and database backends
 
-Enabled by default: `orm` only.
+Enabled by default: `orm`, which brings SeaORM (entities, queries, migrations, sessions) but **no database driver**: a build with `orm` alone compiles, and `makemigrations` works, but the app can't connect to anything.
 
-Pick exactly one backend explicitly: `sqlite`, `postgres`, `mysql`, `mariadb` (mutually exclusive — enabling two at once is a compile error). The `all-databases` feature stays available for multi-engine tooling that needs to talk to every backend at once.
+Pick exactly one backend explicitly: `sqlite`, `postgres`, `mysql`, `mariadb` (mutually exclusive — enabling two at once is a compile error). Each one enables `orm` too, so `features = ["postgres"]` is enough. The `all-databases` feature stays available for multi-engine tooling that needs to talk to every backend at once.
 
 ---
 
