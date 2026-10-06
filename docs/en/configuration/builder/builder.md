@@ -127,6 +127,16 @@ let app = RuniqueApp::builder(config)
 
 In production (`DEBUG=false`), the app **refuses to boot** without it as soon as the password reset or the admin is enabled: a link built from the request's `Host` header would go wherever the client decides (`Host: evil.com` → the reset token goes to the attacker). In debug, the `Host` is the fallback, with a warning.
 
+Your own links (account activation, an email pointing to the site…) use the same rule through `request.public_url()`: the public URL, else the `Host` in debug only, else `None`. Never build them from the `Host` header yourself.
+
+```rust
+let Some(base) = request.public_url() else {
+    // production without .with_public_url(): send no link rather than a forged one
+    return request.render("auth/registered.html");
+};
+let activate_url = format!("{base}/activate/{token}/{encrypted}");
+```
+
 It's called **once**: a second `.with_public_url(...)` doesn't compile ("`with_public_url()` has already been called on this builder"), rather than silently replacing the first. To tell local from production apart, choose the value, not the call (the two branches of an `if` around the call wouldn't have the same type); an empty string leaves the public URL unset:
 
 ```rust

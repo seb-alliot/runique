@@ -251,11 +251,12 @@ impl PasswordResetConfig {
     }
 }
 
-/// The origin a reset link is built on: the public URL (`.with_public_url()`), else
-/// — in debug only — the request's `Host`. Production refuses to boot without it
-/// (`cross_validate`): the `Host` header is the client's to choose, and a reset
-/// link pointing at someone else's site would hand them the token.
-pub(crate) fn reset_link_base(
+/// The origin absolute links are built on: the public URL (`.with_public_url()`),
+/// else — in debug only — the request's `Host`. Production refuses to boot without
+/// it when the reset or the admin is on (`cross_validate`): the `Host` header is the
+/// client's to choose, and a link pointing at someone else's site would hand them
+/// the token. Apps reach it through [`Request::public_url`](crate::context::template::Request::public_url).
+pub(crate) fn public_link_base(
     configured: Option<&str>,
     headers: &axum::http::HeaderMap,
     debug: bool,
@@ -369,11 +370,7 @@ pub async fn handle_forgot_password(
             crate::runique_log!(level, %email, "reset token generated");
         }
 
-        let Some(host) = reset_link_base(
-            request.engine.config.server.public_url.as_deref(),
-            &request.headers,
-            request.engine.config.debug,
-        ) else {
+        let Some(host) = request.public_url() else {
             // Production doesn't boot without a base URL: never reached there.
             request
                 .notices
@@ -683,8 +680,8 @@ pub struct PasswordResetStaging {
 }
 
 #[cfg(test)]
-mod reset_link_base_tests {
-    use super::reset_link_base;
+mod public_link_base_tests {
+    use super::public_link_base;
     use axum::http::{HeaderMap, HeaderValue, header::HOST};
 
     fn with_host(host: &str) -> HeaderMap {
@@ -698,7 +695,7 @@ mod reset_link_base_tests {
         let headers = with_host("evil.com");
         for debug in [true, false] {
             assert_eq!(
-                reset_link_base(Some("https://mysite.com/"), &headers, debug).as_deref(),
+                public_link_base(Some("https://mysite.com/"), &headers, debug).as_deref(),
                 Some("https://mysite.com")
             );
         }
@@ -706,15 +703,15 @@ mod reset_link_base_tests {
 
     #[test]
     fn production_never_uses_the_host() {
-        assert_eq!(reset_link_base(None, &with_host("evil.com"), false), None);
+        assert_eq!(public_link_base(None, &with_host("evil.com"), false), None);
     }
 
     #[test]
     fn debug_falls_back_on_the_host() {
         assert_eq!(
-            reset_link_base(None, &with_host("localhost:3000"), true).as_deref(),
+            public_link_base(None, &with_host("localhost:3000"), true).as_deref(),
             Some("http://localhost:3000")
         );
-        assert_eq!(reset_link_base(None, &HeaderMap::new(), true), None);
+        assert_eq!(public_link_base(None, &HeaderMap::new(), true), None);
     }
 }

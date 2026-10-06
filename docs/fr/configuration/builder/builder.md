@@ -127,6 +127,16 @@ let app = RuniqueApp::builder(config)
 
 En production (`DEBUG=false`), l'application **refuse de démarrer** sans elle dès que le reset de mot de passe ou l'admin est activé : un lien construit à partir de l'en-tête `Host` de la requête irait là où le client le décide (`Host: evil.com` → le jeton de reset part chez l'attaquant). En debug, le `Host` sert de repli, avec un avertissement.
 
+Vos propres liens (activation de compte, mail pointant vers le site…) suivent la même règle via `request.public_url()` : l'URL publique, sinon le `Host` en debug uniquement, sinon `None`. Ne les construisez jamais vous-même à partir de l'en-tête `Host`.
+
+```rust
+let Some(base) = request.public_url() else {
+    // production sans .with_public_url() : pas de lien plutôt qu'un lien forgé
+    return request.render("auth/inscrit.html");
+};
+let activate_url = format!("{base}/activer/{token}/{encrypted}");
+```
+
 Elle ne s'appelle **qu'une fois** : un second `.with_public_url(...)` ne compile pas (« `with_public_url()` has already been called on this builder »), plutôt que de remplacer le premier sans rien dire. Pour distinguer le local de la production, on choisit la valeur, pas l'appel (les deux branches d'un `if` autour de l'appel n'auraient pas le même type) ; une chaîne vide laisse l'URL publique non définie :
 
 ```rust

@@ -333,6 +333,20 @@ impl Request {
         &self.engine.db
     }
 
+    /// Base of the absolute links an app sends out (activation, reset, emails):
+    /// the public URL set with `.with_public_url()`, else — in debug only —
+    /// `http://` + the request's `Host`. `None` in production without a public
+    /// URL: `Host` is the client's to choose, and a link built on it would carry
+    /// its token to someone else's site.
+    #[must_use]
+    pub fn public_url(&self) -> Option<String> {
+        crate::auth::password::public_link_base(
+            self.engine.config.server.public_url.as_deref(),
+            &self.headers,
+            self.engine.config.debug,
+        )
+    }
+
     /// Returns a path segment as a string slice (`/users/{id}` → `get_path("id")`).
     pub fn get_path(&self, key: &str) -> Option<&str> {
         self.path_params.get(key).map(|s| s.as_str())

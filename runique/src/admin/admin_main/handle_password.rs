@@ -13,14 +13,14 @@ use axum::response::{IntoResponse, Redirect, Response};
 const ADMIN_RESET_TTL: std::time::Duration = std::time::Duration::from_secs(3600);
 
 /// The reset page the admin's links point to: the reset route on the site URL
-/// (see [`reset_link_base`](crate::auth::password::reset_link_base)).
+/// (see [`public_link_base`](crate::auth::password::public_link_base)).
 fn admin_reset_base(
     req: &Request,
     state: &super::PrototypeAdminState,
     headers: &axum::http::HeaderMap,
 ) -> Option<String> {
     let config = &req.engine.config;
-    let origin = crate::auth::password::reset_link_base(
+    let origin = crate::auth::password::public_link_base(
         config.server.public_url.as_deref(),
         headers,
         config.debug,

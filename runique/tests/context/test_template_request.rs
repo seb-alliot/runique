@@ -239,3 +239,64 @@ async fn test_an_empty_query_value_does_not_reset_the_others() {
         r#"Some("1")|None|Some("")|None|Some("rust")"#
     );
 }
+
+// ── Tests — public_url ──────────────────────────────────────────────────────
+
+async fn handler_public_url(req: TplRequest) -> impl IntoResponse {
+    req.public_url().unwrap_or_else(|| "none".to_string())
+}
+
+/// App whose engine has the given public URL and debug mode.
+async fn public_url_app(public_url: Option<&str>, debug: bool) -> Router {
+    use runique::engine::RuniqueEngine;
+    use runique::middleware::{
+        config::MiddlewareConfig,
+        security::{allowed_hosts::HostPolicy, csp::SecurityPolicy},
+    };
+    let base = build_engine().await;
+    let mut config = base.config.clone();
+    config.server.public_url = public_url.map(str::to_string);
+    config.debug = debug;
+    let engine = Arc::new(RuniqueEngine {
+        tera: base.tera.clone(),
+        config,
+        db: base.db.clone(),
+        url_registry: base.url_registry.clone(),
+        features: MiddlewareConfig::default(),
+        security_csp: Arc::new(SecurityPolicy::default()),
+        security_hosts: Arc::new(HostPolicy::new(vec![], true)),
+        csrf_exempt_paths: Arc::new(vec![]),
+        permissions_policy: Arc::new(runique::middleware::PermissionsPolicy::default()),
+        trusted_proxies: Arc::new(runique::middleware::TrustedProxies::default()),
+        session_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
+        session_db_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
+        extensions: std::collections::HashMap::new(),
+    });
+    Router::new()
+        .route("/u", get(handler_public_url))
+        .layer(middleware::from_fn_with_state(engine.clone(), csrf_middleware))
+        .layer(middleware::from_fn_with_state(engine, engine_inject))
+        .layer(SessionManagerLayer::new(MemoryStore::default()))
+}
+
+#[tokio::test]
+async fn public_url_is_the_configured_one_whatever_the_host() {
+    let app = public_url_app(Some("https://mysite.com"), false).await;
+    let resp = request::get_with_header(app, "/u", "host", "evil.com").await;
+    assert_eq!(body_str(resp).await, "https://mysite.com");
+}
+
+// A forged Host must never become the base of a link outside debug.
+#[tokio::test]
+async fn public_url_ignores_the_host_in_production() {
+    let app = public_url_app(None, false).await;
+    let resp = request::get_with_header(app, "/u", "host", "evil.com").await;
+    assert_eq!(body_str(resp).await, "none");
+}
+
+#[tokio::test]
+async fn public_url_falls_back_to_the_host_in_debug() {
+    let app = public_url_app(None, true).await;
+    let resp = request::get_with_header(app, "/u", "host", "localhost:3000").await;
+    assert_eq!(body_str(resp).await, "http://localhost:3000");
+}
