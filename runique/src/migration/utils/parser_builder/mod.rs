@@ -8,7 +8,7 @@ use runique_dsl::ast::ModelInput;
 use syn::visit::Visit;
 
 pub(crate) use to_schema::decl_to_column;
-use to_schema::{model_to_parsed_schema, pascal_to_snake};
+use to_schema::{list_tables, model_to_parsed_schema, pascal_to_snake};
 
 use crate::migration::utils::types::ParsedSchema;
 
@@ -48,11 +48,25 @@ impl<'ast, T: syn::parse::Parse> Visit<'ast> for MacroCollector<T> {
     }
 }
 
+/// A `model!{}` read for migrations: its table, and the tables of its list
+/// fields (`checkbox` / `multichoice`).
+pub struct ParsedModel {
+    /// The model's snake_case name.
+    pub name: String,
+    pub schema: ParsedSchema,
+    pub lists: Vec<ParsedSchema>,
+}
+
 /// Parses the `model!{}` invocation of a Rust source file and returns the
 /// model's snake_case name together with its [`ParsedSchema`]. `Ok(None)` when
 /// the file has no `model!{}`; an error when the file isn't valid Rust, when
 /// the model doesn't parse, or when the file declares more than one model.
 pub fn parse_schema_from_source(source: &str) -> Result<Option<(String, ParsedSchema)>> {
+    Ok(parse_model_from_source(source)?.map(|m| (m.name, m.schema)))
+}
+
+/// Same as [`parse_schema_from_source`], with the list fields' tables.
+pub fn parse_model_from_source(source: &str) -> Result<Option<ParsedModel>> {
     let file = syn::parse_str::<syn::File>(source).map_err(|e| anyhow::anyhow!(located(&e)))?;
     let mut collector = MacroCollector::<ModelInput>::new("model");
     collector.visit_file(&file);
@@ -68,9 +82,11 @@ pub fn parse_schema_from_source(source: &str) -> Result<Option<(String, ParsedSc
         );
     }
     Ok(models.pop().map(|model| {
-        (
-            pascal_to_snake(&model.name.to_string()),
-            model_to_parsed_schema(&model),
-        )
+        let schema = model_to_parsed_schema(&model);
+        ParsedModel {
+            name: pascal_to_snake(&model.name.to_string()),
+            lists: list_tables(&model, &schema),
+            schema,
+        }
     }))
 }

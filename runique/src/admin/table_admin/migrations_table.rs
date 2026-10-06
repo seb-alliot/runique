@@ -189,18 +189,9 @@ pub fn create_eihwaz_groupes_droits_table() -> TableCreateStatement {
         .to_owned()
 }
 
-/// Returns the name of the configured user table.
-/// Reads `RUNIQUE_USER_TABLE` from the environment (`.env` loaded by `sea-orm-cli`).
-/// Default: `"eihwaz_users"`.
-pub fn user_table_name() -> String {
-    std::env::var("RUNIQUE_USER_TABLE").unwrap_or_else(|_| "eihwaz_users".to_string())
-}
-
 /// Generates the `TableCreateStatement` for the `eihwaz_users_groupes` junction table.
-/// The FK to the user table targets `RUNIQUE_USER_TABLE` (default: `eihwaz_users`).
 pub fn create_eihwaz_users_groupes_table() -> TableCreateStatement {
-    let user_table = user_table_name();
-    let fk_name = format!("fk_eihwaz_users_groupes_{}_id", user_table);
+    let fk_name = "fk_eihwaz_users_groupes_eihwaz_users_id";
 
     // user_id doit suivre le type de eihwaz_users.id (BIGINT sous big-pk, UUID sous pk-uuid),
     // sinon la FK est de type incompatible et échoue à la création (Postgres strict).
@@ -226,9 +217,9 @@ pub fn create_eihwaz_users_groupes_table() -> TableCreateStatement {
         )
         .foreign_key(
             ForeignKey::create()
-                .name(&fk_name)
+                .name(fk_name)
                 .from(Alias::new("eihwaz_users_groupes"), Alias::new("user_id"))
-                .to(Alias::new(user_table.as_str()), Alias::new("id"))
+                .to(Alias::new("eihwaz_users"), Alias::new("id"))
                 .on_delete(ForeignKeyAction::Cascade),
         )
         .foreign_key(
@@ -252,8 +243,7 @@ pub fn create_eihwaz_sessions_table() -> TableCreateStatement {
     user_id_col.integer();
     user_id_col.not_null();
 
-    let user_table = user_table_name();
-    let fk_name = format!("fk_eihwaz_sessions_{}_id", user_table);
+    let fk_name = "fk_eihwaz_sessions_eihwaz_users_id";
 
     Table::create()
         .table(Alias::new("eihwaz_sessions"))
@@ -281,9 +271,9 @@ pub fn create_eihwaz_sessions_table() -> TableCreateStatement {
         )
         .foreign_key(
             ForeignKey::create()
-                .name(&fk_name)
+                .name(fk_name)
                 .from(Alias::new("eihwaz_sessions"), Alias::new("user_id"))
-                .to(Alias::new(user_table.as_str()), Alias::new("id"))
+                .to(Alias::new("eihwaz_users"), Alias::new("id"))
                 .on_delete(ForeignKeyAction::Cascade),
         )
         .to_owned()
@@ -399,8 +389,7 @@ pub fn create_eihwaz_reset_tokens_table() -> TableCreateStatement {
     user_id_col.integer();
     user_id_col.not_null();
 
-    let user_table = user_table_name();
-    let fk_name = format!("fk_eihwaz_reset_tokens_{}_id", user_table);
+    let fk_name = "fk_eihwaz_reset_tokens_eihwaz_users_id";
 
     Table::create()
         .table(Alias::new("eihwaz_reset_tokens"))
@@ -426,9 +415,9 @@ pub fn create_eihwaz_reset_tokens_table() -> TableCreateStatement {
         )
         .foreign_key(
             ForeignKey::create()
-                .name(&fk_name)
+                .name(fk_name)
                 .from(Alias::new("eihwaz_reset_tokens"), Alias::new("user_id"))
-                .to(Alias::new(user_table.as_str()), Alias::new("id"))
+                .to(Alias::new("eihwaz_users"), Alias::new("id"))
                 .on_delete(ForeignKeyAction::Cascade),
         )
         .to_owned()

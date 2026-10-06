@@ -4,6 +4,8 @@ pub enum EnumBackingType {
     /// Detected from `.env`: native Postgres (`CREATE TYPE … AS ENUM`) if engine = Postgres,
     /// otherwise VARCHAR. This is the default behavior when no type is specified.
     Auto,
+    I8,
+    I16,
     I32,
     I64,
 }
@@ -56,6 +58,10 @@ pub struct ModelInput {
     pub relations: Vec<RelationDef>,
     pub meta: Option<MetaDef>,
     pub form_fields: Vec<FormFieldDecl>,
+    /// `multichoice` / `checkbox` fields: a list of enum values, stored in
+    /// their own table, never a column of this one — kept out of `fields`
+    /// and `form_fields`.
+    pub lists: Vec<FormFieldDecl>,
 }
 
 // ── form_fields: block — semantic types ──────────────────────
@@ -86,7 +92,10 @@ pub enum FormFieldKind {
     Ip,
     Choice,
     Radio,
+    /// A list of enum values, edited as checkboxes.
     Checkbox,
+    /// A list of enum values, edited as a multiple select.
+    Multichoice,
     Bigint,
     Phone,
     Char,

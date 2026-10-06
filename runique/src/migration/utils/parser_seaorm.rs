@@ -158,8 +158,6 @@ impl SeaOrmVisitor {
                         nullable: false,
                         unique: false,
                         ignored: false,
-                        created_at: false,
-                        updated_at: false,
                         has_default_now: false,
                         default_value: None,
                         enum_name: None,
@@ -168,8 +166,6 @@ impl SeaOrmVisitor {
                         max_length: None,
                     });
                 } else {
-                    let is_created_at = n == "created_at";
-                    let is_updated_at = n == "updated_at";
                     self.columns.push(ParsedColumn {
                         max_length: extract_length_arg(arg),
                         name: n,
@@ -177,9 +173,7 @@ impl SeaOrmVisitor {
                         nullable,
                         unique,
                         ignored: false,
-                        created_at: is_created_at,
-                        updated_at: is_updated_at,
-                        has_default_now: is_ts_default || is_created_at || is_updated_at,
+                        has_default_now: is_ts_default,
                         default_value,
                         enum_name,
                         enum_string_values,

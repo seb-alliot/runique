@@ -88,6 +88,8 @@ fn generate_field_type(ty: &FieldType, enums: &[EnumDef]) -> TokenStream2 {
             let enum_def = enums.iter().find(|e| e.name == *enum_name);
             if let Some(def) = enum_def {
                 match &def.backing_type {
+                    EnumBackingType::I8 => quote! { .tiny_integer() },
+                    EnumBackingType::I16 => quote! { .small_integer() },
                     EnumBackingType::I32 => quote! { .integer() },
                     EnumBackingType::I64 => quote! { .big_integer() },
                     EnumBackingType::Auto => {

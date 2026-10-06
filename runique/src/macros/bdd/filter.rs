@@ -72,6 +72,29 @@ macro_rules! search_munch {
     ($b:expr, $entity:ty;) => {};
     ($b:expr, $entity:ty; ,) => {};
 
+    // ── list field (`checkbox` / `multichoice`): has / has_any / has_all ──
+    // Before the general `Col op val` arm: a list field has no column.
+    ($b:expr, $entity:ty; ! $col:ident has $val:expr , $($rest:tt)*) => {
+        $b = $b.exclude(<<$entity as $crate::macros::bdd::list::HasLists>::List>::$col.has($val));
+        $crate::search_munch!($b, $entity; $($rest)*);
+    };
+    ($b:expr, $entity:ty; ! $col:ident has_any $vals:expr , $($rest:tt)*) => {
+        $b = $b.exclude(<<$entity as $crate::macros::bdd::list::HasLists>::List>::$col.has_any($vals));
+        $crate::search_munch!($b, $entity; $($rest)*);
+    };
+    ($b:expr, $entity:ty; $col:ident has $val:expr , $($rest:tt)*) => {
+        $b = $b.filter(<<$entity as $crate::macros::bdd::list::HasLists>::List>::$col.has($val));
+        $crate::search_munch!($b, $entity; $($rest)*);
+    };
+    ($b:expr, $entity:ty; $col:ident has_any $vals:expr , $($rest:tt)*) => {
+        $b = $b.filter(<<$entity as $crate::macros::bdd::list::HasLists>::List>::$col.has_any($vals));
+        $crate::search_munch!($b, $entity; $($rest)*);
+    };
+    ($b:expr, $entity:ty; $col:ident has_all $vals:expr , $($rest:tt)*) => {
+        $b = $b.filter(<<$entity as $crate::macros::bdd::list::HasLists>::List>::$col.has_all($vals));
+        $crate::search_munch!($b, $entity; $($rest)*);
+    };
+
     // ── join Relation — INNER JOIN ────────────────────────────────
     ($b:expr, $entity:ty; join $rel:ident , $($rest:tt)*) => {
         {
@@ -282,6 +305,9 @@ macro_rules! search_munch {
 //   Col range (a, b)     → BETWEEN a AND b
 //   Col not_range (a, b) → NOT BETWEEN
 //   or(C1 op v, C2 op v) → multi-column OR
+//   List has v           → list field (`checkbox`/`multichoice`) contains v
+//   List has_any [v, w]  → contains at least one of them
+//   List has_all [v, w]  → contains all of them
 //   ! Col op val         → exclusion (NOT)
 //   search!(Entity)      → fetch all without filter
 // ─────────────────────────────────────────────────────────────────────────────
@@ -296,6 +322,33 @@ macro_rules! search {
     // ── Fetch all ─────────────────────────────────────────────────────────────
     ($entity:ty) => {{
         $crate::macros::bdd::objects::Objects::<$entity>::new().all()
+    }};
+
+    // ── list field alone — `has*` is handled by the muncher ─────────────────
+    ($entity:ty => ! $col:ident has $val:expr) => {{
+        let mut b = $crate::macros::bdd::objects::Objects::<$entity>::new().all();
+        $crate::search_munch!(b, $entity; ! $col has $val ,);
+        b
+    }};
+    ($entity:ty => ! $col:ident has_any $vals:expr) => {{
+        let mut b = $crate::macros::bdd::objects::Objects::<$entity>::new().all();
+        $crate::search_munch!(b, $entity; ! $col has_any $vals ,);
+        b
+    }};
+    ($entity:ty => $col:ident has $val:expr) => {{
+        let mut b = $crate::macros::bdd::objects::Objects::<$entity>::new().all();
+        $crate::search_munch!(b, $entity; $col has $val ,);
+        b
+    }};
+    ($entity:ty => $col:ident has_any $vals:expr) => {{
+        let mut b = $crate::macros::bdd::objects::Objects::<$entity>::new().all();
+        $crate::search_munch!(b, $entity; $col has_any $vals ,);
+        b
+    }};
+    ($entity:ty => $col:ident has_all $vals:expr) => {{
+        let mut b = $crate::macros::bdd::objects::Objects::<$entity>::new().all();
+        $crate::search_munch!(b, $entity; $col has_all $vals ,);
+        b
     }};
 
     // ── Col isnull ────────────────────────────────────────────────────────────

@@ -30,6 +30,7 @@ pub mod test_generators;
 pub mod test_helpers;
 pub mod test_hooks_def;
 pub mod test_index_def;
+pub mod test_list_fields;
 pub mod test_makemigrations;
 pub mod test_migrate;
 pub mod test_migration_flow;

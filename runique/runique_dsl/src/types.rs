@@ -4,7 +4,7 @@
 //! The macro, the admin and the forms built from a schema all read this table,
 //! so the same field can't be a password in one place and plain text in
 //! another, or accept a value its column can't hold.
-use crate::ast::{FieldDef, FieldOption, FieldType, FileKind, FormFieldKind};
+use crate::ast::{EnumBackingType, FieldDef, FieldOption, FieldType, FileKind, FormFieldKind};
 
 /// The form field a DSL type is edited with.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -34,6 +34,7 @@ pub enum Widget {
     Choice,
     Radio,
     Checkbox,
+    MultiChoice,
     Color,
     Slug,
     Uuid,
@@ -80,6 +81,7 @@ impl FormFieldKind {
             Choice => Widget::Choice,
             Radio => Widget::Radio,
             Checkbox => Widget::Checkbox,
+            Multichoice => Widget::MultiChoice,
             Color => Widget::Color,
             Slug => Widget::Slug,
             Uuid => Widget::Uuid,
@@ -99,6 +101,25 @@ impl FormFieldKind {
         match self {
             I8 | U32 => &[Engine::Postgres],
             U64 => &[Engine::Postgres, Engine::Sqlite],
+            _ => &[],
+        }
+    }
+}
+
+impl FormFieldKind {
+    /// A list of enum values (`checkbox`, `multichoice`), stored in a table
+    /// of its own rather than a column.
+    pub fn is_list(self) -> bool {
+        matches!(self, FormFieldKind::Checkbox | FormFieldKind::Multichoice)
+    }
+}
+
+impl EnumBackingType {
+    /// Engines that can't read this enum's stored number back: Postgres has
+    /// no one-byte integer (sqlx sends an `i8` as `"char"`).
+    pub fn unsupported_on(&self) -> &'static [Engine] {
+        match self {
+            EnumBackingType::I8 => &[Engine::Postgres],
             _ => &[],
         }
     }
@@ -151,7 +172,7 @@ impl FormFieldKind {
             Cidr => FieldType::Cidr,
             MacAddress => FieldType::MacAddress,
             Interval => FieldType::Interval,
-            Choice | Radio | Checkbox => {
+            Choice | Radio | Checkbox | Multichoice => {
                 enum_ref.map_or(FieldType::String, |id| FieldType::Enum(id.clone()))
             }
             Binary => FieldType::Binary(max_length),

@@ -8,8 +8,8 @@
 | Créer une app | `python manage.py startapp nom` | — |
 | Migrations (générer) | `python manage.py makemigrations` | `runique makemigrations` |
 | Migrations (appliquer) | `python manage.py migrate` | `runique migration up` |
-| Migrations (annuler) | `python manage.py migrate app 0001` | `runique migration down --files ...` |
-| Statut migrations | — | `runique migration status` |
+| Migrations (annuler) | `python manage.py migrate app 0001` | `sea-orm-cli migrate down -n N` |
+| Statut migrations | `python manage.py showmigrations` | `sea-orm-cli migrate status` |
 | Créer superuser | `python manage.py createsuperuser` | `runique create-superuser` |
 | Démarrer | `python manage.py runserver` | `cargo run` — `runique start` pour (re)générer le panel admin |
 

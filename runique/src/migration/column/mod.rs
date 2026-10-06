@@ -723,6 +723,7 @@ impl ColumnDef {
                 }
                 f.into()
             }
+            Widget::MultiChoice => choices(ChoiceField::new(name).multiple()).into(),
             Widget::Color => ColorField::new(name).into(),
             Widget::Slug => SlugField::new(name).into(),
             Widget::Uuid => UUIDField::new(name).into(),

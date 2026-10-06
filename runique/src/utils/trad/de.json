@@ -466,21 +466,7 @@
   },
   "migrate": {
     "applying": "Migrationen aus '{}' werden angewendet...",
-    "run_hint": "Ausführen: sea-orm-cli migrate up",
-    "complete_up": "Migration abgeschlossen.",
-    "complete": "Rollback abgeschlossen.",
-    "available_for": "Verfügbare Rollback-Dateien für '{}':",
-    "rolling_back_batch": "Batch zurückrollen: {}",
-    "done": "Erledigt: {}",
-    "rolling_back": "Zurückrollen: {}",
-    "no_applied_dir": "Kein applied/-Verzeichnis gefunden.",
-    "by_time_header": "by_time (vollständige Batches):",
-    "none_available": "Keine Rollback-Dateien verfügbar.",
-    "usage": "Verwendung:",
-    "usage_files": "runique migration down --files <table/timestamp> [<table/timestamp> ...]",
-    "usage_batch": "runique migration down --batch <timestamp>",
-    "no_down": "Keine Down-Anweisungen gefunden.",
-    "executing": "Ausführen: {}"
+    "complete_up": "Migration abgeschlossen."
   },
   "reset": {
     "forgot_title": "Passwort vergessen",

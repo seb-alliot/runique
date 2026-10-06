@@ -485,21 +485,7 @@
   },
   "migrate": {
     "applying": "Applying migrations from '{}'...",
-    "run_hint": "Run: sea-orm-cli migrate up",
-    "complete_up": "Migration complete.",
-    "complete": "Rollback complete.",
-    "available_for": "Available rollback files for '{}':",
-    "rolling_back_batch": "Rolling back batch: {}",
-    "done": "Done: {}",
-    "rolling_back": "Rolling back: {}",
-    "no_applied_dir": "No applied/ directory found.",
-    "by_time_header": "by_time (full batches):",
-    "none_available": "No rollback files available.",
-    "usage": "Usage:",
-    "usage_files": "runique migration down --files <table/timestamp> [<table/timestamp> ...]",
-    "usage_batch": "runique migration down --batch <timestamp>",
-    "no_down": "No down statements found.",
-    "executing": "Executing: {}"
+    "complete_up": "Migration complete."
   },
   "permission": {
     "col": {

@@ -72,18 +72,6 @@ enum MigrateAction {
         #[arg(long, default_value = "migration/src")]
         migrations: String,
     },
-    Down {
-        #[arg(long, default_value = "migration/src")]
-        migrations: String,
-        #[arg(long, num_args = 1..)]
-        files: Vec<String>,
-        #[arg(long)]
-        batch: Option<String>,
-    },
-    Status {
-        #[arg(long, default_value = "migration/src")]
-        migrations: String,
-    },
 }
 
 #[tokio::main]
@@ -105,16 +93,6 @@ async fn main() -> Result<()> {
         Commands::Migration { action } => match action {
             MigrateAction::Up { migrations } => {
                 migrate::up(&migrations).await?;
-            }
-            MigrateAction::Down {
-                migrations,
-                files,
-                batch,
-            } => {
-                migrate::down(&migrations, files, batch).await?;
-            }
-            MigrateAction::Status { migrations } => {
-                migrate::status(&migrations)?;
             }
         },
         Commands::Makemigrations {

@@ -22,21 +22,4 @@ mod paths_migration {
         let path = seaorm_create_file_path("users", "test", "test");
         assert!(path.contains("users"));
     }
-
-    #[test]
-    fn test_applied_dir() {
-        assert!(applied_dir("test").contains("applied"));
-    }
-
-    #[test]
-    fn test_table_applied_dir() {
-        let path = table_applied_dir("users", "test");
-        assert!(path.contains("users"));
-    }
-
-    #[test]
-    fn test_alter_file_path() {
-        let path = alter_file_path("users", "test", "test");
-        assert!(path.contains("users"));
-    }
 }

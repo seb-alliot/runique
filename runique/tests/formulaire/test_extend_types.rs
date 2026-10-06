@@ -43,3 +43,11 @@ fn extend_converts_every_declared_type() {
     assert_eq!(model.weight.clone().unwrap(), Some(1.5f32));
     assert!(model.seen_tz.clone().unwrap().is_some());
 }
+
+// The admin code generated for a resource calls these on every model, an
+// `extend!{}` included (it has no list fields: they do nothing).
+#[test]
+fn an_extend_model_has_the_admin_list_methods() {
+    let _save = groups::Model::admin_save_lists::<runique::sea_orm::DatabaseConnection>;
+    let _read = groups::Model::admin_list_values::<runique::sea_orm::DatabaseConnection>;
+}

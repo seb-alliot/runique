@@ -95,8 +95,6 @@ pub fn diff_schemas(previous: &ParsedSchema, current: &ParsedSchema) -> Changes 
                     || prev.nullable != curr.nullable
                     || prev.unique != curr.unique
                     || prev.has_default_now != curr.has_default_now
-                    || prev.updated_at != curr.updated_at
-                    || prev.created_at != curr.created_at
                     || prev.max_length != curr.max_length
                     // Becoming (or stopping being) an enum: `col_type` alone doesn't
                     // capture this (an enum column keeps col_type "String"), so without
