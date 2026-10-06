@@ -209,29 +209,6 @@ async fn test_run_cree_fichier_seaorm_create() {
     std::fs::remove_dir_all(&migrations).ok();
 }
 
-#[tokio::test]
-async fn test_run_dossier_applied_cree() {
-    set_env("RUNIQUE_TEST", "1");
-    let entities = temp_dir("run_applied_ent");
-    let migrations = temp_dir("run_applied_mig");
-
-    fs::write(entities.join("user.rs"), entity_user()).unwrap();
-    run(
-        entities.to_str().unwrap(),
-        migrations.to_str().unwrap(),
-        false,
-    )
-    .unwrap();
-
-    assert!(
-        migrations.join("applied").exists(),
-        "dossier applied/ doit être créé"
-    );
-    del_env("RUNIQUE_TEST");
-    std::fs::remove_dir_all(&entities).ok();
-    std::fs::remove_dir_all(&migrations).ok();
-}
-
 // ═══════════════════════════════════════════════════════════════
 // Idempotence — deuxième run sans changements
 // ═══════════════════════════════════════════════════════════════
@@ -332,10 +309,13 @@ async fn test_run_alter_ajout_colonne_nullable() {
         result
     );
 
-    // Dossier applied/users/ doit exister
     assert!(
-        migrations.join("applied/users").exists(),
-        "applied/users/ doit être créé pour l'ALTER"
+        fs::read_dir(&migrations).unwrap().any(|e| e
+            .unwrap()
+            .file_name()
+            .to_string_lossy()
+            .ends_with("_alter_users_table.rs")),
+        "une migration *_alter_users_table.rs doit être créée"
     );
     del_env("RUNIQUE_TEST");
     std::fs::remove_dir_all(&entities).ok();
@@ -364,23 +344,23 @@ async fn test_run_alter_cree_fichier_alter() {
     )
     .unwrap();
 
-    // Un fichier *_alter_users_table.rs doit exister dans applied/users/
-    let alter_dir = migrations.join("applied/users");
-    if alter_dir.exists() {
-        let alter_files: Vec<_> = fs::read_dir(&alter_dir)
-            .unwrap()
-            .filter_map(|e| e.ok())
-            .filter(|e| {
-                let n = e.file_name();
-                let s = n.to_string_lossy().to_string();
-                s.contains("alter_users_table") && s.ends_with(".rs")
-            })
-            .collect();
-        assert!(
-            !alter_files.is_empty(),
-            "fichier *_alter_users_table.rs doit exister dans applied/users/"
-        );
-    }
+    let alter_files: Vec<_> = fs::read_dir(&migrations)
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .filter(|e| {
+            let n = e.file_name();
+            let s = n.to_string_lossy().to_string();
+            s.contains("alter_users_table") && s.ends_with(".rs")
+        })
+        .collect();
+    assert!(
+        !alter_files.is_empty(),
+        "fichier *_alter_users_table.rs doit exister dans migrations/"
+    );
+    assert!(
+        !migrations.join("applied").exists(),
+        "plus de copie dans applied/"
+    );
     del_env("RUNIQUE_TEST");
     std::fs::remove_dir_all(&entities).ok();
     std::fs::remove_dir_all(&migrations).ok();
@@ -641,9 +621,7 @@ async fn test_run_drop_colonne_avec_force_genere_migration() {
         result
     );
 
-    let alter_dir = migrations.join("applied/users");
-    assert!(alter_dir.exists(), "applied/users/ doit exister");
-    let alter_files: Vec<_> = fs::read_dir(&alter_dir)
+    let alter_files: Vec<_> = fs::read_dir(&migrations)
         .unwrap()
         .filter_map(|e| e.ok())
         .filter(|e| {
@@ -654,7 +632,7 @@ async fn test_run_drop_colonne_avec_force_genere_migration() {
         .collect();
     assert!(
         !alter_files.is_empty(),
-        "fichier ALTER doit exister dans applied/users/"
+        "fichier ALTER doit exister dans migrations/"
     );
 
     let alter_content = fs::read_to_string(alter_files[0].path()).unwrap();
@@ -733,5 +711,117 @@ async fn test_run_snapshot_ancien_rafraichi_puis_longueur_suivie() {
     run(ent, mig, false).unwrap();
     assert_eq!(migration_files(&migrations), first + 1);
 
+    del_env("RUNIQUE_TEST");
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FK circulaires et index de FK
+// ═══════════════════════════════════════════════════════════════
+
+fn create_file(dir: &std::path::Path, table: &str) -> String {
+    let name = fs::read_dir(dir)
+        .unwrap()
+        .map(|e| e.unwrap().file_name().into_string().unwrap())
+        .find(|n| n.ends_with(&format!("_create_{table}_table.rs")))
+        .unwrap_or_else(|| panic!("no CREATE file for {table}"));
+    fs::read_to_string(dir.join(name)).unwrap()
+}
+
+#[tokio::test]
+async fn test_run_cycle_de_fk_place_la_cle_selon_le_moteur() {
+    set_env("RUNIQUE_TEST", "1");
+    let entities = temp_dir("run_cycle_ent");
+    let migrations = temp_dir("run_cycle_mig");
+    fs::write(
+        entities.join("author.rs"),
+        r#"model! { Author, table: "authors", pk: id => i32, { best_book_id: int [nullable] },
+            relations: { belongs_to: book via best_book_id [set_null] } }"#,
+    )
+    .unwrap();
+    fs::write(
+        entities.join("book.rs"),
+        r#"model! { Book, table: "books", pk: id => i32, { author_id: int [required] },
+            relations: { belongs_to: author via author_id [cascade] } }"#,
+    )
+    .unwrap();
+    run(
+        entities.to_str().unwrap(),
+        migrations.to_str().unwrap(),
+        false,
+    )
+    .unwrap();
+
+    // `authors` comes first (smallest name): its key to `books` is inline on
+    // SQLite only.
+    let authors = create_file(&migrations, "authors");
+    let sqlite_branch = authors
+        .split("DbBackend::Sqlite {")
+        .nth(1)
+        .expect("SQLite branch");
+    assert!(
+        sqlite_branch.contains("authors_best_book_id_books_fkey"),
+        "{authors}"
+    );
+    assert!(authors.contains("manager.create_table(table.to_owned())"));
+
+    // `books` closes the cycle elsewhere, and undoes it before its DROP.
+    let books = create_file(&migrations, "books");
+    let (up, down) = books.split_once("async fn down").unwrap();
+    assert!(up.contains("!= sea_orm::DbBackend::Sqlite"), "{books}");
+    assert!(up.contains(".create_foreign_key("));
+    assert!(up.contains("authors_best_book_id_books_fkey"));
+    assert!(down.find(".drop_foreign_key(").unwrap() < down.find(".drop_table(").unwrap());
+    assert!(
+        books.contains("books_author_id_authors_fkey"),
+        "inline key kept"
+    );
+
+    let lib = fs::read_to_string(migrations.join("lib.rs")).unwrap();
+    assert!(lib.find("create_authors_table").unwrap() < lib.find("create_books_table").unwrap());
+    del_env("RUNIQUE_TEST");
+}
+
+#[tokio::test]
+async fn test_run_index_sur_chaque_fk() {
+    set_env("RUNIQUE_TEST", "1");
+    let entities = temp_dir("run_fk_idx_ent");
+    let migrations = temp_dir("run_fk_idx_mig");
+    fs::write(
+        entities.join("shelf.rs"),
+        r#"model! { Shelf, table: "shelves", pk: id => i32, { label: text } }"#,
+    )
+    .unwrap();
+    fs::write(
+        entities.join("book.rs"),
+        r#"model! { Book, table: "books", pk: id => i32, {
+                shelf_id: int [required],
+                owner_id: int [required, unique],
+                lender_id: int [required],
+            },
+            relations: {
+                belongs_to: shelf via shelf_id [cascade],
+                belongs_to: shelf via owner_id,
+                belongs_to: shelf via lender_id,
+            },
+            meta: { indexes: [(lender_id, shelf_id)] } }"#,
+    )
+    .unwrap();
+    run(
+        entities.to_str().unwrap(),
+        migrations.to_str().unwrap(),
+        false,
+    )
+    .unwrap();
+
+    let books = create_file(&migrations, "books");
+    assert!(books.contains("\"idx_books_shelf_id\""), "{books}");
+    assert!(
+        !books.contains("idx_books_owner_id"),
+        "unique column already indexed"
+    );
+    assert!(
+        !books.contains("\"idx_books_lender_id\""),
+        "covered by the declared index"
+    );
     del_env("RUNIQUE_TEST");
 }

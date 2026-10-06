@@ -271,6 +271,9 @@ pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
         })
         .collect();
 
+    // extend!{} refuses list fields: the admin calls these, they do nothing.
+    let admin_lists = crate::model::generateur::generate_admin_lists(&[]);
+
     quote! {
         #enum_defs
 
@@ -295,6 +298,8 @@ pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
         pub enum Relation {}
 
         #behavior
+
+        #admin_lists
 
         #[allow(clippy::needless_update)]
         pub fn admin_from_form(

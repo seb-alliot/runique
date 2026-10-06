@@ -115,18 +115,20 @@ si vous changez de feature après coup.
 
 ## Types de champs
 
-| Type DSL          | Type Rust généré          | Colonne SQL                    |
+Le type Rust indiqué est celui d'une colonne NOT NULL ; une colonne `nullable` donne `Option<T>`.
+
+| Type DSL          | Type Rust généré          | Colonne SQL créée par `makemigrations` |
 |--------------------|---------------------------|---------------------------------|
-| `text`             | `String`                  | `VARCHAR(255)` ou `VARCHAR(n)` si `max_length: n` |
-| `char`             | `String`                  | `CHAR`                          |
+| `text`             | `String`                  | `VARCHAR`, ou `VARCHAR(n)` avec `max_length: n` |
+| `char`             | `String`                  | `VARCHAR`                       |
 | `email`            | `String`                  | `VARCHAR(254)` — format validé  |
-| `password`         | `String`                  | `VARCHAR(255)` — haché automatiquement |
-| `richtext`         | `String`                  | `TEXT` — éditeur HTML           |
+| `password`         | `String`                  | `VARCHAR` — haché automatiquement |
+| `richtext`         | `String`                  | `TEXT` — éditeur HTML (nettoyé) |
 | `textarea`         | `String`                  | `TEXT` — multi-ligne            |
-| `url`              | `String`                  | `VARCHAR(255)` — format validé  |
-| `slug`             | `String`                  | `VARCHAR(255)`                  |
-| `color`            | `String`                  | `VARCHAR(255)` — couleur hex    |
-| `phone`            | `String`                  | `VARCHAR(20)` ou `VARCHAR(n)` si `max_length: n` |
+| `url`              | `String`                  | `VARCHAR` — format validé       |
+| `slug`             | `String`                  | `VARCHAR`                       |
+| `color`            | `String`                  | `VARCHAR` — couleur hex         |
+| `phone`            | `String`                  | `VARCHAR(20)`, ou `VARCHAR(n)` avec `max_length: n` |
 | `i8`               | `i8`                      | `TINYINT`                       |
 | `i16`              | `i16`                     | `SMALLINT`                      |
 | `int`              | `i32`                     | `INTEGER`                       |
@@ -135,34 +137,41 @@ si vous changez de feature après coup.
 | `u64`              | `u64`                     | `BIGINT UNSIGNED`               |
 | `f32`              | `f32`                     | `FLOAT`                         |
 | `float`            | `f64`                     | `DOUBLE`                        |
-| `percent`          | `f64`                     | `DOUBLE` — stocké comme float   |
+| `percent`          | `f64`                     | `DOUBLE` — formulaire borné à 0–100 |
 | `decimal`          | `Decimal`                 | `DECIMAL`                       |
 | `bool`             | `bool`                    | `BOOLEAN`                       |
 | `date`             | `NaiveDate`                | `DATE`                          |
 | `time`             | `NaiveTime`                | `TIME`                          |
 | `datetime`         | `NaiveDateTime`            | `DATETIME`                      |
-| `timestamp`        | `NaiveDateTime`            | `TIMESTAMP`                     |
-| `timestamp_tz`     | `DateTime<Utc>`            | `TIMESTAMPTZ`                   |
+| `timestamp`        | `NaiveDateTime`            | `DATETIME`                      |
+| `timestamp_tz`     | `DateTime<Utc>`            | `TIMESTAMP WITH TIME ZONE`      |
 | `uuid`             | `Uuid`                     | `UUID`                          |
 | `Pk`               | `i32`/`i64`/`Uuid`         | selon la feature — voir ci-dessus |
 | `json`             | `serde_json::Value`        | `JSON`                          |
-| `json_binary`      | `serde_json::Value`        | `JSON BINARY`                   |
-| `binary`           | `Vec<u8>`                  | `BINARY` — taille via `max_length: n` |
-| `var_binary`       | `Vec<u8>`                  | `VARBINARY(n)` — `max_length: n` requis |
+| `json_binary`      | `serde_json::Value`        | `JSON`                          |
+| `binary`           | `Vec<u8>`                  | `BINARY(n)` — 255 par défaut, `max_length: n` |
+| `var_binary`       | `Vec<u8>`                  | `VARBINARY(n)` — 255 par défaut, `max_length: n` |
 | `blob`             | `Vec<u8>`                  | `BLOB`                          |
-| `ip`               | `String`                   | `INET`                          |
-| `cidr`             | `String`                   | `CIDR`                          |
-| `mac_address`      | `String`                   | `MACADDR`                       |
-| `interval`         | `String`                   | `INTERVAL`                      |
-| `image`            | `String`                   | `VARCHAR(255)` — chemin de fichier |
-| `document`         | `String`                   | `VARCHAR(255)` — chemin de fichier |
-| `file`             | `String`                   | `VARCHAR(255)` — chemin de fichier |
-| `choice`           | `EnumName`                 | `VARCHAR` / `ENUM` natif — requiert `enum(NomEnum)` |
-| `radio`            | `EnumName`                 | Idem `choice`, widget différent |
-| `checkbox`         | `EnumName`                 | Idem `choice`, widget différent |
+| `ip`               | `String`                   | `VARCHAR` — format validé       |
+| `cidr`             | `String`                   | `VARCHAR`                       |
+| `mac_address`      | `String`                   | `VARCHAR`                       |
+| `interval`         | `String`                   | `VARCHAR`                       |
+| `image`            | `String`                   | `VARCHAR` — chemin du fichier   |
+| `document`         | `String`                   | `VARCHAR` — chemin du fichier   |
+| `file`             | `String`                   | `VARCHAR` — chemin du fichier   |
+| `choice`           | `NomEnum`                  | colonne de l'enum — requiert `enum(NomEnum)`, rendu `<select>` |
+| `radio`            | `NomEnum`                  | idem `choice`, rendu en boutons radio |
+| `multichoice`      | — (liste, voir plus bas)   | table à part `{table}_{champ}` — rendu `<select multiple>` |
+| `checkbox`         | — (liste, voir plus bas)   | idem `multichoice`, rendu en cases à cocher |
 
-`binary`/`var_binary` réutilisent l'option `max_length: n` (même mécanisme que `text` +
-`max_length` → `VARCHAR(n)`) — il n'existe pas de syntaxe `binary(n)` inline séparée.
+`VARCHAR` sans longueur prend la valeur par défaut du moteur : illimité sous Postgres,
+`VARCHAR(255)` sous MySQL/MariaDB, `TEXT` sous SQLite. `ip`, `cidr`, `mac_address` et
+`interval` restent des `VARCHAR` : leurs types natifs n'existent que sous Postgres.
+
+**Limites des moteurs**, refusées à la compilation quand une seule feature de moteur est
+active : `i8` et `u32` sous Postgres, `u64` sous Postgres et SQLite (la valeur ne peut pas être
+relue dans le type Rust). Sous MySQL/MariaDB, `binary` est une colonne à **longueur fixe**,
+complétée par des `0x00` : utilisez `var_binary` pour relire exactement les octets écrits.
 
 > **Non disponible** : `decimal(precision, scale)` inline (ex. `decimal(10, 2)`) n'a pas
 > d'équivalent actuel — seul `decimal` sans paramètres est supporté. Contournement : appliquer
@@ -180,37 +189,84 @@ username: text [required, max_length: 150, unique],
 
 | Option                   | Description                                                     |
 |--------------------------|-------------------------------------------------------------------|
-| `required`               | Colonne `NOT NULL` + validation formulaire                       |
+| `required`               | Champ **obligatoire dans le formulaire**. Ne dit rien de la colonne |
 | `nullable`               | Colonne `NULL` — type Rust `Option<T>`                           |
 | `unique`                 | Contrainte `UNIQUE`                                              |
-| `max_length: n`          | Longueur max (validation + taille de colonne)                    |
+| `max_length: n`          | Longueur max : validation **et** taille de colonne (`VARCHAR(n)`, `BINARY(n)`, `VARBINARY(n)`) |
 | `min_length: n`          | Longueur min (validation)                                        |
-| `min: n`                 | Valeur min entière (validation)                                  |
-| `max: n`                 | Valeur max entière (validation)                                  |
-| `min: n.0`               | Valeur min flottante (validation)                                |
-| `max: n.0`               | Valeur max flottante (validation)                                |
+| `min: n` / `max: n`      | Bornes entières (validation)                                     |
+| `min: n.0` / `max: n.0`  | Bornes flottantes (validation)                                   |
 | `default: valeur`        | Valeur par défaut SQL (`true`, `0`, `"draft"`, etc.)             |
-| `auto_now`               | Assigné à `NOW()` à chaque `INSERT` — exclu des formulaires      |
-| `auto_now_update`        | Assigné à `NOW()` à chaque `UPDATE` — exclu des formulaires      |
+| `auto_now`               | Rempli à la création — exclu des formulaires                    |
+| `auto_now_update`        | Rempli à chaque enregistrement — exclu des formulaires          |
 | `readonly`               | Exclu de la migration générée (colonne existe côté Rust, non gérée par `derive_form`) |
-| `label: "str"`           | Libellé personnalisé dans les formulaires admin                  |
-| `help: "str"`            | Réservé — pas encore branché au rendu                            |
+| `label: "str"`           | Libellé personnalisé dans les formulaires                        |
 | `upload_to: "path"`      | Champ fichier — dossier d'upload                                 |
 | `max_size: n MB`         | Champ fichier — taille max (`KB`/`MB`/`GB`)                      |
 | `rows: n`                | `textarea`/`richtext` — hauteur du widget                        |
 | `step: n`                | Champs numériques — pas du widget                                |
-| `fk(table.col, action)`  | Contrainte clé étrangère (voir Relations)                        |
 | `enum(NomEnum)`          | Lie le champ à un enum déclaré dans `enums:`                     |
 | `renamed_from: "x"`      | Renomme la colonne (voir plus bas)                                |
 | `skip`                   | Exclu des formulaires générés                                    |
 | `no_hash`                | Champs `password` uniquement — désactive le hachage automatique  |
 
-> **`readonly`** (nouveau, DB-level) est distinct du `readonly` de `#[form]`
+Un attribut inconnu ou non valide pour le type est une **erreur de compilation**, qui nomme le
+champ et l'attribut. `makemigrations` lit le DSL avec le même parseur que la macro : un modèle
+refusé par l'un est refusé par l'autre, avec le fichier, la ligne et la colonne.
+
+> **Le nom d'une colonne ne décide de rien.** Une colonne `created_at` sans `auto_now` n'a pas de
+> valeur par défaut, une colonne `cache_key` est migrée comme les autres : seuls les attributs
+> comptent.
+
+> **`readonly`** (DB-level) est distinct du `readonly` de `#[form]`
 > (`field_readonly()`, désactive un champ dans le rendu HTML d'une instance de formulaire
 > précise). `readonly` sur le champ du modèle exclut la colonne de la migration générée ;
 > `field_readonly()` désactive juste un widget au runtime. Les deux peuvent coexister.
 
-> **`auto_now` / `auto_now_update`** : ces champs sont exclus de `admin_from_form` et d'`admin_partial_update`. Leur valeur est gérée uniquement par la base. Ils apparaissent dans `Model` et `Column` comme `Option<T>`.
+### Nullabilité
+
+Une colonne est **NOT NULL**, sauf si elle est déclarée `nullable`. `required` ne concerne que
+le formulaire. Le parseur refuse, à la compilation :
+
+- `required` et `nullable` ensemble ;
+- `nullable` sur `auto_now` / `auto_now_update` : le framework les remplit toujours ;
+- un champ qui n'est pas de type texte (nombre, date, choix, uuid, json…) déclaré sans
+  `required`, `nullable` ni `default` — un champ facultatif laissé vide n'aurait rien à
+  enregistrer dans une colonne NOT NULL. Les champs texte, fichier, binaire et `bool` peuvent
+  rester facultatifs : ils envoient toujours une valeur enregistrable (texte vide, aucun fichier,
+  case décochée).
+
+```rust
+{
+    titre:      text  [required],          // NOT NULL, obligatoire dans le formulaire
+    sous_titre: text,                      // NOT NULL, facultatif (texte vide)
+    resume:     text  [nullable],          // NULL possible — Option<String>
+    note:       int   [default: 0],        // NOT NULL, 0 si rien n'est saisi
+    publie_le:  date  [nullable],          // NULL possible — Option<NaiveDate>
+}
+```
+
+### `auto_now` / `auto_now_update`
+
+Remplis par l'entité elle-même (`ActiveModelBehavior::before_save`), de la même façon sur tous
+les moteurs : `auto_now` à la création s'il n'est pas déjà posé, `auto_now_update` à chaque
+enregistrement. La migration ajoute aussi `DEFAULT CURRENT_TIMESTAMP`, pour une insertion faite
+hors de SeaORM. Le type Rust est `T` (jamais `Option<T>`), et ces champs sont exclus de
+`admin_from_form` et d'`admin_partial_update`.
+
+### Longueurs de colonne
+
+`max_length` donne la taille de la colonne, suivie par les snapshots : l'agrandir produit un
+simple `ALTER`, la réduire demande `--force` (des valeurs plus longues seraient tronquées ou
+refusées). Un snapshot écrit avant la 3.0 reprend une seule fois les longueurs du modèle, sans
+produire de migration.
+
+### Bornes et `customize`
+
+`min_length`, `max_length`, `min` et `max` passent dans les formulaires générés depuis le
+modèle. Un formulaire peut les **resserrer** dans `customize`, jamais les **desserrer** : un
+`customize` qui allonge un `max_length`, abaisse un `min`, etc. provoque un panic à la
+construction du formulaire, avec un message qui nomme le champ et la borne.
 
 ### Renommer une colonne — `renamed_from`
 
@@ -288,15 +344,23 @@ Changer un libellé (`Published: "Publié"` → `Published: "Mis en ligne"`) n'a
 | Syntaxe              | Stockage DB                                     |
 |----------------------|--------------------------------------------------|
 | `NomEnum: [A, B]`     | `ENUM` natif (Postgres) ou `VARCHAR` (MySQL/SQLite) |
-| `NomEnum: i32 [...]`  | `INTEGER` — `=` fixe alors la valeur numérique, pas une chaîne |
-| `NomEnum: i64 [...]`  | `BIGINT` — idem                                   |
+| `NomEnum: i8 [...]`   | `TINYINT` — refusé sous Postgres                  |
+| `NomEnum: i16 [...]`  | `SMALLINT`                                        |
+| `NomEnum: i32 [...]`  | `INTEGER`                                         |
+| `NomEnum: i64 [...]`  | `BIGINT`                                          |
+
+Pour un enum entier, `=` fixe la valeur numérique stockée, et **chaque variante doit en avoir
+une** (`Basse = 0` ou `Basse = (0, "Basse")`), dans les limites du type, sans doublon. Sinon,
+c'est une erreur de compilation : deux variantes avec la même valeur seraient relues l'une pour
+l'autre.
 
 ### Méthodes générées
 
 | Méthode | Retour | Description |
 |---------|--------|-------------|
 | `.to_string()` | `String` | Libellé d'affichage |
-| `.db_value()` | `&'static str` / `i32` / `i64` | Valeur exacte en base |
+| `.db_value()` | `&'static str` / `i8` … `i64` | Valeur exacte en base |
+| `.form_value()` | `&'static str` | Valeur envoyée par un formulaire (valeur stockée pour un enum texte, nom de la variante pour un enum entier) |
 | `::from_str(s)` / `.parse()` | `Result<Self, ()>` | Parsing depuis valeur DB, libellé, ou nom variant |
 | `::iter()` | `impl Iterator<Item = Self>` | Itération sur tous les variants |
 
@@ -349,24 +413,113 @@ model! {
 
 ```rust
 relations: {
-    belongs_to: Model via champ_fk,
-    has_many: Model,
-    has_many: Comments as user_comments,   // alias optionnel
-    has_one: Profile as user_profile,
-    many_to_many: Roles through UserRoles via self_id,
+    belongs_to: cour via cour_id [cascade],          // clé étrangère
+    has_many: Commentaire,
+    has_many: Commentaire as commentaires,           // alias optionnel
+    has_one: Profil as profil,
+    many_to_many: Role through UserRole via user_id,
 }
 ```
 
 | Type             | Contrainte DB   | Description                  |
 |------------------|-----------------|-------------------------------|
-| `belongs_to`     | ❌ code seul     | Relation N-1 (SeaORM)        |
+| `belongs_to`     | ✅ `FOREIGN KEY` + index | Relation N-1             |
 | `has_many`       | ❌ code seul     | Relation 1-N                 |
 | `has_one`        | ❌ code seul     | Relation 1-1                 |
-| `many_to_many`   | ❌ code seul     | Relation N-N via pivot       |
+| `many_to_many`   | ❌ code seul     | Relation N-N via une table pivot déclarée à part |
 
-> **Contrainte FK réelle** : la contrainte SQL `FOREIGN KEY` et son action (`cascade`, `restrict`, `set_null`, `set_default`) sont déclarées sur l'option `fk(table.col, action)` du champ, pas dans le bloc `relations:`. Le bloc `relations:` génère uniquement les traits SeaORM pour la navigation objet.
+### `belongs_to` — la clé étrangère
 
-Actions FK disponibles sur l'option `fk(...)` : `cascade` · `restrict` · `set_null` · `set_default`
+`belongs_to: cible via colonne [on_delete, on_update]` est la **seule** façon de déclarer une
+clé étrangère. Elle produit à la fois la contrainte SQL et la relation SeaORM :
+
+- **`cible`** est le module de l'entité visée — le fichier `cible.rs` de `src/entities/` — ou une
+  table du framework (`eihwaz_users`, …). La clé vise la **vraie table et la vraie clé
+  primaire** de ce modèle, quel que soit son nom (`pk: code => i32` compris). Une cible
+  introuvable est une erreur de `makemigrations`.
+- **`colonne`** doit être un champ déclaré du modèle (de préférence `Pk`, voir plus haut).
+- **Actions** entre crochets : la première pour `ON DELETE`, la seconde (facultative) pour
+  `ON UPDATE` — `cascade`, `set_null`, `restrict`, `set_default`, `no_action` (par défaut). Une
+  action inconnue est une erreur de compilation, et `set_null` exige une colonne `nullable`.
+- **Index** : `makemigrations` crée un index `idx_<table>_<colonne>` sur chaque colonne de
+  `belongs_to`, comme Django — sauf si la colonne est déjà `unique` ou en tête d'un index déclaré
+  dans `meta`.
+- **Cycles** : deux nouvelles tables qui se référencent l'une l'autre sont gérées. Sous SQLite,
+  la clé reste dans le `CREATE TABLE` ; sous Postgres et MySQL, celle qui ferme le cycle est
+  ajoutée par un `ALTER TABLE` une fois l'autre table créée.
+
+> Depuis la 3.0, l'ancienne option de champ `fk(table.col, action)` n'existe plus : elle produit
+> une erreur de compilation qui renvoie vers `belongs_to`.
+
+---
+
+## Champs liste — `multichoice` et `checkbox`
+
+Un champ liste contient **plusieurs valeurs d'un enum**. `multichoice` est rendu en
+`<select multiple>`, `checkbox` en cases à cocher ; les deux se stockent et s'utilisent de la
+même façon.
+
+```rust
+model! {
+    Livre,
+    table: "livres",
+    pk: id => Pk,
+    enums: { Genre: [Roman, Policier, Jeunesse = ("jeunesse", "Jeunesse")] },
+    {
+        titre:  text [required],
+        genres: checkbox [enum(Genre), required],   // required = au moins une valeur
+    }
+}
+```
+
+- **Stockage** : pas de colonne dans `livres`, et pas de champ `genres` dans le `Model`. Les
+  valeurs vivent dans une table `livres_genres`, créée par `makemigrations` : `id`, `owner_id`
+  (FK `ON DELETE CASCADE` vers la ligne propriétaire), `value` (la colonne de l'enum), un index
+  unique `(owner_id, value)` et un index `(value, owner_id)` pour les filtres.
+- **Attributs** : l'enum est obligatoire ; seuls `required`, `enum(...)` et `label` sont
+  acceptés (une liste vide suffit à dire « rien »). Un champ liste ne peut pas être référencé
+  dans `meta` ni par `belongs_to`, et n'est pas accepté dans `extend!{}`. Un nom qui masquerait
+  une méthode de SeaORM (`get`, `set`, `delete`, `find_related`…) est refusé.
+
+### Lire et écrire
+
+```rust
+let genres: Vec<Genre> = livre.genres(&db).await?;          // dans l'ordre d'enregistrement
+livre.set_genres(&db, [Genre::Roman, Genre::Policier]).await?; // remplace, en transaction, sans doublon
+let par_livre = livre::Model::load_genres(&db, &livres).await?; // une page entière : 1 requête
+```
+
+### Filtrer
+
+```rust
+search!(livre::Entity => Genres has Genre::Roman)
+search!(livre::Entity => Genres has_any [Genre::Roman, Genre::Policier])
+search!(livre::Entity => Genres has_all [Genre::Roman, Genre::Policier])
+search!(livre::Entity => !Genres has Genre::Roman, Titre icontains "nuit")
+
+livre::Entity::objects.filter(livre::List::Genres.has(Genre::Roman))   // sans search!
+```
+
+Les filtres sont des sous-requêtes portables (Postgres, MySQL/MariaDB, SQLite) et sont typés :
+passer une valeur d'un autre enum ne compile pas.
+
+### Postgres : lignes et listes en une requête
+
+Avec la feature `postgres`, `fetch_with` renvoie les lignes d'une requête **avec** leur liste,
+en un seul aller-retour (filtre et ordre de la requête conservés) :
+
+```rust
+let page: Vec<(livre::Model, Vec<Genre>)> =
+    livre::List::Genres.fetch_with(&db, livre::Entity::find().limit(50)).await?;
+```
+
+Sur un autre moteur, elle renvoie une erreur ; utilisez `load_genres` après avoir lu la page.
+
+### Formulaires et admin
+
+L'admin affiche le champ (cases ou sélection multiple), enregistre la ligne et sa liste dans la
+même transaction, et pré-remplit le formulaire d'édition. Dans un formulaire, les valeurs
+cochées se lisent avec `cleaned_enums::<Genre>("genres")`.
 
 ---
 
@@ -408,12 +561,12 @@ use runique::prelude::*;
 extend! {
     table: "eihwaz_users",
     fields: {
-        bio:        textarea,
-        avatar:     image  [upload_to: "avatars/"],
-        website:    url,
-        phone:      phone,
-        birth_date: date,
-        is_verified: bool  [default: false],
+        bio:         textarea [nullable],
+        avatar:      image    [nullable, upload_to: "avatars/"],
+        website:     url      [nullable],
+        phone:       phone    [nullable],
+        birth_date:  date     [nullable],
+        is_verified: bool     [default: false],
     }
 }
 ```
@@ -424,7 +577,7 @@ extend! {
 
 Tables autorisées : `eihwaz_users`, `eihwaz_groupes`, `eihwaz_sessions`, `eihwaz_users_groupes`, `eihwaz_groupes_droits`. Tout autre nom provoque une erreur à la compilation.
 
-Les champs déclarés dans `extend!{}` utilisent les mêmes types et options que `model!` (y compris `renamed_from`). Pas de bloc `relations:` dans `extend!{}` — les relations se déclarent dans `model!{}` cible avec `has_many(user_profile)` etc.
+Les champs déclarés dans `extend!{}` utilisent les mêmes types, options et règles de nullabilité que `model!` (y compris `renamed_from`). Les colonnes ajoutées à une table existante seront remplies pour les lignes déjà présentes : déclarez-les `nullable` ou avec un `default`. Pas de bloc `relations:` ni de champ liste (`multichoice`/`checkbox`) dans `extend!{}`.
 
 ### Enums dans `extend!{}`
 
@@ -437,8 +590,8 @@ extend! {
         Seniority: [Junior="junior", Mid="mid", Senior="senior", Lead="lead"],
     },
     fields: {
-        job_title: text,
-        seniority: choice [enum(Seniority)],
+        job_title: text [nullable],
+        seniority: choice [enum(Seniority), nullable],
     }
 }
 ```
@@ -453,7 +606,7 @@ extend! {
 runique makemigrations
 
 # 3. Appliquer
-runique migrate
+runique migration up
 
 # 4. Enregistrer dans admin!{} (src/admin.rs)
 ```
@@ -491,24 +644,24 @@ L'entité générée est un `EntityTrait` SeaORM standard — `search!` fonction
 
 ```rust
 // Tous les profils vérifiés
-let profiles = search!(user_profile::Entity => is_verified eq true).fetch(&db).await?;
+let profiles = search!(user_profile::Entity => IsVerified eq true).all(&db).await?;
 
 // Recherche multi-colonnes
-let results = search!(user_profile::Entity => or(username icontains q, bio icontains q)).fetch(&db).await?;
+let results = search!(user_profile::Entity => or(Username icontains q, Bio icontains q)).all(&db).await?;
 ```
 
-### Relations vers l'entité étendue
+### Relations vers une table du framework
 
-D'autres entités peuvent pointer vers l'entité étendue via le bloc `relations:` habituel de `model!{}` :
+Une entité pointe vers une table du framework par son nom de table, dans le bloc `relations:` habituel de `model!{}` :
 
 ```rust
 model! {
     Article,
     table: "articles",
-    pk: id => i32,
-    { auteur_id: int [required] },
+    pk: id => Pk,
+    { auteur_id: Pk [required] },
     relations: {
-        belongs_to: user_profile::Model via auteur_id,
+        belongs_to: eihwaz_users via auteur_id [cascade],
     }
 }
 ```

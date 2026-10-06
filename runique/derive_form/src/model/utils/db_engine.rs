@@ -132,6 +132,17 @@ pub fn check_engine_support(model: &crate::model::ast::ModelInput) -> syn::Resul
             ),
         ));
     }
+    for e in &model.enums {
+        if e.backing_type.unsupported_on().contains(&engine) {
+            return Err(syn::Error::new(
+                e.name.span(),
+                format!(
+                    "enum `{}` is `i8`, which isn't supported on {engine_name}: the value can't be read back as a Rust `i8`. Use `i16` instead.",
+                    e.name
+                ),
+            ));
+        }
+    }
     Ok(())
 }
 

@@ -11,6 +11,7 @@ pub fn generate_admin_form(model: &ModelInput) -> TokenStream2 {
     let field_registrations: Vec<TokenStream2> = model
         .form_fields
         .iter()
+        .chain(&model.lists)
         .map(|ff| generate_form_field_decl(ff, &model.enums))
         .collect();
 
@@ -196,7 +197,10 @@ pub(crate) fn generate_form_field_decl(ff: &FormFieldDecl, enums: &[EnumDef]) ->
         }
 
         // ── Choice / Radio / Checkbox — resolution via EnumRef attr or fields: ─────
-        FormFieldKind::Choice | FormFieldKind::Radio | FormFieldKind::Checkbox => {
+        FormFieldKind::Choice
+        | FormFieldKind::Radio
+        | FormFieldKind::Checkbox
+        | FormFieldKind::Multichoice => {
             // Priority: Explicit EnumRef in attrs, otherwise lookup via fields:
             let enum_ident = ff.attrs.iter().find_map(|a| {
                 if let FormFieldAttr::EnumRef(id) = a {
@@ -224,6 +228,8 @@ pub(crate) fn generate_form_field_decl(ff: &FormFieldDecl, enums: &[EnumDef]) ->
                 quote! { ::runique::forms::fields::RadioField::new(#name_str).label(#label) #(#choices)* #required_suffix }
             } else if matches!(ff.kind, FormFieldKind::Checkbox) {
                 quote! { ::runique::forms::fields::CheckboxField::new(#name_str).label(#label) #(#choices)* #required_suffix }
+            } else if matches!(ff.kind, FormFieldKind::Multichoice) {
+                quote! { ::runique::forms::fields::ChoiceField::new(#name_str).label(#label).multiple() #(#choices)* #required_suffix }
             } else {
                 quote! { ::runique::forms::fields::ChoiceField::new(#name_str).label(#label) #(#choices)* #required_suffix }
             }

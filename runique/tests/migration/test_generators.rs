@@ -1,13 +1,9 @@
 //! Tests — migration/utils/generators.rs
 //! Couvre : generate_create_file, generate_alter_file,
-//!          generate_batch_up_file, generate_batch_down_file,
 //!          generate_snapshot_file
 
 use runique::migration::utils::{
-    generators::{
-        generate_alter_file, generate_batch_down_file, generate_batch_up_file,
-        generate_create_file, generate_snapshot_file,
-    },
+    generators::{generate_alter_file, generate_create_file, generate_snapshot_file},
     types::{Changes, ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema},
 };
 
@@ -338,76 +334,6 @@ fn test_alter_file_enum_rename_contient_nom_table() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// generate_batch_up_file
-// ═══════════════════════════════════════════════════════════════
-
-#[test]
-fn test_batch_up_contient_timestamp() {
-    let changes = simple_changes("users");
-    let ts = "20260228_120000";
-    let content = generate_batch_up_file(&[&changes], ts);
-    assert!(content.contains(ts));
-}
-
-#[test]
-fn test_batch_up_contient_nom_table() {
-    let changes = simple_changes("users");
-    let content = generate_batch_up_file(&[&changes], "20260228_120000");
-    assert!(content.contains("users"));
-}
-
-#[test]
-fn test_batch_up_plusieurs_tables() {
-    let c1 = simple_changes("users");
-    let c2 = simple_changes("posts");
-    let content = generate_batch_up_file(&[&c1, &c2], "20260228_120000");
-    assert!(content.contains("users"));
-    assert!(content.contains("posts"));
-}
-
-#[test]
-fn test_batch_up_contient_struct_migration() {
-    let changes = simple_changes("users");
-    let content = generate_batch_up_file(&[&changes], "20260228_120000");
-    assert!(content.contains("pub struct Migration"));
-}
-
-// ═══════════════════════════════════════════════════════════════
-// generate_batch_down_file
-// ═══════════════════════════════════════════════════════════════
-
-#[test]
-fn test_batch_down_contient_timestamp() {
-    let changes = simple_changes("users");
-    let ts = "20260228_120000";
-    let content = generate_batch_down_file(&[&changes], ts);
-    assert!(content.contains(ts));
-}
-
-#[test]
-fn test_batch_down_contient_nom_table() {
-    let changes = simple_changes("users");
-    let content = generate_batch_down_file(&[&changes], "20260228_120000");
-    assert!(content.contains("users"));
-}
-
-#[test]
-fn test_batch_down_contient_struct_migration() {
-    let changes = simple_changes("users");
-    let content = generate_batch_down_file(&[&changes], "20260228_120000");
-    assert!(content.contains("pub struct Migration"));
-}
-
-#[test]
-fn test_batch_down_plusieurs_tables() {
-    let c1 = simple_changes("users");
-    let c2 = simple_changes("posts");
-    let content = generate_batch_down_file(&[&c1, &c2], "20260228_120000");
-    assert!(content.contains("users"));
-    assert!(content.contains("posts"));
-}
-
-// ═══════════════════════════════════════════════════════════════
 // generate_create_file — branches Postgres / MySQL
 // ═══════════════════════════════════════════════════════════════
 
@@ -464,7 +390,7 @@ fn test_create_file_postgres_updated_at_has_no_trigger() {
         columns: vec![ParsedColumn {
             name: "updated_at".to_string(),
             col_type: "DateTime".to_string(),
-            updated_at: true,
+            has_default_now: true,
             ..ParsedColumn::default()
         }],
         foreign_keys: vec![],
@@ -485,7 +411,7 @@ fn test_create_file_mysql_updated_at_has_no_on_update() {
         columns: vec![ParsedColumn {
             name: "updated_at".to_string(),
             col_type: "DateTime".to_string(),
-            updated_at: true,
+            has_default_now: true,
             ..ParsedColumn::default()
         }],
         foreign_keys: vec![],

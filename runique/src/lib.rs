@@ -196,6 +196,7 @@ pub mod prelude {
     // pub use crate::migration::user_runique;
     #[cfg(feature = "orm")]
     pub use crate::db::{DatabaseConfig, DatabaseConfigBuilder, DatabaseEngine};
+    pub use crate::macros::bdd::list::{HasLists, ListField};
     #[cfg(feature = "orm")]
     pub use sea_orm::{
         self, ActiveModelBehavior, ActiveModelTrait, ColumnTrait, ConnectOptions, Database,

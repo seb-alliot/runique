@@ -47,7 +47,14 @@ impl Parse for ExtendDsl {
 
         let mut fields = Vec::new();
         while !fields_content.is_empty() {
-            fields.push(FormFieldDecl::parse(&fields_content)?);
+            let field = FormFieldDecl::parse(&fields_content)?;
+            if field.kind.is_list() {
+                return Err(syn::Error::new(
+                    field.name.span(),
+                    "extend!{}: list fields (`checkbox`, `multichoice`) aren't supported on framework tables",
+                ));
+            }
+            fields.push(field);
         }
         let _ = input.parse::<Token![,]>();
 
@@ -83,6 +90,16 @@ mod tests {
         let dsl = parse(r#"table: "eihwaz_users", fields: { bio: textarea }"#).expect("parses");
         assert!(dsl.enums.is_empty());
         assert_eq!(dsl.fields.len(), 1);
+    }
+
+    #[test]
+    fn list_fields_are_refused_on_framework_tables() {
+        assert!(
+            parse(
+                r#"table: "eihwaz_users", enums: { T: [A] }, fields: { tags: checkbox [enum(T)] }"#
+            )
+            .is_err()
+        );
     }
 
     #[test]

@@ -22,9 +22,8 @@ pub struct ParsedColumn {
     pub nullable: bool,
     pub unique: bool,
     pub ignored: bool,
-    pub created_at: bool,
-    pub updated_at: bool,
-    /// Column with DEFAULT CURRENT_TIMESTAMP — detected from the builder or SeaORM snapshot.
+    /// Column with DEFAULT CURRENT_TIMESTAMP: declared `auto_now`/`auto_now_update`,
+    /// or read back from a snapshot.
     pub has_default_now: bool,
     /// Literal default value (`[default: 0]`, `[default: true]`, `[default: "x"]`) rendered as
     /// the Rust expression placed inside `.default(...)`. `None` when no literal default.

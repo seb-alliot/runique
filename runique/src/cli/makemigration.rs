@@ -82,8 +82,8 @@ pub(crate) fn previous_snapshot(path: &str, current: &ParsedSchema) -> Result<Pa
 
 // ── scan ─────────────────────────────────────────────────────────────────────
 
-/// Tables created by `EihwazUsersMigration` + `AdminTableMigration`.
-/// Excluded from scan when `RUNIQUE_USER_TABLE` is not defined (default user table).
+/// Tables created by `EihwazUsersMigration` + `AdminTableMigration`, never
+/// migrated from the app's entities.
 const FRAMEWORK_TABLES: &[&str] = &[
     "eihwaz_users",
     "eihwaz_groupes",
@@ -98,16 +98,11 @@ const FRAMEWORK_TABLES: &[&str] = &[
 /// macro resolves it — the entity module of that name, i.e. the file
 /// `<target>.rs`, or a framework table — and its FK then references that
 /// model's real table and primary key; a target that matches nothing is an
-/// error. Skips the framework's own tables (`eihwaz_*`) when the app uses the
-/// built-in user table.
+/// error. Skips the framework's own tables (`eihwaz_*`).
 pub fn scan_entities(entities_path: &str) -> Result<Vec<ParsedSchema>> {
-    dotenvy::dotenv().ok();
-    let using_builtin_user = std::env::var("RUNIQUE_USER_TABLE")
-        .unwrap_or_default()
-        .is_empty()
-        || std::env::var("RUNIQUE_USER_TABLE").unwrap_or_default() == "eihwaz_users";
-
     let mut schemas = Vec::new();
+    // List fields' tables: their key to the owner is already resolved.
+    let mut list_schemas: Vec<ParsedSchema> = Vec::new();
     // module name → (table, primary key column)
     let mut targets: std::collections::HashMap<String, (String, String)> = FRAMEWORK_TABLES
         .iter()
@@ -133,7 +128,7 @@ pub fn scan_entities(entities_path: &str) -> Result<Vec<ParsedSchema>> {
         let source = fs::read_to_string(&path)
             .with_context(|| format!("Cannot read file: {}", path.display()))?;
 
-        if let Some((_, schema)) = parse_schema_from_source(&source)
+        if let Some(ParsedModel { schema, lists, .. }) = parse_model_from_source(&source)
             .with_context(|| format!("Invalid model!{{}} in {}", path.display()))?
         {
             let pk = schema
@@ -142,10 +137,11 @@ pub fn scan_entities(entities_path: &str) -> Result<Vec<ParsedSchema>> {
                 .map_or_else(|| "id".to_string(), |pk| pk.name.clone());
             targets.insert(module.to_string(), (schema.table_name.clone(), pk));
             // Ignore tables provided by the framework (`EihwazUsersMigration` + `AdminTableMigration`)
-            if using_builtin_user && FRAMEWORK_TABLES.contains(&schema.table_name.as_str()) {
+            if FRAMEWORK_TABLES.contains(&schema.table_name.as_str()) {
                 continue;
             }
             schemas.push(schema);
+            list_schemas.extend(lists);
         }
     }
 
@@ -164,6 +160,17 @@ pub fn scan_entities(entities_path: &str) -> Result<Vec<ParsedSchema>> {
             };
             fk.to_table = table.clone();
             fk.to_column = pk.clone();
+        }
+    }
+
+    schemas.extend(list_schemas);
+    let mut seen = std::collections::HashSet::new();
+    for schema in &schemas {
+        if !seen.insert(schema.table_name.as_str()) {
+            anyhow::bail!(
+                "two tables are named `{}` — a list field's table is `<owner table>_<field>`: rename the field or the other table",
+                schema.table_name
+            );
         }
     }
 
@@ -327,91 +334,64 @@ fn strip_sea_orm_cli_placeholder_file(migrations_path: &str) {
 
 // ── topological sort ─────────────────────────────────────────────────────────
 
-/// Sorts `Changes` by FK dependency order.
-/// Tables referenced by other new tables are placed first.
-/// Existing tables (not new) are ignored: they already exist in DB.
-/// In case of circular dependency, the remaining tables are added at the end.
+/// Sorts `Changes` by FK dependency order: a new table comes after the new
+/// tables it references, ties broken by name so the order never depends on a
+/// hash map. A cycle of new tables is broken at its smallest name; the foreign
+/// keys left pointing forward are added once their target exists (see
+/// `build_main_plan`). Changes to existing tables follow, by name.
 pub(crate) fn topological_sort_changes(
     changes: Vec<crate::migration::utils::types::Changes>,
 ) -> Vec<crate::migration::utils::types::Changes> {
-    use std::collections::{HashMap, HashSet, VecDeque};
+    use std::collections::{BTreeMap, BTreeSet};
 
-    let new_tables: HashSet<String> = changes
+    let new_tables: BTreeSet<String> = changes
         .iter()
         .filter(|c| c.is_new_table)
         .map(|c| c.table_name.clone())
         .collect();
 
-    // deps[A] = {B} : A has a FK to B, so B must be created before A
-    let mut deps: HashMap<String, HashSet<String>> = HashMap::new();
-    for change in &changes {
-        if !change.is_new_table {
-            continue;
-        }
-        let entry = deps.entry(change.table_name.clone()).or_default();
+    // waits_for[A] = new tables A references (not yet placed)
+    let mut waits_for: BTreeMap<String, BTreeSet<String>> = new_tables
+        .iter()
+        .map(|t| (t.clone(), BTreeSet::new()))
+        .collect();
+    for change in changes.iter().filter(|c| c.is_new_table) {
         for fk in &change.added_fks {
             if new_tables.contains(&fk.to_table) && fk.to_table != change.table_name {
-                entry.insert(fk.to_table.clone());
+                waits_for
+                    .entry(change.table_name.clone())
+                    .or_default()
+                    .insert(fk.to_table.clone());
             }
         }
     }
 
-    // dependents[B] = [A] : when B is processed, we can decrement the in_degree of A
-    let mut dependents: StrVecMap = StrVecMap::new();
-    for (table, table_deps) in &deps {
-        for dep in table_deps {
-            dependents
-                .entry(dep.clone())
-                .or_default()
-                .push(table.clone());
+    let mut sorted_names: Vec<String> = Vec::with_capacity(new_tables.len());
+    while !waits_for.is_empty() {
+        let next = waits_for
+            .iter()
+            .find(|(_, deps)| deps.is_empty())
+            .or_else(|| waits_for.iter().next())
+            .map(|(t, _)| t.clone())
+            .expect("waits_for is not empty");
+        waits_for.remove(&next);
+        for deps in waits_for.values_mut() {
+            deps.remove(&next);
         }
+        sorted_names.push(next);
     }
 
-    // in_degree[A] = number of requirements for A (tables A waits for via FK)
-    // Tables without requirements (in_degree == 0) are processed first.
-    let mut in_degree: HashMap<String, usize> = new_tables.iter().map(|t| (t.clone(), 0)).collect();
-    for (table, table_deps) in &deps {
-        let deg = in_degree.entry(table.clone()).or_insert(0);
-        *deg = deg.saturating_add(table_deps.len());
-    }
-
-    // Kahn's algorithm: starts with tables without requirements (e.g. B referenced by A)
-    let mut queue: VecDeque<String> = in_degree
-        .iter()
-        .filter(|(_, d)| **d == 0)
-        .map(|(t, _)| t.clone())
-        .collect();
-    let mut sorted_names: Vec<String> = Vec::new();
-
-    while let Some(table) = queue.pop_front() {
-        sorted_names.push(table.clone());
-        if let Some(dependents_list) = dependents.get(&table) {
-            for dep in dependents_list {
-                let entry = in_degree.entry(dep.clone()).or_insert(1);
-                if *entry > 0 {
-                    *entry = entry.saturating_sub(1);
-                }
-                if *entry == 0 {
-                    queue.push_back(dep.clone());
-                }
-            }
-        }
-    }
-
-    let mut result: Vec<crate::migration::utils::types::Changes> =
-        Vec::with_capacity(changes.len());
-    let mut by_name: HashMap<String, crate::migration::utils::types::Changes> = changes
+    let mut by_name: BTreeMap<String, crate::migration::utils::types::Changes> = changes
         .into_iter()
         .map(|c| (c.table_name.clone(), c))
         .collect();
-
-    // New tables in topological order (referenced first)
+    let mut result: Vec<crate::migration::utils::types::Changes> =
+        Vec::with_capacity(by_name.len());
     for name in sorted_names {
         if let Some(c) = by_name.remove(&name) {
             result.push(c);
         }
     }
-    // Remaining (ALTER + potential circles)
     result.extend(by_name.into_values());
     result
 }
@@ -726,7 +706,6 @@ pub fn merge_extend_schemas(schemas: Vec<ParsedSchema>) -> Vec<ParsedSchema> {
 pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()> {
     let schemas = scan_entities(entities_path)?;
 
-    fs::create_dir_all(applied_dir(migrations_path))?;
     fs::create_dir_all(snapshot_dir(migrations_path))?;
 
     // ── Plan everything up front — nothing is written until the full plan
@@ -834,6 +813,44 @@ fn compute_main_changes(schemas: &[ParsedSchema], migrations_path: &str) -> Resu
     Ok(all_changes)
 }
 
+/// For each new table, the foreign keys of an FK cycle: keys to a new table
+/// created later in this batch (`forward`), and keys pointing to it from a
+/// table created earlier (`closing`). `all_changes` is in creation order.
+fn cycle_keys<'a>(
+    all_changes: &[Changes],
+    schemas: &'a [ParsedSchema],
+) -> std::collections::HashMap<&'a str, CycleKeys<'a>> {
+    use std::collections::{HashMap, HashSet};
+
+    let new_tables: HashSet<&str> = all_changes
+        .iter()
+        .filter(|c| c.is_new_table)
+        .map(|c| c.table_name.as_str())
+        .collect();
+    let mut created: HashSet<&str> = HashSet::new();
+    let mut keys: HashMap<&'a str, CycleKeys<'a>> = HashMap::new();
+    for change in all_changes.iter().filter(|c| c.is_new_table) {
+        let Some(schema) = schemas.iter().find(|s| s.table_name == change.table_name) else {
+            continue;
+        };
+        let table = schema.table_name.as_str();
+        for fk in &schema.foreign_keys {
+            let target = fk.to_table.as_str();
+            if target != table && new_tables.contains(target) && !created.contains(target) {
+                keys.entry(table).or_default().forward.push(fk);
+                if let Some(target) = schemas.iter().find(|s| s.table_name == target) {
+                    keys.entry(target.table_name.as_str())
+                        .or_default()
+                        .closing
+                        .push((table, fk));
+                }
+            }
+        }
+        created.insert(table);
+    }
+    keys
+}
+
 /// Adds the main-model migration files/dirs/modules to the plan.
 fn build_main_plan(
     plan: &mut Plan,
@@ -842,6 +859,8 @@ fn build_main_plan(
     migrations_path: &str,
     timestamp: &str,
 ) {
+    let cycle_keys = cycle_keys(all_changes, schemas);
+    let no_cycle = CycleKeys::default();
     for change in all_changes {
         let schema = schemas
             .iter()
@@ -858,36 +877,18 @@ fn build_main_plan(
             let module_name = seaorm_create_module_name(timestamp, &change.table_name);
             let seaorm_path =
                 seaorm_create_file_path(migrations_path, timestamp, &change.table_name);
-            // FK constraints inline in the CREATE TABLE itself (see generate_create_file) —
-            // SQLite can't ALTER-ADD one later, and inline is valid on every engine.
-            plan.files.push((seaorm_path, generate_create_file(schema)));
+            let keys = cycle_keys
+                .get(change.table_name.as_str())
+                .unwrap_or(&no_cycle);
+            plan.files
+                .push((seaorm_path, generate_create_file_in_cycle(schema, keys)));
             plan.lib_modules.push(module_name);
         } else {
-            plan.dirs
-                .push(table_applied_dir(migrations_path, &change.table_name));
-            plan.dirs
-                .push(batch_up_dir(migrations_path, &change.table_name));
-            plan.dirs
-                .push(batch_down_dir(migrations_path, &change.table_name));
-
             let module_name = seaorm_alter_module_name(timestamp, &change.table_name);
             let seaorm_path =
                 seaorm_alter_file_path(migrations_path, timestamp, &change.table_name);
             plan.files.push((seaorm_path, generate_alter_file(change)));
             plan.lib_modules.push(module_name);
-
-            plan.files.push((
-                alter_file_path(migrations_path, &change.table_name, timestamp),
-                generate_alter_file(change),
-            ));
-            plan.files.push((
-                batch_up_path(migrations_path, &change.table_name, timestamp),
-                generate_batch_up_file(&[change], timestamp),
-            ));
-            plan.files.push((
-                batch_down_path(migrations_path, &change.table_name, timestamp),
-                generate_batch_down_file(&[change], timestamp),
-            ));
         }
     }
 }
@@ -916,26 +917,6 @@ fn build_extend_plan(
             seaorm_extend_file_path(migrations_path, timestamp, &ext_schema.table_name);
         plan.files.push((seaorm_path, generate_alter_file(changes)));
         plan.lib_modules.push(module_name);
-
-        plan.dirs
-            .push(table_applied_dir(migrations_path, &ext_schema.table_name));
-        plan.dirs
-            .push(batch_up_dir(migrations_path, &ext_schema.table_name));
-        plan.dirs
-            .push(batch_down_dir(migrations_path, &ext_schema.table_name));
-
-        plan.files.push((
-            alter_file_path(migrations_path, &ext_schema.table_name, timestamp),
-            generate_alter_file(changes),
-        ));
-        plan.files.push((
-            batch_up_path(migrations_path, &ext_schema.table_name, timestamp),
-            generate_batch_up_file(&[changes], timestamp),
-        ));
-        plan.files.push((
-            batch_down_path(migrations_path, &ext_schema.table_name, timestamp),
-            generate_batch_down_file(&[changes], timestamp),
-        ));
     }
 }
 
@@ -1022,16 +1003,13 @@ fn commit_plan(plan: &Plan, migrations_path: &str) -> Result<()> {
 
 // ── AdminTableMigration positioning ───────────────────────────────────────
 
-/// Automatically positions `AdminTableMigration` in `lib.rs` just after the migration
-/// of the user table (`RUNIQUE_USER_TABLE`, default: `eihwaz_users`).
+/// Puts the framework migrations (`eihwaz_users`, sessions, admin tables,
+/// reset tokens) at the top of `lib.rs`, before the app's own.
 ///
 /// - Adds `use runique::prelude::migrations_table;` if missing
-/// - Removes `AdminTableMigration` from its current position if present
-/// - Inserts it immediately after the line `Box::new(<user_table_migration>)`
-/// - No effect if the user table migration is not yet in `lib.rs`
+/// - Drops app migrations that would recreate a framework table
+/// - No effect when `lib.rs` doesn't exist yet
 pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
-    dotenvy::dotenv().ok();
-    let user_table = crate::admin::table_admin::migrations_table::user_table_name();
     let lib_file = lib_path(migrations_path);
 
     if !Path::new(&lib_file).exists() {
@@ -1047,9 +1025,6 @@ pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
     let sessions_box = "Box::new(migrations_table::EihwazSessionsMigration)".to_string();
     let reset_box = "Box::new(migrations_table::EihwazResetTokensMigration)".to_string();
     let users_box = "Box::new(migrations_table::EihwazUsersMigration)".to_string();
-    let user_pattern = format!("create_{}_table", user_table);
-
-    let using_builtin_user = user_table == "eihwaz_users";
 
     // Tables created by `EihwazUsersMigration` + `EihwazSessionsMigration` + `AdminTableMigration` — to exclude from the vec
     const FRAMEWORK_TABLE_PATTERNS: &[&str] = &[
@@ -1061,48 +1036,27 @@ pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
         "create_eihwaz_reset_tokens_table",
     ];
 
-    if using_builtin_user {
-        // ── Default case: user table provided by the framework ──────────────
-        // Remove existing framework entries/mods (we'll re-inject at the top)
-        // and also drop app migrations duplicating framework tables.
-        state.entries.retain(|e| {
-            e != &users_box && e != &sessions_box && e != &reset_box && e != &admin_box
-        });
-        state
-            .mods
-            .retain(|m| !FRAMEWORK_TABLE_PATTERNS.iter().any(|pat| m.contains(pat)));
-        state.entries.splice(
-            0..0,
-            [
-                users_box.clone(),
-                sessions_box.clone(),
-                admin_box.clone(),
-                reset_box.clone(),
-            ],
-        );
+    // Remove existing framework entries/mods (we'll re-inject at the top)
+    // and also drop app migrations duplicating framework tables.
+    state
+        .entries
+        .retain(|e| e != &users_box && e != &sessions_box && e != &reset_box && e != &admin_box);
+    state
+        .mods
+        .retain(|m| !FRAMEWORK_TABLE_PATTERNS.iter().any(|pat| m.contains(pat)));
+    state.entries.splice(
+        0..0,
+        [
+            users_box.clone(),
+            sessions_box.clone(),
+            admin_box.clone(),
+            reset_box.clone(),
+        ],
+    );
 
-        let result = render_lib(&state);
-        if result != content {
-            fs::write(&lib_file, &result)?;
-        }
-    } else {
-        // ── Custom case: the dev provides their own user table ──────────────────
-        // AdminTableMigration positioned right after the migration of its table
-        if !content.contains(&user_pattern) {
-            return Ok(());
-        }
-
-        state.entries.retain(|e| e != &admin_box && e != &reset_box);
-        if let Some(idx) = state.entries.iter().position(|e| e.contains(&user_pattern)) {
-            state
-                .entries
-                .splice(idx + 1..idx + 1, [admin_box, reset_box]);
-        }
-
-        let result = render_lib(&state);
-        if result != content {
-            fs::write(&lib_file, &result)?;
-        }
+    let result = render_lib(&state);
+    if result != content {
+        fs::write(&lib_file, &result)?;
     }
 
     Ok(())

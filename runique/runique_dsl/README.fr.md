@@ -14,9 +14,6 @@ Deux outils lisent le DSL à travers cette crate :
 Comme les deux partagent un seul parseur, un modèle refusé par la macro est refusé par la CLI,
 au même endroit et avec le même message (fichier, ligne, colonne). Rien n'est ignoré en silence.
 
-Vous ne dépendez pas directement de cette crate : `runique` et `derive_form` le font. Ordre de
-publication : `runique_dsl` → `derive_form` → `runique`.
-
 ## Le DSL
 
 ```rust

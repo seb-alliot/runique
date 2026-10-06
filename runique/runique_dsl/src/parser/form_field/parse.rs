@@ -43,6 +43,7 @@ impl Parse for FormFieldDecl {
             "choice" => FormFieldKind::Choice,
             "radio" => FormFieldKind::Radio,
             "checkbox" => FormFieldKind::Checkbox,
+            "multichoice" => FormFieldKind::Multichoice,
             "bigint" => FormFieldKind::Bigint,
             "phone" => FormFieldKind::Phone,
             "char" => FormFieldKind::Char,
@@ -223,11 +224,41 @@ impl Parse for FormFieldDecl {
             ));
         }
 
-        validate_nullability(&name, &kind_ident, &kind, &attrs)?;
+        if kind.is_list() {
+            validate_list(&name, &kind_ident, &attrs)?;
+        } else {
+            validate_nullability(&name, &kind_ident, &kind, &attrs)?;
+        }
 
         let _ = input.parse::<Token![,]>();
         Ok(FormFieldDecl { name, kind, attrs })
     }
+}
+
+/// A list field draws from an enum and has no column of its own: an empty
+/// list already says "none", so column attributes don't apply.
+fn validate_list(name: &Ident, kind_ident: &Ident, attrs: &[FormFieldAttr]) -> Result<()> {
+    if !attrs.iter().any(|a| matches!(a, FormFieldAttr::EnumRef(_))) {
+        return Err(syn::Error::new(
+            name.span(),
+            format!("field `{name}`: `{kind_ident}` needs the enum it draws from — `[enum(Name)]`"),
+        ));
+    }
+    for attr in attrs {
+        if !matches!(
+            attr,
+            FormFieldAttr::Required | FormFieldAttr::EnumRef(_) | FormFieldAttr::Label(_)
+        ) {
+            return Err(syn::Error::new(
+                name.span(),
+                format!(
+                    "field `{name}`: `{}` isn't valid on a `{kind_ident}` list — only `required`, `enum(...)` and `label` are",
+                    super::attr_name::attr_name_str(attr)
+                ),
+            ));
+        }
+    }
+    Ok(())
 }
 
 /// Types whose form field always submits something storable in a NOT NULL
@@ -321,6 +352,23 @@ mod tests {
             parse_field(src).is_err(),
             "expected ERROR but OK for: `{src}`"
         );
+    }
+
+    // ── list fields ───────────────────────────────────────────────
+
+    #[test]
+    fn list_fields_draw_from_an_enum() {
+        ok("tags: checkbox [enum(Tag)]");
+        ok("tags: multichoice [enum(Tag), required, label: \"Tags\"]");
+        err("tags: checkbox");
+        err("tags: multichoice [required]");
+    }
+
+    #[test]
+    fn list_fields_refuse_column_attributes() {
+        for attr in ["nullable", "unique", "default: \"a\"", "readonly", "skip"] {
+            err(&format!("tags: checkbox [enum(Tag), {attr}]"));
+        }
     }
 
     // ── nullability ───────────────────────────────────────────────

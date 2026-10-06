@@ -45,7 +45,7 @@ runique makemigrations --entities src/entities --migrations migration/src
 | --- | --- | --- |
 | 1 — Tables app | Blocs `model!{}` dans `src/entities` | `CREATE TABLE` / `ALTER TABLE` |
 | 2 — Extensions framework | Blocs `extend!{}` dans `src/entities` | `ALTER TABLE ADD/DROP COLUMN` |
-| 3 — Positionnement admin | `RUNIQUE_USER_TABLE` dans `.env` | Ordre garanti dans `lib.rs` |
+| 3 — Tables du framework | Automatique | Migrations `eihwaz_*` placées en tête de `lib.rs` |
 
 ### 2. Appliquer les migrations
 
@@ -136,42 +136,12 @@ eihwaz_users_groupes · eihwaz_groupes_droits
 
 ---
 
-## Utiliser une table user personnalisée
-
-Si vous préférez gérer votre propre table utilisateur, déclarez-la dans `.env` :
-
-```env
-RUNIQUE_USER_TABLE=ma_table_users
-```
-
-`makemigrations` positionnera alors `AdminTableMigration` juste après la migration de `ma_table_users`.
-La FK dans `eihwaz_users_groupes` ciblera automatiquement `ma_table_users`.
-
-> Par défaut (`RUNIQUE_USER_TABLE` absent) : `eihwaz_users` est utilisée.
-
----
-
 ## Autres commandes de migration
 
 ```bash
 sea-orm-cli migrate down --migration-dir migration/src   # Annuler la dernière migration
 sea-orm-cli migrate status --migration-dir migration/src # Voir l'état des migrations
 ```
-
----
-
-## Wrapper Runique — rollback atomique (avancé)
-
-```bash
-runique migration down --migrations migration/src --files <fichier> [<fichier2> ...]
-runique migration down --migrations migration/src --batch <timestamp>
-runique migration status --migrations migration/src
-```
-
-> Sans `--files` ni `--batch`, la commande liste simplement les migrations disponibles sans rien annuler.
-
-> Ces commandes utilisent le système de batch Runique avec rollback transactionnel.
-> Préférer `sea-orm-cli` pour le workflow normal.
 
 ---
 

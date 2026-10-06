@@ -62,11 +62,24 @@ pub fn generate_enum_defs(enums: &[EnumDef]) -> TokenStream2 {
             let first = &variant_names[0];
 
             match e.backing_type {
-                EnumBackingType::I32 => {
-                    let db_values: Vec<i32> = e
+                EnumBackingType::I8
+                | EnumBackingType::I16
+                | EnumBackingType::I32
+                | EnumBackingType::I64 => {
+                    let (rs_type, db_type) = match e.backing_type {
+                        EnumBackingType::I8 => (quote! { i8 }, "TinyInteger"),
+                        EnumBackingType::I16 => (quote! { i16 }, "SmallInteger"),
+                        EnumBackingType::I32 => (quote! { i32 }, "Integer"),
+                        _ => (quote! { i64 }, "BigInteger"),
+                    };
+                    let rs_type_str = rs_type.to_string();
+                    // Unsuffixed: the same literal fits whichever integer type the enum uses;
+                    // runique_dsl already checked each value is within its range.
+                    let db_values: Vec<proc_macro2::Literal> = e
                         .variants
                         .iter()
-                        .filter_map(|v| v.int_value().and_then(|n| i32::try_from(n).ok()))
+                        .filter_map(|v| v.int_value())
+                        .map(proc_macro2::Literal::i64_unsuffixed)
                         .collect();
                     let display_values: Vec<String> =
                         e.variants.iter().map(|v| v.display_str()).collect();
@@ -77,7 +90,7 @@ pub fn generate_enum_defs(enums: &[EnumDef]) -> TokenStream2 {
                             Clone, Debug, PartialEq,
                             ::serde::Serialize, ::serde::Deserialize,
                         )]
-                        #[sea_orm(rs_type = "i32", db_type = "Integer")]
+                        #[sea_orm(rs_type = #rs_type_str, db_type = #db_type)]
                         pub enum #name {
                             #(
                                 #[sea_orm(num_value = #db_values)]
@@ -86,67 +99,16 @@ pub fn generate_enum_defs(enums: &[EnumDef]) -> TokenStream2 {
                         }
 
                         impl #name {
-                            pub fn db_value(&self) -> i32 {
+                            pub fn db_value(&self) -> #rs_type {
                                 match self {
                                     #(#name::#variant_names => #db_values,)*
                                 }
                             }
-                        }
 
-                        impl ::std::default::Default for #name {
-                            fn default() -> Self { #name::#first }
-                        }
-
-                        impl ::std::fmt::Display for #name {
-                            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
-                                let s = match self {
-                                    #(#name::#variant_names => #display_values,)*
-                                };
-                                f.write_str(s)
-                            }
-                        }
-
-                        impl ::std::str::FromStr for #name {
-                            type Err = ();
-                            fn from_str(s: &str) -> ::std::result::Result<Self, Self::Err> {
-                                #(
-                                    if s == #variant_name_strs {
-                                        return ::std::result::Result::Ok(#name::#variant_names);
-                                    }
-                                )*
-                                ::std::result::Result::Err(())
-                            }
-                        }
-                    }
-                }
-
-                EnumBackingType::I64 => {
-                    let db_values: Vec<i64> = e
-                        .variants
-                        .iter()
-                        .filter_map(|v| v.int_value())
-                        .collect();
-                    let display_values: Vec<String> =
-                        e.variants.iter().map(|v| v.display_str()).collect();
-
-                    quote! {
-                        #[derive(
-                            ::sea_orm::EnumIter, ::sea_orm::DeriveActiveEnum,
-                            Clone, Debug, PartialEq,
-                            ::serde::Serialize, ::serde::Deserialize,
-                        )]
-                        #[sea_orm(rs_type = "i64", db_type = "BigInteger")]
-                        pub enum #name {
-                            #(
-                                #[sea_orm(num_value = #db_values)]
-                                #variant_names,
-                            )*
-                        }
-
-                        impl #name {
-                            pub fn db_value(&self) -> i64 {
+                            /// The value a form sends for this variant (its name).
+                            pub fn form_value(&self) -> &'static str {
                                 match self {
-                                    #(#name::#variant_names => #db_values,)*
+                                    #(#name::#variant_names => #variant_name_strs,)*
                                 }
                             }
                         }
@@ -239,6 +201,11 @@ pub fn generate_enum_defs(enums: &[EnumDef]) -> TokenStream2 {
                                         #(#name::#variant_names => #db_values,)*
                                     }
                                 }
+
+                                /// The value a form sends for this variant (its stored value).
+                                pub fn form_value(&self) -> &'static str {
+                                    self.db_value()
+                                }
                             }
 
                             impl ::std::default::Default for #name {
@@ -284,6 +251,11 @@ pub fn generate_enum_defs(enums: &[EnumDef]) -> TokenStream2 {
                                     match self {
                                         #(#name::#variant_names => #db_values,)*
                                     }
+                                }
+
+                                /// The value a form sends for this variant (its stored value).
+                                pub fn form_value(&self) -> &'static str {
+                                    self.db_value()
                                 }
                             }
 

@@ -25,7 +25,10 @@ pub(super) fn validate_form_field_attrs(
             (Label(_), _) => true,
             (
                 EnumRef(_),
-                FormFieldKind::Choice | FormFieldKind::Radio | FormFieldKind::Checkbox,
+                FormFieldKind::Choice
+                | FormFieldKind::Radio
+                | FormFieldKind::Checkbox
+                | FormFieldKind::Multichoice,
             ) => true,
             (EnumRef(_), _) => false,
 

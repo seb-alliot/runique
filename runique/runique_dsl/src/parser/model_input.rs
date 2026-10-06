@@ -17,11 +17,16 @@ use syn::{
 use super::form_field::form_field_to_field_def;
 use super::sql_identifier::validate_sql_identifier;
 
-/// `(fields, form_fields, seen_field_names)` — the SQL-level `FieldDef`s
+/// `(fields, form_fields, lists, column_names)` — the SQL-level `FieldDef`s
 /// derived from each declaration, the raw declarations themselves (needed
-/// downstream to generate SeaORM form-field registration code), and the set
-/// of names seen so far (fed into the `meta:` field-reference check).
-type FieldsBlock = (Vec<FieldDef>, Vec<FormFieldDecl>, HashSet<String>);
+/// downstream to generate SeaORM form-field registration code), the list
+/// fields (no column), and the column names (fed into the `meta:` check).
+type FieldsBlock = (
+    Vec<FieldDef>,
+    Vec<FormFieldDecl>,
+    Vec<FormFieldDecl>,
+    HashSet<String>,
+);
 
 /// `ModelName, table: "...", pk: name => type,` — the three always-present,
 /// always-in-order header fields.
@@ -87,6 +92,21 @@ fn parse_optional_enums_block(input: ParseStream) -> Result<Vec<EnumDef>> {
     Ok(enums)
 }
 
+/// Methods a SeaORM `Model` already has (`ModelTrait`, `IntoActiveModel`): a
+/// list field becomes a method of the same name on the model.
+const RESERVED_LIST_NAMES: &[&str] = &[
+    "get",
+    "set",
+    "try_set",
+    "delete",
+    "find_related",
+    "find_linked",
+    "find_linked_recursive",
+    "get_primary_key_value",
+    "get_value_type",
+    "into_active_model",
+];
+
 /// The required anonymous `{ name: type [opts], ... }` fields block.
 /// `pk_name` is pre-seeded into the returned name set so a field re-declaring
 /// it (`pk: id => i32, { id: text }`) is caught by the caller instead of
@@ -94,7 +114,9 @@ fn parse_optional_enums_block(input: ParseStream) -> Result<Vec<EnumDef>> {
 fn parse_fields_block(input: ParseStream, pk_name: &str) -> Result<FieldsBlock> {
     let mut fields = Vec::new();
     let mut form_fields = Vec::new();
+    let mut lists = Vec::new();
     let mut seen_field_names: HashSet<String> = HashSet::from([pk_name.to_string()]);
+    let mut column_names: HashSet<String> = HashSet::from([pk_name.to_string()]);
 
     let ff_content;
     syn::braced!(ff_content in input);
@@ -106,12 +128,26 @@ fn parse_fields_block(input: ParseStream, pk_name: &str) -> Result<FieldsBlock> 
                 format!("Field '{}' is declared more than once", ff.name),
             ));
         }
+        if ff.kind.is_list() {
+            if RESERVED_LIST_NAMES.contains(&ff.name.to_string().as_str()) {
+                return Err(syn::Error::new(
+                    ff.name.span(),
+                    format!(
+                        "list field `{}`: the model gets a method of that name, which would hide SeaORM's — pick another name",
+                        ff.name
+                    ),
+                ));
+            }
+            lists.push(ff);
+            continue;
+        }
+        column_names.insert(ff.name.to_string());
         fields.push(form_field_to_field_def(&ff));
         form_fields.push(ff);
     }
     let _ = input.parse::<Token![,]>();
 
-    Ok((fields, form_fields, seen_field_names))
+    Ok((fields, form_fields, lists, column_names))
 }
 
 /// Optional `relations: { belongs_to: ..., has_many: ..., ... }` block.
@@ -250,11 +286,11 @@ impl Parse for ModelInput {
     fn parse(input: ParseStream) -> Result<Self> {
         let header = parse_header(input)?;
         let enums = parse_optional_enums_block(input)?;
-        let (fields, form_fields, seen_field_names) =
+        let (fields, form_fields, lists, column_names) =
             parse_fields_block(input, &header.pk.name.to_string())?;
         let relations = parse_optional_relations_block(input)?;
         let meta = parse_optional_meta_block(input)?;
-        validate_meta_field_refs(&meta, &seen_field_names)?;
+        validate_meta_field_refs(&meta, &column_names)?;
         validate_belongs_to(&relations, &fields)?;
 
         Ok(ModelInput {
@@ -266,6 +302,7 @@ impl Parse for ModelInput {
             relations,
             meta,
             form_fields,
+            lists,
         })
     }
 }
@@ -400,6 +437,48 @@ mod tests {
         // must NOT be flagged as a duplicate relation.
         model_ok(
             r#"Test, table: "tests", pk: id => i32, { created_by: int [required], updated_by: int [required], }, relations: { belongs_to: users via created_by, belongs_to: users via updated_by, },"#,
+        );
+    }
+
+    #[test]
+    fn list_fields_are_kept_apart_from_the_columns() {
+        let model = parse_model(
+            r#"Book, table: "books", pk: id => i32, enums: { Tag: [A, B] }, { title: text, tags: checkbox [enum(Tag)], genres: multichoice [enum(Tag)] },"#,
+        )
+        .unwrap();
+        let names = |v: &[FormFieldDecl]| v.iter().map(|f| f.name.to_string()).collect::<Vec<_>>();
+        assert_eq!(names(&model.form_fields), ["title"]);
+        assert_eq!(model.fields.len(), 1);
+        assert_eq!(names(&model.lists), ["tags", "genres"]);
+    }
+
+    #[test]
+    fn a_list_field_is_not_a_column_for_meta_or_belongs_to() {
+        model_err(
+            r#"Book, table: "books", pk: id => i32, enums: { Tag: [A] }, { tags: checkbox [enum(Tag)] }, meta: { ordering: [tags] },"#,
+        );
+        model_err(
+            r#"Book, table: "books", pk: id => i32, enums: { Tag: [A] }, { tags: checkbox [enum(Tag)], title: text [required] }, meta: { indexes: [(tags)] },"#,
+        );
+        model_err(
+            r#"Book, table: "books", pk: id => i32, enums: { Tag: [A] }, { tags: checkbox [enum(Tag)] }, relations: { belongs_to: tag via tags },"#,
+        );
+    }
+
+    #[test]
+    fn a_list_field_cannot_hide_a_seaorm_method() {
+        model_err(
+            r#"Book, table: "books", pk: id => i32, enums: { Tag: [A] }, { delete: checkbox [enum(Tag)] },"#,
+        );
+        model_ok(
+            r#"Book, table: "books", pk: id => i32, enums: { Tag: [A] }, { tags: checkbox [enum(Tag)] },"#,
+        );
+    }
+
+    #[test]
+    fn a_list_field_name_is_still_unique() {
+        model_err(
+            r#"Book, table: "books", pk: id => i32, enums: { Tag: [A] }, { tags: text, tags: checkbox [enum(Tag)] },"#,
         );
     }
 

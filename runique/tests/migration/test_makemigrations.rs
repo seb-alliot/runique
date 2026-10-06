@@ -726,8 +726,6 @@ fn scan_extend_ignore_mod_rs() {
 // ═══════════════════════════════════════════════════════════════
 
 use runique::cli::makemigration::ensure_admin_migration_positioned;
-use std::sync::Mutex;
-static ENV_LOCK: Mutex<()> = Mutex::new(());
 
 fn lib_with_vec(modules: &[&str]) -> String {
     let mods: String = modules.iter().map(|m| format!("mod {};\n", m)).collect();
@@ -752,8 +750,6 @@ fn ensure_admin_no_lib_retourne_ok() {
 
 #[test]
 fn ensure_admin_builtin_insere_trois_migrations_framework() {
-    let _lock = ENV_LOCK.lock().unwrap();
-    unsafe { std::env::remove_var("RUNIQUE_USER_TABLE") };
     let dir = temp_dir("ensure_builtin");
     fs::write(
         dir.join("lib.rs"),
@@ -769,8 +765,6 @@ fn ensure_admin_builtin_insere_trois_migrations_framework() {
 
 #[test]
 fn ensure_admin_builtin_idempotent() {
-    let _lock = ENV_LOCK.lock().unwrap();
-    unsafe { std::env::remove_var("RUNIQUE_USER_TABLE") };
     let dir = temp_dir("ensure_idempotent");
     fs::write(
         dir.join("lib.rs"),

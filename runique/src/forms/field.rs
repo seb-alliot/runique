@@ -217,10 +217,25 @@ pub trait RuniqueForm: Sized + Send + Sync {
         crate::forms::fields::decode_binary(&raw)
     }
 
-    /// SeaORM `ActiveEnum` — `None` if unknown, empty, or not a valid variant.
-    fn cleaned_enum<T: sea_orm::ActiveEnum<Value = String>>(&self, name: &str) -> Option<T> {
+    /// An enum of `model!{}` (text or integer) — `None` if unknown, empty, or
+    /// not a valid variant.
+    fn cleaned_enum<T: std::str::FromStr>(&self, name: &str) -> Option<T> {
         let raw = cleaned_value(self.get_form(), name)?;
-        log_coerce(name, &raw, T::try_from_value(&raw))
+        log_coerce(name, &raw, T::from_str(&raw).map_err(|_| "not a variant"))
+    }
+
+    /// The values of a list field (`checkbox` / `multichoice`), in the order
+    /// submitted; empty if the field is unknown or nothing was chosen. A value
+    /// that isn't a variant is left out (and logged).
+    fn cleaned_enums<T: std::str::FromStr>(&self, name: &str) -> Vec<T> {
+        let Some(raw) = cleaned_value(self.get_form(), name) else {
+            return Vec::new();
+        };
+        raw.split(',')
+            .map(str::trim)
+            .filter(|v| !v.is_empty())
+            .filter_map(|v| log_coerce(name, v, T::from_str(v).map_err(|_| "not a variant")))
+            .collect()
     }
 
     // ── Field value overrides ───────────────────────────────────────────────

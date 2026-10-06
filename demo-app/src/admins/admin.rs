@@ -575,8 +575,12 @@ pub fn admin_register() -> AdminRegistry {
             let Ok(id) = id.parse::<Pk>() else {
                 return Ok(None);
             };
-            let row = contribution::Entity::find_by_id(id).one(&*db).await?;
-            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
+            let Some(row) = contribution::Entity::find_by_id(id).one(&*db).await? else {
+                return Ok(None);
+            };
+            let mut value = serde_json::to_value(&row).unwrap_or(serde_json::Value::Null);
+            row.admin_list_values(&*db, &mut value).await?;
+            Ok(Some(value))
         })
     });
 
@@ -594,10 +598,13 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            contribution::admin_from_form(&data, None)?
-                .insert(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = contribution::admin_from_form(&data, None)?
+                .insert(&txn)
+                .await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -606,10 +613,13 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            contribution::admin_from_form(&data, Some(id))?
-                .update(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = contribution::admin_from_form(&data, Some(id))?
+                .update(&txn)
+                .await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -971,8 +981,12 @@ pub fn admin_register() -> AdminRegistry {
             let Ok(id) = id.parse::<Pk>() else {
                 return Ok(None);
             };
-            let row = blog::Entity::find_by_id(id).one(&*db).await?;
-            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
+            let Some(row) = blog::Entity::find_by_id(id).one(&*db).await? else {
+                return Ok(None);
+            };
+            let mut value = serde_json::to_value(&row).unwrap_or(serde_json::Value::Null);
+            row.admin_list_values(&*db, &mut value).await?;
+            Ok(Some(value))
         })
     });
 
@@ -987,10 +1001,11 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            blog::admin_from_form(&data, None)?
-                .insert(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = blog::admin_from_form(&data, None)?.insert(&txn).await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -999,10 +1014,11 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            blog::admin_from_form(&data, Some(id))?
-                .update(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = blog::admin_from_form(&data, Some(id))?.update(&txn).await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -1429,8 +1445,12 @@ pub fn admin_register() -> AdminRegistry {
             let Ok(id) = id.parse::<Pk>() else {
                 return Ok(None);
             };
-            let row = changelog_entry::Entity::find_by_id(id).one(&*db).await?;
-            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
+            let Some(row) = changelog_entry::Entity::find_by_id(id).one(&*db).await? else {
+                return Ok(None);
+            };
+            let mut value = serde_json::to_value(&row).unwrap_or(serde_json::Value::Null);
+            row.admin_list_values(&*db, &mut value).await?;
+            Ok(Some(value))
         })
     });
 
@@ -1448,10 +1468,13 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            changelog_entry::admin_from_form(&data, None)?
-                .insert(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = changelog_entry::admin_from_form(&data, None)?
+                .insert(&txn)
+                .await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -1460,10 +1483,13 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            changelog_entry::admin_from_form(&data, Some(id))?
-                .update(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = changelog_entry::admin_from_form(&data, Some(id))?
+                .update(&txn)
+                .await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -1958,8 +1984,12 @@ pub fn admin_register() -> AdminRegistry {
             let Ok(id) = id.parse::<Pk>() else {
                 return Ok(None);
             };
-            let row = roadmap_entry::Entity::find_by_id(id).one(&*db).await?;
-            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
+            let Some(row) = roadmap_entry::Entity::find_by_id(id).one(&*db).await? else {
+                return Ok(None);
+            };
+            let mut value = serde_json::to_value(&row).unwrap_or(serde_json::Value::Null);
+            row.admin_list_values(&*db, &mut value).await?;
+            Ok(Some(value))
         })
     });
 
@@ -1977,10 +2007,13 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            roadmap_entry::admin_from_form(&data, None)?
-                .insert(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = roadmap_entry::admin_from_form(&data, None)?
+                .insert(&txn)
+                .await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -1989,10 +2022,13 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            roadmap_entry::admin_from_form(&data, Some(id))?
-                .update(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = roadmap_entry::admin_from_form(&data, Some(id))?
+                .update(&txn)
+                .await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -2586,8 +2622,12 @@ pub fn admin_register() -> AdminRegistry {
             let Ok(id) = id.parse::<Pk>() else {
                 return Ok(None);
             };
-            let row = known_issue::Entity::find_by_id(id).one(&*db).await?;
-            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
+            let Some(row) = known_issue::Entity::find_by_id(id).one(&*db).await? else {
+                return Ok(None);
+            };
+            let mut value = serde_json::to_value(&row).unwrap_or(serde_json::Value::Null);
+            row.admin_list_values(&*db, &mut value).await?;
+            Ok(Some(value))
         })
     });
 
@@ -2605,10 +2645,13 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            known_issue::admin_from_form(&data, None)?
-                .insert(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = known_issue::admin_from_form(&data, None)?
+                .insert(&txn)
+                .await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -2617,10 +2660,13 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            known_issue::admin_from_form(&data, Some(id))?
-                .update(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = known_issue::admin_from_form(&data, Some(id))?
+                .update(&txn)
+                .await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -3035,8 +3081,12 @@ pub fn admin_register() -> AdminRegistry {
             let Ok(id) = id.parse::<Pk>() else {
                 return Ok(None);
             };
-            let row = demo_category::Entity::find_by_id(id).one(&*db).await?;
-            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
+            let Some(row) = demo_category::Entity::find_by_id(id).one(&*db).await? else {
+                return Ok(None);
+            };
+            let mut value = serde_json::to_value(&row).unwrap_or(serde_json::Value::Null);
+            row.admin_list_values(&*db, &mut value).await?;
+            Ok(Some(value))
         })
     });
 
@@ -3054,10 +3104,13 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            demo_category::admin_from_form(&data, None)?
-                .insert(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = demo_category::admin_from_form(&data, None)?
+                .insert(&txn)
+                .await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -3066,10 +3119,13 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            demo_category::admin_from_form(&data, Some(id))?
-                .update(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = demo_category::admin_from_form(&data, Some(id))?
+                .update(&txn)
+                .await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -3222,8 +3278,12 @@ pub fn admin_register() -> AdminRegistry {
             let Ok(id) = id.parse::<Pk>() else {
                 return Ok(None);
             };
-            let row = demo_page::Entity::find_by_id(id).one(&*db).await?;
-            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
+            let Some(row) = demo_page::Entity::find_by_id(id).one(&*db).await? else {
+                return Ok(None);
+            };
+            let mut value = serde_json::to_value(&row).unwrap_or(serde_json::Value::Null);
+            row.admin_list_values(&*db, &mut value).await?;
+            Ok(Some(value))
         })
     });
 
@@ -3241,10 +3301,13 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            demo_page::admin_from_form(&data, None)?
-                .insert(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = demo_page::admin_from_form(&data, None)?
+                .insert(&txn)
+                .await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -3253,10 +3316,13 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            demo_page::admin_from_form(&data, Some(id))?
-                .update(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = demo_page::admin_from_form(&data, Some(id))?
+                .update(&txn)
+                .await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -3718,8 +3784,12 @@ pub fn admin_register() -> AdminRegistry {
             let Ok(id) = id.parse::<Pk>() else {
                 return Ok(None);
             };
-            let row = demo_section::Entity::find_by_id(id).one(&*db).await?;
-            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
+            let Some(row) = demo_section::Entity::find_by_id(id).one(&*db).await? else {
+                return Ok(None);
+            };
+            let mut value = serde_json::to_value(&row).unwrap_or(serde_json::Value::Null);
+            row.admin_list_values(&*db, &mut value).await?;
+            Ok(Some(value))
         })
     });
 
@@ -3737,10 +3807,13 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            demo_section::admin_from_form(&data, None)?
-                .insert(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = demo_section::admin_from_form(&data, None)?
+                .insert(&txn)
+                .await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -3749,10 +3822,13 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            demo_section::admin_from_form(&data, Some(id))?
-                .update(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = demo_section::admin_from_form(&data, Some(id))?
+                .update(&txn)
+                .await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -4131,8 +4207,12 @@ pub fn admin_register() -> AdminRegistry {
             let Ok(id) = id.parse::<Pk>() else {
                 return Ok(None);
             };
-            let row = code_example::Entity::find_by_id(id).one(&*db).await?;
-            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
+            let Some(row) = code_example::Entity::find_by_id(id).one(&*db).await? else {
+                return Ok(None);
+            };
+            let mut value = serde_json::to_value(&row).unwrap_or(serde_json::Value::Null);
+            row.admin_list_values(&*db, &mut value).await?;
+            Ok(Some(value))
         })
     });
 
@@ -4150,10 +4230,13 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            code_example::admin_from_form(&data, None)?
-                .insert(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = code_example::admin_from_form(&data, None)?
+                .insert(&txn)
+                .await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -4162,10 +4245,13 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            code_example::admin_from_form(&data, Some(id))?
-                .update(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = code_example::admin_from_form(&data, Some(id))?
+                .update(&txn)
+                .await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -4626,8 +4712,12 @@ pub fn admin_register() -> AdminRegistry {
             let Ok(id) = id.parse::<Pk>() else {
                 return Ok(None);
             };
-            let row = page_doc_link::Entity::find_by_id(id).one(&*db).await?;
-            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
+            let Some(row) = page_doc_link::Entity::find_by_id(id).one(&*db).await? else {
+                return Ok(None);
+            };
+            let mut value = serde_json::to_value(&row).unwrap_or(serde_json::Value::Null);
+            row.admin_list_values(&*db, &mut value).await?;
+            Ok(Some(value))
         })
     });
 
@@ -4645,10 +4735,13 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            page_doc_link::admin_from_form(&data, None)?
-                .insert(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = page_doc_link::admin_from_form(&data, None)?
+                .insert(&txn)
+                .await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -4657,10 +4750,13 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            page_doc_link::admin_from_form(&data, Some(id))?
-                .update(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = page_doc_link::admin_from_form(&data, Some(id))?
+                .update(&txn)
+                .await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -5092,8 +5188,12 @@ pub fn admin_register() -> AdminRegistry {
             let Ok(id) = id.parse::<Pk>() else {
                 return Ok(None);
             };
-            let row = form_field::Entity::find_by_id(id).one(&*db).await?;
-            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
+            let Some(row) = form_field::Entity::find_by_id(id).one(&*db).await? else {
+                return Ok(None);
+            };
+            let mut value = serde_json::to_value(&row).unwrap_or(serde_json::Value::Null);
+            row.admin_list_values(&*db, &mut value).await?;
+            Ok(Some(value))
         })
     });
 
@@ -5111,10 +5211,13 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            form_field::admin_from_form(&data, None)?
-                .insert(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = form_field::admin_from_form(&data, None)?
+                .insert(&txn)
+                .await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -5123,10 +5226,13 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            form_field::admin_from_form(&data, Some(id))?
-                .update(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = form_field::admin_from_form(&data, Some(id))?
+                .update(&txn)
+                .await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -5647,8 +5753,12 @@ pub fn admin_register() -> AdminRegistry {
             let Ok(id) = id.parse::<Pk>() else {
                 return Ok(None);
             };
-            let row = doc_section::Entity::find_by_id(id).one(&*db).await?;
-            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
+            let Some(row) = doc_section::Entity::find_by_id(id).one(&*db).await? else {
+                return Ok(None);
+            };
+            let mut value = serde_json::to_value(&row).unwrap_or(serde_json::Value::Null);
+            row.admin_list_values(&*db, &mut value).await?;
+            Ok(Some(value))
         })
     });
 
@@ -5666,10 +5776,13 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            doc_section::admin_from_form(&data, None)?
-                .insert(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = doc_section::admin_from_form(&data, None)?
+                .insert(&txn)
+                .await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -5678,10 +5791,13 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            doc_section::admin_from_form(&data, Some(id))?
-                .update(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = doc_section::admin_from_form(&data, Some(id))?
+                .update(&txn)
+                .await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -5942,8 +6058,12 @@ pub fn admin_register() -> AdminRegistry {
             let Ok(id) = id.parse::<Pk>() else {
                 return Ok(None);
             };
-            let row = doc_page::Entity::find_by_id(id).one(&*db).await?;
-            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
+            let Some(row) = doc_page::Entity::find_by_id(id).one(&*db).await? else {
+                return Ok(None);
+            };
+            let mut value = serde_json::to_value(&row).unwrap_or(serde_json::Value::Null);
+            row.admin_list_values(&*db, &mut value).await?;
+            Ok(Some(value))
         })
     });
 
@@ -5961,10 +6081,11 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            doc_page::admin_from_form(&data, None)?
-                .insert(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = doc_page::admin_from_form(&data, None)?.insert(&txn).await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -5973,10 +6094,13 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            doc_page::admin_from_form(&data, Some(id))?
-                .update(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = doc_page::admin_from_form(&data, Some(id))?
+                .update(&txn)
+                .await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -6446,8 +6570,12 @@ pub fn admin_register() -> AdminRegistry {
             let Ok(id) = id.parse::<Pk>() else {
                 return Ok(None);
             };
-            let row = doc_block::Entity::find_by_id(id).one(&*db).await?;
-            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
+            let Some(row) = doc_block::Entity::find_by_id(id).one(&*db).await? else {
+                return Ok(None);
+            };
+            let mut value = serde_json::to_value(&row).unwrap_or(serde_json::Value::Null);
+            row.admin_list_values(&*db, &mut value).await?;
+            Ok(Some(value))
         })
     });
 
@@ -6465,10 +6593,13 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            doc_block::admin_from_form(&data, None)?
-                .insert(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = doc_block::admin_from_form(&data, None)?
+                .insert(&txn)
+                .await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -6477,10 +6608,13 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            doc_block::admin_from_form(&data, Some(id))?
-                .update(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = doc_block::admin_from_form(&data, Some(id))?
+                .update(&txn)
+                .await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -6892,8 +7026,12 @@ pub fn admin_register() -> AdminRegistry {
             let Ok(id) = id.parse::<Pk>() else {
                 return Ok(None);
             };
-            let row = site_config::Entity::find_by_id(id).one(&*db).await?;
-            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
+            let Some(row) = site_config::Entity::find_by_id(id).one(&*db).await? else {
+                return Ok(None);
+            };
+            let mut value = serde_json::to_value(&row).unwrap_or(serde_json::Value::Null);
+            row.admin_list_values(&*db, &mut value).await?;
+            Ok(Some(value))
         })
     });
 
@@ -6911,10 +7049,13 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            site_config::admin_from_form(&data, None)?
-                .insert(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = site_config::admin_from_form(&data, None)?
+                .insert(&txn)
+                .await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -6923,10 +7064,13 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            site_config::admin_from_form(&data, Some(id))?
-                .update(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = site_config::admin_from_form(&data, Some(id))?
+                .update(&txn)
+                .await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -7077,8 +7221,12 @@ pub fn admin_register() -> AdminRegistry {
             let Ok(id) = id.parse::<Pk>() else {
                 return Ok(None);
             };
-            let row = cour::Entity::find_by_id(id).one(&*db).await?;
-            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
+            let Some(row) = cour::Entity::find_by_id(id).one(&*db).await? else {
+                return Ok(None);
+            };
+            let mut value = serde_json::to_value(&row).unwrap_or(serde_json::Value::Null);
+            row.admin_list_values(&*db, &mut value).await?;
+            Ok(Some(value))
         })
     });
 
@@ -7093,10 +7241,11 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            cour::admin_from_form(&data, None)?
-                .insert(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = cour::admin_from_form(&data, None)?.insert(&txn).await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -7105,10 +7254,11 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            cour::admin_from_form(&data, Some(id))?
-                .update(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = cour::admin_from_form(&data, Some(id))?.update(&txn).await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -7620,8 +7770,12 @@ pub fn admin_register() -> AdminRegistry {
             let Ok(id) = id.parse::<Pk>() else {
                 return Ok(None);
             };
-            let row = chapitre::Entity::find_by_id(id).one(&*db).await?;
-            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
+            let Some(row) = chapitre::Entity::find_by_id(id).one(&*db).await? else {
+                return Ok(None);
+            };
+            let mut value = serde_json::to_value(&row).unwrap_or(serde_json::Value::Null);
+            row.admin_list_values(&*db, &mut value).await?;
+            Ok(Some(value))
         })
     });
 
@@ -7639,10 +7793,11 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            chapitre::admin_from_form(&data, None)?
-                .insert(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = chapitre::admin_from_form(&data, None)?.insert(&txn).await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -7651,10 +7806,13 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            chapitre::admin_from_form(&data, Some(id))?
-                .update(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = chapitre::admin_from_form(&data, Some(id))?
+                .update(&txn)
+                .await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -8012,8 +8170,12 @@ pub fn admin_register() -> AdminRegistry {
             let Ok(id) = id.parse::<Pk>() else {
                 return Ok(None);
             };
-            let row = cour_block::Entity::find_by_id(id).one(&*db).await?;
-            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
+            let Some(row) = cour_block::Entity::find_by_id(id).one(&*db).await? else {
+                return Ok(None);
+            };
+            let mut value = serde_json::to_value(&row).unwrap_or(serde_json::Value::Null);
+            row.admin_list_values(&*db, &mut value).await?;
+            Ok(Some(value))
         })
     });
 
@@ -8031,10 +8193,13 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            cour_block::admin_from_form(&data, None)?
-                .insert(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = cour_block::admin_from_form(&data, None)?
+                .insert(&txn)
+                .await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -8043,10 +8208,13 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            cour_block::admin_from_form(&data, Some(id))?
-                .update(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = cour_block::admin_from_form(&data, Some(id))?
+                .update(&txn)
+                .await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -8409,8 +8577,12 @@ pub fn admin_register() -> AdminRegistry {
             let Ok(id) = id.parse::<Pk>() else {
                 return Ok(None);
             };
-            let row = runique_release::Entity::find_by_id(id).one(&*db).await?;
-            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
+            let Some(row) = runique_release::Entity::find_by_id(id).one(&*db).await? else {
+                return Ok(None);
+            };
+            let mut value = serde_json::to_value(&row).unwrap_or(serde_json::Value::Null);
+            row.admin_list_values(&*db, &mut value).await?;
+            Ok(Some(value))
         })
     });
 
@@ -8428,10 +8600,13 @@ pub fn admin_register() -> AdminRegistry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            runique_release::admin_from_form(&data, None)?
-                .insert(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = runique_release::admin_from_form(&data, None)?
+                .insert(&txn)
+                .await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -8440,10 +8615,13 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<Pk>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-            runique_release::admin_from_form(&data, Some(id))?
-                .update(&*db)
-                .await
-                .map(|_| ())
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = runique_release::admin_from_form(&data, Some(id))?
+                .update(&txn)
+                .await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
         })
     });
 
@@ -8652,8 +8830,12 @@ pub fn admin_register() -> AdminRegistry {
             let Ok(id) = id.parse::<Pk>() else {
                 return Ok(None);
             };
-            let row = user_profile::Entity::find_by_id(id).one(&*db).await?;
-            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
+            let Some(row) = user_profile::Entity::find_by_id(id).one(&*db).await? else {
+                return Ok(None);
+            };
+            let mut value = serde_json::to_value(&row).unwrap_or(serde_json::Value::Null);
+            row.admin_list_values(&*db, &mut value).await?;
+            Ok(Some(value))
         })
     });
 
@@ -8676,6 +8858,7 @@ pub fn admin_register() -> AdminRegistry {
             let result = user_profile::admin_from_form(&data, None)?
                 .insert(&txn)
                 .await?;
+            result.admin_save_lists(&txn, &data).await?;
             runique::admin::helper::m2m::write_links(
                 &txn,
                 "eihwaz_users_groupes",
@@ -8698,9 +8881,10 @@ pub fn admin_register() -> AdminRegistry {
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             use sea_orm::TransactionTrait;
             let txn = db.begin().await?;
-            user_profile::admin_from_form(&data, Some(id))?
+            let result = user_profile::admin_from_form(&data, Some(id))?
                 .update(&txn)
                 .await?;
+            result.admin_save_lists(&txn, &data).await?;
             runique::admin::helper::m2m::write_links(
                 &txn,
                 "eihwaz_users_groupes",

@@ -60,6 +60,8 @@ fn col_type(ty: &FieldType, enums: &[EnumDef]) -> String {
         FieldType::Blob => "Blob",
         FieldType::Inet | FieldType::Cidr | FieldType::MacAddress | FieldType::Interval => "String",
         FieldType::Enum(name) => match find_enum(enums, name).map(|e| &e.backing_type) {
+            Some(EnumBackingType::I8) => "TinyInteger",
+            Some(EnumBackingType::I16) => "SmallInteger",
             Some(EnumBackingType::I32) => "Integer",
             Some(EnumBackingType::I64) => "BigInteger",
             _ => "String",
@@ -80,8 +82,6 @@ pub(crate) fn decl_to_column(decl: &FormFieldDecl, enums: &[EnumDef]) -> ParsedC
     let auto_now = has(|o| matches!(o, FieldOption::AutoNow));
     let auto_now_update = has(|o| matches!(o, FieldOption::AutoNowUpdate));
     let name = field.name.to_string();
-    let is_created_at = name == "created_at";
-    let is_updated_at = name == "updated_at";
 
     let ty = field.column_type();
     let max_length = match &ty {
@@ -96,16 +96,7 @@ pub(crate) fn decl_to_column(decl: &FormFieldDecl, enums: &[EnumDef]) -> ParsedC
     };
 
     // Only string-backed enums carry values (the generator emits CREATE TYPE for them on PG).
-    let (enum_name, enum_string_values) = match &ty {
-        FieldType::Enum(id) => match find_enum(enums, id) {
-            Some(e) if matches!(e.backing_type, EnumBackingType::Auto) => (
-                Some(e.name.to_string()),
-                e.variants.iter().map(|v| v.db_str()).collect(),
-            ),
-            _ => (None, Vec::new()),
-        },
-        _ => (None, Vec::new()),
-    };
+    let (enum_name, enum_string_values) = enum_values(&ty, enums);
 
     let default_value = field.options.iter().find_map(|o| match o {
         FieldOption::Default(lit) => Some(lit.to_token_stream().to_string()),
@@ -120,16 +111,92 @@ pub(crate) fn decl_to_column(decl: &FormFieldDecl, enums: &[EnumDef]) -> ParsedC
         col_type,
         nullable: has(|o| matches!(o, FieldOption::Nullable)),
         unique: has(|o| matches!(o, FieldOption::Unique)),
-        ignored: has(|o| matches!(o, FieldOption::Readonly)) || name == "cache_key",
-        created_at: auto_now || is_created_at,
-        updated_at: auto_now_update || is_updated_at,
-        has_default_now: auto_now || auto_now_update || is_created_at || is_updated_at,
+        ignored: has(|o| matches!(o, FieldOption::Readonly)),
+        has_default_now: auto_now || auto_now_update,
         default_value,
         enum_name,
         enum_string_values,
         renamed_from,
         max_length,
         name,
+    }
+}
+
+/// The table of each list field (`checkbox` / `multichoice`): one row per
+/// value chosen, `(owner_id, value)` unique, deleted with its owner. Named
+/// `{owner table}_{field}`: owner and field together, so two models, or two
+/// fields of one model, using the same enum never share it.
+pub(super) fn list_tables(model: &ModelInput, owner: &ParsedSchema) -> Vec<ParsedSchema> {
+    let Some(owner_pk) = owner.primary_key.as_ref() else {
+        return Vec::new();
+    };
+    model
+        .lists
+        .iter()
+        .map(|decl| {
+            let table = format!("{}_{}", owner.table_name, decl.name);
+            let enum_ref = decl.attrs.iter().find_map(|a| match a {
+                FormFieldAttr::EnumRef(id) => Some(id.clone()),
+                _ => None,
+            });
+            let ty = enum_ref.map_or(FieldType::String, FieldType::Enum);
+            let (enum_name, enum_string_values) = enum_values(&ty, &model.enums);
+            let column = |name: &str, col_type: String| ParsedColumn {
+                name: name.to_string(),
+                col_type,
+                ..ParsedColumn::default()
+            };
+            ParsedSchema {
+                primary_key: Some(ParsedColumn {
+                    name: "id".to_string(),
+                    col_type: "BigInteger".to_string(),
+                    ..ParsedColumn::default()
+                }),
+                columns: vec![
+                    column("owner_id", owner_pk.col_type.clone()),
+                    ParsedColumn {
+                        enum_name,
+                        enum_string_values,
+                        ..column("value", col_type(&ty, &model.enums))
+                    },
+                ],
+                foreign_keys: vec![ParsedFk {
+                    from_column: "owner_id".to_string(),
+                    to_table: owner.table_name.clone(),
+                    to_column: owner_pk.name.clone(),
+                    on_delete: fk_action(FkAction::Cascade),
+                    on_update: fk_action(FkAction::NoAction),
+                }],
+                indexes: vec![
+                    ParsedIndex {
+                        name: format!("{table}_owner_id_value_uniq"),
+                        columns: vec!["owner_id".to_string(), "value".to_string()],
+                        unique: true,
+                    },
+                    ParsedIndex {
+                        name: format!("idx_{table}_value_owner_id"),
+                        columns: vec!["value".to_string(), "owner_id".to_string()],
+                        unique: false,
+                    },
+                ],
+                table_name: table,
+            }
+        })
+        .collect()
+}
+
+/// Name and stored values of a string-backed enum column, for the snapshot;
+/// `(None, [])` otherwise.
+fn enum_values(ty: &FieldType, enums: &[EnumDef]) -> (Option<String>, Vec<String>) {
+    match ty {
+        FieldType::Enum(id) => match find_enum(enums, id) {
+            Some(e) if matches!(e.backing_type, EnumBackingType::Auto) => (
+                Some(e.name.to_string()),
+                e.variants.iter().map(|v| v.db_str()).collect(),
+            ),
+            _ => (None, Vec::new()),
+        },
+        _ => (None, Vec::new()),
     }
 }
 
@@ -145,13 +212,13 @@ pub(super) fn model_to_parsed_schema(model: &ModelInput) -> ParsedSchema {
         ..ParsedColumn::default()
     });
 
-    let columns = model
+    let columns: Vec<ParsedColumn> = model
         .form_fields
         .iter()
         .map(|decl| decl_to_column(decl, &model.enums))
         .collect();
 
-    let foreign_keys = model
+    let foreign_keys: Vec<ParsedFk> = model
         .relations
         .iter()
         .filter_map(|rel| match rel {
@@ -191,6 +258,24 @@ pub(super) fn model_to_parsed_schema(model: &ModelInput) -> ParsedSchema {
             indexes.push(ParsedIndex {
                 name: format!("idx_{}_{}", table, columns.join("_")),
                 columns,
+                unique: false,
+            });
+        }
+    }
+
+    // One index per foreign key column, as Django does: joins and ON DELETE
+    // read it, and Postgres/SQLite never create one by themselves (MySQL
+    // drops its implicit one once this exists). Skipped when a unique column
+    // or a declared index already starts with it.
+    for fk in &foreign_keys {
+        let covered = columns.iter().any(|c| c.name == fk.from_column && c.unique)
+            || indexes
+                .iter()
+                .any(|i| i.columns.first() == Some(&fk.from_column));
+        if !covered {
+            indexes.push(ParsedIndex {
+                name: format!("idx_{}_{}", table, fk.from_column),
+                columns: vec![fk.from_column.clone()],
                 unique: false,
             });
         }

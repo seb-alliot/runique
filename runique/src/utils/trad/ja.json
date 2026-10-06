@@ -466,21 +466,7 @@
   },
   "migrate": {
     "applying": "'{}'からマイグレーションを適用中...",
-    "run_hint": "実行: sea-orm-cli migrate up",
-    "complete_up": "マイグレーションが完了しました。",
-    "complete": "ロールバックが完了しました。",
-    "available_for": "'{}'の利用可能なロールバックファイル:",
-    "rolling_back_batch": "バッチをロールバック中: {}",
-    "done": "完了: {}",
-    "rolling_back": "ロールバック中: {}",
-    "no_applied_dir": "applied/ディレクトリが見つかりません。",
-    "by_time_header": "by_time (フルバッチ):",
-    "none_available": "ロールバックファイルがありません。",
-    "usage": "使用方法:",
-    "usage_files": "runique migration down --files <table/timestamp> [<table/timestamp> ...]",
-    "usage_batch": "runique migration down --batch <timestamp>",
-    "no_down": "Downステートメントが見つかりません。",
-    "executing": "実行中: {}"
+    "complete_up": "マイグレーションが完了しました。"
   },
   "reset": {
     "forgot_title": "パスワードを忘れた",

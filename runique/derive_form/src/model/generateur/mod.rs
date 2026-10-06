@@ -2,11 +2,13 @@
 mod admin_form;
 mod conversion;
 mod enums;
+mod lists;
 mod schema;
 
 pub use admin_form::*;
 pub use conversion::*;
 pub use enums::*;
+pub use lists::*;
 pub use schema::*;
 
 use crate::model::ast::*;
@@ -25,6 +27,8 @@ pub fn generate(model: &ModelInput) -> TokenStream2 {
     let admin_form = generate_admin_form(model);
     let unique_fields = generate_unique_fields(model);
     let enum_labels = generate_enum_label_resolver(model);
+    let lists = generate_lists(model);
+    let admin_lists = generate_admin_lists(&model.lists);
 
     quote! {
         #enums
@@ -37,5 +41,7 @@ pub fn generate(model: &ModelInput) -> TokenStream2 {
         #admin_form
         #unique_fields
         #enum_labels
+        #lists
+        #admin_lists
     }
 }

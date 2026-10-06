@@ -8,8 +8,8 @@
 | Create app | `python manage.py startapp name` | — |
 | Migrations (generate) | `python manage.py makemigrations` | `runique makemigrations` |
 | Migrations (apply) | `python manage.py migrate` | `runique migration up` |
-| Migrations (rollback) | `python manage.py migrate app 0001` | `runique migration down --files ...` |
-| Migration status | — | `runique migration status` |
+| Migrations (rollback) | `python manage.py migrate app 0001` | `sea-orm-cli migrate down -n N` |
+| Migration status | `python manage.py showmigrations` | `sea-orm-cli migrate status` |
 | Create superuser | `python manage.py createsuperuser` | `runique create-superuser` |
 | Start | `python manage.py runserver` | `cargo run` — `runique start` to (re)generate the admin panel |
 

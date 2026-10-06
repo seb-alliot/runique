@@ -264,14 +264,8 @@ sea-orm-cli migrate up
 # Check migration status
 sea-orm-cli migrate status
 
-# List available rollbacks
-runique migration status
-
-# Rollback a specific migration
-runique migration down --files users/20240101_120000
-
-# Rollback a full batch
-runique migration down --batch 20240101_120000
+# Roll back the last N migrations
+sea-orm-cli migrate down -n 1
 
 # Reset the database (deletes all data)
 sea-orm-cli migrate down -n 999

@@ -466,21 +466,7 @@
   },
   "migrate": {
     "applying": "Aplicando migraciones desde '{}'...",
-    "run_hint": "Ejecutar: sea-orm-cli migrate up",
-    "complete": "Reversión completa.",
-    "complete_up": "Migración completada.",
-    "available_for": "Archivos de reversión disponibles para '{}':",
-    "rolling_back_batch": "Revirtiendo lote: {}",
-    "done": "Hecho: {}",
-    "rolling_back": "Revirtiendo: {}",
-    "no_applied_dir": "No se encontró el directorio applied/.",
-    "by_time_header": "by_time (lotes completos):",
-    "none_available": "No hay archivos de reversión disponibles.",
-    "usage": "Uso:",
-    "usage_files": "runique migration down --files <table/timestamp> [<table/timestamp> ...]",
-    "usage_batch": "runique migration down --batch <timestamp>",
-    "no_down": "No se encontraron instrucciones down.",
-    "executing": "Ejecutando: {}"
+    "complete_up": "Migración completada."
   },
   "reset": {
     "forgot_title": "Contraseña olvidada",

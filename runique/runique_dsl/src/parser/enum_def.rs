@@ -16,6 +16,8 @@ fn validate_int_values(
     variants: &[EnumVariant],
 ) -> Result<()> {
     let (ty, min, max) = match backing_type {
+        EnumBackingType::I8 => ("i8", i64::from(i8::MIN), i64::from(i8::MAX)),
+        EnumBackingType::I16 => ("i16", i64::from(i16::MIN), i64::from(i16::MAX)),
         EnumBackingType::I32 => ("i32", i64::from(i32::MIN), i64::from(i32::MAX)),
         EnumBackingType::I64 => ("i64", i64::MIN, i64::MAX),
         EnumBackingType::Auto => return Ok(()),
@@ -47,7 +49,7 @@ impl Parse for EnumDef {
         let name: Ident = input.parse()?;
         input.parse::<Token![:]>()?;
 
-        // Optional type: String | i32 | i64 (otherwise Auto — detected from .env)
+        // Optional type: i8 | i16 | i32 | i64 (otherwise Auto — detected from .env)
         let backing_type = if input.peek(Ident) {
             let ty: Ident = input.fork().parse()?;
             match ty.to_string().as_str() {
@@ -59,6 +61,14 @@ impl Parse for EnumDef {
                         Remove it — the correct behavior is automatically detected \
                         from DATABASE_URL in `.env` (native Postgres or VARCHAR).",
                     ));
+                }
+                "i8" => {
+                    input.parse::<Ident>()?;
+                    EnumBackingType::I8
+                }
+                "i16" => {
+                    input.parse::<Ident>()?;
+                    EnumBackingType::I16
                 }
                 "i32" => {
                     input.parse::<Ident>()?;
@@ -166,6 +176,16 @@ mod tests {
         assert!(parse("Priority: i32 [Low = 1, High]").is_err());
         assert!(parse("Priority: i32 [Low: \"Basse\"]").is_err());
         assert!(parse("Priority: i32 [Low = \"low\"]").is_err());
+    }
+
+    #[test]
+    fn small_integer_backing_types() {
+        let e = parse("Level: i8 [Low = 1, High = 127]").unwrap();
+        assert!(matches!(e.backing_type, EnumBackingType::I8));
+        let e = parse("Code: i16 [A = -300, B = 300]").unwrap();
+        assert!(matches!(e.backing_type, EnumBackingType::I16));
+        assert!(parse("Level: i8 [Low = 128]").is_err(), "out of i8 range");
+        assert!(parse("Code: i16 [A = 40000]").is_err(), "out of i16 range");
     }
 
     #[test]

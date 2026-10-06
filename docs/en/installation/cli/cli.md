@@ -46,7 +46,7 @@ Choice [1-4] (default: 1):
 runique new <name>                                                    # Create a new project
 runique start [--main src/main.rs] [--admin src/admin.rs]           # Start with admin daemon
 runique makemigrations --entities src/entities --migrations migration/src  # Generate migrations
-runique migration up|down|status --migrations migration/src         # Manage migrations
+runique migration up --migrations migration/src                     # Apply migrations (sea-orm-cli migrate up)
 runique create-superuser                                            # Create a superuser
 ```
 

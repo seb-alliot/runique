@@ -507,15 +507,21 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     let _ = writeln!(out, "            {};", id_parse_or_not_found);
     let _ = writeln!(
         out,
-        "            let row = {}::Entity::find_by_id(id).one(&*db).await?;",
+        "            let Some(row) = {}::Entity::find_by_id(id).one(&*db).await? else {{ return Ok(None); }};",
         module
     );
     // Raw model — FK ids are NOT resolved here (edit reuses this to pre-fill the
-    // form). Display views resolve via `meta.fk_display`.
+    // form). Display views resolve via `meta.fk_display`. List fields
+    // (`checkbox`/`multichoice`) live in their own table: added here.
     let _ = writeln!(
         out,
-        "            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))"
+        "            let mut value = serde_json::to_value(&row).unwrap_or(serde_json::Value::Null);"
     );
+    let _ = writeln!(
+        out,
+        "            row.admin_list_values(&*db, &mut value).await?;"
+    );
+    let _ = writeln!(out, "            Ok(Some(value))");
     let _ = writeln!(out, "        }})");
     let _ = writeln!(out, "    }});");
     let _ = writeln!(out);
@@ -590,17 +596,18 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         let _ = writeln!(out, "                }}");
         let _ = writeln!(out, "            }}");
         let _ = writeln!(out, "            Ok(())");
-    } else if r.m2m.is_empty() {
-        let _ = writeln!(out, "            {}::admin_from_form(&data, None)?", module);
-        let _ = writeln!(out, "                .insert(&*db).await.map(|_| ())");
     } else {
-        // With M2M: the row and its links in one transaction
+        // The row, its list fields and its M2M links in one transaction
         let _ = writeln!(out, "            use sea_orm::TransactionTrait;");
         let _ = writeln!(out, "            let txn = db.begin().await?;");
         let _ = writeln!(
             out,
             "            let result = {}::admin_from_form(&data, None)?.insert(&txn).await?;",
             module
+        );
+        let _ = writeln!(
+            out,
+            "            result.admin_save_lists(&txn, &data).await?;"
         );
         for m2m in &r.m2m {
             let _ = writeln!(
@@ -625,33 +632,29 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     );
     let _ = writeln!(out, "        Box::pin(async move {{");
     let _ = writeln!(out, "            {};", id_parse_code);
-    if r.m2m.is_empty() {
+    // The row, its list fields and its M2M links in one transaction
+    let _ = writeln!(out, "            use sea_orm::TransactionTrait;");
+    let _ = writeln!(out, "            let txn = db.begin().await?;");
+    let _ = writeln!(
+        out,
+        "            let result = {}::admin_from_form(&data, Some(id))?.update(&txn).await?;",
+        module
+    );
+    let _ = writeln!(
+        out,
+        "            result.admin_save_lists(&txn, &data).await?;"
+    );
+    for m2m in &r.m2m {
         let _ = writeln!(
             out,
-            "            {}::admin_from_form(&data, Some(id))?",
-            module
+            "            runique::admin::helper::m2m::write_links(&txn, \"{junction}\", \"{self_fk}\", \"{target_fk}\", id.into(), &data, \"m2m_{field}__\", true).await?;",
+            junction = m2m.junction_table,
+            self_fk = m2m.self_fk,
+            target_fk = m2m.target_fk,
+            field = m2m.field_name
         );
-        let _ = writeln!(out, "                .update(&*db).await.map(|_| ())");
-    } else {
-        let _ = writeln!(out, "            use sea_orm::TransactionTrait;");
-        let _ = writeln!(out, "            let txn = db.begin().await?;");
-        let _ = writeln!(
-            out,
-            "            {}::admin_from_form(&data, Some(id))?.update(&txn).await?;",
-            module
-        );
-        for m2m in &r.m2m {
-            let _ = writeln!(
-                out,
-                "            runique::admin::helper::m2m::write_links(&txn, \"{junction}\", \"{self_fk}\", \"{target_fk}\", id.into(), &data, \"m2m_{field}__\", true).await?;",
-                junction = m2m.junction_table,
-                self_fk = m2m.self_fk,
-                target_fk = m2m.target_fk,
-                field = m2m.field_name
-            );
-        }
-        let _ = writeln!(out, "            txn.commit().await");
     }
+    let _ = writeln!(out, "            txn.commit().await");
     let _ = writeln!(out, "        }})");
     let _ = writeln!(out, "    }});");
     let _ = writeln!(out);
@@ -1217,5 +1220,41 @@ fn model_to_module(model_type: &str) -> String {
             result.extend(c.to_lowercase());
         }
         result
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::admin::daemon::parser::parse_admin_file;
+
+    fn entry(body: &str) -> String {
+        let parsed = parse_admin_file(&format!("admin! {{\n{body}\n}}")).expect("parses");
+        let mut out = String::new();
+        write_resource_entry(&mut out, &parsed.resources[0]).expect("writes");
+        out
+    }
+
+    // List fields (`checkbox`/`multichoice`) live in their own table: the
+    // generated closures read and write them with the row, whatever the model.
+    #[test]
+    fn create_update_and_get_handle_the_list_fields() {
+        let out = entry(r#"books: book::Model => BookForm { title: "Books" }"#);
+        let create = &out[out.find("let create_fn").unwrap()..out.find("let update_fn").unwrap()];
+        let update =
+            &out[out.find("let update_fn").unwrap()..out.find("let partial_update_fn").unwrap()];
+        let get = &out[out.find("let get_fn").unwrap()..out.find("let delete_fn").unwrap()];
+        for code in [create, update] {
+            assert!(code.contains("db.begin()"), "{code}");
+            assert!(
+                code.contains("result.admin_save_lists(&txn, &data)"),
+                "{code}"
+            );
+            assert!(code.contains("txn.commit()"), "{code}");
+        }
+        assert!(
+            get.contains("row.admin_list_values(&*db, &mut value)"),
+            "{get}"
+        );
     }
 }

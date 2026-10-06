@@ -466,21 +466,7 @@
   },
   "migrate": {
     "applying": "正在从'{}'应用迁移...",
-    "run_hint": "运行: sea-orm-cli migrate up",
-    "complete_up": "迁移完成。",
-    "complete": "回滚完成。",
-    "available_for": "'{}'的可用回滚文件:",
-    "rolling_back_batch": "正在回滚批次: {}",
-    "done": "完成: {}",
-    "rolling_back": "正在回滚: {}",
-    "no_applied_dir": "未找到applied/目录。",
-    "by_time_header": "by_time (完整批次):",
-    "none_available": "没有可用的回滚文件。",
-    "usage": "用法:",
-    "usage_files": "runique migration down --files <table/timestamp> [<table/timestamp> ...]",
-    "usage_batch": "runique migration down --batch <timestamp>",
-    "no_down": "未找到down语句。",
-    "executing": "正在执行: {}"
+    "complete_up": "迁移完成。"
   },
   "reset": {
     "forgot_title": "忘记密码",

@@ -466,21 +466,7 @@
   },
   "migrate": {
     "applying": "Применение миграций из '{}'...",
-    "run_hint": "Выполните: sea-orm-cli migrate up",
-    "complete_up": "Миграция завершена.",
-    "complete": "Откат завершён.",
-    "available_for": "Доступные файлы отката для '{}':",
-    "rolling_back_batch": "Откат пакета: {}",
-    "done": "Готово: {}",
-    "rolling_back": "Откат: {}",
-    "no_applied_dir": "Каталог applied/ не найден.",
-    "by_time_header": "by_time (полные пакеты):",
-    "none_available": "Файлы отката отсутствуют.",
-    "usage": "Использование:",
-    "usage_files": "runique migration down --files <table/timestamp> [<table/timestamp> ...]",
-    "usage_batch": "runique migration down --batch <timestamp>",
-    "no_down": "Инструкции down не найдены.",
-    "executing": "Выполняется: {}"
+    "complete_up": "Миграция завершена."
   },
   "reset": {
     "forgot_title": "Забыли пароль",

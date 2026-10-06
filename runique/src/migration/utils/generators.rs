@@ -1,7 +1,7 @@
 //! SeaORM migration Rust code generation — `up`/`down` files, CREATE TABLE, FK, indexes, triggers.
 use crate::migration::utils::{
     helpers::{col_type_method, col_type_to_method},
-    types::{Changes, ParsedColumn, ParsedSchema},
+    types::{Changes, ParsedColumn, ParsedFk, ParsedSchema},
 };
 
 /// Builds the FK constraint name. Length (MariaDB/MySQL hard-reject over 64 characters) is
@@ -15,33 +15,107 @@ fn fk_constraint_name(table: &str, from: &str, to_table: &str) -> String {
 
 /// Generates the migration file for a CREATE TABLE.
 pub fn generate_create_file(schema: &ParsedSchema) -> String {
-    // FKs always inline in CREATE TABLE: SQLite cannot ALTER-ADD a foreign key
-    // constraint to an existing table, so a separately-created FK breaks it —
-    // inline is valid on every engine, not just required on SQLite (confirmed
-    // via the contributions-table fix earlier this session).
-    let cols = build_create_table_cols(schema, true);
+    generate_create_file_in_cycle(schema, &CycleKeys::default())
+}
+
+/// Foreign keys of an FK cycle between new tables: Postgres and MySQL refuse
+/// a key to a table that doesn't exist yet, so these are left out of their
+/// table's CREATE and added once the target exists. SQLite only checks keys
+/// when rows are written, so there they stay inline — it can't add one later.
+#[derive(Debug, Default)]
+pub struct CycleKeys<'a> {
+    /// This table's keys to tables created after it.
+    pub forward: Vec<&'a ParsedFk>,
+    /// Keys of tables created before this one that point to it: (their table, key).
+    pub closing: Vec<(&'a str, &'a ParsedFk)>,
+}
+
+const NOT_SQLITE: &str =
+    "manager.get_connection().get_database_backend() != sea_orm::DbBackend::Sqlite";
+
+/// The CREATE file of a table, with the keys of an FK cycle placed per engine.
+pub fn generate_create_file_in_cycle(schema: &ParsedSchema, keys: &CycleKeys<'_>) -> String {
+    let (forward, closing) = (&keys.forward, &keys.closing);
+
+    // FKs inline in CREATE TABLE: SQLite cannot ALTER-ADD a foreign key to an
+    // existing table. Only the forward keys of a cycle wait on other engines.
+    let inline = ParsedSchema {
+        foreign_keys: schema
+            .foreign_keys
+            .iter()
+            .filter(|fk| !forward.contains(fk))
+            .cloned()
+            .collect(),
+        ..schema.clone()
+    };
+    let cols = build_create_table_cols(&inline, true);
     let idx_stmts = build_index_create_stmts(schema);
     let enum_stmts = build_enum_type_stmts(schema);
     let enum_drops = build_enum_type_drops(schema);
 
     let mut up = String::new();
     up.push_str(&enum_stmts);
-    up.push_str("        manager\n");
-    up.push_str("            .create_table(\n");
-    up.push_str("                Table::create()\n");
-    up.push_str(&format!(
-        "                    .table(Alias::new(\"{}\"))\n",
-        schema.table_name
-    ));
-    up.push_str("                    .if_not_exists()\n");
-    up.push_str(&cols);
-    up.push_str("                    .to_owned()\n");
-    up.push_str("            )\n");
-    up.push_str("            .await?;\n\n");
+    if forward.is_empty() {
+        up.push_str("        manager\n");
+        up.push_str("            .create_table(\n");
+        up.push_str("                Table::create()\n");
+        up.push_str(&format!(
+            "                    .table(Alias::new(\"{}\"))\n",
+            schema.table_name
+        ));
+        up.push_str("                    .if_not_exists()\n");
+        up.push_str(&cols);
+        up.push_str("                    .to_owned()\n");
+        up.push_str("            )\n");
+        up.push_str("            .await?;\n\n");
+    } else {
+        up.push_str("        let mut table = Table::create();\n");
+        up.push_str("        table\n");
+        up.push_str(&format!(
+            "                    .table(Alias::new(\"{}\"))\n",
+            schema.table_name
+        ));
+        up.push_str("                    .if_not_exists()\n");
+        up.push_str(cols.trim_end());
+        up.push_str(";\n");
+        up.push_str(
+            "        // FK cycle: the target table doesn't exist yet. SQLite takes the key\n",
+        );
+        up.push_str("        // now; Postgres/MySQL get it once the target is created.\n");
+        up.push_str("        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Sqlite {\n");
+        for fk in forward {
+            up.push_str(&format!(
+                "            table.foreign_key(\n{});\n",
+                render_fk_create(&schema.table_name, fk, "                ")
+            ));
+        }
+        up.push_str("        }\n");
+        up.push_str("        manager.create_table(table.to_owned()).await?;\n\n");
+    }
     up.push_str(&idx_stmts);
+    if !closing.is_empty() {
+        up.push_str(&format!("        if {NOT_SQLITE} {{\n"));
+        for (from_table, fk) in closing {
+            up.push_str(&format!(
+                "            manager\n                .create_foreign_key(\n{}\n                        .to_owned(),\n                )\n                .await?;\n",
+                render_fk_create(from_table, fk, "                    ")
+            ));
+        }
+        up.push_str("        }\n");
+    }
     up.push_str("        Ok(())\n");
 
     let mut down = String::new();
+    if !closing.is_empty() {
+        down.push_str(&format!("        if {NOT_SQLITE} {{\n"));
+        for (from_table, fk) in closing {
+            down.push_str(&format!(
+                "            manager\n                .drop_foreign_key(\n                    ForeignKey::drop()\n                        .table(Alias::new(\"{from_table}\"))\n                        .name(\"{name}\")\n                        .to_owned(),\n                )\n                .await?;\n",
+                name = fk_constraint_name(from_table, &fk.from_column, &fk.to_table),
+            ));
+        }
+        down.push_str("        }\n");
+    }
     // No explicit drop_index here: DROP TABLE already removes every index defined on it,
     // and dropping one by name first fails on MariaDB/MySQL when it's still backing an
     // active FK constraint (error 1553) — the FK's own drop only happens implicitly with
@@ -241,45 +315,6 @@ pub fn generate_alter_file(change: &Changes) -> String {
     )
 }
 
-/// Generates a single migration file whose `up` applies every op from all `changes`
-/// (across possibly several tables) and whose `down` is a no-op — the counterpart
-/// [`generate_batch_down_file`] carries the matching reverse operations instead.
-pub fn generate_batch_up_file(changes: &[&Changes], timestamp: &str) -> String {
-    let mut body = String::new();
-    for change in changes {
-        append_up_ops(change, &mut body);
-    }
-    format!(
-        "// Batch up - auto-generated by runique\n// Timestamp: {0}\n// Tables: {1}\nuse sea_orm_migration::prelude::*;\n\n#[derive(DeriveMigrationName)]\npub struct Migration;\n\n#[async_trait::async_trait]\nimpl MigrationTrait for Migration {{\n    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {{\n{2}\n        Ok(())\n    }}\n\n    async fn down(&self, _manager: &SchemaManager) -> Result<(), DbErr> {{\n        Ok(())\n    }}\n}}\n",
-        timestamp,
-        changes
-            .iter()
-            .map(|c| c.table_name.as_str())
-            .collect::<Vec<_>>()
-            .join(", "),
-        body.trim_end()
-    )
-}
-
-/// Generates the reverse counterpart of [`generate_batch_up_file`]: an `up` that does
-/// nothing and a `down` that undoes every op from all `changes`.
-pub fn generate_batch_down_file(changes: &[&Changes], timestamp: &str) -> String {
-    let mut body = String::new();
-    for change in changes {
-        append_down_ops(change, &mut body);
-    }
-    format!(
-        "// Batch down - auto-generated by runique\n// Timestamp: {0}\n// Tables: {1}\nuse sea_orm_migration::prelude::*;\n\n#[derive(DeriveMigrationName)]\npub struct Migration;\n\n#[async_trait::async_trait]\nimpl MigrationTrait for Migration {{\n    async fn up(&self, _manager: &SchemaManager) -> Result<(), DbErr> {{\n        Ok(())\n    }}\n\n    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {{\n{2}\n        Ok(())\n    }}\n}}\n",
-        timestamp,
-        changes
-            .iter()
-            .map(|c| c.table_name.as_str())
-            .collect::<Vec<_>>()
-            .join(", "),
-        body.trim_end()
-    )
-}
-
 fn build_create_table_cols(schema: &ParsedSchema, inline_fks: bool) -> String {
     let mut cols = String::new();
 
@@ -312,6 +347,19 @@ fn build_create_table_cols(schema: &ParsedSchema, inline_fks: bool) -> String {
     }
 
     cols
+}
+
+/// `ForeignKey::create()…` for the key `fk` of `table`, each line indented by `indent`.
+fn render_fk_create(table: &str, fk: &ParsedFk, indent: &str) -> String {
+    format!(
+        "{indent}ForeignKey::create()\n{indent}    .name(\"{name}\")\n{indent}    .from(Alias::new(\"{table}\"), Alias::new(\"{from}\"))\n{indent}    .to(Alias::new(\"{to_table}\"), Alias::new(\"{to_col}\"))\n{indent}    .on_delete(ForeignKeyAction::{on_delete})\n{indent}    .on_update(ForeignKeyAction::{on_update})",
+        name = fk_constraint_name(table, &fk.from_column, &fk.to_table),
+        from = fk.from_column,
+        to_table = fk.to_table,
+        to_col = fk.to_column,
+        on_delete = fk.on_delete,
+        on_update = fk.on_update,
+    )
 }
 
 fn build_fk_create_stmts(schema: &ParsedSchema) -> String {
@@ -633,71 +681,6 @@ fn render_enum_column_change(table: &str, from: &ParsedColumn, to: &ParsedColumn
     }
 
     out
-}
-
-fn append_up_ops(change: &Changes, buf: &mut String) {
-    for (old, new) in &change.renamed_columns {
-        push_rename_column(buf, &change.table_name, old, new);
-    }
-    for idx in &change.dropped_indexes {
-        push_drop_index(buf, &change.table_name, &idx.name);
-    }
-    for fk in &change.dropped_fks {
-        push_drop_fk(buf, &change.table_name, &fk.from_column, &fk.to_table);
-    }
-    for col in &change.dropped_columns {
-        push_drop_column(buf, &change.table_name, &col.name);
-    }
-    for col in &change.added_columns {
-        push_add_column(buf, &change.table_name, col);
-    }
-    for fk in &change.added_fks {
-        push_create_fk(
-            buf,
-            &change.table_name,
-            &fk.from_column,
-            &fk.to_table,
-            &fk.to_column,
-            &fk.on_delete,
-            &fk.on_update,
-        );
-    }
-    for idx in &change.added_indexes {
-        push_create_index(buf, &change.table_name, &idx.name, &idx.columns, idx.unique);
-    }
-}
-
-fn append_down_ops(change: &Changes, buf: &mut String) {
-    for idx in &change.added_indexes {
-        push_drop_index(buf, &change.table_name, &idx.name);
-    }
-    for fk in &change.added_fks {
-        push_drop_fk(buf, &change.table_name, &fk.from_column, &fk.to_table);
-    }
-    for col in &change.added_columns {
-        push_drop_column(buf, &change.table_name, &col.name);
-    }
-    // recreate dropped columns
-    for col in &change.dropped_columns {
-        push_add_column(buf, &change.table_name, col);
-    }
-    for fk in &change.dropped_fks {
-        push_create_fk(
-            buf,
-            &change.table_name,
-            &fk.from_column,
-            &fk.to_table,
-            &fk.to_column,
-            &fk.on_delete,
-            &fk.on_update,
-        );
-    }
-    for idx in &change.dropped_indexes {
-        push_create_index(buf, &change.table_name, &idx.name, &idx.columns, idx.unique);
-    }
-    for (old, new) in &change.renamed_columns {
-        push_rename_column(buf, &change.table_name, new, old);
-    }
 }
 
 fn render_pk_col(pk: &ParsedColumn) -> String {
