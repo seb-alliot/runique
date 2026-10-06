@@ -32,8 +32,8 @@ time**, enabling both together is a deliberate compile-time error:
 
 ```toml
 # project Cargo.toml
-runique = { version = "...", features = ["big-pk"] }    # Pk = i64
-runique = { version = "...", features = ["pk-uuid"] }   # Pk = Uuid (Uuid::now_v7())
+runique = { version = "3.0.0", features = ["postgres", "big-pk"] }    # Pk = i64
+runique = { version = "3.0.0", features = ["postgres", "pk-uuid"] }   # Pk = Uuid (Uuid::now_v7())
 ```
 
 The choice must be made before the first migration — see

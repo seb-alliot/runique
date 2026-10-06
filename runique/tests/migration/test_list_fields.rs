@@ -277,6 +277,7 @@ mod pg_book {
     }
 }
 
+#[cfg(feature = "postgres")]
 #[tokio::test]
 async fn list_on_postgres_with_a_native_enum() {
     use pg_book::Genre as G;
@@ -346,6 +347,8 @@ async fn list_on_postgres_with_a_native_enum() {
     );
 }
 
+// Needs `fetch_with` (postgres feature) and a SQLite database: `all-databases` builds only.
+#[cfg(all(feature = "postgres", feature = "sqlite"))]
 #[tokio::test]
 async fn fetch_with_says_it_needs_postgres() {
     let conn = db::fresh_db_with_schema(DDL).await;

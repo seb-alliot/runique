@@ -39,8 +39,11 @@ Ces variables sont injectées sur **toutes les vues CRUD admin** via `inject_con
 | `resource_key` | `&str` | Clé de la ressource courante (ex: `"users"`) |
 | `current_resource` | `&str` | Identique à `resource_key` |
 | `resource` | `AdminResource` | Métadonnées complètes de la ressource courante (voir ci-dessous) |
-| `resources` | `Vec<AdminResource>` | Toutes les ressources enregistrées dans le registre |
-| `registered_roles` | `Vec<String>` | Tous les rôles enregistrés via `register_roles()` |
+| `resources` | `Vec<AdminResource>` | Les ressources que le compte connecté peut voir |
+| `resource_base` | `String` | URL de base des actions de la ressource courante (`{prefix}/{key}`, ou imbriquée sous son parent) |
+| `group_actions` | liste | Actions groupées déclarées dans `admin!{}` |
+| `can_create` / `can_read` / `can_update` / `can_delete` | `bool` | Droits du compte connecté sur cette ressource (tirés de ses groupes) |
+| `can_update_own` / `can_delete_own` | `bool` | Idem, limités aux lignes du compte lui-même |
 
 > Les clés déclarées dans `extra: {}` du bloc `admin!{}` sont également injectées **en tant que variables Tera de premier niveau**.
 > Exemple : `extra: { "icon" => "user" }` → `{{ icon }}` (accessible directement) ET `{{ resource.extra_context.icon }}`.
@@ -52,11 +55,6 @@ Ces variables sont injectées sur **toutes les vues CRUD admin** via `inject_con
 | `resource.key` | `&str` | Clé unique de la ressource (`"users"`) |
 | `resource.title` | `&str` | Titre lisible (`"Utilisateurs"`) |
 | `resource.model_path` | `&str` | Chemin du modèle SeaORM (`"crate::entities::users::Model"`) |
-| `resource.permissions.list` | `Vec<String>` | Rôles autorisés pour la liste |
-| `resource.permissions.view` | `Vec<String>` | Rôles autorisés pour le détail |
-| `resource.permissions.create` | `Vec<String>` | Rôles autorisés pour la création |
-| `resource.permissions.edit` | `Vec<String>` | Rôles autorisés pour l'édition |
-| `resource.permissions.delete` | `Vec<String>` | Rôles autorisés pour la suppression |
 | `resource.display.icon` | `String` *(optionnel)* | Nom d'icône déclaré |
 | `resource.display.pagination` | `usize` | Entrées par page (défaut : `25`) |
 | `resource.extra_context` | `HashMap<String, String>` | Clés custom déclarées dans `extra: {}` |
@@ -220,7 +218,8 @@ csrf_token, site_title, lang
 | --- | --- | --- |
 | `site_title` | `String` | Titre du site |
 | `lang` | `String` | Code de langue courant |
-| `resources` | `Vec<AdminResource>` | Toutes les ressources enregistrées |
+| `resources` | `Vec<AdminResource>` | Les ressources que le compte connecté peut voir |
+| `resource_groups` | `HashMap<String, Vec<String>>` | Noms des groupes ayant un droit sur chaque ressource (clé = `resource.key`) |
 | `resource_counts` | `HashMap<String, u64>` | Nombre d'entrées par ressource (clé = `resource.key`) |
 | `current_page` | `&str` | Vaut `"dashboard"` |
 | `current_resource` | `None` | Absent — aucune ressource sélectionnée |
@@ -271,7 +270,7 @@ resources, resource_counts, current_page
         <tr>
             <td>{{ res.title }}</td>
             <td><code>{{ res.key }}</code></td>
-            <td>{{ res.permissions.list | join(sep=", ") }}</td>
+            <td>{% if resource_groups[res.key] %}{% for grp in resource_groups[res.key] %}{{ grp }} {% endfor %}{% endif %}</td>
             <td>
                 <a href="{{ admin_prefix }}/{{ res.key }}/list">
                     {{ admin_dashboard_btn_list }}

@@ -11,7 +11,7 @@ La macro `model!` génère les entités SeaORM, les schémas de migration et les
 | Section | Contenu |
 | --- | --- |
 | [DSL & AST](/docs/fr/model/dsl) | Macros exposées, syntaxe `model!`, AST interne, types et options de champs |
-| [Génération & ModelSchema](/docs/fr/model/generation) | Code généré, `ModelSchema`, `to_migration()`, `fill_form()` |
+| [Génération & ModelSchema](/docs/fr/model/generation) | Code généré, `ModelSchema`, `fill_form()`, `enforce_limits()` |
 | [Formulaires & enjeux](/docs/fr/model/formulaires) | `#[form(...)]`, enjeux techniques, ordre de lecture |
 
 ---

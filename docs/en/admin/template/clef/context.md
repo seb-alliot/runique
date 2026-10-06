@@ -39,8 +39,11 @@ These variables are injected into **all CRUD admin views** via `inject_context`,
 | `resource_key` | `&str` | Key of the current resource (e.g. `"users"`) |
 | `current_resource` | `&str` | Same as `resource_key` |
 | `resource` | `AdminResource` | Full metadata of the current resource (see below) |
-| `resources` | `Vec<AdminResource>` | All resources registered in the registry |
-| `registered_roles` | `Vec<String>` | All roles registered via `register_roles()` |
+| `resources` | `Vec<AdminResource>` | The resources the signed-in account may see |
+| `resource_base` | `String` | Base URL of the current resource's actions (`{prefix}/{key}`, or nested under its parent) |
+| `group_actions` | list | Group actions declared in `admin!{}` |
+| `can_create` / `can_read` / `can_update` / `can_delete` | `bool` | Rights of the signed-in account on this resource (from its groups) |
+| `can_update_own` / `can_delete_own` | `bool` | Same, limited to the account's own rows |
 
 > Keys declared in `extra: {}` in `admin!{}` are also injected as **top-level Tera variables**.
 > Example: `extra: { "icon" => "user" }` → `{{ icon }}` (direct access) AND `{{ resource.extra_context.icon }}`.
@@ -52,11 +55,6 @@ These variables are injected into **all CRUD admin views** via `inject_context`,
 | `resource.key` | `&str` | Unique resource key (`"users"`) |
 | `resource.title` | `&str` | Human-readable title (`"Users"`) |
 | `resource.model_path` | `&str` | SeaORM model path (`"crate::entities::users::Model"`) |
-| `resource.permissions.list` | `Vec<String>` | Roles allowed for list |
-| `resource.permissions.view` | `Vec<String>` | Roles allowed for detail |
-| `resource.permissions.create` | `Vec<String>` | Roles allowed for create |
-| `resource.permissions.edit` | `Vec<String>` | Roles allowed for edit |
-| `resource.permissions.delete` | `Vec<String>` | Roles allowed for delete |
 | `resource.display.icon` | `String` *(optional)* | Icon name declared in config |
 | `resource.display.pagination` | `usize` | Entries per page (default: `25`) |
 | `resource.extra_context` | `HashMap<String, String>` | Custom keys declared in `extra: {}` |
@@ -220,7 +218,8 @@ csrf_token, site_title, lang
 | --- | --- | --- |
 | `site_title` | `String` | Site title |
 | `lang` | `String` | Current language code |
-| `resources` | `Vec<AdminResource>` | All registered resources |
+| `resources` | `Vec<AdminResource>` | The resources the signed-in account may see |
+| `resource_groups` | `HashMap<String, Vec<String>>` | Names of the groups holding a right on each resource (key = `resource.key`) |
 | `resource_counts` | `HashMap<String, u64>` | Entry count per resource (key = `resource.key`) |
 | `current_page` | `&str` | Value `"dashboard"` |
 | `current_resource` | `None` | Not set — no resource selected |
@@ -271,7 +270,7 @@ resources, resource_counts, current_page
         <tr>
             <td>{{ res.title }}</td>
             <td><code>{{ res.key }}</code></td>
-            <td>{{ res.permissions.list | join(sep=", ") }}</td>
+            <td>{% if resource_groups[res.key] %}{% for grp in resource_groups[res.key] %}{{ grp }} {% endfor %}{% endif %}</td>
             <td>
                 <a href="{{ admin_prefix }}/{{ res.key }}/list">
                     {{ admin_dashboard_btn_list }}

@@ -25,7 +25,7 @@ All notable changes to this project will be documented in this file.
 
 ### Security — `runique` (`.env`: `ENFORCE_HTTPS=True` didn't enforce HTTPS)
 
-* **`.env` flags were read with `str::parse::<bool>()`, which only takes `true` or `false` exactly.** `True`, `TRUE`, `1` or `yes` fell back to the default without a word: `ENFORCE_HTTPS=True` left HTTPS unenforced. Same for `RATE_LIMITING`, `HSTS_INCLUDE_SUBDOMAINS`, `HSTS_PRELOAD`, `RUNIQUE_ENABLE_CACHE` (read in two places) and `ACME_ENABLED` (read in two places, two different ways). `DEBUG` only took `true` or `1`, case-sensitively.
+* **`.env` flags were read with `str::parse::<bool>()`, which only takes `true` or `false` exactly.** `True`, `TRUE`, `1` or `yes` fell back to the default without a word: `ENFORCE_HTTPS=True` left HTTPS unenforced. Same for `HSTS_INCLUDE_SUBDOMAINS`, `HSTS_PRELOAD` and `ACME_ENABLED` (read in two places, two different ways). `DEBUG` only took `true` or `1`, case-sensitively.
 * On the keyword side, `EMAIL_BACKEND=Console` fell through to SMTP with empty credentials, and `DB_ENGINE` was lowercased by `makemigrations` but not by `DatabaseConfig` (`Postgres` accepted by one, refused by the other).
 * Everything now goes through three public functions in `utils/config/env.rs`:
   - `flag_from()`: `true`, `1`, `yes`, `on` / `false`, `0`, `no`, `off`, whatever the case, surrounding spaces ignored;
@@ -230,7 +230,27 @@ COMMIT;
 * **`i32` / `i64` enums**: every variant needs a unique integer value within the type's range (variants without one were all `0`).
 * **`customize`**: loosening `min_length`, `max_length`, `min` or `max` panics when the form is built.
 * **`runique::migration::RelationDef`, `RelationKind` and `ModelSchema::relation()` removed**: never read.
-* Non-breaking, described in the README: `max_length` in migrations (`VARCHAR(n)`, `BINARY(n)`, `VARBINARY(n)`), followed by snapshots and the diff, `blob` with its own column type, `belongs_to` targeting the related entity's real primary key with its actions.
+* **`checkbox [enum(X)]` becomes a list**: it stored a single value in a column (checking two boxes failed to convert); it is now a list field stored in its own table, like the new `multichoice` (see *Added — DSL (list fields)*).
+* **A column's name no longer decides anything**: a `created_at` / `updated_at` column without `auto_now` no longer gets `DEFAULT CURRENT_TIMESTAMP` (the next `makemigrations` proposes removing it), and a `cache_key` column is no longer left out of migrations. Only `auto_now`, `auto_now_update` and `readonly` count.
+* Non-breaking, described in the README: `max_length` in migrations (`VARCHAR(n)`, `BINARY(n)`, `VARBINARY(n)`), followed by snapshots and the diff, `belongs_to` targeting the related entity's real primary key with its actions, indexes on foreign keys and cycles (see *Added — `makemigrations`*).
+
+### Breaking — `runique` (`runique migration down` / `status` removed)
+
+* Runique's rollback read the text of the `applied/` files back to build raw SQL: **it never updated `seaql_migrations`** (a rolled-back migration stayed marked as applied, and `migrate up` didn't run it again), and the batch rollback looked for a path (`applied/by_time/<timestamp>.rs`) that `makemigrations` never wrote.
+* Both commands are removed, along with the `applied/` folder (migration copies and `by_time`), which `makemigrations` no longer generates and which can be deleted from an existing project. Rolling back and listing go through SeaORM, which runs the real `down()` and keeps `seaql_migrations` in sync: `sea-orm-cli migrate down -n N` and `sea-orm-cli migrate status`. `runique migration up` stays.
+
+### Breaking — `runique` (`RUNIQUE_USER_TABLE` removed)
+
+* A leftover from when you could provide your own user table: `eihwaz_users` is the only user model. `makemigrations` always leaves `eihwaz_*` tables of `src/entities/` out and always puts the framework migrations first in `lib.rs`; the admin tables' foreign keys target `eihwaz_users`. Constraint names don't change: no existing database is touched.
+
+### Breaking — `runique` (`RATE_LIMITING`, `ALLOWED_HOSTS` and `RUNIQUE_ENABLE_CACHE` no longer read from `.env`)
+
+* `RUNIQUE_ENABLE_CACHE` was a leftover of the former dev/prod modes: the HTTP cache now follows `DEBUG` (no-cache headers in debug, on `localhost`), and `.middleware(|m| m.with_cache(bool))` overrides it.
+* `RATE_LIMITING` and `ALLOWED_HOSTS` were read into `SecurityConfig.rate_limiting` / `.allowed_hosts`, which nothing used: `ALLOWED_HOSTS=mysite.com` left host validation off, `RATE_LIMITING=false` disabled nothing. Both fields are removed. Host validation is set with `.middleware(|m| m.with_allowed_hosts(|h| h.enabled(true).host("mysite.com")))`; rate limits with `.rate_limit(...)` on routes, `with_rate_limiter(...)` on the admin, and the password reset has its own.
+
+### Breaking — `runique` (`cleaned_enum` relies on `FromStr`)
+
+* `cleaned_enum::<T>()` required `ActiveEnum<Value = String>`, so it only read text enums. It now relies on `FromStr`, which also covers integer enums (`i8` to `i64`). Enums generated by `model!{}` all have `FromStr`; a hand-written `ActiveEnum` without `FromStr` no longer works.
 
 ### Added — `runique` (`runique_test` test builder and `runique test` command)
 
@@ -273,6 +293,29 @@ COMMIT;
 ### Added — `runique` (`RuniqueEngine::close_user_sessions`)
 
 * Closes every session of a user, database then memory. Used by the password reset; available to your own handlers (password change from a profile page, compromised account).
+
+### Added — DSL (`multichoice` / `checkbox` list fields)
+
+* A list field holds several values of an enum: `genres: checkbox [enum(Genre), required]` (checkboxes) or `multichoice [enum(Genre)]` (`<select multiple>`). It has no column: `makemigrations` creates a `{table}_{field}` table (`owner_id` with `ON DELETE CASCADE`, `value`, unique index `(owner_id, value)` and index `(value, owner_id)`). Measurements on Postgres led to this over an array: for the same reads, the separate table filters 3 to 4 times faster and works on all three engines.
+* The macro generates `book.genres(&db)`, `book.set_genres(&db, values)` (in a transaction, no duplicates) and `Model::load_genres(&db, &books)` (a whole page in one query), plus `List::Genres` to filter: `search!(book::Entity => Genres has Genre::Novel)`, `has_any`, `has_all`, `!Genres has …`, or `objects.filter(book::List::Genres.has(…))`. Portable, typed filters.
+* With the `postgres` feature, `List::Genres.fetch_with(&db, query)` returns the rows **with** their list in a single round trip (`string_agg`).
+* The admin shows the field, saves the row and its list in the same transaction and pre-fills the edit form (regenerate `src/admins/` with `runique start`); in a form, `cleaned_enums::<Genre>("genres")` reads the checked values. Every generated enum gets `form_value()`.
+* Refused at compile time: a list without an enum, a column attribute (`nullable`, `unique`, `default`…), a list in `extend!{}`, `meta` or `belongs_to`, a name that would hide a SeaORM method.
+
+### Added — DSL (`i8` / `i16` enums)
+
+* `Level: i8 [Low = 1, High = 2]` and `Code: i16 [...]`, stored as `TINYINT` / `SMALLINT`, with the same check as `i32` / `i64` (one value per variant, within range, no duplicate). An `i8` enum is refused on Postgres, which can't read it back.
+
+### Added — `makemigrations` (foreign key indexes, cycles, lengths)
+
+* **Indexes**: every `belongs_to` column gets an index `idx_<table>_<column>`, as Django does, unless it is already `unique` or leads an index of `meta`. On an existing project, the next `makemigrations` proposes one `CREATE INDEX` per foreign key: expected and harmless (MySQL then drops its implicit index).
+* **Cycles**: two new tables referencing each other no longer make the migration fail. On SQLite the key stays in the `CREATE TABLE`; on Postgres and MySQL, the one closing the cycle is added by an `ALTER TABLE` once its target exists. The choice is made at run time: the same file works on all three engines.
+* **Lengths**: `max_length` sets the column size and goes through the snapshots; growing = `ALTER`, shrinking = `--force`. An older snapshot takes the model's lengths once, then is rewritten ("N snapshot(s) updated to record column lengths"), without a migration.
+
+### Fix — `makemigrations` (binary types, table order)
+
+* `blob` was created as `BINARY`, `binary` without a length as `BINARY(1)` (any value longer than one byte refused on MariaDB), and `var_binary` produced a `.var_binary()` without a length, which didn't compile. Each now has its own column and length (255 by default).
+* The order of independent tables, and of tables in a cycle, came from a `HashMap`: it changed from one run to the next. It is now deterministic.
 
 ### Fix — `runique` (i18n: a literal `\n` in two CLI messages)
 

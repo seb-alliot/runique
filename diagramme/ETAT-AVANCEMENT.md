@@ -147,3 +147,22 @@ doit vivre dans le framework. Défaut basculé à `false` inconditionnel dans
 `forms/field.rs` ; les surcharges devenues redondantes retirées côté framework
 (`ForgotPasswordForm`/`PasswordResetForm`) et côté Campanile (4 formulaires).
 Seul cas d'opt-in réel : `UsernameForm` (demo-app, recherche GET-only).
+
+## Session 2026-10-06 — 3.0.0 : runique_dsl, chantier C, champs liste
+
+`makemigrations` lit désormais le DSL avec `runique_dsl`, le même parseur que la macro (fin
+des deux lecteurs qui divergeaient : nullabilité, noms magiques, source des FK). Diagrammes mis
+à jour :
+
+- `uml/migration/types-builder-et-parsed.md` : `relation` supprimé, `ParsedColumn` (sans
+  `created_at`/`updated_at`, avec `max_length`), lecture via `MacroCollector`/`ParsedModel`/
+  `to_schema`, `CycleKeys` ; deux entrées ✅ (deux lecteurs du DSL, `max_length` jamais migré).
+- `uml/migration/schema-et-diff.md` : `ModelSchema` réduit aux formulaires (`enforce_limits`,
+  plus de `to_migration`/`to_model`/`relations`) ; M1 marqué faux positif.
+- `uml/derive_form/proc-macro.md` : AST et parseur déplacés dans `runique_dsl`, validations au
+  parsing, `Relation` écrit à la main, champs liste ; entrées ✅ FK et enums entiers à 0.
+- `flux/auth-session-et-makemigrations.md` / `flux/admin-crud-reset-makemigrations.md` :
+  vrai chemin de `makemigrations`, plus de triggers, admin en transaction avec les listes.
+- `uml/macros/macros.md` : `HasLists` / `ListField` (`search!(… => Genres has v)`).
+- `merise/modele-donnees.md` : `RUNIQUE_USER_TABLE` supprimé ; `uml/auth/authentification.md` :
+  méthodes réelles de `BuiltinUserEntity`.

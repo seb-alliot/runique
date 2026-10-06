@@ -53,16 +53,16 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant CLI as runique makemigrations
-    participant P as parser (model!/extend!)
+    participant P as runique_dsl (model!/extend!)
     participant DS as diff_schemas
     participant PL as build_plan
     participant CM as commit_plan (atomique)
 
-    CLI->>P: parse sources → ParsedSchema
+    CLI->>P: parse sources → ParsedModel (erreur = arrêt, fichier:ligne:colonne)
     CLI->>DS: diff_schemas(previous, current)
     DS-->>CLI: Changes { added, dropped, MODIFIED, fk, index, enum_rename }
     Note over DS: ✅ modified_columns géré (ALTER COLUMN émis)
-    CLI->>PL: build_plan (SQL CREATE/ALTER/DROP + triggers updated_at)
+    CLI->>PL: build_plan (CREATE/ALTER/DROP, index FK, cycles via CycleKeys — plus de triggers)
     CLI->>CM: commit_plan — snapshots + rollback atomique si échec
 ```
 
@@ -74,7 +74,13 @@ au lieu d'erreur. À durcir (501/log).
 
 ### 🟢 ACR2 — Reset password : audit clean (pas d'anomalie)
 Token haché, single-use strict, `user_id` dérivé du token, anti-énumération sur forgot,
-logout avant reset. Chaîne saine.
+logout avant reset. Chaîne saine. Depuis 3.0.0 : le reset ferme **toutes** les sessions du
+compte (`close_user_sessions`) et le lien est construit depuis l'URL publique, pas le `Host`.
+
+### 🟢 ACR4 — Admin : listes enregistrées avec la ligne (3.0.0, 2026-10-06)
+`create_fn`/`update_fn` générés : une transaction — `admin_from_form` → insert/update →
+`admin_save_lists` (champs `checkbox`/`multichoice`) → liens M2M → commit. `get_fn` ajoute
+les valeurs des listes (`admin_list_values`) pour pré-remplir l'édition.
 
 ### 🟢 ACR3 — makemigrations : diff complet (confirme M1 = faux positif)
 `diff_schemas` gère added/dropped/**modified**/fk/index/enum-rename ; commit atomique avec

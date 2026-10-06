@@ -38,9 +38,7 @@ async fn psql_file(db_url: &str, path: &PathBuf) {
     }
 }
 
-pub async fn seed_demo(db: &DatabaseConnection) {
-    use sea_orm::ConnectionTrait;
-
+pub async fn seed_demo() {
     let db_url = match std::env::var("DATABASE_URL") {
         Ok(u) => u,
         Err(_) => {
@@ -57,17 +55,8 @@ pub async fn seed_demo(db: &DatabaseConnection) {
         }
     };
 
-    // Re-seed à chaque démarrage : un simple redémarrage ne mettait jamais à jour
-    // les tables (early-return si déjà peuplées), laissant des exemples périmés.
-    // On vide les tables démo puis on ré-applique seed.sql.
-    // `changelog_entry` et `roadmap_entry` sont préservées (non tronquées) : leurs
-    // blocs COPY échoueront sur conflit de clé et seront ignorés, gardant les lignes.
-    let truncate = "TRUNCATE demo_category, demo_page, demo_section, form_field, \
-                    page_doc_link, blog, known_issue, code_example CASCADE;";
-    if let Err(e) = db.execute_unprepared(truncate).await {
-        tracing::warn!("demo_seed: erreur TRUNCATE: {e}");
-    }
-
+    // Re-seed à chaque démarrage. seed.sql vide lui-même les tables dans la
+    // même transaction que le rechargement : un seed en échec garde le contenu.
     tracing::info!("demo_seed: re-seed depuis {:?}", sql_path);
     psql_file(&db_url, &sql_path).await;
 

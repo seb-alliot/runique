@@ -100,7 +100,7 @@ Le résultat est un `HashMap<String, (Vec<String>, u64)>` : chaque colonne → s
 
 ## Étape 4 — Le handler
 
-Dans `admin_main.rs`, deux séries de paramètres URL sont parsées :
+Dans `admin_main/handle_list.rs`, deux séries de paramètres URL sont parsées :
 
 ```
 filter_lang=fr    → filtre actif sur la colonne lang
@@ -112,7 +112,7 @@ Les trois requêtes tournent **en parallèle** grâce à `tokio::join!` :
 ```rust
 tokio::join!(
     list_fn(db, list_params),      // entrées de la table
-    count_fn(db, search),          // total pour la pagination principale
+    count_fn(db, search, column_filters, scope), // total pour la pagination principale (mêmes filtres que la liste)
     filter_fn(db, filter_pages),   // valeurs distinctes par colonne
 )
 ```

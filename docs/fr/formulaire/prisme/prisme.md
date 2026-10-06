@@ -6,7 +6,7 @@
 
 `request.form()` est une méthode intégrée dans `Request` qui orchestre un pipeline complet en coulisses :
 
-1. **Sentinel** — Vérifie les règles d'accès (login, rôles) via `GuardRules`.
+1. **Sentinel** — Vérifie les règles d'accès de la route (`GuardRules` : connecté, staff, superutilisateur, groupes) contre le compte relu en base.
 2. **Aegis** — Extraction unique du body (multipart, urlencoded, json) normalisée en `HashMap`.
 3. **CSRF Gate** — Vérifie le token CSRF dans les données parsées.
 4. **Construction** — Crée le formulaire `T`, remplit les champs et lance la validation.

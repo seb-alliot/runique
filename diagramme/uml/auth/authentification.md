@@ -19,8 +19,8 @@ classDiagram
     class BuiltinUserEntity {
         <<unit>>
         +find_by_id/email/username(...)
-        +update_password(...)
         +update_password_by_id(...)
+        +activate_pending(...) / set_password_and_activate(...)
     }
     class authenticate_admin {
         <<fn>>

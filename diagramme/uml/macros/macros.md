@@ -15,18 +15,27 @@ classDiagram
     }
     class RuniqueQueryBuilder~E~ {
         +Select~E~ query
-        +all(db) / all_from_engine(engine)
-        +filter / order_by / limit …
+        +all(db) / first / one / count
+        +filter / exclude / order_by / limit …
     }
     class Queryable { <<trait>> }
+    class HasLists { <<trait>> +type List }
+    class ListField~O,C,V~ {
+        +has(v) / has_any(vs) / has_all(vs) Condition
+        +fetch_with(db, Select) [postgres]
+    }
     Objects ..> RuniqueQueryBuilder : construit
     RuniqueQueryBuilder ..> Queryable
+    HasLists ..> ListField : List::Champ
 ```
 
 Macros associées :
 - `impl_objects!` — génère `Model::objects` (point d'entrée `Objects<E>`).
 - `search!{}` / `search_cond!` / `search_munch!` / `search_apply_op!` — DSL de filtres
   composables → `Condition` SeaORM (op `eq/like/gt/in/...`). Voir [filter.rs](../../../runique/src/macros/bdd/filter.rs).
+- Champs liste (3.0.0, 2026-10-06) : `search!(E => Genres has v / has_any [..] / has_all [..])`
+  passe par `<<E as HasLists>::List>::Genres` (généré par `model!{}`), un `ListField` typé qui
+  produit une sous-requête portable ([list.rs](../../../runique/src/macros/bdd/list.rs)).
 
 ## routeur — routing déclaratif
 

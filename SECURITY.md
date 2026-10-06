@@ -43,9 +43,9 @@ We will respond within 48 hours and work on a fix as soon as possible.
 
 When using Runique in production:
 
-1. **Always use HTTPS** (`enforce_https = true` in settings)
+1. **Always use HTTPS** (`ENFORCE_HTTPS=true` behind a TLS proxy, or ACME)
 2. **Set strong SECRET_KEY** (32+ random characters)
-3. **Configure ALLOWED_HOSTS** properly
+3. **Enable host validation** in the builder: `.middleware(|m| m.with_allowed_hosts(|h| h.enabled(true).host("mysite.com")))`
 4. **Use the strict CSP preset** (`.with_csp(|c| c.policy(SecurityPolicy::strict()))`) — CSP itself is always active by default
 5. **Keep dependencies updated**: `cargo update`
 6. **Run security audits**: `cargo audit`

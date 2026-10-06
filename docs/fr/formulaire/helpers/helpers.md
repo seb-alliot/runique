@@ -34,6 +34,17 @@ self.cleaned_datetime_utc("created_at")       // Option<DateTime<Utc>> (RFC3339)
 self.cleaned_uuid("external_id")              // Option<Uuid>
 ```
 
+### Enums
+
+```rust
+self.cleaned_enum::<Statut>("statut")         // Option<Statut> — enum texte ou entier
+self.cleaned_enums::<Genre>("genres")         // Vec<Genre> — champ liste (checkbox / multichoice)
+```
+
+`cleaned_enum` accepte tout enum généré par `model!{}`, texte ou entier (`i8` à `i64`).
+`cleaned_enums` lit les valeurs cochées d'un champ liste, dans l'ordre soumis ; il renvoie un
+`Vec` vide si rien n'est coché. Une valeur qui n'est pas une variante est ignorée (et journalisée).
+
 > **💡** Les helpers float (`cleaned_f32`, `cleaned_f64`) convertissent automatiquement la virgule en point (`19,99` → `19.99`) pour simplifier la saisie.
 > 
 > **Note de sécurité :** Toutes les variantes `cleaned_*` retournent `Option`. Pour une valeur par défaut : `.unwrap_or_default()` ou `.unwrap_or(0)`.

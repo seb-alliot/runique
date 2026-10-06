@@ -80,7 +80,7 @@ let app = RuniqueApp::builder(config)
     .middleware(|m| {
         m.with_csp(|c| c)              // CSP is always active — customize it here
          .with_allowed_hosts(|h| h.enabled(true).host("mydomain.com"))      // Enable host validation
-         .with_cache(true)              // Enable no-cache in dev
+         .with_cache(true)              // Keep the HTTP cache in dev (no no-cache headers)
          .with_debug_errors(true)       // Enable detailed errors
     })
     .build()
@@ -127,11 +127,11 @@ let app = RuniqueApp::builder(config)
 
 In production (`DEBUG=false`), the app **refuses to boot** without it as soon as the password reset or the admin is enabled: a link built from the request's `Host` header would go wherever the client decides (`Host: evil.com` → the reset token goes to the attacker). In debug, the `Host` is the fallback, with a warning.
 
-It's called **once**: a second `.with_public_url(...)` doesn't compile ("`with_public_url()` has already been called on this builder"), rather than silently replacing the first. To tell local from production apart, a condition is enough:
+It's called **once**: a second `.with_public_url(...)` doesn't compile ("`with_public_url()` has already been called on this builder"), rather than silently replacing the first. To tell local from production apart, choose the value, not the call (the two branches of an `if` around the call wouldn't have the same type); an empty string leaves the public URL unset:
 
 ```rust
-let builder = RuniqueApp::builder(config);
-let builder = if is_debug() { builder } else { builder.with_public_url("https://mysite.com") };
+let public_url = if is_debug() { "" } else { "https://mysite.com" };
+let builder = RuniqueApp::builder(config).with_public_url(public_url);
 ```
 
 ### Framework logs
@@ -198,7 +198,6 @@ RuniqueApp::builder(config)
 | `csrf`            | `.middleware(\|m\| m.csrf(...))`         | CSRF token detected in a GET URL (silent cleanup) |
 | `exclusive_login` | `.session(\|s\| s.exclusive_login(...))` | Sessions invalidated on exclusive login |
 | `filter_fn`       | `.admin(\|a\| a.filter_fn(...))`         | Failed `filter_fn` in the admin list view |
-| `roles`           | `.admin(\|a\| a.roles(...))`             | Errors accessing the admin roles registry |
 | `password_init`   | `.auth(\|a\| a.password_init(...))`      | `password_init()` called more than once |
 | `store`           | `.session(\|s\| s.store(...))`           | Memory watermarks, large records, cleanup errors |
 | `connect`         | `.db(\|d\| d.connect(...))`              | DB connection in progress / connection established |

@@ -67,9 +67,9 @@ Aucun mot de passe n'est géré par Runique. L'authentification est déléguée 
 ```rust
 use runique::prelude::{External};
 
-password_init(PasswordConfig::oauth(External::GoogleOAuth));
-password_init(PasswordConfig::oauth(External::Microsoft));
-password_init(PasswordConfig::oauth(External::Ldap("ldap://...".to_string())));
+password_init(PasswordConfig::Delegated(External::GoogleOAuth));
+password_init(PasswordConfig::Delegated(External::Microsoft));
+password_init(PasswordConfig::Delegated(External::Ldap("ldap://...".to_string())));
 ```
 
 Fournisseurs disponibles : `GoogleOAuth`, `Microsoft`, `Apple`, `Ldap(url)`, `Saml(url)`, `Custom { name, authorize_url, token_url }`.
@@ -81,6 +81,7 @@ Implémente le trait `PasswordHandler` pour brancher ta propre logique de hachag
 ```rust
 use runique::prelude::{PasswordHandler, PasswordConfig};
 
+#[derive(Clone)] // requis : PasswordHandler est cloné avec la config
 struct MyHasher;
 
 impl PasswordHandler for MyHasher {

@@ -114,6 +114,9 @@ Elle retourne un `RuniqueQueryBuilder` chainable (`.limit()`, `.order_by_asc()`,
 | `Col not_range (a, b)` | `WHERE col NOT BETWEEN a AND b` | — |
 | `! Col op val` | exclusion (NOT) | `.exclude(col__op=val)` |
 | `or(C1 op v, C2 op v)` | `WHERE c1 op v OR c2 op v` | `Q(c1__op=v) \| Q(c2__op=v)` |
+| `Liste has v` | la liste contient `v` | `filter(liste=v)` (M2M) |
+| `Liste has_any [v, w]` | contient l'une des valeurs | `filter(liste__in=[v, w])` |
+| `Liste has_all [v, w]` | contient toutes les valeurs | filtres enchaînés |
 
 ### Fetch all
 
@@ -203,6 +206,19 @@ let results = search!(posts::Entity => or(Title icontains "rust", Content iconta
 let results = search!(posts::Entity => or(Title icontains term, Summary icontains term))
     .all(&*db).await?;
 ```
+
+### Champs liste — `has` / `has_any` / `has_all`
+
+Un champ liste (`multichoice` / `checkbox`, voir [le DSL](/docs/fr/model/dsl)) n'a pas de colonne : il se filtre par son nom en PascalCase, comme une colonne, avec trois opérateurs dédiés.
+
+```rust
+let romans = search!(livre::Entity => Genres has Genre::Roman).all(&*db).await?;
+let l_un   = search!(livre::Entity => Genres has_any [Genre::Roman, Genre::Policier]).all(&*db).await?;
+let les_2  = search!(livre::Entity => Genres has_all [Genre::Roman, Genre::Policier]).all(&*db).await?;
+let sauf   = search!(livre::Entity => !Genres has Genre::Roman, Titre icontains q).all(&*db).await?;
+```
+
+Ce sont des sous-requêtes portables, typées : une valeur d'un autre enum ne compile pas.
 
 ### Multi-conditions (AND chainé)
 

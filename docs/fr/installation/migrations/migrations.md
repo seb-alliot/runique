@@ -62,6 +62,7 @@ Avant d'écrire quoi que ce soit, `makemigrations` détecte les changements dest
 - `DROP COLUMN` (perte de données)
 - changement de type d'une colonne
 - passage `nullable` → `not null` (nécessite une valeur par défaut ou un backfill)
+- réduction de longueur d'une colonne (`max_length` plus petit) : des valeurs plus longues seraient tronquées ou refusées
 - suppression d'une clé étrangère (risque d'enregistrements orphelins)
 - ajout d'une FK `ON DELETE CASCADE` sur des données existantes (suppressions en cascade possibles)
 
@@ -81,12 +82,13 @@ La génération est **tout ou rien**. Les changements des modèles et des blocs 
 
 ## Clés étrangères et moteur cible
 
-`makemigrations` détecte le moteur (via `DB_URL`/`DATABASE_URL`/`DB_ENGINE`) et adapte la génération des FK :
+Les fichiers générés sont **communs à tous les moteurs** : ce qui ne concerne qu'un moteur est choisi à l'exécution, dans le fichier.
 
-- **PostgreSQL / MySQL / MariaDB** : toutes les contraintes FK sont regroupées dans une migration `…_create_relations` appliquée **après** la création des tables (`ALTER TABLE … ADD CONSTRAINT`).
-- **SQLite** : ne supporte pas l'ajout de FK à une table existante. Les FK sont donc déclarées **inline dans le `CREATE TABLE`**, et la migration `create_relations` n'est pas générée.
+- Les FK sont déclarées **dans le `CREATE TABLE`**, sur tous les moteurs ; les tables référencées sont créées avant celles qui les référencent.
+- **Cycle** (deux nouvelles tables qui se référencent l'une l'autre) : sous SQLite, qui ne vérifie une FK qu'à l'écriture des lignes, la clé reste dans le `CREATE TABLE` ; sous PostgreSQL / MySQL / MariaDB, la clé qui ferme le cycle est ajoutée par un `ALTER TABLE` une fois la table visée créée. Le choix se fait à l'exécution : le même fichier marche sur tous les moteurs.
+- Chaque colonne de `belongs_to` reçoit un index `idx_<table>_<colonne>`.
 
-Conséquence : les fichiers de migration sont **spécifiques au moteur** pour lequel ils ont été générés. Pour changer de moteur, régénérez les migrations (à partir de zéro) avec le `DB_ENGINE` cible.
+De même, les enums deviennent un `CREATE TYPE … AS ENUM` sous PostgreSQL uniquement (un `VARCHAR` ailleurs) : changer de moteur ne demande pas de régénérer les migrations.
 
 ---
 

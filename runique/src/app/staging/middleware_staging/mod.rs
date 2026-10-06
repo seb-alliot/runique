@@ -104,11 +104,9 @@ impl MiddlewareStaging {
 
     /// Creates a `MiddlewareStaging` from `RuniqueConfig`.
     ///
-    /// Resolution strategy:
-    ///   1. `RUNIQUE_ENABLE_*` variables from `.env` take priority
-    ///   2. If absent, debug mode determines defaults:
-    ///      - debug=true  → `development()` profile (permissive)
-    ///      - debug=false → `production()` profile (strict)
+    /// Debug mode picks the defaults:
+    ///   - debug=true  → `development()` profile (permissive, no-cache headers)
+    ///   - debug=false → `production()` profile (strict)
     ///
     /// The dev can then override via `.middleware(|m| m.with_csp(true))`.
     pub fn from_config(config: &RuniqueConfig) -> Self {
@@ -119,14 +117,11 @@ impl MiddlewareStaging {
             MiddlewareConfig::production()
         };
 
-        // .env variables take priority over the profile
-        let get_env_or = crate::utils::config::env::env_flag;
-
         let features = MiddlewareConfig {
             // host validation configured only via the builder (.with_allowed_hosts)
             enable_host_validation: false,
             enable_debug_errors: true, // always mounted — config.debug manages the content
-            enable_cache: get_env_or("RUNIQUE_ENABLE_CACHE", defaults.enable_cache),
+            enable_cache: defaults.enable_cache,
             exclusive_login: false, // propagated via `apply_to_router` from `self.exclusive_login`
         };
 

@@ -140,7 +140,7 @@ form.field(
 );
 ```
 
-> **Note on `.required()`**: On a `BooleanField`, `.required()` means the field is mandatory at the database level (`NOT NULL`). It does not force the user to check the box to validate the form (an unchecked checkbox sends `false`, which is a valid value for a non-null boolean). To force acceptance (e.g. Terms), use a custom validation or check the value manually.
+> **Note on `.required()`**: on a `BooleanField`, `.required()` does not force the user to check the box: an unchecked box sends `false`, a valid value. Whether the column is NULL or NOT NULL doesn't depend on the form but on the model (`nullable`). To force acceptance (e.g. Terms), use a custom validation (`clean()`) or check the value manually.
 
 ```rust
 // Single radio (yes/no)
@@ -419,7 +419,7 @@ form.field(&HiddenField::new_csrf());
 | ---------------- | ---------------------------------------------------------------------- | --------------------------------------------------- |
 | `TextField`      | `text()`, `email()`, `url()`, `password()`, `textarea()`, `richtext()` | Email/URL via `validator`, Argon2, XSS sanitization, `.rows(n)` |
 | `NumericField`   | `integer()`, `float()`, `decimal()`, `percent()`, `range()`            | Min/max bounds, decimal precision, `.step(n)` (`range` only)   |
-| `BooleanField`   | `new()`, `radio()`                                                     | Required = NOT NULL in database                                |
+| `BooleanField`   | `new()`, `radio()`                                                     | `required` doesn't force the box to be checked                 |
 | `ChoiceField`    | `new()` + `.multiple()`                                                | Value must be in declared choices                   |
 | `RadioField`     | `new()`                                                                | Value must be in declared choices                   |
 | `CheckboxField`  | `new()`                                                                | All values must be in choices                       |
