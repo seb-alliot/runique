@@ -26,7 +26,7 @@
 | Paramètre de chemin typé | `kwargs['id']` (toujours str dans Django) | `request.get_path_as::<i32>("id")` |
 | Paramètre de chemin brut | `kwargs['id']` | `request.get_path("id")` |
 | Query param unique | `request.GET.get('key')` | `request.get_query("key")` |
-| Query string complète | `request.GET` | `request.query::<MyStruct>()` (désérialise vers un struct `Deserialize`) |
+| Query string complète | `request.GET` | `request.query::<MyStruct>()?` (désérialise vers un struct `Deserialize`, 400 si la query ne correspond pas) |
 | Headers HTTP | `request.META['HTTP_X_FOO']` | `request.headers.get("x-foo")` |
 
 ---

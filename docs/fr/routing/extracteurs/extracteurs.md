@@ -52,11 +52,13 @@ async fn user_post(
 
 ### Struct typée — `request.query()`
 
-Désérialise la query string complète vers une struct dérivant `Deserialize + Default`.
-Les clés inconnues sont ignorées ; les clés absentes prennent leur valeur `Default`.
+Désérialise la query string complète vers une struct dérivant `Deserialize`.
+Les clés inconnues sont ignorées ; une valeur vide (`?page=`) est retirée, un champ `Option` reçoit alors `None`.
+
+Une query string qui ne correspond pas à la struct (`?page=abc` pour un `u32`) est une **400 Bad Request** : avec `?`, le handler s'arrête et `400.html` est affiché. Ce template se surcharge comme `404.html`, en plaçant le vôtre dans `templates/`. En mode debug, la page indique quel paramètre a échoué et pourquoi.
 
 ```rust
-#[derive(Deserialize, Default)]
+#[derive(Deserialize)]
 pub struct Filtres {
     page: Option<u32>,
     limit: Option<u32>,
@@ -64,7 +66,7 @@ pub struct Filtres {
 }
 
 async fn liste(mut request: Request) -> AppResult<Response> {
-    let filtres: Filtres = request.query();
+    let filtres: Filtres = request.query()?;
     let page = filtres.page.unwrap_or(1);
     // ...
 }

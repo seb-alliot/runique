@@ -111,7 +111,11 @@ pub fn is_local_host(host: &str) -> bool {
     }
     // IPv4 / hostname: strip optional port
     let bare = host.split(':').next().unwrap_or(host);
-    bare == "localhost" || bare.starts_with("127.")
+    // Parsed, not a `127.` prefix: `127.evil.com` is a domain anyone can register.
+    bare == "localhost"
+        || bare
+            .parse::<std::net::Ipv4Addr>()
+            .is_ok_and(|ip| ip.is_loopback())
 }
 
 fn is_loopback_ipv6(addr: &str) -> bool {
@@ -169,6 +173,8 @@ mod tests {
         assert!(is_local_host("127.1.2.3"));
         assert!(is_local_host("127.255.255.255"));
         assert!(!is_local_host("128.0.0.1"));
+        assert!(!is_local_host("127.evil.com"));
+        assert!(!is_local_host("127.0.0.1.evil.com:443"));
 
         // IPv6 loopback
         assert!(is_local_host("[::1]"));

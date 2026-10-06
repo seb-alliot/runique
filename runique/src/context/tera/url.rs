@@ -40,10 +40,12 @@ fn link_function(kwargs: &Kwargs, url_registry: &ARlockmap) -> TeraResult<String
         .iter()
         .filter(|(k, _)| *k != "link" && *k != "query")
         .fold(pattern, |acc, (k, v)| {
+            // Encoded like the query below: a `/`, `?` or `#` in a value would
+            // otherwise change which route the link reaches.
             let value = match v {
-                Value::String(s) => s.clone(),
+                Value::String(s) => urlencoding::encode(s).into_owned(),
                 Value::Number(n) => n.to_string(),
-                _ => v.to_string(),
+                _ => urlencoding::encode(&v.to_string()).into_owned(),
             };
             acc.replace(&format!("{{{}}}", k), &value)
         });

@@ -69,6 +69,20 @@ mod unique_violation_tests {
         )));
     }
 
+    /// One message per wording, so that dropping any single check is caught.
+    #[test]
+    fn each_wording_counts_on_its_own() {
+        for msg in [
+            "SQLSTATE 23505",
+            "duplicate key value",
+            "Duplicate entry 'a@b.c' for key 'email'",
+            "UNIQUE constraint failed: users.email",
+            "value duplicated",
+        ] {
+            assert!(is_unique_violation(&DbErr::Custom(msg.into())), "{msg}");
+        }
+    }
+
     /// A real driver error goes through the SQLSTATE check first: only a
     /// unique violation counts, not any database error.
     #[cfg(feature = "sqlite")]

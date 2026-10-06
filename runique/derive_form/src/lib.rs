@@ -8,21 +8,21 @@ use proc_macro::TokenStream;
     feature = "postgres",
     feature = "mysql"
 ))]
-compile_error!("les features `postgres` et `mysql` sont mutuellement exclusives");
+compile_error!("features `postgres` and `mysql` are mutually exclusive");
 #[cfg(all(
     not(doc),
     not(feature = "all-databases"),
     feature = "postgres",
     feature = "sqlite"
 ))]
-compile_error!("les features `postgres` et `sqlite` sont mutuellement exclusives");
+compile_error!("features `postgres` and `sqlite` are mutually exclusive");
 #[cfg(all(
     not(doc),
     not(feature = "all-databases"),
     feature = "mysql",
     feature = "sqlite"
 ))]
-compile_error!("les features `mysql` et `sqlite` sont mutuellement exclusives");
+compile_error!("features `mysql` and `sqlite` are mutually exclusive");
 
 mod extend_schema;
 mod model;

@@ -105,6 +105,7 @@
     "template": "Erro de template: {}",
     "custom": "Erro personalizado: {}",
     "title": {
+      "bad_request": "Pedido inválido",
       "not_found": "Página não encontrada",
       "forbidden": "Acesso proibido",
       "validation": "Erro de validação",
@@ -112,6 +113,7 @@
       "template": "Erro de renderização de template",
       "internal": "Erro interno do servidor"
     },
+    "invalid_query": "Parâmetros de consulta inválidos: {}",
     "path_not_found": "O caminho solicitado '{}' não foi encontrado",
     "internal_occurred": "Ocorreu um erro interno",
     "context_occurred": "Erro AppError ocorrido"
@@ -165,6 +167,8 @@
     "slot_collision": "Colisão de slot de middleware Runique: '{}' e '{}' reivindicam ambos o slot {}. Registre menos middlewares personalizados ou atribua a este um slot explícito."
   },
   "html": {
+    "400_title": "400",
+    "400_text": "Pedido inválido: os parâmetros do endereço não são válidos.",
     "404_title": "404",
     "404_text": "Página não encontrada",
     "500_title": "500",
@@ -431,7 +435,8 @@
       "email_invalid": "Email inválido.",
       "email_taken": "Já existe um usuário com este email.",
       "password_prompt": "[4/5] Senha",
-      "password_too_short": "A senha deve ter pelo menos 10 caracteres.",
+      "password_too_short": "A senha deve ter pelo menos 12 caracteres.",
+      "password_weak": "A senha deve conter pelo menos uma letra minúscula, uma maiúscula, um dígito e um caractere especial.",
       "confirm_prompt": "[5/5] Confirmar senha",
       "password_mismatch": "As senhas não correspondem. Por favor, tente novamente.",
       "review_algo": "  Algoritmo  : {}",

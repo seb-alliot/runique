@@ -270,14 +270,15 @@ pub(super) enum FormOp<'a> {
 
 /// The data a create/update function gets from a validated form: the form's
 /// own values (plus its many-to-many checkboxes), the parent from the URL, and
-/// on a create for an account resource, a random password.
+/// on a create for an account resource, a random password. `Err` when that
+/// password couldn't be hashed: the account must not be created without one.
 pub(super) fn form_grant(
     form: &crate::forms::Forms,
     body: &StrMap,
     entry: &ResourceEntry,
     parent: Option<&ParentBinding>,
     op: FormOp<'_>,
-) -> StrMap {
+) -> Result<StrMap, String> {
     let mut data = accepted_data(form, body);
     data.remove(CSRF_TOKEN_KEY);
     let local_id = match op {
@@ -288,9 +289,9 @@ pub(super) fn form_grant(
         force_scope_values(&mut data, p, local_id);
     }
     if matches!(op, FormOp::Create) && entry.meta.inject_password {
-        inject_random_password(form, &mut data);
+        inject_random_password(form, &mut data)?;
     }
-    data
+    Ok(data)
 }
 
 /// Forces the parent-scope identity columns into submitted data, so a nested
@@ -332,22 +333,25 @@ fn accepted_data(form: &crate::forms::Forms, body: &StrMap) -> StrMap {
 /// form has a real password input the admin typed into. A hidden or missing
 /// field never lets the submitted value through — the account's owner sets
 /// their password from the email.
-fn inject_random_password(form: &crate::forms::Forms, data: &mut StrMap) {
+fn inject_random_password(form: &crate::forms::Forms, data: &mut StrMap) -> Result<(), String> {
     let typed_by_admin = form
         .fields
         .get("password")
         .is_some_and(|f| f.field_type() == "password" && !f.value().is_empty());
     if typed_by_admin {
-        return;
+        return Ok(());
     }
     let temp_pw = uuid::Uuid::new_v4().to_string();
     match crate::utils::password::hash(&temp_pw) {
         Ok(hash) => {
             data.insert("password".to_string(), hash);
+            Ok(())
         }
-        // Never keep the submitted value in its place.
-        Err(_) => {
+        // Never keep the submitted value in its place, and never let the
+        // create go on: `create_fn` would store an empty hash.
+        Err(e) => {
             data.remove("password");
+            Err(e)
         }
     }
 }
@@ -522,7 +526,7 @@ mod form_tests {
         let mut form = Forms::new("csrf");
         form.field(&HiddenField::new("password"));
         let mut data = body(&[("password", "$argon2id$chosen-by-the-client")]);
-        inject_random_password(&form, &mut data);
+        inject_random_password(&form, &mut data).expect("hash");
         let stored = data.get("password").expect("password set");
         assert_ne!(stored, "$argon2id$chosen-by-the-client");
         assert!(stored.starts_with("$argon2"));
@@ -537,7 +541,7 @@ mod form_tests {
             .expect("field")
             .set_value("$argon2id$hashed-by-finalize");
         let mut data = body(&[("password", "$argon2id$hashed-by-finalize")]);
-        inject_random_password(&form, &mut data);
+        inject_random_password(&form, &mut data).expect("hash");
         assert_eq!(
             data.get("password").map(String::as_str),
             Some("$argon2id$hashed-by-finalize")

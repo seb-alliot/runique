@@ -43,6 +43,16 @@ fn redaction_hides_secret_values_and_keeps_the_rest() {
 }
 
 #[test]
+fn diff_never_records_form_bookkeeping_keys() {
+    let old = serde_json::json!({ "csrf_token": "old", "__original_updated_at": "t0" });
+    let body: StrMap = [("csrf_token", "new"), ("__original_updated_at", "t1")]
+        .iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect();
+    assert_eq!(diff_fields(&old, &body), None);
+}
+
+#[test]
 fn diff_lists_only_changed_fields_with_secrets_redacted() {
     let old = serde_json::json!({ "title": "a", "count": 2, "password": "$argon2id$old" });
     let body: StrMap = [

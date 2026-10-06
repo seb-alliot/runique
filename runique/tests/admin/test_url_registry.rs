@@ -102,6 +102,20 @@ fn test_link_with_slug_parameter() {
 }
 
 #[test]
+fn test_link_encodes_path_parameter() {
+    let f = with_route("article", "/articles/{slug}");
+    let result = call(
+        &f,
+        [
+            ("link", Value::from("article")),
+            ("slug", Value::from("a/b?admin=1#x")),
+        ],
+    )
+    .unwrap();
+    assert_eq!(result, "/articles/a%2Fb%3Fadmin%3D1%23x");
+}
+
+#[test]
 fn test_link_with_multiple_parameters() {
     let f = with_route("user_post", "/users/{user_id}/posts/{post_id}");
     let url = call(
