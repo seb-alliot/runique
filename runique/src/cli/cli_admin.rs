@@ -241,11 +241,13 @@ fn hash_via_provider(password: &str, provider_path: &str) -> Result<String, Stri
         .spawn()
         .map_err(|e| format!("Failed to launch provider '{}': {}", provider_path, e))?;
 
-    if let Some(stdin) = child.stdin.as_mut() {
-        stdin
-            .write_all(password.as_bytes())
-            .map_err(|e| format!("Error writing to stdin: {}", e))?;
-    }
+    // A provider that exits before reading stdin makes this write fail with
+    // BrokenPipe depending on scheduling: its exit status is the real answer,
+    // so the write error is only reported once the status is known.
+    let write_result = match child.stdin.as_mut() {
+        Some(stdin) => stdin.write_all(password.as_bytes()),
+        None => Ok(()),
+    };
     // Explicitly close stdin to signal EOF to the child process
     drop(child.stdin.take());
 
@@ -270,6 +272,7 @@ fn hash_via_provider(password: &str, provider_path: &str) -> Result<String, Stri
             output.status.code()
         ));
     }
+    write_result.map_err(|e| format!("Error writing to stdin: {}", e))?;
 
     String::from_utf8(output.stdout)
         .map(|s| s.trim().to_string())

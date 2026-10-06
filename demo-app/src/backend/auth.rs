@@ -29,7 +29,6 @@ pub async fn find_user_by_id(
 pub async fn handle_inscription(
     request: &mut Request,
     form: RegisterForm,
-    headers: &HeaderMap,
 ) -> AppResult<Response> {
     crate::backend::inject_globals(request).await;
     if is_authenticated(&request.session).await {
@@ -75,20 +74,12 @@ pub async fn handle_inscription(
             .await
             .unwrap_or_default();
             let encrypted = reset_token::encrypt_email(&token, &user.email);
-            // SITE_URL, never the request's Host outside debug: a forged Host
-            // would send the activation link — and its token — elsewhere.
-            let config = &request.engine.config;
-            let base_url = config.server.public_url.clone().or_else(|| {
-                config
-                    .debug
-                    .then(|| headers.get("host").and_then(|v| v.to_str().ok()))
-                    .flatten()
-                    .map(|h| format!("http://{h}"))
-            });
-            let Some(base_url) = base_url else {
+            // Never the request's Host outside debug: a forged Host would send
+            // the activation link — and its token — elsewhere.
+            let Some(base_url) = request.public_url() else {
                 return Err(Box::new(AppError::new(ErrorContext::generic(
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    "SITE_URL is not set",
+                    "the public URL is not set (.with_public_url())",
                 ))));
             };
             let activate_url = format!("{}/activate/{}/{}", base_url, token, encrypted);

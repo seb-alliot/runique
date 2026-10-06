@@ -28,12 +28,9 @@ pub async fn index(mut request: Request) -> AppResult<Response> {
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
-pub async fn soumission_inscription(
-    headers: HeaderMap,
-    mut request: Request,
-) -> AppResult<Response> {
+pub async fn soumission_inscription(mut request: Request) -> AppResult<Response> {
     let form: RegisterForm = request.form();
-    handle_inscription(&mut request, form, &headers).await
+    handle_inscription(&mut request, form).await
 }
 
 pub async fn activate_account(
