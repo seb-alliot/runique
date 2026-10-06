@@ -62,7 +62,7 @@ In your templates:
 
 With several proxies in a chain (`http, https`), only the first value counts: it's the one the client saw.
 
-The redirect URL's host is read from the `Host` header. The redirect runs right after Host validation (slot 17, after slot 15): with `ALLOWED_HOSTS` set, a forged `Host` is refused before it's used.
+The redirect URL's host is read from the `Host` header. The redirect runs right after Host validation (slot 17, after slot 15): with host validation enabled (`.with_allowed_hosts(...)` in the builder), a forged `Host` is refused before it's used.
 
 **With ACME** (`ACME_ENABLED=true`), the redirect is **not mounted**: Runique then serves TLS itself, no request carries `X-Forwarded-Proto`, and its port-80 listener already redirects to HTTPS (keeping the path and query). `ENFORCE_HTTPS` has no effect on redirection in that mode.
 
@@ -78,7 +78,11 @@ Either way, `ENFORCE_HTTPS` or ACME also enables the HSTS header (see [Security 
 ```env
 # .env
 ENFORCE_HTTPS=true
-ALLOWED_HOSTS=mysite.com
+```
+
+```rust
+// main.rs — host validation is set in the builder, not in .env
+.middleware(|m| m.with_allowed_hosts(|h| h.enabled(true).host("mysite.com")))
 ```
 
 ```nginx

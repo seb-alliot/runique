@@ -2,9 +2,7 @@
 
 ## Middlewares
 
-| Variable | Défaut | Description |
-| --- | --- | --- |
-| `RUNIQUE_ENABLE_CACHE` | `true` (prod) / `false` (dev) | Headers de cache HTTP |
+Aucun middleware ne se configure par le `.env`. En mode debug (`DEBUG=true`), des en-têtes no-cache sont ajoutés sur `localhost` ; `.middleware(|m| m.with_cache(true))` les désactive.
 
 > **CSP** — Configurée exclusivement via le builder (`.with_csp(...)`). Voir [CSP](/docs/fr/middleware/csp).
 > **Host validation** — Configurée exclusivement via le builder (`.with_allowed_hosts(|h| h.enabled(true).host("..."))`). Voir [Host Validation](/docs/fr/middleware/hosts-cache).

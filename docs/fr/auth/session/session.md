@@ -20,18 +20,12 @@ auth_login(&session, &db, user.id).await?;
 
 ### `login` — connexion complète
 
-Pour les cas où vous avez déjà toutes les données et souhaitez contrôler la persistance DB et la connexion exclusive.
-
-> **Note :** Si vous utilisez votre propre modèle utilisateur (Custom Model) en remplacement de la table par défaut, vous **devez** utiliser `login()`. En effet, `auth_login()` tente systématiquement d'interroger la table interne `eihwaz_users`.
+Pour les cas où vous avez déjà l'utilisateur (un `RuniqueUser`, par exemple le modèle `eihwaz_users` que vous venez d'authentifier) et souhaitez contrôler la persistance DB et la connexion exclusive. Elle renouvelle l'identifiant de session et le jeton CSRF.
 
 ```rust
 login(
     &session,
-    &db,
-    user.id,
-    &user.username,
-    user.is_staff,
-    user.is_superuser,
+    &user,   // &impl RuniqueUser
     None,    // Option<&RuniqueSessionStore> — persistance multi-appareils
     false,   // exclusive — invalider les autres sessions
 ).await?;
@@ -62,6 +56,8 @@ logout(&session, None).await?;
 // Avec suppression de la session DB (multi-appareils)
 logout(&session, Some(&store)).await?;
 ```
+
+`logout()` vide **toute** la session (messages flash compris) et lui donne un nouvel identifiant : un message flash destiné à la page suivante s'ajoute **après** l'appel.
 
 ---
 

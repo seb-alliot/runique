@@ -38,16 +38,17 @@ impl Default for MiddlewareConfig {
 }
 
 impl MiddlewareConfig {
-    /// Builds a config from environment variables, with host validation left
-    /// disabled (configured only through the builder). Currently only
-    /// `enable_cache` reads `RUNIQUE_ENABLE_CACHE`; the other flags use fixed
-    /// defaults.
+    /// Builds a config from the environment, with host validation left
+    /// disabled (configured only through the builder). The HTTP cache follows
+    /// `DEBUG`: off in debug (no-cache headers), on otherwise.
     pub fn from_env() -> Self {
         Self {
             // Host validation configured only via the builder
             enable_host_validation: false,
             enable_debug_errors: true, // always mounted — config.debug handles content
-            enable_cache: crate::utils::config::env::env_flag("RUNIQUE_ENABLE_CACHE", true),
+            enable_cache: !crate::utils::config::env::debug_from(
+                std::env::var("DEBUG").ok().as_deref(),
+            ),
             exclusive_login: false,
         }
     }

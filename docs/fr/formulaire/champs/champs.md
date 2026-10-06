@@ -144,7 +144,7 @@ form.field(
 );
 ```
 
-> **Note sur le `.required()`** : Sur un `BooleanField`, `.required()` signifie que le champ est obligatoire au sens base de données (`NOT NULL`). Cela ne force pas l'utilisateur à cocher la case pour valider le formulaire (une checkbox non cochée envoie `false`, ce qui est une valeur valide pour un booléen non null). Pour forcer une acceptation (ex: CGU), utilisez une validation personnalisée ou vérifiez la valeur manuellement.
+> **Note sur le `.required()`** : sur un `BooleanField`, `.required()` ne force pas l'utilisateur à cocher la case : une case non cochée envoie `false`, une valeur valide. Le caractère NULL ou NOT NULL de la colonne ne dépend pas du formulaire, mais du modèle (`nullable`). Pour forcer une acceptation (ex : CGU), utilisez une validation personnalisée (`clean()`) ou vérifiez la valeur manuellement.
 
 ```rust
 // Radio simple (oui/non)
@@ -423,7 +423,7 @@ form.field(&HiddenField::new_csrf());
 | ---------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------- |
 | `TextField`      | `text()`, `email()`, `url()`, `password()`, `textarea()`, `richtext()`     | Email/URL via `validator`, Argon2, sanitisation XSS, `.rows(n)` |
 | `NumericField`   | `integer()`, `float()`, `decimal()`, `percent()`, `range()`                | Bornes min/max, précision décimale, `.step(n)` (range uniquement) |
-| `BooleanField`   | `new()`, `radio()`                                                         | Requis = NOT NULL en base de données                          |
+| `BooleanField`   | `new()`, `radio()`                                                         | `required` ne force pas à cocher                              |
 | `ChoiceField`    | `new()` + `.multiple()`                                                    | Valeur dans les choix déclarés                                |
 | `RadioField`     | `new()`                                                                    | Valeur dans les choix déclarés                                |
 | `CheckboxField`  | `new()`                                                                    | Toutes les valeurs dans les choix                             |

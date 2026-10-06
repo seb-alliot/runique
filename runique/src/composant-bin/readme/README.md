@@ -64,7 +64,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-sea-orm-migration = { version = "2.0.0-rc.38", features = [
+sea-orm-migration = { version = "=2.0.4", features = [
     "runtime-tokio-rustls",
     "sqlx-postgres",
     "sqlx-sqlite",
@@ -73,14 +73,14 @@ tokio = { version = "1", features = ["full"] }
 async-trait = "0.1"
 ```
 
-> **Important**: Use version `2.0.0-rc.38` to match with Runique!
+> **Important**: Use version `=2.0.4` to match with Runique!
 
 <details>
 <summary>Customize features based on your database</summary>
 
 **For PostgreSQL only**:
 ```toml
-sea-orm-migration = { version = "2.0.0-rc.38", features = [
+sea-orm-migration = { version = "=2.0.4", features = [
     "runtime-tokio-rustls",
     "sqlx-postgres"
 ] }
@@ -88,7 +88,7 @@ sea-orm-migration = { version = "2.0.0-rc.38", features = [
 
 **For SQLite only**:
 ```toml
-sea-orm-migration = { version = "2.0.0-rc.38", features = [
+sea-orm-migration = { version = "=2.0.4", features = [
     "runtime-tokio-rustls",
     "sqlx-sqlite"
 ] }
@@ -96,7 +96,7 @@ sea-orm-migration = { version = "2.0.0-rc.38", features = [
 
 **For MySQL only**:
 ```toml
-sea-orm-migration = { version = "2.0.0-rc.38", features = [
+sea-orm-migration = { version = "=2.0.4", features = [
     "runtime-tokio-rustls",
     "sqlx-mysql"
 ] }
@@ -121,20 +121,21 @@ async fn main() {
 
 ### Step 4: Define your entities
 
-Your entities are already in `src/entities/`. Each file uses the `model!` macro:
+Declare your entities in `src/entities/`, one file per model, with the `model!` macro (user accounts are already provided by the framework table `eihwaz_users`):
 
 ```rust
-// src/entities/users.rs
+// src/entities/article.rs
 use runique::prelude::*;
 
 model! {
-    Users,
-    table: "users",
-    pk: id => i32,
-    fields: {
-        username: String [required, max_len(150), unique],
-        email: String [required, unique],
-        password: String [required, max_len(128)],
+    Article,
+    table: "articles",
+    pk: id => Pk,
+    {
+        title:      text     [required, max_length: 150],
+        slug:       slug     [required, unique],
+        body:       textarea [required],
+        published:  bool     [default: false],
         created_at: datetime [auto_now],
         updated_at: datetime [auto_now_update],
     }
@@ -163,7 +164,7 @@ migration/src/
 ```
 
 > For schema changes (ALTER), just modify your entity and run `runique makemigrations` again.
-> Use `--force` to skip the destructive change prompt.
+> Destructive changes (dropped column, shrunk length, `nullable → not null`…) are blocked; `--force` allows them.
 >
 > ⚠️ **Warning — rolling back migrations**
 > `runique makemigrations` generates migrations while preserving the
@@ -252,7 +253,7 @@ runique makemigrations --force
 # Generate migrations from entities
 runique makemigrations
 
-# Force generation (skip destructive change prompt)
+# Allow destructive changes (blocked by default)
 runique makemigrations --force
 
 # Custom paths
@@ -294,7 +295,7 @@ cargo install sea-orm-cli
 
 ### Error: "version mismatch"
 
-Check that `migration/Cargo.toml` is using `sea-orm-migration = "2.0.0-rc.38"`
+Check that `migration/Cargo.toml` is using `sea-orm-migration = "=2.0.4"`
 
 ### Error: "no such table: users"
 

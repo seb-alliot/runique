@@ -1,16 +1,13 @@
-//! Global security settings (CSP, rate limiting, HTTPS, allowed hosts).
+//! Global security settings read from `.env` (HTTPS, HSTS, ACME). Allowed
+//! hosts and rate limits are set in the builder, not here.
 use crate::utils::config::env::env_flag;
 use serde::{Deserialize, Serialize};
 
 /// Security settings read from the environment.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SecurityConfig {
-    /// Enables global rate limiting (env: `RATE_LIMITING`, default: `true`).
-    pub rate_limiting: bool,
     /// Redirects HTTP to HTTPS (env: `ENFORCE_HTTPS`, default: `false`).
     pub enforce_https: bool,
-    /// List of allowed hosts (env: `ALLOWED_HOSTS`, comma-separated).
-    pub allowed_hosts: Vec<String>,
     /// Enables automatic TLS via Let's Encrypt ACME (env: `ACME_ENABLED`, default: `false`).
     pub acme_enabled: bool,
     /// Domain for ACME certificate (env: `ACME_DOMAIN`).
@@ -37,9 +34,7 @@ impl Default for SecurityConfig {
     /// preload. Emission stays gated by `should_emit_hsts()`.
     fn default() -> Self {
         Self {
-            rate_limiting: false,
             enforce_https: false,
-            allowed_hosts: Vec::new(),
             acme_enabled: false,
             acme_domain: None,
             acme_email: None,
@@ -54,11 +49,7 @@ impl Default for SecurityConfig {
 impl SecurityConfig {
     /// Loads configuration from environment variables.
     pub fn from_env() -> Self {
-        let rate_limiting = env_flag("RATE_LIMITING", true);
         let enforce_https = env_flag("ENFORCE_HTTPS", false);
-        let allowed_hosts: Vec<String> = std::env::var("ALLOWED_HOSTS")
-            .map(|v| v.split(',').map(|s| s.trim().to_string()).collect())
-            .unwrap_or_else(|_| vec!["localhost".to_string(), "127.0.0.1".to_string()]);
         let acme_enabled = env_flag("ACME_ENABLED", false);
         let acme_domain = std::env::var("ACME_DOMAIN").ok().filter(|s| !s.is_empty());
         let acme_email = std::env::var("ACME_EMAIL").ok().filter(|s| !s.is_empty());
@@ -74,9 +65,7 @@ impl SecurityConfig {
         let hsts_preload = env_flag("HSTS_PRELOAD", false);
 
         Self {
-            rate_limiting,
             enforce_https,
-            allowed_hosts,
             acme_enabled,
             acme_domain,
             acme_email,
@@ -131,9 +120,7 @@ mod hsts_tests {
 
     fn cfg(enforce_https: bool, acme: bool) -> SecurityConfig {
         SecurityConfig {
-            rate_limiting: true,
             enforce_https,
-            allowed_hosts: vec![],
             acme_enabled: acme,
             acme_domain: None,
             acme_email: None,

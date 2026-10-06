@@ -48,7 +48,10 @@ runique start [--main src/main.rs] [--admin src/admin.rs]           # Start with
 runique makemigrations --entities src/entities --migrations migration/src  # Generate migrations
 runique migration up --migrations migration/src                     # Apply migrations (sea-orm-cli migrate up)
 runique create-superuser                                            # Create a superuser
+runique test [file] [test]                                          # Run src/runique_test/ (see Testing)
 ```
+
+Rolling back or listing migrations goes through SeaORM: `sea-orm-cli migrate down -n N`, `sea-orm-cli migrate status`. `runique test` is described in [Testing](/docs/en/architecture/testing).
 
 ---
 

@@ -52,13 +52,13 @@ let msgs = flash_now!(warning => "Field A is incorrect", "Field B is missing");
 ### Available Types
 
 | Type | `MessageLevel::as_css_class()` |
-|------|---------------------|
-| `success` | `success-message` |
-| `error` | `error-message` |
-| `info` | `info-message` |
-| `warning` | `warning-message` |
+|------|-------------------|
+| `success` | `message-success` |
+| `error` | `message-error` |
+| `info` | `message-info` |
+| `warning` | `message-warning` |
 
-`as_css_class()` is a method available for custom rendering — the built-in `{% messages %}` tag doesn't use it: its template emits `class="message message-{{ message.level }}"`, where `message.level` serializes as `Success`/`Error`/`Warning`/`Info` (the Rust variant name, capitalized), not these classes. See [Flash templates](/docs/en/flash/templates) for looping manually with the correct casing.
+`as_css_class()` returns the same class as the built-in `{% messages %}` tag, whose template emits `class="message message-{{ message.level }}"`: `message.level` serializes in lowercase (`success`, `error`, `info`, `warning`). See [Flash templates](/docs/en/flash/templates) to loop manually.
 
 ### Injecting into the context
 

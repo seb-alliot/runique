@@ -2,7 +2,7 @@
 
 Tables natives du framework, définies dans
 [`runique/src/admin/table_admin/migrations_table.rs`](../../runique/src/admin/table_admin/migrations_table.rs).
-Le nom de la table utilisateur est paramétrable via `RUNIQUE_USER_TABLE` (défaut `eihwaz_users`).
+La table utilisateur est toujours `eihwaz_users` (`RUNIQUE_USER_TABLE` supprimé en 3.0.0, 2026-10-06) : les FK des tables du framework la visent directement.
 
 ## MCD (conceptuel)
 

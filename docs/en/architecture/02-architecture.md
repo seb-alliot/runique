@@ -191,7 +191,7 @@ runique/src/
 | [Tera Tags & Filters](/docs/en/architecture/tera) | Django-like tags, filters, functions |
 | [Middleware Stack](/docs/en/architecture/middleware) | Slot order and dependency injection |
 | [Request Lifecycle](/docs/en/architecture/lifecycle) | Lifecycle and best practices |
-| [Testing](/docs/en/architecture/testing) | Integration test helpers, `TestClient`, handler tests |
+| [Testing](/docs/en/architecture/testing) | `runique_test`: business logic tested against the real database, transaction rolled back; `runique test`; boot checks |
 
 ---
 

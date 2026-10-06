@@ -8,16 +8,19 @@ model! {
     Post,
     table: "posts",
     pk: id => i32,
-    fields: {
-        title:        String   [required, max_len(255)],
-        slug:         String   [required, unique, max_len(255)],
-        content:      text     [required],
-        excerpt:      String   [nullable, max_len(500)],
-        author_id:    i32      [required, fk(users.id, cascade)],
-        is_published: bool     [required, default(false)],
-        views:        i64      [required, default(0)],
+    {
+        title:        text     [required, max_length: 255],
+        slug:         text     [required, unique, max_length: 255],
+        content:      textarea [required],
+        excerpt:      text     [nullable, max_length: 500],
+        author_id:    int      [required],
+        is_published: bool     [default: false],
+        views:        bigint   [default: 0],
         created_at:   datetime [auto_now],
         updated_at:   datetime [auto_now_update],
+    },
+    relations: {
+        belongs_to: eihwaz_users via author_id [cascade],
     }
 }
 

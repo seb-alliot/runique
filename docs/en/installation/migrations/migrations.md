@@ -62,6 +62,7 @@ Before writing anything, `makemigrations` detects destructive changes and **refu
 - `DROP COLUMN` (data loss)
 - a column type change
 - `nullable` → `not null` (requires a default or a backfill)
+- column length shrink (smaller `max_length`): longer values would be cut or refused
 - dropping a foreign key (orphan records possible)
 - adding an `ON DELETE CASCADE` FK on existing data (cascading deletes possible)
 
@@ -81,12 +82,13 @@ Generation is **all-or-nothing**. Model and `extend!{}` changes are first planne
 
 ## Foreign keys and target engine
 
-`makemigrations` detects the engine (via `DB_URL`/`DATABASE_URL`/`DB_ENGINE`) and adapts FK generation:
+The generated files are **shared by every engine**: what only concerns one engine is chosen at run time, inside the file.
 
-- **PostgreSQL / MySQL / MariaDB**: all FK constraints are grouped into a `…_create_relations` migration applied **after** the tables are created (`ALTER TABLE … ADD CONSTRAINT`).
-- **SQLite**: does not support adding FKs to an existing table. FKs are therefore declared **inline in the `CREATE TABLE`**, and no `create_relations` migration is generated.
+- FKs are declared **in the `CREATE TABLE`**, on every engine; referenced tables are created before the tables referencing them.
+- **Cycle** (two new tables referencing each other): on SQLite, which only checks a FK when rows are written, the key stays in the `CREATE TABLE`; on PostgreSQL / MySQL / MariaDB, the key closing the cycle is added by an `ALTER TABLE` once its target table exists. The choice is made at run time: the same file works on every engine.
+- Every `belongs_to` column gets an index `idx_<table>_<column>`.
 
-As a result, migration files are **specific to the engine** they were generated for. To switch engines, regenerate the migrations (from scratch) with the target `DB_ENGINE`.
+Likewise, enums become a `CREATE TYPE … AS ENUM` on PostgreSQL only (a `VARCHAR` elsewhere): switching engines doesn't require regenerating the migrations.
 
 ---
 

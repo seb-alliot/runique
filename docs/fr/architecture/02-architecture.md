@@ -157,7 +157,7 @@ runique start
 | [Tags & filtres Tera](/docs/fr/architecture/tera) | Tags Django-like, filtres, fonctions |
 | [Stack middleware](/docs/fr/architecture/middleware) | Ordre des slots, injection de dépendances |
 | [Lifecycle d'une requête](/docs/fr/architecture/lifecycle) | Cycle de vie, bonnes pratiques |
-| [Tests](/docs/fr/architecture/testing) | Helpers de tests d'intégration, `TestClient`, tests de handlers |
+| [Tests](/docs/fr/architecture/testing) | `runique_test` : logique métier testée contre la vraie base, transaction annulée ; `runique test` ; contrôles au démarrage |
 
 ---
 

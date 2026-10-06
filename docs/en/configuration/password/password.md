@@ -67,9 +67,9 @@ No password is managed by Runique. Authentication is delegated to an external pr
 ```rust
 use runique::prelude::External;
 
-password_init(PasswordConfig::oauth(External::GoogleOAuth));
-password_init(PasswordConfig::oauth(External::Microsoft));
-password_init(PasswordConfig::oauth(External::Ldap("ldap://...".to_string())));
+password_init(PasswordConfig::Delegated(External::GoogleOAuth));
+password_init(PasswordConfig::Delegated(External::Microsoft));
+password_init(PasswordConfig::Delegated(External::Ldap("ldap://...".to_string())));
 ```
 
 Available providers: `GoogleOAuth`, `Microsoft`, `Apple`, `Ldap(url)`, `Saml(url)`, `Custom { name, authorize_url, token_url }`.
@@ -81,6 +81,7 @@ Implement the `PasswordHandler` trait to plug in your own hashing/verification l
 ```rust
 use runique::prelude::{PasswordHandler, PasswordConfig};
 
+#[derive(Clone)] // required: PasswordHandler is cloned with the config
 struct MyHasher;
 
 impl PasswordHandler for MyHasher {

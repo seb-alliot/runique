@@ -179,8 +179,8 @@ pub async fn info_user(mut request: Request) -> AppResult<Response> {
             let username = form.cleaned_string("username").unwrap_or_default();
             let db = request.engine.db.clone();
 
-            let user_opt = UserEntity::find()
-                .filter(user::Column::Username.eq(&username))
+            let user_opt = runique_users::Entity::find()
+                .filter(runique_users::Column::Username.eq(&username))
                 .one(&*db)
                 .await
                 .unwrap_or(None);

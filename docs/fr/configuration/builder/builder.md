@@ -80,7 +80,7 @@ let app = RuniqueApp::builder(config)
     .middleware(|m| {
         m.with_csp(|c| c)              // CSP toujours actif — personnalisable ici
          .with_allowed_hosts(|h| h.enabled(true).host("mondomaine.fr"))  // Active la validation des hosts
-         .with_cache(true)              // Active le no-cache en dev
+         .with_cache(true)              // Garde le cache HTTP en dev (pas d'en-têtes no-cache)
          .with_debug_errors(true)       // Active les erreurs détaillées
     })
     .build()
@@ -127,11 +127,11 @@ let app = RuniqueApp::builder(config)
 
 En production (`DEBUG=false`), l'application **refuse de démarrer** sans elle dès que le reset de mot de passe ou l'admin est activé : un lien construit à partir de l'en-tête `Host` de la requête irait là où le client le décide (`Host: evil.com` → le jeton de reset part chez l'attaquant). En debug, le `Host` sert de repli, avec un avertissement.
 
-Elle ne s'appelle **qu'une fois** : un second `.with_public_url(...)` ne compile pas (« `with_public_url()` has already been called on this builder »), plutôt que de remplacer le premier sans rien dire. Pour distinguer le local de la production, une condition suffit :
+Elle ne s'appelle **qu'une fois** : un second `.with_public_url(...)` ne compile pas (« `with_public_url()` has already been called on this builder »), plutôt que de remplacer le premier sans rien dire. Pour distinguer le local de la production, on choisit la valeur, pas l'appel (les deux branches d'un `if` autour de l'appel n'auraient pas le même type) ; une chaîne vide laisse l'URL publique non définie :
 
 ```rust
-let builder = RuniqueApp::builder(config);
-let builder = if is_debug() { builder } else { builder.with_public_url("https://monsite.fr") };
+let public_url = if is_debug() { "" } else { "https://monsite.fr" };
+let builder = RuniqueApp::builder(config).with_public_url(public_url);
 ```
 
 ### Logs framework
@@ -198,7 +198,6 @@ RuniqueApp::builder(config)
 | `csrf`            | `.middleware(\|m\| m.csrf(...))`         | Token CSRF détecté dans une URL GET (nettoyage silencieux) |
 | `exclusive_login` | `.session(\|s\| s.exclusive_login(...))` | Sessions invalidées lors d'une connexion exclusive         |
 | `filter_fn`       | `.admin(\|a\| a.filter_fn(...))`         | Échec d'une `filter_fn` dans la vue liste admin            |
-| `roles`           | `.admin(\|a\| a.roles(...))`             | Erreurs d'accès au registre des rôles admin                |
 | `password_init`   | `.auth(\|a\| a.password_init(...))`      | `password_init()` appelé plusieurs fois                    |
 | `store`           | `.session(\|s\| s.store(...))`           | Watermarks mémoire, records volumineux, erreurs cleanup    |
 | `connect`         | `.db(\|d\| d.connect(...))`              | Connexion DB en cours / connexion établie                  |

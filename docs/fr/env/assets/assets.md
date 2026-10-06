@@ -43,7 +43,7 @@ docker compose up -d
 | Section | Description |
 | --- | --- |
 | [Application & Serveur](/docs/fr/env/application) | DEBUG, IP_SERVER, PORT, DB |
-| [Sécurité & sessions](/docs/fr/env/securite) | ALLOWED_HOSTS, CSP, Middlewares, Sessions |
+| [Sécurité & sessions](/docs/fr/env/securite) | Middlewares, CSP, Sessions |
 
 ## Retour au sommaire
 

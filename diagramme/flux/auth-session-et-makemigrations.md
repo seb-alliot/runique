@@ -33,22 +33,26 @@ sequenceDiagram
 
 ## Séquence : makemigrations (diff)
 
+Chemin réel (3.0.0, 2026-10-06) — le `ModelSchema::diff` du schéma initial n'est pas sur ce
+chemin (voir AM1) :
+
 ```mermaid
 sequenceDiagram
     participant CLI as runique makemigrations
-    participant MS as ModelSchema (modèle)
-    participant DBS as ModelSchema (DB/snapshot)
-    participant D as diff()
-    participant G as generators SQL
+    participant DSL as runique_dsl (même parseur que la macro)
+    participant SC as scan_entities
+    participant SN as snapshots (parser_seaorm)
+    participant D as diff_schemas
+    participant G as generators SeaQuery
 
-    CLI->>MS: parse model!{} / extend!{}
-    CLI->>DBS: lecture snapshot SeaORM
-    MS->>D: diff(DBS)
-    D->>D: added = noms(MS) - noms(DBS)
-    D->>D: dropped = noms(DBS) - noms(MS)
-    Note over D: 🔴 compare seulement les ENSEMBLES DE NOMS<br/>aucune détection type/nullable/unique/default/len
-    D-->>G: SchemaDiff { added_columns, dropped_columns }
-    G-->>CLI: SQL CREATE/ADD/DROP (jamais ALTER COLUMN)
+    CLI->>DSL: model!{} / extend!{} de chaque fichier
+    DSL-->>CLI: ParsedModel (schéma + tables des listes) ou erreur fichier:ligne:colonne
+    CLI->>SC: résout les cibles belongs_to (vraie table + PK)
+    CLI->>SN: snapshot précédent (longueurs adoptées si ancien)
+    SN->>D: previous
+    SC->>D: current
+    D-->>G: Changes { added, dropped, modified (type/nullable/unique/default/longueur), renamed, fk, index, enums }
+    G-->>CLI: CREATE (FK inline, cycles par moteur à l'exécution) / ALTER / index
 ```
 
 ## Anomalies / flux suspects

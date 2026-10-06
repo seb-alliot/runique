@@ -96,7 +96,7 @@ Tout type implémentant `Any + Send + Sync + 'static` est accepté. Plusieurs co
 | Section | Description |
 | --- | --- |
 | [Assets & médias](/docs/fr/env/assets) | Fichiers statiques, médias, templates |
-| [Sécurité & sessions](/docs/fr/env/securite) | ALLOWED_HOSTS, CSP, Middlewares, Sessions |
+| [Sécurité & sessions](/docs/fr/env/securite) | Middlewares, CSP, Sessions |
 
 ## Retour au sommaire
 

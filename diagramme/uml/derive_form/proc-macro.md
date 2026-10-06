@@ -1,21 +1,20 @@
-# UML — derive_form (proc-macro : `model!{}` / `#[form]` / `extend!{}`)
+# UML — derive_form + runique_dsl (`model!{}` / `#[form]` / `extend!{}`)
 
-Crate séparée [`derive_form/`](../../../runique/derive_form/). `model!{}` n'a plus qu'**une seule
-grammaire** de champs — bloc anonyme `{ name: SemanticType [options] }`. L'ancienne grammaire v1
-(`fields: { name: SqlType [options] }`) a été **supprimée** (2026-08) ; `extend!{}` reste une macro
-séparée qui a toujours requis `fields:` et le requiert toujours — ne pas confondre les deux lors
-d'un audit.
+> **3.0.0 (2026-10-06)** — l'AST et le parseur ont quitté `derive_form` pour la crate
+> [`runique_dsl/`](../../../runique/runique_dsl/), partagée avec `makemigrations` : la macro et
+> la CLI lisent le DSL avec le même code. `derive_form` ne fait plus que générer.
+
+Une seule grammaire de champs pour `model!{}` — bloc anonyme `{ name: SemanticType [options] }`
+(la v1 `fields: { name: SqlType }` est supprimée depuis 2026-08). `extend!{}` requiert toujours
+`fields:` — ne pas confondre les deux lors d'un audit.
 
 Flux `model!{}` :
-`DSL source (bloc anonyme) → parser/ (syn, splitté en modules depuis le 2026-09-23) → FormFieldDecl (grammaire DSL) → form_field_to_field_def() → FieldDef/FieldType/FieldOption (représentation universelle) → generateur.rs → TokenStream Rust`.
+`tokens → runique_dsl (impl Parse for ModelInput : FormFieldDecl → form_field_to_field_def() → FieldDef, listes à part) → derive_form/generateur/ → TokenStream Rust`.
 
-Flux `extend!{}` : pipeline **séparé** dans `extend_schema.rs` (`ExtendDsl::parse` →
-`generate_entity`/`generate_schema_fn`), mêmes types de champs/options que `model!{}` mais
-toujours préfixés `fields:`.
+Flux `extend!{}` : `runique_dsl::extend::ExtendDsl` → `derive_form/extend_schema.rs`
+(entité complète base + ajouts).
 
-## AST — grammaire DSL (ce que le parser lit)
-
-[`derive_form/src/model/ast.rs`](../../../runique/derive_form/src/model/ast.rs)
+## AST — grammaire DSL (`runique_dsl/src/ast.rs`)
 
 ```mermaid
 classDiagram
@@ -27,13 +26,14 @@ classDiagram
     class FormFieldKind {
         <<enum>> text/email/password/richtext/textarea/url/int/bigint/i8/i16/u32/u64/
         float/f32/decimal/percent/bool/date/time/datetime/timestamp/timestamp_tz/
-        image/document/file/color/slug/uuid/Pk/json/json_binary/binary/var_binary/
-        blob/ip/cidr/mac_address/interval/choice/radio/checkbox/char/phone
+        image/document/file/color/slug/uuid/json/json_binary/binary/var_binary/
+        blob/ip/cidr/mac_address/interval/choice/radio/checkbox/multichoice/char/phone
+        +is_list() checkbox|multichoice
     }
     class FormFieldAttr {
         <<enum>> Required/Nullable/NoHash/MaxLength/MinLength/Min/Max/MinF/MaxF/Default/
         UploadTo/MaxSize/Rows/Step/EnumRef/AutoNow/AutoNowUpdate/Unique/Readonly/
-        Label(String)/Fk/Skip
+        Label(String)/Skip/RenamedFrom(String)
     }
     class PkDef { +Ident name +PkType ty }
     class PkType { <<enum>> I32/I64/Uuid }
@@ -41,10 +41,15 @@ classDiagram
     FormFieldDecl "1" *-- "*" FormFieldAttr
 ```
 
-**`Pk` se résout immédiatement au parsing** (pas une variante `FormFieldKind` à part) vers
-`i32`/`i64`/`Uuid` selon la feature active (`big-pk`/`pk-uuid`, mutuellement exclusives), aussi
-bien en position `pk: id => Pk` (`PkDef::parse`) qu'en champ normal — typiquement une FK vers une
-table dont la PK est `Pk`, pour rester automatiquement synchronisée si la feature change.
+**`Pk` se résout immédiatement au parsing** vers `i32`/`i64`/`Uuid` selon la feature active
+(`big-pk`/`pk-uuid`), en position `pk: id => Pk` comme en champ normal (colonne de `belongs_to`).
+
+**Validation au parsing** : nullabilité (`validate_nullability` : NOT NULL par défaut, `required`
++ `nullable` interdit, `nullable` sur `auto_now` interdit, type non texte sans
+`required`/`nullable`/`default` interdit), listes (`validate_list` : enum obligatoire, seuls
+`required`/`enum`/`label`), enums entiers (`validate_int_values` : une valeur par variante, dans
+les limites, sans doublon), `belongs_to` (`validate_belongs_to` : colonne déclarée, `set_null` ⇒
+`nullable`), `fk(...)` refusé avec un message qui renvoie vers `belongs_to`.
 
 ## AST — représentation universelle (ce que le générateur consomme)
 
@@ -53,16 +58,20 @@ classDiagram
     class ModelInput {
         +Ident name
         +String table
-        +Vec~FieldDef~ fields
-        +Vec~EnumDef~ enums
         +PkDef pk
+        +Vec~EnumDef~ enums
+        +Vec~FieldDef~ fields
+        +Vec~FormFieldDecl~ form_fields
+        +Vec~FormFieldDecl~ lists
         +Vec~RelationDef~ relations
-        +MetaDef meta
+        +Option~MetaDef~ meta
     }
     class FieldDef {
         +Ident name
-        +FieldType ty
+        +FormFieldKind kind
+        +Option~Ident~ enum_ref
         +Vec~FieldOption~ options
+        +column_type() FieldType
     }
     class FieldType {
         <<enum>> String/Text/Char/Varchar/I8/I16/I32/I64/U32/U64/F32/F64/Decimal/Bool/
@@ -71,50 +80,57 @@ classDiagram
     }
     class FieldOption {
         <<enum>> Required/Nullable/Unique/Default/MaxLen/MinLen/Max/Min/MaxF/MinF/
-        AutoNow/AutoNowUpdate/Readonly/Label(String)/Help/Fk/File{kind,upload_to}/MaxSize
+        AutoNow/AutoNowUpdate/Readonly/Label(String)/File{kind,upload_to}/MaxSize
     }
     class FileKind { <<enum>> Image/Document/Any }
-    class EnumDef { +Ident name +Vec~Variant~ variants +EnumBackingType }
-    class PkDef
-    class RelationDef { <<enum>> BelongsTo/HasMany/HasOne }
-    class FkDef { +Ident table +Ident column +FkAction action }
+    class EnumDef { +Ident name +Vec~EnumVariant~ variants +EnumBackingType }
+    class EnumBackingType { <<enum>> Auto/I8/I16/I32/I64 }
+    class RelationDef {
+        <<enum>> BelongsTo{model,via,on_delete,on_update}/HasMany/HasOne/ManyToMany
+    }
+    class FkAction { <<enum>> NoAction/Cascade/SetNull/Restrict/SetDefault }
     ModelInput "1" *-- "*" FieldDef
     ModelInput "1" *-- "*" EnumDef
     ModelInput "1" *-- "*" RelationDef
     ModelInput "1" *-- "1" PkDef
-    FieldDef "1" *-- "1" FieldType
+    EnumDef *-- EnumBackingType
     FieldDef "1" *-- "*" FieldOption
+    FieldDef ..> FieldType : column_type()
     FieldOption ..> FileKind
-    FieldOption ..> FkDef
+    RelationDef ..> FkAction
 ```
 
-`form_field_to_field_def()` (`parser/form_field/to_field_def.rs`) traduit `FormFieldDecl` → `FieldDef` : c'est le seul
-endroit où une option v2 parsée peut finir **sans effet** si la traduction oublie de la
-transcrire (cf. DF4 ci-dessous — classe de bug réelle, pas hypothétique).
+`form_field_to_field_def()` traduit `FormFieldDecl` → `FieldDef` : `Nullable` seulement si
+déclaré (NOT NULL par défaut). `lists` ne passent pas par là : pas de colonne, pas de `FieldDef`.
 
 ## Pipeline d'expansion
 
 ```mermaid
 flowchart LR
-    SRC[DSL model! bloc anonyme] --> PAR[parser/ syn → FormFieldDecl]
-    PAR -->|syn::Error spanné| CE[compile_error! inline]
-    PAR --> TR[form_field_to_field_def]
-    TR --> AST[AST: ModelInput / FieldDef…]
-    AST --> GEN[generateur.rs]
-    GEN --> ENT[Entity SeaORM]
-    GEN --> COL[ColumnDef migration .file/.max_size_bytes]
-    GEN --> FORM[AdminForm + FileField]
+    SRC[DSL model! bloc anonyme] --> DSL[runique_dsl : ModelInput]
+    DSL -->|syn::Error spanné| CE[compile_error! inline]
+    DSL --> GEN[derive_form/generateur]
+    GEN --> ENT[Entity SeaORM + Relation écrit à la main]
+    GEN --> BEH[ActiveModelBehavior auto_now]
+    GEN --> ENU[enums texte/entiers + form_value]
+    GEN --> FORM[AdminForm + admin_from_form]
     GEN --> SCH[schema → ModelSchema]
-    REG[registry.rs phantom builtins] --> GEN
+    GEN --> LST[listes : sous-module entité, champ/set_champ/load_champ, List + HasLists, admin_save_lists]
+    REG[registry.rs phantom builtins] --> EXTG
 
-    SRC2[DSL extend! fields:] --> EXT[extend_schema.rs ExtendDsl::parse]
-    EXT --> ENT2[Entity SeaORM complet]
-    EXT --> FORM2[AdminForm + admin_from_form/admin_partial_update]
+    SRC2[DSL extend! fields:] --> EXT[runique_dsl : ExtendDsl]
+    EXT --> EXTG[extend_schema.rs]
+    EXTG --> ENT2[Entity SeaORM complet + AdminForm]
+
+    DSL -.même parseur.-> CLI[runique makemigrations]
 ```
 
-`#[form(schema=Path)]` délègue à `Schema::schema()` au **runtime** (ne lit pas le `max_size`
-du modèle à l'expansion — cf. discussion uploads). Le registre fantôme ne couvre que les
-tables builtin `eihwaz_*` (name/type/widget, **pas** `max_size`).
+`Relation` est écrit à la main (`RelationTrait`) et non dérivé : un `belongs_to` vise la vraie clé
+primaire de la cible (lue sur son entité, `PrimaryKey::iter()`), avec ses actions — l'attribut
+`to = "…::Column::Id"` de `DeriveRelation` supposait une PK nommée `id`.
+
+`#[form(schema=Path)]` délègue à `Schema::schema()` au **runtime**. Le registre fantôme ne
+couvre que les tables builtin `eihwaz_*`.
 
 ## Anomalies / flux suspects
 
@@ -140,3 +156,14 @@ silencieux trouvés et corrigés en l'auditant avant suppression — `json` rout
 dans `form_field_to_field_def()` → **aucun effet** sur la validation/le schéma généré, et
 `var_binary` retombant sur `VARCHAR` générique dans les deux parseurs de migration. `index` et
 `select_as` confirmés morts (jamais lus) plutôt que portés. Détail complet : `CHANGELOG.md [2.2.0]`.
+
+### ✅ CORRIGÉ (2026-10-06) — FK : deux sources qui se contredisaient
+La contrainte FK venait de `fk(table.col)` côté macro et de `belongs_to [action]` côté CLI ;
+`belongs_to` jetait ses actions dans la macro et visait `Column::Id` en dur. `belongs_to` est
+désormais la seule source (contrainte + relation), vers la vraie table et la vraie PK, avec ses
+actions ; `fk()` est refusé. `table_to_module` (pluriel deviné) et les pivots implicites
+supprimés.
+
+### ✅ CORRIGÉ (2026-10-06) — enums entiers sans valeur stockés à 0
+`Priority: i32 [Low, High]` donnait `num_value = 0` aux deux variantes (`_ => 0`,
+`unwrap_or(0)`) : `High` relu comme `Low`. Refusé à la compilation (`validate_int_values`).

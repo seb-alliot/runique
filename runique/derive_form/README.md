@@ -2,34 +2,18 @@
 
 Procedural macros for the [Runique](https://github.com/seb-alliot/runique) web framework.
 
-Exposes three macros:
+- `model! { ... }` — declares a model: SeaORM entity, relations, admin form, `schema()`
+- `#[form(...)]` — generates a form struct from a model's schema
+- `extend! { ... }` — adds columns to a framework table (e.g. `eihwaz_users`)
 
-- `model!(...)` — DSL to declare a SeaORM model and generate its schema
-- `#[form(...)]` — attribute macro to generate a form struct from a model schema
-- `extend!{...}` — extends a framework table (e.g. `eihwaz_users`) with custom columns
+The DSL itself is read by [`runique_dsl`](https://crates.io/crates/runique_dsl), the same parser
+`runique makemigrations` uses: a model the macro refuses is refused by the CLI too. Its README
+holds the full grammar (field types, attributes, nullability, relations, enums, list fields) and
+the 3.0 breaking changes. You use these macros through `runique::prelude::*`, not directly.
 
 ---
 
-## `model!(...)`
-
-Declares a database model and generates the corresponding SeaORM entity, `ActiveModel`,
-relations, and a `schema()` function used by `#[form(...)]`.
-
-### Syntax
-
-```text
-model! {
-    ModelName,
-    table: "table_name",
-    pk: field_name => pk_type,
-    {
-        field: type [option1, option2, ...],
-        ...
-    }
-}
-```
-
-### Minimal example
+## `model!`
 
 ```rust
 use runique::prelude::*;
@@ -37,580 +21,112 @@ use runique::prelude::*;
 model! {
     Post,
     table: "posts",
-    pk: id => Pk,
-    {
-        title:      text [required, max_length: 255],
-        content:    richtext [required],
-        slug:       text [required, unique],
-        views:      int [required, default: 0],
-        published:  bool [required, default: false],
-        created_at: datetime [auto_now],
-        updated_at: datetime [auto_now_update],
-    }
-}
-```
-
----
-
-## Primary key types
-
-| Syntax           | Column type                                        | Notes             |
-|------------------|----------------------------------------------------|-------------------|
-| `pk: id => Pk`   | `INTEGER` default, `BIGINT` (feature `big-pk`), or `UUID` (feature `pk-uuid`) | Depends on active feature |
-| `pk: id => i32`  | `INTEGER` (32-bit)                                 | Auto-increment    |
-| `pk: id => i64`  | `BIGINT` (64-bit)                                  | Auto-increment    |
-| `pk: id => uuid` | `UUID`                                             | No auto-increment |
-
-```rust
-// Integer PK (most common)
-model! {
-    Article,
-    table: "articles",
-    pk: id => Pk,
-    { title: text [required] }
-}
-
-// UUID PK
-model! {
-    Session,
-    table: "sessions",
-    pk: token => uuid,
-    { user_id: int [required] }
-}
-```
-
----
-
-## Field types
-
-Fields default to **nullable** unless `required` is specified.
-
-| Type          | SQL type                    | Notes                                    |
-|---------------|-----------------------------|------------------------------------------|
-| `text`        | `VARCHAR(255)`              | Short text field                         |
-| `textarea`    | `TEXT`                      | Long text, multi-line                    |
-| `richtext`    | `TEXT`                      | Rich text (HTML editor)         |
-| `email`       | `VARCHAR(255)`              | Email — validated format                 |
-| `password`    | `VARCHAR(255)`              | Password — hashed on save                |
-| `url`         | `VARCHAR(255)`              | URL — validated format                   |
-| `slug`        | `VARCHAR(255)`              | Slug — auto-generated from title         |
-| `color`       | `VARCHAR(255)`              | Hex color                                |
-| `ip`          | `VARCHAR(255)`              | IP address                               |
-| `int`         | `INTEGER`                   |                                          |
-| `bigint`      | `BIGINT`                    |                                          |
-| `float`       | `DOUBLE`                    |                                          |
-| `decimal`     | `DECIMAL`                   |                                          |
-| `percent`     | `DOUBLE`                    | Stored as float                          |
-| `bool`        | `BOOLEAN`                   |                                          |
-| `date`        | `DATE`                      |                                          |
-| `time`        | `TIME`                      |                                          |
-| `datetime`    | `DATETIME`                  |                                          |
-| `timestamp`   | `TIMESTAMP`                 |                                          |
-| `timestamp_tz`| `TIMESTAMPTZ`               | With timezone (Postgres)                 |
-| `uuid`        | `UUID`                      |                                          |
-| `json`        | `JSON`                      |                                          |
-| `image`       | `VARCHAR(255)`              | Stores file path — upload handled by app |
-| `document`    | `VARCHAR(255)`              | Stores file path                         |
-| `file`        | `VARCHAR(255)`              | Stores file path                         |
-| `bigint`      | `BIGINT`                    | 64-bit integer                           |
-| `phone`       | `VARCHAR(20)`               | Phone number                             |
-| `choice`      | `VARCHAR` or native enum    | Requires `enum(EnumName)` — see Enums    |
-| `radio`       | `VARCHAR` or native enum    | Same as `choice`, rendered as radio      |
-
-```rust
-model! {
-    Profile,
-    table: "profiles",
-    pk: id => Pk,
-    {
-        username:   text     [required, max_length: 50, unique],
-        bio:        textarea,
-        score:      float    [required, default: 0.0],
-        is_active:  bool     [required, default: true],
-        birth_date: date,
-        avatar:     image,
-        token:      uuid     [required, unique],
-        created_at: datetime [auto_now],
-        updated_at: datetime [auto_now_update],
-    }
-}
-```
-
----
-
-## Field options
-
-| Option                  | Description                                                        |
-|-------------------------|--------------------------------------------------------------------|
-| `required`              | Column is `NOT NULL` + form validation                             |
-| `unique`                | UNIQUE constraint                                                  |
-| `index`                 | Create a database index                                            |
-| `default: value`        | Default value: `0`, `true`, `"draft"`, etc.                        |
-| `max_length: n`         | Max string length (validation + `VARCHAR(n)`)                      |
-| `min_length: n`         | Min string length (validation)                                     |
-| `max: n` / `min: n`     | Max / min integer value (validation)                               |
-| `max_f: n` / `min_f: n` | Max / min float value (validation)                                 |
-| `auto_now`              | Set to `NOW()` on INSERT                                           |
-| `auto_now_update`       | Set to `NOW()` on UPDATE                                           |
-| `rows: n`               | Number of rows for `textarea` / `richtext` in admin                |
-| `step: n`               | Step for numeric fields in forms                                   |
-| `max_size: n`         | Max upload size (e.g., `2 MB`, `500 KB`, `1 GB`) for file fields  |
-| `upload_to: "path"`     | Upload directory for file fields (required for files)             |
-| `rows: n`               | Number of visible rows for `textarea` / `richtext` / `json`       |
-| `step: n`               | Step increment for `float` / `decimal` fields in forms            |
-| `enum(EnumName)`        | Enum reference for `choice` / `radio` fields                       |
-| `skip`                  | Column generated in SQL but excluded from forms                    |
-| `no_hash`               | Prevent auto-hashing for `password` fields                         |
-| `fk(table.col, action)` | Foreign key constraint — action: `cascade`, `set_null`, `restrict`, `set_default` |
-
-```rust
-model! {
-    Product,
-    table: "products",
-    pk: id => Pk,
-    {
-        name:        text    [required, max_length: 200],
-        description: textarea,
-        price:       float   [required, min_f: 0.0],
-        stock:       int     [required, default: 0, min: 0],
-        sku:         text    [required, max_length: 50, unique],
-        is_active:   bool    [required, default: true],
-        banner:      image   [upload_to: "products/", max_size: 2 MB],
-        created_at:  datetime [auto_now],
-        updated_at:  datetime [auto_now_update],
-    }
-}
-```
-
----
-
-## Foreign keys
-
-Declare the constraint directly on the field with `fk(table.column, action)`:
-
-**Actions:** `cascade`, `set_null`, `restrict`, `set_default`
-
-**Always type a foreign key field as `Pk`, never a hardcoded `int`/`i32`.** The whole
-ORM is built around the `Pk` alias — it resolves to `i32` by default, `i64` under
-`big-pk`, or `Uuid` under `pk-uuid` (same mechanism as `pk: id => Pk` for the primary
-key itself). A FK column typed `Pk` always matches whatever type the referenced
-table's primary key actually is, on any feature combination. A FK hardcoded as `int`
-silently breaks — or worse, silently truncates — the moment the referenced table's PK
-switches feature.
-
-```rust
-model! {
-    Comment,
-    table: "comments",
-    pk: id => Pk,
-    {
-        post_id:    Pk  [required, fk(posts.id, cascade)],
-        author_id:  Pk  [fk(users.id, set_null)],
-        content:    textarea [required],
-        created_at: datetime [auto_now],
-    },
-    relations: {
-        belongs_to: Post via post_id,
-        belongs_to: User via author_id,
-    }
-}
-```
-
-The `fk()` option is only valid on `int`, `bigint`, and `uuid`-resolving fields (so `Pk` under any feature).
-
----
-
-## Enums
-
-The `model!` macro supports declaring enums directly alongside the model via the optional
-`enums:` block. Variants are rendered as a `<select>` in admin forms.
-
-### Engine detection
-
-Enum storage depends on the database engine detected at **compile time**.
-Runique reads `DB_ENGINE` (or the prefix of `DATABASE_URL`) from the `.env` at the
-crate root. Make sure at least one of these is set:
-
-```env
-DB_ENGINE=postgres    # or mysql / sqlite
-# or
-DATABASE_URL=postgresql://user:pass@localhost/db
-```
-
-If neither is found, compilation fails with an explicit error.
-
-### Auto detection (default)
-
-When no backing type is specified, the enum adapts automatically:
-
-| Engine   | Storage             | SeaORM type               |
-|----------|---------------------|---------------------------|
-| Postgres | Native `ENUM` type  | `db_type = "Enum"`        |
-| MySQL    | `VARCHAR`           | `db_type = "String"`      |
-| SQLite   | `VARCHAR`           | `db_type = "String"`      |
-
-### Enum syntax
-
-```text
-enums: {
-    EnumName: [Variant, Variant = "db_value", Variant = ("db_value", "Label"), ...],
-}
-```
-
-Three forms per variant:
-
-| Syntax                           | DB value              | Admin label   |
-| -------------------------------- | --------------------- | ------------- |
-| `Active`                         | `"Active"` (name)     | variant name  |
-| `Active = "active"`              | `"active"`            | variant name  |
-| `Active = ("active", "Active!")` | `"active"`            | `"Active!"`   |
-
-### Example
-
-```rust
-use runique::prelude::*;
-
-model! {
-    Article,
-    table: "articles",
     pk: id => Pk,
     enums: {
-        Status: [
-            Draft    = ("draft",     "Draft"),
-            Published = ("published", "Published"),
-            Archived  = ("archived",  "Archived"),
-        ],
-        Priority: [Low, Medium, High],
+        Status: [Draft = ("draft", "Draft"), Published = ("published", "Published")],
+        Tag: [Rust, Web, Database],
     },
     {
-        title:    text   [required, max_length: 200],
-        status:   choice [enum(Status), required, default: "draft"],
-        priority: choice [enum(Priority), required],
-    }
-}
-```
-
-Integer-backed enums (for databases that don't support native enums):
-
-```rust
-enums: {
-    Level: i32 [Guest = 0, Member = 1, Admin = 9],
-}
-```
-
----
-
-## Meta
-
-The optional `meta:` block configures table-level options:
-
-```rust
-model! {
-    Post,
-    table: "posts",
-    pk: id => Pk,
-    {
-        title:      text     [required],
+        title:      text     [required, max_length: 255],
         slug:       slug     [required, unique],
-        author_id:  Pk      [required, fk(users.id, cascade)],
-        lang:       text     [required, max_length: 5],
+        content:    richtext [required],
+        excerpt:    textarea [nullable],
+        status:     choice   [enum(Status), required],
+        tags:       checkbox [enum(Tag)],
+        views:      bigint   [default: 0],
+        author_id:  Pk       [required],
         created_at: datetime [auto_now],
+        updated_at: datetime [auto_now_update],
+    },
+    relations: {
+        belongs_to: eihwaz_users via author_id [cascade],
+        has_many: Comment,
     },
     meta: {
-        ordering: [-created_at, title],
-        unique_together: [(slug, lang)],
-        indexes: [(author_id, lang)],
-        verbose_name: "Post",
-        verbose_name_plural: "Posts",
+        ordering: [-created_at],
+        indexes: [(status, created_at)],
     }
 }
 ```
 
-| Key                   | Description                              |
-| --------------------- | ---------------------------------------- |
-| `ordering`            | Default sort — prefix `-` for DESC       |
-| `unique_together`     | Multi-column UNIQUE constraints          |
-| `indexes`             | Multi-column indexes (non-unique)        |
-| `verbose_name`        | Singular display name                    |
-| `verbose_name_plural` | Plural display name                      |
+A column is **NOT NULL unless `nullable`**; `required` only makes the form field mandatory.
+Foreign keys are declared with `belongs_to: target via column [on_delete, on_update]`, which
+produces both the SQL constraint and the SeaORM relation.
+
+### What it generates
+
+| Item | Description |
+|------|-------------|
+| `Model`, `Entity`, `Column`, `ActiveModel`, `PrimaryKey` | The SeaORM entity (`nullable` → `Option<T>`) |
+| `Relation` + `Related<…>` | One variant per relation; `belongs_to` targets the related entity's real primary key, with its `ON DELETE` / `ON UPDATE` actions |
+| `ActiveModelBehavior` | Fills `auto_now` on insert and `auto_now_update` on every save, on every engine |
+| One Rust enum per entry of `enums:` | `DeriveActiveEnum`, `Display`, `FromStr`, `db_value()`, `form_value()` |
+| `AdminForm`, `admin_from_form`, `admin_partial_update` | Used by the generated admin |
+| `schema()` | The `ModelSchema` read by `#[form(schema = ...)]` |
+| For each list field (`checkbox` / `multichoice`) | A sub-module with the entity of its table (`{table}_{field}`), the methods `field()`, `set_field()`, `load_field()` on `Model`, and `List::Field` for `search!(… => Field has value)` |
+
+Types or attributes the compiled database engine can't read back (`i8`/`u32` on Postgres,
+`u64` on Postgres and SQLite) are refused at compile time, when a single engine feature is
+enabled.
 
 ---
 
-## Relations
+## `extend!`
 
-The optional `relations:` block declares SeaORM relations on the model.
-
-### Relation types
-
-| Declaration                                     | Description                              |
-|-------------------------------------------------|------------------------------------------|
-| `belongs_to: Model via field`                   | This model holds the FK column           |
-| `has_many: Model`                               | One-to-many (inverse of belongs_to)      |
-| `has_many: Model as alias`                      | One-to-many with a custom relation name  |
-| `has_one: Model`                                | One-to-one (inverse of belongs_to)       |
-| `has_one: Model as alias`                       | One-to-one with custom relation name     |
-| `many_to_many: Model through JoinTable via fk`  | Many-to-many through a join table        |
-
-### Relations example
+Adds columns to a framework table and generates the entity covering all its columns (base +
+added), with its `AdminForm`:
 
 ```rust
 use runique::prelude::*;
 
-model! {
-    Post,
-    table: "posts",
-    pk: id => Pk,
-    {
-        title:     text [required],
-        author_id: Pk  [required, fk(users.id, cascade)],
-    },
-    relations: {
-        belongs_to: User via author_id,
-        has_many:   Comment,
-    }
-}
-
-model! {
-    Comment,
-    table: "comments",
-    pk: id => Pk,
-    {
-        body:    textarea [required],
-        post_id: Pk      [required, fk(posts.id, cascade)],
-    },
-    relations: {
-        belongs_to: Post via post_id,
-    }
-}
-```
-
-### Many-to-many
-
-```rust
-model! {
-    Article,
-    table: "articles",
-    pk: id => Pk,
-    {
-        title: text [required],
-    },
-    relations: {
-        many_to_many: Tag through ArticleTag via article_id,
-    }
-}
-
-model! {
-    ArticleTag,
-    table: "article_tags",
-    pk: id => Pk,
-    {
-        article_id: Pk [required, fk(articles.id, cascade)],
-        tag_id:     Pk [required, fk(tags.id, cascade)],
-    },
-    relations: {
-        belongs_to: Article via article_id,
-        belongs_to: Tag via tag_id,
-    }
-}
-```
-
----
-
-## Complete example — blog application
-
-```rust
-use runique::prelude::*;
-
-// ── Categories ─────────────────────────────────────────────────
-model! {
-    Category,
-    table: "categories",
-    pk: id => Pk,
-    {
-        name: text [required, max_length: 100, unique],
-        slug: slug [required, unique],
-    }
-}
-
-// ── Posts ──────────────────────────────────────────────────────
-model! {
-    Post,
-    table: "posts",
-    pk: id => Pk,
-    enums: {
-        PostStatus: [
-            Draft     = ("draft",     "Draft"),
-            Published = ("published", "Published"),
-            Archived  = ("archived",  "Archived"),
-        ],
-    },
-    {
-        title:        text     [required, max_length: 255],
-        slug:         slug     [required, unique],
-        content:      richtext [required],
-        excerpt:      textarea,
-        status:       choice   [enum(PostStatus), required, default: "draft"],
-        author_id:    Pk      [required, fk(users.id, cascade)],
-        category_id:  Pk      [fk(categories.id, set_null)],
-        views:        bigint   [required, default: 0],
-        created_at:   datetime [auto_now],
-        updated_at:   datetime [auto_now_update],
-    },
-    relations: {
-        has_many: Comment,
-    }
-}
-
-// ── Comments ───────────────────────────────────────────────────
-model! {
-    Comment,
-    table: "comments",
-    pk: id => Pk,
-    {
-        post_id:     Pk      [required, fk(posts.id, cascade)],
-        author_id:   Pk      [fk(users.id, set_null)],
-        content:     textarea [required],
-        is_approved: bool     [required, default: false],
-        created_at:  datetime [auto_now],
-    },
-    relations: {
-        belongs_to: Post via post_id,
-    }
-}
-```
-
----
-
-## `extend!{}` — extend framework tables
-
-`extend!{}` declares custom columns to add to a framework table. It is used by `makemigrations` to generate the corresponding `ALTER TABLE ADD COLUMN` statements, and generates the entity extension and `AdminForm` for use in `admin!{}`.
-
-Tables allowed: `eihwaz_users`, `eihwaz_groupes`, `eihwaz_droits`, `eihwaz_sessions`, `eihwaz_users_groupes`, `eihwaz_groupes_droits`.
-
-### Syntax
-
-```rust
 extend! {
     table: "eihwaz_users",
     fields: {
-        field: type [option1, option2, ...],
-        ...
+        bio:         textarea [nullable],
+        avatar:      image    [nullable, upload_to: "avatars/"],
+        is_verified: bool     [default: false],
     }
 }
 ```
 
-Field types and options follow the same rules as `model!{}`.
-
----
-
-## `impl_objects!` — ORM manager (Django-style)
-
-Activate the `objects` manager on a model to get Django-style queries:
-
-```rust
-use runique::prelude::*;
-
-model! {
-    Post,
-    table: "posts",
-    pk: id => Pk,
-    {
-        title:        text [required],
-        is_published: bool [required, default: false],
-        views:        bigint [required, default: 0],
-        author_id:    Pk   [required, fk(users.id, cascade)],
-        created_at:   datetime [auto_now],
-    }
-}
-
-impl_objects!(Entity);
-```
-
-```rust
-// In a handler:
-async fn posts_handler(ctx: Request) -> Response {
-    let db = ctx.db();
-
-    // All posts
-    let all = Entity::objects.all().all(db).await.unwrap();
-
-    // Filter: published posts, sorted by views descending
-    let published = Entity::objects
-        .filter(Column::IsPublished.eq(true))
-        .order_by_desc(Column::Views)
-        .limit(10)
-        .all(db)
-        .await
-        .unwrap();
-
-    // Count
-    let total = Entity::objects.count(db).await.unwrap();
-
-    // Get by ID — returns Err if not found
-    let post = Entity::objects.get(db, 1).await.unwrap();
-
-    // Get or auto-404
-    let post_or_404 = Entity::objects
-        .get_or_404(db, 1, &ctx, "Post not found")
-        .await
-        .unwrap();
-
-    ctx.render("posts/list.html", context! { posts: published, total })
-}
-```
+Tables allowed: `eihwaz_users`, `eihwaz_groupes`, `eihwaz_sessions`, `eihwaz_users_groupes`,
+`eihwaz_groupes_droits`. Same field types, attributes and nullability rules as `model!`; no
+`relations:` block and no list field. `makemigrations` generates the `ALTER TABLE ADD COLUMN`.
 
 ---
 
 ## `#[form(...)]`
 
-Generates a form struct from the schema produced by `model!`.
-
-The `schema` parameter takes the **module** containing the entity
-(not the `schema()` function directly).
+Generates a form struct from the schema of a `model!`. The `schema` parameter takes the
+**module** of the entity:
 
 ```rust
 use runique::prelude::*;
 use crate::entities::post;
 
-model! {
-    Post,
-    table: "posts",
-    pk: id => Pk,
-    {
-        title:        text  [required, max_length: 255],
-        content:      richtext [required],
-        excerpt:      textarea,
-        is_published: bool  [required, default: false],
-        created_at:   datetime [auto_now],
-        updated_at:   datetime [auto_now_update],
-    }
-}
-
-// Expose title, content, excerpt, is_published — auto_now fields excluded automatically
-#[form(schema = post, fields = [title, content, excerpt, is_published])]
+// title, content, excerpt — auto_now fields and the primary key are always excluded
+#[form(schema = post, fields = [title, content, excerpt])]
 pub struct PostForm;
 ```
 
-### `#[form]` parameters
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `schema`  | yes      | Module of the entity generated by `model!` |
+| `fields`  | no       | Whitelist — only these fields |
+| `exclude` | no       | Blacklist — every field but these |
 
-| Parameter  | Required | Description                                       |
-|------------|----------|---------------------------------------------------|
-| `schema`   | yes      | Module path of the entity generated by `model!`   |
-| `fields`   | no       | Whitelist — only include these fields             |
-| `exclude`  | no       | Blacklist — exclude these fields                  |
-
-`fields` and `exclude` are mutually exclusive. The primary key is always excluded.
-
-### Using the form in a handler
+`fields` and `exclude` are mutually exclusive. The form fields take the bounds declared on the
+model (`max_length`, `min`, `max`…); a form may tighten them in `customize`, never loosen them
+(it panics when the form is built).
 
 ```rust
-pub async fn create_post(mut req: Request) -> impl IntoResponse {
+pub async fn create_post(mut req: Request) -> AppResult<Response> {
     let mut form: PostForm = req.form();
     if form.is_valid().await {
-        form.save(&req.engine.db).await.ok();
-        return Redirect::to("/posts").into_response();
+        // `save()` runs your `on_save` in a transaction
+        form.save(&req.engine.db).await?;
+        return Ok(Redirect::to("/posts").into_response());
     }
-
     req.render("posts/new.html", context! { form })
 }
 ```

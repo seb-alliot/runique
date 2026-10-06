@@ -51,6 +51,7 @@ Toutes les options sont optionnelles — les valeurs par défaut fonctionnent sa
     .reset_template("auth/reset.html")           // défaut : auth/reset_password.html
     .email_template("emails/reset.html")         // défaut : template intégré
     .success_redirect("/connexion")              // défaut : /
+    .token_ttl(Duration::from_secs(1800))        // défaut : 1h (std::time::Duration)
 )
 ```
 

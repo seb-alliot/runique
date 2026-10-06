@@ -1,116 +1,130 @@
 # Testing a Runique Application
 
-Runique provides a set of specialized test helpers to write expressive integration tests for your Axum-based application.
+Runique tests your **business logic against a real database**: each test runs inside a transaction that is always rolled back, and prints the SQL it ran next to its result. That's the `runique_test` builder (`test-utils` feature) and the `runique test` command.
 
 ---
 
-## 1. Test Setup
+## 1. Setup
 
-To avoid code duplication, Runique encourages using a shared server builder that starts a real instance of your application on a random free port.
+`test-utils` goes under `[dev-dependencies]` **only**: it compiles code that must never reach a release build.
+
+```toml
+# Cargo.toml
+[dependencies]
+runique = { version = "3.0.0", features = ["postgres"] }
+
+[dev-dependencies]
+runique = { version = "3.0.0", features = ["test-utils"] }
+```
+
+Tests live in `src/runique_test/`, one file per domain, declared behind `cfg(test)`:
 
 ```rust
-use mon_projet::helpers::server::test_server_addr;
+// src/main.rs
+#[cfg(test)]
+mod runique_test;
+```
+
+```rust
+// src/runique_test/mod.rs
+/// The env file every test in this folder reads its database settings from.
+pub const ENV: &str = ".env";
+
+mod blog;
+mod user;
+```
+
+The env file has to name its database (`DATABASE_URL` or `DB_ENGINE`): otherwise the test is refused, rather than a local SQLite file being quietly created. Nothing is read from the shell's environment, where `DATABASE_URL` could point anywhere.
+
+---
+
+## 2. Writing a test
+
+A test is a `#[tokio::test]` returning `Result<(), TestFailure>`, whose last expression is `runique_test`:
+
+```rust
+// src/runique_test/blog.rs
+use crate::backend::blog::get_article;
+use crate::entities::blog;
+use runique::prelude::*;
+use runique::runique_test::{TestFailure, runique_test};
+use sea_orm::DbErr;
 
 #[tokio::test]
-async fn test_homepage_is_ok() {
-    // 1. Get the shared server address (starts it on the first call)
-    let addr = test_server_addr();
-    
-    // 2. Use reqwest (or any client) to call it
-    let client = reqwest::Client::new();
-    let resp = client.get(format!("http://{}/", addr)).await.unwrap();
-    
-    assert_eq!(resp.status(), 200);
+async fn created_article_is_found_by_id() -> Result<(), TestFailure> {
+    runique_test::<ADb>(super::ENV, async |db| {
+        let article = blog::ActiveModel {
+            title: Set("Rolled back at the end".to_string()),
+            ..Default::default()
+        }
+        .insert(db)
+        .await?;
+
+        get_article(db, article.id)
+            .await
+            .map(|_| ())
+            .ok_or_else(|| DbErr::Custom("the article should be found by its id".into()))
+    })
+    .await
 }
+```
+
+`db` is an `&ADb`: the same type as `request.engine.db`, so your business functions run unchanged. Whatever happens, the transaction is rolled back.
+
+### What fails a test
+
+- the handler returns `Err`, panics, or runs past the time limit (`RUNIQUE_TEST_TIMEOUT` in the env file, 30 s by default) — `runique_test` never panics, it returns `Err(TestFailure)` with its message;
+- **a query failed while the handler returned `Ok`**: an error got swallowed somewhere (`.ok()`, `unwrap_or_default()`…);
+- the transaction was ended from inside the test (a raw `COMMIT`, or DDL on MariaDB/MySQL, which commits implicitly).
+
+### Expected refusals
+
+A refusal you *want* (unique constraint, foreign key, `NOT NULL`) goes through `expect_db_error`: it runs in a savepoint — on Postgres a failed statement outside one spoils the whole transaction — and is marked as expected in the trace.
+
+```rust
+use runique::runique_test::expect_db_error;
+
+let refused = expect_db_error(db, async |sp| {
+    contribution(deleted_user_id).insert(sp).await
+})
+.await?; // Err if the database accepted it
 ```
 
 ---
 
-## 2. Using Oneshot Requests
+## 3. Running the tests
 
-For faster tests that don't require a real TCP server, you can use the `oneshot` builders. These call the Axum router directly in-memory.
-
-```rust
-use crate::helpers::{request, server::build_engine, server::build_default_router};
-
-#[tokio::test]
-async fn test_ping() {
-    // Build the engine and router
-    let engine = build_engine().await;
-    let app = build_default_router(engine);
-    
-    // Standard GET
-    let resp = request::get(app.clone(), "/").await;
-    assert_eq!(resp.status(), 200);
-    
-    // POST with CSRF header
-    let resp = request::post_with_header(app, "/submit", "x-csrf-token", "my-token").await;
-    assert_eq!(resp.status(), 200);
-}
+```bash
+runique test                    # every test of src/runique_test/
+runique test blog               # the tests of src/runique_test/blog.rs
+runique test blog created_article_is_found_by_id   # a single test
 ```
+
+`runique test` first checks the setup — `test-utils` only in `[dev-dependencies]` (refused when it reaches a release build through `[dependencies]`, `[workspace.dependencies]` or a `[features]` entry), the `runique_test` module behind `cfg(test)`, every file declared in `mod.rs` — then runs `cargo test` one test at a time, with its output shown. Plain `cargo test` works too: tests are serialized within the process.
+
+Another engine (MongoDB…) can plug in by implementing the `TestTransaction` trait; `ADb` (SeaORM) is the implementation provided.
 
 ---
 
-## 3. Specialized Assertions
+## 4. Boot checks
 
-The `assert` helper module provides readable macros to inspect HTTP responses:
+`RuniqueApp::builder(config).build().await` checks the configuration before starting.
 
-| Helper | Usage |
-| --- | --- |
-| `assert_status(&resp, code)` | Checks the HTTP status code |
-| `assert_is_redirect(&resp)` | Checks for any 3xx status |
-| `assert_redirect(&resp, "/dest")` | Checks for 3xx AND the exact location |
-| `assert_has_header(&resp, "key")` | Checks if a header exists |
-| `assert_body_str(resp, "text").await` | Checks if the body contains exactly "text" |
+**In every mode:**
 
-```rust
-use crate::helpers::assert::{assert_status, assert_redirect, assert_body_str};
+- **Database**: no `.with_database(...)` / `.with_database_config(...)`;
+- **AdminPanel**: an empty admin prefix, or an `extra_routes` entry naming a resource that isn't registered;
+- **static_cache** / **media_cache**: a cache value that isn't a valid HTTP header;
+- **MediaRoot**: a media folder that can't be created;
+- **CORS**: `any_origin()` combined with `allow_credentials(true)`.
 
-#[tokio::test]
-async fn test_login_flow() {
-    let app = my_app_router();
-    let resp = request::get(app, "/protected").await;
-    
-    // Check for redirection to login
-    assert_redirect(&resp, "/login");
-}
-```
+**Outside debug mode only** (`DEBUG=false`), what would be unsafe in production:
 
----
+- **Security**: a weak `SECRET_KEY`;
+- **PublicUrl**: the password reset or the admin enabled without `.with_public_url(...)`;
+- **ACME**: `ACME_ENABLED` without `ACME_DOMAIN` or `ACME_EMAIL` (`acme` feature).
 
-## 4. Database Testing (SQLite isolated)
-
-Runique provides `fresh_db()` which returns a new, isolated SQLite in-memory database for every test.
-
-```rust
-use crate::helpers::db;
-
-#[tokio::test]
-async fn test_database_persistence() {
-    // Get a fresh, isolated DB
-    let db = db::fresh_db().await;
-    
-    // Apply schema and run queries
-    db::exec(&db, "CREATE TABLE demo (id INTEGER PRIMARY KEY, val TEXT)").await;
-    db::exec(&db, "INSERT INTO demo (val) VALUES ('runique')").await;
-    
-    // Easy counting
-    db::assert_count(&db, "demo", 1).await;
-}
-```
-
----
-
-## 5. Health Checks during build
-
-When you build your application using `RuniqueApp::builder(config).build().await`, Runique performs a suite of health checks:
-
-- **Database connectivity**: is the DB reachable?
-- **Templates**: are all `.html` files valid Tera syntax?
-- **Security**: is the `SECRET_KEY` safe (not default in prod)?
-- **Middleware integrity**: are dependencies between middlewares satisfied?
-
-If any check fails, the `build()` method returns a `BuildError { kind: BuildErrorKind::CheckFailed(CheckReport), .. }` — `CheckFailed` is a variant of `BuildErrorKind`, not directly of `BuildError` — which displays a clear diagnostic in the terminal with suggestions.
+`build()` then returns a `BuildError` — `BuildErrorKind::CheckFailed(CheckReport)` for the checks above, CORS aside — displayed in the terminal with a suggestion for each problem.
 
 ---
 

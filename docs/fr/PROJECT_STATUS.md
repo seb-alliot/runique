@@ -15,7 +15,7 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 - **derive_form** : `3.0.0`
 - **Licence** : MIT
 - **Branche** : `main`
-- **Stack** : Axum 0.8.7 + SeaORM 2.0.0-rc.40 + Tera 1.20.1 · Rust edition 2024 · Rust 1.94
+- **Stack** : Axum 0.8.9 + SeaORM 2.0.4 + Tera 2.4 · Rust edition 2024 · Rust 1.94
 
 ---
 

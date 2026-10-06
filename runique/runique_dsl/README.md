@@ -73,7 +73,7 @@ extend! {
 
 - `Name: [A, B]` — stored as the variant name (a native enum on Postgres, `VARCHAR` elsewhere).
 - `A = "value"`, `A: "label"`, `A = ("value", "label")` — stored value and/or displayed label.
-- `Name: i32 [...]` / `Name: i64 [...]` — stored as a number. **Every variant needs an integer
+- `Name: i8 [...]`, `i16`, `i32`, `i64` — stored as a number (`i8` is refused on Postgres). **Every variant needs an integer
   value** (`Low = 1` or `Low = (1, "label")`), within the type's range, and no two variants may
   share one.
 
@@ -116,6 +116,26 @@ A column is **NOT NULL unless declared `nullable`**. The parser refuses, at comp
 - `has_many: target` and `has_one: target`, optionally followed by `as name`.
 - `many_to_many: target through junction via column`.
 
+`makemigrations` creates an index `idx_<table>_<column>` on every `belongs_to` column (unless it
+is already `unique` or leads an index of `meta`), and handles cycles of new tables referencing
+each other: on SQLite the key stays in the `CREATE TABLE`, on Postgres and MySQL the one closing
+the cycle is added by an `ALTER TABLE` once its target exists.
+
+### List fields — `multichoice` and `checkbox`
+
+```rust
+genres: checkbox [enum(Genre), required],     // checkboxes
+moods:  multichoice [enum(Genre)],            // <select multiple>
+```
+
+Several values of an enum, stored in a table of their own (`{table}_{field}`: `owner_id` with
+`ON DELETE CASCADE`, `value`, unique `(owner_id, value)`), never a column — so no `genres` field
+on the `Model`. The enum is mandatory, and only `required` (at least one value), `enum(...)` and
+`label` are accepted. Not allowed in `extend!{}`, in `meta` or as a `belongs_to` column. The
+macro generates `model.genres(&db)`, `model.set_genres(&db, values)`,
+`Model::load_genres(&db, &models)`, and `List::Genres` for `search!(… => Genres has v)` /
+`has_any` / `has_all`.
+
 ## Types
 
 `runique_dsl::types` holds, for each DSL type, its column, its form field and its bounds.
@@ -136,7 +156,8 @@ A column is **NOT NULL unless declared `nullable`**. The parser refuses, at comp
 | `json`, `json_binary` | `JSON` | json |
 | `binary`, `var_binary`, `blob` | `BINARY(n)`, `VARBINARY(n)` (255 by default), `BLOB` | bytes upload |
 | `ip`, `cidr`, `mac_address`, `interval` | `VARCHAR` | ip / text |
-| `choice`, `radio`, `checkbox` + `enum(X)` | the enum's column | select / radio / checkboxes |
+| `choice`, `radio` + `enum(X)` | the enum's column | select / radio buttons |
+| `multichoice`, `checkbox` + `enum(X)` | a table of its own (see List fields) | multiple select / checkboxes |
 | `Pk` | same type as the primary keys | integer or uuid |
 
 Engine limits, refused at compile time when a single engine feature is enabled: `i8` and
@@ -154,12 +175,16 @@ column padded with `0x00`: use `var_binary` to get the exact bytes back.
 | `i32` / `i64` enum variants without a value were stored as `0`. | Every variant needs a unique integer value within the type's range. |
 | `customize` loosening a declared `max_length` was silently capped. | Loosening `min_length`, `max_length`, `min` or `max` panics when the form is built; tightening is allowed. |
 | `runique::migration::RelationDef` / `RelationKind`, `ModelSchema::relation()`. | Removed (never read). Relations live on the SeaORM entity. |
+| `checkbox [enum(X)]` stored a single value in a column. | `checkbox` (and the new `multichoice`) is a list stored in its own table. |
+| A column named `created_at` / `updated_at` got `DEFAULT CURRENT_TIMESTAMP`, one named `cache_key` was left out of migrations. | A name decides nothing: only `auto_now`, `auto_now_update` and `readonly` do. |
 
 Also new, without breaking anything: `max_length` reaches the migrations (`VARCHAR(n)`,
 `BINARY(n)`, `VARBINARY(n)`), followed by the snapshots and the diff — growing a column is a
 plain `ALTER`, shrinking it needs `--force`. A snapshot written before 3.0 takes the model's
 lengths once, so upgrading produces no migration of its own. `blob` gets its own column type,
-and `belongs_to` targets the real primary key of the related entity, with its actions.
+and `belongs_to` targets the real primary key of the related entity, with its actions. Every
+`belongs_to` column gets an index, FK cycles between new tables work on every engine, and enums
+can be `i8` / `i16` too.
 
 ## License
 

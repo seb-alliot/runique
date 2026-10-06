@@ -49,17 +49,17 @@ Placez `{% messages %}` dans votre template de base, juste avant le contenu prin
 
 Pour personnaliser l'affichage, bouclez manuellement sur `messages` :
 
-`MessageLevel` se sérialise sous le nom du variant Rust (`"Success"`, `"Error"`, `"Warning"`, `"Info"`, capitalisé) — comparez avec cette casse exacte, et passez par `| lower` pour une classe CSS en minuscules :
+`MessageLevel` se sérialise en minuscules (`"success"`, `"error"`, `"warning"`, `"info"`), utilisable tel quel dans une classe CSS :
 
 ```html
 {% if messages %}
     {% for msg in messages %}
-        <div class="alert alert-{{ msg.level | lower }}" role="alert">
+        <div class="alert alert-{{ msg.level }}" role="alert">
             <strong>
-                {% if msg.level == "Success" %}✅
-                {% elif msg.level == "Error" %}❌
-                {% elif msg.level == "Warning" %}⚠️
-                {% elif msg.level == "Info" %}ℹ️
+                {% if msg.level == "success" %}✅
+                {% elif msg.level == "error" %}❌
+                {% elif msg.level == "warning" %}⚠️
+                {% elif msg.level == "info" %}ℹ️
                 {% endif %}
             </strong>
             {{ msg.content }}

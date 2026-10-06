@@ -73,7 +73,7 @@ extend! {
   ailleurs).
 - `A = "valeur"`, `A: "libellé"`, `A = ("valeur", "libellé")` — valeur stockée et/ou libellé
   affiché.
-- `Nom: i32 [...]` / `Nom: i64 [...]` — stocké sous forme de nombre. **Chaque variante doit
+- `Nom: i8 [...]`, `i16`, `i32`, `i64` — stocké sous forme de nombre (`i8` refusé sous Postgres). **Chaque variante doit
   avoir une valeur entière** (`Low = 1` ou `Low = (1, "libellé")`), dans les limites du type, et
   deux variantes ne peuvent pas partager la même.
 
@@ -118,6 +118,27 @@ compilation :
 - `has_many: cible` et `has_one: cible`, suivis éventuellement de `as nom`.
 - `many_to_many: cible through table_de_jointure via colonne`.
 
+`makemigrations` crée un index `idx_<table>_<colonne>` sur chaque colonne de `belongs_to` (sauf
+si elle est déjà `unique` ou en tête d'un index de `meta`), et gère les cycles entre nouvelles
+tables qui se référencent l'une l'autre : sous SQLite la clé reste dans le `CREATE TABLE`, sous
+Postgres et MySQL celle qui ferme le cycle est ajoutée par un `ALTER TABLE` une fois sa cible
+créée.
+
+### Champs liste — `multichoice` et `checkbox`
+
+```rust
+genres:   checkbox [enum(Genre), required],   // cases à cocher
+humeurs:  multichoice [enum(Genre)],          // <select multiple>
+```
+
+Plusieurs valeurs d'un enum, stockées dans une table à part (`{table}_{champ}` : `owner_id` en
+`ON DELETE CASCADE`, `value`, unique `(owner_id, value)`), jamais dans une colonne — donc pas de
+champ `genres` dans le `Model`. L'enum est obligatoire, et seuls `required` (au moins une
+valeur), `enum(...)` et `label` sont acceptés. Interdit dans `extend!{}`, dans `meta` et comme
+colonne de `belongs_to`. La macro génère `model.genres(&db)`, `model.set_genres(&db, valeurs)`,
+`Model::load_genres(&db, &models)`, et `List::Genres` pour `search!(… => Genres has v)` /
+`has_any` / `has_all`.
+
 ## Types
 
 `runique_dsl::types` donne, pour chaque type du DSL, sa colonne, son champ de formulaire et ses
@@ -139,7 +160,8 @@ bornes.
 | `json`, `json_binary` | `JSON` | json |
 | `binary`, `var_binary`, `blob` | `BINARY(n)`, `VARBINARY(n)` (255 par défaut), `BLOB` | envoi d'octets |
 | `ip`, `cidr`, `mac_address`, `interval` | `VARCHAR` | ip / texte |
-| `choice`, `radio`, `checkbox` + `enum(X)` | la colonne de l'enum | liste / boutons radio / cases à cocher |
+| `choice`, `radio` + `enum(X)` | la colonne de l'enum | liste / boutons radio |
+| `multichoice`, `checkbox` + `enum(X)` | une table à part (voir Champs liste) | sélection multiple / cases à cocher |
 | `Pk` | même type que les clés primaires | entier ou uuid |
 
 Limites des moteurs, refusées à la compilation quand une seule feature de moteur est active :
@@ -158,13 +180,17 @@ exacts.
 | Les variantes sans valeur d'un enum `i32` / `i64` étaient stockées à `0`. | Chaque variante a une valeur entière unique, dans les limites du type. |
 | `customize` qui desserrait un `max_length` déclaré était ramené en silence. | Desserrer `min_length`, `max_length`, `min` ou `max` provoque un panic à la construction du formulaire ; resserrer reste permis. |
 | `runique::migration::RelationDef` / `RelationKind`, `ModelSchema::relation()`. | Supprimés (jamais lus). Les relations sont portées par l'entité SeaORM. |
+| `checkbox [enum(X)]` stockait une seule valeur dans une colonne. | `checkbox` (et le nouveau `multichoice`) est une liste stockée dans sa propre table. |
+| Une colonne nommée `created_at` / `updated_at` recevait `DEFAULT CURRENT_TIMESTAMP`, une colonne `cache_key` était exclue des migrations. | Un nom ne décide de rien : seuls `auto_now`, `auto_now_update` et `readonly` comptent. |
 
 Nouveau aussi, sans rupture : `max_length` arrive jusqu'aux migrations (`VARCHAR(n)`,
 `BINARY(n)`, `VARBINARY(n)`), suivi par les snapshots et le diff — agrandir une colonne est un
 simple `ALTER`, la réduire demande `--force`. Un snapshot écrit avant la 3.0 reprend une fois
 les longueurs du modèle, si bien que la mise à jour ne produit aucune migration à elle seule.
 `blob` a son propre type de colonne, et `belongs_to` vise la vraie clé primaire de l'entité
-liée, avec ses actions.
+liée, avec ses actions. Chaque colonne de `belongs_to` reçoit un index, les cycles de clés
+étrangères entre nouvelles tables fonctionnent sur tous les moteurs, et les enums peuvent aussi
+être `i8` / `i16`.
 
 ## Licence
 

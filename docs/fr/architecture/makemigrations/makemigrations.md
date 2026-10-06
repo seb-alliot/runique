@@ -1,51 +1,49 @@
 # Fonctionnement interne de Makemigrations
 
-La commande `runique makemigrations` fait le pont entre vos entités Rust (`model!{}`) et le schéma de base de données. Contrairement aux générateurs ORM classiques, elle est conçue pour préserver l'intention architecturale et les extensions propres au framework.
+La commande `runique makemigrations` fait le pont entre vos entités Rust (`model!{}`, `extend!{}`) et le schéma de base de données. Elle compare vos déclarations au dernier état enregistré et écrit les migrations SeaORM qui font passer la base de l'un à l'autre.
 
 ---
 
 ## Le pipeline de génération
 
-Le processus de génération suit une architecture en trois phases :
+### Phase 1 : lecture du DSL
 
-### Phase 1 : Extraction de l'AST (`parse_schema_from_source`)
+`makemigrations` lit les fichiers `src/entities/*.rs` sans les compiler, avec **le même parseur que la macro `model!{}`** : la crate `runique_dsl`. Un modèle refusé par la macro est refusé par la CLI, au même endroit et avec le même message :
 
-Runique utilise un parseur léger maison (basé sur `syn` et des expressions régulières pour la performance) pour lire vos fichiers `src/entities/*.rs`.
+- une erreur (type ou attribut inconnu, action de clé étrangère inconnue, règle de nullabilité non respectée…) arrête la commande avec le **fichier, la ligne et la colonne** ;
+- un fichier qui n'est pas du Rust valide, ou qui déclare deux `model!{}`, est une erreur — jamais un fichier ignoré en silence ;
+- **seuls les attributs décident** : le nom d'une colonne (`created_at`, `cache_key`…) n'a aucun effet.
 
-- **Analyse statique** : il ne compile pas votre code. Il lit directement les fichiers source pour extraire la structure des blocs `model!{}`.
-- **Normalisation** : il convertit les types DSL de haut niveau (ex. `datetime`, `uuid`) en structures internes `FieldDef`.
-- **Intelligence** : c'est ici qu'a lieu le **mapping automatique des champs** (association de noms de champs comme `email` à des comportements de formulaire spécialisés).
+Les cibles de `belongs_to` sont ensuite résolues comme le fait la macro : par le nom du module (le fichier `cible.rs`) ou d'une table du framework. La clé étrangère vise la vraie table et la vraie clé primaire de la cible ; une cible introuvable est une erreur. Chaque colonne de `belongs_to` reçoit un index `idx_<table>_<colonne>` (sauf si elle est déjà `unique` ou en tête d'un index de `meta`), et chaque champ liste (`multichoice` / `checkbox`) sa table `{table}_{champ}`.
 
-### Phase 2 : Diff et snapshots
+### Phase 2 : diff et snapshots
 
-Runique maintient un état caché dans `migration/src/snapshots/`.
+Runique conserve dans `migration/src/snapshots/` le dernier état de chaque table, sous forme d'un fichier de migration relu à chaque passage. Le diff détecte :
 
-- **État courant** : le parseur construit un schéma virtuel de votre code actuel.
-- **État précédent** : il charge le dernier snapshot depuis le système de fichiers.
-- **Moteur de diff** : il compare les deux états pour détecter :
-    - Nouvelles tables / Tables supprimées.
-    - Colonnes ajoutées / Colonnes supprimées.
-    - **Renommage de colonne** : via l'indice explicite `[renamed_from: "ancien"]`, le diff émet un `RENAME COLUMN` au lieu d'un `DROP` + `ADD` (zéro perte de données). Sans cet indice, l'outil non interactif ne peut pas deviner l'intention.
-    - Contraintes modifiées (ex. passage de `nullable` à `required`).
-    - **Valeurs d'enum** : ajout, suppression et renommage (par position). Un renommage est traité comme **une seule** opération, exclu des listes ajout/suppression.
+- les tables et colonnes ajoutées ou supprimées ;
+- les **renommages de colonne** via `[renamed_from: "ancien"]` : un `RENAME COLUMN` au lieu d'un `DROP` + `ADD` (sans cet indice, l'outil non interactif ne peut pas deviner l'intention) ;
+- les changements de type, de nullabilité, d'unicité, de valeur par défaut et de **longueur** (`max_length`) ;
+- les valeurs d'enum ajoutées, supprimées ou renommées (un renommage est **une seule** opération) ;
+- les clés étrangères et index ajoutés ou supprimés.
 
-### Phase 3 : Génération SeaQuery
+Un snapshot écrit avant la 3.0 ne contient pas les longueurs de colonne : il reprend une seule fois celles du modèle, sans produire de migration, puis il est réécrit avec elles.
 
-Le diff est converti en une séquence de requêtes `SeaQuery` (`TableCreate`, `TableAlter`).
+### Phase 3 : génération
 
-1. **Ordonnancement** : il garantit que les dépendances (clés étrangères) sont traitées dans le bon ordre (tri topologique des nouvelles tables).
-2. **Tables framework** : il injecte automatiquement les migrations `eihwaz_users` et `eihwaz_groupes` si elles sont absentes ou doivent être étendues via `extend!{}`.
-3. **Sortie en code Rust** : il écrit un nouveau fichier `.rs` dans `migration/src/` et met à jour le trait `Migrator`.
+Le diff devient des instructions SeaQuery (`Table::create()`, `Table::alter()`, `Index::create()`…) écrites dans de nouveaux fichiers `migration/src/m<horodatage>_*.rs`, enregistrés dans le `Migrator` de `lib.rs`.
 
-### Génération spécifique au moteur
+1. **Ordre** : les nouvelles tables sont triées pour qu'une table référencée soit créée avant celles qui la référencent ; l'ordre est déterministe.
+2. **Clés étrangères** : déclarées dans le `CREATE TABLE`. Pour un **cycle** de tables nouvelles qui se référencent l'une l'autre, la clé qui ferme le cycle reste dans le `CREATE TABLE` sous SQLite (qui ne vérifie une clé qu'à l'écriture des lignes), et est ajoutée par un `ALTER TABLE` sous Postgres et MySQL, une fois la table visée créée.
+3. **Tables du framework** : `eihwaz_users`, les sessions, les tables de l'admin et les jetons de réinitialisation ont leurs migrations dans Runique ; `makemigrations` les place en tête de `lib.rs`. Une table `eihwaz_*` déclarée dans `src/entities/` n'est jamais recréée — on l'étend avec `extend!{}`.
 
-Le moteur cible est détecté (`DB_URL`/`DATABASE_URL`/`DB_ENGINE`) et la sortie est adaptée :
+### Un fichier, tous les moteurs
 
-- **Clés étrangères** : regroupées dans une migration `create_relations` (`ALTER … ADD CONSTRAINT`) sur PostgreSQL/MySQL/MariaDB ; déclarées **inline dans le `CREATE TABLE`** sur SQLite (qui ne sait pas ajouter de FK à une table existante).
-- **Enums** : `CREATE TYPE … AS ENUM` sur PostgreSQL ; `VARCHAR`/`ENUM` natif ailleurs. Un renommage de valeur d'enum devient `ALTER TYPE … RENAME VALUE` sur PostgreSQL (atomique) et un simple `UPDATE` des données sur les autres moteurs.
-- **`updated_at`** : trigger PostgreSQL ; `ON UPDATE CURRENT_TIMESTAMP` sur MySQL/MariaDB.
+Un fichier de migration est écrit une fois et doit pouvoir s'appliquer sur n'importe quel moteur. Ce qui ne concerne qu'un moteur est donc **choisi à l'exécution**, dans le fichier, plutôt qu'à la génération :
 
-Les fichiers générés sont donc **spécifiques au moteur** : pour en changer, régénérez à partir de zéro avec le bon `DB_ENGINE`.
+- **Enums** : `CREATE TYPE … AS ENUM` sous Postgres uniquement ; `VARCHAR` ailleurs. Un renommage de valeur devient `ALTER TYPE … RENAME VALUE` sous Postgres et un `UPDATE` des données ailleurs.
+- **Clés d'un cycle** : voir plus haut.
+- **`auto_now` / `auto_now_update`** : aucun trigger. L'entité remplit ces colonnes elle-même (`ActiveModelBehavior::before_save`), de la même façon sur tous les moteurs ; la migration ajoute seulement `DEFAULT CURRENT_TIMESTAMP`.
+- **Modification de colonne sous SQLite** : SQLite ne sait pas modifier une colonne existante ; le fichier le signale par un commentaire et applique la modification sur les autres moteurs.
 
 ---
 
@@ -53,10 +51,18 @@ Les fichiers générés sont donc **spécifiques au moteur** : pour en changer, 
 
 Les phases ci-dessus ne font que *calculer* un plan en mémoire — rien n'est écrit tant que le plan complet (changements `model!{}` plus changements `extend!{}`) n'est pas assemblé et validé :
 
-1. **Garde destructif** : `DROP COLUMN`, changements de type de colonne, `nullable → not null`, suppression de clés étrangères et ajout de contraintes `ON DELETE CASCADE` sont bloqués sauf si `makemigrations --force` est passé. Le contrôle couvre aussi bien les changements `model!{}` que `extend!{}`.
+1. **Garde destructif** : sont bloqués sauf si `makemigrations --force` est passé :
+    - `DROP COLUMN` ;
+    - changement de type de colonne ;
+    - passage `nullable → not null` ;
+    - **réduction de longueur** (`max_length` plus petit, ou longueur ajoutée à une colonne qui n'en avait pas) ;
+    - suppression de clé étrangère ;
+    - ajout d'une clé `ON DELETE CASCADE` sur une table existante.
 
-   > **Exception — changement de type de colonne** : `--force` débloque l'exécution de la commande, mais ne génère **jamais** l'`ALTER` réel pour un changement de type (`String → Decimal`, etc.). Le fichier généré contient uniquement un commentaire `// Manual migration required.` — à écrire vous-même, quel que soit `--force`. Les 4 autres catégories destructives (DROP COLUMN, nullable → not null, DROP FK, ADD FK CASCADE), elles, génèrent le vrai SQL dès que `--force` est passé. Cette exception est volontaire : une conversion de type générique n'a pas de règle de cast fiable inter-moteurs (Postgres exige un `USING` explicite, MariaDB caste silencieusement sans erreur en cas de valeur invalide, SQLite ne supporte pas `ALTER COLUMN TYPE` du tout).
-2. **Commit unique** : la création des dossiers, l'écriture des fichiers, l'enregistrement dans `lib.rs` et le positionnement de `AdminTableMigration` s'exécutent sous un rollback unique. En cas d'erreur d'écriture, les fichiers générés sont supprimés et les snapshots ainsi que `lib.rs` préexistants sont restaurés dans leur état précédent.
+   Le contrôle couvre les changements `model!{}` comme `extend!{}`.
+
+   > **Exception — changement de type de colonne** : `--force` débloque l'exécution de la commande, mais ne génère **jamais** l'`ALTER` réel pour un changement de type (`String → Decimal`, etc.). Le fichier généré contient uniquement un commentaire `// Manual migration required.` — à écrire vous-même. Les autres catégories destructives génèrent le vrai SQL dès que `--force` est passé. Cette exception est volontaire : une conversion de type générique n'a pas de règle de cast fiable inter-moteurs (Postgres exige un `USING` explicite, MariaDB caste silencieusement sans erreur en cas de valeur invalide, SQLite ne supporte pas `ALTER COLUMN TYPE` du tout).
+2. **Commit unique** : la création des dossiers, l'écriture des fichiers, l'enregistrement dans `lib.rs` et le positionnement des migrations du framework s'exécutent sous un rollback unique. En cas d'erreur d'écriture, les fichiers générés sont supprimés et les snapshots ainsi que `lib.rs` préexistants sont restaurés dans leur état précédent.
 
 ---
 
@@ -66,10 +72,10 @@ Runique ne s'appuie pas uniquement sur l'état de la base de données (qui peut 
 
 ### Logique `extend!{}`
 
-Quand vous utilisez `extend! { table: "eihwaz_users", ... }`, le parseur :
+Quand vous utilisez `extend! { table: "eihwaz_users", ... }`, `makemigrations` :
 1. Identifie la table framework ciblée.
 2. Stocke l'extension dans un dossier de snapshot dédié.
-3. Génère un `ALTER TABLE` au lieu d'un `CREATE TABLE` lors du prochain `makemigrations`.
+3. Génère un `ALTER TABLE` au lieu d'un `CREATE TABLE`.
 
 ---
 
@@ -103,25 +109,23 @@ use runique::prelude::*;
 extend! {
     table: "eihwaz_users",
     fields: {
-        bio: textarea,
-        avatar: image [upload_to: "avatars/"],
-        website: url,
-        is_verified: bool [default: false],
+        bio:         textarea [nullable],
+        avatar:      image    [nullable, upload_to: "avatars/"],
+        website:     url      [nullable],
+        is_verified: bool     [default: false],
     }
 }
 ```
 
-Au prochain `makemigrations`, ces champs deviennent un `ALTER TABLE eihwaz_users ADD COLUMN …` (jamais un `CREATE TABLE`). Les champs d'`extend!{}` acceptent les mêmes types et options que `model!{}`, `renamed_from` compris.
+Au prochain `makemigrations`, ces champs deviennent un `ALTER TABLE eihwaz_users ADD COLUMN …` (jamais un `CREATE TABLE`). Les champs d'`extend!{}` suivent les mêmes types, options et règles de nullabilité que `model!{}`, `renamed_from` compris.
 
-### Générer et appliquer
+### Générer, appliquer, annuler
 
 ```bash
 # Détecte le diff et écrit les fichiers de migration
 runique makemigrations
 
-# Les changements destructifs (DROP COLUMN, nullable → not null,
-# changement de type, suppression de FK) sont bloqués par défaut.
-# Pour les autoriser explicitement :
+# Les changements destructifs sont bloqués par défaut. Pour les autoriser :
 runique makemigrations --force
 # NB : pour un changement de type de colonne, --force débloque juste
 # l'exécution — le fichier généré reste un commentaire "Manual migration
@@ -131,7 +135,11 @@ runique makemigrations --force
 runique makemigrations --entities src/entities --migrations migration/src
 
 # Appliquer les migrations générées
-sea-orm-cli migrate up
+runique migration up            # ou : sea-orm-cli migrate up
+
+# Annuler les N dernières / voir l'état
+sea-orm-cli migrate down -n 1
+sea-orm-cli migrate status
 ```
 
 ---

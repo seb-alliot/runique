@@ -25,8 +25,7 @@ classDiagram
         +from_env()
     }
     class SecurityConfig {
-        +bool rate_limiting / enforce_https
-        +Vec~String~ allowed_hosts
+        +bool enforce_https
         +bool acme_enabled
         +Option~String~ acme_domain / acme_email
         +String acme_certs_dir

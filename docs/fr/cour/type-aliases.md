@@ -1,352 +1,495 @@
-## Les Type Aliases en Rust
+# Les type aliases en Rust
 
-## Guide Complet et Pratique 
-
-_Pour développeurs Rust intermédiaires_ 
-
-Généré le 28 January 2026 
+**Guide complet et pratique** — pour développeurs Rust intermédiaires.
 
 ## Table des matières
 
-|1.|Introduction aux Type Aliases|3|
+1. Introduction aux type aliases
+2. Syntaxe et utilisation de base
+3. Cas d'usage courants
+4. Type alias ou newtype
+5. Type aliases génériques
+6. Organisation et bonnes pratiques
+7. Limitations et pièges
+8. Exemples réels (framework Runique)
+9. Patterns avancés
+10. Exercices
+
+## 1. Introduction aux type aliases
+
+Un **type alias** donne un autre nom à un type existant. Il ne crée **pas** de nouveau type : c'est un *synonyme*, que le compilateur remplace par le type réel.
+
+### Pourquoi utiliser des type aliases ?
+
+- **Lisibilité** : raccourcir des types longs ou imbriqués
+- **Maintenabilité** : définir un type à un seul endroit
+- **Documentation** : donner un sens métier à un type technique
+- **Abstraction** : pouvoir changer l'implémentation sans toucher aux signatures
+
+> **Note :** un alias n'a aucun coût à l'exécution. Il disparaît à la compilation.
+
+## 2. Syntaxe et utilisation de base
+
+### 2.1 Syntaxe générale
+
+```rust
+type NomAlias = TypeExistant;
+
+// Exemples
+type UserId = i32;
+type Username = String;
+type Result<T> = std::result::Result<T, std::io::Error>;
+```
+
+### 2.2 Premier exemple concret
+
+```rust
+// Sans alias
+fn create_user(id: i32, name: String) -> i32 { id }
+fn get_user(id: i32) -> Option<String> { None }
+
+// Avec alias
+type UserId = i32;
+type Username = String;
+
+fn create_user(id: UserId, name: Username) -> UserId { id }
+fn get_user(id: UserId) -> Option<Username> { None }
+```
+
+L'intention devient lisible : on manipule un identifiant d'utilisateur et un nom, pas un entier et une chaîne quelconques.
+
+### 2.3 Dans une structure
+
+```rust
+type Timestamp = i64;
+type JsonData = serde_json::Value;
+
+struct Event {
+    id: UserId,
+    created_at: Timestamp,
+    data: JsonData,
+}
+
+let event = Event {
+    id: 42,
+    created_at: 1_706_400_000,
+    data: serde_json::json!({ "action": "login" }),
+};
+```
+
+## 3. Cas d'usage courants
+
+### 3.1 Simplifier un type de retour
+
+```rust
+use std::collections::HashMap;
+use std::error::Error;
+
+// Avant
+fn process_data(input: &str) -> Result<HashMap<String, Vec<i32>>, Box<dyn Error>> { todo!() }
+
+// Après
+type DataMap = HashMap<String, Vec<i32>>;
+type ProcessResult = Result<DataMap, Box<dyn Error>>;
+
+fn process_data(input: &str) -> ProcessResult { todo!() }
+```
+
+### 3.2 Types récurrents
+
+```rust
+use std::sync::Arc;
+use sea_orm::{DatabaseConnection, DbErr};
+
+type DbPool = Arc<DatabaseConnection>;
+type DbResult<T> = Result<T, DbErr>;
+
+async fn get_user(pool: &DbPool, id: UserId) -> DbResult<Option<User>> { todo!() }
+async fn create_user(pool: &DbPool, user: User) -> DbResult<()> { todo!() }
+async fn delete_user(pool: &DbPool, id: UserId) -> DbResult<()> { todo!() }
+```
+
+> **Attention :** trop d'alias rendent le code *moins* lisible — il faut aller chercher la définition. N'en créez que s'ils apportent quelque chose.
+
+### 3.3 Abstraire un détail d'implémentation
+
+```rust
+// API publique
+pub type Cache = std::collections::HashMap<String, String>;
+
+// Plus tard : pub type Cache = dashmap::DashMap<String, String>;
+// Le code qui utilise `Cache` ne change pas — tant que les méthodes appelées existent
+// sur le nouveau type.
+```
+
+## 4. Type alias ou newtype
+
+### 4.1 La différence fondamentale
+
+```rust
+// Alias : PAS un nouveau type
+type UserId = i32;
+
+// Newtype : un NOUVEAU type
+struct UserIdN(i32);
+
+let a: UserId = 42;
+let b: i32 = a;          // OK : même type
+
+let c = UserIdN(42);
+// let d: i32 = c;       // ERREUR : types différents
+let e: i32 = c.0;        // OK : accès explicite
+```
+
+### 4.2 Quand utiliser quoi ?
+
+| Critère | Type alias | Newtype |
 |---|---|---|
-|2.|Syntaxe et Utilisation Basique|4|
-|3.|Cas d'Usage Courants|6|
-|4.|Type Aliases vs Newtype Pattern|9|
-|5.|Type Aliases avec Génériques|11|
-|6.|Organisation et Bonnes Pratiques|13|
-|7.|Limitations et Pièges|15|
-|8.|Exemples Réels (Framework Runique)|17|
-|9.|Patterns Avancés|19|
-|10.|Exercices Pratiques|21|
+| Sûreté de type | Aucune (synonyme) | Forte |
+| Coût à l'exécution | Aucun | Aucun |
+| Méthodes propres | Non | Oui |
+| Implémenter un trait | Non (c'est le type d'origine) | Oui |
+| Verbosité | Faible | Moyenne |
+| Interopérabilité | Transparente | Conversion explicite |
 
-## 1. Introduction aux Type Aliases
+### 4.3 Recommandations
 
-Les **type aliases** (alias de types) sont un outil puissant en Rust qui permet de créer des noms alternatifs pour des types existants. Contrairement à ce qu'on pourrait penser, ils ne créent pas de nouveaux types, mais simplement des _synonymes_ pour des types existants. 
+- **Alias** : simplifier une écriture sans ajouter de garantie — `Result<T>` d'un module, collections, types de callback.
+- **Newtype** : créer un type distinct avec ses règles — unités (`Meters`, `Seconds`), identifiants validés, ou implémenter un trait étranger sur un type étranger (voir 8.2).
 
-## Pourquoi utiliser des type aliases ?
+## 5. Type aliases génériques
 
-- **Lisibilité** : Simplifier des types complexes ou longs 
+### 5.1 Alias générique
 
-- **Maintenabilité** : Centraliser les définitions de types 
+```rust
+type AppResult<T> = Result<T, AppError>;
 
-- **Documentation** : Donner un sens métier aux types techniques 
-
-- **Réduction de verbosité** : Éviter la répétition de types génériques 
-
-- **Abstraction** : Masquer les détails d'implémentation 
-
-> **Note importante :** Les type aliases n'ajoutent AUCUN overhead au runtime. Le compilateur les remplace par le type réel lors de la compilation. C'est du _zero-cost abstraction_ . 
-
-## 2. Syntaxe et Utilisation Basique
-
-## 2.1 Syntaxe générale
-
-```
-type NomAlias = TypeExistant; // Exemples type Pk = i32; type Username =
-String; type Result = std::result::Result;
+fn create_user(name: &str) -> AppResult<User> { todo!() }
+fn delete_user(id: UserId) -> AppResult<()> { todo!() }
 ```
 
-## 2.2 Premier exemple concret
+### 5.2 Spécialisation progressive
 
-`// Sans type alias` I `fn create_user(id: i32, name: String) -> i32 { // ... id } fn get_user(id: i32) -> Option { // ... None } // Avec type alias` I `type Pk = i32; type Username = String; fn create_user(id: Pk, name: Username) -> Pk { // ... id } fn get_user(id: Pk) -> Option { // ... None }` 
+```rust
+type GenericResult<T, E> = Result<T, E>;   // tout générique
+type AppResult<T> = Result<T, AppError>;   // erreur fixée
+type UserResult = AppResult<User>;         // tout fixé
 
-Dans cet exemple, l'intention du code devient **beaucoup plus claire** . On comprend immédiatement qu'on manipule un identifiant utilisateur et un nom d'utilisateur, pas juste des entiers et des chaînes génériques. 
-
-## 2.3 Type aliases dans les structures
-
-```
-type Timestamp = i64; type JsonData = serde_json::Value; struct Event { id:
-Pk, created_at: Timestamp, data: JsonData, } // Utilisation let event =
-Event { id: 42, created_at: 1706400000, data: serde_json::json!({"action":
-"login"}), };
+type DbResult<T> = Result<T, DbErr>;
+type UserDbResult = DbResult<User>;
 ```
 
-## 3. Cas d'Usage Courants
+### 5.3 Types complexes
 
-## 3.1 Simplifier les types de retour
+```rust
+use std::future::Future;
+use std::pin::Pin;
+use std::sync::{Arc, Mutex};
 
-`// Avant` I `fn process_data(input: &str;) -> Result>, Box> { // ... } // Après` I `type ProcessResult = Result>, Box>; fn process_data(input: &str;) -> ProcessResult { // ... } // Encore mieux` II `type DataMap = HashMap; type ProcessResult = Result, Box>; fn process_data(input: &str;) -> ProcessResult { // ... }` 
+// Callbacks
+type EventHandler = Box<dyn Fn(&Event) + Send + Sync>;
+type EventHandlers = Vec<EventHandler>;
 
-## 3.2 Types complexes récurrents
+// État partagé
+type SharedState<T> = Arc<Mutex<T>>;
 
+// Future en boîte
+type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
 ```
-// Types de bases de données type DbPool = Arc>; type DbResult = Result; //
-Utilisation cohérente async fn get_user(pool: &DbPool;, id: Pk) -> DbResult
-{ // ... } async fn create_user(pool: &DbPool;, user: User) -> DbResult<()> { //
-... } async fn delete_user(pool: &DbPool;, id: Pk) -> DbResult<()> { // ...
+
+> **Astuce :** les alias génériques donnent une API cohérente dans tout le projet. Définissez-les une fois, dans un module central.
+
+## 6. Organisation et bonnes pratiques
+
+### 6.1 Centraliser
+
+```rust
+// Mauvais : dispersé
+mod user { type UserId = i32; }
+mod product { type ProductId = i32; }
+
+// Bon : un module dédié
+// src/types.rs
+pub type UserId = i32;
+pub type ProductId = i32;
+pub type Timestamp = i64;
+pub type JsonData = serde_json::Value;
+
+// ailleurs
+use crate::types::*;
+```
+
+### 6.2 Structure recommandée
+
+```rust
+// src/types/mod.rs
+pub mod db;
+pub mod api;
+pub mod errors;
+pub use db::*;
+pub use api::*;
+pub use errors::*;
+
+// src/types/db.rs
+pub type DbPool = std::sync::Arc<sea_orm::DatabaseConnection>;
+pub type DbResult<T> = Result<T, sea_orm::DbErr>;
+
+// src/types/api.rs
+pub type ApiResult<T> = Result<axum::Json<T>, ApiError>;
+
+// src/types/errors.rs
+pub type AppError = Box<dyn std::error::Error + Send + Sync>;
+pub type AppResult<T> = Result<T, AppError>;
+```
+
+### 6.3 Conventions de nommage
+
+- **PascalCase**, comme tout type Rust
+- **Suffixes descriptifs** : `UserId`, `UserResult`
+- **Contexte métier** : `OrderId` plutôt que `Id`, `Price` plutôt que `Decimal`
+- **Pas d'abréviations obscures**, sauf convention établie dans le projet
+
+## 7. Limitations et pièges
+
+### 7.1 Aucune vérification supplémentaire
+
+```rust
+type UserId = i32;
+type ProductId = i32;
+
+fn get_user(id: UserId) -> User { todo!() }
+
+let product_id: ProductId = 123;
+let user = get_user(product_id); // compile : bug silencieux
+
+// Solution : des newtypes
+struct UserIdN(i32);
+struct ProductIdN(i32);
+
+fn get_user_n(id: UserIdN) -> User { todo!() }
+// get_user_n(ProductIdN(123)); // ERREUR de compilation
+```
+
+### 7.2 Messages d'erreur
+
+```rust
+type ComplexType = HashMap<String, Vec<Result<i32, String>>>;
+
+fn process(data: ComplexType) {}
+// Le compilateur affiche le type complet, pas l'alias :
+// expected `HashMap<String, Vec<Result<i32, String>>>`, found ...
+```
+
+> **Limitation :** les erreurs montrent le type réel. Avec beaucoup d'alias imbriqués, elles deviennent plus difficiles à relier au code.
+
+### 7.3 Pas d'implémentation de trait propre à l'alias
+
+```rust
+use std::fmt;
+
+type UserId = i32;
+
+// ERREUR : c'est `impl Display for i32`, interdit (trait et type étrangers)
+// impl fmt::Display for UserId { ... }
+
+// Solution : un newtype
+struct UserIdN(i32);
+
+impl fmt::Display for UserIdN {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "User #{}", self.0)
+    }
 }
 ```
 
-> **Attention :** Trop d'alias peut rendre le code _moins_ lisible. Utilisez-les avec parcimonie et seulement quand ils apportent une vraie valeur ajoutée. 
+## 8. Exemples réels (framework Runique)
 
-## 3.3 Abstraire les détails d'implémentation
+Les alias de Runique sont regroupés dans `runique/src/utils/aliases/definition.rs`, et la plupart sont réexportés par `runique::prelude`.
 
-```
-// Dans votre API publique pub type Cache = HashMap; // Plus tard, vous pouvez
-changer l'implémentation // pub type Cache = LruCache; // ou // pub type Cache =
-DashMap; // Les utilisateurs de votre API n'ont pas besoin de changer leur code
-!
-```
+### 8.1 Un alias choisi par feature : `Pk`
 
-## 4. Type Aliases vs Newtype Pattern
+```rust
+// runique/src/utils/config/pk.rs
+#[cfg(feature = "pk-uuid")]
+pub type Pk = uuid::Uuid;
 
-## 4.1 La différence fondamentale
+#[cfg(all(feature = "big-pk", not(feature = "pk-uuid")))]
+pub type Pk = i64;
 
-```
-// Type Alias - PAS un nouveau type type Pk = i32; // Newtype Pattern -
-NOUVEAU type struct Pk(i32); // Conséquences : let id1: Pk = 42; // Type
-alias - OK let id2: i32 = id1; // OK - même type ! let id3 = Pk(42); //
-Newtype - OK let id4: i32 = id3; // ERREUR - types différents ! let id5: i32 =
-id3.0; // OK - accès explicite
+#[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
+pub type Pk = i32;
 ```
 
-## 4.2 Quand utiliser quoi ?
+Tout le framework écrit `Pk` (`CurrentUser.id`, `auth_login(&session, &db, user_id: Pk)`…). Changer de type de clé primaire, c'est changer une feature dans `Cargo.toml`, pas des centaines de signatures. C'est le cas d'école de l'alias : aucune garantie à ajouter, juste un seul endroit qui décide.
 
-|**Critère**|**Type Alias**|**Newtype**|
-|---|---|---|
-|Type-safety|IIFaible|IForte|
-|Runtime overhead|IAucun|IAucun (optimisé)|
-|Méthodes custom|INon|IOui|
-|Traits custom|INon|IOui|
-|Verbosité|IFaible|IIMoyenne|
-|Interopérabilité|ITransparente|IIConversion manuelle|
+### 8.2 Quand un alias ne suffit plus : `ADb`
 
-## 4.3 Recommandations
+La base de données a d'abord été un alias, `Arc<DatabaseConnection>`. Problème : chaque appel SeaORM (`.insert(db)`, `.one(db)`, `db.begin()`) attend un type qui implémente `ConnectionTrait`, et `Arc<DatabaseConnection>` ne l'implémente pas. Il fallait écrire `.as_ref()` partout.
 
-- **Type Alias** : Pour simplifier la syntaxe sans ajouter de garanties de type supplémentaires 
+Impossible de corriger ça avec un alias : `impl ConnectionTrait for Arc<DatabaseConnection>` est refusé par la règle de l'orphelin (trait et type viennent tous deux d'autres crates — voir 7.3). D'où un newtype :
 
-- **Newtype** : Pour créer des types distincts avec validation ou méthodes spécifiques 
+```rust
+// runique/src/db/adb.rs
+#[derive(Clone, Debug)]
+pub struct ADb(Arc<Inner>);
 
-- **Exemple Type Alias** : Result<T>, collections spécifiques, types de callback 
-
-- **Exemple Newtype** : Unités (Meters, Seconds), identifiants validés, types métier 
-
-## 5. Type Aliases avec Génériques
-
-## 5.1 Alias génériques basiques
-
-```
-// Alias pour Result personnalisé type AppResult = Result; // Utilisation fn
-create_user(name: &str;) -> AppResult { // ... } fn delete_user(id: Pk) ->
-AppResult<()> { // ... }
+impl ConnectionTrait for ADb { /* délègue à la connexion */ }
+impl TransactionTrait for ADb { /* idem */ }
 ```
 
-## 5.2 Spécialisation partielle
+`ADb` reste aussi bon marché à cloner qu'un `Arc`, et `&ADb` s'utilise directement : `.insert(db)`, sans `.as_ref()`.
 
-```
-// Type générique complet type GenericResult = Result; // Spécialisation de
-l'erreur type AppResult = Result; // Spécialisation complète type UserResult =
-Result; // Hiérarchie de spécialisation type DbResult = Result; type
-UserDbResult = DbResult;
-```
+### 8.3 Alias de collections et de résultats
 
-## 5.3 Alias pour types complexes
+```rust
+// runique/src/utils/aliases/definition.rs
+pub type AEngine = Arc<RuniqueEngine>;
+pub type StrMap = HashMap<String, String>;          // données de formulaire, erreurs…
+pub type JsonMap = HashMap<String, serde_json::Value>;
+pub type AppResult<T> = Result<T, Box<AppError>>;
 
-```
-// Collection de callbacks type EventHandler = Box () + Send + Sync>; type
-EventHandlers = Vec>; // State management type StateUpdater = Arc>; type
-SharedState = Arc>; // Async futures type AsyncResult = Pin> + Send>>;
-```
-
-> **Astuce Pro :** Les type aliases génériques sont parfaits pour créer des APIs consistantes dans tout votre codebase. Définissez-les une fois dans un module central. 
-
-## 6. Organisation et Bonnes Pratiques
-
-## 6.1 Organiser vos aliases
-
-`//` I `Mauvais - dispersé partout mod user { type Pk = i32; // ... } mod product { type ProductId = i32; // ... } //` I `Bon - centralisé // types.rs ou common_types.rs pub type Pk = i32; pub type ProductId = i32; pub type Timestamp = i64; pub type JsonData = serde_json::Value; // Usage dans les autres modules use crate::types::*;` 
-
-## 6.2 Structure recommandée
-
-```
-// src/types/mod.rs pub mod db; pub mod api; pub mod errors; pub use db::*; pub
-use api::*; pub use errors::*; // src/types/db.rs pub type DbPool = Arc; pub
-type DbResult = Result; // src/types/api.rs pub type ApiResult = Result; pub
-type JsonResponse = Json; // src/types/errors.rs pub type AppError = Box; pub
-type AppResult = Result;
+// Dans un handler
+pub async fn contact(mut request: Request) -> AppResult<Response> {
+    // ...
+}
 ```
 
-## 6.3 Conventions de nommage
+La convention suivie : **un alias par type concret**, nommé d'après sa structure (`StrMap`) plutôt que d'après un usage particulier — sinon le même `HashMap<String, String>` finit avec cinq noms.
 
-- **Suffixes descriptifs** : Pk, UserResult, UserError 
+## 9. Patterns avancés
 
-- **Préfixes de module** : DbPool, ApiResponse, WebConfig 
+### 9.1 Alias conditionnels
 
-- **Contexte métier** : OrderId plutôt que Id, Price plutôt que Decimal 
+`Pk` (8.1) en est un exemple : le même nom désigne un type différent selon la configuration de compilation.
 
-- **Évitez les abréviations** : DatabaseConnection, pas DbConn (sauf conventions établies) 
+```rust
+#[cfg(feature = "async")]
+pub type Handler = Box<dyn Fn() -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync>;
 
-- **PascalCase obligatoire** : Suivez les conventions Rust 
+#[cfg(not(feature = "async"))]
+pub type Handler = Box<dyn Fn() + Send + Sync>;
 
-## 7. Limitations et Pièges
-
-## 7.1 Pas de vérification de type supplémentaire
-
-`type Pk = i32; type ProductId = i32; fn get_user(id: Pk) -> User { /* ... */ } //` II `Ceci compile sans erreur ! let product_id: ProductId = 123; let user = get_user(product_id); // BUG silencieux // Solution : Utilisez le Newtype Pattern pour une vraie type-safety struct Pk(i32); struct ProductId(i32); fn get_user(id: Pk) -> User { /* ... */ } let product_id = ProductId(123); // get_user(product_id); //` I `ERREUR de compilation !` 
-
-## 7.2 Messages d'erreur du compilateur
-
-```
-type ComplexType = HashMap, Error>>>; fn process(data: ComplexType) { /* ... */
-} // Erreur du compilateur affichera le type COMPLET, pas l'alias ! // expected
-`HashMap, Error>>>`, // found `HashMap, Error>>>`
+fn register_handler(handler: Handler) { /* identique dans les deux cas */ }
 ```
 
-> **Limitation :** Les messages d'erreur montrent toujours le type réel, pas l'alias. Cela peut rendre les erreurs plus difficiles à comprendre. 
+### 9.2 Chaîne de traitement
 
-## 7.3 Pas d'implémentation de traits
+```rust
+type RawData = Vec<u8>;
+type ParsedData = Result<Record, ParseError>;
+type ValidatedData = Result<Record, ValidationError>;
 
-`type Pk = i32; //` I `Impossible d'implémenter des traits sur un alias impl Display for Pk { // ERREUR fn fmt(&self;, f: &mut; Formatter) -> fmt::Result { write!(f, "User #{}", self) } } //` I `Solution : Utilisez un Newtype struct Pk(i32); impl Display for Pk { // OK fn fmt(&self;, f: &mut; Formatter) -> fmt::Result { write!(f, "User #{}", self.0) } }` 
-
-## 8. Exemples Réels (Framework Runique)
-
-## 8.1 Types de vue
-
-```
-// runique/src/forms/types.rs use crate::forms::utils::ViewContext; use
-crate::forms::fields::*; // Vues de formulaires pub type RegisterView =
-ViewContext; pub type LoginView = ViewContext; pub type ContactView =
-ViewContext; pub type ProfileView = ViewContext; // Usage dans les handlers pub
-async fn register_view(view: RegisterView) -> AppResult { if view.is_get() {
-return view.handle_get("register.html"); } // ... }
+fn parse(raw: RawData) -> ParsedData { todo!() }
+fn validate(parsed: Record) -> ValidatedData { todo!() }
 ```
 
-## 8.2 Types de base de données
+### 9.3 Trait objects
 
-```
-// runique/src/db/types.rs use sea_orm::{DatabaseConnection, DbErr}; use
-std::sync::Arc; // Pool de connexions pub type DbPool = Arc; // Résultats de
-requêtes pub type DbResult = Result; // Collections courantes pub type UserList
-= Vec; pub type UserMap = HashMap; // Usage pub async fn get_users(pool:
-&DbPool;) -> DbResult { User::find().all(pool.as_ref()).await }
-```
+```rust
+type EventListener = Box<dyn Fn(&Event) + Send + Sync>;
+type AsyncHandler = Box<dyn Fn(Request) -> Pin<Box<dyn Future<Output = Response> + Send>> + Send + Sync>;
 
-## 8.3 Types de contexte
-
-```
-// runique/src/context/types.rs use crate::context::{AppError,
-TemplateContext}; use axum::response::Response; // Résultats applicatifs pub
-type AppResult = Result; pub type AppResponse = Result; // Context handlers pub
-type HandlerResult = AppResult; // Extractors pub type CtxResult = Result;
+type EventHandlers = Vec<EventListener>;
 ```
 
-## 9. Patterns Avancés
+> **Pattern :** combinez alias et génériques pour des API souples. La bibliothèque standard le fait elle-même : `std::io::Result<T>` est un alias de `Result<T, std::io::Error>`.
 
-## 9.1 Type Aliases conditionnels
+## 10. Exercices
 
-```
-// Différents types selon la configuration #[cfg(feature = "async")] pub type
-Handler = Box Pin>>>; #[cfg(not(feature = "async"))] pub type Handler = Box ()>;
-// Usage identique dans le code fn register_handler(handler: Handler) { // ... }
-```
+### Exercice 1 : refactoring
 
-## 9.2 Chaînage d'aliases
+Introduisez des alias adaptés :
 
-```
-// Construction progressive type RawData = Vec; type ParsedData = Result; type
-ValidatedData = Result; // Chaîne de traitement fn parse(raw: RawData) ->
-ParsedData { /* ... */ } fn validate(parsed: ParsedData) -> ValidatedData { /*
-... */ }
+```rust
+fn get_user(id: i32, db: &Arc<DatabaseConnection>) -> Result<Option<User>, Box<dyn Error>> { todo!() }
+fn create_user(name: String, email: String, db: &Arc<DatabaseConnection>) -> Result<User, Box<dyn Error>> { todo!() }
 ```
 
-## 9.3 Aliases pour traits objets
+### Exercice 2 : organisation
 
-```
-// Simplifier les trait objects type EventListener = Box; type AsyncHandler =
-Box Pin>> + Send>; // Collections de handlers type EventHandlers = Vec; type
-Middleware = Vec Response + Send + Sync>>;
-```
+Rangez ces types dans une hiérarchie de modules :
 
-> **Pattern Pro :** Combinez type aliases et génériques pour créer des APIs flexibles et faciles à utiliser. C'est exactement ce que fait la stdlib avec Result, Option, etc. 
-
-## 10. Exercices Pratiques
-
-## Exercice 1 : Refactoring basique
-
-Refactorez ce code en utilisant des type aliases appropriés : 
-
-```
-// Code à refactorer fn get_user(id: i32, db: &Arc;>) -> Result, Box> { // ... }
-fn create_user( name: String, email: String, db: &Arc;> ) -> Result> { // ... }
+```rust
+type UserId = i32;
+type ProductId = i32;
+type OrderId = i32;
+type UserResult = Result<User, DbErr>;
+type ProductResult = Result<Product, DbErr>;
+type ApiError = Box<dyn Error + Send + Sync>;
+type JsonPayload = serde_json::Value;
 ```
 
-## Exercice 2 : Organisation modulaire
+### Exercice 3 : généricité
 
-Organisez ces types dans une hiérarchie de modules appropriée : 
+Créez des alias pour ce cache :
 
-```
-// Types en vrac type Pk = i32; type ProductId = i32; type OrderId = i32;
-type UserResult = Result; type ProductResult = Result; type ApiError = Box; type
-JsonPayload = serde_json::Value;
-```
-
-## Exercice 3 : Généricité
-
-Créez une hiérarchie de type aliases génériques pour ce système de cache : 
-
-```
-// Système de cache à implémenter struct Cache { data: HashMap, } // Créez des
-aliases pour : // 1. Un cache de chaînes vers chaînes // 2. Un cache générique
-avec erreurs // 3. Un cache asynchrone avec timeout
+```rust
+struct Cache<K, V> {
+    data: HashMap<K, V>,
+}
+// 1. Un cache de chaînes vers chaînes
+// 2. Un résultat de cache avec erreur
+// 3. Un cache partagé entre tâches async
 ```
 
-## Solutions des Exercices
+## Solutions
 
-## Solution Exercice 1
+### Solution 1
 
-```
-// Types centralisés type Pk = i32; type DbPool = Arc>; type AppError = Box;
-type AppResult = Result; // Code refactoré fn get_user(id: Pk, db: &DbPool;)
--> AppResult> { // ... } fn create_user(name: String, email: String, db:
-&DbPool;) -> AppResult { // ... }
-```
+```rust
+type UserId = i32;
+type DbPool = Arc<DatabaseConnection>;
+type AppError = Box<dyn Error>;
+type AppResult<T> = Result<T, AppError>;
 
-## Solution Exercice 2
-
-```
-// src/types/mod.rs pub mod ids; pub mod db; pub mod api; // src/types/ids.rs
-pub type Pk = i32; pub type ProductId = i32; pub type OrderId = i32; //
-src/types/db.rs use super::ids::*; pub type UserResult = Result; pub type
-ProductResult = Result; // src/types/api.rs pub type ApiError = Box; pub type
-JsonPayload = serde_json::Value; pub type ApiResult = Result;
+fn get_user(id: UserId, db: &DbPool) -> AppResult<Option<User>> { todo!() }
+fn create_user(name: String, email: String, db: &DbPool) -> AppResult<User> { todo!() }
 ```
 
-## Solution Exercice 3
+### Solution 2
 
+```rust
+// src/types/mod.rs
+pub mod ids;
+pub mod db;
+pub mod api;
+
+// src/types/ids.rs
+pub type UserId = i32;
+pub type ProductId = i32;
+pub type OrderId = i32;
+
+// src/types/db.rs
+pub type UserResult = Result<User, DbErr>;
+pub type ProductResult = Result<Product, DbErr>;
+
+// src/types/api.rs
+pub type ApiError = Box<dyn Error + Send + Sync>;
+pub type JsonPayload = serde_json::Value;
+pub type ApiResult<T> = Result<T, ApiError>;
 ```
-// 1. Cache simple type StringCache = Cache; // 2. Cache avec gestion d'erreur
-type CacheResult = Result, CacheError>; // 3. Cache asynchrone type AsyncCache =
-Arc>>; type CacheFuture = Pin>>>; // Bonus: Cache avec TTL type TtlCache =
-Cache;
+
+### Solution 3
+
+```rust
+// 1.
+type StringCache = Cache<String, String>;
+// 2.
+type CacheResult<V> = Result<V, CacheError>;
+// 3.
+type SharedCache<K, V> = Arc<tokio::sync::RwLock<Cache<K, V>>>;
 ```
 
-## Conclusion
+## Points clés à retenir
 
-Les **type aliases** sont un outil simple mais puissant en Rust. Utilisés correctement, ils améliorent significativement la lisibilité et la maintenabilité de votre code sans aucun coût au runtime. 
-
-## Points clés à retenir :
-
-- Les type aliases sont des _synonymes_ , pas de nouveaux types 
-
-- Zero-cost abstraction : aucun overhead au runtime 
-
-- Excellents pour simplifier les types complexes récurrents 
-
-- Organisez-les dans des modules dédiés (types.rs) 
-
-- Utilisez le Newtype Pattern quand vous avez besoin de vraie type-safety 
-
-- Les messages d'erreur du compilateur montrent le type réel, pas l'alias 
+- Un alias est un *synonyme*, pas un nouveau type, et ne coûte rien à l'exécution.
+- Il sert à nommer et centraliser des types récurrents ou longs.
+- Il n'apporte aucune sûreté : deux alias du même type sont interchangeables.
+- Dès qu'il faut une garantie, des méthodes ou un trait étranger, on passe au newtype — comme `ADb` dans Runique.
+- Les erreurs du compilateur montrent le type réel, pas l'alias.
 
 ## Ressources complémentaires
 
-- **The Rust Book** : Chapitre sur les type aliases 
-
-- **Rust by Example** : Section sur les types personnalisés 
-
-- **Rust API Guidelines** : Conventions de nommage 
-
-- **Documentation Rust std** : Exemples dans std::result, std::io 
-
-## Happy Coding with Rust!
+- *The Rust Programming Language*, section « Advanced Types » : type aliases et newtype
+- *Rust by Example*, section « Aliasing »
+- *Rust API Guidelines* : conventions de nommage

@@ -67,7 +67,8 @@ impl BooleanField {
 impl FormField for BooleanField {
     async fn validate(&mut self) -> bool {
         // A boolean field is always valid: "true" or "false" (unchecked = false).
-        // required = NOT NULL in DB, not "must be checked".
+        // `required` doesn't mean "must be checked"; the column's NULL-ness comes
+        // from the model (`nullable`).
         // To force the check (e.g., TOS), use clean() with a custom error.
         self.clear_error();
         true

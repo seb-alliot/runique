@@ -51,6 +51,7 @@ All options are optional — the defaults work without any changes.
     .reset_template("auth/reset.html")          // default: auth/reset_password.html
     .email_template("emails/reset.html")        // default: built-in template
     .success_redirect("/login")                 // default: /
+    .token_ttl(Duration::from_secs(1800))       // default: 1h (std::time::Duration)
 )
 ```
 

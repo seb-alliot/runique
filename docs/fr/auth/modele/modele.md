@@ -32,8 +32,8 @@ la fois**, activer les deux ensemble est une erreur de compilation volontaire :
 
 ```toml
 # Cargo.toml du projet
-runique = { version = "...", features = ["big-pk"] }    # Pk = i64
-runique = { version = "...", features = ["pk-uuid"] }   # Pk = Uuid (Uuid::now_v7())
+runique = { version = "3.0.0", features = ["postgres", "big-pk"] }    # Pk = i64
+runique = { version = "3.0.0", features = ["postgres", "pk-uuid"] }   # Pk = Uuid (Uuid::now_v7())
 ```
 
 Le choix doit être fait avant la première migration — voir

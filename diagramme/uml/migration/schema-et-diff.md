@@ -11,11 +11,12 @@ classDiagram
         +Option~PrimaryKeyDef~ primary_key
         +Vec~ColumnDef~ columns
         +Vec~ForeignKeyDef~ foreign_keys
-        +Vec~RelationDef~ relations
         +Vec~IndexDef~ indexes
+        +Option~HooksDef~ hooks
+        +ordering / unique_together / verbose_name(_plural)
         +build() / diff(other) SchemaDiff
         +fill_form(form, fields, exclude)
-        +to_migration() / to_model()
+        +enforce_limits(form)
     }
     class ColumnDef {
         +String name
@@ -29,7 +30,7 @@ classDiagram
         +bool is_file
         +Option~FileKind~ file_kind
         +Option~u64~ max_size
-        +to_sea_column() sea_query::ColumnDef
+        +Option~FormFieldKind~ kind
         +to_form_field() Option~GenericField~
     }
     class SchemaDiff {
@@ -43,13 +44,16 @@ classDiagram
     ColumnDef ..> FileKind
 ```
 
-Double rôle de `ColumnDef` : génération SQL (`to_sea_column`) **et** génération de champ de
-formulaire (`to_form_field`). Les métadonnées `is_file`/`file_kind`/`max_size` sont des
-side-fields « form only » ignorés par `to_sea_column` (cf. chantier uploads).
+**3.0.0 (2026-10-06)** — `ModelSchema` ne sert plus qu'aux **formulaires** : `makemigrations`
+lit le DSL directement (`runique_dsl`), `to_migration()`/`to_model()` et `relations` ont
+disparu. `ColumnDef` porte le `kind` DSL, qui décide du champ (`to_form_field`) ;
+`enforce_limits`, appelé après `customize`, panique si une borne déclarée (`min_length`,
+`max_length`, `min`, `max`) est desserrée. Les champs liste (`checkbox`/`multichoice`) n'ont
+pas de colonne, donc pas de `ColumnDef`.
 
 ## Anomalies / flux suspects
 
-### 🔴 M1 — `SchemaDiff` ne détecte PAS les colonnes modifiées
+### 🔴 M1 — `SchemaDiff` ne détecte PAS les colonnes modifiées — FAUX POSITIF (voir types-builder-et-parsed.md : la CLI utilise `diff_schemas`/`Changes`, complet)
 [`schema/mod.rs:388`](../../../runique/src/migration/schema/mod.rs#L388)
 `SchemaDiff` n'a que `added_columns` et `dropped_columns`. Le `diff()` compare les **ensembles
 de noms** de colonnes (`difference`). Conséquence : un changement de **type**, de **nullabilité**,
