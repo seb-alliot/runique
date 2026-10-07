@@ -355,3 +355,48 @@ async fn test_file_field_finalize_nonexistent_file_keeps_path() {
     assert!(f.finalize().await.is_ok());
     assert!(f.value().contains("nonexistent_xyz.pdf"));
 }
+
+// ═══════════════════════════════════════════════════════════════
+// validate() sur de vrais fichiers — écrits depuis les survivants
+// cargo-mutants (2026-10-07) : dimensions et taille jamais vérifiées
+// ═══════════════════════════════════════════════════════════════
+
+fn temp_path(name: &str) -> String {
+    let dir = std::env::temp_dir().join(format!("rq_file_{}", uuid::Uuid::new_v4()));
+    std::fs::create_dir_all(&dir).unwrap();
+    dir.join(name).to_string_lossy().into_owned()
+}
+
+fn png(width: u32, height: u32) -> String {
+    let path = temp_path("img.png");
+    image::RgbImage::new(width, height).save(&path).unwrap();
+    path
+}
+
+async fn image_accepted(path: &str) -> bool {
+    let mut f = FileField::image("photo").max_dimensions(100, 100);
+    f.set_value(path);
+    f.validate().await
+}
+
+#[tokio::test]
+async fn test_image_at_the_maximum_dimensions_is_accepted() {
+    assert!(image_accepted(&png(100, 100)).await);
+}
+
+#[tokio::test]
+async fn test_image_one_pixel_too_wide_or_too_tall_is_refused() {
+    assert!(!image_accepted(&png(101, 100)).await, "too wide");
+    assert!(!image_accepted(&png(100, 101)).await, "too tall");
+}
+
+#[tokio::test]
+async fn test_file_too_large_reports_both_sizes_in_mb() {
+    let path = temp_path("big.pdf");
+    std::fs::write(&path, vec![0u8; 5 * 512 * 1024]).unwrap(); // 2.5 MB
+    let mut f = FileField::document("doc").max_size(FileSize::mb(1));
+    f.set_value(&path);
+    assert!(!f.validate().await);
+    let err = f.error().cloned().unwrap_or_default();
+    assert!(err.contains("2.5") && err.contains("1.0"), "{err}");
+}

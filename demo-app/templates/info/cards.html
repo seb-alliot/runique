@@ -26,6 +26,16 @@
             </div>
             {% endfor %}
         </div>
+        {% if section.changelog_en_url or section.changelog_fr_url %}
+        <div class="changelog-links">
+            {% if section.changelog_en_url %}
+            <a href="{{ section.changelog_en_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">Changelog (EN)</a>
+            {% endif %}
+            {% if section.changelog_fr_url %}
+            <a href="{{ section.changelog_fr_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">Changelog (FR)</a>
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
     {% endfor %}
 

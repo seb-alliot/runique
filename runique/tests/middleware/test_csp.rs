@@ -173,6 +173,12 @@ fn test_csp_config_connect() {
 fn test_csp_config_objects() {
     let csp = CspConfig::default().objects(vec!["'none'"]);
     assert!(csp.get_policy().object_src.contains(&"'none'".to_string()));
+    // `'none'` is already the default: a value the default doesn't hold proves the call.
+    let csp = CspConfig::default().objects(vec!["https://cdn.example.com"]);
+    assert_eq!(
+        csp.get_policy().object_src,
+        vec!["https://cdn.example.com".to_string()]
+    );
 }
 
 #[test]

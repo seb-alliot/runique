@@ -116,6 +116,22 @@ fn test_link_encodes_path_parameter() {
 }
 
 #[test]
+fn test_link_encodes_query_values() {
+    let f = with_route("search", "/search");
+    let query: std::collections::BTreeMap<&str, Value> =
+        [("q", Value::from("a b&c")), ("page", Value::from(2))].into();
+    let result = call(
+        &f,
+        [
+            ("link", Value::from("search")),
+            ("query", Value::from(query)),
+        ],
+    )
+    .unwrap();
+    assert_eq!(result, "/search?page=2&q=a%20b%26c");
+}
+
+#[test]
 fn test_link_with_multiple_parameters() {
     let f = with_route("user_post", "/users/{user_id}/posts/{post_id}");
     let url = call(

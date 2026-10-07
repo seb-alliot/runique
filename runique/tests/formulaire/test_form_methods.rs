@@ -290,3 +290,33 @@ async fn test_serialize_form_errors_empty_when_valid() {
     let errors = json.get("errors").unwrap().as_object().unwrap();
     assert!(errors.is_empty());
 }
+
+// Written from cargo-mutants survivors (2026-10-07).
+use runique::forms::base::FormField as _;
+
+#[test]
+fn test_password_value_is_kept_verbatim_and_richtext_keeps_its_markup() {
+    let mut pwd = TextField::password("pwd");
+    pwd.set_value("a<b>c&d");
+    assert_eq!(pwd.value(), "a<b>c&d", "a password is never sanitized");
+    let mut rich = TextField::richtext("body");
+    rich.set_value("<p>texte</p>");
+    assert!(rich.value().contains("<p>"), "{}", rich.value());
+}
+
+#[tokio::test]
+async fn test_phone_rules() {
+    for (val, ok) in [
+        ("+33 6 12 34 56 78", true),
+        ("06-12-34-56-78", true),
+        ("(01) 23 45 67", true),
+        ("06+12345678", false),      // `+` only first
+        ("0612a45678", false),       // letter
+        ("123456", false),           // 6 digits
+        ("1234567890123456", false), // 16 digits
+    ] {
+        let mut f = TextField::phone("tel");
+        f.set_value(val);
+        assert_eq!(f.validate().await, ok, "{val}");
+    }
+}

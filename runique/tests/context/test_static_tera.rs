@@ -223,6 +223,8 @@ fn test_static_base_url_trailing_slash_normalise() {
 // filter's output is marked safe was never exercised.
 fn render_html(src: &str, val: &str) -> String {
     let mut tera = make_tera();
+    // As `TemplateLoader::init` does: `Tera::default()` escapes nothing on its own.
+    tera.autoescape_on(vec!["html", "xml"]);
     tera.add_raw_template("t.html", src).unwrap();
     let mut ctx = Context::new();
     ctx.insert("val", val);

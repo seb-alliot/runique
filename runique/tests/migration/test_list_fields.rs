@@ -207,6 +207,29 @@ async fn deleting_the_owner_deletes_its_list() {
     );
 }
 
+// Written from cargo-mutants survivors (2026-10-07): `one()` was never called.
+#[tokio::test]
+async fn search_one_returns_none_one_row_or_an_error() {
+    let conn = db::fresh_db_with_schema(DDL).await;
+    insert(&conn, "seul").await;
+    insert(&conn, "double").await;
+    insert(&conn, "double").await;
+    let adb = ADb::from_connection(conn.clone());
+
+    let none = runique::search!(book::Entity => Title eq "absent")
+        .one(&adb)
+        .await;
+    assert!(matches!(none, Ok(None)), "{none:?}");
+    let one = runique::search!(book::Entity => Title eq "seul")
+        .one(&adb)
+        .await;
+    assert_eq!(one.unwrap().map(|b| b.title).as_deref(), Some("seul"));
+    let two = runique::search!(book::Entity => Title eq "double")
+        .one(&adb)
+        .await;
+    assert!(two.is_err(), "two rows must be an error, not the first one");
+}
+
 #[tokio::test]
 async fn search_filters_on_a_list() {
     let conn = db::fresh_db_with_schema(DDL).await;

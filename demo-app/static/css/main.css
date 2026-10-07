@@ -966,6 +966,13 @@ footer strong {
     gap: 1rem;
 }
 
+.changelog-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
 .roadmap-card {
     background: var(--bg-base);
     border: 1px solid var(--border);
