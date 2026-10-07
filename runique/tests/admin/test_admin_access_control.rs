@@ -243,7 +243,9 @@ async fn a_nested_bulk_stays_under_its_parent() {
         .await
         .unwrap();
     let bulk_url = |parent: i64| format!("{base}{ADMIN_PREFIX}/groupes/{parent}/droits/bulk");
-    let droit = admin_server::droit_id();
+    // A composite child: the URL's parent completes the local key into the full
+    // id, so a key sent under group 2 can only ever name a row of group 2.
+    let droit = admin_server::SEED_DROIT_RESOURCE_KEY.to_string();
 
     // Group 2's route, group 1's right: refused.
     let token = csrf(&client, &list).await;
@@ -257,7 +259,11 @@ async fn a_nested_bulk_stays_under_its_parent() {
         .send()
         .await
         .unwrap();
-    assert_eq!(droits_of(&db, SEED_GROUPE_ID).await, 1, "out of scope: untouched");
+    assert_eq!(
+        droits_of(&db, SEED_GROUPE_ID).await,
+        1,
+        "out of scope: untouched"
+    );
 
     // Under its own parent, a bulk edit can't move the row to another parent.
     let token = csrf(&client, &list).await;
@@ -272,7 +278,11 @@ async fn a_nested_bulk_stays_under_its_parent() {
         .send()
         .await
         .unwrap();
-    assert_eq!(droits_of(&db, SEED_GROUPE_ID).await, 1, "still under group 1");
+    assert_eq!(
+        droits_of(&db, SEED_GROUPE_ID).await,
+        1,
+        "still under group 1"
+    );
     assert_eq!(droits_of(&db, 2).await, 0, "never moved to group 2");
 
     // The same delete under its own parent goes through.
@@ -288,7 +298,11 @@ async fn a_nested_bulk_stays_under_its_parent() {
         .await
         .unwrap();
     assert!(resp.status().is_redirection(), "{}", resp.status());
-    assert_eq!(droits_of(&db, SEED_GROUPE_ID).await, 0, "deleted under its own parent");
+    assert_eq!(
+        droits_of(&db, SEED_GROUPE_ID).await,
+        0,
+        "deleted under its own parent"
+    );
 }
 
 /// Empty list parameters (an untouched search box, a cleared filter) mean "no
