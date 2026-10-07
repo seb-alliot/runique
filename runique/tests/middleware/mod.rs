@@ -15,4 +15,5 @@ pub mod test_login_guard;
 pub mod test_open_redirect;
 pub mod test_rate_limit;
 pub mod test_session_db;
+pub mod test_trusted_proxies_cidr;
 pub mod test_user_trait;

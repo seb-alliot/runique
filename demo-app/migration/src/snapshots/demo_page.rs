@@ -1,3 +1,4 @@
+// runique: column lengths recorded
 use sea_orm_migration::prelude::*;
 
 #[derive(DeriveMigrationName)]
@@ -34,6 +35,16 @@ async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
             )
             .await?;
 
+        manager
+            .create_index(
+                Index::create()
+                    .name("idx_demo_page_category_id")
+                    .table(Alias::new("demo_page"))
+                    .col(Alias::new("category_id"))
+                    .to_owned(),
+            )
+            .await?;
+
         Ok(())
 }
 
@@ -45,6 +56,10 @@ async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
                     .name("demo_page_category_id_demo_category_fkey")
                     .to_owned(),
             )
+            .await?;
+
+        manager
+            .drop_index(Index::drop().name("idx_demo_page_category_id").table(Alias::new("demo_page")).to_owned())
             .await?;
 
         manager

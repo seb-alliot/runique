@@ -155,3 +155,114 @@ async fn boot_prunes_rights_on_unregistered_resources() {
         "a registered resource keeps its rights"
     );
 }
+
+// ── Written from cargo-mutants survivors (2026-10-07) ────────────────────────
+
+/// These names are the rows of `seaql_migrations` in every existing database:
+/// renaming one makes SeaORM report "migration file missing" and refuse to run.
+#[test]
+fn framework_migration_names_never_change() {
+    use runique::admin::{
+        AdminTableMigration, EihwazHistoryMigration, EihwazResetTokensMigration,
+        EihwazSessionsMigration, EihwazUsersMigration,
+    };
+    use sea_orm_migration::MigrationName;
+    assert_eq!(
+        EihwazUsersMigration.name(),
+        "m000000_000001_runique_eihwaz_users"
+    );
+    assert_eq!(
+        AdminTableMigration.name(),
+        "m000000_000002_runique_admin_table"
+    );
+    assert_eq!(
+        EihwazSessionsMigration.name(),
+        "m000000_000003_runique_eihwaz_sessions"
+    );
+    assert_eq!(
+        EihwazHistoryMigration.name(),
+        "m000000_000004_runique_eihwaz_history"
+    );
+    assert_eq!(
+        EihwazResetTokensMigration.name(),
+        "m000000_000005_runique_reset_tokens"
+    );
+}
+
+#[tokio::test]
+async fn framework_migrations_create_and_drop_their_tables() {
+    use runique::admin::{
+        EihwazHistoryMigration, EihwazResetTokensMigration, EihwazSessionsMigration,
+        EihwazUsersMigration,
+    };
+    use sea_orm_migration::{MigrationTrait, SchemaManager};
+    let conn = runique::sea_orm::Database::connect("sqlite::memory:")
+        .await
+        .unwrap();
+    let manager = SchemaManager::new(&conn);
+    EihwazUsersMigration.up(&manager).await.unwrap();
+    EihwazSessionsMigration.up(&manager).await.unwrap();
+    EihwazResetTokensMigration.up(&manager).await.unwrap();
+    EihwazHistoryMigration.up(&manager).await.unwrap();
+    // `has_table` isn't supported on SQLite: a query on the table answers instead.
+    use runique::sea_orm::ConnectionTrait;
+    let exists = |table: &'static str| {
+        let conn = &conn;
+        async move {
+            conn.execute_unprepared(&format!("SELECT 1 FROM {table}"))
+                .await
+                .is_ok()
+        }
+    };
+    for table in ["eihwaz_sessions", "eihwaz_reset_tokens", "eihwaz_history"] {
+        assert!(exists(table).await, "{table} created");
+    }
+    EihwazSessionsMigration.down(&manager).await.unwrap();
+    EihwazHistoryMigration.down(&manager).await.unwrap();
+    assert!(!exists("eihwaz_sessions").await);
+    assert!(!exists("eihwaz_history").await);
+}
+
+#[test]
+fn sort_dir_strings_and_toggle() {
+    use runique::admin::helper::SortDir;
+    assert_eq!(SortDir::Asc.as_str(), "asc");
+    assert_eq!(SortDir::Desc.as_str(), "desc");
+    assert_eq!(SortDir::Asc.toggle(), "desc");
+    assert_eq!(SortDir::Desc.toggle(), "asc");
+}
+
+#[test]
+fn fk_key_reads_integer_and_text_keys() {
+    use runique::admin::helper::fk_key;
+    assert_eq!(fk_key(&serde_json::json!(42)), Some("42".to_string()));
+    assert_eq!(
+        fk_key(&serde_json::json!("0190-abc")),
+        Some("0190-abc".to_string())
+    );
+    assert_eq!(fk_key(&serde_json::json!(null)), None);
+}
+
+#[test]
+fn admin_template_setters_keep_the_rest() {
+    use runique::admin::helper::template::AdminTemplate;
+    let t = AdminTemplate::new()
+        .with_list("a/list.html")
+        .with_edit("a/edit.html")
+        .with_detail("a/detail.html")
+        .with_delete("a/delete.html")
+        .with_base("a/base.html")
+        .with_htmx("a/htmx.html")
+        .with_bulk_edit("a/bulk.html");
+    for (got, want) in [
+        (t.list.resolve(), "a/list.html"),
+        (t.edit.resolve(), "a/edit.html"),
+        (t.detail.resolve(), "a/detail.html"),
+        (t.delete.resolve(), "a/delete.html"),
+        (t.base.resolve(), "a/base.html"),
+        (t.htmx.resolve(), "a/htmx.html"),
+        (t.bulk_edit.resolve(), "a/bulk.html"),
+    ] {
+        assert_eq!(got, want);
+    }
+}

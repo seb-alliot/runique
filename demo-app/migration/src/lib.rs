@@ -40,6 +40,18 @@ mod m20261005_181617_create_test_relation_parent_table;
 mod m20261005_181617_create_test_relation_parent_tag_table;
 mod m20261005_181617_create_test_relation_profile_table;
 mod m20261005_181617_create_test_relation_tag_table;
+mod m20261007_070310_alter_chapitre_table;
+mod m20261007_070310_alter_code_example_table;
+mod m20261007_070310_alter_contributions_table;
+mod m20261007_070310_alter_cour_block_table;
+mod m20261007_070310_alter_demo_page_table;
+mod m20261007_070310_alter_demo_section_table;
+mod m20261007_070310_alter_doc_block_table;
+mod m20261007_070310_alter_doc_page_table;
+mod m20261007_070310_alter_page_doc_link_table;
+mod m20261007_070310_alter_runique_release_table;
+mod m20261007_070310_alter_test_relation_child_table;
+mod m20261007_070310_alter_test_relation_parent_tag_table;
 
 pub struct Migrator;
 
@@ -91,6 +103,18 @@ impl MigratorTrait for Migrator {
             Box::new(m20261005_181617_create_test_relation_child_table::Migration),
             Box::new(m20261005_181617_create_test_relation_profile_table::Migration),
             Box::new(m20261005_181617_create_test_relation_parent_tag_table::Migration),
+            Box::new(m20261007_070310_alter_chapitre_table::Migration),
+            Box::new(m20261007_070310_alter_code_example_table::Migration),
+            Box::new(m20261007_070310_alter_contributions_table::Migration),
+            Box::new(m20261007_070310_alter_cour_block_table::Migration),
+            Box::new(m20261007_070310_alter_demo_page_table::Migration),
+            Box::new(m20261007_070310_alter_demo_section_table::Migration),
+            Box::new(m20261007_070310_alter_doc_block_table::Migration),
+            Box::new(m20261007_070310_alter_doc_page_table::Migration),
+            Box::new(m20261007_070310_alter_page_doc_link_table::Migration),
+            Box::new(m20261007_070310_alter_runique_release_table::Migration),
+            Box::new(m20261007_070310_alter_test_relation_child_table::Migration),
+            Box::new(m20261007_070310_alter_test_relation_parent_tag_table::Migration),
         ]
     }
 }

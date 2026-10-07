@@ -1,3 +1,4 @@
+// runique: column lengths recorded
 use sea_orm_migration::prelude::*;
 
 #[derive(DeriveMigrationName)]
@@ -15,6 +16,8 @@ async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
                     .col(ColumnDef::new(Alias::new("version")).string().not_null())
                     .col(ColumnDef::new(Alias::new("github_url")).string().not_null())
                     .col(ColumnDef::new(Alias::new("crates_url")).string().not_null())
+                    .col(ColumnDef::new(Alias::new("changelog_en_url")).string().null())
+                    .col(ColumnDef::new(Alias::new("changelog_fr_url")).string().null())
                     .to_owned()
             )
             .await?;

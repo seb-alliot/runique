@@ -26,16 +26,6 @@
             </div>
             {% endfor %}
         </div>
-        {% if section.changelog_en_url or section.changelog_fr_url %}
-        <div class="changelog-links">
-            {% if section.changelog_en_url %}
-            <a href="{{ section.changelog_en_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">Changelog (EN)</a>
-            {% endif %}
-            {% if section.changelog_fr_url %}
-            <a href="{{ section.changelog_fr_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">Changelog (FR)</a>
-            {% endif %}
-        </div>
-        {% endif %}
     </div>
     {% endfor %}
 
@@ -56,7 +46,14 @@
     {% endif %}
 
     <div class="back-link">
-        {% if ext_link_url %}
+        {% if changelog_links and runique_release and (runique_release.changelog_en_url or runique_release.changelog_fr_url) %}
+        {% if runique_release.changelog_en_url %}
+        <a href="{{ runique_release.changelog_en_url }}" target="_blank" rel="noopener" class="btn btn-secondary">Changelog (EN)</a>
+        {% endif %}
+        {% if runique_release.changelog_fr_url %}
+        <a href="{{ runique_release.changelog_fr_url }}" target="_blank" rel="noopener" class="btn btn-secondary">Changelog (FR)</a>
+        {% endif %}
+        {% elif ext_link_url %}
         <a href="{{ ext_link_url }}" target="_blank" class="btn btn-secondary">{{ ext_link_label }}</a>
         {% endif %}
         <a href="{% link "index" %}">← Back home</a>

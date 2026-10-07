@@ -858,3 +858,28 @@ fn test_middleware_config_from_env_leaves_host_validation_to_the_builder() {
     assert!(!config.enable_host_validation);
     assert!(config.enable_debug_errors);
 }
+
+// Written from cargo-mutants survivors (2026-10-07): each `AdminConfig` setter
+// keeps what was set before it (a setter returning `Default` would wipe it).
+#[test]
+fn test_admin_config_setters_keep_the_rest() {
+    let c = AdminConfig::new()
+        .site_title("Back-office")
+        .prefix("/gestion")
+        .user_resource("users")
+        .user_resource_with_template("staff", "emails/welcome.html")
+        .reset_password_email_template("emails/reset.html")
+        .with_rate_limiter(runique::middleware::security::rate_limit::RateLimiter::new());
+    assert_eq!(c.site_title, "Back-office");
+    assert_eq!(c.prefix, "/gestion");
+    assert_eq!(c.user_resources.get("users"), Some(&None));
+    assert_eq!(
+        c.user_resources.get("staff"),
+        Some(&Some("emails/welcome.html".to_string()))
+    );
+    assert_eq!(
+        c.reset_password_email_template.as_deref(),
+        Some("emails/reset.html")
+    );
+    assert!(c.rate_limiter.is_some());
+}

@@ -1,3 +1,4 @@
+// runique: column lengths recorded
 use sea_orm_migration::prelude::*;
 
 #[derive(DeriveMigrationName)]
@@ -13,7 +14,7 @@ async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
                     .if_not_exists()
                     .col(ColumnDef::new(Alias::new("id")).integer().not_null().auto_increment().primary_key())
                     .col(ColumnDef::new(Alias::new("username")).string().not_null())
-                    .col(ColumnDef::new(Alias::new("email")).string().not_null())
+                    .col(ColumnDef::new(Alias::new("email")).string_len(254).not_null())
                     .col(ColumnDef::new(Alias::new("password")).string().not_null())
                     .col(ColumnDef::new(Alias::new("bio")).text().null())
                     .col(ColumnDef::new(Alias::new("website")).string().null())

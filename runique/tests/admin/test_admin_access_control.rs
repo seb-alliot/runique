@@ -229,6 +229,68 @@ async fn a_nested_post_acts_only_under_the_childs_own_parent() {
     );
 }
 
+/// A nested bulk action reaches only the parent's own rows, and never moves a
+/// row to another parent — written from cargo-mutants survivors (2026-10-07):
+/// no bulk ever went through a nested route, so dropping the ownership check
+/// (`bulk_gate`) or offering the scope column in the bulk form went unnoticed.
+#[tokio::test]
+#[serial]
+async fn a_nested_bulk_stays_under_its_parent() {
+    let (base, db) = spawn().await;
+    let client = login_superuser(&base).await;
+    let list = format!("{base}{ADMIN_PREFIX}/groupes/list");
+    db.execute_unprepared("INSERT INTO eihwaz_groupes (id, nom) VALUES (2, 'Autres')")
+        .await
+        .unwrap();
+    let bulk_url = |parent: i64| format!("{base}{ADMIN_PREFIX}/groupes/{parent}/droits/bulk");
+    let droit = admin_server::droit_id();
+
+    // Group 2's route, group 1's right: refused.
+    let token = csrf(&client, &list).await;
+    let _ = client
+        .post(bulk_url(2))
+        .form(&[
+            ("ids", droit.as_str()),
+            ("bulk_action", "delete"),
+            ("csrf_token", token.as_str()),
+        ])
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(droits_of(&db, SEED_GROUPE_ID).await, 1, "out of scope: untouched");
+
+    // Under its own parent, a bulk edit can't move the row to another parent.
+    let token = csrf(&client, &list).await;
+    let _ = client
+        .post(bulk_url(SEED_GROUPE_ID))
+        .form(&[
+            ("ids", droit.as_str()),
+            ("bulk_action", "update-submit"),
+            ("groupe_id", "2"),
+            ("csrf_token", token.as_str()),
+        ])
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(droits_of(&db, SEED_GROUPE_ID).await, 1, "still under group 1");
+    assert_eq!(droits_of(&db, 2).await, 0, "never moved to group 2");
+
+    // The same delete under its own parent goes through.
+    let token = csrf(&client, &list).await;
+    let resp = client
+        .post(bulk_url(SEED_GROUPE_ID))
+        .form(&[
+            ("ids", droit.as_str()),
+            ("bulk_action", "delete"),
+            ("csrf_token", token.as_str()),
+        ])
+        .send()
+        .await
+        .unwrap();
+    assert!(resp.status().is_redirection(), "{}", resp.status());
+    assert_eq!(droits_of(&db, SEED_GROUPE_ID).await, 0, "deleted under its own parent");
+}
+
 /// Empty list parameters (an untouched search box, a cleared filter) mean "no
 /// constraint", not "match the empty string".
 #[tokio::test]
