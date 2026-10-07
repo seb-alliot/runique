@@ -92,3 +92,20 @@ fn test_deref_permet_acces_aux_methodes_tera_context() {
     // insert directement via DerefMut sur Context
     ctx.insert("autre", &"autre_val");
 }
+
+// Written from cargo-mutants survivors (2026-10-07): the tests above build a
+// helper but never read it back, so `add`/`update` returning an empty context passed.
+#[test]
+fn test_add_and_update_land_in_the_context() {
+    let mut helper = ContextHelper::new()
+        .add("username", "alice")
+        .update(json!({ "count": 3, "admin": true }));
+    assert_eq!(
+        helper.get("username").map(|v| v.to_string()).as_deref(),
+        Some("alice")
+    );
+    assert!(helper.get("count").is_some() && helper.get("admin").is_some());
+    helper.insert("extra", &1);
+    let ctx: tera::Context = helper.into();
+    assert!(ctx.get("username").is_some() && ctx.get("extra").is_some());
+}

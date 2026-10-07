@@ -539,3 +539,70 @@ fn test_special_field_render_missing_template_err() {
     let field = SlugField::new("slug");
     assert!(field.render(&tera).is_err());
 }
+
+// Written from cargo-mutants survivors (2026-10-07).
+#[test]
+fn test_color_field_default_color_keeps_only_hex() {
+    assert_eq!(
+        ColorField::new("c").default_color("#a1b2c3").base.value,
+        "#a1b2c3"
+    );
+    assert_eq!(
+        ColorField::new("c").default_color("#abc").base.value,
+        "#abc"
+    );
+    let initial = ColorField::new("c").base.value;
+    assert_eq!(
+        ColorField::new("c").default_color("red").base.value,
+        initial,
+        "no #"
+    );
+    assert_eq!(
+        ColorField::new("c").default_color("#12345").base.value,
+        initial,
+        "wrong length"
+    );
+    assert_eq!(
+        ColorField::new("c").default_color("1234567").base.value,
+        initial,
+        "7 chars, no #"
+    );
+}
+
+#[tokio::test]
+async fn test_unicode_slug_accepts_letters_digits_dash_underscore_only() {
+    for ok in ["été-2026_x", "a-b", "a_b", "日本"] {
+        let mut f = SlugField::new("s").allow_unicode();
+        f.set_value(ok);
+        assert!(f.validate().await, "{ok}");
+    }
+    let mut f = SlugField::new("s").allow_unicode();
+    f.set_value("a b");
+    assert!(!f.validate().await);
+}
+
+fn render_with_own_template(field: &dyn FormField, template_name: &str) -> String {
+    let mut tera = Tera::default();
+    tera.add_raw_template(template_name, "<input name=\"{{ field.name }}\">")
+        .unwrap();
+    field.render(&Arc::new(tera)).unwrap()
+}
+
+#[test]
+fn test_uuid_json_ip_render_their_template() {
+    let u = UUIDField::new("ref");
+    assert_eq!(
+        render_with_own_template(&u, &u.base.template_name),
+        r#"<input name="ref">"#
+    );
+    let j = JSONField::new("data");
+    assert_eq!(
+        render_with_own_template(&j, &j.base.template_name),
+        r#"<input name="data">"#
+    );
+    let i = IPAddressField::new("ip");
+    assert_eq!(
+        render_with_own_template(&i, &i.base.template_name),
+        r#"<input name="ip">"#
+    );
+}

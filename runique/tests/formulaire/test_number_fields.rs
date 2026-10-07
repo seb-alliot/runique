@@ -402,3 +402,28 @@ async fn test_min_max_bounds_are_inclusive() {
     assert_eq!(error_for(pct(), "10").await, None);
     assert_eq!(error_for(pct(), "90").await, None);
 }
+
+// ═══════════════════════════════════════════════════════════════
+// bounds() et render() — écrits depuis les survivants cargo-mutants (2026-10-07)
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_percent_and_range_expose_their_bounds() {
+    let b = NumericField::percent("taux").bounds();
+    assert_eq!((b.min_float, b.max_float), (Some(0.0), Some(100.0)));
+    let b = NumericField::range("note", 1.0, 5.0, 3.0).bounds();
+    assert_eq!((b.min_float, b.max_float), (Some(1.0), Some(5.0)));
+}
+
+#[test]
+fn test_numeric_render_uses_its_template() {
+    let field = NumericField::integer("age");
+    let mut tera = tera::Tera::default();
+    tera.add_raw_template(
+        &field.base.template_name,
+        "<input name=\"{{ field.name }}\">",
+    )
+    .unwrap();
+    let html = field.render(&std::sync::Arc::new(tera)).unwrap();
+    assert_eq!(html, r#"<input name="age">"#);
+}

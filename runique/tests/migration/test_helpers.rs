@@ -154,3 +154,89 @@ mod helpers_migration {
         assert_eq!(alias, Some("bar".to_string()));
     }
 }
+
+// Written from cargo-mutants survivors (2026-10-07): every type, and every
+// alternative spelling a detector accepts, checked one by one.
+mod helpers_type_table {
+    use runique::migration::utils::helpers::{
+        col_type_to_method, detect_col_type_builder, detect_col_type_seaorm,
+    };
+
+    const TYPES: &[(&str, &str)] = &[
+        ("Text", "text"),
+        ("TinyInteger", "tiny_integer"),
+        ("SmallInteger", "small_integer"),
+        ("Integer", "integer"),
+        ("BigInteger", "big_integer"),
+        ("Unsigned", "unsigned"),
+        ("BigUnsigned", "big_unsigned"),
+        ("Float", "float"),
+        ("Double", "double"),
+        ("Decimal", "decimal"),
+        ("Boolean", "boolean"),
+        ("DateTime", "date_time"),
+        ("Timestamp", "timestamp"),
+        ("TimestampWithTimeZone", "timestamp_with_time_zone"),
+        ("Date", "date"),
+        ("Time", "time"),
+        ("Uuid", "uuid"),
+        ("Json", "json"),
+        ("JsonBinary", "json_binary"),
+        ("Binary", "binary"),
+        ("VarBinary", "var_binary"),
+        ("Blob", "blob"),
+        ("Char", "char"),
+        ("Inet", "inet"),
+        ("Cidr", "cidr"),
+        ("MacAddr", "mac_address"),
+        ("Interval", "interval"),
+        ("Enum", "enum_type"),
+    ];
+
+    fn m(names: &[&str]) -> Vec<String> {
+        names.iter().map(|n| n.to_string()).collect()
+    }
+
+    /// What `makemigrations` writes for a type is read back as that same type.
+    #[test]
+    fn every_type_round_trips_through_its_method() {
+        for (ty, method) in TYPES {
+            assert_eq!(col_type_to_method(ty), format!("{method}()"), "{ty}");
+            assert_eq!(detect_col_type_seaorm(&m(&[method])), *ty, "{method}");
+        }
+        assert_eq!(col_type_to_method("String"), "string()");
+    }
+
+    #[test]
+    fn builder_detector_reads_every_alternative_spelling() {
+        for (methods, ty) in [
+            (&["binary_len"][..], "Binary"),
+            (&["char_len"], "Char"),
+            (&["varchar"], "String"),
+            (&["string_len"], "String"),
+            (&["decimal_len"], "Decimal"),
+            (&["timestamp_tz"], "TimestampWithTimeZone"),
+            (&["datetime"], "DateTime"),
+            (&["auto_now"], "DateTime"),
+            (&["auto_now_update"], "DateTime"),
+            (&["small_integer"], "SmallInteger"),
+        ] {
+            assert_eq!(detect_col_type_builder(&m(methods)), ty, "{methods:?}");
+        }
+    }
+
+    #[test]
+    fn seaorm_detector_reads_every_alternative_spelling() {
+        for (methods, ty) in [
+            (&["binary_len"][..], "Binary"),
+            (&["char_len"], "Char"),
+            (&["decimal_len"], "Decimal"),
+            (&["timestamp_tz"], "TimestampWithTimeZone"),
+            (&["auto_now"], "DateTime"),
+            (&["auto_now_update"], "DateTime"),
+            (&["enumeration"], "Enum"),
+        ] {
+            assert_eq!(detect_col_type_seaorm(&m(methods)), ty, "{methods:?}");
+        }
+    }
+}

@@ -4,6 +4,8 @@
 use axum::{Router, routing::get};
 use runique::macros::RouterExt;
 
+use crate::helpers::request;
+
 #[tokio::test]
 async fn test_rate_limit_builds_router() {
     let handler = get(|| async { "ok" });
@@ -30,4 +32,32 @@ async fn test_login_required_builds_router() {
     let handler = get(|| async { "protected" });
     let _router: Router =
         Router::new().login_required("/dashboard", "dashboard", handler, "/login");
+}
+
+// Written from cargo-mutants survivors (2026-10-07): the tests above only
+// built the router, so a `rate_limit` that dropped the route or the limit passed.
+#[tokio::test]
+async fn test_rate_limit_serves_the_route_then_limits_it() {
+    let app: Router = Router::new().rate_limit(
+        "/limited",
+        "limited_route",
+        get(|| async { "ok" }),
+        1,
+        60,
+        vec![],
+    );
+    assert_eq!(request::get(app.clone(), "/limited").await.status(), 200);
+    assert_eq!(request::get(app, "/limited").await.status(), 429);
+}
+
+#[tokio::test]
+async fn test_rate_limit_many_limits_each_route() {
+    let app: Router = Router::new().rate_limit_many(
+        1,
+        60,
+        vec![],
+        vec![("/many-a".into(), "many_a".into(), get(|| async { "a" }))],
+    );
+    assert_eq!(request::get(app.clone(), "/many-a").await.status(), 200);
+    assert_eq!(request::get(app, "/many-a").await.status(), 429);
 }
