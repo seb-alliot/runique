@@ -386,3 +386,44 @@ async fn test_https_redirect_lit_la_premiere_valeur() {
     let resp = https_redirect_get(engine, Some("https, http")).await;
     assert_status(&resp, 200);
 }
+
+// Written from cargo-mutants survivors (2026-10-07).
+#[test]
+fn test_nonce_strips_unsafe_inline_and_unsafe_hashes() {
+    use runique::middleware::security::csp::SecurityPolicy;
+    let policy = SecurityPolicy {
+        script_src: vec!["'self'".into(), "'unsafe-inline'".into()],
+        style_src: vec![
+            "'self'".into(),
+            "'unsafe-inline'".into(),
+            "'unsafe-hashes'".into(),
+        ],
+        ..SecurityPolicy::default()
+    };
+    let with_nonce = policy.to_header_value(Some("abc"));
+    assert!(!with_nonce.contains("'unsafe-inline'"), "{with_nonce}");
+    assert!(!with_nonce.contains("'unsafe-hashes'"), "{with_nonce}");
+    assert!(
+        with_nonce.contains("script-src 'self' 'nonce-abc'"),
+        "{with_nonce}"
+    );
+    assert!(
+        with_nonce.contains("style-src 'self' 'nonce-abc'"),
+        "{with_nonce}"
+    );
+    // Without a nonce, the policy is left as written.
+    let without = policy.to_header_value(None);
+    assert!(without.contains("'unsafe-inline'") && without.contains("'unsafe-hashes'"));
+}
+
+#[test]
+fn test_merge_htmx_hashes_adds_each_hash_once() {
+    use runique::middleware::security::csp::SecurityPolicy;
+    let mut policy = SecurityPolicy::default();
+    let before = policy.style_src.len();
+    policy.merge_htmx_hashes();
+    let after_one = policy.style_src.len();
+    assert!(after_one > before, "hashes added");
+    policy.merge_htmx_hashes();
+    assert_eq!(policy.style_src.len(), after_one, "no duplicate");
+}

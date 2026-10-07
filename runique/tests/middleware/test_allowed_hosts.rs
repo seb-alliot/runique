@@ -126,3 +126,13 @@ fn test_make_error_message() {
     let msg = validator.validate(&HeaderMap::new()).err().unwrap().1;
     assert!(msg.contains("Bad Request"));
 }
+
+// Written from cargo-mutants survivors (2026-10-07): a `.domain` entry only
+// accepts hosts that END with it — a `.` at the right offset is not enough.
+#[test]
+fn test_subdomain_entry_needs_the_suffix_not_just_a_dot() {
+    let policy = HostPolicy::new(vec![".exemple.com".to_string()], false);
+    // 13 chars, with a `.` exactly where ".exemple.com" (12) would start.
+    assert!(!policy.is_host_allowed("a.bcdefghijkl"));
+    assert!(policy.is_host_allowed("www.exemple.com"));
+}

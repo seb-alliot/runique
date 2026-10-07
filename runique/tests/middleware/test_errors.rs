@@ -290,3 +290,50 @@ async fn test_an_api_400_body_is_left_untouched() {
         assert_eq!(body, r#"{"error":"api"}"#);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// 429 / 503 et en-têtes de sécurité — survivants cargo-mutants (2026-10-07)
+// ═══════════════════════════════════════════════════════════════
+
+/// Production app, empty Tera: every page goes through its built-in fallback.
+async fn build_status_app() -> Router {
+    let engine = build_engine().await;
+    Router::new()
+        .route("/r429", get(|| async { StatusCode::TOO_MANY_REQUESTS }))
+        .route("/r503", get(|| async { StatusCode::SERVICE_UNAVAILABLE }))
+        .layer(middleware::from_fn(error_handler_middleware))
+        .layer(Extension(engine.tera.clone()))
+        .layer(Extension(Arc::new(engine.config.clone())))
+}
+
+#[tokio::test]
+async fn test_429_and_503_render_their_own_page() {
+    for (path, code) in [("/r429", 429u16), ("/r503", 503u16)] {
+        let resp = request::get(build_status_app().await, path).await;
+        assert_eq!(resp.status(), code);
+        let body = resp.into_body().collect().await.unwrap().to_bytes();
+        assert!(
+            String::from_utf8_lossy(&body).contains(&code.to_string()),
+            "{path}"
+        );
+    }
+}
+
+#[tokio::test]
+async fn test_error_pages_carry_security_headers() {
+    for path in ["/introuvable", "/error500"] {
+        let resp = request::get(build_error_app().await, path).await;
+        let h = resp.headers();
+        assert_eq!(
+            h.get("x-content-type-options").map(|v| v.to_str().unwrap()),
+            Some("nosniff"),
+            "{path}"
+        );
+        assert_eq!(
+            h.get("x-frame-options").map(|v| v.to_str().unwrap()),
+            Some("DENY"),
+            "{path}"
+        );
+        assert!(h.get("content-security-policy").is_some(), "{path}");
+    }
+}

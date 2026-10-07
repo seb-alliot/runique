@@ -1,3 +1,4 @@
+// runique: column lengths recorded
 use sea_orm_migration::prelude::*;
 
 #[derive(DeriveMigrationName)]
@@ -14,7 +15,7 @@ async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
                     .col(ColumnDef::new(Alias::new("id")).integer().not_null().auto_increment().primary_key())
                     .col(ColumnDef::new(Alias::new("user_id")).integer().not_null())
                     .col(ColumnDef::new_with_type(Alias::new("contribution_type"), ColumnType::Enum { name: Alias::new("ContributionType").into_iden(), variants: vec![Alias::new("Runique").into_iden(), Alias::new("Cours").into_iden()] }).not_null())
-                    .col(ColumnDef::new(Alias::new("title")).string().not_null())
+                    .col(ColumnDef::new(Alias::new("title")).string_len(200).not_null())
                     .col(ColumnDef::new(Alias::new("content")).text().not_null())
                     .col(ColumnDef::new(Alias::new("created_at")).date_time().not_null().default(Expr::current_timestamp()))
                     .to_owned()
@@ -33,6 +34,16 @@ async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
             )
             .await?;
 
+        manager
+            .create_index(
+                Index::create()
+                    .name("idx_contributions_user_id")
+                    .table(Alias::new("contributions"))
+                    .col(Alias::new("user_id"))
+                    .to_owned(),
+            )
+            .await?;
+
         Ok(())
 }
 
@@ -44,6 +55,10 @@ async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
                     .name("contributions_user_id_eihwaz_users_fkey")
                     .to_owned(),
             )
+            .await?;
+
+        manager
+            .drop_index(Index::drop().name("idx_contributions_user_id").table(Alias::new("contributions")).to_owned())
             .await?;
 
         manager

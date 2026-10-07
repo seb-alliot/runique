@@ -490,3 +490,44 @@ async fn test_store_saturated_refuses_new_session() {
     let result = store.create(&mut new_session).await;
     assert!(result.is_err());
 }
+
+// ── Written from cargo-mutants survivors (2026-10-07) ────────────────────────
+// The tests above only check that `create` succeeds: none looked at WHICH
+// sessions the low-watermark purge removed.
+
+/// In-memory size of one record, as the store accounts it.
+async fn size_of(record: &Record) -> usize {
+    let store = CleaningMemoryStore::default();
+    let mut r = record.clone();
+    store.create(&mut r).await.unwrap();
+    store.size_bytes()
+}
+
+#[tokio::test]
+async fn test_low_watermark_purge_keeps_protected_and_drops_anonymous() {
+    let by_user = protected_record_user_id(-5);
+    let by_flag = protected_record_session_active(-5);
+    let anonymous = fresh_record(-5);
+    let trigger = fresh_record(3600);
+    let kept = size_of(&by_user).await + size_of(&by_flag).await + size_of(&trigger).await;
+
+    // low = 1: every `create` from the second on spawns the anonymous purge.
+    let store = CleaningMemoryStore::default().with_watermarks(1, usize::MAX);
+    for mut r in [by_user, by_flag, anonymous] {
+        store.create(&mut r).await.unwrap();
+    }
+    let mut t = trigger;
+    store.create(&mut t).await.unwrap();
+    // The purge runs in a spawned task.
+    for _ in 0..50 {
+        if store.size_bytes() == kept {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+    }
+    assert_eq!(
+        store.size_bytes(),
+        kept,
+        "only the expired anonymous session goes; both protected ones stay"
+    );
+}

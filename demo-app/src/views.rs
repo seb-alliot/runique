@@ -269,6 +269,7 @@ pub async fn changelog(mut request: Request) -> AppResult<Response> {
         "total_pages"    => total_pages,
         "prev_page"      => prev_page,
         "next_page"      => next_page,
+        "changelog_links" => true,
         "ext_link_label" => "Full CHANGELOG",
         "ext_link_url"   => "https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md",
     });

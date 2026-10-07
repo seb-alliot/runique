@@ -1,7 +1,6 @@
 use crate::entities::changelog_entry::Entity as ChangelogEntryEntity;
 use crate::entities::known_issue::Entity as KnownIssueEntity;
 use crate::entities::roadmap_entry::{Entity as RoadmapEntryEntity, RoadmapStatus};
-use crate::entities::runique_release::Entity as RuniqueReleaseEntity;
 use runique::prelude::*;
 
 #[derive(serde::Serialize)]
@@ -20,9 +19,6 @@ pub struct CardSection {
     pub heading: String,
     pub heading_class: String,
     pub entries: Vec<CardEntry>,
-    /// The release's official changelogs, from `runique_release` (changelog page only).
-    pub changelog_en_url: Option<String>,
-    pub changelog_fr_url: Option<String>,
 }
 
 pub async fn fetch_changelog_paged(db: &ADb, page: usize) -> (Vec<CardSection>, usize, usize) {
@@ -68,27 +64,15 @@ pub async fn fetch_changelog(db: &ADb) -> Vec<CardSection> {
         ));
     }
 
-    let mut links: std::collections::HashMap<String, (Option<String>, Option<String>)> =
-        search!(RuniqueReleaseEntity)
-            .all(db)
-            .await
-            .unwrap_or_default()
-            .into_iter()
-            .map(|r| (r.version, (r.changelog_en_url, r.changelog_fr_url)))
-            .collect();
-
     order
         .into_iter()
         .map(|version| {
             let (release_date, mut items) = groups.remove(&version).unwrap_or_default();
             items.sort_by_key(|(sort_order, _)| *sort_order);
-            let (changelog_en_url, changelog_fr_url) = links.remove(&version).unwrap_or_default();
             CardSection {
                 heading: format!("v{} — {}", version, release_date),
                 heading_class: "roadmap-active".into(),
                 entries: items.into_iter().map(|(_, entry)| entry).collect(),
-                changelog_en_url,
-                changelog_fr_url,
             }
         })
         .collect()
@@ -118,8 +102,6 @@ pub async fn fetch_known_issues(db: &ADb) -> Vec<CardSection> {
             continue;
         }
         sections.push(CardSection {
-            changelog_en_url: None,
-            changelog_fr_url: None,
             heading,
             heading_class: "roadmap-active".into(),
             entries: vec![CardEntry {
@@ -171,8 +153,6 @@ pub async fn fetch_roadmap(db: &ADb) -> Vec<CardSection> {
                 heading: String::from(*heading),
                 heading_class: String::from(*class),
                 entries,
-                changelog_en_url: None,
-                changelog_fr_url: None,
             })
         })
         .collect()

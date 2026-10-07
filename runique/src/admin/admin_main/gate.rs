@@ -476,6 +476,59 @@ mod tests {
         );
     }
 
+    // Written from cargo-mutants survivors (2026-10-07).
+    #[test]
+    fn scope_values_always_come_from_the_url() {
+        let mut data = body(&[("commande_id", "99"), ("libelle", "x")]);
+        force_scope_values(&mut data, &parent(), Some("3"));
+        assert_eq!(data.get("commande_id").map(String::as_str), Some("5"));
+        assert_eq!(data.get("libelle").map(String::as_str), Some("x"));
+
+        let composite = ParentBinding {
+            local_key: Some("ligne_no"),
+            ..parent()
+        };
+        let mut data = body(&[("commande_id", "99"), ("ligne_no", "7")]);
+        force_scope_values(&mut data, &composite, Some("3"));
+        assert_eq!(data.get("ligne_no").map(String::as_str), Some("3"));
+    }
+
+    #[test]
+    fn group_set_refuses_the_local_key_but_not_other_fields() {
+        let mut e = entry();
+        e.group_actions
+            .push(GroupAction::val("ligne_no", "Renuméroter", "1"));
+        let composite = ParentBinding {
+            local_key: Some("ligne_no"),
+            ..parent()
+        };
+        assert_eq!(
+            group_set_data(&e, Some(&composite), &body(&[("ga_ligne_no", "1")])),
+            Err(BulkRefusal::NotOffered("ligne_no".into()))
+        );
+        assert!(group_set_data(&e, Some(&parent()), &body(&[("ga_statut", "archive")])).is_ok());
+    }
+
+    #[test]
+    fn an_edit_never_gets_a_random_password() {
+        let mut e = entry();
+        e.meta = e.meta.inject_password(true);
+        let mut form = crate::forms::Forms::new("csrf");
+        form.field(&crate::forms::fields::HiddenField::new("password"));
+        form.fields
+            .get_mut("password")
+            .expect("field")
+            .set_value("kept");
+        let data =
+            form_grant(&form, &body(&[]), &e, None, FormOp::Edit { local_id: "1" }).expect("grant");
+        assert_eq!(data.get("password").map(String::as_str), Some("kept"));
+        let data = form_grant(&form, &body(&[]), &e, None, FormOp::Create).expect("grant");
+        assert!(
+            data.get("password")
+                .is_some_and(|p| p.starts_with("$argon2"))
+        );
+    }
+
     #[test]
     fn bulk_ops_parse() {
         assert_eq!(BulkOp::parse("delete"), Some(BulkOp::Delete));
