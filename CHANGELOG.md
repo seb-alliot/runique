@@ -6,7 +6,15 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## [3.0.0 Upcoming]
+## [3.0.1] - 2026-10-09
+
+### Fixed
+
+* **Generated admin didn't compile with a foreign-key select field**: the generator's choice-list block called `cast_as` without importing `ExprTrait`. Regenerate `src/admins/` (`runique start`) after upgrading. The reference test only compared text; a test now checks every `cast_as` block imports the trait.
+
+---
+
+## [3.0.0] - 2026-10-09
 
 > Three structural additions: `ValidationForm<F>` (validation proven by the type system), `ADb` (one database handle type, identical in production and in tests) and the `runique_test` test builder with its `runique test` command. The model DSL is now read by a single crate, `runique_dsl`, shared by the macro and the CLI. Authentication and the admin went through a full security review, and a `cargo mutants` pass removed dead and duplicate APIs.
 >

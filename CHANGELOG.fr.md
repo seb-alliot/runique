@@ -6,7 +6,15 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ---
 
-## [3.0.0 A venir]
+## [3.0.1] - 2026-10-09
+
+### Correctif
+
+* **L'admin généré ne compilait pas avec un champ select sur clé étrangère** : le bloc de la liste de choix appelait `cast_as` sans importer `ExprTrait`. Régénérez `src/admins/` (`runique start`) après la mise à jour. Le test de référence ne comparait que du texte ; un test vérifie maintenant que chaque bloc qui utilise `cast_as` importe le trait.
+
+---
+
+## [3.0.0] - 2026-10-09
 
 > Trois nouveautés structurantes : `ValidationForm<F>` (une validation prouvée par le type), `ADb` (un seul type de connexion à la base, identique en production et en test) et le builder de test `runique_test` avec sa commande `runique test`. Le DSL des modèles est désormais lu par une seule crate, `runique_dsl`, partagée par la macro et la CLI. L'authentification et l'admin ont fait l'objet d'une revue de sécurité complète, et une passe `cargo mutants` a supprimé les API mortes ou en double.
 >
