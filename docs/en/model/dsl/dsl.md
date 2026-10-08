@@ -203,7 +203,6 @@ username: text [required, max_length: 150, unique],
 | `upload_to: "path"`       | File field — upload directory                                      |
 | `max_size: n MB`          | File field — max size (`KB`/`MB`/`GB`)                             |
 | `rows: n`                 | `textarea`/`richtext` — widget height                              |
-| `step: n`                 | Numeric fields — widget step                                       |
 | `enum(EnumName)`          | Binds the field to an enum declared in `enums:`                    |
 | `renamed_from: "x"`       | Renames the column (see below)                                     |
 | `skip`                    | Excluded from generated forms                                      |

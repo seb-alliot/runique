@@ -81,7 +81,7 @@ use runique::prelude::{hash, verify};
 let hashed = hash("mon_mot_de_passe")?;
 
 // Vérifier un mot de passe clair contre un hash stocké en DB (ex: connexion)
-let ok = verify("mdp_clair", &user.password_hash);
+let ok = verify("mdp_clair", &user.password);
 if !ok {
     // mot de passe incorrect
 }

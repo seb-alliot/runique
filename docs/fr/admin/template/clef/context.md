@@ -355,7 +355,7 @@ resources, resource_counts, current_page
 
 ### Clés obligatoires — `list`
 
-Référencées via `runique::utils::constante::admin_ctx::list::REQUIRED` :
+À fournir pour surcharger ce template :
 
 ```text
 entries, total, page, page_count, has_prev, has_next,

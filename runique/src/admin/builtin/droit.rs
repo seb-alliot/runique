@@ -23,10 +23,9 @@ use crate::utils::{
             common::RESOURCE_KEY,
             permission::{
                 CAN_CREATE, CAN_DELETE, CAN_DELETE_OWN, CAN_READ, CAN_UPDATE, CAN_UPDATE_OWN,
-                GROUPE_ID, GROUPES,
+                DROITS, GROUPE_ID, GROUPES,
             },
         },
-        session_key::session::SESSION_USER_DROITS_KEY,
     },
     forms::parse_bool,
     trad::{t, tf},
@@ -53,10 +52,10 @@ pub(super) fn droit_entry() -> ResourceEntry {
     use crate::auth::permissions::groupes_droits;
 
     let meta = AdminResource::new(
-        SESSION_USER_DROITS_KEY,
+        DROITS,
         "runique::auth::permissions::groupes_droits::Model",
         "DroitAdminForm",
-        SESSION_USER_DROITS_KEY,
+        DROITS,
     )
     // Scoped child of `groupes`: a droit is only reachable through its group
     // (/groupes/{id}/droits/...). Composite id `"{groupe_id}:{resource_key}"` is

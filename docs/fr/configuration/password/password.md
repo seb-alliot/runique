@@ -114,7 +114,7 @@ use runique::prelude::{hash, verify};
 let hashed = hash("mon_mdp")?;
 
 // Vérifier un mot de passe contre un hash stocké
-let ok = verify("mon_mdp", &user.password_hash);
+let ok = verify("mon_mdp", &user.password);
 ```
 
 Ces fonctions utilisent automatiquement la `PasswordConfig` initialisée au démarrage.

@@ -51,6 +51,16 @@ pub mod admin_context {
         /// Resource key of the `groupes` admin resource — droits are a scoped
         /// child of it (`/groupes/{id}/droits/...`), see `ParentScope`.
         pub const GROUPES: &str = "groupes";
+        /// Resource key of the built-in droits admin resource (`eihwaz_groupes_droits`).
+        pub const DROITS: &str = "droits";
+    }
+
+    /// Form field names of the built-in user admin form.
+    pub mod user {
+        /// The `is_active` flag.
+        pub const IS_ACTIVE: &str = "is_active";
+        /// The `is_staff` flag.
+        pub const IS_STAFF: &str = "is_staff";
     }
 
     /// `list` template — resource list view
@@ -99,32 +109,11 @@ pub mod admin_context {
         pub const RETURN_QS: &str = "return_qs";
         /// Group actions declared in `admin!{}` — `Vec<GroupAction>` iterated as `ga` in the template.
         pub const GROUP_ACTIONS: &str = "group_actions";
-
-        /// Mandatory keys for overriding this template
-        pub const REQUIRED: &[&str] = &[
-            ENTRIES,
-            PAGE,
-            PAGE_COUNT,
-            HAS_PREV,
-            HAS_NEXT,
-            PREV_PAGE,
-            NEXT_PAGE,
-            VISIBLE_COLUMNS,
-            SORT_BY,
-            SORT_DIR,
-            SORT_DIR_TOGGLE,
-            SEARCH,
-            RETURN_QS,
-            GROUP_ACTIONS,
-        ];
     }
 
     /// `create` template — creation form
     pub mod create {
         pub use super::common::{FORM_FIELDS, IS_EDIT, LANG};
-
-        /// Mandatory keys for overriding this template
-        pub const REQUIRED: &[&str] = &[FORM_FIELDS];
     }
 
     /// `edit` template — edition form
@@ -136,25 +125,16 @@ pub mod admin_context {
         /// Query string from the originating list (sort + search + filters) — used to redirect
         /// back to the exact list page after a successful save.
         pub const RETURN_QS: &str = "return_qs";
-
-        /// Mandatory keys for overriding this template
-        pub const REQUIRED: &[&str] = &[FORM_FIELDS, OBJECT_ID, RETURN_QS];
     }
 
     /// `detail` template — object detail view
     pub mod detail {
         pub use super::common::{ENTRY, OBJECT_ID};
-
-        /// Mandatory keys for overriding this template
-        pub const REQUIRED: &[&str] = &[ENTRY, OBJECT_ID];
     }
 
     /// `delete` template — deletion confirmation
     pub mod delete {
         pub use super::common::{ENTRY, OBJECT_ID};
-
-        /// Mandatory keys for overriding this template
-        pub const REQUIRED: &[&str] = &[ENTRY, OBJECT_ID];
     }
 
     /// `bulk_edit` template — multi-row batch edit form
@@ -164,9 +144,6 @@ pub mod admin_context {
         pub const BULK_COUNT: &str = "bulk_count";
         /// Comma-separated IDs of the selected rows — value of the hidden `ids` field.
         pub const BULK_IDS: &str = "bulk_ids";
-
-        /// Mandatory keys for overriding this template
-        pub const REQUIRED: &[&str] = &[FORM_FIELDS, BULK_COUNT, BULK_IDS];
     }
 }
 

@@ -8,8 +8,6 @@ pub trait RuniqueUser: Send + Sync {
     fn username(&self) -> &str;
     /// Email address (unique).
     fn email(&self) -> &str;
-    /// Stored password hash (Argon2/Bcrypt/Scrypt depending on `PasswordConfig`).
-    fn password_hash(&self) -> &str;
     /// Whether the account is enabled. Inactive users cannot log in.
     fn is_active(&self) -> bool;
     /// Read-only admin access.

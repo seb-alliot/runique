@@ -345,7 +345,7 @@ resources, resource_counts, current_page
 
 ### Required keys for template override
 
-Referenced via `runique::utils::constante::admin_ctx::list::REQUIRED`:
+To provide when overriding this template:
 
 ```text
 entries, total, page, page_count, has_prev, has_next,

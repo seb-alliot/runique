@@ -171,6 +171,9 @@ if let Some(user) = BuiltinUserEntity::activate_account(&db, id).await? {
 | `get_user_id(&session)` | `request.user` → `user.id` (`get_user_id` est désormais interne) |
 | `is_admin_authenticated(&session)` | `request.user` → `user.can_access_admin()` ; dans un middleware, l'extension `CurrentUser` |
 | `SESSION_USER_USERNAME_KEY`, `SESSION_USER_IS_SUPERUSER_KEY` | supprimées |
+| `session::SESSION_USER_IS_STAFF_KEY`, `session::IS_ACTIVE` (noms de champs de formulaire, pas des clés de session) | `admin_context::user::IS_STAFF`, `admin_context::user::IS_ACTIVE` |
+| `session::SESSION_USER_DROITS_KEY` (clé de ressource admin) | `admin_context::permission::DROITS` |
+| `admin_context::<template>::REQUIRED` | supprimées (jamais vérifiées) |
 | `.with_log(\|l\| l.auth(\|a\| a.permissions(...)))` | supprimé (il traçait le cache des permissions, disparu) |
 
 `is_authenticated(&session)` ne change pas.
@@ -225,7 +228,7 @@ let filtres: Filtres = request.query()?;
 
 **Messages flash** : la classe CSS est en minuscules. Renommez `.message-Success` / `Error` / `Info` / `Warning` en `.message-success`, etc.
 
-**Autres API supprimées** : `Request::render_with` (appelez `insert`, puis `render`), `ErrorContext::with_request` (`with_request_helper`), `ErrorContext::with_details`, `RuniqueUser::roles`, `update_password` par email, `RuniqueQueryBuilder::all_from_engine`, `sanitize_with_fallback`, les alias `Bdd`, `OADb`, `OSecurityCsp`, `OSecurityHosts`, `TResult`, `DbResult`, et les constantes `NONCE_KEY`, `SESSION_USER_ROLES_KEY`, `REGISTERED_ROLES`.
+**Autres API supprimées** : `Request::render_with` (appelez `insert`, puis `render`), `ErrorContext::with_request` (`with_request_helper`), `ErrorContext::with_details`, `RuniqueUser::roles`, `RuniqueUser::password_hash` (lisez le champ `password` du modèle), `RuniqueSessionStore::find_by_user`, `update_password` par email, `RuniqueQueryBuilder::all_from_engine`, `sanitize_with_fallback`, les alias `Bdd`, `OADb`, `OSecurityCsp`, `OSecurityHosts`, `TResult`, `DbResult`, et les constantes `NONCE_KEY`, `SESSION_USER_ROLES_KEY`, `REGISTERED_ROLES`.
 
 ---
 
@@ -258,6 +261,8 @@ telephone: text [max_length: 20],
 // 3.0
 telephone: text [max_length: 20, nullable],
 ```
+
+**`[step: x]` est supprimé** : il était accepté puis ignoré sur `int`, `float`, `decimal` et `percent`. Retirez-le ; un curseur écrit à la main garde `NumericField::range(...).step(x)`.
 
 **`fk(...)` est supprimé** : déclarez les clés étrangères dans `relations` avec `belongs_to`.
 

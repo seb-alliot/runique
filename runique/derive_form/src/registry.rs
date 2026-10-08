@@ -115,6 +115,14 @@ static EIHWAZ_USERS: &[PhantomColumn] = &[
         null,
         FormWidget::AutoDateTime
     ),
+    // Set only by the owner's activation (`activate_account`), never by a form:
+    // the database refuses `is_active` without it.
+    col!(
+        "activated_at",
+        PhantomType::NaiveDateTime,
+        null,
+        FormWidget::Skip
+    ),
 ];
 
 static EIHWAZ_GROUPES: &[PhantomColumn] = &[

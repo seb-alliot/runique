@@ -204,7 +204,6 @@ username: text [required, max_length: 150, unique],
 | `upload_to: "path"`      | Champ fichier — dossier d'upload                                 |
 | `max_size: n MB`         | Champ fichier — taille max (`KB`/`MB`/`GB`)                      |
 | `rows: n`                | `textarea`/`richtext` — hauteur du widget                        |
-| `step: n`                | Champs numériques — pas du widget                                |
 | `enum(NomEnum)`          | Lie le champ à un enum déclaré dans `enums:`                     |
 | `renamed_from: "x"`      | Renomme la colonne (voir plus bas)                                |
 | `skip`                   | Exclu des formulaires générés                                    |

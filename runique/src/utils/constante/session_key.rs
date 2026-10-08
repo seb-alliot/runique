@@ -1,7 +1,5 @@
-//! Session and form keys — CSRF, flash, CSP nonce, user_id, roles.
-// Session protection key — Unix timestamp (i64) indicating until when the session should be protected.
-// Set manually by the dev for anonymous sessions with value (cart, multi-step form).
-// The cleaner does not delete sessions where this timestamp is in the future.
+//! Session keys (CSRF, flash, signed-in user id, protection) and a few
+//! form field names.
 /// Keys used to store data in the `tower_sessions` session store, and a couple
 /// of related form field names.
 pub mod session {
@@ -17,12 +15,6 @@ pub mod session {
     /// carrying value (cart, multi-step form) — the session cleaner skips any
     /// session where this timestamp is still in the future.
     pub const SESSION_ACTIVE_KEY: &str = "session_active";
-    /// Form field name for the `is_staff` flag on the built-in user admin form.
-    pub const SESSION_USER_IS_STAFF_KEY: &str = "is_staff";
-    /// Registry key of the built-in rights resource (`eihwaz_groupes_droits`).
-    pub const SESSION_USER_DROITS_KEY: &str = "droits";
-    /// Form field name for the `is_active` flag on the built-in user admin form.
-    pub const IS_ACTIVE: &str = "is_active";
     /// Name of the honeypot form field checked by the anti-bot middleware —
     /// legitimate users leave it empty, so a non-empty value flags a bot.
     pub const HP_FIELD_KEY: &str = "_hp";

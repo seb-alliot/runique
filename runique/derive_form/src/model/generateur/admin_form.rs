@@ -302,7 +302,7 @@ fn text_attrs_tokens(attrs: &[FormFieldAttr], with_rows: bool) -> TokenStream2 {
     ts
 }
 
-/// Generates builder suffixes for numeric fields (min, max, step).
+/// Generates builder suffixes for numeric fields (min, max).
 fn numeric_attrs_tokens(attrs: &[FormFieldAttr]) -> TokenStream2 {
     let mut ts = quote! {};
     for attr in attrs {
@@ -317,7 +317,6 @@ fn numeric_attrs_tokens(attrs: &[FormFieldAttr]) -> TokenStream2 {
             }
             FormFieldAttr::MinF(n) => ts.extend(quote! { .min(#n, "") }),
             FormFieldAttr::MaxF(n) => ts.extend(quote! { .max(#n, "") }),
-            FormFieldAttr::Step(n) => ts.extend(quote! { .step(#n) }),
             _ => {}
         }
     }

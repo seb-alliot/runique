@@ -5,7 +5,10 @@
 ```rust
 pub async fn handler(request: Request) -> AppResult<Response> {
     // Read
-    let user_id: Option<i32> = request.session.get("user_id").await.ok().flatten();
+    let cart_id: Option<i32> = request.session.get("cart_id").await.ok().flatten();
+
+    // The signed-in user: request.user, read from the database on every request
+    let username = request.user.as_ref().map(|user| user.username.clone());
 
     // Write
     request.session.insert("cart_id", 42).await?;

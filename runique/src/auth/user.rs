@@ -71,9 +71,6 @@ impl RuniqueUser for Model {
     fn email(&self) -> &str {
         &self.email
     }
-    fn password_hash(&self) -> &str {
-        &self.password
-    }
     fn is_active(&self) -> bool {
         self.is_active
     }

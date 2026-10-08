@@ -81,7 +81,7 @@ use runique::prelude::{hash, verify};
 let hashed = hash("my_password")?;
 
 // Verify a plain password against a stored hash (e.g. login)
-let ok = verify("plain_pwd", &user.password_hash);
+let ok = verify("plain_pwd", &user.password);
 if !ok {
     // incorrect password
 }

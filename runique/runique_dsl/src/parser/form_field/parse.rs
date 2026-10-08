@@ -170,11 +170,6 @@ impl Parse for FormFieldDecl {
                         let n: LitInt = attrs_content.parse()?;
                         FormFieldAttr::Rows(n.base10_parse()?)
                     }
-                    "step" => {
-                        attrs_content.parse::<Token![:]>()?;
-                        let n: LitFloat = attrs_content.parse()?;
-                        FormFieldAttr::Step(n.base10_parse()?)
-                    }
                     "auto_now" => FormFieldAttr::AutoNow,
                     "auto_now_update" => FormFieldAttr::AutoNowUpdate,
                     "unique" => FormFieldAttr::Unique,
@@ -661,13 +656,8 @@ mod tests {
     }
 
     #[test]
-    fn step_now_valid_on_percent() {
-        ok("rate: percent [required, step: 0.5]");
-    }
-
-    #[test]
-    fn step_still_invalid_on_int() {
-        err("age: int [step: 1.0]");
+    fn step_is_not_an_attribute() {
+        err("rate: percent [required, step: 0.5]");
     }
 
     #[test]

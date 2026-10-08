@@ -90,7 +90,7 @@ extend! {
 | `auto_now` / `auto_now_update` | Set on insert / on every save; not in the forms. |
 | `enum(Name)` | The enum a `choice` / `radio` / `checkbox` draws from. |
 | `upload_to: "dir"`, `max_size: 5MB` | File fields (`upload_to` is required on them). |
-| `label: "…"`, `rows: n`, `step: x`, `no_hash` | Form rendering details. |
+| `label: "…"`, `rows: n`, `no_hash` | Form rendering details. |
 | `readonly` | Kept out of migrations and forms. |
 | `skip` | In the SQL schema, kept out of the generated forms. |
 | `renamed_from: "old"` | Migration only: rename the column instead of drop + add. |
