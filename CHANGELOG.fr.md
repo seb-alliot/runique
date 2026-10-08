@@ -60,6 +60,10 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 * **Admin** : `extra_routes` nomme son `CrudOperation` ; `ResourcePermissions` et le registre des rôles sont supprimés ; `CountFn` reçoit les filtres de colonnes.
 * **DSL des modèles** (`runique_dsl`) : colonnes NOT NULL par défaut (`nullable`), `fk()` remplacé par `belongs_to`, `auto_now` rempli par l'entité, lecture stricte par la CLI, `checkbox [enum]` devient une liste.
 * **`runique migration down` / `status`** sont supprimées (utilisez `sea-orm-cli`), ainsi que le dossier `applied/`.
+* **Connexion** : `login()` refuse un compte qui ne peut pas se connecter (`LoginError`) ; la session ne garde que l'id de l'utilisateur — le compte se lit dans `request.user`. `auth_login`, `get_username` et `is_admin_authenticated` sont supprimées, `get_user_id` devient interne, `activate_pending` est renommée `activate_account`.
+* **`RuniqueUser::password_hash`** et **`RuniqueSessionStore::find_by_user`** sont supprimées.
+* **Constantes** : `session::SESSION_USER_IS_STAFF_KEY`, `session::IS_ACTIVE` et `session::SESSION_USER_DROITS_KEY` passent dans `admin_context` (`user::IS_STAFF`, `user::IS_ACTIVE`, `permission::DROITS`) ; `SESSION_USER_USERNAME_KEY`, `SESSION_USER_IS_SUPERUSER_KEY` et `admin_context::*::REQUIRED` sont supprimées.
+* **DSL des modèles** : `[step]` est supprimé (il était accepté puis ignoré) ; `extend!{}` n'accepte plus que `eihwaz_users` et `eihwaz_groupes` (il n'a jamais compilé sur les autres tables du framework).
 * **API mortes ou en double supprimées** : `no_statics`, `with_error_handler`, `SessionConfig`, `PasswordConfig::oauth`, `StaticStaging::enable` / `disable`, `attach_middlewares`, `render_with` et les autres listées dans le guide de migration.
 
 ### Ajout
@@ -77,8 +81,10 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 ### Correctif
 
 * **`makemigrations`** : types binaires, ordre des tables qui changeait d'une exécution à l'autre, colonnes d'index composite lues comme `String` dans les snapshots.
-* **`derive_form`** : `timestamp_tz` ne compilait pas, `i8` / `i16` produisaient un `i32`, les types que le moteur ne sait pas relire sont refusés à la compilation, le parseur acceptait des entrées mal formées (noms de table, doublons, alias `has_many … as`), et des attributs étaient refusés sur certains types mais acceptés sur des types équivalents (`min_length`, `step`, `auto_now`).
+* **`derive_form`** : `timestamp_tz` ne compilait pas, `i8` / `i16` produisaient un `i32`, les types que le moteur ne sait pas relire sont refusés à la compilation, le parseur acceptait des entrées mal formées (noms de table, doublons, alias `has_many … as`), et des attributs étaient refusés sur certains types mais acceptés sur des types équivalents (`min_length`, `auto_now`).
 * **`many_to_many`** : mauvaise variante `Relation` SeaORM générée côté table de liaison.
+* **`max_size` au niveau du formulaire** (`Forms::field_max_size`, `RuniqueForm::max_size`) échouait toujours : la surcharge n'atteignait jamais le champ fichier.
+* **`extend!{ table: "eihwaz_users" }`** ne portait pas `activated_at`.
 * **`[max_size: 500KB]`** était lu comme 500 Mo.
 * **Admin** : la pagination ignorait les filtres de la barre latérale, la modification des groupes d'un utilisateur était ignorée, les libellés de clés étrangères et les écritures many-to-many échouaient sous MariaDB.
 * **`order_by_random()`** échouait sous MariaDB / MySQL.
@@ -94,6 +100,7 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 ### Dépendances
 
 * `sea-orm` / `sea-orm-migration` `=2.0.4`, `argon2` 0.6, `scrypt` 0.12, et mises à jour courantes (`tower-http`, `time`, `tera-contrib`, `indexmap`, `fancy-regex`, `validator`, `rust_decimal`, `syn`).
+* Nouvelle crate **`runique_dsl` 0.1.0** (le parseur du DSL des modèles) ; `derive_form` 3.0.0 en dépend. Ordre de publication : `runique_dsl` → `derive_form` → `runique`.
 
 ---
 

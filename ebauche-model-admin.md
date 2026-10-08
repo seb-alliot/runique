@@ -99,6 +99,36 @@ ModelAdmin::new()
 | `show_full_count(bool)` | `show_full_result_count` | plus tard | Total complet sur une liste filtrée |
 | `list_editable([..])` | `list_editable` | plus tard | Édition directe dans la liste (⊂ `fields`) |
 
+### Brique à poser en premier : une seule recherche typée
+
+Aujourd'hui, la même condition de recherche (`LOWER(CAST(col AS TEXT)) LIKE '%terme%'`, type de conversion selon le moteur, valeur en paramètre lié) existe en plusieurs copies :
+
+| Où | Forme |
+| --- | --- |
+| `search_cond!` (`runique/src/macros/bdd/filter.rs`), public | Macro, colonnes en chaîne ou `all_columns` |
+| `ilike(db, col, pattern)` (`runique/src/admin/helper/sql_dialect.rs`) | Fonction, colonne en `&str` |
+| `runique/src/admin/builtin/user.rs` et `groupe.rs` | La même boucle copiée 4 fois |
+| Code généré par le daemon (`write_search_conditions`) | Une copie par ressource |
+
+Cible : une fonction générique et typée, seule implémentation.
+
+```rust
+pub fn search_condition<E: EntityTrait>(db: &ADb, cols: &[E::Column], term: &str) -> Condition {
+    let pattern = format!("%{}%", term.to_lowercase());
+    cols.iter().fold(Condition::any(), |cond, col| {
+        cond.add(Expr::expr(Func::lower(Expr::col(*col).cast_as(text_cast_type(db)))).like(&pattern))
+    })
+}
+```
+
+| Utilisateur | Appel |
+| --- | --- |
+| Builder | `search_condition::<E>(db, &self.search, term)` — sa liste blanche |
+| `search_cond!` (vues publiques des devs) | Fine couche au-dessus ; `all_columns` passe `E::Column::iter()` |
+| Ressources intégrées (utilisateurs, groupes) | Les 4 copies disparaissent |
+
+Les détails délicats (conversion par moteur, minuscules, paramètre lié) ne vivent plus qu'à un endroit : un correctif s'applique partout d'un coup. Faisable avant le reste, sans rupture.
+
 ## Actions groupées
 
 ```rust
@@ -195,6 +225,61 @@ ModelAdmin::new()
 | `before_save(..)` | `save_model` | plus tard | Avant l'enregistrement (création ou modification) |
 | `after_delete(..)` | `delete_model` | plus tard | Après une suppression |
 | `list_template(..)` | `change_list_template` | existe en partie | Surcharge du template de liste |
+
+## Ce que ça engendre
+
+Carte des conséquences, côté framework puis côté dev. Tailles relevées le 2026-10-09.
+
+### Disparaît
+
+| Fichier | Lignes | Remplacé par |
+| --- | --- | --- |
+| `runique/src/admin/daemon/generator.rs` | 1 354 | Le code générique, monomorphisé par le compilateur |
+| `runique/src/admin/daemon/parser.rs` | 1 101 | Rien : plus de DSL `admin!{}` à lire |
+| `runique/src/admin/daemon/watcher.rs` | 28 | Rien : plus de fichier à régénérer |
+| `runique/src/admin/resource.rs` (DSL `admin!{}`) | 296 | Le builder `ModelAdmin` |
+| `demo-app/src/admins/admin.rs` (généré) | 9 155 | Un fichier court par table, écrit à la main |
+
+### Change
+
+| Fichier | Lignes | Ce qui change |
+| --- | --- | --- |
+| `runique/src/admin/helper/resource_entry.rs` | 317 | Les 9 fermetures (`ListFn`, `GetFn`, `CountFn`…) deviennent un trait `AdminResource` |
+| `runique/src/admin/admin_main/handle_*.rs` | ≈ 1 850 | Appellent le trait au lieu des fermetures ; la logique (pagination, retours, messages) reste |
+| `runique/src/admin/builtin/user.rs`, `groupe.rs`, `droit.rs` | 1 143 | Réécrits avec le builder (ou le trait directement pour les cas particuliers) |
+| `runique/src/admin/registry.rs` | — | Stocke des `Box<dyn AdminResource>` |
+| `derive_form` (`model!{}`) | — | Ajoute `impl AdminModel for Entity`, en regroupant ce qu'il génère déjà |
+
+### Reste tel quel
+
+| Élément | Pourquoi |
+| --- | --- |
+| `admin_main/gate.rs` (qui peut faire quoi, quelles clés) | Indépendant de la façon dont la ressource est déclarée |
+| Droits de groupe (`eihwaz_groupes_droits`), CSRF, connexion admin | Inchangés |
+| Templates admin, historique, actions groupées | Mêmes données, typées en amont |
+| `model!{}` côté dev | Rien à réécrire dans les modèles |
+
+### Côté dev (projet qui passe à cette version)
+
+| Avant | Après |
+| --- | --- |
+| Un bloc `admin!{}` dans `src/admin.rs` | Un dossier `src/admin/` : un fichier par table + `mod.rs` |
+| `runique start` lance le daemon | Plus de daemon |
+| `src/admins/` généré, à ne pas toucher | Supprimé |
+| `.with_admin(\|a\| a.routes(admins::routes("/admin")))` | `.with_admin(admin::site)` |
+
+Aide envisagée : une commande qui convertit un `admin!{}` existant en fichiers `src/admin/<table>.rs`.
+
+### Ordre possible
+
+| Étape | Rupture | Contenu |
+| --- | --- | --- |
+| 1 | Non | `search_condition` typée, seule implémentation (ci-dessus) |
+| 2 | Non | Trait `AdminResource` ; l'admin actuel l'implémente via ses fermetures (rien ne change pour le dev) |
+| 3 | Non | `model!{}` implémente `AdminModel` ; builder `ModelAdmin` utilisable **à côté** de `admin!{}` (prototype sur `blog`) |
+| 4 | Oui | Ressources intégrées passées au builder, suppression du daemon et de `admin!{}`, guide de migration |
+
+Les étapes 1 à 3 se livrent en 3.x sans rien casser ; seule la 4 demande une version majeure. Le test golden de l'admin actuel sert de filet à chaque étape.
 
 ## Vérifié par `register()` au démarrage
 
