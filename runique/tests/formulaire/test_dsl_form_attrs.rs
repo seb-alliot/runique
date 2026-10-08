@@ -2,8 +2,8 @@
 //! rows, label and upload settings, the schema's column types and meta, and
 //! the enums it declares.
 use crate::utils::env::{del_env, set_env};
-use runique::forms::field::RuniqueForm;
 use runique::forms::Forms;
+use runique::forms::field::RuniqueForm;
 use runique::migration::OrderDir;
 use runique::sea_orm::ActiveEnum;
 use runique::sea_orm::sea_query::ColumnType;

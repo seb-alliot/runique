@@ -176,8 +176,14 @@ fn a_form_lowers_the_size_of_a_file_field_within_its_ceiling() {
     assert_eq!(form.fields["pic"].model_max_size(), Some(2 * 1024 * 1024));
 
     assert!(form.field_max_size("pic", FileSize::mb(1)).is_ok());
-    assert!(form.field_max_size("pic", FileSize::mb(2)).is_ok(), "the ceiling itself");
-    assert!(form.field_max_size("pic", FileSize::mb(3)).is_err(), "above the ceiling");
+    assert!(
+        form.field_max_size("pic", FileSize::mb(2)).is_ok(),
+        "the ceiling itself"
+    );
+    assert!(
+        form.field_max_size("pic", FileSize::mb(3)).is_err(),
+        "above the ceiling"
+    );
 }
 
 #[test]
