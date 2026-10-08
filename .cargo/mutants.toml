@@ -12,9 +12,11 @@
 # not contain these features") and counted "unviable" — the 2026-10-06 pass
 # tested neither crate. Run those two without this file:
 #   cargo mutants -p runique_dsl --no-config
-#   cargo mutants -p derive_form --no-config --test-package runique \
+#   cargo mutants -p derive_form --no-config --cargo-arg=--package=runique \
 #     --features runique/all-databases --features runique/test-utils
-# (derive_form is a proc-macro: runique's tests are what check its output.)
+# (derive_form is a proc-macro: runique's tests are what check its output.
+# `--test-package` / `--test-workspace` don't reach the build, which keeps only
+# `--package=derive_form` and then refuses the `runique/` features.)
 features = ["runique/all-databases", "runique/test-utils"]
 # The suite takes ~45 s; leave room for a slower machine before calling a
 # mutant "timed out".
