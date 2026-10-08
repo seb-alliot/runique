@@ -406,16 +406,24 @@ impl ColumnDef {
 
     /// Marks the column as a `created_at`-style timestamp: set once, at insertion.
     pub fn auto_now(mut self) -> Self {
-        self.col_type = ColumnType::DateTime;
+        self.keep_or_set_date_time();
         self.auto_now = true;
         self
     }
 
     /// Marks the column as an `updated_at`-style timestamp: refreshed on every update.
     pub fn auto_now_update(mut self) -> Self {
-        self.col_type = ColumnType::DateTime;
+        self.keep_or_set_date_time();
         self.auto_now_update = true;
         self
+    }
+
+    /// A `timestamp_tz` keeps its time zone: its entity field is a
+    /// `DateTime<Utc>`, which Postgres can't read from a plain `TIMESTAMP`.
+    fn keep_or_set_date_time(&mut self) {
+        if !matches!(self.col_type, ColumnType::TimestampWithTimeZone) {
+            self.col_type = ColumnType::DateTime;
+        }
     }
 
     //__ variant of postgres

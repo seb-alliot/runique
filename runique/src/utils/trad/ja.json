@@ -127,6 +127,7 @@
     "validation_failed": "ビルド検証に失敗しました: {}",
     "check_failed": "ビルドが {} 個のチェックエラーで失敗しました",
     "template_failed": "テンプレートの読み込みに失敗しました: {}",
+    "driver_not_enabled": "{} ドライバーが有効になっていません: Runique は '{}' フィーチャーなしでコンパイルされました。\n\nプロジェクトの Cargo.toml:\nrunique = { version = \"{}\", features = [\"{}\"] }\n\nrunique CLI の場合:\ncargo install runique --features {} --locked --force\n\nすべてのデータベースに対応するには 'all-databases' フィーチャーを使用してください。",
     "db_missing": "'orm' 機能が有効な場合、データベース接続が必要です",
     "component_not_ready": "コンポーネント '{}' の準備ができていません",
     "check": {
@@ -471,7 +472,8 @@
   },
   "migrate": {
     "applying": "'{}'からマイグレーションを適用中...",
-    "complete_up": "マイグレーションが完了しました。"
+    "complete_up": "マイグレーションが完了しました。",
+    "crate_missing": "マイグレーション crate が見つかりません: '{}' に Cargo.toml がありません。"
   },
   "reset": {
     "forgot_title": "パスワードを忘れた",
@@ -547,5 +549,9 @@
     "build_failed": "cargo がテストをビルドできませんでした。上のエラーを確認してください。",
     "no_such_test": "テスト \"{}\" は {}.rs にありません。利用可能なテスト: {}",
     "dir_read_failed": "{} を読み込めません"
+  },
+  "auth": {
+    "login_cannot_sign_in": "このアカウントはログインできません: 無効か、一度も有効化されていません。",
+    "login_session_failed": "セッションを保存できませんでした: {}"
   }
 }

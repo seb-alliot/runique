@@ -72,6 +72,8 @@ Aucune ne faisait ce que son nom annonçait : `ALLOWED_HOSTS=monsite.fr` laissai
 
 **`DEBUG` et les autres drapeaux du `.env` sont lus quelle que soit la casse** : `True`, `YES`, `On` valent maintenant vrai. Vérifiez qu'aucun `.env` de production ne contient une telle valeur par erreur. L'enum `RuniqueEnv` est supprimée ; utilisez `is_debug()`.
 
+**Les niveaux de log s'appellent `LogLevel` dans le prelude** : `use runique::prelude::*` exporte `tracing::Level` sous le nom `LogLevel`, qui n'entre plus en conflit avec un enum de modèle nommé `Level`. Remplacer `Level::INFO` par `LogLevel::INFO` dans `.with_log(...)`, ou importer `tracing::Level` soi-même.
+
 ---
 
 ## Connexion à la base : `ADb`
@@ -133,7 +135,45 @@ login(&session, &db, user.id, &user.username, user.is_staff, user.is_superuser, 
 login(&session, &user, db_store, exclusive)
 ```
 
-`auth_login()` ne change pas.
+**`login()` vérifie le compte et renvoie `LoginError`.** Un compte qui ne peut pas se connecter (`can_sign_in()` : inactif, ou jamais activé) n'obtient pas de session, quel que soit le chemin qui l'a chargé. Traitez le refus :
+
+```rust
+match login(&session, &user, None, false).await {
+    Ok(()) => { /* connecté */ }
+    Err(LoginError::CannotSignIn) => { /* inactif, ou pas encore activé */ }
+    Err(LoginError::Session(e)) => { /* le store de session a échoué */ }
+}
+```
+
+**`auth_login()` est supprimée.** Elle relisait un compte qu'on avait déjà, et renvoyait `Ok(())` sans connecter personne quand le compte ne le pouvait pas. Passez le compte à `login()` ; le store de session par défaut sauvegarde déjà les sessions connectées en base.
+
+```rust
+// 2.x
+auth_login(&session, &db, user.id).await?;
+
+// 3.0 — après authenticate_user, une inscription, une activation…
+login(&session, &user, None, false).await?;
+```
+
+**`activate_pending()` devient `activate_account()`** et renvoie le compte activé (`Option<Model>`) au lieu d'un `bool`, prêt pour `login()`. `None` : déjà activé, ou désactivé depuis par le staff (la réactivation reste la sienne).
+
+```rust
+if let Some(user) = BuiltinUserEntity::activate_account(&db, id).await? {
+    login(&session, &user, None, false).await?;
+}
+```
+
+**La session ne contient plus que l'id de l'utilisateur.** Le nom et les drapeaux `is_staff` / `is_superuser` n'y sont plus copiés : le compte est relu en base à chaque requête, comme `request.user` chez Django, donc un renommage, une rétrogradation ou une désactivation s'applique dès la requête suivante.
+
+| 2.x | 3.0 |
+|---|---|
+| `get_username(&session)` | `request.user` → `user.username` |
+| `get_user_id(&session)` | `request.user` → `user.id` (`get_user_id` est désormais interne) |
+| `is_admin_authenticated(&session)` | `request.user` → `user.can_access_admin()` ; dans un middleware, l'extension `CurrentUser` |
+| `SESSION_USER_USERNAME_KEY`, `SESSION_USER_IS_SUPERUSER_KEY` | supprimées |
+| `.with_log(\|l\| l.auth(\|a\| a.permissions(...)))` | supprimé (il traçait le cache des permissions, disparu) |
+
+`is_authenticated(&session)` ne change pas.
 
 **`logout()` vide toute la session**, messages flash compris, comme Django. Ajoutez un message flash destiné à l'après-déconnexion *après* l'appel.
 

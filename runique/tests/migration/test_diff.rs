@@ -334,3 +334,48 @@ fn test_update_migration_lib_idempotent() {
     let count = content.matches(&format!("mod {};", module)).count();
     assert_eq!(count, 1, "Le module ne doit apparaitre qu'une fois");
 }
+
+// Written from cargo-mutants survivors (2026-10-08).
+
+/// `unique` and `default now` each trigger a column change on their own.
+#[test]
+fn test_diff_detects_unique_or_default_now_alone() {
+    let base = schema("blog", "id", vec![col("created", "DateTime")]);
+    let with = |f: fn(&mut ParsedColumn)| {
+        let mut s = base.clone();
+        f(&mut s.columns[0]);
+        s
+    };
+    let unique = with(|c| c.unique = true);
+    let default_now = with(|c| c.has_default_now = true);
+    assert_eq!(diff_schemas(&base, &unique).modified_columns.len(), 1);
+    assert_eq!(diff_schemas(&base, &default_now).modified_columns.len(), 1);
+    assert!(
+        diff_schemas(&base, &base.clone())
+            .modified_columns
+            .is_empty()
+    );
+}
+
+/// An index gone from the model is dropped; one still there is not.
+#[test]
+fn test_diff_drops_only_the_removed_index() {
+    use runique::migration::utils::types::ParsedIndex;
+    let idx = |name: &str| ParsedIndex {
+        name: name.to_string(),
+        columns: vec!["title".to_string()],
+        unique: false,
+    };
+    let mut prev = schema("blog", "id", vec![col("title", "String")]);
+    prev.indexes = vec![idx("idx_keep"), idx("idx_gone")];
+    let mut curr = prev.clone();
+    curr.indexes = vec![idx("idx_keep")];
+    let changes = diff_schemas(&prev, &curr);
+    let dropped: Vec<&str> = changes
+        .dropped_indexes
+        .iter()
+        .map(|i| i.name.as_str())
+        .collect();
+    assert_eq!(dropped, ["idx_gone"]);
+    assert!(changes.added_indexes.is_empty());
+}

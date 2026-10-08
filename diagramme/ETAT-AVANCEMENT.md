@@ -166,3 +166,20 @@ des deux lecteurs qui divergeaient : nullabilité, noms magiques, source des FK)
 - `uml/macros/macros.md` : `HasLists` / `ListField` (`search!(… => Genres has v)`).
 - `merise/modele-donnees.md` : `RUNIQUE_USER_TABLE` supprimé ; `uml/auth/authentification.md` :
   méthodes réelles de `BuiltinUserEntity`.
+
+## Session 2026-10-08 — passe mutants, couverture, LogLevel
+
+Tous les survivants de `cargo mutants --iterate` traités (tests vérifiés à la main contre leur
+mutation, ou classés avec raison dans le tri). Couverture `runique` : 87.25 % régions,
+88.72 % fonctions, 88.81 % lignes (`docs/couverture_test.md`). Diagrammes mis à jour :
+
+- `uml/transverse/utilitaires.md` : `ErrorType::BadRequest` (page 400 de `request.query()?`).
+- `uml/utils/tracing-securite-tokens.md` : `Option<LogLevel>` (`tracing::Level` exporté sous ce
+  nom dans le prelude).
+- `uml/config/configuration.md` : noms réels de `DatabaseEngine` ; `connect()` vérifie le driver
+  et masque le mot de passe dans l'erreur.
+- `uml/migration/schema-et-diff.md` : `auto_now`/`auto_now_update` sur `ColumnDef`, fuseau gardé
+  pour `timestamp_tz`.
+- `uml/migration/types-builder-et-parsed.md` : index d'une FK encadré par `unless_mysql_fk`.
+- `merise/modele-donnees.md` : `activated_at` et sa contrainte `CHECK` sur `eihwaz_users`.
+- `anomalies.md` : TZ1, IX1, SU1, DB1 (trouvés et corrigés les 07-08/10).

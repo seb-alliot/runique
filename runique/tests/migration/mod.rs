@@ -22,6 +22,7 @@ pub mod test_column_def_extra;
 pub mod test_diff;
 // Needs every engine compiled in: under a single one, `model!{}` refuses the
 // types that engine can't read back, which this test exercises on purpose.
+pub mod test_ast_helpers;
 #[cfg(feature = "all-databases")]
 pub mod test_dsl_types_roundtrip;
 pub mod test_eihwaz_tables_pk;

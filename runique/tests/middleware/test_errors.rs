@@ -282,6 +282,27 @@ async fn test_debug_bad_request_shows_the_reason() {
     assert!(html.contains("invalid digit"));
 }
 
+/// Without a `400.html` template, the built-in page still answers 400 with the
+/// translated text, and the reason stays off it. Written from cargo-mutants
+/// survivors (2026-10-08): error.rs:429 fallback_400_html.
+#[tokio::test]
+async fn test_bad_request_without_template_uses_the_fallback_page() {
+    let engine = build_engine().await;
+    let mut config = engine.config.clone();
+    config.debug = false;
+    let app = Router::new()
+        .route("/bad_query", get(bad_query))
+        .layer(middleware::from_fn(error_handler_middleware))
+        .layer(Extension(Arc::new(tera::Tera::default())))
+        .layer(Extension(Arc::new(config)));
+    let resp = request::get(app, "/bad_query").await;
+    assert_eq!(resp.status(), 400);
+    let body = resp.into_body().collect().await.unwrap().to_bytes();
+    let html = String::from_utf8_lossy(&body);
+    assert!(html.contains("<h1>400</h1>"), "{html}");
+    assert!(!html.contains("invalid digit"), "{html}");
+}
+
 #[tokio::test]
 async fn test_an_api_400_body_is_left_untouched() {
     for debug in [false, true] {

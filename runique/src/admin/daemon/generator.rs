@@ -1257,4 +1257,98 @@ mod tests {
             "{get}"
         );
     }
+
+    /// One `admin!{}` using every option the generator knows.
+    const GOLDEN_INPUT: &str = r#"admin! {
+        plats: plat::Model => PlatForm {
+            title: "Plats",
+            id_type: I32,
+            list_display: [["nom", "Nom"], ["menu_id", "Menu", "menus.titre"]],
+            list_filter: [["statut", "Statut", 25]],
+            group_action: [["is_active", "Activer", "true"], ["is_staff", "Toggle staff"]],
+            m2m: [["allergenes", "Allergènes", "plat_allergene", "plat_id", "allergene_id", "crate::entities::allergene", "nom"]],
+            edit_form: crate::forms::PlatEditForm,
+            bulk_create: allergenes
+        },
+        tags: crate::entities::tag::Model => TagForm { title: "Tags", id_type: Uuid, list_exclude: ["secret"] },
+        logs: log::Model => LogForm { title: "Logs", id_type: I64, edit_form: crate::forms::LogEditForm },
+        notes: note::Model => NoteForm { title: "Notes", list_display: [["author_id", "Auteur", "users.username"]] },
+        configure {
+            users: { list_display: [["username", "Nom"]], group_action: [["is_active", "Activer", "true"]] },
+            droits: { hidden: true },
+            groupes: { group_action: [["nom", "Renommer", "x"]] },
+            sessions: { list_filter: [["user_id", "User", 10]] },
+            history: { list_exclude: ["summary"] }
+        }
+    }"#;
+
+    const GOLDEN_PATH: &str = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/admin/daemon/golden_admin.txt"
+    );
+
+    fn temp_admins_dir(tag: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("rq_gen_{tag}_{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    /// The generated `admin.rs`, compared whole with the committed reference.
+    /// Any change to the generator's output shows up here: review the diff,
+    /// then refresh the reference with `RUNIQUE_UPDATE_GOLDEN=1`.
+    /// Written from cargo-mutants survivors (2026-10-08): write_admin,
+    /// write_admin_register, write_resource_entry and the form wrappers.
+    #[test]
+    fn generated_admin_matches_the_reference() {
+        let parsed = parse_admin_file(GOLDEN_INPUT).expect("parses");
+        let dir = temp_admins_dir("golden");
+        write_admin(&parsed, &dir).expect("writes");
+        let out = fs::read_to_string(dir.join("admin.rs")).unwrap();
+        let _ = fs::remove_dir_all(&dir);
+        if std::env::var_os("RUNIQUE_UPDATE_GOLDEN").is_some() {
+            fs::write(GOLDEN_PATH, &out).unwrap();
+        }
+        let expected = fs::read_to_string(GOLDEN_PATH).expect("reference file");
+        assert!(
+            out == expected,
+            "generated admin.rs changed: diff it against {GOLDEN_PATH}"
+        );
+    }
+
+    #[test]
+    fn readme_and_mod_are_written() {
+        let dir = temp_admins_dir("files");
+        write_readme(&dir).unwrap();
+        write_mod(&dir).unwrap();
+        let readme = fs::read_to_string(dir.join("README.md")).unwrap();
+        let module = fs::read_to_string(dir.join("mod.rs")).unwrap();
+        let _ = fs::remove_dir_all(&dir);
+        assert!(readme.contains(&*t("daemon.generated_header")), "{readme}");
+        assert_eq!(
+            module,
+            "pub mod admin;\npub use admin::{routes, admin_state};\n"
+        );
+    }
+
+    #[test]
+    fn model_paths_and_names() {
+        assert_eq!(full_model_path("crate::x::Model"), "crate::x::Model");
+        assert_eq!(
+            full_model_path("runique::auth::user::Model"),
+            "runique::auth::user::Model"
+        );
+        assert_eq!(
+            full_model_path("blog::Model"),
+            "crate::entities::blog::Model"
+        );
+        assert_eq!(pascal_case("blog_post"), "BlogPost");
+        assert_eq!(pascal_case("users"), "Users");
+        assert_eq!(model_to_module("users::Model"), "users");
+        assert_eq!(
+            model_to_module("crate::entities::blog_post::Model"),
+            "blog_post"
+        );
+        assert_eq!(model_to_module("BlogPost"), "blog_post");
+        assert_eq!(model_to_module("Model"), "model");
+    }
 }

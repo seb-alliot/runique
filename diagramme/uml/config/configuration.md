@@ -63,14 +63,14 @@ classDiagram
         +Duration connect_timeout / acquire_timeout
         +Duration idle_timeout / max_lifetime
         +bool sqlx_logging
-        +connect() async
+        +connect() async  driver vérifié, mot de passe masqué dans l'erreur
     }
     class DatabaseConfigBuilder {
         +url() / engine() / max_connections() …
         +build() DatabaseConfig
     }
     class DatabaseEngine {
-        <<enum>> Postgres / Mysql / Mariadb / Sqlite
+        <<enum>> PostgreSQL / MySQL / MariaDB / SQLite
     }
     DatabaseConfigBuilder ..> DatabaseConfig : build()
     DatabaseConfig *-- DatabaseEngine

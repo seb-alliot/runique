@@ -165,3 +165,30 @@ async fn scalar(db: &ADb, expr: Expr) -> Result<String, DbErr> {
         .ok_or_else(|| DbErr::RecordNotFound("SELECT".into()))?
         .try_get_by_index::<String>(0)
 }
+
+/// Written from cargo-mutants survivors (2026-10-08): the target line the
+/// builder prints names the engine, never the password.
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_target_names_the_engine_without_the_password() {
+        let memory = DatabaseConfig::from_url("sqlite://test.db?mode=memory")
+            .unwrap()
+            .build();
+        let shown = <ADb as TestTransaction>::describe(&memory);
+        assert!(shown.contains("SQLite"), "{shown}");
+        assert!(shown.contains(&*msg("runique_test.in_memory")), "{shown}");
+
+        let remote = DatabaseConfig::from_url("postgres://u:secret@db.example/app")
+            .unwrap()
+            .build();
+        let shown = <ADb as TestTransaction>::describe(&remote);
+        assert!(
+            shown.contains("db.example") && !shown.contains("secret"),
+            "{shown}"
+        );
+        assert!(!shown.contains(&*msg("runique_test.in_memory")), "{shown}");
+    }
+}

@@ -34,16 +34,12 @@ pub async fn login_post(mut request: Request) -> AppResult<Response> {
     let username = validated.cleaned_string("username").unwrap_or_default();
     let password = validated.cleaned_string("password").unwrap_or_default();
 
-    // 1. Chercher l'utilisateur par username via search!
-    let query = search!(users::Entity => Username eq username.trim());
-    let user = query.first(&db).await.unwrap_or(None);
-
-    if let Some(user) = user
-        && user.is_active
-        && verify(&password, &user.password)
+    // 1. Vérifier les identifiants : mot de passe vérifié même pour un nom inconnu
+    //    (pas de fuite par le temps de réponse), compte actif et activé.
+    // 2. Ouvrir la session — identifiant de session et jeton CSRF renouvelés.
+    if let Some(user) = authenticate_user(&db, username.trim(), &password).await
+        && login(&request.session, &user, None, false).await.is_ok()
     {
-        // 2. Ouvrir la session — cycle_id() anti-fixation de session inclus
-        auth_login(&request.session, &db, user.id).await.ok();
         return Ok(Redirect::to("/dashboard").into_response());
     }
 
@@ -78,7 +74,7 @@ Pour brancher l'authentification au panneau d'administration, voir aussi [11-Adm
 | Section | Description |
 | --- | --- |
 | [Modèle utilisateur](/docs/fr/auth/modele) | Built-in, trait `RuniqueUser` |
-| [Helpers de session](/docs/fr/auth/session) | `login`, `auth_login`, `logout` |
+| [Helpers de session](/docs/fr/auth/session) | `login`, `logout` |
 | [Middlewares & CurrentUser](/docs/fr/auth/middleware) | Protection des routes |
 
 ## Retour au sommaire

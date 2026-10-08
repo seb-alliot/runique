@@ -311,4 +311,62 @@ mod tests {
             assert!(timeout_from(&vars).is_err(), "{bad:?} should be refused");
         }
     }
+
+    // Written from cargo-mutants survivors (2026-10-08).
+    #[test]
+    fn a_relative_env_file_is_read_from_the_package() {
+        let dir = std::env::var_os("CARGO_MANIFEST_DIR").expect("set by cargo");
+        assert_eq!(resolve(".env.test"), Path::new(&dir).join(".env.test"));
+    }
+
+    #[test]
+    fn panic_messages_and_test_names() {
+        assert_eq!(panic_message(&"static text"), "static text");
+        assert_eq!(panic_message(&String::from("owned text")), "owned text");
+        assert_eq!(panic_message(&42u8), msg("runique_test.no_panic_message"));
+        assert_eq!(
+            current_test_name(),
+            "logic::builder_test::tests::panic_messages_and_test_names"
+        );
+    }
+
+    /// A malformed line is reported by its number, never quoted: it may be
+    /// `DATABASE_URL=…` with its password.
+    #[test]
+    fn a_malformed_env_line_is_never_quoted() {
+        let err = dotenvy::Error::LineParse("DATABASE_URL=postgres://u:secret@h/db".into(), 3);
+        let shown = parse_error("app/.env.test", &err);
+        assert!(
+            shown.contains("app/.env.test") && shown.contains('3'),
+            "{shown}"
+        );
+        assert!(!shown.contains("secret"), "{shown}");
+        let io = dotenvy::Error::Io(std::io::Error::other("disk gone"));
+        assert!(parse_error("app/.env.test", &io).contains("disk gone"));
+    }
+
+    #[test]
+    fn the_trace_is_empty_outside_a_test_and_counts_inside() {
+        assert_eq!(trace_len(), 0);
+        let scope = Arc::new(TestScope {
+            trace: Arc::default(),
+        });
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .build()
+            .unwrap();
+        let n = rt.block_on(CURRENT.scope(scope, async {
+            record("SELECT 1", Duration::ZERO, false);
+            record("SELECT 2", Duration::ZERO, false);
+            trace_len()
+        }));
+        assert_eq!(n, 2);
+    }
+
+    #[test]
+    fn a_new_target_is_remembered() {
+        announce("target-one");
+        assert_eq!(LAST_TARGET.lock().unwrap().as_deref(), Some("target-one"));
+        announce("target-two");
+        assert_eq!(LAST_TARGET.lock().unwrap().as_deref(), Some("target-two"));
+    }
 }

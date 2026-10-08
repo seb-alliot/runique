@@ -127,6 +127,7 @@
     "validation_failed": "Ошибка валидации сборки: {}",
     "check_failed": "Ошибка сборки с {} ошибками проверки",
     "template_failed": "Ошибка загрузки шаблона: {}",
+    "driver_not_enabled": "Драйвер {} не включён: Runique скомпилирован без feature '{}'.\n\nВ Cargo.toml вашего проекта:\nrunique = { version = \"{}\", features = [\"{}\"] }\n\nДля CLI runique:\ncargo install runique --features {} --locked --force\n\nЧтобы поддерживать все СУБД, используйте feature 'all-databases'.",
     "db_missing": "Требуется подключение к базе данных при включённой функции 'orm'",
     "component_not_ready": "Компонент '{}' не готов",
     "check": {
@@ -471,7 +472,8 @@
   },
   "migrate": {
     "applying": "Применение миграций из '{}'...",
-    "complete_up": "Миграция завершена."
+    "complete_up": "Миграция завершена.",
+    "crate_missing": "Крейт миграций не найден: в '{}' нет Cargo.toml."
   },
   "reset": {
     "forgot_title": "Забыли пароль",
@@ -547,5 +549,9 @@
     "build_failed": "cargo не смог собрать тесты, см. ошибки выше.",
     "no_such_test": "Нет теста \"{}\" в {}.rs. Доступные тесты: {}",
     "dir_read_failed": "Не удалось прочитать {}"
+  },
+  "auth": {
+    "login_cannot_sign_in": "Эта учётная запись не может войти: она неактивна или ни разу не активирована.",
+    "login_session_failed": "Не удалось сохранить сессию: {}"
   }
 }

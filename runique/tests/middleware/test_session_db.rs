@@ -5,7 +5,7 @@ use crate::helpers::pk::pk;
 use runique::middleware::session::session_db::RuniqueSessionStore;
 
 #[cfg(feature = "pk-uuid")]
-const SESSIONS_DDL: &str = "
+pub(crate) const SESSIONS_DDL: &str = "
     CREATE TABLE eihwaz_sessions (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
         cookie_id   TEXT NOT NULL UNIQUE,
@@ -17,7 +17,7 @@ const SESSIONS_DDL: &str = "
 ";
 
 #[cfg(not(feature = "pk-uuid"))]
-const SESSIONS_DDL: &str = "
+pub(crate) const SESSIONS_DDL: &str = "
     CREATE TABLE eihwaz_sessions (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
         cookie_id   TEXT NOT NULL UNIQUE,

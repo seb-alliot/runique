@@ -7,20 +7,14 @@ use axum::{Router, response::IntoResponse, routing::get};
 use tower_sessions::{MemoryStore, Session, SessionManagerLayer};
 
 use runique::auth::permissions::Groupe;
-use runique::auth::session::{
-    get_user_id, get_username, is_admin_authenticated, is_authenticated, login, logout,
-    protect_session, unprotect_session,
-};
-use runique::utils::constante::{
-    admin_context::permission::GROUPES,
-    session_key::session::{SESSION_USER_IS_STAFF_KEY, SESSION_USER_IS_SUPERUSER_KEY},
-};
+use runique::auth::session::{is_authenticated, login, logout, protect_session, unprotect_session};
+use runique::utils::constante::admin_context::permission::GROUPES;
 
 use crate::helpers::{
     assert::{assert_body_str, assert_status},
     pk::pk,
     request,
-    user::test_user,
+    user::{session_user_id, test_user},
 };
 
 // ── Helper local ──────────────────────────────────────────────────────────────
@@ -75,7 +69,7 @@ async fn test_is_authenticated_after_login() {
 // ── login ─────────────────────────────────────────────────────────────────────
 
 #[tokio::test]
-async fn test_login_sets_id_and_username() {
+async fn test_login_stores_the_id_and_no_name() {
     async fn handler(session: Session) -> impl IntoResponse {
         login(
             &session,
@@ -85,13 +79,14 @@ async fn test_login_sets_id_and_username() {
         )
         .await
         .unwrap();
-        let id = get_user_id(&session).await.unwrap_or_default();
-        let username = get_username(&session).await.unwrap_or_default();
-        format!("{}/{}", id, username)
+        let id = session_user_id(&session).await.unwrap_or_default();
+        // The account is read from the database: no name copied into the session.
+        let name = session.get::<String>("username").await.ok().flatten();
+        format!("{}/{:?}", id, name)
     }
 
     let res = request::get(build_app(get(handler)), "/test").await;
-    assert_body_str(res, &format!("{}/bob", pk(42))).await;
+    assert_body_str(res, &format!("{}/None", pk(42))).await;
 }
 
 // ── login — tous les champs ───────────────────────────────────────────────────
@@ -108,16 +103,21 @@ async fn test_login_sets_all_fields() {
         .await
         .unwrap();
 
-        let id = get_user_id(&session).await.unwrap_or_default();
-        let username = get_username(&session).await.unwrap_or_default();
+        let id = session_user_id(&session).await.unwrap_or_default();
+        let username = session
+            .get::<String>("username")
+            .await
+            .ok()
+            .flatten()
+            .unwrap_or_default();
         let is_staff = session
-            .get::<bool>(SESSION_USER_IS_STAFF_KEY)
+            .get::<bool>("is_staff")
             .await
             .ok()
             .flatten()
             .unwrap_or(false);
         let is_su = session
-            .get::<bool>(SESSION_USER_IS_SUPERUSER_KEY)
+            .get::<bool>("is_superuser")
             .await
             .ok()
             .flatten()
@@ -140,7 +140,8 @@ async fn test_login_sets_all_fields() {
     }
 
     let res = request::get(build_app(get(handler)), "/test").await;
-    assert_body_str(res, &format!("{}/admin/true/true/0", pk(7))).await;
+    // Rights stay in the database: never copied into the session.
+    assert_body_str(res, &format!("{}//false/false/0", pk(7))).await;
 }
 
 // ── logout ────────────────────────────────────────────────────────────────────
@@ -158,16 +159,15 @@ async fn test_logout_clears_session_keys() {
         .unwrap();
         logout(&session, None).await.unwrap();
 
-        let all_cleared = get_user_id(&session).await.is_none()
-            && get_username(&session).await.is_none()
+        let all_cleared = session_user_id(&session).await.is_none()
             && session
-                .get::<bool>(SESSION_USER_IS_STAFF_KEY)
+                .get::<bool>("is_staff")
                 .await
                 .ok()
                 .flatten()
                 .is_none()
             && session
-                .get::<bool>(SESSION_USER_IS_SUPERUSER_KEY)
+                .get::<bool>("is_superuser")
                 .await
                 .ok()
                 .flatten()
@@ -213,12 +213,12 @@ async fn test_is_not_authenticated_after_logout() {
     assert_body_str(res, "anonymous").await;
 }
 
-// ── get_user_id / get_username ────────────────────────────────────────────────
+// ── session id ────────────────────────────────────────────────
 
 #[tokio::test]
-async fn test_get_user_id_returns_none_when_not_logged_in() {
+async fn test_no_user_id_when_not_logged_in() {
     async fn handler(session: Session) -> impl IntoResponse {
-        if get_user_id(&session).await.is_some() {
+        if session_user_id(&session).await.is_some() {
             "some"
         } else {
             "none"
@@ -227,97 +227,6 @@ async fn test_get_user_id_returns_none_when_not_logged_in() {
 
     let res = request::get(build_app(get(handler)), "/test").await;
     assert_body_str(res, "none").await;
-}
-
-#[tokio::test]
-async fn test_get_username_after_login() {
-    async fn handler(session: Session) -> impl IntoResponse {
-        login(
-            &session,
-            &test_user(pk(1), "charlie", false, false),
-            None,
-            false,
-        )
-        .await
-        .unwrap();
-        get_username(&session).await.unwrap_or_default()
-    }
-
-    let res = request::get(build_app(get(handler)), "/test").await;
-    assert_body_str(res, "charlie").await;
-}
-
-// ── is_admin_authenticated ────────────────────────────────────────────────────
-
-#[tokio::test]
-async fn test_is_admin_authenticated_not_logged_in() {
-    async fn handler(session: Session) -> impl IntoResponse {
-        if is_admin_authenticated(&session).await {
-            "admin"
-        } else {
-            "not_admin"
-        }
-    }
-    let res = request::get(build_app(get(handler)), "/test").await;
-    assert_body_str(res, "not_admin").await;
-}
-
-#[tokio::test]
-async fn test_is_admin_authenticated_plain_user() {
-    async fn handler(session: Session) -> impl IntoResponse {
-        login(
-            &session,
-            &test_user(pk(10), "user", false, false),
-            None,
-            false,
-        )
-        .await
-        .unwrap();
-        if is_admin_authenticated(&session).await {
-            "admin"
-        } else {
-            "not_admin"
-        }
-    }
-    let res = request::get(build_app(get(handler)), "/test").await;
-    assert_body_str(res, "not_admin").await;
-}
-
-#[tokio::test]
-async fn test_is_admin_authenticated_staff() {
-    async fn handler(session: Session) -> impl IntoResponse {
-        login(
-            &session,
-            &test_user(pk(11), "staff", true, false),
-            None,
-            false,
-        )
-        .await
-        .unwrap();
-        if is_admin_authenticated(&session).await {
-            "admin"
-        } else {
-            "not_admin"
-        }
-    }
-    let res = request::get(build_app(get(handler)), "/test").await;
-    assert_body_str(res, "admin").await;
-}
-
-#[tokio::test]
-async fn test_is_admin_authenticated_superuser() {
-    async fn handler(session: Session) -> impl IntoResponse {
-        login(&session, &test_user(pk(12), "su", false, true), None, false)
-            .await
-            .unwrap();
-        if is_admin_authenticated(&session).await {
-            "admin"
-        } else {
-            "not_admin"
-        }
-    }
-    let res = request::get(build_app(get(handler)), "/test").await;
-    assert_body_str(res, "admin").await;
 }
 
 // ── protect_session / unprotect_session ───────────────────────────────────────

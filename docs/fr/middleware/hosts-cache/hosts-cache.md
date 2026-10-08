@@ -22,7 +22,7 @@ et les proxies inverses qui proxifient en HTTP/2.
 Les rejections peuvent être loggées via `RuniqueLog` :
 
 ```rust
-.with_log(|l| l.host_validation(Level::WARN))
+.with_log(|l| l.host_validation(LogLevel::WARN))
 ```
 
 En production, `WARN` est recommandé pour détecter des attaques ou des mauvaises configurations.

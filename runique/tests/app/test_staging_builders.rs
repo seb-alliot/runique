@@ -74,6 +74,12 @@ async fn an_extra_db_is_reachable_from_the_engine() {
         app.engine.extension::<SearchClient>().as_deref(),
         Some(&SearchClient(7))
     );
+    // `custom_db` is the older name of `extension`: same answer, both sides.
+    assert_eq!(
+        app.engine.custom_db::<SearchClient>().as_deref(),
+        Some(&SearchClient(7))
+    );
+    assert!(app.engine.custom_db::<String>().is_none());
 }
 
 #[test]

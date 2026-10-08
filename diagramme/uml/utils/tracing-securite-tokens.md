@@ -36,7 +36,7 @@ classDiagram
 ```
 
 Chaque `*Tracing` (FormTracing, AuthTracing, AdminTracing…) = sous-struct avec une feuille
-`Option<Level>` par sous-canal → activation fine par domaine. `runique_log!(level, …)` émet ;
+`Option<LogLevel>` par sous-canal (`LogLevel` = `tracing::Level` du prelude) → activation fine par domaine. `runique_log!(level, …)` émet ;
 `get_log().<domaine>.<canal>` lit le niveau gaté.
 
 ## TraceResult — ne pas avaler les `Result`

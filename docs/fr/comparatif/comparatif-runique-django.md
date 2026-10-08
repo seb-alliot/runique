@@ -102,7 +102,7 @@
 
 | Fonctionnalité | Django | Runique |
 |----------------|--------|---------|
-| Login / Logout | `authenticate()` + `login()` | `auth_login(...)`, `logout()` |
+| Login / Logout | `authenticate()` + `login()` | `authenticate_user()` + `login()`, `logout()` |
 | Vérif authentification | `request.user.is_authenticated` | `is_authenticated(&session).await` |
 | Utilisateur courant | `request.user` | `CurrentUser` (injecté via middleware) |
 | Protection route | `@login_required` | `if !is_authenticated(...).await { redirect }` |
@@ -178,7 +178,7 @@
 
 | Fonctionnalité | Django | Runique |
 |----------------|--------|---------|
-| Config logging | dict `LOGGING` (`logging` Python) | arbre `RuniqueLog` par domaine (`forms`, `middleware`, `session`, `auth`, `admin`, `db`, `mailer`, `migration`, `templates`, `errors`, `builder`) — chaque feuille un `Option<Level>` |
+| Config logging | dict `LOGGING` (`logging` Python) | arbre `RuniqueLog` par domaine (`forms`, `middleware`, `session`, `auth`, `admin`, `db`, `mailer`, `migration`, `templates`, `errors`, `builder`) — chaque feuille un `Option<LogLevel>` |
 | Tracing structuré | tiers (`structlog`) | natif (`tracing`) ; les `Result` avalés loggent leur `file:line` via `TraceResult::trace` / `trace_or` |
 | Sorties | handlers (console / fichier / …) | `.output(...)` : stdout couleurs, fichier roulant (JSON ou texte, non bloquant), `LogSink` custom (DB / HTTP / file) |
 | Override fichier runtime | — | variable d'env `RUNIQUE_LOG_FILE` |

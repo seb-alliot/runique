@@ -17,13 +17,9 @@ pub mod session {
     /// carrying value (cart, multi-step form) — the session cleaner skips any
     /// session where this timestamp is still in the future.
     pub const SESSION_ACTIVE_KEY: &str = "session_active";
-    /// Session key storing the authenticated user's username.
-    pub const SESSION_USER_USERNAME_KEY: &str = "username";
-    /// Session key storing whether the authenticated user is staff.
+    /// Form field name for the `is_staff` flag on the built-in user admin form.
     pub const SESSION_USER_IS_STAFF_KEY: &str = "is_staff";
-    /// Session key storing whether the authenticated user is a superuser.
-    pub const SESSION_USER_IS_SUPERUSER_KEY: &str = "is_superuser";
-    /// Session key storing the authenticated user's droits (permissions).
+    /// Registry key of the built-in rights resource (`eihwaz_groupes_droits`).
     pub const SESSION_USER_DROITS_KEY: &str = "droits";
     /// Form field name for the `is_active` flag on the built-in user admin form.
     pub const IS_ACTIVE: &str = "is_active";

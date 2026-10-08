@@ -266,3 +266,37 @@ fn admin_template_setters_keep_the_rest() {
         assert_eq!(got, want);
     }
 }
+
+/// Actions declared several times on one field become one action offering all
+/// their values; different fields stay separate. Written from cargo-mutants
+/// survivors (2026-10-08): resource_entry.rs:308.
+#[test]
+fn group_actions_on_the_same_field_are_merged() {
+    use runique::admin::AdminResource;
+    use runique::admin::helper::resource_entry::{FormBuilder, GroupAction, ResourceEntry};
+    let form_builder: FormBuilder =
+        std::sync::Arc::new(|_, _, _, _, _, _| Box::pin(async { unreachable!() }));
+    let entry = ResourceEntry::new(AdminResource::new("posts", "M", "F", "Posts"), form_builder)
+        .with_group_actions(vec![
+            GroupAction::val("status", "Archive", "archived"),
+            GroupAction::bool("is_pinned", "Pin"),
+            GroupAction::val("status", "Publish", "published"),
+        ]);
+    let fields: Vec<&str> = entry
+        .group_actions
+        .iter()
+        .map(|a| a.field.as_str())
+        .collect();
+    assert_eq!(fields, ["status", "is_pinned"]);
+    let status: Vec<&str> = entry.group_actions[0]
+        .choices
+        .iter()
+        .map(|(v, _)| v.as_str())
+        .collect();
+    assert_eq!(status, ["archived", "published"]);
+    assert_eq!(
+        entry.group_actions[1].choices.len(),
+        2,
+        "the bool action is untouched"
+    );
+}

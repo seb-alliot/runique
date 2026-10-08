@@ -134,6 +134,11 @@ classDiagram
 (`forward`, inline sous SQLite seulement) et les FK d'autres tables à ajouter après sa création
 (`closing`, `ALTER` hors SQLite).
 
+Index d'une FK (`idx_{table}_{col}`, une colonne, non unique) : `fk_index_column` le repère,
+`unless_mysql_fk` l'encadre d'une vérification `information_schema.KEY_COLUMN_USAGE` à
+l'exécution → jamais créé ni supprimé sous MySQL/MariaDB (InnoDB l'indexe déjà, et le
+supprimer lèverait l'erreur 1553). Snapshots non encadrés (`build_index_create_stmts(schema, guard)`).
+
 ## Anomalies / flux suspects
 
 ### ✅ Confirmation — `Changes` est le vrai diff (AM1/M1 = faux positifs)

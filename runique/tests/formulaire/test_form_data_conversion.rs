@@ -93,3 +93,32 @@ fn partial_update_only_touches_what_is_sent() {
     let err = items::admin_partial_update(&data(&[("qty", "x")]), 1).unwrap_err();
     assert_eq!(err, FormDataError::Invalid("qty".into()));
 }
+
+// Written from cargo-mutants survivors (2026-10-08): the message is what the
+// admin shows on the form (through `DbErr::Custom`), so it must name the field.
+#[test]
+fn test_form_data_errors_name_their_field() {
+    for err in [
+        FormDataError::Invalid("qty".into()),
+        FormDataError::Required("qty".into()),
+        FormDataError::Password("secret".into()),
+    ] {
+        let field = match &err {
+            FormDataError::Invalid(f) | FormDataError::Required(f) | FormDataError::Password(f) => {
+                f.clone()
+            }
+        };
+        let shown = err.to_string();
+        assert!(shown.contains(&field), "{shown}");
+        assert!(
+            runique::sea_orm::DbErr::from(err)
+                .to_string()
+                .contains(&field),
+            "the admin sees the same message"
+        );
+    }
+    assert_ne!(
+        FormDataError::Invalid("qty".into()).to_string(),
+        FormDataError::Required("qty".into()).to_string()
+    );
+}

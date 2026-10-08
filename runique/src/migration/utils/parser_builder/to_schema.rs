@@ -89,7 +89,9 @@ pub(crate) fn decl_to_column(decl: &FormFieldDecl, enums: &[EnumDef]) -> ParsedC
         FieldType::Binary(n) => field.kind.byte_limit(*n),
         _ => None,
     };
-    let col_type = if auto_now || auto_now_update {
+    // Same rule as `ColumnDef::auto_now`: a date-time column, except that a
+    // `timestamp_tz` keeps its time zone (its entity field is a `DateTime<Utc>`).
+    let col_type = if (auto_now || auto_now_update) && !matches!(ty, FieldType::TimestampTz) {
         "DateTime".to_string()
     } else {
         col_type(&ty, enums)

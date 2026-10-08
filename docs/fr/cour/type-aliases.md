@@ -320,7 +320,7 @@ pub type Pk = i64;
 pub type Pk = i32;
 ```
 
-Tout le framework écrit `Pk` (`CurrentUser.id`, `auth_login(&session, &db, user_id: Pk)`…). Changer de type de clé primaire, c'est changer une feature dans `Cargo.toml`, pas des centaines de signatures. C'est le cas d'école de l'alias : aucune garantie à ajouter, juste un seul endroit qui décide.
+Tout le framework écrit `Pk` (`CurrentUser.id`, `BuiltinUserEntity::find_by_id(&db, id: Pk)`…). Changer de type de clé primaire, c'est changer une feature dans `Cargo.toml`, pas des centaines de signatures. C'est le cas d'école de l'alias : aucune garantie à ajouter, juste un seul endroit qui décide.
 
 ### 8.2 Quand un alias ne suffit plus : `ADb`
 

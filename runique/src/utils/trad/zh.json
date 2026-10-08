@@ -127,6 +127,7 @@
     "validation_failed": "构建验证失败：{}",
     "check_failed": "构建检查失败，共 {} 个错误",
     "template_failed": "模板加载失败：{}",
+    "driver_not_enabled": "{} 驱动未启用：Runique 编译时未启用 '{}' feature。\n\n在项目的 Cargo.toml 中：\nrunique = { version = \"{}\", features = [\"{}\"] }\n\n对于 runique CLI：\ncargo install runique --features {} --locked --force\n\n如需支持所有数据库，请使用 'all-databases' feature。",
     "db_missing": "启用 'orm' 功能时需要数据库连接",
     "component_not_ready": "组件 '{}' 尚未就绪",
     "check": {
@@ -471,7 +472,8 @@
   },
   "migrate": {
     "applying": "正在从'{}'应用迁移...",
-    "complete_up": "迁移完成。"
+    "complete_up": "迁移完成。",
+    "crate_missing": "未找到迁移 crate：'{}' 中没有 Cargo.toml。"
   },
   "reset": {
     "forgot_title": "忘记密码",
@@ -547,5 +549,9 @@
     "build_failed": "cargo 无法编译测试，请查看上方错误。",
     "no_such_test": "测试 \"{}\" 不在 {}.rs 中。可用的测试：{}",
     "dir_read_failed": "无法读取 {}"
+  },
+  "auth": {
+    "login_cannot_sign_in": "此账户无法登录：账户未启用或从未激活。",
+    "login_session_failed": "无法保存会话：{}"
   }
 }

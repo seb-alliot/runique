@@ -9,7 +9,7 @@ use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter};
 // Memory structures
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Group permissions on a resource, cached.
+/// A group's permissions on a resource, as read from the database.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
 pub struct Permission {
     pub resource_key: String,

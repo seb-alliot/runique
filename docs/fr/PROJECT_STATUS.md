@@ -89,7 +89,7 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 - 9 langues (en, fr, de, es, it, pt, ja, zh, ru), stockage `AtomicU8`, `RUNIQUE_LANG`
 
 ### Tracing & observabilité
-- Arbre `RuniqueLog` par domaine (forms, middleware, session, auth, admin, db, mailer, migration, templates, errors, builder), chaque feuille un `Option<Level>`
+- Arbre `RuniqueLog` par domaine (forms, middleware, session, auth, admin, db, mailer, migration, templates, errors, builder), chaque feuille un `Option<LogLevel>`
 - `TraceResult::trace` / `trace_or` — les `Result` avalés loggent leur `file:line` ; les sites sensibles à la sécurité plancher à `WARN` même catégorie désactivée
 - Sorties : stdout couleurs, fichiers roulants (JSON/plain, non bloquants), `LogSink` custom (aucun type `tracing` exposé) ; `.external()` délègue le subscriber global à l'app hôte
 - Override runtime `RUNIQUE_LOG_FILE`
@@ -117,7 +117,7 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 - `can_read`, `can_create`, `can_update`, `can_delete` : appliqués par opération ✅
 - `can_update_own`, `can_delete_own` : appliqués quand `own_field` est déclaré dans `admin!{}` ✅
-- Permissions par groupe, cache mémoire avec révocation immédiate ✅
+- Permissions par groupe, relues en base à chaque requête (révocation immédiate) ✅
 
 ---
 

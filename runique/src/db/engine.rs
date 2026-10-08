@@ -94,60 +94,54 @@ impl DatabaseEngine {
 /// Returns a helpful error message if the corresponding Cargo feature is not enabled.
 pub(super) fn verify_database_driver(engine: &DatabaseEngine) -> Result<(), String> {
     match engine {
-        DatabaseEngine::PostgreSQL => {
-            #[cfg(not(feature = "postgres"))]
-            return Err("PostgreSQL driver not enabled.\n\n\
-                To fix this, add the 'postgres' feature to runique in your Cargo.toml:\n\n\
-                [dependencies]\n\
-                runique = { version = \"0.1\", features = [\"postgres\"] }\n\n\
-                Or enable all databases:\n\
-                runique = { version = \"0.1\", features = [\"all-databases\"] }"
-                .to_string());
+        #[cfg(not(feature = "postgres"))]
+        DatabaseEngine::PostgreSQL => Err(driver_not_enabled(engine, "postgres")),
+        #[cfg(not(feature = "mysql"))]
+        DatabaseEngine::MySQL => Err(driver_not_enabled(engine, "mysql")),
+        // MariaDB goes through the MySQL driver: `all-databases` enables `mysql`, not `mariadb`.
+        #[cfg(not(feature = "mysql"))]
+        DatabaseEngine::MariaDB => Err(driver_not_enabled(engine, "mariadb")),
+        #[cfg(not(feature = "sqlite"))]
+        DatabaseEngine::SQLite => Err(driver_not_enabled(engine, "sqlite")),
+        #[allow(unreachable_patterns)]
+        _ => Ok(()),
+    }
+}
 
-            #[cfg(feature = "postgres")]
-            Ok(())
-        }
-        DatabaseEngine::MySQL => {
-            #[cfg(not(feature = "mysql"))]
-            return Err("MySQL driver not enabled.\n\n\
-                To fix this, add the 'mysql' feature to runique in your Cargo.toml:\n\n\
-                [dependencies]\n\
-                runique = { version = \"0.1\", features = [\"mysql\"] }\n\n\
-                Or enable all databases:\n\
-                runique = { version = \"0.1\", features = [\"all-databases\"] }"
-                .to_string());
+/// Both fixes: the dependency line for an app, `cargo install` for the CLI binary.
+#[cfg(not(all(feature = "postgres", feature = "mysql", feature = "sqlite")))]
+fn driver_not_enabled(engine: &DatabaseEngine, feature: &str) -> String {
+    crate::utils::trad::tf(
+        "build.driver_not_enabled",
+        &[
+            engine.name(),
+            feature,
+            env!("CARGO_PKG_VERSION"),
+            feature,
+            feature,
+        ],
+    )
+}
 
-            #[cfg(feature = "mysql")]
-            Ok(())
-        }
-        DatabaseEngine::MariaDB => {
-            #[cfg(not(feature = "mariadb"))]
-            return Err("MariaDB driver not enabled.\n\n\
-                To fix this, add the 'mariadb' feature to runique in your Cargo.toml:\n\n\
-                [dependencies]\n\
-                runique = { version = \"0.1\", features = [\"mariadb\"] }\n\n\
-                Note: MariaDB uses the MySQL driver.\n\n\
-                Or enable all databases:\n\
-                runique = { version = \"0.1\", features = [\"all-databases\"] }"
-                .to_string());
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-            #[cfg(feature = "mariadb")]
-            Ok(())
-        }
-        DatabaseEngine::SQLite => {
-            #[cfg(not(feature = "sqlite"))]
-            return Err(
-                "To fix this, add the 'sqlite' feature to runique in your Cargo.toml:\n\n\
-                [dependencies]\n\
-                runique = { version = \"1.xx\", features = [\"sqlite\"] }
-                Note: Sqlite uses the Sqlite driver.\n\n\
-                Or enable all databases:\n\
-                runique = { version = \"0.1\", features = [\"all-databases\"]"
-                    .to_string(),
-            );
+    #[cfg(not(feature = "postgres"))]
+    #[test]
+    fn a_missing_driver_names_the_real_version_and_both_fixes() {
+        let msg = verify_database_driver(&DatabaseEngine::PostgreSQL).unwrap_err();
+        assert!(msg.contains(env!("CARGO_PKG_VERSION")), "{msg}");
+        assert!(msg.contains(r#"features = ["postgres"]"#), "{msg}");
+        assert!(
+            msg.contains("cargo install runique --features postgres --locked --force"),
+            "{msg}"
+        );
+    }
 
-            #[cfg(feature = "sqlite")]
-            Ok(())
-        }
+    #[cfg(feature = "sqlite")]
+    #[test]
+    fn a_compiled_driver_passes() {
+        assert!(verify_database_driver(&DatabaseEngine::SQLite).is_ok());
     }
 }

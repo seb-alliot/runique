@@ -8,7 +8,7 @@ Guide pas à pas pour activer l'interface d'administration dans un projet Runiqu
 
 - Un projet Runique fonctionnel avec une base de données configurée
 - Un modèle `users` avec les champs `is_staff` et `is_superuser` (générés par `model!`)
-- Le binaire `runique` installé (`cargo install runique` ou `cargo build` du workspace)
+- Le binaire `runique` installé (`cargo install runique --features <moteur> --locked` ou `cargo build` du workspace)
 
 ---
 

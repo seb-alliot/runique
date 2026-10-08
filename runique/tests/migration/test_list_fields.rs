@@ -68,6 +68,11 @@ fn each_list_field_gets_its_own_table() {
     );
 
     let genres = table("books_genres");
+    let pk = genres.primary_key.as_ref().expect("a key of its own");
+    assert_eq!(
+        (pk.name.as_str(), pk.col_type.as_str()),
+        ("id", "BigInteger")
+    );
     let col = |name: &str| genres.columns.iter().find(|c| c.name == name).unwrap();
     assert_eq!(
         col("owner_id").col_type,

@@ -61,3 +61,26 @@ async fn test_rate_limit_many_limits_each_route() {
     assert_eq!(request::get(app.clone(), "/many-a").await.status(), 200);
     assert_eq!(request::get(app, "/many-a").await.status(), 429);
 }
+
+/// A limit restricted to some methods counts only those: other methods pass
+/// freely. Written from cargo-mutants survivors (2026-10-08): rate_limit.rs:187.
+#[tokio::test]
+async fn test_rate_limit_counts_only_its_methods() {
+    let app: Router = Router::new().rate_limit(
+        "/form",
+        "form_route",
+        get(|| async { "page" }).post(|| async { "sent" }),
+        1,
+        60,
+        vec![axum::http::Method::POST],
+    );
+    for _ in 0..3 {
+        assert_eq!(
+            request::get(app.clone(), "/form").await.status(),
+            200,
+            "GET is not limited"
+        );
+    }
+    assert_eq!(request::post(app.clone(), "/form").await.status(), 200);
+    assert_eq!(request::post(app, "/form").await.status(), 429, "POST is");
+}

@@ -3,12 +3,8 @@ use crate::auth::permissions::{Groupe, Permission};
 use crate::auth::user_trait::RuniqueUser;
 use crate::middleware::security::csrf::rotate_csrf_token;
 use crate::middleware::session::session_db::RuniqueSessionStore;
-use crate::utils::aliases::ADb;
 use crate::utils::config::TraceResult;
-use crate::utils::constante::session_key::session::{
-    SESSION_ACTIVE_KEY, SESSION_USER_ID_KEY, SESSION_USER_IS_STAFF_KEY,
-    SESSION_USER_IS_SUPERUSER_KEY, SESSION_USER_USERNAME_KEY,
-};
+use crate::utils::constante::session_key::session::{SESSION_ACTIVE_KEY, SESSION_USER_ID_KEY};
 use crate::utils::pk::Pk;
 use serde::{Deserialize, Serialize};
 use tower_sessions::Session;
@@ -128,15 +124,6 @@ impl CurrentUser {
 // Session helpers
 // ═══════════════════════════════════════════════════════════════
 
-async fn session_bool(session: &Session, key: &str) -> bool {
-    session
-        .get::<bool>(key)
-        .await
-        .ok()
-        .flatten()
-        .unwrap_or(false)
-}
-
 /// Checks if the user is authenticated.
 pub async fn is_authenticated(session: &Session) -> bool {
     session
@@ -147,33 +134,24 @@ pub async fn is_authenticated(session: &Session) -> bool {
         .is_some()
 }
 
-/// Checks if the user is authenticated and has admin access.
-pub async fn is_admin_authenticated(session: &Session) -> bool {
-    is_authenticated(session).await
-        && (session_bool(session, SESSION_USER_IS_STAFF_KEY).await
-            || session_bool(session, SESSION_USER_IS_SUPERUSER_KEY).await)
-}
-
-/// Retrieves the ID of the logged-in user.
-pub async fn get_user_id(session: &Session) -> Option<Pk> {
+/// The id the session was signed in with — for the middlewares that reload
+/// the account. Handlers read `request.user`, the account as the database has it.
+pub(crate) async fn get_user_id(session: &Session) -> Option<Pk> {
     session.get::<Pk>(SESSION_USER_ID_KEY).await.ok().flatten()
-}
-
-/// Retrieves the username of the logged-in user.
-pub async fn get_username(session: &Session) -> Option<String> {
-    session
-        .get::<String>(SESSION_USER_USERNAME_KEY)
-        .await
-        .ok()
-        .flatten()
 }
 
 // ═══════════════════════════════════════════════════════════════
 // Unified Login
 // ═══════════════════════════════════════════════════════════════
 
-/// Logs in a user: stores their identity in the session. Their rights and
-/// account state are read from the database on each request, not stored here.
+/// Logs in a user: stores their id in the session (and renews the session id
+/// and the CSRF token). Their name, rights and account state are read from the
+/// database on each request (`request.user`), not stored here.
+///
+/// Refuses an account that may not sign in (`can_sign_in()`: inactive, or never
+/// activated) with [`LoginError::CannotSignIn`], writing nothing. The account
+/// must come from the server (`authenticate_user`, an account just created or
+/// activated), never from an id taken from the request.
 ///
 /// If `db_store` is provided, persists the session in DB (multi-device).
 /// If `exclusive` is `true`, invalidates other sessions for the user.
@@ -186,10 +164,14 @@ pub async fn login(
     user: &impl RuniqueUser,
     db_store: Option<&RuniqueSessionStore>,
     exclusive: bool,
-) -> Result<(), tower_sessions::session::Error> {
+) -> Result<(), LoginError> {
+    // Checked here whatever the path: a session is never opened for an inactive
+    // or never-activated account, even one loaded without `authenticate_user`.
+    if !user.can_sign_in() {
+        return Err(LoginError::CannotSignIn);
+    }
     let user_id = user.user_id();
     let username = user.username();
-    let is_staff = user.is_staff();
     let is_superuser = user.is_superuser();
 
     // If another session is already active, perform a clean logout before login
@@ -238,14 +220,9 @@ pub async fn login(
             "login"
         );
     }
+    // The id alone: the account (name, rights) is read from the database on
+    // every request, a copy here would outlive a change.
     session.insert(SESSION_USER_ID_KEY, user_id).await?;
-    session
-        .insert(SESSION_USER_USERNAME_KEY, username.to_string())
-        .await?;
-    session.insert(SESSION_USER_IS_STAFF_KEY, is_staff).await?;
-    session
-        .insert(SESSION_USER_IS_SUPERUSER_KEY, is_superuser)
-        .await?;
 
     // Promote the session TTL to the authenticated duration on the login request
     // itself, so the first persisted row already carries the long expiry instead of
@@ -308,27 +285,33 @@ pub async fn login(
     Ok(())
 }
 
-/// Logs in a user starting only from their `user_id` — loads data from the DB.
-///
-/// Generic shortcut for any authentication flow (registration, OAuth, magic link...)
-/// that already has the user identifier without needing to re-send the fields.
-///
-/// Returns `Ok(())` without creating a session if the account is inactive (`is_active = false`).
-///
-/// Looks the account up in `eihwaz_users` ([`BuiltinUserEntity`]).
-pub async fn auth_login(
-    session: &Session,
-    db: &ADb,
-    user_id: Pk,
-) -> Result<(), tower_sessions::session::Error> {
-    let Some(user) = crate::auth::user::BuiltinUserEntity::find_by_id(db, user_id).await else {
-        return Ok(());
-    };
-    if !user.can_sign_in() {
-        return Ok(());
+/// Why [`login`] opened no session.
+#[derive(Debug)]
+pub enum LoginError {
+    /// The account may not sign in (`can_sign_in()` is false: inactive, or never
+    /// activated). Nothing was written to the session.
+    CannotSignIn,
+    /// The session store refused the write.
+    Session(tower_sessions::session::Error),
+}
+
+impl std::fmt::Display for LoginError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::CannotSignIn => f.write_str(&crate::utils::trad::t("auth.login_cannot_sign_in")),
+            Self::Session(e) => {
+                f.write_str(&crate::utils::trad::tf("auth.login_session_failed", &[e]))
+            }
+        }
     }
-    let store = RuniqueSessionStore::new(db.clone());
-    login(session, &user, Some(&store), false).await
+}
+
+impl std::error::Error for LoginError {}
+
+impl From<tower_sessions::session::Error> for LoginError {
+    fn from(e: tower_sessions::session::Error) -> Self {
+        Self::Session(e)
+    }
 }
 
 /// Logs out a user — removes the memory session and the DB entry if provided.

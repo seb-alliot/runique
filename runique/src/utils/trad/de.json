@@ -127,6 +127,7 @@
     "validation_failed": "Build-Validierung fehlgeschlagen: {}",
     "check_failed": "Build fehlgeschlagen mit {} Prüffehler(n)",
     "template_failed": "Template-Laden fehlgeschlagen: {}",
+    "driver_not_enabled": "{}-Treiber nicht aktiviert: Runique wurde ohne das Feature '{}' kompiliert.\n\nIn der Cargo.toml Ihres Projekts:\nrunique = { version = \"{}\", features = [\"{}\"] }\n\nFür die runique-CLI:\ncargo install runique --features {} --locked --force\n\nUm alle Datenbanken zu unterstützen, verwenden Sie das Feature 'all-databases'.",
     "db_missing": "Datenbankverbindung erforderlich, wenn das Feature 'orm' aktiviert ist",
     "component_not_ready": "Komponente '{}' ist nicht bereit",
     "check": {
@@ -471,7 +472,8 @@
   },
   "migrate": {
     "applying": "Migrationen aus '{}' werden angewendet...",
-    "complete_up": "Migration abgeschlossen."
+    "complete_up": "Migration abgeschlossen.",
+    "crate_missing": "Migrations-Crate nicht gefunden: '{}' enthält keine Cargo.toml."
   },
   "reset": {
     "forgot_title": "Passwort vergessen",
@@ -547,5 +549,9 @@
     "build_failed": "cargo konnte die Tests nicht kompilieren, siehe Fehler oben.",
     "no_such_test": "Kein Test \"{}\" in {}.rs. Verfügbare Tests: {}",
     "dir_read_failed": "{} kann nicht gelesen werden"
+  },
+  "auth": {
+    "login_cannot_sign_in": "Dieses Konto kann sich nicht anmelden: Es ist inaktiv oder wurde nie aktiviert.",
+    "login_session_failed": "Die Sitzung konnte nicht gespeichert werden: {}"
   }
 }

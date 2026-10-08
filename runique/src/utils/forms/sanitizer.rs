@@ -142,21 +142,6 @@ pub fn sanitize(field: &str, input: &str) -> String {
     }
 }
 
-// =============================
-// ADDITIONAL VALIDATION
-// =============================
-
-/// Checks if the cleaned content still contains suspicious elements
-#[must_use]
-pub fn is_suspicious_content(input: &str) -> bool {
-    let lower = input.to_lowercase();
-    lower.contains("<script")
-        || lower.contains("javascript:")
-        || lower.contains("onerror=")
-        || lower.contains("onload=")
-        || lower.contains("data:text/html")
-}
-
 /// =============================
 /// XSS TESTS (OWASP + extras)
 /// =============================

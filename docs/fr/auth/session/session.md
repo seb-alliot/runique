@@ -10,25 +10,39 @@ use runique::prelude::*;
 
 ## Connexion
 
-### `auth_login` — connexion par user_id (recommandé)
+### `login` — ouvrir la session
 
-Raccourci générique : charge automatiquement les données depuis la DB à partir du seul `user_id`. Adapté à tous les flux d'authentification (inscription, OAuth, magic link…).
+Deux étapes : `authenticate_user` vérifie les identifiants (mot de passe, compte actif et activé), puis `login` inscrit le compte dans la session. `login` renouvelle l'identifiant de session et le jeton CSRF, et n'y écrit que l'id : le compte est relu en base à chaque requête (`request.user`).
 
 ```rust
-auth_login(&session, &db, user.id).await?;
+match authenticate_user(&db, &username, &password).await {
+    Some(user) => login(&session, &user, None, false).await?,
+    None => { /* identifiants invalides : message générique */ }
+}
 ```
 
-### `login` — connexion complète
+Paramètres : le compte (`&impl RuniqueUser`), la persistance multi-appareils (`Option<&RuniqueSessionStore>`, le store par défaut sauvegarde déjà les sessions connectées en base) et la connexion exclusive.
 
-Pour les cas où vous avez déjà l'utilisateur (un `RuniqueUser`, par exemple le modèle `eihwaz_users` que vous venez d'authentifier) et souhaitez contrôler la persistance DB et la connexion exclusive. Elle renouvelle l'identifiant de session et le jeton CSRF.
+`login` vérifie elle-même que le compte peut se connecter (`can_sign_in()` : actif et activé), quel que soit le chemin qui l'a chargé. Sinon, rien n'est écrit et elle renvoie `LoginError::CannotSignIn` :
 
 ```rust
-login(
-    &session,
-    &user,   // &impl RuniqueUser
-    None,    // Option<&RuniqueSessionStore> — persistance multi-appareils
-    false,   // exclusive — invalider les autres sessions
-).await?;
+match login(&session, &user, None, false).await {
+    Ok(()) => { /* connecté */ }
+    Err(LoginError::CannotSignIn) => { /* compte inactif ou pas encore activé */ }
+    Err(LoginError::Session(e)) => { /* le store de session a échoué */ }
+}
+```
+
+> **Un compte chargé autrement** (après une inscription, un OAuth, un lien magique) se connecte avec le même `login`. Il doit venir du serveur — compte tout juste créé, identité vérifiée — jamais d'un id reçu dans la requête.
+
+### Activer puis connecter
+
+`BuiltinUserEntity::activate_account` active un compte en attente (`is_active` + `activated_at`) et renvoie le compte à jour, prêt pour `login`. Un compte déjà activé, ou désactivé depuis par le staff, n'est pas touché (`None`) : la réactivation reste une décision du staff.
+
+```rust
+if let Some(user) = BuiltinUserEntity::activate_account(&db, id).await? {
+    login(&session, &user, None, false).await?;
+}
 ```
 
 ### Connexion exclusive
@@ -87,14 +101,10 @@ if is_authenticated(&session).await {
     // ...
 }
 
-// Récupérer l'ID en session (retourne Pk = i32/i64/Uuid selon la feature active)
-if let Some(user_id) = get_user_id(&session).await {
-    // ...
-}
-
-// Récupérer le username en session
-if let Some(username) = get_username(&session).await {
-    // ...
+// Le compte connecté, relu en base à chaque requête (comme `request.user` chez Django)
+if let Some(user) = &request.user {
+    let user_id = user.id; // Pk = i32/i64/Uuid selon la feature active
+    let username = &user.username;
 }
 ```
 

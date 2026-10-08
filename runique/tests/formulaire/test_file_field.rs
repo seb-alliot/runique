@@ -399,4 +399,11 @@ async fn test_file_too_large_reports_both_sizes_in_mb() {
     assert!(!f.validate().await);
     let err = f.error().cloned().unwrap_or_default();
     assert!(err.contains("2.5") && err.contains("1.0"), "{err}");
+
+    // The other side: a file under the limit passes.
+    let small = temp_path("small.pdf");
+    std::fs::write(&small, vec![0u8; 512 * 1024]).unwrap(); // 0.5 MB
+    let mut f = FileField::document("doc").max_size(FileSize::mb(1));
+    f.set_value(&small);
+    assert!(f.validate().await, "{:?}", f.error());
 }

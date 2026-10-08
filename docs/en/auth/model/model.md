@@ -81,7 +81,7 @@ In code, the model implements the `RuniqueUser` trait:
 
 | Section | Description |
 | --- | --- |
-| [Session helpers](/docs/en/auth/session) | `login`, `auth_login`, `logout` |
+| [Session helpers](/docs/en/auth/session) | `login`, `logout` |
 | [Middlewares & CurrentUser](/docs/en/auth/middleware) | Route protection |
 
 ## Back to summary

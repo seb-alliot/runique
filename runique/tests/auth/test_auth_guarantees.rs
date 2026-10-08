@@ -8,14 +8,11 @@ use crate::helpers::{
     admin_server, db,
     pk::{pk, pk_sql_literal},
 };
-use runique::auth::session::{auth_login, login};
+use runique::auth::session::{LoginError, login};
 use runique::auth::{BuiltinUserEntity, authenticate_user};
 use runique::db::ADb;
 use runique::utils::config::Pk;
-use runique::utils::constante::session_key::session::{
-    SESSION_USER_ID_KEY, SESSION_USER_IS_STAFF_KEY, SESSION_USER_IS_SUPERUSER_KEY,
-    SESSION_USER_USERNAME_KEY,
-};
+use runique::utils::constante::session_key::session::SESSION_USER_ID_KEY;
 use runique::utils::password::{Manual, PasswordConfig, PasswordService};
 use std::sync::Arc;
 use tower_sessions::{MemoryStore, Session};
@@ -149,7 +146,7 @@ async fn a_failed_sign_in_never_rewrites_the_hash() {
 // ── login() with an admin account ────────────────────────────────────
 
 #[tokio::test]
-async fn admin_login_stores_exactly_who_logged_in_and_their_rights() {
+async fn admin_login_stores_who_logged_in_never_their_rights() {
     let session = session();
     let staff = crate::helpers::user::test_user(pk(7), "staffer", true, false);
     login(&session, &staff, None, false).await.expect("login");
@@ -158,29 +155,11 @@ async fn admin_login_stores_exactly_who_logged_in_and_their_rights() {
         session.get::<Pk>(SESSION_USER_ID_KEY).await.unwrap(),
         Some(pk(7))
     );
-    assert_eq!(
-        session
-            .get::<String>(SESSION_USER_USERNAME_KEY)
-            .await
-            .unwrap()
-            .as_deref(),
-        Some("staffer")
-    );
-    assert_eq!(
-        session
-            .get::<bool>(SESSION_USER_IS_STAFF_KEY)
-            .await
-            .unwrap(),
-        Some(true)
-    );
-    assert_eq!(
-        session
-            .get::<bool>(SESSION_USER_IS_SUPERUSER_KEY)
-            .await
-            .unwrap(),
-        Some(false),
-        "a staff member must never come out of login as a superuser"
-    );
+    // The account (name, rights) is read from the database on every request:
+    // a copy in the session would outlive a rename or a demotion.
+    for key in ["username", "is_staff", "is_superuser"] {
+        assert_eq!(session.get::<bool>(key).await.unwrap(), None, "{key}");
+    }
     // The login request already carries the long authenticated lifetime.
     match session.expiry() {
         Some(tower_sessions::Expiry::OnInactivity(d)) => {
@@ -191,49 +170,103 @@ async fn admin_login_stores_exactly_who_logged_in_and_their_rights() {
 }
 
 #[tokio::test]
-async fn admin_login_keeps_a_superuser_superuser_and_nothing_more() {
+async fn superuser_login_stores_no_rights_either() {
     let session = session();
     let admin = crate::helpers::user::test_user(pk(8), "root", false, true);
     login(&session, &admin, None, false).await.expect("login");
     assert_eq!(
-        session
-            .get::<bool>(SESSION_USER_IS_STAFF_KEY)
-            .await
-            .unwrap(),
-        Some(false)
+        session.get::<Pk>(SESSION_USER_ID_KEY).await.unwrap(),
+        Some(pk(8))
     );
-    assert_eq!(
-        session
-            .get::<bool>(SESSION_USER_IS_SUPERUSER_KEY)
-            .await
-            .unwrap(),
-        Some(true)
-    );
+    assert_eq!(session.get::<String>("username").await.unwrap(), None);
+    for key in ["is_staff", "is_superuser"] {
+        assert_eq!(session.get::<bool>(key).await.unwrap(), None, "{key}");
+    }
 }
 
-// ── auth_login ───────────────────────────────────────────────────────────────
+// ── login: the account must be allowed to sign in ──────────────────────────
 
+/// An account waiting for its first activation (`is_active` off, no `activated_at`).
+async fn insert_pending(db: &ADb, n: u32, username: &str) {
+    runique::sea_orm::ConnectionTrait::execute_unprepared(
+        db,
+        &format!(
+            "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_staff, is_superuser, activated_at) \
+             VALUES ({}, '{username}', '{username}@example.com', 'h', 0, 0, 0, NULL)",
+            pk_sql_literal(n),
+        ),
+    )
+    .await
+    .expect("insert pending user");
+}
+
+async fn account(db: &ADb, n: u32) -> runique::auth::user::Model {
+    BuiltinUserEntity::find_by_id(db, pk(n))
+        .await
+        .expect("account")
+}
+
+/// `login` checks the account itself, whatever path loaded it: an inactive or
+/// never-activated account gets no session, and the caller is told so.
 #[tokio::test]
-async fn auth_login_logs_in_an_active_user() {
+async fn login_refuses_an_account_that_cannot_sign_in() {
     let db = users_db().await;
     insert_user(&db, 3, "carol", true).await;
-    let session = session();
-    auth_login(&session, &db, pk(3)).await.expect("auth_login");
+    insert_user(&db, 4, "dave", false).await;
+    insert_pending(&db, 5, "erin").await;
+
+    let signed_in = session();
+    login(&signed_in, &account(&db, 3).await, None, false)
+        .await
+        .expect("active and activated");
     assert_eq!(
-        session.get::<Pk>(SESSION_USER_ID_KEY).await.unwrap(),
+        signed_in.get::<Pk>(SESSION_USER_ID_KEY).await.unwrap(),
         Some(pk(3))
     );
-}
 
-#[tokio::test]
-async fn auth_login_refuses_an_inactive_or_unknown_user() {
-    let db = users_db().await;
-    insert_user(&db, 4, "dave", false).await;
-    for id in [pk(4), pk(99)] {
+    for n in [4, 5] {
         let session = session();
-        auth_login(&session, &db, id).await.expect("auth_login");
+        let refused = login(&session, &account(&db, n).await, None, false).await;
+        assert!(
+            matches!(refused, Err(LoginError::CannotSignIn)),
+            "account {n}"
+        );
         assert_eq!(session.get::<Pk>(SESSION_USER_ID_KEY).await.unwrap(), None);
     }
+}
+
+/// Activation returns the account as it now is, so it can sign in at once;
+/// it happens once only — a second call, or an activated account, gets `None`.
+#[tokio::test]
+async fn activate_account_returns_the_account_ready_to_sign_in() {
+    let db = users_db().await;
+    insert_pending(&db, 6, "frank").await;
+    insert_user(&db, 7, "gina", false).await; // activated before, deactivated since
+
+    let activated = BuiltinUserEntity::activate_account(&db, pk(6))
+        .await
+        .unwrap()
+        .expect("pending account activated");
+    assert!(activated.is_active && activated.activated_at.is_some());
+    let session = session();
+    login(&session, &activated, None, false)
+        .await
+        .expect("signs in right away");
+
+    assert!(
+        BuiltinUserEntity::activate_account(&db, pk(6))
+            .await
+            .unwrap()
+            .is_none()
+    );
+    assert!(
+        BuiltinUserEntity::activate_account(&db, pk(7))
+            .await
+            .unwrap()
+            .is_none(),
+        "reactivation is the staff's"
+    );
+    assert!(!account(&db, 7).await.is_active);
 }
 
 // ── update_password_by_id ───────────────────────────────────────────────────

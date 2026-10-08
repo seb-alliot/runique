@@ -19,25 +19,25 @@ RuniqueApp::builder(config)
 ```rust
 .with_log(|l| l
     .forms(|f| f
-        .validate(Level::DEBUG)
-        .finalize(Level::DEBUG)
+        .validate(LogLevel::DEBUG)
+        .finalize(LogLevel::DEBUG)
     )
     .admin(|a| a
-        .crud(Level::INFO)
-        .auth(Level::WARN)
+        .crud(LogLevel::INFO)
+        .auth(LogLevel::WARN)
     )
     .auth(|a| a
-        .login(Level::INFO)
-        .reset(Level::WARN)
+        .login(LogLevel::INFO)
+        .reset(LogLevel::WARN)
     )
-    .mailer(|m| m.send(Level::INFO))
+    .mailer(|m| m.send(LogLevel::INFO))
     .builder(|b| b
-        .templates(Level::INFO)
-        .middleware(Level::DEBUG)
-        .routes(Level::INFO)
-        .statics(Level::INFO)
+        .templates(LogLevel::INFO)
+        .middleware(LogLevel::DEBUG)
+        .routes(LogLevel::INFO)
+        .statics(LogLevel::INFO)
     )
-    .middleware(|m| m.rate_limit(Level::WARN))
+    .middleware(|m| m.rate_limit(LogLevel::WARN))
 )
 ```
 
@@ -95,7 +95,7 @@ RuniqueApp::builder(config)
 | `render` | Échec de rendu d'un template d'erreur (404/429/500) | template, erreur — **plancher WARN** (toujours visible, voir plus bas) |
 
 ```rust
-.with_log(|l| l.errors(|e| e.http(Level::INFO).render(Level::WARN)))
+.with_log(|l| l.errors(|e| e.http(LogLevel::INFO).render(LogLevel::WARN)))
 ```
 
 ### `middleware` — Sécurité (`.middleware(|m| m....)`)
