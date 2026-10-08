@@ -17,7 +17,6 @@ pub(super) fn attr_name_str(attr: &FormFieldAttr) -> &'static str {
         FormFieldAttr::UploadTo(_) => "upload_to",
         FormFieldAttr::MaxSize(_) => "max_size",
         FormFieldAttr::Rows(_) => "rows",
-        FormFieldAttr::Step(_) => "step",
         FormFieldAttr::AutoNow => "auto_now",
         FormFieldAttr::AutoNowUpdate => "auto_now_update",
         FormFieldAttr::Unique => "unique",

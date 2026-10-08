@@ -11,7 +11,6 @@ struct MockUser {
     id: runique::utils::pk::Pk,
     username: String,
     email: String,
-    password: String,
     is_active: bool,
     is_staff: bool,
     is_superuser: bool,
@@ -26,9 +25,6 @@ impl RuniqueUser for MockUser {
     }
     fn email(&self) -> &str {
         &self.email
-    }
-    fn password_hash(&self) -> &str {
-        &self.password
     }
     fn is_active(&self) -> bool {
         self.is_active
@@ -46,7 +42,6 @@ fn mock_user(is_active: bool, is_staff: bool, is_superuser: bool) -> MockUser {
         id: pk(1),
         username: "alice".to_string(),
         email: "alice@example.com".to_string(),
-        password: "hash".to_string(),
         is_active,
         is_staff,
         is_superuser,
@@ -63,7 +58,6 @@ fn test_runique_user_getters() {
         id: pk(42),
         username: "bob".to_string(),
         email: "bob@test.com".to_string(),
-        password: "argon2hash".to_string(),
         is_active: true,
         is_staff: false,
         is_superuser: false,
@@ -71,7 +65,6 @@ fn test_runique_user_getters() {
     assert_eq!(user.user_id(), pk(42));
     assert_eq!(user.username(), "bob");
     assert_eq!(user.email(), "bob@test.com");
-    assert_eq!(user.password_hash(), "argon2hash");
     assert!(user.is_active());
     assert!(!user.is_staff());
     assert!(!user.is_superuser());

@@ -11,9 +11,7 @@ pub struct TestUser {
     is_superuser: bool,
 }
 
-/// Builds a `TestUser` — same field order as the old `login()` scalar arguments
-/// (`id, username, is_staff, is_superuser`), so call sites only need to wrap
-/// their existing arguments in `&test_user(...)`.
+/// Builds an active `TestUser`.
 pub fn test_user(id: Pk, username: &str, is_staff: bool, is_superuser: bool) -> TestUser {
     TestUser {
         id,
@@ -31,9 +29,6 @@ impl RuniqueUser for TestUser {
         &self.username
     }
     fn email(&self) -> &str {
-        ""
-    }
-    fn password_hash(&self) -> &str {
         ""
     }
     fn is_active(&self) -> bool {

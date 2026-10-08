@@ -129,7 +129,6 @@ pub enum FormFieldAttr {
     UploadTo(String),
     MaxSize(u64),
     Rows(u32),
-    Step(f64),
     /// Reference to an enum declared in `enums:` — used with `choice` and `radio`.
     EnumRef(syn::Ident),
     /// Automatically filled on creation — excludes the field from the form.

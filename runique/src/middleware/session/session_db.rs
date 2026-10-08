@@ -202,16 +202,6 @@ impl RuniqueSessionStore {
         Ok(())
     }
 
-    /// Returns all active sessions for a user.
-    pub async fn find_by_user(&self, user_id: crate::utils::pk::Pk) -> Result<Vec<Model>, DbErr> {
-        let now = chrono::Utc::now().naive_utc();
-        Entity::find()
-            .filter(Column::UserId.eq(user_id))
-            .filter(Column::ExpiresAt.gt(now))
-            .all(&*self.db)
-            .await
-    }
-
     /// Deletes expired sessions (should be called periodically).
     pub fn spawn_cleanup(&self, period: tokio::time::Duration) {
         let db = self.db.clone();

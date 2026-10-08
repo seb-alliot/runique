@@ -171,6 +171,9 @@ if let Some(user) = BuiltinUserEntity::activate_account(&db, id).await? {
 | `get_user_id(&session)` | `request.user` → `user.id` (`get_user_id` is now internal) |
 | `is_admin_authenticated(&session)` | `request.user` → `user.can_access_admin()`; in a middleware, the `CurrentUser` extension |
 | `SESSION_USER_USERNAME_KEY`, `SESSION_USER_IS_SUPERUSER_KEY` | removed |
+| `session::SESSION_USER_IS_STAFF_KEY`, `session::IS_ACTIVE` (form field names, not session keys) | `admin_context::user::IS_STAFF`, `admin_context::user::IS_ACTIVE` |
+| `session::SESSION_USER_DROITS_KEY` (admin resource key) | `admin_context::permission::DROITS` |
+| `admin_context::<template>::REQUIRED` | removed (never checked) |
 | `.with_log(\|l\| l.auth(\|a\| a.permissions(...)))` | removed (it logged the permission cache, gone) |
 
 `is_authenticated(&session)` is unchanged.
@@ -225,7 +228,7 @@ let filters: Filters = request.query()?;
 
 **Flash messages**: the CSS class is lowercase. Rename `.message-Success` / `Error` / `Info` / `Warning` to `.message-success` and so on.
 
-**Other removed APIs**: `Request::render_with` (call `insert`, then `render`), `ErrorContext::with_request` (`with_request_helper`), `ErrorContext::with_details`, `RuniqueUser::roles`, `update_password` by email, `RuniqueQueryBuilder::all_from_engine`, `sanitize_with_fallback`, the aliases `Bdd`, `OADb`, `OSecurityCsp`, `OSecurityHosts`, `TResult`, `DbResult`, and the constants `NONCE_KEY`, `SESSION_USER_ROLES_KEY`, `REGISTERED_ROLES`.
+**Other removed APIs**: `Request::render_with` (call `insert`, then `render`), `ErrorContext::with_request` (`with_request_helper`), `ErrorContext::with_details`, `RuniqueUser::roles`, `RuniqueUser::password_hash` (read the `password` field of the model), `RuniqueSessionStore::find_by_user`, `update_password` by email, `RuniqueQueryBuilder::all_from_engine`, `sanitize_with_fallback`, the aliases `Bdd`, `OADb`, `OSecurityCsp`, `OSecurityHosts`, `TResult`, `DbResult`, and the constants `NONCE_KEY`, `SESSION_USER_ROLES_KEY`, `REGISTERED_ROLES`.
 
 ---
 
@@ -258,6 +261,8 @@ phone: text [max_length: 20],
 // 3.0
 phone: text [max_length: 20, nullable],
 ```
+
+**`[step: x]` is removed**: it was accepted and then ignored on `int`, `float`, `decimal` and `percent`. Remove it; a hand-written slider keeps `NumericField::range(...).step(x)`.
 
 **`fk(...)` is removed**: declare foreign keys in `relations` with `belongs_to`.
 

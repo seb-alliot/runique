@@ -20,6 +20,8 @@ pub mod test_cleaned_values;
 pub mod test_customize_limits;
 pub mod test_datetime_fields;
 pub mod test_dsl_widgets;
+pub mod test_dsl_form_attrs;
+pub mod test_extend_phantom;
 pub mod test_extend_types;
 pub mod test_file_field;
 pub mod test_file_field_path_guard;

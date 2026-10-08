@@ -87,3 +87,40 @@ async fn an_explicit_creation_date_is_kept() {
     .expect("insert");
     assert_eq!(row.created_at, old());
 }
+
+mod marks {
+    use runique::prelude::*;
+
+    model! {
+        Mark,
+        table: "auto_now_marks",
+        pk: id => i32,
+        {
+            day: date [auto_now],
+            at: time [auto_now],
+            tz: timestamp_tz [auto_now],
+        }
+    }
+}
+
+// `auto_now` alone (no `auto_now_update`), on the other date types: the NOT
+// NULL columns make the insert fail if one of them isn't stamped.
+#[tokio::test]
+async fn auto_now_alone_stamps_a_date_a_time_and_a_timestamp_tz() {
+    let conn = db::fresh_db_with_schema(
+        "CREATE TABLE auto_now_marks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            day TEXT NOT NULL,
+            at TEXT NOT NULL,
+            tz TEXT NOT NULL
+        )",
+    )
+    .await;
+    let before = chrono::Utc::now();
+    let row = marks::ActiveModel::default()
+        .insert(&conn)
+        .await
+        .expect("every column stamped");
+    assert!(row.tz >= before - chrono::Duration::seconds(1));
+    assert!(row.day >= before.date_naive());
+}

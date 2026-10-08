@@ -176,6 +176,69 @@ mod tests {
         }
     }
 
+    // The `.env` fallback, for a project that forwards no engine feature.
+    // Process-wide variables: these tests take turns.
+    static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    fn detect_with(db_engine: Option<&str>, url: Option<&str>) -> super::DbEngine {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        // SAFETY: serialized by ENV_LOCK; no other derive_form test reads these.
+        unsafe {
+            match db_engine {
+                Some(v) => std::env::set_var("DB_ENGINE", v),
+                None => std::env::remove_var("DB_ENGINE"),
+            }
+            match url {
+                Some(v) => std::env::set_var("DATABASE_URL", v),
+                None => std::env::remove_var("DATABASE_URL"),
+            }
+        }
+        let engine = super::DbEngine::detect_from_env();
+        unsafe {
+            std::env::remove_var("DB_ENGINE");
+            std::env::remove_var("DATABASE_URL");
+        }
+        engine
+    }
+
+    #[test]
+    fn db_engine_names_the_engine() {
+        use super::DbEngine::*;
+        for (value, engine) in [
+            ("postgres", Postgres),
+            ("PostgreSQL", Postgres),
+            ("mysql", Mysql),
+            ("mariadb", Mysql),
+            ("sqlite", Sqlite),
+        ] {
+            assert_eq!(detect_with(Some(value), None), engine, "{value}");
+        }
+    }
+
+    #[test]
+    fn otherwise_the_url_scheme_names_it() {
+        use super::DbEngine::*;
+        for (url, engine) in [
+            ("postgres://u@h/db", Postgres),
+            ("postgresql://u@h/db", Postgres),
+            ("mysql://u@h/db", Mysql),
+            ("mariadb://u@h/db", Mysql),
+            ("sqlite:db.sqlite", Sqlite),
+            ("sqlite://db.sqlite", Sqlite),
+        ] {
+            assert_eq!(detect_with(Some("oracle"), Some(url)), engine, "{url}");
+        }
+    }
+
+    #[test]
+    fn engine_predicates() {
+        use super::DbEngine::*;
+        assert!(Postgres.is_postgres());
+        assert!(!Mysql.is_postgres() && !Sqlite.is_postgres() && !Unknown.is_postgres());
+        assert!(Unknown.is_unknown());
+        assert!(!Postgres.is_unknown());
+    }
+
     #[test]
     #[cfg(any(
         feature = "all-databases",

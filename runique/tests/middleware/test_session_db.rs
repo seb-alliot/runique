@@ -238,47 +238,6 @@ async fn test_session_db_upsert_refreshes_expiry_not_frozen() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// find_by_user
-// ═══════════════════════════════════════════════════════════════
-
-#[tokio::test]
-async fn test_session_db_find_by_user() {
-    let store = make_store().await;
-    store
-        .create("cookie-u1", pk(10), "sess-u1", future_expiry())
-        .await
-        .unwrap();
-    store
-        .create("cookie-u2", pk(10), "sess-u2", future_expiry())
-        .await
-        .unwrap();
-    store
-        .create("cookie-other", pk(99), "sess-other", future_expiry())
-        .await
-        .unwrap();
-
-    let sessions = store.find_by_user(pk(10)).await.unwrap();
-    assert_eq!(sessions.len(), 2);
-}
-
-#[tokio::test]
-async fn test_session_db_find_by_user_excludes_expired() {
-    let store = make_store().await;
-    store
-        .create("cookie-active", pk(11), "sess-act", future_expiry())
-        .await
-        .unwrap();
-    store
-        .create("cookie-old", pk(11), "sess-old", past_expiry())
-        .await
-        .unwrap();
-
-    let sessions = store.find_by_user(pk(11)).await.unwrap();
-    assert_eq!(sessions.len(), 1);
-    assert_eq!(sessions[0].cookie_id, "cookie-active");
-}
-
-// ═══════════════════════════════════════════════════════════════
 // spawn_cleanup
 // ═══════════════════════════════════════════════════════════════
 

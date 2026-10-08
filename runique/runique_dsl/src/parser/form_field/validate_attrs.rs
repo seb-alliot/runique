@@ -76,10 +76,6 @@ pub(super) fn validate_form_field_attrs(
             (Rows(_), Richtext | Textarea | Json) => true,
             (Rows(_), _) => false,
 
-            // step — float, decimal, percent
-            (Step(_), Float | Decimal | Percent) => true,
-            (Step(_), _) => false,
-
             // auto_now / auto_now_update — temporal types
             (AutoNow, Datetime | Timestamp | TimestampTz) => true,
             (AutoNow, _) => false,

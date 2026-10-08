@@ -83,11 +83,14 @@ let app = RuniqueApp::builder(config)
 ```rust
 pub async fn dashboard(request: Request) -> AppResult<Response> {
     // Lire une valeur de session
-    let user_id: Option<i32> = request.session
-        .get("user_id")
+    let cart_id: Option<i32> = request.session
+        .get("cart_id")
         .await
         .ok()
         .flatten();
+
+    // L'utilisateur connecté : request.user, relu en base à chaque requête
+    let username = request.user.as_ref().map(|user| user.username.clone());
 
     // Écrire une valeur
     let _ = request.session.insert("last_visit", "2026-02-06").await;

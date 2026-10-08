@@ -114,7 +114,7 @@ use runique::prelude::{hash, verify};
 let hashed = hash("my_password")?;
 
 // Verify a password against a stored hash
-let ok = verify("my_password", &user.password_hash);
+let ok = verify("my_password", &user.password);
 ```
 
 These functions automatically use the `PasswordConfig` initialized at startup.

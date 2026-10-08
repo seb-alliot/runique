@@ -6,9 +6,7 @@
 use axum::{Router, response::IntoResponse, routing::get};
 use tower_sessions::{MemoryStore, Session, SessionManagerLayer};
 
-use runique::auth::permissions::Groupe;
 use runique::auth::session::{is_authenticated, login, logout, protect_session, unprotect_session};
-use runique::utils::constante::admin_context::permission::GROUPES;
 
 use crate::helpers::{
     assert::{assert_body_str, assert_status},
@@ -89,106 +87,7 @@ async fn test_login_stores_the_id_and_no_name() {
     assert_body_str(res, &format!("{}/None", pk(42))).await;
 }
 
-// ── login — tous les champs ───────────────────────────────────────────────────
-
-#[tokio::test]
-async fn test_login_sets_all_fields() {
-    async fn handler(session: Session) -> impl IntoResponse {
-        login(
-            &session,
-            &test_user(pk(7), "admin", true, true),
-            None,
-            false,
-        )
-        .await
-        .unwrap();
-
-        let id = session_user_id(&session).await.unwrap_or_default();
-        let username = session
-            .get::<String>("username")
-            .await
-            .ok()
-            .flatten()
-            .unwrap_or_default();
-        let is_staff = session
-            .get::<bool>("is_staff")
-            .await
-            .ok()
-            .flatten()
-            .unwrap_or(false);
-        let is_su = session
-            .get::<bool>("is_superuser")
-            .await
-            .ok()
-            .flatten()
-            .unwrap_or(false);
-        let groupes = session
-            .get::<Vec<Groupe>>(GROUPES)
-            .await
-            .ok()
-            .flatten()
-            .unwrap_or_default();
-
-        format!(
-            "{}/{}/{}/{}/{}",
-            id,
-            username,
-            is_staff,
-            is_su,
-            groupes.len()
-        )
-    }
-
-    let res = request::get(build_app(get(handler)), "/test").await;
-    // Rights stay in the database: never copied into the session.
-    assert_body_str(res, &format!("{}//false/false/0", pk(7))).await;
-}
-
 // ── logout ────────────────────────────────────────────────────────────────────
-
-#[tokio::test]
-async fn test_logout_clears_session_keys() {
-    async fn handler(session: Session) -> impl IntoResponse {
-        login(
-            &session,
-            &test_user(pk(1), "alice", true, false),
-            None,
-            false,
-        )
-        .await
-        .unwrap();
-        logout(&session, None).await.unwrap();
-
-        let all_cleared = session_user_id(&session).await.is_none()
-            && session
-                .get::<bool>("is_staff")
-                .await
-                .ok()
-                .flatten()
-                .is_none()
-            && session
-                .get::<bool>("is_superuser")
-                .await
-                .ok()
-                .flatten()
-                .is_none()
-            && session
-                .get::<Vec<Groupe>>(GROUPES)
-                .await
-                .ok()
-                .flatten()
-                .is_none();
-
-        if all_cleared {
-            "cleared"
-        } else {
-            "not_cleared"
-        }
-    }
-
-    let res = request::get(build_app(get(handler)), "/test").await;
-    assert_body_str(res, "cleared").await;
-}
 
 #[tokio::test]
 async fn test_is_not_authenticated_after_logout() {

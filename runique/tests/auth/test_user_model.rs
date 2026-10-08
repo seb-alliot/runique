@@ -45,12 +45,6 @@ fn test_runique_user_email() {
 }
 
 #[test]
-fn test_runique_user_password_hash() {
-    let model = make_model();
-    assert_eq!(model.password_hash(), "hashed");
-}
-
-#[test]
 fn test_runique_user_is_active() {
     let model = make_model();
     assert!(model.is_active());
