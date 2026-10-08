@@ -76,8 +76,6 @@ fn now_value(ty: &FieldType) -> Option<TokenStream2> {
             Some(quote! { ::chrono::Utc::now().naive_utc() })
         }
         FieldType::TimestampTz => Some(quote! { ::chrono::Utc::now() }),
-        FieldType::Date => Some(quote! { ::chrono::Utc::now().date_naive() }),
-        FieldType::Time => Some(quote! { ::chrono::Utc::now().time() }),
         _ => None,
     }
 }

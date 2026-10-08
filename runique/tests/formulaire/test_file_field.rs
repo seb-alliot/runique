@@ -167,6 +167,19 @@ fn test_file_field_max_size() {
     assert_eq!(f.upload_config.max_size, Some(2 * 1024 * 1024));
 }
 
+// Every field of a form goes through `GenericField`: the size override has
+// to reach the file field behind it, within the model's ceiling.
+#[test]
+fn a_form_lowers_the_size_of_a_file_field_within_its_ceiling() {
+    let mut form = runique::forms::Forms::new("csrf");
+    form.field(&FileField::image("pic").max_size(FileSize::mb(2)));
+    assert_eq!(form.fields["pic"].model_max_size(), Some(2 * 1024 * 1024));
+
+    assert!(form.field_max_size("pic", FileSize::mb(1)).is_ok());
+    assert!(form.field_max_size("pic", FileSize::mb(2)).is_ok(), "the ceiling itself");
+    assert!(form.field_max_size("pic", FileSize::mb(3)).is_err(), "above the ceiling");
+}
+
 #[test]
 fn test_file_field_max_files() {
     let f = FileField::any("gallery").max_files(5);

@@ -116,6 +116,17 @@ impl FormField for GenericField {
         delegate_to_kind!(mut self, cap_max_size, bytes);
     }
 
+    fn model_max_size(&self) -> Option<u64> {
+        delegate_to_kind!(self, model_max_size)
+    }
+
+    fn set_max_size_bounded(
+        &mut self,
+        size: crate::forms::fields::FileSize,
+    ) -> Result<(), String> {
+        delegate_to_kind!(mut self, set_max_size_bounded, size)
+    }
+
     fn set_placeholder(&mut self, placeholder: &str) {
         delegate_to_kind!(mut self, set_placeholder, placeholder)
     }
