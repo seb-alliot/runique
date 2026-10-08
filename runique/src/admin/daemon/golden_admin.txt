@@ -159,7 +159,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let mut form = plat::AdminForm::build_with_data(&data, tera, &csrf, method).await;
             {
-                use sea_orm::ConnectionTrait;
+                use sea_orm::{ConnectionTrait, sea_query::ExprTrait};
                 let _fk_opt_stmt_menu_id = sea_orm::sea_query::Query::select().expr(sea_orm::sea_query::Expr::col(sea_orm::sea_query::Alias::new("id")).cast_as(sea_orm::sea_query::Alias::new(runique::admin::helper::text_cast_type(&db)))).expr(sea_orm::sea_query::Expr::col(sea_orm::sea_query::Alias::new("titre"))).from(sea_orm::sea_query::Alias::new("menus")).to_owned();
                 let _fk_opt_choices_menu_id: Vec<(String, String)> = db.query_all(&_fk_opt_stmt_menu_id).await.unwrap_or_default().iter().filter_map(|row| { let id = row.try_get_by_index::<String>(0).ok()?; let lbl = row.try_get_by_index::<String>(1).ok()?; Some((id, lbl)) }).collect();
                 form.get_form_mut().field_choices("menu_id", "Menu", _fk_opt_choices_menu_id);
@@ -627,7 +627,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let mut form = note::AdminForm::build_with_data(&data, tera, &csrf, method).await;
             {
-                use sea_orm::ConnectionTrait;
+                use sea_orm::{ConnectionTrait, sea_query::ExprTrait};
                 let _fk_opt_stmt_author_id = sea_orm::sea_query::Query::select().expr(sea_orm::sea_query::Expr::col(sea_orm::sea_query::Alias::new("id")).cast_as(sea_orm::sea_query::Alias::new(runique::admin::helper::text_cast_type(&db)))).expr(sea_orm::sea_query::Expr::col(sea_orm::sea_query::Alias::new("username"))).from(sea_orm::sea_query::Alias::new("users")).to_owned();
                 let _fk_opt_choices_author_id: Vec<(String, String)> = db.query_all(&_fk_opt_stmt_author_id).await.unwrap_or_default().iter().filter_map(|row| { let id = row.try_get_by_index::<String>(0).ok()?; let lbl = row.try_get_by_index::<String>(1).ok()?; Some((id, lbl)) }).collect();
                 form.get_form_mut().field_choices("author_id", "Auteur", _fk_opt_choices_author_id);

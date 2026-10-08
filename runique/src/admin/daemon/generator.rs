@@ -1009,7 +1009,10 @@ fn write_form_builder_closure_fk(
         let fk = fk_opt.as_ref().unwrap();
         let safe_var = col.replace('.', "_");
         let _ = writeln!(out, "            {{");
-        let _ = writeln!(out, "                use sea_orm::ConnectionTrait;");
+        let _ = writeln!(
+            out,
+            "                use sea_orm::{{ConnectionTrait, sea_query::ExprTrait}};"
+        );
         let _ = writeln!(
             out,
             "                let _fk_opt_stmt_{safe} = sea_orm::sea_query::Query::select().expr(sea_orm::sea_query::Expr::col(sea_orm::sea_query::Alias::new(\"id\")).cast_as(sea_orm::sea_query::Alias::new(runique::admin::helper::text_cast_type(&db)))).expr(sea_orm::sea_query::Expr::col(sea_orm::sea_query::Alias::new(\"{fk_col}\"))).from(sea_orm::sea_query::Alias::new(\"{fk_table}\")).to_owned();",
@@ -1296,6 +1299,9 @@ mod tests {
     /// The generated `admin.rs`, compared whole with the committed reference.
     /// Any change to the generator's output shows up here: review the diff,
     /// then refresh the reference with `RUNIQUE_UPDATE_GOLDEN=1`.
+    ///
+    /// The reference is text, never compiled: `cast_as_has_its_trait_in_scope`
+    /// checks the one thing it once froze broken.
     /// Written from cargo-mutants survivors (2026-10-08): write_admin,
     /// write_admin_register, write_resource_entry and the form wrappers.
     #[test]
@@ -1351,4 +1357,30 @@ mod tests {
         assert_eq!(model_to_module("BlogPost"), "blog_post");
         assert_eq!(model_to_module("Model"), "model");
     }
+
+    /// `cast_as` comes from `ExprTrait`: each generated block calling it imports
+    /// the trait first (the FK select block didn't, and the admin of any
+    /// resource with a FK field failed to compile).
+    #[test]
+    fn cast_as_has_its_trait_in_scope() {
+        let parsed = parse_admin_file(GOLDEN_INPUT).expect("parses");
+        let dir = temp_admins_dir("cast_as");
+        write_admin(&parsed, &dir).expect("writes");
+        let code = fs::read_to_string(dir.join("admin.rs")).unwrap();
+        let _ = fs::remove_dir_all(&dir);
+        // A block's imports are consecutive `use` lines: the trait may be on any of them.
+        let (mut in_imports, mut has_trait) = (false, false);
+        for line in code.lines() {
+            if line.trim_start().starts_with("use sea_orm") {
+                has_trait = (in_imports && has_trait) || line.contains("ExprTrait");
+                in_imports = true;
+                continue;
+            }
+            in_imports = false;
+            if line.contains(".cast_as(") {
+                assert!(has_trait, "no ExprTrait before: {line}");
+            }
+        }
+    }
+
 }
