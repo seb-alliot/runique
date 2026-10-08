@@ -9,6 +9,7 @@
 use crate::helpers::admin_server::{
     ADMIN_PREFIX, build_admin_app_with_registry, login_as_superuser,
 };
+use crate::helpers::pk::pk_sql_literal;
 use runique::admin::helper::DynForm;
 use runique::admin::helper::resource_entry::{
     CountFn, FormBuilder, ListFn, ResourceEntry, UpdateFn,
@@ -397,11 +398,17 @@ async fn history_labels_come_from_the_object() {
     use runique::sea_orm::ConnectionTrait;
     let (base, client, db) = serve(labelled_registry()).await;
     db.execute_unprepared(
-        "INSERT INTO eihwaz_history (resource_key, object_pk, action, user_id, username, created_at, summary, batch_id) VALUES \
-         ('items', '1', 'edit', 1, 'crawler', '2026-07-30T00:00:00', NULL, NULL), \
-         ('items', '2', 'edit', 1, 'crawler', '2026-07-30T00:01:00', NULL, NULL), \
-         ('items', '3', 'edit', 1, 'crawler', '2026-07-30T00:02:00', NULL, 'ib'), \
-         ('items', '1', 'edit', 1, 'crawler', '2026-07-30T00:03:00', NULL, 'ib')",
+        &format!(
+            "INSERT INTO eihwaz_history (resource_key, object_pk, action, user_id, username, created_at, summary, batch_id) VALUES \
+             ('items', '1', 'edit', {}, 'crawler', '2026-07-30T00:00:00', NULL, NULL), \
+             ('items', '2', 'edit', {}, 'crawler', '2026-07-30T00:01:00', NULL, NULL), \
+             ('items', '3', 'edit', {}, 'crawler', '2026-07-30T00:02:00', NULL, 'ib'), \
+             ('items', '1', 'edit', {}, 'crawler', '2026-07-30T00:03:00', NULL, 'ib')",
+            pk_sql_literal(1),
+            pk_sql_literal(1),
+            pk_sql_literal(1),
+            pk_sql_literal(1)
+        ),
     )
     .await
     .unwrap();

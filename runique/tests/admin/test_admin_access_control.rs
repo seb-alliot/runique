@@ -1230,8 +1230,11 @@ async fn history_pages_show_only_what_the_viewer_may_see() {
     // A batch on `users`: refused to the editor.
     sql(
         &db,
-        "INSERT INTO eihwaz_history (resource_key, object_pk, action, user_id, username, created_at, summary, batch_id) \
-         VALUES ('users', '1', 'edit', 1, 'crawler', '2026-07-30T00:03:00', NULL, 'users-batch')",
+        &format!(
+            "INSERT INTO eihwaz_history (resource_key, object_pk, action, user_id, username, created_at, summary, batch_id) \
+             VALUES ('users', '1', 'edit', {}, 'crawler', '2026-07-30T00:03:00', NULL, 'users-batch')",
+            pk_sql_literal(1)
+        ),
     )
     .await;
     assert_eq!(
@@ -1391,8 +1394,9 @@ async fn history_filters_counts_and_labels() {
 
     let (_, html, _) = page("/history").await;
     assert!(html.contains("Voir les 2"), "the batch is one row of two");
+    let seed_user_id = admin_server::seed_superuser_id_str();
     assert!(
-        html.contains("<span title=\"#1\">crawler</span>"),
+        html.contains(&format!("<span title=\"#{seed_user_id}\">crawler</span>")),
         "the user row is labelled"
     );
 
