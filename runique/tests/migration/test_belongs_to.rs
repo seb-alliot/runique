@@ -53,3 +53,12 @@ fn schema_fk_uses_the_target_table_and_primary_key() {
     assert!(matches!(fk.on_delete, ForeignKeyAction::SetNull));
     assert!(matches!(fk.on_update, ForeignKeyAction::Cascade));
 }
+
+// `Related` is what `find_related` / `find_also_related` go through.
+#[test]
+fn a_belongs_to_makes_the_target_related() {
+    use runique::sea_orm::Related;
+    let rel = <book::Entity as Related<shelf::Entity>>::to();
+    let to: Vec<String> = rel.to_col.iter().map(|c| c.to_string()).collect();
+    assert_eq!(to, ["code"]);
+}

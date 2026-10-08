@@ -262,6 +262,8 @@ phone: text [max_length: 20],
 phone: text [max_length: 20, nullable],
 ```
 
+**`extend!{}` accepts only `eihwaz_users` and `eihwaz_groupes`**: on `eihwaz_sessions` and the two junction tables it never compiled (a `String` written into `user_id`, an `id` field those tables don't have); it now says so in one line.
+
 **`[step: x]` is removed**: it was accepted and then ignored on `int`, `float`, `decimal` and `percent`. Remove it; a hand-written slider keeps `NumericField::range(...).step(x)`.
 
 **`fk(...)` is removed**: declare foreign keys in `relations` with `belongs_to`.

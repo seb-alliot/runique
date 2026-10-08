@@ -574,7 +574,7 @@ extend! {
 > `model!{}` (bloc anonyme direct). Ce sont deux macros différentes, deux grammaires
 > différentes ; ne pas transposer la syntaxe de l'une à l'autre.
 
-Tables autorisées : `eihwaz_users`, `eihwaz_groupes`, `eihwaz_sessions`, `eihwaz_users_groupes`, `eihwaz_groupes_droits`. Tout autre nom provoque une erreur à la compilation.
+Tables autorisées : `eihwaz_users`, `eihwaz_groupes`. Tout autre nom provoque une erreur à la compilation.
 
 Les champs déclarés dans `extend!{}` utilisent les mêmes types, options et règles de nullabilité que `model!` (y compris `renamed_from`). Les colonnes ajoutées à une table existante seront remplies pour les lignes déjà présentes : déclarez-les `nullable` ou avec un `default`. Pas de bloc `relations:` ni de champ liste (`multichoice`/`checkbox`) dans `extend!{}`.
 

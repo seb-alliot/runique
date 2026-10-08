@@ -3,7 +3,6 @@ use quote::quote;
 
 pub enum PhantomType {
     Pk,
-    I32,
     String,
     Bool,
     NaiveDateTime,
@@ -13,7 +12,6 @@ impl PhantomType {
     pub fn to_tokens(&self) -> TokenStream2 {
         match self {
             PhantomType::Pk => quote! { ::runique::utils::config::Pk },
-            PhantomType::I32 => quote! { i32 },
             PhantomType::String => quote! { String },
             PhantomType::Bool => quote! { bool },
             PhantomType::NaiveDateTime => quote! { ::chrono::NaiveDateTime },
@@ -23,7 +21,6 @@ impl PhantomType {
 
 pub enum PkKind {
     Auto,
-    Composite,
     NotPk,
 }
 
@@ -58,15 +55,6 @@ macro_rules! col {
             ty: $ty,
             nullable: false,
             pk: PkKind::Auto,
-            widget: FormWidget::Skip,
-        }
-    };
-    ($name:literal, $ty:expr, cpk) => {
-        PhantomColumn {
-            name: $name,
-            ty: $ty,
-            nullable: false,
-            pk: PkKind::Composite,
             widget: FormWidget::Skip,
         }
     };
@@ -130,42 +118,10 @@ static EIHWAZ_GROUPES: &[PhantomColumn] = &[
     col!("nom", PhantomType::String, FormWidget::Text),
 ];
 
-static EIHWAZ_SESSIONS: &[PhantomColumn] = &[
-    col!("id", PhantomType::I32, pk),
-    col!("cookie_id", PhantomType::String, FormWidget::Text),
-    col!("user_id", PhantomType::Pk, FormWidget::Text),
-    col!("session_id", PhantomType::String, FormWidget::Text),
-    col!("session_data", PhantomType::String, null, FormWidget::Skip),
-    col!(
-        "expires_at",
-        PhantomType::NaiveDateTime,
-        FormWidget::AutoDateTime
-    ),
-];
-
-static EIHWAZ_USERS_GROUPES: &[PhantomColumn] = &[
-    col!("user_id", PhantomType::Pk, cpk),
-    col!("groupe_id", PhantomType::Pk, cpk),
-];
-
-static EIHWAZ_GROUPES_DROITS: &[PhantomColumn] = &[
-    col!("groupe_id", PhantomType::Pk, cpk),
-    col!("resource_key", PhantomType::String, cpk),
-    col!("can_create", PhantomType::Bool, FormWidget::Bool),
-    col!("can_read", PhantomType::Bool, FormWidget::Bool),
-    col!("can_update", PhantomType::Bool, FormWidget::Bool),
-    col!("can_delete", PhantomType::Bool, FormWidget::Bool),
-    col!("can_update_own", PhantomType::Bool, FormWidget::Bool),
-    col!("can_delete_own", PhantomType::Bool, FormWidget::Bool),
-];
-
 pub fn phantom_columns(table: &str) -> &'static [PhantomColumn] {
     match table {
         "eihwaz_users" => EIHWAZ_USERS,
         "eihwaz_groupes" => EIHWAZ_GROUPES,
-        "eihwaz_sessions" => EIHWAZ_SESSIONS,
-        "eihwaz_users_groupes" => EIHWAZ_USERS_GROUPES,
-        "eihwaz_groupes_droits" => EIHWAZ_GROUPES_DROITS,
         _ => &[],
     }
 }

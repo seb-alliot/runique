@@ -95,13 +95,9 @@ pub fn model(input: TokenStream) -> TokenStream {
 /// ```
 #[proc_macro]
 pub fn extend(input: TokenStream) -> TokenStream {
-    const FRAMEWORK_TABLES: &[&str] = &[
-        "eihwaz_users",
-        "eihwaz_groupes",
-        "eihwaz_sessions",
-        "eihwaz_users_groupes",
-        "eihwaz_groupes_droits",
-    ];
+    // The framework tables an admin form can be generated for: a single `id`
+    // primary key and columns a form can write.
+    const FRAMEWORK_TABLES: &[&str] = &["eihwaz_users", "eihwaz_groupes"];
 
     let dsl = match syn::parse::<extend_schema::ExtendDsl>(input) {
         Ok(d) => d,
