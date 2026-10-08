@@ -507,8 +507,10 @@ mod tests {
                 ),
                 (LOW, HIGH)
             );
-            let mut config = RuniqueConfig::default();
-            config.debug = debug;
+            let config = RuniqueConfig {
+                debug,
+                ..RuniqueConfig::default()
+            };
             let staging = MiddlewareStaging::from_config(&config);
             assert_eq!(
                 (
