@@ -18,11 +18,9 @@ use crate::admin::{
 use crate::forms::field::RuniqueForm;
 use crate::utils::{
     aliases::{ADb, ATera, StrMap},
-    constante::{
-        admin_context::{
-            permission::GROUPES,
-            user::{IS_ACTIVE, IS_STAFF},
-        },
+    constante::admin_context::{
+        permission::GROUPES,
+        user::{IS_ACTIVE, IS_STAFF},
     },
     forms::parse_bool,
     trad::{t, tf},

@@ -18,13 +18,11 @@ use crate::admin::{
 use crate::forms::field::RuniqueForm;
 use crate::utils::{
     aliases::{ADb, ATera, StrMap},
-    constante::{
-        admin_context::{
-            common::RESOURCE_KEY,
-            permission::{
-                CAN_CREATE, CAN_DELETE, CAN_DELETE_OWN, CAN_READ, CAN_UPDATE, CAN_UPDATE_OWN,
-                DROITS, GROUPE_ID, GROUPES,
-            },
+    constante::admin_context::{
+        common::RESOURCE_KEY,
+        permission::{
+            CAN_CREATE, CAN_DELETE, CAN_DELETE_OWN, CAN_READ, CAN_UPDATE, CAN_UPDATE_OWN, DROITS,
+            GROUPE_ID, GROUPES,
         },
     },
     forms::parse_bool,
