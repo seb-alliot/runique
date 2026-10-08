@@ -120,10 +120,7 @@ impl FormField for GenericField {
         delegate_to_kind!(self, model_max_size)
     }
 
-    fn set_max_size_bounded(
-        &mut self,
-        size: crate::forms::fields::FileSize,
-    ) -> Result<(), String> {
+    fn set_max_size_bounded(&mut self, size: crate::forms::fields::FileSize) -> Result<(), String> {
         delegate_to_kind!(mut self, set_max_size_bounded, size)
     }
 
