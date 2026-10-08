@@ -7,6 +7,7 @@ use crate::helpers::admin_server::{
     login_as_superuser,
 };
 use crate::helpers::db;
+use crate::helpers::pk::{pk, pk_sql_literal};
 use runique::admin::builtin_resources;
 use runique::admin::helper::resource_entry::{ListParams, ResourceEntry, SortDir};
 use runique::db::ADb;
@@ -145,15 +146,19 @@ async fn admin_edit_writes_username_email_active_and_staff() {
     let (conn, adb) = schema().await;
     db::exec(
         &conn,
-        "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_staff, is_superuser, activated_at) \
-         VALUES (5, 'bob', 'bob@example.com', 'h', 0, 0, 0, '2026-01-01 00:00:00'), \
-                (6, 'carol', 'carol@example.com', 'h', 0, 0, 0, NULL)",
+        &format!(
+            "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_staff, is_superuser, activated_at) \
+             VALUES ({}, 'bob', 'bob@example.com', 'h', 0, 0, 0, '2026-01-01 00:00:00'), \
+                    ({}, 'carol', 'carol@example.com', 'h', 0, 0, 0, NULL)",
+            pk_sql_literal(5),
+            pk_sql_literal(6)
+        ),
     )
     .await;
     let update = entry("users").update_fn.unwrap();
     update(
         adb,
-        "5".to_string(),
+        pk(5).to_string(),
         data(&[
             ("username", "bobby"),
             ("email", "bobby@example.com"),
@@ -166,7 +171,7 @@ async fn admin_edit_writes_username_email_active_and_staff() {
 
     let bob = row(
         &conn,
-        "SELECT username, email, is_active, is_staff, is_superuser, updated_at FROM eihwaz_users WHERE id = 5",
+        "SELECT username, email, is_active, is_staff, is_superuser, updated_at FROM eihwaz_users WHERE username = 'bobby'",
     )
     .await;
     assert_eq!(
@@ -182,7 +187,7 @@ async fn admin_edit_writes_username_email_active_and_staff() {
     assert!(bob[5].is_some(), "updated_at set");
     let carol = row(
         &conn,
-        "SELECT username, is_staff FROM eihwaz_users WHERE id = 6",
+        "SELECT username, is_staff FROM eihwaz_users WHERE username = 'carol'",
     )
     .await;
     assert_eq!(
@@ -198,17 +203,20 @@ async fn admin_partial_update_stamps_updated_at() {
     let (conn, adb) = schema().await;
     db::exec(
         &conn,
-        "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_staff, is_superuser) \
-         VALUES (5, 'bob', 'bob@example.com', 'h', 0, 0, 0)",
+        &format!(
+            "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_staff, is_superuser) \
+             VALUES ({}, 'bob', 'bob@example.com', 'h', 0, 0, 0)",
+            pk_sql_literal(5)
+        ),
     )
     .await;
     let partial = entry("users").partial_update_fn.unwrap();
-    partial(adb, "5".to_string(), data(&[("is_staff", "on")]))
+    partial(adb, pk(5).to_string(), data(&[("is_staff", "on")]))
         .await
         .unwrap();
     let bob = row(
         &conn,
-        "SELECT is_staff, updated_at FROM eihwaz_users WHERE id = 5",
+        "SELECT is_staff, updated_at FROM eihwaz_users WHERE username = 'bob'",
     )
     .await;
     assert_eq!(bob[0].as_deref(), Some("1"));
@@ -221,8 +229,12 @@ async fn builtin_lists_sort_both_ways() {
     let (conn, adb) = schema().await;
     db::exec(
         &conn,
-        "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_staff, is_superuser) \
-         VALUES (1, 'anna', 'a@x.fr', 'h', 0, 0, 0), (2, 'zoe', 'z@x.fr', 'h', 0, 0, 0)",
+        &format!(
+            "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_staff, is_superuser) \
+             VALUES ({}, 'anna', 'a@x.fr', 'h', 0, 0, 0), ({}, 'zoe', 'z@x.fr', 'h', 0, 0, 0)",
+            pk_sql_literal(1),
+            pk_sql_literal(2)
+        ),
     )
     .await;
     db::exec(

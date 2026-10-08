@@ -304,7 +304,8 @@ async fn seed_fixtures(dbc: &DatabaseConnection) {
         dbc,
         &format!(
             "INSERT INTO eihwaz_history (resource_key, object_pk, action, user_id, username, created_at, summary, batch_id) \
-             VALUES ('users', '1', 'create', {superuser_id}, '{SUPERUSER_USERNAME}', '2026-07-30T00:02:00', NULL, NULL)"
+             VALUES ('users', '{}', 'create', {superuser_id}, '{SUPERUSER_USERNAME}', '2026-07-30T00:02:00', NULL, NULL)",
+            seed_superuser_id_str()
         ),
     )
     .await;
