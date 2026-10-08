@@ -25,6 +25,8 @@
 
 ## Panel Admin
 
+- [ ] **Refonte : builder `ModelAdmin<Entity>` typé** (version majeure) — remplace `admin!{}` + le daemon (≈ 9 000 lignes générées par application) par une logique générique écrite une fois et un fichier court par table (`src/admins/<table>.rs`, `.with_admin(admins::site)`) ; colonnes typées, listes blanches uniquement, invariants vérifiés au démarrage. Ébauche : [ebauche-model-admin.md](/ebauche-model-admin.md)
+
 ### Affichage liste
 
 - ✅ **Filtres cumulables** — plusieurs filtres simultanés : backend `Vec` + template qui préserve les autres filtres au toggle (URL/HTMX reconstruite avec tous les `active_filters` sauf celui touché)
