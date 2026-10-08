@@ -221,6 +221,13 @@ mod tests {
     }
 
     #[test]
+    fn engines_refused_per_enum_backing() {
+        assert_eq!(EnumBackingType::I8.unsupported_on(), &[Engine::Postgres]);
+        assert!(EnumBackingType::I16.unsupported_on().is_empty());
+        assert!(EnumBackingType::Auto.unsupported_on().is_empty());
+    }
+
+    #[test]
     fn byte_limit_is_the_column_length() {
         assert_eq!(FormFieldKind::Binary.byte_limit(None), Some(255));
         assert_eq!(FormFieldKind::VarBinary.byte_limit(Some(8)), Some(8));

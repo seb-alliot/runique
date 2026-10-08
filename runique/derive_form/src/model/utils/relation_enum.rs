@@ -213,3 +213,15 @@ fn to_snake_case(s: &str) -> String {
     }
     result
 }
+
+#[cfg(test)]
+mod tests {
+    use super::to_snake_case;
+
+    #[test]
+    fn a_pascal_case_model_name_becomes_its_module_name() {
+        assert_eq!(to_snake_case("Article"), "article");
+        assert_eq!(to_snake_case("BlogPost"), "blog_post");
+        assert_eq!(to_snake_case("blog_post"), "blog_post");
+    }
+}

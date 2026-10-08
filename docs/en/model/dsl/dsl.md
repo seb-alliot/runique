@@ -567,7 +567,7 @@ extend! {
 > `model!{}` (direct anonymous block). These are two different macros with two different
 > grammars; don't carry syntax from one over to the other.
 
-Allowed tables: `eihwaz_users`, `eihwaz_groupes`, `eihwaz_sessions`, `eihwaz_users_groupes`, `eihwaz_groupes_droits`. Any other name causes a compile-time error.
+Allowed tables: `eihwaz_users`, `eihwaz_groupes`. Any other name causes a compile-time error.
 
 Fields in `extend!{}` use the same types, options and nullability rules as `model!` (including `renamed_from`). Columns added to an existing table get a value for the rows already there: declare them `nullable` or with a `default`. No `relations:` block and no list field (`multichoice`/`checkbox`) inside `extend!{}`.
 

@@ -262,6 +262,8 @@ telephone: text [max_length: 20],
 telephone: text [max_length: 20, nullable],
 ```
 
+**`extend!{}` n'accepte plus que `eihwaz_users` et `eihwaz_groupes`** : sur `eihwaz_sessions` et les deux tables de jonction il n'a jamais compilé (un `String` écrit dans `user_id`, un champ `id` que ces tables n'ont pas) ; il le dit maintenant en une ligne.
+
 **`[step: x]` est supprimé** : il était accepté puis ignoré sur `int`, `float`, `decimal` et `percent`. Retirez-le ; un curseur écrit à la main garde `NumericField::range(...).step(x)`.
 
 **`fk(...)` est supprimé** : déclarez les clés étrangères dans `relations` avec `belongs_to`.
