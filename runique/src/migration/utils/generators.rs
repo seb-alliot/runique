@@ -1,7 +1,7 @@
 //! SeaORM migration Rust code generation — `up`/`down` files, CREATE TABLE, FK, indexes, triggers.
 use crate::migration::utils::{
     helpers::{col_type_method, col_type_to_method},
-    types::{Changes, ParsedColumn, ParsedFk, ParsedSchema},
+    types::{Changes, ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema},
 };
 
 /// Builds the FK constraint name. Length (MariaDB/MySQL hard-reject over 64 characters) is
@@ -49,7 +49,7 @@ pub fn generate_create_file_in_cycle(schema: &ParsedSchema, keys: &CycleKeys<'_>
         ..schema.clone()
     };
     let cols = build_create_table_cols(&inline, true);
-    let idx_stmts = build_index_create_stmts(schema);
+    let idx_stmts = build_index_create_stmts(schema, true);
     let enum_stmts = build_enum_type_stmts(schema);
     let enum_drops = build_enum_type_drops(schema);
 
@@ -158,7 +158,7 @@ pub fn generate_snapshot_file(schema: &ParsedSchema) -> String {
     // Snapshot keeps FKs as separate stmts (never inline) so parser_seaorm round-trip is stable.
     let cols = build_create_table_cols(schema, false);
     let fk_stmts = build_fk_create_stmts(schema);
-    let idx_stmts = build_index_create_stmts(schema);
+    let idx_stmts = build_index_create_stmts(schema, false);
     let fk_drops = build_fk_drop_stmts(schema);
     let idx_drops = build_index_drop_stmts(schema);
 
@@ -379,18 +379,73 @@ fn build_fk_create_stmts(schema: &ParsedSchema) -> String {
     out
 }
 
-fn build_index_create_stmts(schema: &ParsedSchema) -> String {
+/// `guard_fk_indexes`: wrap a foreign key's own index in the MySQL check of
+/// [`unless_mysql_fk`] — for the files that run, never for snapshots, which
+/// `parser_seaorm` reads back as plain statements.
+fn build_index_create_stmts(schema: &ParsedSchema, guard_fk_indexes: bool) -> String {
     let mut out = String::new();
     for idx in &schema.indexes {
-        out.push_str(&render_create_index_stmt(
-            &schema.table_name,
-            &idx.name,
-            &idx.columns,
-            idx.unique,
-        ));
+        let stmt =
+            render_create_index_stmt(&schema.table_name, &idx.name, &idx.columns, idx.unique);
+        match fk_index_column(&schema.table_name, idx).filter(|_| guard_fk_indexes) {
+            Some(col) => out.push_str(&unless_mysql_fk(&schema.table_name, col, &stmt)),
+            None => out.push_str(&stmt),
+        }
         out.push('\n');
     }
     out
+}
+
+/// The column of a foreign key's own index (`idx_{table}_{column}`, one column,
+/// not unique) — what `to_schema` adds for every `belongs_to`.
+fn fk_index_column<'a>(table: &str, idx: &'a ParsedIndex) -> Option<&'a str> {
+    match idx.columns.as_slice() {
+        [col] if !idx.unique && idx.name == format!("idx_{table}_{col}") => Some(col),
+        _ => None,
+    }
+}
+
+/// Runs `stmt` unless the database is MySQL/MariaDB and `column` holds a
+/// foreign key there. InnoDB already indexes every foreign key column: an
+/// explicit index would replace that one and then couldn't be dropped while
+/// the key exists (error 1553, which broke `migrate down`). Checked at run time
+/// so one file works on every engine.
+fn unless_mysql_fk(table: &str, column: &str, stmt: &str) -> String {
+    format!(
+        r#"        {{
+            let backs_fk = manager.get_connection().get_database_backend() == sea_orm::DbBackend::MySql
+                && manager
+                    .get_connection()
+                    .query_one(
+                        &Query::select()
+                            .expr(Expr::val(1))
+                            .from((Alias::new("information_schema"), Alias::new("KEY_COLUMN_USAGE")))
+                            .and_where(Expr::col(Alias::new("TABLE_SCHEMA")).eq(Expr::cust("DATABASE()")))
+                            .and_where(Expr::col(Alias::new("TABLE_NAME")).eq({table:?}))
+                            .and_where(Expr::col(Alias::new("COLUMN_NAME")).eq({column:?}))
+                            .and_where(Expr::col(Alias::new("REFERENCED_TABLE_NAME")).is_not_null())
+                            .to_owned(),
+                    )
+                    .await?
+                    .is_some();
+            if !backs_fk {{
+{body}            }}
+        }}
+"#,
+        body = indent(stmt, "        "),
+    )
+}
+
+fn indent(code: &str, prefix: &str) -> String {
+    code.lines()
+        .map(|l| {
+            if l.is_empty() {
+                "\n".to_string()
+            } else {
+                format!("{prefix}{l}\n")
+            }
+        })
+        .collect()
 }
 
 fn build_fk_drop_stmts(schema: &ParsedSchema) -> String {
@@ -429,10 +484,10 @@ fn build_alter_bodies(change: &Changes) -> (String, String) {
 
     // 1) DROP indexes (up) / DROP added indexes (down)
     for idx in &change.dropped_indexes {
-        push_drop_index(&mut up, &change.table_name, &idx.name);
+        push_drop_index(&mut up, &change.table_name, idx);
     }
     for idx in &change.added_indexes {
-        push_drop_index(&mut down, &change.table_name, &idx.name);
+        push_drop_index(&mut down, &change.table_name, idx);
     }
 
     // 2) DROP FK
@@ -524,22 +579,10 @@ fn build_alter_bodies(change: &Changes) -> (String, String) {
 
     // 8) ADD indexes
     for idx in &change.added_indexes {
-        push_create_index(
-            &mut up,
-            &change.table_name,
-            &idx.name,
-            &idx.columns,
-            idx.unique,
-        );
+        push_create_index(&mut up, &change.table_name, idx);
     }
     for idx in &change.dropped_indexes {
-        push_create_index(
-            &mut down,
-            &change.table_name,
-            &idx.name,
-            &idx.columns,
-            idx.unique,
-        );
+        push_create_index(&mut down, &change.table_name, idx);
     }
 
     // 9) Enum value renames — both branches (Postgres native `RENAME VALUE` vs.
@@ -751,12 +794,17 @@ fn render_column_def(col: &ParsedColumn) -> String {
     }
 }
 
-fn push_drop_index(buf: &mut String, table: &str, idx_name: &str) {
-    buf.push_str(&format!(
-        "        manager\n            .drop_index(Index::drop().name(\"{idx}\").table(Alias::new(\"{table}\")).to_owned())\n            .await?;\n\n",
-        idx = idx_name,
+fn push_drop_index(buf: &mut String, table: &str, idx: &ParsedIndex) {
+    let stmt = format!(
+        "        manager\n            .drop_index(Index::drop().name(\"{name}\").table(Alias::new(\"{table}\")).to_owned())\n            .await?;\n",
+        name = idx.name,
         table = table
-    ));
+    );
+    match fk_index_column(table, idx) {
+        Some(col) => buf.push_str(&unless_mysql_fk(table, col, &stmt)),
+        None => buf.push_str(&stmt),
+    }
+    buf.push('\n');
 }
 
 fn push_drop_fk(buf: &mut String, table: &str, from_col: &str, to_table: &str) {
@@ -836,14 +884,12 @@ fn push_create_fk(
     ));
 }
 
-fn push_create_index(
-    buf: &mut String,
-    table: &str,
-    idx_name: &str,
-    columns: &[String],
-    unique: bool,
-) {
-    buf.push_str(&render_create_index_stmt(table, idx_name, columns, unique));
+fn push_create_index(buf: &mut String, table: &str, idx: &ParsedIndex) {
+    let stmt = render_create_index_stmt(table, &idx.name, &idx.columns, idx.unique);
+    match fk_index_column(table, idx) {
+        Some(col) => buf.push_str(&unless_mysql_fk(table, col, &stmt)),
+        None => buf.push_str(&stmt),
+    }
     buf.push('\n');
 }
 

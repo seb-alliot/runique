@@ -484,3 +484,39 @@ impl MiddlewareStaging {
         self.session_duration
     }
 }
+
+/// Written from cargo-mutants survivors (2026-10-08): the session store
+/// watermarks the docs promise (128 MB / 256 MB), whichever way the staging
+/// is built. A wrong default either purges sessions constantly or lets
+/// memory grow unbounded.
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const LOW: usize = 128 * 1024 * 1024;
+    const HIGH: usize = 256 * 1024 * 1024;
+
+    #[test]
+    fn default_session_watermarks_are_128_and_256_mb() {
+        for debug in [true, false] {
+            let staging = MiddlewareStaging::new(debug);
+            assert_eq!(
+                (
+                    staging.session_low_watermark,
+                    staging.session_high_watermark
+                ),
+                (LOW, HIGH)
+            );
+            let mut config = RuniqueConfig::default();
+            config.debug = debug;
+            let staging = MiddlewareStaging::from_config(&config);
+            assert_eq!(
+                (
+                    staging.session_low_watermark,
+                    staging.session_high_watermark
+                ),
+                (LOW, HIGH)
+            );
+        }
+    }
+}

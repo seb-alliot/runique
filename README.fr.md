@@ -1,7 +1,7 @@
 # Runique — l'expérience développeur Django, en Rust type-safe
 
 ![Rust](https://img.shields.io/badge/rust-1.94%2B-orange)
-![Tests passing](https://img.shields.io/badge/tests-2727%20passing-green)
+![Tests passing](https://img.shields.io/badge/tests-2875%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Version](https://img.shields.io/badge/version-3.0.0-blue)
 [![Crates.io](https://img.shields.io/crates/v/runique)](https://crates.io/crates/runique)
@@ -199,8 +199,8 @@ Référence complète : [Sessions](https://runique.io/docs/fr/session)
 
 ## Tests et couverture
 
-- Tests rapportés : **2727 réussis** (110 ignorés)
-- Snapshot de couverture (`2026-10-06`, package `runique`, module admin inclus) : fonctions **83.91%**, lignes **82.27%**, régions **81.20%**
+- Tests rapportés : **2875 réussis** (110 ignorés)
+- Snapshot de couverture (`2026-10-08`, package `runique`, module admin inclus) : fonctions **88.72%**, lignes **88.81%**, régions **87.25%**
 
 ```bash
 cargo llvm-cov --package runique --features all-databases --summary-only

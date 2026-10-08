@@ -74,3 +74,27 @@ fn test_model_form_schema_table_name_snake_case() {
     let schema = UserProfile::schema();
     assert_eq!(schema.table_name, "user_profile");
 }
+
+// Written from cargo-mutants survivors (2026-10-08): `#[form(schema = ..)]`
+// fills its form through `model_register_fields`, never called by a test.
+#[test]
+fn test_model_register_fields_fills_the_form_without_excluded_columns() {
+    use runique::forms::Forms;
+    use runique::migration::{column::ColumnDef, primary_key::PrimaryKeyDef};
+    struct Account;
+    impl ModelForm for Account {
+        fn schema() -> ModelSchema {
+            ModelSchema::new("Account")
+                .primary_key(PrimaryKeyDef::new("id"))
+                .column(ColumnDef::new("username").string())
+                .column(ColumnDef::new("password").string())
+        }
+        fn exclude() -> Option<&'static [&'static str]> {
+            Some(&["password"])
+        }
+    }
+    let mut form = Forms::new("csrf");
+    Account::model_register_fields(&mut form);
+    assert!(form.fields.contains_key("username"));
+    assert!(!form.fields.contains_key("password"));
+}

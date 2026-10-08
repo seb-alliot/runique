@@ -5,7 +5,7 @@
 #![doc = include_str!("../../doc-tests/db/db_config_module.md")]
 
 use dotenvy::dotenv;
-use sea_orm::{ConnectOptions, Database, DatabaseConnection, DbErr};
+use sea_orm::{ConnectOptions, Database, DatabaseConnection, DbErr, RuntimeErr};
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::time::Duration;
@@ -306,7 +306,7 @@ impl DatabaseConfig {
                 tracing::error!("└──> Database connection failed");
                 tracing::error!("   └──> Engine: {}", self.engine.name());
                 tracing::error!("       └──> URL: {}", mask_password(&self.url));
-                Err(e)
+                Err(redact_url(e, &self.url))
             }
         }
     }
@@ -357,6 +357,17 @@ fn mask_userinfo(url: &str) -> String {
     format!("{}{}:****{}", before, user, after)
 }
 
+/// SeaORM quotes the full connection string in some errors (e.g. "has no
+/// supporting driver"), which then reach the terminal through `?`.
+pub(crate) fn redact_url(err: DbErr, url: &str) -> DbErr {
+    match err {
+        DbErr::Conn(RuntimeErr::Internal(msg)) if msg.contains(url) => {
+            DbErr::Conn(RuntimeErr::Internal(msg.replace(url, &mask_password(url))))
+        }
+        other => other,
+    }
+}
+
 /// libpq, MySQL and sqlx all accept the password as a query parameter too.
 fn mask_query_secrets(url: &str) -> String {
     const SECRET_KEYS: [&str; 5] = ["password", "pass", "pwd", "passwd", "sslpassword"];
@@ -378,6 +389,29 @@ fn mask_query_secrets(url: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_redact_url_hides_the_password_in_a_connection_error() {
+        let url = "postgresql://postgres:secret123@localhost:5432/db";
+        let err = DbErr::Conn(RuntimeErr::Internal(format!(
+            "The connection string '{url}' has no supporting driver."
+        )));
+        let shown = redact_url(err, url).to_string();
+        assert!(!shown.contains("secret123"), "{shown}");
+        assert!(
+            shown.contains("postgresql://postgres:****@localhost:5432/db"),
+            "{shown}"
+        );
+    }
+
+    #[test]
+    fn test_redact_url_leaves_other_errors_alone() {
+        let err = DbErr::Conn(RuntimeErr::Internal("timeout".to_string()));
+        assert_eq!(
+            redact_url(err, "postgres://u:p@h/db").to_string(),
+            "Connection Error: timeout"
+        );
+    }
 
     #[test]
     fn test_mask_password() {

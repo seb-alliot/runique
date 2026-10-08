@@ -21,6 +21,9 @@ use serial_test::serial;
 /// the same declaration as text for the CLI's parser, and a round trip.
 macro_rules! case {
     ($module:ident, $kind:ident, $table:literal, $value:expr) => {
+        case!($module, $kind, required, $table, $value);
+    };
+    ($module:ident, $kind:ident, $option:ident, $table:literal, $value:expr) => {
         mod $module {
             use runique::prelude::*;
 
@@ -29,7 +32,7 @@ macro_rules! case {
                 table: $table,
                 pk: id => i32,
                 {
-                    v: $kind [required],
+                    v: $kind [$option],
                 }
             }
 
@@ -41,7 +44,9 @@ macro_rules! case {
                 stringify!($table),
                 ", pk: id => i32, { v: ",
                 stringify!($kind),
-                " [required], } }"
+                " [",
+                stringify!($option),
+                "], } }"
             );
 
             /// Writes the value, reads it back, and checks it's unchanged.
@@ -61,10 +66,17 @@ macro_rules! case {
                     .await
                     .map_err(|e| format!("read: {e}"))?
                     .ok_or("read: row not found")?;
-                if read.v == value {
+                // `auto_now_update` stamps every save with the current time:
+                // what was written is what must come back.
+                let expected = if stringify!($option) == "auto_now_update" {
+                    saved.v.clone()
+                } else {
+                    value
+                };
+                if read.v == expected {
                     Ok(())
                 } else {
-                    Err(format!("read back {:?} instead of {:?}", read.v, value))
+                    Err(format!("read back {:?} instead of {:?}", read.v, expected))
                 }
             }
         }
@@ -84,6 +96,31 @@ case!(
     timestamp_tz,
     "rq_types_timestamp_tz",
     chrono::DateTime::from_timestamp(1_700_000_000, 0).unwrap()
+);
+// `auto_now` / `auto_now_update` keep a `timestamp_tz` column's time zone:
+// its field is a `DateTime<Utc>`, which Postgres can't read from a `TIMESTAMP`.
+case!(
+    t_timestamp_tz_auto_now,
+    timestamp_tz,
+    auto_now,
+    "rq_types_timestamp_tz_auto_now",
+    chrono::DateTime::from_timestamp(1_700_000_000, 0).unwrap()
+);
+case!(
+    t_timestamp_tz_auto_now_update,
+    timestamp_tz,
+    auto_now_update,
+    "rq_types_timestamp_tz_auto_now_update",
+    chrono::DateTime::from_timestamp(1_700_000_000, 0).unwrap()
+);
+case!(
+    t_datetime_auto_now,
+    datetime,
+    auto_now,
+    "rq_types_datetime_auto_now",
+    chrono::DateTime::from_timestamp(1_700_000_000, 0)
+        .unwrap()
+        .naive_utc()
 );
 case!(t_blob, blob, "rq_types_blob", vec![0u8, 1, 127, 255]);
 case!(
@@ -123,6 +160,9 @@ fn cases() -> Vec<(&'static str, &'static str, &'static str, RoundTrip)> {
         entry!(t_f32),
         entry!(t_char),
         entry!(t_timestamp_tz),
+        entry!(t_timestamp_tz_auto_now),
+        entry!(t_timestamp_tz_auto_now_update),
+        entry!(t_datetime_auto_now),
         entry!(t_blob),
         entry!(t_var_binary),
         entry!(t_binary),

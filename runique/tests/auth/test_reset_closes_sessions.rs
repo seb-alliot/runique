@@ -155,3 +155,25 @@ async fn a_completed_reset_signs_the_account_out_on_every_device() {
     text(&phone, format!("{base}/sign-in/1")).await;
     assert_eq!(text(&phone, format!("{base}/whoami")).await, "alice");
 }
+
+/// `request.user` is the account as the database has it now, like Django's:
+/// a rename shows on the very next request, nothing is kept in the session.
+#[tokio::test]
+#[serial]
+async fn request_user_follows_a_rename_at_once() {
+    let (base, db) = spawn().await;
+    let alice = client();
+    assert_eq!(text(&alice, format!("{base}/sign-in/1")).await, "ok");
+    assert_eq!(text(&alice, format!("{base}/whoami")).await, "alice");
+
+    db::exec(
+        &db,
+        &format!(
+            "UPDATE eihwaz_users SET username = 'alicia' WHERE id = {}",
+            pk_sql_literal(1)
+        ),
+    )
+    .await;
+    assert_eq!(text(&alice, format!("{base}/whoami")).await, "alicia");
+    assert_eq!(text(&client(), format!("{base}/whoami")).await, "anonymous");
+}

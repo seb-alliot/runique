@@ -13,6 +13,15 @@ pub async fn up(migrations_path: &str) -> Result<()> {
         .trim_end_matches("/src")
         .trim_end_matches("\\src");
 
+    // Checked before launching sea-orm-cli: its own error for a wrong path is
+    // cargo's raw "manifest path does not exist".
+    if !std::path::Path::new(migration_dir)
+        .join("Cargo.toml")
+        .is_file()
+    {
+        anyhow::bail!("{}", tf("migrate.crate_missing", &[migration_dir]));
+    }
+
     println!("{}", tf("migrate.applying", &[migration_dir]));
 
     let status = tokio::process::Command::new("sea-orm-cli")

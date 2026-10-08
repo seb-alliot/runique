@@ -80,7 +80,7 @@ Côté code, le modèle implémente le trait `RuniqueUser` :
 
 | Section | Description |
 | --- | --- |
-| [Helpers de session](/docs/fr/auth/session) | `login`, `auth_login`, `logout` |
+| [Helpers de session](/docs/fr/auth/session) | `login`, `logout` |
 | [Middlewares & CurrentUser](/docs/fr/auth/middleware) | Protection des routes |
 
 ## Retour au sommaire

@@ -7,7 +7,14 @@
 #
 # Tests that need Postgres/MariaDB return early without the Docker databases.
 
-# Same features as the full test suite.
+# Same features as the full test suite. They belong to `runique`: a mutant of
+# `derive_form` or `runique_dsl` built with them is refused by cargo ("does
+# not contain these features") and counted "unviable" — the 2026-10-06 pass
+# tested neither crate. Run those two without this file:
+#   cargo mutants -p runique_dsl --no-config
+#   cargo mutants -p derive_form --no-config --test-package runique \
+#     --features runique/all-databases --features runique/test-utils
+# (derive_form is a proc-macro: runique's tests are what check its output.)
 features = ["runique/all-databases", "runique/test-utils"]
 # The suite takes ~45 s; leave room for a slower machine before calling a
 # mutant "timed out".

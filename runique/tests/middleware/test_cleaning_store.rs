@@ -508,12 +508,18 @@ async fn test_low_watermark_purge_keeps_protected_and_drops_anonymous() {
     let by_user = protected_record_user_id(-5);
     let by_flag = protected_record_session_active(-5);
     let anonymous = fresh_record(-5);
+    // The other side of `session_active`: a timestamp already past protects nothing.
+    let mut stale_flag = fresh_record(-5);
+    stale_flag.data.insert(
+        "session_active".to_string(),
+        serde_json::json!(OffsetDateTime::now_utc().unix_timestamp() - 60),
+    );
     let trigger = fresh_record(3600);
     let kept = size_of(&by_user).await + size_of(&by_flag).await + size_of(&trigger).await;
 
     // low = 1: every `create` from the second on spawns the anonymous purge.
     let store = CleaningMemoryStore::default().with_watermarks(1, usize::MAX);
-    for mut r in [by_user, by_flag, anonymous] {
+    for mut r in [by_user, by_flag, anonymous, stale_flag] {
         store.create(&mut r).await.unwrap();
     }
     let mut t = trigger;
@@ -528,6 +534,205 @@ async fn test_low_watermark_purge_keeps_protected_and_drops_anonymous() {
     assert_eq!(
         store.size_bytes(),
         kept,
-        "only the expired anonymous session goes; both protected ones stay"
+        "the anonymous and the stale-flag sessions go; both protected ones stay"
     );
+}
+
+// Written from cargo-mutants survivors (2026-10-08): the engine's answer is what
+// the admin login reads to send a clean 503 instead of a commit-time 500.
+#[tokio::test]
+async fn test_engine_reports_its_store_saturation() {
+    let engine = crate::helpers::server::build_engine().await;
+    assert!(
+        !engine.session_store_saturated(),
+        "no store: never saturated"
+    );
+
+    let store = std::sync::Arc::new(CleaningMemoryStore::default().with_watermarks(1, 1));
+    *engine.session_store.write().unwrap() = Some(store.clone());
+    assert!(
+        !engine.session_store_saturated(),
+        "empty store: not saturated"
+    );
+
+    store.create(&mut fresh_record(3600)).await.unwrap();
+    assert!(engine.session_store_saturated(), "above the high watermark");
+}
+
+// ── Written from cargo-mutants survivors (2026-10-08) ─────────────────────────
+
+/// A record carrying `bytes` of data, for the user `user` (anonymous if `None`).
+fn heavy_record(secs_from_now: i64, bytes: usize, user: Option<u32>) -> Record {
+    let mut r = fresh_record(secs_from_now);
+    r.data
+        .insert("blob".to_string(), serde_json::json!("x".repeat(bytes)));
+    if let Some(id) = user {
+        r.data
+            .insert("user_id".to_string(), serde_json::json!(pk(id)));
+    }
+    r
+}
+
+/// The default watermarks are 128 MB and 256 MB: 2 MB of sessions is far
+/// below both, so nothing is refused and nothing is purged.
+#[tokio::test]
+async fn test_default_watermarks_leave_two_megabytes_alone() {
+    // Live signed-in sessions can't be purged: a lower high watermark would refuse them.
+    let store = CleaningMemoryStore::default();
+    for i in 0..35 {
+        let mut r = heavy_record(3600, 60_000, Some(i));
+        store
+            .create(&mut r)
+            .await
+            .expect("far below the high watermark");
+    }
+    assert!(!store.is_saturated());
+
+    // Expired anonymous sessions are what the low-watermark purge removes:
+    // below it, they stay until the timer.
+    let store = CleaningMemoryStore::default();
+    for _ in 0..35 {
+        store
+            .create(&mut heavy_record(-5, 60_000, None))
+            .await
+            .unwrap();
+    }
+    let before = store.size_bytes();
+    store.create(&mut fresh_record(3600)).await.unwrap();
+    let trigger = store.size_bytes() - before;
+    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+    assert_eq!(
+        store.size_bytes(),
+        before + trigger,
+        "no purge below the low watermark"
+    );
+}
+
+/// The size the store accounts follows the data it holds.
+#[tokio::test]
+async fn test_size_follows_the_data() {
+    let small = size_of(&fresh_record(3600)).await;
+    let big = size_of(&heavy_record(3600, 10_000, None)).await;
+    assert!(big >= 10_000, "{big}");
+    assert!(big > small + 9_000, "{small} → {big}");
+}
+
+/// `session_active` protects only while it is in the future: "now" no longer does.
+#[tokio::test]
+async fn test_session_active_now_protects_nothing() {
+    let store = CleaningMemoryStore::default().with_watermarks(1, usize::MAX);
+    let mut ends_now = fresh_record(-5);
+    ends_now.data.insert(
+        "session_active".to_string(),
+        serde_json::json!(OffsetDateTime::now_utc().unix_timestamp()),
+    );
+    store.create(&mut ends_now).await.unwrap();
+    let mut trigger = fresh_record(3600);
+    store.create(&mut trigger).await.unwrap();
+    let kept = size_of(&trigger).await;
+    for _ in 0..50 {
+        if store.size_bytes() == kept {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+    }
+    assert_eq!(store.size_bytes(), kept);
+}
+
+/// At the high watermark, the first pass removes the expired ANONYMOUS
+/// sessions; an expired signed-in one is kept when that is enough.
+#[tokio::test]
+async fn test_emergency_purge_takes_anonymous_sessions_first() {
+    let signed_in = heavy_record(-5, 100, Some(1));
+    let anonymous = heavy_record(-5, 5_000, None);
+    let newcomer = fresh_record(3600);
+    let (p, a, n) = (
+        size_of(&signed_in).await,
+        size_of(&anonymous).await,
+        size_of(&newcomer).await,
+    );
+    // low == high: no background purge, only the synchronous one.
+    let store = CleaningMemoryStore::default().with_watermarks(p + a, p + a);
+    for mut r in [signed_in, anonymous] {
+        store.create(&mut r).await.unwrap();
+    }
+    let mut r = newcomer;
+    store.create(&mut r).await.unwrap();
+    assert_eq!(
+        store.size_bytes(),
+        p + n,
+        "the anonymous one went, the signed-in one stayed"
+    );
+}
+
+/// Closing a user's sessions frees their size; other sessions keep theirs.
+#[tokio::test]
+async fn test_invalidate_user_sessions_frees_their_size() {
+    let store = CleaningMemoryStore::default();
+    let other = heavy_record(3600, 500, Some(7));
+    let kept = size_of(&other).await;
+    for mut r in [
+        heavy_record(3600, 500, Some(42)),
+        heavy_record(3600, 800, Some(42)),
+        other,
+    ] {
+        store.create(&mut r).await.unwrap();
+    }
+    store.invalidate_user_sessions(pk(42)).await;
+    assert_eq!(store.size_bytes(), kept);
+}
+
+/// Exclusive login drops the user's older session and its size with it.
+#[tokio::test]
+async fn test_exclusive_login_frees_the_old_sessions_size() {
+    let store = CleaningMemoryStore::default().with_exclusive_login(true);
+    let mut first = heavy_record(3600, 2_000, Some(42));
+    store.create(&mut first).await.unwrap();
+
+    let mut second = fresh_record(3600);
+    store.create(&mut second).await.unwrap();
+    second
+        .data
+        .insert("user_id".to_string(), serde_json::json!(pk(42)));
+    store.save(&second).await.unwrap();
+
+    assert!(store.load(&first.id).await.unwrap().is_none());
+    assert_eq!(store.size_bytes(), size_of(&second).await);
+}
+
+/// With the database fallback, a signed-in session survives a restart: a new
+/// store (empty memory) finds it in the database. Without it, nothing does.
+#[tokio::test]
+async fn test_db_fallback_restores_a_signed_in_session_after_restart() {
+    use runique::middleware::session::RuniqueSessionStore;
+    use std::sync::Arc;
+    let conn = crate::helpers::db::fresh_db_with_schema(super::test_session_db::SESSIONS_DDL).await;
+    let db = Arc::new(RuniqueSessionStore::new(runique::db::ADb::from_connection(
+        conn,
+    )));
+
+    let before = CleaningMemoryStore::default().with_db_fallback(db.clone());
+    let mut signed_in = heavy_record(3600, 10, Some(42));
+    before.create(&mut signed_in).await.unwrap();
+    let mut anonymous = fresh_record(3600);
+    before.create(&mut anonymous).await.unwrap();
+
+    let after = CleaningMemoryStore::default().with_db_fallback(db);
+    let restored = after
+        .load(&signed_in.id)
+        .await
+        .unwrap()
+        .expect("restored from the database");
+    assert_eq!(
+        restored.data.get("user_id"),
+        Some(&serde_json::json!(pk(42)))
+    );
+    assert!(after.size_bytes() > 0, "warmed into memory");
+    assert!(
+        after.load(&anonymous.id).await.unwrap().is_none(),
+        "anonymous sessions are never written"
+    );
+
+    let without = CleaningMemoryStore::default();
+    assert!(without.load(&signed_in.id).await.unwrap().is_none());
 }

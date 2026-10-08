@@ -153,14 +153,14 @@ The subscriber is initialised automatically by `build()` — **no call to `init_
 Everything goes through `.with_log(|l| ...)` — the closure receives an empty `RuniqueLog` and returns the final configuration.
 
 ```rust
-use tracing::Level;
+use runique::prelude::*; // LogLevel = tracing::Level
 
 // Fine-grained per-category control — each submodule takes its own closure
 RuniqueApp::builder(config)
     .with_log(|l| l
-        .middleware(|m| m.csrf(Level::WARN))
-        .session(|s| s.store(Level::WARN))
-        .db(|d| d.connect(Level::INFO))
+        .middleware(|m| m.csrf(LogLevel::WARN))
+        .session(|s| s.store(LogLevel::WARN))
+        .db(|d| d.connect(LogLevel::INFO))
     )
     .routes(router)
     .build()
@@ -193,7 +193,7 @@ RuniqueApp::builder(config)
 
 // Dev with subscriber level override
 RuniqueApp::builder(config)
-    .with_log(|l| l.dev().subscriber_level("info").db(|d| d.connect(Level::INFO)))
+    .with_log(|l| l.dev().subscriber_level("info").db(|d| d.connect(LogLevel::INFO)))
     .routes(router)
     .build()
     .await?;

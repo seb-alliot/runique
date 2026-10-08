@@ -53,10 +53,19 @@ pub async fn soumission_inscription(mut request: Request) -> AppResult<Response>
 
     match form.save(&request.engine.db).await {
         Ok(user) => {
-            auth_login(&request.session, &request.engine.db, user.id)
-                .await
-                .ok();
-            success!(request.notices => format!("Welcome {} !", user.username));
+            // New accounts start inactive (see `RegisterForm::save`): `login`
+            // refuses them until they are activated.
+            match login(&request.session, &user, None, false).await {
+                Ok(()) => {
+                    success!(request.notices => format!("Welcome {} !", user.username));
+                }
+                Err(LoginError::CannotSignIn) => {
+                    info!(request.notices => "Account created: it must be activated before you can sign in.");
+                }
+                Err(_) => {
+                    warning!(request.notices => "Account created, but signing in failed: please sign in.");
+                }
+            }
             Ok(Redirect::to("/").into_response())
         }
         Err(err) => {

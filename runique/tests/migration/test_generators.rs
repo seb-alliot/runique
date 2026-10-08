@@ -958,3 +958,125 @@ fn snapshot_avec_fk_contient_add_fk() {
     assert!(content.contains("user_id"));
     assert!(content.contains("users"));
 }
+
+// ── Foreign key indexes on MySQL/MariaDB (fixed 2026-10-07) ──────────────────
+// InnoDB indexes every foreign key column itself; an explicit index replaced
+// that one and then couldn't be dropped while the key existed (error 1553,
+// `migrate down`/`reset` failed on MariaDB). A foreign key's own index is now
+// skipped there, checked at run time.
+
+fn fk_index(table: &str, col: &str) -> ParsedIndex {
+    ParsedIndex {
+        name: format!("idx_{table}_{col}"),
+        columns: vec![col.to_string()],
+        unique: false,
+    }
+}
+
+#[test]
+fn alter_wraps_a_foreign_key_index_in_the_mysql_check() {
+    let mut changes = simple_changes("posts");
+    changes.added_indexes = vec![fk_index("posts", "user_id")];
+    let out = generate_alter_file(&changes);
+    let up = &out[..out.find("async fn down").expect("down")];
+    let down = &out[out.find("async fn down").expect("down")..];
+    for (part, op) in [(up, "create_index"), (down, "drop_index")] {
+        let guard = part.find("KEY_COLUMN_USAGE").expect("checked on MySQL");
+        let stmt = part.find(op).expect(op);
+        assert!(guard < stmt, "the check comes before {op}");
+        assert!(part.contains(r#"eq("user_id")"#) && part.contains("if !backs_fk"));
+    }
+}
+
+#[test]
+fn other_indexes_are_not_wrapped() {
+    let mut changes = simple_changes("posts");
+    changes.added_indexes = vec![
+        ParsedIndex {
+            name: "idx_posts_user_id_title".to_string(),
+            columns: vec!["user_id".to_string(), "title".to_string()],
+            unique: false,
+        },
+        ParsedIndex {
+            name: "idx_posts_slug".to_string(),
+            columns: vec!["slug".to_string()],
+            unique: true,
+        },
+    ];
+    let out = generate_alter_file(&changes);
+    assert!(out.contains("idx_posts_user_id_title") && out.contains("idx_posts_slug"));
+    assert!(!out.contains("KEY_COLUMN_USAGE"), "{out}");
+}
+
+#[test]
+fn create_file_wraps_its_foreign_key_index_but_the_snapshot_does_not() {
+    let mut schema = schema_with_fk();
+    schema.indexes = vec![fk_index("posts", "user_id")];
+    assert!(generate_create_file(&schema).contains("KEY_COLUMN_USAGE"));
+    assert!(
+        !generate_snapshot_file(&schema).contains("KEY_COLUMN_USAGE"),
+        "snapshots stay plain statements for parser_seaorm"
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Written from cargo-mutants survivors (2026-10-08)
+// ═══════════════════════════════════════════════════════════════
+
+fn down_part(file: &str) -> &str {
+    file.split("async fn down").nth(1).expect("a down() body")
+}
+
+#[test]
+fn test_snapshot_down_drops_its_foreign_keys_and_indexes() {
+    let mut schema = schema_with_fk();
+    schema.indexes = vec![ParsedIndex {
+        name: "idx_posts_title".to_string(),
+        columns: vec!["title".to_string()],
+        unique: false,
+    }];
+    let down = down_part(&generate_snapshot_file(&schema)).to_string();
+    assert!(
+        down.contains(".drop_foreign_key(") && down.contains(".name(\"posts_user_id_users_fkey\")"),
+        "{down}"
+    );
+    assert!(
+        down.contains(
+            ".drop_index(Index::drop().name(\"idx_posts_title\").table(Alias::new(\"posts\"))"
+        ),
+        "{down}"
+    );
+
+    let plain = down_part(&generate_snapshot_file(&simple_schema("plain"))).to_string();
+    assert!(
+        !plain.contains("drop_foreign_key") && !plain.contains("drop_index"),
+        "{plain}"
+    );
+}
+
+#[test]
+fn test_create_in_cycle_keeps_a_forward_key_out_of_the_table_body() {
+    use runique::migration::utils::generators::{CycleKeys, generate_create_file_in_cycle};
+    let schema = schema_with_fk();
+    let fk_name = ".name(\"posts_user_id_users_fkey\")";
+    let sqlite_only = "== sea_orm::DbBackend::Sqlite";
+
+    // Forward key: only in the SQLite branch, never also inline in CREATE TABLE.
+    let forward = generate_create_file_in_cycle(
+        &schema,
+        &CycleKeys {
+            forward: vec![&schema.foreign_keys[0]],
+            closing: vec![],
+        },
+    );
+    assert_eq!(forward.matches(fk_name).count(), 1, "{forward}");
+    assert!(
+        forward.find(sqlite_only).unwrap() < forward.find(fk_name).unwrap(),
+        "{forward}"
+    );
+
+    // Not part of a cycle: inlined in CREATE TABLE, no SQLite branch.
+    let inline = generate_create_file_in_cycle(&schema, &CycleKeys::default());
+    assert_eq!(inline.matches(fk_name).count(), 1, "{inline}");
+    assert!(!inline.contains(sqlite_only), "{inline}");
+}

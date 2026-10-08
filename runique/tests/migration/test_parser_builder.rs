@@ -356,3 +356,41 @@ fn test_parse_different_tables_independent() {
     assert_ne!(blog.table_name, users.table_name);
     assert_ne!(blog.columns.len(), users.columns.len());
 }
+
+/// `auto_now` / `auto_now_update` make a date-time column, except that a
+/// `timestamp_tz` keeps its time zone — in the CLI's schema and in the
+/// model's own. Its field is a `DateTime<Utc>`: on Postgres, a plain
+/// `TIMESTAMP` column can't be read into it.
+#[test]
+fn auto_now_keeps_the_time_zone_of_a_timestamp_tz() {
+    let src = r#"model! { Stamp, table: "stamps", pk: id => i32, {
+        created: timestamp_tz [auto_now],
+        updated: timestamp_tz [auto_now_update],
+        seen: datetime [auto_now],
+        logged: timestamp [auto_now],
+    } }"#;
+    let schema = parse_schema_from_source(src).unwrap().unwrap().1;
+    let ty = |name: &str| {
+        let c = schema.columns.iter().find(|c| c.name == name).unwrap();
+        assert!(c.has_default_now, "{name}");
+        c.col_type.clone()
+    };
+    assert_eq!(ty("created"), "TimestampWithTimeZone");
+    assert_eq!(ty("updated"), "TimestampWithTimeZone");
+    assert_eq!(ty("seen"), "DateTime");
+    assert_eq!(ty("logged"), "DateTime");
+
+    use runique::migration::column::ColumnDef;
+    use runique::sea_orm::sea_query::ColumnType;
+    let tz = ColumnDef::new("c").timestamp_tz().auto_now();
+    assert!(matches!(tz.col_type, ColumnType::TimestampWithTimeZone));
+    let tz = ColumnDef::new("c").timestamp_tz().auto_now_update();
+    assert!(matches!(tz.col_type, ColumnType::TimestampWithTimeZone));
+    let plain = ColumnDef::new("c").timestamp().auto_now();
+    assert!(matches!(plain.col_type, ColumnType::DateTime));
+    let bare = ColumnDef::new("c").auto_now_update();
+    assert!(
+        matches!(bare.col_type, ColumnType::DateTime),
+        "no type given: a date-time"
+    );
+}

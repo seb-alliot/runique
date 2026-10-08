@@ -127,6 +127,7 @@
     "validation_failed": "Falha na validação do build: {}",
     "check_failed": "Build falhou com {} erro(s) de verificação",
     "template_failed": "Falha no carregamento do template: {}",
+    "driver_not_enabled": "Driver {} não ativado: o Runique foi compilado sem a feature '{}'.\n\nNo Cargo.toml do seu projeto:\nrunique = { version = \"{}\", features = [\"{}\"] }\n\nPara a CLI do runique:\ncargo install runique --features {} --locked --force\n\nPara suportar todos os motores, use a feature 'all-databases'.",
     "db_missing": "Conexão com banco de dados necessária quando o recurso 'orm' está habilitado",
     "component_not_ready": "O componente '{}' não está pronto",
     "check": {
@@ -471,7 +472,8 @@
   },
   "migrate": {
     "applying": "Aplicando migrações de '{}'...",
-    "complete_up": "Migração concluída."
+    "complete_up": "Migração concluída.",
+    "crate_missing": "Crate de migrações não encontrado: '{}' não contém Cargo.toml."
   },
   "reset": {
     "forgot_title": "Esqueceu a senha",
@@ -547,5 +549,9 @@
     "build_failed": "O cargo não conseguiu compilar os testes, veja os erros acima.",
     "no_such_test": "Nenhum teste \"{}\" em {}.rs. Testes disponíveis: {}",
     "dir_read_failed": "Não foi possível ler {}"
+  },
+  "auth": {
+    "login_cannot_sign_in": "Esta conta não pode entrar: está inativa ou nunca foi ativada.",
+    "login_session_failed": "Não foi possível salvar a sessão: {}"
   }
 }

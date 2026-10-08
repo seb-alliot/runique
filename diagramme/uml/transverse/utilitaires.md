@@ -19,7 +19,7 @@ classDiagram
         +EnvironmentInfo environment
     }
     class ErrorType {
-        <<enum>> Template / NotFound / Internal / Database / Validation
+        <<enum>> Template / NotFound / Internal / Database / Validation / BadRequest
     }
     class StackFrame {
         +usize level

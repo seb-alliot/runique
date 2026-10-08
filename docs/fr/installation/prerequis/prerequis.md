@@ -25,8 +25,12 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ### 2. Installer la CLI Runique
 
 ```bash
-cargo install runique
+cargo install runique --features postgres --locked
 ```
+
+La CLI se connecte à la base (`create-superuser`, migrations) : elle doit être compilée avec le driver de votre moteur. Remplacer `postgres` par `sqlite`, `mysql` ou `mariadb`, ou utiliser `all-databases` pour un binaire qui parle aux trois. Sans feature, toute connexion échoue avec « driver not enabled ».
+
+`--locked` utilise les versions de dépendances publiées avec la crate ; sans lui, Cargo peut choisir des versions plus récentes incompatibles entre elles.
 
 ### 3. Créer un nouveau projet
 

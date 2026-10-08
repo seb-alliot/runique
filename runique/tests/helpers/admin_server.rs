@@ -419,8 +419,8 @@ async fn build_admin_app_full<P>(
             // event qui n'est jamais émis. Nécessaire pour diagnostiquer le 500
             // intermittent de `test_reset_password_unknown_id_creates_no_token`.
             .with_log(|l| {
-                l.admin(|a| a.auth(Level::TRACE).crud(Level::TRACE))
-                    .auth(|a| a.reset(Level::TRACE).login(Level::TRACE))
+                l.admin(|a| a.auth(LogLevel::TRACE).crud(LogLevel::TRACE))
+                    .auth(|a| a.reset(LogLevel::TRACE).login(LogLevel::TRACE))
             }),
     )
     .build()

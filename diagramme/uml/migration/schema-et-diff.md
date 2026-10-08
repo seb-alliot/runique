@@ -31,6 +31,7 @@ classDiagram
         +Option~FileKind~ file_kind
         +Option~u64~ max_size
         +Option~FormFieldKind~ kind
+        +bool auto_now / auto_now_update
         +to_form_field() Option~GenericField~
     }
     class SchemaDiff {
@@ -46,7 +47,9 @@ classDiagram
 
 **3.0.0 (2026-10-06)** — `ModelSchema` ne sert plus qu'aux **formulaires** : `makemigrations`
 lit le DSL directement (`runique_dsl`), `to_migration()`/`to_model()` et `relations` ont
-disparu. `ColumnDef` porte le `kind` DSL, qui décide du champ (`to_form_field`) ;
+disparu. `auto_now()` / `auto_now_update()` passent la colonne en `DateTime`, sauf un
+`timestamp_tz` qui garde son fuseau (son champ est un `DateTime<Utc>`, illisible depuis un
+`TIMESTAMP` sous Postgres) — même règle dans `to_schema` côté makemigrations. `ColumnDef` porte le `kind` DSL, qui décide du champ (`to_form_field`) ;
 `enforce_limits`, appelé après `customize`, panique si une borne déclarée (`min_length`,
 `max_length`, `min`, `max`) est desserrée. Les champs liste (`checkbox`/`multichoice`) n'ont
 pas de colonne, donc pas de `ColumnDef`.

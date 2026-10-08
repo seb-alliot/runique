@@ -134,4 +134,48 @@ mod debug_tests {
         }
         assert!(!debug_from(None));
     }
+
+    /// The `?v=` token hashes every `.css` and `.js` under the static folder,
+    /// in name order — and nothing else. Written from cargo-mutants survivors
+    /// (2026-10-08): env.rs:82, 88, 107 (the asset version behind the SRI bug).
+    #[test]
+    fn the_asset_token_hashes_css_and_js_only() {
+        use std::hash::{DefaultHasher, Hash, Hasher};
+        let dir = std::env::temp_dir().join(format!("rq_token_{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(dir.join("css")).unwrap();
+        std::fs::write(dir.join("css/a.css"), "body{}").unwrap();
+        std::fs::write(dir.join("app.js"), "go()").unwrap();
+        std::fs::write(dir.join("logo.svg"), "<svg/>").unwrap();
+
+        let mut expected = DefaultHasher::new();
+        // walkdir, sorted by name: app.js, css/a.css (logo.svg is skipped).
+        "go()".to_string().hash(&mut expected);
+        "body{}".to_string().hash(&mut expected);
+        let token = super::hash_static_files(dir.to_str().unwrap());
+
+        std::fs::write(dir.join("logo.svg"), "<svg changed/>").unwrap();
+        let same = super::hash_static_files(dir.to_str().unwrap());
+        let empty = std::env::temp_dir().join(format!("rq_token_none_{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&empty).unwrap();
+        std::fs::write(empty.join("logo.svg"), "<svg/>").unwrap();
+        let none = super::hash_static_files(empty.to_str().unwrap());
+        let _ = (
+            std::fs::remove_dir_all(&dir),
+            std::fs::remove_dir_all(&empty),
+        );
+
+        assert_eq!(token, Some(format!("{:08x}", expected.finish())));
+        assert_eq!(same, token, "an image change doesn't move the token");
+        assert_eq!(none, None, "no stylesheet or script: no token");
+    }
+
+    #[test]
+    fn css_token_is_the_cached_hash() {
+        let token = super::css_token();
+        assert!(
+            !token.is_empty() && token.chars().all(|c| c.is_ascii_hexdigit()),
+            "{token}"
+        );
+        assert_eq!(super::css_token(), token, "computed once");
+    }
 }

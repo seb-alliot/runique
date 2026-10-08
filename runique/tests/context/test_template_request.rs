@@ -209,10 +209,19 @@ async fn handler_params(tpl: TplRequest) -> AppResult<String> {
     ))
 }
 
+async fn handler_typed_path(tpl: TplRequest) -> String {
+    format!(
+        "{:?}|{:?}",
+        tpl.get_path_as::<i32>("id"),
+        tpl.get_path_as::<i32>("other")
+    )
+}
+
 async fn params_app() -> Router {
     let engine = build_engine().await;
     Router::new()
         .route("/items/{id}", get(handler_params))
+        .route("/typed/{id}", get(handler_typed_path))
         .layer(middleware::from_fn_with_state(
             engine.clone(),
             csrf_middleware,
@@ -238,6 +247,15 @@ async fn test_an_empty_query_value_does_not_reset_the_others() {
         body_str(resp).await,
         r#"Some("1")|None|Some("")|None|Some("rust")"#
     );
+}
+
+// Written from cargo-mutants survivors (2026-10-08): `get_path_as` was never called.
+#[tokio::test]
+async fn test_get_path_as_parses_or_gives_none() {
+    let resp = request::get(params_app().await, "/typed/42").await;
+    assert_eq!(body_str(resp).await, "Some(42)|None");
+    let resp = request::get(params_app().await, "/typed/abc").await;
+    assert_eq!(body_str(resp).await, "None|None");
 }
 
 #[tokio::test]

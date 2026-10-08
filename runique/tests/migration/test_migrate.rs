@@ -63,5 +63,9 @@ async fn test_up_mariadb_retourne_ok() {
 async fn test_up_chemin_inexistant_retourne_err() {
     // up() avec chemin inexistant → sea-orm-cli échoue → Err attendu
     let result = up("/chemin/inexistant/abc").await;
-    assert!(result.is_err(), "up() chemin inexistant doit Err");
+    let err = result
+        .expect_err("up() chemin inexistant doit Err")
+        .to_string();
+    // Refused before sea-orm-cli runs: the message names the folder.
+    assert!(err.contains("/chemin/inexistant/abc"), "{err}");
 }

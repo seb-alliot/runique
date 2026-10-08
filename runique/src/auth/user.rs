@@ -159,22 +159,21 @@ impl BuiltinUserEntity {
     }
 
     /// Activates an account still waiting for its first activation —
-    /// `is_active` and `activated_at` together — and says whether it did. An
-    /// account activated before, deactivated since or active, is left as it
-    /// is (`false`): activation happens once, reactivation is the staff's.
-    pub async fn activate_pending(db: &ADb, id: Pk) -> Result<bool, sea_orm::DbErr> {
+    /// `is_active` and `activated_at` together — and returns it, ready for
+    /// `login`. An account activated before (active, or deactivated since) is
+    /// left as it is (`None`): activation happens once, reactivation is the staff's.
+    pub async fn activate_account(db: &ADb, id: Pk) -> Result<Option<Model>, sea_orm::DbErr> {
         let user = Entity::find_by_id(id)
             .one(db)
             .await?
             .ok_or_else(|| sea_orm::DbErr::RecordNotFound("User not found".into()))?;
         if user.activated_at.is_some() {
-            return Ok(false);
+            return Ok(None);
         }
         let mut active: ActiveModel = user.into();
         active.is_active = Set(true);
         active.activated_at = Set(Some(chrono::Utc::now().naive_utc()));
-        active.update(db).await?;
-        Ok(true)
+        active.update(db).await.map(Some)
     }
 
     /// The owner sets their password through the emailed link: a pending
@@ -185,7 +184,7 @@ impl BuiltinUserEntity {
         new_hash: &str,
     ) -> Result<(), sea_orm::DbErr> {
         Self::update_password_by_id(db, id, new_hash).await?;
-        Self::activate_pending(db, id).await?;
+        Self::activate_account(db, id).await?;
         Ok(())
     }
 }

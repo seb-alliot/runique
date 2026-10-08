@@ -23,8 +23,8 @@ pub struct FieldGroup {
 pub async fn inject_auth(request: &mut Request) {
     let user = is_authenticated(&request.session).await;
     request.context.insert("user", &user);
-    if let Some(username) = get_username(&request.session).await {
-        request.context.insert("username", &username);
+    if let Some(user) = &request.user {
+        request.context.insert("username", &user.username);
     }
 }
 

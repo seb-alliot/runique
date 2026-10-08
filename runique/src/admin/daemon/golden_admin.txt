@@ -1,0 +1,793 @@
+// AUTO-GENERATED — DO NOT EDIT MANUALLY
+// Produced by `runique start` from src/admin.rs. Any change will be overwritten.
+
+use runique::prelude::*;
+
+use crate::entities::plat;
+use crate::entities::tag;
+use crate::entities::log;
+use crate::entities::note;
+
+// ── DynForm wrapper for plat::AdminForm ──
+struct PlatAdminFormDynWrapper(pub plat::AdminForm);
+
+#[async_trait]
+impl DynForm for PlatAdminFormDynWrapper {
+    async fn is_valid(&mut self) -> bool {
+        self.0.is_valid().await
+    }
+
+    async fn save(&mut self, db: &ADb) -> Result<(), DbErr> {
+        self.0.save(db).await
+    }
+
+    fn get_form(&self) -> &Forms {
+        self.0.get_form()
+    }
+
+    fn get_form_mut(&mut self) -> &mut Forms {
+        self.0.get_form_mut()
+    }
+}
+
+// ── DynForm edit wrapper for crate::forms::PlatEditForm ──
+struct PlatEditFormDynWrapper(pub crate::forms::PlatEditForm);
+
+#[async_trait]
+impl DynForm for PlatEditFormDynWrapper {
+    async fn is_valid(&mut self) -> bool {
+        self.0.is_valid().await
+    }
+
+    async fn save(&mut self, _db: &ADb) -> Result<(), DbErr> {
+        Ok(()) // update_fn handles persistence
+    }
+
+    fn get_form(&self) -> &Forms {
+        self.0.get_form()
+    }
+
+    fn get_form_mut(&mut self) -> &mut Forms {
+        self.0.get_form_mut()
+    }
+}
+
+// ── DynForm wrapper for tag::AdminForm ──
+struct TagAdminFormDynWrapper(pub tag::AdminForm);
+
+#[async_trait]
+impl DynForm for TagAdminFormDynWrapper {
+    async fn is_valid(&mut self) -> bool {
+        self.0.is_valid().await
+    }
+
+    async fn save(&mut self, db: &ADb) -> Result<(), DbErr> {
+        self.0.save(db).await
+    }
+
+    fn get_form(&self) -> &Forms {
+        self.0.get_form()
+    }
+
+    fn get_form_mut(&mut self) -> &mut Forms {
+        self.0.get_form_mut()
+    }
+}
+
+// ── DynForm wrapper for log::AdminForm ──
+struct LogAdminFormDynWrapper(pub log::AdminForm);
+
+#[async_trait]
+impl DynForm for LogAdminFormDynWrapper {
+    async fn is_valid(&mut self) -> bool {
+        self.0.is_valid().await
+    }
+
+    async fn save(&mut self, db: &ADb) -> Result<(), DbErr> {
+        self.0.save(db).await
+    }
+
+    fn get_form(&self) -> &Forms {
+        self.0.get_form()
+    }
+
+    fn get_form_mut(&mut self) -> &mut Forms {
+        self.0.get_form_mut()
+    }
+}
+
+// ── DynForm edit wrapper for crate::forms::LogEditForm ──
+struct LogEditFormDynWrapper(pub crate::forms::LogEditForm);
+
+#[async_trait]
+impl DynForm for LogEditFormDynWrapper {
+    async fn is_valid(&mut self) -> bool {
+        self.0.is_valid().await
+    }
+
+    async fn save(&mut self, _db: &ADb) -> Result<(), DbErr> {
+        Ok(()) // update_fn handles persistence
+    }
+
+    fn get_form(&self) -> &Forms {
+        self.0.get_form()
+    }
+
+    fn get_form_mut(&mut self) -> &mut Forms {
+        self.0.get_form_mut()
+    }
+}
+
+// ── DynForm wrapper for note::AdminForm ──
+struct NoteAdminFormDynWrapper(pub note::AdminForm);
+
+#[async_trait]
+impl DynForm for NoteAdminFormDynWrapper {
+    async fn is_valid(&mut self) -> bool {
+        self.0.is_valid().await
+    }
+
+    async fn save(&mut self, db: &ADb) -> Result<(), DbErr> {
+        self.0.save(db).await
+    }
+
+    fn get_form(&self) -> &Forms {
+        self.0.get_form()
+    }
+
+    fn get_form_mut(&mut self) -> &mut Forms {
+        self.0.get_form_mut()
+    }
+}
+
+/// Builds the admin registry at boot.
+/// Called by the application builder.
+pub fn admin_register() -> AdminRegistry {
+    let mut registry = AdminRegistry::new();
+    for entry in runique::admin::builtin_resources() {
+        registry.register(entry);
+    }
+
+    // ── Resource: plats ──
+    let meta = AdminResource::new(
+        "plats",
+        "crate::entities::plat::Model",
+        "AdminForm",
+        "Plats",
+    );
+    let form_builder: FormBuilder = Arc::new(|db: ADb, _vec: Vec<std::string::String>, data: StrMap, tera: ATera, csrf: String, method: Method| {
+        Box::pin(async move {
+            let mut form = plat::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+            {
+                use sea_orm::ConnectionTrait;
+                let _fk_opt_stmt_menu_id = sea_orm::sea_query::Query::select().expr(sea_orm::sea_query::Expr::col(sea_orm::sea_query::Alias::new("id")).cast_as(sea_orm::sea_query::Alias::new(runique::admin::helper::text_cast_type(&db)))).expr(sea_orm::sea_query::Expr::col(sea_orm::sea_query::Alias::new("titre"))).from(sea_orm::sea_query::Alias::new("menus")).to_owned();
+                let _fk_opt_choices_menu_id: Vec<(String, String)> = db.query_all(&_fk_opt_stmt_menu_id).await.unwrap_or_default().iter().filter_map(|row| { let id = row.try_get_by_index::<String>(0).ok()?; let lbl = row.try_get_by_index::<String>(1).ok()?; Some((id, lbl)) }).collect();
+                form.get_form_mut().field_choices("menu_id", "Menu", _fk_opt_choices_menu_id);
+            }
+            Box::new(PlatAdminFormDynWrapper(form)) as Box<dyn DynForm>
+        })
+    });
+
+    let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
+        Box::pin(async move {
+            use sea_orm::{QueryFilter, sea_query::{Alias, Expr, Order}};
+            let mut query = plat::Entity::find();
+            const SORT_COLS: &[&str] = &["id", "nom", "menu_id"];
+            const FILTER_COLS: &[&str] = &["statut"];
+            if let Some(ref col) = params.sort_by && SORT_COLS.contains(&col.as_str()) {
+                let order = if params.sort_dir == SortDir::Desc { Order::Desc } else { Order::Asc };
+                query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
+            }
+            for (col, val) in &params.column_filters {
+                if !FILTER_COLS.contains(&col.as_str()) { continue; }
+                query = query.filter(text_eq(&db, col.as_str(), val));
+            }
+            if let Some((col, val)) = &params.scope && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_') {
+                query = query.filter(text_eq(&db, col.as_str(), val));
+            }
+            if let Some(ref search_str) = params.search {
+                let mut search_cond = search_cond!(&db => plat::Entity => or("nom" icontains search_str));
+                {
+                    let __fk_ids = runique::admin::helper::fetch_fk_matching_ids(&*db, "menus", "titre", search_str).await;
+                    if !__fk_ids.is_empty() {
+                        use sea_orm::sea_query::ExprTrait;
+                        search_cond = search_cond.add(sea_orm::sea_query::Expr::col(sea_orm::sea_query::Alias::new("menu_id")).cast_as(sea_orm::sea_query::Alias::new(runique::admin::helper::text_cast_type(&db))).is_in(__fk_ids));
+                    }
+                }
+                query = query.filter(search_cond);
+            }
+            let db_rows = query.offset(params.offset).limit(params.limit).all(&*db).await?;
+            let rows: Vec<serde_json::Value> = db_rows.into_iter()
+                .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
+                .collect();
+            Ok(rows)
+        })
+    });
+
+    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>, column_filters: Vec<(String, String)>, scope: Option<(String, String)>| {
+        Box::pin(async move {
+            use sea_orm::QueryFilter;
+            let mut query = plat::Entity::find();
+            const FILTER_COLS: &[&str] = &["statut"];
+            for (col, val) in &column_filters {
+                if !FILTER_COLS.contains(&col.as_str()) { continue; }
+                query = query.filter(text_eq(&db, col.as_str(), val));
+            }
+            if let Some(ref search_str) = _search {
+                let mut search_cond = search_cond!(&db => plat::Entity => or("nom" icontains search_str));
+                {
+                    let __fk_ids = runique::admin::helper::fetch_fk_matching_ids(&*db, "menus", "titre", search_str).await;
+                    if !__fk_ids.is_empty() {
+                        use sea_orm::sea_query::ExprTrait;
+                        search_cond = search_cond.add(sea_orm::sea_query::Expr::col(sea_orm::sea_query::Alias::new("menu_id")).cast_as(sea_orm::sea_query::Alias::new(runique::admin::helper::text_cast_type(&db))).is_in(__fk_ids));
+                    }
+                }
+                query = query.filter(search_cond);
+            }
+            if let Some((col, val)) = &scope && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_') {
+                query = query.filter(text_eq(&db, col.as_str(), val));
+            }
+            query.count(&*db).await
+        })
+    });
+
+    let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
+        Box::pin(async move {
+            let Ok(id) = id.parse::<i32>() else { return Ok(None) };
+            let Some(row) = plat::Entity::find_by_id(id).one(&*db).await? else { return Ok(None); };
+            let mut value = serde_json::to_value(&row).unwrap_or(serde_json::Value::Null);
+            row.admin_list_values(&*db, &mut value).await?;
+            Ok(Some(value))
+        })
+    });
+
+    let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
+        Box::pin(async move {
+            let id = id.parse::<i32>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            plat::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
+        })
+    });
+
+    let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
+        Box::pin(async move {
+            use sea_orm::QueryFilter;
+            let raw = data.get("allergenes").cloned().unwrap_or_default();
+            let values: Vec<&str> = raw.split(',').map(str::trim).filter(|v| !v.is_empty()).collect();
+            for val in values {
+                let mut row = data.clone();
+                row.insert("allergenes".to_string(), val.to_string());
+                let existing_id: Option<String> = plat::Entity::find()
+                    .filter(text_eq(&db, "allergenes", val))
+                    .one(&*db).await?
+                    .map(|m| m.id.to_string());
+                if let Some(id) = existing_id {
+                    let id = id.parse::<i32>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+                    plat::admin_from_form(&row, Some(id))?.update(&*db).await?;
+                } else {
+                    plat::admin_from_form(&row, None)?.insert(&*db).await?;
+                }
+            }
+            Ok(())
+        })
+    });
+
+    let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id.parse::<i32>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = plat::admin_from_form(&data, Some(id))?.update(&txn).await?;
+            result.admin_save_lists(&txn, &data).await?;
+            runique::admin::helper::m2m::write_links(&txn, "plat_allergene", "plat_id", "allergene_id", id.into(), &data, "m2m_allergenes__", true).await?;
+            txn.commit().await
+        })
+    });
+
+    let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id.parse::<i32>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            plat::admin_partial_update(&data, id)?
+                .update(&*db).await.map(|_| ())
+        })
+    });
+
+    let m2m_loader: M2mLoaderFn = Arc::new(|db: ADb, object_id: Option<String>| {
+        Box::pin(async move {
+            use sea_orm::{EntityTrait, ConnectionTrait};
+            let mut fields: Vec<M2mFieldOptions> = Vec::new();
+            {
+                let rows = crate::entities::allergene::Entity::find().all(&*db).await.unwrap_or_default();
+                let choices: Vec<(String, String)> = rows.iter().map(|r| {
+                    let v = serde_json::to_value(r).unwrap_or_default();
+                    let id = v.get("id").map(|i| i.to_string().trim_matches('"').to_string()).unwrap_or_default();
+                    let label = v.get("nom").and_then(|n| n.as_str()).unwrap_or("").to_string();
+                    (id, label)
+                }).collect();
+                let selected = if let Some(ref oid) = object_id {
+                    use sea_orm::sea_query::{Query, Alias, Expr, ExprTrait};
+                    let stmt = Query::select().expr(Expr::col(Alias::new("allergene_id")).cast_as(Alias::new(text_cast_type(&db)))).from(Alias::new("plat_allergene")).and_where(text_eq(&db, "plat_id", oid)).to_owned();
+                    db.query_all(&stmt).await.unwrap_or_default().iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect()
+                } else { vec![] };
+                fields.push(M2mFieldOptions {
+                    field_name: "allergenes".to_string(),
+                    label: "Allergènes".to_string(),
+                    choices,
+                    selected,
+                });
+            }
+            fields
+        })
+    });
+
+    let edit_form_builder: FormBuilder = Arc::new(|_db: ADb, _vec: Vec<std::string::String>, data: StrMap, tera: ATera, csrf: String, method: Method| {
+        Box::pin(async move {
+            let form = crate::forms::PlatEditForm::build_with_data(&data, tera, &csrf, method).await;
+            Box::new(PlatEditFormDynWrapper(form)) as Box<dyn DynForm>
+        })
+    });
+
+    let meta = meta.display(DisplayConfig::new().columns_include(vec![("nom", "Nom"), ("menu_id", "Menu")]).list_filter(vec![("statut", "Statut", 25u64)]));
+    let meta = meta.fk_display(vec![("menu_id".to_string(), "menus".to_string(), "titre".to_string())]);
+    let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
+        Box::pin(async move {
+            use sea_orm::{ConnectionTrait, ExprTrait};
+            use sea_orm::sea_query::{Query, Alias, Expr};
+            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> = std::collections::HashMap::new();
+            let page_size_statut = 25u64;
+            let cur_page_statut = pages.get("statut").copied().unwrap_or(0);
+            let count_stmt_statut = Query::select().expr(sea_orm::sea_query::Func::count_distinct(Expr::col(Alias::new("statut")))).from(Alias::new(plat::Entity.table_name())).and_where(Expr::col(Alias::new("statut")).is_not_null()).to_owned();
+            let count_row_statut = match db.query_one(&count_stmt_statut).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `plats.statut`: column not found in DB — {}", e); None } };
+            let total_statut = count_row_statut.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;
+            let stmt_statut = Query::select().distinct().expr(Expr::col(Alias::new("statut")).cast_as(Alias::new(text_cast_type(&db)))).from(Alias::new(plat::Entity.table_name())).and_where(Expr::col(Alias::new("statut")).is_not_null()).limit(page_size_statut).offset(cur_page_statut * page_size_statut).to_owned();
+            let rows_statut = match db.query_all(&stmt_statut).await { Ok(r) => r, Err(e) => { tracing::error!("[runique admin] list_filter `plats.statut`: column not found in DB — {}", e); vec![] } };
+            let mut vals_statut: Vec<String> = rows_statut.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_statut.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) { (Ok(x), Ok(y)) => y.cmp(&x), _ => b.cmp(a) });
+            result.insert("statut".to_string(), (vals_statut, total_statut));
+            Ok(result)
+        })
+    });
+
+    registry.register(
+        ResourceEntry::new(meta, form_builder)
+            .with_edit_form_builder(edit_form_builder)
+            .with_list_fn(list_fn)
+            .with_get_fn(get_fn)
+            .with_enum_label_fn(plat::apply_enum_labels)
+            .with_delete_fn(delete_fn)
+            .with_create_fn(create_fn)
+            .with_update_fn(update_fn)
+            .with_partial_update_fn(partial_update_fn)
+            .with_count_fn(count_fn)
+            .with_unique_fields(plat::UNIQUE_FIELDS)
+            .with_filter_fn(filter_fn)
+            .with_group_actions(vec![GroupAction::val("is_active", "Activer", "true"), GroupAction::bool("is_staff", "Toggle staff")])
+            .with_m2m_loader(m2m_loader)
+    );
+
+    // ── Resource: tags ──
+    let meta = AdminResource::new(
+        "tags",
+        "crate::entities::tag::Model",
+        "AdminForm",
+        "Tags",
+    );
+    let form_builder: FormBuilder = Arc::new(|_db: ADb, _vec: Vec<std::string::String>, data: StrMap, tera: ATera, csrf: String, method: Method| {
+        Box::pin(async move {
+            let form = tag::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+            Box::new(TagAdminFormDynWrapper(form)) as Box<dyn DynForm>
+        })
+    });
+
+    let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
+        Box::pin(async move {
+            use sea_orm::{QueryFilter, sea_query::{Alias, Expr, Order}};
+            let mut query = tag::Entity::find();
+            const SORT_COLS: &[&str] = &["id"];
+            const FILTER_COLS: &[&str] = &[];
+            if let Some(ref col) = params.sort_by && SORT_COLS.contains(&col.as_str()) {
+                let order = if params.sort_dir == SortDir::Desc { Order::Desc } else { Order::Asc };
+                query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
+            }
+            for (col, val) in &params.column_filters {
+                if !FILTER_COLS.contains(&col.as_str()) { continue; }
+                query = query.filter(text_eq(&db, col.as_str(), val));
+            }
+            if let Some((col, val)) = &params.scope && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_') {
+                query = query.filter(text_eq(&db, col.as_str(), val));
+            }
+            if let Some(ref search_str) = params.search {
+                let search_cond = search_cond!(&db => tag::Entity => all_columns icontains search_str);
+                query = query.filter(search_cond);
+            }
+            let db_rows = query.offset(params.offset).limit(params.limit).all(&*db).await?;
+            let rows: Vec<serde_json::Value> = db_rows.into_iter()
+                .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
+                .collect();
+            Ok(rows)
+        })
+    });
+
+    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>, column_filters: Vec<(String, String)>, scope: Option<(String, String)>| {
+        Box::pin(async move {
+            use sea_orm::QueryFilter;
+            let mut query = tag::Entity::find();
+            const FILTER_COLS: &[&str] = &[];
+            for (col, val) in &column_filters {
+                if !FILTER_COLS.contains(&col.as_str()) { continue; }
+                query = query.filter(text_eq(&db, col.as_str(), val));
+            }
+            if let Some(ref search_str) = _search {
+                let search_cond = search_cond!(&db => tag::Entity => all_columns icontains search_str);
+                query = query.filter(search_cond);
+            }
+            if let Some((col, val)) = &scope && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_') {
+                query = query.filter(text_eq(&db, col.as_str(), val));
+            }
+            query.count(&*db).await
+        })
+    });
+
+    let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
+        Box::pin(async move {
+            let Ok(id) = uuid::Uuid::parse_str(&id) else { return Ok(None) };
+            let Some(row) = tag::Entity::find_by_id(id).one(&*db).await? else { return Ok(None); };
+            let mut value = serde_json::to_value(&row).unwrap_or(serde_json::Value::Null);
+            row.admin_list_values(&*db, &mut value).await?;
+            Ok(Some(value))
+        })
+    });
+
+    let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
+        Box::pin(async move {
+            let id = uuid::Uuid::parse_str(&id).map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            tag::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
+        })
+    });
+
+    let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
+        Box::pin(async move {
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = tag::admin_from_form(&data, None)?.insert(&txn).await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
+        })
+    });
+
+    let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = uuid::Uuid::parse_str(&id).map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = tag::admin_from_form(&data, Some(id))?.update(&txn).await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
+        })
+    });
+
+    let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = uuid::Uuid::parse_str(&id).map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            tag::admin_partial_update(&data, id)?
+                .update(&*db).await.map(|_| ())
+        })
+    });
+
+    let meta = meta.display(DisplayConfig::new().columns_exclude(vec!["secret"]));
+    registry.register(
+        ResourceEntry::new(meta, form_builder)
+            .with_list_fn(list_fn)
+            .with_get_fn(get_fn)
+            .with_enum_label_fn(tag::apply_enum_labels)
+            .with_delete_fn(delete_fn)
+            .with_create_fn(create_fn)
+            .with_update_fn(update_fn)
+            .with_partial_update_fn(partial_update_fn)
+            .with_count_fn(count_fn)
+            .with_unique_fields(tag::UNIQUE_FIELDS)
+    );
+
+    // ── Resource: logs ──
+    let meta = AdminResource::new(
+        "logs",
+        "crate::entities::log::Model",
+        "AdminForm",
+        "Logs",
+    );
+    let form_builder: FormBuilder = Arc::new(|_db: ADb, _vec: Vec<std::string::String>, data: StrMap, tera: ATera, csrf: String, method: Method| {
+        Box::pin(async move {
+            let form = log::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+            Box::new(LogAdminFormDynWrapper(form)) as Box<dyn DynForm>
+        })
+    });
+
+    let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
+        Box::pin(async move {
+            use sea_orm::{QueryFilter, sea_query::{Alias, Expr, Order}};
+            let mut query = log::Entity::find();
+            const SORT_COLS: &[&str] = &["id"];
+            const FILTER_COLS: &[&str] = &[];
+            if let Some(ref col) = params.sort_by && SORT_COLS.contains(&col.as_str()) {
+                let order = if params.sort_dir == SortDir::Desc { Order::Desc } else { Order::Asc };
+                query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
+            }
+            for (col, val) in &params.column_filters {
+                if !FILTER_COLS.contains(&col.as_str()) { continue; }
+                query = query.filter(text_eq(&db, col.as_str(), val));
+            }
+            if let Some((col, val)) = &params.scope && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_') {
+                query = query.filter(text_eq(&db, col.as_str(), val));
+            }
+            if let Some(ref search_str) = params.search {
+                let search_cond = search_cond!(&db => log::Entity => all_columns icontains search_str);
+                query = query.filter(search_cond);
+            }
+            let db_rows = query.offset(params.offset).limit(params.limit).all(&*db).await?;
+            let rows: Vec<serde_json::Value> = db_rows.into_iter()
+                .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
+                .collect();
+            Ok(rows)
+        })
+    });
+
+    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>, column_filters: Vec<(String, String)>, scope: Option<(String, String)>| {
+        Box::pin(async move {
+            use sea_orm::QueryFilter;
+            let mut query = log::Entity::find();
+            const FILTER_COLS: &[&str] = &[];
+            for (col, val) in &column_filters {
+                if !FILTER_COLS.contains(&col.as_str()) { continue; }
+                query = query.filter(text_eq(&db, col.as_str(), val));
+            }
+            if let Some(ref search_str) = _search {
+                let search_cond = search_cond!(&db => log::Entity => all_columns icontains search_str);
+                query = query.filter(search_cond);
+            }
+            if let Some((col, val)) = &scope && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_') {
+                query = query.filter(text_eq(&db, col.as_str(), val));
+            }
+            query.count(&*db).await
+        })
+    });
+
+    let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
+        Box::pin(async move {
+            let Ok(id) = id.parse::<i64>() else { return Ok(None) };
+            let Some(row) = log::Entity::find_by_id(id).one(&*db).await? else { return Ok(None); };
+            let mut value = serde_json::to_value(&row).unwrap_or(serde_json::Value::Null);
+            row.admin_list_values(&*db, &mut value).await?;
+            Ok(Some(value))
+        })
+    });
+
+    let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
+        Box::pin(async move {
+            let id = id.parse::<i64>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            log::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
+        })
+    });
+
+    let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
+        Box::pin(async move {
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = log::admin_from_form(&data, None)?.insert(&txn).await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
+        })
+    });
+
+    let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id.parse::<i64>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = log::admin_from_form(&data, Some(id))?.update(&txn).await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
+        })
+    });
+
+    let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id.parse::<i64>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            log::admin_partial_update(&data, id)?
+                .update(&*db).await.map(|_| ())
+        })
+    });
+
+    let edit_form_builder: FormBuilder = Arc::new(|_db: ADb, _vec: Vec<std::string::String>, data: StrMap, tera: ATera, csrf: String, method: Method| {
+        Box::pin(async move {
+            let form = crate::forms::LogEditForm::build_with_data(&data, tera, &csrf, method).await;
+            Box::new(LogEditFormDynWrapper(form)) as Box<dyn DynForm>
+        })
+    });
+
+    registry.register(
+        ResourceEntry::new(meta, form_builder)
+            .with_edit_form_builder(edit_form_builder)
+            .with_list_fn(list_fn)
+            .with_get_fn(get_fn)
+            .with_enum_label_fn(log::apply_enum_labels)
+            .with_delete_fn(delete_fn)
+            .with_create_fn(create_fn)
+            .with_update_fn(update_fn)
+            .with_partial_update_fn(partial_update_fn)
+            .with_count_fn(count_fn)
+            .with_unique_fields(log::UNIQUE_FIELDS)
+    );
+
+    // ── Resource: notes ──
+    let meta = AdminResource::new(
+        "notes",
+        "crate::entities::note::Model",
+        "AdminForm",
+        "Notes",
+    );
+    let form_builder: FormBuilder = Arc::new(|db: ADb, _vec: Vec<std::string::String>, data: StrMap, tera: ATera, csrf: String, method: Method| {
+        Box::pin(async move {
+            let mut form = note::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+            {
+                use sea_orm::ConnectionTrait;
+                let _fk_opt_stmt_author_id = sea_orm::sea_query::Query::select().expr(sea_orm::sea_query::Expr::col(sea_orm::sea_query::Alias::new("id")).cast_as(sea_orm::sea_query::Alias::new(runique::admin::helper::text_cast_type(&db)))).expr(sea_orm::sea_query::Expr::col(sea_orm::sea_query::Alias::new("username"))).from(sea_orm::sea_query::Alias::new("users")).to_owned();
+                let _fk_opt_choices_author_id: Vec<(String, String)> = db.query_all(&_fk_opt_stmt_author_id).await.unwrap_or_default().iter().filter_map(|row| { let id = row.try_get_by_index::<String>(0).ok()?; let lbl = row.try_get_by_index::<String>(1).ok()?; Some((id, lbl)) }).collect();
+                form.get_form_mut().field_choices("author_id", "Auteur", _fk_opt_choices_author_id);
+            }
+            Box::new(NoteAdminFormDynWrapper(form)) as Box<dyn DynForm>
+        })
+    });
+
+    let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
+        Box::pin(async move {
+            use sea_orm::{QueryFilter, sea_query::{Alias, Expr, Order}};
+            let mut query = note::Entity::find();
+            const SORT_COLS: &[&str] = &["id", "author_id"];
+            const FILTER_COLS: &[&str] = &[];
+            if let Some(ref col) = params.sort_by && SORT_COLS.contains(&col.as_str()) {
+                let order = if params.sort_dir == SortDir::Desc { Order::Desc } else { Order::Asc };
+                query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
+            }
+            for (col, val) in &params.column_filters {
+                if !FILTER_COLS.contains(&col.as_str()) { continue; }
+                query = query.filter(text_eq(&db, col.as_str(), val));
+            }
+            if let Some((col, val)) = &params.scope && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_') {
+                query = query.filter(text_eq(&db, col.as_str(), val));
+            }
+            if let Some(ref search_str) = params.search {
+                let mut search_cond = sea_orm::Condition::any();
+                {
+                    let __fk_ids = runique::admin::helper::fetch_fk_matching_ids(&*db, "users", "username", search_str).await;
+                    if !__fk_ids.is_empty() {
+                        use sea_orm::sea_query::ExprTrait;
+                        search_cond = search_cond.add(sea_orm::sea_query::Expr::col(sea_orm::sea_query::Alias::new("author_id")).cast_as(sea_orm::sea_query::Alias::new(runique::admin::helper::text_cast_type(&db))).is_in(__fk_ids));
+                    }
+                }
+                query = query.filter(search_cond);
+            }
+            let db_rows = query.offset(params.offset).limit(params.limit).all(&*db).await?;
+            let rows: Vec<serde_json::Value> = db_rows.into_iter()
+                .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
+                .collect();
+            Ok(rows)
+        })
+    });
+
+    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>, column_filters: Vec<(String, String)>, scope: Option<(String, String)>| {
+        Box::pin(async move {
+            use sea_orm::QueryFilter;
+            let mut query = note::Entity::find();
+            const FILTER_COLS: &[&str] = &[];
+            for (col, val) in &column_filters {
+                if !FILTER_COLS.contains(&col.as_str()) { continue; }
+                query = query.filter(text_eq(&db, col.as_str(), val));
+            }
+            if let Some(ref search_str) = _search {
+                let mut search_cond = sea_orm::Condition::any();
+                {
+                    let __fk_ids = runique::admin::helper::fetch_fk_matching_ids(&*db, "users", "username", search_str).await;
+                    if !__fk_ids.is_empty() {
+                        use sea_orm::sea_query::ExprTrait;
+                        search_cond = search_cond.add(sea_orm::sea_query::Expr::col(sea_orm::sea_query::Alias::new("author_id")).cast_as(sea_orm::sea_query::Alias::new(runique::admin::helper::text_cast_type(&db))).is_in(__fk_ids));
+                    }
+                }
+                query = query.filter(search_cond);
+            }
+            if let Some((col, val)) = &scope && col.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_') {
+                query = query.filter(text_eq(&db, col.as_str(), val));
+            }
+            query.count(&*db).await
+        })
+    });
+
+    let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
+        Box::pin(async move {
+            let Ok(id) = id.parse::<Pk>() else { return Ok(None) };
+            let Some(row) = note::Entity::find_by_id(id).one(&*db).await? else { return Ok(None); };
+            let mut value = serde_json::to_value(&row).unwrap_or(serde_json::Value::Null);
+            row.admin_list_values(&*db, &mut value).await?;
+            Ok(Some(value))
+        })
+    });
+
+    let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
+        Box::pin(async move {
+            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            note::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
+        })
+    });
+
+    let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
+        Box::pin(async move {
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = note::admin_from_form(&data, None)?.insert(&txn).await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
+        })
+    });
+
+    let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            use sea_orm::TransactionTrait;
+            let txn = db.begin().await?;
+            let result = note::admin_from_form(&data, Some(id))?.update(&txn).await?;
+            result.admin_save_lists(&txn, &data).await?;
+            txn.commit().await
+        })
+    });
+
+    let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
+            note::admin_partial_update(&data, id)?
+                .update(&*db).await.map(|_| ())
+        })
+    });
+
+    let meta = meta.display(DisplayConfig::new().columns_include(vec![("author_id", "Auteur")]));
+    let meta = meta.fk_display(vec![("author_id".to_string(), "users".to_string(), "username".to_string())]);
+    registry.register(
+        ResourceEntry::new(meta, form_builder)
+            .with_list_fn(list_fn)
+            .with_get_fn(get_fn)
+            .with_enum_label_fn(note::apply_enum_labels)
+            .with_delete_fn(delete_fn)
+            .with_create_fn(create_fn)
+            .with_update_fn(update_fn)
+            .with_partial_update_fn(partial_update_fn)
+            .with_count_fn(count_fn)
+            .with_unique_fields(note::UNIQUE_FIELDS)
+    );
+
+    registry.configure("users", DisplayConfig::new().columns_include(vec![("username", "Nom")]));
+    registry.configure_group_actions("users", vec![GroupAction::val("is_active", "Activer", "true")]);
+    registry.remove("droits");
+    registry.configure_group_actions("groupes", vec![GroupAction::val("nom", "Renommer", "x")]);
+    registry.configure("sessions", DisplayConfig::new().list_filter(vec![("user_id", "User", 10u64)]));
+    registry.configure("history", DisplayConfig::new().columns_exclude(vec!["summary"]));
+    registry
+}
+
+/// Builds the admin CRUD routes for the given path.
+/// To be passed to `.with_admin(|a| a.routes(admins::routes("/admin")))` in main.rs.
+/// This is where the admin lives. To serve it behind an extra segment
+/// (`/secret/admin/…`), add `.prefix("secret")` — the two are independent.
+pub fn routes(path: &str) -> runique::admin::AdminRoutes {
+    let p = path.trim_end_matches('/');
+    let router = runique::axum::Router::new()
+        .route(&format!("{}/{{resource}}/{{action}}", p), get(admin_get).post(admin_post))
+        .route(&format!("{}/{{resource}}/{{id}}/{{action}}", p), get(admin_get_id).post(admin_post_id))
+        .route(&format!("{}/{{parent}}/{{parent_id}}/{{resource}}/{{action}}", p), get(admin_nested_get).post(admin_nested_post))
+        .route(&format!("{}/{{parent}}/{{parent_id}}/{{resource}}/{{id}}/{{action}}", p), get(admin_nested_get_id).post(admin_nested_post_id));
+    runique::admin::AdminRoutes::new(p, router)
+}
+
+/// Returns the shared state of the admin prototype (for the dashboard).
+pub fn admin_state() -> std::sync::Arc<PrototypeAdminState> {
+    let config = Arc::new(AdminConfig::new());
+    std::sync::Arc::new(PrototypeAdminState {
+        registry: Arc::new(admin_register()),
+        config,
+    })
+}

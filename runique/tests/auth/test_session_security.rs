@@ -3,13 +3,13 @@
 //! Ces tests vérifient les propriétés de sécurité critiques :
 //! - Un login avec un user différent nettoie la session précédente
 //! - Après logout, les données de session sont inaccessibles
-//! - Le cache de permissions est bien évincé au logout
 //! - Deux users distincts ne partagent pas de données de session
 
 use axum::{Router, response::IntoResponse, routing::get};
 use tower_sessions::{MemoryStore, Session, SessionManagerLayer};
 
-use runique::auth::session::{get_user_id, get_username, is_authenticated, login, logout};
+use crate::helpers::user::session_user_id;
+use runique::auth::session::{is_authenticated, login, logout};
 
 use crate::helpers::{
     assert::{assert_body_str, assert_status},
@@ -44,7 +44,7 @@ async fn test_login_user_different_nettoie_session_precedente() {
         )
         .await
         .unwrap();
-        let id_apres_login_a = get_user_id(&session).await;
+        let id_apres_login_a = session_user_id(&session).await;
         assert_eq!(id_apres_login_a, Some(pk(1)));
 
         // User B se connecte sur la même session (collision)
@@ -56,12 +56,10 @@ async fn test_login_user_different_nettoie_session_precedente() {
         )
         .await
         .unwrap();
-        let id_apres_login_b = get_user_id(&session).await;
-        let username_apres_login_b = get_username(&session).await;
+        let id_apres_login_b = session_user_id(&session).await;
 
         // La session doit appartenir à B, pas à A
         assert_eq!(id_apres_login_b, Some(pk(2)));
-        assert_eq!(username_apres_login_b.as_deref(), Some("itsuki"));
 
         "ok"
     }
@@ -92,7 +90,7 @@ async fn test_login_meme_user_ne_reinitialise_pas_session() {
         .await
         .unwrap();
 
-        let id = get_user_id(&session).await;
+        let id = session_user_id(&session).await;
         assert_eq!(id, Some(pk(1)));
         "ok"
     }
@@ -185,8 +183,7 @@ async fn test_logout_vide_session_completement() {
 
         logout(&session, None).await.unwrap();
         assert!(!is_authenticated(&session).await);
-        assert!(get_user_id(&session).await.is_none());
-        assert!(get_username(&session).await.is_none());
+        assert!(session_user_id(&session).await.is_none());
 
         "ok"
     }
@@ -212,7 +209,10 @@ async fn test_deux_sessions_independantes() {
         )
         .await
         .unwrap();
-        get_username(&session).await.unwrap_or_default()
+        session_user_id(&session)
+            .await
+            .map(|id| id.to_string())
+            .unwrap_or_default()
     }
 
     // Session B : user 2 (router séparé = session store séparé)
@@ -225,14 +225,17 @@ async fn test_deux_sessions_independantes() {
         )
         .await
         .unwrap();
-        get_username(&session).await.unwrap_or_default()
+        session_user_id(&session)
+            .await
+            .map(|id| id.to_string())
+            .unwrap_or_default()
     }
 
     let res_a = request::get(build_app(get(handler_a)), "/test").await;
     let res_b = request::get(build_app(get(handler_b)), "/test").await;
 
-    assert_body_str(res_a, "alice").await;
-    assert_body_str(res_b, "bob").await;
+    assert_body_str(res_a, &pk(1).to_string()).await;
+    assert_body_str(res_b, &pk(2).to_string()).await;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -262,7 +265,7 @@ async fn test_login_collision_bascule_sur_le_nouvel_user() {
         .await
         .unwrap();
 
-        let id = get_user_id(&session).await;
+        let id = session_user_id(&session).await;
         assert_eq!(id, Some(pk(20_005)));
 
         "ok"

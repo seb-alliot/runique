@@ -16,7 +16,7 @@ use tower_http::set_header::SetResponseHeaderLayer;
 use crate::app::staging::AdminStaging;
 use crate::auth::{
     guard::LoginGuard,
-    session::{is_admin_authenticated, login, logout},
+    session::{login, logout},
 };
 use crate::context::template::Request;
 use crate::middleware::security::rate_limit_middleware;
@@ -317,13 +317,20 @@ async fn admin_dashboard(
     req.render(template)
 }
 
+/// `load_admin_user` (outer layer) puts the account here only while the
+/// database still lets it into the admin: the session alone vouches for nothing.
+fn signed_in_admin(current_user: Option<&Extension<crate::auth::session::CurrentUser>>) -> bool {
+    current_user.is_some_and(|Extension(user)| user.can_access_admin())
+}
+
 async fn admin_login_get(
     Extension(admin): Extension<Arc<AdminState>>,
     axum::extract::Query(params): axum::extract::Query<StrMap>,
+    current_user: Option<Extension<crate::auth::session::CurrentUser>>,
     mut req: Request,
 ) -> AppResult<Response> {
     let from_logout = params.get("from").is_some_and(|v| v == "logout");
-    if !from_logout && is_admin_authenticated(&req.session).await {
+    if !from_logout && signed_in_admin(current_user.as_ref()) {
         return Ok(Redirect::to(&format!("{}/", admin.config.prefix)).into_response());
     }
 
@@ -339,11 +346,12 @@ async fn admin_login_get(
 
 async fn admin_login_post(
     Extension(admin): Extension<Arc<AdminState>>,
+    current_user: Option<Extension<crate::auth::session::CurrentUser>>,
     mut req: Request,
 ) -> Response {
     use crate::utils::crypto::csrf::unmask_csrf_token;
     use subtle::ConstantTimeEq;
-    if is_admin_authenticated(&req.session).await {
+    if signed_in_admin(current_user.as_ref()) {
         return Redirect::to(&format!("{}/", admin.config.prefix)).into_response();
     }
     // Fail fast under memory pressure: a saturated session store would refuse the new

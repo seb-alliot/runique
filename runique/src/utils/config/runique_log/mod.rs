@@ -46,10 +46,10 @@ pub use templates::TemplatesTracing;
 /// RuniqueApp::builder(config)
 ///     .with_log(|l| l
 ///         .subscriber_level("info")              // global default — RUST_LOG always wins
-///         .middleware(|m| m.csrf(Level::WARN).host_validation(Level::INFO))
-///         .session(|s| s.store(Level::INFO))
-///         .forms(|f| f.validate(Level::DEBUG))
-///         .admin(|a| a.crud(Level::INFO))
+///         .middleware(|m| m.csrf(LogLevel::WARN).host_validation(LogLevel::INFO))
+///         .session(|s| s.store(LogLevel::INFO))
+///         .forms(|f| f.validate(LogLevel::DEBUG))
+///         .admin(|a| a.crud(LogLevel::INFO))
 ///     )
 /// ```
 #[derive(Debug, Clone, Default)]
@@ -348,7 +348,7 @@ impl RuniqueLog {
     /// ```rust,ignore
     /// .with_log(|l| l.dev())
     /// // or with override
-    /// .with_log(|l| l.dev().db(|d| d.connect(Level::INFO)))
+    /// .with_log(|l| l.dev().db(|d| d.connect(LogLevel::INFO)))
     /// ```
     #[must_use]
     pub fn dev(self) -> Self {
@@ -553,5 +553,81 @@ mod tests {
         assert_eq!(message, "hello sink");
         // `message` is split out; only `answer` remains in fields.
         assert_eq!(fields.as_slice(), &[("answer", "42".to_string())]);
+    }
+
+    // Written from cargo-mutants survivors (2026-10-08): each `dev()` turns
+    // every channel of its category on, through each setter.
+    #[test]
+    fn dev_turns_every_channel_on() {
+        use tracing::Level;
+        let d = Some(Level::DEBUG);
+        let a = AdminTracing::new().dev();
+        assert_eq!(
+            [a.auth, a.crud, a.list, a.bulk, a.filter_fn, a.daemon],
+            [d; 6]
+        );
+        let m = MiddlewareTracing::new().dev();
+        assert_eq!(
+            [
+                m.csrf,
+                m.csp,
+                m.cors,
+                m.rate_limit,
+                m.host_validation,
+                m.open_redirect,
+                m.anti_bot,
+                m.https
+            ],
+            [d; 8]
+        );
+        let db = DbTracing::new().dev();
+        assert_eq!([db.connect, db.query], [d; 2]);
+        let e = ErrorsTracing::new().dev();
+        assert_eq!([e.http, e.render], [d; 2]);
+        assert_eq!(MailerTracing::new().dev().send, d);
+        let s = SessionTracing::new().dev();
+        assert_eq!([s.store, s.cleanup, s.exclusive_login], [d; 3]);
+    }
+
+    #[test]
+    fn migration_category_keeps_its_levels() {
+        use tracing::Level;
+        let log = RuniqueLog::new().migration(|m| m.plan(Level::INFO).rollback(Level::WARN));
+        let m = log.migration.expect("configured");
+        assert_eq!(
+            (m.plan, m.apply, m.rollback),
+            (Some(Level::INFO), None, Some(Level::WARN))
+        );
+    }
+
+    #[test]
+    fn sink_records_text_and_boolean_fields() {
+        type Captured = Vec<(&'static str, String)>;
+        #[derive(Clone, Default)]
+        struct Capture(Arc<std::sync::Mutex<Vec<Captured>>>);
+        impl LogSink for Capture {
+            fn log(&self, record: &LogRecord<'_>) {
+                self.0.lock().unwrap().push(record.fields.clone());
+            }
+        }
+        let cap = Capture::default();
+        let (layers, guards) = RuniqueLog::build_layers(vec![LogOutput::sink(cap.clone())]);
+        let subscriber = tracing_subscriber::registry().with(layers);
+        tracing::subscriber::with_default(subscriber, || {
+            tracing::info!(who = "alice", ok = true, "fields");
+        });
+        drop(guards);
+        let recs = cap.0.lock().unwrap();
+        assert_eq!(
+            recs[0].as_slice(),
+            &[("who", "alice".to_string()), ("ok", "true".to_string())]
+        );
+    }
+
+    #[test]
+    fn log_outputs_describe_themselves() {
+        assert_eq!(format!("{:?}", LogOutput::Stdout), "Stdout");
+        let file = format!("{:?}", LogOutput::file("logs/app.log"));
+        assert!(file.contains("logs/app.log"), "{file}");
     }
 }

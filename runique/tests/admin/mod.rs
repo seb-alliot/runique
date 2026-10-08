@@ -1,5 +1,7 @@
 pub mod test_admin_access_control;
+pub mod test_admin_bulk_form;
 pub mod test_admin_config_guarantees;
+pub mod test_admin_crud_handlers;
 pub mod test_admin_escaping_contract;
 pub mod test_admin_groupe_droits_crud;
 pub mod test_admin_guarantees;
@@ -9,6 +11,7 @@ pub mod test_admin_raw_body;
 pub mod test_admin_registry;
 pub mod test_admin_route_crawl;
 pub mod test_admin_user_crud;
+pub mod test_builtin_entries;
 pub mod test_builtin_list_params;
 pub mod test_form_filter;
 pub mod test_form_renderer;

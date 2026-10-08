@@ -212,4 +212,29 @@ mod tests {
         let sql = r#"UPDATE "blog" SET "title" = $1 WHERE "blog"."id" = $2"#;
         assert_eq!(shorten_sql(sql), sql);
     }
+
+    // Written from cargo-mutants survivors (2026-10-08): what the builder
+    // prints is the translation, with its arguments.
+    #[test]
+    fn messages_are_translated_with_their_arguments() {
+        use super::{Issue, TestFailure, msg, msgf};
+        let key = "runique_test.transaction_ended";
+        let lang = crate::utils::trad::Lang::from_env().unwrap_or_default();
+        assert_eq!(msg(key), lang.get(key));
+        assert_ne!(msg(key), key);
+        assert_eq!(Issue::TransactionEnded.to_string(), msg(key));
+        assert!(Issue::SwallowedFailures(3).to_string().contains('3'));
+        assert!(
+            Issue::RollbackFailed("lost".into())
+                .to_string()
+                .contains("lost")
+        );
+        let failure = TestFailure {
+            name_test: "user::add_email".into(),
+            message: String::new(),
+        };
+        assert!(format!("{failure:?}").contains("user::add_email"));
+        assert_eq!(failure.to_string(), format!("{failure:?}"));
+        assert!(msgf("runique_test.swallowed_failures", &[7]).contains('7'));
+    }
 }

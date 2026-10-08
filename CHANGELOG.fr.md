@@ -49,6 +49,7 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 * **`GuardRules`** : les rôles sont des noms de groupes (`roles([...])`, `staff()`, `superuser()`) ; `GuardContext` et les méthodes `*_role` sont supprimés.
 * **`with_public_url()`** remplace `PasswordResetConfig::base_url()` et `AdminConfig::reset_password_url()`.
 * **Builder** : les réglages uniques (`routes`, `with_public_url`, `with_database`…) ne compilent plus s'ils sont appelés deux fois.
+* **Prelude** : `tracing::Level` est exporté sous le nom `LogLevel` (plus de conflit avec un enum de modèle nommé `Level`).
 * **`.env`** : `RATE_LIMITING`, `ALLOWED_HOSTS`, `RUNIQUE_ENABLE_CACHE` et `RUNIQUE_USER_TABLE` ne sont plus lus ; `DEBUG` est lu quelle que soit la casse ; `RuniqueEnv` est supprimé.
 * **`Request::is_get` / `is_post` / `is_put` / `is_delete`** sont supprimées.
 * **`request.query::<T>()`** renvoie `AppResult<T>` : une query string qui ne correspond pas donne une 400.

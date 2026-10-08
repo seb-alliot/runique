@@ -97,7 +97,7 @@ This document consolidates the actual state of the repository from the reference
 
 ### Tracing & observability
 
-- Per-domain `RuniqueLog` tree (forms, middleware, session, auth, admin, db, mailer, migration, templates, errors, builder), each leaf an `Option<Level>`
+- Per-domain `RuniqueLog` tree (forms, middleware, session, auth, admin, db, mailer, migration, templates, errors, builder), each leaf an `Option<LogLevel>`
 - `TraceResult::trace` / `trace_or` — swallowed `Result` sites log their `file:line`; security-critical sites floor at `WARN` even when their category is off
 - Outputs: colored stdout, rolling files (JSON/plain, non-blocking), custom `LogSink` (no `tracing` type exposed); `.external()` delegates the global subscriber to the host app
 - `RUNIQUE_LOG_FILE` runtime override
@@ -126,7 +126,7 @@ This document consolidates the actual state of the repository from the reference
 
 - `can_read`, `can_create`, `can_update`, `can_delete`: enforced per operation ✅
 - `can_update_own`, `can_delete_own`: enforced when `own_field` is declared in `admin!{}` ✅
-- Per-group permissions, memory cache with immediate revocation ✅
+- Per-group permissions, read from the database on every request (immediate revocation) ✅
 
 ---
 

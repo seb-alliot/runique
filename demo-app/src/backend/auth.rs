@@ -137,9 +137,9 @@ pub async fn handle_activate(
     };
 
     // Activate the account — only a pending one: a blocked account stays blocked.
-    match BuiltinUserEntity::activate_pending(&db, user.id).await {
-        Ok(true) => {}
-        Ok(false) => {
+    let activated = match BuiltinUserEntity::activate_account(&db, user.id).await {
+        Ok(Some(activated)) => activated,
+        Ok(None) => {
             warning!(request.notices => "This account is already activated or has been blocked.");
             return Ok(Redirect::to("/login").into_response());
         }
@@ -147,10 +147,16 @@ pub async fn handle_activate(
             warning!(request.notices => "Something went wrong while activating your account.");
             return Ok(Redirect::to("/login").into_response());
         }
-    }
+    };
 
-    // Directly log in
-    auth_login(&request.session, &db, user.id).await.ok();
+    // Directly log in, with the account as activation left it.
+    if login(&request.session, &activated, None, false)
+        .await
+        .is_err()
+    {
+        warning!(request.notices => "Your account is active: please sign in.");
+        return Ok(Redirect::to("/login").into_response());
+    }
 
     success!(request.notices => format!("Welcome {}! Your account is now active.", user.username));
     Ok(Redirect::to("/profil").into_response())
@@ -184,10 +190,8 @@ pub async fn handle_login(request: &mut Request, form: LoginForm) -> AppResult<R
     let credentials = get_credentials(&validated);
     if let Some((username_val, password_val)) = &credentials
         && let Some(user) = authenticate_user(&request.engine.db, username_val, password_val).await
+        && login(&request.session, &user, None, false).await.is_ok()
     {
-        auth_login(&request.session, &request.engine.db, user.id)
-            .await
-            .ok();
         success!(request.notices => format!("Welcome {}!", user.username));
         return Ok(Redirect::to("/profil").into_response());
     }

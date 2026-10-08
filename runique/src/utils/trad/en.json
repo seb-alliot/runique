@@ -127,6 +127,7 @@
     "validation_failed": "Build validation failed: {}",
     "check_failed": "Build failed with {} check error(s)",
     "template_failed": "Template loading failed: {}",
+    "driver_not_enabled": "{} driver not enabled: Runique was compiled without the '{}' feature.\n\nIn your project's Cargo.toml:\nrunique = { version = \"{}\", features = [\"{}\"] }\n\nFor the runique CLI:\ncargo install runique --features {} --locked --force\n\nTo support every engine, use the 'all-databases' feature.",
     "db_missing": "Database connection required when 'orm' feature is enabled",
     "component_not_ready": "Component '{}' is not ready",
     "check": {
@@ -490,7 +491,8 @@
   },
   "migrate": {
     "applying": "Applying migrations from '{}'...",
-    "complete_up": "Migration complete."
+    "complete_up": "Migration complete.",
+    "crate_missing": "Migration crate not found: '{}' has no Cargo.toml."
   },
   "permission": {
     "col": {
@@ -547,5 +549,9 @@
     "build_failed": "cargo couldn't build the tests, see the errors above.",
     "no_such_test": "No test \"{}\" in {}.rs. Tests available: {}",
     "dir_read_failed": "Can't read {}"
+  },
+  "auth": {
+    "login_cannot_sign_in": "This account cannot sign in: it is inactive or has never been activated.",
+    "login_session_failed": "The session could not be saved: {}"
   }
 }

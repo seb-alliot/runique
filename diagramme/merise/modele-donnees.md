@@ -25,6 +25,7 @@ erDiagram
         bool is_superuser
         datetime created_at
         datetime updated_at
+        datetime activated_at
     }
     GROUPE {
         int id PK
@@ -75,7 +76,7 @@ erDiagram
 
 | Table | PK | Colonnes | FK | Contraintes |
 |-------|----|----|----|------------|
-| `eihwaz_users` | `id` (int/bigint¹) | username, email, password, is_active, is_staff, is_superuser, created_at?, updated_at? | — | username UNIQUE, email UNIQUE |
+| `eihwaz_users` | `id` (int/bigint¹) | username, email, password, is_active, is_staff, is_superuser, created_at?, updated_at?, activated_at? | — | username UNIQUE, email UNIQUE, CHECK `is_active` ⇒ `activated_at` non NULL |
 | `eihwaz_groupes` | `id` (int) | nom | — | nom UNIQUE |
 | `eihwaz_groupes_droits` | (`groupe_id`,`resource_key`) | can_create/read/update/delete/update_own/delete_own | groupe_id → groupes.id **CASCADE** | PK composite |
 | `eihwaz_users_groupes` | (`user_id`,`groupe_id`) | — | user_id → user_table.id **CASCADE**, groupe_id → groupes.id **CASCADE** | PK composite |

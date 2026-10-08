@@ -149,6 +149,24 @@ async fn check_fk(db: &DatabaseConnection) {
         fetch_fk_matching_ids(db, "native_fk_labels", "name", "ALP").await,
         ["1"]
     );
+
+    // Written from cargo-mutants survivors (2026-10-08): ids in rows become
+    // labels; a dangling id and other columns stay as they were.
+    let mut rows = vec![
+        serde_json::json!({ "author": 1, "other": 2 }),
+        serde_json::json!({ "author": 3 }),
+    ];
+    runique::admin::helper::fk_resolve::resolve_fk_labels_in_rows(
+        db,
+        &mut rows,
+        &[("author", "native_fk_labels", "name")],
+    )
+    .await;
+    assert_eq!(
+        rows[0],
+        serde_json::json!({ "author": "Alpha", "other": 2 })
+    );
+    assert_eq!(rows[1], serde_json::json!({ "author": 3 }));
     sql(db, "DROP TABLE native_fk_labels").await;
 }
 

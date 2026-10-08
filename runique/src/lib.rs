@@ -103,7 +103,7 @@ pub mod prelude {
         MigrationTracing, RuniqueLog, SessionTracing, TemplatesTracing,
     };
     pub use crate::utils::init_logging;
-    pub use tracing::{self, Level};
+    pub use tracing::{self, Level as LogLevel};
 
     // ========================================================================
     // MAIN MODULES

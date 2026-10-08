@@ -56,8 +56,8 @@ pub async fn profil(mut request: Request) -> AppResult<Response> {
         warning!(request.notices => "Please log in to access your profile.");
         return Ok(Redirect::to("/login").into_response());
     }
-    let user_id = get_user_id(&request.session).await;
-    let username = get_username(&request.session).await;
+    let user_id = request.user.as_ref().map(|user| user.id);
+    let username = request.user.as_ref().map(|user| user.username.clone());
     let user_opt = get_profile_user(user_id, &request.engine.db).await;
     context_update!(request => {
         "title"        => "My profile",

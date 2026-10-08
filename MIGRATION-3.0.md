@@ -72,6 +72,8 @@ None of these did what its name said: `ALLOWED_HOSTS=mysite.com` left host valid
 
 **`DEBUG` and the other `.env` flags are read whatever their case**: `True`, `YES`, `On` now mean true. Check that no production `.env` holds such a value by mistake. The `RuniqueEnv` enum is removed; use `is_debug()`.
 
+**Log levels are `LogLevel` in the prelude**: `use runique::prelude::*` exports `tracing::Level` as `LogLevel`, so it no longer clashes with a model enum named `Level`. Replace `Level::INFO` with `LogLevel::INFO` in `.with_log(...)`, or import `tracing::Level` yourself.
+
 ---
 
 ## Database handle: `ADb`
@@ -133,7 +135,45 @@ login(&session, &db, user.id, &user.username, user.is_staff, user.is_superuser, 
 login(&session, &user, db_store, exclusive)
 ```
 
-`auth_login()` is unchanged.
+**`login()` checks the account and returns `LoginError`.** An account that may not sign in (`can_sign_in()`: inactive, or never activated) gets no session, whatever path loaded it. Handle the refusal:
+
+```rust
+match login(&session, &user, None, false).await {
+    Ok(()) => { /* signed in */ }
+    Err(LoginError::CannotSignIn) => { /* inactive, or not activated yet */ }
+    Err(LoginError::Session(e)) => { /* the session store failed */ }
+}
+```
+
+**`auth_login()` is removed.** It reloaded an account you already had, and returned `Ok(())` without signing anyone in when the account couldn't. Pass the account to `login()`; the default session store already saves signed-in sessions to the database.
+
+```rust
+// 2.x
+auth_login(&session, &db, user.id).await?;
+
+// 3.0 — after authenticate_user, a registration, an activation…
+login(&session, &user, None, false).await?;
+```
+
+**`activate_pending()` becomes `activate_account()`** and returns the activated account (`Option<Model>`) instead of a `bool`, ready for `login()`. `None`: already activated, or deactivated since by the staff (reactivation stays theirs).
+
+```rust
+if let Some(user) = BuiltinUserEntity::activate_account(&db, id).await? {
+    login(&session, &user, None, false).await?;
+}
+```
+
+**The session holds only the user id.** The name and the `is_staff` / `is_superuser` flags are no longer copied into it: the account is read from the database on every request, like Django's `request.user`, so a rename, a demotion or a deactivation applies to the next request.
+
+| 2.x | 3.0 |
+|---|---|
+| `get_username(&session)` | `request.user` → `user.username` |
+| `get_user_id(&session)` | `request.user` → `user.id` (`get_user_id` is now internal) |
+| `is_admin_authenticated(&session)` | `request.user` → `user.can_access_admin()`; in a middleware, the `CurrentUser` extension |
+| `SESSION_USER_USERNAME_KEY`, `SESSION_USER_IS_SUPERUSER_KEY` | removed |
+| `.with_log(\|l\| l.auth(\|a\| a.permissions(...)))` | removed (it logged the permission cache, gone) |
+
+`is_authenticated(&session)` is unchanged.
 
 **`logout()` clears the whole session**, flash messages included, like Django. Add a flash message meant for after logging out *after* the call.
 

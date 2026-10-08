@@ -58,7 +58,7 @@ pub async fn handle_contribution_submit(
         }
     };
 
-    let user_id = get_user_id(&request.session).await.unwrap_or(0);
+    let user_id = request.user.as_ref().map_or(0, |user| user.id);
     match save_contribution(&mut form, &request.engine.db, user_id).await {
         Ok(_) => {
             success!(request.notices => "Thank you for your contribution!");

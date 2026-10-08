@@ -139,3 +139,79 @@ async fn test_parse_multipart_mix_texte_et_fichier() {
     let resp = multipart_app().oneshot(req).await.unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 }
+
+// ── Written from cargo-mutants survivors (2026-10-08) ─────────────────────────
+
+/// Parses a multipart request into a fresh `dir`, with 1 MB per file and 1 KB
+/// per text field; returns the status.
+async fn parse_into(dir: std::path::PathBuf, req: Request<Body>) -> StatusCode {
+    let app = Router::new().route(
+        "/upload",
+        post(move |multipart: Multipart| {
+            let dir = dir.clone();
+            async move {
+                match parse_multipart(multipart, &dir, 1, 1).await {
+                    Ok(_) => StatusCode::OK,
+                    Err(resp) => resp.status(),
+                }
+            }
+        }),
+    );
+    app.oneshot(req).await.unwrap().status()
+}
+
+fn temp_upload_dir() -> std::path::PathBuf {
+    std::env::temp_dir().join(format!("rq_parse_{}", uuid::Uuid::new_v4()))
+}
+
+/// Exactly at a limit is accepted; one byte over is refused (parse_html.rs:108, 154).
+#[tokio::test]
+async fn upload_limits_take_the_limit_itself() {
+    let dir = temp_upload_dir();
+    let text = |n: usize| multipart_text_request(&[("bio", &"a".repeat(n))]);
+    assert_eq!(parse_into(dir.clone(), text(1024)).await, StatusCode::OK);
+    assert_eq!(
+        parse_into(dir.clone(), text(1025)).await,
+        StatusCode::PAYLOAD_TOO_LARGE
+    );
+
+    let file = |n: usize| multipart_file_request("doc", "a.txt", &"b".repeat(n));
+    assert_eq!(
+        parse_into(dir.clone(), file(1024 * 1024)).await,
+        StatusCode::OK
+    );
+    assert_eq!(
+        parse_into(dir.clone(), file(1024 * 1024 + 1)).await,
+        StatusCode::PAYLOAD_TOO_LARGE
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// A parse sweeps staging folders older than an hour, and only those: a fresh
+/// one stays, and so does any other old folder (parse_html.rs:193, 209, 221).
+#[tokio::test]
+async fn stale_staging_folders_are_swept_and_nothing_else() {
+    let dir = temp_upload_dir();
+    let two_hours_ago = std::time::SystemTime::now() - std::time::Duration::from_secs(7200);
+    for name in [".staging-old", ".staging-new", "kept-old"] {
+        std::fs::create_dir_all(dir.join(name)).unwrap();
+    }
+    for name in [".staging-old", "kept-old"] {
+        std::fs::File::open(dir.join(name))
+            .unwrap()
+            .set_modified(two_hours_ago)
+            .unwrap();
+    }
+
+    let status = parse_into(dir.clone(), multipart_text_request(&[("nom", "x")])).await;
+    let (old, new, other) = (
+        dir.join(".staging-old").exists(),
+        dir.join(".staging-new").exists(),
+        dir.join("kept-old").exists(),
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+    assert_eq!(status, StatusCode::OK);
+    assert!(!old, "an hour-old staging folder is removed");
+    assert!(new, "a fresh one stays");
+    assert!(other, "anything that isn't staging is never touched");
+}
