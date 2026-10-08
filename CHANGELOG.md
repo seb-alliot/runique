@@ -60,6 +60,10 @@ All notable changes to this project will be documented in this file.
 * **Admin**: `extra_routes` names its `CrudOperation`; `ResourcePermissions` and the roles registry are removed; `CountFn` receives the column filters.
 * **Model DSL** (`runique_dsl`): columns NOT NULL by default (`nullable`), `fk()` replaced by `belongs_to`, `auto_now` set by the entity, strict CLI reading, `checkbox [enum]` as a list.
 * **`runique migration down` / `status`** are removed (use `sea-orm-cli`), along with the `applied/` folder.
+* **Sign-in**: `login()` refuses an account that can't sign in (`LoginError`); the session holds only the user id — read the account from `request.user`. `auth_login`, `get_username` and `is_admin_authenticated` are removed, `get_user_id` is internal, `activate_pending` is renamed `activate_account`.
+* **`RuniqueUser::password_hash`** and **`RuniqueSessionStore::find_by_user`** are removed.
+* **Constants**: `session::SESSION_USER_IS_STAFF_KEY`, `session::IS_ACTIVE` and `session::SESSION_USER_DROITS_KEY` move to `admin_context` (`user::IS_STAFF`, `user::IS_ACTIVE`, `permission::DROITS`); `SESSION_USER_USERNAME_KEY`, `SESSION_USER_IS_SUPERUSER_KEY` and `admin_context::*::REQUIRED` are removed.
+* **Model DSL**: `[step]` is removed (it was accepted, then ignored); `extend!{}` accepts only `eihwaz_users` and `eihwaz_groupes` (it never compiled on the other framework tables).
 * **Dead and duplicate APIs removed**: `no_statics`, `with_error_handler`, `SessionConfig`, `PasswordConfig::oauth`, `StaticStaging::enable` / `disable`, `attach_middlewares`, `render_with` and others listed in the migration guide.
 
 ### Added
@@ -77,8 +81,10 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 * **`makemigrations`**: binary column types, a table order that changed between runs, composite-index columns read as `String` in snapshots.
-* **`derive_form`**: `timestamp_tz` didn't compile, `i8` / `i16` produced an `i32`, types the engine can't read back are refused at compile time, the parser accepted malformed input (table names, duplicates, `has_many … as` aliases), and attributes were refused on some types but accepted on equivalent ones (`min_length`, `step`, `auto_now`).
+* **`derive_form`**: `timestamp_tz` didn't compile, `i8` / `i16` produced an `i32`, types the engine can't read back are refused at compile time, the parser accepted malformed input (table names, duplicates, `has_many … as` aliases), and attributes were refused on some types but accepted on equivalent ones (`min_length`, `auto_now`).
 * **`many_to_many`**: wrong SeaORM `Relation` variant generated on the junction side.
+* **Form-level `max_size`** (`Forms::field_max_size`, `RuniqueForm::max_size`) always failed: the override never reached the file field.
+* **`extend!{ table: "eihwaz_users" }`** didn't carry `activated_at`.
 * **`[max_size: 500KB]`** was read as 500 MB.
 * **Admin**: pagination ignored sidebar filters, editing a user's groups was ignored, foreign-key labels and many-to-many writes failed on MariaDB.
 * **`order_by_random()`** failed on MariaDB / MySQL.
@@ -94,6 +100,7 @@ All notable changes to this project will be documented in this file.
 ### Dependencies
 
 * `sea-orm` / `sea-orm-migration` `=2.0.4`, `argon2` 0.6, `scrypt` 0.12, and routine bumps (`tower-http`, `time`, `tera-contrib`, `indexmap`, `fancy-regex`, `validator`, `rust_decimal`, `syn`).
+* New crate **`runique_dsl` 0.1.0** (the model DSL parser); `derive_form` 3.0.0 depends on it. Publish order: `runique_dsl` → `derive_form` → `runique`.
 
 ---
 
