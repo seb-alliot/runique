@@ -122,6 +122,7 @@ async fn mariadb_refuses_an_active_account_never_activated() {
         return;
     };
     drop_users_mariadb(&conn).await;
-    check_guarantee(&conn, pk_sql_literal_pg).await;
+    // A UUID is stored as BINARY(16) on MariaDB: the hex literal, as on SQLite.
+    check_guarantee(&conn, pk_sql_literal).await;
     drop_users_mariadb(&conn).await;
 }

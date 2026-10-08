@@ -125,11 +125,12 @@ fn driver_not_enabled(engine: &DatabaseEngine, feature: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    // Each test is compiled only for some features: the import lives in them.
 
     #[cfg(not(feature = "postgres"))]
     #[test]
     fn a_missing_driver_names_the_real_version_and_both_fixes() {
+        use super::*;
         let msg = verify_database_driver(&DatabaseEngine::PostgreSQL).unwrap_err();
         assert!(msg.contains(env!("CARGO_PKG_VERSION")), "{msg}");
         assert!(msg.contains(r#"features = ["postgres"]"#), "{msg}");
@@ -142,6 +143,7 @@ mod tests {
     #[cfg(feature = "sqlite")]
     #[test]
     fn a_compiled_driver_passes() {
+        use super::*;
         assert!(verify_database_driver(&DatabaseEngine::SQLite).is_ok());
     }
 }

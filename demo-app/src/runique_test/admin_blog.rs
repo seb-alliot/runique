@@ -34,7 +34,7 @@ fn blog_fns() -> BlogFns {
     }
 }
 
-async fn insert(db: &ADb, title: &str, email: &str) -> Result<i32, DbErr> {
+async fn insert(db: &ADb, title: &str, email: &str) -> Result<Pk, DbErr> {
     let row = BlogActiveModel {
         title: Set(format!("{MARK} {title}")),
         email: Set(email.to_string()),

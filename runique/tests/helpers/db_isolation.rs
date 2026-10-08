@@ -34,6 +34,9 @@ pub async fn isolated_url(key: &str) -> Option<String> {
     let (db_name, query) = rest.split_once('?').map_or((rest, ""), |(d, q)| (d, q));
     let mut hasher = DefaultHasher::new();
     env!("CARGO_MANIFEST_DIR").hash(&mut hasher);
+    // One database per primary key type: tables left by a run of another variant
+    // keep foreign keys of the old type, which a recreated `eihwaz_users` can't satisfy.
+    (cfg!(feature = "big-pk"), cfg!(feature = "pk-uuid")).hash(&mut hasher);
     let own_name = format!("{db_name}_{:08x}", hasher.finish() as u32);
     let own_url = if query.is_empty() {
         format!("{prefix}/{own_name}")
