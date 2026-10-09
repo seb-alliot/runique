@@ -9,10 +9,11 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 ---
 
-## Snapshot (au 2 septembre 2026)
+## Snapshot (au 9 octobre 2026)
 
-- **Version workspace** : `3.0.0`
+- **Version workspace** : `3.0.2`
 - **derive_form** : `3.0.0`
+- **runique_dsl** : `0.1.0`
 - **Licence** : MIT
 - **Branche** : `main`
 - **Stack** : Axum 0.8.9 + SeaORM 2.0.4 + Tera 2.4 · Rust edition 2024 · Rust 1.94
@@ -110,6 +111,12 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 | 2.1.15 | Énumération d'utilisateurs via timing attack au login | Moyenne |
 | 2.1.15 | Contrôle d'accès manquant sur l'action admin reset-password | Moyenne |
 | 2.1.17 | Tokens de reset : mémoire → DB (hashés, single-use, durcis IDOR) | Durcissement |
+| 3.0.2 | XSS stockée via un upload en staging (chemin réaffiché, dossier servi sans CSP) | Élevée |
+| 3.0.2 | Fichiers écrits sur disque avant la vérification CSRF (multipart) | Moyenne |
+| 3.0.2 | Open redirect via identifiant dans l'URL (`site.com:x@evil.com`) | Moyenne |
+| 3.0.2 | Corps urlencoded/JSON sans limite de taille | Moyenne |
+| 3.0.2 | Reset-password admin possible depuis une ressource hors comptes | Faible |
+| 3.0.2 | Admin : jeton CSRF brut accepté (masquage BREACH contourné) | Durcissement |
 
 ---
 
@@ -140,5 +147,5 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 ---
 
-**Dernière mise à jour** : 2 septembre 2026
+**Dernière mise à jour** : 9 octobre 2026
 **Statut global** : ✅ Framework stable · 🟡 Admin bêta mature · 🔒 Sécurité : tokens de reset durcis en DB, auth en temps constant · 📖 Documentation API publique complète (docs.rs)

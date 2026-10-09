@@ -119,14 +119,20 @@ model (`max_length`, `min`, `max`…); a form may tighten them in `customize`, n
 (it panics when the form is built).
 
 ```rust
-pub async fn create_post(mut req: Request) -> AppResult<Response> {
-    let mut form: PostForm = req.form();
-    if form.is_valid().await {
-        // `save()` runs your `on_save` in a transaction
-        form.save(&req.engine.db).await?;
-        return Ok(Redirect::to("/posts").into_response());
+pub async fn create_post(mut request: Request) -> AppResult<Response> {
+    let form: PostForm = request.form();
+    match ValidationForm::try_new(form, &request).await {
+        Ok(validated) => {
+            // `save()` runs your `on_save` in a transaction
+            let mut form = validated.into_form();
+            form.save(&request.engine.db).await?;
+            Ok(Redirect::to("/posts").into_response())
+        }
+        Err(form) => {
+            context_update!(request => { "form" => &form });
+            request.render("posts/new.html")
+        }
     }
-    req.render("posts/new.html", context! { form })
 }
 ```
 
