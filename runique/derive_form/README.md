@@ -89,8 +89,7 @@ extend! {
 }
 ```
 
-Tables allowed: `eihwaz_users`, `eihwaz_groupes`, `eihwaz_sessions`, `eihwaz_users_groupes`,
-`eihwaz_groupes_droits`. Same field types, attributes and nullability rules as `model!`; no
+Tables allowed: `eihwaz_users`, `eihwaz_groupes`. Same field types, attributes and nullability rules as `model!`; no
 `relations:` block and no list field. `makemigrations` generates the `ALTER TABLE ADD COLUMN`.
 
 ---
