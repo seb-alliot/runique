@@ -154,14 +154,7 @@ Version du workspace (source de vérité) : **3.0.2**.
 - `runique start [--main src/main.rs] [--admin src/admin.rs]` — régénère le code admin puis lance l'app (one-shot, pas un watcher)
 - `runique create-superuser`
 - `runique makemigrations --entities src/entities --migrations migration/src [--force false]`
-- `runique migration up|down|status --migrations migration/src`
-
-> ⚠️ **À propos du rollback de migrations**
-> `runique makemigrations` écrit les migrations en préservant l'ordre
-> chronologique du système de migrations. Si vous devez un jour en revenir
-> en arrière, passez plutôt par le CLI SeaORM : il garde la table de suivi
-> des migrations synchronisée avec l'état réel du schéma. Mélanger les deux
-> chemins de rollback peut désynchroniser ce suivi.
+- `runique migration up --migrations migration/src` (retour arrière et état : `sea-orm-cli migrate down` / `status`)
 
 ---
 

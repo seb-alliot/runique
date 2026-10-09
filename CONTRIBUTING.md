@@ -17,4 +17,4 @@ cd runique
 cargo test --tests
 ```
 
-Docker is required for database tests (Postgres port 5433, MariaDB port 3307).
+Without Docker, the database tests run on SQLite and the Postgres / MariaDB ones are skipped. To run those too, and to run demo-app locally, see [TESTING.md](TESTING.md).
