@@ -20,7 +20,8 @@ Two separate things live in this repository:
 | `sea-orm-cli` | demo-app: `runique migration up` delegates to it | `cargo install sea-orm-cli` |
 | `runique` CLI | demo-app: migrations and the admin account | `cargo install --path runique --features postgres` |
 
-The `runique` CLI is installed from the workspace, to follow the framework's version. The
+The `runique` CLI is installed from the workspace, to follow the framework's version: run the
+command at the root of the repository, where `--path runique` points to the framework's folder. The
 `postgres` feature is required: built on its own, the CLI enables no database driver. Reinstall
 it after each update of the workspace.
 
@@ -45,11 +46,8 @@ This is the exact feature set the CI uses.
 The root `docker-compose.yml` starts both engines for the tests:
 
 ```bash
-docker compose -f docker-compose.yml up -d
+docker compose up -d
 ```
-
-> Pass `-f docker-compose.yml`: the root also holds a `compose.yml` (the deployment of the
-> site), and a bare `docker compose up` picks that one — it starts no database.
 
 Then create `runique/.env.test`:
 
@@ -85,8 +83,8 @@ demo-app only runs on Postgres: its `Cargo.toml` enables the `postgres` feature,
 **1. Start Postgres and create the demo database**
 
 ```bash
-docker compose -f docker-compose.yml up -d postgres
-docker compose -f docker-compose.yml exec postgres createdb -U runique runique_demo
+docker compose up -d postgres
+docker compose exec postgres createdb -U runique runique_demo
 ```
 
 A Postgres installed on the machine works too: point `DATABASE_URL` at it.
@@ -127,6 +125,10 @@ The site answers on `http://127.0.0.1:3000`. The content (docs, courses, example
 from `seed.sql` at every start; changing it needs no migration.
 
 **5. Admin access**
+
+The site holds the first terminal: open a second one, at the root of the repository. The CLI
+runs on your machine, not in Docker: it reads `DATABASE_URL` from `demo-app/.env` and reaches the
+Postgres container through port 5433, so the container must be up (`docker compose ps`).
 
 ```bash
 cd demo-app

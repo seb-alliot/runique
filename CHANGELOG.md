@@ -6,6 +6,14 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [Unreleased]
+
+### Fixed
+
+* **`runique create-superuser`** only read `DATABASE_URL` and panicked without it, while the app also accepts `DB_ENGINE` + `DB_USER` / `DB_PASSWORD` / `DB_HOST` / `DB_PORT` / `DB_NAME`: a project configured that way booted, but its superuser couldn't be created. The wizard now reads the same keys as the app, rebuilds the URL from them, and reports a missing key as an error.
+
+---
+
 ## [3.0.2] - 2026-10-09
 
 ### Security

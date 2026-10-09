@@ -318,11 +318,7 @@ fn hash_via_provider(password: &str, provider_path: &str) -> Result<String, Stri
 pub async fn create_superuser() -> Result<()> {
     dotenvy::dotenv_override().ok();
 
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be defined in .env");
-    let config = crate::db::DatabaseConfig::from_url(database_url)
-        .map_err(anyhow::Error::msg)?
-        .pool_size(1, 1)
-        .build();
+    let config = superuser_db_config(|key| std::env::var(key).ok())?;
     let db: ADb = ADb::from_connection(config.connect().await?);
 
     println!("{}", t("admin.superuser_wizard.title"));
@@ -405,6 +401,18 @@ pub async fn create_superuser() -> Result<()> {
     println!("{}", tf("admin.superuser_wizard.email_line", &[&email]));
 
     Ok(())
+}
+
+/// The same keys as the app (`DATABASE_URL`, or `DB_ENGINE` + `DB_*`), so a
+/// project that boots also reaches its database from the wizard. One
+/// connection: the wizard runs a handful of queries, one at a time.
+fn superuser_db_config(
+    get: impl Fn(&str) -> Option<String>,
+) -> Result<crate::db::DatabaseConfig> {
+    Ok(crate::db::DatabaseConfig::from_lookup(get)
+        .map_err(anyhow::Error::msg)?
+        .pool_size(1, 1)
+        .build())
 }
 
 /// Hashes the password and inserts the account: active, staff, superuser.
@@ -504,6 +512,53 @@ mod hashing_tests {
         );
 
         let _ = std::fs::remove_dir_all(&dir);
+    }
+}
+
+#[cfg(test)]
+mod db_config_tests {
+    use super::superuser_db_config;
+    use std::collections::HashMap;
+
+    fn lookup(vars: &[(&'static str, &'static str)]) -> impl Fn(&str) -> Option<String> {
+        let vars: HashMap<&str, &str> = vars.iter().copied().collect();
+        move |key| vars.get(key).map(|v| v.to_string())
+    }
+
+    #[test]
+    fn the_url_is_rebuilt_from_the_separate_keys() {
+        let config = superuser_db_config(lookup(&[
+            ("DB_ENGINE", "postgres"),
+            ("DB_USER", "bob"),
+            ("DB_PASSWORD", "secret"),
+            ("DB_HOST", "127.0.0.1"),
+            ("DB_PORT", "5433"),
+            ("DB_NAME", "app"),
+        ]))
+        .unwrap();
+        assert_eq!(config.url, "postgres://bob:secret@127.0.0.1:5433/app");
+        assert_eq!((config.min_connections, config.max_connections), (1, 1));
+    }
+
+    #[test]
+    fn database_url_is_taken_as_is() {
+        let config = superuser_db_config(lookup(&[
+            ("DATABASE_URL", "sqlite://direct.db"),
+            ("DB_ENGINE", "postgres"),
+        ]))
+        .unwrap();
+        assert_eq!(config.url, "sqlite://direct.db");
+    }
+
+    #[test]
+    fn a_missing_key_is_an_error_not_a_panic() {
+        let err = superuser_db_config(lookup(&[
+            ("DB_ENGINE", "postgres"),
+            ("DB_USER", "bob"),
+            ("DB_PASSWORD", "secret"),
+        ]))
+        .unwrap_err();
+        assert!(err.to_string().contains("DB_NAME"), "{err}");
     }
 }
 

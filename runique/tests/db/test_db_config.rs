@@ -236,7 +236,7 @@ fn test_builder_chaining() {
 fn test_from_env_sqlite_par_defaut() {
     del_env("DB_ENGINE");
     del_env("DB_NAME");
-    del_env("DB_URL");
+    del_env("DATABASE_URL");
     let result = DatabaseConfig::from_env();
     assert!(result.is_ok(), "sqlite sans vars doit Ok");
     let config = result.unwrap().build();
@@ -384,12 +384,12 @@ fn test_from_env_mariadb_complet() {
 
 #[test]
 #[serial]
-fn test_from_env_engine_inconnu_sans_db_url_retourne_err() {
+fn test_from_env_engine_inconnu_sans_database_url_retourne_err() {
     set_env("DB_ENGINE", "cassandra");
-    del_env("DB_URL");
+    del_env("DATABASE_URL");
 
     let result = DatabaseConfig::from_env();
-    assert!(result.is_err(), "engine inconnu sans DB_URL doit Err");
+    assert!(result.is_err(), "engine inconnu sans DATABASE_URL doit Err");
     del_env("DB_ENGINE");
     del_env("DB_ENGINE");
 }
