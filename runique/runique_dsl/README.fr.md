@@ -90,7 +90,7 @@ extend! {
 | `auto_now` / `auto_now_update` | Remplis à l'insertion / à chaque enregistrement ; absents des formulaires. |
 | `enum(Nom)` | L'enum dont un `choice` / `radio` / `checkbox` tire ses valeurs. |
 | `upload_to: "dossier"`, `max_size: 5MB` | Champs fichier (`upload_to` y est obligatoire). |
-| `label: "…"`, `rows: n`, `step: x`, `no_hash` | Détails de rendu du formulaire. |
+| `label: "…"`, `rows: n`, `no_hash` | Détails de rendu du formulaire. |
 | `readonly` | Exclu des migrations et des formulaires. |
 | `skip` | Présent dans le schéma SQL, exclu des formulaires générés. |
 | `renamed_from: "ancien"` | Migrations uniquement : renomme la colonne au lieu de la supprimer et la recréer. |
