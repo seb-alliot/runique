@@ -96,12 +96,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 - `runique start [--main src/main.rs] [--admin src/admin.rs]`
 - `runique create-superuser`
 - `runique makemigrations --entities src/entities --migrations migration/src [--force false]`
-- `runique migration up|down|status --migrations migration/src`
-
-> ⚠️ **Avertissement — rollback de migrations**
-> La commande `runique makemigrations` génère les migrations tout en préservant l'ordre chronologique du système de migrations.
-> Pour **revenir en arrière** sur une migration, privilégiez le CLI SeaORM : il garde la table de suivi des migrations synchronisée avec l'état réel du schéma.
-> Mélanger les outils de rollback peut désynchroniser le suivi des migrations.
+- `runique migration up --migrations migration/src` (retour arrière et état : `sea-orm-cli migrate down` / `status`)
 
 ## État de l'admin bêta
 
