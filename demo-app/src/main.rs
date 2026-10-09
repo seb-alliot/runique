@@ -28,7 +28,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     builder::new(config)
         .routes(url::routes())
-        .with_public_url("http://runique.io")
+        .with_public_url("http://localhost:3000")
         .with_database(db)
         .with_log(|l| l.dev())
         .with_mailer_from_env()

@@ -4,8 +4,10 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 2.2.x   | :white_check_mark: |
-| < 2.0   | :x:                |
+| 3.0.x   | :white_check_mark: (use **3.0.2** or later) |
+| < 3.0   | :x:                |
+
+Runique 3.0.2 fixes security issues that are also present in 2.2.x (listed below): upgrade with the [3.0 migration guide](MIGRATION-3.0.md).
 
 ## Known Security Advisories
 
@@ -23,7 +25,20 @@ None currently identified. The dependency tree was checked against the two advis
 - **Was affected via**: `async-std` (transitive dependency of `sea-orm`/`sqlx`)
 - **Current state**: `async-std` does not appear anywhere in `Cargo.lock` — the SeaORM/sqlx stack Runique depends on has moved to pure Tokio.
 
-Re-checked against `Cargo.lock` on 2026-08-30. If you maintain a fork with different dependency versions, verify with `cargo audit` before relying on this section.
+Re-checked against `Cargo.lock` on 2026-08-30. The CI also runs `cargo audit` on every push. If you maintain a fork with different dependency versions, verify with `cargo audit` before relying on this section.
+
+## Fixed in Runique
+
+| Version | Issue | Severity |
+| ------- | ----- | -------- |
+| 3.0.2 | Stored XSS through an upload waiting for its form (path shown back, staging folder served without CSP) | High |
+| 3.0.2 | Uploaded files written to disk before the CSRF check (multipart) | Medium |
+| 3.0.2 | Open redirect through credentials in a URL (`allowed.com:x@evil.com`) | Medium |
+| 3.0.2 | urlencoded / JSON request bodies with no size limit | Medium |
+| 3.0.2 | Admin password reset reachable from a resource that isn't an account | Low |
+| 3.0.2 | Admin accepted the raw CSRF token (per-response masking bypassed) | Hardening |
+
+Details in the [CHANGELOG](CHANGELOG.md#302---2026-10-09). Earlier fixes (2.1.x) are listed in [PROJECT_STATUS](docs/en/PROJECT_STATUS.en.md).
 
 ## Reporting a Vulnerability
 
@@ -43,12 +58,16 @@ We will respond within 48 hours and work on a fix as soon as possible.
 
 When using Runique in production:
 
-1. **Always use HTTPS** (`ENFORCE_HTTPS=true` behind a TLS proxy, or ACME)
-2. **Set strong SECRET_KEY** (32+ random characters)
-3. **Enable host validation** in the builder: `.middleware(|m| m.with_allowed_hosts(|h| h.enabled(true).host("mysite.com")))`
-4. **Use the strict CSP preset** (`.with_csp(|c| c.policy(SecurityPolicy::strict()))`) — CSP itself is always active by default
-5. **Keep dependencies updated**: `cargo update`
-6. **Run security audits**: `cargo audit`
+1. **Always use HTTPS** (`ENFORCE_HTTPS=true` behind a TLS proxy, or ACME) — it also turns on HSTS
+2. **Run with `DEBUG=false`**: error pages then show no internal detail
+3. **Set strong SECRET_KEY** (32+ random characters)
+4. **Enable host validation** in the builder: `.middleware(|m| m.with_allowed_hosts(|h| h.enabled(true).host("mysite.com")))`
+5. **Use the strict CSP preset** (`.with_csp(|c| c.policy(SecurityPolicy::strict()))`) — CSP itself is always active by default
+6. **Protect the admin sign-in against brute force**: `.with_admin(|a| a.with_login_guard(LoginGuard::new()))` — it's opt-in
+7. **Size uploads explicitly**: `RUNIQUE_MAX_UPLOAD_MB` (unset, a request is capped at 2 MB)
+8. **In a hand-written upload form, put `{% csrf %}` before the file inputs**: no file is written to disk before a valid token
+9. **Keep dependencies updated**: `cargo update`
+10. **Run security audits**: `cargo audit`
 
 HTML output sanitization (via `ammonia`) and Tera auto-escaping are on by default — there is no `sanitize_inputs` flag to set; this isn't an opt-in behavior.
 
