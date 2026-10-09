@@ -23,7 +23,8 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 ## Périmètre du workspace
 
 - `runique` — crate framework principale
-- `derive_form` — proc-macro DSL (model!{}, extend!{})
+- `runique_dsl` — parseur du DSL des modèles, partagé par les macros et la CLI
+- `derive_form` — macros procédurales (`model!{}`, `extend!{}`, `#[form]`)
 - `demo-app` — application de validation du framework
 - `demo-app/migration` — migrations liées à la demo-app
 
@@ -50,7 +51,7 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 ### Admin panel (stable bêta)
 - DSL `admin!{}` déclaratif → génération de `src/admins/` par le daemon
-- Watcher via `runique start` (debounce 300ms, génération initiale au démarrage)
+- `runique start` : génère `src/admins/` une fois, puis lance l'application (pas de watcher)
 - CRUD complet généré : list, detail, create, edit, delete, bulk edit, bulk delete, group actions
 - `list_display`, `list_filter` (valeurs distinctes paginées), `search!` sur toutes colonnes
 - `group_action` : booléens et valeurs enum exactes, fusion multi-entrées même champ
@@ -67,7 +68,10 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 - Whitelist de colonnes SQL générée statiquement — protection injection SQL dans filtres/tri admin
 - CSP builder avec nonce, HSTS, host validation
 - `RateLimiter` global + par méthode HTTP (`rate_limit_get()`, `rate_limit_post()`, etc.)
-- `LoginGuard` — protection contre brute-force login
+- `LoginGuard` — protection contre brute-force login (à activer pour l'admin : `with_login_guard`)
+- Compte relu en base à chaque requête (`request.user`) : la session ne garde que l'id, une désactivation ou un retrait de droits s'applique à la requête suivante ; activation garantie par une contrainte `CHECK` (`is_active` ⇒ `activated_at`)
+- Uploads (3.0.2) : aucun fichier écrit avant un jeton CSRF valide, dossiers de staging jamais servis, CSP sans script sur `/media`
+- Taille des corps de requête bornée (2 Mo par défaut, `RUNIQUE_MAX_UPLOAD_MB` pour relever)
 - `AntiBot` — honeypot configurable par scope
 - Sanitization HTML (ammonia), argon2/bcrypt/scrypt pour les mots de passe
 - Redirections sécurisées (open-redirect guard), cookies `HttpOnly`/`SameSite=Strict`/`Secure`
@@ -83,7 +87,7 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 - Alias `Pk` : `i32` par défaut, `i64` (`big-pk`) ou `Uuid` via `Uuid::now_v7()` (`pk-uuid`) — features mutuellement exclusives (`compile_error!`). Utilisable sur n'importe quel champ (pas seulement la PK), typiquement une FK, pour rester automatiquement synchronisé avec le type de la table référencée
 - `model!{}` — syntaxe de champs unifiée (l'ancienne grammaire `fields: { name: SqlType }` est supprimée) : bloc anonyme unique, 43 types sémantiques, options `readonly`/`label` incluses
 - Générateur de migrations durci multi-moteurs (2026-09-01) : gardes runtime pour `CREATE TYPE`/triggers `updated_at` (au lieu d'un choix figé à la génération), casse d'identifiant Postgres corrigée sur `ALTER TYPE`, ordre `TYPE`/`USING` invalide corrigé, `modify_column` sauté sous SQLite (panique sea-query) ; FK toujours inline en `CREATE TABLE`
-- `makemigrations` reconnaît désormais un `migration/` initialisé via `sea-orm-cli migrate init` (`lib.rs` reformaté canoniquement, placeholder `todo!()` supprimé) — cf. [Migrations](/docs/fr/installation/migrations)
+- `makemigrations` reconnaît désormais un `migration/` initialisé via `sea-orm-cli migrate init` (`lib.rs` reformaté canoniquement, placeholder `todo!()` supprimé), et branche les tables du framework même sans aucun modèle propre au projet (3.0.2) — cf. [Migrations](/docs/fr/installation/migrations)
 - Recherche/filtres portables multi-moteurs (2026-09-02) : `CAST(col AS TEXT)` invalide sur MySQL/MariaDB (exige `CHAR`) — corrigé via des helpers `text_cast_type`/`text_eq`/`ilike` détectant le moteur à l'exécution (`db.get_database_backend()`). `search_cond!` prend désormais la connexion `db` en premier argument sur ses 4 formes — cf. [Requêtes](/docs/fr/orm/requetes)
 
 ### I18n
@@ -96,7 +100,7 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 - Override runtime `RUNIQUE_LOG_FILE`
 
 ### CLI
-- `runique new`, `runique start`, `runique create-superuser`, `runique makemigrations`, `runique migration`
+- `runique new`, `runique start`, `runique create-superuser`, `runique makemigrations`, `runique migration up` (retour arrière et état : `sea-orm-cli`), `runique test`
 
 ---
 
@@ -130,12 +134,15 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 ## Correctifs à apporter / roadmap
 
-### Priorité haute (v2.x)
-- **SQLi filtres via `configure {}`** : les filtres des ressources builtin passent par un chemin distinct, à vérifier
-- **Tests de non-régression sécurité** : ajouter tests couvrant la whitelist SQL, le cycle_id, les gardes par opération
+### Réglé (vérifié le 9 octobre 2026)
+- **Filtres admin et injection SQL** : les ressources générées n'acceptent que les colonnes de leur liste blanche, avec des valeurs liées ; la ressource intégrée `users` ignore les filtres de l'URL
+- **Tests de non-régression sécurité** : rotation de session et du jeton CSRF au login, contrôles par opération, liste blanche des colonnes, et les correctifs 3.0.2 (chacun vérifié par mutation)
+
+### Priorité haute (3.x)
+- **Refonte de l'admin** autour d'un builder typé `ModelAdmin<Entity>`, sans code généré — voir [l'ébauche](https://github.com/seb-alliot/runique/blob/main/ebauche-model-admin.md)
 
 ### Priorité basse
-- **Couverture ciblée** : `migration/migrate.rs` (22%), `engine/core.rs` (50%), `forms/fields/file.rs` (67%, en hausse depuis 61%)
+- **Couverture** : détail par fichier dans [couverture_test.md](https://github.com/seb-alliot/runique/blob/main/docs/couverture_test.md) (8 octobre : `migrate.rs` 79 %, `engine/core.rs` 92 %, `forms/fields/file.rs` 96 %)
 
 ---
 

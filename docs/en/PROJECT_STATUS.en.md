@@ -23,7 +23,8 @@ This document consolidates the actual state of the repository from the reference
 ## Workspace scope
 
 - `runique` — main framework crate
-- `derive_form` — proc-macro DSL (`model!{}`, `extend!{}`)
+- `runique_dsl` — model DSL parser, shared by the macros and the CLI
+- `derive_form` — procedural macros (`model!{}`, `extend!{}`, `#[form]`)
 - `demo-app` — framework validation application
 - `demo-app/migration` — migrations linked to the demo app
 
@@ -54,7 +55,7 @@ This document consolidates the actual state of the repository from the reference
 ### Admin panel (stable beta)
 
 - Declarative `admin!{}` DSL → generation of `src/admins/` by the daemon
-- Watcher via `runique start` (300ms debounce, initial generation on startup)
+- `runique start`: generates `src/admins/` once, then runs the app (no watcher)
 - Full generated CRUD: list, detail, create, edit, delete, bulk edit, bulk delete, group actions
 - `list_display`, `list_filter` (paginated distinct values), `search!` on all columns
 - `group_action`: booleans and exact enum values, multi-entry merge same field
@@ -72,7 +73,10 @@ This document consolidates the actual state of the repository from the reference
 - Statically generated SQL column whitelist — SQL injection protection in admin filters/sort
 - CSP builder with nonce, HSTS, host validation
 - Global + per-HTTP-method `RateLimiter` (`rate_limit_get()`, `rate_limit_post()`, etc.)
-- `LoginGuard` — brute-force login protection
+- `LoginGuard` — brute-force login protection (opt-in for the admin: `with_login_guard`)
+- Account read from the database on every request (`request.user`): the session holds only the id, a deactivation or a removed right applies to the next request; activation enforced by a `CHECK` constraint (`is_active` ⇒ `activated_at`)
+- Uploads (3.0.2): no file written before a valid CSRF token, staging folders never served, script-free CSP on `/media`
+- Request body size capped (2 MB by default, `RUNIQUE_MAX_UPLOAD_MB` to raise it)
 - `AntiBot` — configurable honeypot per scope
 - HTML sanitization (ammonia), argon2/bcrypt/scrypt for passwords
 - Secure redirects (open-redirect guard), `HttpOnly`/`SameSite=Strict`/`Secure` cookies
@@ -89,7 +93,7 @@ This document consolidates the actual state of the repository from the reference
 - `Pk` alias: `i32` by default, `i64` (`big-pk`), or `Uuid` via `Uuid::now_v7()` (`pk-uuid`) — mutually exclusive features (`compile_error!`). Usable on any field (not just the PK), typically a foreign key, to stay automatically in sync with the referenced table's type
 - `model!{}` — unified field syntax (the legacy `fields: { name: SqlType }` grammar is removed): single anonymous block, 43 semantic types, including `readonly`/`label` options
 - Migration generator hardened across engines (2026-09-01): runtime backend guards for `CREATE TYPE`/`updated_at` triggers (instead of a choice frozen at generation time), Postgres identifier case-folding fixed on `ALTER TYPE`, invalid `TYPE`/`USING` ordering fixed, `modify_column` skipped on SQLite (sea-query panic there); foreign keys always inline in `CREATE TABLE`
-- `makemigrations` now recognizes a `migration/` bootstrapped via `sea-orm-cli migrate init` (`lib.rs` canonically reformatted, `todo!()` placeholder removed) — see [Migrations](/docs/en/installation/migrations)
+- `makemigrations` now recognizes a `migration/` bootstrapped via `sea-orm-cli migrate init` (`lib.rs` canonically reformatted, `todo!()` placeholder removed), and wires the framework's tables in even without any model of the project's own (3.0.2) — see [Migrations](/docs/en/installation/migrations)
 - Multi-engine-portable search/filters (2026-09-02): `CAST(col AS TEXT)` is invalid on MySQL/MariaDB (requires `CHAR`) — fixed via `text_cast_type`/`text_eq`/`ilike` helpers that detect the backend at runtime (`db.get_database_backend()`). `search_cond!` now takes the `db` connection as its first argument across all 4 forms — see [Queries](/docs/en/orm/queries)
 
 ### I18n
@@ -105,7 +109,7 @@ This document consolidates the actual state of the repository from the reference
 
 ### CLI
 
-- `runique new`, `runique start`, `runique create-superuser`, `runique makemigrations`, `runique migration`
+- `runique new`, `runique start`, `runique create-superuser`, `runique makemigrations`, `runique migration up` (rollback and status: `sea-orm-cli`), `runique test`
 
 ---
 
@@ -139,14 +143,18 @@ This document consolidates the actual state of the repository from the reference
 
 ## Fixes to apply / roadmap
 
-### High priority (v2.x)
+### Done (checked October 9, 2026)
 
-- **SQLi filters via `configure {}`**: builtin resource filters go through a separate path, to be verified
-- **Security non-regression tests**: add tests covering SQL whitelist, cycle_id, operation guards
+- **Admin filters and SQL injection**: generated resources only accept the columns of their allowlist, with bound values; the built-in `users` resource ignores filters from the URL
+- **Security regression tests**: session and CSRF token rotation at login, per-operation checks, column allowlist, and the 3.0.2 fixes (each one verified by mutation)
+
+### High priority (3.x)
+
+- **Admin rework** around a typed `ModelAdmin<Entity>` builder, without generated code — see [the draft](https://github.com/seb-alliot/runique/blob/main/ebauche-model-admin.md)
 
 ### Low priority
 
-- **Targeted coverage**: `migration/migrate.rs` (22%), `engine/core.rs` (50%), `forms/fields/file.rs` (67%, up from 61%)
+- **Coverage**: per-file breakdown in [couverture_test.md](https://github.com/seb-alliot/runique/blob/main/docs/couverture_test.md) (October 8: `migrate.rs` 79%, `engine/core.rs` 92%, `forms/fields/file.rs` 96%)
 
 ---
 
