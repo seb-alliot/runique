@@ -1,4 +1,4 @@
-use crate::formulaire::RegisterForm;
+use crate::formulaire::{LoginForm, RegisterForm};
 use runique::prelude::*;
 
 async fn inject_auth(request: &mut Request) {
@@ -53,8 +53,8 @@ pub async fn soumission_inscription(mut request: Request) -> AppResult<Response>
 
     match form.save(&request.engine.db).await {
         Ok(user) => {
-            // New accounts start inactive (see `RegisterForm::save`): `login`
-            // refuses them until they are activated.
+            // `RegisterForm::save` activates the account; a project that
+            // confirms the email first gets `CannotSignIn` here until then.
             match login(&request.session, &user, None, false).await {
                 Ok(()) => {
                     success!(request.notices => format!("Welcome {} !", user.username));
@@ -78,6 +78,46 @@ pub async fn soumission_inscription(mut request: Request) -> AppResult<Response>
             request.render(template)
         }
     }
+}
+
+/// Connexion
+pub async fn connexion(mut request: Request) -> AppResult<Response> {
+    let form: LoginForm = request.form();
+    inject_auth(&mut request).await;
+
+    if is_authenticated(&request.session).await {
+        return Ok(Redirect::to("/").into_response());
+    }
+
+    let template = "login_form.html";
+    let validated = match ValidationForm::try_new(form, &request).await {
+        Ok(validated) => validated,
+        Err(form) => {
+            context_update!(request => {
+                "title" => "Sign in",
+                "login_form" => &form,
+            });
+            return request.render(template);
+        }
+    };
+
+    let username = validated.cleaned_string("username").unwrap_or_default();
+    let password = validated.cleaned_string("password").unwrap_or_default();
+    // Checks the password even for an unknown username (same timing either
+    // way) and refuses an inactive or never activated account.
+    if let Some(user) = authenticate_user(&request.engine.db, &username, &password).await
+        && login(&request.session, &user, None, false).await.is_ok()
+    {
+        success!(request.notices => format!("Welcome back {} !", user.username));
+        return Ok(Redirect::to("/").into_response());
+    }
+
+    context_update!(request => {
+        "title" => "Sign in",
+        "login_form" => &*validated,
+        "messages" => flash_now!(error => "Invalid username or password."),
+    });
+    request.render(template)
 }
 
 /// About page

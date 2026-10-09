@@ -375,6 +375,7 @@
       "success_email": "Reset link sent to {}.",
       "success_link": "Reset link (mailer not configured): {}",
       "error_no_email": "No email field found for this user.",
+      "error_unavailable": "A password reset isn't available for this item.",
       "error_send": "Error sending email: {}",
       "email_subject": "Reset your password",
       "email_title": "Password reset",

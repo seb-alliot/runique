@@ -256,3 +256,31 @@ async fn lookalike_host_blocked() {
     let resp = request::get(redirect_app(engine, "https://notmyapp.com/path"), "/").await;
     assert_status(&resp, 400);
 }
+
+// ── Credentials in the authority ─────────────────────────────────────────────
+// A browser goes to what follows the `@`; what precedes it is a user name.
+
+#[test]
+fn credentials_in_the_authority_give_no_host() {
+    use runique::middleware::security::open_redirect::extract_host;
+    assert_eq!(extract_host("https://myapp.com:x@evil.com/"), None);
+    assert_eq!(extract_host("//user@evil.com"), None);
+    assert_eq!(
+        extract_host("https://evil.com/?next=a@b"),
+        Some("evil.com"),
+        "an @ after the host is fine"
+    );
+}
+
+#[tokio::test]
+async fn a_redirect_hidden_behind_an_allowed_host_is_blocked() {
+    for location in [
+        "https://myapp.com:x@evil.com/",
+        "http://localhost:x@evil.com/",
+        "//myapp.com@evil.com/",
+    ] {
+        let engine = engine_with_hosts(vec!["myapp.com"]).await;
+        let resp = request::get(redirect_app(engine, location), "/").await;
+        assert_status(&resp, 400);
+    }
+}

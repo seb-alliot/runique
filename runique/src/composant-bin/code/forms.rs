@@ -3,7 +3,7 @@ use runique::prelude::*;
 
 // registration
 /// Example user registration form: validates username length/charset and
-/// password strength, and persists a new (inactive) `runique_users` row.
+/// password strength, and persists a new `runique_users` row, activated at once.
 #[form(schema = runique_users, fields = [username, email, password])]
 pub struct RegisterForm;
 #[async_trait]
@@ -60,8 +60,7 @@ impl RegisterForm {
         db: &ADb,
     ) -> Result<runique::prelude::runique_users::Model, DbErr> {
         use runique::prelude::runique_users::ActiveModel;
-        #[allow(unused_mut)]
-        let mut user = ActiveModel {
+        let user = ActiveModel {
             username: Set(self.cleaned_string("username").unwrap_or_default()),
             email: Set(self.cleaned_string("email").unwrap_or_default()),
             password: Set(self.cleaned_string("password").unwrap_or_default()),
@@ -72,12 +71,15 @@ impl RegisterForm {
             updated_at: Set(Some(chrono::Utc::now().naive_utc())),
             ..Default::default()
         };
-        // Uuid PKs are never DB auto-increment — must be generated
-        // application-side, unlike i32/i64 which SeaORM fills in itself.
-        #[cfg(feature = "pk-uuid")]
-        {
-            user.id = Set(::sea_orm::prelude::Uuid::now_v7());
-        }
-        user.insert(db).await
+        // A UUID key, if the project uses them, is set by the account model itself.
+        let user = user.insert(db).await?;
+
+        // An account is created inactive and can't sign in until it's
+        // activated: deciding when is business logic. Here, at once. To
+        // confirm the email first, send a link instead and call
+        // `activate_account` when it's opened.
+        BuiltinUserEntity::activate_account(db, user.id)
+            .await?
+            .ok_or_else(|| DbErr::Custom("the new account was already activated".into()))
     }
 }

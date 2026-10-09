@@ -375,6 +375,7 @@
       "success_email": "Reset link sent to {}.",
       "success_link": "Reset link (mailer not configured): {}",
       "error_no_email": "No email field found for this user.",
+      "error_unavailable": "A redefinição de senha não está disponível para este item.",
       "error_send": "Error sending email: {}",
       "email_subject": "Redefina sua senha",
       "email_title": "Redefinição de senha",

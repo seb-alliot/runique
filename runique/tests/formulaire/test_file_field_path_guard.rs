@@ -149,4 +149,44 @@ mod through_upload {
         let _ = std::fs::remove_dir_all(&media);
         let _ = std::fs::remove_dir_all(&outside);
     }
+
+    /// Parses like Prisme, then fills a form whose `title` is a text field.
+    async fn text_title(multipart: Multipart) -> String {
+        let media = std::env::var("MEDIA_ROOT").expect("MEDIA_ROOT set by the test");
+        let parsed = parse_multipart(multipart, std::path::Path::new(&media), 10, 64)
+            .await
+            .expect("multipart parsed");
+        let data = parsed.into_iter().map(|(k, v)| (k, v.join(","))).collect();
+        let mut form = Forms::new("csrf");
+        form.field(&runique::forms::fields::TextField::text("title"));
+        form.fill(&data, axum::http::Method::POST);
+        form.fields["title"].value().to_string()
+    }
+
+    // A file part sent under a text field's name: the field must not take the
+    // staged path as its value, or a re-rendered form shows where the upload
+    // waits (and the file was reachable there).
+    #[tokio::test]
+    #[serial]
+    async fn a_text_field_never_shows_a_staged_path() {
+        let media = media_root();
+        let app = Router::new().route("/upload", post(text_title));
+        let mut values = Vec::new();
+        for req in [
+            request(&[("title", Some("page.html"), "<script>")]),
+            request(&[("title", None, "Bonjour")]),
+        ] {
+            let resp = app.clone().oneshot(req).await.expect("response");
+            let bytes = axum::body::to_bytes(resp.into_body(), usize::MAX)
+                .await
+                .expect("body");
+            values.push(String::from_utf8(bytes.to_vec()).expect("utf-8"));
+        }
+        let (file, text) = (values[0].clone(), values[1].clone());
+
+        assert_eq!(file, "", "the staged path is dropped");
+        assert_eq!(text, "Bonjour", "a text value still is taken");
+        del_env("MEDIA_ROOT");
+        let _ = std::fs::remove_dir_all(&media);
+    }
 }

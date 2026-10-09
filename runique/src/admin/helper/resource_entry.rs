@@ -167,6 +167,9 @@ impl GroupAction {
     }
 }
 
+/// The framework's accounts table.
+pub const ACCOUNTS_TABLE: &str = "eihwaz_users";
+
 /// Admin registry entry: metadata + CRUD closures.
 pub struct ResourceEntry {
     pub meta: AdminResource,
@@ -188,6 +191,9 @@ pub struct ResourceEntry {
     pub own_field: Option<&'static str>,
     /// Model-provided resolver turning enum db values into display labels (display views).
     pub enum_label_fn: Option<EnumLabelFn>,
+    /// The table the resource's entity reads, from the entity itself
+    /// (`Entity::table_name()`). `None` for a resource that didn't declare it.
+    pub table: Option<&'static str>,
 }
 
 impl ResourceEntry {
@@ -211,7 +217,22 @@ impl ResourceEntry {
             unique_fields: &[],
             own_field: None,
             enum_label_fn: None,
+            table: None,
         }
+    }
+    /// Declares the table the resource's entity reads. Generated admin code
+    /// passes `Entity::table_name()`, so it can't drift from the model.
+    #[must_use]
+    pub fn with_table(mut self, table: &'static str) -> Self {
+        self.table = Some(table);
+        self
+    }
+    /// Whether the resource is the accounts table (`eihwaz_users`) — the
+    /// built-in `users`, or a model extending it with `extend!{}`. Only those
+    /// may send a password reset.
+    #[must_use]
+    pub fn is_account_table(&self) -> bool {
+        self.table == Some(ACCOUNTS_TABLE)
     }
     /// Registers the enum-label resolver used to turn raw enum db values into
     /// display labels in list/detail/delete views. Used by generated admin

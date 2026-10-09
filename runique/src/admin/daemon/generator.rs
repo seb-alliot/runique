@@ -870,6 +870,11 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     } else {
         let _ = writeln!(out, "        ResourceEntry::new(meta, form_builder)");
     }
+    let _ = writeln!(
+        out,
+        "            .with_table(sea_orm::EntityName::table_name(&{}::Entity))",
+        module
+    );
     let _ = writeln!(out, "            .with_list_fn(list_fn)");
     let _ = writeln!(out, "            .with_get_fn(get_fn)");
     let _ = writeln!(

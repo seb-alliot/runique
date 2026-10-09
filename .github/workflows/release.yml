@@ -7,7 +7,7 @@ on:
 
 jobs:
   publish:
-    name: Publish to crates.io
+    name: Security audit
     runs-on: ubuntu-latest
     # Empêche l'exécution sur les forks si nécessaire
     if: github.repository_owner != 'actions'

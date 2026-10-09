@@ -375,6 +375,7 @@
       "success_email": "Reset link sent to {}.",
       "success_link": "Reset link (mailer not configured): {}",
       "error_no_email": "No email field found for this user.",
+      "error_unavailable": "No es posible restablecer la contraseña para este elemento.",
       "error_send": "Error sending email: {}",
       "email_subject": "Restablece tu contraseña",
       "email_title": "Restablecimiento de contraseña",

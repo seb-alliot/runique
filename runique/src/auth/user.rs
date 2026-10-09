@@ -58,7 +58,24 @@ impl Related<crate::middleware::session::session_db::Entity> for Entity {
     }
 }
 
-impl ActiveModelBehavior for ActiveModel {}
+#[async_trait::async_trait]
+impl ActiveModelBehavior for ActiveModel {
+    /// A UUID key comes from the application, never from the database: an
+    /// account inserted without one gets it here, whoever inserts it (admin,
+    /// CLI, a project's own registration form).
+    async fn before_save<C>(mut self, _db: &C, insert: bool) -> Result<Self, DbErr>
+    where
+        C: ConnectionTrait,
+    {
+        #[cfg(feature = "pk-uuid")]
+        if insert && self.id.is_not_set() {
+            self.id = Set(uuid::Uuid::now_v7());
+        }
+        #[cfg(not(feature = "pk-uuid"))]
+        let _ = insert;
+        Ok(self)
+    }
+}
 
 // ─── RuniqueUser ─────────────────────────────────────────────────────────────
 impl RuniqueUser for Model {

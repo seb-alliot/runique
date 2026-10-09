@@ -10,7 +10,7 @@
 | `MEDIA_URL` | `/media` | Préfixe URL pour les médias |
 | `TEMPLATES_DIR` | `templates` | Dossier des templates Tera (liste séparée par virgules possible) |
 | `STATICFILES` | `default_storage` | Backend de stockage |
-| `RUNIQUE_MAX_UPLOAD_MB` | `100` | Taille maximale globale d'un upload fichier (MB) |
+| `RUNIQUE_MAX_UPLOAD_MB` | non définie | Taille maximale d'un fichier uploadé (MB). Non définie : une requête est limitée à 2 Mo (valeur d'axum). Définie : la requête entière est limitée à cette valeur + 1 Mo pour les champs texte |
 | `RUNIQUE_MAX_TEXT_FIELD_KB` | `1024` | Taille maximale d'un champ texte multipart (KB) |
 
 ---

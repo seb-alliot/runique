@@ -29,7 +29,7 @@ GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO runique_user;
 Make sure the feature is enabled in `Cargo.toml`:
 
 ```toml
-runique = { version = "3.0.0", features = ["orm", "sqlite"] }
+runique = { version = "3.0.0", features = ["sqlite"] }
 ```
 
 ---

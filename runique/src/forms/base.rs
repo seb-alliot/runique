@@ -270,6 +270,16 @@ pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Syn
     /// the value comes from — a file field only takes a path to a file this
     /// request uploaded.
     fn set_submitted_value(&mut self, value: &str) {
+        // A file part sent under this field's name: its value is the path the
+        // upload was staged at, which a re-rendered form would show back.
+        if value.contains(".staging-")
+            && value
+                .split(',')
+                .any(|part| crate::forms::fields::file::is_staged_upload(part.trim()))
+        {
+            tracing::warn!(field = %self.get_field_config().name, "a file was sent for a field that takes none, ignored");
+            return;
+        }
         self.set_value(value);
     }
 

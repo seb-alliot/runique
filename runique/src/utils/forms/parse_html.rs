@@ -2,6 +2,7 @@
 use crate::{
     errors::error::ErrorContext,
     utils::aliases::StrVecMap,
+    utils::constante::session_key::session::CSRF_TOKEN_KEY,
     utils::trad::{t, tf},
 };
 use axum::{
@@ -22,11 +23,37 @@ use uuid::Uuid;
 /// Staging dirs older than this are considered orphaned by a rejected upload.
 const STAGING_TTL_SECS: u64 = 3600;
 
+/// Reads a multipart body: text fields as they are, files written to a
+/// `.staging-*` folder under `upload_dir` (their path as the value), each held
+/// to `max_upload_mb`. No CSRF check here: the request pipeline uses
+/// `parse_multipart_guarded`.
 pub async fn parse_multipart(
+    multipart: Multipart,
+    upload_dir: &Path,
+    max_upload_mb: u64,
+    max_text_field_kb: usize,
+) -> Result<StrVecMap, Response> {
+    parse_multipart_guarded(
+        multipart,
+        upload_dir,
+        max_upload_mb,
+        max_text_field_kb,
+        None,
+    )
+    .await
+}
+
+/// `parse_multipart`, with `csrf_session` the session token when the request
+/// carries no valid `X-CSRF-Token` header: a file is then written only once a
+/// `csrf_token` field matching it has been read, earlier in the body (the
+/// framework renders that field before every other). A file before it ends the
+/// request with a 403, nothing written.
+pub(crate) async fn parse_multipart_guarded(
     mut multipart: Multipart,
     upload_dir: &Path,
     max_upload_mb: u64,
     max_text_field_kb: usize,
+    csrf_session: Option<&str>,
 ) -> Result<StrVecMap, Response> {
     let max_file_bytes = max_upload_mb.saturating_mul(1024).saturating_mul(1024);
     let max_text_bytes = max_text_field_kb.saturating_mul(1024);
@@ -37,11 +64,28 @@ pub async fn parse_multipart(
     // committe vers leur destination servie — APRÈS CSRF + validation. Créé à la
     // demande au premier vrai fichier (aucun accès disque pour un form texte seul).
     let mut tmp_dir: Option<PathBuf> = None;
+    let mut csrf_checked = csrf_session.is_none();
 
     // Best-effort : purge des staging laissés par des uploads précédemment rejetés.
     sweep_stale_staging(upload_dir).await;
 
-    while let Ok(Some(mut field)) = multipart.next_field().await {
+    loop {
+        // An error here (body over the limit, cut connection) ends the request:
+        // stopping quietly would hand the form a body cut short.
+        let mut field = match multipart.next_field().await {
+            Ok(Some(field)) => field,
+            Ok(None) => break,
+            Err(e) => {
+                if let Some(ref tmp) = tmp_dir
+                    && let Err(err) = tokio::fs::remove_dir_all(tmp).await
+                {
+                    warn!(dir = %tmp.display(), error = %err, "staging cleanup after a body error failed");
+                }
+                return Err(
+                    (e.status(), t("forms.multipart_stream_error").into_owned()).into_response()
+                );
+            }
+        };
         let name = match field.name() {
             Some(n) => n.to_string(),
             None => continue,
@@ -53,6 +97,14 @@ pub async fn parse_multipart(
             if filename.is_empty() {
                 while field.next().await.is_some() {}
                 continue;
+            }
+
+            if !csrf_checked {
+                return Err((
+                    StatusCode::FORBIDDEN,
+                    t("csrf.invalid_or_missing").into_owned(),
+                )
+                    .into_response());
             }
 
             // Lazy init: create upload_dir and tmp dir only on first real file.
@@ -165,7 +217,15 @@ pub async fn parse_multipart(
             .await;
 
             match text_result {
-                Ok(text) => data.entry(name).or_default().push(text),
+                Ok(text) => {
+                    if let Some(session) = csrf_session
+                        && name == CSRF_TOKEN_KEY
+                        && crate::forms::extractor::token_matches(&text, session)
+                    {
+                        csrf_checked = true;
+                    }
+                    data.entry(name).or_default().push(text);
+                }
                 Err(e) => {
                     if let Some(ref tmp) = tmp_dir
                         && let Err(err) = tokio::fs::remove_dir_all(tmp).await
@@ -356,5 +416,88 @@ mod staging_tests {
         );
 
         let _ = std::fs::remove_dir_all(&media);
+    }
+
+    const SESSION: &str = "a3f1c2d4e5b60718293a4b5c6d7e8f90a3f1c2d4e5b60718293a4b5c6d7e8f90";
+    const OTHER: &str = "0000000000000000000000000000000000000000000000000000000000000000";
+
+    /// A body of `(name, filename, content)` parts, in this order.
+    fn parts_req(parts: &[(&str, Option<&str>, &str)]) -> Request<Body> {
+        let b = "BNDRY";
+        let mut body = String::new();
+        for (name, filename, content) in parts {
+            let disposition = match filename {
+                Some(f) => format!("form-data; name=\"{name}\"; filename=\"{f}\""),
+                None => format!("form-data; name=\"{name}\""),
+            };
+            body.push_str(&format!(
+                "--{b}\r\nContent-Disposition: {disposition}\r\n\r\n{content}\r\n"
+            ));
+        }
+        body.push_str(&format!("--{b}--\r\n"));
+        Request::builder()
+            .method("POST")
+            .header("content-type", format!("multipart/form-data; boundary={b}"))
+            .body(Body::from(body))
+            .unwrap()
+    }
+
+    /// Parses with the CSRF gate on; the media folder is removed afterwards.
+    /// Returns the result and whether anything was written under it.
+    async fn gated(parts: &[(&str, Option<&str>, &str)]) -> (Result<StrVecMap, u16>, bool) {
+        let media = std::env::temp_dir().join(format!("rq_gate_{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&media).unwrap();
+        let mp = Multipart::from_request(parts_req(parts), &())
+            .await
+            .unwrap();
+        let out = parse_multipart_guarded(mp, &media, 10, 64, Some(SESSION))
+            .await
+            .map_err(|r| r.status().as_u16());
+        let written = std::fs::read_dir(&media).unwrap().next().is_some();
+        let _ = std::fs::remove_dir_all(&media);
+        (out, written)
+    }
+
+    #[tokio::test]
+    async fn a_file_is_written_only_after_a_valid_csrf_field() {
+        let token = crate::utils::crypto::csrf::mask_csrf_token(SESSION).unwrap();
+        let (out, written) =
+            gated(&[("csrf_token", None, &token), ("doc", Some("a.pdf"), "x")]).await;
+        assert!(out.is_ok() && written, "token first: the file is staged");
+    }
+
+    #[tokio::test]
+    async fn a_file_before_the_csrf_field_is_refused_unwritten() {
+        let token = crate::utils::crypto::csrf::mask_csrf_token(SESSION).unwrap();
+        let (out, written) = gated(&[
+            ("doc", Some("a.html"), "<script>"),
+            ("csrf_token", None, &token),
+        ])
+        .await;
+        assert_eq!(out.err(), Some(403));
+        assert!(!written, "nothing on disk");
+    }
+
+    #[tokio::test]
+    async fn a_wrong_or_missing_token_writes_nothing() {
+        let other = crate::utils::crypto::csrf::mask_csrf_token(OTHER).unwrap();
+        for parts in [
+            vec![
+                ("csrf_token", None, other.as_str()),
+                ("doc", Some("a.pdf"), "x"),
+            ],
+            vec![("title", None, "t"), ("doc", Some("a.pdf"), "x")],
+        ] {
+            let (out, written) = gated(&parts).await;
+            assert_eq!(out.err(), Some(403));
+            assert!(!written);
+        }
+    }
+
+    #[tokio::test]
+    async fn without_files_the_gate_lets_the_form_through() {
+        // No file: nothing to protect here, the token is checked by Prisme.
+        let (out, written) = gated(&[("title", None, "t")]).await;
+        assert!(out.is_ok() && !written);
     }
 }

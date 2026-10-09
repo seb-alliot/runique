@@ -38,7 +38,6 @@ use axum::{
     response::{IntoResponse, Redirect, Response},
 };
 use std::{collections::HashMap, sync::Arc};
-use subtle::ConstantTimeEq;
 
 use self::action::{Access, CollectionAction, MemberAction};
 use self::handle_bulk::handle_bulk_action;
@@ -1109,19 +1108,13 @@ pub(super) async fn permission_denied_dashboard(
     Redirect::to(&format!("{}/", prefix.trim_end_matches('/'))).into_response()
 }
 
-/// Checks the CSRF token from the form body.
-/// The middleware delegates form validation to Prisme — we do it manually here.
+/// Checks the CSRF token from the form body, by the rule Prisme applies: a
+/// masked token only — accepting the raw one would undo the per-response
+/// masking (BREACH) on the admin's pages.
 fn check_csrf(body: &StrMap, session_token: &str) -> AppResult<()> {
     let valid = body
         .get(CSRF_TOKEN_KEY)
-        .map(|s| {
-            if let Ok(unmasked) = crate::utils::csrf::unmask_csrf_token(s) {
-                bool::from(unmasked.as_bytes().ct_eq(session_token.as_bytes()))
-            } else {
-                bool::from(s.as_bytes().ct_eq(session_token.as_bytes()))
-            }
-        })
-        .unwrap_or(false);
+        .is_some_and(|token| crate::forms::extractor::token_matches(token, session_token));
     if !valid {
         if let Some(level) = crate::utils::runique_log::get_log()
             .admin
@@ -1141,6 +1134,26 @@ fn check_csrf(body: &StrMap, session_token: &str) -> AppResult<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const SESSION: &str = "a3f1c2d4e5b60718293a4b5c6d7e8f90a3f1c2d4e5b60718293a4b5c6d7e8f90";
+
+    fn body_with(token: &str) -> StrMap {
+        let mut body = StrMap::new();
+        body.insert(CSRF_TOKEN_KEY.to_string(), token.to_string());
+        body
+    }
+
+    // Same rule as Prisme: only the masked token passes, never the raw one.
+    #[test]
+    fn the_admin_takes_the_masked_token_only() {
+        let masked = crate::utils::crypto::csrf::mask_csrf_token(SESSION).unwrap();
+        assert!(check_csrf(&body_with(&masked), SESSION).is_ok());
+        assert!(
+            check_csrf(&body_with(SESSION), SESSION).is_err(),
+            "raw token"
+        );
+        assert!(check_csrf(&StrMap::new(), SESSION).is_err(), "no token");
+    }
     use crate::admin::resource::AdminResource;
 
     fn meta_child() -> AdminResource {

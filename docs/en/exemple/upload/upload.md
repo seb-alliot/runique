@@ -101,6 +101,8 @@ pub async fn upload_image(mut request: Request) -> AppResult<Response> {
 {% endblock %}
 ```
 
+`{% form.image_form %}` puts the CSRF token before the fields. In a hand-written form, put `{% csrf %}` **before** the first `<input type="file">`: no file is written to disk until the token has been read and checked, and a file arriving before it gets the request refused (403). A JavaScript upload can send the token in the `X-CSRF-Token` header instead.
+
 ---
 
 ## See also

@@ -130,6 +130,9 @@ pub mod admin_context {
     /// `detail` template — object detail view
     pub mod detail {
         pub use super::common::{ENTRY, OBJECT_ID};
+        /// Whether the object is an account (accounts table): the password
+        /// reset button shows only then, on the same rule as the server.
+        pub const CAN_RESET_PASSWORD: &str = "can_reset_password";
     }
 
     /// `delete` template — deletion confirmation

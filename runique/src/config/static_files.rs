@@ -26,6 +26,10 @@ pub struct StaticConfig {
     pub max_upload_mb: u64,
     /// Maximum size of a multipart text field in KB (env: RUNIQUE_MAX_TEXT_FIELD_KB, default: 1024).
     pub max_text_field_kb: usize,
+    /// Largest request body in MB, when RUNIQUE_MAX_UPLOAD_MB is set: that
+    /// value, plus 1 MB for the form's text fields. `None` keeps axum's own
+    /// default (2 MB).
+    pub max_body_mb: Option<u64>,
 }
 
 /// Returns the current working directory as a string, cross-platform.
@@ -95,10 +99,10 @@ impl StaticConfig {
         let staticfiles =
             std::env::var("STATICFILES").unwrap_or_else(|_| "default_storage".to_string());
 
-        let max_upload_mb = std::env::var("RUNIQUE_MAX_UPLOAD_MB")
+        let upload_mb_env = std::env::var("RUNIQUE_MAX_UPLOAD_MB")
             .ok()
-            .and_then(|v| v.parse::<u64>().ok())
-            .unwrap_or(100);
+            .and_then(|v| v.parse::<u64>().ok());
+        let max_upload_mb = upload_mb_env.unwrap_or(100);
 
         let max_text_field_kb = std::env::var("RUNIQUE_MAX_TEXT_FIELD_KB")
             .ok()
@@ -121,6 +125,7 @@ impl StaticConfig {
             staticfiles,
             max_upload_mb,
             max_text_field_kb,
+            max_body_mb: upload_mb_env,
         }
     }
 }
