@@ -34,7 +34,7 @@ AUDIT.md
 audit.ps1
 check.ps1
 CLAUDE.md
-Dockerfile
+/Dockerfile
 .playwright-mcp
 .mcp.json
 server.md

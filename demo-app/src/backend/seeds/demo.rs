@@ -28,12 +28,17 @@ async fn psql_file(db_url: &str, path: &PathBuf) {
         .output()
         .await;
 
-    if let Ok(out) = output {
-        let stderr = String::from_utf8_lossy(&out.stderr);
-        for line in stderr.lines() {
-            if line.contains("ERREUR") || line.contains("ERROR") {
-                tracing::warn!("demo_seed: {}", line);
-            }
+    let out = match output {
+        Ok(out) => out,
+        Err(e) => {
+            tracing::warn!("demo_seed: psql n'a pas pu être lancé ({e}), seed ignoré");
+            return;
+        }
+    };
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    for line in stderr.lines() {
+        if line.contains("ERREUR") || line.contains("ERROR") {
+            tracing::warn!("demo_seed: {}", line);
         }
     }
 }
