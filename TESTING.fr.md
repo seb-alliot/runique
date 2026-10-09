@@ -15,10 +15,11 @@ Le dépôt contient deux choses distinctes :
 
 | Outil | Pour | Installation |
 | --- | --- | --- |
-| Rust 1.94+ | Tout | [rustup](https://rustup.rs) |
-| Docker | Postgres et MariaDB (facultatif pour les tests, recommandé pour demo-app) | [docs.docker.com](https://docs.docker.com/get-docker/) |
-| `sea-orm-cli` | demo-app : `runique migration up` délègue à cet outil | `cargo install sea-orm-cli` |
-| CLI `runique` | demo-app : migrations et compte administrateur | `cargo install --path runique --features postgres` |
+| Rust 1.94+ | Les tests, demo-app sur la machine | [rustup](https://rustup.rs) |
+| Docker | Postgres et MariaDB (facultatif pour les tests), ou demo-app en entier | [docs.docker.com](https://docs.docker.com/get-docker/) |
+| `psql` | demo-app sur la machine : le seed charge `seed.sql` (pages, exemples de code) par cet outil | paquet `postgresql-client` (`apt install postgresql-client`) |
+| `sea-orm-cli` | demo-app sur la machine : `runique migration up` délègue à cet outil | `cargo install sea-orm-cli` |
+| CLI `runique` | demo-app sur la machine : migrations et compte administrateur | `cargo install --path runique --features postgres` |
 
 La CLI `runique` s'installe depuis le workspace, pour suivre la version du framework : lancez
 la commande à la racine du dépôt, là où `--path runique` désigne le dossier du framework. La feature
@@ -56,9 +57,10 @@ DATABASE_URL_PG=postgres://runique:runique_test@localhost:5433/runique_test
 DATABASE_URL_MARIADB=mysql://runique:runique_test@localhost:3307/runique_test
 ```
 
-Chaque clone du dépôt reçoit sa propre base, créée à la première utilisation (nommée d'après
-le chemin du clone) : deux copies du dépôt n'écrasent pas les tables l'une de l'autre. Ne
-lancez pas deux `cargo test` en même temps depuis la **même** copie : ils partageraient ces bases.
+Chaque clone du dépôt, et chaque variante de clé primaire (voir plus bas), reçoit sa propre
+base, créée à la première utilisation : deux copies, ou une passe `i32` et une passe `pk-uuid`,
+n'écrasent pas les tables l'une de l'autre. Ne lancez pas deux fois **la même** variante en même
+temps depuis la même copie : les deux passes partageraient cette base.
 
 ### Variantes de clé primaire
 
@@ -82,12 +84,40 @@ demo-app ne tourne que sur Postgres : son `Cargo.toml` active la feature `postgr
 `seed.sql`, rejoué à chaque démarrage, utilise des types Postgres (`CREATE TYPE … AS ENUM`,
 séquences).
 
-**1. Démarrer Postgres et créer la base de la démo**
+### Tout dans Docker
+
+Seul Docker est nécessaire : ni Rust, ni les CLI. Depuis la racine du dépôt :
+
+```bash
+docker compose --profile demo up -d --build
+```
+
+Le premier build compile le workspace et prend plusieurs minutes. Le conteneur applique les
+migrations à chaque démarrage, puis lance le site sur `http://127.0.0.1:3000`. Les clés
+facultatives (tableau plus bas) se placent dans `demo-app/.env` : le conteneur le lit s'il
+existe, mais garde sa propre base et sa propre `DATABASE_URL`.
+
+Compte administrateur, avec la CLI déjà présente dans l'image :
+
+```bash
+docker compose exec demo runique create-superuser
+```
+
+Les étapes de l'assistant et les règles du mot de passe : [3. Créer le compte administrateur](#3-créer-le-compte-administrateur).
+
+Après une modification du code : `docker compose --profile demo up -d --build demo`.
+
+### Sur la machine
+
+**1. Démarrer Postgres**
 
 ```bash
 docker compose up -d postgres
-docker compose exec postgres createdb -U runique runique_demo
 ```
+
+La base `runique_demo` est créée au premier démarrage du conteneur
+(`docker/postgres-init/01-demo.sql`). Un conteneur Postgres créé avant ce script n'a pas cette
+base : créez-la avec `docker compose exec postgres createdb -U runique runique_demo`.
 
 Un Postgres installé sur la machine convient aussi : faites pointer `DATABASE_URL` dessus.
 
@@ -137,7 +167,28 @@ cd demo-app
 runique create-superuser
 ```
 
-L'admin est sur `http://127.0.0.1:3000/prefix-test/admin-runique/`.
+Les étapes de l'assistant et les règles du mot de passe : [3. Créer le compte administrateur](#3-créer-le-compte-administrateur).
 
 `runique start` régénère `src/admins/` à partir de `src/admin.rs` avant de lancer le site :
 nécessaire seulement après avoir modifié les déclarations `admin!{}`.
+
+---
+
+## 3. Créer le compte administrateur
+
+`runique create-superuser` est un assistant interactif : lancez-le dans un vrai terminal (sous
+Docker, par `docker compose exec`, qui en fournit un ; l'option `-T` l'empêcherait de
+fonctionner).
+
+| Étape | Que saisir |
+| --- | --- |
+| 1. Algorithme | Gardez **Argon2**, le choix par défaut (Entrée). Bcrypt, Scrypt ou un programme externe sont les alternatives |
+| 2. Nom d'utilisateur | Un nom pas encore pris |
+| 3. Email | Un email valide, pas encore pris ; enregistré en minuscules |
+| 4. Mot de passe | Au moins **12 caractères**, avec une minuscule, une majuscule, un chiffre **et un caractère spécial** (`-`, `!`, `@`…) ; saisi deux fois, jamais affiché |
+| 5. Récapitulatif | Confirmez, ou revenez modifier une étape |
+
+Le compte est créé actif, membre du staff et superutilisateur. Connectez-vous sur
+`http://127.0.0.1:3000/prefix-test/admin-runique/`.
+
+Ctrl+C quitte sans rien créer.

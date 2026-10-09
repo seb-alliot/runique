@@ -9,8 +9,12 @@ services:
       POSTGRES_INITDB_ARGS: "--locale=C --lc-messages=C"
     ports:
       - "5433:5432"
+    volumes:
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U runique -d runique_test"]
+      # Over TCP: during the first start, the init scripts run on a server
+      # reachable through the socket only, which pg_isready would report ready.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U runique -d runique_test"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -29,3 +33,26 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  # The demo site, only with `--profile demo`: `docker compose up -d` alone
+  # keeps starting the test databases and nothing else.
+  demo:
+    profiles: ["demo"]
+    build:
+      context: .
+      dockerfile: demo-app/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Optional keys (SMTP_*, GROQ_API_KEY, RUNIQUE_MAX_UPLOAD_MB); the
+    # `environment` below wins over the same keys in it.
+    env_file:
+      - path: demo-app/.env
+        required: false
+    environment:
+      DEBUG: "true"
+      DB_ENGINE: postgres
+      DATABASE_URL: postgres://runique:runique_test@postgres:5432/runique_demo
+      SECRET_KEY: ${SECRET_KEY:-local-demo-only-secret-key-not-for-production}
+    ports:
+      - "3000:3000"
