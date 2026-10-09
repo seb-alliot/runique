@@ -191,7 +191,7 @@ impl DatabaseConfig {
                 }
                 other => {
                     return Err(format!(
-                        " Unsupported DB_ENGINE: {}\n\nSupported engines: postgres, mysql, mariadb, sqlite\nOr set DB_URL directly.",
+                        " Unsupported DB_ENGINE: {}\n\nSupported engines: postgres, mysql, mariadb, sqlite\nOr set DATABASE_URL directly.",
                         other
                     ));
                 }

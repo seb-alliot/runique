@@ -6,6 +6,14 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ---
 
+## [Non publié]
+
+### Correctif
+
+* **`runique create-superuser`** ne lisait que `DATABASE_URL` et plantait sans elle, alors que l'application accepte aussi `DB_ENGINE` + `DB_USER` / `DB_PASSWORD` / `DB_HOST` / `DB_PORT` / `DB_NAME` : un projet configuré ainsi démarrait, mais son superutilisateur ne pouvait pas être créé. L'assistant lit désormais les mêmes clés que l'application, en reconstruit l'URL, et signale une clé manquante par une erreur.
+
+---
+
 ## [3.0.2] - 2026-10-09
 
 ### Sécurité
