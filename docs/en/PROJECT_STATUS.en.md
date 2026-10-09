@@ -9,10 +9,11 @@ This document consolidates the actual state of the repository from the reference
 
 ---
 
-## Snapshot (as of September 2, 2026)
+## Snapshot (as of October 9, 2026)
 
-- **Workspace version**: `3.0.0`
+- **Workspace version**: `3.0.2`
 - **derive_form**: `3.0.0`
+- **runique_dsl**: `0.1.0`
 - **License**: MIT
 - **Branch**: `main`
 - **Stack**: Axum 0.8.9 + SeaORM 2.0.4 + Tera 2.4 · Rust edition 2024 · Rust 1.94
@@ -119,6 +120,12 @@ This document consolidates the actual state of the repository from the reference
 | 2.1.15 | User enumeration via login timing attack | Medium |
 | 2.1.15 | Missing authorization on admin reset-password action | Medium |
 | 2.1.17 | Reset tokens: in-memory → DB (hashed, single-use, IDOR-hardened) | Hardening |
+| 3.0.2 | Stored XSS through a staged upload (path shown back, folder served without CSP) | High |
+| 3.0.2 | Files written to disk before the CSRF check (multipart) | Medium |
+| 3.0.2 | Open redirect through credentials in the URL (`site.com:x@evil.com`) | Medium |
+| 3.0.2 | urlencoded/JSON bodies with no size limit | Medium |
+| 3.0.2 | Admin reset-password possible from a non-account resource | Low |
+| 3.0.2 | Admin: raw CSRF token accepted (BREACH masking bypassed) | Hardening |
 
 ---
 
@@ -151,5 +158,5 @@ This document consolidates the actual state of the repository from the reference
 
 ---
 
-**Last update**: September 2, 2026
+**Last update**: October 9, 2026
 **Global status**: ✅ Stable framework · 🟡 Admin mature beta · 🔒 Security: reset tokens DB-hardened, timing-safe auth · 📖 Full public API documentation (docs.rs)
