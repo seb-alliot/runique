@@ -10,10 +10,10 @@ rust-version = "1.94"
 #
 # Primary keys are i32 by default. Want i64 or UUIDs instead? Add "big-pk" or
 # "pk-uuid" to runique's features (pick one, not both):
-#   runique = { version = "{{RUNIQUE_VERSION}}", features = ["orm", "sqlite", "pk-uuid"] }
+#   runique = { version = "{{RUNIQUE_VERSION}}", features = ["sqlite", "pk-uuid"] }
 # Make that call before your first migration: switching later leaves your code
 # and your schema out of sync.
-runique = { version = "{{RUNIQUE_VERSION}}", features = ["orm", "sqlite"] }
+runique = { version = "{{RUNIQUE_VERSION}}", features = ["sqlite"] }
 
 serde ="1"
 

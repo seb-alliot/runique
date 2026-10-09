@@ -32,6 +32,33 @@ use crate::utils::runique_log::log_init;
 #[cfg(feature = "orm")]
 use crate::middleware::session::session_db::RuniqueSessionStore;
 
+/// Largest request body: the upload limit, plus 1 MB for the form's text fields.
+fn body_limit(max_upload_mb: u64) -> usize {
+    let bytes = max_upload_mb.saturating_add(1).saturating_mul(1024 * 1024);
+    usize::try_from(bytes).unwrap_or(usize::MAX)
+}
+
+/// Policy of every media response: no script, no plugin, whatever the file
+/// claims to be (an uploaded `.html` or `.xhtml` is otherwise a page of the site).
+const MEDIA_CSP: &str = "script-src 'none'; object-src 'none'; base-uri 'none'";
+
+/// 404 for any path segment starting with a dot, decoded first (`%2E` is a
+/// dot to `ServeDir`): uploads wait in `.staging-*` folders under the media
+/// root until their form is checked, and must not be reachable meanwhile.
+async fn hide_dot_segments(
+    req: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> axum::response::Response {
+    use axum::response::IntoResponse;
+    let hidden = req.uri().path().split('/').any(|segment| {
+        urlencoding::decode(segment).map_or(true, |decoded| decoded.starts_with('.'))
+    });
+    if hidden {
+        return axum::http::StatusCode::NOT_FOUND.into_response();
+    }
+    next.run(req).await
+}
+
 impl<P> RuniqueAppBuilder<P> {
     /// Validates and builds the application.
     ///
@@ -280,6 +307,13 @@ impl<P> RuniqueAppBuilder<P> {
             router
         };
 
+        // Step 7: body size. axum's default (2 MB) unless RUNIQUE_MAX_UPLOAD_MB
+        // sets it; `parse_multipart` holds each file to `max_upload_mb` anyway.
+        let router = match engine.config.static_files.max_body_mb {
+            Some(mb) => router.layer(axum::extract::DefaultBodyLimit::max(body_limit(mb))),
+            None => router,
+        };
+
         Ok(RuniqueApp {
             engine,
             router,
@@ -407,10 +441,20 @@ impl<P> RuniqueAppBuilder<P> {
             HeaderValue::from_str(&static_cache).expect("validated in StaticStaging::validate()"),
         ));
 
-        let media_headers = security_headers().layer(SetResponseHeaderLayer::if_not_present(
-            HeaderName::from_static("cache-control"),
-            HeaderValue::from_str(&media_cache).expect("validated in StaticStaging::validate()"),
-        ));
+        // Media are files users uploaded: served from the app's own origin, an
+        // uploaded page must never run a script there. The middleware stack
+        // (and its CSP) doesn't cover these routes, so the policy is set here.
+        let media_headers = security_headers()
+            .layer(SetResponseHeaderLayer::overriding(
+                HeaderName::from_static("content-security-policy"),
+                HeaderValue::from_static(MEDIA_CSP),
+            ))
+            .layer(SetResponseHeaderLayer::if_not_present(
+                HeaderName::from_static("cache-control"),
+                HeaderValue::from_str(&media_cache)
+                    .expect("validated in StaticStaging::validate()"),
+            ))
+            .layer(axum::middleware::from_fn(hide_dot_segments));
 
         router = router
             .nest_service(

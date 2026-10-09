@@ -101,6 +101,8 @@ pub async fn upload_image(mut request: Request) -> AppResult<Response> {
 {% endblock %}
 ```
 
+`{% form.image_form %}` place le jeton CSRF avant les champs. Dans un formulaire écrit à la main, mettez `{% csrf %}` **avant** le premier `<input type="file">` : aucun fichier n'est écrit sur le disque tant que le jeton n'a pas été lu et vérifié, et un fichier qui arrive avant lui fait refuser la requête (403). Un envoi en JavaScript peut passer le jeton dans l'en-tête `X-CSRF-Token` à la place.
+
 ---
 
 ## Voir aussi

@@ -80,7 +80,9 @@ fn is_safe_redirect(location: &str, engine: &crate::engine::RuniqueEngine) -> bo
 
 /// Extracts the host (with port, if any) from an absolute or
 /// protocol-relative URL (`https://host/path` or `//host/path`). Returns
-/// `None` for a relative path or an unparseable value.
+/// `None` for a relative path, an unparseable value, or credentials in the
+/// authority: a browser sends `https://site.com:x@evil.com` to `evil.com`,
+/// while the host up to the first `:` reads `site.com`.
 pub fn extract_host(location: &str) -> Option<&str> {
     // Strip scheme: "https://host/path" or "//host/path"
     let without_scheme = if let Some(rest) = location.strip_prefix("//") {
@@ -95,7 +97,7 @@ pub fn extract_host(location: &str) -> Option<&str> {
     let host = without_scheme
         .split(['/', '?', '#'])
         .next()
-        .filter(|h| !h.is_empty())?;
+        .filter(|h| !h.is_empty() && !h.contains('@'))?;
 
     Some(host)
 }

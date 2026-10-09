@@ -867,6 +867,7 @@ pub fn admin_register() -> AdminRegistry {
 
     registry.register(
         ResourceEntry::new(meta, form_builder)
+            .with_table(sea_orm::EntityName::table_name(&contribution::Entity))
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
             .with_enum_label_fn(contribution::apply_enum_labels)
@@ -1308,6 +1309,7 @@ pub fn admin_register() -> AdminRegistry {
 
     registry.register(
         ResourceEntry::new(meta, form_builder)
+            .with_table(sea_orm::EntityName::table_name(&blog::Entity))
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
             .with_enum_label_fn(blog::apply_enum_labels)
@@ -1841,6 +1843,7 @@ pub fn admin_register() -> AdminRegistry {
 
     registry.register(
         ResourceEntry::new(meta, form_builder)
+            .with_table(sea_orm::EntityName::table_name(&changelog_entry::Entity))
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
             .with_enum_label_fn(changelog_entry::apply_enum_labels)
@@ -2488,6 +2491,7 @@ pub fn admin_register() -> AdminRegistry {
 
     registry.register(
         ResourceEntry::new(meta, form_builder)
+            .with_table(sea_orm::EntityName::table_name(&roadmap_entry::Entity))
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
             .with_enum_label_fn(roadmap_entry::apply_enum_labels)
@@ -2965,6 +2969,7 @@ pub fn admin_register() -> AdminRegistry {
 
     registry.register(
         ResourceEntry::new(meta, form_builder)
+            .with_table(sea_orm::EntityName::table_name(&known_issue::Entity))
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
             .with_enum_label_fn(known_issue::apply_enum_labels)
@@ -3143,6 +3148,7 @@ pub fn admin_register() -> AdminRegistry {
 
     registry.register(
         ResourceEntry::new(meta, form_builder)
+            .with_table(sea_orm::EntityName::table_name(&demo_category::Entity))
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
             .with_enum_label_fn(demo_category::apply_enum_labels)
@@ -3669,6 +3675,7 @@ pub fn admin_register() -> AdminRegistry {
 
     registry.register(
         ResourceEntry::new(meta, form_builder)
+            .with_table(sea_orm::EntityName::table_name(&demo_page::Entity))
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
             .with_enum_label_fn(demo_page::apply_enum_labels)
@@ -4070,6 +4077,7 @@ pub fn admin_register() -> AdminRegistry {
 
     registry.register(
         ResourceEntry::new(meta, form_builder)
+            .with_table(sea_orm::EntityName::table_name(&demo_section::Entity))
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
             .with_enum_label_fn(demo_section::apply_enum_labels)
@@ -4595,6 +4603,7 @@ pub fn admin_register() -> AdminRegistry {
 
     registry.register(
         ResourceEntry::new(meta, form_builder)
+            .with_table(sea_orm::EntityName::table_name(&code_example::Entity))
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
             .with_enum_label_fn(code_example::apply_enum_labels)
@@ -5049,6 +5058,7 @@ pub fn admin_register() -> AdminRegistry {
 
     registry.register(
         ResourceEntry::new(meta, form_builder)
+            .with_table(sea_orm::EntityName::table_name(&page_doc_link::Entity))
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
             .with_enum_label_fn(page_doc_link::apply_enum_labels)
@@ -5638,6 +5648,7 @@ pub fn admin_register() -> AdminRegistry {
 
     registry.register(
         ResourceEntry::new(meta, form_builder)
+            .with_table(sea_orm::EntityName::table_name(&form_field::Entity))
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
             .with_enum_label_fn(form_field::apply_enum_labels)
@@ -5934,6 +5945,7 @@ pub fn admin_register() -> AdminRegistry {
 
     registry.register(
         ResourceEntry::new(meta, form_builder)
+            .with_table(sea_orm::EntityName::table_name(&doc_section::Entity))
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
             .with_enum_label_fn(doc_section::apply_enum_labels)
@@ -6447,6 +6459,7 @@ pub fn admin_register() -> AdminRegistry {
 
     registry.register(
         ResourceEntry::new(meta, form_builder)
+            .with_table(sea_orm::EntityName::table_name(&doc_page::Entity))
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
             .with_enum_label_fn(doc_page::apply_enum_labels)
@@ -6910,6 +6923,7 @@ pub fn admin_register() -> AdminRegistry {
 
     registry.register(
         ResourceEntry::new(meta, form_builder)
+            .with_table(sea_orm::EntityName::table_name(&doc_block::Entity))
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
             .with_enum_label_fn(doc_block::apply_enum_labels)
@@ -7088,6 +7102,7 @@ pub fn admin_register() -> AdminRegistry {
 
     registry.register(
         ResourceEntry::new(meta, form_builder)
+            .with_table(sea_orm::EntityName::table_name(&site_config::Entity))
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
             .with_enum_label_fn(site_config::apply_enum_labels)
@@ -7656,6 +7671,7 @@ pub fn admin_register() -> AdminRegistry {
 
     registry.register(
         ResourceEntry::new(meta, form_builder)
+            .with_table(sea_orm::EntityName::table_name(&cour::Entity))
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
             .with_enum_label_fn(cour::apply_enum_labels)
@@ -8054,6 +8070,7 @@ pub fn admin_register() -> AdminRegistry {
 
     registry.register(
         ResourceEntry::new(meta, form_builder)
+            .with_table(sea_orm::EntityName::table_name(&chapitre::Entity))
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
             .with_enum_label_fn(chapitre::apply_enum_labels)
@@ -8462,6 +8479,7 @@ pub fn admin_register() -> AdminRegistry {
 
     registry.register(
         ResourceEntry::new(meta, form_builder)
+            .with_table(sea_orm::EntityName::table_name(&cour_block::Entity))
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
             .with_enum_label_fn(cour_block::apply_enum_labels)
@@ -8707,6 +8725,7 @@ pub fn admin_register() -> AdminRegistry {
 
     registry.register(
         ResourceEntry::new(meta, form_builder)
+            .with_table(sea_orm::EntityName::table_name(&runique_release::Entity))
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
             .with_enum_label_fn(runique_release::apply_enum_labels)
@@ -9095,6 +9114,7 @@ pub fn admin_register() -> AdminRegistry {
 
     registry.register(
         ResourceEntry::new(meta, form_builder)
+            .with_table(sea_orm::EntityName::table_name(&user_profile::Entity))
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
             .with_enum_label_fn(user_profile::apply_enum_labels)

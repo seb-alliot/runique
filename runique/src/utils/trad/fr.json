@@ -375,6 +375,7 @@
       "success_email": "Lien de réinitialisation envoyé à {}.",
       "success_link": "Lien de réinitialisation (mailer non configuré) : {}",
       "error_no_email": "Aucun champ email trouvé pour cet utilisateur.",
+      "error_unavailable": "Réinitialisation du mot de passe impossible pour cet élément.",
       "error_send": "Erreur lors de l'envoi de l'email : {}",
       "email_subject": "Réinitialisation de votre mot de passe",
       "email_title": "Réinitialisation du mot de passe",

@@ -6,6 +6,25 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [3.0.2] - 2026-10-09
+
+### Security
+
+* **Stored XSS through an upload waiting for its form**: a file sent under a text field's name was staged under the media root, its path shown back in the re-rendered form, and the staging folder served from the site's origin (`/media/.staging-…/page.html`, as `text/html`). Media paths with a segment starting with a dot (`%2E` included) now return 404, every media response carries `Content-Security-Policy: script-src 'none'; object-src 'none'; base-uri 'none'` (an uploaded `.html` no longer runs on the site), and a field that takes no file ignores a staged path.
+* **CSRF checked before any upload**: a multipart body wrote its files to disk before the token was checked. Without a valid `X-CSRF-Token` header, a file is now written only after a valid `csrf_token` field; a file before it gets the request refused (403), nothing written. Forms rendered by Runique already put the token first; a hand-written form must place `{% csrf %}` before its `<input type="file">`.
+* **Open redirect**: a redirect to `https://allowed.com:x@evil.com` (or `localhost:x@evil.com`) passed the check, while the browser goes to `evil.com`. Credentials in a redirect's authority are now refused.
+* **The admin accepted the raw CSRF token**, bypassing the per-response masking (BREACH): it now checks the masked token only, like every other form.
+* **Admin password reset**: the action is limited to the accounts table (the built-in `users`, or a model extending it with `extend!{}`), server-side as well as for its button, and the link goes to the account's own email, never to a field of the object shown. Regenerate `src/admins/` (`runique start`) so extended account resources declare their table.
+
+### Fixed
+
+* **Request body size**: urlencoded and JSON bodies had no limit at all, and a multipart body over the limit was cut short silently instead of refused. Bodies keep axum's default limit (2 MB) unless `RUNIQUE_MAX_UPLOAD_MB` is set, which then caps the whole request (+1 MB for the text fields); a body over it is refused with 413.
+* **Admin edit**: a replaced upload was deleted before the update, so a failed update left the row pointing at a missing file. It is now removed once the update is saved.
+* **`runique new`**: a registration form under `pk-uuid` never got an id (the generated `cfg` tested a feature of the project, not of runique) — an account inserted without an id now gets one from the model itself; the generated project also ships a sign-in page (`/connexion`) and compiles without warnings. Its README gave a `migration/Cargo.toml` without `runique`, which the generated `lib.rs` needs (`sea-orm-cli migrate up` didn't build), described a `users` table and still read "v1.1.54"; its `.env` now documents `RUNIQUE_MAX_UPLOAD_MB`. A registered account was left inactive with no way to activate it, so it could never sign in: the generated `save()` now activates it (business logic decides; confirming the email first stays possible).
+* **`makemigrations`** without any model of the project's own wrote nothing: the framework's tables (accounts, sessions) never reached `lib.rs`, and the `sea-orm-cli migrate init` placeholder stayed wired in, so `migrate up` didn't build. They are now wired in on every run.
+
+---
+
 ## [3.0.1] - 2026-10-09
 
 ### Fixed

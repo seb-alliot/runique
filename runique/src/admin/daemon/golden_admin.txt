@@ -349,6 +349,7 @@ pub fn admin_register() -> AdminRegistry {
     registry.register(
         ResourceEntry::new(meta, form_builder)
             .with_edit_form_builder(edit_form_builder)
+            .with_table(sea_orm::EntityName::table_name(&plat::Entity))
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
             .with_enum_label_fn(plat::apply_enum_labels)
@@ -475,6 +476,7 @@ pub fn admin_register() -> AdminRegistry {
     let meta = meta.display(DisplayConfig::new().columns_exclude(vec!["secret"]));
     registry.register(
         ResourceEntry::new(meta, form_builder)
+            .with_table(sea_orm::EntityName::table_name(&tag::Entity))
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
             .with_enum_label_fn(tag::apply_enum_labels)
@@ -605,6 +607,7 @@ pub fn admin_register() -> AdminRegistry {
     registry.register(
         ResourceEntry::new(meta, form_builder)
             .with_edit_form_builder(edit_form_builder)
+            .with_table(sea_orm::EntityName::table_name(&log::Entity))
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
             .with_enum_label_fn(log::apply_enum_labels)
@@ -749,6 +752,7 @@ pub fn admin_register() -> AdminRegistry {
     let meta = meta.fk_display(vec![("author_id".to_string(), "users".to_string(), "username".to_string())]);
     registry.register(
         ResourceEntry::new(meta, form_builder)
+            .with_table(sea_orm::EntityName::table_name(&note::Entity))
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
             .with_enum_label_fn(note::apply_enum_labels)

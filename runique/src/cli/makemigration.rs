@@ -725,6 +725,10 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
         for (path, content) in &upgrades {
             fs::write(path, content)?;
         }
+        // A project without a model of its own still needs the framework's
+        // tables (accounts, sessions): wired into `lib.rs` even then, and the
+        // `sea-orm-cli migrate init` placeholder dropped.
+        ensure_admin_migration_positioned(migrations_path)?;
         if !upgrades.is_empty() {
             println!(
                 "{}",
@@ -1243,6 +1247,43 @@ mod tests {
             ["Box::new(a::Migration)", "Box::new(b::Migration)"]
         );
         assert_eq!(find_vec_span("no list here"), None);
+    }
+
+    /// No model of the project's own yet: the framework's migrations still
+    /// land in the `lib.rs` that `sea-orm-cli migrate init` wrote, its
+    /// placeholder gone — otherwise `migrate up` doesn't even compile.
+    #[test]
+    fn without_any_model_the_framework_migrations_are_wired_in() {
+        let (entities, migrations) = (temp("ent_none"), temp("mig_none"));
+        let (e, m) = (entities.to_str().unwrap(), migrations.to_str().unwrap());
+        fs::write(
+            migrations.join("lib.rs"),
+            "pub use sea_orm_migration::prelude::*;\n\nmod m20220101_000001_create_table;\n\n\
+             pub struct Migrator;\n\n#[async_trait::async_trait]\nimpl MigratorTrait for Migrator {\n    \
+             fn migrations() -> Vec<Box<dyn MigrationTrait>> {\n        \
+             vec![Box::new(m20220101_000001_create_table::Migration)]\n    }\n}\n",
+        )
+        .unwrap();
+        fs::write(
+            migrations.join("m20220101_000001_create_table.rs"),
+            "// placeholder",
+        )
+        .unwrap();
+
+        run(e, m, false).unwrap();
+        let lib = fs::read_to_string(migrations.join("lib.rs")).unwrap();
+        let placeholder_file = migrations.join("m20220101_000001_create_table.rs").exists();
+        let _ = (
+            fs::remove_dir_all(&entities),
+            fs::remove_dir_all(&migrations),
+        );
+
+        assert!(
+            lib.contains("migrations_table::EihwazUsersMigration"),
+            "{lib}"
+        );
+        assert!(!lib.contains("m20220101_000001_create_table"), "{lib}");
+        assert!(!placeholder_file);
     }
 
     #[test]

@@ -1,8 +1,7 @@
 use crate::admin::helper::resource_entry::ResourceEntry;
 use crate::auth::user::BuiltinUserEntity;
 use crate::auth::user_trait::RuniqueUser;
-use crate::context::template::{AppError, Request};
-use crate::errors::error::ErrorContext;
+use crate::context::template::Request;
 use crate::utils::{
     aliases::AppResult,
     trad::{t, tf},
@@ -137,13 +136,6 @@ pub(super) async fn handle_reset_password(
     headers: &axum::http::HeaderMap,
     state: &super::PrototypeAdminState,
 ) -> AppResult<Response> {
-    let object = match &entry.get_fn {
-        Some(f) => f(req.engine.db.clone(), id.clone())
-            .await
-            .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?,
-        None => None,
-    };
-
     let detail_url = format!(
         "{}/{}/{}/detail",
         state.config.prefix.trim_end_matches('/'),
@@ -151,32 +143,25 @@ pub(super) async fn handle_reset_password(
         id
     );
 
-    let fields = object.as_ref().and_then(|v| v.as_object());
-
-    let email = fields
-        .and_then(|m| m.get("email"))
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string());
-
-    let Some(email) = email else {
+    // The account is the only target: loaded by its id, and the link goes to
+    // its own email — never to a field of the object shown, which on another
+    // table would be anyone's address. Only the accounts table qualifies (the
+    // built-in `users`, or a model extending it): elsewhere the id is no
+    // account's id. The template shows the button on the same condition.
+    let account = match id.parse::<crate::utils::pk::Pk>() {
+        Ok(user_id) if entry.is_account_table() => {
+            BuiltinUserEntity::find_by_id(&req.engine.db, user_id).await
+        }
+        _ => None,
+    };
+    let Some(account) = account.filter(|account| !account.email.trim().is_empty()) else {
         req.notices
-            .error(t("admin.reset_password.error_no_email"))
+            .error(t("admin.reset_password.error_unavailable"))
             .await;
         return Ok(Redirect::to(&detail_url).into_response());
     };
-
-    let username = fields
-        .and_then(|m| m.get("username").or_else(|| m.get("name")))
-        .and_then(|v| v.as_str())
-        .unwrap_or(&email);
-
-    // The admin object's pk is the authoritative target — bind the token to it.
-    let Ok(user_id) = id.parse::<crate::utils::pk::Pk>() else {
-        req.notices
-            .error(t("admin.reset_password.error_no_email"))
-            .await;
-        return Ok(Redirect::to(&detail_url).into_response());
-    };
+    let (user_id, email, username) = (account.id, account.email.clone(), account.username.clone());
+    let username = username.as_str();
     let token =
         match crate::utils::reset_token::generate(&req.engine.db, user_id, ADMIN_RESET_TTL).await {
             Ok(token) => token,

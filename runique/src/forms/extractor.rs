@@ -99,7 +99,20 @@ where
         .and_then(|v| v.to_str().ok())
         .map(str::to_string);
 
-    let parsed = aegis(req, state, config, &content_type).await?;
+    // A multipart body writes its files to disk while it's read: without a
+    // valid header token, the `csrf_token` field must come before the first
+    // file, or nothing is written (an exempt path keeps its own check).
+    let exempt = req
+        .extensions()
+        .get::<crate::utils::aliases::AEngine>()
+        .is_some_and(|engine| is_csrf_exempt(req.uri().path(), &engine.csrf_exempt_paths));
+    let header_valid = header_token
+        .as_deref()
+        .is_some_and(|token| token_matches(token, csrf_session.as_str()));
+    let upload_gate =
+        (csrf_required(&method) && !exempt && !header_valid).then(|| csrf_session.as_str());
+
+    let parsed = aegis::aegis_guarded(req, state, config, &content_type, upload_gate).await?;
 
     let csrf_valid = check_csrf(
         &parsed,
@@ -155,11 +168,15 @@ fn check_csrf(
         .map(String::as_str);
     body_token
         .or(header_token)
-        .map(|s| match unmask_csrf_token(s) {
-            Ok(unmasked) => bool::from(unmasked.as_bytes().ct_eq(csrf_session.as_bytes())),
-            Err(_) => false,
-        })
-        .unwrap_or(false)
+        .is_some_and(|token| token_matches(token, csrf_session))
+}
+
+/// Whether a masked token from the request is the session's, compared in
+/// constant time (`ct_eq`) so a wrong guess can't be told from a right one by
+/// response time.
+pub(crate) fn token_matches(masked: &str, csrf_session: &str) -> bool {
+    unmask_csrf_token(masked)
+        .is_ok_and(|unmasked| bool::from(unmasked.as_bytes().ct_eq(csrf_session.as_bytes())))
 }
 
 fn convert_for_form(parsed: StrVecMap) -> StrMap {

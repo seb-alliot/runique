@@ -9,6 +9,7 @@ pub mod test_admin_nested_scope;
 pub mod test_admin_password_security;
 pub mod test_admin_raw_body;
 pub mod test_admin_registry;
+pub mod test_admin_reset_target;
 pub mod test_admin_route_crawl;
 pub mod test_admin_user_crud;
 pub mod test_builtin_entries;

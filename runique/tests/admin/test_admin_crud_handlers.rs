@@ -85,10 +85,18 @@ fn docs_registry(calls: Calls, custom_edit_form: bool) -> AdminRegistry {
             }
         })
     });
+    // An update titled `boom` fails, like a database error would.
     let record = |name: &'static str, calls: Calls| -> UpdateFn {
-        Arc::new(move |_, _, _| {
+        Arc::new(move |_, _, data| {
             calls.lock().unwrap().push(name);
-            Box::pin(async { Ok(()) })
+            Box::pin(async move {
+                if data.get("title").map(String::as_str) == Some("boom") {
+                    return Err(runique::sea_orm::DbErr::Exec(
+                        runique::sea_orm::RuntimeErr::Internal("disk full".into()),
+                    ));
+                }
+                Ok(())
+            })
         })
     };
     let mut entry =
@@ -179,6 +187,31 @@ async fn edit_removes_only_a_replaced_upload() {
         keep_kept,
         "a text field's old value is never treated as a file"
     );
+}
+
+/// A replaced upload is removed only once the update is saved: if it fails,
+/// the row still points at the old file, which must still be there.
+#[tokio::test]
+#[serial]
+async fn a_failed_edit_keeps_the_upload_it_would_replace() {
+    let media = std::env::temp_dir().join(format!("rq_crud_{}", uuid::Uuid::new_v4()));
+    std::fs::create_dir_all(media.join("docs")).unwrap();
+    std::fs::write(media.join("docs/old.pdf"), "old").unwrap();
+    set_env("MEDIA_ROOT", media.to_str().unwrap());
+
+    let (base, client) = serve(docs_registry(Arc::default(), false)).await;
+    post(
+        &base,
+        &client,
+        "1/edit",
+        &[("title", "boom"), ("attachment", "docs/new.pdf")],
+    )
+    .await;
+    let old_kept = media.join("docs/old.pdf").exists();
+
+    del_env("MEDIA_ROOT");
+    let _ = std::fs::remove_dir_all(&media);
+    assert!(old_kept, "the update failed: the old upload stays");
 }
 
 /// A narrower custom edit form saves through the partial update (only what it

@@ -126,3 +126,31 @@ async fn mariadb_refuses_an_active_account_never_activated() {
     check_guarantee(&conn, pk_sql_literal).await;
     drop_users_mariadb(&conn).await;
 }
+
+// An account inserted without an id gets one: from the database for an
+// integer key, from the model itself for a UUID key (`pk-uuid`), whoever
+// inserts it — a project's own registration form sets no id.
+#[tokio::test]
+#[serial]
+async fn an_account_inserted_without_an_id_gets_one() {
+    use runique::auth::user::ActiveModel;
+    use runique::sea_orm::{ActiveModelTrait, ActiveValue::Set};
+
+    let conn = db::fresh_db().await;
+    EihwazUsersMigration
+        .up(&SchemaManager::new(&conn))
+        .await
+        .expect("users table");
+    let insert = |name: &str| ActiveModel {
+        username: Set(name.into()),
+        email: Set(format!("{name}@example.com")),
+        password: Set("h".into()),
+        is_active: Set(false),
+        is_staff: Set(false),
+        is_superuser: Set(false),
+        ..Default::default()
+    };
+    let first = insert("first").insert(&conn).await.expect("inserted");
+    let second = insert("second").insert(&conn).await.expect("inserted");
+    assert_ne!(first.id, second.id, "each account has its own id");
+}

@@ -101,6 +101,10 @@ fn write_project_files(project_dir: &Path, name: &str, version: &str) -> Result<
             "templates/inscription_form.html",
         ),
         (
+            include_bytes!("../composant-bin/template/login_form.html"),
+            "templates/login_form.html",
+        ),
+        (
             include_bytes!("../composant-bin/css/main.css"),
             "static/css/main.css",
         ),
@@ -129,14 +133,6 @@ fn write_project_files(project_dir: &Path, name: &str, version: &str) -> Result<
             "media/favicon/favicon.ico",
         ),
         (
-            include_bytes!("../composant-bin/readme/README.md"),
-            "README.md",
-        ),
-        (
-            include_bytes!("../composant-bin/readme/README.fr.md"),
-            "README.fr.md",
-        ),
-        (
             include_bytes!("../composant-bin/config/ignore"),
             ".gitignore",
         ),
@@ -146,11 +142,26 @@ fn write_project_files(project_dir: &Path, name: &str, version: &str) -> Result<
         fs::write(project_dir.join(path), content)?;
     }
     fs::write(project_dir.join("src/entities/mod.rs"), "")?;
-    // Cargo.toml and .env with substitutions
-    let cargo_toml = include_str!("../composant-bin/config/apiconfig")
-        .replace("{{PROJECT_NAME}}", name)
-        .replace("{{RUNIQUE_VERSION}}", version);
-    fs::write(project_dir.join("Cargo.toml"), cargo_toml)?;
+    // Cargo.toml, READMEs and .env with substitutions
+    for (template, path) in [
+        (
+            include_str!("../composant-bin/config/apiconfig"),
+            "Cargo.toml",
+        ),
+        (
+            include_str!("../composant-bin/readme/README.md"),
+            "README.md",
+        ),
+        (
+            include_str!("../composant-bin/readme/README.fr.md"),
+            "README.fr.md",
+        ),
+    ] {
+        let content = template
+            .replace("{{PROJECT_NAME}}", name)
+            .replace("{{RUNIQUE_VERSION}}", version);
+        fs::write(project_dir.join(path), content)?;
+    }
 
     let secret_key: String = (0..32).map(|_| rand::rng().random::<u8>()).fold(
         String::with_capacity(64),
@@ -180,5 +191,36 @@ mod name_tests {
         for bad in ["", "../escape", "a/b", "a b", "a.b", "-flag", "C:\\x"] {
             assert!(validate_project_name(bad).is_err(), "{bad:?}");
         }
+    }
+}
+
+/// The generated project carries its name and runique's version, and no
+/// placeholder is left in it (the README once said "v1.1.54" and "{}/").
+#[cfg(test)]
+mod generated_files_tests {
+    use super::{create_project_dirs, write_project_files};
+
+    #[test]
+    fn no_placeholder_is_left_in_the_generated_files() {
+        let dir = std::env::temp_dir().join(format!("rq_new_{}", uuid::Uuid::new_v4()));
+        create_project_dirs(&dir).unwrap();
+        write_project_files(&dir, "shop", "9.8.7").unwrap();
+        for file in ["Cargo.toml", "README.md", "README.fr.md", ".env"] {
+            let content = std::fs::read_to_string(dir.join(file)).unwrap();
+            assert!(
+                !content.contains("{{") && !content.contains("{}/"),
+                "{file}"
+            );
+        }
+        let readme = std::fs::read_to_string(dir.join("README.md")).unwrap();
+        assert!(
+            readme.contains("shop/") && readme.contains("v9.8.7"),
+            "name and version"
+        );
+        assert!(
+            readme.contains(r#"runique = { version = "9.8.7""#),
+            "the migration crate depends on runique"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

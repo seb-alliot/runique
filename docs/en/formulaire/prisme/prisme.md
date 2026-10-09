@@ -7,7 +7,7 @@
 `request.form()` is a method built into `Request` that orchestrates a full pipeline behind the scenes:
 
 1. **Sentinel** — Checks the route's access rules (`GuardRules`: signed in, staff, superuser, groups) against the account read from the database.
-2. **Aegis** — Single body extraction (multipart, urlencoded, json) normalized into a `HashMap`.
+2. **Aegis** — Single body extraction (multipart, urlencoded, json) normalized into a `HashMap`, within the request size limit. For a multipart body, no file is written before a valid CSRF token (`X-CSRF-Token` header, or a `csrf_token` field placed before the files).
 3. **CSRF Gate** — Verifies the CSRF token in parsed data.
 4. **Construction** — Builds the form `T`, fills fields, and runs validation.
 

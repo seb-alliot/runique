@@ -23,7 +23,7 @@ runique = { version = "3.0.0", features = ["postgres"] }
 
 ```toml
 [dependencies]
-runique = { version = "3.0.0", features = ["orm", "sqlite"] }
+runique = { version = "3.0.0", features = ["sqlite"] }
 ```
 
 ### 2. Mettre à jour `.env`

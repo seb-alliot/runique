@@ -139,3 +139,22 @@ fn test_static_config_default_derive_vide() {
     assert!(cfg.templates_dir.is_empty());
     assert!(cfg.base_dir.is_empty());
 }
+
+// The body limit follows RUNIQUE_MAX_UPLOAD_MB only when it's set: unset,
+// axum's own default stays.
+#[test]
+#[serial]
+fn the_body_limit_is_set_only_by_the_env_key() {
+    del_env("RUNIQUE_MAX_UPLOAD_MB");
+    let unset = StaticConfig::from_env();
+    assert_eq!(unset.max_body_mb, None);
+    assert_eq!(
+        unset.max_upload_mb, 100,
+        "the per-file limit keeps its default"
+    );
+
+    set_env("RUNIQUE_MAX_UPLOAD_MB", "20");
+    let set = StaticConfig::from_env();
+    del_env("RUNIQUE_MAX_UPLOAD_MB");
+    assert_eq!((set.max_body_mb, set.max_upload_mb), (Some(20), 20));
+}

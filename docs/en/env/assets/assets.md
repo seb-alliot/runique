@@ -10,7 +10,7 @@
 | `MEDIA_URL` | `/media` | URL prefix for media files |
 | `TEMPLATES_DIR` | `templates` | Tera templates directory (comma-separated list allowed) |
 | `STATICFILES` | `default_storage` | Storage backend |
-| `RUNIQUE_MAX_UPLOAD_MB` | `100` | Global maximum size for file uploads (MB) |
+| `RUNIQUE_MAX_UPLOAD_MB` | unset | Largest uploaded file (MB). Unset: a request is capped at 2 MB (axum's default). Set: the whole request is capped at this value + 1 MB for the text fields |
 | `RUNIQUE_MAX_TEXT_FIELD_KB` | `1024` | Maximum size of a multipart text field (KB) |
 
 ---

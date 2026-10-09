@@ -375,6 +375,7 @@
       "success_email": "Reset link sent to {}.",
       "success_link": "Reset link (mailer not configured): {}",
       "error_no_email": "No email field found for this user.",
+      "error_unavailable": "此项目无法重置密码。",
       "error_send": "Error sending email: {}",
       "email_subject": "重置您的密码",
       "email_title": "密码重置",

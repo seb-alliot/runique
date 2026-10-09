@@ -35,9 +35,7 @@
         {% endif %}
       {% endif %}
       {% if current_user and can_modify %}
-      {% set has_password = false %}
-      {% for key, value in entry %}{% if key == "password" or key == "password_hash" %}{% set_global has_password = true %}{% endif %}{% endfor %}
-      {% if has_password %}
+      {% if can_reset_password %}
       <form method="post" action="{{ resource_base }}/{{ object_id }}/reset-password" class="admin-form--inline admin-btn--hide-mobile">
         {% csrf %}
         <button type="submit" class="btn btn-secondary btn-sm admin-btn--hide-mobile">
@@ -65,7 +63,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             {% if admin_detail_btn_edit %}{{ admin_detail_btn_edit }}{% endif %}
           </a>
-          {% if has_password %}
+          {% if can_reset_password %}
           <div class="admin-menu__separator"></div>
           <form method="post" action="{{ resource_base }}/{{ object_id }}/reset-password">
             {% csrf %}

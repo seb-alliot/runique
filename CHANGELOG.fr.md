@@ -6,6 +6,25 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ---
 
+## [3.0.2] - 2026-10-09
+
+### Sécurité
+
+* **XSS stockée via un upload en attente de son formulaire** : un fichier envoyé sous le nom d'un champ texte était mis en staging sous la racine media, son chemin réaffiché dans le formulaire, et le dossier de staging servi depuis l'origine du site (`/media/.staging-…/page.html`, en `text/html`). Les chemins media dont un segment commence par un point (`%2E` compris) renvoient maintenant 404, chaque réponse media porte `Content-Security-Policy: script-src 'none'; object-src 'none'; base-uri 'none'` (un `.html` uploadé ne s'exécute plus sur le site), et un champ qui ne prend pas de fichier ignore un chemin de staging.
+* **CSRF vérifié avant tout upload** : un corps multipart écrivait ses fichiers sur le disque avant la vérification du jeton. Sans en-tête `X-CSRF-Token` valide, un fichier n'est maintenant écrit qu'après un champ `csrf_token` valide ; un fichier qui arrive avant fait refuser la requête (403), sans rien écrire. Les formulaires rendus par Runique placent déjà le jeton en premier ; un formulaire écrit à la main doit mettre `{% csrf %}` avant ses `<input type="file">`.
+* **Open redirect** : une redirection vers `https://autorise.com:x@evil.com` (ou `localhost:x@evil.com`) passait le contrôle, alors que le navigateur va sur `evil.com`. Un identifiant dans l'autorité d'une redirection est maintenant refusé.
+* **L'admin acceptait le jeton CSRF brut**, ce qui contournait le masquage par réponse (BREACH) : il ne vérifie plus que le jeton masqué, comme tous les autres formulaires.
+* **Réinitialisation du mot de passe dans l'admin** : l'action est limitée à la table des comptes (la ressource intégrée `users`, ou un modèle qui l'étend avec `extend!{}`), côté serveur comme pour son bouton, et le lien part à l'email du compte, jamais à un champ de l'objet affiché. Régénérez `src/admins/` (`runique start`) pour que les ressources de comptes étendus déclarent leur table.
+
+### Correctif
+
+* **Taille du corps des requêtes** : les corps urlencoded et JSON n'avaient aucune limite, et un corps multipart trop gros était tronqué en silence au lieu d'être refusé. Les corps gardent la limite par défaut d'axum (2 Mo), sauf si `RUNIQUE_MAX_UPLOAD_MB` est défini : il borne alors la requête entière (+1 Mo pour les champs texte) ; un corps au-delà est refusé (413).
+* **Édition admin** : un upload remplacé était supprimé avant la mise à jour ; une mise à jour qui échouait laissait la ligne pointer vers un fichier disparu. Il est maintenant supprimé une fois la mise à jour enregistrée.
+* **`runique new`** : sous `pk-uuid`, le formulaire d'inscription ne générait jamais d'id (le `cfg` généré testait une feature du projet, pas de runique) — un compte inséré sans id en reçoit maintenant un du modèle lui-même ; le projet généré a aussi une page de connexion (`/connexion`) et compile sans avertissement. Son README donnait un `migration/Cargo.toml` sans `runique`, dont le `lib.rs` généré a besoin (`sea-orm-cli migrate up` ne compilait pas), décrivait une table `users` et affichait encore « v1.1.54 » ; son `.env` documente maintenant `RUNIQUE_MAX_UPLOAD_MB`. Un compte inscrit restait inactif sans aucun moyen de l'activer, et ne pouvait donc jamais se connecter : le `save()` généré l'active maintenant (c'est la logique métier qui décide ; confirmer l'email d'abord reste possible).
+* **`makemigrations`** sans aucun modèle propre au projet n'écrivait rien : les tables du framework (comptes, sessions) n'arrivaient jamais dans `lib.rs`, et l'exemple de `sea-orm-cli migrate init` restait branché, si bien que `migrate up` ne compilait pas. Elles sont maintenant branchées à chaque exécution.
+
+---
+
 ## [3.0.1] - 2026-10-09
 
 ### Correctif

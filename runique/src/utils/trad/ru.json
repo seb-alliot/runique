@@ -375,6 +375,7 @@
       "success_email": "Reset link sent to {}.",
       "success_link": "Reset link (mailer not configured): {}",
       "error_no_email": "No email field found for this user.",
+      "error_unavailable": "Сброс пароля для этого элемента недоступен.",
       "error_send": "Error sending email: {}",
       "email_subject": "Сброс пароля",
       "email_title": "Сброс пароля",

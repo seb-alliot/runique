@@ -65,6 +65,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+# Les tables du framework (comptes, sessions, groupes) viennent de runique :
+# le `lib.rs` généré les utilise. Même feature de base que ton application.
+runique = { version = "{{RUNIQUE_VERSION}}", features = ["sqlite"] }
 sea-orm-migration = { version = "=2.0.4", features = [
     "runtime-tokio-rustls",
     "sqlx-postgres",
@@ -162,9 +165,9 @@ Cela scanne `src/entities/`, compare avec les snapshots, et génère :
 migration/src/
 ├── lib.rs                                      ← mis à jour automatiquement
 ├── main.rs
-├── m{TIMESTAMP}_create_users_table.rs          ← généré
-└── snapshot/
-    └── users.rs                                ← snapshot du schéma
+├── m{TIMESTAMP}_create_articles_table.rs       ← généré
+└── snapshots/
+    └── articles.rs                             ← snapshot du schéma
 ```
 
 > Pour faire évoluer le schéma (ALTER), modifie ton entité et relance `runique makemigrations`.
@@ -188,11 +191,11 @@ sea-orm-cli migrate up
 Tu devrais voir :
 
 ```text
-Applying migration 'm{TIMESTAMP}_create_users_table'
-Migration 'm{TIMESTAMP}_create_users_table' has been applied
+Applying migration 'm{TIMESTAMP}_create_articles_table'
+Migration 'm{TIMESTAMP}_create_articles_table' has been applied
 ```
 
-**La table `users` est maintenant créée !**
+**La table `articles` est créée, avec les tables du framework (`eihwaz_users` pour les comptes, les sessions, les groupes).**
 
 ---
 
@@ -225,19 +228,19 @@ runique makemigrations --force
 ## Structure finale du projet
 
 ```text
-{}/
+{{PROJECT_NAME}}/
 ├── migration/                           <- Créé à l'étape 2
 │   ├── Cargo.toml                       <- Configuré à l'étape 3.1
 │   └── src/
 │       ├── lib.rs                       <- Géré automatiquement par makemigrations
 │       ├── main.rs                      <- Configuré à l'étape 3.2
-│       ├── m{TIMESTAMP}_create_users_table.rs
-│       └── snapshot/
-│           └── users.rs
+│       ├── m{TIMESTAMP}_create_articles_table.rs
+│       └── snapshots/
+│           └── articles.rs
 ├── src/
 │   ├── entities/
 │   │   ├── mod.rs
-│   │   └── users.rs                     <- Définit le schéma model!
+│   │   └── article.rs                   <- Définit le schéma model!
 │   ├── formulaire/
 │   ├── main.rs
 │   ├── url.rs
@@ -281,7 +284,7 @@ sea-orm-cli migrate up
 
 ## Dépannage
 
-### Erreur : "table users doesn't exist"
+### Erreur : "table … doesn't exist"
 
 Tu n'as pas appliqué la migration. Exécute :
 
@@ -301,7 +304,7 @@ cargo install sea-orm-cli
 
 Vérifie que `migration/Cargo.toml` utilise bien `sea-orm-migration = "=2.0.4"`
 
-### Erreur : "no such table: users"
+### Erreur : "no such table: …"
 
 Vérifie que :
 
@@ -326,7 +329,7 @@ Vérifie que `migration/Cargo.toml` contient bien la section `[workspace]`
 ## Fonctionnalités incluses
 
 - Inscription utilisateur avec validation
-- Recherche d'utilisateur par nom
+- Page de connexion (`/connexion`)
 - Protection CSRF automatique
 - Flash messages (success, error, info, warning)
 - Thème sombre moderne et responsive
@@ -342,4 +345,4 @@ Vérifie que `migration/Cargo.toml` contient bien la section `[workspace]`
 
 ---
 
-Généré par **Runique CLI v1.1.54**
+Généré par **Runique CLI v{{RUNIQUE_VERSION}}**

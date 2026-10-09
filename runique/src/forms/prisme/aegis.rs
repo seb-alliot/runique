@@ -1,10 +1,11 @@
 //! Aegis: extraction and normalization of the request body (multipart, urlencoded, JSON, GET).
 use crate::utils::{
     aliases::{ARuniqueConfig, StrMap, StrVecMap},
-    parse_html::parse_multipart,
+    parse_html::parse_multipart_guarded,
     trad::{t, tf},
 };
 use axum::{
+    RequestExt,
     body::Body,
     extract::{FromRequest, Multipart},
     http::{Method, Request, StatusCode},
@@ -22,6 +23,21 @@ pub async fn aegis<S>(
     state: &S,
     config: ARuniqueConfig,
     content_type: &str,
+) -> Result<StrVecMap, Response>
+where
+    S: Send + Sync,
+{
+    aegis_guarded(req, state, config, content_type, None).await
+}
+
+/// `aegis`, refusing to write an uploaded file before a valid `csrf_token`
+/// field when `upload_gate` holds the session token (see `parse_multipart_guarded`).
+pub(crate) async fn aegis_guarded<S>(
+    req: Request<Body>,
+    state: &S,
+    config: ARuniqueConfig,
+    content_type: &str,
+    upload_gate: Option<&str>,
 ) -> Result<StrVecMap, Response>
 where
     S: Send + Sync,
@@ -51,15 +67,19 @@ where
         })?;
 
         let upload_dir = std::path::Path::new(&config.static_files.media_root);
-        parsed = parse_multipart(
+        parsed = parse_multipart_guarded(
             multipart,
             upload_dir,
             config.static_files.max_upload_mb,
             config.static_files.max_text_field_kb,
+            upload_gate,
         )
         .await?;
     } else {
+        // Bounded like the multipart body (`DefaultBodyLimit`, set at build):
+        // a raw `collect()` would read a body of any size into memory.
         let bytes = req
+            .with_limited_body()
             .into_body()
             .collect()
             .await

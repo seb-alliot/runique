@@ -112,6 +112,8 @@ pub(super) async fn handle_detail(
         req.context.insert(ctx_detail::ENTRY, &v);
     }
     req.context.insert(ctx_detail::OBJECT_ID, &id);
+    req.context
+        .insert(ctx_detail::CAN_RESET_PASSWORD, &entry.is_account_table());
     req.context.insert(
         "rich_fields",
         &*crate::utils::constante::parse::RICH_CONTENT_FIELDS,
@@ -555,7 +557,10 @@ pub(super) async fn handle_edit_post(
                 sea_orm::DbErr::Custom(e),
             )))
         })?;
-        // Delete old files replaced by a new upload
+        // Old files a new upload replaces: removed once the update is saved —
+        // removed before, a failed update would leave the row pointing at a
+        // file that is gone.
+        let mut replaced_files = Vec::new();
         if let Some(ref old) = old_obj {
             let media_root = resolve_media_root();
             let media_root = media_root.trim_end_matches('/');
@@ -575,11 +580,7 @@ pub(super) async fn handle_edit_post(
                         tracing::warn!(stored = %old_val, "old upload outside MEDIA_ROOT, not removed (edit)");
                         continue;
                     };
-                    if let Err(e) = std::fs::remove_file(&old_abs)
-                        && e.kind() != std::io::ErrorKind::NotFound
-                    {
-                        tracing::warn!(path = %old_abs.display(), error = %e, "old upload removal failed (edit)");
-                    }
+                    replaced_files.push(old_abs);
                 }
             }
         }
@@ -628,6 +629,13 @@ pub(super) async fn handle_edit_post(
                 .and_then(|a| a.crud)
             {
                 crate::runique_log!(level, resource = %entry.meta.key, id = %id, "edit POST — saved ok");
+            }
+            for old_abs in &replaced_files {
+                if let Err(e) = std::fs::remove_file(old_abs)
+                    && e.kind() != std::io::ErrorKind::NotFound
+                {
+                    tracing::warn!(path = %old_abs.display(), error = %e, "old upload removal failed (edit)");
+                }
             }
             if summary.is_some() {
                 history::log_admin_action(
