@@ -11,6 +11,21 @@ Two separate things live in this repository:
 
 ---
 
+## Prerequisites
+
+| Tool | For | Install |
+| --- | --- | --- |
+| Rust 1.94+ | Everything | [rustup](https://rustup.rs) |
+| Docker | Postgres and MariaDB (optional for the tests, recommended for demo-app) | [docs.docker.com](https://docs.docker.com/get-docker/) |
+| `sea-orm-cli` | demo-app: `runique migration up` delegates to it | `cargo install sea-orm-cli` |
+| `runique` CLI | demo-app: migrations and the admin account | `cargo install --path runique --features postgres` |
+
+The `runique` CLI is installed from the workspace, to follow the framework's version. The
+`postgres` feature is required: built on its own, the CLI enables no database driver. Reinstall
+it after each update of the workspace.
+
+---
+
 ## 1. Run the test suite
 
 ### SQLite only — nothing to install
@@ -97,7 +112,7 @@ Optional keys:
 
 ```bash
 cd demo-app
-sea-orm-cli migrate up
+runique migration up
 ```
 
 They create the framework's tables (accounts, sessions, groups) and the demo's own.
@@ -113,11 +128,7 @@ from `seed.sql` at every start; changing it needs no migration.
 
 **5. Admin access**
 
-The admin account is created with the `runique` CLI. Install it from the workspace, with the
-`postgres` feature so it can talk to the demo's database:
-
 ```bash
-cargo install --path runique --features postgres
 cd demo-app
 runique create-superuser
 ```
@@ -125,5 +136,4 @@ runique create-superuser
 The admin is at `http://127.0.0.1:3000/prefix-test/admin-runique/`.
 
 `runique start` regenerates `src/admins/` from `src/admin.rs` before running the site: needed
-only after changing the `admin!{}` declarations. Reinstall the CLI after each update of the
-workspace, so the generated code follows the framework's version.
+only after changing the `admin!{}` declarations.
