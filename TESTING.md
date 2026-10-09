@@ -113,7 +113,11 @@ from `seed.sql` at every start; changing it needs no migration.
 
 **5. Admin access**
 
+The admin account is created with the `runique` CLI. Install it from the workspace, with the
+`postgres` feature so it can talk to the demo's database:
+
 ```bash
+cargo install --path runique --features postgres
 cd demo-app
 runique create-superuser
 ```
@@ -121,5 +125,5 @@ runique create-superuser
 The admin is at `http://127.0.0.1:3000/prefix-test/admin-runique/`.
 
 `runique start` regenerates `src/admins/` from `src/admin.rs` before running the site: needed
-only after changing the `admin!{}` declarations, with a `runique` CLI of the workspace's version
-(`cargo install --path runique --features postgres`).
+only after changing the `admin!{}` declarations. Reinstall the CLI after each update of the
+workspace, so the generated code follows the framework's version.
