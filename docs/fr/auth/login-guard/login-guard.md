@@ -163,4 +163,18 @@ pub async fn login(/* ... */) -> impl IntoResponse {
 
 ---
 
+## Limite connue : un compte peut être bloqué par quelqu'un d'autre
+
+Le verrouillage se fait par **nom d'utilisateur**, pas par IP : c'est ce qui empêche un attaquant de répartir ses essais sur beaucoup d'adresses. Le revers : quiconque connaît un nom d'utilisateur (celui d'un admin, par exemple) peut bloquer ce compte en échouant exprès, sans connaître son mot de passe, et le maintenir bloqué en recommençant.
+
+Pour le limiter :
+
+- gardez le limiteur par IP devant (section ci-dessus) : il plafonne le nombre d'essais par adresse, ce qui rend le blocage en boucle bien plus coûteux pour l'attaquant ;
+- bloquez les adresses abusives avant l'application, au niveau du proxy inverse ;
+- choisissez des noms d'utilisateur d'admin qui ne sont pas publics (ni `admin`, ni le nom affiché sur le site).
+
+Les compteurs vivent dans la mémoire de chaque instance : voir [Rate limiting — plusieurs instances](/docs/fr/middleware/rate-limit).
+
+---
+
 ← [**Middlewares de protection**](/docs/fr/auth/middleware) | [**Exemple complet**](/docs/fr/auth/exemple) →

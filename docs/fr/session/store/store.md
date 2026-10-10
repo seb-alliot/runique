@@ -54,6 +54,17 @@ Par défaut, le store est purement en mémoire. Lorsque la feature `orm` est act
 
 ---
 
+## Plusieurs instances
+
+Le store mémoire appartient à un seul processus. Derrière un répartiteur de charge avec plusieurs instances de l'application :
+
+- **Les sessions anonymes** (jeton CSRF, messages flash, tout ce qui est stocké avant la connexion) ne vivent que dans la mémoire de l'instance qui les a créées. Une requête envoyée à une autre instance ne les retrouve pas : un formulaire échoue au contrôle CSRF, un message flash disparaît.
+- **Les sessions authentifiées** sont retrouvées grâce au fallback base de données, mais chaque instance lit d'abord sa propre mémoire. Une déconnexion ou un `close_user_sessions` sur une instance vide la base et la mémoire de cette instance, pas les copies déjà chargées par les autres : là, la session reste utilisable jusqu'à son expiration.
+
+Tant qu'il n'existe pas de store partagé, envoyez chaque visiteur toujours vers la même instance (sessions « collantes », ou affinité de session, sur le répartiteur). Avec une seule instance, rien de tout cela ne s'applique.
+
+---
+
 ## Configuration
 
 Tous les seuils décrits ci-dessus sont réglables depuis le builder, dans le bloc `.middleware()`. Aucune construction manuelle du store n'est nécessaire — le framework instancie `CleaningMemoryStore` et applique ces valeurs.

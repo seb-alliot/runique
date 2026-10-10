@@ -104,9 +104,9 @@ jobs:
       - name: Install cargo-audit
         run: cargo install cargo-audit
 
+      # Blocking: a known vulnerability in a dependency fails the build.
       - name: Run security audit
         run: cargo audit
-        continue-on-error: true
 
   docs:
     name: Documentation

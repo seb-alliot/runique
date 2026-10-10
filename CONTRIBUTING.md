@@ -90,6 +90,24 @@ RUNIQUE_UPDATE_GOLDEN=1 cargo test --lib admin::daemon::generator
 
 ---
 
+## Versions and releases
+
+Runique follows semantic versioning, with a fixed cycle:
+
+1. **Regular security checks** on what already exists. Fixes pile up in the "Unreleased"
+   section of the CHANGELOG and ship together in a **patch release** (3.0.**x**).
+2. **One feature at a time**, developed until it's "finished" (see the
+   [roadmap](ROADMAP.md)), released as a **minor version** (3.**x**.0).
+3. **A security check targeted at that feature**, and its fixes in a patch release
+   (3.x.**y**).
+4. Only then does the next feature start.
+5. A **breaking change** never ships in a 3.x: it waits for the next major version (4.0),
+   with its migration guide.
+
+A serious vulnerability doesn't wait to be grouped: it's fixed and released right away.
+
+---
+
 ## Security-sensitive code
 
 For any change touching authentication, permissions, sessions, tokens, redirects or user input,

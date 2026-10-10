@@ -144,8 +144,6 @@ impl std::fmt::Debug for RateLimiter {
     }
 }
 
-/// Extracts the IP key from headers (`X-Forwarded-For`, `X-Real-IP`, fallback `"unknown"`).
-///
 /// Fallback client key, used only when the `ClientIp` extension is absent — i.e.
 /// the `trusted_proxies` middleware is not in the stack (standalone use of this
 /// middleware). Keys on the **real socket peer** from `ConnectInfo`, never on the

@@ -21,9 +21,26 @@ A feature only goes into a published version when:
 
 ---
 
+## Maintenance and security — ongoing
+
+This work never ends: it comes before the items below.
+
+- **Regular security checks** on what already exists: reviewing sensitive flows (from input to
+  effect), hostile inputs, `cargo mutants` on the code involved.
+- **Dependency audit**: `cargo audit` on every push, blocking in CI.
+- **Bug fixes**, each one with a test that fails without it.
+- These fixes are grouped in a **patch release** (3.x.**y**). A serious vulnerability is
+  released right away.
+
+The release cycle is detailed in [CONTRIBUTING](CONTRIBUTING.md#versions-and-releases).
+
+---
+
 ## In progress — 3.x
 
-No breaking change: a 3.0 project upgrades without touching its code.
+No breaking change: a 3.0 project upgrades without touching its code. One feature at a time,
+in this order: each ships in a minor release (3.**x**.0), then gets a targeted security check,
+then the next one starts.
 
 - [ ] **Many-to-many relations** — the junction table is generated from the DSL (`through`
   keeps a hand-written junction table, with its extra columns), migration included, and the
@@ -33,7 +50,6 @@ No breaking change: a 3.0 project upgrades without touching its code.
   language (falling back to English) and a key missing everywhere are traced.
 - [ ] **Languages added by a project** — a trait to provide a language Runique doesn't ship,
   registered through the builder, without changing the `Lang` enum.
-- [ ] **Bug fixes** — as they come, each one with a test that fails without it.
 
 ---
 
@@ -80,6 +96,6 @@ These will move up when a piece of work is finished.
 - **Framework** — typed redirects (`redirect("route_name")`, `redirect_external(url)` limited to allowed hosts, `?next=` checked against declared routes), `crud!{}` for public views, `#[form]` field overrides, several connections
   of different types (TypeMap), language detection middleware, `path_params` /
   `query_params` through getters
-- **Authentication** — OAuth/OIDC, JWT and API keys, sign-in log, CSP violation reports
+- **Authentication** — two-level brute-force protection, without breaking change: lock per username + IP (the real user, elsewhere, can still sign in), and a slowdown per username across all addresses (against attacks spread over many IPs); one shared function, called by `LoginGuard` and by the admin sign-in. Then OAuth/OIDC, JWT and API keys, sign-in log, CSP violation reports
 - **Tooling** — built-in test client, fixtures, custom commands, sitemap and RSS, image
   resizing, full documentation of the public API

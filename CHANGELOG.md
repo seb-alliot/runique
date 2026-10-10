@@ -14,7 +14,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
-* **Binary fields** (`binary`, `var_binary`, `blob`): the column's size limit was skipped when the upload couldn't be recognised or sized at validation time, while `finalize` could still read it into the database. Such an upload is now refused (`forms.file_unreadable`, 9 languages) and the reason is traced.
+* **Binary fields** (`binary`, `var_binary`, `blob`): the column's size limit was skipped when the upload couldn't be recognised or sized at validation time, while `finalize` could still read it into the database. Such an upload is now refused (`forms.file_unreadable`, 9 languages) and the reason is traced. File fields (`FileField`) skipped their size limit the same way when an upload's size couldn't be read; they now refuse it too, while a path already stored (`plats/photo.png`) is still kept as is.
 * **`runique create-superuser`** only read `DATABASE_URL` and panicked without it, while the app also accepts `DB_ENGINE` + `DB_USER` / `DB_PASSWORD` / `DB_HOST` / `DB_PORT` / `DB_NAME`: a project configured that way booted, but its superuser couldn't be created. The wizard now reads the same keys as the app, rebuilds the URL from them, and reports a missing key as an error.
 
 ---

@@ -144,4 +144,10 @@ let limiter = Arc::new(limiter);
 
 ---
 
+## Several instances
+
+A `RateLimiter` counts in the memory of its process, and so does `LoginGuard`. With several instances of the app, each one keeps its own counters: a limit of 5 attempts per minute becomes 5 per instance, so 15 behind three instances. If the limit has to hold across instances, enforce it in front of them too (reverse proxy, load balancer) or route each visitor to the same instance.
+
+---
+
 ← [**Builder & Configuration**](/docs/en/middleware/builder) | [**Flash Messages**](/docs/en/flash) →
