@@ -124,10 +124,10 @@
 | SameSite cookies | configurable | `Strict` par défaut |
 | HttpOnly cookies | par défaut | toujours `true` |
 | Rate limiting | `django-ratelimit` (tiers) | `RateLimiter` natif — clé = IP cliente réelle (peer `ConnectInfo`, jamais un header spoofable) |
-| Open Redirect | — | natif — toutes les réponses 3xx vérifiées (slot 25) |
+| Open Redirect | — | natif — `Location` des réponses 3xx **et** en-tête `Refresh` de toute réponse, cible lue par l'analyseur d'URL WHATWG (le même que les navigateurs), refus en cas de doute |
 | CORS | `django-cors-headers` (tiers) | natif via `.with_cors(...)` |
 | Permissions-Policy | — | natif — preset sécurisé par défaut (~20 features refusées) |
-| Trusted Proxies / XFF | `SECURE_PROXY_SSL_HEADER` (partiel) | natif — validation chaîne XFF complète (droite→gauche), preset RFC 1918, **défaut edge-aware** : `none()` auto quand Runique termine le TLS (ACME = pas de proxy) |
+| Trusted Proxies / XFF | `SECURE_PROXY_SSL_HEADER` (partiel) | natif — validation chaîne XFF complète (droite→gauche), preset RFC 1918, **défaut edge-aware** : `none()` auto quand Runique termine le TLS (ACME = pas de proxy) ; une plage `/0` (faire confiance à tout le monde) est refusée au démarrage |
 | Secret key | manuel | générée auto à `runique new` — **refus de boot en prod** si absente / valeur par défaut / < 32 caractères |
 
 ---
@@ -143,12 +143,13 @@
 | Résolution FK en liste | — | 3ème élément : `["fk_id", "Libellé", "table.colonne"]` |
 | Recherche / filtres | natif | `list_filter` + recherche plein-texte SQL — colonnes directes uniquement, filtres cumulables (plusieurs colonnes simultanément) |
 | Actions de groupe | `actions` | `group_action` — bool (2 éléments) ou enum (3 éléments, valeur exacte) |
-| Création multiple | — | `bulk_create: champ` — split par virgule, insère N enregistrements |
+| Création multiple | — | `bulk_create: champ` — split par virgule, insère N enregistrements ; une valeur déjà présente est ignorée (sans tenir compte de la casse) : une création ne modifie jamais |
 | Édition en masse | — | bulk edit natif sur sélection multi-entrées |
 | Relations M2M | `filter_horizontal` / `ManyRelatedField` | `m2m: [...]` — table de jonction, diff automatique |
 | Routes admin custom | `get_urls()` | `.extra_routes(vec![...])` |
 | Templates custom | oui | oui (hiérarchie Tera) |
 | Permissions | par ressource | RBAC dynamique (Groupes / Droits scopés) |
+| Comptes superutilisateur | un staff ayant le droit de modifier les utilisateurs peut se rendre superutilisateur (la doc de Django le signale) | `is_superuser` jamais modifiable depuis l'admin, et le compte d'un superutilisateur (email, réinitialisation, suppression) n'est modifiable que par un superutilisateur |
 | Historique modifications | `django-simple-history` (tiers) | historique natif (créé/modifié/supprimé) avec diff de champs, vue timeline et filtres (ressource/action/utilisateur) |
 | Configuration builtins | — | bloc `configure {}` dans `admin!{}` |
 | Verrouillage optimiste | — | natif — détecte les éditions concurrentes (`__original_updated_at`) |
@@ -210,7 +211,7 @@
 ## Ce qu'il manque encore (comparé à Django)
 
 - **Redimensionnement automatique d'images** : resize/cropping côté serveur non natif.
-- **Vues CRUD publiques génériques** : pas d'équivalent aux `DetailView`, `ListView`, `CreateView` de Django pour les vues publiques — prévu via `crud!{}` (en développement). Le panel admin couvre le CRUD backoffice via `admin!{}`.
+- **Vues CRUD publiques génériques** : pas d'équivalent aux `DetailView`, `ListView`, `CreateView` de Django pour les vues publiques — envisagé via `crud!{}` (feuille de route, sans engagement). Le panel admin couvre le CRUD backoffice via `admin!{}`.
 - **Signals / hooks modèles** : `before_save`, `after_save`, `before_delete`, `after_delete` — non implémenté, à l'état de plan (roadmap).
 - **Management commands** : pas d'équivalent à `manage.py custom_command` — les opérations one-shot passent par `src/bin/`.
 - **Test client intégré** : pas de client HTTP de test natif — utiliser `reqwest` ou `axum::test`.

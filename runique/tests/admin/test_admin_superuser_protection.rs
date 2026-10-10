@@ -158,11 +158,11 @@ async fn a_staff_member_cannot_reset_or_delete_a_superuser() {
     assert_eq!(
         count(
             &db,
-            "SELECT COUNT(*) FROM eihwaz_users WHERE is_superuser = 1"
+            "SELECT COUNT(*) FROM eihwaz_users WHERE username = 'crawler' AND is_superuser = 1"
         )
         .await,
         1,
-        "the superuser is still there"
+        "the targeted superuser is still there, still a superuser"
     );
 }
 
@@ -192,6 +192,37 @@ async fn a_bulk_action_touching_a_superuser_is_refused_as_a_whole() {
         .await,
         2,
         "nothing deleted, not even the ordinary account"
+    );
+}
+
+// The other side of the bulk refusal: without a superuser in the selection,
+// the same staff member's bulk action goes through.
+#[tokio::test]
+#[serial]
+async fn a_bulk_action_on_ordinary_accounts_only_goes_through() {
+    let (base, db) = spawn().await;
+    let manager = login(&base, MANAGER, MANAGER_PASSWORD).await;
+    let list = format!("{base}{ADMIN_PREFIX}/users/list");
+    let token = csrf(&manager, &list).await;
+    let member = pk(61).to_string();
+    let _ = manager
+        .post(format!("{base}{ADMIN_PREFIX}/users/bulk"))
+        .form(&[
+            ("ids", member.as_str()),
+            ("bulk_action", "delete"),
+            ("csrf_token", token.as_str()),
+        ])
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(
+        count(
+            &db,
+            "SELECT COUNT(*) FROM eihwaz_users WHERE username = 'member'"
+        )
+        .await,
+        0,
+        "the ordinary account is deleted"
     );
 }
 
