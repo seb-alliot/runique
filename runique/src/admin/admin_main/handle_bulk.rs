@@ -1,5 +1,7 @@
-use crate::admin::admin_main::gate::{BulkGrant, BulkOp, BulkRefusal, bulk_form, bulk_gate};
-use crate::admin::admin_main::{ParentBinding, ResourcePerms, permission_denied, scope_base};
+use crate::admin::admin_main::gate::{
+    BulkGrant, BulkOp, BulkRefusal, GateAuthorization, GateCtx, bulk_form, bulk_gate,
+};
+use crate::admin::admin_main::{ParentBinding, permission_denied, scope_base};
 use crate::admin::helper::resource_entry::ResourceEntry;
 use crate::admin::history;
 use crate::auth::session::CurrentUser;
@@ -96,13 +98,12 @@ pub(super) async fn handle_bulk_edit_get(
 
 pub(super) async fn handle_bulk_action(
     req: &mut Request,
-    entry: &ResourceEntry,
     body: StrMap,
     state: &super::PrototypeAdminState,
-    current_user: &CurrentUser,
-    perms: &ResourcePerms,
-    parent: Option<&ParentBinding>,
+    ctx: &GateCtx<'_>,
+    auth: &GateAuthorization<'_>,
 ) -> AppResult<Response> {
+    let (entry, parent, current_user) = (ctx.entry, ctx.parent, auth.user);
     let base = scope_base(&state.config.prefix, entry, parent);
     let list_url = format!("{base}/list");
     let Some(op) = BulkOp::parse(body.get("bulk_action").map_or("", String::as_str)) else {
@@ -111,7 +112,7 @@ pub(super) async fn handle_bulk_action(
         ))));
     };
 
-    let grant = match bulk_gate(req, entry, state, perms, parent, op, &body).await {
+    let grant = match bulk_gate(ctx, auth, req, state, op, &body).await {
         Ok(grant) => grant,
         Err(refusal) => {
             if let Some(level) = crate::utils::runique_log::get_log()
