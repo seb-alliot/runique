@@ -304,7 +304,8 @@
       "success": "Déconnexion réussie."
     },
     "access": {
-      "insufficient_rights": "Droits insuffisants pour accéder à l'administration"
+      "insufficient_rights": "Droits insuffisants pour accéder à l'administration",
+      "superuser_only": "Seul un superutilisateur peut modifier le compte d'un superutilisateur"
     },
     "dashboard": {
       "title": "Tableau de bord",

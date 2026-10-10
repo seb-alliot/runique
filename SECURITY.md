@@ -31,6 +31,7 @@ Re-checked against `Cargo.lock` on 2026-10-10. The CI runs `cargo audit` on ever
 
 | Version | Issue | Severity |
 | ------- | ----- | -------- |
+| Unreleased | Staff member able to take over a superuser's account (email change + password reset) | High |
 | Unreleased | Open redirect through a tab (`/\t/evil.com`) or a non-ASCII `Location` left unchecked | Medium |
 | Unreleased | Open redirect through the `Refresh` header, never checked | Medium |
 | 3.0.2 | Stored XSS through an upload waiting for its form (path shown back, staging folder served without CSP) | High |

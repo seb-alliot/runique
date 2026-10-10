@@ -237,6 +237,8 @@ pub(super) struct ResourcePerms {
     pub can_delete: bool,
     pub can_update_own: bool,
     pub can_delete_own: bool,
+    /// The user is a superuser: only one may change a superuser's account.
+    pub is_superuser: bool,
 }
 
 impl ResourcePerms {
@@ -249,6 +251,7 @@ impl ResourcePerms {
                 can_delete: true,
                 can_update_own: true,
                 can_delete_own: true,
+                is_superuser: true,
             };
         }
         match user.permission_for(resource_key) {
@@ -259,6 +262,7 @@ impl ResourcePerms {
                 can_delete: p.can_delete,
                 can_update_own: p.can_update_own,
                 can_delete_own: p.can_delete_own,
+                is_superuser: false,
             },
             None => Self {
                 can_create: false,
@@ -267,6 +271,7 @@ impl ResourcePerms {
                 can_delete: false,
                 can_update_own: false,
                 can_delete_own: false,
+                is_superuser: false,
             },
         }
     }
@@ -680,6 +685,13 @@ async fn dispatch_member_get(
                 "Resource not found",
             ))));
         }
+        gate::RowCheck::ProtectedAccount => {
+            req.notices
+                .error(t("admin.access.superuser_only").to_string())
+                .await;
+            let base = scope_base(&state.config.prefix, entry, parent.as_ref());
+            return Ok(Redirect::to(&base).into_response());
+        }
         gate::RowCheck::Granted => Access::Granted,
         gate::RowCheck::Denied(access) => access,
     };
@@ -830,6 +842,13 @@ async fn dispatch_member_post(
             return Err(Box::new(AppError::new(ErrorContext::not_found(
                 "Resource not found",
             ))));
+        }
+        gate::RowCheck::ProtectedAccount => {
+            req.notices
+                .error(t("admin.access.superuser_only").to_string())
+                .await;
+            let base = scope_base(&state.config.prefix, entry, parent.as_ref());
+            return Ok(Redirect::to(&base).into_response());
         }
         gate::RowCheck::Granted => Access::Granted,
         gate::RowCheck::Denied(access) => access,

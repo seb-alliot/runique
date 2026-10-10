@@ -137,6 +137,12 @@ pub(super) async fn handle_bulk_action(
                 BulkRefusal::Forbidden | BulkRefusal::NotOffered(_) => {
                     Ok(permission_denied(&req.notices, &base).await)
                 }
+                BulkRefusal::ProtectedAccount => {
+                    req.notices
+                        .error(t("admin.access.superuser_only").to_string())
+                        .await;
+                    Ok(Redirect::to(&list_url).into_response())
+                }
                 BulkRefusal::OutOfScope => Err(Box::new(AppError::new(ErrorContext::not_found(
                     "Resource not found",
                 )))),

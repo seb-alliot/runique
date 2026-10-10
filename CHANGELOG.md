@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 
 ### Security
 
+* **Admin — superuser accounts**: a staff member with the right to edit `users`, but not a superuser, could change a superuser's account — put their own email on it, then ask a password reset and sign in as that superuser (or simply read the reset link on screen without a mailer). Editing, deleting and resetting a superuser's account, alone or in a bulk action, now require a superuser; reading it stays open. The refusal is shown (`admin.access.superuser_only`, 9 languages), and a lookup error refuses too.
 * **Open redirect** — two more ways past the redirect guard: a tab hiding a protocol-relative URL (`/\t/evil.com`, which browsers read as `//evil.com`), and a `Location` holding a non-ASCII byte, which the guard couldn't read as text and let through unchecked. The target is now resolved by the WHATWG URL parser browsers follow (`url` crate), and an unreadable header is read lossily instead of skipped. A relative path without a leading slash (`page2`) is now recognised as staying on the site; a scheme other than `http`/`https` is refused. The `Refresh` header (`0; url=//evil.com`), which browsers follow on any status, wasn't checked at all: it now goes through the same check, every spelling of it included (`URL=`, quotes, `,`, no keyword).
 
 ### Fixed

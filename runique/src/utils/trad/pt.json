@@ -304,7 +304,8 @@
       "success": "Desconectado com sucesso."
     },
     "access": {
-      "insufficient_rights": "Direitos insuficientes para acessar a administração"
+      "insufficient_rights": "Direitos insuficientes para acessar a administração",
+      "superuser_only": "Apenas um superutilizador pode alterar a conta de um superutilizador"
     },
     "dashboard": {
       "title": "Painel",
