@@ -615,7 +615,7 @@ pub fn admin_register() -> AdminRegistry {
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             use sea_orm::TransactionTrait;
             let txn = db.begin().await?;
-            let result = contribution::admin_from_form(&data, Some(id))?
+            let result = contribution::admin_partial_update(&data, id)?
                 .update(&txn)
                 .await?;
             result.admin_save_lists(&txn, &data).await?;
@@ -1017,7 +1017,7 @@ pub fn admin_register() -> AdminRegistry {
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             use sea_orm::TransactionTrait;
             let txn = db.begin().await?;
-            let result = blog::admin_from_form(&data, Some(id))?.update(&txn).await?;
+            let result = blog::admin_partial_update(&data, id)?.update(&txn).await?;
             result.admin_save_lists(&txn, &data).await?;
             txn.commit().await
         })
@@ -1487,7 +1487,7 @@ pub fn admin_register() -> AdminRegistry {
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             use sea_orm::TransactionTrait;
             let txn = db.begin().await?;
-            let result = changelog_entry::admin_from_form(&data, Some(id))?
+            let result = changelog_entry::admin_partial_update(&data, id)?
                 .update(&txn)
                 .await?;
             result.admin_save_lists(&txn, &data).await?;
@@ -2027,7 +2027,7 @@ pub fn admin_register() -> AdminRegistry {
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             use sea_orm::TransactionTrait;
             let txn = db.begin().await?;
-            let result = roadmap_entry::admin_from_form(&data, Some(id))?
+            let result = roadmap_entry::admin_partial_update(&data, id)?
                 .update(&txn)
                 .await?;
             result.admin_save_lists(&txn, &data).await?;
@@ -2666,7 +2666,7 @@ pub fn admin_register() -> AdminRegistry {
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             use sea_orm::TransactionTrait;
             let txn = db.begin().await?;
-            let result = known_issue::admin_from_form(&data, Some(id))?
+            let result = known_issue::admin_partial_update(&data, id)?
                 .update(&txn)
                 .await?;
             result.admin_save_lists(&txn, &data).await?;
@@ -3126,7 +3126,7 @@ pub fn admin_register() -> AdminRegistry {
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             use sea_orm::TransactionTrait;
             let txn = db.begin().await?;
-            let result = demo_category::admin_from_form(&data, Some(id))?
+            let result = demo_category::admin_partial_update(&data, id)?
                 .update(&txn)
                 .await?;
             result.admin_save_lists(&txn, &data).await?;
@@ -3324,7 +3324,7 @@ pub fn admin_register() -> AdminRegistry {
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             use sea_orm::TransactionTrait;
             let txn = db.begin().await?;
-            let result = demo_page::admin_from_form(&data, Some(id))?
+            let result = demo_page::admin_partial_update(&data, id)?
                 .update(&txn)
                 .await?;
             result.admin_save_lists(&txn, &data).await?;
@@ -3831,7 +3831,7 @@ pub fn admin_register() -> AdminRegistry {
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             use sea_orm::TransactionTrait;
             let txn = db.begin().await?;
-            let result = demo_section::admin_from_form(&data, Some(id))?
+            let result = demo_section::admin_partial_update(&data, id)?
                 .update(&txn)
                 .await?;
             result.admin_save_lists(&txn, &data).await?;
@@ -4255,7 +4255,7 @@ pub fn admin_register() -> AdminRegistry {
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             use sea_orm::TransactionTrait;
             let txn = db.begin().await?;
-            let result = code_example::admin_from_form(&data, Some(id))?
+            let result = code_example::admin_partial_update(&data, id)?
                 .update(&txn)
                 .await?;
             result.admin_save_lists(&txn, &data).await?;
@@ -4761,7 +4761,7 @@ pub fn admin_register() -> AdminRegistry {
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             use sea_orm::TransactionTrait;
             let txn = db.begin().await?;
-            let result = page_doc_link::admin_from_form(&data, Some(id))?
+            let result = page_doc_link::admin_partial_update(&data, id)?
                 .update(&txn)
                 .await?;
             result.admin_save_lists(&txn, &data).await?;
@@ -5238,7 +5238,7 @@ pub fn admin_register() -> AdminRegistry {
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             use sea_orm::TransactionTrait;
             let txn = db.begin().await?;
-            let result = form_field::admin_from_form(&data, Some(id))?
+            let result = form_field::admin_partial_update(&data, id)?
                 .update(&txn)
                 .await?;
             result.admin_save_lists(&txn, &data).await?;
@@ -5804,7 +5804,7 @@ pub fn admin_register() -> AdminRegistry {
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             use sea_orm::TransactionTrait;
             let txn = db.begin().await?;
-            let result = doc_section::admin_from_form(&data, Some(id))?
+            let result = doc_section::admin_partial_update(&data, id)?
                 .update(&txn)
                 .await?;
             result.admin_save_lists(&txn, &data).await?;
@@ -6108,7 +6108,7 @@ pub fn admin_register() -> AdminRegistry {
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             use sea_orm::TransactionTrait;
             let txn = db.begin().await?;
-            let result = doc_page::admin_from_form(&data, Some(id))?
+            let result = doc_page::admin_partial_update(&data, id)?
                 .update(&txn)
                 .await?;
             result.admin_save_lists(&txn, &data).await?;
@@ -6623,7 +6623,7 @@ pub fn admin_register() -> AdminRegistry {
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             use sea_orm::TransactionTrait;
             let txn = db.begin().await?;
-            let result = doc_block::admin_from_form(&data, Some(id))?
+            let result = doc_block::admin_partial_update(&data, id)?
                 .update(&txn)
                 .await?;
             result.admin_save_lists(&txn, &data).await?;
@@ -7080,7 +7080,7 @@ pub fn admin_register() -> AdminRegistry {
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             use sea_orm::TransactionTrait;
             let txn = db.begin().await?;
-            let result = site_config::admin_from_form(&data, Some(id))?
+            let result = site_config::admin_partial_update(&data, id)?
                 .update(&txn)
                 .await?;
             result.admin_save_lists(&txn, &data).await?;
@@ -7271,7 +7271,7 @@ pub fn admin_register() -> AdminRegistry {
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             use sea_orm::TransactionTrait;
             let txn = db.begin().await?;
-            let result = cour::admin_from_form(&data, Some(id))?.update(&txn).await?;
+            let result = cour::admin_partial_update(&data, id)?.update(&txn).await?;
             result.admin_save_lists(&txn, &data).await?;
             txn.commit().await
         })
@@ -7824,7 +7824,7 @@ pub fn admin_register() -> AdminRegistry {
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             use sea_orm::TransactionTrait;
             let txn = db.begin().await?;
-            let result = chapitre::admin_from_form(&data, Some(id))?
+            let result = chapitre::admin_partial_update(&data, id)?
                 .update(&txn)
                 .await?;
             result.admin_save_lists(&txn, &data).await?;
@@ -8227,7 +8227,7 @@ pub fn admin_register() -> AdminRegistry {
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             use sea_orm::TransactionTrait;
             let txn = db.begin().await?;
-            let result = cour_block::admin_from_form(&data, Some(id))?
+            let result = cour_block::admin_partial_update(&data, id)?
                 .update(&txn)
                 .await?;
             result.admin_save_lists(&txn, &data).await?;
@@ -8635,7 +8635,7 @@ pub fn admin_register() -> AdminRegistry {
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             use sea_orm::TransactionTrait;
             let txn = db.begin().await?;
-            let result = runique_release::admin_from_form(&data, Some(id))?
+            let result = runique_release::admin_partial_update(&data, id)?
                 .update(&txn)
                 .await?;
             result.admin_save_lists(&txn, &data).await?;
@@ -8900,7 +8900,7 @@ pub fn admin_register() -> AdminRegistry {
                 .map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             use sea_orm::TransactionTrait;
             let txn = db.begin().await?;
-            let result = user_profile::admin_from_form(&data, Some(id))?
+            let result = user_profile::admin_partial_update(&data, id)?
                 .update(&txn)
                 .await?;
             result.admin_save_lists(&txn, &data).await?;
