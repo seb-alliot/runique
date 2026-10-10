@@ -10,6 +10,7 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ### Sécurité
 
+* **Admin — refus sur le compte d'un superutilisateur** : le message affiché (« Seul un superutilisateur peut modifier le compte d'un superutilisateur ») confirmait à un membre du staff que le compte visé était un superutilisateur. Il devient générique (« Action non autorisée », 9 langues), sans changer la règle.
 * **Jeton CSRF envoyé à d'autres sites par `csrf.js`** : le script remplace `fetch` pour ajouter `X-CSRF-Token` aux requêtes `POST`/`PUT`/`PATCH`/`DELETE`, sans regarder leur destination. Un `fetch` en `POST` vers un autre domaine, lancé depuis une page qui charge le script (script tiers, code du projet), emportait le jeton de session vers ce domaine, et la réponse d'un autre site pouvait remplacer le jeton de la page. Le jeton n'est désormais ajouté, et sa rotation acceptée, que pour une requête vers l'origine de la page. **Redémarrez l'application** après la mise à jour : le fichier statique change.
 
 ---

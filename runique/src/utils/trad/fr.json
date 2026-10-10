@@ -305,7 +305,7 @@
     },
     "access": {
       "insufficient_rights": "Droits insuffisants pour accéder à l'administration",
-      "superuser_only": "Seul un superutilisateur peut modifier le compte d'un superutilisateur"
+      "superuser_only": "Action non autorisée"
     },
     "dashboard": {
       "title": "Tableau de bord",

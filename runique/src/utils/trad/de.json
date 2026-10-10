@@ -305,7 +305,7 @@
     },
     "access": {
       "insufficient_rights": "Unzureichende Rechte für den Zugriff auf die Administration",
-      "superuser_only": "Nur ein Superuser kann das Konto eines Superusers ändern"
+      "superuser_only": "Aktion nicht erlaubt"
     },
     "dashboard": {
       "title": "Dashboard",
