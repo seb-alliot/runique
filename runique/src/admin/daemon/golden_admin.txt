@@ -253,19 +253,22 @@ pub fn admin_register() -> AdminRegistry {
             use sea_orm::QueryFilter;
             let raw = data.get("allergenes").cloned().unwrap_or_default();
             let values: Vec<&str> = raw.split(',').map(str::trim).filter(|v| !v.is_empty()).collect();
-            for val in values {
-                let mut row = data.clone();
-                row.insert("allergenes".to_string(), val.to_string());
-                let existing_id: Option<String> = plat::Entity::find()
-                    .filter(text_eq(&db, "allergenes", val))
+            let mut seen = std::collections::HashSet::new();
+            let mut created = 0usize;
+            for val in &values {
+                if !seen.insert(val.to_lowercase()) { continue; }
+                let exists = plat::Entity::find()
+                    .filter(text_eq_ci(&db, "allergenes", val))
                     .one(&*db).await?
-                    .map(|m| m.id.to_string());
-                if let Some(id) = existing_id {
-                    let id = id.parse::<i32>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
-                    plat::admin_from_form(&row, Some(id))?.update(&*db).await?;
-                } else {
-                    plat::admin_from_form(&row, None)?.insert(&*db).await?;
-                }
+                    .is_some();
+                if exists { continue; }
+                let mut row = data.clone();
+                row.insert("allergenes".to_string(), (*val).to_string());
+                plat::admin_from_form(&row, None)?.insert(&*db).await?;
+                created += 1;
+            }
+            if created == 0 && !values.is_empty() {
+                return Err(sea_orm::DbErr::Custom(runique::utils::trad::t("admin.bulk_create.all_exist").into_owned()));
             }
             Ok(())
         })
@@ -276,7 +279,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id.parse::<i32>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             use sea_orm::TransactionTrait;
             let txn = db.begin().await?;
-            let result = plat::admin_from_form(&data, Some(id))?.update(&txn).await?;
+            let result = plat::admin_partial_update(&data, id)?.update(&txn).await?;
             result.admin_save_lists(&txn, &data).await?;
             runique::admin::helper::m2m::write_links(&txn, "plat_allergene", "plat_id", "allergene_id", id.into(), &data, "m2m_allergenes__", true).await?;
             txn.commit().await
@@ -459,7 +462,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = uuid::Uuid::parse_str(&id).map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             use sea_orm::TransactionTrait;
             let txn = db.begin().await?;
-            let result = tag::admin_from_form(&data, Some(id))?.update(&txn).await?;
+            let result = tag::admin_partial_update(&data, id)?.update(&txn).await?;
             result.admin_save_lists(&txn, &data).await?;
             txn.commit().await
         })
@@ -583,7 +586,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id.parse::<i64>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             use sea_orm::TransactionTrait;
             let txn = db.begin().await?;
-            let result = log::admin_from_form(&data, Some(id))?.update(&txn).await?;
+            let result = log::admin_partial_update(&data, id)?.update(&txn).await?;
             result.admin_save_lists(&txn, &data).await?;
             txn.commit().await
         })
@@ -734,7 +737,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id.parse::<Pk>().map_err(|_| DbErr::Custom("invalid id".to_string()))?;
             use sea_orm::TransactionTrait;
             let txn = db.begin().await?;
-            let result = note::admin_from_form(&data, Some(id))?.update(&txn).await?;
+            let result = note::admin_partial_update(&data, id)?.update(&txn).await?;
             result.admin_save_lists(&txn, &data).await?;
             txn.commit().await
         })

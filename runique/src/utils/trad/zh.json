@@ -463,6 +463,9 @@
       "groupe_exists": "名为 \"{}\" 的组已存在。",
       "user_username_exists": "用户名「{}」已被占用。",
       "user_email_exists": "邮箱「{}」已被注册。"
+    },
+    "bulk_create": {
+      "all_exist": "所有值均已存在：未创建任何内容"
     }
   },
   "makemigrations": {

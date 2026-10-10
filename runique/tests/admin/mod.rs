@@ -19,4 +19,5 @@ pub mod test_form_filter;
 pub mod test_form_renderer;
 pub mod test_list_count_filters;
 pub mod test_native_sql;
+pub mod test_text_eq_ci;
 pub mod test_url_registry;

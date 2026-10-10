@@ -33,6 +33,16 @@ pub fn text_eq(db: &ADb, col: &str, val: &str) -> Expr {
         .eq(val)
 }
 
+/// Case-insensitive equality (`LOWER(col) = LOWER(val)`), both sides lowered
+/// by the database itself so the folding rules always match. SQLite's `LOWER`
+/// only folds ASCII: `Œufs` and `œufs` stay distinct there.
+pub fn text_eq_ci(db: &ADb, col: &str, val: &str) -> Expr {
+    Expr::expr(Func::lower(
+        Expr::col(Alias::new(col)).cast_as(Alias::new(text_cast_type(db))),
+    ))
+    .eq(Func::lower(Expr::val(val)))
+}
+
 /// Case-insensitive `LIKE` on `col` (cast to text for the real backend) against
 /// `pattern` — the common pattern behind every builtin resource's search.
 pub fn ilike(db: &ADb, col: &str, pattern: &str) -> Expr {

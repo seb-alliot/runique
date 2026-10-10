@@ -2,6 +2,7 @@ use crate::admin::helper::resource_entry::ResourceEntry;
 use crate::auth::user::BuiltinUserEntity;
 use crate::auth::user_trait::RuniqueUser;
 use crate::context::template::Request;
+use crate::middleware::errors::error::html_escape;
 use crate::utils::{
     aliases::AppResult,
     trad::{t, tf},
@@ -86,9 +87,14 @@ pub(super) async fn send_user_created_email(
 
     let body_html = match req.engine.tera.render(template_name, &ctx) {
         Ok(rendered) => rendered,
-        Err(_) => format!(
-            "<p>Hello {username_str},</p><p>Click on the link to set your password:</p><p><a href=\"{reset_url}\">{reset_url}</a></p>"
-        ),
+        Err(e) => {
+            tracing::warn!(template = %template_name, error = %e, "account email template failed, plain fallback sent");
+            // Values go into HTML: escaped, a username can hold markup.
+            let (name, url) = (html_escape(username_str), html_escape(&reset_url));
+            format!(
+                "<p>Hello {name},</p><p>Click on the link to set your password:</p><p><a href=\"{url}\">{url}</a></p>"
+            )
+        }
     };
 
     if crate::utils::mailer_configured() {
@@ -203,9 +209,13 @@ pub(super) async fn handle_reset_password(
         ctx.insert("t_ignore", t("admin.reset_password.email_ignore").as_ref());
         let body = match req.engine.tera.render(template_name, &ctx) {
             Ok(rendered) => rendered,
-            Err(_) => format!(
-                "<p>Hello {username},</p><p>Click on the following link to reset your password (valid for 1 hour):</p><p><a href=\"{reset_url}\">{reset_url}</a></p>"
-            ),
+            Err(e) => {
+                tracing::warn!(template = %template_name, error = %e, "reset email template failed, plain fallback sent");
+                let (name, url) = (html_escape(username), html_escape(&reset_url));
+                format!(
+                    "<p>Hello {name},</p><p>Click on the following link to reset your password (valid for 1 hour):</p><p><a href=\"{url}\">{url}</a></p>"
+                )
+            }
         };
         match crate::utils::Email::new()
             .to(email.clone())

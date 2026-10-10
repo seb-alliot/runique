@@ -463,6 +463,9 @@
       "groupe_exists": "Já existe um grupo chamado \"{}\".",
       "user_username_exists": "O nome de usuário \"{}\" já está em uso.",
       "user_email_exists": "O endereço de e-mail \"{}\" já está registrado."
+    },
+    "bulk_create": {
+      "all_exist": "Todos os valores já existem: nada foi criado"
     }
   },
   "makemigrations": {
