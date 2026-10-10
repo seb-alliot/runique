@@ -300,3 +300,23 @@ Le serveur refuse de démarrer si une de ces règles est violée :
 | `exclude` | Liste noire : une colonne ajoutée plus tard fuirait par oubli |
 | Colonnes de liste en chaîne, ou fonction quelconque | Remplacé plus tard par une colonne calculée typée : `.computed("auteur", \|row: &Model\| row.author_name.clone())` |
 | Macro procédurale `admin!{}` | Écartée pour garder rust-analyzer |
+
+## Leçons des failles de la 3.0.3
+
+**Une opération d'écriture fait une seule chose.** La porte autorise selon le nom de l'opération ; une fonction d'écriture qui en fait une autre échappe à la vérification. Exemple corrigé en 3.0.3 — la création générée pour `bulk_create` mettait à jour la ligne existante :
+
+```rust
+// À NE PAS REPRODUIRE : un update caché dans une création.
+// La porte n'a vérifié que le droit de *créer*.
+if let Some(id) = existing_id {
+    admin_from_form(&row, Some(id))?.update(&db).await?;   // modification sans droit de modification
+} else {
+    admin_from_form(&row, None)?.insert(&db).await?;
+}
+```
+
+Pour le builder : chaque opération a sa propre fonction d'écriture, et une seule. Un « upsert », s'il revient, est une opération à part, qui exige les droits de création **et** de modification, et passe par `member_gate` pour chaque ligne existante.
+
+**Protéger l'objet, pas seulement le champ.** Le champ `is_superuser` était intouchable depuis l'admin, mais le **compte** d'un superutilisateur (email, réinitialisation, suppression) restait modifiable par un staff de rang inférieur. La règle vit maintenant dans la porte (`protects_a_superuser`) ; le builder doit la conserver telle quelle, comme `GateCtx` et `GateAuthorization`.
+
+**Une modification ne touche que ce que le formulaire montre.** `update_fn` écrit avec `admin_partial_update` : une colonne absente du formulaire reste intacte au lieu d'être remise à zéro.

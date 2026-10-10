@@ -124,6 +124,7 @@ This document consolidates the actual state of the repository from the reference
 | 2.1.15 | User enumeration via login timing attack | Medium |
 | 2.1.15 | Missing authorization on admin reset-password action | Medium |
 | 2.1.17 | Reset tokens: in-memory → DB (hashed, single-use, IDOR-hardened) | Hardening |
+| 3.0.3 | `bulk_create`: a create-only right could update existing rows | High |
 | 3.0.3 | Staff member able to take over a superuser's account (email change + password reset) | High |
 | 3.0.3 | Open redirect through a tab, a non-ASCII `Location`, or the `Refresh` header | Medium |
 | 3.0.2 | Stored XSS through a staged upload (path shown back, folder served without CSP) | High |
