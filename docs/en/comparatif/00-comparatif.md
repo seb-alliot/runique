@@ -124,10 +124,10 @@
 | SameSite cookies | configurable | `Strict` by default |
 | HttpOnly cookies | by default | always `true` |
 | Rate limiting | `django-ratelimit` (3rd party) | Native `RateLimiter` — keyed on the real client IP (`ConnectInfo` peer, never a spoofable header) |
-| Open Redirect | — | native — all 3xx responses validated (slot 25) |
+| Open Redirect | — | native — `Location` of 3xx responses **and** the `Refresh` header of any response, target read by the WHATWG URL parser (the one browsers use), refused when in doubt |
 | CORS | `django-cors-headers` (3rd party) | native via `.with_cors(...)` |
 | Permissions-Policy | — | native — secure preset by default (~20 features denied) |
-| Trusted Proxies / XFF | `SECURE_PROXY_SSL_HEADER` (partial) | native — full XFF chain validation (right→left), RFC 1918 preset, **edge-aware default**: auto `none()` when Runique terminates TLS (ACME = no proxy) |
+| Trusted Proxies / XFF | `SECURE_PROXY_SSL_HEADER` (partial) | native — full XFF chain validation (right→left), RFC 1918 preset, **edge-aware default**: auto `none()` when Runique terminates TLS (ACME = no proxy); a `/0` range (trusting everyone) is refused at startup |
 | Secret key | manual | auto-generated on `runique new` — **refuses to boot in prod** if missing / default value / < 32 chars |
 
 ---
@@ -143,12 +143,13 @@
 | FK resolution in list | — | 3rd element: `["fk_id", "Label", "table.column"]` |
 | Search / filters | native | `list_filter` + automatic full-text SQL search — direct columns only, combinable filters (multiple columns simultaneously) |
 | Group actions | `actions` | `group_action` — bool (2 elements) or enum (3 elements, exact value) |
-| Bulk create | — | `bulk_create: field` — comma-split, inserts N records |
+| Bulk create | — | `bulk_create: field` — comma-split, inserts N records; a value already present is skipped (case-insensitively): a create never updates |
 | Bulk edit | — | native bulk edit on multi-row selection |
 | M2M relations | `filter_horizontal` / `ManyRelatedField` | `m2m: [...]` — junction table, automatic diff |
 | Custom admin routes | `get_urls()` | `.extra_routes(vec![...])` |
 | Custom templates | yes | yes (Tera hierarchy) |
 | Permissions | per resource | Dynamic RBAC (Groups / Scoped permissions) |
+| Superuser accounts | a staff member allowed to edit users can make themselves a superuser (Django's docs warn about it) | `is_superuser` is never editable from the admin, and a superuser's account (email, password reset, deletion) can only be changed by a superuser |
 | Change history | `django-simple-history` (3rd party) | native history (created/modified/deleted) with field diff, timeline view and filters (resource/action/user) |
 | Builtin config | — | `configure {}` block in `admin!{}` |
 | Optimistic locking | — | native — detects concurrent edits (`__original_updated_at`) |
@@ -210,7 +211,7 @@
 ## What Runique is still missing (compared to Django)
 
 - **Image resizing**: no server-side auto resize/cropping.
-- **Generic public CRUD views**: no equivalent to Django's `DetailView`, `ListView`, `CreateView` for public views — planned via `crud!{}` (in development). The admin panel covers backoffice CRUD via `admin!{}`.
+- **Generic public CRUD views**: no equivalent to Django's `DetailView`, `ListView`, `CreateView` for public views — considered via `crud!{}` (roadmap, no commitment). The admin panel covers backoffice CRUD via `admin!{}`.
 - **Model signals / hooks**: `before_save`, `after_save`, `before_delete`, `after_delete` — not implemented, still at the planning stage (roadmap).
 - **Management commands**: no equivalent to `manage.py custom_command` — one-shot operations go through `src/bin/`.
 - **Built-in test client**: no native HTTP test client — use `reqwest` or `axum::test`.
