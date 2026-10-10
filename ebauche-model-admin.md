@@ -320,3 +320,83 @@ Pour le builder : chaque opération a sa propre fonction d'écriture, et une seu
 **Protéger l'objet, pas seulement le champ.** Le champ `is_superuser` était intouchable depuis l'admin, mais le **compte** d'un superutilisateur (email, réinitialisation, suppression) restait modifiable par un staff de rang inférieur. La règle vit maintenant dans la porte (`protects_a_superuser`) ; le builder doit la conserver telle quelle, comme `GateCtx` et `GateAuthorization`.
 
 **Une modification ne touche que ce que le formulaire montre.** `update_fn` écrit avec `admin_partial_update` : une colonne absente du formulaire reste intacte au lieu d'être remise à zéro.
+
+## Décisions de conception (2026-10-10)
+
+### Structure
+
+- Un builder maître, `AdminSite`, qui enregistre des builders enfants : `.register(ModelAdmin::<plat::Entity>::new() …)`.
+- Chaque `ModelAdmin<E>` est tiré de l'entité SeaORM générée par `model!` ; la clé de ressource et ses droits se déduisent de la table.
+- **Colonnes typées** : `plat::Column::Nom`, jamais une chaîne. Une colonne inconnue ne compile pas.
+- **Le code décrit, l'administrateur autorise** : tout ce qui est paramétrable (colonnes, filtres, recherche, formulaires, actions) est dans le builder ; les groupes et droits restent en base, gérés depuis l'interface.
+- Toute requête passe par SeaORM (entités, `sea_query` typé) ou `search!` / `search_cond!` — jamais de SQL brut.
+
+### Colonnes non affichées
+
+- **Jamais lues pour la vue** : `select_only().columns([...])` ne sélectionne que les colonnes affichées. Une colonne qui n'est pas lue ne peut fuiter ni dans un template, ni dans une réponse HTMX, ni dans un export.
+- Les colonnes nécessaires aux contrôles côté serveur (propriétaire pour `_own`, clé du parent, `updated_at` du verrouillage optimiste) peuvent être lues pour la porte, **jamais transmises au template**.
+- **Jamais envoyées ni modifiées** : absentes du formulaire, donc des données, donc `NotSet` en modification.
+- **Vérification au démarrage** : à `register`, chaque colonne obligatoire sans valeur par défaut (`Column::def()`) doit être dans le formulaire de création ou remplie automatiquement (clé primaire, `auto_now`, défaut). Sinon l'application refuse de démarrer : « plat : la colonne `prix` est obligatoire mais absente du formulaire de création ».
+
+### Recherche
+
+- Une seule fonction générique sur `E::Column` : condition « OU » de `LOWER(col) LIKE %terme%`, en `sea_query` typé.
+- **Par défaut : uniquement les colonnes texte affichées.** Chercher dans une colonne cachée en ferait un oracle (taper `$argon2` révèle quels comptes ont ce hash, caractère par caractère on reconstitue la valeur).
+- `search_fields` typé pour élargir ; une colonne de mot de passe ou de secret y est refusée au démarrage.
+- Une recherche globale (plusieurs modèles) ne porte que sur les ressources que l'utilisateur peut **lire**, et sur leurs colonnes autorisées.
+
+### Many-to-many
+
+**Dépendance** : le M2M de l'admin s'appuie sur le M2M du DSL (chantier 3.x en tête de la ROADMAP) — syntaxe dans `model!`, table pivot et migration générées par makemigrations (suppression en cascade déclarée en base), relation typée et méthodes d'accès sur le modèle. L'admin vient après.
+
+**Bug actuel à ne pas reproduire** : `admin!{}` déclare un M2M entièrement en chaînes (`["allergenes", "Allergènes", "plat_allergene", "plat_id", "allergene_id", …]`). Une faute de frappe, ou un M2M déclaré sur une ressource dont le modèle ne l'a pas, compile et ne casse qu'à l'exécution, devant l'utilisateur.
+
+**Solution : la relation porte son modèle d'origine dans son type.**
+
+```rust
+// généré par le DSL pour plat, et seulement pour plat
+impl M2mRelation for plat::Allergenes {
+    type From = plat::Entity;
+    type To = allergene::Entity;
+}
+
+impl<E: EntityTrait> ModelAdmin<E> {
+    // n'accepte qu'une relation qui part de son propre modèle
+    fn m2m<R: M2mRelation<From = E>>(self, relation: R) -> Self { … }
+}
+
+ModelAdmin::<plat::Entity>::new().m2m(plat::Allergenes);   // compile
+ModelAdmin::<menu::Entity>::new().m2m(plat::Allergenes);   // erreur : la relation part de Plat
+// menu::Allergenes n'existe pas tant que le DSL de Menu ne le déclare pas : erreur aussi
+```
+
+**Donnée dérivée ≠ M2M** : les allergènes d'un menu (menu → plats → allergènes) ne sont pas un M2M du menu. Ils s'affichent en colonne calculée, lecture seule (`.computed(...)`), et ne se modifient que depuis les plats.
+
+**Règles métier (cahier des charges)** :
+1. Cible liable : elle existe, l'utilisateur peut **lire** sa ressource, et elle respecte la portée (`_own`, parent imbriqué). Aujourd'hui, n'importe quel id valide est accepté (relevé par Grok).
+2. Droit requis : modifier la ressource éditée + lire la cible.
+3. Le formulaire envoie l'état final ; différence (ajouts / retraits) calculée et écrite dans **une transaction** avec la ressource (base : `write_links`).
+4. Table pivot à colonnes supplémentaires (`through`) : un mini-formulaire par lien, à traiter comme un inline.
+5. Historique : « gluten ajouté, lait retiré » visible dans l'historique de la ressource.
+6. Suppression d'une cible : cascade sur la table pivot, déclarée en base.
+
+### Templates
+
+- Un seul contrat : le builder construit une struct typée par page (`EditPage { fieldsets, readonly, inlines, actions }`), sérialisée dans le contexte.
+- Un template par élément (`admin/parts/fieldset.html`, `readonly.html`, `inline.html`), inclus seulement s'il y a des données.
+- Surcharge par ressource : `admin/<ressource>/parts/…` avant le générique.
+- Jamais `| safe` sur une donnée de la base ; scripts dans des fichiers statiques (CSP) ; `readonly` est un affichage, jamais un champ désactivé — c'est la porte qui ignore la valeur.
+- **Les clés du contexte sont une API publique** dès qu'un développeur surcharge un template :
+  - la struct de chaque page porte un `///` par champ : la doc des clés est celle de rustdoc, jamais en retard sur le code ;
+  - un test rend chaque template par défaut avec une struct entièrement remplie, Tera configuré pour échouer sur une variable inconnue : un template qui utilise une clé disparue casse la CI ;
+  - renommer ou retirer un champ est une rupture (CHANGELOG « Breaking » + guide de migration) ; en ajouter un ne casse rien ;
+  - une page de doc « Surcharger un template » donne, pour chaque template, la struct reçue (lien rustdoc) et l'ordre de recherche des surcharges.
+
+### Jalons (chacun « fini » au sens de la ROADMAP)
+
+1. `AdminSite` + un `ModelAdmin` : liste et fiche, `list_display` typé, projection des colonnes, vérification au démarrage.
+2. Création, suppression, actions groupées — par la porte existante (`GateCtx`, `GateAuthorization`).
+3. Clés étrangères, many-to-many, recherche générique.
+4. Migration de toutes les ressources de demo-app (le builder cohabite avec `admin!{}` pendant la 3.x).
+5. Migration de Campanile, puis 4.0 : retrait de `admin!{}` et du daemon.
+6. Parité Django (`fieldsets`, `readonly_fields`, inlines…), une option à la fois.
