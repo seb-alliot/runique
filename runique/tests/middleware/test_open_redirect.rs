@@ -313,7 +313,10 @@ async fn a_backslash_inside_a_local_path_still_passes() {
 // `Refresh` sends the browser elsewhere just like `Location`, on any status.
 fn refresh_app(engine: Arc<RuniqueEngine>, refresh: &'static str) -> Router {
     Router::new()
-        .route("/", get(move || async move { ([("refresh", refresh)], "ok") }))
+        .route(
+            "/",
+            get(move || async move { ([("refresh", refresh)], "ok") }),
+        )
         .layer(middleware::from_fn_with_state(
             engine,
             open_redirect_middleware,
