@@ -914,6 +914,54 @@ mod finalize_tests {
         }
         let _ = fs::remove_dir_all(&media);
     }
+
+    /// Current behaviour, not a wish: MEDIA_ROOT is a plain filesystem path.
+    /// An address put there reaches no other machine; the upload lands in a
+    /// local folder named after it, relative to the working directory. Written
+    /// before a startup check exists, so that check has to change this test.
+    #[tokio::test]
+    async fn an_address_as_media_root_writes_to_a_local_folder_of_that_name() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let tag = uuid::Uuid::new_v4();
+        let cwd = std::env::current_dir().unwrap();
+
+        for (root, top) in [
+            (format!("192.0.2.10-{tag}"), format!("192.0.2.10-{tag}")),
+            (
+                format!("http://192.0.2.10/media-{tag}"),
+                "http:".to_string(),
+            ),
+        ] {
+            let top_existed = cwd.join(&top).exists();
+            // Staged under MEDIA_ROOT, as `parse_multipart` does.
+            let staging = cwd
+                .join(&root)
+                .join(format!(".staging-{}", uuid::Uuid::new_v4()));
+            fs::create_dir_all(&staging).unwrap();
+            let staged = staging.join("photo.png");
+            fs::write(&staged, b"data").unwrap();
+
+            unsafe { std::env::set_var("MEDIA_ROOT", &root) };
+            let mut f = FileField::any("doc");
+            f.base.value = staged.to_string_lossy().to_string();
+            let result = f.finalize().await;
+            unsafe { std::env::remove_var("MEDIA_ROOT") };
+
+            let landed = cwd.join(&root).join("photo.png");
+            let written_locally = landed.exists();
+            if !top_existed {
+                let _ = fs::remove_dir_all(cwd.join(&top));
+            }
+
+            assert!(result.is_ok(), "{root}: {result:?}");
+            assert_eq!(f.base.value, "photo.png", "{root}");
+            assert!(
+                written_locally,
+                "{root}: expected a local folder under {}",
+                cwd.display()
+            );
+        }
+    }
 }
 
 /// Written from cargo-mutants survivors (2026-10-02): each test fails when

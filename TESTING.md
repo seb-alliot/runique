@@ -20,6 +20,7 @@ Two separate things live in this repository:
 | `psql` | demo-app on the machine: the seed loads `seed.sql` (pages, code examples) through it | `postgresql-client` package (`apt install postgresql-client`) |
 | `sea-orm-cli` | demo-app on the machine: `runique migration up` delegates to it | `cargo install sea-orm-cli` |
 | `runique` CLI | demo-app on the machine: migrations and the admin account | `cargo install --path runique --features postgres` |
+| Node 22+ | JavaScript tests (optional) | [nodejs.org](https://nodejs.org) |
 
 The `runique` CLI is installed from the workspace, to follow the framework's version: run the
 command at the root of the repository, where `--path runique` points to the framework's folder. The
@@ -74,6 +75,18 @@ cargo test --features pk-uuid,all-databases
 
 `cargo clippy --features big-pk` (or `pk-uuid`) alone enables no database engine: set
 `DB_ENGINE=postgres` for it, as the CI does, or the model macros can't pick an engine.
+
+### JavaScript tests
+
+The scripts in `runique/static/js/` are tested on their own, with no server and no browser,
+using Node's built-in runner:
+
+```bash
+node --test 'runique/tests/js/*.test.mjs'
+```
+
+The quotes are needed: Node expands the pattern itself. The CI runs these tests in a separate
+job.
 
 ---
 

@@ -20,6 +20,7 @@ Le dépôt contient deux choses distinctes :
 | `psql` | demo-app sur la machine : le seed charge `seed.sql` (pages, exemples de code) par cet outil | paquet `postgresql-client` (`apt install postgresql-client`) |
 | `sea-orm-cli` | demo-app sur la machine : `runique migration up` délègue à cet outil | `cargo install sea-orm-cli` |
 | CLI `runique` | demo-app sur la machine : migrations et compte administrateur | `cargo install --path runique --features postgres` |
+| Node 22+ | Les tests JavaScript (facultatif) | [nodejs.org](https://nodejs.org) |
 
 La CLI `runique` s'installe depuis le workspace, pour suivre la version du framework : lancez
 la commande à la racine du dépôt, là où `--path runique` désigne le dossier du framework. La feature
@@ -75,6 +76,18 @@ cargo test --features pk-uuid,all-databases
 `cargo clippy --features big-pk` (ou `pk-uuid`) seul n'active aucun moteur de base : définissez
 `DB_ENGINE=postgres` pour lui, comme le fait la CI, sinon les macros de modèle ne peuvent pas
 choisir de moteur.
+
+### Tests JavaScript
+
+Les scripts de `runique/static/js/` sont testés seuls, sans serveur ni navigateur, avec le
+lanceur intégré à Node :
+
+```bash
+node --test 'runique/tests/js/*.test.mjs'
+```
+
+Les guillemets sont nécessaires : Node développe lui-même le motif. La CI lance ces tests dans
+un job séparé.
 
 ---
 

@@ -15,8 +15,22 @@ if (!window.rustiCsrfInitialized) {
         return window._rusti_csrf_token || null;
     };
 
+    // The token only ever travels to this page's own origin: a POST fetch to
+    // another site must not carry it, nor may another site's response rotate it.
+    const isSameOrigin = (input) => {
+        try {
+            const url = input instanceof Request ? input.url : String(input);
+            return new URL(url, window.location.href).origin === window.location.origin;
+        } catch (_) {
+            return false;
+        }
+    };
+
     const { fetch: originalFetch } = window;
     window.fetch = async (input, init = {}) => {
+        if (!isSameOrigin(input)) {
+            return originalFetch(input, init);
+        }
         let headers = new Headers(init.headers || {});
         const method = (init.method || 'GET').toUpperCase();
 
