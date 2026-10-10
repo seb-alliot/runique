@@ -4,7 +4,7 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 3.0.x   | :white_check_mark: (use **3.0.2** or later) |
+| 3.0.x   | :white_check_mark: (use **3.0.3** or later) |
 | < 3.0   | :x:                |
 
 Runique 3.0.2 fixes security issues that are also present in 2.2.x (listed below): upgrade with the [3.0 migration guide](MIGRATION-3.0.md).
@@ -31,9 +31,9 @@ Re-checked against `Cargo.lock` on 2026-10-10. The CI runs `cargo audit` on ever
 
 | Version | Issue | Severity |
 | ------- | ----- | -------- |
-| Unreleased | Staff member able to take over a superuser's account (email change + password reset) | High |
-| Unreleased | Open redirect through a tab (`/\t/evil.com`) or a non-ASCII `Location` left unchecked | Medium |
-| Unreleased | Open redirect through the `Refresh` header, never checked | Medium |
+| 3.0.3 | Staff member able to take over a superuser's account (email change + password reset) | High |
+| 3.0.3 | Open redirect through a tab (`/\t/evil.com`) or a non-ASCII `Location` left unchecked | Medium |
+| 3.0.3 | Open redirect through the `Refresh` header, never checked | Medium |
 | 3.0.2 | Stored XSS through an upload waiting for its form (path shown back, staging folder served without CSP) | High |
 | 3.0.2 | Uploaded files written to disk before the CSRF check (multipart) | Medium |
 | 3.0.2 | Open redirect through credentials in a URL (`allowed.com:x@evil.com`) | Medium |
@@ -41,7 +41,7 @@ Re-checked against `Cargo.lock` on 2026-10-10. The CI runs `cargo audit` on ever
 | 3.0.2 | Admin password reset reachable from a resource that isn't an account | Low |
 | 3.0.2 | Admin accepted the raw CSRF token (per-response masking bypassed) | Hardening |
 
-Details in the [CHANGELOG](CHANGELOG.md#302---2026-10-09). Earlier fixes (2.1.x) are listed in [PROJECT_STATUS](docs/en/PROJECT_STATUS.en.md).
+Details in the CHANGELOG: [3.0.3](CHANGELOG.md#303---2026-10-10), [3.0.2](CHANGELOG.md#302---2026-10-09). Earlier fixes (2.1.x) are listed in [PROJECT_STATUS](docs/en/PROJECT_STATUS.en.md).
 
 ## Reporting a Vulnerability
 

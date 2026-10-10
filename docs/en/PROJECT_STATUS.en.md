@@ -11,7 +11,7 @@ This document consolidates the actual state of the repository from the reference
 
 ## Snapshot (as of October 9, 2026)
 
-- **Workspace version**: `3.0.2`
+- **Workspace version**: `3.0.3`
 - **derive_form**: `3.0.0`
 - **runique_dsl**: `0.1.0`
 - **License**: MIT
@@ -124,6 +124,8 @@ This document consolidates the actual state of the repository from the reference
 | 2.1.15 | User enumeration via login timing attack | Medium |
 | 2.1.15 | Missing authorization on admin reset-password action | Medium |
 | 2.1.17 | Reset tokens: in-memory → DB (hashed, single-use, IDOR-hardened) | Hardening |
+| 3.0.3 | Staff member able to take over a superuser's account (email change + password reset) | High |
+| 3.0.3 | Open redirect through a tab, a non-ASCII `Location`, or the `Refresh` header | Medium |
 | 3.0.2 | Stored XSS through a staged upload (path shown back, folder served without CSP) | High |
 | 3.0.2 | Files written to disk before the CSRF check (multipart) | Medium |
 | 3.0.2 | Open redirect through credentials in the URL (`site.com:x@evil.com`) | Medium |

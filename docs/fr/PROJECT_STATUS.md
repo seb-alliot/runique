@@ -11,7 +11,7 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 ## Snapshot (au 9 octobre 2026)
 
-- **Version workspace** : `3.0.2`
+- **Version workspace** : `3.0.3`
 - **derive_form** : `3.0.0`
 - **runique_dsl** : `0.1.0`
 - **Licence** : MIT
@@ -115,6 +115,8 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 | 2.1.15 | Énumération d'utilisateurs via timing attack au login | Moyenne |
 | 2.1.15 | Contrôle d'accès manquant sur l'action admin reset-password | Moyenne |
 | 2.1.17 | Tokens de reset : mémoire → DB (hashés, single-use, durcis IDOR) | Durcissement |
+| 3.0.3 | Un membre du staff pouvait prendre le compte d'un superutilisateur (changement d'email + réinitialisation) | Élevée |
+| 3.0.3 | Open redirect via une tabulation, un `Location` non ASCII ou l'en-tête `Refresh` | Moyenne |
 | 3.0.2 | XSS stockée via un upload en staging (chemin réaffiché, dossier servi sans CSP) | Élevée |
 | 3.0.2 | Fichiers écrits sur disque avant la vérification CSRF (multipart) | Moyenne |
 | 3.0.2 | Open redirect via identifiant dans l'URL (`site.com:x@evil.com`) | Moyenne |
