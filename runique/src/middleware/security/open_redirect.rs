@@ -26,9 +26,10 @@ pub async fn open_redirect_middleware(
         return response;
     };
 
-    let Ok(location_str) = location.to_str() else {
-        return response;
-    };
+    // A header may hold bytes `to_str` refuses (non-ASCII): read it lossily
+    // rather than letting it through unchecked — a browser still follows it.
+    let location_str = String::from_utf8_lossy(location.as_bytes()).into_owned();
+    let location_str = location_str.as_str();
 
     if is_safe_redirect(location_str, &engine) {
         return response;
@@ -45,25 +46,37 @@ pub async fn open_redirect_middleware(
     (StatusCode::BAD_REQUEST, "Forbidden redirect").into_response()
 }
 
-fn is_safe_redirect(location: &str, engine: &crate::engine::RuniqueEngine) -> bool {
-    // Browsers treat backslashes as forward slashes in URLs: "/\evil.com" and
-    // "\/evil.com" both navigate to "//evil.com" (protocol-relative → evil.com).
-    // Normalize before any same-origin determination so the check can't be bypassed.
-    let normalized = location.replace('\\', "/");
-    let location = normalized.as_str();
+/// Stands in for the current site when resolving a relative `Location`.
+/// `.invalid` is reserved (RFC 2606): no real redirect can target it.
+const PROBE_HOST: &str = "runique.invalid";
 
-    // Relative path (not protocol-relative) — same origin, always safe
-    if location.starts_with('/') && !location.starts_with("//") {
+fn is_safe_redirect(location: &str, engine: &crate::engine::RuniqueEngine) -> bool {
+    // Resolved by the WHATWG URL parser, the one browsers follow: tabs and
+    // newlines dropped, `\` read as `/`, credentials split from the host. A
+    // hand-written split misses some of these ("/\t/evil.com" lands on evil.com).
+    let Ok(base) = url::Url::parse(&format!("http://{PROBE_HOST}/")) else {
+        return false;
+    };
+    let Ok(target) = base.join(location) else {
+        return false;
+    };
+    if !matches!(target.scheme(), "http" | "https") {
+        return false;
+    }
+    let Some(host_name) = target.host_str() else {
+        return false;
+    };
+
+    // Same origin: a relative path, resolved against the current site.
+    if host_name == PROBE_HOST {
         return true;
     }
 
-    // Extract host from absolute or protocol-relative URL
-    let host = extract_host(location);
-
-    let Some(host) = host else {
-        // Unparseable — treat as unsafe
-        return false;
+    let host_with_port = match target.port() {
+        Some(port) => format!("{host_name}:{port}"),
+        None => host_name.to_string(),
     };
+    let host = host_with_port.as_str();
 
     // Localhost destinations are allowed to support local development flows.
     // Note: this is the *victim's* loopback, not the server's — redirecting there

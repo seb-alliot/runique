@@ -8,6 +8,10 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ## [Non publié]
 
+### Sécurité
+
+* **Open redirect** — deux autres façons de contourner la protection : une tabulation qui cache une URL relative au protocole (`/\t/evil.com`, que les navigateurs lisent comme `//evil.com`), et un `Location` contenant un octet non ASCII, que la protection ne pouvait pas lire comme du texte et laissait passer sans vérification. La cible est désormais résolue par l'analyseur d'URL WHATWG suivi par les navigateurs (crate `url`), et un en-tête illisible est lu avec remplacement au lieu d'être ignoré. Un chemin relatif sans `/` initial (`page2`) est maintenant reconnu comme restant sur le site ; un schéma autre que `http`/`https` est refusé.
+
 ### Correctif
 
 * **`runique create-superuser`** ne lisait que `DATABASE_URL` et plantait sans elle, alors que l'application accepte aussi `DB_ENGINE` + `DB_USER` / `DB_PASSWORD` / `DB_HOST` / `DB_PORT` / `DB_NAME` : un projet configuré ainsi démarrait, mais son superutilisateur ne pouvait pas être créé. L'assistant lit désormais les mêmes clés que l'application, en reconstruit l'URL, et signale une clé manquante par une erreur.
