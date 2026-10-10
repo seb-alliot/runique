@@ -406,9 +406,7 @@ pub async fn create_superuser() -> Result<()> {
 /// The same keys as the app (`DATABASE_URL`, or `DB_ENGINE` + `DB_*`), so a
 /// project that boots also reaches its database from the wizard. One
 /// connection: the wizard runs a handful of queries, one at a time.
-fn superuser_db_config(
-    get: impl Fn(&str) -> Option<String>,
-) -> Result<crate::db::DatabaseConfig> {
+fn superuser_db_config(get: impl Fn(&str) -> Option<String>) -> Result<crate::db::DatabaseConfig> {
     Ok(crate::db::DatabaseConfig::from_lookup(get)
         .map_err(anyhow::Error::msg)?
         .pool_size(1, 1)
