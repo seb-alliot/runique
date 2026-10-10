@@ -73,6 +73,7 @@
     "duration_too_long": "持续时间过长（最长：{} 秒）",
     "file_max_count": "最多允许上传 {} 个文件",
     "file_too_large": "文件 '{}' 过大（{}MB > 最大限制 {}MB）",
+    "file_unreadable": "无法读取上传的文件，请重新发送",
     "file_invalid_image": "文件 '{}' 不是有效的图片",
     "image_too_wide": "图片 '{}' 宽度过大（{}px > {}px）",
     "image_too_tall": "图片 '{}' 高度过大（{}px > {}px）",

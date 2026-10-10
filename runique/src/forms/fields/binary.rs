@@ -98,10 +98,32 @@ impl FormField for BinaryField {
             return false;
         }
 
+        if val.is_empty() {
+            self.clear_error();
+            return true;
+        }
+
+        // Refused when in doubt: an upload that can't be recognised or sized
+        // would otherwise skip the column's limit and still be read by
+        // `finalize`.
+        if !is_staged_upload(&val) {
+            tracing::warn!(field = %self.base.name, "binary field: value is no longer a staged upload, refused");
+            self.base.value.clear();
+            self.set_error(t("forms.file_unreadable").to_string());
+            return false;
+        }
+        let size = match tokio::fs::metadata(&val).await {
+            Ok(meta) => meta.len(),
+            Err(e) => {
+                tracing::warn!(field = %self.base.name, error = %e, "binary field: staged upload size unreadable, refused");
+                self.base.value.clear();
+                self.set_error(t("forms.file_unreadable").to_string());
+                return false;
+            }
+        };
+
         if let Some(max) = self.max_size
-            && is_staged_upload(&val)
-            && let Ok(meta) = tokio::fs::metadata(&val).await
-            && meta.len() > max
+            && size > max
         {
             let mb = |bytes: u64| format!("{:.1}", bytes as f64 / (1024.0 * 1024.0));
             let name = std::path::Path::new(&val)
@@ -113,7 +135,7 @@ impl FormField for BinaryField {
             self.base.value.clear();
             self.set_error(tf(
                 "forms.file_too_large",
-                &[name.as_str(), mb(meta.len()).as_str(), mb(max).as_str()],
+                &[name.as_str(), mb(size).as_str(), mb(max).as_str()],
             ));
             return false;
         }
@@ -197,6 +219,42 @@ mod guarantees {
 
         unsafe { std::env::remove_var("MEDIA_ROOT") };
         let _ = fs::remove_dir_all(&root);
+    }
+
+    #[tokio::test]
+    async fn an_upload_that_is_no_longer_recognised_is_refused_not_skipped() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let root = std::env::temp_dir().join(format!("rq_bin_{}", uuid::Uuid::new_v4()));
+        let staging = root.join(format!(".staging-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&staging).unwrap();
+        unsafe { std::env::set_var("MEDIA_ROOT", root.to_str().unwrap()) };
+
+        // Outside the staging folders: the limit can't be checked.
+        let outside = root.join("outside.bin");
+        fs::write(&outside, [7u8; 20]).unwrap();
+        let mut field = BinaryField::new("thumb").max_size(8);
+        field.set_value(&outside.to_string_lossy());
+        assert!(!field.validate().await, "not a staged upload");
+        assert!(field.base.value.is_empty(), "finalize must not read it");
+
+        // Staged, then gone before validation.
+        let gone = staging.join("gone.bin");
+        fs::write(&gone, [7u8; 4]).unwrap();
+        let mut field = BinaryField::new("thumb").max_size(8);
+        field.set_value(&gone.to_string_lossy());
+        fs::remove_file(&gone).unwrap();
+        assert!(!field.validate().await, "vanished upload");
+
+        unsafe { std::env::remove_var("MEDIA_ROOT") };
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[tokio::test]
+    async fn no_upload_on_an_optional_field_is_valid() {
+        let mut field = BinaryField::new("thumb").max_size(8);
+        assert!(field.validate().await);
+        let mut required = BinaryField::new("thumb").required();
+        assert!(!required.validate().await);
     }
 
     #[test]

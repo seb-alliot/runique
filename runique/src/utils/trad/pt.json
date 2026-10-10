@@ -73,6 +73,7 @@
     "duration_too_long": "Duração máxima: {} segundos",
     "file_max_count": "Máximo de {} arquivos permitido",
     "file_too_large": "Arquivo '{}' muito grande ({}MB > {}MB máx)",
+    "file_unreadable": "Não foi possível ler o ficheiro enviado, envie-o novamente",
     "file_invalid_image": "O arquivo '{}' não é uma imagem válida",
     "image_too_wide": "A imagem '{}' é muito larga ({}px > {}px)",
     "image_too_tall": "A imagem '{}' é muito alta ({}px > {}px)",
