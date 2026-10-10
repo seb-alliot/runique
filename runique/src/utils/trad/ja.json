@@ -73,6 +73,7 @@
     "duration_too_long": "最大期間: {} 秒",
     "file_max_count": "最大 {} 個のファイルまで許可されています",
     "file_too_large": "ファイル '{}' は大きすぎます ({}MB > {}MB 最大)",
+    "file_unreadable": "アップロードされたファイルを読み込めませんでした。もう一度送信してください",
     "file_invalid_image": "ファイル '{}' は有効な画像ではありません",
     "image_too_wide": "画像 '{}' は幅が大きすぎます ({}px > {}px)",
     "image_too_tall": "画像 '{}' は高さが大きすぎます ({}px > {}px)",

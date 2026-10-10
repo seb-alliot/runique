@@ -73,6 +73,7 @@
     "duration_too_long": "Max {} seconds exceeded",
     "file_max_count": "Max {} files allowed",
     "file_too_large": "File '{}' too large ({}MB > {}MB max)",
+    "file_unreadable": "The uploaded file could not be read, please send it again",
     "file_invalid_image": "File '{}' is not a valid image",
     "image_too_wide": "Image '{}' too wide ({}px > {}px)",
     "image_too_tall": "Image '{}' too tall ({}px > {}px)",
