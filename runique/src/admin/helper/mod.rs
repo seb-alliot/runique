@@ -13,5 +13,5 @@ pub use resource_entry::{
     CountFn, CreateFn, DeleteFn, EnumLabelFn, FilterFn, FormBuilder, GetFn, GroupAction, ListFn,
     ListParams, ResourceEntry, SortDir, UpdateFn,
 };
-pub use sql_dialect::{ilike, text_cast_type, text_cast_type_of, text_eq};
+pub use sql_dialect::{ilike, text_cast_type, text_cast_type_of, text_eq, text_eq_ci};
 pub(crate) use template::AdminTemplate;

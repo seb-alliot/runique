@@ -463,6 +463,9 @@
       "groupe_exists": "\"{}\" という名前のグループは既に存在します。",
       "user_username_exists": "ユーザー名「{}」は既に使用されています。",
       "user_email_exists": "メールアドレス「{}」は既に登録されています。"
+    },
+    "bulk_create": {
+      "all_exist": "すべての値はすでに存在します。何も作成されませんでした"
     }
   },
   "makemigrations": {

@@ -550,7 +550,11 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     );
     let _ = writeln!(out, "        Box::pin(async move {{");
     if let Some(ref bulk_field) = r.bulk_create {
-        // Bulk upsert: split the specified field by comma, update if exists, insert otherwise
+        // One row per comma-separated value, insert only: a create never
+        // updates. Until 3.0.3 an existing value was updated here, which let a
+        // create-only right change rows the gate never checked for update.
+        // Duplicates are skipped case-insensitively (`Gluten` = `gluten`),
+        // in the database and within the submitted list.
         let _ = writeln!(out, "            use sea_orm::QueryFilter;");
         let _ = writeln!(
             out,
@@ -561,39 +565,47 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
             out,
             "            let values: Vec<&str> = raw.split(',').map(str::trim).filter(|v| !v.is_empty()).collect();"
         );
-        let _ = writeln!(out, "            for val in values {{");
-        let _ = writeln!(out, "                let mut row = data.clone();");
         let _ = writeln!(
             out,
-            "                row.insert(\"{bulk_field}\".to_string(), val.to_string());",
-            bulk_field = bulk_field
+            "            let mut seen = std::collections::HashSet::new();"
+        );
+        let _ = writeln!(out, "            let mut created = 0usize;");
+        let _ = writeln!(out, "            for val in &values {{");
+        let _ = writeln!(
+            out,
+            "                if !seen.insert(val.to_lowercase()) {{ continue; }}"
         );
         let _ = writeln!(
             out,
-            "                let existing_id: Option<String> = {}::Entity::find()",
+            "                let exists = {}::Entity::find()",
             module
         );
         let _ = writeln!(
             out,
-            "                    .filter(text_eq(&db, \"{bulk_field}\", val))",
+            "                    .filter(text_eq_ci(&db, \"{bulk_field}\", val))",
             bulk_field = bulk_field
         );
         let _ = writeln!(out, "                    .one(&*db).await?");
-        let _ = writeln!(out, "                    .map(|m| m.id.to_string());");
-        let _ = writeln!(out, "                if let Some(id) = existing_id {{");
-        let _ = writeln!(out, "                    {};", id_parse_code);
+        let _ = writeln!(out, "                    .is_some();");
+        let _ = writeln!(out, "                if exists {{ continue; }}");
+        let _ = writeln!(out, "                let mut row = data.clone();");
         let _ = writeln!(
             out,
-            "                    {}::admin_from_form(&row, Some(id))?.update(&*db).await?;",
-            module
+            "                row.insert(\"{bulk_field}\".to_string(), (*val).to_string());",
+            bulk_field = bulk_field
         );
-        let _ = writeln!(out, "                }} else {{");
         let _ = writeln!(
             out,
-            "                    {}::admin_from_form(&row, None)?.insert(&*db).await?;",
+            "                {}::admin_from_form(&row, None)?.insert(&*db).await?;",
             module
         );
-        let _ = writeln!(out, "                }}");
+        let _ = writeln!(out, "                created += 1;");
+        let _ = writeln!(out, "            }}");
+        let _ = writeln!(out, "            if created == 0 && !values.is_empty() {{");
+        let _ = writeln!(
+            out,
+            "                return Err(sea_orm::DbErr::Custom(runique::utils::trad::t(\"admin.bulk_create.all_exist\").into_owned()));"
+        );
         let _ = writeln!(out, "            }}");
         let _ = writeln!(out, "            Ok(())");
     } else {
@@ -632,12 +644,15 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     );
     let _ = writeln!(out, "        Box::pin(async move {{");
     let _ = writeln!(out, "            {};", id_parse_code);
-    // The row, its list fields and its M2M links in one transaction
+    // The row, its list fields and its M2M links in one transaction. Partial:
+    // `data` holds every field of the edit form (unchecked boxes included), so
+    // only a column the form doesn't show is absent — and it must stay as is,
+    // not be reset to false / "" / NULL.
     let _ = writeln!(out, "            use sea_orm::TransactionTrait;");
     let _ = writeln!(out, "            let txn = db.begin().await?;");
     let _ = writeln!(
         out,
-        "            let result = {}::admin_from_form(&data, Some(id))?.update(&txn).await?;",
+        "            let result = {}::admin_partial_update(&data, id)?.update(&txn).await?;",
         module
     );
     let _ = writeln!(

@@ -463,6 +463,9 @@
       "groupe_exists": "Un groupe nommé « {} » existe déjà.",
       "user_username_exists": "Le nom d'utilisateur « {} » est déjà pris.",
       "user_email_exists": "L'adresse e-mail « {} » est déjà utilisée."
+    },
+    "bulk_create": {
+      "all_exist": "Toutes les valeurs existent déjà : rien n'a été créé"
     }
   },
   "reset": {

@@ -211,6 +211,15 @@ impl Email {
         Ok(self)
     }
 
+    /// A line break in a header would let a caller-supplied subject add
+    /// headers of its own (CRLF injection): refused, never stripped.
+    fn check_subject(&self) -> Result<(), String> {
+        if self.subject.contains(['\r', '\n']) {
+            return Err("Email subject contains a line break".to_string());
+        }
+        Ok(())
+    }
+
     /// Sends the email through the globally configured backend. Fails if the
     /// mailer isn't configured, if neither an HTML nor a text body was set, or
     /// if the addresses/transport are invalid.
@@ -230,6 +239,7 @@ impl Email {
         if self.html.is_none() && self.text.is_none() {
             return Err("Email without content".to_string());
         }
+        self.check_subject()?;
 
         let backend = match config.backend {
             MailerBackend::Console => "console",
@@ -464,6 +474,22 @@ mod guarantees {
             Email::new()
                 .template(&tera, "missing.html", tera::Context::new())
                 .is_err()
+        );
+    }
+
+    #[test]
+    fn a_line_break_in_the_subject_is_refused() {
+        for subject in ["Hi\r\nBcc: victim@example.com", "Hi\nX: y", "Hi\rX: y"] {
+            assert!(
+                Email::new().subject(subject).check_subject().is_err(),
+                "{subject:?}"
+            );
+        }
+        assert!(
+            Email::new()
+                .subject("Réinitialisation — 3 étapes")
+                .check_subject()
+                .is_ok()
         );
     }
 
