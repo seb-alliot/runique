@@ -92,6 +92,25 @@ RUNIQUE_UPDATE_GOLDEN=1 cargo test --lib admin::daemon::generator
 
 ---
 
+## Versions et publication
+
+Runique suit le versionnage sémantique, avec un cycle fixe :
+
+1. **Contrôles de sécurité réguliers** sur l'existant. Les correctifs s'accumulent dans la
+   section « Non publié » du CHANGELOG et sortent ensemble dans une **version corrective**
+   (3.0.**x**).
+2. **Une seule fonctionnalité à la fois**, développée jusqu'au « fini » (voir la
+   [feuille de route](ROADMAP.fr.md)), publiée en **version mineure** (3.**x**.0).
+3. **Un contrôle de sécurité ciblé sur cette fonctionnalité**, et ses correctifs en version
+   corrective (3.x.**y**).
+4. La fonctionnalité suivante ne commence qu'ensuite.
+5. Une **rupture** d'API ne sort jamais dans une 3.x : elle attend la version majeure suivante
+   (4.0), avec son guide de migration.
+
+Une faille grave n'attend pas le regroupement : elle est corrigée et publiée tout de suite.
+
+---
+
 ## Code sensible pour la sécurité
 
 Pour tout changement touchant à l'authentification, aux permissions, aux sessions, aux jetons,

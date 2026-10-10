@@ -461,6 +461,15 @@ impl MiddlewareStaging {
                  Use explicit origins instead: .origin(\"https://app.example.com\")",
             ));
         }
+        if let Some(proxies) = &self.trusted_proxies_config
+            && proxies.trusts_every_address()
+        {
+            return Err(BuildError::validation(
+                "Trusted proxies: a /0 range (0.0.0.0/0, ::/0) trusts every address, so any \
+                 client could forge X-Forwarded-For and dodge rate limits. List your reverse \
+                 proxies instead: .proxy(\"203.0.113.5\") or .cidr(\"10.0.0.0/8\")",
+            ));
+        }
         Ok(())
     }
 

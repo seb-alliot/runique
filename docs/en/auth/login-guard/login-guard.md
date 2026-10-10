@@ -163,4 +163,18 @@ pub async fn login(/* ... */) -> impl IntoResponse {
 
 ---
 
+## Known limit: an account can be locked by someone else
+
+The lock is keyed by **username**, not by IP: that's what stops one attacker spreading guesses over many addresses. The flip side: anyone who knows a username (an admin's, for instance) can lock that account by failing on purpose, without knowing its password, and keep it locked by retrying.
+
+To reduce it:
+
+- keep the IP rate limiter in front (section above): it caps how many attempts one address can make, so locking accounts in a loop costs the attacker much more;
+- block abusive addresses before the app, at the reverse proxy;
+- choose admin usernames that aren't public (not `admin`, not the name shown on the site).
+
+The counters live in the memory of each instance: see [Rate limiting — several instances](/docs/en/middleware/rate-limit).
+
+---
+
 ← [**Protection Middlewares**](/docs/en/auth/middleware) | [**Complete Example**](/docs/en/auth/example) →

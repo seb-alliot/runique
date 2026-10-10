@@ -13,7 +13,7 @@ pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i64,
 
-    /// SHA-256 hex digest of the raw token (the lookup key).
+    /// SHA-256 of the raw token, base64url without padding (the lookup key).
     #[sea_orm(unique)]
     pub token_hash: String,
 

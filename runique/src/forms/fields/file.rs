@@ -513,10 +513,25 @@ impl FormField for FileField {
                 ));
                 return false;
             }
+            // A path already stored (`plats/x.png`, no file at that path, kept
+            // as is by `finalize`) has nothing to measure; a real file or an
+            // upload in staging always does.
+            let to_measure =
+                Path::new(filename.as_str()).exists() || filename.contains(".staging-");
             if let Some(max_bytes) = self.upload_config.max_size
-                && let Ok(metadata) = tokio::fs::metadata(filename).await
+                && to_measure
             {
-                let file_size = metadata.len();
+                // Refused when in doubt: an unreadable size would skip the limit.
+                let file_size = match tokio::fs::metadata(filename).await {
+                    Ok(metadata) => metadata.len(),
+                    Err(e) => {
+                        tracing::warn!(field = %self.base.name, error = %e, "file field: upload size unreadable, refused");
+                        cleanup_files(&files).await;
+                        self.base.value.clear();
+                        self.set_error(t("forms.file_unreadable").to_string());
+                        return false;
+                    }
+                };
                 if file_size > max_bytes {
                     let size_mb = file_size as f64 / (1024.0 * 1024.0);
                     let max_mb = max_bytes as f64 / (1024.0 * 1024.0);
@@ -986,6 +1001,29 @@ mod guarantees {
         assert!(!is_staged_upload(
             &media.staging.join("missing.png").to_string_lossy()
         ));
+    }
+
+    #[tokio::test]
+    async fn an_upload_whose_size_cant_be_read_is_refused() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        let staged = media.staged("gone.txt", b"1234");
+        fs::remove_file(&staged).unwrap();
+
+        let mut field = FileField::any("doc").max_size(FileSize::bytes(8));
+        field.set_value(&staged);
+        assert!(!field.validate().await, "vanished upload");
+        assert!(field.base.value.is_empty(), "finalize must not see it");
+        assert!(field.error().is_some());
+    }
+
+    #[tokio::test]
+    async fn a_path_already_stored_is_not_measured() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let _media = Media::new();
+        let mut field = FileField::any("doc").max_size(FileSize::bytes(8));
+        field.set_value("plats/photo.txt");
+        assert!(field.validate().await, "kept as is by finalize");
     }
 
     #[tokio::test]

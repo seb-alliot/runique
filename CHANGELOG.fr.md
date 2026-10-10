@@ -14,7 +14,7 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ### Correctif
 
-* **Champs binaires** (`binary`, `var_binary`, `blob`) : la limite de taille de la colonne était sautée quand l'upload ne pouvait pas être reconnu ou mesuré à la validation, alors que `finalize` pouvait encore le lire et l'enregistrer en base. Un tel upload est désormais refusé (`forms.file_unreadable`, 9 langues) et la raison est tracée.
+* **Champs binaires** (`binary`, `var_binary`, `blob`) : la limite de taille de la colonne était sautée quand l'upload ne pouvait pas être reconnu ou mesuré à la validation, alors que `finalize` pouvait encore le lire et l'enregistrer en base. Un tel upload est désormais refusé (`forms.file_unreadable`, 9 langues) et la raison est tracée. Les champs fichier (`FileField`) sautaient leur limite de taille de la même façon quand la taille d'un upload ne pouvait pas être lue ; ils le refusent désormais aussi, tandis qu'un chemin déjà enregistré (`plats/photo.png`) est toujours conservé tel quel.
 * **`runique create-superuser`** ne lisait que `DATABASE_URL` et plantait sans elle, alors que l'application accepte aussi `DB_ENGINE` + `DB_USER` / `DB_PASSWORD` / `DB_HOST` / `DB_PORT` / `DB_NAME` : un projet configuré ainsi démarrait, mais son superutilisateur ne pouvait pas être créé. L'assistant lit désormais les mêmes clés que l'application, en reconstruit l'URL, et signale une clé manquante par une erreur.
 
 ---

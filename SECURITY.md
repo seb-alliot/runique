@@ -25,7 +25,7 @@ None currently identified. The dependency tree was checked against the two advis
 - **Was affected via**: `async-std` (transitive dependency of `sea-orm`/`sqlx`)
 - **Current state**: `async-std` does not appear anywhere in `Cargo.lock` — the SeaORM/sqlx stack Runique depends on has moved to pure Tokio.
 
-Re-checked against `Cargo.lock` on 2026-08-30. The CI also runs `cargo audit` on every push. If you maintain a fork with different dependency versions, verify with `cargo audit` before relying on this section.
+Re-checked against `Cargo.lock` on 2026-10-10. The CI runs `cargo audit` on every push, with no ignored advisory, and a known vulnerability fails the build. If you maintain a fork with different dependency versions, verify with `cargo audit` before relying on this section.
 
 ## Fixed in Runique
 

@@ -54,6 +54,17 @@ By default, the store is purely in-memory. When the `orm` feature is active, a d
 
 ---
 
+## Several instances
+
+The memory store belongs to one process. Behind a load balancer with several instances of the app:
+
+- **Anonymous sessions** (CSRF token, flash messages, anything stored before sign-in) live only in the memory of the instance that created them. A request sent to another instance doesn't find them: a form fails its CSRF check, a flash message disappears.
+- **Authenticated sessions** are found again through the database fallback, but each instance reads its own memory first. Signing out or `close_user_sessions` on one instance clears the database and that instance's memory, not the copies already loaded by the others: there, the session stays usable until it expires.
+
+Until a shared store exists, route each visitor to the same instance (sticky sessions, also called session affinity, on the load balancer). With a single instance, none of this applies.
+
+---
+
 ## Configuration
 
 All the thresholds described above are tunable from the builder, inside the `.middleware()` block. No manual store construction is needed — the framework instantiates `CleaningMemoryStore` and applies these values.

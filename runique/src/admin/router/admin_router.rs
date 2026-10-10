@@ -347,9 +347,12 @@ async fn admin_login_get(
 async fn admin_login_post(
     Extension(admin): Extension<Arc<AdminState>>,
     current_user: Option<Extension<crate::auth::session::CurrentUser>>,
+    client_ip: Option<Extension<crate::middleware::security::trusted_proxies::ClientIp>>,
     mut req: Request,
 ) -> Response {
     use crate::utils::crypto::csrf::unmask_csrf_token;
+    // Keys the guard's anonymous attempts (empty username) per client, not in one bucket.
+    let ip = client_ip.map_or_else(|| "unknown".to_string(), |Extension(c)| c.0.to_string());
     use subtle::ConstantTimeEq;
     if signed_in_admin(current_user.as_ref()) {
         return Redirect::to(&format!("{}/", admin.config.prefix)).into_response();
@@ -393,7 +396,7 @@ async fn admin_login_post(
 
     // Login guard verification (brute-force)
     if let Some(guard) = &admin.login_guard {
-        let key = LoginGuard::effective_key(&data.username, "unknown");
+        let key = LoginGuard::effective_key(&data.username, &ip);
         if guard.is_locked(&key) {
             let secs = guard.remaining_lockout_secs(&key).unwrap_or(0);
             insert_admin_messages(&mut req.context, "login");
@@ -414,7 +417,7 @@ async fn admin_login_post(
 
     if let Some(user) = result {
         if let Some(guard) = &admin.login_guard {
-            let key = LoginGuard::effective_key(&data.username, "unknown");
+            let key = LoginGuard::effective_key(&data.username, &ip);
             guard.record_success(&key);
         }
 
@@ -445,7 +448,7 @@ async fn admin_login_post(
         Redirect::to(&format!("{}/", admin.config.prefix)).into_response()
     } else {
         if let Some(guard) = &admin.login_guard {
-            let key = LoginGuard::effective_key(&data.username, "unknown");
+            let key = LoginGuard::effective_key(&data.username, &ip);
             guard.record_failure(&key);
         }
 

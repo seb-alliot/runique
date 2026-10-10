@@ -137,6 +137,12 @@ impl TrustedProxiesConfig {
     // INTERNAL
     // ═══════════════════════════════════════════════════
 
+    /// `true` if a `/0` range is trusted: every address on the internet
+    /// could then set `X-Forwarded-For`.
+    pub(crate) fn trusts_every_address(&self) -> bool {
+        self.cidrs.iter().any(|(_, prefix)| *prefix == 0)
+    }
+
     pub(crate) fn build(self) -> TrustedProxies {
         TrustedProxies::new(self.exact, self.cidrs)
     }
@@ -155,6 +161,28 @@ mod tests {
 
     fn trusted(cfg: TrustedProxiesConfig, ip: &str) -> bool {
         cfg.build().is_trusted(&ip.parse().unwrap())
+    }
+
+    #[test]
+    fn a_zero_prefix_range_trusts_every_address_and_fails_the_build() {
+        use crate::app::staging::middleware_staging::MiddlewareStaging;
+        for range in ["0.0.0.0/0", "::/0"] {
+            let cfg = TrustedProxiesConfig::default().cidr(range);
+            assert!(cfg.trusts_every_address(), "{range}");
+            let staging = MiddlewareStaging::new(false).with_trusted_proxies(|t| t.cidr(range));
+            assert!(staging.validate().is_err(), "{range}");
+        }
+        // The other side: real proxy ranges keep the build going.
+        assert!(!TrustedProxiesConfig::default().trusts_every_address());
+        assert!(
+            !TrustedProxiesConfig::default()
+                .none()
+                .cidr("10.0.0.0/8")
+                .proxy("203.0.113.5")
+                .trusts_every_address()
+        );
+        let staging = MiddlewareStaging::new(false).with_trusted_proxies(|t| t.cidr("10.0.0.0/8"));
+        assert!(staging.validate().is_ok());
     }
 
     #[test]

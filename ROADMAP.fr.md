@@ -21,9 +21,26 @@ Une fonctionnalité n'entre dans une version publiée que si :
 
 ---
 
+## Entretien et sécurité — en continu
+
+Ce travail n'a pas de fin : il passe avant les chantiers ci-dessous.
+
+- **Contrôles de sécurité réguliers** sur l'existant : relecture des parcours sensibles (de
+  l'entrée à l'effet), entrées hostiles, `cargo mutants` sur le code concerné.
+- **Audit des dépendances** : `cargo audit` à chaque push, bloquant en CI.
+- **Corrections de bugs**, chacune avec un test qui échoue sans elle.
+- Ces correctifs sont regroupés dans une **version corrective** (3.x.**y**). Une faille grave
+  est publiée sans attendre.
+
+Le détail du cycle de publication est dans [CONTRIBUTING](CONTRIBUTING.fr.md#versions-et-publication).
+
+---
+
 ## En cours — 3.x
 
-Sans rupture : un projet en 3.0 se met à jour sans modifier son code.
+Sans rupture : un projet en 3.0 se met à jour sans modifier son code. Une fonctionnalité à la
+fois, dans cet ordre : chacune sort en version mineure (3.**x**.0), passe ensuite un contrôle de
+sécurité ciblé, puis la suivante commence.
 
 - [ ] **Relations many-to-many** — la table pivot est générée à partir du DSL (`through` garde
   une table pivot écrite à la main, avec ses colonnes en plus), migration comprise, et le modèle
@@ -33,7 +50,6 @@ Sans rupture : un projet en 3.0 se met à jour sans modifier son code.
   de la langue courante (repli sur l'anglais) et une clé absente partout sont tracées.
 - [ ] **Langues ajoutées par un projet** — un trait pour fournir une langue que Runique ne
   propose pas, enregistré via le builder, sans modifier l'enum `Lang`.
-- [ ] **Corrections de bugs** — au fil de l'eau, chacune avec un test qui échoue sans elle.
 
 ---
 
@@ -81,7 +97,7 @@ Ces pistes remonteront quand un chantier se terminera.
 - **Framework** — redirections typées (`redirect("nom_de_route")`, `redirect_external(url)` limité aux hôtes autorisés, `?next=` vérifié contre les routes déclarées), `crud!{}` pour les vues publiques, surcharge des champs `#[form]`, plusieurs
   connexions de types différents (TypeMap), middleware de détection de la langue, accès à
   `path_params` / `query_params` par des getters
-- **Authentification** — OAuth/OIDC, JWT et clés d'API, journal des connexions, rapports de
+- **Authentification** — protection contre la force brute à deux niveaux, sans rupture : blocage par nom d'utilisateur + IP (le vrai utilisateur, ailleurs, peut toujours se connecter), et ralentissement par nom d'utilisateur toutes adresses confondues (contre les attaques réparties sur beaucoup d'IP) ; une seule fonction partagée, appelée par `LoginGuard` et par la connexion à l'admin. Puis OAuth/OIDC, JWT et clés d'API, journal des connexions, rapports de
   violation CSP
 - **Outils** — client de test intégré, fixtures, commandes personnalisées, sitemap et RSS,
   redimensionnement d'images, documentation complète de l'API publique
