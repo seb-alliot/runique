@@ -304,7 +304,8 @@
       "success": "ログアウトしました。"
     },
     "access": {
-      "insufficient_rights": "管理画面へのアクセス権限が不足しています"
+      "insufficient_rights": "管理画面へのアクセス権限が不足しています",
+      "superuser_only": "スーパーユーザーのアカウントを変更できるのはスーパーユーザーだけです"
     },
     "dashboard": {
       "title": "ダッシュボード",

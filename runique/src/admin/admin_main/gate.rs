@@ -67,6 +67,8 @@ pub(super) enum BulkRefusal {
     NotOffered(String),
     /// A value its field refused: the message to show.
     Invalid(String),
+    /// A superuser's account, and the user isn't one.
+    ProtectedAccount,
 }
 
 pub(super) async fn bulk_gate(
@@ -105,6 +107,9 @@ pub(super) async fn bulk_gate(
             && !verify_scope_ownership(entry, req.engine.db.clone(), &cid, p).await
         {
             return Err(BulkRefusal::OutOfScope);
+        }
+        if !perms.is_superuser && protects_a_superuser(entry, req.engine.db.clone(), &cid).await {
+            return Err(BulkRefusal::ProtectedAccount);
         }
         ids.push(cid);
     }
@@ -232,6 +237,8 @@ pub(super) enum RowCheck {
     /// The id isn't a child of the URL's parent: answered as "not found".
     OutOfScope,
     Denied(Access),
+    /// A superuser's account, and the user isn't one.
+    ProtectedAccount,
 }
 
 /// "Which rows" then "who" for a single-row action: the row must sit under
@@ -252,10 +259,42 @@ pub(super) async fn member_gate(
     {
         return RowCheck::OutOfScope;
     }
+    // Reading a superuser's account stays open; changing it doesn't.
+    if !perms.is_superuser
+        && !matches!(act, MemberAction::Detail)
+        && protects_a_superuser(entry, db.clone(), &closure_id).await
+    {
+        return RowCheck::ProtectedAccount;
+    }
     let owns_record = check_owns_record(entry, db, &closure_id, user_id).await;
     match act.authorize(perms, owns_record) {
         Access::Granted => RowCheck::Granted,
         denied => RowCheck::Denied(denied),
+    }
+}
+
+/// `true` when `id` is a superuser's account: only a superuser may edit,
+/// delete or reset it. The `is_superuser` field is already never writable from
+/// the admin; this keeps the account itself (email, password reset, removal)
+/// out of reach of lower-ranked staff. A lookup error refuses too.
+async fn protects_a_superuser(
+    entry: &ResourceEntry,
+    db: crate::utils::aliases::ADb,
+    id: &str,
+) -> bool {
+    use sea_orm::EntityTrait;
+    if !entry.is_account_table() {
+        return false;
+    }
+    let Ok(id) = id.parse::<crate::utils::pk::Pk>() else {
+        return false;
+    };
+    match crate::auth::user::Entity::find_by_id(id).one(&*db).await {
+        Ok(account) => account.is_some_and(|account| account.is_superuser),
+        Err(e) => {
+            tracing::warn!(error = %e, "admin: superuser check failed, action refused");
+            true
+        }
     }
 }
 

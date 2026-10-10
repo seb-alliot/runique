@@ -168,6 +168,7 @@ mod tests {
             can_delete: d,
             can_update_own: uo,
             can_delete_own: dorm,
+            is_superuser: false,
         }
     }
 
@@ -178,6 +179,7 @@ mod tests {
         can_delete: false,
         can_update_own: false,
         can_delete_own: false,
+        is_superuser: false,
     };
 
     // ── Parsing rejects actions invalid for the method ───────────────

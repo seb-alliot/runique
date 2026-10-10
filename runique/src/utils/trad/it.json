@@ -304,7 +304,8 @@
       "success": "Disconnessione riuscita."
     },
     "access": {
-      "insufficient_rights": "Diritti insufficienti per accedere all'amministrazione"
+      "insufficient_rights": "Diritti insufficienti per accedere all'amministrazione",
+      "superuser_only": "Solo un superutente può modificare l'account di un superutente"
     },
     "dashboard": {
       "title": "Dashboard",

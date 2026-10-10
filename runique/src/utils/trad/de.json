@@ -304,7 +304,8 @@
       "success": "Erfolgreich abgemeldet."
     },
     "access": {
-      "insufficient_rights": "Unzureichende Rechte für den Zugriff auf die Administration"
+      "insufficient_rights": "Unzureichende Rechte für den Zugriff auf die Administration",
+      "superuser_only": "Nur ein Superuser kann das Konto eines Superusers ändern"
     },
     "dashboard": {
       "title": "Dashboard",

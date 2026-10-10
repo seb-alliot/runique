@@ -304,7 +304,8 @@
       "success": "已成功登出。"
     },
     "access": {
-      "insufficient_rights": "访问管理权限不足"
+      "insufficient_rights": "访问管理权限不足",
+      "superuser_only": "只有超级用户才能修改超级用户的账户"
     },
     "dashboard": {
       "title": "仪表板",

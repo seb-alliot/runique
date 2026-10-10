@@ -304,7 +304,8 @@
       "success": "Sesión cerrada correctamente."
     },
     "access": {
-      "insufficient_rights": "Permisos insuficientes para acceder a la administración"
+      "insufficient_rights": "Permisos insuficientes para acceder a la administración",
+      "superuser_only": "Solo un superusuario puede modificar la cuenta de un superusuario"
     },
     "dashboard": {
       "title": "Panel de control",
