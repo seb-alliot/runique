@@ -30,7 +30,9 @@ pub async fn open_redirect_middleware(
     }
     // `Refresh` sends the browser elsewhere too, whatever the status.
     if let Some(refresh) = headers.get(header::REFRESH) {
-        targets.extend(refresh_targets(&String::from_utf8_lossy(refresh.as_bytes())));
+        targets.extend(refresh_targets(&String::from_utf8_lossy(
+            refresh.as_bytes(),
+        )));
     }
 
     let Some(unsafe_target) = targets.iter().find(|t| !is_safe_redirect(t, &engine)) else {
