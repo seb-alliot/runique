@@ -75,6 +75,9 @@ pub trait Op {
 | `Create` | `/create` | `Create` | — (pas de ligne existante) | non |
 | `Update` | `/{id}/edit` | `Update` | `UpdateOwn` | oui |
 | `Delete` | `/{id}/delete` | `Delete` | `DeleteOwn` | oui |
+| `ResetPassword` | `/{id}/reset-password` | `Update` | — | oui |
+
+`ResetPassword` sur un compte superuser : seul ce superuser lui-même (id visé = `request.user.id`), jamais un autre superuser ni un staff. Les autres comptes : superuser, ou staff ayant `can_update` sur `users`. La réinitialisation est le chemin classique de prise de contrôle d'un compte (faille 3.0.3).
 
 Exemple complet :
 
@@ -147,7 +150,12 @@ pub(crate) async fn gate<O: Op, E: ModelMeta>(
 /// Ni `Clone` ni `Copy` : une preuve, une écriture.
 pub struct Authorized<O, E: EntityTrait> {
     id: Option<PkOf<E>>,          // l'écriture prend l'id ICI, jamais à côté
+    conditions: Condition,        // ce que la porte a vérifié (propriétaire, parent, non-superuser), rejoué par l'écriture
     _op: PhantomData<O>,
+}
+
+impl<O, E: EntityTrait> Guarded<E> for Authorized<O, E> {
+    fn conditions(&self) -> Condition { self.conditions.clone() }
 }
 
 impl<O, E: EntityTrait> Authorized<O, E> {
@@ -305,6 +313,16 @@ Déjà corrigé : les droits sont relus à chaque requête, la porte revérifie 
 7. **Tests** : les tests fabriquent leurs preuves par un module `gate::test_support` sous `#[cfg(test)]`, jamais en ouvrant `Authorized::new`.
 8. **Action groupée** : la colonne visée doit être dans `fields`, jamais secrète ni `server_only` (vérifié au démarrage).
 9. **`ModelMeta` reste fin** : clé de ressource, clé primaire, propriétaire, parent, secrets, colonnes obligatoires, relations. L'affichage, les formulaires et les inlines restent dans le builder `ModelAdmin`. La preuve ne connaît que `E` et `O`, jamais le formulaire.
+
+## 14. Seconde relecture (Grok, 2026-10-10)
+
+- `ResetPassword` ajoutée au tableau des opérations (section 2).
+- `Authorized` porte ses conditions (champ privé construit une fois par la porte) et implémente `Guarded` : l'écart entre la section 4 et le TOCTOU est fermé.
+- **Création** : pas de ligne existante, donc pas de `WHERE` à rejouer ; ce que la porte impose (propriétaire = `request.user.id` quand il n'est pas dans `fields`, parent de l'URL) est **écrit par `insert` lui-même**, jamais repris du formulaire.
+- `can_read_own` : changement de schéma (`eihwaz_groupes_droits`), fait **avec** la refonte des droits, pas après.
+- `ReadableIds` : une seule requête par champ (`WHERE id IN (…) AND <portée>`), jamais une par id.
+- Exploitation : un superuser ne se supprime que par SQL ; à documenter pour l'exploitation (récupération par SQL ou par un autre superuser).
+- Réponse unique, proposition de Grok : même message (« action impossible ») partout, statut 404 quand l'id est dans l'URL (n'en confirme pas l'existence), 403 sans id (création sans droit). À trancher.
 
 ## Écarté (et pourquoi)
 
