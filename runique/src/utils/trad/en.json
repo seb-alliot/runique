@@ -305,7 +305,7 @@
     },
     "access": {
       "insufficient_rights": "Insufficient rights to access administration",
-      "superuser_only": "Only a superuser can change a superuser's account"
+      "superuser_only": "Action not allowed"
     },
     "dashboard": {
       "title": "Dashboard",

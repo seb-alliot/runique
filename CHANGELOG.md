@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 
 ### Security
 
+* **Admin — refusal on a superuser's account**: the message shown ("Only a superuser can change a superuser's account") told a staff member that the targeted account was a superuser. It is now generic ("Action not allowed", 9 languages); the rule itself is unchanged.
 * **CSRF token sent to other sites by `csrf.js`**: the script wraps `fetch` to add `X-CSRF-Token` to `POST`/`PUT`/`PATCH`/`DELETE` requests, without looking at where they go. A `POST` fetch to another domain, made from a page that loads the script (third-party script, project code), carried the session's token to that domain, and another site's response could replace the page's token. The token is now added, and its rotation accepted, only for requests to the page's own origin. **Restart the application** after updating: the static file changes.
 
 ---

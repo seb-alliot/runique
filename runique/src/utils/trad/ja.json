@@ -305,7 +305,7 @@
     },
     "access": {
       "insufficient_rights": "管理画面へのアクセス権限が不足しています",
-      "superuser_only": "スーパーユーザーのアカウントを変更できるのはスーパーユーザーだけです"
+      "superuser_only": "この操作は許可されていません"
     },
     "dashboard": {
       "title": "ダッシュボード",

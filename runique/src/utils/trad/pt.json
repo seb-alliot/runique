@@ -305,7 +305,7 @@
     },
     "access": {
       "insufficient_rights": "Direitos insuficientes para acessar a administração",
-      "superuser_only": "Apenas um superutilizador pode alterar a conta de um superutilizador"
+      "superuser_only": "Ação não autorizada"
     },
     "dashboard": {
       "title": "Painel",

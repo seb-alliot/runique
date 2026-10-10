@@ -18,6 +18,7 @@ Lus en base via ses groupes, une fois par requête, depuis `request.user`.
 pub struct CrudAction {   // aujourd'hui `ResourcePerms`, renommé à la refonte
     pub can_create: bool,
     pub can_read: bool,
+    pub can_read_own: bool,      // nouvelle colonne de `eihwaz_groupes_droits` (refonte)
     pub can_update: bool,
     pub can_delete: bool,
     pub can_update_own: bool,
@@ -25,7 +26,7 @@ pub struct CrudAction {   // aujourd'hui `ResourcePerms`, renommé à la refonte
     pub is_superuser: bool,
 }
 
-pub enum Crud { Create, Read, Update, Delete, UpdateOwn, DeleteOwn }
+pub enum Crud { Create, Read, Update, Delete, ReadOwn, UpdateOwn, DeleteOwn }
 
 impl CrudAction {
     pub fn has(&self, right: Crud) -> bool {
@@ -34,6 +35,7 @@ impl CrudAction {
             Crud::Read => self.can_read,
             Crud::Update => self.can_update,
             Crud::Delete => self.can_delete,
+            Crud::ReadOwn => self.can_read_own,
             Crud::UpdateOwn => self.can_update_own,
             Crud::DeleteOwn => self.can_delete_own,
         }
@@ -71,7 +73,7 @@ pub trait Op {
 | Struct | `PATH` | `RIGHT` | `RIGHT_OWN` | `PROTECTS_SUPERUSER` |
 | --- | --- | --- | --- | --- |
 | `List` | `/list` | `Read` | — (la liste est filtrée par `Scope::Own`) | non |
-| `View` | `/{id}/detail` | `Read` | — | non |
+| `View` | `/{id}/detail` | `Read` | `ReadOwn` | non |
 | `Create` | `/create` | `Create` | — (pas de ligne existante) | non |
 | `Update` | `/{id}/edit` | `Update` | `UpdateOwn` | oui |
 | `Delete` | `/{id}/delete` | `Delete` | `DeleteOwn` | oui |
@@ -140,7 +142,16 @@ pub(crate) async fn gate<O: Op, E: ModelMeta>(
         return Err(Refusal::ActionImpossible);
     }
 
-    Ok(Authorized::new(id))
+    // Plancher propre à `users`, hors des constantes génériques : actions sur soi-même,
+    // suppression d'un staff (superuser seul), ResetPassword d'un superuser (lui seul).
+    if E::KEY == "users" && let Some(id) = &id {
+        users_floor::<O>(ctx.db, user, &perms, id).await?;
+    }
+
+    // Tout ce qui a été vérifié, rejoué par l'écriture (TOCTOU) :
+    // propriétaire, parent, non-superuser, et le filtre métier `queryset`.
+    let conditions = checked_conditions::<O, E>(user, &perms, &ctx.parent, ctx.queryset);
+    Ok(Authorized::new(id, conditions))
 }
 ```
 
@@ -159,7 +170,7 @@ impl<O, E: EntityTrait> Guarded<E> for Authorized<O, E> {
 }
 
 impl<O, E: EntityTrait> Authorized<O, E> {
-    pub(crate) fn new(id: Option<PkOf<E>>) -> Self { .. }   // seule la porte l'appelle
+    pub(in crate::admin::gate) fn new(id: Option<PkOf<E>>, conditions: Condition) -> Self { .. }   // seule la porte l'appelle
 }
 ```
 
@@ -324,6 +335,13 @@ Déjà corrigé : les droits sont relus à chaque requête, la porte revérifie 
 - Exploitation : un superuser ne se supprime que par SQL ; à documenter pour l'exploitation (récupération par SQL ou par un autre superuser).
 - Réponse unique, proposition de Grok : même message (« action impossible ») partout, statut 404 quand l'id est dans l'URL (n'en confirme pas l'existence), 403 sans id (création sans droit). À trancher.
 
+## 15. Troisième relecture (Grok, 2026-10-10)
+
+- `PROTECTS_SUPERUSER` ne couvre que « un non-superuser ne touche pas un superuser ». Les règles plus strictes (ResetPassword d'un superuser par lui seul, suppression d'un staff par un superuser seul, actions sur soi-même) vivent dans `users_floor`, appelé par la porte pour la ressource `users` : sinon la porte générique laisserait un superuser A réinitialiser le superuser B.
+- `can_read_own` / `Crud::ReadOwn` ajoutés au squelette (section 1).
+- `Authorized::new(id, conditions)` : les conditions sont construites une seule fois, dans la porte.
+- `queryset` entre dans les conditions rejouées par l'écriture, comme le propriétaire et le parent.
+
 ## Écarté (et pourquoi)
 
 | Piste | Raison |
@@ -350,3 +368,4 @@ pub trait Guarded<E: EntityTrait> {
     fn conditions(&self) -> Condition;
 }
 ```
+- Message unique : `Refusal::ActionImpossible` s'affiche par une clé i18n générique, `admin.access.action_not_allowed` (« Action non autorisée », 9 langues), à ajouter à la refonte. `admin.access.superuser_only` porte déjà ce texte générique depuis la 3.0.4 (son ancien texte confirmait que le compte visé était un superuser) ; la clé est renommée à la refonte.
