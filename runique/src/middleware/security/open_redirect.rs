@@ -8,42 +8,76 @@ use axum::{
 };
 
 /// Blocks redirects to untrusted destinations: inspects the `Location`
-/// header of any redirect response and replaces it with a `400 Bad Request`
-/// unless `is_safe_redirect` accepts it (same-origin relative path, the
-/// client's own loopback, or a host in the configured allowlist).
+/// header of a redirect response and the `Refresh` header of any response,
+/// and replaces the response with a `400 Bad Request` unless
+/// `is_safe_redirect` accepts every destination (same-origin relative path,
+/// the client's own loopback, or a host in the configured allowlist).
 pub async fn open_redirect_middleware(
     State(engine): State<AEngine>,
     req: Request<Body>,
     next: Next,
 ) -> Response {
     let response = next.run(req).await;
-
-    if !response.status().is_redirection() {
-        return response;
-    }
-
-    let Some(location) = response.headers().get(header::LOCATION) else {
-        return response;
-    };
+    let headers = response.headers();
 
     // A header may hold bytes `to_str` refuses (non-ASCII): read it lossily
     // rather than letting it through unchecked — a browser still follows it.
-    let location_str = String::from_utf8_lossy(location.as_bytes()).into_owned();
-    let location_str = location_str.as_str();
-
-    if is_safe_redirect(location_str, &engine) {
-        return response;
+    let mut targets: Vec<String> = Vec::new();
+    if response.status().is_redirection()
+        && let Some(location) = headers.get(header::LOCATION)
+    {
+        targets.push(String::from_utf8_lossy(location.as_bytes()).into_owned());
     }
+    // `Refresh` sends the browser elsewhere too, whatever the status.
+    if let Some(refresh) = headers.get(header::REFRESH) {
+        targets.extend(refresh_targets(&String::from_utf8_lossy(refresh.as_bytes())));
+    }
+
+    let Some(unsafe_target) = targets.iter().find(|t| !is_safe_redirect(t, &engine)) else {
+        return response;
+    };
 
     if let Some(level) = get_log()
         .middleware
         .as_ref()
         .and_then(|m| m.host_validation)
     {
-        crate::runique_log!(level, location = %location_str, "open redirect blocked");
+        crate::runique_log!(level, location = %unsafe_target, "open redirect blocked");
     }
 
     (StatusCode::BAD_REQUEST, "Forbidden redirect").into_response()
+}
+
+/// The URLs a `Refresh` value may send the browser to (`5; url=/next`,
+/// `0;URL='/x'`, `0, /x`, `0; /x`); empty when it only reloads the page. The
+/// syntax is loose, so both readings of a leading `url` are returned: with it
+/// as the `url=` keyword, and as the start of the URL itself — the redirect is
+/// refused if either one leaves the site.
+fn refresh_targets(value: &str) -> Vec<String> {
+    let rest = value
+        .trim_start()
+        .trim_start_matches(|c: char| c.is_ascii_digit() || c == '.')
+        .trim_start();
+    let rest = rest.strip_prefix([';', ',']).unwrap_or(rest).trim_start();
+
+    let mut readings = vec![rest];
+    if let Some(prefix) = rest.get(..3)
+        && prefix.eq_ignore_ascii_case("url")
+    {
+        let after = rest[3..].trim_start();
+        readings.push(after.strip_prefix('=').unwrap_or(after).trim_start());
+    }
+
+    readings
+        .into_iter()
+        .map(|reading| match reading.chars().next() {
+            Some(quote @ ('\'' | '"')) => reading[1..].split(quote).next().unwrap_or(""),
+            _ => reading,
+        })
+        .map(str::trim)
+        .filter(|url| !url.is_empty())
+        .map(str::to_string)
+        .collect()
 }
 
 /// Stands in for the current site when resolving a relative `Location`.

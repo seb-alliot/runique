@@ -78,7 +78,7 @@ Ces pistes remonteront quand un chantier se terminera.
   vrai `ALTER` lors d'un changement de type, clés étrangères cycliques
 - **ORM** — hooks/signals (`before_save`, `after_save`…), agrégats dans `search!`,
   `.first()` qui renvoie `Option<T>`, plusieurs valeurs pour un même champ dans `search!`
-- **Framework** — `crud!{}` pour les vues publiques, surcharge des champs `#[form]`, plusieurs
+- **Framework** — redirections typées (`redirect("nom_de_route")`, `redirect_external(url)` limité aux hôtes autorisés, `?next=` vérifié contre les routes déclarées), `crud!{}` pour les vues publiques, surcharge des champs `#[form]`, plusieurs
   connexions de types différents (TypeMap), middleware de détection de la langue, accès à
   `path_params` / `query_params` par des getters
 - **Authentification** — OAuth/OIDC, JWT et clés d'API, journal des connexions, rapports de

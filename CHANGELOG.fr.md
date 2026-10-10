@@ -10,7 +10,7 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ### Sécurité
 
-* **Open redirect** — deux autres façons de contourner la protection : une tabulation qui cache une URL relative au protocole (`/\t/evil.com`, que les navigateurs lisent comme `//evil.com`), et un `Location` contenant un octet non ASCII, que la protection ne pouvait pas lire comme du texte et laissait passer sans vérification. La cible est désormais résolue par l'analyseur d'URL WHATWG suivi par les navigateurs (crate `url`), et un en-tête illisible est lu avec remplacement au lieu d'être ignoré. Un chemin relatif sans `/` initial (`page2`) est maintenant reconnu comme restant sur le site ; un schéma autre que `http`/`https` est refusé.
+* **Open redirect** — deux autres façons de contourner la protection : une tabulation qui cache une URL relative au protocole (`/\t/evil.com`, que les navigateurs lisent comme `//evil.com`), et un `Location` contenant un octet non ASCII, que la protection ne pouvait pas lire comme du texte et laissait passer sans vérification. La cible est désormais résolue par l'analyseur d'URL WHATWG suivi par les navigateurs (crate `url`), et un en-tête illisible est lu avec remplacement au lieu d'être ignoré. Un chemin relatif sans `/` initial (`page2`) est maintenant reconnu comme restant sur le site ; un schéma autre que `http`/`https` est refusé. L'en-tête `Refresh` (`0; url=//evil.com`), que les navigateurs suivent quel que soit le statut, n'était pas vérifié du tout : il passe désormais par le même contrôle, quelle que soit son écriture (`URL=`, guillemets, `,`, sans mot-clé).
 
 ### Correctif
 

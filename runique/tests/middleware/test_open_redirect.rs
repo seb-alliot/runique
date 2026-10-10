@@ -1,5 +1,5 @@
 use crate::helpers::{
-    assert::{assert_redirect, assert_status},
+    assert::{assert_header_eq, assert_redirect, assert_status},
     request,
     server::build_engine,
 };
@@ -308,6 +308,48 @@ async fn a_backslash_inside_a_local_path_still_passes() {
     let engine = build_engine().await;
     let resp = request::get(redirect_app(engine, "/docs\\guide"), "/").await;
     assert_redirect(&resp, "/docs\\guide");
+}
+
+// `Refresh` sends the browser elsewhere just like `Location`, on any status.
+fn refresh_app(engine: Arc<RuniqueEngine>, refresh: &'static str) -> Router {
+    Router::new()
+        .route("/", get(move || async move { ([("refresh", refresh)], "ok") }))
+        .layer(middleware::from_fn_with_state(
+            engine,
+            open_redirect_middleware,
+        ))
+}
+
+#[tokio::test]
+async fn a_refresh_header_to_another_site_is_blocked() {
+    let engine = build_engine().await;
+    let resp = request::get(refresh_app(engine, "0; url=//evil.com/steal"), "/").await;
+    assert_status(&resp, 400);
+}
+
+#[tokio::test]
+async fn every_spelling_of_a_refresh_to_another_site_is_blocked() {
+    for refresh in [
+        "0;URL='//evil.com/steal'",
+        "0; url = \"https://evil.com/\"",
+        "0, //evil.com/steal",
+        "0; //evil.com/steal",
+        "0;url=/\t/evil.com",
+    ] {
+        let engine = build_engine().await;
+        let resp = request::get(refresh_app(engine, refresh), "/").await;
+        assert_status(&resp, 400);
+    }
+}
+
+#[tokio::test]
+async fn a_refresh_header_to_a_local_page_passes() {
+    for refresh in ["5; url=/merci", "0;URL='/merci'", "30", "10; urlmerci"] {
+        let engine = build_engine().await;
+        let resp = request::get(refresh_app(engine, refresh), "/").await;
+        assert_status(&resp, 200);
+        assert_header_eq(&resp, "refresh", refresh);
+    }
 }
 
 #[tokio::test]
