@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Security
+
+* **Open redirect** — two more ways past the redirect guard: a tab hiding a protocol-relative URL (`/\t/evil.com`, which browsers read as `//evil.com`), and a `Location` holding a non-ASCII byte, which the guard couldn't read as text and let through unchecked. The target is now resolved by the WHATWG URL parser browsers follow (`url` crate), and an unreadable header is read lossily instead of skipped. A relative path without a leading slash (`page2`) is now recognised as staying on the site; a scheme other than `http`/`https` is refused.
+
 ### Fixed
 
 * **`runique create-superuser`** only read `DATABASE_URL` and panicked without it, while the app also accepts `DB_ENGINE` + `DB_USER` / `DB_PASSWORD` / `DB_HOST` / `DB_PORT` / `DB_NAME`: a project configured that way booted, but its superuser couldn't be created. The wizard now reads the same keys as the app, rebuilds the URL from them, and reports a missing key as an error.

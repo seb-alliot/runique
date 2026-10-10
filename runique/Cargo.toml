@@ -38,6 +38,7 @@ proc-macro2.workspace = true
 
 # Security
 urlencoding.workspace = true
+url.workspace = true
 byte.workspace = true
 http-body-util.workspace = true
 ammonia.workspace = true

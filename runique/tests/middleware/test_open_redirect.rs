@@ -249,6 +249,67 @@ async fn subdomain_spoof_blocked() {
     assert_status(&resp, 400);
 }
 
+// Browsers read a backslash as a slash: each of these lands on evil.com.
+#[tokio::test]
+async fn backslash_variants_of_a_protocol_relative_url_are_blocked() {
+    for location in [
+        "/\\evil.com/steal",
+        "\\/evil.com/steal",
+        "\\\\evil.com/steal",
+    ] {
+        let engine = build_engine().await;
+        let resp = request::get(redirect_app(engine, location), "/").await;
+        assert_status(&resp, 400);
+    }
+}
+
+// Browsers drop tabs from a URL before reading it: "/\t/evil.com" is "//evil.com".
+#[tokio::test]
+async fn a_tab_hiding_a_protocol_relative_url_is_blocked() {
+    for location in ["/\t/evil.com/steal", "\t//evil.com/steal"] {
+        let engine = build_engine().await;
+        let resp = request::get(redirect_app(engine, location), "/").await;
+        assert_status(&resp, 400);
+    }
+}
+
+// A non-ASCII byte made the header unreadable as text, and the redirect went
+// through unchecked.
+#[tokio::test]
+async fn a_non_ascii_location_is_still_checked() {
+    let engine = build_engine().await;
+    let resp = request::get(redirect_app(engine, "//evil.com/café"), "/").await;
+    assert_status(&resp, 400);
+
+    let engine = build_engine().await;
+    let resp = request::get(redirect_app(engine, "/café"), "/").await;
+    assert!(resp.status().is_redirection(), "{}", resp.status());
+    assert_eq!(resp.headers()["location"].as_bytes(), "/café".as_bytes());
+}
+
+#[tokio::test]
+async fn a_relative_path_without_a_leading_slash_stays_on_the_site() {
+    let engine = build_engine().await;
+    let resp = request::get(redirect_app(engine, "page2?x=1"), "/").await;
+    assert_redirect(&resp, "page2?x=1");
+}
+
+#[tokio::test]
+async fn a_scheme_other_than_http_is_blocked() {
+    for location in ["javascript:alert(1)", "ftp://myapp.com/file"] {
+        let engine = engine_with_hosts(vec!["myapp.com"]).await;
+        let resp = request::get(redirect_app(engine, location), "/").await;
+        assert_status(&resp, 400);
+    }
+}
+
+#[tokio::test]
+async fn a_backslash_inside_a_local_path_still_passes() {
+    let engine = build_engine().await;
+    let resp = request::get(redirect_app(engine, "/docs\\guide"), "/").await;
+    assert_redirect(&resp, "/docs\\guide");
+}
+
 #[tokio::test]
 async fn lookalike_host_blocked() {
     // "notmyapp.com" ne doit pas passer avec "myapp.com"
