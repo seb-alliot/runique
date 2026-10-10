@@ -255,19 +255,21 @@ Also available in `configure {}` for builtin resources.
 
 #### `bulk_create`
 
-When declared on a resource, the generated `create_fn` splits the named field by comma and performs an **upsert** per value: update if a record already exists (same split field value), insert otherwise. Designed for `CheckboxField` multi-select (e.g. selecting multiple days of the week to create or update one schedule per day).
+When declared on a resource, the generated `create_fn` splits the named field by comma and **inserts one record per value**. A value that already exists is skipped, whatever its case (`Gluten` = `gluten`), and so is a value repeated in the same submission. If every value already exists, nothing is created and the form says so. Designed for `CheckboxField` multi-select (e.g. selecting multiple days of the week to create one schedule per day).
+
+> **Since 3.0.3, a create never updates.** Before, an existing value was updated: a staff member with only the *create* right could change records the admin never checked their *update* right for. To change an existing record, edit it. Projects must regenerate their admin (`runique start`) to get the fix.
 
 ```rust
 admin! {
     horaires: horaire::Model => horaire::AdminForm {
         title: "Schedules",
         create_form: crate::forms::ScheduleGroupForm,
-        bulk_create: jour,   // upsert per value of data["jour"]
+        bulk_create: jour,   // one record per value of data["jour"], existing ones skipped
     }
 }
 ```
 
-Only the split field behaves differently — all other form fields are copied as-is into each inserted or updated record.
+Only the split field behaves differently — all other form fields are copied as-is into each inserted record.
 
 **Multi-select submission pipeline**: a group of HTML checkboxes submits the same key multiple times (`jour=monday&jour=tuesday&jour=thursday`). Prisme, Runique's request body parser, automatically joins these repeated values with a comma → the field becomes `"monday,tuesday,thursday"`. `bulk_create` then splits this string to process each value independently.
 
@@ -284,7 +286,7 @@ form.field(
 
 **Interaction with `edit_form`**: when `bulk_create` is declared without an explicit `edit_form`, the daemon automatically generates an `edit_form_builder` using `module::AdminForm` (standard single-record form). The individual edit view therefore never uses the multi-select create form.
 
-> The split field must correspond to a `unique` constraint in the model for the upsert to work correctly — this uniqueness is what allows an existing record to be located.
+> Declaring the split field `unique` in the model is still recommended: the duplicate check runs before the insert, the constraint closes the gap between two simultaneous submissions.
 
 ---
 

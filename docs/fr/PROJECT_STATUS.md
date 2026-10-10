@@ -115,6 +115,7 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 | 2.1.15 | Énumération d'utilisateurs via timing attack au login | Moyenne |
 | 2.1.15 | Contrôle d'accès manquant sur l'action admin reset-password | Moyenne |
 | 2.1.17 | Tokens de reset : mémoire → DB (hashés, single-use, durcis IDOR) | Durcissement |
+| 3.0.3 | `bulk_create` : le seul droit de création permettait de modifier des lignes existantes | Élevée |
 | 3.0.3 | Un membre du staff pouvait prendre le compte d'un superutilisateur (changement d'email + réinitialisation) | Élevée |
 | 3.0.3 | Open redirect via une tabulation, un `Location` non ASCII ou l'en-tête `Refresh` | Moyenne |
 | 3.0.2 | XSS stockée via un upload en staging (chemin réaffiché, dossier servi sans CSP) | Élevée |

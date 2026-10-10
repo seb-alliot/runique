@@ -271,19 +271,21 @@ Disponible aussi dans `configure {}` pour les ressources builtin.
 
 #### `bulk_create`
 
-Quand déclaré sur une ressource, le `create_fn` généré découpe le champ nommé par virgule et effectue un **upsert** par valeur : mise à jour si l'enregistrement existe déjà (même valeur du champ split), insertion sinon. Conçu pour les `CheckboxField` multi-sélection (ex : sélectionner plusieurs jours de la semaine pour créer ou mettre à jour un `horaire` par jour).
+Quand déclaré sur une ressource, le `create_fn` généré découpe le champ nommé par virgule et **insère un enregistrement par valeur**. Une valeur qui existe déjà est ignorée, quelle que soit sa casse (`Gluten` = `gluten`), de même qu'une valeur répétée dans le même envoi. Si toutes les valeurs existent déjà, rien n'est créé et le formulaire l'indique. Conçu pour les `CheckboxField` multi-sélection (ex : sélectionner plusieurs jours de la semaine pour créer un `horaire` par jour).
+
+> **Depuis la 3.0.3, une création ne modifie jamais.** Avant, une valeur existante était mise à jour : un membre du staff n'ayant que le droit de *créer* pouvait modifier des enregistrements sans que l'admin vérifie son droit de *modification*. Pour changer un enregistrement existant, passez par sa modification. Les projets doivent régénérer leur admin (`runique start`) pour bénéficier du correctif.
 
 ```rust
 admin! {
     horaires: horaire::Model => horaire::AdminForm {
         title: "Horaires",
         create_form: crate::formulaire::HorairesGroupeForm,
-        bulk_create: jour,   // upsert par valeur de data["jour"]
+        bulk_create: jour,   // un enregistrement par valeur de data["jour"], existants ignorés
     }
 }
 ```
 
-Seul le champ split se comporte différemment — tous les autres champs du formulaire sont copiés tels quels dans chaque enregistrement inséré ou mis à jour.
+Seul le champ split se comporte différemment — tous les autres champs du formulaire sont copiés tels quels dans chaque enregistrement inséré.
 
 **Pipeline de soumission multi-sélection** : une série de checkboxes HTML soumettent plusieurs fois la même clé (`jour=lundi&jour=mardi&jour=jeudi`). Prisme, le parser de corps de requête de Runique, joint automatiquement ces valeurs répétées par une virgule → le champ devient `"lundi,mardi,jeudi"`. C'est cette chaîne que `bulk_create` découpe pour traiter chaque valeur indépendamment.
 
@@ -300,7 +302,7 @@ form.field(
 
 **Interaction avec `edit_form`** : quand `bulk_create` est déclaré sans `edit_form` explicite, le daemon génère automatiquement un `edit_form_builder` utilisant `module::AdminForm` (formulaire standard mono-enregistrement). La vue edit individuelle n'utilise donc jamais le formulaire multi-sélection de la création groupée.
 
-> Le champ split doit correspondre à une contrainte `unique` dans le modèle pour que l'upsert fonctionne correctement — c'est cette unicité qui permet de retrouver l'enregistrement existant.
+> Déclarer le champ split `unique` dans le modèle reste conseillé : la vérification des doublons a lieu avant l'insertion, la contrainte couvre le cas de deux envois simultanés.
 
 ---
 
