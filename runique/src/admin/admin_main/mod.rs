@@ -581,16 +581,16 @@ async fn dispatch_collection_post(
             {
                 crate::runique_log!(level, resource = %resource_key, action = "bulk POST", "bulk");
             }
-            handle_bulk_action(
-                &mut req,
+            let ctx = gate::GateCtx {
                 entry,
-                body,
-                &state,
-                &current_user,
-                &perms,
-                parent.as_ref(),
-            )
-            .await
+                parent: parent.as_ref(),
+                db: req.engine.db.clone(),
+            };
+            let auth = gate::GateAuthorization {
+                perms: &perms,
+                user: &current_user,
+            };
+            handle_bulk_action(&mut req, body, &state, &ctx, &auth).await
         }
         // `list` is rejected by `parse_post`; unreachable.
         CollectionAction::List => Err(Box::new(AppError::new(ErrorContext::not_found(
@@ -669,17 +669,16 @@ async fn dispatch_member_get(
     if !perms.can_read {
         return Ok(permission_denied_dashboard(&req.notices, &state.config.prefix).await);
     }
-    let access = match gate::member_gate(
+    let ctx = gate::GateCtx {
         entry,
-        req.engine.db.clone(),
-        &perms,
-        parent.as_ref(),
-        current_user.id,
-        &id,
-        &act,
-    )
-    .await
-    {
+        parent: parent.as_ref(),
+        db: req.engine.db.clone(),
+    };
+    let auth = gate::GateAuthorization {
+        perms: &perms,
+        user: &current_user,
+    };
+    let access = match gate::member_gate(&ctx, &auth, &id, &act).await {
         gate::RowCheck::OutOfScope => {
             return Err(Box::new(AppError::new(ErrorContext::not_found(
                 "Resource not found",
@@ -827,17 +826,16 @@ async fn dispatch_member_post(
             "Unknown action",
         ))));
     };
-    let access = match gate::member_gate(
+    let ctx = gate::GateCtx {
         entry,
-        req.engine.db.clone(),
-        &perms,
-        parent.as_ref(),
-        current_user.id,
-        &id,
-        &act,
-    )
-    .await
-    {
+        parent: parent.as_ref(),
+        db: req.engine.db.clone(),
+    };
+    let auth = gate::GateAuthorization {
+        perms: &perms,
+        user: &current_user,
+    };
+    let access = match gate::member_gate(&ctx, &auth, &id, &act).await {
         gate::RowCheck::OutOfScope => {
             return Err(Box::new(AppError::new(ErrorContext::not_found(
                 "Resource not found",

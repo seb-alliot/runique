@@ -27,6 +27,21 @@ use crate::context::template::Request;
 use crate::utils::aliases::StrMap;
 use crate::utils::session_key::session::CSRF_TOKEN_KEY;
 
+/// Where a check happens: the resource, its parent under a nested route, and
+/// the database to look the rows up in.
+pub(super) struct GateCtx<'a> {
+    pub entry: &'a ResourceEntry,
+    pub parent: Option<&'a ParentBinding>,
+    pub db: crate::utils::aliases::ADb,
+}
+
+/// Who asks: their rights on the resource (superuser included) and their
+/// account — its id for the `_own` rights, its name for the history.
+pub(super) struct GateAuthorization<'a> {
+    pub perms: &'a ResourcePerms,
+    pub user: &'a crate::auth::session::CurrentUser,
+}
+
 /// The bulk operation a request asks for (`bulk_action`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum BulkOp {
@@ -72,14 +87,14 @@ pub(super) enum BulkRefusal {
 }
 
 pub(super) async fn bulk_gate(
+    ctx: &GateCtx<'_>,
+    auth: &GateAuthorization<'_>,
     req: &Request,
-    entry: &ResourceEntry,
     state: &super::PrototypeAdminState,
-    perms: &ResourcePerms,
-    parent: Option<&ParentBinding>,
     op: BulkOp,
     body: &StrMap,
 ) -> Result<BulkGrant, BulkRefusal> {
+    let (entry, parent, db, perms) = (ctx.entry, ctx.parent, &ctx.db, auth.perms);
     let allowed = match op {
         BulkOp::Delete => perms.can_delete,
         BulkOp::Update | BulkOp::GroupSet => perms.can_update,
@@ -104,11 +119,11 @@ pub(super) async fn bulk_gate(
     for local in local_ids {
         let cid = closure_id_of(parent, local);
         if let Some(p) = parent
-            && !verify_scope_ownership(entry, req.engine.db.clone(), &cid, p).await
+            && !verify_scope_ownership(entry, db.clone(), &cid, p).await
         {
             return Err(BulkRefusal::OutOfScope);
         }
-        if !perms.is_superuser && protects_a_superuser(entry, req.engine.db.clone(), &cid).await {
+        if !perms.is_superuser && protects_a_superuser(entry, db.clone(), &cid).await {
             return Err(BulkRefusal::ProtectedAccount);
         }
         ids.push(cid);
@@ -245,14 +260,12 @@ pub(super) enum RowCheck {
 /// the URL's parent, and the action's right — or its `_own` variant on a row
 /// the user owns — must be granted.
 pub(super) async fn member_gate(
-    entry: &ResourceEntry,
-    db: crate::utils::aliases::ADb,
-    perms: &ResourcePerms,
-    parent: Option<&ParentBinding>,
-    user_id: crate::utils::pk::Pk,
+    ctx: &GateCtx<'_>,
+    auth: &GateAuthorization<'_>,
     id: &str,
     act: &MemberAction,
 ) -> RowCheck {
+    let (entry, parent, db, perms) = (ctx.entry, ctx.parent, &ctx.db, auth.perms);
     let closure_id = closure_id_of(parent, id);
     if let Some(p) = parent
         && !verify_scope_ownership(entry, db.clone(), &closure_id, p).await
@@ -266,7 +279,7 @@ pub(super) async fn member_gate(
     {
         return RowCheck::ProtectedAccount;
     }
-    let owns_record = check_owns_record(entry, db, &closure_id, user_id).await;
+    let owns_record = check_owns_record(entry, db.clone(), &closure_id, auth.user.id).await;
     match act.authorize(perms, owns_record) {
         Access::Granted => RowCheck::Granted,
         denied => RowCheck::Denied(denied),
