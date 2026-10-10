@@ -103,8 +103,8 @@ pub(crate) async fn gate<O: Op, E: ModelMeta>(
     ctx: &GateCtx<'_>,
     req: &Request,
     id: Option<PkOf<E>>,
-) -> Result<Authorized<O, E>, Refus> {
-    let user = req.user.as_ref().ok_or(Refus::ActionImpossible)?;
+) -> Result<Authorized<O, E>, Refusal> {
+    let user = req.user.as_ref().ok_or(Refusal::ActionImpossible)?;
     let perms = CrudAction::resolve(user, E::KEY);
 
     let allowed = if perms.has(O::RIGHT) {
@@ -118,7 +118,15 @@ pub(crate) async fn gate<O: Op, E: ModelMeta>(
         false
     };
     if !allowed {
-        return Err(Refus::ActionImpossible);
+        return Err(Refusal::ActionImpossible);
+    }
+
+    // Ressource imbriquée : la ligne doit appartenir au parent de l'URL.
+    if let Some(parent) = &ctx.parent
+        && let Some(id) = &id
+        && !belongs_to_parent::<E>(ctx.db, id, parent).await?
+    {
+        return Err(Refusal::ActionImpossible);
     }
 
     if O::PROTECTS_SUPERUSER
@@ -126,7 +134,7 @@ pub(crate) async fn gate<O: Op, E: ModelMeta>(
         && let Some(id) = &id
         && protects_a_superuser::<E>(ctx.db, id).await?
     {
-        return Err(Refus::ActionImpossible);
+        return Err(Refusal::ActionImpossible);
     }
 
     Ok(Authorized::new(id))
@@ -150,9 +158,9 @@ impl<O, E: EntityTrait> Authorized<O, E> {
 Les écritures exigent la preuve de **leur** opération et la consomment :
 
 ```rust
-async fn insert<E>(preuve: Authorized<Create, E>, data: .., db: &ADb) -> Result<.., Refus>;
-async fn update<E>(preuve: Authorized<Update, E>, data: .., db: &ADb) -> Result<.., Refus>;
-async fn delete<E>(preuve: Authorized<Delete, E>, db: &ADb) -> Result<.., Refus>;
+async fn insert<E>(preuve: Authorized<Create, E>, data: .., db: &ADb) -> Result<.., Refusal>;
+async fn update<E>(preuve: Authorized<Update, E>, data: .., db: &ADb) -> Result<.., Refusal>;
+async fn delete<E>(preuve: Authorized<Delete, E>, db: &ADb) -> Result<.., Refusal>;
 ```
 
 ## 5. Un handler, de bout en bout
@@ -186,7 +194,7 @@ async fn write_links<R: M2mRelation>(
     relation: R,
     targets: ReadableIds<R::To>,   // ids que l'utilisateur peut lire ; un seul refusé → tout refusé
     txn: &DatabaseTransaction,     // même transaction que le parent
-) -> Result<(), Refus>;
+) -> Result<(), Refusal>;
 ```
 
 ## 7. Ajouter une opération plus tard
@@ -285,6 +293,18 @@ Le dev ne peut que **restreindre** : sa règle n'est évaluée que si les deux n
 5. **Colonnes structurelles** (tranché) : clé primaire jamais dans `fields` (vérifié au démarrage) ; clé du parent d'une route imbriquée imposée par l'URL. Toute autre clé étrangère, colonne propriétaire comprise, suit la logique de Django : modifiable seulement si le dev la met dans `fields` (transférer une commande à un autre utilisateur est un choix du projet), absente ou `readonly` sinon. La cible reste vérifiée par `ReadableIds`.
 
 Déjà corrigé : les droits sont relus à chaque requête, la porte revérifie au POST.
+
+## 13. Retour de relecture (Grok, 2026-10-10)
+
+1. **Propriétaire typé, via `ModelMeta`** : `owner_of` lit la colonne propriétaire déclarée par `ModelMeta` (`const OWNER: Option<Self::Column>`), comparée en `PkOf<User>`, jamais en chaîne (`own_field` + `to_string()` d'aujourd'hui disparaissent). Pas de colonne propriétaire → `RIGHT_OWN` n'ouvre jamais. Colonne `NULL` → pas propriétaire.
+2. **Parent dans la porte et dans la preuve** : `GateCtx::parent` (ressource + id) est vérifié par la porte (ci-dessus) et rejoué par `Guarded::conditions()` (`AND parent_id = ?`).
+3. **Frontière** : la porte autorise **l'opération sur une ligne** ; le plancher et `fields` autorisent **les colonnes**. Un `create` ne peut pas poser `is_superuser` parce que la colonne est refusée, pas parce que la porte le voit.
+4. **`ResetPassword`** : déjà prévue (section 8, point 3) ; sa preuve est `Authorized<ResetPassword, User>`.
+5. **Réponse unique** : « n'existe pas », « hors du parent », « pas le droit », « superuser protégé » donnent tous la même réponse (section 12, point 4). Laquelle (404 ou message général) : à trancher une fois pour toutes.
+6. **Vocabulaire unique** : `CrudAction` (droits), `Crud` (un droit), `CrudOperation` (enum des opérations, données), structs `Op` (comportement), `Authorized`, `Refusal`. `ResourcePerms` et `Refus` disparaissent à la refonte.
+7. **Tests** : les tests fabriquent leurs preuves par un module `gate::test_support` sous `#[cfg(test)]`, jamais en ouvrant `Authorized::new`.
+8. **Action groupée** : la colonne visée doit être dans `fields`, jamais secrète ni `server_only` (vérifié au démarrage).
+9. **`ModelMeta` reste fin** : clé de ressource, clé primaire, propriétaire, parent, secrets, colonnes obligatoires, relations. L'affichage, les formulaires et les inlines restent dans le builder `ModelAdmin`. La preuve ne connaît que `E` et `O`, jamais le formulaire.
 
 ## Écarté (et pourquoi)
 
