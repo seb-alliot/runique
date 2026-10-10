@@ -6,6 +6,14 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [3.0.4] - unreleased
+
+### Security
+
+* **CSRF token sent to other sites by `csrf.js`**: the script wraps `fetch` to add `X-CSRF-Token` to `POST`/`PUT`/`PATCH`/`DELETE` requests, without looking at where they go. A `POST` fetch to another domain, made from a page that loads the script (third-party script, project code), carried the session's token to that domain, and another site's response could replace the page's token. The token is now added, and its rotation accepted, only for requests to the page's own origin. **Restart the application** after updating: the static file changes.
+
+---
+
 ## [3.0.3] - 2026-10-10
 
 ### Security

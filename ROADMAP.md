@@ -128,6 +128,9 @@ These will move up when a piece of work is finished.
 - **Framework** — typed redirects (`redirect("route_name")`, `redirect_external(url)` limited to allowed hosts, `?next=` checked against declared routes), `crud!{}` for public views, `#[form]` field overrides, several connections
   of different types (TypeMap), language detection middleware, `path_params` /
   `query_params` through getters
+- **Storage** — a `StorageBackend` extension point (local disk by default, S3/R2 or another
+  service as an option) shared by media, uploads in transit and future exports. Until then,
+  external storage mounted as a folder (`s3fs`, `rclone mount`, NFS) works as `MEDIA_ROOT`
 - **Authentication** — two-level brute-force protection, without breaking change: lock per username + IP (the real user, elsewhere, can still sign in), and a slowdown per username across all addresses (against attacks spread over many IPs); one shared function, called by `LoginGuard` and by the admin sign-in. Then OAuth/OIDC, JWT and API keys, sign-in log, CSP violation reports
 - **Tooling** — built-in test client, fixtures, custom commands, sitemap and RSS, image
   resizing, full documentation of the public API

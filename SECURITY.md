@@ -31,6 +31,7 @@ Re-checked against `Cargo.lock` on 2026-10-10. The CI runs `cargo audit` on ever
 
 | Version | Issue | Severity |
 | ------- | ----- | -------- |
+| 3.0.4 | CSRF token sent by `csrf.js` with `fetch` requests to other origins | Medium |
 | 3.0.3 | `bulk_create`: a create-only right could update existing rows (regenerate the admin) | High |
 | 3.0.3 | Staff member able to take over a superuser's account (email change + password reset) | High |
 | 3.0.3 | Open redirect through a tab (`/\t/evil.com`) or a non-ASCII `Location` left unchecked | Medium |
