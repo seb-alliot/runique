@@ -77,7 +77,7 @@ These will move up when a piece of work is finished.
   a real `ALTER` when a column's type changes, circular foreign keys
 - **ORM** — hooks/signals (`before_save`, `after_save`…), aggregates in `search!`,
   `.first()` returning `Option<T>`, several values for one field in `search!`
-- **Framework** — `crud!{}` for public views, `#[form]` field overrides, several connections
+- **Framework** — typed redirects (`redirect("route_name")`, `redirect_external(url)` limited to allowed hosts, `?next=` checked against declared routes), `crud!{}` for public views, `#[form]` field overrides, several connections
   of different types (TypeMap), language detection middleware, `path_params` /
   `query_params` through getters
 - **Authentication** — OAuth/OIDC, JWT and API keys, sign-in log, CSP violation reports

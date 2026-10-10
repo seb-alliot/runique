@@ -10,7 +10,7 @@ All notable changes to this project will be documented in this file.
 
 ### Security
 
-* **Open redirect** — two more ways past the redirect guard: a tab hiding a protocol-relative URL (`/\t/evil.com`, which browsers read as `//evil.com`), and a `Location` holding a non-ASCII byte, which the guard couldn't read as text and let through unchecked. The target is now resolved by the WHATWG URL parser browsers follow (`url` crate), and an unreadable header is read lossily instead of skipped. A relative path without a leading slash (`page2`) is now recognised as staying on the site; a scheme other than `http`/`https` is refused.
+* **Open redirect** — two more ways past the redirect guard: a tab hiding a protocol-relative URL (`/\t/evil.com`, which browsers read as `//evil.com`), and a `Location` holding a non-ASCII byte, which the guard couldn't read as text and let through unchecked. The target is now resolved by the WHATWG URL parser browsers follow (`url` crate), and an unreadable header is read lossily instead of skipped. A relative path without a leading slash (`page2`) is now recognised as staying on the site; a scheme other than `http`/`https` is refused. The `Refresh` header (`0; url=//evil.com`), which browsers follow on any status, wasn't checked at all: it now goes through the same check, every spelling of it included (`URL=`, quotes, `,`, no keyword).
 
 ### Fixed
 

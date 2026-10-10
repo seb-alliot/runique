@@ -32,6 +32,7 @@ Re-checked against `Cargo.lock` on 2026-08-30. The CI also runs `cargo audit` on
 | Version | Issue | Severity |
 | ------- | ----- | -------- |
 | Unreleased | Open redirect through a tab (`/\t/evil.com`) or a non-ASCII `Location` left unchecked | Medium |
+| Unreleased | Open redirect through the `Refresh` header, never checked | Medium |
 | 3.0.2 | Stored XSS through an upload waiting for its form (path shown back, staging folder served without CSP) | High |
 | 3.0.2 | Uploaded files written to disk before the CSRF check (multipart) | Medium |
 | 3.0.2 | Open redirect through credentials in a URL (`allowed.com:x@evil.com`) | Medium |
