@@ -305,7 +305,8 @@
     },
     "access": {
       "insufficient_rights": "Permisos insuficientes para acceder a la administración",
-      "superuser_only": "Acción no autorizada"
+      "superuser_only": "Acción no autorizada",
+      "action_not_allowed": "Acción no autorizada"
     },
     "dashboard": {
       "title": "Panel de control",

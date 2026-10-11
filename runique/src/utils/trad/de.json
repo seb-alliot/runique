@@ -305,7 +305,8 @@
     },
     "access": {
       "insufficient_rights": "Unzureichende Rechte für den Zugriff auf die Administration",
-      "superuser_only": "Aktion nicht erlaubt"
+      "superuser_only": "Aktion nicht erlaubt",
+      "action_not_allowed": "Aktion nicht erlaubt"
     },
     "dashboard": {
       "title": "Dashboard",

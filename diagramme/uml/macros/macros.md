@@ -64,7 +64,7 @@ flowchart TB
       IE[impl_error! → From pour AppError]
     end
     subgraph forms
-      EK[define_enum_kind! → FieldKind + From~Field~ GenericField]
+      EK[define_enum_kind! → GeneratedField + From~Field~ GenericField]
       IFA["impl_form_access!(model) → register_fields+customize hook"]
     end
     subgraph template

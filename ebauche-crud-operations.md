@@ -7,7 +7,7 @@
 | Pièce | Ce qu'elle décrit | Forme |
 | --- | --- | --- |
 | **Droits** | Ce que l'utilisateur **peut** faire sur une ressource | `CrudAction`, une struct de booléens (existe sous le nom `ResourcePerms`, renommée à la refonte ; colonnes de `eihwaz_groupes_droits`) |
-| **Opérations** | Ce qu'une route **fait** : chemin, droit exigé, protections | Une struct vide par opération + le trait `Op` |
+| **Opérations** | Ce qu'une route **fait** : chemin, droit exigé, protections | Une struct vide par opération + le trait `AdminOperation` |
 | **Preuve** | Ce que la porte **a autorisé**, pour une ligne | `Authorized<O, E>` |
 
 ## 1. Droits (ce que l'utilisateur peut faire)
@@ -54,9 +54,9 @@ pub struct Create;
 pub struct Update;
 pub struct Delete;
 
-pub trait Op {
+pub trait AdminOperation {
     /// Pour les données : historique, templates, routes du dev.
-    const KIND: CrudOperation;
+    const CRUD_NATURE: CrudOperation;
     /// Chemin sous `/admin/{resource}`.
     const PATH: &'static str;
     /// Droit complet exigé.
@@ -85,7 +85,7 @@ Exemple complet :
 
 ```rust
 impl Op for Update {
-    const KIND: CrudOperation = CrudOperation::Edit;
+    const CRUD_NATURE: CrudOperation = CrudOperation::Edit;
     const PATH: &'static str = "/{id}/edit";
     const RIGHT: Crud = Crud::Update;
     const RIGHT_OWN: Option<Crud> = Some(Crud::UpdateOwn);
@@ -97,7 +97,7 @@ impl Op for Update {
 }
 ```
 
-L'enum `CrudOperation` (existe, `admin/resource.rs`) reste pour les données : il se stocke, se compare, s'affiche. La struct porte le comportement ; `KIND` relie les deux.
+L'enum `CrudOperation` (existe, `admin/resource.rs`) reste pour les données : il se stocke, se compare, s'affiche. La struct porte le comportement ; `CRUD_NATURE` relie les deux.
 
 ## 3. La porte (une seule, générique)
 
@@ -222,8 +222,8 @@ Une struct et ses constantes, par exemple :
 
 ```rust
 pub struct Export;
-impl Op for Export {
-    const KIND: CrudOperation = CrudOperation::Export;
+impl AdminOperation for Export {
+    const CRUD_NATURE: CrudOperation = CrudOperation::Export;
     const PATH: &'static str = "/export";
     const RIGHT: Crud = Crud::Read;
     const RIGHT_OWN: Option<Crud> = None;
@@ -238,8 +238,8 @@ La porte ne change pas. Le `match` exhaustif sur `CrudOperation` (historique, te
 
 1. **Ressources imbriquées** : sur `/admin/plat/3/commande_ligne/7/edit`, la ligne 7 doit appartenir au plat 3 (`GateCtx::parent`), sinon changer le `3` de l'URL vise la ligne d'un autre parent.
 2. **Filtre métier `queryset`** : appliqué aussi aux lignes isolées (détail, édition, suppression), pas seulement à la liste ; une ligne exclue de la liste n'est pas accessible par son id.
-3. **Réinitialisation du mot de passe** : sa propre struct `Op` (`/{id}/reset-password`, `RIGHT = Update`, `PROTECTS_SUPERUSER = true`).
-4. **Historique** : écrit par les primitives `insert` / `update` / `delete` elles-mêmes, dans la même transaction, avec `O::KIND` ; aucun handler ne peut l'oublier.
+3. **Réinitialisation du mot de passe** : sa propre struct `AdminOperation` (`/{id}/reset-password`, `RIGHT = Update`, `PROTECTS_SUPERUSER = true`).
+4. **Historique** : écrit par les primitives `insert` / `update` / `delete` elles-mêmes, dans la même transaction, avec `O::CRUD_NATURE` ; aucun handler ne peut l'oublier.
 
 ## 9. IDOR : aucun id venu du client n'est utilisé tel quel
 
@@ -320,7 +320,7 @@ Déjà corrigé : les droits sont relus à chaque requête, la porte revérifie 
 3. **Frontière** : la porte autorise **l'opération sur une ligne** ; le plancher et `fields` autorisent **les colonnes**. Un `create` ne peut pas poser `is_superuser` parce que la colonne est refusée, pas parce que la porte le voit.
 4. **`ResetPassword`** : déjà prévue (section 8, point 3) ; sa preuve est `Authorized<ResetPassword, User>`.
 5. **Réponse unique** : « n'existe pas », « hors du parent », « pas le droit », « superuser protégé » donnent tous la même réponse (section 12, point 4). Laquelle (404 ou message général) : à trancher une fois pour toutes.
-6. **Vocabulaire unique** : `CrudAction` (droits), `Crud` (un droit), `CrudOperation` (enum des opérations, données), structs `Op` (comportement), `Authorized`, `Refusal`. `ResourcePerms` et `Refus` disparaissent à la refonte.
+6. **Vocabulaire unique** : `CrudAction` (droits), `Crud` (un droit), `CrudOperation` (enum des opérations, données), structs `AdminOperation` (comportement), `Authorized`, `Refusal`. `ResourcePerms` et `Refus` disparaissent à la refonte.
 7. **Tests** : les tests fabriquent leurs preuves par un module `gate::test_support` sous `#[cfg(test)]`, jamais en ouvrant `Authorized::new`.
 8. **Action groupée** : la colonne visée doit être dans `fields`, jamais secrète ni `server_only` (vérifié au démarrage).
 9. **`ModelMeta` reste fin** : clé de ressource, clé primaire, propriétaire, parent, secrets, colonnes obligatoires, relations. L'affichage, les formulaires et les inlines restent dans le builder `ModelAdmin`. La preuve ne connaît que `E` et `O`, jamais le formulaire.
@@ -350,7 +350,7 @@ Déjà corrigé : les droits sont relus à chaque requête, la porte revérifie 
 | Hook SeaORM (`before_save`) + `task_local` | Laisse passer en silence si l'intention n'est pas posée ; bloque l'historique et les liens M2M ; vit dans le modèle du dev |
 | Rapport après écriture + annulation | Écrit pour rien, consomme des identifiants |
 | Lint Clippy sur les méthodes SeaORM | Écarté par choix : l'ORM n'est pas bridé |
-| Preuve portant un enum (`op: CrudOperation`) | Vérification à l'exécution dans chaque écriture, oubliable |
+| Preuve portant un enum (`AdminOperation: CrudOperation`) | Vérification à l'exécution dans chaque écriture, oubliable |
 
 ## Tranché (2026-10-10)
 
@@ -369,3 +369,4 @@ pub trait Guarded<E: EntityTrait> {
 }
 ```
 - Message unique : `Refusal::ActionImpossible` s'affiche par une clé i18n générique, `admin.access.action_not_allowed` (« Action non autorisée », 9 langues), à ajouter à la refonte. `admin.access.superuser_only` porte déjà ce texte générique depuis la 3.0.4 (son ancien texte confirmait que le compte visé était un superuser) ; la clé est renommée à la refonte.
+- **Réponse unique tranchée** : pas de page 404/403. Tout refus redirige vers le tableau de bord de l'admin avec le message flash « Action non autorisée » (`admin.access.action_not_allowed`), identique quelle que soit la raison ; la raison n'est écrite que dans les logs.

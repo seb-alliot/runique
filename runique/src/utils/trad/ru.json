@@ -305,7 +305,8 @@
     },
     "access": {
       "insufficient_rights": "Недостаточно прав для доступа к администрированию",
-      "superuser_only": "Действие не разрешено"
+      "superuser_only": "Действие не разрешено",
+      "action_not_allowed": "Действие не разрешено"
     },
     "dashboard": {
       "title": "Панель управления",

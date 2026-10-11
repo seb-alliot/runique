@@ -1,50 +1,50 @@
-//! Macro `delegate_to_kind!` — dispatch to the `FieldKind` variant without repetitive match blocks.
+//! Macro `delegate_to_field` — dispatch to the `GeneratedField` variant without repetitive match blocks.
 
 #[macro_export]
-macro_rules! delegate_to_kind {
+macro_rules! delegate_to_field {
     ($self:expr, $method:ident $(, $arg:expr)*) => {
-        match &$self.kind {
-            $crate::forms::generic::FieldKind::Text(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::Numeric(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::File(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::Binary(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::Boolean(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::Choice(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::Radio(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::Checkbox(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::Date(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::Time(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::DateTime(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::Duration(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::Color(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::Slug(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::UUID(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::JSON(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::IPAddress(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::Hidden(field) => field.$method($($arg),*),
+        match &$self.field {
+            $crate::forms::generic::GeneratedField::Text(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::Numeric(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::File(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::Binary(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::Boolean(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::Choice(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::Radio(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::Checkbox(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::Date(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::Time(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::DateTime(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::Duration(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::Color(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::Slug(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::UUID(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::JSON(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::IPAddress(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::Hidden(field) => field.$method($($arg),*),
         }
     };
 
     (mut $self:expr, $method:ident $(, $arg:expr)*) => {
-        match &mut $self.kind {
-            $crate::forms::generic::FieldKind::Text(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::Numeric(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::File(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::Binary(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::Boolean(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::Choice(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::Radio(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::Checkbox(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::Date(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::Time(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::DateTime(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::Duration(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::Color(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::Slug(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::UUID(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::JSON(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::IPAddress(field) => field.$method($($arg),*),
-            $crate::forms::generic::FieldKind::Hidden(field) => field.$method($($arg),*),
+        match &mut $self.field {
+            $crate::forms::generic::GeneratedField::Text(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::Numeric(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::File(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::Binary(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::Boolean(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::Choice(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::Radio(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::Checkbox(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::Date(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::Time(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::DateTime(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::Duration(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::Color(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::Slug(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::UUID(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::JSON(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::IPAddress(field) => field.$method($($arg),*),
+            $crate::forms::generic::GeneratedField::Hidden(field) => field.$method($($arg),*),
         }
     };
 }

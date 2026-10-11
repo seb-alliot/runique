@@ -1,10 +1,10 @@
-//! Macro `define_enum_kind!` — generates the `FieldKind` enum with one variant per field type.
+//! Macro `define_enum_field!` — generates the `Field` enum with one variant per field type.
 
-/// Generates the `FieldKind` enum with one variant per registered field type,
+/// Generates the `Field` enum with one variant per registered field type,
 /// plus a `From<$field_type> for GenericField` impl for each variant so any
 /// field type can be wrapped into a `GenericField` with `.into()`.
 #[macro_export]
-macro_rules! define_enum_kind {
+macro_rules! define_enum_field {
     (
         $(
             $(#[$attr:meta])*
@@ -12,7 +12,7 @@ macro_rules! define_enum_kind {
         ),* $(,)?
     ) => {
         #[derive(Clone, Debug, Serialize)]
-        pub enum FieldKind {
+        pub enum GeneratedField {
             $(
                 $(#[$attr])*
                 $variant($field_type),
@@ -22,7 +22,7 @@ macro_rules! define_enum_kind {
         $(
             impl From<$field_type> for GenericField {
                 fn from(f: $field_type) -> Self {
-                    GenericField { kind: FieldKind::$variant(f) }
+                    GenericField { field: GeneratedField::$variant(f) }
                 }
             }
         )*

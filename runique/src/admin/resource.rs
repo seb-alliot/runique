@@ -10,6 +10,7 @@ pub enum CrudOperation {
     List,
     View,
     Create,
+    ResetPassword,
     Edit,
     Delete,
 }

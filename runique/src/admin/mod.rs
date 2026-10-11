@@ -2,6 +2,7 @@
 pub mod admin_main;
 pub mod config;
 pub mod daemon;
+pub mod gate;
 pub mod helper;
 pub mod middleware;
 pub mod registry;
@@ -13,6 +14,7 @@ pub mod trad;
 pub mod builtin;
 pub mod forms;
 pub mod history;
+pub mod meta;
 
 // Used by daemon-generated code in user projects (external crate) — must stay pub
 pub use admin_main::{

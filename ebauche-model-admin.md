@@ -563,6 +563,8 @@ ModelAdmin::<menu::Entity>::new().m2m(plat::Allergenes);   // erreur : la relati
 - Un seul contrat : le builder construit une struct typée par page (`EditPage { fieldsets, readonly, inlines, actions }`), sérialisée dans le contexte.
 - Un template par élément (`admin/parts/fieldset.html`, `readonly.html`, `inline.html`), inclus seulement s'il y a des données.
 - Surcharge par ressource : `admin/<ressource>/parts/…` avant le générique.
+- Boutons et liens d'action affichés selon `allowed: Vec<CrudOperation>` de la page, par `{% if %}` (absents du HTML, jamais cachés en CSS). La porte bloque de toute façon ; l'affichage n'est que du confort.
+- Templates à réécrire sur ces structs : `admin/composant/list.html`, `detail.html`, `edit.html`, `create.html`, `bulk_edit.html`, `history.html`.
 - Jamais `| safe` sur une donnée de la base ; scripts dans des fichiers statiques (CSP) ; `readonly` est un affichage, jamais un champ désactivé — c'est la porte qui ignore la valeur.
 - **Les clés du contexte sont une API publique** dès qu'un développeur surcharge un template :
   - la struct de chaque page porte un `///` par champ : la doc des clés est celle de rustdoc, jamais en retard sur le code ;

@@ -93,7 +93,7 @@ classDiagram
 
 ### 🟢 Champs = Strategy par type (audit clean)
 Chaque type implémente `FormField` (validate/render propres). Dispatch unifié via
-`GenericField`/`FieldKind`. Architecture saine — c'est le bon endroit pour la logique
+`GenericField`/`GeneratedField`. Architecture saine — c'est le bon endroit pour la logique
 spécifique par champ (cf. discussion GoF). Rien à corriger.
 
 ### 🟡 Rappel — `HoneypotField` / `force_invalid`
