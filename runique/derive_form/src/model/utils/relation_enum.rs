@@ -182,7 +182,7 @@ fn generate_related_impl(rel: &RelationDef, self_model: &syn::Ident) -> TokenStr
     }
 }
 
-fn ident_pascal(name: &syn::Ident) -> proc_macro2::Ident {
+pub(crate) fn ident_pascal(name: &syn::Ident) -> proc_macro2::Ident {
     quote::format_ident!("{}", pascal_case(&name.to_string()))
 }
 

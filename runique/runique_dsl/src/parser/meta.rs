@@ -33,6 +33,7 @@ impl Parse for MetaDef {
         let mut verbose_name = None;
         let mut verbose_name_plural = None;
         let mut indexes = Vec::new();
+        let mut owner = None;
 
         while !input.is_empty() {
             let key: Ident = input.parse()?;
@@ -63,6 +64,7 @@ impl Parse for MetaDef {
                     verbose_name_plural = Some(s.value());
                 }
                 "indexes" => indexes = parse_ident_group_list(input)?,
+                "owner" => owner = Some(input.parse::<Ident>()?),
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
@@ -80,6 +82,7 @@ impl Parse for MetaDef {
             verbose_name,
             verbose_name_plural,
             indexes,
+            owner,
         })
     }
 }

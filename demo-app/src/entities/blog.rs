@@ -17,3 +17,13 @@ model! {
         view_count: int [nullable, default: 0],
     }
 }
+
+#[cfg(test)]
+mod model_meta_tests {
+    use runique::admin::refonte_admin::meta::ModelMeta;
+
+    #[test]
+    fn test_model_meta() {
+        assert_eq!(<super::Entity as ModelMeta>::KEY, "blog");
+    }
+}

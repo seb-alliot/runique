@@ -28,7 +28,10 @@ pub struct Authorized<O, E: EntityTrait> {
 }
 
 impl<O, E: EntityTrait> Authorized<O, E> {
-    pub(in crate::admin::gate) fn new(id: Option<PkOf<E>>, conditions: Condition) -> Self {
+    pub(in crate::admin::refonte_admin::gate) fn new(
+        id: Option<PkOf<E>>,
+        conditions: Condition,
+    ) -> Self {
         Self {
             id,
             conditions,
@@ -41,7 +44,7 @@ impl<O, E: EntityTrait> Authorized<O, E> {
     }
 
     /// Consumed by the write: the row and the conditions to replay.
-    pub(in crate::admin::gate) fn into_parts(self) -> (Option<PkOf<E>>, Condition) {
+    pub(in crate::admin::refonte_admin::gate) fn into_parts(self) -> (Option<PkOf<E>>, Condition) {
         (self.id, self.conditions)
     }
 }
@@ -63,7 +66,7 @@ impl<O, E: EntityTrait> Guarded for Authorized<O, E> {
 pub struct ReadableIds<E: EntityTrait>(Vec<PkOf<E>>);
 
 impl<E: EntityTrait> ReadableIds<E> {
-    pub(in crate::admin::gate) fn new(ids: Vec<PkOf<E>>) -> Self {
+    pub(in crate::admin::refonte_admin::gate) fn new(ids: Vec<PkOf<E>>) -> Self {
         Self(ids)
     }
 

@@ -3,6 +3,7 @@ mod admin_form;
 mod conversion;
 mod enums;
 mod lists;
+mod model_meta;
 mod schema;
 
 pub use admin_form::*;
@@ -13,6 +14,7 @@ pub use schema::*;
 
 use crate::model::ast::*;
 use crate::model::utils::*;
+use model_meta::generate_model_meta;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 
@@ -29,7 +31,7 @@ pub fn generate(model: &ModelInput) -> TokenStream2 {
     let enum_labels = generate_enum_label_resolver(model);
     let lists = generate_lists(model);
     let admin_lists = generate_admin_lists(&model.lists);
-
+    let model_meta = generate_model_meta(model);
     quote! {
         #enums
         #schema
@@ -43,5 +45,6 @@ pub fn generate(model: &ModelInput) -> TokenStream2 {
         #enum_labels
         #lists
         #admin_lists
+        #model_meta
     }
 }
