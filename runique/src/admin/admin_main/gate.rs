@@ -417,7 +417,7 @@ impl ResourcePerms {
         match op {
             CrudOperation::List | CrudOperation::View => self.can_read,
             CrudOperation::Create => self.can_create,
-            CrudOperation::Edit => self.can_update,
+            CrudOperation::Edit | CrudOperation::ResetPassword => self.can_update,
             CrudOperation::Delete => self.can_delete,
         }
     }

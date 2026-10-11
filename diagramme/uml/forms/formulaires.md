@@ -39,9 +39,9 @@ classDiagram
         +set_max_size_bounded(size) Result
     }
     class GenericField {
-        +FieldKind kind
+        +GeneratedField field
     }
-    class FieldKind {
+    class GeneratedField {
         <<enum>>
         Text(TextField)
         Numeric(NumericField)
@@ -51,9 +51,9 @@ classDiagram
         Color / Slug / UUID / JSON / IPAddress / Hidden
     }
     Forms "1" o-- "*" GenericField : FieldsMap
-    GenericField "1" *-- "1" FieldKind
+    GenericField "1" *-- "1" GeneratedField
     GenericField ..|> FormField
-    FieldKind ..> FileField
+    GeneratedField ..> FileField
     FileField ..|> FormField
     TextField ..|> FormField
 ```

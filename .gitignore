@@ -58,3 +58,6 @@ recap-types-dsl-seaorm.md
 # cargo-mutants reports
 mutants.out/
 mutants.out.old/
+
+# Squelette de la refonte admin (brouillon, hors workspace)
+/refonte-admin/

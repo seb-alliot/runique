@@ -305,7 +305,8 @@
     },
     "access": {
       "insufficient_rights": "管理画面へのアクセス権限が不足しています",
-      "superuser_only": "この操作は許可されていません"
+      "superuser_only": "この操作は許可されていません",
+      "action_not_allowed": "この操作は許可されていません"
     },
     "dashboard": {
       "title": "ダッシュボード",

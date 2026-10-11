@@ -4,7 +4,7 @@ use tracing::Level;
 /// Form pipeline tracing — each field covers one stage of `#[form]` processing.
 #[derive(Debug, Clone, Default)]
 pub struct FormTracing {
-    /// Field-level events: type resolution, coercion, missing/extra fields.
+    /// Field-level events: type resolution, conversion, missing/extra fields.
     pub field: Option<Level>,
     /// `set_value()` calls: raw input → typed value assignment.
     pub set_value: Option<Level>,
@@ -21,7 +21,7 @@ impl FormTracing {
     pub fn new() -> Self {
         Self::default()
     }
-    /// Sets the level for field-level events (type resolution, coercion, missing/extra fields).
+    /// Sets the level for field-level events (type resolution, conversion, missing/extra fields).
     #[must_use]
     pub fn field(mut self, level: Level) -> Self {
         self.field = Some(level);

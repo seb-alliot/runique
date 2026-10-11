@@ -127,7 +127,7 @@ pub mod prelude {
             special::{ColorField, IPAddressField, JSONField, SlugField, UUIDField},
             text::TextField,
         },
-        generic::{FieldKind, GenericField},
+        generic::{GeneratedField, GenericField},
         model_form::ModelForm,
         validation_form::ValidationForm,
     };
