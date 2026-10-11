@@ -29,7 +29,7 @@ pub(crate) mod fixtures {
         impl ActiveModelBehavior for ActiveModel {}
     }
 
-    impl crate::admin::meta::ModelMeta for note::Entity {
+    impl crate::admin::refonte_admin::meta::ModelMeta for note::Entity {
         const KEY: &'static str = "notes";
         const OWNER: Option<note::Column> = Some(note::Column::OwnerId);
     }

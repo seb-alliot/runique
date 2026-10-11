@@ -48,7 +48,9 @@ pub fn superuser_allows<O: AdminOperation>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::admin::gate::operation::{Create, Delete, List, ResetPassword, Update, View};
+    use crate::admin::refonte_admin::gate::operation::{
+        Create, Delete, List, ResetPassword, Update, View,
+    };
 
     fn rights(f: impl FnOnce(&mut CrudAction)) -> CrudAction {
         let mut r = CrudAction::default();

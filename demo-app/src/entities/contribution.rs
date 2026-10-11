@@ -16,5 +16,20 @@ model! {
     },
     relations: {
         belongs_to: eihwaz_users via user_id [cascade],
+    },
+    meta: { owner: user_id },
+}
+
+#[cfg(test)]
+mod model_meta_tests {
+    use runique::admin::refonte_admin::meta::ModelMeta;
+
+    #[test]
+    fn the_owner_is_the_declared_user_column() {
+        assert_eq!(<super::Entity as ModelMeta>::KEY, "contributions");
+        assert!(matches!(
+            <super::Entity as ModelMeta>::OWNER,
+            Some(super::Column::UserId)
+        ));
     }
 }

@@ -7,7 +7,7 @@
 //! 3. the developer's business rules, which can only restrict.
 //!
 //! Only this module builds an [`Authorized`]: its constructor is
-//! `pub(in crate::admin::gate)`, so a shortcut elsewhere in Runique shows up
+//! `pub(in crate::admin::refonte_admin::gate)`, so a shortcut elsewhere in Runique shows up
 //! as a visibility change in review instead of a quiet call.
 pub mod check;
 pub mod decide;

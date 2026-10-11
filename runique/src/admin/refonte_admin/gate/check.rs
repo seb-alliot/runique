@@ -7,7 +7,7 @@ use super::proof::{Authorized, ReadableIds};
 use super::refusal::{Refusal, RefusalReason};
 use super::rights::{Crud, CrudAction};
 use super::write::pk_condition;
-use crate::admin::meta::ModelMeta;
+use crate::admin::refonte_admin::meta::ModelMeta;
 use crate::auth::session::CurrentUser;
 use crate::utils::{aliases::ADb, pk::Pk};
 use sea_orm::{ColumnTrait, Condition, Iterable, PrimaryKeyToColumn, QueryFilter, QuerySelect};
@@ -136,8 +136,8 @@ pub async fn readable_ids<T: ModelMeta>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::admin::gate::operation::{Delete, ResetPassword, Update, View};
-    use crate::admin::gate::test_support::fixtures::{db, note, pk, staff};
+    use crate::admin::refonte_admin::gate::operation::{Delete, ResetPassword, Update, View};
+    use crate::admin::refonte_admin::gate::test_support::fixtures::{db, note, pk, staff};
 
     #[tokio::test]
     async fn an_own_right_opens_the_users_row_and_no_other() {

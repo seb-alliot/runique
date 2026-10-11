@@ -243,6 +243,9 @@ fn validate_meta_field_refs(
             check(ident)?;
         }
     }
+    if let Some(owner) = &m.owner {
+        check(owner)?;
+    }
     Ok(())
 }
 
@@ -290,8 +293,10 @@ impl Parse for ModelInput {
             parse_fields_block(input, &header.pk.name.to_string())?;
         let relations = parse_optional_relations_block(input)?;
         let meta = parse_optional_meta_block(input)?;
+        let _ = input.parse::<Token![,]>();
         validate_meta_field_refs(&meta, &column_names)?;
         validate_belongs_to(&relations, &fields)?;
+        validate_owner(&meta, &relations)?;
 
         Ok(ModelInput {
             name: header.name,
@@ -305,6 +310,28 @@ impl Parse for ModelInput {
             lists,
         })
     }
+}
+
+/// `owner` must be a column linked to the model, not a list field or a non-existent one.`
+/// any other column never equals the signed-in user's id and the `_owner` check would always fail.
+/// right would silently open nothing.
+fn validate_owner(meta: &Option<MetaDef>, relations: &[RelationDef]) -> Result<()> {
+    let Some(owner) = meta.as_ref().and_then(|m| m.owner.as_ref()) else {
+        return Ok(());
+    };
+    let linked_to_users = relations.iter().any(|rel| {
+        matches!(rel, RelationDef::BelongsTo { model, via, .. }
+            if via == owner && model == "eihwaz_users")
+    });
+    if linked_to_users {
+        return Ok(());
+    }
+    Err(syn::Error::new(
+        owner.span(),
+        format!(
+            "`owner: {owner}` must be a column linked to the `eihwaz_users` model via a `belongs_to` relation"
+        ),
+    ))
 }
 
 #[cfg(test)]
@@ -538,5 +565,39 @@ mod tests {
         .expect("parses");
         assert_eq!(m.enums.len(), 2);
         assert_eq!(m.enums[1].variants.len(), 2);
+    }
+
+    #[test]
+    fn meta_owner_on_an_unknown_field_rejected() {
+        model_err(
+            r#"Test, table: "tests", pk: id => i32, { user_id: int, }, meta: { owner: ghost }"#,
+        );
+    }
+
+    #[test]
+    fn a_trailing_comma_after_meta_is_accepted() {
+        model_ok(&format!(
+            r#"Test, table: "tests", pk: id => i32, {BASE_FIELDS}, meta: {{ ordering: [id] }},"#
+        ));
+    }
+
+    #[test]
+    fn meta_owner_not_linked_to_the_users_table_rejected() {
+        model_err(
+            r#"Test, table: "tests", pk: id => i32, { user_id: int [required], },
+               meta: { owner: user_id }"#,
+        );
+    }
+
+    #[test]
+    fn meta_owner_on_a_declared_field_accepted() {
+        let m = parse_model(
+            r#"Test, table: "tests", pk: id => i32, { user_id: int [required], },
+               relations: { belongs_to: eihwaz_users via user_id, },
+               meta: { owner: user_id }"#,
+        )
+        .expect("owner linked to the users table parses");
+        let owner = m.meta.and_then(|meta| meta.owner).map(|o| o.to_string());
+        assert_eq!(owner.as_deref(), Some("user_id"));
     }
 }

@@ -276,6 +276,8 @@ pub struct MetaDef {
     pub verbose_name: Option<String>,
     pub verbose_name_plural: Option<String>,
     pub indexes: Vec<Vec<syn::Ident>>,
+    /// `owner: field` — the field that owns this entity, for admin permissions.
+    pub owner: Option<syn::Ident>,
 }
 
 #[cfg(test)]
