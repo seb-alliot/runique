@@ -50,18 +50,18 @@ impl ListQuery {
 /// Alias of the window column carrying the total on every row.
 pub(crate) const TOTAL: &str = "__total";
 
-/// Only is declared here is shown or accepted from the URL
-/// (e.g. `?order=field1,field2`), otherwise it is ignored.
+/// Only what is declared here is shown or accepted from the URL
+/// (e.g. `?sort_by=title&sort_dir=desc`); anything else is ignored.
 pub struct ListConfig<E: EntityTrait> {
-    /// Column shown, in this order.
+    /// Columns shown, in this order.
     display: Vec<E::Column>,
-    /// Column linking to the detail page (empty: the first shown)}
+    /// Columns linking to the detail page (empty: the first one shown).
     links: Vec<E::Column>,
     /// The only columns sortable from the URL.
     sortable: Vec<E::Column>,
     /// The default order, direction included.
     ordering: Vec<(E::Column, Order)>,
-    /// `None: The text column shown, `Some(vec![])`: search disabled.
+    /// `None`: the text columns shown; `Some(vec![])`: search disabled.
     search: Option<Vec<E::Column>>,
     /// The only columns filterable from the URL (empty: no filter).
     filter: Vec<E::Column>,
@@ -248,7 +248,7 @@ impl<E: EntityTrait> ListConfig<E> {
     }
 }
 
-/// Text in the databse: the only column search wehn search is not declared
+/// Text in the database: the only columns searched when `search` is not declared.
 fn is_text<E: EntityTrait>(col: &E::Column) -> bool {
     matches!(
         col.def().get_column_type(),

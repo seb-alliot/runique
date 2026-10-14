@@ -20,9 +20,9 @@ use sea_orm::DbErr;
 /// Why an admin request couldn't be served.
 #[derive(Debug)]
 pub(crate) enum AdminError {
-    /// The gate said no:the same answer whatever the reason.
+    /// The gate said no: the same answer whatever the reason.
     Refused(Refusal),
-    /// The database failes: traced by the handler, never shwon as is.
+    /// The database failed: traced by the handler, never shown as is.
     Db(DbErr),
 }
 
@@ -38,7 +38,7 @@ impl From<DbErr> for AdminError {
     }
 }
 
-/// What the site nedds from a `ModelAdmin` without knowing `E` .
+/// What the site needs from a `ModelAdmin` without knowing `E`.
 #[async_trait::async_trait]
 pub(crate) trait RegisteredModel: Send + Sync {
     fn key(&self) -> &'static str;

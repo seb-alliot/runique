@@ -81,8 +81,8 @@ impl<E: ModelMeta> ModelAdmin<E> {
             Err(format!("admin `{}`:\n{}", E::KEY, errors.join("\n")))
         }
     }
-    /// One page of the list. Taking the gate's proof , it can't run without.
-    /// it: the proof's scop narrows every row and the total.
+    /// One page of the list. Taking the gate's proof, it can't run without
+    /// it: the proof's scope narrows every row and the total.
     pub(crate) async fn fetch_list(
         &self,
         db: &ADb,
