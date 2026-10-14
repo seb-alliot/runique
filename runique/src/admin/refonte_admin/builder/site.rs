@@ -1,4 +1,4 @@
-//! Every regirstred `ModeelAdmin` , whatever its model.
+//! Every registered `ModelAdmin`, whatever its model.
 use super::admin_builder::ModelAdmin;
 use super::registered::RegisteredModel;
 use crate::admin::refonte_admin::meta::ModelMeta;

@@ -50,7 +50,8 @@ pub struct AdminStaging {
     /// the two never overwrite each other, whatever the call order.
     pub(crate) mount_prefix: String,
 
-    /// Models registred in the admin, in the order they were added. Used to check that
+    /// Models registered in the rebuilt admin, in the order they were added;
+    /// checked at startup by `validate()`.
     pub(crate) site: AdminSite,
 }
 

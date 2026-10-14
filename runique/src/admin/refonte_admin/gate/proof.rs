@@ -11,7 +11,7 @@ use std::marker::PhantomData;
 /// an update (the 3.0.3 `bulk_create` flaw):
 ///
 /// ```compile_fail
-/// use runique::admin::gate::{Authorized, Create, Update};
+/// use runique::admin::refonte_admin::gate::{Authorized, Create, Update};
 /// fn update<E: sea_orm::EntityTrait>(_proof: Authorized<Update, E>) {}
 /// fn create_handler<E: sea_orm::EntityTrait>(proof: Authorized<Create, E>) {
 ///     update(proof);

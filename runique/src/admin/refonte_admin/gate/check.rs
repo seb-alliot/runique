@@ -205,7 +205,9 @@ mod tests {
             db: &db,
             user: &both,
         };
-        let proof = authorize_row::<Update, note::Entity>(&ctx, 1).await.unwrap();
+        let proof = authorize_row::<Update, note::Entity>(&ctx, 1)
+            .await
+            .unwrap();
         let sql = note::Entity::find()
             .filter(proof.conditions())
             .build(DbBackend::Sqlite)
