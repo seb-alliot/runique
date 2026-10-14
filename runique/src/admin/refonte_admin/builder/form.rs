@@ -1,4 +1,4 @@
-use sea_orm::{EntityTrait, IdenStatic};
+use sea_orm::{EntityTrait, IdenStatic, Iterable, PrimaryKeyToColumn};
 
 pub struct FormConfig<E: EntityTrait> {
     fields: Vec<E::Column>,
@@ -24,6 +24,19 @@ impl<E: EntityTrait> FormConfig<E> {
 
     pub(super) fn has_field(&self, name: &str) -> bool {
         self.fields.iter().any(|c| c.as_str() == name)
+    }
+
+    /// The columns a row's page reads: the form's fields (read-only ones
+    /// included), plus the primary key. Nothing else leaves the table.
+    pub(crate) fn read_columns(&self) -> Vec<E::Column> {
+        let mut cols = self.fields.clone();
+        for key in E::PrimaryKey::iter() {
+            let col = key.into_column();
+            if !cols.iter().any(|c| c.as_str() == col.as_str()) {
+                cols.push(col);
+            }
+        }
+        cols
     }
 
     pub fn readonly(mut self, cols: impl IntoIterator<Item = E::Column>) -> Self {

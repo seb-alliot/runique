@@ -297,7 +297,8 @@ th.admin-table__col-num { color: var(--text-muted); font-weight: 600; }
     Alerts / Flash messages
    ─────────────────────────────────────────────── */
 
-.admin-alert {
+/* Classes emitted by the shared `{% messages %}` tag (message/message.html). */
+.flash-messages .message {
     display: flex;
     align-items: flex-start;
     gap: 0.75rem;
@@ -308,10 +309,10 @@ th.admin-table__col-num { color: var(--text-muted); font-weight: 600; }
     margin-bottom: 1rem;
 }
 
-.admin-alert--success { background: var(--success-light); border-color: var(--success); color: var(--success); }
-.admin-alert--danger  { background: var(--danger-light);  border-color: var(--danger);  color: var(--danger); }
-.admin-alert--warning { background: var(--warning-light); border-color: var(--warning); color: var(--warning); }
-.admin-alert--info    { background: var(--accent-light);  border-color: var(--accent);  color: var(--accent); }
+.flash-messages .message-success { background: var(--success-light); border-color: var(--success); color: var(--success); }
+.flash-messages .message-error   { background: var(--danger-light);  border-color: var(--danger);  color: var(--danger); }
+.flash-messages .message-warning { background: var(--warning-light); border-color: var(--warning); color: var(--warning); }
+.flash-messages .message-info    { background: var(--accent-light);  border-color: var(--accent);  color: var(--accent); }
 
 /* ───────────────────────────────────────────────
     Badges

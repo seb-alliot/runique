@@ -581,6 +581,27 @@ mod tests {
         );
     }
 
+    /// Reproduces the owner-column flaw: `form_grant` has no idea of the
+    /// user's rights, so the owner column a `can_update_own` user submits
+    /// reaches the write. The ownership check runs on the row as it was, so
+    /// `SET user_id = <other> WHERE user_id = <me>` hands the row over.
+    /// The fix must turn this assertion around.
+    #[test]
+    fn the_owner_column_reaches_the_write_whatever_the_rights() {
+        let e = entry().with_own_field("user_id");
+        let mut form = crate::forms::Forms::new("csrf");
+        form.field(&crate::forms::fields::TextField::text("user_id"));
+        form.fields
+            .get_mut("user_id")
+            .expect("field")
+            .set_value("42");
+        let edit =
+            form_grant(&form, &body(&[]), &e, None, FormOp::Edit { local_id: "1" }).expect("grant");
+        assert_eq!(edit.get("user_id").map(String::as_str), Some("42"));
+        let create = form_grant(&form, &body(&[]), &e, None, FormOp::Create).expect("grant");
+        assert_eq!(create.get("user_id").map(String::as_str), Some("42"));
+    }
+
     #[test]
     fn bulk_ops_parse() {
         assert_eq!(BulkOp::parse("delete"), Some(BulkOp::Delete));

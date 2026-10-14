@@ -141,6 +141,12 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
                 router.route(&format!("{}{}", admin_path, route.path), gated)
             });
 
+    // Rebuilt admin, side by side with the current one until it replaces it.
+    // Merged here so it gets the mount prefix and every protection layer below.
+    let generated_router = generated_router.merge(
+        crate::admin::refonte_admin::admin_routeur::refonte_router(&admin_path, admin_staging.site),
+    );
+
     // Mount prefix applies here only — the generated routes are the ones whose
     // literal paths still carry `admin_path`. `nest("")` panics, hence the guard.
     let generated_router = if mount_prefix.is_empty() {
