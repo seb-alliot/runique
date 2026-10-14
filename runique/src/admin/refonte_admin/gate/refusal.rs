@@ -25,6 +25,9 @@ pub(crate) enum RefusalReason {
     UnreadableTarget,
     /// The database refused the write.
     WriteFailed,
+    /// No row read: missing, out of the user's read scope, or a malformed id.
+    /// The scoped read can't tell which, and doesn't need to.
+    NotFound,
 }
 
 impl Refusal {
@@ -61,6 +64,7 @@ mod tests {
             RefusalReason::StaleRow,
             RefusalReason::UnreadableTarget,
             RefusalReason::WriteFailed,
+            RefusalReason::NotFound,
         ]
         .into_iter()
         .map(|r| Refusal::new(r).message())
@@ -70,5 +74,7 @@ mod tests {
             messages[0], "admin.access.action_not_allowed",
             "key resolved"
         );
+        assert!(!messages[0].is_empty());
+        assert_eq!(messages[0], t("admin.access.action_not_allowed"));
     }
 }

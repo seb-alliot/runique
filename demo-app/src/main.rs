@@ -2,6 +2,7 @@
 extern crate runique;
 use runique::prelude::*;
 mod admin;
+mod admin_refonte;
 mod admins;
 mod backend;
 mod entities;
@@ -64,6 +65,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .with_rate_limiter(RateLimiter::new().max_requests(20).retry_after(3600))
                 .with_login_guard(LoginGuard::new().max_attempts(20).lockout_secs(300))
                 .page_size(15)
+                .site(admin_refonte::site)
         })
         .build()
         .await

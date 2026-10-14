@@ -2,8 +2,8 @@
 
 use std::sync::Arc;
 
-use crate::admin::PrototypeAdminState;
-use crate::admin::{AdminConfig, helper::AdminTemplate};
+use crate::admin::refonte_admin::builder::site::AdminSite;
+use crate::admin::{AdminConfig, PrototypeAdminState, helper::AdminTemplate};
 use crate::app::error_build::{BuildError, CheckError, CheckReport};
 use crate::auth::guard::LoginGuard;
 use crate::middleware::security::RateLimiter;
@@ -49,6 +49,9 @@ pub struct AdminStaging {
     /// Kept apart from `config.prefix` — which holds the admin's own path — so
     /// the two never overwrite each other, whatever the call order.
     pub(crate) mount_prefix: String,
+
+    /// Models registred in the admin, in the order they were added. Used to check that
+    pub(crate) site: AdminSite,
 }
 
 /// `secret`, `/secret` and `/secret/` all yield `/secret`; empty stays empty.
@@ -73,6 +76,7 @@ impl AdminStaging {
             extra_routes: Vec::new(),
             state: None,
             mount_prefix: String::new(),
+            site: AdminSite::default(),
         }
     }
 
@@ -174,7 +178,10 @@ impl AdminStaging {
         self.config = self.config.site_title(title);
         self
     }
-
+    pub fn site(mut self, f: impl FnOnce(AdminSite) -> AdminSite) -> Self {
+        self.site = f(self.site);
+        self
+    }
     /// Sets the admin's "view site" link, when the public site is served by
     /// another project than the admin. By default it follows the app's public
     /// URL (`.with_public_url()`), else `/`.
@@ -304,6 +311,9 @@ impl AdminStaging {
                     )),
                 );
             }
+        }
+        for error in self.site.check() {
+            report.add(CheckError::new("AdminPanel", error));
         }
 
         if report.has_errors() {

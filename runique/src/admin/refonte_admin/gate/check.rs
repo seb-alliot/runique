@@ -2,7 +2,7 @@
 //! (`decide`), and hands out the proof with the conditions it checked.
 use super::PkOf;
 use super::decide::{Ownership, rights_allow, superuser_allows};
-use super::operation::{AdminOperation, Create};
+use super::operation::{AdminOperation, Create, List, View};
 use super::proof::{Authorized, ReadableIds};
 use super::refusal::{Refusal, RefusalReason};
 use super::rights::{Crud, CrudAction};
@@ -83,6 +83,37 @@ pub async fn authorize_row<O: AdminOperation, E: ModelMeta>(
     Ok(Authorized::new(Some(id), conditions))
 }
 
+/// The rows of `E` the user may read: all of them with the full right, their
+/// own with the `_own` right (if `E` has an owner column), none otherwise.
+fn read_scope<E: ModelMeta>(ctx: &GateCtx<'_>) -> Result<Condition, Refusal> {
+    let rights = CrudAction::resolve(ctx.user, E::KEY);
+    if rights.has(Crud::Read) {
+        Ok(Condition::all())
+    } else if rights.has(Crud::ReadOwn)
+        && let Some(owner_col) = E::OWNER
+    {
+        Ok(Condition::all().add(owner_col.eq(ctx.user.id)))
+    } else {
+        Err(Refusal::new(RefusalReason::NoRight))
+    }
+}
+
+/// Listing `E`. The proof carries the read scope: the list query and its
+/// count both apply it, so a page never shows a row the user can't read.
+pub fn authorize_list<E: ModelMeta>(ctx: &GateCtx<'_>) -> Result<Authorized<List, E>, Refusal> {
+    Ok(Authorized::new(None, read_scope::<E>(ctx)?))
+}
+
+/// Viewing the row `id` of `E`. Nothing is looked up beforehand: the proof
+/// carries the read scope, and the read filtered by it is the check. A row
+/// out of scope comes back as no row, refused like a missing one.
+pub fn authorize_view<E: ModelMeta>(
+    ctx: &GateCtx<'_>,
+    id: PkOf<E>,
+) -> Result<Authorized<View, E>, Refusal> {
+    Ok(Authorized::new(Some(id), read_scope::<E>(ctx)?))
+}
+
 /// Ids sent by the client for a foreign key or a many-to-many field, kept
 /// only if the user can read every one of them: they exist and, for an
 /// `_own` read right, belong to the user. One query for the whole field; one
@@ -101,16 +132,7 @@ pub async fn readable_ids<T: ModelMeta>(
         return Ok(ReadableIds::new(unique));
     }
 
-    let rights = CrudAction::resolve(ctx.user, T::KEY);
-    let scope = if rights.has(Crud::Read) {
-        Condition::all()
-    } else if rights.has(Crud::ReadOwn)
-        && let Some(owner_col) = T::OWNER
-    {
-        Condition::all().add(owner_col.eq(ctx.user.id))
-    } else {
-        return Err(Refusal::new(RefusalReason::NoRight));
-    };
+    let scope = read_scope::<T>(ctx)?;
 
     let wanted = unique
         .iter()
@@ -137,7 +159,101 @@ pub async fn readable_ids<T: ModelMeta>(
 mod tests {
     use super::*;
     use crate::admin::refonte_admin::gate::operation::{Delete, ResetPassword, Update, View};
+    use crate::admin::refonte_admin::gate::proof::Guarded;
     use crate::admin::refonte_admin::gate::test_support::fixtures::{db, note, pk, staff};
+    use sea_orm::{EntityTrait, PaginatorTrait};
+
+    async fn visible_notes(ctx: &GateCtx<'_>) -> u64 {
+        let proof = authorize_list::<note::Entity>(ctx).unwrap();
+        note::Entity::find()
+            .filter(proof.conditions())
+            .count(&**ctx.db)
+            .await
+            .unwrap()
+    }
+
+    #[tokio::test]
+    async fn the_read_right_lists_every_row() {
+        let db = db().await;
+        let reader = staff(pk(10), "notes", [false, true, false, false, false, false]);
+        let ctx = GateCtx {
+            db: &db,
+            user: &reader,
+        };
+        assert_eq!(visible_notes(&ctx).await, 3);
+    }
+
+    #[tokio::test]
+    async fn without_the_read_right_the_list_is_refused() {
+        let db = db().await;
+        let writer = staff(pk(10), "notes", [true, false, true, true, true, true]);
+        let ctx = GateCtx {
+            db: &db,
+            user: &writer,
+        };
+        assert!(authorize_list::<note::Entity>(&ctx).is_err());
+    }
+
+    /// The full right opens the row as is: holding the `_own` right too must
+    /// not narrow the write to the user's rows.
+    #[tokio::test]
+    async fn the_full_right_adds_no_owner_condition_even_with_the_own_right() {
+        use sea_orm::{DbBackend, QueryTrait};
+        let db = db().await;
+        let both = staff(pk(10), "notes", [false, false, true, false, true, false]);
+        let ctx = GateCtx {
+            db: &db,
+            user: &both,
+        };
+        let proof = authorize_row::<Update, note::Entity>(&ctx, 1).await.unwrap();
+        let sql = note::Entity::find()
+            .filter(proof.conditions())
+            .build(DbBackend::Sqlite)
+            .to_string();
+        let condition = sql.split_once("WHERE").map_or("", |(_, w)| w);
+        assert!(!condition.contains("owner_id"), "{sql}");
+    }
+
+    #[tokio::test]
+    async fn viewing_asks_the_read_right_and_looks_nothing_up() {
+        let db = db().await;
+        let reader = staff(pk(10), "notes", [false, true, false, false, false, false]);
+        let writer = staff(pk(10), "notes", [true, false, true, true, true, true]);
+        let proof = authorize_view::<note::Entity>(
+            &GateCtx {
+                db: &db,
+                user: &reader,
+            },
+            99,
+        )
+        .unwrap();
+        assert_eq!(
+            proof.id(),
+            Some(&99),
+            "no lookup: a missing row still gets a proof"
+        );
+        assert!(
+            authorize_view::<note::Entity>(
+                &GateCtx {
+                    db: &db,
+                    user: &writer,
+                },
+                1,
+            )
+            .is_err()
+        );
+    }
+
+    #[tokio::test]
+    async fn a_right_on_another_resource_opens_nothing() {
+        let db = db().await;
+        let other = staff(pk(10), "users", [true, true, true, true, true, true]);
+        let ctx = GateCtx {
+            db: &db,
+            user: &other,
+        };
+        assert!(authorize_list::<note::Entity>(&ctx).is_err());
+    }
 
     #[tokio::test]
     async fn an_own_right_opens_the_users_row_and_no_other() {

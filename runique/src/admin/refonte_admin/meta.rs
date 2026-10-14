@@ -4,9 +4,13 @@
 //! by `model!{}`, from the same source as the forms; Runique implements it by
 //! hand for its own tables. Kept thin: display belongs to the builder.
 use sea_orm::{EntityTrait, PrimaryKeyTrait};
+use std::str::FromStr;
 
+/// `FromStr` on the key: a row's id arrives as URL text, each model parses it
+/// with its own key type (`i32`, `Uuid`…). A composite key can't, so such a
+/// table can't be registered: a compile error, not a runtime one.
 pub trait ModelMeta:
-    EntityTrait<PrimaryKey: PrimaryKeyTrait<ValueType: Clone + PartialEq>>
+    EntityTrait<Model: Sync, PrimaryKey: PrimaryKeyTrait<ValueType: Clone + PartialEq + Sync + FromStr>>
 {
     /// Resource key, also the rights key in `eihwaz_groupes_droits`.
     const KEY: &'static str;
