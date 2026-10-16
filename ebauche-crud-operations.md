@@ -155,6 +155,10 @@ pub(crate) async fn gate<O: Op, E: ModelMeta>(
 }
 ```
 
+**Propriétaire typé.** `owner_of` lit la colonne déclarée par `ModelMeta` (`const OWNER: Option<Self::Column>`) et la compare en `PkOf<User>`, jamais en chaîne. Sans colonne propriétaire, `RIGHT_OWN` n'ouvre jamais rien ; une colonne `NULL` n'a pas de propriétaire.
+
+**`PROTECTS_SUPERUSER` ne couvre qu'un cas** : un non-superuser ne touche pas un superuser. Les règles plus strictes (réinitialisation d'un superuser par lui seul, suppression d'un staff par un superuser seul, actions sur soi-même) vivent dans `users_floor`, sinon la porte générique laisserait un superuser A réinitialiser le superuser B.
+
 ## 4. La preuve (ce que la porte a autorisé)
 
 ```rust
@@ -181,6 +185,12 @@ async fn insert<E>(preuve: Authorized<Create, E>, data: .., db: &ADb) -> Result<
 async fn update<E>(preuve: Authorized<Update, E>, data: .., db: &ADb) -> Result<.., Refusal>;
 async fn delete<E>(preuve: Authorized<Delete, E>, db: &ADb) -> Result<.., Refusal>;
 ```
+
+**Création** : pas de ligne existante, donc pas de `WHERE` à rejouer. Ce que la porte impose (propriétaire = `request.user.id` quand il n'est pas dans `fields`, parent de l'URL) est écrit par `insert` lui-même, jamais repris du formulaire.
+
+La preuve ne connaît que `E` et `O`, jamais le formulaire : `ModelMeta` reste fin (clé de ressource, clé primaire, propriétaire, parent, secrets), l'affichage et les formulaires restent dans le builder.
+
+Les tests fabriquent leurs preuves par le module `gate::test_support` (`#[cfg(test)]`), jamais en ouvrant `Authorized::new`.
 
 ## 5. Un handler, de bout en bout
 
@@ -250,9 +260,9 @@ La porte ne change pas. Le `match` exhaustif sur `CrudOperation` (historique, te
 | Formulaire, colonne propriétaire | Un utilisateur « own » envoie `author_id = 12` : crée au nom d'un autre, ou lui transfère sa ligne | Absente de `fields` : imposée à `request.user.id`. Dans `fields` : choix du dev (transfert permis), cible vérifiée par `ReadableIds` |
 | Routes annexes | `/admin/history/{id}` | Passent par la porte de la ressource visée, avec `Read` |
 
-Garantie par le type : les écritures n'acceptent que des `ReadableIds<E>` pour les clés étrangères, jamais un id brut.
+Garantie par le type : les écritures n'acceptent que des `ReadableIds<E>` pour les clés étrangères, jamais un id brut. Une seule requête par champ (`WHERE id IN (…) AND <portée>`), jamais une par id.
 
-Droit manquant : `can_read_own`. Sans lui, un utilisateur limité à ses lignes en écriture lit toutes les autres via `View`. À ajouter à `CrudAction` (et `Crud::ReadOwn`, `View::RIGHT_OWN = Some(Crud::ReadOwn)`, `List` filtrée par `Scope::Own`).
+Droit manquant : `can_read_own`. Sans lui, un utilisateur limité à ses lignes en écriture lit toutes les autres via `View`. À ajouter à `CrudAction` (et `Crud::ReadOwn`, `View::RIGHT_OWN = Some(Crud::ReadOwn)`, `List` filtrée par `Scope::Own`). C'est un changement de schéma (`eihwaz_groupes_droits`), fait **avec** la refonte des droits, pas après.
 
 ## 10. Actions d'un utilisateur sur son propre compte
 
@@ -273,6 +283,8 @@ Un membre du staff qui a le droit de modifier `users` ne doit pas pouvoir s'en s
 | Superuser (`is_superuser`) | **Personne.** Uniquement par une requête SQL manuelle sur la base |
 | Staff (`is_staff`) | Un superuser seulement, jamais lui-même |
 | Utilisateur sans staff | Un staff ayant `can_delete` sur `users`, ou un superuser |
+
+Pour l'exploitation, à documenter : un superuser ne se supprime que par SQL (récupération par SQL ou par un autre superuser).
 
 Les rôles du type « modérateur » ne sont que des groupes créés par le dev : ils donnent des droits, pas un rang. La hiérarchie ne repose que sur les deux colonnes de `eihwaz_users`, qu'aucun groupe ne peut modifier.
 
@@ -299,6 +311,8 @@ preuve délivrée
 | Droits | `can_*` et `can_*_own` par groupe | L'administrateur, depuis l'interface |
 | Métier | Règles du domaine (plat déjà commandé, rang entre groupes…) | Le dev, dans le builder |
 
+**Frontière** : la porte autorise **l'opération sur une ligne** ; le plancher et `fields` autorisent **les colonnes**. Un `create` ne peut pas poser `is_superuser` parce que la colonne est refusée, pas parce que la porte la voit.
+
 Le dev ne peut que **restreindre** : sa règle n'est évaluée que si les deux niveaux précédents ont dit oui. Un `can_delete(|_, _| true)` n'autorise rien que Runique refuse. Différence assumée avec Django, où ces protections sont laissées au dev.
 
 **Limite de responsabilité.** Tout ce qui passe par le builder (formulaire généré, `form::<F>()`) reste borné par le plancher. Une `extra_route` avec son propre handler sort de ce cadre : c'est un choix délibéré du dev, son code écrit librement via SeaORM, et ce qu'il y fait (y compris toucher `is_superuser`) relève de sa responsabilité. La route reste vérifiée par `extra_route_gate` ; sa doc le rappelle.
@@ -308,39 +322,10 @@ Le dev ne peut que **restreindre** : sa règle n'est évaluée que si les deux n
 1. **Monter en droits par la table des droits.** Un staff avec `can_update` sur `eihwaz_groupes_droits` coche `can_delete` sur son propre groupe ; ou ajoute des membres à un groupe plus puissant depuis `groupes`. Plancher : on ne modifie ni les droits d'un groupe dont on est membre, ni la composition d'un groupe, au-delà des droits qu'on possède (superuser excepté).
 2. **Vérification et écriture séparées (TOCTOU).** Le propriétaire ou le statut superuser peuvent changer entre la porte et l'écriture. Écriture conditionnelle (`UPDATE … WHERE id = ? AND owner_id = ?`, puis vérifier qu'une ligne a été touchée), ou porte et écriture dans une même transaction.
 3. **Constructeur de la preuve** : `pub(in crate::admin::gate)`, pas `pub(crate)`. Le module `admin/gate/` peut garder plusieurs fichiers (un par règle) ; seul ce dossier fabrique des preuves.
-4. **Existence qui fuit** : même réponse pour « n'existe pas » et « pas le droit », sinon les ids s'énumèrent.
+4. **Existence qui fuit** : même réponse pour « n'existe pas », « hors du parent », « pas le droit » et « superuser protégé », sinon les ids s'énumèrent. Tranché : refus uniforme (message général `admin.access.action_not_allowed` en flash, puis redirection) ; seule une ressource inconnue de l'admin répond 404.
 5. **Colonnes structurelles** (tranché) : clé primaire jamais dans `fields` (vérifié au démarrage) ; clé du parent d'une route imbriquée imposée par l'URL. Toute autre clé étrangère, colonne propriétaire comprise, suit la logique de Django : modifiable seulement si le dev la met dans `fields` (transférer une commande à un autre utilisateur est un choix du projet), absente ou `readonly` sinon. La cible reste vérifiée par `ReadableIds`.
 
 Déjà corrigé : les droits sont relus à chaque requête, la porte revérifie au POST.
-
-## 13. Retour de relecture (Grok, 2026-10-10)
-
-1. **Propriétaire typé, via `ModelMeta`** : `owner_of` lit la colonne propriétaire déclarée par `ModelMeta` (`const OWNER: Option<Self::Column>`), comparée en `PkOf<User>`, jamais en chaîne (`own_field` + `to_string()` d'aujourd'hui disparaissent). Pas de colonne propriétaire → `RIGHT_OWN` n'ouvre jamais. Colonne `NULL` → pas propriétaire.
-2. **Parent dans la porte et dans la preuve** : `GateCtx::parent` (ressource + id) est vérifié par la porte (ci-dessus) et rejoué par `Guarded::conditions()` (`AND parent_id = ?`).
-3. **Frontière** : la porte autorise **l'opération sur une ligne** ; le plancher et `fields` autorisent **les colonnes**. Un `create` ne peut pas poser `is_superuser` parce que la colonne est refusée, pas parce que la porte le voit.
-4. **`ResetPassword`** : déjà prévue (section 8, point 3) ; sa preuve est `Authorized<ResetPassword, User>`.
-5. **Réponse unique** : « n'existe pas », « hors du parent », « pas le droit », « superuser protégé » donnent tous la même réponse (section 12, point 4). Laquelle (404 ou message général) : à trancher une fois pour toutes.
-6. **Vocabulaire unique** : `CrudAction` (droits), `Crud` (un droit), `CrudOperation` (enum des opérations, données), structs `AdminOperation` (comportement), `Authorized`, `Refusal`. `ResourcePerms` et `Refus` disparaissent à la refonte.
-7. **Tests** : les tests fabriquent leurs preuves par un module `gate::test_support` sous `#[cfg(test)]`, jamais en ouvrant `Authorized::new`.
-8. **Action groupée** : la colonne visée doit être dans `fields`, jamais secrète ni `server_only` (vérifié au démarrage).
-9. **`ModelMeta` reste fin** : clé de ressource, clé primaire, propriétaire, parent, secrets, colonnes obligatoires, relations. L'affichage, les formulaires et les inlines restent dans le builder `ModelAdmin`. La preuve ne connaît que `E` et `O`, jamais le formulaire.
-
-## 14. Seconde relecture (Grok, 2026-10-10)
-
-- `ResetPassword` ajoutée au tableau des opérations (section 2).
-- `Authorized` porte ses conditions (champ privé construit une fois par la porte) et implémente `Guarded` : l'écart entre la section 4 et le TOCTOU est fermé.
-- **Création** : pas de ligne existante, donc pas de `WHERE` à rejouer ; ce que la porte impose (propriétaire = `request.user.id` quand il n'est pas dans `fields`, parent de l'URL) est **écrit par `insert` lui-même**, jamais repris du formulaire.
-- `can_read_own` : changement de schéma (`eihwaz_groupes_droits`), fait **avec** la refonte des droits, pas après.
-- `ReadableIds` : une seule requête par champ (`WHERE id IN (…) AND <portée>`), jamais une par id.
-- Exploitation : un superuser ne se supprime que par SQL ; à documenter pour l'exploitation (récupération par SQL ou par un autre superuser).
-- Réponse unique, proposition de Grok : même message (« action impossible ») partout, statut 404 quand l'id est dans l'URL (n'en confirme pas l'existence), 403 sans id (création sans droit). À trancher.
-
-## 15. Troisième relecture (Grok, 2026-10-10)
-
-- `PROTECTS_SUPERUSER` ne couvre que « un non-superuser ne touche pas un superuser ». Les règles plus strictes (ResetPassword d'un superuser par lui seul, suppression d'un staff par un superuser seul, actions sur soi-même) vivent dans `users_floor`, appelé par la porte pour la ressource `users` : sinon la porte générique laisserait un superuser A réinitialiser le superuser B.
-- `can_read_own` / `Crud::ReadOwn` ajoutés au squelette (section 1).
-- `Authorized::new(id, conditions)` : les conditions sont construites une seule fois, dans la porte.
-- `queryset` entre dans les conditions rejouées par l'écriture, comme le propriétaire et le parent.
 
 ## Écarté (et pourquoi)
 
@@ -354,9 +339,9 @@ Déjà corrigé : les droits sont relus à chaque requête, la porte revérifie 
 
 ## Tranché (2026-10-10)
 
-- Noms : `gate`, `Refusal`, `Authorized` ; `bulk_gate` → `action_gate` à la refonte.
+- Noms : `gate`, `Refusal`, `Authorized` ; `bulk_gate` → `action_gate` à la refonte. Vocabulaire unique : `CrudAction` (droits), `Crud` (un droit), `CrudOperation` (enum des opérations, données), structs `AdminOperation` (comportement), `Authorized`, `Refusal` ; `ResourcePerms` et `Refus` disparaissent.
 - Actions groupées : la modification en groupe actuelle est reprise ; une preuve par ligne (`Vec<Authorized<Update, E>>`). Même logique que le CSRF avant l'upload : **toutes** les lignes passent par la porte avant la moindre écriture (protection superuser comprise, un refus refuse tout le lot) ; ensuite seulement, toutes les écritures dans une seule transaction, annulée à la première erreur.
-- Une action groupée ne vise qu'une colonne présente dans `fields` (vérifié au démarrage).
+- Une action groupée ne vise qu'une colonne présente dans `fields`, jamais secrète ni `server_only` (vérifié au démarrage).
 - Secrets : un champ `password` est secret d'office ; tout autre champ se déclare secret explicitement dans le DSL (marqueur booléen sur le champ, ex. `api_key: text [secret]`). `ModelMeta` publie la liste ; le plancher l'applique.
 - `surcharge_js` retenu.
 - Export (historique, ou une table en CSV) : pas encore prévu, plus tard. Contraintes le jour venu : une struct `Export` (`RIGHT = Read`), même projection que la liste (jamais de colonne secrète ni `server_only`), même `Scope`, et l'export de l'historique filtré par les droits de lecture de chaque ressource. Esquisse : génération en tâche Tokio (lecture par paquets, `.csv.gz`) dans un dossier d'export du serveur, jamais servi en statique ; une table d'exports (fichier, propriétaire, date, expiration, état du lien) ; lien à jeton aléatoire **et** réservé au propriétaire connecté ; servi par la porte avec `Range` (reprise) ; lien invalidé une fois le téléchargement **complet** (pas à la première requête, sinon la reprise casse) ; fichier conservé pour régénérer un lien à la demande ; email = un lien, jamais une pièce jointe. À prévoir : limite du nombre d'exports lancés (la génération est le coût réel), emplacement et rétention des fichiers : choix du dev (dossier configurable, disque annexe, cloud) ; Runique fournit le réglage, pas la politique.

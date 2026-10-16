@@ -551,7 +551,7 @@ ModelAdmin::<menu::Entity>::new().m2m(plat::Allergenes);   // erreur : la relati
 **Donnée dérivée ≠ M2M** : les allergènes d'un menu (menu → plats → allergènes) ne sont pas un M2M du menu. Ils s'affichent en colonne calculée, lecture seule (`.computed(...)`), et ne se modifient que depuis les plats.
 
 **Règles métier (cahier des charges)** :
-1. Cible liable : elle existe, l'utilisateur peut **lire** sa ressource, et elle respecte la portée (`_own`, parent imbriqué). Aujourd'hui, n'importe quel id valide est accepté (relevé par Grok).
+1. Cible liable : elle existe, l'utilisateur peut **lire** sa ressource, et elle respecte la portée (`_own`, parent imbriqué). Aujourd'hui, n'importe quel id valide est accepté.
 2. Droit requis : modifier la ressource éditée + lire la cible.
 3. Le formulaire envoie l'état final ; différence (ajouts / retraits) calculée et écrite dans **une transaction** avec la ressource (base : `write_links`).
 4. Table pivot à colonnes supplémentaires (`through`) : un mini-formulaire par lien, à traiter comme un inline.
