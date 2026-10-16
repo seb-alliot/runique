@@ -12,7 +12,9 @@
 //! | `tera`        | Appel direct de filtres/fonctions : `kwargs()`, `no_kwargs()` |
 //! | `user`        | `TestUser`/`test_user(...)` : `RuniqueUser` minimal pour `login()` |
 
+#[cfg(feature = "admin")]
 pub mod admin_server;
+pub mod framework_tables;
 pub mod assert;
 pub mod db;
 pub mod db_isolation;

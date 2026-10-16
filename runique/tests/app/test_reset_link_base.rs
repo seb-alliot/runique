@@ -37,6 +37,7 @@ async fn refused<P>(b: RuniqueAppBuilder<P>) -> Vec<String> {
     }
 }
 
+#[cfg(feature = "admin")]
 #[tokio::test]
 #[serial]
 async fn production_refuses_a_password_reset_or_an_admin_without_public_url() {
@@ -74,6 +75,7 @@ async fn production_needs_no_public_url_without_reset_nor_admin() {
 }
 
 // In debug the request's Host stays the fallback: nothing to configure locally.
+#[cfg(feature = "admin")]
 #[tokio::test]
 #[serial]
 async fn debug_boots_without_public_url() {

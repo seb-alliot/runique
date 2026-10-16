@@ -190,6 +190,13 @@ fn field_value(field: &FieldDef) -> Option<TokenStream2> {
     } else {
         quote! { ::sea_orm::ActiveValue::Set(#value) }
     };
+    // Not in the data at all (the form doesn't have the field): with a
+    // default or NULL allowed, the column is left out of the write, so an
+    // INSERT gets the database default and an UPDATE keeps the stored value.
+    let has_default = has(|o| matches!(o, FieldOption::Default(_)));
+    let missing_left_out = keep_when_absent || has_default || nullable;
+
+    // Sent but empty: what an empty input means for this type.
     let absent = if keep_when_absent {
         quote! { ::sea_orm::ActiveValue::NotSet }
     } else if nullable {
@@ -216,10 +223,17 @@ fn field_value(field: &FieldDef) -> Option<TokenStream2> {
         }
     };
 
+    let missing = if missing_left_out {
+        quote! { ::sea_orm::ActiveValue::NotSet }
+    } else {
+        absent.clone()
+    };
+
     Some(quote! {
         match ::runique::forms::form_data::read(__data, #name, #parse)? {
             Some(v) => #set,
-            None => #absent,
+            None if __data.contains_key(#name) => #absent,
+            None => #missing,
         }
     })
 }

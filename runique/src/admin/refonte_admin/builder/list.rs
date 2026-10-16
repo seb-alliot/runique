@@ -1,5 +1,5 @@
 //! The list page of one model.
-use crate::admin::helper::sql_dialect::{search_condition, text_cast_type_of};
+use crate::db::sql_dialect::{search_condition, text_cast_type_of};
 use crate::utils::aliases::StrMap;
 use sea_orm::{
     sea_query::{Alias, Asterisk, Expr, ExprTrait, Func, WindowStatement},
@@ -117,6 +117,33 @@ impl<E: EntityTrait> ListConfig<E> {
     pub fn per_page(mut self, per_page: u64) -> Self {
         self.per_page = Some(per_page);
         self
+    }
+
+    /// The lists of this block that name the column `name`.
+    pub(super) fn lists_using(&self, name: &str) -> Vec<&'static str> {
+        let named = |cols: &[E::Column]| cols.iter().any(|c| c.as_str() == name);
+        let mut lists = Vec::new();
+        if named(&self.display) {
+            lists.push("display");
+        }
+        if named(&self.links) {
+            lists.push("links");
+        }
+        if named(&self.sortable) {
+            lists.push("sortable");
+        }
+        if self.ordering.iter().any(|(c, _)| c.as_str() == name) {
+            lists.push("ordering");
+        }
+        if let Some(search) = &self.search
+            && named(search)
+        {
+            lists.push("search");
+        }
+        if named(&self.filter) {
+            lists.push("filter");
+        }
+        lists
     }
 
     pub(crate) fn validate(&self) -> Result<(), String> {

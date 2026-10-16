@@ -55,6 +55,21 @@ impl<E: EntityTrait> FormConfig<E> {
         self
     }
 
+    /// The lists of this block that name the column `name`.
+    pub(super) fn lists_using(&self, name: &str) -> Vec<&'static str> {
+        let mut lists = Vec::new();
+        if self.has_field(name) {
+            lists.push("fields");
+        }
+        if self.readonly.iter().any(|c| c.as_str() == name) {
+            lists.push("readonly");
+        }
+        if self.labels.iter().any(|(c, _)| c.as_str() == name) {
+            lists.push("labels");
+        }
+        lists
+    }
+
     pub(crate) fn validate(&self) -> Result<(), String> {
         let mut form_error = Vec::new();
         for (field, cols) in [("readonly", &self.readonly)] {

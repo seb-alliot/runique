@@ -29,6 +29,7 @@
 //! - [`helpers::assert`]  — assertions HTTP : `assert_status`, `assert_has_header`, `assert_redirect`, …
 //! - [`helpers::db`]      — In-memory SQLite: `fresh_db()`, `fresh_db_with_schema()`, `exec()`, `count()`, …
 
+#[cfg(feature = "admin")]
 pub mod admin;
 pub mod app;
 pub mod auth;

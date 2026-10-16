@@ -368,5 +368,5 @@ pub trait Guarded<E: EntityTrait> {
     fn conditions(&self) -> Condition;
 }
 ```
-- Message unique : `Refusal::ActionImpossible` s'affiche par une clé i18n générique, `admin.access.action_not_allowed` (« Action non autorisée », 9 langues), à ajouter à la refonte. `admin.access.superuser_only` porte déjà ce texte générique depuis la 3.0.4 (son ancien texte confirmait que le compte visé était un superuser) ; la clé est renommée à la refonte.
+- Message unique : `Refusal::ActionImpossible` s'affiche par une clé i18n générique, `admin.access.action_not_allowed` (« Action non autorisée », 9 langues), à ajouter à la refonte. `admin.access.superuser_only` porte déjà ce texte générique sur `main`, publié avec la 4.0 (son ancien texte confirmait que le compte visé était un superuser) ; la clé est renommée à la refonte.
 - **Réponse unique tranchée** : pas de page 404/403. Tout refus redirige vers le tableau de bord de l'admin avec le message flash « Action non autorisée » (`admin.access.action_not_allowed`), identique quelle que soit la raison ; la raison n'est écrite que dans les logs.

@@ -158,6 +158,10 @@ all-databases = ["sqlite", "postgres", "mysql", "derive_form/all-databases"]
 big-pk = ["derive_form/big-pk", "runique_dsl/big-pk"]
 pk-uuid = ["derive_form/pk-uuid", "runique_dsl/pk-uuid", "sea-orm/with-uuid"]
 acme = ["dep:instant-acme", "dep:axum-server", "dep:rustls"]
+# The admin panel: module, routes, templates, `.with_admin` and the code the
+# macros generate for it. Off by default: without it, none of it is compiled.
+# With it, the admin is still only served once `.with_admin(…)` is called.
+admin = ["derive_form/admin"]
 # Test-only DB isolation (RuniqueDb enum: real connection or an open test
 # transaction, rolled back at the end of each test). Declare it under
 # [dev-dependencies] in consuming apps, never [dependencies] — see

@@ -13,6 +13,15 @@ Runique 3.0.2 fixes security issues that are also present in 2.2.x (listed below
 
 ### Active Advisories
 
+#### `csrf.js` sends the CSRF token to other origins — Medium, fixed in 4.0
+
+- **What it does**: `csrf.js` wraps `fetch` to add the `X-CSRF-Token` header to every `POST`/`PUT`/`PATCH`/`DELETE` request, without checking where the request goes. A `fetch` to another domain made from a page that loads the script (a third-party script, or project code) carries the session's CSRF token to that domain, and that domain's response can replace the page's token. With the token, another site can forge requests on behalf of the signed-in user.
+- **Who is affected**: Runique 3.0.x, only when the browser lets the request leave the page. Runique's CSP is active by default and every preset sets `connect-src 'self'`: the browser then blocks any `fetch` to another origin before it is sent, and the token never leaves. Exposed: a project that adds another origin to `connect-src` (the token reaches that origin), or that turns the CSP off.
+- **How to protect yourself now**: keep the default `connect-src 'self'`. If the page must call another origin, do it from the server rather than from the browser, or don't load `csrf.js` on that page.
+- **Fix**: Runique 4.0 adds the header, and accepts a rotated token, only for requests to the page's own origin.
+
+#### Dependencies
+
 None currently identified. The dependency tree was checked against the two advisories previously tracked here (below) — neither applies to the current lockfile.
 
 ### Previously Tracked (now resolved)
@@ -31,7 +40,7 @@ Re-checked against `Cargo.lock` on 2026-10-10. The CI runs `cargo audit` on ever
 
 | Version | Issue | Severity |
 | ------- | ----- | -------- |
-| 3.0.4 (upcoming) | CSRF token sent by `csrf.js` with `fetch` requests to other origins | Medium |
+| 4.0 (upcoming) | CSRF token sent by `csrf.js` with `fetch` requests to other origins (see Active Advisories) | Medium |
 | 3.0.3 | `bulk_create`: a create-only right could update existing rows (regenerate the admin) | High |
 | 3.0.3 | Staff member able to take over a superuser's account (email change + password reset) | High |
 | 3.0.3 | Open redirect through a tab (`/\t/evil.com`) or a non-ASCII `Location` left unchecked | Medium |

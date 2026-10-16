@@ -1,5 +1,7 @@
+#[cfg(feature = "admin")]
 pub mod test_admin_prefix;
 pub mod test_reset_link_base;
+#[cfg(feature = "admin")]
 pub mod test_robots_txt;
 pub mod test_runique_app;
 pub mod test_security_builders;

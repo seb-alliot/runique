@@ -49,12 +49,17 @@ pub mod forms;
 pub mod macros;
 pub mod migration;
 
+#[cfg(feature = "admin")]
 pub mod admin;
 pub mod cli;
 pub mod errors;
 pub mod middleware;
 
 pub mod utils;
+
+/// Every framework migration, under the path the projects' generated
+/// `migration/src/lib.rs` imports (`runique::prelude::migrations_table`).
+pub use auth::migrations_table;
 
 #[cfg(feature = "test-utils")]
 pub mod runique_test;
@@ -255,6 +260,7 @@ pub mod prelude {
     // ========================================================================
 
     // Items used by daemon-generated code (external crate) via `use runique::prelude::*`
+    #[cfg(feature = "admin")]
     pub use crate::admin::{
         admin_main::{
             PrototypeAdminState, admin_get, admin_get_id, admin_nested_get, admin_nested_get_id,
@@ -273,9 +279,9 @@ pub mod prelude {
         registry::AdminRegistry,
         resource::{AdminResource, ColumnFilter, CrudOperation, DisplayConfig},
         router::admin_router::AdminState,
-        table_admin::migrations_table,
         trad::{inject_admin_prefix, insert_admin_messages},
     };
     pub use crate::auth::permissions::groupe;
+    pub use crate::migrations_table;
     pub use futures_util::future::BoxFuture;
 }

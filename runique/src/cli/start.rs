@@ -78,8 +78,17 @@ fn format_workspace() {
 
 // AdminPanel generation
 
+/// A CLI built without the `admin` feature has no admin generator.
+#[cfg(not(feature = "admin"))]
+fn generate_admin(_admin_path: &str) -> Result<()> {
+    anyhow::bail!(
+        "this `runique` CLI was built without the `admin` feature: reinstall it with `--features admin`"
+    )
+}
+
 /// Generates `src/admins/` from `src/admin.rs`, and propagates any failure so the
 /// caller stops before invoking cargo.
+#[cfg(feature = "admin")]
 fn generate_admin(admin_path: &str) -> Result<()> {
     use crate::admin::daemon::generate_once;
 

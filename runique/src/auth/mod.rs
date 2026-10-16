@@ -1,6 +1,7 @@
 //! Authentication — session, guards, permissions, password reset.
 pub mod form;
 pub mod guard;
+pub mod migrations_table;
 pub mod password;
 pub mod permissions;
 pub mod session;

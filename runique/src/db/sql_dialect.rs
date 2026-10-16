@@ -90,12 +90,29 @@ pub fn ilike(db: &ADb, col: &str, pattern: &str) -> Expr {
     .like(pattern)
 }
 
-#[cfg(feature = "sqlite")]
 #[cfg(test)]
 mod tests {
     use super::search_condition;
-    use crate::admin::refonte_admin::gate::test_support::fixtures::note::{Column, Entity};
     use sea_orm::{DbBackend, EntityTrait, QueryFilter, QueryTrait};
+
+    /// Only the SQL is built, never run: no database, no driver feature.
+    mod note {
+        use sea_orm::entity::prelude::*;
+
+        #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+        #[sea_orm(table_name = "notes")]
+        pub struct Model {
+            #[sea_orm(primary_key)]
+            pub id: i32,
+            pub owner_id: Option<i32>,
+        }
+
+        #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+        pub enum Relation {}
+
+        impl ActiveModelBehavior for ActiveModel {}
+    }
+    use note::{Column, Entity};
 
     fn sql(backend: DbBackend, cols: &[Column], term: &str) -> String {
         let cond = search_condition::<Entity>(backend, cols, term).unwrap();

@@ -1026,6 +1026,7 @@ pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
     state.uses_migrations_table = true;
 
     let admin_box = "Box::new(migrations_table::AdminTableMigration)".to_string();
+    let history_box = "Box::new(migrations_table::EihwazHistoryMigration)".to_string();
     let sessions_box = "Box::new(migrations_table::EihwazSessionsMigration)".to_string();
     let reset_box = "Box::new(migrations_table::EihwazResetTokensMigration)".to_string();
     let users_box = "Box::new(migrations_table::EihwazUsersMigration)".to_string();
@@ -1038,13 +1039,20 @@ pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
         "create_eihwaz_users_groupes_table",
         "create_eihwaz_sessions_table",
         "create_eihwaz_reset_tokens_table",
+        "create_eihwaz_history_table",
     ];
 
     // Remove existing framework entries/mods (we'll re-inject at the top)
     // and also drop app migrations duplicating framework tables.
     state
         .entries
-        .retain(|e| e != &users_box && e != &sessions_box && e != &reset_box && e != &admin_box);
+        .retain(|e| {
+            e != &users_box
+                && e != &sessions_box
+                && e != &reset_box
+                && e != &admin_box
+                && e != &history_box
+        });
     state
         .mods
         .retain(|m| !FRAMEWORK_TABLE_PATTERNS.iter().any(|pat| m.contains(pat)));
@@ -1054,6 +1062,7 @@ pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
             users_box.clone(),
             sessions_box.clone(),
             admin_box.clone(),
+            history_box.clone(),
             reset_box.clone(),
         ],
     );
@@ -1280,6 +1289,12 @@ mod tests {
 
         assert!(
             lib.contains("migrations_table::EihwazUsersMigration"),
+            "{lib}"
+        );
+        // `AdminTableMigration` no longer creates the history: its own
+        // migration must be there, or a new database has no history table.
+        assert!(
+            lib.contains("migrations_table::EihwazHistoryMigration"),
             "{lib}"
         );
         assert!(!lib.contains("m20220101_000001_create_table"), "{lib}");

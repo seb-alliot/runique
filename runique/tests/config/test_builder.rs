@@ -10,9 +10,12 @@
 //! - RuniqueAppBuilder (construction, méthodes chainables, build())
 
 use axum::{Router, routing::get};
+#[cfg(feature = "admin")]
 use runique::admin::{AdminConfig, AdminRoutes};
+#[cfg(feature = "admin")]
+use runique::app::staging::AdminStaging;
 use runique::app::staging::{
-    AdminStaging, CoreStaging, MiddlewareStaging, PermissionsPolicyConfig, StaticStaging,
+    CoreStaging, MiddlewareStaging, PermissionsPolicyConfig, StaticStaging,
 };
 use runique::app::{BuildError, BuildErrorKind, CheckError, CheckReport, RuniqueAppBuilder};
 use runique::config::app::RuniqueConfig;
@@ -547,11 +550,13 @@ fn test_builder_core_chainable() {
     let _b = RuniqueAppBuilder::new(make_config()).core(|c| c);
 }
 
+#[cfg(feature = "admin")]
 #[test]
 fn test_builder_with_admin_chainable() {
     let _b = RuniqueAppBuilder::new(make_config()).with_admin(|a| a);
 }
 
+#[cfg(feature = "admin")]
 #[test]
 fn test_builder_chaine_complete_sync() {
     let router = Router::new().route("/", get(|| async { "ok" }));
@@ -718,30 +723,35 @@ async fn test_build_profil_production_couvre_csp_host_validation() {
 // AdminStaging
 // ════════════════════════════════════════════════════════════════
 
+#[cfg(feature = "admin")]
 #[test]
 fn test_admin_staging_new_disabled_par_defaut() {
     let a = AdminStaging::new();
     assert!(!a.enabled);
 }
 
+#[cfg(feature = "admin")]
 #[test]
 fn test_admin_staging_default_disabled() {
     let a = AdminStaging::default();
     assert!(!a.enabled);
 }
 
+#[cfg(feature = "admin")]
 #[test]
 fn test_admin_staging_enable() {
     let a = AdminStaging::new().enable();
     assert!(a.enabled);
 }
 
+#[cfg(feature = "admin")]
 #[test]
 fn test_admin_staging_disable_apres_enable() {
     let a = AdminStaging::new().enable().disable();
     assert!(!a.enabled);
 }
 
+#[cfg(feature = "admin")]
 #[test]
 fn test_admin_staging_disable_keeps_the_rest_of_the_config() {
     let a = AdminStaging::new()
@@ -752,6 +762,7 @@ fn test_admin_staging_disable_keeps_the_rest_of_the_config() {
     assert_eq!(a.config.site_title, "Back-office");
 }
 
+#[cfg(feature = "admin")]
 #[test]
 fn test_admin_staging_with_rate_limiter_is_kept() {
     let a = AdminStaging::new()
@@ -761,18 +772,21 @@ fn test_admin_staging_with_rate_limiter_is_kept() {
     assert_eq!(a.config.site_title, "Back-office");
 }
 
+#[cfg(feature = "admin")]
 #[test]
 fn test_admin_staging_hot_reload() {
     let a = AdminStaging::new().hot_reload(true);
     assert!(a.config.hot_reload);
 }
 
+#[cfg(feature = "admin")]
 #[test]
 fn test_admin_staging_site_title() {
     let a = AdminStaging::new().site_title("Mon Admin");
     assert_eq!(a.config.site_title, "Mon Admin");
 }
 
+#[cfg(feature = "admin")]
 #[test]
 fn test_admin_staging_routes_stocke_router() {
     let router = Router::new().route("/admin/test", get(|| async { "ok" }));
@@ -782,17 +796,20 @@ fn test_admin_staging_routes_stocke_router() {
     assert_eq!(a.config.prefix, "/admin");
 }
 
+#[cfg(feature = "admin")]
 #[test]
 fn test_admin_staging_with_proto_state_none_par_defaut() {
     let a = AdminStaging::new();
     assert!(a.state.is_none());
 }
 
+#[cfg(feature = "admin")]
 #[test]
 fn test_admin_staging_is_ready_disabled() {
     assert!(AdminStaging::new().is_ready()); // disabled → toujours prêt
 }
 
+#[cfg(feature = "admin")]
 #[test]
 fn test_admin_staging_is_ready_enabled_avec_prefix() {
     let a = AdminStaging::new().enable();
@@ -800,12 +817,14 @@ fn test_admin_staging_is_ready_enabled_avec_prefix() {
     assert!(a.is_ready());
 }
 
+#[cfg(feature = "admin")]
 #[test]
 fn test_admin_staging_validate_disabled_ok() {
     let a = AdminStaging::new();
     assert!(a.validate().is_ok());
 }
 
+#[cfg(feature = "admin")]
 #[test]
 fn test_admin_staging_validate_enabled_ok() {
     // Accounts come from `eihwaz_users`: nothing else to configure.
@@ -813,36 +832,42 @@ fn test_admin_staging_validate_enabled_ok() {
     assert!(a.validate().is_ok());
 }
 
+#[cfg(feature = "admin")]
 #[test]
 fn test_admin_config_new_prefix_defaut() {
     let c = AdminConfig::new();
     assert_eq!(c.prefix, "/admin");
 }
 
+#[cfg(feature = "admin")]
 #[test]
 fn test_admin_config_hot_reload() {
     let c = AdminConfig::new().hot_reload(true);
     assert!(c.hot_reload);
 }
 
+#[cfg(feature = "admin")]
 #[test]
 fn test_admin_config_site_title() {
     let c = AdminConfig::new().site_title("Runique Admin");
     assert_eq!(c.site_title, "Runique Admin");
 }
 
+#[cfg(feature = "admin")]
 #[test]
 fn test_admin_config_disable() {
     let c = AdminConfig::new().disable();
     assert!(!c.enabled);
 }
 
+#[cfg(feature = "admin")]
 #[test]
 fn test_admin_config_debug() {
     let c = AdminConfig::new();
     assert!(format!("{:?}", c).contains("AdminConfig"));
 }
 
+#[cfg(feature = "admin")]
 #[test]
 fn test_admin_config_clone() {
     let c = AdminConfig::new().site_title("Clone Test");
@@ -861,6 +886,7 @@ fn test_middleware_config_from_env_leaves_host_validation_to_the_builder() {
 
 // Written from cargo-mutants survivors (2026-10-07): each `AdminConfig` setter
 // keeps what was set before it (a setter returning `Default` would wipe it).
+#[cfg(feature = "admin")]
 #[test]
 fn test_admin_config_setters_keep_the_rest() {
     let c = AdminConfig::new()

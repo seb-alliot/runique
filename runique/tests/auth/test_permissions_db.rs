@@ -30,7 +30,7 @@ use serial_test::serial;
 // la vraie cause. Ce fichier crée maintenant sa propre `eihwaz_users` et
 // n'avale plus les erreurs de CREATE.
 async fn setup_rbac_tables(db: &runique::sea_orm::DatabaseConnection) {
-    use runique::admin::table_admin::migrations_table::{
+    use runique::migrations_table::{
         create_eihwaz_groupes_droits_table, create_eihwaz_groupes_table,
         create_eihwaz_users_groupes_table, create_eihwaz_users_table,
     };

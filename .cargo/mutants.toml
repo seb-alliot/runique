@@ -17,7 +17,7 @@
 # (derive_form is a proc-macro: runique's tests are what check its output.
 # `--test-package` / `--test-workspace` don't reach the build, which keeps only
 # `--package=derive_form` and then refuses the `runique/` features.)
-features = ["runique/all-databases", "runique/test-utils"]
+features = ["runique/all-databases", "runique/test-utils", "runique/admin"]
 # The suite takes ~45 s; leave room for a slower machine before calling a
 # mutant "timed out".
 timeout_multiplier = 3.0

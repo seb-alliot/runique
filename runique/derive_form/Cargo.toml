@@ -26,6 +26,8 @@ mysql = []
 # Échappatoire explicite au compile_error! de mutuelle exclusion, forwardée par
 # `runique/all-databases` — voir runique/Cargo.toml.
 all-databases = []
+# Forwarded by `runique/admin`: the admin code `model!{}` generates (`ModelMeta`).
+admin = []
 
 [dependencies]
 runique_dsl.workspace = true

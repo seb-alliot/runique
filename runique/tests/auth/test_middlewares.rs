@@ -1,7 +1,7 @@
 //! Tests — the app-wide auth middleware: `req.user` is the signed-in account
 //! as the database knows it now, not the copy taken into the session at login.
 
-use crate::helpers::admin_server::USERS_DDL;
+use crate::helpers::framework_tables::USERS_DDL;
 use crate::helpers::db;
 use crate::helpers::pk::{pk, pk_sql_literal};
 use axum::{Router, routing::get};

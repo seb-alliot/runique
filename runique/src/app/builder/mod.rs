@@ -5,7 +5,9 @@ use axum::Router;
 use std::marker::PhantomData;
 use tower_sessions::cookie::time::Duration;
 
-use super::staging::{AdminStaging, CoreStaging, MiddlewareStaging, StaticStaging};
+#[cfg(feature = "admin")]
+use super::staging::AdminStaging;
+use super::staging::{CoreStaging, MiddlewareStaging, StaticStaging};
 use crate::auth::{PasswordResetConfig, PasswordResetStaging};
 use crate::config::RuniqueConfig;
 use crate::utils::runique_log::RuniqueLog;
@@ -111,6 +113,7 @@ pub struct RuniqueAppBuilder<S = Fresh> {
     pub(super) middleware: MiddlewareStaging,
     pub(super) statics: StaticStaging,
     pub(super) router: Option<Router>,
+    #[cfg(feature = "admin")]
     pub(super) admin: AdminStaging,
     pub(super) password_reset: Option<PasswordResetStaging>,
     pub(super) state: PhantomData<S>,
@@ -130,6 +133,7 @@ impl RuniqueAppBuilder<Fresh> {
             middleware,
             statics: StaticStaging::new(),
             router: None,
+            #[cfg(feature = "admin")]
             admin: AdminStaging::new(),
             password_reset: None,
             state: PhantomData,
@@ -146,6 +150,7 @@ impl<S> RuniqueAppBuilder<S> {
             middleware: self.middleware,
             statics: self.statics,
             router: self.router,
+            #[cfg(feature = "admin")]
             admin: self.admin,
             password_reset: self.password_reset,
             state: PhantomData,
@@ -464,6 +469,7 @@ impl<S> RuniqueAppBuilder<S> {
     ///     .site_title("My Admin")
     /// )
     /// ```
+    #[cfg(feature = "admin")]
     pub fn with_admin(mut self, f: impl FnOnce(AdminStaging) -> AdminStaging) -> Self {
         self.admin = f(self.admin.enable());
         self

@@ -2,7 +2,7 @@
 //! Couvre : les règles lues dans les extensions, le `CurrentUser` placé par
 //! `auth_middleware`, et les groupes chargés depuis la base pour `roles`.
 
-use crate::helpers::admin_server::{GROUPES_DDL, GROUPES_DROITS_DDL, USERS_GROUPES_DDL};
+use crate::helpers::framework_tables::{GROUPES_DDL, GROUPES_DROITS_DDL, USERS_GROUPES_DDL};
 use crate::helpers::pk::{pk, pk_sql_literal};
 use crate::helpers::server::build_engine;
 use axum::{

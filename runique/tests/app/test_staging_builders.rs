@@ -3,14 +3,19 @@
 //! dropping the rest of the configuration, without a test failing.
 use axum::Router;
 use axum::routing::get;
+#[cfg(feature = "admin")]
 use runique::admin::resource::CrudOperation;
 use runique::app::RuniqueApp;
-use runique::app::staging::{AdminStaging, CoreStaging};
+#[cfg(feature = "admin")]
+use runique::app::staging::AdminStaging;
+use runique::app::staging::CoreStaging;
+#[cfg(feature = "admin")]
 use runique::auth::LoginGuard;
 use runique::config::RuniqueConfig;
 use sea_orm::Database;
 use serial_test::serial;
 
+#[cfg(feature = "admin")]
 #[test]
 fn admin_staging_builders_keep_every_setting() {
     let a = AdminStaging::new()
