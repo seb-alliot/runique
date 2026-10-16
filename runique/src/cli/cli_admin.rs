@@ -608,7 +608,7 @@ mod password_rule_tests {
 #[cfg(all(test, feature = "sqlite"))]
 mod superuser_tests {
     use super::*;
-    use crate::admin::table_admin::migrations_table::EihwazUsersMigration;
+    use crate::auth::migrations_table::EihwazUsersMigration;
     use sea_orm::{ConnectionTrait, EntityTrait, PaginatorTrait};
     use sea_orm_migration::{MigrationTrait, SchemaManager};
 

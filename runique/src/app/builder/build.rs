@@ -21,6 +21,7 @@ use super::super::error_build::BuildError;
 use super::super::runique_app::RuniqueApp;
 use super::super::templates::TemplateLoader;
 use super::RuniqueAppBuilder;
+#[cfg(feature = "admin")]
 use crate::admin::build_admin_router;
 use crate::config::RuniqueConfig;
 use crate::engine::RuniqueEngine;
@@ -128,7 +129,10 @@ impl<P> RuniqueAppBuilder<P> {
             },
             url_registry,
             security_csp: {
+                // Only the admin adds to the policy.
+                #[cfg_attr(not(feature = "admin"), allow(unused_mut))]
                 let mut policy = middleware.security_policy.take().unwrap_or_default();
+                #[cfg(feature = "admin")]
                 if self.admin.enabled {
                     policy.merge_htmx_hashes();
                 }
@@ -165,11 +169,14 @@ impl<P> RuniqueAppBuilder<P> {
 
         // The admin's emailed reset links point to the reset page this app
         // serves, and its "view site" link, unless set, is the app's public URL.
-        if let Some(pr) = &self.password_reset {
-            self.admin.config.reset_route = pr.config.reset_route.clone();
-        }
-        if self.admin.config.view_site_url.is_none() {
-            self.admin.config.view_site_url = engine.config.server.public_url.clone();
+        #[cfg(feature = "admin")]
+        {
+            if let Some(pr) = &self.password_reset {
+                self.admin.config.reset_route = pr.config.reset_route.clone();
+            }
+            if self.admin.config.view_site_url.is_none() {
+                self.admin.config.view_site_url = engine.config.server.public_url.clone();
+            }
         }
 
         let router = if let Some(pr) = self.password_reset {
@@ -186,6 +193,7 @@ impl<P> RuniqueAppBuilder<P> {
             router
         };
 
+        #[cfg(feature = "admin")]
         let router = if self.admin.enabled {
             // Public base URL (mount prefix + admin path) — what `{% url %}`
             // must resolve to, not the path the router is built from.
@@ -327,6 +335,7 @@ impl<P> RuniqueAppBuilder<P> {
         self.core.validate()?;
         self.middleware.validate()?;
         self.statics.validate()?;
+        #[cfg(feature = "admin")]
         self.admin.validate()?;
         self.cross_validate()
     }
@@ -357,7 +366,11 @@ impl<P> RuniqueAppBuilder<P> {
         // `Host` header: someone asking a reset for a victim's address with
         // `Host: evil.com` would get the victim's token mailed in a link to
         // their own site.
-        if (self.password_reset.is_some() || self.admin.enabled) && srv.public_url.is_none() {
+        #[cfg(feature = "admin")]
+        let admin_enabled = self.admin.enabled;
+        #[cfg(not(feature = "admin"))]
+        let admin_enabled = false;
+        if (self.password_reset.is_some() || admin_enabled) && srv.public_url.is_none() {
             report.add(
                 CheckError::new(
                     "PublicUrl",
@@ -398,11 +411,21 @@ impl<P> RuniqueAppBuilder<P> {
         Ok(())
     }
 
+    #[cfg(feature = "admin")]
+    fn admin_is_ready(&self) -> bool {
+        self.admin.is_ready()
+    }
+
+    #[cfg(not(feature = "admin"))]
+    fn admin_is_ready(&self) -> bool {
+        true
+    }
+
     fn all_ready(&self) -> bool {
         self.core.is_ready()
             && self.middleware.is_ready()
             && self.statics.is_ready()
-            && self.admin.is_ready()
+            && self.admin_is_ready()
     }
 
     // ─── Static files attachment ──────────────────────────────────────────────

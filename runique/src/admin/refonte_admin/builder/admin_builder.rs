@@ -7,7 +7,9 @@ use crate::admin::refonte_admin::{
     meta::ModelMeta,
 };
 use crate::utils::aliases::ADb;
-use sea_orm::{DbErr, FromQueryResult, PaginatorTrait, QueryFilter, QueryResult, QuerySelect};
+use sea_orm::{
+    DbErr, FromQueryResult, IdenStatic, PaginatorTrait, QueryFilter, QueryResult, QuerySelect,
+};
 
 pub struct ModelAdmin<E: ModelMeta> {
     pub list: ListConfig<E>,
@@ -74,6 +76,19 @@ impl<E: ModelMeta> ModelAdmin<E> {
         }
         if E::IS_ACCOUNT_TABLE && self.form.has_field("is_superuser") {
             errors.push("fields: `is_superuser` can never be written from the admin".to_string());
+        }
+        for secret in E::SECRET {
+            let name = secret.as_str();
+            for list in self
+                .list
+                .lists_using(name)
+                .into_iter()
+                .chain(self.form.lists_using(name))
+            {
+                errors.push(format!(
+                    "{list}: `{name}` is a secret column, never shown, searched, filtered, sorted or written by the admin"
+                ));
+            }
         }
         if errors.is_empty() {
             Ok(())
@@ -187,6 +202,34 @@ mod tests {
             .form(|f| f.fields([user::Column::Username, user::Column::IsSuperuser]));
         let error = admin.validate().unwrap_err();
         assert!(error.contains("is_superuser"), "{error}");
+    }
+
+    /// A secret column is refused in every list that could show it, search
+    /// it, filter it, sort by it or write it: even unshown, a searchable or
+    /// sortable password hash gives itself away one guessed prefix at a time.
+    #[test]
+    fn a_secret_column_is_refused_in_every_list() {
+        let p = user::Column::Password;
+        let cases: [(&str, ModelAdmin<user::Entity>); 6] = [
+            ("display", ModelAdmin::new().list(|l| l.display([p]))),
+            ("search", ModelAdmin::new().list(|l| l.search([p]))),
+            ("filter", ModelAdmin::new().list(|l| l.filter([p]))),
+            ("sortable", ModelAdmin::new().list(|l| l.sortable([p]))),
+            ("ordering", ModelAdmin::new().list(|l| l.ordering([(p, Order::Asc)]))),
+            ("fields", ModelAdmin::new().form(|f| f.fields([p]))),
+        ];
+        for (list, admin) in cases {
+            let error = admin.validate().unwrap_err();
+            assert!(error.contains(&format!("{list}: `password` is a secret column")), "{list}: {error}");
+        }
+    }
+
+    #[test]
+    fn the_account_table_without_its_password_is_accepted() {
+        let admin = ModelAdmin::<user::Entity>::new()
+            .list(|l| l.display([user::Column::Username]).search([user::Column::Email]))
+            .form(|f| f.fields([user::Column::Username, user::Column::Email]));
+        assert!(admin.validate().is_ok());
     }
 
     #[test]

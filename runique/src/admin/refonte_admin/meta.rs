@@ -19,9 +19,14 @@ pub trait ModelMeta:
     const OWNER: Option<Self::Column> = None;
     /// `eihwaz_users`: its superuser accounts are protected by the gate.
     const IS_ACCOUNT_TABLE: bool = false;
+    /// Columns the admin never shows, searches, filters, sorts or writes (a
+    /// password hash). Even unshown, a searchable or sortable secret is an
+    /// oracle: rows coming back for a guessed prefix give the value away.
+    const SECRET: &'static [Self::Column] = &[];
 }
 
 impl ModelMeta for crate::auth::user::Entity {
     const KEY: &'static str = "users";
     const IS_ACCOUNT_TABLE: bool = true;
+    const SECRET: &'static [Self::Column] = &[crate::auth::user::Column::Password];
 }

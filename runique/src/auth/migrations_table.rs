@@ -1,0 +1,518 @@
+//! The framework's own tables (accounts, groups, rights, sessions, reset
+//! tokens), needed with or without the admin. Usable by developers in their
+//! own `up` migrations. The admin's history table is created here too; only
+//! its use (entity, pages) belongs to the admin.
+
+use sea_query::{
+    Alias, Check, ColumnDef, Expr, ExprTrait, ForeignKey, ForeignKeyAction, Index, Table,
+    TableCreateStatement,
+};
+
+// ── EihwazUsersMigration ──────────────────────────────────────────────────────
+
+/// Generates the `TableCreateStatement` for the `eihwaz_users` table.
+pub fn create_eihwaz_users_table() -> TableCreateStatement {
+    let mut pk_col = ColumnDef::new(Alias::new("id"));
+    #[cfg(feature = "pk-uuid")]
+    pk_col.uuid();
+    #[cfg(all(feature = "big-pk", not(feature = "pk-uuid")))]
+    pk_col.big_integer();
+    #[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
+    pk_col.integer();
+    pk_col.not_null().primary_key();
+    // UUID primary keys are generated application-side (Uuid::now_v7()), never DB auto-increment.
+    #[cfg(not(feature = "pk-uuid"))]
+    pk_col.auto_increment();
+
+    Table::create()
+        .table(Alias::new("eihwaz_users"))
+        .if_not_exists()
+        .col(&mut pk_col)
+        .col(
+            ColumnDef::new(Alias::new("username"))
+                .string()
+                .not_null()
+                .unique_key(),
+        )
+        .col(
+            ColumnDef::new(Alias::new("email"))
+                .string()
+                .not_null()
+                .unique_key(),
+        )
+        .col(ColumnDef::new(Alias::new("password")).string().not_null())
+        .col(
+            ColumnDef::new(Alias::new("is_active"))
+                .boolean()
+                .not_null()
+                .default(false),
+        )
+        .col(
+            ColumnDef::new(Alias::new("is_staff"))
+                .boolean()
+                .not_null()
+                .default(false),
+        )
+        .col(
+            ColumnDef::new(Alias::new("is_superuser"))
+                .boolean()
+                .not_null()
+                .default(false),
+        )
+        .col(ColumnDef::new(Alias::new("created_at")).date_time().null())
+        .col(ColumnDef::new(Alias::new("updated_at")).date_time().null())
+        // When the account's owner first took it over through the emailed link.
+        .col(
+            ColumnDef::new(Alias::new("activated_at"))
+                .date_time()
+                .null(),
+        )
+        // The database itself refuses an active account that was never
+        // activated, whatever writes it — the ORM, raw SQL, a script.
+        .check(Check::named(
+            ACTIVE_NEEDS_ACTIVATION,
+            Expr::col(Alias::new("is_active"))
+                .not()
+                .or(Expr::col(Alias::new("activated_at")).is_not_null()),
+        ))
+        .to_owned()
+}
+
+/// "Turnkey" migration to create the `eihwaz_users` table.
+/// To be placed first in the `Migrator` `vec!`.
+pub struct EihwazUsersMigration;
+
+impl sea_orm_migration::MigrationName for EihwazUsersMigration {
+    fn name(&self) -> &str {
+        "m000000_000001_runique_eihwaz_users"
+    }
+}
+
+#[async_trait::async_trait]
+impl sea_orm_migration::MigrationTrait for EihwazUsersMigration {
+    async fn up(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), sea_orm::DbErr> {
+        manager.create_table(create_eihwaz_users_table()).await
+    }
+
+    async fn down(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), sea_orm::DbErr> {
+        manager
+            .drop_table(Table::drop().table(Alias::new("eihwaz_users")).to_owned())
+            .await
+    }
+}
+
+/// Name of the `CHECK` constraint "an active account has been activated", so a
+/// refusal can be recognised whatever the engine.
+pub const ACTIVE_NEEDS_ACTIVATION: &str = "eihwaz_users_active_needs_activation";
+
+/// Generates the `TableCreateStatement` for the `eihwaz_groupes` table.
+pub fn create_eihwaz_groupes_table() -> TableCreateStatement {
+    Table::create()
+        .table(Alias::new("eihwaz_groupes"))
+        .if_not_exists()
+        .col(
+            ColumnDef::new(Alias::new("id"))
+                .integer()
+                .not_null()
+                .auto_increment()
+                .primary_key(),
+        )
+        .col(
+            ColumnDef::new(Alias::new("nom"))
+                .string()
+                .not_null()
+                .unique_key(),
+        )
+        .to_owned()
+}
+
+/// Generates the `TableCreateStatement` for the `eihwaz_groupes_droits` table.
+/// Each row represents a group's permissions on a specific resource.
+/// Composite PK: (groupe_id, resource_key).
+pub fn create_eihwaz_groupes_droits_table() -> TableCreateStatement {
+    Table::create()
+        .table(Alias::new("eihwaz_groupes_droits"))
+        .if_not_exists()
+        .col(ColumnDef::new(Alias::new("groupe_id")).integer().not_null())
+        .col(
+            ColumnDef::new(Alias::new("resource_key"))
+                .string()
+                .not_null(),
+        )
+        .col(
+            ColumnDef::new(Alias::new("can_create"))
+                .boolean()
+                .not_null()
+                .default(false),
+        )
+        .col(
+            ColumnDef::new(Alias::new("can_read"))
+                .boolean()
+                .not_null()
+                .default(false),
+        )
+        .col(
+            ColumnDef::new(Alias::new("can_update"))
+                .boolean()
+                .not_null()
+                .default(false),
+        )
+        .col(
+            ColumnDef::new(Alias::new("can_delete"))
+                .boolean()
+                .not_null()
+                .default(false),
+        )
+        .col(
+            ColumnDef::new(Alias::new("can_update_own"))
+                .boolean()
+                .not_null()
+                .default(false),
+        )
+        .col(
+            ColumnDef::new(Alias::new("can_delete_own"))
+                .boolean()
+                .not_null()
+                .default(false),
+        )
+        .primary_key(
+            Index::create()
+                .name("pk_eihwaz_groupes_droits")
+                .col(Alias::new("groupe_id"))
+                .col(Alias::new("resource_key")),
+        )
+        .foreign_key(
+            ForeignKey::create()
+                .name("fk_eihwaz_groupes_droits_groupe_id")
+                .from(Alias::new("eihwaz_groupes_droits"), Alias::new("groupe_id"))
+                .to(Alias::new("eihwaz_groupes"), Alias::new("id"))
+                .on_delete(ForeignKeyAction::Cascade),
+        )
+        .to_owned()
+}
+
+/// Generates the `TableCreateStatement` for the `eihwaz_users_groupes` junction table.
+pub fn create_eihwaz_users_groupes_table() -> TableCreateStatement {
+    let fk_name = "fk_eihwaz_users_groupes_eihwaz_users_id";
+
+    // user_id doit suivre le type de eihwaz_users.id (BIGINT sous big-pk, UUID sous pk-uuid),
+    // sinon la FK est de type incompatible et échoue à la création (Postgres strict).
+    let mut user_id_col = ColumnDef::new(Alias::new("user_id"));
+    #[cfg(feature = "pk-uuid")]
+    user_id_col.uuid();
+    #[cfg(all(feature = "big-pk", not(feature = "pk-uuid")))]
+    user_id_col.big_integer();
+    #[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
+    user_id_col.integer();
+    user_id_col.not_null();
+
+    Table::create()
+        .table(Alias::new("eihwaz_users_groupes"))
+        .if_not_exists()
+        .col(&mut user_id_col)
+        .col(ColumnDef::new(Alias::new("groupe_id")).integer().not_null())
+        .primary_key(
+            Index::create()
+                .name("pk_eihwaz_users_groupes")
+                .col(Alias::new("user_id"))
+                .col(Alias::new("groupe_id")),
+        )
+        .foreign_key(
+            ForeignKey::create()
+                .name(fk_name)
+                .from(Alias::new("eihwaz_users_groupes"), Alias::new("user_id"))
+                .to(Alias::new("eihwaz_users"), Alias::new("id"))
+                .on_delete(ForeignKeyAction::Cascade),
+        )
+        .foreign_key(
+            ForeignKey::create()
+                .name("fk_eihwaz_users_groupes_groupe_id")
+                .from(Alias::new("eihwaz_users_groupes"), Alias::new("groupe_id"))
+                .to(Alias::new("eihwaz_groupes"), Alias::new("id"))
+                .on_delete(ForeignKeyAction::Cascade),
+        )
+        .to_owned()
+}
+
+/// Generates the `TableCreateStatement` for the `eihwaz_sessions` table.
+pub fn create_eihwaz_sessions_table() -> TableCreateStatement {
+    let mut user_id_col = ColumnDef::new(Alias::new("user_id"));
+    #[cfg(feature = "pk-uuid")]
+    user_id_col.uuid();
+    #[cfg(all(feature = "big-pk", not(feature = "pk-uuid")))]
+    user_id_col.big_integer();
+    #[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
+    user_id_col.integer();
+    user_id_col.not_null();
+
+    let fk_name = "fk_eihwaz_sessions_eihwaz_users_id";
+
+    Table::create()
+        .table(Alias::new("eihwaz_sessions"))
+        .if_not_exists()
+        .col(
+            ColumnDef::new(Alias::new("id"))
+                .integer()
+                .not_null()
+                .auto_increment()
+                .primary_key(),
+        )
+        .col(
+            ColumnDef::new(Alias::new("cookie_id"))
+                .string()
+                .not_null()
+                .unique_key(),
+        )
+        .col(&mut user_id_col)
+        .col(ColumnDef::new(Alias::new("session_id")).string().not_null())
+        .col(ColumnDef::new(Alias::new("session_data")).text().null())
+        .col(
+            ColumnDef::new(Alias::new("expires_at"))
+                .date_time()
+                .not_null(),
+        )
+        .foreign_key(
+            ForeignKey::create()
+                .name(fk_name)
+                .from(Alias::new("eihwaz_sessions"), Alias::new("user_id"))
+                .to(Alias::new("eihwaz_users"), Alias::new("id"))
+                .on_delete(ForeignKeyAction::Cascade),
+        )
+        .to_owned()
+}
+
+/// "Turnkey" migration to create the `eihwaz_sessions` table.
+/// To be placed in the `Migrator` `vec!` after `EihwazUsersMigration`.
+pub struct EihwazSessionsMigration;
+
+impl sea_orm_migration::MigrationName for EihwazSessionsMigration {
+    fn name(&self) -> &str {
+        "m000000_000003_runique_eihwaz_sessions"
+    }
+}
+
+#[async_trait::async_trait]
+impl sea_orm_migration::MigrationTrait for EihwazSessionsMigration {
+    async fn up(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), sea_orm::DbErr> {
+        manager.create_table(create_eihwaz_sessions_table()).await
+    }
+
+    async fn down(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), sea_orm::DbErr> {
+        manager
+            .drop_table(
+                Table::drop()
+                    .table(Alias::new("eihwaz_sessions"))
+                    .if_exists()
+                    .to_owned(),
+            )
+            .await
+    }
+}
+
+// The admin's history: its migration stays here, always compiled, while the
+// table is only used with the `admin` feature. Once a database has applied it,
+// SeaORM wants it in the `Migrator` for good, admin or not.
+
+/// Generates the `TableCreateStatement` for the `eihwaz_history` table.
+///
+/// `user_id` **deliberately has no FK** to the user table: the audit trail must
+/// survive a user's deletion (a CASCADE FK would erase the history of their
+/// actions). `username` is denormalized to keep a readable trace even after
+/// deletion. Don't "fix" this by adding a CASCADE FK.
+pub fn create_eihwaz_history_table() -> TableCreateStatement {
+    let mut user_id_col = ColumnDef::new(Alias::new("user_id"));
+    #[cfg(feature = "pk-uuid")]
+    user_id_col.uuid();
+    #[cfg(all(feature = "big-pk", not(feature = "pk-uuid")))]
+    user_id_col.big_integer();
+    #[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
+    user_id_col.integer();
+    user_id_col.not_null();
+
+    Table::create()
+        .table(Alias::new("eihwaz_history"))
+        .if_not_exists()
+        .col(
+            ColumnDef::new(Alias::new("id"))
+                .big_integer()
+                .not_null()
+                .auto_increment()
+                .primary_key(),
+        )
+        .col(
+            ColumnDef::new(Alias::new("resource_key"))
+                .string()
+                .not_null(),
+        )
+        .col(ColumnDef::new(Alias::new("object_pk")).string().not_null())
+        .col(ColumnDef::new(Alias::new("action")).string().not_null())
+        .col(&mut user_id_col)
+        .col(ColumnDef::new(Alias::new("username")).string().not_null())
+        .col(
+            ColumnDef::new(Alias::new("created_at"))
+                .date_time()
+                .not_null(),
+        )
+        .col(ColumnDef::new(Alias::new("summary")).text().null())
+        .col(ColumnDef::new(Alias::new("batch_id")).string().null())
+        .to_owned()
+}
+
+/// "Turnkey" migration to create the `eihwaz_history` table.
+pub struct EihwazHistoryMigration;
+
+impl sea_orm_migration::MigrationName for EihwazHistoryMigration {
+    fn name(&self) -> &str {
+        "m000000_000004_runique_eihwaz_history"
+    }
+}
+
+#[async_trait::async_trait]
+impl sea_orm_migration::MigrationTrait for EihwazHistoryMigration {
+    async fn up(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), sea_orm::DbErr> {
+        manager.create_table(create_eihwaz_history_table()).await
+    }
+
+    async fn down(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), sea_orm::DbErr> {
+        manager
+            .drop_table(Table::drop().table(Alias::new("eihwaz_history")).to_owned())
+            .await
+    }
+}
+
+/// Generates the `TableCreateStatement` for the `eihwaz_reset_tokens` table.
+///
+/// Stores **hashed** password-reset tokens (never the raw token) so a DB read leak
+/// cannot be replayed. `user_id` is the authoritative target of the reset, derived
+/// from the token row — never from a URL/form field.
+pub fn create_eihwaz_reset_tokens_table() -> TableCreateStatement {
+    let mut user_id_col = ColumnDef::new(Alias::new("user_id"));
+    #[cfg(feature = "pk-uuid")]
+    user_id_col.uuid();
+    #[cfg(all(feature = "big-pk", not(feature = "pk-uuid")))]
+    user_id_col.big_integer();
+    #[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
+    user_id_col.integer();
+    user_id_col.not_null();
+
+    let fk_name = "fk_eihwaz_reset_tokens_eihwaz_users_id";
+
+    Table::create()
+        .table(Alias::new("eihwaz_reset_tokens"))
+        .if_not_exists()
+        .col(
+            ColumnDef::new(Alias::new("id"))
+                .big_integer()
+                .not_null()
+                .auto_increment()
+                .primary_key(),
+        )
+        .col(
+            ColumnDef::new(Alias::new("token_hash"))
+                .string()
+                .not_null()
+                .unique_key(),
+        )
+        .col(&mut user_id_col)
+        .col(
+            ColumnDef::new(Alias::new("expires_at"))
+                .date_time()
+                .not_null(),
+        )
+        .foreign_key(
+            ForeignKey::create()
+                .name(fk_name)
+                .from(Alias::new("eihwaz_reset_tokens"), Alias::new("user_id"))
+                .to(Alias::new("eihwaz_users"), Alias::new("id"))
+                .on_delete(ForeignKeyAction::Cascade),
+        )
+        .to_owned()
+}
+
+/// "Turnkey" migration to create the `eihwaz_reset_tokens` table.
+/// To be placed in the `Migrator` `vec!` after `EihwazUsersMigration`.
+pub struct EihwazResetTokensMigration;
+
+impl sea_orm_migration::MigrationName for EihwazResetTokensMigration {
+    fn name(&self) -> &str {
+        "m000000_000005_runique_reset_tokens"
+    }
+}
+
+#[async_trait::async_trait]
+impl sea_orm_migration::MigrationTrait for EihwazResetTokensMigration {
+    async fn up(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), sea_orm::DbErr> {
+        manager
+            .create_table(create_eihwaz_reset_tokens_table())
+            .await
+    }
+
+    async fn down(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), sea_orm::DbErr> {
+        manager
+            .drop_table(
+                Table::drop()
+                    .table(Alias::new("eihwaz_reset_tokens"))
+                    .if_exists()
+                    .to_owned(),
+            )
+            .await
+    }
+}
+
+/// Complete "turnkey" migration to initialize Runique's native RBAC architecture.
+/// To be injected directly into the `Migrations::up()` `vec!` after your User table migration.
+///
+/// It used to create `eihwaz_history` too: [`EihwazHistoryMigration`] does it now,
+/// injected by `makemigrations` only when the project has the admin.
+/// The name below is recorded in every existing database: never change it.
+pub struct AdminTableMigration;
+
+impl sea_orm_migration::MigrationName for AdminTableMigration {
+    fn name(&self) -> &str {
+        "m000000_000002_runique_admin_table"
+    }
+}
+
+#[async_trait::async_trait]
+impl sea_orm_migration::MigrationTrait for AdminTableMigration {
+    async fn up(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), sea_orm::DbErr> {
+        manager.create_table(create_eihwaz_groupes_table()).await?;
+        manager
+            .create_table(create_eihwaz_groupes_droits_table())
+            .await?;
+        manager
+            .create_table(create_eihwaz_users_groupes_table())
+            .await?;
+        manager.create_table(create_eihwaz_sessions_table()).await?;
+        Ok(())
+    }
+
+    async fn down(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), sea_orm::DbErr> {
+        manager
+            .drop_table(
+                Table::drop()
+                    .table(Alias::new("eihwaz_sessions"))
+                    .if_exists()
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_table(
+                Table::drop()
+                    .table(Alias::new("eihwaz_users_groupes"))
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_table(
+                Table::drop()
+                    .table(Alias::new("eihwaz_groupes_droits"))
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_table(Table::drop().table(Alias::new("eihwaz_groupes")).to_owned())
+            .await?;
+        Ok(())
+    }
+}

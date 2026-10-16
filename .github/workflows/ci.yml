@@ -51,7 +51,7 @@ jobs:
       # sont actives) — --all-features les active toutes les deux à la fois, donc le
       # sweep principal les exclut ici et chacune est testée séparément juste après.
       - name: Run clippy
-        run: cargo clippy --all-targets --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme -- -D warnings
+        run: cargo clippy --all-targets --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme,admin -- -D warnings
         continue-on-error: ${{ matrix.rust == 'nightly' }}
 
       # working-directory: runique — sans ça, cargo cible tout le workspace (demo-app
@@ -68,7 +68,7 @@ jobs:
         continue-on-error: ${{ matrix.rust == 'nightly' }}
 
       - name: Build
-        run: cargo build --verbose --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme
+        run: cargo build --verbose --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme,admin
 
       # RUST_LOG temporaire : reset_password_unknown_id_creates_no_token échoue
       # de façon intermittente sur ce job (500 au lieu d'un id inconnu géré
@@ -76,18 +76,24 @@ jobs:
       # (4 coeurs, cargo test complet) — objectif : capturer l'erreur réelle
       # derrière le 500 au prochain échec CI. À retirer une fois diagnostiqué.
       - name: Run tests
-        run: cargo test --verbose --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme
+        run: cargo test --verbose --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme,admin
         working-directory: runique
         env:
           RUST_LOG: warn,runique::admin=trace,runique::auth=trace
           RUST_BACKTRACE: "1"
 
       - name: Run tests (big-pk)
-        run: cargo test --verbose --features big-pk,all-databases
+        run: cargo test --verbose --features big-pk,all-databases,admin
         working-directory: runique
 
       - name: Run tests (pk-uuid)
-        run: cargo test --verbose --features pk-uuid,all-databases
+        run: cargo test --verbose --features pk-uuid,all-databases,admin
+        working-directory: runique
+
+      # The admin is an opt-in feature: the framework must build and pass its
+      # tests without it too (admin tests are `#[cfg(feature = "admin")]`).
+      - name: Run tests (without admin)
+        run: cargo test --verbose --features all-databases
         working-directory: runique
 
   security:
@@ -136,6 +142,6 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Build documentation
-        run: cargo doc --no-deps --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme
+        run: cargo doc --no-deps --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme,admin
         working-directory: runique
         continue-on-error: true

@@ -19,6 +19,8 @@ mod items {
             secret: password [nullable],
             photo: image [nullable, upload_to: "photos/"],
             active: bool [required],
+            level: int [default: 5],
+            kind: text [default: "draft"],
         }
     }
 }
@@ -44,15 +46,46 @@ fn a_missing_required_number_is_an_error_not_zero() {
 
 #[test]
 fn optional_and_text_and_bool_keep_their_empty_meaning() {
-    let model = items::admin_from_form(&data(&[("qty", "3"), ("title", "")]), None).unwrap();
+    let model =
+        items::admin_from_form(&data(&[("qty", "3"), ("title", ""), ("note", "")]), None).unwrap();
     assert_eq!(model.qty, ActiveValue::Set(3));
-    assert_eq!(model.note, ActiveValue::Set(None), "nullable: NULL");
+    assert_eq!(model.note, ActiveValue::Set(None), "sent empty, nullable: NULL");
     assert_eq!(model.title, ActiveValue::Set(String::new()));
     assert_eq!(
         model.active,
         ActiveValue::Set(false),
         "unchecked box isn't sent"
     );
+}
+
+/// A column the form doesn't have is left out of the write when it has a
+/// default or allows NULL: an INSERT gets the database default, an UPDATE
+/// keeps the stored value. It used to be written as `""` / `NULL`.
+#[test]
+fn a_column_missing_from_the_form_is_left_out_when_it_has_a_default() {
+    let model = items::admin_from_form(&data(&[("qty", "3"), ("title", "t")]), None).unwrap();
+    assert!(matches!(model.level, ActiveValue::NotSet), "int default");
+    assert!(matches!(model.kind, ActiveValue::NotSet), "text default");
+    assert!(matches!(model.note, ActiveValue::NotSet), "nullable");
+}
+
+#[test]
+fn a_column_with_a_default_sent_with_a_value_is_written() {
+    let model = items::admin_from_form(
+        &data(&[("qty", "3"), ("title", "t"), ("level", "9"), ("kind", "final")]),
+        None,
+    )
+    .unwrap();
+    assert_eq!(model.level, ActiveValue::Set(9));
+    assert_eq!(model.kind, ActiveValue::Set("final".to_string()));
+}
+
+#[test]
+fn a_required_column_without_default_stays_required_when_missing() {
+    let err = items::admin_from_form(&data(&[("title", "t")]), None).unwrap_err();
+    assert_eq!(err, FormDataError::Required("qty".into()));
+    let model = items::admin_from_form(&data(&[("qty", "3")]), None).unwrap();
+    assert_eq!(model.active, ActiveValue::Set(false), "an unchecked box isn't sent");
 }
 
 #[test]
@@ -121,4 +154,17 @@ fn test_form_data_errors_name_their_field() {
         FormDataError::Invalid("qty".into()).to_string(),
         FormDataError::Required("qty".into()).to_string()
     );
+}
+
+/// `model!{}` publishes its password fields as the admin's secret columns.
+#[cfg(feature = "admin")]
+#[test]
+fn a_password_field_is_secret_for_the_admin() {
+    use runique::admin::refonte_admin::meta::ModelMeta;
+    use runique::sea_orm::IdenStatic;
+    let names: Vec<&str> = <items::Entity as ModelMeta>::SECRET
+        .iter()
+        .map(|c| c.as_str())
+        .collect();
+    assert_eq!(names, ["secret"]);
 }

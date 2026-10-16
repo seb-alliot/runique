@@ -6,7 +6,7 @@
 
 use crate::helpers::pk::{pk_sql_literal, pk_sql_literal_pg};
 use crate::helpers::{db, db_mariadb, db_postgres};
-use runique::admin::table_admin::migrations_table::{
+use runique::migrations_table::{
     ACTIVE_NEEDS_ACTIVATION, EihwazUsersMigration,
 };
 use runique::sea_orm::{ConnectionTrait, DatabaseConnection, TransactionTrait};

@@ -8,7 +8,9 @@ pub mod templates;
 pub use builder::RuniqueAppBuilder;
 pub use error_build::{BuildError, BuildErrorKind, CheckError, CheckReport};
 pub use runique_app::RuniqueApp;
+#[cfg(feature = "admin")]
+pub use staging::AdminStaging;
 pub use staging::{
-    AdminStaging, CoreStaging, CorsConfig, CspConfig, HostConfig, MiddlewareStaging,
+    CoreStaging, CorsConfig, CspConfig, HostConfig, MiddlewareStaging,
     PermissionsPolicyConfig, StaticStaging, TrustedProxiesConfig,
 };

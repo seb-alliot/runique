@@ -1,4 +1,5 @@
 //! Staging steps — progressive configuration of the app before `build()` (core, middlewares, admin, static, CSP).
+#[cfg(feature = "admin")]
 pub mod admin_staging;
 pub mod core_staging;
 pub mod cors_config;
@@ -9,6 +10,7 @@ pub mod permissions_policy_config;
 pub mod static_staging;
 pub mod trusted_proxies_config;
 
+#[cfg(feature = "admin")]
 pub use admin_staging::AdminStaging;
 pub use core_staging::CoreStaging;
 pub use cors_config::CorsConfig;

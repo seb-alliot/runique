@@ -7,7 +7,7 @@ use sea_orm::entity::prelude::*;
 #[sea_orm(table_name = "eihwaz_groupes")]
 pub struct Model {
     // `eihwaz_groupes.id` est toujours INTEGER, indépendant de `Pk` (big-pk/pk-uuid) —
-    // cf. migrations_table.rs::create_eihwaz_groupes_table, aucun #[cfg] dessus.
+    // cf. auth/migrations_table.rs::create_eihwaz_groupes_table, aucun #[cfg] dessus.
     #[sea_orm(primary_key)]
     pub id: i32,
     pub nom: String,

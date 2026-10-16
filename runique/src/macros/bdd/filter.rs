@@ -481,7 +481,7 @@ macro_rules! search_cond {
         // cast target itself is NOT portable (sea-query never translates it),
         // hence the runtime lookup via `text_cast_type` (CHAR on MySQL/MariaDB,
         // TEXT elsewhere).
-        let __cast_ty = $crate::admin::helper::text_cast_type($db);
+        let __cast_ty = $crate::db::sql_dialect::text_cast_type($db);
         let __val = format!("%{}%", $val.to_lowercase());
         let mut __cond = sea_orm::Condition::any();
         for col in <$entity as EntityTrait>::Column::iter() {
@@ -499,7 +499,7 @@ macro_rules! search_cond {
     // ── or("col1" icontains val, "col2" icontains val, ...) ──────────────────
     ($db:expr => $entity:ty => or($($col:literal icontains $val:expr),+ $(,)?)) => {{
         use sea_orm::sea_query::ExprTrait;
-        let __cast_ty = $crate::admin::helper::text_cast_type($db);
+        let __cast_ty = $crate::db::sql_dialect::text_cast_type($db);
         let mut __cond = sea_orm::Condition::any();
         $(
             {

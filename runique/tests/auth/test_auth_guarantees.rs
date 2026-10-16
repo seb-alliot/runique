@@ -5,7 +5,7 @@
 //! flag forced, a login that silently does nothing. The code was right; nothing
 //! would have noticed if it stopped being.
 use crate::helpers::{
-    admin_server, db,
+    db, framework_tables,
     pk::{pk, pk_sql_literal},
 };
 use runique::auth::session::{LoginError, login};
@@ -21,8 +21,8 @@ const PASSWORD: &str = "correct horse battery";
 
 async fn users_db() -> ADb {
     let conn = db::fresh_db().await;
-    db::exec(&conn, admin_server::USERS_DDL).await;
-    db::exec(&conn, admin_server::SESSIONS_DDL).await;
+    db::exec(&conn, framework_tables::USERS_DDL).await;
+    db::exec(&conn, framework_tables::SESSIONS_DDL).await;
     ADb::from_connection(conn)
 }
 
@@ -477,7 +477,7 @@ async fn pruning_orphan_rights_reports_what_it_deleted() {
     use runique::auth::permissions::prune_orphan_droits;
 
     let conn = db::fresh_db().await;
-    db::exec(&conn, admin_server::GROUPES_DROITS_DDL).await;
+    db::exec(&conn, framework_tables::GROUPES_DROITS_DDL).await;
     db::exec(
         &conn,
         "INSERT INTO eihwaz_groupes_droits (groupe_id, resource_key) VALUES \
