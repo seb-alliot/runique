@@ -1,6 +1,6 @@
 # Ébauche — opérations CRUD de l'admin (preuves typées)
 
-> Statut : ébauche, rien n'est implémenté. Complète [ebauche-model-admin.md](ebauche-model-admin.md).
+> Statut (2026-10-16) : la porte est implémentée dans `runique/src/admin/refonte_admin/gate/` : droits (`CrudAction`), opérations (`List`, `View`, `Create`, `Update`, `Delete`, `ResetPassword`), preuves `Authorized<O, E>` avec leurs conditions (`Guarded`), `authorize_list`/`view`/`row`/`create`, `readable_ids`, refus uniforme, et écritures `insert`/`update`/`delete` qui rejouent les conditions. Pas encore branchés sur les routes : la création, la modification, la suppression et les actions groupées. Restent à faire : `can_read_own` en base, les rangs (`is_admin`, compte protégé), les actions sur son propre compte. Complète [ebauche-model-admin.md](ebauche-model-admin.md).
 
 ## Les trois pièces
 
