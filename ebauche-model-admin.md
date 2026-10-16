@@ -1,6 +1,6 @@
 # Ébauche — builder `ModelAdmin<Entity>` (refonte de l'admin)
 
-> Statut : **ébauche de conception, rien n'est implémenté.** Cible : version majeure (rupture).
+> Statut (2026-10-16) : **jalon 1 fait** (`runique/src/admin/refonte_admin/builder/`, feature `admin`) : `AdminSite`, `ModelAdmin` avec `ListConfig` et `FormConfig` typés, liste (tri, recherche, filtres, pagination, total en une requête) et fiche par la porte, projection des colonnes, `ModelMeta` généré par `model!{}` (`KEY`, `OWNER`, `SECRET`), vérification au démarrage. Le reste (écriture, actions groupées, relations, templates, migration des ressources) est encore à l'état d'ébauche. Cible : version majeure (rupture).
 > Calqué sur le `ModelAdmin` de Django ([référence 5.2](https://docs.djangoproject.com/en/5.2/ref/contrib/admin/)).
 
 ## Pourquoi
