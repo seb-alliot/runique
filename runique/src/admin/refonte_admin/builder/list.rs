@@ -23,12 +23,12 @@ pub(crate) struct ListQuery {
 impl ListQuery {
     /// Reads the URL's query string. It only shapes the values: which column
     /// a name may reach is decided later, by `ListConfig`.
-    pub(crate) fn from_params(mut params: StrMap) -> Self {
+    pub(crate) fn from_params(mut params: StrMap, search_max_len: usize) -> Self {
         let mut non_empty = |key: &str| params.remove(key).filter(|v| !v.is_empty());
         let page = non_empty("page").and_then(|p| p.parse().ok()).unwrap_or(1);
         let sort_by = non_empty("sort_by");
         let sort_dir = non_empty("sort_dir");
-        let search = non_empty("search");
+        let search = non_empty("search").map(|s| s.chars().take(search_max_len).collect());
         let filters = params
             .into_iter()
             .filter_map(|(key, value)| {
@@ -492,13 +492,16 @@ mod tests {
 
     #[test]
     fn the_query_string_is_read_as_given() {
-        let query = ListQuery::from_params(params(&[
-            ("page", "3"),
-            ("sort_by", "title"),
-            ("sort_dir", "desc"),
-            ("search", "bob"),
-            ("filter_owner_id", "10"),
-        ]));
+        let query = ListQuery::from_params(
+            params(&[
+                ("page", "3"),
+                ("sort_by", "title"),
+                ("sort_dir", "desc"),
+                ("search", "bob"),
+                ("filter_owner_id", "10"),
+            ]),
+            150,
+        );
         assert_eq!(query.page, 3);
         assert_eq!(query.sort_by.as_deref(), Some("title"));
         assert_eq!(query.sort_dir.as_deref(), Some("desc"));
@@ -508,20 +511,41 @@ mod tests {
 
     #[test]
     fn empty_values_are_absent() {
-        let query = ListQuery::from_params(params(&[("search", ""), ("filter_id", "")]));
+        let query = ListQuery::from_params(params(&[("search", ""), ("filter_id", "")]), 150);
         assert!(query.search.is_none());
         assert!(query.filters.is_empty());
     }
 
     #[test]
     fn a_bad_or_missing_page_is_the_first() {
-        assert_eq!(ListQuery::from_params(params(&[("page", "abc")])).page, 1);
-        assert_eq!(ListQuery::from_params(params(&[])).page, 1);
+        assert_eq!(
+            ListQuery::from_params(params(&[("page", "abc")]), 150).page,
+            1
+        );
+        assert_eq!(ListQuery::from_params(params(&[]), 150).page, 1);
     }
 
     #[test]
     fn keys_without_the_filter_prefix_are_not_filters() {
-        let query = ListQuery::from_params(params(&[("csrf_token", "x"), ("fp_owner_id", "2")]));
+        let query =
+            ListQuery::from_params(params(&[("csrf_token", "x"), ("fp_owner_id", "2")]), 150);
         assert!(query.filters.is_empty());
+    }
+    #[test]
+    fn a_long_search_term_is_cut_to_the_limit() {
+        let query = ListQuery::from_params(params(&[("search", "aaaaaaaa")]), 5);
+        assert_eq!(query.search.as_deref(), Some("aaaaa"));
+    }
+
+    #[test]
+    fn a_term_at_the_limit_is_kept_whole() {
+        let query = ListQuery::from_params(params(&[("search", "abcde")]), 5);
+        assert_eq!(query.search.as_deref(), Some("abcde"));
+    }
+
+    #[test]
+    fn an_accented_term_is_cut_on_characters_not_bytes() {
+        let query = ListQuery::from_params(params(&[("search", "éééééé")]), 5);
+        assert_eq!(query.search.as_deref(), Some("ééééé"));
     }
 }

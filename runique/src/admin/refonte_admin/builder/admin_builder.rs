@@ -215,19 +215,28 @@ mod tests {
             ("search", ModelAdmin::new().list(|l| l.search([p]))),
             ("filter", ModelAdmin::new().list(|l| l.filter([p]))),
             ("sortable", ModelAdmin::new().list(|l| l.sortable([p]))),
-            ("ordering", ModelAdmin::new().list(|l| l.ordering([(p, Order::Asc)]))),
+            (
+                "ordering",
+                ModelAdmin::new().list(|l| l.ordering([(p, Order::Asc)])),
+            ),
             ("fields", ModelAdmin::new().form(|f| f.fields([p]))),
         ];
         for (list, admin) in cases {
             let error = admin.validate().unwrap_err();
-            assert!(error.contains(&format!("{list}: `password` is a secret column")), "{list}: {error}");
+            assert!(
+                error.contains(&format!("{list}: `password` is a secret column")),
+                "{list}: {error}"
+            );
         }
     }
 
     #[test]
     fn the_account_table_without_its_password_is_accepted() {
         let admin = ModelAdmin::<user::Entity>::new()
-            .list(|l| l.display([user::Column::Username]).search([user::Column::Email]))
+            .list(|l| {
+                l.display([user::Column::Username])
+                    .search([user::Column::Email])
+            })
             .form(|f| f.fields([user::Column::Username, user::Column::Email]));
         assert!(admin.validate().is_ok());
     }

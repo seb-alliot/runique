@@ -2,8 +2,8 @@
 //! activation email) and for an active one, nothing for a blocked one, and the
 //! same answer on the page whatever the address.
 
-use crate::helpers::framework_tables::{RESET_TOKENS_DDL, USERS_DDL};
 use crate::helpers::db;
+use crate::helpers::framework_tables::{RESET_TOKENS_DDL, USERS_DDL};
 use crate::helpers::pk::pk_sql_literal;
 use axum::{Router, routing::get};
 use runique::app::RuniqueApp;

@@ -36,6 +36,9 @@ pub struct AdminConfig {
     /// Number of entries per page in the list view (default: 10)
     pub page_size: u64,
 
+    /// Longest search caractere maximum , default 150
+    pub search_max_len: usize,
+
     /// Route of the reset page the admin's emailed links point to, on
     /// the site URL. Set by the builder from `with_password_reset()`'s
     /// `reset_route` (default: `/reset-password`).
@@ -72,6 +75,7 @@ impl Clone for AdminConfig {
             enabled: self.enabled,
             templates: self.templates.clone(),
             page_size: self.page_size,
+            search_max_len: self.search_max_len,
             reset_route: self.reset_route.clone(),
             user_resources: self.user_resources.clone(),
             reset_password_email_template: self.reset_password_email_template.clone(),
@@ -108,6 +112,7 @@ impl AdminConfig {
             enabled: true,
             templates: AdminTemplate::new(),
             page_size: 10,
+            search_max_len: 150,
             reset_route: "/reset-password".to_string(),
             user_resources: std::collections::HashMap::new(),
             reset_password_email_template: None,
@@ -120,6 +125,13 @@ impl AdminConfig {
     /// Sets the number of rows per page in list views (clamped to at least 1).
     pub fn page_size(mut self, size: u64) -> Self {
         self.page_size = size.max(1);
+        self
+    }
+
+    /// Sets the longest search caractere
+    /// clamped to at least 1, A longer is cut, never refused.
+    pub fn search_max_len(mut self, len: usize) -> Self {
+        self.search_max_len = len.max(1);
         self
     }
 
@@ -229,5 +241,16 @@ impl AdminConfig {
 impl Default for AdminConfig {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::AdminConfig;
+
+    #[test]
+    fn a_zero_is_raised_to_one() {
+        assert_eq!(AdminConfig::new().page_size(0).page_size, 1);
+        assert_eq!(AdminConfig::new().search_max_len(0).search_max_len, 1);
     }
 }

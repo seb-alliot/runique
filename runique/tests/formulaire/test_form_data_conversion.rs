@@ -49,7 +49,11 @@ fn optional_and_text_and_bool_keep_their_empty_meaning() {
     let model =
         items::admin_from_form(&data(&[("qty", "3"), ("title", ""), ("note", "")]), None).unwrap();
     assert_eq!(model.qty, ActiveValue::Set(3));
-    assert_eq!(model.note, ActiveValue::Set(None), "sent empty, nullable: NULL");
+    assert_eq!(
+        model.note,
+        ActiveValue::Set(None),
+        "sent empty, nullable: NULL"
+    );
     assert_eq!(model.title, ActiveValue::Set(String::new()));
     assert_eq!(
         model.active,
@@ -72,7 +76,12 @@ fn a_column_missing_from_the_form_is_left_out_when_it_has_a_default() {
 #[test]
 fn a_column_with_a_default_sent_with_a_value_is_written() {
     let model = items::admin_from_form(
-        &data(&[("qty", "3"), ("title", "t"), ("level", "9"), ("kind", "final")]),
+        &data(&[
+            ("qty", "3"),
+            ("title", "t"),
+            ("level", "9"),
+            ("kind", "final"),
+        ]),
         None,
     )
     .unwrap();
@@ -85,7 +94,11 @@ fn a_required_column_without_default_stays_required_when_missing() {
     let err = items::admin_from_form(&data(&[("title", "t")]), None).unwrap_err();
     assert_eq!(err, FormDataError::Required("qty".into()));
     let model = items::admin_from_form(&data(&[("qty", "3")]), None).unwrap();
-    assert_eq!(model.active, ActiveValue::Set(false), "an unchecked box isn't sent");
+    assert_eq!(
+        model.active,
+        ActiveValue::Set(false),
+        "an unchecked box isn't sent"
+    );
 }
 
 #[test]

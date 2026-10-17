@@ -224,6 +224,12 @@ impl AdminStaging {
         self
     }
 
+    /// Sets the longest caractere in search  sql.
+    pub fn search_max_len(mut self, len: usize) -> Self {
+        self.config = self.config.search_max_len(len);
+        self
+    }
+
     /// Enables rate limiting on the admin login route.
     ///
     /// ```rust,ignore

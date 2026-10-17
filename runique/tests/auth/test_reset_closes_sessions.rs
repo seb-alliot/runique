@@ -1,8 +1,8 @@
 //! A completed password reset closes every session of the account, on every
 //! device — a stolen one included — and nobody else's.
 
-use crate::helpers::framework_tables::{RESET_TOKENS_DDL, SESSIONS_DDL, USERS_DDL};
 use crate::helpers::db;
+use crate::helpers::framework_tables::{RESET_TOKENS_DDL, SESSIONS_DDL, USERS_DDL};
 use crate::helpers::pk::{pk, pk_sql_literal};
 use axum::{Router, extract::Path, routing::get};
 use runique::app::RuniqueApp;

@@ -1044,15 +1044,13 @@ pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
 
     // Remove existing framework entries/mods (we'll re-inject at the top)
     // and also drop app migrations duplicating framework tables.
-    state
-        .entries
-        .retain(|e| {
-            e != &users_box
-                && e != &sessions_box
-                && e != &reset_box
-                && e != &admin_box
-                && e != &history_box
-        });
+    state.entries.retain(|e| {
+        e != &users_box
+            && e != &sessions_box
+            && e != &reset_box
+            && e != &admin_box
+            && e != &history_box
+    });
     state
         .mods
         .retain(|m| !FRAMEWORK_TABLE_PATTERNS.iter().any(|pat| m.contains(pat)));
