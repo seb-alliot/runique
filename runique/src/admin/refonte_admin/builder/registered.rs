@@ -74,10 +74,10 @@ impl<E: ModelMeta> RegisteredModel for ModelAdmin<E> {
         db: &ADb,
         user: &CurrentUser,
         query: &ListQuery,
-        site_page_site: u64,
+        site_page_size: u64,
     ) -> Result<ListPage, AdminError> {
         let proof = authorize_list::<E>(&GateCtx { db, user })?;
-        Ok(self.fetch_list(db, &proof, query, site_page_site).await?)
+        Ok(self.fetch_list(db, &proof, query, site_page_size).await?)
     }
 
     async fn detail(

@@ -22,7 +22,7 @@ pub(crate) async fn list_view(
     let Some(model) = site.model(&resource) else {
         return unknown_resource(&resource);
     };
-    let query = ListQuery::from_params(params);
+    let query = ListQuery::from_params(params, admin.config.search_max_len);
     let result = model
         .list(&req.engine.db, &user, &query, admin.config.page_size)
         .await;

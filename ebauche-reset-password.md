@@ -62,7 +62,7 @@ Une table dédiée, sur le modèle du jeton de réinitialisation (ni colonne dan
 | essais | Quelques essais seulement, puis le code est détruit |
 | envoyé le | Délai avant un nouveau code |
 
-Comparaison du code en temps constant (`ct_eq`).
+Comparaison du code en temps constant (`ct_eq`). Jeton inconnu, expiré ou déjà utilisé : même traitement qu'un jeton valide jusqu'à la réponse (comparaison contre un hash factice), même message.
 
 ## Délais et blocage
 
@@ -81,6 +81,7 @@ Parcours retenu :
 2. Code + mot de passe vérifiés **ensemble**, erreur uniforme (« code ou mot de passe invalide »).
    - Tout échec compte un essai, quel que soit le facteur.
    - Le hash du mot de passe est toujours calculé, même si le code est faux.
+   - **Valeurs factices** quand il n'y a rien à comparer, pour que chaque branche fasse le même travail : compte inconnu → mot de passe vérifié contre `dummy_hash()` (existe déjà, `authenticate_user`) ; pas de code en attente → code comparé à un hash factice, avec le même `ct_eq`. Jamais de retour anticipé avant les deux vérifications.
 
 Conditions :
 - Une marque « second facteur validé » en session, exigée par le middleware de l'admin. Sinon, la connexion du site contourne la 2FA.

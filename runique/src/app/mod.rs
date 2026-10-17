@@ -11,6 +11,6 @@ pub use runique_app::RuniqueApp;
 #[cfg(feature = "admin")]
 pub use staging::AdminStaging;
 pub use staging::{
-    CoreStaging, CorsConfig, CspConfig, HostConfig, MiddlewareStaging,
-    PermissionsPolicyConfig, StaticStaging, TrustedProxiesConfig,
+    CoreStaging, CorsConfig, CspConfig, HostConfig, MiddlewareStaging, PermissionsPolicyConfig,
+    StaticStaging, TrustedProxiesConfig,
 };
