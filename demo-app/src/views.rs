@@ -81,7 +81,7 @@ pub async fn info_user(mut request: Request) -> AppResult<Response> {
     match ValidationForm::try_new(form, &request).await {
         Ok(validated) => {
             let form = validated.into_form();
-            let username_val = form.cleaned_string("username").unwrap_or_default();
+            let username_val = form.cleaned::<String>("username").unwrap_or_default();
             let user_opt = find_user_by_username(&request.engine.db, &username_val).await;
             match user_opt {
                 Some(user) => {
@@ -116,7 +116,7 @@ pub async fn info_user(mut request: Request) -> AppResult<Response> {
 pub async fn blog_list(mut request: Request) -> AppResult<Response> {
     let form: SearchDemoForm = request.form();
     inject_globals(&mut request).await;
-    let search = form.cleaned_string("search");
+    let search = form.cleaned::<String>("search");
     let articles = list_articles(&request.engine.db, search.as_deref()).await;
     context_update!(request => {
         "title"       => "Blog — Articles",
@@ -182,7 +182,7 @@ pub async fn formulaires_templates(mut request: Request) -> AppResult<Response> 
 pub async fn formulaires_helpers(mut request: Request) -> AppResult<Response> {
     let form: SearchDemoForm = request.form();
     inject_globals(&mut request).await;
-    let data = extract_helpers_data(&request, form.cleaned_string("search"));
+    let data = extract_helpers_data(&request, form.cleaned::<String>("search"));
     context_update!(request => {
         "title"          => "Helpers & URL access",
         "path_id"        => &data.path_id,

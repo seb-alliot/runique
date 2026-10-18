@@ -10,6 +10,7 @@ use axum::{
     http::{Request, StatusCode},
 };
 use runique::auth::permissions::Groupe;
+use runique::auth::rang::Rang;
 use runique::auth::session::CurrentUser;
 use runique::forms::prisme::rules::GuardRules;
 use runique::forms::prisme::sentinel::sentinel;
@@ -20,14 +21,14 @@ fn user(id: u32, groupes: &[&str]) -> CurrentUser {
     CurrentUser {
         id: pk(id),
         username: format!("user{id}"),
-        is_staff: false,
-        is_superuser: false,
+        rang: Rang::Lambda,
         groupes: groupes
             .iter()
             .enumerate()
             .map(|(i, nom)| Groupe {
                 id: i as i32 + 1,
                 nom: nom.to_string(),
+                is_staff: false,
                 permissions: vec![],
             })
             .collect(),
@@ -59,17 +60,20 @@ async fn status(req: Request<Body>) -> StatusCode {
     }
 }
 
-/// Engine whose database holds the group `editeur`, joined by account 1 only.
+/// Engine whose database holds the group `editeur`, joined by account 1 only,
+/// and the staff group `equipe`, joined by account 3 only.
 async fn engine_with_editeur() -> AEngine {
     let engine = build_engine().await;
     for sql in [
         GROUPES_DDL.to_string(),
         GROUPES_DROITS_DDL.to_string(),
         USERS_GROUPES_DDL.to_string(),
-        "INSERT INTO eihwaz_groupes (id, nom) VALUES (1, 'editeur')".to_string(),
+        "INSERT INTO eihwaz_groupes (id, nom, is_staff) VALUES (1, 'editeur', 0), (2, 'equipe', 1)"
+            .to_string(),
         format!(
-            "INSERT INTO eihwaz_users_groupes (user_id, groupe_id) VALUES ({}, 1)",
-            pk_sql_literal(1)
+            "INSERT INTO eihwaz_users_groupes (user_id, groupe_id) VALUES ({}, 1), ({}, 2)",
+            pk_sql_literal(1),
+            pk_sql_literal(3)
         ),
     ] {
         engine.db.execute_unprepared(&sql).await.unwrap();
@@ -162,6 +166,34 @@ async fn test_roles_lets_a_member_through_despite_another_unknown_name() {
     let rules = Some(GuardRules::roles(["editeur", "editeru"]));
     assert_eq!(
         status(request(rules, Some(user(1, &[])), Some(engine))).await,
+        StatusCode::OK
+    );
+}
+
+// Staff access comes from the groups: read from the database for an account
+// without a rank, never for one whose rank already passes.
+#[tokio::test]
+async fn test_staff_reads_the_staff_flag_of_the_groups() {
+    let engine = engine_with_editeur().await;
+    let rules = || Some(GuardRules::staff());
+    assert_eq!(
+        status(request(rules(), Some(user(3, &[])), Some(engine.clone()))).await,
+        StatusCode::OK
+    );
+    assert_eq!(
+        status(request(rules(), Some(user(1, &[])), Some(engine))).await,
+        StatusCode::FORBIDDEN,
+        "a group that doesn't open the admin"
+    );
+}
+
+#[tokio::test]
+async fn test_staff_lets_a_rank_through_without_reading_the_groups() {
+    // No engine: a lookup would find nothing, so passing proves none was needed.
+    let mut admin = user(1, &[]);
+    admin.rang = Rang::Admin;
+    assert_eq!(
+        status(request(Some(GuardRules::staff()), Some(admin), None)).await,
         StatusCode::OK
     );
 }

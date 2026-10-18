@@ -88,8 +88,8 @@ fn build_admin_routes(prefix: &str) -> AdminRoutes {
 #[cfg(feature = "pk-uuid")]
 fn seed_superuser_insert_sql(hash: &str) -> String {
     format!(
-        "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_staff, is_superuser, activated_at) \
-         VALUES ({}, '{SUPERUSER_USERNAME}', 'crawler@example.com', '{hash}', 1, 1, 1, '2026-01-01 00:00:00')",
+        "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_superuser, activated_at) \
+         VALUES ({}, '{SUPERUSER_USERNAME}', 'crawler@example.com', '{hash}', 1, 1, '2026-01-01 00:00:00')",
         pk_sql_literal(SEED_SUPERUSER_ID)
     )
 }
@@ -97,8 +97,8 @@ fn seed_superuser_insert_sql(hash: &str) -> String {
 #[cfg(not(feature = "pk-uuid"))]
 fn seed_superuser_insert_sql(hash: &str) -> String {
     format!(
-        "INSERT INTO eihwaz_users (username, email, password, is_active, is_staff, is_superuser, activated_at) \
-         VALUES ('{SUPERUSER_USERNAME}', 'crawler@example.com', '{hash}', 1, 1, 1, '2026-01-01 00:00:00')"
+        "INSERT INTO eihwaz_users (username, email, password, is_active, is_superuser, activated_at) \
+         VALUES ('{SUPERUSER_USERNAME}', 'crawler@example.com', '{hash}', 1, 1, '2026-01-01 00:00:00')"
     )
 }
 
@@ -113,7 +113,7 @@ async fn seed_superuser(dbc: &DatabaseConnection) {
 async fn seed_fixtures(dbc: &DatabaseConnection) {
     db::exec(
         dbc,
-        &format!("INSERT INTO eihwaz_groupes (id, nom) VALUES ({SEED_GROUPE_ID}, 'Éditeurs')"),
+        &format!("INSERT INTO eihwaz_groupes (id, nom, is_staff) VALUES ({SEED_GROUPE_ID}, 'Éditeurs', 1)"),
     )
     .await;
     db::exec(

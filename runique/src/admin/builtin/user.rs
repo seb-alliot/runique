@@ -18,10 +18,7 @@ use crate::admin::{
 use crate::forms::field::RuniqueForm;
 use crate::utils::{
     aliases::{ADb, ATera, StrMap},
-    constante::admin_context::{
-        permission::GROUPES,
-        user::{IS_ACTIVE, IS_STAFF},
-    },
+    constante::admin_context::{permission::GROUPES, user::IS_ACTIVE},
     forms::parse_bool,
     trad::{t, tf},
 };
@@ -191,7 +188,8 @@ pub(super) fn user_entry() -> ResourceEntry {
                 "username",
                 "email",
                 "is_active",
-                "is_staff",
+                "is_dirigeant",
+                "is_admin",
                 "is_superuser",
                 "created_at",
                 "updated_at",
@@ -302,7 +300,6 @@ pub(super) fn user_entry() -> ResourceEntry {
                 email: Set(email.clone()),
                 password: Set(data.get("password").cloned().unwrap_or_default()),
                 is_active: Set(parse_bool(&data, IS_ACTIVE)),
-                is_staff: Set(parse_bool(&data, IS_STAFF)),
                 // `is_superuser` is intentionally never read from submitted data here:
                 // an admin account must never be grantable from within the admin panel,
                 // regardless of who is submitting the form (see UserAdminCreateForm).
@@ -363,7 +360,6 @@ pub(super) fn user_entry() -> ResourceEntry {
                 username: Set(data.get("username").cloned().unwrap_or_default()),
                 email: Set(data.get("email").cloned().unwrap_or_default()),
                 is_active: Set(parse_bool(&data, IS_ACTIVE)),
-                is_staff: Set(parse_bool(&data, IS_STAFF)),
                 // `is_superuser` intentionally left untouched here — see create_fn.
                 updated_at: Set(Some(chrono::Utc::now().naive_utc())),
                 ..Default::default()
@@ -388,9 +384,6 @@ pub(super) fn user_entry() -> ResourceEntry {
             if data.contains_key(IS_ACTIVE) {
                 ensure_activatable(&db, id, parse_bool(&data, IS_ACTIVE)).await?;
                 model.is_active = Set(parse_bool(&data, IS_ACTIVE));
-            }
-            if data.contains_key(IS_STAFF) {
-                model.is_staff = Set(parse_bool(&data, IS_STAFF));
             }
             // `is_superuser` intentionally never applied from bulk/partial updates
             // — see create_fn for the rationale.

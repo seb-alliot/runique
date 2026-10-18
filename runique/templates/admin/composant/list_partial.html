@@ -2,7 +2,7 @@
 {# Variables requises : identiques à admin/list #}
 {% set_global can_create = false %}
 {% if current_user %}
-  {% if current_user.is_superuser %}
+  {% if current_user.rang == "Superuser" %}
     {% set_global can_create = true %}
   {% else %}
     {% for groupe in current_user.groupes %}
@@ -69,7 +69,7 @@
   {# ── Barre d'actions bulk ── #}
   {% set_global can_bulk = false %}
   {% if current_user %}
-    {% if current_user.is_superuser %}
+    {% if current_user.rang == "Superuser" %}
       {% set_global can_bulk = true %}
     {% else %}
       {% for groupe in current_user.groupes %}

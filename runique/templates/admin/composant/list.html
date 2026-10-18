@@ -13,7 +13,7 @@
 {% block content %}
   {% set_global can_create = false %}
   {% if current_user %}
-    {% if current_user.is_superuser %}
+    {% if current_user.rang == "Superuser" %}
       {% set_global can_create = true %}
     {% else %}
       {% for groupe in current_user.groupes %}

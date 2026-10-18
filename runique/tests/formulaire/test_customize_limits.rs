@@ -18,6 +18,7 @@ mod stock {
             code: text [nullable, min_length: 2, max_length: 10],
             level: int [required, min: 0, max: 100],
             price: float [required, min: 0.5, max: 50.0],
+            amount: decimal [required, max_digits: 6, decimal_places: 2],
             secret: password [nullable],
         }
     }
@@ -80,6 +81,22 @@ schema_form!(LowerFloatMin, |form| {
     form.field(&NumericField::float("price").min(0.0, "").max(50.0, ""));
 });
 
+schema_form!(TighterDecimal, |form| {
+    form.field(&NumericField::decimal("amount").decimal_len(4, 1));
+});
+
+schema_form!(MoreDecimalPlaces, |form| {
+    form.field(&NumericField::decimal("amount").decimal_len(7, 3));
+});
+
+schema_form!(MoreIntegerDigits, |form| {
+    form.field(&NumericField::decimal("amount").decimal_len(8, 2));
+});
+
+schema_form!(NoDecimalLimit, |form| {
+    form.field(&NumericField::decimal("amount"));
+});
+
 schema_form!(PasswordAsText, |form| {
     form.field(&TextField::text("secret"));
 });
@@ -123,6 +140,56 @@ async fn customize_may_tighten_the_declared_bounds() {
     assert!(check(&mut form, "code", "12345678").await);
     assert!(!check(&mut form, "level", "95").await, "90 at most now");
     assert!(!check(&mut form, "price", "0.7").await, "1.0 at least now");
+}
+
+#[tokio::test]
+async fn a_decimal_is_held_to_its_column() {
+    let mut form = Forms::new("csrf");
+    Tightened::register_fields(&mut form);
+    assert!(
+        check(&mut form, "amount", "9999.99").await,
+        "the largest value"
+    );
+    assert!(
+        check(&mut form, "amount", "-9999.99").await,
+        "the sign isn't a digit"
+    );
+    assert!(check(&mut form, "amount", "0.5").await);
+    assert!(
+        !check(&mut form, "amount", "10000.00").await,
+        "5 digits before the point"
+    );
+    assert!(!check(&mut form, "amount", "1.999").await, "3 after it");
+}
+
+#[tokio::test]
+async fn customize_may_tighten_a_decimal() {
+    let mut form = Forms::new("csrf");
+    TighterDecimal::register_fields(&mut form);
+    assert!(check(&mut form, "amount", "999.9").await);
+    assert!(
+        !check(&mut form, "amount", "1000.0").await,
+        "3 digits before the point now"
+    );
+    assert!(!check(&mut form, "amount", "9.99").await, "1 after it now");
+}
+
+#[test]
+#[should_panic(expected = "loosened `decimal_places`")]
+fn more_decimal_places_panics() {
+    register::<MoreDecimalPlaces>();
+}
+
+#[test]
+#[should_panic(expected = "loosened `max_digits`")]
+fn more_integer_digits_panics() {
+    register::<MoreIntegerDigits>();
+}
+
+#[test]
+#[should_panic(expected = "loosened `decimal_places`")]
+fn dropping_the_decimal_precision_panics() {
+    register::<NoDecimalLimit>();
 }
 
 fn register<F: RuniqueForm>() {
@@ -193,4 +260,20 @@ fn customize_cannot_turn_an_integer_into_text() {
 fn customize_cannot_turn_a_password_into_secret_text() {
     let mut form = Forms::new("csrf");
     PasswordAsSecretText::register_fields(&mut form);
+}
+
+#[test]
+fn the_entity_knows_the_declared_column_types() {
+    use runique::sea_orm::{
+        ColumnTrait,
+        sea_query::{ColumnType, StringLen},
+    };
+    assert_eq!(
+        *stock::Column::Amount.def().get_column_type(),
+        ColumnType::Decimal(Some((6, 2)))
+    );
+    assert_eq!(
+        *stock::Column::Code.def().get_column_type(),
+        ColumnType::String(StringLen::N(10))
+    );
 }

@@ -23,14 +23,9 @@ use tower::ServiceExt;
 use tower_sessions::{MemoryStore, Session, SessionManagerLayer};
 
 async fn log_in(session: Session) -> &'static str {
-    login(
-        &session,
-        &test_user(pk(1), "setsuna", true, false),
-        None,
-        false,
-    )
-    .await
-    .expect("login");
+    login(&session, &test_user(pk(1), "setsuna", false), None, false)
+        .await
+        .expect("login");
     "logged in"
 }
 

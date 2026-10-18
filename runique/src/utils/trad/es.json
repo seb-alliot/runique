@@ -20,6 +20,8 @@
     "min_value": "Mín {} requerido",
     "max_value": "Máx {} superado",
     "precision_max": "Precisión máxima {} dígitos después de la coma",
+    "integer_digits_max": "Como máximo {} dígitos antes de la coma",
+    "value_unconvertible": "Este valor no corresponde a este campo",
     "precision_min": "Precisión mínima {} dígitos después de la coma",
     "color_invalid": "Color no válido (formato: #RRGGBB o #RGB)",
     "color_no_hash": "El color debe comenzar con #",

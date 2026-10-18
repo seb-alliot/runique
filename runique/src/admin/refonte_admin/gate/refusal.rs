@@ -15,11 +15,12 @@ pub struct Refusal {
 pub(crate) enum RefusalReason {
     NoRight,
     NotOwner,
-    ProtectedSuperuser,
+    /// The user's rank manages no account.
+    RankTooLow,
     /// A lookup the decision needed failed: refused, never let through.
     LookupFailed,
     /// A guarded write touched no row: it changed between the gate and the
-    /// write (owner, superuser status), or it no longer exists.
+    /// write (owner, rank), it is out of the user's rank, or it no longer exists.
     StaleRow,
     /// A client-sent id (foreign key, many-to-many target) the user can't read.
     UnreadableTarget,
@@ -59,7 +60,7 @@ mod tests {
         let messages: Vec<String> = [
             RefusalReason::NoRight,
             RefusalReason::NotOwner,
-            RefusalReason::ProtectedSuperuser,
+            RefusalReason::RankTooLow,
             RefusalReason::LookupFailed,
             RefusalReason::StaleRow,
             RefusalReason::UnreadableTarget,

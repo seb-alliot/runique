@@ -23,10 +23,15 @@ pub trait ModelMeta:
     /// password hash). Even unshown, a searchable or sortable secret is an
     /// oracle: rows coming back for a guessed prefix give the value away.
     const SECRET: &'static [Self::Column] = &[];
+    /// A table of Runique's own (accounts, groups, rights): its rights come
+    /// from the rank, never from a group — a group granting itself rights on
+    /// them would be a privilege escalation.
+    const IS_FRAMEWORK_TABLE: bool = false;
 }
 
 impl ModelMeta for crate::auth::user::Entity {
     const KEY: &'static str = "users";
     const IS_ACCOUNT_TABLE: bool = true;
     const SECRET: &'static [Self::Column] = &[crate::auth::user::Column::Password];
+    const IS_FRAMEWORK_TABLE: bool = true;
 }

@@ -88,10 +88,9 @@ fn column(rows: &[serde_json::Value], col: &str) -> Vec<String> {
 
 // ── users ────────────────────────────────────────────────────────────────────
 
-/// Created from the admin: staff as asked, never superuser whatever the form
-/// says, timestamps set.
+/// Created from the admin: never a rank whatever the form says, timestamps set.
 #[tokio::test]
-async fn admin_created_user_is_staff_as_asked_never_superuser() {
+async fn admin_created_user_never_gets_a_rank() {
     let (conn, adb) = schema().await;
     let create = entry("users").create_fn.unwrap();
     create(
@@ -100,7 +99,8 @@ async fn admin_created_user_is_staff_as_asked_never_superuser() {
             ("username", "alice"),
             ("email", "alice@example.com"),
             ("password", "$argon2id$hash"),
-            ("is_staff", "on"),
+            ("is_dirigeant", "on"),
+            ("is_admin", "on"),
             ("is_superuser", "on"),
         ]),
     )
@@ -119,37 +119,36 @@ async fn admin_created_user_is_staff_as_asked_never_superuser() {
 
     let alice = row(
         &conn,
-        "SELECT is_staff, is_superuser, created_at, updated_at FROM eihwaz_users WHERE username = 'alice'",
+        "SELECT is_dirigeant, is_admin, is_superuser, created_at, updated_at FROM eihwaz_users WHERE username = 'alice'",
     )
     .await;
-    assert_eq!(alice[0].as_deref(), Some("1"), "staff as asked");
     assert_eq!(
-        alice[1].as_deref(),
-        Some("0"),
-        "never superuser from the admin"
+        &alice[..3],
+        &[Some("0".into()), Some("0".into()), Some("0".into())],
+        "never a rank from the admin"
     );
     assert!(
-        alice[2].is_some() && alice[3].is_some(),
+        alice[3].is_some() && alice[4].is_some(),
         "timestamps set: {alice:?}"
     );
     let bob = row(
         &conn,
-        "SELECT is_staff FROM eihwaz_users WHERE username = 'bob'",
+        "SELECT username FROM eihwaz_users WHERE username = 'bob'",
     )
     .await;
-    assert_eq!(bob[0].as_deref(), Some("0"), "not staff when not asked");
+    assert_eq!(bob[0].as_deref(), Some("bob"), "created without any flag");
 }
 
 /// The edit form's update writes every field it owns, on the right row.
 #[tokio::test]
-async fn admin_edit_writes_username_email_active_and_staff() {
+async fn admin_edit_writes_username_email_active_never_a_rank() {
     let (conn, adb) = schema().await;
     db::exec(
         &conn,
         &format!(
-            "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_staff, is_superuser, activated_at) \
-             VALUES ({}, 'bob', 'bob@example.com', 'h', 0, 0, 0, '2026-01-01 00:00:00'), \
-                    ({}, 'carol', 'carol@example.com', 'h', 0, 0, 0, NULL)",
+            "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_superuser, activated_at) \
+             VALUES ({}, 'bob', 'bob@example.com', 'h', 0, 0, '2026-01-01 00:00:00'), \
+                    ({}, 'carol', 'carol@example.com', 'h', 0, 0, NULL)",
             pk_sql_literal(5),
             pk_sql_literal(6)
         ),
@@ -163,7 +162,7 @@ async fn admin_edit_writes_username_email_active_and_staff() {
             ("username", "bobby"),
             ("email", "bobby@example.com"),
             ("is_active", "on"),
-            ("is_staff", "on"),
+            ("is_admin", "on"),
         ]),
     )
     .await
@@ -171,7 +170,7 @@ async fn admin_edit_writes_username_email_active_and_staff() {
 
     let bob = row(
         &conn,
-        "SELECT username, email, is_active, is_staff, is_superuser, updated_at FROM eihwaz_users WHERE username = 'bobby'",
+        "SELECT username, email, is_active, is_admin, is_superuser, updated_at FROM eihwaz_users WHERE username = 'bobby'",
     )
     .await;
     assert_eq!(
@@ -180,14 +179,15 @@ async fn admin_edit_writes_username_email_active_and_staff() {
             Some("bobby".into()),
             Some("bobby@example.com".into()),
             Some("1".into()),
-            Some("1".into()),
             Some("0".into()),
-        ]
+            Some("0".into()),
+        ],
+        "is_admin sent, never written"
     );
     assert!(bob[5].is_some(), "updated_at set");
     let carol = row(
         &conn,
-        "SELECT username, is_staff FROM eihwaz_users WHERE username = 'carol'",
+        "SELECT username, is_active FROM eihwaz_users WHERE username = 'carol'",
     )
     .await;
     assert_eq!(
@@ -204,19 +204,19 @@ async fn admin_partial_update_stamps_updated_at() {
     db::exec(
         &conn,
         &format!(
-            "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_staff, is_superuser) \
-             VALUES ({}, 'bob', 'bob@example.com', 'h', 0, 0, 0)",
+            "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_superuser, activated_at) \
+             VALUES ({}, 'bob', 'bob@example.com', 'h', 0, 0, '2026-01-01 00:00:00')",
             pk_sql_literal(5)
         ),
     )
     .await;
     let partial = entry("users").partial_update_fn.unwrap();
-    partial(adb, pk(5).to_string(), data(&[("is_staff", "on")]))
+    partial(adb, pk(5).to_string(), data(&[("is_active", "on")]))
         .await
         .unwrap();
     let bob = row(
         &conn,
-        "SELECT is_staff, updated_at FROM eihwaz_users WHERE username = 'bob'",
+        "SELECT is_active, updated_at FROM eihwaz_users WHERE username = 'bob'",
     )
     .await;
     assert_eq!(bob[0].as_deref(), Some("1"));
@@ -230,8 +230,8 @@ async fn builtin_lists_sort_both_ways() {
     db::exec(
         &conn,
         &format!(
-            "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_staff, is_superuser) \
-             VALUES ({}, 'anna', 'a@x.fr', 'h', 0, 0, 0), ({}, 'zoe', 'z@x.fr', 'h', 0, 0, 0)",
+            "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_superuser) \
+             VALUES ({}, 'anna', 'a@x.fr', 'h', 0, 0), ({}, 'zoe', 'z@x.fr', 'h', 0, 0)",
             pk_sql_literal(1),
             pk_sql_literal(2)
         ),

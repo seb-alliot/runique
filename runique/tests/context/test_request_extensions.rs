@@ -52,9 +52,7 @@ fn test_with_current_user() {
     let user = CurrentUser {
         id: pk(1),
         username: "alice".to_string(),
-        is_staff: false,
-        is_superuser: false,
-
+        rang: runique::auth::rang::Rang::Lambda,
         groupes: vec![],
     };
     let ext = RequestExtensions::new().with_current_user(user);
@@ -92,9 +90,7 @@ fn test_inject_request_current_user() {
     let user = CurrentUser {
         id: pk(42),
         username: "bob".to_string(),
-        is_staff: true,
-        is_superuser: false,
-
+        rang: runique::auth::rang::Rang::Lambda,
         groupes: vec![],
     };
     let ext = RequestExtensions::new().with_current_user(user);

@@ -1,4 +1,6 @@
 //! Runique's built-in user entity (table `eihwaz_users`).
+use crate::auth::permissions::pull_groupes_db;
+use crate::auth::rang::Rang;
 pub use crate::auth::user_trait::RuniqueUser;
 use crate::utils::aliases::ADb;
 use crate::utils::config::TraceResult;
@@ -23,7 +25,8 @@ pub struct Model {
     pub email: String,
     pub password: String,
     pub is_active: bool,
-    pub is_staff: bool,
+    pub is_dirigeant: bool,
+    pub is_admin: bool,
     pub is_superuser: bool,
     pub created_at: Option<chrono::NaiveDateTime>,
     pub updated_at: Option<chrono::NaiveDateTime>,
@@ -93,9 +96,6 @@ impl RuniqueUser for Model {
     }
     fn can_sign_in(&self) -> bool {
         self.is_active && self.activated_at.is_some()
-    }
-    fn is_staff(&self) -> bool {
-        self.is_staff
     }
     fn is_superuser(&self) -> bool {
         self.is_superuser
@@ -247,13 +247,20 @@ async fn rehash_if_outdated(db: &ADb, mut user: Model, password: &str) -> Model 
     user
 }
 
-/// The account behind an admin sign-in: right password, active, and staff or
-/// superuser. The password is checked first whatever the account, so an
-/// unknown or non-admin username takes as long as a real one.
+/// The account behind an admin sign-in: right password, may sign in, and a
+/// rank or a staff group. The password is checked first whatever the account,
+/// so an unknown or non-admin username takes as long as a real one; the group
+/// lookup only follows a right password.
 pub async fn authenticate_admin(db: &ADb, username: &str, password: &str) -> Option<Model> {
-    authenticate_user(db, username, password)
+    let user = authenticate_user(db, username, password).await?;
+    if Rang::from(&user) > Rang::Lambda {
+        return Some(user);
+    }
+    pull_groupes_db(db, user.id)
         .await
-        .filter(RuniqueUser::can_access_admin)
+        .iter()
+        .any(|g| g.is_staff)
+        .then_some(user)
 }
 
 // ─── Form Schema ────────────────────────────────────────────────────────
@@ -300,7 +307,12 @@ pub fn schema() -> crate::migration::schema::ModelSchema {
                 .required(),
         )
         .column(
-            crate::migration::ColumnDef::new("is_staff")
+            crate::migration::ColumnDef::new("is_dirigeant")
+                .boolean()
+                .required(),
+        )
+        .column(
+            crate::migration::ColumnDef::new("is_admin")
                 .boolean()
                 .required(),
         )

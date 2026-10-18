@@ -20,6 +20,8 @@
     "min_value": "最小值应为 {}",
     "max_value": "最大值不能超过 {}",
     "precision_max": "小数点后最多 {} 位",
+    "integer_digits_max": "小数点前最多 {} 位",
+    "value_unconvertible": "该值与此字段不符",
     "precision_min": "小数点后至少 {} 位",
     "color_invalid": "颜色格式无效（格式：#RRGGBB 或 #RGB）",
     "color_no_hash": "颜色值必须以 # 开头",

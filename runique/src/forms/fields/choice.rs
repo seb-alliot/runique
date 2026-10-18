@@ -93,6 +93,14 @@ impl CommonFieldConfig for ChoiceField {
 
 #[async_trait]
 impl FormField for ChoiceField {
+    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
+        crate::forms::column_value::read_field(
+            &self.base,
+            self.base.value.trim(),
+            sea_orm::sea_query::ColumnType::String(sea_orm::sea_query::StringLen::None),
+        )
+    }
+
     /// A `multiple()` select sends one value per selected option, which reach
     /// the field joined as `"a,b"`: each one is marked selected for re-display.
     fn set_value(&mut self, value: &str) {
@@ -209,6 +217,14 @@ impl CommonFieldConfig for RadioField {
 
 #[async_trait]
 impl FormField for RadioField {
+    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
+        crate::forms::column_value::read_field(
+            &self.base,
+            self.base.value.trim(),
+            sea_orm::sea_query::ColumnType::String(sea_orm::sea_query::StringLen::None),
+        )
+    }
+
     async fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
@@ -314,6 +330,11 @@ impl CommonFieldConfig for CheckboxField {
 
 #[async_trait]
 impl FormField for CheckboxField {
+    /// A list of choices lives in a table of its own, not in a column.
+    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
+        Ok(None)
+    }
+
     fn set_value(&mut self, value: &str) {
         // Expected format: "value1,value2,value3"
         self.base.value = value.to_string();

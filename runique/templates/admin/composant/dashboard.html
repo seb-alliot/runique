@@ -123,7 +123,7 @@
 
                         {% set_global can_create_resource = false %}
                         {% if current_user %}
-                            {% if current_user.is_superuser %}
+                            {% if current_user.rang == "Superuser" %}
                                 {% set_global can_create_resource = true %}
                             {% else %}
                                 {% for groupe in current_user.groupes %}

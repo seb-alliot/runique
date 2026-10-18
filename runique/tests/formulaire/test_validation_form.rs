@@ -68,7 +68,7 @@ async fn get_with_data_validates_and_returns_ok() {
 
     match ValidationForm::try_new(form, &request).await {
         Ok(validated) => {
-            assert_eq!(validated.cleaned_string("q"), Some("rust".to_string()));
+            assert_eq!(validated.cleaned::<String>("q"), Some("rust".to_string()));
         }
         Err(_) => panic!("a GET search form with data must validate"),
     }
@@ -105,7 +105,7 @@ async fn post_with_data_validates_and_into_form_returns_the_form() {
         .unwrap_or_else(|_| panic!("POST with valid data must validate"));
 
     let form = validated.into_form();
-    assert_eq!(form.cleaned_string("q"), Some("runique".to_string()));
+    assert_eq!(form.cleaned::<String>("q"), Some("runique".to_string()));
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -150,7 +150,7 @@ async fn register_dynamic_fields_runs_before_validation() {
     match ValidationForm::try_new(form, &request).await {
         Ok(validated) => {
             assert_eq!(
-                validated.cleaned_string("late_field"),
+                validated.cleaned::<String>("late_field"),
                 Some("present".to_string())
             );
         }

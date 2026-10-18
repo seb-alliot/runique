@@ -1169,7 +1169,7 @@ model! {
     table: "mix",
     pk: id => Pk,
     {
-        price:   decimal [nullable],
+        price:   decimal [nullable, max_digits: 10, decimal_places: 2],
         active:  bool [nullable],
         ref_id:  uuid [nullable],
         payload: json [nullable],
@@ -1183,7 +1183,7 @@ model! {
 fn semantic_types_map_to_seaorm_methods() {
     let sql = generate_create_file(&parse_model(TYPES_MODEL));
     for needle in [
-        ".decimal()",
+        ".decimal_len(10, 2)",
         ".boolean()",
         ".uuid()",
         ".json()",
@@ -1648,6 +1648,56 @@ fn titled(len: u32) -> ParsedSchema {
     parse_model(&format!(
         r#"model! {{ Post, table: "post", pk: id => i32, {{ title: text [required, max_length: {len}] }} }}"#
     ))
+}
+
+fn priced(max_digits: u32, decimal_places: u32) -> ParsedSchema {
+    parse_model(&format!(
+        r#"model! {{ Item, table: "item", pk: id => i32, {{ price: decimal [required, max_digits: {max_digits}, decimal_places: {decimal_places}] }} }}"#
+    ))
+}
+
+#[test]
+fn snapshot_round_trips_the_decimal_precision() {
+    let schema = priced(10, 2);
+    let reparsed = parse_seaorm_source(&generate_snapshot_file(&schema)).unwrap();
+    assert_eq!(col(&reparsed, "price").decimal_len, Some((10, 2)));
+    assert!(diff_schemas(&reparsed, &schema).is_empty());
+}
+
+#[test]
+fn a_precision_change_is_an_alter() {
+    let changes = diff_schemas(&priced(10, 2), &priced(12, 2));
+    assert_eq!(changes.modified_columns.len(), 1);
+    let alter = generate_alter_file(&changes);
+    assert!(alter.contains(".decimal_len(12, 2)"), "{alter}");
+    assert!(collect_destructive_messages(&[changes]).is_empty());
+}
+
+#[test]
+fn a_precision_losing_digits_needs_force() {
+    let changes = diff_schemas(&priced(10, 2), &priced(10, 1));
+    let messages = collect_destructive_messages(&[changes]);
+    assert!(
+        messages
+            .iter()
+            .any(|m| m.contains("decimal (10, 2) -> (10, 1)")),
+        "{messages:?}"
+    );
+}
+
+#[test]
+fn a_first_precision_on_an_old_decimal_needs_force() {
+    let mut old = priced(10, 2);
+    old.columns[0].decimal_len = None;
+    let changes = diff_schemas(&old, &priced(10, 2));
+    assert_eq!(changes.modified_columns.len(), 1);
+    let messages = collect_destructive_messages(&[changes]);
+    assert!(
+        messages
+            .iter()
+            .any(|m| m.contains("decimal default -> (10, 2)")),
+        "{messages:?}"
+    );
 }
 
 #[test]

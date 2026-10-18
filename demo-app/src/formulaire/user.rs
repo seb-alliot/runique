@@ -1,7 +1,7 @@
 use runique::prelude::*;
 
 // admin
-#[form(schema = runique_users, fields = [username, email, is_active, is_staff, is_superuser, roles])]
+#[form(schema = runique_users, fields = [username, email, is_active, is_superuser, roles])]
 pub struct UserEditForm;
 impl RuniqueForm for UserEditForm {
     impl_form_access!(model);
@@ -15,8 +15,8 @@ impl RuniqueForm for RegisterForm {
     impl_form_access!(model);
 
     async fn clean(&mut self) -> Result<(), StrMap> {
-        let username = self.cleaned_string("username").unwrap_or_default();
-        let password = self.cleaned_string("password").unwrap_or_default();
+        let username = self.cleaned::<String>("username").unwrap_or_default();
+        let password = self.cleaned::<String>("password").unwrap_or_default();
         let mut errors = StrMap::new();
 
         if username.len() < 5 {
@@ -62,12 +62,13 @@ impl RegisterForm {
         use runique::prelude::user::ActiveModel;
         #[allow(unused_mut)]
         let mut user = ActiveModel {
-            username: Set(self.cleaned_string("username").unwrap_or_default()),
-            email: Set(self.cleaned_string("email").unwrap_or_default()),
-            password: Set(self.cleaned_string("password").unwrap_or_default()),
+            username: Set(self.cleaned::<String>("username").unwrap_or_default()),
+            email: Set(self.cleaned::<String>("email").unwrap_or_default()),
+            password: Set(self.cleaned::<String>("password").unwrap_or_default()),
             is_active: Set(false),
             is_superuser: Set(false),
-            is_staff: Set(false),
+            is_dirigeant: Set(false),
+            is_admin: Set(false),
             created_at: Set(Some(chrono::Utc::now().naive_utc())),
             updated_at: Set(Some(chrono::Utc::now().naive_utc())),
             ..Default::default()

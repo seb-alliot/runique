@@ -59,8 +59,6 @@ pub mod admin_context {
     pub mod user {
         /// The `is_active` flag.
         pub const IS_ACTIVE: &str = "is_active";
-        /// The `is_staff` flag.
-        pub const IS_STAFF: &str = "is_staff";
     }
 
     /// `list` template — resource list view

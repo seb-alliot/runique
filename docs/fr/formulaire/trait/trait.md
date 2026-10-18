@@ -118,16 +118,16 @@ clear()                      → [optionnel] vide le formulaire après traitemen
 Après `is_valid()`, accédez aux données via les méthodes `cleaned_*` du trait :
 
 ```rust
-self.cleaned_string("username")      // Option<String>  (None si vide)
-self.cleaned_i32("age")              // Option<i32>
-self.cleaned_f64("price")            // Option<f64>  (gère , → .)
-self.cleaned_bool("active")          // Option<bool>
+self.cleaned::<String>("username")      // Option<String>  (None si vide)
+self.cleaned::<i32>("age")              // Option<i32>
+self.cleaned::<f64>("price")            // Option<f64>  (gère , → .)
+self.cleaned::<bool>("active")          // Option<bool>
 // … voir la page Helpers pour la liste complète
 ```
 
 Ces méthodes sont **whitelistées** : elles retournent `None` si le champ n'est pas déclaré dans `register_fields()`. Elles couvrent aussi les paramètres de route et de query string.
 
-> **`cleaned_string` retourne `Option<String>`**. Pour obtenir une `String` vide par défaut : `self.cleaned_string("x").unwrap_or_default()`.
+> **`cleaned::<String>` retourne `Option<String>`**. Pour obtenir une `String` vide par défaut : `self.cleaned::<String>("x").unwrap_or_default()`.
 
 ---
 
@@ -184,7 +184,7 @@ pub async fn search(mut request: Request) -> AppResult<Response> {
     let form: SearchForm = request.form();
     let form = match ValidationForm::try_new(form, &request).await {
         Ok(validated) => {
-            let query = validated.cleaned_string("q").unwrap_or_default();
+            let query = validated.cleaned::<String>("q").unwrap_or_default();
             // lancer la recherche...
             validated.into_form()
         }
@@ -227,7 +227,7 @@ impl RuniqueForm for UsernameForm {
 
     async fn clean_field(&mut self, name: &str) -> bool {
         if name == "username" {
-            let val = self.cleaned_string("username").unwrap_or_default();
+            let val = self.cleaned::<String>("username").unwrap_or_default();
             if val.to_lowercase().contains("admin") {
                 if let Some(f) = self.get_form_mut().fields.get_mut("username") {
                     f.set_error("Le nom 'admin' est réservé".to_string());
@@ -259,8 +259,8 @@ impl RuniqueForm for RegisterForm {
     // ...
 
     async fn clean(&mut self) -> Result<(), StrMap> {
-        let mdp1 = self.cleaned_string("password").unwrap_or_default();
-        let mdp2 = self.cleaned_string("password_confirm").unwrap_or_default();
+        let mdp1 = self.cleaned::<String>("password").unwrap_or_default();
+        let mdp2 = self.cleaned::<String>("password_confirm").unwrap_or_default();
 
         if mdp1 != mdp2 {
             let mut errors = StrMap::new();
@@ -323,7 +323,7 @@ impl RuniqueForm for ArticleForm {
     }
 
     async fn on_save(&mut self, txn: &DatabaseTransaction) -> Result<(), DbErr> {
-        let titre = self.cleaned_string("titre").unwrap_or_default();
+        let titre = self.cleaned::<String>("titre").unwrap_or_default();
         article::ActiveModel {
             titre: Set(titre),
             ..Default::default()
@@ -358,7 +358,7 @@ Accessible partout où `self` est `&mut Self` — dans un handler ou dans une m�
 
 ```rust
 if form.is_valid().await {
-    let path = form.cleaned_string("image").unwrap_or_default(); // 1. lire avant clear
+    let path = form.cleaned::<String>("image").unwrap_or_default(); // 1. lire avant clear
     // sauvegarder en DB...
     form.clear();                            // 2. vider
     success!(request.notices => "Fichier uploadé !");
@@ -378,7 +378,7 @@ impl BlogForm {
         db: &DatabaseConnection,
     ) -> Result<blog::Model, DbErr> {
         let record = blog::ActiveModel {
-            title: Set(self.cleaned_string("title").unwrap_or_default()),
+            title: Set(self.cleaned::<String>("title").unwrap_or_default()),
             // ...
             ..Default::default()
         };

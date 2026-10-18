@@ -17,7 +17,8 @@ fn new_user(username: &str) -> UserActiveModel {
         email: Set(format!("{username}@example.com")),
         password: Set("not-a-real-hash".to_string()),
         is_active: Set(false),
-        is_staff: Set(false),
+        is_dirigeant: Set(false),
+        is_admin: Set(false),
         is_superuser: Set(false),
         ..Default::default()
     }

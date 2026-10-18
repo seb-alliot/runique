@@ -67,6 +67,14 @@ impl CommonFieldConfig for BinaryField {
 
 #[async_trait]
 impl FormField for BinaryField {
+    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
+        crate::forms::column_value::read_field(
+            &self.base,
+            &self.base.value,
+            sea_orm::sea_query::ColumnType::Blob,
+        )
+    }
+
     fn cap_max_size(&mut self, bytes: u64) {
         if self.max_size.is_none_or(|s| s > bytes) {
             self.max_size = Some(bytes);

@@ -20,8 +20,8 @@ async fn spawn() -> (String, DatabaseConnection) {
     let hash = runique::utils::password::hash(MANAGER_PASSWORD).unwrap();
     for sql in [
         format!(
-            "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_staff, is_superuser, activated_at) \
-             VALUES ({}, '{MANAGER}', 'manager@example.com', '{hash}', 1, 1, 0, '2026-01-01 00:00:00')",
+            "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_superuser, activated_at) \
+             VALUES ({}, '{MANAGER}', 'manager@example.com', '{hash}', 1, 0, '2026-01-01 00:00:00')",
             pk_sql_literal(60)
         ),
         format!(
@@ -35,8 +35,8 @@ async fn spawn() -> (String, DatabaseConnection) {
         ),
         // An ordinary account the manager may change.
         format!(
-            "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_staff, is_superuser, activated_at) \
-             VALUES ({}, 'member', 'member@example.com', '{hash}', 1, 0, 0, '2026-01-01 00:00:00')",
+            "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_superuser, activated_at) \
+             VALUES ({}, 'member', 'member@example.com', '{hash}', 1, 0, '2026-01-01 00:00:00')",
             pk_sql_literal(61)
         ),
     ] {
@@ -110,7 +110,6 @@ async fn edit_email(client: &reqwest::Client, base: &str, id: &str, username: &s
         .form(&[
             ("username", username),
             ("email", email),
-            ("is_staff", "true"),
             ("is_active", "true"),
             ("csrf_token", token.as_str()),
         ])

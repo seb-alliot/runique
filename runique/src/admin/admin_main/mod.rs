@@ -243,7 +243,7 @@ pub(super) struct ResourcePerms {
 
 impl ResourcePerms {
     pub(super) fn resolve(user: &CurrentUser, resource_key: &str) -> Self {
-        if user.is_superuser {
+        if user.rang == crate::auth::rang::Rang::Superuser {
             return Self {
                 can_create: true,
                 can_read: true,

@@ -11,6 +11,7 @@ pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     pub nom: String,
+    pub is_staff: bool,
 }
 
 /// SeaORM relations for `eihwaz_groupes`.

@@ -23,8 +23,8 @@ async fn spawn() -> (String, DatabaseConnection) {
         db::exec(
             &dbc,
             &format!(
-                "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_staff, is_superuser, activated_at) \
-                 VALUES ({}, '{name}', '{name}@example.com', 'h', {active}, 0, 0, {activated})",
+                "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_superuser, activated_at) \
+                 VALUES ({}, '{name}', '{name}@example.com', 'h', {active}, 0, {activated})",
                 pk_sql_literal(n)
             ),
         )

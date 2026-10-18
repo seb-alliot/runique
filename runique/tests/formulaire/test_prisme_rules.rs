@@ -3,16 +3,28 @@
 
 use crate::helpers::pk::pk;
 use axum::http::StatusCode;
+use runique::auth::permissions::Groupe;
+use runique::auth::rang::Rang;
 use runique::auth::session::CurrentUser;
 use runique::forms::prisme::rules::{GuardRules, evaluate_rules};
 
-fn user(is_staff: bool, is_superuser: bool) -> CurrentUser {
+/// `staff_group`: member of one group that opens the admin.
+fn user(rang: Rang, staff_group: bool) -> CurrentUser {
+    let groupes = if staff_group {
+        vec![Groupe {
+            id: 1,
+            nom: "equipe".into(),
+            is_staff: true,
+            permissions: vec![],
+        }]
+    } else {
+        vec![]
+    };
     CurrentUser {
         id: pk(1),
         username: "alice".into(),
-        is_staff,
-        is_superuser,
-        groupes: vec![],
+        rang,
+        groupes,
     }
 }
 
@@ -63,7 +75,7 @@ fn test_no_rule_lets_anyone_through() {
 fn test_login_required_lets_any_account_through() {
     let rules = GuardRules::login_required();
     assert_eq!(
-        status(&rules, Some(&user(false, false)), &[]),
+        status(&rules, Some(&user(Rang::Lambda, false)), &[]),
         StatusCode::OK
     );
 }
@@ -72,28 +84,62 @@ fn test_login_required_lets_any_account_through() {
 fn test_staff_refuses_a_regular_account() {
     let rules = GuardRules::staff();
     assert_eq!(
-        status(&rules, Some(&user(false, false)), &[]),
+        status(&rules, Some(&user(Rang::Lambda, false)), &[]),
         StatusCode::FORBIDDEN
     );
     assert_eq!(
-        status(&rules, Some(&user(true, false)), &[]),
+        status(&rules, Some(&user(Rang::Lambda, true)), &[]),
         StatusCode::OK
     );
     assert_eq!(
-        status(&rules, Some(&user(false, true)), &[]),
+        status(&rules, Some(&user(Rang::Superuser, false)), &[]),
         StatusCode::OK
     );
+}
+
+#[test]
+fn test_staff_lets_any_rank_through_without_a_staff_group() {
+    let rules = GuardRules::staff();
+    for rang in [Rang::Admin, Rang::Dirigeant, Rang::Superuser] {
+        assert_eq!(
+            status(&rules, Some(&user(rang, false)), &[]),
+            StatusCode::OK,
+            "{rang:?}"
+        );
+    }
+}
+
+#[test]
+fn test_staff_refuses_a_group_that_does_not_open_the_admin() {
+    let mut alice = user(Rang::Lambda, true);
+    alice.groupes[0].is_staff = false;
+    assert_eq!(
+        status(&GuardRules::staff(), Some(&alice), &[]),
+        StatusCode::FORBIDDEN
+    );
+}
+
+#[test]
+fn test_superuser_refuses_every_lower_rank() {
+    let rules = GuardRules::superuser();
+    for rang in [Rang::Lambda, Rang::Admin, Rang::Dirigeant] {
+        assert_eq!(
+            status(&rules, Some(&user(rang, false)), &[]),
+            StatusCode::FORBIDDEN,
+            "{rang:?}"
+        );
+    }
 }
 
 #[test]
 fn test_superuser_refuses_staff() {
     let rules = GuardRules::superuser();
     assert_eq!(
-        status(&rules, Some(&user(true, false)), &[]),
+        status(&rules, Some(&user(Rang::Lambda, true)), &[]),
         StatusCode::FORBIDDEN
     );
     assert_eq!(
-        status(&rules, Some(&user(false, true)), &[]),
+        status(&rules, Some(&user(Rang::Superuser, false)), &[]),
         StatusCode::OK
     );
 }
@@ -101,7 +147,7 @@ fn test_superuser_refuses_staff() {
 #[test]
 fn test_roles_needs_one_of_the_groups() {
     let rules = GuardRules::roles(["editeur", "moderateur"]);
-    let alice = user(true, false);
+    let alice = user(Rang::Lambda, true);
     assert_eq!(
         status(&rules, Some(&alice), &groupes(&["moderateur"])),
         StatusCode::OK
@@ -117,7 +163,7 @@ fn test_roles_needs_one_of_the_groups() {
 fn test_roles_lets_a_superuser_through_without_groups() {
     let rules = GuardRules::roles(["editeur"]);
     assert_eq!(
-        status(&rules, Some(&user(false, true)), &[]),
+        status(&rules, Some(&user(Rang::Superuser, false)), &[]),
         StatusCode::OK
     );
 }

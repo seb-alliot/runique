@@ -1,5 +1,6 @@
 //! Prisme Sentinel: evaluates access rules before extracting the request body.
 use crate::auth::permissions::{groupe, pull_groupes_db};
+use crate::auth::rang::Rang;
 use crate::auth::session::CurrentUser;
 use crate::errors::error::RuniqueError;
 use crate::forms::prisme::rules::{GuardRules, evaluate_rules};
@@ -30,12 +31,21 @@ pub fn sentinel(
         let Some(rules) = rules else {
             return Ok(());
         };
-        let groupes = match &user {
-            Some(user) if !rules.roles.is_empty() && !user.is_superuser => {
-                group_names(user, engine.as_ref()).await
-            }
-            _ => Vec::new(),
-        };
+        // The groups are only read when a rule needs them: roles, or staff for
+        // an account whose rank doesn't already pass it.
+        let mut user = user;
+        if let Some(user) = &mut user
+            && user.rang != Rang::Superuser
+            && (!rules.roles.is_empty() || (rules.staff && user.rang == Rang::Lambda))
+            && user.groupes.is_empty()
+            && let Some(engine) = &engine
+        {
+            user.groupes = pull_groupes_db(&engine.db, user.id).await;
+        }
+        let groupes: Vec<String> = user
+            .iter()
+            .flat_map(|user| user.groupes.iter().map(|g| g.nom.clone()))
+            .collect();
         let refusal = evaluate_rules(&rules, user.as_ref(), &groupes);
         // A group name that doesn't exist refuses everyone but superusers,
         // silently: told apart from a plain refusal — only once refused, so
@@ -60,19 +70,6 @@ pub fn sentinel(
         }
         refusal
     }
-}
-
-/// The account's group names: those already loaded on `user`, else read from
-/// the database. A failed read gives none, so the role check refuses.
-async fn group_names(user: &CurrentUser, engine: Option<&AEngine>) -> Vec<String> {
-    let groupes = if !user.groupes.is_empty() {
-        user.groupes.clone()
-    } else if let Some(engine) = engine {
-        pull_groupes_db(&engine.db, user.id).await
-    } else {
-        Vec::new()
-    };
-    groupes.into_iter().map(|g| g.nom).collect()
 }
 
 /// The names in `roles` with no group in `eihwaz_groupes`. A failed read

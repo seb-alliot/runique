@@ -57,6 +57,14 @@ impl CommonFieldConfig for ColorField {
 
 #[async_trait]
 impl FormField for ColorField {
+    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
+        crate::forms::column_value::read_field(
+            &self.base,
+            self.base.value.trim(),
+            sea_orm::sea_query::ColumnType::String(sea_orm::sea_query::StringLen::None),
+        )
+    }
+
     async fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
@@ -163,6 +171,14 @@ impl SlugField {
 
 #[async_trait]
 impl FormField for SlugField {
+    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
+        crate::forms::column_value::read_field(
+            &self.base,
+            self.base.value.trim(),
+            sea_orm::sea_query::ColumnType::String(sea_orm::sea_query::StringLen::None),
+        )
+    }
+
     async fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
@@ -270,6 +286,14 @@ impl CommonFieldConfig for UUIDField {
 
 #[async_trait]
 impl FormField for UUIDField {
+    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
+        crate::forms::column_value::read_field(
+            &self.base,
+            self.base.value.trim(),
+            sea_orm::sea_query::ColumnType::Uuid,
+        )
+    }
+
     async fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
@@ -364,6 +388,14 @@ impl CommonFieldConfig for JSONField {
 
 #[async_trait]
 impl FormField for JSONField {
+    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
+        crate::forms::column_value::read_field(
+            &self.base,
+            &self.base.value,
+            sea_orm::sea_query::ColumnType::Json,
+        )
+    }
+
     async fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
@@ -480,6 +512,14 @@ impl CommonFieldConfig for IPAddressField {
 
 #[async_trait]
 impl FormField for IPAddressField {
+    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
+        crate::forms::column_value::read_field(
+            &self.base,
+            self.base.value.trim(),
+            sea_orm::sea_query::ColumnType::String(sea_orm::sea_query::StringLen::None),
+        )
+    }
+
     async fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 

@@ -336,8 +336,14 @@ mod tests {
         // `is_valid()` seul ne prouve pas que la valeur soumise a été réellement
         // conservée telle quelle — un bug de mapping/troncature passerait cette
         // seule assertion.
-        assert_eq!(form.cleaned_string("username"), Some("alice".to_string()));
-        assert_eq!(form.cleaned_string("password"), Some("secret".to_string()));
+        assert_eq!(
+            form.cleaned::<String>("username"),
+            Some("alice".to_string())
+        );
+        assert_eq!(
+            form.cleaned::<String>("password"),
+            Some("secret".to_string())
+        );
     }
 
     #[tokio::test]
@@ -383,8 +389,8 @@ mod tests {
         }
 
         async fn clean(&mut self) -> Result<(), StrMap> {
-            let password = self.cleaned_string("password");
-            let confirm = self.cleaned_string("confirm");
+            let password = self.cleaned::<String>("password");
+            let confirm = self.cleaned::<String>("confirm");
             if password != confirm {
                 let mut errors = HashMap::new();
                 errors.insert(
@@ -409,7 +415,7 @@ mod tests {
         // Vérifie la valeur réellement retenue, pas seulement que la comparaison
         // interne à clean() a réussi.
         assert_eq!(
-            form.cleaned_string("password"),
+            form.cleaned::<String>("password"),
             Some("secret123".to_string())
         );
     }
@@ -463,7 +469,7 @@ mod tests {
         async fn clean_field(&mut self, name: &str) -> bool {
             if name == "username" {
                 // Enlève l'underscore, on va ENFIN utiliser cette valeur !
-                if let Some(val) = self.cleaned_string("username")
+                if let Some(val) = self.cleaned::<String>("username")
                     && val.to_lowercase().contains("admin")
                 {
                     if let Some(f) = self.get_form_mut().fields.get_mut("username") {
@@ -502,7 +508,10 @@ mod tests {
         UsernameForm::register_fields(&mut form.form);
         form.get_form_mut().add_value("username", "alice");
         assert!(form.is_valid().await);
-        assert_eq!(form.cleaned_string("username"), Some("alice".to_string()));
+        assert_eq!(
+            form.cleaned::<String>("username"),
+            Some("alice".to_string())
+        );
     }
 
     #[tokio::test]

@@ -79,7 +79,7 @@
         </div>
         <div class="site-nav-actions">
             {% if user %}
-                {% if user.is_superuser or user.is_staff %}
+                {% if user.rang != "Lambda" %}
                     <a href="{% link "admin_login" %}" class="site-nav-link-action">admin</a>
                 {% endif %}
                 <a href="{% link "profil" %}" class="site-nav-link-action">{{ user.username }}</a>
@@ -102,7 +102,7 @@
         <a href="{% link "contribution_list" %}">Contribute</a>
         <a href="{% link "rust_django_framework" %}">Runique</a>
         {% if user %}
-            {% if user.is_superuser or user.is_staff %}
+            {% if user.rang != "Lambda" %}
                 <a href="{% link "admin_login" %}">Admin</a>
             {% endif %}
             <a href="{% link "profil" %}">{{ user.username }}</a>

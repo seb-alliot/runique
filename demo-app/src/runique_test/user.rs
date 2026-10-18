@@ -16,7 +16,8 @@ async fn created_user_is_visible_inside_the_test() -> Result<(), TestFailure> {
             email: Set("runique_test_rollback@example.com".to_string()),
             password: Set("not-a-real-hash".to_string()),
             is_active: Set(false),
-            is_staff: Set(false),
+            is_dirigeant: Set(false),
+            is_admin: Set(false),
             is_superuser: Set(false),
             ..Default::default()
         }

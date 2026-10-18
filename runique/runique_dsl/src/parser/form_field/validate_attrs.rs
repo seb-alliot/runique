@@ -62,6 +62,12 @@ pub(super) fn validate_form_field_attrs(
             (MaxF(_), Float | Decimal | F32) => true,
             (MaxF(_), _) => false,
 
+            // max_digits / decimal_places — decimal only
+            (MaxDigits(_), Decimal) => true,
+            (MaxDigits(_), _) => false,
+            (DecimalPlaces(_), Decimal) => true,
+            (DecimalPlaces(_), _) => false,
+
             // default — all except files
             (Default(_), Image | Document | File) => false,
             (Default(_), _) => true,
@@ -112,6 +118,10 @@ pub(super) fn validate_form_field_attrs(
                 kind_name, name
             ),
         ));
+    }
+
+    if matches!(kind, Decimal) {
+        validate_decimal_len(name, attrs)?;
     }
 
     // min < max for int
@@ -175,5 +185,58 @@ pub(super) fn validate_form_field_attrs(
         }
     }
 
+    Ok(())
+}
+
+/// Largest precision and scale MySQL/MariaDB accept, the lowest of the three
+/// engines: a model valid here creates the same column everywhere.
+const MAX_DIGITS: u32 = 65;
+const MAX_DECIMAL_PLACES: u32 = 30;
+
+/// A decimal states both its precision and its scale: left out, MySQL/MariaDB
+/// create `DECIMAL(10, 0)` and round every value to an integer.
+fn validate_decimal_len(name: &Ident, attrs: &[FormFieldAttr]) -> Result<()> {
+    use FormFieldAttr::*;
+
+    let max_digits = attrs.iter().find_map(|a| match a {
+        MaxDigits(n) => Some(*n),
+        _ => None,
+    });
+    let decimal_places = attrs.iter().find_map(|a| match a {
+        DecimalPlaces(n) => Some(*n),
+        _ => None,
+    });
+    let (Some(max_digits), Some(decimal_places)) = (max_digits, decimal_places) else {
+        return Err(syn::Error::new(
+            name.span(),
+            format!(
+                "field `{name}`: a `decimal` needs `max_digits` (all its digits) and `decimal_places` (those after the point), e.g. `[max_digits: 10, decimal_places: 2]` for 99999999.99"
+            ),
+        ));
+    };
+    if !(1..=MAX_DIGITS).contains(&max_digits) {
+        return Err(syn::Error::new(
+            name.span(),
+            format!(
+                "field `{name}`: `max_digits` must be between 1 and {MAX_DIGITS} (got {max_digits})"
+            ),
+        ));
+    }
+    if decimal_places > MAX_DECIMAL_PLACES {
+        return Err(syn::Error::new(
+            name.span(),
+            format!(
+                "field `{name}`: `decimal_places` must be at most {MAX_DECIMAL_PLACES} (got {decimal_places})"
+            ),
+        ));
+    }
+    if decimal_places > max_digits {
+        return Err(syn::Error::new(
+            name.span(),
+            format!(
+                "field `{name}`: `decimal_places` ({decimal_places}) can't exceed `max_digits` ({max_digits}), which counts them"
+            ),
+        ));
+    }
     Ok(())
 }

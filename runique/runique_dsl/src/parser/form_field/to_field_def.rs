@@ -101,6 +101,20 @@ pub fn form_field_to_field_def(ff: &FormFieldDecl) -> FieldDef {
     {
         options.push(FieldOption::MaxF(*n));
     }
+    let max_digits = ff.attrs.iter().find_map(|a| match a {
+        MaxDigits(n) => Some(*n),
+        _ => None,
+    });
+    let decimal_places = ff.attrs.iter().find_map(|a| match a {
+        DecimalPlaces(n) => Some(*n),
+        _ => None,
+    });
+    if let (Some(max_digits), Some(decimal_places)) = (max_digits, decimal_places) {
+        options.push(FieldOption::DecimalLen {
+            max_digits,
+            decimal_places,
+        });
+    }
     if let Some(FormFieldAttr::MaxSize(n)) = ff
         .attrs
         .iter()

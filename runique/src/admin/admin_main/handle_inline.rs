@@ -8,6 +8,7 @@ use super::ResourcePerms;
 use super::format_datetime;
 use super::handle_list::resolve_columns;
 use crate::admin::helper::resource_entry::{ListParams, ResourceEntry, SortDir};
+use crate::auth::rang::Rang;
 use crate::auth::session::CurrentUser;
 use crate::utils::aliases::{ADb, StrMap};
 
@@ -52,7 +53,8 @@ pub(super) async fn build_inlines(
         if scope.parent_key != parent_entry.meta.key {
             continue;
         }
-        if !current_user.is_superuser && !current_user.can_access_resource(child.meta.key) {
+        if current_user.rang != Rang::Superuser && !current_user.can_access_resource(child.meta.key)
+        {
             continue;
         }
         let Some(list_fn) = &child.list_fn else {

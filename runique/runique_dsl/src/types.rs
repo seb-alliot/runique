@@ -139,9 +139,14 @@ impl FormFieldKind {
 
 impl FormFieldKind {
     /// The column this type is stored in. `max_length` sets the length of the
-    /// text and binary types that take one; `enum_ref` is the enum a choice
-    /// field draws from.
-    pub fn column_type(self, max_length: Option<u32>, enum_ref: Option<&syn::Ident>) -> FieldType {
+    /// text and binary types that take one; `decimal_len` a decimal's
+    /// precision and scale; `enum_ref` is the enum a choice field draws from.
+    pub fn column_type(
+        self,
+        max_length: Option<u32>,
+        decimal_len: Option<(u32, u32)>,
+        enum_ref: Option<&syn::Ident>,
+    ) -> FieldType {
         use FormFieldKind::*;
         match self {
             Text => max_length.map_or(FieldType::String, FieldType::Varchar),
@@ -160,7 +165,7 @@ impl FormFieldKind {
             U64 => FieldType::U64,
             Float | Percent => FieldType::F64,
             F32 => FieldType::F32,
-            Decimal => FieldType::Decimal(None),
+            Decimal => FieldType::Decimal(decimal_len),
             Bool => FieldType::Bool,
             Date => FieldType::Date,
             Time => FieldType::Time,
@@ -182,6 +187,50 @@ impl FormFieldKind {
     }
 }
 
+impl FieldType {
+    /// The column SeaORM reads and writes for this type, in
+    /// `#[sea_orm(column_type = ..)]` syntax: the column the migration creates,
+    /// so the entity never guesses it from the Rust type. `ip`/`cidr`/
+    /// `mac_address`/`interval` are created as text (their native types are
+    /// Postgres-only), `json_binary` as `json`. `None` for an enum, typed by
+    /// its own `DeriveActiveEnum`.
+    pub fn sea_orm_column_type(&self) -> Option<String> {
+        const STRING_LEN: &str = "sea_orm::sea_query::StringLen";
+        let column_type = match self {
+            FieldType::String
+            | FieldType::Char
+            | FieldType::Inet
+            | FieldType::Cidr
+            | FieldType::MacAddress
+            | FieldType::Interval => format!("String({STRING_LEN}::None)"),
+            FieldType::Varchar(n) => format!("String({STRING_LEN}::N({n}))"),
+            FieldType::Text => "Text".to_string(),
+            FieldType::I8 => "TinyInteger".to_string(),
+            FieldType::I16 => "SmallInteger".to_string(),
+            FieldType::I32 => "Integer".to_string(),
+            FieldType::I64 => "BigInteger".to_string(),
+            FieldType::U32 => "Unsigned".to_string(),
+            FieldType::U64 => "BigUnsigned".to_string(),
+            FieldType::F32 => "Float".to_string(),
+            FieldType::F64 => "Double".to_string(),
+            FieldType::Decimal(None) => "Decimal(None)".to_string(),
+            FieldType::Decimal(Some((p, s))) => format!("Decimal(Some(({p}, {s})))"),
+            FieldType::Bool => "Boolean".to_string(),
+            FieldType::Date => "Date".to_string(),
+            FieldType::Time => "Time".to_string(),
+            FieldType::Datetime | FieldType::Timestamp => "DateTime".to_string(),
+            FieldType::TimestampTz => "TimestampWithTimeZone".to_string(),
+            FieldType::Uuid => "Uuid".to_string(),
+            FieldType::Json | FieldType::JsonBinary => "Json".to_string(),
+            FieldType::Binary(n) => format!("Binary({})", n.unwrap_or(255)),
+            FieldType::VarBinary(n) => format!("VarBinary({STRING_LEN}::N({n}))"),
+            FieldType::Blob => "Blob".to_string(),
+            FieldType::Enum(_) => return None,
+        };
+        Some(column_type)
+    }
+}
+
 impl FieldDef {
     /// The column this field is stored in — computed from its declared type,
     /// never stored next to it.
@@ -190,7 +239,15 @@ impl FieldDef {
             FieldOption::MaxLen(n) => Some(*n),
             _ => None,
         });
-        self.kind.column_type(max_length, self.enum_ref.as_ref())
+        let decimal_len = self.options.iter().find_map(|o| match o {
+            FieldOption::DecimalLen {
+                max_digits,
+                decimal_places,
+            } => Some((*max_digits, *decimal_places)),
+            _ => None,
+        });
+        self.kind
+            .column_type(max_length, decimal_len, self.enum_ref.as_ref())
     }
 }
 

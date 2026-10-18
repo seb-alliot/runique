@@ -51,69 +51,40 @@ pub(crate) fn kind_tokens(kind: FormFieldKind) -> TokenStream2 {
     quote! { .kind(::runique::runique_dsl::ast::FormFieldKind::#variant) }
 }
 
+/// The column's type, from the same mapping as the entity's `column_type`
+/// and the migration: storage SeaORM and the three engines understand; what
+/// the field means (`char`, `ip`…) travels in `.kind(..)` for validation.
 fn generate_field_type(ty: &FieldType, enums: &[EnumDef]) -> TokenStream2 {
-    match ty {
-        FieldType::String => quote! { .string() },
-        FieldType::Text => quote! { .text() },
-        FieldType::Char => quote! { .char() },
-        FieldType::Varchar(n) => quote! { .varchar(#n) },
-        FieldType::I8 => quote! { .tiny_integer() },
-        FieldType::I16 => quote! { .small_integer() },
-        FieldType::I32 => quote! { .integer() },
-        FieldType::I64 => quote! { .big_integer() },
-        FieldType::U32 => quote! { .unsigned() },
-        FieldType::U64 => quote! { .big_unsigned() },
-        FieldType::F32 => quote! { .float() },
-        FieldType::F64 => quote! { .double() },
-        FieldType::Decimal(None) => quote! { .decimal() },
-        FieldType::Decimal(Some((p, s))) => quote! { .decimal_len(#p, #s) },
-        FieldType::Bool => quote! { .boolean() },
-        FieldType::Date => quote! { .date() },
-        FieldType::Time => quote! { .time() },
-        FieldType::Datetime => quote! { .datetime() },
-        FieldType::Timestamp => quote! { .timestamp() },
-        FieldType::TimestampTz => quote! { .timestamp_tz() },
-        FieldType::Uuid => quote! { .uuid() },
-        FieldType::Json => quote! { .json() },
-        FieldType::JsonBinary => quote! { .json_binary() },
-        FieldType::Binary(None) => quote! { .binary() },
-        FieldType::Binary(Some(n)) => quote! { .binary_len(#n) },
-        FieldType::VarBinary(n) => quote! { .var_binary(#n) },
-        FieldType::Blob => quote! { .blob() },
-        FieldType::Inet => quote! { .inet() },
-        FieldType::Cidr => quote! { .cidr() },
-        FieldType::MacAddress => quote! { .mac_address() },
-        FieldType::Interval => quote! { .interval() },
-        FieldType::Enum(enum_name) => {
-            let enum_def = enums.iter().find(|e| e.name == *enum_name);
-            if let Some(def) = enum_def {
-                match &def.backing_type {
-                    EnumBackingType::I8 => quote! { .tiny_integer() },
-                    EnumBackingType::I16 => quote! { .small_integer() },
-                    EnumBackingType::I32 => quote! { .integer() },
-                    EnumBackingType::I64 => quote! { .big_integer() },
-                    EnumBackingType::Auto => {
-                        if DbEngine::detect().is_postgres() {
-                            let name_str = def.name.to_string().to_ascii_lowercase();
-                            let variants: Vec<String> = def
-                                .variants
-                                .iter()
-                                .map(|v| match &v.value {
-                                    Some(syn::Lit::Str(s)) => s.value(),
-                                    Some(_) => v.name.to_string(),
-                                    None => v.name.to_string(),
-                                })
-                                .collect();
-                            quote! { .enum_type(#name_str, vec![#(#variants.to_string()),*]) }
-                        } else {
-                            quote! { .string() }
-                        }
-                    }
-                }
-            } else {
-                quote! { .string() }
-            }
+    if let Some(column_type) = ty.sea_orm_column_type() {
+        let column_type: TokenStream2 = column_type
+            .parse()
+            .expect("`sea_orm_column_type` is valid Rust");
+        return quote! { .column_type(::runique::sea_orm::sea_query::ColumnType::#column_type) };
+    }
+    let FieldType::Enum(enum_name) = ty else {
+        unreachable!("every type but an enum has a `sea_orm_column_type`");
+    };
+    let Some(def) = enums.iter().find(|e| e.name == *enum_name) else {
+        return quote! { .string() };
+    };
+    match &def.backing_type {
+        EnumBackingType::I8 => quote! { .tiny_integer() },
+        EnumBackingType::I16 => quote! { .small_integer() },
+        EnumBackingType::I32 => quote! { .integer() },
+        EnumBackingType::I64 => quote! { .big_integer() },
+        EnumBackingType::Auto if DbEngine::detect().is_postgres() => {
+            let name_str = def.name.to_string().to_ascii_lowercase();
+            let variants: Vec<String> = def
+                .variants
+                .iter()
+                .map(|v| match &v.value {
+                    Some(syn::Lit::Str(s)) => s.value(),
+                    _ => v.name.to_string(),
+                })
+                .collect();
+            quote! { .enum_type(#name_str, vec![#(#variants.to_string()),*]) }
         }
+        EnumBackingType::Auto => quote! { .string() },
     }
 }
 
@@ -131,6 +102,8 @@ fn generate_option(opt: &FieldOption) -> TokenStream2 {
         FieldOption::Min(n) => quote! { .min_i64(#n) },
         FieldOption::MaxF(n) => quote! { .max_f64(#n) },
         FieldOption::MinF(n) => quote! { .min_f64(#n) },
+        // Already in the column's type: `.decimal_len(max_digits, decimal_places)`.
+        FieldOption::DecimalLen { .. } => quote! {},
         FieldOption::Default(lit) => quote! { .default(sea_query::Value::from(#lit)) },
         FieldOption::Label(label) => quote! { .label(#label) },
         FieldOption::File { kind, .. } => {

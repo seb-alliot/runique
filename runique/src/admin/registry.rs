@@ -3,6 +3,7 @@ use indexmap::IndexMap;
 
 use crate::admin::helper::resource_entry::ResourceEntry;
 use crate::admin::resource::{AdminResource, DisplayConfig};
+use crate::auth::rang::Rang;
 use crate::auth::session::CurrentUser;
 
 /// Admin resource registry — IndexMap key → ResourceEntry.
@@ -43,7 +44,7 @@ impl AdminRegistry {
     /// place the rule lives so a change can't leak a resource in one view but
     /// not another.
     fn can_see(user: &CurrentUser, entry: &ResourceEntry) -> bool {
-        user.is_superuser || user.can_access_resource(entry.meta.key)
+        user.rang == Rang::Superuser || user.can_access_resource(entry.meta.key)
     }
 
     /// Resource metadata the user is allowed to see (for nav / filters). Scoped

@@ -367,8 +367,11 @@ mod tests {
         CurrentUser {
             id: crate::utils::pk::Pk::default(),
             username: "tester".to_string(),
-            is_staff: true,
-            is_superuser,
+            rang: if is_superuser {
+                crate::auth::rang::Rang::Superuser
+            } else {
+                crate::auth::rang::Rang::Lambda
+            },
             groupes,
         }
     }
@@ -394,6 +397,7 @@ mod tests {
         let groupe = Groupe {
             id: 1,
             nom: "editors".to_string(),
+            is_staff: true,
             permissions: vec![perm],
         };
         let p = ResourcePerms::resolve(&user(false, vec![groupe]), "blog");

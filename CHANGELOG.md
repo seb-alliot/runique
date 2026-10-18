@@ -13,6 +13,19 @@ All notable changes to this project will be documented in this file.
 * **Admin — refusal on a superuser's account**: the message shown ("Only a superuser can change a superuser's account") told a staff member that the targeted account was a superuser. It is now generic ("Action not allowed", 9 languages); the rule itself is unchanged.
 * **CSRF token sent to other sites by `csrf.js`**: the script wraps `fetch` to add `X-CSRF-Token` to `POST`/`PUT`/`PATCH`/`DELETE` requests, without looking at where they go. A `POST` fetch to another domain, made from a page that loads the script (third-party script, project code), carried the session's token to that domain, and another site's response could replace the page's token. The token is now added, and its rotation accepted, only for requests to the page's own origin. **Restart the application** after updating: the static file changes.
 
+### Breaking changes
+
+* **`decimal` declares its precision**: `price: decimal [max_digits: 10, decimal_places: 2]` (`max_digits` counts every digit, `decimal_places` those after the point: 99999999.99 at most here). A `decimal` without both is a compile error: left out, MySQL/MariaDB created `DECIMAL(10, 0)` and rounded every value to an integer (see *Fixed*). Limits are MySQL/MariaDB's, the lowest of the three engines: 65 digits, 30 after the point.
+* **`cleaned_string`, `cleaned_i32`… `cleaned_bytes` removed, replaced by `cleaned::<T>()`**: `form.cleaned::<i32>("age")`, `form.cleaned::<Decimal>("price")`, `form.cleaned::<String>("name")`. Each helper re-read the field's text on its own, with its own rules, and nothing tied the type asked for to the column: a price read as `f64` lost its exactness without a word. `cleaned::<T>` reads the text the way `T`'s column reads it, through the one reading the write makes too, so `i16` refuses `40000` and `Decimal` keeps every digit. Same whitelist as before (POST > path > query, declared fields only); a password still comes back as typed. `cleaned_enum` and `cleaned_enums` stay. Replace `.cleaned_X(name)` by `.cleaned::<T>(name)` with the type the helper returned.
+* **`FormField::to_value()`** is a required method: a field type written outside Runique must say how its value is stored.
+* **`email` and `phone` fields are now bounded in the form** (254 and 20 characters), as their columns already were: a `customize` that replaces one without a `max_length`, or with a larger one, now panics at startup (`loosened max_length`).
+
+### Fixed
+
+* **`decimal` rounded to an integer on MySQL/MariaDB**: `makemigrations` created a bare `DECIMAL`, which MySQL/MariaDB read as `DECIMAL(10, 0)`: 9.99 was stored as 10, with no error. The column is now created with its declared precision; on an existing table, the next `makemigrations` emits the change, flagged as destructive (`--force`) since a value with more digits than the new precision would be rounded or refused. Values already rounded can't be recovered.
+* **Entity, `schema()` and migration agree on every column**: the entity `model!{}` generates now declares each column's type (`#[sea_orm(column_type = …)]`) from the DSL instead of SeaORM guessing it from the Rust type, so a text's length and a decimal's precision reach the entity; `schema()` declared `char`, `timestamp`, `json_binary` and `interval` columns the migration creates as text, date-time and JSON. One mapping now feeds all three, checked for every DSL type.
+* **A form whose value its column can't store is invalid**: a field given its column (as the admin does) reads its value into that column's type during `is_valid()`; one that doesn't fit gets an error under the field instead of a database error at write time.
+
 ---
 
 ## [3.0.3] - 2026-10-10

@@ -430,7 +430,6 @@ async fn insert_superuser(
         email: Set(email.to_string()),
         password: Set(hashed),
         is_active: Set(true),
-        is_staff: Set(true),
         is_superuser: Set(true),
         created_at: Set(Some(now)),
         updated_at: Set(Some(now)),
@@ -661,7 +660,7 @@ mod superuser_tests {
         .await
         .unwrap();
 
-        assert!(user.is_active && user.is_staff && user.is_superuser);
+        assert!(user.is_active && user.is_superuser);
         assert!(user.activated_at.is_some(), "the CHECK requires it");
         assert!(user.created_at.is_some() && user.updated_at.is_some());
         assert_eq!(

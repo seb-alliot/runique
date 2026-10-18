@@ -31,10 +31,16 @@
                         <span class="label">Active account</span>
                         <span class="value">{% if profile_user.is_active %}✅ Yes{% else %}❌ No{% endif %}</span>
                     </div>
-                    {% if profile_user.is_staff %}
+                    {% if profile_user.is_admin %}
                         <div class="profile-row">
                             <span class="label">Role</span>
-                            <span class="value badge-staff">Staff</span>
+                            <span class="value badge-staff">Admin</span>
+                        </div>
+                    {% endif %}
+                    {% if profile_user.is_dirigeant %}
+                        <div class="profile-row">
+                            <span class="label">Role</span>
+                            <span class="value badge-staff">Dirigeant</span>
                         </div>
                     {% endif %}
                     {% if profile_user.is_superuser %}

@@ -43,7 +43,6 @@ if (!window.rustiCsrfInitialized) {
 
         const response = await originalFetch(input, { ...init, headers });
 
-        // Automatic rotation: captures the token from line 92 of csrf.rs
         const newToken = response.headers.get('X-CSRF-Token');
         if (newToken) {
             window._rusti_csrf_token = newToken;

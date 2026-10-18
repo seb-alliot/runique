@@ -1,9 +1,9 @@
 //! Test fixtures for the gate: proofs come from the real gate, never from
 //! an opened `Authorized::new`.
 
-/// A `notes` table with an owner column, `eihwaz_users` with one superuser
-/// (`pk(30)`) and one ordinary account (`pk(31)`). Notes: 1 owned by
-/// `pk(10)`, 2 owned by `pk(20)`, 3 without owner.
+/// A `notes` table with an owner column, `eihwaz_users` with one account per
+/// rank: superuser `pk(30)`, lambda `pk(31)`, dirigeant `pk(32)`, admin
+/// `pk(33)`. Notes: 1 owned by `pk(10)`, 2 owned by `pk(20)`, 3 without owner.
 #[cfg(feature = "sqlite")]
 pub(crate) mod fixtures {
     use crate::auth::session::CurrentUser;
@@ -61,14 +61,21 @@ pub(crate) mod fixtures {
             .await
             .unwrap();
         }
-        for (id, name, su) in [(pk(30), "crawler", true), (pk(31), "member", false)] {
+        // (superuser, dirigeant, admin)
+        for (id, name, (su, dirigeant, admin)) in [
+            (pk(30), "crawler", (true, false, false)),
+            (pk(31), "member", (false, false, false)),
+            (pk(32), "boss", (false, true, false)),
+            (pk(33), "delegate", (false, false, true)),
+        ] {
             crate::auth::user::ActiveModel {
                 id: Set(id),
                 username: Set(name.into()),
                 email: Set(format!("{name}@example.com")),
                 password: Set("x".into()),
                 is_active: Set(false),
-                is_staff: Set(false),
+                is_dirigeant: Set(dirigeant),
+                is_admin: Set(admin),
                 is_superuser: Set(su),
                 ..Default::default()
             }
@@ -86,11 +93,11 @@ pub(crate) mod fixtures {
         CurrentUser {
             id,
             username: "staff".into(),
-            is_staff: true,
-            is_superuser: false,
+            rang: crate::auth::rang::Rang::Lambda,
             groupes: vec![Groupe {
                 id: 0,
                 nom: "g".into(),
+                is_staff: true,
                 permissions: vec![Permission {
                     resource_key: resource.into(),
                     can_create: c,

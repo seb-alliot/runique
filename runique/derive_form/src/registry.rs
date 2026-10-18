@@ -84,12 +84,13 @@ static EIHWAZ_USERS: &[PhantomColumn] = &[
     col!("email", PhantomType::String, FormWidget::Email),
     col!("password", PhantomType::String, FormWidget::Password),
     col!("is_active", PhantomType::Bool, FormWidget::Bool),
-    col!("is_staff", PhantomType::Bool, FormWidget::Bool),
-    // FormWidget::Skip (not Bool): an admin account must never be grantable
-    // from a form, generated or handwritten — see admin/forms/mod.rs and
-    // admin/builtin/user.rs for the same rule applied to the builtin form.
-    // DB column defaults to false (migrations_table.rs), so NotSet on create
-    // is safe; NotSet on update correctly leaves the existing value untouched.
+    // FormWidget::Skip (not Bool) on the three rank flags: a rank is never
+    // granted from a form, generated or handwritten — only the admin's gate
+    // sets them, under the rank rule. DB columns default to false
+    // (migrations_table.rs), so NotSet on create is safe; NotSet on update
+    // correctly leaves the existing value untouched.
+    col!("is_dirigeant", PhantomType::Bool, FormWidget::Skip),
+    col!("is_admin", PhantomType::Bool, FormWidget::Skip),
     col!("is_superuser", PhantomType::Bool, FormWidget::Skip),
     col!(
         "created_at",
@@ -116,6 +117,7 @@ static EIHWAZ_USERS: &[PhantomColumn] = &[
 static EIHWAZ_GROUPES: &[PhantomColumn] = &[
     col!("id", PhantomType::Pk, pk),
     col!("nom", PhantomType::String, FormWidget::Text),
+    col!("is_staff", PhantomType::Bool, FormWidget::Bool),
 ];
 
 pub fn phantom_columns(table: &str) -> &'static [PhantomColumn] {

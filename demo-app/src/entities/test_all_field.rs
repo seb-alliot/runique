@@ -13,7 +13,7 @@ model! {
         f_richtext:        richtext [nullable],
         f_integer:         int [nullable],
         f_float:           float [nullable],
-        f_decimal:         decimal [nullable],
+        f_decimal:         decimal [nullable, max_digits: 10, decimal_places: 2],
         f_percent:         percent [nullable],
         f_range:           int [nullable],
         f_checkbox:        bool [nullable],

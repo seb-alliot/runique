@@ -208,8 +208,8 @@ pub async fn handle_login(request: &mut Request, form: LoginForm) -> AppResult<R
 }
 
 pub fn get_credentials(form: &LoginForm) -> Option<(String, String)> {
-    let u = form.cleaned_string("username")?;
-    let p = form.cleaned_string("password")?;
+    let u = form.cleaned::<String>("username")?;
+    let p = form.cleaned::<String>("password")?;
     Some((u, p))
 }
 

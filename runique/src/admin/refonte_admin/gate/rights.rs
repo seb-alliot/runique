@@ -1,4 +1,5 @@
 //! What a user CAN do on a resource, read from their groups on every request.
+use crate::auth::rang::Rang;
 use crate::auth::session::CurrentUser;
 use crate::utils::pk::Pk;
 use sea_orm::EntityTrait;
@@ -32,17 +33,15 @@ pub enum Crud {
 
 impl CrudAction {
     /// The rights of `user` on the resource `key`.
-    pub fn resolve(user: &CurrentUser, key: &str) -> Self {
-        if user.is_superuser {
-            return Self {
-                can_create: true,
-                can_read: true,
-                can_read_own: true,
-                can_update: true,
-                can_update_own: true,
-                can_delete: true,
-                can_delete_own: true,
-                is_superuser: true,
+    pub fn resolve(user: &CurrentUser, key: &str, framework_table: bool) -> Self {
+        if user.rang == Rang::Superuser {
+            return Self::everything();
+        }
+        if framework_table {
+            return if user.rang >= Rang::Admin {
+                Self::managing()
+            } else {
+                Self::default()
             };
         }
         match user.permission_for(key) {
@@ -57,6 +56,28 @@ impl CrudAction {
                 is_superuser: false,
             },
             None => Self::default(),
+        }
+    }
+    fn everything() -> Self {
+        Self {
+            can_create: true,
+            can_read: true,
+            can_read_own: true,
+            can_update: true,
+            can_update_own: true,
+            can_delete: true,
+            can_delete_own: true,
+            is_superuser: true,
+        }
+    }
+
+    fn managing() -> Self {
+        Self {
+            can_create: true,
+            can_read: true,
+            can_update: true,
+            can_delete: true,
+            ..Self::default()
         }
     }
 
@@ -90,16 +111,19 @@ mod tests {
         CurrentUser {
             id: Pk::default(),
             username: "u".into(),
-            is_staff: true,
-            is_superuser,
+            rang: if is_superuser {
+                Rang::Superuser
+            } else {
+                Rang::Lambda
+            },
             groupes: vec![],
         }
     }
 
     #[test]
     fn a_superuser_has_every_right_and_a_user_without_group_none() {
-        let su = CrudAction::resolve(&user(true), "plats");
-        let nobody = CrudAction::resolve(&user(false), "plats");
+        let su = CrudAction::resolve(&user(true), "plats", false);
+        let nobody = CrudAction::resolve(&user(false), "plats", false);
         for right in [
             Crud::Create,
             Crud::Read,

@@ -38,7 +38,11 @@ pub(crate) fn generate_model_field(field: &FieldDef) -> TokenStream2 {
         .options
         .iter()
         .any(|o| matches!(o, FieldOption::Nullable));
-    let base_ty = field_type_to_rust(&field.column_type());
+    let column_type = field.column_type();
+    let base_ty = field_type_to_rust(&column_type);
+    let column_type_attr = column_type
+        .sea_orm_column_type()
+        .map(|ty| quote! { #[sea_orm(column_type = #ty)] });
 
     let ty = if nullable {
         quote! { Option<#base_ty> }
@@ -47,6 +51,7 @@ pub(crate) fn generate_model_field(field: &FieldDef) -> TokenStream2 {
     };
 
     quote! {
+        #column_type_attr
         pub #name: #ty,
     }
 }

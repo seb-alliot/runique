@@ -35,8 +35,8 @@ async fn insert_user_hashed(db: &ADb, n: u32, username: &str, active: bool, hash
     runique::sea_orm::ConnectionTrait::execute_unprepared(
         db,
         &format!(
-            "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_staff, is_superuser, activated_at) \
-             VALUES ({}, '{username}', '{username}@example.com', '{hash}', {}, 0, 0, '2026-01-01 00:00:00')",
+            "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_superuser, activated_at) \
+             VALUES ({}, '{username}', '{username}@example.com', '{hash}', {}, 0, '2026-01-01 00:00:00')",
             pk_sql_literal(n),
             active as i32,
         ),
@@ -148,7 +148,7 @@ async fn a_failed_sign_in_never_rewrites_the_hash() {
 #[tokio::test]
 async fn admin_login_stores_who_logged_in_never_their_rights() {
     let session = session();
-    let staff = crate::helpers::user::test_user(pk(7), "staffer", true, false);
+    let staff = crate::helpers::user::test_user(pk(7), "staffer", false);
     login(&session, &staff, None, false).await.expect("login");
 
     assert_eq!(
@@ -157,7 +157,7 @@ async fn admin_login_stores_who_logged_in_never_their_rights() {
     );
     // The account (name, rights) is read from the database on every request:
     // a copy in the session would outlive a rename or a demotion.
-    for key in ["username", "is_staff", "is_superuser"] {
+    for key in ["username", "rang", "is_admin", "is_superuser"] {
         assert_eq!(session.get::<bool>(key).await.unwrap(), None, "{key}");
     }
     // The login request already carries the long authenticated lifetime.
@@ -172,14 +172,14 @@ async fn admin_login_stores_who_logged_in_never_their_rights() {
 #[tokio::test]
 async fn superuser_login_stores_no_rights_either() {
     let session = session();
-    let admin = crate::helpers::user::test_user(pk(8), "root", false, true);
+    let admin = crate::helpers::user::test_user(pk(8), "root", true);
     login(&session, &admin, None, false).await.expect("login");
     assert_eq!(
         session.get::<Pk>(SESSION_USER_ID_KEY).await.unwrap(),
         Some(pk(8))
     );
     assert_eq!(session.get::<String>("username").await.unwrap(), None);
-    for key in ["is_staff", "is_superuser"] {
+    for key in ["rang", "is_admin", "is_superuser"] {
         assert_eq!(session.get::<bool>(key).await.unwrap(), None, "{key}");
     }
 }
@@ -191,8 +191,8 @@ async fn insert_pending(db: &ADb, n: u32, username: &str) {
     runique::sea_orm::ConnectionTrait::execute_unprepared(
         db,
         &format!(
-            "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_staff, is_superuser, activated_at) \
-             VALUES ({}, '{username}', '{username}@example.com', 'h', 0, 0, 0, NULL)",
+            "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_superuser, activated_at) \
+             VALUES ({}, '{username}', '{username}@example.com', 'h', 0, 0, NULL)",
             pk_sql_literal(n),
         ),
     )

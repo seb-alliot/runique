@@ -150,6 +150,16 @@ impl Parse for FormFieldDecl {
                             FormFieldAttr::Max(n.base10_parse()?)
                         }
                     }
+                    "max_digits" => {
+                        attrs_content.parse::<Token![:]>()?;
+                        let n: LitInt = attrs_content.parse()?;
+                        FormFieldAttr::MaxDigits(n.base10_parse()?)
+                    }
+                    "decimal_places" => {
+                        attrs_content.parse::<Token![:]>()?;
+                        let n: LitInt = attrs_content.parse()?;
+                        FormFieldAttr::DecimalPlaces(n.base10_parse()?)
+                    }
                     "default" => {
                         attrs_content.parse::<Token![:]>()?;
                         let lit: syn::Lit = attrs_content.parse()?;
@@ -496,7 +506,50 @@ mod tests {
 
     #[test]
     fn min_f_max_f_valid_on_decimal() {
-        ok("price: decimal [required, min: 0.0, max: 9999.99]");
+        ok("price: decimal [required, min: 0.0, max: 9999.99, max_digits: 6, decimal_places: 2]");
+    }
+
+    // ── max_digits / decimal_places ────────────────────────────
+
+    #[test]
+    fn a_decimal_without_its_precision_is_refused() {
+        err("price: decimal [required]");
+        err("price: decimal [required, max_digits: 10]");
+        err("price: decimal [required, decimal_places: 2]");
+    }
+
+    #[test]
+    fn a_decimal_at_the_engine_limits_is_accepted() {
+        ok("price: decimal [required, max_digits: 65, decimal_places: 30]");
+        ok("price: decimal [required, max_digits: 1, decimal_places: 0]");
+        ok("price: decimal [required, max_digits: 2, decimal_places: 2]");
+    }
+
+    #[test]
+    fn a_decimal_beyond_the_engine_limits_is_refused() {
+        err("price: decimal [required, max_digits: 66, decimal_places: 2]");
+        err("price: decimal [required, max_digits: 0, decimal_places: 0]");
+        err("price: decimal [required, max_digits: 40, decimal_places: 31]");
+    }
+
+    #[test]
+    fn the_precision_reaches_the_column_type() {
+        let decl = parse_field("price: decimal [required, max_digits: 10, decimal_places: 2]")
+            .expect("a valid decimal");
+        assert!(matches!(
+            crate::form_field_to_field_def(&decl).column_type(),
+            crate::ast::FieldType::Decimal(Some((10, 2)))
+        ));
+    }
+
+    #[test]
+    fn more_decimal_places_than_digits_is_refused() {
+        err("price: decimal [required, max_digits: 2, decimal_places: 3]");
+    }
+
+    #[test]
+    fn max_digits_is_refused_outside_a_decimal() {
+        err("score: float [required, max_digits: 10, decimal_places: 2]");
     }
 
     #[test]
@@ -617,12 +670,12 @@ mod tests {
     #[test]
     fn default_int_on_float_accepted() {
         // an integer literal is a valid default for a float/decimal field
-        ok("price: decimal [default: 0]");
+        ok("price: decimal [default: 0, max_digits: 10, decimal_places: 2]");
     }
 
     #[test]
     fn default_float_on_float_accepted() {
-        ok("price: decimal [default: 0.59]");
+        ok("price: decimal [default: 0.59, max_digits: 10, decimal_places: 2]");
     }
 
     #[test]

@@ -141,7 +141,19 @@ pub(crate) fn generate_form_field_decl(ff: &FormFieldDecl, enums: &[EnumDef]) ->
         }
         FormFieldKind::Decimal => {
             let extras = numeric_attrs_tokens(&ff.attrs);
-            quote! { ::runique::forms::fields::NumericField::decimal(#name_str).label(#label) #extras #required_suffix }
+            // runique_dsl refuses a decimal missing either one.
+            let max_digits = ff.attrs.iter().find_map(|a| match a {
+                FormFieldAttr::MaxDigits(n) => Some(*n),
+                _ => None,
+            });
+            let decimal_places = ff.attrs.iter().find_map(|a| match a {
+                FormFieldAttr::DecimalPlaces(n) => Some(*n),
+                _ => None,
+            });
+            let len = max_digits
+                .zip(decimal_places)
+                .map(|(p, s)| quote! { .decimal_len(#p, #s) });
+            quote! { ::runique::forms::fields::NumericField::decimal(#name_str).label(#label) #len #extras #required_suffix }
         }
         FormFieldKind::Percent => {
             quote! { ::runique::forms::fields::NumericField::percent(#name_str).label(#label) #required_suffix }

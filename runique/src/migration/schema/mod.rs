@@ -297,6 +297,24 @@ impl ModelSchema {
                     shown(bounds.min_float.map(|v| v.to_string())),
                 );
             }
+            if let sea_query::ColumnType::Decimal(Some((digits, places))) = col.col_type {
+                let places = places as usize;
+                let integer_digits = digits.saturating_sub(places as u32) as usize;
+                if bounds.max_decimal_places.is_none_or(|f| f > places) {
+                    loosened(
+                        "decimal_places",
+                        places.to_string(),
+                        shown(bounds.max_decimal_places.map(|v| v.to_string())),
+                    );
+                }
+                if bounds.max_integer_digits.is_none_or(|f| f > integer_digits) {
+                    loosened(
+                        "max_digits",
+                        format!("{integer_digits} digits before the point"),
+                        shown(bounds.max_integer_digits.map(|v| format!("{v}"))),
+                    );
+                }
+            }
             let size = kind
                 .byte_limit(col.max_length)
                 .map(u64::from)

@@ -178,4 +178,75 @@ impl FormField for GenericField {
     async fn finalize(&mut self) -> Result<(), String> {
         delegate_to_field!(mut self, finalize).await
     }
+
+    fn column_type(&self) -> Option<&sea_orm::sea_query::ColumnType> {
+        delegate_to_field!(self, column_type)
+    }
+
+    fn apply_column_type(&mut self, column: &sea_orm::sea_query::ColumnType) {
+        delegate_to_field!(mut self, apply_column_type, column)
+    }
+
+    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
+        delegate_to_field!(self, to_value)
+    }
+}
+
+/// Whether this field can store `column` at all: checked before
+/// [`FormField::apply_column_type`]. Every field type is listed, with no
+/// catch-all: a new one doesn't compile here until it says which columns it
+/// takes.
+pub fn accepts(field: &GeneratedField, column: &sea_orm::sea_query::ColumnType) -> bool {
+    use crate::forms::base::NumericConfig;
+    use sea_orm::sea_query::ColumnType as C;
+
+    let text = matches!(column, C::String(_) | C::Text | C::Char(_));
+    let integer = matches!(
+        column,
+        C::TinyInteger
+            | C::SmallInteger
+            | C::Integer
+            | C::BigInteger
+            | C::TinyUnsigned
+            | C::SmallUnsigned
+            | C::Unsigned
+            | C::BigUnsigned
+    );
+    let float = matches!(column, C::Float | C::Double);
+    match field {
+        GeneratedField::Text(_)
+        | GeneratedField::Color(_)
+        | GeneratedField::Slug(_)
+        | GeneratedField::IPAddress(_)
+        | GeneratedField::Duration(_)
+        // A file is stored as its path.
+        | GeneratedField::File(_) => text,
+        GeneratedField::Numeric(numeric) => match numeric.config {
+            NumericConfig::Integer { .. } => integer,
+            NumericConfig::Decimal { .. } => matches!(column, C::Decimal(_)),
+            NumericConfig::Float { .. }
+            | NumericConfig::Percent { .. }
+            | NumericConfig::Range { .. } => float,
+        },
+        GeneratedField::Boolean(_) => matches!(column, C::Boolean),
+        GeneratedField::Date(_) => matches!(column, C::Date),
+        GeneratedField::Time(_) => matches!(column, C::Time),
+        GeneratedField::DateTime(_) => matches!(
+            column,
+            C::DateTime | C::Timestamp | C::TimestampWithTimeZone
+        ),
+        GeneratedField::UUID(_) => matches!(column, C::Uuid),
+        GeneratedField::JSON(_) => matches!(column, C::Json | C::JsonBinary),
+        GeneratedField::Binary(_) => matches!(column, C::Binary(_) | C::VarBinary(_) | C::Blob),
+        // An enum's stored value: text, an integer, or a native Postgres enum.
+        GeneratedField::Choice(_) | GeneratedField::Radio(_) => {
+            text || integer || matches!(column, C::Enum { .. })
+        }
+        // A list lives in a table of its own: no column holds one.
+        GeneratedField::Checkbox(_) => false,
+        // Code sets a hidden value, not the user: any column a form can fill.
+        GeneratedField::Hidden(_) => {
+            text || integer || matches!(column, C::Uuid | C::Boolean | C::Decimal(_))
+        }
+    }
 }

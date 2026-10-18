@@ -45,14 +45,9 @@ async fn test_is_authenticated_when_no_user_in_session() {
 #[tokio::test]
 async fn test_is_authenticated_after_login() {
     async fn handler(session: Session) -> impl IntoResponse {
-        login(
-            &session,
-            &test_user(pk(1), "alice", false, false),
-            None,
-            false,
-        )
-        .await
-        .unwrap();
+        login(&session, &test_user(pk(1), "alice", false), None, false)
+            .await
+            .unwrap();
         if is_authenticated(&session).await {
             "authenticated"
         } else {
@@ -69,14 +64,9 @@ async fn test_is_authenticated_after_login() {
 #[tokio::test]
 async fn test_login_stores_the_id_and_no_name() {
     async fn handler(session: Session) -> impl IntoResponse {
-        login(
-            &session,
-            &test_user(pk(42), "bob", false, false),
-            None,
-            false,
-        )
-        .await
-        .unwrap();
+        login(&session, &test_user(pk(42), "bob", false), None, false)
+            .await
+            .unwrap();
         let id = session_user_id(&session).await.unwrap_or_default();
         // The account is read from the database: no name copied into the session.
         let name = session.get::<String>("username").await.ok().flatten();
@@ -92,14 +82,9 @@ async fn test_login_stores_the_id_and_no_name() {
 #[tokio::test]
 async fn test_is_not_authenticated_after_logout() {
     async fn handler(session: Session) -> impl IntoResponse {
-        login(
-            &session,
-            &test_user(pk(1), "alice", false, false),
-            None,
-            false,
-        )
-        .await
-        .unwrap();
+        login(&session, &test_user(pk(1), "alice", false), None, false)
+            .await
+            .unwrap();
         logout(&session, None).await.unwrap();
         if is_authenticated(&session).await {
             "authenticated"
