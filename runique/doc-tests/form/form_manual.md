@@ -30,9 +30,9 @@ async fn register_handler(mut request: Request) -> AppResult<Response> {
         }
     };
 
-    let username = validated.cleaned_string("username");
-    let email = validated.cleaned_string("email");
-    let age = validated.cleaned_i32("age");
+    let username = validated.cleaned::<String>("username");
+    let email = validated.cleaned::<String>("email");
+    let age = validated.cleaned::<i32>("age");
 
     // Logique métier...
 
@@ -48,15 +48,15 @@ Les accesseurs `cleaned_*` renvoient toujours un `Option<T>` (le champ peut êtr
 
 ```rust,ignore
 // Chaîne de caractères
-let username: Option<String> = form.cleaned_string("username");
+let username: Option<String> = form.cleaned::<String>("username");
 
 // Entiers et décimaux
-let age: Option<i32> = form.cleaned_i32("age");
-let score: Option<f64> = form.cleaned_f64("score");
+let age: Option<i32> = form.cleaned::<i32>("age");
+let score: Option<f64> = form.cleaned::<f64>("score");
 
 // Booléen
-let active: Option<bool> = form.cleaned_bool("active");
+let active: Option<bool> = form.cleaned::<bool>("active");
 
 // Dates
-let birthday: Option<chrono::NaiveDate> = form.cleaned_naive_date("birthday");
+let birthday: Option<chrono::NaiveDate> = form.cleaned::<chrono::NaiveDate>("birthday");
 ```

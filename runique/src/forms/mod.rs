@@ -1,5 +1,6 @@
 //! Form system — fields, validation, Tera rendering, Prisme extractor, model forms.
 pub mod base;
+pub mod column_value;
 pub mod extractor;
 pub mod field;
 pub mod fields;

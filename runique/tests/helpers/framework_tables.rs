@@ -12,7 +12,8 @@ pub const USERS_DDL: &str = "
         email       TEXT NOT NULL UNIQUE,
         password    TEXT NOT NULL,
         is_active   INTEGER NOT NULL DEFAULT 1,
-        is_staff    INTEGER NOT NULL DEFAULT 0,
+        is_dirigeant INTEGER NOT NULL DEFAULT 0,
+        is_admin    INTEGER NOT NULL DEFAULT 0,
         is_superuser INTEGER NOT NULL DEFAULT 0,
         created_at  TEXT,
         updated_at  TEXT,
@@ -28,7 +29,8 @@ pub const USERS_DDL: &str = "
         email       TEXT NOT NULL UNIQUE,
         password    TEXT NOT NULL,
         is_active   INTEGER NOT NULL DEFAULT 1,
-        is_staff    INTEGER NOT NULL DEFAULT 0,
+        is_dirigeant INTEGER NOT NULL DEFAULT 0,
+        is_admin    INTEGER NOT NULL DEFAULT 0,
         is_superuser INTEGER NOT NULL DEFAULT 0,
         created_at  TEXT,
         updated_at  TEXT,
@@ -63,7 +65,8 @@ pub const SESSIONS_DDL: &str = "
 pub const GROUPES_DDL: &str = "
     CREATE TABLE eihwaz_groupes (
         id  INTEGER PRIMARY KEY AUTOINCREMENT,
-        nom TEXT NOT NULL
+        nom TEXT NOT NULL,
+        is_staff INTEGER NOT NULL DEFAULT 0
     )
 ";
 

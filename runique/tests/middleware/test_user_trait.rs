@@ -12,7 +12,6 @@ struct MockUser {
     username: String,
     email: String,
     is_active: bool,
-    is_staff: bool,
     is_superuser: bool,
 }
 
@@ -29,21 +28,17 @@ impl RuniqueUser for MockUser {
     fn is_active(&self) -> bool {
         self.is_active
     }
-    fn is_staff(&self) -> bool {
-        self.is_staff
-    }
     fn is_superuser(&self) -> bool {
         self.is_superuser
     }
 }
 
-fn mock_user(is_active: bool, is_staff: bool, is_superuser: bool) -> MockUser {
+fn mock_user(is_active: bool, is_superuser: bool) -> MockUser {
     MockUser {
         id: pk(1),
         username: "alice".to_string(),
         email: "alice@example.com".to_string(),
         is_active,
-        is_staff,
         is_superuser,
     }
 }
@@ -59,53 +54,26 @@ fn test_runique_user_getters() {
         username: "bob".to_string(),
         email: "bob@test.com".to_string(),
         is_active: true,
-        is_staff: false,
         is_superuser: false,
     };
     assert_eq!(user.user_id(), pk(42));
     assert_eq!(user.username(), "bob");
     assert_eq!(user.email(), "bob@test.com");
     assert!(user.is_active());
-    assert!(!user.is_staff());
     assert!(!user.is_superuser());
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Tests — can_access_admin() logique par défaut
+// Tests — can_sign_in() logique par défaut
 // ═══════════════════════════════════════════════════════════════
 
 #[test]
-fn test_can_access_admin_actif_et_staff() {
-    assert!(mock_user(true, true, false).can_access_admin());
+fn test_can_sign_in_follows_is_active() {
+    assert!(mock_user(true, false).can_sign_in());
+    assert!(!mock_user(false, false).can_sign_in());
 }
 
 #[test]
-fn test_can_access_admin_actif_et_superuser() {
-    assert!(mock_user(true, false, true).can_access_admin());
-}
-
-#[test]
-fn test_can_access_admin_actif_staff_et_superuser() {
-    assert!(mock_user(true, true, true).can_access_admin());
-}
-
-#[test]
-fn test_can_access_admin_inactif_refuse() {
-    // Compte inactif → jamais admin, même si staff+superuser
-    assert!(!mock_user(false, true, true).can_access_admin());
-}
-
-#[test]
-fn test_can_access_admin_inactif_staff_refuse() {
-    assert!(!mock_user(false, true, false).can_access_admin());
-}
-
-#[test]
-fn test_can_access_admin_inactif_superuser_refuse() {
-    assert!(!mock_user(false, false, true).can_access_admin());
-}
-
-#[test]
-fn test_can_access_admin_actif_sans_droits_refuse() {
-    assert!(!mock_user(true, false, false).can_access_admin());
+fn test_can_sign_in_inactive_superuser_refused() {
+    assert!(!mock_user(false, true).can_sign_in());
 }

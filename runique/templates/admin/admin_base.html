@@ -45,7 +45,7 @@
                 {% endfor %}
             {% endif %}
 
-            {% if current_user and (current_user.is_staff or current_user.is_superuser) %}
+            {% if current_user %}
                 <div class="admin-nav__divider"></div>
                 <a href="{{ admin_prefix }}/history" class="admin-nav__item{% if current_page | default(value='') == 'history' %} active{% endif %}">
                     <svg class="admin-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

@@ -26,6 +26,10 @@ impl<E: EntityTrait> FormConfig<E> {
         self.fields.iter().any(|c| c.as_str() == name)
     }
 
+    /// In `fields` and not `readonly`: what the form itself may write.
+    pub(super) fn is_writable(&self, name: &str) -> bool {
+        self.has_field(name) && !self.readonly.iter().any(|c| c.as_str() == name)
+    }
     /// The columns a row's page reads: the form's fields (read-only ones
     /// included), plus the primary key. Nothing else leaves the table.
     pub(crate) fn read_columns(&self) -> Vec<E::Column> {

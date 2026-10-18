@@ -96,6 +96,7 @@ pub fn diff_schemas(previous: &ParsedSchema, current: &ParsedSchema) -> Changes 
                     || prev.unique != curr.unique
                     || prev.has_default_now != curr.has_default_now
                     || prev.max_length != curr.max_length
+                    || prev.decimal_len != curr.decimal_len
                     // Becoming (or stopping being) an enum: `col_type` alone doesn't
                     // capture this (an enum column keeps col_type "String"), so without
                     // this check the transition was invisible to `modified_columns` —

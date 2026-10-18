@@ -7,13 +7,19 @@ use syn::{Expr, ExprCall, ExprLit, ExprMethodCall, Lit};
 
 /// Returns the method name associated with a column type.
 #[doc = include_str!("../../../doc-tests/migration/migration_col_type.md")]
-/// The `ColumnDef` type method for a column, with its length when it has one.
-pub fn col_type_method(col_type: &str, max_length: Option<u32>) -> String {
-    match (col_type, max_length) {
-        ("String", Some(n)) => format!("string_len({n})"),
-        ("Binary", Some(n)) => format!("binary_len({n})"),
-        ("VarBinary", n) => format!("var_binary({})", n.unwrap_or(255)),
-        _ => col_type_to_method(col_type).to_string(),
+/// The `ColumnDef` type method for a column, with its length, or its
+/// precision and scale, when it has one.
+pub fn col_type_method(column: &crate::migration::utils::types::ParsedColumn) -> String {
+    match (
+        column.col_type.as_str(),
+        column.max_length,
+        column.decimal_len,
+    ) {
+        ("String", Some(n), _) => format!("string_len({n})"),
+        ("Binary", Some(n), _) => format!("binary_len({n})"),
+        ("VarBinary", n, _) => format!("var_binary({})", n.unwrap_or(255)),
+        ("Decimal", _, Some((p, s))) => format!("decimal_len({p}, {s})"),
+        (col_type, _, _) => col_type_to_method(col_type).to_string(),
     }
 }
 

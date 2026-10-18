@@ -11,13 +11,14 @@ use tower_sessions::Session;
 
 use crate::admin::router::admin_router::AdminState;
 use crate::auth::permissions::pull_groupes_db;
+use crate::auth::rang::Rang;
 use crate::auth::session::{CurrentUser, get_user_id, logout};
 use crate::auth::user_trait::RuniqueUser;
 use crate::context::RequestExtensions;
 use crate::utils::aliases::AEngine;
 use crate::utils::config::TraceResult;
 
-/// Middleware: admin access required (is_staff OR is_superuser)
+/// Middleware: admin access required (a rank, or a staff group)
 ///
 /// - No matched route → 404 (passes through, Axum handles it)
 /// - Unauthenticated → redirect to `{prefix}/login`
@@ -35,7 +36,7 @@ pub(crate) async fn admin_required(
         .extensions()
         .get::<CurrentUser>()
         .is_some_and(CurrentUser::can_access_admin);
-    // Trace the admin access gate (grade check: is_staff || is_superuser), so the
+    // Trace the admin access gate (rank or staff group), so the
     // most fundamental auth decision — "may this user enter the admin at all" — is
     // visible even on routes that don't run a per-resource access check (dashboard,
     // history). `admin.auth` channel.
@@ -55,8 +56,8 @@ pub(crate) async fn admin_required(
             level,
             path = %path,
             user = cu.map_or("-", |u| u.username.as_str()),
-            is_staff = cu.is_some_and(|u| u.is_staff),
-            is_superuser = cu.is_some_and(|u| u.is_superuser),
+            rang = ?cu.map(|u| u.rang),
+            is_staff = cu.is_some_and(CurrentUser::is_staff),
             granted = authed,
             "admin access gate"
         );
@@ -101,17 +102,24 @@ pub(crate) async fn load_admin_user(
 
     let account = crate::auth::BuiltinUserEntity::find_by_id(&engine.db, user_id)
         .await
-        .filter(|user| user.can_access_admin());
-    match account {
+        .filter(RuniqueUser::can_sign_in);
+    // Staff access comes from the groups: the account alone can't decide, so
+    // the user is built first and judged after.
+    let current_user = match account {
         Some(account) => {
             let groupes = pull_groupes_db(&engine.db, user_id).await;
-            let current_user = CurrentUser {
+            Some(CurrentUser {
                 id: account.id,
+                rang: Rang::from(&account),
                 username: account.username,
-                is_staff: account.is_staff,
-                is_superuser: account.is_superuser,
                 groupes,
-            };
+            })
+        }
+        None => None,
+    }
+    .filter(CurrentUser::can_access_admin);
+    match current_user {
+        Some(current_user) => {
             RequestExtensions::new()
                 .with_current_user(current_user)
                 .inject_request(&mut request);

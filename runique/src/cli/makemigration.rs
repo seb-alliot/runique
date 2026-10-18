@@ -472,6 +472,27 @@ pub fn collect_destructive_messages(all_changes: &[Changes]) -> Vec<String> {
             })
     });
 
+    let decimal_shrinks = all_changes.iter().flat_map(|c| {
+        c.modified_columns
+            .iter()
+            .filter(|(old, new)| {
+                old.col_type == new.col_type
+                    && decimal_may_shrink(old.decimal_len, new.decimal_len)
+            })
+            .map(|(old, new)| {
+                let len = |l: Option<(u32, u32)>| {
+                    l.map_or_else(|| "default".to_string(), |(p, s)| format!("({p}, {s})"))
+                };
+                format!(
+                    "  {}.{}: decimal {} -> {} (values with more digits would be rounded or refused)",
+                    c.table_name,
+                    new.name,
+                    len(old.decimal_len),
+                    len(new.decimal_len)
+                )
+            })
+    });
+
     let dropped_fks = all_changes.iter().flat_map(|c| {
         c.dropped_fks.iter().map(|fk| {
             format!(
@@ -504,6 +525,7 @@ pub fn collect_destructive_messages(all_changes: &[Changes]) -> Vec<String> {
         .chain(type_changes)
         .chain(nullable_to_required)
         .chain(length_shrinks)
+        .chain(decimal_shrinks)
         .chain(dropped_fks)
         .chain(cascade_fks)
         .collect()
@@ -518,6 +540,19 @@ fn length_may_shrink(old: Option<u32>, new: Option<u32>) -> bool {
         (None, Some(_)) => true,
         (Some(old), None) => old > 255,
         (None, None) => false,
+    }
+}
+
+/// Whether going from `old` to `new` decimal precision can drop data. No
+/// precision is unbounded on Postgres and `DECIMAL(10, 0)` on MySQL, so a
+/// first precision always may: fewer digits before the point, or after it.
+fn decimal_may_shrink(old: Option<(u32, u32)>, new: Option<(u32, u32)>) -> bool {
+    match (old, new) {
+        (Some((old_p, old_s)), Some((new_p, new_s))) => {
+            new_s < old_s || new_p.saturating_sub(new_s) < old_p.saturating_sub(old_s)
+        }
+        (None, Some(_)) => true,
+        (_, None) => false,
     }
 }
 
@@ -1330,6 +1365,28 @@ mod tests {
         assert!(length_may_shrink(Some(300), None), "MySQL's VARCHAR(255)");
         assert!(!length_may_shrink(Some(255), None));
         assert!(!length_may_shrink(Some(100), None));
+    }
+
+    #[test]
+    fn decimal_shrinks_at_their_boundaries() {
+        assert!(
+            !decimal_may_shrink(Some((10, 2)), Some((10, 2))),
+            "same precision"
+        );
+        assert!(
+            !decimal_may_shrink(Some((10, 2)), Some((12, 4))),
+            "both sides grow"
+        );
+        assert!(
+            decimal_may_shrink(Some((10, 2)), Some((10, 1))),
+            "fewer places"
+        );
+        assert!(
+            decimal_may_shrink(Some((10, 2)), Some((10, 3))),
+            "fewer integer digits"
+        );
+        assert!(decimal_may_shrink(None, Some((10, 2))), "first precision");
+        assert!(!decimal_may_shrink(Some((10, 2)), None));
     }
 
     /// 63 characters is the Postgres limit: 63 passes, 64 is refused.

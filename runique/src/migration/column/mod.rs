@@ -158,8 +158,18 @@ impl ColumnDef {
     }
 
     /// Sets the column type to a `VARCHAR(len)`.
-    pub fn varchar(mut self, len: u32) -> Self {
-        self.col_type = ColumnType::String(sea_query::StringLen::N(len));
+    pub fn varchar(self, len: u32) -> Self {
+        self.column_type(ColumnType::String(sea_query::StringLen::N(len)))
+    }
+
+    /// Sets the column type as SeaORM states it. A `VARCHAR(n)` also bounds
+    /// the form field to `n`: the column refuses longer text anyway, the
+    /// field says so before the database does.
+    pub fn column_type(mut self, col_type: ColumnType) -> Self {
+        if let ColumnType::String(sea_query::StringLen::N(n)) = col_type {
+            self.max_length = Some(self.max_length.map_or(n, |m| m.min(n)));
+        }
+        self.col_type = col_type;
         self
     }
 
@@ -589,7 +599,13 @@ impl ColumnDef {
                 | ColumnType::Unsigned
                 | ColumnType::BigUnsigned => NumericField::integer(name).into(),
                 ColumnType::Float | ColumnType::Double => NumericField::float(name).into(),
-                ColumnType::Decimal(_) => NumericField::decimal(name).into(),
+                ColumnType::Decimal(len) => {
+                    let nf = NumericField::decimal(name);
+                    match len {
+                        Some((p, s)) => nf.decimal_len(*p, *s).into(),
+                        None => nf.into(),
+                    }
+                }
                 ColumnType::Boolean => BooleanField::new(name).into(),
                 ColumnType::Date => DateField::new(name).into(),
                 ColumnType::Time => TimeField::new(name).into(),
@@ -692,7 +708,13 @@ impl ColumnDef {
                 nf.into()
             }
             Widget::Float => float(NumericField::float(name)),
-            Widget::Decimal => float(NumericField::decimal(name)),
+            Widget::Decimal => {
+                let mut nf = NumericField::decimal(name);
+                if let ColumnType::Decimal(Some((p, s))) = self.col_type {
+                    nf = nf.decimal_len(p, s);
+                }
+                float(nf)
+            }
             Widget::Percent => NumericField::percent(name).into(),
             Widget::Bool => BooleanField::new(name).into(),
             Widget::Date => DateField::new(name).into(),

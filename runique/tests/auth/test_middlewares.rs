@@ -24,7 +24,7 @@ async fn sign_in(req: Request) -> &'static str {
 
 async fn whoami(req: Request) -> String {
     req.user.map_or("anonymous".into(), |u| {
-        format!("{}|{}", u.username, u.is_staff)
+        format!("{}|{:?}", u.username, u.rang)
     })
 }
 
@@ -34,8 +34,8 @@ async fn spawn() -> (String, DatabaseConnection) {
     db::exec(
         &dbc,
         &format!(
-            "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_staff, is_superuser, activated_at) \
-             VALUES ({}, 'alice', 'alice@example.com', 'x', 1, 1, 0, '2026-01-01 00:00:00')",
+            "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_admin, activated_at) \
+             VALUES ({}, 'alice', 'alice@example.com', 'x', 1, 1, '2026-01-01 00:00:00')",
             pk_sql_literal(1)
         ),
     )
@@ -88,14 +88,14 @@ async fn the_user_reflects_the_database_on_every_request() {
     let (base, db) = spawn().await;
     let c = client();
     assert_eq!(get_text(&c, format!("{base}/sign-in")).await, "ok");
-    assert_eq!(get_text(&c, format!("{base}/whoami")).await, "alice|true");
+    assert_eq!(get_text(&c, format!("{base}/whoami")).await, "alice|Admin");
 
-    db.execute_unprepared("UPDATE eihwaz_users SET is_staff = 0")
+    db.execute_unprepared("UPDATE eihwaz_users SET is_admin = 0")
         .await
         .unwrap();
     assert_eq!(
         get_text(&c, format!("{base}/whoami")).await,
-        "alice|false",
+        "alice|Lambda",
         "read from the database, not from the session"
     );
 }
@@ -106,7 +106,7 @@ async fn a_deactivated_account_is_signed_out_on_its_next_request() {
     let (base, db) = spawn().await;
     let c = client();
     get_text(&c, format!("{base}/sign-in")).await;
-    assert_eq!(get_text(&c, format!("{base}/whoami")).await, "alice|true");
+    assert_eq!(get_text(&c, format!("{base}/whoami")).await, "alice|Admin");
 
     db.execute_unprepared("UPDATE eihwaz_users SET is_active = 0")
         .await

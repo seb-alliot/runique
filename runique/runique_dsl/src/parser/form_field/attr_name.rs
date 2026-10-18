@@ -13,6 +13,8 @@ pub(super) fn attr_name_str(attr: &FormFieldAttr) -> &'static str {
         FormFieldAttr::Max(_) => "max",
         FormFieldAttr::MinF(_) => "min",
         FormFieldAttr::MaxF(_) => "max",
+        FormFieldAttr::MaxDigits(_) => "max_digits",
+        FormFieldAttr::DecimalPlaces(_) => "decimal_places",
         FormFieldAttr::Default(_) => "default",
         FormFieldAttr::UploadTo(_) => "upload_to",
         FormFieldAttr::MaxSize(_) => "max_size",

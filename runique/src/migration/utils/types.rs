@@ -40,6 +40,8 @@ pub struct ParsedColumn {
     /// Declared column length: `VARCHAR(n)` for text, `BINARY(n)`/`VARBINARY(n)`
     /// for bytes. `None` leaves the engine's default length.
     pub max_length: Option<u32>,
+    /// A decimal's `(max_digits, decimal_places)`: `DECIMAL(p, s)`.
+    pub decimal_len: Option<(u32, u32)>,
 }
 
 /// A parsed foreign key constraint.

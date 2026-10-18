@@ -10,8 +10,6 @@ pub trait RuniqueUser: Send + Sync {
     fn email(&self) -> &str;
     /// Whether the account is enabled. Inactive users cannot log in.
     fn is_active(&self) -> bool;
-    /// Read-only admin access.
-    fn is_staff(&self) -> bool;
     /// Full admin access — bypasses all permission checks.
     fn is_superuser(&self) -> bool;
 
@@ -19,13 +17,5 @@ pub trait RuniqueUser: Send + Sync {
     /// model also requires the account to have been activated.
     fn can_sign_in(&self) -> bool {
         self.is_active()
-    }
-
-    /// Checks if the user can access the admin.
-    ///
-    /// Default: account that may sign in + (`is_staff` OR `is_superuser`).
-    /// Can be overridden for custom logic.
-    fn can_access_admin(&self) -> bool {
-        self.can_sign_in() && (self.is_staff() || self.is_superuser())
     }
 }

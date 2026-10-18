@@ -11,6 +11,9 @@ use sea_orm::{
     DbErr, FromQueryResult, IdenStatic, PaginatorTrait, QueryFilter, QueryResult, QuerySelect,
 };
 
+/// The account table's rank flags: written by the gate alone, never a form field.
+const RANK_FLAGS: [&str; 3] = ["is_superuser", "is_dirigeant", "is_admin"];
+
 pub struct ModelAdmin<E: ModelMeta> {
     pub list: ListConfig<E>,
     pub form: FormConfig<E>,
@@ -74,8 +77,14 @@ impl<E: ModelMeta> ModelAdmin<E> {
         if let Err(e) = self.form.validate() {
             errors.push(e);
         }
-        if E::IS_ACCOUNT_TABLE && self.form.has_field("is_superuser") {
-            errors.push("fields: `is_superuser` can never be written from the admin".to_string());
+        if E::IS_ACCOUNT_TABLE {
+            for flag in RANK_FLAGS {
+                if self.form.has_field(flag) {
+                    errors.push(format!(
+                        "fields: `{flag}` is a rank, only ever set by the gate under the rank rule"
+                    ));
+                }
+            }
         }
         for secret in E::SECRET {
             let name = secret.as_str();
@@ -90,6 +99,23 @@ impl<E: ModelMeta> ModelAdmin<E> {
                 ));
             }
         }
+
+        for action in &self.list.actions {
+            let name = action.col.as_str();
+            if !self.form.is_writable(name) {
+                errors.push(format!(
+                    "action `{}`: `{name}` is not written by the form (in `fields`, not `readonly`)",
+                    action.label
+                ));
+            }
+            if E::OWNER.is_some_and(|owner| owner.as_str() == name) {
+                errors.push(format!(
+                    "action `{}`: `{name}` is the owner, a transfer is its own operation",
+                    action.label
+                ));
+            }
+        }
+
         if errors.is_empty() {
             Ok(())
         } else {
@@ -197,11 +223,17 @@ mod tests {
     }
 
     #[test]
-    fn is_superuser_is_refused_on_the_account_table() {
-        let admin = ModelAdmin::<user::Entity>::new()
-            .form(|f| f.fields([user::Column::Username, user::Column::IsSuperuser]));
-        let error = admin.validate().unwrap_err();
-        assert!(error.contains("is_superuser"), "{error}");
+    fn every_rank_flag_is_refused_on_the_account_table() {
+        for (column, flag) in [
+            (user::Column::IsSuperuser, "is_superuser"),
+            (user::Column::IsDirigeant, "is_dirigeant"),
+            (user::Column::IsAdmin, "is_admin"),
+        ] {
+            let admin = ModelAdmin::<user::Entity>::new()
+                .form(|f| f.fields([user::Column::Username, column]));
+            let error = admin.validate().unwrap_err();
+            assert!(error.contains(&format!("`{flag}` is a rank")), "{error}");
+        }
     }
 
     /// A secret column is refused in every list that could show it, search
@@ -242,7 +274,7 @@ mod tests {
     }
 
     #[test]
-    fn the_account_table_without_is_superuser_is_accepted() {
+    fn the_account_table_without_a_rank_flag_is_accepted() {
         let admin = ModelAdmin::<user::Entity>::new().form(|f| f.fields([user::Column::Username]));
         assert!(admin.validate().is_ok());
     }

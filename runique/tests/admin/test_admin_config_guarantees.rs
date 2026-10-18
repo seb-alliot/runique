@@ -31,11 +31,11 @@ fn staff_reading(resource: &str) -> CurrentUser {
     CurrentUser {
         id: pk(2),
         username: "staff".into(),
-        is_staff: true,
-        is_superuser: false,
+        rang: runique::auth::rang::Rang::Lambda,
         groupes: vec![Groupe {
             id: 1,
             nom: "g".into(),
+            is_staff: true,
             permissions: vec![read],
         }],
     }

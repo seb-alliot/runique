@@ -478,9 +478,8 @@ async fn auth_middleware(
             Some(user) => {
                 let current_user = CurrentUser {
                     id,
+                    rang: crate::auth::rang::Rang::from(&user),
                     username: user.username,
-                    is_staff: user.is_staff,
-                    is_superuser: user.is_superuser,
                     groupes: Vec::new(),
                 };
                 RequestExtensions::new()

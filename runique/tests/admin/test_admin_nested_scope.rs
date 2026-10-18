@@ -38,8 +38,7 @@ fn superuser() -> CurrentUser {
     CurrentUser {
         id: pk(1),
         username: "root".into(),
-        is_staff: true,
-        is_superuser: true,
+        rang: runique::auth::rang::Rang::Superuser,
         groupes: vec![],
     }
 }

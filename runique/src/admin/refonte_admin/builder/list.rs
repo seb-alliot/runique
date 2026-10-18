@@ -2,10 +2,11 @@
 use crate::db::sql_dialect::{search_condition, text_cast_type_of};
 use crate::utils::aliases::StrMap;
 use sea_orm::{
-    sea_query::{Alias, Asterisk, Expr, ExprTrait, Func, WindowStatement},
+    sea_query::{Alias, Asterisk, Expr, ExprTrait, Func, StringLen, WindowStatement},
     {
-        ColumnTrait, ColumnType, Condition, DbBackend, EntityTrait, IdenStatic, Iterable, Order,
-        PrimaryKeyToColumn, QueryFilter, QueryOrder, QuerySelect, QueryTrait, Select,
+        ActiveModelTrait, ColumnTrait, ColumnType, Condition, DbBackend, EntityTrait, IdenStatic,
+        Iterable, Order, PrimaryKeyToColumn, QueryFilter, QueryOrder, QuerySelect, QueryTrait,
+        Select, Value,
     },
 };
 
@@ -47,6 +48,14 @@ impl ListQuery {
     }
 }
 
+/// Sets `col` to a value fixed here, on the rows checked or on one row.
+/// The request only ever names the action, never the value.
+pub(crate) struct Action<E: EntityTrait> {
+    pub(crate) col: E::Column,
+    pub(crate) value: Value,
+    pub(crate) label: String,
+}
+
 /// Alias of the window column carrying the total on every row.
 pub(crate) const TOTAL: &str = "__total";
 
@@ -67,6 +76,12 @@ pub struct ListConfig<E: EntityTrait> {
     filter: Vec<E::Column>,
     /// The default number of items per page.
     per_page: Option<u64>,
+    /// Text under the search bar
+    pub(super) search_help: Option<String>,
+    /// Shown in place of an empty value (`None`: the template's default).
+    pub(super) empty_value: Option<String>,
+    /// Declared in order: an action is named by its place in this list
+    pub(super) actions: Vec<Action<E>>,
 }
 
 impl<E: EntityTrait> Default for ListConfig<E> {
@@ -79,6 +94,9 @@ impl<E: EntityTrait> Default for ListConfig<E> {
             search: None,
             filter: Vec::new(),
             per_page: None,
+            search_help: None,
+            empty_value: None,
+            actions: Vec::new(),
         }
     }
 }
@@ -119,13 +137,43 @@ impl<E: EntityTrait> ListConfig<E> {
         self
     }
 
+    pub fn search_help(mut self, text: impl Into<String>) -> Self {
+        self.search_help = Some(text.into());
+        self
+    }
+
+    pub fn empty_value(mut self, text: impl Into<String>) -> Self {
+        self.empty_value = Some(text.into());
+        self
+    }
+
+    pub fn action(
+        mut self,
+        col: E::Column,
+        value: impl Into<Value>,
+        label: impl Into<String>,
+    ) -> Self {
+        self.actions.push(Action {
+            col,
+            value: value.into(),
+            label: label.into(),
+        });
+        self
+    }
+
     /// The lists of this block that name the column `name`.
     pub(super) fn lists_using(&self, name: &str) -> Vec<&'static str> {
         let named = |cols: &[E::Column]| cols.iter().any(|c| c.as_str() == name);
         let mut lists = Vec::new();
+
         if named(&self.display) {
             lists.push("display");
         }
+
+        if self.actions.iter().any(|a| a.col.as_str() == name) {
+            lists.push("action")
+        }
+
         if named(&self.links) {
             lists.push("links");
         }
@@ -158,6 +206,36 @@ impl<E: EntityTrait> ListConfig<E> {
                 }
             }
         }
+
+        if self.search_help.is_some() && self.search.as_ref().is_some_and(Vec::is_empty) {
+            list_error.push("search_help: search is disabled (`search([])`)".to_string());
+        }
+
+        for (i, action) in self.actions.iter().enumerate() {
+            let name = action.col.as_str();
+            if E::PrimaryKey::iter().any(|k| k.into_column().as_str() == name) {
+                list_error.push(format!(
+                    "action `{}`: `{name}` is the primary key",
+                    action.label
+                ));
+            }
+            if !value_fits::<E>(action.col, &action.value) {
+                list_error.push(format!(
+                    "action `{}`: the value does not fit the column `{name}`",
+                    action.label
+                ));
+            }
+            if self.actions[..i]
+                .iter()
+                .any(|a| a.col.as_str() == name && a.value == action.value)
+            {
+                list_error.push(format!(
+                    "action `{}`: `{name}` already set to this value",
+                    action.label
+                ));
+            }
+        }
+
         if !list_error.is_empty() {
             Err(list_error.join("\n"))
         } else {
@@ -283,13 +361,45 @@ fn is_text<E: EntityTrait>(col: &E::Column) -> bool {
     )
 }
 
+/// The model itself says whether `value` converts to the column's Rust type,
+/// enum variants included, on every engine. The column's declared bounds come
+/// on top: a decimal's precision and scale, a text's length. Never NULL.
+fn value_fits<E: EntityTrait>(col: E::Column, value: &Value) -> bool {
+    if *value == value.as_null() {
+        return false;
+    }
+    let mut probe = <E::ActiveModel as ActiveModelTrait>::default();
+    if probe.try_set(col, value.clone()).is_err() {
+        return false;
+    }
+    match (col.def().get_column_type(), value) {
+        (ColumnType::Decimal(len), Value::Decimal(Some(d))) => decimal_fits(*len, d),
+        (ColumnType::String(StringLen::N(n)), Value::String(Some(s))) => {
+            s.chars().count() <= *n as usize
+        }
+        _ => true,
+    }
+}
+
+/// A price fits its column exactly: no more decimals than its scale, no more
+/// integer digits than precision minus scale. Otherwise each engine would
+/// round or keep it its own way.
+fn decimal_fits(len: Option<(u32, u32)>, d: &sea_orm::prelude::Decimal) -> bool {
+    let Some((precision, scale)) = len else {
+        return true;
+    };
+    let integer_digits = d.trunc().abs().to_string().trim_start_matches('0').len() as u32;
+    d.scale() <= scale && integer_digits <= precision.saturating_sub(scale)
+}
+
 #[cfg(feature = "sqlite")]
 #[cfg(test)]
 mod tests {
-    use super::{ListConfig, ListQuery};
+    use super::{ListConfig, ListQuery, decimal_fits};
     use crate::admin::refonte_admin::gate::test_support::fixtures::note::{Column, Entity};
     use crate::auth::user;
     use crate::utils::aliases::StrMap;
+    use sea_orm::prelude::Decimal;
     use sea_orm::{Condition, DbBackend, EntityTrait, IdenStatic, Order, QueryFilter, QueryTrait};
 
     #[test]
@@ -309,6 +419,28 @@ mod tests {
         let error = list.validate().unwrap_err();
         assert!(error.contains("links"), "{error}");
         assert!(error.contains("owner_id"), "{error}");
+    }
+    #[test]
+    fn search_help_on_a_disabled_search_is_refused() {
+        let list = ListConfig::<Entity>::default()
+            .search([])
+            .search_help("Titre ou auteur");
+        let error = list.validate().unwrap_err();
+        assert!(error.contains("search_help"), "{error}");
+    }
+
+    #[test]
+    fn search_help_on_the_default_search_is_accepted() {
+        let list = ListConfig::<Entity>::default().search_help("Titre ou auteur");
+        assert!(list.validate().is_ok());
+    }
+
+    #[test]
+    fn search_help_on_declared_columns_is_accepted() {
+        let list = ListConfig::<Entity>::default()
+            .search([Column::OwnerId])
+            .search_help("Propriétaire");
+        assert!(list.validate().is_ok());
     }
 
     #[test]
@@ -547,5 +679,26 @@ mod tests {
     fn an_accented_term_is_cut_on_characters_not_bytes() {
         let query = ListQuery::from_params(params(&[("search", "éééééé")]), 5);
         assert_eq!(query.search.as_deref(), Some("ééééé"));
+    }
+
+    #[test]
+    fn a_price_at_the_column_scale_is_accepted() {
+        // 99999999.99: the highest value of a decimal(10, 2)
+        assert!(decimal_fits(Some((10, 2)), &Decimal::new(9_999_999_999, 2)));
+        assert!(decimal_fits(Some((10, 2)), &Decimal::new(50, 2)));
+    }
+
+    #[test]
+    fn a_price_with_too_many_decimals_is_refused() {
+        assert!(!decimal_fits(Some((10, 2)), &Decimal::new(9_999, 3)));
+    }
+
+    #[test]
+    fn a_price_with_too_many_integer_digits_is_refused() {
+        // 100000000.00: 9 integer digits, the column holds 8
+        assert!(!decimal_fits(
+            Some((10, 2)),
+            &Decimal::new(10_000_000_000, 2)
+        ));
     }
 }

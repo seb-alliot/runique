@@ -75,7 +75,7 @@
                             <div class="table-actions">
                                 <a href="{{ admin_prefix }}/{{ resource.key }}/list" class="btn btn-secondary btn-sm">Liste</a>
                                 {% if current_user %}
-                                {% if current_user.is_superuser %}
+                                {% if current_user.rang == "Superuser" %}
                                     <a href="{{ admin_prefix }}/{{ resource.key }}/create" class="btn btn-primary btn-sm">Create</a>
                                 {% else %}
                                     {% for groupe in current_user.groupes %}

@@ -7,6 +7,7 @@ fn make_groupe(resource: &str, can_read: bool) -> Groupe {
     Groupe {
         id: 1,
         nom: "test".to_string(),
+        is_staff: true,
         permissions: vec![Permission {
             resource_key: resource.to_string(),
             can_create: false,
@@ -31,12 +32,12 @@ fn test_multi_groupes_or_permissions() {
     let user = CurrentUser {
         id: pk(10_008),
         username: "alice".into(),
-        is_staff: true,
-        is_superuser: false,
+        rang: runique::auth::rang::Rang::Lambda,
         groupes: vec![
             Groupe {
                 id: 1,
                 nom: "moderateur".into(),
+                is_staff: true,
                 permissions: vec![Permission {
                     resource_key: "articles".to_string(),
                     can_create: false,
@@ -50,6 +51,7 @@ fn test_multi_groupes_or_permissions() {
             Groupe {
                 id: 2,
                 nom: "editeur".into(),
+                is_staff: true,
                 permissions: vec![Permission {
                     resource_key: "articles".to_string(),
                     can_create: true,
@@ -80,8 +82,7 @@ fn test_can_access_resource_necessite_can_read() {
     let user = CurrentUser {
         id: pk(10_009),
         username: "bob".into(),
-        is_staff: true,
-        is_superuser: false,
+        rang: runique::auth::rang::Rang::Lambda,
         groupes: vec![make_groupe("articles", false)], // can_read = false
     };
     assert!(!user.can_access_resource("articles"));
@@ -94,8 +95,7 @@ fn test_can_access_resource_avec_can_read() {
     let user = CurrentUser {
         id: pk(10_010),
         username: "carol".into(),
-        is_staff: true,
-        is_superuser: false,
+        rang: runique::auth::rang::Rang::Lambda,
         groupes: vec![make_groupe("articles", true)], // can_read = true
     };
     assert!(user.can_access_resource("articles"));

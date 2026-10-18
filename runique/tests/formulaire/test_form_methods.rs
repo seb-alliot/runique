@@ -147,7 +147,7 @@ async fn test_finalize_ok_on_valid_form() {
 // ═══════════════════════════════════════════════════════════════
 
 #[test]
-fn test_set_url_params_accessible_via_cleaned_string() {
+fn test_set_url_params_accessible_via_cleaned() {
     use runique::forms::field::RuniqueForm;
 
     struct F {
@@ -175,8 +175,8 @@ fn test_set_url_params_accessible_via_cleaned_string() {
     let path = strmap(&[("id", "42")]);
     let query = strmap(&[]);
     f.form.set_url_params(&path, &query);
-    // cleaned_string récupère la valeur depuis path_params si le champ est vide
-    assert_eq!(f.cleaned_string("id"), Some("42".to_string()));
+    // cleaned::<String> récupère la valeur depuis path_params si le champ est vide
+    assert_eq!(f.cleaned::<String>("id"), Some("42".to_string()));
 }
 
 // ═══════════════════════════════════════════════════════════════

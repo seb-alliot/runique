@@ -7,8 +7,7 @@ fn test_current_user_superuser() {
     let user = CurrentUser {
         id: pk(3),
         username: "root".to_string(),
-        is_staff: false,
-        is_superuser: true,
+        rang: runique::auth::rang::Rang::Superuser,
         groupes: vec![],
     };
     assert!(user.can_access_admin());

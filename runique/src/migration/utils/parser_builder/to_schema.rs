@@ -89,6 +89,10 @@ pub(crate) fn decl_to_column(decl: &FormFieldDecl, enums: &[EnumDef]) -> ParsedC
         FieldType::Binary(n) => field.kind.byte_limit(*n),
         _ => None,
     };
+    let decimal_len = match &ty {
+        FieldType::Decimal(len) => *len,
+        _ => None,
+    };
     // Same rule as `ColumnDef::auto_now`: a date-time column, except that a
     // `timestamp_tz` keeps its time zone (its entity field is a `DateTime<Utc>`).
     let col_type = if (auto_now || auto_now_update) && !matches!(ty, FieldType::TimestampTz) {
@@ -120,6 +124,7 @@ pub(crate) fn decl_to_column(decl: &FormFieldDecl, enums: &[EnumDef]) -> ParsedC
         enum_string_values,
         renamed_from,
         max_length,
+        decimal_len,
         name,
     }
 }

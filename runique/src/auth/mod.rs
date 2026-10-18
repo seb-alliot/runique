@@ -4,6 +4,7 @@ pub mod guard;
 pub mod migrations_table;
 pub mod password;
 pub mod permissions;
+pub mod rang;
 pub mod session;
 pub mod user;
 pub mod user_trait;
@@ -15,6 +16,7 @@ pub use password::{
     PasswordResetStaging, handle_forgot_password, handle_password_reset,
 };
 pub use permissions::{Groupe, Permission, pull_groupes_db};
+pub use rang::Rang;
 pub use session::{
     CurrentUser, LoginError, is_authenticated, login, logout, protect_session, unprotect_session,
 };

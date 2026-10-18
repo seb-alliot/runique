@@ -2,7 +2,7 @@
 //!
 //! An update or a delete replays the proof's conditions in its `WHERE` and
 //! must touch exactly one row: if the row changed between the gate and the
-//! write (new owner, promoted to superuser, deleted), nothing is written.
+//! write (new owner, promoted out of reach, deleted), nothing is written.
 use super::PkOf;
 use super::operation::{Create, Delete, Update};
 use super::proof::Authorized;
@@ -192,9 +192,10 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn a_staff_update_is_refused_if_the_account_became_a_superuser_in_between() {
+    async fn an_admin_update_is_refused_if_the_account_was_promoted_in_between() {
         let db = db().await;
-        let manager = staff(pk(40), "users", [false, true, true, false, false, false]);
+        let mut manager = staff(pk(40), "users", [false, true, true, false, false, false]);
+        manager.rang = crate::auth::rang::Rang::Admin;
         let ctx = GateCtx {
             db: &db,
             user: &manager,

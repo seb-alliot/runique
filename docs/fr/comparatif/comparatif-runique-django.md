@@ -56,7 +56,7 @@
 | Rendu HTML | `{{ form.as_p }}` | `{% form.nom_form %}` (entier) ou `{% form.nom_form.champ %}` |
 | CSRF intégré | automatique | automatique — injecté avant le premier champ |
 | Sauvegarde | `form.save()` | `form.save(&db).await` (si `#[form]`) |
-| Accès aux données | `form.cleaned_data['clé']` | `form.cleaned_string("clé")`, `form.cleaned_i32(...)`, etc. |
+| Accès aux données | `form.cleaned_data['clé']` | `form.cleaned::<String>("clé")`, `form.cleaned::<i32>(...)`, etc. |
 | Validation async | non | oui (accès DB dans `clean()`) |
 | Validation croisée | `clean()` | `clean()` async |
 | Fichiers | `FileField` (pas de validation de contenu par défaut) | `FileField` multipart natif — validation type/taille, **magic bytes** pour les images, SVG rejeté, écriture en **staging** seulement après le jeton CSRF, puis commit après validation (nom **UUID**, pas de path traversal) |

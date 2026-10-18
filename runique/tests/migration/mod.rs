@@ -24,6 +24,10 @@ pub mod test_diff;
 // types that engine can't read back, which this test exercises on purpose.
 pub mod test_ast_helpers;
 #[cfg(feature = "all-databases")]
+pub mod test_column_type_alignment;
+#[cfg(feature = "all-databases")]
+pub mod test_decimal_scale_multi_db;
+#[cfg(feature = "all-databases")]
 pub mod test_dsl_types_roundtrip;
 pub mod test_eihwaz_tables_pk;
 pub mod test_foreign_key;

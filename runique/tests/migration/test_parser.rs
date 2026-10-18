@@ -27,7 +27,7 @@ fn full_types_source() -> &'static str {
             f_u64: u64 [nullable],
             f_f32: f32 [nullable],
             f_f64: float [nullable],
-            f_decimal: decimal [nullable],
+            f_decimal: decimal [nullable, max_digits: 10, decimal_places: 2],
             f_bool: bool [nullable],
             f_date: date [nullable],
             f_time: time [nullable],

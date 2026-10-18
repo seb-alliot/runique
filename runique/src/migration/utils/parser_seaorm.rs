@@ -34,6 +34,23 @@ fn extract_length_arg(expr: &Expr) -> Option<u32> {
     })
 }
 
+/// `.decimal_len(p, s)` in a snapshot's column chain: the decimal's precision and scale.
+fn extract_decimal_len_arg(expr: &Expr) -> Option<(u32, u32)> {
+    collect_chain(expr).into_iter().find_map(|mc| {
+        if mc.method != "decimal_len" {
+            return None;
+        }
+        let int = |arg: Option<&Expr>| match arg? {
+            Expr::Lit(syn::ExprLit {
+                lit: syn::Lit::Int(n),
+                ..
+            }) => n.base10_parse().ok(),
+            _ => None,
+        };
+        Some((int(mc.args.first())?, int(mc.args.iter().nth(1))?))
+    })
+}
+
 use crate::migration::utils::{
     helpers::{
         collect_chain, detect_col_type_seaorm, extract_alias_new_str, extract_alias_new_str_inner,
@@ -164,10 +181,12 @@ impl SeaOrmVisitor {
                         enum_string_values: Vec::new(),
                         renamed_from: None,
                         max_length: None,
+                        decimal_len: None,
                     });
                 } else {
                     self.columns.push(ParsedColumn {
                         max_length: extract_length_arg(arg),
+                        decimal_len: extract_decimal_len_arg(arg),
                         name: n,
                         col_type,
                         nullable,

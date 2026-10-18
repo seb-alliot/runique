@@ -3,7 +3,7 @@
 
 use crate::helpers::db;
 use crate::helpers::pk::pk;
-use runique::auth::{BuiltinUserEntity, user::Model, user_trait::RuniqueUser};
+use runique::auth::{BuiltinUserEntity, rang::Rang, user::Model, user_trait::RuniqueUser};
 
 // ─── Helper ──────────────────────────────────────────────────────────────────
 
@@ -14,7 +14,8 @@ fn make_model() -> Model {
         email: "alice@example.com".to_string(),
         password: "hashed".to_string(),
         is_active: true,
-        is_staff: false,
+        is_dirigeant: false,
+        is_admin: false,
         is_superuser: false,
         created_at: None,
         updated_at: None,
@@ -51,12 +52,6 @@ fn test_runique_user_is_active() {
 }
 
 #[test]
-fn test_runique_user_is_staff_false() {
-    let model = make_model();
-    assert!(!model.is_staff());
-}
-
-#[test]
 fn test_runique_user_is_superuser_false() {
     let model = make_model();
     assert!(!model.is_superuser());
@@ -69,17 +64,45 @@ fn test_runique_user_is_superuser_true() {
     assert!(model.is_superuser());
 }
 
+// ═══════════════════════════════════════════════════════════════
+// Rang::from(&Model)
+// ═══════════════════════════════════════════════════════════════
+
 #[test]
-fn test_runique_user_can_access_admin_false() {
-    let model = make_model();
-    assert!(!model.can_access_admin());
+fn test_rang_without_flag_is_lambda() {
+    assert_eq!(Rang::from(&make_model()), Rang::Lambda);
 }
 
 #[test]
-fn test_runique_user_can_access_admin_staff() {
+fn test_rang_reads_each_flag() {
     let mut model = make_model();
-    model.is_staff = true;
-    assert!(model.can_access_admin());
+    model.is_admin = true;
+    assert_eq!(Rang::from(&model), Rang::Admin);
+    model.is_admin = false;
+    model.is_dirigeant = true;
+    assert_eq!(Rang::from(&model), Rang::Dirigeant);
+    model.is_dirigeant = false;
+    model.is_superuser = true;
+    assert_eq!(Rang::from(&model), Rang::Superuser);
+}
+
+// Two flags can't both be set (CHECK in the database); if they were, the
+// highest one wins, so the account gets the strictest protection as a target.
+#[test]
+fn test_rang_takes_the_highest_flag() {
+    let mut model = make_model();
+    model.is_admin = true;
+    model.is_dirigeant = true;
+    assert_eq!(Rang::from(&model), Rang::Dirigeant);
+    model.is_superuser = true;
+    assert_eq!(Rang::from(&model), Rang::Superuser);
+}
+
+#[test]
+fn test_rang_order() {
+    assert!(Rang::Lambda < Rang::Admin);
+    assert!(Rang::Admin < Rang::Dirigeant);
+    assert!(Rang::Dirigeant < Rang::Superuser);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -133,7 +156,8 @@ const USERS_DDL: &str = "
         email       TEXT NOT NULL UNIQUE,
         password    TEXT NOT NULL,
         is_active   INTEGER NOT NULL DEFAULT 1,
-        is_staff    INTEGER NOT NULL DEFAULT 0,
+        is_dirigeant INTEGER NOT NULL DEFAULT 0,
+        is_admin    INTEGER NOT NULL DEFAULT 0,
         is_superuser INTEGER NOT NULL DEFAULT 0,
         created_at  TEXT,
         updated_at  TEXT,
@@ -149,7 +173,8 @@ const USERS_DDL: &str = "
         email       TEXT NOT NULL UNIQUE,
         password    TEXT NOT NULL,
         is_active   INTEGER NOT NULL DEFAULT 1,
-        is_staff    INTEGER NOT NULL DEFAULT 0,
+        is_dirigeant INTEGER NOT NULL DEFAULT 0,
+        is_admin    INTEGER NOT NULL DEFAULT 0,
         is_superuser INTEGER NOT NULL DEFAULT 0,
         created_at  TEXT,
         updated_at  TEXT,
@@ -162,8 +187,8 @@ const USERS_DDL: &str = "
 #[cfg(feature = "pk-uuid")]
 fn insert_alice_sql() -> String {
     format!(
-        "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_staff, is_superuser, activated_at)
-         VALUES ({}, 'alice', 'alice@example.com', 'hash123', 1, 0, 0, '2026-01-01 00:00:00')",
+        "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_superuser, activated_at)
+         VALUES ({}, 'alice', 'alice@example.com', 'hash123', 1, 0, '2026-01-01 00:00:00')",
         crate::helpers::pk::pk_sql_literal(1)
     )
 }
@@ -175,8 +200,8 @@ fn insert_alice_sql() -> String {
 
 #[cfg(not(feature = "pk-uuid"))]
 const INSERT_ALICE: &str = "
-    INSERT INTO eihwaz_users (username, email, password, is_active, is_staff, is_superuser, activated_at)
-    VALUES ('alice', 'alice@example.com', 'hash123', 1, 0, 0, '2026-01-01 00:00:00')
+    INSERT INTO eihwaz_users (username, email, password, is_active, is_superuser, activated_at)
+    VALUES ('alice', 'alice@example.com', 'hash123', 1, 0, '2026-01-01 00:00:00')
 ";
 
 #[tokio::test]

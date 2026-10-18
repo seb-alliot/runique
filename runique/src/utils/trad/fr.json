@@ -20,6 +20,8 @@
     "min_value": "Min {} requis",
     "max_value": "Max {} dépassé",
     "precision_max": "Précision max {} chiffres après virgule",
+    "integer_digits_max": "{} chiffres maximum avant la virgule",
+    "value_unconvertible": "Cette valeur ne correspond pas à ce champ",
     "precision_min": "Précision min {} chiffres après virgule",
     "color_invalid": "Couleur invalide (format: #RRGGBB ou #RGB)",
     "color_no_hash": "La couleur doit commencer par #",

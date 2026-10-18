@@ -33,7 +33,7 @@ model! {
         summary:    textarea [nullable],
         status:     choice [enum(Status), required],
         priority:   choice [enum(Priority), required],
-        price:      decimal [required, min: 0.0],
+        price:      decimal [required, min: 0.0, max_digits: 10, decimal_places: 2],
         shelf_code: int [nullable],
         cover:      image [nullable, upload_to: "covers/"],
         created_at: datetime [auto_now],

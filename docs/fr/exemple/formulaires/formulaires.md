@@ -40,7 +40,7 @@ impl RuniqueForm for RegisterForm {
     // Validation métier — appelée automatiquement par is_valid()
     async fn clean(&mut self) -> Result<(), StrMap> {
         let mut errors = StrMap::new();
-        if !self.cleaned_string("email").unwrap_or_default().contains('@') {
+        if !self.cleaned::<String>("email").unwrap_or_default().contains('@') {
             errors.insert("email".to_string(), "Email invalide".to_string());
         }
         if errors.is_empty() { Ok(()) } else { Err(errors) }
@@ -65,13 +65,13 @@ impl RuniqueForm for RegisterForm {
 
     async fn clean(&mut self) -> Result<(), StrMap> {
         let mut errors = StrMap::new();
-        if self.cleaned_string("username").unwrap_or_default().len() < 3 {
+        if self.cleaned::<String>("username").unwrap_or_default().len() < 3 {
             errors.insert("username".to_string(), "Minimum 3 caractères".to_string());
         }
-        if !self.cleaned_string("email").unwrap_or_default().contains('@') {
+        if !self.cleaned::<String>("email").unwrap_or_default().contains('@') {
             errors.insert("email".to_string(), "Email invalide".to_string());
         }
-        if self.cleaned_string("password").unwrap_or_default().len() < 10 {
+        if self.cleaned::<String>("password").unwrap_or_default().len() < 10 {
             errors.insert("password".to_string(), "Minimum 10 caractères".to_string());
         }
         if errors.is_empty() { Ok(()) } else { Err(errors) }
@@ -176,7 +176,7 @@ pub async fn info_user(mut request: Request) -> AppResult<Response> {
     match ValidationForm::try_new(form, &request).await {
         Ok(validated) => {
             let form = validated.into_form();
-            let username = form.cleaned_string("username").unwrap_or_default();
+            let username = form.cleaned::<String>("username").unwrap_or_default();
             let db = request.engine.db.clone();
 
             let user_opt = runique_users::Entity::find()

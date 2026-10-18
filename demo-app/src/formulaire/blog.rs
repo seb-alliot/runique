@@ -9,11 +9,11 @@ impl RuniqueForm for BlogForm {
     impl_form_access!(model);
 
     async fn clean(&mut self) -> Result<(), StrMap> {
-        let title = self.cleaned_string("title").unwrap_or_default();
-        let email = self.cleaned_string("email").unwrap_or_default();
-        let website = self.cleaned_string("website");
-        let summary = self.cleaned_string("summary").unwrap_or_default();
-        let content = self.cleaned_string("content").unwrap_or_default();
+        let title = self.cleaned::<String>("title").unwrap_or_default();
+        let email = self.cleaned::<String>("email").unwrap_or_default();
+        let website = self.cleaned::<String>("website");
+        let summary = self.cleaned::<String>("summary").unwrap_or_default();
+        let content = self.cleaned::<String>("content").unwrap_or_default();
         let mut errors = StrMap::new();
 
         if title.len() < 3 {
@@ -58,11 +58,11 @@ impl RuniqueForm for BlogForm {
 impl BlogForm {
     pub async fn save(&mut self, db: &ADb) -> Result<crate::entities::blog::Model, DbErr> {
         let new_blog = crate::entities::blog::ActiveModel {
-            title: Set(self.cleaned_string("title").unwrap_or_default()),
-            email: Set(self.cleaned_string("email").unwrap_or_default()),
-            website: Set(self.cleaned_string("website")),
-            summary: Set(self.cleaned_string("summary").unwrap_or_default()),
-            content: Set(self.cleaned_string("content").unwrap_or_default()),
+            title: Set(self.cleaned::<String>("title").unwrap_or_default()),
+            email: Set(self.cleaned::<String>("email").unwrap_or_default()),
+            website: Set(self.cleaned::<String>("website")),
+            summary: Set(self.cleaned::<String>("summary").unwrap_or_default()),
+            content: Set(self.cleaned::<String>("content").unwrap_or_default()),
             ..Default::default()
         };
         let new_blog = new_blog.insert(db).await;

@@ -48,7 +48,13 @@ pub fn create_eihwaz_users_table() -> TableCreateStatement {
                 .default(false),
         )
         .col(
-            ColumnDef::new(Alias::new("is_staff"))
+            ColumnDef::new(Alias::new("is_dirigeant"))
+                .boolean()
+                .not_null()
+                .default(false),
+        )
+        .col(
+            ColumnDef::new(Alias::new("is_admin"))
                 .boolean()
                 .not_null()
                 .default(false),
@@ -75,7 +81,22 @@ pub fn create_eihwaz_users_table() -> TableCreateStatement {
                 .not()
                 .or(Expr::col(Alias::new("activated_at")).is_not_null()),
         ))
+        // A boolean isn't a number on every engine: CASE turns each rank flag
+        // into 0/1 the same way on the three.
+        .check(Check::named(
+            ONE_RANK_AT_MOST,
+            rank_flag("is_superuser")
+                .add(rank_flag("is_dirigeant"))
+                .add(rank_flag("is_admin"))
+                .lte(1),
+        ))
         .to_owned()
+}
+
+fn rank_flag(column: &str) -> Expr {
+    Expr::case(Expr::col(Alias::new(column)), 1)
+        .finally(0)
+        .into()
 }
 
 /// "Turnkey" migration to create the `eihwaz_users` table.
@@ -105,6 +126,9 @@ impl sea_orm_migration::MigrationTrait for EihwazUsersMigration {
 /// refusal can be recognised whatever the engine.
 pub const ACTIVE_NEEDS_ACTIVATION: &str = "eihwaz_users_active_needs_activation";
 
+/// Name of the `CHECK` constraint "at most one of superuser, dirigeant, admin".
+pub const ONE_RANK_AT_MOST: &str = "eihwaz_users_one_rank_at_most";
+
 /// Generates the `TableCreateStatement` for the `eihwaz_groupes` table.
 pub fn create_eihwaz_groupes_table() -> TableCreateStatement {
     Table::create()
@@ -122,6 +146,12 @@ pub fn create_eihwaz_groupes_table() -> TableCreateStatement {
                 .string()
                 .not_null()
                 .unique_key(),
+        )
+        .col(
+            ColumnDef::new(Alias::new("is_staff"))
+                .boolean()
+                .not_null()
+                .default(false),
         )
         .to_owned()
 }

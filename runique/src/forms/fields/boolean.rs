@@ -65,6 +65,14 @@ impl BooleanField {
 
 #[async_trait]
 impl FormField for BooleanField {
+    /// Unchecked is `false`, never empty.
+    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
+        Ok(Some(sea_orm::Value::from(matches!(
+            self.base.value.as_str(),
+            "true" | "1" | "on"
+        ))))
+    }
+
     async fn validate(&mut self) -> bool {
         // A boolean field is always valid: "true" or "false" (unchecked = false).
         // `required` doesn't mean "must be checked"; the column's NULL-ness comes

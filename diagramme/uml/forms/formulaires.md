@@ -72,7 +72,7 @@ classDiagram
         +allow_get(request) bool [défaut false — sécurité, opt-in]
         +allow_post(request) bool [défaut is_submitted()]
         +label/placeholder/required/readonly/disabled/attr(name,..)
-        +cleaned_string/i32/i64/...(name)
+        +cleaned~T~(name)
     }
     class ValidationForm~F~ {
         -F form

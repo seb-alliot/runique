@@ -13,25 +13,25 @@ Methods on the `RuniqueForm` trait. They are whitelisted (undeclared field → `
 ### Basics and Numerics
 
 ```rust
-self.cleaned_string("username")      // Option<String> (None if empty)
-self.cleaned_i32("age")              // Option<i32>
-self.cleaned_i64("count")            // Option<i64>
-self.cleaned_u32("quantity")         // Option<u32>
-self.cleaned_u64("id")               // Option<u64>
-self.cleaned_f32("ratio")            // Option<f32> (handles , → .)
-self.cleaned_f64("price")            // Option<f64> (handles , → .)
-self.cleaned_bool("active")          // Option<bool> (true/1/on → true)
+self.cleaned::<String>("username")      // Option<String> (None if empty)
+self.cleaned::<i32>("age")              // Option<i32>
+self.cleaned::<i64>("count")            // Option<i64>
+self.cleaned::<u32>("quantity")         // Option<u32>
+self.cleaned::<u64>("id")               // Option<u64>
+self.cleaned::<f32>("ratio")            // Option<f32> (handles , → .)
+self.cleaned::<f64>("price")            // Option<f64> (handles , → .)
+self.cleaned::<bool>("active")          // Option<bool> (true/1/on → true)
 ```
 
 ### Date / Time / UUID
 
 ```rust
-self.cleaned_naive_date("birthday")           // Option<NaiveDate> (YYYY-MM-DD format)
-self.cleaned_naive_time("meeting_time")       // Option<NaiveTime> (HH:MM format)
-self.cleaned_naive_datetime("event_start")    // Option<NaiveDateTime> (YYYY-MM-DDTHH:MM)
-self.cleaned_datetime_utc("created_at")       // Option<DateTime<Utc>> (RFC3339)
+self.cleaned::<NaiveDate>("birthday")           // Option<NaiveDate> (YYYY-MM-DD format)
+self.cleaned::<NaiveTime>("meeting_time")       // Option<NaiveTime> (HH:MM format)
+self.cleaned::<NaiveDateTime>("event_start")    // Option<NaiveDateTime> (YYYY-MM-DDTHH:MM)
+self.cleaned::<DateTime<Utc>>("created_at")       // Option<DateTime<Utc>> (RFC3339)
 
-self.cleaned_uuid("external_id")              // Option<Uuid>
+self.cleaned::<Uuid>("external_id")              // Option<Uuid>
 ```
 
 ### Enums
@@ -45,7 +45,7 @@ self.cleaned_enums::<Genre>("genres")         // Vec<Genre> — list field (chec
 `cleaned_enums` reads the checked values of a list field, in the order submitted; it returns an
 empty `Vec` when nothing is checked. A value that isn't a variant is left out (and logged).
 
-> **💡** Float helpers (`cleaned_f32`, `cleaned_f64`) automatically convert commas to dots (`19,99` → `19.99`) to simplify input.
+> **💡** Float readings (`cleaned::<f32>`, `cleaned::<f64>`) automatically convert commas to dots (`19,99` → `19.99`) to simplify input.
 > 
 > **Security Note:** All `cleaned_*` variants return `Option`. For a default value: `.unwrap_or_default()` or `.unwrap_or(0)`.
 
@@ -59,10 +59,10 @@ In your `save()` methods, exclusively use `cleaned_*` to extract data:
 impl RegisterForm {
     pub async fn save(&self, db: &DatabaseConnection) -> Result<users::Model, DbErr> {
         let model = users::ActiveModel {
-            username: Set(self.cleaned_string("username").unwrap_or_default()),
-            email: Set(self.cleaned_string("email").unwrap_or_default()),
-            age: Set(self.cleaned_i32("age").unwrap_or(0)),
-            website: Set(self.cleaned_string("website")), // Option<String>
+            username: Set(self.cleaned::<String>("username").unwrap_or_default()),
+            email: Set(self.cleaned::<String>("email").unwrap_or_default()),
+            age: Set(self.cleaned::<i32>("age").unwrap_or(0)),
+            website: Set(self.cleaned::<String>("website")), // Option<String>
             ..Default::default()
         };
         model.insert(db).await
@@ -92,7 +92,7 @@ Example — pre-fill a field from the URL (`GET /edit?title=My+Article`):
 
 ```rust
 if request.method.is_safe() {
-    if let Some(t) = form.cleaned_string("title") {
+    if let Some(t) = form.cleaned::<String>("title") {
         form.get_form_mut().add_value("title", &t);
     }
 }

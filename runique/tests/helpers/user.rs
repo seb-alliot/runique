@@ -7,16 +7,14 @@ use runique::utils::config::Pk;
 pub struct TestUser {
     id: Pk,
     username: String,
-    is_staff: bool,
     is_superuser: bool,
 }
 
 /// Builds an active `TestUser`.
-pub fn test_user(id: Pk, username: &str, is_staff: bool, is_superuser: bool) -> TestUser {
+pub fn test_user(id: Pk, username: &str, is_superuser: bool) -> TestUser {
     TestUser {
         id,
         username: username.to_string(),
-        is_staff,
         is_superuser,
     }
 }
@@ -33,9 +31,6 @@ impl RuniqueUser for TestUser {
     }
     fn is_active(&self) -> bool {
         true
-    }
-    fn is_staff(&self) -> bool {
-        self.is_staff
     }
     fn is_superuser(&self) -> bool {
         self.is_superuser

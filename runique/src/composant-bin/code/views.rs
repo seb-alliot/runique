@@ -101,8 +101,8 @@ pub async fn connexion(mut request: Request) -> AppResult<Response> {
         }
     };
 
-    let username = validated.cleaned_string("username").unwrap_or_default();
-    let password = validated.cleaned_string("password").unwrap_or_default();
+    let username = validated.cleaned::<String>("username").unwrap_or_default();
+    let password = validated.cleaned::<String>("password").unwrap_or_default();
     // Checks the password even for an unknown username (same timing either
     // way) and refuses an inactive or never activated account.
     if let Some(user) = authenticate_user(&request.engine.db, &username, &password).await

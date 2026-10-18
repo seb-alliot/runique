@@ -53,6 +53,7 @@ pub struct Groupe {
     // groupe.rs::Model::id / auth/migrations_table.rs::create_eihwaz_groupes_table.
     pub id: i32,
     pub nom: String,
+    pub is_staff: bool,
     pub permissions: Vec<Permission>,
 }
 
@@ -113,6 +114,7 @@ pub async fn pull_groupes_db<C: ConnectionTrait>(
         .map(|g| Groupe {
             id: g.id,
             nom: g.nom,
+            is_staff: g.is_staff,
             permissions: Vec::new(),
         })
         .collect();

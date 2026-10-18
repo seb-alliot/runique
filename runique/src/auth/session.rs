@@ -1,5 +1,6 @@
 //! User session, admin authentication, and authentication traits.
 use crate::auth::permissions::{Groupe, Permission};
+use crate::auth::rang::Rang;
 use crate::auth::user_trait::RuniqueUser;
 use crate::middleware::security::csrf::rotate_csrf_token;
 use crate::middleware::session::session_db::RuniqueSessionStore;
@@ -72,10 +73,7 @@ mod ttl_tests {
 pub struct CurrentUser {
     pub id: Pk,
     pub username: String,
-    /// Access to the admin panel (read / limited operations)
-    pub is_staff: bool,
-    /// Full access — bypasses all admin restrictions
-    pub is_superuser: bool,
+    pub rang: Rang,
     /// User groups (each group contains its permissions)
     pub groupes: Vec<Groupe>,
 }
@@ -107,16 +105,22 @@ impl CurrentUser {
     /// Checks if the user has a strict global permission (can be refined).
     #[must_use]
     pub fn can_access_resource(&self, resource_key: &str) -> bool {
-        self.is_superuser
+        self.rang == Rang::Superuser
             || self
                 .permission_for(resource_key)
                 .is_some_and(|p| p.can_read)
     }
 
+    /// Member of at least one group that opens the admin panel.
+    #[must_use]
+    pub fn is_staff(&self) -> bool {
+        self.groupes.iter().any(|g| g.is_staff)
+    }
+
     /// Checks if the user can access the admin panel.
     #[must_use]
     pub fn can_access_admin(&self) -> bool {
-        self.is_staff || self.is_superuser
+        self.rang > Rang::Lambda || self.is_staff()
     }
 }
 

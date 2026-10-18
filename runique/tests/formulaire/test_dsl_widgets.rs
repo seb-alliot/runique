@@ -22,7 +22,7 @@ mod shop {
             contact: email [nullable],
             qty: i16 [required, min: 0, label: "Quantité"],
             ratio: float [nullable],
-            price: decimal [nullable],
+            price: decimal [nullable, max_digits: 10, decimal_places: 2],
             status: choice [nullable, enum(Status)],
             photo: image [nullable, upload_to: "photos/"],
         }

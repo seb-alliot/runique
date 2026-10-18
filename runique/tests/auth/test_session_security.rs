@@ -36,26 +36,16 @@ fn build_app(handler: axum::routing::MethodRouter) -> Router {
 async fn test_login_user_different_nettoie_session_precedente() {
     async fn handler(session: Session) -> impl IntoResponse {
         // User A se connecte
-        login(
-            &session,
-            &test_user(pk(1), "setsuna", true, false),
-            None,
-            false,
-        )
-        .await
-        .unwrap();
+        login(&session, &test_user(pk(1), "setsuna", false), None, false)
+            .await
+            .unwrap();
         let id_apres_login_a = session_user_id(&session).await;
         assert_eq!(id_apres_login_a, Some(pk(1)));
 
         // User B se connecte sur la même session (collision)
-        login(
-            &session,
-            &test_user(pk(2), "itsuki", true, true),
-            None,
-            false,
-        )
-        .await
-        .unwrap();
+        login(&session, &test_user(pk(2), "itsuki", true), None, false)
+            .await
+            .unwrap();
         let id_apres_login_b = session_user_id(&session).await;
 
         // La session doit appartenir à B, pas à A
@@ -72,23 +62,13 @@ async fn test_login_user_different_nettoie_session_precedente() {
 #[tokio::test]
 async fn test_login_meme_user_ne_reinitialise_pas_session() {
     async fn handler(session: Session) -> impl IntoResponse {
-        login(
-            &session,
-            &test_user(pk(1), "alice", true, false),
-            None,
-            false,
-        )
-        .await
-        .unwrap();
+        login(&session, &test_user(pk(1), "alice", false), None, false)
+            .await
+            .unwrap();
         // Re-login du même user (refresh de session)
-        login(
-            &session,
-            &test_user(pk(1), "alice", true, false),
-            None,
-            false,
-        )
-        .await
-        .unwrap();
+        login(&session, &test_user(pk(1), "alice", false), None, false)
+            .await
+            .unwrap();
 
         let id = session_user_id(&session).await;
         assert_eq!(id, Some(pk(1)));
@@ -103,24 +83,14 @@ async fn test_login_meme_user_ne_reinitialise_pas_session() {
 #[tokio::test]
 async fn test_login_user_different_efface_les_donnees_de_a() {
     async fn handler(session: Session) -> impl IntoResponse {
-        login(
-            &session,
-            &test_user(pk(1), "setsuna", true, false),
-            None,
-            false,
-        )
-        .await
-        .unwrap();
+        login(&session, &test_user(pk(1), "setsuna", false), None, false)
+            .await
+            .unwrap();
         session.insert("panier", "article de A").await.unwrap();
 
-        login(
-            &session,
-            &test_user(pk(2), "itsuki", true, false),
-            None,
-            false,
-        )
-        .await
-        .unwrap();
+        login(&session, &test_user(pk(2), "itsuki", false), None, false)
+            .await
+            .unwrap();
 
         let panier: Option<String> = session.get("panier").await.unwrap();
         assert_eq!(panier, None, "les données de A ne doivent pas passer à B");
@@ -135,24 +105,14 @@ async fn test_login_user_different_efface_les_donnees_de_a() {
 #[tokio::test]
 async fn test_relogin_meme_user_garde_ses_donnees() {
     async fn handler(session: Session) -> impl IntoResponse {
-        login(
-            &session,
-            &test_user(pk(1), "alice", true, false),
-            None,
-            false,
-        )
-        .await
-        .unwrap();
+        login(&session, &test_user(pk(1), "alice", false), None, false)
+            .await
+            .unwrap();
         session.insert("panier", "article").await.unwrap();
 
-        login(
-            &session,
-            &test_user(pk(1), "alice", true, false),
-            None,
-            false,
-        )
-        .await
-        .unwrap();
+        login(&session, &test_user(pk(1), "alice", false), None, false)
+            .await
+            .unwrap();
 
         let panier: Option<String> = session.get("panier").await.unwrap();
         assert_eq!(panier.as_deref(), Some("article"));
@@ -171,14 +131,9 @@ async fn test_relogin_meme_user_garde_ses_donnees() {
 #[tokio::test]
 async fn test_logout_vide_session_completement() {
     async fn handler(session: Session) -> impl IntoResponse {
-        login(
-            &session,
-            &test_user(pk(1), "alice", true, false),
-            None,
-            false,
-        )
-        .await
-        .unwrap();
+        login(&session, &test_user(pk(1), "alice", false), None, false)
+            .await
+            .unwrap();
         assert!(is_authenticated(&session).await);
 
         logout(&session, None).await.unwrap();
@@ -201,14 +156,9 @@ async fn test_logout_vide_session_completement() {
 async fn test_deux_sessions_independantes() {
     // Session A : user 1
     async fn handler_a(session: Session) -> impl IntoResponse {
-        login(
-            &session,
-            &test_user(pk(1), "alice", true, false),
-            None,
-            false,
-        )
-        .await
-        .unwrap();
+        login(&session, &test_user(pk(1), "alice", false), None, false)
+            .await
+            .unwrap();
         session_user_id(&session)
             .await
             .map(|id| id.to_string())
@@ -217,14 +167,9 @@ async fn test_deux_sessions_independantes() {
 
     // Session B : user 2 (router séparé = session store séparé)
     async fn handler_b(session: Session) -> impl IntoResponse {
-        login(
-            &session,
-            &test_user(pk(2), "bob", false, false),
-            None,
-            false,
-        )
-        .await
-        .unwrap();
+        login(&session, &test_user(pk(2), "bob", false), None, false)
+            .await
+            .unwrap();
         session_user_id(&session)
             .await
             .map(|id| id.to_string())
@@ -248,7 +193,7 @@ async fn test_login_collision_bascule_sur_le_nouvel_user() {
         // User A login
         login(
             &session,
-            &test_user(pk(20_004), "carol", true, false),
+            &test_user(pk(20_004), "carol", false),
             None,
             false,
         )
@@ -256,14 +201,9 @@ async fn test_login_collision_bascule_sur_le_nouvel_user() {
         .unwrap();
 
         // User B prend la session (collision)
-        login(
-            &session,
-            &test_user(pk(20_005), "dave", true, false),
-            None,
-            false,
-        )
-        .await
-        .unwrap();
+        login(&session, &test_user(pk(20_005), "dave", false), None, false)
+            .await
+            .unwrap();
 
         let id = session_user_id(&session).await;
         assert_eq!(id, Some(pk(20_005)));

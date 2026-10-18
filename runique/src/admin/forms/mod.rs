@@ -91,7 +91,6 @@ impl RuniqueForm for UserAdminCreateForm {
                 .required(),
         );
         form.field(&HiddenField::new("password"));
-        form.field(&BooleanField::new("is_staff").label(t("admin.staff").as_ref()));
         // No `is_superuser` field: an admin account can never be granted from
         // within the admin panel itself, not even by an existing superuser —
         // promotion only happens outside the app (CLI, direct DB access).
@@ -102,8 +101,8 @@ impl RuniqueForm for UserAdminCreateForm {
     impl_form_access!();
 
     async fn clean(&mut self) -> Result<(), StrMap> {
-        let username = self.cleaned_string("username").unwrap_or_default();
-        let email = self.cleaned_string("email").unwrap_or_default();
+        let username = self.cleaned::<String>("username").unwrap_or_default();
+        let email = self.cleaned::<String>("email").unwrap_or_default();
         let mut errors = StrMap::new();
 
         if username.len() < 3 {
@@ -151,7 +150,6 @@ impl RuniqueForm for UserAdminEditForm {
                 .required(),
         );
         form.field(&BooleanField::new("is_active").label(t("admin.active").as_ref()));
-        form.field(&BooleanField::new("is_staff").label(t("admin.staff").as_ref()));
         // No `is_superuser` field: see UserAdminCreateForm.
         // Field overridden dynamically with available groups (see builtin.rs)
         form.field(&CheckboxField::new("groupes").label(t("admin.groups").as_ref()));

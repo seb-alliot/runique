@@ -1,5 +1,6 @@
 //! Prisme guard rules: access control before body extraction, checked against
 //! the signed-in account as `auth_middleware` read it from the database.
+use crate::auth::rang::Rang;
 use crate::auth::session::CurrentUser;
 use crate::utils::trad::t;
 use axum::{
@@ -10,7 +11,7 @@ use axum::{
 /// Configurable rules for Sentinel, to be placed in extensions.
 ///
 /// Every rule requires a signed-in account. A superuser passes the staff and
-/// role checks, as everywhere else in Runique.
+/// role checks, as everywhere else in Runique; any rank passes the staff check.
 #[derive(Debug, Clone, Default)]
 pub struct GuardRules {
     pub login_required: bool,
@@ -29,7 +30,7 @@ impl GuardRules {
         }
     }
 
-    /// Rule requiring a staff (or superuser) account.
+    /// Rule requiring a rank or a staff group.
     pub fn staff() -> Self {
         Self {
             login_required: true,
@@ -80,10 +81,11 @@ pub fn evaluate_rules(
     let Some(user) = user else {
         return Err(refusal(StatusCode::UNAUTHORIZED, "forms.auth_required"));
     };
-    let allowed = (!rules.staff || user.is_staff || user.is_superuser)
-        && (!rules.superuser || user.is_superuser)
+    let superuser = user.rang == Rang::Superuser;
+    let allowed = (!rules.staff || user.rang > Rang::Lambda || user.is_staff())
+        && (!rules.superuser || superuser)
         && (rules.roles.is_empty()
-            || user.is_superuser
+            || superuser
             || rules.roles.iter().any(|role| groupes.contains(role)));
     if allowed {
         Ok(())

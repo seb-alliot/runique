@@ -178,7 +178,7 @@ fn cli_column(source: &str) -> (String, Option<u32>, String) {
         .unwrap()
         .expect("the CLI parses the model");
     let column = &schema.columns[0];
-    let method = col_type_method(&column.col_type, column.max_length);
+    let method = col_type_method(column);
     (column.col_type.clone(), column.max_length, method)
 }
 

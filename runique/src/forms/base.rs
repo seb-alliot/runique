@@ -30,6 +30,11 @@ pub struct FieldConfig {
     /// thought to set the flag.
     #[serde(default)]
     is_password: bool,
+    /// The column this field is stored in, set by
+    /// [`FormField::apply_column_type`]. `None`: a field no column was given
+    /// to (a form without a model, a confirmation, a captcha).
+    #[serde(skip)]
+    pub column_type: Option<sea_orm::sea_query::ColumnType>,
 }
 
 impl FieldConfig {
@@ -52,6 +57,7 @@ impl FieldConfig {
             // whatever constructor was used, is born protected. The flag can
             // therefore never be missed by omission.
             is_password: type_field == "password",
+            column_type: None,
         }
     }
 
@@ -121,6 +127,10 @@ pub struct FieldBounds {
     pub max_int: Option<i64>,
     pub min_float: Option<f64>,
     pub max_float: Option<f64>,
+    /// A decimal's digits after the point.
+    pub max_decimal_places: Option<usize>,
+    /// A decimal's digits before the point.
+    pub max_integer_digits: Option<usize>,
 }
 
 /// An inclusive `min..=max` bound used by [`NumericConfig`] variants.
@@ -309,6 +319,23 @@ pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Syn
     ) -> Result<(), String> {
         Err("ce champ ne supporte pas max_size".to_string())
     }
+
+    /// The column this field is stored in, once given one.
+    fn column_type(&self) -> Option<&sea_orm::sea_query::ColumnType> {
+        self.get_field_config().column_type.as_ref()
+    }
+
+    /// Gives the field its column: what it stores, and what it then holds the
+    /// input to. Never loosens a bound already set. The caller has checked the
+    /// field can store that column at all (`accepts`).
+    fn apply_column_type(&mut self, column: &sea_orm::sea_query::ColumnType) {
+        self.get_field_config_mut().column_type = Some(column.clone());
+    }
+
+    /// The cleaned value, as the field's column stores it: `Ok(None)` when
+    /// empty, or for a field that fills no column. No default: a field type
+    /// says how it converts, or it doesn't compile.
+    fn to_value(&self) -> Result<Option<sea_orm::Value>, String>;
 
     /// Field-type specific validation
     async fn validate(&mut self) -> bool;

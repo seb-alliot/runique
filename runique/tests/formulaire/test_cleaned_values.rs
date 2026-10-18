@@ -1,7 +1,6 @@
 //! Tests — forms/field.rs
-//! Couvre : cleaned_string, cleaned_i32, cleaned_i64, cleaned_u32, cleaned_u64,
-//!          cleaned_f32, cleaned_f64, cleaned_bool, cleaned_uuid, cleaned_naive_date,
-//!          cleaned_naive_time, cleaned_naive_datetime, cleaned_datetime_utc,
+//! Couvre : cleaned::<T> pour String, i32, i64, u32, u64, f32, f64, bool, Uuid,
+//!          NaiveDate, NaiveTime, NaiveDateTime, DateTime<Utc>,
 //!          cleaned_value (path/query fallback), clear()
 
 use runique::forms::{field::RuniqueForm, fields::text::TextField, form::Forms};
@@ -44,76 +43,79 @@ fn make_form() -> TestForm {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// cleaned_string
+// cleaned::<String>
 // ═══════════════════════════════════════════════════════════════
 
 #[test]
 fn test_cleaned_string_some() {
     let mut form = make_form();
     form.form.add_value("str_field", "hello");
-    assert_eq!(form.cleaned_string("str_field"), Some("hello".to_string()));
+    assert_eq!(
+        form.cleaned::<String>("str_field"),
+        Some("hello".to_string())
+    );
 }
 
 #[test]
 fn test_cleaned_string_empty_returns_none() {
     let form = make_form();
-    assert_eq!(form.cleaned_string("str_field"), None);
+    assert_eq!(form.cleaned::<String>("str_field"), None);
 }
 
 #[test]
 fn test_cleaned_string_unknown_field_returns_none() {
     let form = make_form();
-    assert_eq!(form.cleaned_string("unknown"), None);
+    assert_eq!(form.cleaned::<String>("unknown"), None);
 }
 
 // ═══════════════════════════════════════════════════════════════
-// cleaned_i32 / cleaned_i64 / cleaned_u32 / cleaned_u64
+// cleaned::<i32> / <i64> / <u32> / <u64>
 // ═══════════════════════════════════════════════════════════════
 
 #[test]
 fn test_cleaned_i32_valid() {
     let mut form = make_form();
     form.form.add_value("int_field", "42");
-    assert_eq!(form.cleaned_i32("int_field"), Some(42));
+    assert_eq!(form.cleaned::<i32>("int_field"), Some(42));
 }
 
 #[test]
 fn test_cleaned_i32_invalid_text_returns_none() {
     let mut form = make_form();
     form.form.add_value("int_field", "abc");
-    assert_eq!(form.cleaned_i32("int_field"), None);
+    assert_eq!(form.cleaned::<i32>("int_field"), None);
 }
 
 #[test]
 fn test_cleaned_i64_valid() {
     let mut form = make_form();
     form.form.add_value("int_field", "9999999999");
-    assert_eq!(form.cleaned_i64("int_field"), Some(9_999_999_999_i64));
+    assert_eq!(form.cleaned::<i64>("int_field"), Some(9_999_999_999_i64));
 }
 
 #[test]
 fn test_cleaned_u32_valid() {
     let mut form = make_form();
     form.form.add_value("int_field", "100");
-    assert_eq!(form.cleaned_u32("int_field"), Some(100u32));
+    assert_eq!(form.cleaned::<u32>("int_field"), Some(100u32));
 }
 
 #[test]
 fn test_cleaned_u64_valid() {
     let mut form = make_form();
     form.form.add_value("int_field", "500");
-    assert_eq!(form.cleaned_u64("int_field"), Some(500u64));
+    assert_eq!(form.cleaned::<u64>("int_field"), Some(500u64));
 }
 
 // ═══════════════════════════════════════════════════════════════
-// cleaned_f32 / cleaned_f64
+// cleaned::<f32> / <f64>
 // ═══════════════════════════════════════════════════════════════
 
 #[test]
 fn test_cleaned_f64_point_separator() {
     let mut form = make_form();
     form.form.add_value("float_field", "19.99");
-    let v = form.cleaned_f64("float_field").unwrap();
+    let v = form.cleaned::<f64>("float_field").unwrap();
     assert!((v - 19.99).abs() < 0.001);
 }
 
@@ -121,7 +123,7 @@ fn test_cleaned_f64_point_separator() {
 fn test_cleaned_f64_comma_separator() {
     let mut form = make_form();
     form.form.add_value("float_field", "19,99");
-    let v = form.cleaned_f64("float_field").unwrap();
+    let v = form.cleaned::<f64>("float_field").unwrap();
     assert!((v - 19.99).abs() < 0.001);
 }
 
@@ -129,7 +131,7 @@ fn test_cleaned_f64_comma_separator() {
 fn test_cleaned_f32_valid() {
     let mut form = make_form();
     form.form.add_value("float_field", "3.14");
-    let v = form.cleaned_f32("float_field").unwrap();
+    let v = form.cleaned::<f32>("float_field").unwrap();
     assert!((v - std::f32::consts::PI).abs() < 0.01);
 }
 
@@ -137,11 +139,11 @@ fn test_cleaned_f32_valid() {
 fn test_cleaned_f64_invalid_returns_none() {
     let mut form = make_form();
     form.form.add_value("float_field", "not-a-number");
-    assert_eq!(form.cleaned_f64("float_field"), None);
+    assert_eq!(form.cleaned::<f64>("float_field"), None);
 }
 
 // ═══════════════════════════════════════════════════════════════
-// cleaned_bool
+// cleaned::<bool>
 // ═══════════════════════════════════════════════════════════════
 
 #[test]
@@ -150,7 +152,7 @@ fn test_cleaned_bool_true_values() {
         let mut form = make_form();
         form.form.add_value("bool_field", val);
         assert_eq!(
-            form.cleaned_bool("bool_field"),
+            form.cleaned::<bool>("bool_field"),
             Some(true),
             "expected true for {val}"
         );
@@ -161,17 +163,17 @@ fn test_cleaned_bool_true_values() {
 fn test_cleaned_bool_false_value() {
     let mut form = make_form();
     form.form.add_value("bool_field", "false");
-    assert_eq!(form.cleaned_bool("bool_field"), Some(false));
+    assert_eq!(form.cleaned::<bool>("bool_field"), Some(false));
 }
 
 #[test]
 fn test_cleaned_bool_empty_returns_none() {
     let form = make_form();
-    assert_eq!(form.cleaned_bool("bool_field"), None);
+    assert_eq!(form.cleaned::<bool>("bool_field"), None);
 }
 
 // ═══════════════════════════════════════════════════════════════
-// cleaned_uuid
+// cleaned::<Uuid>
 // ═══════════════════════════════════════════════════════════════
 
 #[test]
@@ -180,7 +182,7 @@ fn test_cleaned_uuid_valid() {
     let uuid = "550e8400-e29b-41d4-a716-446655440000";
     form.form.add_value("uuid_field", uuid);
     assert_eq!(
-        form.cleaned_uuid("uuid_field"),
+        form.cleaned::<uuid::Uuid>("uuid_field"),
         Some(uuid::Uuid::parse_str(uuid).unwrap()),
         "doit retourner l'UUID réellement parsé, pas juste Some(_)"
     );
@@ -190,11 +192,11 @@ fn test_cleaned_uuid_valid() {
 fn test_cleaned_uuid_invalid_returns_none() {
     let mut form = make_form();
     form.form.add_value("uuid_field", "not-a-uuid");
-    assert_eq!(form.cleaned_uuid("uuid_field"), None);
+    assert_eq!(form.cleaned::<uuid::Uuid>("uuid_field"), None);
 }
 
 // ═══════════════════════════════════════════════════════════════
-// cleaned_naive_date / cleaned_naive_time / cleaned_naive_datetime
+// cleaned::<NaiveDate> / <NaiveTime> / <NaiveDateTime>
 // ═══════════════════════════════════════════════════════════════
 
 #[test]
@@ -202,7 +204,7 @@ fn test_cleaned_naive_date_valid() {
     let mut form = make_form();
     form.form.add_value("date_field", "2024-06-15");
     assert_eq!(
-        form.cleaned_naive_date("date_field"),
+        form.cleaned::<chrono::NaiveDate>("date_field"),
         Some(chrono::NaiveDate::from_ymd_opt(2024, 6, 15).unwrap()),
         "doit retourner la date réellement parsée (une inversion jour/mois passerait avec juste .is_some())"
     );
@@ -212,7 +214,7 @@ fn test_cleaned_naive_date_valid() {
 fn test_cleaned_naive_date_invalid_returns_none() {
     let mut form = make_form();
     form.form.add_value("date_field", "15/06/2024");
-    assert_eq!(form.cleaned_naive_date("date_field"), None);
+    assert_eq!(form.cleaned::<chrono::NaiveDate>("date_field"), None);
 }
 
 #[test]
@@ -220,7 +222,7 @@ fn test_cleaned_naive_time_valid() {
     let mut form = make_form();
     form.form.add_value("time_field", "14:30");
     assert_eq!(
-        form.cleaned_naive_time("time_field"),
+        form.cleaned::<chrono::NaiveTime>("time_field"),
         Some(chrono::NaiveTime::from_hms_opt(14, 30, 0).unwrap()),
         "doit retourner l'heure réellement parsée, pas juste Some(_)"
     );
@@ -230,7 +232,7 @@ fn test_cleaned_naive_time_valid() {
 fn test_cleaned_naive_time_invalid_returns_none() {
     let mut form = make_form();
     form.form.add_value("time_field", "14h30");
-    assert_eq!(form.cleaned_naive_time("time_field"), None);
+    assert_eq!(form.cleaned::<chrono::NaiveTime>("time_field"), None);
 }
 
 #[test]
@@ -242,7 +244,7 @@ fn test_cleaned_naive_datetime_valid() {
         .and_hms_opt(14, 30, 0)
         .unwrap();
     assert_eq!(
-        form.cleaned_naive_datetime("datetime_field"),
+        form.cleaned::<chrono::NaiveDateTime>("datetime_field"),
         Some(expected),
         "doit retourner la date+heure réellement parsée, pas juste Some(_)"
     );
@@ -252,11 +254,14 @@ fn test_cleaned_naive_datetime_valid() {
 fn test_cleaned_naive_datetime_invalid_returns_none() {
     let mut form = make_form();
     form.form.add_value("datetime_field", "invalid");
-    assert_eq!(form.cleaned_naive_datetime("datetime_field"), None);
+    assert_eq!(
+        form.cleaned::<chrono::NaiveDateTime>("datetime_field"),
+        None
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════
-// cleaned_datetime_utc
+// cleaned::<DateTime<Utc>>
 // ═══════════════════════════════════════════════════════════════
 
 #[test]
@@ -265,7 +270,7 @@ fn test_cleaned_datetime_utc_valid() {
     form.form.add_value("rfc3339_field", "2024-06-15T14:30:00Z");
     use chrono::TimeZone;
     assert_eq!(
-        form.cleaned_datetime_utc("rfc3339_field"),
+        form.cleaned::<chrono::DateTime<chrono::Utc>>("rfc3339_field"),
         chrono::Utc
             .with_ymd_and_hms(2024, 6, 15, 14, 30, 0)
             .single(),
@@ -277,7 +282,10 @@ fn test_cleaned_datetime_utc_valid() {
 fn test_cleaned_datetime_utc_invalid_returns_none() {
     let mut form = make_form();
     form.form.add_value("rfc3339_field", "not-a-date");
-    assert_eq!(form.cleaned_datetime_utc("rfc3339_field"), None);
+    assert_eq!(
+        form.cleaned::<chrono::DateTime<chrono::Utc>>("rfc3339_field"),
+        None
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -293,7 +301,7 @@ fn test_cleaned_string_falls_back_to_path_param() {
     form.form.set_url_params(&path, &query);
     // champ vide mais path param présent
     assert_eq!(
-        form.cleaned_string("str_field"),
+        form.cleaned::<String>("str_field"),
         Some("from-path".to_string())
     );
 }
@@ -306,7 +314,7 @@ fn test_cleaned_string_falls_back_to_query_param() {
         std::collections::HashMap::from([("str_field".to_string(), "from-query".to_string())]);
     form.form.set_url_params(&path, &query);
     assert_eq!(
-        form.cleaned_string("str_field"),
+        form.cleaned::<String>("str_field"),
         Some("from-query".to_string())
     );
 }
@@ -320,7 +328,7 @@ fn test_clear_resets_field_values() {
     let mut form = make_form();
     form.form.add_value("str_field", "Alice");
     form.clear();
-    assert_eq!(form.cleaned_string("str_field"), None);
+    assert_eq!(form.cleaned::<String>("str_field"), None);
 }
 
 // ── The getters read what the fields accept ─────────────────────────────────
@@ -331,7 +339,7 @@ fn cleaned_datetime_utc_reads_what_a_datetime_local_input_sends() {
     let mut form = make_form();
     form.form.add_value("datetime_field", "2026-10-01T14:30");
     let dt = form
-        .cleaned_datetime_utc("datetime_field")
+        .cleaned::<chrono::DateTime<chrono::Utc>>("datetime_field")
         .expect("read as UTC");
     assert_eq!(dt.to_rfc3339(), "2026-10-01T14:30:00+00:00");
 }
@@ -340,16 +348,19 @@ fn cleaned_datetime_utc_reads_what_a_datetime_local_input_sends() {
 fn cleaned_datetime_reads_seconds() {
     let mut form = make_form();
     form.form.add_value("datetime_field", "2026-10-01T14:30:15");
-    assert!(form.cleaned_naive_datetime("datetime_field").is_some());
+    assert!(
+        form.cleaned::<chrono::NaiveDateTime>("datetime_field")
+            .is_some()
+    );
     form.form.add_value("time_field", "14:30:15");
-    assert!(form.cleaned_naive_time("time_field").is_some());
+    assert!(form.cleaned::<chrono::NaiveTime>("time_field").is_some());
 }
 
 #[test]
 fn cleaned_float_accepts_an_exponent_like_the_field() {
     let mut form = make_form();
     form.form.add_value("float_field", "1e5");
-    assert_eq!(form.cleaned_f64("float_field"), Some(100000.0));
+    assert_eq!(form.cleaned::<f64>("float_field"), Some(100000.0));
 }
 
 #[test]
@@ -357,12 +368,13 @@ fn cleaned_decimal_is_exact() {
     let mut form = make_form();
     form.form.add_value("float_field", "12,50");
     assert_eq!(
-        form.cleaned_decimal("float_field").map(|d| d.to_string()),
+        form.cleaned::<rust_decimal::Decimal>("float_field")
+            .map(|d| d.to_string()),
         Some("12.50".to_string())
     );
     form.form.add_value("float_field", "1e5");
     assert_eq!(
-        form.cleaned_decimal("float_field"),
+        form.cleaned::<rust_decimal::Decimal>("float_field"),
         None,
         "no exponent, like the field"
     );
@@ -372,10 +384,10 @@ fn cleaned_decimal_is_exact() {
 fn cleaned_small_integers() {
     let mut form = make_form();
     form.form.add_value("int_field", "-5");
-    assert_eq!(form.cleaned_i8("int_field"), Some(-5));
-    assert_eq!(form.cleaned_i16("int_field"), Some(-5));
+    assert_eq!(form.cleaned::<i8>("int_field"), Some(-5));
+    assert_eq!(form.cleaned::<i16>("int_field"), Some(-5));
     form.form.add_value("int_field", "300");
-    assert_eq!(form.cleaned_i8("int_field"), None, "doesn't fit an i8");
+    assert_eq!(form.cleaned::<i8>("int_field"), None, "doesn't fit an i8");
 }
 
 #[test]
@@ -383,5 +395,5 @@ fn cleaned_bytes_decodes_a_finalized_binary_value() {
     let mut form = make_form();
     // What `BinaryField::finalize` leaves: the upload, base64-encoded.
     form.form.add_value("str_field", "QUJD");
-    assert_eq!(form.cleaned_bytes("str_field"), Some(b"ABC".to_vec()));
+    assert_eq!(form.cleaned::<Vec<u8>>("str_field"), Some(b"ABC".to_vec()));
 }

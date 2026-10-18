@@ -83,6 +83,11 @@ impl CommonFieldConfig for HoneypotField {
 
 #[async_trait]
 impl FormField for HoneypotField {
+    /// A trap for bots: never stored.
+    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
+        Ok(None)
+    }
+
     async fn validate(&mut self) -> bool {
         true
     }
@@ -102,6 +107,18 @@ impl FormField for HoneypotField {
 
 #[async_trait]
 impl FormField for HiddenField {
+    /// Stored only when given a column: the CSRF token, say, never is.
+    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
+        if self.base.column_type.is_none() {
+            return Ok(None);
+        }
+        crate::forms::column_value::read_field(
+            &self.base,
+            &self.base.value,
+            sea_orm::sea_query::ColumnType::String(sea_orm::sea_query::StringLen::None),
+        )
+    }
+
     async fn validate(&mut self) -> bool {
         // For a CSRF field, check that the value matches the expected one
         if self.base.name == "csrf_token"

@@ -31,8 +31,8 @@ pub async fn login_post(mut request: Request) -> AppResult<Response> {
     };
 
     let db = request.engine.db.clone();
-    let username = validated.cleaned_string("username").unwrap_or_default();
-    let password = validated.cleaned_string("password").unwrap_or_default();
+    let username = validated.cleaned::<String>("username").unwrap_or_default();
+    let password = validated.cleaned::<String>("password").unwrap_or_default();
 
     // 1. Check the credentials: the password is verified even for an unknown name
     //    (no leak through response time), account active and activated.

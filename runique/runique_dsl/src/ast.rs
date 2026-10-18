@@ -66,8 +66,23 @@ pub struct ModelInput {
 
 // ── form_fields: block — semantic types ──────────────────────
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum FormFieldKind {
+/// Declares `FormFieldKind` and its `ALL` list from one list of variants:
+/// a kind added here is in `ALL` too, it can't be left out of either.
+macro_rules! form_field_kinds {
+    ($($(#[$doc:meta])* $variant:ident,)*) => {
+        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+        pub enum FormFieldKind {
+            $($(#[$doc])* $variant,)*
+        }
+
+        impl FormFieldKind {
+            /// Every kind, in declaration order.
+            pub const ALL: &[FormFieldKind] = &[$(FormFieldKind::$variant,)*];
+        }
+    };
+}
+
+form_field_kinds! {
     Text,
     Email,
     Password,
@@ -125,6 +140,10 @@ pub enum FormFieldAttr {
     Max(i64),
     MinF(f64),
     MaxF(f64),
+    /// `max_digits: n` — a decimal's total number of digits (SQL precision).
+    MaxDigits(u32),
+    /// `decimal_places: n` — a decimal's digits after the point (SQL scale).
+    DecimalPlaces(u32),
     Default(syn::Lit),
     UploadTo(String),
     MaxSize(u64),
@@ -220,6 +239,11 @@ pub enum FieldOption {
     Min(i64),
     MaxF(f64),
     MinF(f64),
+    /// A decimal's precision and scale: `DECIMAL(max_digits, decimal_places)`.
+    DecimalLen {
+        max_digits: u32,
+        decimal_places: u32,
+    },
     AutoNow,
     AutoNowUpdate,
     Readonly,

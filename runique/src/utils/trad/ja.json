@@ -20,6 +20,8 @@
     "min_value": "最小 {} が必要です",
     "max_value": "最大 {} を超えています",
     "precision_max": "小数点以下の最大桁数は {} 桁です",
+    "integer_digits_max": "小数点より前は最大 {} 桁です",
+    "value_unconvertible": "この値はこの項目に合いません",
     "precision_min": "小数点以下の最小桁数は {} 桁です",
     "color_invalid": "無効なカラーです（形式: #RRGGBB または #RGB）",
     "color_no_hash": "カラーは # で始まる必要があります",

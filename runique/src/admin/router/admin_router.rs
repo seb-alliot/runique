@@ -16,6 +16,7 @@ use tower_http::set_header::SetResponseHeaderLayer;
 use crate::app::staging::AdminStaging;
 use crate::auth::{
     guard::LoginGuard,
+    rang::Rang,
     session::{login, logout},
 };
 use crate::context::template::Request;
@@ -245,7 +246,9 @@ async fn admin_dashboard(
         state
             .registry
             .all()
-            .filter(|e| current_user.is_superuser || current_user.can_access_resource(e.meta.key))
+            .filter(|e| {
+                current_user.rang == Rang::Superuser || current_user.can_access_resource(e.meta.key)
+            })
             .map(|e| &e.meta)
             .collect()
     } else {
@@ -536,7 +539,7 @@ async fn admin_history(
     use crate::admin::history;
     use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder};
 
-    if !current_user.is_staff && !current_user.is_superuser {
+    if !current_user.can_access_admin() {
         req.notices
             .error(t("admin.access.insufficient_rights").to_string())
             .await;
@@ -570,7 +573,7 @@ async fn admin_history(
     // Access control: a non-superuser only sees audit rows for resources they can
     // access. Without a registry (proto absent) we can't resolve perms, so a
     // non-superuser sees nothing rather than everything.
-    if !current_user.is_superuser {
+    if current_user.rang != Rang::Superuser {
         let allowed = proto
             .as_ref()
             .map(|Extension(s)| s.registry.accessible_keys(&current_user))
@@ -702,7 +705,7 @@ async fn admin_history_diff(
     use crate::errors::error::ErrorContext;
     use sea_orm::EntityTrait;
 
-    if !current_user.is_staff && !current_user.is_superuser {
+    if !current_user.can_access_admin() {
         req.notices
             .error(t("admin.access.insufficient_rights").to_string())
             .await;
@@ -718,7 +721,9 @@ async fn admin_history_diff(
         .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Entry not found"))))?;
 
     // Access control: don't leak a diff for a resource the user can't access.
-    if !current_user.is_superuser && !current_user.can_access_resource(&entry.resource_key) {
+    if current_user.rang != Rang::Superuser
+        && !current_user.can_access_resource(&entry.resource_key)
+    {
         req.notices
             .error(t("admin.access.insufficient_rights").to_string())
             .await;
@@ -790,7 +795,7 @@ async fn admin_history_timeline(
     use crate::admin::history;
     use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder};
 
-    if !current_user.is_staff && !current_user.is_superuser {
+    if !current_user.can_access_admin() {
         req.notices
             .error(t("admin.access.insufficient_rights").to_string())
             .await;
@@ -825,7 +830,7 @@ async fn admin_history_timeline(
     }
 
     // Access control: non-superuser sees only accessible resources (see admin_history).
-    if !current_user.is_superuser {
+    if current_user.rang != Rang::Superuser {
         let allowed = proto
             .as_ref()
             .map(|Extension(s)| s.registry.accessible_keys(&current_user))
@@ -887,7 +892,7 @@ async fn admin_history_batch(
     use crate::admin::history;
     use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 
-    if !current_user.is_staff && !current_user.is_superuser {
+    if !current_user.can_access_admin() {
         req.notices
             .error(t("admin.access.insufficient_rights").to_string())
             .await;
@@ -912,7 +917,7 @@ async fn admin_history_batch(
 
     // Access control: a batch belongs to a single resource — block if the user
     // can't access it (an empty/unknown batch simply renders nothing).
-    if !current_user.is_superuser
+    if current_user.rang != Rang::Superuser
         && let Some(first) = entries.first()
         && !current_user.can_access_resource(&first.resource_key)
     {

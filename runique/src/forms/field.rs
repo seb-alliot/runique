@@ -37,19 +37,6 @@ fn cleaned_value(form: &Forms, name: &str) -> Option<String> {
         .map(|s| s.to_string())
 }
 
-/// try_convert a whitelisted value to `T`. Logs (field, raw, error) at `forms.field` level
-/// when a value is present but fails to parse — instead of silently returning `None`.
-/// An absent/empty value is not an error (returns `None` without logging).
-fn try_convert<T>(form: &Forms, name: &str) -> Option<T>
-where
-    T: std::str::FromStr,
-    T::Err: std::fmt::Display,
-{
-    let raw = cleaned_value(form, name)?;
-    let parsed = raw.parse::<T>();
-    log_convert_failure(name, &raw, parsed)
-}
-
 /// Logs (field, raw, error) at `forms.field` level when a present value fails to parse,
 /// then returns `None`. Shared by `try_convert` and the format-based `cleaned_*` helpers.
 fn log_convert_failure<T, E: std::fmt::Display>(
@@ -106,121 +93,18 @@ pub trait RuniqueForm: Sized + Send + Sync {
 
     // ── Whitelisted access to values (POST > path param > query param) ──────────
 
-    /// `String` — `None` if the field is unknown or empty.
-    fn cleaned_string(&self, name: &str) -> Option<String> {
-        cleaned_value(self.get_form(), name)
-    }
-    /// `i32` — `None` if unknown, empty, or not parseable.
-    fn cleaned_i8(&self, name: &str) -> Option<i8> {
-        try_convert(self.get_form(), name)
-    }
-    fn cleaned_i16(&self, name: &str) -> Option<i16> {
-        try_convert(self.get_form(), name)
-    }
-    fn cleaned_i32(&self, name: &str) -> Option<i32> {
-        try_convert(self.get_form(), name)
-    }
-    /// `i64` — `None` if unknown, empty, or not parseable.
-    fn cleaned_i64(&self, name: &str) -> Option<i64> {
-        try_convert(self.get_form(), name)
-    }
-    /// `u32` — `None` if unknown, empty, or not parseable.
-    fn cleaned_u32(&self, name: &str) -> Option<u32> {
-        try_convert(self.get_form(), name)
-    }
-    /// `u64` — `None` if unknown, empty, or not parseable.
-    fn cleaned_u64(&self, name: &str) -> Option<u64> {
-        try_convert(self.get_form(), name)
-    }
-    /// `f32`, read like `NumericField::float` reads it (`,` or `.`, exponent
-    /// allowed). `None` if unknown, empty, or not parseable.
-    fn cleaned_f32(&self, name: &str) -> Option<f32> {
+    /// The value of `name` as `T`, read the way `T`'s own column reads it —
+    /// the one reading the write makes too, so `i16` refuses `40000` and
+    /// `Decimal` keeps every digit. Whitelisted (POST > path > query): `None`
+    /// if the field is unknown, empty, or doesn't read as `T`.
+    ///
+    /// The developer's reading, not the write's: a password comes back as
+    /// typed (a login compares it), never only as its hash.
+    fn cleaned<T: sea_orm::sea_query::ValueType>(&self, name: &str) -> Option<T> {
         let raw = cleaned_value(self.get_form(), name)?;
-        log_convert_failure(name, &raw, raw.replace(',', ".").parse::<f32>())
-            .filter(|v| v.is_finite())
-    }
-    /// `f64`, read like `NumericField::float` reads it (`,` or `.`, exponent
-    /// allowed). `None` if unknown, empty, or not parseable.
-    fn cleaned_f64(&self, name: &str) -> Option<f64> {
-        let raw = cleaned_value(self.get_form(), name)?;
-        log_convert_failure(name, &raw, raw.replace(',', ".").parse::<f64>())
-            .filter(|v| v.is_finite())
-    }
-    /// `Decimal`, read like `NumericField::decimal` reads it: exact, no
-    /// exponent. `None` if unknown, empty, or not parseable.
-    fn cleaned_decimal(&self, name: &str) -> Option<rust_decimal::Decimal> {
-        let raw = cleaned_value(self.get_form(), name)?;
-        log_convert_failure(
-            name,
-            &raw,
-            rust_decimal::Decimal::from_str_exact(&raw.replace(',', ".")),
-        )
-    }
-    /// `bool` — `true` for `"true"`, `"1"`, `"on"` (case-insensitive).
-    /// Returns `None` if the field does not exist in the form.
-    /// Note: `fill()` normalizes unchecked checkboxes/radios to `"false"`,
-    /// so this method always returns `Some(_)` for a submitted boolean field.
-    fn cleaned_bool(&self, name: &str) -> Option<bool> {
-        let v = cleaned_value(self.get_form(), name)?;
-        Some(matches!(v.to_lowercase().as_str(), "true" | "1" | "on"))
-    }
-
-    /// `Uuid` — `None` if unknown, empty, or not parseable.
-    fn cleaned_uuid(&self, name: &str) -> Option<uuid::Uuid> {
-        try_convert(self.get_form(), name)
-    }
-
-    /// `NaiveDate` — `None` if unknown, empty, or not parseable.
-    fn cleaned_naive_date(&self, name: &str) -> Option<chrono::NaiveDate> {
-        let raw = cleaned_value(self.get_form(), name)?;
-        log_convert_failure(
-            name,
-            &raw,
-            chrono::NaiveDate::parse_from_str(&raw, "%Y-%m-%d"),
-        )
-    }
-
-    /// `NaiveTime`, `HH:MM` or `HH:MM:SS` like `TimeField`. `None` if
-    /// unknown, empty, or not parseable.
-    fn cleaned_naive_time(&self, name: &str) -> Option<chrono::NaiveTime> {
-        let raw = cleaned_value(self.get_form(), name)?;
-        log_convert_failure(
-            name,
-            &raw,
-            chrono::NaiveTime::parse_from_str(&raw, "%H:%M")
-                .or_else(|_| chrono::NaiveTime::parse_from_str(&raw, "%H:%M:%S")),
-        )
-    }
-
-    /// `NaiveDateTime`: whatever `DateTimeField` accepts — what a
-    /// `datetime-local` input sends, with or without seconds, or RFC 3339
-    /// (taken in UTC). `None` if unknown, empty, or not parseable.
-    fn cleaned_naive_datetime(&self, name: &str) -> Option<chrono::NaiveDateTime> {
-        let raw = cleaned_value(self.get_form(), name)?;
-        log_convert_failure(
-            name,
-            &raw,
-            crate::forms::fields::datetime::parse_datetime_local(&raw).ok_or("not a date-time"),
-        )
-    }
-
-    /// `DateTime<Utc>`, for a `timestamp_tz`: RFC 3339 keeps its offset, a
-    /// `datetime-local` value (no offset) is taken as UTC — the way the
-    /// generated code saves it. `None` if unknown, empty, or not parseable.
-    fn cleaned_datetime_utc(&self, name: &str) -> Option<chrono::DateTime<chrono::Utc>> {
-        let raw = cleaned_value(self.get_form(), name)?;
-        log_convert_failure(
-            name,
-            &raw,
-            crate::forms::fields::parse_utc_datetime(&raw).ok_or("not a date-time"),
-        )
-    }
-
-    /// Bytes of a `BinaryField`. Available once the form is valid (`is_valid`
-    /// runs `finalize`, which reads the upload) — `None` inside `clean()`.
-    fn cleaned_bytes(&self, name: &str) -> Option<Vec<u8>> {
-        let raw = cleaned_value(self.get_form(), name)?;
-        crate::forms::fields::decode_binary(&raw)
+        let read = crate::forms::column_value::column_value(&T::column_type(), &raw)
+            .and_then(|value| T::try_from(value).map_err(|e| e.to_string()));
+        log_convert_failure(name, &raw, read)
     }
 
     /// An enum of `model!{}` (text or integer) — `None` if unknown, empty, or
@@ -393,7 +277,18 @@ pub trait RuniqueForm: Sized + Send + Sync {
                     self.get_form_mut().errors.push(e);
                     return false;
                 }
-                true
+                // A field given a column must read as that column's type: a
+                // valid form is one the write can't refuse on a type.
+                let mut storable = true;
+                for field in self.get_form_mut().fields.values_mut() {
+                    if field.column_type().is_some()
+                        && let Err(message) = field.to_value()
+                    {
+                        field.set_error(message);
+                        storable = false;
+                    }
+                }
+                storable
             }
             Err(business_errors) => {
                 let form = self.get_form_mut();

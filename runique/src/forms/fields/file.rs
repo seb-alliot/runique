@@ -434,6 +434,14 @@ impl FileField {
 
 #[async_trait]
 impl FormField for FileField {
+    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
+        crate::forms::column_value::read_field(
+            &self.base,
+            &self.base.value,
+            sea_orm::sea_query::ColumnType::String(sea_orm::sea_query::StringLen::None),
+        )
+    }
+
     fn cap_max_size(&mut self, bytes: u64) {
         if self.upload_config.max_size.is_none_or(|s| s > bytes) {
             self.upload_config.max_size = Some(bytes);

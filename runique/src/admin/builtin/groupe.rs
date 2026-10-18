@@ -158,6 +158,7 @@ pub(super) fn groupe_entry() -> ResourceEntry {
             groupe::ActiveModel {
                 id: Set(id),
                 nom: Set(nom),
+                ..Default::default()
             }
             .update(&*db)
             .await

@@ -135,8 +135,8 @@ pub async fn register(mut request: Request) -> AppResult<Response> {
     let mut form: RegisterForm = request.form();
 
     if form.is_valid().await {
-        let email = form.cleaned_string("email").unwrap_or_default();
-        let username = form.cleaned_string("username").unwrap_or_default();
+        let email = form.cleaned::<String>("email").unwrap_or_default();
+        let username = form.cleaned::<String>("username").unwrap_or_default();
 
         // ... sauvegarder en DB ...
 

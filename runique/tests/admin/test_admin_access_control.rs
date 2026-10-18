@@ -23,8 +23,8 @@ async fn add_editor(db: &DatabaseConnection) {
     let hash = runique::utils::password::hash(EDITOR_PASSWORD).unwrap();
     let id = pk_sql_literal(50);
     db.execute_unprepared(&format!(
-        "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_staff, is_superuser, activated_at) \
-         VALUES ({id}, '{EDITOR}', 'editor@example.com', '{hash}', 1, 1, 0, '2026-01-01 00:00:00')"
+        "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_superuser, activated_at) \
+         VALUES ({id}, '{EDITOR}', 'editor@example.com', '{hash}', 1, 0, '2026-01-01 00:00:00')"
     ))
     .await
     .unwrap();
@@ -353,7 +353,6 @@ async fn edit_editor(
     let mut form = vec![
         ("username", "editor"),
         ("email", "editor@example.com"),
-        ("is_staff", "true"),
         ("is_active", "true"),
         ("csrf_token", token.as_str()),
     ];
@@ -655,7 +654,7 @@ async fn editor_row(db: &DatabaseConnection) -> (String, bool, String) {
         .query_one_raw(runique::sea_orm::Statement::from_string(
             db.get_database_backend(),
             format!(
-                "SELECT password, is_staff, username FROM eihwaz_users WHERE id = {}",
+                "SELECT password, is_active, username FROM eihwaz_users WHERE id = {}",
                 crate::helpers::pk::pk_sql_literal(50)
             ),
         ))
@@ -664,7 +663,7 @@ async fn editor_row(db: &DatabaseConnection) -> (String, bool, String) {
         .unwrap();
     (
         row.try_get("", "password").unwrap(),
-        row.try_get("", "is_staff").unwrap(),
+        row.try_get("", "is_active").unwrap(),
         row.try_get("", "username").unwrap(),
     )
 }
@@ -711,7 +710,8 @@ async fn a_bulk_write_only_sets_what_the_admin_offers() {
         &[
             ("bulk_action", "update-submit"),
             ("is_superuser", "true"),
-            ("is_staff", "false"),
+            ("is_dirigeant", "true"),
+            ("is_admin", "true"),
         ],
     )
     .await;
@@ -726,7 +726,7 @@ async fn a_bulk_write_only_sets_what_the_admin_offers() {
     bulk(
         &client,
         &base,
-        &[("bulk_action", "group_set"), ("ga_is_staff", "false")],
+        &[("bulk_action", "group_set"), ("ga_is_active", "false")],
     )
     .await;
     assert_eq!(editor_row(&db).await, before, "nothing written");
@@ -735,11 +735,15 @@ async fn a_bulk_write_only_sets_what_the_admin_offers() {
     let resp = bulk(
         &client,
         &base,
-        &[("bulk_action", "update-submit"), ("is_staff", "false")],
+        &[("bulk_action", "update-submit"), ("username", "renamed")],
     )
     .await;
     assert!(resp.status().is_redirection());
-    assert!(!editor_row(&db).await.1, "an offered field is applied");
+    assert_eq!(
+        editor_row(&db).await.2,
+        "renamed",
+        "an offered field is applied"
+    );
 }
 
 async fn spawn_with_extra_routes(
@@ -877,8 +881,12 @@ async fn a_revoked_right_is_refused_on_the_next_request() {
 #[serial]
 async fn a_deactivated_or_demoted_account_loses_its_session() {
     for revoke in [
-        "UPDATE eihwaz_users SET is_active = 0 WHERE username = 'editor'",
-        "UPDATE eihwaz_users SET is_staff = 0 WHERE username = 'editor'",
+        "UPDATE eihwaz_users SET is_active = 0 WHERE username = 'editor'".to_string(),
+        format!("UPDATE eihwaz_groupes SET is_staff = 0 WHERE id = {SEED_GROUPE_ID}"),
+        format!(
+            "DELETE FROM eihwaz_users_groupes WHERE user_id = {}",
+            pk_sql_literal(50)
+        ),
     ] {
         let (base, db) = spawn().await;
         add_editor(&db).await;
@@ -886,7 +894,7 @@ async fn a_deactivated_or_demoted_account_loses_its_session() {
         let list = format!("{base}{ADMIN_PREFIX}/groupes/list");
         assert_eq!(editor.get(&list).send().await.unwrap().status(), 200);
 
-        sql(&db, revoke).await;
+        sql(&db, &revoke).await;
         let resp = editor.get(&list).send().await.unwrap();
         assert_eq!(
             resp.headers()["location"].to_str().unwrap(),
@@ -898,7 +906,20 @@ async fn a_deactivated_or_demoted_account_loses_its_session() {
         // old session back.
         sql(
             &db,
-            "UPDATE eihwaz_users SET is_active = 1, is_staff = 1 WHERE username = 'editor'",
+            "UPDATE eihwaz_users SET is_active = 1 WHERE username = 'editor'",
+        )
+        .await;
+        sql(
+            &db,
+            &format!("UPDATE eihwaz_groupes SET is_staff = 1 WHERE id = {SEED_GROUPE_ID}"),
+        )
+        .await;
+        sql(
+            &db,
+            &format!(
+                "INSERT OR IGNORE INTO eihwaz_users_groupes (user_id, groupe_id) VALUES ({}, {SEED_GROUPE_ID})",
+                pk_sql_literal(50)
+            ),
         )
         .await;
         let resp = editor.get(&list).send().await.unwrap();
@@ -917,9 +938,9 @@ async fn a_deactivated_or_demoted_account_loses_its_session() {
 async fn an_admin_cannot_activate_an_account_its_owner_never_activated() {
     let (base, db) = spawn().await;
     db.execute_unprepared(&format!(
-        "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_staff, is_superuser, activated_at) \
-         VALUES ({}, 'invited', 'invited@example.com', 'h', 0, 0, 0, NULL), \
-                ({}, 'blocked', 'blocked@example.com', 'h', 0, 0, 0, '2026-01-01 00:00:00')",
+        "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_superuser, activated_at) \
+         VALUES ({}, 'invited', 'invited@example.com', 'h', 0, 0, NULL), \
+                ({}, 'blocked', 'blocked@example.com', 'h', 0, 0, '2026-01-01 00:00:00')",
         crate::helpers::pk::pk_sql_literal(60),
         crate::helpers::pk::pk_sql_literal(61)
     ))
@@ -1212,12 +1233,7 @@ async fn history_pages_show_only_what_the_viewer_may_see() {
     assert_eq!(timeline_rows(&html), 3);
     assert_eq!(get(superuser.clone(), "/history/3".into()).await.0, 200);
 
-    // A superuser without the staff flag still opens every history page.
-    sql(
-        &db,
-        "UPDATE eihwaz_users SET is_staff = 0 WHERE username = 'crawler'",
-    )
-    .await;
+    // A superuser in no staff group still opens every history page.
     for path in [
         "/history".to_string(),
         "/history/timeline".to_string(),
@@ -1432,7 +1448,7 @@ async fn the_login_page_reads_the_account_not_the_session() {
 
     sql(
         &db,
-        &format!("UPDATE eihwaz_users SET is_staff = 0 WHERE username = '{EDITOR}'"),
+        &format!("UPDATE eihwaz_groupes SET is_staff = 0 WHERE id = {SEED_GROUPE_ID}"),
     )
     .await;
     let resp = editor.get(&login_page).send().await.unwrap();

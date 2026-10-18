@@ -16,6 +16,9 @@ pub struct NumericField {
     pub config: NumericConfig,
     pub min_digits: Option<usize>,
     pub max_digits: Option<usize>,
+    /// Digits allowed before the point: a decimal column's precision minus
+    /// its scale (`decimal_len`).
+    pub max_integer_digits: Option<usize>,
     /// What the Rust field behind an integer can hold (`integer_in`); `i64`
     /// otherwise. Checked before the `min`/`max` the developer adds.
     #[serde(skip)]
@@ -39,8 +42,26 @@ impl NumericField {
             config,
             min_digits: None,
             max_digits: None,
+            max_integer_digits: None,
             int_range: None,
         }
+    }
+    /// Holds the value to its `DECIMAL(max_digits, decimal_places)` column:
+    /// at most `decimal_places` digits after the point, the rest before it.
+    /// A tighter `digits(..)` already set is kept.
+    pub fn decimal_len(mut self, max_digits: u32, decimal_places: u32) -> Self {
+        self.tighten_decimal_len(max_digits, decimal_places);
+        self
+    }
+
+    fn tighten_decimal_len(&mut self, max_digits: u32, decimal_places: u32) {
+        let places = decimal_places as usize;
+        let integer_digits = max_digits.saturating_sub(decimal_places) as usize;
+        self.max_digits = Some(self.max_digits.map_or(places, |m| m.min(places)));
+        self.max_integer_digits = Some(
+            self.max_integer_digits
+                .map_or(integer_digits, |m| m.min(integer_digits)),
+        );
     }
     /// Constrains the number of decimal digits (e.g. `digits(2, 4)` for `12.34` to `12.3456`).
     pub fn digits(mut self, min: usize, max: usize) -> Self {
@@ -200,6 +221,45 @@ impl NumericField {
 // --- Trait Implementation ---
 #[async_trait]
 impl FormField for NumericField {
+    /// An integer column bounds the field to its width, a decimal one to its
+    /// precision and scale; never above what the field already allowed.
+    fn apply_column_type(&mut self, column: &sea_orm::sea_query::ColumnType) {
+        use sea_orm::sea_query::ColumnType as C;
+        let width: Option<(i128, i128)> = match column {
+            C::TinyInteger => Some((i8::MIN.into(), i8::MAX.into())),
+            C::SmallInteger => Some((i16::MIN.into(), i16::MAX.into())),
+            C::Integer => Some((i32::MIN.into(), i32::MAX.into())),
+            C::BigInteger => Some((i64::MIN.into(), i64::MAX.into())),
+            C::TinyUnsigned => Some((0, u8::MAX.into())),
+            C::SmallUnsigned => Some((0, u16::MAX.into())),
+            C::Unsigned => Some((0, u32::MAX.into())),
+            C::BigUnsigned => Some((0, u64::MAX.into())),
+            _ => None,
+        };
+        if let Some((min, max)) = width {
+            let (min, max) = self
+                .int_range
+                .map_or((min, max), |(lo, hi)| (lo.max(min), hi.min(max)));
+            self.set_type_bounds(min, max);
+        }
+        if let C::Decimal(Some((max_digits, decimal_places))) = column {
+            self.tighten_decimal_len(*max_digits, *decimal_places);
+        }
+        self.base.column_type = Some(column.clone());
+    }
+
+    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
+        use sea_orm::sea_query::ColumnType as C;
+        let default = match self.config {
+            NumericConfig::Integer { .. } => C::BigInteger,
+            NumericConfig::Decimal { .. } => C::Decimal(None),
+            NumericConfig::Float { .. }
+            | NumericConfig::Percent { .. }
+            | NumericConfig::Range { .. } => C::Double,
+        };
+        crate::forms::column_value::read_field(&self.base, self.base.value.trim(), default)
+    }
+
     fn bounds(&self) -> crate::forms::base::FieldBounds {
         use crate::forms::base::FieldBounds;
         match &self.config {
@@ -211,6 +271,8 @@ impl FormField for NumericField {
             NumericConfig::Float { value } | NumericConfig::Decimal { value } => FieldBounds {
                 min_float: value.as_ref().map(|r| r.min),
                 max_float: value.as_ref().map(|r| r.max),
+                max_decimal_places: self.max_digits,
+                max_integer_digits: self.max_integer_digits,
                 ..Default::default()
             },
             NumericConfig::Percent { value } | NumericConfig::Range { value, .. } => FieldBounds {
@@ -263,6 +325,18 @@ impl FormField for NumericField {
                 &[&self.max_digits.unwrap_or(usize::MAX)],
             ));
             return false;
+        }
+
+        if let Some(max) = self.max_integer_digits {
+            let integer_part = normalized.split('.').next().unwrap_or_default();
+            let integer_digits = integer_part
+                .trim_start_matches(['-', '+'])
+                .trim_start_matches('0')
+                .len();
+            if integer_digits > max {
+                self.set_error(tf("forms.integer_digits_max", &[&max]));
+                return false;
+            }
         }
 
         // --- STEP 2: Value bounds validation (min/max) ---

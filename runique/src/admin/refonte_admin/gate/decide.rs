@@ -1,8 +1,10 @@
 //! The gate's decision on one row, without the database: the async gate
-//! looks up what it needs (owner, target account), then asks here.
+//! looks up what it needs (owner), then asks here.
 use super::operation::AdminOperation;
 use super::refusal::{Refusal, RefusalReason};
 use super::rights::CrudAction;
+use crate::auth::rang::Rang;
+use sea_orm::Condition;
 
 /// Who owns the targeted row, as the gate read it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -33,16 +35,17 @@ pub fn rights_allow<O: AdminOperation>(
     }
 }
 
-/// A non-superuser can't target a superuser's account through an operation
-/// that protects it.
-pub fn superuser_allows<O: AdminOperation>(
-    rights: &CrudAction,
-    target_is_superuser: bool,
-) -> Result<(), Refusal> {
-    if O::PROTECTS_SUPERUSER && target_is_superuser && !rights.is_superuser {
-        return Err(Refusal::new(RefusalReason::ProtectedSuperuser));
+/// The accounts `rang` may reach through `O`, as a condition for the write:
+/// nothing to add if `O` doesn't protect accounts, refused if the rank
+/// manages none. The target's rank is never read beforehand: the condition
+/// in the write's WHERE is the check.
+pub fn rank_allows<O: AdminOperation>(rang: Rang) -> Result<Option<Condition>, Refusal> {
+    if !O::PROTECTS_RANK {
+        return Ok(None);
     }
-    Ok(())
+    rang.cibles_gerables()
+        .map(Some)
+        .ok_or_else(|| Refusal::new(RefusalReason::RankTooLow))
 }
 
 #[cfg(test)]
@@ -134,23 +137,45 @@ mod tests {
     }
 
     #[test]
-    fn a_superuser_account_is_out_of_reach_of_a_non_superuser() {
-        let staff = rights(|r| {
-            r.can_update = true;
-            r.can_delete = true;
-        });
+    fn an_account_without_rank_manages_no_account() {
         for refused in [
-            superuser_allows::<Update>(&staff, true),
-            superuser_allows::<Delete>(&staff, true),
-            superuser_allows::<ResetPassword>(&staff, true),
+            rank_allows::<Update>(Rang::Lambda),
+            rank_allows::<Delete>(Rang::Lambda),
+            rank_allows::<ResetPassword>(Rang::Lambda),
         ] {
-            assert_eq!(reason(refused), Some(RefusalReason::ProtectedSuperuser));
+            assert_eq!(
+                refused.err().map(|r| *r.reason()),
+                Some(RefusalReason::RankTooLow)
+            );
         }
-        // The other sides: reading stays open, an ordinary account is reachable,
-        // a superuser reaches another superuser through this flag.
-        assert!(superuser_allows::<View>(&staff, true).is_ok());
-        assert!(superuser_allows::<Update>(&staff, false).is_ok());
-        let su = rights(|r| r.is_superuser = true);
-        assert!(superuser_allows::<Update>(&su, true).is_ok());
+        // The other side: reading and creating protect no account.
+        for open in [
+            rank_allows::<View>(Rang::Lambda),
+            rank_allows::<List>(Rang::Lambda),
+            rank_allows::<Create>(Rang::Lambda),
+        ] {
+            assert!(matches!(open, Ok(None)));
+        }
+    }
+
+    /// Each rank excludes its own flag and every higher one: never a peer,
+    /// never oneself, never above.
+    #[test]
+    fn each_rank_reaches_only_lower_ranks() {
+        use sea_orm::{DbBackend, EntityTrait, QueryFilter, QueryTrait};
+        // The WHERE alone: the SELECT lists every column, flags included.
+        let excluded = |rang: Rang| {
+            let condition = rank_allows::<Update>(rang).unwrap().unwrap();
+            let sql = crate::auth::user::Entity::find()
+                .filter(condition)
+                .build(DbBackend::Sqlite)
+                .to_string();
+            let flags = ["is_superuser", "is_dirigeant", "is_admin"];
+            let condition = sql.split_once("WHERE").map_or("", |(_, w)| w).to_string();
+            flags.map(|flag| condition.contains(flag))
+        };
+        assert_eq!(excluded(Rang::Admin), [true, true, true]);
+        assert_eq!(excluded(Rang::Dirigeant), [true, true, false]);
+        assert_eq!(excluded(Rang::Superuser), [true, false, false]);
     }
 }

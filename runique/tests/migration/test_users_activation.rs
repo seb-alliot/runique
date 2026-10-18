@@ -1,12 +1,12 @@
 //! `eihwaz_users` as the framework creates it — the database itself refuses an
 //! active account that was never activated (`is_active` without
-//! `activated_at`), whatever writes it: checked here in raw SQL, without the
-//! ORM, on every engine available (SQLite always, Postgres and MariaDB when
-//! their container is).
+//! `activated_at`), and an account holding two ranks, whatever writes it:
+//! checked here in raw SQL, without the ORM, on every engine available
+//! (SQLite always, Postgres and MariaDB when their container is).
 
 use crate::helpers::pk::{pk_sql_literal, pk_sql_literal_pg};
 use crate::helpers::{db, db_mariadb, db_postgres};
-use runique::migrations_table::{ACTIVE_NEEDS_ACTIVATION, EihwazUsersMigration};
+use runique::migrations_table::{ACTIVE_NEEDS_ACTIVATION, EihwazUsersMigration, ONE_RANK_AT_MOST};
 use runique::sea_orm::{ConnectionTrait, DatabaseConnection, TransactionTrait};
 use sea_orm_migration::{MigrationTrait, SchemaManager};
 use serial_test::serial;
@@ -28,8 +28,8 @@ async fn check_guarantee(db: &DatabaseConnection, id: impl Fn(u32) -> String) {
 
     let insert = |n: u32, name: &str, active: bool| {
         format!(
-            "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_staff, is_superuser) \
-             VALUES ({}, '{name}', '{name}@example.com', 'h', {active}, FALSE, FALSE)",
+            "INSERT INTO eihwaz_users (id, username, email, password, is_active, is_superuser) \
+             VALUES ({}, '{name}', '{name}@example.com', 'h', {active}, FALSE)",
             id(n)
         )
     };
@@ -75,11 +75,49 @@ async fn check_guarantee(db: &DatabaseConnection, id: impl Fn(u32) -> String) {
     .unwrap();
 }
 
+/// At most one of superuser, dirigeant, admin: every single rank and none
+/// pass, every pair and the three are refused, on insert and on update.
+/// Runs after `check_guarantee`, on the table it created.
+async fn check_one_rank(db: &DatabaseConnection, id: impl Fn(u32) -> String) {
+    let insert = |n: u32, (superuser, dirigeant, admin): (bool, bool, bool)| {
+        format!(
+            "INSERT INTO eihwaz_users (id, username, email, password, is_superuser, is_dirigeant, is_admin) \
+             VALUES ({}, 'r{n}', 'r{n}@example.com', 'h', {superuser}, {dirigeant}, {admin})",
+            id(n)
+        )
+    };
+    for (n, ranks) in [
+        (10, (false, false, false)),
+        (11, (true, false, false)),
+        (12, (false, true, false)),
+        (13, (false, false, true)),
+    ] {
+        sql(db, &insert(n, ranks)).await.expect("one rank at most");
+    }
+    for (n, ranks) in [
+        (14, (true, true, false)),
+        (15, (false, true, true)),
+        (16, (true, false, true)),
+        (17, (true, true, true)),
+    ] {
+        let e = sql(db, &insert(n, ranks)).await.expect_err("two ranks");
+        assert!(e.contains(ONE_RANK_AT_MOST), "{ranks:?}: {e}");
+    }
+    let e = sql(
+        db,
+        "UPDATE eihwaz_users SET is_admin = TRUE WHERE username = 'r12'",
+    )
+    .await
+    .expect_err("a second rank on update");
+    assert!(e.contains(ONE_RANK_AT_MOST), "{e}");
+}
+
 #[tokio::test]
 #[serial]
 async fn sqlite_refuses_an_active_account_never_activated() {
     let conn = db::fresh_db().await;
     check_guarantee(&conn, pk_sql_literal).await;
+    check_one_rank(&conn, pk_sql_literal).await;
 }
 
 #[tokio::test]
@@ -92,6 +130,7 @@ async fn postgres_refuses_an_active_account_never_activated() {
         .await
         .unwrap();
     check_guarantee(&conn, pk_sql_literal_pg).await;
+    check_one_rank(&conn, pk_sql_literal_pg).await;
     sql(&conn, "DROP TABLE IF EXISTS eihwaz_users CASCADE")
         .await
         .unwrap();
@@ -122,6 +161,7 @@ async fn mariadb_refuses_an_active_account_never_activated() {
     drop_users_mariadb(&conn).await;
     // A UUID is stored as BINARY(16) on MariaDB: the hex literal, as on SQLite.
     check_guarantee(&conn, pk_sql_literal).await;
+    check_one_rank(&conn, pk_sql_literal).await;
     drop_users_mariadb(&conn).await;
 }
 
@@ -144,7 +184,8 @@ async fn an_account_inserted_without_an_id_gets_one() {
         email: Set(format!("{name}@example.com")),
         password: Set("h".into()),
         is_active: Set(false),
-        is_staff: Set(false),
+        is_dirigeant: Set(false),
+        is_admin: Set(false),
         is_superuser: Set(false),
         ..Default::default()
     };

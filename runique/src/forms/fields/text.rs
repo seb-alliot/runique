@@ -154,6 +154,39 @@ impl TextField {
 
 #[async_trait]
 impl FormField for TextField {
+    /// A `VARCHAR(n)` column bounds the field to `n`, never above what it
+    /// already allowed.
+    fn apply_column_type(&mut self, column: &sea_orm::sea_query::ColumnType) {
+        if let sea_orm::sea_query::ColumnType::String(sea_orm::sea_query::StringLen::N(n)) = column
+            && self.config.max_length.as_ref().is_none_or(|m| m.value > *n)
+        {
+            self.config.max_length = Some(LengthConstraint {
+                value: *n,
+                message: None,
+            });
+        }
+        self.base.column_type = Some(column.clone());
+    }
+
+    /// A password leaves only as the hash `finalize` made of it: read before
+    /// validation, or from a `no_hash` field (a login check), it's `None`,
+    /// never the text typed in.
+    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
+        if self.base.is_password() {
+            let hashed = self.hash_password
+                && PasswordService::new(crate::utils::password::password_get())
+                    .is_already_hashed(&self.base.value);
+            if !hashed {
+                return Ok(None);
+            }
+        }
+        crate::forms::column_value::read_field(
+            &self.base,
+            &self.base.value,
+            sea_orm::sea_query::ColumnType::String(sea_orm::sea_query::StringLen::None),
+        )
+    }
+
     fn bounds(&self) -> crate::forms::base::FieldBounds {
         crate::forms::base::FieldBounds {
             min_length: self.config.min_length.as_ref().map(|l| l.value),

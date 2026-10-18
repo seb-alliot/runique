@@ -78,6 +78,14 @@ impl CommonFieldConfig for DateField {
 
 #[async_trait]
 impl FormField for DateField {
+    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
+        crate::forms::column_value::read_field(
+            &self.base,
+            self.base.value.trim(),
+            sea_orm::sea_query::ColumnType::Date,
+        )
+    }
+
     async fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
@@ -222,6 +230,14 @@ impl CommonFieldConfig for TimeField {
 }
 #[async_trait]
 impl FormField for TimeField {
+    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
+        crate::forms::column_value::read_field(
+            &self.base,
+            self.base.value.trim(),
+            sea_orm::sea_query::ColumnType::Time,
+        )
+    }
+
     async fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
@@ -368,6 +384,14 @@ impl CommonFieldConfig for DateTimeField {
 
 #[async_trait]
 impl FormField for DateTimeField {
+    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
+        crate::forms::column_value::read_field(
+            &self.base,
+            self.base.value.trim(),
+            sea_orm::sea_query::ColumnType::DateTime,
+        )
+    }
+
     async fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
@@ -528,6 +552,14 @@ impl CommonFieldConfig for DurationField {
 
 #[async_trait]
 impl FormField for DurationField {
+    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
+        crate::forms::column_value::read_field(
+            &self.base,
+            self.base.value.trim(),
+            sea_orm::sea_query::ColumnType::String(sea_orm::sea_query::StringLen::None),
+        )
+    }
+
     async fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 

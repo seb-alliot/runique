@@ -684,7 +684,7 @@ fn render_enum_column_change(table: &str, from: &ParsedColumn, to: &ParsedColumn
         format!(
             "ColumnDef::new(Alias::new(\"{col}\")).{ty}",
             col = to.name,
-            ty = col_type_method(&to.col_type, to.max_length),
+            ty = col_type_method(to),
         )
     };
     // Postgres reinterprets each existing row's value through this cast target —
@@ -782,7 +782,7 @@ fn render_column_def(col: &ParsedColumn) -> String {
             default = default,
         )
     } else {
-        let ty = col_type_method(&col.col_type, col.max_length);
+        let ty = col_type_method(col);
         format!(
             "ColumnDef::new(Alias::new(\"{name}\")).{ty}{null}{uniq}{default}",
             name = col.name,
@@ -849,7 +849,7 @@ fn push_modify_column(buf: &mut String, table: &str, column: &ParsedColumn) {
         "        // WARNING: SQLite cannot ALTER a column's type/nullable/unique constraint\n        // (sea-query panics on any `modify_column` there) — this change only applies on\n        // Postgres/MySQL; on SQLite the column keeps its current definition unchanged.\n        if manager.get_connection().get_database_backend() != sea_orm::DbBackend::Sqlite {{\n            manager\n                .alter_table(\n                    Table::alter()\n                        .table(Alias::new(\"{table}\"))\n                        .modify_column(ColumnDef::new(Alias::new(\"{col}\")).{ty}{null}{uniq})\n                        .to_owned(),\n                )\n                .await?;\n        }}\n\n",
         table = table,
         col = col,
-        ty = col_type_method(&column.col_type, column.max_length),
+        ty = col_type_method(column),
         null = null,
         uniq = uniq
     ));
