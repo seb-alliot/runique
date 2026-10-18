@@ -465,8 +465,17 @@ impl ErrorContext {
 /// Reads a template's raw source from the `templates/` directory, returning `None`
 /// if the file doesn't exist or can't be read.
 pub fn read_template_source(template_name: &str) -> Option<String> {
-    let template_path = format!("templates/{template_name}");
-    std::fs::read_to_string(&template_path).ok()
+    // The name can come from a request (a template picked by a slug): only a
+    // plain relative path under `templates/` is read, never `../` nor an absolute
+    // one, which the debug page would otherwise show (`../../.env`).
+    let relative = std::path::Path::new(template_name);
+    if !relative
+        .components()
+        .all(|part| matches!(part, std::path::Component::Normal(_)))
+    {
+        return None;
+    }
+    std::fs::read_to_string(std::path::Path::new("templates").join(relative)).ok()
 }
 
 fn rust_version() -> String {

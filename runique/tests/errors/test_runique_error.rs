@@ -421,6 +421,23 @@ fn test_read_template_source_inexistant_retourne_none() {
     assert!(result.is_none());
 }
 
+#[test]
+fn test_read_template_source_lit_un_template_reel() {
+    use runique::errors::error::read_template_source;
+    assert!(read_template_source("errors/corps-error/template-info.html").is_some());
+}
+
+/// Le nom peut venir d'une requête : la page de debug ne doit pas montrer un
+/// fichier hors de `templates/`. `../Cargo.toml` existe bien, il serait lu sans la garde.
+#[test]
+fn test_read_template_source_refuse_de_sortir_de_templates() {
+    use runique::errors::error::read_template_source;
+    assert!(std::path::Path::new("templates/../Cargo.toml").exists());
+    assert!(read_template_source("../Cargo.toml").is_none());
+    assert!(read_template_source("errors/../../Cargo.toml").is_none());
+    assert!(read_template_source("/etc/hostname").is_none());
+}
+
 // ═══════════════════════════════════════════════════════════════
 // ErrorContext — database
 // ═══════════════════════════════════════════════════════════════
