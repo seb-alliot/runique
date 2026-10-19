@@ -79,6 +79,58 @@ fn an_extended_user_carries_activated_at_and_no_form_writes_it() {
     assert!(!form.fields.contains_key("activated_at"));
 }
 
+// A profile form never sets the account's password: a new account gets one
+// nobody knows (its owner picks theirs from the email link), an edit keeps the
+// stored hash — whatever the request carries.
+#[test]
+fn an_extended_user_never_takes_a_password_from_the_form() {
+    let mut data = StrMap::new();
+    data.insert("password".into(), "chosen-by-the-admin".into());
+
+    let created = users::admin_from_form(&data, None).expect("converts");
+    let ActiveValue::Set(hash) = &created.password else {
+        panic!("a new account needs a password");
+    };
+    assert_ne!(hash, "chosen-by-the-admin");
+    assert!(
+        hash.starts_with("$argon2"),
+        "a hash, not the typed text: {hash}"
+    );
+
+    let other = users::admin_from_form(&data, None).expect("converts");
+    assert_ne!(
+        created.password, other.password,
+        "random, not derived from the input"
+    );
+
+    let updated = users::admin_partial_update(&data, pk(1)).expect("converts");
+    assert_eq!(updated.password, ActiveValue::NotSet);
+
+    let mut form = Forms::new("csrf");
+    users::EihwazUsersAdminForm::register_fields(&mut form);
+    assert!(!form.fields.contains_key("password"));
+}
+
+// Activating or deactivating an account goes through the gate's account
+// rules, never a profile form: a new account starts inactive (database
+// default), an edit leaves the state alone.
+#[test]
+fn an_extended_user_never_takes_is_active_from_the_form() {
+    let mut data = StrMap::new();
+    data.insert("is_active".into(), "true".into());
+
+    let created = users::admin_from_form(&data, None).expect("converts");
+    assert_eq!(created.is_active, ActiveValue::NotSet);
+    let mut data = StrMap::new();
+    data.insert("is_active".into(), "false".into());
+    let updated = users::admin_partial_update(&data, pk(1)).expect("converts");
+    assert_eq!(updated.is_active, ActiveValue::NotSet);
+
+    let mut form = Forms::new("csrf");
+    users::EihwazUsersAdminForm::register_fields(&mut form);
+    assert!(!form.fields.contains_key("is_active"));
+}
+
 // `Pk` is an alias: SeaORM can't infer auto-increment through it, the
 // generated attribute must say it (none under `pk-uuid`, ids come from the app).
 #[test]

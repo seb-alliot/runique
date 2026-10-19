@@ -1,7 +1,7 @@
 //! Boolean field `BooleanField`: HTML checkbox with unchecked case management.
 use crate::forms::base::*;
 use crate::utils::aliases::ATera;
-use crate::utils::trad::tf;
+use crate::utils::trad::{t, tf};
 use async_trait::async_trait;
 use serde::Serialize;
 
@@ -10,6 +10,8 @@ use serde::Serialize;
 #[derive(Clone, Serialize, Debug)]
 pub struct BooleanField {
     pub base: FieldConfig,
+    /// What the box sends when checked, and the only value read as `true`.
+    pub checked_value: String,
 }
 
 impl CommonFieldConfig for BooleanField {
@@ -27,6 +29,26 @@ impl BooleanField {
     pub fn new(name: &str) -> Self {
         Self {
             base: FieldConfig::new(name, "checkbox", "base_boolean.html"),
+            checked_value: "true".to_string(),
+        }
+    }
+
+    /// The value the box sends when checked (`"true"` by default) — for a
+    /// hand-written template whose box sends something else, `"on"` for one
+    /// with no `value` attribute.
+    pub fn checked_value(mut self, value: &str) -> Self {
+        self.checked_value = value.to_string();
+        self
+    }
+
+    /// The box's state: `Ok(true)` checked, `Ok(false)` unchecked (`fill()`
+    /// turns an absent box into "false"), `Err` for anything the rendered box
+    /// can't send — a forged request.
+    fn state(&self) -> Result<bool, ()> {
+        match self.base.value.as_str() {
+            "" | "false" => Ok(false),
+            value if value == self.checked_value => Ok(true),
+            _ => Err(()),
         }
     }
 
@@ -37,8 +59,9 @@ impl BooleanField {
         field
     }
 
-    /// Marks the field as required. For a checkbox, this means NOT NULL in DB — not "must be checked".
-    /// To force the user to tick (e.g. ToS), use `clean()` with a custom error instead.
+    /// The box must be checked (terms, consent): an unchecked box is an error.
+    /// A box always answers, so NOT NULL needs nothing; this is the only
+    /// meaning `required` has on a checkbox.
     pub fn required(mut self) -> Self {
         self.set_required(true, None);
         self
@@ -52,7 +75,7 @@ impl BooleanField {
 
     /// Pre-selects the checkbox as checked.
     pub fn checked(mut self) -> Self {
-        self.base.value = "true".to_string();
+        self.base.value = self.checked_value.clone();
         self
     }
 
@@ -65,21 +88,43 @@ impl BooleanField {
 
 #[async_trait]
 impl FormField for BooleanField {
-    /// Unchecked is `false`, never empty.
+    /// Unchecked (or never filled) is `false`, never empty.
     fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
-        Ok(Some(sea_orm::Value::from(matches!(
-            self.base.value.as_str(),
-            "true" | "1" | "on"
-        ))))
+        self.state()
+            .map(|checked| Some(sea_orm::Value::from(checked)))
+            .map_err(|()| t("forms.value_unconvertible").into_owned())
     }
 
     async fn validate(&mut self) -> bool {
-        // A boolean field is always valid: "true" or "false" (unchecked = false).
-        // `required` doesn't mean "must be checked"; the column's NULL-ness comes
-        // from the model (`nullable`).
-        // To force the check (e.g., TOS), use clean() with a custom error.
-        self.clear_error();
-        true
+        let refusal = match self.state() {
+            // The rendered box only sends its own value: anything else was forged.
+            Err(()) => Some((
+                t("forms.value_unconvertible").into_owned(),
+                "boolean refused: not the value the box sends",
+            )),
+            Ok(false) if self.base.is_required.choice => Some((
+                self.base
+                    .is_required
+                    .message
+                    .clone()
+                    .unwrap_or_else(|| t("forms.must_be_checked").into_owned()),
+                "required box left unchecked",
+            )),
+            Ok(_) => None,
+        };
+        let Some((message, reason)) = refusal else {
+            self.clear_error();
+            return true;
+        };
+        if let Some(level) = crate::utils::runique_log::get_log()
+            .forms
+            .as_ref()
+            .and_then(|f| f.validate)
+        {
+            crate::runique_log!(level, field = %self.base.name, reason, "boolean field refused");
+        }
+        self.set_error(message);
+        false
     }
 
     fn render(&self, tera: &ATera) -> Result<String, String> {
@@ -87,8 +132,8 @@ impl FormField for BooleanField {
         context.insert("input_type", &self.base.type_field);
 
         // Add the "checked" state
-        let is_checked = self.base.value == "true";
-        context.insert("checked", &is_checked);
+        context.insert("checked", &self.state().unwrap_or(false));
+        context.insert("checked_value", &self.checked_value);
 
         tera.render(&self.base.template_name, &context)
             .map_err(|e| {

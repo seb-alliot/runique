@@ -19,6 +19,16 @@ pub(crate) fn read_field(
     column_value(config.column_type.as_ref().unwrap_or(&default), raw).map(Some)
 }
 
+/// The six spellings a checkbox or a form sends, in any case. Anything else
+/// isn't a boolean: a forged `banana` is refused, never read as `false`.
+pub fn parse_bool(raw: &str) -> Option<bool> {
+    match raw.to_ascii_lowercase().as_str() {
+        "true" | "1" | "on" => Some(true),
+        "false" | "0" | "off" => Some(false),
+        _ => None,
+    }
+}
+
 /// `raw` as `column` stores it. `Err` when the text doesn't read as that
 /// column's type, or the column is one no form field writes.
 pub fn column_value(column: &ColumnType, raw: &str) -> Result<Value, String> {
@@ -56,10 +66,7 @@ pub fn column_value(column: &ColumnType, raw: &str) -> Result<Value, String> {
         ColumnType::Decimal(_) => {
             Value::from(rust_decimal::Decimal::from_str_exact(&number).map_err(|_| unreadable())?)
         }
-        ColumnType::Boolean => Value::from(matches!(
-            raw.to_ascii_lowercase().as_str(),
-            "true" | "1" | "on"
-        )),
+        ColumnType::Boolean => Value::from(parse_bool(raw).ok_or_else(unreadable)?),
         ColumnType::Date => Value::from(
             chrono::NaiveDate::parse_from_str(raw, "%Y-%m-%d").map_err(|_| unreadable())?,
         ),

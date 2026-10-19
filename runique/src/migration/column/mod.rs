@@ -20,6 +20,9 @@ pub struct ColumnDef {
     pub name: String,
     pub col_type: ColumnType,
     pub nullable: bool,
+    /// `required` was declared, not just implied by `NOT NULL`: on a checkbox,
+    /// which always answers, it means "must be checked".
+    pub required_declared: bool,
     pub unique: bool,
     pub default: Option<sea_query::Value>,
     pub select_as: Option<String>,
@@ -56,6 +59,7 @@ impl ColumnDef {
             name: name.into(),
             col_type: ColumnType::String(sea_query::StringLen::None),
             nullable: false,
+            required_declared: false,
             unique: false,
             default: None,
             select_as: None,
@@ -328,6 +332,7 @@ impl ColumnDef {
     /// Marks the column `NOT NULL` (the default).
     pub fn required(mut self) -> Self {
         self.nullable = false;
+        self.required_declared = true;
         self
     }
 
@@ -484,7 +489,15 @@ impl ColumnDef {
 
         let name = self.name.as_str();
         let label = self.label.clone().unwrap_or_else(|| self.format_label());
-        let required = !self.nullable;
+        // A checkbox always answers: NOT NULL alone doesn't make it required,
+        // only a declared `required` does ("must be checked").
+        let is_box = self.kind == Some(runique_dsl::ast::FormFieldKind::Bool)
+            || matches!(self.col_type, ColumnType::Boolean);
+        let required = if is_box {
+            self.required_declared
+        } else {
+            !self.nullable
+        };
 
         // A file column is stored as String at the SQL level, so the file
         // marker must be checked before the col_type match would route it to a

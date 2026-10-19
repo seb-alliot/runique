@@ -304,22 +304,26 @@ pub fn schema() -> crate::migration::schema::ModelSchema {
         .column(
             crate::migration::ColumnDef::new("is_active")
                 .boolean()
-                .required(),
+                .required()
+                .default(false.into()),
         )
         .column(
             crate::migration::ColumnDef::new("is_dirigeant")
                 .boolean()
-                .required(),
+                .required()
+                .default(false.into()),
         )
         .column(
             crate::migration::ColumnDef::new("is_admin")
                 .boolean()
-                .required(),
+                .required()
+                .default(false.into()),
         )
         .column(
             crate::migration::ColumnDef::new("is_superuser")
                 .boolean()
-                .required(),
+                .required()
+                .default(false.into()),
         )
         .column(
             crate::migration::ColumnDef::new("created_at")

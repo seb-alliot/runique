@@ -104,7 +104,7 @@ pub fn generate_partial_update(model: &ModelInput) -> TokenStream2 {
 /// closure handed to `runique::forms::form_data::read`.
 fn parser(ty: &FieldType) -> TokenStream2 {
     match ty {
-        FieldType::Bool => quote! { |v: &str| Some(matches!(v, "true" | "1" | "on")) },
+        FieldType::Bool => quote! { |v: &str| ::runique::forms::column_value::parse_bool(v) },
         FieldType::I8
         | FieldType::I16
         | FieldType::I32

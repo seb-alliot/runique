@@ -28,10 +28,39 @@ pub(crate) mod fixtures {
 
         impl ActiveModelBehavior for ActiveModel {}
     }
+    /// The notes' admin form: no field needed until the boot check compares
+    /// form fields with columns.
+    #[derive(serde::Serialize, Debug, Clone)]
+    #[serde(transparent)]
+    pub struct NoteForm {
+        pub form: crate::forms::form::Forms,
+    }
+
+    impl crate::forms::field::RuniqueForm for NoteForm {
+        fn register_fields(_form: &mut crate::forms::form::Forms) {}
+        crate::impl_form_access!();
+    }
 
     impl crate::admin::refonte_admin::meta::ModelMeta for note::Entity {
         const KEY: &'static str = "notes";
+        type AdminForm = NoteForm;
         const OWNER: Option<note::Column> = Some(note::Column::OwnerId);
+        fn schema() -> crate::migration::schema::ModelSchema {
+            crate::migration::ModelSchema::new("Note")
+                .table_name("notes")
+                .primary_key(
+                    crate::migration::PrimaryKeyDef::new("id")
+                        .i32()
+                        .auto_increment(),
+                )
+                .column(
+                    crate::migration::ColumnDef::new("owner_id")
+                        .integer()
+                        .nullable(),
+                )
+                .build()
+                .unwrap()
+        }
     }
 
     #[cfg(feature = "pk-uuid")]

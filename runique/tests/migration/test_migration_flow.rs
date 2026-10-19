@@ -46,7 +46,7 @@ fn user_entity() -> &'static str {
             username: text [required, unique],
             email: text [required, unique],
             password: text [required],
-            is_active: bool [required],
+            is_active: bool,
             bio: text [nullable],
             created_at: datetime [auto_now],
             updated_at: datetime [auto_now_update],
@@ -68,7 +68,7 @@ fn post_entity() -> &'static str {
             slug: text [required, unique],
             user_id: int [required],
             view_count: int [required],
-            published: bool [required],
+            published: bool,
             created_at: datetime [auto_now],
         }
     }
@@ -125,7 +125,7 @@ fn product_entity() -> &'static str {
             stock: int [required],
             sku: text [required, unique],
             description: text [nullable],
-            is_available: bool [required],
+            is_available: bool,
             weight: f32 [nullable],
             created_at: datetime [auto_now],
         }

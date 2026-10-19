@@ -65,9 +65,8 @@ fn phantom_form_registration(col: &PhantomColumn) -> Option<TokenStream2> {
         FormWidget::Email => Some(quote! {
             form.field(&::runique::forms::fields::TextField::email(#name).label(#label).required());
         }),
-        FormWidget::Password => Some(quote! {
-            form.field(&::runique::forms::fields::TextField::password(#name).label(#label));
-        }),
+        // Never typed in a form: see `FormWidget::Password`.
+        FormWidget::Password => None,
         FormWidget::Bool => Some(quote! {
             form.field(&::runique::forms::fields::BooleanField::new(#name).label(#label));
         }),
@@ -83,13 +82,15 @@ fn phantom_active_model_field(col: &PhantomColumn, partial: bool) -> Option<Toke
     let name_str = col.name;
     match &col.widget {
         FormWidget::Skip | FormWidget::AutoDateTime => None,
+        // Whatever the request carries: a new account gets a password nobody
+        // knows, an edit leaves the stored hash alone.
+        FormWidget::Password if partial => Some(quote! {
+            #name: ::sea_orm::ActiveValue::NotSet,
+        }),
         FormWidget::Password => Some(quote! {
-            #name: match __data.get(#name_str).map(|v| v.trim().to_string()).filter(|v| !v.is_empty()) {
-                Some(v) => ::sea_orm::ActiveValue::Set(
-                    ::runique::forms::form_data::password(&v, #name_str)?
-                ),
-                None => ::sea_orm::ActiveValue::NotSet,
-            },
+            #name: ::sea_orm::ActiveValue::Set(
+                ::runique::forms::form_data::unknown_password(#name_str)?
+            ),
         }),
         FormWidget::Bool => {
             if partial {

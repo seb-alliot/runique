@@ -102,9 +102,9 @@ impl<E: ModelMeta> ModelAdmin<E> {
 
         for action in &self.list.actions {
             let name = action.col.as_str();
-            if !self.form.is_writable(name) {
+            if !self.form.writable_on_edit(name) {
                 errors.push(format!(
-                    "action `{}`: `{name}` is not written by the form (in `fields`, not `readonly`)",
+                    "action `{}`: `{name}` is not written by the form on edit (in `fields`, not `readonly` or `create_only`)",
                     action.label
                 ));
             }
@@ -113,6 +113,30 @@ impl<E: ModelMeta> ModelAdmin<E> {
                     "action `{}`: `{name}` is the owner, a transfer is its own operation",
                     action.label
                 ));
+            }
+        }
+
+        if !self.form.is_empty() {
+            for col in E::schema().columns {
+                let name = col.name.as_str();
+                let filled_elsewhere = col.nullable
+                    || col.default.is_some()
+                    || col.auto_now
+                    || col.auto_now_update
+                    || col.ignored
+                    || (E::IS_ACCOUNT_TABLE && name == "password");
+                if filled_elsewhere || self.form.writable_on_create(name) {
+                    continue;
+                }
+                if E::SECRET.iter().any(|s| s.as_str() == name) {
+                    errors.push(format!(
+                        "fields: `{name}` is a secret column needed to create a row (NOT NULL, no default): the admin can never fill it, give it a default"
+                    ));
+                } else {
+                    errors.push(format!(
+                        "fields: `{name}` is needed to create a row (NOT NULL, no default): add it to `fields` or give it a default"
+                ))
+                };
             }
         }
 
@@ -202,6 +226,69 @@ mod tests {
     use crate::admin::refonte_admin::gate::test_support::fixtures::{db, pk, staff};
     use crate::auth::user;
     use sea_orm::Order;
+    /// One column of each kind the create check looks at.
+    mod article {
+        use sea_orm::entity::prelude::*;
+
+        #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+        #[sea_orm(table_name = "articles")]
+        pub struct Model {
+            #[sea_orm(primary_key)]
+            pub id: i32,
+            pub title: String,
+            pub status: String,
+            pub created_at: DateTime,
+            pub updated_at: DateTime,
+            pub summary: Option<String>,
+            pub token: String,
+            pub password: String,
+        }
+
+        #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+        pub enum Relation {}
+
+        impl ActiveModelBehavior for ActiveModel {}
+
+        impl crate::admin::refonte_admin::meta::ModelMeta for Entity {
+            const KEY: &'static str = "articles";
+            type AdminForm = crate::admin::refonte_admin::gate::test_support::fixtures::NoteForm;
+            const SECRET: &'static [Column] = &[Column::Password];
+            fn schema() -> crate::migration::schema::ModelSchema {
+                use crate::migration::ColumnDef;
+                crate::migration::ModelSchema::new("Article")
+                    .table_name("articles")
+                    .primary_key(
+                        crate::migration::PrimaryKeyDef::new("id")
+                            .i32()
+                            .auto_increment(),
+                    )
+                    .column(ColumnDef::new("title").string().required())
+                    .column(
+                        ColumnDef::new("status")
+                            .string()
+                            .required()
+                            .default("draft".into()),
+                    )
+                    .column(
+                        ColumnDef::new("created_at")
+                            .datetime()
+                            .required()
+                            .auto_now(),
+                    )
+                    .column(
+                        ColumnDef::new("updated_at")
+                            .datetime()
+                            .required()
+                            .auto_now_update(),
+                    )
+                    .column(ColumnDef::new("summary").string().nullable())
+                    .column(ColumnDef::new("token").string().required().ignore())
+                    .column(ColumnDef::new("password").string().required())
+                    .build()
+                    .unwrap()
+            }
+        }
+    }
 
     #[test]
     fn a_consistent_admin_is_accepted() {
@@ -242,7 +329,7 @@ mod tests {
     #[test]
     fn a_secret_column_is_refused_in_every_list() {
         let p = user::Column::Password;
-        let cases: [(&str, ModelAdmin<user::Entity>); 6] = [
+        let cases: [(&str, ModelAdmin<user::Entity>); 7] = [
             ("display", ModelAdmin::new().list(|l| l.display([p]))),
             ("search", ModelAdmin::new().list(|l| l.search([p]))),
             ("filter", ModelAdmin::new().list(|l| l.filter([p]))),
@@ -252,6 +339,10 @@ mod tests {
                 ModelAdmin::new().list(|l| l.ordering([(p, Order::Asc)])),
             ),
             ("fields", ModelAdmin::new().form(|f| f.fields([p]))),
+            (
+                "create_only",
+                ModelAdmin::new().form(|f| f.fields([p]).create_only([p])),
+            ),
         ];
         for (list, admin) in cases {
             let error = admin.validate().unwrap_err();
@@ -274,8 +365,56 @@ mod tests {
     }
 
     #[test]
+    fn an_action_outside_fields_is_refused() {
+        let admin = ModelAdmin::<user::Entity>::new()
+            .list(|l| l.action(user::Column::IsActive, false, "Désactiver"))
+            .form(|f| f.fields([user::Column::Username]));
+        let error = admin.validate().unwrap_err();
+        assert!(error.contains("action `Désactiver`"), "{error}");
+        assert!(error.contains("not written by the form"), "{error}");
+    }
+
+    #[test]
+    fn an_action_on_a_readonly_column_is_refused() {
+        let admin = ModelAdmin::<user::Entity>::new()
+            .list(|l| l.action(user::Column::IsActive, false, "Désactiver"))
+            .form(|f| {
+                f.fields([user::Column::Username, user::Column::IsActive])
+                    .readonly([user::Column::IsActive])
+            });
+        let error = admin.validate().unwrap_err();
+        assert!(error.contains("not written by the form"), "{error}");
+    }
+
+    #[test]
+    fn an_action_on_a_written_column_is_accepted() {
+        let admin = ModelAdmin::<user::Entity>::new()
+            .list(|l| l.action(user::Column::IsActive, false, "Désactiver"))
+            .form(|f| {
+                f.fields([
+                    user::Column::Username,
+                    user::Column::Email,
+                    user::Column::IsActive,
+                ])
+            });
+        assert!(admin.validate().is_ok());
+    }
+
+    #[test]
+    fn an_action_on_the_owner_is_refused() {
+        let admin = ModelAdmin::<Entity>::new()
+            .list(|l| l.action(Column::OwnerId, pk(20), "Donner à 20"))
+            .form(|f| f.fields([Column::OwnerId]));
+        let error = admin.validate().unwrap_err();
+        assert!(error.contains("action `Donner à 20`"), "{error}");
+        assert!(error.contains("is the owner"), "{error}");
+        assert!(!error.contains("not written by the form"), "{error}");
+    }
+
+    #[test]
     fn the_account_table_without_a_rank_flag_is_accepted() {
-        let admin = ModelAdmin::<user::Entity>::new().form(|f| f.fields([user::Column::Username]));
+        let admin = ModelAdmin::<user::Entity>::new()
+            .form(|f| f.fields([user::Column::Username, user::Column::Email]));
         assert!(admin.validate().is_ok());
     }
 
@@ -362,5 +501,92 @@ mod tests {
         });
         let page = page_of(&admin, ListQuery::default()).await;
         assert_eq!(page.rows[0]["id"], 3);
+    }
+    #[test]
+    fn a_needed_column_outside_fields_is_refused() {
+        let admin =
+            ModelAdmin::<article::Entity>::new().form(|f| f.fields([article::Column::Summary]));
+        let error = admin.validate().unwrap_err();
+        assert!(
+            error.contains("`title` is needed to create a row"),
+            "{error}"
+        );
+    }
+
+    #[test]
+    fn a_needed_column_in_fields_is_accepted() {
+        let admin =
+            ModelAdmin::<article::Entity>::new().form(|f| f.fields([article::Column::Title]));
+        let error = admin.validate().unwrap_err();
+        assert!(!error.contains("`title`"), "{error}");
+    }
+
+    #[test]
+    fn a_needed_column_in_readonly_is_refused() {
+        let admin = ModelAdmin::<article::Entity>::new().form(|f| {
+            f.fields([article::Column::Title])
+                .readonly([article::Column::Title])
+        });
+        let error = admin.validate().unwrap_err();
+        assert!(
+            error.contains("`title` is needed to create a row"),
+            "{error}"
+        );
+    }
+
+    /// One mutation per `||` of `filled_elsewhere`: dropping any of them
+    /// makes its column reported here.
+    #[test]
+    fn columns_filled_elsewhere_are_not_needed() {
+        let admin =
+            ModelAdmin::<article::Entity>::new().form(|f| f.fields([article::Column::Title]));
+        let error = admin.validate().unwrap_err();
+        for name in ["status", "created_at", "updated_at", "summary", "token"] {
+            assert!(!error.contains(&format!("`{name}`")), "{name}: {error}");
+        }
+    }
+
+    #[test]
+    fn a_needed_secret_column_gets_its_own_message() {
+        let admin =
+            ModelAdmin::<article::Entity>::new().form(|f| f.fields([article::Column::Title]));
+        let error = admin.validate().unwrap_err();
+        assert!(
+            error.contains("`password` is a secret column needed"),
+            "{error}"
+        );
+        assert!(!error.contains("`password` is needed to create"), "{error}");
+    }
+
+    #[test]
+    fn a_model_without_fields_has_no_create_check() {
+        let admin = ModelAdmin::<article::Entity>::new();
+        assert!(admin.validate().is_ok());
+    }
+
+    #[test]
+    fn an_action_on_a_create_only_column_is_refused() {
+        let admin = ModelAdmin::<user::Entity>::new()
+            .list(|l| l.action(user::Column::IsActive, false, "Désactiver"))
+            .form(|f| {
+                f.fields([
+                    user::Column::Username,
+                    user::Column::Email,
+                    user::Column::IsActive,
+                ])
+                .create_only([user::Column::IsActive])
+            });
+        let error = admin.validate().unwrap_err();
+        assert!(error.contains("not written by the form on edit"), "{error}");
+    }
+
+    #[test]
+    fn a_needed_column_in_create_only_is_accepted() {
+        let admin = ModelAdmin::<article::Entity>::new().form(|f| {
+            f.fields([article::Column::Title])
+                .create_only([article::Column::Title])
+        });
+        let error = admin.validate().unwrap_err();
+        assert!(!error.contains("`title`"), "{error}");
     }
 }

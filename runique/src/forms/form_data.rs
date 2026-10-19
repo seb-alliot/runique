@@ -59,6 +59,13 @@ pub fn required<T>(value: Option<T>, name: &str) -> Result<T, FormDataError> {
     value.ok_or_else(|| FormDataError::Required(name.to_string()))
 }
 
+/// The password of an account created for someone else: a random one,
+/// hashed, that nobody knows — its owner sets theirs from the email link.
+pub fn unknown_password(name: &str) -> Result<String, FormDataError> {
+    crate::utils::password::hash(&uuid::Uuid::new_v4().to_string())
+        .map_err(|_| FormDataError::Password(name.to_string()))
+}
+
 /// What to store for a password: kept as is when it's already a hash (the
 /// form's `finalize` hashed it), hashed otherwise. A failed hash is an error.
 pub fn password(value: &str, name: &str) -> Result<String, FormDataError> {

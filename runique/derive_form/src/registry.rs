@@ -30,7 +30,9 @@ pub enum FormWidget {
     Text,
     /// Email input, always required.
     Email,
-    /// Password input — hashed on save, NotSet if empty (preserves existing hash on edit).
+    /// The account's password — never a form field: a new account gets a
+    /// random hash nobody knows (its owner sets theirs from the email link),
+    /// an edit leaves it untouched. Changing it is the reset flow's job.
     Password,
     /// Boolean checkbox — absent in form data = false.
     Bool,
@@ -83,7 +85,11 @@ static EIHWAZ_USERS: &[PhantomColumn] = &[
     col!("username", PhantomType::String, FormWidget::Text),
     col!("email", PhantomType::String, FormWidget::Email),
     col!("password", PhantomType::String, FormWidget::Password),
-    col!("is_active", PhantomType::Bool, FormWidget::Bool),
+    // Skip, like the ranks below: activating, deactivating or banning an
+    // account goes through the gate's account rules (not oneself, not a higher
+    // rank, only an account its owner activated), never a profile form. New
+    // accounts start inactive (DB default), waiting for the owner's link.
+    col!("is_active", PhantomType::Bool, FormWidget::Skip),
     // FormWidget::Skip (not Bool) on the three rank flags: a rank is never
     // granted from a form, generated or handwritten — only the admin's gate
     // sets them, under the rank rule. DB columns default to false

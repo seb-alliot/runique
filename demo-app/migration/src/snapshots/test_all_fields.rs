@@ -21,7 +21,7 @@ async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
                     .col(ColumnDef::new(Alias::new("f_richtext")).text().null())
                     .col(ColumnDef::new(Alias::new("f_integer")).integer().null())
                     .col(ColumnDef::new(Alias::new("f_float")).double().null())
-                    .col(ColumnDef::new(Alias::new("f_decimal")).decimal().null())
+                    .col(ColumnDef::new(Alias::new("f_decimal")).decimal_len(10, 2).null())
                     .col(ColumnDef::new(Alias::new("f_percent")).double().null())
                     .col(ColumnDef::new(Alias::new("f_range")).integer().null())
                     .col(ColumnDef::new(Alias::new("f_checkbox")).boolean().null())

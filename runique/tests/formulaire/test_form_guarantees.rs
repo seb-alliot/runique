@@ -376,15 +376,27 @@ fn radio_and_checkbox_render_their_choices() {
     assert_eq!(radio.to_json_attributes()["data-k"], "v");
 }
 
-/// Documented choice: `required` on a checkbox means NOT NULL, not "must be
-/// checked" (unlike Django) — a terms box is enforced in `clean()`.
+/// `required` on a checkbox means "must be checked" (terms, consent); a box
+/// always answers, so NOT NULL needs nothing. An optional box stays valid
+/// unchecked, and drops an error left from a previous submission.
 #[tokio::test]
-async fn a_checkbox_is_always_valid_and_drops_an_old_error() {
-    let mut field = BooleanField::new("terms").required();
+async fn an_optional_checkbox_is_valid_unchecked_and_drops_an_old_error() {
+    let mut field = BooleanField::new("newsletter");
     field.set_value("false");
     field.set_error("previous".into());
     assert!(field.validate().await, "unchecked is a valid answer");
     assert!(field.error().is_none(), "the old error is cleared");
+}
+
+#[tokio::test]
+async fn a_required_checkbox_must_be_checked() {
+    let mut field = BooleanField::new("terms").required();
+    field.set_value("false");
+    assert!(!field.validate().await, "an unchecked required box");
+    assert!(field.error().is_some());
+    field.set_value("true");
+    assert!(field.validate().await);
+    assert!(field.error().is_none());
 }
 
 #[tokio::test]
