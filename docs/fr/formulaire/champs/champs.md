@@ -144,7 +144,7 @@ form.field(
 );
 ```
 
-> **Note sur le `.required()`** : sur un `BooleanField`, `.required()` ne force pas l'utilisateur à cocher la case : une case non cochée envoie `false`, une valeur valide. Le caractère NULL ou NOT NULL de la colonne ne dépend pas du formulaire, mais du modèle (`nullable`). Pour forcer une acceptation (ex : CGU), utilisez une validation personnalisée (`clean()`) ou vérifiez la valeur manuellement.
+> **Note sur le `.required()`** : sur un `BooleanField`, `.required()` signifie **« doit être cochée »** (CGU, consentement) : une case non cochée est une erreur. Une case répond toujours (`true` ou `false`), donc une colonne NOT NULL n'a besoin d'aucun `required` : dans le DSL, `actif: bool` suffit, et `cgu: bool [required]` force à cocher. `required` avec `default: true` est refusé à la compilation : une case pré-cochée ne serait pas un consentement. La case n'accepte que la valeur qu'elle envoie (`"true"`, ou celle de `.checked_value(..)`) : toute autre valeur est une erreur.
 
 ```rust
 // Radio simple (oui/non)
@@ -423,7 +423,7 @@ form.field(&HiddenField::new_csrf());
 | ---------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------- |
 | `TextField`      | `text()`, `email()`, `url()`, `password()`, `textarea()`, `richtext()`     | Email/URL via `validator`, Argon2, sanitisation XSS, `.rows(n)` |
 | `NumericField`   | `integer()`, `float()`, `decimal()`, `percent()`, `range()`                | Bornes min/max, précision décimale, `.step(n)` (range uniquement) |
-| `BooleanField`   | `new()`, `radio()`                                                         | `required` ne force pas à cocher                              |
+| `BooleanField`   | `new()`, `radio()`                                                         | `required` = doit être cochée ; seule sa valeur est acceptée |
 | `ChoiceField`    | `new()` + `.multiple()`                                                    | Valeur dans les choix déclarés                                |
 | `RadioField`     | `new()`                                                                    | Valeur dans les choix déclarés                                |
 | `CheckboxField`  | `new()`                                                                    | Toutes les valeurs dans les choix                             |

@@ -171,7 +171,7 @@ impl<E: EntityTrait> ListConfig<E> {
         }
 
         if self.actions.iter().any(|a| a.col.as_str() == name) {
-            lists.push("action")
+            lists.push("action");
         }
 
         if named(&self.links) {
@@ -401,6 +401,26 @@ mod tests {
     use crate::utils::aliases::StrMap;
     use sea_orm::prelude::Decimal;
     use sea_orm::{Condition, DbBackend, EntityTrait, IdenStatic, Order, QueryFilter, QueryTrait};
+
+    mod product {
+        use sea_orm::entity::prelude::*;
+
+        #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+        #[sea_orm(table_name = "products")]
+        pub struct Model {
+            #[sea_orm(primary_key)]
+            pub id: i32,
+            #[sea_orm(column_type = "Decimal(Some((10, 2)))")]
+            pub price: Decimal,
+            #[sea_orm(column_type = "String(StringLen::N(5))")]
+            pub code: String,
+        }
+
+        #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+        pub enum Relation {}
+
+        impl ActiveModelBehavior for ActiveModel {}
+    }
 
     #[test]
     fn links_and_sortable_inside_display_are_accepted() {
@@ -700,5 +720,135 @@ mod tests {
             Some((10, 2)),
             &Decimal::new(10_000_000_000, 2)
         ));
+    }
+
+    #[test]
+    fn an_action_on_the_primary_key_is_refused() {
+        let list = ListConfig::<user::Entity>::default().action(user::Column::Id, 1, "Renuméroter");
+        let error = list.validate().unwrap_err();
+        assert!(error.contains("primary key"), "{error}");
+        assert!(error.contains("Renuméroter"), "{error}");
+    }
+
+    #[test]
+    fn a_value_of_the_wrong_type_is_refused() {
+        let list = ListConfig::<user::Entity>::default().action(
+            user::Column::IsSuperuser,
+            "yes",
+            "Promouvoir",
+        );
+        let error = list.validate().unwrap_err();
+        assert!(error.contains("does not fit"), "{error}");
+    }
+
+    #[test]
+    fn a_null_value_is_refused() {
+        let list = ListConfig::<user::Entity>::default().action(
+            user::Column::IsActive,
+            None::<bool>,
+            "Vider",
+        );
+        assert!(list.validate().is_err());
+    }
+
+    #[test]
+    fn a_single_well_typed_action_is_accepted() {
+        let list = ListConfig::<user::Entity>::default().action(
+            user::Column::IsActive,
+            false,
+            "Désactiver",
+        );
+        assert!(list.validate().is_ok());
+    }
+
+    #[test]
+    fn the_same_column_set_twice_to_the_same_value_is_refused() {
+        let list = ListConfig::<user::Entity>::default()
+            .action(user::Column::IsActive, false, "Désactiver")
+            .action(user::Column::IsActive, false, "Suspendre");
+        let error = list.validate().unwrap_err();
+        assert!(error.contains("already set"), "{error}");
+        assert!(
+            error.contains("Suspendre"),
+            "the second one is named: {error}"
+        );
+        assert!(!error.contains("Désactiver"), "{error}");
+    }
+
+    #[test]
+    fn the_same_column_with_another_value_is_accepted() {
+        let list = ListConfig::<user::Entity>::default()
+            .action(user::Column::IsActive, false, "Désactiver")
+            .action(user::Column::IsActive, true, "Activer");
+        assert!(list.validate().is_ok());
+    }
+
+    #[test]
+    fn the_same_value_on_another_column_is_accepted() {
+        let list = ListConfig::<user::Entity>::default()
+            .action(user::Column::IsActive, false, "Désactiver")
+            .action(user::Column::IsAdmin, false, "Retirer admin");
+        assert!(list.validate().is_ok());
+    }
+
+    #[test]
+    fn a_price_at_the_limit_of_its_column_is_accepted() {
+        let list = ListConfig::<product::Entity>::default().action(
+            product::Column::Price,
+            Decimal::new(9_999_999_999, 2),
+            "Prix max",
+        );
+        assert!(list.validate().is_ok());
+    }
+
+    #[test]
+    fn a_price_over_its_column_is_refused() {
+        let list = ListConfig::<product::Entity>::default().action(
+            product::Column::Price,
+            Decimal::new(10_000_000_000, 2),
+            "Trop cher",
+        );
+        assert!(list.validate().is_err());
+    }
+
+    #[test]
+    fn a_text_at_its_length_is_accepted() {
+        let list =
+            ListConfig::<product::Entity>::default().action(product::Column::Code, "abcde", "Code");
+        assert!(list.validate().is_ok());
+    }
+
+    #[test]
+    fn a_text_over_its_length_is_refused() {
+        let list = ListConfig::<product::Entity>::default().action(
+            product::Column::Code,
+            "abcdef",
+            "Code",
+        );
+        assert!(list.validate().is_err());
+    }
+
+    #[test]
+    fn a_text_length_is_counted_in_characters() {
+        let list =
+            ListConfig::<product::Entity>::default().action(product::Column::Code, "ééééé", "Code");
+        assert!(list.validate().is_ok());
+    }
+
+    #[test]
+    fn empty_value_is_kept_as_given() {
+        let list = ListConfig::<Entity>::default().empty_value("—");
+        assert_eq!(list.empty_value.as_deref(), Some("—"));
+    }
+
+    #[test]
+    fn the_column_of_an_action_is_listed_as_used_by_action() {
+        let list = ListConfig::<user::Entity>::default().action(
+            user::Column::IsActive,
+            false,
+            "Désactiver",
+        );
+        assert_eq!(list.lists_using("is_active"), ["action"]);
+        assert!(list.lists_using("is_admin").is_empty());
     }
 }

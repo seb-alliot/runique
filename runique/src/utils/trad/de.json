@@ -22,6 +22,7 @@
     "precision_max": "Maximale Präzision {} Stellen nach dem Komma",
     "integer_digits_max": "Höchstens {} Stellen vor dem Komma",
     "value_unconvertible": "Dieser Wert passt nicht zu diesem Feld",
+    "must_be_checked": "Dieses Feld muss angekreuzt werden",
     "precision_min": "Minimale Präzision {} Stellen nach dem Komma",
     "color_invalid": "Ungültige Farbe (Format: #RRGGBB oder #RGB)",
     "color_no_hash": "Die Farbe muss mit # beginnen",

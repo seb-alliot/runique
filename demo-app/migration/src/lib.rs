@@ -52,6 +52,7 @@ mod m20261007_070310_alter_page_doc_link_table;
 mod m20261007_070310_alter_runique_release_table;
 mod m20261007_070310_alter_test_relation_child_table;
 mod m20261007_070310_alter_test_relation_parent_tag_table;
+mod m20261018_153917_alter_test_all_fields_table;
 
 pub struct Migrator;
 
@@ -62,6 +63,7 @@ impl MigratorTrait for Migrator {
             Box::new(migrations_table::EihwazUsersMigration),
             Box::new(migrations_table::EihwazSessionsMigration),
             Box::new(migrations_table::AdminTableMigration),
+            Box::new(migrations_table::EihwazHistoryMigration),
             Box::new(migrations_table::EihwazResetTokensMigration),
             Box::new(m20260413_133022_create_cour_table::Migration),
             Box::new(m20260413_133022_create_form_field_table::Migration),
@@ -115,6 +117,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20261007_070310_alter_runique_release_table::Migration),
             Box::new(m20261007_070310_alter_test_relation_child_table::Migration),
             Box::new(m20261007_070310_alter_test_relation_parent_tag_table::Migration),
+            Box::new(m20261018_153917_alter_test_all_fields_table::Migration),
         ]
     }
 }

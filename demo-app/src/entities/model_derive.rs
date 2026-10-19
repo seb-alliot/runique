@@ -10,6 +10,6 @@ model! {
         password:  password [required],
         bio:       textarea [nullable],
         website:   url [nullable],
-        is_active: bool [required],
+        is_active: bool,
     }
 }

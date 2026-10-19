@@ -124,6 +124,22 @@ pub(super) fn validate_form_field_attrs(
         validate_decimal_len(name, attrs)?;
     }
 
+    // `required` on a box means "must be checked": checked in advance, it would
+    // be met without the user doing anything — consent has to be a gesture.
+    if matches!(kind, Bool)
+        && attrs.iter().any(|a| matches!(a, Required))
+        && attrs
+            .iter()
+            .any(|a| matches!(a, Default(syn::Lit::Bool(checked)) if checked.value))
+    {
+        return Err(syn::Error::new(
+            name.span(),
+            format!(
+                "field `{name}`: `required` on a `bool` means the box must be checked; `default: true` would check it for the user — drop one of them"
+            ),
+        ));
+    }
+
     // min < max for int
     let min_val = attrs
         .iter()

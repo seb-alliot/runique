@@ -22,6 +22,7 @@
     "precision_max": "Max {} decimal places",
     "integer_digits_max": "At most {} digits before the decimal point",
     "value_unconvertible": "This value doesn't fit this field",
+    "must_be_checked": "This box must be checked",
     "precision_min": "Min {} decimal places",
     "color_invalid": "Invalid color (format: #RRGGBB or #RGB)",
     "color_no_hash": "Color must start with #",

@@ -22,6 +22,7 @@
     "precision_max": "Precisione massima {} cifre dopo la virgola",
     "integer_digits_max": "Al massimo {} cifre prima della virgola",
     "value_unconvertible": "Questo valore non corrisponde a questo campo",
+    "must_be_checked": "Questa casella deve essere selezionata",
     "precision_min": "Precisione minima {} cifre dopo la virgola",
     "color_invalid": "Colore non valido (formato: #RRGGBB o #RGB)",
     "color_no_hash": "Il colore deve iniziare con #",

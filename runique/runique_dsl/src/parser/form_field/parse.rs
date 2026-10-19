@@ -620,6 +620,13 @@ mod tests {
     }
 
     #[test]
+    fn a_required_box_cant_be_checked_in_advance() {
+        err("cgu: bool [required, default: true]");
+        ok("cgu: bool [required, default: false]");
+        ok("actif: bool [default: true]");
+    }
+
+    #[test]
     fn nullable_universal() {
         ok("age: int [nullable]");
         ok("name: text [nullable]");

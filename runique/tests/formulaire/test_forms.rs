@@ -222,9 +222,9 @@ mod tests {
     #[tokio::test]
     async fn test_boolean_required_unchecked() {
         let mut field = BooleanField::new("accept").required();
-        field.set_value("false"); // Une valeur est présente (false), donc valide
-        assert!(field.validate().await);
-        assert!(field.error().is_none());
+        field.set_value("false"); // required = doit être cochée
+        assert!(!field.validate().await);
+        assert!(field.error().is_some());
     }
 
     #[tokio::test]

@@ -29,3 +29,25 @@ impl RuniqueForm for LoginAdmin {
 
     impl_form_access!();
 }
+
+/// An account as the staff edits it, from the `eihwaz_users` schema: its name
+/// and email only. The password is its owner's, set from the email link;
+/// ranks go through the gate.
+#[derive(serde::Serialize, Debug, Clone)]
+#[serde(transparent)]
+pub struct UserAdminForm {
+    pub form: Forms,
+}
+
+impl crate::forms::model_form::ModelForm for UserAdminForm {
+    fn schema() -> crate::migration::schema::ModelSchema {
+        crate::auth::user::schema()
+    }
+    fn fields() -> Option<&'static [&'static str]> {
+        Some(&["username", "email"])
+    }
+}
+
+impl RuniqueForm for UserAdminForm {
+    impl_form_access!(model);
+}

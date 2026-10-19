@@ -18,7 +18,7 @@ mod items {
             title: text [required],
             secret: password [nullable],
             photo: image [nullable, upload_to: "photos/"],
-            active: bool [required],
+            active: bool,
             level: int [default: 5],
             kind: text [default: "draft"],
         }

@@ -3,6 +3,7 @@ use sea_orm::{EntityTrait, IdenStatic, Iterable, PrimaryKeyToColumn};
 pub struct FormConfig<E: EntityTrait> {
     fields: Vec<E::Column>,
     readonly: Vec<E::Column>,
+    create_only: Vec<E::Column>,
     labels: Vec<(E::Column, String)>,
 }
 
@@ -11,6 +12,7 @@ impl<E: EntityTrait> Default for FormConfig<E> {
         Self {
             fields: Vec::new(),
             readonly: Vec::new(),
+            create_only: Vec::new(),
             labels: Vec::new(),
         }
     }
@@ -26,9 +28,19 @@ impl<E: EntityTrait> FormConfig<E> {
         self.fields.iter().any(|c| c.as_str() == name)
     }
 
-    /// In `fields` and not `readonly`: what the form itself may write.
-    pub(super) fn is_writable(&self, name: &str) -> bool {
+    /// What  a create form writes: in `fields`, not `readonly`.
+    pub(super) fn writable_on_create(&self, name: &str) -> bool {
         self.has_field(name) && !self.readonly.iter().any(|c| c.as_str() == name)
+    }
+
+    /// what an edit writes: the create ones, minus those frozen after creation.
+    pub(super) fn writable_on_edit(&self, name: &str) -> bool {
+        self.writable_on_create(name) && !self.create_only.iter().any(|c| c.as_str() == name)
+    }
+
+    /// No fields declared: the model has no form, so no create page.
+    pub(super) fn is_empty(&self) -> bool {
+        self.fields.is_empty()
     }
     /// The columns a row's page reads: the form's fields (read-only ones
     /// included), plus the primary key. Nothing else leaves the table.
@@ -45,6 +57,12 @@ impl<E: EntityTrait> FormConfig<E> {
 
     pub fn readonly(mut self, cols: impl IntoIterator<Item = E::Column>) -> Self {
         self.readonly = cols.into_iter().collect();
+        self
+    }
+
+    /// Typed when the row is createdn then shwon  but frozen on edit.
+    pub fn create_only(mut self, cols: impl IntoIterator<Item = E::Column>) -> Self {
+        self.create_only = cols.into_iter().collect();
         self
     }
 
@@ -68,6 +86,9 @@ impl<E: EntityTrait> FormConfig<E> {
         if self.readonly.iter().any(|c| c.as_str() == name) {
             lists.push("readonly");
         }
+        if self.create_only.iter().any(|c| c.as_str() == name) {
+            lists.push("create_only")
+        }
         if self.labels.iter().any(|(c, _)| c.as_str() == name) {
             lists.push("labels");
         }
@@ -76,7 +97,10 @@ impl<E: EntityTrait> FormConfig<E> {
 
     pub(crate) fn validate(&self) -> Result<(), String> {
         let mut form_error = Vec::new();
-        for (field, cols) in [("readonly", &self.readonly)] {
+        for (field, cols) in [
+            ("readonly", &self.readonly),
+            ("create_only", &self.create_only),
+        ] {
             for col in cols {
                 if !self.fields.iter().any(|c| c.as_str() == col.as_str()) {
                     form_error.push(format!(
@@ -85,6 +109,15 @@ impl<E: EntityTrait> FormConfig<E> {
                         field
                     ));
                 }
+            }
+        }
+
+        for col in &self.create_only {
+            if self.readonly.iter().any(|c| c.as_str() == col.as_str()) {
+                form_error.push(format!(
+                    "Field `{}` is in both `readonly` and `create_only`",
+                    col.as_str()
+                ));
             }
         }
         for (col, _) in &self.labels {
@@ -134,5 +167,52 @@ mod tests {
             .labels([(Column::OwnerId, "Propriétaire".to_string())]);
         let error = form.validate().unwrap_err();
         assert!(error.contains("labels"), "{error}");
+    }
+    #[test]
+    fn create_only_inside_fields_is_accepted() {
+        let form = FormConfig::<Entity>::default()
+            .fields([Column::OwnerId])
+            .create_only([Column::OwnerId]);
+        assert!(form.validate().is_ok());
+    }
+
+    #[test]
+    fn create_only_outside_fields_is_refused() {
+        let form = FormConfig::<Entity>::default()
+            .fields([Column::Id])
+            .create_only([Column::OwnerId]);
+        let error = form.validate().unwrap_err();
+        assert!(error.contains("create_only"), "{error}");
+        assert!(error.contains("owner_id"), "{error}");
+    }
+
+    #[test]
+    fn a_column_both_readonly_and_create_only_is_refused() {
+        let form = FormConfig::<Entity>::default()
+            .fields([Column::OwnerId])
+            .readonly([Column::OwnerId])
+            .create_only([Column::OwnerId]);
+        let error = form.validate().unwrap_err();
+        assert!(error.contains("both"), "{error}");
+    }
+
+    /// The whole table of what each list writes, create and edit side by side.
+    #[test]
+    fn each_list_is_written_on_create_and_edit_as_declared() {
+        let plain = FormConfig::<Entity>::default().fields([Column::OwnerId]);
+        assert!(plain.writable_on_create("owner_id"));
+        assert!(plain.writable_on_edit("owner_id"));
+
+        let frozen = FormConfig::<Entity>::default()
+            .fields([Column::OwnerId])
+            .create_only([Column::OwnerId]);
+        assert!(frozen.writable_on_create("owner_id"));
+        assert!(!frozen.writable_on_edit("owner_id"));
+
+        let shown = FormConfig::<Entity>::default()
+            .fields([Column::OwnerId])
+            .readonly([Column::OwnerId]);
+        assert!(!shown.writable_on_create("owner_id"));
+        assert!(!shown.writable_on_edit("owner_id"));
     }
 }

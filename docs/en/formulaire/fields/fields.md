@@ -140,7 +140,7 @@ form.field(
 );
 ```
 
-> **Note on `.required()`**: on a `BooleanField`, `.required()` does not force the user to check the box: an unchecked box sends `false`, a valid value. Whether the column is NULL or NOT NULL doesn't depend on the form but on the model (`nullable`). To force acceptance (e.g. Terms), use a custom validation (`clean()`) or check the value manually.
+> **Note on `.required()`**: on a `BooleanField`, `.required()` means **"must be checked"** (terms, consent): an unchecked box is an error. A box always answers (`true` or `false`), so a NOT NULL column needs no `required`: in the DSL, `active: bool` is enough, and `terms: bool [required]` forces the check. `required` with `default: true` is a compile error: a box checked in advance isn't consent. The box only accepts the value it sends (`"true"`, or the one set with `.checked_value(..)`): any other value is an error.
 
 ```rust
 // Single radio (yes/no)
@@ -419,7 +419,7 @@ form.field(&HiddenField::new_csrf());
 | ---------------- | ---------------------------------------------------------------------- | --------------------------------------------------- |
 | `TextField`      | `text()`, `email()`, `url()`, `password()`, `textarea()`, `richtext()` | Email/URL via `validator`, Argon2, XSS sanitization, `.rows(n)` |
 | `NumericField`   | `integer()`, `float()`, `decimal()`, `percent()`, `range()`            | Min/max bounds, decimal precision, `.step(n)` (`range` only)   |
-| `BooleanField`   | `new()`, `radio()`                                                     | `required` doesn't force the box to be checked                 |
+| `BooleanField`   | `new()`, `radio()`                                                     | `required` = must be checked; only its value is accepted       |
 | `ChoiceField`    | `new()` + `.multiple()`                                                | Value must be in declared choices                   |
 | `RadioField`     | `new()`                                                                | Value must be in declared choices                   |
 | `CheckboxField`  | `new()`                                                                | All values must be in choices                       |

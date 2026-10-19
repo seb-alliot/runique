@@ -257,3 +257,14 @@ async fn test_find_by_email_not_found() {
     let user = BuiltinUserEntity::find_by_email(&adb, "ghost@example.com").await;
     assert!(user.is_none());
 }
+
+// The table is created by the framework migration, not from this schema:
+// the schema has to say the same, or the admin's boot checks read a wrong table.
+#[test]
+fn test_schema_flags_default_to_false_like_the_table() {
+    let schema = runique::auth::user::schema();
+    for name in ["is_active", "is_dirigeant", "is_admin", "is_superuser"] {
+        let col = schema.columns.iter().find(|c| c.name == name).unwrap();
+        assert_eq!(col.default, Some(false.into()), "{name}");
+    }
+}

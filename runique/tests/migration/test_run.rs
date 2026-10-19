@@ -26,7 +26,7 @@ fn entity_user() -> &'static str {
         {
             username: text [required, unique],
             email: text [required, unique],
-            is_active: bool [required],
+            is_active: bool,
         }
     }
     "#
@@ -42,7 +42,7 @@ fn entity_user_with_bio() -> &'static str {
         {
             username: text [required, unique],
             email: text [required, unique],
-            is_active: bool [required],
+            is_active: bool,
             bio: text [nullable],
         }
     }
@@ -548,7 +548,7 @@ fn entity_user_without_email() -> &'static str {
         pk: id => i32,
         {
             username: text [required, unique],
-            is_active: bool [required],
+            is_active: bool,
         }
     }
     "#
