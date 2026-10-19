@@ -28,8 +28,7 @@ pub(crate) mod fixtures {
 
         impl ActiveModelBehavior for ActiveModel {}
     }
-    /// The notes' admin form: no field needed until the boot check compares
-    /// form fields with columns.
+    /// The notes' admin form: the owner, typed like the key it points to.
     #[derive(serde::Serialize, Debug, Clone)]
     #[serde(transparent)]
     pub struct NoteForm {
@@ -37,7 +36,12 @@ pub(crate) mod fixtures {
     }
 
     impl crate::forms::field::RuniqueForm for NoteForm {
-        fn register_fields(_form: &mut crate::forms::form::Forms) {}
+        fn register_fields(form: &mut crate::forms::form::Forms) {
+            #[cfg(feature = "pk-uuid")]
+            form.field(&crate::forms::fields::UUIDField::new("owner_id"));
+            #[cfg(not(feature = "pk-uuid"))]
+            form.field(&crate::forms::fields::NumericField::integer("owner_id"));
+        }
         crate::impl_form_access!();
     }
 

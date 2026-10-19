@@ -183,6 +183,10 @@ impl FormField for GenericField {
         delegate_to_field!(self, column_type)
     }
 
+    fn accepts_column(&self, column: &sea_orm::sea_query::ColumnType) -> bool {
+        accepts(&self.field, column)
+    }
+
     fn apply_column_type(&mut self, column: &sea_orm::sea_query::ColumnType) {
         delegate_to_field!(mut self, apply_column_type, column)
     }

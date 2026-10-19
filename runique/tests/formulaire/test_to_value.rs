@@ -201,6 +201,16 @@ fn a_field_stores_only_its_kind_of_column() {
     );
 }
 
+// A registered field is a `GenericField`, which knows its kind; any other
+// `FormField` can't say what it stores, so it is refused, never trusted.
+#[test]
+fn only_a_registered_field_says_which_columns_it_takes() {
+    let registered: GenericField = TextField::text("t").into();
+    assert!(registered.accepts_column(&ColumnType::Text));
+    assert!(!registered.accepts_column(&ColumnType::Boolean));
+    assert!(!TextField::text("t").accepts_column(&ColumnType::Text));
+}
+
 // ── a value the column can't store makes the form invalid ────────
 
 struct StockForm {

@@ -421,6 +421,22 @@ mod tests {
 
         impl ActiveModelBehavior for ActiveModel {}
     }
+    
+    #[test]
+    fn lists_using_names_exactly_the_lists_holding_the_column() {
+        let list = ListConfig::<user::Entity>::default()
+            .display([user::Column::Username, user::Column::Email])
+            .links([user::Column::Username])
+            .sortable([user::Column::Email])
+            .ordering([(user::Column::Username, Order::Asc)])
+            .search([user::Column::Email])
+            .filter([user::Column::IsActive])
+            .action(user::Column::IsActive, false, "Désactiver");
+        assert_eq!(list.lists_using("username"), ["display", "links", "ordering"]);
+        assert_eq!(list.lists_using("email"), ["display", "sortable", "search"]);
+        assert_eq!(list.lists_using("is_active"), ["action", "filter"]);
+        assert!(list.lists_using("is_admin").is_empty());
+    }
 
     #[test]
     fn links_and_sortable_inside_display_are_accepted() {

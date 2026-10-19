@@ -378,7 +378,7 @@
     },
     "reset_password": {
       "btn": "Passwort zurücksetzen",
-      "success_email": "Reset link sent to {}.",
+      "success_email": "Link zum Zurücksetzen gesendet.",
       "success_link": "Reset link (mailer not configured): {}",
       "error_no_email": "No email field found for this user.",
       "error_unavailable": "Für diesen Eintrag ist keine Passwortzurücksetzung möglich.",
@@ -392,7 +392,7 @@
     },
     "user_created": {
       "email_subject": "Willkommen — Passwort festlegen",
-      "email_sent": "Willkommens-E-Mail an {} gesendet.",
+      "email_sent": "Willkommens-E-Mail gesendet.",
       "email_greeting": "Willkommen,",
       "email_body": "Ein Konto wurde für Sie erstellt. Klicken Sie auf den Link, um Ihr Passwort festzulegen:",
       "email_btn": "Mein Passwort festlegen",

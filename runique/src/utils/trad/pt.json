@@ -378,7 +378,7 @@
     },
     "reset_password": {
       "btn": "Redefinir senha",
-      "success_email": "Reset link sent to {}.",
+      "success_email": "Link de redefinição enviado.",
       "success_link": "Reset link (mailer not configured): {}",
       "error_no_email": "No email field found for this user.",
       "error_unavailable": "A redefinição de senha não está disponível para este item.",
@@ -392,7 +392,7 @@
     },
     "user_created": {
       "email_subject": "Bem-vindo — defina sua senha",
-      "email_sent": "E-mail de boas-vindas enviado para {}.",
+      "email_sent": "E-mail de boas-vindas enviado.",
       "email_greeting": "Bem-vindo,",
       "email_body": "Uma conta foi criada para você. Clique no link para definir sua senha:",
       "email_btn": "Definir minha senha",

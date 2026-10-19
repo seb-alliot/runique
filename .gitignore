@@ -50,6 +50,10 @@ presentation_poo.pdf
 hooks_signaux_recap.md
 fallback_ci.md
 idee_perso.md
+droits_runique_4.0.md
+ebauche-crud-operations.md
+ebauche-model-admin.md
+ebauche-reset-password.md
 
 # Notes de travail (récapitulatifs locaux)
 recap-extraction-dsl-runique.md
@@ -59,6 +63,3 @@ recap-types-dsl-seaorm.md
 # cargo-mutants reports
 mutants.out/
 mutants.out.old/
-
-# Squelette de la refonte admin (brouillon, hors workspace)
-/refonte-admin/

@@ -378,7 +378,7 @@
     },
     "reset_password": {
       "btn": "Réinitialiser le mot de passe",
-      "success_email": "Lien de réinitialisation envoyé à {}.",
+      "success_email": "Lien de réinitialisation envoyé.",
       "success_link": "Lien de réinitialisation (mailer non configuré) : {}",
       "error_no_email": "Aucun champ email trouvé pour cet utilisateur.",
       "error_unavailable": "Réinitialisation du mot de passe impossible pour cet élément.",
@@ -392,7 +392,7 @@
     },
     "user_created": {
       "email_subject": "Bienvenue — définissez votre mot de passe",
-      "email_sent": "Email de bienvenue envoyé à {}.",
+      "email_sent": "Email de bienvenue envoyé.",
       "email_greeting": "Bienvenue,",
       "email_body": "Un compte a été créé pour vous. Cliquez sur le lien ci-dessous pour définir votre mot de passe :",
       "email_btn": "Définir mon mot de passe",

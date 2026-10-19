@@ -378,7 +378,7 @@
     },
     "reset_password": {
       "btn": "Restablecer contraseña",
-      "success_email": "Reset link sent to {}.",
+      "success_email": "Enlace de restablecimiento enviado.",
       "success_link": "Reset link (mailer not configured): {}",
       "error_no_email": "No email field found for this user.",
       "error_unavailable": "No es posible restablecer la contraseña para este elemento.",
@@ -392,7 +392,7 @@
     },
     "user_created": {
       "email_subject": "Bienvenido — define tu contraseña",
-      "email_sent": "Correo de bienvenida enviado a {}.",
+      "email_sent": "Correo de bienvenida enviado.",
       "email_greeting": "Bienvenido,",
       "email_body": "Se ha creado una cuenta para ti. Haz clic en el enlace para definir tu contraseña:",
       "email_btn": "Definir mi contraseña",

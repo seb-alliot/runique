@@ -38,6 +38,11 @@ impl<E: EntityTrait> FormConfig<E> {
         self.writable_on_create(name) && !self.create_only.iter().any(|c| c.as_str() == name)
     }
 
+    /// The columns the form shows, in their declared order.
+    pub(super) fn field_columns(&self) -> &[E::Column] {
+        &self.fields
+    }
+
     /// No fields declared: the model has no form, so no create page.
     pub(super) fn is_empty(&self) -> bool {
         self.fields.is_empty()
@@ -140,6 +145,17 @@ impl<E: EntityTrait> FormConfig<E> {
 mod tests {
     use super::FormConfig;
     use crate::admin::refonte_admin::gate::test_support::fixtures::note::{Column, Entity};
+    #[test]
+    fn lists_using_names_exactly_the_lists_holding_the_column() {
+        let form = FormConfig::<Entity>::default()
+            .fields([Column::Id, Column::OwnerId])
+            .readonly([Column::OwnerId])
+            .create_only([Column::Id])
+            .labels([(Column::OwnerId, "Propriétaire")]);
+        assert_eq!(form.lists_using("owner_id"), ["fields", "readonly", "labels"]);
+        assert_eq!(form.lists_using("id"), ["fields", "create_only"]);
+        assert!(form.lists_using("ghost").is_empty());
+    }
 
     #[test]
     fn readonly_and_labels_inside_fields_are_accepted() {
