@@ -8,7 +8,8 @@ use crate::admin::refonte_admin::{
 };
 use crate::utils::aliases::ADb;
 use sea_orm::{
-    DbErr, FromQueryResult, IdenStatic, PaginatorTrait, QueryFilter, QueryResult, QuerySelect,
+    ColumnTrait, DbErr, FromQueryResult, IdenStatic, PaginatorTrait, QueryFilter, QueryResult,
+    QuerySelect,
 };
 
 /// The account table's rank flags: written by the gate alone, never a form field.
@@ -113,6 +114,25 @@ impl<E: ModelMeta> ModelAdmin<E> {
                     "action `{}`: `{name}` is the owner, a transfer is its own operation",
                     action.label
                 ));
+            }
+        }
+
+        // Each declared column needs its field in the model's form, one that
+        // can hold the column's type: checked once here, not on every write.
+        let mut model_form = crate::forms::Forms::new("");
+        <E::AdminForm as crate::forms::RuniqueForm>::register_fields(&mut model_form);
+        for col in self.form.field_columns() {
+            let name = col.as_str();
+            match model_form.fields.get(name) {
+                None => errors.push(format!(
+                    "fields: `{name}` is not a field of the model's form (`AdminForm`)"
+                )),
+                Some(field) if !field.accepts_column(col.def().get_column_type()) => {
+                    errors.push(format!(
+                        "fields: `{name}`: the form's field can't hold this column's type"
+                    ));
+                }
+                Some(_) => {}
             }
         }
 
@@ -242,6 +262,7 @@ mod tests {
             pub summary: Option<String>,
             pub token: String,
             pub password: String,
+            pub published: bool,
         }
 
         #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -249,9 +270,29 @@ mod tests {
 
         impl ActiveModelBehavior for ActiveModel {}
 
+        /// A field for every column a test may put in `fields`.
+        #[derive(serde::Serialize, Debug, Clone)]
+        #[serde(transparent)]
+        pub struct ArticleForm {
+            pub form: crate::forms::Forms,
+        }
+
+        impl crate::forms::RuniqueForm for ArticleForm {
+            fn register_fields(form: &mut crate::forms::Forms) {
+                use crate::forms::fields::{BooleanField, TextField};
+                form.field(&TextField::text("title"));
+                form.field(&TextField::text("status"));
+                form.field(&TextField::text("summary"));
+                form.field(&BooleanField::new("published"));
+                // Wrong on purpose: a box can't hold the text column `token`.
+                form.field(&BooleanField::new("token"));
+            }
+            crate::impl_form_access!();
+        }
+
         impl crate::admin::refonte_admin::meta::ModelMeta for Entity {
             const KEY: &'static str = "articles";
-            type AdminForm = crate::admin::refonte_admin::gate::test_support::fixtures::NoteForm;
+            type AdminForm = ArticleForm;
             const SECRET: &'static [Column] = &[Column::Password];
             fn schema() -> crate::migration::schema::ModelSchema {
                 use crate::migration::ColumnDef;
@@ -284,6 +325,12 @@ mod tests {
                     .column(ColumnDef::new("summary").string().nullable())
                     .column(ColumnDef::new("token").string().required().ignore())
                     .column(ColumnDef::new("password").string().required())
+                    .column(
+                        ColumnDef::new("published")
+                            .boolean()
+                            .required()
+                            .default(false.into()),
+                    )
                     .build()
                     .unwrap()
             }
@@ -329,20 +376,41 @@ mod tests {
     #[test]
     fn a_secret_column_is_refused_in_every_list() {
         let p = user::Column::Password;
-        let cases: [(&str, ModelAdmin<user::Entity>); 7] = [
-            ("display", ModelAdmin::new().list(|l| l.display([p]))),
-            ("search", ModelAdmin::new().list(|l| l.search([p]))),
-            ("filter", ModelAdmin::new().list(|l| l.filter([p]))),
-            ("sortable", ModelAdmin::new().list(|l| l.sortable([p]))),
+        let cases: [(&str, ModelAdmin<user::Entity>); 10] = [
+            (
+                "display", 
+                    ModelAdmin::new().list(|l| l.display([p]))),
+            (
+                "search", 
+                    ModelAdmin::new().list(|l| l.search([p]))),
+            (
+                "filter", 
+                    ModelAdmin::new().list(|l| l.filter([p]))),
+            (
+                "sortable", 
+                    ModelAdmin::new().list(|l| l.sortable([p]))),
             (
                 "ordering",
-                ModelAdmin::new().list(|l| l.ordering([(p, Order::Asc)])),
+                    ModelAdmin::new().list(|l| l.ordering([(p, Order::Asc)])),
             ),
-            ("fields", ModelAdmin::new().form(|f| f.fields([p]))),
+            (
+                "fields", 
+                    ModelAdmin::new().form(|f| f.fields([p]))),
             (
                 "create_only",
-                ModelAdmin::new().form(|f| f.fields([p]).create_only([p])),
+                    ModelAdmin::new().form(|f| f.fields([p]).create_only([p])),
             ),
+            (
+                "labels",
+                    ModelAdmin::new().form(|f| f.fields([p]).labels([(p, "Mot de passe")])),
+            ),
+            (
+                "readonly",
+                    ModelAdmin::new().form(|f| f.fields([p]).readonly([p])),
+            ),
+            (
+                "links", 
+                    ModelAdmin::new().list(|l| l.display([p]).links([p]))),
         ];
         for (list, admin) in cases {
             let error = admin.validate().unwrap_err();
@@ -387,17 +455,43 @@ mod tests {
     }
 
     #[test]
+    fn a_column_without_its_field_in_the_form_is_refused() {
+        let admin = ModelAdmin::<user::Entity>::new().form(|f| {
+            f.fields([
+                user::Column::Username,
+                user::Column::Email,
+                user::Column::IsActive,
+            ])
+        });
+        let error = admin.validate().unwrap_err();
+        assert!(
+            error.contains("`is_active` is not a field of the model's form"),
+            "{error}"
+        );
+        assert!(!error.contains("`username`"), "{error}");
+        assert!(!error.contains("`email`"), "{error}");
+    }
+
+    #[test]
+    fn a_field_that_cant_hold_its_column_is_refused() {
+        let admin = ModelAdmin::<article::Entity>::new()
+            .form(|f| f.fields([article::Column::Title, article::Column::Token]));
+        let error = admin.validate().unwrap_err();
+        assert!(
+            error.contains("`token`: the form's field can't hold this column's type"),
+            "{error}"
+        );
+        assert!(!error.contains("`title`"), "{error}");
+    }
+
+    #[test]
     fn an_action_on_a_written_column_is_accepted() {
-        let admin = ModelAdmin::<user::Entity>::new()
-            .list(|l| l.action(user::Column::IsActive, false, "Désactiver"))
-            .form(|f| {
-                f.fields([
-                    user::Column::Username,
-                    user::Column::Email,
-                    user::Column::IsActive,
-                ])
-            });
-        assert!(admin.validate().is_ok());
+        let admin = ModelAdmin::<article::Entity>::new()
+            .list(|l| l.action(article::Column::Published, true, "Publier"))
+            .form(|f| f.fields([article::Column::Title, article::Column::Published]));
+        // `article` still misses its secret column: only the action matters here.
+        let error = admin.validate().unwrap_err();
+        assert!(!error.contains("action `Publier`"), "{error}");
     }
 
     #[test]

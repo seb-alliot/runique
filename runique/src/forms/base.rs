@@ -325,6 +325,13 @@ pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Syn
         self.get_field_config().column_type.as_ref()
     }
 
+    /// Whether this field can store `column` at all ([`crate::forms::generic::accepts`]).
+    /// `false` by default: only a field registered through `GenericField` is
+    /// known, any other is refused rather than trusted.
+    fn accepts_column(&self, _column: &sea_orm::sea_query::ColumnType) -> bool {
+        false
+    }
+
     /// Gives the field its column: what it stores, and what it then holds the
     /// input to. Never loosens a bound already set. The caller has checked the
     /// field can store that column at all (`accepts`).

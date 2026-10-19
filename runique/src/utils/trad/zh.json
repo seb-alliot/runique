@@ -378,7 +378,7 @@
     },
     "reset_password": {
       "btn": "重置密码",
-      "success_email": "Reset link sent to {}.",
+      "success_email": "重置链接已发送。",
       "success_link": "Reset link (mailer not configured): {}",
       "error_no_email": "No email field found for this user.",
       "error_unavailable": "此项目无法重置密码。",
@@ -392,7 +392,7 @@
     },
     "user_created": {
       "email_subject": "欢迎 — 请设置您的密码",
-      "email_sent": "欢迎邮件已发送至 {}。",
+      "email_sent": "欢迎邮件已发送。",
       "email_greeting": "欢迎，",
       "email_body": "已为您创建账户。请点击下方链接设置您的密码：",
       "email_btn": "设置我的密码",

@@ -378,7 +378,7 @@
     },
     "reset_password": {
       "btn": "Reimposta la password",
-      "success_email": "Reset link sent to {}.",
+      "success_email": "Link di reimpostazione inviato.",
       "success_link": "Reset link (mailer not configured): {}",
       "error_no_email": "No email field found for this user.",
       "error_unavailable": "Il ripristino della password non è disponibile per questo elemento.",
@@ -392,7 +392,7 @@
     },
     "user_created": {
       "email_subject": "Benvenuto — imposta la tua password",
-      "email_sent": "Email di benvenuto inviata a {}.",
+      "email_sent": "Email di benvenuto inviata.",
       "email_greeting": "Benvenuto,",
       "email_body": "È stato creato un account per te. Clicca il link per impostare la tua password:",
       "email_btn": "Imposta la mia password",

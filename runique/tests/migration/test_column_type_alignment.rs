@@ -38,6 +38,18 @@ macro_rules! aligned {
                 Column::V.def().get_column_type().clone()
             }
 
+            /// Whether the field the generated admin form gives `v` can
+            /// hold the entity's column: what the admin checks at boot.
+            pub fn form_accepts() -> bool {
+                use runique::forms::{Forms, RuniqueForm};
+                let mut form = Forms::new("");
+                AdminForm::register_fields(&mut form);
+                form.fields
+                    .get("v")
+                    .expect("`v` in the generated admin form")
+                    .accepts_column(&entity())
+            }
+
             pub fn schema_type() -> runique::sea_orm::sea_query::ColumnType {
                 schema()
                     .columns
@@ -92,7 +104,12 @@ aligned!(t_cidr, cidr, [required]);
 aligned!(t_mac_address, mac_address, [required]);
 aligned!(t_interval, interval, [required]);
 
-type Case = (&'static str, fn() -> ColumnType, fn() -> ColumnType);
+type Case = (
+    &'static str,
+    fn() -> ColumnType,
+    fn() -> ColumnType,
+    fn() -> bool,
+);
 
 /// Every DSL type, with no catch-all: a new type doesn't compile here until
 /// it says which column it stores, or why it has none.
@@ -100,7 +117,7 @@ fn cases_of(kind: FormFieldKind) -> Vec<Case> {
     use FormFieldKind::*;
     macro_rules! of {
         ($($module:ident),+) => {
-            vec![$(($module::SOURCE, $module::entity as fn() -> ColumnType, $module::schema_type as fn() -> ColumnType)),+]
+            vec![$(($module::SOURCE, $module::entity as fn() -> ColumnType, $module::schema_type as fn() -> ColumnType, $module::form_accepts as fn() -> bool)),+]
         };
     }
     match kind {
@@ -187,7 +204,7 @@ fn migration_column_type(source: &str) -> ColumnType {
 fn every_type_declares_the_column_the_migration_creates() {
     let mut checked = 0;
     for &kind in FormFieldKind::ALL {
-        for (source, entity, schema) in cases_of(kind) {
+        for (source, entity, schema, _) in cases_of(kind) {
             let migration = migration_column_type(source);
             assert_eq!(
                 entity(),
@@ -203,4 +220,19 @@ fn every_type_declares_the_column_the_migration_creates() {
         }
     }
     assert_eq!(checked, 41, "every declared case was checked");
+}
+
+#[test]
+fn every_generated_form_field_holds_its_column() {
+    let mut checked = 0;
+    for &kind in FormFieldKind::ALL {
+        for (source, _, _, form_accepts) in cases_of(kind) {
+            assert!(
+                form_accepts(),
+                "{kind:?}: the generated form field can't hold the entity's column ({source})"
+            );
+            checked += 1;
+        }
+    }
+    assert_eq!(checked, 41, "a case was dropped");
 }

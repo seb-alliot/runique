@@ -107,10 +107,7 @@ pub(super) async fn send_user_created_email(
         {
             Ok(_) => {
                 req.notices
-                    .success(crate::utils::trad::tf(
-                        "admin.user_created.email_sent",
-                        &[email],
-                    ))
+                    .success(t("admin.user_created.email_sent"))
                     .await;
                 true
             }
@@ -226,10 +223,7 @@ pub(super) async fn handle_reset_password(
         {
             Ok(_) => {
                 req.notices
-                    .success(crate::utils::trad::tf(
-                        "admin.reset_password.success_email",
-                        &[&email],
-                    ))
+                    .success(t("admin.reset_password.success_email"))
                     .await;
             }
             Err(e) => {
