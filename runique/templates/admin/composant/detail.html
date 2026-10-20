@@ -20,21 +20,7 @@
     {% block detail_actions %}
     <div class="admin-page__actions">
       <a href="{{ resource_base }}/list" class="btn btn-secondary btn-sm">{% if admin_detail_btn_list %}{{ admin_detail_btn_list }}{% endif %}</a>
-      {% set_global can_modify = false %}
-      {% if current_user %}
-        {% if current_user.rang == "Superuser" %}
-          {% set_global can_modify = true %}
-        {% else %}
-          {% for groupe in current_user.groupes %}
-            {% for perm in groupe.permissions %}
-              {% if perm.resource_key == resource.key and perm.can_update %}
-                {% set_global can_modify = true %}
-              {% endif %}
-            {% endfor %}
-          {% endfor %}
-        {% endif %}
-      {% endif %}
-      {% if current_user and can_modify %}
+      {% if can_update %}
       {% if can_reset_password %}
       <form method="post" action="{{ resource_base }}/{{ object_id }}/reset-password" class="admin-form--inline admin-btn--hide-mobile">
         {% csrf %}
@@ -101,7 +87,7 @@
           {% for key, value in entry %}
             {% if key != "id" %}
             <tr>
-              <td class="admin-table__key">{{ key }}</td>
+              <td class="admin-table__key">{{ key | replace(from="_", to=" ") }}</td>
               <td>
                 {% if key == "password" or key == "password_hash" %}
                   <span class="admin-badge--id">••••••••</span>

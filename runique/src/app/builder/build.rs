@@ -200,35 +200,18 @@ impl<P> RuniqueAppBuilder<P> {
             let admin_prefix = self.admin.public_prefix();
             let robots_txt = self.admin.robots_txt;
             let sitemap_url = self.admin.sitemap_url.clone();
-            if let Some(level) = crate::utils::runique_log::get_log()
-                .builder
-                .as_ref()
-                .and_then(|b| b.registry)
-            {
-                let count = self
-                    .admin
-                    .state
-                    .as_ref()
-                    .map(|s| s.registry.all().count())
-                    .unwrap_or(0);
-                crate::runique_log!(level, resources = count, "admin registry");
-            }
             // Close the `resource_key` referential-integrity gap: drop rights that
-            // point at a resource key no longer in the registry (see
-            // `prune_orphan_droits`). Static resources → boot is the only window.
-            let valid_keys: Vec<String> = self
-                .admin
-                .state
-                .as_ref()
-                .map(|s| s.registry.keys().into_iter().map(str::to_string).collect())
-                .unwrap_or_default();
-            if !valid_keys.is_empty() {
-                let refs: Vec<&str> = valid_keys.iter().map(String::as_str).collect();
+            // point at a resource no longer registered (see `prune_orphan_droits`).
+            // The registered models are fixed at build time: boot is the only window.
+            // Only once the project registered its models: the accounts alone
+            // would make every other right look orphaned.
+            let valid_keys = self.admin.site.keys();
+            if self.admin.site.has_project_models() {
                 let level = crate::utils::runique_log::get_log()
                     .builder
                     .as_ref()
                     .and_then(|b| b.registry);
-                match crate::auth::permissions::prune_orphan_droits(&engine.db, &refs).await {
+                match crate::auth::permissions::prune_orphan_droits(&engine.db, &valid_keys).await {
                     Ok(n) if n > 0 => {
                         if let Some(level) = level {
                             crate::runique_log!(

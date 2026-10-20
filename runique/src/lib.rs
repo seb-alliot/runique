@@ -259,29 +259,12 @@ pub mod prelude {
     // Admin
     // ========================================================================
 
-    // Items used by daemon-generated code (external crate) via `use runique::prelude::*`
     #[cfg(feature = "admin")]
     pub use crate::admin::{
-        admin_main::{
-            PrototypeAdminState, admin_get, admin_get_id, admin_nested_get, admin_nested_get_id,
-            admin_nested_post, admin_nested_post_id, admin_post, admin_post_id,
-        },
-        builtin::builtin_resources,
-        config::config_admin::AdminConfig,
-        helper::{
-            dyn_form::DynForm,
-            resource_entry::{
-                CountFn, CreateFn, DeleteFn, FilterFn, FormBuilder, GetFn, GroupAction, ListFn,
-                ListParams, M2mFieldOptions, M2mLoaderFn, ResourceEntry, SortDir, UpdateFn,
-            },
-            sql_dialect::{ilike, text_cast_type, text_eq, text_eq_ci},
-        },
-        registry::AdminRegistry,
-        resource::{AdminResource, ColumnFilter, CrudOperation, DisplayConfig},
-        router::admin_router::AdminState,
-        trad::{inject_admin_prefix, insert_admin_messages},
+        AdminConfig, AdminState, CrudOperation, inject_admin_prefix, insert_admin_messages,
     };
     pub use crate::auth::permissions::groupe;
+    pub use crate::db::sql_dialect::{ilike, text_cast_type, text_eq, text_eq_ci};
     pub use crate::migrations_table;
     pub use futures_util::future::BoxFuture;
 }

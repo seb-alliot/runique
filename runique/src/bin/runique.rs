@@ -1,8 +1,8 @@
-//! CLI binary `runique` — `new`, `start`, `makemigration`, `migrate` commands via clap.
+//! CLI binary `runique` — `new`, `makemigration`, `migrate` commands via clap.
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use runique::{
-    cli::{create_new_project, create_superuser, makemigration, migrate, run_tests, runique_start},
+    cli::{create_new_project, create_superuser, makemigration, migrate, run_tests},
     utils::{
         init_logging,
         trad::{Lang, set_lang},
@@ -24,20 +24,6 @@ enum Commands {
     /// Generates the complete structure with routes, views, models and templates.
     New { name: String },
 
-    /// Start Runique services (from the project root)
-    ///
-    /// Automatically detects the project configuration:
-    ///   - If `.with_admin(...)` is present in src/main.rs → starts the `AdminPanel` daemon
-    ///   - Otherwise → nothing to do
-    Start {
-        /// Path to src/main.rs (default: ./src/main.rs)
-        #[arg(long, default_value = "src/main.rs")]
-        main: String,
-
-        /// Path to src/admin.rs (default: ./src/admin.rs)
-        #[arg(long, default_value = "src/admin.rs")]
-        admin: String,
-    },
     /// Create an admin superuser
     CreateSuperuser,
 
@@ -87,7 +73,6 @@ async fn main() -> Result<()> {
 
     match cli.command {
         Commands::New { name } => create_new_project(&name)?,
-        Commands::Start { main, admin } => runique_start(&main, &admin)?,
         Commands::CreateSuperuser => create_superuser().await?,
         Commands::Test { file, test } => run_tests(file.as_deref(), test.as_deref())?,
         Commands::Migration { action } => match action {

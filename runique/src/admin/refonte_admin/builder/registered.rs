@@ -15,7 +15,12 @@ use crate::admin::refonte_admin::{
 };
 use crate::auth::session::CurrentUser;
 use crate::utils::aliases::ADb;
-use sea_orm::DbErr;
+use sea_orm::sea_query::SelectStatement;
+use sea_orm::{DbErr, IdenStatic};
+
+/// Column aliases of `count_query`.
+pub(crate) const COUNT_RESOURCE: &str = "resource";
+pub(crate) const COUNT_TOTAL: &str = "total";
 
 /// Why an admin request couldn't be served.
 #[derive(Debug)]
@@ -38,11 +43,38 @@ impl From<DbErr> for AdminError {
     }
 }
 
+/// A resource key as a title: `doc_page` → `Doc page`.
+pub(crate) fn readable(key: &str) -> String {
+    let spaced = key.replace('_', " ");
+    let mut chars = spaced.chars();
+    match chars.next() {
+        Some(first) => first.to_uppercase().chain(chars).collect(),
+        None => spaced,
+    }
+}
+
 /// What the site needs from a `ModelAdmin` without knowing `E`.
 #[async_trait::async_trait]
 pub(crate) trait RegisteredModel: Send + Sync {
     fn key(&self) -> &'static str;
     fn check(&self) -> Result<(), String>;
+    /// The list's columns, in order, the primary key aside: the page shows it
+    /// on its own.
+    fn list_columns(&self) -> Vec<&'static str>;
+    /// The name shown in the navigation: the builder's `title()`, else the
+    /// model's plural (or singular) verbose name, else its key made readable.
+    fn title(&self) -> String;
+    /// Whether the navigation lists it for `user`: at least one right on it,
+    /// as the gate resolves them. Listing opens nothing: each page still asks
+    /// the gate.
+    fn visible_to(&self, user: &CurrentUser) -> bool;
+    /// Whether this model can stand in for the framework's accounts admin:
+    /// the `eihwaz_users` table, with every protection of the base model.
+    fn keeps_account_rules(&self) -> bool;
+    /// `SELECT '<key>' AS resource, COUNT(*) AS total` over the rows `user` may
+    /// read, or `None` without the read right: the dashboard unites them into
+    /// one query.
+    fn count_query(&self, db: &ADb, user: &CurrentUser) -> Option<SelectStatement>;
     async fn list(
         &self,
         db: &ADb,
@@ -67,6 +99,72 @@ impl<E: ModelMeta> RegisteredModel for ModelAdmin<E> {
 
     fn check(&self) -> Result<(), String> {
         self.validate()
+    }
+
+    fn list_columns(&self) -> Vec<&'static str> {
+        use sea_orm::{Iterable, PrimaryKeyToColumn};
+        let keys: Vec<&str> = E::PrimaryKey::iter()
+            .map(|k| k.into_column().as_str())
+            .collect();
+        self.list
+            .display_columns()
+            .iter()
+            .map(|c| c.as_str())
+            .filter(|name| !keys.contains(name))
+            .collect()
+    }
+
+    fn title(&self) -> String {
+        if let Some(title) = &self.title {
+            return title.clone();
+        }
+        let schema = E::schema();
+        schema
+            .verbose_name_plural
+            .or(schema.verbose_name)
+            .unwrap_or_else(|| readable(E::KEY))
+    }
+
+    fn visible_to(&self, user: &CurrentUser) -> bool {
+        let rights = crate::admin::refonte_admin::gate::rights::CrudAction::resolve(
+            user,
+            E::KEY,
+            E::IS_FRAMEWORK_TABLE,
+        );
+        rights.can_create
+            || rights.can_read
+            || rights.can_read_own
+            || rights.can_update
+            || rights.can_update_own
+            || rights.can_delete
+            || rights.can_delete_own
+    }
+
+    fn keeps_account_rules(&self) -> bool {
+        use sea_orm::EntityName;
+        E::default().table_name() == crate::auth::user::Entity.table_name()
+            && E::KEY == <crate::auth::user::Entity as ModelMeta>::KEY
+            && E::IS_ACCOUNT_TABLE
+            && E::IS_FRAMEWORK_TABLE
+            && E::SECRET.iter().any(|c| c.as_str() == "password")
+    }
+
+    fn count_query(&self, db: &ADb, user: &CurrentUser) -> Option<SelectStatement> {
+        use crate::admin::refonte_admin::gate::Guarded;
+        use sea_orm::sea_query::{Asterisk, Expr, Func, SimpleExpr};
+        use sea_orm::{QueryFilter, QuerySelect, QueryTrait};
+        let proof = authorize_list::<E>(&GateCtx { db, user }).ok()?;
+        Some(
+            E::find()
+                .filter(proof.conditions())
+                .select_only()
+                .column_as(Expr::val(E::KEY), COUNT_RESOURCE)
+                .column_as(
+                    SimpleExpr::from(Func::count(Expr::col(Asterisk))),
+                    COUNT_TOTAL,
+                )
+                .into_query(),
+        )
     }
 
     async fn list(

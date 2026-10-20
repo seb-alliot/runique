@@ -124,6 +124,7 @@ pub async fn pull_groupes_db<C: ConnectionTrait>(
 
     let droits = match groupes_droits::Entity::find()
         .filter(groupes_droits::Column::GroupeId.is_in(groupes.iter().map(|g| g.id)))
+        .filter(groupes_droits::Column::Colonne.eq(""))
         .all(db)
         .await
     {
@@ -134,7 +135,7 @@ pub async fn pull_groupes_db<C: ConnectionTrait>(
         }
     };
     for m in droits {
-        if let Some(g) = groupes.iter_mut().find(|g| g.id == m.groupe_id) {
+        if let Some(g) = groupes.iter_mut().find(|g| m.groupe_id == Some(g.id)) {
             g.permissions.push(Permission {
                 resource_key: m.resource_key,
                 can_create: m.can_create,

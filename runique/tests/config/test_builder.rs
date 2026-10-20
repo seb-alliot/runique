@@ -11,7 +11,7 @@
 
 use axum::{Router, routing::get};
 #[cfg(feature = "admin")]
-use runique::admin::{AdminConfig, AdminRoutes};
+use runique::admin::AdminConfig;
 #[cfg(feature = "admin")]
 use runique::app::staging::AdminStaging;
 use runique::app::staging::{
@@ -788,19 +788,9 @@ fn test_admin_staging_site_title() {
 
 #[cfg(feature = "admin")]
 #[test]
-fn test_admin_staging_routes_stocke_router() {
-    let router = Router::new().route("/admin/test", get(|| async { "ok" }));
-    let admin_routes = AdminRoutes::new("/admin", router);
-    let a = AdminStaging::new().routes(admin_routes);
-    assert!(a.route_admin.is_some());
+fn test_admin_staging_path_stocke_le_chemin() {
+    let a = AdminStaging::new().path("/admin");
     assert_eq!(a.config.prefix, "/admin");
-}
-
-#[cfg(feature = "admin")]
-#[test]
-fn test_admin_staging_with_proto_state_none_par_defaut() {
-    let a = AdminStaging::new();
-    assert!(a.state.is_none());
 }
 
 #[cfg(feature = "admin")]

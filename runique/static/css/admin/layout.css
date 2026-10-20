@@ -24,10 +24,11 @@ html, body {
     -moz-osx-font-smoothing: grayscale;
 }
 
-/* Scroll fluide dans la zone de contenu principale */
+/* Scroll fluide dans la zone de contenu principale. Vertical seulement : sur
+   l'axe horizontal, le débordement est le geste « retour » du navigateur. */
 .admin-content {
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
+    overscroll-behavior-y: contain;
 }
 
 a { color: inherit; text-decoration: none; }

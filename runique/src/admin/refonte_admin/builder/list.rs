@@ -21,6 +21,10 @@ pub(crate) struct ListQuery {
     pub filters: Vec<(String, String)>,
 }
 
+/// Shorter terms search nothing: one or two letters match almost every row
+/// and scan the whole table, while the list searches as one types.
+pub(crate) const SEARCH_MIN_LEN: usize = 3;
+
 impl ListQuery {
     /// Reads the URL's query string. It only shapes the values: which column
     /// a name may reach is decided later, by `ListConfig`.
@@ -29,7 +33,9 @@ impl ListQuery {
         let page = non_empty("page").and_then(|p| p.parse().ok()).unwrap_or(1);
         let sort_by = non_empty("sort_by");
         let sort_dir = non_empty("sort_dir");
-        let search = non_empty("search").map(|s| s.chars().take(search_max_len).collect());
+        let search = non_empty("search")
+            .filter(|s| s.trim().chars().count() >= SEARCH_MIN_LEN)
+            .map(|s| s.chars().take(search_max_len).collect());
         let filters = params
             .into_iter()
             .filter_map(|(key, value)| {
@@ -105,6 +111,16 @@ impl<E: EntityTrait> ListConfig<E> {
     pub fn display(mut self, cols: impl IntoIterator<Item = E::Column>) -> Self {
         self.display = cols.into_iter().collect();
         self
+    }
+
+    /// Whether `display` was declared.
+    pub(super) fn has_display(&self) -> bool {
+        !self.display.is_empty()
+    }
+
+    /// The columns shown, in their declared order.
+    pub(super) fn display_columns(&self) -> &[E::Column] {
+        &self.display
     }
 
     pub fn links(mut self, cols: impl IntoIterator<Item = E::Column>) -> Self {
@@ -421,7 +437,7 @@ mod tests {
 
         impl ActiveModelBehavior for ActiveModel {}
     }
-    
+
     #[test]
     fn lists_using_names_exactly_the_lists_holding_the_column() {
         let list = ListConfig::<user::Entity>::default()
@@ -432,7 +448,10 @@ mod tests {
             .search([user::Column::Email])
             .filter([user::Column::IsActive])
             .action(user::Column::IsActive, false, "Désactiver");
-        assert_eq!(list.lists_using("username"), ["display", "links", "ordering"]);
+        assert_eq!(
+            list.lists_using("username"),
+            ["display", "links", "ordering"]
+        );
         assert_eq!(list.lists_using("email"), ["display", "sortable", "search"]);
         assert_eq!(list.lists_using("is_active"), ["action", "filter"]);
         assert!(list.lists_using("is_admin").is_empty());
@@ -703,6 +722,27 @@ mod tests {
     fn a_long_search_term_is_cut_to_the_limit() {
         let query = ListQuery::from_params(params(&[("search", "aaaaaaaa")]), 5);
         assert_eq!(query.search.as_deref(), Some("aaaaa"));
+    }
+
+    #[test]
+    fn a_term_below_three_characters_searches_nothing() {
+        assert!(
+            ListQuery::from_params(params(&[("search", "ab")]), 150)
+                .search
+                .is_none()
+        );
+        assert!(
+            ListQuery::from_params(params(&[("search", " ab ")]), 150)
+                .search
+                .is_none()
+        );
+        assert_eq!(
+            ListQuery::from_params(params(&[("search", "Léo")]), 150)
+                .search
+                .as_deref(),
+            Some("Léo"),
+            "three characters, accent included"
+        );
     }
 
     #[test]

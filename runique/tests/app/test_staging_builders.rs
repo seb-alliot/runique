@@ -4,7 +4,7 @@
 use axum::Router;
 use axum::routing::get;
 #[cfg(feature = "admin")]
-use runique::admin::resource::CrudOperation;
+use runique::admin::CrudOperation;
 use runique::app::RuniqueApp;
 #[cfg(feature = "admin")]
 use runique::app::staging::AdminStaging;

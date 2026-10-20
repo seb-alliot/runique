@@ -2,7 +2,6 @@
 //! in its constants; [`CrudOperation`] is the data form of the same thing
 //! (history, templates, `extra_routes`), linked by [`AdminOperation::CRUD_NATURE`].
 use super::rights::Crud;
-use crate::admin::resource::CrudOperation;
 
 pub trait AdminOperation {
     const CRUD_NATURE: CrudOperation;
@@ -64,4 +63,16 @@ impl AdminOperation for ResetPassword {
     const RIGHT: Crud = Crud::Update;
     const RIGHT_OWN: Option<Crud> = None;
     const PROTECTS_RANK: bool = true;
+}
+
+/// An admin operation as data: what a custom admin route declares it performs
+/// (`extra_routes`), to check the matching right.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+pub enum CrudOperation {
+    List,
+    View,
+    Create,
+    ResetPassword,
+    Edit,
+    Delete,
 }

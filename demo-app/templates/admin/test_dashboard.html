@@ -19,9 +19,9 @@
     </div>
     <div class="stats-grid">
         {% for resource in resources %}
-        <a href="{{ admin_prefix }}/{{ resource.key }}/list" class="stat-card">
+        <a href="{{ resource.list_url }}" class="stat-card">
             <div class="stat-label">{{ resource.title }}</div>
-            <div class="stat-value">{{ resource_counts[resource.key] | default(value="0") }}</div>
+            <div class="stat-value">{{ resource_counts[resource.key] | default(value="—") }}</div>
             <div class="stat-meta">View list →</div>
         </a>
         {% endfor %}
@@ -54,8 +54,6 @@
                 <thead>
                     <tr>
                         <th>Resource</th>
-                        <th>Key</th>
-                        <th>Permissions</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -63,30 +61,9 @@
                     {% for resource in resources %}
                     <tr>
                         <td><strong>{{ resource.title }}</strong></td>
-                        <td><span class="id-badge">{{ resource.key }}</span></td>
-                        <td>
-                            {% if resource_groups[resource.key] %}
-                                {% for grp in resource_groups[resource.key] %}
-                                <span class="badge badge-blue">{{ grp }}</span>
-                                {% endfor %}
-                            {% endif %}
-                        </td>
                         <td>
                             <div class="table-actions">
-                                <a href="{{ admin_prefix }}/{{ resource.key }}/list" class="btn btn-secondary btn-sm">Liste</a>
-                                {% if current_user %}
-                                {% if current_user.rang == "Superuser" %}
-                                    <a href="{{ admin_prefix }}/{{ resource.key }}/create" class="btn btn-primary btn-sm">Create</a>
-                                {% else %}
-                                    {% for groupe in current_user.groupes %}
-                                    {% for perm in groupe.permissions %}
-                                        {% if perm.resource_key == resource.key and perm.can_create %}
-                                        <a href="{{ admin_prefix }}/{{ resource.key }}/create" class="btn btn-primary btn-sm">Create</a>
-                                        {% endif %}
-                                    {% endfor %}
-                                    {% endfor %}
-                                {% endif %}
-                                {% endif %}
+                                <a href="{{ resource.list_url }}" class="btn btn-secondary btn-sm">Liste</a>
                             </div>
                         </td>
                     </tr>

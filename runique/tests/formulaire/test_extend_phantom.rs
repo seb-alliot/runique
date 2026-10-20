@@ -147,3 +147,47 @@ fn the_schema_of_an_extend_holds_its_own_columns() {
     assert_eq!(schema.table_name, "eihwaz_groupes");
     assert!(schema.columns.iter().any(|c| c.name == "tier"));
 }
+
+// An extension of a framework table carries the base table's rules: its own
+// columns are added, never a weaker key or protection.
+#[cfg(feature = "admin")]
+#[test]
+fn an_extended_account_table_keeps_the_accounts_rules() {
+    use runique::admin::refonte_admin::meta::ModelMeta;
+    use runique::sea_orm::IdenStatic;
+    assert_eq!(<users::Entity as ModelMeta>::KEY, "users");
+    const { assert!(<users::Entity as ModelMeta>::IS_ACCOUNT_TABLE) };
+    const { assert!(<users::Entity as ModelMeta>::IS_FRAMEWORK_TABLE) };
+    assert!(
+        <users::Entity as ModelMeta>::SECRET
+            .iter()
+            .any(|c| c.as_str() == "password")
+    );
+
+    assert_eq!(<groups::Entity as ModelMeta>::KEY, "groupes");
+    const { assert!(<groups::Entity as ModelMeta>::IS_FRAMEWORK_TABLE) };
+    const { assert!(!<groups::Entity as ModelMeta>::IS_ACCOUNT_TABLE) };
+}
+
+#[cfg(feature = "admin")]
+#[test]
+fn an_extended_account_table_replaces_the_accounts_admin() {
+    use runique::admin::refonte_admin::builder::admin_builder::ModelAdmin;
+    use runique::app::staging::AdminStaging;
+    let staging = AdminStaging::new()
+        .enable()
+        .path("/admin")
+        .site(|s| s.accounts_users(ModelAdmin::<users::Entity>::new()));
+    if let Err(e) = staging.validate() {
+        panic!("{e}");
+    }
+
+    let wrong = AdminStaging::new()
+        .enable()
+        .path("/admin")
+        .site(|s| s.accounts_users(ModelAdmin::<groups::Entity>::new()));
+    assert!(
+        wrong.validate().is_err(),
+        "the groups can't stand in for the accounts"
+    );
+}

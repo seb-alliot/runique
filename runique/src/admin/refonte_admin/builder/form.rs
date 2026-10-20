@@ -152,7 +152,10 @@ mod tests {
             .readonly([Column::OwnerId])
             .create_only([Column::Id])
             .labels([(Column::OwnerId, "Propriétaire")]);
-        assert_eq!(form.lists_using("owner_id"), ["fields", "readonly", "labels"]);
+        assert_eq!(
+            form.lists_using("owner_id"),
+            ["fields", "readonly", "labels"]
+        );
         assert_eq!(form.lists_using("id"), ["fields", "create_only"]);
         assert!(form.lists_using("ghost").is_empty());
     }

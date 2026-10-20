@@ -1,4 +1,4 @@
-//! Runique CLI commands — new project, migration generation, server startup.
+//! Runique CLI commands — new project, migration generation, superuser, tests.
 pub mod new_project;
 pub use new_project::create_new_project;
 
@@ -8,9 +8,6 @@ pub use makemigration::{
 };
 
 pub mod migrate;
-
-pub mod start;
-pub use start::runique_start;
 
 pub mod cli_admin;
 pub use cli_admin::create_superuser;
