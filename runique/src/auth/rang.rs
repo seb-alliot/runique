@@ -1,8 +1,11 @@
 //! Rank of an account in the administration hierarchy.
+#[cfg(feature = "admin")]
 use sea_orm::{ColumnTrait, Condition};
 use serde::{Deserialize, Serialize};
 
-use crate::auth::user::{Column, Model};
+#[cfg(feature = "admin")]
+use crate::auth::user::Column;
+use crate::auth::user::Model;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum Rang {
@@ -27,6 +30,7 @@ impl Rang {
     /// Accounts this rank may manage, to add to the WHERE of the write: only
     /// a strictly lower rank, so never one's own account. `None`: manages no
     /// account, refused before any write.
+    #[cfg(feature = "admin")]
     pub(crate) fn cibles_gerables(self) -> Option<Condition> {
         let exclus: &[Column] = match self {
             Rang::Lambda => return None,

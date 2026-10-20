@@ -1,28 +1,3 @@
-{% set_global can_view = false %}
-{% set_global can_edit = false %}
-{% set_global can_delete = false %}
-{% set_global can_create = false %}
-
-{% if current_user %}
-    {% if current_user.rang == "Superuser" %}
-        {% set_global can_view = true %}
-        {% set_global can_edit = true %}
-        {% set_global can_delete = true %}
-        {% set_global can_create = true %}
-    {% else %}
-        {% for groupe in current_user.groupes %}
-            {% for perm in groupe.permissions %}
-                {% if perm.resource_key == resource_key %}
-                    {% if perm.can_read %}{% set_global can_view = true %}{% endif %}
-                    {% if perm.can_update %}{% set_global can_edit = true %}{% endif %}
-                    {% if perm.can_delete %}{% set_global can_delete = true %}{% endif %}
-                    {% if perm.can_create %}{% set_global can_create = true %}{% endif %}
-                {% endif %}
-            {% endfor %}
-        {% endfor %}
-    {% endif %}
-{% endif %}
-
 {% if can_view or can_edit or can_delete or can_create %}
     <div class="admin-menu">
         <button class="admin-menu__trigger" type="button" aria-haspopup="true" aria-expanded="false">

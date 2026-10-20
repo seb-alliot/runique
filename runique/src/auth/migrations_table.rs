@@ -3,10 +3,24 @@
 //! own `up` migrations. The admin's history table is created here too; only
 //! its use (entity, pages) belongs to the admin.
 
+use crate::utils::constante::resource_key::FRAMEWORK_KEYS;
 use sea_query::{
-    Alias, Check, ColumnDef, Expr, ExprTrait, ForeignKey, ForeignKeyAction, Index, Table,
-    TableCreateStatement,
+    Alias, Check, ColumnDef, Expr, ExprTrait, ForeignKey, ForeignKeyAction, Index,
+    IndexCreateStatement, Table, TableCreateStatement,
 };
+
+/// A column pointing at `eihwaz_users.id`, of the same type: a FK of another
+/// type fails on Postgres.
+fn user_pk_reference(name: &str) -> ColumnDef {
+    let mut col = ColumnDef::new(Alias::new(name));
+    #[cfg(feature = "pk-uuid")]
+    col.uuid();
+    #[cfg(all(feature = "big-pk", not(feature = "pk-uuid")))]
+    col.big_integer();
+    #[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
+    col.integer();
+    col
+}
 
 // ── EihwazUsersMigration ──────────────────────────────────────────────────────
 
@@ -129,6 +143,15 @@ pub const ACTIVE_NEEDS_ACTIVATION: &str = "eihwaz_users_active_needs_activation"
 /// Name of the `CHECK` constraint "at most one of superuser, dirigeant, admin".
 pub const ONE_RANK_AT_MOST: &str = "eihwaz_users_one_rank_at_most";
 
+/// Name of the `CHECK` "a row belongs to exactly one group or one account".
+pub const DROITS_ONE_HOLDER: &str = "eihwaz_groupes_droits_one_holder";
+
+/// Name of the `CHECK` "a group's row never targets a framework table".
+pub const DROITS_GROUP_NEVER_FRAMEWORK: &str = "eihwaz_groupes_droits_group_never_framework";
+
+/// Name of the `CHECK` "a column row only reads, creates or updates".
+pub const DROITS_COLUMN_ROW_FLAGS: &str = "eihwaz_groupes_droits_column_row_flags";
+
 /// Generates the `TableCreateStatement` for the `eihwaz_groupes` table.
 pub fn create_eihwaz_groupes_table() -> TableCreateStatement {
     Table::create()
@@ -156,61 +179,72 @@ pub fn create_eihwaz_groupes_table() -> TableCreateStatement {
         .to_owned()
 }
 
-/// Generates the `TableCreateStatement` for the `eihwaz_groupes_droits` table.
-/// Each row represents a group's permissions on a specific resource.
-/// Composite PK: (groupe_id, resource_key).
+/// Generates the `TableCreateStatement` for the `eihwaz_groupes_droits` table:
+/// the rights of a group (site's tables) or of an admin account, on a whole
+/// table (`colonne = ''`) or on one of its columns.
 pub fn create_eihwaz_groupes_droits_table() -> TableCreateStatement {
+    let flag = |name: &str| {
+        ColumnDef::new(Alias::new(name))
+            .boolean()
+            .not_null()
+            .default(false)
+            .to_owned()
+    };
+    let col = |name: &str| Expr::col(Alias::new(name));
+    let mut user_id_col = user_pk_reference("user_id");
+    user_id_col.null();
+
     Table::create()
         .table(Alias::new("eihwaz_groupes_droits"))
         .if_not_exists()
-        .col(ColumnDef::new(Alias::new("groupe_id")).integer().not_null())
+        .col(
+            ColumnDef::new(Alias::new("id"))
+                .integer()
+                .not_null()
+                .auto_increment()
+                .primary_key(),
+        )
+        .col(ColumnDef::new(Alias::new("groupe_id")).integer().null())
+        .col(&mut user_id_col)
         .col(
             ColumnDef::new(Alias::new("resource_key"))
                 .string()
                 .not_null(),
         )
         .col(
-            ColumnDef::new(Alias::new("can_create"))
-                .boolean()
+            ColumnDef::new(Alias::new("colonne"))
+                .string()
                 .not_null()
-                .default(false),
+                .default(""),
         )
-        .col(
-            ColumnDef::new(Alias::new("can_read"))
-                .boolean()
-                .not_null()
-                .default(false),
-        )
-        .col(
-            ColumnDef::new(Alias::new("can_update"))
-                .boolean()
-                .not_null()
-                .default(false),
-        )
-        .col(
-            ColumnDef::new(Alias::new("can_delete"))
-                .boolean()
-                .not_null()
-                .default(false),
-        )
-        .col(
-            ColumnDef::new(Alias::new("can_update_own"))
-                .boolean()
-                .not_null()
-                .default(false),
-        )
-        .col(
-            ColumnDef::new(Alias::new("can_delete_own"))
-                .boolean()
-                .not_null()
-                .default(false),
-        )
-        .primary_key(
-            Index::create()
-                .name("pk_eihwaz_groupes_droits")
-                .col(Alias::new("groupe_id"))
-                .col(Alias::new("resource_key")),
-        )
+        .col(flag("can_create"))
+        .col(flag("can_read"))
+        .col(flag("can_read_own"))
+        .col(flag("can_update"))
+        .col(flag("can_update_own"))
+        .col(flag("can_delete"))
+        .col(flag("can_delete_own"))
+        .check(Check::named(
+            DROITS_ONE_HOLDER,
+            col("groupe_id")
+                .is_null()
+                .and(col("user_id").is_not_null())
+                .or(col("groupe_id").is_not_null().and(col("user_id").is_null())),
+        ))
+        .check(Check::named(
+            DROITS_GROUP_NEVER_FRAMEWORK,
+            col("groupe_id")
+                .is_null()
+                .or(col("resource_key").is_not_in(FRAMEWORK_KEYS.iter().copied())),
+        ))
+        .check(Check::named(
+            DROITS_COLUMN_ROW_FLAGS,
+            col("colonne").eq("").or(col("can_read_own")
+                .not()
+                .and(col("can_update_own").not())
+                .and(col("can_delete").not())
+                .and(col("can_delete_own").not())),
+        ))
         .foreign_key(
             ForeignKey::create()
                 .name("fk_eihwaz_groupes_droits_groupe_id")
@@ -218,6 +252,38 @@ pub fn create_eihwaz_groupes_droits_table() -> TableCreateStatement {
                 .to(Alias::new("eihwaz_groupes"), Alias::new("id"))
                 .on_delete(ForeignKeyAction::Cascade),
         )
+        .foreign_key(
+            ForeignKey::create()
+                .name("fk_eihwaz_groupes_droits_user_id")
+                .from(Alias::new("eihwaz_groupes_droits"), Alias::new("user_id"))
+                .to(Alias::new("eihwaz_users"), Alias::new("id"))
+                .on_delete(ForeignKeyAction::Cascade),
+        )
+        .to_owned()
+}
+
+/// One row per (group, table, column). NULL `groupe_id`s (account rows) are
+/// distinct from each other on the three engines, so they never collide here.
+pub fn create_droits_unique_par_groupe() -> IndexCreateStatement {
+    Index::create()
+        .name("uq_eihwaz_groupes_droits_groupe")
+        .table(Alias::new("eihwaz_groupes_droits"))
+        .col(Alias::new("groupe_id"))
+        .col(Alias::new("resource_key"))
+        .col(Alias::new("colonne"))
+        .unique()
+        .to_owned()
+}
+
+/// One row per (account, table, column).
+pub fn create_droits_unique_par_compte() -> IndexCreateStatement {
+    Index::create()
+        .name("uq_eihwaz_groupes_droits_user")
+        .table(Alias::new("eihwaz_groupes_droits"))
+        .col(Alias::new("user_id"))
+        .col(Alias::new("resource_key"))
+        .col(Alias::new("colonne"))
+        .unique()
         .to_owned()
 }
 
@@ -227,13 +293,7 @@ pub fn create_eihwaz_users_groupes_table() -> TableCreateStatement {
 
     // user_id doit suivre le type de eihwaz_users.id (BIGINT sous big-pk, UUID sous pk-uuid),
     // sinon la FK est de type incompatible et échoue à la création (Postgres strict).
-    let mut user_id_col = ColumnDef::new(Alias::new("user_id"));
-    #[cfg(feature = "pk-uuid")]
-    user_id_col.uuid();
-    #[cfg(all(feature = "big-pk", not(feature = "pk-uuid")))]
-    user_id_col.big_integer();
-    #[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
-    user_id_col.integer();
+    let mut user_id_col = user_pk_reference("user_id");
     user_id_col.not_null();
 
     Table::create()
@@ -266,13 +326,7 @@ pub fn create_eihwaz_users_groupes_table() -> TableCreateStatement {
 
 /// Generates the `TableCreateStatement` for the `eihwaz_sessions` table.
 pub fn create_eihwaz_sessions_table() -> TableCreateStatement {
-    let mut user_id_col = ColumnDef::new(Alias::new("user_id"));
-    #[cfg(feature = "pk-uuid")]
-    user_id_col.uuid();
-    #[cfg(all(feature = "big-pk", not(feature = "pk-uuid")))]
-    user_id_col.big_integer();
-    #[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
-    user_id_col.integer();
+    let mut user_id_col = user_pk_reference("user_id");
     user_id_col.not_null();
 
     let fk_name = "fk_eihwaz_sessions_eihwaz_users_id";
@@ -350,13 +404,7 @@ impl sea_orm_migration::MigrationTrait for EihwazSessionsMigration {
 /// actions). `username` is denormalized to keep a readable trace even after
 /// deletion. Don't "fix" this by adding a CASCADE FK.
 pub fn create_eihwaz_history_table() -> TableCreateStatement {
-    let mut user_id_col = ColumnDef::new(Alias::new("user_id"));
-    #[cfg(feature = "pk-uuid")]
-    user_id_col.uuid();
-    #[cfg(all(feature = "big-pk", not(feature = "pk-uuid")))]
-    user_id_col.big_integer();
-    #[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
-    user_id_col.integer();
+    let mut user_id_col = user_pk_reference("user_id");
     user_id_col.not_null();
 
     Table::create()
@@ -416,13 +464,7 @@ impl sea_orm_migration::MigrationTrait for EihwazHistoryMigration {
 /// cannot be replayed. `user_id` is the authoritative target of the reset, derived
 /// from the token row — never from a URL/form field.
 pub fn create_eihwaz_reset_tokens_table() -> TableCreateStatement {
-    let mut user_id_col = ColumnDef::new(Alias::new("user_id"));
-    #[cfg(feature = "pk-uuid")]
-    user_id_col.uuid();
-    #[cfg(all(feature = "big-pk", not(feature = "pk-uuid")))]
-    user_id_col.big_integer();
-    #[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
-    user_id_col.integer();
+    let mut user_id_col = user_pk_reference("user_id");
     user_id_col.not_null();
 
     let fk_name = "fk_eihwaz_reset_tokens_eihwaz_users_id";
@@ -509,6 +551,12 @@ impl sea_orm_migration::MigrationTrait for AdminTableMigration {
         manager.create_table(create_eihwaz_groupes_table()).await?;
         manager
             .create_table(create_eihwaz_groupes_droits_table())
+            .await?;
+        manager
+            .create_index(create_droits_unique_par_groupe())
+            .await?;
+        manager
+            .create_index(create_droits_unique_par_compte())
             .await?;
         manager
             .create_table(create_eihwaz_users_groupes_table())

@@ -1,16 +1,10 @@
-//! Admin panel staging: configuration, routes, and admin state.
-
-use std::sync::Arc;
+//! Admin panel staging: configuration, routes, and the registered models.
 
 use crate::admin::refonte_admin::builder::site::AdminSite;
-use crate::admin::{AdminConfig, PrototypeAdminState, helper::AdminTemplate};
+use crate::admin::{AdminConfig, CrudOperation, config::AdminTemplate};
 use crate::app::error_build::{BuildError, CheckError, CheckReport};
 use crate::auth::guard::LoginGuard;
 use crate::middleware::security::RateLimiter;
-use axum::Router;
-
-use crate::admin::AdminRoutes;
-use crate::admin::resource::CrudOperation;
 
 /// A custom admin route and the right it requires.
 pub struct ExtraRoute {
@@ -37,13 +31,9 @@ pub struct AdminStaging {
     pub robots_txt: bool,
     /// `Sitemap:` directive added to the generated `/robots.txt`, if set.
     pub sitemap_url: Option<String>,
-    /// CRUD router built from `.routes()`, mounted at the admin prefix.
-    pub route_admin: Option<Router>,
     /// Extra routes registered via `.extra_routes()`, mounted within the
     /// admin's authentication boundary, each behind its resource's right.
     pub extra_routes: Vec<ExtraRoute>,
-    /// Shared admin runtime state (registry, resources) injected via `.with_state()`.
-    pub state: Option<Arc<PrototypeAdminState>>,
 
     /// Segment mounted in front of the admin (`.prefix()`), empty by default.
     /// Kept apart from `config.prefix` — which holds the admin's own path — so
@@ -73,9 +63,7 @@ impl AdminStaging {
             enabled: false,
             robots_txt: true,
             sitemap_url: None,
-            route_admin: None,
             extra_routes: Vec::new(),
-            state: None,
             mount_prefix: String::new(),
             site: AdminSite::default(),
         }
@@ -97,13 +85,12 @@ impl AdminStaging {
         self
     }
 
-    /// Mounts the generated CRUD routes and records the admin's own path.
+    /// Records the admin's own path (`/site-admin`).
     ///
     /// Independent from [`AdminStaging::prefix`]: this sets *where the admin
     /// lives*, `prefix()` sets *what is put in front of it*.
-    pub fn routes(mut self, admin_routes: AdminRoutes) -> Self {
-        self.config.prefix = admin_routes.path;
-        self.route_admin = Some(admin_routes.router);
+    pub fn path(mut self, path: &str) -> Self {
+        self.config.prefix = path.to_string();
         self
     }
 
@@ -117,7 +104,7 @@ impl AdminStaging {
     /// handler then touches is up to the handler.
     ///
     /// Paths are relative to the admin prefix — the framework prepends it automatically.
-    /// These routes inherit admin authentication, `AdminState` and `PrototypeAdminState`.
+    /// These routes inherit admin authentication and `AdminState`.
     ///
     /// ```rust,ignore
     /// // url.rs
@@ -142,12 +129,6 @@ impl AdminStaging {
                 router,
             });
         }
-        self
-    }
-
-    /// Injects the shared admin runtime state (registry and resources).
-    pub fn with_state(mut self, state: Arc<PrototypeAdminState>) -> Self {
-        self.state = Some(state);
         self
     }
 
@@ -300,10 +281,7 @@ impl AdminStaging {
         }
 
         for route in &self.extra_routes {
-            let registered = self
-                .state
-                .as_ref()
-                .is_some_and(|s| s.registry.contains(&route.resource));
+            let registered = self.site.model(&route.resource).is_some();
             if !registered {
                 report.add(
                     CheckError::new(

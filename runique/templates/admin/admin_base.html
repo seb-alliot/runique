@@ -32,7 +32,7 @@
                 <div class="admin-nav__section-label">{% if admin_list_breadcrumb_admin %}{{ admin_list_breadcrumb_admin }}{% endif %}</div>
 
                 {% for resource in resources %}
-                <a href="{{ admin_prefix }}/{{ resource.key }}/list"
+                <a href="{{ resource.list_url }}"
                     class="admin-nav__item {% if current_resource == resource.key %}active{% endif %}">
                         <svg class="admin-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -45,9 +45,9 @@
                 {% endfor %}
             {% endif %}
 
-            {% if current_user %}
+            {% if history_url %}
                 <div class="admin-nav__divider"></div>
-                <a href="{{ admin_prefix }}/history" class="admin-nav__item{% if current_page | default(value='') == 'history' %} active{% endif %}">
+                <a href="{{ history_url }}" class="admin-nav__item{% if current_page | default(value='') == 'history' %} active{% endif %}">
                     <svg class="admin-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"/>
                         <polyline points="12 6 12 12 16 14"/>

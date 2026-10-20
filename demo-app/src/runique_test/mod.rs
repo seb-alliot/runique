@@ -1,7 +1,6 @@
 /// The env file every test in this folder reads its database settings from.
 pub const ENV: &str = ".env";
 
-mod admin_blog;
 mod blog;
 mod contribution;
 mod expected_failures;

@@ -4,7 +4,6 @@ use std::sync::Arc;
 
 use axum::{
     Extension, Router,
-    extract::Path,
     http::{HeaderName, HeaderValue},
     middleware,
     response::{IntoResponse, Redirect, Response},
@@ -13,22 +12,22 @@ use axum::{
 use serde::Deserialize;
 use tower_http::set_header::SetResponseHeaderLayer;
 
+use crate::admin::refonte_admin::builder::site::AdminSite;
 use crate::app::staging::AdminStaging;
 use crate::auth::{
     guard::LoginGuard,
-    rang::Rang,
     session::{login, logout},
 };
 use crate::context::template::Request;
 use crate::middleware::security::rate_limit_middleware;
 use crate::urlpatterns;
 use crate::utils::{
-    aliases::{AppResult, StrMap, StrVecMap},
+    aliases::{AppResult, StrMap},
     trad::{current_lang, t, tf},
 };
 use crate::{
     admin::{
-        PrototypeAdminState,
+        CrudOperation,
         config::AdminConfig,
         middleware::admin_required,
         trad::{inject_admin_prefix, insert_admin_messages},
@@ -79,7 +78,6 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
     let prefix = format!("{mount_prefix}{admin_path}");
     let mut config = admin_staging.config;
     config.prefix = prefix.clone();
-    let state = admin_staging.state;
 
     let login_guard = config.login_guard.clone();
     let rate_limiter = config.rate_limiter.clone();
@@ -107,29 +105,21 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
 
     let public_router = login_get_route.merge(login_post_route);
 
-    // Protected routes (dashboard + logout + history)
+    // Protected routes (dashboard + logout)
     let protected_router = urlpatterns! {
         &format!("{prefix}/") => get(admin_dashboard), name = "admin_dashboard",
         &prefix => get(admin_dashboard_redirect), name = "admin_dashboard_redirect",
         &format!("{prefix}/logout") => post(admin_logout), name = "admin_logout",
         &format!("{prefix}/toggle-template") => get(admin_toggle_template), name = "admin_toggle_template",
-        &format!("{prefix}/history") => get(admin_history), name = "admin_history",
-        &format!("{prefix}/history/timeline") => get(admin_history_timeline), name = "admin_history_timeline",
-        &format!("{prefix}/history/batch/{{batch_id}}") => get(admin_history_batch), name = "admin_history_batch",
-        &format!("{prefix}/history/{{id}}") => get(admin_history_diff), name = "admin_history_diff",
     };
 
-    // Generated CRUD routes (also protected)
-    let generated_router = if let Some(router) = admin_staging.route_admin {
-        router
-    } else {
-        Router::new()
-    };
-
-    // Extra routes registered via .extra_routes() — protected by admin middleware,
-    // and each by its resource's right (`extra_route_gate`). Built on `admin_path`,
-    // not the public base: they ride along with the generated router through the
-    // `nest()` below, which adds the mount prefix.
+    // The admin's pages, and the custom routes registered via
+    // `.extra_routes()` — each behind its resource's right (`extra_route_gate`).
+    // Built on `admin_path`, not the public base: the `nest()` below adds the
+    // mount prefix.
+    let site = Arc::new(admin_staging.site);
+    let generated_router =
+        crate::admin::refonte_admin::admin_routeur::refonte_router(&admin_path, site.clone());
     let generated_router =
         admin_staging
             .extra_routes
@@ -137,16 +127,10 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
             .fold(generated_router, |router, route| {
                 let gated = route.router.layer(middleware::from_fn_with_state(
                     (route.resource, route.operation),
-                    crate::admin::admin_main::gate::extra_route_gate,
+                    extra_route_gate,
                 ));
                 router.route(&format!("{}{}", admin_path, route.path), gated)
             });
-
-    // Rebuilt admin, side by side with the current one until it replaces it.
-    // Merged here so it gets the mount prefix and every protection layer below.
-    let generated_router = generated_router.merge(
-        crate::admin::refonte_admin::admin_routeur::refonte_router(&admin_path, admin_staging.site),
-    );
 
     // Mount prefix applies here only — the generated routes are the ones whose
     // literal paths still carry `admin_path`. `nest("")` panics, hence the guard.
@@ -157,11 +141,12 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
     };
 
     // Assembly: public + (protected + generated with middleware)
-    let mut router = public_router
+    public_router
         .merge(
             protected_router
                 .merge(generated_router)
-                .layer(middleware::from_fn(admin_required)),
+                .layer(middleware::from_fn(admin_required))
+                .layer(Extension(site)),
         )
         .layer(middleware::from_fn(
             crate::admin::middleware::admin_middleware::load_admin_user,
@@ -178,34 +163,7 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
         .layer(SetResponseHeaderLayer::overriding(
             HeaderName::from_static("x-robots-tag"),
             HeaderValue::from_static("noindex, nofollow"),
-        ));
-
-    if let Some(state) = state {
-        // Replace proto_state config with the one from AdminStaging
-        // so that templates configured via .templates() are taken into account.
-        let order = config.resource_order.clone();
-        let config = Arc::new(config);
-
-        // Unwrap the Arc<PrototypeAdminState> to access fields in ownership.
-        // try_unwrap succeeds as it is the sole owner at boot.
-        let registry = match Arc::try_unwrap(state) {
-            Ok(proto) => match Arc::try_unwrap(proto.registry) {
-                Ok(mut reg) => {
-                    if !order.is_empty() {
-                        reg.reorder(&order);
-                    }
-                    Arc::new(reg)
-                }
-                Err(arc) => arc,
-            },
-            Err(arc) => arc.registry.clone(),
-        };
-
-        let merged = Arc::new(PrototypeAdminState { registry, config });
-        router = router.layer(Extension(merged));
-    }
-
-    router
+        ))
 }
 
 /// Session key for runtime override of the dashboard template.
@@ -226,77 +184,35 @@ async fn admin_dashboard_redirect(Extension(admin): Extension<Arc<AdminState>>) 
 
 async fn admin_dashboard(
     Extension(admin): Extension<Arc<AdminState>>,
+    Extension(site): Extension<Arc<AdminSite>>,
     Extension(current_user): Extension<crate::auth::session::CurrentUser>,
-    proto: Option<Extension<Arc<PrototypeAdminState>>>,
     mut req: Request,
 ) -> AppResult<Response> {
-    let db = req.engine.db.clone();
-
-    let mut resource_counts: std::collections::HashMap<String, u64> =
-        std::collections::HashMap::new();
-
-    let resources: Vec<&crate::admin::AdminResource> = if let Some(Extension(ref state)) = proto {
-        for (key, entry) in &state.registry.resources {
-            if let Some(count_fn) = &entry.count_fn
-                && let Ok(n) = (count_fn)(db.clone(), None, Vec::new(), None).await
-            {
-                resource_counts.insert(key.clone(), n);
-            }
-        }
-        state
-            .registry
-            .all()
-            .filter(|e| {
-                current_user.rang == Rang::Superuser || current_user.can_access_resource(e.meta.key)
+    // Built server side, rights already applied: the template only shows it.
+    let resources: Vec<serde_json::Value> = site
+        .navigation(&current_user, &admin.config.resource_order)
+        .into_iter()
+        .map(|entry| {
+            serde_json::json!({
+                "key": entry.key,
+                "title": entry.title,
+                "list_url": format!("{}/{}/list", admin.config.prefix, entry.key),
             })
-            .map(|e| &e.meta)
-            .collect()
-    } else {
-        Vec::new()
-    };
+        })
+        .collect();
 
-    // Groups with permission on each resource_key
-    let resource_groups: StrVecMap = {
-        use crate::auth::permissions::{groupe, groupes_droits};
-        use sea_orm::EntityTrait;
-        let groupes: std::collections::HashMap<_, String> = groupe::Entity::find()
-            .all(&*db)
-            .await
-            .trace(
-                crate::utils::runique_log::get_log()
-                    .admin
-                    .as_ref()
-                    .and_then(|a| a.list),
-                "load groupes for permission map",
-            )
-            .unwrap_or_default()
-            .into_iter()
-            .map(|g| (g.id, g.nom))
-            .collect();
-        let rows = groupes_droits::Entity::find()
-            .all(&*db)
-            .await
-            .trace(
-                crate::utils::runique_log::get_log()
-                    .admin
-                    .as_ref()
-                    .and_then(|a| a.list),
-                "load groupes_droits for permission map",
-            )
-            .unwrap_or_default();
-        let mut map: StrVecMap = StrVecMap::new();
-        for r in rows {
-            let nom = groupes
-                .get(&r.groupe_id)
-                .cloned()
-                .unwrap_or_else(|| r.groupe_id.to_string());
-            let entry = map.entry(r.resource_key).or_default();
-            if !entry.contains(&nom) {
-                entry.push(nom);
-            }
-        }
-        map
-    };
+    // One query for every count; a failure leaves the counts out, traced.
+    let resource_counts = site
+        .counts(&req.engine.db, &current_user)
+        .await
+        .trace(
+            crate::utils::runique_log::get_log()
+                .admin
+                .as_ref()
+                .and_then(|a| a.list),
+            "dashboard counts",
+        )
+        .unwrap_or_default();
 
     let session_override: Option<String> = req
         .session
@@ -312,7 +228,6 @@ async fn admin_dashboard(
         .insert("site_title", &admin.config.site_title)
         .insert("site_url", admin.config.view_site_href())
         .insert("resources", &resources)
-        .insert("resource_groups", &resource_groups)
         .insert("resource_counts", &resource_counts)
         .insert("current_page", "dashboard")
         .insert("lang", current_lang().code())
@@ -324,6 +239,49 @@ async fn admin_dashboard(
         .unwrap_or_else(|| admin.config.templates.dashboard.resolve());
 
     req.render(template)
+}
+
+/// "Who" for a custom admin route: the right its declared operation needs on
+/// its declared resource, as the gate resolves it. Which rows and columns the
+/// handler then touches is the handler's own business.
+async fn extra_route_gate(
+    axum::extract::State((resource, op)): axum::extract::State<(String, CrudOperation)>,
+    Extension(admin): Extension<Arc<AdminState>>,
+    session: tower_sessions::Session,
+    request: axum::extract::Request,
+    next: middleware::Next,
+) -> Response {
+    use crate::admin::refonte_admin::gate::rights::{Crud, CrudAction};
+    let right = match op {
+        CrudOperation::List | CrudOperation::View => Crud::Read,
+        CrudOperation::Create => Crud::Create,
+        CrudOperation::Edit | CrudOperation::ResetPassword => Crud::Update,
+        CrudOperation::Delete => Crud::Delete,
+    };
+    let user = request
+        .extensions()
+        .get::<crate::auth::session::CurrentUser>();
+    let granted = user.is_some_and(|u| CrudAction::resolve(u, &resource, false).has(right));
+    if let Some(level) = crate::utils::runique_log::get_log()
+        .admin
+        .as_ref()
+        .and_then(|a| a.auth)
+    {
+        crate::runique_log!(
+            level,
+            resource = %resource,
+            operation = ?op,
+            user = user.map_or("-", |u| u.username.as_str()),
+            granted,
+            "extra route access check"
+        );
+    }
+    if granted {
+        return next.run(request).await;
+    }
+    let notices = crate::flash::flash_manager::Message { session };
+    notices.error(t("admin.access.action_not_allowed")).await;
+    Redirect::to(&format!("{}/", admin.config.prefix)).into_response()
 }
 
 /// `load_admin_user` (outer layer) puts the account here only while the
@@ -472,578 +430,6 @@ async fn admin_login_post(
         req.render(admin.config.templates.login.resolve())
             .unwrap_or_else(axum::response::IntoResponse::into_response)
     }
-}
-
-/// Maps resource key → nav title, so the history view shows the readable name
-/// ("User profiles") instead of the raw key/table ("user_profile").
-/// History stores `resource_key` = `meta.key`, so the lookup is direct.
-fn resource_title_map<'a>(
-    resources: &[&'a crate::admin::AdminResource],
-) -> std::collections::HashMap<&'a str, &'a str> {
-    resources.iter().map(|r| (r.key, r.title)).collect()
-}
-
-/// Picks a human label from a fetched object's JSON for the history view.
-/// Tries the resource's primary display column first, then a few conventional
-/// label fields. Returns `None` if nothing usable is found (→ `#pk` fallback).
-fn object_label_from_json(obj: &serde_json::Value, preferred: Option<&str>) -> Option<String> {
-    fn stringify(v: &serde_json::Value) -> Option<String> {
-        match v {
-            serde_json::Value::String(s) if !s.is_empty() => Some(s.clone()),
-            serde_json::Value::Number(n) => Some(n.to_string()),
-            _ => None,
-        }
-    }
-    if let Some(col) = preferred
-        && let Some(s) = obj.get(col).and_then(stringify)
-    {
-        return Some(s);
-    }
-    const FALLBACK: &[&str] = &[
-        "nom", "name", "titre", "title", "libelle", "username", "label", "email",
-    ];
-    FALLBACK
-        .iter()
-        .find_map(|key| obj.get(*key).and_then(stringify))
-}
-
-/// Injects the context shared by every admin history view (flash messages, admin
-/// prefix, nav state, resource list + titles, site identity). Each handler adds
-/// its page-specific keys to `req`, then finishes with this call.
-fn inject_admin_chrome(
-    mut req: Request,
-    admin: &AdminState,
-    current_user: &crate::auth::session::CurrentUser,
-    resources: &[&crate::admin::AdminResource],
-    current_page: &str,
-) -> Request {
-    insert_admin_messages(&mut req.context, "base");
-    inject_admin_prefix(&mut req.context, &admin.config.prefix);
-    req.insert("current_page", current_page)
-        .insert("current_resource", &Option::<String>::None)
-        .insert("resources", resources)
-        .insert("resource_titles", resource_title_map(resources))
-        .insert("current_user", current_user)
-        .insert("site_title", &admin.config.site_title)
-        .insert("site_url", admin.config.view_site_href())
-        .insert("lang", current_lang().code())
-}
-
-async fn admin_history(
-    Extension(admin): Extension<Arc<AdminState>>,
-    Extension(current_user): Extension<crate::auth::session::CurrentUser>,
-    proto: Option<Extension<Arc<PrototypeAdminState>>>,
-    axum::extract::Query(params): axum::extract::Query<StrMap>,
-    mut req: Request,
-) -> AppResult<Response> {
-    use crate::admin::history;
-    use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder};
-
-    if !current_user.can_access_admin() {
-        req.notices
-            .error(t("admin.access.insufficient_rights").to_string())
-            .await;
-        return Ok(
-            axum::response::Redirect::to(&format!("{}/", admin.config.prefix)).into_response(),
-        );
-    }
-
-    let page = params
-        .get("page")
-        .and_then(|p| p.parse::<u64>().ok())
-        .unwrap_or(1)
-        .max(1);
-    let per_page = admin.config.page_size;
-
-    let filter_resource: Option<String> = params.get("resource").filter(|v| !v.is_empty()).cloned();
-    let filter_action: Option<String> = params.get("action").filter(|v| !v.is_empty()).cloned();
-    let filter_user: Option<String> = params.get("user").filter(|v| !v.is_empty()).cloned();
-
-    let mut query = history::Entity::find().order_by_desc(history::Column::CreatedAt);
-    if let Some(ref res) = filter_resource {
-        query = query.filter(history::Column::ResourceKey.eq(res.clone()));
-    }
-    if let Some(ref action) = filter_action {
-        query = query.filter(history::Column::Action.eq(action.clone()));
-    }
-    if let Some(ref user) = filter_user {
-        query = query.filter(history::Column::Username.eq(user.clone()));
-    }
-
-    // Access control: a non-superuser only sees audit rows for resources they can
-    // access. Without a registry (proto absent) we can't resolve perms, so a
-    // non-superuser sees nothing rather than everything.
-    if current_user.rang != Rang::Superuser {
-        let allowed = proto
-            .as_ref()
-            .map(|Extension(s)| s.registry.accessible_keys(&current_user))
-            .unwrap_or_default();
-        query = query.filter(history::Column::ResourceKey.is_in(allowed));
-    }
-
-    let paginator = query.paginate(&req.engine.db, per_page);
-    let total_pages = paginator.num_pages().await.unwrap_or(1);
-    let raw_entries: Vec<history::Model> = paginator
-        .fetch_page(page - 1)
-        .await
-        .trace(
-            crate::utils::runique_log::get_log()
-                .admin
-                .as_ref()
-                .and_then(|a| a.list),
-            "history fetch_page",
-        )
-        .unwrap_or_default();
-
-    #[derive(serde::Serialize)]
-    struct HistoryRow {
-        id: i64,
-        resource_key: String,
-        object_pk: String,
-        action: String,
-        username: String,
-        created_at: chrono::NaiveDateTime,
-        summary: Option<String>,
-        batch_id: Option<String>,
-        batch_count: usize,
-        /// Human label of the target object (resolved read-time via the resource's
-        /// `get_fn`). `None` if the object was deleted or has no display column —
-        /// the template then falls back to `#object_pk`.
-        object_label: Option<String>,
-    }
-
-    let mut entries: Vec<HistoryRow> = Vec::new();
-    let mut seen_batches: std::collections::HashSet<String> = std::collections::HashSet::new();
-    for e in raw_entries {
-        if let Some(ref bid) = e.batch_id {
-            if seen_batches.contains(bid) {
-                if let Some(row) = entries
-                    .iter_mut()
-                    .find(|r| r.batch_id.as_deref() == Some(bid))
-                {
-                    row.batch_count += 1;
-                }
-                continue;
-            }
-            seen_batches.insert(bid.clone());
-        }
-        entries.push(HistoryRow {
-            id: e.id,
-            resource_key: e.resource_key,
-            object_pk: e.object_pk,
-            action: e.action,
-            username: e.username,
-            created_at: e.created_at,
-            summary: e.summary,
-            batch_id: e.batch_id,
-            batch_count: 1,
-            object_label: None,
-        });
-    }
-
-    let resources = proto
-        .as_ref()
-        .map(|Extension(s)| s.registry.visible_to(&current_user))
-        .unwrap_or_default();
-
-    // Resolve object_pk -> human label via each resource's `get_fn` (read-time,
-    // deduped per (resource, pk)). Batch rows are skipped (no single object) and
-    // deleted objects stay unresolved -> the template falls back to `#object_pk`.
-    if let Some(Extension(ref state)) = proto {
-        let mut cache: std::collections::HashMap<(String, String), String> =
-            std::collections::HashMap::new();
-        for row in &entries {
-            if row.batch_count > 1 || row.object_pk.is_empty() {
-                continue;
-            }
-            let key = (row.resource_key.clone(), row.object_pk.clone());
-            if cache.contains_key(&key) {
-                continue;
-            }
-            let Some(res) = state.registry.get(&row.resource_key) else {
-                continue;
-            };
-            let Some(get_fn) = &res.get_fn else { continue };
-            let preferred = match &res.meta.display.columns {
-                crate::admin::ColumnFilter::Include(cols) => cols.first().map(|(c, _)| c.clone()),
-                _ => None,
-            };
-            if let Ok(Some(obj)) = get_fn(req.engine.db.clone(), row.object_pk.clone()).await
-                && let Some(label) = object_label_from_json(&obj, preferred.as_deref())
-            {
-                cache.insert(key, label);
-            }
-        }
-        for row in &mut entries {
-            row.object_label = cache
-                .get(&(row.resource_key.clone(), row.object_pk.clone()))
-                .cloned();
-        }
-    }
-
-    req = req
-        .insert("entries", &entries)
-        .insert("page", page)
-        .insert("total_pages", total_pages)
-        .insert("filter_resource", &filter_resource)
-        .insert("filter_action", &filter_action)
-        .insert("filter_user", &filter_user);
-    req = inject_admin_chrome(req, &admin, &current_user, &resources, "history");
-
-    req.render("admin/history.html")
-}
-
-async fn admin_history_diff(
-    Path(entry_id): Path<i64>,
-    Extension(admin): Extension<Arc<AdminState>>,
-    Extension(current_user): Extension<crate::auth::session::CurrentUser>,
-    proto: Option<Extension<Arc<PrototypeAdminState>>>,
-    mut req: Request,
-) -> AppResult<Response> {
-    use crate::admin::history;
-    use crate::context::template::AppError;
-    use crate::errors::error::ErrorContext;
-    use sea_orm::EntityTrait;
-
-    if !current_user.can_access_admin() {
-        req.notices
-            .error(t("admin.access.insufficient_rights").to_string())
-            .await;
-        return Ok(
-            axum::response::Redirect::to(&format!("{}/", admin.config.prefix)).into_response(),
-        );
-    }
-
-    let entry = history::Entity::find_by_id(entry_id)
-        .one(&req.engine.db)
-        .await
-        .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?
-        .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Entry not found"))))?;
-
-    // Access control: don't leak a diff for a resource the user can't access.
-    if current_user.rang != Rang::Superuser
-        && !current_user.can_access_resource(&entry.resource_key)
-    {
-        req.notices
-            .error(t("admin.access.insufficient_rights").to_string())
-            .await;
-        return Ok(
-            axum::response::Redirect::to(&format!("{}/", admin.config.prefix)).into_response(),
-        );
-    }
-
-    #[derive(serde::Serialize)]
-    struct DiffField {
-        key: String,
-        old_val: String,
-        new_val: String,
-    }
-
-    // Second passage de redaction, côté lecture. Il ne fait pas doublon avec celui
-    // de l'écriture : il neutralise les lignes écrites **avant** que la règle
-    // n'existe, sans migration de données, et il garantit que la valeur n'entre
-    // jamais dans le contexte de rendu — un template d'historique surchargé par un
-    // projet, ou un `{{ __tera_context }}` en mode debug, ne peut donc pas la
-    // révéler.
-    let diff_fields: Vec<DiffField> = entry
-        .summary
-        .as_deref()
-        .and_then(|s| serde_json::from_str::<serde_json::Value>(s).ok())
-        .and_then(|v| v.as_object().cloned())
-        .map(|mut map| {
-            crate::admin::history::redact_sensitive(&mut map);
-            let mut fields: Vec<DiffField> = map
-                .into_iter()
-                .filter_map(|(k, v)| {
-                    let obj = v.as_object()?;
-                    let str_val = |v: &serde_json::Value| match v {
-                        serde_json::Value::String(s) => s.clone(),
-                        other => other.to_string(),
-                    };
-                    Some(DiffField {
-                        key: k,
-                        old_val: obj.get("old").map(str_val).unwrap_or_default(),
-                        new_val: obj.get("new").map(str_val).unwrap_or_default(),
-                    })
-                })
-                .collect();
-            fields.sort_by(|a, b| a.key.cmp(&b.key));
-            fields
-        })
-        .unwrap_or_default();
-
-    let resources = proto
-        .as_ref()
-        .map(|Extension(s)| s.registry.visible_to(&current_user))
-        .unwrap_or_default();
-
-    req = req
-        .insert("entry", &entry)
-        .insert("diff_fields", &diff_fields);
-    req = inject_admin_chrome(req, &admin, &current_user, &resources, "history");
-
-    req.render("admin/history_diff.html")
-}
-
-async fn admin_history_timeline(
-    Extension(admin): Extension<Arc<AdminState>>,
-    Extension(current_user): Extension<crate::auth::session::CurrentUser>,
-    proto: Option<Extension<Arc<PrototypeAdminState>>>,
-    axum::extract::Query(params): axum::extract::Query<StrMap>,
-    mut req: Request,
-) -> AppResult<Response> {
-    use crate::admin::history;
-    use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder};
-
-    if !current_user.can_access_admin() {
-        req.notices
-            .error(t("admin.access.insufficient_rights").to_string())
-            .await;
-        return Ok(
-            axum::response::Redirect::to(&format!("{}/", admin.config.prefix)).into_response(),
-        );
-    }
-
-    let page = params
-        .get("page")
-        .and_then(|p| p.parse::<u64>().ok())
-        .unwrap_or(1)
-        .max(1);
-    let per_page = admin.config.page_size;
-
-    let filter_user_id: Option<crate::utils::Pk> =
-        params.get("user_id").and_then(|v| v.parse().ok());
-    let filter_resource: Option<String> = params.get("resource").filter(|v| !v.is_empty()).cloned();
-    let filter_object_id: Option<String> =
-        params.get("object_id").filter(|v| !v.is_empty()).cloned();
-
-    let mut query = history::Entity::find().order_by_desc(history::Column::CreatedAt);
-
-    if let Some(uid) = filter_user_id {
-        query = query.filter(history::Column::UserId.eq(uid));
-    }
-    if let Some(ref res) = filter_resource {
-        query = query.filter(history::Column::ResourceKey.eq(res.clone()));
-    }
-    if let Some(ref oid) = filter_object_id {
-        query = query.filter(history::Column::ObjectPk.eq(oid.clone()));
-    }
-
-    // Access control: non-superuser sees only accessible resources (see admin_history).
-    if current_user.rang != Rang::Superuser {
-        let allowed = proto
-            .as_ref()
-            .map(|Extension(s)| s.registry.accessible_keys(&current_user))
-            .unwrap_or_default();
-        query = query.filter(history::Column::ResourceKey.is_in(allowed));
-    }
-
-    let paginator = query.paginate(&req.engine.db, per_page);
-    let total_pages = paginator.num_pages().await.unwrap_or(1);
-    let total = paginator.num_items().await.unwrap_or(0);
-    let entries: Vec<history::Model> = paginator
-        .fetch_page(page - 1)
-        .await
-        .trace(
-            crate::utils::runique_log::get_log()
-                .admin
-                .as_ref()
-                .and_then(|a| a.list),
-            "history fetch_page",
-        )
-        .unwrap_or_default();
-
-    let filter_type = if filter_object_id.is_some() && filter_resource.is_some() {
-        "object"
-    } else if filter_user_id.is_some() {
-        "user"
-    } else if filter_resource.is_some() {
-        "resource"
-    } else {
-        "all"
-    };
-
-    let resources = proto
-        .as_ref()
-        .map(|Extension(s)| s.registry.visible_to(&current_user))
-        .unwrap_or_default();
-
-    req = req
-        .insert("entries", &entries)
-        .insert("page", page)
-        .insert("total_pages", total_pages)
-        .insert("total", total)
-        .insert("filter_type", filter_type)
-        .insert("filter_user_id", filter_user_id)
-        .insert("filter_resource", &filter_resource)
-        .insert("filter_object_id", &filter_object_id);
-    req = inject_admin_chrome(req, &admin, &current_user, &resources, "history");
-
-    req.render("admin/history_timeline.html")
-}
-
-async fn admin_history_batch(
-    Path(batch_id): Path<String>,
-    Extension(admin): Extension<Arc<AdminState>>,
-    Extension(current_user): Extension<crate::auth::session::CurrentUser>,
-    proto: Option<Extension<Arc<PrototypeAdminState>>>,
-    mut req: Request,
-) -> AppResult<Response> {
-    use crate::admin::history;
-    use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
-
-    if !current_user.can_access_admin() {
-        req.notices
-            .error(t("admin.access.insufficient_rights").to_string())
-            .await;
-        return Ok(
-            axum::response::Redirect::to(&format!("{}/", admin.config.prefix)).into_response(),
-        );
-    }
-
-    let entries: Vec<history::Model> = history::Entity::find()
-        .filter(history::Column::BatchId.eq(batch_id.clone()))
-        .order_by_asc(history::Column::Id)
-        .all(&req.engine.db)
-        .await
-        .trace(
-            crate::utils::runique_log::get_log()
-                .admin
-                .as_ref()
-                .and_then(|a| a.list),
-            "history batch fetch",
-        )
-        .unwrap_or_default();
-
-    // Access control: a batch belongs to a single resource — block if the user
-    // can't access it (an empty/unknown batch simply renders nothing).
-    if current_user.rang != Rang::Superuser
-        && let Some(first) = entries.first()
-        && !current_user.can_access_resource(&first.resource_key)
-    {
-        req.notices
-            .error(t("admin.access.insufficient_rights").to_string())
-            .await;
-        return Ok(
-            axum::response::Redirect::to(&format!("{}/", admin.config.prefix)).into_response(),
-        );
-    }
-
-    #[derive(serde::Serialize)]
-    struct DiffField {
-        key: String,
-        old_val: String,
-        new_val: String,
-    }
-
-    #[derive(serde::Serialize)]
-    struct BatchEntry {
-        id: i64,
-        object_pk: String,
-        display_name: Option<String>,
-        action: String,
-        summary: Option<String>,
-        diff_fields: Vec<DiffField>,
-    }
-
-    fn parse_diff(summary: Option<&str>) -> Vec<DiffField> {
-        summary
-            .and_then(|s| serde_json::from_str::<serde_json::Value>(s).ok())
-            .and_then(|v| v.as_object().cloned())
-            .map(|mut map| {
-                // Même redaction côté lecture que la vue diff : les lignes écrites
-                // avant l'existence de la règle passent aussi par ici.
-                crate::admin::history::redact_sensitive(&mut map);
-                let mut fields: Vec<DiffField> = map
-                    .into_iter()
-                    .filter_map(|(k, v)| {
-                        let obj = v.as_object()?;
-                        let str_val = |v: &serde_json::Value| match v {
-                            serde_json::Value::String(s) => s.clone(),
-                            other => other.to_string(),
-                        };
-                        Some(DiffField {
-                            key: k,
-                            old_val: obj.get("old").map(str_val).unwrap_or_default(),
-                            new_val: obj.get("new").map(str_val).unwrap_or_default(),
-                        })
-                    })
-                    .collect();
-                fields.sort_by(|a, b| a.key.cmp(&b.key));
-                fields
-            })
-            .unwrap_or_default()
-    }
-
-    fn extract_display_name(val: &serde_json::Value) -> Option<String> {
-        let obj = val.as_object()?;
-        for key in &["username", "name", "title", "email", "label", "slug"] {
-            if let Some(serde_json::Value::String(s)) = obj.get(*key)
-                && !s.is_empty()
-            {
-                return Some(s.clone());
-            }
-        }
-        None
-    }
-
-    let resource_key = entries
-        .first()
-        .map(|e| e.resource_key.clone())
-        .unwrap_or_default();
-    let username = entries
-        .first()
-        .map(|e| e.username.clone())
-        .unwrap_or_default();
-    let created_at = entries.first().map(|e| e.created_at);
-    let action = entries
-        .first()
-        .map(|e| e.action.clone())
-        .unwrap_or_default();
-
-    let get_fn = proto
-        .as_ref()
-        .and_then(|Extension(state)| state.registry.get(&resource_key))
-        .and_then(|entry| entry.get_fn.clone());
-
-    let mut batch_entries: Vec<BatchEntry> = Vec::new();
-    for e in entries {
-        let display_name = if let Some(ref f) = get_fn {
-            f(req.engine.db.clone(), e.object_pk.clone())
-                .await
-                .ok()
-                .flatten()
-                .as_ref()
-                .and_then(extract_display_name)
-        } else {
-            None
-        };
-        let diff = parse_diff(e.summary.as_deref());
-        batch_entries.push(BatchEntry {
-            id: e.id,
-            object_pk: e.object_pk,
-            display_name,
-            action: e.action,
-            summary: e.summary,
-            diff_fields: diff,
-        });
-    }
-
-    let resources = proto
-        .as_ref()
-        .map(|Extension(s)| s.registry.visible_to(&current_user))
-        .unwrap_or_default();
-
-    req = req
-        .insert("batch_id", &batch_id)
-        .insert("batch_entries", &batch_entries)
-        .insert("resource_key", &resource_key)
-        .insert("username", &username)
-        .insert("created_at", created_at)
-        .insert("action", &action);
-    req = inject_admin_chrome(req, &admin, &current_user, &resources, "history");
-
-    req.render("admin/history_batch.html")
 }
 
 async fn admin_toggle_template(

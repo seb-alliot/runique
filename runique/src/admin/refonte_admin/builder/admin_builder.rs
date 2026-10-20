@@ -18,6 +18,8 @@ const RANK_FLAGS: [&str; 3] = ["is_superuser", "is_dirigeant", "is_admin"];
 pub struct ModelAdmin<E: ModelMeta> {
     pub list: ListConfig<E>,
     pub form: FormConfig<E>,
+    /// The model's name in the admin, when set with `title()`.
+    pub(super) title: Option<String>,
 }
 
 /// One page of a list, ready for the template.
@@ -51,6 +53,7 @@ impl<E: ModelMeta> Default for ModelAdmin<E> {
         Self {
             list: ListConfig::default(),
             form: FormConfig::default(),
+            title: None,
         }
     }
 }
@@ -58,6 +61,33 @@ impl<E: ModelMeta> Default for ModelAdmin<E> {
 impl<E: ModelMeta> ModelAdmin<E> {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// A list that declares no `display` shows every column but the secret
+    /// ones; on the accounts, only the name, email and state — an account's
+    /// other columns (rank, activation date) are never listed by default.
+    pub(crate) fn with_default_display(mut self) -> Self {
+        use sea_orm::Iterable;
+        if self.list.has_display() {
+            return self;
+        }
+        let shown = E::Column::iter().filter(|c| {
+            let name = c.as_str();
+            if E::IS_ACCOUNT_TABLE {
+                ["username", "email", "is_active"].contains(&name)
+            } else {
+                !E::SECRET.iter().any(|s| s.as_str() == name)
+            }
+        });
+        self.list = self.list.display(shown);
+        self
+    }
+
+    /// The model's name in the navigation and on its pages. Without it: the
+    /// model's `verbose_name_plural`, `verbose_name`, else its table name.
+    pub fn title(mut self, title: impl Into<String>) -> Self {
+        self.title = Some(title.into());
+        self
     }
 
     pub fn list(mut self, l: impl FnOnce(ListConfig<E>) -> ListConfig<E>) -> Self {
@@ -225,10 +255,18 @@ impl<E: ModelMeta> ModelAdmin<E> {
         let Some(id) = proof.id() else {
             return Ok(None);
         };
+        // The row's page shows what the list shows, in its order, then what
+        // else the form holds; the key comes with the form's columns.
+        let mut columns: Vec<E::Column> = self.list.display_columns().to_vec();
+        for col in self.form.read_columns() {
+            if !columns.iter().any(|c| c.as_str() == col.as_str()) {
+                columns.push(col);
+            }
+        }
         E::find_by_id(id.clone())
             .filter(proof.conditions())
             .select_only()
-            .columns(self.form.read_columns())
+            .columns(columns)
             .into_json()
             .one(&**db)
             .await
@@ -377,40 +415,31 @@ mod tests {
     fn a_secret_column_is_refused_in_every_list() {
         let p = user::Column::Password;
         let cases: [(&str, ModelAdmin<user::Entity>); 10] = [
-            (
-                "display", 
-                    ModelAdmin::new().list(|l| l.display([p]))),
-            (
-                "search", 
-                    ModelAdmin::new().list(|l| l.search([p]))),
-            (
-                "filter", 
-                    ModelAdmin::new().list(|l| l.filter([p]))),
-            (
-                "sortable", 
-                    ModelAdmin::new().list(|l| l.sortable([p]))),
+            ("display", ModelAdmin::new().list(|l| l.display([p]))),
+            ("search", ModelAdmin::new().list(|l| l.search([p]))),
+            ("filter", ModelAdmin::new().list(|l| l.filter([p]))),
+            ("sortable", ModelAdmin::new().list(|l| l.sortable([p]))),
             (
                 "ordering",
-                    ModelAdmin::new().list(|l| l.ordering([(p, Order::Asc)])),
+                ModelAdmin::new().list(|l| l.ordering([(p, Order::Asc)])),
             ),
-            (
-                "fields", 
-                    ModelAdmin::new().form(|f| f.fields([p]))),
+            ("fields", ModelAdmin::new().form(|f| f.fields([p]))),
             (
                 "create_only",
-                    ModelAdmin::new().form(|f| f.fields([p]).create_only([p])),
+                ModelAdmin::new().form(|f| f.fields([p]).create_only([p])),
             ),
             (
                 "labels",
-                    ModelAdmin::new().form(|f| f.fields([p]).labels([(p, "Mot de passe")])),
+                ModelAdmin::new().form(|f| f.fields([p]).labels([(p, "Mot de passe")])),
             ),
             (
                 "readonly",
-                    ModelAdmin::new().form(|f| f.fields([p]).readonly([p])),
+                ModelAdmin::new().form(|f| f.fields([p]).readonly([p])),
             ),
             (
-                "links", 
-                    ModelAdmin::new().list(|l| l.display([p]).links([p]))),
+                "links",
+                ModelAdmin::new().list(|l| l.display([p]).links([p])),
+            ),
         ];
         for (list, admin) in cases {
             let error = admin.validate().unwrap_err();

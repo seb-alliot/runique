@@ -1,13 +1,12 @@
-// `.prefix()` et `.routes()` decrivent deux choses independantes :
-//   .routes(admins::routes("/site-admin"))  -> ou vit l'admin
-//   .prefix("secret")                       -> ce qui est monte devant
+// `.prefix()` et `.path()` decrivent deux choses independantes :
+//   .path("/site-admin")   -> ou vit l'admin
+//   .prefix("secret")      -> ce qui est monte devant
 // L'URL publique est la composition des deux, quel que soit l'ordre d'appel.
 // Avant, les deux ecrivaient dans `config.prefix` : le dernier appele gagnait,
 // et l'ordre changeait silencieusement le comportement.
 
 use axum::Router;
 use axum::routing::get;
-use runique::admin::AdminRoutes;
 use runique::app::RuniqueApp;
 use runique::config::RuniqueConfig;
 use sea_orm::Database;
@@ -20,12 +19,6 @@ use serial_test::serial;
 // deux builds concurrents (y compris avec `test_robots_txt.rs`, egalement `#[serial]`)
 // se volent mutuellement leurs entrees. Voir `register_url.rs`.
 
-fn fake_admin_routes(path: &str) -> AdminRoutes {
-    let p = path.trim_end_matches('/');
-    let router = Router::new().route(&format!("{p}/ping"), get(|| async { "pong" }));
-    AdminRoutes::new(p, router)
-}
-
 /// Construit l'app et rend l'engine, pour interroger le registre d'URLs nommees.
 async fn build_app(mount: &str, admin_path: &str) -> runique::app::RuniqueApp {
     let db = Database::connect("sqlite::memory:").await.unwrap();
@@ -36,7 +29,7 @@ async fn build_app(mount: &str, admin_path: &str) -> runique::app::RuniqueApp {
         .with_database(db)
         .routes(Router::new().route("/", get(|| async { "ok" })))
         .static_files(|s| s.enabled(false))
-        .with_admin(|a| a.prefix(mount).routes(fake_admin_routes(admin_path)))
+        .with_admin(|a| a.prefix(mount).path(admin_path))
         .build()
         .await
         .unwrap()
@@ -54,9 +47,9 @@ async fn build(mount: &str, admin_path: &str, prefix_first: bool) -> Router {
         .static_files(|s| s.enabled(false))
         .with_admin(|a| {
             if prefix_first {
-                a.prefix(mount).routes(fake_admin_routes(admin_path))
+                a.prefix(mount).path(admin_path)
             } else {
-                a.routes(fake_admin_routes(admin_path)).prefix(mount)
+                a.path(admin_path).prefix(mount)
             }
         })
         .build()
@@ -112,7 +105,7 @@ async fn test_ordre_des_appels_sans_effet() {
     );
 }
 
-/// Sans `.prefix()`, les URLs restent exactement celles de `routes()`.
+/// Sans `.prefix()`, les URLs restent exactement celles de `path()`.
 #[tokio::test]
 #[serial]
 async fn test_sans_prefixe_urls_inchangees() {

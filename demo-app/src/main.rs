@@ -1,9 +1,5 @@
-#[macro_use]
-extern crate runique;
 use runique::prelude::*;
-mod admin;
 mod admin_refonte;
-mod admins;
 mod backend;
 mod entities;
 mod formulaire;
@@ -58,10 +54,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_admin(|a| {
             a.site_title("Administration")
                 .sitemap("https://runique.io/sitemap.xml")
-                .routes(admins::routes("/admin-runique/"))
+                .path("/admin-runique/")
                 .prefix("/prefix-test")
                 .templates(|t| t.with_dashboard("admin/test_dashboard.html"))
-                .with_state(admins::admin_state())
                 .with_rate_limiter(RateLimiter::new().max_requests(20).retry_after(3600))
                 .with_login_guard(LoginGuard::new().max_attempts(20).lockout_secs(300))
                 .page_size(15)

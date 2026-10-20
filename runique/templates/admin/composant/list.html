@@ -1,8 +1,6 @@
 {% extends "admin_base.html" %}
 {% block title %}{{ resource.title | default(value="Éléments") }}{% endblock %}
 {% block breadcrumb %}
-  <span class="admin-topbar__sep">/</span>
-  <a href="{{ admin_prefix }}">{% if admin_list_breadcrumb_admin %}{{ admin_list_breadcrumb_admin }}{% endif %}</a>
   {% if parent_key %}
   <span class="admin-topbar__sep">/</span>
   <a href="{{ parent_base }}/{{ parent_id }}/detail">{{ parent_title }}</a>
@@ -11,21 +9,6 @@
   <span>{{ resource.title | default(value="Éléments") }}</span>
 {% endblock %}
 {% block content %}
-  {% set_global can_create = false %}
-  {% if current_user %}
-    {% if current_user.rang == "Superuser" %}
-      {% set_global can_create = true %}
-    {% else %}
-      {% for groupe in current_user.groupes %}
-        {% for perm in groupe.permissions %}
-          {% if perm.resource_key == resource.key and perm.can_create %}
-            {% set_global can_create = true %}
-          {% endif %}
-        {% endfor %}
-      {% endfor %}
-    {% endif %}
-  {% endif %}
-
   {% block list_header %}
   <div class="admin-page__header">
     <div>

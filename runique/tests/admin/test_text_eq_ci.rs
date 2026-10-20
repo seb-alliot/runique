@@ -1,7 +1,7 @@
 //! `text_eq_ci`: the lookup behind `bulk_create`'s duplicate check — `Gluten`
 //! and `gluten` are the same value, `Lait` is not.
 use crate::helpers::db::{exec, fresh_db_with_schema};
-use runique::admin::helper::text_eq_ci;
+use runique::db::sql_dialect::text_eq_ci;
 use runique::sea_orm::ConnectionTrait;
 use runique::sea_orm::sea_query::{Alias, Asterisk, Expr, ExprTrait, Query};
 use runique::utils::aliases::ADb;

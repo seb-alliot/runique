@@ -31,30 +31,6 @@ pub mod admin_context {
         pub const IS_EDIT: &str = "is_edit";
     }
 
-    /// Keys used by the droit (permission) admin form — each maps to a CRUD flag
-    /// or to the parent group scoping the droit.
-    pub mod permission {
-        /// Whether the group can create objects of the resource.
-        pub const CAN_CREATE: &str = "can_create";
-        /// Whether the group can read/list objects of the resource.
-        pub const CAN_READ: &str = "can_read";
-        /// Whether the group can update any object of the resource.
-        pub const CAN_UPDATE: &str = "can_update";
-        /// Whether the group can delete any object of the resource.
-        pub const CAN_DELETE: &str = "can_delete";
-        /// Whether the group can update only the objects it owns.
-        pub const CAN_UPDATE_OWN: &str = "can_update_own";
-        /// Whether the group can delete only the objects it owns.
-        pub const CAN_DELETE_OWN: &str = "can_delete_own";
-        /// Form field holding the id of the parent group a droit belongs to.
-        pub const GROUPE_ID: &str = "groupe_id";
-        /// Resource key of the `groupes` admin resource — droits are a scoped
-        /// child of it (`/groupes/{id}/droits/...`), see `ParentScope`.
-        pub const GROUPES: &str = "groupes";
-        /// Resource key of the built-in droits admin resource (`eihwaz_groupes_droits`).
-        pub const DROITS: &str = "droits";
-    }
-
     /// Form field names of the built-in user admin form.
     pub mod user {
         /// The `is_active` flag.
@@ -146,6 +122,23 @@ pub mod admin_context {
         /// Comma-separated IDs of the selected rows — value of the hidden `ids` field.
         pub const BULK_IDS: &str = "bulk_ids";
     }
+}
+
+/// Resource keys of the framework's tables: the key of their `ModelMeta` and
+/// of their rows in `eihwaz_groupes_droits`.
+pub mod resource_key {
+    /// Accounts (`eihwaz_users`).
+    pub const USERS: &str = "users";
+    /// Groups (`eihwaz_groupes`).
+    pub const GROUPES: &str = "groupes";
+    /// Rights (`eihwaz_groupes_droits`).
+    pub const DROITS: &str = "droits";
+    /// Memberships (`eihwaz_users_groupes`).
+    pub const USERS_GROUPES: &str = "users_groupes";
+
+    /// A group's row never targets one of these: the database refuses it
+    /// (CHECK). Changing this list on a live base needs a migration.
+    pub const FRAMEWORK_KEYS: &[&str] = &[USERS, GROUPES, DROITS, USERS_GROUPES];
 }
 
 /// i18n message keys for the built-in admin templates, grouped by section

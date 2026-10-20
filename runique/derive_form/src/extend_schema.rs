@@ -246,6 +246,7 @@ pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
 
     // extend!{} refuses list fields: the admin calls these, they do nothing.
     let admin_lists = crate::model::generateur::generate_admin_lists(&[]);
+    let model_meta = generate_model_meta(table);
 
     quote! {
         #enum_defs
@@ -303,6 +304,8 @@ pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
             })
         }
 
+        #model_meta
+
         pub type AdminForm = #form_name;
 
         #[derive(::runique::serde::Serialize, Debug, Clone)]
@@ -327,6 +330,40 @@ pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
         }
 
         pub const UNIQUE_FIELDS: &[&str] = &[];
+    }
+}
+
+/// `ModelMeta` of an extended framework table: the base table's own rules,
+/// copied, never weakened — extending the accounts adds columns, not powers.
+/// The admin rejects at boot an accounts model that lacks them anyway.
+fn generate_model_meta(table: &str) -> TokenStream2 {
+    // Without `runique/admin`, the admin module (and `ModelMeta`) doesn't exist.
+    if !cfg!(feature = "admin") {
+        return TokenStream2::new();
+    }
+    let rules = match table {
+        "eihwaz_users" => quote! {
+            const KEY: &'static str = "users";
+            const IS_ACCOUNT_TABLE: bool = true;
+            const SECRET: &'static [Column] = &[Column::Password];
+            const IS_FRAMEWORK_TABLE: bool = true;
+        },
+        "eihwaz_groupes" => quote! {
+            const KEY: &'static str = "groupes";
+            const IS_FRAMEWORK_TABLE: bool = true;
+        },
+        other => quote! {
+            const KEY: &'static str = #other;
+        },
+    };
+    quote! {
+        impl ::runique::admin::refonte_admin::meta::ModelMeta for Entity {
+            #rules
+            type AdminForm = AdminForm;
+            fn schema() -> ::runique::migration::schema::ModelSchema {
+                self::schema()
+            }
+        }
     }
 }
 
