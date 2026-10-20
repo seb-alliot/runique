@@ -92,6 +92,44 @@ impl From<&Permission> for CrudAction {
         }
     }
 }
+/// The columns a user may read on a model, bayond its primary key (always readable).
+/// Checked by the gate only under the table's read right, so a column is read with rights AND its own row:
+/// nothing added later shows until it is set.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ReadableColumns {
+    /// The superuser and the Dirigeant: every column (the builder still keeps the secret on out)
+    All,
+    /// Everyone else: these columns only.
+    Only(Vec<String>),
+}
+
+impl ReadableColumns {
+    pub fn resolve(user: &CurrentUser, key: &str, framework_table: bool) -> Self {
+        match user.rang {
+            Rang::Superuser | Rang::Dirigeant => Self::All,
+            Rang::Admin => Self::ticked(user.droit_for(key)),
+            Rang::Lambda if framework_table => Self::Only(Vec::new()),
+            Rang::Lambda => Self::ticked(user.permission_for(key).as_ref()),
+        }
+    }
+
+    fn ticked(right: Option<&Permission>) -> Self {
+        Self::Only(right.map_or_else(Vec::new, |p| {
+            p.colonnes
+                .iter()
+                .filter(|c| c.can_read)
+                .map(|c| c.colonne.clone())
+                .collect()
+        }))
+    }
+
+    pub fn allows(&self, column: &str) -> bool {
+        match self {
+            Self::All => true,
+            Self::Only(cols) => cols.iter().any(|c| c == column),
+        }
+    }
+}
 
 /// Which rows a query on several rows (list, group action) may reach.
 pub enum Scope<E: EntityTrait> {
@@ -268,5 +306,50 @@ mod tests {
         assert!(!only_update_own.has(Crud::Update));
         assert!(!only_update_own.has(Crud::DeleteOwn));
         assert!(!only_update_own.has(Crud::ReadOwn));
+    }
+    #[test]
+    fn readable_columns_follow_the_rank_and_the_ticked_columns() {
+        use crate::auth::permissions::ColumnRight;
+        let col = |name: &str, read: bool| ColumnRight {
+            colonne: name.into(),
+            can_read: read,
+            can_create: false,
+            can_update: false,
+        };
+        let plats = |cols: Vec<ColumnRight>| {
+            perm("plats", |p| {
+                p.can_read = true;
+                p.colonnes = cols;
+            })
+        };
+
+        let lambda = user(
+            Rang::Lambda,
+            vec![
+                vec![plats(vec![col("titre", true)])],
+                vec![plats(vec![col("prix", true), col("stock", false)])],
+            ],
+            vec![],
+        );
+        let cols = ReadableColumns::resolve(&lambda, "plats", false);
+        assert!(
+            cols.allows("titre") && cols.allows("prix"),
+            "the union of the groups"
+        );
+        assert!(!cols.allows("stock") && !cols.allows("note"));
+        assert_eq!(
+            ReadableColumns::resolve(&lambda, "plats", true),
+            ReadableColumns::Only(vec![])
+        );
+
+        let admin = user(Rang::Admin, vec![], vec![plats(vec![col("titre", true)])]);
+        let cols = ReadableColumns::resolve(&admin, "plats", false);
+        assert!(cols.allows("titre") && !cols.allows("prix"));
+
+        let dirigeant = user(Rang::Dirigeant, vec![], vec![]);
+        assert_eq!(
+            ReadableColumns::resolve(&dirigeant, "plats", true),
+            ReadableColumns::All
+        );
     }
 }

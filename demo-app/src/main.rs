@@ -51,17 +51,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .scripts(vec!["'self'", "'strict-dynamic'"])
                 })
         })
-        .with_admin(|a| {
-            a.site_title("Administration")
-                .sitemap("https://runique.io/sitemap.xml")
-                .path("/admin-runique/")
-                .prefix("/prefix-test")
-                .templates(|t| t.with_dashboard("admin/test_dashboard.html"))
-                .with_rate_limiter(RateLimiter::new().max_requests(20).retry_after(3600))
-                .with_login_guard(LoginGuard::new().max_attempts(20).lockout_secs(300))
-                .page_size(15)
-                .site(admin_refonte::site)
-        })
+        .with_admin(admin_refonte::config)
         .build()
         .await
         .map_err(|e| -> Box<dyn std::error::Error> { Box::new(e) })?

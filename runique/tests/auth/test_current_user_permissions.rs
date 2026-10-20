@@ -17,6 +17,7 @@ fn make_groupe(resource: &str, can_read: bool) -> Groupe {
             can_delete: false,
             can_update_own: false,
             can_delete_own: false,
+            colonnes: Vec::new(),
         }],
     }
 }
@@ -48,6 +49,7 @@ fn test_multi_groupes_or_permissions() {
                     can_delete: false,
                     can_update_own: false,
                     can_delete_own: false,
+                    colonnes: Vec::new(),
                 }],
             },
             Groupe {
@@ -63,6 +65,7 @@ fn test_multi_groupes_or_permissions() {
                     can_delete: false,
                     can_update_own: false,
                     can_delete_own: false,
+                    colonnes: Vec::new(),
                 }],
             },
         ],

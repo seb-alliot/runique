@@ -1,6 +1,6 @@
 //! Admin panel staging: configuration, routes, and the registered models.
 
-use crate::admin::refonte_admin::builder::site::AdminSite;
+use crate::admin::builder::site::AdminSite;
 use crate::admin::{AdminConfig, CrudOperation, config::AdminTemplate};
 use crate::app::error_build::{BuildError, CheckError, CheckReport};
 use crate::auth::guard::LoginGuard;

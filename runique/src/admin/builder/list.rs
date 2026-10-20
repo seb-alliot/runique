@@ -412,7 +412,7 @@ fn decimal_fits(len: Option<(u32, u32)>, d: &sea_orm::prelude::Decimal) -> bool 
 #[cfg(test)]
 mod tests {
     use super::{ListConfig, ListQuery, decimal_fits};
-    use crate::admin::refonte_admin::gate::test_support::fixtures::note::{Column, Entity};
+    use crate::admin::gate::test_support::fixtures::note::{Column, Entity};
     use crate::auth::user;
     use crate::utils::aliases::StrMap;
     use sea_orm::prelude::Decimal;

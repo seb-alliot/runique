@@ -34,7 +34,7 @@ pub fn generate_model_meta(model: &ModelInput) -> TokenStream2 {
         }
     });
     quote! {
-        impl :: runique::admin::refonte_admin::meta::ModelMeta for Entity {
+        impl ::runique::admin::meta::ModelMeta for Entity {
             const KEY: &'static str = #key;
             type AdminForm = AdminForm;
             fn schema() -> ::runique::migration::schema::ModelSchema {

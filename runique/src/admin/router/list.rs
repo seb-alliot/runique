@@ -1,7 +1,7 @@
 //! `GET {admin}/{resource}/list`: one page of a model's list.
 use super::{chrome, failure, unknown_resource};
-use crate::admin::refonte_admin::builder::list::ListQuery;
-use crate::admin::refonte_admin::builder::site::AdminSite;
+use crate::admin::builder::list::ListQuery;
+use crate::admin::builder::site::AdminSite;
 use crate::admin::router::admin_router::AdminState;
 use crate::admin::trad::insert_admin_messages;
 use crate::auth::session::CurrentUser;

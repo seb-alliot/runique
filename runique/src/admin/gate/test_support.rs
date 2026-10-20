@@ -45,7 +45,7 @@ pub(crate) mod fixtures {
         crate::impl_form_access!();
     }
 
-    impl crate::admin::refonte_admin::meta::ModelMeta for note::Entity {
+    impl crate::admin::meta::ModelMeta for note::Entity {
         const KEY: &'static str = "notes";
         type AdminForm = NoteForm;
         const OWNER: Option<note::Column> = Some(note::Column::OwnerId);
@@ -119,10 +119,23 @@ pub(crate) mod fixtures {
         ADb::from_connection(conn)
     }
 
-    /// A staff member whose only group grants `rights` on `resource`.
+    /// A staff member whose only group grants `rights` on `resource`, every
+    /// column of the fixtures' tables ticked: a table-level test reads as it
+    /// always did, a column test sets its own `colonnes`.
     pub(crate) fn staff(id: Pk, resource: &str, rights: [bool; 7]) -> CurrentUser {
-        use crate::auth::permissions::{Groupe, Permission};
+        use crate::auth::permissions::{ColumnRight, Groupe, Permission};
+        use sea_orm::{IdenStatic, Iterable};
         let [c, r, ro, u, d, uo, dw] = rights;
+        let colonnes = note::Column::iter()
+            .map(|col| col.as_str())
+            .chain(crate::auth::user::Column::iter().map(|col| col.as_str()))
+            .map(|name| ColumnRight {
+                colonne: name.into(),
+                can_read: true,
+                can_create: true,
+                can_update: true,
+            })
+            .collect();
         CurrentUser {
             id,
             username: "staff".into(),
@@ -140,6 +153,7 @@ pub(crate) mod fixtures {
                     can_delete: d,
                     can_update_own: uo,
                     can_delete_own: dw,
+                    colonnes,
                 }],
             }],
             droits: Vec::new(),

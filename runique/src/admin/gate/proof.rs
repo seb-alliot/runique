@@ -1,5 +1,6 @@
 //! What the gate HAS authorized.
 use super::PkOf;
+use super::rights::ReadableColumns;
 use sea_orm::{Condition, EntityTrait};
 use std::marker::PhantomData;
 
@@ -11,7 +12,7 @@ use std::marker::PhantomData;
 /// an update (the 3.0.3 `bulk_create` flaw):
 ///
 /// ```compile_fail
-/// use runique::admin::refonte_admin::gate::{Authorized, Create, Update};
+/// use runique::admin::gate::{Authorized, Create, Update};
 /// fn update<E: sea_orm::EntityTrait>(_proof: Authorized<Update, E>) {}
 /// fn create_handler<E: sea_orm::EntityTrait>(proof: Authorized<Create, E>) {
 ///     update(proof);
@@ -25,17 +26,17 @@ pub struct Authorized<O, E: EntityTrait> {
     /// filter), replayed by the write in its `WHERE`.
     conditions: Condition,
     _op: PhantomData<O>,
+    /// This column a read may be return, bayond the key: set by the gate on a list or a view proof, none on any other.
+    readable: ReadableColumns,
 }
 
 impl<O, E: EntityTrait> Authorized<O, E> {
-    pub(in crate::admin::refonte_admin::gate) fn new(
-        id: Option<PkOf<E>>,
-        conditions: Condition,
-    ) -> Self {
+    pub(in crate::admin::gate) fn new(id: Option<PkOf<E>>, conditions: Condition) -> Self {
         Self {
             id,
             conditions,
             _op: PhantomData,
+            readable: ReadableColumns::Only(Vec::new()),
         }
     }
 
@@ -44,8 +45,18 @@ impl<O, E: EntityTrait> Authorized<O, E> {
     }
 
     /// Consumed by the write: the row and the conditions to replay.
-    pub(in crate::admin::refonte_admin::gate) fn into_parts(self) -> (Option<PkOf<E>>, Condition) {
+    pub(in crate::admin::gate) fn into_parts(self) -> (Option<PkOf<E>>, Condition) {
         (self.id, self.conditions)
+    }
+
+    /// The columns this read proof lets out, set by the gate alone.
+    pub(in crate::admin::gate) fn reading(mut self, readable: ReadableColumns) -> Self {
+        self.readable = readable;
+        self
+    }
+
+    pub fn readable(&self) -> &ReadableColumns {
+        &self.readable
     }
 }
 
@@ -66,7 +77,7 @@ impl<O, E: EntityTrait> Guarded for Authorized<O, E> {
 pub struct ReadableIds<E: EntityTrait>(Vec<PkOf<E>>);
 
 impl<E: EntityTrait> ReadableIds<E> {
-    pub(in crate::admin::refonte_admin::gate) fn new(ids: Vec<PkOf<E>>) -> Self {
+    pub(in crate::admin::gate) fn new(ids: Vec<PkOf<E>>) -> Self {
         Self(ids)
     }
 

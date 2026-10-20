@@ -153,7 +153,7 @@ fn the_schema_of_an_extend_holds_its_own_columns() {
 #[cfg(feature = "admin")]
 #[test]
 fn an_extended_account_table_keeps_the_accounts_rules() {
-    use runique::admin::refonte_admin::meta::ModelMeta;
+    use runique::admin::meta::ModelMeta;
     use runique::sea_orm::IdenStatic;
     assert_eq!(<users::Entity as ModelMeta>::KEY, "users");
     const { assert!(<users::Entity as ModelMeta>::IS_ACCOUNT_TABLE) };
@@ -185,7 +185,7 @@ fn an_extended_account_table_keeps_the_accounts_rules() {
 #[cfg(feature = "admin")]
 #[test]
 fn an_extended_account_table_replaces_the_accounts_admin() {
-    use runique::admin::refonte_admin::builder::admin_builder::ModelAdmin;
+    use runique::admin::builder::admin_builder::ModelAdmin;
     use runique::app::staging::AdminStaging;
     let staging = AdminStaging::new()
         .enable()

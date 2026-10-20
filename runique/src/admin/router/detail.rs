@@ -1,6 +1,6 @@
 //! `GET {admin}/{resource}/{id}/detail`: one row of a model.
 use super::{chrome, failure, unknown_resource};
-use crate::admin::refonte_admin::builder::site::AdminSite;
+use crate::admin::builder::site::AdminSite;
 use crate::admin::router::admin_router::AdminState;
 use crate::admin::trad::insert_admin_messages;
 use crate::auth::session::CurrentUser;

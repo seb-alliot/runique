@@ -9,6 +9,16 @@ use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter};
 // Memory structures
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// One column's rights, under its table's right: reading, creating, updating
+/// that column. A column without its row is neither read nor written.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
+pub struct ColumnRight {
+    pub colonne: String,
+    pub can_read: bool,
+    pub can_create: bool,
+    pub can_update: bool,
+}
+
 /// A group's permissions on a resource, as read from the database.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
 pub struct Permission {
@@ -21,6 +31,10 @@ pub struct Permission {
     pub can_delete: bool,
     pub can_update_own: bool,
     pub can_delete_own: bool,
+    /// The columns this table right reaches: only those listed, never one
+    /// added later until it is set.
+    #[serde(default)]
+    pub colonnes: Vec<ColumnRight>,
 }
 
 impl Permission {
@@ -35,6 +49,7 @@ impl Permission {
             can_delete: false,
             can_update_own: false,
             can_delete_own: false,
+            colonnes: Vec::new(),
         }
     }
 
@@ -47,22 +62,52 @@ impl Permission {
         self.can_delete |= other.can_delete;
         self.can_update_own |= other.can_update_own;
         self.can_delete_own |= other.can_delete_own;
+        for col in &other.colonnes {
+            match self.colonnes.iter_mut().find(|c| c.colonne == col.colonne) {
+                Some(mine) => {
+                    mine.can_read |= col.can_read;
+                    mine.can_create |= col.can_create;
+                    mine.can_update |= col.can_update;
+                }
+                None => self.colonnes.push(col.clone()),
+            }
+        }
     }
 }
 
-impl From<groupes_droits::Model> for Permission {
-    fn from(m: groupes_droits::Model) -> Self {
-        Self {
-            resource_key: m.resource_key,
-            can_create: m.can_create,
-            can_read: m.can_read,
-            can_read_own: m.can_read_own,
-            can_update: m.can_update,
-            can_update_own: m.can_update_own,
-            can_delete: m.can_delete,
-            can_delete_own: m.can_delete_own,
+/// One `Permission` per table from one holder's rows: the table row
+/// (`colonne = ''`) gives the table rights, each column row joins that
+/// table's `colonnes`. Column rows without a table row give nothing: the
+/// table rights stay false, and a column is only read under its table right.
+fn assemble(rows: impl IntoIterator<Item = groupes_droits::Model>) -> Vec<Permission> {
+    let mut perms: Vec<Permission> = Vec::new();
+    for m in rows {
+        let i = match perms.iter().position(|p| p.resource_key == m.resource_key) {
+            Some(i) => i,
+            None => {
+                perms.push(Permission::zeroed(m.resource_key.clone()));
+                perms.len() - 1
+            }
+        };
+        let p = &mut perms[i];
+        if m.colonne.is_empty() {
+            p.can_create = m.can_create;
+            p.can_read = m.can_read;
+            p.can_read_own = m.can_read_own;
+            p.can_update = m.can_update;
+            p.can_update_own = m.can_update_own;
+            p.can_delete = m.can_delete;
+            p.can_delete_own = m.can_delete_own;
+        } else {
+            p.colonnes.push(ColumnRight {
+                colonne: m.colonne,
+                can_read: m.can_read,
+                can_create: m.can_create,
+                can_update: m.can_update,
+            });
         }
     }
+    perms
 }
 
 /// Group (includes its permissions per resource).
@@ -143,7 +188,6 @@ pub async fn pull_groupes_db<C: ConnectionTrait>(
 
     let droits = match groupes_droits::Entity::find()
         .filter(groupes_droits::Column::GroupeId.is_in(groupes.iter().map(|g| g.id)))
-        .filter(groupes_droits::Column::Colonne.eq(""))
         .all(db)
         .await
     {
@@ -153,30 +197,25 @@ pub async fn pull_groupes_db<C: ConnectionTrait>(
             return Vec::new();
         }
     };
-    for m in droits {
-        let groupe_id = m.groupe_id;
-        if let Some(g) = groupes.iter_mut().find(|g| groupe_id == Some(g.id)) {
-            g.permissions.push(m.into());
-        }
+    for g in &mut groupes {
+        g.permissions = assemble(droits.iter().filter(|m| m.groupe_id == Some(g.id)).cloned());
     }
-
     groupes
 }
 
-/// Loads an admin account's own rights on whole tables (its `user_id` rows,
-/// `colonne = ''`), set by the dirigeant. One query, admins only. A database
-/// error grants nothing and is traced, never swallowed.
+/// Loads an admin account's own rights (its `user_id` rows, table and
+/// columns), set by the dirigeant. One query, admins only. A database error
+/// grants nothing and is traced, never swallowed.
 pub async fn pull_droits_compte<C: ConnectionTrait>(
     db: &C,
     user_id: crate::utils::pk::Pk,
 ) -> Vec<Permission> {
     match groupes_droits::Entity::find()
         .filter(groupes_droits::Column::UserId.eq(user_id))
-        .filter(groupes_droits::Column::Colonne.eq(""))
         .all(db)
         .await
     {
-        Ok(rows) => rows.into_iter().map(Permission::from).collect(),
+        Ok(rows) => assemble(rows),
         Err(e) => {
             tracing::error!(user_id = %user_id, error = %e, "loading account rights failed — no rights granted for this request");
             Vec::new()

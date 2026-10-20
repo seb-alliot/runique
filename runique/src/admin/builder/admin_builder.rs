@@ -2,7 +2,7 @@
 use super::form::FormConfig;
 use super::list::ListConfig;
 use super::list::{ListQuery, TOTAL};
-use crate::admin::refonte_admin::{
+use crate::admin::{
     gate::{Authorized, Guarded, List, View},
     meta::ModelMeta,
 };
@@ -277,11 +277,11 @@ impl<E: ModelMeta> ModelAdmin<E> {
 #[cfg(test)]
 mod tests {
     use super::{ListPage, ModelAdmin};
-    use crate::admin::refonte_admin::builder::list::ListQuery;
-    use crate::admin::refonte_admin::gate::GateCtx;
-    use crate::admin::refonte_admin::gate::check::authorize_list;
-    use crate::admin::refonte_admin::gate::test_support::fixtures::note::{Column, Entity};
-    use crate::admin::refonte_admin::gate::test_support::fixtures::{db, pk, staff};
+    use crate::admin::builder::list::ListQuery;
+    use crate::admin::gate::GateCtx;
+    use crate::admin::gate::check::authorize_list;
+    use crate::admin::gate::test_support::fixtures::note::{Column, Entity};
+    use crate::admin::gate::test_support::fixtures::{db, pk, staff};
     use crate::auth::user;
     use sea_orm::Order;
     /// One column of each kind the create check looks at.
@@ -328,7 +328,7 @@ mod tests {
             crate::impl_form_access!();
         }
 
-        impl crate::admin::refonte_admin::meta::ModelMeta for Entity {
+        impl crate::admin::meta::ModelMeta for Entity {
             const KEY: &'static str = "articles";
             type AdminForm = ArticleForm;
             const SECRET: &'static [Column] = &[Column::Password];

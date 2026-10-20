@@ -16,6 +16,7 @@ fn perm(resource: &str, create: bool, read: bool, update: bool, delete: bool) ->
         can_delete: delete,
         can_update_own: false,
         can_delete_own: false,
+        colonnes: Vec::new(),
     }
 }
 

@@ -357,7 +357,7 @@ fn generate_model_meta(table: &str) -> TokenStream2 {
         },
     };
     quote! {
-        impl ::runique::admin::refonte_admin::meta::ModelMeta for Entity {
+        impl ::runique::admin::meta::ModelMeta for Entity {
             #rules
             type AdminForm = AdminForm;
             fn schema() -> ::runique::migration::schema::ModelSchema {

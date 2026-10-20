@@ -58,7 +58,10 @@ pub async fn handle_contribution_submit(
         }
     };
 
-    let user_id = request.user.as_ref().map_or(0, |user| user.id);
+    // A session without its loaded account owns nothing: never a made-up id.
+    let Some(user_id) = request.user.as_ref().map(|user| user.id) else {
+        return Ok(Redirect::to("/login").into_response());
+    };
     match save_contribution(&mut form, &request.engine.db, user_id).await {
         Ok(_) => {
             success!(request.notices => "Thank you for your contribution!");

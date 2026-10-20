@@ -5,12 +5,14 @@ use super::decide::{Ownership, rank_allows, rights_allow};
 use super::operation::{AdminOperation, Create, List, View};
 use super::proof::{Authorized, ReadableIds};
 use super::refusal::{Refusal, RefusalReason};
-use super::rights::{Crud, CrudAction};
+use super::rights::{Crud, CrudAction, ReadableColumns};
 use super::write::pk_condition;
-use crate::admin::refonte_admin::meta::ModelMeta;
+use crate::admin::meta::ModelMeta;
 use crate::auth::session::CurrentUser;
 use crate::utils::{aliases::ADb, pk::Pk};
-use sea_orm::{ColumnTrait, Condition, Iterable, PrimaryKeyToColumn, QueryFilter, QuerySelect};
+use sea_orm::{
+    ColumnTrait, Condition, IdenStatic, Iterable, PrimaryKeyToColumn, QueryFilter, QuerySelect,
+};
 
 /// Who asks, and where to look the rows up.
 pub struct GateCtx<'a> {
@@ -90,10 +92,28 @@ fn read_scope<E: ModelMeta>(ctx: &GateCtx<'_>) -> Result<Condition, Refusal> {
     }
 }
 
+/// The columns of `E` the user may read, refused when none is but the key: a page of bare keys shows nothing,
+/// and still says wich rows exists. A secret column never counts.
+fn readable_columns<E: ModelMeta>(ctx: &GateCtx<'_>) -> Result<ReadableColumns, Refusal> {
+    let cols = ReadableColumns::resolve(ctx.user, E::KEY, E::IS_FRAMEWORK_TABLE);
+    let keys: Vec<&str> = E::PrimaryKey::iter()
+        .map(|k| k.into_column().as_str())
+        .collect();
+    let one = E::Column::iter().any(|c| {
+        let name = c.as_str();
+        !keys.contains(&name) && !E::SECRET.iter().any(|s| s.as_str() == name) && cols.allows(name)
+    });
+    if one {
+        Ok(cols)
+    } else {
+        Err(Refusal::new(RefusalReason::NoReadableColumn))
+    }
+}
 /// Listing `E`. The proof carries the read scope: the list query and its
 /// count both apply it, so a page never shows a row the user can't read.
 pub fn authorize_list<E: ModelMeta>(ctx: &GateCtx<'_>) -> Result<Authorized<List, E>, Refusal> {
-    Ok(Authorized::new(None, read_scope::<E>(ctx)?))
+    let scope = read_scope::<E>(ctx)?;
+    Ok(Authorized::new(None, scope).reading(readable_columns::<E>(ctx)?))
 }
 
 /// Viewing the row `id` of `E`. Nothing is looked up beforehand: the proof
@@ -103,7 +123,8 @@ pub fn authorize_view<E: ModelMeta>(
     ctx: &GateCtx<'_>,
     id: PkOf<E>,
 ) -> Result<Authorized<View, E>, Refusal> {
-    Ok(Authorized::new(Some(id), read_scope::<E>(ctx)?))
+    let scope = read_scope::<E>(ctx)?;
+    Ok(Authorized::new(Some(id), scope).reading(readable_columns::<E>(ctx)?))
 }
 
 /// Ids sent by the client for a foreign key or a many-to-many field, kept
@@ -150,9 +171,9 @@ pub async fn readable_ids<T: ModelMeta>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::admin::refonte_admin::gate::operation::{Delete, ResetPassword, Update, View};
-    use crate::admin::refonte_admin::gate::proof::Guarded;
-    use crate::admin::refonte_admin::gate::test_support::fixtures::{db, note, pk, staff};
+    use crate::admin::gate::operation::{Delete, ResetPassword, Update, View};
+    use crate::admin::gate::proof::Guarded;
+    use crate::admin::gate::test_support::fixtures::{db, note, pk, staff};
     use crate::utils::aliases::ADb;
     use sea_orm::{EntityTrait, PaginatorTrait};
 
@@ -346,8 +367,8 @@ mod tests {
         db: &ADb,
         user: &CurrentUser,
         id: Pk,
-    ) -> Result<(), crate::admin::refonte_admin::gate::refusal::Refusal> {
-        use crate::admin::refonte_admin::gate::write::update;
+    ) -> Result<(), crate::admin::gate::refusal::Refusal> {
+        use crate::admin::gate::write::update;
         use sea_orm::Set;
         let ctx = GateCtx { db, user };
         let proof = authorize_row::<Update, crate::auth::user::Entity>(&ctx, id).await?;
@@ -493,5 +514,99 @@ mod tests {
             readable_ids::<note::Entity>(&ctx, vec![]).await.is_ok(),
             "an empty field reads nothing"
         );
+    }
+    /// Replaces the columns of the user's only group right.
+    fn columns(user: &mut CurrentUser, cols: &[(&str, bool)]) {
+        use crate::auth::permissions::ColumnRight;
+        user.groupes[0].permissions[0].colonnes = cols
+            .iter()
+            .map(|&(name, read)| ColumnRight {
+                colonne: name.into(),
+                can_read: read,
+                can_create: false,
+                can_update: true,
+            })
+            .collect();
+    }
+
+    #[tokio::test]
+    async fn a_read_needs_one_readable_column_beyond_the_key() {
+        let db = db().await;
+        let mut reader = staff(
+            pk(10),
+            "notes",
+            [false, true, false, false, false, false, false],
+        );
+        let cases: [(&[(&str, bool)], bool); 4] = [
+            (&[], false),
+            (&[("owner_id", false)], false),
+            (&[("id", true)], false),
+            (&[("owner_id", true)], true),
+        ];
+        for (cols, readable) in cases {
+            columns(&mut reader, cols);
+            let ctx = GateCtx {
+                db: &db,
+                user: &reader,
+            };
+            match authorize_list::<note::Entity>(&ctx) {
+                Ok(proof) => {
+                    assert!(readable, "{cols:?}");
+                    assert!(proof.readable().allows("owner_id"));
+                }
+                Err(refusal) => {
+                    assert!(!readable, "{cols:?}");
+                    assert_eq!(*refusal.reason(), RefusalReason::NoReadableColumn);
+                }
+            }
+            assert_eq!(
+                authorize_view::<note::Entity>(&ctx, 1).is_ok(),
+                readable,
+                "{cols:?}"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn the_superuser_and_the_dirigeant_read_every_column() {
+        use crate::auth::rang::Rang;
+        let db = db().await;
+        for rang in [Rang::Superuser, Rang::Dirigeant] {
+            let mut user = staff(pk(10), "nothing", [false; 7]);
+            user.rang = rang;
+            let ctx = GateCtx {
+                db: &db,
+                user: &user,
+            };
+            let proof = authorize_list::<note::Entity>(&ctx).unwrap();
+            assert_eq!(proof.readable(), &ReadableColumns::All, "{rang:?}");
+        }
+    }
+
+    #[tokio::test]
+    async fn a_secret_column_never_counts_as_readable() {
+        use crate::auth::rang::Rang;
+        let db = db().await;
+        let mut admin = staff(
+            pk(40),
+            "users",
+            [false, true, false, false, false, false, false],
+        );
+        admin.rang = Rang::Admin;
+        columns(&mut admin, &[("password", true)]);
+        admin.droits = admin.groupes[0].permissions.clone();
+        let ctx = GateCtx {
+            db: &db,
+            user: &admin,
+        };
+        assert!(authorize_list::<crate::auth::user::Entity>(&ctx).is_err());
+
+        columns(&mut admin, &[("password", true), ("username", true)]);
+        admin.droits = admin.groupes[0].permissions.clone();
+        let ctx = GateCtx {
+            db: &db,
+            user: &admin,
+        };
+        assert!(authorize_list::<crate::auth::user::Entity>(&ctx).is_ok());
     }
 }

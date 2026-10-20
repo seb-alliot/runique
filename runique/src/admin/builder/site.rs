@@ -1,7 +1,7 @@
 //! Every registered `ModelAdmin`, whatever its model.
 use super::admin_builder::ModelAdmin;
 use super::registered::RegisteredModel;
-use crate::admin::refonte_admin::meta::ModelMeta;
+use crate::admin::meta::ModelMeta;
 use crate::auth::session::CurrentUser;
 use crate::auth::user;
 
@@ -166,11 +166,11 @@ impl AdminSite {
 #[cfg(test)]
 mod tests {
     use super::AdminSite;
-    use crate::admin::refonte_admin::builder::admin_builder::ModelAdmin;
-    use crate::admin::refonte_admin::builder::list::ListQuery;
-    use crate::admin::refonte_admin::builder::registered::AdminError;
-    use crate::admin::refonte_admin::gate::test_support::fixtures::note::{Column, Entity};
-    use crate::admin::refonte_admin::gate::test_support::fixtures::{db, pk, staff};
+    use crate::admin::builder::admin_builder::ModelAdmin;
+    use crate::admin::builder::list::ListQuery;
+    use crate::admin::builder::registered::AdminError;
+    use crate::admin::gate::test_support::fixtures::note::{Column, Entity};
+    use crate::admin::gate::test_support::fixtures::{db, pk, staff};
     use crate::auth::user;
 
     #[test]
@@ -263,7 +263,7 @@ mod tests {
     /// opens the accounts, whatever the caller, an admin only by his account.
     #[test]
     fn rights_carry_the_framework_flag_of_the_model() {
-        use crate::admin::refonte_admin::gate::rights::{Crud, CrudAction};
+        use crate::admin::gate::rights::{Crud, CrudAction};
         let site = AdminSite::default().register(ModelAdmin::<Entity>::new());
         let mut user = staff(pk(10), "users", [true; 7]);
         let accounts = site.model("users").unwrap();
@@ -371,7 +371,7 @@ mod tests {
 
     #[test]
     fn a_key_without_verbose_name_is_shown_readable() {
-        use crate::admin::refonte_admin::builder::registered::readable;
+        use crate::admin::builder::registered::readable;
         assert_eq!(readable("doc_page"), "Doc page");
         assert_eq!(readable("users"), "Users");
         assert_eq!(readable("test_all_fields"), "Test all fields");

@@ -47,11 +47,9 @@ async fn boot(db: DatabaseConnection, register: bool) {
             let a = a.path("/admin");
             if register {
                 a.site(|s| {
-                    s.register(
-                        runique::admin::refonte_admin::builder::admin_builder::ModelAdmin::<
-                            notes::Entity,
-                        >::new(),
-                    )
+                    s.register(runique::admin::builder::admin_builder::ModelAdmin::<
+                        notes::Entity,
+                    >::new())
                 })
             } else {
                 a

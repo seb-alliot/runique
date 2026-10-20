@@ -29,6 +29,8 @@ pub(crate) enum RefusalReason {
     /// No row read: missing, out of the user's read scope, or a malformed id.
     /// The scoped read can't tell which, and doesn't need to.
     NotFound,
+    /// The table right without any readable column beyond the key.
+    NoReadableColumn,
 }
 
 impl Refusal {
@@ -66,6 +68,7 @@ mod tests {
             RefusalReason::UnreadableTarget,
             RefusalReason::WriteFailed,
             RefusalReason::NotFound,
+            RefusalReason::NoReadableColumn,
         ]
         .into_iter()
         .map(|r| Refusal::new(r).message())

@@ -12,7 +12,7 @@ use axum::{
 use serde::Deserialize;
 use tower_http::set_header::SetResponseHeaderLayer;
 
-use crate::admin::refonte_admin::builder::site::AdminSite;
+use crate::admin::builder::site::AdminSite;
 use crate::app::staging::AdminStaging;
 use crate::auth::{
     guard::LoginGuard,
@@ -118,8 +118,7 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
     // Built on `admin_path`, not the public base: the `nest()` below adds the
     // mount prefix.
     let site = Arc::new(admin_staging.site);
-    let generated_router =
-        crate::admin::refonte_admin::admin_routeur::refonte_router(&admin_path, site.clone());
+    let generated_router = crate::admin::router::refonte_router(&admin_path, site.clone());
     let generated_router =
         admin_staging
             .extra_routes
@@ -252,7 +251,7 @@ async fn extra_route_gate(
     request: axum::extract::Request,
     next: middleware::Next,
 ) -> Response {
-    use crate::admin::refonte_admin::gate::rights::Crud;
+    use crate::admin::gate::rights::Crud;
     let right = match op {
         CrudOperation::List | CrudOperation::View => Crud::Read,
         CrudOperation::Create => Crud::Create,
