@@ -12,6 +12,7 @@ fn make_groupe(resource: &str, can_read: bool) -> Groupe {
             resource_key: resource.to_string(),
             can_create: false,
             can_read,
+            can_read_own: false,
             can_update: false,
             can_delete: false,
             can_update_own: false,
@@ -42,6 +43,7 @@ fn test_multi_groupes_or_permissions() {
                     resource_key: "articles".to_string(),
                     can_create: false,
                     can_read: true,
+                    can_read_own: false,
                     can_update: false,
                     can_delete: false,
                     can_update_own: false,
@@ -56,6 +58,7 @@ fn test_multi_groupes_or_permissions() {
                     resource_key: "articles".to_string(),
                     can_create: true,
                     can_read: false,
+                    can_read_own: false,
                     can_update: true,
                     can_delete: false,
                     can_update_own: false,
@@ -63,6 +66,7 @@ fn test_multi_groupes_or_permissions() {
                 }],
             },
         ],
+        droits: Vec::new(),
     };
 
     let effectifs = user.permissions_effectives();
@@ -84,6 +88,7 @@ fn test_can_access_resource_necessite_can_read() {
         username: "bob".into(),
         rang: runique::auth::rang::Rang::Lambda,
         groupes: vec![make_groupe("articles", false)], // can_read = false
+        droits: Vec::new(),
     };
     assert!(!user.can_access_resource("articles"));
 }
@@ -97,6 +102,7 @@ fn test_can_access_resource_avec_can_read() {
         username: "carol".into(),
         rang: runique::auth::rang::Rang::Lambda,
         groupes: vec![make_groupe("articles", true)], // can_read = true
+        droits: Vec::new(),
     };
     assert!(user.can_access_resource("articles"));
 }

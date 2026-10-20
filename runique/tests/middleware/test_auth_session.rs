@@ -9,6 +9,7 @@ fn test_current_user_superuser() {
         username: "root".to_string(),
         rang: runique::auth::rang::Rang::Superuser,
         groupes: vec![],
+        droits: Vec::new(),
     };
     assert!(user.can_access_admin());
     assert!(user.can_access_resource("any")); // superuser bypass

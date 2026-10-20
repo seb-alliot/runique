@@ -32,6 +32,7 @@ fn user(id: u32, groupes: &[&str]) -> CurrentUser {
                 permissions: vec![],
             })
             .collect(),
+        droits: Vec::new(),
     }
 }
 

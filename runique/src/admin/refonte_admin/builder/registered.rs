@@ -4,19 +4,21 @@ use super::{
     admin_builder::{ListPage, ModelAdmin},
     list::ListQuery,
 };
-use crate::admin::refonte_admin::gate::PkOf;
-use crate::admin::refonte_admin::gate::refusal::RefusalReason;
 use crate::admin::refonte_admin::{
     gate::{
-        GateCtx, Refusal,
+        GateCtx, PkOf, Refusal,
         check::{authorize_list, authorize_view},
+        refusal::RefusalReason,
+        rights::CrudAction,
     },
     meta::ModelMeta,
 };
 use crate::auth::session::CurrentUser;
 use crate::utils::aliases::ADb;
-use sea_orm::sea_query::SelectStatement;
-use sea_orm::{DbErr, IdenStatic};
+use sea_orm::{
+    sea_query::SelectStatement,
+    {DbErr, IdenStatic},
+};
 
 /// Column aliases of `count_query`.
 pub(crate) const COUNT_RESOURCE: &str = "resource";
@@ -57,20 +59,30 @@ pub(crate) fn readable(key: &str) -> String {
 #[async_trait::async_trait]
 pub(crate) trait RegisteredModel: Send + Sync {
     fn key(&self) -> &'static str;
+
     fn check(&self) -> Result<(), String>;
+
     /// The list's columns, in order, the primary key aside: the page shows it
     /// on its own.
     fn list_columns(&self) -> Vec<&'static str>;
+
     /// The name shown in the navigation: the builder's `title()`, else the
     /// model's plural (or singular) verbose name, else its key made readable.
     fn title(&self) -> String;
+
     /// Whether the navigation lists it for `user`: at least one right on it,
     /// as the gate resolves them. Listing opens nothing: each page still asks
     /// the gate.
     fn visible_to(&self, user: &CurrentUser) -> bool;
+
     /// Whether this model can stand in for the framework's accounts admin:
     /// the `eihwaz_users` table, with every protection of the base model.
     fn keeps_account_rules(&self) -> bool;
+
+    /// `user`'s rights on this model, with its own key and framework flag:
+    /// the one way to resolve them without knowing `E` .
+    fn rights(&self, user: &CurrentUser) -> CrudAction;
+
     /// `SELECT '<key>' AS resource, COUNT(*) AS total` over the rows `user` may
     /// read, or `None` without the read right: the dashboard unites them into
     /// one query.
@@ -101,6 +113,10 @@ impl<E: ModelMeta> RegisteredModel for ModelAdmin<E> {
         self.validate()
     }
 
+    fn rights(&self, user: &CurrentUser) -> CrudAction {
+        CrudAction::resolve(user, E::KEY, E::IS_FRAMEWORK_TABLE)
+    }
+
     fn list_columns(&self) -> Vec<&'static str> {
         use sea_orm::{Iterable, PrimaryKeyToColumn};
         let keys: Vec<&str> = E::PrimaryKey::iter()
@@ -126,11 +142,7 @@ impl<E: ModelMeta> RegisteredModel for ModelAdmin<E> {
     }
 
     fn visible_to(&self, user: &CurrentUser) -> bool {
-        let rights = crate::admin::refonte_admin::gate::rights::CrudAction::resolve(
-            user,
-            E::KEY,
-            E::IS_FRAMEWORK_TABLE,
-        );
+        let rights = self.rights(user);
         rights.can_create
             || rights.can_read
             || rights.can_read_own

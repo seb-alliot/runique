@@ -120,9 +120,9 @@ pub(crate) mod fixtures {
     }
 
     /// A staff member whose only group grants `rights` on `resource`.
-    pub(crate) fn staff(id: Pk, resource: &str, rights: [bool; 6]) -> CurrentUser {
+    pub(crate) fn staff(id: Pk, resource: &str, rights: [bool; 7]) -> CurrentUser {
         use crate::auth::permissions::{Groupe, Permission};
-        let [c, r, u, d, uo, dw] = rights;
+        let [c, r, ro, u, d, uo, dw] = rights;
         CurrentUser {
             id,
             username: "staff".into(),
@@ -135,12 +135,14 @@ pub(crate) mod fixtures {
                     resource_key: resource.into(),
                     can_create: c,
                     can_read: r,
+                    can_read_own: ro,
                     can_update: u,
                     can_delete: d,
                     can_update_own: uo,
                     can_delete_own: dw,
                 }],
             }],
+            droits: Vec::new(),
         }
     }
 }

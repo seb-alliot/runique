@@ -10,10 +10,12 @@ use axum::{
 use tower_sessions::Session;
 
 use crate::admin::router::admin_router::AdminState;
-use crate::auth::permissions::pull_groupes_db;
-use crate::auth::rang::Rang;
-use crate::auth::session::{CurrentUser, get_user_id, logout};
 use crate::auth::user_trait::RuniqueUser;
+use crate::auth::{
+    permissions::{pull_droits_compte, pull_groupes_db},
+    rang::Rang,
+    session::{CurrentUser, get_user_id, logout},
+};
 use crate::context::RequestExtensions;
 use crate::utils::aliases::AEngine;
 use crate::utils::config::TraceResult;
@@ -107,12 +109,19 @@ pub(crate) async fn load_admin_user(
     // the user is built first and judged after.
     let current_user = match account {
         Some(account) => {
+            let rang = Rang::from(&account);
             let groupes = pull_groupes_db(&engine.db, user_id).await;
+            let droits = if rang == Rang::Admin {
+                pull_droits_compte(&engine.db, user_id).await
+            } else {
+                Vec::new()
+            };
             Some(CurrentUser {
                 id: account.id,
-                rang: Rang::from(&account),
+                rang,
                 username: account.username,
                 groupes,
+                droits,
             })
         }
         None => None,

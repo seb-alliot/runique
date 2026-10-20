@@ -121,7 +121,11 @@ mod tests {
     #[tokio::test]
     async fn an_own_update_lands_while_the_row_is_still_the_users() {
         let db = db().await;
-        let owner = staff(pk(10), "notes", [false, false, false, false, true, false]);
+        let owner = staff(
+            pk(10),
+            "notes",
+            [false, false, false, false, false, true, false],
+        );
         let ctx = GateCtx {
             db: &db,
             user: &owner,
@@ -136,7 +140,11 @@ mod tests {
     #[tokio::test]
     async fn an_own_update_is_refused_if_the_row_changed_owner_in_between() {
         let db = db().await;
-        let owner = staff(pk(10), "notes", [false, false, false, false, true, false]);
+        let owner = staff(
+            pk(10),
+            "notes",
+            [false, false, false, false, false, true, false],
+        );
         let ctx = GateCtx {
             db: &db,
             user: &owner,
@@ -156,7 +164,11 @@ mod tests {
     #[tokio::test]
     async fn an_own_delete_is_refused_if_the_row_changed_owner_in_between() {
         let db = db().await;
-        let owner = staff(pk(10), "notes", [false, false, false, false, false, true]);
+        let owner = staff(
+            pk(10),
+            "notes",
+            [false, false, false, false, false, false, true],
+        );
         let ctx = GateCtx {
             db: &db,
             user: &owner,
@@ -175,7 +187,11 @@ mod tests {
     #[tokio::test]
     async fn a_delete_lands_once_and_a_vanished_row_is_refused() {
         let db = db().await;
-        let editor = staff(pk(10), "notes", [false, false, false, true, false, false]);
+        let editor = staff(
+            pk(10),
+            "notes",
+            [false, false, false, false, true, false, false],
+        );
         let ctx = GateCtx {
             db: &db,
             user: &editor,
@@ -194,8 +210,15 @@ mod tests {
     #[tokio::test]
     async fn an_admin_update_is_refused_if_the_account_was_promoted_in_between() {
         let db = db().await;
-        let mut manager = staff(pk(40), "users", [false, true, true, false, false, false]);
+        let mut manager = staff(
+            pk(40),
+            "users",
+            [false, true, false, true, false, false, false],
+        );
+
         manager.rang = crate::auth::rang::Rang::Admin;
+        manager.droits = manager.groupes[0].permissions.clone();
+
         let ctx = GateCtx {
             db: &db,
             user: &manager,
@@ -227,7 +250,11 @@ mod tests {
     #[tokio::test]
     async fn an_insert_needs_and_consumes_a_create_proof() {
         let db = db().await;
-        let creator = staff(pk(10), "notes", [true, false, false, false, false, false]);
+        let creator = staff(
+            pk(10),
+            "notes",
+            [true, false, false, false, false, false, false],
+        );
         let proof = authorize_create::<note::Entity>(&GateCtx {
             db: &db,
             user: &creator,

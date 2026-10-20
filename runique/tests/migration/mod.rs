@@ -47,6 +47,7 @@ pub mod test_parser_seaorm;
 pub mod test_parser_seaorm_extra;
 pub mod test_paths;
 pub mod test_primary_key;
+pub mod test_rights_tables;
 pub mod test_run;
 pub mod test_sea_migrate;
 pub mod test_types;

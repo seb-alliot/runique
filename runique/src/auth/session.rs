@@ -76,6 +76,11 @@ pub struct CurrentUser {
     pub rang: Rang,
     /// User groups (each group contains its permissions)
     pub groupes: Vec<Groupe>,
+    /// An admin's own rights, set by the dirigeant on this account. Empty for
+    /// every other rank: the dirigeant and the superuser have them all,
+    /// lambda's come from this groups.
+    #[serde(default)]
+    pub droits: Vec<Permission>,
 }
 
 impl CurrentUser {
@@ -102,6 +107,11 @@ impl CurrentUser {
         agg.into_values().collect()
     }
 
+    /// The admin's own rith on one ressource, if the dirigeant set one.
+    #[must_use]
+    pub fn droit_for(&self, resource_key: &str) -> Option<&Permission> {
+        self.droits.iter().find(|p| p.resource_key == resource_key)
+    }
     /// Checks if the user has a strict global permission (can be refined).
     #[must_use]
     pub fn can_access_resource(&self, resource_key: &str) -> bool {
