@@ -450,6 +450,7 @@ fn merging_permissions_adds_rights_never_removes_them() {
         can_delete: false,
         can_update_own: true,
         can_delete_own: false,
+        colonnes: Vec::new(),
     };
     let other = Permission {
         resource_key: "articles".into(),
@@ -460,6 +461,7 @@ fn merging_permissions_adds_rights_never_removes_them() {
         can_delete: true,
         can_update_own: false,
         can_delete_own: true,
+        colonnes: Vec::new(),
     };
     mine.merge_from(&other);
     assert!(
@@ -493,7 +495,7 @@ async fn pruning_orphan_rights_reports_what_it_deleted() {
 }
 
 #[tokio::test]
-async fn an_account_loads_only_its_own_table_rights() {
+async fn an_account_loads_its_own_rights_with_their_columns() {
     use crate::helpers::pk::pk_sql_literal;
     use runique::auth::permissions::pull_droits_compte;
 
@@ -502,7 +504,8 @@ async fn an_account_loads_only_its_own_table_rights() {
     let (mine, other) = (pk_sql_literal(1), pk_sql_literal(2));
     for row in [
         format!("(NULL, {mine}, 'plats', '', 1)"),
-        format!("(NULL, {mine}, 'menus', 'titre', 1)"),
+        format!("(NULL, {mine}, 'plats', 'titre', 1)"),
+        format!("(NULL, {mine}, 'menus', 'prix', 1)"),
         format!("(NULL, {other}, 'commandes', '', 1)"),
         "(1, NULL, 'clients', '', 1)".to_string(),
     ] {
@@ -515,8 +518,16 @@ async fn an_account_loads_only_its_own_table_rights() {
         .await;
     }
 
-    let droits = pull_droits_compte(&conn, pk(1)).await;
+    let mut droits = pull_droits_compte(&conn, pk(1)).await;
+    droits.sort();
     let keys: Vec<&str> = droits.iter().map(|p| p.resource_key.as_str()).collect();
-    assert_eq!(keys, ["plats"], "its own whole-table row only");
-    assert!(droits[0].can_read);
+    assert_eq!(keys, ["menus", "plats"], "its own rows only");
+
+    let (menus, plats) = (&droits[0], &droits[1]);
+    assert!(plats.can_read);
+    assert_eq!(plats.colonnes.len(), 1);
+    assert_eq!(plats.colonnes[0].colonne, "titre");
+    assert!(plats.colonnes[0].can_read);
+    assert!(!menus.can_read, "a column row alone opens no table");
+    assert_eq!(menus.colonnes[0].colonne, "prix");
 }

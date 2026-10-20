@@ -173,7 +173,7 @@ fn test_form_data_errors_name_their_field() {
 #[cfg(feature = "admin")]
 #[test]
 fn a_password_field_is_secret_for_the_admin() {
-    use runique::admin::refonte_admin::meta::ModelMeta;
+    use runique::admin::meta::ModelMeta;
     use runique::sea_orm::IdenStatic;
     let names: Vec<&str> = <items::Entity as ModelMeta>::SECRET
         .iter()

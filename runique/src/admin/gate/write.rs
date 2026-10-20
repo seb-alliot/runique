@@ -20,9 +20,7 @@ fn write_failed(e: sea_orm::DbErr) -> Refusal {
 }
 
 /// `primary key = id`, composite keys included.
-pub(in crate::admin::refonte_admin::gate) fn pk_condition<E: EntityTrait>(
-    id: PkOf<E>,
-) -> Condition {
+pub(in crate::admin::gate) fn pk_condition<E: EntityTrait>(id: PkOf<E>) -> Condition {
     E::PrimaryKey::iter()
         .zip(id.into_value_tuple())
         .fold(Condition::all(), |cond, (key, value)| {
@@ -88,8 +86,8 @@ pub async fn delete<E: EntityTrait>(proof: Authorized<Delete, E>, db: &ADb) -> R
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::admin::refonte_admin::gate::check::{GateCtx, authorize_create, authorize_row};
-    use crate::admin::refonte_admin::gate::test_support::fixtures::{db, note, pk, staff};
+    use crate::admin::gate::check::{GateCtx, authorize_create, authorize_row};
+    use crate::admin::gate::test_support::fixtures::{db, note, pk, staff};
     use crate::auth::user;
     use sea_orm::Set;
 

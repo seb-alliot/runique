@@ -51,9 +51,7 @@ pub fn rank_allows<O: AdminOperation>(rang: Rang) -> Result<Option<Condition>, R
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::admin::refonte_admin::gate::operation::{
-        Create, Delete, List, ResetPassword, Update, View,
-    };
+    use crate::admin::gate::operation::{Create, Delete, List, ResetPassword, Update, View};
 
     fn rights(f: impl FnOnce(&mut CrudAction)) -> CrudAction {
         let mut r = CrudAction::default();
