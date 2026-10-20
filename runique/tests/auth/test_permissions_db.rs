@@ -157,7 +157,7 @@ async fn test_pull_groupes_db_multi_ressources() {
     )
     .await;
     db_postgres::exec(&db, "INSERT INTO eihwaz_groupes_droits (groupe_id, resource_key, can_read, can_create, can_update, can_delete, can_update_own, can_delete_own) VALUES (2, 'articles', true, true, true, true, false, false)").await;
-    db_postgres::exec(&db, "INSERT INTO eihwaz_groupes_droits (groupe_id, resource_key, can_read, can_create, can_update, can_delete, can_update_own, can_delete_own) VALUES (2, 'users', true, false, false, false, false, false)").await;
+    db_postgres::exec(&db, "INSERT INTO eihwaz_groupes_droits (groupe_id, resource_key, can_read, can_create, can_update, can_delete, can_update_own, can_delete_own) VALUES (2, 'commandes', true, false, false, false, false, false)").await;
     db_postgres::exec(
         &db,
         &format!(
@@ -178,7 +178,7 @@ async fn test_pull_groupes_db_multi_ressources() {
         .map(|p| p.resource_key.as_str())
         .collect();
     assert!(keys.contains(&"articles"));
-    assert!(keys.contains(&"users"));
+    assert!(keys.contains(&"commandes"));
 
     teardown(&db).await;
 }

@@ -247,11 +247,12 @@ async fn admin_dashboard(
 async fn extra_route_gate(
     axum::extract::State((resource, op)): axum::extract::State<(String, CrudOperation)>,
     Extension(admin): Extension<Arc<AdminState>>,
+    Extension(site): Extension<Arc<AdminSite>>,
     session: tower_sessions::Session,
     request: axum::extract::Request,
     next: middleware::Next,
 ) -> Response {
-    use crate::admin::refonte_admin::gate::rights::{Crud, CrudAction};
+    use crate::admin::refonte_admin::gate::rights::Crud;
     let right = match op {
         CrudOperation::List | CrudOperation::View => Crud::Read,
         CrudOperation::Create => Crud::Create,
@@ -261,7 +262,12 @@ async fn extra_route_gate(
     let user = request
         .extensions()
         .get::<crate::auth::session::CurrentUser>();
-    let granted = user.is_some_and(|u| CrudAction::resolve(u, &resource, false).has(right));
+    // An unknown key grants nothing: the boot already refuses one, this still
+    // holds if that check is ever bypassed.
+    let granted = user.is_some_and(|u| {
+        site.model(&resource)
+            .is_some_and(|model| model.rights(u).has(right))
+    });
     if let Some(level) = crate::utils::runique_log::get_log()
         .admin
         .as_ref()

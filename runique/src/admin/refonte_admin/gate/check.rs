@@ -168,7 +168,11 @@ mod tests {
     #[tokio::test]
     async fn the_read_right_lists_every_row() {
         let db = db().await;
-        let reader = staff(pk(10), "notes", [false, true, false, false, false, false]);
+        let reader = staff(
+            pk(10),
+            "notes",
+            [false, true, false, false, false, false, false],
+        );
         let ctx = GateCtx {
             db: &db,
             user: &reader,
@@ -179,7 +183,11 @@ mod tests {
     #[tokio::test]
     async fn without_the_read_right_the_list_is_refused() {
         let db = db().await;
-        let writer = staff(pk(10), "notes", [true, false, true, true, true, true]);
+        let writer = staff(
+            pk(10),
+            "notes",
+            [true, false, false, true, true, true, true],
+        );
         let ctx = GateCtx {
             db: &db,
             user: &writer,
@@ -193,7 +201,11 @@ mod tests {
     async fn the_full_right_adds_no_owner_condition_even_with_the_own_right() {
         use sea_orm::{DbBackend, QueryTrait};
         let db = db().await;
-        let both = staff(pk(10), "notes", [false, false, true, false, true, false]);
+        let both = staff(
+            pk(10),
+            "notes",
+            [false, false, false, true, false, true, false],
+        );
         let ctx = GateCtx {
             db: &db,
             user: &both,
@@ -212,8 +224,16 @@ mod tests {
     #[tokio::test]
     async fn viewing_asks_the_read_right_and_looks_nothing_up() {
         let db = db().await;
-        let reader = staff(pk(10), "notes", [false, true, false, false, false, false]);
-        let writer = staff(pk(10), "notes", [true, false, true, true, true, true]);
+        let reader = staff(
+            pk(10),
+            "notes",
+            [false, true, false, false, false, false, false],
+        );
+        let writer = staff(
+            pk(10),
+            "notes",
+            [true, false, false, true, true, true, true],
+        );
         let proof = authorize_view::<note::Entity>(
             &GateCtx {
                 db: &db,
@@ -242,7 +262,7 @@ mod tests {
     #[tokio::test]
     async fn a_right_on_another_resource_opens_nothing() {
         let db = db().await;
-        let other = staff(pk(10), "users", [true, true, true, true, true, true]);
+        let other = staff(pk(10), "users", [true, true, false, true, true, true, true]);
         let ctx = GateCtx {
             db: &db,
             user: &other,
@@ -253,7 +273,11 @@ mod tests {
     #[tokio::test]
     async fn an_own_right_opens_the_users_row_and_no_other() {
         let db = db().await;
-        let owner = staff(pk(10), "notes", [false, false, false, false, true, false]);
+        let owner = staff(
+            pk(10),
+            "notes",
+            [false, false, false, false, false, true, false],
+        );
         let ctx = GateCtx {
             db: &db,
             user: &owner,
@@ -288,7 +312,11 @@ mod tests {
     #[tokio::test]
     async fn the_full_right_opens_any_row_without_an_owner_condition() {
         let db = db().await;
-        let editor = staff(pk(10), "notes", [false, false, true, false, false, false]);
+        let editor = staff(
+            pk(10),
+            "notes",
+            [false, false, false, true, false, false, false],
+        );
         let ctx = GateCtx {
             db: &db,
             user: &editor,
@@ -301,9 +329,15 @@ mod tests {
         }
     }
 
-    /// The account in `rang` with every right on `users` from its group.
+    /// The account in `rang` with every right on `users`: from its group and
+    /// on its account, so each rank finds it where it reads it.
     fn manager(rang: crate::auth::rang::Rang) -> CurrentUser {
-        let mut user = staff(pk(40), "users", [true, true, true, true, false, false]);
+        let mut user = staff(
+            pk(40),
+            "users",
+            [true, true, false, true, true, false, false],
+        );
+        user.droits = user.groupes[0].permissions.clone();
         user.rang = rang;
         user
     }
@@ -393,8 +427,16 @@ mod tests {
     #[tokio::test]
     async fn create_asks_the_create_right_only() {
         let db = db().await;
-        let creator = staff(pk(10), "notes", [true, false, false, false, false, false]);
-        let reader = staff(pk(10), "notes", [false, true, true, true, true, true]);
+        let creator = staff(
+            pk(10),
+            "notes",
+            [true, false, false, false, false, false, false],
+        );
+        let reader = staff(
+            pk(10),
+            "notes",
+            [false, true, false, true, true, true, true],
+        );
         assert!(
             authorize_create::<note::Entity>(&GateCtx {
                 db: &db,
@@ -414,7 +456,11 @@ mod tests {
     #[tokio::test]
     async fn readable_ids_keeps_a_field_only_if_every_target_is_readable() {
         let db = db().await;
-        let reader = staff(pk(10), "notes", [false, true, false, false, false, false]);
+        let reader = staff(
+            pk(10),
+            "notes",
+            [false, true, false, false, false, false, false],
+        );
         let ctx = GateCtx {
             db: &db,
             user: &reader,
@@ -430,7 +476,11 @@ mod tests {
             "one missing target refuses the field"
         );
 
-        let blind = staff(pk(10), "notes", [false, false, true, true, true, true]);
+        let blind = staff(
+            pk(10),
+            "notes",
+            [false, false, false, true, true, true, true],
+        );
         let ctx = GateCtx {
             db: &db,
             user: &blind,

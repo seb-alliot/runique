@@ -445,6 +445,7 @@ fn merging_permissions_adds_rights_never_removes_them() {
         resource_key: "articles".into(),
         can_create: true,
         can_read: false,
+        can_read_own: false,
         can_update: true,
         can_delete: false,
         can_update_own: true,
@@ -454,6 +455,7 @@ fn merging_permissions_adds_rights_never_removes_them() {
         resource_key: "articles".into(),
         can_create: false,
         can_read: true,
+        can_read_own: false,
         can_update: false,
         can_delete: true,
         can_update_own: false,
@@ -488,4 +490,33 @@ async fn pruning_orphan_rights_reports_what_it_deleted() {
     let pruned = prune_orphan_droits(&conn, &["kept"]).await.expect("prune");
     assert_eq!(pruned, 2);
     db::assert_count(&conn, "eihwaz_groupes_droits", 1).await;
+}
+
+#[tokio::test]
+async fn an_account_loads_only_its_own_table_rights() {
+    use crate::helpers::pk::pk_sql_literal;
+    use runique::auth::permissions::pull_droits_compte;
+
+    let conn = db::fresh_db().await;
+    db::exec(&conn, framework_tables::GROUPES_DROITS_DDL).await;
+    let (mine, other) = (pk_sql_literal(1), pk_sql_literal(2));
+    for row in [
+        format!("(NULL, {mine}, 'plats', '', 1)"),
+        format!("(NULL, {mine}, 'menus', 'titre', 1)"),
+        format!("(NULL, {other}, 'commandes', '', 1)"),
+        "(1, NULL, 'clients', '', 1)".to_string(),
+    ] {
+        db::exec(
+            &conn,
+            &format!(
+                "INSERT INTO eihwaz_groupes_droits (groupe_id, user_id, resource_key, colonne, can_read) VALUES {row}"
+            ),
+        )
+        .await;
+    }
+
+    let droits = pull_droits_compte(&conn, pk(1)).await;
+    let keys: Vec<&str> = droits.iter().map(|p| p.resource_key.as_str()).collect();
+    assert_eq!(keys, ["plats"], "its own whole-table row only");
+    assert!(droits[0].can_read);
 }

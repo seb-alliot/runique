@@ -15,6 +15,8 @@ pub struct Permission {
     pub resource_key: String,
     pub can_create: bool,
     pub can_read: bool,
+    #[serde(default)]
+    pub can_read_own: bool,
     pub can_update: bool,
     pub can_delete: bool,
     pub can_update_own: bool,
@@ -28,6 +30,7 @@ impl Permission {
             resource_key,
             can_create: false,
             can_read: false,
+            can_read_own: false,
             can_update: false,
             can_delete: false,
             can_update_own: false,
@@ -39,10 +42,26 @@ impl Permission {
     pub fn merge_from(&mut self, other: &Self) {
         self.can_create |= other.can_create;
         self.can_read |= other.can_read;
+        self.can_read_own |= other.can_read_own;
         self.can_update |= other.can_update;
         self.can_delete |= other.can_delete;
         self.can_update_own |= other.can_update_own;
         self.can_delete_own |= other.can_delete_own;
+    }
+}
+
+impl From<groupes_droits::Model> for Permission {
+    fn from(m: groupes_droits::Model) -> Self {
+        Self {
+            resource_key: m.resource_key,
+            can_create: m.can_create,
+            can_read: m.can_read,
+            can_read_own: m.can_read_own,
+            can_update: m.can_update,
+            can_update_own: m.can_update_own,
+            can_delete: m.can_delete,
+            can_delete_own: m.can_delete_own,
+        }
     }
 }
 
@@ -135,17 +154,32 @@ pub async fn pull_groupes_db<C: ConnectionTrait>(
         }
     };
     for m in droits {
-        if let Some(g) = groupes.iter_mut().find(|g| m.groupe_id == Some(g.id)) {
-            g.permissions.push(Permission {
-                resource_key: m.resource_key,
-                can_create: m.can_create,
-                can_read: m.can_read,
-                can_update: m.can_update,
-                can_delete: m.can_delete,
-                can_update_own: m.can_update_own,
-                can_delete_own: m.can_delete_own,
-            });
+        let groupe_id = m.groupe_id;
+        if let Some(g) = groupes.iter_mut().find(|g| groupe_id == Some(g.id)) {
+            g.permissions.push(m.into());
         }
     }
+
     groupes
+}
+
+/// Loads an admin account's own rights on whole tables (its `user_id` rows,
+/// `colonne = ''`), set by the dirigeant. One query, admins only. A database
+/// error grants nothing and is traced, never swallowed.
+pub async fn pull_droits_compte<C: ConnectionTrait>(
+    db: &C,
+    user_id: crate::utils::pk::Pk,
+) -> Vec<Permission> {
+    match groupes_droits::Entity::find()
+        .filter(groupes_droits::Column::UserId.eq(user_id))
+        .filter(groupes_droits::Column::Colonne.eq(""))
+        .all(db)
+        .await
+    {
+        Ok(rows) => rows.into_iter().map(Permission::from).collect(),
+        Err(e) => {
+            tracing::error!(user_id = %user_id, error = %e, "loading account rights failed — no rights granted for this request");
+            Vec::new()
+        }
+    }
 }

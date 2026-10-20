@@ -11,6 +11,7 @@ fn perm(resource: &str, create: bool, read: bool, update: bool, delete: bool) ->
         resource_key: resource.to_string(),
         can_create: create,
         can_read: read,
+        can_read_own: false,
         can_update: update,
         can_delete: delete,
         can_update_own: false,
@@ -30,6 +31,7 @@ fn user(is_staff: bool, rang: Rang, permissions_v: Vec<Permission>) -> CurrentUs
             is_staff,
             permissions: permissions_v,
         }],
+        droits: Vec::new(),
     }
 }
 
@@ -124,6 +126,7 @@ fn test_permissions_effectives_merge() {
                 permissions: vec![perm("articles", false, true, false, false)],
             },
         ],
+        droits: Vec::new(),
     };
 
     let effectifs = u.permissions_effectives();

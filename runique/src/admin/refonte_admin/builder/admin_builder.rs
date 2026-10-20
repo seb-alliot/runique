@@ -543,7 +543,11 @@ mod tests {
 
     async fn page_of(admin: &ModelAdmin<Entity>, query: ListQuery) -> ListPage {
         let db = db().await;
-        let reader = staff(pk(10), "notes", [false, true, false, false, false, false]);
+        let reader = staff(
+            pk(10),
+            "notes",
+            [false, true, false, false, false, false, false],
+        );
         let ctx = GateCtx {
             db: &db,
             user: &reader,

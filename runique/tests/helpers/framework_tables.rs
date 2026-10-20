@@ -70,17 +70,39 @@ pub const GROUPES_DDL: &str = "
     )
 ";
 
+#[cfg(feature = "pk-uuid")]
 pub const GROUPES_DROITS_DDL: &str = "
     CREATE TABLE eihwaz_groupes_droits (
-        groupe_id      INTEGER NOT NULL,
+        id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        groupe_id      INTEGER,
+        user_id        BLOB,
         resource_key   TEXT NOT NULL,
+        colonne        TEXT NOT NULL DEFAULT '',
         can_create     INTEGER NOT NULL DEFAULT 0,
         can_read       INTEGER NOT NULL DEFAULT 0,
+        can_read_own   INTEGER NOT NULL DEFAULT 0,
         can_update     INTEGER NOT NULL DEFAULT 0,
-        can_delete     INTEGER NOT NULL DEFAULT 0,
         can_update_own INTEGER NOT NULL DEFAULT 0,
-        can_delete_own INTEGER NOT NULL DEFAULT 0,
-        PRIMARY KEY (groupe_id, resource_key)
+        can_delete     INTEGER NOT NULL DEFAULT 0,
+        can_delete_own INTEGER NOT NULL DEFAULT 0
+    )
+";
+
+#[cfg(not(feature = "pk-uuid"))]
+pub const GROUPES_DROITS_DDL: &str = "
+    CREATE TABLE eihwaz_groupes_droits (
+        id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        groupe_id      INTEGER,
+        user_id        INTEGER,
+        resource_key   TEXT NOT NULL,
+        colonne        TEXT NOT NULL DEFAULT '',
+        can_create     INTEGER NOT NULL DEFAULT 0,
+        can_read       INTEGER NOT NULL DEFAULT 0,
+        can_read_own   INTEGER NOT NULL DEFAULT 0,
+        can_update     INTEGER NOT NULL DEFAULT 0,
+        can_update_own INTEGER NOT NULL DEFAULT 0,
+        can_delete     INTEGER NOT NULL DEFAULT 0,
+        can_delete_own INTEGER NOT NULL DEFAULT 0
     )
 ";
 

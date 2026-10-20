@@ -481,6 +481,7 @@ async fn auth_middleware(
                     rang: crate::auth::rang::Rang::from(&user),
                     username: user.username,
                     groupes: Vec::new(),
+                    droits: Vec::new(),
                 };
                 RequestExtensions::new()
                     .with_current_user(current_user)

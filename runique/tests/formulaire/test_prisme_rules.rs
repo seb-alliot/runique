@@ -25,6 +25,7 @@ fn user(rang: Rang, staff_group: bool) -> CurrentUser {
         username: "alice".into(),
         rang,
         groupes,
+        droits: Vec::new(),
     }
 }
 

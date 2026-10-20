@@ -253,10 +253,32 @@ mod tests {
             "{errors:?}"
         );
     }
+
     fn with_rang(rang: crate::auth::rang::Rang) -> crate::auth::session::CurrentUser {
-        let mut user = staff(pk(40), "nothing", [false; 6]);
+        let mut user = staff(pk(40), "nothing", [false; 7]);
         user.rang = rang;
         user
+    }
+    /// The rights come with the model's own framework flag: a group never
+    /// opens the accounts, whatever the caller, an admin only by his account.
+    #[test]
+    fn rights_carry_the_framework_flag_of_the_model() {
+        use crate::admin::refonte_admin::gate::rights::{Crud, CrudAction};
+        let site = AdminSite::default().register(ModelAdmin::<Entity>::new());
+        let mut user = staff(pk(10), "users", [true; 7]);
+        let accounts = site.model("users").unwrap();
+        assert_eq!(accounts.rights(&user), CrudAction::default());
+
+        user.rang = crate::auth::rang::Rang::Admin;
+        user.droits = user.groupes[0].permissions.clone();
+        assert!(accounts.rights(&user).has(Crud::Read));
+
+        let notes = staff(
+            pk(10),
+            "notes",
+            [false, true, false, false, false, false, false],
+        );
+        assert!(site.model("notes").unwrap().rights(&notes).has(Crud::Read));
     }
 
     fn nav_keys(
@@ -275,13 +297,17 @@ mod tests {
     #[test]
     fn the_navigation_lists_only_the_models_a_right_opens() {
         let site = AdminSite::default().register(ModelAdmin::<Entity>::new());
-        let creator = staff(pk(10), "notes", [true, false, false, false, false, false]);
+        let creator = staff(
+            pk(10),
+            "notes",
+            [true, false, false, false, false, false, false],
+        );
         assert_eq!(
             nav_keys(&site, &creator, &[]),
             ["notes"],
             "a lambda never sees the accounts"
         );
-        let nobody = staff(pk(10), "other", [true, true, true, true, true, true]);
+        let nobody = staff(pk(10), "other", [true, true, false, true, true, true, true]);
         assert!(nav_keys(&site, &nobody, &[]).is_empty());
         let su = with_rang(crate::auth::rang::Rang::Superuser);
         assert_eq!(
@@ -314,7 +340,11 @@ mod tests {
         assert_eq!(counts.get("notes"), Some(&3));
         assert_eq!(counts.get("users"), Some(&4));
 
-        let reader = staff(pk(10), "notes", [false, true, false, false, false, false]);
+        let reader = staff(
+            pk(10),
+            "notes",
+            [false, true, false, false, false, false, false],
+        );
         let counts = site.counts(&db, &reader).await.unwrap();
         assert_eq!(counts.get("notes"), Some(&3));
         assert_eq!(
@@ -323,7 +353,7 @@ mod tests {
             "a lambda never counts the accounts"
         );
 
-        let nobody = staff(pk(10), "other", [true, true, true, true, true, true]);
+        let nobody = staff(pk(10), "other", [true, true, false, true, true, true, true]);
         assert!(site.counts(&db, &nobody).await.unwrap().is_empty());
     }
 
@@ -390,7 +420,11 @@ mod tests {
     #[tokio::test]
     async fn a_registered_key_lists_its_rows() {
         let db = db().await;
-        let reader = staff(pk(10), "notes", [false, true, false, false, false, false]);
+        let reader = staff(
+            pk(10),
+            "notes",
+            [false, true, false, false, false, false, false],
+        );
         let site = notes_site();
         let page = site
             .model("notes")
@@ -409,7 +443,11 @@ mod tests {
     #[tokio::test]
     async fn the_gate_still_decides_behind_the_key() {
         let db = db().await;
-        let writer = staff(pk(10), "notes", [true, false, true, true, true, true]);
+        let writer = staff(
+            pk(10),
+            "notes",
+            [true, false, false, true, true, true, true],
+        );
         let site = notes_site();
         let result = site
             .model("notes")
@@ -419,7 +457,7 @@ mod tests {
         assert!(matches!(result, Err(AdminError::Refused(_))));
     }
 
-    async fn detail_as(rights: [bool; 6], id: &str) -> Result<serde_json::Value, AdminError> {
+    async fn detail_as(rights: [bool; 7], id: &str) -> Result<serde_json::Value, AdminError> {
         let db = db().await;
         let user = staff(pk(10), "notes", rights);
         notes_site()
@@ -429,7 +467,7 @@ mod tests {
             .await
     }
 
-    const READ: [bool; 6] = [false, true, false, false, false, false];
+    const READ: [bool; 7] = [false, true, false, false, false, false, false];
 
     #[tokio::test]
     async fn a_row_shows_the_form_columns_and_its_key_only() {
@@ -451,7 +489,7 @@ mod tests {
             detail_as(READ, "99").await,
             Err(AdminError::Refused(_))
         ));
-        let no_read = [true, false, true, true, true, true];
+        let no_read = [true, false, false, true, true, true, true];
         assert!(matches!(
             detail_as(no_read, "1").await,
             Err(AdminError::Refused(_))
