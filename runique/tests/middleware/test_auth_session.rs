@@ -1,13 +1,13 @@
 // Tests pour CurrentUser (auth_session)
 use crate::helpers::pk::pk;
-use runique::auth::session::CurrentUser;
+use runique::auth::current_user::CurrentUser;
 
 #[test]
 fn test_current_user_superuser() {
     let user = CurrentUser {
         id: pk(3),
         username: "root".to_string(),
-        rang: runique::auth::rang::Rang::Superuser,
+        rang: runique::auth::permissions::rang::Rang::Superuser,
         groupes: vec![],
         droits: Vec::new(),
     };

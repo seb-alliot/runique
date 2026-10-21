@@ -1,5 +1,5 @@
 //! Definition of all type aliases: `ATera`, `ADb`, `StrMap`, `FieldsMap`, `AppResult`…
-use crate::auth::session::CurrentUser;
+use crate::auth::current_user::CurrentUser;
 use crate::config::app::RuniqueConfig;
 use crate::context::template::AppError;
 use crate::engine::RuniqueEngine;

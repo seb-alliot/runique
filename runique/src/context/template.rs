@@ -1,6 +1,6 @@
 //! Main request context: `AppError`, `RuniqueContext`, and Tera context construction.
 use crate::app::templates::TemplateLoader;
-use crate::auth::session::CurrentUser;
+use crate::auth::current_user::CurrentUser;
 use crate::errors::error::ErrorContext;
 use crate::flash::Message;
 use crate::forms::{
@@ -319,11 +319,11 @@ impl Request {
 
     /// Loads the signed-in user's groups and rights from the database into
     /// `self.user` and the template's `current_user`, for a view that checks a
-    /// right (`can_access_resource`, `permission_for`). Not loaded by default:
+    /// right (`rights_on`, `can_access_resource`). Not loaded by default:
     /// most pages never look at them.
     pub async fn load_user_rights(&mut self) {
         if let Some(user) = self.user.as_mut() {
-            user.groupes = crate::auth::pull_groupes_db(&self.engine.db, user.id).await;
+            crate::auth::permissions::load_rights(&self.engine.db, user).await;
             self.context.insert("current_user", &*user);
         }
     }

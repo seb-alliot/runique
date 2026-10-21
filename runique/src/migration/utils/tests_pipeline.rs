@@ -1545,7 +1545,7 @@ fn enum_column_default_is_emitted_in_create_on_all_engines() {
 const EXTEND_ENUM_DEFAULT_SRC: &str = r#"
 use runique::prelude::*;
 extend! {
-    table: "blog",
+    table: "eihwaz_users",
     enums: {
         Status: [Draft="Draft", Published="Published", Archived="Archived"],
     },

@@ -2,7 +2,7 @@
 
 use crate::helpers::pk::pk;
 use axum::{body::Body, http::Request};
-use runique::auth::session::CurrentUser;
+use runique::auth::current_user::CurrentUser;
 use runique::context::RequestExtensions;
 use runique::utils::csp_nonce::CspNonce;
 use runique::utils::csrf::CsrfToken;
@@ -52,7 +52,7 @@ fn test_with_current_user() {
     let user = CurrentUser {
         id: pk(1),
         username: "alice".to_string(),
-        rang: runique::auth::rang::Rang::Lambda,
+        rang: runique::auth::permissions::rang::Rang::Lambda,
         groupes: vec![],
         droits: Vec::new(),
     };
@@ -91,7 +91,7 @@ fn test_inject_request_current_user() {
     let user = CurrentUser {
         id: pk(42),
         username: "bob".to_string(),
-        rang: runique::auth::rang::Rang::Lambda,
+        rang: runique::auth::permissions::rang::Rang::Lambda,
         groupes: vec![],
         droits: Vec::new(),
     };

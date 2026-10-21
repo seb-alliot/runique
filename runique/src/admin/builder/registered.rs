@@ -13,7 +13,7 @@ use crate::admin::{
     },
     meta::ModelMeta,
 };
-use crate::auth::session::CurrentUser;
+use crate::auth::current_user::CurrentUser;
 use crate::utils::aliases::ADb;
 use sea_orm::{
     sea_query::SelectStatement,
@@ -61,10 +61,6 @@ pub(crate) trait RegisteredModel: Send + Sync {
     fn key(&self) -> &'static str;
 
     fn check(&self) -> Result<(), String>;
-
-    /// The list's columns, in order, the primary key aside: the page shows it
-    /// on its own.
-    fn list_columns(&self) -> Vec<&'static str>;
 
     /// The name shown in the navigation: the builder's `title()`, else the
     /// model's plural (or singular) verbose name, else its key made readable.
@@ -114,20 +110,7 @@ impl<E: ModelMeta> RegisteredModel for ModelAdmin<E> {
     }
 
     fn rights(&self, user: &CurrentUser) -> CrudAction {
-        CrudAction::resolve(user, E::KEY, E::IS_FRAMEWORK_TABLE)
-    }
-
-    fn list_columns(&self) -> Vec<&'static str> {
-        use sea_orm::{Iterable, PrimaryKeyToColumn};
-        let keys: Vec<&str> = E::PrimaryKey::iter()
-            .map(|k| k.into_column().as_str())
-            .collect();
-        self.list
-            .display_columns()
-            .iter()
-            .map(|c| c.as_str())
-            .filter(|name| !keys.contains(name))
-            .collect()
+        CrudAction::resolve(user, E::KEY)
     }
 
     fn title(&self) -> String {

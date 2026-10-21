@@ -22,7 +22,7 @@ use axum::{
     routing::get as axum_get,
 };
 use runique::{
-    auth::session::CurrentUser,
+    auth::current_user::CurrentUser,
     context::template::Request as HandlerReq,
     flash::Message,
     forms::Prisme,

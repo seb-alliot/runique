@@ -3,6 +3,9 @@
 use crate::ast::{EnumDef, FormFieldDecl};
 use syn::{Ident, LitStr, Token, braced, parse::Parse, parse::ParseStream};
 
+/// The framework tables `extend!{}` accepts.
+const EXTENDABLE: [&str; 2] = ["eihwaz_users", "eihwaz_groupes"];
+
 /// A parsed `extend!{}`: the framework table it extends, and the enums and
 /// fields it adds.
 pub struct ExtendDsl {
@@ -19,6 +22,17 @@ impl Parse for ExtendDsl {
         }
         input.parse::<Token![:]>()?;
         let table: LitStr = input.parse()?;
+        // Any other table would get a key outside the framework's own: groups
+        // could then be given rights on it, the rights table included.
+        if !EXTENDABLE.contains(&table.value().as_str()) {
+            return Err(syn::Error::new(
+                table.span(),
+                format!(
+                    "extend!{{}}: only `eihwaz_users` and `eihwaz_groupes` can be extended, not `{}`; a table of your own is declared with `model!{{}}`",
+                    table.value()
+                ),
+            ));
+        }
         input.parse::<Token![,]>()?;
 
         // enums: { ... } optional — reuses the model parser (EnumDef: Parse).
@@ -100,6 +114,26 @@ mod tests {
             )
             .is_err()
         );
+    }
+
+    #[test]
+    fn only_the_accounts_and_the_groups_can_be_extended() {
+        for table in ["eihwaz_users", "eihwaz_groupes"] {
+            let src = format!(r#"table: "{table}", fields: {{ bio: text }}"#);
+            assert!(parse(&src).is_ok(), "{table}");
+        }
+        for table in [
+            "eihwaz_groupes_droits",
+            "eihwaz_users_groupes",
+            "users",
+            "profiles",
+        ] {
+            let src = format!(r#"table: "{table}", fields: {{ bio: text }}"#);
+            let error = parse(&src)
+                .err()
+                .unwrap_or_else(|| panic!("{table} accepted"));
+            assert!(error.to_string().contains(table), "{error}");
+        }
     }
 
     #[test]

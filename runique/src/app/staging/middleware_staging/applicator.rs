@@ -459,7 +459,8 @@ async fn auth_middleware(
     mut req: axum::http::Request<axum::body::Body>,
     next: axum::middleware::Next,
 ) -> axum::response::Response {
-    use crate::auth::session::{CurrentUser, get_user_id, logout};
+    use crate::auth::current_user::CurrentUser;
+    use crate::auth::session::{get_user_id, logout};
     use crate::auth::user::BuiltinUserEntity;
     use crate::utils::config::TraceResult;
 
@@ -478,7 +479,7 @@ async fn auth_middleware(
             Some(user) => {
                 let current_user = CurrentUser {
                     id,
-                    rang: crate::auth::rang::Rang::from(&user),
+                    rang: crate::auth::permissions::rang::Rang::from(&user),
                     username: user.username,
                     groupes: Vec::new(),
                     droits: Vec::new(),

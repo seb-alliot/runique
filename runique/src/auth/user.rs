@@ -1,6 +1,6 @@
 //! Runique's built-in user entity (table `eihwaz_users`).
 use crate::auth::permissions::pull_groupes_db;
-use crate::auth::rang::Rang;
+use crate::auth::permissions::rang::Rang;
 pub use crate::auth::user_trait::RuniqueUser;
 use crate::utils::aliases::ADb;
 use crate::utils::config::TraceResult;

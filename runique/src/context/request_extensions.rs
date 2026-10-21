@@ -1,5 +1,5 @@
 //! Axum request extensions: injects engine, Tera, config, CSRF, CSP nonce, and current user.
-use crate::auth::session::CurrentUser;
+use crate::auth::current_user::CurrentUser;
 use axum::body::Body;
 use axum::http::Request;
 /// Centralized module to inject all data into Axum extensions.

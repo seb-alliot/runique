@@ -8,8 +8,8 @@ use crate::admin::{
 };
 use crate::utils::aliases::ADb;
 use sea_orm::{
-    ColumnTrait, DbErr, FromQueryResult, IdenStatic, PaginatorTrait, QueryFilter, QueryResult,
-    QuerySelect,
+    ColumnTrait, DbErr, FromQueryResult, IdenStatic, Iterable, PaginatorTrait, PrimaryKeyToColumn,
+    QueryFilter, QueryResult, QuerySelect,
 };
 
 /// The account table's rank flags: written by the gate alone, never a form field.
@@ -25,6 +25,8 @@ pub struct ModelAdmin<E: ModelMeta> {
 /// One page of a list, ready for the template.
 #[derive(serde::Serialize)]
 pub(crate) struct ListPage {
+    /// The columns shown, key out: the headers, cut tike the query.
+    pub columns: Vec<&'static str>,
     pub rows: Vec<serde_json::Value>,
     pub total: u64,
     pub page: u64,
@@ -206,26 +208,27 @@ impl<E: ModelMeta> ModelAdmin<E> {
         site_page_size: u64,
     ) -> Result<ListPage, DbErr> {
         let backend = db.get_database_backend();
-        let page_size = self.list.page_size(site_page_size);
+        let list = self.list.readable_only(proof.readable());
+        let page_size = list.page_size(site_page_size);
         let page = query.page.max(1);
-        let rows: Vec<ListRow> = self
-            .list
+        let rows: Vec<ListRow> = list
             .select(backend, proof.conditions(), query)
             .limit(page_size)
             .offset((page - 1).saturating_mul(page_size))
             .into_model::<ListRow>()
             .all(&**db)
             .await?;
+
         let total = match rows.first() {
             Some(row) => u64::try_from(row.total).unwrap_or(0),
             None if page > 1 => {
-                self.list
-                    .filtered(backend, proof.conditions(), query)
+                list.filtered(backend, proof.conditions(), query)
                     .count(&**db)
                     .await?
             }
             None => 0,
         };
+
         let rows = rows
             .into_iter()
             .map(|mut row| {
@@ -236,7 +239,18 @@ impl<E: ModelMeta> ModelAdmin<E> {
             })
             .collect();
 
+        let keys: Vec<&str> = E::PrimaryKey::iter()
+            .map(|k| k.into_column().as_str())
+            .collect();
+
+        let columns = list
+            .display_columns()
+            .iter()
+            .map(|c| c.as_str())
+            .filter(|name| !keys.contains(name))
+            .collect();
         Ok(ListPage {
+            columns,
             rows,
             total,
             page,
@@ -263,6 +277,7 @@ impl<E: ModelMeta> ModelAdmin<E> {
                 columns.push(col);
             }
         }
+        let columns = proof.readable().preserve::<E>(&columns);
         E::find_by_id(id.clone())
             .filter(proof.conditions())
             .select_only()
@@ -279,9 +294,11 @@ mod tests {
     use super::{ListPage, ModelAdmin};
     use crate::admin::builder::list::ListQuery;
     use crate::admin::gate::GateCtx;
-    use crate::admin::gate::check::authorize_list;
+    use crate::admin::gate::check::{authorize_list, authorize_view};
     use crate::admin::gate::test_support::fixtures::note::{Column, Entity};
     use crate::admin::gate::test_support::fixtures::{db, pk, staff};
+    use crate::auth::current_user::CurrentUser;
+    use crate::auth::permissions::rang::Rang;
     use crate::auth::user;
     use sea_orm::Order;
     /// One column of each kind the create check looks at.
@@ -628,6 +645,163 @@ mod tests {
         });
         let page = page_of(&admin, ListQuery::default()).await;
         assert_eq!(page.rows[0]["id"], 3);
+    }
+
+    /// An admin reading the accounts: `username` always, `email` only if `email`.
+    fn account_reader(email: bool) -> CurrentUser {
+        use crate::auth::permissions::ColumnRight;
+        let mut admin = staff(
+            pk(40),
+            "users",
+            [false, true, false, false, false, false, false],
+        );
+        admin.rang = Rang::Admin;
+        admin.groupes[0].permissions[0].colonnes = [("username", true), ("email", email)]
+            .into_iter()
+            .map(|(name, read)| ColumnRight {
+                colonne: name.into(),
+                can_read: read,
+                can_create: false,
+                can_update: false,
+            })
+            .collect();
+        admin.droits = admin.groupes[0].permissions.clone();
+        admin
+    }
+
+    async fn accounts_page(reader: &CurrentUser, query: ListQuery) -> ListPage {
+        let db = db().await;
+        let ctx = GateCtx {
+            db: &db,
+            user: reader,
+        };
+        let proof = authorize_list::<user::Entity>(&ctx).unwrap();
+        ModelAdmin::<user::Entity>::new()
+            .list(|l| {
+                l.display([user::Column::Username, user::Column::Email])
+                    .search([user::Column::Email])
+                    .filter([user::Column::Email])
+                    .sortable([user::Column::Email])
+            })
+            .fetch_list(&db, &proof, &query, 25)
+            .await
+            .unwrap()
+    }
+
+    #[tokio::test]
+    async fn an_unreadable_column_is_neither_read_nor_headed() {
+        for (email, columns, keys) in [
+            (false, vec!["username"], vec!["id", "username"]),
+            (
+                true,
+                vec!["username", "email"],
+                vec!["email", "id", "username"],
+            ),
+        ] {
+            let page = accounts_page(&account_reader(email), ListQuery::default()).await;
+            assert_eq!(page.columns, columns, "email readable: {email}");
+            assert!(!page.rows.is_empty());
+            for row in &page.rows {
+                let mut read: Vec<&str> = row
+                    .as_object()
+                    .unwrap()
+                    .keys()
+                    .map(String::as_str)
+                    .collect();
+                read.sort();
+                assert_eq!(read, keys, "email readable: {email}");
+            }
+        }
+    }
+
+    /// A named list query, built afresh for each reader.
+    type Probe = (&'static str, fn() -> ListQuery);
+
+    /// Searching, filtering or sorting on an unreadable column would tell its
+    /// values one guess at a time: the page must be the one without the parameter.
+    #[tokio::test]
+    async fn an_unreadable_column_is_neither_searched_filtered_nor_sorted() {
+        let queries: [Probe; 3] = [
+            ("search", || ListQuery {
+                search: Some("member@".into()),
+                ..Default::default()
+            }),
+            ("filter", || ListQuery {
+                filters: vec![("email".into(), "member@example.com".into())],
+                ..Default::default()
+            }),
+            ("sort", || ListQuery {
+                sort_by: Some("email".into()),
+                sort_dir: Some("desc".into()),
+                ..Default::default()
+            }),
+        ];
+        let hidden = account_reader(false);
+        let shown = account_reader(true);
+        let hidden_base = accounts_page(&hidden, ListQuery::default()).await;
+        let shown_base = accounts_page(&shown, ListQuery::default()).await;
+        for (label, query) in queries {
+            let page = accounts_page(&hidden, query()).await;
+            assert_eq!(page.rows, hidden_base.rows, "hidden: {label}");
+            assert_eq!(page.total, hidden_base.total, "hidden: {label}");
+            let page = accounts_page(&shown, query()).await;
+            assert_ne!(page.rows, shown_base.rows, "shown: {label}");
+            assert_eq!(page.rows[0]["username"], "member", "shown: {label}");
+        }
+    }
+
+    /// A declared order on an unreadable column would still rank the rows by its
+    /// values: dropped, the rows come in key order.
+    #[tokio::test]
+    async fn a_declared_order_on_an_unreadable_column_is_dropped() {
+        let db = db().await;
+        let admin = ModelAdmin::<user::Entity>::new().list(|l| {
+            l.display([user::Column::Username, user::Column::Email])
+                .ordering([(user::Column::Email, Order::Desc)])
+        });
+        for (email, first) in [(false, "crawler"), (true, "member")] {
+            let reader = account_reader(email);
+            let ctx = GateCtx {
+                db: &db,
+                user: &reader,
+            };
+            let proof = authorize_list::<user::Entity>(&ctx).unwrap();
+            let page = admin
+                .fetch_list(&db, &proof, &ListQuery::default(), 25)
+                .await
+                .unwrap();
+            assert_eq!(page.rows[0]["username"], first, "email readable: {email}");
+        }
+    }
+
+    /// The row's page adds the form's fields to the list's: those go through the
+    /// same cut, or a hidden field would come back by the form.
+    #[tokio::test]
+    async fn the_detail_leaves_out_an_unreadable_form_field() {
+        let db = db().await;
+        let admin = ModelAdmin::<user::Entity>::new()
+            .list(|l| l.display([user::Column::Username]))
+            .form(|f| f.fields([user::Column::Username, user::Column::Email]));
+        for (email, keys) in [
+            (false, vec!["id", "username"]),
+            (true, vec!["email", "id", "username"]),
+        ] {
+            let reader = account_reader(email);
+            let ctx = GateCtx {
+                db: &db,
+                user: &reader,
+            };
+            let proof = authorize_view::<user::Entity>(&ctx, pk(31)).unwrap();
+            let entry = admin.fetch_detail(&db, &proof).await.unwrap().unwrap();
+            let mut read: Vec<&str> = entry
+                .as_object()
+                .unwrap()
+                .keys()
+                .map(String::as_str)
+                .collect();
+            read.sort();
+            assert_eq!(read, keys, "email readable: {email}");
+        }
     }
     #[test]
     fn a_needed_column_outside_fields_is_refused() {

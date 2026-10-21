@@ -49,6 +49,14 @@ fn parse_header(input: ParseStream) -> Result<ModelHeader> {
     input.parse::<Token![:]>()?;
     let table: LitStr = input.parse()?;
     validate_sql_identifier(&table)?;
+    // The table name is the model's rights key: an `eihwaz_` one would be a
+    // framework table under a key the framework doesn't know, open to groups.
+    if table.value().starts_with("eihwaz_") {
+        return Err(syn::Error::new(
+            table.span(),
+            "`eihwaz_` tables belong to the framework: extend `eihwaz_users` or `eihwaz_groupes` with `extend!{}`, or name your table otherwise",
+        ));
+    }
     input.parse::<Token![,]>()?;
 
     // pk: id => i32,
@@ -377,6 +385,18 @@ mod tests {
     fn table_name_starting_with_digit_rejected() {
         model_err(&format!(
             r#"Test, table: "1tests", pk: id => i32, {BASE_FIELDS},"#
+        ));
+    }
+
+    #[test]
+    fn a_framework_table_name_is_rejected() {
+        for table in ["eihwaz_groupes_droits", "eihwaz_users", "eihwaz_x"] {
+            model_err(&format!(
+                r#"Test, table: "{table}", pk: id => i32, {BASE_FIELDS},"#
+            ));
+        }
+        model_ok(&format!(
+            r#"Test, table: "my_eihwaz_notes", pk: id => i32, {BASE_FIELDS},"#
         ));
     }
 

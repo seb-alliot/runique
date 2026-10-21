@@ -46,7 +46,7 @@ fn test_single_extend_block() {
 fn test_primary_key_is_none() {
     let source = r#"
         extend! {
-            table: "my_table",
+            table: "eihwaz_users",
             fields: {
                 title: text [nullable],
             }
@@ -61,7 +61,7 @@ fn test_primary_key_is_none() {
 fn test_multiple_fields() {
     let source = r#"
         extend! {
-            table: "profiles",
+            table: "eihwaz_users",
             fields: {
                 avatar: image [nullable, upload_to: "avatars"],
                 website: url [nullable],
@@ -82,7 +82,7 @@ fn test_multiple_fields() {
 fn test_required_field_not_nullable() {
     let source = r#"
         extend! {
-            table: "profiles",
+            table: "eihwaz_users",
             fields: {
                 username: text [required],
             }
@@ -97,7 +97,7 @@ fn test_required_field_not_nullable() {
 fn test_optional_field_is_nullable() {
     let source = r#"
         extend! {
-            table: "profiles",
+            table: "eihwaz_users",
             fields: {
                 bio: textarea [nullable],
             }
@@ -112,7 +112,7 @@ fn test_optional_field_is_nullable() {
 fn test_unique_flag() {
     let source = r#"
         extend! {
-            table: "profiles",
+            table: "eihwaz_users",
             fields: {
                 handle: text [nullable, unique],
             }
@@ -132,7 +132,7 @@ fn test_multiple_extend_blocks() {
             }
         }
         extend! {
-            table: "posts",
+            table: "eihwaz_groupes",
             fields: {
                 slug: text [nullable],
             }
@@ -141,14 +141,14 @@ fn test_multiple_extend_blocks() {
     let result = parse_extend_blocks_from_source(source).unwrap();
     assert_eq!(result.len(), 2);
     assert_eq!(result[0].table_name, "eihwaz_users");
-    assert_eq!(result[1].table_name, "posts");
+    assert_eq!(result[1].table_name, "eihwaz_groupes");
 }
 
 #[test]
 fn test_col_type_text_maps_to_string() {
     let source = r#"
         extend! {
-            table: "t",
+            table: "eihwaz_users",
             fields: {
                 name: text [nullable],
             }
@@ -162,7 +162,7 @@ fn test_col_type_text_maps_to_string() {
 fn test_col_type_integer_maps_to_integer() {
     let source = r#"
         extend! {
-            table: "t",
+            table: "eihwaz_users",
             fields: {
                 count: int [nullable],
             }
@@ -176,7 +176,7 @@ fn test_col_type_integer_maps_to_integer() {
 fn test_col_type_bool_maps_to_boolean() {
     let source = r#"
         extend! {
-            table: "t",
+            table: "eihwaz_users",
             fields: {
                 active: bool [nullable],
             }
