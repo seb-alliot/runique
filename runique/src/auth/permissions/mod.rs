@@ -1,6 +1,8 @@
 //! Admin permissions: groups and rights loaded from the database.
 pub mod groupe;
 pub mod groupes_droits;
+pub mod rang;
+pub mod rights;
 pub mod users_groupes;
 
 use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter};
@@ -201,6 +203,22 @@ pub async fn pull_groupes_db<C: ConnectionTrait>(
         g.permissions = assemble(droits.iter().filter(|m| m.groupe_id == Some(g.id)).cloned());
     }
     groupes
+}
+
+/// Loads what [`rights_on`](crate::auth::current_user::CurrentUser::rights_on)
+/// reads, by the rank: the groups for everyone (a lambda's rights, the staff
+/// summary, Prisme's roles), the account's own grid for an admin. The one
+/// loader of the admin and of the developer's views alike.
+pub async fn load_rights<C: ConnectionTrait>(
+    db: &C,
+    user: &mut crate::auth::current_user::CurrentUser,
+) {
+    user.groupes = pull_groupes_db(db, user.id).await;
+    user.droits = if user.rang == crate::auth::permissions::rang::Rang::Admin {
+        pull_droits_compte(db, user.id).await
+    } else {
+        Vec::new()
+    };
 }
 
 /// Loads an admin account's own rights (its `user_id` rows, table and

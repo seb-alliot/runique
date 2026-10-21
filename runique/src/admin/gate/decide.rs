@@ -3,7 +3,7 @@
 use super::operation::AdminOperation;
 use super::refusal::{Refusal, RefusalReason};
 use super::rights::CrudAction;
-use crate::auth::rang::Rang;
+use crate::auth::permissions::rang::Rang;
 use sea_orm::Condition;
 
 /// Who owns the targeted row, as the gate read it.

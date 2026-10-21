@@ -4,7 +4,7 @@ use crate::admin::builder::list::ListQuery;
 use crate::admin::builder::site::AdminSite;
 use crate::admin::router::admin_router::AdminState;
 use crate::admin::trad::insert_admin_messages;
-use crate::auth::session::CurrentUser;
+use crate::auth::current_user::CurrentUser;
 use crate::context::template::Request;
 use crate::utils::aliases::{AppResult, StrMap};
 use axum::Extension;
@@ -53,7 +53,7 @@ pub(crate) async fn list_view(
         .insert("resource_base", format!("{}/{key}", admin.config.prefix))
         .insert("current_page", "list")
         .insert("entries", &page.rows)
-        .insert("visible_columns", model.list_columns())
+        .insert("visible_columns", &page.columns)
         .insert("column_labels", StrMap::new())
         .insert("rich_fields", Vec::<String>::new())
         .insert("group_actions", Vec::<String>::new())

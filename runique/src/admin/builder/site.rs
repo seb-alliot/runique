@@ -2,7 +2,7 @@
 use super::admin_builder::ModelAdmin;
 use super::registered::RegisteredModel;
 use crate::admin::meta::ModelMeta;
-use crate::auth::session::CurrentUser;
+use crate::auth::current_user::CurrentUser;
 use crate::auth::user;
 
 /// One model as the navigation shows it.
@@ -254,7 +254,9 @@ mod tests {
         );
     }
 
-    fn with_rang(rang: crate::auth::rang::Rang) -> crate::auth::session::CurrentUser {
+    fn with_rang(
+        rang: crate::auth::permissions::rang::Rang,
+    ) -> crate::auth::current_user::CurrentUser {
         let mut user = staff(pk(40), "nothing", [false; 7]);
         user.rang = rang;
         user
@@ -269,7 +271,7 @@ mod tests {
         let accounts = site.model("users").unwrap();
         assert_eq!(accounts.rights(&user), CrudAction::default());
 
-        user.rang = crate::auth::rang::Rang::Admin;
+        user.rang = crate::auth::permissions::rang::Rang::Admin;
         user.droits = user.groupes[0].permissions.clone();
         assert!(accounts.rights(&user).has(Crud::Read));
 
@@ -283,7 +285,7 @@ mod tests {
 
     fn nav_keys(
         site: &AdminSite,
-        user: &crate::auth::session::CurrentUser,
+        user: &crate::auth::current_user::CurrentUser,
         order: &[String],
     ) -> Vec<&'static str> {
         site.navigation(user, order)
@@ -309,7 +311,7 @@ mod tests {
         );
         let nobody = staff(pk(10), "other", [true, true, false, true, true, true, true]);
         assert!(nav_keys(&site, &nobody, &[]).is_empty());
-        let su = with_rang(crate::auth::rang::Rang::Superuser);
+        let su = with_rang(crate::auth::permissions::rang::Rang::Superuser);
         assert_eq!(
             nav_keys(&site, &su, &[]),
             ["notes", "users"],
@@ -320,7 +322,7 @@ mod tests {
     #[test]
     fn a_declared_order_comes_before_the_titles() {
         let site = AdminSite::default().register(ModelAdmin::<Entity>::new());
-        let su = with_rang(crate::auth::rang::Rang::Superuser);
+        let su = with_rang(crate::auth::permissions::rang::Rang::Superuser);
         assert_eq!(
             nav_keys(&site, &su, &["users".to_string()]),
             ["users", "notes"]
@@ -335,7 +337,7 @@ mod tests {
         let db = db().await;
         let site = AdminSite::default().register(ModelAdmin::<Entity>::new());
 
-        let su = with_rang(crate::auth::rang::Rang::Superuser);
+        let su = with_rang(crate::auth::permissions::rang::Rang::Superuser);
         let counts = site.counts(&db, &su).await.unwrap();
         assert_eq!(counts.get("notes"), Some(&3));
         assert_eq!(counts.get("users"), Some(&4));
@@ -360,7 +362,7 @@ mod tests {
     #[test]
     fn a_declared_title_names_the_model_in_the_navigation() {
         let site = AdminSite::default().register(ModelAdmin::<Entity>::new().title("Mes notes"));
-        let su = with_rang(crate::auth::rang::Rang::Superuser);
+        let su = with_rang(crate::auth::permissions::rang::Rang::Superuser);
         let titles: Vec<String> = site
             .navigation(&su, &[])
             .into_iter()

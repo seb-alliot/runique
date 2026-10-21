@@ -8,7 +8,7 @@ use super::refusal::{Refusal, RefusalReason};
 use super::rights::{Crud, CrudAction, ReadableColumns};
 use super::write::pk_condition;
 use crate::admin::meta::ModelMeta;
-use crate::auth::session::CurrentUser;
+use crate::auth::current_user::CurrentUser;
 use crate::utils::{aliases::ADb, pk::Pk};
 use sea_orm::{
     ColumnTrait, Condition, IdenStatic, Iterable, PrimaryKeyToColumn, QueryFilter, QuerySelect,
@@ -28,7 +28,7 @@ fn lookup_failed(e: sea_orm::DbErr) -> Refusal {
 
 /// Creating a row of `E`: the create right, nothing to look up.
 pub fn authorize_create<E: ModelMeta>(ctx: &GateCtx<'_>) -> Result<Authorized<Create, E>, Refusal> {
-    let rights = CrudAction::resolve(ctx.user, E::KEY, E::IS_FRAMEWORK_TABLE);
+    let rights = CrudAction::resolve(ctx.user, E::KEY);
     rights_allow::<Create>(&rights, Ownership::NotApplicable)?;
     Ok(Authorized::new(None, Condition::all()))
 }
@@ -45,7 +45,7 @@ pub async fn authorize_row<O: AdminOperation, E: ModelMeta>(
     id: PkOf<E>,
 ) -> Result<Authorized<O, E>, Refusal> {
     let db = &**ctx.db;
-    let rights = CrudAction::resolve(ctx.user, E::KEY, E::IS_FRAMEWORK_TABLE);
+    let rights = CrudAction::resolve(ctx.user, E::KEY);
     let mut conditions = Condition::all();
 
     let ownership = match (O::RIGHT_OWN, E::OWNER) {
@@ -80,7 +80,7 @@ pub async fn authorize_row<O: AdminOperation, E: ModelMeta>(
 /// The rows of `E` the user may read: all of them with the full right, their
 /// own with the `_own` right (if `E` has an owner column), none otherwise.
 fn read_scope<E: ModelMeta>(ctx: &GateCtx<'_>) -> Result<Condition, Refusal> {
-    let rights = CrudAction::resolve(ctx.user, E::KEY, E::IS_FRAMEWORK_TABLE);
+    let rights = CrudAction::resolve(ctx.user, E::KEY);
     if rights.has(Crud::Read) {
         Ok(Condition::all())
     } else if rights.has(Crud::ReadOwn)
@@ -95,7 +95,7 @@ fn read_scope<E: ModelMeta>(ctx: &GateCtx<'_>) -> Result<Condition, Refusal> {
 /// The columns of `E` the user may read, refused when none is but the key: a page of bare keys shows nothing,
 /// and still says wich rows exists. A secret column never counts.
 fn readable_columns<E: ModelMeta>(ctx: &GateCtx<'_>) -> Result<ReadableColumns, Refusal> {
-    let cols = ReadableColumns::resolve(ctx.user, E::KEY, E::IS_FRAMEWORK_TABLE);
+    let cols = ReadableColumns::resolve(ctx.user, E::KEY);
     let keys: Vec<&str> = E::PrimaryKey::iter()
         .map(|k| k.into_column().as_str())
         .collect();
@@ -352,7 +352,7 @@ mod tests {
 
     /// The account in `rang` with every right on `users`: from its group and
     /// on its account, so each rank finds it where it reads it.
-    fn manager(rang: crate::auth::rang::Rang) -> CurrentUser {
+    fn manager(rang: crate::auth::permissions::rang::Rang) -> CurrentUser {
         let mut user = staff(
             pk(40),
             "users",
@@ -381,7 +381,7 @@ mod tests {
 
     #[tokio::test]
     async fn an_account_without_rank_writes_no_account_but_reads_them() {
-        use crate::auth::rang::Rang;
+        use crate::auth::permissions::rang::Rang;
         let db = db().await;
         let staff = manager(Rang::Lambda);
         let ctx = GateCtx {
@@ -416,7 +416,7 @@ mod tests {
     /// `pk(32)`, the admin `pk(33)`.
     #[tokio::test]
     async fn each_rank_writes_only_strictly_lower_accounts() {
-        use crate::auth::rang::Rang;
+        use crate::auth::permissions::rang::Rang;
         let cases = [
             (Rang::Admin, [false, true, false, false]),
             (Rang::Dirigeant, [false, true, false, true]),
@@ -438,7 +438,7 @@ mod tests {
     /// Never oneself: the account's own row is of its own rank.
     #[tokio::test]
     async fn a_rank_never_writes_its_own_account() {
-        use crate::auth::rang::Rang;
+        use crate::auth::permissions::rang::Rang;
         let db = db().await;
         let mut admin = manager(Rang::Admin);
         admin.id = pk(33);
@@ -569,7 +569,7 @@ mod tests {
 
     #[tokio::test]
     async fn the_superuser_and_the_dirigeant_read_every_column() {
-        use crate::auth::rang::Rang;
+        use crate::auth::permissions::rang::Rang;
         let db = db().await;
         for rang in [Rang::Superuser, Rang::Dirigeant] {
             let mut user = staff(pk(10), "nothing", [false; 7]);
@@ -585,7 +585,7 @@ mod tests {
 
     #[tokio::test]
     async fn a_secret_column_never_counts_as_readable() {
-        use crate::auth::rang::Rang;
+        use crate::auth::permissions::rang::Rang;
         let db = db().await;
         let mut admin = staff(
             pk(40),

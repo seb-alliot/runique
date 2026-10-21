@@ -3,7 +3,7 @@ use super::{chrome, failure, unknown_resource};
 use crate::admin::builder::site::AdminSite;
 use crate::admin::router::admin_router::AdminState;
 use crate::admin::trad::insert_admin_messages;
-use crate::auth::session::CurrentUser;
+use crate::auth::current_user::CurrentUser;
 use crate::context::template::Request;
 use crate::utils::aliases::AppResult;
 use axum::Extension;

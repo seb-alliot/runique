@@ -9,9 +9,9 @@ use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
+use runique::auth::current_user::CurrentUser;
 use runique::auth::permissions::Groupe;
-use runique::auth::rang::Rang;
-use runique::auth::session::CurrentUser;
+use runique::auth::permissions::rang::Rang;
 use runique::forms::prisme::rules::GuardRules;
 use runique::forms::prisme::sentinel::sentinel;
 use runique::sea_orm::ConnectionTrait;

@@ -184,7 +184,7 @@ async fn admin_dashboard_redirect(Extension(admin): Extension<Arc<AdminState>>) 
 async fn admin_dashboard(
     Extension(admin): Extension<Arc<AdminState>>,
     Extension(site): Extension<Arc<AdminSite>>,
-    Extension(current_user): Extension<crate::auth::session::CurrentUser>,
+    Extension(current_user): Extension<crate::auth::current_user::CurrentUser>,
     mut req: Request,
 ) -> AppResult<Response> {
     // Built server side, rights already applied: the template only shows it.
@@ -260,7 +260,7 @@ async fn extra_route_gate(
     };
     let user = request
         .extensions()
-        .get::<crate::auth::session::CurrentUser>();
+        .get::<crate::auth::current_user::CurrentUser>();
     // An unknown key grants nothing: the boot already refuses one, this still
     // holds if that check is ever bypassed.
     let granted = user.is_some_and(|u| {
@@ -291,14 +291,16 @@ async fn extra_route_gate(
 
 /// `load_admin_user` (outer layer) puts the account here only while the
 /// database still lets it into the admin: the session alone vouches for nothing.
-fn signed_in_admin(current_user: Option<&Extension<crate::auth::session::CurrentUser>>) -> bool {
+fn signed_in_admin(
+    current_user: Option<&Extension<crate::auth::current_user::CurrentUser>>,
+) -> bool {
     current_user.is_some_and(|Extension(user)| user.can_access_admin())
 }
 
 async fn admin_login_get(
     Extension(admin): Extension<Arc<AdminState>>,
     axum::extract::Query(params): axum::extract::Query<StrMap>,
-    current_user: Option<Extension<crate::auth::session::CurrentUser>>,
+    current_user: Option<Extension<crate::auth::current_user::CurrentUser>>,
     mut req: Request,
 ) -> AppResult<Response> {
     let from_logout = params.get("from").is_some_and(|v| v == "logout");
@@ -318,7 +320,7 @@ async fn admin_login_get(
 
 async fn admin_login_post(
     Extension(admin): Extension<Arc<AdminState>>,
-    current_user: Option<Extension<crate::auth::session::CurrentUser>>,
+    current_user: Option<Extension<crate::auth::current_user::CurrentUser>>,
     client_ip: Option<Extension<crate::middleware::security::trusted_proxies::ClientIp>>,
     mut req: Request,
 ) -> Response {

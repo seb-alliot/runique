@@ -12,7 +12,7 @@ pub use admin_router::{ADMIN_TEMPLATE_SESSION_KEY, AdminState, build_admin_route
 use crate::admin::builder::registered::AdminError;
 use crate::admin::builder::site::AdminSite;
 use crate::admin::trad::{inject_admin_prefix, insert_admin_messages};
-use crate::auth::session::CurrentUser;
+use crate::auth::current_user::CurrentUser;
 use crate::context::template::{AppError, Request};
 use crate::errors::error::ErrorContext;
 use crate::utils::aliases::AppResult;

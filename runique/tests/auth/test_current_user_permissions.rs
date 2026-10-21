@@ -28,13 +28,13 @@ fn make_groupe(resource: &str, can_read: bool) -> Groupe {
 
 #[test]
 fn test_multi_groupes_or_permissions() {
+    use runique::auth::current_user::CurrentUser;
     use runique::auth::permissions::Groupe;
-    use runique::auth::session::CurrentUser;
 
     let user = CurrentUser {
         id: pk(10_008),
         username: "alice".into(),
-        rang: runique::auth::rang::Rang::Lambda,
+        rang: runique::auth::permissions::rang::Rang::Lambda,
         groupes: vec![
             Groupe {
                 id: 1,
@@ -72,9 +72,7 @@ fn test_multi_groupes_or_permissions() {
         droits: Vec::new(),
     };
 
-    let effectifs = user.permissions_effectives();
-    assert_eq!(effectifs.len(), 1);
-    let p = &effectifs[0];
+    let p = user.rights_on("articles").crud;
     // OR des deux groupes
     assert!(p.can_create);
     assert!(p.can_read);
@@ -84,12 +82,12 @@ fn test_multi_groupes_or_permissions() {
 
 #[test]
 fn test_can_access_resource_necessite_can_read() {
-    use runique::auth::session::CurrentUser;
+    use runique::auth::current_user::CurrentUser;
 
     let user = CurrentUser {
         id: pk(10_009),
         username: "bob".into(),
-        rang: runique::auth::rang::Rang::Lambda,
+        rang: runique::auth::permissions::rang::Rang::Lambda,
         groupes: vec![make_groupe("articles", false)], // can_read = false
         droits: Vec::new(),
     };
@@ -98,12 +96,12 @@ fn test_can_access_resource_necessite_can_read() {
 
 #[test]
 fn test_can_access_resource_avec_can_read() {
-    use runique::auth::session::CurrentUser;
+    use runique::auth::current_user::CurrentUser;
 
     let user = CurrentUser {
         id: pk(10_010),
         username: "carol".into(),
-        rang: runique::auth::rang::Rang::Lambda,
+        rang: runique::auth::permissions::rang::Rang::Lambda,
         groupes: vec![make_groupe("articles", true)], // can_read = true
         droits: Vec::new(),
     };

@@ -1,13 +1,10 @@
-//! User session, admin authentication, and authentication traits.
-use crate::auth::permissions::{Groupe, Permission};
-use crate::auth::rang::Rang;
+//! The session mechanics: login, logout, the authenticated session's lifetime and protection.
 use crate::auth::user_trait::RuniqueUser;
 use crate::middleware::security::csrf::rotate_csrf_token;
 use crate::middleware::session::session_db::RuniqueSessionStore;
 use crate::utils::config::TraceResult;
 use crate::utils::constante::session_key::session::{SESSION_ACTIVE_KEY, SESSION_USER_ID_KEY};
 use crate::utils::pk::Pk;
-use serde::{Deserialize, Serialize};
 use tower_sessions::Session;
 
 /// Default when the builder never set a duration (24h), so `login` never breaks
@@ -61,76 +58,6 @@ mod ttl_tests {
         // No builder → explicit 24h default, never 0/a panic.
         assert_eq!(resolve_ttl_secs(None), DEFAULT_AUTH_SESSION_TTL_SECS);
         assert_eq!(DEFAULT_AUTH_SESSION_TTL_SECS, 86_400);
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// CurrentUser
-// ═══════════════════════════════════════════════════════════════
-
-/// Authenticated user injected into request extensions.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct CurrentUser {
-    pub id: Pk,
-    pub username: String,
-    pub rang: Rang,
-    /// User groups (each group contains its permissions)
-    pub groupes: Vec<Groupe>,
-    /// An admin's own rights, set by the dirigeant on this account. Empty for
-    /// every other rank: the dirigeant and the superuser have them all,
-    /// lambda's come from this groups.
-    #[serde(default)]
-    pub droits: Vec<Permission>,
-}
-
-impl CurrentUser {
-    /// Returns the aggregated permission for a single resource (logical OR across all groups).
-    /// Returns `None` if the user has no entry for that resource.
-    #[must_use]
-    pub fn permission_for(&self, resource_key: &str) -> Option<Permission> {
-        self.permissions_effectives()
-            .into_iter()
-            .find(|p| p.resource_key == resource_key)
-    }
-
-    /// Returns the effective CRUD permissions (logical OR across all groups, all resources).
-    pub fn permissions_effectives(&self) -> Vec<Permission> {
-        let mut agg: std::collections::HashMap<String, Permission> =
-            std::collections::HashMap::new();
-        for groupe in &self.groupes {
-            for perm in &groupe.permissions {
-                agg.entry(perm.resource_key.clone())
-                    .or_insert_with(|| Permission::zeroed(perm.resource_key.clone()))
-                    .merge_from(perm);
-            }
-        }
-        agg.into_values().collect()
-    }
-
-    /// The admin's own rith on one ressource, if the dirigeant set one.
-    #[must_use]
-    pub fn droit_for(&self, resource_key: &str) -> Option<&Permission> {
-        self.droits.iter().find(|p| p.resource_key == resource_key)
-    }
-    /// Checks if the user has a strict global permission (can be refined).
-    #[must_use]
-    pub fn can_access_resource(&self, resource_key: &str) -> bool {
-        self.rang == Rang::Superuser
-            || self
-                .permission_for(resource_key)
-                .is_some_and(|p| p.can_read)
-    }
-
-    /// Member of at least one group that opens the admin panel.
-    #[must_use]
-    pub fn is_staff(&self) -> bool {
-        self.groupes.iter().any(|g| g.is_staff)
-    }
-
-    /// Checks if the user can access the admin panel.
-    #[must_use]
-    pub fn can_access_admin(&self) -> bool {
-        self.rang > Rang::Lambda || self.is_staff()
     }
 }
 

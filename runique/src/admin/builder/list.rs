@@ -1,4 +1,5 @@
 //! The list page of one model.
+use crate::admin::gate::rights::ReadableColumns;
 use crate::db::sql_dialect::{search_condition, text_cast_type_of};
 use crate::utils::aliases::StrMap;
 use sea_orm::{
@@ -56,6 +57,7 @@ impl ListQuery {
 
 /// Sets `col` to a value fixed here, on the rows checked or on one row.
 /// The request only ever names the action, never the value.
+#[derive(Clone)]
 pub(crate) struct Action<E: EntityTrait> {
     pub(crate) col: E::Column,
     pub(crate) value: Value,
@@ -67,6 +69,7 @@ pub(crate) const TOTAL: &str = "__total";
 
 /// Only what is declared here is shown or accepted from the URL
 /// (e.g. `?sort_by=title&sort_dir=desc`); anything else is ignored.
+#[derive(Clone)]
 pub struct ListConfig<E: EntityTrait> {
     /// Columns shown, in this order.
     display: Vec<E::Column>,
@@ -108,6 +111,27 @@ impl<E: EntityTrait> Default for ListConfig<E> {
 }
 
 impl<E: EntityTrait> ListConfig<E> {
+    /// This list as one user may run it: every column list cut to what the proof lets out.
+    pub(crate) fn readable_only(&self, readable: &ReadableColumns) -> Self {
+        Self {
+            display: readable.preserve::<E>(&self.display),
+            links: readable.preserve::<E>(&self.links),
+            sortable: readable.preserve::<E>(&self.sortable),
+            ordering: self
+                .ordering
+                .iter()
+                .filter(|(c, _)| !readable.preserve::<E>(&[*c]).is_empty())
+                .cloned()
+                .collect(),
+            search: self
+                .search
+                .as_ref()
+                .map(|cols| readable.preserve::<E>(cols)),
+            filter: readable.preserve::<E>(&self.filter),
+            ..self.clone()
+        }
+    }
+
     pub fn display(mut self, cols: impl IntoIterator<Item = E::Column>) -> Self {
         self.display = cols.into_iter().collect();
         self

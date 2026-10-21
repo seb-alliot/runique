@@ -1,7 +1,7 @@
 //! Prisme guard rules: access control before body extraction, checked against
 //! the signed-in account as `auth_middleware` read it from the database.
-use crate::auth::rang::Rang;
-use crate::auth::session::CurrentUser;
+use crate::auth::current_user::CurrentUser;
+use crate::auth::permissions::rang::Rang;
 use crate::utils::trad::t;
 use axum::{
     http::StatusCode,

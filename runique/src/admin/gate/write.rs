@@ -214,7 +214,7 @@ mod tests {
             [false, true, false, true, false, false, false],
         );
 
-        manager.rang = crate::auth::rang::Rang::Admin;
+        manager.rang = crate::auth::permissions::rang::Rang::Admin;
         manager.droits = manager.groupes[0].permissions.clone();
 
         let ctx = GateCtx {

@@ -12,9 +12,10 @@ use tower_sessions::Session;
 use crate::admin::router::admin_router::AdminState;
 use crate::auth::user_trait::RuniqueUser;
 use crate::auth::{
-    permissions::{pull_droits_compte, pull_groupes_db},
-    rang::Rang,
-    session::{CurrentUser, get_user_id, logout},
+    current_user::CurrentUser,
+    permissions::load_rights,
+    permissions::rang::Rang,
+    session::{get_user_id, logout},
 };
 use crate::context::RequestExtensions;
 use crate::utils::aliases::AEngine;
@@ -49,7 +50,7 @@ pub(crate) async fn admin_required(
     {
         let cu = request
             .extensions()
-            .get::<crate::auth::session::CurrentUser>();
+            .get::<crate::auth::current_user::CurrentUser>();
         let path = request
             .extensions()
             .get::<MatchedPath>()
@@ -109,20 +110,15 @@ pub(crate) async fn load_admin_user(
     // the user is built first and judged after.
     let current_user = match account {
         Some(account) => {
-            let rang = Rang::from(&account);
-            let groupes = pull_groupes_db(&engine.db, user_id).await;
-            let droits = if rang == Rang::Admin {
-                pull_droits_compte(&engine.db, user_id).await
-            } else {
-                Vec::new()
-            };
-            Some(CurrentUser {
+            let mut user = CurrentUser {
                 id: account.id,
-                rang,
+                rang: Rang::from(&account),
                 username: account.username,
-                groupes,
-                droits,
-            })
+                groupes: Vec::new(),
+                droits: Vec::new(),
+            };
+            load_rights(&engine.db, &mut user).await;
+            Some(user)
         }
         None => None,
     }
