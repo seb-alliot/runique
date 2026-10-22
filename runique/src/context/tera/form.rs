@@ -33,7 +33,12 @@ impl Filter<&Value, TeraResult<Value>> for FormFilter {
 
         let mut output = render_field(value, field_name)?;
 
-        // Inject CSRF before the first field
+        // Inject CSRF (and the form's name, when it has one) before the first field
+        if is_first_field_by_index(value, field_name)
+            && let Some(name) = get_name_html(value)
+        {
+            output = format!("{}\n{}", name, output);
+        }
         if is_first_field_by_index(value, field_name)
             && let Some(csrf) = render_csrf(value)
         {
@@ -122,6 +127,13 @@ fn render_csrf(value: &Value) -> Option<String> {
     find_rendered_fields(value)?
         .get_from_path("csrf_token")
         .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+}
+
+fn get_name_html(value: &Value) -> Option<String> {
+    lookup(value, "name_html")
+        .and_then(|v| v.as_str())
+        .filter(|s| !s.is_empty())
         .map(|s| s.to_string())
 }
 

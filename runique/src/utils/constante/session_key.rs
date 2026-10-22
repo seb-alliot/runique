@@ -8,6 +8,9 @@ pub mod session {
     /// Session key storing the CSRF token for the session; also the name of the
     /// hidden form field / header carrying it back on submit.
     pub const CSRF_TOKEN_KEY: &str = "csrf_token";
+    /// Name of the hidden form field carrying a form's name back on submit, so
+    /// that `ValidationForm::try_named` only binds the form that was sent.
+    pub const FORM_NAME_KEY: &str = "runique_form";
     /// Session key storing the authenticated user's id.
     pub const SESSION_USER_ID_KEY: &str = "user_id";
     /// Session key storing the Unix timestamp until which an anonymous session

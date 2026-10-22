@@ -11,7 +11,7 @@ use crate::middleware::errors::error::html_escape;
 use crate::utils::config::TraceResult;
 use crate::utils::{
     aliases::{FieldsMap, JsonMap, StrMap},
-    constante::session_key::session::CSRF_TOKEN_KEY,
+    constante::session_key::session::{CSRF_TOKEN_KEY, FORM_NAME_KEY},
     trad::{t, tf},
 };
 use axum::http::Method;
@@ -39,6 +39,8 @@ pub struct Forms {
     pub(crate) force_invalid: bool,
     /// Honeypot field name injected by anti-bot middleware (for rendering).
     pub(crate) honeypot_field_name: Option<String>,
+    /// Name given by `ValidationForm::try_named`, rendered as a hidden field.
+    pub(crate) name: Option<&'static str>,
 }
 
 impl std::fmt::Debug for Forms {
@@ -169,6 +171,7 @@ impl Serialize for Forms {
             _ => String::new(),
         };
         state.serialize_field("honeypot_html", &honeypot_html)?;
+        state.serialize_field("name_html", &self.name_html())?;
 
         state.end()
     }
@@ -236,7 +239,21 @@ impl Forms {
             query_params: StrMap::new(),
             force_invalid: false,
             honeypot_field_name: None,
+            name: None,
         }
+    }
+
+    /// The hidden `<input>` carrying the form's name, empty when it has none.
+    pub(crate) fn name_html(&self) -> String {
+        self.name
+            .map(|name| {
+                format!(
+                    r#"<input type="hidden" name="{}" value="{}">"#,
+                    FORM_NAME_KEY,
+                    html_escape(name)
+                )
+            })
+            .unwrap_or_default()
     }
 
     /// Registers the honeypot field name injected by the anti-bot middleware.
@@ -549,10 +566,15 @@ impl Forms {
     /// Renders the form to HTML via the attached renderer. Fails if no
     /// renderer was attached with [`Forms::set_renderer`].
     pub fn render(&self) -> Result<String, String> {
-        self.renderer
+        let html = self
+            .renderer
             .as_ref()
             .ok_or_else(|| t("forms.tera_not_configured").into_owned())?
-            .render(&self.fields, &self.errors)
+            .render(&self.fields, &self.errors)?;
+        match self.name {
+            Some(_) => Ok(format!("{}\n{}", self.name_html(), html)),
+            None => Ok(html),
+        }
     }
 }
 
