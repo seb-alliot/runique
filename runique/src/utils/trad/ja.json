@@ -46,6 +46,7 @@
     "finalize_error": "フィールド '{}' の確定中にエラーが発生しました: {}",
     "template_missing": "テンプレートが見つかりません: {}",
     "render_js_error": "JSレンダリングエラー: {}",
+    "render_errors_error": "フォームエラーのレンダリングエラー: {}",
     "tera_not_configured": "Tera が設定されていません",
     "config_not_found": "拡張機能内に設定が見つかりません",
     "hint_slug": "形式: 文字-数字-ハイフン",

@@ -176,14 +176,13 @@ where
 
         let ico_image = std::env::var("ICON_IMAGE")
             .unwrap_or("/runique/static/favicon_runique.ico".to_string());
-        let ico_image =
-            crate::utils::resolve_og_image(&engine.security_hosts, engine.config.debug, &ico_image);
+        let public_url = engine.config.server.public_url.as_deref();
+        let ico_image = crate::utils::resolve_og_image(public_url, &ico_image);
         context.insert("icon_image", &ico_image);
 
         let og_image =
             std::env::var("OG_IMAGE").unwrap_or("/runique/static/runique_320.avif".to_string());
-        let og_image =
-            crate::utils::resolve_og_image(&engine.security_hosts, engine.config.debug, &og_image);
+        let og_image = crate::utils::resolve_og_image(public_url, &og_image);
         context.insert("og_image", &og_image);
 
         context.insert("current_path", parts.uri.path());

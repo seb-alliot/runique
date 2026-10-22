@@ -46,6 +46,7 @@
     "finalize_error": "字段 '{}' 处理出错：{}",
     "template_missing": "缺少模板：{}",
     "render_js_error": "JavaScript 渲染出错：{}",
+    "render_errors_error": "表单错误渲染出错：{}",
     "tera_not_configured": "Tera 模板引擎未配置",
     "config_not_found": "配置未在扩展中找到",
     "hint_slug": "格式示例：字母-数字-连字符",

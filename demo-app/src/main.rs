@@ -25,7 +25,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     builder::new(config)
         .routes(url::routes())
-        .with_public_url("http://runique.io")
+        .with_public_url("http://localhost:3000")
         .with_database(db)
         .with_log(|l| l.dev())
         .with_mailer_from_env()
@@ -48,7 +48,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .with_csp(|c| {
                     c.policy(SecurityPolicy::strict())
                         .with_upgrade_insecure(!is_debug())
-                        .scripts(vec!["'self'", "'strict-dynamic'"])
+                        .scripts(vec!["'strict-dynamic'"])
+                        .connect(vec!["'self'", "https://cloudflareinsights.com"])
                 })
         })
         .with_admin(admin_refonte::config)

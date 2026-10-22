@@ -19,6 +19,30 @@ pub async fn find_user_by_username(
     result.unwrap_or(None)
 }
 
+/// One query for both searches; the rows are sorted back to each form in Rust.
+pub async fn find_users_by_username(
+    db: &ADb,
+    username: Option<&str>,
+    email: Option<&str>,
+) -> (
+    Option<runique::prelude::runique_users::Model>,
+    Option<runique::prelude::runique_users::Model>,
+) {
+    let username = username.map(str::trim);
+    let email = email.map(str::trim);
+    let query = match (username, email) {
+        (Some(name), Some(mail)) => search!(UserEntity => or(Username eq name, Email eq mail)),
+        (Some(name), None) => search!(UserEntity => Username eq name),
+        (None, Some(mail)) => search!(UserEntity => Email eq mail),
+        (None, None) => return (None, None),
+    };
+    let rows = query.all(db).await.unwrap_or_default();
+    let by_username =
+        username.and_then(|name| rows.iter().find(|user| user.username == name).cloned());
+    let by_email = email.and_then(|mail| rows.into_iter().find(|user| user.email == mail));
+    (by_username, by_email)
+}
+
 pub async fn find_user_by_id(
     db: &ADb,
     id: runique::utils::pk::Pk,
@@ -215,7 +239,20 @@ pub fn get_credentials(form: &LoginForm) -> Option<(String, String)> {
 
 pub async fn get_profile_user(
     user_id: Option<runique::utils::pk::Pk>,
+    username: Option<&str>,
     db: &ADb,
-) -> Option<runique::prelude::runique_users::Model> {
-    find_user_by_id(db, user_id?).await
+) -> (
+    Option<runique::prelude::runique_users::Model>,
+    Option<runique::prelude::runique_users::Model>,
+) {
+    let (Some(id), Some(name)) = (user_id, username.map(str::trim)) else {
+        return (None, None);
+    };
+    let rows = search!(UserEntity => or(Id eq id, Username eq name))
+        .all(db)
+        .await
+        .unwrap_or_default();
+    let by_id = rows.iter().find(|user| user.id == id).cloned();
+    let by_username = rows.into_iter().find(|user| user.username == name);
+    (by_id, by_username)
 }
