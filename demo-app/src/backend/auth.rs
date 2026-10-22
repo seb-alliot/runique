@@ -9,6 +9,7 @@ pub async fn register_user(
     form.save(db).await
 }
 
+#[allow(dead_code)]
 pub async fn find_user_by_username(
     db: &ADb,
     username: &str,
@@ -41,13 +42,6 @@ pub async fn find_users_by_username(
         username.and_then(|name| rows.iter().find(|user| user.username == name).cloned());
     let by_email = email.and_then(|mail| rows.into_iter().find(|user| user.email == mail));
     (by_username, by_email)
-}
-
-pub async fn find_user_by_id(
-    db: &ADb,
-    id: runique::utils::pk::Pk,
-) -> Option<runique::prelude::runique_users::Model> {
-    UserEntity::find_by_id(id).one(db).await.unwrap_or(None)
 }
 
 pub async fn handle_inscription(request: &mut Request, form: RegisterForm) -> AppResult<Response> {

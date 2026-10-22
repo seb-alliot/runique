@@ -262,3 +262,110 @@ async fn honeypot_filled_on_get_does_not_force_invalid() {
         "honeypot check is POST-only — a filled trap on GET must not force invalid"
     );
 }
+
+// ═══════════════════════════════════════════════════════════════
+// try_named — plusieurs formulaires sur une page : seul celui dont le nom
+// revient dans la requête est validé, les autres repartent sans erreur
+// ═══════════════════════════════════════════════════════════════
+
+use runique::utils::constante::session_key::session::FORM_NAME_KEY;
+
+fn named_data(name: Option<&str>, q: Option<&str>) -> HashMap<String, String> {
+    let mut data = HashMap::new();
+    if let Some(name) = name {
+        data.insert(FORM_NAME_KEY.to_string(), name.to_string());
+    }
+    if let Some(q) = q {
+        data.insert("q".to_string(), q.to_string());
+    }
+    data
+}
+
+#[tokio::test]
+async fn try_named_validates_when_its_name_is_sent() {
+    let engine = build_engine().await;
+    let data = named_data(Some("search"), Some("rust"));
+    let request = build_handler_req(engine, None, data, Method::POST).await;
+    let form: SearchForm = request.form();
+
+    let validated = ValidationForm::try_named(form, &request, "search")
+        .await
+        .unwrap_or_else(|_| panic!("the form whose name was sent must validate"));
+    assert_eq!(validated.cleaned::<String>("q"), Some("rust".to_string()));
+}
+
+#[tokio::test]
+async fn try_named_with_its_name_still_reports_field_errors() {
+    let engine = build_engine().await;
+    let data = named_data(Some("search"), None);
+    let request = build_handler_req(engine, None, data, Method::POST).await;
+    let form: SearchForm = request.form();
+
+    match ValidationForm::try_named(form, &request, "search").await {
+        Ok(_) => panic!("the sent form with a missing required field must not validate"),
+        Err(form) => assert!(
+            form.get_form().has_errors(),
+            "the sent form must show its own validation errors"
+        ),
+    }
+}
+
+#[tokio::test]
+async fn try_named_with_another_name_is_err_without_field_errors() {
+    let engine = build_engine().await;
+    let data = named_data(Some("other"), None);
+    let request = build_handler_req(engine, None, data, Method::POST).await;
+    let form: SearchForm = request.form();
+
+    match ValidationForm::try_named(form, &request, "search").await {
+        Ok(_) => panic!("a POST sent by another form must not validate this one"),
+        Err(form) => assert!(
+            !form.get_form().has_errors(),
+            "is_valid() must not run on a form that wasn't sent"
+        ),
+    }
+}
+
+#[tokio::test]
+async fn try_named_without_any_name_is_err_without_field_errors() {
+    let engine = build_engine().await;
+    let data = named_data(None, Some("rust"));
+    let request = build_handler_req(engine, None, data, Method::POST).await;
+    let form: SearchForm = request.form();
+
+    match ValidationForm::try_named(form, &request, "search").await {
+        Ok(_) => panic!("a POST carrying no form name must bind no named form"),
+        Err(form) => assert!(!form.get_form().has_errors()),
+    }
+}
+
+#[tokio::test]
+async fn try_named_renders_its_name_as_an_escaped_hidden_field() {
+    let engine = build_engine().await;
+    let request = build_handler_req(engine, None, HashMap::new(), Method::GET).await;
+    let form: SearchForm = request.form();
+
+    let form = ValidationForm::try_named(form, &request, "a\"b")
+        .await
+        .err()
+        .expect("a bare GET never validates");
+    let json = serde_json::to_value(form.get_form()).unwrap();
+    assert_eq!(
+        json["name_html"],
+        format!(r#"<input type="hidden" name="{FORM_NAME_KEY}" value="a&quot;b">"#)
+    );
+}
+
+#[tokio::test]
+async fn try_new_renders_no_name_field() {
+    let engine = build_engine().await;
+    let request = build_handler_req(engine, None, HashMap::new(), Method::GET).await;
+    let form: SearchForm = request.form();
+
+    let form = ValidationForm::try_new(form, &request)
+        .await
+        .err()
+        .expect("a bare GET never validates");
+    let json = serde_json::to_value(form.get_form()).unwrap();
+    assert_eq!(json["name_html"], "");
+}

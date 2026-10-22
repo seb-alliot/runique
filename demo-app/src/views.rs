@@ -77,20 +77,21 @@ pub async fn info_user(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
 
     let (username_form, searched_username) =
-        match ValidationForm::try_new(username_form, &request).await {
+        match ValidationForm::try_named(username_form, &request, "username").await {
             Ok(validated) => {
                 let searched = validated.cleaned::<String>("username");
                 (validated.into_form(), searched)
             }
             Err(form) => (form, None),
         };
-    let (email_form, searched_email) = match ValidationForm::try_new(email_form, &request).await {
-        Ok(validated) => {
-            let searched = validated.cleaned::<String>("email");
-            (validated.into_form(), searched)
-        }
-        Err(form) => (form, None),
-    };
+    let (email_form, searched_email) =
+        match ValidationForm::try_named(email_form, &request, "email").await {
+            Ok(validated) => {
+                let searched = validated.cleaned::<String>("email");
+                (validated.into_form(), searched)
+            }
+            Err(form) => (form, None),
+        };
     let (found_by_username, found_by_email) = find_users_by_username(
         &request.engine.db,
         searched_username.as_deref(),

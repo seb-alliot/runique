@@ -17,12 +17,4 @@ impl RuniqueForm for UsernameForm {
         );
     }
     impl_form_access!();
-
-    fn allow_post(&self, _request: &Request) -> bool {
-        false
-    }
-
-    fn allow_get(&self, _request: &Request) -> bool {
-        self.is_submitted()
-    }
 }

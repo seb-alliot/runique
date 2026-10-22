@@ -11,7 +11,7 @@
 
     <h2>Search for a user</h2>
 
-    <form id="username-form" method="Get" action="{% link "search-user" %}">
+    <form id="username-form" method="post" action="{% link "search-user" %}">
         {% form.username_form %}
         <button type="submit" class="btn btn-primary">Search by username</button>
     </form>
@@ -33,7 +33,7 @@
     </div>
     {% endif %}
 
-    <form id="email-form" method="Get" action="{% link "search-user" %}">
+    <form id="email-form" method="post" action="{% link "search-user" %}">
         {% form.email_form %}
         <button type="submit" class="btn btn-primary">Search by email</button>
     </form>
