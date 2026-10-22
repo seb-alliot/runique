@@ -51,6 +51,7 @@ pub const FIELD_TEMPLATES: &[(&str, &str)] = tpls![
     ("base_string.html", "field_html/base_string.html"),
     ("base_hidden.html", "field_html/base_hidden.html"),
     ("base_honeypot.html", "field_html/base_honeypot.html"),
+    ("form_errors.html", "field_html/form_errors.html"),
 ];
 
 /// Built-in authentication pages (forgot/reset password), `(tera_name,

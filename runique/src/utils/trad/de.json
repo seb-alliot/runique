@@ -46,6 +46,7 @@
     "finalize_error": "Fehler beim Abschließen des Feldes '{}': {}",
     "template_missing": "Template fehlt: {}",
     "render_js_error": "JS-Renderfehler: {}",
+    "render_errors_error": "Fehler beim Rendern der Formularfehler: {}",
     "tera_not_configured": "Tera nicht konfiguriert",
     "config_not_found": "Konfiguration in den Erweiterungen nicht gefunden",
     "hint_slug": "Format: buchstaben-zahlen-bindestriche",

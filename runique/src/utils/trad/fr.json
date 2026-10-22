@@ -46,6 +46,7 @@
     "finalize_error": "Erreur lors de la finalisation du champ '{}': {}",
     "template_missing": "Template manquant: {}",
     "render_js_error": "Erreur rendu JS: {}",
+    "render_errors_error": "Erreur rendu des erreurs du formulaire: {}",
     "tera_not_configured": "Tera non configuré",
     "config_not_found": "Configuration introuvable dans les extensions",
     "hint_slug": "Format : lettres-chiffres-tirets",

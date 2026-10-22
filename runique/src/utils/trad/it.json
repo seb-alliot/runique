@@ -46,6 +46,7 @@
     "finalize_error": "Errore durante la finalizzazione del campo '{}': {}",
     "template_missing": "Template mancante: {}",
     "render_js_error": "Errore nel rendering JS: {}",
+    "render_errors_error": "Errore nel rendering degli errori del modulo: {}",
     "tera_not_configured": "Tera non configurato",
     "config_not_found": "Configurazione non trovata nelle estensioni",
     "hint_slug": "Formato: lettere-numeri-trattini",

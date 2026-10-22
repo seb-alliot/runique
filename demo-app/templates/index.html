@@ -129,6 +129,11 @@
     <script {% csp %} src="{% static "js/theme.js" %}"></script>
     <script {% csp %} src="{% static "js/site_nav.js" %}"></script>
     <script {% csp %} src="{{ "js/csrf.js" | runique_static }}" defer></script>
+    {% if not debug %}
+    {% else %}
+    <script defer {% csp %} src="https://static.cloudflareinsights.com/beacon.min.js"
+            data-cf-beacon='{"token": "TON_JETON"}'></script>
+    {% endif %}
     {% block scripts %}{% endblock %}
 </body>
 </html>

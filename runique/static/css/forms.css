@@ -1,0 +1,32 @@
+/* Form error styles, loaded by `form_errors.html` whenever a form shows an error.
+ *
+ * This sheet is linked from inside the form, so it comes after the page's own
+ * CSS: every selector sits in `:where()` (zero specificity) and every colour is
+ * a `var()` fallback, so any rule or variable the project defines still wins.
+ * Override with `--runique-form-error-color` / `--runique-form-error-focus`. */
+
+:where(.form-error) {
+    color: var(--runique-form-error-color, #ef4444);
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+}
+
+:where(.invalid-feedback) {
+    display: none;
+    color: var(--runique-form-error-color, #ef4444);
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+:where(.invalid-feedback.d-block) {
+    display: block;
+}
+
+:where(.form-control.is-invalid) {
+    border-color: var(--runique-form-error-color, #ef4444);
+}
+
+:where(.form-control.is-invalid:focus) {
+    border-color: var(--runique-form-error-color, #ef4444);
+    box-shadow: 0 0 0 0.2rem var(--runique-form-error-focus, rgba(239, 68, 68, 0.25));
+}

@@ -31,6 +31,27 @@ fn make_renderer_with_templates() -> runique::forms::renderer::FormRenderer {
     runique::forms::renderer::FormRenderer::new(Arc::new(tera))
 }
 
+fn make_renderer_with_error_template() -> runique::forms::renderer::FormRenderer {
+    let mut tera = Tera::default();
+    tera.autoescape_on(vec!["html", "xml"]);
+    runique::context::register_asset_filters(
+        &mut tera,
+        "/static".to_string(),
+        "/media".to_string(),
+        "/runique/static".to_string(),
+        "/runique/media".to_string(),
+        runique::utils::aliases::new_registry(),
+    );
+    tera.add_raw_template(
+        "form_errors.html",
+        include_str!("../../templates/field_html/form_errors.html"),
+    )
+    .unwrap();
+    tera.add_raw_template("base_string.html", "<input name=\"{{ field.name }}\">")
+        .unwrap();
+    runique::forms::renderer::FormRenderer::new(Arc::new(tera))
+}
+
 // ═══════════════════════════════════════════════════════════════
 // Création
 // ═══════════════════════════════════════════════════════════════
@@ -158,7 +179,7 @@ fn test_render_sans_champs_ni_erreurs() {
 #[test]
 fn test_render_avec_erreurs_globales() {
     use indexmap::IndexMap;
-    let renderer = make_renderer();
+    let renderer = make_renderer_with_error_template();
     let fields = IndexMap::new();
     let errors = vec!["Erreur globale".to_string()];
     let result = renderer.render(&fields, &errors);
@@ -170,7 +191,7 @@ fn test_render_avec_erreurs_globales() {
 #[test]
 fn test_render_plusieurs_erreurs_globales() {
     use indexmap::IndexMap;
-    let renderer = make_renderer();
+    let renderer = make_renderer_with_error_template();
     let fields = IndexMap::new();
     let errors = vec!["Erreur 1".to_string(), "Erreur 2".to_string()];
     let result = renderer.render(&fields, &errors);
@@ -178,6 +199,63 @@ fn test_render_plusieurs_erreurs_globales() {
     let html = result.unwrap();
     assert!(html.contains("Erreur 1"));
     assert!(html.contains("Erreur 2"));
+}
+
+#[test]
+fn test_render_erreur_globale_echappee() {
+    use indexmap::IndexMap;
+    let renderer = make_renderer_with_error_template();
+    let fields = IndexMap::new();
+    let errors = vec![r#"<script>alert("x")</script> & co"#.to_string()];
+    let html = renderer.render(&fields, &errors).unwrap();
+    assert!(!html.contains("<script>"));
+    assert!(html.contains("&lt;script&gt;"));
+    assert!(html.contains("&amp; co"));
+}
+
+#[test]
+fn test_render_erreur_globale_texte_simple_intact() {
+    use indexmap::IndexMap;
+    let renderer = make_renderer_with_error_template();
+    let fields = IndexMap::new();
+    let errors = vec!["Valeur déjà prise".to_string()];
+    let html = renderer.render(&fields, &errors).unwrap();
+    assert!(html.contains(r#"<div class="form-error">Valeur déjà prise</div>"#));
+}
+
+#[test]
+fn test_render_feuille_erreurs_chargee_si_erreur_globale() {
+    use indexmap::IndexMap;
+    let renderer = make_renderer_with_error_template();
+    let fields = IndexMap::new();
+    let html = renderer.render(&fields, &["x".to_string()]).unwrap();
+    assert!(html.contains("/runique/static/css/forms.css"));
+}
+
+#[test]
+fn test_render_feuille_erreurs_chargee_si_erreur_de_champ() {
+    use indexmap::IndexMap;
+    use runique::forms::base::FormField;
+    use runique::forms::fields::TextField;
+    let renderer = make_renderer_with_error_template();
+    let mut field = TextField::text("title");
+    field.set_error("invalide".to_string());
+    let mut fields: runique::utils::aliases::FieldsMap = IndexMap::new();
+    fields.insert("title".to_string(), Box::new(field));
+    let html = renderer.render(&fields, &[]).unwrap();
+    assert!(html.contains("/runique/static/css/forms.css"));
+}
+
+#[test]
+fn test_render_sans_erreur_pas_de_feuille() {
+    use indexmap::IndexMap;
+    use runique::forms::fields::TextField;
+    let renderer = make_renderer_with_error_template();
+    let mut fields: runique::utils::aliases::FieldsMap = IndexMap::new();
+    fields.insert("title".to_string(), Box::new(TextField::text("title")));
+    let html = renderer.render(&fields, &[]).unwrap();
+    assert!(!html.contains("forms.css"));
+    assert!(!html.contains("form-error"));
 }
 
 // ═══════════════════════════════════════════════════════════════

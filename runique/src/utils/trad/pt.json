@@ -46,6 +46,7 @@
     "finalize_error": "Erro ao finalizar o campo '{}': {}",
     "template_missing": "Template ausente: {}",
     "render_js_error": "Erro ao renderizar JS: {}",
+    "render_errors_error": "Erro ao renderizar os erros do formulário: {}",
     "tera_not_configured": "Tera não configurado",
     "config_not_found": "Configuração não encontrada nas extensões",
     "hint_slug": "Formato: letras-números-hífens",

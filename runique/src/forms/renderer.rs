@@ -76,17 +76,9 @@ impl FormRenderer {
         }
         let mut html = Vec::new();
 
-        // Render global errors first
-        if !errors.is_empty() {
-            let mut _context = tera::Context::new();
-            _context.insert("errors", errors);
-            html.push(
-                errors
-                    .iter()
-                    .map(|err| format!("<div class=\"form-error\">{}</div>", err))
-                    .collect::<Vec<String>>()
-                    .join("\n"),
-            );
+        // Errors first: the global ones, and the stylesheet for field errors too.
+        if !errors.is_empty() || fields.values().any(|field| field.error().is_some()) {
+            html.push(self.render_errors(errors)?);
         }
 
         for field in fields.values() {
@@ -113,6 +105,27 @@ impl FormRenderer {
         }
 
         Ok(html.join("\n"))
+    }
+
+    /// Global errors go through a `.html` template, never a `format!`: the
+    /// `form` filter is `is_safe()`, so its output is not escaped again, and an
+    /// error can carry user input (a database message quoting the submitted
+    /// value, a `clean()`). The template's autoescape is what protects it.
+    fn render_errors(&self, errors: &[String]) -> Result<String, String> {
+        let template_name = "form_errors.html";
+        if !self
+            .tera
+            .get_template_names()
+            .any(|name| name == template_name)
+        {
+            return Err(tf("forms.template_missing", &[template_name]).to_owned());
+        }
+
+        let mut context = tera::Context::new();
+        context.insert("errors", errors);
+        self.tera
+            .render(template_name, &context)
+            .map_err(|e| tf("forms.render_errors_error", &[&e]).to_owned())
     }
 
     pub(crate) fn render_js(&self) -> Result<String, String> {

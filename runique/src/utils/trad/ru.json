@@ -46,6 +46,7 @@
     "finalize_error": "Ошибка при финализации поля '{}': {}",
     "template_missing": "Отсутствует шаблон: {}",
     "render_js_error": "Ошибка рендеринга JS: {}",
+    "render_errors_error": "Ошибка рендеринга ошибок формы: {}",
     "tera_not_configured": "Tera не настроен",
     "config_not_found": "Конфигурация не найдена в расширениях",
     "hint_slug": "Формат: буквы-цифры-дефисы",

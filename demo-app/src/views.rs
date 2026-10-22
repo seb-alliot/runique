@@ -1,6 +1,6 @@
 use crate::backend::{
     auth::{
-        find_user_by_username, get_profile_user, handle_activate, handle_inscription, handle_login,
+        find_users_by_username, get_profile_user, handle_activate, handle_inscription, handle_login,
     },
     blog::{get_article, handle_blog_save, list_articles},
     contribution::{handle_contribution_submit, list_contributions},
@@ -12,7 +12,8 @@ use crate::backend::{
     inject_globals,
 };
 use crate::formulaire::{
-    BlogForm, ContributionForm, ImageForm, LoginForm, RegisterForm, SearchDemoForm, UsernameForm,
+    BlogForm, ContributionForm, EmailForm, ImageForm, LoginForm, RegisterForm, SearchDemoForm,
+    UsernameForm,
 };
 use runique::prelude::*;
 
@@ -58,57 +59,55 @@ pub async fn profil(mut request: Request) -> AppResult<Response> {
     }
     let user_id = request.user.as_ref().map(|user| user.id);
     let username = request.user.as_ref().map(|user| user.username.clone());
-    let user_opt = get_profile_user(user_id, &request.engine.db).await;
+    let (user_opt, user_by_username) =
+        get_profile_user(user_id, username.as_deref(), &request.engine.db).await;
     context_update!(request => {
         "title"        => "My profile",
         "username"     => &username,
         "profile_user" => &user_opt,
+        "profile_user_by_username" => &user_by_username,
         "connected"    => &true,
     });
     request.render("profile/profile.html")
 }
 
 pub async fn info_user(mut request: Request) -> AppResult<Response> {
-    let form: UsernameForm = request.form();
+    let username_form: UsernameForm = request.form();
+    let email_form: EmailForm = request.form();
     inject_globals(&mut request).await;
-    let template = "profile/view_user.html";
-    // `view_user.html` reads `username`/`email`/`age` unconditionally
-    // (`{% if username or email or age %}`) — Tera errors on an undefined
-    // variable rather than treating it as falsy, so every branch below must
-    // see these keys, even empty. Pre-existing gap: only the "user found"
-    // branch ever set them, so a bare GET/POST fallback 500'd.
-    context_update!(request => { "username" => "", "email" => "", "age" => "" });
-    match ValidationForm::try_new(form, &request).await {
-        Ok(validated) => {
-            let form = validated.into_form();
-            let username_val = form.cleaned::<String>("username").unwrap_or_default();
-            let user_opt = find_user_by_username(&request.engine.db, &username_val).await;
-            match user_opt {
-                Some(user) => {
-                    context_update!(request => {
-                        "title"       => "User view",
-                        "username"    => &user.username,
-                        "email"       => &user.email,
-                        "found_user"  => &user,
-                        "search_form" => &form,
-                        "messages"    => flash_now!(success => "User found!"),
-                    });
-                }
-                None => {
-                    context_update!(request => {
-                        "title"       => "User view",
-                        "search_form" => &form,
-                        "messages"    => flash_now!(warning => "User not found."),
-                    });
-                }
+
+    let (username_form, searched_username) =
+        match ValidationForm::try_new(username_form, &request).await {
+            Ok(validated) => {
+                let searched = validated.cleaned::<String>("username");
+                (validated.into_form(), searched)
             }
-            request.render(template)
+            Err(form) => (form, None),
+        };
+    let (email_form, searched_email) = match ValidationForm::try_new(email_form, &request).await {
+        Ok(validated) => {
+            let searched = validated.cleaned::<String>("email");
+            (validated.into_form(), searched)
         }
-        Err(form) => {
-            context_update!(request => { "title" => "User view", "search_form" => &form });
-            request.render(template)
-        }
-    }
+        Err(form) => (form, None),
+    };
+    let (found_by_username, found_by_email) = find_users_by_username(
+        &request.engine.db,
+        searched_username.as_deref(),
+        searched_email.as_deref(),
+    )
+    .await;
+
+    context_update!(request => {
+        "title"             => "User view",
+        "username_form"     => &username_form,
+        "email_form"        => &email_form,
+        "searched_username" => &searched_username,
+        "searched_email"    => &searched_email,
+        "found_by_username" => &found_by_username,
+        "found_by_email"    => &found_by_email,
+    });
+    request.render("profile/view_user.html")
 }
 
 // ─── Blog ─────────────────────────────────────────────────────────────────────

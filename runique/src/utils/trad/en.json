@@ -46,6 +46,7 @@
     "finalize_error": "Error finalizing field '{}': {}",
     "template_missing": "Missing template: {}",
     "render_js_error": "JS render error: {}",
+    "render_errors_error": "Form errors render error: {}",
     "tera_not_configured": "Tera not configured",
     "config_not_found": "Config not found in extensions",
     "hint_slug": "Format: letters-digits-hyphens",

@@ -11,32 +11,46 @@
 
     <h2>Search for a user</h2>
 
-    <form id="username-form" method="get" action="{% link "search-user" %}">
-        {% form.search_form %}
-        <button type="submit" class="btn btn-primary">Search</button>
+    <form id="username-form" method="Get" action="{% link "search-user" %}">
+        {% form.username_form %}
+        <button type="submit" class="btn btn-primary">Search by username</button>
     </form>
 
-    {% if username or email or age %}
+    {% if searched_username %}
     <div class="result-card">
-        <h3>User Information</h3>
-
+        {% if found_by_username %}
         <div class="result-line">
             <span class="result-label">User:</span>
-            <span class="result-value">{{ username }}</span>
+            <span class="result-value">{{ found_by_username.username }}</span>
         </div>
-
-        {% if email %}
         <div class="result-line">
             <span class="result-label">Email:</span>
-            <span class="result-value">{{ email }}</span>
+            <span class="result-value">{{ found_by_username.email }}</span>
         </div>
+        {% else %}
+        <p>No user with this username.</p>
         {% endif %}
+    </div>
+    {% endif %}
 
-        {% if age %}
+    <form id="email-form" method="Get" action="{% link "search-user" %}">
+        {% form.email_form %}
+        <button type="submit" class="btn btn-primary">Search by email</button>
+    </form>
+
+    {% if searched_email %}
+    <div class="result-card">
+        {% if found_by_email %}
         <div class="result-line">
-            <span class="result-label">Age:</span>
-            <span class="result-value">{{ age }} years old</span>
+            <span class="result-label">User:</span>
+            <span class="result-value">{{ found_by_email.username }}</span>
         </div>
+        <div class="result-line">
+            <span class="result-label">Email:</span>
+            <span class="result-value">{{ found_by_email.email }}</span>
+        </div>
+        {% else %}
+        <p>No user with this email.</p>
         {% endif %}
     </div>
     {% endif %}

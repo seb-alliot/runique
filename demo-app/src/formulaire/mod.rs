@@ -7,6 +7,9 @@ pub use blog::BlogForm;
 pub mod username;
 pub use username::UsernameForm;
 
+pub mod email;
+pub use email::EmailForm;
+
 pub mod image;
 pub use image::ImageForm;
 
