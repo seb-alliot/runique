@@ -22,7 +22,7 @@ impl RuniqueForm for LoginForm {
 
 pub async fn login_post(mut request: Request) -> AppResult<Response> {
     let form: LoginForm = request.form();
-    let validated = match ValidationForm::try_new(form, &request).await {
+    let validated = match ValidationForm::try_form(form, &request, "my_form").await {
         Ok(validated) => validated,
         Err(form) => {
             context_update!(request => { "login_form" => &form });

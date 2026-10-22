@@ -1,9 +1,9 @@
 <div>
-    <label for="id_{{ field.name }}">{{ field.label }}</label>
+    <label for="id_{{ form.name }}-{{ field.name }}">{{ field.label }}</label>
     <input
         type="file"
         name="{{ field.name }}"
-        id="id_{{ field.name }}"
+        id="id_{{ form.name }}-{{ field.name }}"
         {% if field.is_required.choice %}required{% endif %}
         {% if allowed_extensions %}accept=".{{ allowed_extensions.extensions | join(sep=",.") }}"{% endif %}
         {% for key, value in field.html_attributes %}{{ key }}="{{ value }}" {% endfor %}

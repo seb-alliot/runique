@@ -32,7 +32,7 @@ pub async fn soumission_inscription(mut request: Request) -> AppResult<Response>
     // GET (nothing submitted yet): blank form, no flash. Submitted but invalid
     // (POST, or PUT/DELETE/PATCH since `view!{}` registers all methods): shared
     // error render below, `save()` is never attempted.
-    let mut form = match ValidationForm::try_new(form, &request).await {
+    let mut form = match ValidationForm::try_form(form, &request, "inscription").await {
         Ok(validated) => validated.into_form(),
         Err(form) => {
             if request.method.is_safe() {
@@ -90,7 +90,7 @@ pub async fn connexion(mut request: Request) -> AppResult<Response> {
     }
 
     let template = "login_form.html";
-    let validated = match ValidationForm::try_new(form, &request).await {
+    let validated = match ValidationForm::try_form(form, &request, "login").await {
         Ok(validated) => validated,
         Err(form) => {
             context_update!(request => {

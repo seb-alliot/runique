@@ -1,6 +1,6 @@
 <div class="form-field color-field">
     {% if field.label %}
-    <label for="id_{{ field.name }}" class="field-label{% if field.error %} field-error{% endif %}">
+    <label for="id_{{ form.name }}-{{ field.name }}" class="field-label{% if field.error %} field-error{% endif %}">
         {{ field.label }}
     </label>
     {% endif %}
@@ -9,7 +9,7 @@
         <input
             type="color"
             name="{{ field.name }}"
-            id="id_{{ field.name }}"
+            id="id_{{ form.name }}-{{ field.name }}"
             value="{{ field.value | default(value='#000000') }}"
             {% if field.is_required.choice %}required{% endif %}
             {% for key, value in field.html_attributes %}{{ key }}="{{ value }}" {% endfor %}
@@ -18,7 +18,7 @@
         >
         <input
             type="text"
-            id="id_{{ field.name }}_text"
+            id="id_{{ form.name }}-{{ field.name }}_text"
             value="{{ field.value | default(value='#000000') }}"
             placeholder="#RRGGBB"
             maxlength="7"

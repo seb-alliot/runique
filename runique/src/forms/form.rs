@@ -1,7 +1,7 @@
 //! `Forms` — main form container: fields, validation, rendering, CSRF management.
 use crate::forms::{
     base::FormField,
-    fields::{ChoiceField, HiddenField, HoneypotField},
+    fields::{ChoiceField, FormNameField, HiddenField, HoneypotField},
     generic::GenericField,
     renderer::FormRenderer,
     validator::{FormValidator, ValidationError},
@@ -39,8 +39,6 @@ pub struct Forms {
     pub(crate) force_invalid: bool,
     /// Honeypot field name injected by anti-bot middleware (for rendering).
     pub(crate) honeypot_field_name: Option<String>,
-    /// Name given by `ValidationForm::try_named`, rendered as a hidden field.
-    pub(crate) name: Option<&'static str>,
 }
 
 impl std::fmt::Debug for Forms {
@@ -100,17 +98,21 @@ impl Serialize for Forms {
             Some(renderer) => self
                 .fields
                 .iter()
-                .filter_map(|(name, field)| {
-                    renderer
-                        .render_field(field.as_ref())
-                        .trace(
-                            crate::utils::runique_log::get_log()
-                                .forms
-                                .as_ref()
-                                .and_then(|f| f.render),
-                            "field render failed",
-                        )
-                        .map(|html| (name.clone(), html))
+                // A failed field is shown in its place, like a failed full render:
+                // dropped, it would vanish from the page (a missing form name
+                // then fails every submission with no trace on screen).
+                .map(|(name, field)| {
+                    let html = renderer.render_field(field.as_ref()).unwrap_or_else(|e| {
+                        if let Some(level) = crate::utils::runique_log::get_log()
+                            .forms
+                            .as_ref()
+                            .and_then(|f| f.render)
+                        {
+                            crate::runique_log!(level, field = %name, error = %e, "field render failed");
+                        }
+                        format!("<p style='color:red'>Render error: {}</p>", html_escape(&e))
+                    });
+                    (name.clone(), html)
                 })
                 .collect(),
             None => StrMap::new(),
@@ -171,7 +173,6 @@ impl Serialize for Forms {
             _ => String::new(),
         };
         state.serialize_field("honeypot_html", &honeypot_html)?;
-        state.serialize_field("name_html", &self.name_html())?;
 
         state.end()
     }
@@ -216,6 +217,12 @@ impl Forms {
     /// The CSRF token is validated upstream by the Prisme pipeline — `set_expected_value` is not called here.
     pub fn new(csrf_token: &str) -> Self {
         let mut fields: FieldsMap = IndexMap::new();
+        // The form's name comes first, CSRF second — CSRF must still precede
+        // any file field (the multipart upload gate checks it before writing).
+        fields.insert(
+            FORM_NAME_KEY.to_string(),
+            Box::new(FormNameField::new()) as Box<dyn FormField>,
+        );
         let mut csrf_field = HiddenField::new_csrf();
         csrf_field.set_value(csrf_token);
         // CSRF is already validated upstream by the Prisme pipeline (extractor::check_csrf).
@@ -239,21 +246,18 @@ impl Forms {
             query_params: StrMap::new(),
             force_invalid: false,
             honeypot_field_name: None,
-            name: None,
         }
     }
 
-    /// The hidden `<input>` carrying the form's name, empty when it has none.
-    pub(crate) fn name_html(&self) -> String {
-        self.name
-            .map(|name| {
-                format!(
-                    r#"<input type="hidden" name="{}" value="{}">"#,
-                    FORM_NAME_KEY,
-                    html_escape(name)
-                )
-            })
-            .unwrap_or_default()
+    /// Sets the form's name (its `FORM_NAME_KEY` hidden field) and gives it to
+    /// every field, which prefixes its HTML `id` with it.
+    pub(crate) fn set_name(&mut self, name: &'static str) {
+        for (key, field) in self.fields.iter_mut() {
+            if key == FORM_NAME_KEY {
+                field.set_value(name);
+            }
+            field.get_field_config_mut().form_name = Some(name);
+        }
     }
 
     /// Registers the honeypot field name injected by the anti-bot middleware.
@@ -349,7 +353,13 @@ impl Forms {
         let allow_password = matches!(method, Method::POST | Method::PUT | Method::PATCH);
         let is_edit = matches!(method, Method::PATCH | Method::PUT);
         let mut has_data = false;
-        for field in self.fields.values_mut() {
+        for (key, field) in self.fields.iter_mut() {
+            // The form's name is set by `try_form`, never by the request: filled
+            // from the body, the form a POST wasn't meant for would carry the
+            // sender's name and pass for it on the next submission.
+            if key == FORM_NAME_KEY {
+                continue;
+            }
             // `is_password()` et non `field_type() == "password"` : un champ portant
             // un secret sans être de type password (clé d'API, jeton) hérite ainsi
             // du même saut en GET et du même relâchement de contrainte en édition.
@@ -471,17 +481,17 @@ impl Forms {
     pub fn add_value(&mut self, name: &str, value: &str) {
         if let Some(field) = self.fields.get_mut(name) {
             field.set_value(value);
-            if !value.trim().is_empty() && name != CSRF_TOKEN_KEY {
+            if !value.trim().is_empty() && name != CSRF_TOKEN_KEY && name != FORM_NAME_KEY {
                 self.submitted = true;
             }
         }
     }
 
-    /// Clears all field values (except CSRF).
+    /// Clears all field values (except CSRF and the form's name).
     /// To be called after reading cleaned data, before a redirect.
     pub fn clear_values(&mut self) {
         for (name, field) in self.fields.iter_mut() {
-            if name != CSRF_TOKEN_KEY {
+            if name != CSRF_TOKEN_KEY && name != FORM_NAME_KEY {
                 field.set_value("");
             }
         }
@@ -566,15 +576,10 @@ impl Forms {
     /// Renders the form to HTML via the attached renderer. Fails if no
     /// renderer was attached with [`Forms::set_renderer`].
     pub fn render(&self) -> Result<String, String> {
-        let html = self
-            .renderer
+        self.renderer
             .as_ref()
             .ok_or_else(|| t("forms.tera_not_configured").into_owned())?
-            .render(&self.fields, &self.errors)?;
-        match self.name {
-            Some(_) => Ok(format!("{}\n{}", self.name_html(), html)),
-            None => Ok(html),
-        }
+            .render(&self.fields, &self.errors)
     }
 }
 

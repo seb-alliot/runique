@@ -99,7 +99,7 @@ pub async fn about(mut request: Request) -> AppResult<Response> {
 pub async fn soumission_inscription(mut request: Request) -> AppResult<Response> {
     let form: RegisterForm = request.form();
 
-    let mut validated = match ValidationForm::try_new(form, &request).await {
+    let mut validated = match ValidationForm::try_form(form, &request, "my_form").await {
         Ok(validated) => validated,
         Err(form) => {
             // GET (nothing submitted): blank form, no flash.

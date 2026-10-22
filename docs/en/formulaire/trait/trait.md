@@ -163,12 +163,27 @@ form.max_size("photo", FileSize::mb(6))?;   // Err — exceeds model ceiling
 
 ---
 
+## Form name — several forms on one page
+
+`try_form(form, &request, "name")` names the form. The name is rendered as a hidden `runique_form` field (first, before CSRF) and prefixes the fields' HTML ids (`id_name-field`). On POST, the form is only validated when the request sends **that same name** back: on a page showing several forms, only the one submitted is validated, the others come back as `Err` with no error set.
+
+- Every handler that **renders** the form goes through `try_form`, GET included: a form never named fails to render (Tera error on the missing name), rather than showing a form whose submission would never validate.
+- The name is never filled from the request: only `try_form` sets it.
+- A hand-written form (without `{% form.x %}`) must carry the hidden `runique_form` field itself, with the right name.
+
+```rust
+let username_form = ValidationForm::try_form(request.form::<UsernameForm>(), &request, "username").await;
+let email_form = ValidationForm::try_form(request.form::<EmailForm>(), &request, "email").await;
+```
+
+---
+
 ## `is_valid()` — calling on GET and POST
 
-`is_valid()` validates regardless of the HTTP method, but it **never looks at the method itself** — that's `ValidationForm::try_new(form, &request)`'s job, via `allow_get`/`allow_post`, deciding whether validation should even be attempted. `allow_get` defaults to `false` (CSRF protection: GET is the only method exempt from CSRF, and a mutating form must never auto-validate on it). A read-only search form is the case that must **explicitly** lift that guard:
+`is_valid()` validates regardless of the HTTP method, but it **never looks at the method itself** — that's `ValidationForm::try_form(form, &request, "my_form")`'s job, via `allow_get`/`allow_post`, deciding whether validation should even be attempted. `allow_get` defaults to `false` (CSRF protection: GET is the only method exempt from CSRF, and a mutating form must never auto-validate on it). A read-only search form is the case that must **explicitly** lift that guard:
 
-- **First GET (empty form)** — `allow_get` falls back to `is_submitted()` → `false`, `try_new` returns `Err` without attempting validation, no errors set. The template renders a clean empty form.
-- **GET with query params (search form)** — `is_submitted()` → `true`, `try_new` validates and returns `Ok`. Enables GET-based searches without extra code.
+- **First GET (empty form)** — `allow_get` falls back to `is_submitted()` → `false`, `try_form` returns `Err` without attempting validation, no errors set. The template renders a clean empty form.
+- **GET with query params (search form)** — `is_submitted()` → `true`, `try_form` validates and returns `Ok`. Enables GET-based searches without extra code.
 - **POST** — standard behavior: validates and sets field errors if invalid (also needs an `allow_post` that permits it — the default already covers this case).
 
 ```rust
@@ -182,7 +197,7 @@ impl RuniqueForm for SearchForm {
 // Unified GET+POST handler — no method branching needed
 pub async fn search(mut request: Request) -> AppResult<Response> {
     let form: SearchForm = request.form();
-    let form = match ValidationForm::try_new(form, &request).await {
+    let form = match ValidationForm::try_form(form, &request, "my_form").await {
         Ok(validated) => {
             let query = validated.cleaned::<String>("q").unwrap_or_default();
             // run the search...

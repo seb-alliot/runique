@@ -5,7 +5,7 @@
         <input
             type="{{ input_type }}"
             name="{{ field.name }}"
-            id="id_{{ field.name }}"
+            id="id_{{ form.name }}-{{ field.name }}"
             value="{{ checked_value }}"
             {% if checked %}checked{% endif %}
             {% for key, value in field.html_attributes %}{{ key }}="{{ value }}" {% endfor %}

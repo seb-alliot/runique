@@ -10,6 +10,17 @@ use runique::forms::{field::RuniqueForm, fields::text::TextField, form::Forms};
 use runique::prelude::ValidationForm;
 use std::collections::HashMap;
 
+const NAME: &str = "f";
+
+/// `data` plus the form's name, as sent back by a form `try_form` named `NAME`.
+fn named(mut data: HashMap<String, String>) -> HashMap<String, String> {
+    data.insert(
+        runique::utils::constante::session_key::session::FORM_NAME_KEY.to_string(),
+        NAME.to_string(),
+    );
+    data
+}
+
 // ═══════════════════════════════════════════════════════════════
 // Formulaire minimal — un seul champ requis. `allow_post` retombe sur le
 // défaut (`is_submitted()`) ; `allow_get` est explicitement surchargé —
@@ -42,10 +53,10 @@ impl RuniqueForm for SearchForm {
 #[tokio::test]
 async fn get_without_data_is_err_and_has_no_field_errors() {
     let engine = build_engine().await;
-    let request = build_handler_req(engine, None, HashMap::new(), Method::GET).await;
+    let request = build_handler_req(engine, None, named(HashMap::new()), Method::GET).await;
     let form: SearchForm = request.form();
 
-    match ValidationForm::try_new(form, &request).await {
+    match ValidationForm::try_form(form, &request, NAME).await {
         Ok(_) => panic!("a bare GET with no data must not validate"),
         Err(form) => {
             // allow_get() returned false before is_valid() ever ran — no
@@ -63,10 +74,10 @@ async fn get_with_data_validates_and_returns_ok() {
     let engine = build_engine().await;
     let mut data = HashMap::new();
     data.insert("q".to_string(), "rust".to_string());
-    let request = build_handler_req(engine, None, data, Method::GET).await;
+    let request = build_handler_req(engine, None, named(data), Method::GET).await;
     let form: SearchForm = request.form();
 
-    match ValidationForm::try_new(form, &request).await {
+    match ValidationForm::try_form(form, &request, NAME).await {
         Ok(validated) => {
             assert_eq!(validated.cleaned::<String>("q"), Some("rust".to_string()));
         }
@@ -77,10 +88,10 @@ async fn get_with_data_validates_and_returns_ok() {
 #[tokio::test]
 async fn post_missing_required_field_is_err_with_field_error() {
     let engine = build_engine().await;
-    let request = build_handler_req(engine, None, HashMap::new(), Method::POST).await;
+    let request = build_handler_req(engine, None, named(HashMap::new()), Method::POST).await;
     let form: SearchForm = request.form();
 
-    match ValidationForm::try_new(form, &request).await {
+    match ValidationForm::try_form(form, &request, NAME).await {
         Ok(_) => panic!("POST with a missing required field must not validate"),
         Err(form) => {
             let errors = form.get_form().errors();
@@ -97,10 +108,10 @@ async fn post_with_data_validates_and_into_form_returns_the_form() {
     let engine = build_engine().await;
     let mut data = HashMap::new();
     data.insert("q".to_string(), "runique".to_string());
-    let request = build_handler_req(engine, None, data, Method::POST).await;
+    let request = build_handler_req(engine, None, named(data), Method::POST).await;
     let form: SearchForm = request.form();
 
-    let validated = ValidationForm::try_new(form, &request)
+    let validated = ValidationForm::try_form(form, &request, NAME)
         .await
         .unwrap_or_else(|_| panic!("POST with valid data must validate"));
 
@@ -144,10 +155,10 @@ async fn register_dynamic_fields_runs_before_validation() {
     // POST with no body data: the only way `is_valid()` can pass is if the
     // required "late_field" — added and filled exclusively inside
     // `register_dynamic_fields` — was actually registered before validation ran.
-    let request = build_handler_req(engine, None, HashMap::new(), Method::POST).await;
+    let request = build_handler_req(engine, None, named(HashMap::new()), Method::POST).await;
     let form: DynamicForm = request.form();
 
-    match ValidationForm::try_new(form, &request).await {
+    match ValidationForm::try_form(form, &request, NAME).await {
         Ok(validated) => {
             assert_eq!(
                 validated.cleaned::<String>("late_field"),
@@ -194,10 +205,10 @@ async fn explicit_allow_get_false_blocks_validation_even_with_data() {
     let engine = build_engine().await;
     let mut data = HashMap::new();
     data.insert("name".to_string(), "alice".to_string());
-    let request = build_handler_req(engine, None, data, Method::GET).await;
+    let request = build_handler_req(engine, None, named(data), Method::GET).await;
     let form: AlwaysPostOnlyForm = request.form();
 
-    match ValidationForm::try_new(form, &request).await {
+    match ValidationForm::try_form(form, &request, NAME).await {
         Ok(_) => panic!("allow_get() override returning false must block validation"),
         Err(form) => {
             // Never attempted: no error should have been recorded either.
@@ -264,10 +275,11 @@ async fn honeypot_filled_on_get_does_not_force_invalid() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// try_named — plusieurs formulaires sur une page : seul celui dont le nom
+// try_form — plusieurs formulaires sur une page : seul celui dont le nom
 // revient dans la requête est validé, les autres repartent sans erreur
 // ═══════════════════════════════════════════════════════════════
 
+use runique::forms::base::FormField;
 use runique::utils::constante::session_key::session::FORM_NAME_KEY;
 
 fn named_data(name: Option<&str>, q: Option<&str>) -> HashMap<String, String> {
@@ -282,26 +294,26 @@ fn named_data(name: Option<&str>, q: Option<&str>) -> HashMap<String, String> {
 }
 
 #[tokio::test]
-async fn try_named_validates_when_its_name_is_sent() {
+async fn try_form_validates_when_its_name_is_sent() {
     let engine = build_engine().await;
     let data = named_data(Some("search"), Some("rust"));
     let request = build_handler_req(engine, None, data, Method::POST).await;
     let form: SearchForm = request.form();
 
-    let validated = ValidationForm::try_named(form, &request, "search")
+    let validated = ValidationForm::try_form(form, &request, "search")
         .await
         .unwrap_or_else(|_| panic!("the form whose name was sent must validate"));
     assert_eq!(validated.cleaned::<String>("q"), Some("rust".to_string()));
 }
 
 #[tokio::test]
-async fn try_named_with_its_name_still_reports_field_errors() {
+async fn try_form_with_its_name_still_reports_field_errors() {
     let engine = build_engine().await;
     let data = named_data(Some("search"), None);
     let request = build_handler_req(engine, None, data, Method::POST).await;
     let form: SearchForm = request.form();
 
-    match ValidationForm::try_named(form, &request, "search").await {
+    match ValidationForm::try_form(form, &request, "search").await {
         Ok(_) => panic!("the sent form with a missing required field must not validate"),
         Err(form) => assert!(
             form.get_form().has_errors(),
@@ -311,13 +323,13 @@ async fn try_named_with_its_name_still_reports_field_errors() {
 }
 
 #[tokio::test]
-async fn try_named_with_another_name_is_err_without_field_errors() {
+async fn try_form_with_another_name_is_err_without_field_errors() {
     let engine = build_engine().await;
     let data = named_data(Some("other"), None);
     let request = build_handler_req(engine, None, data, Method::POST).await;
     let form: SearchForm = request.form();
 
-    match ValidationForm::try_named(form, &request, "search").await {
+    match ValidationForm::try_form(form, &request, "search").await {
         Ok(_) => panic!("a POST sent by another form must not validate this one"),
         Err(form) => assert!(
             !form.get_form().has_errors(),
@@ -327,45 +339,44 @@ async fn try_named_with_another_name_is_err_without_field_errors() {
 }
 
 #[tokio::test]
-async fn try_named_without_any_name_is_err_without_field_errors() {
+async fn try_form_without_any_name_is_err_without_field_errors() {
     let engine = build_engine().await;
     let data = named_data(None, Some("rust"));
     let request = build_handler_req(engine, None, data, Method::POST).await;
     let form: SearchForm = request.form();
 
-    match ValidationForm::try_named(form, &request, "search").await {
+    match ValidationForm::try_form(form, &request, "search").await {
         Ok(_) => panic!("a POST carrying no form name must bind no named form"),
         Err(form) => assert!(!form.get_form().has_errors()),
     }
 }
 
 #[tokio::test]
-async fn try_named_renders_its_name_as_an_escaped_hidden_field() {
+async fn try_form_puts_its_name_in_the_form_name_field() {
     let engine = build_engine().await;
     let request = build_handler_req(engine, None, HashMap::new(), Method::GET).await;
     let form: SearchForm = request.form();
 
-    let form = ValidationForm::try_named(form, &request, "a\"b")
+    let form = ValidationForm::try_form(form, &request, "search")
         .await
         .err()
         .expect("a bare GET never validates");
-    let json = serde_json::to_value(form.get_form()).unwrap();
-    assert_eq!(
-        json["name_html"],
-        format!(r#"<input type="hidden" name="{FORM_NAME_KEY}" value="a&quot;b">"#)
-    );
+    assert_eq!(form.get_form().fields[FORM_NAME_KEY].value(), "search");
 }
 
 #[tokio::test]
-async fn try_new_renders_no_name_field() {
+async fn a_form_never_given_to_try_form_has_an_empty_name() {
     let engine = build_engine().await;
     let request = build_handler_req(engine, None, HashMap::new(), Method::GET).await;
     let form: SearchForm = request.form();
+    assert_eq!(form.get_form().fields[FORM_NAME_KEY].value(), "");
+}
 
-    let form = ValidationForm::try_new(form, &request)
-        .await
-        .err()
-        .expect("a bare GET never validates");
-    let json = serde_json::to_value(form.get_form()).unwrap();
-    assert_eq!(json["name_html"], "");
+#[tokio::test]
+async fn the_form_name_is_never_filled_from_the_request() {
+    let engine = build_engine().await;
+    let data = named_data(Some("other"), Some("rust"));
+    let request = build_handler_req(engine, None, data, Method::POST).await;
+    let form: SearchForm = request.form();
+    assert_eq!(form.get_form().fields[FORM_NAME_KEY].value(), "");
 }

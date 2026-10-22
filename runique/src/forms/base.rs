@@ -35,6 +35,10 @@ pub struct FieldConfig {
     /// to (a form without a model, a confirmation, a captcha).
     #[serde(skip)]
     pub column_type: Option<sea_orm::sea_query::ColumnType>,
+    /// Name of the form this field belongs to, set by `try_form`: prefixes the
+    /// field's HTML `id` (`id_{form}-{field}`), unique across forms on a page.
+    #[serde(skip)]
+    pub form_name: Option<&'static str>,
 }
 
 impl FieldConfig {
@@ -58,6 +62,7 @@ impl FieldConfig {
             // therefore never be missed by omission.
             is_password: type_field == "password",
             column_type: None,
+            form_name: None,
         }
     }
 
@@ -358,6 +363,11 @@ pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Syn
     fn base_context(&self) -> tera::Context {
         let mut context = tera::Context::new();
         context.insert("field", self.get_field_config());
+        // Left out when unnamed: templates read `form.name` unconditionally,
+        // so Tera fails the render of a form `try_form` never named.
+        if let Some(name) = self.get_field_config().form_name {
+            context.insert("form", &json!({ "name": name }));
+        }
         context.insert("readonly", &self.to_json_readonly());
         context.insert("disabled", &self.to_json_disabled());
         context

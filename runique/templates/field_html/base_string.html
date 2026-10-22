@@ -1,6 +1,6 @@
-<div class="form-group mb-3" id="container_{{ field.name }}">
+<div class="form-group mb-3" id="container_{{ form.name }}-{{ field.name }}">
     {% if field.label %}
-        <label for="id_{{ field.name }}" class="form-label">
+        <label for="id_{{ form.name }}-{{ field.name }}" class="form-label">
             {{ field.label }}
             {% if field.is_required and field.is_required.choice %}
                 <span class="text-danger"></span>
@@ -11,7 +11,7 @@
     {% if input_type == "richtext" or input_type == "textarea" %}
 
         <textarea
-            id="id_{{ field.name }}"
+            id="id_{{ form.name }}-{{ field.name }}"
             name="{{ field.name }}"
             placeholder="{{ field.placeholder }}"
             class="form-control {% if field.error %}is-invalid{% endif %} {% if input_type == 'richtext' %}richtext-editor{% endif %}"
@@ -24,7 +24,7 @@
     {% else %}
         <input
             type="{{ input_type | default(value='text') }}"
-            id="id_{{ field.name }}"
+            id="id_{{ form.name }}-{{ field.name }}"
             name="{{ field.name }}"
             {# Sécurité pour le mot de passe #}
             {% if input_type != "password" %}value="{{ field.value }}"{% endif %}

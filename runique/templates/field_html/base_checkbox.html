@@ -10,7 +10,7 @@
             <input
                 type="checkbox"
                 name="{{ field.name }}"
-                id="id_{{ field.name }}_{{ loop.index0 }}"
+                id="id_{{ form.name }}-{{ field.name }}_{{ loop.index0 }}"
                 value="{{ choice.value }}"
                 {% if choice.selected %}checked{% endif %}
                 {% for key, value in field.html_attributes %}{{ key }}="{{ value }}" {% endfor %}

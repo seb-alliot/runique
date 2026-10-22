@@ -16,7 +16,7 @@ use runique::prelude::*;
 
 pub async fn inscription(mut request: Request) -> AppResult<Response> {
     let form: RegisterForm = request.form();
-    if let Ok(validated) = ValidationForm::try_new(form, &request).await {
+    if let Ok(validated) = ValidationForm::try_form(form, &request, "my_form").await {
         // Formulaire valide → traitement
     }
     // ...
@@ -39,7 +39,7 @@ pub async fn inscription(mut request: Request) -> AppResult<Response> {
     let template = "inscription_form.html";
 
     // GET (rien soumis) ou POST invalide → réafficher avec les erreurs
-    let mut validated = match ValidationForm::try_new(form, &request).await {
+    let mut validated = match ValidationForm::try_form(form, &request, "my_form").await {
         Ok(validated) => validated,
         Err(form) => {
             context_update!(request => { "inscription_form" => &form });
@@ -67,7 +67,7 @@ pub async fn inscription(mut request: Request) -> AppResult<Response> {
 Points clés :
 
 - `request.form()` renvoie un formulaire utilisable directement — pas de construction manuelle.
-- `ValidationForm::try_new(form, &request).await` dispatche sur la méthode HTTP (`allow_get`/`allow_post`) puis valide ; `Ok` prouve au niveau du type que le formulaire a été validé, `Err` renvoie le formulaire avec ses erreurs de champ à ré-afficher (rendues automatiquement par `{{ form.inscription_form | form }}`).
+- `ValidationForm::try_form(form, &request, "my_form").await` dispatche sur la méthode HTTP (`allow_get`/`allow_post`) puis valide ; `Ok` prouve au niveau du type que le formulaire a été validé, `Err` renvoie le formulaire avec ses erreurs de champ à ré-afficher (rendues automatiquement par `{{ form.inscription_form | form }}`).
 - `validated.save(&request.engine.db).await` persiste l'entité et renvoie le modèle créé.
 - `database_error(&err)` reporte une erreur DB (ex. email déjà pris) comme erreur de formulaire plutôt que comme 500 — appelable directement sur `ValidationForm` sans passer par `into_form()`.
 

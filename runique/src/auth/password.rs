@@ -305,7 +305,7 @@ pub async fn handle_forgot_password(
     let token_ttl = config.token_ttl;
     request.context.insert("lang", &current_lang().code());
 
-    let form = match crate::forms::ValidationForm::try_new(form, request).await {
+    let form = match crate::forms::ValidationForm::try_form(form, request, "forgot_password").await {
         Ok(validated) => validated.into_form(),
         Err(form) => {
             apply_extra_context(request, &config.extra_context).await;
@@ -507,7 +507,7 @@ pub async fn handle_password_reset(
         return Ok(Redirect::to("/").into_response());
     }
 
-    let mut form = match crate::forms::ValidationForm::try_new(form, request).await {
+    let mut form = match crate::forms::ValidationForm::try_form(form, request, "reset_password").await {
         Ok(validated) => validated.into_form(),
         Err(mut form) => {
             if request.method.is_safe() {

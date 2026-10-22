@@ -1,6 +1,7 @@
 //! Hidden field `HiddenField` for non-displayed data (tokens, internal IDs).
 use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
 use crate::utils::aliases::ATera;
+use crate::utils::constante::session_key::session::FORM_NAME_KEY;
 use crate::utils::trad::{t, tf};
 use async_trait::async_trait;
 use serde::Serialize;
@@ -51,6 +52,69 @@ impl CommonFieldConfig for HiddenField {
 
     fn get_field_config_mut(&mut self) -> &mut FieldConfig {
         &mut self.base
+    }
+}
+
+/// Hidden field carrying the form's name, set by `ValidationForm::try_form`.
+/// Registered in every form; never filled from the request nor stored.
+#[derive(Clone, Serialize, Debug)]
+pub struct FormNameField {
+    pub base: FieldConfig,
+}
+
+impl FormNameField {
+    pub fn new() -> Self {
+        Self {
+            base: FieldConfig::new(FORM_NAME_KEY, "hidden", "base_form_name.html"),
+        }
+    }
+}
+
+impl Default for FormNameField {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl CommonFieldConfig for FormNameField {
+    fn get_field_config(&self) -> &FieldConfig {
+        &self.base
+    }
+
+    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
+        &mut self.base
+    }
+}
+
+#[async_trait]
+impl FormField for FormNameField {
+    fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
+        Ok(None)
+    }
+
+    async fn validate(&mut self) -> bool {
+        true
+    }
+
+    /// An empty name leaves `field.value` out of the context: the template
+    /// reads it unconditionally, so Tera fails the render instead of shipping
+    /// a nameless form whose submissions would never validate.
+    fn render(&self, tera: &ATera) -> Result<String, String> {
+        let mut field = serde_json::Map::new();
+        field.insert("name".to_string(), serde_json::json!(self.base.name));
+        if !self.base.value.is_empty() {
+            field.insert("value".to_string(), serde_json::json!(self.base.value));
+        }
+        let mut context = tera::Context::new();
+        context.insert("field", &field);
+        tera.render(&self.base.template_name, &context)
+            .map_err(|e| {
+                tf(
+                    "forms.finalize_error",
+                    &[&self.base.template_name, &e.to_string()],
+                )
+                .to_string()
+            })
     }
 }
 

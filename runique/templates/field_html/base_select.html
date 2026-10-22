@@ -1,13 +1,13 @@
 <div class="form-field select-field">
     {% if field.label %}
-    <label for="id_{{ field.name }}" class="field-label{% if field.error %} field-error{% endif %}">
+    <label for="id_{{ form.name }}-{{ field.name }}" class="field-label{% if field.error %} field-error{% endif %}">
         {{ field.label }}
     </label>
     {% endif %}
 
     <select
         name="{{ field.name }}"
-        id="id_{{ field.name }}"
+        id="id_{{ form.name }}-{{ field.name }}"
         {% if multiple %}multiple{% endif %}
         {% if field.is_required.choice %}required{% endif %}
         {% for key, value in field.html_attributes %}{{ key }}="{{ value }}" {% endfor %}

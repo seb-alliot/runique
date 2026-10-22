@@ -27,7 +27,7 @@ pub async fn handle_upload_image(request: &mut Request, form: ImageForm) -> AppR
     let db = request.engine.db.clone();
     let (code_examples, doc_links) = fetch_upload_data(&db).await;
 
-    match ValidationForm::try_new(form, request).await {
+    match ValidationForm::try_form(form, request, "image").await {
         Ok(_) => {
             success!(request.notices => "File uploaded successfully!");
             Ok(Redirect::to("/upload-image").into_response())

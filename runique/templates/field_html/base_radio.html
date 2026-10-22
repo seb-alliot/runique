@@ -10,7 +10,7 @@
             <input
                 type="radio"
                 name="{{ field.name }}"
-                id="id_{{ field.name }}_{{ loop.index0 }}"
+                id="id_{{ form.name }}-{{ field.name }}_{{ loop.index0 }}"
                 value="{{ choice.value }}"
                 {% if choice.selected or choice.value == field.value %}checked{% endif %}
                 {% if field.is_required.choice %}required{% endif %}

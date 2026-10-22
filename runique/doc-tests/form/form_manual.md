@@ -21,7 +21,7 @@ impl RuniqueForm for RegisterForm {
 async fn register_handler(mut request: Request) -> AppResult<Response> {
     let form: RegisterForm = request.form();
 
-    let validated = match ValidationForm::try_new(form, &request).await {
+    let validated = match ValidationForm::try_form(form, &request, "my_form").await {
         Ok(validated) => validated,
         Err(form) => {
             // GET (rien soumis) ou soumission invalide — ré-afficher avec les erreurs
@@ -40,7 +40,7 @@ async fn register_handler(mut request: Request) -> AppResult<Response> {
 }
 ```
 
-`request.form()` construit le formulaire, extrait le body et vérifie le CSRF en coulisses — pas de `Forms::new(&csrf_token)` ni de `set_renderer()` manuel. `ValidationForm::try_new(form, &request)` remplace le `if ctx.is_post() { form.fill(&data); if form.is_valid()... }` : il dispatche lui-même sur la méthode HTTP (`allow_get`/`allow_post`) puis valide.
+`request.form()` construit le formulaire, extrait le body et vérifie le CSRF en coulisses — pas de `Forms::new(&csrf_token)` ni de `set_renderer()` manuel. `ValidationForm::try_form(form, &request, "my_form")` remplace le `if ctx.is_post() { form.fill(&data); if form.is_valid()... }` : il dispatche lui-même sur la méthode HTTP (`allow_get`/`allow_post`) puis valide.
 
 ## Récupération des valeurs
 

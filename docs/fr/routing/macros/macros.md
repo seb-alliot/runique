@@ -52,7 +52,7 @@ urlpatterns! {
 
 ## Macro view!
 
-Un même handler gère GET et POST ainsi que PUT et DELETE (pattern recommandé avec `ValidationForm::try_new(form, &request)`, qui dispatche lui-même sur la méthode HTTP) :
+Un même handler gère GET et POST ainsi que PUT et DELETE (pattern recommandé avec `ValidationForm::try_form(form, &request, "my_form")`, qui dispatche lui-même sur la méthode HTTP) :
 
 ```rust
 // Dans les routes
@@ -64,7 +64,7 @@ Un même handler gère GET et POST ainsi que PUT et DELETE (pattern recommandé 
 pub async fn inscription(mut request: Request) -> AppResult<Response> {
     let form: RegisterForm = request.form();
 
-    let validated = match ValidationForm::try_new(form, &request).await {
+    let validated = match ValidationForm::try_form(form, &request, "my_form").await {
         Ok(validated) => validated,
         Err(form) => {
             context_update!(request => { "form" => &form });
@@ -81,7 +81,7 @@ pub async fn inscription(mut request: Request) -> AppResult<Response> {
 
 ## Router une méthode précise (GET / POST / PUT…)
 
-`view!{ handler }` branche le **même** handler sur les cinq méthodes (GET, POST, PUT, DELETE, PATCH). C'est le pattern recommandé quand un seul handler gère le formulaire en GET et en POST via `ValidationForm::try_new(form, &request)`.
+`view!{ handler }` branche le **même** handler sur les cinq méthodes (GET, POST, PUT, DELETE, PATCH). C'est le pattern recommandé quand un seul handler gère le formulaire en GET et en POST via `ValidationForm::try_form(form, &request, "my_form")`.
 
 Quand tu veux **un handler distinct par méthode**, n'utilise pas `view!` : passe directement les combinateurs Axum (`get`, `post`, `put`, `delete`, `patch`), déjà ré-exportés par le prelude. `urlpatterns!` accepte n'importe quelle expression qui produit un `MethodRouter` comme handler :
 
@@ -92,7 +92,7 @@ use runique::urlpatterns;
 
 pub fn routes() -> Router {
     urlpatterns! {
-        // Handler unique, toutes méthodes (dispatch via ValidationForm::try_new)
+        // Handler unique, toutes méthodes (dispatch via ValidationForm::try_form)
         "/inscription"   => view!{ views::inscription },                     name = "inscription",
 
         // Handlers distincts par méthode
