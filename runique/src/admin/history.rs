@@ -1,6 +1,6 @@
 use crate::utils::{
     aliases::{ADb, StrMap},
-    constante::session_key::session::CSRF_TOKEN_KEY,
+    constante::session_key::session::{CSRF_TOKEN_KEY, FORM_NAME_KEY},
     pk::Pk,
 };
 use sea_orm::{ActiveValue::Set, entity::prelude::*};
@@ -134,7 +134,7 @@ pub fn diff_fields(old: &Value, body: &StrMap) -> Option<String> {
     };
     let mut changes = std::collections::BTreeMap::new();
     for (k, new_val) in body {
-        if k == CSRF_TOKEN_KEY || k == "__original_updated_at" {
+        if k == CSRF_TOKEN_KEY || k == FORM_NAME_KEY || k == "__original_updated_at" {
             continue;
         }
         let old_str = match map.get(k) {

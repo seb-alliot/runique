@@ -53,7 +53,7 @@ pub async fn handle_inscription(request: &mut Request, form: RegisterForm) -> Ap
     let db = request.engine.db.clone();
     let (code_examples, doc_links) = crate::backend::fetch_page_examples("inscription", &db).await;
 
-    let mut validated = match ValidationForm::try_new(form, request).await {
+    let mut validated = match ValidationForm::try_form(form, request, "inscription").await {
         Ok(validated) => validated,
         Err(form) => {
             // GET (nothing submitted yet): blank form, no flash. Submitted but
@@ -189,7 +189,7 @@ pub async fn handle_login(request: &mut Request, form: LoginForm) -> AppResult<R
     let db = request.engine.db.clone();
     let (code_examples, doc_links) = crate::backend::fetch_page_examples("login", &db).await;
 
-    let validated = match ValidationForm::try_new(form, request).await {
+    let validated = match ValidationForm::try_form(form, request, "login").await {
         Ok(validated) => validated,
         Err(form) => {
             // No flash here: a global error (e.g. CSRF) is already rendered

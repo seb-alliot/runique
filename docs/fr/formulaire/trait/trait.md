@@ -163,12 +163,27 @@ form.max_size("photo", FileSize::mb(6))?;   // Err — dépasse le plafond du mo
 
 ---
 
+## Nom du formulaire — plusieurs formulaires sur une page
+
+`try_form(form, &request, "nom")` donne un nom au formulaire. Ce nom est rendu dans un champ caché `runique_form` (en premier, avant le CSRF), et préfixe les `id` HTML des champs (`id_nom-champ`). Au POST, le formulaire n'est validé que si la requête renvoie **ce même nom** : sur une page qui affiche plusieurs formulaires, seul celui qui a été envoyé est validé, les autres reviennent en `Err` sans aucune erreur posée.
+
+- Tout handler qui **affiche** le formulaire passe par `try_form`, GET compris : un formulaire jamais nommé échoue au rendu (erreur Tera sur le nom manquant), plutôt que d'afficher un formulaire dont l'envoi ne serait jamais validé.
+- Le nom n'est jamais rempli à partir de la requête : seul `try_form` le pose.
+- Un formulaire écrit à la main (sans `{% form.x %}`) doit porter lui-même le champ caché `runique_form` avec le bon nom.
+
+```rust
+let username_form = ValidationForm::try_form(request.form::<UsernameForm>(), &request, "username").await;
+let email_form = ValidationForm::try_form(request.form::<EmailForm>(), &request, "email").await;
+```
+
+---
+
 ## `is_valid()` — appel sur GET et POST
 
-`is_valid()` valide indifféremment sur GET et POST, mais **ne regarde jamais la méthode HTTP** — c'est `ValidationForm::try_new(form, &request)` qui décide, via `allow_get`/`allow_post`, si la validation doit même être tentée. Par défaut `allow_get` est `false` (protection CSRF : GET est la seule méthode exemptée, un formulaire mutant ne doit jamais s'auto-valider dessus). Un formulaire de recherche en lecture seule est le cas qui doit **explicitement** lever cette garde :
+`is_valid()` valide indifféremment sur GET et POST, mais **ne regarde jamais la méthode HTTP** — c'est `ValidationForm::try_form(form, &request, "my_form")` qui décide, via `allow_get`/`allow_post`, si la validation doit même être tentée. Par défaut `allow_get` est `false` (protection CSRF : GET est la seule méthode exemptée, un formulaire mutant ne doit jamais s'auto-valider dessus). Un formulaire de recherche en lecture seule est le cas qui doit **explicitement** lever cette garde :
 
-- **Premier GET (formulaire vide)** — `allow_get` retombe sur `is_submitted()` → `false`, `try_new` renvoie `Err` sans tenter la validation, aucune erreur posée. Le template affiche un formulaire propre.
-- **GET avec query params (formulaire de recherche)** — `is_submitted()` → `true`, `try_new` valide et renvoie `Ok`. Permet de faire des recherches via GET sans code supplémentaire.
+- **Premier GET (formulaire vide)** — `allow_get` retombe sur `is_submitted()` → `false`, `try_form` renvoie `Err` sans tenter la validation, aucune erreur posée. Le template affiche un formulaire propre.
+- **GET avec query params (formulaire de recherche)** — `is_submitted()` → `true`, `try_form` valide et renvoie `Ok`. Permet de faire des recherches via GET sans code supplémentaire.
 - **POST** — comportement standard : valide, pose les erreurs sur les champs si invalide (nécessite aussi un `allow_post` qui l'autorise — le défaut couvre déjà ce cas).
 
 ```rust
@@ -182,7 +197,7 @@ impl RuniqueForm for SearchForm {
 // Handler GET+POST unifié — fonctionne sans if/else sur la méthode
 pub async fn search(mut request: Request) -> AppResult<Response> {
     let form: SearchForm = request.form();
-    let form = match ValidationForm::try_new(form, &request).await {
+    let form = match ValidationForm::try_form(form, &request, "my_form").await {
         Ok(validated) => {
             let query = validated.cleaned::<String>("q").unwrap_or_default();
             // lancer la recherche...

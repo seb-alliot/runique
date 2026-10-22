@@ -54,7 +54,7 @@ pub async fn index(mut request: Request) -> AppResult<Response> {
 ```rust
 pub async fn handler(mut request: Request) -> AppResult<Response> {
     let form: RegisterForm = request.form();
-    let form = match ValidationForm::try_new(form, &request).await {
+    let form = match ValidationForm::try_form(form, &request, "my_form").await {
         Ok(validated) => {
             let user = validated.save(&request.engine.db).await?;
             success!(request.notices => "Utilisateur créé !");

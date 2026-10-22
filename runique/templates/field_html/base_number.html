@@ -1,6 +1,6 @@
 <div class="form-field number-field">
     {% if field.label %}
-    <label for="id_{{ field.name }}" class="field-label{% if field.error %} field-error{% endif %}">
+    <label for="id_{{ form.name }}-{{ field.name }}" class="field-label{% if field.error %} field-error{% endif %}">
         {{ field.label }}
     </label>
     {% endif %}
@@ -8,7 +8,7 @@
     <input
         type="{{ field.type_field }}"
         name="{{ field.name }}"
-        id="id_{{ field.name }}"
+        id="id_{{ form.name }}-{{ field.name }}"
         value="{{ field.value }}"
         {% if field.placeholder %}placeholder="{{ field.placeholder }}"{% endif %}
 

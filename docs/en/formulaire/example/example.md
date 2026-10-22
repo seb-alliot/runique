@@ -57,14 +57,14 @@ impl RegisterForm {
 
 ### GET/POST handler
 
-`ValidationForm::try_new(form, &request)` replaces the `if request.is_get() {...} if request.is_post() {...}` boilerplate: it dispatches on the HTTP method itself (`allow_get`/`allow_post`), validates, and returns `Ok(ValidationForm<F>)` (a type-level proof the form has been validated) or `Err(F)` (the form with its field errors, ready to re-render).
+`ValidationForm::try_form(form, &request, "my_form")` replaces the `if request.is_get() {...} if request.is_post() {...}` boilerplate: it dispatches on the HTTP method itself (`allow_get`/`allow_post`), validates, and returns `Ok(ValidationForm<F>)` (a type-level proof the form has been validated) or `Err(F)` (the form with its field errors, ready to re-render).
 
 ```rust
 pub async fn register(mut request: Request) -> AppResult<Response> {
     let form: RegisterForm = request.form();
     let template = "profile/register_form.html";
 
-    let mut validated = match ValidationForm::try_new(form, &request).await {
+    let mut validated = match ValidationForm::try_form(form, &request, "my_form").await {
         Ok(validated) => validated,
         Err(form) => {
             // GET (nothing submitted): blank form, no flash.
@@ -116,7 +116,7 @@ pub async fn edit_profile(mut request: Request) -> AppResult<Response> {
     let template = "profile/edit.html";
     let user = get_current_user(&request).await?;
 
-    let validated = match ValidationForm::try_new(form, &request).await {
+    let validated = match ValidationForm::try_form(form, &request, "my_form").await {
         Ok(validated) => validated,
         Err(form) => {
             context_update!(request => {

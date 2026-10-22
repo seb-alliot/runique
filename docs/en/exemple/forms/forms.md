@@ -91,7 +91,7 @@ pub async fn signup(mut request: Request) -> AppResult<Response> {
     let form: RegisterForm = request.form();
     let template = "signup_form.html";
 
-    let mut validated = match ValidationForm::try_new(form, &request).await {
+    let mut validated = match ValidationForm::try_form(form, &request, "my_form").await {
         Ok(validated) => validated,
         Err(form) => {
             context_update!(request => {
@@ -173,7 +173,7 @@ pub async fn info_user(mut request: Request) -> AppResult<Response> {
     let form: UsernameForm = request.form();
     let template = "profile/view_user.html";
 
-    match ValidationForm::try_new(form, &request).await {
+    match ValidationForm::try_form(form, &request, "my_form").await {
         Ok(validated) => {
             let form = validated.into_form();
             let username = form.cleaned::<String>("username").unwrap_or_default();

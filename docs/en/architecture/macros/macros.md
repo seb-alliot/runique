@@ -53,7 +53,7 @@ use runique::prelude::*;
 pub async fn contact(mut request: Request) -> AppResult<Response> {
     let form: ContactForm = request.form();
 
-    let form = match ValidationForm::try_new(form, &request).await {
+    let form = match ValidationForm::try_form(form, &request, "my_form").await {
         Ok(_validated) => {
             // Session flash + redirect (Post/Redirect/Get pattern)
             success!(request.notices => "Message sent!");

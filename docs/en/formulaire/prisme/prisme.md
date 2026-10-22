@@ -16,7 +16,7 @@ use runique::prelude::*;
 
 pub async fn register(mut request: Request) -> AppResult<Response> {
     let form: RegisterForm = request.form();
-    if let Ok(validated) = ValidationForm::try_new(form, &request).await {
+    if let Ok(validated) = ValidationForm::try_form(form, &request, "my_form").await {
         // Valid form → processing
     }
     // ...
@@ -39,7 +39,7 @@ pub async fn register(mut request: Request) -> AppResult<Response> {
     let template = "register_form.html";
 
     // GET (nothing submitted) or invalid POST — re-render with errors
-    let mut validated = match ValidationForm::try_new(form, &request).await {
+    let mut validated = match ValidationForm::try_form(form, &request, "my_form").await {
         Ok(validated) => validated,
         Err(form) => {
             context_update!(request => { "register_form" => &form });
@@ -67,7 +67,7 @@ pub async fn register(mut request: Request) -> AppResult<Response> {
 Key points:
 
 - `request.form()` returns a ready-to-use form — no manual construction.
-- `ValidationForm::try_new(form, &request).await` dispatches on the HTTP method (`allow_get`/`allow_post`) then validates; `Ok` proves at the type level the form was validated, `Err` returns the form with its field errors to re-render (rendered automatically by `{{ form.register_form | form }}`).
+- `ValidationForm::try_form(form, &request, "my_form").await` dispatches on the HTTP method (`allow_get`/`allow_post`) then validates; `Ok` proves at the type level the form was validated, `Err` returns the form with its field errors to re-render (rendered automatically by `{{ form.register_form | form }}`).
 - `validated.save(&request.engine.db).await` persists the entity and returns the created model.
 - `database_error(&err)` reports a DB error (e.g. email already taken) as a form error rather than a 500 — callable directly on `ValidationForm` without going through `into_form()`.
 

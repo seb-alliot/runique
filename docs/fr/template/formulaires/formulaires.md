@@ -29,7 +29,7 @@ Quand vous utilisez `{% form.inscription_form %}`, les erreurs de validation son
 pub async fn inscription(mut request: Request) -> AppResult<Response> {
     let form: RegisterForm = request.form();
 
-    let mut validated = match ValidationForm::try_new(form, &request).await {
+    let mut validated = match ValidationForm::try_form(form, &request, "my_form").await {
         Ok(validated) => validated,
         Err(form) => {
             context_update!(request => {

@@ -77,7 +77,7 @@ pub async fn info_user(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
 
     let (username_form, searched_username) =
-        match ValidationForm::try_named(username_form, &request, "username").await {
+        match ValidationForm::try_form(username_form, &request, "username").await {
             Ok(validated) => {
                 let searched = validated.cleaned::<String>("username");
                 (validated.into_form(), searched)
@@ -85,7 +85,7 @@ pub async fn info_user(mut request: Request) -> AppResult<Response> {
             Err(form) => (form, None),
         };
     let (email_form, searched_email) =
-        match ValidationForm::try_named(email_form, &request, "email").await {
+        match ValidationForm::try_form(email_form, &request, "email").await {
             Ok(validated) => {
                 let searched = validated.cleaned::<String>("email");
                 (validated.into_form(), searched)
@@ -116,6 +116,10 @@ pub async fn info_user(mut request: Request) -> AppResult<Response> {
 pub async fn blog_list(mut request: Request) -> AppResult<Response> {
     let form: SearchDemoForm = request.form();
     inject_globals(&mut request).await;
+    let form = match ValidationForm::try_form(form, &request, "search").await {
+        Ok(validated) => validated.into_form(),
+        Err(form) => form,
+    };
     let search = form.cleaned::<String>("search");
     let articles = list_articles(&request.engine.db, search.as_deref()).await;
     context_update!(request => {

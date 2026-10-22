@@ -71,7 +71,7 @@ pub async fn upload_image(mut request: Request) -> AppResult<Response> {
     let form: ImageForm = request.form();
     let template = "forms/upload_image.html";
 
-    if let Err(form) = ValidationForm::try_new(form, &request).await {
+    if let Err(form) = ValidationForm::try_form(form, &request, "my_form").await {
         context_update!(request => {
             "title" => "Erreur",
             "image_form" => &form,

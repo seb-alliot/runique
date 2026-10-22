@@ -1,5 +1,6 @@
 //! Tera `form` filter — HTML rendering of a form field by name from context.
 // Dans src/tera_function/form_filter.rs
+use crate::utils::constante::session_key::session::FORM_NAME_KEY;
 use tera::{Filter, Kwargs, State, TeraResult, Value};
 
 /// Renders a form, or a single field of it, from the serialized form in context.
@@ -34,15 +35,17 @@ impl Filter<&Value, TeraResult<Value>> for FormFilter {
         let mut output = render_field(value, field_name)?;
 
         // Inject CSRF (and the form's name, when it has one) before the first field
-        if is_first_field_by_index(value, field_name)
-            && let Some(name) = get_name_html(value)
-        {
-            output = format!("{}\n{}", name, output);
-        }
+        // Prepended in reverse: the form's name ends up first, CSRF second,
+        // the same order as the full-form rendering.
         if is_first_field_by_index(value, field_name)
             && let Some(csrf) = render_csrf(value)
         {
             output = format!("{}\n{}", csrf, output);
+        }
+        if is_first_field_by_index(value, field_name)
+            && let Some(name) = render_form_name(value)
+        {
+            output = format!("{}\n{}", name, output);
         }
 
         // Inject honeypot after the last field
@@ -86,10 +89,15 @@ fn is_first_field_by_index(value: &Value, field_name: &str) -> bool {
         return false;
     };
 
-    // Minimum index excluding csrf_token
+    // Minimum index excluding the hidden fields injected before the first one
     let min_index = fields_obj
         .values()
-        .filter(|f| f.get_from_path("name").and_then(|n| n.as_str()) != Some("csrf_token"))
+        .filter(|f| {
+            !matches!(
+                f.get_from_path("name").and_then(|n| n.as_str()),
+                Some("csrf_token") | Some(FORM_NAME_KEY)
+            )
+        })
         .filter_map(field_index)
         .min();
 
@@ -130,10 +138,10 @@ fn render_csrf(value: &Value) -> Option<String> {
         .map(|s| s.to_string())
 }
 
-fn get_name_html(value: &Value) -> Option<String> {
-    lookup(value, "name_html")
+fn render_form_name(value: &Value) -> Option<String> {
+    find_rendered_fields(value)?
+        .get_from_path(FORM_NAME_KEY)
         .and_then(|v| v.as_str())
-        .filter(|s| !s.is_empty())
         .map(|s| s.to_string())
 }
 

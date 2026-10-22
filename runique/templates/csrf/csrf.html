@@ -11,7 +11,6 @@
 <input
     type="{{ field?.type_field or 'hidden' }}"
     name="{{ field?.name or 'csrf_token' }}"
-    id="id_{{ field?.name or 'csrf_token' }}"
     value="{{ csrf_token or field?.value or '' }}"
     class="runique-csrf-field"
 >
