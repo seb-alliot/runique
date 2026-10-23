@@ -43,7 +43,7 @@ macro_rules! aligned {
             pub fn form_accepts() -> bool {
                 use runique::forms::{Forms, RuniqueForm};
                 let mut form = Forms::new("");
-                AdminForm::register_fields(&mut form);
+                Form::register_fields(&mut form);
                 form.fields
                     .get("v")
                     .expect("`v` in the generated admin form")

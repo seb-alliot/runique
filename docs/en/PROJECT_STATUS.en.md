@@ -86,7 +86,7 @@ This document consolidates the actual state of the repository from the reference
 
 ### ORM / Migrations
 
-- `model!{}` DSL → SeaORM entity + SQL migration + AdminForm
+- `model!{}` DSL → SeaORM entity + SQL migration + model form (`ModelForm`)
 - `extend!{}` — framework table extension (e.g. `eihwaz_users`)
 - `makemigrations` — plan → validate → **atomic commit/rollback** + snapshots; `DROP COLUMN` on removed columns (destructive guard)
 - Supported backends: PostgreSQL, MariaDB, SQLite

@@ -8,7 +8,11 @@
 use crate::helpers::{handler_req::build_handler_req, server::build_engine};
 use axum::http::Method;
 use runique::context::register_asset_filters;
-use runique::forms::{field::RuniqueForm, fields::text::TextField, form::Forms};
+use runique::forms::{
+    field::{RuniqueForm, build_form_for_test},
+    fields::text::TextField,
+    form::Forms,
+};
 use runique::prelude::ValidationForm;
 use runique::utils::aliases::new_registry;
 use runique::utils::constante::session_key::session::{CSRF_TOKEN_KEY, FORM_NAME_KEY};
@@ -67,7 +71,7 @@ fn tera() -> Arc<Tera> {
 async fn named(name: &'static str) -> SearchForm {
     let engine = build_engine().await;
     let request = build_handler_req(engine, None, HashMap::new(), Method::GET).await;
-    let form = SearchForm::build(tera(), "tok");
+    let form = build_form_for_test::<SearchForm>(tera(), "tok");
     ValidationForm::try_form(form, &request, name)
         .await
         .err()
@@ -75,7 +79,7 @@ async fn named(name: &'static str) -> SearchForm {
 }
 
 fn unnamed() -> SearchForm {
-    SearchForm::build(tera(), "tok")
+    build_form_for_test::<SearchForm>(tera(), "tok")
 }
 
 fn json(form: &SearchForm) -> Value {

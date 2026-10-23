@@ -9,7 +9,6 @@ use crate::utils::{
 };
 
 use async_trait::async_trait;
-use axum::http::Method;
 use sea_orm::{DatabaseTransaction, DbErr, TransactionTrait};
 
 /// Context passed to `before_save` and `after_save` hooks.
@@ -180,7 +179,7 @@ pub trait RuniqueForm: Sized + Send + Sync {
         Ok(self)
     }
 
-    /// Clears all form values (except CSRF).
+    /// Clears all form values (except CSRF and the form's name).
     fn clear(&mut self) {
         self.get_form_mut().clear_values();
     }
@@ -330,6 +329,22 @@ pub trait RuniqueForm: Sized + Send + Sync {
         Ok(())
     }
 
+    fn database_error(&mut self, err: &DbErr) {
+        self.get_form_mut().database_error(err);
+    }
+}
+
+/// Saving a form: one logic for every form, written by Runique. No form can
+/// supply its own (the blanket impl below covers them all), so the admin's
+/// generic pages always run this one.
+#[async_trait]
+pub trait FormSave {
+    async fn save(&mut self, db: &ADb) -> Result<(), DbErr>;
+    async fn save_as(&mut self, ctx: SaveContext, db: &ADb) -> Result<(), DbErr>;
+}
+
+#[async_trait]
+impl<T: RuniqueForm> FormSave for T {
     /// Atomic wrapper: explicit transaction (avoids the 'static futures trap)
     async fn save(&mut self, db: &ADb) -> Result<(), DbErr> {
         if !self.get_form().is_save_allowed() {
@@ -380,32 +395,20 @@ pub trait RuniqueForm: Sized + Send + Sync {
 
         txn.commit().await
     }
+}
 
-    fn database_error(&mut self, err: &DbErr) {
-        self.get_form_mut().database_error(err);
-    }
+/// An empty form `T`: its fields, renderer and CSRF token, nothing from the
+/// request. Runique's own: a handler gets its forms from `req.form()`, which
+/// adds what the request brings (honeypot, CSRF enforcement, submitted data).
+pub(crate) fn build_form<T: RuniqueForm>(tera: ATera, csrf_token: &str) -> T {
+    let mut form = Forms::new(csrf_token);
+    form.set_renderer(FormRenderer::new(tera));
+    T::register_fields(&mut form);
+    T::from_form(form)
+}
 
-    fn build(tera: ATera, csrf_token: &str) -> Self {
-        let mut form = Forms::new(csrf_token);
-        let renderer = FormRenderer::new(tera);
-        form.set_renderer(renderer);
-        Self::register_fields(&mut form);
-        Self::from_form(form)
-    }
-
-    async fn build_with_data(
-        raw_data: &StrMap,
-        tera: ATera,
-        csrf_token: &str,
-        method: Method,
-    ) -> Self {
-        let mut form = Forms::new(csrf_token);
-
-        let renderer = FormRenderer::new(tera);
-        form.set_renderer(renderer);
-
-        Self::register_fields(&mut form);
-        form.fill(raw_data, method);
-        Self::from_form(form)
-    }
+/// [`build_form`] for tests, which have no request to build from.
+#[cfg(feature = "test-utils")]
+pub fn build_form_for_test<T: RuniqueForm>(tera: ATera, csrf_token: &str) -> T {
+    build_form(tera, csrf_token)
 }

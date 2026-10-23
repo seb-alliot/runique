@@ -1,12 +1,12 @@
-//! `{Model}AdminForm`: the admin form built from the declared fields.
+//! `{Model}ModelForm`: the form built from the model's declared fields.
 use crate::model::ast::*;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 
-/// Generates `{ModelName}AdminForm` — the form registering each declared field.
+/// Generates `{ModelName}ModelForm` — the form registering each declared field.
 pub fn generate_admin_form(model: &ModelInput) -> TokenStream2 {
     let model_name = &model.name;
-    let form_name = quote::format_ident!("{}AdminForm", model_name);
+    let form_name = quote::format_ident!("{}ModelForm", model_name);
 
     let field_registrations: Vec<TokenStream2> = model
         .form_fields
@@ -16,11 +16,11 @@ pub fn generate_admin_form(model: &ModelInput) -> TokenStream2 {
         .collect();
 
     quote! {
-        /// Stable alias used by the `runique start` daemon to reference this form.
-        /// Always available via `{module}::AdminForm`.
-        pub type AdminForm = #form_name;
+        /// The model's form, always available as `{module}::Form`
+        /// (`ModelMeta::Form`).
+        pub type Form = #form_name;
 
-        /// Admin form auto-generated from model.
+        /// Form auto-generated from the model.
         /// Covers all model fields except auto_now/auto_now_update fields.
         #[derive(::runique::serde::Serialize, Debug, Clone)]
         pub struct #form_name {

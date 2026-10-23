@@ -24,7 +24,7 @@ mod groups {
 #[tokio::test]
 async fn extend_integers_are_held_to_their_type() {
     let mut form = Forms::new("csrf");
-    groups::EihwazGroupesAdminForm::register_fields(&mut form);
+    groups::EihwazGroupesModelForm::register_fields(&mut form);
     let field = form.fields.get_mut("rank").expect("rank registered");
     field.set_value("40000");
     assert!(!field.validate().await, "40000 doesn't fit an i16");

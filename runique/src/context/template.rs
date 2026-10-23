@@ -396,7 +396,8 @@ impl Request {
             .csrf_token
             .masked()
             .unwrap_or_else(|_| self.csrf_token.clone());
-        let mut form = T::build(self.engine.tera.clone(), masked.as_str());
+        let mut form =
+            crate::forms::field::build_form::<T>(self.engine.tera.clone(), masked.as_str());
         form.get_form_mut()
             .set_url_params(&self.path_params, &self.query_params);
 

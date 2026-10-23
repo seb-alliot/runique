@@ -4,7 +4,8 @@ use super::{
     admin_builder::{ListPage, ModelAdmin},
     list::ListQuery,
 };
-use crate::admin::{
+use crate::auth::current_user::CurrentUser;
+use crate::auth::{
     gate::{
         GateCtx, PkOf, Refusal,
         check::{authorize_list, authorize_view},
@@ -13,7 +14,6 @@ use crate::admin::{
     },
     meta::ModelMeta,
 };
-use crate::auth::current_user::CurrentUser;
 use crate::utils::aliases::ADb;
 use sea_orm::{
     sea_query::SelectStatement,
@@ -145,7 +145,7 @@ impl<E: ModelMeta> RegisteredModel for ModelAdmin<E> {
     }
 
     fn count_query(&self, db: &ADb, user: &CurrentUser) -> Option<SelectStatement> {
-        use crate::admin::gate::Guarded;
+        use crate::auth::gate::Guarded;
         use sea_orm::sea_query::{Asterisk, Expr, Func, SimpleExpr};
         use sea_orm::{QueryFilter, QuerySelect, QueryTrait};
         let proof = authorize_list::<E>(&GateCtx { db, user }).ok()?;

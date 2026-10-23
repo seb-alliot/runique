@@ -41,7 +41,7 @@ fn table_to_form_ident(table: &str) -> proc_macro2::Ident {
             }
         })
         .collect();
-    format_ident!("{}AdminForm", pascal)
+    format_ident!("{}ModelForm", pascal)
 }
 
 fn phantom_label(name: &str) -> String {
@@ -132,7 +132,7 @@ fn phantom_active_model_field(col: &PhantomColumn, partial: bool) -> Option<Toke
 }
 
 /// Generates a complete SeaORM entity (Model + Relation + ActiveModelBehavior)
-/// plus an AdminForm, from the phantom base columns + user-declared extended columns.
+/// plus a ModelForm, from the phantom base columns + user-declared extended columns.
 pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
     let table = &dsl.table;
     let base_cols = phantom_columns(table);
@@ -306,7 +306,7 @@ pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
 
         #model_meta
 
-        pub type AdminForm = #form_name;
+        pub type Form = #form_name;
 
         #[derive(::runique::serde::Serialize, Debug, Clone)]
         pub struct #form_name {
@@ -337,10 +337,6 @@ pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
 /// copied, never weakened — extending the accounts adds columns, not powers.
 /// The admin rejects at boot an accounts model that lacks them anyway.
 fn generate_model_meta(table: &str) -> TokenStream2 {
-    // Without `runique/admin`, the admin module (and `ModelMeta`) doesn't exist.
-    if !cfg!(feature = "admin") {
-        return TokenStream2::new();
-    }
     let rules = match table {
         "eihwaz_users" => quote! {
             const KEY: &'static str = "users";
@@ -357,9 +353,9 @@ fn generate_model_meta(table: &str) -> TokenStream2 {
         },
     };
     quote! {
-        impl ::runique::admin::meta::ModelMeta for Entity {
+        impl ::runique::auth::meta::ModelMeta for Entity {
             #rules
-            type AdminForm = AdminForm;
+            type Form = Form;
             fn schema() -> ::runique::migration::schema::ModelSchema {
                 self::schema()
             }

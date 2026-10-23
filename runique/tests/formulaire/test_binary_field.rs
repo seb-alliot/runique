@@ -50,7 +50,7 @@ async fn handler(multipart: Multipart) -> String {
         .expect("multipart");
     let data = parsed.into_iter().map(|(k, v)| (k, v.join(","))).collect();
     let mut form = Forms::new("csrf");
-    docs::DocAdminForm::register_fields(&mut form);
+    docs::DocModelForm::register_fields(&mut form);
     form.fill(&data, Method::POST);
     if !form.is_valid().await.unwrap_or(false) {
         return "invalid".into();
@@ -169,7 +169,7 @@ fn schema_and_extend_forms_get_a_binary_field() {
     assert_eq!(form.fields["body"].field_type(), "binary");
 
     let mut form = Forms::new("csrf");
-    users_ext::EihwazUsersAdminForm::register_fields(&mut form);
+    users_ext::EihwazUsersModelForm::register_fields(&mut form);
     assert_eq!(form.fields["signature"].field_type(), "binary");
 }
 

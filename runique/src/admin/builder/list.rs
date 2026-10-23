@@ -1,5 +1,5 @@
 //! The list page of one model.
-use crate::admin::gate::rights::ReadableColumns;
+use crate::auth::gate::rights::ReadableColumns;
 use crate::db::sql_dialect::{search_condition, text_cast_type_of};
 use crate::utils::aliases::StrMap;
 use sea_orm::{
@@ -436,7 +436,7 @@ fn decimal_fits(len: Option<(u32, u32)>, d: &sea_orm::prelude::Decimal) -> bool 
 #[cfg(test)]
 mod tests {
     use super::{ListConfig, ListQuery, decimal_fits};
-    use crate::admin::gate::test_support::fixtures::note::{Column, Entity};
+    use crate::auth::gate::test_support::fixtures::note::{Column, Entity};
     use crate::auth::user;
     use crate::utils::aliases::StrMap;
     use sea_orm::prelude::Decimal;

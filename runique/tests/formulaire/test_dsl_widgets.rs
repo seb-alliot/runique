@@ -39,7 +39,7 @@ fn schema_form() -> Forms {
 /// The form the admin gets.
 fn admin_form() -> Forms {
     let mut form = Forms::new("csrf");
-    shop::ItemAdminForm::register_fields(&mut form);
+    shop::ItemModelForm::register_fields(&mut form);
     form
 }
 

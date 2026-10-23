@@ -80,7 +80,7 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 - CSRF vérifié à la fois via le champ body `csrf_token` et le header `X-CSRF-Token` (2026-09-02) — nécessaire pour les clients JSON/`fetch` qui ne peuvent pas poser de champ de formulaire caché ; sûr par construction, un `fetch` cross-origin qui pose ce header déclenche un preflight CORS que Runique n'autorise jamais par défaut (`CorsConfig` désactivé, `any_origin() + allow_credentials(true)` = erreur au build)
 
 ### ORM / Migrations
-- `model!{}` DSL → entité SeaORM + migration SQL + AdminForm
+- `model!{}` DSL → entité SeaORM + migration SQL + formulaire du modèle (`ModelForm`)
 - `extend!{}` — extension de tables framework (ex. `eihwaz_users`)
 - `makemigrations` — plan → validate → **commit/rollback atomique** + snapshots ; `DROP COLUMN` sur colonnes supprimées (garde destructive)
 - Backends supportés : PostgreSQL, MariaDB, SQLite

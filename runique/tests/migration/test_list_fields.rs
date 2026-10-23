@@ -393,10 +393,10 @@ use runique::forms::Forms;
 use runique::forms::field::RuniqueForm;
 use std::collections::HashMap;
 
-fn admin_form() -> book::AdminForm {
+fn admin_form() -> book::Form {
     let mut form = Forms::new("csrf");
-    book::AdminForm::register_fields(&mut form);
-    book::AdminForm::from_form(form)
+    book::Form::register_fields(&mut form);
+    book::Form::from_form(form)
 }
 
 #[test]

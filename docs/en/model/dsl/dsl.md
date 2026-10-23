@@ -544,7 +544,7 @@ Adds columns to a Runique table and generates a complete SeaORM entity for that 
 `extend!{}` produces two things:
 
 1. **SQL schema** — `makemigrations` detects the block and generates `ALTER TABLE ADD COLUMN` statements
-2. **Full entity** — `Model`, `Column`, `Entity`, `AdminForm`, `admin_from_form`, `admin_partial_update` covering **all** columns of the table (base columns + extended columns)
+2. **Full entity** — `Model`, `Column`, `Entity`, `Form`, `admin_from_form`, `admin_partial_update` covering **all** columns of the table (base columns + extended columns)
 
 ```rust
 // src/entities/user_profile.rs
@@ -626,7 +626,7 @@ admin! {
 | `Model` | Struct with all columns (base + extended) |
 | `Column` | SeaORM column enum |
 | `Entity` | Full `EntityTrait` — usable with `search!` |
-| `AdminForm` | Admin form covering all columns |
+| `Form` | The model's form (`{Table}ModelForm`) covering all columns |
 | `admin_from_form` | Builds an `ActiveModel` from form data |
 | `admin_partial_update` | Builds a partial `ActiveModel` for updates |
 

@@ -35,11 +35,11 @@ impl RuniqueForm for LoginAdmin {
 /// ranks go through the gate.
 #[derive(serde::Serialize, Debug, Clone)]
 #[serde(transparent)]
-pub struct UserAdminForm {
+pub struct UserModelForm {
     pub form: Forms,
 }
 
-impl crate::forms::model_form::ModelForm for UserAdminForm {
+impl crate::forms::model_form::ModelForm for UserModelForm {
     fn schema() -> crate::migration::schema::ModelSchema {
         crate::auth::user::schema()
     }
@@ -48,6 +48,6 @@ impl crate::forms::model_form::ModelForm for UserAdminForm {
     }
 }
 
-impl RuniqueForm for UserAdminForm {
+impl RuniqueForm for UserModelForm {
     impl_form_access!(model);
 }
