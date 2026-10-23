@@ -144,7 +144,7 @@ impl<E: EntityTrait> FormConfig<E> {
 #[cfg(test)]
 mod tests {
     use super::FormConfig;
-    use crate::admin::gate::test_support::fixtures::note::{Column, Entity};
+    use crate::auth::gate::test_support::fixtures::note::{Column, Entity};
     #[test]
     fn lists_using_names_exactly_the_lists_holding_the_column() {
         let form = FormConfig::<Entity>::default()

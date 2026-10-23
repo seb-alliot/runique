@@ -1,0 +1,91 @@
+use sea_orm_migration::prelude::*;
+
+#[derive(DeriveMigrationName)]
+pub struct Migration;
+
+#[async_trait::async_trait]
+impl MigrationTrait for Migration {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .create_table(
+                Table::create()
+                    .table(Alias::new("doc_page"))
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(Alias::new("id"))
+                            .integer()
+                            .not_null()
+                            .auto_increment()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(Alias::new("section_id"))
+                            .integer()
+                            .not_null(),
+                    )
+                    .col(ColumnDef::new(Alias::new("slug")).string().not_null())
+                    .col(ColumnDef::new(Alias::new("lang")).string().not_null())
+                    .col(ColumnDef::new(Alias::new("title")).string().not_null())
+                    .col(ColumnDef::new(Alias::new("lead")).string().null())
+                    .col(
+                        ColumnDef::new(Alias::new("sort_order"))
+                            .integer()
+                            .not_null(),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("doc_page_section_id_doc_section_fkey")
+                            .from(Alias::new("doc_page"), Alias::new("section_id"))
+                            .to(Alias::new("doc_section"), Alias::new("id"))
+                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_update(ForeignKeyAction::NoAction),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        {
+            let backs_fk = manager.get_connection().get_database_backend()
+                == sea_orm::DbBackend::MySql
+                && manager
+                    .get_connection()
+                    .query_one(
+                        &Query::select()
+                            .expr(Expr::val(1))
+                            .from((
+                                Alias::new("information_schema"),
+                                Alias::new("KEY_COLUMN_USAGE"),
+                            ))
+                            .and_where(
+                                Expr::col(Alias::new("TABLE_SCHEMA")).eq(Expr::cust("DATABASE()")),
+                            )
+                            .and_where(Expr::col(Alias::new("TABLE_NAME")).eq("doc_page"))
+                            .and_where(Expr::col(Alias::new("COLUMN_NAME")).eq("section_id"))
+                            .and_where(Expr::col(Alias::new("REFERENCED_TABLE_NAME")).is_not_null())
+                            .to_owned(),
+                    )
+                    .await?
+                    .is_some();
+            if !backs_fk {
+                manager
+                    .create_index(
+                        Index::create()
+                            .name("idx_doc_page_section_id")
+                            .table(Alias::new("doc_page"))
+                            .col(Alias::new("section_id"))
+                            .to_owned(),
+                    )
+                    .await?;
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .drop_table(Table::drop().table(Alias::new("doc_page")).to_owned())
+            .await?;
+        Ok(())
+    }
+}

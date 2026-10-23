@@ -7,7 +7,7 @@ From the DSL read by `runique_dsl`, the macro generates, among others:
 - the SeaORM entity (`Model`, `Entity`, `Column`, `ActiveModel`) and its relations (`belongs_to` targets the related entity's real primary key, with its actions);
 - the `ActiveModelBehavior` that fills `auto_now` / `auto_now_update`;
 - one Rust enum per entry of the `enums:` block;
-- the `AdminForm` and the functions the admin uses;
+- the model's form (`{Model}ModelForm`, alias `Form`) and the functions the admin uses;
 - for each list field (`multichoice` / `checkbox`), the entity of its table and the methods `field()`, `set_field()`, `load_field()`;
 - a `schema() -> ModelSchema` function.
 

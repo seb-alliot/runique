@@ -40,7 +40,7 @@ mod attrs {
 
 fn admin_form() -> Forms {
     let mut form = Forms::new("csrf");
-    attrs::AttrAdminForm::register_fields(&mut form);
+    attrs::AttrModelForm::register_fields(&mut form);
     form
 }
 

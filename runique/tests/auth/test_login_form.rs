@@ -3,12 +3,12 @@
 //! Couvre :
 //! - LoginAdmin::register_fields, from_form, get_form, get_form_mut
 //!   (et les méthodes générées par impl_form_access! dans macros/forms/impl_form.rs)
-//! - RuniqueForm::build, build_with_data, clean_field, clean, is_valid
+//! - build_form_for_test, clean_field, clean, is_valid
 //! - RuniqueForm::save, on_save (implémentations par défaut dans forms/field.rs)
 
 use axum::http::Method;
 use runique::auth::LoginAdmin;
-use runique::forms::field::RuniqueForm;
+use runique::forms::field::{FormSave, RuniqueForm, build_form_for_test};
 use runique::forms::form::Forms;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -65,13 +65,13 @@ fn test_get_form_retourne_reference_correcte() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// RuniqueForm::build  (forms/field.rs)
+// build_form  (forms/field.rs)
 // ═══════════════════════════════════════════════════════════════
 
 #[test]
 fn test_build_cree_formulaire_avec_renderer() {
     let tera = make_tera();
-    let form = LoginAdmin::build(tera, "token_csrf");
+    let form = build_form_for_test::<LoginAdmin>(tera, "token_csrf");
     assert!(form.get_form().fields.contains_key("username"));
     assert!(form.get_form().fields.contains_key("password"));
 }
@@ -79,7 +79,7 @@ fn test_build_cree_formulaire_avec_renderer() {
 #[test]
 fn test_build_csrf_token_enregistre() {
     let tera = make_tera();
-    let form = LoginAdmin::build(tera, "mon_token");
+    let form = build_form_for_test::<LoginAdmin>(tera, "mon_token");
     assert_eq!(form.get_form().session_csrf_token, "mon_token");
 }
 

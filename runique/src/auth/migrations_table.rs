@@ -419,9 +419,8 @@ impl sea_orm_migration::MigrationTrait for EihwazSessionsMigration {
     }
 }
 
-// The admin's history: its migration stays here, always compiled, while the
-// table is only used with the `admin` feature. Once a database has applied it,
-// SeaORM wants it in the `Migrator` for good, admin or not.
+// The history: written by `save_as` (admin or not). Once a database has
+// applied it, SeaORM wants it in the `Migrator` for good.
 
 /// Generates the `TableCreateStatement` for the `eihwaz_history` table.
 ///
@@ -449,6 +448,11 @@ pub fn create_eihwaz_history_table() -> TableCreateStatement {
                 .not_null(),
         )
         .col(ColumnDef::new(Alias::new("object_pk")).string().not_null())
+        .col(
+            ColumnDef::new(Alias::new("object_repr"))
+                .string()
+                .not_null(),
+        )
         .col(ColumnDef::new(Alias::new("action")).string().not_null())
         .col(&mut user_id_col)
         .col(ColumnDef::new(Alias::new("username")).string().not_null())
@@ -459,6 +463,25 @@ pub fn create_eihwaz_history_table() -> TableCreateStatement {
         )
         .col(ColumnDef::new(Alias::new("summary")).text().null())
         .col(ColumnDef::new(Alias::new("batch_id")).string().null())
+        .to_owned()
+}
+
+/// One row's history: `(resource_key, object_pk)`.
+pub fn create_history_index_object() -> IndexCreateStatement {
+    Index::create()
+        .name("idx_eihwaz_history_object")
+        .table(Alias::new("eihwaz_history"))
+        .col(Alias::new("resource_key"))
+        .col(Alias::new("object_pk"))
+        .to_owned()
+}
+
+/// One account's actions.
+pub fn create_history_index_user() -> IndexCreateStatement {
+    Index::create()
+        .name("idx_eihwaz_history_user")
+        .table(Alias::new("eihwaz_history"))
+        .col(Alias::new("user_id"))
         .to_owned()
 }
 
@@ -474,7 +497,9 @@ impl sea_orm_migration::MigrationName for EihwazHistoryMigration {
 #[async_trait::async_trait]
 impl sea_orm_migration::MigrationTrait for EihwazHistoryMigration {
     async fn up(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), sea_orm::DbErr> {
-        manager.create_table(create_eihwaz_history_table()).await
+        manager.create_table(create_eihwaz_history_table()).await?;
+        manager.create_index(create_history_index_object()).await?;
+        manager.create_index(create_history_index_user()).await
     }
 
     async fn down(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), sea_orm::DbErr> {
@@ -561,7 +586,7 @@ impl sea_orm_migration::MigrationTrait for EihwazResetTokensMigration {
 /// To be injected directly into the `Migrations::up()` `vec!` after your User table migration.
 ///
 /// It used to create `eihwaz_history` too: [`EihwazHistoryMigration`] does it now,
-/// injected by `makemigrations` only when the project has the admin.
+/// always injected by `makemigrations`.
 /// The name below is recorded in every existing database: never change it.
 pub struct AdminTableMigration;
 

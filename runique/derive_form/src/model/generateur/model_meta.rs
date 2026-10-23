@@ -6,10 +6,6 @@ use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 
 pub fn generate_model_meta(model: &ModelInput) -> TokenStream2 {
-    // Without `runique/admin`, the admin module (and `ModelMeta`) doesn't exist.
-    if !cfg!(feature = "admin") {
-        return TokenStream2::new();
-    }
     let key = &model.table;
     let owner = model
         .meta
@@ -34,9 +30,9 @@ pub fn generate_model_meta(model: &ModelInput) -> TokenStream2 {
         }
     });
     quote! {
-        impl ::runique::admin::meta::ModelMeta for Entity {
+        impl ::runique::auth::meta::ModelMeta for Entity {
             const KEY: &'static str = #key;
-            type AdminForm = AdminForm;
+            type Form = Form;
             fn schema() -> ::runique::migration::schema::ModelSchema {
                 self::schema()
             }

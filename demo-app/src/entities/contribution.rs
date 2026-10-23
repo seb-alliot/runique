@@ -22,7 +22,7 @@ model! {
 
 #[cfg(test)]
 mod model_meta_tests {
-    use runique::admin::meta::ModelMeta;
+    use runique::auth::meta::ModelMeta;
 
     #[test]
     fn the_owner_is_the_declared_user_column() {

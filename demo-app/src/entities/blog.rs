@@ -20,7 +20,7 @@ model! {
 
 #[cfg(test)]
 mod model_meta_tests {
-    use runique::admin::meta::ModelMeta;
+    use runique::auth::meta::ModelMeta;
 
     #[test]
     fn test_model_meta() {

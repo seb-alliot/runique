@@ -23,7 +23,7 @@ mod groups {
 #[test]
 fn a_framework_column_is_a_field_of_the_admin_form_with_its_label() {
     let mut form = Forms::new("csrf");
-    groups::EihwazGroupesAdminForm::register_fields(&mut form);
+    groups::EihwazGroupesModelForm::register_fields(&mut form);
     let field = form.fields.get("nom").expect("nom registered");
     assert_eq!(field.label(), "Nom");
 }
@@ -75,7 +75,7 @@ fn an_extended_user_carries_activated_at_and_no_form_writes_it() {
     assert_eq!(updated.activated_at, ActiveValue::NotSet);
 
     let mut form = Forms::new("csrf");
-    users::EihwazUsersAdminForm::register_fields(&mut form);
+    users::EihwazUsersModelForm::register_fields(&mut form);
     assert!(!form.fields.contains_key("activated_at"));
 }
 
@@ -107,7 +107,7 @@ fn an_extended_user_never_takes_a_password_from_the_form() {
     assert_eq!(updated.password, ActiveValue::NotSet);
 
     let mut form = Forms::new("csrf");
-    users::EihwazUsersAdminForm::register_fields(&mut form);
+    users::EihwazUsersModelForm::register_fields(&mut form);
     assert!(!form.fields.contains_key("password"));
 }
 
@@ -127,7 +127,7 @@ fn an_extended_user_never_takes_is_active_from_the_form() {
     assert_eq!(updated.is_active, ActiveValue::NotSet);
 
     let mut form = Forms::new("csrf");
-    users::EihwazUsersAdminForm::register_fields(&mut form);
+    users::EihwazUsersModelForm::register_fields(&mut form);
     assert!(!form.fields.contains_key("is_active"));
 }
 
@@ -153,7 +153,7 @@ fn the_schema_of_an_extend_holds_its_own_columns() {
 #[cfg(feature = "admin")]
 #[test]
 fn an_extended_account_table_keeps_the_accounts_rules() {
-    use runique::admin::meta::ModelMeta;
+    use runique::auth::meta::ModelMeta;
     use runique::sea_orm::IdenStatic;
     assert_eq!(<users::Entity as ModelMeta>::KEY, "users");
     const { assert!(<users::Entity as ModelMeta>::IS_ACCOUNT_TABLE) };

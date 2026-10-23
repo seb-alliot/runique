@@ -2,7 +2,7 @@
 use super::form::FormConfig;
 use super::list::ListConfig;
 use super::list::{ListQuery, TOTAL};
-use crate::admin::{
+use crate::auth::{
     gate::{Authorized, Guarded, List, View},
     meta::ModelMeta,
 };
@@ -152,12 +152,12 @@ impl<E: ModelMeta> ModelAdmin<E> {
         // Each declared column needs its field in the model's form, one that
         // can hold the column's type: checked once here, not on every write.
         let mut model_form = crate::forms::Forms::new("");
-        <E::AdminForm as crate::forms::RuniqueForm>::register_fields(&mut model_form);
+        <E::Form as crate::forms::RuniqueForm>::register_fields(&mut model_form);
         for col in self.form.field_columns() {
             let name = col.as_str();
             match model_form.fields.get(name) {
                 None => errors.push(format!(
-                    "fields: `{name}` is not a field of the model's form (`AdminForm`)"
+                    "fields: `{name}` is not a field of the model's form (`ModelMeta::Form`)"
                 )),
                 Some(field) if !field.accepts_column(col.def().get_column_type()) => {
                     errors.push(format!(
@@ -293,11 +293,11 @@ impl<E: ModelMeta> ModelAdmin<E> {
 mod tests {
     use super::{ListPage, ModelAdmin};
     use crate::admin::builder::list::ListQuery;
-    use crate::admin::gate::GateCtx;
-    use crate::admin::gate::check::{authorize_list, authorize_view};
-    use crate::admin::gate::test_support::fixtures::note::{Column, Entity};
-    use crate::admin::gate::test_support::fixtures::{db, pk, staff};
     use crate::auth::current_user::CurrentUser;
+    use crate::auth::gate::GateCtx;
+    use crate::auth::gate::check::{authorize_list, authorize_view};
+    use crate::auth::gate::test_support::fixtures::note::{Column, Entity};
+    use crate::auth::gate::test_support::fixtures::{db, pk, staff};
     use crate::auth::permissions::rang::Rang;
     use crate::auth::user;
     use sea_orm::Order;
@@ -345,9 +345,9 @@ mod tests {
             crate::impl_form_access!();
         }
 
-        impl crate::admin::meta::ModelMeta for Entity {
+        impl crate::auth::meta::ModelMeta for Entity {
             const KEY: &'static str = "articles";
-            type AdminForm = ArticleForm;
+            type Form = ArticleForm;
             const SECRET: &'static [Column] = &[Column::Password];
             fn schema() -> crate::migration::schema::ModelSchema {
                 use crate::migration::ColumnDef;

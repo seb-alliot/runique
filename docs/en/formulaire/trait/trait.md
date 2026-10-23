@@ -61,7 +61,7 @@ fn get_form_mut(&mut self) -> &mut Forms {
 ```text
 register_fields()            → declare fields
         ↓
-build() / build_with_data()  → build the instance
+req.form()                   → build the instance
         ↓
 is_valid()                   → validation pipeline
     ↓  validate() per field  (required, format, length…)
@@ -105,11 +105,7 @@ clear()                      → [optional] empty the form after processing
 
 **`database_error(&err)`** — Parses a DB error and attaches it to the correct field.
 
-**`clear()`** — Clears all field values (except CSRF) and resets `submitted` to `false`. Call it after reading cleaned data, before a redirect or empty re-render.
-
-**`build(tera, csrf_token)`** — Build an empty form.
-
-**`build_with_data(data, tera, csrf)`** — Build, fill, and validate.
+**`clear()`** — Clears all field values (except CSRF and the form's name) and resets `submitted` to `false`. Call it after reading cleaned data, before a redirect or empty re-render.
 
 ---
 

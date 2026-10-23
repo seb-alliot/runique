@@ -7,7 +7,7 @@
 - l'entité SeaORM (`Model`, `Entity`, `Column`, `ActiveModel`) et ses relations (`belongs_to` vise la vraie clé primaire de la cible, avec ses actions) ;
 - l'`ActiveModelBehavior` qui remplit `auto_now` / `auto_now_update` ;
 - un enum Rust par entrée du bloc `enums:` ;
-- l'`AdminForm` et les fonctions utilisées par l'admin ;
+- le formulaire du modèle (`{Modele}ModelForm`, alias `Form`) et les fonctions utilisées par l'admin ;
 - pour chaque champ liste (`multichoice` / `checkbox`), l'entité de sa table et les méthodes `champ()`, `set_champ()`, `load_champ()` ;
 - une fonction `schema() -> ModelSchema`.
 

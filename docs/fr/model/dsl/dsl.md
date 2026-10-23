@@ -551,7 +551,7 @@ Ajoute des colonnes à une table Runique et génère une entité SeaORM complèt
 `extend!{}` produit deux choses :
 
 1. **Schema SQL** — `makemigrations` détecte le bloc et génère des instructions `ALTER TABLE ADD COLUMN`
-2. **Entité complète** — `Model`, `Column`, `Entity`, `AdminForm`, `admin_from_form`, `admin_partial_update` couvrant **toutes** les colonnes de la table (colonnes de base + colonnes étendues)
+2. **Entité complète** — `Model`, `Column`, `Entity`, `Form`, `admin_from_form`, `admin_partial_update` couvrant **toutes** les colonnes de la table (colonnes de base + colonnes étendues)
 
 ```rust
 // src/entities/user_profile.rs
@@ -633,7 +633,7 @@ admin! {
 | `Model` | Struct avec toutes les colonnes (base + étendues) |
 | `Column` | Enum SeaORM pour les colonnes |
 | `Entity` | `EntityTrait` complet — utilisable avec `search!` |
-| `AdminForm` | Formulaire admin couvrant toutes les colonnes |
+| `Form` | Formulaire du modèle (`{Table}ModelForm`) couvrant toutes les colonnes |
 | `admin_from_form` | Construit un `ActiveModel` depuis les données du formulaire |
 | `admin_partial_update` | Construit un `ActiveModel` partiel pour la mise à jour |
 

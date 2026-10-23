@@ -251,7 +251,7 @@ async fn extra_route_gate(
     request: axum::extract::Request,
     next: middleware::Next,
 ) -> Response {
-    use crate::admin::gate::rights::Crud;
+    use crate::auth::gate::rights::Crud;
     let right = match op {
         CrudOperation::List | CrudOperation::View => Crud::Read,
         CrudOperation::Create => Crud::Create,
