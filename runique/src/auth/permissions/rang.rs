@@ -17,16 +17,20 @@ pub enum Rang {
 
 impl From<&Model> for Rang {
     fn from(user: &Model) -> Self {
-        match (user.is_superuser, user.is_dirigeant, user.is_admin) {
+        Rang::of(user.is_superuser, user.is_dirigeant, user.is_admin)
+    }
+}
+
+impl Rang {
+    /// The rank carried by three flags of `eihwaz_users`.
+    pub(crate) fn of(is_superuser: bool, is_dirigeant: bool, is_admin: bool) -> Self {
+        match (is_superuser, is_dirigeant, is_admin) {
             (true, _, _) => Rang::Superuser,
             (_, true, _) => Rang::Dirigeant,
             (_, _, true) => Rang::Admin,
             _ => Rang::Lambda,
         }
     }
-}
-
-impl Rang {
     /// Accounts this rank may manage, to add to the WHERE of the write: only
     /// a strictly lower rank, so never one's own account. `None`: manages no
     /// account, refused before any write.

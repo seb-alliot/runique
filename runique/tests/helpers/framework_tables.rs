@@ -62,11 +62,27 @@ pub const SESSIONS_DDL: &str = "
     )
 ";
 
+#[cfg(feature = "pk-uuid")]
 pub const GROUPES_DDL: &str = "
     CREATE TABLE eihwaz_groupes (
-        id  INTEGER PRIMARY KEY AUTOINCREMENT,
-        nom TEXT NOT NULL,
-        is_staff INTEGER NOT NULL DEFAULT 0
+        id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        nom            TEXT NOT NULL,
+        is_staff       INTEGER NOT NULL DEFAULT 0,
+        is_active      INTEGER NOT NULL DEFAULT 1,
+        responsable_id BLOB NOT NULL,
+        repris_par     BLOB
+    )
+";
+
+#[cfg(not(feature = "pk-uuid"))]
+pub const GROUPES_DDL: &str = "
+    CREATE TABLE eihwaz_groupes (
+        id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        nom            TEXT NOT NULL,
+        is_staff       INTEGER NOT NULL DEFAULT 0,
+        is_active      INTEGER NOT NULL DEFAULT 1,
+        responsable_id INTEGER NOT NULL,
+        repris_par     INTEGER
     )
 ";
 

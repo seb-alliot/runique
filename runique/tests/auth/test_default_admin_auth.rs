@@ -83,15 +83,18 @@ async fn insert_user(
     .await;
 }
 
-/// Group tables, and `username` in one group whose `is_staff` is `staff`.
+/// Group tables, and `username` in one group whose `is_staff` is `staff`,
+/// answered for by a dirigeant account of its own.
 async fn join_group(db: &runique::sea_orm::DatabaseConnection, username: &str, staff: bool) {
     for ddl in [GROUPES_DDL, GROUPES_DROITS_DDL, USERS_GROUPES_DDL] {
         db::exec(db, ddl).await;
     }
+    insert_user(db, 99, "responsable", "x", (1, 1, 0, 0)).await;
     db::exec(
         db,
         &format!(
-            "INSERT INTO eihwaz_groupes (id, nom, is_staff) VALUES (1, 'equipe', {})",
+            "INSERT INTO eihwaz_groupes (id, nom, is_staff, responsable_id) \
+             SELECT 1, 'equipe', {}, id FROM eihwaz_users WHERE username = 'responsable'",
             u8::from(staff)
         ),
     )

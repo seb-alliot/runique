@@ -116,6 +116,7 @@ async fn complete_reset(base: &str, db: &DatabaseConnection) {
             ("password", NEW_PASSWORD),
             ("confirm", NEW_PASSWORD),
             ("csrf_token", csrf.as_str()),
+            ("runique_form", "reset_password"),
         ])
         .send()
         .await

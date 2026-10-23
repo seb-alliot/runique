@@ -2,7 +2,9 @@
 //! Couvre : les règles lues dans les extensions, le `CurrentUser` placé par
 //! `auth_middleware`, et les groupes chargés depuis la base pour `roles`.
 
-use crate::helpers::framework_tables::{GROUPES_DDL, GROUPES_DROITS_DDL, USERS_GROUPES_DDL};
+use crate::helpers::framework_tables::{
+    GROUPES_DDL, GROUPES_DROITS_DDL, USERS_DDL, USERS_GROUPES_DDL,
+};
 use crate::helpers::pk::{pk, pk_sql_literal};
 use crate::helpers::server::build_engine;
 use axum::{
@@ -62,15 +64,24 @@ async fn status(req: Request<Body>) -> StatusCode {
 }
 
 /// Engine whose database holds the group `editeur`, joined by account 1 only,
-/// and the staff group `equipe`, joined by account 3 only.
+/// and the staff group `equipe`, joined by account 3 only; both answered for
+/// by the dirigeant account 9.
 async fn engine_with_editeur() -> AEngine {
     let engine = build_engine().await;
+    let responsable = pk_sql_literal(9);
     for sql in [
+        USERS_DDL.to_string(),
         GROUPES_DDL.to_string(),
         GROUPES_DROITS_DDL.to_string(),
         USERS_GROUPES_DDL.to_string(),
-        "INSERT INTO eihwaz_groupes (id, nom, is_staff) VALUES (1, 'editeur', 0), (2, 'equipe', 1)"
-            .to_string(),
+        format!(
+            "INSERT INTO eihwaz_users (id, username, email, password, is_dirigeant) \
+             VALUES ({responsable}, 'dirigeant', 'dirigeant@example.com', 'x', 1)"
+        ),
+        format!(
+            "INSERT INTO eihwaz_groupes (id, nom, is_staff, responsable_id) \
+             VALUES (1, 'editeur', 0, {responsable}), (2, 'equipe', 1, {responsable})"
+        ),
         format!(
             "INSERT INTO eihwaz_users_groupes (user_id, groupe_id) VALUES ({}, 1), ({}, 2)",
             pk_sql_literal(1),

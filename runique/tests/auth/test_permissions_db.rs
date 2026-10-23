@@ -73,19 +73,23 @@ async fn teardown(db: &runique::sea_orm::DatabaseConnection) {
 
 /// `eihwaz_users_groupes.user_id` porte une FK vers `eihwaz_users` — il faut
 /// une ligne réelle pour l'id utilisé, sinon l'INSERT échoue en violation de
-/// contrainte.
-async fn seed_user(db: &runique::sea_orm::DatabaseConnection, id: runique::utils::config::Pk) {
+/// contrainte. Même chose pour le responsable d'un groupe (`dirigeant`).
+async fn seed_user(
+    db: &runique::sea_orm::DatabaseConnection,
+    id: runique::utils::config::Pk,
+    dirigeant: bool,
+) {
     use runique::auth::user;
     use runique::sea_orm::ActiveModelTrait;
     use runique::sea_orm::ActiveValue::Set;
 
     let am = user::ActiveModel {
         id: Set(id),
+        is_dirigeant: Set(dirigeant),
         username: Set(format!("user-{id}")),
         email: Set(format!("user-{id}@example.com")),
         password: Set("hash123".to_string()),
         is_active: Set(true),
-        is_dirigeant: Set(false),
         is_admin: Set(false),
         is_superuser: Set(false),
         created_at: Set(None),
@@ -108,12 +112,16 @@ async fn test_pull_groupes_db_retourne_permissions() {
 
     teardown(&db).await;
     setup_rbac_tables(&db).await;
-    seed_user(&db, pk(42)).await;
+    seed_user(&db, pk(42), false).await;
+    seed_user(&db, pk(1), true).await;
 
     // Insère un groupe avec une permission
     db_postgres::exec(
         &db,
-        "INSERT INTO eihwaz_groupes (id, nom) VALUES (1, 'moderateur')",
+        &format!(
+            "INSERT INTO eihwaz_groupes (id, nom, responsable_id) VALUES (1, 'moderateur', {})",
+            pk_sql_literal_pg(1)
+        ),
     )
     .await;
     db_postgres::exec(&db, "INSERT INTO eihwaz_groupes_droits (groupe_id, resource_key, can_read, can_create, can_update, can_delete, can_update_own, can_delete_own) VALUES (1, 'articles', true, false, false, false, false, false)").await;
@@ -149,11 +157,15 @@ async fn test_pull_groupes_db_multi_ressources() {
 
     teardown(&db).await;
     setup_rbac_tables(&db).await;
-    seed_user(&db, pk(43)).await;
+    seed_user(&db, pk(43), false).await;
+    seed_user(&db, pk(1), true).await;
 
     db_postgres::exec(
         &db,
-        "INSERT INTO eihwaz_groupes (id, nom) VALUES (2, 'admin')",
+        &format!(
+            "INSERT INTO eihwaz_groupes (id, nom, responsable_id) VALUES (2, 'admin', {})",
+            pk_sql_literal_pg(1)
+        ),
     )
     .await;
     db_postgres::exec(&db, "INSERT INTO eihwaz_groupes_droits (groupe_id, resource_key, can_read, can_create, can_update, can_delete, can_update_own, can_delete_own) VALUES (2, 'articles', true, true, true, true, false, false)").await;
@@ -194,11 +206,15 @@ async fn test_pull_groupes_db_voit_un_changement_aussitot() {
 
     teardown(&db).await;
     setup_rbac_tables(&db).await;
-    seed_user(&db, pk(44)).await;
+    seed_user(&db, pk(44), false).await;
+    seed_user(&db, pk(1), true).await;
 
     db_postgres::exec(
         &db,
-        "INSERT INTO eihwaz_groupes (id, nom) VALUES (3, 'editeur')",
+        &format!(
+            "INSERT INTO eihwaz_groupes (id, nom, responsable_id) VALUES (3, 'editeur', {})",
+            pk_sql_literal_pg(1)
+        ),
     )
     .await;
     db_postgres::exec(&db, "INSERT INTO eihwaz_groupes_droits (groupe_id, resource_key, can_read, can_create, can_update, can_delete, can_update_own, can_delete_own) VALUES (3, 'blog', true, true, false, false, false, false)").await;

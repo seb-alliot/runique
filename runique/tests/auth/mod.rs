@@ -3,6 +3,7 @@ pub mod test_current_user;
 pub mod test_current_user_permissions;
 pub mod test_default_admin_auth;
 pub mod test_forgot_password_states;
+pub mod test_group_responsable;
 #[cfg(feature = "test-utils")]
 pub mod test_login_form;
 pub mod test_middlewares;
