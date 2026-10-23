@@ -305,7 +305,8 @@ pub async fn handle_forgot_password(
     let token_ttl = config.token_ttl;
     request.context.insert("lang", &current_lang().code());
 
-    let form = match crate::forms::ValidationForm::try_form(form, request, "forgot_password").await {
+    let form = match crate::forms::ValidationForm::try_form(form, request, "forgot_password").await
+    {
         Ok(validated) => validated.into_form(),
         Err(form) => {
             apply_extra_context(request, &config.extra_context).await;
@@ -507,24 +508,25 @@ pub async fn handle_password_reset(
         return Ok(Redirect::to("/").into_response());
     }
 
-    let mut form = match crate::forms::ValidationForm::try_form(form, request, "reset_password").await {
-        Ok(validated) => validated.into_form(),
-        Err(mut form) => {
-            if request.method.is_safe() {
-                form.get_form_mut().add_value("token", &token);
-                form.get_form_mut()
-                    .add_value("encrypted_email", &encrypted_email);
+    let mut form =
+        match crate::forms::ValidationForm::try_form(form, request, "reset_password").await {
+            Ok(validated) => validated.into_form(),
+            Err(mut form) => {
+                if request.method.is_safe() {
+                    form.get_form_mut().add_value("token", &token);
+                    form.get_form_mut()
+                        .add_value("encrypted_email", &encrypted_email);
+                }
+                apply_extra_context(request, &config.extra_context).await;
+                context_update!(request => {
+                    "title"           => t("reset.reset_title").as_ref(),
+                    "reset_form"      => &form,
+                    "token"           => &token,
+                    "encrypted_email" => &encrypted_email,
+                });
+                return request.render(template);
             }
-            apply_extra_context(request, &config.extra_context).await;
-            context_update!(request => {
-                "title"           => t("reset.reset_title").as_ref(),
-                "reset_form"      => &form,
-                "token"           => &token,
-                "encrypted_email" => &encrypted_email,
-            });
-            return request.render(template);
-        }
-    };
+        };
 
     let Some(user_id) = crate::utils::reset_token::consume(&db, &token).await else {
         if let Some(level) = crate::utils::runique_log::get_log()

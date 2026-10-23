@@ -57,7 +57,7 @@ async fn check_rights_table(db: &DatabaseConnection, id: impl Fn(u32) -> String)
         .await
         .expect("admin tables");
 
-    for n in [1, 2] {
+    for n in [1, 2, 3] {
         sql(
             db,
             &format!(
@@ -71,7 +71,10 @@ async fn check_rights_table(db: &DatabaseConnection, id: impl Fn(u32) -> String)
     }
     sql(
         db,
-        "INSERT INTO eihwaz_groupes (id, nom) VALUES (1, 'support')",
+        &format!(
+            "INSERT INTO eihwaz_groupes (id, nom, responsable_id) VALUES (1, 'support', {})",
+            id(1)
+        ),
     )
     .await
     .unwrap();
@@ -173,6 +176,44 @@ async fn check_rights_table(db: &DatabaseConnection, id: impl Fn(u32) -> String)
     )
     .await;
     assert_eq!(kept, Ok(1), "another account keeps its rights");
+
+    // A group always has a real responsable: none is refused, and his account
+    // can't be deleted while he answers for one. `repris_par` only marks a
+    // group to hand over: its account goes, the mark is cleared.
+    let u3 = id(3);
+    assert!(
+        sql(
+            db,
+            "INSERT INTO eihwaz_groupes (id, nom) VALUES (2, 'sans')"
+        )
+        .await
+        .is_err(),
+        "a group without a responsable"
+    );
+    sql(
+        db,
+        &format!(
+            "INSERT INTO eihwaz_groupes (id, nom, responsable_id, repris_par) \
+             VALUES (2, 'compta', {u2}, {u3})"
+        ),
+    )
+    .await
+    .unwrap();
+    assert!(
+        sql(db, &format!("DELETE FROM eihwaz_users WHERE id = {u2}"))
+            .await
+            .is_err(),
+        "the responsable's account stays while he answers for a group"
+    );
+    sql(db, &format!("DELETE FROM eihwaz_users WHERE id = {u3}"))
+        .await
+        .unwrap();
+    let cleared = sql(
+        db,
+        "UPDATE eihwaz_groupes SET nom = 'compta' WHERE id = 2 AND repris_par IS NULL",
+    )
+    .await;
+    assert_eq!(cleared, Ok(1), "repris_par cleared, the group kept");
 }
 
 #[tokio::test]

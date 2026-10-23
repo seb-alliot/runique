@@ -156,3 +156,39 @@ pub fn diff_fields(old: &Value, body: &StrMap) -> Option<String> {
     redact_sensitive(&mut changes);
     serde_json::to_string(&changes).ok()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::diff_fields;
+    use crate::utils::{
+        aliases::StrMap,
+        constante::session_key::session::{CSRF_TOKEN_KEY, FORM_NAME_KEY},
+    };
+    use serde_json::json;
+
+    fn body(pairs: &[(&str, &str)]) -> StrMap {
+        pairs
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect()
+    }
+
+    #[test]
+    fn the_form_name_and_csrf_never_count_as_changes() {
+        let old = json!({ FORM_NAME_KEY: "x", CSRF_TOKEN_KEY: "x", "title": "a" });
+        let new = body(&[
+            (FORM_NAME_KEY, "edit"),
+            (CSRF_TOKEN_KEY, "tok"),
+            ("title", "a"),
+        ]);
+        assert_eq!(diff_fields(&old, &new), None);
+    }
+
+    #[test]
+    fn a_real_column_change_is_still_reported() {
+        let old = json!({ "title": "a" });
+        let new = body(&[(FORM_NAME_KEY, "edit"), ("title", "b")]);
+        let diff = diff_fields(&old, &new).expect("title changed");
+        assert!(diff.contains("title") && !diff.contains(FORM_NAME_KEY));
+    }
+}

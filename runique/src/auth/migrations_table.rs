@@ -37,7 +37,6 @@ pub fn create_eihwaz_users_table() -> TableCreateStatement {
     // UUID primary keys are generated application-side (Uuid::now_v7()), never DB auto-increment.
     #[cfg(not(feature = "pk-uuid"))]
     pk_col.auto_increment();
-
     Table::create()
         .table(Alias::new("eihwaz_users"))
         .if_not_exists()
@@ -154,6 +153,11 @@ pub const DROITS_COLUMN_ROW_FLAGS: &str = "eihwaz_groupes_droits_column_row_flag
 
 /// Generates the `TableCreateStatement` for the `eihwaz_groupes` table.
 pub fn create_eihwaz_groupes_table() -> TableCreateStatement {
+    let mut responsable_col = user_pk_reference("responsable_id");
+    responsable_col.not_null();
+    let mut repris_par_col = user_pk_reference("repris_par");
+    repris_par_col.null();
+
     Table::create()
         .table(Alias::new("eihwaz_groupes"))
         .if_not_exists()
@@ -175,6 +179,28 @@ pub fn create_eihwaz_groupes_table() -> TableCreateStatement {
                 .boolean()
                 .not_null()
                 .default(false),
+        )
+        .col(
+            ColumnDef::new(Alias::new("is_active"))
+                .boolean()
+                .not_null()
+                .default(true),
+        )
+        .col(&mut responsable_col)
+        .col(&mut repris_par_col)
+        .foreign_key(
+            ForeignKey::create()
+                .name("fk_eihwaz_groupes_responsable_id")
+                .from(Alias::new("eihwaz_groupes"), Alias::new("responsable_id"))
+                .to(Alias::new("eihwaz_users"), Alias::new("id"))
+                .on_delete(ForeignKeyAction::Restrict),
+        )
+        .foreign_key(
+            ForeignKey::create()
+                .name("fk_eihwaz_groupes_repris_par")
+                .from(Alias::new("eihwaz_groupes"), Alias::new("repris_par"))
+                .to(Alias::new("eihwaz_users"), Alias::new("id"))
+                .on_delete(ForeignKeyAction::SetNull),
         )
         .to_owned()
 }

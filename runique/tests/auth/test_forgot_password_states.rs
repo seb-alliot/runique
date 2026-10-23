@@ -75,7 +75,11 @@ async fn forgot(base: &str, email: &str) -> (u16, String) {
     let token = page.headers()["x-csrf-token"].to_str().unwrap().to_string();
     let resp = client
         .post(&url)
-        .form(&[("email", email), ("csrf_token", token.as_str())])
+        .form(&[
+            ("email", email),
+            ("csrf_token", token.as_str()),
+            ("runique_form", "forgot_password"),
+        ])
         .send()
         .await
         .unwrap();

@@ -30,6 +30,8 @@ pub mod test_form_data_conversion;
 #[cfg(feature = "test-utils")]
 pub mod test_form_guarantees;
 pub mod test_form_methods;
+#[cfg(feature = "test-utils")]
+pub mod test_form_name;
 pub mod test_forms;
 pub mod test_generic_field;
 pub mod test_hidden_field;

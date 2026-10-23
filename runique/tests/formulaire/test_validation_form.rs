@@ -279,7 +279,6 @@ async fn honeypot_filled_on_get_does_not_force_invalid() {
 // revient dans la requête est validé, les autres repartent sans erreur
 // ═══════════════════════════════════════════════════════════════
 
-use runique::forms::base::FormField;
 use runique::utils::constante::session_key::session::FORM_NAME_KEY;
 
 fn named_data(name: Option<&str>, q: Option<&str>) -> HashMap<String, String> {
