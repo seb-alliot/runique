@@ -10,15 +10,16 @@ pub struct ChangePasswordForm {
     form: Forms,
 }
 
-#[async_trait]
-impl RuniqueForm for ChangePasswordForm {
+impl FormAccess for ChangePasswordForm {
     impl_form_access!();
-
     fn register_fields(form: &mut Forms) {
         form.field(&TextField::password("password").label("Nouveau mot de passe").required());
         form.field(&TextField::password("confirm").label("Confirmation").required());
     }
+}
 
+#[async_trait]
+impl RuniqueForm for ChangePasswordForm {
     /// Validation par champ — appelée pour chaque champ par is_valid()
     async fn clean_field(&mut self, name: &str) -> bool {
         match name {
@@ -35,7 +36,6 @@ impl RuniqueForm for ChangePasswordForm {
             _ => true,
         }
     }
-
     /// Validation globale inter-champs — appelée après tous les clean_field()
     async fn clean(&mut self) -> Result<(), StrMap> {
         let password = self.get_form().get_string("password");
@@ -49,7 +49,6 @@ impl RuniqueForm for ChangePasswordForm {
 
         Ok(())
     }
-
     /// Sauvegarde dans une transaction — appelée par save()
     async fn save_txn(&mut self, _txn: &DatabaseTransaction) -> Result<(), DbErr> {
         // let hashed = hash(&self.get_form().get_string("password")).unwrap_or_default();

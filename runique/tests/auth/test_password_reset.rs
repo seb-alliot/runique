@@ -3,7 +3,10 @@
 //!          ForgotPasswordForm
 
 use runique::auth::{ForgotPasswordForm, PasswordResetConfig, PasswordResetForm};
-use runique::forms::{field::RuniqueForm, form::Forms};
+use runique::forms::{
+    field::{FormAccess, RuniqueForm},
+    form::Forms,
+};
 use runique::utils::reset_token;
 
 // ═══════════════════════════════════════════════════════════════

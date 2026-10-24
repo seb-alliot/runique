@@ -7,7 +7,7 @@ pub struct TestAllFieldsForm {
     pub form: Forms,
 }
 
-impl RuniqueForm for TestAllFieldsForm {
+impl FormAccess for TestAllFieldsForm {
     fn register_fields(form: &mut Forms) {
         // ── Text ──
         form.field(&TextField::text("f_text").label("Text"));
@@ -144,16 +144,15 @@ impl RuniqueForm for TestAllFieldsForm {
                 .placeholder("192.168.1.1"),
         );
     }
-
     fn from_form(form: Forms) -> Self {
         Self { form }
     }
-
     fn get_form(&self) -> &Forms {
         &self.form
     }
-
     fn get_form_mut(&mut self) -> &mut Forms {
         &mut self.form
     }
 }
+
+impl RuniqueForm for TestAllFieldsForm {}

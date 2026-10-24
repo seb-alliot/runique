@@ -8,7 +8,7 @@ pub struct RegisterForm {
     pub form: Forms,
 }
 
-impl RuniqueForm for RegisterForm {
+impl FormAccess for RegisterForm {
     fn register_fields(form: &mut Forms) {
         form.field(&TextField::text("username").label("Nom d'utilisateur").required());
         form.field(&TextField::email("email").label("Email").required());
@@ -17,6 +17,8 @@ impl RuniqueForm for RegisterForm {
     }
     impl_form_access!();
 }
+
+impl RuniqueForm for RegisterForm {}
 
 async fn register_handler(mut request: Request) -> AppResult<Response> {
     let form: RegisterForm = request.form();

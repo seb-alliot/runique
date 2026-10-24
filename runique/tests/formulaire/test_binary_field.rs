@@ -11,7 +11,7 @@ use axum::{
     routing::post,
 };
 use runique::forms::Forms;
-use runique::forms::field::RuniqueForm;
+use runique::forms::field::FormAccess;
 use runique::utils::parse_html::parse_multipart;
 use serial_test::serial;
 use tower::ServiceExt;

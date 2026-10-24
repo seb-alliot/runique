@@ -148,12 +148,12 @@ async fn test_finalize_ok_on_valid_form() {
 
 #[test]
 fn test_set_url_params_accessible_via_cleaned() {
-    use runique::forms::field::RuniqueForm;
+    use runique::forms::field::{FormAccess, RuniqueForm};
 
     struct F {
         form: Forms,
     }
-    impl RuniqueForm for F {
+    impl FormAccess for F {
         fn register_fields(form: &mut Forms) {
             form.field(&TextField::text("id"));
         }
@@ -167,6 +167,8 @@ fn test_set_url_params_accessible_via_cleaned() {
             &mut self.form
         }
     }
+
+    impl RuniqueForm for F {}
 
     let mut f = F {
         form: Forms::new("csrf"),

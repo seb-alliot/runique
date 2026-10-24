@@ -6,8 +6,6 @@ pub struct BlogForm;
 
 #[async_trait]
 impl RuniqueForm for BlogForm {
-    impl_form_access!(model);
-
     async fn clean(&mut self) -> Result<(), StrMap> {
         let title = self.cleaned::<String>("title").unwrap_or_default();
         let email = self.cleaned::<String>("email").unwrap_or_default();

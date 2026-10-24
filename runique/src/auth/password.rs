@@ -17,7 +17,7 @@ use crate::auth::user_trait::RuniqueUser;
 use crate::context::template::Request;
 use crate::forms::{
     Forms,
-    field::RuniqueForm,
+    field::{FormAccess, RuniqueForm},
     fields::{hidden::HiddenField, text::TextField},
 };
 use crate::utils::{
@@ -36,7 +36,7 @@ pub struct ForgotPasswordForm {
     pub form: Forms,
 }
 
-impl RuniqueForm for ForgotPasswordForm {
+impl FormAccess for ForgotPasswordForm {
     fn register_fields(form: &mut Forms) {
         form.field(
             &TextField::text("email")
@@ -44,10 +44,13 @@ impl RuniqueForm for ForgotPasswordForm {
                 .required(),
         );
     }
-
     impl_form_access!();
+}
+
+impl RuniqueForm for ForgotPasswordForm {
     // `allow_get` defaults to `false` — the reset-token email send (a
     // state-changing action) never runs on a GET, no override needed.
+
 }
 
 // ─── PasswordResetForm ────────────────────────────────────────────────────────
@@ -62,8 +65,7 @@ pub struct PasswordResetForm {
     pub form: Forms,
 }
 
-#[async_trait]
-impl RuniqueForm for PasswordResetForm {
+impl FormAccess for PasswordResetForm {
     fn register_fields(form: &mut Forms) {
         form.field(&HiddenField::new("token"));
         form.field(&HiddenField::new("encrypted_email"));
@@ -83,7 +85,11 @@ impl RuniqueForm for PasswordResetForm {
                 .required(),
         );
     }
+    impl_form_access!();
+}
 
+#[async_trait]
+impl RuniqueForm for PasswordResetForm {
     async fn clean(&mut self) -> Result<(), StrMap> {
         let token = self.cleaned::<String>("token").unwrap_or_default();
         let encrypted = self
@@ -131,10 +137,9 @@ impl RuniqueForm for PasswordResetForm {
             Err(errors)
         }
     }
-
-    impl_form_access!();
     // `allow_get` defaults to `false` — the password update never runs on
     // a GET, no override needed.
+
 }
 
 // ─── Config ───────────────────────────────────────────────────────────────────

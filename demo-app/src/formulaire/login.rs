@@ -7,7 +7,7 @@ pub struct LoginForm {
     pub form: Forms,
 }
 
-impl RuniqueForm for LoginForm {
+impl FormAccess for LoginForm {
     fn register_fields(form: &mut Forms) {
         form.field(
             &TextField::text("username")
@@ -21,6 +21,7 @@ impl RuniqueForm for LoginForm {
                 .required(),
         );
     }
-
     impl_form_access!();
 }
+
+impl RuniqueForm for LoginForm {}

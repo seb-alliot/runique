@@ -320,7 +320,7 @@ impl Forms {
     }
 
     /// Registers a typed field (e.g. `TextField`, `NumericField`, `FileField`, …).
-    /// Called inside `RuniqueForm::register_fields`.
+    /// Called inside `FormAccess::register_fields`.
     pub fn field<T>(&mut self, field_template: &T)
     where
         T: FormField + Clone + Into<GenericField> + 'static,

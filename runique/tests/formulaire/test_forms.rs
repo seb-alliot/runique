@@ -4,7 +4,7 @@ mod tests {
     use runique::{
         forms::{
             base::FormField,
-            field::RuniqueForm,
+            field::{FormAccess, RuniqueForm},
             fields::{boolean::BooleanField, number::NumericField, text::TextField},
             form::Forms,
         },
@@ -308,7 +308,7 @@ mod tests {
         form: Forms,
     }
 
-    impl RuniqueForm for LoginForm {
+    impl FormAccess for LoginForm {
         fn register_fields(form: &mut Forms) {
             form.field(&TextField::text("username").required());
             form.field(&TextField::password("password").required().no_hash());
@@ -323,6 +323,8 @@ mod tests {
             &mut self.form
         }
     }
+
+    impl RuniqueForm for LoginForm {}
 
     #[tokio::test]
     async fn test_runique_form_valid() {
@@ -372,8 +374,7 @@ mod tests {
         form: Forms,
     }
 
-    #[async_trait::async_trait]
-    impl RuniqueForm for PasswordChangeForm {
+    impl FormAccess for PasswordChangeForm {
         fn register_fields(form: &mut Forms) {
             form.field(&TextField::password("password").required().no_hash());
             form.field(&TextField::password("confirm").required().no_hash());
@@ -387,7 +388,10 @@ mod tests {
         fn get_form_mut(&mut self) -> &mut Forms {
             &mut self.form
         }
+    }
 
+    #[async_trait::async_trait]
+    impl RuniqueForm for PasswordChangeForm {
         async fn clean(&mut self) -> Result<(), StrMap> {
             let password = self.cleaned::<String>("password");
             let confirm = self.cleaned::<String>("confirm");
@@ -452,8 +456,7 @@ mod tests {
         form: Forms,
     }
 
-    #[async_trait::async_trait]
-    impl RuniqueForm for UsernameForm {
+    impl FormAccess for UsernameForm {
         fn register_fields(form: &mut Forms) {
             form.field(&TextField::text("username").required());
         }
@@ -466,6 +469,10 @@ mod tests {
         fn get_form_mut(&mut self) -> &mut Forms {
             &mut self.form
         }
+    }
+
+    #[async_trait::async_trait]
+    impl RuniqueForm for UsernameForm {
         async fn clean_field(&mut self, name: &str) -> bool {
             if name == "username" {
                 // Enlève l'underscore, on va ENFIN utiliser cette valeur !

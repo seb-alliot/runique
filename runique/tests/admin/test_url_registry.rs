@@ -147,15 +147,22 @@ fn test_link_with_multiple_parameters() {
 }
 
 #[test]
-fn test_link_no_placeholder_ignores_extra_params() {
+fn test_link_unknown_param_returns_error() {
     let f = with_route("about", "/about");
     let result = call(
         &f,
         [("link", Value::from("about")), ("id", Value::from(42))],
-    )
-    .unwrap();
-    // Les params supplémentaires ne modifient pas la route sans placeholder
-    assert_eq!(result, "/about");
+    );
+    let msg = result.unwrap_err().to_string();
+    assert!(msg.contains("unknown parameter 'id'"), "message : {msg}");
+}
+
+#[test]
+fn test_link_missing_param_returns_error() {
+    let f = with_route("profile", "/profil/{id}");
+    let result = call(&f, [("link", Value::from("profile"))]);
+    let msg = result.unwrap_err().to_string();
+    assert!(msg.contains("missing parameter 'id'"), "message : {msg}");
 }
 
 #[test]

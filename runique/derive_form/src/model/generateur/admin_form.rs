@@ -27,7 +27,7 @@ pub fn generate_admin_form(model: &ModelInput) -> TokenStream2 {
             pub form: ::runique::forms::Forms,
         }
 
-        impl ::runique::forms::field::RuniqueForm for #form_name {
+        impl ::runique::forms::field::FormAccess for #form_name {
             fn register_fields(form: &mut ::runique::forms::Forms) {
                 #(#field_registrations)*
             }
@@ -44,6 +44,8 @@ pub fn generate_admin_form(model: &ModelInput) -> TokenStream2 {
                 &mut self.form
             }
         }
+
+        impl ::runique::forms::field::RuniqueForm for #form_name {}
     }
 }
 

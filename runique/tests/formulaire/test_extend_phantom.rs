@@ -2,7 +2,7 @@
 //! columns of the extended table) and for an enum it declares.
 use crate::helpers::pk::pk;
 use runique::forms::Forms;
-use runique::forms::field::RuniqueForm;
+use runique::forms::field::FormAccess;
 use runique::sea_orm::{ActiveValue, PrimaryKeyTrait};
 use runique::utils::aliases::StrMap;
 

@@ -3,7 +3,7 @@
 //! whose value can't be stored isn't valid.
 use runique::forms::base::FormField;
 use runique::forms::column_value::column_value;
-use runique::forms::field::RuniqueForm;
+use runique::forms::field::{FormAccess, RuniqueForm};
 use runique::forms::fields::{BooleanField, CheckboxField, HiddenField, NumericField, TextField};
 use runique::forms::form::Forms;
 use runique::forms::generic::{GenericField, accepts};
@@ -217,7 +217,7 @@ struct StockForm {
     form: Forms,
 }
 
-impl RuniqueForm for StockForm {
+impl FormAccess for StockForm {
     fn register_fields(form: &mut Forms) {
         form.field(&TextField::text("qty"));
     }
@@ -231,6 +231,8 @@ impl RuniqueForm for StockForm {
         &mut self.form
     }
 }
+
+impl RuniqueForm for StockForm {}
 
 fn stock_form(qty: &str) -> StockForm {
     let mut form = StockForm {

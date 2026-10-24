@@ -25,7 +25,7 @@ use crate::utils::config::TraceResult;
 ///
 /// - No matched route → 404 (passes through, Axum handles it)
 /// - Unauthenticated → redirect to `{prefix}/login`
-pub(crate) async fn admin_required(
+pub(crate) async fn admin_access(
     Extension(admin): Extension<Arc<AdminState>>,
     request: Request,
     next: Next,

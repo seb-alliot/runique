@@ -152,7 +152,7 @@ impl<E: ModelMeta> ModelAdmin<E> {
         // Each declared column needs its field in the model's form, one that
         // can hold the column's type: checked once here, not on every write.
         let mut model_form = crate::forms::Forms::new("");
-        <E::Form as crate::forms::RuniqueForm>::register_fields(&mut model_form);
+        <E::Form as crate::forms::FormAccess>::register_fields(&mut model_form);
         for col in self.form.field_columns() {
             let name = col.as_str();
             match model_form.fields.get(name) {
@@ -332,7 +332,7 @@ mod tests {
             pub form: crate::forms::Forms,
         }
 
-        impl crate::forms::RuniqueForm for ArticleForm {
+        impl crate::forms::FormAccess for ArticleForm {
             fn register_fields(form: &mut crate::forms::Forms) {
                 use crate::forms::fields::{BooleanField, TextField};
                 form.field(&TextField::text("title"));
@@ -344,6 +344,8 @@ mod tests {
             }
             crate::impl_form_access!();
         }
+
+        impl crate::forms::RuniqueForm for ArticleForm {}
 
         impl crate::auth::meta::ModelMeta for Entity {
             const KEY: &'static str = "articles";

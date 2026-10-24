@@ -10,7 +10,7 @@
 use crate::helpers::db;
 use async_trait::async_trait;
 use runique::{
-    forms::{field::{FormSave, RuniqueForm}, form::Forms},
+    forms::{field::{FormSave, FormAccess, RuniqueForm}, form::Forms},
     prelude::SaveContext,
     sea_orm::{ConnectionTrait, DatabaseTransaction, DbErr},
 };
@@ -76,10 +76,8 @@ impl TrackerForm {
     }
 }
 
-#[async_trait]
-impl RuniqueForm for TrackerForm {
+impl FormAccess for TrackerForm {
     fn register_fields(_form: &mut Forms) {}
-
     fn from_form(form: Forms) -> Self {
         Self {
             form,
@@ -92,15 +90,16 @@ impl RuniqueForm for TrackerForm {
             sql: None,
         }
     }
-
     fn get_form(&self) -> &Forms {
         &self.form
     }
-
     fn get_form_mut(&mut self) -> &mut Forms {
         &mut self.form
     }
+}
 
+#[async_trait]
+impl RuniqueForm for TrackerForm {
     async fn before_save(
         &mut self,
         ctx: SaveContext,
@@ -118,7 +117,6 @@ impl RuniqueForm for TrackerForm {
         }
         Ok(())
     }
-
     async fn on_save(&mut self, txn: &DatabaseTransaction) -> Result<(), DbErr> {
         self.calls.push("save".to_string());
         if let Some(sql) = &self.sql {
@@ -131,7 +129,6 @@ impl RuniqueForm for TrackerForm {
         }
         Ok(())
     }
-
     async fn after_save(
         &mut self,
         ctx: SaveContext,

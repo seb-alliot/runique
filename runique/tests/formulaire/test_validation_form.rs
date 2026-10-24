@@ -6,7 +6,7 @@
 
 use crate::helpers::{handler_req::build_handler_req, server::build_engine};
 use axum::http::Method;
-use runique::forms::{field::RuniqueForm, fields::text::TextField, form::Forms};
+use runique::forms::{field::{FormAccess, RuniqueForm}, fields::text::TextField, form::Forms};
 use runique::prelude::ValidationForm;
 use std::collections::HashMap;
 
@@ -32,7 +32,7 @@ struct SearchForm {
     form: Forms,
 }
 
-impl RuniqueForm for SearchForm {
+impl FormAccess for SearchForm {
     fn register_fields(form: &mut Forms) {
         form.field(&TextField::text("q").required());
     }
@@ -45,6 +45,9 @@ impl RuniqueForm for SearchForm {
     fn get_form_mut(&mut self) -> &mut Forms {
         &mut self.form
     }
+}
+
+impl RuniqueForm for SearchForm {
     fn allow_get(&self, _request: &runique::context::Request) -> bool {
         self.is_submitted()
     }
@@ -128,16 +131,8 @@ struct DynamicForm {
     form: Forms,
 }
 
-#[async_trait::async_trait]
-impl RuniqueForm for DynamicForm {
+impl FormAccess for DynamicForm {
     fn register_fields(_form: &mut Forms) {}
-
-    async fn register_dynamic_fields(&mut self, _request: &runique::context::Request) {
-        self.get_form_mut()
-            .field(&TextField::text("late_field").required());
-        self.get_form_mut().add_value("late_field", "present");
-    }
-
     fn from_form(form: Forms) -> Self {
         Self { form }
     }
@@ -146,6 +141,15 @@ impl RuniqueForm for DynamicForm {
     }
     fn get_form_mut(&mut self) -> &mut Forms {
         &mut self.form
+    }
+}
+
+#[async_trait::async_trait]
+impl RuniqueForm for DynamicForm {
+    async fn register_dynamic_fields(&mut self, _request: &runique::context::Request) {
+        self.get_form_mut()
+            .field(&TextField::text("late_field").required());
+        self.get_form_mut().add_value("late_field", "present");
     }
 }
 
@@ -180,7 +184,7 @@ struct AlwaysPostOnlyForm {
     form: Forms,
 }
 
-impl RuniqueForm for AlwaysPostOnlyForm {
+impl FormAccess for AlwaysPostOnlyForm {
     fn register_fields(form: &mut Forms) {
         form.field(&TextField::text("name"));
     }
@@ -193,6 +197,9 @@ impl RuniqueForm for AlwaysPostOnlyForm {
     fn get_form_mut(&mut self) -> &mut Forms {
         &mut self.form
     }
+}
+
+impl RuniqueForm for AlwaysPostOnlyForm {
     // Explicit override matching the (now-default) `false` — kept to assert
     // the override mechanism itself still works, independent of the default.
     fn allow_get(&self, _request: &runique::context::Request) -> bool {

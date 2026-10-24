@@ -1,7 +1,9 @@
 //! Tests — macros/routeur/register_url.rs
 //! Couvre : register_pending, PENDING_URLS drain, reverse, reverse_with_parameters
 
-use runique::macros::routeur::register_url::{register_pending, reverse, reverse_with_parameters};
+use runique::macros::routeur::register_url::{
+    UrlError, register_pending, reverse, reverse_with_parameters,
+};
 use runique::{config::app::RuniqueConfig, engine::RuniqueEngine};
 use sea_orm::Database;
 use std::sync::Arc;
@@ -45,7 +47,7 @@ async fn test_reverse_url_enregistre() {
 async fn test_reverse_url_inexistante_retourne_none() {
     let engine = make_engine().await;
     let url = reverse(&engine, "url_qui_nexiste_pas");
-    assert!(url.is_none());
+    assert_eq!(url, Err(UrlError::UnknownRoute("inexistant".into())));
 }
 
 #[tokio::test]
@@ -68,7 +70,7 @@ async fn test_reverse_with_parameters_substitue() {
     let engine = make_engine().await;
     register_name_url(&engine, "detail", "/items/{id}/");
     let url = reverse_with_parameters(&engine, "detail", &[("id", "42")]);
-    assert_eq!(url, Some("/items/42/".to_string()));
+    assert_eq!(url, Ok("/items/42/".to_string()));
 }
 
 #[tokio::test]
@@ -77,14 +79,14 @@ async fn test_reverse_with_parameters_multiple() {
     let engine = make_engine().await;
     register_name_url(&engine, "user_post", "/users/{user_id}/posts/{post_id}/");
     let url = reverse_with_parameters(&engine, "user_post", &[("user_id", "5"), ("post_id", "99")]);
-    assert_eq!(url, Some("/users/5/posts/99/".to_string()));
+    assert_eq!(url, Ok("/users/5/posts/99/".to_string()));
 }
 
 #[tokio::test]
 async fn test_reverse_with_parameters_url_inexistante() {
     let engine = make_engine().await;
     let url = reverse_with_parameters(&engine, "inexistant", &[("id", "1")]);
-    assert!(url.is_none());
+    assert_eq!(url, Err(UrlError::UnknownRoute("inexistant".into())));
 }
 
 #[tokio::test]
@@ -93,5 +95,45 @@ async fn test_reverse_with_parameters_sans_substitution() {
     let engine = make_engine().await;
     register_name_url(&engine, "static_url", "/about/");
     let url = reverse_with_parameters(&engine, "static_url", &[]);
-    assert_eq!(url, Some("/about/".to_string()));
+    assert_eq!(url, Ok("/about/".to_string()));
+}
+
+// A value never adds a segment, a query or a fragment.
+#[tokio::test]
+async fn test_reverse_with_parameters_encode_les_valeurs() {
+    use runique::macros::routeur::register_url::register_name_url;
+    let engine = make_engine().await;
+    register_name_url(&engine, "detail", "/items/{id}/");
+    let url = reverse_with_parameters(&engine, "detail", &[("id", "x/../admin?a=1#f")]);
+    assert_eq!(url, Ok("/items/x%2F..%2Fadmin%3Fa%3D1%23f/".to_string()));
+}
+
+#[tokio::test]
+async fn test_reverse_with_parameters_parametre_manquant() {
+    use runique::macros::routeur::register_url::register_name_url;
+    let engine = make_engine().await;
+    register_name_url(&engine, "user_post", "/users/{user_id}/posts/{post_id}/");
+    let url = reverse_with_parameters(&engine, "user_post", &[("user_id", "5")]);
+    assert_eq!(
+        url,
+        Err(UrlError::MissingParam {
+            route: "user_post".into(),
+            param: "post_id".into(),
+        })
+    );
+}
+
+#[tokio::test]
+async fn test_reverse_with_parameters_parametre_inconnu() {
+    use runique::macros::routeur::register_url::register_name_url;
+    let engine = make_engine().await;
+    register_name_url(&engine, "detail", "/items/{id}/");
+    let url = reverse_with_parameters(&engine, "detail", &[("id", "1"), ("ids", "2")]);
+    assert_eq!(
+        url,
+        Err(UrlError::UnknownParam {
+            route: "detail".into(),
+            param: "ids".into(),
+        })
+    );
 }

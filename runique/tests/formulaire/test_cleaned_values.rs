@@ -3,7 +3,7 @@
 //!          NaiveDate, NaiveTime, NaiveDateTime, DateTime<Utc>,
 //!          cleaned_value (path/query fallback), clear()
 
-use runique::forms::{field::RuniqueForm, fields::text::TextField, form::Forms};
+use runique::forms::{field::{FormAccess, RuniqueForm}, fields::text::TextField, form::Forms};
 
 // ── Helper : form de test ──────────────────────────────────────
 
@@ -11,7 +11,7 @@ struct TestForm {
     form: Forms,
 }
 
-impl RuniqueForm for TestForm {
+impl FormAccess for TestForm {
     fn register_fields(form: &mut Forms) {
         form.field(&TextField::text("str_field"));
         form.field(&TextField::text("int_field"));
@@ -33,6 +33,8 @@ impl RuniqueForm for TestForm {
         &mut self.form
     }
 }
+
+impl RuniqueForm for TestForm {}
 
 fn make_form() -> TestForm {
     let mut form = TestForm {

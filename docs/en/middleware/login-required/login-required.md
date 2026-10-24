@@ -63,7 +63,7 @@ fn login_required(
 ## Notes
 
 - This protection applies to **any logged-in user**, regardless of role
-- For the admin interface, Runique uses its own `admin_required` middleware (checks `is_staff` or `is_superuser`) — `login_required` is not needed on the admin side
+- For the admin interface, Runique uses its own `admin_access` middleware (checks `is_staff` or `is_superuser`) — `login_required` is not needed on the admin side
 
 ---
 

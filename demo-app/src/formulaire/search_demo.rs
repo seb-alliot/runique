@@ -6,9 +6,8 @@ pub struct SearchDemoForm {
     pub form: Forms,
 }
 
-impl RuniqueForm for SearchDemoForm {
+impl FormAccess for SearchDemoForm {
     impl_form_access!();
-
     fn register_fields(form: &mut Forms) {
         form.field(
             &TextField::text("search")
@@ -22,3 +21,5 @@ impl RuniqueForm for SearchDemoForm {
         );
     }
 }
+
+impl RuniqueForm for SearchDemoForm {}
