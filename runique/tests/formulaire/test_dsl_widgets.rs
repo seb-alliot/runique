@@ -6,7 +6,7 @@
 //! enum choices outside Postgres, ignored `[label]` and `[min]`; the admin
 //! ignored `[required]` on numbers; `3,5` validated as 3.5 but was saved as is.
 use runique::forms::Forms;
-use runique::forms::field::RuniqueForm;
+use runique::forms::field::FormAccess;
 
 mod shop {
     use runique::prelude::*;

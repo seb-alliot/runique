@@ -47,13 +47,11 @@ mod schema_form;
 /// ```rust,ignore
 /// #[form(schema = crate::entities::contact, fields = [email, message])]
 /// pub struct ContactForm;
-/// impl RuniqueForm for ContactForm {
-///     impl_form_access!(model);
-/// }
+/// impl RuniqueForm for ContactForm {}
 /// ```
 ///
 /// The struct must be a unit struct (`pub struct Foo;`). The macro generates
-/// a `pub form: Forms` field and implements `ModelForm`.
+/// a `pub form: Forms` field and implements `FormAccess` and `ModelForm`.
 ///
 /// # Field types available in templates
 ///

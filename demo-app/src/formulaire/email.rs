@@ -8,7 +8,7 @@ pub struct EmailForm {
     pub form: Forms,
 }
 
-impl RuniqueForm for EmailForm {
+impl FormAccess for EmailForm {
     fn register_fields(form: &mut Forms) {
         form.field(
             &TextField::email("email")
@@ -18,3 +18,5 @@ impl RuniqueForm for EmailForm {
     }
     impl_form_access!();
 }
+
+impl RuniqueForm for EmailForm {}

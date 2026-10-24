@@ -3,7 +3,7 @@
 //! `min_length`/`max_length`/`min`/`max` can be tightened but loosening one
 //! panics, and a replacement that breaks what the column needs is refused.
 use runique::forms::Forms;
-use runique::forms::field::RuniqueForm;
+use runique::forms::field::{FormAccess, RuniqueForm};
 use runique::forms::fields::{NumericField, TextField};
 
 mod stock {
@@ -31,8 +31,6 @@ macro_rules! schema_form {
 
         #[runique::prelude::async_trait]
         impl RuniqueForm for $name {
-            runique::impl_form_access!(model);
-
             fn customize($form: &mut Forms) $body
         }
     };

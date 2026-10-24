@@ -7,7 +7,7 @@ pub struct ImageForm {
     pub form: Forms,
 }
 
-impl RuniqueForm for ImageForm {
+impl FormAccess for ImageForm {
     impl_form_access!();
     fn register_fields(form: &mut Forms) {
         form.field(
@@ -23,3 +23,5 @@ impl RuniqueForm for ImageForm {
         form.add_js(&["js/test_csrf.js"]);
     }
 }
+
+impl RuniqueForm for ImageForm {}

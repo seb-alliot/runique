@@ -8,7 +8,7 @@ pub struct UsernameForm {
     pub form: Forms,
 }
 
-impl RuniqueForm for UsernameForm {
+impl FormAccess for UsernameForm {
     fn register_fields(form: &mut Forms) {
         form.field(
             &TextField::text("username")
@@ -18,3 +18,5 @@ impl RuniqueForm for UsernameForm {
     }
     impl_form_access!();
 }
+
+impl RuniqueForm for UsernameForm {}

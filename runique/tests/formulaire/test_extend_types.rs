@@ -3,7 +3,7 @@
 //! field it didn't know (`i16`, `f32`, `timestamp`, `timestamp_tz`…), so an
 //! `extend!{}` using one of them didn't compile; its integers had no bounds.
 use runique::forms::Forms;
-use runique::forms::field::RuniqueForm;
+use runique::forms::field::FormAccess;
 use runique::utils::aliases::StrMap;
 
 mod groups {

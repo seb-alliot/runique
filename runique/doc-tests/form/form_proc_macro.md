@@ -1,7 +1,7 @@
-# Formulaire basé modèle avec `#[form(...)]` et `impl_form_access!(model)`
+# Formulaire basé modèle avec `#[form(...)]`
 
-La macro `#[form(...)]` génère la struct et `impl ModelForm`.
-Le dev écrit `impl RuniqueForm` avec `impl_form_access!(model)` pour brancher les champs du modèle.
+La macro `#[form(...)]` génère la struct, `impl FormAccess` (champs du modèle et accesseurs) et `impl ModelForm`.
+Le dev n'écrit que `impl RuniqueForm`, avec sa logique métier.
 
 ```rust,ignore
 use runique::prelude::*;
@@ -9,9 +9,7 @@ use runique::prelude::*;
 #[form(schema = user_schema, fields = [username, email, password])]
 pub struct RegisterForm;
 
-impl RuniqueForm for RegisterForm {
-    impl_form_access!(model);
-}
+impl RuniqueForm for RegisterForm {}
 ```
 
 ## Avec validation métier
@@ -26,8 +24,6 @@ pub struct RegisterForm;
 
 #[async_trait]
 impl RuniqueForm for RegisterForm {
-    impl_form_access!(model);
-
     async fn clean(&mut self) -> Result<(), StrMap> {
         let mut errors = StrMap::new();
         if self.get_string("username").len() < 3 {

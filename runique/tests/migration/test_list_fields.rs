@@ -390,7 +390,7 @@ async fn fetch_with_says_it_needs_postgres() {
 // ── Formulaires et admin ─────────────────────────────────────────────────────
 
 use runique::forms::Forms;
-use runique::forms::field::RuniqueForm;
+use runique::forms::field::{FormAccess, RuniqueForm};
 use std::collections::HashMap;
 
 fn admin_form() -> book::Form {

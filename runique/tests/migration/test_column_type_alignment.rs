@@ -41,7 +41,7 @@ macro_rules! aligned {
             /// Whether the field the generated admin form gives `v` can
             /// hold the entity's column: what the admin checks at boot.
             pub fn form_accepts() -> bool {
-                use runique::forms::{Forms, RuniqueForm};
+                use runique::forms::{FormAccess, Forms};
                 let mut form = Forms::new("");
                 Form::register_fields(&mut form);
                 form.fields

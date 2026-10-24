@@ -120,7 +120,7 @@ pub mod prelude {
     pub use crate::flash::{FlashMessage, Message, MessageLevel};
     pub use crate::forms::{
         Forms, Prisme,
-            field::{FormField, FormSave, RuniqueForm, SaveContext},
+            field::{FormAccess, FormField, FormSave, RuniqueForm, SaveContext},
         fields::{
             CheckboxField, DateField, DurationField, RadioField, TimeField,
             boolean::BooleanField,
@@ -154,7 +154,8 @@ pub mod prelude {
     // UTILS
     // ========================================================================
     pub use crate::macros::{
-        RouterExt, register_name_url, register_pending, reverse, reverse_with_parameters,
+        RouterExt, UrlError, register_name_url, register_pending, reverse,
+        reverse_with_parameters,
     };
     pub use crate::utils::csp_nonce::*;
     pub use crate::{

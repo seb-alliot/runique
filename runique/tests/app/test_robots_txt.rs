@@ -107,7 +107,7 @@ async fn test_robots_txt_ne_divulgue_pas_le_prefix() {
 
 /// La page de login admin porte `X-Robots-Tag: noindex` — c'est la seule page
 /// admin atteignable sans compte, donc la seule réellement indexable. Elle est
-/// hors du middleware `admin_required`, d'où l'en-tête posé au-dessus.
+/// hors du middleware `admin_access`, d'où l'en-tête posé au-dessus.
 #[tokio::test]
 #[serial]
 async fn test_x_robots_tag_sur_login_admin() {

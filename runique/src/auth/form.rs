@@ -1,5 +1,5 @@
 //! `LoginAdmin` — admin login form with username/password fields.
-use crate::forms::{Forms, field::RuniqueForm, fields::text::TextField};
+use crate::forms::{Forms, field::{FormAccess, RuniqueForm}, fields::text::TextField};
 use crate::impl_form_access;
 
 /// Admin login form provided by Runique.
@@ -12,7 +12,7 @@ pub struct LoginAdmin {
     pub form: Forms,
 }
 
-impl RuniqueForm for LoginAdmin {
+impl FormAccess for LoginAdmin {
     fn register_fields(form: &mut Forms) {
         form.field(
             &TextField::text("username")
@@ -26,9 +26,10 @@ impl RuniqueForm for LoginAdmin {
                 .required(),
         );
     }
-
     impl_form_access!();
 }
+
+impl RuniqueForm for LoginAdmin {}
 
 /// An account as the staff edits it, from the `eihwaz_users` schema: its name
 /// and email only. The password is its owner's, set from the email link;
@@ -48,6 +49,8 @@ impl crate::forms::model_form::ModelForm for UserModelForm {
     }
 }
 
-impl RuniqueForm for UserModelForm {
+impl FormAccess for UserModelForm {
     impl_form_access!(model);
 }
+
+impl RuniqueForm for UserModelForm {}

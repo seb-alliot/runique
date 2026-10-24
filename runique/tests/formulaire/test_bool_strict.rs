@@ -7,7 +7,7 @@
 use runique::forms::FormDataError;
 use runique::forms::base::FormField;
 use runique::forms::column_value::column_value;
-use runique::forms::field::RuniqueForm;
+use runique::forms::field::{FormAccess, RuniqueForm};
 use runique::forms::fields::BooleanField;
 use runique::forms::form::Forms;
 use runique::sea_orm::ActiveValue;
@@ -99,7 +99,7 @@ struct FlagForm {
     form: Forms,
 }
 
-impl RuniqueForm for FlagForm {
+impl FormAccess for FlagForm {
     fn register_fields(form: &mut Forms) {
         form.field(&BooleanField::new("active"));
     }
@@ -113,6 +113,8 @@ impl RuniqueForm for FlagForm {
         &mut self.form
     }
 }
+
+impl RuniqueForm for FlagForm {}
 
 fn flag_form(active: &str) -> FlagForm {
     let mut form = FlagForm {

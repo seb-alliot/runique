@@ -9,7 +9,7 @@ use crate::helpers::{handler_req::build_handler_req, server::build_engine};
 use axum::http::Method;
 use runique::context::register_asset_filters;
 use runique::forms::{
-    field::{RuniqueForm, build_form_for_test},
+    field::{FormAccess, RuniqueForm, build_form_for_test},
     fields::text::TextField,
     form::Forms,
 };
@@ -25,7 +25,7 @@ struct SearchForm {
     form: Forms,
 }
 
-impl RuniqueForm for SearchForm {
+impl FormAccess for SearchForm {
     fn register_fields(form: &mut Forms) {
         form.field(&TextField::text("q").label("Q"));
     }
@@ -39,6 +39,8 @@ impl RuniqueForm for SearchForm {
         &mut self.form
     }
 }
+
+impl RuniqueForm for SearchForm {}
 
 /// Tera configurée comme celle du framework, avec les templates de champs réels.
 fn tera() -> Arc<Tera> {

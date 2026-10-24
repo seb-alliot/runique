@@ -4,7 +4,7 @@
 use crate::helpers::{handler_req::build_handler_req, server::build_engine};
 use axum::http::Method;
 use runique::forms::base::{CommonFieldConfig, FormField};
-use runique::forms::field::{FormSave, RuniqueForm};
+use runique::forms::field::{FormSave, FormAccess, RuniqueForm};
 use runique::forms::fields::{
     BooleanField, CheckboxField, ChoiceField, DateField, DateTimeField, DurationField,
     HoneypotField, RadioField, TextField, TimeField,
@@ -38,8 +38,7 @@ struct NoteForm {
     saved: bool,
 }
 
-#[async_trait::async_trait]
-impl RuniqueForm for NoteForm {
+impl FormAccess for NoteForm {
     fn register_fields(form: &mut Forms) {
         form.field(&TextField::text("title").required());
         form.field(&TextField::password("secret"));
@@ -53,6 +52,10 @@ impl RuniqueForm for NoteForm {
     fn get_form_mut(&mut self) -> &mut Forms {
         &mut self.form
     }
+}
+
+#[async_trait::async_trait]
+impl RuniqueForm for NoteForm {
     async fn on_save(
         &mut self,
         _txn: &runique::sea_orm::DatabaseTransaction,
@@ -241,7 +244,7 @@ struct PlainForm {
     form: Forms,
 }
 
-impl RuniqueForm for PlainForm {
+impl FormAccess for PlainForm {
     fn register_fields(form: &mut Forms) {
         form.field(&TextField::text("q").required());
     }
@@ -255,6 +258,8 @@ impl RuniqueForm for PlainForm {
         &mut self.form
     }
 }
+
+impl RuniqueForm for PlainForm {}
 
 #[tokio::test]
 async fn a_get_is_never_validated_unless_the_form_opts_in() {

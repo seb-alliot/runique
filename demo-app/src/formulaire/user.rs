@@ -3,17 +3,13 @@ use runique::prelude::*;
 // admin
 #[form(schema = runique_users, fields = [username, email, is_active, is_superuser, roles])]
 pub struct UserEditForm;
-impl RuniqueForm for UserEditForm {
-    impl_form_access!(model);
-}
+impl RuniqueForm for UserEditForm {}
 
 // inscription
 #[form(schema = runique_users, fields = [username, email, password])]
 pub struct RegisterForm;
 #[async_trait]
 impl RuniqueForm for RegisterForm {
-    impl_form_access!(model);
-
     async fn clean(&mut self) -> Result<(), StrMap> {
         let username = self.cleaned::<String>("username").unwrap_or_default();
         let password = self.cleaned::<String>("password").unwrap_or_default();

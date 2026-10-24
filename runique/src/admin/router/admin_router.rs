@@ -29,7 +29,7 @@ use crate::{
     admin::{
         CrudOperation,
         config::AdminConfig,
-        middleware::admin_required,
+        middleware::admin_access,
         trad::{inject_admin_prefix, insert_admin_messages},
     },
     flash_now,
@@ -144,7 +144,7 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
         .merge(
             protected_router
                 .merge(generated_router)
-                .layer(middleware::from_fn(admin_required))
+                .layer(middleware::from_fn(admin_access))
                 .layer(Extension(site)),
         )
         .layer(middleware::from_fn(
@@ -156,7 +156,7 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
         // dev picked to stay discreet, and it only asks crawlers not to *fetch* —
         // a linked URL can still be listed. This header says "do not index" and
         // applies to every admin response, login page included (it sits above
-        // `admin_required`, which covers protected routes only), so redirects,
+        // `admin_access`, which covers protected routes only), so redirects,
         // errors and JSON are covered too. `overriding`: no admin page has a
         // legitimate reason to be indexed, so no handler may weaken it.
         .layer(SetResponseHeaderLayer::overriding(

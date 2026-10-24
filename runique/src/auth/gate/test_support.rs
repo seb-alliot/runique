@@ -35,7 +35,7 @@ pub(crate) mod fixtures {
         pub form: crate::forms::form::Forms,
     }
 
-    impl crate::forms::field::RuniqueForm for NoteForm {
+    impl crate::forms::field::FormAccess for NoteForm {
         fn register_fields(form: &mut crate::forms::form::Forms) {
             #[cfg(feature = "pk-uuid")]
             form.field(&crate::forms::fields::UUIDField::new("owner_id"));
@@ -44,6 +44,8 @@ pub(crate) mod fixtures {
         }
         crate::impl_form_access!();
     }
+
+    impl crate::forms::field::RuniqueForm for NoteForm {}
 
     impl crate::auth::meta::ModelMeta for note::Entity {
         const KEY: &'static str = "notes";
