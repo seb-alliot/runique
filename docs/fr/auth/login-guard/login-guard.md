@@ -182,4 +182,10 @@ Les compteurs vivent dans la mémoire de chaque instance : voir [Rate limiting �
 
 ---
 
+## Limite actuelle : pas de plafond mémoire
+
+`LoginGuard` garde une entrée par nom d'utilisateur saisi, y compris les noms qui n'existent pas (sinon le verrouillage révélerait quels comptes existent), sans nombre maximal d'entrées. Des noms inventés envoyés en masse font donc grossir la mémoire jusqu'à leur expiration. Le pourquoi et les mesures à prendre en attendant une gestion du plafond (proxy inverse qui limite les requêtes, limiteur par IP devant) : voir [Rate limiting — limite actuelle](/docs/fr/middleware/rate-limit).
+
+---
+
 ← [**Middlewares de protection**](/docs/fr/auth/middleware) | [**Exemple complet**](/docs/fr/auth/exemple) →

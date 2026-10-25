@@ -154,4 +154,30 @@ A `RateLimiter` counts in the memory of its process, and so does `LoginGuard`. W
 
 ---
 
+## Current limit: no memory cap
+
+**The limit.** `RateLimiter` and `LoginGuard` keep one entry per key in the process memory: one per IP address for the limiter, one per username typed for `LoginGuard`. Expired entries are removed when they are read and by the periodic cleanup (every 1 to 60 seconds), but **no maximum number of entries is enforced**. A flood of distinct keys (many IP addresses, made-up usernames) grows the memory until they expire.
+
+**Why.** A cap means deciding what to do once it is reached, and every simple answer helps the attacker: refusing new keys blocks everyone's login, evicting the oldest erases a lockout in progress, no longer counting lets brute force through. `LoginGuard` also counts names that don't exist on purpose: counting only real accounts would turn the lockout into a way to find out which usernames exist. A cap handling that avoids these traps is planned for a 4.x release.
+
+**Meanwhile:**
+
+- put the application behind a reverse proxy that **rate-limits requests itself**. A proxy that only forwards doesn't protect these tables. With nginx, `limit_req` keeps its counters in a fixed-size zone, which bounds the memory:
+
+  ```nginx
+  limit_req_zone $binary_remote_addr zone=login:10m rate=10r/m;
+
+  location = /login {
+      limit_req zone=login burst=5 nodelay;
+      proxy_pass http://127.0.0.1:3000;
+  }
+  ```
+
+  Do the same for the admin login, at its own path;
+- combine `LoginGuard` with a per-IP limiter on the login route (see [LoginGuard](/docs/en/auth/login-guard)): the limiter caps how many names one address can try;
+- keep durations reasonable (`retry_after`, `lockout_secs`): the longer they are, the longer entries stay in memory;
+- monitor the process memory in production.
+
+---
+
 ← [**Builder & Configuration**](/docs/en/middleware/builder) | [**Flash Messages**](/docs/en/flash) →

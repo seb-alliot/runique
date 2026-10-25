@@ -182,4 +182,10 @@ The counters live in the memory of each instance: see [Rate limiting — several
 
 ---
 
+## Current limit: no memory cap
+
+`LoginGuard` keeps one entry per username typed, including names that don't exist (otherwise the lockout would reveal which accounts exist), with no maximum number of entries. Made-up names sent in bulk therefore grow the memory until they expire. The reasons, and what to do until the cap is handled (a reverse proxy that rate-limits requests, a per-IP limiter in front): see [Rate limiting — current limit](/docs/en/middleware/rate-limit).
+
+---
+
 ← [**Protection Middlewares**](/docs/en/auth/middleware) | [**Complete Example**](/docs/en/auth/example) →

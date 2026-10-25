@@ -10,7 +10,7 @@ Runique uses **SeaORM** with a Django-like manager provided through the `impl_ob
 | [CRUD Queries](/docs/en/orm/queries) | SELECT, INSERT, UPDATE, DELETE, COUNT, `search!` |
 | [Advanced](/docs/en/orm/advanced) | Transactions, relations, full CRUD pattern |
 
-> **Form integration**: via `#[form(model = Entity)]`, a form exposes `Form::objects` and supports `search!(@Form => ...)`. See [Forms — model attribute](/docs/en/model/forms).
+> **Form integration**: `#[form(schema = …)]` ties the form to its model module's entity automatically (`schema = blog` → `blog::Entity`), which gives `Form::objects` and `search!(@Form => ...)`. See [Forms — entity link](/docs/en/model/forms).
 
 ## Next Steps
 

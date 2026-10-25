@@ -46,6 +46,10 @@ pub fn generate_admin_form(model: &ModelInput) -> TokenStream2 {
         }
 
         impl ::runique::forms::field::RuniqueForm for #form_name {}
+        impl ::runique::forms::FormEntity for #form_name {
+            type Entity = Entity;
+        }
+
     }
 }
 

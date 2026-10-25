@@ -155,4 +155,30 @@ Un `RateLimiter` compte dans la mémoire de son processus, tout comme `LoginGuar
 
 ---
 
+## Limite actuelle : pas de plafond mémoire
+
+**La limite.** `RateLimiter` et `LoginGuard` gardent une entrée par clé dans la mémoire du processus : une par adresse IP pour le limiteur, une par nom d'utilisateur saisi pour `LoginGuard`. Les entrées expirées sont retirées quand on les consulte et par le nettoyage périodique (toutes les 1 à 60 secondes), mais **aucun nombre maximal d'entrées n'est imposé**. Un afflux de clés différentes (beaucoup d'adresses IP, des noms d'utilisateur inventés) fait grossir la mémoire jusqu'à leur expiration.
+
+**Pourquoi.** Un plafond demande de décider quoi faire quand il est atteint, et chaque réponse simple profite à l'attaquant : refuser les nouvelles clés bloque la connexion de tout le monde, évincer les plus anciennes efface un verrouillage en cours, ne plus compter laisse passer la force brute. `LoginGuard` compte aussi volontairement les noms qui n'existent pas : ne compter que les comptes réels ferait du verrouillage un moyen de découvrir quels noms d'utilisateur existent. Une gestion du plafond qui évite ces pièges est prévue dans une version 4.x.
+
+**En attendant :**
+
+- placez l'application derrière un proxy inverse qui **limite lui-même les requêtes**. Un proxy qui se contente de transmettre ne protège pas ces tables. Avec nginx, `limit_req` garde ses compteurs dans une zone de taille fixe, ce qui borne la mémoire :
+
+  ```nginx
+  limit_req_zone $binary_remote_addr zone=login:10m rate=10r/m;
+
+  location = /login {
+      limit_req zone=login burst=5 nodelay;
+      proxy_pass http://127.0.0.1:3000;
+  }
+  ```
+
+  Faites de même pour la connexion de l'admin, à son propre chemin ;
+- combinez `LoginGuard` et un limiteur par IP sur la route de connexion (voir [LoginGuard](/docs/fr/auth/login-guard)) : le limiteur plafonne le nombre de noms qu'une même adresse peut essayer ;
+- gardez des durées raisonnables (`retry_after`, `lockout_secs`) : plus elles sont longues, plus les entrées restent en mémoire ;
+- surveillez la mémoire du processus en production.
+
+---
+
 ← [**Builder & configuration**](/docs/fr/middleware/builder) | [**Flash Messages**](/docs/fr/flash) →

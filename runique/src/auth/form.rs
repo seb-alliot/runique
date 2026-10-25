@@ -58,3 +58,7 @@ impl FormAccess for UserModelForm {
 }
 
 impl RuniqueForm for UserModelForm {}
+
+impl crate::forms::FormEntity for UserModelForm {
+    type Entity = crate::auth::user::Entity;
+}

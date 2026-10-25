@@ -141,13 +141,13 @@ See [CRUD Queries — search! macro](/docs/en/orm/queries#search-macro-filter-ds
 
 ## Access via form — `FormEntity`
 
-When a form is annotated with `#[form(model = Entity)]`, Runique automatically generates:
+When a form is declared with `#[form(schema = …)]`, Runique automatically generates:
 
 - The `FormEntity` trait implementation (linking the form to its entity)
 - A `pub const objects` constant on the form, identical to `Entity::objects`
 
 ```rust
-#[form(schema = user_schema, model = users::Entity)]
+#[form(schema = users)]
 pub struct UserForm;
 
 // Access objects via the form — equivalent to users::Entity::objects
@@ -190,7 +190,7 @@ let results = search!(@UserForm =>
 | --- | --- |
 | [CRUD Queries](/docs/en/orm/queries) | SELECT, COUNT, WHERE, INSERT, UPDATE, DELETE |
 | [Advanced](/docs/en/orm/advanced) | Transactions, relations |
-| [Forms](/docs/en/model/forms) | `#[form(model = ...)]`, `FormEntity`, `Form::objects` |
+| [Forms](/docs/en/model/forms) | `#[form(schema = ...)]`, `FormEntity`, `Form::objects` |
 
 ## Back to summary
 
