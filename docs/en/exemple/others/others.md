@@ -33,7 +33,7 @@ pub async fn demo_messages(mut request: Request) -> AppResult<Response> {
 ### API routes
 
 ```rust
-pub fn routes() -> Router {
+pub fn routes() -> Routes {
     urlpatterns! {
         "/api/users" => view!{ api_list_users }, name = "api_users",
     }

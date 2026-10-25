@@ -9,7 +9,7 @@ use crate::views;
 use runique::prelude::*;
 use runique::{urlpatterns, view};
 
-pub fn routes() -> Router {
+pub fn routes() -> Routes {
     urlpatterns! {
         "/"                  => view!{ views::index },       name = "index",
         "/users"             => view! { views::user_list },  name = "users",
@@ -90,7 +90,7 @@ use crate::views;
 use runique::prelude::*; // get, post, put, delete, patch inclus
 use runique::urlpatterns;
 
-pub fn routes() -> Router {
+pub fn routes() -> Routes {
     urlpatterns! {
         // Handler unique, toutes méthodes (dispatch via ValidationForm::try_form)
         "/inscription"   => view!{ views::inscription },                     name = "inscription",

@@ -47,7 +47,7 @@ let app = RuniqueApp::builder(config)
 ```rust
 use runique::{urlpatterns, view};
 
-pub fn routes() -> Router {
+pub fn routes() -> Routes {
     urlpatterns! {
         "/" => view!{ views::index }, name = "index",
         "/about" => view!{ views::about }, name = "about",

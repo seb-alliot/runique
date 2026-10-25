@@ -19,14 +19,18 @@
     {% if searched_username %}
     <div class="result-card">
         {% if found_by_username %}
+        {% if can_read_username %}
         <div class="result-line">
             <span class="result-label">User:</span>
             <span class="result-value">{{ found_by_username.username }}</span>
         </div>
+        {% endif %}
+        {% if can_read_email %}
         <div class="result-line">
             <span class="result-label">Email:</span>
             <span class="result-value">{{ found_by_username.email }}</span>
         </div>
+        {% endif %}
         {% else %}
         <p>No user with this username.</p>
         {% endif %}
@@ -41,14 +45,18 @@
     {% if searched_email %}
     <div class="result-card">
         {% if found_by_email %}
+        {% if can_read_username %}
         <div class="result-line">
             <span class="result-label">User:</span>
             <span class="result-value">{{ found_by_email.username }}</span>
         </div>
+        {% endif %}
+        {% if can_read_email %}
         <div class="result-line">
             <span class="result-label">Email:</span>
             <span class="result-value">{{ found_by_email.email }}</span>
         </div>
+        {% endif %}
         {% else %}
         <p>No user with this email.</p>
         {% endif %}

@@ -88,7 +88,6 @@ RuniqueApp::builder(config)
 | `.routes(admins::routes("/admin"))` | Monte les routes CRUD sous `/admin` |
 | `.with_state(…)` | État partagé généré par le daemon |
 | `.no_robots_txt()` | Désactive le `/robots.txt` automatique |
-| `.extra_routes(vec![…])` | Routes custom, chacune derrière le droit qu'elle déclare sur une ressource |
 
 ### `.routes()` et `.prefix()` — deux réglages distincts
 
@@ -127,81 +126,6 @@ L'ordre des deux appels n'a aucune importance, et les slashs sont optionnels :
 > Runique sur **toutes** les réponses de l'admin — page de login incluse, ainsi que
 > les redirections, les erreurs et les réponses JSON. Il ne divulgue aucun chemin et
 > reste en place même si vous surchargez les templates admin.
-
----
-
-## Routes admin custom (`extra_routes`)
-
-Pour des vues métier qui dépassent le CRUD généré (ex : détail commande avec lignes associées,
-tableau de bord personnalisé), déclarez des routes supplémentaires dans `url.rs` et
-enregistrez-les via `.extra_routes()`.
-
-Ces routes héritent automatiquement du middleware admin : authentification, `AdminState`,
-`PrototypeAdminState` (sidebar), et `CurrentUser`.
-
-Chaque route déclare aussi **la ressource sur laquelle elle travaille** et **l'opération
-qu'elle effectue** (`CrudOperation`). L'utilisateur connecté doit avoir le droit
-correspondant sur cette ressource, via ses groupes — le même contrôle que les pages générées :
-
-| `CrudOperation` | Droit vérifié |
-| --- | --- |
-| `List`, `View` | `can_read` |
-| `Create` | `can_create` |
-| `Edit` | `can_update` |
-| `Delete` | `can_delete` |
-
-Sans ce droit, l'utilisateur est renvoyé au tableau de bord avec un message « droits
-insuffisants ». Une clé de ressource non enregistrée est une erreur au démarrage. Les lignes
-et les colonnes que le handler lit ou écrit ensuite restent sous sa responsabilité.
-
-**`url.rs`**
-
-```rust
-use runique::admin::resource::CrudOperation;
-use runique::axum::routing::MethodRouter;
-
-pub fn admin_extra_routes() -> Vec<(&'static str, &'static str, CrudOperation, MethodRouter)> {
-    vec![
-        ("/commandes/{numero}/detail", "commandes", CrudOperation::View, view!{ admin_commande_detail }),
-    ]
-}
-```
-
-**`main.rs`**
-
-```rust
-.with_admin(|a| a
-    .routes(admins::routes("/admin"))
-    .extra_routes(url::admin_extra_routes())
-)
-```
-
-Les chemins sont **relatifs au préfixe admin** — `/commandes/{numero}/detail` devient
-`/admin/commandes/{numero}/detail`.
-
-**Handler** — récupérer les extensions injectées par le middleware :
-
-```rust
-use runique::prelude::*;
-use runique::admin::{AdminState, PrototypeAdminState, inject_admin_prefix, insert_admin_messages};
-
-pub async fn admin_commande_detail(
-    Extension(admin): Extension<Arc<AdminState>>,
-    Extension(proto): Extension<Arc<PrototypeAdminState>>,
-    mut request: Request,
-) -> AppResult<Response> {
-    inject_admin_prefix(&mut request, &admin.config.prefix);
-    insert_admin_messages(&mut request, proto.registry.all());
-    // … logique métier …
-    request.render("admin/commande_detail.html")
-}
-```
-
-Le template doit étendre `admin_base` pour hériter du CSS et de la sidebar :
-
-```html
-{% extends "admin_base" %}
-```
 
 ---
 

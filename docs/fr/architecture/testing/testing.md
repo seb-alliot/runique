@@ -113,7 +113,7 @@ Un autre moteur (MongoDB…) peut se brancher en implémentant le trait `TestTra
 **Dans tous les modes :**
 
 - **Database** : ni `.with_database(...)` ni `.with_database_config(...)` ;
-- **AdminPanel** : un préfixe d'admin vide, ou une entrée d'`extra_routes` qui nomme une ressource non enregistrée ;
+- **AdminPanel** : un préfixe d'admin vide, ou une route `admin` de `urlpatterns!` qui désigne un modèle non enregistré ;
 - **static_cache** / **media_cache** : une valeur de cache qui n'est pas un en-tête HTTP valide ;
 - **MediaRoot** : un dossier media impossible à créer ;
 - **CORS** : `any_origin()` combiné à `allow_credentials(true)`.

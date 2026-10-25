@@ -88,6 +88,18 @@ impl<P> RuniqueAppBuilder<P> {
         #[cfg(feature = "orm")]
         let db = self.core.connect().await?;
 
+        #[cfg(feature = "admin")]
+        let admin_cache_policy = self.admin.enabled.then(|| {
+            crate::admin::router::admin_router::AdminCachePolicy::new(
+                self.admin.public_prefix(),
+                self.admin
+                    .declared_routes
+                    .iter()
+                    .map(|route| route.path.clone())
+                    .collect(),
+            )
+        });
+
         // Step 3: destructuring
         let extensions = self.core.extensions;
         let config = self.config;
@@ -200,6 +212,12 @@ impl<P> RuniqueAppBuilder<P> {
             let admin_prefix = self.admin.public_prefix();
             let robots_txt = self.admin.robots_txt;
             let sitemap_url = self.admin.sitemap_url.clone();
+            let declared_route_urls: Vec<(String, String)> = self
+                .admin
+                .declared_routes
+                .iter()
+                .map(|route| (route.name.clone(), route.path.clone()))
+                .collect();
             // Close the `resource_key` referential-integrity gap: drop rights that
             // point at a resource no longer registered (see `prune_orphan_droits`).
             // The registered models are fixed at build time: boot is the only window.
@@ -233,6 +251,19 @@ impl<P> RuniqueAppBuilder<P> {
             let admin_router = build_admin_router(self.admin);
             add_urls(&engine);
             register_name_url(&engine, "admin", &admin_prefix);
+            for (name, path) in declared_route_urls {
+                let already_registered = engine
+                    .url_registry
+                    .read()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .contains_key(&name);
+                if already_registered {
+                    return Err(BuildError::validation(format!(
+                        "admin route name `{name}` conflicts with an already registered URL"
+                    )));
+                }
+                register_name_url(&engine, name, path);
+            }
             let mut r = router.merge(admin_router);
             if robots_txt {
                 r = r.route(
@@ -303,6 +334,16 @@ impl<P> RuniqueAppBuilder<P> {
         let router = match engine.config.static_files.max_body_mb {
             Some(mb) => router.layer(axum::extract::DefaultBodyLimit::max(body_limit(mb))),
             None => router,
+        };
+
+        #[cfg(feature = "admin")]
+        let router = if let Some(policy) = admin_cache_policy {
+            router.layer(axum::middleware::from_fn_with_state(
+                policy,
+                crate::admin::router::admin_router::admin_no_store,
+            ))
+        } else {
+            router
         };
 
         Ok(RuniqueApp {

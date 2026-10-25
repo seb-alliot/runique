@@ -62,7 +62,7 @@ use crate::views;
 use runique::prelude::*;
 use runique::{urlpatterns, view};
 
-pub fn routes() -> Router {
+pub fn routes() -> Routes {
     urlpatterns! {
         "/" => view!{ views::index }, name = "index",
         "/about" => view!{ views::about }, name = "about",

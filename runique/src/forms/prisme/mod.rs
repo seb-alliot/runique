@@ -1,8 +1,4 @@
-//! Prisme pipeline — sentinel (access) → CSRF → parsing.
+//! Prisme pipeline — parsing (Aegis) → CSRF check.
 pub mod aegis;
-pub mod rules;
-pub mod sentinel;
 
 pub use aegis::aegis;
-pub use rules::*;
-pub use sentinel::sentinel;

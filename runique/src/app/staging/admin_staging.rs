@@ -1,20 +1,42 @@
 //! Admin panel staging: configuration, routes, and the registered models.
 
 use crate::admin::builder::site::AdminSite;
-use crate::admin::{AdminConfig, CrudOperation, config::AdminTemplate};
+use crate::admin::router::AdminView;
+use crate::admin::{AdminConfig, config::AdminTemplate};
 use crate::app::error_build::{BuildError, CheckError, CheckReport};
 use crate::auth::guard::LoginGuard;
 use crate::middleware::security::RateLimiter;
 
-/// A custom admin route and the right it requires.
-pub struct ExtraRoute {
-    /// Path relative to the admin prefix, with a leading `/`.
-    pub path: String,
-    /// Key of the registered resource the route works on.
-    pub resource: String,
-    /// Operation the route performs on it — decides which right is checked.
-    pub operation: CrudOperation,
-    pub router: axum::routing::MethodRouter,
+/// An admin route declaration retained from `urlpatterns!` until build.
+pub(crate) struct DeclaredAdminRoute {
+    pub(crate) path: String,
+    pub(crate) name: String,
+    pub(crate) model_key: String,
+    pub(crate) handler: axum::routing::MethodRouter,
+    pub(crate) overrides: AdminView,
+}
+
+fn paths_overlap(left: &str, right: &str) -> bool {
+    let left: Vec<_> = left
+        .split('/')
+        .filter(|segment| !segment.is_empty())
+        .collect();
+    let right: Vec<_> = right
+        .split('/')
+        .filter(|segment| !segment.is_empty())
+        .collect();
+    for (a, b) in left.iter().zip(right.iter()) {
+        if a.starts_with("{*") || b.starts_with("{*") {
+            return true;
+        }
+        if a != b
+            && !(a.starts_with('{') && a.ends_with('}'))
+            && !(b.starts_with('{') && b.ends_with('}'))
+        {
+            return false;
+        }
+    }
+    left.len() == right.len()
 }
 
 /// Admin panel configuration staged by the builder before the app is built.
@@ -31,9 +53,10 @@ pub struct AdminStaging {
     pub robots_txt: bool,
     /// `Sitemap:` directive added to the generated `/robots.txt`, if set.
     pub sitemap_url: Option<String>,
-    /// Extra routes registered via `.extra_routes()`, mounted within the
-    /// admin's authentication boundary, each behind its resource's right.
-    pub extra_routes: Vec<ExtraRoute>,
+    /// Declarative admin views from `urlpatterns!`.
+    pub(crate) declared_routes: Vec<DeclaredAdminRoute>,
+    /// Paths declared as public routes in the same `urlpatterns!` set.
+    pub(crate) public_route_paths: Vec<String>,
 
     /// Segment mounted in front of the admin (`.prefix()`), empty by default.
     /// Kept apart from `config.prefix` — which holds the admin's own path — so
@@ -63,7 +86,8 @@ impl AdminStaging {
             enabled: false,
             robots_txt: true,
             sitemap_url: None,
-            extra_routes: Vec::new(),
+            declared_routes: Vec::new(),
+            public_route_paths: Vec::new(),
             mount_prefix: String::new(),
             site: AdminSite::default(),
         }
@@ -91,44 +115,6 @@ impl AdminStaging {
     /// lives*, `prefix()` sets *what is put in front of it*.
     pub fn path(mut self, path: &str) -> Self {
         self.config.prefix = path.to_string();
-        self
-    }
-
-    /// Registers additional routes within the admin middleware boundary.
-    ///
-    /// Each route names the resource it works on and the operation it
-    /// performs: the signed-in user needs that right on that resource, from
-    /// their groups (`View`/`List` → read, `Create`, `Edit` → update,
-    /// `Delete`), the same check as the generated CRUD pages. A resource that
-    /// isn't registered is a build error. Which rows and which columns the
-    /// handler then touches is up to the handler.
-    ///
-    /// Paths are relative to the admin prefix — the framework prepends it automatically.
-    /// These routes inherit admin authentication and `AdminState`.
-    ///
-    /// ```rust,ignore
-    /// // url.rs
-    /// pub fn admin_extra_routes() -> Vec<(&'static str, &'static str, CrudOperation, MethodRouter)> {
-    ///     vec![
-    ///         ("/commandes/{numero}/detail", "commandes", CrudOperation::View, view!{ admin_commande_detail }),
-    ///     ]
-    /// }
-    ///
-    /// // main.rs
-    /// .with_admin(|a| a.extra_routes(url::admin_extra_routes()))
-    /// ```
-    pub fn extra_routes(
-        mut self,
-        routes: Vec<(&str, &str, CrudOperation, axum::routing::MethodRouter)>,
-    ) -> Self {
-        for (path, resource, operation, router) in routes {
-            self.extra_routes.push(ExtraRoute {
-                path: format!("/{}", path.trim_start_matches('/')),
-                resource: resource.to_string(),
-                operation,
-                router,
-            });
-        }
         self
     }
 
@@ -265,6 +251,11 @@ impl AdminStaging {
     /// A no-op returning `Ok(())` when the admin is disabled.
     pub fn validate(&self) -> Result<(), BuildError> {
         if !self.enabled {
+            if !self.declared_routes.is_empty() {
+                return Err(BuildError::validation(
+                    "admin routes were declared in `urlpatterns!`, but the admin is disabled",
+                ));
+            }
             return Ok(());
         }
 
@@ -280,21 +271,99 @@ impl AdminStaging {
             );
         }
 
-        for route in &self.extra_routes {
-            let registered = self.site.model(&route.resource).is_some();
-            if !registered {
-                report.add(
-                    CheckError::new(
-                        "AdminPanel",
-                        crate::utils::trad::tf(
-                            "build.check.extra_route_unknown",
-                            &[&route.path, &route.resource],
-                        ),
-                    )
-                    .with_suggestion(crate::utils::trad::t(
-                        "build.check.extra_route_unknown_hint",
-                    )),
-                );
+        for (index, route) in self.declared_routes.iter().enumerate() {
+            if self.site.model(&route.model_key).is_none() {
+                report.add(CheckError::new(
+                    "AdminPanel",
+                    format!(
+                        "admin route `{}` references unregistered model `{}`",
+                        route.path, route.model_key
+                    ),
+                ));
+            }
+            if !route.path.starts_with('/')
+                || (route.path != "/" && route.path.ends_with('/'))
+                || matches!(
+                    route.overrides,
+                    AdminView::Detail
+                        if route.path.split('/').filter(|part| *part == "{id}").count() != 1
+                )
+            {
+                report.add(CheckError::new(
+                    "AdminPanel",
+                    format!(
+                        "admin route `{}` must be an absolute path{}",
+                        route.path,
+                        if route.overrides == AdminView::Detail {
+                            " with exactly one `{id}` segment to override Detail"
+                        } else {
+                            ""
+                        }
+                    ),
+                ));
+            }
+            if self
+                .public_route_paths
+                .iter()
+                .any(|path| paths_overlap(path, &route.path))
+            {
+                report.add(CheckError::new(
+                    "AdminPanel",
+                    format!(
+                        "admin route `{}` overlaps a public route in `urlpatterns!`",
+                        route.path
+                    ),
+                ));
+            }
+            let admin_prefix = self.public_prefix();
+            if route.path == admin_prefix || route.path.starts_with(&format!("{admin_prefix}/")) {
+                report.add(CheckError::new(
+                    "AdminPanel",
+                    format!(
+                        "admin route `{}` overlaps the admin URL namespace; declarative admin routes keep their own application path",
+                        route.path
+                    ),
+                ));
+            }
+            if self
+                .declared_routes
+                .iter()
+                .take(index)
+                .any(|previous| paths_overlap(&previous.path, &route.path))
+            {
+                report.add(CheckError::new(
+                    "AdminPanel",
+                    format!("admin route `{}` is declared more than once", route.path),
+                ));
+            }
+            // `Standalone` replaces nothing: any number of them per model.
+            if route.overrides != AdminView::Standalone
+                && self.declared_routes.iter().take(index).any(|previous| {
+                    previous.model_key == route.model_key && previous.overrides == route.overrides
+                })
+            {
+                report.add(CheckError::new(
+                    "AdminPanel",
+                    format!(
+                        "admin view {:?} for model `{}` is overridden more than once",
+                        route.overrides, route.model_key
+                    ),
+                ));
+            }
+
+            if self
+                .declared_routes
+                .iter()
+                .take(index)
+                .any(|previous| previous.name == route.name)
+            {
+                report.add(CheckError::new(
+                    "AdminPanel",
+                    format!(
+                        "admin route name `{}` is declared more than once",
+                        route.name
+                    ),
+                ));
             }
         }
         for error in self.site.check() {
@@ -321,5 +390,169 @@ impl AdminStaging {
 impl Default for AdminStaging {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod declared_route_tests {
+    use super::{AdminStaging, DeclaredAdminRoute, paths_overlap};
+    use crate::admin::router::AdminView;
+
+    #[test]
+    fn overlapping_paths() {
+        for (a, b) in [
+            ("/a/b", "/a/b"),
+            ("/a/{id}", "/a/42"),
+            ("/a/42", "/a/{id}"),
+            ("/a/{x}", "/a/{id}"),
+            ("/a/{*rest}", "/a/b/c"),
+            ("/a/b/c", "/a/{*rest}"),
+            ("a/b/", "/a/b"),
+        ] {
+            assert!(paths_overlap(a, b), "{a} / {b}");
+        }
+        for (a, b) in [
+            ("/a/b", "/a/c"),
+            ("/a/b", "/a/b/c"),
+            ("/a/b/c", "/a/b"),
+            ("/a/{id", "/a/42"),
+            ("/a/42", "/a/id}"),
+        ] {
+            assert!(!paths_overlap(a, b), "{a} / {b}");
+        }
+    }
+
+    /// The accounts admin (`users`) is always registered.
+    fn staging(routes: &[(&str, &str, AdminView)], public: &[&str]) -> AdminStaging {
+        let mut s = AdminStaging::new();
+        s.enabled = true;
+        s.public_route_paths = public.iter().map(|p| p.to_string()).collect();
+        s.declared_routes = routes
+            .iter()
+            .map(|(path, name, overrides)| DeclaredAdminRoute {
+                path: path.to_string(),
+                name: name.to_string(),
+                model_key: "users".to_string(),
+                handler: axum::routing::get(|| async { "" }),
+                overrides: *overrides,
+            })
+            .collect();
+        s
+    }
+
+    fn errors(routes: &[(&str, &str, AdminView)], public: &[&str]) -> String {
+        staging(routes, public)
+            .validate()
+            .err()
+            .map(|e| e.to_string())
+            .unwrap_or_default()
+    }
+
+    use AdminView::{Detail, Standalone};
+
+    #[test]
+    fn valid_declarations_pass() {
+        assert_eq!(
+            errors(
+                &[
+                    ("/accounts/{id}", "a", Detail),
+                    ("/report", "b", Standalone),
+                    ("/stats", "c", Standalone),
+                    ("/administrator", "d", Standalone),
+                ],
+                &["/other"],
+            ),
+            ""
+        );
+    }
+
+    #[test]
+    fn a_path_must_be_absolute_without_trailing_slash() {
+        for path in ["report", "/report/"] {
+            assert!(
+                errors(&[(path, "a", Standalone)], &[]).contains("must be an absolute path"),
+                "{path}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_detail_override_needs_exactly_one_id() {
+        for path in ["/accounts", "/accounts/{id}/{id}"] {
+            assert!(
+                errors(&[(path, "a", Detail)], &[]).contains("exactly one `{id}`"),
+                "{path}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_public_route_on_the_same_path_is_refused() {
+        assert!(
+            errors(&[("/report/{id}", "a", Standalone)], &["/report/{x}"])
+                .contains("overlaps a public route")
+        );
+    }
+
+    #[test]
+    fn the_admin_namespace_is_refused() {
+        for path in ["/admin", "/admin/report"] {
+            assert!(
+                errors(&[(path, "a", Standalone)], &[]).contains("admin URL namespace"),
+                "{path}"
+            );
+        }
+    }
+
+    #[test]
+    fn the_same_path_twice_is_refused() {
+        assert!(
+            errors(
+                &[("/report", "a", Standalone), ("/report", "b", Standalone)],
+                &[]
+            )
+            .contains("declared more than once")
+        );
+    }
+
+    #[test]
+    fn a_view_overridden_twice_is_refused() {
+        assert!(
+            errors(
+                &[
+                    ("/accounts/{id}", "a", Detail),
+                    ("/people/{id}", "b", Detail)
+                ],
+                &[]
+            )
+            .contains("overridden more than once")
+        );
+    }
+
+    #[test]
+    fn declared_routes_need_the_admin_enabled() {
+        let mut s = staging(&[("/report", "a", Standalone)], &[]);
+        s.enabled = false;
+        let error = s
+            .validate()
+            .err()
+            .map(|e| e.to_string())
+            .unwrap_or_default();
+        assert!(error.contains("the admin is disabled"), "{error}");
+
+        let mut s = staging(&[], &[]);
+        s.enabled = false;
+        assert!(s.validate().is_ok(), "nothing declared, nothing to refuse");
+    }
+
+    #[test]
+    fn the_same_name_twice_is_refused() {
+        assert!(
+            errors(
+                &[("/report", "a", Standalone), ("/stats", "a", Standalone)],
+                &[]
+            )
+            .contains("admin route name `a` is declared more than once")
+        );
     }
 }

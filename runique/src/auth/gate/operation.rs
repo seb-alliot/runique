@@ -1,6 +1,6 @@
 //! What a route DOES. One empty struct per operation, its rules declared once
 //! in its constants; [`CrudOperation`] is the data form of the same thing
-//! (history, templates, `extra_routes`), linked by [`AdminOperation::CRUD_NATURE`].
+//! (history, templates), linked by [`AdminOperation::CRUD_NATURE`].
 use super::rights::Crud;
 
 pub trait AdminOperation {
@@ -65,8 +65,8 @@ impl AdminOperation for ResetPassword {
     const PROTECTS_RANK: bool = true;
 }
 
-/// An admin operation as data: what a custom admin route declares it performs
-/// (`extra_routes`), to check the matching right.
+/// An admin operation as data: names the action in the history and the
+/// templates.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 pub enum CrudOperation {
     List,

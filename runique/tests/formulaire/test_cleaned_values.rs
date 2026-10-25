@@ -3,7 +3,11 @@
 //!          NaiveDate, NaiveTime, NaiveDateTime, DateTime<Utc>,
 //!          cleaned_value (path/query fallback), clear()
 
-use runique::forms::{field::{FormAccess, RuniqueForm}, fields::text::TextField, form::Forms};
+use runique::forms::{
+    field::{FormAccess, RuniqueForm},
+    fields::text::TextField,
+    form::Forms,
+};
 
 // ── Helper : form de test ──────────────────────────────────────
 

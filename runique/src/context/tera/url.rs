@@ -39,8 +39,9 @@ fn link_function(kwargs: &Kwargs, url_registry: &ARlockmap) -> TeraResult<String
         })
         .collect();
     let params: Vec<(&str, &str)> = params.iter().map(|(k, v)| (*k, v.as_str())).collect();
-    let mut result = crate::macros::routeur::register_url::resolve(url_registry, link_name, &params)
-        .map_err(|e| tera::Error::message(e.to_string()))?;
+    let mut result =
+        crate::macros::routeur::register_url::resolve(url_registry, link_name, &params)
+            .map_err(|e| tera::Error::message(e.to_string()))?;
 
     // Handle query string parameters
     if let Some(query_val) = args.get("query") {

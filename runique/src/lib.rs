@@ -120,7 +120,7 @@ pub mod prelude {
     pub use crate::flash::{FlashMessage, Message, MessageLevel};
     pub use crate::forms::{
         Forms, Prisme,
-            field::{FormAccess, FormField, FormSave, RuniqueForm, SaveContext},
+        field::{FormAccess, FormField, FormSave, RuniqueForm, SaveContext},
         fields::{
             CheckboxField, DateField, DurationField, RadioField, TimeField,
             boolean::BooleanField,
@@ -154,7 +154,7 @@ pub mod prelude {
     // UTILS
     // ========================================================================
     pub use crate::macros::{
-        RouterExt, UrlError, register_name_url, register_pending, reverse,
+        RouterExt, Routes, UrlError, register_name_url, register_pending, reverse,
         reverse_with_parameters,
     };
     pub use crate::utils::csp_nonce::*;
@@ -172,6 +172,8 @@ pub mod prelude {
     // ========================================================================
     // MIDDLEWARE
     // ========================================================================
+    #[cfg(feature = "admin")]
+    pub use crate::admin::AdminView;
     pub use crate::auth::user as runique_users;
     pub use crate::auth::user::BuiltinUserEntity;
     pub use crate::auth::*;

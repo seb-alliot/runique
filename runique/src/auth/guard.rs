@@ -73,9 +73,13 @@ impl LoginGuard {
     }
 
     /// Spawns a Tokio task that periodically purges expired entries.
+    ///
+    /// The admin builder starts this automatically. Standalone uses should
+    /// call it once while a Tokio runtime is active.
     pub fn spawn_cleanup(&self, period: tokio::time::Duration) {
         let store = self.store.clone();
         let lockout_secs = self.lockout_secs;
+        let period = period.max(tokio::time::Duration::from_secs(1));
         tokio::spawn(async move {
             let mut ticker = interval(period);
             loop {
@@ -96,6 +100,12 @@ impl LoginGuard {
             Ok(s) => s,
             Err(p) => p.into_inner(),
         };
+        if store
+            .get(username)
+            .is_some_and(|(_, last)| last.elapsed() >= Duration::from_secs(self.lockout_secs))
+        {
+            store.remove(username);
+        }
         let entry = store
             .entry(username.to_string())
             .or_insert((0, Instant::now()));
@@ -115,24 +125,38 @@ impl LoginGuard {
     /// Returns `true` if the account is temporarily locked
     #[must_use]
     pub fn is_locked(&self, username: &str) -> bool {
-        let store = match self.store.lock() {
+        let mut store = match self.store.lock() {
             Ok(s) => s,
             Err(p) => p.into_inner(),
         };
-        let (attempts, last) = store
+        let expired = store
             .get(username)
-            .map_or((0, Instant::now()), |(a, t)| (*a, *t));
-        attempts >= self.max_attempts && last.elapsed() < Duration::from_secs(self.lockout_secs)
+            .is_some_and(|(_, last)| last.elapsed() >= Duration::from_secs(self.lockout_secs));
+        if expired {
+            store.remove(username);
+            return false;
+        }
+        store
+            .get(username)
+            .is_some_and(|(attempts, _)| *attempts >= self.max_attempts)
     }
 
     /// Current number of failures for this username
     #[must_use]
     pub fn attempts(&self, username: &str) -> u32 {
-        let store = match self.store.lock() {
+        let mut store = match self.store.lock() {
             Ok(s) => s,
             Err(p) => p.into_inner(),
         };
-        store.get(username).map_or(0, |(n, _)| *n)
+        let expired = store
+            .get(username)
+            .is_some_and(|(_, last)| last.elapsed() >= Duration::from_secs(self.lockout_secs));
+        if expired {
+            store.remove(username);
+            0
+        } else {
+            store.get(username).map_or(0, |(n, _)| *n)
+        }
     }
 
     /// Returns the effective key to use with `LoginGuard`.
@@ -151,10 +175,17 @@ impl LoginGuard {
     /// Remaining seconds before unlocking, or `None` if not locked
     #[must_use]
     pub fn remaining_lockout_secs(&self, username: &str) -> Option<u64> {
-        let store = match self.store.lock() {
+        let mut store = match self.store.lock() {
             Ok(s) => s,
             Err(p) => p.into_inner(),
         };
+        if store
+            .get(username)
+            .is_some_and(|(_, last)| last.elapsed() >= Duration::from_secs(self.lockout_secs))
+        {
+            store.remove(username);
+            return None;
+        }
         if let Some((attempts, last)) = store.get(username)
             && *attempts >= self.max_attempts
         {
@@ -164,6 +195,12 @@ impl LoginGuard {
             }
         }
         None
+    }
+
+    /// Cleanup cadence, capped so expired entries aren't retained for a full
+    /// long lockout period.
+    pub(crate) fn cleanup_interval(&self) -> tokio::time::Duration {
+        tokio::time::Duration::from_secs(self.lockout_secs.clamp(1, 60))
     }
 }
 
@@ -197,5 +234,60 @@ pub(crate) async fn login_required_middleware(
         next.run(req).await
     } else {
         Redirect::to(redirect_url.as_str()).into_response()
+    }
+}
+
+#[cfg(test)]
+mod expiration_tests {
+    use super::*;
+
+    #[test]
+    fn a_failure_after_expiration_starts_a_fresh_counter() {
+        let guard = LoginGuard::new().max_attempts(2).lockout_secs(60);
+        {
+            let mut store = guard.store.lock().unwrap();
+            store.insert(
+                "alice".to_string(),
+                (2, Instant::now() - Duration::from_secs(61)),
+            );
+        }
+
+        guard.record_failure("alice");
+        assert_eq!(guard.attempts("alice"), 1);
+        assert!(!guard.is_locked("alice"));
+    }
+
+    #[test]
+    fn the_cleanup_cadence_follows_the_lockout_within_bounds() {
+        let secs = |lockout| {
+            LoginGuard::new()
+                .lockout_secs(lockout)
+                .cleanup_interval()
+                .as_secs()
+        };
+        assert_eq!(secs(0), 1);
+        assert_eq!(secs(30), 30);
+        assert_eq!(secs(600), 60);
+    }
+
+    // Read straight from the store: `attempts()` would purge the entry itself.
+    #[tokio::test]
+    async fn the_background_task_removes_expired_entries() {
+        let guard = LoginGuard::new().max_attempts(3).lockout_secs(60);
+        {
+            let mut store = guard.store.lock().unwrap();
+            store.insert(
+                "expired".to_string(),
+                (1, Instant::now() - Duration::from_secs(61)),
+            );
+            store.insert("fresh".to_string(), (1, Instant::now()));
+        }
+
+        guard.spawn_cleanup(tokio::time::Duration::from_secs(1));
+        tokio::time::sleep(tokio::time::Duration::from_millis(1200)).await;
+
+        let store = guard.store.lock().unwrap();
+        assert!(!store.contains_key("expired"));
+        assert!(store.contains_key("fresh"));
     }
 }

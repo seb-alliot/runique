@@ -123,7 +123,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 Les routes passent par la macro `urlpatterns!` et ressortent sous forme d'un `Router` Axum classique :
 
 ```rust
-pub fn routes() -> Router {
+pub fn routes() -> Routes {
     urlpatterns! {
         "/"          => view!{ index },        name = "index",
         "/blog/{id}" => view!{ blog_detail },  name = "blog_detail",

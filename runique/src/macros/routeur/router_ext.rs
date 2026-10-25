@@ -4,6 +4,7 @@ use std::sync::Arc;
 use axum::{Router, http::Method, routing::MethodRouter};
 
 use crate::auth::guard::login_required_middleware;
+use crate::macros::routeur::Routes;
 use crate::macros::routeur::register_url::register_pending;
 use crate::middleware::rate_limit::{RateLimiter, rate_limit_middleware};
 
@@ -115,7 +116,7 @@ impl RouterExt for Router {
             limiter = limiter.only_methods(methods);
         }
         let limiter = Arc::new(limiter);
-        limiter.spawn_cleanup(tokio::time::Duration::from_secs(retry_after));
+        limiter.spawn_cleanup(limiter.cleanup_interval());
         let mut r = self;
         for (path, name, handler) in routes {
             register_pending(&name, &path);
@@ -125,5 +126,63 @@ impl RouterExt for Router {
             r = r.merge(limited);
         }
         r
+    }
+}
+
+impl RouterExt for Routes {
+    fn login_required(
+        mut self,
+        path: impl Into<String>,
+        name: impl Into<String>,
+        handler: MethodRouter,
+        redirect_url: impl Into<String>,
+    ) -> Self {
+        let path = path.into();
+        self.public_paths.push(path.clone());
+        self.router =
+            <Router as RouterExt>::login_required(self.router, path, name, handler, redirect_url);
+        self
+    }
+
+    fn rate_limit(
+        mut self,
+        path: impl Into<String>,
+        name: impl Into<String>,
+        handler: MethodRouter,
+        max_requests: u32,
+        retry_after: u64,
+        methods: Vec<Method>,
+    ) -> Self {
+        let path = path.into();
+        self.public_paths.push(path.clone());
+        self.router = <Router as RouterExt>::rate_limit(
+            self.router,
+            path,
+            name,
+            handler,
+            max_requests,
+            retry_after,
+            methods,
+        );
+        self
+    }
+
+    fn rate_limit_many(
+        mut self,
+        max_requests: u32,
+        retry_after: u64,
+        methods: Vec<Method>,
+        routes: Vec<(String, String, MethodRouter)>,
+    ) -> Self {
+        self.public_paths
+            .extend(routes.iter().map(|(path, _, _)| path.clone()));
+        self.router = <Router as RouterExt>::rate_limit_many(
+            self.router,
+            max_requests,
+            retry_after,
+            methods,
+            routes,
+        );
+        self
     }
 }

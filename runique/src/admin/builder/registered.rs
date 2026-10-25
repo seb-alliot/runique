@@ -17,7 +17,7 @@ use crate::auth::{
 use crate::utils::aliases::ADb;
 use sea_orm::{
     sea_query::SelectStatement,
-    {DbErr, IdenStatic},
+    {DbErr, IdenStatic, Iterable, PrimaryKeyToColumn},
 };
 
 /// Column aliases of `count_query`.
@@ -59,6 +59,9 @@ pub(crate) fn readable(key: &str) -> String {
 #[async_trait::async_trait]
 pub(crate) trait RegisteredModel: Send + Sync {
     fn key(&self) -> &'static str;
+
+    /// The primary key's column, as named in a list row.
+    fn pk_column(&self) -> &'static str;
 
     fn check(&self) -> Result<(), String>;
 
@@ -103,6 +106,12 @@ pub(crate) trait RegisteredModel: Send + Sync {
 impl<E: ModelMeta> RegisteredModel for ModelAdmin<E> {
     fn key(&self) -> &'static str {
         E::KEY
+    }
+
+    fn pk_column(&self) -> &'static str {
+        E::PrimaryKey::iter()
+            .next()
+            .map_or("id", |key| key.into_column().as_str())
     }
 
     fn check(&self) -> Result<(), String> {

@@ -1,5 +1,5 @@
 //! Prisme: non-generic CSRF + body extractor integrated into the Request pipeline.
-use crate::forms::prisme::{aegis, sentinel};
+use crate::forms::prisme::aegis;
 use crate::utils::aliases::{ARuniqueConfig, StrMap, StrVecMap};
 use crate::utils::trad::t;
 use crate::utils::{
@@ -49,7 +49,7 @@ impl Prisme {
     }
 }
 
-/// Non-generic pipeline: Sentinel → Aegis → CSRF check.
+/// Non-generic pipeline: Aegis → CSRF check.
 /// Runs on every request — aegis handles GET (query params) and POST (body).
 pub async fn prisme_pipeline<S>(req: Request<Body>, state: &S) -> Result<Prisme, Response>
 where
@@ -66,8 +66,6 @@ where
             )
                 .into_response()
         })?;
-
-    sentinel(&req).await.map_err(|boxed| *boxed)?;
 
     let csrf_session = req
         .extensions()

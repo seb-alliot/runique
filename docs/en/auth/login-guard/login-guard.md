@@ -118,6 +118,7 @@ Resets the counter. Call after a successful login.
 ### `is_locked(key) -> bool`
 
 Returns `true` if the failure count exceeds `max_attempts` and the lockout duration has not elapsed.
+An expired entry is removed when accessed. Periodic cleanup removes entries that are no longer accessed.
 
 ### `attempts(key) -> u32`
 
@@ -126,6 +127,10 @@ Current failure count for this key.
 ### `remaining_lockout_secs(key) -> Option<u64>`
 
 Seconds remaining until unlock. `None` if not locked.
+
+### Periodic cleanup
+
+The admin builder automatically starts cleanup for its configured `LoginGuard`. For standalone use, call `spawn_cleanup` once while a Tokio runtime is active; the effective period is clamped between 1 and 60 seconds. This purge limits retention of expired entries but does not impose a strict entry-count cap.
 
 ---
 

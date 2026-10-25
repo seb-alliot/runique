@@ -50,7 +50,6 @@ impl FormAccess for ForgotPasswordForm {
 impl RuniqueForm for ForgotPasswordForm {
     // `allow_get` defaults to `false` — the reset-token email send (a
     // state-changing action) never runs on a GET, no override needed.
-
 }
 
 // ─── PasswordResetForm ────────────────────────────────────────────────────────
@@ -139,7 +138,6 @@ impl RuniqueForm for PasswordResetForm {
     }
     // `allow_get` defaults to `false` — the password update never runs on
     // a GET, no override needed.
-
 }
 
 // ─── Config ───────────────────────────────────────────────────────────────────

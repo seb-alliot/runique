@@ -146,7 +146,7 @@
 | Création multiple | — | `bulk_create: champ` — split par virgule, insère N enregistrements ; une valeur déjà présente est ignorée (sans tenir compte de la casse) : une création ne modifie jamais |
 | Édition en masse | — | bulk edit natif sur sélection multi-entrées |
 | Relations M2M | `filter_horizontal` / `ManyRelatedField` | `m2m: [...]` — table de jonction, diff automatique |
-| Routes admin custom | `get_urls()` | `.extra_routes(vec![...])` |
+| Routes admin custom | `get_urls()` | `admin "…" => …` dans `urlpatterns!` |
 | Templates custom | oui | oui (hiérarchie Tera) |
 | Permissions | par ressource | RBAC dynamique (Groupes / Droits scopés) |
 | Comptes superutilisateur | un staff ayant le droit de modifier les utilisateurs peut se rendre superutilisateur (la doc de Django le signale) | `is_superuser` jamais modifiable depuis l'admin, et le compte d'un superutilisateur (email, réinitialisation, suppression) n'est modifiable que par un superutilisateur |

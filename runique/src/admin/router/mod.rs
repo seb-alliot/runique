@@ -9,6 +9,14 @@ pub mod list;
 
 pub use admin_router::{ADMIN_TEMPLATE_SESSION_KEY, AdminState, build_admin_router};
 
+/// Whether a declarative admin route replaces a generated view or stands alone.
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+pub enum AdminView {
+    Detail,
+    /// A standalone page inside the admin boundary, not an override.
+    Standalone,
+}
+
 use crate::admin::builder::registered::AdminError;
 use crate::admin::builder::site::AdminSite;
 use crate::admin::trad::{inject_admin_prefix, insert_admin_messages};

@@ -3,7 +3,6 @@
 //! | Fichier                | Ce qui est testé                        |
 //! | ---------------------- | --------------------------------------- |
 //! | `test_validator`       | Règles de validation de base            |
-//! | `test_prisme_rules`    | Règles Prisme (longueur, regex, …)      |
 //! | `test_hidden_field`    | Champ hidden et ses variantes           |
 //! | `test_special_fields`  | Champs spéciaux (fichier, datetime, …)  |
 //! | `test_password`        | Hashage et vérification de mots de passe|
@@ -42,8 +41,6 @@ pub mod test_number_fields;
 pub mod test_password;
 pub mod test_password_from_schema;
 pub mod test_prisme_extractor;
-pub mod test_prisme_rules;
-pub mod test_prisme_sentinel;
 pub mod test_renderer;
 pub mod test_special_fields;
 pub mod test_to_value;

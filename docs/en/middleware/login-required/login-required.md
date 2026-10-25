@@ -11,7 +11,7 @@ In `url.rs`, via the `RouterExt` trait:
 ```rust
 use runique::prelude::*;
 
-pub fn routes() -> Router {
+pub fn routes() -> Routes {
     urlpatterns! {
         "/" => view!{ index }, name = "index",
         // ...

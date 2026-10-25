@@ -1,6 +1,7 @@
 //! `GET {admin}/{resource}/{id}/detail`: one row of a model.
 use super::{chrome, failure, unknown_resource};
 use crate::admin::builder::site::AdminSite;
+use crate::admin::router::AdminView;
 use crate::admin::router::admin_router::AdminState;
 use crate::admin::trad::insert_admin_messages;
 use crate::auth::current_user::CurrentUser;
@@ -21,6 +22,9 @@ pub(crate) async fn detail_view(
     let Some(model) = site.model(&resource) else {
         return unknown_resource(&resource);
     };
+    if site.overridden_path(&resource, AdminView::Detail).is_some() {
+        return unknown_resource(&resource);
+    }
     let entry = match model.detail(&req.engine.db, &user, &id).await {
         Ok(entry) => entry,
         Err(error) => return failure(error, &req, &admin).await,

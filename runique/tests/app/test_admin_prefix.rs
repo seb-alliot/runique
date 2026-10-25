@@ -59,6 +59,30 @@ async fn build(mount: &str, admin_path: &str, prefix_first: bool) -> Router {
     app.router
 }
 
+async fn build_with_declarative_admin_route() -> Router {
+    let db = Database::connect("sqlite::memory:").await.unwrap();
+    let mut config = RuniqueConfig::from_env();
+    config.debug = true;
+
+    let routes = runique::urlpatterns! {
+        "/public" => get(|| async { "public" }), name = "public_test",
+        admin "/custom/{id}" => get(|| async { "private" }),
+            name = "custom_admin_test",
+            for_model = runique::auth::user::Entity,
+            overrides = runique::admin::AdminView::Standalone,
+    };
+
+    RuniqueApp::builder(config)
+        .with_database(db)
+        .routes(routes)
+        .static_files(|s| s.enabled(false))
+        .with_admin(|a| a.path("/admin"))
+        .build()
+        .await
+        .unwrap()
+        .router
+}
+
 async fn status_of(app: Router, uri: &str) -> axum::http::StatusCode {
     use axum::http::Request;
     use tower::ServiceExt;
@@ -68,6 +92,133 @@ async fn status_of(app: Router, uri: &str) -> axum::http::StatusCode {
         .body(axum::body::Body::empty())
         .unwrap();
     app.oneshot(req).await.unwrap().status()
+}
+
+/// A declarative admin route keeps its literal path, but inherits the admin
+/// authentication boundary. Its responses, login and admin fallback are no-store.
+#[tokio::test]
+#[serial]
+async fn test_declarative_admin_route_is_protected_and_not_cached() {
+    use axum::http::{Request, StatusCode, header};
+    use tower::ServiceExt;
+
+    let app = build_with_declarative_admin_route().await;
+
+    let public = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/public")
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(public.status(), StatusCode::OK);
+    assert!(
+        public.headers().get(header::CACHE_CONTROL).is_none(),
+        "public route should not inherit the admin no-store policy"
+    );
+
+    let custom_admin = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/custom/42")
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(custom_admin.status(), StatusCode::SEE_OTHER);
+    assert_eq!(
+        custom_admin
+            .headers()
+            .get(header::LOCATION)
+            .and_then(|value| value.to_str().ok()),
+        Some("/"),
+        "an anonymous visitor must not be shown the admin prefix"
+    );
+    assert_eq!(
+        custom_admin
+            .headers()
+            .get(header::CACHE_CONTROL)
+            .and_then(|value| value.to_str().ok()),
+        Some("no-store")
+    );
+
+    let prefixed_custom_admin = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/admin/custom/42")
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        prefixed_custom_admin.status(),
+        StatusCode::NOT_FOUND,
+        "the declared route must keep its literal path, without an admin prefix"
+    );
+
+    let login = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/admin/login")
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(login.status(), StatusCode::OK);
+    assert_eq!(
+        login
+            .headers()
+            .get(header::CACHE_CONTROL)
+            .and_then(|value| value.to_str().ok()),
+        Some("no-store")
+    );
+
+    // The admin's own pages still send an anonymous visitor to their login.
+    let dashboard = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/admin/")
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(dashboard.status(), StatusCode::SEE_OTHER);
+    assert_eq!(
+        dashboard
+            .headers()
+            .get(header::LOCATION)
+            .and_then(|value| value.to_str().ok()),
+        Some("/admin/login")
+    );
+
+    let admin_not_found = app
+        .oneshot(
+            Request::builder()
+                .uri("/admin/not-a-route")
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(admin_not_found.status(), StatusCode::NOT_FOUND);
+    assert_eq!(
+        admin_not_found
+            .headers()
+            .get(header::CACHE_CONTROL)
+            .and_then(|value| value.to_str().ok()),
+        Some("no-store")
+    );
 }
 
 /// Le prefixe s'ajoute devant le chemin de l'admin au lieu de le remplacer.

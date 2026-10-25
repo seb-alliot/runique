@@ -187,8 +187,6 @@ Snapshot du **2026-10-22** · commande : `cargo llvm-cov --package runique --fea
 | model_form/mod.rs | 100.00 % | 100.00 % | 100.00 % |
 | options/bool_choice.rs | 100.00 % | 100.00 % | 100.00 % |
 | prisme/aegis.rs | 85.59 % | 80.00 % | 86.21 % |
-| prisme/rules.rs | 100.00 % | 100.00 % | 100.00 % |
-| prisme/sentinel.rs | 97.22 % | 100.00 % | 95.45 % |
 | renderer.rs | 84.15 % | 84.62 % | 91.43 % |
 | validation_form.rs | 100.00 % | 100.00 % | 100.00 % |
 | validator.rs | 86.40 % | 100.00 % | 89.47 % |
