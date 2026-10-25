@@ -4,8 +4,9 @@ use std::sync::Arc;
 
 use axum::{
     Extension, Router,
+    extract::{Request as AxumRequest, State},
     http::{HeaderName, HeaderValue},
-    middleware,
+    middleware::{self, Next},
     response::{IntoResponse, Redirect, Response},
     routing::{get, post},
 };
@@ -27,9 +28,8 @@ use crate::utils::{
 };
 use crate::{
     admin::{
-        CrudOperation,
         config::AdminConfig,
-        middleware::admin_access,
+        middleware::{admin_access, declared_route_access},
         trad::{inject_admin_prefix, insert_admin_messages},
     },
     flash_now,
@@ -42,6 +42,102 @@ use crate::{
 pub struct AdminState {
     pub config: Arc<AdminConfig>,
     pub login_guard: Option<Arc<LoginGuard>>,
+}
+
+#[derive(Clone)]
+pub(crate) struct AdminCachePolicy {
+    admin_prefix: String,
+    declared_paths: Vec<String>,
+}
+
+impl AdminCachePolicy {
+    pub(crate) fn new(admin_prefix: String, declared_paths: Vec<String>) -> Self {
+        Self {
+            admin_prefix: admin_prefix.trim_end_matches('/').to_string(),
+            declared_paths,
+        }
+    }
+
+    fn protects(&self, path: &str) -> bool {
+        (!self.admin_prefix.is_empty()
+            && (path == self.admin_prefix || path.starts_with(&format!("{}/", self.admin_prefix))))
+            || self
+                .declared_paths
+                .iter()
+                .any(|pattern| route_pattern_matches(pattern, path))
+    }
+}
+
+fn route_pattern_matches(pattern: &str, path: &str) -> bool {
+    let pattern_segments = pattern.split('/').filter(|segment| !segment.is_empty());
+    let path_segments = path.split('/').filter(|segment| !segment.is_empty());
+    let mut path_segments = path_segments;
+
+    for segment in pattern_segments {
+        if segment.starts_with("{*") && segment.ends_with('}') {
+            return true;
+        }
+        let Some(path_segment) = path_segments.next() else {
+            return false;
+        };
+        if !(segment.starts_with('{') && segment.ends_with('}') || segment == path_segment) {
+            return false;
+        }
+    }
+
+    path_segments.next().is_none()
+}
+
+pub(crate) async fn admin_no_store(
+    State(policy): State<AdminCachePolicy>,
+    request: AxumRequest,
+    next: Next,
+) -> Response {
+    let protect = policy.protects(request.uri().path());
+    let mut response = next.run(request).await;
+    if protect {
+        response.headers_mut().insert(
+            axum::http::header::CACHE_CONTROL,
+            HeaderValue::from_static("no-store"),
+        );
+    }
+    response
+}
+
+#[cfg(test)]
+mod cache_policy_tests {
+    use super::AdminCachePolicy;
+
+    #[test]
+    fn protects_admin_prefix_and_declared_route_patterns() {
+        let policy = AdminCachePolicy::new(
+            "/secret/admin".to_string(),
+            vec![
+                "/view-user".to_string(),
+                "/reports/{id}/detail".to_string(),
+                "/literal/{id".to_string(),
+            ],
+        );
+
+        for path in [
+            "/secret/admin",
+            "/secret/admin/users/list",
+            "/view-user",
+            "/reports/42/detail",
+        ] {
+            assert!(policy.protects(path), "{path}");
+        }
+
+        for path in [
+            "/secret/administrator",
+            "/public",
+            "/view-user/extra",
+            "/reports/42/detail/extra",
+            "/literal/42",
+        ] {
+            assert!(!policy.protects(path), "{path}");
+        }
+    }
 }
 
 #[derive(Deserialize)]
@@ -82,6 +178,13 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
     let login_guard = config.login_guard.clone();
     let rate_limiter = config.rate_limiter.clone();
 
+    if let Some(limiter) = &rate_limiter {
+        limiter.spawn_cleanup(limiter.cleanup_interval());
+    }
+    if let Some(guard) = &login_guard {
+        guard.spawn_cleanup(guard.cleanup_interval());
+    }
+
     let admin_state = Arc::new(AdminState {
         config: Arc::new(config.clone()),
         login_guard,
@@ -103,7 +206,7 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
         login_post_route
     };
 
-    let public_router = login_get_route.merge(login_post_route);
+    let public_router = login_get_route.merge(login_post_route).into_router();
 
     // Protected routes (dashboard + logout)
     let protected_router = urlpatterns! {
@@ -111,35 +214,46 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
         &prefix => get(admin_dashboard_redirect), name = "admin_dashboard_redirect",
         &format!("{prefix}/logout") => post(admin_logout), name = "admin_logout",
         &format!("{prefix}/toggle-template") => get(admin_toggle_template), name = "admin_toggle_template",
+    }
+    .into_router();
+
+    // Generated pages live under the admin mount. `urlpatterns!` admin routes
+    // keep their declared paths and get their own boundary below.
+    let declared_routes = admin_staging.declared_routes;
+    let mut site = admin_staging.site;
+    for route in &declared_routes {
+        if route.overrides == crate::admin::router::AdminView::Detail {
+            site.override_view(route.model_key.clone(), route.overrides, route.path.clone());
+        }
+    }
+    let site = Arc::new(site);
+    let generated_router = crate::admin::router::refonte_router(&admin_path, site.clone());
+    // Outside `load_admin_user` and `admin_access`: at the site's own paths,
+    // a refusal must neither reveal the admin's prefix nor close the session.
+    // `route_layer`: an unmatched path stays a 404 instead of a redirect. It
+    // panics on a router without routes, hence the guard.
+    let declared_router = if declared_routes.is_empty() {
+        Router::new()
+    } else {
+        declared_routes
+            .into_iter()
+            .fold(Router::new(), |router, route| {
+                router.route(&route.path, route.handler)
+            })
+            .route_layer(middleware::from_fn(declared_route_access))
+            .route_layer(Extension(site.clone()))
     };
 
-    // The admin's pages, and the custom routes registered via
-    // `.extra_routes()` — each behind its resource's right (`extra_route_gate`).
-    // Built on `admin_path`, not the public base: the `nest()` below adds the
-    // mount prefix.
-    let site = Arc::new(admin_staging.site);
-    let generated_router = crate::admin::router::refonte_router(&admin_path, site.clone());
-    let generated_router =
-        admin_staging
-            .extra_routes
-            .into_iter()
-            .fold(generated_router, |router, route| {
-                let gated = route.router.layer(middleware::from_fn_with_state(
-                    (route.resource, route.operation),
-                    extra_route_gate,
-                ));
-                router.route(&format!("{}{}", admin_path, route.path), gated)
-            });
-
-    // Mount prefix applies here only — the generated routes are the ones whose
-    // literal paths still carry `admin_path`. `nest("")` panics, hence the guard.
+    // Mount prefix applies only to generated admin paths. Declarative routes
+    // retain their literal application paths.
     let generated_router = if mount_prefix.is_empty() {
         generated_router
     } else {
         Router::new().nest(&mount_prefix, generated_router)
     };
 
-    // Assembly: public + (protected + generated with middleware)
+    // Assembly: (public + (protected + generated) behind the admin's own
+    // middlewares) + declared routes behind theirs.
     public_router
         .merge(
             protected_router
@@ -150,6 +264,7 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
         .layer(middleware::from_fn(
             crate::admin::middleware::admin_middleware::load_admin_user,
         ))
+        .merge(declared_router)
         .layer(Extension(admin_state))
         // Keep the admin out of search indexes without ever naming its path in a
         // public file: a `Disallow` in robots.txt would publish the very prefix a
@@ -162,6 +277,10 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
         .layer(SetResponseHeaderLayer::overriding(
             HeaderName::from_static("x-robots-tag"),
             HeaderValue::from_static("noindex, nofollow"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            HeaderName::from_static("cache-control"),
+            HeaderValue::from_static("no-store"),
         ))
 }
 
@@ -238,55 +357,6 @@ async fn admin_dashboard(
         .unwrap_or_else(|| admin.config.templates.dashboard.resolve());
 
     req.render(template)
-}
-
-/// "Who" for a custom admin route: the right its declared operation needs on
-/// its declared resource, as the gate resolves it. Which rows and columns the
-/// handler then touches is the handler's own business.
-async fn extra_route_gate(
-    axum::extract::State((resource, op)): axum::extract::State<(String, CrudOperation)>,
-    Extension(admin): Extension<Arc<AdminState>>,
-    Extension(site): Extension<Arc<AdminSite>>,
-    session: tower_sessions::Session,
-    request: axum::extract::Request,
-    next: middleware::Next,
-) -> Response {
-    use crate::auth::gate::rights::Crud;
-    let right = match op {
-        CrudOperation::List | CrudOperation::View => Crud::Read,
-        CrudOperation::Create => Crud::Create,
-        CrudOperation::Edit | CrudOperation::ResetPassword => Crud::Update,
-        CrudOperation::Delete => Crud::Delete,
-    };
-    let user = request
-        .extensions()
-        .get::<crate::auth::current_user::CurrentUser>();
-    // An unknown key grants nothing: the boot already refuses one, this still
-    // holds if that check is ever bypassed.
-    let granted = user.is_some_and(|u| {
-        site.model(&resource)
-            .is_some_and(|model| model.rights(u).has(right))
-    });
-    if let Some(level) = crate::utils::runique_log::get_log()
-        .admin
-        .as_ref()
-        .and_then(|a| a.auth)
-    {
-        crate::runique_log!(
-            level,
-            resource = %resource,
-            operation = ?op,
-            user = user.map_or("-", |u| u.username.as_str()),
-            granted,
-            "extra route access check"
-        );
-    }
-    if granted {
-        return next.run(request).await;
-    }
-    let notices = crate::flash::flash_manager::Message { session };
-    notices.error(t("admin.access.action_not_allowed")).await;
-    Redirect::to(&format!("{}/", admin.config.prefix)).into_response()
 }
 
 /// `load_admin_user` (outer layer) puts the account here only while the

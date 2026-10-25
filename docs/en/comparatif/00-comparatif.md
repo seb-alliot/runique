@@ -146,7 +146,7 @@
 | Bulk create | — | `bulk_create: field` — comma-split, inserts N records; a value already present is skipped (case-insensitively): a create never updates |
 | Bulk edit | — | native bulk edit on multi-row selection |
 | M2M relations | `filter_horizontal` / `ManyRelatedField` | `m2m: [...]` — junction table, automatic diff |
-| Custom admin routes | `get_urls()` | `.extra_routes(vec![...])` |
+| Custom admin routes | `get_urls()` | `admin "…" => …` in `urlpatterns!` |
 | Custom templates | yes | yes (Tera hierarchy) |
 | Permissions | per resource | Dynamic RBAC (Groups / Scoped permissions) |
 | Superuser accounts | a staff member allowed to edit users can make themselves a superuser (Django's docs warn about it) | `is_superuser` is never editable from the admin, and a superuser's account (email, password reset, deletion) can only be changed by a superuser |

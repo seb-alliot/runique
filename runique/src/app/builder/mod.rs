@@ -10,6 +10,7 @@ use super::staging::AdminStaging;
 use super::staging::{CoreStaging, MiddlewareStaging, StaticStaging};
 use crate::auth::{PasswordResetConfig, PasswordResetStaging};
 use crate::config::RuniqueConfig;
+use crate::macros::routeur::Routes;
 use crate::utils::runique_log::RuniqueLog;
 
 #[cfg(feature = "orm")]
@@ -196,8 +197,8 @@ impl<PU, RT, LG, PR, DB, SD, ML> RuniqueAppBuilder<(PU, RT, LG, PR, DB, SD, ML)>
         self.retype()
     }
 
-    /// Defines the application routes, once: build a single `Router` (merge or
-    /// nest the others into it) — a second call doesn't compile.
+    /// Defines the application routes, once. Accepts a `Router` or the
+    /// declaration set returned by `urlpatterns!` — a second call doesn't compile.
     ///
     /// ```compile_fail,E0277
     /// # use runique::{app::RuniqueApp, config::RuniqueConfig};
@@ -205,11 +206,19 @@ impl<PU, RT, LG, PR, DB, SD, ML> RuniqueAppBuilder<(PU, RT, LG, PR, DB, SD, ML)>
     ///     .routes(axum::Router::new())
     ///     .routes(axum::Router::new());
     /// ```
-    pub fn routes(mut self, router: Router) -> RuniqueAppBuilder<(PU, Yes, LG, PR, DB, SD, ML)>
+    pub fn routes(
+        mut self,
+        routes: impl Into<Routes>,
+    ) -> RuniqueAppBuilder<(PU, Yes, LG, PR, DB, SD, ML)>
     where
         RT: state::RoutesUnset,
     {
-        self.router = Some(router);
+        let routes = routes.into();
+        self.router = Some(routes.router);
+        #[cfg(feature = "admin")]
+        self.admin.public_route_paths.extend(routes.public_paths);
+        #[cfg(feature = "admin")]
+        self.admin.declared_routes.extend(routes.admin_routes);
         self.retype()
     }
 

@@ -20,7 +20,7 @@ pub async fn find_user_by_username(
     result.unwrap_or(None)
 }
 
-/// One query for both searches; the rows are sorted back to each form in Rust.
+/* /// One query for both searches; the rows are sorted back to each form in Rust.
 pub async fn find_users_by_username(
     db: &ADb,
     username: Option<&str>,
@@ -42,7 +42,7 @@ pub async fn find_users_by_username(
         username.and_then(|name| rows.iter().find(|user| user.username == name).cloned());
     let by_email = email.and_then(|mail| rows.into_iter().find(|user| user.email == mail));
     (by_username, by_email)
-}
+} */
 
 pub async fn handle_inscription(request: &mut Request, form: RegisterForm) -> AppResult<Response> {
     crate::backend::inject_globals(request).await;

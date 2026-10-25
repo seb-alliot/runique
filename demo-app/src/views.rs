@@ -1,7 +1,5 @@
 use crate::backend::{
-    auth::{
-        find_users_by_username, get_profile_user, handle_activate, handle_inscription, handle_login,
-    },
+    auth::{get_profile_user, handle_activate, handle_inscription, handle_login},
     blog::{get_article, handle_blog_save, list_articles},
     contribution::{handle_contribution_submit, list_contributions},
     cours::{ExerciceInput, cours_detail, cours_exercice, cours_index},
@@ -15,7 +13,11 @@ use crate::formulaire::{
     BlogForm, ContributionForm, EmailForm, ImageForm, LoginForm, RegisterForm, SearchDemoForm,
     UsernameForm,
 };
+use runique::auth::gate::{GateCtx, check::authorize_list};
+use runique::auth::meta::ModelMeta;
+use runique::auth::user::{Column as UserColumn, Entity as UserEntity};
 use runique::prelude::*;
+use sea_orm::{IdenStatic, QuerySelect};
 
 pub async fn erreur_502(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
@@ -75,6 +77,26 @@ pub async fn info_user(mut request: Request) -> AppResult<Response> {
     let username_form: UsernameForm = request.form();
     let email_form: EmailForm = request.form();
     inject_globals(&mut request).await;
+    let Some(user) = request.user.as_ref() else {
+        return Ok(StatusCode::NOT_FOUND.into_response());
+    };
+    let gate = GateCtx {
+        db: &request.engine.db,
+        user,
+    };
+    let Ok(proof) = authorize_list::<UserEntity>(&gate) else {
+        return Ok(StatusCode::NOT_FOUND.into_response());
+    };
+    let columns = proof
+        .readable()
+        .preserve::<UserEntity>(&[UserColumn::Id, UserColumn::Username, UserColumn::Email])
+        .into_iter()
+        .filter(|column| {
+            !UserEntity::SECRET
+                .iter()
+                .any(|secret| secret.as_str() == column.as_str())
+        })
+        .collect::<Vec<_>>();
 
     let (username_form, searched_username) =
         match ValidationForm::try_form(username_form, &request, "username").await {
@@ -92,12 +114,34 @@ pub async fn info_user(mut request: Request) -> AppResult<Response> {
             }
             Err(form) => (form, None),
         };
-    let (found_by_username, found_by_email) = find_users_by_username(
-        &request.engine.db,
-        searched_username.as_deref(),
-        searched_email.as_deref(),
-    )
-    .await;
+    let searched_username =
+        searched_username.filter(|_| proof.readable().allows(UserColumn::Username.as_str()));
+    let searched_email =
+        searched_email.filter(|_| proof.readable().allows(UserColumn::Email.as_str()));
+    let found_by_username = if let Some(username) = searched_username.as_deref() {
+        search!(UserEntity => Username eq username)
+            .filter_by_gate(&proof)
+            .into_select()
+            .select_only()
+            .columns(columns.clone())
+            .into_json()
+            .one(&request.engine.db)
+            .await?
+    } else {
+        None
+    };
+    let found_by_email = if let Some(email) = searched_email.as_deref() {
+        search!(UserEntity => Email eq email)
+            .filter_by_gate(&proof)
+            .into_select()
+            .select_only()
+            .columns(columns)
+            .into_json()
+            .one(&request.engine.db)
+            .await?
+    } else {
+        None
+    };
 
     context_update!(request => {
         "title"             => "User view",
@@ -107,6 +151,8 @@ pub async fn info_user(mut request: Request) -> AppResult<Response> {
         "searched_email"    => &searched_email,
         "found_by_username" => &found_by_username,
         "found_by_email"    => &found_by_email,
+        "can_read_username" => &proof.readable().allows(UserColumn::Username.as_str()),
+        "can_read_email"    => &proof.readable().allows(UserColumn::Email.as_str()),
     });
     request.render("profile/view_user.html")
 }

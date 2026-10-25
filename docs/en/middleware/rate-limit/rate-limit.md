@@ -11,7 +11,7 @@ Directly in `url.rs`, via the `RouterExt` trait:
 ```rust
 use runique::prelude::*;
 
-pub fn routes() -> Router {
+pub fn routes() -> Routes {
     urlpatterns! {
         "/" => view!{ index }, name = "index",
         // ...
@@ -30,7 +30,9 @@ Multiple routes sharing the **same counter**:
 ])
 ```
 
-> `spawn_cleanup` is called automatically — no memory leak.
+> This integration calls `spawn_cleanup` automatically: expired entries are purged periodically,
+> but this is not a strict memory cap.
+> Expired entries are also removed when accessed. Periodic cleanup removes entries that are no longer used.
 
 ---
 
@@ -110,6 +112,7 @@ Returns `true` if the key is under the limit, `false` otherwise.
 ### `retry_after_secs(key: &str) -> u64`
 
 Seconds remaining until the window resets for this key. Returns `0` if the window has already expired or the key is unknown. Used to populate the `Retry-After` header in 429 responses.
+An expired entry is removed as soon as it is accessed.
 
 ### `.only_methods(methods: Vec<Method>)`
 
@@ -132,7 +135,7 @@ Use case: protect a login route against brute force on POST submissions only, wh
 
 ### `.spawn_cleanup(period: Duration)`
 
-Spawns a background task that periodically purges expired entries. Without this, the internal map grows indefinitely for each distinct IP. Call it once after building the limiter.
+Spawns a background task that periodically purges expired entries. For a manual handler or middleware integration, call it once while a Tokio runtime is active. The effective period is clamped between 1 and 60 seconds.
 
 ```rust
 let limiter = RateLimiter::new().max_requests(5).retry_after(60);
@@ -141,6 +144,7 @@ let limiter = Arc::new(limiter);
 ```
 
 > With the declarative approach (`.rate_limit()` / `.rate_limit_many()`), `spawn_cleanup` is called automatically.
+> The admin builder also starts it when a rate limiter is configured.
 
 ---
 

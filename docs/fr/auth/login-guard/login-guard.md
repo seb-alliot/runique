@@ -118,6 +118,7 @@ Réinitialise le compteur. À appeler après une connexion réussie.
 ### `is_locked(key) -> bool`
 
 Retourne `true` si le nombre d'échecs dépasse `max_attempts` et que le délai de verrouillage n'est pas écoulé.
+Une entrée arrivée à expiration est supprimée lorsqu'elle est consultée. Pour les clés qui ne sont plus consultées, le nettoyage périodique les retire.
 
 ### `attempts(key) -> u32`
 
@@ -126,6 +127,10 @@ Nombre d'échecs en cours pour cette clé.
 ### `remaining_lockout_secs(key) -> Option<u64>`
 
 Secondes restantes avant déverrouillage. `None` si non verrouillé.
+
+### Nettoyage périodique
+
+Le builder admin démarre automatiquement le nettoyage du `LoginGuard` configuré. Pour un usage autonome, appelez `spawn_cleanup` une fois pendant qu'un runtime Tokio est actif ; la période effective est bornée entre 1 et 60 secondes. Cette purge limite la rétention des entrées expirées mais ne fixe pas de plafond strict au nombre d'entrées.
 
 ---
 

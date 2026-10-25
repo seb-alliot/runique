@@ -445,6 +445,8 @@ macro_rules! search {
     // ── Multi-conditions (TT muncher) ─────────────────────────────────────────
     // Captures all the rest. Adds a final comma to normalize the muncher.
     ($entity:ty => $($tt:tt)+) => {{
+        // Unused when every item is an ordering (`desc Col`).
+        #[allow(unused_imports)]
         use sea_orm::{EntityTrait, ColumnTrait};
         let mut b = $crate::macros::bdd::objects::Objects::<$entity>::new().all();
         $crate::search_munch!(b, $entity; $($tt)+ ,);

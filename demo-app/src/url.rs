@@ -16,7 +16,7 @@ use crate::views::{
 
 use runique::prelude::*;
 
-pub fn routes() -> Router {
+pub fn routes() -> Routes {
     urlpatterns! {
         "/"                              => view!{ index },                   name = "index",
 
@@ -26,13 +26,14 @@ pub fn routes() -> Router {
 
         // Profil
         "/profil"                        => view! { profil },                 name = "profil",
-        "/view-user"                     => view! { info_user },              name = "search-user",
+        admin "/view-user"               => view! { info_user },
+            name = "search-user",
+            for_model = runique::auth::user::Entity,
 
         // Blog
         "/blog/liste"                    => view! { blog_list },              name = "blog_list",
         "/blog/nouveau"                  => view! { blog_save },              name = "blog_info",
         "/blog/{id}"                     => view! { blog_detail },            name = "blog_detail",
-
         // Tools & Demo
         "/about"                         => view! { about },                  name = "about",
         "/rust-django-framework"         => view! { rust_django_framework },  name = "rust_django_framework",

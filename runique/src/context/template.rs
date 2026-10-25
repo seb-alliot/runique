@@ -193,7 +193,7 @@ where
         let method = parts.method.clone();
         let headers = parts.headers.clone();
 
-        // Run Prisme pipeline (sentinel → aegis → CSRF check)
+        // Run Prisme pipeline (aegis → CSRF check)
         let req = HttpRequest::from_parts(parts, body);
         let prisme = prisme_pipeline(req, state).await?;
 

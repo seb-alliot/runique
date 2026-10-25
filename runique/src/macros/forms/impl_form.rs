@@ -30,4 +30,3 @@ macro_rules! impl_form_access {
         }
     };
 }
-    

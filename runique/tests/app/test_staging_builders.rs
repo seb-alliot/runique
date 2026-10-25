@@ -3,8 +3,6 @@
 //! dropping the rest of the configuration, without a test failing.
 use axum::Router;
 use axum::routing::get;
-#[cfg(feature = "admin")]
-use runique::admin::CrudOperation;
 use runique::app::RuniqueApp;
 #[cfg(feature = "admin")]
 use runique::app::staging::AdminStaging;
@@ -26,13 +24,7 @@ fn admin_staging_builders_keep_every_setting() {
         .view_site_url("https://site.example")
         .resource_order(["users", "posts"])
         .with_login_guard(LoginGuard::new().max_attempts(3))
-        .templates(|t| t.with_list("theme/list.html"))
-        .extra_routes(vec![(
-            "report",
-            "posts",
-            CrudOperation::View,
-            get(|| async { "r" }),
-        )]);
+        .templates(|t| t.with_list("theme/list.html"));
 
     assert_eq!(
         a.config.site_title, "Back-office",
@@ -51,12 +43,6 @@ fn admin_staging_builders_keep_every_setting() {
         Some(3)
     );
     assert_eq!(a.config.templates.list.resolve(), "theme/list.html");
-    let route = &a.extra_routes[0];
-    assert_eq!(route.path, "/report", "a leading slash is added");
-    assert_eq!(
-        (route.resource.as_str(), route.operation),
-        ("posts", CrudOperation::View)
-    );
 }
 
 #[derive(Debug, PartialEq)]

@@ -1,9 +1,11 @@
 //! Every registered `ModelAdmin`, whatever its model.
 use super::admin_builder::ModelAdmin;
 use super::registered::RegisteredModel;
+use crate::admin::router::AdminView;
 use crate::auth::current_user::CurrentUser;
 use crate::auth::meta::ModelMeta;
 use crate::auth::user;
+use std::collections::HashMap;
 
 /// One model as the navigation shows it.
 #[derive(Debug, Clone, serde::Serialize)]
@@ -17,6 +19,7 @@ pub struct AdminSite {
     /// The accounts admin: the framework's own unless the project hands its
     /// extension of `eihwaz_users` to `accounts_users()`.
     accounts: Box<dyn RegisteredModel>,
+    overridden_views: HashMap<(String, AdminView), String>,
 }
 
 impl Default for AdminSite {
@@ -24,6 +27,7 @@ impl Default for AdminSite {
         Self {
             models: Vec::new(),
             accounts: Box::new(default_accounts()),
+            overridden_views: HashMap::new(),
         }
     }
 }
@@ -44,6 +48,16 @@ fn default_accounts() -> ModelAdmin<user::Entity> {
 }
 
 impl AdminSite {
+    pub(crate) fn override_view(&mut self, model_key: String, view: AdminView, path: String) {
+        self.overridden_views.insert((model_key, view), path);
+    }
+
+    pub(crate) fn overridden_path(&self, model_key: &str, view: AdminView) -> Option<&str> {
+        self.overridden_views
+            .get(&(model_key.to_string(), view))
+            .map(String::as_str)
+    }
+
     pub fn register<E: ModelMeta>(mut self, admin: ModelAdmin<E>) -> Self {
         self.models.push(Box::new(admin.with_default_display()));
         self

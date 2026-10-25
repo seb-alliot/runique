@@ -2,10 +2,12 @@
 use super::{chrome, failure, unknown_resource};
 use crate::admin::builder::list::ListQuery;
 use crate::admin::builder::site::AdminSite;
+use crate::admin::router::AdminView;
 use crate::admin::router::admin_router::AdminState;
 use crate::admin::trad::insert_admin_messages;
 use crate::auth::current_user::CurrentUser;
-use crate::context::template::Request;
+use crate::context::template::{AppError, Request};
+use crate::errors::error::ErrorContext;
 use crate::utils::aliases::{AppResult, StrMap};
 use axum::Extension;
 use axum::extract::{Path, Query};
@@ -24,7 +26,7 @@ pub(crate) async fn list_view(
         return unknown_resource(&resource);
     };
     let query = ListQuery::from_params(params, admin.config.search_max_len);
-    let page = match model
+    let mut page = match model
         .list(&req.engine.db, &user, &query, admin.config.page_size)
         .await
     {
@@ -42,6 +44,35 @@ pub(crate) async fn list_view(
     let sort_dir = query.sort_dir.clone().unwrap_or_else(|| "asc".to_string());
     let sort_dir_toggle = if sort_dir == "asc" { "desc" } else { "asc" };
     let key = model.key();
+    let detail_route = site
+        .overridden_path(key, AdminView::Detail)
+        .map(str::to_owned);
+    if let Some(detail_route) = detail_route {
+        let pk = model.pk_column();
+        for row in &mut page.rows {
+            let Some(id) = row.get(pk).and_then(|value| match value {
+                serde_json::Value::String(id) => Some(id.clone()),
+                serde_json::Value::Number(id) => Some(id.to_string()),
+                _ => None,
+            }) else {
+                return Err(Box::new(AppError::new(ErrorContext::generic(
+                    axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                    "admin list row is missing a serializable primary key",
+                ))));
+            };
+            let Some(fields) = row.as_object_mut() else {
+                return Err(Box::new(AppError::new(ErrorContext::generic(
+                    axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                    "admin list row is not an object",
+                ))));
+            };
+            let encoded_id = urlencoding::encode(&id);
+            fields.insert(
+                "detail_url".to_string(),
+                serde_json::Value::String(detail_route.replace("{id}", &encoded_id)),
+            );
+        }
+    }
 
     chrome(&mut req, &admin, &site, &user, key);
     insert_admin_messages(&mut req.context, "list");

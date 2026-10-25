@@ -113,7 +113,7 @@ Another engine (MongoDB…) can plug in by implementing the `TestTransaction` tr
 **In every mode:**
 
 - **Database**: no `.with_database(...)` / `.with_database_config(...)`;
-- **AdminPanel**: an empty admin prefix, or an `extra_routes` entry naming a resource that isn't registered;
+- **AdminPanel**: an empty admin prefix, or an `admin` route in `urlpatterns!` naming a model that isn't registered;
 - **static_cache** / **media_cache**: a cache value that isn't a valid HTTP header;
 - **MediaRoot**: a media folder that can't be created;
 - **CORS**: `any_origin()` combined with `allow_credentials(true)`.

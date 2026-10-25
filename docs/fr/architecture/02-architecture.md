@@ -76,7 +76,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 use runique::prelude::*;
 use crate::views;
 
-pub fn routes() -> Router {
+pub fn routes() -> Routes {
     urlpatterns! {
         "/" => view!{ views::index }, name = "index",
         "/register" => view!{ views::register }, name = "register",

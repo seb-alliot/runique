@@ -1,4 +1,4 @@
-// Tests d'intégration pour forms/extractor.rs — pipeline Sentinel → CSRF → Aegis
+// Tests d'intégration pour forms/extractor.rs — pipeline Aegis → CSRF
 // intégré dans Request::from_request.
 //
 // Stratégie : router oneshot avec middleware injectant les extensions nécessaires.

@@ -10,7 +10,10 @@
 use crate::helpers::db;
 use async_trait::async_trait;
 use runique::{
-    forms::{field::{FormSave, FormAccess, RuniqueForm}, form::Forms},
+    forms::{
+        field::{FormAccess, FormSave, RuniqueForm},
+        form::Forms,
+    },
     prelude::SaveContext,
     sea_orm::{ConnectionTrait, DatabaseTransaction, DbErr},
 };

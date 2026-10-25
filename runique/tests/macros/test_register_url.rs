@@ -47,7 +47,7 @@ async fn test_reverse_url_enregistre() {
 async fn test_reverse_url_inexistante_retourne_none() {
     let engine = make_engine().await;
     let url = reverse(&engine, "url_qui_nexiste_pas");
-    assert_eq!(url, Err(UrlError::UnknownRoute("inexistant".into())));
+    assert_eq!(url, None);
 }
 
 #[tokio::test]

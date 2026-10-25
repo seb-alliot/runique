@@ -90,7 +90,6 @@ pub trait FormAccess: Sized + Send + Sync {
 
 #[async_trait]
 pub trait RuniqueForm: FormAccess {
-
     /// Hook to tweak the generated fields (label, placeholder, required, attrs…)
     /// right after they are registered. Default: no-op. Override it in your
     /// `impl RuniqueForm` block to customize a macro-generated form.

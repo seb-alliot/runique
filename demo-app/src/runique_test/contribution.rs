@@ -2,13 +2,25 @@
 //! turn down. Each test prints what it tried and what came back, so the
 //! output reads like a log of the run.
 use crate::backend::contribution::list_contributions;
-use crate::entities::contribution::{ActiveModel as ContributionActiveModel, ContributionType};
+use crate::entities::contribution::{
+    ActiveModel as ContributionActiveModel, Column as ContributionColumn, ContributionType,
+    Entity as ContributionEntity,
+};
+use runique::auth::current_user::CurrentUser;
+use runique::auth::permissions::rang::Rang;
+use runique::auth::permissions::{ColumnRight, Groupe, Permission};
 use runique::prelude::runique_users::{ActiveModel as UserActiveModel, Entity as UserEntity};
 use runique::prelude::*;
 use runique::runique_test::{TestFailure, expect_db_error, runique_test};
 use sea_orm::DbErr;
 
 const TITLE: &str = "runique_test contribution";
+
+#[derive(Debug, PartialEq, sea_orm::DerivePartialModel)]
+#[sea_orm(entity = "ContributionEntity")]
+struct ContributionTitle {
+    title: String,
+}
 
 async fn new_user(db: &ADb, username: &str) -> Result<runique_users::Model, DbErr> {
     UserActiveModel {
@@ -107,6 +119,96 @@ async fn contribution_without_a_title_is_rejected() -> Result<(), TestFailure> {
         let refused =
             expect_db_error(db, async |sp| contribution(user.id, None).insert(sp).await).await?;
         eprintln!("    ✓ refused as expected: {refused}");
+        Ok(())
+    })
+    .await
+}
+
+#[tokio::test]
+async fn gate_scope_and_search_ordering_compose() -> Result<(), TestFailure> {
+    runique_test::<ADb>(super::ENV, async |db| {
+        let owner = new_user(db, "runique_test_gate_owner").await?;
+        let other = new_user(db, "runique_test_gate_other").await?;
+
+        contribution(owner.id, Some("runique_test_gate_alpha"))
+            .insert(db)
+            .await?;
+        contribution(owner.id, Some("runique_test_gate_zulu"))
+            .insert(db)
+            .await?;
+        contribution(other.id, Some("runique_test_gate_outside"))
+            .insert(db)
+            .await?;
+
+        let mut permission = Permission::zeroed("contributions".to_string());
+        permission.can_read_own = true;
+        permission.colonnes.push(ColumnRight {
+            colonne: "title".to_string(),
+            can_read: true,
+            can_create: false,
+            can_update: false,
+        });
+        let user = CurrentUser {
+            id: owner.id,
+            username: owner.username,
+            rang: Rang::Lambda,
+            groupes: vec![Groupe {
+                id: 1,
+                nom: "runique_test_gate".to_string(),
+                is_staff: true,
+                permissions: vec![permission],
+            }],
+            droits: Vec::new(),
+        };
+        let proof = runique::auth::gate::check::authorize_list::<ContributionEntity>(
+            &runique::auth::gate::GateCtx { db, user: &user },
+        )
+        .map_err(|e| DbErr::Custom(format!("gate refused the test user: {}", e.message())))?;
+
+        let descending = search!(ContributionEntity => desc Title)
+            .filter_by_gate(&proof)
+            .all(db)
+            .await?;
+        let descending_titles = descending
+            .iter()
+            .map(|row| row.title.as_str())
+            .collect::<Vec<_>>();
+        if descending_titles != ["runique_test_gate_zulu", "runique_test_gate_alpha"] {
+            return Err(DbErr::Custom(format!(
+                "gate + descending search returned {descending_titles:?}"
+            )));
+        }
+
+        let projected = search!(ContributionEntity => desc Title)
+            .filter_by_gate(&proof)
+            .into_select()
+            .into_partial_model::<ContributionTitle>()
+            .all(db)
+            .await?;
+        let projected_titles = projected
+            .iter()
+            .map(|row| row.title.as_str())
+            .collect::<Vec<_>>();
+        if projected_titles != ["runique_test_gate_zulu", "runique_test_gate_alpha"] {
+            return Err(DbErr::Custom(format!(
+                "gate + projected search returned {projected_titles:?}"
+            )));
+        }
+
+        let ascending = search!(ContributionEntity)
+            .filter_by_gate(&proof)
+            .order_by_asc(ContributionColumn::Title)
+            .all(db)
+            .await?;
+        let ascending_titles = ascending
+            .iter()
+            .map(|row| row.title.as_str())
+            .collect::<Vec<_>>();
+        if ascending_titles != ["runique_test_gate_alpha", "runique_test_gate_zulu"] {
+            return Err(DbErr::Custom(format!(
+                "gate + ascending search returned {ascending_titles:?}"
+            )));
+        }
         Ok(())
     })
     .await

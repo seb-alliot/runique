@@ -1,5 +1,5 @@
 use runique::prelude::*;
-mod admin_refonte;
+mod admin;
 mod backend;
 mod entities;
 mod formulaire;
@@ -52,7 +52,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .connect(vec!["'self'", "https://cloudflareinsights.com"])
                 })
         })
-        .with_admin(admin_refonte::config)
+        .with_admin(admin::config)
         .build()
         .await
         .map_err(|e| -> Box<dyn std::error::Error> { Box::new(e) })?

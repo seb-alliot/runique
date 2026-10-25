@@ -69,9 +69,9 @@ fn test_lockout_expires() {
     // Verrouillage très court (0 sec) → expiré immédiatement
     let guard = LoginGuard::new().max_attempts(1).lockout_secs(0);
     guard.record_failure("grace");
-    std::thread::sleep(std::time::Duration::from_millis(10));
     assert!(!guard.is_locked("grace")); // verrouillage expiré
     assert!(guard.remaining_lockout_secs("grace").is_none());
+    assert_eq!(guard.attempts("grace"), 0, "l'entrée expirée est purgée");
 }
 
 #[test]
@@ -106,27 +106,6 @@ fn test_effective_key_empty_username_uses_ip() {
 fn test_effective_key_whitespace_username_uses_ip() {
     let key = LoginGuard::effective_key("   ", "1.2.3.4");
     assert_eq!(key, "anonym:1.2.3.4");
-}
-
-#[tokio::test]
-async fn test_spawn_cleanup_actually_removes_expired_entries() {
-    // lockout_secs(0) : l'entrée est éligible à la purge dès le premier tick.
-    let guard = LoginGuard::new().max_attempts(3).lockout_secs(0);
-    guard.record_failure("tmp_user");
-    assert_eq!(
-        guard.attempts("tmp_user"),
-        1,
-        "l'échec doit être enregistré avant le cleanup"
-    );
-
-    guard.spawn_cleanup(tokio::time::Duration::from_millis(20));
-    tokio::time::sleep(tokio::time::Duration::from_millis(80)).await;
-
-    assert_eq!(
-        guard.attempts("tmp_user"),
-        0,
-        "la tâche de fond doit avoir retiré l'entrée dont le lockout est expiré"
-    );
 }
 
 #[test]

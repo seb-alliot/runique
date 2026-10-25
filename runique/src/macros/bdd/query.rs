@@ -1,4 +1,5 @@
 //! `RuniqueQueryBuilder<E>` — Django-style query builder: filter, exclude, order_by, limit, all, get, count…
+use crate::auth::gate::{Authorized, Guarded, List};
 /// Django-inspired query builder for SeaORM
 ///
 /// This struct wraps SeaORM's `Select<E>` and provides convenient,
@@ -89,6 +90,15 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
         C: Into<Condition>,
     {
         self.query = self.query.filter(condition.into());
+        self
+    }
+
+    /// Adds the row scope authorized for a list operation by the admin gate.
+    ///
+    /// This constrains which rows the query may return; callers must still
+    /// project only the columns allowed by `proof.readable()`.
+    pub fn filter_by_gate(mut self, proof: &Authorized<List, E>) -> Self {
+        self.query = self.query.filter(proof.conditions());
         self
     }
 
@@ -321,6 +331,7 @@ impl<T: EntityTrait> Queryable for T {}
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::search;
     use sea_orm::ActiveModelTrait;
     use sea_orm::Set;
     use sea_orm::entity::prelude::*;
@@ -398,6 +409,49 @@ mod tests {
         assert_eq!(not_bob.len(), 1);
         assert_eq!(not_bob[0].username, "alice");
 
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_querybuilder_applies_admin_gate_scope() -> Result<(), DbErr> {
+        use crate::auth::gate::test_support::fixtures;
+        use crate::auth::gate::{GateCtx, check::authorize_list};
+
+        let db = fixtures::db().await;
+        let user = fixtures::staff(
+            fixtures::pk(10),
+            "notes",
+            [false, false, true, false, false, false, false],
+        );
+        let proof = authorize_list::<fixtures::note::Entity>(&GateCtx {
+            db: &db,
+            user: &user,
+        })
+        .unwrap();
+
+        for id in [4, 5] {
+            fixtures::note::ActiveModel {
+                id: Set(id),
+                owner_id: Set(Some(fixtures::pk(10))),
+            }
+            .insert(&db)
+            .await?;
+        }
+
+        let descending = search!(fixtures::note::Entity => desc Id)
+            .filter_by_gate(&proof)
+            .all(&db)
+            .await?;
+        let descending_ids = descending.iter().map(|note| note.id).collect::<Vec<_>>();
+        assert_eq!(descending_ids, [5, 4, 1]);
+
+        let ascending = search!(fixtures::note::Entity)
+            .filter_by_gate(&proof)
+            .order_by_asc(fixtures::note::Column::Id)
+            .all(&db)
+            .await?;
+        let ascending_ids = ascending.iter().map(|note| note.id).collect::<Vec<_>>();
+        assert_eq!(ascending_ids, [1, 4, 5]);
         Ok(())
     }
 

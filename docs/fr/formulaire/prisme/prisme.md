@@ -6,10 +6,9 @@
 
 `request.form()` est une méthode intégrée dans `Request` qui orchestre un pipeline complet en coulisses :
 
-1. **Sentinel** — Vérifie les règles d'accès de la route (`GuardRules` : connecté, staff, superutilisateur, groupes) contre le compte relu en base.
-2. **Aegis** — Extraction unique du body (multipart, urlencoded, json) normalisée en `HashMap`, dans la limite de taille de la requête. Pour un multipart, aucun fichier n'est écrit avant un jeton CSRF valide (en-tête `X-CSRF-Token`, ou champ `csrf_token` placé avant les fichiers).
-3. **CSRF Gate** — Vérifie le token CSRF dans les données parsées.
-4. **Construction** — Crée le formulaire `T`, remplit les champs et lance la validation.
+1. **Aegis** — Extraction unique du body (multipart, urlencoded, json) normalisée en `HashMap`, dans la limite de taille de la requête. Pour un multipart, aucun fichier n'est écrit avant un jeton CSRF valide (en-tête `X-CSRF-Token`, ou champ `csrf_token` placé avant les fichiers).
+2. **CSRF Gate** — Vérifie le token CSRF dans les données parsées.
+3. **Construction** — Crée le formulaire `T`, remplit les champs et lance la validation.
 
 ```rust
 use runique::prelude::*;

@@ -69,11 +69,20 @@ impl RateLimiter {
         self
     }
 
+    /// Cleanup cadence, capped so expired keys aren't retained for a full
+    /// long window. Tokio intervals require a non-zero duration.
+    pub(crate) fn cleanup_interval(&self) -> tokio::time::Duration {
+        self.window
+            .clamp(Duration::from_secs(1), Duration::from_secs(60))
+    }
+
     /// Spawns a Tokio task that periodically purges expired entries.
-    /// Should be called once at application startup.
+    /// Should be called once at application startup for manual integrations.
+    /// The route extensions and admin builder start it automatically.
     pub fn spawn_cleanup(&self, period: tokio::time::Duration) {
         let store = self.store.clone();
         let window = self.window;
+        let period = period.max(tokio::time::Duration::from_secs(1));
         tokio::spawn(async move {
             let mut ticker = interval(period);
             loop {
@@ -92,10 +101,17 @@ impl RateLimiter {
     /// Returns `0` if the key is unknown or if the window is already expired.
     #[must_use]
     pub fn retry_after_secs(&self, key: &str) -> u64 {
-        let store = match self.store.lock() {
+        let mut store = match self.store.lock() {
             Ok(s) => s,
             Err(p) => p.into_inner(),
         };
+        if store
+            .get(key)
+            .is_some_and(|(_, start)| start.elapsed() >= self.window)
+        {
+            store.remove(key);
+            return 0;
+        }
         match store.get(key) {
             Some((_, start)) => {
                 let interval = Instant::now().duration_since(*start);
@@ -113,13 +129,15 @@ impl RateLimiter {
             Err(p) => p.into_inner(),
         };
         let now = Instant::now();
+        if store
+            .get(key)
+            .is_some_and(|(_, start)| now.duration_since(*start) >= self.window)
+        {
+            store.remove(key);
+        }
         let entry = store.entry(key.to_string()).or_insert((0, now));
 
-        if now.duration_since(entry.1) >= self.window {
-            // New window
-            *entry = (1, now);
-            true
-        } else if entry.0 < self.max_requests {
+        if entry.0 < self.max_requests {
             entry.0 = entry.0.saturating_add(1);
             true
         } else {
@@ -208,6 +226,56 @@ pub async fn rate_limit_middleware(
             t("html.429_text").into_owned(),
         )
             .into_response()
+    }
+}
+
+#[cfg(test)]
+mod expiration_tests {
+    use super::*;
+
+    #[test]
+    fn the_cleanup_cadence_follows_the_window_within_bounds() {
+        let secs = |window| {
+            RateLimiter::new()
+                .retry_after(window)
+                .cleanup_interval()
+                .as_secs()
+        };
+        assert_eq!(secs(0), 1);
+        assert_eq!(secs(30), 30);
+        assert_eq!(secs(600), 60);
+    }
+
+    // Read straight from the store: `retry_after_secs()` would purge the key itself.
+    #[tokio::test]
+    async fn the_background_task_removes_expired_keys() {
+        let limiter = RateLimiter::new().max_requests(5).retry_after(60);
+        {
+            let mut store = limiter.store.lock().unwrap();
+            store.insert(
+                "expired".to_string(),
+                (1, Instant::now() - Duration::from_secs(61)),
+            );
+            store.insert("fresh".to_string(), (1, Instant::now()));
+        }
+
+        limiter.spawn_cleanup(tokio::time::Duration::from_secs(1));
+        tokio::time::sleep(tokio::time::Duration::from_millis(1200)).await;
+
+        let store = limiter.store.lock().unwrap();
+        assert!(!store.contains_key("expired"));
+        assert!(store.contains_key("fresh"));
+    }
+
+    #[test]
+    fn retry_after_removes_an_expired_key() {
+        let limiter = RateLimiter::new().max_requests(1).retry_after(0);
+        assert!(limiter.is_allowed("expired"));
+        assert_eq!(limiter.retry_after_secs("expired"), 0);
+        assert!(
+            !limiter.store.lock().unwrap().contains_key("expired"),
+            "expired entry should be removed when observed"
+        );
     }
 }
 

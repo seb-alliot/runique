@@ -59,6 +59,7 @@ ebauche-reset-password.md
 recap-extraction-dsl-runique.md
 recap-trous-builder-test.md
 recap-types-dsl-seaorm.md
+/agent_vs_retour.md
 
 # cargo-mutants reports
 mutants.out/

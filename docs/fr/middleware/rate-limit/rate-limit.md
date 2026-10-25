@@ -11,7 +11,7 @@ Directement dans `url.rs`, via le trait `RouterExt` :
 ```rust
 use runique::prelude::*;
 
-pub fn routes() -> Router {
+pub fn routes() -> Routes {
     urlpatterns! {
         "/" => view!{ index }, name = "index",
         // ...
@@ -30,7 +30,10 @@ Plusieurs routes partageant le **même compteur** :
 ])
 ```
 
-> Le `spawn_cleanup` est appelé automatiquement — pas de fuite mémoire.
+> Le `spawn_cleanup` est appelé automatiquement dans cette intégration : les entrées expirées sont
+> purgées périodiquement, mais cela ne constitue pas un plafond strict de mémoire.
+> Les entrées expirées sont aussi retirées lorsqu'elles sont consultées. Le nettoyage périodique
+> retire celles qui ne reviennent plus.
 
 ---
 
@@ -110,6 +113,7 @@ Retourne `true` si la clé est sous la limite, `false` sinon.
 ### `retry_after_secs(key: &str) -> u64`
 
 Secondes restantes avant réinitialisation de la fenêtre pour cette clé. Retourne `0` si la fenêtre est déjà expirée ou si la clé est inconnue. Utilisé pour remplir le header `Retry-After` dans les réponses 429.
+Une entrée arrivée à expiration est supprimée dès qu'elle est consultée.
 
 ### `.only_methods(methods: Vec<Method>)`
 
@@ -132,7 +136,7 @@ Cas d'usage : protéger une route de login contre le brute force sur les soumiss
 
 ### `.spawn_cleanup(period: Duration)`
 
-Lance une tâche de nettoyage en arrière-plan qui purge périodiquement les entrées expirées. Sans ce nettoyage, la map interne croît indéfiniment pour chaque IP distincte. À appeler une fois après construction du limiter.
+Lance une tâche de nettoyage en arrière-plan qui purge périodiquement les entrées expirées. Pour une intégration manuelle dans un handler ou un middleware, appelez-la une fois pendant qu'un runtime Tokio est actif. La période effective est bornée entre 1 et 60 secondes.
 
 ```rust
 let limiter = RateLimiter::new().max_requests(5).retry_after(60);
@@ -141,6 +145,7 @@ let limiter = Arc::new(limiter);
 ```
 
 > Avec l'approche déclarative (`.rate_limit()` / `.rate_limit_many()`), `spawn_cleanup` est appelé automatiquement.
+> Le builder admin le démarre également quand un rate limiter est configuré.
 
 ---
 
