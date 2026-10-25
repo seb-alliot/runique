@@ -7,13 +7,12 @@ The `#[form(...)]` attribute macro expects:
 - `schema = function_path` (required)
 - `fields = [..]` (optional)
 - `exclude = [..]` (optional)
-- `model = Entity` (optional) — links the form to a SeaORM entity
 
 It generates:
 
 - a struct containing `form: Forms`
 - `impl ModelForm` (`schema()`, `fields()`, `exclude()`)
-- if `model` is present: `impl FormEntity` + `pub const objects`
+- `impl FormEntity` + `pub const objects` (automatic link to `<schema>::Entity`)
 
 The developer then writes `impl RuniqueForm` with `impl_form_access!(model)`:
 
@@ -28,18 +27,18 @@ impl RuniqueForm for UserForm {
 }
 ```
 
-### With `model` — ORM access from the form
+### ORM access from the form
 
-Adding `model = Entity` makes the form a direct entry point for ORM queries, without going through the entity type.
+`#[form(schema = …)]` ties the form to its model module's entity automatically (`schema = blog` → `blog::Entity`), which gives `Form::objects` and `search!(@Form => …)`: the form becomes a direct entry point for ORM queries, without going through the entity type.
 
 ```rust
-#[form(schema = users, model = users::Entity)]
+#[form(schema = users)]
 pub struct UserForm;
 
-#[form(schema = blog, model = blog::Entity)]
+#[form(schema = blog)]
 pub struct BlogForm;
 
-#[form(schema = document, model = document::Entity)]
+#[form(schema = document)]
 pub struct DocumentForm;
 ```
 
@@ -81,10 +80,10 @@ let results = search!(@BlogForm =>
 .await?;
 ```
 
-> `model` is compatible with `fields` and `exclude` — they can be freely combined.
+> `fields` and `exclude` combine freely with the automatic link to the entity.
 
 ```rust
-#[form(schema = users, fields = [username, email], model = users::Entity)]
+#[form(schema = users, fields = [username, email])]
 pub struct UserForm;
 ```
 

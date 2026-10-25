@@ -142,13 +142,13 @@ Voir [Requêtes CRUD — Macro search!](/docs/fr/orm/requetes#macro-search-dsl-d
 
 ## Accès via formulaire — `FormEntity`
 
-Lorsqu'un form est annoté avec `#[form(model = Entity)]`, Runique génère automatiquement :
+Lorsqu'un form est déclaré avec `#[form(schema = …)]`, Runique génère automatiquement :
 
 - L'implémentation du trait `FormEntity` (lien form ↔ entité)
 - Une constante `pub const objects` sur le form, identique à `Entity::objects`
 
 ```rust
-#[form(schema = user_schema, model = users::Entity)]
+#[form(schema = users)]
 pub struct UserForm;
 
 // Accès objects via le form — équivalent à users::Entity::objects
@@ -191,7 +191,7 @@ let results = search!(@UserForm =>
 | --- | --- |
 | [Requêtes CRUD](/docs/fr/orm/requetes) | SELECT, COUNT, WHERE, INSERT, UPDATE, DELETE |
 | [Avancé](/docs/fr/orm/avance) | Transactions, relations |
-| [Formulaires](/docs/fr/model/formulaires) | `#[form(model = ...)]`, `FormEntity`, `Form::objects` |
+| [Formulaires](/docs/fr/model/formulaires) | `#[form(schema = ...)]`, `FormEntity`, `Form::objects` |
 
 ## Retour au sommaire
 

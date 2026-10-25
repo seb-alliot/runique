@@ -40,7 +40,6 @@ mod schema_form;
 ///
 /// - `fields = [field1, field2, ...]` — include only these fields (allowlist)
 /// - `exclude = [field1, field2, ...]` — exclude these fields (denylist)
-/// - `model = MyModel` — override the generated model name (defaults to struct name)
 ///
 /// # Example
 ///

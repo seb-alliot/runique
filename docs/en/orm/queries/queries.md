@@ -311,10 +311,10 @@ let difficulties: Vec<String> = search!(course::Entity => Lang eq "en")
 
 ### Via `@Form` — FormEntity
 
-If the form is linked to an entity via `#[form(model = ...)]`, use `@Form` as a shorthand:
+If the form is linked to its model module's entity via `#[form(schema = ...)]`, use `@Form` as a shorthand:
 
 ```rust
-#[form(schema = user_schema, model = users::Entity)]
+#[form(schema = users)]
 pub struct UserForm;
 
 // Identical to search!(users::Entity => ...)

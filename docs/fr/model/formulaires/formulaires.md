@@ -7,13 +7,12 @@ La macro attribut `#[form(...)]` attend :
 - `schema = chemin_fonction` (obligatoire)
 - `fields = [..]` (optionnel)
 - `exclude = [..]` (optionnel)
-- `model = Entity` (optionnel) — lie le formulaire à une entité SeaORM
 
 Elle génère :
 
 - la struct avec `form: Forms`
 - `impl ModelForm` (`schema()`, `fields()`, `exclude()`)
-- si `model` est présent : `impl FormEntity` + `pub const objects`
+- `impl FormEntity` + `pub const objects` (lien automatique vers `<schema>::Entity`)
 
 Le dev écrit ensuite `impl RuniqueForm` avec `impl_form_access!(model)` :
 
@@ -28,18 +27,18 @@ impl RuniqueForm for UserForm {
 }
 ```
 
-### Avec `model` — accès ORM depuis le formulaire
+### Accès ORM depuis le formulaire
 
-En ajoutant `model = Entity`, le formulaire devient un point d'entrée direct pour les requêtes ORM, sans passer par l'entité.
+`#[form(schema = …)]` relie automatiquement le formulaire à l'entité de son module de modèle (`schema = blog` → `blog::Entity`), ce qui donne `Form::objects` et `search!(@Form => …)` : le formulaire devient un point d'entrée direct pour les requêtes ORM, sans passer par l'entité.
 
 ```rust
-#[form(schema = users, model = users::Entity)]
+#[form(schema = users)]
 pub struct UserForm;
 
-#[form(schema = blog, model = blog::Entity)]
+#[form(schema = blog)]
 pub struct BlogForm;
 
-#[form(schema = document, model = document::Entity)]
+#[form(schema = document)]
 pub struct DocumentForm;
 ```
 
@@ -81,10 +80,10 @@ let results = search!(@BlogForm =>
 .await?;
 ```
 
-> `model` est compatible avec `fields` et `exclude` — ils peuvent être combinés librement.
+> `fields` et `exclude` se combinent librement avec le lien automatique vers l'entité.
 
 ```rust
-#[form(schema = users, fields = [username, email], model = users::Entity)]
+#[form(schema = users, fields = [username, email])]
 pub struct UserForm;
 ```
 

@@ -314,6 +314,10 @@ pub(crate) fn generate_entity(dsl: &ExtendDsl) -> TokenStream2 {
         }
 
         impl ::runique::forms::field::RuniqueForm for #form_name {}
+        impl ::runique::forms::FormEntity for #form_name {
+            type Entity = Entity;
+        }
+
 
         impl ::runique::forms::field::FormAccess for #form_name {
             fn register_fields(form: &mut ::runique::forms::Forms) {
