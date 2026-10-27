@@ -24,7 +24,6 @@ use axum::{
 use runique::{
     auth::current_user::CurrentUser,
     context::template::Request as HandlerReq,
-    flash::Message,
     forms::Prisme,
     utils::{aliases::StrMap, crypto::csrf::CsrfToken},
 };
@@ -88,21 +87,14 @@ pub async fn build_handler_req(
         context.insert("current_user", u);
     }
 
-    HandlerReq {
+    let mut req = HandlerReq::new(
         engine,
-        notices: Message {
-            session: session.clone(),
-        },
         session,
-        csrf_token: CsrfToken("test-csrf-token".to_string()),
-        context,
+        CsrfToken("test-csrf-token".to_string()),
         method,
-        path_params: Default::default(),
-        raw_query: String::new(),
-        query_params: Default::default(),
-        user,
-        prisme: Prisme::for_test(body, true),
-        headers: Default::default(),
-        honeypot_field_name: None,
-    }
+    );
+    req.context = context;
+    req.user = user;
+    req.prisme = Prisme::for_test(body, true);
+    req
 }

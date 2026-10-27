@@ -118,6 +118,8 @@ pub struct Request {
     pub prisme: Prisme,
     /// Honeypot field name injected by anti_bot middleware (None if middleware not active).
     pub honeypot_field_name: Option<String>,
+    /// Inside the admin's constraint: forms built here save through the gate.
+    pub(crate) admin_constraint: bool,
 }
 
 impl<S> FromRequest<S> for Request
@@ -147,6 +149,7 @@ where
         let nonce = ex.get::<CspNonce>().map(|n| n.as_str()).unwrap_or_default();
         let user = ex.get::<CurrentUser>().cloned();
         let honeypot_field_name = ex.get::<HoneypotFieldName>().map(|h| h.0.clone());
+        let admin_constraint = ex.get::<crate::auth::gate::AdminConstraint>().is_some();
 
         let notices = Message {
             session: session.clone(),
@@ -211,6 +214,7 @@ where
             user,
             prisme,
             honeypot_field_name,
+            admin_constraint,
         })
     }
 }
@@ -253,6 +257,7 @@ impl Request {
                 csrf_valid: false,
             },
             honeypot_field_name: None,
+            admin_constraint: false,
         }
     }
 
@@ -401,6 +406,10 @@ impl Request {
         form.get_form_mut()
             .set_url_params(&self.path_params, &self.query_params);
 
+        if self.admin_constraint {
+            form.get_form_mut().save_comportement = crate::forms::form::SaveComportement::Gated;
+        }
+
         if let Some(ref hp_name) = self.honeypot_field_name {
             form.get_form_mut().set_honeypot(hp_name);
             if self.method == Method::POST
@@ -429,5 +438,115 @@ impl Request {
         form.get_form_mut()
             .fill(&self.prisme.data, self.method.clone());
         form
+    }
+}
+
+#[cfg(all(test, feature = "sqlite"))]
+mod admin_constraint_tests {
+    use super::Request;
+    use crate::auth::gate::AdminConstraint;
+    use crate::config::RuniqueConfig;
+    use crate::engine::RuniqueEngine;
+    use crate::forms::{
+        field::{FormAccess, RuniqueForm},
+        form::{Forms, SaveComportement},
+    };
+    use crate::utils::{aliases::AEngine, csrf::CsrfToken};
+    use axum::{
+        body::Body,
+        extract::FromRequest,
+        http::{Method, Request as HttpRequest},
+    };
+    use std::sync::Arc;
+    use tower_sessions::{MemoryStore, Session};
+
+    struct ProbeForm {
+        form: Forms,
+    }
+
+    impl FormAccess for ProbeForm {
+        fn register_fields(_form: &mut Forms) {}
+        crate::impl_form_access!();
+    }
+
+    impl RuniqueForm for ProbeForm {}
+
+    async fn engine() -> AEngine {
+        let conn = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
+        Arc::new(RuniqueEngine::new(
+            RuniqueConfig::default(),
+            tera::Tera::default(),
+            conn,
+        ))
+    }
+
+    fn session() -> Session {
+        Session::new(None, Arc::new(MemoryStore::default()), None)
+    }
+
+    fn csrf() -> CsrfToken {
+        CsrfToken("ab".repeat(32))
+    }
+
+    /// The extractor's input: every extension Runique's own layers put, and the
+    /// constraint when asked.
+    async fn extracted(method: Method, constrained: bool) -> Request {
+        let engine = engine().await;
+        let mut http = HttpRequest::builder()
+            .method(method)
+            .uri("/page")
+            .body(Body::empty())
+            .unwrap();
+        let ext = http.extensions_mut();
+        ext.insert(engine.clone());
+        ext.insert(Arc::new(engine.config.clone()));
+        ext.insert(csrf());
+        ext.insert(session());
+        if constrained {
+            ext.insert(AdminConstraint);
+        }
+        Request::from_request(http, &())
+            .await
+            .unwrap_or_else(|_| panic!("extraction failed"))
+    }
+
+    #[tokio::test]
+    async fn a_request_built_by_hand_is_not_constrained() {
+        let req = Request::new(engine().await, session(), csrf(), Method::GET);
+        assert!(!req.admin_constraint);
+    }
+
+    #[tokio::test]
+    async fn the_extension_makes_the_extracted_request_constrained() {
+        assert!(extracted(Method::GET, true).await.admin_constraint);
+    }
+
+    #[tokio::test]
+    async fn without_the_extension_the_extracted_request_is_not_constrained() {
+        assert!(!extracted(Method::GET, false).await.admin_constraint);
+    }
+
+    #[tokio::test]
+    async fn a_constrained_request_builds_gated_forms() {
+        let mut req = Request::new(engine().await, session(), csrf(), Method::GET);
+        req.admin_constraint = true;
+        let form = req.form::<ProbeForm>();
+        assert_eq!(form.get_form().save_comportement, SaveComportement::Gated);
+    }
+
+    #[tokio::test]
+    async fn an_unconstrained_request_builds_open_forms() {
+        let req = Request::new(engine().await, session(), csrf(), Method::GET);
+        let form = req.form::<ProbeForm>();
+        assert_eq!(form.get_form().save_comportement, SaveComportement::Open);
+    }
+
+    /// Both policies through the real extraction path, extension to form.
+    #[tokio::test]
+    async fn the_policy_follows_the_extension_end_to_end() {
+        let gated = extracted(Method::GET, true).await.form::<ProbeForm>();
+        assert_eq!(gated.get_form().save_comportement, SaveComportement::Gated);
+        let open = extracted(Method::GET, false).await.form::<ProbeForm>();
+        assert_eq!(open.get_form().save_comportement, SaveComportement::Open);
     }
 }
