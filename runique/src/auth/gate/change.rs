@@ -136,6 +136,10 @@ mod tests {
 
     impl crate::forms::field::RuniqueForm for ItemForm {}
 
+    impl crate::forms::FormEntity for ItemForm {
+        type Entity = item::Entity;
+    }
+
     impl ModelMeta for item::Entity {
         const KEY: &'static str = "chg_items";
         type Form = ItemForm;

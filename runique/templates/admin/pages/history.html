@@ -1,0 +1,28 @@
+{% extends "admin_base.html" %}
+{% block title %}Historique{% endblock %}
+{% block breadcrumb %}
+  <span class="admin-topbar__sep">/</span>
+  <span>Historique</span>
+{% endblock %}
+{% block content %}
+  {% block history_header %}
+  <div class="admin-page__header">
+    <div>
+      <h1 class="admin-page__title">Historique</h1>
+      <p class="admin-page__subtitle">Les créations, modifications et suppressions faites dans l'admin.</p>
+    </div>
+  </div>
+  {% endblock %}
+  {% block history_filters %}{% include "admin/blocks/history/filters.html" %}{% endblock %}
+  {% block history_table %}{% include "admin/blocks/history/table.html" %}{% endblock %}
+  {% block history_pagination %}
+  {% if total_pages > 1 %}
+  <div class="admin-pagination">
+    {% set qs = "&resource=" ~ (filter_resource | urlencode) ~ "&action=" ~ (filter_action | urlencode) ~ "&object=" ~ (filter_object | urlencode) ~ "&user=" ~ (filter_user | urlencode) %}
+    {% if page > 1 %}<a href="?page={{ page - 1 }}{{ qs }}" class="btn btn-sm btn-secondary">&laquo;</a>{% endif %}
+    <span class="admin-pagination__info">{{ page }} / {{ total_pages }}</span>
+    {% if page < total_pages %}<a href="?page={{ page + 1 }}{{ qs }}" class="btn btn-sm btn-secondary">&raquo;</a>{% endif %}
+  </div>
+  {% endif %}
+  {% endblock %}
+{% endblock %}

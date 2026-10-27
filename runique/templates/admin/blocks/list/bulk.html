@@ -1,0 +1,22 @@
+{# Action bar of the checked rows, shown when `can_bulk`: the declared actions
+   this account may run, and delete. The gate decides again on every row. #}
+{% if can_bulk %}
+<form id="bulk-form" method="POST" action="{% link "admin_bulk" resource=resource.key %}">
+  {% csrf %}
+  <input type="hidden" name="runique_form" value="admin_bulk">
+  <input type="hidden" name="bulk_action" id="bulk-action-input" value="">
+  <input type="hidden" name="ids" id="bulk-ids-input" value="">
+  <input type="hidden" name="return_qs" value="{{ return_qs }}">
+  <div id="bulk-action-bar" class="admin-group-action__bar">
+    <span class="admin-group-action__info"><span id="bulk-count">0</span> sélectionné(s)</span>
+    <div class="admin-group-action__btns">
+      {% for action in group_actions %}
+      <button type="button" class="btn btn-sm btn-primary" data-bulk-action="a{{ action.index }}">{{ action.label }}</button>
+      {% endfor %}
+      {% if can_delete %}
+      <button type="button" class="btn btn-sm btn-danger" data-bulk-action="delete">Supprimer</button>
+      {% endif %}
+    </div>
+  </div>
+</form>
+{% endif %}

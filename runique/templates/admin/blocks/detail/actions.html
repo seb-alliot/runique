@@ -1,0 +1,31 @@
+{# Buttons of one row: back to the list, then what the flags allow. A flag only
+   offers the way; the gate decides again on the page it leads to. #}
+<div class="admin-page__actions">
+  <a href="{% link "admin_list" resource=resource_key %}" class="btn btn-secondary btn-sm">{% if admin_detail_btn_list %}{{ admin_detail_btn_list }}{% endif %}</a>
+  {% if can_update %}
+  <a href="{% link "admin_edit" resource=resource_key, id=object_id %}" class="btn btn-primary btn-sm">{% if admin_detail_btn_edit %}{{ admin_detail_btn_edit }}{% endif %}</a>
+  {% endif %}
+  {% if can_reset_password %}
+  <form method="POST" action="{% link "admin_reset_password" resource=resource_key, id=object_id %}" class="admin-form--inline">
+    {% csrf %}
+    <input type="hidden" name="runique_form" value="admin_reset_password">
+    <button type="submit" class="btn btn-secondary btn-sm">{% if admin_detail_btn_reset_password %}{{ admin_detail_btn_reset_password }}{% endif %}</button>
+  </form>
+  {% endif %}
+  {% if rank_choices | length > 0 %}
+  <form method="POST" action="{% link "admin_rank" resource=resource_key %}" class="admin-form--inline">
+    {% csrf %}
+    <input type="hidden" name="runique_form" value="admin_rank">
+    <input type="hidden" name="ids" value="{{ object_id }}">
+    <select name="bulk_action" class="admin-search__input">
+      {% for choice in rank_choices %}
+      <option value="{{ choice[0] }}" {% if choice[0] == current_rank %}selected{% endif %}>{{ choice[1] }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-secondary btn-sm">Changer le rang</button>
+  </form>
+  {% endif %}
+  {% if can_delete %}
+  <a href="{% link "admin_delete" resource=resource_key, id=object_id %}" class="btn btn-danger btn-sm">{% if admin_detail_btn_delete %}{{ admin_detail_btn_delete }}{% endif %}</a>
+  {% endif %}
+</div>

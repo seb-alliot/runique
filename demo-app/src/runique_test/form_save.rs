@@ -110,7 +110,10 @@ async fn titled(db: &ADb, title: &str) -> Result<u64, DbErr> {
 }
 
 async fn title_of(db: &ADb, id: Pk) -> Result<Option<String>, DbErr> {
-    Ok(BlogEntity::find_by_id(id).one(db).await?.map(|row| row.title))
+    Ok(BlogEntity::find_by_id(id)
+        .one(db)
+        .await?
+        .map(|row| row.title))
 }
 
 fn fail(message: &str) -> DbErr {
@@ -324,7 +327,10 @@ async fn website_is_set_then_replaced_then_emptied() -> Result<(), TestFailure> 
 
         let key = row.id.to_string();
         for (sent, expected) in [
-            ("https://second.example.com", Some("https://second.example.com")),
+            (
+                "https://second.example.com",
+                Some("https://second.example.com"),
+            ),
             ("", None),
         ] {
             let mut body = article(TITLE);

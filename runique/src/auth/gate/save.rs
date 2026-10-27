@@ -1,6 +1,8 @@
 //! `save_as`: a form's save inside the admin's constraint. The account the
 //! middleware checked, the row the URL points at, the gate's proof and the
 //! columns the rights allow, written in one transaction with its history row.
+#[cfg(feature = "admin")]
+use super::PkOf;
 use super::change::{FieldErrors, WriteKind, changes};
 use super::check::{GateCtx, authorize_create, authorize_row};
 use super::operation::{Delete, Update};
@@ -40,8 +42,7 @@ where
         return Err(refused(Refusal::new(RefusalReason::NoRight)));
     };
     let user = user.clone();
-    let target =
-        url_key::<E>(form).map_err(|()| refused(Refusal::new(RefusalReason::NotFound)))?;
+    let target = url_key::<E>(form).map_err(|()| refused(Refusal::new(RefusalReason::NotFound)))?;
     let gate = GateCtx { db, user: &user };
     let rights = user.rights_on(E::KEY);
 
@@ -53,6 +54,15 @@ where
             // Whoever creates the row owns it, whatever the form sent.
             if let Some(owner) = E::OWNER {
                 model.try_set(owner, Value::from(user.id))?;
+            }
+            // A new account gets a password nobody knows: its owner chooses
+            // one through the emailed link, the staff never holds it.
+            if E::IS_ACCOUNT_TABLE
+                && let Some(password) = E::Column::iter().find(|c| c.as_str() == "password")
+            {
+                let unknown = format!("{}{}", uuid::Uuid::new_v4(), uuid::Uuid::new_v4());
+                let hash = crate::utils::password::hash(&unknown).map_err(DbErr::Custom)?;
+                model.try_set(password, Value::from(hash))?;
             }
             missing_required::<E>(&model).map_err(|e| on_fields(form, e))?;
             let txn = db.begin().await?;
@@ -66,6 +76,7 @@ where
                 &key_of::<E>(&row),
                 &label_of::<E>(&row),
                 "create",
+                None,
                 None,
             )
             .await?;
@@ -103,6 +114,7 @@ where
                 &label_of::<E>(&old),
                 "update",
                 summary,
+                None,
             )
             .await?;
             txn.commit().await
@@ -124,12 +136,102 @@ where
                 &label_of::<E>(&old),
                 "delete",
                 None,
+                None,
             )
             .await?;
             txn.commit().await
         }
         (SaveAction::Delete, None) => Err(refused(Refusal::new(RefusalReason::NotFound))),
     }
+}
+
+/// What a grouped action does to each selected row. The admin's list bar
+/// is its only caller.
+#[cfg(feature = "admin")]
+pub(crate) enum BulkChange<E: ModelMeta> {
+    /// Sets one column to one value.
+    Set(E::Column, Value),
+    Delete,
+}
+
+/// A grouped action on the rows `ids`, as `user`: all of them or none. Each
+/// row asks the gate for its own proof, each write replays it in its `WHERE`,
+/// each leaves its history row under one batch id. One refusal (a right, a
+/// column, a row gone) rolls the whole back, with the gate's one message:
+/// which row said no is never told.
+#[cfg(feature = "admin")]
+pub(crate) async fn bulk_as<E: ModelMeta>(
+    user: &CurrentUser,
+    ids: &[PkOf<E>],
+    change: &BulkChange<E>,
+    db: &ADb,
+) -> Result<u64, DbErr>
+where
+    E::ActiveModel: Send,
+    E::Model: sea_orm::IntoActiveModel<E::ActiveModel>,
+{
+    let gate = GateCtx { db, user };
+    let rights = user.rights_on(E::KEY);
+    if let BulkChange::Set(col, _) = change {
+        let name = col.as_str();
+        // The same floor as a form: a secret, the key, a column not ticked
+        // for update, the owner through `_own` alone.
+        if E::SECRET.iter().any(|s| s.as_str() == name)
+            || E::PrimaryKey::iter().any(|k| k.into_column().as_str() == name)
+            || !rights.columns.can_update(name)
+            || (!rights.crud.has(Crud::Update) && E::OWNER.is_some_and(|o| o.as_str() == name))
+        {
+            return Err(refused(Refusal::new(RefusalReason::NoRight)));
+        }
+    }
+    let batch = uuid::Uuid::new_v4().to_string();
+    let txn = db.begin().await?;
+    for id in ids {
+        let Some(old) = E::find_by_id(id.clone()).one(&txn).await? else {
+            return Err(refused(Refusal::new(RefusalReason::NotFound)));
+        };
+        match change {
+            BulkChange::Set(col, value) => {
+                let proof = authorize_row::<Update, E>(&gate, id.clone())
+                    .await
+                    .map_err(refused)?;
+                let mut model = <E::ActiveModel as ActiveModelTrait>::default();
+                model.try_set(*col, value.clone())?;
+                let summary = summary::<E>(&old, &model);
+                write::update(proof, model, &txn).await.map_err(refused)?;
+                trace(
+                    &txn,
+                    user,
+                    E::KEY,
+                    &key_of::<E>(&old),
+                    &label_of::<E>(&old),
+                    "update",
+                    summary,
+                    Some(&batch),
+                )
+                .await?;
+            }
+            BulkChange::Delete => {
+                let proof = authorize_row::<Delete, E>(&gate, id.clone())
+                    .await
+                    .map_err(refused)?;
+                write::delete(proof, &txn).await.map_err(refused)?;
+                trace(
+                    &txn,
+                    user,
+                    E::KEY,
+                    &key_of::<E>(&old),
+                    &label_of::<E>(&old),
+                    "delete",
+                    None,
+                    Some(&batch),
+                )
+                .await?;
+            }
+        }
+    }
+    txn.commit().await?;
+    Ok(ids.len() as u64)
 }
 
 /// On create, once the gate set its own values: the NOT NULL columns without
@@ -226,6 +328,7 @@ async fn trace<C: ConnectionTrait>(
     repr: &str,
     action: &str,
     summary: Option<String>,
+    batch_id: Option<&str>,
 ) -> Result<(), DbErr> {
     log_action(
         db,
@@ -237,7 +340,7 @@ async fn trace<C: ConnectionTrait>(
             object_repr: repr,
             action,
             summary,
-            batch_id: None,
+            batch_id: batch_id.map(str::to_string),
         },
     )
     .await
@@ -312,6 +415,33 @@ mod tests {
     }
 
     impl crate::forms::field::RuniqueForm for TicketForm {}
+
+    impl crate::forms::FormEntity for TicketForm {
+        type Entity = ticket::Entity;
+    }
+
+    /// A form with no field for each other test model: `ModelMeta` ties
+    /// every model to its own form.
+    macro_rules! bare_form {
+        ($form:ident, $entity:ty) => {
+            #[derive(serde::Serialize, Debug, Clone)]
+            #[serde(transparent)]
+            pub struct $form {
+                form: Forms,
+            }
+
+            impl crate::forms::field::FormAccess for $form {
+                fn register_fields(_form: &mut Forms) {}
+                crate::impl_form_access!();
+            }
+
+            impl crate::forms::field::RuniqueForm for $form {}
+
+            impl crate::forms::FormEntity for $form {
+                type Entity = $entity;
+            }
+        };
+    }
 
     impl ModelMeta for ticket::Entity {
         const KEY: &'static str = "tickets";
@@ -992,9 +1122,11 @@ mod tests {
         impl ActiveModelBehavior for ActiveModel {}
     }
 
+    bare_form!(VaultForm, vault::Entity);
+
     impl ModelMeta for vault::Entity {
         const KEY: &'static str = "vaults";
-        type Form = TicketForm;
+        type Form = VaultForm;
         const SECRET: &'static [vault::Column] = &[vault::Column::Hash];
         const LABEL: Option<vault::Column> = Some(vault::Column::Nick);
         fn schema() -> crate::migration::schema::ModelSchema {
@@ -1029,9 +1161,11 @@ mod tests {
         impl ActiveModelBehavior for ActiveModel {}
     }
 
+    bare_form!(LockedForm, locked::Entity);
+
     impl ModelMeta for locked::Entity {
         const KEY: &'static str = "locked";
-        type Form = TicketForm;
+        type Form = LockedForm;
         const SECRET: &'static [locked::Column] = &[locked::Column::Hash];
         const LABEL: Option<locked::Column> = Some(locked::Column::Hash);
         fn schema() -> crate::migration::schema::ModelSchema {
@@ -1168,15 +1302,9 @@ mod tests {
         )
         .await
         .unwrap();
-        run_on::<vault::Entity>(
-            &creator,
-            None,
-            &[("name", "delta")],
-            SaveAction::Save,
-            &db,
-        )
-        .await
-        .unwrap();
+        run_on::<vault::Entity>(&creator, None, &[("name", "delta")], SaveAction::Save, &db)
+            .await
+            .unwrap();
         let rows = history(&db).await;
         assert_eq!(rows.len(), 2);
         assert_trace(&rows[0], "create", "vaults", "3", "Gam", &creator);
@@ -1372,15 +1500,9 @@ mod tests {
     async fn an_update_is_known_by_its_old_label_and_the_new_one_is_in_the_summary() {
         let db = setup_vaults().await;
         let editor = member_on::<vault::Column>(pk(10), "vaults", UPDATE);
-        run_on::<vault::Entity>(
-            &editor,
-            Some("1"),
-            &[("nick", "Bo")],
-            SaveAction::Save,
-            &db,
-        )
-        .await
-        .unwrap();
+        run_on::<vault::Entity>(&editor, Some("1"), &[("nick", "Bo")], SaveAction::Save, &db)
+            .await
+            .unwrap();
         run_on::<vault::Entity>(
             &editor,
             Some("2"),

@@ -1,0 +1,62 @@
+{# Side menu: the dashboard, then the resources `resources` lists (already filtered by the gate). #}
+<aside class="admin-sidebar" id="adminSidebar">
+
+    <div class="admin-sidebar__header">
+        <div class="admin-sidebar__logo">R</div>
+        <span class="admin-sidebar__title">{{ site_title | default(value=admin_base_title, boolean=true) }}</span>
+    </div>
+
+    <nav class="admin-sidebar__nav">
+
+        <a href="{{ admin_prefix }}" class="admin-nav__item{% if current_page %} {% if current_page == 'dashboard' %}active{% endif %} {% endif %}">
+            <svg class="admin-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+            </svg>
+            <span class="admin-nav__label">{% if admin_dashboard_title %}{{ admin_dashboard_title }}{% endif %}</span>
+        </a>
+
+        {% if resources %}
+            <div class="admin-nav__divider"></div>
+            <div class="admin-nav__section-label">{% if admin_list_breadcrumb_admin %}{{ admin_list_breadcrumb_admin }}{% endif %}</div>
+
+            {% for resource in resources %}
+            <a href="{{ resource.list_url }}"
+                class="admin-nav__item {% if current_resource == resource.key %}active{% endif %}">
+                    <svg class="admin-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                <span class="admin-nav__label">{{ resource.title }}</span>
+            </a>
+            {% endfor %}
+        {% endif %}
+
+        {% if history_url %}
+            <div class="admin-nav__divider"></div>
+            <a href="{{ history_url }}" class="admin-nav__item{% if current_page | default(value='') == 'history' %} active{% endif %}">
+                <svg class="admin-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                </svg>
+                <span class="admin-nav__label">Historique</span>
+            </a>
+        {% endif %}
+
+    </nav>
+
+    <div class="admin-sidebar__footer">
+        <div class="admin-sidebar__footer-center">
+            <button class="admin-sidebar__toggle" id="sidebarToggle" title="{% if admin_base_toggle %}{{ admin_base_toggle }}{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                    <polyline points="15 18 9 12 15 6"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+</aside>
+
+<div class="admin-sidebar__overlay" id="sidebarOverlay"></div>

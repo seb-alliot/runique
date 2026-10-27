@@ -2,11 +2,14 @@
 use super::form::FormConfig;
 use super::list::ListConfig;
 use super::list::{ListQuery, TOTAL};
+use crate::auth::permissions::rights::ColumnRights;
 use crate::auth::{
     gate::{Authorized, Guarded, List, View},
     meta::ModelMeta,
 };
+use crate::forms::form::Forms;
 use crate::utils::aliases::ADb;
+use crate::utils::constante::session_key::session::{CSRF_TOKEN_KEY, FORM_NAME_KEY};
 use sea_orm::{
     ColumnTrait, DbErr, FromQueryResult, IdenStatic, Iterable, PaginatorTrait, PrimaryKeyToColumn,
     QueryFilter, QueryResult, QuerySelect,
@@ -22,6 +25,21 @@ pub struct ModelAdmin<E: ModelMeta> {
     pub(super) title: Option<String>,
 }
 
+/// One filter of a list: its column and the values it offers.
+#[derive(serde::Serialize)]
+pub(crate) struct ListFilter {
+    pub column: &'static str,
+    pub values: Vec<String>,
+}
+
+/// A declared action the list's bar offers this account.
+#[derive(serde::Serialize)]
+pub struct OfferedAction {
+    /// Its rank among the declared actions, what the bar sends (`a<n>`).
+    pub index: usize,
+    pub label: String,
+}
+
 /// One page of a list, ready for the template.
 #[derive(serde::Serialize)]
 pub(crate) struct ListPage {
@@ -31,6 +49,10 @@ pub(crate) struct ListPage {
     pub total: u64,
     pub page: u64,
     pub page_size: u64,
+    /// The readable filtered columns, with their values in the proof's scope.
+    pub filters: Vec<ListFilter>,
+    /// The declared actions this account may run.
+    pub actions: Vec<OfferedAction>,
 }
 
 /// One row of the list query: the columns shown, plus the window total read
@@ -111,6 +133,15 @@ impl<E: ModelMeta> ModelAdmin<E> {
             errors.push(e);
         }
         if E::IS_ACCOUNT_TABLE {
+            // A rank and the activation have their own rules (the rank rule,
+            // `activated_at`): never a grouped action.
+            for name in RANK_FLAGS.iter().chain(["is_active"].iter()) {
+                if self.list.actions.iter().any(|a| a.col.as_str() == *name) {
+                    errors.push(format!(
+                        "action: `{name}` has its own rules, never a grouped action"
+                    ));
+                }
+            }
             for flag in RANK_FLAGS {
                 if self.form.has_field(flag) {
                     errors.push(format!(
@@ -133,9 +164,11 @@ impl<E: ModelMeta> ModelAdmin<E> {
             }
         }
 
+        // Without `.form()`, every field of the model's form is written: the
+        // action only has to stay off what `.form()` would freeze.
         for action in &self.list.actions {
             let name = action.col.as_str();
-            if !self.form.writable_on_edit(name) {
+            if !self.form.is_empty() && !self.form.writable_on_edit(name) {
                 errors.push(format!(
                     "action `{}`: `{name}` is not written by the form on edit (in `fields`, not `readonly` or `create_only`)",
                     action.label
@@ -249,12 +282,25 @@ impl<E: ModelMeta> ModelAdmin<E> {
             .map(|c| c.as_str())
             .filter(|name| !keys.contains(name))
             .collect();
+        let mut filters = Vec::new();
+        for col in list.filter_columns() {
+            let values = ListConfig::<E>::filter_values(backend, proof.conditions(), *col)
+                .into_tuple::<String>()
+                .all(&**db)
+                .await?;
+            filters.push(ListFilter {
+                column: col.as_str(),
+                values,
+            });
+        }
         Ok(ListPage {
             columns,
             rows,
             total,
             page,
             page_size,
+            filters,
+            actions: Vec::new(),
         })
     }
 
@@ -272,7 +318,7 @@ impl<E: ModelMeta> ModelAdmin<E> {
         // The row's page shows what the list shows, in its order, then what
         // else the form holds; the key comes with the form's columns.
         let mut columns: Vec<E::Column> = self.list.display_columns().to_vec();
-        for col in self.form.read_columns() {
+        for col in self.form_columns() {
             if !columns.iter().any(|c| c.as_str() == col.as_str()) {
                 columns.push(col);
             }
@@ -285,6 +331,104 @@ impl<E: ModelMeta> ModelAdmin<E> {
             .into_json()
             .one(&**db)
             .await
+    }
+}
+
+impl<E: ModelMeta> ModelAdmin<E> {
+    /// The columns the form pages work on: the declared fields, or without
+    /// `.form()` every column but the secret ones. The key comes with them.
+    pub(crate) fn form_columns(&self) -> Vec<E::Column> {
+        if !self.form.is_empty() {
+            return self.form.read_columns();
+        }
+        E::Column::iter()
+            .filter(|c| !E::SECRET.iter().any(|s| s.as_str() == c.as_str()))
+            .collect()
+    }
+
+    /// The model's form as the edit page shows it: its fields among the
+    /// `readable` columns; locked when not ticked for update in `columns`, or
+    /// declared read-only or create-only.
+    pub(crate) fn shape_for_edit(
+        &self,
+        form: &mut Forms,
+        readable: &[E::Column],
+        columns: &ColumnRights,
+    ) {
+        self.shape(
+            form,
+            |name| readable.iter().any(|c| c.as_str() == name),
+            |name| {
+                columns.can_update(name)
+                    && (self.form.is_empty() || self.form.writable_on_edit(name))
+            },
+        );
+    }
+
+    /// The model's form as the create page shows it: its fields; locked when
+    /// not ticked for create in `columns`, or declared read-only.
+    pub(crate) fn shape_for_create(&self, form: &mut Forms, columns: &ColumnRights) {
+        self.shape(
+            form,
+            |_| true,
+            |name| {
+                columns.can_create(name)
+                    && (self.form.is_empty() || self.form.writable_on_create(name))
+            },
+        );
+    }
+
+    /// The fields of the model's form `shown` lets through, locking those not
+    /// `writable`. Without `.form()`, every field of the model's form; with
+    /// it, only the declared ones, in their declared order, with their labels.
+    /// A field left out is neither shown nor written.
+    fn shape(
+        &self,
+        form: &mut Forms,
+        shown: impl Fn(&str) -> bool,
+        writable: impl Fn(&str) -> bool,
+    ) {
+        let kept = |name: &str| self.form.is_empty() || self.form.has_field(name);
+        form.fields.retain(|name, _| {
+            name == CSRF_TOKEN_KEY || name == FORM_NAME_KEY || (kept(name) && shown(name))
+        });
+        if !self.form.is_empty() {
+            let position = |name: &str| {
+                self.form
+                    .field_columns()
+                    .iter()
+                    .position(|c| c.as_str() == name)
+            };
+            form.fields
+                .sort_by(|a, _, b, _| position(a).cmp(&position(b)));
+        }
+        for (name, field) in form.fields.iter_mut() {
+            if name == CSRF_TOKEN_KEY || name == FORM_NAME_KEY {
+                continue;
+            }
+            if !writable(name) {
+                field.set_readonly(true, None);
+            }
+            if let Some(label) = self.form.label_of(name) {
+                field.set_label(label);
+            }
+        }
+    }
+}
+
+/// Puts `row`'s values in the fields of the same name, as the page shows
+/// them; a NULL leaves its field empty.
+pub(crate) fn prefill(form: &mut Forms, row: &serde_json::Value) {
+    let Some(row) = row.as_object() else {
+        return;
+    };
+    for (name, field) in form.fields.iter_mut() {
+        let text = match row.get(name) {
+            None | Some(serde_json::Value::Null) => continue,
+            Some(serde_json::Value::String(text)) => text.clone(),
+            Some(other) => other.to_string(),
+        };
+        field.set_value(&text);
     }
 }
 
@@ -346,6 +490,10 @@ mod tests {
         }
 
         impl crate::forms::RuniqueForm for ArticleForm {}
+
+        impl crate::forms::FormEntity for ArticleForm {
+            type Entity = Entity;
+        }
 
         impl crate::auth::meta::ModelMeta for Entity {
             const KEY: &'static str = "articles";

@@ -1,6 +1,6 @@
 //! Every registered `ModelAdmin`, whatever its model.
 use super::admin_builder::ModelAdmin;
-use super::registered::RegisteredModel;
+use super::registered::{HistoryScope, RegisteredModel};
 use crate::admin::router::AdminView;
 use crate::auth::current_user::CurrentUser;
 use crate::auth::meta::ModelMeta;
@@ -58,7 +58,11 @@ impl AdminSite {
             .map(String::as_str)
     }
 
-    pub fn register<E: ModelMeta>(mut self, admin: ModelAdmin<E>) -> Self {
+    pub fn register<E: ModelMeta>(mut self, admin: ModelAdmin<E>) -> Self
+    where
+        E::ActiveModel: Send,
+        E::Model: sea_orm::IntoActiveModel<E::ActiveModel>,
+    {
         self.models.push(Box::new(admin.with_default_display()));
         self
     }
@@ -66,7 +70,11 @@ impl AdminSite {
     /// Replaces the framework's accounts admin with the project's own, built
     /// on its `extend!` of `eihwaz_users`. The only way to replace it:
     /// registering a model under the accounts' key is refused at boot.
-    pub fn accounts_users<E: ModelMeta>(mut self, admin: ModelAdmin<E>) -> Self {
+    pub fn accounts_users<E: ModelMeta>(mut self, admin: ModelAdmin<E>) -> Self
+    where
+        E::ActiveModel: Send,
+        E::Model: sea_orm::IntoActiveModel<E::ActiveModel>,
+    {
         self.accounts = Box::new(admin.with_default_display());
         self
     }
@@ -161,6 +169,18 @@ impl AdminSite {
                 .then_with(|| a.title.to_lowercase().cmp(&b.title.to_lowercase()))
         });
         entries
+    }
+
+    /// The models whose history `user` may read, accounts included.
+    pub(crate) fn history_scopes(
+        &self,
+        db: &crate::utils::aliases::ADb,
+        user: &CurrentUser,
+    ) -> Vec<HistoryScope> {
+        std::iter::once(&self.accounts)
+            .chain(self.models.iter())
+            .filter_map(|m| m.history_scope(db, user))
+            .collect()
     }
 
     /// The registered model behind a URL's resource key, if any: an unknown

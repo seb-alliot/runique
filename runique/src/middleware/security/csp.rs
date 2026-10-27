@@ -8,7 +8,7 @@ use crate::utils::{aliases::AEngine, csp_nonce::CspNonce};
 /// (e.g., `display:none`). They do not change for a given value, but must
 /// be updated if the htmx version changes and injects different values.
 ///
-/// Reference: `runique/templates/admin/composant/list.html`
+/// Reference: `runique/templates/admin/pages/list.html`
 /// → `https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js`
 ///
 /// To add a missing hash: the browser indicates it in the CSP console.

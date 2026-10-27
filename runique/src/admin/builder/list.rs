@@ -64,6 +64,12 @@ pub(crate) struct Action<E: EntityTrait> {
     pub(crate) label: String,
 }
 
+/// Alias of the value a filter offers.
+pub(crate) const FILTER_VALUE: &str = "value";
+/// The values one filter offers at most: past it, the list is too long to
+/// click through, and the search field serves better.
+pub(crate) const FILTER_VALUES_MAX: u64 = 100;
+
 /// Alias of the window column carrying the total on every row.
 pub(crate) const TOTAL: &str = "__total";
 
@@ -145,6 +151,26 @@ impl<E: EntityTrait> ListConfig<E> {
     /// The columns shown, in their declared order.
     pub(super) fn display_columns(&self) -> &[E::Column] {
         &self.display
+    }
+
+    /// The columns filterable from the URL, in their declared order.
+    pub(super) fn filter_columns(&self) -> &[E::Column] {
+        &self.filter
+    }
+
+    /// The values a filter offers for `col`: the distinct ones of the rows in
+    /// `scope`, as text (how `resolve_filters` compares them), sorted, NULL
+    /// left out, at most `FILTER_VALUES_MAX`.
+    pub(crate) fn filter_values(backend: DbBackend, scope: Condition, col: E::Column) -> Select<E> {
+        let cast = Alias::new(text_cast_type_of(backend));
+        E::find()
+            .filter(scope)
+            .filter(col.is_not_null())
+            .select_only()
+            .column_as(Expr::col((E::default(), col)).cast_as(cast), FILTER_VALUE)
+            .distinct()
+            .order_by_asc(Expr::col(Alias::new(FILTER_VALUE)))
+            .limit(FILTER_VALUES_MAX)
     }
 
     pub fn links(mut self, cols: impl IntoIterator<Item = E::Column>) -> Self {

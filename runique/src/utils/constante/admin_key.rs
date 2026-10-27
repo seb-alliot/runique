@@ -253,3 +253,41 @@ pub const ADMIN_MESSAGE_KEYS: &[&str] = &[
     "permission.col.resource_key",
     "permission.col.actions",
 ];
+
+/// Names of the admin's generated routes, as `{% link %}` takes them:
+/// `{% link "admin_detail" resource=…, id=… %}`.
+pub mod admin_route {
+    /// `{prefix}/{resource}/list`
+    pub const LIST: &str = "admin_list";
+    /// `{prefix}/{resource}/{id}/detail`
+    pub const DETAIL: &str = "admin_detail";
+    /// `{prefix}/{resource}/create`
+    pub const CREATE: &str = "admin_create";
+    /// `{prefix}/{resource}/{id}/edit`
+    pub const EDIT: &str = "admin_edit";
+    /// `{prefix}/{resource}/{id}/delete`
+    pub const DELETE: &str = "admin_delete";
+    /// `{prefix}/{resource}/{id}/reset-password` (POST): sends the account's
+    /// owner a link to choose a new password
+    pub const RESET_PASSWORD: &str = "admin_reset_password";
+    /// `{prefix}/{resource}/rank` (POST): gives the accounts `ids` a rank
+    pub const RANK: &str = "admin_rank";
+    /// `{prefix}/{resource}/bulk` (POST): a grouped action on the checked rows
+    pub const BULK: &str = "admin_bulk";
+    /// `{prefix}/history`, filtered by `?resource=&object=&action=&user=`
+    pub const HISTORY: &str = "admin_history";
+    /// `{prefix}/history/{id}`: one entry and its changes
+    pub const HISTORY_ENTRY: &str = "admin_history_entry";
+}
+
+/// Names of the forms the admin's pages build, sent back in their hidden
+/// `runique_form` field: a form sent to another page than its own is never
+/// validated there.
+pub mod admin_form {
+    pub const CREATE: &str = "admin_create";
+    pub const UPDATE: &str = "admin_update";
+    pub const DELETE: &str = "admin_delete";
+    pub const BULK: &str = "admin_bulk";
+    pub const RESET_PASSWORD: &str = "admin_reset_password";
+    pub const RANK: &str = "admin_rank";
+}

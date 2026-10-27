@@ -1,0 +1,8 @@
+{# The form's fields as `form_fields.html` renders them (CSRF and form name included). #}
+<div class="form-grid">
+  {% if form_fields?.html %}
+    {{ form_fields.html }}
+  {% else %}
+    <p>{{ no_fields_label }}</p>
+  {% endif %}
+</div>

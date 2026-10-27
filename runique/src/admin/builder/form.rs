@@ -38,12 +38,21 @@ impl<E: EntityTrait> FormConfig<E> {
         self.writable_on_create(name) && !self.create_only.iter().any(|c| c.as_str() == name)
     }
 
+    /// The label declared for the column `name`, if any.
+    pub(super) fn label_of(&self, name: &str) -> Option<&str> {
+        self.labels
+            .iter()
+            .find(|(c, _)| c.as_str() == name)
+            .map(|(_, label)| label.as_str())
+    }
+
     /// The columns the form shows, in their declared order.
     pub(super) fn field_columns(&self) -> &[E::Column] {
         &self.fields
     }
 
-    /// No fields declared: the model has no form, so no create page.
+    /// No fields declared: the pages use every field of the model's form,
+    /// the gate alone deciding which are shown and written.
     pub(super) fn is_empty(&self) -> bool {
         self.fields.is_empty()
     }
