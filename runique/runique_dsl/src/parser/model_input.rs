@@ -251,9 +251,15 @@ fn validate_meta_field_refs(
             check(ident)?;
         }
     }
+
     if let Some(owner) = &m.owner {
         check(owner)?;
     }
+
+    if let Some(label) = &m.label {
+        check(label)?;
+    }
+
     Ok(())
 }
 

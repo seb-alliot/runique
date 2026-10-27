@@ -35,6 +35,8 @@ pub trait ModelMeta:
     /// The model's columns as the migration creates them: nullability;
     /// default, auto_now. The entity alone doesn't know a column's default.
     fn schema() -> crate::migration::schema::ModelSchema;
+    /// Column a row is known by in the history; its key when there is none.
+    const LABEL: Option<Self::Column> = None;
 }
 
 impl ModelMeta for crate::auth::user::Entity {
@@ -43,6 +45,7 @@ impl ModelMeta for crate::auth::user::Entity {
     const IS_ACCOUNT_TABLE: bool = true;
     const SECRET: &'static [Self::Column] = &[crate::auth::user::Column::Password];
     const IS_FRAMEWORK_TABLE: bool = true;
+    const LABEL: Option<Self::Column> = Some(crate::auth::user::Column::Username);
     fn schema() -> crate::migration::schema::ModelSchema {
         crate::auth::user::schema()
     }

@@ -38,6 +38,7 @@ pub mod test_hidden_field;
 #[cfg(feature = "test-utils")]
 pub mod test_hooks;
 pub mod test_model_form;
+pub mod test_model_label;
 pub mod test_number_fields;
 pub mod test_password;
 pub mod test_password_from_schema;

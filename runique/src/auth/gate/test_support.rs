@@ -87,6 +87,10 @@ pub(crate) mod fixtures {
         conn.execute(&schema.create_table_from_entity(crate::auth::user::Entity))
             .await
             .unwrap();
+        // Every gated write leaves its history row in the same transaction.
+        conn.execute(&crate::auth::migrations_table::create_eihwaz_history_table())
+            .await
+            .unwrap();
         for (id, owner) in [(1, Some(pk(10))), (2, Some(pk(20))), (3, None)] {
             note::ActiveModel {
                 id: Set(id),
