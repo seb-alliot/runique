@@ -11,6 +11,7 @@ pub mod model_form;
 pub mod options;
 pub mod prisme;
 pub mod renderer;
+pub(crate) mod save;
 pub mod validation_form;
 pub mod validator;
 
@@ -116,42 +117,4 @@ pub use validator::*;
 /// ```
 pub trait FormEntity {
     type Entity: crate::auth::meta::ModelMeta;
-}
-
-/// Points an entity form at the row its `save` updates. Without it, the save
-/// creates a row. Only a form with an entity has a row to point at.
-///
-/// ```rust,ignore
-/// let mut form = req.form::<ArticleForm>();
-/// form.edit(id);
-/// ```
-///
-/// A hand-written form without an entity cannot be edited:
-///
-/// ```compile_fail
-/// fn needs<F: runique::forms::EditForm>() {}
-/// needs::<runique::auth::form::LoginAdmin>();
-/// ```
-///
-/// The same call compiles for a form with an entity:
-///
-/// ```
-/// fn needs<F: runique::forms::EditForm>() {}
-/// needs::<runique::auth::form::UserModelForm>();
-/// ```
-pub trait EditForm: FormEntity + field::FormAccess {
-    fn edit(&mut self, id: crate::auth::gate::PkOf<Self::Entity>)
-    where
-        crate::auth::gate::PkOf<Self::Entity>: std::fmt::Display;
-}
-
-impl<F: FormEntity + field::FormAccess> EditForm for F {
-    fn edit(&mut self, id: crate::auth::gate::PkOf<Self::Entity>)
-    where
-        crate::auth::gate::PkOf<Self::Entity>: std::fmt::Display,
-    {
-        let form = self.get_form_mut();
-        form.invalidate();
-        form.target = Some(id.to_string());
-    }
 }

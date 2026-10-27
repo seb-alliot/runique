@@ -354,6 +354,11 @@ impl Request {
         )
     }
 
+    /// The id `login` stored in the session; `None` for an anonymous visitor.
+    pub async fn user_id(&self) -> Option<crate::utils::pk::Pk> {
+        crate::auth::session::get_user_id(&self.session).await
+    }
+
     /// Returns a path segment as a string slice (`/users/{id}` → `get_path("id")`).
     pub fn get_path(&self, key: &str) -> Option<&str> {
         self.path_params.get(key).map(|s| s.as_str())

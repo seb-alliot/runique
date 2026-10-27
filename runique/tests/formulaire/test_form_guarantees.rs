@@ -4,7 +4,7 @@
 use crate::helpers::{handler_req::build_handler_req, server::build_engine};
 use axum::http::Method;
 use runique::forms::base::{CommonFieldConfig, FormField};
-use runique::forms::field::{FormAccess, FormSave, RuniqueForm};
+use runique::forms::field::{FormAccess, RuniqueForm};
 use runique::forms::fields::{
     BooleanField, CheckboxField, ChoiceField, DateField, DateTimeField, DurationField,
     HoneypotField, RadioField, TextField, TimeField,
@@ -31,11 +31,10 @@ fn data(pairs: &[(&str, &str)]) -> StrMap {
         .collect()
 }
 
-// ── A form whose save is observable ─────────────────────────────────────────
+// ── A form with a required field and a password ─────────────────────────────
 
 struct NoteForm {
     form: Forms,
-    saved: bool,
 }
 
 impl FormAccess for NoteForm {
@@ -44,7 +43,7 @@ impl FormAccess for NoteForm {
         form.field(&TextField::password("secret"));
     }
     fn from_form(form: Forms) -> Self {
-        Self { form, saved: false }
+        Self { form }
     }
     fn get_form(&self) -> &Forms {
         &self.form
@@ -54,50 +53,12 @@ impl FormAccess for NoteForm {
     }
 }
 
-#[async_trait::async_trait]
-impl RuniqueForm for NoteForm {
-    async fn on_save(
-        &mut self,
-        _txn: &runique::sea_orm::DatabaseTransaction,
-    ) -> Result<(), runique::sea_orm::DbErr> {
-        self.saved = true;
-        Ok(())
-    }
-}
+impl RuniqueForm for NoteForm {}
 
 fn note_form() -> NoteForm {
     let mut form = Forms::new("csrf");
     NoteForm::register_fields(&mut form);
     NoteForm::from_form(form)
-}
-
-async fn memory_db() -> runique::db::ADb {
-    runique::db::ADb::from_connection(
-        runique::sea_orm::Database::connect("sqlite::memory:")
-            .await
-            .unwrap(),
-    )
-}
-
-#[tokio::test]
-async fn nothing_is_saved_before_a_successful_validation() {
-    let db = memory_db().await;
-    let mut form = note_form();
-    assert!(form.save(&db).await.is_err(), "never validated");
-    assert!(!form.saved);
-
-    form.get_form_mut()
-        .fill(&data(&[("title", "")]), Method::POST);
-    assert!(!form.is_valid().await);
-    assert!(form.save(&db).await.is_err(), "validated but invalid");
-    assert!(!form.saved);
-
-    let mut form = note_form();
-    form.get_form_mut()
-        .fill(&data(&[("title", "hello")]), Method::POST);
-    assert!(form.is_valid().await);
-    form.save(&db).await.expect("valid form saves");
-    assert!(form.saved, "on_save ran");
 }
 
 #[tokio::test]

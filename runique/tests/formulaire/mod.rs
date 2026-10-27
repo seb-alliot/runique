@@ -36,7 +36,6 @@ pub mod test_forms;
 pub mod test_generic_field;
 pub mod test_hidden_field;
 #[cfg(feature = "test-utils")]
-pub mod test_hooks;
 pub mod test_model_form;
 pub mod test_model_label;
 pub mod test_number_fields;

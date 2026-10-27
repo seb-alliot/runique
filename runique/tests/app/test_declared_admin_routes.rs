@@ -5,7 +5,7 @@
 
 use crate::helpers::db;
 use crate::helpers::framework_tables::{
-    GROUPES_DDL, GROUPES_DROITS_DDL, USERS_DDL, USERS_GROUPES_DDL,
+    GROUPES_DDL, GROUPES_DROITS_DDL, HISTORY_DDL, USERS_DDL, USERS_GROUPES_DDL,
 };
 use crate::helpers::pk::{pk, pk_sql_literal};
 use axum::extract::Path;
@@ -15,13 +15,9 @@ use runique::auth::{BuiltinUserEntity, login};
 use runique::config::RuniqueConfig;
 use runique::context::template::Request;
 use runique::flash::Message;
-use runique::forms::field::{FormAccess, FormSave, RuniqueForm};
-use runique::forms::form::Forms;
 use runique::macros::Routes;
-use runique::sea_orm::{
-    ConnectionTrait,
-    sea_query::{Alias, Asterisk, Expr, Func, Query},
-};
+use runique::prelude::{FormAccess, RuniqueForm, ValidationForm, form};
+use runique::sea_orm::{EntityTrait, QueryOrder};
 use serial_test::serial;
 
 async fn sign_in(Path(n): Path<u32>, req: Request) -> &'static str {
@@ -65,6 +61,8 @@ async fn seed(dbc: &runique::sea_orm::DatabaseConnection) {
         GROUPES_DDL,
         GROUPES_DROITS_DDL,
         USERS_GROUPES_DDL,
+        HISTORY_DDL,
+        "CREATE TABLE probe_notes (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL)",
     ] {
         db::exec(dbc, ddl).await;
     }
@@ -112,7 +110,22 @@ async fn seed(dbc: &runique::sea_orm::DatabaseConnection) {
         ),
     )
     .await;
-    db::exec(dbc, "CREATE TABLE constraint_probe (step TEXT)").await;
+    db::exec(dbc, "INSERT INTO probe_notes (id, title) VALUES (1, 'seed')").await;
+    // The admin's grid on `probe_notes`: create, update, delete, `title`
+    // ticked. The staff group (its responsable is the admin): update only.
+    db::exec(
+        dbc,
+        &format!(
+            "INSERT INTO eihwaz_groupes_droits \
+             (groupe_id, user_id, resource_key, colonne, can_create, can_read, can_update, can_delete) VALUES \
+             (NULL, {admin}, 'probe_notes', '', 1, 1, 1, 1), \
+             (NULL, {admin}, 'probe_notes', 'title', 1, 1, 1, 0), \
+             (1, NULL, 'probe_notes', '', 0, 1, 1, 0), \
+             (1, NULL, 'probe_notes', 'title', 0, 1, 1, 0)",
+            admin = pk_sql_literal(ADMIN)
+        ),
+    )
+    .await;
 }
 
 fn routes() -> Routes {
@@ -142,7 +155,11 @@ async fn spawn_with(mount: &'static str, routes: Routes) -> String {
         .routes(routes)
         .static_files(|s| s.enabled(false))
         .with_admin(|a| {
-            let a = a.path("/secret-admin");
+            let a = a.path("/secret-admin").site(|s| {
+                s.register(runique::admin::builder::admin_builder::ModelAdmin::<
+                    probe::Entity,
+                >::new())
+            });
             if mount.is_empty() { a } else { a.prefix(mount) }
         })
         .build()
@@ -417,100 +434,166 @@ async fn every_form_of_the_macro_is_served() {
     assert_eq!(text(&admin, format!("{base}/detail/1")).await, "detail");
 }
 
-// ── Save policy inside the admin's constraint ─────────────────────────────
+// ── Writing through a form inside the admin's constraint ──────────────────
 
-/// A form with no field whose `on_save` leaves a row: the table tells whether
-/// the write happened.
-struct ProbeForm {
-    form: Forms,
+mod probe {
+    use runique::prelude::*;
+
+    model! {
+        ProbeNote,
+        table: "probe_notes",
+        pk: id => i32,
+        {
+            title: text [required],
+        }
+    }
 }
 
-impl FormAccess for ProbeForm {
-    fn register_fields(_form: &mut Forms) {}
-    runique::impl_form_access!();
-}
+/// `probe_notes`' form, validated on a GET so the test needs no CSRF token.
+#[form(schema = probe)]
+pub struct ProbeForm;
 
-#[async_trait::async_trait]
 impl RuniqueForm for ProbeForm {
-    async fn on_save(
-        &mut self,
-        txn: &runique::sea_orm::DatabaseTransaction,
-    ) -> Result<(), runique::sea_orm::DbErr> {
-        txn.execute_unprepared("INSERT INTO constraint_probe (step) VALUES ('save')")
-            .await
-            .map(|_| ())
+    fn allow_get(&self, _request: &Request) -> bool {
+        true
     }
 }
 
-/// Validates the form `req.form()` built, then tries to save it. The body says
-/// whether the save went through. A GET is enough: `is_valid` on `Forms` does
-/// not care about the verb, and `req.form()` sets the policy before any of it.
-async fn attempt_save(req: Request) -> String {
-    let mut form = req.form::<ProbeForm>();
-    form.get_form_mut().is_valid().await.expect("validates");
-    match form.save(&req.engine.db).await {
-        Ok(()) => "saved".to_string(),
-        Err(e) => format!("refused: {e}"),
+/// Validates the form `"probe"` sent in the query, then `save`s it, or
+/// `delete`s it with `?delete`. The body tells what came of it.
+async fn probe_write(req: Request) -> String {
+    let delete = req.query_params.contains_key("delete");
+    let form = req.form::<ProbeForm>();
+    let form = match ValidationForm::try_form(form, &req, "probe").await {
+        Ok(form) => form,
+        Err(form) => return format!("invalid: {:?}", form.get_form().errors()),
+    };
+    let db = &req.engine.db;
+    let written = if delete {
+        form.delete(db).await
+    } else {
+        form.save(db).await
+    };
+    match written {
+        Ok(_) => "written".to_string(),
+        Err(form) => format!("refused: {:?}", form.get_form().errors()),
     }
 }
 
+/// The notes' titles by id, comma-separated.
 async fn probe_rows(req: Request) -> String {
-    let stmt = Query::select()
-        .expr_as(Func::count(Expr::col(Asterisk)), Alias::new("n"))
-        .from(Alias::new("constraint_probe"))
-        .to_owned();
-    let row = req.engine.db.query_one(&stmt).await.unwrap().unwrap();
-    row.try_get::<i64>("", "n").unwrap().to_string()
+    probe::Entity::find()
+        .order_by_asc(probe::Column::Id)
+        .all(&req.engine.db)
+        .await
+        .unwrap()
+        .into_iter()
+        .map(|note| note.title)
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+async fn my_id(req: Request) -> String {
+    format!("{:?}", req.user_id().await)
 }
 
 fn probe_routes() -> Routes {
     runique::urlpatterns! {
         "/sign-in/{n}" => get(sign_in), name = "declared_test_probe_sign_in",
-        "/whoami" => get(whoami), name = "declared_test_probe_whoami",
-        "/probe/open" => get(attempt_save), name = "declared_test_probe_open",
+        "/my-id" => get(my_id), name = "declared_test_probe_my_id",
         "/probe/rows" => get(probe_rows), name = "declared_test_probe_rows",
-        admin "/probe/gated" => get(attempt_save),
-            name = "declared_test_probe_gated",
-            for_model = runique::auth::user::Entity,
+        "/open/probe" => get(probe_write), name = "declared_test_probe_open_new",
+        "/open/probe/{id}" => get(probe_write), name = "declared_test_probe_open_row",
+        admin "/gated/probe" => get(probe_write),
+            name = "declared_test_probe_gated_new",
+            for_model = probe::Entity,
+        admin "/gated/probe/{id}" => get(probe_write),
+            name = "declared_test_probe_gated_row",
+            for_model = probe::Entity,
     }
 }
 
-const GATE_REFUSAL: &str = "goes through the gate";
+fn sent(title: &str) -> String {
+    format!("runique_form=probe&title={title}")
+}
 
-/// The route is declared `admin`: its forms are under the gate, `save` refuses
-/// and nothing is written.
+async fn rows(client: &reqwest::Client, base: &str) -> String {
+    text(client, format!("{base}/probe/rows")).await
+}
+
+/// Each account through the gate: create, update of row 1, delete of row 1.
+/// The superuser does everything; the admin through his own grid; the staff
+/// member's group only grants updates.
 #[tokio::test]
 #[serial]
-async fn on_an_admin_route_save_is_refused_and_nothing_is_written() {
-    let base = spawn_with("", probe_routes()).await;
-    for n in [ADMIN, SUPERUSER, STAFF_MEMBER] {
+async fn inside_the_constraint_the_gate_decides_by_the_account() {
+    for (n, create, update, delete) in [
+        (SUPERUSER, true, true, true),
+        (ADMIN, true, true, true),
+        (STAFF_MEMBER, false, true, false),
+    ] {
+        let base = spawn_with("", probe_routes()).await;
         let client = signed_in(&base, n).await;
-        let body = text(&client, format!("{base}/probe/gated")).await;
-        assert!(body.starts_with("refused:"), "account {n}: {body}");
-        assert!(body.contains(GATE_REFUSAL), "account {n}: {body}");
-        assert_eq!(text(&client, format!("{base}/probe/rows")).await, "0");
+
+        let body = text(&client, format!("{base}/gated/probe?{}", sent("new"))).await;
+        assert_eq!(body == "written", create, "account {n}, create: {body}");
+        let expected = if create { "seed,new" } else { "seed" };
+        assert_eq!(rows(&client, &base).await, expected, "account {n}");
+
+        let body = text(&client, format!("{base}/gated/probe/1?{}", sent("changed"))).await;
+        assert_eq!(body == "written", update, "account {n}, update: {body}");
+        let first = if update { "changed" } else { "seed" };
+        assert!(rows(&client, &base).await.starts_with(first), "account {n}");
+
+        let body = text(
+            &client,
+            format!("{base}/gated/probe/1?delete&{}", sent("x")),
+        )
+        .await;
+        assert_eq!(body == "written", delete, "account {n}, delete: {body}");
+        assert_eq!(
+            !rows(&client, &base).await.starts_with(first),
+            delete,
+            "account {n}"
+        );
     }
 }
 
-/// Same handler, same form, same account on a route that isn't declared
-/// `admin`: the constraint doesn't follow the account, `save` writes.
+/// A refusal comes back on the form: the gate's one message, nothing written.
 #[tokio::test]
 #[serial]
-async fn on_an_ordinary_route_the_same_save_writes() {
+async fn a_refused_write_comes_back_on_the_form() {
     let base = spawn_with("", probe_routes()).await;
-    let client = signed_in(&base, ADMIN).await;
-    assert_eq!(text(&client, format!("{base}/probe/open")).await, "saved");
-    assert_eq!(text(&client, format!("{base}/probe/rows")).await, "1");
-
-    let anonymous = self::client();
-    assert_eq!(
-        text(&anonymous, format!("{base}/probe/open")).await,
-        "saved"
-    );
-    assert_eq!(text(&anonymous, format!("{base}/probe/rows")).await, "2");
+    let client = signed_in(&base, STAFF_MEMBER).await;
+    let body = text(&client, format!("{base}/gated/probe?{}", sent("new"))).await;
+    assert!(body.starts_with("refused:"), "{body}");
+    assert_eq!(rows(&client, &base).await, "seed");
 }
 
-/// A refused account never reaches the handler: no constraint, no save, no row.
+/// The same handler on a route that isn't declared `admin`: no gate, SeaORM
+/// writes, whoever asks — the handler's own check is the developer's.
+#[tokio::test]
+#[serial]
+async fn outside_the_constraint_the_same_handler_writes_without_the_gate() {
+    let base = spawn_with("", probe_routes()).await;
+    let anonymous = client();
+    assert_eq!(
+        text(&anonymous, format!("{base}/open/probe?{}", sent("new"))).await,
+        "written"
+    );
+    assert_eq!(
+        text(&anonymous, format!("{base}/open/probe/1?{}", sent("changed"))).await,
+        "written"
+    );
+    assert_eq!(rows(&anonymous, &base).await, "changed,new");
+    assert_eq!(
+        text(&anonymous, format!("{base}/open/probe/1?delete&{}", sent("x"))).await,
+        "written"
+    );
+    assert_eq!(rows(&anonymous, &base).await, "new");
+}
+
+/// An account refused at the boundary never reaches the handler: nothing written.
 #[tokio::test]
 #[serial]
 async fn a_refused_account_neither_runs_the_handler_nor_writes() {
@@ -524,25 +607,23 @@ async fn a_refused_account_neither_runs_the_handler_nor_writes() {
         clients.push((why, signed_in(&base, n).await));
     }
     for (who, client) in &clients {
-        let resp = fetch(client, format!("{base}/probe/gated"), None).await;
+        let resp = fetch(client, format!("{base}/gated/probe?{}", sent("new")), None).await;
         assert_eq!(resp.status(), reqwest::StatusCode::SEE_OTHER, "{who}");
         assert_eq!(location(&resp), Some("/"), "{who}");
-        let body = resp.text().await.unwrap();
-        assert!(
-            !body.contains("saved") && !body.contains("refused"),
-            "{who}: the handler ran: {body}"
-        );
     }
-    assert_eq!(text(&client(), format!("{base}/probe/rows")).await, "0");
+    assert_eq!(rows(&client(), &base).await, "seed");
 }
 
 #[tokio::test]
 #[serial]
-async fn the_save_policy_does_not_depend_on_the_mount_prefix() {
-    let base = spawn_with("mnt", probe_routes()).await;
-    let client = signed_in(&base, ADMIN).await;
-    let body = text(&client, format!("{base}/probe/gated")).await;
-    assert!(body.contains(GATE_REFUSAL), "{body}");
-    assert_eq!(text(&client, format!("{base}/probe/open")).await, "saved");
-    assert_eq!(text(&client, format!("{base}/probe/rows")).await, "1");
+async fn user_id_reads_the_account_login_put_in_the_session() {
+    let base = spawn_with("", probe_routes()).await;
+    assert_eq!(text(&client(), format!("{base}/my-id")).await, "None");
+    for n in [ADMIN, MEMBER] {
+        let client = signed_in(&base, n).await;
+        assert_eq!(
+            text(&client, format!("{base}/my-id")).await,
+            format!("{:?}", Some(pk(n)))
+        );
+    }
 }

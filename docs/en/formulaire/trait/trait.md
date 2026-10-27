@@ -69,10 +69,7 @@ is_valid()                   → validation pipeline
     ↓  clean()               [optional — cross-field validation]
     ↓  finalize()            (Argon2 hashing, final transforms)
         ↓
-save() / save_with()           → persistence (with or without hooks)
-  ↓  before_save()           [optional — hook before persistence]
-  ↓  on_save()               → main logic (INSERT, UPDATE…)
-  ↓  after_save()            [optional — hook after persistence]
+form.save(&db) / delete(&db)  → write, on the validated form
         ↓
 database_error()             → [optional] DB error handling
         ↓
@@ -93,15 +90,7 @@ clear()                      → [optional] empty the form after processing
 
 **`is_valid()`** — Orchestrates the full pipeline. Safe to call on both GET and POST: returns `false` without setting field errors if no data has been submitted (first page load), validates normally otherwise.
 
-**`on_save(&txn)`** *(optional)* — Main persistence logic, executed inside the transaction. This is where DB writes go (INSERT, UPDATE, DELETE). No-op by default.
-
-**`before_save(ctx, &txn)`** *(optional)* — Hook executed inside the transaction before `on_save`. No-op by default.
-
-**`after_save(ctx, &txn)`** *(optional)* — Hook executed inside the transaction after `on_save`. No-op by default.
-
-**`save(&db)`** — Opens a transaction, calls `on_save`, commits. Automatic rollback on error.
-
-**`save_with(ctx, &db)`** — Like `save`, but orchestrates all three hooks: `before_save` → `on_save` → `after_save`. Rollback on any error.
+**`save(&db)` / `delete(&db)`** — On the validated form `try_form` returns, for a form tied to an entity: writes the row, returns `Ok(form)` or `Err(form)`. See "Writing" below.
 
 **`database_error(&err)`** — Parses a DB error and attaches it to the correct field.
 
@@ -293,69 +282,51 @@ impl RuniqueForm for RegisterForm {
 
 ---
 
-## Save hooks — `save_with`, `on_save`, `before_save`, `after_save`
+## Writing — `save` and `delete`
 
-Two methods are available to persist form data:
-
-| Method | Description |
-| --- | --- |
-| `save(&db)` | Simple transaction: `on_save` → commit |
-| `save_with(ctx, &db)` | Transaction with hooks: `before_save` → `on_save` → `after_save` → commit |
-
-All three hooks run inside the same transaction. If any of them returns `Err`, the transaction is rolled back and the error is propagated — nothing is written to the DB.
-
-### `SaveContext` — distinguishing Create, Update, Delete
+A form tied to an entity (`model!{}`, `extend!{}`, `#[form(schema = …)]`) is written from the validated form `ValidationForm::try_form` returns. Runique walks its fields and writes the row: there is no write method to implement. A form without an entity has neither `save` nor `delete`: its handler does the work after `try_form`.
 
 ```rust
-use runique::prelude::SaveContext;
-
-// In the handler:
-form.save_with(SaveContext::Create, &db).await?;
-form.save_with(SaveContext::Update, &db).await?;
-form.save_with(SaveContext::Delete, &db).await?;
-```
-
-### Full implementation example
-
-```rust
-use async_trait::async_trait;
-use runique::prelude::*;
-use sea_orm::{DatabaseTransaction, DbErr, Set};
-
-#[async_trait]
-impl RuniqueForm for ArticleForm {
-    // ...
-
-    async fn before_save(&mut self, ctx: SaveContext, txn: &DatabaseTransaction) -> Result<(), DbErr> {
-        if ctx == SaveContext::Create {
-            // e.g. check a quota limit, log intent…
+match ValidationForm::try_form(form, &request, "article").await {
+    Ok(form) => match form.save(&request.engine.db).await {
+        Ok(_) => {
+            success!(request.notices => "Article saved");
+            Ok(Redirect::to("/articles").into_response())
         }
-        Ok(())
-    }
-
-    async fn on_save(&mut self, txn: &DatabaseTransaction) -> Result<(), DbErr> {
-        let title = self.cleaned::<String>("title").unwrap_or_default();
-        article::ActiveModel {
-            title: Set(title),
-            ..Default::default()
+        Err(form) => {
+            context_update!(request => { "article_form" => &form });
+            request.render(template)
         }
-        .insert(txn)
-        .await?;
-        Ok(())
-    }
-
-    async fn after_save(&mut self, ctx: SaveContext, _txn: &DatabaseTransaction) -> Result<(), DbErr> {
-        if ctx == SaveContext::Create {
-            // e.g. send a notification, invalidate a cache…
-        }
-        Ok(())
+    },
+    Err(form) => {
+        context_update!(request => { "article_form" => &form });
+        request.render(template)
     }
 }
 ```
 
-> **Note:** `before_save` and `after_save` also receive the `&DatabaseTransaction` — they can perform their own DB reads or writes within the same transaction.
->
-> **`save()` without hooks:** if you don't need `before_save`/`after_save`, use `save()` directly — it calls `on_save` without the hook overhead.
+`save` and `delete` give the form back either way: `Ok(form)` once written (redirect, or `clear()` it and render again), `Err(form)` with the reason on its fields or its errors.
+
+### The row comes from the URL
+
+The key is looked up in the route's parameters, by the name given to `try_form`:
+
+1. `{<name>_<key>}` — e.g. `{article_id}` for the form `"article"`;
+2. else `{<key>}` — e.g. `{id}`;
+3. else none: `save` creates the row.
+
+With a key, `save` updates that row; `delete` needs one. A key that doesn't read as the model's key type, or a missing row, gives "Resource not found" and nothing is written. Two forms on one page each point at their row by their own name.
+
+### What is written
+
+- **Outside the admin**: SeaORM writes (`insert` on a create, `ActiveModel::save()` on an update); the model's behavior (`ActiveModelBehavior::before_save` / `after_save`, `auto_now`) runs. Locked fields (`readonly`, `disabled`) and secret columns (password) are never written. Checking that the user may touch the row is the handler's job, as with `search!`.
+- **Inside the admin** (panel and routes declared `admin`): the gate writes, as the checked account — rights, owner, history, in one transaction.
+
+### Where business logic goes
+
+- Values to check or adjust: `clean_field`, `clean`.
+- Values from the request (signed-in account, choices): `register_dynamic_fields`.
+- Outside effects (email, cache) and writes to other tables: in the handler, after a successful `save`.
 
 ---
 

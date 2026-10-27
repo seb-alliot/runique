@@ -51,9 +51,9 @@ pub struct Forms {
     pub(crate) honeypot_field_name: Option<String>,
     /// Set by `req.form()` from the request's constraint.
     pub(crate) save_comportement: SaveComportement,
-    /// The row `save` update the gate, as its key's text; `None`
-    /// creates one. Set by `edit`.
-    pub(crate) target: Option<String>,
+    /// The name `try_form` gave the form: `save` looks for its key under
+    /// `{<name>_<pk>}` in the URL first.
+    pub(crate) name: Option<&'static str>,
 }
 
 impl std::fmt::Debug for Forms {
@@ -262,13 +262,14 @@ impl Forms {
             force_invalid: false,
             honeypot_field_name: None,
             save_comportement: SaveComportement::Open,
-            target: None,
+            name: None,
         }
     }
 
     /// Sets the form's name (its `FORM_NAME_KEY` hidden field) and gives it to
     /// every field, which prefixes its HTML `id` with it.
     pub(crate) fn set_name(&mut self, name: &'static str) {
+        self.name = Some(name);
         for (key, field) in self.fields.iter_mut() {
             if key == FORM_NAME_KEY {
                 field.set_value(name);
@@ -568,20 +569,6 @@ impl Forms {
         !self.force_invalid && self.validated && !self.has_errors()
     }
 
-    /// The form must be validated again: its target changer after it was.
-    pub(crate) fn invalidate(&mut self) {
-        self.validated = false;
-    }
-
-    /// **Test-only** (`test-utils` feature). Marks the form as validated without
-    /// calling `is_valid()`, for tests of save/hook behavior independent of field
-    /// validation. It bypasses all validation, hence out of normal builds.
-    #[cfg(feature = "test-utils")]
-    #[doc(hidden)]
-    pub fn mark_validated(&mut self) {
-        self.validated = true;
-    }
-
     /// Collects all current field and global errors into a map keyed by field
     /// name, with a `"global"` entry for form-level errors (see
     /// [`FormValidator::collect_errors`]).
@@ -702,27 +689,10 @@ mod save_comportement_tests {
     }
 
     #[test]
-    fn a_form_starts_without_a_target() {
-        assert_eq!(Forms::new("csrf").target, None);
-    }
-
-    #[tokio::test]
-    async fn invalidate_withdraws_the_validation_and_a_new_one_restores_it() {
+    fn a_form_starts_without_a_name_and_set_name_keeps_it() {
         let mut form = Forms::new("csrf");
-        assert!(!form.is_save_allowed());
-        assert!(form.is_valid().await.unwrap());
-        assert!(form.is_save_allowed());
-        form.invalidate();
-        assert!(!form.is_save_allowed());
-        assert!(form.is_valid().await.unwrap());
-        assert!(form.is_save_allowed());
-    }
-
-    #[test]
-    fn invalidate_leaves_the_target_alone() {
-        let mut form = Forms::new("csrf");
-        form.target = Some("5".into());
-        form.invalidate();
-        assert_eq!(form.target.as_deref(), Some("5"));
+        assert_eq!(form.name, None);
+        form.set_name("article");
+        assert_eq!(form.name, Some("article"));
     }
 }

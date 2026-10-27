@@ -4,11 +4,10 @@
 //! - LoginAdmin::register_fields, from_form, get_form, get_form_mut
 //!   (et les méthodes générées par impl_form_access! dans macros/forms/impl_form.rs)
 //! - build_form_for_test, clean_field, clean, is_valid
-//! - RuniqueForm::save, on_save (implémentations par défaut dans forms/field.rs)
 
 use axum::http::Method;
 use runique::auth::LoginAdmin;
-use runique::forms::field::{FormAccess, FormSave, RuniqueForm, build_form_for_test};
+use runique::forms::field::{FormAccess, RuniqueForm, build_form_for_test};
 use runique::forms::form::Forms;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -23,13 +22,6 @@ fn make_tera() -> Arc<Tera> {
 fn login_form() -> LoginAdmin {
     let mut form = Forms::new("csrf_token");
     LoginAdmin::register_fields(&mut form);
-    LoginAdmin::from_form(form)
-}
-
-fn login_form_validated() -> LoginAdmin {
-    let mut form = Forms::new("csrf_token");
-    LoginAdmin::register_fields(&mut form);
-    form.mark_validated();
     LoginAdmin::from_form(form)
 }
 
@@ -150,19 +142,4 @@ async fn test_is_valid_toujours_invalide_sans_password_meme_username_rempli() {
     // password est required : même username + CSRF valides, is_valid() doit
     // rester false tant que password n'est pas fourni.
     assert!(!login.is_valid().await);
-}
-
-// ═══════════════════════════════════════════════════════════════
-// RuniqueForm::save / on_save  (forms/field.rs — impl par défaut)
-// ═══════════════════════════════════════════════════════════════
-
-#[tokio::test]
-async fn test_save_avec_impl_par_defaut_retourne_ok() {
-    use crate::helpers::db::fresh_db;
-    let mut login = login_form_validated();
-    let db = runique::db::ADb::from_connection(fresh_db().await);
-    // L'implémentation par défaut de on_save retourne Ok(()),
-    // donc save() doit réussir (commit vide)
-    let result = login.save(&db).await;
-    assert!(result.is_ok());
 }

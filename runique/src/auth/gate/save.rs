@@ -1,17 +1,17 @@
 //! `save_as`: a form's save inside the admin's constraint. The account the
-//! middleware checked, the row `edit` pointed at, the gate's proof and the
+//! middleware checked, the row the URL points at, the gate's proof and the
 //! columns the rights allow, written in one transaction with its history row.
 use super::change::{FieldErrors, WriteKind, changes};
 use super::check::{GateCtx, authorize_create, authorize_row};
 use super::operation::{Delete, Update};
 use super::refusal::{Refusal, RefusalReason};
 use super::rights::Crud;
-use super::{PkOf, write};
+use super::write;
 use crate::auth::current_user::CurrentUser;
 use crate::auth::history::{ActionLog, log_action, redact_sensitive};
 use crate::auth::meta::ModelMeta;
-use crate::forms::field::SaveContext;
 use crate::forms::form::{Forms, SaveComportement};
+use crate::forms::save::{SaveAction, on_fields, url_key};
 use crate::utils::aliases::ADb;
 use crate::utils::trad::t;
 use sea_orm::sea_query::sea_value_to_json_value;
@@ -19,28 +19,17 @@ use sea_orm::{
     ActiveModelTrait, ActiveValue, ConnectionTrait, DbErr, IdenStatic, Iterable, ModelTrait,
     PrimaryKeyToColumn, TransactionTrait, Value,
 };
-use std::str::FromStr;
 
 fn refused(refusal: Refusal) -> DbErr {
     DbErr::Custom(refusal.message())
 }
 
-/// Puts each refused field's reason on its field, for the form shown again.
-fn on_fields(form: &mut Forms, errors: FieldErrors) -> DbErr {
-    for (name, message) in errors {
-        if let Some(field) = form.fields.get_mut(&name) {
-            field.set_error(message);
-        }
-    }
-    DbErr::Custom("save_as(): fields refused by the gate".to_string())
-}
-
 /// The gated write of `form` on `E`, as the account its constraint carries.
-/// `Create` without a target, `Update` / `Delete` with the one `edit` set:
-/// any other pairing is the handler's mistake, refused.
+/// Without a key in the URL `save` creates, with one it updates; `delete`
+/// needs one. A key that doesn't read as `E`'s is refused as not found.
 pub(crate) async fn save_as<E: ModelMeta>(
     form: &mut Forms,
-    ctx: SaveContext,
+    action: SaveAction,
     db: &ADb,
 ) -> Result<(), DbErr>
 where
@@ -51,18 +40,13 @@ where
         return Err(refused(Refusal::new(RefusalReason::NoRight)));
     };
     let user = user.clone();
-    let target = match &form.target {
-        Some(text) => Some(
-            PkOf::<E>::from_str(text)
-                .map_err(|_| refused(Refusal::new(RefusalReason::NotFound)))?,
-        ),
-        None => None,
-    };
+    let target =
+        url_key::<E>(form).map_err(|()| refused(Refusal::new(RefusalReason::NotFound)))?;
     let gate = GateCtx { db, user: &user };
     let rights = user.rights_on(E::KEY);
 
-    match (ctx, target) {
-        (SaveContext::Create, None) => {
+    match (action, target) {
+        (SaveAction::Save, None) => {
             let proof = authorize_create::<E>(&gate).map_err(refused)?;
             let mut model = changes::<E>(form, &rights.columns, WriteKind::Create)
                 .map_err(|e| on_fields(form, e))?;
@@ -87,7 +71,7 @@ where
             .await?;
             txn.commit().await
         }
-        (SaveContext::Update, Some(id)) => {
+        (SaveAction::Save, Some(id)) => {
             let proof = authorize_row::<Update, E>(&gate, id.clone())
                 .await
                 .map_err(refused)?;
@@ -123,7 +107,7 @@ where
             .await?;
             txn.commit().await
         }
-        (SaveContext::Delete, Some(id)) => {
+        (SaveAction::Delete, Some(id)) => {
             let proof = authorize_row::<Delete, E>(&gate, id.clone())
                 .await
                 .map_err(refused)?;
@@ -144,12 +128,7 @@ where
             .await?;
             txn.commit().await
         }
-        (SaveContext::Create, Some(_)) => Err(DbErr::Custom(
-            "save_as(): Create on a form pointed at a row by edit()".to_string(),
-        )),
-        (SaveContext::Update | SaveContext::Delete, None) => Err(DbErr::Custom(
-            "save_as(): Update or Delete needs the row, set by edit()".to_string(),
-        )),
+        (SaveAction::Delete, None) => Err(refused(Refusal::new(RefusalReason::NotFound))),
     }
 }
 
@@ -457,7 +436,9 @@ mod tests {
             Some(user) => SaveComportement::Gated { user },
             None => SaveComportement::Open,
         };
-        form.target = target.map(str::to_string);
+        if let Some(key) = target {
+            form.path_params.insert("id".to_string(), key.to_string());
+        }
         for (name, value) in values {
             form.add_value(name, value);
         }
@@ -468,8 +449,8 @@ mod tests {
         form_for::<ticket::Entity>(Some(user.clone()), target, values)
     }
 
-    async fn run(form: &mut Forms, ctx: SaveContext, db: &ADb) -> Result<(), DbErr> {
-        save_as::<ticket::Entity>(form, ctx, db).await
+    async fn run(form: &mut Forms, action: SaveAction, db: &ADb) -> Result<(), DbErr> {
+        save_as::<ticket::Entity>(form, action, db).await
     }
 
     async fn tickets(db: &ADb) -> Vec<ticket::Model> {
@@ -495,16 +476,6 @@ mod tests {
         }
     }
 
-    fn assert_handler_error(result: Result<(), DbErr>) {
-        match result {
-            Err(DbErr::Custom(message)) => {
-                assert!(message.starts_with("save_as():"), "{message}");
-                assert_ne!(message, refusal_message());
-            }
-            other => panic!("expected the handler's error, got {other:?}"),
-        }
-    }
-
     fn assert_fields_refused(result: Result<(), DbErr>) {
         match result {
             Err(DbErr::Custom(message)) => assert!(message.contains("fields refused"), "{message}"),
@@ -519,11 +490,11 @@ mod tests {
         let db = setup().await;
         let before = tickets(&db).await;
         let mut form = form_for::<ticket::Entity>(None, None, &[("title", "x")]);
-        assert_refused(run(&mut form, SaveContext::Create, &db).await);
+        assert_refused(run(&mut form, SaveAction::Save, &db).await);
         let mut form = form_for::<ticket::Entity>(None, Some("1"), &[("title", "x")]);
-        assert_refused(run(&mut form, SaveContext::Update, &db).await);
+        assert_refused(run(&mut form, SaveAction::Save, &db).await);
         let mut form = form_for::<ticket::Entity>(None, Some("1"), &[]);
-        assert_refused(run(&mut form, SaveContext::Delete, &db).await);
+        assert_refused(run(&mut form, SaveAction::Delete, &db).await);
         assert_eq!(tickets(&db).await, before);
     }
 
@@ -534,7 +505,7 @@ mod tests {
         let db = setup().await;
         let creator = member(pk(10), CREATE);
         let mut form = gated(&creator, None, &[("title", "fresh"), ("body", "text")]);
-        run(&mut form, SaveContext::Create, &db).await.unwrap();
+        run(&mut form, SaveAction::Save, &db).await.unwrap();
         let rows = tickets(&db).await;
         assert_eq!(rows.len(), 3);
         let row = &rows[2];
@@ -551,7 +522,7 @@ mod tests {
         let creator = member(pk(10), CREATE);
         let forged = pk(20).to_string();
         let mut form = gated(&creator, None, &[("title", "t"), ("owner_id", &forged)]);
-        run(&mut form, SaveContext::Create, &db).await.unwrap();
+        run(&mut form, SaveAction::Save, &db).await.unwrap();
         assert_eq!(tickets(&db).await[2].owner_id, Some(pk(10)));
     }
 
@@ -560,7 +531,7 @@ mod tests {
         let db = setup().await;
         let creator = member(pk(10), CREATE);
         let mut form = gated(&creator, None, &[("title", "t")]);
-        run(&mut form, SaveContext::Create, &db).await.unwrap();
+        run(&mut form, SaveAction::Save, &db).await.unwrap();
         assert_eq!(tickets(&db).await[2].owner_id, Some(pk(10)));
     }
 
@@ -570,7 +541,7 @@ mod tests {
         let creator = only_columns(member(pk(10), CREATE), &[("title", true, true)]);
         let forged = pk(20).to_string();
         let mut form = gated(&creator, None, &[("title", "t"), ("owner_id", &forged)]);
-        run(&mut form, SaveContext::Create, &db).await.unwrap();
+        run(&mut form, SaveAction::Save, &db).await.unwrap();
         assert_eq!(tickets(&db).await[2].owner_id, Some(pk(10)));
     }
 
@@ -580,7 +551,7 @@ mod tests {
         for rights in [NOTHING, UPDATE, UPDATE_OWN, DELETE] {
             let user = member(pk(10), rights);
             let mut form = gated(&user, None, &[("title", "t")]);
-            assert_refused(run(&mut form, SaveContext::Create, &db).await);
+            assert_refused(run(&mut form, SaveAction::Save, &db).await);
         }
         assert_eq!(tickets(&db).await.len(), 2);
     }
@@ -590,7 +561,7 @@ mod tests {
         let db = setup().await;
         let creator = member(pk(10), CREATE);
         let mut form = gated(&creator, None, &[("title", ""), ("body", "b")]);
-        assert_fields_refused(run(&mut form, SaveContext::Create, &db).await);
+        assert_fields_refused(run(&mut form, SaveAction::Save, &db).await);
         let expected = t("forms.required").into_owned();
         assert_eq!(form.fields.get("title").unwrap().error(), Some(&expected));
         assert_eq!(form.fields.get("body").unwrap().error(), None);
@@ -602,7 +573,7 @@ mod tests {
         let db = setup().await;
         let creator = member(pk(10), CREATE);
         let mut form = gated(&creator, None, &[("body", "b")]);
-        assert_fields_refused(run(&mut form, SaveContext::Create, &db).await);
+        assert_fields_refused(run(&mut form, SaveAction::Save, &db).await);
         assert_eq!(tickets(&db).await.len(), 2);
     }
 
@@ -611,7 +582,7 @@ mod tests {
         let db = setup().await;
         let creator = only_columns(member(pk(10), CREATE), &[("body", true, true)]);
         let mut form = gated(&creator, None, &[("title", "forged"), ("body", "b")]);
-        assert_fields_refused(run(&mut form, SaveContext::Create, &db).await);
+        assert_fields_refused(run(&mut form, SaveAction::Save, &db).await);
         assert_eq!(tickets(&db).await.len(), 2);
     }
 
@@ -622,7 +593,7 @@ mod tests {
         // Only `title` is declared: `level` (default), `body` (nullable),
         // `made`, `edited`, `hidden` (exempt) stay unset and the insert goes.
         let mut form = gated(&creator, None, &[("title", "t")]);
-        assert!(run(&mut form, SaveContext::Create, &db).await.is_ok());
+        assert!(run(&mut form, SaveAction::Save, &db).await.is_ok());
         assert_eq!(tickets(&db).await.len(), 3);
     }
 
@@ -631,7 +602,7 @@ mod tests {
         let db = setup().await;
         let creator = member(pk(10), CREATE);
         let mut form = gated(&creator, None, &[("title", "t"), ("owner_id", "abc")]);
-        assert_fields_refused(run(&mut form, SaveContext::Create, &db).await);
+        assert_fields_refused(run(&mut form, SaveAction::Save, &db).await);
         assert!(form.fields.get("owner_id").unwrap().error().is_some());
         assert_eq!(form.fields.get("title").unwrap().error(), None);
         assert_eq!(tickets(&db).await.len(), 2);
@@ -649,7 +620,7 @@ mod tests {
             Some("2"),
             &[("title", "renamed"), ("body", "b"), ("owner_id", &to)],
         );
-        run(&mut form, SaveContext::Update, &db).await.unwrap();
+        run(&mut form, SaveAction::Save, &db).await.unwrap();
         let row = ticket_of(&db, 2).await.unwrap();
         assert_eq!(row.title, "renamed");
         assert_eq!(row.body.as_deref(), Some("b"));
@@ -664,7 +635,7 @@ mod tests {
         let editor = member(pk(10), [false, false, false, true, false, true, false]);
         let to = pk(30).to_string();
         let mut form = gated(&editor, Some("1"), &[("owner_id", &to)]);
-        run(&mut form, SaveContext::Update, &db).await.unwrap();
+        run(&mut form, SaveAction::Save, &db).await.unwrap();
         assert_eq!(ticket_of(&db, 1).await.unwrap().owner_id, Some(pk(30)));
     }
 
@@ -674,7 +645,7 @@ mod tests {
         let owner = member(pk(10), UPDATE_OWN);
         let to = pk(20).to_string();
         let mut form = gated(&owner, Some("1"), &[("title", "mine"), ("owner_id", &to)]);
-        run(&mut form, SaveContext::Update, &db).await.unwrap();
+        run(&mut form, SaveAction::Save, &db).await.unwrap();
         let row = ticket_of(&db, 1).await.unwrap();
         assert_eq!(row.title, "mine");
         assert_eq!(row.owner_id, Some(pk(10)), "the row stays the account's");
@@ -688,7 +659,7 @@ mod tests {
         let to = pk(20).to_string();
         let before = tickets(&db).await;
         let mut form = gated(&owner, Some("1"), &[("owner_id", &to)]);
-        run(&mut form, SaveContext::Update, &db).await.unwrap();
+        run(&mut form, SaveAction::Save, &db).await.unwrap();
         assert_eq!(tickets(&db).await, before, "not even the stamp");
     }
 
@@ -703,7 +674,7 @@ mod tests {
             Some("2"),
             &[("title", "taken"), ("owner_id", &mine)],
         );
-        assert_refused(run(&mut form, SaveContext::Update, &db).await);
+        assert_refused(run(&mut form, SaveAction::Save, &db).await);
         assert_eq!(tickets(&db).await, before);
     }
 
@@ -714,7 +685,7 @@ mod tests {
         for rights in [NOTHING, CREATE, DELETE, DELETE_OWN] {
             let user = member(pk(10), rights);
             let mut form = gated(&user, Some("1"), &[("title", "x")]);
-            assert_refused(run(&mut form, SaveContext::Update, &db).await);
+            assert_refused(run(&mut form, SaveAction::Save, &db).await);
         }
         assert_eq!(tickets(&db).await, before);
     }
@@ -725,7 +696,7 @@ mod tests {
         let editor = member(pk(10), UPDATE);
         let before = tickets(&db).await;
         let mut form = gated(&editor, Some("1"), &[]);
-        run(&mut form, SaveContext::Update, &db).await.unwrap();
+        run(&mut form, SaveAction::Save, &db).await.unwrap();
         assert_eq!(tickets(&db).await, before, "no stamp: nothing was written");
     }
 
@@ -735,10 +706,10 @@ mod tests {
         let before = tickets(&db).await;
         let user = member(pk(10), NOTHING);
         let mut form = gated(&user, Some("1"), &[]);
-        assert_refused(run(&mut form, SaveContext::Update, &db).await);
+        assert_refused(run(&mut form, SaveAction::Save, &db).await);
         let owner = member(pk(10), UPDATE_OWN);
         let mut form = gated(&owner, Some("2"), &[]);
-        assert_refused(run(&mut form, SaveContext::Update, &db).await);
+        assert_refused(run(&mut form, SaveAction::Save, &db).await);
         assert_eq!(tickets(&db).await, before);
     }
 
@@ -755,7 +726,7 @@ mod tests {
             Some("1"),
             &[("title", "t"), ("body", "b"), ("owner_id", &to)],
         );
-        run(&mut form, SaveContext::Update, &db).await.unwrap();
+        run(&mut form, SaveAction::Save, &db).await.unwrap();
         let row = ticket_of(&db, 1).await.unwrap();
         assert_eq!(row.title, "t");
         assert_eq!(row.body, None);
@@ -768,11 +739,11 @@ mod tests {
         let editor = member(pk(10), UPDATE);
         let before = tickets(&db).await;
         let mut form = gated(&editor, Some("99"), &[("title", "ghost")]);
-        assert_refused(run(&mut form, SaveContext::Update, &db).await);
+        assert_refused(run(&mut form, SaveAction::Save, &db).await);
         assert_eq!(tickets(&db).await, before);
 
         let mut form = gated(&editor, Some("1"), &[("id", "2"), ("title", "t")]);
-        run(&mut form, SaveContext::Update, &db).await.unwrap();
+        run(&mut form, SaveAction::Save, &db).await.unwrap();
         assert_eq!(ticket_of(&db, 1).await.unwrap().title, "t");
         assert_eq!(ticket_of(&db, 2).await.unwrap().title, "two");
     }
@@ -783,7 +754,7 @@ mod tests {
         let editor = member(pk(10), UPDATE);
         let before = tickets(&db).await;
         let mut form = gated(&editor, Some("1"), &[("title", "t"), ("owner_id", "abc")]);
-        assert_fields_refused(run(&mut form, SaveContext::Update, &db).await);
+        assert_fields_refused(run(&mut form, SaveAction::Save, &db).await);
         assert!(form.fields.get("owner_id").unwrap().error().is_some());
         assert_eq!(form.fields.get("title").unwrap().error(), None);
         assert_eq!(tickets(&db).await, before);
@@ -796,7 +767,7 @@ mod tests {
         let db = setup().await;
         let user = member(pk(10), DELETE);
         let mut form = gated(&user, Some("2"), &[]);
-        run(&mut form, SaveContext::Delete, &db).await.unwrap();
+        run(&mut form, SaveAction::Delete, &db).await.unwrap();
         assert!(ticket_of(&db, 2).await.is_none());
         assert!(ticket_of(&db, 1).await.is_some());
     }
@@ -806,10 +777,10 @@ mod tests {
         let db = setup().await;
         let user = member(pk(10), DELETE_OWN);
         let mut form = gated(&user, Some("2"), &[]);
-        assert_refused(run(&mut form, SaveContext::Delete, &db).await);
+        assert_refused(run(&mut form, SaveAction::Delete, &db).await);
         assert!(ticket_of(&db, 2).await.is_some(), "another's row kept");
         let mut form = gated(&user, Some("1"), &[]);
-        run(&mut form, SaveContext::Delete, &db).await.unwrap();
+        run(&mut form, SaveAction::Delete, &db).await.unwrap();
         assert!(ticket_of(&db, 1).await.is_none());
     }
 
@@ -820,7 +791,7 @@ mod tests {
         for rights in [NOTHING, CREATE, UPDATE, UPDATE_OWN] {
             let user = member(pk(10), rights);
             let mut form = gated(&user, Some("1"), &[]);
-            assert_refused(run(&mut form, SaveContext::Delete, &db).await);
+            assert_refused(run(&mut form, SaveAction::Delete, &db).await);
         }
         assert_eq!(tickets(&db).await, before);
     }
@@ -830,11 +801,11 @@ mod tests {
         let db = setup().await;
         let user = member(pk(10), DELETE);
         let mut form = gated(&user, Some("99"), &[]);
-        assert_refused(run(&mut form, SaveContext::Delete, &db).await);
+        assert_refused(run(&mut form, SaveAction::Delete, &db).await);
         assert_eq!(tickets(&db).await.len(), 2);
     }
 
-    // --- the target ---
+    // --- the key ---
 
     #[tokio::test]
     async fn an_unreadable_target_is_refused_like_the_gate_and_writes_nothing() {
@@ -851,13 +822,9 @@ mod tests {
             "99999999999",
             "-",
         ] {
-            for ctx in [
-                SaveContext::Update,
-                SaveContext::Delete,
-                SaveContext::Create,
-            ] {
+            for action in [SaveAction::Save, SaveAction::Delete] {
                 let mut form = gated(&user, Some(target), &[("title", "x")]);
-                assert_refused(run(&mut form, ctx, &db).await);
+                assert_refused(run(&mut form, action, &db).await);
             }
         }
         assert_eq!(tickets(&db).await, before);
@@ -869,21 +836,17 @@ mod tests {
         let user = member(pk(10), EVERYTHING);
         let long = "9".repeat(10_000);
         let mut form = gated(&user, Some(&long), &[]);
-        assert_refused(run(&mut form, SaveContext::Delete, &db).await);
+        assert_refused(run(&mut form, SaveAction::Delete, &db).await);
         assert_eq!(tickets(&db).await.len(), 2);
     }
 
     #[tokio::test]
-    async fn a_wrong_pairing_is_the_handlers_error_and_writes_nothing() {
+    async fn a_delete_without_a_key_is_refused_and_writes_nothing() {
         let db = setup().await;
         let user = member(pk(10), EVERYTHING);
         let before = tickets(&db).await;
-        let mut form = gated(&user, Some("1"), &[("title", "x")]);
-        assert_handler_error(run(&mut form, SaveContext::Create, &db).await);
-        let mut form = gated(&user, None, &[("title", "x")]);
-        assert_handler_error(run(&mut form, SaveContext::Update, &db).await);
         let mut form = gated(&user, None, &[]);
-        assert_handler_error(run(&mut form, SaveContext::Delete, &db).await);
+        assert_refused(run(&mut form, SaveAction::Delete, &db).await);
         assert_eq!(tickets(&db).await, before);
     }
 
@@ -898,16 +861,16 @@ mod tests {
             let to = pk(20).to_string();
 
             let mut form = gated(&user, None, &[("title", "t"), ("owner_id", &to)]);
-            run(&mut form, SaveContext::Create, &db).await.unwrap();
+            run(&mut form, SaveAction::Save, &db).await.unwrap();
             assert_eq!(tickets(&db).await[2].owner_id, Some(pk(id)));
 
             let mut form = gated(&user, Some("1"), &[("title", "t"), ("owner_id", &to)]);
-            run(&mut form, SaveContext::Update, &db).await.unwrap();
+            run(&mut form, SaveAction::Save, &db).await.unwrap();
             let row = ticket_of(&db, 1).await.unwrap();
             assert_eq!((row.title.as_str(), row.owner_id), ("t", Some(pk(20))));
 
             let mut form = gated(&user, Some("2"), &[]);
-            run(&mut form, SaveContext::Delete, &db).await.unwrap();
+            run(&mut form, SaveAction::Delete, &db).await.unwrap();
             assert!(ticket_of(&db, 2).await.is_none());
         }
     }
@@ -918,20 +881,20 @@ mod tests {
         let before = tickets(&db).await;
         let without = ranked(member(pk(33), NOTHING), Rang::Admin);
         let mut form = gated(&without, None, &[("title", "t")]);
-        assert_refused(run(&mut form, SaveContext::Create, &db).await);
+        assert_refused(run(&mut form, SaveAction::Save, &db).await);
         let mut form = gated(&without, Some("1"), &[("title", "t")]);
-        assert_refused(run(&mut form, SaveContext::Update, &db).await);
+        assert_refused(run(&mut form, SaveAction::Save, &db).await);
         let mut form = gated(&without, Some("1"), &[]);
-        assert_refused(run(&mut form, SaveContext::Delete, &db).await);
+        assert_refused(run(&mut form, SaveAction::Delete, &db).await);
         assert_eq!(tickets(&db).await, before);
 
         let with = ranked(member(pk(33), EVERYTHING), Rang::Admin);
         let mut form = gated(&with, None, &[("title", "t")]);
-        run(&mut form, SaveContext::Create, &db).await.unwrap();
+        run(&mut form, SaveAction::Save, &db).await.unwrap();
         let mut form = gated(&with, Some("1"), &[("title", "u")]);
-        run(&mut form, SaveContext::Update, &db).await.unwrap();
+        run(&mut form, SaveAction::Save, &db).await.unwrap();
         let mut form = gated(&with, Some("2"), &[]);
-        run(&mut form, SaveContext::Delete, &db).await.unwrap();
+        run(&mut form, SaveAction::Delete, &db).await.unwrap();
         let rows = tickets(&db).await;
         assert_eq!(rows.len(), 2);
         assert_eq!(rows[0].title, "u");
@@ -943,7 +906,7 @@ mod tests {
         let mut admin = ranked(member(pk(33), NOTHING), Rang::Admin);
         admin.groupes[0].permissions[0].can_create = true;
         let mut form = gated(&admin, None, &[("title", "t")]);
-        assert_refused(run(&mut form, SaveContext::Create, &db).await);
+        assert_refused(run(&mut form, SaveAction::Save, &db).await);
         assert_eq!(tickets(&db).await.len(), 2);
     }
 
@@ -952,18 +915,18 @@ mod tests {
         let db = setup().await;
         let granted = member(pk(31), CREATE);
         let mut form = gated(&granted, None, &[("title", "t")]);
-        run(&mut form, SaveContext::Create, &db).await.unwrap();
+        run(&mut form, SaveAction::Save, &db).await.unwrap();
         assert_eq!(tickets(&db).await[2].owner_id, Some(pk(31)));
 
         let mut other_key = member(pk(31), CREATE);
         other_key.groupes[0].permissions[0].resource_key = "other".into();
         let mut form = gated(&other_key, None, &[("title", "t")]);
-        assert_refused(run(&mut form, SaveContext::Create, &db).await);
+        assert_refused(run(&mut form, SaveAction::Save, &db).await);
 
         let mut no_group = member(pk(31), CREATE);
         no_group.groupes.clear();
         let mut form = gated(&no_group, None, &[("title", "t")]);
-        assert_refused(run(&mut form, SaveContext::Create, &db).await);
+        assert_refused(run(&mut form, SaveAction::Save, &db).await);
         assert_eq!(tickets(&db).await.len(), 3);
     }
 
@@ -975,7 +938,7 @@ mod tests {
         let boss = ranked(staff(pk(32), "notes", NOTHING), Rang::Dirigeant);
         let to = pk(20).to_string();
         let mut form = form_for::<note::Entity>(Some(boss), Some("1"), &[("owner_id", &to)]);
-        save_as::<note::Entity>(&mut form, SaveContext::Update, &db)
+        save_as::<note::Entity>(&mut form, SaveAction::Save, &db)
             .await
             .unwrap();
         let rows = note::Entity::find()
@@ -994,7 +957,7 @@ mod tests {
         let owner = staff(pk(10), "notes", UPDATE_OWN);
         let to = pk(20).to_string();
         let mut form = form_for::<note::Entity>(Some(owner), Some("1"), &[("owner_id", &to)]);
-        save_as::<note::Entity>(&mut form, SaveContext::Update, &db)
+        save_as::<note::Entity>(&mut form, SaveAction::Save, &db)
             .await
             .unwrap();
         let row = note::Entity::find_by_id(1)
@@ -1131,7 +1094,7 @@ mod tests {
         user: &CurrentUser,
         target: Option<&str>,
         values: &[(&str, &str)],
-        ctx: SaveContext,
+        action: SaveAction,
         db: &ADb,
     ) -> Result<(), DbErr>
     where
@@ -1139,7 +1102,7 @@ mod tests {
         E::Model: sea_orm::IntoActiveModel<E::ActiveModel>,
     {
         let mut form = form_for::<E>(Some(user.clone()), target, values);
-        save_as::<E>(&mut form, ctx, db).await
+        save_as::<E>(&mut form, action, db).await
     }
 
     async fn history(db: &ADb) -> Vec<crate::auth::history::Model> {
@@ -1183,7 +1146,7 @@ mod tests {
         let db = setup().await;
         let creator = member(pk(10), CREATE);
         let mut form = gated(&creator, None, &[("title", "fresh")]);
-        run(&mut form, SaveContext::Create, &db).await.unwrap();
+        run(&mut form, SaveAction::Save, &db).await.unwrap();
         let rows = history(&db).await;
         assert_eq!(rows.len(), 1);
         let created = tickets(&db).await[2].id.to_string();
@@ -1200,7 +1163,7 @@ mod tests {
             &creator,
             None,
             &[("name", "gamma"), ("nick", "Gam")],
-            SaveContext::Create,
+            SaveAction::Save,
             &db,
         )
         .await
@@ -1209,7 +1172,7 @@ mod tests {
             &creator,
             None,
             &[("name", "delta")],
-            SaveContext::Create,
+            SaveAction::Save,
             &db,
         )
         .await
@@ -1226,19 +1189,20 @@ mod tests {
         for rights in [NOTHING, UPDATE, UPDATE_OWN, DELETE] {
             let user = member(pk(10), rights);
             let mut form = gated(&user, None, &[("title", "t")]);
-            assert_refused(run(&mut form, SaveContext::Create, &db).await);
+            assert_refused(run(&mut form, SaveAction::Save, &db).await);
         }
         let creator = member(pk(10), CREATE);
         let mut form = gated(&creator, None, &[("title", ""), ("body", "b")]);
-        assert_fields_refused(run(&mut form, SaveContext::Create, &db).await);
+        assert_fields_refused(run(&mut form, SaveAction::Save, &db).await);
         let mut form = gated(&creator, None, &[("body", "b")]);
-        assert_fields_refused(run(&mut form, SaveContext::Create, &db).await);
+        assert_fields_refused(run(&mut form, SaveAction::Save, &db).await);
         let mut form = gated(&creator, None, &[("title", "t"), ("owner_id", "abc")]);
-        assert_fields_refused(run(&mut form, SaveContext::Create, &db).await);
+        assert_fields_refused(run(&mut form, SaveAction::Save, &db).await);
         let mut form = form_for::<ticket::Entity>(None, None, &[("title", "t")]);
-        assert_refused(run(&mut form, SaveContext::Create, &db).await);
+        assert_refused(run(&mut form, SaveAction::Save, &db).await);
+        // A key makes it an update, which `CREATE` alone doesn't grant.
         let mut form = gated(&creator, Some("1"), &[("title", "t")]);
-        assert_handler_error(run(&mut form, SaveContext::Create, &db).await);
+        assert_refused(run(&mut form, SaveAction::Save, &db).await);
         assert!(history(&db).await.is_empty());
         assert_eq!(tickets(&db).await.len(), 2);
     }
@@ -1260,7 +1224,7 @@ mod tests {
         .unwrap();
         let creator = member(pk(10), CREATE);
         let mut form = gated(&creator, None, &[("title", "t")]);
-        assert!(run(&mut form, SaveContext::Create, &db).await.is_err());
+        assert!(run(&mut form, SaveAction::Save, &db).await.is_err());
         assert!(history(&db).await.is_empty());
         assert!(tickets(&db).await.is_empty());
     }
@@ -1281,7 +1245,7 @@ mod tests {
                 ("owner_id", &same_owner),
             ],
         );
-        run(&mut form, SaveContext::Update, &db).await.unwrap();
+        run(&mut form, SaveAction::Save, &db).await.unwrap();
         let rows = history(&db).await;
         assert_eq!(rows.len(), 1);
         assert_trace(&rows[0], "update", "tickets", "1", "1", &editor);
@@ -1301,7 +1265,7 @@ mod tests {
         let editor = member(pk(10), UPDATE);
         let to = pk(30).to_string();
         let mut form = gated(&editor, Some("1"), &[("owner_id", &to)]);
-        run(&mut form, SaveContext::Update, &db).await.unwrap();
+        run(&mut form, SaveAction::Save, &db).await.unwrap();
         let rows = history(&db).await;
         assert_eq!(rows.len(), 1);
         assert_eq!(
@@ -1317,7 +1281,7 @@ mod tests {
         let db = setup().await;
         let editor = member(pk(10), UPDATE);
         let mut form = gated(&editor, Some("1"), &[("title", "one")]);
-        run(&mut form, SaveContext::Update, &db).await.unwrap();
+        run(&mut form, SaveAction::Save, &db).await.unwrap();
         let rows = history(&db).await;
         assert_eq!(rows.len(), 1);
         assert_trace(&rows[0], "update", "tickets", "1", "1", &editor);
@@ -1334,11 +1298,11 @@ mod tests {
         let db = setup().await;
         let editor = member(pk(10), UPDATE);
         let mut form = gated(&editor, Some("1"), &[]);
-        run(&mut form, SaveContext::Update, &db).await.unwrap();
+        run(&mut form, SaveAction::Save, &db).await.unwrap();
         let owner = member(pk(10), UPDATE_OWN);
         let to = pk(20).to_string();
         let mut form = gated(&owner, Some("1"), &[("owner_id", &to)]);
-        run(&mut form, SaveContext::Update, &db).await.unwrap();
+        run(&mut form, SaveAction::Save, &db).await.unwrap();
         assert!(history(&db).await.is_empty());
     }
 
@@ -1348,21 +1312,21 @@ mod tests {
         let before = tickets(&db).await;
         let owner = member(pk(10), UPDATE_OWN);
         let mut form = gated(&owner, Some("2"), &[("title", "taken")]);
-        assert_refused(run(&mut form, SaveContext::Update, &db).await);
+        assert_refused(run(&mut form, SaveAction::Save, &db).await);
         for rights in [NOTHING, CREATE, DELETE, DELETE_OWN] {
             let user = member(pk(10), rights);
             let mut form = gated(&user, Some("1"), &[("title", "x")]);
-            assert_refused(run(&mut form, SaveContext::Update, &db).await);
+            assert_refused(run(&mut form, SaveAction::Save, &db).await);
         }
         let editor = member(pk(10), UPDATE);
         let mut form = gated(&editor, Some("99"), &[("title", "ghost")]);
-        assert_refused(run(&mut form, SaveContext::Update, &db).await);
+        assert_refused(run(&mut form, SaveAction::Save, &db).await);
         let mut form = gated(&editor, Some("abc"), &[("title", "x")]);
-        assert_refused(run(&mut form, SaveContext::Update, &db).await);
+        assert_refused(run(&mut form, SaveAction::Save, &db).await);
         let mut form = gated(&editor, Some("1"), &[("title", "t"), ("owner_id", "abc")]);
-        assert_fields_refused(run(&mut form, SaveContext::Update, &db).await);
+        assert_fields_refused(run(&mut form, SaveAction::Save, &db).await);
         let mut form = form_for::<ticket::Entity>(None, Some("1"), &[("title", "x")]);
-        assert_refused(run(&mut form, SaveContext::Update, &db).await);
+        assert_refused(run(&mut form, SaveAction::Save, &db).await);
         assert!(history(&db).await.is_empty());
         assert_eq!(tickets(&db).await, before);
     }
@@ -1379,7 +1343,7 @@ mod tests {
                 ("api_token", "tok-new"),
                 ("hash", "HACK"),
             ],
-            SaveContext::Update,
+            SaveAction::Save,
             &db,
         )
         .await
@@ -1412,7 +1376,7 @@ mod tests {
             &editor,
             Some("1"),
             &[("nick", "Bo")],
-            SaveContext::Update,
+            SaveAction::Save,
             &db,
         )
         .await
@@ -1421,7 +1385,7 @@ mod tests {
             &editor,
             Some("2"),
             &[("name", "beta2")],
-            SaveContext::Update,
+            SaveAction::Save,
             &db,
         )
         .await
@@ -1443,9 +1407,9 @@ mod tests {
         let db = setup_vaults().await;
         let user = member(pk(10), DELETE);
         let mut form = gated(&user, Some("2"), &[]);
-        run(&mut form, SaveContext::Delete, &db).await.unwrap();
+        run(&mut form, SaveAction::Delete, &db).await.unwrap();
         let vaulter = member_on::<vault::Column>(pk(10), "vaults", DELETE);
-        run_on::<vault::Entity>(&vaulter, Some("1"), &[], SaveContext::Delete, &db)
+        run_on::<vault::Entity>(&vaulter, Some("1"), &[], SaveAction::Delete, &db)
             .await
             .unwrap();
         let rows = history(&db).await;
@@ -1462,7 +1426,7 @@ mod tests {
         let db = setup().await;
         let user = member(pk(10), DELETE_OWN);
         let mut form = gated(&user, Some("1"), &[]);
-        run(&mut form, SaveContext::Delete, &db).await.unwrap();
+        run(&mut form, SaveAction::Delete, &db).await.unwrap();
         let rows = history(&db).await;
         assert_eq!(rows.len(), 1);
         assert_trace(&rows[0], "delete", "tickets", "1", "1", &user);
@@ -1472,7 +1436,7 @@ mod tests {
     async fn a_label_that_is_a_secret_column_is_replaced_by_the_key() {
         let db = setup_vaults().await;
         let user = member_on::<locked::Column>(pk(10), "locked", DELETE);
-        run_on::<locked::Entity>(&user, Some("1"), &[], SaveContext::Delete, &db)
+        run_on::<locked::Entity>(&user, Some("1"), &[], SaveAction::Delete, &db)
             .await
             .unwrap();
         let rows = history(&db).await;
@@ -1488,18 +1452,18 @@ mod tests {
         for rights in [NOTHING, CREATE, UPDATE, UPDATE_OWN] {
             let user = member(pk(10), rights);
             let mut form = gated(&user, Some("1"), &[]);
-            assert_refused(run(&mut form, SaveContext::Delete, &db).await);
+            assert_refused(run(&mut form, SaveAction::Delete, &db).await);
         }
         let own = member(pk(10), DELETE_OWN);
         let mut form = gated(&own, Some("2"), &[]);
-        assert_refused(run(&mut form, SaveContext::Delete, &db).await);
+        assert_refused(run(&mut form, SaveAction::Delete, &db).await);
         let user = member(pk(10), DELETE);
         let mut form = gated(&user, Some("99"), &[]);
-        assert_refused(run(&mut form, SaveContext::Delete, &db).await);
+        assert_refused(run(&mut form, SaveAction::Delete, &db).await);
         let mut form = gated(&user, Some("1/2"), &[]);
-        assert_refused(run(&mut form, SaveContext::Delete, &db).await);
+        assert_refused(run(&mut form, SaveAction::Delete, &db).await);
         let mut form = form_for::<ticket::Entity>(None, Some("1"), &[]);
-        assert_refused(run(&mut form, SaveContext::Delete, &db).await);
+        assert_refused(run(&mut form, SaveAction::Delete, &db).await);
         assert!(history(&db).await.is_empty());
         assert_eq!(tickets(&db).await, before);
     }
@@ -1514,7 +1478,7 @@ mod tests {
             .unwrap();
         let creator = member(pk(10), CREATE);
         let mut form = gated(&creator, None, &[("title", "fresh")]);
-        let result = run(&mut form, SaveContext::Create, &db).await;
+        let result = run(&mut form, SaveAction::Save, &db).await;
         assert!(
             matches!(result, Err(ref e) if !matches!(e, DbErr::Custom(_))),
             "{result:?}"
@@ -1531,7 +1495,7 @@ mod tests {
         let before = tickets(&db).await;
         let editor = member(pk(10), UPDATE);
         let mut form = gated(&editor, Some("1"), &[("title", "renamed")]);
-        let result = run(&mut form, SaveContext::Update, &db).await;
+        let result = run(&mut form, SaveAction::Save, &db).await;
         assert!(
             matches!(result, Err(ref e) if !matches!(e, DbErr::Custom(_))),
             "{result:?}"
@@ -1552,15 +1516,13 @@ mod tests {
         let before = tickets(&db).await;
         let user = member(pk(10), DELETE);
         let mut form = gated(&user, Some("2"), &[]);
-        let result = run(&mut form, SaveContext::Delete, &db).await;
+        let result = run(&mut form, SaveAction::Delete, &db).await;
         assert!(
             matches!(result, Err(ref e) if !matches!(e, DbErr::Custom(_))),
             "{result:?}"
         );
         assert_eq!(tickets(&db).await, before, "the row is still there");
     }
-
-    // --- shown / key_of / label_of ---
 
     #[test]
     fn shown_gives_a_text_without_quotes_and_the_json_of_anything_else() {
