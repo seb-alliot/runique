@@ -1,4 +1,4 @@
-//! Tests — hooks `before_save` / `after_save` / `save_as` sur `RuniqueForm`.
+//! Tests — hooks `before_save` / `after_save` / `save_with` sur `RuniqueForm`.
 //!
 //! Couvre :
 //!   - ordre d'appel : before_save → on_save → after_save → commit
@@ -151,34 +151,34 @@ impl RuniqueForm for TrackerForm {
 // ═══════════════════════════════════════════════════════════════
 
 #[tokio::test]
-async fn test_save_as_ordre_appel() {
+async fn test_save_with_ordre_appel() {
     let db = runique::db::ADb::from_connection(db::fresh_db().await);
     let mut form = TrackerForm::new();
-    form.save_as(SaveContext::Create, &db).await.unwrap();
+    form.save_with(SaveContext::Create, &db).await.unwrap();
     assert_eq!(form.calls, ["before", "save", "after"]);
 }
 
 #[tokio::test]
-async fn test_save_as_contexte_transmis_create() {
+async fn test_save_with_contexte_transmis_create() {
     let db = runique::db::ADb::from_connection(db::fresh_db().await);
     let mut form = TrackerForm::new();
-    form.save_as(SaveContext::Create, &db).await.unwrap();
+    form.save_with(SaveContext::Create, &db).await.unwrap();
     assert_eq!(form.contexts, [SaveContext::Create, SaveContext::Create]);
 }
 
 #[tokio::test]
-async fn test_save_as_contexte_transmis_update() {
+async fn test_save_with_contexte_transmis_update() {
     let db = runique::db::ADb::from_connection(db::fresh_db().await);
     let mut form = TrackerForm::new();
-    form.save_as(SaveContext::Update, &db).await.unwrap();
+    form.save_with(SaveContext::Update, &db).await.unwrap();
     assert_eq!(form.contexts, [SaveContext::Update, SaveContext::Update]);
 }
 
 #[tokio::test]
-async fn test_save_as_contexte_transmis_delete() {
+async fn test_save_with_contexte_transmis_delete() {
     let db = runique::db::ADb::from_connection(db::fresh_db().await);
     let mut form = TrackerForm::new();
-    form.save_as(SaveContext::Delete, &db).await.unwrap();
+    form.save_with(SaveContext::Delete, &db).await.unwrap();
     assert_eq!(form.contexts, [SaveContext::Delete, SaveContext::Delete]);
 }
 
@@ -194,7 +194,7 @@ async fn test_save_as_contexte_transmis_delete() {
 async fn test_before_save_echoue_save_non_appele() {
     let db = runique::db::ADb::from_connection(db::fresh_db().await);
     let mut form = TrackerForm::new().with_fail_before();
-    let _ = form.save_as(SaveContext::Create, &db).await;
+    let _ = form.save_with(SaveContext::Create, &db).await;
     assert!(!form.calls.contains(&"save".to_string()));
     assert!(!form.calls.contains(&"after".to_string()));
 }
@@ -211,7 +211,7 @@ async fn test_before_save_echoue_save_non_appele() {
 async fn test_on_save_echoue_after_non_appele() {
     let db = runique::db::ADb::from_connection(db::fresh_db().await);
     let mut form = TrackerForm::new().with_fail_save();
-    let _ = form.save_as(SaveContext::Create, &db).await;
+    let _ = form.save_with(SaveContext::Create, &db).await;
     assert!(!form.calls.contains(&"after".to_string()));
 }
 
@@ -234,7 +234,7 @@ async fn test_after_save_echoue_rollback_db() {
         .with_fail_after();
 
     let result = form
-        .save_as(
+        .save_with(
             SaveContext::Create,
             &runique::db::ADb::from_connection(db.clone()),
         )
@@ -252,7 +252,7 @@ async fn test_commit_si_tous_hooks_ok() {
 
     let mut form = TrackerForm::new().with_sql("INSERT INTO hook_test_ok (val) VALUES ('test')");
 
-    form.save_as(
+    form.save_with(
         SaveContext::Create,
         &runique::db::ADb::from_connection(db.clone()),
     )
@@ -274,7 +274,7 @@ async fn test_on_save_echoue_rollback_db() {
         .with_fail_save();
 
     let result = form
-        .save_as(
+        .save_with(
             SaveContext::Create,
             &runique::db::ADb::from_connection(db.clone()),
         )
@@ -296,7 +296,7 @@ async fn test_before_save_echoue_rollback_db() {
         .with_fail_before();
 
     let result = form
-        .save_as(
+        .save_with(
             SaveContext::Create,
             &runique::db::ADb::from_connection(db.clone()),
         )

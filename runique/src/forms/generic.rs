@@ -194,6 +194,10 @@ impl FormField for GenericField {
     fn to_value(&self) -> Result<Option<sea_orm::Value>, String> {
         delegate_to_field!(self, to_value)
     }
+
+    fn keeps_when_empty(&self) -> bool {
+        delegate_to_field!(self, keeps_when_empty)
+    }
 }
 
 /// Whether this field can store `column` at all: checked before

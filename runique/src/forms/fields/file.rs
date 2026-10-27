@@ -442,6 +442,10 @@ impl FormField for FileField {
         )
     }
 
+    fn keeps_when_empty(&self) -> bool {
+        true
+    }
+
     fn cap_max_size(&mut self, bytes: u64) {
         if self.upload_config.max_size.is_none_or(|s| s > bytes) {
             self.upload_config.max_size = Some(bytes);

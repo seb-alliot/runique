@@ -22,12 +22,14 @@ use serde::{
 };
 use serde_json::{Value, json};
 
-/// How `save` may write: freely, or only through the gate (inside the admin).
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// How `save` may write: freely, or only through the gate, as `user`.
+#[derive(Clone, Debug, Default)]
 pub(crate) enum SaveComportement {
     #[default]
     Open,
-    Gated,
+    Gated {
+        user: crate::auth::current_user::CurrentUser,
+    },
 }
 
 /// Container of form fields with validation and HTML rendering
@@ -49,6 +51,9 @@ pub struct Forms {
     pub(crate) honeypot_field_name: Option<String>,
     /// Set by `req.form()` from the request's constraint.
     pub(crate) save_comportement: SaveComportement,
+    /// The row `save` update the gate, as its key's text; `None`
+    /// creates one. Set by `edit`.
+    pub(crate) target: Option<String>,
 }
 
 impl std::fmt::Debug for Forms {
@@ -257,6 +262,7 @@ impl Forms {
             force_invalid: false,
             honeypot_field_name: None,
             save_comportement: SaveComportement::Open,
+            target: None,
         }
     }
 
@@ -562,6 +568,11 @@ impl Forms {
         !self.force_invalid && self.validated && !self.has_errors()
     }
 
+    /// The form must be validated again: its target changer after it was.
+    pub(crate) fn invalidate(&mut self) {
+        self.validated = false;
+    }
+
     /// **Test-only** (`test-utils` feature). Marks the form as validated without
     /// calling `is_valid()`, for tests of save/hook behavior independent of field
     /// validation. It bypasses all validation, hence out of normal builds.
@@ -684,6 +695,34 @@ mod save_comportement_tests {
 
     #[test]
     fn a_form_starts_open() {
-        assert_eq!(Forms::new("csrf").save_comportement, SaveComportement::Open);
+        assert!(matches!(
+            Forms::new("csrf").save_comportement,
+            SaveComportement::Open
+        ));
+    }
+
+    #[test]
+    fn a_form_starts_without_a_target() {
+        assert_eq!(Forms::new("csrf").target, None);
+    }
+
+    #[tokio::test]
+    async fn invalidate_withdraws_the_validation_and_a_new_one_restores_it() {
+        let mut form = Forms::new("csrf");
+        assert!(!form.is_save_allowed());
+        assert!(form.is_valid().await.unwrap());
+        assert!(form.is_save_allowed());
+        form.invalidate();
+        assert!(!form.is_save_allowed());
+        assert!(form.is_valid().await.unwrap());
+        assert!(form.is_save_allowed());
+    }
+
+    #[test]
+    fn invalidate_leaves_the_target_alone() {
+        let mut form = Forms::new("csrf");
+        form.target = Some("5".into());
+        form.invalidate();
+        assert_eq!(form.target.as_deref(), Some("5"));
     }
 }

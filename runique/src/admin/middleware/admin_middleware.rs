@@ -38,10 +38,12 @@ pub(crate) async fn admin_access(
     }
     // `load_admin_user` (outer layer) put the account here only if the
     // database still lets it into the admin.
-    let authed = request
+    let admin_user = request
         .extensions()
         .get::<CurrentUser>()
-        .is_some_and(CurrentUser::can_access_admin);
+        .filter(|u| u.can_access_admin())
+        .cloned();
+    let authed = admin_user.is_some();
     // Trace the admin access gate (rank or staff group), so the
     // most fundamental auth decision — "may this user enter the admin at all" — is
     // visible even on routes that don't run a per-resource access check (dashboard,
@@ -68,14 +70,14 @@ pub(crate) async fn admin_access(
             "admin access gate"
         );
     }
-    if !authed {
+    let Some(user) = admin_user else {
         let login_url = format!("{}/login", admin.config.prefix.trim_end_matches('/'));
         return Redirect::to(&login_url).into_response();
-    }
+    };
     let mut request = request;
     request
         .extensions_mut()
-        .insert(crate::auth::gate::AdminConstraint);
+        .insert(crate::auth::gate::AdminConstraint(user));
     next.run(request).await
 }
 
@@ -186,12 +188,12 @@ pub(crate) async fn declared_route_access(
     };
     match user {
         Some(user) if user.can_access_admin() => {
+            request
+                .extensions_mut()
+                .insert(crate::auth::gate::AdminConstraint(user.clone()));
             RequestExtensions::new()
                 .with_current_user(user)
                 .inject_request(&mut request);
-            request
-                .extensions_mut()
-                .insert(crate::auth::gate::AdminConstraint);
             next.run(request).await
         }
         Some(user) => {
@@ -382,6 +384,66 @@ mod admin_access_constraint_tests {
         (status, location, String::from_utf8(body.to_vec()).unwrap())
     }
 
+    /// The account the constraint carries, next to the one of the extension.
+    async fn who(req: Request) -> String {
+        let carried = req.extensions().get::<AdminConstraint>().map(|c| &c.0);
+        let ext = req.extensions().get::<CurrentUser>();
+        match (carried, ext) {
+            (Some(c), Some(e)) if c.id == e.id && c.username == e.username => {
+                format!("{}:{}", c.id, c.username)
+            }
+            _ => "mismatch".to_string(),
+        }
+    }
+
+    fn named(name: &str, id: u8, rang: Rang) -> CurrentUser {
+        CurrentUser {
+            id: pk(id),
+            username: name.into(),
+            ..user(rang, false)
+        }
+    }
+
+    #[tokio::test]
+    async fn the_constraint_carries_the_admitted_account() {
+        let router = || Router::new().route("/who", get(who));
+        for (label, account) in [
+            ("admin", named("alice", 2, Rang::Admin)),
+            ("dirigeant", named("bob", 3, Rang::Dirigeant)),
+            ("superuser", named("carol", 4, Rang::Superuser)),
+            (
+                "staff group member",
+                CurrentUser {
+                    id: pk(5),
+                    username: "dave".into(),
+                    ..user(Rang::Lambda, true)
+                },
+            ),
+        ] {
+            let expected = format!("{}:{}", account.id, account.username);
+            let (status, _, body) = call(router(), Some(account), "/admin", "/who").await;
+            assert_eq!(status, StatusCode::OK, "{label}");
+            assert_eq!(body, expected, "{label}");
+        }
+    }
+
+    #[tokio::test]
+    async fn the_constraint_never_carries_a_refused_account() {
+        let router = Router::new().route("/who", get(who));
+        let (status, _, body) = call(
+            router,
+            Some(named("eve", 6, Rang::Lambda)),
+            "/admin",
+            "/who",
+        )
+        .await;
+        assert_eq!(status, StatusCode::SEE_OTHER);
+        assert!(
+            !body.contains("eve") && !body.contains("mismatch"),
+            "{body}"
+        );
+    }
+
     fn panel() -> Router {
         Router::new().route("/panel", get(seen))
     }
@@ -432,5 +494,144 @@ mod admin_access_constraint_tests {
             call(router, Some(user(Rang::Admin, false)), "/admin", "/nowhere").await;
         assert_eq!(status, StatusCode::OK);
         assert_eq!(body, "free");
+    }
+}
+
+#[cfg(all(test, feature = "sqlite"))]
+mod declared_route_constraint_tests {
+    use super::declared_route_access;
+    use crate::admin::router::admin_router::AdminState;
+    use crate::auth::{
+        current_user::CurrentUser,
+        gate::{AdminConstraint, test_support::fixtures::pk},
+        user,
+    };
+    use crate::config::RuniqueConfig;
+    use crate::engine::RuniqueEngine;
+    use crate::utils::{
+        aliases::AEngine, constante::session_key::session::SESSION_USER_ID_KEY, pk::Pk,
+    };
+    use axum::{
+        Extension, Router,
+        body::Body,
+        extract::Request,
+        http::StatusCode,
+        middleware::{self, Next},
+        routing::get,
+    };
+    use sea_orm::{ActiveModelTrait, ActiveValue::Set, ConnectionTrait, Schema};
+    use std::sync::Arc;
+    use tower::ServiceExt;
+    use tower_sessions::{MemoryStore, Session};
+
+    /// Two admins, to tell the right one, and a plain member.
+    async fn engine() -> AEngine {
+        let conn = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
+        conn.execute(
+            &Schema::new(sea_orm::DatabaseBackend::Sqlite).create_table_from_entity(user::Entity),
+        )
+        .await
+        .unwrap();
+        let now = chrono::NaiveDate::from_ymd_opt(2026, 1, 1)
+            .unwrap()
+            .and_hms_opt(0, 0, 0)
+            .unwrap();
+        for (id, name, active, admin) in [
+            (pk(1), "alice", true, true),
+            (pk(2), "bob", true, true),
+            (pk(3), "member", true, false),
+        ] {
+            user::ActiveModel {
+                id: Set(id),
+                username: Set(name.into()),
+                email: Set(format!("{name}@example.com")),
+                password: Set("x".into()),
+                is_active: Set(active),
+                is_dirigeant: Set(false),
+                is_admin: Set(admin),
+                is_superuser: Set(false),
+                activated_at: Set(Some(now)),
+                ..Default::default()
+            }
+            .insert(&conn)
+            .await
+            .unwrap();
+        }
+        Arc::new(RuniqueEngine::new(
+            RuniqueConfig::default(),
+            tera::Tera::default(),
+            conn,
+        ))
+    }
+
+    /// The constraint's account and the extension's, from the handler.
+    async fn who(req: Request) -> String {
+        let carried = req.extensions().get::<AdminConstraint>().map(|c| &c.0);
+        let ext = req.extensions().get::<CurrentUser>();
+        match (carried, ext) {
+            (Some(c), Some(e)) if c.id == e.id && c.username == e.username => {
+                format!("{}:{}", c.id, c.username)
+            }
+            (None, None) => "none".to_string(),
+            _ => "mismatch".to_string(),
+        }
+    }
+
+    async fn call(engine: AEngine, signed_in: Option<Pk>) -> (StatusCode, String) {
+        let session = Session::new(None, Arc::new(MemoryStore::default()), None);
+        if let Some(id) = signed_in {
+            session.insert(SESSION_USER_ID_KEY, id).await.unwrap();
+        }
+        let state = Extension(Arc::new(AdminState {
+            config: Arc::new(crate::admin::config::AdminConfig::new()),
+            login_guard: None,
+        }));
+        let app = Router::new()
+            .route("/page", get(who))
+            .layer(middleware::from_fn(declared_route_access))
+            .layer(state)
+            .layer(middleware::from_fn(move |mut req: Request, next: Next| {
+                let engine = engine.clone();
+                let session = session.clone();
+                async move {
+                    req.extensions_mut().insert(engine);
+                    req.extensions_mut().insert(session);
+                    next.run(req).await
+                }
+            }));
+        let resp = app
+            .oneshot(Request::builder().uri("/page").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+        let status = resp.status();
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        (status, String::from_utf8(body.to_vec()).unwrap())
+    }
+
+    #[tokio::test]
+    async fn the_constraint_carries_the_account_read_from_the_session() {
+        let engine = engine().await;
+        let (status, body) = call(engine.clone(), Some(pk(1))).await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(body, format!("{}:alice", pk(1)));
+        let (status, body) = call(engine, Some(pk(2))).await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(body, format!("{}:bob", pk(2)));
+    }
+
+    #[tokio::test]
+    async fn a_refused_account_gets_no_constraint_and_no_handler() {
+        let engine = engine().await;
+        for (label, signed_in) in [
+            ("member", Some(pk(3))),
+            ("unknown id", Some(pk(9))),
+            ("anonymous", None),
+        ] {
+            let (status, body) = call(engine.clone(), signed_in).await;
+            assert_eq!(status, StatusCode::SEE_OTHER, "{label}");
+            assert_eq!(body, "", "{label}");
+        }
     }
 }

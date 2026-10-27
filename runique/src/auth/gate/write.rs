@@ -7,11 +7,10 @@ use super::PkOf;
 use super::operation::{Create, Delete, Update};
 use super::proof::Authorized;
 use super::refusal::{Refusal, RefusalReason};
-use crate::utils::aliases::ADb;
 use sea_orm::sea_query::IntoValueTuple;
 use sea_orm::{
-    ActiveModelBehavior, ActiveModelTrait, ColumnTrait, Condition, EntityTrait, IntoActiveModel,
-    Iterable, PrimaryKeyToColumn, QueryFilter,
+    ActiveModelBehavior, ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, EntityTrait,
+    IntoActiveModel, Iterable, PrimaryKeyToColumn, QueryFilter,
 };
 
 fn write_failed(e: sea_orm::DbErr) -> Refusal {
@@ -36,47 +35,59 @@ fn one_row(rows_affected: u64) -> Result<(), Refusal> {
     }
 }
 
-pub async fn insert<E, A>(
+pub async fn insert<E, A, C>(
     proof: Authorized<Create, E>,
     model: A,
-    db: &ADb,
+    db: &C,
 ) -> Result<E::Model, Refusal>
 where
     E: EntityTrait,
     A: ActiveModelTrait<Entity = E> + ActiveModelBehavior + Send,
     E::Model: IntoActiveModel<A>,
+    C: ConnectionTrait,
 {
     drop(proof);
-    model.insert(&**db).await.map_err(write_failed)
+    model.insert(db).await.map_err(write_failed)
 }
 
-/// Writes only the columns `changes` sets (`Set`), on the proof's row.
-pub async fn update<E, A>(proof: Authorized<Update, E>, changes: A, db: &ADb) -> Result<(), Refusal>
+/// Writes only the columns `changes` sets (`Set`), on the proof's row. The
+/// model's `before_save` runs first: `update_many` skips it, and it stamps
+/// the `auto_now_update` columns.
+pub async fn update<E, A, C>(
+    proof: Authorized<Update, E>,
+    changes: A,
+    db: &C,
+) -> Result<(), Refusal>
 where
     E: EntityTrait,
-    A: ActiveModelTrait<Entity = E> + Send,
+    A: ActiveModelTrait<Entity = E> + ActiveModelBehavior + Send,
+    C: ConnectionTrait,
 {
     let (Some(id), conditions) = proof.into_parts() else {
         return Err(Refusal::new(RefusalReason::StaleRow));
     };
+    let changes = changes.before_save(db, false).await.map_err(write_failed)?;
     let result = E::update_many()
         .set(changes)
         .filter(pk_condition::<E>(id))
         .filter(conditions)
-        .exec(&**db)
+        .exec(db)
         .await
         .map_err(write_failed)?;
     one_row(result.rows_affected)
 }
 
-pub async fn delete<E: EntityTrait>(proof: Authorized<Delete, E>, db: &ADb) -> Result<(), Refusal> {
+pub async fn delete<E: EntityTrait, C: ConnectionTrait>(
+    proof: Authorized<Delete, E>,
+    db: &C,
+) -> Result<(), Refusal> {
     let (Some(id), conditions) = proof.into_parts() else {
         return Err(Refusal::new(RefusalReason::StaleRow));
     };
     let result = E::delete_many()
         .filter(pk_condition::<E>(id))
         .filter(conditions)
-        .exec(&**db)
+        .exec(db)
         .await
         .map_err(write_failed)?;
     one_row(result.rows_affected)
@@ -89,6 +100,7 @@ mod tests {
     use crate::auth::gate::check::{GateCtx, authorize_create, authorize_row};
     use crate::auth::gate::test_support::fixtures::{db, note, pk, staff};
     use crate::auth::user;
+    use crate::utils::aliases::ADb;
     use sea_orm::Set;
 
     async fn owner_of(db: &ADb, id: i32) -> Option<Option<crate::utils::pk::Pk>> {

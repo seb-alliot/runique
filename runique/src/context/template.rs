@@ -118,8 +118,9 @@ pub struct Request {
     pub prisme: Prisme,
     /// Honeypot field name injected by anti_bot middleware (None if middleware not active).
     pub honeypot_field_name: Option<String>,
-    /// Inside the admin's constraint: forms built here save through the gate.
-    pub(crate) admin_constraint: bool,
+    /// Inside the admin's constraint, the account its middleware checked:
+    /// forms built here save through the gate, as this account.
+    pub(crate) admin_constraint: Option<CurrentUser>,
 }
 
 impl<S> FromRequest<S> for Request
@@ -149,7 +150,9 @@ where
         let nonce = ex.get::<CspNonce>().map(|n| n.as_str()).unwrap_or_default();
         let user = ex.get::<CurrentUser>().cloned();
         let honeypot_field_name = ex.get::<HoneypotFieldName>().map(|h| h.0.clone());
-        let admin_constraint = ex.get::<crate::auth::gate::AdminConstraint>().is_some();
+        let admin_constraint = ex
+            .get::<crate::auth::gate::AdminConstraint>()
+            .map(|c| c.0.clone());
 
         let notices = Message {
             session: session.clone(),
@@ -257,7 +260,7 @@ impl Request {
                 csrf_valid: false,
             },
             honeypot_field_name: None,
-            admin_constraint: false,
+            admin_constraint: None,
         }
     }
 
@@ -406,8 +409,9 @@ impl Request {
         form.get_form_mut()
             .set_url_params(&self.path_params, &self.query_params);
 
-        if self.admin_constraint {
-            form.get_form_mut().save_comportement = crate::forms::form::SaveComportement::Gated;
+        if let Some(user) = &self.admin_constraint {
+            form.get_form_mut().save_comportement =
+                crate::forms::form::SaveComportement::Gated { user: user.clone() };
         }
 
         if let Some(ref hp_name) = self.honeypot_field_name {
@@ -444,7 +448,9 @@ impl Request {
 #[cfg(all(test, feature = "sqlite"))]
 mod admin_constraint_tests {
     use super::Request;
-    use crate::auth::gate::AdminConstraint;
+    use crate::auth::current_user::CurrentUser;
+    use crate::auth::gate::{AdminConstraint, test_support::fixtures::pk};
+    use crate::auth::permissions::rang::Rang;
     use crate::config::RuniqueConfig;
     use crate::engine::RuniqueEngine;
     use crate::forms::{
@@ -488,9 +494,27 @@ mod admin_constraint_tests {
         CsrfToken("ab".repeat(32))
     }
 
+    fn account(n: u8) -> CurrentUser {
+        CurrentUser {
+            id: pk(n),
+            username: format!("account{n}"),
+            rang: Rang::Admin,
+            groupes: Vec::new(),
+            droits: Vec::new(),
+        }
+    }
+
+    /// The account a form is gated as, `None` when it is open.
+    fn gated_as(policy: &SaveComportement) -> Option<crate::utils::pk::Pk> {
+        match policy {
+            SaveComportement::Gated { user } => Some(user.id),
+            SaveComportement::Open => None,
+        }
+    }
+
     /// The extractor's input: every extension Runique's own layers put, and the
-    /// constraint when asked.
-    async fn extracted(method: Method, constrained: bool) -> Request {
+    /// constraint carrying `constrained` when given.
+    async fn extracted(method: Method, constrained: Option<CurrentUser>) -> Request {
         let engine = engine().await;
         let mut http = HttpRequest::builder()
             .method(method)
@@ -502,8 +526,8 @@ mod admin_constraint_tests {
         ext.insert(Arc::new(engine.config.clone()));
         ext.insert(csrf());
         ext.insert(session());
-        if constrained {
-            ext.insert(AdminConstraint);
+        if let Some(user) = constrained {
+            ext.insert(AdminConstraint(user));
         }
         Request::from_request(http, &())
             .await
@@ -513,40 +537,67 @@ mod admin_constraint_tests {
     #[tokio::test]
     async fn a_request_built_by_hand_is_not_constrained() {
         let req = Request::new(engine().await, session(), csrf(), Method::GET);
-        assert!(!req.admin_constraint);
+        assert!(req.admin_constraint.is_none());
     }
 
     #[tokio::test]
-    async fn the_extension_makes_the_extracted_request_constrained() {
-        assert!(extracted(Method::GET, true).await.admin_constraint);
+    async fn the_extension_makes_the_extracted_request_constrained_as_its_account() {
+        let req = extracted(Method::GET, Some(account(7))).await;
+        assert_eq!(req.admin_constraint.map(|u| u.id), Some(pk(7)));
     }
 
     #[tokio::test]
     async fn without_the_extension_the_extracted_request_is_not_constrained() {
-        assert!(!extracted(Method::GET, false).await.admin_constraint);
+        assert!(
+            extracted(Method::GET, None)
+                .await
+                .admin_constraint
+                .is_none()
+        );
     }
 
     #[tokio::test]
-    async fn a_constrained_request_builds_gated_forms() {
+    async fn a_constrained_request_builds_forms_gated_as_its_account() {
         let mut req = Request::new(engine().await, session(), csrf(), Method::GET);
-        req.admin_constraint = true;
+        req.admin_constraint = Some(account(7));
         let form = req.form::<ProbeForm>();
-        assert_eq!(form.get_form().save_comportement, SaveComportement::Gated);
+        assert_eq!(gated_as(&form.get_form().save_comportement), Some(pk(7)));
     }
 
     #[tokio::test]
     async fn an_unconstrained_request_builds_open_forms() {
         let req = Request::new(engine().await, session(), csrf(), Method::GET);
         let form = req.form::<ProbeForm>();
-        assert_eq!(form.get_form().save_comportement, SaveComportement::Open);
+        assert_eq!(gated_as(&form.get_form().save_comportement), None);
+    }
+
+    /// The handler can change `req.user`; the form is still gated as the
+    /// account the middleware checked.
+    #[tokio::test]
+    async fn changing_req_user_does_not_change_the_gated_account() {
+        let mut req = extracted(Method::GET, Some(account(7))).await;
+        req.user = Some(account(9));
+        let form = req.form::<ProbeForm>();
+        assert_eq!(gated_as(&form.get_form().save_comportement), Some(pk(7)));
+    }
+
+    /// A signed-in user outside the constraint gives an open form.
+    #[tokio::test]
+    async fn a_user_without_the_constraint_builds_open_forms() {
+        let mut req = extracted(Method::GET, None).await;
+        req.user = Some(account(9));
+        let form = req.form::<ProbeForm>();
+        assert_eq!(gated_as(&form.get_form().save_comportement), None);
     }
 
     /// Both policies through the real extraction path, extension to form.
     #[tokio::test]
     async fn the_policy_follows_the_extension_end_to_end() {
-        let gated = extracted(Method::GET, true).await.form::<ProbeForm>();
-        assert_eq!(gated.get_form().save_comportement, SaveComportement::Gated);
-        let open = extracted(Method::GET, false).await.form::<ProbeForm>();
-        assert_eq!(open.get_form().save_comportement, SaveComportement::Open);
+        let gated = extracted(Method::GET, Some(account(7)))
+            .await
+            .form::<ProbeForm>();
+        assert_eq!(gated_as(&gated.get_form().save_comportement), Some(pk(7)));
+        let open = extracted(Method::GET, None).await.form::<ProbeForm>();
+        assert_eq!(gated_as(&open.get_form().save_comportement), None);
     }
 }
