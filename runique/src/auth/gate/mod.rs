@@ -27,5 +27,11 @@ pub use proof::{Authorized, Guarded, ReadableIds, WritesLinks};
 pub use refusal::Refusal;
 pub use rights::{Crud, CrudAction, Scope};
 
+/// Request extension set once a request is inside the admin's constraint: its
+/// panel and the routes declared `admin`. Only Runique can build one, so no
+/// middleware of the app can put a form under or out of the gate.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct AdminConstraint;
+
 /// Value type of an entity's primary key.
 pub type PkOf<E> = <<E as sea_orm::EntityTrait>::PrimaryKey as sea_orm::PrimaryKeyTrait>::ValueType;

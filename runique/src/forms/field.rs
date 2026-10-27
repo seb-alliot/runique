@@ -358,6 +358,13 @@ impl<T: RuniqueForm> FormSave for T {
                     .to_string(),
             ));
         }
+
+        if self.get_form().save_comportement == crate::forms::form::SaveComportement::Gated {
+            return Err(DbErr::Custom(
+                "save() inside the admin goes through the gate".to_string(),
+            ));
+        }
+
         let txn = db.begin().await?;
 
         match self.on_save(&txn).await {
@@ -383,6 +390,13 @@ impl<T: RuniqueForm> FormSave for T {
                     .to_string(),
             ));
         }
+
+        if self.get_form().save_comportement == crate::forms::form::SaveComportement::Gated {
+            return Err(DbErr::Custom(
+                "save_as() inside the admin goes through the gate".to_string(),
+            ));
+        }
+
         let txn = db.begin().await?;
 
         if let Err(e) = self.before_save(ctx, &txn).await {
@@ -416,4 +430,190 @@ pub(crate) fn build_form<T: RuniqueForm>(tera: ATera, csrf_token: &str) -> T {
 #[cfg(feature = "test-utils")]
 pub fn build_form_for_test<T: RuniqueForm>(tera: ATera, csrf_token: &str) -> T {
     build_form(tera, csrf_token)
+}
+
+#[cfg(all(test, feature = "sqlite"))]
+mod save_policy_tests {
+    use super::{FormAccess, FormSave, RuniqueForm, SaveContext};
+    use crate::forms::form::{Forms, SaveComportement};
+    use crate::utils::aliases::ADb;
+    use async_trait::async_trait;
+    use sea_orm::{
+        ConnectionTrait, Database, DatabaseConnection, DatabaseTransaction, DbErr,
+        sea_query::{Alias, Asterisk, Expr, Func, Query},
+    };
+
+    /// Every hook leaves a row in `probe`, so the table shows which ones ran.
+    struct ProbeForm {
+        form: Forms,
+        calls: Vec<&'static str>,
+    }
+
+    impl FormAccess for ProbeForm {
+        fn register_fields(_form: &mut Forms) {}
+        fn from_form(form: Forms) -> Self {
+            Self {
+                form,
+                calls: Vec::new(),
+            }
+        }
+        fn get_form(&self) -> &Forms {
+            &self.form
+        }
+        fn get_form_mut(&mut self) -> &mut Forms {
+            &mut self.form
+        }
+    }
+
+    async fn step(txn: &DatabaseTransaction, name: &str) -> Result<(), DbErr> {
+        txn.execute_unprepared(&format!("INSERT INTO probe (step) VALUES ('{name}')"))
+            .await
+            .map(|_| ())
+    }
+
+    #[async_trait]
+    impl RuniqueForm for ProbeForm {
+        async fn before_save(
+            &mut self,
+            _ctx: SaveContext,
+            txn: &DatabaseTransaction,
+        ) -> Result<(), DbErr> {
+            self.calls.push("before");
+            step(txn, "before").await
+        }
+        async fn on_save(&mut self, txn: &DatabaseTransaction) -> Result<(), DbErr> {
+            self.calls.push("save");
+            step(txn, "save").await
+        }
+        async fn after_save(
+            &mut self,
+            _ctx: SaveContext,
+            txn: &DatabaseTransaction,
+        ) -> Result<(), DbErr> {
+            self.calls.push("after");
+            step(txn, "after").await
+        }
+    }
+
+    async fn probe_db() -> (DatabaseConnection, ADb) {
+        let conn = Database::connect("sqlite::memory:").await.unwrap();
+        conn.execute_unprepared("CREATE TABLE probe (step TEXT)")
+            .await
+            .unwrap();
+        let db = ADb::from_connection(conn.clone());
+        (conn, db)
+    }
+
+    async fn rows(conn: &DatabaseConnection) -> i64 {
+        let stmt = Query::select()
+            .expr_as(Func::count(Expr::col(Asterisk)), Alias::new("n"))
+            .from(Alias::new("probe"))
+            .to_owned();
+        conn.query_one(&stmt)
+            .await
+            .unwrap()
+            .unwrap()
+            .try_get::<i64>("", "n")
+            .unwrap()
+    }
+
+    /// A validated form: `is_valid` on its (empty) fields, as a handler does.
+    async fn validated(policy: SaveComportement) -> ProbeForm {
+        let mut form = ProbeForm::from_form(Forms::new("csrf"));
+        form.get_form_mut().save_comportement = policy;
+        assert!(form.get_form_mut().is_valid().await.unwrap());
+        assert!(form.get_form().is_save_allowed());
+        form
+    }
+
+    fn unvalidated(policy: SaveComportement) -> ProbeForm {
+        let mut form = ProbeForm::from_form(Forms::new("csrf"));
+        form.get_form_mut().save_comportement = policy;
+        form
+    }
+
+    fn custom(result: Result<(), DbErr>) -> String {
+        match result {
+            Err(DbErr::Custom(message)) => message,
+            other => panic!("expected DbErr::Custom, got {other:?}"),
+        }
+    }
+
+    const GATE: &str = "goes through the gate";
+    const NOT_VALIDATED: &str = "requires a successful is_valid()";
+
+    #[tokio::test]
+    async fn save_under_open_writes() {
+        let (conn, db) = probe_db().await;
+        let mut form = validated(SaveComportement::Open).await;
+        form.save(&db).await.unwrap();
+        assert_eq!(form.calls, ["save"]);
+        assert_eq!(rows(&conn).await, 1);
+    }
+
+    #[tokio::test]
+    async fn save_as_under_open_writes_with_every_hook() {
+        let (conn, db) = probe_db().await;
+        let mut form = validated(SaveComportement::Open).await;
+        form.save_as(SaveContext::Create, &db).await.unwrap();
+        assert_eq!(form.calls, ["before", "save", "after"]);
+        assert_eq!(rows(&conn).await, 3);
+    }
+
+    #[tokio::test]
+    async fn save_under_gated_is_refused_before_anything_runs() {
+        let (conn, db) = probe_db().await;
+        let mut form = validated(SaveComportement::Gated).await;
+        let message = custom(form.save(&db).await);
+        assert!(message.contains(GATE), "{message}");
+        assert!(form.calls.is_empty(), "no hook may run: {:?}", form.calls);
+        assert_eq!(rows(&conn).await, 0);
+    }
+
+    #[tokio::test]
+    async fn save_as_under_gated_is_refused_before_anything_runs() {
+        let (conn, db) = probe_db().await;
+        for ctx in [
+            SaveContext::Create,
+            SaveContext::Update,
+            SaveContext::Delete,
+        ] {
+            let mut form = validated(SaveComportement::Gated).await;
+            let message = custom(form.save_as(ctx, &db).await);
+            assert!(message.contains(GATE), "{message}");
+            assert!(form.calls.is_empty(), "no hook may run: {:?}", form.calls);
+        }
+        assert_eq!(rows(&conn).await, 0);
+    }
+
+    /// The validation check runs first: a form that isn't validated is told so,
+    /// gated or not, so the two refusals can't be mistaken for each other.
+    #[tokio::test]
+    async fn an_unvalidated_form_gets_the_validation_error_under_both_policies() {
+        let (conn, db) = probe_db().await;
+        for policy in [SaveComportement::Open, SaveComportement::Gated] {
+            let mut form = unvalidated(policy);
+            let message = custom(form.save(&db).await);
+            assert!(message.contains(NOT_VALIDATED), "{policy:?}: {message}");
+            assert!(!message.contains(GATE), "{policy:?}: {message}");
+
+            let mut form = unvalidated(policy);
+            let message = custom(form.save_as(SaveContext::Create, &db).await);
+            assert!(message.contains(NOT_VALIDATED), "{policy:?}: {message}");
+            assert!(!message.contains(GATE), "{policy:?}: {message}");
+            assert!(form.calls.is_empty());
+        }
+        assert_eq!(rows(&conn).await, 0);
+    }
+
+    /// Gated is per form: another form of the same request set stays open.
+    #[tokio::test]
+    async fn the_policy_belongs_to_the_form_it_is_set_on() {
+        let (conn, db) = probe_db().await;
+        let mut gated = validated(SaveComportement::Gated).await;
+        let mut open = validated(SaveComportement::Open).await;
+        assert!(gated.save(&db).await.is_err());
+        open.save(&db).await.unwrap();
+        assert_eq!(rows(&conn).await, 1);
+    }
 }

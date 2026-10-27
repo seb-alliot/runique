@@ -22,6 +22,14 @@ use serde::{
 };
 use serde_json::{Value, json};
 
+/// How `save` may write: freely, or only through the gate (inside the admin).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum SaveComportement {
+    #[default]
+    Open,
+    Gated,
+}
+
 /// Container of form fields with validation and HTML rendering
 ///
 #[doc = include_str!("../../doc-tests/form/form_manual.md")]
@@ -39,6 +47,8 @@ pub struct Forms {
     pub(crate) force_invalid: bool,
     /// Honeypot field name injected by anti-bot middleware (for rendering).
     pub(crate) honeypot_field_name: Option<String>,
+    /// Set by `req.form()` from the request's constraint.
+    pub(crate) save_comportement: SaveComportement,
 }
 
 impl std::fmt::Debug for Forms {
@@ -246,6 +256,7 @@ impl Forms {
             query_params: StrMap::new(),
             force_invalid: false,
             honeypot_field_name: None,
+            save_comportement: SaveComportement::Open,
         }
     }
 
@@ -664,5 +675,15 @@ impl Forms {
             return Some(parts[parts.len() - 2].to_string());
         }
         None
+    }
+}
+
+#[cfg(test)]
+mod save_comportement_tests {
+    use super::{Forms, SaveComportement};
+
+    #[test]
+    fn a_form_starts_open() {
+        assert_eq!(Forms::new("csrf").save_comportement, SaveComportement::Open);
     }
 }

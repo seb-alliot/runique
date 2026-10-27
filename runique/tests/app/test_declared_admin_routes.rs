@@ -15,7 +15,13 @@ use runique::auth::{BuiltinUserEntity, login};
 use runique::config::RuniqueConfig;
 use runique::context::template::Request;
 use runique::flash::Message;
+use runique::forms::field::{FormAccess, FormSave, RuniqueForm};
+use runique::forms::form::Forms;
 use runique::macros::Routes;
+use runique::sea_orm::{
+    ConnectionTrait,
+    sea_query::{Alias, Asterisk, Expr, Func, Query},
+};
 use serial_test::serial;
 
 async fn sign_in(Path(n): Path<u32>, req: Request) -> &'static str {
@@ -106,6 +112,7 @@ async fn seed(dbc: &runique::sea_orm::DatabaseConnection) {
         ),
     )
     .await;
+    db::exec(dbc, "CREATE TABLE constraint_probe (step TEXT)").await;
 }
 
 fn routes() -> Routes {
@@ -408,4 +415,134 @@ async fn every_form_of_the_macro_is_served() {
         "standalone"
     );
     assert_eq!(text(&admin, format!("{base}/detail/1")).await, "detail");
+}
+
+// ── Save policy inside the admin's constraint ─────────────────────────────
+
+/// A form with no field whose `on_save` leaves a row: the table tells whether
+/// the write happened.
+struct ProbeForm {
+    form: Forms,
+}
+
+impl FormAccess for ProbeForm {
+    fn register_fields(_form: &mut Forms) {}
+    runique::impl_form_access!();
+}
+
+#[async_trait::async_trait]
+impl RuniqueForm for ProbeForm {
+    async fn on_save(
+        &mut self,
+        txn: &runique::sea_orm::DatabaseTransaction,
+    ) -> Result<(), runique::sea_orm::DbErr> {
+        txn.execute_unprepared("INSERT INTO constraint_probe (step) VALUES ('save')")
+            .await
+            .map(|_| ())
+    }
+}
+
+/// Validates the form `req.form()` built, then tries to save it. The body says
+/// whether the save went through. A GET is enough: `is_valid` on `Forms` does
+/// not care about the verb, and `req.form()` sets the policy before any of it.
+async fn attempt_save(req: Request) -> String {
+    let mut form = req.form::<ProbeForm>();
+    form.get_form_mut().is_valid().await.expect("validates");
+    match form.save(&req.engine.db).await {
+        Ok(()) => "saved".to_string(),
+        Err(e) => format!("refused: {e}"),
+    }
+}
+
+async fn probe_rows(req: Request) -> String {
+    let stmt = Query::select()
+        .expr_as(Func::count(Expr::col(Asterisk)), Alias::new("n"))
+        .from(Alias::new("constraint_probe"))
+        .to_owned();
+    let row = req.engine.db.query_one(&stmt).await.unwrap().unwrap();
+    row.try_get::<i64>("", "n").unwrap().to_string()
+}
+
+fn probe_routes() -> Routes {
+    runique::urlpatterns! {
+        "/sign-in/{n}" => get(sign_in), name = "declared_test_probe_sign_in",
+        "/whoami" => get(whoami), name = "declared_test_probe_whoami",
+        "/probe/open" => get(attempt_save), name = "declared_test_probe_open",
+        "/probe/rows" => get(probe_rows), name = "declared_test_probe_rows",
+        admin "/probe/gated" => get(attempt_save),
+            name = "declared_test_probe_gated",
+            for_model = runique::auth::user::Entity,
+    }
+}
+
+const GATE_REFUSAL: &str = "goes through the gate";
+
+/// The route is declared `admin`: its forms are under the gate, `save` refuses
+/// and nothing is written.
+#[tokio::test]
+#[serial]
+async fn on_an_admin_route_save_is_refused_and_nothing_is_written() {
+    let base = spawn_with("", probe_routes()).await;
+    for n in [ADMIN, SUPERUSER, STAFF_MEMBER] {
+        let client = signed_in(&base, n).await;
+        let body = text(&client, format!("{base}/probe/gated")).await;
+        assert!(body.starts_with("refused:"), "account {n}: {body}");
+        assert!(body.contains(GATE_REFUSAL), "account {n}: {body}");
+        assert_eq!(text(&client, format!("{base}/probe/rows")).await, "0");
+    }
+}
+
+/// Same handler, same form, same account on a route that isn't declared
+/// `admin`: the constraint doesn't follow the account, `save` writes.
+#[tokio::test]
+#[serial]
+async fn on_an_ordinary_route_the_same_save_writes() {
+    let base = spawn_with("", probe_routes()).await;
+    let client = signed_in(&base, ADMIN).await;
+    assert_eq!(text(&client, format!("{base}/probe/open")).await, "saved");
+    assert_eq!(text(&client, format!("{base}/probe/rows")).await, "1");
+
+    let anonymous = self::client();
+    assert_eq!(
+        text(&anonymous, format!("{base}/probe/open")).await,
+        "saved"
+    );
+    assert_eq!(text(&anonymous, format!("{base}/probe/rows")).await, "2");
+}
+
+/// A refused account never reaches the handler: no constraint, no save, no row.
+#[tokio::test]
+#[serial]
+async fn a_refused_account_neither_runs_the_handler_nor_writes() {
+    let base = spawn_with("", probe_routes()).await;
+    let mut clients = vec![("anonymous", client())];
+    for (n, why) in [
+        (MEMBER, "no group"),
+        (ORPHAN_STAFF_MEMBER, "group whose responsable is no admin"),
+        (IDLE_STAFF_MEMBER, "disabled group"),
+    ] {
+        clients.push((why, signed_in(&base, n).await));
+    }
+    for (who, client) in &clients {
+        let resp = fetch(client, format!("{base}/probe/gated"), None).await;
+        assert_eq!(resp.status(), reqwest::StatusCode::SEE_OTHER, "{who}");
+        assert_eq!(location(&resp), Some("/"), "{who}");
+        let body = resp.text().await.unwrap();
+        assert!(
+            !body.contains("saved") && !body.contains("refused"),
+            "{who}: the handler ran: {body}"
+        );
+    }
+    assert_eq!(text(&client(), format!("{base}/probe/rows")).await, "0");
+}
+
+#[tokio::test]
+#[serial]
+async fn the_save_policy_does_not_depend_on_the_mount_prefix() {
+    let base = spawn_with("mnt", probe_routes()).await;
+    let client = signed_in(&base, ADMIN).await;
+    let body = text(&client, format!("{base}/probe/gated")).await;
+    assert!(body.contains(GATE_REFUSAL), "{body}");
+    assert_eq!(text(&client, format!("{base}/probe/open")).await, "saved");
+    assert_eq!(text(&client, format!("{base}/probe/rows")).await, "1");
 }
