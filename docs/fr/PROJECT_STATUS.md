@@ -39,7 +39,7 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 - Protection CSRF intégrée (token masqué anti-BREACH, comparaison temps constant) ; échec CSRF pose désormais un message explicite (`csrf.invalid_or_missing`) au lieu d'échouer silencieusement, et `js/csrf.js` rafraîchit le token juste avant chaque soumission de formulaire
 - Tracing structuré par domaine (arbre `RuniqueLog`) sur tout le pipeline (field, set_value, validate, finalize, render)
 - Tous les types de champs : Text, Numeric, Boolean, Choice, Radio, Checkbox, Date, Time, DateTime, Duration, File, Color, Slug, UUID, JSON, IP, Hidden, Honeypot
-- Garde `save()` / `save_with()` : retourne `Err` si `is_valid()` n'a pas été appelé ou a retourné `false` — empêche toute persistance sans validation préalable
+- `save()` / `delete()` n'existent que sur le formulaire validé (`ValidationForm`) — aucune persistance sans validation préalable
 
 ### Routing
 - `urlpatterns!{}` avec segments typés, GET/POST séparés

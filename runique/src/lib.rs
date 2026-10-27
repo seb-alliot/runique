@@ -119,8 +119,8 @@ pub mod prelude {
     pub use crate::engine::RuniqueEngine;
     pub use crate::flash::{FlashMessage, Message, MessageLevel};
     pub use crate::forms::{
-        EditForm, FormEntity, Forms, Prisme,
-        field::{FormAccess, FormField, FormSave, RuniqueForm, SaveContext},
+        FormEntity, Forms, Prisme,
+        field::{FormAccess, FormField, RuniqueForm},
         fields::{
             CheckboxField, DateField, DurationField, RadioField, TimeField,
             boolean::BooleanField,

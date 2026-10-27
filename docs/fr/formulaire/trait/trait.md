@@ -69,10 +69,7 @@ is_valid()                   → pipeline de validation
     ↓  clean()               [optionnel — validation croisée]
     ↓  finalize()            (hash Argon2, transformations finales)
         ↓
-save() / save_with()           → persistance (avec ou sans hooks)
-  ↓  before_save()           [optionnel — hook avant sauvegarde]
-  ↓  on_save()               → logique principale (INSERT, UPDATE…)
-  ↓  after_save()            [optionnel — hook après sauvegarde]
+form.save(&db) / delete(&db)  → écriture, sur le formulaire validé
         ↓
 database_error()             → [optionnel] gestion d'erreur DB
         ↓
@@ -93,15 +90,7 @@ clear()                      → [optionnel] vide le formulaire après traitemen
 
 **`is_valid()`** — Orchestre le pipeline complet. Peut être appelé sur GET comme sur POST : retourne `false` sans poser d'erreurs si aucune donnée n'a été soumise (premier affichage), valide normalement sinon.
 
-**`on_save(&txn)`** *(optionnel)* — Logique principale de sauvegarde, exécutée dans la transaction. C'est ici qu'on écrit en DB (INSERT, UPDATE, DELETE). No-op par défaut.
-
-**`before_save(ctx, &txn)`** *(optionnel)* — Hook exécuté dans la transaction avant `on_save`. No-op par défaut.
-
-**`after_save(ctx, &txn)`** *(optionnel)* — Hook exécuté dans la transaction après `on_save`. No-op par défaut.
-
-**`save(&db)`** — Ouvre une transaction, appelle `on_save`, commit. Rollback automatique sur erreur.
-
-**`save_with(ctx, &db)`** — Comme `save`, mais orchestre les trois hooks : `before_save` → `on_save` → `after_save`. Rollback sur n'importe quelle erreur.
+**`save(&db)` / `delete(&db)`** — Sur le formulaire validé rendu par `try_form`, pour un formulaire relié à une entité : écrit la ligne, rend `Ok(form)` ou `Err(form)`. Voir « Écriture » plus bas.
 
 **`database_error(&err)`** — Analyse une erreur DB et la positionne sur le bon champ.
 
@@ -293,69 +282,51 @@ impl RuniqueForm for RegisterForm {
 
 ---
 
-## Hooks de sauvegarde — `save_with`, `on_save`, `before_save`, `after_save`
+## Écriture — `save` et `delete`
 
-Pour persister les données d'un formulaire en base, deux méthodes sont disponibles :
-
-| Méthode | Description |
-| --- | --- |
-| `save(&db)` | Transaction simple : `on_save` → commit |
-| `save_with(ctx, &db)` | Transaction avec hooks : `before_save` → `on_save` → `after_save` → commit |
-
-Les trois hooks s'exécutent dans la même transaction. Si l'un d'eux retourne `Err`, la transaction est rollback et l'erreur est propagée — rien n'est écrit en DB.
-
-### `SaveContext` — distinguer Create, Update, Delete
+Un formulaire relié à une entité (`model!{}`, `extend!{}`, `#[form(schema = …)]`) s'écrit depuis le formulaire validé que rend `ValidationForm::try_form`. Runique parcourt ses champs et écrit la ligne : aucune méthode d'écriture à implémenter. Un formulaire sans entité n'a ni `save` ni `delete` : son handler fait le travail après `try_form`.
 
 ```rust
-use runique::prelude::SaveContext;
-
-// Dans le handler :
-form.save_with(SaveContext::Create, &db).await?;
-form.save_with(SaveContext::Update, &db).await?;
-form.save_with(SaveContext::Delete, &db).await?;
-```
-
-### Implémentation complète
-
-```rust
-use async_trait::async_trait;
-use runique::prelude::*;
-use sea_orm::{DatabaseTransaction, DbErr, Set};
-
-#[async_trait]
-impl RuniqueForm for ArticleForm {
-    // ...
-
-    async fn before_save(&mut self, ctx: SaveContext, txn: &DatabaseTransaction) -> Result<(), DbErr> {
-        if ctx == SaveContext::Create {
-            // ex: vérifier une limite de quota, logger l'intention…
+match ValidationForm::try_form(form, &request, "article").await {
+    Ok(form) => match form.save(&request.engine.db).await {
+        Ok(_) => {
+            success!(request.notices => "Article enregistré");
+            Ok(Redirect::to("/articles").into_response())
         }
-        Ok(())
-    }
-
-    async fn on_save(&mut self, txn: &DatabaseTransaction) -> Result<(), DbErr> {
-        let titre = self.cleaned::<String>("titre").unwrap_or_default();
-        article::ActiveModel {
-            titre: Set(titre),
-            ..Default::default()
+        Err(form) => {
+            context_update!(request => { "article_form" => &form });
+            request.render(template)
         }
-        .insert(txn)
-        .await?;
-        Ok(())
-    }
-
-    async fn after_save(&mut self, ctx: SaveContext, _txn: &DatabaseTransaction) -> Result<(), DbErr> {
-        if ctx == SaveContext::Create {
-            // ex: envoyer une notification, invalider un cache…
-        }
-        Ok(())
+    },
+    Err(form) => {
+        context_update!(request => { "article_form" => &form });
+        request.render(template)
     }
 }
 ```
 
-> **Note :** `before_save` et `after_save` reçoivent aussi la `&DatabaseTransaction` — ils peuvent donc eux-mêmes faire des lectures ou écritures DB dans la même transaction.
->
-> **`save()` sans hooks** : si tu n'as pas besoin de `before_save`/`after_save`, utilise simplement `save()` qui appelle `on_save` directement.
+`save` et `delete` rendent le formulaire dans les deux cas : `Ok(form)` une fois écrit (rediriger, ou `clear()` puis ré-afficher), `Err(form)` avec la raison posée sur ses champs ou ses erreurs.
+
+### La ligne vient de l'URL
+
+La clé est cherchée dans les paramètres de la route, par le nom donné à `try_form` :
+
+1. `{<nom>_<clé>}` — par exemple `{article_id}` pour le formulaire `"article"` ;
+2. sinon `{<clé>}` — par exemple `{id}` ;
+3. sinon aucune : `save` crée la ligne.
+
+Avec une clé, `save` met à jour cette ligne ; `delete` exige une clé. Une clé qui ne se lit pas au type de la clé du modèle, ou une ligne absente, donne « Ressource introuvable » et rien n'est écrit. Deux formulaires sur une page pointent chacun leur ligne par leur propre nom.
+
+### Ce qui est écrit
+
+- **Hors admin** : SeaORM écrit (`insert` en création, `ActiveModel::save()` en mise à jour) ; le comportement du modèle (`ActiveModelBehavior::before_save` / `after_save`, `auto_now`) s'exécute. Les champs verrouillés (`readonly`, `disabled`) et les colonnes secrètes (mot de passe) ne sont jamais écrits. Vérifier que l'utilisateur a le droit de toucher la ligne est le rôle du handler, comme pour `search!`.
+- **Dans l'admin** (panneau et routes déclarées `admin`) : la porte écrit, au nom du compte vérifié — droits, propriétaire, historique, dans une transaction.
+
+### Où placer la logique métier
+
+- Valeurs à vérifier ou ajuster : `clean_field`, `clean`.
+- Valeurs venues de la requête (compte connecté, choix) : `register_dynamic_fields`.
+- Effets extérieurs (email, cache) et écritures dans d'autres tables : dans le handler, après un `save` réussi.
 
 ---
 

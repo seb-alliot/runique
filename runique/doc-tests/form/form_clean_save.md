@@ -1,10 +1,9 @@
-# Validation métier : `clean_field`, `clean` et `save`
+# Validation métier : `clean_field` et `clean`
 
 ```rust,ignore
 use runique::prelude::*;
 use runique::forms::{RuniqueForm, Forms};
 use runique::forms::fields::text::TextField;
-use sea_orm::{DatabaseTransaction, DbErr, Set};
 
 pub struct ChangePasswordForm {
     form: Forms,
@@ -47,12 +46,6 @@ impl RuniqueForm for ChangePasswordForm {
             return Err(errors);
         }
 
-        Ok(())
-    }
-    /// Sauvegarde dans une transaction — appelée par save()
-    async fn save_txn(&mut self, _txn: &DatabaseTransaction) -> Result<(), DbErr> {
-        // let hashed = hash(&self.get_form().get_string("password")).unwrap_or_default();
-        // UserActiveModel { password: Set(hashed), ..Default::default() }.update(_txn).await?;
         Ok(())
     }
 }
