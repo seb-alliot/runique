@@ -17,6 +17,16 @@ pub fn generate_model_meta(model: &ModelInput) -> TokenStream2 {
                 const OWNER: Option<Column> = Some(Column::#column);
             }
         });
+    let label = model
+        .meta
+        .as_ref()
+        .and_then(|m| m.label.as_ref())
+        .map(|field| {
+            let column = ident_pascal(field);
+            quote! {
+                const LABEL: Option<Column>= Some(Column::#column);
+            }
+        });
     // The DSL knows which fields hold a password: the admin never touches them.
     let secrets: Vec<_> = model
         .fields
@@ -37,6 +47,7 @@ pub fn generate_model_meta(model: &ModelInput) -> TokenStream2 {
                 self::schema()
             }
             #owner
+            #label
             #secret
         }
     }

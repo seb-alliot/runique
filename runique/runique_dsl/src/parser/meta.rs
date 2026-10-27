@@ -34,6 +34,7 @@ impl Parse for MetaDef {
         let mut verbose_name_plural = None;
         let mut indexes = Vec::new();
         let mut owner = None;
+        let mut label = None;
 
         while !input.is_empty() {
             let key: Ident = input.parse()?;
@@ -65,6 +66,7 @@ impl Parse for MetaDef {
                 }
                 "indexes" => indexes = parse_ident_group_list(input)?,
                 "owner" => owner = Some(input.parse::<Ident>()?),
+                "label" => label = Some(input.parse::<Ident>()?),
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
@@ -83,6 +85,7 @@ impl Parse for MetaDef {
             verbose_name_plural,
             indexes,
             owner,
+            label,
         })
     }
 }
@@ -148,5 +151,53 @@ mod tests {
     #[test]
     fn unknown_key_rejected() {
         assert!(parse("not_a_key: [1]").is_err());
+    }
+
+    #[test]
+    fn label_is_read_as_a_field_name() {
+        let m = parse("label: titre").unwrap();
+        assert_eq!(m.label.map(|l| l.to_string()).as_deref(), Some("titre"));
+    }
+
+    #[test]
+    fn label_absent_is_none() {
+        assert!(parse("ordering: [name]").unwrap().label.is_none());
+        assert!(parse("").unwrap().label.is_none());
+    }
+
+    #[test]
+    fn label_combined_with_owner_and_ordering() {
+        let m = parse("owner: user_id, label: titre, ordering: [-id]").unwrap();
+        assert_eq!(m.owner.map(|o| o.to_string()).as_deref(), Some("user_id"));
+        assert_eq!(m.label.map(|l| l.to_string()).as_deref(), Some("titre"));
+        assert_eq!(m.ordering.len(), 1);
+    }
+
+    #[test]
+    fn label_last_without_trailing_comma_and_with_one() {
+        assert!(
+            parse("ordering: [id], label: titre")
+                .unwrap()
+                .label
+                .is_some()
+        );
+        assert!(parse("label: titre,").unwrap().label.is_some());
+    }
+
+    #[test]
+    fn label_does_not_set_owner_nor_the_other_way_round() {
+        let m = parse("label: titre").unwrap();
+        assert!(m.owner.is_none());
+        let m = parse("owner: user_id").unwrap();
+        assert!(m.label.is_none());
+    }
+
+    #[test]
+    fn label_wrong_forms_rejected() {
+        assert!(parse(r#"label: "titre""#).is_err(), "a string");
+        assert!(parse("label: [titre]").is_err(), "a list");
+        assert!(parse("label: 1").is_err(), "a number");
+        assert!(parse("label:").is_err(), "no value");
+        assert!(parse("label titre").is_err(), "no colon");
     }
 }

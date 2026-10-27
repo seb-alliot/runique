@@ -349,7 +349,9 @@ fn generate_model_meta(table: &str) -> TokenStream2 {
             const IS_ACCOUNT_TABLE: bool = true;
             const SECRET: &'static [Column] = &[Column::Password];
             const IS_FRAMEWORK_TABLE: bool = true;
+            const LABEL: Option<Column> = Some(Column::Username);
         },
+
         "eihwaz_groupes" => quote! {
             const KEY: &'static str = "groupes";
             const IS_FRAMEWORK_TABLE: bool = true;

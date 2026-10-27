@@ -1,18 +1,24 @@
 //! `save_as`: a form's save inside the admin's constraint. The account the
 //! middleware checked, the row `edit` pointed at, the gate's proof and the
-//! columns the rights allow, written in one transaction.
+//! columns the rights allow, written in one transaction with its history row.
 use super::change::{FieldErrors, WriteKind, changes};
 use super::check::{GateCtx, authorize_create, authorize_row};
 use super::operation::{Delete, Update};
 use super::refusal::{Refusal, RefusalReason};
 use super::rights::Crud;
 use super::{PkOf, write};
+use crate::auth::current_user::CurrentUser;
+use crate::auth::history::{ActionLog, log_action, redact_sensitive};
 use crate::auth::meta::ModelMeta;
 use crate::forms::field::SaveContext;
 use crate::forms::form::{Forms, SaveComportement};
 use crate::utils::aliases::ADb;
 use crate::utils::trad::t;
-use sea_orm::{ActiveModelTrait, DbErr, IdenStatic, Iterable, TransactionTrait, Value};
+use sea_orm::sea_query::sea_value_to_json_value;
+use sea_orm::{
+    ActiveModelTrait, ActiveValue, ConnectionTrait, DbErr, IdenStatic, Iterable, ModelTrait,
+    PrimaryKeyToColumn, TransactionTrait, Value,
+};
 use std::str::FromStr;
 
 fn refused(refusal: Refusal) -> DbErr {
@@ -66,13 +72,23 @@ where
             }
             missing_required::<E>(&model).map_err(|e| on_fields(form, e))?;
             let txn = db.begin().await?;
-            write::insert::<E, E::ActiveModel, _>(proof, model, &txn)
+            let row = write::insert::<E, E::ActiveModel, _>(proof, model, &txn)
                 .await
                 .map_err(refused)?;
+            trace(
+                &txn,
+                &user,
+                E::KEY,
+                &key_of::<E>(&row),
+                &label_of::<E>(&row),
+                "create",
+                None,
+            )
+            .await?;
             txn.commit().await
         }
         (SaveContext::Update, Some(id)) => {
-            let proof = authorize_row::<Update, E>(&gate, id)
+            let proof = authorize_row::<Update, E>(&gate, id.clone())
                 .await
                 .map_err(refused)?;
             let mut model = changes::<E>(form, &rights.columns, WriteKind::Update)
@@ -88,15 +104,44 @@ where
                 return Ok(());
             }
             let txn = db.begin().await?;
+            // The row as it was, read in the write's transaction: the trace
+            // compares against what the update replaces.
+            let Some(old) = E::find_by_id(id).one(&txn).await? else {
+                return Err(refused(Refusal::new(RefusalReason::StaleRow)));
+            };
+            let summary = summary::<E>(&old, &model);
             write::update(proof, model, &txn).await.map_err(refused)?;
+            trace(
+                &txn,
+                &user,
+                E::KEY,
+                &key_of::<E>(&old),
+                &label_of::<E>(&old),
+                "update",
+                summary,
+            )
+            .await?;
             txn.commit().await
         }
         (SaveContext::Delete, Some(id)) => {
-            let proof = authorize_row::<Delete, E>(&gate, id)
+            let proof = authorize_row::<Delete, E>(&gate, id.clone())
                 .await
                 .map_err(refused)?;
             let txn = db.begin().await?;
+            let Some(old) = E::find_by_id(id).one(&txn).await? else {
+                return Err(refused(Refusal::new(RefusalReason::StaleRow)));
+            };
             write::delete(proof, &txn).await.map_err(refused)?;
+            trace(
+                &txn,
+                &user,
+                E::KEY,
+                &key_of::<E>(&old),
+                &label_of::<E>(&old),
+                "delete",
+                None,
+            )
+            .await?;
             txn.commit().await
         }
         (SaveContext::Create, Some(_)) => Err(DbErr::Custom(
@@ -140,6 +185,83 @@ fn missing_required<E: ModelMeta>(model: &E::ActiveModel) -> Result<(), FieldErr
     } else {
         Err(missing)
     }
+}
+
+/// A value as the trace shows it: text without its quotes.
+fn shown(value: &Value) -> String {
+    match sea_value_to_json_value(value) {
+        serde_json::Value::String(text) => text,
+        other => other.to_string(),
+    }
+}
+
+/// The key of `row` as text: the trace's `object_pk`.
+fn key_of<E: ModelMeta>(row: &E::Model) -> String {
+    E::PrimaryKey::iter()
+        .map(|key| shown(&row.get(key.into_column())))
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+/// The label of `row` as the history keeps it: its `LABEL` column, its key
+/// when there is none, it is NULL or empty, or it is a secret.
+fn label_of<E: ModelMeta>(row: &E::Model) -> String {
+    E::LABEL
+        .filter(|column| !E::SECRET.iter().any(|s| s.as_str() == column.as_str()))
+        .map(|column| row.get(column))
+        .filter(|value| *value != value.as_null())
+        .map(|value| shown(&value))
+        .filter(|label| !label.is_empty())
+        .unwrap_or_else(|| key_of::<E>(row))
+}
+
+/// `{column: {old, new}}` for the columns `changes` sets to another value
+/// than `old` holds, sensitive ones masked; `None` when none differs.
+fn summary<E: ModelMeta>(old: &E::Model, changes: &E::ActiveModel) -> Option<String> {
+    let mut diff = serde_json::Map::new();
+    for column in E::Column::iter() {
+        let ActiveValue::Set(new) = changes.get(column) else {
+            continue;
+        };
+        let before = old.get(column);
+        if before != new {
+            diff.insert(
+                column.as_str().to_string(),
+                serde_json::json!({ "old": shown(&before), "new": shown(&new) }),
+            );
+        }
+    }
+    if diff.is_empty() {
+        return None;
+    }
+    redact_sensitive(&mut diff);
+    serde_json::to_string(&diff).ok()
+}
+
+/// The write's history row, in its transaction: both land, or neither.
+async fn trace<C: ConnectionTrait>(
+    db: &C,
+    user: &CurrentUser,
+    resource_key: &str,
+    pk: &str,
+    repr: &str,
+    action: &str,
+    summary: Option<String>,
+) -> Result<(), DbErr> {
+    log_action(
+        db,
+        ActionLog {
+            user_id: user.id,
+            username: &user.username,
+            resource_key,
+            object_pk: pk,
+            object_repr: repr,
+            action,
+            summary,
+            batch_id: None,
+        },
+    )
+    .await
 }
 
 #[cfg(all(test, feature = "sqlite"))]
@@ -881,5 +1003,636 @@ mod tests {
             .unwrap()
             .unwrap();
         assert_eq!(row.owner_id, Some(pk(10)));
+    }
+
+    // --- the trace: entities with a label, a secret, a token ---
+
+    /// `save_vaults`: `nick` is the LABEL, `hash` is SECRET, `api_token` holds
+    /// a sensitive name without being declared SECRET.
+    mod vault {
+        use sea_orm::entity::prelude::*;
+
+        #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+        #[sea_orm(table_name = "save_vaults")]
+        pub struct Model {
+            #[sea_orm(primary_key)]
+            pub id: i32,
+            pub name: String,
+            pub nick: Option<String>,
+            pub api_token: Option<String>,
+            pub hash: Option<String>,
+        }
+
+        #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+        pub enum Relation {}
+
+        impl ActiveModelBehavior for ActiveModel {}
+    }
+
+    impl ModelMeta for vault::Entity {
+        const KEY: &'static str = "vaults";
+        type Form = TicketForm;
+        const SECRET: &'static [vault::Column] = &[vault::Column::Hash];
+        const LABEL: Option<vault::Column> = Some(vault::Column::Nick);
+        fn schema() -> crate::migration::schema::ModelSchema {
+            use crate::migration::{ColumnDef, ModelSchema, PrimaryKeyDef};
+            ModelSchema::new("Vault")
+                .table_name("save_vaults")
+                .primary_key(PrimaryKeyDef::new("id").i32().auto_increment())
+                .column(ColumnDef::new("name").text())
+                .column(ColumnDef::new("nick").text().nullable())
+                .column(ColumnDef::new("api_token").text().nullable())
+                .column(ColumnDef::new("hash").text().nullable())
+                .build()
+                .unwrap()
+        }
+    }
+
+    /// `save_locked`: its LABEL is a SECRET column, which must never be shown.
+    mod locked {
+        use sea_orm::entity::prelude::*;
+
+        #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+        #[sea_orm(table_name = "save_locked")]
+        pub struct Model {
+            #[sea_orm(primary_key)]
+            pub id: i32,
+            pub hash: String,
+        }
+
+        #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+        pub enum Relation {}
+
+        impl ActiveModelBehavior for ActiveModel {}
+    }
+
+    impl ModelMeta for locked::Entity {
+        const KEY: &'static str = "locked";
+        type Form = TicketForm;
+        const SECRET: &'static [locked::Column] = &[locked::Column::Hash];
+        const LABEL: Option<locked::Column> = Some(locked::Column::Hash);
+        fn schema() -> crate::migration::schema::ModelSchema {
+            use crate::migration::{ColumnDef, ModelSchema, PrimaryKeyDef};
+            ModelSchema::new("Locked")
+                .table_name("save_locked")
+                .primary_key(PrimaryKeyDef::new("id").i32().auto_increment())
+                .column(ColumnDef::new("hash").text())
+                .build()
+                .unwrap()
+        }
+    }
+
+    /// Tickets of `setup()`, plus vaults 1 (nick "Al", token "tok-old",
+    /// hash "H1") and 2 (nothing optional set), and locked 1 (hash "S3CR3T").
+    async fn setup_vaults() -> ADb {
+        let db = setup().await;
+        let schema = Schema::new(sea_orm::DatabaseBackend::Sqlite);
+        db.execute(&schema.create_table_from_entity(vault::Entity))
+            .await
+            .unwrap();
+        db.execute(&schema.create_table_from_entity(locked::Entity))
+            .await
+            .unwrap();
+        vault::ActiveModel {
+            id: Set(1),
+            name: Set("alpha".into()),
+            nick: Set(Some("Al".into())),
+            api_token: Set(Some("tok-old".into())),
+            hash: Set(Some("H1".into())),
+        }
+        .insert(&db)
+        .await
+        .unwrap();
+        vault::ActiveModel {
+            id: Set(2),
+            name: Set("beta".into()),
+            ..Default::default()
+        }
+        .insert(&db)
+        .await
+        .unwrap();
+        locked::ActiveModel {
+            id: Set(1),
+            hash: Set("S3CR3T".into()),
+        }
+        .insert(&db)
+        .await
+        .unwrap();
+        db
+    }
+
+    fn member_on<C: ColumnTrait>(id: Pk, key: &str, rights: [bool; 7]) -> CurrentUser {
+        let mut user = staff(id, key, rights);
+        user.groupes[0].permissions[0].colonnes = all_columns::<C>();
+        user
+    }
+
+    async fn run_on<E: ModelMeta>(
+        user: &CurrentUser,
+        target: Option<&str>,
+        values: &[(&str, &str)],
+        ctx: SaveContext,
+        db: &ADb,
+    ) -> Result<(), DbErr>
+    where
+        E::ActiveModel: Send,
+        E::Model: sea_orm::IntoActiveModel<E::ActiveModel>,
+    {
+        let mut form = form_for::<E>(Some(user.clone()), target, values);
+        save_as::<E>(&mut form, ctx, db).await
+    }
+
+    async fn history(db: &ADb) -> Vec<crate::auth::history::Model> {
+        crate::auth::history::Entity::find()
+            .order_by_asc(crate::auth::history::Column::Id)
+            .all(&**db)
+            .await
+            .unwrap()
+    }
+
+    async fn vault_of(db: &ADb, id: i32) -> Option<vault::Model> {
+        vault::Entity::find_by_id(id).one(&**db).await.unwrap()
+    }
+
+    /// Every field of a history row but its summary.
+    fn assert_trace(
+        row: &crate::auth::history::Model,
+        action: &str,
+        resource_key: &str,
+        object_pk: &str,
+        object_repr: &str,
+        user: &CurrentUser,
+    ) {
+        assert_eq!(row.action, action);
+        assert_eq!(row.resource_key, resource_key);
+        assert_eq!(row.object_pk, object_pk);
+        assert_eq!(row.object_repr, object_repr);
+        assert_eq!(row.user_id, user.id);
+        assert_eq!(row.username, user.username);
+        assert_eq!(row.batch_id, None);
+    }
+
+    fn summary_of(row: &crate::auth::history::Model) -> serde_json::Value {
+        serde_json::from_str(row.summary.as_deref().expect("a summary")).unwrap()
+    }
+
+    // --- the trace: create ---
+
+    #[tokio::test]
+    async fn a_create_leaves_one_history_row_with_every_field() {
+        let db = setup().await;
+        let creator = member(pk(10), CREATE);
+        let mut form = gated(&creator, None, &[("title", "fresh")]);
+        run(&mut form, SaveContext::Create, &db).await.unwrap();
+        let rows = history(&db).await;
+        assert_eq!(rows.len(), 1);
+        let created = tickets(&db).await[2].id.to_string();
+        assert_eq!(created, "3");
+        assert_trace(&rows[0], "create", "tickets", &created, &created, &creator);
+        assert_eq!(rows[0].summary, None, "a create has no diff");
+    }
+
+    #[tokio::test]
+    async fn a_create_is_known_by_its_label_or_by_its_key_when_the_label_is_null() {
+        let db = setup_vaults().await;
+        let creator = member_on::<vault::Column>(pk(10), "vaults", CREATE);
+        run_on::<vault::Entity>(
+            &creator,
+            None,
+            &[("name", "gamma"), ("nick", "Gam")],
+            SaveContext::Create,
+            &db,
+        )
+        .await
+        .unwrap();
+        run_on::<vault::Entity>(
+            &creator,
+            None,
+            &[("name", "delta")],
+            SaveContext::Create,
+            &db,
+        )
+        .await
+        .unwrap();
+        let rows = history(&db).await;
+        assert_eq!(rows.len(), 2);
+        assert_trace(&rows[0], "create", "vaults", "3", "Gam", &creator);
+        assert_trace(&rows[1], "create", "vaults", "4", "4", &creator);
+    }
+
+    #[tokio::test]
+    async fn a_refused_create_leaves_no_history_and_no_row() {
+        let db = setup().await;
+        for rights in [NOTHING, UPDATE, UPDATE_OWN, DELETE] {
+            let user = member(pk(10), rights);
+            let mut form = gated(&user, None, &[("title", "t")]);
+            assert_refused(run(&mut form, SaveContext::Create, &db).await);
+        }
+        let creator = member(pk(10), CREATE);
+        let mut form = gated(&creator, None, &[("title", ""), ("body", "b")]);
+        assert_fields_refused(run(&mut form, SaveContext::Create, &db).await);
+        let mut form = gated(&creator, None, &[("body", "b")]);
+        assert_fields_refused(run(&mut form, SaveContext::Create, &db).await);
+        let mut form = gated(&creator, None, &[("title", "t"), ("owner_id", "abc")]);
+        assert_fields_refused(run(&mut form, SaveContext::Create, &db).await);
+        let mut form = form_for::<ticket::Entity>(None, None, &[("title", "t")]);
+        assert_refused(run(&mut form, SaveContext::Create, &db).await);
+        let mut form = gated(&creator, Some("1"), &[("title", "t")]);
+        assert_handler_error(run(&mut form, SaveContext::Create, &db).await);
+        assert!(history(&db).await.is_empty());
+        assert_eq!(tickets(&db).await.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn the_database_net_on_a_create_leaves_no_history() {
+        // `body` is nullable for the schema but NOT NULL in the table: the
+        // insert fails after `missing_required` let it through.
+        let db = setup().await;
+        db.execute_unprepared("DROP TABLE save_tickets")
+            .await
+            .unwrap();
+        db.execute_unprepared(
+            "CREATE TABLE save_tickets (id INTEGER PRIMARY KEY AUTOINCREMENT, owner_id INTEGER, \
+             title TEXT NOT NULL, body TEXT NOT NULL, level INTEGER NOT NULL DEFAULT 0, \
+             stamp TEXT, made TEXT, edited TEXT, hidden TEXT)",
+        )
+        .await
+        .unwrap();
+        let creator = member(pk(10), CREATE);
+        let mut form = gated(&creator, None, &[("title", "t")]);
+        assert!(run(&mut form, SaveContext::Create, &db).await.is_err());
+        assert!(history(&db).await.is_empty());
+        assert!(tickets(&db).await.is_empty());
+    }
+
+    // --- the trace: update ---
+
+    #[tokio::test]
+    async fn an_update_traces_only_the_columns_that_really_changed() {
+        let db = setup().await;
+        let editor = member(pk(10), UPDATE);
+        let same_owner = pk(10).to_string();
+        let mut form = gated(
+            &editor,
+            Some("1"),
+            &[
+                ("title", "renamed"),
+                ("body", "b"),
+                ("owner_id", &same_owner),
+            ],
+        );
+        run(&mut form, SaveContext::Update, &db).await.unwrap();
+        let rows = history(&db).await;
+        assert_eq!(rows.len(), 1);
+        assert_trace(&rows[0], "update", "tickets", "1", "1", &editor);
+        assert_eq!(
+            summary_of(&rows[0]),
+            serde_json::json!({
+                "title": { "old": "one", "new": "renamed" },
+                "body": { "old": "null", "new": "b" },
+            }),
+            "owner_id sent back unchanged and the stamp are not in it"
+        );
+    }
+
+    #[tokio::test]
+    async fn an_update_traces_a_reassigned_owner_with_old_and_new() {
+        let db = setup().await;
+        let editor = member(pk(10), UPDATE);
+        let to = pk(30).to_string();
+        let mut form = gated(&editor, Some("1"), &[("owner_id", &to)]);
+        run(&mut form, SaveContext::Update, &db).await.unwrap();
+        let rows = history(&db).await;
+        assert_eq!(rows.len(), 1);
+        assert_eq!(
+            summary_of(&rows[0]),
+            serde_json::json!({
+                "owner_id": { "old": pk(10).to_string(), "new": to },
+            })
+        );
+    }
+
+    #[tokio::test]
+    async fn an_update_sending_the_current_values_traces_without_a_summary() {
+        let db = setup().await;
+        let editor = member(pk(10), UPDATE);
+        let mut form = gated(&editor, Some("1"), &[("title", "one")]);
+        run(&mut form, SaveContext::Update, &db).await.unwrap();
+        let rows = history(&db).await;
+        assert_eq!(rows.len(), 1);
+        assert_trace(&rows[0], "update", "tickets", "1", "1", &editor);
+        assert_eq!(rows[0].summary, None);
+        assert_eq!(
+            ticket_of(&db, 1).await.unwrap().stamp.as_deref(),
+            Some("stamped"),
+            "the write itself still happened"
+        );
+    }
+
+    #[tokio::test]
+    async fn an_update_without_change_traces_nothing() {
+        let db = setup().await;
+        let editor = member(pk(10), UPDATE);
+        let mut form = gated(&editor, Some("1"), &[]);
+        run(&mut form, SaveContext::Update, &db).await.unwrap();
+        let owner = member(pk(10), UPDATE_OWN);
+        let to = pk(20).to_string();
+        let mut form = gated(&owner, Some("1"), &[("owner_id", &to)]);
+        run(&mut form, SaveContext::Update, &db).await.unwrap();
+        assert!(history(&db).await.is_empty());
+    }
+
+    #[tokio::test]
+    async fn a_refused_update_leaves_no_history_and_no_change() {
+        let db = setup().await;
+        let before = tickets(&db).await;
+        let owner = member(pk(10), UPDATE_OWN);
+        let mut form = gated(&owner, Some("2"), &[("title", "taken")]);
+        assert_refused(run(&mut form, SaveContext::Update, &db).await);
+        for rights in [NOTHING, CREATE, DELETE, DELETE_OWN] {
+            let user = member(pk(10), rights);
+            let mut form = gated(&user, Some("1"), &[("title", "x")]);
+            assert_refused(run(&mut form, SaveContext::Update, &db).await);
+        }
+        let editor = member(pk(10), UPDATE);
+        let mut form = gated(&editor, Some("99"), &[("title", "ghost")]);
+        assert_refused(run(&mut form, SaveContext::Update, &db).await);
+        let mut form = gated(&editor, Some("abc"), &[("title", "x")]);
+        assert_refused(run(&mut form, SaveContext::Update, &db).await);
+        let mut form = gated(&editor, Some("1"), &[("title", "t"), ("owner_id", "abc")]);
+        assert_fields_refused(run(&mut form, SaveContext::Update, &db).await);
+        let mut form = form_for::<ticket::Entity>(None, Some("1"), &[("title", "x")]);
+        assert_refused(run(&mut form, SaveContext::Update, &db).await);
+        assert!(history(&db).await.is_empty());
+        assert_eq!(tickets(&db).await, before);
+    }
+
+    #[tokio::test]
+    async fn a_sensitive_column_is_listed_masked_never_with_its_value() {
+        let db = setup_vaults().await;
+        let editor = member_on::<vault::Column>(pk(10), "vaults", UPDATE);
+        run_on::<vault::Entity>(
+            &editor,
+            Some("1"),
+            &[
+                ("name", "alpha2"),
+                ("api_token", "tok-new"),
+                ("hash", "HACK"),
+            ],
+            SaveContext::Update,
+            &db,
+        )
+        .await
+        .unwrap();
+        let rows = history(&db).await;
+        assert_eq!(rows.len(), 1);
+        let masked = crate::auth::history::REDACTED;
+        assert_eq!(
+            summary_of(&rows[0]),
+            serde_json::json!({
+                "name": { "old": "alpha", "new": "alpha2" },
+                "api_token": { "old": masked, "new": masked },
+            }),
+            "the SECRET hash is never written, so never traced"
+        );
+        let raw = rows[0].summary.as_deref().unwrap();
+        for leaked in ["tok-old", "tok-new", "H1", "HACK"] {
+            assert!(!raw.contains(leaked), "{leaked} leaked in {raw}");
+        }
+        let row = vault_of(&db, 1).await.unwrap();
+        assert_eq!(row.api_token.as_deref(), Some("tok-new"));
+        assert_eq!(row.hash.as_deref(), Some("H1"));
+    }
+
+    #[tokio::test]
+    async fn an_update_is_known_by_its_old_label_and_the_new_one_is_in_the_summary() {
+        let db = setup_vaults().await;
+        let editor = member_on::<vault::Column>(pk(10), "vaults", UPDATE);
+        run_on::<vault::Entity>(
+            &editor,
+            Some("1"),
+            &[("nick", "Bo")],
+            SaveContext::Update,
+            &db,
+        )
+        .await
+        .unwrap();
+        run_on::<vault::Entity>(
+            &editor,
+            Some("2"),
+            &[("name", "beta2")],
+            SaveContext::Update,
+            &db,
+        )
+        .await
+        .unwrap();
+        let rows = history(&db).await;
+        assert_eq!(rows.len(), 2);
+        assert_trace(&rows[0], "update", "vaults", "1", "Al", &editor);
+        assert_eq!(
+            summary_of(&rows[0]),
+            serde_json::json!({ "nick": { "old": "Al", "new": "Bo" } })
+        );
+        assert_trace(&rows[1], "update", "vaults", "2", "2", &editor);
+    }
+
+    // --- the trace: delete ---
+
+    #[tokio::test]
+    async fn a_delete_leaves_one_history_row_with_the_deleted_rows_label() {
+        let db = setup_vaults().await;
+        let user = member(pk(10), DELETE);
+        let mut form = gated(&user, Some("2"), &[]);
+        run(&mut form, SaveContext::Delete, &db).await.unwrap();
+        let vaulter = member_on::<vault::Column>(pk(10), "vaults", DELETE);
+        run_on::<vault::Entity>(&vaulter, Some("1"), &[], SaveContext::Delete, &db)
+            .await
+            .unwrap();
+        let rows = history(&db).await;
+        assert_eq!(rows.len(), 2);
+        assert_trace(&rows[0], "delete", "tickets", "2", "2", &user);
+        assert_eq!(rows[0].summary, None);
+        assert_trace(&rows[1], "delete", "vaults", "1", "Al", &vaulter);
+        assert_eq!(rows[1].summary, None);
+        assert!(vault_of(&db, 1).await.is_none());
+    }
+
+    #[tokio::test]
+    async fn an_own_delete_is_traced_as_the_account_that_made_it() {
+        let db = setup().await;
+        let user = member(pk(10), DELETE_OWN);
+        let mut form = gated(&user, Some("1"), &[]);
+        run(&mut form, SaveContext::Delete, &db).await.unwrap();
+        let rows = history(&db).await;
+        assert_eq!(rows.len(), 1);
+        assert_trace(&rows[0], "delete", "tickets", "1", "1", &user);
+    }
+
+    #[tokio::test]
+    async fn a_label_that_is_a_secret_column_is_replaced_by_the_key() {
+        let db = setup_vaults().await;
+        let user = member_on::<locked::Column>(pk(10), "locked", DELETE);
+        run_on::<locked::Entity>(&user, Some("1"), &[], SaveContext::Delete, &db)
+            .await
+            .unwrap();
+        let rows = history(&db).await;
+        assert_eq!(rows.len(), 1);
+        assert_trace(&rows[0], "delete", "locked", "1", "1", &user);
+        assert!(!format!("{:?}", rows[0]).contains("S3CR3T"));
+    }
+
+    #[tokio::test]
+    async fn a_refused_delete_leaves_no_history_and_keeps_the_rows() {
+        let db = setup().await;
+        let before = tickets(&db).await;
+        for rights in [NOTHING, CREATE, UPDATE, UPDATE_OWN] {
+            let user = member(pk(10), rights);
+            let mut form = gated(&user, Some("1"), &[]);
+            assert_refused(run(&mut form, SaveContext::Delete, &db).await);
+        }
+        let own = member(pk(10), DELETE_OWN);
+        let mut form = gated(&own, Some("2"), &[]);
+        assert_refused(run(&mut form, SaveContext::Delete, &db).await);
+        let user = member(pk(10), DELETE);
+        let mut form = gated(&user, Some("99"), &[]);
+        assert_refused(run(&mut form, SaveContext::Delete, &db).await);
+        let mut form = gated(&user, Some("1/2"), &[]);
+        assert_refused(run(&mut form, SaveContext::Delete, &db).await);
+        let mut form = form_for::<ticket::Entity>(None, Some("1"), &[]);
+        assert_refused(run(&mut form, SaveContext::Delete, &db).await);
+        assert!(history(&db).await.is_empty());
+        assert_eq!(tickets(&db).await, before);
+    }
+
+    // --- no write without its trace ---
+
+    #[tokio::test]
+    async fn a_create_whose_trace_fails_is_rolled_back() {
+        let db = setup().await;
+        db.execute_unprepared("DROP TABLE eihwaz_history")
+            .await
+            .unwrap();
+        let creator = member(pk(10), CREATE);
+        let mut form = gated(&creator, None, &[("title", "fresh")]);
+        let result = run(&mut form, SaveContext::Create, &db).await;
+        assert!(
+            matches!(result, Err(ref e) if !matches!(e, DbErr::Custom(_))),
+            "{result:?}"
+        );
+        assert_eq!(tickets(&db).await.len(), 2, "the row was not kept");
+    }
+
+    #[tokio::test]
+    async fn an_update_whose_trace_fails_is_rolled_back() {
+        let db = setup().await;
+        db.execute_unprepared("DROP TABLE eihwaz_history")
+            .await
+            .unwrap();
+        let before = tickets(&db).await;
+        let editor = member(pk(10), UPDATE);
+        let mut form = gated(&editor, Some("1"), &[("title", "renamed")]);
+        let result = run(&mut form, SaveContext::Update, &db).await;
+        assert!(
+            matches!(result, Err(ref e) if !matches!(e, DbErr::Custom(_))),
+            "{result:?}"
+        );
+        assert_eq!(
+            tickets(&db).await,
+            before,
+            "neither the title nor the stamp"
+        );
+    }
+
+    #[tokio::test]
+    async fn a_delete_whose_trace_fails_is_rolled_back() {
+        let db = setup().await;
+        db.execute_unprepared("DROP TABLE eihwaz_history")
+            .await
+            .unwrap();
+        let before = tickets(&db).await;
+        let user = member(pk(10), DELETE);
+        let mut form = gated(&user, Some("2"), &[]);
+        let result = run(&mut form, SaveContext::Delete, &db).await;
+        assert!(
+            matches!(result, Err(ref e) if !matches!(e, DbErr::Custom(_))),
+            "{result:?}"
+        );
+        assert_eq!(tickets(&db).await, before, "the row is still there");
+    }
+
+    // --- shown / key_of / label_of ---
+
+    #[test]
+    fn shown_gives_a_text_without_quotes_and_the_json_of_anything_else() {
+        assert_eq!(shown(&Value::String(Some("abc".into()))), "abc");
+        assert_eq!(
+            shown(&Value::String(Some("a\"b".into()))),
+            "a\"b",
+            "the text itself, not its JSON escape"
+        );
+        assert_eq!(shown(&Value::String(Some(String::new()))), "");
+        assert_eq!(shown(&Value::Int(Some(42))), "42");
+        assert_eq!(shown(&Value::BigInt(Some(-7))), "-7");
+        assert_eq!(shown(&Value::Bool(Some(true))), "true");
+        assert_eq!(shown(&Value::Int(None)), "null");
+        assert_eq!(shown(&Value::String(None)), "null");
+    }
+
+    fn ticket_row(id: i32) -> ticket::Model {
+        ticket::Model {
+            id,
+            owner_id: None,
+            title: "t".into(),
+            body: None,
+            level: 0,
+            stamp: None,
+            made: None,
+            edited: None,
+            hidden: None,
+        }
+    }
+
+    fn vault_row(id: i32, nick: Option<&str>) -> vault::Model {
+        vault::Model {
+            id,
+            name: "n".into(),
+            nick: nick.map(str::to_string),
+            api_token: None,
+            hash: None,
+        }
+    }
+
+    #[test]
+    fn key_of_is_the_key_as_text() {
+        assert_eq!(key_of::<ticket::Entity>(&ticket_row(7)), "7");
+        assert_eq!(key_of::<ticket::Entity>(&ticket_row(0)), "0");
+        assert_eq!(key_of::<vault::Entity>(&vault_row(123, None)), "123");
+    }
+
+    #[test]
+    fn label_of_is_the_label_column_and_falls_back_to_the_key() {
+        assert_eq!(label_of::<vault::Entity>(&vault_row(5, Some("Al"))), "Al");
+        assert_eq!(label_of::<vault::Entity>(&vault_row(5, None)), "5", "NULL");
+        assert_eq!(
+            label_of::<vault::Entity>(&vault_row(5, Some(""))),
+            "5",
+            "empty"
+        );
+        assert_eq!(
+            label_of::<vault::Entity>(&vault_row(5, Some("null"))),
+            "null",
+            "the text \"null\" is a label, only a real NULL falls back"
+        );
+        assert_eq!(label_of::<vault::Entity>(&vault_row(5, Some(" "))), " ");
+        assert_eq!(label_of::<ticket::Entity>(&ticket_row(9)), "9", "no LABEL");
+    }
+
+    #[test]
+    fn label_of_never_shows_a_secret_column() {
+        let row = locked::Model {
+            id: 4,
+            hash: "S3CR3T".into(),
+        };
+        assert_eq!(label_of::<locked::Entity>(&row), "4");
     }
 }

@@ -302,6 +302,8 @@ pub struct MetaDef {
     pub indexes: Vec<Vec<syn::Ident>>,
     /// `owner: field` — the field that owns this entity, for admin permissions.
     pub owner: Option<syn::Ident>,
+    /// `label: field` - the field a row is known by(history, list).
+    pub label: Option<syn::Ident>,
 }
 
 #[cfg(test)]
