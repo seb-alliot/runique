@@ -349,6 +349,20 @@ pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Syn
     /// says how it converts, or it doesn't compile.
     fn to_value(&self) -> Result<Option<sea_orm::Value>, String>;
 
+    /// An empty valude leaves the column as it is instead of clearing it: a
+    /// password not retyped, a file not re-uploaded.
+    fn keeps_when_empty(&self) -> bool {
+        self.is_password()
+    }
+
+    /// Readonly or disabled: shown, never written. A disabled field isn't
+    /// sent, so it would arrive empty; a readonly one is sent, so it can be
+    /// forged.
+    fn is_locked(&self) -> bool {
+        let set = |state: Value| state["choice"].as_bool().unwrap_or(false);
+        set(self.to_json_readonly()) || set(self.to_json_disabled())
+    }
+
     /// Field-type specific validation
     async fn validate(&mut self) -> bool;
 
@@ -417,5 +431,85 @@ pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Syn
 
     fn to_json_meta(&self) -> Value {
         json!({})
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::forms::fields::{FileField, TextField};
+    use crate::forms::generic::GenericField;
+
+    #[test]
+    fn a_field_neither_readonly_nor_disabled_is_not_locked() {
+        assert!(!TextField::text("t").is_locked());
+    }
+
+    #[test]
+    fn a_readonly_field_is_locked() {
+        let mut field = TextField::text("t");
+        field.set_readonly(true, None);
+        assert!(field.is_locked());
+    }
+
+    #[test]
+    fn a_disabled_field_is_locked() {
+        let mut field = TextField::text("t");
+        field.set_disabled(true, None);
+        assert!(field.is_locked());
+    }
+
+    #[test]
+    fn a_field_readonly_false_is_not_locked() {
+        let mut field = TextField::text("t");
+        field.set_readonly(false, None);
+        field.set_disabled(false, None);
+        assert!(!field.is_locked());
+    }
+
+    #[test]
+    fn readonly_does_not_hide_disabled_and_the_reverse() {
+        let mut field = TextField::text("t");
+        field.set_readonly(false, None);
+        field.set_disabled(true, None);
+        assert!(field.is_locked());
+        let mut field = TextField::text("t");
+        field.set_readonly(true, None);
+        field.set_disabled(false, None);
+        assert!(field.is_locked());
+    }
+
+    #[test]
+    fn a_locked_state_survives_the_generic_wrapper() {
+        let mut field: GenericField = TextField::text("t").into();
+        assert!(!field.is_locked());
+        field.set_readonly(true, None);
+        assert!(field.is_locked());
+    }
+
+    #[test]
+    fn a_text_field_does_not_keep_its_column_when_empty() {
+        assert!(!TextField::text("t").keeps_when_empty());
+    }
+
+    #[test]
+    fn a_password_keeps_its_column_when_empty() {
+        assert!(TextField::password("p").keeps_when_empty());
+    }
+
+    #[test]
+    fn a_file_keeps_its_column_when_empty() {
+        assert!(FileField::image("f").keeps_when_empty());
+    }
+
+    // A form stores its fields wrapped in a `GenericField`.
+    #[test]
+    fn the_generic_wrapper_keeps_the_answer_of_the_field_it_wraps() {
+        let file: GenericField = FileField::image("f").into();
+        assert!(file.keeps_when_empty());
+        let password: GenericField = TextField::password("p").into();
+        assert!(password.keeps_when_empty());
+        let text: GenericField = TextField::text("t").into();
+        assert!(!text.keeps_when_empty());
     }
 }

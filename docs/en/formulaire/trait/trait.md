@@ -69,7 +69,7 @@ is_valid()                   → validation pipeline
     ↓  clean()               [optional — cross-field validation]
     ↓  finalize()            (Argon2 hashing, final transforms)
         ↓
-save() / save_as()           → persistence (with or without hooks)
+save() / save_with()           → persistence (with or without hooks)
   ↓  before_save()           [optional — hook before persistence]
   ↓  on_save()               → main logic (INSERT, UPDATE…)
   ↓  after_save()            [optional — hook after persistence]
@@ -101,7 +101,7 @@ clear()                      → [optional] empty the form after processing
 
 **`save(&db)`** — Opens a transaction, calls `on_save`, commits. Automatic rollback on error.
 
-**`save_as(ctx, &db)`** — Like `save`, but orchestrates all three hooks: `before_save` → `on_save` → `after_save`. Rollback on any error.
+**`save_with(ctx, &db)`** — Like `save`, but orchestrates all three hooks: `before_save` → `on_save` → `after_save`. Rollback on any error.
 
 **`database_error(&err)`** — Parses a DB error and attaches it to the correct field.
 
@@ -293,14 +293,14 @@ impl RuniqueForm for RegisterForm {
 
 ---
 
-## Save hooks — `save_as`, `on_save`, `before_save`, `after_save`
+## Save hooks — `save_with`, `on_save`, `before_save`, `after_save`
 
 Two methods are available to persist form data:
 
 | Method | Description |
 | --- | --- |
 | `save(&db)` | Simple transaction: `on_save` → commit |
-| `save_as(ctx, &db)` | Transaction with hooks: `before_save` → `on_save` → `after_save` → commit |
+| `save_with(ctx, &db)` | Transaction with hooks: `before_save` → `on_save` → `after_save` → commit |
 
 All three hooks run inside the same transaction. If any of them returns `Err`, the transaction is rolled back and the error is propagated — nothing is written to the DB.
 
@@ -310,9 +310,9 @@ All three hooks run inside the same transaction. If any of them returns `Err`, t
 use runique::prelude::SaveContext;
 
 // In the handler:
-form.save_as(SaveContext::Create, &db).await?;
-form.save_as(SaveContext::Update, &db).await?;
-form.save_as(SaveContext::Delete, &db).await?;
+form.save_with(SaveContext::Create, &db).await?;
+form.save_with(SaveContext::Update, &db).await?;
+form.save_with(SaveContext::Delete, &db).await?;
 ```
 
 ### Full implementation example

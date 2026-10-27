@@ -69,7 +69,7 @@ is_valid()                   → pipeline de validation
     ↓  clean()               [optionnel — validation croisée]
     ↓  finalize()            (hash Argon2, transformations finales)
         ↓
-save() / save_as()           → persistance (avec ou sans hooks)
+save() / save_with()           → persistance (avec ou sans hooks)
   ↓  before_save()           [optionnel — hook avant sauvegarde]
   ↓  on_save()               → logique principale (INSERT, UPDATE…)
   ↓  after_save()            [optionnel — hook après sauvegarde]
@@ -101,7 +101,7 @@ clear()                      → [optionnel] vide le formulaire après traitemen
 
 **`save(&db)`** — Ouvre une transaction, appelle `on_save`, commit. Rollback automatique sur erreur.
 
-**`save_as(ctx, &db)`** — Comme `save`, mais orchestre les trois hooks : `before_save` → `on_save` → `after_save`. Rollback sur n'importe quelle erreur.
+**`save_with(ctx, &db)`** — Comme `save`, mais orchestre les trois hooks : `before_save` → `on_save` → `after_save`. Rollback sur n'importe quelle erreur.
 
 **`database_error(&err)`** — Analyse une erreur DB et la positionne sur le bon champ.
 
@@ -293,14 +293,14 @@ impl RuniqueForm for RegisterForm {
 
 ---
 
-## Hooks de sauvegarde — `save_as`, `on_save`, `before_save`, `after_save`
+## Hooks de sauvegarde — `save_with`, `on_save`, `before_save`, `after_save`
 
 Pour persister les données d'un formulaire en base, deux méthodes sont disponibles :
 
 | Méthode | Description |
 | --- | --- |
 | `save(&db)` | Transaction simple : `on_save` → commit |
-| `save_as(ctx, &db)` | Transaction avec hooks : `before_save` → `on_save` → `after_save` → commit |
+| `save_with(ctx, &db)` | Transaction avec hooks : `before_save` → `on_save` → `after_save` → commit |
 
 Les trois hooks s'exécutent dans la même transaction. Si l'un d'eux retourne `Err`, la transaction est rollback et l'erreur est propagée — rien n'est écrit en DB.
 
@@ -310,9 +310,9 @@ Les trois hooks s'exécutent dans la même transaction. Si l'un d'eux retourne `
 use runique::prelude::SaveContext;
 
 // Dans le handler :
-form.save_as(SaveContext::Create, &db).await?;
-form.save_as(SaveContext::Update, &db).await?;
-form.save_as(SaveContext::Delete, &db).await?;
+form.save_with(SaveContext::Create, &db).await?;
+form.save_with(SaveContext::Update, &db).await?;
+form.save_with(SaveContext::Delete, &db).await?;
 ```
 
 ### Implémentation complète

@@ -10,12 +10,14 @@
 //! Only this module builds an [`Authorized`]: its constructor is
 //! `pub(in crate::auth::gate)`, so a shortcut elsewhere in Runique shows up
 //! as a visibility change in review instead of a quiet call.
+pub mod change;
 pub mod check;
 pub mod decide;
 pub mod operation;
 pub mod proof;
 pub mod refusal;
 pub mod rights;
+pub mod save;
 pub mod write;
 
 #[cfg(test)]
@@ -28,10 +30,11 @@ pub use refusal::Refusal;
 pub use rights::{Crud, CrudAction, Scope};
 
 /// Request extension set once a request is inside the admin's constraint: its
-/// panel and the routes declared `admin`. Only Runique can build one, so no
-/// middleware of the app can put a form under or out of the gate.
-#[derive(Clone, Copy, Debug)]
-pub(crate) struct AdminConstraint;
+/// panel and the routes declared `admin`. Carries the account the middleware
+/// just read back, so the gate decides on it and never on `req.user`, which
+/// the handler can change. Only Runique can build one.
+#[derive(Clone, Debug)]
+pub(crate) struct AdminConstraint(pub(crate) crate::auth::current_user::CurrentUser);
 
 /// Value type of an entity's primary key.
 pub type PkOf<E> = <<E as sea_orm::EntityTrait>::PrimaryKey as sea_orm::PrimaryKeyTrait>::ValueType;
