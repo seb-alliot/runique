@@ -29,7 +29,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_database(db)
         .with_log(|l| l.dev())
         .with_mailer_from_env()
-        .with_password_reset(|pr| {
+        .with_password_reset(|mut pr| {
+            pr.max_requests = 10;
+            pr.retry_after = 600;
             pr.forgot_template("auth/forgot_password.html")
                 .reset_template("auth/reset_password.html")
         })

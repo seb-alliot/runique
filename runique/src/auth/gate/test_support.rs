@@ -47,6 +47,10 @@ pub(crate) mod fixtures {
 
     impl crate::forms::field::RuniqueForm for NoteForm {}
 
+    impl crate::forms::FormEntity for NoteForm {
+        type Entity = note::Entity;
+    }
+
     impl crate::auth::meta::ModelMeta for note::Entity {
         const KEY: &'static str = "notes";
         type Form = NoteForm;

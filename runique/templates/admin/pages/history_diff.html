@@ -1,0 +1,43 @@
+{% extends "admin_base.html" %}
+{% block title %}Historique — {{ entry.resource_title }} #{{ entry.object_pk }}{% endblock %}
+{% block breadcrumb %}
+  <span class="admin-topbar__sep">/</span>
+  <a href="{% link "admin_history" %}">Historique</a>
+  <span class="admin-topbar__sep">/</span>
+  <span>#{{ entry.id }}</span>
+{% endblock %}
+{% block content %}
+  {% block history_entry_header %}
+  <div class="admin-page__header">
+    <div>
+      <h1 class="admin-page__title">{{ entry.resource_title }} — {% if entry.object_label %}{{ entry.object_label }}{% else %}#{{ entry.object_pk }}{% endif %}</h1>
+      <p class="admin-page__subtitle">{{ entry.created_at }} · {{ entry.username }} · {% include "admin/blocks/history/action_badge.html" %}</p>
+    </div>
+    <div class="admin-page__actions">
+      <a href="{% link "admin_history" %}?resource={{ entry.resource_key | urlencode }}&object={{ entry.object_pk | urlencode }}" class="btn btn-secondary btn-sm">Toute l'histoire de cette ligne</a>
+    </div>
+  </div>
+  {% endblock %}
+  {% block history_entry_changes %}
+  <div class="admin-card">
+    {% if changes | length > 0 %}
+    <div class="admin-table__wrapper">
+      <table class="admin-table">
+        <thead><tr><th>Colonne</th><th>Avant</th><th>Après</th></tr></thead>
+        <tbody>
+          {% for change in changes %}
+          <tr>
+            <td class="admin-table__key">{{ change.column | replace(from="_", to=" ") }}</td>
+            <td>{{ change.old }}</td>
+            <td>{{ change.new }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="admin-empty-state"><p class="admin-empty-state__title">Aucun changement lisible</p></div>
+    {% endif %}
+  </div>
+  {% endblock %}
+{% endblock %}

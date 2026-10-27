@@ -86,6 +86,20 @@ impl PathAdminTemplate {
             runique: "admin/bulk_edit.html",
         }
     }
+    /// Default template for the admin history (`admin/history.html`), no dev override.
+    pub fn history() -> Self {
+        Self {
+            dev: None,
+            runique: "admin/history.html",
+        }
+    }
+    /// Default template for one history entry (`admin/history_diff.html`), no dev override.
+    pub fn history_diff() -> Self {
+        Self {
+            dev: None,
+            runique: "admin/history_diff.html",
+        }
+    }
 }
 
 /// Global configuration for admin templates.
@@ -117,6 +131,8 @@ pub struct AdminTemplate {
     /// Template for HTMX partial responses (fragment only, no layout).
     pub htmx: PathAdminTemplate,
     pub bulk_edit: PathAdminTemplate,
+    pub history: PathAdminTemplate,
+    pub history_diff: PathAdminTemplate,
 }
 
 impl AdminTemplate {
@@ -134,6 +150,8 @@ impl AdminTemplate {
             base: PathAdminTemplate::base(),
             htmx: PathAdminTemplate::htmx(),
             bulk_edit: PathAdminTemplate::bulk_edit(),
+            history: PathAdminTemplate::history(),
+            history_diff: PathAdminTemplate::history_diff(),
         }
     }
     /// Overrides the dashboard template with a developer-provided path.
@@ -194,6 +212,18 @@ impl AdminTemplate {
     #[must_use]
     pub fn with_bulk_edit(mut self, path: &str) -> Self {
         self.bulk_edit.dev = Some(path.to_string());
+        self
+    }
+    /// Overrides the history template with a developer-provided path.
+    #[must_use]
+    pub fn with_history(mut self, path: &str) -> Self {
+        self.history.dev = Some(path.to_string());
+        self
+    }
+    /// Overrides one history entry's template with a developer-provided path.
+    #[must_use]
+    pub fn with_history_diff(mut self, path: &str) -> Self {
+        self.history_diff.dev = Some(path.to_string());
         self
     }
 }

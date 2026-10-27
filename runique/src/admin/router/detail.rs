@@ -1,4 +1,5 @@
 //! `GET {admin}/{resource}/{id}/detail`: one row of a model.
+use super::context::{DetailContext, ResourceRef, put};
 use super::{chrome, failure, unknown_resource};
 use crate::admin::builder::site::AdminSite;
 use crate::admin::router::AdminView;
@@ -30,23 +31,45 @@ pub(crate) async fn detail_view(
         Err(error) => return failure(error, &req, &admin).await,
     };
     let key = model.key();
+    let rights = model.rights(&user);
+    // The rank of an account below the viewer's, offered to change.
+    let mut rank_choices = Vec::new();
+    let mut current_rank = None;
+    if model.is_account_table()
+        && let Ok(pk) = id.parse::<crate::utils::pk::Pk>()
+        && let Some(account) =
+            crate::auth::user::BuiltinUserEntity::find_by_id(&req.engine.db, pk).await
+    {
+        let rang = crate::auth::permissions::rang::Rang::from(&account);
+        if rang < user.rang && account.id != user.id {
+            rank_choices = super::rank::rank_choices(user.rang);
+            current_rank = Some(match rang {
+                crate::auth::permissions::rang::Rang::Lambda => "lambda",
+                crate::auth::permissions::rang::Rang::Admin => "admin",
+                crate::auth::permissions::rang::Rang::Dirigeant => "dirigeant",
+                crate::auth::permissions::rang::Rang::Superuser => "superuser",
+            });
+        }
+    }
 
     chrome(&mut req, &admin, &site, &user, key);
     insert_admin_messages(&mut req.context, "detail");
     insert_admin_messages(&mut req.context, "list");
-    req = req
-        .insert(
-            "resource",
-            serde_json::json!({ "key": key, "title": model.title() }),
-        )
-        .insert("resource_key", key)
-        .insert("resource_base", format!("{}/{key}", admin.config.prefix))
-        .insert("current_page", "detail")
-        .insert("object_id", &id)
-        .insert("entry", &entry)
-        .insert("rich_fields", Vec::<String>::new())
-        // Reading only, until writing goes through the gate: no action is offered.
-        .insert("can_update", false)
-        .insert("can_reset_password", false);
+    put(
+        &mut req,
+        &DetailContext {
+            resource: ResourceRef::new(key, model.title()),
+            resource_key: key,
+            current_page: "detail",
+            object_id: id,
+            entry,
+            rich_fields: Vec::new(),
+            can_update: rights.can_update || rights.can_update_own,
+            can_delete: rights.can_delete || rights.can_delete_own,
+            can_reset_password: model.is_account_table() && rights.can_update,
+            rank_choices,
+            current_rank,
+        },
+    )?;
     req.render(admin.config.templates.detail.resolve())
 }

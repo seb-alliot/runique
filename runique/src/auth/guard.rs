@@ -198,7 +198,8 @@ impl LoginGuard {
     }
 
     /// Cleanup cadence, capped so expired entries aren't retained for a full
-    /// long lockout period.
+    /// long lockout period. Only the admin's login spawns that cleanup.
+    #[cfg(feature = "admin")]
     pub(crate) fn cleanup_interval(&self) -> tokio::time::Duration {
         tokio::time::Duration::from_secs(self.lockout_secs.clamp(1, 60))
     }

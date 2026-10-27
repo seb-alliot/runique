@@ -180,15 +180,11 @@ impl<P> RuniqueAppBuilder<P> {
         let router = router.unwrap_or_default();
 
         // The admin's emailed reset links point to the reset page this app
-        // serves, and its "view site" link, unless set, is the app's public URL.
+        // serves. Its "view site" link stays `/` unless set: on the host the
+        // browser is on, so the session cookie follows.
         #[cfg(feature = "admin")]
-        {
-            if let Some(pr) = &self.password_reset {
-                self.admin.config.reset_route = pr.config.reset_route.clone();
-            }
-            if self.admin.config.view_site_url.is_none() {
-                self.admin.config.view_site_url = engine.config.server.public_url.clone();
-            }
+        if let Some(pr) = &self.password_reset {
+            self.admin.config.reset_route = pr.config.reset_route.clone();
         }
 
         let router = if let Some(pr) = self.password_reset {

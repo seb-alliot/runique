@@ -1,0 +1,11 @@
+{# What is about to be deleted, and that it can't be undone. #}
+<div class="admin-warning">
+  <p>
+    <strong>{% if admin_delete_warning_title %}{{ admin_delete_warning_title }}{% endif %}</strong>
+    {% if admin_delete_warning_desc %}{{ admin_delete_warning_desc }}{% endif %}
+    <strong>#{{ object_id }}</strong>
+    {% if admin_delete_warning_of %}{{ admin_delete_warning_of }}{% endif %}
+    <strong>{{ resource.title }}</strong>.
+  </p>
+  <p>{% if admin_delete_warning_irreversible %}{{ admin_delete_warning_irreversible }}{% endif %}</p>
+</div>

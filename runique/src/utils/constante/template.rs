@@ -66,40 +66,106 @@ pub const AUTH_TEMPLATES: &[(&str, &str)] = tpls![
 /// notification emails…), `(tera_name, embedded_content)` pairs — see
 /// [`SIMPLE_TEMPLATES`].
 pub const ADMIN_TEMPLATES: &[(&str, &str)] = tpls![
-    ("admin/admin_template.html", "admin/admin_template.html"),
-    ("admin_base.html", "admin/admin_base.html"),
-    ("admin/login.html", "admin/composant/login.html"),
-    ("admin/dashboard.html", "admin/composant/dashboard.html"),
-    ("admin/list.html", "admin/composant/list.html"),
+    // Layout: the page frame every admin page extends.
     (
-        "admin/list_partial.html",
-        "admin/composant/list_partial.html"
+        "admin/admin_template.html",
+        "admin/layout/admin_template.html"
     ),
-    ("admin/create.html", "admin/composant/create.html"),
-    ("admin/edit.html", "admin/composant/edit.html"),
-    ("admin/detail.html", "admin/composant/detail.html"),
-    ("admin/delete.html", "admin/composant/delete.html"),
-    ("admin/kebab.html", "admin/composant/kebab.html"),
-    ("admin/history.html", "admin/composant/history.html"),
-    (
-        "admin/history_diff.html",
-        "admin/composant/history_diff.html"
-    ),
+    ("admin_base.html", "admin/layout/admin_base.html"),
+    // Pages: what a route renders, assembled from blocks.
+    ("admin/login.html", "admin/pages/login.html"),
+    ("admin/dashboard.html", "admin/pages/dashboard.html"),
+    ("admin/list.html", "admin/pages/list.html"),
+    ("admin/create.html", "admin/pages/create.html"),
+    ("admin/edit.html", "admin/pages/edit.html"),
+    ("admin/detail.html", "admin/pages/detail.html"),
+    ("admin/delete.html", "admin/pages/delete.html"),
+    ("admin/history.html", "admin/pages/history.html"),
+    ("admin/history_diff.html", "admin/pages/history_diff.html"),
     (
         "admin/history_timeline.html",
-        "admin/composant/history_timeline.html"
+        "admin/pages/history_timeline.html"
+    ),
+    ("admin/history_batch.html", "admin/pages/history_batch.html"),
+    ("admin/bulk_edit.html", "admin/pages/bulk_edit.html"),
+    // Blocks: named by their path, so a project replaces one by putting a
+    // file at the same path in its own templates.
+    (
+        "admin/blocks/layout/sidebar.html",
+        "admin/blocks/layout/sidebar.html"
     ),
     (
-        "admin/history_batch.html",
-        "admin/composant/history_batch.html"
+        "admin/blocks/layout/topbar_actions.html",
+        "admin/blocks/layout/topbar_actions.html"
     ),
-    ("admin/bulk_edit.html", "admin/composant/bulk_edit.html"),
+    (
+        "admin/list_partial.html",
+        "admin/blocks/list/list_partial.html"
+    ),
+    (
+        "admin/blocks/list/search.html",
+        "admin/blocks/list/search.html"
+    ),
+    ("admin/blocks/list/bulk.html", "admin/blocks/list/bulk.html"),
+    (
+        "admin/blocks/list/table.html",
+        "admin/blocks/list/table.html"
+    ),
+    (
+        "admin/blocks/list/pagination.html",
+        "admin/blocks/list/pagination.html"
+    ),
+    (
+        "admin/blocks/list/filters.html",
+        "admin/blocks/list/filters.html"
+    ),
+    (
+        "admin/blocks/detail/actions.html",
+        "admin/blocks/detail/actions.html"
+    ),
+    (
+        "admin/blocks/detail/fields.html",
+        "admin/blocks/detail/fields.html"
+    ),
+    (
+        "admin/blocks/form/fields.html",
+        "admin/blocks/form/fields.html"
+    ),
+    (
+        "admin/blocks/form/actions.html",
+        "admin/blocks/form/actions.html"
+    ),
+    (
+        "admin/blocks/delete/warning.html",
+        "admin/blocks/delete/warning.html"
+    ),
+    (
+        "admin/blocks/delete/actions.html",
+        "admin/blocks/delete/actions.html"
+    ),
+    (
+        "admin/blocks/history/action_badge.html",
+        "admin/blocks/history/action_badge.html"
+    ),
+    (
+        "admin/blocks/history/filters.html",
+        "admin/blocks/history/filters.html"
+    ),
+    (
+        "admin/blocks/history/table.html",
+        "admin/blocks/history/table.html"
+    ),
+    (
+        "admin/blocks/common/kebab.html",
+        "admin/blocks/common/kebab.html"
+    ),
+    // Emails sent by the admin.
     (
         "admin/reset_password_email.html",
-        "admin/reset_password_email.html"
+        "admin/emails/reset_password_email.html"
     ),
     (
         "admin/user_created_email.html",
-        "admin/user_created_email.html"
+        "admin/emails/user_created_email.html"
     ),
 ];

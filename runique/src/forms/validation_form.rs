@@ -125,8 +125,8 @@ where
                 if !model.is_changed() {
                     return Ok(());
                 }
-                for (column, value) in <F::Entity as EntityTrait>::PrimaryKey::iter()
-                    .zip(id.into_value_tuple())
+                for (column, value) in
+                    <F::Entity as EntityTrait>::PrimaryKey::iter().zip(id.into_value_tuple())
                 {
                     model.set(column.into_column(), value);
                 }

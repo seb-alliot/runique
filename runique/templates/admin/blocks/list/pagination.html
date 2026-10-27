@@ -1,0 +1,22 @@
+{# Previous / next page, kept in the current sort, search and filters. #}
+{% if page_count is defined and page_count > 1 %}
+<div class="admin-pagination">
+  {% if has_prev %}
+    <a href="?page={{ prev_page }}{% if sort_by %}&sort_by={{ sort_by }}&sort_dir={{ sort_dir }}{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}{{ filter_qs }}"
+      hx-get="?page={{ prev_page }}{% if sort_by %}&sort_by={{ sort_by }}&sort_dir={{ sort_dir }}{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}{{ filter_qs }}"
+      hx-target="#list-content" hx-swap="outerHTML" hx-push-url="true"
+      class="btn btn-sm btn-secondary">&laquo;</a>
+  {% else %}
+    <span class="btn btn-sm btn-secondary disabled">&laquo;</span>
+  {% endif %}
+  <span class="admin-pagination__info">{{ page }} / {{ page_count }}</span>
+  {% if has_next %}
+    <a href="?page={{ next_page }}{% if sort_by %}&sort_by={{ sort_by }}&sort_dir={{ sort_dir }}{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}{{ filter_qs }}"
+      hx-get="?page={{ next_page }}{% if sort_by %}&sort_by={{ sort_by }}&sort_dir={{ sort_dir }}{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}{{ filter_qs }}"
+      hx-target="#list-content" hx-swap="outerHTML" hx-push-url="true"
+      class="btn btn-sm btn-secondary">&raquo;</a>
+  {% else %}
+    <span class="btn btn-sm btn-secondary disabled">&raquo;</span>
+  {% endif %}
+</div>
+{% endif %}

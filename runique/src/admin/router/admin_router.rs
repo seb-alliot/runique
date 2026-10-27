@@ -159,12 +159,10 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
     //   `mount_prefix` — the segment `.prefix()` puts in front (`/secret`)
     //   `prefix`       — the public base (`/secret/site-admin`), what a visitor types
     //
-    // Built-in routes are declared through `urlpatterns!`, which registers their
-    // name in the URL registry with the literal path given here — so they must be
-    // built with the PUBLIC base, otherwise `{% url "admin_login" %}` resolves to
-    // a path the router no longer serves. The generated CRUD router carries no
-    // names (its routes are dynamic `{resource}/{action}`), so it is the only one
-    // that gets `nest()`ed under the mount prefix.
+    // Every admin route is declared through `urlpatterns!`, which registers its
+    // name in the URL registry with the literal path given here — so they are
+    // all built with the PUBLIC base, otherwise `{% url "admin_login" %}` or
+    // `{% link "admin_detail" … %}` resolves to a path the router doesn't serve.
     let admin_path = admin_staging
         .config
         .prefix
@@ -227,7 +225,7 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
         }
     }
     let site = Arc::new(site);
-    let generated_router = crate::admin::router::refonte_router(&admin_path, site.clone());
+    let generated_router = crate::admin::router::refonte_router(&prefix, site.clone());
     // Outside `load_admin_user` and `admin_access`: at the site's own paths,
     // a refusal must neither reveal the admin's prefix nor close the session.
     // `route_layer`: an unmatched path stays a 404 instead of a redirect. It
@@ -242,14 +240,6 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
             })
             .route_layer(middleware::from_fn(declared_route_access))
             .route_layer(Extension(site.clone()))
-    };
-
-    // Mount prefix applies only to generated admin paths. Declarative routes
-    // retain their literal application paths.
-    let generated_router = if mount_prefix.is_empty() {
-        generated_router
-    } else {
-        Router::new().nest(&mount_prefix, generated_router)
     };
 
     // Assembly: (public + (protected + generated) behind the admin's own

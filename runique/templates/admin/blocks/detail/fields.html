@@ -1,0 +1,33 @@
+{# The row, one line per readable column; a password column never shows its value. #}
+<div class="admin-card">
+  <div class="admin-table__wrapper">
+    <table class="admin-table">
+      <tbody>
+        <tr>
+          <td class="admin-table__key">id</td>
+          <td><span class="admin-badge--id">#{{ object_id }}</span></td>
+        </tr>
+        {% for key, value in entry %}
+          {% if key != "id" %}
+          <tr>
+            <td class="admin-table__key">{{ key | replace(from="_", to=" ") }}</td>
+            <td>
+              {% if key == "password" or key == "password_hash" %}
+                <span class="admin-badge--id">••••••••</span>
+              {% elif value == true %}
+                <span class="admin-badge admin-badge--green">{% if admin_list_bool_true %}{{ admin_list_bool_true }}{% endif %}</span>
+              {% elif value == false %}
+                <span class="admin-badge admin-badge--neutral">{% if admin_list_bool_false %}{{ admin_list_bool_false }}{% endif %}</span>
+              {% elif value %}
+                {% if rich_fields and key in rich_fields %}{{ value | sanitize }}{% else %}{{ value }}{% endif %}
+              {% else %}
+                <span class="admin-text--muted">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>

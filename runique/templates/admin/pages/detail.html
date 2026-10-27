@@ -1,0 +1,26 @@
+{% extends "admin_base.html" %}
+{% block title %}{% if admin_detail_title %}{{ admin_detail_title }}{% endif %} — {{ resource.title | default(value=resource_key) }} #{{ object_id }}{% endblock %}
+{% block breadcrumb %}
+  {% if parent_key %}
+  <span class="admin-topbar__sep">/</span>
+  <a href="{{ parent_base }}/{{ parent_id }}/detail">{{ parent_title }}</a>
+  {% endif %}
+  <span class="admin-topbar__sep">/</span>
+  <a href="{% link "admin_list" resource=resource_key %}">{{ resource.title | default(value=resource_key) }}</a>
+  <span class="admin-topbar__sep">/</span>
+  <span>{% if admin_detail_breadcrumb %}{{ admin_detail_breadcrumb }}{% endif %} #{{ object_id }}</span>
+{% endblock %}
+{% block content %}
+  {% block detail_header %}
+  <div class="admin-page__header" data-admin-auto-init>
+    <div>
+      <h1 class="admin-page__title">{% if admin_detail_title %}{{ admin_detail_title }}{% endif %} — {{ resource.title | default(value=resource_key) }}</h1>
+      <p class="admin-page__subtitle">{% if admin_detail_entry_label %}{{ admin_detail_entry_label }}{% endif %} #{{ object_id }}</p>
+    </div>
+    {% block detail_actions %}{% include "admin/blocks/detail/actions.html" %}{% endblock %}
+  </div>
+  {% endblock %}
+  {% block detail_table %}{% include "admin/blocks/detail/fields.html" %}{% endblock %}
+  <script {% csp %} src="{{ "js/admin/admin-actions.js" | runique_static }}"></script>
+  <script {% csp %} src="{{ "js/admin/admin-kebab.js" | runique_static }}"></script>
+{% endblock %}

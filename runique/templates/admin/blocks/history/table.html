@@ -1,0 +1,43 @@
+{# The entries, newest first: when, who, what, which row, and its changes. #}
+<div class="admin-card">
+  {% if entries | length > 0 %}
+  <div class="admin-table__wrapper">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Compte</th>
+          <th>Ressource</th>
+          <th>Objet</th>
+          <th>Action</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in entries %}
+        <tr>
+          <td>{{ entry.created_at }}</td>
+          <td><a href="{% link "admin_history" %}?user={{ entry.username | urlencode }}">{{ entry.username }}</a></td>
+          <td>{{ entry.resource_title }}</td>
+          <td>
+            <a href="{% link "admin_history" %}?resource={{ entry.resource_key | urlencode }}&object={{ entry.object_pk | urlencode }}">
+              {% if entry.object_label %}{{ entry.object_label }}{% else %}#{{ entry.object_pk }}{% endif %}
+            </a>
+          </td>
+          <td>{% include "admin/blocks/history/action_badge.html" %}</td>
+          <td class="admin-table__td-actions">
+            {% if entry.has_changes %}
+            <a href="{% link "admin_history_entry" id=entry.id %}" class="btn btn-ghost btn-sm">Détail</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="admin-empty-state">
+    <p class="admin-empty-state__title">Aucune action enregistrée</p>
+  </div>
+  {% endif %}
+</div>

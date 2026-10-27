@@ -113,14 +113,17 @@ async fn save_profile(
         db,
         "profile",
         &[("id", id)],
-        &[("username", username), ("email", &email), ("avatar", avatar)],
+        &[
+            ("username", username),
+            ("email", &email),
+            ("avatar", avatar),
+        ],
     );
-    let form = match ValidationForm::try_form(req.form::<user_profile::Form>(), &req, "profile")
-        .await
-    {
-        Ok(form) => form,
-        Err(form) => return Ok(Err(format!("invalid: {:?}", form.get_form().errors()))),
-    };
+    let form =
+        match ValidationForm::try_form(req.form::<user_profile::Form>(), &req, "profile").await {
+            Ok(form) => form,
+            Err(form) => return Ok(Err(format!("invalid: {:?}", form.get_form().errors()))),
+        };
     Ok(match form.save(db).await {
         Ok(_) => Ok(()),
         Err(form) => Err(format!("refused: {:?}", form.get_form().errors())),
@@ -182,7 +185,11 @@ async fn a_path_sent_as_text_is_never_taken_for_an_upload() -> Result<(), TestFa
     runique_test::<ADb>(super::ENV, async |db| {
         let username = unique("text");
         let id = account(db, &username, Some("avatars/kept.png")).await?;
-        for sent in ["/etc/passwd", "../../Cargo.toml", "avatars/someone_else.png"] {
+        for sent in [
+            "/etc/passwd",
+            "../../Cargo.toml",
+            "avatars/someone_else.png",
+        ] {
             let _ = save_profile(db, &id.to_string(), &username, sent).await?;
             match avatar_of(db, id).await?.as_deref() {
                 Some("avatars/kept.png") => {}
@@ -231,7 +238,11 @@ async fn validated_profile(
         db,
         "profile",
         &[("id", id)],
-        &[("username", username), ("email", &email), ("avatar", avatar)],
+        &[
+            ("username", username),
+            ("email", &email),
+            ("avatar", avatar),
+        ],
     );
     ValidationForm::try_form(req.form::<user_profile::Form>(), &req, "profile")
         .await

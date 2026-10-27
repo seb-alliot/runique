@@ -1,0 +1,26 @@
+{% extends "admin_base.html" %}
+{% block title %}{% if admin_delete_title %}{{ admin_delete_title }}{% endif %} — {{ resource.title }}{% endblock %}
+{% block breadcrumb %}
+  <span class="admin-topbar__sep">/</span>
+  <a href="{% link "admin_list" resource=resource_key %}">{{ resource.title }}</a>
+  <span class="admin-topbar__sep">/</span>
+  <a href="{{ cancel_url }}">#{{ object_id }}</a>
+  <span class="admin-topbar__sep">/</span>
+  <span>{% if admin_delete_breadcrumb %}{{ admin_delete_breadcrumb }}{% endif %}</span>
+{% endblock %}
+{% block content %}
+  {% block delete_header %}
+  <div class="admin-page__header">
+    <h1>{% if admin_delete_heading %}{{ admin_delete_heading }}{% endif %}</h1>
+  </div>
+  {% endblock %}
+
+  {# No right is checked here: the gate refused the page before any rendering,
+     and decides again on the delete. #}
+  <div class="admin-card">
+    <div class="admin-card__body">
+      {% block delete_warning %}{% include "admin/blocks/delete/warning.html" %}{% endblock %}
+      {% block delete_actions %}{% include "admin/blocks/delete/actions.html" %}{% endblock %}
+    </div>
+  </div>
+{% endblock %}
