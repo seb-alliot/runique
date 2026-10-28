@@ -209,7 +209,9 @@ impl<E: ModelMeta> ModelAdmin<E> {
                     || col.auto_now
                     || col.auto_now_update
                     || col.ignored
-                    || (E::IS_ACCOUNT_TABLE && name == "password");
+                    || (E::IS_ACCOUNT_TABLE && name == "password")
+                    // The gate sets it to the account creating the row.
+                    || E::OWNER.is_some_and(|owner| owner.as_str() == name);
                 if filled_elsewhere || self.form.writable_on_create(name) {
                     continue;
                 }
@@ -462,6 +464,7 @@ mod tests {
             pub token: String,
             pub password: String,
             pub published: bool,
+            pub owner_id: i32,
         }
 
         #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -499,6 +502,7 @@ mod tests {
             const KEY: &'static str = "articles";
             type Form = ArticleForm;
             const SECRET: &'static [Column] = &[Column::Password];
+            const OWNER: Option<Column> = Some(Column::OwnerId);
             fn schema() -> crate::migration::schema::ModelSchema {
                 use crate::migration::ColumnDef;
                 crate::migration::ModelSchema::new("Article")
@@ -536,6 +540,7 @@ mod tests {
                             .required()
                             .default(false.into()),
                     )
+                    .column(ColumnDef::new("owner_id").integer().required())
                     .build()
                     .unwrap()
             }
@@ -777,6 +782,38 @@ mod tests {
         assert_eq!(keys, ["id", "owner_id"]);
     }
 
+    /// The values a filter offers for `Id`, to account `id` holding `rights`.
+    async fn filter_values_for(id: crate::utils::pk::Pk, rights: [bool; 7]) -> Vec<String> {
+        let db = db().await;
+        let reader = staff(id, "notes", rights);
+        let ctx = GateCtx {
+            db: &db,
+            user: &reader,
+        };
+        let proof = authorize_list::<Entity>(&ctx).unwrap();
+        let admin =
+            ModelAdmin::<Entity>::new().list(|l| l.display([Column::Id]).filter([Column::Id]));
+        let page = admin
+            .fetch_list(&db, &proof, &ListQuery::default(), 25)
+            .await
+            .unwrap();
+        let mut values = page.filters.into_iter().next().unwrap().values;
+        values.sort();
+        values
+    }
+
+    /// A filter offers the values of the rows the account reads, never more:
+    /// through `read_own` alone, another's row would show in the panel what
+    /// the list hides.
+    #[tokio::test]
+    async fn a_filter_offers_only_the_values_in_reach() {
+        let read = [false, true, false, false, false, false, false];
+        let read_own = [false, false, true, false, false, false, false];
+        assert_eq!(filter_values_for(pk(10), read).await, ["1", "2", "3"]);
+        assert_eq!(filter_values_for(pk(10), read_own).await, ["1"]);
+        assert_eq!(filter_values_for(pk(20), read_own).await, ["2"]);
+    }
+
     #[tokio::test]
     async fn a_filter_narrows_rows_and_total_alike() {
         let query = ListQuery {
@@ -992,7 +1029,14 @@ mod tests {
         let admin =
             ModelAdmin::<article::Entity>::new().form(|f| f.fields([article::Column::Title]));
         let error = admin.validate().unwrap_err();
-        for name in ["status", "created_at", "updated_at", "summary", "token"] {
+        for name in [
+            "status",
+            "created_at",
+            "updated_at",
+            "summary",
+            "token",
+            "owner_id",
+        ] {
             assert!(!error.contains(&format!("`{name}`")), "{name}: {error}");
         }
     }

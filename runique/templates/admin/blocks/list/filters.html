@@ -3,8 +3,8 @@
 <div class="admin-filter__overlay" id="filterOverlay"></div>
 <aside class="admin-filter__sidebar" id="filterSidebar" data-resource="{{ resource.key }}">
   <div class="admin-filter__header">
-    <span class="admin-filter__title">Filtres</span>
-    <button class="admin-filter__toggle" id="filterToggle" title="Masquer les filtres">
+    <span class="admin-filter__title">{{ admin_list_filters }}</span>
+    <button class="admin-filter__toggle" id="filterToggle" title="{{ admin_list_filters_hide }}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
         <polyline points="9 18 15 12 9 6"/>
       </svg>
@@ -28,7 +28,7 @@
           <a href="?{% for k, v in active_filters %}{% if k != col and v %}filter_{{ k }}={{ v | urlencode }}&{% endif %}{% endfor %}{% if sort_by %}sort_by={{ sort_by }}&sort_dir={{ sort_dir }}&{% endif %}{% if search %}search={{ search | urlencode }}&{% endif %}page=1"
             hx-get="?{% for k, v in active_filters %}{% if k != col and v %}filter_{{ k }}={{ v | urlencode }}&{% endif %}{% endfor %}{% if sort_by %}sort_by={{ sort_by }}&sort_dir={{ sort_dir }}&{% endif %}{% if search %}search={{ search | urlencode }}&{% endif %}page=1"
             hx-target="#list-content" hx-swap="outerHTML" hx-push-url="true"
-            class="admin-filter__option admin-filter__option--clear">✕ Tout</a>
+            class="admin-filter__option admin-filter__option--clear">{{ admin_list_filters_clear }}</a>
           {% endif %}
           {% for val in values %}
             {% set is_active = active_filters[col] == val %}

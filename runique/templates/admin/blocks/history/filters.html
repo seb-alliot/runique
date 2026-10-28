@@ -1,21 +1,21 @@
 {# Narrow the history to one model, one action, one account or one row. #}
 <form method="GET" action="{{ history_url }}" class="admin-search__row">
   <select name="resource" class="admin-search__input">
-    <option value="">Toutes les ressources</option>
+    <option value="">{{ admin_history_all_resources }}</option>
     {% for resource in history_resources %}
       <option value="{{ resource.key }}" {% if filter_resource == resource.key %}selected{% endif %}>{{ resource.title }}</option>
     {% endfor %}
   </select>
   <select name="action" class="admin-search__input">
-    <option value="">Toutes les actions</option>
-    <option value="create" {% if filter_action == "create" %}selected{% endif %}>Créé</option>
-    <option value="update" {% if filter_action == "update" %}selected{% endif %}>Modifié</option>
-    <option value="delete" {% if filter_action == "delete" %}selected{% endif %}>Supprimé</option>
+    <option value="">{{ admin_history_all_actions }}</option>
+    <option value="create" {% if filter_action == "create" %}selected{% endif %}>{{ admin_history_action_create }}</option>
+    <option value="update" {% if filter_action == "update" %}selected{% endif %}>{{ admin_history_action_update }}</option>
+    <option value="delete" {% if filter_action == "delete" %}selected{% endif %}>{{ admin_history_action_delete }}</option>
   </select>
   {% if filter_object %}<input type="hidden" name="object" value="{{ filter_object }}">{% endif %}
   {% if filter_user %}<input type="hidden" name="user" value="{{ filter_user }}">{% endif %}
-  <button type="submit" class="btn btn-secondary">Filtrer</button>
+  <button type="submit" class="btn btn-secondary">{{ admin_history_btn_filter }}</button>
   {% if filter_resource or filter_action or filter_object or filter_user %}
-    <a href="{{ history_url }}" class="btn btn-ghost">Réinitialiser</a>
+    <a href="{{ history_url }}" class="btn btn-ghost">{{ admin_history_btn_reset }}</a>
   {% endif %}
 </form>

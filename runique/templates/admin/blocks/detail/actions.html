@@ -13,7 +13,7 @@
   </form>
   {% endif %}
   {% if rights_url %}
-  <a href="{{ rights_url }}" class="btn btn-secondary btn-sm">Droits</a>
+  <a href="{{ rights_url }}" class="btn btn-secondary btn-sm">{{ admin_detail_btn_rights }}</a>
   {% endif %}
   {% if rank_url %}
   <form method="POST" action="{{ rank_url }}" class="admin-form--inline">
@@ -25,7 +25,7 @@
       <option value="{{ choice[0] }}" {% if choice[0] == current_rank %}selected{% endif %}>{{ choice[1] }}</option>
       {% endfor %}
     </select>
-    <button type="submit" class="btn btn-secondary btn-sm">Changer le rang</button>
+    <button type="submit" class="btn btn-secondary btn-sm">{{ admin_detail_btn_rank }}</button>
   </form>
   {% endif %}
   {% if links.delete %}

@@ -40,14 +40,15 @@ const TABLE_RIGHTS: [&str; 7] = [
     "delete",
     "delete_own",
 ];
+/// The translation key of each table right's label, in `TABLE_RIGHTS`' order.
 const TABLE_LABELS: [&str; 7] = [
-    "Créer",
-    "Lister / lire",
-    "Lire les siennes",
-    "Modifier",
-    "Modifier les siennes",
-    "Supprimer",
-    "Supprimer les siennes",
+    "admin.rights.right_create",
+    "admin.rights.right_read",
+    "admin.rights.right_read_own",
+    "admin.rights.right_update",
+    "admin.rights.right_update_own",
+    "admin.rights.right_delete",
+    "admin.rights.right_delete_own",
 ];
 
 fn table_box(key: &str, right: &str) -> String {
@@ -88,7 +89,7 @@ fn grid(site: &AdminSite, rows: &[groupes_droits::Model]) -> Vec<GridTable> {
                     .zip(TABLE_LABELS)
                     .map(|(right, label)| {
                         (
-                            label,
+                            crate::utils::trad::t(label).into_owned(),
                             GridBox {
                                 name: table_box(key, right),
                                 ticked: table_row.is_some_and(|r| table_flag(r, right)),
@@ -228,6 +229,7 @@ pub(crate) async fn rights_view(
     };
     let form_fields = serde_json::to_value(form.get_form()).unwrap_or_default();
     chrome(&mut req, &admin, &site, &user, key);
+    crate::admin::trad::insert_admin_messages(&mut req.context, "rights");
     put(
         &mut req,
         &RightsContext {

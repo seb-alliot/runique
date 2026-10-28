@@ -148,7 +148,7 @@ pub struct DetailContext {
     pub reset_password_url: Option<String>,
     /// On an account the viewer may give a rank to: `(value, label)` of
     /// the ranks below the viewer's. Empty otherwise.
-    pub rank_choices: Vec<(&'static str, &'static str)>,
+    pub rank_choices: Vec<(&'static str, String)>,
     /// That account's rank now (`lambda`, `admin`, `dirigeant`,
     /// `superuser`), when `rank_choices` isn't empty.
     pub current_rank: Option<&'static str>,
@@ -328,7 +328,7 @@ pub struct GridTable {
     pub title: String,
     /// `(label, box)` for create, read, read_own, update, update_own,
     /// delete, delete_own.
-    pub table: Vec<(&'static str, GridBox)>,
+    pub table: Vec<(String, GridBox)>,
     pub columns: Vec<GridColumn>,
 }
 

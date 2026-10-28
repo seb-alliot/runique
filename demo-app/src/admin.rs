@@ -6,14 +6,17 @@
 //! then names them alone, and two models' columns of the same name
 //! (`Email`, `Title`…) never meet.
 use crate::entities::{
-    blog, changelog_entry, chapitre, code_example, contrainte_ia, contribution, demo_category,
-    demo_page, demo_section, doc_block, doc_page, doc_section, form_field, known_issue,
-    page_doc_link, roadmap_entry, runique_release, site_config, user_profile,
+    blog, changelog_entry, chapitre, code_example, contrainte_ia, contribution, cour, cour_block,
+    cour_ia, demo_category, demo_page, demo_section, doc_block, doc_page, doc_section, form_field,
+    known_issue, page_doc_link, roadmap_entry, runique_release, site_config, test_all_field,
+    test_relation_child, test_relation_parent, test_relation_parent_tag, test_relation_profile,
+    test_relation_tag, user_profile,
 };
 use runique::admin::{AdminSite, ModelAdmin};
 use runique::app::staging::AdminStaging;
 use runique::auth::LoginGuard;
 use runique::middleware::rate_limit::RateLimiter;
+use sea_orm::Order;
 
 /// The whole admin, handed to `with_admin` by `main`: the boot test below
 /// checks this very configuration, not a copy.
@@ -44,34 +47,368 @@ fn accounts() -> ModelAdmin<user_profile::Entity> {
 
 fn blog() -> ModelAdmin<blog::Entity> {
     use blog::Column::*;
+    ModelAdmin::new()
+        .list(|l| {
+            l.display([Title, Email, Website, Status])
+                .links([Title])
+                .sortable([Title, Status])
+                .ordering([(Title, Order::Asc)])
+                .search([Title, Summary])
+                .filter([Status])
+                .empty_value("—")
+                .action(Status, "Published", "Publier")
+                .action(Status, "Archived", "Archiver")
+        })
+        // `view_count` has its default (0): read-only, a new article starts there.
+        .form(|f| {
+            f.fields([Title, Email, Website, Summary, Content, Status, ViewCount])
+                .readonly([ViewCount])
+        })
+}
+
+fn changelog_entry() -> ModelAdmin<changelog_entry::Entity> {
+    use changelog_entry::Column::*;
+    ModelAdmin::new()
+        .title("Changelog")
+        .list(|l| {
+            l.display([Version, ReleaseDate, Category, Title])
+                .links([Title])
+                .sortable([Version, ReleaseDate])
+                .ordering([(SortOrder, Order::Asc)])
+                .search([Title, Version])
+                .search_help("Titre ou numéro de version")
+                .filter([Category, Version])
+                .per_page(25)
+        })
+        .form(|f| {
+            f.fields([
+                Version,
+                ReleaseDate,
+                Category,
+                Title,
+                Description,
+                SortOrder,
+            ])
+            .labels([
+                (ReleaseDate, "Date de sortie"),
+                (Category, "Catégorie"),
+                (SortOrder, "Ordre d'affichage"),
+            ])
+        })
+}
+
+fn known_issue() -> ModelAdmin<known_issue::Entity> {
+    use known_issue::Column::*;
+    ModelAdmin::new()
+        .list(|l| {
+            l.display([Version, Title, IssueType])
+                .sortable([Version])
+                .search([Title])
+                .filter([IssueType, Version])
+                .action(IssueType, "Fix", "Marquer corrigé")
+        })
+        .form(|f| f.fields([Version, Title, Description, IssueType, SortOrder]))
+}
+
+fn contribution() -> ModelAdmin<contribution::Entity> {
+    use contribution::Column::*;
+    ModelAdmin::new()
+        .list(|l| {
+            l.display([Title, ContributionType, CreatedAt])
+                .sortable([CreatedAt])
+                .ordering([(CreatedAt, Order::Desc)])
+                .search([Title])
+                .filter([ContributionType])
+        })
+        .form(|f| {
+            f.fields([ContributionType, Title, Content])
+                .create_only([ContributionType])
+        })
+}
+
+fn chapitre() -> ModelAdmin<chapitre::Entity> {
+    use chapitre::Column::*;
+    ModelAdmin::new()
+        .list(|l| {
+            l.display([Title, Slug, CourId, SortOrder])
+                .links([Title])
+                .sortable([Title, SortOrder])
+                .ordering([(CourId, Order::Asc), (SortOrder, Order::Asc)])
+                .search([Title, Slug])
+                .filter([CourId])
+        })
+        .form(|f| {
+            f.fields([CourId, Slug, Title, Lead, SortOrder])
+                .labels([(CourId, "Cours"), (Lead, "Chapeau")])
+        })
+}
+
+fn code_example() -> ModelAdmin<code_example::Entity> {
+    use code_example::Column::*;
     ModelAdmin::new().list(|l| {
-        l.display([Title, Email, Status])
-            .sortable([Title])
-            .search([Title, Summary])
+        l.display([Title, Language, PageId, SortOrder])
+            .ordering([(PageId, Order::Asc), (SortOrder, Order::Asc)])
+            .search([Title, Code])
+            .filter([Language, PageId])
+            .per_page(20)
+    })
+}
+
+fn contrainte_ia() -> ModelAdmin<contrainte_ia::Entity> {
+    use contrainte_ia::Column::*;
+    ModelAdmin::new().title("Contraintes IA").list(|l| {
+        l.display([Lang, ContrainteIa])
+            .search([ContrainteIa])
+            .filter([Lang])
+    })
+}
+
+fn cour() -> ModelAdmin<cour::Entity> {
+    use cour::Column::*;
+    ModelAdmin::new()
+        .title("Cours")
+        .list(|l| {
+            l.display([Title, Lang, Theme, Difficulte, Ordre])
+                .links([Title])
+                .sortable([Title, Ordre])
+                .ordering([(Ordre, Order::Asc)])
+                .search([Title, Slug])
+                .filter([Theme, Difficulte, Lang])
+                .action(Difficulte, "avance", "Marquer avancé")
+        })
+        .form(|f| {
+            f.fields([Slug, Lang, Title, Theme, Difficulte, Ordre, SortOrder])
+                .create_only([Slug])
+                .labels([(Difficulte, "Difficulté")])
+        })
+}
+
+fn cour_block() -> ModelAdmin<cour_block::Entity> {
+    use cour_block::Column::*;
+    ModelAdmin::new().list(|l| {
+        l.display([Heading, BlockType, ChapitreId, SortOrder])
+            .ordering([(ChapitreId, Order::Asc), (SortOrder, Order::Asc)])
+            .search([Heading, Content])
+            .filter([BlockType, ChapitreId])
+            .empty_value("(sans titre)")
+    })
+}
+
+fn cour_ia() -> ModelAdmin<cour_ia::Entity> {
+    use cour_ia::Column::*;
+    ModelAdmin::new().title("Cours IA").list(|l| {
+        l.display([CourId, ContrainteId, SortOrder])
+            .ordering([(CourId, Order::Asc)])
+            .filter([CourId, ContrainteId])
+    })
+}
+
+fn demo_category() -> ModelAdmin<demo_category::Entity> {
+    use demo_category::Column::*;
+    ModelAdmin::new().list(|l| {
+        l.display([Title, BackLinkLabel, BackLinkUrl, SortOrder])
+            .links([Title])
+            .ordering([(SortOrder, Order::Asc)])
+            .search([Title])
+            .empty_value("—")
+    })
+}
+
+fn demo_page() -> ModelAdmin<demo_page::Entity> {
+    use demo_page::Column::*;
+    ModelAdmin::new()
+        .list(|l| {
+            l.display([Title, Slug, PageType, CategoryId])
+                .links([Title])
+                .sortable([Title, Slug])
+                .ordering([(CategoryId, Order::Asc), (SortOrder, Order::Asc)])
+                .search([Title, Slug, Lead])
+                .filter([PageType, CategoryId])
+        })
+        .form(|f| {
+            f.fields([CategoryId, Slug, Title, Lead, PageType, SortOrder])
+                .create_only([Slug])
+        })
+}
+
+fn demo_section() -> ModelAdmin<demo_section::Entity> {
+    use demo_section::Column::*;
+    ModelAdmin::new().list(|l| {
+        l.display([Title, PageId, SortOrder])
+            .ordering([(PageId, Order::Asc), (SortOrder, Order::Asc)])
+            .search([Title, Content])
+            .filter([PageId])
+    })
+}
+
+fn doc_block() -> ModelAdmin<doc_block::Entity> {
+    use doc_block::Column::*;
+    ModelAdmin::new().list(|l| {
+        l.display([Heading, BlockType, PageId, SortOrder])
+            .ordering([(PageId, Order::Asc), (SortOrder, Order::Asc)])
+            .search([Heading, Content])
+            .filter([BlockType, PageId])
+            .empty_value("(sans titre)")
+            .action(BlockType, "Text", "Passer en texte")
+            .per_page(50)
+    })
+}
+
+fn doc_page() -> ModelAdmin<doc_page::Entity> {
+    use doc_page::Column::*;
+    ModelAdmin::new()
+        .list(|l| {
+            l.display([Title, Slug, Lang, SectionId])
+                .links([Title])
+                .sortable([Title, Lang])
+                .ordering([(SectionId, Order::Asc), (SortOrder, Order::Asc)])
+                .search([Title, Slug, Lead])
+                .search_help("Titre, slug ou chapeau")
+                .filter([Lang, SectionId])
+        })
+        .form(|f| {
+            f.fields([SectionId, Slug, Lang, Title, Lead, SortOrder])
+                .labels([(SectionId, "Section"), (Lead, "Chapeau")])
+        })
+}
+
+fn doc_section() -> ModelAdmin<doc_section::Entity> {
+    use doc_section::Column::*;
+    // `theme` is a nullable enum: its filter offers the values set, its
+    // action sets one.
+    ModelAdmin::new().list(|l| {
+        l.display([Title, Theme, Lang, SortOrder])
+            .ordering([(SortOrder, Order::Asc)])
+            .search([Title, Slug])
+            .filter([Theme, Lang])
+            .empty_value("—")
+            .action(Theme, "Autres", "Classer dans Autres")
+    })
+}
+
+fn form_field() -> ModelAdmin<form_field::Entity> {
+    use form_field::Column::*;
+    ModelAdmin::new()
+        .list(|l| {
+            l.display([Name, FieldType, PageId, SortOrder])
+                .ordering([(PageId, Order::Asc), (SortOrder, Order::Asc)])
+                .search([Name, Description])
+                .filter([FieldType])
+        })
+        // `html_preview` is generated, never typed: read-only.
+        .form(|f| {
+            f.fields([
+                PageId,
+                Name,
+                FieldType,
+                Description,
+                Example,
+                HtmlPreview,
+                SortOrder,
+            ])
+            .readonly([HtmlPreview])
+        })
+}
+
+fn page_doc_link() -> ModelAdmin<page_doc_link::Entity> {
+    use page_doc_link::Column::*;
+    ModelAdmin::new().list(|l| {
+        l.display([Label, LinkType, Url, PageId])
+            .links([Label])
+            .ordering([(PageId, Order::Asc), (SortOrder, Order::Asc)])
+            .search([Label, Url])
+            .filter([LinkType])
+    })
+}
+
+fn roadmap_entry() -> ModelAdmin<roadmap_entry::Entity> {
+    use roadmap_entry::Column::*;
+    ModelAdmin::new().title("Roadmap").list(|l| {
+        l.display([Title, Status, SortOrder])
+            .links([Title])
+            .ordering([(SortOrder, Order::Asc)])
+            .search([Title])
             .filter([Status])
+            .action(Status, "Active", "Activer")
+            .action(Status, "Planned", "Planifier")
+            .action(Status, "Future", "Reporter")
+    })
+}
+
+fn runique_release() -> ModelAdmin<runique_release::Entity> {
+    use runique_release::Column::*;
+    ModelAdmin::new().title("Releases").list(|l| {
+        l.display([Version, GithubUrl, CratesUrl, ChangelogFrUrl])
+            .links([Version])
+            .sortable([Version])
+            .ordering([(Version, Order::Desc)])
+            .empty_value("—")
+    })
+}
+
+fn site_config() -> ModelAdmin<site_config::Entity> {
+    use site_config::Column::*;
+    // `is_public` is a nullable boolean with a default.
+    ModelAdmin::new()
+        .list(|l| {
+            l.display([Key, Value, IsPublic])
+                .links([Key])
+                .sortable([Key])
+                .ordering([(SortOrder, Order::Asc)])
+                .search([Key, Description])
+                .filter([IsPublic])
+                .action(IsPublic, true, "Rendre public")
+                .action(IsPublic, false, "Rendre privé")
+        })
+        .form(|f| {
+            f.fields([Key, Value, Description, IsPublic, SortOrder])
+                .create_only([Key])
+        })
+}
+
+/// The field types' test table: one column of each kind, a UUID key while
+/// the project's keys are integers.
+fn test_all_field() -> ModelAdmin<test_all_field::Entity> {
+    use test_all_field::Column::*;
+    ModelAdmin::new().title("Test : tous les champs").list(|l| {
+        l.display([FText, FEmail, FInteger, FCheckbox, FDate, FUuid])
+            .sortable([FText, FInteger, FDate])
+            .ordering([(CreatedAt, Order::Desc)])
+            .search([FText, FEmail])
+            .filter([FCheckbox, FSelect])
+            .empty_value("—")
     })
 }
 
 pub fn site(site: AdminSite) -> AdminSite {
     site.accounts_users(accounts())
         .register(blog())
-        .register(ModelAdmin::<changelog_entry::Entity>::new())
-        .register(ModelAdmin::<chapitre::Entity>::new())
-        .register(ModelAdmin::<code_example::Entity>::new())
-        .register(ModelAdmin::<contrainte_ia::Entity>::new())
-        .register(ModelAdmin::<contribution::Entity>::new())
-        .register(ModelAdmin::<demo_category::Entity>::new())
-        .register(ModelAdmin::<demo_page::Entity>::new())
-        .register(ModelAdmin::<demo_section::Entity>::new())
-        .register(ModelAdmin::<doc_block::Entity>::new())
-        .register(ModelAdmin::<doc_page::Entity>::new())
-        .register(ModelAdmin::<doc_section::Entity>::new())
-        .register(ModelAdmin::<form_field::Entity>::new())
-        .register(ModelAdmin::<known_issue::Entity>::new())
-        .register(ModelAdmin::<page_doc_link::Entity>::new())
-        .register(ModelAdmin::<roadmap_entry::Entity>::new())
-        .register(ModelAdmin::<runique_release::Entity>::new())
-        .register(ModelAdmin::<site_config::Entity>::new())
+        .register(changelog_entry())
+        .register(chapitre())
+        .register(code_example())
+        .register(contrainte_ia())
+        .register(contribution())
+        .register(cour())
+        .register(cour_block())
+        .register(cour_ia())
+        .register(demo_category())
+        .register(demo_page())
+        .register(demo_section())
+        .register(doc_block())
+        .register(doc_page())
+        .register(doc_section())
+        .register(form_field())
+        .register(known_issue())
+        .register(page_doc_link())
+        .register(roadmap_entry())
+        .register(runique_release())
+        .register(site_config())
+        .register(test_all_field())
+        .register(ModelAdmin::<test_relation_child::Entity>::new())
+        .register(ModelAdmin::<test_relation_parent::Entity>::new())
+        .register(ModelAdmin::<test_relation_parent_tag::Entity>::new())
+        .register(ModelAdmin::<test_relation_profile::Entity>::new())
+        .register(ModelAdmin::<test_relation_tag::Entity>::new())
 }
 
 #[cfg(test)]

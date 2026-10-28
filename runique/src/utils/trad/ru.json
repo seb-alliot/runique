@@ -272,12 +272,6 @@
     "groups": "Группы",
     "resource": "Ресурс",
     "resources": "Ресурсы",
-    "can_create": "Создать",
-    "can_read": "Чтение",
-    "can_update": "Изменение",
-    "can_delete": "Удалить",
-    "can_update_own": "Изменение",
-    "can_delete_own": "Удалить",
     "name": "Имя",
     "username": "Имя пользователя",
     "email": "Email",
@@ -308,7 +302,6 @@
       "action_not_allowed": "Действие не разрешено"
     },
     "dashboard": {
-      "title": "Панель управления",
       "subtitle": "Обзор приложения",
       "card_resources": "Ресурсы",
       "th_resource": "Ресурс",
@@ -323,10 +316,10 @@
       "kpi_resources": "Ресурсы",
       "kpi_entries": "Всего записей",
       "kpi_largest": "Наибольшая",
-      "th_count": "Записи"
+      "th_count": "Записи",
+      "toggle_template": "← Настроенный шаблон"
     },
     "list": {
-      "breadcrumb_admin": "Администрирование",
       "entries_count_one": "запись",
       "entries_count_many": "записей",
       "btn_create": "Создать",
@@ -341,7 +334,14 @@
       "empty_title": "Нет записей",
       "empty_desc": "Начните с создания элемента.",
       "btn_create_first": "Создать первый",
-      "search_placeholder": "Поиск..."
+      "search_placeholder": "Поиск...",
+      "bulk_selected": "выбрано",
+      "bulk_delete": "Удалить",
+      "filters": "Фильтры",
+      "filters_hide": "Скрыть фильтры",
+      "filters_clear": "✕ Все",
+      "select_all": "Выбрать все",
+      "row_details": "Подробнее"
     },
     "create": {
       "title": "Создать",
@@ -370,7 +370,9 @@
       "btn_delete": "Удалить",
       "confirm_delete": "Удалить эту запись?",
       "btn_reset_password": "Сбросить пароль",
-      "btn_reset_password_short": "Сбросить"
+      "btn_reset_password_short": "Сбросить",
+      "btn_rights": "Права",
+      "btn_rank": "Изменить ранг"
     },
     "reset_password": {
       "btn": "Сбросить пароль",
@@ -421,7 +423,9 @@
       "toggle": "Свернуть меню",
       "logout_title": "Выход",
       "theme_toggle": "Сменить тему",
-      "back_to_site": "← Сайт"
+      "back_to_site": "← Сайт",
+      "dashboard": "Панель управления",
+      "history": "История"
     },
     "superuser_wizard": {
       "title": "=== Создать суперпользователя ===",
@@ -466,6 +470,59 @@
     },
     "bulk_create": {
       "all_exist": "Все значения уже существуют: ничего не создано"
+    },
+    "history": {
+      "subtitle": "Создания, изменения и удаления, сделанные в админке.",
+      "whole_row": "Вся история этой строки",
+      "th_column": "Столбец",
+      "th_old": "До",
+      "th_new": "После",
+      "no_changes": "Нет доступных изменений",
+      "all_resources": "Все ресурсы",
+      "all_actions": "Все действия",
+      "action_create": "Создано",
+      "action_update": "Изменено",
+      "action_delete": "Удалено",
+      "btn_filter": "Фильтровать",
+      "btn_reset": "Сбросить",
+      "th_date": "Дата",
+      "th_account": "Учётная запись",
+      "th_resource": "Ресурс",
+      "th_object": "Объект",
+      "th_action": "Действие",
+      "btn_entry": "Подробнее",
+      "empty": "Нет записанных действий",
+      "badge_create": "создано",
+      "badge_update": "изменено",
+      "badge_delete": "удалено",
+      "badge_rights": "права изменены",
+      "badge_rank": "ранг изменён",
+      "badge_reset_password": "ссылка для пароля отправлена"
+    },
+    "rights": {
+      "title": "Права",
+      "subtitle": "Что может делать этот администратор, по таблицам и столбцам. Неотмеченный столбец не читается и не записывается.",
+      "go_to_table": "Перейти к таблице",
+      "toc": "Таблицы",
+      "btn_cancel": "Отмена",
+      "btn_save": "Сохранить",
+      "th_column": "Столбец",
+      "col_read": "Чтение",
+      "col_create": "Создание",
+      "col_update": "Изменение",
+      "right_create": "Создание",
+      "right_read": "Список / чтение",
+      "right_read_own": "Чтение своих",
+      "right_update": "Изменение",
+      "right_update_own": "Изменение своих",
+      "right_delete": "Удаление",
+      "right_delete_own": "Удаление своих"
+    },
+    "rank": {
+      "lambda": "Учётная запись сайта",
+      "admin": "Администратор",
+      "dirigeant": "Руководитель",
+      "success": "Ранг изменён ({})"
     }
   },
   "makemigrations": {
@@ -499,20 +556,6 @@
     "blocked_body": "<p>Здравствуйте, {}!</p><p>Для вашей учётной записи был запрошен сброс пароля, но она заблокирована. Обратитесь к администратору сайта, чтобы разблокировать её.</p><p>Если вы не делали этот запрос, проигнорируйте это письмо.</p>",
     "email_subject": "Сброс пароля",
     "email_body": "<p>Здравствуйте, {},</p><p>Перейдите по ссылке ниже для сброса пароля (действительна {} мин):</p><p><a href=\"{}\">{}</a></p>"
-  },
-  "permission": {
-    "col": {
-      "id": "ID",
-      "can_create": "Создание",
-      "can_delete": "Удаление",
-      "can_delete_own": "Удаление (своё)",
-      "can_read": "Чтение",
-      "can_update": "Изменение",
-      "can_update_own": "Изменение (своё)",
-      "groupes": "Группы",
-      "resource_key": "Ресурс",
-      "actions": "Действия"
-    }
   },
   "runique_test": {
     "connect_failed": "не удалось подключиться: {}",

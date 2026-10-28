@@ -17,6 +17,7 @@ use crate::forms::validation_form::ValidationForm;
 use crate::utils::aliases::AppResult;
 use crate::utils::constante::admin_key::admin_form;
 use crate::utils::pk::Pk;
+use crate::utils::trad::{t, tf};
 use axum::Extension;
 use axum::extract::Path;
 use axum::response::{IntoResponse, Redirect, Response};
@@ -33,15 +34,15 @@ pub(crate) fn parse_rank(value: &str) -> Option<Rang> {
 }
 
 /// The ranks `actor` may give, as `(value, label)`, lowest first.
-pub(crate) fn rank_choices(actor: Rang) -> Vec<(&'static str, &'static str)> {
+pub(crate) fn rank_choices(actor: Rang) -> Vec<(&'static str, String)> {
     [
-        ("lambda", "Compte du site", Rang::Lambda),
-        ("admin", "Admin", Rang::Admin),
-        ("dirigeant", "Dirigeant", Rang::Dirigeant),
+        ("lambda", Rang::Lambda),
+        ("admin", Rang::Admin),
+        ("dirigeant", Rang::Dirigeant),
     ]
     .into_iter()
-    .filter(|(_, _, rang)| actor >= Rang::Dirigeant && *rang < actor)
-    .map(|(value, label, _)| (value, label))
+    .filter(|(_, rang)| actor >= Rang::Dirigeant && *rang < actor)
+    .map(|(value, _)| (value, t(&format!("admin.rank.{value}")).into_owned()))
     .collect()
 }
 
@@ -89,7 +90,7 @@ pub(crate) async fn rank_view(
         )),
     };
     match outcome {
-        Ok(n) => req.notices.success(format!("Rang modifié ({n})")).await,
+        Ok(n) => req.notices.success(tf("admin.rank.success", &[n])).await,
         Err(sea_orm::DbErr::Custom(message)) => req.notices.error(message).await,
         Err(e) => return failure(AdminError::Db(e), &req, &admin).await,
     }

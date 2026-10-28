@@ -1,18 +1,18 @@
 {% extends "admin_base.html" %}
-{% block title %}{% if admin_dashboard_title %}{{ admin_dashboard_title }}{% endif %}{% endblock %}
+{% block title %}{% if admin_base_dashboard %}{{ admin_base_dashboard }}{% endif %}{% endblock %}
 {% block breadcrumb %}
     <span class="admin-topbar__sep">/</span>
-    <span>{% if admin_dashboard_title %}{{ admin_dashboard_title }}{% endif %}</span>
+    <span>{% if admin_base_dashboard %}{{ admin_base_dashboard }}{% endif %}</span>
 {% endblock %}
 {% block content %}
 {% block dashboard_header %}
 <div class="admin-page__header">
     <div>
-        <h1 class="admin-page__title">{% if admin_dashboard_title %}{{ admin_dashboard_title }}{% endif %}</h1>
+        <h1 class="admin-page__title">{% if admin_base_dashboard %}{{ admin_base_dashboard }}{% endif %}</h1>
         <p class="admin-page__subtitle">{% if admin_dashboard_subtitle %}{{ admin_dashboard_subtitle }}{% endif %}</p>
     </div>
     {% if admin_has_session_override %}
-    <a href="{{ nav.toggle_template }}" class="btn btn-secondary btn-sm">← Template configuré</a>
+    <a href="{{ nav.toggle_template }}" class="btn btn-secondary btn-sm">{{ admin_dashboard_toggle_template }}</a>
     {% endif %}
 </div>
 {% endblock %}

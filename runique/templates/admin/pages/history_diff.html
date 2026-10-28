@@ -1,8 +1,8 @@
 {% extends "admin_base.html" %}
-{% block title %}Historique — {{ entry.resource_title }} #{{ entry.object_pk }}{% endblock %}
+{% block title %}{{ admin_base_history }} — {{ entry.resource_title }} #{{ entry.object_pk }}{% endblock %}
 {% block breadcrumb %}
   <span class="admin-topbar__sep">/</span>
-  <a href="{{ history_url }}">Historique</a>
+  <a href="{{ history_url }}">{{ admin_base_history }}</a>
   <span class="admin-topbar__sep">/</span>
   <span>#{{ entry.id }}</span>
 {% endblock %}
@@ -14,7 +14,7 @@
       <p class="admin-page__subtitle">{{ entry.created_at }} · {{ entry.username }} · {% include "admin/blocks/history/action_badge.html" %}</p>
     </div>
     <div class="admin-page__actions">
-      <a href="{{ entry.links.object }}" class="btn btn-secondary btn-sm">Toute l'histoire de cette ligne</a>
+      <a href="{{ entry.links.object }}" class="btn btn-secondary btn-sm">{{ admin_history_whole_row }}</a>
     </div>
   </div>
   {% endblock %}
@@ -23,7 +23,7 @@
     {% if changes | length > 0 %}
     <div class="admin-table__wrapper">
       <table class="admin-table">
-        <thead><tr><th>Colonne</th><th>Avant</th><th>Après</th></tr></thead>
+        <thead><tr><th>{{ admin_history_th_column }}</th><th>{{ admin_history_th_old }}</th><th>{{ admin_history_th_new }}</th></tr></thead>
         <tbody>
           {% for change in changes %}
           <tr>
@@ -36,7 +36,7 @@
       </table>
     </div>
     {% else %}
-    <div class="admin-empty-state"><p class="admin-empty-state__title">Aucun changement lisible</p></div>
+    <div class="admin-empty-state"><p class="admin-empty-state__title">{{ admin_history_no_changes }}</p></div>
     {% endif %}
   </div>
   {% endblock %}

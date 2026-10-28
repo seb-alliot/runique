@@ -5,11 +5,11 @@
     <table class="admin-table">
       <thead>
         <tr>
-          <th>Date</th>
-          <th>Compte</th>
-          <th>Ressource</th>
-          <th>Objet</th>
-          <th>Action</th>
+          <th>{{ admin_history_th_date }}</th>
+          <th>{{ admin_history_th_account }}</th>
+          <th>{{ admin_history_th_resource }}</th>
+          <th>{{ admin_history_th_object }}</th>
+          <th>{{ admin_history_th_action }}</th>
           <th></th>
         </tr>
       </thead>
@@ -27,7 +27,7 @@
           <td>{% include "admin/blocks/history/action_badge.html" %}</td>
           <td class="admin-table__td-actions">
             {% if entry.links.entry %}
-            <a href="{{ entry.links.entry }}" class="btn btn-ghost btn-sm">Détail</a>
+            <a href="{{ entry.links.entry }}" class="btn btn-ghost btn-sm">{{ admin_history_btn_entry }}</a>
             {% endif %}
           </td>
         </tr>
@@ -37,7 +37,7 @@
   </div>
   {% else %}
   <div class="admin-empty-state">
-    <p class="admin-empty-state__title">Aucune action enregistrée</p>
+    <p class="admin-empty-state__title">{{ admin_history_empty }}</p>
   </div>
   {% endif %}
 </div>

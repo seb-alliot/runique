@@ -272,12 +272,6 @@
     "groups": "Gruppen",
     "resource": "Ressource",
     "resources": "Ressourcen",
-    "can_create": "Erstellen",
-    "can_read": "Lesen",
-    "can_update": "Bearbeiten",
-    "can_delete": "Löschen",
-    "can_update_own": "Bearbeiten",
-    "can_delete_own": "Löschen",
     "name": "Name",
     "username": "Benutzername",
     "email": "E-Mail",
@@ -308,7 +302,6 @@
       "action_not_allowed": "Aktion nicht erlaubt"
     },
     "dashboard": {
-      "title": "Dashboard",
       "subtitle": "Anwendungsübersicht",
       "card_resources": "Ressourcen",
       "th_resource": "Ressource",
@@ -323,10 +316,10 @@
       "kpi_resources": "Ressourcen",
       "kpi_entries": "Einträge gesamt",
       "kpi_largest": "Größte",
-      "th_count": "Einträge"
+      "th_count": "Einträge",
+      "toggle_template": "← Konfiguriertes Template"
     },
     "list": {
-      "breadcrumb_admin": "Administration",
       "entries_count_one": "Eintrag",
       "entries_count_many": "Einträge",
       "btn_create": "Erstellen",
@@ -341,7 +334,14 @@
       "empty_title": "Keine Einträge",
       "empty_desc": "Beginnen Sie mit der Erstellung eines Elements.",
       "btn_create_first": "Ersten erstellen",
-      "search_placeholder": "Suchen..."
+      "search_placeholder": "Suchen...",
+      "bulk_selected": "ausgewählt",
+      "bulk_delete": "Löschen",
+      "filters": "Filter",
+      "filters_hide": "Filter ausblenden",
+      "filters_clear": "✕ Alle",
+      "select_all": "Alle auswählen",
+      "row_details": "Details"
     },
     "create": {
       "title": "Erstellen",
@@ -370,7 +370,9 @@
       "btn_delete": "Löschen",
       "confirm_delete": "Diesen Eintrag löschen?",
       "btn_reset_password": "Passwort zurücksetzen",
-      "btn_reset_password_short": "Zurücksetzen"
+      "btn_reset_password_short": "Zurücksetzen",
+      "btn_rights": "Rechte",
+      "btn_rank": "Rang ändern"
     },
     "reset_password": {
       "btn": "Passwort zurücksetzen",
@@ -421,7 +423,9 @@
       "toggle": "Menü einklappen",
       "logout_title": "Abmelden",
       "theme_toggle": "Design wechseln",
-      "back_to_site": "← Website"
+      "back_to_site": "← Website",
+      "dashboard": "Dashboard",
+      "history": "Verlauf"
     },
     "superuser_wizard": {
       "title": "=== Superbenutzer erstellen ===",
@@ -466,6 +470,59 @@
     },
     "bulk_create": {
       "all_exist": "Alle Werte existieren bereits: es wurde nichts erstellt"
+    },
+    "history": {
+      "subtitle": "Die im Admin vorgenommenen Erstellungen, Änderungen und Löschungen.",
+      "whole_row": "Gesamter Verlauf dieser Zeile",
+      "th_column": "Spalte",
+      "th_old": "Vorher",
+      "th_new": "Nachher",
+      "no_changes": "Keine lesbare Änderung",
+      "all_resources": "Alle Ressourcen",
+      "all_actions": "Alle Aktionen",
+      "action_create": "Erstellt",
+      "action_update": "Geändert",
+      "action_delete": "Gelöscht",
+      "btn_filter": "Filtern",
+      "btn_reset": "Zurücksetzen",
+      "th_date": "Datum",
+      "th_account": "Konto",
+      "th_resource": "Ressource",
+      "th_object": "Objekt",
+      "th_action": "Aktion",
+      "btn_entry": "Details",
+      "empty": "Keine Aktion erfasst",
+      "badge_create": "erstellt",
+      "badge_update": "geändert",
+      "badge_delete": "gelöscht",
+      "badge_rights": "Rechte geändert",
+      "badge_rank": "Rang geändert",
+      "badge_reset_password": "Passwort-Link gesendet"
+    },
+    "rights": {
+      "title": "Rechte",
+      "subtitle": "Was dieser Admin tun darf, Tabelle für Tabelle und Spalte für Spalte. Eine nicht angehakte Spalte wird weder gelesen noch geschrieben.",
+      "go_to_table": "Zu einer Tabelle",
+      "toc": "Tabellen",
+      "btn_cancel": "Abbrechen",
+      "btn_save": "Speichern",
+      "th_column": "Spalte",
+      "col_read": "Lesen",
+      "col_create": "Erstellen",
+      "col_update": "Ändern",
+      "right_create": "Erstellen",
+      "right_read": "Auflisten / lesen",
+      "right_read_own": "Eigene lesen",
+      "right_update": "Ändern",
+      "right_update_own": "Eigene ändern",
+      "right_delete": "Löschen",
+      "right_delete_own": "Eigene löschen"
+    },
+    "rank": {
+      "lambda": "Website-Konto",
+      "admin": "Admin",
+      "dirigeant": "Leitung",
+      "success": "Rang geändert ({})"
     }
   },
   "makemigrations": {
@@ -499,20 +556,6 @@
     "blocked_body": "<p>Hallo {},</p><p>Für Ihr Konto wurde eine Passwortzurücksetzung angefordert, aber dieses Konto ist gesperrt. Wenden Sie sich an den Administrator der Website, um es zu entsperren.</p><p>Wenn Sie diese Anfrage nicht gestellt haben, ignorieren Sie diese E-Mail.</p>",
     "email_subject": "Passwort zurücksetzen",
     "email_body": "<p>Hallo {},</p><p>Klicken Sie auf den folgenden Link, um Ihr Passwort zurückzusetzen (gültig für {} Min.):</p><p><a href=\"{}\">{}</a></p>"
-  },
-  "permission": {
-    "col": {
-      "id": "ID",
-      "can_create": "Erstellen",
-      "can_delete": "Löschen",
-      "can_delete_own": "Löschen (eigenes)",
-      "can_read": "Lesen",
-      "can_update": "Bearbeiten",
-      "can_update_own": "Bearbeiten (eigenes)",
-      "groupes": "Gruppen",
-      "resource_key": "Ressource",
-      "actions": "Aktionen"
-    }
   },
   "runique_test": {
     "connect_failed": "Verbindung nicht möglich: {}",

@@ -13,12 +13,12 @@
                 <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
                 <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
             </svg>
-            <span class="admin-nav__label">{% if admin_dashboard_title %}{{ admin_dashboard_title }}{% endif %}</span>
+            <span class="admin-nav__label">{% if admin_base_dashboard %}{{ admin_base_dashboard }}{% endif %}</span>
         </a>
 
         {% if resources %}
             <div class="admin-nav__divider"></div>
-            <div class="admin-nav__section-label">{% if admin_list_breadcrumb_admin %}{{ admin_list_breadcrumb_admin }}{% endif %}</div>
+            <div class="admin-nav__section-label">{% if admin_base_title %}{{ admin_base_title }}{% endif %}</div>
 
             {% for resource in resources %}
             <a href="{{ resource.list_url }}"
@@ -41,7 +41,7 @@
                     <circle cx="12" cy="12" r="10"/>
                     <polyline points="12 6 12 12 16 14"/>
                 </svg>
-                <span class="admin-nav__label">Historique</span>
+                <span class="admin-nav__label">{{ admin_base_history }}</span>
             </a>
         {% endif %}
 

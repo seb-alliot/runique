@@ -1,5 +1,5 @@
 {% extends "admin_base.html" %}
-{% block title %}Droits — {{ account_name }}{% endblock %}
+{% block title %}{{ admin_rights_title }} — {{ account_name }}{% endblock %}
 {% block extra_css %}
   {{ super() }}
   {# The grid's block is repeated per table: its sheet is declared here, once. #}
@@ -11,14 +11,14 @@
   <span class="admin-topbar__sep">/</span>
   <a href="{{ cancel_url }}">{{ account_name }}</a>
   <span class="admin-topbar__sep">/</span>
-  <span>Droits</span>
+  <span>{{ admin_rights_title }}</span>
 {% endblock %}
 {% block content %}
   {% block rights_header %}
   <div class="admin-page__header">
     <div>
-      <h1 class="admin-page__title">Droits de {{ account_name }}</h1>
-      <p class="admin-page__subtitle">Ce que cet admin peut faire, table par table et colonne par colonne. Une colonne non cochée n'est ni lue ni écrite.</p>
+      <h1 class="admin-page__title">{{ admin_rights_title }} — {{ account_name }}</h1>
+      <p class="admin-page__subtitle">{{ admin_rights_subtitle }}</p>
     </div>
   </div>
   {% endblock %}
@@ -28,8 +28,8 @@
      otherwise: the same links, no script. #}
   <div class="admin-rights">
     <details class="admin-rights__menu">
-      <summary class="btn btn-secondary btn-sm">Aller à une table</summary>
-      <nav class="admin-rights__links" aria-label="Tables">
+      <summary class="btn btn-secondary btn-sm">{{ admin_rights_go_to_table }}</summary>
+      <nav class="admin-rights__links" aria-label="{{ admin_rights_toc }}">
         {% for table in tables %}<a href="#rights-{{ table.key }}">{{ table.title }}</a>{% endfor %}
       </nav>
     </details>
@@ -40,12 +40,12 @@
         {% include "admin/blocks/rights/table.html" %}
       {% endfor %}
       <div class="admin-form__actions mt-sm">
-        <a href="{{ cancel_url }}" class="btn btn-secondary">Annuler</a>
-        <button type="submit" class="btn btn-primary">Enregistrer</button>
+        <a href="{{ cancel_url }}" class="btn btn-secondary">{{ admin_rights_btn_cancel }}</a>
+        <button type="submit" class="btn btn-primary">{{ admin_rights_btn_save }}</button>
       </div>
     </form>
-    <nav class="admin-rights__toc" aria-label="Tables">
-      <p class="admin-rights__toc-title">Tables</p>
+    <nav class="admin-rights__toc" aria-label="{{ admin_rights_toc }}">
+      <p class="admin-rights__toc-title">{{ admin_rights_toc }}</p>
       <div class="admin-rights__links">
         {% for table in tables %}<a href="#rights-{{ table.key }}">{{ table.title }}</a>{% endfor %}
       </div>

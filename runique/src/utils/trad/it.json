@@ -272,12 +272,6 @@
     "groups": "Gruppi",
     "resource": "Risorsa",
     "resources": "Risorse",
-    "can_create": "Crea",
-    "can_read": "Leggere",
-    "can_update": "Modificare",
-    "can_delete": "Eliminare",
-    "can_update_own": "Modificare",
-    "can_delete_own": "Eliminare",
     "name": "Nome",
     "username": "Nome utente",
     "email": "Email",
@@ -308,7 +302,6 @@
       "action_not_allowed": "Azione non consentita"
     },
     "dashboard": {
-      "title": "Dashboard",
       "subtitle": "Panoramica dell'applicazione",
       "card_resources": "Risorse",
       "th_resource": "Risorsa",
@@ -323,10 +316,10 @@
       "kpi_resources": "Risorse",
       "kpi_entries": "Voci totali",
       "kpi_largest": "Più grande",
-      "th_count": "Voci"
+      "th_count": "Voci",
+      "toggle_template": "← Template configurato"
     },
     "list": {
-      "breadcrumb_admin": "Amministrazione",
       "entries_count_one": "voce",
       "entries_count_many": "voci",
       "btn_create": "Crea",
@@ -341,7 +334,14 @@
       "empty_title": "Nessuna voce",
       "empty_desc": "Inizia creando un elemento.",
       "btn_create_first": "Crea il primo",
-      "search_placeholder": "Cerca..."
+      "search_placeholder": "Cerca...",
+      "bulk_selected": "selezionato/i",
+      "bulk_delete": "Elimina",
+      "filters": "Filtri",
+      "filters_hide": "Nascondi i filtri",
+      "filters_clear": "✕ Tutto",
+      "select_all": "Seleziona tutto",
+      "row_details": "Dettagli"
     },
     "create": {
       "title": "Crea",
@@ -370,7 +370,9 @@
       "btn_delete": "Elimina",
       "confirm_delete": "Eliminare questa voce?",
       "btn_reset_password": "Reimposta password",
-      "btn_reset_password_short": "Reimposta"
+      "btn_reset_password_short": "Reimposta",
+      "btn_rights": "Diritti",
+      "btn_rank": "Cambia il ruolo"
     },
     "reset_password": {
       "btn": "Reimposta la password",
@@ -421,7 +423,9 @@
       "toggle": "Comprimi menu",
       "logout_title": "Disconnessione",
       "theme_toggle": "Cambia tema",
-      "back_to_site": "← Sito"
+      "back_to_site": "← Sito",
+      "dashboard": "Dashboard",
+      "history": "Cronologia"
     },
     "superuser_wizard": {
       "title": "=== Crea superutente ===",
@@ -466,6 +470,59 @@
     },
     "bulk_create": {
       "all_exist": "Tutti i valori esistono già: non è stato creato nulla"
+    },
+    "history": {
+      "subtitle": "Le creazioni, modifiche ed eliminazioni fatte nell'admin.",
+      "whole_row": "Tutta la cronologia di questa riga",
+      "th_column": "Colonna",
+      "th_old": "Prima",
+      "th_new": "Dopo",
+      "no_changes": "Nessuna modifica leggibile",
+      "all_resources": "Tutte le risorse",
+      "all_actions": "Tutte le azioni",
+      "action_create": "Creato",
+      "action_update": "Modificato",
+      "action_delete": "Eliminato",
+      "btn_filter": "Filtra",
+      "btn_reset": "Reimposta",
+      "th_date": "Data",
+      "th_account": "Account",
+      "th_resource": "Risorsa",
+      "th_object": "Oggetto",
+      "th_action": "Azione",
+      "btn_entry": "Dettaglio",
+      "empty": "Nessuna azione registrata",
+      "badge_create": "creato",
+      "badge_update": "modificato",
+      "badge_delete": "eliminato",
+      "badge_rights": "diritti modificati",
+      "badge_rank": "ruolo modificato",
+      "badge_reset_password": "link della password inviato"
+    },
+    "rights": {
+      "title": "Diritti",
+      "subtitle": "Cosa può fare questo admin, tabella per tabella e colonna per colonna. Una colonna non spuntata non è né letta né scritta.",
+      "go_to_table": "Vai a una tabella",
+      "toc": "Tabelle",
+      "btn_cancel": "Annulla",
+      "btn_save": "Salva",
+      "th_column": "Colonna",
+      "col_read": "Leggere",
+      "col_create": "Creare",
+      "col_update": "Modificare",
+      "right_create": "Creare",
+      "right_read": "Elencare / leggere",
+      "right_read_own": "Leggere le proprie",
+      "right_update": "Modificare",
+      "right_update_own": "Modificare le proprie",
+      "right_delete": "Eliminare",
+      "right_delete_own": "Eliminare le proprie"
+    },
+    "rank": {
+      "lambda": "Account del sito",
+      "admin": "Admin",
+      "dirigeant": "Dirigente",
+      "success": "Ruolo modificato ({})"
     }
   },
   "makemigrations": {
@@ -499,20 +556,6 @@
     "blocked_body": "<p>Ciao {},</p><p>È stata richiesta la reimpostazione della password per il tuo account, ma questo account è bloccato. Contatta l'amministratore del sito per sbloccarlo.</p><p>Se non hai fatto tu questa richiesta, ignora questa email.</p>",
     "email_subject": "Reimpostazione password",
     "email_body": "<p>Ciao {},</p><p>Clicca sul link seguente per reimpostare la password (valido per {} min):</p><p><a href=\"{}\">{}</a></p>"
-  },
-  "permission": {
-    "col": {
-      "id": "ID",
-      "can_create": "Creare",
-      "can_delete": "Eliminare",
-      "can_delete_own": "Eliminare (proprio)",
-      "can_read": "Leggere",
-      "can_update": "Modificare",
-      "can_update_own": "Modificare (proprio)",
-      "groupes": "Gruppi",
-      "resource_key": "Risorsa",
-      "actions": "Azioni"
-    }
   },
   "runique_test": {
     "connect_failed": "connessione impossibile: {}",

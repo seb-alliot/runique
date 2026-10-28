@@ -272,12 +272,6 @@
     "groups": "Groupes",
     "resource": "Ressource",
     "resources": "Ressources",
-    "can_create": "Créer",
-    "can_read": "Lire",
-    "can_update": "Modifier",
-    "can_delete": "Supprimer",
-    "can_update_own": "Modifier",
-    "can_delete_own": "Supprimer",
     "name": "Nom",
     "username": "Nom d'utilisateur",
     "email": "Email",
@@ -308,7 +302,6 @@
       "action_not_allowed": "Action non autorisée"
     },
     "dashboard": {
-      "title": "Tableau de bord",
       "subtitle": "Vue d'ensemble de l'application",
       "card_resources": "Ressources",
       "th_resource": "Ressource",
@@ -323,10 +316,10 @@
       "kpi_resources": "Ressources",
       "kpi_entries": "Entrées totales",
       "kpi_largest": "Plus grande",
-      "th_count": "Entrées"
+      "th_count": "Entrées",
+      "toggle_template": "← Template configuré"
     },
     "list": {
-      "breadcrumb_admin": "Administration",
       "entries_count_one": "entrée",
       "entries_count_many": "entrées",
       "btn_create": "Créer",
@@ -341,7 +334,14 @@
       "empty_title": "Aucune entrée",
       "empty_desc": "Commencez par créer un élément.",
       "btn_create_first": "Créer le premier",
-      "search_placeholder": "Rechercher..."
+      "search_placeholder": "Rechercher...",
+      "bulk_selected": "sélectionné(s)",
+      "bulk_delete": "Supprimer",
+      "filters": "Filtres",
+      "filters_hide": "Masquer les filtres",
+      "filters_clear": "✕ Tout",
+      "select_all": "Tout sélectionner",
+      "row_details": "Détails"
     },
     "create": {
       "title": "Créer",
@@ -370,7 +370,9 @@
       "btn_delete": "Supprimer",
       "confirm_delete": "Supprimer cette entrée ?",
       "btn_reset_password": "Réinitialiser le mot de passe",
-      "btn_reset_password_short": "Réinitialiser"
+      "btn_reset_password_short": "Réinitialiser",
+      "btn_rights": "Droits",
+      "btn_rank": "Changer le rang"
     },
     "reset_password": {
       "btn": "Réinitialiser le mot de passe",
@@ -421,7 +423,9 @@
       "toggle": "Réduire le menu",
       "logout_title": "Déconnexion",
       "theme_toggle": "Basculer le thème",
-      "back_to_site": "← Site"
+      "back_to_site": "← Site",
+      "dashboard": "Tableau de bord",
+      "history": "Historique"
     },
     "superuser_wizard": {
       "title": "=== Créer un superutilisateur ===",
@@ -466,6 +470,59 @@
     },
     "bulk_create": {
       "all_exist": "Toutes les valeurs existent déjà : rien n'a été créé"
+    },
+    "history": {
+      "subtitle": "Les créations, modifications et suppressions faites dans l'admin.",
+      "whole_row": "Toute l'histoire de cette ligne",
+      "th_column": "Colonne",
+      "th_old": "Avant",
+      "th_new": "Après",
+      "no_changes": "Aucun changement lisible",
+      "all_resources": "Toutes les ressources",
+      "all_actions": "Toutes les actions",
+      "action_create": "Créé",
+      "action_update": "Modifié",
+      "action_delete": "Supprimé",
+      "btn_filter": "Filtrer",
+      "btn_reset": "Réinitialiser",
+      "th_date": "Date",
+      "th_account": "Compte",
+      "th_resource": "Ressource",
+      "th_object": "Objet",
+      "th_action": "Action",
+      "btn_entry": "Détail",
+      "empty": "Aucune action enregistrée",
+      "badge_create": "créé",
+      "badge_update": "modifié",
+      "badge_delete": "supprimé",
+      "badge_rights": "droits modifiés",
+      "badge_rank": "rang modifié",
+      "badge_reset_password": "lien de mot de passe envoyé"
+    },
+    "rights": {
+      "title": "Droits",
+      "subtitle": "Ce que cet admin peut faire, table par table et colonne par colonne. Une colonne non cochée n'est ni lue ni écrite.",
+      "go_to_table": "Aller à une table",
+      "toc": "Tables",
+      "btn_cancel": "Annuler",
+      "btn_save": "Enregistrer",
+      "th_column": "Colonne",
+      "col_read": "Lire",
+      "col_create": "Créer",
+      "col_update": "Modifier",
+      "right_create": "Créer",
+      "right_read": "Lister / lire",
+      "right_read_own": "Lire les siennes",
+      "right_update": "Modifier",
+      "right_update_own": "Modifier les siennes",
+      "right_delete": "Supprimer",
+      "right_delete_own": "Supprimer les siennes"
+    },
+    "rank": {
+      "lambda": "Compte du site",
+      "admin": "Admin",
+      "dirigeant": "Dirigeant",
+      "success": "Rang modifié ({})"
     }
   },
   "reset": {
@@ -499,20 +556,6 @@
     "applying": "Application des migrations depuis '{}'...",
     "complete_up": "Migration terminé.",
     "crate_missing": "Crate de migrations introuvable : '{}' ne contient pas de Cargo.toml."
-  },
-  "permission": {
-    "col": {
-      "id": "ID",
-      "can_create": "Créer",
-      "can_delete": "Supprimer",
-      "can_delete_own": "Supprimer (propre)",
-      "can_read": "Lire",
-      "can_update": "Modifier",
-      "can_update_own": "Modifier (propre)",
-      "groupes": "Groupes",
-      "resource_key": "Ressource",
-      "actions": "Actions"
-    }
   },
   "runique_test": {
     "connect_failed": "connexion impossible : {}",

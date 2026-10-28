@@ -146,7 +146,16 @@ Once the server is running, the interface is available at:
 http://localhost:{PORT}/admin/
 ```
 
-The `/admin/login` page redirects to the dashboard if credentials are valid.
+The `/admin/login` page opens the dashboard once the credentials are checked. What it does depends on the session already open in the browser:
+
+| Current session | Result |
+| --- | --- |
+| None | The sign-in form is shown |
+| An account with admin access (a rank, or a member of a staff group) | Redirect to the dashboard |
+| A site account without admin access | Redirect to `/` with a notice; the site session is **kept** (no sign-out) |
+| An account deleted or deactivated since | The session is closed, then back to sign-in |
+
+One session is one identity: to enter the admin with another account than the one signed in on the site, sign out of the site first. The other admin pages follow the same rules; a visitor without a session is sent to sign-in.
 
 ---
 

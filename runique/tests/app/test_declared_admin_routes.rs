@@ -604,6 +604,52 @@ async fn probe_history(req: Request) -> String {
         .join("\n")
 }
 
+/// The accounts holding a reset token, by key, comma-separated and sorted.
+async fn probe_reset_token_owners(req: Request) -> String {
+    use runique::sea_orm::{ConnectionTrait, Statement};
+    let db = &req.engine.db;
+    let rows = db
+        .query_all_raw(Statement::from_string(
+            db.get_database_backend(),
+            "SELECT user_id FROM eihwaz_reset_tokens ORDER BY user_id",
+        ))
+        .await
+        .unwrap();
+    rows.iter()
+        .map(|row| row.try_get::<runique::utils::pk::Pk>("", "user_id").unwrap().to_string())
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+/// Adds `n` notes, for a list longer than a page.
+async fn probe_add_notes(Path(n): Path<u32>, req: Request) -> &'static str {
+    use runique::sea_orm::ConnectionTrait;
+    for i in 0..n {
+        req.engine
+            .db
+            .execute_unprepared(&format!(
+                "INSERT INTO probe_notes (title) VALUES ('added {i}')"
+            ))
+            .await
+            .unwrap();
+    }
+    "added"
+}
+
+/// Blocks account `n` as the staff does: activated once, inactive now.
+async fn probe_block(Path(n): Path<u32>, req: Request) -> &'static str {
+    use runique::sea_orm::ConnectionTrait;
+    req.engine
+        .db
+        .execute_unprepared(&format!(
+            "UPDATE eihwaz_users SET is_active = 0 WHERE id = {}",
+            pk_sql_literal(n)
+        ))
+        .await
+        .unwrap();
+    "blocked"
+}
+
 /// The reset tokens' lifetimes left, in whole minutes, one per line.
 async fn probe_reset_tokens(req: Request) -> String {
     use runique::sea_orm::{ConnectionTrait, Statement};
@@ -661,6 +707,9 @@ fn probe_routes() -> Routes {
         "/probe/row/{id}" => get(probe_row), name = "declared_test_probe_row",
         "/probe/history" => get(probe_history), name = "declared_test_probe_history",
         "/probe/reset-tokens" => get(probe_reset_tokens), name = "declared_test_probe_reset_tokens",
+        "/probe/reset-token-owners" => get(probe_reset_token_owners), name = "declared_test_probe_reset_token_owners",
+        "/probe/notes/add/{n}" => get(probe_add_notes), name = "declared_test_probe_add_notes",
+        "/probe/block/{n}" => get(probe_block), name = "declared_test_probe_block",
         "/probe/trace-account" => get(probe_trace_account), name = "declared_test_probe_trace_account",
         "/open/probe" => get(probe_write), name = "declared_test_probe_open_new",
         "/open/probe/{id}" => get(probe_write), name = "declared_test_probe_open_row",
@@ -1399,7 +1448,10 @@ async fn the_history_lists_an_edit_and_shows_its_changes() {
     edit_title(&client, &base, 1, "changed").await;
 
     let page = text(&client, format!("{base}/secret-admin/history")).await;
-    assert!(page.contains("modifié"), "the update is listed");
+    assert!(
+        page.contains(r#"data-action="update""#),
+        "the update is listed"
+    );
     let id = first_entry_link(&page).expect("a link to the entry");
 
     let entry = text(&client, format!("{base}/secret-admin/history/{id}")).await;
@@ -1683,7 +1735,7 @@ async fn the_superuser_sends_an_account_a_reset_link() {
     )
     .await;
     assert!(
-        history.contains("lien de mot de passe envoyé"),
+        history.contains(r#"data-action="reset_password""#),
         "the reset is traced"
     );
     assert!(history.contains("bob"), "under the account's username");
@@ -1730,7 +1782,7 @@ async fn without_a_reset_page_the_admin_sends_no_link() {
     )
     .await;
     assert!(
-        !history.contains("lien de mot de passe envoyé"),
+        !history.contains(r#"data-action="reset_password""#),
         "nothing sent, nothing traced"
     );
 }
@@ -1786,7 +1838,7 @@ async fn a_reset_needs_the_csrf_token() {
     )
     .await;
     assert!(
-        !history.contains("lien de mot de passe envoyé"),
+        !history.contains(r#"data-action="reset_password""#),
         "nothing traced"
     );
 }
@@ -1923,7 +1975,11 @@ async fn the_superuser_names_a_dirigeant_then_admins() {
     assert_eq!(rank_of(&su, &base, STAFF_MEMBER).await, "Admin");
 
     let history = text(&su, format!("{base}/secret-admin/history?action=rank")).await;
-    assert_eq!(history.matches("rang modifié").count(), 2, "{history}");
+    assert_eq!(
+        history.matches(r#"data-action="rank""#).count(),
+        2,
+        "{history}"
+    );
 }
 
 /// Only a rank strictly above the one given grants it, never on oneself: a
@@ -2324,4 +2380,110 @@ async fn a_grid_is_set_from_above_on_an_admin_only() {
         reqwest::StatusCode::OK,
         "he gave himself nothing"
     );
+}
+
+// ── What the detail and the list offer ────────────────────────────────────
+
+/// The rank form and the reset button show where they apply only: on an
+/// account below the viewer, never on the viewer's own page nor on an equal
+/// rank, and the reset on the accounts' table alone. The gate decides again
+/// on every POST: this is what the page offers.
+#[tokio::test]
+#[serial]
+async fn the_detail_offers_the_rank_and_the_reset_where_they_apply() {
+    let base = spawn_with("", rank_routes()).await;
+    let su = signed_in(&base, SUPERUSER).await;
+    let detail = |n: u32| format!("{base}/secret-admin/users/{}/detail", pk(n));
+    let rank_form = r#"action="/secret-admin/users/rank""#;
+
+    let below = text(&su, detail(MEMBER)).await;
+    assert!(below.contains(rank_form), "an account below: the rank form");
+    assert!(below.contains("/reset-password\""), "and the reset");
+
+    let own = text(&su, detail(SUPERUSER)).await;
+    assert!(!own.contains(rank_form), "never on his own page");
+
+    let note = text(&su, format!("{base}/secret-admin/probe_notes/1/detail")).await;
+    assert!(!note.contains("/reset-password\""), "no reset off the accounts");
+    assert!(!note.contains("/rank\""), "no rank off the accounts");
+
+    give_rank(&su, &base, &[MEMBER, STAFF_MEMBER], "dirigeant").await;
+    let dirigeant = signed_in(&base, MEMBER).await;
+    let equal = text(&dirigeant, detail(STAFF_MEMBER)).await;
+    assert!(!equal.contains(rank_form), "never on an equal rank");
+}
+
+/// On the site's own "forgot password" page, an account the staff blocked
+/// gets no link; an active one does.
+#[tokio::test]
+#[serial]
+async fn a_blocked_account_gets_no_link_from_the_site() {
+    console_mailer();
+    let base = spawn_with("", probe_routes()).await;
+    let client = client();
+    text(&client, format!("{base}/probe/block/{STAFF_MEMBER}")).await;
+    let forgot = |email: &'static str| {
+        let client = client.clone();
+        let url = format!("{base}/forgot-password");
+        async move {
+            let page = text(&client, url.clone()).await;
+            let token = hidden_value(&page, "csrf_token").unwrap_or_default();
+            client
+                .post(url)
+                .form(&[
+                    ("csrf_token", token.as_str()),
+                    ("runique_form", "forgot_password"),
+                    ("email", email),
+                ])
+                .send()
+                .await
+                .unwrap();
+        }
+    };
+    forgot("dave@example.com").await;
+    forgot("bob@example.com").await;
+
+    // The links go out in the background: wait for the active account's.
+    let owners = format!("{base}/probe/reset-token-owners");
+    let mut held = String::new();
+    for _ in 0..50 {
+        held = text(&client, owners.clone()).await;
+        if !held.is_empty() {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+    }
+    assert_eq!(held, pk(MEMBER).to_string(), "bob only, never the blocked dave");
+}
+
+/// Previous and next show only where they lead somewhere, and each points
+/// to its page; a sorted column's header turns the order around.
+#[tokio::test]
+#[serial]
+async fn the_list_pages_and_sorts_through_its_links() {
+    let base = spawn_with("", probe_routes()).await;
+    let client = signed_in(&base, SUPERUSER).await;
+    // 26 notes, 10 a page: three pages.
+    text(&client, format!("{base}/probe/notes/add/25")).await;
+    let list = format!("{base}/secret-admin/probe_notes/list");
+    let page = |n: u32| text(&client, format!("{list}?page={n}"));
+    let no_prev = r#"disabled">&laquo;</span>"#;
+    let no_next = r#"disabled">&raquo;</span>"#;
+
+    let first = page(1).await;
+    assert!(first.contains(no_prev), "no previous on the first page");
+    assert!(first.contains(r#"href="?page=2"#), "next is the second");
+
+    let second = page(2).await;
+    assert!(second.contains(r#"href="?page=1"#), "previous is the first");
+    assert!(second.contains(r#"href="?page=3"#), "next is the third");
+
+    let last = page(3).await;
+    assert!(last.contains(no_next), "no next on the last page");
+    assert!(last.contains(r#"href="?page=2"#), "previous is the second");
+
+    let asc = text(&client, format!("{list}?sort_by=title&sort_dir=asc")).await;
+    assert!(asc.contains("?sort_by=title&sort_dir=desc"), "asc turns to desc");
+    let desc = text(&client, format!("{list}?sort_by=title&sort_dir=desc")).await;
+    assert!(desc.contains("?sort_by=title&sort_dir=asc"), "desc turns to asc");
 }

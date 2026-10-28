@@ -272,12 +272,6 @@
     "groups": "グループ",
     "resource": "リソース",
     "resources": "リソース",
-    "can_create": "作成",
-    "can_read": "閲覧",
-    "can_update": "更新",
-    "can_delete": "削除",
-    "can_update_own": "更新",
-    "can_delete_own": "削除",
     "name": "名前",
     "username": "ユーザー名",
     "email": "メールアドレス",
@@ -308,7 +302,6 @@
       "action_not_allowed": "この操作は許可されていません"
     },
     "dashboard": {
-      "title": "ダッシュボード",
       "subtitle": "アプリケーションの概要",
       "card_resources": "リソース",
       "th_resource": "リソース",
@@ -323,10 +316,10 @@
       "kpi_resources": "リソース",
       "kpi_entries": "エントリー総数",
       "kpi_largest": "最大",
-      "th_count": "エントリー"
+      "th_count": "エントリー",
+      "toggle_template": "← 設定済みテンプレート"
     },
     "list": {
-      "breadcrumb_admin": "管理",
       "entries_count_one": "件",
       "entries_count_many": "件",
       "btn_create": "作成",
@@ -341,7 +334,14 @@
       "empty_title": "エントリがありません",
       "empty_desc": "最初に項目を作成してください。",
       "btn_create_first": "最初の項目を作成",
-      "search_placeholder": "検索..."
+      "search_placeholder": "検索...",
+      "bulk_selected": "件選択中",
+      "bulk_delete": "削除",
+      "filters": "フィルター",
+      "filters_hide": "フィルターを隠す",
+      "filters_clear": "✕ すべて",
+      "select_all": "すべて選択",
+      "row_details": "詳細"
     },
     "create": {
       "title": "作成",
@@ -370,7 +370,9 @@
       "btn_delete": "削除",
       "confirm_delete": "このエントリを削除しますか？",
       "btn_reset_password": "パスワードをリセット",
-      "btn_reset_password_short": "リセット"
+      "btn_reset_password_short": "リセット",
+      "btn_rights": "権限",
+      "btn_rank": "ランクを変更"
     },
     "reset_password": {
       "btn": "パスワードをリセット",
@@ -421,7 +423,9 @@
       "toggle": "メニューを折りたたむ",
       "logout_title": "ログアウト",
       "theme_toggle": "テーマを切り替え",
-      "back_to_site": "← サイト"
+      "back_to_site": "← サイト",
+      "dashboard": "ダッシュボード",
+      "history": "履歴"
     },
     "superuser_wizard": {
       "title": "=== スーパーユーザー作成 ===",
@@ -466,6 +470,59 @@
     },
     "bulk_create": {
       "all_exist": "すべての値はすでに存在します。何も作成されませんでした"
+    },
+    "history": {
+      "subtitle": "管理画面で行われた作成・変更・削除。",
+      "whole_row": "この行の全履歴",
+      "th_column": "列",
+      "th_old": "変更前",
+      "th_new": "変更後",
+      "no_changes": "閲覧可能な変更はありません",
+      "all_resources": "すべてのリソース",
+      "all_actions": "すべての操作",
+      "action_create": "作成",
+      "action_update": "変更",
+      "action_delete": "削除",
+      "btn_filter": "絞り込む",
+      "btn_reset": "リセット",
+      "th_date": "日時",
+      "th_account": "アカウント",
+      "th_resource": "リソース",
+      "th_object": "対象",
+      "th_action": "操作",
+      "btn_entry": "詳細",
+      "empty": "記録された操作はありません",
+      "badge_create": "作成",
+      "badge_update": "変更",
+      "badge_delete": "削除",
+      "badge_rights": "権限変更",
+      "badge_rank": "ランク変更",
+      "badge_reset_password": "パスワードリンク送信"
+    },
+    "rights": {
+      "title": "権限",
+      "subtitle": "この管理者ができること（テーブルごと・列ごと）。チェックのない列は読み書きされません。",
+      "go_to_table": "テーブルへ移動",
+      "toc": "テーブル",
+      "btn_cancel": "キャンセル",
+      "btn_save": "保存",
+      "th_column": "列",
+      "col_read": "読み取り",
+      "col_create": "作成",
+      "col_update": "変更",
+      "right_create": "作成",
+      "right_read": "一覧 / 読み取り",
+      "right_read_own": "自分のものを読み取り",
+      "right_update": "変更",
+      "right_update_own": "自分のものを変更",
+      "right_delete": "削除",
+      "right_delete_own": "自分のものを削除"
+    },
+    "rank": {
+      "lambda": "サイトのアカウント",
+      "admin": "管理者",
+      "dirigeant": "責任者",
+      "success": "ランクを変更しました（{}）"
     }
   },
   "makemigrations": {
@@ -499,20 +556,6 @@
     "blocked_body": "<p>{} 様</p><p>お客様のアカウントでパスワードの再設定が要求されましたが、このアカウントはブロックされています。ブロックを解除するには、サイト管理者にお問い合わせください。</p><p>心当たりがない場合は、このメールを無視してください。</p>",
     "email_subject": "パスワードリセットのご案内",
     "email_body": "<p>{} 様、</p><p>以下のリンクをクリックしてパスワードをリセットしてください（{}分有効）：</p><p><a href=\"{}\">{}</a></p>"
-  },
-  "permission": {
-    "col": {
-      "id": "ID",
-      "can_create": "作成",
-      "can_delete": "削除",
-      "can_delete_own": "削除（自分の）",
-      "can_read": "閲覧",
-      "can_update": "更新",
-      "can_update_own": "更新（自分の）",
-      "groupes": "グループ",
-      "resource_key": "リソース",
-      "actions": "操作"
-    }
   },
   "runique_test": {
     "connect_failed": "接続できません: {}",
