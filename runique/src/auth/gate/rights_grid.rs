@@ -29,13 +29,23 @@ pub(crate) struct TableRights {
 
 impl TableRights {
     fn any(&self) -> bool {
-        self.create
-            || self.read
-            || self.read_own
-            || self.update
-            || self.update_own
-            || self.delete
-            || self.delete_own
+        !self.names().is_empty()
+    }
+
+    /// The ticked rights, in the grid's order.
+    fn names(&self) -> Vec<&'static str> {
+        [
+            (self.create, "create"),
+            (self.read, "read"),
+            (self.read_own, "read_own"),
+            (self.update, "update"),
+            (self.update_own, "update_own"),
+            (self.delete, "delete"),
+            (self.delete_own, "delete_own"),
+        ]
+        .into_iter()
+        .filter_map(|(ticked, name)| ticked.then_some(name))
+        .collect()
     }
 }
 
@@ -56,6 +66,80 @@ pub(crate) struct TableGrant {
     pub columns: Vec<ColumnGrant>,
 }
 
+impl ColumnGrant {
+    /// The ticked rights, in the grid's order.
+    fn names(&self) -> Vec<&'static str> {
+        [
+            (self.read, "read"),
+            (self.create, "create"),
+            (self.update, "update"),
+        ]
+        .into_iter()
+        .filter_map(|(ticked, name)| ticked.then_some(name))
+        .collect()
+    }
+}
+
+/// The grid as it is stored: a table's row, then its columns' rows.
+fn from_rows(rows: &[groupes_droits::Model]) -> Vec<TableGrant> {
+    let mut tables: std::collections::BTreeMap<&str, TableGrant> = Default::default();
+    for row in rows {
+        let table = tables
+            .entry(row.resource_key.as_str())
+            .or_insert_with(|| TableGrant {
+                resource_key: row.resource_key.clone(),
+                ..Default::default()
+            });
+        if row.colonne.is_empty() {
+            table.table = TableRights {
+                create: row.can_create,
+                read: row.can_read,
+                read_own: row.can_read_own,
+                update: row.can_update,
+                update_own: row.can_update_own,
+                delete: row.can_delete,
+                delete_own: row.can_delete_own,
+            };
+        } else {
+            table.columns.push(ColumnGrant {
+                column: row.colonne.clone(),
+                read: row.can_read,
+                create: row.can_create,
+                update: row.can_update,
+            });
+        }
+    }
+    tables.into_values().collect()
+}
+
+/// `grants` as the history shows them, tables and columns sorted so the old
+/// grid and the new one compare: `notes (create, read; title: read)`. Only
+/// what opens something: a table without a table right, a column without a
+/// right, aren't written either.
+fn describe(grants: &[TableGrant]) -> String {
+    let mut tables: Vec<&TableGrant> = grants.iter().filter(|g| g.table.any()).collect();
+    tables.sort_by(|a, b| a.resource_key.cmp(&b.resource_key));
+    tables
+        .into_iter()
+        .map(|grant| {
+            let mut columns: Vec<&ColumnGrant> = grant
+                .columns
+                .iter()
+                .filter(|c| !c.names().is_empty())
+                .collect();
+            columns.sort_by(|a, b| a.column.cmp(&b.column));
+            let mut parts = vec![grant.table.names().join(", ")];
+            parts.extend(
+                columns
+                    .into_iter()
+                    .map(|c| format!("{}: {}", c.column, c.names().join(", "))),
+            );
+            format!("{} ({})", grant.resource_key, parts.join("; "))
+        })
+        .collect::<Vec<_>>()
+        .join(" | ")
+}
+
 fn refused(reason: RefusalReason) -> DbErr {
     DbErr::Custom(Refusal::new(reason).message())
 }
@@ -74,9 +158,10 @@ pub(crate) fn may_set(actor: &CurrentUser, target: &user::Model) -> Result<(), D
 }
 
 /// Replaces `target`'s whole grid with `grants`, as `actor`, with a history
-/// row. A table without any table right keeps no row: its column rows would
-/// open nothing (table right AND column right). The caller has checked every
-/// key and column against the admin's models: `grants` names nothing else.
+/// row of the grid before and after. A table without any table right keeps
+/// no row: its column rows would open nothing (table right AND column
+/// right). The caller has checked every key and column against the admin's
+/// models: `grants` names nothing else.
 pub(crate) async fn set_admin_rights(
     actor: &CurrentUser,
     target: Pk,
@@ -89,11 +174,14 @@ pub(crate) async fn set_admin_rights(
     };
     may_set(actor, &account)?;
 
+    let before = groupes_droits::Entity::find()
+        .filter(groupes_droits::Column::UserId.eq(target))
+        .all(&txn)
+        .await?;
     groupes_droits::Entity::delete_many()
         .filter(groupes_droits::Column::UserId.eq(target))
         .exec(&txn)
         .await?;
-    let mut tables = Vec::new();
     for grant in grants.iter().filter(|g| g.table.any()) {
         let t = grant.table;
         groupes_droits::ActiveModel {
@@ -134,10 +222,11 @@ pub(crate) async fn set_admin_rights(
             .insert(&txn)
             .await?;
         }
-        tables.push(grant.resource_key.clone());
     }
 
-    let summary = serde_json::json!({ "droits": { "old": "", "new": tables.join(", ") } });
+    let summary = serde_json::json!({
+        "droits": { "old": describe(&from_rows(&before)), "new": describe(grants) }
+    });
     log_action(
         &txn,
         ActionLog {
@@ -153,4 +242,80 @@ pub(crate) async fn set_admin_rights(
     )
     .await?;
     txn.commit().await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn row(
+        key: &str,
+        colonne: &str,
+        read: bool,
+        create: bool,
+        update: bool,
+    ) -> groupes_droits::Model {
+        groupes_droits::Model {
+            id: 0,
+            groupe_id: None,
+            user_id: None,
+            resource_key: key.into(),
+            colonne: colonne.into(),
+            can_create: create,
+            can_read: read,
+            can_read_own: false,
+            can_update: update,
+            can_update_own: false,
+            can_delete: colonne.is_empty() && update,
+            can_delete_own: false,
+        }
+    }
+
+    #[test]
+    fn a_stored_grid_reads_back_as_it_was_written() {
+        let rows = [
+            row("notes", "title", true, false, true),
+            row("notes", "", true, true, true),
+            row("blog", "", true, false, false),
+        ];
+        assert_eq!(
+            describe(&from_rows(&rows)),
+            "blog (read) | notes (create, read, update, delete; title: read, update)"
+        );
+    }
+
+    #[test]
+    fn a_change_inside_a_table_shows() {
+        let before = [row("notes", "", true, false, false)];
+        let after = [row("notes", "", true, false, true)];
+        assert_ne!(describe(&from_rows(&before)), describe(&from_rows(&after)));
+    }
+
+    #[test]
+    fn what_opens_nothing_is_left_out() {
+        let grants = [
+            TableGrant {
+                resource_key: "ghost".into(),
+                table: TableRights::default(),
+                columns: vec![ColumnGrant {
+                    column: "title".into(),
+                    read: true,
+                    ..Default::default()
+                }],
+            },
+            TableGrant {
+                resource_key: "notes".into(),
+                table: TableRights {
+                    read: true,
+                    ..Default::default()
+                },
+                columns: vec![ColumnGrant {
+                    column: "body".into(),
+                    ..Default::default()
+                }],
+            },
+        ];
+        assert_eq!(describe(&grants), "notes (read)");
+        assert_eq!(describe(&[]), "");
+    }
 }

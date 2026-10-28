@@ -2,7 +2,7 @@
 {% block title %}{% if admin_edit_title %}{{ admin_edit_title }}{% endif %} — {{ resource.title }}{% endblock %}
 {% block breadcrumb %}
   <span class="admin-topbar__sep">/</span>
-  <a href="{% link "admin_list" resource=resource_key %}">{{ resource.title }}</a>
+  <a href="{{ list_url }}">{{ resource.title }}</a>
   <span class="admin-topbar__sep">/</span>
   <a href="{{ cancel_url }}">#{{ object_id }}</a>
   <span class="admin-topbar__sep">/</span>
@@ -23,7 +23,7 @@
       <h2>{% if admin_edit_card_info %}{{ admin_edit_card_info }}{% endif %}</h2>
     </div>
     <div class="admin-card__body">
-      <form method="POST" action="{% link "admin_edit" resource=resource_key, id=object_id %}" enctype="multipart/form-data">
+      <form method="POST" action="{{ form_action }}" enctype="multipart/form-data">
         {% block edit_form_fields %}{% include "admin/blocks/form/fields.html" %}{% endblock %}
         {% block edit_form_actions %}{% include "admin/blocks/form/actions.html" %}{% endblock %}
       </form>

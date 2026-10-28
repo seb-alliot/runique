@@ -1,12 +1,12 @@
-{# Buttons of one row: back to the list, then what the flags allow. A flag only
+{# Buttons of one row: back to the list, then what its links allow. A link only
    offers the way; the gate decides again on the page it leads to. #}
 <div class="admin-page__actions">
-  <a href="{% link "admin_list" resource=resource_key %}" class="btn btn-secondary btn-sm">{% if admin_detail_btn_list %}{{ admin_detail_btn_list }}{% endif %}</a>
-  {% if can_update %}
-  <a href="{% link "admin_edit" resource=resource_key, id=object_id %}" class="btn btn-primary btn-sm">{% if admin_detail_btn_edit %}{{ admin_detail_btn_edit }}{% endif %}</a>
+  <a href="{{ list_url }}" class="btn btn-secondary btn-sm">{% if admin_detail_btn_list %}{{ admin_detail_btn_list }}{% endif %}</a>
+  {% if links.edit %}
+  <a href="{{ links.edit }}" class="btn btn-primary btn-sm">{% if admin_detail_btn_edit %}{{ admin_detail_btn_edit }}{% endif %}</a>
   {% endif %}
-  {% if can_reset_password %}
-  <form method="POST" action="{% link "admin_reset_password" resource=resource_key, id=object_id %}" class="admin-form--inline">
+  {% if reset_password_url %}
+  <form method="POST" action="{{ reset_password_url }}" class="admin-form--inline">
     {% csrf %}
     <input type="hidden" name="runique_form" value="admin_reset_password">
     <button type="submit" class="btn btn-secondary btn-sm">{% if admin_detail_btn_reset_password %}{{ admin_detail_btn_reset_password }}{% endif %}</button>
@@ -15,8 +15,8 @@
   {% if rights_url %}
   <a href="{{ rights_url }}" class="btn btn-secondary btn-sm">Droits</a>
   {% endif %}
-  {% if rank_choices | length > 0 %}
-  <form method="POST" action="{% link "admin_rank" resource=resource_key %}" class="admin-form--inline">
+  {% if rank_url %}
+  <form method="POST" action="{{ rank_url }}" class="admin-form--inline">
     {% csrf %}
     <input type="hidden" name="runique_form" value="admin_rank">
     <input type="hidden" name="ids" value="{{ object_id }}">
@@ -28,7 +28,7 @@
     <button type="submit" class="btn btn-secondary btn-sm">Changer le rang</button>
   </form>
   {% endif %}
-  {% if can_delete %}
-  <a href="{% link "admin_delete" resource=resource_key, id=object_id %}" class="btn btn-danger btn-sm">{% if admin_detail_btn_delete %}{{ admin_detail_btn_delete }}{% endif %}</a>
+  {% if links.delete %}
+  <a href="{{ links.delete }}" class="btn btn-danger btn-sm">{% if admin_detail_btn_delete %}{{ admin_detail_btn_delete }}{% endif %}</a>
   {% endif %}
 </div>

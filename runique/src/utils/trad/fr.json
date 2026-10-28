@@ -382,7 +382,7 @@
       "email_subject": "Réinitialisation de votre mot de passe",
       "email_title": "Réinitialisation du mot de passe",
       "email_greeting": "Bonjour,",
-      "email_body": "Cliquez sur le lien ci-dessous pour réinitialiser votre mot de passe (valide 1 heure) :",
+      "email_body": "Cliquez sur le lien ci-dessous pour réinitialiser votre mot de passe (valide {} min) :",
       "email_btn": "Réinitialiser mon mot de passe",
       "email_ignore": "Si vous n'avez pas demandé cette réinitialisation, ignorez ce message."
     },
@@ -392,7 +392,7 @@
       "email_greeting": "Bienvenue,",
       "email_body": "Un compte a été créé pour vous. Cliquez sur le lien ci-dessous pour définir votre mot de passe :",
       "email_btn": "Définir mon mot de passe",
-      "email_validity": "Ce lien est valide 1 heure. Si vous n'attendiez pas ce message, ignorez-le."
+      "email_validity": "Ce lien est valide {} min. Si vous n'attendiez pas ce message, ignorez-le."
     },
     "delete": {
       "title": "Supprimer",
@@ -485,7 +485,7 @@
     "blocked_subject": "Votre compte est bloqué",
     "blocked_body": "<p>Bonjour {},</p><p>Une demande de réinitialisation de mot de passe a été faite pour votre compte, mais ce compte est bloqué. Contactez l'administrateur du site pour le débloquer.</p><p>Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>",
     "email_subject": "Réinitialisation de votre mot de passe",
-    "email_body": "<p>Bonjour {},</p><p>Cliquez sur le lien suivant pour réinitialiser votre mot de passe (valide 1 heure) :</p><p><a href=\"{}\">{}</a></p>"
+    "email_body": "<p>Bonjour {},</p><p>Cliquez sur le lien suivant pour réinitialiser votre mot de passe (valide {} min) :</p><p><a href=\"{}\">{}</a></p>"
   },
   "makemigrations": {
     "destructive_detected": "Changements destructifs détectés :",

@@ -1,5 +1,5 @@
 {# Narrow the history to one model, one action, one account or one row. #}
-<form method="GET" action="{% link "admin_history" %}" class="admin-search__row">
+<form method="GET" action="{{ history_url }}" class="admin-search__row">
   <select name="resource" class="admin-search__input">
     <option value="">Toutes les ressources</option>
     {% for resource in history_resources %}
@@ -16,6 +16,6 @@
   {% if filter_user %}<input type="hidden" name="user" value="{{ filter_user }}">{% endif %}
   <button type="submit" class="btn btn-secondary">Filtrer</button>
   {% if filter_resource or filter_action or filter_object or filter_user %}
-    <a href="{% link "admin_history" %}" class="btn btn-ghost">Réinitialiser</a>
+    <a href="{{ history_url }}" class="btn btn-ghost">Réinitialiser</a>
   {% endif %}
 </form>

@@ -1,10 +1,10 @@
 //! `POST {admin}/{resource}/rank`: gives accounts a rank, through the gate's
 //! own operation. A rank is never a form field.
-use super::{detail_url, failure, link, unknown_resource};
 use crate::admin::builder::bulk_form::{BULK_ACTION, BULK_IDS, BulkForm};
 use crate::admin::builder::registered::AdminError;
 use crate::admin::builder::site::AdminSite;
 use crate::admin::router::admin_router::AdminState;
+use crate::admin::router::{failure, unknown_resource};
 use crate::auth::current_user::CurrentUser;
 use crate::auth::gate::Refusal;
 use crate::auth::gate::rank::set_rank;
@@ -15,7 +15,7 @@ use crate::context::template::Request;
 use crate::forms::field::FormAccess;
 use crate::forms::validation_form::ValidationForm;
 use crate::utils::aliases::AppResult;
-use crate::utils::constante::admin_key::{admin_form, admin_route};
+use crate::utils::constante::admin_key::admin_form;
 use crate::utils::pk::Pk;
 use axum::Extension;
 use axum::extract::Path;
@@ -79,8 +79,8 @@ pub(crate) async fn rank_view(
     let to = parse_rank(&value(BULK_ACTION));
 
     let back = match ids.as_deref() {
-        Some([one]) => detail_url(&req, &site, model.key(), &one.to_string()),
-        _ => link(&req, admin_route::LIST, &[("resource", model.key())]),
+        Some([one]) => admin.paths.detail_of(&site, model.key(), &one.to_string()),
+        _ => admin.paths.list_of(model.key()),
     };
     let outcome = match (form.is_ok(), ids, to) {
         (true, Some(ids), Some(to)) => set_rank(&user, &ids, to, &req.engine.db).await,

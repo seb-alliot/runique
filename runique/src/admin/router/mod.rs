@@ -3,20 +3,16 @@
 //! `{prefix}/{resource}/{id}/detail`. The model pages hold only their
 //! routes: authentication, the current user, `noindex` and `AdminState` come
 //! from the layers `build_admin_router` wraps around them, never copied.
+pub mod account;
 pub mod admin_router;
-pub mod bulk;
 pub mod context;
-pub mod create;
-pub mod delete;
-pub mod detail;
-pub mod edit;
+pub mod crud;
 pub mod history;
-pub mod list;
-pub mod rank;
-pub mod reset_password;
-pub mod rights;
+pub mod path;
+pub mod permission;
 
 pub use admin_router::{ADMIN_TEMPLATE_SESSION_KEY, AdminState, build_admin_router};
+pub use path::AdminPaths;
 
 /// Whether a declarative admin route replaces a generated view or stands alone.
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -32,54 +28,32 @@ use crate::admin::trad::{inject_admin_prefix, insert_admin_messages};
 use crate::auth::current_user::CurrentUser;
 use crate::context::template::{AppError, Request};
 use crate::errors::error::ErrorContext;
-use crate::macros::routeur::register_url::reverse_with_parameters;
 use crate::urlpatterns;
 use crate::utils::aliases::AppResult;
 use crate::utils::constante::admin_key::admin_route;
 use axum::response::{IntoResponse, Redirect, Response};
 use axum::{Extension, Router, routing::get};
+use context::NavLinks;
 use std::sync::Arc;
 
-/// The rebuilt admin's routes under `prefix`, the admin's public base (mount
-/// prefix included), sharing `site`. Named in `urlpatterns!` like the fixed
-/// routes, so `{% link "admin_list" resource=… %}` resolves the path served.
-pub(crate) fn refonte_router(prefix: &str, site: Arc<AdminSite>) -> Router {
+/// The model pages, served at `paths`, sharing `site`. Still named in
+/// `urlpatterns!`, for a project's own templates (`{% link "admin_list" … %}`).
+pub(crate) fn refonte_router(paths: &AdminPaths, site: Arc<AdminSite>) -> Router {
     urlpatterns! {
-        &format!("{prefix}/{{resource}}/list") => get(list::list_view), name = admin_route::LIST,
-        &format!("{prefix}/{{resource}}/{{id}}/detail") => get(detail::detail_view), name = admin_route::DETAIL,
-        &format!("{prefix}/{{resource}}/create") => get(create::create_view).post(create::create_view), name = admin_route::CREATE,
-        &format!("{prefix}/{{resource}}/{{id}}/rights") => get(rights::rights_view).post(rights::rights_view), name = admin_route::RIGHTS,
-        &format!("{prefix}/{{resource}}/rank") => axum::routing::post(rank::rank_view), name = admin_route::RANK,
-        &format!("{prefix}/{{resource}}/bulk") => axum::routing::post(bulk::bulk_view), name = admin_route::BULK,
-        &format!("{prefix}/{{resource}}/{{id}}/reset-password") => axum::routing::post(reset_password::reset_password_view), name = admin_route::RESET_PASSWORD,
-        &format!("{prefix}/history") => get(history::history_view), name = admin_route::HISTORY,
-        &format!("{prefix}/history/{{id}}") => get(history::history_entry_view), name = admin_route::HISTORY_ENTRY,
-        &format!("{prefix}/{{resource}}/{{id}}/delete") => get(delete::delete_view).post(delete::delete_view), name = admin_route::DELETE,
-        &format!("{prefix}/{{resource}}/{{id}}/edit") => get(edit::edit_view).post(edit::edit_view), name = admin_route::EDIT,
+        &paths.list => get(crud::list::list_view), name = admin_route::LIST,
+        &paths.detail => get(crud::detail::detail_view), name = admin_route::DETAIL,
+        &paths.create => get(crud::create::create_view).post(crud::create::create_view), name = admin_route::CREATE,
+        &paths.rights => get(permission::rights::rights_view).post(permission::rights::rights_view), name = admin_route::RIGHTS,
+        &paths.rank => axum::routing::post(permission::rank::rank_view), name = admin_route::RANK,
+        &paths.bulk => axum::routing::post(crud::bulk::bulk_view), name = admin_route::BULK,
+        &paths.reset_password => axum::routing::post(account::reset_password::reset_password_view), name = admin_route::RESET_PASSWORD,
+        &paths.history => get(history::history_view), name = admin_route::HISTORY,
+        &paths.history_entry => get(history::history_entry_view), name = admin_route::HISTORY_ENTRY,
+        &paths.delete => get(crud::delete::delete_view).post(crud::delete::delete_view), name = admin_route::DELETE,
+        &paths.edit => get(crud::edit::edit_view).post(crud::edit::edit_view), name = admin_route::EDIT,
     }
     .into_router()
     .layer(Extension(site))
-}
-
-/// The path of the named admin route `name`, built like `{% link %}` builds it
-/// in a template. Empty, and logged, if the name or a parameter is wrong: a
-/// broken link, never a broken page.
-fn link(req: &Request, name: &str, parameters: &[(&str, &str)]) -> String {
-    reverse_with_parameters(&req.engine, name, parameters).unwrap_or_else(|error| {
-        tracing::error!(route = name, error = ?error, "admin link not resolved");
-        String::new()
-    })
-}
-
-/// The page of row `id` of model `key`: the route declared to replace the
-/// detail, else the generated one. Every link and redirect to a row goes
-/// through here, so a replaced detail is never pointed at (it answers 404).
-fn detail_url(req: &Request, site: &AdminSite, key: &str, id: &str) -> String {
-    match site.overridden_path(key, AdminView::Detail) {
-        // Checked at boot: `{id}` is the route's only parameter.
-        Some(path) => path.replace("{id}", &urlencoding::encode(id)),
-        None => link(req, admin_route::DETAIL, &[("resource", key), ("id", id)]),
-    }
 }
 
 /// What the gate or the database said no with: a refusal as a flash message
@@ -88,8 +62,7 @@ async fn failure(error: AdminError, req: &Request, admin: &AdminState) -> AppRes
     match error {
         AdminError::Refused(refusal) => {
             req.notices.error(refusal.message()).await;
-            let dashboard = format!("{}/", admin.config.prefix.trim_end_matches('/'));
-            Ok(Redirect::to(&dashboard).into_response())
+            Ok(Redirect::to(&admin.paths.dashboard).into_response())
         }
         AdminError::Db(error) => Err(Box::new(AppError::new(ErrorContext::database(error)))),
     }
@@ -113,21 +86,25 @@ fn chrome(
             serde_json::json!({
                 "key": entry.key,
                 "title": entry.title,
-                "list_url": link(req, admin_route::LIST, &[("resource", entry.key)]),
+                "list_url": admin.paths.list_of(entry.key),
             })
         })
         .collect();
     req.context.insert("resources", &resources);
     req.context.insert("current_resource", current_resource);
     req.context.insert("current_user", user);
-    // The history entry only when there is a history this account may read.
-    if !site.history_scopes(&req.engine.db, user).is_empty() {
-        let history_url = link(req, admin_route::HISTORY, &[]);
-        req.context.insert("history_url", &history_url);
-    }
+    let paths = &admin.paths;
+    let nav = NavLinks {
+        dashboard: paths.dashboard.clone(),
+        // Only when there is a history this account may read.
+        history: (!site.history_scopes(&req.engine.db, user).is_empty())
+            .then(|| paths.history.clone()),
+        logout: paths.logout.clone(),
+        site: admin.config.view_site_href().to_string(),
+        toggle_template: paths.toggle_template.clone(),
+    };
+    req.context.insert("nav", &nav);
     req.context.insert("site_title", &admin.config.site_title);
-    req.context
-        .insert("site_url", &admin.config.view_site_href());
     req.context
         .insert("lang", crate::utils::trad::current_lang().code());
 }
@@ -146,11 +123,14 @@ mod tests {
     use tower::ServiceExt;
 
     async fn status_of(path: &str) -> StatusCode {
-        refonte_router("/admin", std::sync::Arc::new(AdminSite::default()))
-            .oneshot(Request::builder().uri(path).body(Body::empty()).unwrap())
-            .await
-            .unwrap()
-            .status()
+        refonte_router(
+            &super::AdminPaths::new("/admin"),
+            std::sync::Arc::new(AdminSite::default()),
+        )
+        .oneshot(Request::builder().uri(path).body(Body::empty()).unwrap())
+        .await
+        .unwrap()
+        .status()
     }
 
     /// Without the layers `build_admin_router` adds, a mounted route fails on

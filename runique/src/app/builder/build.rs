@@ -184,7 +184,7 @@ impl<P> RuniqueAppBuilder<P> {
         // browser is on, so the session cookie follows.
         #[cfg(feature = "admin")]
         if let Some(pr) = &self.password_reset {
-            self.admin.config.reset_route = pr.config.reset_route.clone();
+            self.admin.config.reset_link = Some((&pr.config).into());
         }
 
         let router = if let Some(pr) = self.password_reset {

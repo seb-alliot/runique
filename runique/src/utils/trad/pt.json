@@ -382,7 +382,7 @@
       "email_subject": "Redefina sua senha",
       "email_title": "Redefinição de senha",
       "email_greeting": "Olá,",
-      "email_body": "Clique no link abaixo para redefinir sua senha (válido por 1 hora):",
+      "email_body": "Clique no link abaixo para redefinir sua senha (válido por {} min):",
       "email_btn": "Redefinir minha senha",
       "email_ignore": "Se você não solicitou esta redefinição, ignore esta mensagem."
     },
@@ -392,7 +392,7 @@
       "email_greeting": "Bem-vindo,",
       "email_body": "Uma conta foi criada para você. Clique no link para definir sua senha:",
       "email_btn": "Definir minha senha",
-      "email_validity": "Este link é válido por 1 hora. Se não esperava esta mensagem, ignore-a."
+      "email_validity": "Este link é válido por {} min. Se não esperava esta mensagem, ignore-a."
     },
     "delete": {
       "title": "Excluir",
@@ -498,7 +498,7 @@
     "blocked_subject": "Sua conta está bloqueada",
     "blocked_body": "<p>Olá {},</p><p>Foi solicitada a redefinição de senha da sua conta, mas esta conta está bloqueada. Entre em contato com o administrador do site para desbloqueá-la.</p><p>Se você não fez esta solicitação, ignore este e-mail.</p>",
     "email_subject": "Redefinição de senha",
-    "email_body": "<p>Olá {},</p><p>Clique no link a seguir para redefinir sua senha (válido por 1 hora):</p><p><a href=\"{}\">{}</a></p>"
+    "email_body": "<p>Olá {},</p><p>Clique no link a seguir para redefinir sua senha (válido por {} min):</p><p><a href=\"{}\">{}</a></p>"
   },
   "permission": {
     "col": {

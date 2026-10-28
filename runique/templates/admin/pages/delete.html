@@ -2,7 +2,7 @@
 {% block title %}{% if admin_delete_title %}{{ admin_delete_title }}{% endif %} — {{ resource.title }}{% endblock %}
 {% block breadcrumb %}
   <span class="admin-topbar__sep">/</span>
-  <a href="{% link "admin_list" resource=resource_key %}">{{ resource.title }}</a>
+  <a href="{{ list_url }}">{{ resource.title }}</a>
   <span class="admin-topbar__sep">/</span>
   <a href="{{ cancel_url }}">#{{ object_id }}</a>
   <span class="admin-topbar__sep">/</span>

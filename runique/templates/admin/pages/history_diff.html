@@ -2,7 +2,7 @@
 {% block title %}Historique — {{ entry.resource_title }} #{{ entry.object_pk }}{% endblock %}
 {% block breadcrumb %}
   <span class="admin-topbar__sep">/</span>
-  <a href="{% link "admin_history" %}">Historique</a>
+  <a href="{{ history_url }}">Historique</a>
   <span class="admin-topbar__sep">/</span>
   <span>#{{ entry.id }}</span>
 {% endblock %}
@@ -14,7 +14,7 @@
       <p class="admin-page__subtitle">{{ entry.created_at }} · {{ entry.username }} · {% include "admin/blocks/history/action_badge.html" %}</p>
     </div>
     <div class="admin-page__actions">
-      <a href="{% link "admin_history" %}?resource={{ entry.resource_key | urlencode }}&object={{ entry.object_pk | urlencode }}" class="btn btn-secondary btn-sm">Toute l'histoire de cette ligne</a>
+      <a href="{{ entry.links.object }}" class="btn btn-secondary btn-sm">Toute l'histoire de cette ligne</a>
     </div>
   </div>
   {% endblock %}

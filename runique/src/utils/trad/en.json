@@ -382,7 +382,7 @@
       "email_subject": "Reset your password",
       "email_title": "Password reset",
       "email_greeting": "Hello,",
-      "email_body": "Click the link below to reset your password (valid for 1 hour):",
+      "email_body": "Click the link below to reset your password (valid for {} min):",
       "email_btn": "Reset my password",
       "email_ignore": "If you did not request this reset, ignore this message."
     },
@@ -392,7 +392,7 @@
       "email_greeting": "Welcome,",
       "email_body": "An account has been created for you. Click the link below to set your password:",
       "email_btn": "Set my password",
-      "email_validity": "This link is valid for 1 hour. If you were not expecting this message, ignore it."
+      "email_validity": "This link is valid for {} min. If you were not expecting this message, ignore it."
     },
     "delete": {
       "title": "Delete",
@@ -485,7 +485,7 @@
     "blocked_subject": "Your account is blocked",
     "blocked_body": "<p>Hello {},</p><p>A password reset was requested for your account, but this account is blocked. Contact the site administrator to unblock it.</p><p>If you did not make this request, ignore this email.</p>",
     "email_subject": "Password reset request",
-    "email_body": "<p>Hello {},</p><p>Click the link below to reset your password (valid for 1 hour):</p><p><a href=\"{}\">{}</a></p>"
+    "email_body": "<p>Hello {},</p><p>Click the link below to reset your password (valid for {} min):</p><p><a href=\"{}\">{}</a></p>"
   },
   "makemigrations": {
     "destructive_detected": "Destructive changes detected:",

@@ -71,8 +71,7 @@ pub(crate) async fn admin_access(
         );
     }
     let Some(user) = admin_user else {
-        let login_url = format!("{}/login", admin.config.prefix.trim_end_matches('/'));
-        return Redirect::to(&login_url).into_response();
+        return Redirect::to(&admin.paths.login).into_response();
     };
     let mut request = request;
     request
@@ -339,6 +338,7 @@ mod admin_access_constraint_tests {
         let mut config = crate::admin::config::AdminConfig::new();
         config.prefix = prefix.to_string();
         Extension(Arc::new(AdminState {
+            paths: crate::admin::router::AdminPaths::new(&config.prefix),
             config: Arc::new(config),
             login_guard: None,
         }))
@@ -587,8 +587,10 @@ mod declared_route_constraint_tests {
         if let Some(id) = signed_in {
             session.insert(SESSION_USER_ID_KEY, id).await.unwrap();
         }
+        let config = crate::admin::config::AdminConfig::new();
         let state = Extension(Arc::new(AdminState {
-            config: Arc::new(crate::admin::config::AdminConfig::new()),
+            paths: crate::admin::router::AdminPaths::new(&config.prefix),
+            config: Arc::new(config),
             login_guard: None,
         }));
         let app = Router::new()

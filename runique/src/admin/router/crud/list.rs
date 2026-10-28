@@ -1,11 +1,12 @@
 //! `GET {admin}/{resource}/list`: one page of a model's list.
-use super::context::{Display, ListContext, ResourceRef, put};
-use super::{chrome, detail_url, failure, unknown_resource};
 use crate::admin::builder::list::ListQuery;
 use crate::admin::builder::registered::readable;
 use crate::admin::builder::site::AdminSite;
-use crate::admin::router::AdminView;
 use crate::admin::router::admin_router::AdminState;
+use crate::admin::router::context::{
+    Display, ListContext, ListEntry, ResourceLinks, ResourceRef, RowLinks, put,
+};
+use crate::admin::router::{chrome, failure, unknown_resource};
 use crate::admin::trad::insert_admin_messages;
 use crate::auth::current_user::CurrentUser;
 use crate::context::template::{AppError, Request};
@@ -28,7 +29,7 @@ pub(crate) async fn list_view(
         return unknown_resource(&resource);
     };
     let query = ListQuery::from_params(params, admin.config.search_max_len);
-    let mut page = match model
+    let page = match model
         .list(&req.engine.db, &user, &query, admin.config.page_size)
         .await
     {
@@ -49,30 +50,29 @@ pub(crate) async fn list_view(
     let rights = model.rights(&user);
     let can_edit = rights.can_update || rights.can_update_own;
     let can_delete = rights.can_delete || rights.can_delete_own;
-    // A declared route replaces the detail: each row links to it.
-    if site.overridden_path(key, AdminView::Detail).is_some() {
-        let pk = model.pk_column();
-        for row in &mut page.rows {
-            let Some(id) = row.get(pk).and_then(|value| match value {
-                serde_json::Value::String(id) => Some(id.clone()),
-                serde_json::Value::Number(id) => Some(id.to_string()),
-                _ => None,
-            }) else {
-                return Err(Box::new(AppError::new(ErrorContext::generic(
-                    axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                    "admin list row is missing a serializable primary key",
-                ))));
-            };
-            let url = detail_url(&req, &site, key, &id);
-            let Some(fields) = row.as_object_mut() else {
-                return Err(Box::new(AppError::new(ErrorContext::generic(
-                    axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                    "admin list row is not an object",
-                ))));
-            };
-            fields.insert("detail_url".to_string(), serde_json::Value::String(url));
-        }
+    let paths = &admin.paths;
+    let pk = model.pk_column();
+    let mut entries = Vec::with_capacity(page.rows.len());
+    for values in page.rows {
+        let Some(id) = values.get(pk).and_then(|value| match value {
+            serde_json::Value::String(id) => Some(id.clone()),
+            serde_json::Value::Number(id) => Some(id.to_string()),
+            _ => None,
+        }) else {
+            return Err(Box::new(AppError::new(ErrorContext::generic(
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                "admin list row is missing a serializable primary key",
+            ))));
+        };
+        // Offered on the list's rights; the gate decides on the row's page.
+        let links = RowLinks {
+            detail: paths.detail_of(&site, key, &id),
+            edit: can_edit.then(|| paths.edit_of(key, &id)),
+            delete: can_delete.then(|| paths.delete_of(key, &id)),
+        };
+        entries.push(ListEntry { id, values, links });
     }
+    let bulk_offered = !page.actions.is_empty() || can_delete;
 
     chrome(&mut req, &admin, &site, &user, key);
     insert_admin_messages(&mut req.context, "list");
@@ -94,13 +94,16 @@ pub(crate) async fn list_view(
                 .into_iter()
                 .map(|f| (f.column, f.values))
                 .collect(),
-            resource_base: format!("{}/{key}", admin.config.prefix),
+            resource_links: ResourceLinks {
+                list: paths.list_of(key),
+                create: rights.can_create.then(|| paths.create_of(key)),
+                bulk: bulk_offered.then(|| paths.bulk_of(key)),
+            },
             current_page: "list",
-            entries: page.rows,
+            entries,
             visible_columns: page.columns,
             column_labels: StrMap::new(),
             rich_fields: Vec::new(),
-            can_bulk: !page.actions.is_empty() || can_delete,
             group_actions: page.actions,
             return_qs: format!(
                 "page={}&sort_by={}&sort_dir={}&search={}{}",
@@ -123,11 +126,7 @@ pub(crate) async fn list_view(
             has_next: page.page < page_count,
             prev_page: page.page.saturating_sub(1).max(1),
             next_page: page.page + 1,
-            can_view: true,
-            can_create: rights.can_create,
-            can_update: false,
-            can_edit,
-            can_delete,
+            bulk_delete: can_delete,
         },
     )?;
 

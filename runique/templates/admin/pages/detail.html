@@ -6,7 +6,7 @@
   <a href="{{ parent_base }}/{{ parent_id }}/detail">{{ parent_title }}</a>
   {% endif %}
   <span class="admin-topbar__sep">/</span>
-  <a href="{% link "admin_list" resource=resource_key %}">{{ resource.title | default(value=resource_key) }}</a>
+  <a href="{{ list_url }}">{{ resource.title | default(value=resource_key) }}</a>
   <span class="admin-topbar__sep">/</span>
   <span>{% if admin_detail_breadcrumb %}{{ admin_detail_breadcrumb }}{% endif %} #{{ object_id }}</span>
 {% endblock %}

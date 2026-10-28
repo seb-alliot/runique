@@ -382,7 +382,7 @@
       "email_subject": "Reimposta la tua password",
       "email_title": "Reimpostazione password",
       "email_greeting": "Salve,",
-      "email_body": "Clicca il link qui sotto per reimpostare la tua password (valido 1 ora):",
+      "email_body": "Clicca il link qui sotto per reimpostare la tua password (valido {} min):",
       "email_btn": "Reimposta la mia password",
       "email_ignore": "Se non hai richiesto questa reimpostazione, ignora questo messaggio."
     },
@@ -392,7 +392,7 @@
       "email_greeting": "Benvenuto,",
       "email_body": "È stato creato un account per te. Clicca il link per impostare la tua password:",
       "email_btn": "Imposta la mia password",
-      "email_validity": "Questo link è valido 1 ora. Se non ti aspettavi questo messaggio, ignoralo."
+      "email_validity": "Questo link è valido {} min. Se non ti aspettavi questo messaggio, ignoralo."
     },
     "delete": {
       "title": "Elimina",
@@ -498,7 +498,7 @@
     "blocked_subject": "Il tuo account è bloccato",
     "blocked_body": "<p>Ciao {},</p><p>È stata richiesta la reimpostazione della password per il tuo account, ma questo account è bloccato. Contatta l'amministratore del sito per sbloccarlo.</p><p>Se non hai fatto tu questa richiesta, ignora questa email.</p>",
     "email_subject": "Reimpostazione password",
-    "email_body": "<p>Ciao {},</p><p>Clicca sul link seguente per reimpostare la password (valido per 1 ora):</p><p><a href=\"{}\">{}</a></p>"
+    "email_body": "<p>Ciao {},</p><p>Clicca sul link seguente per reimpostare la password (valido per {} min):</p><p><a href=\"{}\">{}</a></p>"
   },
   "permission": {
     "col": {

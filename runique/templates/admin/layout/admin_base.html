@@ -25,7 +25,7 @@
         </button>
 
         <div class="admin-topbar__breadcrumb">
-            <a href="{{ admin_prefix }}">{% if admin_base_breadcrumb %}{{ admin_base_breadcrumb }}{% endif %}</a>
+            <a href="{{ nav.dashboard }}">{% if admin_base_breadcrumb %}{{ admin_base_breadcrumb }}{% endif %}</a>
             {% block breadcrumb %}{% endblock %}
         </div>
         {% include "admin/blocks/layout/topbar_actions.html" %}
