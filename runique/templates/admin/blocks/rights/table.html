@@ -1,0 +1,34 @@
+{# One table of the grid: its table rights, then a line per column (read,
+   create, update). A column opens nothing without the table's right. #}
+<div class="admin-card mt-sm">
+  <div class="admin-card__header">
+    <span class="admin-card__title">{{ table.title }}</span>
+  </div>
+  <div class="admin-card__body">
+    <div class="admin-rights__table">
+      {% for right in table.table %}
+      <label class="admin-rights__box">
+        <input type="checkbox" name="{{ right[1].name }}" value="1" {% if right[1].ticked %}checked{% endif %}>
+        {{ right[0] }}
+      </label>
+      {% endfor %}
+    </div>
+    {% if table.columns | length > 0 %}
+    <div class="admin-table__wrapper">
+      <table class="admin-table">
+        <thead><tr><th>Colonne</th><th>Lire</th><th>Créer</th><th>Modifier</th></tr></thead>
+        <tbody>
+          {% for col in table.columns %}
+          <tr>
+            <td class="admin-table__key">{{ col.column | replace(from="_", to=" ") }}</td>
+            <td><input type="checkbox" name="{{ col.read.name }}" value="1" {% if col.read.ticked %}checked{% endif %}></td>
+            <td><input type="checkbox" name="{{ col.create.name }}" value="1" {% if col.create.ticked %}checked{% endif %}></td>
+            <td><input type="checkbox" name="{{ col.update.name }}" value="1" {% if col.update.ticked %}checked{% endif %}></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+</div>

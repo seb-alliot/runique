@@ -1,6 +1,6 @@
 //! `GET {admin}/{resource}/list`: one page of a model's list.
 use super::context::{Display, ListContext, ResourceRef, put};
-use super::{chrome, failure, unknown_resource};
+use super::{chrome, detail_url, failure, unknown_resource};
 use crate::admin::builder::list::ListQuery;
 use crate::admin::builder::registered::readable;
 use crate::admin::builder::site::AdminSite;
@@ -49,10 +49,8 @@ pub(crate) async fn list_view(
     let rights = model.rights(&user);
     let can_edit = rights.can_update || rights.can_update_own;
     let can_delete = rights.can_delete || rights.can_delete_own;
-    let detail_route = site
-        .overridden_path(key, AdminView::Detail)
-        .map(str::to_owned);
-    if let Some(detail_route) = detail_route {
+    // A declared route replaces the detail: each row links to it.
+    if site.overridden_path(key, AdminView::Detail).is_some() {
         let pk = model.pk_column();
         for row in &mut page.rows {
             let Some(id) = row.get(pk).and_then(|value| match value {
@@ -65,17 +63,14 @@ pub(crate) async fn list_view(
                     "admin list row is missing a serializable primary key",
                 ))));
             };
+            let url = detail_url(&req, &site, key, &id);
             let Some(fields) = row.as_object_mut() else {
                 return Err(Box::new(AppError::new(ErrorContext::generic(
                     axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                     "admin list row is not an object",
                 ))));
             };
-            let encoded_id = urlencoding::encode(&id);
-            fields.insert(
-                "detail_url".to_string(),
-                serde_json::Value::String(detail_route.replace("{id}", &encoded_id)),
-            );
+            fields.insert("detail_url".to_string(), serde_json::Value::String(url));
         }
     }
 

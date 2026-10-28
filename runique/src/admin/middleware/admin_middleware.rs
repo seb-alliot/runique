@@ -96,16 +96,9 @@ pub(crate) async fn load_admin_user(
     // The app-wide auth middleware already put a `CurrentUser` built from the
     // session — the very copy this middleware exists to replace.
     request.extensions_mut().remove::<CurrentUser>();
+    // Nobody signed in: an anonymous session of the site stays as it is
+    // (`login` renews its id at sign-in).
     let Some(user_id) = get_user_id(&session).await else {
-        if session.id().is_some() {
-            session.delete().await.trace(
-                crate::utils::runique_log::get_log()
-                    .session
-                    .as_ref()
-                    .and_then(|s| s.store),
-                "delete anonymous session",
-            );
-        }
         return next.run(request).await;
     };
     let Some(engine) = request.extensions().get::<AEngine>().cloned() else {
@@ -114,22 +107,34 @@ pub(crate) async fn load_admin_user(
 
     // Staff access comes from the groups: the account alone can't decide, so
     // the user is built first and judged after.
-    let current_user = fresh_user(&engine, user_id)
-        .await
-        .filter(CurrentUser::can_access_admin);
-    match current_user {
-        Some(current_user) => {
+    match fresh_user(&engine, user_id).await {
+        Some(current_user) if current_user.can_access_admin() => {
             RequestExtensions::new()
                 .with_current_user(current_user)
                 .inject_request(&mut request);
         }
+        // A valid account of the site without admin access, the login page
+        // included: back to the site, its session left open.
+        Some(current_user) => {
+            if let Some(level) = crate::utils::runique_log::get_log()
+                .admin
+                .as_ref()
+                .and_then(|a| a.auth)
+            {
+                crate::runique_log!(level, user = %current_user.username, "admin refused: no admin access, sent to the site");
+            }
+            let notices = crate::flash::flash_manager::Message { session };
+            notices.error(t("admin.access.action_not_allowed")).await;
+            return Redirect::to("/").into_response();
+        }
+        // The account is gone or may no longer sign in: its session ends.
         None => {
             if let Some(level) = crate::utils::runique_log::get_log()
                 .admin
                 .as_ref()
                 .and_then(|a| a.auth)
             {
-                crate::runique_log!(level, user_id = %user_id, "admin account gone, inactive or no longer staff — session closed");
+                crate::runique_log!(level, user_id = %user_id, "admin account gone or inactive — session closed");
             }
             let db_store = engine
                 .session_db_store
@@ -141,7 +146,7 @@ pub(crate) async fn load_admin_user(
                     .session
                     .as_ref()
                     .and_then(|s| s.store),
-                "close the session of an account that lost admin access",
+                "close the session of an account that may no longer sign in",
             );
         }
     }

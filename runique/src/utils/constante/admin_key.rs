@@ -270,6 +270,8 @@ pub mod admin_route {
     /// `{prefix}/{resource}/{id}/reset-password` (POST): sends the account's
     /// owner a link to choose a new password
     pub const RESET_PASSWORD: &str = "admin_reset_password";
+    /// `{prefix}/{resource}/{id}/rights`: an admin's own rights grid
+    pub const RIGHTS: &str = "admin_rights";
     /// `{prefix}/{resource}/rank` (POST): gives the accounts `ids` a rank
     pub const RANK: &str = "admin_rank";
     /// `{prefix}/{resource}/bulk` (POST): a grouped action on the checked rows
@@ -290,4 +292,5 @@ pub mod admin_form {
     pub const BULK: &str = "admin_bulk";
     pub const RESET_PASSWORD: &str = "admin_reset_password";
     pub const RANK: &str = "admin_rank";
+    pub const RIGHTS: &str = "admin_rights";
 }

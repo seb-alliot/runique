@@ -117,6 +117,8 @@ pub struct DetailContext {
     /// That account's rank now (`lambda`, `admin`, `dirigeant`,
     /// `superuser`), when `rank_choices` isn't empty.
     pub current_rank: Option<&'static str>,
+    /// The admin's rights grid, when the viewer may set it.
+    pub rights_url: Option<String>,
 }
 
 /// What the form blocks (`admin/blocks/form/`) read, the same on every form page.
@@ -241,6 +243,53 @@ pub struct HistoryEntryContext {
     pub entry: HistoryRow,
     /// Its readable changed columns.
     pub changes: Vec<HistoryChange>,
+}
+
+/// One right of the grid: its form name, and whether it is ticked.
+#[derive(Serialize)]
+pub struct GridBox {
+    /// The checkbox's `name`, what the page sends back when ticked.
+    pub name: String,
+    pub ticked: bool,
+}
+
+/// One column of a table in the grid.
+#[derive(Serialize)]
+pub struct GridColumn {
+    pub column: &'static str,
+    pub read: GridBox,
+    pub create: GridBox,
+    pub update: GridBox,
+}
+
+/// One table of the grid: its table rights, then its columns.
+#[derive(Serialize)]
+pub struct GridTable {
+    pub key: &'static str,
+    pub title: String,
+    /// `(label, box)` for create, read, read_own, update, update_own,
+    /// delete, delete_own.
+    pub table: Vec<(&'static str, GridBox)>,
+    pub columns: Vec<GridColumn>,
+}
+
+/// `admin/rights.html`: an admin's own rights, set by a dirigeant.
+#[derive(Serialize)]
+pub struct RightsContext {
+    pub resource: ResourceRef,
+    /// Same as `resource.key`.
+    pub resource_key: &'static str,
+    /// `"rights"`.
+    pub current_page: &'static str,
+    /// The admin's key, as in the URL.
+    pub object_id: String,
+    pub account_name: String,
+    /// Every model of the admin, accounts first.
+    pub tables: Vec<GridTable>,
+    /// The form's CSRF token and name: `html`.
+    pub form_fields: serde_json::Value,
+    /// The account's page.
+    pub cancel_url: String,
 }
 
 /// Adds `page`'s fields to the request's template context.

@@ -316,7 +316,7 @@ fn hash_via_provider(password: &str, provider_path: &str) -> Result<String, Stri
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
 pub async fn create_superuser() -> Result<()> {
-    dotenvy::dotenv_override().ok();
+    dotenvy::dotenv().ok();
 
     let config = superuser_db_config(|key| std::env::var(key).ok())?;
     let db: ADb = ADb::from_connection(config.connect().await?);

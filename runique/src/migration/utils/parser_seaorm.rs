@@ -341,6 +341,11 @@ fn extract_column_type_enum_struct(expr: &Expr) -> (Option<String>, Vec<String>)
             }
             (None, Vec::new())
         }
+        // `if <Postgres> { ColumnType::Enum { … } } else { ColumnType::String(…) }`
+        Expr::If(e) => match e.then_branch.stmts.last() {
+            Some(syn::Stmt::Expr(inner, None)) => extract_column_type_enum_struct(inner),
+            _ => (None, Vec::new()),
+        },
         _ => (None, Vec::new()),
     }
 }

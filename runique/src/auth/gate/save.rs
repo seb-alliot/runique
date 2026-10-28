@@ -69,17 +69,7 @@ where
             let row = write::insert::<E, E::ActiveModel, _>(proof, model, &txn)
                 .await
                 .map_err(refused)?;
-            trace(
-                &txn,
-                &user,
-                E::KEY,
-                &key_of::<E>(&row),
-                &label_of::<E>(&row),
-                "create",
-                None,
-                None,
-            )
-            .await?;
+            trace::<E, _>(&txn, &user, &row, "create", None, None).await?;
             txn.commit().await
         }
         (SaveAction::Save, Some(id)) => {
@@ -106,17 +96,7 @@ where
             };
             let summary = summary::<E>(&old, &model);
             write::update(proof, model, &txn).await.map_err(refused)?;
-            trace(
-                &txn,
-                &user,
-                E::KEY,
-                &key_of::<E>(&old),
-                &label_of::<E>(&old),
-                "update",
-                summary,
-                None,
-            )
-            .await?;
+            trace::<E, _>(&txn, &user, &old, "update", summary, None).await?;
             txn.commit().await
         }
         (SaveAction::Delete, Some(id)) => {
@@ -128,17 +108,7 @@ where
                 return Err(refused(Refusal::new(RefusalReason::StaleRow)));
             };
             write::delete(proof, &txn).await.map_err(refused)?;
-            trace(
-                &txn,
-                &user,
-                E::KEY,
-                &key_of::<E>(&old),
-                &label_of::<E>(&old),
-                "delete",
-                None,
-                None,
-            )
-            .await?;
+            trace::<E, _>(&txn, &user, &old, "delete", None, None).await?;
             txn.commit().await
         }
         (SaveAction::Delete, None) => Err(refused(Refusal::new(RefusalReason::NotFound))),
@@ -199,34 +169,14 @@ where
                 model.try_set(*col, value.clone())?;
                 let summary = summary::<E>(&old, &model);
                 write::update(proof, model, &txn).await.map_err(refused)?;
-                trace(
-                    &txn,
-                    user,
-                    E::KEY,
-                    &key_of::<E>(&old),
-                    &label_of::<E>(&old),
-                    "update",
-                    summary,
-                    Some(&batch),
-                )
-                .await?;
+                trace::<E, _>(&txn, user, &old, "update", summary, Some(&batch)).await?;
             }
             BulkChange::Delete => {
                 let proof = authorize_row::<Delete, E>(&gate, id.clone())
                     .await
                     .map_err(refused)?;
                 write::delete(proof, &txn).await.map_err(refused)?;
-                trace(
-                    &txn,
-                    user,
-                    E::KEY,
-                    &key_of::<E>(&old),
-                    &label_of::<E>(&old),
-                    "delete",
-                    None,
-                    Some(&batch),
-                )
-                .await?;
+                trace::<E, _>(&txn, user, &old, "delete", None, Some(&batch)).await?;
             }
         }
     }
@@ -319,13 +269,11 @@ fn summary<E: ModelMeta>(old: &E::Model, changes: &E::ActiveModel) -> Option<Str
     serde_json::to_string(&diff).ok()
 }
 
-/// The write's history row, in its transaction: both land, or neither.
-async fn trace<C: ConnectionTrait>(
+/// The write's history row for `row`, in its transaction: both land, or neither.
+async fn trace<E: ModelMeta, C: ConnectionTrait>(
     db: &C,
     user: &CurrentUser,
-    resource_key: &str,
-    pk: &str,
-    repr: &str,
+    row: &E::Model,
     action: &str,
     summary: Option<String>,
     batch_id: Option<&str>,
@@ -335,9 +283,9 @@ async fn trace<C: ConnectionTrait>(
         ActionLog {
             user_id: user.id,
             username: &user.username,
-            resource_key,
-            object_pk: pk,
-            object_repr: repr,
+            resource_key: E::KEY,
+            object_pk: &key_of::<E>(row),
+            object_repr: &label_of::<E>(row),
             action,
             summary,
             batch_id: batch_id.map(str::to_string),

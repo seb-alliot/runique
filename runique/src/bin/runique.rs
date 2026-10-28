@@ -63,9 +63,9 @@ enum MigrateAction {
 #[tokio::main]
 async fn main() -> Result<()> {
     let _log_guards = init_logging();
-    dotenvy::dotenv_override().ok();
+    dotenvy::dotenv().ok();
 
-    if let Some(lang) = Lang::from_env() {
+    if let Some(lang) = Lang::from_dotenv().or_else(Lang::from_env) {
         set_lang(lang);
     }
 

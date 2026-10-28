@@ -81,6 +81,20 @@ pub fn text_eq_ci(db: &ADb, col: &str, val: &str) -> Expr {
     .eq(Func::lower(Expr::val(val)))
 }
 
+/// Case-insensitive `LIKE` of `search!`'s `ilike` / `icontains` / `iexact`
+/// (`not_ilike` when `negate`) on every engine: sea-query renders `ILIKE` on
+/// Postgres only and panics on MySQL/MariaDB and SQLite. `LOWER(col) LIKE`
+/// with the pattern lowered here, like `search_cond!`.
+pub fn ci_like<C: sea_orm::ColumnTrait>(col: C, pattern: &str, negate: bool) -> Expr {
+    let lowered = Expr::expr(Func::lower(Expr::col(col.as_column_ref())));
+    let pattern = pattern.to_lowercase();
+    if negate {
+        lowered.not_like(pattern)
+    } else {
+        lowered.like(pattern)
+    }
+}
+
 /// Case-insensitive `LIKE` on `col` (cast to text for the real backend) against
 /// `pattern` — the common pattern behind every builtin resource's search.
 pub fn ilike(db: &ADb, col: &str, pattern: &str) -> Expr {
@@ -149,5 +163,30 @@ mod tests {
     fn no_column_or_a_blank_term_is_no_search() {
         assert!(search_condition::<Entity>(DbBackend::Sqlite, &[], "a").is_none());
         assert!(search_condition::<Entity>(DbBackend::Sqlite, &[Column::Id], "   ").is_none());
+    }
+
+    fn ci_sql(backend: DbBackend, negate: bool) -> String {
+        Entity::find()
+            .filter(super::ci_like(Column::OwnerId, "%AbC%", negate))
+            .build(backend)
+            .to_string()
+    }
+
+    #[test]
+    fn a_case_insensitive_like_renders_on_every_engine() {
+        for backend in [DbBackend::MySql, DbBackend::Sqlite, DbBackend::Postgres] {
+            let sql = ci_sql(backend, false);
+            assert!(sql.contains("LOWER("), "{sql}");
+            assert!(sql.contains(" LIKE '%abc%'"), "{sql}");
+            assert!(!sql.contains("ILIKE") && !sql.contains("NOT LIKE"), "{sql}");
+        }
+    }
+
+    #[test]
+    fn a_negated_case_insensitive_like_is_not_like() {
+        for backend in [DbBackend::MySql, DbBackend::Sqlite, DbBackend::Postgres] {
+            let sql = ci_sql(backend, true);
+            assert!(sql.contains(" NOT LIKE '%abc%'"), "{sql}");
+        }
     }
 }

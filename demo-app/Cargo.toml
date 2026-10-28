@@ -4,13 +4,17 @@ version = "1.0.0"
 edition = "2024"
 
 [features]
+# Le site tourne sur Postgres ; MariaDB / MySQL servent aux tests :
+# `cargo test -p demo-app --no-default-features --features mariadb`.
+default = ["postgres"]
+postgres = ["runique/postgres"]
+mariadb = ["runique/mariadb"]
+mysql = ["runique/mysql"]
 big-pk = ["runique/big-pk"]
 pk-uuid = ["runique/pk-uuid"]
 
 [dependencies]
-
-# Base de données : sqlite (défaut) | postgres | mysql | mariadb | all-databases
-runique = { path = "../runique", features = ["postgres", "admin"] }
+runique = { path = "../runique", features = ["admin"] }
 
 serde = { version = "1", features = ["derive"] }
 reqwest = { version = "0.13.2", features = ["json"] }

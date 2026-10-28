@@ -143,6 +143,10 @@ pub(crate) trait RegisteredModel: Send + Sync {
     async fn create(&self, req: &Request, user: &CurrentUser) -> Result<FormOutcome, AdminError>;
     /// Whether this is the accounts' table: its rows have a password to reset.
     fn is_account_table(&self) -> bool;
+    /// The columns an admin's grid offers on this model: never a secret nor
+    /// the key, and on the accounts never a rank nor the activation, which
+    /// have their own operations.
+    fn grid_columns(&self) -> Vec<&'static str>;
     /// Whether `user` may send row `id`'s owner a reset link: the gate's
     /// `ResetPassword` on this account (the rank rule included) and the
     /// confirmation's CSRF token. `Some(account)` when granted.
@@ -332,6 +336,22 @@ where
 
     fn is_account_table(&self) -> bool {
         E::IS_ACCOUNT_TABLE
+    }
+
+    fn grid_columns(&self) -> Vec<&'static str> {
+        const ACCOUNT_RULES: [&str; 5] = [
+            "is_superuser",
+            "is_dirigeant",
+            "is_admin",
+            "is_active",
+            "activated_at",
+        ];
+        E::Column::iter()
+            .map(|c| c.as_str())
+            .filter(|name| !E::SECRET.iter().any(|s| s.as_str() == *name))
+            .filter(|name| !E::PrimaryKey::iter().any(|k| k.into_column().as_str() == *name))
+            .filter(|name| !(E::IS_ACCOUNT_TABLE && ACCOUNT_RULES.contains(name)))
+            .collect()
     }
 
     async fn reset_password(

@@ -14,6 +14,7 @@ pub mod history;
 pub mod list;
 pub mod rank;
 pub mod reset_password;
+pub mod rights;
 
 pub use admin_router::{ADMIN_TEMPLATE_SESSION_KEY, AdminState, build_admin_router};
 
@@ -47,6 +48,7 @@ pub(crate) fn refonte_router(prefix: &str, site: Arc<AdminSite>) -> Router {
         &format!("{prefix}/{{resource}}/list") => get(list::list_view), name = admin_route::LIST,
         &format!("{prefix}/{{resource}}/{{id}}/detail") => get(detail::detail_view), name = admin_route::DETAIL,
         &format!("{prefix}/{{resource}}/create") => get(create::create_view).post(create::create_view), name = admin_route::CREATE,
+        &format!("{prefix}/{{resource}}/{{id}}/rights") => get(rights::rights_view).post(rights::rights_view), name = admin_route::RIGHTS,
         &format!("{prefix}/{{resource}}/rank") => axum::routing::post(rank::rank_view), name = admin_route::RANK,
         &format!("{prefix}/{{resource}}/bulk") => axum::routing::post(bulk::bulk_view), name = admin_route::BULK,
         &format!("{prefix}/{{resource}}/{{id}}/reset-password") => axum::routing::post(reset_password::reset_password_view), name = admin_route::RESET_PASSWORD,
@@ -67,6 +69,17 @@ fn link(req: &Request, name: &str, parameters: &[(&str, &str)]) -> String {
         tracing::error!(route = name, error = ?error, "admin link not resolved");
         String::new()
     })
+}
+
+/// The page of row `id` of model `key`: the route declared to replace the
+/// detail, else the generated one. Every link and redirect to a row goes
+/// through here, so a replaced detail is never pointed at (it answers 404).
+fn detail_url(req: &Request, site: &AdminSite, key: &str, id: &str) -> String {
+    match site.overridden_path(key, AdminView::Detail) {
+        // Checked at boot: `{id}` is the route's only parameter.
+        Some(path) => path.replace("{id}", &urlencoding::encode(id)),
+        None => link(req, admin_route::DETAIL, &[("resource", key), ("id", id)]),
+    }
 }
 
 /// What the gate or the database said no with: a refusal as a flash message

@@ -89,6 +89,22 @@ impl Lang {
             .map(Lang::from)
     }
 
+    /// The language the `.env` file sets, under the same keys, read without
+    /// touching the environment: the system always sets `LANG`, so the file's
+    /// would never win otherwise, while every other key (`DATABASE_URL`…)
+    /// keeps the environment first. `None` without a `.env` or such a key.
+    #[must_use]
+    pub fn from_dotenv() -> Option<Lang> {
+        let vars: Vec<(String, String)> = dotenvy::dotenv_iter()
+            .ok()?
+            .filter_map(Result::ok)
+            .collect();
+        ["LANG", "LC_ALL", "LC_MESSAGES"]
+            .iter()
+            .find_map(|key| vars.iter().find(|(k, _)| k == key))
+            .map(|(_, v)| Lang::from(v.as_str()))
+    }
+
     fn as_u8(self) -> u8 {
         match self {
             Lang::Fr => 0,

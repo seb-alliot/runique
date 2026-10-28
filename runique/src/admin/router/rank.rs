@@ -1,6 +1,6 @@
 //! `POST {admin}/{resource}/rank`: gives accounts a rank, through the gate's
 //! own operation. A rank is never a form field.
-use super::{failure, link, unknown_resource};
+use super::{detail_url, failure, link, unknown_resource};
 use crate::admin::builder::bulk_form::{BULK_ACTION, BULK_IDS, BulkForm};
 use crate::admin::builder::registered::AdminError;
 use crate::admin::builder::site::AdminSite;
@@ -79,11 +79,7 @@ pub(crate) async fn rank_view(
     let to = parse_rank(&value(BULK_ACTION));
 
     let back = match ids.as_deref() {
-        Some([one]) => link(
-            &req,
-            admin_route::DETAIL,
-            &[("resource", model.key()), ("id", &one.to_string())],
-        ),
+        Some([one]) => detail_url(&req, &site, model.key(), &one.to_string()),
         _ => link(&req, admin_route::LIST, &[("resource", model.key())]),
     };
     let outcome = match (form.is_ok(), ids, to) {

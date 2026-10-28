@@ -19,6 +19,8 @@ pub mod proof;
 pub mod rank;
 pub mod refusal;
 pub mod rights;
+#[cfg(feature = "admin")]
+pub mod rights_grid;
 pub mod save;
 pub mod write;
 

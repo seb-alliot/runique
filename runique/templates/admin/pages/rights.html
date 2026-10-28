@@ -1,0 +1,33 @@
+{% extends "admin_base.html" %}
+{% block title %}Droits — {{ account_name }}{% endblock %}
+{% block breadcrumb %}
+  <span class="admin-topbar__sep">/</span>
+  <a href="{% link "admin_list" resource=resource_key %}">{{ resource.title }}</a>
+  <span class="admin-topbar__sep">/</span>
+  <a href="{{ cancel_url }}">{{ account_name }}</a>
+  <span class="admin-topbar__sep">/</span>
+  <span>Droits</span>
+{% endblock %}
+{% block content %}
+  {% block rights_header %}
+  <div class="admin-page__header">
+    <div>
+      <h1 class="admin-page__title">Droits de {{ account_name }}</h1>
+      <p class="admin-page__subtitle">Ce que cet admin peut faire, table par table et colonne par colonne. Une colonne non cochée n'est ni lue ni écrite.</p>
+    </div>
+  </div>
+  {% endblock %}
+  {# No right is checked here: the gate refused the page before any
+     rendering, and decides again on the save. #}
+  <form method="POST" action="{% link "admin_rights" resource=resource_key, id=object_id %}">
+    {{ form_fields.html }}
+    {# Tera 2 allows no block in a loop: a table is replaced through its file. #}
+    {% for table in tables %}
+      {% include "admin/blocks/rights/table.html" %}
+    {% endfor %}
+    <div class="admin-form__actions mt-sm">
+      <a href="{{ cancel_url }}" class="btn btn-secondary">Annuler</a>
+      <button type="submit" class="btn btn-primary">Enregistrer</button>
+    </div>
+  </form>
+{% endblock %}

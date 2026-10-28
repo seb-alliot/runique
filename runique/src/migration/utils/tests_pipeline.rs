@@ -209,6 +209,18 @@ model! {
 }
 "#;
 
+const ENUM_V1_NO_STATUS: &str = r#"
+use runique::prelude::*;
+model! {
+    Post,
+    table: "post",
+    pk: id => Pk,
+    {
+        title: text [required],
+    }
+}
+"#;
+
 #[test]
 fn enum_value_addition_is_detected() {
     let changes = diff_schemas(&parse_model(ENUM_V1), &parse_model(ENUM_V2));
@@ -304,6 +316,93 @@ fn enum_create_type_is_postgres_only() {
         sql.contains("Type::drop()"),
         "down() must always emit the matching DROP TYPE (runtime-guarded):\n{sql}"
     );
+}
+
+#[test]
+fn enum_column_is_a_native_enum_on_postgres_only() {
+    // sea-query renders `ColumnType::Enum` as a native `ENUM(...)` on MySQL /
+    // MariaDB, whose value list no later migration updates: off Postgres the
+    // column must be a plain string, like the entity reads it.
+    let sql = generate_create_file(&parse_model(ENUM_V2));
+    let guarded = "new_with_type(Alias::new(\"status\"), if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres { ColumnType::Enum { name: Alias::new(\"Status\").into_iden()";
+    assert!(
+        sql.contains(guarded),
+        "the enum type must be chosen at run time:\n{sql}"
+    );
+    assert!(
+        sql.contains("} else { ColumnType::String(Default::default()) })"),
+        "off Postgres, the column must be a plain string:\n{sql}"
+    );
+    assert!(
+        !sql.contains("new_with_type(Alias::new(\"status\"), ColumnType::Enum"),
+        "no unguarded native enum left:\n{sql}"
+    );
+}
+
+#[test]
+fn an_added_enum_column_is_a_native_enum_on_postgres_only() {
+    let changes = diff_schemas(&parse_model(ENUM_V1_NO_STATUS), &parse_model(ENUM_V2));
+    let sql = generate_alter_file(&changes);
+    assert!(
+        sql.contains("} else { ColumnType::String(Default::default()) })"),
+        "the added column must be a plain string off Postgres:\n{sql}"
+    );
+    assert!(
+        !sql.contains("new_with_type(Alias::new(\"status\"), ColumnType::Enum"),
+        "no unguarded native enum left:\n{sql}"
+    );
+}
+
+#[test]
+fn guarded_enum_snapshot_round_trip_is_stable() {
+    let schema = parse_model(ENUM_V2);
+    let snapshot = generate_snapshot_file(&schema);
+    let reparsed = parse_seaorm_source(&snapshot).expect("snapshot should reparse");
+    assert_eq!(
+        col(&reparsed, "status").enum_string_values,
+        ["Draft", "Published", "Archived"]
+    );
+    let changes = diff_schemas(&reparsed, &schema);
+    assert!(
+        changes.is_empty(),
+        "round-trip not stable, spurious changes: {changes:?}"
+    );
+}
+
+#[test]
+fn an_unguarded_enum_column_of_an_older_migration_still_reads() {
+    // Migrations written before the run-time choice keep their bare
+    // `ColumnType::Enum`: read back, they must not look like a change.
+    let old = r#"
+use sea_orm_migration::prelude::*;
+#[derive(DeriveMigrationName)]
+pub struct Migration;
+#[async_trait::async_trait]
+impl MigrationTrait for Migration {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .create_table(
+                Table::create()
+                    .table(Alias::new("post"))
+                    .if_not_exists()
+                    .col(ColumnDef::new(Alias::new("id")).integer().not_null().auto_increment().primary_key())
+                    .col(ColumnDef::new_with_type(Alias::new("status"), ColumnType::Enum { name: Alias::new("Status").into_iden(), variants: vec![Alias::new("Draft").into_iden(), Alias::new("Published").into_iden(), Alias::new("Archived").into_iden()] }).not_null())
+                    .to_owned(),
+            )
+            .await?;
+        Ok(())
+    }
+    async fn down(&self, _manager: &SchemaManager) -> Result<(), DbErr> {
+        Ok(())
+    }
+}
+"#;
+    let parsed = parse_seaorm_source(old).expect("older migration should parse");
+    assert_eq!(
+        col(&parsed, "status").enum_string_values,
+        ["Draft", "Published", "Archived"]
+    );
+    assert_eq!(col(&parsed, "status").enum_name.as_deref(), Some("Status"));
 }
 
 // ── extend!{} default capture ──────────────────────────────────────────────────
