@@ -150,7 +150,9 @@
       "acme_email_missing": "ACME_ENABLED=true but ACME_EMAIL is not set",
       "acme_email_missing_hint": "Set ACME_EMAIL to your Let's Encrypt contact email in your .env file",
       "suggestion": "Suggestion",
-      "context": "Context"
+      "context": "Context",
+      "mailer_missing": "Password reset without a mailer: the link could never be sent",
+      "mailer_missing_hint": "Set it in the builder: .with_mailer_from_env() (SMTP_HOST, SMTP_USER…) or .with_mailer(…)"
     }
   },
   "server": {
@@ -299,7 +301,8 @@
     "access": {
       "insufficient_rights": "Insufficient rights to access administration",
       "superuser_only": "Action not allowed",
-      "action_not_allowed": "Action not allowed"
+      "action_not_allowed": "Action not allowed",
+      "still_responsable": "This account still answers for groups: transfer them first."
     },
     "dashboard": {
       "subtitle": "Application overview",
@@ -317,7 +320,10 @@
       "kpi_entries": "Total entries",
       "kpi_largest": "Largest",
       "th_count": "Entries",
-      "toggle_template": "← Configured template"
+      "toggle_template": "← Configured template",
+      "my_groups_title": "My groups",
+      "my_groups_staff": "staff",
+      "my_groups_none": "This group gives no right on the tables."
     },
     "list": {
       "entries_count_one": "entry",
@@ -342,7 +348,11 @@
       "filters_clear": "✕ All",
       "select_all": "Select all",
       "row_details": "Details",
-      "btn_rights": "Rights"
+      "btn_rights": "Rights",
+      "action_activate": "Activate",
+      "action_deactivate": "Deactivate",
+      "responsable_pending": "Responsable to be named",
+      "taken_by": "taken back by"
     },
     "create": {
       "title": "Create",
@@ -373,7 +383,11 @@
       "btn_reset_password": "Reset password",
       "btn_reset_password_short": "Reset",
       "btn_rights": "Rights",
-      "btn_rank": "Change the rank"
+      "btn_rank": "Change the rank",
+      "groups_title": "This account's groups",
+      "btn_save_groups": "Assign",
+      "transfer_title": "Group responsable",
+      "btn_transfer": "Transfer"
     },
     "reset_password": {
       "btn": "Reset password",
@@ -498,7 +512,9 @@
       "badge_delete": "deleted",
       "badge_rights": "rights changed",
       "badge_rank": "rank changed",
-      "badge_reset_password": "password link sent"
+      "badge_reset_password": "password link sent",
+      "badge_groups": "Groups",
+      "badge_transfer": "Transfer"
     },
     "rights": {
       "title": "Rights",
@@ -528,6 +544,21 @@
       "admin": "Admin",
       "dirigeant": "Director",
       "success": "Rank changed ({})"
+    },
+    "transfer": {
+      "title": "Transfer the group",
+      "from": "Current responsable",
+      "to": "New responsable",
+      "losses": "Rights at stake",
+      "no_loss": "The group keeps all its rights.",
+      "btn_confirm": "Confirm the transfer",
+      "btn_cancel": "Cancel",
+      "unsuitable": "This user is not suitable.",
+      "ranked_members": "This group has members with a rank: an admin cannot answer for it.",
+      "changed": "The rights changed in the meantime: check again.",
+      "success": "Group transferred.",
+      "gained_right": "received by",
+      "lost_right": "lost by the members"
     }
   },
   "reset": {
@@ -547,7 +578,8 @@
     "blocked_subject": "Your account is blocked",
     "blocked_body": "<p>Hello {},</p><p>A password reset was requested for your account, but this account is blocked. Contact the site administrator to unblock it.</p><p>If you did not make this request, ignore this email.</p>",
     "email_subject": "Password reset request",
-    "email_body": "<p>Hello {},</p><p>Click the link below to reset your password (valid for {} min):</p><p><a href=\"{}\">{}</a></p>"
+    "email_body": "<p>Hello {},</p><p>Click the link below to reset your password (valid for {} min):</p><p><a href=\"{}\">{}</a></p>",
+    "unavailable": "Password reset by email is not available right now."
   },
   "makemigrations": {
     "destructive_detected": "Destructive changes detected:",

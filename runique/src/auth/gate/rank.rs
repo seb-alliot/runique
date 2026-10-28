@@ -2,10 +2,11 @@
 //! names dirigeants, a dirigeant names admins; nobody touches their own rank
 //! or one equal to theirs, and the admin keeps a dirigeant above them.
 use super::refusal::{Refusal, RefusalReason};
+use super::save::take_back;
 use crate::auth::current_user::CurrentUser;
 use crate::auth::history::{ActionLog, log_action};
+use crate::auth::permissions::groupes_droits;
 use crate::auth::permissions::rang::Rang;
-use crate::auth::permissions::{groupe, groupes_droits};
 use crate::auth::user::{self, Column};
 use crate::utils::aliases::ADb;
 use crate::utils::constante::resource_key;
@@ -48,8 +49,9 @@ async fn others_with<C: ConnectionTrait>(
 /// Gives the accounts `ids` the rank `to`, as `actor`: all of them or none,
 /// with one history row each. Refused, with the gate's one message, when the
 /// actor's rank isn't strictly above `to`, when an account is the actor's
-/// own, missing or out of reach, when an admin leaving the rank still answers
-/// for a group, or when admins would be left without an active dirigeant.
+/// own, missing or out of reach, or when admins would be left without an
+/// active dirigeant. The groups of an account losing rank go to the actor,
+/// taken back.
 pub(crate) async fn set_rank(
     actor: &CurrentUser,
     ids: &[Pk],
@@ -77,21 +79,15 @@ pub(crate) async fn set_rank(
         return Err(refused(RefusalReason::NotFound));
     }
 
-    // An admin leaving the rank first hands over the groups answering to him.
+    // Any loss of rank caps a responsable's groups by the lower rank: the
+    // actor takes them back first, whole.
+    let demoted = targets.iter().filter(|t| Rang::from(*t) > to).map(|t| t.id);
+    take_back(&txn, actor, demoted).await?;
     let leaving_admin: Vec<Pk> = targets
         .iter()
         .filter(|t| Rang::from(*t) == Rang::Admin && to != Rang::Admin)
         .map(|t| t.id)
         .collect();
-    if !leaving_admin.is_empty() {
-        let groups = groupe::Entity::find()
-            .filter(groupe::Column::ResponsableId.is_in(leaving_admin.iter().copied()))
-            .count(&txn)
-            .await?;
-        if groups > 0 {
-            return Err(refused(RefusalReason::NoRight));
-        }
-    }
 
     // No admin without an active dirigeant, once the change is made.
     let given = targets.len() as u64;

@@ -1,0 +1,26 @@
+{# An account's groups, at the foot of its page: the groups the viewer
+   manages, ticked when the account belongs. Others are neither shown nor
+   touched. The gate decides again on the save. #}
+{% if memberships_url %}
+<link rel="stylesheet" href="{% runique_static "css/admin/blocks/rights.css" %}">
+<div class="admin-card mt-sm">
+  <div class="admin-card__header">
+    <span class="admin-card__title">{{ admin_detail_groups_title }}</span>
+  </div>
+  <div class="admin-card__body">
+    <form method="POST" action="{{ memberships_url }}">
+      {% csrf %}
+      <input type="hidden" name="runique_form" value="admin_groups">
+      <div class="admin-rights__table">
+        {% for group in memberships %}
+        <label class="admin-rights__box">
+          <input type="checkbox" name="{{ group[0] }}" value="1" {% if group[2] %}checked{% endif %}>
+          <span>{{ group[1] }}</span>
+        </label>
+        {% endfor %}
+      </div>
+      <button type="submit" class="btn btn-primary">{{ admin_detail_btn_save_groups }}</button>
+    </form>
+  </div>
+</div>
+{% endif %}

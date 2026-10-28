@@ -109,3 +109,37 @@ async fn the_boot_report_follows_the_language() {
     assert!(report.contains("Aucune URL publique"), "{report}");
     assert!(report.contains("Définissez-la dans le builder"), "{report}");
 }
+
+/// A reset page that could never send its link: production refuses to boot
+/// without a mailer given to the builder, and boots with one.
+#[tokio::test]
+#[serial]
+async fn production_refuses_a_password_reset_without_a_mailer() {
+    let has_mailer_error = |components: &[String]| components.contains(&"Mailer".to_string());
+    let without = builder(false)
+        .await
+        .with_password_reset(|pr| pr)
+        .with_public_url("https://mysite.com");
+    let components = refused(without).await;
+    assert!(has_mailer_error(&components), "{components:?}");
+
+    let with = builder(false)
+        .await
+        .with_password_reset(|pr| pr)
+        .with_public_url("https://mysite.com")
+        .with_mailer(runique::utils::mailer::MailerConfig {
+            backend: runique::utils::mailer::MailerBackend::Console,
+            from: "test@runique.rs".to_string(),
+            host: String::new(),
+            port: 0,
+            username: String::new(),
+            password: String::new(),
+            starttls: false,
+        });
+    let components = refused(with).await;
+    assert!(!has_mailer_error(&components), "{components:?}");
+
+    // Debug boots without one, to develop without a mail server.
+    let debug = builder(true).await.with_password_reset(|pr| pr);
+    assert!(refused(debug).await.is_empty());
+}

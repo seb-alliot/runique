@@ -82,7 +82,7 @@ impl ColumnGrant {
 }
 
 /// The grid as it is stored: a table's row, then its columns' rows.
-fn from_rows(rows: &[groupes_droits::Model]) -> Vec<TableGrant> {
+pub(in crate::auth::gate) fn from_rows(rows: &[groupes_droits::Model]) -> Vec<TableGrant> {
     let mut tables: std::collections::BTreeMap<&str, TableGrant> = Default::default();
     for row in rows {
         let table = tables
@@ -117,7 +117,7 @@ fn from_rows(rows: &[groupes_droits::Model]) -> Vec<TableGrant> {
 /// grid and the new one compare: `notes (create, read; title: read)`. Only
 /// what opens something: a table without a table right, a column without a
 /// right, aren't written either.
-fn describe(grants: &[TableGrant]) -> String {
+pub(in crate::auth::gate) fn describe(grants: &[TableGrant]) -> String {
     let mut tables: Vec<&TableGrant> = grants.iter().filter(|g| g.table.any()).collect();
     tables.sort_by(|a, b| a.resource_key.cmp(&b.resource_key));
     tables
@@ -693,7 +693,11 @@ mod tests {
             read: true,
             ..Default::default()
         });
-        assert!(set_admin_rights(&actor, pk(33), &[full], &db).await.is_err());
+        assert!(
+            set_admin_rights(&actor, pk(33), &[full], &db)
+                .await
+                .is_err()
+        );
         let floor = grant(TableRights {
             create: true,
             read_own: true,
@@ -701,6 +705,10 @@ mod tests {
             delete_own: true,
             ..Default::default()
         });
-        assert!(set_admin_rights(&actor, pk(33), &[floor], &db).await.is_ok());
+        assert!(
+            set_admin_rights(&actor, pk(33), &[floor], &db)
+                .await
+                .is_ok()
+        );
     }
 }

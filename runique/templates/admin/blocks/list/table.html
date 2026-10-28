@@ -43,7 +43,7 @@
           {% for entry in entries %}
             <tr>
               {% if resource_links.bulk %}<td class="admin-table__td-bulk"><input type="checkbox" class="admin-table__bulk-check" value="{{ entry.id }}"></td>{% endif %}
-              <td><span class="admin-badge--id">#{{ entry.id }}</span></td>
+              <td><span class="admin-badge--id">#{{ entry.id }}</span>{% if entry.taken_by %} <span class="admin-badge admin-badge--red" data-taken-by>{{ admin_list_responsable_pending }} ({{ admin_list_taken_by }} {{ entry.taken_by }})</span>{% endif %}</td>
               {% for col in visible_columns %}
                 {% set value = entry.values[col] %}
                 <td class="admin-table__td-data{% if loop.index0 > 0 %} admin-table__col-secondary{% endif %}" data-label="{% if column_labels[col] %}{{ column_labels[col] }}{% else %}{{ col | replace(from="_", to=" ") }}{% endif %}">

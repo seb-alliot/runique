@@ -12,18 +12,122 @@ use super::write;
 use crate::auth::current_user::CurrentUser;
 use crate::auth::history::{ActionLog, log_action, redact_sensitive};
 use crate::auth::meta::ModelMeta;
+use crate::auth::permissions::groupe;
+use crate::auth::permissions::rang::Rang;
+use crate::auth::user;
 use crate::forms::form::{Forms, SaveComportement};
 use crate::forms::save::{SaveAction, on_fields, url_key};
 use crate::utils::aliases::ADb;
+use crate::utils::pk::Pk;
 use crate::utils::trad::t;
 use sea_orm::sea_query::sea_value_to_json_value;
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ConnectionTrait, DbErr, IdenStatic, Iterable, ModelTrait,
-    PrimaryKeyToColumn, TransactionTrait, Value,
+    ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, IdenStatic,
+    Iterable, ModelTrait, PrimaryKeyToColumn, QueryFilter, TransactionTrait, Value,
 };
 
 fn refused(refusal: Refusal) -> DbErr {
     DbErr::Custom(refusal.message())
+}
+
+/// The groups the accounts `ids` answer for, handed to `actor` as taken
+/// back (`repris_par`): they keep their rights (a dirigeant covers them
+/// all) and wait for a responsable to be named. One history row per group.
+/// Below dirigeant, the actor takes nothing back: refused while any.
+pub(in crate::auth::gate) async fn take_back<C, V>(
+    db: &C,
+    actor: &CurrentUser,
+    ids: impl IntoIterator<Item = V>,
+) -> Result<(), DbErr>
+where
+    C: ConnectionTrait,
+    V: Into<Value>,
+{
+    use sea_orm::sea_query::Expr;
+    use sea_orm::{QueryOrder, QuerySelect};
+    let groups = groupe::Entity::find()
+        .filter(groupe::Column::ResponsableId.is_in(ids))
+        .order_by_asc(groupe::Column::Id)
+        .all(db)
+        .await?;
+    if groups.is_empty() {
+        return Ok(());
+    }
+    if actor.rang < Rang::Dirigeant {
+        return Err(still_responsable());
+    }
+    let names: std::collections::HashMap<Pk, String> = user::Entity::find()
+        .select_only()
+        .columns([user::Column::Id, user::Column::Username])
+        .filter(user::Column::Id.is_in(groups.iter().map(|g| g.responsable_id)))
+        .into_tuple::<(Pk, String)>()
+        .all(db)
+        .await?
+        .into_iter()
+        .collect();
+    groupe::Entity::update_many()
+        .col_expr(groupe::Column::ResponsableId, Expr::value(actor.id))
+        .col_expr(groupe::Column::ReprisPar, Expr::value(Some(actor.id)))
+        .filter(groupe::Column::Id.is_in(groups.iter().map(|g| g.id)))
+        .exec(db)
+        .await?;
+    let batch = uuid::Uuid::new_v4().to_string();
+    for group in &groups {
+        let old = names
+            .get(&group.responsable_id)
+            .cloned()
+            .unwrap_or_default();
+        let summary = serde_json::json!({
+            "responsable": { "old": old, "new": actor.username }
+        });
+        log_action(
+            db,
+            ActionLog {
+                user_id: actor.id,
+                username: &actor.username,
+                resource_key: crate::utils::constante::resource_key::GROUPES,
+                object_pk: &group.id.to_string(),
+                object_repr: &group.nom,
+                action: "transfer",
+                summary: Some(summary.to_string()),
+                batch_id: Some(batch.clone()),
+            },
+        )
+        .await?;
+    }
+    Ok(())
+}
+
+/// The refusal of a change that would leave groups without a working
+/// responsable. Readable, unlike the gate's one message: the actor manages
+/// the account and sees its groups, so naming the cause tells nothing new.
+pub(in crate::auth::gate) fn still_responsable() -> DbErr {
+    tracing::info!("refused: the account still answers for groups");
+    DbErr::Custom(t("admin.access.still_responsable").into_owned())
+}
+
+/// Whether `model` turns an account inactive.
+fn deactivates<E: ModelMeta>(model: &E::ActiveModel) -> bool {
+    E::Column::iter()
+        .find(|c| c.as_str() == "is_active")
+        .is_some_and(|c| matches!(model.get(c), ActiveValue::Set(Value::Bool(Some(false)))))
+}
+
+/// An account deleted or deactivated (`leaves`) no longer gives its groups
+/// anything: they are taken back first, in the write's transaction.
+async fn keeps_responsable<E: ModelMeta, C: ConnectionTrait>(
+    db: &C,
+    actor: &CurrentUser,
+    old: &E::Model,
+    leaves: bool,
+) -> Result<(), DbErr> {
+    if !E::IS_ACCOUNT_TABLE || !leaves {
+        return Ok(());
+    }
+    let keys: Vec<Value> = E::PrimaryKey::iter()
+        .map(|k| old.get(k.into_column()))
+        .collect();
+    take_back(db, actor, keys).await
 }
 
 /// The gated write of `form` on `E`, as the account its constraint carries.
@@ -94,6 +198,7 @@ where
             let Some(old) = E::find_by_id(id).one(&txn).await? else {
                 return Err(refused(Refusal::new(RefusalReason::StaleRow)));
             };
+            keeps_responsable::<E, _>(&txn, &user, &old, deactivates::<E>(&model)).await?;
             let summary = summary::<E>(&old, &model);
             write::update(proof, model, &txn).await.map_err(refused)?;
             trace::<E, _>(&txn, &user, &old, "update", summary, None).await?;
@@ -107,6 +212,7 @@ where
             let Some(old) = E::find_by_id(id).one(&txn).await? else {
                 return Err(refused(Refusal::new(RefusalReason::StaleRow)));
             };
+            keeps_responsable::<E, _>(&txn, &user, &old, true).await?;
             write::delete(proof, &txn).await.map_err(refused)?;
             trace::<E, _>(&txn, &user, &old, "delete", None, None).await?;
             txn.commit().await
@@ -155,32 +261,54 @@ where
         }
     }
     let batch = uuid::Uuid::new_v4().to_string();
-    let txn = db.begin().await?;
-    for id in ids {
-        let Some(old) = E::find_by_id(id.clone()).one(&txn).await? else {
-            return Err(refused(Refusal::new(RefusalReason::NotFound)));
-        };
-        match change {
-            BulkChange::Set(col, value) => {
-                let proof = authorize_row::<Update, E>(&gate, id.clone())
-                    .await
-                    .map_err(refused)?;
+    // Every proof before the transaction: a proof may read the row on its
+    // own connection, which would wait on the transaction's (SQLite's only
+    // one). Each write replays its proof in its `WHERE`, so nothing is lost.
+    match change {
+        BulkChange::Set(col, value) => {
+            let mut proofs = Vec::with_capacity(ids.len());
+            for id in ids {
+                proofs.push(
+                    authorize_row::<Update, E>(&gate, id.clone())
+                        .await
+                        .map_err(refused)?,
+                );
+            }
+            let txn = db.begin().await?;
+            for (id, proof) in ids.iter().zip(proofs) {
+                let Some(old) = E::find_by_id(id.clone()).one(&txn).await? else {
+                    return Err(refused(Refusal::new(RefusalReason::NotFound)));
+                };
                 let mut model = <E::ActiveModel as ActiveModelTrait>::default();
                 model.try_set(*col, value.clone())?;
+                keeps_responsable::<E, _>(&txn, user, &old, deactivates::<E>(&model)).await?;
                 let summary = summary::<E>(&old, &model);
                 write::update(proof, model, &txn).await.map_err(refused)?;
                 trace::<E, _>(&txn, user, &old, "update", summary, Some(&batch)).await?;
             }
-            BulkChange::Delete => {
-                let proof = authorize_row::<Delete, E>(&gate, id.clone())
-                    .await
-                    .map_err(refused)?;
+            txn.commit().await?;
+        }
+        BulkChange::Delete => {
+            let mut proofs = Vec::with_capacity(ids.len());
+            for id in ids {
+                proofs.push(
+                    authorize_row::<Delete, E>(&gate, id.clone())
+                        .await
+                        .map_err(refused)?,
+                );
+            }
+            let txn = db.begin().await?;
+            for (id, proof) in ids.iter().zip(proofs) {
+                let Some(old) = E::find_by_id(id.clone()).one(&txn).await? else {
+                    return Err(refused(Refusal::new(RefusalReason::NotFound)));
+                };
+                keeps_responsable::<E, _>(&txn, user, &old, true).await?;
                 write::delete(proof, &txn).await.map_err(refused)?;
                 trace::<E, _>(&txn, user, &old, "delete", None, Some(&batch)).await?;
             }
+            txn.commit().await?;
         }
     }
-    txn.commit().await?;
     Ok(ids.len() as u64)
 }
 
@@ -1666,5 +1794,99 @@ mod tests {
             hash: "S3CR3T".into(),
         };
         assert_eq!(label_of::<locked::Entity>(&row), "4");
+    }
+
+    // --- responsables ---
+
+    /// The fixtures, with the delegate (33) answering for one group.
+    #[cfg(feature = "admin")]
+    async fn with_a_responsable() -> (ADb, CurrentUser) {
+        use crate::auth::permissions::groupe;
+        use sea_orm::{ActiveValue::Set, Schema};
+        let db = db().await;
+        let schema = Schema::new(sea_orm::DatabaseBackend::Sqlite);
+        db.execute(&schema.create_table_from_entity(groupe::Entity))
+            .await
+            .unwrap();
+        groupe::ActiveModel {
+            id: Set(1),
+            nom: Set("g".into()),
+            is_staff: Set(true),
+            responsable_id: Set(pk(33)),
+            repris_par: Set(None),
+            is_active: Set(true),
+        }
+        .insert(&db)
+        .await
+        .unwrap();
+        let mut su = ranked(member(pk(30), NOTHING), Rang::Superuser);
+        su.groupes.clear();
+        (db, su)
+    }
+
+    async fn account_exists(db: &ADb, n: u8) -> bool {
+        crate::auth::user::Entity::find_by_id(pk(n))
+            .one(db)
+            .await
+            .unwrap()
+            .is_some()
+    }
+
+    async fn group_one(db: &ADb) -> crate::auth::permissions::groupe::Model {
+        crate::auth::permissions::groupe::Entity::find_by_id(1)
+            .one(db)
+            .await
+            .unwrap()
+            .unwrap()
+    }
+
+    /// A responsable deactivated or deleted by the superuser hands his group
+    /// to him, taken back; deleted, he is gone.
+    #[cfg(feature = "admin")]
+    #[tokio::test]
+    async fn a_responsable_leaving_hands_his_groups_back() {
+        use crate::auth::user::{Column, Entity};
+        let (db, su) = with_a_responsable().await;
+        let off = BulkChange::<Entity>::Set(Column::IsActive, Value::from(false));
+        bulk_as::<Entity>(&su, &[pk(33)], &off, &db).await.unwrap();
+        let group = group_one(&db).await;
+        assert_eq!(
+            (group.responsable_id, group.repris_par),
+            (pk(30), Some(pk(30)))
+        );
+
+        let (db, su) = with_a_responsable().await;
+        bulk_as::<Entity>(&su, &[pk(33)], &BulkChange::Delete, &db)
+            .await
+            .unwrap();
+        assert!(!account_exists(&db, 33).await);
+        assert_eq!(group_one(&db).await.responsable_id, pk(30));
+    }
+
+    /// Below dirigeant, nothing is taken back: an admin deactivating a
+    /// responsable is refused, the refusal naming why.
+    #[cfg(feature = "admin")]
+    #[tokio::test]
+    async fn an_admin_takes_no_group_back() {
+        use crate::auth::user::{Column, Entity};
+        let (db, _) = with_a_responsable().await;
+        crate::auth::permissions::groupe::Entity::update_many()
+            .col_expr(
+                crate::auth::permissions::groupe::Column::ResponsableId,
+                sea_orm::sea_query::Expr::value(pk(31)),
+            )
+            .exec(&db)
+            .await
+            .unwrap();
+        let admin = ranked(staff(pk(33), "users", EVERYTHING), Rang::Admin);
+        let off = BulkChange::<Entity>::Set(Column::IsActive, Value::from(false));
+        let err = bulk_as::<Entity>(&admin, &[pk(31)], &off, &db)
+            .await
+            .unwrap_err();
+        assert_eq!(
+            err,
+            DbErr::Custom(t("admin.access.still_responsable").into_owned())
+        );
+        assert_eq!(group_one(&db).await.responsable_id, pk(31));
     }
 }

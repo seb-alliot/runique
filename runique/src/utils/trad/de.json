@@ -150,7 +150,9 @@
       "acme_email_missing": "ACME_ENABLED=true, aber ACME_EMAIL ist nicht gesetzt",
       "acme_email_missing_hint": "Setzen Sie ACME_EMAIL in Ihrer .env auf Ihre Let's-Encrypt-Kontaktadresse",
       "suggestion": "Vorschlag",
-      "context": "Kontext"
+      "context": "Kontext",
+      "mailer_missing": "Passwort-Zurücksetzung ohne Mailer: der Link könnte nie gesendet werden",
+      "mailer_missing_hint": "Im Builder festlegen: .with_mailer_from_env() (SMTP_HOST, SMTP_USER…) oder .with_mailer(…)"
     }
   },
   "server": {
@@ -299,7 +301,8 @@
     "access": {
       "insufficient_rights": "Unzureichende Rechte für den Zugriff auf die Administration",
       "superuser_only": "Aktion nicht erlaubt",
-      "action_not_allowed": "Aktion nicht erlaubt"
+      "action_not_allowed": "Aktion nicht erlaubt",
+      "still_responsable": "Dieses Konto ist noch für Gruppen verantwortlich: übertragen Sie sie zuerst."
     },
     "dashboard": {
       "subtitle": "Anwendungsübersicht",
@@ -317,7 +320,10 @@
       "kpi_entries": "Einträge gesamt",
       "kpi_largest": "Größte",
       "th_count": "Einträge",
-      "toggle_template": "← Konfiguriertes Template"
+      "toggle_template": "← Konfiguriertes Template",
+      "my_groups_title": "Meine Gruppen",
+      "my_groups_staff": "Staff",
+      "my_groups_none": "Diese Gruppe gibt kein Recht auf die Tabellen."
     },
     "list": {
       "entries_count_one": "Eintrag",
@@ -342,7 +348,11 @@
       "filters_clear": "✕ Alle",
       "select_all": "Alle auswählen",
       "row_details": "Details",
-      "btn_rights": "Rechte"
+      "btn_rights": "Rechte",
+      "action_activate": "Aktivieren",
+      "action_deactivate": "Deaktivieren",
+      "responsable_pending": "Verantwortlicher zu benennen",
+      "taken_by": "übernommen von"
     },
     "create": {
       "title": "Erstellen",
@@ -373,7 +383,11 @@
       "btn_reset_password": "Passwort zurücksetzen",
       "btn_reset_password_short": "Zurücksetzen",
       "btn_rights": "Rechte",
-      "btn_rank": "Rang ändern"
+      "btn_rank": "Rang ändern",
+      "groups_title": "Gruppen dieses Kontos",
+      "btn_save_groups": "Zuweisen",
+      "transfer_title": "Verantwortlich für die Gruppe",
+      "btn_transfer": "Übertragen"
     },
     "reset_password": {
       "btn": "Passwort zurücksetzen",
@@ -498,7 +512,9 @@
       "badge_delete": "gelöscht",
       "badge_rights": "Rechte geändert",
       "badge_rank": "Rang geändert",
-      "badge_reset_password": "Passwort-Link gesendet"
+      "badge_reset_password": "Passwort-Link gesendet",
+      "badge_groups": "Gruppen",
+      "badge_transfer": "Übertragung"
     },
     "rights": {
       "title": "Rechte",
@@ -528,6 +544,21 @@
       "admin": "Admin",
       "dirigeant": "Leitung",
       "success": "Rang geändert ({})"
+    },
+    "transfer": {
+      "title": "Gruppe übertragen",
+      "from": "Aktuell verantwortlich",
+      "to": "Neu verantwortlich",
+      "losses": "Betroffene Rechte",
+      "no_loss": "Die Gruppe behält alle Rechte.",
+      "btn_confirm": "Übertragung bestätigen",
+      "btn_cancel": "Abbrechen",
+      "unsuitable": "Dieser Benutzer ist nicht geeignet.",
+      "ranked_members": "Diese Gruppe hat Mitglieder mit Rang: ein Admin kann nicht für sie verantwortlich sein.",
+      "changed": "Die Rechte haben sich inzwischen geändert: bitte erneut prüfen.",
+      "success": "Gruppe übertragen.",
+      "gained_right": "erhalten von",
+      "lost_right": "von den Mitgliedern verloren"
     }
   },
   "makemigrations": {
@@ -560,7 +591,8 @@
     "blocked_subject": "Ihr Konto ist gesperrt",
     "blocked_body": "<p>Hallo {},</p><p>Für Ihr Konto wurde eine Passwortzurücksetzung angefordert, aber dieses Konto ist gesperrt. Wenden Sie sich an den Administrator der Website, um es zu entsperren.</p><p>Wenn Sie diese Anfrage nicht gestellt haben, ignorieren Sie diese E-Mail.</p>",
     "email_subject": "Passwort zurücksetzen",
-    "email_body": "<p>Hallo {},</p><p>Klicken Sie auf den folgenden Link, um Ihr Passwort zurückzusetzen (gültig für {} Min.):</p><p><a href=\"{}\">{}</a></p>"
+    "email_body": "<p>Hallo {},</p><p>Klicken Sie auf den folgenden Link, um Ihr Passwort zurückzusetzen (gültig für {} Min.):</p><p><a href=\"{}\">{}</a></p>",
+    "unavailable": "Das Zurücksetzen per E-Mail ist derzeit nicht verfügbar."
   },
   "runique_test": {
     "connect_failed": "Verbindung nicht möglich: {}",

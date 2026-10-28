@@ -313,6 +313,8 @@ async fn admin_dashboard(
         )
         .unwrap_or_default();
 
+    let my_groups = my_groups(&current_user, &site);
+
     let session_override: Option<String> = req
         .session
         .get(ADMIN_TEMPLATE_SESSION_KEY)
@@ -325,6 +327,7 @@ async fn admin_dashboard(
     insert_admin_messages(&mut req.context, "dashboard");
     req = req
         .insert("resource_counts", &resource_counts)
+        .insert("my_groups", &my_groups)
         .insert("current_page", "dashboard")
         .insert("admin_has_session_override", session_override.is_some());
 
@@ -333,6 +336,50 @@ async fn admin_dashboard(
         .unwrap_or_else(|| admin.config.templates.dashboard.resolve());
 
     req.render(template)
+}
+
+/// The account's own groups, as the dashboard shows them: each group's name,
+/// whether it is a staff group, and what it lets the account do, table by
+/// table. Read from the account already loaded (its effective rights, the
+/// responsable's ceiling applied), never from the framework's tables.
+fn my_groups(
+    user: &crate::auth::current_user::CurrentUser,
+    site: &AdminSite,
+) -> Vec<crate::admin::router::context::MyGroup> {
+    use crate::admin::router::context::{MyGroup, MyGroupRight};
+    let label = |key: &str| t(&format!("admin.rights.right_{key}")).into_owned();
+    user.groupes
+        .iter()
+        .map(|group| {
+            let rights: Vec<MyGroupRight> = group
+                .permissions
+                .iter()
+                .filter_map(|p| {
+                    let names: Vec<String> = [
+                        (p.can_create, "create"),
+                        (p.can_read, "read"),
+                        (p.can_read_own, "read_own"),
+                        (p.can_update, "update"),
+                        (p.can_update_own, "update_own"),
+                        (p.can_delete, "delete"),
+                        (p.can_delete_own, "delete_own"),
+                    ]
+                    .into_iter()
+                    .filter(|(ticked, _)| *ticked)
+                    .map(|(_, key)| label(key))
+                    .collect();
+                    if names.is_empty() {
+                        return None;
+                    }
+                    let table = site
+                        .model(&p.resource_key)
+                        .map_or_else(|| p.resource_key.clone(), |m| m.title());
+                    Some(MyGroupRight { table, rights: names.join(", ") })
+                })
+                .collect();
+            MyGroup { name: group.nom.clone(), staff: group.is_staff, rights }
+        })
+        .collect()
 }
 
 /// `load_admin_user` (outer layer) puts the account here only while the

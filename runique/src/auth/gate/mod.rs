@@ -13,6 +13,8 @@
 pub mod change;
 pub mod check;
 pub mod decide;
+#[cfg(feature = "admin")]
+pub mod membership;
 pub mod operation;
 pub mod proof;
 #[cfg(feature = "admin")]
@@ -22,6 +24,8 @@ pub mod rights;
 #[cfg(feature = "admin")]
 pub mod rights_grid;
 pub mod save;
+#[cfg(feature = "admin")]
+pub mod transfer;
 pub mod write;
 
 #[cfg(test)]

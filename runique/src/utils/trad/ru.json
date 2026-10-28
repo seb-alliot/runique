@@ -150,7 +150,9 @@
       "acme_email_missing": "ACME_ENABLED=true, но ACME_EMAIL не задан",
       "acme_email_missing_hint": "Задайте в .env для ACME_EMAIL ваш контактный email для Let's Encrypt",
       "suggestion": "Рекомендация",
-      "context": "Контекст"
+      "context": "Контекст",
+      "mailer_missing": "Сброс пароля без почтовой службы: ссылку невозможно отправить",
+      "mailer_missing_hint": "Настройте в builder: .with_mailer_from_env() (SMTP_HOST, SMTP_USER…) или .with_mailer(…)"
     }
   },
   "server": {
@@ -299,7 +301,8 @@
     "access": {
       "insufficient_rights": "Недостаточно прав для доступа к администрированию",
       "superuser_only": "Действие не разрешено",
-      "action_not_allowed": "Действие не разрешено"
+      "action_not_allowed": "Действие не разрешено",
+      "still_responsable": "Эта учётная запись всё ещё отвечает за группы: сначала передайте их."
     },
     "dashboard": {
       "subtitle": "Обзор приложения",
@@ -317,7 +320,10 @@
       "kpi_entries": "Всего записей",
       "kpi_largest": "Наибольшая",
       "th_count": "Записи",
-      "toggle_template": "← Настроенный шаблон"
+      "toggle_template": "← Настроенный шаблон",
+      "my_groups_title": "Мои группы",
+      "my_groups_staff": "персонал",
+      "my_groups_none": "Эта группа не даёт прав на таблицы."
     },
     "list": {
       "entries_count_one": "запись",
@@ -342,7 +348,11 @@
       "filters_clear": "✕ Все",
       "select_all": "Выбрать все",
       "row_details": "Подробнее",
-      "btn_rights": "Права"
+      "btn_rights": "Права",
+      "action_activate": "Включить",
+      "action_deactivate": "Отключить",
+      "responsable_pending": "Нужно назначить ответственного",
+      "taken_by": "взята"
     },
     "create": {
       "title": "Создать",
@@ -373,7 +383,11 @@
       "btn_reset_password": "Сбросить пароль",
       "btn_reset_password_short": "Сбросить",
       "btn_rights": "Права",
-      "btn_rank": "Изменить ранг"
+      "btn_rank": "Изменить ранг",
+      "groups_title": "Группы этой учётной записи",
+      "btn_save_groups": "Назначить",
+      "transfer_title": "Ответственный за группу",
+      "btn_transfer": "Передать"
     },
     "reset_password": {
       "btn": "Сбросить пароль",
@@ -498,7 +512,9 @@
       "badge_delete": "удалено",
       "badge_rights": "права изменены",
       "badge_rank": "ранг изменён",
-      "badge_reset_password": "ссылка для пароля отправлена"
+      "badge_reset_password": "ссылка для пароля отправлена",
+      "badge_groups": "Группы",
+      "badge_transfer": "Передача"
     },
     "rights": {
       "title": "Права",
@@ -528,6 +544,21 @@
       "admin": "Администратор",
       "dirigeant": "Руководитель",
       "success": "Ранг изменён ({})"
+    },
+    "transfer": {
+      "title": "Передать группу",
+      "from": "Текущий ответственный",
+      "to": "Новый ответственный",
+      "losses": "Затронутые права",
+      "no_loss": "Группа сохраняет все права.",
+      "btn_confirm": "Подтвердить передачу",
+      "btn_cancel": "Отмена",
+      "unsuitable": "Этот пользователь не подходит.",
+      "ranked_members": "В группе есть участники с рангом: админ не может за неё отвечать.",
+      "changed": "Права за это время изменились: проверьте снова.",
+      "success": "Группа передана.",
+      "gained_right": "получит",
+      "lost_right": "теряют участники"
     }
   },
   "makemigrations": {
@@ -560,7 +591,8 @@
     "blocked_subject": "Ваша учётная запись заблокирована",
     "blocked_body": "<p>Здравствуйте, {}!</p><p>Для вашей учётной записи был запрошен сброс пароля, но она заблокирована. Обратитесь к администратору сайта, чтобы разблокировать её.</p><p>Если вы не делали этот запрос, проигнорируйте это письмо.</p>",
     "email_subject": "Сброс пароля",
-    "email_body": "<p>Здравствуйте, {},</p><p>Перейдите по ссылке ниже для сброса пароля (действительна {} мин):</p><p><a href=\"{}\">{}</a></p>"
+    "email_body": "<p>Здравствуйте, {},</p><p>Перейдите по ссылке ниже для сброса пароля (действительна {} мин):</p><p><a href=\"{}\">{}</a></p>",
+    "unavailable": "Сброс по электронной почте сейчас недоступен."
   },
   "runique_test": {
     "connect_failed": "не удалось подключиться: {}",

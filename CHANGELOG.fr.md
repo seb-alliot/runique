@@ -20,6 +20,7 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ### Ruptures
 
+* **La production refuse une réinitialisation sans mailer** : `with_password_reset()` sans `with_mailer()` / `with_mailer_from_env()` (avec ses `SMTP_*` définis) arrête le démarrage, comme une URL publique manquante : la page ne pourrait jamais envoyer son lien. Le debug démarre toujours, et la page répond alors à toutes les adresses le même message « pas disponible pour le moment ». Aucun jeton de reset n'est plus créé quand aucun email ne peut le porter.
 * **`AdminConfig.reset_route` remplacé par `reset_link`** : `Option<ResetLinkConfig>` (la route de la page de reset et la durée du lien), posé par le builder depuis `with_password_reset()`. `None` sans lui : le site ne sert pas de page de reset, l'admin n'envoie donc pas de lien au lieu d'en envoyer un qui ne mène nulle part. Les liens de reset sont fabriqués par une seule fonction, `auth::password::send_reset_link`, pour la page du site comme pour l'admin.
 * **`decimal` déclare sa précision** : `prix: decimal [max_digits: 10, decimal_places: 2]` (`max_digits` compte tous les chiffres, `decimal_places` ceux après la virgule : 99999999.99 au plus ici). Un `decimal` sans les deux est une erreur de compilation : en leur absence, MySQL/MariaDB créaient un `DECIMAL(10, 0)` et arrondissaient chaque valeur à l'entier (voir *Corrigé*). Les limites sont celles de MySQL/MariaDB, les plus basses des trois moteurs : 65 chiffres, dont 30 après la virgule.
 

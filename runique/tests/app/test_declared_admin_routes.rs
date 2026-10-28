@@ -625,6 +625,26 @@ async fn probe_reset_token_owners(req: Request) -> String {
         .join(",")
 }
 
+/// Account `n`'s groups, by id, comma-separated.
+async fn probe_memberships(Path(n): Path<u32>, req: Request) -> String {
+    use runique::sea_orm::{ConnectionTrait, Statement};
+    let db = &req.engine.db;
+    let rows = db
+        .query_all_raw(Statement::from_string(
+            db.get_database_backend(),
+            format!(
+                "SELECT groupe_id FROM eihwaz_users_groupes WHERE user_id = {} ORDER BY groupe_id",
+                pk_sql_literal(n)
+            ),
+        ))
+        .await
+        .unwrap();
+    rows.iter()
+        .map(|row| row.try_get::<i32>("", "groupe_id").unwrap().to_string())
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
 /// The groups, `name:responsable` by name, comma-separated.
 async fn probe_groups(req: Request) -> String {
     use runique::sea_orm::{ConnectionTrait, Statement};
@@ -736,6 +756,7 @@ fn probe_routes() -> Routes {
         "/probe/notes/add/{n}" => get(probe_add_notes), name = "declared_test_probe_add_notes",
         "/probe/block/{n}" => get(probe_block), name = "declared_test_probe_block",
         "/probe/groups" => get(probe_groups), name = "declared_test_probe_groups",
+        "/probe/memberships/{n}" => get(probe_memberships), name = "declared_test_probe_memberships",
         "/probe/trace-account" => get(probe_trace_account), name = "declared_test_probe_trace_account",
         "/open/probe" => get(probe_write), name = "declared_test_probe_open_new",
         "/open/probe/{id}" => get(probe_write), name = "declared_test_probe_open_row",
@@ -984,6 +1005,28 @@ async fn the_dashboard_has_the_same_menu_as_every_page() {
             }
         }
     }
+}
+
+/// A staff member sees their own groups on the dashboard, with the tables
+/// each one opens; an account in no group gets no such card.
+#[tokio::test]
+#[serial]
+async fn the_dashboard_lists_the_accounts_own_groups() {
+    let base = spawn().await;
+    let staff = text(
+        &signed_in(&base, STAFF_MEMBER).await,
+        format!("{base}/secret-admin/"),
+    )
+    .await;
+    assert!(staff.contains("data-my-groups"), "{staff}");
+    assert!(staff.contains("<strong>relecteurs</strong>"), "{staff}");
+    assert!(!staff.contains("<strong>orphelins</strong>"), "{staff}");
+    let superuser = text(
+        &signed_in(&base, SUPERUSER).await,
+        format!("{base}/secret-admin/"),
+    )
+    .await;
+    assert!(!superuser.contains("data-my-groups"), "{superuser}");
 }
 
 // ── The edit page ─────────────────────────────────────────────────────────
@@ -2048,22 +2091,147 @@ async fn a_rank_is_only_given_from_above() {
     );
 }
 
-/// An admin still answering for groups keeps his rank; the last dirigeant
-/// stays while admins remain.
+/// The last dirigeant stays while admins remain.
 #[tokio::test]
 #[serial]
-async fn a_rank_change_keeps_the_groups_and_the_admins_answered_for() {
+async fn a_rank_change_keeps_the_admins_answered_for() {
     let base = spawn_with("", rank_routes()).await;
     let su = signed_in(&base, SUPERUSER).await;
     give_rank(&su, &base, &[MEMBER], "dirigeant").await;
 
-    // Alice answers for the staff groups.
-    give_rank(&su, &base, &[ADMIN], "lambda").await;
-    assert_eq!(rank_of(&su, &base, ADMIN).await, "Admin");
-
     // Bob is the only dirigeant, and Alice is still an admin.
     give_rank(&su, &base, &[MEMBER], "lambda").await;
     assert_eq!(rank_of(&su, &base, MEMBER).await, "Dirigeant");
+}
+
+/// The active groups' ids, comma-separated.
+async fn probe_active_groups(req: Request) -> String {
+    use runique::sea_orm::{ConnectionTrait, Statement};
+    let db = &req.engine.db;
+    let rows = db
+        .query_all_raw(Statement::from_string(
+            db.get_database_backend(),
+            "SELECT id FROM eihwaz_groupes WHERE is_active = 1 ORDER BY id",
+        ))
+        .await
+        .unwrap();
+    rows.iter()
+        .map(|row| row.try_get::<i32>("", "id").unwrap().to_string())
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+/// The groups' list offers to deactivate and activate; an admin does it on
+/// the groups he answers for only.
+#[tokio::test]
+#[serial]
+async fn the_groups_are_activated_and_deactivated_from_their_list() {
+    let routes = probe_routes().merge(runique::urlpatterns! {
+        "/probe/active-groups" => get(probe_active_groups), name = "declared_test_probe_active_groups",
+    });
+    let base = spawn_with("", routes).await;
+    let su = signed_in(&base, SUPERUSER).await;
+    save_grid(
+        &su,
+        &base,
+        ADMIN,
+        &[
+            "t__groupes__read_own",
+            "t__groupes__update_own",
+            "c__groupes__nom__read",
+            "c__groupes__is_active__read",
+            "c__groupes__is_active__update",
+        ],
+    )
+    .await;
+    let admin = signed_in(&base, ADMIN).await;
+    let send = async |ids: &str, action: &str| {
+        let list = text(&admin, format!("{base}/secret-admin/groupes/list")).await;
+        assert!(list.contains("data-bulk-action=\"a1\""), "{list}");
+        let token = hidden_value(&list, "csrf_token").unwrap();
+        admin
+            .post(format!("{base}/secret-admin/groupes/bulk"))
+            .form(&[
+                ("csrf_token", token.as_str()),
+                ("runique_form", "admin_bulk"),
+                ("ids", ids),
+                ("bulk_action", action),
+            ])
+            .send()
+            .await
+            .unwrap();
+    };
+    let active = async || text(&admin, format!("{base}/probe/active-groups")).await;
+
+    send("1", "a1").await;
+    assert_eq!(active().await, "2", "his group deactivated");
+    send("2", "a1").await;
+    assert_eq!(active().await, "2", "not another's group");
+    send("1,3", "a0").await;
+    assert_eq!(active().await, "1,2,3", "his groups activated");
+}
+
+/// Any loss of rank hands the account's groups to the actor, taken back
+/// and shown waiting for a responsable; an account answering for none just
+/// changes rank.
+#[tokio::test]
+#[serial]
+async fn a_demoted_responsable_hands_his_groups_back() {
+    let base = spawn_with("", rank_routes()).await;
+    let su = signed_in(&base, SUPERUSER).await;
+    // Bob answers for "orphelins"; Frank answers for nothing. Carol stays
+    // the dirigeants' superuser, Bob the admins' dirigeant until the end.
+    give_rank(&su, &base, &[MEMBER, IDLE_STAFF_MEMBER], "dirigeant").await;
+    give_rank(&su, &base, &[IDLE_STAFF_MEMBER], "admin").await;
+    assert_eq!(rank_of(&su, &base, IDLE_STAFF_MEMBER).await, "Admin");
+    let list = format!("{base}/secret-admin/groupes/list");
+    assert!(
+        !text(&su, list.clone()).await.contains("data-taken-by"),
+        "nothing taken back"
+    );
+
+    give_rank(&su, &base, &[IDLE_STAFF_MEMBER], "dirigeant").await;
+    give_rank(&su, &base, &[MEMBER], "admin").await;
+    assert_eq!(rank_of(&su, &base, MEMBER).await, "Admin");
+    let groups = text(&su, format!("{base}/probe/groups")).await;
+    assert!(
+        groups.contains(&format!("orphelins:{}", pk(SUPERUSER))),
+        "{groups}"
+    );
+    assert_eq!(text(&su, list).await.matches("data-taken-by").count(), 1);
+}
+
+/// Deleting a responsable from his page hands his groups back first.
+#[tokio::test]
+#[serial]
+async fn the_delete_page_takes_a_responsables_groups_back() {
+    let base = spawn_with("", rank_routes()).await;
+    let su = signed_in(&base, SUPERUSER).await;
+    let url = format!("{base}/secret-admin/users/{}/delete", pk(ADMIN));
+    let page = text(&su, url.clone()).await;
+    let token = hidden_value(&page, "csrf_token").unwrap();
+    let name = hidden_value(&page, "runique_form").unwrap();
+    su.post(url)
+        .form(&[
+            ("csrf_token", token.as_str()),
+            ("runique_form", name.as_str()),
+        ])
+        .send()
+        .await
+        .unwrap();
+    let groups = text(&su, format!("{base}/probe/groups")).await;
+    for group in ["relecteurs", "en pause"] {
+        assert!(
+            groups.contains(&format!("{group}:{}", pk(SUPERUSER))),
+            "{groups}"
+        );
+    }
+    let history = text(&su, format!("{base}/secret-admin/history?action=transfer")).await;
+    assert_eq!(
+        history.matches(r#"data-action="transfer""#).count(),
+        2,
+        "{history}"
+    );
 }
 
 /// A rank is never a form field: sent with an account's edit, it is ignored.
@@ -2785,7 +2953,11 @@ async fn the_groups_list_has_a_shortcut_to_their_rights() {
 async fn an_admins_grid_keeps_the_groups_floor() {
     let base = spawn_with("", probe_routes()).await;
     let su = signed_in(&base, SUPERUSER).await;
-    let grid = text(&su, format!("{base}/secret-admin/users/{}/rights", pk(ADMIN))).await;
+    let grid = text(
+        &su,
+        format!("{base}/secret-admin/users/{}/rights", pk(ADMIN)),
+    )
+    .await;
     for floor in ["create", "read_own", "update_own", "delete_own"] {
         let name = format!(r#"name="t__groupes__{floor}""#);
         assert!(grid.contains(&name), "offered: {floor}");
@@ -2809,13 +2981,19 @@ async fn an_admins_grid_keeps_the_groups_floor() {
 async fn deleting_a_group_takes_its_members_rights() {
     let base = spawn_with("", probe_routes()).await;
     let su = signed_in(&base, SUPERUSER).await;
-    assert!(edits_notes(&base, STAFF_MEMBER).await, "the group gives the edit");
+    assert!(
+        edits_notes(&base, STAFF_MEMBER).await,
+        "the group gives the edit"
+    );
 
     let url = format!("{base}/secret-admin/groupes/1/delete");
     let page = text(&su, url.clone()).await;
     let token = hidden_value(&page, "csrf_token").unwrap_or_default();
     su.post(url)
-        .form(&[("csrf_token", token.as_str()), ("runique_form", "admin_delete")])
+        .form(&[
+            ("csrf_token", token.as_str()),
+            ("runique_form", "admin_delete"),
+        ])
         .send()
         .await
         .unwrap();
@@ -2823,6 +3001,385 @@ async fn deleting_a_group_takes_its_members_rights() {
     let groups = text(&su, format!("{base}/probe/groups")).await;
     assert!(!groups.contains("relecteurs"), "deleted: {groups}");
     let staff = signed_in(&base, STAFF_MEMBER).await;
-    let resp = fetch(&staff, format!("{base}/secret-admin/probe_notes/list"), None).await;
+    let resp = fetch(
+        &staff,
+        format!("{base}/secret-admin/probe_notes/list"),
+        None,
+    )
+    .await;
     assert_eq!(location(&resp), Some("/"), "no group left: no admin access");
+}
+
+/// Sends account `n`'s groups form with only `groups` ticked.
+async fn save_memberships(
+    client: &reqwest::Client,
+    base: &str,
+    n: u32,
+    groups: &[&str],
+) -> reqwest::Response {
+    let page = text(
+        client,
+        format!("{base}/secret-admin/users/{}/detail", pk(n)),
+    )
+    .await;
+    let token = hidden_value(&page, "csrf_token").unwrap_or_default();
+    let mut body = vec![
+        ("csrf_token", token.as_str()),
+        ("runique_form", "admin_groups"),
+    ];
+    for g in groups {
+        body.push((g, "1"));
+    }
+    client
+        .post(format!("{base}/secret-admin/users/{}/groups", pk(n)))
+        .form(&body)
+        .send()
+        .await
+        .unwrap()
+}
+
+/// The superuser puts an account in a group from its page: it gets the
+/// group's rights at once, and loses them when taken out. Never on his own
+/// page; a group an admin answers for takes no account with a rank.
+#[tokio::test]
+#[serial]
+async fn an_account_joins_and_leaves_a_group_from_its_page() {
+    let base = spawn_with("", probe_routes()).await;
+    let su = signed_in(&base, SUPERUSER).await;
+    let page = text(
+        &su,
+        format!("{base}/secret-admin/users/{}/detail", pk(MEMBER)),
+    )
+    .await;
+    assert!(page.contains(r#"name="g__1""#), "the groups are offered");
+    let own = text(
+        &su,
+        format!("{base}/secret-admin/users/{}/detail", pk(SUPERUSER)),
+    )
+    .await;
+    assert!(!own.contains("g__1"), "never on his own page");
+
+    assert!(!edits_notes(&base, MEMBER).await, "no group yet");
+    save_memberships(&su, &base, MEMBER, &["g__1"]).await;
+    assert_eq!(
+        text(&su, format!("{base}/probe/memberships/{MEMBER}")).await,
+        "1"
+    );
+    assert!(
+        edits_notes(&base, MEMBER).await,
+        "the group's rights, at once"
+    );
+
+    save_memberships(&su, &base, MEMBER, &[]).await;
+    assert_eq!(
+        text(&su, format!("{base}/probe/memberships/{MEMBER}")).await,
+        ""
+    );
+    assert!(!edits_notes(&base, MEMBER).await, "taken out: gone");
+
+    // The admin answers for group 1: it takes site accounts only.
+    save_memberships(&su, &base, ADMIN, &["g__1"]).await;
+    assert_eq!(
+        text(&su, format!("{base}/probe/memberships/{ADMIN}")).await,
+        ""
+    );
+}
+
+/// A delegated admin sees and sets only his groups; the account's other
+/// memberships stay, and a group of another's forged in the form refuses
+/// the whole save.
+#[tokio::test]
+#[serial]
+async fn an_admin_sets_only_his_own_groups_on_an_account() {
+    let base = spawn_with("", probe_routes()).await;
+    let su = signed_in(&base, SUPERUSER).await;
+    save_memberships(&su, &base, MEMBER, &["g__1", "g__2"]).await;
+    save_grid(
+        &su,
+        &base,
+        ADMIN,
+        &[
+            "t__users__read",
+            "c__users__username__read",
+            "t__groupes__read_own",
+            "t__groupes__update_own",
+        ],
+    )
+    .await;
+
+    let admin = signed_in(&base, ADMIN).await;
+    let page = text(
+        &admin,
+        format!("{base}/secret-admin/users/{}/detail", pk(MEMBER)),
+    )
+    .await;
+    assert!(page.contains(r#"name="g__1""#), "his group");
+    assert!(!page.contains(r#"name="g__2""#), "never another's");
+
+    // Frank belongs to group 3 alone: group 2, another's, forged for him.
+    save_memberships(&admin, &base, IDLE_STAFF_MEMBER, &["g__3", "g__2"]).await;
+    assert_eq!(
+        text(&su, format!("{base}/probe/memberships/{IDLE_STAFF_MEMBER}")).await,
+        "3",
+        "forged: nothing changed"
+    );
+    save_memberships(&admin, &base, MEMBER, &[]).await;
+    assert_eq!(
+        text(&su, format!("{base}/probe/memberships/{MEMBER}")).await,
+        "2",
+        "out of his group, still in the other"
+    );
+}
+
+// ── Handing a group over ──────────────────────────────────────────────────
+
+/// Marks group `g` as taken back by the superuser, as a departure would.
+async fn probe_take_back(Path(g): Path<i32>, req: Request) -> &'static str {
+    use runique::sea_orm::{ConnectionTrait, Statement};
+    let db = &req.engine.db;
+    db.execute_raw(Statement::from_string(
+        db.get_database_backend(),
+        format!(
+            "UPDATE eihwaz_groupes SET repris_par = {} WHERE id = {g}",
+            pk_sql_literal(SUPERUSER)
+        ),
+    ))
+    .await
+    .unwrap();
+    "ok"
+}
+
+fn transfer_routes() -> Routes {
+    rank_routes().merge(runique::urlpatterns! {
+        "/probe/take-back/{g}" => get(probe_take_back), name = "declared_test_probe_take_back",
+    })
+}
+
+/// Bob a dirigeant, Eve an admin with an empty grid: two receivers.
+async fn with_receivers(base: &str) -> reqwest::Client {
+    let su = signed_in(base, SUPERUSER).await;
+    give_rank(&su, base, &[MEMBER], "dirigeant").await;
+    give_rank(&su, base, &[ORPHAN_STAFF_MEMBER], "admin").await;
+    su
+}
+
+fn transfer_page(base: &str, g: i32, to: u32) -> String {
+    format!("{base}/secret-admin/groupes/{g}/transfer?to={}", pk(to))
+}
+
+/// Confirms the transfer of group `g` to `to`, sending back the losses the
+/// page showed, or `shown` instead.
+async fn confirm_transfer(
+    client: &reqwest::Client,
+    base: &str,
+    g: i32,
+    to: u32,
+    shown: Option<&str>,
+    keep: &[&str],
+) -> reqwest::Response {
+    let page = text(client, transfer_page(base, g, to)).await;
+    // From the dashboard: a refused transfer page redirects, with no form.
+    let dashboard = text(client, format!("{base}/secret-admin/")).await;
+    let token = hidden_value(&dashboard, "csrf_token").unwrap_or_default();
+    let sent = shown.map_or_else(
+        || hidden_value(&page, "shown").unwrap_or_default(),
+        str::to_string,
+    );
+    let to = pk(to).to_string();
+    let mut body = vec![
+        ("csrf_token", token.as_str()),
+        ("runique_form", "admin_transfer"),
+        ("to", to.as_str()),
+        ("shown", sent.as_str()),
+    ];
+    body.extend(keep.iter().map(|name| (*name, "1")));
+    client
+        .post(format!("{base}/secret-admin/groupes/{g}/transfer"))
+        .form(&body)
+        .send()
+        .await
+        .unwrap()
+}
+
+/// Handed to an admin, a group keeps only what his grid covers: the page
+/// lists the losses first, the transfer stores the reduction and is traced.
+#[tokio::test]
+#[serial]
+async fn a_group_handed_to_an_admin_is_reduced_to_his_rights() {
+    let base = spawn_with("", transfer_routes()).await;
+    let su = with_receivers(&base).await;
+    let detail = text(&su, format!("{base}/secret-admin/groupes/1/detail")).await;
+    assert!(
+        detail.contains("/groupes/1/transfer\""),
+        "offered: {detail}"
+    );
+    assert!(
+        detail.contains(&format!("value=\"{}\"", pk(ORPHAN_STAFF_MEMBER))),
+        "eve offered"
+    );
+    assert!(
+        !detail.contains(&format!("value=\"{}\"", pk(STAFF_MEMBER))),
+        "a lambda isn't"
+    );
+
+    let page = text(&su, transfer_page(&base, 1, ORPHAN_STAFF_MEMBER)).await;
+    assert!(
+        page.contains("data-lines") && page.contains("name=\"keep__0\""),
+        "{page}"
+    );
+    assert!(
+        !page.contains("checked"),
+        "a sideways transfer keeps nothing at first"
+    );
+    assert!(
+        edits_notes(&base, STAFF_MEMBER).await,
+        "nothing written by the page"
+    );
+
+    let done = confirm_transfer(&su, &base, 1, ORPHAN_STAFF_MEMBER, None, &[]).await;
+    assert_eq!(location(&done), Some("/secret-admin/groupes/1/detail"));
+    let groups = text(&su, format!("{base}/probe/groups")).await;
+    assert!(
+        groups.contains(&format!("relecteurs:{}", pk(ORPHAN_STAFF_MEMBER))),
+        "{groups}"
+    );
+    assert!(
+        !edits_notes(&base, STAFF_MEMBER).await,
+        "the group lost the notes"
+    );
+    let history = text(&su, format!("{base}/secret-admin/history?action=transfer")).await;
+    assert_eq!(
+        history.matches(r#"data-action="transfer""#).count(),
+        1,
+        "{history}"
+    );
+}
+
+/// Handed to a dirigeant, a group stays whole: no loss to confirm.
+#[tokio::test]
+#[serial]
+async fn a_group_handed_to_a_dirigeant_stays_whole() {
+    let base = spawn_with("", transfer_routes()).await;
+    let su = with_receivers(&base).await;
+    let page = text(&su, transfer_page(&base, 1, MEMBER)).await;
+    assert!(page.contains("data-no-loss"), "{page}");
+    confirm_transfer(&su, &base, 1, MEMBER, None, &[]).await;
+    let groups = text(&su, format!("{base}/probe/groups")).await;
+    assert!(
+        groups.contains(&format!("relecteurs:{}", pk(MEMBER))),
+        "{groups}"
+    );
+    assert!(
+        edits_notes(&base, STAFF_MEMBER).await,
+        "the group keeps its rights"
+    );
+}
+
+/// Losses other than those shown write nothing and show the page again.
+#[tokio::test]
+#[serial]
+async fn a_transfer_goes_through_only_for_the_losses_shown() {
+    let base = spawn_with("", transfer_routes()).await;
+    let su = with_receivers(&base).await;
+    let resp = confirm_transfer(&su, &base, 1, ORPHAN_STAFF_MEMBER, Some(""), &[]).await;
+    assert!(
+        location(&resp).is_some_and(|l| l.contains("/groupes/1/transfer?to=")),
+        "shown again"
+    );
+    let groups = text(&su, format!("{base}/probe/groups")).await;
+    assert!(
+        groups.contains(&format!("relecteurs:{}", pk(ADMIN))),
+        "{groups}"
+    );
+    assert!(edits_notes(&base, STAFF_MEMBER).await);
+}
+
+/// Refused: by an admin, to a lambda, to the responsable already in place,
+/// and to an admin when the group has a member with a rank.
+#[tokio::test]
+#[serial]
+async fn a_transfer_is_refused_outside_its_rules() {
+    let base = spawn_with("", transfer_routes()).await;
+    let su = with_receivers(&base).await;
+    let before = text(&su, format!("{base}/probe/groups")).await;
+
+    let admin = signed_in(&base, ADMIN).await;
+    let detail = text(&admin, format!("{base}/secret-admin/groupes/1/detail")).await;
+    assert!(!detail.contains("/transfer\""), "not offered to an admin");
+    confirm_transfer(&admin, &base, 1, MEMBER, Some(""), &[]).await;
+    confirm_transfer(&su, &base, 1, STAFF_MEMBER, Some(""), &[]).await;
+    confirm_transfer(&su, &base, 1, ADMIN, Some(""), &[]).await;
+    // "orphelins" counts Eve, now an admin.
+    confirm_transfer(&su, &base, 2, ADMIN, Some(""), &[]).await;
+    let flashes = text(&su, format!("{base}/flashes")).await;
+    assert!(
+        flashes.contains(&*runique::utils::trad::t("admin.transfer.ranked_members")),
+        "{flashes}"
+    );
+    assert_eq!(text(&su, format!("{base}/probe/groups")).await, before);
+}
+
+/// A group taken back shows who took it, on its list and its page, until
+/// it is handed over.
+#[tokio::test]
+#[serial]
+async fn a_group_taken_back_waits_for_a_responsable() {
+    let base = spawn_with("", transfer_routes()).await;
+    let su = with_receivers(&base).await;
+    let list = format!("{base}/secret-admin/groupes/list");
+    assert!(!text(&su, list.clone()).await.contains("data-taken-by"));
+    text(&su, format!("{base}/probe/take-back/1")).await;
+    for page in [
+        list.clone(),
+        format!("{base}/secret-admin/groupes/1/detail"),
+    ] {
+        let body = text(&su, page.clone()).await;
+        assert!(
+            body.contains("data-taken-by") && body.contains("carol"),
+            "{page}"
+        );
+    }
+    confirm_transfer(&su, &base, 1, MEMBER, None, &[]).await;
+    assert!(
+        !text(&su, list).await.contains("data-taken-by"),
+        "handed over"
+    );
+}
+
+/// A right kept goes to the receiver's grid and stays with the group; a
+/// box the page didn't offer refuses the whole.
+#[tokio::test]
+#[serial]
+async fn a_right_kept_goes_to_the_receiver_and_stays_with_the_group() {
+    let base = spawn_with("", transfer_routes()).await;
+    let su = with_receivers(&base).await;
+    let forged = confirm_transfer(&su, &base, 1, ORPHAN_STAFF_MEMBER, None, &["keep__99"]).await;
+    assert_eq!(location(&forged), Some("/secret-admin/groupes/1/detail"));
+    let groups = text(&su, format!("{base}/probe/groups")).await;
+    assert!(
+        groups.contains(&format!("relecteurs:{}", pk(ADMIN))),
+        "nothing written: {groups}"
+    );
+
+    let page = text(&su, transfer_page(&base, 1, ORPHAN_STAFF_MEMBER)).await;
+    let every: Vec<String> = (0..)
+        .map(|i| format!("keep__{i}"))
+        .take_while(|name| page.contains(&format!("name=\"{name}\"")))
+        .collect();
+    assert!(!every.is_empty(), "{page}");
+    let keep: Vec<&str> = every.iter().map(String::as_str).collect();
+    confirm_transfer(&su, &base, 1, ORPHAN_STAFF_MEMBER, None, &keep).await;
+    let groups = text(&su, format!("{base}/probe/groups")).await;
+    assert!(
+        groups.contains(&format!("relecteurs:{}", pk(ORPHAN_STAFF_MEMBER))),
+        "{groups}"
+    );
+    assert!(
+        edits_notes(&base, STAFF_MEMBER).await,
+        "every right kept: the group edits still"
+    );
+    assert!(
+        edits_notes(&base, ORPHAN_STAFF_MEMBER).await,
+        "the receiver got them"
+    );
 }

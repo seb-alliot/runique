@@ -1,0 +1,26 @@
+{# The signed-in account's groups, read only: each one's name, and what it
+   lets the account do, table by table. Shown to anyone in a group. #}
+{% if my_groups %}
+<div class="admin-card mt-sm" data-my-groups>
+  <div class="admin-card__header">
+    <h2 class="admin-card__title">{{ admin_dashboard_my_groups_title }}</h2>
+  </div>
+  <div class="admin-card__body">
+    {% for group in my_groups %}
+    <div class="mt-sm">
+      <strong>{{ group.name }}</strong>
+      {% if group.staff %}<span class="admin-badge admin-badge--blue">{{ admin_dashboard_my_groups_staff }}</span>{% endif %}
+      {% if group.rights %}
+      <ul>
+        {% for right in group.rights %}
+        <li><span class="admin-text--muted">{{ right.table }} :</span> {{ right.rights }}</li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="admin-text--muted">{{ admin_dashboard_my_groups_none }}</p>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}

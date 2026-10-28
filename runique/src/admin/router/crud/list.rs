@@ -70,7 +70,30 @@ pub(crate) async fn list_view(
             edit: can_edit.then(|| paths.edit_of(key, &id)),
             delete: can_delete.then(|| paths.delete_of(key, &id)),
         };
-        entries.push(ListEntry { id, values, links });
+        entries.push(ListEntry {
+            id,
+            values,
+            links,
+            taken_by: None,
+        });
+    }
+    if key == crate::utils::constante::resource_key::GROUPES {
+        let ids: Vec<i32> = entries.iter().filter_map(|e| e.id.parse().ok()).collect();
+        match crate::auth::gate::transfer::taken_by(&ids, &req.engine.db).await {
+            Ok(names) => {
+                for entry in &mut entries {
+                    entry.taken_by = entry.id.parse().ok().and_then(|id| names.get(&id).cloned());
+                }
+            }
+            Err(e) => {
+                return failure(
+                    crate::admin::builder::registered::AdminError::Db(e),
+                    &req,
+                    &admin,
+                )
+                .await;
+            }
+        }
     }
     let bulk_offered = !page.actions.is_empty() || can_delete;
     let rights_shortcut = if key == crate::utils::constante::resource_key::GROUPES {

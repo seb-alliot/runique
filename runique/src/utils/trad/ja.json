@@ -150,7 +150,9 @@
       "acme_email_missing": "ACME_ENABLED=true ですが ACME_EMAIL が設定されていません",
       "acme_email_missing_hint": ".env で ACME_EMAIL に Let's Encrypt の連絡先メールを設定してください",
       "suggestion": "提案",
-      "context": "コンテキスト"
+      "context": "コンテキスト",
+      "mailer_missing": "メーラーなしのパスワードリセット：リンクを送信できません",
+      "mailer_missing_hint": "builder で設定してください：.with_mailer_from_env()（SMTP_HOST、SMTP_USER…）または .with_mailer(…)"
     }
   },
   "server": {
@@ -299,7 +301,8 @@
     "access": {
       "insufficient_rights": "管理画面へのアクセス権限が不足しています",
       "superuser_only": "この操作は許可されていません",
-      "action_not_allowed": "この操作は許可されていません"
+      "action_not_allowed": "この操作は許可されていません",
+      "still_responsable": "このアカウントはまだグループの責任者です。先に移管してください。"
     },
     "dashboard": {
       "subtitle": "アプリケーションの概要",
@@ -317,7 +320,10 @@
       "kpi_entries": "エントリー総数",
       "kpi_largest": "最大",
       "th_count": "エントリー",
-      "toggle_template": "← 設定済みテンプレート"
+      "toggle_template": "← 設定済みテンプレート",
+      "my_groups_title": "マイグループ",
+      "my_groups_staff": "スタッフ",
+      "my_groups_none": "このグループはテーブルへの権限を与えません。"
     },
     "list": {
       "entries_count_one": "件",
@@ -342,7 +348,11 @@
       "filters_clear": "✕ すべて",
       "select_all": "すべて選択",
       "row_details": "詳細",
-      "btn_rights": "権限"
+      "btn_rights": "権限",
+      "action_activate": "有効化",
+      "action_deactivate": "無効化",
+      "responsable_pending": "責任者の指名が必要",
+      "taken_by": "引き継ぎ："
     },
     "create": {
       "title": "作成",
@@ -373,7 +383,11 @@
       "btn_reset_password": "パスワードをリセット",
       "btn_reset_password_short": "リセット",
       "btn_rights": "権限",
-      "btn_rank": "ランクを変更"
+      "btn_rank": "ランクを変更",
+      "groups_title": "このアカウントのグループ",
+      "btn_save_groups": "割り当て",
+      "transfer_title": "グループの責任者",
+      "btn_transfer": "移管"
     },
     "reset_password": {
       "btn": "パスワードをリセット",
@@ -498,7 +512,9 @@
       "badge_delete": "削除",
       "badge_rights": "権限変更",
       "badge_rank": "ランク変更",
-      "badge_reset_password": "パスワードリンク送信"
+      "badge_reset_password": "パスワードリンク送信",
+      "badge_groups": "グループ",
+      "badge_transfer": "移管"
     },
     "rights": {
       "title": "権限",
@@ -528,6 +544,21 @@
       "admin": "管理者",
       "dirigeant": "責任者",
       "success": "ランクを変更しました（{}）"
+    },
+    "transfer": {
+      "title": "グループを移管",
+      "from": "現在の責任者",
+      "to": "新しい責任者",
+      "losses": "対象の権限",
+      "no_loss": "グループはすべての権限を保持します。",
+      "btn_confirm": "移管を確定",
+      "btn_cancel": "キャンセル",
+      "unsuitable": "このユーザーは適していません。",
+      "ranked_members": "このグループには役職付きのメンバーがいます。管理者は責任者になれません。",
+      "changed": "その間に権限が変更されました。もう一度確認してください。",
+      "success": "グループを移管しました。",
+      "gained_right": "受け取り：",
+      "lost_right": "メンバーが失う"
     }
   },
   "makemigrations": {
@@ -560,7 +591,8 @@
     "blocked_subject": "アカウントはブロックされています",
     "blocked_body": "<p>{} 様</p><p>お客様のアカウントでパスワードの再設定が要求されましたが、このアカウントはブロックされています。ブロックを解除するには、サイト管理者にお問い合わせください。</p><p>心当たりがない場合は、このメールを無視してください。</p>",
     "email_subject": "パスワードリセットのご案内",
-    "email_body": "<p>{} 様、</p><p>以下のリンクをクリックしてパスワードをリセットしてください（{}分有効）：</p><p><a href=\"{}\">{}</a></p>"
+    "email_body": "<p>{} 様、</p><p>以下のリンクをクリックしてパスワードをリセットしてください（{}分有効）：</p><p><a href=\"{}\">{}</a></p>",
+    "unavailable": "メールによるリセットは現在利用できません。"
   },
   "runique_test": {
     "connect_failed": "接続できません: {}",

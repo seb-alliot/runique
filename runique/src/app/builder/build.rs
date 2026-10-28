@@ -400,6 +400,17 @@ impl<P> RuniqueAppBuilder<P> {
             );
         }
 
+        // No mailer, no reset email: the page could never send its link.
+        if self.password_reset.is_some() && !self.mailer {
+            report.add(
+                CheckError::new(
+                    "Mailer",
+                    crate::utils::trad::t("build.check.mailer_missing"),
+                )
+                .with_suggestion(crate::utils::trad::t("build.check.mailer_missing_hint")),
+            );
+        }
+
         #[cfg(feature = "acme")]
         if sec.acme_enabled {
             if sec.acme_domain.is_none() {

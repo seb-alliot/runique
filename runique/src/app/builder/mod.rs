@@ -117,6 +117,9 @@ pub struct RuniqueAppBuilder<S = Fresh> {
     #[cfg(feature = "admin")]
     pub(super) admin: AdminStaging,
     pub(super) password_reset: Option<PasswordResetStaging>,
+    /// Whether this builder was given a mailer: read by the boot checks, not
+    /// the global mailer another app of the process may have set.
+    pub(super) mailer: bool,
     pub(super) state: PhantomData<S>,
 }
 
@@ -137,6 +140,7 @@ impl RuniqueAppBuilder<Fresh> {
             #[cfg(feature = "admin")]
             admin: AdminStaging::new(),
             password_reset: None,
+            mailer: false,
             state: PhantomData,
         }
     }
@@ -154,6 +158,7 @@ impl<S> RuniqueAppBuilder<S> {
             #[cfg(feature = "admin")]
             admin: self.admin,
             password_reset: self.password_reset,
+            mailer: self.mailer,
             state: PhantomData,
         }
     }
@@ -373,7 +378,9 @@ impl<PU, RT, LG, PR, DB, SD, ML> RuniqueAppBuilder<(PU, RT, LG, PR, DB, SD, ML)>
         ML: state::MailerUnset,
     {
         crate::utils::mailer::mailer_init(config);
-        self.retype()
+        let mut builder = self;
+        builder.mailer = true;
+        builder.retype()
     }
 
     /// Configures the mailer from environment variables
@@ -383,8 +390,13 @@ impl<PU, RT, LG, PR, DB, SD, ML> RuniqueAppBuilder<(PU, RT, LG, PR, DB, SD, ML)>
     where
         ML: state::MailerUnset,
     {
-        crate::utils::mailer::mailer_init_from_env();
-        self.retype()
+        let config = crate::utils::mailer::MailerConfig::from_env();
+        let mut builder = self;
+        builder.mailer = config.is_some();
+        if let Some(config) = config {
+            crate::utils::mailer::mailer_init(config);
+        }
+        builder.retype()
     }
 }
 

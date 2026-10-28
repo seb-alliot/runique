@@ -150,7 +150,9 @@
       "acme_email_missing": "ACME_ENABLED=true 但未设置 ACME_EMAIL",
       "acme_email_missing_hint": "请在 .env 中将 ACME_EMAIL 设为你的 Let's Encrypt 联系邮箱",
       "suggestion": "建议",
-      "context": "上下文"
+      "context": "上下文",
+      "mailer_missing": "没有邮件服务的密码重置：链接永远无法发送",
+      "mailer_missing_hint": "在 builder 中配置：.with_mailer_from_env()（SMTP_HOST、SMTP_USER…）或 .with_mailer(…)"
     }
   },
   "server": {
@@ -299,7 +301,8 @@
     "access": {
       "insufficient_rights": "访问管理权限不足",
       "superuser_only": "不允许此操作",
-      "action_not_allowed": "不允许此操作"
+      "action_not_allowed": "不允许此操作",
+      "still_responsable": "此账户仍负责若干用户组：请先移交。"
     },
     "dashboard": {
       "subtitle": "应用程序概览",
@@ -317,7 +320,10 @@
       "kpi_entries": "条目总数",
       "kpi_largest": "最大",
       "th_count": "条目",
-      "toggle_template": "← 已配置的模板"
+      "toggle_template": "← 已配置的模板",
+      "my_groups_title": "我的用户组",
+      "my_groups_staff": "员工",
+      "my_groups_none": "此用户组不授予任何表权限。"
     },
     "list": {
       "entries_count_one": "条目",
@@ -342,7 +348,11 @@
       "filters_clear": "✕ 全部",
       "select_all": "全选",
       "row_details": "详情",
-      "btn_rights": "权限"
+      "btn_rights": "权限",
+      "action_activate": "启用",
+      "action_deactivate": "停用",
+      "responsable_pending": "待指定负责人",
+      "taken_by": "接管人"
     },
     "create": {
       "title": "创建",
@@ -373,7 +383,11 @@
       "btn_reset_password": "重置密码",
       "btn_reset_password_short": "重置",
       "btn_rights": "权限",
-      "btn_rank": "修改等级"
+      "btn_rank": "修改等级",
+      "groups_title": "此账户的用户组",
+      "btn_save_groups": "分配",
+      "transfer_title": "用户组负责人",
+      "btn_transfer": "移交"
     },
     "reset_password": {
       "btn": "重置密码",
@@ -498,7 +512,9 @@
       "badge_delete": "已删除",
       "badge_rights": "权限已修改",
       "badge_rank": "等级已修改",
-      "badge_reset_password": "已发送密码链接"
+      "badge_reset_password": "已发送密码链接",
+      "badge_groups": "用户组",
+      "badge_transfer": "移交"
     },
     "rights": {
       "title": "权限",
@@ -528,6 +544,21 @@
       "admin": "管理员",
       "dirigeant": "负责人",
       "success": "等级已修改（{}）"
+    },
+    "transfer": {
+      "title": "移交用户组",
+      "from": "当前负责人",
+      "to": "新负责人",
+      "losses": "涉及的权限",
+      "no_loss": "用户组保留全部权限。",
+      "btn_confirm": "确认移交",
+      "btn_cancel": "取消",
+      "unsuitable": "该用户不合适。",
+      "ranked_members": "该用户组有带级别的成员：管理员不能负责。",
+      "changed": "权限在此期间已更改：请重新核对。",
+      "success": "用户组已移交。",
+      "gained_right": "接收人",
+      "lost_right": "成员将失去"
     }
   },
   "makemigrations": {
@@ -560,7 +591,8 @@
     "blocked_subject": "您的账户已被封禁",
     "blocked_body": "<p>{}，您好：</p><p>有人为您的账户申请了密码重置，但该账户已被封禁。请联系网站管理员解除封禁。</p><p>如果这不是您本人的操作，请忽略此邮件。</p>",
     "email_subject": "密码重置请求",
-    "email_body": "<p>您好 {}，</p><p>请点击以下链接重置您的密码（有效期{}分钟）：</p><p><a href=\"{}\">{}</a></p>"
+    "email_body": "<p>您好 {}，</p><p>请点击以下链接重置您的密码（有效期{}分钟）：</p><p><a href=\"{}\">{}</a></p>",
+    "unavailable": "通过邮件重置目前不可用。"
   },
   "runique_test": {
     "connect_failed": "无法连接：{}",

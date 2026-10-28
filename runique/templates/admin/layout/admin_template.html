@@ -8,21 +8,8 @@
     <meta name="robots" content="noindex, nofollow">
     <meta name="csrf-token" content="{{ csrf_token }}">
 
-    {# Anti-FOUC : pose data-theme avant le 1er paint pour éviter le flash sombre→clair.
-       Choix stocké > préférence système. Si JS échoue, :root (sombre) s'applique. #}
-    <script {% csp %}>
-        (function () {
-            try {
-                var t = localStorage.getItem('runique-admin-theme');
-                if (t !== 'light' && t !== 'dark') {
-                    t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-                }
-                document.documentElement.setAttribute('data-theme', t);
-            } catch (e) {
-                document.documentElement.setAttribute('data-theme', 'dark');
-            }
-        })();
-    </script>
+    {# Anti-FOUC : sans defer, data-theme est posé avant le 1er paint. #}
+    <script {% csp %} src="{% runique_static "js/admin/theme-init.js" %}"></script>
 
     <link rel="icon" type="image/x-icon" href="{{ icon_image }}">
     <meta property="og:image" content="{{ og_image }}">

@@ -89,6 +89,7 @@ pub const ADMIN_TEMPLATES: &[(&str, &str)] = tpls![
     ("admin/history_batch.html", "admin/pages/history_batch.html"),
     ("admin/bulk_edit.html", "admin/pages/bulk_edit.html"),
     ("admin/rights.html", "admin/pages/rights.html"),
+    ("admin/transfer.html", "admin/pages/transfer.html"),
     // Blocks: named by their path, so a project replaces one by putting a
     // file at the same path in its own templates.
     (
@@ -127,6 +128,18 @@ pub const ADMIN_TEMPLATES: &[(&str, &str)] = tpls![
     (
         "admin/blocks/detail/fields.html",
         "admin/blocks/detail/fields.html"
+    ),
+    (
+        "admin/blocks/detail/groups.html",
+        "admin/blocks/detail/groups.html"
+    ),
+    (
+        "admin/blocks/detail/transfer.html",
+        "admin/blocks/detail/transfer.html"
+    ),
+    (
+        "admin/blocks/dashboard/my_groups.html",
+        "admin/blocks/dashboard/my_groups.html"
     ),
     (
         "admin/blocks/form/fields.html",

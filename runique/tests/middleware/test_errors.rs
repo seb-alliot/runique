@@ -227,10 +227,10 @@ fn internal_tera() -> tera::Tera {
         "/media".to_string(),
         Arc::new(std::sync::RwLock::new(HashMap::new())),
     );
-    let templates: Vec<(&str, &str)> = SIMPLE_TEMPLATES
+    let templates: Vec<(&str, String)> = SIMPLE_TEMPLATES
         .iter()
         .chain(ERROR_CORPS.iter())
-        .copied()
+        .map(|(name, content)| (*name, runique::app::templates::preprocess(content)))
         .collect();
     tera.add_raw_templates(templates)
         .expect("internal templates");

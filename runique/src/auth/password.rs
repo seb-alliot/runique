@@ -449,6 +449,17 @@ pub async fn handle_forgot_password(
         }
     };
 
+    // No mailer (debug only: production refuses to boot without one): the
+    // same message for every address, so it tells nothing of an account.
+    if !crate::utils::mailer_configured() {
+        tracing::warn!("password reset asked, but no mailer is configured");
+        request
+            .notices
+            .error(t("reset.unavailable").to_string())
+            .await;
+        return Ok(Redirect::to(forgot_route).into_response());
+    }
+
     let email = form.cleaned::<String>("email").unwrap_or_default();
     let email = email.trim().to_lowercase();
 

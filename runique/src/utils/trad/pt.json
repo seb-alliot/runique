@@ -150,7 +150,9 @@
       "acme_email_missing": "ACME_ENABLED=true mas ACME_EMAIL não está definido",
       "acme_email_missing_hint": "Defina ACME_EMAIL com seu email de contato do Let's Encrypt no seu .env",
       "suggestion": "Sugestão",
-      "context": "Contexto"
+      "context": "Contexto",
+      "mailer_missing": "Redefinição de senha sem mailer: o link nunca poderia ser enviado",
+      "mailer_missing_hint": "Configure-o no builder: .with_mailer_from_env() (SMTP_HOST, SMTP_USER…) ou .with_mailer(…)"
     }
   },
   "server": {
@@ -299,7 +301,8 @@
     "access": {
       "insufficient_rights": "Direitos insuficientes para acessar a administração",
       "superuser_only": "Ação não autorizada",
-      "action_not_allowed": "Ação não autorizada"
+      "action_not_allowed": "Ação não autorizada",
+      "still_responsable": "Esta conta ainda é responsável por grupos: transfira-os primeiro."
     },
     "dashboard": {
       "subtitle": "Visão geral da aplicação",
@@ -317,7 +320,10 @@
       "kpi_entries": "Total de entradas",
       "kpi_largest": "Maior",
       "th_count": "Entradas",
-      "toggle_template": "← Template configurado"
+      "toggle_template": "← Template configurado",
+      "my_groups_title": "Meus grupos",
+      "my_groups_staff": "staff",
+      "my_groups_none": "Este grupo não dá nenhum direito sobre as tabelas."
     },
     "list": {
       "entries_count_one": "entrada",
@@ -342,7 +348,11 @@
       "filters_clear": "✕ Tudo",
       "select_all": "Selecionar tudo",
       "row_details": "Detalhes",
-      "btn_rights": "Direitos"
+      "btn_rights": "Direitos",
+      "action_activate": "Ativar",
+      "action_deactivate": "Desativar",
+      "responsable_pending": "Responsável a nomear",
+      "taken_by": "retomado por"
     },
     "create": {
       "title": "Criar",
@@ -373,7 +383,11 @@
       "btn_reset_password": "Redefinir senha",
       "btn_reset_password_short": "Redefinir",
       "btn_rights": "Direitos",
-      "btn_rank": "Alterar o nível"
+      "btn_rank": "Alterar o nível",
+      "groups_title": "Grupos desta conta",
+      "btn_save_groups": "Atribuir",
+      "transfer_title": "Responsável do grupo",
+      "btn_transfer": "Transferir"
     },
     "reset_password": {
       "btn": "Redefinir senha",
@@ -498,7 +512,9 @@
       "badge_delete": "excluído",
       "badge_rights": "direitos alterados",
       "badge_rank": "nível alterado",
-      "badge_reset_password": "link de senha enviado"
+      "badge_reset_password": "link de senha enviado",
+      "badge_groups": "Grupos",
+      "badge_transfer": "Transferência"
     },
     "rights": {
       "title": "Direitos",
@@ -528,6 +544,21 @@
       "admin": "Admin",
       "dirigeant": "Diretor",
       "success": "Nível alterado ({})"
+    },
+    "transfer": {
+      "title": "Transferir o grupo",
+      "from": "Responsável atual",
+      "to": "Novo responsável",
+      "losses": "Direitos em jogo",
+      "no_loss": "O grupo mantém todos os seus direitos.",
+      "btn_confirm": "Confirmar a transferência",
+      "btn_cancel": "Cancelar",
+      "unsuitable": "Este utilizador não é adequado.",
+      "ranked_members": "Este grupo tem membros com posto: um admin não pode ser responsável por ele.",
+      "changed": "Os direitos mudaram entretanto: verifique novamente.",
+      "success": "Grupo transferido.",
+      "gained_right": "recebido por",
+      "lost_right": "perdido pelos membros"
     }
   },
   "makemigrations": {
@@ -560,7 +591,8 @@
     "blocked_subject": "Sua conta está bloqueada",
     "blocked_body": "<p>Olá {},</p><p>Foi solicitada a redefinição de senha da sua conta, mas esta conta está bloqueada. Entre em contato com o administrador do site para desbloqueá-la.</p><p>Se você não fez esta solicitação, ignore este e-mail.</p>",
     "email_subject": "Redefinição de senha",
-    "email_body": "<p>Olá {},</p><p>Clique no link a seguir para redefinir sua senha (válido por {} min):</p><p><a href=\"{}\">{}</a></p>"
+    "email_body": "<p>Olá {},</p><p>Clique no link a seguir para redefinir sua senha (válido por {} min):</p><p><a href=\"{}\">{}</a></p>",
+    "unavailable": "A redefinição por email não está disponível no momento."
   },
   "runique_test": {
     "connect_failed": "não foi possível conectar: {}",

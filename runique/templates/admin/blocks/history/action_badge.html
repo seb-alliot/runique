@@ -5,5 +5,7 @@
 {% elif entry.action == "delete" %}<span data-action="{{ entry.action }}" class="admin-badge admin-badge--red">{{ admin_history_badge_delete }}</span>
 {% elif entry.action == "rights" %}<span data-action="{{ entry.action }}" class="admin-badge admin-badge--blue">{{ admin_history_badge_rights }}</span>
 {% elif entry.action == "rank" %}<span data-action="{{ entry.action }}" class="admin-badge admin-badge--blue">{{ admin_history_badge_rank }}</span>
+{% elif entry.action == "groups" %}<span data-action="{{ entry.action }}" class="admin-badge admin-badge--blue">{{ admin_history_badge_groups }}</span>
+{% elif entry.action == "transfer" %}<span data-action="{{ entry.action }}" class="admin-badge admin-badge--yellow">{{ admin_history_badge_transfer }}</span>
 {% elif entry.action == "reset_password" %}<span data-action="{{ entry.action }}" class="admin-badge admin-badge--neutral">{{ admin_history_badge_reset_password }}</span>
 {% else %}<span data-action="{{ entry.action }}" class="admin-badge">{{ entry.action }}</span>{% endif %}

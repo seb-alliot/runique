@@ -284,6 +284,8 @@ pub const ADMIN_MESSAGE_KEYS: &[&str] = &[
     // added to existing sections
     "admin.detail.btn_rights",
     "admin.detail.btn_rank",
+    "admin.detail.groups_title",
+    "admin.detail.btn_save_groups",
     "admin.list.btn_rights",
     "admin.list.bulk_selected",
     "admin.list.bulk_delete",
@@ -295,6 +297,24 @@ pub const ADMIN_MESSAGE_KEYS: &[&str] = &[
     "admin.base.dashboard",
     "admin.base.history",
     "admin.dashboard.toggle_template",
+    "admin.dashboard.my_groups_title",
+    "admin.transfer.title",
+    "admin.transfer.from",
+    "admin.transfer.to",
+    "admin.transfer.losses",
+    "admin.transfer.gained_right",
+    "admin.transfer.lost_right",
+    "admin.transfer.no_loss",
+    "admin.transfer.btn_confirm",
+    "admin.transfer.btn_cancel",
+    "admin.detail.transfer_title",
+    "admin.detail.btn_transfer",
+    "admin.list.responsable_pending",
+    "admin.list.taken_by",
+    "admin.history.badge_groups",
+    "admin.history.badge_transfer",
+    "admin.dashboard.my_groups_staff",
+    "admin.dashboard.my_groups_none",
 ];
 
 /// Names of the admin's generated routes, as `{% link %}` takes them:
@@ -318,6 +338,11 @@ pub mod admin_route {
     /// `{prefix}/groupes/rights?groupe={id}` (GET): the group picked in the
     /// rights page's selector, redirected to its grid
     pub const GROUP_SELECT: &str = "admin_group_select";
+    /// `{prefix}/{resource}/{id}/groups` (POST): an account's groups
+    pub const GROUPS: &str = "admin_groups";
+    /// `{prefix}/groupes/{id}/transfer`: what handing a group over does
+    /// (GET), then the transfer (POST)
+    pub const TRANSFER: &str = "admin_transfer";
     /// `{prefix}/{resource}/rank` (POST): gives the accounts `ids` a rank
     pub const RANK: &str = "admin_rank";
     /// `{prefix}/{resource}/bulk` (POST): a grouped action on the checked rows
@@ -339,4 +364,6 @@ pub mod admin_form {
     pub const RESET_PASSWORD: &str = "admin_reset_password";
     pub const RANK: &str = "admin_rank";
     pub const RIGHTS: &str = "admin_rights";
+    pub const GROUPS: &str = "admin_groups";
+    pub const TRANSFER: &str = "admin_transfer";
 }

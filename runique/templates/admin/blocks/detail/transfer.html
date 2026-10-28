@@ -1,0 +1,21 @@
+{# A group's responsable: the pending badge when it waits for one, and for a
+   dirigeant the accounts it may be handed to. The selector opens the
+   transfer page (a GET, writing nothing); the gate decides on its POST. #}
+{% if taken_by or transfer_url %}
+<div class="admin-card mt-sm">
+  <div class="admin-card__header">
+    <span class="admin-card__title">{{ admin_detail_transfer_title }}</span>
+    {% if taken_by %}<span class="admin-badge admin-badge--red" data-taken-by>{{ admin_list_responsable_pending }} ({{ admin_list_taken_by }} {{ taken_by }})</span>{% endif %}
+  </div>
+  {% if transfer_url %}
+  <div class="admin-card__body">
+    <form method="GET" action="{{ transfer_url }}">
+      <select name="to" class="admin-search__input--sm">
+        {% for receiver in transfer_receivers %}<option value="{{ receiver[0] }}">{{ receiver[1] }}</option>{% endfor %}
+      </select>
+      <button type="submit" class="btn btn-secondary btn-sm">{{ admin_detail_btn_transfer }}</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% endif %}

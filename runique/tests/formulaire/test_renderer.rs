@@ -44,7 +44,9 @@ fn make_renderer_with_error_template() -> runique::forms::renderer::FormRenderer
     );
     tera.add_raw_template(
         "form_errors.html",
-        include_str!("../../templates/field_html/form_errors.html"),
+        &runique::app::templates::preprocess(include_str!(
+            "../../templates/field_html/form_errors.html"
+        )),
     )
     .unwrap();
     tera.add_raw_template("base_string.html", "<input name=\"{{ field.name }}\">")
@@ -431,10 +433,10 @@ fn test_render_js_vrai_template_interne_ordre_et_nonce() {
     // `SIMPLE_TEMPLATES` inclut `debug.html`, qui `{% include %}` les partiels
     // de `ERROR_CORPS` — les deux doivent être ajoutés dans le même lot, sinon
     // le lot entier échoue (même s'ils sont sans rapport avec `js_files.html`).
-    let templates: Vec<(&str, &str)> = SIMPLE_TEMPLATES
+    let templates: Vec<(&str, String)> = SIMPLE_TEMPLATES
         .iter()
         .chain(ERROR_CORPS.iter())
-        .copied()
+        .map(|(name, content)| (*name, runique::app::templates::preprocess(content)))
         .collect();
     tera.add_raw_templates(templates)
         .expect("le vrai js_files.html (+ dépendances internes) doit charger");
