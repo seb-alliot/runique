@@ -19,25 +19,25 @@
     {% if table.columns | length > 0 %}
     <div class="admin-rights__columns" role="table">
       <div class="admin-rights__row admin-rights__row--head" role="row">
-        <span role="columnheader">Colonne</span>
-        <span role="columnheader">Lire</span>
-        <span role="columnheader">Créer</span>
-        <span role="columnheader">Modifier</span>
+        <span role="columnheader">{{ admin_rights_th_column }}</span>
+        <span role="columnheader">{{ admin_rights_col_read }}</span>
+        <span role="columnheader">{{ admin_rights_col_create }}</span>
+        <span role="columnheader">{{ admin_rights_col_update }}</span>
       </div>
       {% for col in table.columns %}
       <div class="admin-rights__row" role="row">
         <span class="admin-rights__column" role="rowheader">{{ col.column | replace(from="_", to=" ") }}</span>
         <label class="admin-rights__box" role="cell">
           <input type="checkbox" name="{{ col.read.name }}" value="1" {% if col.read.ticked %}checked{% endif %}>
-          <span class="admin-rights__label">Lire</span>
+          <span class="admin-rights__label">{{ admin_rights_col_read }}</span>
         </label>
         <label class="admin-rights__box" role="cell">
           <input type="checkbox" name="{{ col.create.name }}" value="1" {% if col.create.ticked %}checked{% endif %}>
-          <span class="admin-rights__label">Créer</span>
+          <span class="admin-rights__label">{{ admin_rights_col_create }}</span>
         </label>
         <label class="admin-rights__box" role="cell">
           <input type="checkbox" name="{{ col.update.name }}" value="1" {% if col.update.ticked %}checked{% endif %}>
-          <span class="admin-rights__label">Modifier</span>
+          <span class="admin-rights__label">{{ admin_rights_col_update }}</span>
         </label>
       </div>
       {% endfor %}

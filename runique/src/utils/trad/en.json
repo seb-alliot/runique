@@ -272,12 +272,6 @@
     "groups": "Groups",
     "resource": "Resource",
     "resources": "Resources",
-    "can_create": "Create",
-    "can_read": "Read",
-    "can_update": "Update",
-    "can_delete": "Delete",
-    "can_update_own": "Update",
-    "can_delete_own": "Delete",
     "name": "Name",
     "username": "Username",
     "email": "Email",
@@ -308,7 +302,6 @@
       "action_not_allowed": "Action not allowed"
     },
     "dashboard": {
-      "title": "Dashboard",
       "subtitle": "Application overview",
       "card_resources": "Resources",
       "th_resource": "Resource",
@@ -323,10 +316,10 @@
       "kpi_resources": "Resources",
       "kpi_entries": "Total entries",
       "kpi_largest": "Largest",
-      "th_count": "Entries"
+      "th_count": "Entries",
+      "toggle_template": "← Configured template"
     },
     "list": {
-      "breadcrumb_admin": "Administration",
       "entries_count_one": "entry",
       "entries_count_many": "entries",
       "btn_create": "Create",
@@ -341,7 +334,14 @@
       "empty_title": "No entries",
       "empty_desc": "Start by creating an item.",
       "btn_create_first": "Create the first",
-      "search_placeholder": "Search..."
+      "search_placeholder": "Search...",
+      "bulk_selected": "selected",
+      "bulk_delete": "Delete",
+      "filters": "Filters",
+      "filters_hide": "Hide the filters",
+      "filters_clear": "✕ All",
+      "select_all": "Select all",
+      "row_details": "Details"
     },
     "create": {
       "title": "Create",
@@ -370,7 +370,9 @@
       "btn_delete": "Delete",
       "confirm_delete": "Delete this entry?",
       "btn_reset_password": "Reset password",
-      "btn_reset_password_short": "Reset"
+      "btn_reset_password_short": "Reset",
+      "btn_rights": "Rights",
+      "btn_rank": "Change the rank"
     },
     "reset_password": {
       "btn": "Reset password",
@@ -421,7 +423,9 @@
       "toggle": "Collapse menu",
       "logout_title": "Logout",
       "theme_toggle": "Toggle theme",
-      "back_to_site": "← Site"
+      "back_to_site": "← Site",
+      "dashboard": "Dashboard",
+      "history": "History"
     },
     "superuser_wizard": {
       "title": "=== Create Superuser ===",
@@ -466,6 +470,59 @@
     },
     "bulk_create": {
       "all_exist": "Every value already exists: nothing was created"
+    },
+    "history": {
+      "subtitle": "The creations, updates and deletions made in the admin.",
+      "whole_row": "This row's whole history",
+      "th_column": "Column",
+      "th_old": "Before",
+      "th_new": "After",
+      "no_changes": "No readable change",
+      "all_resources": "All resources",
+      "all_actions": "All actions",
+      "action_create": "Created",
+      "action_update": "Updated",
+      "action_delete": "Deleted",
+      "btn_filter": "Filter",
+      "btn_reset": "Reset",
+      "th_date": "Date",
+      "th_account": "Account",
+      "th_resource": "Resource",
+      "th_object": "Object",
+      "th_action": "Action",
+      "btn_entry": "Details",
+      "empty": "No action recorded",
+      "badge_create": "created",
+      "badge_update": "updated",
+      "badge_delete": "deleted",
+      "badge_rights": "rights changed",
+      "badge_rank": "rank changed",
+      "badge_reset_password": "password link sent"
+    },
+    "rights": {
+      "title": "Rights",
+      "subtitle": "What this admin may do, table by table and column by column. An unticked column is neither read nor written.",
+      "go_to_table": "Go to a table",
+      "toc": "Tables",
+      "btn_cancel": "Cancel",
+      "btn_save": "Save",
+      "th_column": "Column",
+      "col_read": "Read",
+      "col_create": "Create",
+      "col_update": "Update",
+      "right_create": "Create",
+      "right_read": "List / read",
+      "right_read_own": "Read its own",
+      "right_update": "Update",
+      "right_update_own": "Update its own",
+      "right_delete": "Delete",
+      "right_delete_own": "Delete its own"
+    },
+    "rank": {
+      "lambda": "Site account",
+      "admin": "Admin",
+      "dirigeant": "Director",
+      "success": "Rank changed ({})"
     }
   },
   "reset": {
@@ -499,20 +556,6 @@
     "applying": "Applying migrations from '{}'...",
     "complete_up": "Migration complete.",
     "crate_missing": "Migration crate not found: '{}' has no Cargo.toml."
-  },
-  "permission": {
-    "col": {
-      "id": "ID",
-      "can_create": "Create",
-      "can_delete": "Delete",
-      "can_delete_own": "Delete (own)",
-      "can_read": "Read",
-      "can_update": "Update",
-      "can_update_own": "Update (own)",
-      "groupes": "Groups",
-      "resource_key": "Resource",
-      "actions": "Actions"
-    }
   },
   "runique_test": {
     "connect_failed": "can't connect: {}",

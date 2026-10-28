@@ -13,12 +13,47 @@ Runique 3.0.2 fixes security issues that are also present in 2.2.x (listed below
 
 ### Active Advisories
 
+#### `extend!{}` of the accounts table puts `password` and `is_active` in its admin form — High, fixed in 4.0
+
+- **What it does**: the form generated for an `extend!` of `eihwaz_users` (a user profile, say) takes both columns from the account. An admin can then set a user's password at creation or edit, and so know it, and deactivate any account, their own included, past the account rules.
+- **Who is affected**: Runique 3.0.x projects that register such an `extend!` in `admin!{}`.
+- **How to protect yourself now**: keep the extended accounts out of `admin!{}`, and manage those columns through your own views.
+- **Fix**: Runique 4.0 never puts either column in a form, like the rank flags: a new account gets a random password nobody knows (its owner sets theirs from the email link), and an edit leaves both untouched whatever the request carries.
+
 #### `csrf.js` sends the CSRF token to other origins — Medium, fixed in 4.0
 
 - **What it does**: `csrf.js` wraps `fetch` to add the `X-CSRF-Token` header to every `POST`/`PUT`/`PATCH`/`DELETE` request, without checking where the request goes. A `fetch` to another domain made from a page that loads the script (a third-party script, or project code) carries the session's CSRF token to that domain, and that domain's response can replace the page's token. With the token, another site can forge requests on behalf of the signed-in user.
 - **Who is affected**: Runique 3.0.x, only when the browser lets the request leave the page. Runique's CSP is active by default and every preset sets `connect-src 'self'`: the browser then blocks any `fetch` to another origin before it is sent, and the token never leaves. Exposed: a project that adds another origin to `connect-src` (the token reaches that origin), or that turns the CSP off.
 - **How to protect yourself now**: keep the default `connect-src 'self'`. If the page must call another origin, do it from the server rather than from the browser, or don't load `csrf.js` on that page.
 - **Fix**: Runique 4.0 adds the header, and accepts a rotated token, only for requests to the page's own origin.
+
+#### Form global errors rendered without escaping (XSS) — Medium, fixed in 4.0
+
+- **What it does**: a form's global errors (an error raised by `clean()`, a database error quoting the submitted value) go into the page unescaped. A value the user typed and the error repeats can carry HTML or a script.
+- **Who is affected**: Runique 3.0.x forms whose global errors quote what the user sent.
+- **How to protect yourself now**: don't repeat submitted values in `clean()`'s global errors; keep the CSP active (it is by default), which blocks an injected inline script.
+- **Fix**: Runique 4.0 renders global errors through a template, under Tera's autoescape.
+
+#### Debug error page can show a file outside `templates/` — Medium, fixed in 4.0
+
+- **What it does**: on a template rendering error, the debug page reads and shows `templates/{name}` without checking the name. A template chosen from request data (a slug) makes `../../.env` show the project's secrets.
+- **Who is affected**: Runique 3.0.x deployments reachable with `DEBUG=true`. With `DEBUG=false` the page doesn't exist.
+- **How to protect yourself now**: never expose a deployment with `DEBUG=true`, and don't build template names from request data.
+- **Fix**: Runique 4.0 only reads a plain relative path under `templates/`; `..` and absolute paths are refused.
+
+#### Admin refusal message tells that an account is a superuser — Low, fixed in 4.0
+
+- **What it does**: refused an action on a superuser's account, a staff member reads "Only a superuser can change a superuser's account", which tells them which accounts are superusers.
+- **Who is affected**: Runique 3.0.x admins with staff members.
+- **How to protect yourself now**: nothing to do; the refusal itself is right, only its wording tells too much.
+- **Fix**: Runique 4.0 shows the generic "Action not allowed" (9 languages).
+
+#### "Forgot password" response time tells whether an account exists — Low, fixed in 4.0
+
+- **What it does**: the "forgot password" page answers every address with the same message, but it writes the reset token, and waits for that write, only when the address belongs to an account. The page is a few milliseconds slower for an existing account, which tells someone timing it whether an address has one.
+- **Who is affected**: Runique 3.0.x projects that call `with_password_reset()`.
+- **How to protect yourself now**: keep the page's rate limit (5 requests per 5 minutes and per IP by default, `max_requests` / `retry_after`): it slows how many addresses one client can try.
+- **Fix**: Runique 4.0 runs the account's lookup, the token and the email in the background: the page answers in the same time for every address.
 
 #### Dependencies
 
@@ -40,7 +75,12 @@ Re-checked against `Cargo.lock` on 2026-10-10. The CI runs `cargo audit` on ever
 
 | Version | Issue | Severity |
 | ------- | ----- | -------- |
-| 4.0 (upcoming) | CSRF token sent by `csrf.js` with `fetch` requests to other origins (see Active Advisories) | Medium |
+| 4.0 (upcoming) | `extend!{}` of the accounts table putting `password` and `is_active` in its admin form | High |
+| 4.0 (upcoming) | CSRF token sent by `csrf.js` with `fetch` requests to other origins | Medium |
+| 4.0 (upcoming) | Form global errors rendered without escaping (XSS) | Medium |
+| 4.0 (upcoming) | Debug error page able to show a file outside `templates/` | Medium |
+| 4.0 (upcoming) | Admin refusal message telling that an account is a superuser | Low |
+| 4.0 (upcoming) | "Forgot password" response time telling whether an account exists | Low |
 | 3.0.3 | `bulk_create`: a create-only right could update existing rows (regenerate the admin) | High |
 | 3.0.3 | Staff member able to take over a superuser's account (email change + password reset) | High |
 | 3.0.3 | Open redirect through a tab (`/\t/evil.com`) or a non-ASCII `Location` left unchecked | Medium |
@@ -52,7 +92,7 @@ Re-checked against `Cargo.lock` on 2026-10-10. The CI runs `cargo audit` on ever
 | 3.0.2 | Admin password reset reachable from a resource that isn't an account | Low |
 | 3.0.2 | Admin accepted the raw CSRF token (per-response masking bypassed) | Hardening |
 
-Details in the CHANGELOG: [3.0.3](CHANGELOG.md#303---2026-10-10), [3.0.2](CHANGELOG.md#302---2026-10-09). Earlier fixes (2.1.x) are listed in [PROJECT_STATUS](docs/en/PROJECT_STATUS.en.md).
+The 4.0 fixes are described under Active Advisories above. Details in the CHANGELOG: [3.0.3](CHANGELOG.md#303---2026-10-10), [3.0.2](CHANGELOG.md#302---2026-10-09). Earlier fixes (2.1.x) are listed in [PROJECT_STATUS](docs/en/PROJECT_STATUS.en.md).
 
 ## Reporting a Vulnerability
 

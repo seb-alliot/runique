@@ -147,7 +147,16 @@ Une fois le serveur démarré, l'interface est disponible à :
 http://localhost:{PORT}/admin/
 ```
 
-La page `/admin/login` redirige vers le dashboard si les identifiants sont valides.
+La page `/admin/login` ouvre le tableau de bord une fois les identifiants validés. Ce qu'elle fait dépend de la session déjà ouverte dans le navigateur :
+
+| Session en cours | Résultat |
+| --- | --- |
+| Aucune | Le formulaire de connexion s'affiche |
+| Compte qui a accès à l'admin (rang, ou membre d'un groupe staff) | Redirection vers le tableau de bord |
+| Compte du site sans accès à l'admin | Redirection vers `/` avec un message ; la session du site est **conservée** (pas de déconnexion) |
+| Compte supprimé ou désactivé entre-temps | La session est fermée, puis retour à la connexion |
+
+Une session, c'est une identité : pour entrer dans l'admin avec un autre compte que celui connecté sur le site, il faut d'abord se déconnecter du site. Les autres pages de l'admin suivent les mêmes règles ; un visiteur sans session y est renvoyé vers la connexion.
 
 ---
 

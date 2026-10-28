@@ -272,12 +272,6 @@
     "groups": "组",
     "resource": "资源",
     "resources": "资源",
-    "can_create": "创建",
-    "can_read": "读取",
-    "can_update": "修改",
-    "can_delete": "删除",
-    "can_update_own": "修改",
-    "can_delete_own": "删除",
     "name": "名称",
     "username": "用户名",
     "email": "电子邮箱",
@@ -308,7 +302,6 @@
       "action_not_allowed": "不允许此操作"
     },
     "dashboard": {
-      "title": "仪表板",
       "subtitle": "应用程序概览",
       "card_resources": "资源",
       "th_resource": "资源",
@@ -323,10 +316,10 @@
       "kpi_resources": "资源",
       "kpi_entries": "条目总数",
       "kpi_largest": "最大",
-      "th_count": "条目"
+      "th_count": "条目",
+      "toggle_template": "← 已配置的模板"
     },
     "list": {
-      "breadcrumb_admin": "管理",
       "entries_count_one": "条目",
       "entries_count_many": "条目",
       "btn_create": "创建",
@@ -341,7 +334,14 @@
       "empty_title": "无条目",
       "empty_desc": "请先创建一个项目。",
       "btn_create_first": "创建第一个",
-      "search_placeholder": "搜索..."
+      "search_placeholder": "搜索...",
+      "bulk_selected": "已选择",
+      "bulk_delete": "删除",
+      "filters": "筛选",
+      "filters_hide": "隐藏筛选",
+      "filters_clear": "✕ 全部",
+      "select_all": "全选",
+      "row_details": "详情"
     },
     "create": {
       "title": "创建",
@@ -370,7 +370,9 @@
       "btn_delete": "删除",
       "confirm_delete": "删除此条目？",
       "btn_reset_password": "重置密码",
-      "btn_reset_password_short": "重置"
+      "btn_reset_password_short": "重置",
+      "btn_rights": "权限",
+      "btn_rank": "修改等级"
     },
     "reset_password": {
       "btn": "重置密码",
@@ -421,7 +423,9 @@
       "toggle": "收起菜单",
       "logout_title": "登出",
       "theme_toggle": "切换主题",
-      "back_to_site": "← 网站"
+      "back_to_site": "← 网站",
+      "dashboard": "仪表板",
+      "history": "历史记录"
     },
     "superuser_wizard": {
       "title": "=== 创建超级用户 ===",
@@ -466,6 +470,59 @@
     },
     "bulk_create": {
       "all_exist": "所有值均已存在：未创建任何内容"
+    },
+    "history": {
+      "subtitle": "在管理后台中进行的创建、修改和删除。",
+      "whole_row": "此行的全部历史",
+      "th_column": "列",
+      "th_old": "修改前",
+      "th_new": "修改后",
+      "no_changes": "没有可查看的更改",
+      "all_resources": "所有资源",
+      "all_actions": "所有操作",
+      "action_create": "已创建",
+      "action_update": "已修改",
+      "action_delete": "已删除",
+      "btn_filter": "筛选",
+      "btn_reset": "重置",
+      "th_date": "日期",
+      "th_account": "账户",
+      "th_resource": "资源",
+      "th_object": "对象",
+      "th_action": "操作",
+      "btn_entry": "详情",
+      "empty": "没有记录的操作",
+      "badge_create": "已创建",
+      "badge_update": "已修改",
+      "badge_delete": "已删除",
+      "badge_rights": "权限已修改",
+      "badge_rank": "等级已修改",
+      "badge_reset_password": "已发送密码链接"
+    },
+    "rights": {
+      "title": "权限",
+      "subtitle": "该管理员可执行的操作，按表和按列设置。未勾选的列既不可读也不可写。",
+      "go_to_table": "跳转到表",
+      "toc": "表",
+      "btn_cancel": "取消",
+      "btn_save": "保存",
+      "th_column": "列",
+      "col_read": "读取",
+      "col_create": "创建",
+      "col_update": "修改",
+      "right_create": "创建",
+      "right_read": "列出 / 读取",
+      "right_read_own": "读取自己的",
+      "right_update": "修改",
+      "right_update_own": "修改自己的",
+      "right_delete": "删除",
+      "right_delete_own": "删除自己的"
+    },
+    "rank": {
+      "lambda": "网站账户",
+      "admin": "管理员",
+      "dirigeant": "负责人",
+      "success": "等级已修改（{}）"
     }
   },
   "makemigrations": {
@@ -499,20 +556,6 @@
     "blocked_body": "<p>{}，您好：</p><p>有人为您的账户申请了密码重置，但该账户已被封禁。请联系网站管理员解除封禁。</p><p>如果这不是您本人的操作，请忽略此邮件。</p>",
     "email_subject": "密码重置请求",
     "email_body": "<p>您好 {}，</p><p>请点击以下链接重置您的密码（有效期{}分钟）：</p><p><a href=\"{}\">{}</a></p>"
-  },
-  "permission": {
-    "col": {
-      "id": "ID",
-      "can_create": "创建",
-      "can_delete": "删除",
-      "can_delete_own": "删除（自己的）",
-      "can_read": "读取",
-      "can_update": "修改",
-      "can_update_own": "修改（自己的）",
-      "groupes": "组",
-      "resource_key": "资源",
-      "actions": "操作"
-    }
   },
   "runique_test": {
     "connect_failed": "无法连接：{}",

@@ -318,4 +318,65 @@ mod tests {
         assert_eq!(describe(&grants), "notes (read)");
         assert_eq!(describe(&[]), "");
     }
+
+    /// The grid read back from the base is the one sent: each table right on
+    /// its own, a column with a single right kept, one without any left out.
+    #[cfg(feature = "sqlite")]
+    #[tokio::test]
+    async fn every_right_of_the_grid_is_written() {
+        use crate::auth::gate::test_support::fixtures::{db, pk};
+        use sea_orm::{ConnectionTrait, Schema};
+        let db = db().await;
+        let schema = Schema::new(sea_orm::DatabaseBackend::Sqlite);
+        for table in [
+            schema.create_table_from_entity(crate::auth::permissions::groupe::Entity),
+            schema.create_table_from_entity(groupes_droits::Entity),
+        ] {
+            db.execute(&table).await.unwrap();
+        }
+        let actor = CurrentUser {
+            id: pk(32),
+            username: "boss".into(),
+            rang: Rang::Dirigeant,
+            groupes: Vec::new(),
+            droits: Vec::new(),
+        };
+        let column = |name: &str, read, create, update| ColumnGrant {
+            column: name.into(),
+            read,
+            create,
+            update,
+        };
+        let grant = TableGrant {
+            resource_key: "notes".into(),
+            table: TableRights {
+                create: true,
+                read: true,
+                read_own: true,
+                update: true,
+                update_own: true,
+                delete: true,
+                delete_own: true,
+            },
+            columns: vec![
+                column("a", false, true, false),
+                column("b", false, false, true),
+                column("c", true, false, false),
+                column("d", false, false, false),
+            ],
+        };
+        set_admin_rights(&actor, pk(33), &[grant], &db).await.unwrap();
+
+        let rows = groupes_droits::Entity::find()
+            .filter(groupes_droits::Column::UserId.eq(pk(33)))
+            .all(&db)
+            .await
+            .unwrap();
+        assert_eq!(
+            describe(&from_rows(&rows)),
+            "notes (create, read, read_own, update, update_own, delete, delete_own; \
+             a: create; b: update; c: read)"
+        );
+        assert_eq!(rows.len(), 4, "the table's row and three columns, not `d`");
+    }
 }

@@ -1,8 +1,9 @@
-{# The action of `entry`, as a badge. #}
-{% if entry.action == "create" %}<span class="admin-badge admin-badge--green">créé</span>
-{% elif entry.action == "update" %}<span class="admin-badge admin-badge--blue">modifié</span>
-{% elif entry.action == "delete" %}<span class="admin-badge admin-badge--red">supprimé</span>
-{% elif entry.action == "rights" %}<span class="admin-badge admin-badge--blue">droits modifiés</span>
-{% elif entry.action == "rank" %}<span class="admin-badge admin-badge--blue">rang modifié</span>
-{% elif entry.action == "reset_password" %}<span class="admin-badge admin-badge--neutral">lien de mot de passe envoyé</span>
-{% else %}<span class="admin-badge">{{ entry.action }}</span>{% endif %}
+{# The action of `entry`, as a badge; `data-action` names it whatever the
+   language. #}
+{% if entry.action == "create" %}<span data-action="{{ entry.action }}" class="admin-badge admin-badge--green">{{ admin_history_badge_create }}</span>
+{% elif entry.action == "update" %}<span data-action="{{ entry.action }}" class="admin-badge admin-badge--blue">{{ admin_history_badge_update }}</span>
+{% elif entry.action == "delete" %}<span data-action="{{ entry.action }}" class="admin-badge admin-badge--red">{{ admin_history_badge_delete }}</span>
+{% elif entry.action == "rights" %}<span data-action="{{ entry.action }}" class="admin-badge admin-badge--blue">{{ admin_history_badge_rights }}</span>
+{% elif entry.action == "rank" %}<span data-action="{{ entry.action }}" class="admin-badge admin-badge--blue">{{ admin_history_badge_rank }}</span>
+{% elif entry.action == "reset_password" %}<span data-action="{{ entry.action }}" class="admin-badge admin-badge--neutral">{{ admin_history_badge_reset_password }}</span>
+{% else %}<span data-action="{{ entry.action }}" class="admin-badge">{{ entry.action }}</span>{% endif %}

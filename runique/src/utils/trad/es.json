@@ -272,12 +272,6 @@
     "groups": "Grupos",
     "resource": "Recurso",
     "resources": "Recursos",
-    "can_create": "Crear",
-    "can_read": "Leer",
-    "can_update": "Modificar",
-    "can_delete": "Eliminar",
-    "can_update_own": "Modificar",
-    "can_delete_own": "Eliminar",
     "name": "Nombre",
     "username": "Nombre de usuario",
     "email": "Email",
@@ -308,7 +302,6 @@
       "action_not_allowed": "Acción no autorizada"
     },
     "dashboard": {
-      "title": "Panel de control",
       "subtitle": "Resumen de la aplicación",
       "card_resources": "Recursos",
       "th_resource": "Recurso",
@@ -323,10 +316,10 @@
       "kpi_resources": "Recursos",
       "kpi_entries": "Entradas totales",
       "kpi_largest": "Mayor",
-      "th_count": "Entradas"
+      "th_count": "Entradas",
+      "toggle_template": "← Plantilla configurada"
     },
     "list": {
-      "breadcrumb_admin": "Administración",
       "entries_count_one": "entrada",
       "entries_count_many": "entradas",
       "btn_create": "Crear",
@@ -341,7 +334,14 @@
       "empty_title": "No hay entradas",
       "empty_desc": "Comience creando un elemento.",
       "btn_create_first": "Crear el primero",
-      "search_placeholder": "Buscar..."
+      "search_placeholder": "Buscar...",
+      "bulk_selected": "seleccionado(s)",
+      "bulk_delete": "Eliminar",
+      "filters": "Filtros",
+      "filters_hide": "Ocultar los filtros",
+      "filters_clear": "✕ Todo",
+      "select_all": "Seleccionar todo",
+      "row_details": "Detalles"
     },
     "create": {
       "title": "Crear",
@@ -370,7 +370,9 @@
       "btn_delete": "Eliminar",
       "confirm_delete": "¿Eliminar esta entrada?",
       "btn_reset_password": "Restablecer contraseña",
-      "btn_reset_password_short": "Restablecer"
+      "btn_reset_password_short": "Restablecer",
+      "btn_rights": "Derechos",
+      "btn_rank": "Cambiar el rango"
     },
     "reset_password": {
       "btn": "Restablecer contraseña",
@@ -421,7 +423,9 @@
       "toggle": "Contraer menú",
       "logout_title": "Cerrar sesión",
       "theme_toggle": "Cambiar tema",
-      "back_to_site": "← Sitio"
+      "back_to_site": "← Sitio",
+      "dashboard": "Panel de control",
+      "history": "Historial"
     },
     "superuser_wizard": {
       "title": "=== Crear superusuario ===",
@@ -466,6 +470,59 @@
     },
     "bulk_create": {
       "all_exist": "Todos los valores ya existen: no se ha creado nada"
+    },
+    "history": {
+      "subtitle": "Las creaciones, modificaciones y eliminaciones hechas en el admin.",
+      "whole_row": "Todo el historial de esta fila",
+      "th_column": "Columna",
+      "th_old": "Antes",
+      "th_new": "Después",
+      "no_changes": "Ningún cambio legible",
+      "all_resources": "Todos los recursos",
+      "all_actions": "Todas las acciones",
+      "action_create": "Creado",
+      "action_update": "Modificado",
+      "action_delete": "Eliminado",
+      "btn_filter": "Filtrar",
+      "btn_reset": "Restablecer",
+      "th_date": "Fecha",
+      "th_account": "Cuenta",
+      "th_resource": "Recurso",
+      "th_object": "Objeto",
+      "th_action": "Acción",
+      "btn_entry": "Detalle",
+      "empty": "Ninguna acción registrada",
+      "badge_create": "creado",
+      "badge_update": "modificado",
+      "badge_delete": "eliminado",
+      "badge_rights": "derechos modificados",
+      "badge_rank": "rango modificado",
+      "badge_reset_password": "enlace de contraseña enviado"
+    },
+    "rights": {
+      "title": "Derechos",
+      "subtitle": "Lo que este admin puede hacer, tabla por tabla y columna por columna. Una columna sin marcar no se lee ni se escribe.",
+      "go_to_table": "Ir a una tabla",
+      "toc": "Tablas",
+      "btn_cancel": "Cancelar",
+      "btn_save": "Guardar",
+      "th_column": "Columna",
+      "col_read": "Leer",
+      "col_create": "Crear",
+      "col_update": "Modificar",
+      "right_create": "Crear",
+      "right_read": "Listar / leer",
+      "right_read_own": "Leer las suyas",
+      "right_update": "Modificar",
+      "right_update_own": "Modificar las suyas",
+      "right_delete": "Eliminar",
+      "right_delete_own": "Eliminar las suyas"
+    },
+    "rank": {
+      "lambda": "Cuenta del sitio",
+      "admin": "Admin",
+      "dirigeant": "Director",
+      "success": "Rango modificado ({})"
     }
   },
   "makemigrations": {
@@ -499,20 +556,6 @@
     "blocked_body": "<p>Hola {},</p><p>Se solicitó un restablecimiento de contraseña para su cuenta, pero esta cuenta está bloqueada. Contacte con el administrador del sitio para desbloquearla.</p><p>Si usted no hizo esta solicitud, ignore este correo.</p>",
     "email_subject": "Restablecer contraseña",
     "email_body": "<p>Hola {},</p><p>Haga clic en el siguiente enlace para restablecer su contraseña (válido durante {} min):</p><p><a href=\"{}\">{}</a></p>"
-  },
-  "permission": {
-    "col": {
-      "id": "ID",
-      "can_create": "Crear",
-      "can_delete": "Eliminar",
-      "can_delete_own": "Eliminar (propio)",
-      "can_read": "Leer",
-      "can_update": "Modificar",
-      "can_update_own": "Modificar (propio)",
-      "groupes": "Grupos",
-      "resource_key": "Recurso",
-      "actions": "Acciones"
-    }
   },
   "runique_test": {
     "connect_failed": "no se puede conectar: {}",

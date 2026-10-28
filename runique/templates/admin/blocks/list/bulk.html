@@ -8,13 +8,13 @@
   <input type="hidden" name="ids" id="bulk-ids-input" value="">
   <input type="hidden" name="return_qs" value="{{ return_qs }}">
   <div id="bulk-action-bar" class="admin-group-action__bar">
-    <span class="admin-group-action__info"><span id="bulk-count">0</span> sélectionné(s)</span>
+    <span class="admin-group-action__info"><span id="bulk-count">0</span> {{ admin_list_bulk_selected }}</span>
     <div class="admin-group-action__btns">
       {% for action in group_actions %}
       <button type="button" class="btn btn-sm btn-primary" data-bulk-action="a{{ action.index }}">{{ action.label }}</button>
       {% endfor %}
       {% if bulk_delete %}
-      <button type="button" class="btn btn-sm btn-danger" data-bulk-action="delete">Supprimer</button>
+      <button type="button" class="btn btn-sm btn-danger" data-bulk-action="delete">{{ admin_list_bulk_delete }}</button>
       {% endif %}
     </div>
   </div>

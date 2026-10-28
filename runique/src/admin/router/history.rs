@@ -138,6 +138,7 @@ pub(crate) async fn history_view(
     };
 
     chrome(&mut req, &admin, &site, &user, "");
+    crate::admin::trad::insert_admin_messages(&mut req.context, "history");
     put(
         &mut req,
         &HistoryContext {
@@ -184,6 +185,7 @@ pub(crate) async fn history_entry_view(
     };
 
     chrome(&mut req, &admin, &site, &user, "");
+    crate::admin::trad::insert_admin_messages(&mut req.context, "history");
     put(
         &mut req,
         &HistoryEntryContext {
@@ -194,4 +196,55 @@ pub(crate) async fn history_entry_view(
         },
     )?;
     req.render(admin.config.templates.history_diff.resolve())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::row;
+    use crate::admin::builder::registered::HistoryScope;
+    use crate::admin::router::AdminPaths;
+    use crate::auth::gate::rights::ReadableColumns;
+    use crate::auth::history;
+
+    fn entry(object_repr: &str) -> history::Model {
+        history::Model {
+            id: 1,
+            resource_key: "users".into(),
+            object_pk: "7".into(),
+            object_repr: object_repr.into(),
+            action: "update".into(),
+            user_id: crate::utils::pk::Pk::default(),
+            username: "carol".into(),
+            created_at: chrono::Utc::now().naive_utc(),
+            summary: None,
+            batch_id: None,
+        }
+    }
+
+    fn scope(label_readable: bool) -> HistoryScope {
+        HistoryScope {
+            key: "users",
+            title: "Users".into(),
+            readable: ReadableColumns::All,
+            label_readable,
+        }
+    }
+
+    /// The label is a column's value: shown only with that column's read
+    /// right, else the row is named by its key alone.
+    #[test]
+    fn the_label_shows_only_when_its_column_is_readable() {
+        let paths = AdminPaths::new("/admin");
+        let shown = row(&entry("bob"), &scope(true), &paths);
+        assert_eq!(shown.object_label.as_deref(), Some("bob"));
+        let hidden = row(&entry("bob"), &scope(false), &paths);
+        assert_eq!(hidden.object_label, None);
+    }
+
+    /// A label that is only the key repeats nothing worth showing.
+    #[test]
+    fn a_label_equal_to_the_key_is_not_shown() {
+        let paths = AdminPaths::new("/admin");
+        assert_eq!(row(&entry("7"), &scope(true), &paths).object_label, None);
+    }
 }

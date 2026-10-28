@@ -59,7 +59,7 @@ pub mod admin_context {
         pub const NEXT_PAGE: &str = "next_page";
         /// Columns to render, resolved from the resource's `ColumnFilter` (see `resolve_columns`).
         pub const VISIBLE_COLUMNS: &str = "visible_columns";
-        /// Column name → i18n label map, falling back to `permission.col.*` keys.
+        /// Column name → label; a column without one shows its name.
         pub const COLUMN_LABELS: &str = "column_labels";
         /// Column currently used to sort the list.
         pub const SORT_BY: &str = "sort_by";
@@ -161,7 +161,6 @@ pub const ADMIN_MESSAGE_KEYS: &[&str] = &[
     // access
     "admin.access.insufficient_rights",
     // dashboard
-    "admin.dashboard.title",
     "admin.dashboard.subtitle",
     "admin.dashboard.card_resources",
     "admin.dashboard.th_resource",
@@ -178,7 +177,6 @@ pub const ADMIN_MESSAGE_KEYS: &[&str] = &[
     "admin.dashboard.kpi_largest",
     "admin.dashboard.th_count",
     // list
-    "admin.list.breadcrumb_admin",
     "admin.list.entries_count_one",
     "admin.list.entries_count_many",
     "admin.list.btn_create",
@@ -241,17 +239,57 @@ pub const ADMIN_MESSAGE_KEYS: &[&str] = &[
     "admin.create.success",
     "admin.edit.success",
     "admin.delete.success",
-    // Permission html
-    "permission.col.id",
-    "permission.col.can_create",
-    "permission.col.can_delete",
-    "permission.col.can_delete_own",
-    "permission.col.can_read",
-    "permission.col.can_update",
-    "permission.col.can_update_own",
-    "permission.col.groupes",
-    "permission.col.resource_key",
-    "permission.col.actions",
+    // history
+    "admin.history.subtitle",
+    "admin.history.whole_row",
+    "admin.history.th_column",
+    "admin.history.th_old",
+    "admin.history.th_new",
+    "admin.history.no_changes",
+    "admin.history.all_resources",
+    "admin.history.all_actions",
+    "admin.history.action_create",
+    "admin.history.action_update",
+    "admin.history.action_delete",
+    "admin.history.btn_filter",
+    "admin.history.btn_reset",
+    "admin.history.th_date",
+    "admin.history.th_account",
+    "admin.history.th_resource",
+    "admin.history.th_object",
+    "admin.history.th_action",
+    "admin.history.btn_entry",
+    "admin.history.empty",
+    "admin.history.badge_create",
+    "admin.history.badge_update",
+    "admin.history.badge_delete",
+    "admin.history.badge_rights",
+    "admin.history.badge_rank",
+    "admin.history.badge_reset_password",
+    // rights grid
+    "admin.rights.title",
+    "admin.rights.subtitle",
+    "admin.rights.go_to_table",
+    "admin.rights.toc",
+    "admin.rights.btn_cancel",
+    "admin.rights.btn_save",
+    "admin.rights.th_column",
+    "admin.rights.col_read",
+    "admin.rights.col_create",
+    "admin.rights.col_update",
+    // added to existing sections
+    "admin.detail.btn_rights",
+    "admin.detail.btn_rank",
+    "admin.list.bulk_selected",
+    "admin.list.bulk_delete",
+    "admin.list.filters",
+    "admin.list.filters_hide",
+    "admin.list.filters_clear",
+    "admin.list.select_all",
+    "admin.list.row_details",
+    "admin.base.dashboard",
+    "admin.base.history",
+    "admin.dashboard.toggle_template",
 ];
 
 /// Names of the admin's generated routes, as `{% link %}` takes them:

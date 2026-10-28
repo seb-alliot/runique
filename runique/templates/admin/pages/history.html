@@ -1,15 +1,15 @@
 {% extends "admin_base.html" %}
-{% block title %}Historique{% endblock %}
+{% block title %}{{ admin_base_history }}{% endblock %}
 {% block breadcrumb %}
   <span class="admin-topbar__sep">/</span>
-  <span>Historique</span>
+  <span>{{ admin_base_history }}</span>
 {% endblock %}
 {% block content %}
   {% block history_header %}
   <div class="admin-page__header">
     <div>
-      <h1 class="admin-page__title">Historique</h1>
-      <p class="admin-page__subtitle">Les créations, modifications et suppressions faites dans l'admin.</p>
+      <h1 class="admin-page__title">{{ admin_base_history }}</h1>
+      <p class="admin-page__subtitle">{{ admin_history_subtitle }}</p>
     </div>
   </div>
   {% endblock %}
