@@ -66,10 +66,10 @@ This script is **not loaded automatically** in an application's templates — in
 explicitly in your base layout:
 
 ```html
-<script {% csp %} src="{{ "js/csrf.js" | runique_static }}" defer></script>
+<script {% csp %} src="{% runique_static "js/csrf.js" %}" defer></script>
 ```
 
-(the admin panel already loads it itself, via `runique_static`).
+(the admin panel already loads it itself, via `{% runique_static %}`).
 
 ---
 

@@ -57,6 +57,18 @@ pub(crate) async fn detail_view(
         }
     }
 
+    // A group's rights grid, for whoever may set it.
+    if key == crate::utils::constante::resource_key::GROUPES
+        && let Ok(group_id) = id.parse::<i32>()
+        && let Ok(Some(group)) =
+            <crate::auth::permissions::groupe::Entity as sea_orm::EntityTrait>::find_by_id(group_id)
+                .one(&req.engine.db)
+                .await
+        && crate::auth::gate::rights_grid::may_set_group(&user, &group).is_ok()
+    {
+        rights_url = Some(paths.rights_of(key, &id));
+    }
+
     chrome(&mut req, &admin, &site, &user, key);
     insert_admin_messages(&mut req.context, "detail");
     insert_admin_messages(&mut req.context, "list");

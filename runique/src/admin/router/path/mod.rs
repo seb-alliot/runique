@@ -22,6 +22,7 @@ pub struct AdminPaths {
     pub(crate) rank: String,
     pub(crate) reset_password: String,
     pub(crate) rights: String,
+    pub(crate) group_select: String,
     pub(crate) history: String,
     pub(crate) history_entry: String,
 }
@@ -45,6 +46,10 @@ impl AdminPaths {
             rank: format!("{prefix}/{{resource}}/rank"),
             reset_password: format!("{prefix}/{{resource}}/{{id}}/reset-password"),
             rights: format!("{prefix}/{{resource}}/{{id}}/rights"),
+            group_select: format!(
+                "{prefix}/{}/rights",
+                crate::utils::constante::resource_key::GROUPES
+            ),
             history: format!("{prefix}/history"),
             history_entry: format!("{prefix}/history/{{id}}"),
         }

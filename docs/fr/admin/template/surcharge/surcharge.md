@@ -29,7 +29,7 @@ Créer un fichier qui hérite de `admin_template` et remplit les blocks de layou
 {% extends "admin/admin_template.html" %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{{ "css/mon_theme.css" | runique_static }}">
+    <link rel="stylesheet" href="{% static "css/mon_theme.css" %}">
 {% endblock %}
 
 {% block sidebar %}
@@ -59,7 +59,7 @@ Créer un fichier qui hérite de `admin_template` et remplit les blocks de layou
 {% endblock %}
 
 {% block extra_js %}
-    <script src="{{ "js/mon_admin.js" | runique_static }}" defer></script>
+    <script src="{% static "js/mon_admin.js" %}" defer></script>
 {% endblock %}
 ```
 

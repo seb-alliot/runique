@@ -45,6 +45,11 @@
     --sidebar-collapsed:  64px;
     --topbar-height:      56px;
 
+    /* Controls — one height for every button and toolbar field, so a button
+       beside a select or a search box always lines up. */
+    --control-height:     36px;
+    --control-height-sm:  30px;
+
     /* Rayons */
     --radius:      10px;
     --radius-lg:   16px;

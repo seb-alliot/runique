@@ -341,7 +341,8 @@
       "filters_hide": "Hide the filters",
       "filters_clear": "✕ All",
       "select_all": "Select all",
-      "row_details": "Details"
+      "row_details": "Details",
+      "btn_rights": "Rights"
     },
     "create": {
       "title": "Create",
@@ -516,7 +517,11 @@
       "right_update": "Update",
       "right_update_own": "Update its own",
       "right_delete": "Delete",
-      "right_delete_own": "Delete its own"
+      "right_delete_own": "Delete its own",
+      "group_subtitle": "What this group's members may do, table by table and column by column. An unticked column is neither read nor written.",
+      "group_label": "Group",
+      "btn_show": "Show",
+      "group_sheet": "Group page"
     },
     "rank": {
       "lambda": "Site account",

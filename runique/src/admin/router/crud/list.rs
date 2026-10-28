@@ -73,6 +73,22 @@ pub(crate) async fn list_view(
         entries.push(ListEntry { id, values, links });
     }
     let bulk_offered = !page.actions.is_empty() || can_delete;
+    let rights_shortcut = if key == crate::utils::constante::resource_key::GROUPES {
+        match crate::admin::router::permission::rights::managed_groups(&user, &req.engine.db).await
+        {
+            Ok(groups) => (!groups.is_empty()).then(|| paths.group_select.clone()),
+            Err(e) => {
+                return failure(
+                    crate::admin::builder::registered::AdminError::Db(e),
+                    &req,
+                    &admin,
+                )
+                .await;
+            }
+        }
+    } else {
+        None
+    };
 
     chrome(&mut req, &admin, &site, &user, key);
     insert_admin_messages(&mut req.context, "list");
@@ -98,6 +114,7 @@ pub(crate) async fn list_view(
                 list: paths.list_of(key),
                 create: rights.can_create.then(|| paths.create_of(key)),
                 bulk: bulk_offered.then(|| paths.bulk_of(key)),
+                rights: rights_shortcut,
             },
             current_page: "list",
             entries,

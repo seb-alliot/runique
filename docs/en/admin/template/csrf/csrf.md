@@ -75,7 +75,7 @@ If the login template is customised (outside `admin_template.html`), the followi
 
 - [ ] `<meta name="csrf-token" content="{{ csrf_token }}">` in `<head>`
 - [ ] `{% csrf %}` inside the `<form method="POST">`
-- [ ] `<script src="{{ "js/csrf.js" | runique_static }}" defer></script>` before `</body>`
+- [ ] `<script src="{% runique_static "js/csrf.js" %}" defer></script>` before `</body>`
 
 ### Full example: `templates/auth/login.html`
 
@@ -101,7 +101,7 @@ If the login template is customised (outside `admin_template.html`), the followi
         <button type="submit">Log in</button>
     </form>
 
-    <script src="{{ "js/csrf.js" | runique_static }}" defer></script>
+    <script src="{% runique_static "js/csrf.js" %}" defer></script>
 </body>
 </html>
 ```

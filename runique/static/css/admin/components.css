@@ -75,6 +75,7 @@
 .admin-card {
     border-radius: var(--radius-lg);
     overflow: hidden;
+    margin-block: 2rem;
 }
 
 .admin-card__header {
@@ -126,7 +127,9 @@
     flex: 1;
     max-width: 360px;
     min-width: 0;
-    padding: 0.6rem 0.875rem;
+    box-sizing: border-box;
+    height: var(--control-height);
+    padding: 0 0.875rem;
     background: var(--bg-input);
     border: 1px solid var(--border-light);
     border-radius: var(--radius);
@@ -138,6 +141,8 @@
 }
 
 .admin-search__input::placeholder { color: var(--text-muted); }
+/* Beside a small button (`.btn-sm`): the same height. */
+.admin-search__input--sm { height: var(--control-height-sm); font-size: 0.78rem; }
 
 .admin-search__input:focus {
     border-color: var(--accent);
@@ -500,6 +505,8 @@ th.admin-table__col-num { color: var(--text-muted); font-weight: 600; }
    ─────────────────────────────────────────────── */
 
 .admin-page__actions    { display: flex; gap: 0.6rem; height: 25px; }
+/* The list header's buttons (rights shortcut, create): full size, side by side. */
+.admin-page__header-actions { display: flex; align-items: center; gap: 0.6rem; }
 .admin-menu__item--create-mobile { display: none; } /* "Créer" dans le kebab : mobile uniquement (cf. responsive.css) */
 .admin-form--inline     { display: inline; }
 .admin-text--muted      { color: var(--text-muted); }

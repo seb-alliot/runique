@@ -45,6 +45,7 @@ pub(crate) fn refonte_router(paths: &AdminPaths, site: Arc<AdminSite>) -> Router
         &paths.create => get(crud::create::create_view).post(crud::create::create_view), name = admin_route::CREATE,
         &paths.rights => get(permission::rights::rights_view).post(permission::rights::rights_view), name = admin_route::RIGHTS,
         &paths.rank => axum::routing::post(permission::rank::rank_view), name = admin_route::RANK,
+        &paths.group_select => get(permission::rights::group_select_view), name = admin_route::GROUP_SELECT,
         &paths.bulk => axum::routing::post(crud::bulk::bulk_view), name = admin_route::BULK,
         &paths.reset_password => axum::routing::post(account::reset_password::reset_password_view), name = admin_route::RESET_PASSWORD,
         &paths.history => get(history::history_view), name = admin_route::HISTORY,

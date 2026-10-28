@@ -269,6 +269,10 @@ pub const ADMIN_MESSAGE_KEYS: &[&str] = &[
     // rights grid
     "admin.rights.title",
     "admin.rights.subtitle",
+    "admin.rights.group_subtitle",
+    "admin.rights.group_label",
+    "admin.rights.btn_show",
+    "admin.rights.group_sheet",
     "admin.rights.go_to_table",
     "admin.rights.toc",
     "admin.rights.btn_cancel",
@@ -280,6 +284,7 @@ pub const ADMIN_MESSAGE_KEYS: &[&str] = &[
     // added to existing sections
     "admin.detail.btn_rights",
     "admin.detail.btn_rank",
+    "admin.list.btn_rights",
     "admin.list.bulk_selected",
     "admin.list.bulk_delete",
     "admin.list.filters",
@@ -310,6 +315,9 @@ pub mod admin_route {
     pub const RESET_PASSWORD: &str = "admin_reset_password";
     /// `{prefix}/{resource}/{id}/rights`: an admin's own rights grid
     pub const RIGHTS: &str = "admin_rights";
+    /// `{prefix}/groupes/rights?groupe={id}` (GET): the group picked in the
+    /// rights page's selector, redirected to its grid
+    pub const GROUP_SELECT: &str = "admin_group_select";
     /// `{prefix}/{resource}/rank` (POST): gives the accounts `ids` a rank
     pub const RANK: &str = "admin_rank";
     /// `{prefix}/{resource}/bulk` (POST): a grouped action on the checked rows

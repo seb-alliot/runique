@@ -29,7 +29,7 @@ Create a file that extends `admin_template` and fills the layout blocks.
 {% extends "admin/admin_template.html" %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{{ "css/my_theme.css" | runique_static }}">
+    <link rel="stylesheet" href="{% static "css/my_theme.css" %}">
 {% endblock %}
 
 {% block sidebar %}
@@ -59,7 +59,7 @@ Create a file that extends `admin_template` and fills the layout blocks.
 {% endblock %}
 
 {% block extra_js %}
-    <script src="{{ "js/my_admin.js" | runique_static }}" defer></script>
+    <script src="{% static "js/my_admin.js" %}" defer></script>
 {% endblock %}
 ```
 

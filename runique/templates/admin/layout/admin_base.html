@@ -1,12 +1,12 @@
 {% extends "admin/admin_template.html" %}
 {% block extra_css %}
-    <link rel="stylesheet" href="{{ "css/normalize/normalize.css" | runique_static }}">
-    <link rel="stylesheet" href="{{ "css/admin/variables.css" | runique_static }}">
-    <link rel="stylesheet" href="{{ "css/admin/layout.css" | runique_static }}">
-    <link rel="stylesheet" href="{{ "css/admin/components.css" | runique_static }}">
-    <link rel="stylesheet" href="{{ "css/admin/buttons.css" | runique_static }}">
-    <link rel="stylesheet" href="{{ "css/admin/forms.css" | runique_static }}">
-    <link rel="stylesheet" href="{{ "css/admin/responsive.css" | runique_static }}">
+    <link rel="stylesheet" href="{% runique_static "css/normalize/normalize.css" %}">
+    <link rel="stylesheet" href="{% runique_static "css/admin/variables.css" %}">
+    <link rel="stylesheet" href="{% runique_static "css/admin/layout.css" %}">
+    <link rel="stylesheet" href="{% runique_static "css/admin/components.css" %}">
+    <link rel="stylesheet" href="{% runique_static "css/admin/buttons.css" %}">
+    <link rel="stylesheet" href="{% runique_static "css/admin/forms.css" %}">
+    <link rel="stylesheet" href="{% runique_static "css/admin/responsive.css" %}">
 {% endblock %}
 
 {% block sidebar %}
@@ -34,7 +34,7 @@
 {% endblock %}
 
 {% block extra_js %}
-    <script {% csp %} src="{{ "js/admin/admin-modal.js" | runique_static }}" defer></script>
-    <script {% csp %} src="{{ "js/admin/admin.js" | runique_static }}" defer></script>
-    <script {% csp %} src="{{ "js/admin/theme-toggle.js" | runique_static }}" defer></script>
+    <script {% csp %} src="{% runique_static "js/admin/admin-modal.js" %}" defer></script>
+    <script {% csp %} src="{% runique_static "js/admin/admin.js" %}" defer></script>
+    <script {% csp %} src="{% runique_static "js/admin/theme-toggle.js" %}" defer></script>
 {% endblock %}

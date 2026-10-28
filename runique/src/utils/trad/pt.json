@@ -341,7 +341,8 @@
       "filters_hide": "Ocultar os filtros",
       "filters_clear": "✕ Tudo",
       "select_all": "Selecionar tudo",
-      "row_details": "Detalhes"
+      "row_details": "Detalhes",
+      "btn_rights": "Direitos"
     },
     "create": {
       "title": "Criar",
@@ -516,7 +517,11 @@
       "right_update": "Alterar",
       "right_update_own": "Alterar as próprias",
       "right_delete": "Excluir",
-      "right_delete_own": "Excluir as próprias"
+      "right_delete_own": "Excluir as próprias",
+      "group_subtitle": "O que os membros deste grupo podem fazer, tabela por tabela e coluna por coluna. Uma coluna não marcada não é lida nem escrita.",
+      "group_label": "Grupo",
+      "btn_show": "Mostrar",
+      "group_sheet": "Ficha do grupo"
     },
     "rank": {
       "lambda": "Conta do site",

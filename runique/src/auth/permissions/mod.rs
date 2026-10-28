@@ -145,6 +145,68 @@ fn assemble(rows: impl IntoIterator<Item = groupes_droits::Model>) -> Vec<Permis
     perms
 }
 
+/// What a group keeps of its `rows` under `holder`, its responsable's own
+/// grid: each table's rights `within` his, a table he lacks dropped, a table
+/// left with no right dropped with its columns. The rows to write back, as
+/// the group's.
+pub(crate) fn group_rows_within(
+    groupe_id: i32,
+    rows: Vec<groupes_droits::Model>,
+    holder: &[groupes_droits::Model],
+) -> Vec<groupes_droits::ActiveModel> {
+    use sea_orm::Set;
+    let holder = assemble(holder.iter().cloned());
+    let row = |key: &str, colonne: &str| groupes_droits::ActiveModel {
+        groupe_id: Set(Some(groupe_id)),
+        user_id: Set(None),
+        resource_key: Set(key.to_string()),
+        colonne: Set(colonne.to_string()),
+        ..Default::default()
+    };
+    let mut kept = Vec::new();
+    for perm in assemble(rows) {
+        let Some(h) = holder.iter().find(|h| h.resource_key == perm.resource_key) else {
+            continue;
+        };
+        let p = perm.within(h);
+        let any = p.can_create
+            || p.can_read
+            || p.can_read_own
+            || p.can_update
+            || p.can_update_own
+            || p.can_delete
+            || p.can_delete_own;
+        if !any {
+            continue;
+        }
+        let mut table = row(&p.resource_key, "");
+        table.can_create = Set(p.can_create);
+        table.can_read = Set(p.can_read);
+        table.can_read_own = Set(p.can_read_own);
+        table.can_update = Set(p.can_update);
+        table.can_update_own = Set(p.can_update_own);
+        table.can_delete = Set(p.can_delete);
+        table.can_delete_own = Set(p.can_delete_own);
+        kept.push(table);
+        for c in p
+            .colonnes
+            .iter()
+            .filter(|c| c.can_read || c.can_create || c.can_update)
+        {
+            let mut column = row(&p.resource_key, &c.colonne);
+            column.can_read = Set(c.can_read);
+            column.can_create = Set(c.can_create);
+            column.can_update = Set(c.can_update);
+            column.can_read_own = Set(false);
+            column.can_update_own = Set(false);
+            column.can_delete = Set(false);
+            column.can_delete_own = Set(false);
+            kept.push(column);
+        }
+    }
+    kept
+}
+
 /// Group (includes its permissions per resource).
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Groupe {

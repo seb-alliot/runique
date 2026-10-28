@@ -20,7 +20,7 @@
     {% csrf %}
     <input type="hidden" name="runique_form" value="admin_rank">
     <input type="hidden" name="ids" value="{{ object_id }}">
-    <select name="bulk_action" class="admin-search__input">
+    <select name="bulk_action" class="admin-search__input admin-search__input--sm">
       {% for choice in rank_choices %}
       <option value="{{ choice[0] }}" {% if choice[0] == current_rank %}selected{% endif %}>{{ choice[1] }}</option>
       {% endfor %}

@@ -172,3 +172,17 @@
 
     .admin-rights__card { scroll-margin-top: 1rem; }
 }
+
+/* The group selector above a group's grid. */
+.admin-rights__select {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.admin-rights__select label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}

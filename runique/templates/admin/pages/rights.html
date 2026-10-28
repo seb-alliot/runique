@@ -3,7 +3,7 @@
 {% block extra_css %}
   {{ super() }}
   {# The grid's block is repeated per table: its sheet is declared here, once. #}
-  <link rel="stylesheet" href="{{ "css/admin/blocks/rights.css" | runique_static }}">
+  <link rel="stylesheet" href="{% runique_static "css/admin/blocks/rights.css" %}">
 {% endblock %}
 {% block breadcrumb %}
   <span class="admin-topbar__sep">/</span>
@@ -18,7 +18,7 @@
   <div class="admin-page__header">
     <div>
       <h1 class="admin-page__title">{{ admin_rights_title }} — {{ account_name }}</h1>
-      <p class="admin-page__subtitle">{{ admin_rights_subtitle }}</p>
+      <p class="admin-page__subtitle">{% if is_group %}{{ admin_rights_group_subtitle }}{% else %}{{ admin_rights_subtitle }}{% endif %}</p>
     </div>
   </div>
   {% endblock %}
@@ -26,6 +26,20 @@
      rendering, and decides again on the save. #}
   {# A table of contents beside the grid on a wide screen, a menu above it
      otherwise: the same links, no script. #}
+  {% if group_select_url %}
+  {# One group at a time: picking another opens its own page (a GET, then a
+     redirect), never several grids at once. #}
+  <form method="get" action="{{ group_select_url }}" class="admin-rights__select">
+    <label for="rights-group">{{ admin_rights_group_label }}</label>
+    <select id="rights-group" name="groupe" class="admin-search__input" data-autosubmit>
+      {% for choice in group_choices %}
+      <option value="{{ choice[0] }}" {% if choice[0] == object_id %}selected{% endif %}>{{ choice[1] }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-secondary">{{ admin_rights_btn_show }}</button>
+    <a href="{{ cancel_url }}" class="btn btn-ghost">{{ admin_rights_group_sheet }}</a>
+  </form>
+  {% endif %}
   <div class="admin-rights">
     <details class="admin-rights__menu">
       <summary class="btn btn-secondary btn-sm">{{ admin_rights_go_to_table }}</summary>
@@ -54,5 +68,6 @@
 {% endblock %}
 {% block extra_js %}
   {{ super() }}
-  <script {% csp %} src="{{ "js/admin/rights-menu.js" | runique_static }}" defer></script>
+  <script {% csp %} src="{% runique_static "js/admin/rights-menu.js" %}" defer></script>
+  <script {% csp %} src="{% runique_static "js/admin/group-select.js" %}" defer></script>
 {% endblock %}

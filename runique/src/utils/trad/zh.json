@@ -341,7 +341,8 @@
       "filters_hide": "隐藏筛选",
       "filters_clear": "✕ 全部",
       "select_all": "全选",
-      "row_details": "详情"
+      "row_details": "详情",
+      "btn_rights": "权限"
     },
     "create": {
       "title": "创建",
@@ -516,7 +517,11 @@
       "right_update": "修改",
       "right_update_own": "修改自己的",
       "right_delete": "删除",
-      "right_delete_own": "删除自己的"
+      "right_delete_own": "删除自己的",
+      "group_subtitle": "该用户组成员可执行的操作，按表和按列设置。未勾选的列既不可读也不可写。",
+      "group_label": "用户组",
+      "btn_show": "显示",
+      "group_sheet": "用户组详情"
     },
     "rank": {
       "lambda": "网站账户",

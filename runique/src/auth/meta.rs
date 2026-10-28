@@ -50,3 +50,18 @@ impl ModelMeta for crate::auth::user::Entity {
         crate::auth::user::schema()
     }
 }
+
+/// The groups: their owner is their responsable, so a right "on its own"
+/// reaches the groups an account answers for, and a new group is answered
+/// for by whoever creates it.
+impl ModelMeta for crate::auth::permissions::groupe::Entity {
+    const KEY: &'static str = resource_key::GROUPES;
+    type Form = crate::auth::form::GroupeModelForm;
+    const OWNER: Option<Self::Column> =
+        Some(crate::auth::permissions::groupe::Column::ResponsableId);
+    const IS_FRAMEWORK_TABLE: bool = true;
+    const LABEL: Option<Self::Column> = Some(crate::auth::permissions::groupe::Column::Nom);
+    fn schema() -> crate::migration::schema::ModelSchema {
+        crate::auth::permissions::groupe::schema()
+    }
+}

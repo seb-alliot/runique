@@ -53,3 +53,33 @@ impl Related<crate::auth::user::Entity> for Entity {
 }
 
 impl ActiveModelBehavior for ActiveModel {}
+
+/// The `eihwaz_groupes` table as the migration creates it, for the admin's
+/// form and its boot checks.
+pub fn schema() -> crate::migration::schema::ModelSchema {
+    use crate::migration::ColumnDef;
+    // The responsable is an account: its column is typed like the accounts' key.
+    #[cfg(feature = "pk-uuid")]
+    let account = |name: &str| ColumnDef::new(name).uuid();
+    #[cfg(all(feature = "big-pk", not(feature = "pk-uuid")))]
+    let account = |name: &str| ColumnDef::new(name).big_integer();
+    #[cfg(not(any(feature = "big-pk", feature = "pk-uuid")))]
+    let account = |name: &str| ColumnDef::new(name).integer();
+    crate::migration::ModelSchema::new("EihwazGroupes")
+        .table_name("eihwaz_groupes")
+        .primary_key(
+            crate::migration::PrimaryKeyDef::new("id")
+                .i32()
+                .auto_increment(),
+        )
+        .column(ColumnDef::new("nom").string().required().unique())
+        .column(
+            // NOT NULL by default; `required` would make the box "must be checked".
+            ColumnDef::new("is_staff").boolean().default(false.into()),
+        )
+        .column(ColumnDef::new("is_active").boolean().default(true.into()))
+        .column(account("responsable_id").required())
+        .column(account("repris_par").nullable())
+        .build()
+        .unwrap()
+}

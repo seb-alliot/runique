@@ -341,7 +341,8 @@
       "filters_hide": "Скрыть фильтры",
       "filters_clear": "✕ Все",
       "select_all": "Выбрать все",
-      "row_details": "Подробнее"
+      "row_details": "Подробнее",
+      "btn_rights": "Права"
     },
     "create": {
       "title": "Создать",
@@ -516,7 +517,11 @@
       "right_update": "Изменение",
       "right_update_own": "Изменение своих",
       "right_delete": "Удаление",
-      "right_delete_own": "Удаление своих"
+      "right_delete_own": "Удаление своих",
+      "group_subtitle": "Что могут делать участники этой группы, по таблицам и столбцам. Неотмеченный столбец не читается и не записывается.",
+      "group_label": "Группа",
+      "btn_show": "Показать",
+      "group_sheet": "Карточка группы"
     },
     "rank": {
       "lambda": "Учётная запись сайта",

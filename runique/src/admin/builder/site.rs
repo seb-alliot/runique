@@ -19,6 +19,9 @@ pub struct AdminSite {
     /// The accounts admin: the framework's own unless the project hands its
     /// extension of `eihwaz_users` to `accounts_users()`.
     accounts: Box<dyn RegisteredModel>,
+    /// The groups admin, always served: the superuser and the dirigeant
+    /// manage them by their rank, an admin through his grid.
+    groups: Box<dyn RegisteredModel>,
     overridden_views: HashMap<(String, AdminView), String>,
 }
 
@@ -27,6 +30,7 @@ impl Default for AdminSite {
         Self {
             models: Vec::new(),
             accounts: Box::new(default_accounts()),
+            groups: Box::new(default_groups()),
             overridden_views: HashMap::new(),
         }
     }
@@ -47,7 +51,29 @@ fn default_accounts() -> ModelAdmin<user::Entity> {
         .form(|f| f.fields([user::Column::Username, user::Column::Email]))
 }
 
+/// The framework's groups admin: a group's name and flags; its responsable
+/// is set by the gate, never typed.
+fn default_groups() -> ModelAdmin<crate::auth::permissions::groupe::Entity> {
+    use crate::auth::permissions::groupe::Column;
+    ModelAdmin::new()
+        .list(|l| {
+            l.display([Column::Nom, Column::IsStaff, Column::IsActive])
+                .links([Column::Nom])
+                .sortable([Column::Nom])
+                .search([Column::Nom])
+                .filter([Column::IsStaff, Column::IsActive])
+        })
+        .form(|f| f.fields([Column::Nom, Column::IsStaff, Column::IsActive]))
+}
+
 impl AdminSite {
+    /// The framework's models, then the project's: every model served.
+    fn all(&self) -> impl Iterator<Item = &Box<dyn RegisteredModel>> {
+        [&self.accounts, &self.groups]
+            .into_iter()
+            .chain(self.models.iter())
+    }
+
     pub(crate) fn override_view(&mut self, model_key: String, view: AdminView, path: String) {
         self.overridden_views.insert((model_key, view), path);
     }
@@ -81,8 +107,10 @@ impl AdminSite {
 
     pub(crate) fn check(&self) -> Vec<String> {
         let mut error = Vec::new();
-        if let Err(e) = self.accounts.check() {
-            error.push(e);
+        for builtin in [&self.accounts, &self.groups] {
+            if let Err(e) = builtin.check() {
+                error.push(e);
+            }
         }
         if !self.accounts.keeps_account_rules() {
             error.push(format!(
@@ -97,6 +125,12 @@ impl AdminSite {
             if model.key() == self.accounts.key() {
                 error.push(format!(
                     "model `{}` registered twice: the accounts admin is replaced with `accounts_users()`",
+                    model.key()
+                ));
+            }
+            if model.key() == self.groups.key() {
+                error.push(format!(
+                    "model `{}` registered twice: the framework serves the groups",
                     model.key()
                 ));
             }
@@ -124,9 +158,7 @@ impl AdminSite {
         use super::registered::{COUNT_RESOURCE, COUNT_TOTAL};
         use sea_orm::ConnectionTrait;
         use sea_orm::sea_query::UnionType;
-        let mut queries = std::iter::once(&self.accounts)
-            .chain(self.models.iter())
-            .filter_map(|m| m.count_query(db, user));
+        let mut queries = self.all().filter_map(|m| m.count_query(db, user));
         let Some(mut union) = queries.next() else {
             return Ok(std::collections::HashMap::new());
         };
@@ -146,16 +178,14 @@ impl AdminSite {
 
     /// The resource keys of every model the admin serves, accounts included.
     pub(crate) fn keys(&self) -> Vec<&'static str> {
-        std::iter::once(self.accounts.key())
-            .chain(self.models.iter().map(|m| m.key()))
-            .collect()
+        self.all().map(|m| m.key()).collect()
     }
 
     /// The models `user` sees in the navigation: those with at least one
     /// right, the keys of `order` first in that order, then by title.
     pub(crate) fn navigation(&self, user: &CurrentUser, order: &[String]) -> Vec<NavEntry> {
-        let mut entries: Vec<NavEntry> = std::iter::once(&self.accounts)
-            .chain(self.models.iter())
+        let mut entries: Vec<NavEntry> = self
+            .all()
             .filter(|m| m.visible_to(user))
             .map(|m| NavEntry {
                 key: m.key(),
@@ -173,7 +203,7 @@ impl AdminSite {
 
     /// Every registered model, accounts first.
     pub(crate) fn models(&self) -> impl Iterator<Item = &dyn RegisteredModel> {
-        std::iter::once(self.accounts.as_ref()).chain(self.models.iter().map(|m| m.as_ref()))
+        self.all().map(|m| m.as_ref())
     }
 
     /// The models whose history `user` may read, accounts included.
@@ -182,8 +212,7 @@ impl AdminSite {
         db: &crate::utils::aliases::ADb,
         user: &CurrentUser,
     ) -> Vec<HistoryScope> {
-        std::iter::once(&self.accounts)
-            .chain(self.models.iter())
+        self.all()
             .filter_map(|m| m.history_scope(db, user))
             .collect()
     }
@@ -191,13 +220,7 @@ impl AdminSite {
     /// The registered model behind a URL's resource key, if any: an unknown
     /// key never reaches a query.
     pub(crate) fn model(&self, key: &str) -> Option<&dyn RegisteredModel> {
-        if self.accounts.key() == key {
-            return Some(self.accounts.as_ref());
-        }
-        self.models
-            .iter()
-            .find(|m| m.key() == key)
-            .map(|m| m.as_ref())
+        self.all().find(|m| m.key() == key).map(|m| m.as_ref())
     }
 }
 
@@ -225,7 +248,7 @@ mod tests {
         let site = AdminSite::default();
         assert!(site.check().is_empty(), "{:?}", site.check());
         assert!(site.model("users").is_some());
-        assert_eq!(site.keys(), ["users"]);
+        assert_eq!(site.keys(), ["users", "groupes"]);
         assert!(!site.has_project_models());
     }
 
@@ -233,7 +256,7 @@ mod tests {
     fn a_registered_model_is_a_project_model() {
         let site = AdminSite::default().register(ModelAdmin::<Entity>::new());
         assert!(site.has_project_models());
-        assert_eq!(site.keys(), ["users", "notes"]);
+        assert_eq!(site.keys(), ["users", "groupes", "notes"]);
     }
 
     /// The accounts are replaced on purpose, never by a key that happens to match.
@@ -353,7 +376,7 @@ mod tests {
         let su = with_rang(crate::auth::permissions::rang::Rang::Superuser);
         assert_eq!(
             nav_keys(&site, &su, &[]),
-            ["notes", "users"],
+            ["groupes", "notes", "users"],
             "sorted by title"
         );
     }
@@ -364,7 +387,7 @@ mod tests {
         let su = with_rang(crate::auth::permissions::rang::Rang::Superuser);
         assert_eq!(
             nav_keys(&site, &su, &["users".to_string()]),
-            ["users", "notes"]
+            ["users", "groupes", "notes"]
         );
     }
 
@@ -373,7 +396,13 @@ mod tests {
     /// nothing for one who may not.
     #[tokio::test]
     async fn the_counts_follow_the_gate() {
+        use sea_orm::{ConnectionTrait, Schema};
         let db = db().await;
+        // The groups the framework serves are counted with the rest.
+        let schema = Schema::new(sea_orm::DatabaseBackend::Sqlite);
+        db.execute(&schema.create_table_from_entity(crate::auth::permissions::groupe::Entity))
+            .await
+            .unwrap();
         let site = AdminSite::default().register(ModelAdmin::<Entity>::new());
 
         let su = with_rang(crate::auth::permissions::rang::Rang::Superuser);
@@ -407,7 +436,7 @@ mod tests {
             .into_iter()
             .map(|e| e.title)
             .collect();
-        assert_eq!(titles, ["Mes notes", "Users"]);
+        assert_eq!(titles, ["Groupes", "Mes notes", "Users"]);
     }
 
     #[test]

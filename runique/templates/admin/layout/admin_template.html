@@ -73,7 +73,7 @@
     </div>
 </div>
 
-<script {% csp %} src="{{ "js/csrf.js" | runique_static }}" defer></script>
+<script {% csp %} src="{% runique_static "js/csrf.js" %}" defer></script>
 
 {% block extra_js %}{% endblock %}
 <footer>
