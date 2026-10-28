@@ -286,7 +286,12 @@ impl AdminStaging {
                 || matches!(
                     route.overrides,
                     AdminView::Detail
-                        if route.path.split('/').filter(|part| *part == "{id}").count() != 1
+                        // The row's link fills `{id}` and nothing else.
+                        if route
+                            .path
+                            .split('/')
+                            .filter(|part| part.starts_with('{'))
+                            .ne(["{id}"])
                 )
             {
                 report.add(CheckError::new(
@@ -295,7 +300,7 @@ impl AdminStaging {
                         "admin route `{}` must be an absolute path{}",
                         route.path,
                         if route.overrides == AdminView::Detail {
-                            " with exactly one `{id}` segment to override Detail"
+                            " with exactly one `{id}` segment, and no other parameter, to override Detail"
                         } else {
                             ""
                         }
@@ -478,7 +483,12 @@ mod declared_route_tests {
 
     #[test]
     fn a_detail_override_needs_exactly_one_id() {
-        for path in ["/accounts", "/accounts/{id}/{id}"] {
+        for path in [
+            "/accounts",
+            "/accounts/{id}/{id}",
+            "/accounts/{id}/tab/{tab}",
+            "/accounts/{x}",
+        ] {
             assert!(
                 errors(&[(path, "a", Detail)], &[]).contains("exactly one `{id}`"),
                 "{path}"

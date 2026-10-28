@@ -258,6 +258,7 @@ mod expiration_tests {
         assert!(!guard.is_locked("alice"));
     }
 
+    #[cfg(feature = "admin")]
     #[test]
     fn the_cleanup_cadence_follows_the_lockout_within_bounds() {
         let secs = |lockout| {

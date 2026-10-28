@@ -35,12 +35,20 @@ pub(crate) async fn detail_view(
     // The rank of an account below the viewer's, offered to change.
     let mut rank_choices = Vec::new();
     let mut current_rank = None;
+    let mut rights_url = None;
     if model.is_account_table()
         && let Ok(pk) = id.parse::<crate::utils::pk::Pk>()
         && let Some(account) =
             crate::auth::user::BuiltinUserEntity::find_by_id(&req.engine.db, pk).await
     {
         let rang = crate::auth::permissions::rang::Rang::from(&account);
+        if crate::auth::gate::rights_grid::may_set(&user, &account).is_ok() {
+            rights_url = Some(super::link(
+                &req,
+                crate::utils::constante::admin_key::admin_route::RIGHTS,
+                &[("resource", model.key()), ("id", &id)],
+            ));
+        }
         if rang < user.rang && account.id != user.id {
             rank_choices = super::rank::rank_choices(user.rang);
             current_rank = Some(match rang {
@@ -69,6 +77,7 @@ pub(crate) async fn detail_view(
             can_reset_password: model.is_account_table() && rights.can_update,
             rank_choices,
             current_rank,
+            rights_url,
         },
     )?;
     req.render(admin.config.templates.detail.resolve())

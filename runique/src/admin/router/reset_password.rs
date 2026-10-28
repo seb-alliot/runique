@@ -1,6 +1,6 @@
 //! `POST {admin}/{resource}/{id}/reset-password`: sends an account's owner a
 //! link to choose a new password. The staff never sees it, nor any password.
-use super::{failure, link, unknown_resource};
+use super::{detail_url, failure, unknown_resource};
 use crate::admin::builder::site::AdminSite;
 use crate::admin::router::admin_router::AdminState;
 use crate::auth::current_user::CurrentUser;
@@ -9,7 +9,6 @@ use crate::auth::user::BuiltinUserEntity;
 use crate::context::template::Request;
 use crate::macros::routeur::register_url::reverse_with_parameters;
 use crate::utils::aliases::AppResult;
-use crate::utils::constante::admin_key::admin_route;
 use crate::utils::pk::Pk;
 use crate::utils::trad::t;
 use axum::Extension;
@@ -34,7 +33,7 @@ pub(crate) enum AccountLink {
 }
 
 impl AccountLink {
-    fn template<'a>(self, admin: &'a AdminState) -> &'a str {
+    fn template(self, admin: &AdminState) -> &str {
         match self {
             Self::Reset => admin
                 .config
@@ -146,11 +145,7 @@ pub(crate) async fn reset_password_view(
     let Some(model) = site.model(&resource) else {
         return unknown_resource(&resource);
     };
-    let detail = link(
-        &req,
-        admin_route::DETAIL,
-        &[("resource", model.key()), ("id", &id)],
-    );
+    let detail = detail_url(&req, &site, model.key(), &id);
     let account = match model.reset_password(&req, &user, &id).await {
         Ok(Some(account)) => account,
         Ok(None) => {

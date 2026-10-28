@@ -12,6 +12,9 @@
     <button type="submit" class="btn btn-secondary btn-sm">{% if admin_detail_btn_reset_password %}{{ admin_detail_btn_reset_password }}{% endif %}</button>
   </form>
   {% endif %}
+  {% if rights_url %}
+  <a href="{{ rights_url }}" class="btn btn-secondary btn-sm">Droits</a>
+  {% endif %}
   {% if rank_choices | length > 0 %}
   <form method="POST" action="{% link "admin_rank" resource=resource_key %}" class="admin-form--inline">
     {% csrf %}

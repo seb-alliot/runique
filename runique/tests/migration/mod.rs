@@ -30,6 +30,8 @@ pub mod test_decimal_scale_multi_db;
 #[cfg(feature = "all-databases")]
 pub mod test_dsl_types_roundtrip;
 pub mod test_eihwaz_tables_pk;
+#[cfg(feature = "all-databases")]
+pub mod test_enum_column_multi_db;
 pub mod test_foreign_key;
 pub mod test_generators;
 pub mod test_helpers;

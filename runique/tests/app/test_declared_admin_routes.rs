@@ -1823,3 +1823,307 @@ async fn a_rank_sent_with_an_account_edit_is_ignored() {
         .unwrap();
     assert_eq!(rank_of(&su, &base, MEMBER).await, "Lambda");
 }
+
+// ── A replaced detail, everywhere ─────────────────────────────────────────
+
+/// `routes()` replaces the accounts' detail with `/accounts/{id}`: every
+/// link and redirect to an account leads there, never to the generated page
+/// (which answers 404).
+#[tokio::test]
+#[serial]
+async fn every_way_to_a_row_follows_its_replaced_detail() {
+    console_mailer();
+    let base = spawn().await;
+    let su = signed_in(&base, SUPERUSER).await;
+    let id = pk(MEMBER).to_string();
+    let replaced = format!("/accounts/{id}");
+    let link = format!("href=\"{replaced}\"");
+
+    // The edit page: its breadcrumb and its cancel button, then its save.
+    let edit = format!("{base}/secret-admin/users/{id}/edit");
+    let page = text(&su, edit.clone()).await;
+    assert!(page.matches(&link).count() >= 2, "breadcrumb and cancel");
+    let token = hidden_value(&page, "csrf_token").unwrap();
+    let name = hidden_value(&page, "runique_form").unwrap();
+    let saved = su
+        .post(edit)
+        .form(&[
+            ("csrf_token", token.as_str()),
+            ("runique_form", name.as_str()),
+            ("username", "bob"),
+            ("email", "bob@example.com"),
+        ])
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(location(&saved), Some(replaced.as_str()), "after the save");
+
+    // The delete page's cancel button.
+    let page = text(&su, format!("{base}/secret-admin/users/{id}/delete")).await;
+    assert!(page.contains(&link), "delete's cancel");
+
+    // Back after a reset link and after a rank change.
+    let resp = su
+        .post(format!("{base}/secret-admin/users/{id}/reset-password"))
+        .form(&[
+            ("csrf_token", token.as_str()),
+            ("runique_form", "admin_reset_password"),
+        ])
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(location(&resp), Some(replaced.as_str()), "after a reset");
+    let resp = give_rank(&su, &base, &[MEMBER], "dirigeant").await;
+    assert_eq!(
+        location(&resp),
+        Some(replaced.as_str()),
+        "after a rank change"
+    );
+}
+
+// ── Who reaches the admin's login page ────────────────────────────────────
+
+/// Nobody signed in: the login page. An account with admin access: the
+/// dashboard. A site account without it: back to `/`, still signed in.
+#[tokio::test]
+#[serial]
+async fn the_login_page_answers_each_visitor_by_their_access() {
+    let base = spawn_with("", probe_routes()).await;
+    let login = format!("{base}/secret-admin/login");
+
+    let anonymous = client();
+    let resp = fetch(&anonymous, login.clone(), None).await;
+    assert_eq!(resp.status(), reqwest::StatusCode::OK, "the form");
+
+    let admin = signed_in(&base, ADMIN).await;
+    let resp = fetch(&admin, login.clone(), None).await;
+    assert_eq!(
+        location(&resp),
+        Some("/secret-admin/"),
+        "already in: the dashboard"
+    );
+
+    for n in [MEMBER, ORPHAN_STAFF_MEMBER, IDLE_STAFF_MEMBER] {
+        let site = signed_in(&base, n).await;
+        let resp = fetch(&site, login.clone(), None).await;
+        assert_eq!(location(&resp), Some("/"), "account {n}: back to the site");
+        let resp = fetch(&site, format!("{base}/secret-admin/"), None).await;
+        assert_eq!(location(&resp), Some("/"), "account {n}: the dashboard too");
+        assert_eq!(
+            text(&site, format!("{base}/my-id")).await,
+            format!("{:?}", Some(pk(n))),
+            "account {n}: still signed in on the site"
+        );
+    }
+}
+
+/// Deactivates account `n`, as the staff would.
+async fn probe_deactivate(Path(n): Path<u32>, req: Request) -> &'static str {
+    use runique::sea_orm::{ActiveModelTrait, Set};
+    let user = BuiltinUserEntity::find_by_id(&req.engine.db, pk(n))
+        .await
+        .expect("account");
+    let mut active: runique::auth::user::ActiveModel = user.into();
+    active.is_active = Set(false);
+    active.update(&req.engine.db).await.unwrap();
+    "ok"
+}
+
+/// An admin deactivated while signed in: his next admin page closes the
+/// session, unlike a site account without admin access.
+#[tokio::test]
+#[serial]
+async fn a_deactivated_admin_loses_the_session_on_his_next_admin_page() {
+    let routes = probe_routes().merge(runique::urlpatterns! {
+        "/probe/deactivate/{n}" => get(probe_deactivate), name = "declared_test_probe_deactivate",
+    });
+    let base = spawn_with("", routes).await;
+    let admin = signed_in(&base, ADMIN).await;
+    text(&client(), format!("{base}/probe/deactivate/{ADMIN}")).await;
+
+    fetch(&admin, format!("{base}/secret-admin/"), None).await;
+    assert_eq!(
+        text(&admin, format!("{base}/my-id")).await,
+        "None",
+        "signed out"
+    );
+}
+
+/// Writes a value in the visitor's session, and reads it back.
+async fn probe_session_set(req: Request) -> &'static str {
+    req.session.insert("probe_cart", "3 items").await.unwrap();
+    "ok"
+}
+
+async fn probe_session_get(req: Request) -> String {
+    req.session
+        .get::<String>("probe_cart")
+        .await
+        .unwrap()
+        .unwrap_or_else(|| "none".into())
+}
+
+/// A site visitor who opens the admin's login page keeps their anonymous
+/// session: nothing of theirs is the admin's to delete.
+#[tokio::test]
+#[serial]
+async fn an_anonymous_visitor_keeps_their_session_on_the_admin_pages() {
+    let routes = probe_routes().merge(runique::urlpatterns! {
+        "/probe/session/set" => get(probe_session_set), name = "declared_test_probe_session_set",
+        "/probe/session/get" => get(probe_session_get), name = "declared_test_probe_session_get",
+    });
+    let base = spawn_with("", routes).await;
+    let visitor = client();
+    text(&visitor, format!("{base}/probe/session/set")).await;
+    fetch(&visitor, format!("{base}/secret-admin/login"), None).await;
+    fetch(&visitor, format!("{base}/secret-admin/"), None).await;
+    assert_eq!(
+        text(&visitor, format!("{base}/probe/session/get")).await,
+        "3 items"
+    );
+}
+
+// ── An admin's rights grid ────────────────────────────────────────────────
+
+/// Saves account `n`'s grid with only `boxes` ticked.
+async fn save_grid(
+    client: &reqwest::Client,
+    base: &str,
+    n: u32,
+    boxes: &[&str],
+) -> reqwest::Response {
+    let url = format!("{base}/secret-admin/users/{}/rights", pk(n));
+    let page = text(client, url.clone()).await;
+    let token = hidden_value(&page, "csrf_token").unwrap_or_default();
+    let name = hidden_value(&page, "runique_form").unwrap_or_else(|| "admin_rights".into());
+    let mut body = vec![
+        ("csrf_token", token.as_str()),
+        ("runique_form", name.as_str()),
+    ];
+    for b in boxes {
+        body.push((b, "1"));
+    }
+    client.post(url).form(&body).send().await.unwrap()
+}
+
+/// The superuser sees the admin's grid as it is, then narrows it: the admin
+/// keeps reading the notes but can no longer edit them.
+#[tokio::test]
+#[serial]
+async fn the_superuser_sets_an_admins_grid_and_it_applies_at_once() {
+    let base = spawn_with("", probe_routes()).await;
+    let su = signed_in(&base, SUPERUSER).await;
+    let detail = text(
+        &su,
+        format!("{base}/secret-admin/users/{}/detail", pk(ADMIN)),
+    )
+    .await;
+    assert!(detail.contains("/rights\""), "the grid is offered");
+
+    let grid = text(
+        &su,
+        format!("{base}/secret-admin/users/{}/rights", pk(ADMIN)),
+    )
+    .await;
+    assert!(
+        grid.contains("name=\"t__probe_notes__update\" value=\"1\" checked"),
+        "ticked from the base"
+    );
+    assert!(!grid.contains("password"), "never a secret column");
+    assert!(
+        !grid.contains("__is_admin__") && !grid.contains("__is_active__"),
+        "never a rank nor the activation"
+    );
+
+    let saved = save_grid(
+        &su,
+        &base,
+        ADMIN,
+        &["t__probe_notes__read", "c__probe_notes__title__read"],
+    )
+    .await;
+    assert_eq!(
+        location(&saved),
+        Some(format!("/secret-admin/users/{}/detail", pk(ADMIN)).as_str())
+    );
+
+    let admin = signed_in(&base, ADMIN).await;
+    let list = fetch(
+        &admin,
+        format!("{base}/secret-admin/probe_notes/list"),
+        None,
+    )
+    .await;
+    assert_eq!(list.status(), reqwest::StatusCode::OK, "still reads");
+    let edit = fetch(
+        &admin,
+        format!("{base}/secret-admin/probe_notes/1/edit"),
+        None,
+    )
+    .await;
+    assert_eq!(location(&edit), Some("/secret-admin/"), "no longer edits");
+}
+
+/// A box the grid doesn't offer (a table it doesn't know, a secret column)
+/// refuses the whole save: nothing changes.
+#[tokio::test]
+#[serial]
+async fn a_forged_grid_is_refused_whole() {
+    let base = spawn_with("", probe_routes()).await;
+    let su = signed_in(&base, SUPERUSER).await;
+    for forged in [
+        "t__ghost__read",
+        "c__users__password__read",
+        "c__users__is_admin__update",
+    ] {
+        save_grid(&su, &base, ADMIN, &["t__probe_notes__read", forged]).await;
+    }
+    let admin = signed_in(&base, ADMIN).await;
+    let edit = fetch(
+        &admin,
+        format!("{base}/secret-admin/probe_notes/1/edit"),
+        None,
+    )
+    .await;
+    assert_eq!(
+        edit.status(),
+        reqwest::StatusCode::OK,
+        "his grid is untouched"
+    );
+}
+
+/// Only a dirigeant or the superuser sets a grid, only on an admin, never
+/// their own: an admin gets none, a site account has none.
+#[tokio::test]
+#[serial]
+async fn a_grid_is_set_from_above_on_an_admin_only() {
+    let base = spawn_with("", probe_routes()).await;
+    let su = signed_in(&base, SUPERUSER).await;
+    let page = fetch(
+        &su,
+        format!("{base}/secret-admin/users/{}/rights", pk(MEMBER)),
+        None,
+    )
+    .await;
+    assert_eq!(
+        location(&page),
+        Some("/secret-admin/"),
+        "a site account has no grid"
+    );
+
+    let admin = signed_in(&base, ADMIN).await;
+    let page = fetch(
+        &admin,
+        format!("{base}/secret-admin/users/{}/rights", pk(ADMIN)),
+        None,
+    )
+    .await;
+    assert_eq!(location(&page), Some("/secret-admin/"), "never his own");
+    save_grid(&admin, &base, ADMIN, &["t__users__delete"]).await;
+    let page = fetch(&admin, format!("{base}/secret-admin/users/list"), None).await;
+    assert_ne!(
+        page.status(),
+        reqwest::StatusCode::OK,
+        "he gave himself nothing"
+    );
+}

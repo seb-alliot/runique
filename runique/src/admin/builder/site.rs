@@ -171,6 +171,11 @@ impl AdminSite {
         entries
     }
 
+    /// Every registered model, accounts first.
+    pub(crate) fn models(&self) -> impl Iterator<Item = &dyn RegisteredModel> {
+        std::iter::once(self.accounts.as_ref()).chain(self.models.iter().map(|m| m.as_ref()))
+    }
+
     /// The models whose history `user` may read, accounts included.
     pub(crate) fn history_scopes(
         &self,

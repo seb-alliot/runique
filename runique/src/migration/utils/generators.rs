@@ -668,17 +668,10 @@ fn render_enum_column_change(table: &str, from: &ParsedColumn, to: &ParsedColumn
     }
 
     let col_def = if to_is_enum {
-        let enum_name = to.enum_name.as_deref().unwrap_or(&to.name);
-        let variants: Vec<String> = to
-            .enum_string_values
-            .iter()
-            .map(|v| format!("Alias::new(\"{}\").into_iden()", v))
-            .collect();
         format!(
-            "ColumnDef::new_with_type(Alias::new(\"{col}\"), ColumnType::Enum {{ name: Alias::new(\"{enum_name}\").into_iden(), variants: vec![{variants}] }})",
+            "ColumnDef::new_with_type(Alias::new(\"{col}\"), {ty})",
             col = to.name,
-            enum_name = enum_name,
-            variants = variants.join(", "),
+            ty = enum_column_type(to),
         )
     } else {
         format!(
@@ -749,6 +742,24 @@ fn render_pk_col(pk: &ParsedColumn) -> String {
     s
 }
 
+/// The type of an enum column, chosen when the migration runs: the Postgres
+/// enum type there, a plain string elsewhere — the entity `model!{}`
+/// generates reads it as a string off Postgres, and sea-query would render
+/// `ColumnType::Enum` as a native `ENUM(...)` on MySQL/MariaDB, whose value
+/// list the later migrations (value added, renamed) never update.
+fn enum_column_type(col: &ParsedColumn) -> String {
+    let enum_name = col.enum_name.as_deref().unwrap_or(&col.name);
+    let variants: Vec<String> = col
+        .enum_string_values
+        .iter()
+        .map(|v| format!("Alias::new(\"{}\").into_iden()", v))
+        .collect();
+    format!(
+        "if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{ ColumnType::Enum {{ name: Alias::new(\"{enum_name}\").into_iden(), variants: vec![{variants}] }} }} else {{ ColumnType::String(Default::default()) }}",
+        variants = variants.join(", "),
+    )
+}
+
 fn render_column_def(col: &ParsedColumn) -> String {
     let null = if col.nullable {
         ".null()"
@@ -765,18 +776,10 @@ fn render_column_def(col: &ParsedColumn) -> String {
     };
 
     if !col.enum_string_values.is_empty() {
-        let name = col.enum_name.as_deref().unwrap_or(&col.name);
-        let variants: Vec<String> = col
-            .enum_string_values
-            .iter()
-            .map(|v| format!("Alias::new(\"{}\").into_iden()", v))
-            .collect();
-
         format!(
-            "ColumnDef::new_with_type(Alias::new(\"{name}\"), ColumnType::Enum {{ name: Alias::new(\"{enum_name}\").into_iden(), variants: vec![{variants}] }}){null}{uniq}{default}",
+            "ColumnDef::new_with_type(Alias::new(\"{name}\"), {ty}){null}{uniq}{default}",
             name = col.name,
-            enum_name = name,
-            variants = variants.join(", "),
+            ty = enum_column_type(col),
             null = null,
             uniq = uniq,
             default = default,

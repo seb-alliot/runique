@@ -1,7 +1,7 @@
 //! `GET/POST {admin}/{resource}/{id}/delete`: the confirmation, then the
 //! delete through the gate.
 use super::context::{DeleteContext, ResourceRef, put};
-use super::{chrome, failure, link, unknown_resource};
+use super::{chrome, detail_url, failure, link, unknown_resource};
 use crate::admin::builder::registered::FormOutcome;
 use crate::admin::builder::site::AdminSite;
 use crate::admin::router::admin_router::AdminState;
@@ -36,7 +36,7 @@ pub(crate) async fn delete_view(
         }
         Err(error) => return failure(error, &req, &admin).await,
     };
-    let cancel_url = link(&req, admin_route::DETAIL, &[("resource", key), ("id", &id)]);
+    let cancel_url = detail_url(&req, &site, key, &id);
 
     chrome(&mut req, &admin, &site, &user, key);
     insert_admin_messages(&mut req.context, "delete");

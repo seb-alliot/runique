@@ -32,19 +32,19 @@ macro_rules! search_apply_op {
         $col.like($val)
     };
     ($col:expr, ilike,      $val:expr) => {
-        $col.ilike($val)
+        $crate::db::sql_dialect::ci_like($col, &$val.to_string(), false)
     };
     ($col:expr, not_like,   $val:expr) => {
         $col.not_like($val)
     };
     ($col:expr, not_ilike,  $val:expr) => {
-        $col.not_ilike($val)
+        $crate::db::sql_dialect::ci_like($col, &$val.to_string(), true)
     };
     ($col:expr, contains,   $val:expr) => {
         $col.like(format!("%{}%", $val))
     };
     ($col:expr, icontains,  $val:expr) => {
-        $col.ilike(format!("%{}%", $val))
+        $crate::db::sql_dialect::ci_like($col, &format!("%{}%", $val), false)
     };
     ($col:expr, startswith, $val:expr) => {
         $col.like(format!("{}%", $val))
@@ -53,7 +53,7 @@ macro_rules! search_apply_op {
         $col.like(format!("%{}", $val))
     };
     ($col:expr, iexact,     $val:expr) => {
-        $col.ilike($val)
+        $crate::db::sql_dialect::ci_like($col, &$val.to_string(), false)
     };
 }
 
