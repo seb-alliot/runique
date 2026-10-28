@@ -2,9 +2,13 @@
 //! fields, under these names. They are the contract with a project's own
 //! templates: renaming one is a breaking change.
 //!
-//! Every page also gets the menu (`resources`, `current_resource`,
-//! `current_user`, `site_title`, `site_url`, `lang`, `admin_prefix`) and its
-//! translated texts (`admin_<page>_<key>`).
+//! Every page also gets the menu (`nav`, `resources`, `current_resource`,
+//! `current_user`, `site_title`, `lang`) and its translated texts
+//! (`admin_<page>_<key>`).
+//!
+//! Every link comes built: a page never assembles a URL from a route name
+//! or the admin's prefix. A link the account may not follow is `None`, and
+//! its button isn't shown; the gate decides again on the page it leads to.
 use crate::context::template::{AppError, Request};
 use crate::errors::error::ErrorContext;
 use crate::utils::aliases::{AppResult, StrMap};
@@ -37,17 +41,56 @@ impl ResourceRef {
     }
 }
 
+/// The menu's links, on every page (`nav`).
+#[derive(Serialize)]
+pub struct NavLinks {
+    pub dashboard: String,
+    /// The history, when the account reads one.
+    pub history: Option<String>,
+    /// Where the sign-out form posts.
+    pub logout: String,
+    /// "Back to the site".
+    pub site: String,
+    /// The dashboard's switch back to the configured template.
+    pub toggle_template: String,
+}
+
+/// A list's own links.
+#[derive(Serialize)]
+pub struct ResourceLinks {
+    pub list: String,
+    pub create: Option<String>,
+    /// Where the grouped actions' bar posts, when it offers any.
+    pub bulk: Option<String>,
+}
+
+/// A row's links: its list menu, its detail page's buttons.
+#[derive(Serialize)]
+pub struct RowLinks {
+    /// The row's page: the route the developer declared to replace it, if any.
+    pub detail: String,
+    pub edit: Option<String>,
+    pub delete: Option<String>,
+}
+
+/// One row of a list.
+#[derive(Serialize)]
+pub struct ListEntry {
+    /// Its key, as in the URL.
+    pub id: String,
+    /// Its shown columns and its key, by column name.
+    pub values: serde_json::Value,
+    pub links: RowLinks,
+}
+
 /// `admin/list.html` and its HTMX part `admin/list_partial.html`.
 #[derive(Serialize)]
 pub struct ListContext {
     pub resource: ResourceRef,
-    /// `{prefix}/{resource}`, for the pages not yet named (create, delete, bulk).
-    pub resource_base: String,
+    pub resource_links: ResourceLinks,
     /// `"list"`: the menu entry marked active.
     pub current_page: &'static str,
-    /// The rows, each an object of its shown columns and its key; with
-    /// `detail_url` when a declared route replaces the detail page.
-    pub entries: Vec<serde_json::Value>,
+    pub entries: Vec<ListEntry>,
     /// The shown columns, in order, key out.
     pub visible_columns: Vec<&'static str>,
     /// Header of a column, by name; a column without one shows its name.
@@ -80,14 +123,8 @@ pub struct ListContext {
     pub has_next: bool,
     pub prev_page: u64,
     pub next_page: u64,
-    /// What the row menus and the bars offer; the gate decides again on
-    /// the page each one leads to.
-    pub can_view: bool,
-    pub can_create: bool,
-    pub can_update: bool,
-    pub can_edit: bool,
-    pub can_delete: bool,
-    pub can_bulk: bool,
+    /// Whether the grouped actions' bar offers delete.
+    pub bulk_delete: bool,
 }
 
 /// `admin/detail.html`.
@@ -104,19 +141,19 @@ pub struct DetailContext {
     pub entry: serde_json::Value,
     /// Columns holding HTML, shown sanitized.
     pub rich_fields: Vec<String>,
-    /// Whether the edit button is offered.
-    pub can_update: bool,
-    /// Whether the delete button is offered.
-    pub can_delete: bool,
-    /// Whether the "reset password" button is offered: an account, and the
-    /// right to update it. The gate decides again, rank rule included.
-    pub can_reset_password: bool,
+    pub list_url: String,
+    pub links: RowLinks,
+    /// Where the "reset password" form posts: on an account, with the right
+    /// to update it. The gate decides again, rank rule included.
+    pub reset_password_url: Option<String>,
     /// On an account the viewer may give a rank to: `(value, label)` of
     /// the ranks below the viewer's. Empty otherwise.
     pub rank_choices: Vec<(&'static str, &'static str)>,
     /// That account's rank now (`lambda`, `admin`, `dirigeant`,
     /// `superuser`), when `rank_choices` isn't empty.
     pub current_rank: Option<&'static str>,
+    /// Where the rank form posts, when `rank_choices` isn't empty.
+    pub rank_url: Option<String>,
     /// The admin's rights grid, when the viewer may set it.
     pub rights_url: Option<String>,
 }
@@ -124,6 +161,8 @@ pub struct DetailContext {
 /// What the form blocks (`admin/blocks/form/`) read, the same on every form page.
 #[derive(Serialize)]
 pub struct FormTexts {
+    /// Where the form posts.
+    pub form_action: String,
     /// Where "cancel" leads: the row on edit, the list on create.
     pub cancel_url: String,
     pub cancel_label: String,
@@ -140,6 +179,7 @@ pub struct EditContext {
     pub resource_key: &'static str,
     /// `"edit"`.
     pub current_page: &'static str,
+    pub list_url: String,
     /// The row's key, as in the URL.
     pub object_id: String,
     /// The form: `html` (its fields, CSRF and form name included), `errors`,
@@ -157,6 +197,7 @@ pub struct CreateContext {
     pub resource_key: &'static str,
     /// `"create"`.
     pub current_page: &'static str,
+    pub list_url: String,
     /// The form: `html` (its fields, CSRF and form name included), `errors`,
     /// `form_errors`, `fields`.
     pub form_fields: serde_json::Value,
@@ -172,6 +213,9 @@ pub struct DeleteContext {
     pub resource_key: &'static str,
     /// `"delete"`.
     pub current_page: &'static str,
+    pub list_url: String,
+    /// Where the confirmation posts.
+    pub form_action: String,
     /// The row's key, as in the URL.
     pub object_id: String,
     /// The confirmation form: `html` (its CSRF token and name), `errors`,
@@ -199,6 +243,18 @@ pub struct HistoryRow {
     pub action: String,
     /// Whether the entry kept changes the account may read.
     pub has_changes: bool,
+    pub links: HistoryLinks,
+}
+
+/// An entry's links.
+#[derive(Serialize)]
+pub struct HistoryLinks {
+    /// The history of its account.
+    pub user: String,
+    /// The history of its row.
+    pub object: String,
+    /// Its changes, when it kept some the account may read.
+    pub entry: Option<String>,
 }
 
 /// One changed column of an entry.
@@ -221,6 +277,8 @@ pub struct HistoryResource {
 pub struct HistoryContext {
     /// `"history"`.
     pub current_page: &'static str,
+    /// The whole history: where the filters post, and their reset.
+    pub history_url: String,
     /// The newest first.
     pub entries: Vec<HistoryRow>,
     /// The models whose history this account reads, for the filter. Not
@@ -240,6 +298,7 @@ pub struct HistoryContext {
 pub struct HistoryEntryContext {
     /// `"history"`.
     pub current_page: &'static str,
+    pub history_url: String,
     pub entry: HistoryRow,
     /// Its readable changed columns.
     pub changes: Vec<HistoryChange>,
@@ -281,6 +340,9 @@ pub struct RightsContext {
     pub resource_key: &'static str,
     /// `"rights"`.
     pub current_page: &'static str,
+    pub list_url: String,
+    /// Where the grid posts.
+    pub form_action: String,
     /// The admin's key, as in the URL.
     pub object_id: String,
     pub account_name: String,

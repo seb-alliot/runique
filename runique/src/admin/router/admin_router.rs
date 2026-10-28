@@ -42,6 +42,8 @@ use crate::{
 pub struct AdminState {
     pub config: Arc<AdminConfig>,
     pub login_guard: Option<Arc<LoginGuard>>,
+    /// Every admin route's path, under the public prefix.
+    pub paths: crate::admin::router::AdminPaths,
 }
 
 #[derive(Clone)]
@@ -183,17 +185,19 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
         guard.spawn_cleanup(guard.cleanup_interval());
     }
 
+    let paths = crate::admin::router::AdminPaths::new(&prefix);
     let admin_state = Arc::new(AdminState {
         config: Arc::new(config.clone()),
         login_guard,
+        paths: paths.clone(),
     });
 
     // Public routes (login only)
     let login_get_route = urlpatterns! {
-        &format!("{prefix}/login") => get(admin_login_get), name = "admin_login",
+        &paths.login => get(admin_login_get), name = "admin_login",
     };
 
-    let login_post_route = Router::new().route(&format!("{prefix}/login"), post(admin_login_post));
+    let login_post_route = Router::new().route(&paths.login, post(admin_login_post));
 
     let login_post_route = if let Some(limiter) = rate_limiter {
         login_post_route.layer(middleware::from_fn_with_state(
@@ -208,10 +212,10 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
 
     // Protected routes (dashboard + logout)
     let protected_router = urlpatterns! {
-        &format!("{prefix}/") => get(admin_dashboard), name = "admin_dashboard",
-        &prefix => get(admin_dashboard_redirect), name = "admin_dashboard_redirect",
-        &format!("{prefix}/logout") => post(admin_logout), name = "admin_logout",
-        &format!("{prefix}/toggle-template") => get(admin_toggle_template), name = "admin_toggle_template",
+        &paths.dashboard => get(admin_dashboard), name = "admin_dashboard",
+        &paths.dashboard_redirect => get(admin_dashboard_redirect), name = "admin_dashboard_redirect",
+        &paths.logout => post(admin_logout), name = "admin_logout",
+        &paths.toggle_template => get(admin_toggle_template), name = "admin_toggle_template",
     }
     .into_router();
 
@@ -225,7 +229,7 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
         }
     }
     let site = Arc::new(site);
-    let generated_router = crate::admin::router::refonte_router(&prefix, site.clone());
+    let generated_router = crate::admin::router::refonte_router(&paths, site.clone());
     // Outside `load_admin_user` and `admin_access`: at the site's own paths,
     // a refusal must neither reveal the admin's prefix nor close the session.
     // `route_layer`: an unmatched path stays a 404 instead of a redirect. It
@@ -287,7 +291,7 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
 pub const ADMIN_TEMPLATE_SESSION_KEY: &str = "admin_template_override";
 
 async fn admin_dashboard_redirect(Extension(admin): Extension<Arc<AdminState>>) -> Response {
-    Redirect::permanent(&format!("{}/", admin.config.prefix.trim_end_matches('/'))).into_response()
+    Redirect::permanent(&admin.paths.dashboard).into_response()
 }
 
 async fn admin_dashboard(
@@ -296,19 +300,6 @@ async fn admin_dashboard(
     Extension(current_user): Extension<crate::auth::current_user::CurrentUser>,
     mut req: Request,
 ) -> AppResult<Response> {
-    // Built server side, rights already applied: the template only shows it.
-    let resources: Vec<serde_json::Value> = site
-        .navigation(&current_user, &admin.config.resource_order)
-        .into_iter()
-        .map(|entry| {
-            serde_json::json!({
-                "key": entry.key,
-                "title": entry.title,
-                "list_url": format!("{}/{}/list", admin.config.prefix, entry.key),
-            })
-        })
-        .collect();
-
     // One query for every count; a failure leaves the counts out, traced.
     let resource_counts = site
         .counts(&req.engine.db, &current_user)
@@ -328,18 +319,13 @@ async fn admin_dashboard(
         .await
         .unwrap_or(None);
 
+    // The menu, rights applied, as on every page; its resources list the
+    // models the dashboard counts.
+    super::chrome(&mut req, &admin, &site, &current_user, "");
     insert_admin_messages(&mut req.context, "dashboard");
-    insert_admin_messages(&mut req.context, "base");
-    inject_admin_prefix(&mut req.context, &admin.config.prefix);
     req = req
-        .insert("current_user", &current_user)
-        .insert("site_title", &admin.config.site_title)
-        .insert("site_url", admin.config.view_site_href())
-        .insert("resources", &resources)
         .insert("resource_counts", &resource_counts)
         .insert("current_page", "dashboard")
-        .insert("lang", current_lang().code())
-        .insert("current_resource", &Option::<String>::None)
         .insert("admin_has_session_override", session_override.is_some());
 
     let template = session_override
@@ -365,7 +351,7 @@ async fn admin_login_get(
 ) -> AppResult<Response> {
     let from_logout = params.get("from").is_some_and(|v| v == "logout");
     if !from_logout && signed_in_admin(current_user.as_ref()) {
-        return Ok(Redirect::to(&format!("{}/", admin.config.prefix)).into_response());
+        return Ok(Redirect::to(&admin.paths.dashboard).into_response());
     }
 
     insert_admin_messages(&mut req.context, "login");
@@ -389,7 +375,7 @@ async fn admin_login_post(
     let ip = client_ip.map_or_else(|| "unknown".to_string(), |Extension(c)| c.0.to_string());
     use subtle::ConstantTimeEq;
     if signed_in_admin(current_user.as_ref()) {
-        return Redirect::to(&format!("{}/", admin.config.prefix)).into_response();
+        return Redirect::to(&admin.paths.dashboard).into_response();
     }
     // Fail fast under memory pressure: a saturated session store would refuse the new
     // session at commit time and surface as a generic 500. Return a clean 503 instead.
@@ -479,7 +465,7 @@ async fn admin_login_post(
                 .unwrap_or_else(axum::response::IntoResponse::into_response);
         }
 
-        Redirect::to(&format!("{}/", admin.config.prefix)).into_response()
+        Redirect::to(&admin.paths.dashboard).into_response()
     } else {
         if let Some(guard) = &admin.login_guard {
             let key = LoginGuard::effective_key(&data.username, &ip);
@@ -523,7 +509,7 @@ async fn admin_toggle_template(
             .await
             .trace(session_level, "insert admin template session key");
     }
-    Redirect::to(&format!("{}/", admin.config.prefix)).into_response()
+    Redirect::to(&admin.paths.dashboard).into_response()
 }
 
 async fn admin_logout(Extension(admin): Extension<Arc<AdminState>>, req: Request) -> Response {
@@ -541,7 +527,7 @@ async fn admin_logout(Extension(admin): Extension<Arc<AdminState>>, req: Request
             .and_then(|s| s.store),
         "admin logout",
     );
-    let login_url = format!("{}/login?from=logout", admin.config.prefix);
+    let login_url = format!("{}?from=logout", admin.paths.login);
     flash_now!(info => t("admin.logout_success").as_ref());
     Redirect::to(&login_url).into_response()
 }

@@ -39,10 +39,10 @@ pub struct AdminConfig {
     /// Longest search caractere maximum , default 150
     pub search_max_len: usize,
 
-    /// Route of the reset page the admin's emailed links point to, on
-    /// the site URL. Set by the builder from `with_password_reset()`'s
-    /// `reset_route` (default: `/reset-password`).
-    pub reset_route: String,
+    /// Where the admin's emailed links lead and how long they work: set by
+    /// the builder from `with_password_reset()`. `None` without it: the site
+    /// serves no reset page, the admin sends no link.
+    pub reset_link: Option<crate::auth::password::ResetLinkConfig>,
 
     /// "User" resources: resource key → optional email template.
     /// Enable via `.user_resource("users")`.
@@ -76,7 +76,7 @@ impl Clone for AdminConfig {
             templates: self.templates.clone(),
             page_size: self.page_size,
             search_max_len: self.search_max_len,
-            reset_route: self.reset_route.clone(),
+            reset_link: self.reset_link.clone(),
             user_resources: self.user_resources.clone(),
             reset_password_email_template: self.reset_password_email_template.clone(),
             resource_order: self.resource_order.clone(),
@@ -113,7 +113,7 @@ impl AdminConfig {
             templates: AdminTemplate::new(),
             page_size: 10,
             search_max_len: 150,
-            reset_route: "/reset-password".to_string(),
+            reset_link: None,
             user_resources: std::collections::HashMap::new(),
             reset_password_email_template: None,
             resource_order: Vec::new(),

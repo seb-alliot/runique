@@ -2,7 +2,7 @@
    and its name, and shows why a refused delete didn't go through. #}
 <div class="admin-form__actions">
   <a href="{{ cancel_url }}" class="btn btn-secondary">{% if admin_delete_btn_cancel %}{{ admin_delete_btn_cancel }}{% endif %}</a>
-  <form method="POST" action="{% link "admin_delete" resource=resource_key, id=object_id %}" class="admin-form--inline">
+  <form method="POST" action="{{ form_action }}" class="admin-form--inline">
     {{ form_fields.html }}
     <button type="submit" class="btn btn-danger">{% if admin_delete_btn_confirm %}{{ admin_delete_btn_confirm }}{% endif %}</button>
   </form>

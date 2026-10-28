@@ -9,10 +9,10 @@
     </svg>
 </button>
 
-<a href="{{ site_url | default(value='/') }}" class="btn btn-ghost btn-sm">
+<a href="{{ nav.site }}" class="btn btn-ghost btn-sm">
     {% if admin_base_back_to_site %}{{ admin_base_back_to_site }}{% else %}← Site{% endif %}
 </a>
-<form method="POST" action="{{ admin_prefix }}/logout" class="admin-logout__form">
+<form method="POST" action="{{ nav.logout }}" class="admin-logout__form">
     {% csrf %}
     <button type="submit" class="admin-topbar__user admin-logout__btn" title="{% if admin_base_logout_title %}{{ admin_base_logout_title }}{% endif %}">
         <div class="admin-topbar__avatar">

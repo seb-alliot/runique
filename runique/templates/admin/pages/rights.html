@@ -1,8 +1,13 @@
 {% extends "admin_base.html" %}
 {% block title %}Droits — {{ account_name }}{% endblock %}
+{% block extra_css %}
+  {{ super() }}
+  {# The grid's block is repeated per table: its sheet is declared here, once. #}
+  <link rel="stylesheet" href="{{ "css/admin/blocks/rights.css" | runique_static }}">
+{% endblock %}
 {% block breadcrumb %}
   <span class="admin-topbar__sep">/</span>
-  <a href="{% link "admin_list" resource=resource_key %}">{{ resource.title }}</a>
+  <a href="{{ list_url }}">{{ resource.title }}</a>
   <span class="admin-topbar__sep">/</span>
   <a href="{{ cancel_url }}">{{ account_name }}</a>
   <span class="admin-topbar__sep">/</span>
@@ -19,15 +24,35 @@
   {% endblock %}
   {# No right is checked here: the gate refused the page before any
      rendering, and decides again on the save. #}
-  <form method="POST" action="{% link "admin_rights" resource=resource_key, id=object_id %}">
-    {{ form_fields.html }}
-    {# Tera 2 allows no block in a loop: a table is replaced through its file. #}
-    {% for table in tables %}
-      {% include "admin/blocks/rights/table.html" %}
-    {% endfor %}
-    <div class="admin-form__actions mt-sm">
-      <a href="{{ cancel_url }}" class="btn btn-secondary">Annuler</a>
-      <button type="submit" class="btn btn-primary">Enregistrer</button>
-    </div>
-  </form>
+  {# A table of contents beside the grid on a wide screen, a menu above it
+     otherwise: the same links, no script. #}
+  <div class="admin-rights">
+    <details class="admin-rights__menu">
+      <summary class="btn btn-secondary btn-sm">Aller à une table</summary>
+      <nav class="admin-rights__links" aria-label="Tables">
+        {% for table in tables %}<a href="#rights-{{ table.key }}">{{ table.title }}</a>{% endfor %}
+      </nav>
+    </details>
+    <form method="POST" action="{{ form_action }}" class="admin-rights__form">
+      {{ form_fields.html }}
+      {# Tera 2 allows no block in a loop: a table is replaced through its file. #}
+      {% for table in tables %}
+        {% include "admin/blocks/rights/table.html" %}
+      {% endfor %}
+      <div class="admin-form__actions mt-sm">
+        <a href="{{ cancel_url }}" class="btn btn-secondary">Annuler</a>
+        <button type="submit" class="btn btn-primary">Enregistrer</button>
+      </div>
+    </form>
+    <nav class="admin-rights__toc" aria-label="Tables">
+      <p class="admin-rights__toc-title">Tables</p>
+      <div class="admin-rights__links">
+        {% for table in tables %}<a href="#rights-{{ table.key }}">{{ table.title }}</a>{% endfor %}
+      </div>
+    </nav>
+  </div>
+{% endblock %}
+{% block extra_js %}
+  {{ super() }}
+  <script {% csp %} src="{{ "js/admin/rights-menu.js" | runique_static }}" defer></script>
 {% endblock %}

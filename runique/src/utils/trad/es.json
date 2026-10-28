@@ -382,7 +382,7 @@
       "email_subject": "Restablece tu contraseña",
       "email_title": "Restablecimiento de contraseña",
       "email_greeting": "Hola,",
-      "email_body": "Haz clic en el enlace para restablecer tu contraseña (válido 1 hora):",
+      "email_body": "Haz clic en el enlace para restablecer tu contraseña (válido {} min):",
       "email_btn": "Restablecer mi contraseña",
       "email_ignore": "Si no solicitaste este restablecimiento, ignora este mensaje."
     },
@@ -392,7 +392,7 @@
       "email_greeting": "Bienvenido,",
       "email_body": "Se ha creado una cuenta para ti. Haz clic en el enlace para definir tu contraseña:",
       "email_btn": "Definir mi contraseña",
-      "email_validity": "Este enlace es válido por 1 hora. Si no esperabas este mensaje, ignóralo."
+      "email_validity": "Este enlace es válido por {} min. Si no esperabas este mensaje, ignóralo."
     },
     "delete": {
       "title": "Eliminar",
@@ -498,7 +498,7 @@
     "blocked_subject": "Su cuenta está bloqueada",
     "blocked_body": "<p>Hola {},</p><p>Se solicitó un restablecimiento de contraseña para su cuenta, pero esta cuenta está bloqueada. Contacte con el administrador del sitio para desbloquearla.</p><p>Si usted no hizo esta solicitud, ignore este correo.</p>",
     "email_subject": "Restablecer contraseña",
-    "email_body": "<p>Hola {},</p><p>Haga clic en el siguiente enlace para restablecer su contraseña (válido durante 1 hora):</p><p><a href=\"{}\">{}</a></p>"
+    "email_body": "<p>Hola {},</p><p>Haga clic en el siguiente enlace para restablecer su contraseña (válido durante {} min):</p><p><a href=\"{}\">{}</a></p>"
   },
   "permission": {
     "col": {

@@ -1,43 +1,41 @@
-{% if can_view or can_edit or can_delete or can_create %}
-    <div class="admin-menu">
-        <button class="admin-menu__trigger" type="button" aria-haspopup="true" aria-expanded="false">
-            <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
-                <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
-            </svg>
-        </button>
-        <div class="admin-menu__dropdown">
+{# A row's menu: its page, then what the row's links allow; create too on
+   mobile. A link only offers the way; the gate decides again on its page. #}
+<div class="admin-menu">
+    <button class="admin-menu__trigger" type="button" aria-haspopup="true" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+            <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+        </svg>
+    </button>
+    <div class="admin-menu__dropdown">
 
-            {% if can_view %}
-            <a href="{% if entry.detail_url %}{{ entry.detail_url }}{% else %}{% link "admin_detail" resource=resource.key, id=entry_id %}{% endif %}{% if return_qs %}?return_qs={{ return_qs | urlencode }}{% endif %}" class="admin-menu__item">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                {% if admin_list_btn_detail %}{{ admin_list_btn_detail }}{% else %}Voir{% endif %}
-            </a>
-            {% endif %}
+        <a href="{{ entry.links.detail }}{% if return_qs %}?return_qs={{ return_qs | urlencode }}{% endif %}" class="admin-menu__item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            {% if admin_list_btn_detail %}{{ admin_list_btn_detail }}{% else %}Voir{% endif %}
+        </a>
 
-            {% if can_edit %}
-            <a href="{% link "admin_edit" resource=resource.key, id=entry_id %}" class="admin-menu__item">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                {% if admin_list_btn_edit %}{{ admin_list_btn_edit }}{% else %}Modifier{% endif %}
-            </a>
-            {% endif %}
+        {% if entry.links.edit %}
+        <a href="{{ entry.links.edit }}" class="admin-menu__item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            {% if admin_list_btn_edit %}{{ admin_list_btn_edit }}{% else %}Modifier{% endif %}
+        </a>
+        {% endif %}
 
-            {# Créer : action de page, exposée ici sur mobile (le bouton plein de l'en-tête
-               y est masqué). Masqué sur desktop via .admin-menu__item--create-mobile. #}
-            {% if can_create %}
-            <a href="{% link "admin_create" resource=resource.key %}" class="admin-menu__item admin-menu__item--create-mobile">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                {% if admin_list_btn_create %}{{ admin_list_btn_create }}{% endif %}
-            </a>
-            {% endif %}
+        {# Créer : action de page, exposée ici sur mobile (le bouton plein de l'en-tête
+           y est masqué). Masqué sur desktop via .admin-menu__item--create-mobile. #}
+        {% if resource_links.create %}
+        <a href="{{ resource_links.create }}" class="admin-menu__item admin-menu__item--create-mobile">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            {% if admin_list_btn_create %}{{ admin_list_btn_create }}{% endif %}
+        </a>
+        {% endif %}
 
-            {% if can_delete %}
-            <div class="admin-menu__separator"></div>
-            <a href="{% link "admin_delete" resource=resource.key, id=entry_id %}" class="admin-menu__item admin-menu__item--danger">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-                {% if admin_list_btn_delete %}{{ admin_list_btn_delete }}{% else %}Supprimer{% endif %}
-            </a>
-            {% endif %}
+        {% if entry.links.delete %}
+        <div class="admin-menu__separator"></div>
+        <a href="{{ entry.links.delete }}" class="admin-menu__item admin-menu__item--danger">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+            {% if admin_list_btn_delete %}{{ admin_list_btn_delete }}{% else %}Supprimer{% endif %}
+        </a>
+        {% endif %}
 
-        </div>
     </div>
-{% endif %}
+</div>

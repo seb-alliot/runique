@@ -281,6 +281,136 @@ pub(crate) fn public_link_base(
     Some(format!("http://{host}"))
 }
 
+// ─── The reset link ───────────────────────────────────────────────────────────
+
+/// Where a reset link leads and how long it works: `with_password_reset`'s
+/// `reset_route` and `token_ttl`, the same for the site and the admin.
+#[derive(Clone, Debug)]
+pub struct ResetLinkConfig {
+    pub reset_route: String,
+    pub token_ttl: Duration,
+}
+
+impl ResetLinkConfig {
+    /// The link's lifetime as the emails announce it, in whole minutes.
+    #[must_use]
+    pub fn minutes(&self) -> u64 {
+        self.token_ttl.as_secs().div_ceil(60).max(1)
+    }
+}
+
+impl From<&PasswordResetConfig> for ResetLinkConfig {
+    fn from(config: &PasswordResetConfig) -> Self {
+        Self {
+            reset_route: config.reset_route.clone(),
+            token_ttl: config.token_ttl,
+        }
+    }
+}
+
+/// The email carrying the link.
+pub enum ResetMail {
+    /// `name`, rendered with `username`, `reset_url` and `texts`.
+    Template {
+        name: String,
+        subject: String,
+        texts: Vec<(&'static str, String)>,
+    },
+    /// The built-in body, `reset.email_body`.
+    Builtin { subject: String },
+}
+
+/// Why no link went out.
+#[derive(Debug)]
+pub enum ResetLinkError {
+    /// The staff blocked the account: activated once, inactive now.
+    Blocked,
+    /// No mailer: the link could only be shown, and never to the staff.
+    NoMailer,
+    Token(sea_orm::DbErr),
+    Render(String),
+    Send(String),
+}
+
+impl std::fmt::Display for ResetLinkError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Blocked => f.write_str("account blocked"),
+            Self::NoMailer => f.write_str("no mailer configured"),
+            Self::Token(e) => write!(f, "token generation failed: {e}"),
+            Self::Render(e) => write!(f, "email render failed: {e}"),
+            Self::Send(e) => write!(f, "email send failed: {e}"),
+        }
+    }
+}
+
+/// Whether `account` may get a reset link: not one the staff blocked
+/// (activated once, inactive now). Its owner hears of the block otherwise.
+#[must_use]
+pub fn may_receive_reset_link(account: &crate::auth::user::Model) -> bool {
+    account.activated_at.is_none() || account.is_active
+}
+
+/// Mails `account`'s owner the link to choose a password: a fresh token valid
+/// `link.token_ttl`, to `{host}{reset_route}/{token}/{encrypted email}`. The
+/// one place a reset link is made, for the site's page and the admin alike.
+///
+/// It waits for the send. The site's page runs it in the background along
+/// with the account's lookup, so neither its answer nor its timing tells
+/// whether an account exists; the admin waits, to tell the staff.
+pub async fn send_reset_link(
+    engine: &crate::utils::aliases::AEngine,
+    host: &str,
+    link: &ResetLinkConfig,
+    account: &crate::auth::user::Model,
+    mail: ResetMail,
+) -> Result<(), ResetLinkError> {
+    if !may_receive_reset_link(account) {
+        return Err(ResetLinkError::Blocked);
+    }
+    if !crate::utils::mailer_configured() {
+        return Err(ResetLinkError::NoMailer);
+    }
+    let token = crate::utils::reset_token::generate(&engine.db, account.id, link.token_ttl)
+        .await
+        .map_err(ResetLinkError::Token)?;
+    let encrypted = crate::utils::reset_token::encrypt_email(&token, &account.email);
+    let reset_url = format!(
+        "{}/{}/{token}/{encrypted}",
+        host.trim_end_matches('/'),
+        link.reset_route.trim_matches('/')
+    );
+    let email = crate::utils::Email::new().to(account.email.clone());
+    let email = match mail {
+        ResetMail::Template {
+            name,
+            subject,
+            texts,
+        } => {
+            let mut ctx = tera::Context::new();
+            ctx.insert("username", &account.username);
+            ctx.insert("reset_url", &reset_url);
+            for (key, text) in texts {
+                ctx.insert(key, &text);
+            }
+            email
+                .subject(subject)
+                .template(&engine.tera, &name, ctx)
+                .map_err(ResetLinkError::Render)?
+        }
+        ResetMail::Builtin { subject } => email.subject(subject).html(tf(
+            "reset.email_body",
+            &[
+                account.username.clone(),
+                link.minutes().to_string(),
+                reset_url.clone(),
+                reset_url,
+            ],
+        )),
+    };
+    email.send().await.map_err(ResetLinkError::Send)
+}
+
 async fn apply_extra_context(request: &mut Request, hook: &Option<ExtraContextFn>) {
     if let Some(hook) = hook {
         hook(request).await;
@@ -303,9 +433,7 @@ pub async fn handle_forgot_password(
 ) -> AppResult<Response> {
     let template = config.forgot_template.as_str();
     let forgot_route = config.forgot_route.as_str();
-    let reset_path = config.reset_route.as_str();
     let email_template = config.email_template.as_deref();
-    let token_ttl = config.token_ttl;
     request.context.insert("lang", &current_lang().code());
 
     let form = match crate::forms::ValidationForm::try_form(form, request, "forgot_password").await
@@ -324,131 +452,60 @@ pub async fn handle_forgot_password(
     let email = form.cleaned::<String>("email").unwrap_or_default();
     let email = email.trim().to_lowercase();
 
-    let db = request.engine.db.clone();
-
-    let user = BuiltinUserEntity::find_by_email(&db, &email).await;
-    // Activated once, inactive now: the staff blocked it. No link — only its
-    // owner hears about it, through the mailbox; the page says the same thing
-    // for every address.
-    let blocked = user
+    // Everything that depends on the account runs in the background, its
+    // lookup and the token's write included: the page answers the same, in
+    // the same time, for every address.
+    let engine = request.engine.clone();
+    let host = request.public_url();
+    let link = ResetLinkConfig::from(config);
+    let email_template = email_template.map(str::to_string);
+    let log_level = crate::utils::runique_log::get_log()
+        .auth
         .as_ref()
-        .is_some_and(|u| u.activated_at.is_some() && !u.is_active);
-    if blocked {
-        if let Some(user) = &user
-            && crate::utils::mailer_configured()
-        {
-            let mail = crate::utils::Email::new()
-                .to(email.clone())
-                .subject(t("reset.blocked_subject").to_string())
-                .html(tf("reset.blocked_body", &[user.username()]).to_string());
-            let log_level = crate::utils::runique_log::get_log()
-                .auth
-                .as_ref()
-                .and_then(|a| a.reset);
-            // Fire-and-forget, like the other emails of this page.
-            tokio::spawn(async move {
-                mail.send().await.trace_or(
-                    log_level,
-                    tracing::Level::WARN,
-                    "blocked account email send",
-                );
-            });
-        }
-    } else if let Some(user) = user
-        && let Some(token) = crate::utils::reset_token::generate(&db, user.user_id(), token_ttl)
-            .await
-            .trace_or(
-                crate::utils::runique_log::get_log()
-                    .auth
-                    .as_ref()
-                    .and_then(|a| a.reset),
-                tracing::Level::ERROR,
-                "reset token generation failed",
-            )
-    {
-        let encrypted_email = crate::utils::reset_token::encrypt_email(&token, &email);
-
-        if let Some(level) = crate::utils::runique_log::get_log()
-            .auth
-            .as_ref()
-            .and_then(|a| a.reset)
-        {
-            crate::runique_log!(level, %email, "reset token generated");
-        }
-
-        let Some(host) = request.public_url() else {
-            // Production doesn't boot without a base URL: never reached there.
-            request
-                .notices
-                .success(t("reset.check_inbox").to_string())
-                .await;
-            return Ok(Redirect::to(forgot_route).into_response());
+        .and_then(|a| a.reset);
+    tokio::spawn(async move {
+        let Some(user) = BuiltinUserEntity::find_by_email(&engine.db, &email).await else {
+            return;
         };
-
-        let reset_url = format!(
-            "{}/{}/{}/{}",
-            host,
-            reset_path.trim_matches('/'),
-            token,
-            encrypted_email
-        );
-
-        if crate::utils::mailer_configured() {
-            let username = user.username().to_string();
-            let subject = t("reset.email_subject").to_string();
-            let mail = crate::utils::Email::new()
-                .to(email.clone())
-                .subject(&subject);
-            // Fire-and-forget: do not await the SMTP send — a blocking await would leak
-            // whether the email exists via response time (timing enumeration attack).
-            if let Some(tpl) = email_template {
-                use tera::Context as TeraCtx;
-                let mut ctx = TeraCtx::new();
-                ctx.insert("username", &username);
-                ctx.insert("reset_url", &reset_url);
-                if let Ok(msg) = mail.template(&request.engine.tera, tpl, ctx) {
-                    let log_level = crate::utils::runique_log::get_log()
-                        .auth
-                        .as_ref()
-                        .and_then(|a| a.reset);
-                    tokio::spawn(async move {
-                        if msg
-                            .send()
-                            .await
-                            .trace_or(log_level, tracing::Level::WARN, "reset email send")
-                            .is_some()
-                            && let Some(level) = log_level
-                        {
-                            crate::runique_log!(level, "reset email sent");
-                        }
-                    });
-                } else {
-                    tracing::warn!(
-                        template = %tpl,
-                        "reset email template render failed — email not sent"
+        // Blocked by the staff: no link, only its owner hears about it.
+        if !may_receive_reset_link(&user) {
+            if crate::utils::mailer_configured() {
+                crate::utils::Email::new()
+                    .to(email)
+                    .subject(t("reset.blocked_subject").to_string())
+                    .html(tf("reset.blocked_body", &[user.username()]).to_string())
+                    .send()
+                    .await
+                    .trace_or(
+                        log_level,
+                        tracing::Level::WARN,
+                        "blocked account email send",
                     );
-                }
-            } else {
-                let body = tf("reset.email_body", &[&username, &reset_url, &reset_url]).clone();
-                let log_level = crate::utils::runique_log::get_log()
-                    .auth
-                    .as_ref()
-                    .and_then(|a| a.reset);
-                tokio::spawn(async move {
-                    if mail
-                        .html(body)
-                        .send()
-                        .await
-                        .trace_or(log_level, tracing::Level::WARN, "reset email send")
-                        .is_some()
-                        && let Some(level) = log_level
-                    {
-                        crate::runique_log!(level, "reset email sent");
-                    }
-                });
             }
+            return;
         }
-    }
+        // Production doesn't boot without a base URL: never reached there.
+        let Some(host) = host else {
+            return;
+        };
+        let subject = t("reset.email_subject").to_string();
+        let mail = match email_template {
+            Some(name) => ResetMail::Template {
+                name,
+                subject,
+                texts: Vec::new(),
+            },
+            None => ResetMail::Builtin { subject },
+        };
+        match send_reset_link(&engine, &host, &link, &user, mail).await {
+            Ok(()) => {
+                if let Some(level) = log_level {
+                    crate::runique_log!(level, %email, "reset email sent");
+                }
+            }
+            Err(e) => tracing::warn!(error = %e, "reset link not sent"),
+        }
+    });
 
     // Security: do not reveal if the email exists or not
     request
@@ -684,6 +741,51 @@ pub fn build_router(config: Arc<PasswordResetConfig>) -> Router {
 pub struct PasswordResetStaging {
     /// Resolved configuration applied when the router is built.
     pub config: PasswordResetConfig,
+}
+
+#[cfg(test)]
+mod reset_link_tests {
+    use super::ResetLinkConfig;
+    use std::time::Duration;
+
+    fn minutes(secs: u64) -> u64 {
+        ResetLinkConfig {
+            reset_route: String::new(),
+            token_ttl: Duration::from_secs(secs),
+        }
+        .minutes()
+    }
+
+    /// The emails never announce less than the link lasts.
+    #[test]
+    fn the_lifetime_is_shown_in_whole_minutes_rounded_up() {
+        assert_eq!(minutes(3600), 60);
+        assert_eq!(minutes(15 * 60), 15);
+        assert_eq!(minutes(61), 2);
+        assert_eq!(minutes(0), 1);
+    }
+
+    #[test]
+    fn a_blocked_account_gets_no_link_and_a_new_or_active_one_does() {
+        let mut account = crate::auth::user::Model {
+            id: crate::utils::pk::Pk::default(),
+            username: "bob".into(),
+            email: "bob@example.com".into(),
+            password: String::new(),
+            is_active: false,
+            is_superuser: false,
+            is_dirigeant: false,
+            is_admin: false,
+            created_at: None,
+            updated_at: None,
+            activated_at: None,
+        };
+        assert!(super::may_receive_reset_link(&account), "never activated");
+        account.activated_at = Some(chrono::Utc::now().naive_utc());
+        assert!(!super::may_receive_reset_link(&account), "blocked");
+        account.is_active = true;
+        assert!(super::may_receive_reset_link(&account), "active");
+    }
 }
 
 #[cfg(test)]

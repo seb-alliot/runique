@@ -162,44 +162,66 @@ fn routes() -> Routes {
 
 /// The app served on a free port, the admin at `{mount}/secret-admin`.
 async fn spawn_with(mount: &'static str, routes: Routes) -> String {
+    spawn_with_reset(mount, routes, Some(std::time::Duration::from_secs(3600))).await
+}
+
+/// `spawn_with`, the site's reset page lasting `reset_ttl`, or not served.
+async fn spawn_with_reset(
+    mount: &'static str,
+    routes: Routes,
+    reset_ttl: Option<std::time::Duration>,
+) -> String {
     let dbc = db::fresh_db().await;
     seed(&dbc).await;
 
     let mut config = RuniqueConfig::from_env();
     config.debug = true;
-    let app = RuniqueApp::builder(config)
-        .with_database(dbc)
-        .with_password_reset(|pr| pr)
-        .routes(routes)
-        .static_files(|s| s.enabled(false))
-        .with_admin(|a| {
-            let a = a.path("/secret-admin").site(|s| {
-                s.register(
-                    runique::admin::builder::admin_builder::ModelAdmin::<probe::Entity>::new()
-                        .list(|l| {
-                            l.display([probe::Column::Title])
-                                .filter([probe::Column::Title, probe::Column::Code])
-                                .action(probe::Column::Flag, "OK", "Valider")
-                        })
-                        .form(|f| {
-                            f.fields([
-                                probe::Column::Title,
-                                probe::Column::Code,
-                                probe::Column::Flag,
-                            ])
-                            .readonly([probe::Column::Code])
-                        }),
-                )
-                // No `.form()`: the pages take every field of its own form.
-                .register(runique::admin::builder::admin_builder::ModelAdmin::<
-                    bare::Entity,
-                >::new())
-            });
-            if mount.is_empty() { a } else { a.prefix(mount) }
-        })
-        .build()
-        .await
-        .expect("app");
+    let builder = RuniqueApp::builder(config).with_database(dbc);
+    // `with_password_reset` changes the builder's type: the rest of the
+    // chain is shared by a macro rather than written twice.
+    macro_rules! finish {
+        ($builder:expr) => {
+            $builder
+                .routes(routes)
+                .static_files(|s| s.enabled(false))
+                .with_admin(|a| {
+                    let a =
+                        a.path("/secret-admin").site(|s| {
+                            s
+                                .register(
+                                    runique::admin::builder::admin_builder::ModelAdmin::<
+                                        probe::Entity,
+                                    >::new()
+                                    .list(|l| {
+                                        l.display([probe::Column::Title])
+                                            .filter([probe::Column::Title, probe::Column::Code])
+                                            .action(probe::Column::Flag, "OK", "Valider")
+                                    })
+                                    .form(|f| {
+                                        f.fields([
+                                            probe::Column::Title,
+                                            probe::Column::Code,
+                                            probe::Column::Flag,
+                                        ])
+                                        .readonly([probe::Column::Code])
+                                    }),
+                                )
+                                // No `.form()`: the pages take every field of its own form.
+                                .register(runique::admin::builder::admin_builder::ModelAdmin::<
+                                    bare::Entity,
+                                >::new())
+                        });
+                    if mount.is_empty() { a } else { a.prefix(mount) }
+                })
+                .build()
+                .await
+                .expect("app")
+        };
+    }
+    let app = match reset_ttl {
+        Some(ttl) => finish!(builder.with_password_reset(move |pr| pr.token_ttl(ttl))),
+        None => finish!(builder),
+    };
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();
     tokio::spawn(async move { axum::serve(listener, app.router).await.unwrap() });
@@ -582,6 +604,29 @@ async fn probe_history(req: Request) -> String {
         .join("\n")
 }
 
+/// The reset tokens' lifetimes left, in whole minutes, one per line.
+async fn probe_reset_tokens(req: Request) -> String {
+    use runique::sea_orm::{ConnectionTrait, Statement};
+    let db = &req.engine.db;
+    let rows = db
+        .query_all_raw(Statement::from_string(
+            db.get_database_backend(),
+            "SELECT expires_at FROM eihwaz_reset_tokens",
+        ))
+        .await
+        .unwrap();
+    let now = chrono::Utc::now().naive_utc();
+    rows.iter()
+        .map(|row| {
+            let expires: chrono::NaiveDateTime = row.try_get("", "expires_at").unwrap();
+            ((expires - now).num_seconds() as f64 / 60.0)
+                .round()
+                .to_string()
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 /// Traces a write on an account, as the admin would: the history then holds
 /// an entry of a framework table the admin's grid doesn't open.
 async fn probe_trace_account(req: Request) -> &'static str {
@@ -615,6 +660,7 @@ fn probe_routes() -> Routes {
         "/probe/rows" => get(probe_rows), name = "declared_test_probe_rows",
         "/probe/row/{id}" => get(probe_row), name = "declared_test_probe_row",
         "/probe/history" => get(probe_history), name = "declared_test_probe_history",
+        "/probe/reset-tokens" => get(probe_reset_tokens), name = "declared_test_probe_reset_tokens",
         "/probe/trace-account" => get(probe_trace_account), name = "declared_test_probe_trace_account",
         "/open/probe" => get(probe_write), name = "declared_test_probe_open_new",
         "/open/probe/{id}" => get(probe_write), name = "declared_test_probe_open_row",
@@ -775,6 +821,93 @@ async fn the_list_and_the_detail_link_to_each_other_by_name() {
             body.contains(&format!("href=\"{admin}/list\"")),
             "mount {mount:?}: link back to the list"
         );
+    }
+}
+
+/// The list offers each link on the account's rights: the admin's grid gives
+/// create, update and delete; the staff group, update only.
+#[tokio::test]
+#[serial]
+async fn the_list_links_follow_the_rights_of_the_account() {
+    let base = spawn_with("", probe_routes()).await;
+    let notes = "/secret-admin/probe_notes";
+
+    let admin = signed_in(&base, ADMIN).await;
+    let body = text(&admin, format!("{base}{notes}/list")).await;
+    for link in [
+        format!("href=\"{notes}/1/detail"),
+        format!("href=\"{notes}/1/edit\""),
+        format!("href=\"{notes}/1/delete\""),
+        format!("href=\"{notes}/create\""),
+        format!("action=\"{notes}/bulk\""),
+    ] {
+        assert!(body.contains(&link), "admin: {link}");
+    }
+
+    let staff = signed_in(&base, STAFF_MEMBER).await;
+    let body = text(&staff, format!("{base}{notes}/list")).await;
+    assert!(
+        body.contains(&format!("href=\"{notes}/1/edit\"")),
+        "staff: edit"
+    );
+    for link in [
+        format!("{notes}/1/delete"),
+        format!("{notes}/create"),
+        format!("{notes}/bulk"),
+    ] {
+        assert!(!body.contains(&link), "staff: no {link}");
+    }
+}
+
+/// The detail page's buttons follow the same rights.
+#[tokio::test]
+#[serial]
+async fn the_detail_buttons_follow_the_rights_of_the_account() {
+    let base = spawn_with("", probe_routes()).await;
+    let notes = "/secret-admin/probe_notes";
+
+    let admin = signed_in(&base, ADMIN).await;
+    let body = text(&admin, format!("{base}{notes}/1/detail")).await;
+    assert!(
+        body.contains(&format!("href=\"{notes}/1/edit\"")),
+        "admin: edit"
+    );
+    assert!(
+        body.contains(&format!("href=\"{notes}/1/delete\"")),
+        "admin: delete"
+    );
+
+    let staff = signed_in(&base, STAFF_MEMBER).await;
+    let body = text(&staff, format!("{base}{notes}/1/detail")).await;
+    assert!(
+        body.contains(&format!("href=\"{notes}/1/edit\"")),
+        "staff: edit"
+    );
+    assert!(
+        !body.contains(&format!("{notes}/1/delete")),
+        "staff: no delete"
+    );
+}
+
+/// The dashboard gets the menu every page gets, the history link included,
+/// under the mount prefix.
+#[tokio::test]
+#[serial]
+async fn the_dashboard_has_the_same_menu_as_every_page() {
+    for mount in ["", "/mnt"] {
+        let base = spawn_with(mount, routes()).await;
+        let client = signed_in(&base, SUPERUSER).await;
+        let admin = format!("{mount}/secret-admin");
+        for page in [format!("{admin}/"), format!("{admin}/probe_notes/list")] {
+            let body = text(&client, format!("{base}{page}")).await;
+            for link in [
+                format!("href=\"{admin}/history\""),
+                format!("action=\"{admin}/logout\""),
+                format!("href=\"{admin}/probe_notes/list\""),
+            ] {
+                assert!(body.contains(&link), "{page}: {link}");
+            }
+        }
     }
 }
 
@@ -1270,9 +1403,14 @@ async fn the_history_lists_an_edit_and_shows_its_changes() {
     let id = first_entry_link(&page).expect("a link to the entry");
 
     let entry = text(&client, format!("{base}/secret-admin/history/{id}")).await;
-    assert!(entry.contains("title"), "the changed column");
+    // Searched as the diff's cells: every page has a `<title>`, and the
+    // row's label "changed" is in it.
     assert!(
-        entry.contains("seed") && entry.contains("changed"),
+        entry.contains(r#"<td class="admin-table__key">title</td>"#),
+        "the changed column"
+    );
+    assert!(
+        entry.contains("<td>seed</td>") && entry.contains("<td>changed</td>"),
         "before and after"
     );
 }
@@ -1306,9 +1444,11 @@ async fn the_history_shows_only_what_the_account_reads() {
     );
     let id = first_entry_link(&page).expect("the probe_notes entry");
     let entry = text(&admin, format!("{base}/secret-admin/history/{id}")).await;
-    assert!(entry.contains("changed"), "the readable column");
+    assert!(entry.contains("<td>changed</td>"), "the readable column");
+    // Searched as the diff's cells: anywhere in the page, a random CSP nonce
+    // or CSRF token sometimes holds "C1" or "C2".
     assert!(
-        !entry.contains("C2") && !entry.contains("C1"),
+        !entry.contains("<td>C2</td>") && !entry.contains("<td>C1</td>"),
         "never the unreadable one"
     );
 
@@ -1547,6 +1687,52 @@ async fn the_superuser_sends_an_account_a_reset_link() {
         "the reset is traced"
     );
     assert!(history.contains("bob"), "under the account's username");
+}
+
+/// The admin's link lasts what the site's reset page is set to, like the
+/// site's own links: 15 minutes here, the default hour otherwise.
+#[tokio::test]
+#[serial]
+async fn the_admin_link_lasts_what_the_site_sets() {
+    console_mailer();
+    for (ttl, minutes) in [(15 * 60, "15"), (3600, "60")] {
+        let base = spawn_with_reset(
+            "",
+            probe_routes(),
+            Some(std::time::Duration::from_secs(ttl)),
+        )
+        .await;
+        let client = signed_in(&base, SUPERUSER).await;
+        press_reset(&client, &base, MEMBER, true).await;
+        assert_eq!(
+            text(&client, format!("{base}/probe/reset-tokens")).await,
+            minutes
+        );
+    }
+}
+
+/// Without the site's reset page, a link would lead nowhere: none is made.
+#[tokio::test]
+#[serial]
+async fn without_a_reset_page_the_admin_sends_no_link() {
+    console_mailer();
+    let base = spawn_with_reset("", probe_routes(), None).await;
+    let client = signed_in(&base, SUPERUSER).await;
+    let resp = press_reset(&client, &base, MEMBER, true).await;
+    assert_eq!(resp.status(), reqwest::StatusCode::SEE_OTHER);
+    assert_eq!(
+        text(&client, format!("{base}/probe/reset-tokens")).await,
+        ""
+    );
+    let history = text(
+        &client,
+        format!("{base}/secret-admin/history?action=reset_password"),
+    )
+    .await;
+    assert!(
+        !history.contains("lien de mot de passe envoyé"),
+        "nothing sent, nothing traced"
+    );
 }
 
 /// The rank rule: an admin never resets a superuser's password; an account
@@ -2029,7 +2215,7 @@ async fn the_superuser_sets_an_admins_grid_and_it_applies_at_once() {
         grid.contains("name=\"t__probe_notes__update\" value=\"1\" checked"),
         "ticked from the base"
     );
-    assert!(!grid.contains("password"), "never a secret column");
+    assert!(!grid.contains("__password__"), "never a secret column");
     assert!(
         !grid.contains("__is_admin__") && !grid.contains("__is_active__"),
         "never a rank nor the activation"
@@ -2045,6 +2231,18 @@ async fn the_superuser_sets_an_admins_grid_and_it_applies_at_once() {
     assert_eq!(
         location(&saved),
         Some(format!("/secret-admin/users/{}/detail", pk(ADMIN)).as_str())
+    );
+    // The trace keeps the grid before and after, not just the tables.
+    let history = text(&su, format!("{base}/probe/history")).await;
+    let trace = history
+        .lines()
+        .find(|line| line.starts_with(&format!("rights users {} ", pk(ADMIN))))
+        .expect("the grid's trace");
+    assert!(
+        trace.contains(
+            r#""old":"probe_notes (create, read, update, delete; title: read, create, update)""#
+        ) && trace.contains(r#""new":"probe_notes (read; title: read)""#),
+        "{trace}"
     );
 
     let admin = signed_in(&base, ADMIN).await;

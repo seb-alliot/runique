@@ -1,27 +1,20 @@
 //! `POST {admin}/{resource}/{id}/reset-password`: sends an account's owner a
 //! link to choose a new password. The staff never sees it, nor any password.
-use super::{detail_url, failure, unknown_resource};
 use crate::admin::builder::site::AdminSite;
 use crate::admin::router::admin_router::AdminState;
+use crate::admin::router::{failure, unknown_resource};
 use crate::auth::current_user::CurrentUser;
 use crate::auth::history::{ActionLog, log_action};
+use crate::auth::password::{ResetMail, send_reset_link};
 use crate::auth::user::BuiltinUserEntity;
 use crate::context::template::Request;
-use crate::macros::routeur::register_url::reverse_with_parameters;
 use crate::utils::aliases::AppResult;
 use crate::utils::pk::Pk;
-use crate::utils::trad::t;
+use crate::utils::trad::{t, tf};
 use axum::Extension;
 use axum::extract::Path;
 use axum::response::{IntoResponse, Redirect, Response};
 use std::sync::Arc;
-use std::time::Duration;
-
-/// How long the link works: what the email's text announces (one hour).
-const RESET_LINK_TTL: Duration = Duration::from_secs(3600);
-
-/// The page this app serves for `reset_password` (`with_password_reset`).
-const RESET_ROUTE: &str = "reset_password";
 
 /// Which email carries the link.
 #[derive(Clone, Copy)]
@@ -51,29 +44,34 @@ impl AccountLink {
         }
     }
 
-    /// The template's `t_*` texts and their translation keys.
-    fn texts(self) -> &'static [(&'static str, &'static str)] {
+    /// The template's `t_*` texts, the link's lifetime in `minutes` filled in.
+    fn texts(self, minutes: u64) -> Vec<(&'static str, String)> {
+        let text = |key: &str| t(key).into_owned();
+        let minutes = [minutes.to_string()];
         match self {
-            Self::Reset => &[
-                ("t_title", "admin.reset_password.email_title"),
-                ("t_greeting", "admin.reset_password.email_greeting"),
-                ("t_body", "admin.reset_password.email_body"),
-                ("t_btn", "admin.reset_password.email_btn"),
-                ("t_ignore", "admin.reset_password.email_ignore"),
+            Self::Reset => vec![
+                ("t_title", text("admin.reset_password.email_title")),
+                ("t_greeting", text("admin.reset_password.email_greeting")),
+                ("t_body", tf("admin.reset_password.email_body", &minutes)),
+                ("t_btn", text("admin.reset_password.email_btn")),
+                ("t_ignore", text("admin.reset_password.email_ignore")),
             ],
-            Self::Welcome => &[
-                ("t_greeting", "admin.user_created.email_greeting"),
-                ("t_body", "admin.user_created.email_body"),
-                ("t_btn", "admin.user_created.email_btn"),
-                ("t_validity", "admin.user_created.email_validity"),
+            Self::Welcome => vec![
+                ("t_greeting", text("admin.user_created.email_greeting")),
+                ("t_body", text("admin.user_created.email_body")),
+                ("t_btn", text("admin.user_created.email_btn")),
+                (
+                    "t_validity",
+                    tf("admin.user_created.email_validity", &minutes),
+                ),
             ],
         }
     }
 }
 
-/// Generates the token and mails `account_id`'s owner the link to the reset
-/// page, then gives the account's username; the one message the staff sees
-/// when it can't, whatever the reason (traced).
+/// Mails `account_id`'s owner the link to the reset page, through the one
+/// function that makes reset links, then gives the account's username; the
+/// one message the staff sees when it can't, whatever the reason (traced).
 pub(crate) async fn send_account_link(
     req: &Request,
     admin: &AdminState,
@@ -81,58 +79,26 @@ pub(crate) async fn send_account_link(
     kind: AccountLink,
 ) -> Result<String, String> {
     let unavailable = || t("admin.reset_password.error_unavailable").into_owned();
-    let db = &req.engine.db;
-    let Some(account) = BuiltinUserEntity::find_by_id(db, account_id).await else {
+    let Some(account) = BuiltinUserEntity::find_by_id(&req.engine.db, account_id).await else {
         return Err(unavailable());
     };
-    // Activated once, inactive now: the staff blocked it. No link, as on the
-    // site's own "forgot password" page.
-    if account.activated_at.is_some() && !account.is_active {
-        return Err(unavailable());
-    }
-    // No mailer, no public URL or no reset page: the link could only be shown
-    // to the staff, who must never hold it.
-    let Some(host) = req.public_url() else {
+    // No public URL or no reset page: the link could only be shown to the
+    // staff, who must never hold it.
+    let (Some(host), Some(link)) = (req.public_url(), admin.config.reset_link.as_ref()) else {
         return Err(unavailable());
     };
-    if !crate::utils::mailer_configured() {
-        return Err(unavailable());
+    let mail = ResetMail::Template {
+        name: kind.template(admin).to_string(),
+        subject: t(kind.subject()).to_string(),
+        texts: kind.texts(link.minutes()),
+    };
+    match send_reset_link(&req.engine, &host, link, &account, mail).await {
+        Ok(()) => Ok(account.username),
+        Err(e) => {
+            tracing::warn!(error = %e, "admin reset link not sent");
+            Err(unavailable())
+        }
     }
-    let token = crate::utils::reset_token::generate(db, account.id, RESET_LINK_TTL)
-        .await
-        .map_err(|e| {
-            tracing::error!(error = %e, "admin reset token generation failed");
-            unavailable()
-        })?;
-    let encrypted = crate::utils::reset_token::encrypt_email(&token, &account.email);
-    let path = reverse_with_parameters(
-        &req.engine,
-        RESET_ROUTE,
-        &[("token", &token), ("encrypted_email", &encrypted)],
-    )
-    .map_err(|_| unavailable())?;
-
-    let mut ctx = tera::Context::new();
-    ctx.insert("username", &account.username);
-    ctx.insert("reset_url", &format!("{host}{path}"));
-    for (key, text) in kind.texts() {
-        ctx.insert(*key, t(text).as_ref());
-    }
-    crate::utils::Email::new()
-        .to(account.email.clone())
-        .subject(t(kind.subject()).to_string())
-        .template(&req.engine.tera, kind.template(admin), ctx)
-        .map_err(|e| {
-            tracing::error!(error = %e, "admin reset email render failed");
-            unavailable()
-        })?
-        .send()
-        .await
-        .map_err(|e| {
-            tracing::warn!(error = %e, "admin reset email send failed");
-            unavailable()
-        })?;
-    Ok(account.username)
 }
 
 pub(crate) async fn reset_password_view(
@@ -145,7 +111,7 @@ pub(crate) async fn reset_password_view(
     let Some(model) = site.model(&resource) else {
         return unknown_resource(&resource);
     };
-    let detail = detail_url(&req, &site, model.key(), &id);
+    let detail = admin.paths.detail_of(&site, model.key(), &id);
     let account = match model.reset_password(&req, &user, &id).await {
         Ok(Some(account)) => account,
         Ok(None) => {

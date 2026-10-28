@@ -1,9 +1,9 @@
 //! `GET/POST {admin}/{resource}/{id}/edit`: one row's form, written through the gate.
-use super::context::{EditContext, FormTexts, ResourceRef, put};
-use super::{chrome, detail_url, failure, unknown_resource};
 use crate::admin::builder::registered::FormOutcome;
 use crate::admin::builder::site::AdminSite;
 use crate::admin::router::admin_router::AdminState;
+use crate::admin::router::context::{EditContext, FormTexts, ResourceRef, put};
+use crate::admin::router::{chrome, failure, unknown_resource};
 use crate::admin::trad::insert_admin_messages;
 use crate::auth::current_user::CurrentUser;
 use crate::context::template::Request;
@@ -28,13 +28,13 @@ pub(crate) async fn edit_view(
         Ok(FormOutcome::Show(form)) => form,
         Ok(FormOutcome::Saved(_)) => {
             req.notices.success(t("admin.edit.success")).await;
-            let detail = detail_url(&req, &site, model.key(), &id);
+            let detail = admin.paths.detail_of(&site, model.key(), &id);
             return Ok(Redirect::to(&detail).into_response());
         }
         Err(error) => return failure(error, &req, &admin).await,
     };
     let key = model.key();
-    let cancel_url = detail_url(&req, &site, key, &id);
+    let cancel_url = admin.paths.detail_of(&site, key, &id);
 
     chrome(&mut req, &admin, &site, &user, key);
     insert_admin_messages(&mut req.context, "edit");
@@ -44,7 +44,9 @@ pub(crate) async fn edit_view(
             resource: ResourceRef::new(key, model.title()),
             resource_key: key,
             current_page: "edit",
+            list_url: admin.paths.list_of(key),
             texts: FormTexts {
+                form_action: admin.paths.edit_of(key, &id),
                 cancel_url,
                 cancel_label: t("admin.edit.btn_cancel").into_owned(),
                 submit_label: t("admin.edit.btn_submit").into_owned(),

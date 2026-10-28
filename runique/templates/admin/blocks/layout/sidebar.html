@@ -8,7 +8,7 @@
 
     <nav class="admin-sidebar__nav">
 
-        <a href="{{ admin_prefix }}" class="admin-nav__item{% if current_page %} {% if current_page == 'dashboard' %}active{% endif %} {% endif %}">
+        <a href="{{ nav.dashboard }}" class="admin-nav__item{% if current_page %} {% if current_page == 'dashboard' %}active{% endif %} {% endif %}">
             <svg class="admin-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
                 <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
@@ -34,9 +34,9 @@
             {% endfor %}
         {% endif %}
 
-        {% if history_url %}
+        {% if nav.history %}
             <div class="admin-nav__divider"></div>
-            <a href="{{ history_url }}" class="admin-nav__item{% if current_page | default(value='') == 'history' %} active{% endif %}">
+            <a href="{{ nav.history }}" class="admin-nav__item{% if current_page | default(value='') == 'history' %} active{% endif %}">
                 <svg class="admin-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="10"/>
                     <polyline points="12 6 12 12 16 14"/>

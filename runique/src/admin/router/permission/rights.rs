@@ -1,11 +1,13 @@
 //! `GET/POST {admin}/users/{id}/rights`: the grid of an admin's own rights,
 //! ticked by a dirigeant or the superuser, table by table, column by column.
-use super::context::{GridBox, GridColumn, GridTable, ResourceRef, RightsContext, put};
-use super::{chrome, detail_url, failure, unknown_resource};
 use crate::admin::builder::confirm_form::ConfirmForm;
 use crate::admin::builder::registered::AdminError;
 use crate::admin::builder::site::AdminSite;
 use crate::admin::router::admin_router::AdminState;
+use crate::admin::router::context::{
+    GridBox, GridColumn, GridTable, ResourceRef, RightsContext, put,
+};
+use crate::admin::router::{chrome, failure, unknown_resource};
 use crate::auth::current_user::CurrentUser;
 use crate::auth::gate::Refusal;
 use crate::auth::gate::refusal::RefusalReason;
@@ -189,7 +191,7 @@ pub(crate) async fn rights_view(
         return failure(not_found(), &req, &admin).await;
     }
     let key = model.key();
-    let back = detail_url(&req, &site, key, &id);
+    let back = admin.paths.detail_of(&site, key, &id);
 
     let mut form = req.form::<ConfirmForm<user::Entity>>();
     form.get_form_mut().set_name(admin_form::RIGHTS);
@@ -232,6 +234,8 @@ pub(crate) async fn rights_view(
             resource: ResourceRef::new(key, model.title()),
             resource_key: key,
             current_page: "rights",
+            list_url: admin.paths.list_of(key),
+            form_action: admin.paths.rights_of(key, &id),
             object_id: id,
             account_name: account.username,
             tables: grid(&site, &rows),

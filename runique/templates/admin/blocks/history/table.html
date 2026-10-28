@@ -17,17 +17,17 @@
         {% for entry in entries %}
         <tr>
           <td>{{ entry.created_at }}</td>
-          <td><a href="{% link "admin_history" %}?user={{ entry.username | urlencode }}">{{ entry.username }}</a></td>
+          <td><a href="{{ entry.links.user }}">{{ entry.username }}</a></td>
           <td>{{ entry.resource_title }}</td>
           <td>
-            <a href="{% link "admin_history" %}?resource={{ entry.resource_key | urlencode }}&object={{ entry.object_pk | urlencode }}">
+            <a href="{{ entry.links.object }}">
               {% if entry.object_label %}{{ entry.object_label }}{% else %}#{{ entry.object_pk }}{% endif %}
             </a>
           </td>
           <td>{% include "admin/blocks/history/action_badge.html" %}</td>
           <td class="admin-table__td-actions">
-            {% if entry.has_changes %}
-            <a href="{% link "admin_history_entry" id=entry.id %}" class="btn btn-ghost btn-sm">Détail</a>
+            {% if entry.links.entry %}
+            <a href="{{ entry.links.entry }}" class="btn btn-ghost btn-sm">Détail</a>
             {% endif %}
           </td>
         </tr>

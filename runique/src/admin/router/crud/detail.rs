@@ -1,9 +1,9 @@
 //! `GET {admin}/{resource}/{id}/detail`: one row of a model.
-use super::context::{DetailContext, ResourceRef, put};
-use super::{chrome, failure, unknown_resource};
 use crate::admin::builder::site::AdminSite;
 use crate::admin::router::AdminView;
 use crate::admin::router::admin_router::AdminState;
+use crate::admin::router::context::{DetailContext, ResourceRef, RowLinks, put};
+use crate::admin::router::{chrome, failure, unknown_resource};
 use crate::admin::trad::insert_admin_messages;
 use crate::auth::current_user::CurrentUser;
 use crate::context::template::Request;
@@ -32,6 +32,7 @@ pub(crate) async fn detail_view(
     };
     let key = model.key();
     let rights = model.rights(&user);
+    let paths = &admin.paths;
     // The rank of an account below the viewer's, offered to change.
     let mut rank_choices = Vec::new();
     let mut current_rank = None;
@@ -43,14 +44,10 @@ pub(crate) async fn detail_view(
     {
         let rang = crate::auth::permissions::rang::Rang::from(&account);
         if crate::auth::gate::rights_grid::may_set(&user, &account).is_ok() {
-            rights_url = Some(super::link(
-                &req,
-                crate::utils::constante::admin_key::admin_route::RIGHTS,
-                &[("resource", model.key()), ("id", &id)],
-            ));
+            rights_url = Some(paths.rights_of(key, &id));
         }
         if rang < user.rang && account.id != user.id {
-            rank_choices = super::rank::rank_choices(user.rang);
+            rank_choices = crate::admin::router::permission::rank::rank_choices(user.rang);
             current_rank = Some(match rang {
                 crate::auth::permissions::rang::Rang::Lambda => "lambda",
                 crate::auth::permissions::rang::Rang::Admin => "admin",
@@ -69,15 +66,22 @@ pub(crate) async fn detail_view(
             resource: ResourceRef::new(key, model.title()),
             resource_key: key,
             current_page: "detail",
-            object_id: id,
-            entry,
-            rich_fields: Vec::new(),
-            can_update: rights.can_update || rights.can_update_own,
-            can_delete: rights.can_delete || rights.can_delete_own,
-            can_reset_password: model.is_account_table() && rights.can_update,
+            list_url: paths.list_of(key),
+            links: RowLinks {
+                detail: paths.detail_of(&site, key, &id),
+                edit: (rights.can_update || rights.can_update_own).then(|| paths.edit_of(key, &id)),
+                delete: (rights.can_delete || rights.can_delete_own)
+                    .then(|| paths.delete_of(key, &id)),
+            },
+            reset_password_url: (model.is_account_table() && rights.can_update)
+                .then(|| paths.reset_password_of(key, &id)),
+            rank_url: (!rank_choices.is_empty()).then(|| paths.rank_of(key)),
             rank_choices,
             current_rank,
             rights_url,
+            object_id: id,
+            entry,
+            rich_fields: Vec::new(),
         },
     )?;
     req.render(admin.config.templates.detail.resolve())

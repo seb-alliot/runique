@@ -12,7 +12,7 @@
         <p class="admin-page__subtitle">{% if admin_dashboard_subtitle %}{{ admin_dashboard_subtitle }}{% endif %}</p>
     </div>
     {% if admin_has_session_override %}
-    <a href="{{ admin_prefix }}/toggle-template" class="btn btn-secondary btn-sm">← Template configuré</a>
+    <a href="{{ nav.toggle_template }}" class="btn btn-secondary btn-sm">← Template configuré</a>
     {% endif %}
 </div>
 {% endblock %}

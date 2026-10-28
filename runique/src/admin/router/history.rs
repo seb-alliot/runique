@@ -1,8 +1,10 @@
 //! `GET {admin}/history` and `GET {admin}/history/{id}`: the writes the admin
 //! traced, for the models the account fully reads, each diff cut to the
 //! columns it reads.
+use super::AdminPaths;
 use super::context::{
-    HistoryChange, HistoryContext, HistoryEntryContext, HistoryResource, HistoryRow, put,
+    HistoryChange, HistoryContext, HistoryEntryContext, HistoryLinks, HistoryResource, HistoryRow,
+    put,
 };
 use super::{chrome, failure};
 use crate::admin::builder::registered::{AdminError, HistoryScope};
@@ -24,7 +26,8 @@ use std::sync::Arc;
 const PAGE_SIZE: u64 = 50;
 
 /// `entry` as the pages show it, for the scope of its model.
-fn row(entry: &history::Model, scope: &HistoryScope) -> HistoryRow {
+fn row(entry: &history::Model, scope: &HistoryScope, paths: &AdminPaths) -> HistoryRow {
+    let has_changes = !changes(entry, scope).is_empty();
     HistoryRow {
         id: entry.id,
         created_at: entry.created_at.format("%Y-%m-%d %H:%M:%S").to_string(),
@@ -35,7 +38,15 @@ fn row(entry: &history::Model, scope: &HistoryScope) -> HistoryRow {
         object_label: (scope.label_readable && entry.object_repr != entry.object_pk)
             .then(|| entry.object_repr.clone()),
         action: entry.action.clone(),
-        has_changes: !changes(entry, scope).is_empty(),
+        has_changes,
+        links: HistoryLinks {
+            user: paths.history_with(&[("user", &entry.username)]),
+            object: paths.history_with(&[
+                ("resource", &entry.resource_key),
+                ("object", &entry.object_pk),
+            ]),
+            entry: has_changes.then(|| paths.history_entry_of(entry.id)),
+        },
     }
 }
 
@@ -120,7 +131,7 @@ pub(crate) async fn history_view(
             .iter()
             .filter_map(|entry| {
                 let scope = scopes.iter().find(|s| s.key == entry.resource_key)?;
-                Some(row(entry, scope))
+                Some(row(entry, scope, &admin.paths))
             })
             .collect();
         (entries, total.max(1))
@@ -131,6 +142,7 @@ pub(crate) async fn history_view(
         &mut req,
         &HistoryContext {
             current_page: "history",
+            history_url: admin.paths.history.clone(),
             entries,
             history_resources: scopes
                 .iter()
@@ -176,7 +188,8 @@ pub(crate) async fn history_entry_view(
         &mut req,
         &HistoryEntryContext {
             current_page: "history",
-            entry: row(&entry, scope),
+            history_url: admin.paths.history.clone(),
+            entry: row(&entry, scope, &admin.paths),
             changes: changes(&entry, scope),
         },
     )?;
