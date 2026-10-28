@@ -424,27 +424,12 @@ async fn group_rights(
     req.render("admin/rights.html")
 }
 
-/// The groups `user` may set, by name: every one for the superuser and a
-/// dirigeant, those he answers for for a delegated admin, none otherwise.
+/// The groups `user` may set, by name (see the gate's `managed_groups`).
 pub(crate) async fn managed_groups(
     user: &CurrentUser,
     db: &crate::utils::aliases::ADb,
 ) -> Result<Vec<crate::auth::permissions::groupe::Model>, sea_orm::DbErr> {
-    use crate::auth::permissions::groupe;
-    use sea_orm::QueryOrder;
-    let query = groupe::Entity::find().order_by_asc(groupe::Column::Nom);
-    let groups = if user.rang >= crate::auth::permissions::rang::Rang::Dirigeant {
-        query.all(db).await?
-    } else {
-        query
-            .filter(groupe::Column::ResponsableId.eq(user.id))
-            .all(db)
-            .await?
-    };
-    Ok(groups
-        .into_iter()
-        .filter(|g| crate::auth::gate::rights_grid::may_set_group(user, g).is_ok())
-        .collect())
+    crate::auth::gate::membership::managed_groups(user, db).await
 }
 
 /// `GET {admin}/groupes/rights?groupe={id}`: the group picked in the rights

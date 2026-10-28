@@ -150,7 +150,9 @@
       "acme_email_missing": "ACME_ENABLED=true mais ACME_EMAIL n'est pas défini",
       "acme_email_missing_hint": "Définissez ACME_EMAIL à votre email de contact Let's Encrypt dans votre .env",
       "suggestion": "Suggestion",
-      "context": "Contexte"
+      "context": "Contexte",
+      "mailer_missing": "Réinitialisation du mot de passe sans mailer : le lien ne pourrait jamais être envoyé",
+      "mailer_missing_hint": "Configurez-le dans le builder : .with_mailer_from_env() (SMTP_HOST, SMTP_USER…) ou .with_mailer(…)"
     }
   },
   "server": {
@@ -299,7 +301,8 @@
     "access": {
       "insufficient_rights": "Droits insuffisants pour accéder à l'administration",
       "superuser_only": "Action non autorisée",
-      "action_not_allowed": "Action non autorisée"
+      "action_not_allowed": "Action non autorisée",
+      "still_responsable": "Ce compte répond encore de groupes : transférez-les d'abord."
     },
     "dashboard": {
       "subtitle": "Vue d'ensemble de l'application",
@@ -317,7 +320,10 @@
       "kpi_entries": "Entrées totales",
       "kpi_largest": "Plus grande",
       "th_count": "Entrées",
-      "toggle_template": "← Template configuré"
+      "toggle_template": "← Template configuré",
+      "my_groups_title": "Mes groupes",
+      "my_groups_staff": "staff",
+      "my_groups_none": "Ce groupe ne donne aucun droit sur les tables."
     },
     "list": {
       "entries_count_one": "entrée",
@@ -342,7 +348,11 @@
       "filters_clear": "✕ Tout",
       "select_all": "Tout sélectionner",
       "row_details": "Détails",
-      "btn_rights": "Droits"
+      "btn_rights": "Droits",
+      "action_activate": "Activer",
+      "action_deactivate": "Désactiver",
+      "responsable_pending": "Responsable à nommer",
+      "taken_by": "repris par"
     },
     "create": {
       "title": "Créer",
@@ -373,7 +383,11 @@
       "btn_reset_password": "Réinitialiser le mot de passe",
       "btn_reset_password_short": "Réinitialiser",
       "btn_rights": "Droits",
-      "btn_rank": "Changer le rang"
+      "btn_rank": "Changer le rang",
+      "groups_title": "Groupes de ce compte",
+      "btn_save_groups": "Attribuer",
+      "transfer_title": "Responsable du groupe",
+      "btn_transfer": "Transférer"
     },
     "reset_password": {
       "btn": "Réinitialiser le mot de passe",
@@ -498,7 +512,9 @@
       "badge_delete": "supprimé",
       "badge_rights": "droits modifiés",
       "badge_rank": "rang modifié",
-      "badge_reset_password": "lien de mot de passe envoyé"
+      "badge_reset_password": "lien de mot de passe envoyé",
+      "badge_groups": "Groupes",
+      "badge_transfer": "Transfert"
     },
     "rights": {
       "title": "Droits",
@@ -528,6 +544,21 @@
       "admin": "Admin",
       "dirigeant": "Dirigeant",
       "success": "Rang modifié ({})"
+    },
+    "transfer": {
+      "title": "Transférer le groupe",
+      "from": "Responsable actuel",
+      "to": "Nouveau responsable",
+      "losses": "Droits en jeu",
+      "no_loss": "Le groupe garde tous ses droits.",
+      "btn_confirm": "Confirmer le transfert",
+      "btn_cancel": "Annuler",
+      "unsuitable": "Cet utilisateur ne convient pas.",
+      "ranked_members": "Ce groupe compte des membres avec un rang : un admin ne peut en répondre.",
+      "changed": "Les droits ont changé entre-temps : vérifiez à nouveau.",
+      "success": "Groupe transféré.",
+      "gained_right": "reçu par",
+      "lost_right": "perdu par les membres"
     }
   },
   "reset": {
@@ -547,7 +578,8 @@
     "blocked_subject": "Votre compte est bloqué",
     "blocked_body": "<p>Bonjour {},</p><p>Une demande de réinitialisation de mot de passe a été faite pour votre compte, mais ce compte est bloqué. Contactez l'administrateur du site pour le débloquer.</p><p>Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>",
     "email_subject": "Réinitialisation de votre mot de passe",
-    "email_body": "<p>Bonjour {},</p><p>Cliquez sur le lien suivant pour réinitialiser votre mot de passe (valide {} min) :</p><p><a href=\"{}\">{}</a></p>"
+    "email_body": "<p>Bonjour {},</p><p>Cliquez sur le lien suivant pour réinitialiser votre mot de passe (valide {} min) :</p><p><a href=\"{}\">{}</a></p>",
+    "unavailable": "La réinitialisation par email n'est pas disponible pour le moment."
   },
   "makemigrations": {
     "destructive_detected": "Changements destructifs détectés :",

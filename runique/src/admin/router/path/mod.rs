@@ -23,6 +23,8 @@ pub struct AdminPaths {
     pub(crate) reset_password: String,
     pub(crate) rights: String,
     pub(crate) group_select: String,
+    pub(crate) groups: String,
+    pub(crate) transfer: String,
     pub(crate) history: String,
     pub(crate) history_entry: String,
 }
@@ -46,6 +48,8 @@ impl AdminPaths {
             rank: format!("{prefix}/{{resource}}/rank"),
             reset_password: format!("{prefix}/{{resource}}/{{id}}/reset-password"),
             rights: format!("{prefix}/{{resource}}/{{id}}/rights"),
+            groups: format!("{prefix}/{{resource}}/{{id}}/groups"),
+            transfer: format!("{prefix}/{{resource}}/{{id}}/transfer"),
             group_select: format!(
                 "{prefix}/{}/rights",
                 crate::utils::constante::resource_key::GROUPES
@@ -96,6 +100,14 @@ impl AdminPaths {
 
     pub(crate) fn rights_of(&self, key: &str, id: &str) -> String {
         fill(&self.rights, &[("resource", key), ("id", id)])
+    }
+
+    pub(crate) fn groups_of(&self, key: &str, id: &str) -> String {
+        fill(&self.groups, &[("resource", key), ("id", id)])
+    }
+
+    pub(crate) fn transfer_of(&self, key: &str, id: &str) -> String {
+        fill(&self.transfer, &[("resource", key), ("id", id)])
     }
 
     /// The history, narrowed by `filters` (`resource`, `object`, `user`…).

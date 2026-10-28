@@ -150,7 +150,9 @@
       "acme_email_missing": "ACME_ENABLED=true ma ACME_EMAIL non è impostato",
       "acme_email_missing_hint": "Imposta ACME_EMAIL sul tuo indirizzo di contatto Let's Encrypt nel tuo .env",
       "suggestion": "Suggerimento",
-      "context": "Contesto"
+      "context": "Contesto",
+      "mailer_missing": "Reimpostazione della password senza mailer: il link non potrebbe mai essere inviato",
+      "mailer_missing_hint": "Configuralo nel builder: .with_mailer_from_env() (SMTP_HOST, SMTP_USER…) o .with_mailer(…)"
     }
   },
   "server": {
@@ -299,7 +301,8 @@
     "access": {
       "insufficient_rights": "Diritti insufficienti per accedere all'amministrazione",
       "superuser_only": "Azione non consentita",
-      "action_not_allowed": "Azione non consentita"
+      "action_not_allowed": "Azione non consentita",
+      "still_responsable": "Questo account è ancora responsabile di gruppi: trasferiscili prima."
     },
     "dashboard": {
       "subtitle": "Panoramica dell'applicazione",
@@ -317,7 +320,10 @@
       "kpi_entries": "Voci totali",
       "kpi_largest": "Più grande",
       "th_count": "Voci",
-      "toggle_template": "← Template configurato"
+      "toggle_template": "← Template configurato",
+      "my_groups_title": "I miei gruppi",
+      "my_groups_staff": "staff",
+      "my_groups_none": "Questo gruppo non dà alcun diritto sulle tabelle."
     },
     "list": {
       "entries_count_one": "voce",
@@ -342,7 +348,11 @@
       "filters_clear": "✕ Tutto",
       "select_all": "Seleziona tutto",
       "row_details": "Dettagli",
-      "btn_rights": "Diritti"
+      "btn_rights": "Diritti",
+      "action_activate": "Attiva",
+      "action_deactivate": "Disattiva",
+      "responsable_pending": "Responsabile da nominare",
+      "taken_by": "ripreso da"
     },
     "create": {
       "title": "Crea",
@@ -373,7 +383,11 @@
       "btn_reset_password": "Reimposta password",
       "btn_reset_password_short": "Reimposta",
       "btn_rights": "Diritti",
-      "btn_rank": "Cambia il ruolo"
+      "btn_rank": "Cambia il ruolo",
+      "groups_title": "Gruppi di questo account",
+      "btn_save_groups": "Assegna",
+      "transfer_title": "Responsabile del gruppo",
+      "btn_transfer": "Trasferisci"
     },
     "reset_password": {
       "btn": "Reimposta la password",
@@ -498,7 +512,9 @@
       "badge_delete": "eliminato",
       "badge_rights": "diritti modificati",
       "badge_rank": "ruolo modificato",
-      "badge_reset_password": "link della password inviato"
+      "badge_reset_password": "link della password inviato",
+      "badge_groups": "Gruppi",
+      "badge_transfer": "Trasferimento"
     },
     "rights": {
       "title": "Diritti",
@@ -528,6 +544,21 @@
       "admin": "Admin",
       "dirigeant": "Dirigente",
       "success": "Ruolo modificato ({})"
+    },
+    "transfer": {
+      "title": "Trasferisci il gruppo",
+      "from": "Responsabile attuale",
+      "to": "Nuovo responsabile",
+      "losses": "Diritti in gioco",
+      "no_loss": "Il gruppo mantiene tutti i suoi diritti.",
+      "btn_confirm": "Conferma il trasferimento",
+      "btn_cancel": "Annulla",
+      "unsuitable": "Questo utente non è adatto.",
+      "ranked_members": "Questo gruppo ha membri con un grado: un admin non può esserne responsabile.",
+      "changed": "I diritti sono cambiati nel frattempo: verifica di nuovo.",
+      "success": "Gruppo trasferito.",
+      "gained_right": "ricevuto da",
+      "lost_right": "perso dai membri"
     }
   },
   "makemigrations": {
@@ -560,7 +591,8 @@
     "blocked_subject": "Il tuo account è bloccato",
     "blocked_body": "<p>Ciao {},</p><p>È stata richiesta la reimpostazione della password per il tuo account, ma questo account è bloccato. Contatta l'amministratore del sito per sbloccarlo.</p><p>Se non hai fatto tu questa richiesta, ignora questa email.</p>",
     "email_subject": "Reimpostazione password",
-    "email_body": "<p>Ciao {},</p><p>Clicca sul link seguente per reimpostare la password (valido per {} min):</p><p><a href=\"{}\">{}</a></p>"
+    "email_body": "<p>Ciao {},</p><p>Clicca sul link seguente per reimpostare la password (valido per {} min):</p><p><a href=\"{}\">{}</a></p>",
+    "unavailable": "Il ripristino via email non è disponibile al momento."
   },
   "runique_test": {
     "connect_failed": "connessione impossibile: {}",

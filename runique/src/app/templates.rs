@@ -10,6 +10,14 @@ use tera::Tera;
 /// Loads and configures the Tera instance with internal framework templates and project templates.
 pub(crate) struct TemplateLoader;
 
+/// `content` rewritten as Runique loads its templates (`{% csrf %}`,
+/// `{% static %}`, `{% runique_static %}`, `{% link %}`…), without the SRI
+/// hashes: for a test that builds its own Tera from Runique's templates.
+#[doc(hidden)]
+pub fn preprocess(content: &str) -> String {
+    TemplateLoader::process_content(content.to_string(), &Integrity::default())
+}
+
 /// The SRI hashes of the static files, by folder: the project's
 /// (`{% static %}`) and Runique's own (`{% runique_static %}`, the admin's
 /// sheets and scripts).

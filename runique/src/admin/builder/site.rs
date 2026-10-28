@@ -5,6 +5,7 @@ use crate::admin::router::AdminView;
 use crate::auth::current_user::CurrentUser;
 use crate::auth::meta::ModelMeta;
 use crate::auth::user;
+use crate::utils::trad::t;
 use std::collections::HashMap;
 
 /// One model as the navigation shows it.
@@ -62,6 +63,8 @@ fn default_groups() -> ModelAdmin<crate::auth::permissions::groupe::Entity> {
                 .sortable([Column::Nom])
                 .search([Column::Nom])
                 .filter([Column::IsStaff, Column::IsActive])
+                .action(Column::IsActive, true, t("admin.list.action_activate"))
+                .action(Column::IsActive, false, t("admin.list.action_deactivate"))
         })
         .form(|f| f.fields([Column::Nom, Column::IsStaff, Column::IsActive]))
 }

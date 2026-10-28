@@ -84,6 +84,8 @@ pub struct ListEntry {
     /// Its shown columns and its key, by column name.
     pub values: serde_json::Value,
     pub links: RowLinks,
+    /// On a group taken back after a departure: who took it.
+    pub taken_by: Option<String>,
 }
 
 /// `admin/list.html` and its HTMX part `admin/list_partial.html`.
@@ -159,6 +161,71 @@ pub struct DetailContext {
     pub rank_url: Option<String>,
     /// The admin's rights grid, when the viewer may set it.
     pub rights_url: Option<String>,
+    /// On an account, the groups the viewer manages, ticked when it is a
+    /// member: `(form name, group name, ticked)`. Empty otherwise.
+    pub memberships: Vec<(String, String, bool)>,
+    /// Where the groups' form posts, when `memberships` isn't empty.
+    pub memberships_url: Option<String>,
+    /// On a group, for a dirigeant: the accounts it may be handed to,
+    /// `(id, username)`, and the transfer page their selector opens.
+    pub transfer_receivers: Vec<(String, String)>,
+    pub transfer_url: Option<String>,
+    /// On a group taken back after a departure: who took it. Shown as
+    /// "a responsable is to be named".
+    pub taken_by: Option<String>,
+}
+
+/// One of the signed-in account's groups, on the dashboard.
+#[derive(Serialize)]
+pub struct MyGroup {
+    pub name: String,
+    pub staff: bool,
+    /// What it lets the account do, table by table; empty when nothing.
+    pub rights: Vec<MyGroupRight>,
+}
+
+/// A table a group opens, and its rights, comma-separated.
+#[derive(Serialize)]
+pub struct MyGroupRight {
+    pub table: String,
+    pub rights: String,
+}
+
+/// `admin/transfer.html`: what handing a group over does, and its form.
+#[derive(Serialize)]
+pub struct TransferContext {
+    pub resource: ResourceRef,
+    /// `"transfer"`.
+    pub current_page: &'static str,
+    pub list_url: String,
+    pub detail_url: String,
+    /// Where the confirmation posts.
+    pub form_action: String,
+    /// The group's name.
+    pub group: String,
+    /// Its responsable now, and the receiver.
+    pub from: String,
+    pub to: String,
+    pub to_id: String,
+    /// The rights at stake: kept, the receiver gets them; not kept, the
+    /// members lose them. Empty when the receiver covers the whole group.
+    pub lines: Vec<TransferLine>,
+    /// The same lines as the gate compares them, sent back with the
+    /// confirmation.
+    pub shown: String,
+}
+
+/// One right at stake in a transfer.
+#[derive(Serialize)]
+pub struct TransferLine {
+    /// Its box.
+    pub name: String,
+    pub table: String,
+    pub right: String,
+    /// Ticked at first.
+    pub kept: bool,
+    /// False for a full right on the groups: lost, never given to an admin.
+    pub keepable: bool,
 }
 
 /// What the form blocks (`admin/blocks/form/`) read, the same on every form page.

@@ -2,3 +2,4 @@
 //! a change of rank. Each write goes through its gate operation.
 pub mod rank;
 pub mod rights;
+pub mod transfer;

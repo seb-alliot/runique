@@ -90,25 +90,50 @@ async fn forgot(base: &str, email: &str) -> (u16, String) {
     (resp.status().as_u16(), location)
 }
 
+/// The links go out in the background: waits until `n` tokens exist.
+async fn tokens_reach(db: &DatabaseConnection, n: i64) -> i64 {
+    for _ in 0..50 {
+        let count = tokens(db).await;
+        if count >= n {
+            return count;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+    }
+    tokens(db).await
+}
+
 #[tokio::test]
 #[serial]
 async fn only_pending_and_active_accounts_get_a_link_and_the_page_never_tells() {
+    // No mailer, no link: a token nobody could receive is never made.
+    runique::utils::mailer::mailer_init(runique::utils::mailer::MailerConfig {
+        backend: runique::utils::mailer::MailerBackend::Console,
+        from: "test@runique.rs".to_string(),
+        host: String::new(),
+        port: 0,
+        username: String::new(),
+        password: String::new(),
+        starttls: false,
+    });
     let (base, db) = spawn().await;
     let mut answers = Vec::new();
 
     answers.push(forgot(&base, "blocked@example.com").await);
-    assert_eq!(tokens(&db).await, 0, "a blocked account gets no link");
     answers.push(forgot(&base, "nobody@example.com").await);
-    assert_eq!(tokens(&db).await, 0);
-
     answers.push(forgot(&base, "pending@example.com").await);
     assert_eq!(
-        tokens(&db).await,
+        tokens_reach(&db, 1).await,
         1,
-        "a lost activation email can be asked again"
+        "a lost activation email can be asked again; blocked and unknown get none"
     );
     answers.push(forgot(&base, "active@example.com").await);
-    assert_eq!(tokens(&db).await, 2);
+    assert_eq!(tokens_reach(&db, 2).await, 2);
+    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    assert_eq!(
+        tokens(&db).await,
+        2,
+        "nothing more, ever, for blocked and unknown"
+    );
 
     assert!(
         answers.windows(2).all(|w| w[0] == w[1]),

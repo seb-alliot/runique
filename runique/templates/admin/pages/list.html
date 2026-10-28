@@ -47,8 +47,12 @@
   <script {% csp %} src="{% runique_static "js/admin/admin-bulk.js" %}"></script>
 {% endblock %}
 
+{% block extra_css %}
+{{ super() }}
+<meta name="htmx-config" content='{"allowEval":false}'>
+{% endblock %}
+
 {% block extra_js %}
 {{ super() }}
-<script {% csp %}>htmx = { config: { allowEval: false } };</script>
 <script {% csp %} src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous" defer></script>
 {% endblock %}

@@ -21,6 +21,8 @@
   </div>
   {% endblock %}
   {% block detail_table %}{% include "admin/blocks/detail/fields.html" %}{% endblock %}
+  {% block detail_groups %}{% include "admin/blocks/detail/groups.html" %}{% endblock %}
+  {% block detail_transfer %}{% include "admin/blocks/detail/transfer.html" %}{% endblock %}
   <script {% csp %} src="{% runique_static "js/admin/admin-actions.js" %}"></script>
   <script {% csp %} src="{% runique_static "js/admin/admin-kebab.js" %}"></script>
 {% endblock %}

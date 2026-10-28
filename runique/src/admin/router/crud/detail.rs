@@ -37,12 +37,55 @@ pub(crate) async fn detail_view(
     let mut rank_choices = Vec::new();
     let mut current_rank = None;
     let mut rights_url = None;
+    let mut memberships = Vec::new();
     if model.is_account_table()
         && let Ok(pk) = id.parse::<crate::utils::pk::Pk>()
         && let Some(account) =
             crate::auth::user::BuiltinUserEntity::find_by_id(&req.engine.db, pk).await
     {
         let rang = crate::auth::permissions::rang::Rang::from(&account);
+        // The groups the viewer manages, ticked when the account belongs.
+        if crate::auth::gate::membership::may_set_memberships(&user, &account) {
+            use crate::auth::permissions::users_groupes;
+            use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+            let db = &req.engine.db;
+            let groups = match crate::auth::gate::membership::managed_groups(&user, db).await {
+                Ok(groups) => groups,
+                Err(e) => {
+                    return failure(
+                        crate::admin::builder::registered::AdminError::Db(e),
+                        &req,
+                        &admin,
+                    )
+                    .await;
+                }
+            };
+            let member_of: Vec<i32> = match users_groupes::Entity::find()
+                .filter(users_groupes::Column::UserId.eq(account.id))
+                .all(db)
+                .await
+            {
+                Ok(rows) => rows.into_iter().map(|m| m.groupe_id).collect(),
+                Err(e) => {
+                    return failure(
+                        crate::admin::builder::registered::AdminError::Db(e),
+                        &req,
+                        &admin,
+                    )
+                    .await;
+                }
+            };
+            memberships = groups
+                .into_iter()
+                .map(|g| {
+                    (
+                        crate::admin::router::account::memberships::group_box(g.id),
+                        g.nom,
+                        member_of.contains(&g.id),
+                    )
+                })
+                .collect();
+        }
         if crate::auth::gate::rights_grid::may_set(&user, &account).is_ok() {
             rights_url = Some(paths.rights_of(key, &id));
         }
@@ -57,16 +100,48 @@ pub(crate) async fn detail_view(
         }
     }
 
-    // A group's rights grid, for whoever may set it.
+    // A group: its rights grid for whoever may set it, its transfer for a
+    // dirigeant, and who took it back if it waits for a responsable.
+    let mut transfer_receivers = Vec::new();
+    let mut taken_by = None;
     if key == crate::utils::constante::resource_key::GROUPES
         && let Ok(group_id) = id.parse::<i32>()
         && let Ok(Some(group)) =
             <crate::auth::permissions::groupe::Entity as sea_orm::EntityTrait>::find_by_id(group_id)
                 .one(&req.engine.db)
                 .await
-        && crate::auth::gate::rights_grid::may_set_group(&user, &group).is_ok()
     {
-        rights_url = Some(paths.rights_of(key, &id));
+        use crate::auth::gate::transfer;
+        if crate::auth::gate::rights_grid::may_set_group(&user, &group).is_ok() {
+            rights_url = Some(paths.rights_of(key, &id));
+        }
+        let db = &req.engine.db;
+        let found = async {
+            let taken = transfer::taken_by(&[group_id], db).await?;
+            let receivers = if user.rang >= crate::auth::permissions::rang::Rang::Dirigeant {
+                transfer::receivers(&group, db).await?
+            } else {
+                Vec::new()
+            };
+            Ok::<_, sea_orm::DbErr>((taken, receivers))
+        };
+        match found.await {
+            Ok((taken, receivers)) => {
+                taken_by = taken.get(&group_id).cloned();
+                transfer_receivers = receivers
+                    .into_iter()
+                    .map(|(id, name)| (id.to_string(), name))
+                    .collect();
+            }
+            Err(e) => {
+                return failure(
+                    crate::admin::builder::registered::AdminError::Db(e),
+                    &req,
+                    &admin,
+                )
+                .await;
+            }
+        }
     }
 
     chrome(&mut req, &admin, &site, &user, key);
@@ -91,6 +166,11 @@ pub(crate) async fn detail_view(
             rank_choices,
             current_rank,
             rights_url,
+            memberships_url: (!memberships.is_empty()).then(|| paths.groups_of(key, &id)),
+            memberships,
+            transfer_url: (!transfer_receivers.is_empty()).then(|| paths.transfer_of(key, &id)),
+            transfer_receivers,
+            taken_by,
             object_id: id,
             entry,
             rich_fields: Vec::new(),

@@ -1,0 +1,60 @@
+{% extends "admin_base.html" %}
+{% block title %}{{ admin_transfer_title }} — {{ group }}{% endblock %}
+{% block extra_css %}
+  {{ super() }}
+  <link rel="stylesheet" href="{% runique_static "css/admin/blocks/transfer.css" %}">
+{% endblock %}
+{% block breadcrumb %}
+  <span class="admin-topbar__sep">/</span>
+  <a href="{{ list_url }}">{{ resource.title }}</a>
+  <span class="admin-topbar__sep">/</span>
+  <a href="{{ detail_url }}">{{ group }}</a>
+  <span class="admin-topbar__sep">/</span>
+  <span>{{ admin_transfer_title }}</span>
+{% endblock %}
+{% block content %}
+  {% block transfer_header %}
+  <div class="admin-page__header">
+    <div>
+      <h1 class="admin-page__title">{{ admin_transfer_title }} — {{ group }}</h1>
+    </div>
+  </div>
+  {% endblock %}
+  {# Nothing is written by this page: the POST makes the transfer, for the
+     losses listed here only. #}
+  {% block transfer_body %}
+  <div class="admin-card">
+    <div class="admin-card__body">
+      <p><span class="admin-text--muted">{{ admin_transfer_from }} :</span> {{ from }}</p>
+      <p><span class="admin-text--muted">{{ admin_transfer_to }} :</span> {{ to }}</p>
+      {% if lines %}
+      <p class="mt-sm"><strong>{{ admin_transfer_losses }}</strong></p>
+      {# The box is the badge: full green when kept (the receiver gets the
+         right), empty red when lost. CSS alone switches the label. #}
+      <ul class="admin-transfer__lines" data-lines>
+        {% for line in lines %}
+        <li>
+          <label class="admin-transfer__line">
+            <input type="checkbox" class="admin-transfer__keep" name="{{ line.name }}" value="1" form="transfer-form"{% if line.kept %} checked{% endif %}{% if not line.keepable %} disabled{% endif %}>
+            <span>{{ line.table }} — {{ line.right }}</span>
+            <span class="admin-transfer__gained-right">{{ admin_transfer_gained_right }} {{ to }}</span>
+            <span class="admin-transfer__lost-right">{{ admin_transfer_lost_right }}</span>
+          </label>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="mt-sm" data-no-loss>{{ admin_transfer_no_loss }}</p>
+      {% endif %}
+      <form method="POST" action="{{ form_action }}" class="mt-sm" id="transfer-form">
+        {% csrf %}
+        <input type="hidden" name="runique_form" value="admin_transfer">
+        <input type="hidden" name="to" value="{{ to_id }}">
+        <input type="hidden" name="shown" value="{{ shown }}">
+        <a href="{{ detail_url }}" class="btn btn-ghost">{{ admin_transfer_btn_cancel }}</a>
+        <button type="submit" class="btn btn-primary">{{ admin_transfer_btn_confirm }}</button>
+      </form>
+    </div>
+  </div>
+  {% endblock %}
+{% endblock %}

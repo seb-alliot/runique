@@ -20,6 +20,7 @@ All notable changes to this project will be documented in this file.
 
 ### Breaking changes
 
+* **Production refuses a password reset without a mailer**: `with_password_reset()` without `with_mailer()` / `with_mailer_from_env()` (with its `SMTP_*` set) stops the boot, like a missing public URL: the page could never send its link. Debug still boots, and the page then answers every address with the same "not available right now" notice. A reset token is no longer made when no email can carry it.
 * **`AdminConfig.reset_route` replaced by `reset_link`**: `Option<ResetLinkConfig>` (the reset page's route and the link's lifetime), set by the builder from `with_password_reset()`. `None` without it: the site serves no reset page, so the admin sends no link instead of one leading nowhere. Reset links are made by one function, `auth::password::send_reset_link`, for the site's page and the admin alike.
 * **`decimal` declares its precision**: `price: decimal [max_digits: 10, decimal_places: 2]` (`max_digits` counts every digit, `decimal_places` those after the point: 99999999.99 at most here). A `decimal` without both is a compile error: left out, MySQL/MariaDB created `DECIMAL(10, 0)` and rounded every value to an integer (see *Fixed*). Limits are MySQL/MariaDB's, the lowest of the three engines: 65 digits, 30 after the point.
 
