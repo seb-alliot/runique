@@ -341,7 +341,8 @@
       "filters_hide": "Masquer les filtres",
       "filters_clear": "✕ Tout",
       "select_all": "Tout sélectionner",
-      "row_details": "Détails"
+      "row_details": "Détails",
+      "btn_rights": "Droits"
     },
     "create": {
       "title": "Créer",
@@ -516,7 +517,11 @@
       "right_update": "Modifier",
       "right_update_own": "Modifier les siennes",
       "right_delete": "Supprimer",
-      "right_delete_own": "Supprimer les siennes"
+      "right_delete_own": "Supprimer les siennes",
+      "group_subtitle": "Ce que les membres de ce groupe peuvent faire, table par table et colonne par colonne. Une colonne non cochée n'est ni lue ni écrite.",
+      "group_label": "Groupe",
+      "btn_show": "Afficher",
+      "group_sheet": "Fiche du groupe"
     },
     "rank": {
       "lambda": "Compte du site",

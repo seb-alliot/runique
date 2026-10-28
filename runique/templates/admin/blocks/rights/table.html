@@ -27,18 +27,24 @@
       {% for col in table.columns %}
       <div class="admin-rights__row" role="row">
         <span class="admin-rights__column" role="rowheader">{{ col.column | replace(from="_", to=" ") }}</span>
+        {% if col.read %}
         <label class="admin-rights__box" role="cell">
           <input type="checkbox" name="{{ col.read.name }}" value="1" {% if col.read.ticked %}checked{% endif %}>
           <span class="admin-rights__label">{{ admin_rights_col_read }}</span>
         </label>
+        {% else %}<span class="admin-rights__box" role="cell"></span>{% endif %}
+        {% if col.create %}
         <label class="admin-rights__box" role="cell">
           <input type="checkbox" name="{{ col.create.name }}" value="1" {% if col.create.ticked %}checked{% endif %}>
           <span class="admin-rights__label">{{ admin_rights_col_create }}</span>
         </label>
+        {% else %}<span class="admin-rights__box" role="cell"></span>{% endif %}
+        {% if col.update %}
         <label class="admin-rights__box" role="cell">
           <input type="checkbox" name="{{ col.update.name }}" value="1" {% if col.update.ticked %}checked{% endif %}>
           <span class="admin-rights__label">{{ admin_rights_col_update }}</span>
         </label>
+        {% else %}<span class="admin-rights__box" role="cell"></span>{% endif %}
       </div>
       {% endfor %}
     </div>

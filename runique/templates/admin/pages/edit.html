@@ -33,7 +33,7 @@
 {% endblock %}
 {% block extra_js %}
 {{ super() }}
-  <script {% csp %} src="{{ "js/admin/admin-actions.js" | runique_static }}"></script>
-  <script {% csp %} src="{{ "js/admin/checkbox-toggle.js" | runique_static }}"></script>
-  <script {% csp %} src="{{ "js/admin/choice-filter.js" | runique_static }}"></script>
+  <script {% csp %} src="{% runique_static "js/admin/admin-actions.js" %}"></script>
+  <script {% csp %} src="{% runique_static "js/admin/checkbox-toggle.js" %}"></script>
+  <script {% csp %} src="{% runique_static "js/admin/choice-filter.js" %}"></script>
 {% endblock %}

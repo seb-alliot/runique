@@ -62,6 +62,9 @@ pub struct ResourceLinks {
     pub create: Option<String>,
     /// Where the grouped actions' bar posts, when it offers any.
     pub bulk: Option<String>,
+    /// On the groups' list, the shortcut to their rights, when the account
+    /// may set one.
+    pub rights: Option<String>,
 }
 
 /// A row's links: its list menu, its detail page's buttons.
@@ -316,9 +319,10 @@ pub struct GridBox {
 #[derive(Serialize)]
 pub struct GridColumn {
     pub column: &'static str,
-    pub read: GridBox,
-    pub create: GridBox,
-    pub update: GridBox,
+    /// `None`: a right the viewer may not give, left out of the grid.
+    pub read: Option<GridBox>,
+    pub create: Option<GridBox>,
+    pub update: Option<GridBox>,
 }
 
 /// One table of the grid: its table rights, then its columns.
@@ -348,6 +352,13 @@ pub struct RightsContext {
     pub account_name: String,
     /// Every model of the admin, accounts first.
     pub tables: Vec<GridTable>,
+    /// A group's grid (its members' rights) rather than an admin's.
+    pub is_group: bool,
+    /// On a group's grid, the groups the viewer may set, to pick another:
+    /// `(id, name)`, by name.
+    pub group_choices: Vec<(String, String)>,
+    /// Where the selector sends the group picked (GET, a redirect).
+    pub group_select_url: Option<String>,
     /// The form's CSRF token and name: `html`.
     pub form_fields: serde_json::Value,
     /// The account's page.

@@ -7,7 +7,9 @@
     align-items: center;
     justify-content: center;
     gap: 0.45rem;
-    padding: 0.5rem 1rem;
+    box-sizing: border-box;
+    height: var(--control-height);
+    padding: 0 1rem;
     border-radius: var(--radius);
     font-size: 0.85rem;
     font-weight: 500;
@@ -56,7 +58,7 @@
     background: transparent;
     color: var(--text-muted);
     border-color: transparent;
-    padding: 0.4rem 0.6rem;
+    padding: 0 0.6rem;
 }
 
 .btn-ghost:hover {
@@ -65,7 +67,7 @@
 }
 
 /* Tailles */
-.btn-sm   { padding: 0.3rem 0.65rem; font-size: 0.78rem; }
+.btn-sm   { height: var(--control-height-sm); padding: 0 0.65rem; font-size: 0.78rem; }
 
 /* Icône seul */
 .btn-icon {

@@ -616,7 +616,32 @@ async fn probe_reset_token_owners(req: Request) -> String {
         .await
         .unwrap();
     rows.iter()
-        .map(|row| row.try_get::<runique::utils::pk::Pk>("", "user_id").unwrap().to_string())
+        .map(|row| {
+            row.try_get::<runique::utils::pk::Pk>("", "user_id")
+                .unwrap()
+                .to_string()
+        })
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+/// The groups, `name:responsable` by name, comma-separated.
+async fn probe_groups(req: Request) -> String {
+    use runique::sea_orm::{ConnectionTrait, Statement};
+    let db = &req.engine.db;
+    let rows = db
+        .query_all_raw(Statement::from_string(
+            db.get_database_backend(),
+            "SELECT nom, responsable_id FROM eihwaz_groupes ORDER BY nom",
+        ))
+        .await
+        .unwrap();
+    rows.iter()
+        .map(|row| {
+            let nom: String = row.try_get("", "nom").unwrap();
+            let responsable: runique::utils::pk::Pk = row.try_get("", "responsable_id").unwrap();
+            format!("{nom}:{responsable}")
+        })
         .collect::<Vec<_>>()
         .join(",")
 }
@@ -710,6 +735,7 @@ fn probe_routes() -> Routes {
         "/probe/reset-token-owners" => get(probe_reset_token_owners), name = "declared_test_probe_reset_token_owners",
         "/probe/notes/add/{n}" => get(probe_add_notes), name = "declared_test_probe_add_notes",
         "/probe/block/{n}" => get(probe_block), name = "declared_test_probe_block",
+        "/probe/groups" => get(probe_groups), name = "declared_test_probe_groups",
         "/probe/trace-account" => get(probe_trace_account), name = "declared_test_probe_trace_account",
         "/open/probe" => get(probe_write), name = "declared_test_probe_open_new",
         "/open/probe/{id}" => get(probe_write), name = "declared_test_probe_open_row",
@@ -2273,7 +2299,7 @@ async fn the_superuser_sets_an_admins_grid_and_it_applies_at_once() {
     );
     assert!(!grid.contains("__password__"), "never a secret column");
     assert!(
-        !grid.contains("__is_admin__") && !grid.contains("__is_active__"),
+        !grid.contains("c__users__is_admin__") && !grid.contains("c__users__is_active__"),
         "never a rank nor the activation"
     );
 
@@ -2404,7 +2430,10 @@ async fn the_detail_offers_the_rank_and_the_reset_where_they_apply() {
     assert!(!own.contains(rank_form), "never on his own page");
 
     let note = text(&su, format!("{base}/secret-admin/probe_notes/1/detail")).await;
-    assert!(!note.contains("/reset-password\""), "no reset off the accounts");
+    assert!(
+        !note.contains("/reset-password\""),
+        "no reset off the accounts"
+    );
     assert!(!note.contains("/rank\""), "no rank off the accounts");
 
     give_rank(&su, &base, &[MEMBER, STAFF_MEMBER], "dirigeant").await;
@@ -2453,7 +2482,11 @@ async fn a_blocked_account_gets_no_link_from_the_site() {
         }
         tokio::time::sleep(std::time::Duration::from_millis(20)).await;
     }
-    assert_eq!(held, pk(MEMBER).to_string(), "bob only, never the blocked dave");
+    assert_eq!(
+        held,
+        pk(MEMBER).to_string(),
+        "bob only, never the blocked dave"
+    );
 }
 
 /// Previous and next show only where they lead somewhere, and each points
@@ -2483,7 +2516,313 @@ async fn the_list_pages_and_sorts_through_its_links() {
     assert!(last.contains(r#"href="?page=2"#), "previous is the second");
 
     let asc = text(&client, format!("{list}?sort_by=title&sort_dir=asc")).await;
-    assert!(asc.contains("?sort_by=title&sort_dir=desc"), "asc turns to desc");
+    assert!(
+        asc.contains("?sort_by=title&sort_dir=desc"),
+        "asc turns to desc"
+    );
     let desc = text(&client, format!("{list}?sort_by=title&sort_dir=desc")).await;
-    assert!(desc.contains("?sort_by=title&sort_dir=asc"), "desc turns to asc");
+    assert!(
+        desc.contains("?sort_by=title&sort_dir=asc"),
+        "desc turns to asc"
+    );
+}
+
+// ── The groups ────────────────────────────────────────────────────────────
+
+/// The framework serves the groups: the superuser creates one through the
+/// generated pages and answers for it, whatever the form sends. An admin
+/// without a right on them, and a staff member, never reach them.
+#[tokio::test]
+#[serial]
+async fn the_superuser_creates_a_group_and_answers_for_it() {
+    let base = spawn_with("", probe_routes()).await;
+    let su = signed_in(&base, SUPERUSER).await;
+    let url = format!("{base}/secret-admin/groupes/create");
+    let page = text(&su, url.clone()).await;
+    assert!(!page.contains("name=\"responsable_id\""), "never a field");
+    let token = hidden_value(&page, "csrf_token").unwrap_or_default();
+    let forged = pk(ADMIN).to_string();
+    su.post(url)
+        .form(&[
+            ("csrf_token", token.as_str()),
+            ("runique_form", "admin_create"),
+            ("nom", "équipe"),
+            ("is_active", "true"),
+            ("responsable_id", forged.as_str()),
+        ])
+        .send()
+        .await
+        .unwrap();
+    let groups = text(&su, format!("{base}/probe/groups")).await;
+    assert!(
+        groups.contains(&format!("équipe:{}", pk(SUPERUSER))),
+        "the creator answers for it: {groups}"
+    );
+    let list = text(&su, format!("{base}/secret-admin/groupes/list")).await;
+    assert!(list.contains("équipe"), "listed");
+
+    for n in [ADMIN, STAFF_MEMBER] {
+        let client = signed_in(&base, n).await;
+        let resp = fetch(&client, format!("{base}/secret-admin/groupes/list"), None).await;
+        assert_eq!(location(&resp), Some("/secret-admin/"), "account {n}");
+    }
+}
+
+/// Saves group `g`'s grid with only `boxes` ticked.
+async fn save_group_grid(
+    client: &reqwest::Client,
+    base: &str,
+    g: u32,
+    boxes: &[&str],
+) -> reqwest::Response {
+    let url = format!("{base}/secret-admin/groupes/{g}/rights");
+    let page = text(client, url.clone()).await;
+    let token = hidden_value(&page, "csrf_token").unwrap_or_default();
+    let mut body = vec![
+        ("csrf_token", token.as_str()),
+        ("runique_form", "admin_rights"),
+    ];
+    for b in boxes {
+        body.push((b, "1"));
+    }
+    client.post(url).form(&body).send().await.unwrap()
+}
+
+/// Whether account `n` reaches row 1's edit page of the notes.
+async fn edits_notes(base: &str, n: u32) -> bool {
+    let client = signed_in(base, n).await;
+    let resp = fetch(
+        &client,
+        format!("{base}/secret-admin/probe_notes/1/edit"),
+        None,
+    )
+    .await;
+    resp.status() == reqwest::StatusCode::OK
+}
+
+/// The superuser sets a group's grid from its page: its members get what
+/// it says at their next request. The framework's tables are never offered,
+/// a forged one refuses the whole save.
+#[tokio::test]
+#[serial]
+async fn a_groups_grid_sets_what_its_members_may_do() {
+    let base = spawn_with("", probe_routes()).await;
+    let su = signed_in(&base, SUPERUSER).await;
+    let detail = text(&su, format!("{base}/secret-admin/groupes/1/detail")).await;
+    assert!(
+        detail.contains("/groupes/1/rights\""),
+        "the grid is offered"
+    );
+    let grid = text(&su, format!("{base}/secret-admin/groupes/1/rights")).await;
+    assert!(
+        grid.contains("t__probe_notes__read"),
+        "the developer's tables"
+    );
+    assert!(
+        !grid.contains("t__users__") && !grid.contains("t__groupes__"),
+        "never the framework's"
+    );
+
+    assert!(
+        edits_notes(&base, STAFF_MEMBER).await,
+        "the group edits the notes"
+    );
+    save_group_grid(&su, &base, 1, &["t__probe_notes__read", "t__users__read"]).await;
+    assert!(
+        edits_notes(&base, STAFF_MEMBER).await,
+        "a forged box changes nothing"
+    );
+
+    save_group_grid(
+        &su,
+        &base,
+        1,
+        &["t__probe_notes__read", "c__probe_notes__title__read"],
+    )
+    .await;
+    assert!(!edits_notes(&base, STAFF_MEMBER).await, "reading only, now");
+    let list = signed_in(&base, STAFF_MEMBER).await;
+    let page = fetch(&list, format!("{base}/secret-admin/probe_notes/list"), None).await;
+    assert_eq!(page.status(), reqwest::StatusCode::OK, "still reads");
+}
+
+/// An admin sets the grid of a group he answers for only once his own grid
+/// lets him update the groups, and never beyond his own rights.
+#[tokio::test]
+#[serial]
+async fn an_admin_sets_his_groups_grid_within_his_own_rights() {
+    let base = spawn_with("", probe_routes()).await;
+    let admin = signed_in(&base, ADMIN).await;
+    let page = fetch(
+        &admin,
+        format!("{base}/secret-admin/groupes/1/rights"),
+        None,
+    )
+    .await;
+    assert_eq!(location(&page), Some("/secret-admin/"), "not delegated");
+
+    let su = signed_in(&base, SUPERUSER).await;
+    save_grid(
+        &su,
+        &base,
+        ADMIN,
+        &[
+            "t__probe_notes__read",
+            "t__probe_notes__update",
+            "c__probe_notes__title__read",
+            "c__probe_notes__title__update",
+            "t__groupes__read_own",
+            "t__groupes__update_own",
+        ],
+    )
+    .await;
+    assert!(
+        edits_notes(&base, STAFF_MEMBER).await,
+        "his group keeps editing"
+    );
+    let admin = signed_in(&base, ADMIN).await;
+    // Delete is not his: the whole save is refused, the grid stays.
+    save_group_grid(
+        &admin,
+        &base,
+        1,
+        &["t__probe_notes__read", "t__probe_notes__delete"],
+    )
+    .await;
+    assert!(
+        edits_notes(&base, STAFF_MEMBER).await,
+        "beyond his rights: refused"
+    );
+
+    save_group_grid(
+        &admin,
+        &base,
+        1,
+        &["t__probe_notes__read", "c__probe_notes__title__read"],
+    )
+    .await;
+    assert!(!edits_notes(&base, STAFF_MEMBER).await, "within: applied");
+}
+
+/// The selector offers the groups the account may set and sends to the one
+/// picked; any other id is refused like a missing group. A delegated admin
+/// is offered his groups alone, and in their grid only what he may give:
+/// neither a table he holds no right on, by name, nor a right he lacks.
+#[tokio::test]
+#[serial]
+async fn the_group_selector_and_grid_show_only_what_the_account_may_set() {
+    let base = spawn_with("", probe_routes()).await;
+    let su = signed_in(&base, SUPERUSER).await;
+    let select = |id: &str| format!("{base}/secret-admin/groupes/rights?groupe={id}");
+    let page = text(&su, format!("{base}/secret-admin/groupes/1/rights")).await;
+    for name in ["relecteurs", "orphelins", "en pause"] {
+        assert!(page.contains(&format!(">{name}</option>")), "su: {name}");
+    }
+    assert_eq!(
+        location(&fetch(&su, select("2"), None).await),
+        Some("/secret-admin/groupes/2/rights")
+    );
+    for forged in ["abc", "999"] {
+        let resp = fetch(&su, select(forged), None).await;
+        assert_eq!(location(&resp), Some("/secret-admin/"), "{forged}");
+    }
+
+    save_grid(
+        &su,
+        &base,
+        ADMIN,
+        &[
+            "t__probe_notes__read",
+            "t__probe_notes__update",
+            "c__probe_notes__title__read",
+            "t__groupes__read_own",
+            "t__groupes__update_own",
+        ],
+    )
+    .await;
+    let admin = signed_in(&base, ADMIN).await;
+    let page = text(&admin, format!("{base}/secret-admin/groupes/1/rights")).await;
+    assert!(page.contains(">relecteurs</option>"), "his group");
+    assert!(!page.contains(">orphelins</option>"), "never another's");
+    assert!(page.contains("t__probe_notes__update"), "a right he holds");
+    assert!(
+        !page.contains("t__probe_notes__delete"),
+        "never one he lacks"
+    );
+    assert!(!page.contains("bare_notes"), "never a table he can't reach");
+    let resp = fetch(&admin, select("2"), None).await;
+    assert_eq!(location(&resp), Some("/secret-admin/"), "another's group");
+}
+
+/// The groups' list offers a shortcut to their rights, opening the first
+/// group the account may set by name; never to one who may set none.
+#[tokio::test]
+#[serial]
+async fn the_groups_list_has_a_shortcut_to_their_rights() {
+    let base = spawn_with("", probe_routes()).await;
+    let su = signed_in(&base, SUPERUSER).await;
+    let list = text(&su, format!("{base}/secret-admin/groupes/list")).await;
+    let shortcut = r#"href="/secret-admin/groupes/rights""#;
+    assert!(list.contains(shortcut), "offered");
+    let resp = fetch(&su, format!("{base}/secret-admin/groupes/rights"), None).await;
+    assert_eq!(
+        location(&resp),
+        Some("/secret-admin/groupes/3/rights"),
+        "the first by name: en pause"
+    );
+
+    // An admin with a read right on the groups but no delegation to set them.
+    save_grid(&su, &base, ADMIN, &["t__groupes__read_own"]).await;
+    let admin = signed_in(&base, ADMIN).await;
+    let list = text(&admin, format!("{base}/secret-admin/groupes/list")).await;
+    assert!(!list.contains(shortcut), "not to one who sets none");
+}
+
+/// On an admin's grid, the groups offer their floor alone (create, and act
+/// on his own); a full right forged in the save refuses it whole.
+#[tokio::test]
+#[serial]
+async fn an_admins_grid_keeps_the_groups_floor() {
+    let base = spawn_with("", probe_routes()).await;
+    let su = signed_in(&base, SUPERUSER).await;
+    let grid = text(&su, format!("{base}/secret-admin/users/{}/rights", pk(ADMIN))).await;
+    for floor in ["create", "read_own", "update_own", "delete_own"] {
+        let name = format!(r#"name="t__groupes__{floor}""#);
+        assert!(grid.contains(&name), "offered: {floor}");
+    }
+    for full in ["read", "update", "delete"] {
+        let name = format!(r#"name="t__groupes__{full}""#);
+        assert!(!grid.contains(&name), "never offered: {full}");
+    }
+
+    save_grid(&su, &base, ADMIN, &["t__groupes__read"]).await;
+    assert!(
+        edits_notes(&base, ADMIN).await,
+        "a forged full right refused the save: his grid stays"
+    );
+}
+
+/// Deleting a group takes its memberships and rights with it: its members
+/// lose what it gave at their next request.
+#[tokio::test]
+#[serial]
+async fn deleting_a_group_takes_its_members_rights() {
+    let base = spawn_with("", probe_routes()).await;
+    let su = signed_in(&base, SUPERUSER).await;
+    assert!(edits_notes(&base, STAFF_MEMBER).await, "the group gives the edit");
+
+    let url = format!("{base}/secret-admin/groupes/1/delete");
+    let page = text(&su, url.clone()).await;
+    let token = hidden_value(&page, "csrf_token").unwrap_or_default();
+    su.post(url)
+        .form(&[("csrf_token", token.as_str()), ("runique_form", "admin_delete")])
+        .send()
+        .await
+        .unwrap();
+
+    let groups = text(&su, format!("{base}/probe/groups")).await;
+    assert!(!groups.contains("relecteurs"), "deleted: {groups}");
+    let staff = signed_in(&base, STAFF_MEMBER).await;
+    let resp = fetch(&staff, format!("{base}/secret-admin/probe_notes/list"), None).await;
+    assert_eq!(location(&resp), Some("/"), "no group left: no admin access");
 }

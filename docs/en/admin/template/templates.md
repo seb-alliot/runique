@@ -37,7 +37,7 @@ list.html / create.html …  ← level 3: CRUD components
 Written directly in `admin_template.html` — **cannot be removed** by overriding:
 
 - `<meta name="csrf-token" content="{{ csrf_token }}">` in `<head>`
-- `<script src="{{ "js/csrf.js" | runique_static }}" defer></script>` before `</body>`
+- `<script src="{% runique_static "js/csrf.js" %}" defer></script>` before `</body>`
 
 ---
 

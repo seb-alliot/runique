@@ -75,7 +75,7 @@ Si le template de login est personnalisé (hors `admin_template.html`), les troi
 
 - [ ] `<meta name="csrf-token" content="{{ csrf_token }}">` dans `<head>`
 - [ ] `{% csrf %}` à l'intérieur du `<form method="POST">`
-- [ ] `<script src="{{ "js/csrf.js" | runique_static }}" defer></script>` avant `</body>`
+- [ ] `<script src="{% runique_static "js/csrf.js" %}" defer></script>` avant `</body>`
 
 ### Exemple complet : `templates/auth/login.html`
 
@@ -101,7 +101,7 @@ Si le template de login est personnalisé (hors `admin_template.html`), les troi
         <button type="submit">Se connecter</button>
     </form>
 
-    <script src="{{ "js/csrf.js" | runique_static }}" defer></script>
+    <script src="{% runique_static "js/csrf.js" %}" defer></script>
 </body>
 </html>
 ```

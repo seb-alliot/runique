@@ -341,7 +341,8 @@
       "filters_hide": "フィルターを隠す",
       "filters_clear": "✕ すべて",
       "select_all": "すべて選択",
-      "row_details": "詳細"
+      "row_details": "詳細",
+      "btn_rights": "権限"
     },
     "create": {
       "title": "作成",
@@ -516,7 +517,11 @@
       "right_update": "変更",
       "right_update_own": "自分のものを変更",
       "right_delete": "削除",
-      "right_delete_own": "自分のものを削除"
+      "right_delete_own": "自分のものを削除",
+      "group_subtitle": "このグループのメンバーができること（テーブルごと・列ごと）。チェックのない列は読み書きされません。",
+      "group_label": "グループ",
+      "btn_show": "表示",
+      "group_sheet": "グループの詳細"
     },
     "rank": {
       "lambda": "サイトのアカウント",

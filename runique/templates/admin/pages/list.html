@@ -16,6 +16,15 @@
       <p class="admin-page__subtitle">{{ total | default(value=0) }} {% if total == 1 %}{{ admin_list_entries_count_one }}{% else %}{{ admin_list_entries_count_many }}{% endif %}</p>
     </div>
 
+    <div class="admin-page__header-actions">
+    {% if resource_links.rights %}
+    <a href="{{ resource_links.rights }}" class="btn btn-secondary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+        <path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6z"/>
+      </svg>
+      {{ admin_list_btn_rights }}
+    </a>
+    {% endif %}
     {% if resource_links.create %}
     {# Desktop : bouton plein. Mobile : masqué (≤600px), l'action passe dans le kebab
        de ligne ; pour une liste vide, un bouton de repli est rendu dans l'état vide. #}
@@ -26,15 +35,16 @@
       {% if admin_list_btn_create %}{{ admin_list_btn_create }}{% endif %}
     </a>
     {% endif %}
+    </div>
   </div>
   {% endblock %}
 
   {% include "admin/list_partial.html" %}
 
-  <script {% csp %} src="{{ "js/admin/admin-actions.js" | runique_static }}"></script>
-  <script {% csp %} src="{{ "js/admin/admin-kebab.js" | runique_static }}"></script>
-  <script {% csp %} src="{{ "js/admin/admin-list.js" | runique_static }}"></script>
-  <script {% csp %} src="{{ "js/admin/admin-bulk.js" | runique_static }}"></script>
+  <script {% csp %} src="{% runique_static "js/admin/admin-actions.js" %}"></script>
+  <script {% csp %} src="{% runique_static "js/admin/admin-kebab.js" %}"></script>
+  <script {% csp %} src="{% runique_static "js/admin/admin-list.js" %}"></script>
+  <script {% csp %} src="{% runique_static "js/admin/admin-bulk.js" %}"></script>
 {% endblock %}
 
 {% block extra_js %}

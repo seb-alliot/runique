@@ -1,6 +1,6 @@
 {% extends "admin_base.html" %}
 {% block extra_css %}{{ super() }}
-  <link rel="stylesheet" href="{{ "css/admin/history.css" | runique_static }}">
+  <link rel="stylesheet" href="{% runique_static "css/admin/history.css" %}">
 {% endblock %}
 {% block title %}Lot — {{ resource_titles[resource_key] | default(value=resource_key) }}{% endblock %}
 {% block breadcrumb %}

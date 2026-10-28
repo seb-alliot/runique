@@ -341,7 +341,8 @@
       "filters_hide": "Filter ausblenden",
       "filters_clear": "✕ Alle",
       "select_all": "Alle auswählen",
-      "row_details": "Details"
+      "row_details": "Details",
+      "btn_rights": "Rechte"
     },
     "create": {
       "title": "Erstellen",
@@ -516,7 +517,11 @@
       "right_update": "Ändern",
       "right_update_own": "Eigene ändern",
       "right_delete": "Löschen",
-      "right_delete_own": "Eigene löschen"
+      "right_delete_own": "Eigene löschen",
+      "group_subtitle": "Was die Mitglieder dieser Gruppe tun dürfen, Tabelle für Tabelle und Spalte für Spalte. Eine nicht angehakte Spalte wird weder gelesen noch geschrieben.",
+      "group_label": "Gruppe",
+      "btn_show": "Anzeigen",
+      "group_sheet": "Gruppenseite"
     },
     "rank": {
       "lambda": "Website-Konto",

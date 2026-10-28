@@ -10,6 +10,15 @@ use tera::Tera;
 /// Loads and configures the Tera instance with internal framework templates and project templates.
 pub(crate) struct TemplateLoader;
 
+/// The SRI hashes of the static files, by folder: the project's
+/// (`{% static %}`) and Runique's own (`{% runique_static %}`, the admin's
+/// sheets and scripts).
+#[derive(Default)]
+pub(crate) struct Integrity {
+    pub site: StrMap,
+    pub runique: StrMap,
+}
+
 impl TemplateLoader {
     /// Initializes Tera and processes all templates (internal + users)
     pub fn init(
@@ -29,8 +38,14 @@ impl TemplateLoader {
             url_registry.clone(),
         );
 
-        let static_dir = Path::new(&config.static_files.staticfiles_dirs);
-        let integrity_map = crate::utils::integrity::build_integrity_map(static_dir);
+        let integrity_map = Integrity {
+            site: crate::utils::integrity::build_integrity_map(Path::new(
+                &config.static_files.staticfiles_dirs,
+            )),
+            runique: crate::utils::integrity::build_integrity_map(Path::new(
+                &config.static_files.static_runique_path,
+            )),
+        };
 
         // 3. Loading internal framework templates (WITH preprocess)
         Self::load_internal_templates(&mut tera, &integrity_map)?;
@@ -89,7 +104,7 @@ impl TemplateLoader {
     }
 
     /// Applies all Runique transformations on a template content
-    fn process_content(mut content: String, integrity_map: &StrMap) -> String {
+    fn process_content(mut content: String, integrity_map: &Integrity) -> String {
         // Simple replacements (Runique DSL)
         content = content.replace("{% csrf %}", r#"{% include "csrf.html" %}"#);
         content = content.replace("{% messages %}", r#"{% include "message.html" %}"#);
@@ -140,7 +155,12 @@ impl TemplateLoader {
                 let tag = &caps["tag"];
                 let q = &caps["q"];
                 let url = format!(r#"{{{{ "{}" | {} }}}}"#, path, tag);
-                match integrity_map.get(path) {
+                // Each tag's files are hashed from its own folder.
+                let map = match tag {
+                    "runique_static" => &integrity_map.runique,
+                    _ => &integrity_map.site,
+                };
+                match map.get(path) {
                     Some(hash) => {
                         format!(
                             r#"{}{}{} integrity="{}" crossorigin="anonymous""#,
@@ -172,7 +192,7 @@ impl TemplateLoader {
     /// as a whole on failure.
     fn load_internal_templates(
         tera: &mut Tera,
-        integrity_map: &StrMap,
+        integrity_map: &Integrity,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let templates: Vec<(&str, String)> = SIMPLE_TEMPLATES
             .iter()
@@ -205,7 +225,44 @@ mod process_content_tests {
     use crate::utils::aliases::StrMap;
 
     fn process(src: &str) -> String {
-        TemplateLoader::process_content(src.to_string(), &StrMap::new())
+        TemplateLoader::process_content(src.to_string(), &super::Integrity::default())
+    }
+
+    fn with_runique(path: &str) -> super::Integrity {
+        let mut runique = StrMap::new();
+        runique.insert(path.to_string(), "sha384-abc".to_string());
+        super::Integrity {
+            runique,
+            ..Default::default()
+        }
+    }
+
+    /// Runique's own files get their SRI from Runique's folder.
+    #[test]
+    fn a_runique_static_file_gets_its_integrity() {
+        let out = TemplateLoader::process_content(
+            r#"<link href="{% runique_static "css/a.css" %}">"#.to_string(),
+            &with_runique("css/a.css"),
+        );
+        assert!(
+            out.contains(r#"{{ "css/a.css" | runique_static }}"#),
+            "{out}"
+        );
+        assert!(
+            out.contains(r#"integrity="sha384-abc" crossorigin="anonymous""#),
+            "{out}"
+        );
+    }
+
+    /// Each tag is hashed from its own folder: a project file of the same
+    /// path never takes Runique's hash, nor the reverse.
+    #[test]
+    fn the_folders_never_lend_each_other_a_hash() {
+        let out = TemplateLoader::process_content(
+            r#"<link href="{% static "css/a.css" %}">"#.to_string(),
+            &with_runique("css/a.css"),
+        );
+        assert!(!out.contains("integrity"), "{out}");
     }
 
     #[test]

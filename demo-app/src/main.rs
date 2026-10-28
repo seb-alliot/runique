@@ -15,7 +15,7 @@ use sea_orm::sea_query::prelude::time::ext::NumericalDuration;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     password_init(PasswordConfig::auto_with(Manual::Argon2));
-    set_lang(Lang::En);
+    set_lang(Lang::Fr);
 
     let config: RuniqueConfig = RuniqueConfig::from_env();
 

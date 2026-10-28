@@ -341,7 +341,8 @@
       "filters_hide": "Nascondi i filtri",
       "filters_clear": "✕ Tutto",
       "select_all": "Seleziona tutto",
-      "row_details": "Dettagli"
+      "row_details": "Dettagli",
+      "btn_rights": "Diritti"
     },
     "create": {
       "title": "Crea",
@@ -516,7 +517,11 @@
       "right_update": "Modificare",
       "right_update_own": "Modificare le proprie",
       "right_delete": "Eliminare",
-      "right_delete_own": "Eliminare le proprie"
+      "right_delete_own": "Eliminare le proprie",
+      "group_subtitle": "Cosa possono fare i membri di questo gruppo, tabella per tabella e colonna per colonna. Una colonna non spuntata non è né letta né scritta.",
+      "group_label": "Gruppo",
+      "btn_show": "Mostra",
+      "group_sheet": "Scheda del gruppo"
     },
     "rank": {
       "lambda": "Account del sito",

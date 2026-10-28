@@ -37,7 +37,7 @@ list.html / create.html …  ← niveau 3 : composants CRUD
 Inscrits directement dans `admin_template.html` — **impossibles à supprimer** par surcharge :
 
 - `<meta name="csrf-token" content="{{ csrf_token }}">` dans `<head>`
-- `<script src="{{ "js/csrf.js" | runique_static }}" defer></script>` avant `</body>`
+- `<script src="{% runique_static "js/csrf.js" %}" defer></script>` avant `</body>`
 
 ---
 
