@@ -7,7 +7,7 @@ pub struct ImageForm {
     pub form: Forms,
 }
 
-impl RuniqueForm for ImageForm {
+impl FormAccess for ImageForm {
     fn register_fields(form: &mut Forms) {
         form.field(
             &FileField::image("image")
@@ -21,6 +21,8 @@ impl RuniqueForm for ImageForm {
     }
     impl_form_access!();
 }
+
+impl RuniqueForm for ImageForm {}
 ```
 
 ---

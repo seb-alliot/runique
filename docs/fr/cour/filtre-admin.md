@@ -8,153 +8,90 @@
 Le système de filtres affiche dans une sidebar les valeurs distinctes d'une colonne, et filtre la liste en cliquant dessus. **Tout est SQL** — aucune donnée en mémoire.
 
 ```
-Déclaration (admin.rs)
+Déclaration (src/admin.rs)
       ↓
-    Parser      → lit la macro admin!
+    ModelAdmin.list().filter([...])
       ↓
-    Générateur  → produit admin_panel.rs
+    Validation au boot (AdminStaging::validate)
       ↓
-    Handler     → orchestre les requêtes
+    Handler liste → requêtes distinctes + liste
       ↓
-    Template    → rend la sidebar
+    Template → sidebar
 ```
 
 ---
 
 ## Étape 1 — Déclarer un filtre
 
-Dans `src/admin.rs`, le dev déclare les colonnes à filtrer :
+Dans `src/admin.rs`, le dev déclare les colonnes à filtrer via le builder typé :
 
 ```rust
-list_filter: [
-    ["lang", "Langue"],          // défaut : 10 valeurs par page
-    ["block_type", "Type", 5],   // limite explicite : 5 valeurs par page
-]
-```
-
-Chaque entrée = `["colonne", "Libellé"]` ou `["colonne", "Libellé", limite]`.
-
-> **Règle :** ne jamais filtrer sur une FK ou un `id`. Valeurs brutes illisibles.
-> **Bons candidats :** booléens, énumérations, codes courts.
-
----
-
-## Étape 2 — Le parser
-
-Le daemon (`runique start`) lit `src/admin.rs` token par token et construit une structure intermédiaire :
-
-```rust
-pub struct ResourceDef {
-    pub list_filter: Vec<(String, String, u64)>,
-    //                    col    label  limit
+fn doc_page() -> ModelAdmin<doc_page::Entity> {
+    use doc_page::Column::*;
+    ModelAdmin::new().list(|l| {
+        l.display([Title, Lang, SectionId])
+            .filter([Lang, SectionId])
+    })
 }
 ```
 
-Le 3ème élément est optionnel — si absent, la limite par défaut est `10`.
+Les colonnes sont des variants SeaORM (`Column::Lang`) : une typo ne compile pas.
+
+> **Règle :** privilégier booléens, énumérations et codes courts.
+> Les secrets et drapeaux de rang sont refusés au boot.
 
 ---
 
-## Étape 3 — Le générateur
+## Étape 2 — Validation au démarrage
 
-À partir de la structure, le daemon génère deux blocs dans `admin_panel.rs`.
+Plus de parser/daemon. `AdminStaging::validate()` vérifie que chaque colonne de filtre :
 
-### La configuration d'affichage
+- existe sur le modèle
+- n'est pas secrète
+- est cohérente avec le reste de la config liste
 
-```rust
-let meta = meta.display(
-    DisplayConfig::new()
-        .list_filter(vec![
-            ("lang",       "Langue", 10u64),
-            ("block_type", "Type",    5u64),
-        ])
-);
-```
+Une erreur arrête le démarrage avec un message clair.
 
-Cette config est sérialisée et accessible dans Tera via `resource.display.list_filter`.
+---
 
-### La closure de filtres
+## Étape 3 — Requêtes SQL
 
-Pour chaque colonne, deux requêtes SQL sont générées :
-
-**Comptage** — pour savoir combien de pages existent :
-
-```sql
-SELECT COUNT(DISTINCT lang) FROM doc_page WHERE lang IS NOT NULL
-```
-
-**Valeurs paginées** — seulement ce qui est affiché :
+Pour chaque colonne filtrable, le handler charge les valeurs **distinctes** dans le périmètre autorisé (max 100) :
 
 ```sql
 SELECT DISTINCT CAST(lang AS TEXT)
 FROM doc_page
 WHERE lang IS NOT NULL
 ORDER BY lang ASC
-LIMIT 10 OFFSET 20   -- page 2 × 10
+LIMIT 100
 ```
 
 `CAST(... AS TEXT)` uniformise le type : booléens, entiers et chaînes passent tous par là.
 
-Le résultat est un `HashMap<String, (Vec<String>, u64)>` : chaque colonne → ses valeurs + son total distinct.
+Le résultat alimente `filter_values` dans le contexte Tera : colonne → liste de valeurs.
 
 ---
 
 ## Étape 4 — Le handler
 
-Dans `admin_main/handle_list.rs`, deux séries de paramètres URL sont parsées :
+Dans le router admin, les paramètres URL sont parsés :
 
 ```
 filter_lang=fr    → filtre actif sur la colonne lang
-fp_lang=2         → page 2 dans la sidebar du groupe lang
 ```
 
-Les trois requêtes tournent **en parallèle** grâce à `tokio::join!` :
-
-```rust
-tokio::join!(
-    list_fn(db, list_params),      // entrées de la table
-    count_fn(db, search, column_filters, scope), // total pour la pagination principale (mêmes filtres que la liste)
-    filter_fn(db, filter_pages),   // valeurs distinctes par colonne
-)
-```
+La liste, le total et les valeurs de filtre tournent dans le même flux de page. Seules les colonnes déclarées dans `.filter([...])` sont acceptées ; tout autre `filter_*` est ignoré.
 
 ---
 
-## Étape 5 — La pagination des filtres
+## Étape 5 — Le template
 
-Plutôt que charger 100 valeurs en JS, on pagine côté serveur.
-
-Pour chaque colonne, le handler calcule `filter_meta` :
-
-```
-current_page  → page affichée actuellement
-total_pages   → nombre total de pages
-prev_qs       → query string complet du lien "page précédente"
-next_qs       → query string complet du lien "page suivante"
-```
-
-`prev_qs` et `next_qs` sont précalculés en Rust car Tera ne peut pas construire des query strings complexes. Le template n'a plus qu'à écrire :
+La sidebar s'appuie sur `resource.display.list_filter` et `filter_values` :
 
 ```html
-<a href="?{{ meta.prev_qs }}&page=1">‹</a>
-<a href="?{{ meta.next_qs }}&page=1">›</a>
-```
-
-Ces liens préservent automatiquement le tri, la recherche et les autres filtres actifs.
-
----
-
-## Étape 6 — Le template
-
-La sidebar s'affiche uniquement si `list_filter` est non vide :
-
-```html
-{% for filter_entry in resource.display.list_filter %}
-  {% set col    = filter_entry[0] %}
-  {% set label  = filter_entry[1] %}
+{% for col, label in resource.display.list_filter %}
   {% set values = filter_values[col] %}
-  {% set meta   = filter_meta[col] %}
-
-  {% if values | length > 0 %}
+  {% if values %}
     <!-- groupe visible -->
   {% endif %}
 {% endfor %}
@@ -162,9 +99,11 @@ La sidebar s'affiche uniquement si `list_filter` est non vide :
 
 Chaque valeur est un lien qui ajoute `filter_{col}={val}` à l'URL. Cliquer applique un `WHERE col = val` côté SQL.
 
+Les filtres actifs sont aussi exposés via `active_filters` et `filter_qs` pour préserver l'état dans la pagination.
+
 ---
 
-## Étape 7 — Repli par groupe
+## Étape 6 — Repli par groupe
 
 Chaque groupe peut être replié individuellement. L'état est sauvegardé dans `localStorage` par ressource + colonne :
 
@@ -178,25 +117,12 @@ Au chargement, chaque groupe restaure son état. Au clic sur le titre, le corps 
 
 ---
 
-## Étape 8 — Diagnostic
-
-Si une colonne n'existe pas en base, le code généré log une erreur :
-
-```
-ERROR [runique admin] list_filter `doc_block.lang` :
-      colonne introuvable en DB — column "lang" does not exist
-```
-
-Le dev voit immédiatement quelle colonne dans `list_filter` est invalide.
-
----
-
 ## Résumé des choix de conception
 
 | Choix                              | Alternative écartée          | Pourquoi                             |
 |------------------------------------|------------------------------|--------------------------------------|
-| Pagination serveur                 | Charger 100 valeurs en JS    | Scalable, sans limite arbitraire     |
-| Limite per-colonne                 | Limite globale               | Chaque colonne a des besoins différents |
-| `tokio::join!`                     | Requêtes séquentielles       | Les 3 sont indépendantes             |
-| `tracing::error!` sur colonne absente | `unwrap_or` silencieux    | Diagnostique immédiat                |
-| `localStorage` par ressource+colonne | État global               | Deux ressources indépendantes        |
+| Colonnes typées (`Column::…`)      | Chaînes libres               | Erreur à la compilation              |
+| Validation au boot                 | Génération de code           | Pas de `src/admins/`, pas de daemon  |
+| Valeurs distinctes SQL             | Charger toute la table       | Scalable                             |
+| Whitelist `.filter([...])`         | Accepter tout `filter_*`     | Pas d'injection de nom de colonne    |
+| `localStorage` par ressource+colonne | État global                | Deux ressources indépendantes        |

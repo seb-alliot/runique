@@ -37,6 +37,8 @@ Each group has one entry per resource in `eihwaz_groupes_droits`:
 | `can_update_own` | Edit only their own records |
 | `can_delete_own` | Delete only their own records |
 
+`can_update_own` / `can_delete_own` apply when the model declares an owner (owner column on `ModelMeta`). The gate then filters rows.
+
 ---
 
 ## Configuration via the panel
@@ -46,6 +48,8 @@ Each group has one entry per resource in `eihwaz_groupes_droits`:
 3. Go to **Admin → Users** → assign the group to the user
 
 A user with no group sees no resources in the nav (except superuser).
+
+Rights are **not** declared on `ModelAdmin`: the whole grid lives in the database.
 
 ### Immediate revocation
 
@@ -82,9 +86,10 @@ authenticated?
 
 ## Notes
 
-- The `admin!` macro no longer declares `permissions:` — configuration is entirely in the database.
+- `ModelAdmin` does not declare permissions: configuration is entirely in the database.
 - Permissions are aggregated with logical OR across all of the user's groups.
 - A user can have `can_read` without `can_create` — they see the list but cannot create.
+- Secret columns and ranks stay out of forms even for a superuser (gate + boot validation).
 
 ---
 
@@ -93,7 +98,7 @@ authenticated?
 | Section | Description |
 | --- | --- |
 | [Setup](/docs/en/admin/setup) | Wire the admin, create a superuser |
-| [CLI](/docs/en/admin/declaration) | `runique start` command, general workflow |
+| [Declaration](/docs/en/admin/declaration) | `AdminStaging`, `AdminSite`, registration |
 | [Templates](/docs/en/admin/template) | Template hierarchy, blocks, visual override |
 | [Roadmap](/docs/en/admin/evolution) | Planned features |
 

@@ -32,7 +32,7 @@ sans reverse proxy.
 
 ```toml
 # Cargo.toml
-runique = { version = "3.0.0", features = ["postgres", "acme"] }   # postgres : votre moteur de base
+runique = { version = "4.0.0", features = ["postgres", "acme"] }   # postgres : votre moteur de base
 ```
 
 ```env

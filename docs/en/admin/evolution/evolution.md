@@ -1,31 +1,23 @@
 # Planned features
 
-Features planned for future versions of the Runique admin.
-
----
+Ideas for future versions of the Runique admin (`ModelAdmin` builder).
 
 ## Admin inlines
 
-Allow editing related models directly within the parent form, similar to Django inlines:
+Edit related models inside the parent form, Django-style:
 
 ```rust
-admin! {
-    order {
-        model: entities::order::Entity,
-        inline: [
-            ["lines", "crate::entities::order_line", "order_id"],
-        ],
-    }
-}
+ModelAdmin::new()
+    .form(|f| f.fields([Title, Status]))
+    // future:
+    // .inline(lines, |i| i.fk(OrderId).fields([Product, Qty]))
 ```
 
-The inline would display an editable table of related entries (add, remove, update) within the parent resource's create/edit page.
+The inline would show an editable table (add, remove, update) on the parent's create/edit page.
 
----
+## `view!{}` — public CRUD
 
-## `view!{}` — public CRUD router with overridable templates
-
-A routing macro that merges route declaration and overridable default templates, analogous to Django's generic views (`ListView`, `DetailView`, `CreateView`…).
+Public routing macro similar to Django generic views, with overridable templates:
 
 ```rust
 view! {
@@ -33,7 +25,7 @@ view! {
         model: entities::article::Entity,
         prefix: "/articles",
         templates: {
-            list:   "articles/list.html",    // optional override
+            list:   "articles/list.html",
             detail: "articles/detail.html",
             create: "articles/create.html",
         },
@@ -43,17 +35,20 @@ view! {
 }
 ```
 
-Generated routes: `GET /articles` (paginated list), `GET /articles/<id>` (detail), `GET/POST /articles/new` (create), `GET/POST /articles/<id>/edit`, `POST /articles/<id>/delete`. Default templates are provided by the framework and overridable block by block, exactly like the admin.
+Target routes: paginated list, detail, create, edit, delete — framework templates overridable block by block, like the admin.
+
+## Custom business filters
+
+Today the list scope follows the gate (rights + ownership). A declarative hook for a business filter ("orders in my region") is still open.
 
 ## See also
 
 | Section | Description |
 | --- | --- |
-| [Setup](/docs/en/admin/setup) | Wire the admin into an existing project, create a superuser |
-| [CLI](/docs/en/admin/declaration) | `runique start` command, general workflow |
-| [Permissions](/docs/en/admin/permission) | Roles, `is_staff` / `is_superuser`, runtime check |
-| [Templates](/docs/en/admin/template) | Template hierarchy, blocks, visual override |
+| [Setup](/docs/en/admin/setup) | Wire the admin |
+| [ModelAdmin builder](/docs/en/admin/declaration-macro) | Current API |
+| [Permissions](/docs/en/admin/permission) | Runtime gate |
 
 ## Back to summary
 
-- [Admin Summary](/docs/en/admin)
+- [Admin summary](/docs/en/admin)

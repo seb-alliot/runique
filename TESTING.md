@@ -180,8 +180,8 @@ runique create-superuser
 
 The wizard's steps and the password rules: [3. Create the admin account](#3-create-the-admin-account).
 
-`runique start` regenerates `src/admins/` from `src/admin.rs` before running the site: needed
-only after changing the `admin!{}` declarations.
+Admin is declared in `src/admin.rs` with `ModelAdmin` and wired via `.with_admin(...)`.
+Plain `cargo run -p demo-app` is enough; no code generation step.
 
 ---
 

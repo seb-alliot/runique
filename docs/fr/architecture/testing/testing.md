@@ -11,10 +11,10 @@ Runique teste votre **logique métier contre une vraie base de données** : chaq
 ```toml
 # Cargo.toml
 [dependencies]
-runique = { version = "3.0.0", features = ["postgres"] }
+runique = { version = "4.0.0", features = ["postgres"] }
 
 [dev-dependencies]
-runique = { version = "3.0.0", features = ["test-utils"] }
+runique = { version = "4.0.0", features = ["test-utils"] }
 ```
 
 Les tests vivent dans `src/runique_test/`, un fichier par domaine, déclarés derrière `cfg(test)` :

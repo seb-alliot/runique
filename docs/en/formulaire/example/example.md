@@ -15,7 +15,7 @@ pub struct RegisterForm {
     pub form: Forms,
 }
 
-impl RuniqueForm for RegisterForm {
+impl FormAccess for RegisterForm {
     fn register_fields(form: &mut Forms) {
         form.field(
             &TextField::text("username")
@@ -39,6 +39,8 @@ impl RuniqueForm for RegisterForm {
 
     impl_form_access!();
 }
+
+impl RuniqueForm for RegisterForm {}
 
 impl RegisterForm {
     pub async fn save(&self, db: &DatabaseConnection) -> Result<users::Model, DbErr> {

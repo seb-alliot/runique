@@ -11,7 +11,7 @@
 | Migrations (annuler) | `python manage.py migrate app 0001` | `sea-orm-cli migrate down -n N` |
 | Statut migrations | `python manage.py showmigrations` | `sea-orm-cli migrate status` |
 | Créer superuser | `python manage.py createsuperuser` | `runique create-superuser` |
-| Démarrer | `python manage.py runserver` | `cargo run` — `runique start` pour (re)générer le panel admin |
+| Démarrer | `python manage.py runserver` | `cargo run` (admin en Rust plain — pas d'étape de génération) |
 
 ---
 
@@ -136,28 +136,27 @@
 
 | Fonctionnalité | Django | Runique |
 |----------------|--------|---------|
-| Activation | `admin.site.register(Model)` | macro `admin!{}` |
+| Activation | `admin.site.register(Model)` | builder typé `ModelAdmin` + `AdminSite.register(...)` |
 | CRUD complet | natif | natif |
-| Pagination liste | natif | `.page_size(n)` (liste + historique) |
-| `list_display` | natif | `list_display: [["col", "Libellé"], ...]` |
-| Résolution FK en liste | — | 3ème élément : `["fk_id", "Libellé", "table.colonne"]` |
-| Recherche / filtres | natif | `list_filter` + recherche plein-texte SQL — colonnes directes uniquement, filtres cumulables (plusieurs colonnes simultanément) |
-| Actions de groupe | `actions` | `group_action` — bool (2 éléments) ou enum (3 éléments, valeur exacte) |
-| Création multiple | — | `bulk_create: champ` — split par virgule, insère N enregistrements ; une valeur déjà présente est ignorée (sans tenir compte de la casse) : une création ne modifie jamais |
+| Pagination liste | natif | `.page_size(n)` au site + `.per_page(n)` par modèle |
+| Colonnes affichées | `list_display` | `.list(\|l\| l.display([Title, Status]))` — colonnes SeaORM typées |
+| Recherche / filtres | natif | `.search([...])` + `.filter([...])` — colonnes directes uniquement, filtres cumulables |
+| Actions de groupe | `actions` | `.action(Col, value, "Libellé")` — valeur fixée dans le code, l'UI envoie l'index |
 | Édition en masse | — | bulk edit natif sur sélection multi-entrées |
-| Relations M2M | `filter_horizontal` / `ManyRelatedField` | `m2m: [...]` — table de jonction, diff automatique |
+| Suppression en masse | natif | natif si le compte peut supprimer |
+| Relations M2M / listes | `filter_horizontal` / `ManyRelatedField` | champs liste du modèle (`multichoice` / `checkbox`) |
 | Routes admin custom | `get_urls()` | `admin "…" => …` dans `urlpatterns!` |
-| Templates custom | oui | oui (hiérarchie Tera) |
+| Templates custom | oui | oui (hiérarchie Tera + `.templates(...)` par modèle) |
 | Permissions | par ressource | RBAC dynamique (Groupes / Droits scopés) |
 | Comptes superutilisateur | un staff ayant le droit de modifier les utilisateurs peut se rendre superutilisateur (la doc de Django le signale) | `is_superuser` jamais modifiable depuis l'admin, et le compte d'un superutilisateur (email, réinitialisation, suppression) n'est modifiable que par un superutilisateur |
 | Historique modifications | `django-simple-history` (tiers) | historique natif (créé/modifié/supprimé) avec diff de champs, vue timeline et filtres (ressource/action/utilisateur) |
-| Configuration builtins | — | bloc `configure {}` dans `admin!{}` |
+| Comptes étendus | — | `extend!{}` + `AdminSite::accounts_users(ModelAdmin)` |
 | Verrouillage optimiste | — | natif — détecte les éditions concurrentes (`__original_updated_at`) |
 | Protection brute-force login | `django-axes` (tiers) | natif — `LoginGuard` + rate limiter sur le login admin |
-| Email création compte | plugin tiers | natif — `inject_password: true` génère mot de passe temporaire + email |
+| Email création compte | plugin tiers | natif — mot de passe temporaire + email d'activation |
 | Rafraîchissement liste partiel | — | natif — `list_partial` HTMX sans rechargement page |
+| Champs lecture seule / create-only | `readonly_fields` | `.readonly([...])` / `.create_only([...])` sur le builder form |
 | Fieldsets | `fieldsets` | — |
-| Champs lecture seule | `readonly_fields` | — |
 | Navigation par date | `date_hierarchy` | — |
 | Export | CSV natif | — |
 | Boutons save avancés | "Save and continue" / "Save and add" | — |
@@ -211,16 +210,15 @@
 ## Ce qu'il manque encore (comparé à Django)
 
 - **Redimensionnement automatique d'images** : resize/cropping côté serveur non natif.
-- **Vues CRUD publiques génériques** : pas d'équivalent aux `DetailView`, `ListView`, `CreateView` de Django pour les vues publiques — envisagé via `crud!{}` (feuille de route, sans engagement). Le panel admin couvre le CRUD backoffice via `admin!{}`.
+- **Vues CRUD publiques génériques** : pas d'équivalent aux `DetailView`, `ListView`, `CreateView` de Django pour les vues publiques — envisagé via `crud!{}` (feuille de route, sans engagement). Le panel admin couvre le CRUD backoffice via `ModelAdmin`.
 - **Signals / hooks modèles** : `before_save`, `after_save`, `before_delete`, `after_delete` — non implémenté, à l'état de plan (roadmap).
 - **Management commands** : pas d'équivalent à `manage.py custom_command` — les opérations one-shot passent par `src/bin/`.
 - **Test client intégré** : pas de client HTTP de test natif — utiliser `reqwest` ou `axum::test`.
 - **Fixtures** : pas de `loaddata`/`dumpdata` — les seeds sont des fonctions Rust.
 - **Admin inline** : pas d'édition d'objets liés directement dans le formulaire parent.
-- **Admin actions de groupe custom** : `group_action` ne supporte que des mises à jour de colonnes SQL (`GroupAction::bool` et `GroupAction::val`) — aucune logique Rust arbitraire possible sur la sélection (équivalent Django : `actions` avec une fonction quelconque).
-- **Admin filtre FK** : `list_filter` ne supporte que les colonnes directes — pas de traversée de relation (`article__auteur__nom`).
+- **Admin actions de groupe custom** : `.action(...)` ne supporte que des mises à jour de colonnes à valeur fixe — aucune logique Rust arbitraire possible sur la sélection (équivalent Django : `actions` avec une fonction quelconque).
+- **Admin filtre FK** : `.filter([...])` ne supporte que les colonnes directes — pas de traversée de relation (`article__auteur__nom`).
 - **Admin fieldsets** : pas de groupement de champs par section dans les formulaires admin (`fieldsets` Django).
-- **Admin readonly fields** : pas de `readonly_fields` — les champs non éditables doivent être exclus du formulaire.
 - **Admin navigation par date** : pas de `date_hierarchy` pour filtrer la liste par année/mois/jour.
 - **Admin export** : pas d'export CSV/JSON natif depuis la liste.
 - **Admin boutons save avancés** : pas de "Enregistrer et continuer" / "Enregistrer et ajouter un autre".

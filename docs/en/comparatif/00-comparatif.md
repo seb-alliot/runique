@@ -11,7 +11,7 @@
 | Migrations (rollback) | `python manage.py migrate app 0001` | `sea-orm-cli migrate down -n N` |
 | Migration status | `python manage.py showmigrations` | `sea-orm-cli migrate status` |
 | Create superuser | `python manage.py createsuperuser` | `runique create-superuser` |
-| Start | `python manage.py runserver` | `cargo run` — `runique start` to (re)generate the admin panel |
+| Start | `python manage.py runserver` | `cargo run` (admin is plain Rust — no generation step) |
 
 ---
 
@@ -136,28 +136,27 @@
 
 | Feature | Django | Runique |
 |---------|--------|---------|
-| Registration | `admin.site.register(Model)` | `admin!{}` macro |
+| Registration | `admin.site.register(Model)` | typed `ModelAdmin` + `AdminSite.register(...)` |
 | Full CRUD | native | native |
-| List pagination | native | `.page_size(n)` (list + history) |
-| `list_display` | native | `list_display: [["col", "Label"], ...]` |
-| FK resolution in list | — | 3rd element: `["fk_id", "Label", "table.column"]` |
-| Search / filters | native | `list_filter` + automatic full-text SQL search — direct columns only, combinable filters (multiple columns simultaneously) |
-| Group actions | `actions` | `group_action` — bool (2 elements) or enum (3 elements, exact value) |
-| Bulk create | — | `bulk_create: field` — comma-split, inserts N records; a value already present is skipped (case-insensitively): a create never updates |
+| List pagination | native | `.page_size(n)` site-wide + `.per_page(n)` per model |
+| Displayed columns | `list_display` | `.list(\|l\| l.display([Title, Status]))` — typed SeaORM columns |
+| Search / filters | native | `.search([...])` + `.filter([...])` — direct columns only, combinable filters |
+| Group actions | `actions` | `.action(Col, value, "Label")` — fixed value in code, UI sends the action index |
 | Bulk edit | — | native bulk edit on multi-row selection |
-| M2M relations | `filter_horizontal` / `ManyRelatedField` | `m2m: [...]` — junction table, automatic diff |
+| Bulk delete | native | native when the account may delete |
+| M2M / list fields | `filter_horizontal` / `ManyRelatedField` | handled via model list fields (`multichoice` / `checkbox`) |
 | Custom admin routes | `get_urls()` | `admin "…" => …` in `urlpatterns!` |
-| Custom templates | yes | yes (Tera hierarchy) |
+| Custom templates | yes | yes (Tera hierarchy + per-model `.templates(...)`) |
 | Permissions | per resource | Dynamic RBAC (Groups / Scoped permissions) |
 | Superuser accounts | a staff member allowed to edit users can make themselves a superuser (Django's docs warn about it) | `is_superuser` is never editable from the admin, and a superuser's account (email, password reset, deletion) can only be changed by a superuser |
 | Change history | `django-simple-history` (3rd party) | native history (created/modified/deleted) with field diff, timeline view and filters (resource/action/user) |
-| Builtin config | — | `configure {}` block in `admin!{}` |
+| Extended accounts | — | `extend!{}` + `AdminSite::accounts_users(ModelAdmin)` |
 | Optimistic locking | — | native — detects concurrent edits (`__original_updated_at`) |
 | Admin login brute-force protection | `django-axes` (3rd party) | native — `LoginGuard` + rate limiter on admin login |
-| Account creation email | 3rd party | native — `inject_password: true` generates temporary password + email |
+| Account creation email | 3rd party | native — temporary password + activation email |
 | Partial list refresh | — | native — `list_partial` HTMX without full page reload |
+| Read-only / create-only fields | `readonly_fields` | `.readonly([...])` / `.create_only([...])` on the form builder |
 | Fieldsets | `fieldsets` | — |
-| Read-only fields | `readonly_fields` | — |
 | Date hierarchy | `date_hierarchy` | — |
 | Export | native CSV | — |
 | Advanced save buttons | "Save and continue" / "Save and add another" | — |
@@ -211,16 +210,15 @@
 ## What Runique is still missing (compared to Django)
 
 - **Image resizing**: no server-side auto resize/cropping.
-- **Generic public CRUD views**: no equivalent to Django's `DetailView`, `ListView`, `CreateView` for public views — considered via `crud!{}` (roadmap, no commitment). The admin panel covers backoffice CRUD via `admin!{}`.
+- **Generic public CRUD views**: no equivalent to Django's `DetailView`, `ListView`, `CreateView` for public views — considered via `crud!{}` (roadmap, no commitment). The admin panel covers backoffice CRUD via `ModelAdmin`.
 - **Model signals / hooks**: `before_save`, `after_save`, `before_delete`, `after_delete` — not implemented, still at the planning stage (roadmap).
 - **Management commands**: no equivalent to `manage.py custom_command` — one-shot operations go through `src/bin/`.
 - **Built-in test client**: no native HTTP test client — use `reqwest` or `axum::test`.
 - **Fixtures**: no `loaddata`/`dumpdata` — seeds are plain Rust functions.
 - **Admin inline**: no editing of related objects directly inside the parent form.
-- **Admin custom group actions**: `group_action` only supports SQL column updates (`GroupAction::bool` and `GroupAction::val`) — no arbitrary Rust logic on the selection (Django equivalent: `actions` with any callable).
-- **Admin FK filters**: `list_filter` supports direct columns only — no relation traversal (`article__author__name`).
+- **Admin custom group actions**: `.action(...)` only supports fixed column updates — no arbitrary Rust logic on the selection (Django equivalent: `actions` with any callable).
+- **Admin FK filters**: `.filter([...])` supports direct columns only — no relation traversal (`article__author__name`).
 - **Admin fieldsets**: no field grouping by section in admin forms (`fieldsets` in Django).
-- **Admin readonly fields**: no `readonly_fields` — non-editable fields must be excluded from the form.
 - **Admin date hierarchy**: no `date_hierarchy` to filter the list by year/month/day.
 - **Admin export**: no native CSV/JSON export from the list view.
 - **Admin advanced save buttons**: no "Save and continue editing" / "Save and add another".

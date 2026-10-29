@@ -12,13 +12,15 @@ pub struct LoginForm {
     pub form: Forms,
 }
 
-impl RuniqueForm for LoginForm {
+impl FormAccess for LoginForm {
     fn register_fields(form: &mut Forms) {
         form.field(&TextField::text("username").label("Username").required());
         form.field(&TextField::password("password").label("Password").no_hash().required());
     }
     impl_form_access!();
 }
+
+impl RuniqueForm for LoginForm {}
 
 pub async fn login_post(mut request: Request) -> AppResult<Response> {
     let form: LoginForm = request.form();

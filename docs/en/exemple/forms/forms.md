@@ -12,10 +12,7 @@ pub struct RegisterForm {
     pub form: Forms,
 }
 
-#[async_trait]
-impl RuniqueForm for RegisterForm {
-    impl_form_access!();
-
+impl FormAccess for RegisterForm {
     fn register_fields(form: &mut Forms) {
         form.field(
             &TextField::text("username")
@@ -37,6 +34,11 @@ impl RuniqueForm for RegisterForm {
         );
     }
 
+    impl_form_access!();
+}
+
+#[async_trait]
+impl RuniqueForm for RegisterForm {
     // Business validation — called automatically by is_valid()
     async fn clean(&mut self) -> Result<(), StrMap> {
         let mut errors = StrMap::new();
@@ -50,8 +52,8 @@ impl RuniqueForm for RegisterForm {
 
 ### Model-based form
 
-`#[form(...)]` generates the struct and `impl ModelForm`.
-The developer writes `impl RuniqueForm` with `impl_form_access!(model)`:
+`#[form(...)]` generates the struct, `impl ModelForm`, and **`impl FormAccess`**.
+User code only writes `impl RuniqueForm` (hooks like `clean` / `customize`):
 
 ```rust
 use runique::prelude::*;
@@ -61,8 +63,6 @@ pub struct RegisterForm;
 
 #[async_trait]
 impl RuniqueForm for RegisterForm {
-    impl_form_access!(model);
-
     async fn clean(&mut self) -> Result<(), StrMap> {
         let mut errors = StrMap::new();
         if self.cleaned::<String>("username").unwrap_or_default().len() < 3 {
@@ -80,7 +80,7 @@ impl RuniqueForm for RegisterForm {
 ```
 
 > `#[async_trait]` is required only when overriding `clean` or `clean_field`.
-> Without async override, `impl RuniqueForm { impl_form_access!(model); }` is enough.
+> Without async override, `impl RuniqueForm for RegisterForm {}` is enough.
 
 ---
 
@@ -142,7 +142,7 @@ pub struct UsernameForm {
     pub form: Forms,
 }
 
-impl RuniqueForm for UsernameForm {
+impl FormAccess for UsernameForm {
     fn register_fields(form: &mut Forms) {
         form.field(
             &TextField::text("username")
@@ -152,7 +152,9 @@ impl RuniqueForm for UsernameForm {
         );
     }
     impl_form_access!();
+}
 
+impl RuniqueForm for UsernameForm {
     // This form only serves the GET search — never validate on POST.
     fn allow_post(&self, _request: &Request) -> bool {
         false

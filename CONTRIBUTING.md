@@ -65,16 +65,12 @@ Warnings are errors (`-D warnings`). The three test runs cover the three primary
 
 ---
 
-## Generated code
+## Admin declaration
 
-`src/admins/` (in demo-app or a project) is generated from `admin!{}` by `runique start`: never
-edit it by hand. Change the generator (`runique/src/admin/daemon/generator.rs`), then refresh
-its reference file and review the diff:
-
-```bash
-cd runique
-RUNIQUE_UPDATE_GOLDEN=1 cargo test --lib admin::daemon::generator
-```
+Admin resources are declared by hand in `src/admin.rs` with the typed `ModelAdmin` builder
+and registered on `AdminSite` (see `demo-app/src/admin.rs`). There is no generated
+`src/admins/` folder and no daemon: a change to the admin is plain Rust, checked at compile
+time and again by `AdminStaging::validate()` at boot.
 
 ---
 

@@ -1,68 +1,71 @@
-# Admin code generation
+# Boot validation
 
-## `runique start` behaviour
+No admin file generation anymore. Instead, `AdminStaging::validate()` checks the whole config **before** routes are mounted. An error stops startup with a clear message.
 
-`runique start` is **not** a background watcher: it's a **sequential one-shot generation**, followed by a blocking launch of the application.
+## When it runs
 
-1. `src/admin.rs` is read once
-2. The `admin! { ... }` macro is parsed via `syn`, producing `ResourceDef` structures
-3. The contents of `src/admins/` are rewritten in place (files are truncated and rewritten — the folder is never deleted beforehand)
-4. `cargo fmt --all` runs
-5. `cargo run --release` runs, blocking, in the same process
+1. `.with_admin(admin::config)` builds the staging
+2. `build()` calls `staging.validate()`
+3. On `Ok`, CRUD routes mount under `prefix + path`
 
-There is no continuous file watching and no debounce: an earlier implementation based on a separate thread was removed because it caused a race condition. To regenerate after a change, run `runique start` again.
+You can replay the same checks in a test:
 
----
-
-## Generated structure
-
-```text
-src/admins/
-  ├── README.md       ← warning: do not edit manually
-  ├── mod.rs          ← exposes `routes` and `admin_state`
-  └── admin.rs        ← main file: DynForm wrappers + admin_register()
+```rust
+#[test]
+fn every_registered_model_passes_the_boot_checks() {
+    let staging = super::config(AdminStaging::new().enable());
+    if let Err(e) = staging.validate() {
+        panic!("{e}");
+    }
+}
 ```
 
-### `admin.rs`
+## What is checked
 
-Contains for each resource declared in `admin!`:
+### Per model (`ModelAdmin::validate`)
 
-- A `DynForm` wrapper around the concrete Runique form
-- The closures `list_fn`, `get_fn`, `create_fn`, `update_fn`, `delete_fn`, `count_fn`, `partial_update_fn` (always generated, used for bulk edit/group actions)
-- If `list_filter` is declared: a `filter_fn` closure per field, loading distinct values from the database (up to 10 by default)
-- The `admin_register()` function that builds the `HashMap<String, ResourceEntry>` loaded at boot
+- list / form consistency (action on a non-writable column, etc.)
+- secrets never exposed (display, search, filter, sort, form, action)
+- on the accounts table: no bulk action on ranks / `is_active`
+- ranks absent from `fields` (gate-only)
+- owner never the target of a disguised transfer action
 
-### `mod.rs`
+### Site level (`AdminSite::check`)
 
-Re-exports `routes` and `admin_state` from `admin`.
+- every registered model passes its checks
+- framework accounts admin is not duplicated by a rogue `register`
+- groups and accounts stay consistent
 
----
+### Staging level
 
-## The trade-off: automatic overwriting
+- valid admin path
+- no declared route collisions
+- rate limiter / login guard coherent when set
 
-Every run of `runique start` **rewrites** the contents of `src/admins/` (files truncated and regenerated, never deleted beforehand).
+## Defaults before serving
 
-Any manual modifications inside this folder will be **lost** on the next `runique start`.
+- without `display`: non-secret columns (accounts → username, email, is_active)
+- without `links`: first display column
+- without `form.fields`: all model form fields, filtered by the gate
 
-## When to switch to `cargo run`
+## Relevant files
 
-If manual changes to the generated code are needed (specific business logic, custom handler), you must **stop `runique start`** and switch to a standard workflow:
+| File | Role |
+| --- | --- |
+| `src/admin.rs` | Your config (maintain this) |
+| `runique/src/admin/builder/` | Builder + validation |
+| `runique/src/app/staging/admin_staging.rs` | Staging + `validate()` |
 
-```bash
-cargo run
-```
+Nothing is written under `src/admins/`: that folder is gone.
 
-In this mode, `runique start` never runs, so `src/admins/` is never rewritten. Changes persist.
-
-> The `README.md` generated inside `src/admins/` reminds you of this behaviour directly in the repository.
-
-## Related sections
+## See also
 
 | Section | Description |
 | --- | --- |
-| [CLI](/docs/en/admin/declaration) | How `runique start` works |
-| [Macro `admin!`](/docs/en/admin/declaration-macro) | Declaring administrable resources |
+| [ModelAdmin builder](/docs/en/admin/declaration-macro) | API feeding validation |
+| [Setup](/docs/en/admin/setup) | Wiring |
+| [Permissions](/docs/en/admin/permission) | Runtime gate |
 
 ## Back to summary
 
-- [Admin Summary](/docs/en/admin)
+- [Admin summary](/docs/en/admin)

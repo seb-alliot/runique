@@ -1,170 +1,143 @@
 # List view — Pagination, sorting, search and filters
 
-The admin list view handles all its operations **at the SQL level**: pagination, column sorting, full-text search and value filters. Nothing is loaded into memory.
+The admin list works **at SQL level**: pagination, sort, search and filters. Nothing is loaded into memory just to page.
 
-## Table of Contents
+Config is declared on `ModelAdmin` via `.list(|l| …)`.
 
-- [Displayed columns — list_display](#displayed-columns-list-display)
-- [Foreign key resolution](#foreign-key-resolution)
-- [Sidebar filters — list_filter](#sidebar-filters-list-filter)
-- [Column sorting](#column-sorting)
+## Contents
+
+- [Displayed columns](#displayed-columns)
+- [Detail links](#detail-links)
+- [Sorting](#sorting)
 - [Search](#search)
+- [Filters](#filters)
+- [Bulk actions](#bulk-actions)
 - [Pagination](#pagination)
 - [URL parameters](#url-parameters)
 
-## Displayed columns — list_display
-
-By default, all entity columns are shown. Declaring `list_display` restricts the display to an ordered selection:
+## Displayed columns
 
 ```rust
-admin! {
-    users: users::Model => RegisterForm {
-        title: "Users",
-        list_display: [
-            ["username", "Username"],
-            ["email", "Email"],
-            ["is_active", "Active"],
-        ]
-    }
-}
+.list(|l| l.display([Title, Status, Views]))
 ```
 
-Each entry is a `["column_name", "Label"]` pair. Columns declared in `list_display` also serve as the **sorting whitelist**: only these columns (and `id`) accept a `sort_by` parameter.
+Without `display`, every non-secret column appears (accounts: username, email, is_active).
 
-Available in the Tera context via `visible_columns` (list of names) and `column_labels` (corresponding labels).
+Array order is header order.
 
-## Foreign key resolution
-
-An optional third element in each `list_display` entry resolves a related table's label instead of displaying the raw ID:
+## Detail links
 
 ```rust
-admin! {
-    orders: order::Model => order::AdminForm {
-        title: "Orders",
-        list_display: [
-            ["number", "N°"],
-            ["user_id", "Customer", "eihwaz_users.username"],   // ← FK
-            ["status", "Status"],
-        ],
-    }
-}
+.list(|l| l.display([Title, Status]).links([Title]))
 ```
 
-The third element syntax is `"table.column"`. The daemon automatically generates:
+Without `links`, the first `display` column becomes the link.
 
-- In the **list view**: a `SELECT CAST(id AS TEXT), column FROM table WHERE id IN (...)` post-processing query that replaces each ID with the resolved label.
-- In **create and edit forms**: a `<select>` dropdown populated from the related table, with the existing value pre-selected in edit mode.
+## Sorting
 
-Resolution is compatible with `i32`, `i64` and UUID — the identifier is cast to `TEXT` before comparison.
-
-A FK column stays **searchable through its displayed label**, not the raw ID: the daemon first resolves the search text against the related table (`table.column`), then filters the current table on the matching IDs (`FK IN (...)`). Non-FK columns remain indexed normally, and both sets combine with `OR`.
-
-### Common examples
+Default SQL order:
 
 ```rust
-["menu_id",  "Menu",     "menus.title"]
-["theme_id", "Theme",    "themes.label"]
-["user_id",  "Customer", "eihwaz_users.username"]
-```
-
-### Configuring builtins — configure {}
-
-`list_display` inside a resource body only applies to resources you declare. To configure display for **builtin resources** (users, droits, groupes) or to centralise all display config, use the top-level `configure {}` block:
-
-```rust
-admin! {
-    configure {
-        users:  { list_display: [["id", "ID"], ["username", "Username"], ["email", "Email"]] },
-        droits: { list_display: [["id", "ID"], ["nom", "Name"]] },
-    }
-    blog: blog::Model => BlogForm { title: "Blog" }
-}
-```
-
-The `configure {}` block supports `list_display`, `list_exclude` and `list_filter`. `list_display` and `list_exclude` are mutually exclusive.
-
-## Sidebar filters — list_filter
-
-Declaring `list_filter` enables a sidebar showing the distinct values of each field:
-
-```rust
-admin! {
-    users: users::Model => RegisterForm {
-        title: "Users",
-        list_filter: [
-            ["is_active", "Active"],                    // default: 10 values per page
-            ["is_superuser", "Superuser"],              // default: 10 values per page
-            ["username", "Username", 5],                // explicit limit: 5 values per page
-        ]
-    }
-}
-```
-
-- For each column, the daemon generates a SQL query that loads distinct values with `LIMIT` / `OFFSET`.
-- Sidebar pagination (`‹ 1/N ›`) is **fully server-side** via the `fp_{column}` URL parameter — no JavaScript required.
-- The per-page limit is configured **per column** via the optional 3rd element (default: `10`).
-- Values are displayed as-is (`CAST(column AS TEXT)`). **Do not use `list_filter` on foreign key (FK) or `id` columns** — the raw value (`35`, `128`…) is not human-readable. Use the search bar instead.
-- Good candidates: booleans, enumerations, short codes (`lang`, `status`, `block_type`).
-- Clicking a value applies a `WHERE column = value` filter to the SQL query.
-- Multiple filters on different columns are combined with `AND`.
-
-## Column sorting
-
-Each column header is clickable. The resulting URL:
-
-```text
-/admin/users/list?sort_by=email&sort_dir=asc&page=1
-```
-
-- `sort_by`: column name (must be in `list_display` or be `id`)
-- `sort_dir`: `asc` or `desc`
-- Changing the sort automatically resets to **page 1**
-
-The current direction is shown by ▲ / ▼ in the header. Clicking the same column a second time reverses the direction.
-
-## Search
-
-The search bar filters records across all visible text columns. The mechanism differs by resource type: builtin resources (users/groups/droits) use `LOWER(CAST(col AS TEXT)) LIKE LOWER('%term%')` (portable across SQLite/Postgres/MariaDB); resources declared via `admin!{}` go through the `search_cond!` macro (`icontains`, compiled to `ILIKE`). It preserves the active sort parameters.
-
-```text
-/admin/users/list?search=alice&sort_by=email&sort_dir=asc
-```
-
-The entry counter reflects the filtered result.
-
-## Pagination
-
-Pagination is computed at the SQL level (`LIMIT` / `OFFSET`). Page size is configured at the application level:
-
-```rust
-.with_admin(|a| {
-    a.site_title("Administration")
-     .page_size(15)   // ← entries per page (list views AND history)
+.list(|l| {
+    l.display([Title, CreatedAt])
+        .ordering([(CreatedAt, Order::Desc), (Title, Order::Asc)])
 })
 ```
 
-`page_size` applies to both the **resource list view** and the **history view** (`/admin/history`). The default value is `10`.
+Clickable sort from the UI / URL — **only** declared columns:
 
-Active filters and search are preserved in pagination links.
+```rust
+.sortable([Title, Status])
+```
+
+Any other `?sort_by=` is ignored.
+
+## Search
+
+```rust
+.list(|l| {
+    l.search([Title, Summary])
+        .search_help("Title or summary")
+})
+```
+
+Behaviour:
+
+- minimum **3** characters (shorter terms are ignored)
+- max length bounded by staging `.search_max_len`
+- without `.search(...)`: text columns from `display` are used
+
+## Filters
+
+```rust
+.list(|l| l.filter([Status, Lang]))
+```
+
+Each filter offers **distinct** values in the allowed scope (max 100). URL prefix is `filter_`:
+
+```text
+?filter_status=Published&filter_lang=en
+```
+
+## Bulk actions
+
+```rust
+.list(|l| {
+    l.display([Title, Status])
+        .action(Status, "Published", "Publish")
+        .action(Status, "Archived", "Archive")
+})
+```
+
+The UI sends the action **index** (`a0`, `a1`…), never the raw value. The value is fixed in code.
+
+Boot constraints:
+
+- column writable on edit
+- no secret, no owner, no account rank flags
+
+## Pagination
+
+| Level | Method | Default |
+| --- | --- | --- |
+| Site | `AdminStaging::page_size(n)` | 10 |
+| Model | `ListConfig::per_page(n)` | inherits site |
+
+```rust
+admin.page_size(15)
+
+.list(|l| l.per_page(30))
+```
 
 ## URL parameters
 
-| Parameter | Value | Description |
-| --- | --- | --- |
-| `page` | integer ≥ 1 | Current page (default: 1) |
-| `sort_by` | column name | Sort column |
-| `sort_dir` | `asc` \| `desc` | Sort direction (default: `asc`) |
-| `search` | string | Search term |
-| `filter_{column}` | value | Active filter on a column |
-| `fp_{column}` | integer ≥ 0 | Current page of a sidebar filter group (0-indexed) |
+| Param | Role |
+| --- | --- |
+| `page` | Page number (1-based) |
+| `sort_by` | Column name (must be in `sortable`) |
+| `sort_dir` | `asc` or `desc` |
+| `search` | Full-text term |
+| `filter_<col>` | Filter value |
 
-All parameters can be combined. Priority order: filters → search → sort → pagination.
+Example:
+
+```text
+/admin/blog/?page=2&sort_by=title&sort_dir=asc&search=runique&filter_status=Published
+```
+
+## Empty value
+
+```rust
+.list(|l| l.empty_value("—"))
+```
 
 ## See also
 
-- [Macro `admin!`](/docs/en/admin/declaration-macro) — `list_display`, `list_filter` syntax
-- [Template context](/docs/en/admin/template-clef) — Tera keys for the list view
-- [Template override](/docs/en/admin/template-surcharge) — customise the list rendering
+| Section | Description |
+| --- | --- |
+| [ModelAdmin builder](/docs/en/admin/declaration-macro) | `.list` / `.form` syntax |
+| [Permissions](/docs/en/admin/permission) | Columns cut by rights |
+| [Templates](/docs/en/admin/template) | List HTML override |
 
 ## Back to summary
 

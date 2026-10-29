@@ -400,7 +400,7 @@ form.field(&IPAddressField::new("ipv6").label("Adresse IPv6").ipv6_only());
 
 ## HiddenField — Champ caché
 
-Champ invisible dans le formulaire HTML (`<input type="hidden">`). Deux usages principaux : passer des données techniques sans les montrer à l'utilisateur, ou valider un token CSRF manuellement.
+Champ invisible dans le formulaire HTML (`<input type="hidden">`). Usage principal : passer des données techniques sans les montrer à l'utilisateur.
 
 ```rust
 // Champ caché générique (ex: ID d'une entité liée)
@@ -408,12 +408,9 @@ form.field(
     &HiddenField::new("entity_id")
         .label("ID entité"),
 );
-
-// Champ CSRF interne (géré automatiquement par Runique — pour usage avancé)
-form.field(&HiddenField::new_csrf());
 ```
 
-> Dans les formulaires Runique standards, le CSRF est géré automatiquement via `{% csrf %}` dans le template. Vous n'avez pas besoin de `HiddenField::new_csrf()` sauf si vous construisez un formulaire entièrement personnalisé.
+> Le champ CSRF est **émis naturellement** par tout `RuniqueForm` (`req.form()` / `form_fields.html` / `{% form.xxx %}`) — pas besoin de `HiddenField::new_csrf()` ni de `{% csrf %}` dans le template. `{% csrf %}` ne sert que pour un `<form>` HTML écrit à la main, hors `RuniqueForm`.
 
 ---
 

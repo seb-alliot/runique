@@ -12,7 +12,7 @@
 Une application active **un seul** moteur : en activer deux est une erreur de compilation (sauf via `all-databases`). `orm` n'a pas besoin d'être écrite :
 
 ```toml
-runique = { version = "3.0.0", features = ["postgres"] }
+runique = { version = "4.0.0", features = ["postgres"] }
 ```
 
 ---
@@ -23,7 +23,7 @@ runique = { version = "3.0.0", features = ["postgres"] }
 
 ```toml
 [dependencies]
-runique = { version = "3.0.0", features = ["sqlite"] }
+runique = { version = "4.0.0", features = ["sqlite"] }
 ```
 
 ### 2. Mettre à jour `.env`

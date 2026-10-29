@@ -12,7 +12,7 @@
 An app enables **a single** engine: enabling two is a compile error (except through `all-databases`). `orm` doesn't need to be written:
 
 ```toml
-runique = { version = "3.0.0", features = ["postgres"] }
+runique = { version = "4.0.0", features = ["postgres"] }
 ```
 
 ---
@@ -23,7 +23,7 @@ runique = { version = "3.0.0", features = ["postgres"] }
 
 ```toml
 [dependencies]
-runique = { version = "3.0.0", features = ["sqlite"] }
+runique = { version = "4.0.0", features = ["sqlite"] }
 ```
 
 ### 2. Update `.env`

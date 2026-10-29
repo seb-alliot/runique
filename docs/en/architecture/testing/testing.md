@@ -11,10 +11,10 @@ Runique tests your **business logic against a real database**: each test runs in
 ```toml
 # Cargo.toml
 [dependencies]
-runique = { version = "3.0.0", features = ["postgres"] }
+runique = { version = "4.0.0", features = ["postgres"] }
 
 [dev-dependencies]
-runique = { version = "3.0.0", features = ["test-utils"] }
+runique = { version = "4.0.0", features = ["test-utils"] }
 ```
 
 Tests live in `src/runique_test/`, one file per domain, declared behind `cfg(test)`:

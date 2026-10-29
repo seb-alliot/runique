@@ -50,14 +50,13 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 - Autoescape actif sur `.html`/`.xml`
 
 ### Admin panel (stable bêta)
-- DSL `admin!{}` déclaratif → génération de `src/admins/` par le daemon
-- `runique start` : génère `src/admins/` une fois, puis lance l'application (pas de watcher)
-- CRUD complet généré : list, detail, create, edit, delete, bulk edit, bulk delete, group actions
-- `list_display`, `list_filter` (valeurs distinctes paginées), `search!` sur toutes colonnes
-- `group_action` : booléens et valeurs enum exactes, fusion multi-entrées même champ
-- `bulk_create` : upsert par valeur (split par virgule), auto-génération `edit_form_builder`
-- `m2m` : relations many-to-many via table de jonction
-- `own_field` : vérification d'appartenance pour `can_update_own`/`can_delete_own`
+- Builder typé `ModelAdmin<Entity>` — plus de macro `admin!{}`, plus de génération `src/admins/`
+- Déclaration dans `src/admin.rs`, câblage via `.with_admin(admin::config)` ; `cargo run` suffit
+- CRUD générique : list, detail, create, edit, delete, bulk edit, bulk delete, group actions
+- Colonnes SeaORM typées : `display`, `filter`, `search`, `sortable`, `links`
+- `group_action` : booléens et valeurs enum exactes
+- Relations M2M via table de jonction
+- `OWNER` sur `ModelMeta` (meta `model!`) : vérification d'appartenance pour `can_update_own`/`can_delete_own`
 - Historique des actions admin (log, batch_id, diff old/new)
 - Templates surchargeables par ressource
 
@@ -130,7 +129,7 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 ## État admin — permissions
 
 - `can_read`, `can_create`, `can_update`, `can_delete` : appliqués par opération ✅
-- `can_update_own`, `can_delete_own` : appliqués quand `own_field` est déclaré dans `admin!{}` ✅
+- `can_update_own`, `can_delete_own` : appliqués quand `ModelMeta::OWNER` est défini (meta `model!`) ✅
 - Permissions par groupe, relues en base à chaque requête (révocation immédiate) ✅
 
 ---

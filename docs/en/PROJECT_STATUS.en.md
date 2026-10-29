@@ -54,14 +54,13 @@ This document consolidates the actual state of the repository from the reference
 
 ### Admin panel (stable beta)
 
-- Declarative `admin!{}` DSL → generation of `src/admins/` by the daemon
-- `runique start`: generates `src/admins/` once, then runs the app (no watcher)
-- Full generated CRUD: list, detail, create, edit, delete, bulk edit, bulk delete, group actions
-- `list_display`, `list_filter` (paginated distinct values), `search!` on all columns
-- `group_action`: booleans and exact enum values, multi-entry merge same field
-- `bulk_create`: upsert by value (split by comma), auto-generation `edit_form_builder`
-- `m2m`: many-to-many relations via junction table
-- `own_field`: ownership check for `can_update_own`/`can_delete_own`
+- Typed `ModelAdmin<Entity>` builder — no `admin!{}` macro, no `src/admins/` generation
+- Declared in `src/admin.rs`, wired via `.with_admin(admin::config)`; plain `cargo run` is enough
+- Generic CRUD: list, detail, create, edit, delete, bulk edit, bulk delete, group actions
+- Typed SeaORM columns: `display`, `filter`, `search`, `sortable`, `links`
+- `group_action`: booleans and exact enum values
+- M2M relations via junction table
+- `OWNER` on `ModelMeta` (from `model!` meta): ownership check for `can_update_own`/`can_delete_own`
 - Admin action history (log, batch_id, old/new diff)
 - Resource-overridable templates
 
@@ -139,7 +138,7 @@ This document consolidates the actual state of the repository from the reference
 ## Admin — permissions state
 
 - `can_read`, `can_create`, `can_update`, `can_delete`: enforced per operation ✅
-- `can_update_own`, `can_delete_own`: enforced when `own_field` is declared in `admin!{}` ✅
+- `can_update_own`, `can_delete_own`: enforced when `ModelMeta::OWNER` is set (via `model!` meta) ✅
 - Per-group permissions, read from the database on every request (immediate revocation) ✅
 
 ---

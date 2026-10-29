@@ -37,6 +37,8 @@ Chaque groupe dispose d'une entrée par ressource dans `eihwaz_groupes_droits` :
 | `can_update_own` | Modifier uniquement ses propres enregistrements |
 | `can_delete_own` | Supprimer uniquement ses propres enregistrements |
 
+`can_update_own` / `can_delete_own` s'appliquent quand le modèle déclare un owner (colonne owner côté `ModelMeta`). Le gate filtre alors les lignes.
+
 ---
 
 ## Configuration via le panel
@@ -46,6 +48,8 @@ Chaque groupe dispose d'une entrée par ressource dans `eihwaz_groupes_droits` :
 3. Aller dans **Admin → Utilisateurs** → assigner le groupe à l'utilisateur
 
 Un utilisateur sans groupe ne voit aucune ressource dans la nav (sauf superuser).
+
+Les droits ne se déclarent **pas** dans `ModelAdmin` : toute la grille vit en base.
 
 ### Révocation immédiate
 
@@ -82,9 +86,10 @@ authentifié ?
 
 ## Notes
 
-- La macro `admin!` ne déclare plus de `permissions:` — la configuration est entièrement en base.
+- `ModelAdmin` ne déclare pas de permissions : la configuration est entièrement en base.
 - Les permissions sont agrégées par OR logique sur tous les groupes de l'utilisateur.
 - Un utilisateur peut avoir `can_read` sans `can_create` — il voit la liste mais ne peut pas créer.
+- Les colonnes secrètes et les rangs restent hors formulaire même pour un superuser (gate + validation au boot).
 
 ---
 
@@ -93,7 +98,7 @@ authentifié ?
 | Section | Description |
 | --- | --- |
 | [Mise en place](/docs/fr/admin/setup) | Câbler l'admin, créer un superuser |
-| [CLI](/docs/fr/admin/declaration) | Commande `runique start`, workflow général |
+| [Déclaration](/docs/fr/admin/declaration) | `AdminStaging`, `AdminSite`, enregistrement |
 | [Templates](/docs/fr/admin/template) | Hiérarchie de templates, blocks, surcharge |
 | [Évolutions](/docs/fr/admin/evolution) | Axes d'évolution |
 
