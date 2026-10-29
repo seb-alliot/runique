@@ -76,14 +76,6 @@
       return;
     }
 
-    if (action === "bulk-edit") {
-      const ids = collectIds();
-      if (!ids) return;
-      const base = bulkForm.action.replace(/\/bulk$/, "/bulk");
-      window.location.href = base + "?ids=" + encodeURIComponent(ids);
-      return;
-    }
-
     actionInput.value = action;
     idsInput.value = collectIds();
     bulkForm.submit();

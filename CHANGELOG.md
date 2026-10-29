@@ -20,6 +20,7 @@ All notable changes to this project will be documented in this file.
 
 ### Breaking changes
 
+* **`AdminTemplate::with_base` and `with_bulk_edit` removed**: the first changed nothing (every admin page extends `admin_base.html` itself), the second named a page no route served (the old admin's bulk edit, its template and script removed with it). A layout is replaced through its blocks (`global_block`), a page through `with_*` or `ModelTemplates::page`.
 * **`utils::constante::admin_key::admin_context` removed**: the old admin's template context keys, no longer read by any page. A page's keys are now the fields of its context (`ListContext`, `DetailContext`…), every page rendered by a test.
 * **Production refuses a password reset without a mailer**: `with_password_reset()` without `with_mailer()` / `with_mailer_from_env()` (with its `SMTP_*` set) stops the boot, like a missing public URL: the page could never send its link. Debug still boots, and the page then answers every address with the same "not available right now" notice. A reset token is no longer made when no email can carry it.
 * **`AdminConfig.reset_route` replaced by `reset_link`**: `Option<ResetLinkConfig>` (the reset page's route and the link's lifetime), set by the builder from `with_password_reset()`. `None` without it: the site serves no reset page, so the admin sends no link instead of one leading nowhere. Reset links are made by one function, `auth::password::send_reset_link`, for the site's page and the admin alike.

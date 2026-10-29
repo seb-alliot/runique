@@ -718,4 +718,32 @@ mod tests {
             7
         );
     }
+
+    /// The transfer's history row tells the rights' before and after only
+    /// when they changed.
+    #[tokio::test]
+    async fn the_history_tells_the_rights_only_when_they_changed() {
+        use crate::auth::history;
+        let summary = |db: ADb| async move {
+            history::Entity::find()
+                .filter(history::Column::Action.eq("transfer"))
+                .one(&db)
+                .await
+                .unwrap()
+                .unwrap()
+                .summary
+                .unwrap_or_default()
+        };
+        let boss = as_rank(32, Rang::Dirigeant);
+        let db = setup().await;
+        let plan = plan(&boss, 1, pk(33), &db).await.unwrap();
+        transfer_group(&boss, 1, pk(33), &plan.losses, &HashSet::new(), &db).await.unwrap();
+        assert!(summary(db).await.contains("droits"), "reduced");
+
+        let db = setup().await;
+        transfer_group(&boss, 1, pk(30), "", &HashSet::new(), &db).await.unwrap();
+        let whole = summary(db).await;
+        assert!(whole.contains("responsable") && !whole.contains("droits"), "{whole}");
+    }
+
 }

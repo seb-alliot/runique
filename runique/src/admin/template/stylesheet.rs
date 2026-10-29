@@ -376,4 +376,30 @@ mod tests {
         assert_eq!(mine.integrity.as_deref(), Some("sha384-x"));
         assert!(list[0].href.starts_with("/runique/static/css/"), "{list:?}");
     }
+
+    /// A block's sheet reaches every page showing the block, and no other:
+    /// the table of pages and blocks, page by page.
+    #[test]
+    fn a_blocks_sheet_reaches_the_pages_that_show_it() {
+        use super::super::block::GlobalBlock;
+        let model = |block: Block| AdminTemplate::new().block_stylesheet(block, "css/x.css");
+        let global = |block: GlobalBlock| AdminTemplate::new().global_block_stylesheet(block, "css/x.css");
+        let has = |page: Page, t: &AdminTemplate| paths(&sheets(page, t, None)).contains(&"dev:css/x.css".to_string());
+
+        for page in [Page::Create, Page::Edit] {
+            assert!(has(page, &model(Block::FormFields)), "{page:?}");
+        }
+        assert!(has(Page::Delete, &model(Block::DeleteWarning)));
+        assert!(!has(Page::List, &model(Block::DeleteWarning)));
+        assert!(has(Page::Dashboard, &global(GlobalBlock::DashboardGroups)));
+        assert!(has(Page::History, &global(GlobalBlock::HistoryTable)));
+        assert!(has(Page::HistoryDiff, &global(GlobalBlock::HistoryActionBadge)));
+        assert!(!has(Page::HistoryDiff, &global(GlobalBlock::HistoryTable)));
+        assert!(has(Page::Rights, &global(GlobalBlock::RightsTable)));
+        for page in [Page::Dashboard, Page::List, Page::History, Page::Rights, Page::Transfer] {
+            assert!(has(page, &global(GlobalBlock::Sidebar)), "{page:?}");
+        }
+        assert!(!has(Page::Login, &global(GlobalBlock::Sidebar)), "the login has no layout");
+    }
+
 }
