@@ -131,7 +131,7 @@ admin
 ## Créer un superuser
 
 ```bash
-runique createsuperuser
+runique create-superuser
 ```
 
 Le compte obtenu a `is_superuser` (et le staff nécessaire) pour ouvrir le panel.

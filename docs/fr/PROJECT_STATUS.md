@@ -136,12 +136,10 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 ## Correctifs à apporter / roadmap
 
-### Réglé (vérifié le 9 octobre 2026)
-- **Filtres admin et injection SQL** : les ressources générées n'acceptent que les colonnes de leur liste blanche, avec des valeurs liées ; la ressource intégrée `users` ignore les filtres de l'URL
+### Réglé (vérifié le 29 octobre 2026)
+- **Filtres admin et injection SQL** : les modèles enregistrés n'acceptent que les colonnes de leur liste blanche, avec des valeurs liées ; la ressource comptes intégrée ignore les filtres de l'URL
 - **Tests de non-régression sécurité** : rotation de session et du jeton CSRF au login, contrôles par opération, liste blanche des colonnes, et les correctifs 3.0.2 (chacun vérifié par mutation)
-
-### Priorité haute (3.x)
-- **Refonte de l'admin** autour d'un builder typé `ModelAdmin<Entity>`, sans code généré — voir [l'ébauche](https://github.com/seb-alliot/runique/blob/main/ebauche-model-admin.md)
+- **Refonte de l'admin** : builder typé `ModelAdmin<Entity>` livré en 4.0 — plus de `admin!{}`, plus de génération `src/admins/`, plus de `runique start` ; Rust plain dans `src/admin.rs` + `cargo run`
 
 ### Priorité basse
 - **Couverture** : détail par fichier dans [couverture_test.md](https://github.com/seb-alliot/runique/blob/main/docs/couverture_test.md) (8 octobre : `migrate.rs` 79 %, `engine/core.rs` 92 %, `forms/fields/file.rs` 96 %)
@@ -156,5 +154,5 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 ---
 
-**Dernière mise à jour** : 9 octobre 2026
+**Dernière mise à jour** : 29 octobre 2026
 **Statut global** : ✅ Framework stable · 🟡 Admin bêta mature · 🔒 Sécurité : tokens de reset durcis en DB, auth en temps constant · 📖 Documentation API publique complète (docs.rs)

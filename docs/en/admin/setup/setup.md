@@ -123,7 +123,7 @@ Two separate knobs:
 ## Create a superuser
 
 ```bash
-runique createsuperuser
+runique create-superuser
 ```
 
 ## Boot checks

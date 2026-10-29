@@ -20,23 +20,17 @@
             <pre><code>builder::<span class="fn_">new</span>(config)
     .<span class="fn_">with_admin</span>(|a| {
         a.<span class="fn_">site_title</span>(<span class="st">"Administration"</span>)
-            .<span class="fn_">auth</span>(<span class="ty">RuniqueAdminAuth</span>::<span class="fn_">new</span>())
-            .<span class="fn_">routes</span>(admins::<span class="fn_">routes</span>(<span class="st">"/admin"</span>))
+            .<span class="fn_">path</span>(<span class="st">"/admin/"</span>)
             .<span class="fn_">templates</span>(|t| {
                 t.<span class="fn_">with_dashboard</span>(<span class="st">"admin/my_dashboard.html"</span>)
             })
-            .<span class="fn_">with_state</span>(admins::<span class="fn_">admin_state</span>())
+            .<span class="fn_">site</span>(|s| s.<span class="fn_">register</span>(…))
     })</code></pre>
 
             <div class="demo-code-title">Example used in this demo</div>
             <pre><code>builder::<span class="fn_">new</span>(config)
-    .<span class="fn_">with_admin</span>(|a| {
-        a.<span class="fn_">site_title</span>(<span class="st">"Administration"</span>)
-            .<span class="fn_">auth</span>(<span class="ty">RuniqueAdminAuth</span>::<span class="fn_">new</span>())
-            .<span class="fn_">routes</span>(admins::<span class="fn_">routes</span>(<span class="st">"/admin"</span>))
-            .<span class="fn_">templates</span>(|t| t.<span class="fn_">with_dashboard</span>(<span class="st">"admin/test_dashboard.html"</span>))
-            .<span class="fn_">with_state</span>(admins::<span class="fn_">admin_state</span>())
-    })</code></pre>
+    .<span class="fn_">with_admin</span>(admin::<span class="fn_">config</span>)
+<span class="cm">// src/admin.rs — ModelAdmin + .templates(|t| t.with_dashboard(...))</span></code></pre>
         </div>
 
         <div class="demo-code">
@@ -79,9 +73,9 @@ t.<span class="fn_">with_base</span>(<span class="st">"admin/my_base.html"</span
 {% raw %}{% block extra_js %}{% endblock %}{% endraw %}    <span class="cm">// additional JS scripts</span>
 {% raw %}{% block footer %}{% endblock %}{% endraw %}      <span class="cm">// footer</span></code></pre>
 
-            <div class="demo-code-title">Extra keys via with_state()</div>
-            <pre><code><span class="cm">// Custom data passed via extra_context in admin_state().</span>
-<span class="cm">// E.g.: logged-in user, business stats, etc.</span>
+            <div class="demo-code-title">Context keys on the dashboard</div>
+            <pre><code><span class="cm">// Injected by the framework for every admin view.</span>
+<span class="cm">// E.g.: site title, resources, custom dashboard data.</span>
 {% raw %}{{ resource_counts[resource.key] }}{% endraw %}  <span class="cm">// from this demo</span></code></pre>
 
             <div class="demo-code-title">Concrete example</div>

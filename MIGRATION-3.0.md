@@ -101,9 +101,9 @@ pub async fn get_article(db: &ADb, id: i32) -> Option<blog::Model>
 .with_password_reset::<UserEntity>(|pr| pr.forgot_route("/forgot"))
 .with_admin(|a| a.auth(RuniqueAdminAuth::new()).routes(admins::routes("/admin")))
 
-// 3.0
+// 3.0 / 4.0 — no .auth(), no generated admins module
 .with_password_reset(|pr| pr.forgot_route("/forgot"))
-.with_admin(|a| a.routes(admins::routes("/admin")))
+.with_admin(admin::config)   // ModelAdmin in src/admin.rs
 ```
 
 Lookups go through `BuiltinUserEntity::find_by_id` / `find_by_username` / `find_by_email`; admin sign-in through `auth::authenticate_admin()`.

@@ -4,10 +4,11 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
+| 4.0.x   | :white_check_mark: (current) |
 | 3.0.x   | :white_check_mark: (use **3.0.3** or later) |
 | < 3.0   | :x:                |
 
-Runique 3.0.2 fixes security issues that are also present in 2.2.x (listed below): upgrade with the [3.0 migration guide](MIGRATION-3.0.md).
+Runique 4.0 keeps the 3.0.x security fixes and adds more (listed below). Runique 3.0.2 fixed issues also present in 2.2.x: upgrade with the [3.0 migration guide](MIGRATION-3.0.md).
 
 ## Known Security Advisories
 
@@ -75,12 +76,12 @@ Re-checked against `Cargo.lock` on 2026-10-10. The CI runs `cargo audit` on ever
 
 | Version | Issue | Severity |
 | ------- | ----- | -------- |
-| 4.0 (upcoming) | `extend!{}` of the accounts table putting `password` and `is_active` in its admin form | High |
-| 4.0 (upcoming) | CSRF token sent by `csrf.js` with `fetch` requests to other origins | Medium |
-| 4.0 (upcoming) | Form global errors rendered without escaping (XSS) | Medium |
-| 4.0 (upcoming) | Debug error page able to show a file outside `templates/` | Medium |
-| 4.0 (upcoming) | Admin refusal message telling that an account is a superuser | Low |
-| 4.0 (upcoming) | "Forgot password" response time telling whether an account exists | Low |
+| 4.0 | `extend!{}` of the accounts table putting `password` and `is_active` in its admin form | High |
+| 4.0 | CSRF token sent by `csrf.js` with `fetch` requests to other origins | Medium |
+| 4.0 | Form global errors rendered without escaping (XSS) | Medium |
+| 4.0 | Debug error page able to show a file outside `templates/` | Medium |
+| 4.0 | Admin refusal message telling that an account is a superuser | Low |
+| 4.0 | "Forgot password" response time telling whether an account exists | Low |
 | 3.0.3 | `bulk_create`: a create-only right could update existing rows (regenerate the admin) | High |
 | 3.0.3 | Staff member able to take over a superuser's account (email change + password reset) | High |
 | 3.0.3 | Open redirect through a tab (`/\t/evil.com`) or a non-ASCII `Location` left unchecked | Medium |
