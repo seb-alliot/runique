@@ -467,3 +467,255 @@ pub(crate) async fn transfer_group(
     txn.commit().await?;
     Ok(Transfer::Done)
 }
+
+#[cfg(all(test, feature = "sqlite"))]
+mod tests {
+    use super::*;
+    use crate::auth::gate::test_support::fixtures::{as_rank, groups_db, pk};
+    use sea_orm::{ActiveModelTrait, Set};
+    use std::collections::HashSet;
+
+    /// A row of `holder` (a group, else an account's grid) on `key`/`colonne`.
+    async fn row(
+        db: &ADb,
+        group: Option<i32>,
+        user: Option<Pk>,
+        key: &str,
+        colonne: &str,
+        f: [bool; 7],
+    ) {
+        groupes_droits::ActiveModel {
+            groupe_id: Set(group),
+            user_id: Set(user),
+            resource_key: Set(key.into()),
+            colonne: Set(colonne.into()),
+            can_create: Set(f[0]),
+            can_read: Set(f[1]),
+            can_read_own: Set(f[2]),
+            can_update: Set(f[3]),
+            can_update_own: Set(f[4]),
+            can_delete: Set(f[5]),
+            can_delete_own: Set(f[6]),
+            ..Default::default()
+        }
+        .insert(db)
+        .await
+        .unwrap();
+    }
+
+    const ALL: [bool; 7] = [true; 7];
+    /// A column's rights: read, create, update (the table's other flags unused).
+    const COLUMN: [bool; 7] = [true, true, false, true, false, false, false];
+
+    /// Group 1 (the dirigeant's, `pk(32)`) holds every table right on
+    /// `notes`, every right on its column `a`, and create + read on the groups.
+    async fn setup() -> ADb {
+        let db = groups_db(pk(32)).await;
+        row(&db, Some(1), None, "notes", "", ALL).await;
+        row(&db, Some(1), None, "notes", "a", COLUMN).await;
+        row(
+            &db,
+            Some(1),
+            None,
+            resource_key::GROUPES,
+            "",
+            [true, true, false, false, false, false, false],
+        )
+        .await;
+        db
+    }
+
+    async fn rows_of(db: &ADb, group: Option<i32>, user: Option<Pk>) -> Vec<groupes_droits::Model> {
+        let mut q = groupes_droits::Entity::find();
+        q = match (group, user) {
+            (Some(g), _) => q.filter(groupes_droits::Column::GroupeId.eq(g)),
+            (_, Some(u)) => q.filter(groupes_droits::Column::UserId.eq(u)),
+            _ => q,
+        };
+        q.all(db).await.unwrap()
+    }
+
+    fn rights(rows: &[groupes_droits::Model], key: &str, colonne: &str) -> Vec<&'static str> {
+        let Some(r) = rows
+            .iter()
+            .find(|r| r.resource_key == key && r.colonne == colonne)
+        else {
+            return Vec::new();
+        };
+        [
+            (r.can_create, "create"),
+            (r.can_read, "read"),
+            (r.can_read_own, "read_own"),
+            (r.can_update, "update"),
+            (r.can_update_own, "update_own"),
+            (r.can_delete, "delete"),
+            (r.can_delete_own, "delete_own"),
+        ]
+        .into_iter()
+        .filter_map(|(on, name)| on.then_some(name))
+        .collect()
+    }
+
+    async fn responsable(db: &ADb) -> Pk {
+        groupe::Entity::find_by_id(1)
+            .one(db)
+            .await
+            .unwrap()
+            .unwrap()
+            .responsable_id
+    }
+
+    /// Every right the admin lacks is at stake, table and column, each named
+    /// once; a full right on the groups is at stake but can't be kept.
+    #[tokio::test]
+    async fn every_right_the_receiver_lacks_is_at_stake() {
+        let db = setup().await;
+        let plan = plan(&as_rank(32, Rang::Dirigeant), 1, pk(33), &db)
+            .await
+            .unwrap();
+        let named: Vec<String> = plan
+            .lines
+            .iter()
+            .map(|l| {
+                format!(
+                    "{}.{}.{}:{}",
+                    l.resource_key, l.colonne, l.right, l.keepable
+                )
+            })
+            .collect();
+        assert_eq!(
+            named,
+            [
+                "groupes..create:true",
+                "groupes..read:false",
+                "notes..create:true",
+                "notes..read:true",
+                "notes..read_own:true",
+                "notes..update:true",
+                "notes..update_own:true",
+                "notes..delete:true",
+                "notes..delete_own:true",
+                "notes.a.read:true",
+                "notes.a.create:true",
+                "notes.a.update:true",
+            ]
+        );
+        assert_eq!(plan.losses, shown_of(&plan.lines));
+        assert!(plan.losses.contains("notes.a.update"));
+    }
+
+    /// Every right kept goes to the admin's grid and stays with the group;
+    /// the full right on the groups is lost all the same.
+    #[tokio::test]
+    async fn the_rights_kept_go_to_the_receiver_and_stay() {
+        let db = setup().await;
+        let boss = as_rank(32, Rang::Dirigeant);
+        let plan = plan(&boss, 1, pk(33), &db).await.unwrap();
+        let keep: HashSet<usize> = (0..plan.lines.len())
+            .filter(|&i| plan.lines[i].keepable)
+            .collect();
+        let done = transfer_group(&boss, 1, pk(33), &plan.losses, &keep, &db)
+            .await
+            .unwrap();
+        assert!(matches!(done, Transfer::Done));
+        assert_eq!(responsable(&db).await, pk(33));
+
+        let group = rows_of(&db, Some(1), None).await;
+        assert_eq!(rights(&group, "notes", "").len(), 7);
+        assert_eq!(rights(&group, "notes", "a"), ["create", "read", "update"]);
+        assert_eq!(rights(&group, resource_key::GROUPES, ""), ["create"]);
+        let grid = rows_of(&db, None, Some(pk(33))).await;
+        assert_eq!(rights(&grid, "notes", "").len(), 7);
+        assert_eq!(rights(&grid, "notes", "a"), ["create", "read", "update"]);
+        assert_eq!(rights(&grid, resource_key::GROUPES, ""), ["create"]);
+    }
+
+    /// Nothing kept: the group loses all the admin lacks, his grid unchanged.
+    #[tokio::test]
+    async fn nothing_kept_loses_everything_at_stake() {
+        let db = setup().await;
+        row(
+            &db,
+            None,
+            Some(pk(33)),
+            "notes",
+            "",
+            [false, true, false, false, false, false, false],
+        )
+        .await;
+        let boss = as_rank(32, Rang::Dirigeant);
+        let plan = plan(&boss, 1, pk(33), &db).await.unwrap();
+        // What his grid covers is not at stake: `read` and `read_own` on the
+        // table, nothing else, the column's rights included.
+        let at_stake = |key: &str, colonne: &str, right: &str| {
+            plan.lines
+                .iter()
+                .any(|l| l.resource_key == key && l.colonne == colonne && l.right == right)
+        };
+        assert!(!at_stake("notes", "", "read") && !at_stake("notes", "", "read_own"));
+        assert!(at_stake("notes", "", "update") && at_stake("notes", "a", "read"));
+        assert_eq!(plan.lines.len(), 10);
+        transfer_group(&boss, 1, pk(33), &plan.losses, &HashSet::new(), &db)
+            .await
+            .unwrap();
+        let group = rows_of(&db, Some(1), None).await;
+        // `read` covers `read_own`: both stay.
+        assert_eq!(
+            rights(&group, "notes", ""),
+            ["read", "read_own"],
+            "what he covered stays"
+        );
+        assert!(rights(&group, resource_key::GROUPES, "").is_empty());
+        let grid = rows_of(&db, None, Some(pk(33))).await;
+        assert_eq!(rights(&grid, "notes", ""), ["read"]);
+        assert_eq!(grid.len(), 1);
+    }
+
+    /// The losses shown for another receiver don't confirm this one; a line
+    /// not at stake, or not keepable, refuses the whole.
+    #[tokio::test]
+    async fn a_transfer_goes_through_for_its_own_lines_only() {
+        let db = setup().await;
+        let boss = as_rank(32, Rang::Dirigeant);
+        let other = plan(&boss, 1, pk(30), &db).await.unwrap();
+        assert!(other.lines.is_empty(), "the superuser covers everything");
+        let changed = transfer_group(&boss, 1, pk(33), &other.losses, &HashSet::new(), &db)
+            .await
+            .unwrap();
+        assert!(matches!(changed, Transfer::Changed));
+        assert_eq!(responsable(&db).await, pk(32));
+
+        let plan = plan(&boss, 1, pk(33), &db).await.unwrap();
+        let locked = plan.lines.iter().position(|l| !l.keepable).unwrap();
+        for keep in [HashSet::from([locked]), HashSet::from([plan.lines.len()])] {
+            assert!(
+                transfer_group(&boss, 1, pk(33), &plan.losses, &keep, &db)
+                    .await
+                    .is_err()
+            );
+        }
+        assert_eq!(responsable(&db).await, pk(32));
+    }
+
+    /// Below dirigeant nobody transfers; nor to the responsable in place;
+    /// to a superuser the group stays whole.
+    #[tokio::test]
+    async fn a_transfer_needs_a_dirigeant_and_a_new_receiver() {
+        let db = setup().await;
+        assert!(
+            plan(&as_rank(33, Rang::Admin), 1, pk(30), &db)
+                .await
+                .is_err()
+        );
+        let boss = as_rank(32, Rang::Dirigeant);
+        assert!(plan(&boss, 1, pk(32), &db).await.is_err());
+        transfer_group(&boss, 1, pk(30), "", &HashSet::new(), &db)
+            .await
+            .unwrap();
+        assert_eq!(responsable(&db).await, pk(30));
+        assert_eq!(
+            rights(&rows_of(&db, Some(1), None).await, "notes", "").len(),
+            7
+        );
+    }
+}

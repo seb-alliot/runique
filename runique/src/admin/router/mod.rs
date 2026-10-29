@@ -79,8 +79,11 @@ fn chrome(
     site: &AdminSite,
     user: &CurrentUser,
     current_resource: &str,
+    page: crate::admin::template::Page,
 ) {
     insert_admin_messages(&mut req.context, "base");
+    req.context
+        .insert("stylesheets", admin.sheets.of(page, current_resource));
     inject_admin_prefix(&mut req.context, &admin.config.prefix);
     let resources: Vec<serde_json::Value> = site
         .navigation(user, &admin.config.resource_order)

@@ -133,20 +133,23 @@ fn humanize_filter(value: &Value, _: Kwargs, _: &State) -> Value {
 // Internal generic function to avoid repetition.
 // A non-string input no longer needs a hand-written error: Tera rejects it on the
 // `&str` argument and reports the offending value itself.
-fn register_filter(base_url: String, version: String) -> impl Fn(&str, Kwargs, &State) -> String {
-    move |file: &str, _: Kwargs, _: &State| {
-        let full_url = format!(
-            "{}/{}",
-            base_url.trim_end_matches('/'),
-            file.trim_start_matches('/')
-        );
-
-        if version.is_empty() {
-            full_url
-        } else {
-            format!(r#"{}?v={}"#, full_url, version)
-        }
+/// The URL of `file` under `base_url`, with the cache-busting `version`
+/// when there is one: what `{% static %}` and its siblings write.
+pub(crate) fn asset_url(base_url: &str, file: &str, version: &str) -> String {
+    let full_url = format!(
+        "{}/{}",
+        base_url.trim_end_matches('/'),
+        file.trim_start_matches('/')
+    );
+    if version.is_empty() {
+        full_url
+    } else {
+        format!(r#"{}?v={}"#, full_url, version)
     }
+}
+
+fn register_filter(base_url: String, version: String) -> impl Fn(&str, Kwargs, &State) -> String {
+    move |file: &str, _: Kwargs, _: &State| asset_url(&base_url, file, &version)
 }
 
 /// Registers Runique's built-in Tera filters and functions on `tera`: contrib

@@ -23,6 +23,8 @@ pub struct ModelAdmin<E: ModelMeta> {
     pub form: FormConfig<E>,
     /// The model's name in the admin, when set with `title()`.
     pub(super) title: Option<String>,
+    /// Its pages, or blocks of them, replaced for this model only.
+    pub(super) templates: crate::admin::template::ModelTemplates,
 }
 
 /// One filter of a list: its column and the values it offers.
@@ -78,6 +80,7 @@ impl<E: ModelMeta> Default for ModelAdmin<E> {
             list: ListConfig::default(),
             form: FormConfig::default(),
             title: None,
+            templates: Default::default(),
         }
     }
 }
@@ -111,6 +114,16 @@ impl<E: ModelMeta> ModelAdmin<E> {
     /// model's `verbose_name_plural`, `verbose_name`, else its table name.
     pub fn title(mut self, title: impl Into<String>) -> Self {
         self.title = Some(title.into());
+        self
+    }
+
+    /// Replaces this model's pages, or blocks of them (their HTML, their
+    /// stylesheet), over the global replacements.
+    pub fn templates(
+        mut self,
+        t: impl FnOnce(crate::admin::template::ModelTemplates) -> crate::admin::template::ModelTemplates,
+    ) -> Self {
+        self.templates = t(self.templates);
         self
     }
 

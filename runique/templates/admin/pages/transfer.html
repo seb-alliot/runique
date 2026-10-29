@@ -1,9 +1,5 @@
 {% extends "admin_base.html" %}
 {% block title %}{{ admin_transfer_title }} — {{ group }}{% endblock %}
-{% block extra_css %}
-  {{ super() }}
-  <link rel="stylesheet" href="{% runique_static "css/admin/blocks/transfer.css" %}">
-{% endblock %}
 {% block breadcrumb %}
   <span class="admin-topbar__sep">/</span>
   <a href="{{ list_url }}">{{ resource.title }}</a>

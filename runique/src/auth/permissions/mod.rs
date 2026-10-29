@@ -149,6 +149,7 @@ fn assemble(rows: impl IntoIterator<Item = groupes_droits::Model>) -> Vec<Permis
 /// grid: each table's rights `within` his, a table he lacks dropped, a table
 /// left with no right dropped with its columns. The rows to write back, as
 /// the group's.
+#[cfg(feature = "admin")]
 pub(crate) fn group_rows_within(
     groupe_id: i32,
     rows: Vec<groupes_droits::Model>,

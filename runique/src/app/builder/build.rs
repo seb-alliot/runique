@@ -102,7 +102,8 @@ impl<P> RuniqueAppBuilder<P> {
 
         // Step 3: destructuring
         let extensions = self.core.extensions;
-        let config = self.config;
+        #[cfg_attr(not(feature = "admin"), allow(unused_mut))]
+        let mut config = self.config;
         let url_registry = self.core.url_registry;
         let mut middleware = self.middleware;
         let statics_enabled = self.statics.enabled;
@@ -112,8 +113,27 @@ impl<P> RuniqueAppBuilder<P> {
 
         // Step 4: core construction — strict order: Templates → Config → Engine → URLs
 
-        let tera = new(TemplateLoader::init(&config, url_registry.clone())
-            .map_err(|e| BuildError::template(e.to_string()))?);
+        // The admin's replaced blocks, written into its pages before Tera
+        // loads them; a page replaced both ways refused first.
+        #[cfg(feature = "admin")]
+        if self.admin.enabled {
+            use crate::admin::template::{Page, assemble};
+            let models = self.admin.site.model_templates();
+            let replaced = self
+                .admin
+                .declared_routes
+                .iter()
+                .filter(|route| route.overrides == crate::admin::AdminView::Detail)
+                .map(|route| (route.model_key.clone(), Page::Detail));
+            assemble::check_replaced_views(&models, replaced).map_err(BuildError::template)?;
+            config.block_dispatch = assemble::dispatch(&self.admin.config.templates, &models)
+                .map_err(BuildError::template)?;
+        }
+
+        #[cfg_attr(not(feature = "admin"), allow(unused_variables))]
+        let (tera, integrity) = TemplateLoader::init_with_integrity(&config, url_registry.clone())
+            .map_err(|e| BuildError::template(e.to_string()))?;
+        let tera = new(tera);
 
         let config = new(config);
         crate::utils::password::password_init(config.password.clone());
@@ -244,7 +264,24 @@ impl<P> RuniqueAppBuilder<P> {
                 }
             }
 
-            let admin_router = build_admin_router(self.admin);
+            let sheets = {
+                let statics = &config.static_files;
+                let (site, runique) = (&integrity.site, &integrity.runique);
+                let version = crate::utils::env::css_token();
+                crate::admin::template::PageSheets::build(
+                    &self.admin.config.templates,
+                    &self.admin.site.model_templates(),
+                    &crate::admin::template::stylesheet::Statics {
+                        site_url: &statics.static_url,
+                        site,
+                        runique_url: &statics.static_runique_url,
+                        runique,
+                        version: &version,
+                    },
+                )
+                .map_err(BuildError::template)?
+            };
+            let admin_router = build_admin_router(self.admin, sheets);
             add_urls(&engine);
             register_name_url(&engine, "admin", &admin_prefix);
             for (name, path) in declared_route_urls {

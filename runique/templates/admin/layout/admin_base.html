@@ -1,16 +1,8 @@
 {% extends "admin/admin_template.html" %}
-{% block extra_css %}
-    <link rel="stylesheet" href="{% runique_static "css/normalize/normalize.css" %}">
-    <link rel="stylesheet" href="{% runique_static "css/admin/variables.css" %}">
-    <link rel="stylesheet" href="{% runique_static "css/admin/layout.css" %}">
-    <link rel="stylesheet" href="{% runique_static "css/admin/components.css" %}">
-    <link rel="stylesheet" href="{% runique_static "css/admin/buttons.css" %}">
-    <link rel="stylesheet" href="{% runique_static "css/admin/forms.css" %}">
-    <link rel="stylesheet" href="{% runique_static "css/admin/responsive.css" %}">
-{% endblock %}
+{% block extra_css %}{% include "admin/blocks/layout/stylesheets.html" %}{% endblock %}
 
 {% block sidebar %}
-    {% include "admin/blocks/layout/sidebar.html" %}
+    {% dev_block "sidebar" %}
 {% endblock %}
 
 {% block topbar %}
@@ -28,7 +20,7 @@
             <a href="{{ nav.dashboard }}">{% if admin_base_breadcrumb %}{{ admin_base_breadcrumb }}{% endif %}</a>
             {% block breadcrumb %}{% endblock %}
         </div>
-        {% include "admin/blocks/layout/topbar_actions.html" %}
+        {% dev_block "topbar" %}
 
     </header>
 {% endblock %}

@@ -1824,6 +1824,7 @@ mod tests {
         (db, su)
     }
 
+    #[cfg(feature = "admin")]
     async fn account_exists(db: &ADb, n: u8) -> bool {
         crate::auth::user::Entity::find_by_id(pk(n))
             .one(db)
@@ -1832,6 +1833,7 @@ mod tests {
             .is_some()
     }
 
+    #[cfg(feature = "admin")]
     async fn group_one(db: &ADb) -> crate::auth::permissions::groupe::Model {
         crate::auth::permissions::groupe::Entity::find_by_id(1)
             .one(db)
@@ -1861,6 +1863,49 @@ mod tests {
             .unwrap();
         assert!(!account_exists(&db, 33).await);
         assert_eq!(group_one(&db).await.responsable_id, pk(30));
+    }
+
+    /// A dirigeant takes the groups back as the superuser does; an update
+    /// that keeps the account active takes nothing.
+    #[cfg(feature = "admin")]
+    #[tokio::test]
+    async fn a_dirigeant_takes_back_and_a_plain_update_takes_nothing() {
+        use crate::auth::user::{Column, Entity};
+        let (db, _) = with_a_responsable().await;
+        let mut boss = ranked(member(pk(32), NOTHING), Rang::Dirigeant);
+        boss.groupes.clear();
+        let renamed = BulkChange::<Entity>::Set(Column::Username, Value::from("renamed"));
+        bulk_as::<Entity>(&boss, &[pk(33)], &renamed, &db)
+            .await
+            .unwrap();
+        assert_eq!(group_one(&db).await.responsable_id, pk(33), "still his");
+
+        let off = BulkChange::<Entity>::Set(Column::IsActive, Value::from(false));
+        bulk_as::<Entity>(&boss, &[pk(33)], &off, &db)
+            .await
+            .unwrap();
+        let group = group_one(&db).await;
+        assert_eq!(
+            (group.responsable_id, group.repris_par),
+            (pk(32), Some(pk(32)))
+        );
+    }
+
+    /// A grouped action never sets the key; the owner only with the full
+    /// update right, never through `_own` alone.
+    #[cfg(feature = "admin")]
+    #[tokio::test]
+    async fn a_grouped_action_keeps_the_key_and_the_owner_floor() {
+        use ticket::{Column, Entity};
+        let db = setup().await;
+        let full = member(pk(10), [false, true, false, true, false, false, false]);
+        let own = member(pk(10), [false, false, true, false, false, true, false]);
+        let key = BulkChange::<Entity>::Set(Column::Id, Value::from(9));
+        assert!(bulk_as::<Entity>(&full, &[1], &key, &db).await.is_err());
+        let owner = BulkChange::<Entity>::Set(Column::OwnerId, Value::from(pk(10)));
+        assert!(bulk_as::<Entity>(&own, &[1], &owner, &db).await.is_err());
+        bulk_as::<Entity>(&full, &[2], &owner, &db).await.unwrap();
+        assert_eq!(ticket_of(&db, 2).await.unwrap().owner_id, Some(pk(10)));
     }
 
     /// Below dirigeant, nothing is taken back: an admin deactivating a

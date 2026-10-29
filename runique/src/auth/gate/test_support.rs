@@ -169,4 +169,50 @@ pub(crate) mod fixtures {
             droits: Vec::new(),
         }
     }
+
+    /// `db()` with the groups' tables, every account active, and group 1
+    /// "g" answered for by `responsable`.
+    #[cfg(feature = "admin")]
+    pub(crate) async fn groups_db(responsable: Pk) -> ADb {
+        use crate::auth::permissions::{groupe, groupes_droits, users_groupes};
+        let db = db().await;
+        let schema = Schema::new(sea_orm::DatabaseBackend::Sqlite);
+        for table in [
+            schema.create_table_from_entity(groupe::Entity),
+            schema.create_table_from_entity(groupes_droits::Entity),
+            schema.create_table_from_entity(users_groupes::Entity),
+        ] {
+            db.execute(&table).await.unwrap();
+        }
+        use sea_orm::{EntityTrait, sea_query::Expr};
+        crate::auth::user::Entity::update_many()
+            .col_expr(crate::auth::user::Column::IsActive, Expr::value(true))
+            .exec(&db)
+            .await
+            .unwrap();
+        groupe::ActiveModel {
+            id: Set(1),
+            nom: Set("g".into()),
+            is_staff: Set(true),
+            responsable_id: Set(responsable),
+            repris_par: Set(None),
+            is_active: Set(true),
+        }
+        .insert(&db)
+        .await
+        .unwrap();
+        db
+    }
+
+    /// Account `pk(n)` as signed in with rank `rang`, no group of its own.
+    #[cfg(feature = "admin")]
+    pub(crate) fn as_rank(n: u8, rang: crate::auth::permissions::rang::Rang) -> CurrentUser {
+        CurrentUser {
+            id: pk(n),
+            username: format!("u{n}"),
+            rang,
+            groupes: Vec::new(),
+            droits: Vec::new(),
+        }
+    }
 }

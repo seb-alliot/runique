@@ -1,7 +1,7 @@
 //! Admin panel configuration: prefix, title, hot reload, and templates.
 use std::sync::Arc;
 
-use crate::admin::config::AdminTemplate;
+use crate::admin::template::AdminTemplate;
 use crate::auth::guard::LoginGuard;
 use crate::middleware::security::RateLimiter;
 use crate::utils::env::is_debug;

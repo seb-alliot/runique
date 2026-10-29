@@ -1,10 +1,5 @@
 {% extends "admin_base.html" %}
 {% block title %}{{ admin_rights_title }} — {{ account_name }}{% endblock %}
-{% block extra_css %}
-  {{ super() }}
-  {# The grid's block is repeated per table: its sheet is declared here, once. #}
-  <link rel="stylesheet" href="{% runique_static "css/admin/blocks/rights.css" %}">
-{% endblock %}
 {% block breadcrumb %}
   <span class="admin-topbar__sep">/</span>
   <a href="{{ list_url }}">{{ resource.title }}</a>
@@ -51,7 +46,7 @@
       {{ form_fields.html }}
       {# Tera 2 allows no block in a loop: a table is replaced through its file. #}
       {% for table in tables %}
-        {% include "admin/blocks/rights/table.html" %}
+        {% dev_block "rights_table" %}
       {% endfor %}
       <div class="admin-form__actions mt-sm">
         <a href="{{ cancel_url }}" class="btn btn-secondary">{{ admin_rights_btn_cancel }}</a>

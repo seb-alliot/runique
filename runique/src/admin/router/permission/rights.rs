@@ -258,7 +258,14 @@ pub(crate) async fn rights_view(
         Err(e) => return failure(AdminError::Db(e), &req, &admin).await,
     };
     let form_fields = serde_json::to_value(form.get_form()).unwrap_or_default();
-    chrome(&mut req, &admin, &site, &user, key);
+    chrome(
+        &mut req,
+        &admin,
+        &site,
+        &user,
+        key,
+        crate::admin::template::Page::Rights,
+    );
     crate::admin::trad::insert_admin_messages(&mut req.context, "rights");
     put(
         &mut req,
@@ -401,7 +408,14 @@ async fn group_rights(
         Err(e) => return failure(AdminError::Db(e), &req, &admin).await,
     };
     let form_fields = serde_json::to_value(form.get_form()).unwrap_or_default();
-    chrome(&mut req, &admin, &site, &user, key);
+    chrome(
+        &mut req,
+        &admin,
+        &site,
+        &user,
+        key,
+        crate::admin::template::Page::Rights,
+    );
     crate::admin::trad::insert_admin_messages(&mut req.context, "rights");
     put(
         &mut req,

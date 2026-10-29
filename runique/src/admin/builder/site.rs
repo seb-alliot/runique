@@ -70,6 +70,13 @@ fn default_groups() -> ModelAdmin<crate::auth::permissions::groupe::Entity> {
 }
 
 impl AdminSite {
+    /// Each model's key and its replaced pages and blocks.
+    pub(crate) fn model_templates(
+        &self,
+    ) -> Vec<(&'static str, &crate::admin::template::ModelTemplates)> {
+        self.all().map(|m| (m.key(), m.templates())).collect()
+    }
+
     /// The framework's models, then the project's: every model served.
     fn all(&self) -> impl Iterator<Item = &Box<dyn RegisteredModel>> {
         [&self.accounts, &self.groups]

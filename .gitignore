@@ -18,48 +18,17 @@ Thumbs.db
 # Env
 .env*
 
-# Fichiers temporaires Claude Code
+# Outils (Claude Code, MCP)
 tmpclaude-*
 /.claude/
-/campanile/
-# Dossiers projet
-dossier_projet*.md
-dossier_projet*.pdf
-
-# Fichier perso
-RECAP_SESSION_MAKEMIGRATIONS.md
-ARCHITECTURE_TRACING.md
-commande.txt
-AUDIT.md
-audit.ps1
-check.ps1
-CLAUDE.md
-/Dockerfile
 .playwright-mcp
 .mcp.json
-server.md
-architecture_quick.md
-architecture_current.txt
-CLAUDE.md
-difference-django-runique.md
-presentation_runique.md
-presentation_runique.pdf
-presentation_securite_ecf.md
-presentation_poo.md
-presentation_poo.pdf
-hooks_signaux_recap.md
-fallback_ci.md
-idee_perso.md
-droits_runique_4.0.md
-ebauche-crud-operations.md
-ebauche-model-admin.md
-ebauche-reset-password.md
 
-# Notes de travail (récapitulatifs locaux)
-recap-extraction-dsl-runique.md
-recap-trous-builder-test.md
-recap-types-dsl-seaorm.md
-/agent_vs_retour.md
+# Fichiers perso
+CLAUDE.md
+commande.txt
+architecture_current.txt
+difference-django-runique.md
 
 # cargo-mutants reports
 mutants.out/

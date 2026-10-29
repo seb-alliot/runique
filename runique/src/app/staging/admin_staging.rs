@@ -2,7 +2,7 @@
 
 use crate::admin::builder::site::AdminSite;
 use crate::admin::router::AdminView;
-use crate::admin::{AdminConfig, config::AdminTemplate};
+use crate::admin::{AdminConfig, template::AdminTemplate};
 use crate::app::error_build::{BuildError, CheckError, CheckReport};
 use crate::auth::guard::LoginGuard;
 use crate::middleware::security::RateLimiter;

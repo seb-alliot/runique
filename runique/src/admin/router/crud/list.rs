@@ -113,7 +113,14 @@ pub(crate) async fn list_view(
         None
     };
 
-    chrome(&mut req, &admin, &site, &user, key);
+    chrome(
+        &mut req,
+        &admin,
+        &site,
+        &user,
+        key,
+        crate::admin::template::Page::List,
+    );
     insert_admin_messages(&mut req.context, "list");
     put(
         &mut req,
@@ -174,7 +181,10 @@ pub(crate) async fn list_view(
     let template = if htmx {
         admin.config.templates.htmx.resolve()
     } else {
-        admin.config.templates.list.resolve()
+        admin
+            .config
+            .templates
+            .page_for(crate::admin::template::Page::List, Some(model.templates()))
     };
     req.render(template)
 }

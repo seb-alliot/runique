@@ -22,6 +22,12 @@ pub struct RuniqueConfig {
     /// IANA timezone name — read from `TZ` env var. Default: `"UTC"`.
     /// Parse with `chrono-tz`: `config.timezone.parse::<chrono_tz::Tz>()`.
     pub timezone: String,
+    /// The admin blocks the developer replaced, served in place of Runique's
+    /// whenever Tera loads the templates, the debug reload included. Set by
+    /// the builder, never by hand.
+    #[doc(hidden)]
+    #[serde(skip)]
+    pub block_dispatch: Vec<crate::app::templates::BlockDispatch>,
 }
 
 impl RuniqueConfig {
@@ -38,6 +44,7 @@ impl RuniqueConfig {
             base_dir: std::env::var("BASE_DIR").unwrap_or_else(|_| ".".to_string()),
             debug: crate::utils::config::env::debug_from(std::env::var("DEBUG").ok().as_deref()),
             timezone: std::env::var("TZ").unwrap_or_else(|_| "UTC".to_string()),
+            block_dispatch: Vec::new(),
             log: RuniqueLog::default(),
         }
     }

@@ -44,6 +44,8 @@ pub struct AdminState {
     pub login_guard: Option<Arc<LoginGuard>>,
     /// Every admin route's path, under the public prefix.
     pub paths: crate::admin::router::AdminPaths,
+    /// Every page's stylesheets, resolved and hashed at boot.
+    pub sheets: Arc<crate::admin::template::PageSheets>,
 }
 
 #[derive(Clone)]
@@ -155,7 +157,10 @@ struct AdminLoginData {
 /// all mounted under the resolved public prefix (`mount_prefix` + admin's own
 /// `path`) and wrapped with the auth-required, session-loading and
 /// `X-Robots-Tag: noindex` layers.
-pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
+pub fn build_admin_router(
+    admin_staging: AdminStaging,
+    sheets: crate::admin::template::PageSheets,
+) -> Router {
     // Two independent values, never in competition:
     //   `admin_path`   — the admin's own path (`/site-admin`), from `.routes()`
     //   `mount_prefix` — the segment `.prefix()` puts in front (`/secret`)
@@ -190,6 +195,7 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
         config: Arc::new(config.clone()),
         login_guard,
         paths: paths.clone(),
+        sheets: Arc::new(sheets),
     });
 
     // Public routes (login only)
@@ -323,7 +329,14 @@ async fn admin_dashboard(
 
     // The menu, rights applied, as on every page; its resources list the
     // models the dashboard counts.
-    super::chrome(&mut req, &admin, &site, &current_user, "");
+    super::chrome(
+        &mut req,
+        &admin,
+        &site,
+        &current_user,
+        "",
+        crate::admin::template::Page::Dashboard,
+    );
     insert_admin_messages(&mut req.context, "dashboard");
     req = req
         .insert("resource_counts", &resource_counts)
@@ -374,10 +387,17 @@ fn my_groups(
                     let table = site
                         .model(&p.resource_key)
                         .map_or_else(|| p.resource_key.clone(), |m| m.title());
-                    Some(MyGroupRight { table, rights: names.join(", ") })
+                    Some(MyGroupRight {
+                        table,
+                        rights: names.join(", "),
+                    })
                 })
                 .collect();
-            MyGroup { name: group.nom.clone(), staff: group.is_staff, rights }
+            MyGroup {
+                name: group.nom.clone(),
+                staff: group.is_staff,
+                rights,
+            }
         })
         .collect()
 }
@@ -402,6 +422,10 @@ async fn admin_login_get(
     }
 
     insert_admin_messages(&mut req.context, "login");
+    req.context.insert(
+        "stylesheets",
+        admin.sheets.of(crate::admin::template::Page::Login, ""),
+    );
     inject_admin_prefix(&mut req.context, &admin.config.prefix);
 
     req = req
@@ -450,6 +474,10 @@ async fn admin_login_post(
         .unwrap_or(false);
     if !csrf_valid {
         insert_admin_messages(&mut req.context, "login");
+        req.context.insert(
+            "stylesheets",
+            admin.sheets.of(crate::admin::template::Page::Login, ""),
+        );
         inject_admin_prefix(&mut req.context, &admin.config.prefix);
         req = req
             .insert("lang", current_lang().code())
@@ -467,6 +495,10 @@ async fn admin_login_post(
         if guard.is_locked(&key) {
             let secs = guard.remaining_lockout_secs(&key).unwrap_or(0);
             insert_admin_messages(&mut req.context, "login");
+            req.context.insert(
+                "stylesheets",
+                admin.sheets.of(crate::admin::template::Page::Login, ""),
+            );
             inject_admin_prefix(&mut req.context, &admin.config.prefix);
             req = req
                 .insert("lang", current_lang().code())
@@ -500,6 +532,10 @@ async fn admin_login_post(
             .is_err()
         {
             insert_admin_messages(&mut req.context, "login");
+            req.context.insert(
+                "stylesheets",
+                admin.sheets.of(crate::admin::template::Page::Login, ""),
+            );
             insert_admin_messages(&mut req.context, "base");
             inject_admin_prefix(&mut req.context, &admin.config.prefix);
             req = req
@@ -520,6 +556,10 @@ async fn admin_login_post(
         }
 
         insert_admin_messages(&mut req.context, "login");
+        req.context.insert(
+            "stylesheets",
+            admin.sheets.of(crate::admin::template::Page::Login, ""),
+        );
         insert_admin_messages(&mut req.context, "base");
         inject_admin_prefix(&mut req.context, &admin.config.prefix);
         req = req

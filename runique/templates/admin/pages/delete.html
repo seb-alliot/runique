@@ -19,8 +19,8 @@
      and decides again on the delete. #}
   <div class="admin-card">
     <div class="admin-card__body">
-      {% block delete_warning %}{% include "admin/blocks/delete/warning.html" %}{% endblock %}
-      {% block delete_actions %}{% include "admin/blocks/delete/actions.html" %}{% endblock %}
+      {% block delete_warning %}{% dev_block "delete_warning" %}{% endblock %}
+      {% block delete_actions %}{% dev_block "delete_actions" %}{% endblock %}
     </div>
   </div>
 {% endblock %}

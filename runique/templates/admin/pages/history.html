@@ -13,8 +13,8 @@
     </div>
   </div>
   {% endblock %}
-  {% block history_filters %}{% include "admin/blocks/history/filters.html" %}{% endblock %}
-  {% block history_table %}{% include "admin/blocks/history/table.html" %}{% endblock %}
+  {% block history_filters %}{% dev_block "history_filters" %}{% endblock %}
+  {% block history_table %}{% dev_block "history_table" %}{% endblock %}
   {% block history_pagination %}
   {% if total_pages > 1 %}
   <div class="admin-pagination">

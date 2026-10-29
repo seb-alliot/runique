@@ -105,6 +105,9 @@ pub(crate) trait RegisteredModel: Send + Sync {
     /// model's plural (or singular) verbose name, else its key made readable.
     fn title(&self) -> String;
 
+    /// Its pages, or blocks of them, replaced for it only.
+    fn templates(&self) -> &crate::admin::template::ModelTemplates;
+
     /// Whether the navigation lists it for `user`: at least one right on it,
     /// as the gate resolves them. Listing opens nothing: each page still asks
     /// the gate.
@@ -204,6 +207,10 @@ where
 
     fn rights(&self, user: &CurrentUser) -> CrudAction {
         CrudAction::resolve(user, E::KEY)
+    }
+
+    fn templates(&self) -> &crate::admin::template::ModelTemplates {
+        &self.templates
     }
 
     fn title(&self) -> String {

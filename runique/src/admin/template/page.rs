@@ -1,10 +1,10 @@
-//! Admin template management with optional developer override.
+//! The page each admin view renders: Runique's, or the developer's override.
 
 /// Admin template path — with fallback to Runique default.
 ///
 /// `runique` : Tera key of the framework template (immutable)
 /// `dev`     : optional dev path — replaces `runique` if defined
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PathAdminTemplate {
     pub dev: Option<String>,
     pub runique: &'static str,
@@ -104,10 +104,9 @@ impl PathAdminTemplate {
 
 /// Global configuration for admin templates.
 ///
-/// Resolution hierarchy (decreasing priority):
-/// 1. `admin!{ template_list: "..." }` — override per resource
-/// 2. `AdminTemplate.list.dev`         — global dev override
-/// 3. `AdminTemplate.list.runique`     — framework default
+/// Resolution (decreasing priority):
+/// 1. `AdminTemplate.list.dev`     — the developer's override
+/// 2. `AdminTemplate.list.runique` — Runique's page
 ///
 /// ## Example
 /// ```rust,ignore
@@ -133,9 +132,74 @@ pub struct AdminTemplate {
     pub bulk_edit: PathAdminTemplate,
     pub history: PathAdminTemplate,
     pub history_diff: PathAdminTemplate,
+    /// The model pages' blocks replaced for every model.
+    pub blocks: super::block::ModelBlocks,
+    /// The layout's blocks, and those of pages about no model, replaced.
+    pub global_blocks: super::block::Overrides<super::block::GlobalBlock>,
+    /// The sheet of a page the developer replaced: loaded alone, after the
+    /// variables. Without one, his page gets Runique's sheets.
+    pub page_stylesheets: std::collections::HashMap<super::stylesheet::Page, String>,
 }
 
 impl AdminTemplate {
+    /// The sheet of the page `page` replaces, under the developer's static:
+    /// it then stands for all of Runique's on that page but the variables.
+    /// Only read once the page itself is replaced.
+    #[must_use]
+    pub fn page_stylesheet(mut self, page: super::stylesheet::Page, path: &str) -> Self {
+        self.page_stylesheets.insert(page, path.to_string());
+        self
+    }
+
+    /// The template a page renders, for the pages a developer may replace.
+    pub(crate) fn page_template(
+        &self,
+        page: super::stylesheet::Page,
+    ) -> Option<&PathAdminTemplate> {
+        use super::stylesheet::Page;
+        Some(match page {
+            Page::Login => &self.login,
+            Page::Dashboard => &self.dashboard,
+            Page::List => &self.list,
+            Page::Create => &self.create,
+            Page::Edit => &self.edit,
+            Page::Detail => &self.detail,
+            Page::Delete => &self.delete,
+            Page::History => &self.history,
+            Page::HistoryDiff => &self.history_diff,
+            Page::Rights | Page::Transfer => return None,
+        })
+    }
+
+    /// Replaces a model page's block, for every model, with the template `path`.
+    #[must_use]
+    pub fn block(mut self, block: super::block::Block, path: &str) -> Self {
+        self.blocks = self.blocks.block(block, path);
+        self
+    }
+
+    /// Replaces a model page's block's stylesheet, for every model, with
+    /// `path` under the developer's static.
+    #[must_use]
+    pub fn block_stylesheet(mut self, block: super::block::Block, path: &str) -> Self {
+        self.blocks = self.blocks.block_stylesheet(block, path);
+        self
+    }
+
+    /// Replaces a layout block, or one of a page about no model.
+    #[must_use]
+    pub fn global_block(mut self, block: super::block::GlobalBlock, path: &str) -> Self {
+        self.global_blocks = self.global_blocks.block(block, path);
+        self
+    }
+
+    /// Replaces a layout block's stylesheet, or one of a page about no model.
+    #[must_use]
+    pub fn global_block_stylesheet(mut self, block: super::block::GlobalBlock, path: &str) -> Self {
+        self.global_blocks = self.global_blocks.block_stylesheet(block, path);
+        self
+    }
+
     /// Builds the default `AdminTemplate` configuration: every page points at
     /// its framework template with no dev override.
     pub fn new() -> Self {
@@ -152,6 +216,9 @@ impl AdminTemplate {
             bulk_edit: PathAdminTemplate::bulk_edit(),
             history: PathAdminTemplate::history(),
             history_diff: PathAdminTemplate::history_diff(),
+            blocks: Default::default(),
+            global_blocks: Default::default(),
+            page_stylesheets: Default::default(),
         }
     }
     /// Overrides the dashboard template with a developer-provided path.
@@ -231,5 +298,62 @@ impl AdminTemplate {
 impl Default for AdminTemplate {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+/// A model's replacements: blocks of its pages, or whole pages, over the
+/// global ones.
+#[derive(Clone, Debug, Default)]
+pub struct ModelTemplates {
+    pub(crate) blocks: super::block::ModelBlocks,
+    pub(crate) pages: std::collections::HashMap<super::stylesheet::Page, String>,
+    pub(crate) page_stylesheets: std::collections::HashMap<super::stylesheet::Page, String>,
+}
+
+impl ModelTemplates {
+    /// Replaces a block of this model's pages with the template `path`.
+    #[must_use]
+    pub fn block(mut self, block: super::block::Block, path: &str) -> Self {
+        self.blocks = self.blocks.block(block, path);
+        self
+    }
+
+    /// Replaces a block's stylesheet on this model's pages.
+    #[must_use]
+    pub fn block_stylesheet(mut self, block: super::block::Block, path: &str) -> Self {
+        self.blocks = self.blocks.block_stylesheet(block, path);
+        self
+    }
+
+    /// Replaces one of this model's pages (list, create, edit, detail,
+    /// delete) with the template `path`. Another page refuses the boot.
+    #[must_use]
+    pub fn page(mut self, page: super::stylesheet::Page, path: &str) -> Self {
+        self.pages.insert(page, path.to_string());
+        self
+    }
+
+    /// The sheet of this model's replaced page, standing for all of
+    /// Runique's but the variables.
+    #[must_use]
+    pub fn page_stylesheet(mut self, page: super::stylesheet::Page, path: &str) -> Self {
+        self.page_stylesheets.insert(page, path.to_string());
+        self
+    }
+}
+
+impl AdminTemplate {
+    /// The template `page` renders for a model with `model`'s replacements:
+    /// its own page, else the global one, else Runique's.
+    pub(crate) fn page_for<'a>(
+        &'a self,
+        page: super::stylesheet::Page,
+        model: Option<&'a ModelTemplates>,
+    ) -> &'a str {
+        if let Some(own) = model.and_then(|m| m.pages.get(&page)) {
+            return own;
+        }
+        self.page_template(page)
+            .map_or("", PathAdminTemplate::resolve)
     }
 }

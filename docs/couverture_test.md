@@ -1,12 +1,12 @@
 # Couverture de tests — package `runique`
 
-Snapshot du **2026-10-22** · commande : `cargo llvm-cov --package runique --features all-databases,admin,test-utils`
+Snapshot du **2026-10-29** · commande : `cargo llvm-cov --package runique --features all-databases,admin,test-utils`
 
 | | Régions | Fonctions | Lignes |
 |---|---|---|---|
-| **TOTAL** | **87.34 %** | **89.81 %** | **88.65 %** |
+| **TOTAL** | **91.19 %** | **92.51 %** | **92.21 %** |
 
-Évolution depuis le 2026-10-08 : régions 87.25 % → 87.34 %, fonctions 88.72 % → 89.81 %, lignes 88.81 % → 88.65 %.
+Évolution depuis le 2026-10-22 : régions 87.34 % → 91.19 %, fonctions 89.81 % → 92.51 %, lignes 88.65 % → 92.21 %.
 
 ---
 
@@ -14,26 +14,35 @@ Snapshot du **2026-10-22** · commande : `cargo llvm-cov --package runique --fea
 
 | Fichier | Régions | Fonctions | Lignes |
 |---|---|---|---|
-| builder/admin_builder.rs | 97.89 % | 99.12 % | 97.58 % |
-| builder/form.rs | 99.68 % | 100.00 % | 100.00 % |
-| builder/list.rs | 99.08 % | 100.00 % | 99.23 % |
-| builder/registered.rs | 96.97 % | 93.75 % | 95.77 % |
-| builder/site.rs | 98.26 % | 100.00 % | 100.00 % |
-| config/config_admin.rs | 97.92 % | 94.74 % | 97.32 % |
-| config/template.rs | 54.55 % | 60.87 % | 70.00 % |
-| gate/check.rs | 96.92 % | 98.08 % | 98.33 % |
-| gate/decide.rs | 98.98 % | 100.00 % | 99.11 % |
-| gate/proof.rs | 100.00 % | 100.00 % | 100.00 % |
-| gate/refusal.rs | 100.00 % | 100.00 % | 100.00 % |
-| gate/test_support.rs | 100.00 % | 100.00 % | 100.00 % |
-| gate/write.rs | 96.97 % | 96.30 % | 97.40 % |
-| history.rs | 0.00 % | 0.00 % | 0.00 % |
-| meta.rs | 100.00 % | 100.00 % | 100.00 % |
-| middleware/admin_middleware.rs | 18.03 % | 66.67 % | 21.88 % |
-| router/admin_router.rs | 22.70 % | 13.79 % | 21.88 % |
-| router/detail.rs | 0.00 % | 0.00 % | 0.00 % |
-| router/list.rs | 0.00 % | 0.00 % | 0.00 % |
-| router/mod.rs | 42.61 % | 58.33 % | 44.59 % |
+| builder/admin_builder.rs | 97.28 % | 98.55 % | 97.30 % |
+| builder/bulk_form.rs | 100.00 % | 100.00 % | 100.00 % |
+| builder/confirm_form.rs | 100.00 % | 100.00 % | 100.00 % |
+| builder/form.rs | 98.46 % | 94.29 % | 98.96 % |
+| builder/list.rs | 99.10 % | 100.00 % | 99.25 % |
+| builder/registered.rs | 96.40 % | 94.64 % | 96.61 % |
+| builder/site.rs | 97.93 % | 100.00 % | 99.10 % |
+| config/config_admin.rs | 97.90 % | 94.74 % | 97.32 % |
+| middleware/admin_middleware.rs | 92.53 % | 96.61 % | 92.97 % |
+| router/account/memberships.rs | 77.38 % | 87.50 % | 82.35 % |
+| router/account/reset_password.rs | 94.59 % | 100.00 % | 93.81 % |
+| router/admin_router.rs | 64.03 % | 74.36 % | 72.45 % |
+| router/context.rs | 66.67 % | 66.67 % | 70.59 % |
+| router/crud/bulk.rs | 89.39 % | 100.00 % | 94.44 % |
+| router/crud/create.rs | 91.00 % | 100.00 % | 93.33 % |
+| router/crud/delete.rs | 95.77 % | 100.00 % | 95.35 % |
+| router/crud/detail.rs | 91.21 % | 100.00 % | 83.23 % |
+| router/crud/edit.rs | 96.43 % | 100.00 % | 96.00 % |
+| router/crud/list.rs | 91.89 % | 100.00 % | 84.56 % |
+| router/history.rs | 90.24 % | 95.83 % | 95.12 % |
+| router/mod.rs | 97.55 % | 100.00 % | 98.96 % |
+| router/path/mod.rs | 100.00 % | 100.00 % | 100.00 % |
+| router/permission/rank.rs | 86.44 % | 100.00 % | 87.14 % |
+| router/permission/rights.rs | 89.18 % | 97.67 % | 93.35 % |
+| router/permission/transfer.rs | 86.57 % | 92.31 % | 88.89 % |
+| template/assemble.rs | 99.03 % | 100.00 % | 99.41 % |
+| template/block.rs | 100.00 % | 100.00 % | 100.00 % |
+| template/page.rs | 71.23 % | 69.23 % | 77.03 % |
+| template/stylesheet.rs | 99.73 % | 100.00 % | 100.00 % |
 | trad/mod.rs | 100.00 % | 100.00 % | 100.00 % |
 
 ---
@@ -42,11 +51,11 @@ Snapshot du **2026-10-22** · commande : `cargo llvm-cov --package runique --fea
 
 | Fichier | Régions | Fonctions | Lignes |
 |---|---|---|---|
-| builder/build.rs | 86.29 % | 85.00 % | 88.15 % |
-| builder/mod.rs | 73.77 % | 72.22 % | 70.63 % |
-| error_build.rs | 84.44 % | 100.00 % | 94.57 % |
+| builder/build.rs | 87.68 % | 88.46 % | 88.86 % |
+| builder/mod.rs | 76.22 % | 77.78 % | 76.60 % |
+| error_build.rs | 85.93 % | 100.00 % | 95.65 % |
 | runique_app.rs | 5.80 % | 14.29 % | 7.89 % |
-| staging/admin_staging.rs | 84.66 % | 95.65 % | 82.78 % |
+| staging/admin_staging.rs | 94.15 % | 93.75 % | 93.96 % |
 | staging/core_staging.rs | 80.26 % | 90.00 % | 83.05 % |
 | staging/cors_config.rs | 100.00 % | 100.00 % | 100.00 % |
 | staging/csp_config.rs | 100.00 % | 100.00 % | 100.00 % |
@@ -56,7 +65,7 @@ Snapshot du **2026-10-22** · commande : `cargo llvm-cov --package runique --fea
 | staging/permissions_policy_config.rs | 100.00 % | 100.00 % | 100.00 % |
 | staging/static_staging.rs | 72.22 % | 75.00 % | 76.19 % |
 | staging/trusted_proxies_config.rs | 97.38 % | 100.00 % | 99.10 % |
-| templates.rs | 83.27 % | 85.71 % | 82.31 % |
+| templates.rs | 94.31 % | 95.45 % | 94.50 % |
 
 ---
 
@@ -66,16 +75,30 @@ Snapshot du **2026-10-22** · commande : `cargo llvm-cov --package runique --fea
 |---|---|---|---|
 | current_user.rs | 100.00 % | 100.00 % | 100.00 % |
 | form.rs | 100.00 % | 100.00 % | 100.00 % |
-| guard.rs | 85.31 % | 93.75 % | 90.32 % |
-| migrations_table.rs | 75.29 % | 46.43 % | 74.27 % |
-| password.rs | 71.41 % | 92.11 % | 70.18 % |
-| permissions/groupe.rs | 0.00 % | 0.00 % | 0.00 % |
+| gate/change.rs | 98.69 % | 96.00 % | 97.62 % |
+| gate/check.rs | 97.80 % | 98.08 % | 98.70 % |
+| gate/decide.rs | 98.98 % | 100.00 % | 99.11 % |
+| gate/membership.rs | 93.16 % | 100.00 % | 97.44 % |
+| gate/proof.rs | 100.00 % | 100.00 % | 100.00 % |
+| gate/rank.rs | 96.78 % | 100.00 % | 98.17 % |
+| gate/refusal.rs | 100.00 % | 100.00 % | 100.00 % |
+| gate/rights_grid.rs | 95.28 % | 100.00 % | 99.13 % |
+| gate/save.rs | 97.77 % | 98.53 % | 98.80 % |
+| gate/test_support.rs | 100.00 % | 100.00 % | 100.00 % |
+| gate/transfer.rs | 97.09 % | 100.00 % | 99.29 % |
+| gate/write.rs | 98.35 % | 100.00 % | 99.17 % |
+| guard.rs | 88.67 % | 96.15 % | 91.67 % |
+| history.rs | 96.13 % | 100.00 % | 94.96 % |
+| meta.rs | 100.00 % | 100.00 % | 100.00 % |
+| migrations_table.rs | 81.65 % | 46.67 % | 80.85 % |
+| password.rs | 83.65 % | 97.73 % | 82.21 % |
+| permissions/groupe.rs | 81.40 % | 50.00 % | 75.00 % |
 | permissions/groupes_droits.rs | 0.00 % | 0.00 % | 0.00 % |
-| permissions/mod.rs | 83.80 % | 82.35 % | 83.80 % |
+| permissions/mod.rs | 96.15 % | 100.00 % | 96.16 % |
 | permissions/rang.rs | 100.00 % | 100.00 % | 100.00 % |
 | permissions/rights.rs | 100.00 % | 100.00 % | 100.00 % |
 | permissions/users_groupes.rs | 100.00 % | 100.00 % | 100.00 % |
-| session.rs | 68.12 % | 80.95 % | 71.52 % |
+| session.rs | 77.73 % | 85.71 % | 79.11 % |
 | user.rs | 90.87 % | 87.10 % | 93.53 % |
 | user_trait.rs | 100.00 % | 100.00 % | 100.00 % |
 
@@ -118,11 +141,11 @@ Snapshot du **2026-10-22** · commande : `cargo llvm-cov --package runique --fea
 |---|---|---|---|
 | request/extractor.rs | 93.33 % | 100.00 % | 100.00 % |
 | request_extensions.rs | 83.19 % | 100.00 % | 93.59 % |
-| template.rs | 86.26 % | 77.78 % | 86.08 % |
+| template.rs | 90.86 % | 87.69 % | 90.49 % |
 | tera/contrib.rs | 100.00 % | 100.00 % | 100.00 % |
-| tera/form.rs | 90.30 % | 87.88 % | 87.41 % |
-| tera/static_tera.rs | 96.00 % | 94.74 % | 97.06 % |
-| tera/url.rs | 91.00 % | 85.71 % | 93.88 % |
+| tera/form.rs | 93.33 % | 96.88 % | 91.10 % |
+| tera/static_tera.rs | 96.11 % | 95.00 % | 97.09 % |
+| tera/url.rs | 95.83 % | 100.00 % | 97.87 % |
 
 ---
 
@@ -135,7 +158,7 @@ Snapshot du **2026-10-22** · commande : `cargo llvm-cov --package runique --fea
 | config.rs | 88.18 % | 100.00 % | 90.24 % |
 | engine.rs | 100.00 % | 100.00 % | 100.00 % |
 | runique_db.rs | 70.37 % | 60.00 % | 65.22 % |
-| sql_dialect.rs | 85.88 % | 85.71 % | 87.01 % |
+| sql_dialect.rs | 89.19 % | 88.89 % | 90.20 % |
 
 ---
 
@@ -168,27 +191,28 @@ Snapshot du **2026-10-22** · commande : `cargo llvm-cov --package runique --fea
 
 | Fichier | Régions | Fonctions | Lignes |
 |---|---|---|---|
-| base.rs | 94.61 % | 91.67 % | 94.62 % |
-| column_value.rs | 86.47 % | 75.00 % | 89.33 % |
-| extractor.rs | 98.16 % | 96.55 % | 95.92 % |
-| field.rs | 66.97 % | 69.23 % | 67.61 % |
+| base.rs | 96.59 % | 93.44 % | 96.00 % |
+| column_value.rs | 92.86 % | 82.14 % | 95.43 % |
+| extractor.rs | 98.45 % | 96.55 % | 95.90 % |
+| field.rs | 68.00 % | 71.88 % | 69.05 % |
 | fields/binary.rs | 94.42 % | 88.89 % | 90.34 % |
 | fields/boolean.rs | 100.00 % | 100.00 % | 100.00 % |
 | fields/choice.rs | 90.55 % | 92.00 % | 86.87 % |
 | fields/datetime.rs | 79.20 % | 87.30 % | 80.13 % |
-| fields/file.rs | 95.66 % | 96.75 % | 96.11 % |
-| fields/hidden.rs | 89.01 % | 88.24 % | 87.01 % |
-| fields/number.rs | 90.37 % | 95.12 % | 91.70 % |
+| fields/file.rs | 96.14 % | 97.58 % | 96.90 % |
+| fields/hidden.rs | 88.65 % | 84.00 % | 85.96 % |
+| fields/number.rs | 92.36 % | 97.56 % | 92.14 % |
 | fields/special.rs | 82.90 % | 84.38 % | 79.32 % |
-| fields/text.rs | 91.36 % | 92.11 % | 94.30 % |
-| form.rs | 78.38 % | 83.33 % | 83.29 % |
+| fields/text.rs | 92.59 % | 92.11 % | 94.94 % |
+| form.rs | 81.39 % | 87.50 % | 86.76 % |
 | form_data.rs | 85.29 % | 66.67 % | 85.71 % |
-| generic.rs | 88.24 % | 97.30 % | 95.35 % |
+| generic.rs | 90.17 % | 100.00 % | 97.73 % |
 | model_form/mod.rs | 100.00 % | 100.00 % | 100.00 % |
 | options/bool_choice.rs | 100.00 % | 100.00 % | 100.00 % |
 | prisme/aegis.rs | 85.59 % | 80.00 % | 86.21 % |
 | renderer.rs | 84.15 % | 84.62 % | 91.43 % |
-| validation_form.rs | 100.00 % | 100.00 % | 100.00 % |
+| save.rs | 89.36 % | 80.00 % | 84.00 % |
+| validation_form.rs | 87.03 % | 85.71 % | 88.54 % |
 | validator.rs | 86.40 % | 100.00 % | 89.47 % |
 
 ---
@@ -199,14 +223,15 @@ Snapshot du **2026-10-22** · commande : `cargo llvm-cov --package runique --fea
 |---|---|---|---|
 | bdd/list.rs | 89.08 % | 77.78 % | 78.87 % |
 | bdd/objects.rs | 78.13 % | 89.47 % | 87.06 % |
-| bdd/query.rs | 78.28 % | 85.42 % | 83.24 % |
+| bdd/query.rs | 79.89 % | 86.27 % | 84.91 % |
 | context/flash.rs | 100.00 % | 100.00 % | 100.00 % |
 | context/helper.rs | 100.00 % | 100.00 % | 100.00 % |
 | context/impl_error.rs | 100.00 % | 100.00 % | 100.00 % |
 | forms/enum_kind.rs | 100.00 % | 100.00 % | 100.00 % |
-| forms/impl_form.rs | 65.38 % | 57.14 % | 60.87 % |
-| routeur/register_url.rs | 86.11 % | 58.33 % | 89.13 % |
+| forms/impl_form.rs | 100.00 % | 100.00 % | 100.00 % |
+| routeur/register_url.rs | 87.02 % | 64.71 % | 89.66 % |
 | routeur/router_ext.rs | 100.00 % | 100.00 % | 100.00 % |
+| routeur/routes.rs | 96.30 % | 88.89 % | 95.31 % |
 
 ---
 
@@ -223,10 +248,10 @@ Snapshot du **2026-10-22** · commande : `cargo llvm-cov --package runique --fea
 | security/csrf.rs | 80.75 % | 80.00 % | 85.48 % |
 | security/open_redirect.rs | 97.49 % | 100.00 % | 96.77 % |
 | security/permissions_policy.rs | 100.00 % | 100.00 % | 100.00 % |
-| security/rate_limit.rs | 90.04 % | 87.50 % | 90.51 % |
+| security/rate_limit.rs | 92.43 % | 90.62 % | 92.89 % |
 | security/trusted_proxies.rs | 99.45 % | 100.00 % | 99.52 % |
 | session/cleaning_store.rs | 92.99 % | 95.12 % | 95.05 % |
-| session/session_db.rs | 91.61 % | 100.00 % | 91.13 % |
+| session/session_db.rs | 92.31 % | 100.00 % | 91.13 % |
 
 ---
 
@@ -240,15 +265,15 @@ Snapshot du **2026-10-22** · commande : `cargo llvm-cov --package runique --fea
 | index/mod.rs | 100.00 % | 100.00 % | 100.00 % |
 | primary_key/mod.rs | 100.00 % | 100.00 % | 100.00 % |
 | schema/mod.rs | 95.48 % | 95.45 % | 95.08 % |
-| utils/diff.rs | 95.58 % | 100.00 % | 97.13 % |
-| utils/generators.rs | 98.41 % | 100.00 % | 99.13 % |
+| utils/diff.rs | 95.90 % | 100.00 % | 97.70 % |
+| utils/generators.rs | 98.40 % | 100.00 % | 99.13 % |
 | utils/helpers.rs | 91.30 % | 100.00 % | 89.83 % |
 | utils/parser_builder/mod.rs | 100.00 % | 100.00 % | 100.00 % |
 | utils/parser_builder/to_schema.rs | 99.11 % | 100.00 % | 98.81 % |
 | utils/parser_extend.rs | 91.89 % | 75.00 % | 95.45 % |
-| utils/parser_seaorm.rs | 86.81 % | 78.57 % | 89.63 % |
+| utils/parser_seaorm.rs | 86.80 % | 78.57 % | 89.43 % |
 | utils/paths.rs | 100.00 % | 100.00 % | 100.00 % |
-| utils/tests_pipeline.rs | 99.93 % | 99.05 % | 99.90 % |
+| utils/tests_pipeline.rs | 99.94 % | 99.08 % | 99.91 % |
 | utils/types.rs | 100.00 % | 100.00 % | 100.00 % |
 
 ---
@@ -288,6 +313,7 @@ Snapshot du **2026-10-22** · commande : `cargo llvm-cov --package runique --fea
 | config/url_params.rs | 100.00 % | 100.00 % | 100.00 % |
 | constante/parse.rs | 100.00 % | 100.00 % | 100.00 % |
 | constante/regex_template.rs | 100.00 % | 100.00 % | 100.00 % |
+| constante/template.rs | 100.00 % | 100.00 % | 100.00 % |
 | crypto/csp_nonce.rs | 100.00 % | 100.00 % | 100.00 % |
 | crypto/csrf.rs | 100.00 % | 100.00 % | 100.00 % |
 | forms/parse_boolean.rs | 100.00 % | 100.00 % | 100.00 % |
@@ -299,4 +325,4 @@ Snapshot du **2026-10-22** · commande : `cargo llvm-cov --package runique --fea
 | reset_token/entity.rs | 0.00 % | 0.00 % | 0.00 % |
 | reset_token/mod.rs | 98.12 % | 100.00 % | 99.07 % |
 | resolve_ogimage/mod.rs | 100.00 % | 100.00 % | 100.00 % |
-| trad/switch_lang.rs | 94.09 % | 72.73 % | 91.93 % |
+| trad/switch_lang.rs | 87.11 % | 64.86 % | 85.06 % |

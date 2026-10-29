@@ -3,6 +3,7 @@ pub mod builder;
 pub mod config;
 pub mod middleware;
 pub mod router;
+pub mod template;
 pub mod trad;
 
 pub use crate::auth::gate::operation::CrudOperation;

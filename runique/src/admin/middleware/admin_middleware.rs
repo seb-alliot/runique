@@ -339,6 +339,7 @@ mod admin_access_constraint_tests {
         config.prefix = prefix.to_string();
         Extension(Arc::new(AdminState {
             paths: crate::admin::router::AdminPaths::new(&config.prefix),
+            sheets: Default::default(),
             config: Arc::new(config),
             login_guard: None,
         }))
@@ -590,6 +591,7 @@ mod declared_route_constraint_tests {
         let config = crate::admin::config::AdminConfig::new();
         let state = Extension(Arc::new(AdminState {
             paths: crate::admin::router::AdminPaths::new(&config.prefix),
+            sheets: Default::default(),
             config: Arc::new(config),
             login_guard: None,
         }));
