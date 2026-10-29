@@ -34,40 +34,6 @@
 </div>
 {% endif %}
 {% endblock %}
-{% block dashboard_table %}
-{% if resources %}
-<div class="admin-card">
-    <div class="admin-card__header">
-        <h2 class="admin-card__title">{% if admin_dashboard_card_resources %}{{ admin_dashboard_card_resources }}{% endif %}</h2>
-    </div>
-    <div class="admin-table__wrapper">
-        <table class="admin-table admin-table--resources">
-            <thead>
-                <tr>
-                    <th>{% if admin_dashboard_th_resource %}{{ admin_dashboard_th_resource }}{% endif %}</th>
-                    <th class="admin-table__col-num">{{ admin_dashboard_th_count | default(value="Entrées") }}</th>
-                    <th>{% if admin_dashboard_th_actions %}{{ admin_dashboard_th_actions }}{% endif %}</th>
-                </tr>
-            </thead>
-            <tbody>
-            {% for resource in resources %}
-            <tr>
-                <td><strong>{{ resource.title }}</strong></td>
-                <td class="admin-table__col-num">{{ resource_counts[resource.key] | default(value="—") }}</td>
-                <td>
-                    <div class="admin-table__actions">
-                        <a href="{{ resource.list_url }}" class="btn btn-secondary btn-sm">
-                            {{ admin_dashboard_btn_list }}
-                        </a>
-                    </div>
-                </td>
-            </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-{% endif %}
-{% endblock %}
+{% block dashboard_table %}{% dev_block "dashboard_table" %}{% endblock %}
 {% if current_page %}{% set current_page = current_page | default(value="list") %}{% endif %}
 {% endblock %}

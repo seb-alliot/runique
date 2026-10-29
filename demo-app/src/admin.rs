@@ -78,7 +78,7 @@ fn changelog_entry() -> ModelAdmin<changelog_entry::Entity> {
                 .search([Title, Version])
                 .search_help("Titre ou numéro de version")
                 .filter([Category, Version])
-                .per_page(25)
+                .per_page(15)
         })
         .form(|f| {
             f.fields([
@@ -191,6 +191,7 @@ fn cour_block() -> ModelAdmin<cour_block::Entity> {
             .search([Heading, Content])
             .filter([BlockType, ChapitreId])
             .empty_value("(sans titre)")
+            .per_page(10)
     })
 }
 
@@ -250,7 +251,7 @@ fn doc_block() -> ModelAdmin<doc_block::Entity> {
             .filter([BlockType, PageId])
             .empty_value("(sans titre)")
             .action(BlockType, "Text", "Passer en texte")
-            .per_page(50)
+            .per_page(15)
     })
 }
 

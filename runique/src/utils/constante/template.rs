@@ -136,6 +136,10 @@ pub const ADMIN_TEMPLATES: &[(&str, &str)] = tpls![
         "admin/blocks/detail/transfer.html"
     ),
     (
+        "admin/blocks/dashboard/table.html",
+        "admin/blocks/dashboard/table.html"
+    ),
+    (
         "admin/blocks/dashboard/my_groups.html",
         "admin/blocks/dashboard/my_groups.html"
     ),
@@ -205,6 +209,7 @@ pub const ADMIN_BLOCKS: &[(&str, &str)] = &[
     ("delete_actions", "admin/blocks/delete/actions.html"),
     ("sidebar", "admin/blocks/layout/sidebar.html"),
     ("topbar", "admin/blocks/layout/topbar_actions.html"),
+    ("dashboard_table", "admin/blocks/dashboard/table.html"),
     ("dashboard_groups", "admin/blocks/dashboard/my_groups.html"),
     ("history_table", "admin/blocks/history/table.html"),
     ("history_filters", "admin/blocks/history/filters.html"),

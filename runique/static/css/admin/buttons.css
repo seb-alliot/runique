@@ -1,29 +1,29 @@
 /* ═══════════════════════════════════════════════════════════════
    AdminPanel — Boutons
+   Aucun palier : un bouton a la même taille partout (--control-height,
+   commune aux champs pour qu'un bouton et un champ voisins s'alignent).
    ═══════════════════════════════════════════════════════════════ */
 
 .btn {
+    /* En tête : posé après, ce raccourci écraserait taille et graisse */
+    font: inherit;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.45rem;
-    box-sizing: border-box;
     height: var(--control-height);
     padding: 0 1rem;
     border-radius: var(--radius);
-    font-size: 0.85rem;
-    font-weight: 500;
     border: 1px solid transparent;
     transition: all var(--transition);
     white-space: nowrap;
     line-height: 1.4;
     cursor: pointer;
-    font: inherit;
 }
 
 .btn-primary {
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
     border-color: var(--accent);
 }
 
@@ -45,12 +45,12 @@
 .btn-danger {
     background: var(--danger-light);
     color: var(--danger);
-    border-color: rgba(239, 68, 68, 0.25);
+    border-color: var(--danger-border);
 }
 
 .btn-danger:hover {
     background: var(--danger);
-    color: #fff;
+    color: var(--on-accent);
     border-color: var(--danger);
 }
 
@@ -66,10 +66,18 @@
     color: var(--text-main);
 }
 
-/* Tailles */
-.btn-sm   { height: var(--control-height-sm); padding: 0 0.65rem; font-size: 0.78rem; }
+/* Bouton inactif (pagination à la première/dernière page : un <span>, pas
+   un vrai bouton, d'où la classe plutôt que :disabled) */
+.btn.disabled,
+.btn:disabled {
+    opacity: 0.35;
+    pointer-events: none;
+}
 
-/* Icône seul */
+/* Tailles */
+.btn-sm { height: var(--control-height-sm); padding: 0 0.65rem; font-size: 0.78rem; }
+
+/* Icône seule */
 .btn-icon {
     width: 32px;
     height: 32px;
@@ -77,24 +85,19 @@
     justify-content: center;
 }
 
-.admin-logout__form {
-    margin: 0;
-}
+/* Déconnexion : le bloc avatar de la topbar est un vrai bouton de
+   formulaire, sans l'habillage natif */
+.admin-logout__form { margin: 0; }
 
 .admin-logout__btn {
-    border: none;
-    outline: none;
     font: inherit;
+    border: none;
     cursor: pointer;
 }
 
-button.admin-topbar__user {
-    border: none;
+.admin-logout__btn:focus-visible {
     outline: none;
-    font: inherit;
-    cursor: pointer;
+    box-shadow: var(--focus-ring);
 }
 
-a.admin-topbar__user {
-    text-decoration: none;
-}
+a.admin-topbar__user { text-decoration: none; }

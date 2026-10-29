@@ -1,49 +1,61 @@
 /* ═══════════════════════════════════════════════════════════════
     AdminPanel — Variables & Tokens
-    Thème par défaut : sombre (chaleureux). Thème clair via [data-theme="light"].
+    Thème par défaut : sombre (ambre / obsidienne). Thème clair via [data-theme="light"].
     Le toggle pose data-theme sur <html> ; tous les composants consomment ces vars.
+    Palette dérivée de DESIGN.md (Stitch) : surfaces obsidiennes plates, accent ambre,
+    filets fins plutôt que grosses ombres.
    ═══════════════════════════════════════════════════════════════ */
 
 :root {
-    /* Surfaces — charcoal chaud (sous-ton violet léger), élévation marquée
-       entre couches pour que les cartes "décollent" du fond. */
-    --bg-main:        #17141d;
-    --bg-card:        #211c2b;
-    --bg-sidebar:     #1b1724;
-    --bg-input:       #2a2436;
-    --bg-hover:       #2d2740;
-    --bg-active:      rgba(129, 140, 248, 0.16);
+    /* Surfaces — obsidienne profonde, plans plats séparés par des filets fins */
+    --bg-main:        #090d16;
+    --bg-card:        #0f172a;
+    --bg-sidebar:     #0b1326;
+    --bg-input:       #131b2e;
+    --bg-hover:       #1e293b;
+    --bg-active:      rgba(249, 115, 22, 0.14);
 
-    /* Texte — blanc chaud, muted remonté en contraste */
-    --text-main:      #f4f1f9;
-    --text-muted:     #a79fb5;
-    --text-sidebar:   #cec7da;
+    /* Texte — blanc froid, muted en slate */
+    --text-main:      #f8fafc;
+    --text-muted:     #f5f5f5;
+    --text-sidebar:   #cbd5e1;
 
-    /* Accent — indigo lumineux (plus clair = mieux sur fond sombre) */
-    --accent:         #818cf8;
-    --accent-hover:   #6366f1;
-    --accent-light:   rgba(129, 140, 248, 0.16);
-    --accent-gradient: linear-gradient(135deg, #818cf8 0%, #a855f7 100%);
+    /* Accent — ambre rust (réservé aux actions principales, états actifs, ancres) */
+    --accent:         #f97316;
+    --accent-hover:   #ea580c;
+    --accent-light:   rgba(249, 115, 22, 0.14);
+    --accent-gradient: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
 
-    /* Bords — plus visibles qu'avant pour redonner de la définition */
-    --border:         rgba(255, 255, 255, 0.10);
-    --border-light:   rgba(255, 255, 255, 0.16);
+    /* Secondaire — cyan électrique (télémétrie, liens secondaires) */
+    --info:           #38bdf8;
+    --info-light:     rgba(56, 189, 248, 0.15);
+
+    /* Étiquette — violet, ne recoupe aucun état (succès/danger/warning/info/accent) */
+    --label:          #a78bfa;
+
+    /* Bords — filets fins, structure avant tout */
+    --border:         rgba(148, 163, 184, 0.12);
+    --border-light:   rgba(148, 163, 184, 0.18);
 
     /* États */
-    --success:        #34d399;
-    --success-light:  rgba(52, 211, 153, 0.15);
-    --danger:         #fb7185;
-    --danger-light:   rgba(251, 113, 133, 0.15);
+    --success:        #10b981;
+    --success-light:  rgba(16, 185, 129, 0.15);
+    --danger:         #f43f5e;
+    --danger-light:   rgba(244, 63, 94, 0.15);
     --warning:        #fbbf24;
     --warning-light:  rgba(251, 191, 36, 0.15);
 
     /* Focus — halo accent réutilisable */
-    --focus-ring:     0 0 0 3px rgba(129, 140, 248, 0.30);
+    --focus-ring:     0 0 0 3px rgba(249, 115, 22, 0.35);
+
+    /* Typographie — sans Google Fonts : police installée sinon repli système */
+    --font-sans:  "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono:  "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
     /* Layout */
-    --sidebar-width:      260px;
+    --sidebar-width:      240px;
     --sidebar-collapsed:  64px;
-    --topbar-height:      56px;
+    --topbar-height:      44px;
 
     /* Controls — one height for every button and toolbar field, so a button
        beside a select or a search box always lines up. */
@@ -51,43 +63,78 @@
     --control-height-sm:  30px;
 
     /* Rayons */
-    --radius:      10px;
-    --radius-lg:   16px;
-    --radius-sm:   7px;
+    --radius:      0.375rem;
+    --radius-lg:   0.5rem;
+    --radius-sm:   0.25rem;
 
-    /* Élévation — ombres douces en couches */
+    /* Élévation — plans plats + filets ; ombre réservée aux menus/popovers */
     --shadow-sm:   0 1px 2px rgba(0, 0, 0, 0.30);
     --shadow:      0 1px 2px rgba(0, 0, 0, 0.30), 0 8px 24px rgba(0, 0, 0, 0.38);
-    --shadow-lg:   0 1px 3px rgba(0, 0, 0, 0.35), 0 16px 40px rgba(0, 0, 0, 0.48);
+    --shadow-lg:   0 8px 24px -4px rgba(0, 0, 0, 0.6);
 
     --transition:  0.18s cubic-bezier(0.4, 0, 0.2, 1);
 
+    /* Texte posé sur l'accent ou le danger plein (boutons, avatar, logo) */
+    --on-accent:      #ffffff;
+    /* Bordure et halo d'un élément en erreur / destructeur */
+    --danger-border:  rgba(244, 63, 94, 0.3);
+    --danger-ring:    0 0 0 3px rgba(244, 63, 94, 0.18);
+    /* Voile derrière un panneau superposé (sidebar, filtres, modale) */
+    --overlay:        rgba(0, 0, 0, 0.6);
+
+    /* Empilement : une seule échelle, du plus bas au plus haut */
+    --z-sticky:   5;
+    --z-sidebar:  100;
+    --z-dropdown: 100;
+    --z-bar:      150;
+    --z-overlay:  190;
+    --z-drawer:   200;
+    --z-modal:    9999;
+
+    /* Largeur max du contenu : au-delà, on centre au lieu d'étirer */
+    --content-max: 1800px;
+
     color-scheme: dark;
 }
+
+/* Paliers (mobile-first, en em : suivent la police par défaut du navigateur
+   — 40em = 640px, 64em = 1024px, 90em = 1440px à la police par défaut, la
+   même base que le `html { font-size: 16px }` de layout.css). Les custom properties ne
+   sont pas lisibles dans une media query : ces valeurs sont écrites en dur
+   dans chaque fichier, à garder alignées avec ce commentaire.
+     base      → mobile (320px et plus) : panneaux superposés, barres fixes
+     ≥ 40em    → plus d'espace et de typo, mêmes panneaux
+     ≥ 64em    → desktop : sidebar et filtres fixes, actions dans l'en-tête
+     ≥ 90em    → grand écran : marges larges, contenu plafonné (--content-max) */
 
 /* ───────────────────────────────────────────────
     Thème clair
    ─────────────────────────────────────────────── */
 
 [data-theme="light"] {
-    --bg-main:        #f6f5f9;
+    --bg-main:        #f8fafc;
     --bg-card:        #ffffff;
     --bg-sidebar:     #ffffff;
-    --bg-input:       #f1eef6;
-    --bg-hover:       #f0edf7;
-    --bg-active:      rgba(99, 102, 241, 0.10);
+    --bg-input:       #f1f5f9;
+    --bg-hover:       #e2e8f0;
+    --bg-active:      rgba(234, 88, 12, 0.10);
 
-    --text-main:      #1f1b2e;
-    --text-muted:     #6b6577;
-    --text-sidebar:   #413b50;
+    --text-main:      #0f172a;
+    --text-muted:     #475569;
+    --text-sidebar:   #334155;
 
-    --accent:         #6366f1;
-    --accent-hover:   #4f46e5;
-    --accent-light:   rgba(99, 102, 241, 0.12);
-    --accent-gradient: linear-gradient(135deg, #6366f1 0%, #9333ea 100%);
+    --accent:         #ea580c;
+    --accent-hover:   #c2410c;
+    --accent-light:   rgba(234, 88, 12, 0.10);
+    --accent-gradient: linear-gradient(135deg, #ea580c 0%, #f97316 100%);
 
-    --border:         rgba(24, 20, 38, 0.10);
-    --border-light:   rgba(24, 20, 38, 0.16);
+    --info:           #0284c7;
+    --info-light:     rgba(2, 132, 199, 0.10);
+
+    --label:          #7c3aed;
+
+    --border:         rgba(15, 23, 42, 0.10);
+    --border-light:   rgba(15, 23, 42, 0.16);
 
     --success:        #059669;
     --success-light:  rgba(5, 150, 105, 0.12);
@@ -96,12 +143,16 @@
     --warning:        #d97706;
     --warning-light:  rgba(217, 119, 6, 0.12);
 
-    --focus-ring:     0 0 0 3px rgba(99, 102, 241, 0.22);
+    --focus-ring:     0 0 0 3px rgba(234, 88, 12, 0.25);
+
+    --danger-border:  rgba(225, 29, 72, 0.3);
+    --danger-ring:    0 0 0 3px rgba(225, 29, 72, 0.15);
+    --overlay:        rgba(15, 23, 42, 0.45);
 
     /* Ombres douces, jamais de noir franc en clair */
-    --shadow-sm:   0 1px 2px rgba(24, 20, 38, 0.06);
-    --shadow:      0 1px 2px rgba(24, 20, 38, 0.06), 0 6px 18px rgba(24, 20, 38, 0.08);
-    --shadow-lg:   0 2px 4px rgba(24, 20, 38, 0.08), 0 14px 36px rgba(24, 20, 38, 0.14);
+    --shadow-sm:   0 1px 2px rgba(15, 23, 42, 0.06);
+    --shadow:      0 1px 2px rgba(15, 23, 42, 0.06), 0 6px 18px rgba(15, 23, 42, 0.08);
+    --shadow-lg:   0 2px 4px rgba(15, 23, 42, 0.08), 0 14px 36px rgba(15, 23, 42, 0.14);
 
     color-scheme: light;
 }

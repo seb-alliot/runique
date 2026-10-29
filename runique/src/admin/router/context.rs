@@ -98,6 +98,8 @@ pub struct ListContext {
     pub entries: Vec<ListEntry>,
     /// The shown columns, in order, key out.
     pub visible_columns: Vec<&'static str>,
+    /// The columns the sort bar offers: the declared sortable ones only.
+    pub sortable_columns: Vec<&'static str>,
     /// Header of a column, by name; a column without one shows its name.
     pub column_labels: StrMap,
     /// Columns holding HTML, shown as plain text in the list.

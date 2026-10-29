@@ -2,10 +2,16 @@
 {# Variables requises : identiques à admin/list. Each part is a block of its own
    file under admin/blocks/list/: a page overrides the `{% block %}`, a project
    replaces the file. #}
-{% set has_filters = resource.display.list_filter | length > 0 %}
+{# The table itself is empty: no entry, and no search or filter that could
+   explain it. Only then do the search and the filters go — with 0 results
+   for a search or a filter, they stay, or nothing could undo them. #}
+{% set table_empty = not (entries is defined and entries | length > 0) and not search and not active_filters %}
+{% set has_filters = resource.display.list_filter | length > 0 and not table_empty %}
 <div id="list-content">
 
+  {% if not table_empty %}
   {% block list_search %}{% dev_block "list_search" %}{% endblock list_search %}
+  {% endif %}
 
   {% block list_group_action %}{% dev_block "list_bulk" %}{% endblock list_group_action %}
 

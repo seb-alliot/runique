@@ -16,24 +16,11 @@ function initAdminList() {
         new window.AdminActions().init();
     }
 
-    // ── Cellules dépliables (clic sur td-data) ──
-    document.querySelectorAll('.admin-table tbody').forEach(function (tbody) {
-        tbody.addEventListener('click', function (e) {
-            const cell = e.target.closest('td.admin-table__td-data');
-            if (cell) cell.classList.toggle('expanded');
-        });
-    });
-
-    // ── Expand lignes (mobile) ──
-    document.querySelectorAll('.admin-table__expand-btn').forEach(function (btn) {
-        btn.addEventListener('click', function (e) {
-            e.stopPropagation();
-            const tr = btn.closest('tr');
-            const detailRow = tr.nextElementSibling;
-            if (!detailRow || !detailRow.classList.contains('admin-table__row-detail')) return;
-            const isOpen = detailRow.classList.toggle('open');
-            btn.classList.toggle('open', isOpen);
-            btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    // ── Valeurs de carte dépliables (clic, valeurs longues tronquées) ──
+    document.querySelectorAll('.admin-list__cards').forEach(function (grid) {
+        grid.addEventListener('click', function (e) {
+            const field = e.target.closest('.admin-list__field-value');
+            if (field) field.classList.toggle('expanded');
         });
     });
 
@@ -44,7 +31,8 @@ function initAdminList() {
     const chevron    = toggle.querySelector('svg');
     const layout     = sidebar.closest('.admin-list__layout');
     const FILTER_KEY = 'runique_admin_filter_collapsed';
-    const isMobile   = window.innerWidth <= 768;
+    // Same breakpoint as components.css (filter panel docked from 64em).
+    const isMobile   = !window.matchMedia('(min-width: 64em)').matches;
 
     // ── Bouton burger filtre (mobile) + overlay ──
     const mobileBtn = document.getElementById('mobileFilterToggle');

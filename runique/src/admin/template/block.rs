@@ -30,6 +30,7 @@ pub enum Block {
 pub enum GlobalBlock {
     Sidebar,
     Topbar,
+    DashboardTable,
     DashboardGroups,
     HistoryTable,
     HistoryFilters,
@@ -83,6 +84,8 @@ impl Block {
     /// Runique's stylesheet for the block, under Runique's static.
     pub fn runique_stylesheet(self) -> Option<&'static str> {
         match self {
+            Block::ListTable => Some("css/admin/blocks/list.css"),
+            Block::DetailFields => Some("css/admin/blocks/detail.css"),
             Block::DetailGroups => Some("css/admin/blocks/rights.css"),
             _ => None,
         }
@@ -90,9 +93,10 @@ impl Block {
 }
 
 impl GlobalBlock {
-    pub const ALL: [GlobalBlock; 7] = [
+    pub const ALL: [GlobalBlock; 8] = [
         GlobalBlock::Sidebar,
         GlobalBlock::Topbar,
+        GlobalBlock::DashboardTable,
         GlobalBlock::DashboardGroups,
         GlobalBlock::HistoryTable,
         GlobalBlock::HistoryFilters,
@@ -105,6 +109,7 @@ impl GlobalBlock {
         match self {
             GlobalBlock::Sidebar => "sidebar",
             GlobalBlock::Topbar => "topbar",
+            GlobalBlock::DashboardTable => "dashboard_table",
             GlobalBlock::DashboardGroups => "dashboard_groups",
             GlobalBlock::HistoryTable => "history_table",
             GlobalBlock::HistoryFilters => "history_filters",
@@ -118,7 +123,10 @@ impl GlobalBlock {
     }
 
     pub fn runique_stylesheet(self) -> Option<&'static str> {
-        None
+        match self {
+            GlobalBlock::DashboardTable => Some("css/admin/blocks/dashboard.css"),
+            _ => None,
+        }
     }
 }
 
@@ -244,6 +252,16 @@ mod tests {
             Block::ListTable
                 .resolve(None, &ModelBlocks::default())
                 .stylesheet,
+            Some(Stylesheet::Runique("css/admin/blocks/list.css"))
+        );
+        assert_eq!(
+            Block::DetailFields
+                .resolve(None, &ModelBlocks::default())
+                .stylesheet,
+            Some(Stylesheet::Runique("css/admin/blocks/detail.css"))
+        );
+        assert_eq!(
+            Block::Kebab.resolve(None, &ModelBlocks::default()).stylesheet,
             None
         );
     }

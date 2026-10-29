@@ -1,0 +1,60 @@
+/* The detail page's field list (`admin/blocks/detail/fields.html`): one
+   entity, one row per column — label left, value right. Same field-row
+   language as the list page's cards, kept separate (not shared classes)
+   since the two blocks load their own stylesheet independently. */
+
+/* Shared width/centering for the whole page's column (fields, groups,
+   transfer: detail.html wraps all three in this one div) — set here since
+   detail_fields is the one block always present, so detail.css always
+   loads on this page regardless of which other blocks a model shows. */
+.admin-detail__column {
+    max-width: 25rem;
+    margin-inline: auto;
+}
+
+.admin-detail__fields {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Label au-dessus de la valeur, puis côte à côte à partir de 40em */
+.admin-detail__field {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 16px;
+}
+
+.admin-detail__field:last-child { border-bottom: none; }
+
+.admin-detail__field-label {
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--label);
+}
+
+.admin-detail__field-value {
+    color: var(--text-main);
+    word-break: break-word;
+}
+
+/* Rich/long-form content (rich_fields) — same distinction as the list. */
+.admin-detail__field-value--rich { color: var(--info); }
+
+@media (min-width: 40em) {
+    .admin-detail__field {
+        flex-direction: row;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+    .admin-detail__field-value { text-align: right; }
+    .admin-detail__field-value--rich { text-align: left; }
+}

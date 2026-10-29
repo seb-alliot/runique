@@ -13,24 +13,22 @@ use std::collections::HashMap;
 const VARIABLES: &str = "css/admin/variables.css";
 
 /// The layout's sheets, in their order.
-const LAYOUT: [&str; 7] = [
+const LAYOUT: [&str; 6] = [
     "css/normalize/normalize.css",
     VARIABLES,
     "css/admin/layout.css",
     "css/admin/components.css",
     "css/admin/buttons.css",
     "css/admin/forms.css",
-    "css/admin/responsive.css",
 ];
 
 /// The login's, outside the layout.
-const LOGIN: [&str; 7] = [
+const LOGIN: [&str; 6] = [
     VARIABLES,
     "css/admin/layout.css",
     "css/admin/components.css",
     "css/admin/buttons.css",
     "css/admin/forms.css",
-    "css/admin/responsive.css",
     "css/admin/login.css",
 ];
 
@@ -106,6 +104,7 @@ impl Page {
             Page::Dashboard => &[
                 GlobalBlock::Sidebar,
                 GlobalBlock::Topbar,
+                GlobalBlock::DashboardTable,
                 GlobalBlock::DashboardGroups,
             ],
             Page::History => &[
@@ -391,6 +390,8 @@ mod tests {
         }
         assert!(has(Page::Delete, &model(Block::DeleteWarning)));
         assert!(!has(Page::List, &model(Block::DeleteWarning)));
+        assert!(has(Page::Dashboard, &global(GlobalBlock::DashboardTable)));
+        assert!(!has(Page::List, &global(GlobalBlock::DashboardTable)));
         assert!(has(Page::Dashboard, &global(GlobalBlock::DashboardGroups)));
         assert!(has(Page::History, &global(GlobalBlock::HistoryTable)));
         assert!(has(Page::HistoryDiff, &global(GlobalBlock::HistoryActionBadge)));
