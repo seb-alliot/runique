@@ -9,14 +9,15 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 ---
 
-## Snapshot (au 9 octobre 2026)
+## Snapshot (au 29 octobre 2026)
 
-- **Version workspace** : `4.0.0`
+- **Version workspace** : `4.0.0` (**non publiée** sur crates.io — code + doc dans l'arbre)
 - **derive_form** : `3.0.0`
 - **runique_dsl** : `0.1.0`
 - **Licence** : MIT
 - **Branche** : `main`
 - **Stack** : Axum 0.8.9 + SeaORM 2.0.4 + Tera 2.4 · Rust edition 2024 · Rust 1.94
+- **Chantier principal livré** : admin `ModelAdmin` + documentation alignée 4.0
 
 ---
 
@@ -123,6 +124,12 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 | 3.0.2 | Corps urlencoded/JSON sans limite de taille | Moyenne |
 | 3.0.2 | Reset-password admin possible depuis une ressource hors comptes | Faible |
 | 3.0.2 | Admin : jeton CSRF brut accepté (masquage BREACH contourné) | Durcissement |
+| 4.0.0 | Timing « mot de passe oublié » (réponse plus rapide pour adresse inconnue) | Moyenne |
+| 4.0.0 | Message admin superuser trop révélateur | Faible |
+| 4.0.0 | `csrf.js` envoyait le jeton CSRF hors origine | Élevée |
+| 4.0.0 | `password` / `is_active` exposés dans les formulaires `extend!` | Élevée |
+| 4.0.0 | Page debug template : lecture hors `templates/` | Élevée |
+| 4.0.0 | Erreurs globales de formulaire non échappées (XSS) | Moyenne |
 
 ---
 
@@ -136,10 +143,41 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 ## Correctifs à apporter / roadmap
 
+Source de vérité détaillée : [ROADMAP.fr.md](https://github.com/seb-alliot/runique/blob/main/ROADMAP.fr.md).
+
 ### Réglé (vérifié le 29 octobre 2026)
-- **Filtres admin et injection SQL** : les modèles enregistrés n'acceptent que les colonnes de leur liste blanche, avec des valeurs liées ; la ressource comptes intégrée ignore les filtres de l'URL
-- **Tests de non-régression sécurité** : rotation de session et du jeton CSRF au login, contrôles par opération, liste blanche des colonnes, et les correctifs 3.0.2 (chacun vérifié par mutation)
-- **Refonte de l'admin** : builder typé `ModelAdmin<Entity>` livré en 4.0 — plus de `admin!{}`, plus de génération `src/admins/`, plus de `runique start` ; Rust plain dans `src/admin.rs` + `cargo run`
+- **Filtres admin et injection SQL** : listes blanches + valeurs liées ; comptes intégrés ignorent les filtres URL
+- **Tests de non-régression sécurité** : rotation session/CSRF, contrôles par opération, correctifs 3.0.2 (mutation)
+- **Refonte de l'admin** : `ModelAdmin<Entity>` livré — plus de `admin!{}` / `src/admins/` / `runique start`
+- **Documentation 4.0** : guides fr/en, README, migration, SECURITY, demo-app, INDEX alignés sur `ModelAdmin`
+
+### Ouvert — 4.0.0 (avant ou juste après publication)
+- Action de suppression obligatoire sur `belongs_to` (`cascade` / `set_null` / `restrict`)
+- Uploads typés (`StagedFile`, hors valeurs texte)
+
+### Prochain chantier (ordre figé)
+
+1. **Patchs sécu / entretien `4.0.x`** — file numérotée ci-dessous, **avant** toute mineure feature.
+2. **Mineures `4.x`** — seulement après : M2M DSL → `makemigrations` → tracing → langues projet → parité admin additive.
+
+Détail et critères de « fini » : [ROADMAP.fr.md](https://github.com/seb-alliot/runique/blob/main/ROADMAP.fr.md).
+
+### Ouvert — patch 4.0.x (sécu / entretien, dans cet ordre)
+1. Reset password sans email dans le lien (`encrypt_email` / `decrypt_email` à retirer)
+2. Fichiers staging d'un formulaire refusé : suppression immédiate
+3. Plafond des compteurs `RateLimiter` / `LoginGuard`
+4. Sessions superutilisateur non supprimables par un staff
+5. Batterie de tests open-redirect (PortSwigger)
+6. Message admin clair sur suppression bloquée par FK
+
+→ Sortie attendue : `4.0.1` (et suivants si besoin). Pas de feature mineure dans ces patchs.
+
+### Ouvert — mineures 4.x (sans rupture, après la file 4.0.x)
+1. Many-to-many généré par le DSL + migration (admin M2M jonction déjà là)
+2. `makemigrations` finalisé (rename+modify, noms de contraintes lus en base, backfill NOT NULL, limites d'identifiants par moteur, ALTER de type)
+3. Tracing (rotation fichier, request id, replis i18n visibles)
+4. Langues fournies par le projet (trait + builder)
+5. Parité admin Django additive (fieldsets, inlines, actions bulk, exports…)
 
 ### Priorité basse
 - **Couverture** : détail par fichier dans [couverture_test.md](https://github.com/seb-alliot/runique/blob/main/docs/couverture_test.md) (8 octobre : `migrate.rs` 79 %, `engine/core.rs` 92 %, `forms/fields/file.rs` 96 %)
@@ -150,9 +188,10 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 - Repository : [github.com/seb-alliot/runique](https://github.com/seb-alliot/runique)
 - Changelog : [CHANGELOG.md](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md)
+- Roadmap : [ROADMAP.fr.md](https://github.com/seb-alliot/runique/blob/main/ROADMAP.fr.md)
 - Documentation : [English](https://github.com/seb-alliot/runique/tree/main/docs/en) | [Français](https://github.com/seb-alliot/runique/tree/main/docs/fr)
 
 ---
 
 **Dernière mise à jour** : 29 octobre 2026
-**Statut global** : ✅ Framework stable · 🟡 Admin bêta mature · 🔒 Sécurité : tokens de reset durcis en DB, auth en temps constant · 📖 Documentation API publique complète (docs.rs)
+**Statut global** : ✅ Framework stable · 🟡 Admin bêta mature (`ModelAdmin`) · 🔒 Sécurité : tokens reset en DB, auth temps constant, correctifs 4.0 dans l'arbre · 📖 Doc 4.0 alignée · 📦 crates.io 4.0.0 encore non publiée

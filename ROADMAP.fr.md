@@ -21,6 +21,38 @@ Une fonctionnalité n'entre dans une version publiée que si :
 
 ---
 
+## État actuel — 4.0.0 (non publiée)
+
+Workspace en `4.0.0`. Le code de rupture est dans l'arbre ; la publication crates.io n'a pas
+encore eu lieu.
+
+### Livré dans cette branche
+
+- [x] **Refonte de l'admin : builder `ModelAdmin<Entity>` typé** — remplace `admin!{}` et le
+  code généré par le daemon. Colonnes typées, listes blanches, invariants au démarrage.
+  Déclaration dans `src/admin.rs`, câblage `.with_admin(admin::config)`, `cargo run` suffit
+  (plus de `runique start`, plus de `src/admins/`).
+- [x] **Documentation alignée 4.0** — guides fr/en, README, migration, SECURITY, demo-app
+  (`seed.sql`, templates hub/surcharge), INDEX et PROJECT_STATUS : l'API courante est
+  `ModelAdmin`, pas l'ancien générateur. Le CHANGELOG historique 3.0.x garde les mentions
+  « régénérez l'admin » là où c'était vrai à l'époque.
+- [x] **Correctifs sécu déjà dans le CHANGELOG 4.0** — timing forgot-password, message générique
+  sur superuser, `csrf.js` same-origin only, `password`/`is_active` hors formulaires `extend!`,
+  page debug bornée à `templates/`, erreurs globales de formulaire échappées.
+
+### Encore ouvert avant ou juste après la publication 4.0
+
+Ruptures restantes (si elles partent avec la 4.0 ; sinon report en 5.0 avec guide) :
+
+- [ ] **Action de suppression obligatoire** — un `belongs_to` sans `[cascade]`, `[set_null]` ou
+  `[restrict]` ne compile plus, comme `on_delete` dans Django.
+- [ ] **Uploads typés** — fichiers à part (`StagedFile`), jamais parmi les valeurs texte ; aucun
+  chemin serveur dans les données de formulaire.
+
+Le détail du cycle de publication est dans [CONTRIBUTING](CONTRIBUTING.fr.md#versions-et-publication).
+
+---
+
 ## Entretien et sécurité — en continu
 
 Ce travail n'a pas de fin : il passe avant les chantiers ci-dessous.
@@ -29,42 +61,51 @@ Ce travail n'a pas de fin : il passe avant les chantiers ci-dessous.
   l'entrée à l'effet), entrées hostiles, `cargo mutants` sur le code concerné.
 - **Audit des dépendances** : `cargo audit` à chaque push, bloquant en CI.
 - **Corrections de bugs**, chacune avec un test qui échoue sans elle.
-- Ces correctifs sont regroupés dans une **version corrective** (3.x.**y**). Une faille grave
-  est publiée sans attendre.
+- Correctifs regroupés en **patch** (`4.0.x` tant que la ligne 4.0 est supportée). Une faille
+  grave est publiée sans attendre.
 
-Correctifs déjà identifiés, pour une prochaine 3.0.x :
+### Correctifs identifiés (prochaine patch 4.0.x)
 
-- [ ] **Réinitialisation du mot de passe sans email dans le lien** — l'email est aujourd'hui
-  chiffré avec une clé tirée du jeton, présent dans le même lien : ça ne protège rien. Comparer
-  l'email saisi à celui du compte en base et retirer l'email du lien ; `encrypt_email` /
-  `decrypt_email` marqués dépréciés (supprimés en 4.0).
-- [ ] **Fichiers en transit d'un formulaire refusé** — supprimés tout de suite, même quand c'est
-  un autre champ qui rend le formulaire invalide (aujourd'hui : au nettoyage suivant, 1 h).
-- [ ] **Compteurs en mémoire plafonnés** — `RateLimiter` et `LoginGuard` bornent leur nombre de
-  clés entre deux purges.
-- [ ] **Sessions d'un superutilisateur** — protégées comme son compte : un staff ne peut pas les
-  supprimer.
-- [ ] **Tests d'open redirect** — passer les charges utiles de l'antisèche PortSwigger
-  (*URL validation bypass*).
-- [ ] **Suppression refusée par une clé étrangère** — l'admin affiche un message clair (« impossible
-  de supprimer : 3 commandes y sont liées ») au lieu de l'erreur brute de la base. Par défaut, un
-  `belongs_to` sans action refuse (`NoAction`) : jamais de cascade implicite.
+**Ordre de travail imposé** — ces items partent **avant** toute mineure 4.x (M2M, makemigrations,
+tracing, langues). Une faille grave peut sauter la file ; sinon on suit la numérotation. Chaque
+item a son test de non-régression avant d'être coché.
 
-Le détail du cycle de publication est dans [CONTRIBUTING](CONTRIBUTING.fr.md#versions-et-publication).
+1. [ ] **Réinitialisation du mot de passe sans email dans le lien** — l'email est aujourd'hui
+   chiffré avec une clé tirée du jeton, présent dans le même lien : ça ne protège rien. Comparer
+   l'email saisi à celui du compte en base et retirer l'email du lien ; `encrypt_email` /
+   `decrypt_email` marqués dépréciés puis retirés (rupture reportée si besoin en 5.0).
+2. [ ] **Fichiers en transit d'un formulaire refusé** — supprimés tout de suite, même quand c'est
+   un autre champ qui rend le formulaire invalide (aujourd'hui : au nettoyage suivant, 1 h).
+3. [ ] **Compteurs en mémoire plafonnés** — `RateLimiter` et `LoginGuard` bornent leur nombre de
+   clés entre deux purges.
+4. [ ] **Sessions d'un superutilisateur** — protégées comme son compte : un staff ne peut pas les
+   supprimer.
+5. [ ] **Tests d'open redirect** — passer les charges utiles de l'antisèche PortSwigger
+   (*URL validation bypass*).
+6. [ ] **Suppression refusée par une clé étrangère** — l'admin affiche un message clair (« impossible
+   de supprimer : 3 commandes y sont liées ») au lieu de l'erreur brute de la base. Par défaut, un
+   `belongs_to` sans action refuse (`NoAction`) : jamais de cascade implicite.
+
+Sortie typique : une ou plusieurs versions **patch** `4.0.x` (ex. `4.0.1`) tant que la ligne 4.0
+est supportée. Pas de feature mineure mélangée dans ces patchs.
 
 ---
 
-## En cours — 3.x
+## Après 4.0 — mineures sans rupture (4.x)
 
-Sans rupture : un projet en 3.0 se met à jour sans modifier son code. Une fonctionnalité à la
-fois, dans cet ordre : chacune sort en version mineure (3.**x**.0), passe ensuite un contrôle de
-sécurité ciblé, puis la suivante commence.
+**Prérequis** : la file des correctifs sécu / entretien `4.0.x` ci-dessus est traitée (ou une
+faille urgente a déjà forcé un patch). Ensuite seulement : une fonctionnalité à la fois.
+
+Un projet déjà en 4.0 se met à jour sans toucher son code. Une fonctionnalité à la fois, dans
+cet ordre : chacune sort en mineure (4.**x**.0), passe un contrôle de sécurité ciblé, puis la
+suivante commence.
 
 - [ ] **Relations many-to-many** — la table pivot est générée à partir du DSL (`through` garde
   une table pivot écrite à la main, avec ses colonnes en plus), migration comprise, et le modèle
-  gagne ses méthodes d'accès.
-- [ ] **makemigrations finalisé** — à terminer avant la refonte de l'admin, qui en dépend.
-  Trous constatés le 2026-10-10 en migrant un vrai projet (Campanile) vers la 3.0 :
+  gagne ses méthodes d'accès. *(L'admin gère déjà du M2M via table de jonction déclarée ; il
+  manque la génération DSL + migration.)*
+- [ ] **makemigrations finalisé** — plus bloqué par la refonte admin (livrée). Trous constatés
+  le 2026-10-10 en migrant un vrai projet (Campanile) vers la 3.0 :
   - une colonne **renommée et modifiée** en même temps (`renamed_from` + `NOT NULL` / défaut)
     ne reçoit que le renommage ; la modification est perdue, et l'instantané l'enregistre comme
     faite — un nouveau `makemigrations` ne la verra jamais ;
@@ -81,25 +122,10 @@ sécurité ciblé, puis la suivante commence.
 - [ ] **Langues ajoutées par un projet** — un trait pour fournir une langue que Runique ne
   propose pas, enregistré via le builder, sans modifier l'enum `Lang`.
 
----
+### Construit sur le builder : parité avec l'admin Django
 
-## 4.0.0
-
-Les ruptures, regroupées dans une seule version majeure, avec un guide de migration.
-
-- [x] **Refonte de l'admin : builder `ModelAdmin<Entity>` typé** — livré : remplace `admin!{}`
-  et le code généré par le daemon par une logique générique écrite une fois. Colonnes typées,
-  listes blanches uniquement, invariants vérifiés au démarrage.
-- [ ] **Action de suppression obligatoire** — un `belongs_to` sans `[cascade]`, `[set_null]` ou
-  `[restrict]` ne compile plus, comme `on_delete` dans Django : chaque relation est un choix
-  explicite.
-- [ ] **Uploads typés** — les fichiers envoyés sont rangés à part (`StagedFile`), jamais parmi
-  les valeurs des champs texte : un fichier ne peut plus devenir la valeur d'un champ texte, et
-  aucun chemin du serveur n'apparaît dans les données d'un formulaire.
-
-### Construit sur le builder, après la refonte : parité avec l'admin Django
-
-Chaque point deviendra une méthode typée du builder.
+Chaque point deviendra une méthode typée du builder (mineures 4.x, sans nouvelle rupture si
+l'API reste additive).
 
 - **Liste** — filtres par date (aujourd'hui, cette semaine…), filtres à travers une clé étrangère,
   `date_hierarchy`, `list_display_links`, `list_editable`, tri par défaut par ressource,
@@ -115,6 +141,7 @@ Chaque point deviendra une méthode typée du builder.
 - **Inlines** — édition des objets liés dans le formulaire du parent (FK et many-to-many)
 - **Divers** — export CSV/JSON, « Enregistrer et continuer », confirmation par `<dialog>`,
   plusieurs sites d'admin
+- **Visuel admin** — consolidation mobile-first / CSS (déjà amorcée ; à peaufiner)
 
 ---
 
