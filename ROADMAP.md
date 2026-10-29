@@ -21,6 +21,37 @@ A feature only goes into a published version when:
 
 ---
 
+## Current state — 4.0.0 (unreleased)
+
+Workspace is `4.0.0`. Breaking code is in the tree; the crates.io release has not shipped yet.
+
+### Shipped on this branch
+
+- [x] **Admin rework: typed `ModelAdmin<Entity>` builder** — replaces `admin!{}` and
+  daemon-generated code. Typed columns, allow-lists, startup invariants. Declare in
+  `src/admin.rs`, wire with `.with_admin(admin::config)`, `cargo run` is enough (no
+  `runique start`, no `src/admins/`).
+- [x] **Documentation aligned to 4.0** — fr/en guides, README, migration, SECURITY, demo-app
+  (`seed.sql`, hub/override templates), INDEX and PROJECT_STATUS: the current API is
+  `ModelAdmin`, not the old generator. Historical 3.0.x CHANGELOG entries still say
+  "regenerate the admin" where that was true at the time.
+- [x] **Security fixes already in the 4.0 CHANGELOG** — forgot-password timing, generic
+  superuser refusal message, same-origin-only `csrf.js`, `password`/`is_active` out of
+  `extend!` forms, debug page confined to `templates/`, form global errors escaped.
+
+### Still open before or right after the 4.0 release
+
+Remaining breaking items (ship with 4.0 if ready; otherwise defer to 5.0 with a guide):
+
+- [ ] **Mandatory delete action** — a `belongs_to` without `[cascade]`, `[set_null]` or
+  `[restrict]` no longer compiles, like Django's `on_delete`.
+- [ ] **Typed uploads** — files kept apart (`StagedFile`), never among text field values; no
+  server path in form data.
+
+The release cycle is detailed in [CONTRIBUTING](CONTRIBUTING.md#versions-and-releases).
+
+---
+
 ## Maintenance and security — ongoing
 
 This work never ends: it comes before the items below.
@@ -29,41 +60,50 @@ This work never ends: it comes before the items below.
   effect), hostile inputs, `cargo mutants` on the code involved.
 - **Dependency audit**: `cargo audit` on every push, blocking in CI.
 - **Bug fixes**, each one with a test that fails without it.
-- These fixes are grouped in a **patch release** (3.x.**y**). A serious vulnerability is
-  released right away.
+- Fixes are grouped in a **patch** (`4.0.x` while the 4.0 line is supported). A serious
+  vulnerability is released right away.
 
-Fixes already identified, for an upcoming 3.0.x:
+### Identified fixes (next 4.0.x patch)
 
-- [ ] **Password reset without the email in the link** — the email is encrypted today with a key
-  derived from the token, which sits in the same link: it protects nothing. Compare the typed
-  email with the account's, and drop the email from the link; `encrypt_email` /
-  `decrypt_email` deprecated (removed in 4.0).
-- [ ] **Uploads of a refused form** — deleted right away, even when another field made the form
-  invalid (today: at the next sweep, 1 h).
-- [ ] **In-memory counters capped** — `RateLimiter` and `LoginGuard` bound their number of keys
-  between two sweeps.
-- [ ] **A superuser's sessions** — protected like their account: a staff member can't delete them.
-- [ ] **Open redirect tests** — run the payloads of PortSwigger's *URL validation bypass* cheat
-  sheet.
-- [ ] **Deletion refused by a foreign key** — the admin shows a clear message ("can't delete: 3
-  orders are linked to it") instead of the raw database error. By default a `belongs_to` without
-  an action refuses (`NoAction`): never an implicit cascade.
+**Required work order** — these items ship **before** any 4.x minor (M2M, makemigrations,
+tracing, languages). A serious vulnerability may jump the queue; otherwise follow the numbering.
+Each item needs its regression test before it is checked off.
 
-The release cycle is detailed in [CONTRIBUTING](CONTRIBUTING.md#versions-and-releases).
+1. [ ] **Password reset without the email in the link** — the email is encrypted today with a key
+   derived from the token, which sits in the same link: it protects nothing. Compare the typed
+   email with the account's, and drop the email from the link; `encrypt_email` /
+   `decrypt_email` deprecated then removed (breaking change deferred to 5.0 if needed).
+2. [ ] **Uploads of a refused form** — deleted right away, even when another field made the form
+   invalid (today: at the next sweep, 1 h).
+3. [ ] **In-memory counters capped** — `RateLimiter` and `LoginGuard` bound their number of keys
+   between two sweeps.
+4. [ ] **A superuser's sessions** — protected like their account: a staff member can't delete them.
+5. [ ] **Open redirect tests** — run the payloads of PortSwigger's *URL validation bypass* cheat
+   sheet.
+6. [ ] **Deletion refused by a foreign key** — the admin shows a clear message ("can't delete: 3
+   orders are linked to it") instead of the raw database error. By default a `belongs_to` without
+   an action refuses (`NoAction`): never an implicit cascade.
+
+Typical outcome: one or more **patch** releases `4.0.x` (e.g. `4.0.1`) while the 4.0 line is
+supported. No minor feature mixed into these patches.
 
 ---
 
-## In progress — 3.x
+## After 4.0 — non-breaking minors (4.x)
 
-No breaking change: a 3.0 project upgrades without touching its code. One feature at a time,
-in this order: each ships in a minor release (3.**x**.0), then gets a targeted security check,
-then the next one starts.
+**Prerequisite**: the security / maintenance `4.0.x` queue above is handled (or an urgent
+vulnerability already forced a patch). Only then: one feature at a time.
+
+A project already on 4.0 upgrades without touching its code. One feature at a time, in this
+order: each ships in a minor release (4.**x**.0), then gets a targeted security check, then the
+next one starts.
 
 - [ ] **Many-to-many relations** — the junction table is generated from the DSL (`through`
   keeps a hand-written junction table, with its extra columns), migration included, and the
-  model gets its access methods.
-- [ ] **makemigrations finished** — to complete before the admin rework, which depends on it.
-  Gaps found on 2026-10-10 while moving a real project (Campanile) to 3.0:
+  model gets its access methods. *(Admin already handles M2M via a declared junction table;
+  DSL generation + migration are what remain.)*
+- [ ] **makemigrations finished** — no longer blocked on the admin rework (shipped). Gaps found
+  on 2026-10-10 while moving a real project (Campanile) to 3.0:
   - a column **renamed and changed** at once (`renamed_from` + `NOT NULL` / default) only gets
     the rename; the change is lost, and the snapshot records it as done — a new `makemigrations`
     will never see it;
@@ -80,25 +120,9 @@ then the next one starts.
 - [ ] **Languages added by a project** — a trait to provide a language Runique doesn't ship,
   registered through the builder, without changing the `Lang` enum.
 
----
+### Built on the builder: parity with the Django admin
 
-## 4.0.0
-
-The breaking changes, grouped in a single major version, with a migration guide.
-
-- [x] **Admin rework: typed `ModelAdmin<Entity>` builder** — shipped: replaces `admin!{}` and
-  the daemon-generated code with generic logic written once. Typed columns, allow-lists only,
-  invariants checked at startup.
-- [ ] **Mandatory delete action** — a `belongs_to` without `[cascade]`, `[set_null]` or
-  `[restrict]` no longer compiles, like Django's `on_delete`: every relation is an explicit
-  choice.
-- [ ] **Typed uploads** — uploaded files are kept apart (`StagedFile`), never among the values
-  of text fields: a file can no longer become the value of a text field, and no server path
-  shows up in a form's data.
-
-### Built on the builder, after the rework: parity with the Django admin
-
-Each item will become a typed method of the builder.
+Each item will become a typed method of the builder (4.x minors, additive API preferred).
 
 - **List** — date filters (today, this week…), filters across a foreign key,
   `date_hierarchy`, `list_display_links`, `list_editable`, default ordering per resource,
@@ -113,6 +137,7 @@ Each item will become a typed method of the builder.
 - **Inlines** — editing related objects inside the parent's form (FK and many-to-many)
 - **Misc** — CSV/JSON export, "Save and continue", confirmation through `<dialog>`, several
   admin sites
+- **Admin visuals** — mobile-first / CSS consolidation (started; polish remaining)
 
 ---
 
