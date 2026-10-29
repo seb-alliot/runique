@@ -25,9 +25,9 @@
       {{ admin_list_btn_rights }}
     </a>
     {% endif %}
-    {% if resource_links.create %}
-    {# Desktop : bouton plein. Mobile : masqué (≤600px), l'action passe dans le kebab
-       de ligne ; pour une liste vide, un bouton de repli est rendu dans l'état vide. #}
+    {% if resource_links.create and entries is defined and entries | length > 0 %}
+    {# Desktop : bouton plein. Mobile : masqué (< 40em), l'action passe dans le kebab
+       de ligne. Liste vide : pas de bouton ici, l'état vide porte le sien. #}
     <a href="{{ resource_links.create }}" class="btn btn-primary admin-page__create-btn">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
         <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>

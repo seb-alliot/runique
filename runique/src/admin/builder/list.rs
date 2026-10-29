@@ -158,6 +158,12 @@ impl<E: EntityTrait> ListConfig<E> {
         &self.filter
     }
 
+    /// The columns sortable from the URL, in their declared order: the only
+    /// ones `resolve_sort` honours, so the only ones worth offering.
+    pub(super) fn sortable_columns(&self) -> &[E::Column] {
+        &self.sortable
+    }
+
     /// The values a filter offers for `col`: the distinct ones of the rows in
     /// `scope`, as text (how `resolve_filters` compares them), sorted, NULL
     /// left out, at most `FILTER_VALUES_MAX`.

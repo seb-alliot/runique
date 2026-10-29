@@ -47,6 +47,8 @@ pub struct OfferedAction {
 pub(crate) struct ListPage {
     /// The columns shown, key out: the headers, cut tike the query.
     pub columns: Vec<&'static str>,
+    /// The readable columns the list sorts on, in their declared order.
+    pub sortable: Vec<&'static str>,
     pub rows: Vec<serde_json::Value>,
     pub total: u64,
     pub page: u64,
@@ -297,6 +299,7 @@ impl<E: ModelMeta> ModelAdmin<E> {
             .map(|c| c.as_str())
             .filter(|name| !keys.contains(name))
             .collect();
+        let sortable = list.sortable_columns().iter().map(|c| c.as_str()).collect();
         let mut filters = Vec::new();
         for col in list.filter_columns() {
             let values = ListConfig::<E>::filter_values(backend, proof.conditions(), *col)
@@ -310,6 +313,7 @@ impl<E: ModelMeta> ModelAdmin<E> {
         }
         Ok(ListPage {
             columns,
+            sortable,
             rows,
             total,
             page,

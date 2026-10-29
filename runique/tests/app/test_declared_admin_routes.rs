@@ -194,6 +194,7 @@ async fn spawn_with_reset(
                                     >::new()
                                     .list(|l| {
                                         l.display([probe::Column::Title])
+                                            .sortable([probe::Column::Title])
                                             .filter([probe::Column::Title, probe::Column::Code])
                                             .action(probe::Column::Flag, "OK", "Valider")
                                     })
@@ -2683,16 +2684,25 @@ async fn the_list_pages_and_sorts_through_its_links() {
     assert!(last.contains(no_next), "no next on the last page");
     assert!(last.contains(r#"href="?page=2"#), "previous is the second");
 
+    // Titles: "seed" and "added 0".."added 24"; 10 a page.
     let asc = text(&client, format!("{list}?sort_by=title&sort_dir=asc")).await;
     assert!(
         asc.contains("?sort_by=title&sort_dir=desc"),
         "asc turns to desc"
     );
+    assert!(asc.contains(">added 0</span>"), "asc starts at the smallest title");
+    assert!(!asc.contains(">seed</span>"), "asc leaves the largest off page 1");
     let desc = text(&client, format!("{list}?sort_by=title&sort_dir=desc")).await;
     assert!(
         desc.contains("?sort_by=title&sort_dir=asc"),
         "desc turns to asc"
     );
+    assert!(desc.contains(">seed</span>"), "desc starts at the largest title");
+    assert!(!desc.contains(">added 0</span>"), "desc leaves the smallest off page 1");
+
+    // A list with no `.sortable()` offers no sort: it would be ignored.
+    let bare = text(&client, format!("{base}/secret-admin/bare_notes/list")).await;
+    assert!(!bare.contains("admin-table__sort-link"), "nothing to sort, no sort bar");
 }
 
 // ── The groups ────────────────────────────────────────────────────────────

@@ -149,6 +149,7 @@ pub(crate) async fn list_view(
             current_page: "list",
             entries,
             visible_columns: page.columns,
+            sortable_columns: page.sortable,
             column_labels: StrMap::new(),
             rich_fields: Vec::new(),
             group_actions: page.actions,

@@ -20,9 +20,11 @@
     {% block detail_actions %}{% dev_block "detail_actions" %}{% endblock %}
   </div>
   {% endblock %}
-  {% block detail_table %}{% dev_block "detail_fields" %}{% endblock %}
-  {% block detail_groups %}{% dev_block "detail_groups" %}{% endblock %}
-  {% block detail_transfer %}{% dev_block "detail_transfer" %}{% endblock %}
+  <div class="admin-detail__column">
+    {% block detail_table %}{% dev_block "detail_fields" %}{% endblock %}
+    {% block detail_groups %}{% dev_block "detail_groups" %}{% endblock %}
+    {% block detail_transfer %}{% dev_block "detail_transfer" %}{% endblock %}
+  </div>
   <script {% csp %} src="{% runique_static "js/admin/admin-actions.js" %}"></script>
   <script {% csp %} src="{% runique_static "js/admin/admin-kebab.js" %}"></script>
 {% endblock %}

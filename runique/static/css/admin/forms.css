@@ -1,121 +1,124 @@
 /* ═══════════════════════════════════════════════════════════════
     AdminPanel — Formulaires
+    Mobile-first : la base vaut pour 320px et plus, chaque palier
+    (40em / 64em / 90em, cf. variables.css) n'ajoute que ce qui change.
+    Les templates de champ (field_html/*) n'ont pas une convention de
+    classes unique : les sélecteurs ci-dessous les reprennent toutes.
    ═══════════════════════════════════════════════════════════════ */
 
-.form-grid   { display: grid; gap: 1.25rem; }
-.form-grid-2 { grid-template-columns: 1fr 1fr; }
+/* ───────────────────────────────────────────────
+    Grille du formulaire — label au-dessus du champ, puis à gauche
+    (colonne fixe) à partir de 40em
+   ─────────────────────────────────────────────── */
+
+.form-grid { display: flex; flex-direction: column; gap: 1.1rem; }
 
 .form-group {
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: 0.3rem;
 }
 
-.form-label {
+/* Hors grille (un champ isolé), l'espacement vient de la marge ; dans la
+   grille, du `gap` seul — les deux s'additionnaient. */
+.form-group,
+.mb-3 { margin-bottom: 1.1rem; }
+
+.form-grid > .form-group,
+.form-grid > .form-field {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: start;
+    gap: 0.3rem 1.25rem;
+    margin-bottom: 0;
+}
+
+.form-label,
+.field-label {
     font-size: 0.82rem;
     font-weight: 500;
     color: var(--text-main);
 }
 
+.field-label.field-error { color: var(--danger); }
+
+/* Marqueur de champ requis (base_string.html : un <span class="text-danger">
+   vide, accroche CSS plutôt que texte du template) */
+.text-danger { color: var(--danger); }
+.text-danger::after { content: "*"; margin-left: 0.2rem; }
+
+@media (min-width: 40em) {
+    .form-group { gap: 0.4rem; }
+
+    .form-grid > .form-group,
+    .form-grid > .form-field {
+        grid-template-columns: 11rem 1fr;
+        gap: 0.4rem 1.25rem;
+    }
+
+    /* Les champs qui ont besoin de place gardent le label au-dessus */
+    .form-grid > .form-group:has(textarea),
+    .form-grid > .form-field:has(textarea),
+    .form-grid > .checkbox-field,
+    .form-grid > .radio-field,
+    .form-grid > .select-field:has(select[multiple]),
+    .form-grid > div:has(> input[type="file"]) {
+        grid-template-columns: 1fr;
+    }
+
+    /* Label aligné sur le texte du champ voisin */
+    .form-grid > .form-group > .form-label,
+    .form-grid > .form-field > .field-label {
+        padding-top: 0.6rem;
+    }
+}
+
+/* ───────────────────────────────────────────────
+    Champs — un seul habillage pour toutes les conventions de classes.
+    16px sous 64em : en dessous, iOS zoome sur le champ au toucher.
+   ─────────────────────────────────────────────── */
 
 .form-input,
-.form-select,
-.form-textarea {
+.form-control,
+.number-field input,
+.select-field select,
+.datetime-field input,
+.special-input,
+.special-textarea,
+.color-text-input {
+    font: inherit;
     width: 100%;
     padding: 0.6rem 0.875rem;
     background: var(--bg-input);
     border: 1px solid var(--border-light);
     border-radius: var(--radius);
     color: var(--text-main);
-    font: inherit;
-    font-size: 0.88rem;
+    font-size: 16px;
     transition: border-color var(--transition), box-shadow var(--transition);
     outline: none;
 }
 
 .form-input::placeholder,
-.form-textarea::placeholder { color: var(--text-muted); }
+.form-control::placeholder,
+.special-input::placeholder,
+.special-textarea::placeholder { color: var(--text-muted); }
 
 .form-input:focus,
-.form-select:focus,
-.form-textarea:focus {
+.form-control:focus,
+.number-field input:focus,
+.select-field select:focus,
+.datetime-field input:focus,
+.special-input:focus,
+.special-textarea:focus,
+.color-text-input:focus {
     border-color: var(--accent);
     box-shadow: var(--focus-ring);
 }
 
-.form-input.error,
-.form-select.error,
-.form-textarea.error { border-color: var(--danger); }
-
-.form-input.error:focus,
-.form-textarea.error:focus { box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15); }
-
-.form-error {
-    font-size: 0.78rem;
-    color: var(--danger);
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-}
-
-.form-hint { font-size: 0.78rem; color: var(--text-muted); }
-
-.form-textarea { min-height: 100px; resize: vertical; }
-
-.form-select {
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%239ca3af' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 0.875rem center;
-    padding-right: 2.25rem;
-}
-
-.form-check {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    cursor: pointer;
-}
-
-.form-check input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    accent-color: var(--accent);
-    cursor: pointer;
-}
-
-.admin-form__actions {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 0.75rem;
-    padding-top: 1rem;
-    border-top: 1px solid var(--border);
-    margin-top: 1rem;
-}
-
-/* ───────────────────────────────────────────────
-    Bridge : classes field templates → admin
-    (les templates Runique utilisent form-control/form-group/mb-3)
-   ─────────────────────────────────────────────── */
-
-.form-control,
-.form-control.is-invalid {
-    width: 100%;
-    padding: 0.6rem 0.875rem;
-    background: var(--bg-input);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius);
-    color: var(--text-main);
-    font: inherit;
-    font-size: 0.98rem;
-    transition: border-color var(--transition), box-shadow var(--transition);
-    outline: none;
-}
-
-.form-control::placeholder { color: var(--text-muted); }
-
-/* Autofill override (Chrome/Firefox appliquent un fond blanc/jaune sinon) */
+/* Autofill : Chrome/Firefox imposent sinon un fond blanc ou jaune */
+.form-input:-webkit-autofill,
+.form-input:-webkit-autofill:hover,
+.form-input:-webkit-autofill:focus,
 .form-control:-webkit-autofill,
 .form-control:-webkit-autofill:hover,
 .form-control:-webkit-autofill:focus {
@@ -124,28 +127,19 @@
     caret-color: var(--text-main);
 }
 
-.form-control:focus {
-    border-color: var(--accent);
-    box-shadow: var(--focus-ring);
-}
-
+/* En erreur */
+.form-input.error,
 .form-control.is-invalid { border-color: var(--danger); }
-.form-control.is-invalid:focus { box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15); }
 
-textarea.form-control { min-height: 100px; resize: vertical; }
+.form-input.error:focus,
+.form-control.is-invalid:focus { box-shadow: var(--danger-ring); }
 
-/* Champs numériques (base_number.html → .number-field input) */
+/* Zones de texte */
+textarea.form-control,
+.special-textarea { min-height: 100px; resize: vertical; }
+
+/* Nombres : sans les flèches natives */
 .number-field input {
-    width: 100%;
-    padding: 0.6rem 0.875rem;
-    background: var(--bg-input);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius);
-    color: var(--text-main);
-    font: inherit;
-    font-size: 0.88rem;
-    transition: border-color var(--transition), box-shadow var(--transition);
-    outline: none;
     appearance: textfield;
     -moz-appearance: textfield;
 }
@@ -156,24 +150,9 @@ textarea.form-control { min-height: 100px; resize: vertical; }
     margin: 0;
 }
 
-.number-field input:focus {
-    border-color: var(--accent);
-    box-shadow: var(--focus-ring);
-}
-
-/* Champs select (base_select.html → .select-field select) */
+/* Listes : la flèche dessinée remplace la native */
 .select-field select {
-    width: 100%;
-    padding: 0.6rem 0.875rem;
     padding-right: 2.25rem;
-    background: var(--bg-input);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius);
-    color: var(--text-main);
-    font: inherit;
-    font-size: 0.88rem;
-    transition: border-color var(--transition), box-shadow var(--transition);
-    outline: none;
     appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%239ca3af' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
@@ -181,26 +160,93 @@ textarea.form-control { min-height: 100px; resize: vertical; }
     cursor: pointer;
 }
 
-.select-field select:focus {
-    border-color: var(--accent);
-    box-shadow: var(--focus-ring);
-}
-
 .select-field select option {
     background: var(--bg-input);
     color: var(--text-main);
 }
 
-.invalid-feedback { font-size: 0.78rem; color: var(--danger); margin-top: 0.25rem; }
+/* Dates : le sélecteur natif suit le thème */
+.datetime-field input { color-scheme: dark; }
+[data-theme="light"] .datetime-field input { color-scheme: light; }
 
-/* form-group + mb-3 */
-.form-group,
-.mb-3 { margin-bottom: 1.1rem; }
+/* Couleur : la pastille, puis la valeur hexadécimale */
+.color-picker-container {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.color-picker {
+    width: 44px;
+    height: 36px;
+    padding: 2px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius);
+    cursor: pointer;
+}
+
+.color-text-input {
+    flex: 1;
+    width: auto;
+    font-family: var(--font-mono);
+}
+
+@media (min-width: 64em) {
+    .form-input,
+    .form-control,
+    .number-field input,
+    .select-field select,
+    .datetime-field input,
+    .special-input,
+    .special-textarea,
+    .color-text-input { font-size: 0.88rem; }
+}
 
 /* ───────────────────────────────────────────────
-    Champs booléens (base_boolean.html)
+    Textes autour d'un champ : aide, lecture seule, erreurs
    ─────────────────────────────────────────────── */
 
+/* Aide (base_number/base_datetime/base_special → field-helper-text,
+   base_file → field-hints) */
+.field-helper-text,
+.field-hints {
+    display: block;
+    margin-top: 0.3rem;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+/* Message « lecture seule » (base_string.html → .form-text.text-muted) */
+.form-text.text-muted {
+    display: block;
+    margin-top: 0.3rem;
+    font-size: 0.78rem;
+    font-style: italic;
+    color: var(--text-muted);
+}
+
+.form-error {
+    font-size: 0.78rem;
+    color: var(--danger);
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.invalid-feedback { font-size: 0.78rem; color: var(--danger); margin-top: 0.25rem; }
+
+.field-error-message {
+    font-size: 0.78rem;
+    color: var(--danger);
+    margin-top: 0.2rem;
+}
+
+/* ───────────────────────────────────────────────
+    Cases à cocher et boutons radio
+   ─────────────────────────────────────────────── */
+
+/* Une case seule (base_boolean.html) */
 .form-field.boolean-field {
     display: flex;
     flex-direction: column;
@@ -208,13 +254,7 @@ textarea.form-control { min-height: 100px; resize: vertical; }
     margin-bottom: 1.1rem;
 }
 
-.field-label {
-    font-size: 0.82rem;
-    font-weight: 500;
-    color: var(--text-main);
-}
-
-.field-label.field-error { color: var(--danger); }
+.form-grid > .form-field.boolean-field { margin-bottom: 0; }
 
 .boolean-field .field-label {
     display: flex;
@@ -225,8 +265,12 @@ textarea.form-control { min-height: 100px; resize: vertical; }
     color: var(--text-main);
 }
 
+.boolean-field .field-label.field-error { color: var(--danger); }
+
 .boolean-field input[type="checkbox"],
-.boolean-field input[type="radio"] {
+.boolean-field input[type="radio"],
+.checkbox-option input[type="checkbox"],
+.radio-option input[type="radio"] {
     width: 16px;
     height: 16px;
     accent-color: var(--accent);
@@ -234,13 +278,8 @@ textarea.form-control { min-height: 100px; resize: vertical; }
     flex-shrink: 0;
 }
 
-.boolean-field .field-label.field-error { color: var(--danger); }
-
-
-/* ───────────────────────────────────────────────
-    CheckboxField / RadioField multi-options
-   ─────────────────────────────────────────────── */
-
+/* Plusieurs options (base_checkbox / base_radio) et groupe de cases
+   (checkbox-toggle.js) : une grille de 2 colonnes, puis 3, 4, 5 */
 .checkbox-fieldset,
 .radio-fieldset,
 .boolean-group {
@@ -249,41 +288,18 @@ textarea.form-control { min-height: 100px; resize: vertical; }
     padding: 0.75rem 1rem 1rem;
     margin: 0;
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 0.4rem 0.75rem;
 }
 
 .boolean-group .boolean-field { margin-bottom: 0; }
 
-@media (max-width: 1024px) { .boolean-group { grid-template-columns: repeat(4, 1fr); } }
-@media (max-width: 900px)  { .boolean-group { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 480px)  { .boolean-group { grid-template-columns: repeat(2, 1fr); } }
-
-.checkbox-fieldset legend,
-.radio-fieldset legend { grid-column: 1 / -1; }
-
-.btn-select-all { grid-column: 1 / -1; }
-
-.checkbox-fieldset .choice-filter-bar,
-.radio-fieldset .choice-filter-bar { grid-column: 1 / -1; }
-
-@media (max-width: 1024px) {
-    .checkbox-fieldset,
-    .radio-fieldset { grid-template-columns: repeat(4, 1fr); }
-}
-
-@media (max-width: 900px) {
-    .checkbox-fieldset,
-    .radio-fieldset { grid-template-columns: repeat(3, 1fr); }
-}
-
-@media (max-width: 480px) {
-    .checkbox-fieldset,
-    .radio-fieldset { grid-template-columns: repeat(2, 1fr); }
-}
+.checkbox-fieldset.field-error,
+.radio-fieldset.field-error { border-color: var(--danger); }
 
 .checkbox-fieldset legend,
 .radio-fieldset legend {
+    grid-column: 1 / -1;
     padding: 0 0.4rem;
     font-size: 0.82rem;
     font-weight: 600;
@@ -292,12 +308,20 @@ textarea.form-control { min-height: 100px; resize: vertical; }
     text-transform: uppercase;
 }
 
-.checkbox-fieldset.field-error,
-.radio-fieldset.field-error {
-    border-color: var(--danger);
+.checkbox-option,
+.radio-option {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: 0.88rem;
+    color: var(--text-main);
+    cursor: pointer;
+    padding: 0.2rem 0;
 }
 
+/* « Tout sélectionner », sur toute la largeur de la grille */
 .btn-select-all {
+    grid-column: 1 / -1;
     display: inline-block;
     margin: 0.2rem 0 0.4rem;
     padding: 0;
@@ -312,80 +336,30 @@ textarea.form-control { min-height: 100px; resize: vertical; }
 
 .btn-select-all:hover { opacity: 0.75; }
 
-.checkbox-option,
-.radio-option {
-    display: flex;
-    align-items: center;
-    gap: 0.55rem;
-    font-size: 0.88rem;
-    color: var(--text-main);
-    cursor: pointer;
-    padding: 0.2rem 0;
+@media (min-width: 40em) {
+    .checkbox-fieldset,
+    .radio-fieldset,
+    .boolean-group { grid-template-columns: repeat(3, 1fr); }
 }
 
-.checkbox-option input[type="checkbox"],
-.radio-option input[type="radio"] {
-    width: 16px;
-    height: 16px;
-    accent-color: var(--accent);
-    cursor: pointer;
-    flex-shrink: 0;
+@media (min-width: 64em) {
+    .checkbox-fieldset,
+    .radio-fieldset,
+    .boolean-group { grid-template-columns: repeat(4, 1fr); }
 }
 
-/* ───────────────────────────────────────────────
-    Champs Many-to-Many admin
-   ─────────────────────────────────────────────── */
-
-.admin-m2m__fields {
-    padding: 1rem 0 0;
-}
-
-.admin-m2m__group {
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 0.75rem 1rem 1rem;
-    margin-bottom: 1rem;
-}
-
-.admin-m2m__choices {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 0.4rem 0.75rem;
-    margin-top: 0.5rem;
-}
-
-.admin-m2m__choice {
-    display: flex;
-    align-items: center;
-    gap: 0.55rem;
-    font-size: 0.88rem;
-    color: var(--text-main);
-    cursor: pointer;
-    padding: 0.2rem 0;
-}
-
-.admin-m2m__choice input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    accent-color: var(--accent);
-    cursor: pointer;
-    flex-shrink: 0;
-}
-
-@media (max-width: 1024px) { .admin-m2m__choices { grid-template-columns: repeat(4, 1fr); } }
-@media (max-width: 900px)  { .admin-m2m__choices { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 480px)  { .admin-m2m__choices { grid-template-columns: repeat(2, 1fr); } }
-
-.admin-m2m__choices--readonly {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem 0.5rem;
-    margin-top: 0.5rem;
+@media (min-width: 90em) {
+    .checkbox-fieldset,
+    .radio-fieldset,
+    .boolean-group { grid-template-columns: repeat(5, 1fr); }
 }
 
 /* ───────────────────────────────────────────────
-    Barre de filtre alphabétique (choice-filter.js)
+    Filtre alphabétique des options (choice-filter.js)
    ─────────────────────────────────────────────── */
+
+.checkbox-fieldset .choice-filter-bar,
+.radio-fieldset .choice-filter-bar { grid-column: 1 / -1; }
 
 .choice-filter-bar {
     display: flex;
@@ -403,7 +377,7 @@ textarea.form-control { min-height: 100px; resize: vertical; }
 
 .choice-filter-bar .choice-filter-active {
     background-color: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
     border-color: var(--accent);
 }
 
@@ -415,54 +389,48 @@ textarea.form-control { min-height: 100px; resize: vertical; }
     opacity: 0.9;
 }
 
-.field-error-message {
-    font-size: 0.78rem;
-    color: var(--danger);
-    margin-top: 0.2rem;
-}
-
-
 /* ───────────────────────────────────────────────
-    Vue détail — dl/dt/dd
+    Boutons du formulaire — empilés pleine largeur (« Enregistrer »
+    au-dessus), puis alignés à droite à partir de 40em
    ─────────────────────────────────────────────── */
 
-.detail-dl { display: flex; flex-direction: column; gap: 0; }
-
-.detail-row {
-    display: grid;
-    grid-template-columns: 180px 1fr;
-    gap: 1rem;
-    padding: 0.75rem 0;
-    border-bottom: 1px solid var(--border);
-    align-items: start;
-}
-
-.detail-row:last-child { border-bottom: none; }
-
-.detail-key {
-    font-size: 0.8rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-muted);
-    padding-top: 0.1rem;
-}
-
-.detail-val {
-    font-size: 0.88rem;
-    color: var(--text-main);
-    word-break: break-all;
-}
-
-/* ── Group edit — permissions grid ──────────────────────────── */
-
-.admin-group-edit__perm-grid {
+.admin-form__actions {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem 2rem;
+    flex-direction: column-reverse;
+    gap: 0.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    margin-top: 1rem;
 }
 
-.admin-group-edit__perm-grid .boolean-field {
-    flex: 0 0 auto;
-    min-width: 130px;
+.admin-form__actions .btn { width: 100%; }
+
+/* Pages longues (un formulaire, la grille des droits) : la barre reste
+   atteignable au lieu de défiler hors de vue sous la liste des champs.
+   La marge négative annule le padding bas du corps de carte. */
+.admin-card--form .admin-form__actions,
+.admin-rights__form .admin-form__actions {
+    position: sticky;
+    bottom: 0;
+    background: var(--bg-card);
+    padding-bottom: 0.875rem;
+    margin-bottom: -0.875rem;
+    z-index: var(--z-sticky);
+}
+
+@media (min-width: 40em) {
+    .admin-form__actions {
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.75rem;
+    }
+
+    .admin-form__actions .btn { width: auto; }
+
+    .admin-card--form .admin-form__actions,
+    .admin-rights__form .admin-form__actions {
+        padding-bottom: 1rem;
+        margin-bottom: -1.25rem;
+    }
 }

@@ -1,97 +1,62 @@
-{# The rows: one line per entry, its detail line on mobile, the empty state. #}
-<div class="admin-card">
+{# One card per entry, every field shown directly — no secondary-column
+   hiding or expand-row, the grid reflows to one column on narrow screens
+   on its own. The empty state at the bottom is unchanged. #}
+<div class="admin-card admin-card--flat">
   {% if entries is defined and entries | length > 0 %}
-    <div class="admin-table__wrapper">
-      <table class="admin-table">
-        <colgroup>
-          {% if resource_links.bulk %}<col class="admin-table__col-bulk">{% endif %}
-          <col class="admin-table__col-id">
-          {% for col in visible_columns %}
-            <col{% if loop.index0 > 0 %} class="admin-table__col-secondary"{% endif %}>
-          {% endfor %}
-          <col class="admin-table__col-expand">
-          <col class="admin-table__col-actions">
-        </colgroup>
-        <thead>
-          <tr>
-            {% if resource_links.bulk %}<th class="admin-table__th-bulk"><input type="checkbox" id="bulk-check-all" title="{{ admin_list_select_all }}"></th>{% endif %}
-            <th>
-              <a href="?sort_by=id&sort_dir={% if sort_by == "id" %}{{ sort_dir_toggle }}{% else %}asc{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}{{ filter_qs }}&page=1"
-                hx-get="?sort_by=id&sort_dir={% if sort_by == "id" %}{{ sort_dir_toggle }}{% else %}asc{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}{{ filter_qs }}&page=1"
-                hx-target="#list-content" hx-swap="outerHTML" hx-push-url="true"
-                class="admin-table__sort-link">
-                {% if admin_list_th_id %}{{ admin_list_th_id }}{% endif %}
-                {% if sort_by == "id" %}<span class="admin-table__sort-indicator">{% if sort_dir == "asc" %}▲{% else %}▼{% endif %}</span>{% endif %}
-              </a>
-            </th>
+    <div class="admin-list__toolbar">
+      {% if resource_links.bulk %}
+      <label class="admin-list__select-all">
+        <input type="checkbox" id="bulk-check-all" title="{{ admin_list_select_all }}">
+        {{ admin_list_select_all }}
+      </label>
+      {% endif %}
+      {# Only the columns declared `.sortable()`: the server ignores a sort on
+         any other, so offering it would show an order that never applies. #}
+      {% if sortable_columns | length > 0 %}
+      <div class="admin-list__sort-bar">
+        {% for col in sortable_columns %}
+          <a href="?sort_by={{ col }}&sort_dir={% if sort_by == col %}{{ sort_dir_toggle }}{% else %}asc{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}{{ filter_qs }}&page=1"
+            hx-get="?sort_by={{ col }}&sort_dir={% if sort_by == col %}{{ sort_dir_toggle }}{% else %}asc{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}{{ filter_qs }}&page=1"
+            hx-target="#list-content" hx-swap="outerHTML" hx-push-url="true"
+            class="admin-table__sort-link{% if sort_by == col %} active{% endif %}">
+            {% if column_labels[col] %}{{ column_labels[col] }}{% else %}{{ col | replace(from="_", to=" ") }}{% endif %}
+            {% if sort_by == col %}<span class="admin-table__sort-indicator">{% if sort_dir == "asc" %}▲{% else %}▼{% endif %}</span>{% endif %}
+          </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="admin-list__cards">
+      {% for entry in entries %}
+        <div class="admin-list__card">
+          <div class="admin-list__card-header">
+            {% if resource_links.bulk %}<input type="checkbox" class="admin-table__bulk-check" value="{{ entry.id }}">{% endif %}
+            <span class="admin-badge--id">#{{ entry.id }}</span>
+            {% if entry.taken_by %}<span class="admin-badge admin-badge--red" data-taken-by>{{ admin_list_responsable_pending }} ({{ admin_list_taken_by }} {{ entry.taken_by }})</span>{% endif %}
+            <div class="admin-list__card-actions admin-table__td-actions">
+              {% dev_block "kebab" %}
+            </div>
+          </div>
+          <div class="admin-list__card-body">
             {% for col in visible_columns %}
-              <th {% if loop.index0 > 0 %} class="admin-table__col-secondary"{% endif %}>
-                <a href="?sort_by={{ col }}&sort_dir={% if sort_by == col %}{{ sort_dir_toggle }}{% else %}asc{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}{{ filter_qs }}&page=1"
-                  hx-get="?sort_by={{ col }}&sort_dir={% if sort_by == col %}{{ sort_dir_toggle }}{% else %}asc{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}{{ filter_qs }}&page=1"
-                  hx-target="#list-content" hx-swap="outerHTML" hx-push-url="true"
-                  class="admin-table__sort-link">
-                  {% if column_labels[col] %}{{ column_labels[col] }}{% else %}{{ col | replace(from="_", to=" ") }}{% endif %}
-                  {% if sort_by == col %}<span class="admin-table__sort-indicator">{% if sort_dir == "asc" %}▲{% else %}▼{% endif %}</span>{% endif %}
-                </a>
-              </th>
+              {% set value = entry.values[col] %}
+              <div class="admin-list__field">
+                <span class="admin-list__field-label">{% if column_labels[col] %}{{ column_labels[col] }}{% else %}{{ col | replace(from="_", to=" ") }}{% endif %}</span>
+                {% if value == true %}
+                  <span class="admin-badge admin-badge--green">{% if admin_list_bool_true %}{{ admin_list_bool_true }}{% endif %}</span>
+                {% elif value == false %}
+                  <span class="admin-badge admin-badge--neutral">{% if admin_list_bool_false %}{{ admin_list_bool_false }}{% endif %}</span>
+                {% elif value %}
+                  <span class="admin-list__field-value{% if rich_fields and col in rich_fields %} admin-list__field-value--rich{% endif %}">{% if rich_fields and col in rich_fields %}{{ value | plaintext }}{% else %}{{ value }}{% endif %}</span>
+                {% else %}
+                  <span class="admin-text--muted">—</span>
+                {% endif %}
+              </div>
             {% endfor %}
-            <th class="admin-table__th-expand"></th>
-            <th class="admin-table__th-right">{% if admin_list_th_actions %}{{ admin_list_th_actions }}{% endif %}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for entry in entries %}
-            <tr>
-              {% if resource_links.bulk %}<td class="admin-table__td-bulk"><input type="checkbox" class="admin-table__bulk-check" value="{{ entry.id }}"></td>{% endif %}
-              <td><span class="admin-badge--id">#{{ entry.id }}</span>{% if entry.taken_by %} <span class="admin-badge admin-badge--red" data-taken-by>{{ admin_list_responsable_pending }} ({{ admin_list_taken_by }} {{ entry.taken_by }})</span>{% endif %}</td>
-              {% for col in visible_columns %}
-                {% set value = entry.values[col] %}
-                <td class="admin-table__td-data{% if loop.index0 > 0 %} admin-table__col-secondary{% endif %}" data-label="{% if column_labels[col] %}{{ column_labels[col] }}{% else %}{{ col | replace(from="_", to=" ") }}{% endif %}">
-                  {% if value == true %}
-                    <span class="admin-badge admin-badge--green">{% if admin_list_bool_true %}{{ admin_list_bool_true }}{% endif %}</span>
-                  {% elif value == false %}
-                    <span class="admin-badge admin-badge--neutral">{% if admin_list_bool_false %}{{ admin_list_bool_false }}{% endif %}</span>
-                  {% elif value %}
-                    <span class="admin-table__td-content">{% if rich_fields and col in rich_fields %}{{ value | plaintext }}{% else %}{{ value }}{% endif %}</span>
-                  {% else %}
-                    <span class="admin-text--muted">—</span>
-                  {% endif %}
-                </td>
-              {% endfor %}
-              <td class="admin-table__td-expand">
-                <button class="admin-table__expand-btn" type="button" aria-expanded="false" aria-label="{{ admin_list_row_details }}">
-                  <svg class="admin-table__expand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-                    <polyline points="9 18 15 12 9 6"/>
-                  </svg>
-                </button>
-              </td>
-              <td class="admin-table__td-actions">
-                {% dev_block "kebab" %}
-              </td>
-            </tr>
-            <tr class="admin-table__row-detail">
-              <td colspan="999">
-                <div class="admin-table__detail-grid">
-                  {% for col in visible_columns %}
-                    {% if loop.index0 > 0 %}
-                      {% set value = entry.values[col] %}
-                      <div class="admin-table__detail-item">
-                        <span class="admin-table__detail-label">{% if column_labels[col] %}{{ column_labels[col] }}{% else %}{{ col | replace(from="_", to=" ") }}{% endif %}</span>
-                        <span class="admin-table__detail-value">
-                          {% if value == true %}<span class="admin-badge admin-badge--green">{% if admin_list_bool_true %}{{ admin_list_bool_true }}{% endif %}</span>
-                          {% elif value == false %}<span class="admin-badge admin-badge--neutral">{% if admin_list_bool_false %}{{ admin_list_bool_false }}{% endif %}</span>
-                          {% elif value %}{% if rich_fields and col in rich_fields %}{{ value | plaintext }}{% else %}{{ value }}{% endif %}
-                          {% else %}<span class="admin-text--muted">—</span>{% endif %}
-                        </span>
-                      </div>
-                    {% endif %}
-                  {% endfor %}
-                </div>
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+          </div>
+        </div>
+      {% endfor %}
     </div>
   {% else %}
     <div class="admin-empty-state">

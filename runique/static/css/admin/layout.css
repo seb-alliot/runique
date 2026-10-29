@@ -1,34 +1,28 @@
 /* ═══════════════════════════════════════════════════════════════
-    AdminPanel — Layout (sidebar, topbar, main area)
+    AdminPanel — Layout (sidebar, topbar, zone principale)
+    Mobile-first : la base vaut pour 320px et plus, chaque palier
+    (40em / 64em / 90em, cf. variables.css) n'ajoute que ce qui change.
    ═══════════════════════════════════════════════════════════════ */
 
-/* Reset admin */
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
 html {
-    /* Empêche le zoom auto des polices sur iOS lors de la rotation */
+    /* Pas de zoom auto des polices sur iOS à la rotation */
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
-    /* Scroll natif fluide sur iOS */
     -webkit-tap-highlight-color: transparent;
 }
 
 html, body {
     height: 100%;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-family: var(--font-sans);
     background: var(--bg-main);
     color: var(--text-main);
-    font-size: 14px;
+    /* La valeur par défaut des navigateurs : 1rem = 1em des media queries */
+    font-size: 16px;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-}
-
-/* Scroll fluide dans la zone de contenu principale. Vertical seulement : sur
-   l'axe horizontal, le débordement est le geste « retour » du navigateur. */
-.admin-content {
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain;
 }
 
 a { color: inherit; text-decoration: none; }
@@ -36,37 +30,50 @@ button { cursor: pointer; font: inherit; }
 ul { list-style: none; }
 
 /* ───────────────────────────────────────────────
-    Structure principale
+    Structure
    ─────────────────────────────────────────────── */
 
 .admin-layout {
     display: flex;
     height: 100vh;
-    height: 100dvh; /* exclut la barre navigateur sur mobile */
+    height: 100dvh; /* exclut la barre du navigateur sur mobile */
     overflow: hidden;
 }
 
 /* ───────────────────────────────────────────────
-    Sidebar
+    Sidebar — panneau superposé, fixe à partir de 64em
    ─────────────────────────────────────────────── */
 
 .admin-sidebar {
-    width: var(--sidebar-width);
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    height: 100dvh;
+    width: 15rem;
     background: var(--bg-sidebar);
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
-    transition: width var(--transition);
     overflow: hidden;
-    z-index: 100;
+    transform: translateX(-100%);
+    transition: transform var(--transition), width var(--transition);
+    z-index: var(--z-drawer);
 }
 
-.admin-sidebar.collapsed {
-    width: var(--sidebar-collapsed);
+.admin-sidebar.mobile-open { transform: translateX(0); }
+
+.admin-sidebar__overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: var(--overlay);
+    z-index: var(--z-overlay);
 }
 
-/* Header sidebar */
+.admin-sidebar__overlay.active { display: block; }
+
 .admin-sidebar__header {
     height: var(--topbar-height);
     display: flex;
@@ -87,7 +94,7 @@ ul { list-style: none; }
     justify-content: center;
     font-size: 0.85rem;
     font-weight: 700;
-    color: #fff;
+    color: var(--on-accent);
     flex-shrink: 0;
 }
 
@@ -101,12 +108,6 @@ ul { list-style: none; }
     transition: opacity var(--transition);
 }
 
-.admin-sidebar.collapsed .admin-sidebar__title {
-    opacity: 0;
-    width: 0;
-}
-
-/* Navigation */
 .admin-sidebar__nav {
     flex: 1;
     padding: 0.75rem 0;
@@ -129,10 +130,6 @@ ul { list-style: none; }
     overflow: hidden;
     opacity: 1;
     transition: opacity var(--transition);
-}
-
-.admin-sidebar.collapsed .admin-nav__section-label {
-    opacity: 0;
 }
 
 .admin-nav__item {
@@ -188,22 +185,12 @@ ul { list-style: none; }
     font-size: 0.88rem;
 }
 
-.admin-sidebar.collapsed .admin-nav__label {
-    opacity: 0;
-    width: 0;
-}
-
-.admin-sidebar.collapsed .admin-nav__item {
-    justify-content: center;
-}
-
 .admin-nav__divider {
     height: 1px;
     background: var(--border);
     margin: 0.5rem 1rem;
 }
 
-/* Footer sidebar */
 .admin-sidebar__footer {
     border-top: 1px solid var(--border);
     padding: 0.75rem 0;
@@ -217,10 +204,9 @@ ul { list-style: none; }
     padding: 0 0.75rem;
 }
 
-.hidden { display: none; }
-
+/* Le repli de la sidebar n'a de sens qu'en desktop (≥ 64em) */
 .admin-sidebar__toggle {
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     width: 32px;
@@ -250,20 +236,25 @@ ul { list-style: none; }
     min-width: 0;
 }
 
-/* Topbar */
+/* Topbar — compacte : pas de fil d'Ariane, avatar sans le nom */
 .admin-topbar {
     height: var(--topbar-height);
     background: var(--bg-card);
     border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
-    padding: 0 1.5rem;
-    gap: 1rem;
+    justify-content: space-around;
+    padding: 0 0.875rem;
+    gap: 0.5rem;
     flex-shrink: 0;
 }
 
+/* Doublé de `.btn` : buttons.css, chargé après, le remettrait en
+   `inline-flex` à spécificité égale et le masquage à 64em sauterait. */
+.btn.admin-topbar__burger { display: flex; }
+
 .admin-topbar__breadcrumb {
-    display: flex;
+    display: none;
     align-items: center;
     gap: 0.5rem;
     color: var(--text-muted);
@@ -287,12 +278,28 @@ ul { list-style: none; }
     transition: background var(--transition);
 }
 
+.admin-topbar__user span { display: none; }
+
 .admin-topbar__user:hover {
     background: var(--bg-hover);
     color: var(--text-main);
 }
 
-/* Toggle thème (sombre/clair) */
+.admin-topbar__avatar {
+    width: clamp(32px, 4vw, 40px);
+    height: clamp(32px, 4vw, 40px);
+    border-radius: 50%;
+    background: var(--accent-gradient);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--on-accent);
+    overflow: hidden;
+}
+
+/* Bascule thème sombre/clair */
 .admin-theme-toggle {
     display: flex;
     align-items: center;
@@ -323,42 +330,35 @@ ul { list-style: none; }
 [data-theme="light"] .admin-theme-icon--sun  { display: none; }
 [data-theme="light"] .admin-theme-icon--moon { display: block; }
 
-.admin-topbar__avatar {
-    width: clamp(32px, 4vw, 40px);
-    height: clamp(32px, 4vw, 40px);
-    border-radius: 50%;
-    background: var(--accent-gradient);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.72rem;
-    font-weight: 600;
-    color: #fff;
-    overflow: hidden;
-}
-
-/* Contenu */
+/* Contenu — le bas garde la place des barres fixes (pagination, actions)
+   qui existent sous 64em ; au-delà de --content-max, le contenu est centré
+   par le padding (la barre de défilement reste au bord de l'écran). */
 .admin-content {
     flex: 1;
     overflow-y: auto;
-    padding: 1.75rem;
+    padding: 0.875rem;
+    padding-bottom: 4.5rem;
+    -webkit-overflow-scrolling: touch;
+    /* Vertical seulement : l'axe horizontal est le geste « retour » */
+    overscroll-behavior-y: contain;
+    animation: adminFadeIn 0.18s ease;
 }
 
 .admin-content::-webkit-scrollbar { width: 6px; }
 .admin-content::-webkit-scrollbar-track { background: transparent; }
 .admin-content::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
 
-/* Page header */
+/* En-tête de page — titre puis actions, empilés */
 .admin-page__header {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 1.5rem;
-    gap: 1rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
 }
 
 .admin-page__title {
-    font-size: 1.35rem;
+    font-size: 1.1rem;
     font-weight: 600;
     color: var(--text-main);
 }
@@ -369,29 +369,95 @@ ul { list-style: none; }
     margin-top: 0.2rem;
 }
 
-/* ── Filter sidebar layout ── */
+/* Liste + filtres — une colonne ; le panneau de filtres est superposé */
 .admin-list__layout {
     display: grid;
-    grid-template-columns: 1fr 200px;
+    grid-template-columns: 1fr;
     gap: 1.5rem;
     align-items: start;
     transition: grid-template-columns var(--transition);
 }
 
-.admin-list__layout.filter-collapsed {
-    grid-template-columns: 1fr 36px;
-}
-
-.admin-list__layout.filter-collapsed .admin-filter__body { display: none; }
-.admin-list__layout.filter-collapsed .admin-filter__title { opacity: 0; width: 0; }
-
-/* Transition de page — fade-in au chargement */
+/* Fondu d'entrée de page */
 /* TODO: remplacer par @view-transition { navigation: auto; } quand Firefox le supporte */
 @keyframes adminFadeIn {
     from { opacity: 0; transform: translateY(6px); }
     to   { opacity: 1; transform: translateY(0); }
 }
 
-.admin-content {
-    animation: adminFadeIn 0.18s ease;
+/* ───────────────────────────────────────────────
+    ≥ 40em — plus d'espace, topbar complète
+   ─────────────────────────────────────────────── */
+
+@media (min-width: 40em) {
+    .admin-topbar {
+        justify-content: flex-start;
+        padding: 0 1.5rem;
+        gap: 1rem;
+    }
+
+    .admin-topbar__breadcrumb { display: flex; }
+    .admin-topbar__user span { display: inline; }
+
+    .admin-content { padding: 1.25rem 1.25rem 4.5rem; }
+
+    .admin-page__header {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .admin-page__title { font-size: 1.35rem; }
+}
+
+/* ───────────────────────────────────────────────
+    ≥ 64em — desktop : sidebar fixe et repliable, filtres à côté
+   ─────────────────────────────────────────────── */
+
+@media (min-width: 64em) {
+    .admin-sidebar {
+        position: static;
+        height: auto;
+        width: var(--sidebar-width);
+        transform: none;
+        z-index: var(--z-sidebar);
+    }
+
+    .admin-sidebar.collapsed { width: var(--sidebar-collapsed); }
+
+    .admin-sidebar.collapsed .admin-sidebar__title,
+    .admin-sidebar.collapsed .admin-nav__label {
+        opacity: 0;
+        width: 0;
+    }
+
+    .admin-sidebar.collapsed .admin-nav__section-label { opacity: 0; }
+    .admin-sidebar.collapsed .admin-nav__item { justify-content: center; }
+
+    .admin-sidebar__overlay,
+    .admin-sidebar__overlay.active { display: none; }
+
+    .admin-sidebar__toggle { display: flex; }
+
+    .btn.admin-topbar__burger { display: none; }
+
+    .admin-content { padding: 1.75rem; }
+
+    .admin-list__layout { grid-template-columns: 1fr 200px; }
+    .admin-list__layout.filter-collapsed { grid-template-columns: 1fr 36px; }
+    .admin-list__layout.filter-collapsed .admin-filter__body { display: none; }
+    .admin-list__layout.filter-collapsed .admin-filter__title { opacity: 0; width: 0; }
+}
+
+/* ───────────────────────────────────────────────
+    ≥ 90em — grand écran : marges larges, contenu plafonné
+   ─────────────────────────────────────────────── */
+
+@media (min-width: 90em) {
+    .admin-content {
+        padding-block: 2rem;
+        padding-inline: max(2.5rem, calc((100% - var(--content-max)) / 2));
+    }
 }

@@ -17,8 +17,12 @@
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
-    padding: 2.25rem;
+    padding: 1.5rem;
     box-shadow: var(--shadow);
+}
+
+@media (min-width: 40em) {
+    .login-card { padding: 2.25rem; }
 }
 
 .login-header {
@@ -30,13 +34,13 @@
     width: 48px;
     height: 48px;
     background: var(--accent);
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.1rem;
     font-weight: 700;
-    color: #fff;
+    color: var(--on-accent);
     margin: 0 auto 1rem;
 }
 

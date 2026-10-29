@@ -19,16 +19,7 @@ toggle.addEventListener('click', () => {
     localStorage.setItem(COLLAPSED_KEY, isCollapsed ? '1' : '0');
 });
 
-// Burger / mobile overlay
-function isMobile() { return window.innerWidth <= 900; }
-
-function updateBurgerVisibility() {
-    burger.style.display = isMobile() ? 'flex' : 'none';
-}
-
-updateBurgerVisibility();
-window.addEventListener('resize', updateBurgerVisibility);
-
+// Burger / mobile overlay — shown or hidden by layout.css (≥ 64em), not here.
 burger.addEventListener('click', () => {
     sidebar.classList.add('mobile-open');
     overlay.classList.add('active');
