@@ -7,7 +7,7 @@
 - **Languages:** Rust
 - **Stacks:** Cargo
 - **Run (suggested):** `cargo run`
-- **Test (suggested):** `cargo test`
+- **Test (suggested):** `cargo test -p runique --no-fail-fast --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme,admin,test-utils 2>&1 | grep -E "test result:|FAILED|^error"`
 
 ## Detected markers
 - `Cargo.toml`
@@ -73,7 +73,8 @@
 - Do not disable auth, TLS, or sandboxing for convenience.
 
 ## Scripts / commands (detected)
-- (none detected)
+- Tests (réf. habituelle) :
+  `cargo test -p runique --no-fail-fast --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme,admin,test-utils 2>&1 | grep -E "test result:|FAILED|^error"`
 
 ## Quality
 - Keep changes scoped to the request.

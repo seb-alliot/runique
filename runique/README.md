@@ -53,8 +53,7 @@ fn articles() -> ModelAdmin<article::Entity> {
 }
 ```
 
-<!-- Add a real screenshot of the generated admin here — it sells the framework better than any paragraph: -->
-<!-- ![Runique admin panel](docs/assets/admin.png) -->
+![Runique admin panel](../docs/assets/dashboard_admin.png)
 
 ---
 

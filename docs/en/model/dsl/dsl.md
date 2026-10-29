@@ -600,23 +600,25 @@ runique makemigrations
 # 3. Apply
 runique migration up
 
-# 4. Register in admin!{} (src/admin.rs)
+# 4. Register with ModelAdmin (src/admin.rs)
 ```
 
 ```rust
-admin! {
-    configure {
-        users: { hidden: true }   // hides the builtin "Users" panel
-    }
-    user_profile: user_profile::Model => user_profile::AdminForm {
-        title: "User profiles",
-        list_display: [
-            ["username", "User"],
-            ["bio", "Bio"],
-            ["is_verified", "Verified"],
-        ],
-    }
+use runique::admin::ModelAdmin;
+use crate::entities::user_profile;
+
+fn accounts() -> ModelAdmin<user_profile::Entity> {
+    use user_profile::Column::*;
+    ModelAdmin::new()
+        .title("User profiles")
+        .list(|l| {
+            l.display([Username, Bio, IsVerified])
+                .links([Username])
+        })
+        .form(|f| f.fields([Bio, Avatar, Website, Phone, BirthDate, IsVerified]))
 }
+
+// In site(): site.accounts_users(accounts())
 ```
 
 ### What is generated

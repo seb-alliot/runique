@@ -14,7 +14,7 @@
         "name": "Is there a Django-like web framework for Rust?",
         "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes. Runique is a Rust web framework inspired by Django, built on Axum, SeaORM and Tera. It ships an auto-generated admin panel, type-safe forms, migrations, authentication and built-in CSRF/CSP security."
+            "text": "Yes. Runique is a Rust web framework inspired by Django, built on Axum, SeaORM and Tera. It ships a typed ModelAdmin panel, type-safe forms, migrations, authentication and built-in CSRF/CSP security."
         }
         },
         {
@@ -22,7 +22,7 @@
         "name": "Does Runique have an admin panel like Django admin?",
         "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes. Runique generates a full CRUD admin panel from your models with list display, search, filters, bulk actions and permissions, declared through the admin! macro."
+            "text": "Yes. Runique serves a full CRUD admin panel from your models with list display, search, filters, bulk actions and permissions, declared through the typed ModelAdmin builder."
         }
         },
         {
@@ -30,7 +30,7 @@
         "name": "What is the best Django alternative in Rust?",
         "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Runique aims to bring the Django developer experience to Rust: a batteries-included framework with models, type-safe forms, a generated admin, sessions and security middleware, on top of the Axum and SeaORM ecosystem."
+            "text": "Runique aims to bring the Django developer experience to Rust: a batteries-included framework with models, type-safe forms, a typed ModelAdmin panel, sessions and security middleware, on top of the Axum and SeaORM ecosystem."
         }
         }
     ]
@@ -50,7 +50,7 @@
 
     <p class="seo-lead">
         <strong>Runique</strong> brings the Django developer experience to Rust. It is a
-        batteries-included <strong>Rust web framework</strong> with an auto-generated admin panel,
+        batteries-included <strong>Rust web framework</strong> with a typed admin panel,
         type-safe forms, database models and migrations, authentication and built-in CSRF/CSP
         security — built on <a href="https://crates.io/crates/axum" target="_blank" rel="noopener">Axum</a>,
         <a href="https://crates.io/crates/sea-orm" target="_blank" rel="noopener">SeaORM</a> and Tera.
@@ -70,10 +70,10 @@
         Rust's type safety and performance.
     </p>
 
-    <h2>An auto-generated admin panel</h2>
+    <h2>A typed admin panel</h2>
     <p>
-        Like the Django admin, Runique generates a full CRUD back office from your models with the
-        <code>admin!</code> macro: list display, search, side filters, pagination, bulk actions and
+        Like the Django admin, Runique serves a full CRUD back office from your models with the
+        typed <code>ModelAdmin</code> builder: list display, search, side filters, pagination, bulk actions and
         permission checks. See the <a href="/docs/en/admin">admin documentation</a>.
     </p>
 
@@ -100,7 +100,7 @@
         <tbody>
             <tr><td>models.py</td><td><code>model!</code> macro → SeaORM entity + migration</td></tr>
             <tr><td>forms.py</td><td><code>#[form]</code> type-safe forms</td></tr>
-            <tr><td>admin.py</td><td><code>admin!</code> generated admin panel</td></tr>
+            <tr><td>admin.py</td><td><code>ModelAdmin</code> typed admin panel</td></tr>
             <tr><td>urls.py</td><td><code>urlpatterns!</code> routing macro</td></tr>
             <tr><td>Django templates</td><td>Tera templates (auto-escaped)</td></tr>
             <tr><td>ORM (QuerySet)</td><td>SeaORM + <code>search!</code> query DSL</td></tr>
@@ -114,7 +114,7 @@
     <h2 class="seo-faq-title">FAQ</h2>
     <div class="seo-faq">
         <h3>Is there a Django-like web framework for Rust?</h3>
-        <p>Yes — Runique is a Rust web framework inspired by Django, with a generated admin, type-safe
+        <p>Yes — Runique is a Rust web framework inspired by Django, with a typed ModelAdmin panel, type-safe
         forms, migrations, auth and built-in security.</p>
 
         <h3>Does Runique have an admin panel like Django admin?</h3>

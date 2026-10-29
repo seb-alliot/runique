@@ -80,7 +80,7 @@ cargo run
       └──>  Server running at http://127.0.0.1:3000
 ```
 
-> `runique start` is reserved for projects using the administration panel — it chains admin code generation then `cargo run`, on the same thread. For a project without admin, `cargo run` is sufficient.
+> Prefer plain `cargo run`. Wire the admin with `.with_admin(...)` and the typed `ModelAdmin` builder in `src/admin.rs` — no code generation step.
 
 ---
 
