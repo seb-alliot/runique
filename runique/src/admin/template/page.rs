@@ -371,7 +371,10 @@ mod tests {
         use super::super::block::GlobalBlock;
         let t = AdminTemplate::new().global_block_stylesheet(GlobalBlock::Sidebar, "css/side.css");
         let served = GlobalBlock::Sidebar.resolve(&t.global_blocks);
-        assert_eq!(served.stylesheet, Some(super::super::block::Stylesheet::Dev("css/side.css".into())));
+        assert_eq!(
+            served.stylesheet,
+            Some(super::super::block::Stylesheet::Dev("css/side.css".into()))
+        );
         assert_eq!(served.html.resolve(), GlobalBlock::Sidebar.runique());
     }
 }

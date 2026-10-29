@@ -2690,19 +2690,34 @@ async fn the_list_pages_and_sorts_through_its_links() {
         asc.contains("?sort_by=title&sort_dir=desc"),
         "asc turns to desc"
     );
-    assert!(asc.contains(">added 0</span>"), "asc starts at the smallest title");
-    assert!(!asc.contains(">seed</span>"), "asc leaves the largest off page 1");
+    assert!(
+        asc.contains(">added 0</span>"),
+        "asc starts at the smallest title"
+    );
+    assert!(
+        !asc.contains(">seed</span>"),
+        "asc leaves the largest off page 1"
+    );
     let desc = text(&client, format!("{list}?sort_by=title&sort_dir=desc")).await;
     assert!(
         desc.contains("?sort_by=title&sort_dir=asc"),
         "desc turns to asc"
     );
-    assert!(desc.contains(">seed</span>"), "desc starts at the largest title");
-    assert!(!desc.contains(">added 0</span>"), "desc leaves the smallest off page 1");
+    assert!(
+        desc.contains(">seed</span>"),
+        "desc starts at the largest title"
+    );
+    assert!(
+        !desc.contains(">added 0</span>"),
+        "desc leaves the smallest off page 1"
+    );
 
     // A list with no `.sortable()` offers no sort: it would be ignored.
     let bare = text(&client, format!("{base}/secret-admin/bare_notes/list")).await;
-    assert!(!bare.contains("admin-table__sort-link"), "nothing to sort, no sort bar");
+    assert!(
+        !bare.contains("admin-table__sort-link"),
+        "nothing to sort, no sort bar"
+    );
 }
 
 // ── The groups ────────────────────────────────────────────────────────────
@@ -3613,8 +3628,14 @@ async fn every_page(base: &str) -> (reqwest::Client, Vec<(&'static str, String)>
         ("edit", format!("{admin}/probe_notes/1/edit")),
         ("detail", format!("{admin}/probe_notes/1/detail")),
         ("delete", format!("{admin}/probe_notes/1/delete")),
-        ("account_detail", format!("{admin}/users/{}/detail", pk(ADMIN))),
-        ("account_rights", format!("{admin}/users/{}/rights", pk(ADMIN))),
+        (
+            "account_detail",
+            format!("{admin}/users/{}/detail", pk(ADMIN)),
+        ),
+        (
+            "account_rights",
+            format!("{admin}/users/{}/rights", pk(ADMIN)),
+        ),
         ("groups_list", format!("{admin}/groupes/list")),
         ("group_detail", format!("{admin}/groupes/1/detail")),
         ("group_rights", format!("{admin}/groupes/1/rights")),
@@ -3643,7 +3664,10 @@ async fn every_admin_page_renders() {
         let resp = fetch(&su, url.clone(), None).await;
         assert_eq!(resp.status(), reqwest::StatusCode::OK, "{name}: {url}");
         let body = resp.text().await.unwrap();
-        assert!(body.contains("css/admin/variables.css") && body.contains("</html>"), "{name}");
+        assert!(
+            body.contains("css/admin/variables.css") && body.contains("</html>"),
+            "{name}"
+        );
     }
 }
 
@@ -3658,7 +3682,8 @@ async fn every_admin_page_renders() {
 async fn render_admin_pages() {
     let config = RuniqueConfig::from_env();
     let statics = &config.static_files;
-    let folder = std::fs::canonicalize(&statics.static_runique_path).expect("Runique's static folder");
+    let folder =
+        std::fs::canonicalize(&statics.static_runique_path).expect("Runique's static folder");
     let url = format!("{}/", statics.static_runique_url.trim_end_matches('/'));
     let local = format!("file://{}/", folder.display());
     let out = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/rendered");
@@ -3666,14 +3691,24 @@ async fn render_admin_pages() {
 
     let base = spawn_with("", transfer_routes()).await;
     let (su, mut pages) = every_page(&base).await;
-    let login = text(&reqwest::Client::new(), format!("{base}/secret-admin/login")).await;
+    let login = text(
+        &reqwest::Client::new(),
+        format!("{base}/secret-admin/login"),
+    )
+    .await;
     pages.insert(0, ("login", String::new()));
     let attrs = regex::Regex::new(r#"\s(integrity|crossorigin)="[^"]*""#).unwrap();
     let version = regex::Regex::new(r#"\?v=[A-Za-z0-9]+"#).unwrap();
     for (name, page) in pages {
-        let body = if name == "login" { login.clone() } else { text(&su, page).await };
+        let body = if name == "login" {
+            login.clone()
+        } else {
+            text(&su, page).await
+        };
         let body = body.replace(&format!("\"{url}"), &format!("\"{local}"));
-        let body = version.replace_all(&attrs.replace_all(&body, ""), "").into_owned();
+        let body = version
+            .replace_all(&attrs.replace_all(&body, ""), "")
+            .into_owned();
         std::fs::write(out.join(format!("{name}.html")), body).unwrap();
     }
     eprintln!("pages written to {}", out.canonicalize().unwrap().display());
