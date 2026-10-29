@@ -133,7 +133,6 @@ See the [complete block reference](/docs/en/admin/template-surcharge-blocks) —
 | [Block reference](/docs/en/admin/template-surcharge-blocks) | Complete block list per template + CSS variables |
 | [Examples](/docs/en/admin/template-surcharge-examples) | 3 approaches: Runique inheritance, custom layout, standalone HTML |
 | [Context keys](/docs/en/admin/template-clef) | Variables injected by the backend into each template |
-| [CSRF](/docs/en/admin/template-csrf) | CSRF token, `csrf.js`, custom login checklist |
 
 ## Back to summary
 

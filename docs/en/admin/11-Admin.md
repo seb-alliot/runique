@@ -1,32 +1,64 @@
 # Runique Admin
 
-Runique's admin generates a full CRUD interface from a declarative macro (`admin!`).
-The generated code is plain Rust — readable, auditable, and modifiable if needed.
-The approach is intentionally transparent: no hidden magic, no unknown runtime.
+Runique's admin builds a full CRUD UI from a **typed builder** (`ModelAdmin`). No `admin!` macro, no generated files: you declare SeaORM columns, the framework serves routes, list views, forms and permissions.
+
+Columns are enums (`blog::Column::Title`) — the compiler rejects a missing column, an exposed secret, or an inconsistent action.
 
 ## Minimal example
 
 ```rust
-admin! {
-    users: users::Model => RegisterForm {
-        title: "Users"
-    }
+use runique::admin::{AdminSite, ModelAdmin};
+use runique::app::staging::AdminStaging;
+use crate::entities::article;
+
+pub fn config(admin: AdminStaging) -> AdminStaging {
+    admin
+        .site_title("Administration")
+        .path("/admin/")
+        .site(|site| site.register(articles()))
 }
+
+fn articles() -> ModelAdmin<article::Entity> {
+    use article::Column::*;
+    ModelAdmin::new()
+        .title("Articles")
+        .list(|l| {
+            l.display([Title, Status, Views])
+                .links([Title])
+                .sortable([Title])
+                .search([Title])
+                .filter([Status])
+        })
+        .form(|f| f.fields([Title, Body, Status]))
+}
+```
+
+Then in `main`:
+
+```rust
+builder::new(config)
+    .routes(url::routes())
+    .with_database(db)
+    .with_admin(admin::config)
+    .build()
+    .await?
+    .run()
+    .await?;
 ```
 
 ## Table of contents
 
 | File | Contents |
 | --- | --- |
-| [Setup](/docs/en/admin/setup) | Wire the admin into an existing project, create a superuser |
-| [CLI](/docs/en/admin/declaration) | `runique start` command, general workflow |
-| [Admin code generation](/docs/en/admin/declaration-daemon) | Generated files, `runique start` flow |
-| [Macro `admin!`](/docs/en/admin/declaration-macro) | Full syntax, required and optional fields |
-| [User creation](/docs/en/admin/user-creation) | Full flow creation → email → activation, custom model |
-| [List view](/docs/en/admin/list) | Pagination, sorting, search, `list_display`, `list_filter` |
-| [Permissions](/docs/en/admin/permission) | Roles, `is_staff` / `is_superuser`, runtime check |
-| [Templates](/docs/en/admin/template) | Template hierarchy, blocks, visual override |
-| [Roadmap](/docs/en/admin/evolution) | Planned features and beta status |
+| [Setup](/docs/en/admin/setup) | Wire the admin, path, prefix, superuser |
+| [Declaration](/docs/en/admin/declaration) | `AdminStaging`, `AdminSite`, registration |
+| [`ModelAdmin` builder](/docs/en/admin/declaration-macro) | List + form API, typed columns |
+| [Boot validation](/docs/en/admin/declaration-daemon) | Checks run at startup |
+| [User creation](/docs/en/admin/user-creation) | Create → email → activation flow |
+| [List view](/docs/en/admin/list) | Pagination, sort, search, filters, actions |
+| [Permissions](/docs/en/admin/permission) | Ranks, groups, rights grid |
+| [Templates](/docs/en/admin/template) | Override pages and blocks |
+| [Roadmap](/docs/en/admin/evolution) | Future ideas |
 
 ## Back to menu
 

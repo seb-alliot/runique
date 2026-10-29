@@ -34,15 +34,22 @@ model! {
 }
 ```
 
-`model!` generates the SeaORM entity (`article::Model`) and its SQL migration (`runique makemigrations`) from the same declaration. Pair it with `#[form]` and you get a matching type-safe form, validated server-side and derivable straight from the schema. Register the resource in `admin!` and the CRUD panel is already there — list view, search, filters, permissions, all of it:
+`model!` generates the SeaORM entity (`article::Model`) and its SQL migration (`runique makemigrations`) from the same declaration. Pair it with `#[form]` and you get a matching type-safe form, validated server-side and derivable straight from the schema. Register the resource with the typed `ModelAdmin` builder and the CRUD panel is already there — list view, search, filters, permissions, all of it:
 
 ```rust,ignore
-admin! {
-    article: article::Model => ArticleForm {
-        title: "Articles",
-        list_display: [["title", "Title"], ["status", "Status"], ["views", "Views"]],
-        list_filter:   [["status", "Status", 5]],
-    }
+use runique::admin::ModelAdmin;
+use crate::entities::article;
+
+fn articles() -> ModelAdmin<article::Entity> {
+    use article::Column::*;
+    ModelAdmin::new()
+        .title("Articles")
+        .list(|l| {
+            l.display([Title, Status, Views])
+                .links([Title])
+                .filter([Status])
+        })
+        .form(|f| f.fields([Title, Body, Status]))
 }
 ```
 
@@ -59,7 +66,7 @@ Rust already has fast, low-level building blocks for the web — what it doesn't
 |---|---|
 | `models.py` | `model!` → SeaORM entity + migration |
 | `forms.py` | `#[form]` type-safe forms |
-| `admin.py` | `admin!` generated admin panel |
+| `admin.py` | typed `ModelAdmin` builder |
 | `urls.py` | `urlpatterns!` routing macro |
 | Django templates | Tera (auto-escaped) |
 | QuerySet | SeaORM + `search!` query DSL |
@@ -92,14 +99,13 @@ cd myapp
 cargo run            # your app is a normal Rust binary
 ```
 
-> `runique start` regenerates the admin CRUD code from your `admin!`
-> declarations, then launches `cargo run` itself — it's a one-shot generation
-> step chained into the launch, not a background watcher (see
-> [Admin (beta)](#admin-beta)). Plain `cargo run` skips regeneration.
+> Prefer plain `cargo run`. `runique start` is a thin launcher around the same
+> binary once the admin is wired with `.with_admin(...)` and `ModelAdmin`
+> (see [Admin (beta)](#admin-beta)).
 
 A trimmed-down `main.rs` (the full version lives in `demo-app/src/main.rs`):
 
-```rust,ignore
+```rust,no_run
 use runique::prelude::*;
 
 #[tokio::main]
@@ -151,7 +157,7 @@ Workspace version (source of truth): **4.0.0**.
 `runique` gives you:
 
 - `runique new <name>`
-- `runique start [--main src/main.rs] [--admin src/admin.rs]` — regenerates admin code, then launches the app (one-shot, not a watcher)
+- `runique start` — launches the app (same as `cargo run` once admin is wired)
 - `runique create-superuser`
 - `runique makemigrations --entities src/entities --migrations migration/src [--force false]`
 - `runique migration up --migrations migration/src` (rollback and status: `sea-orm-cli migrate down` / `status`)
@@ -160,15 +166,13 @@ Workspace version (source of truth): **4.0.0**.
 
 ## Admin (beta)
 
-`runique start` does three things, in order, on a single thread:
+Admin is a typed builder — no macro, no generated files under `src/admins/`.
 
-1. parses your `admin!` declarations in `src/admin.rs`
-2. generates the CRUD code under `src/admins/`
-3. runs `cargo run --release`, blocking
+1. declare each resource with `ModelAdmin::<Entity>::new()` in `src/admin.rs`
+2. register them on `AdminSite` via `.with_admin(admin::config)` in `main`
+3. run with plain `cargo run`
 
-It checks for `.with_admin(...)` in `src/main.rs` first and only generates/launches if that's present — otherwise it exits with a message telling you why. There's no continuous watching: run `runique start` again to regenerate after editing `src/admin.rs`.
-
-It's still beta: permissions work mainly at the resource level for now, the generated `src/admins/` folder gets overwritten on each regeneration, and hardening is ongoing rather than finished.
+Columns are SeaORM enums (`article::Column::Title`), so a typo or a secret field fails at compile time. Permissions, list filters, search and forms are configured on the same builder.
 
 Admin docs: [Admin](https://runique.io/docs/en/admin)
 

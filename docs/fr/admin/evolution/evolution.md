@@ -1,31 +1,23 @@
 # Évolutions prévues
 
-Fonctionnalités envisagées pour les versions futures de l'admin Runique.
-
----
+Pistes pour les prochaines versions de l'admin Runique (builder `ModelAdmin`).
 
 ## Inlines admin
 
-Permettre d'éditer des modèles liés directement dans le formulaire parent, à la manière des inlines Django :
+Éditer des modèles liés dans le formulaire parent, à la manière des inlines Django :
 
 ```rust
-admin! {
-    commande {
-        model: entities::commande::Entity,
-        inline: [
-            ["lignes", "crate::entities::commande_ligne", "commande_id"],
-        ],
-    }
-}
+ModelAdmin::new()
+    .form(|f| f.fields([Title, Status]))
+    // futur :
+    // .inline(lignes, |i| i.fk(CommandeId).fields([Produit, Qte]))
 ```
 
-L'inline afficherait un tableau éditable des entrées liées (ajout, suppression, modification) dans la page create/edit de la ressource parente.
+L'inline afficherait un tableau éditable (ajout, suppression, modification) dans la page create/edit du parent.
 
----
+## `view!{}` — CRUD public
 
-## `view!{}` — router CRUD public avec templates surchargeables
-
-Macro de routage qui fusionne déclaration de routes et templates par défaut overridables, analogue aux vues génériques Django (`ListView`, `DetailView`, `CreateView`…).
+Macro de routage public analogue aux vues génériques Django, avec templates surchargeables :
 
 ```rust
 view! {
@@ -33,7 +25,7 @@ view! {
         model: entities::article::Entity,
         prefix: "/articles",
         templates: {
-            list:   "articles/list.html",    // surcharge optionnelle
+            list:   "articles/list.html",
             detail: "articles/detail.html",
             create: "articles/create.html",
         },
@@ -43,16 +35,19 @@ view! {
 }
 ```
 
-Routes générées : `GET /articles` (liste paginée), `GET /articles/<id>` (detail), `GET/POST /articles/new` (create), `GET/POST /articles/<id>/edit`, `POST /articles/<id>/delete`. Les templates par défaut sont fournis par le framework et surchargeables block par block, exactement comme l'admin.
+Routes visées : liste paginée, détail, create, edit, delete — templates framework overridables block par block, comme l'admin.
+
+## Filtres métier custom
+
+Aujourd'hui le scope liste suit le gate (droits + ownership). Un crochet déclaratif pour un filtre métier (« commandes de ma région ») reste ouvert.
 
 ## Voir aussi
 
 | Section | Description |
 | --- | --- |
-| [Mise en place](/docs/fr/admin/setup) | Câbler l'admin dans un projet existant, créer un superuser |
-| [CLI](/docs/fr/admin/declaration) | Commande `runique start`, workflow général |
-| [Permissions](/docs/fr/admin/permission) | Rôles, `is_staff` / `is_superuser`, vérification runtime |
-| [Templates](/docs/fr/admin/template) | Hiérarchie de templates, blocks, surcharge du visuel |
+| [Mise en place](/docs/fr/admin/setup) | Câbler l'admin |
+| [Builder ModelAdmin](/docs/fr/admin/declaration-macro) | API actuelle |
+| [Permissions](/docs/fr/admin/permission) | Gate runtime |
 
 ## Revenir au sommaire
 

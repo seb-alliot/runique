@@ -6,7 +6,7 @@
 
 ## Base structure
 
-Each form contains a `form: Forms` field and implements the `RuniqueForm` trait:
+Each form contains a `form: Forms` field. Field registration and accessors live on **`FormAccess`**; business logic (`clean`, hooks…) lives on **`RuniqueForm`**:
 
 ```rust
 use runique::prelude::*;
@@ -17,7 +17,7 @@ pub struct UsernameForm {
     pub form: Forms,
 }
 
-impl RuniqueForm for UsernameForm {
+impl FormAccess for UsernameForm {
     fn register_fields(form: &mut Forms) {
         form.field(
             &TextField::text("username")
@@ -29,9 +29,13 @@ impl RuniqueForm for UsernameForm {
 
     impl_form_access!();
 }
+
+impl RuniqueForm for UsernameForm {}
 ```
 
-> **💡 `impl_form_access!()`** automatically generates `from_form()`, `get_form()` and `get_form_mut()`. If your field is not named `form`, pass the name as an argument: `impl_form_access!(formulaire)`.
+> **💡 Split:** `FormAccess` owns `register_fields` + accessors; `RuniqueForm` owns validation hooks. `impl_form_access!()` generates `from_form()`, `get_form()` and `get_form_mut()` inside `impl FormAccess`. If your field is not named `form`, pass the name: `impl_form_access!(formulaire)`.
+>
+> With `#[form(schema = …)]`, the macro generates `impl FormAccess` for you — user code only writes `impl RuniqueForm` (`clean`, `customize`…).
 >
 > **Security note:** `get_form()` provides access to the internal structure. For extracting cleaned data, always use the `cleaned_*` methods of the trait (see below). Direct extraction methods on `Forms` are reserved for internal framework use.
 
@@ -59,7 +63,7 @@ fn get_form_mut(&mut self) -> &mut Forms {
 **Form lifecycle (call order):**
 
 ```text
-register_fields()            → declare fields
+FormAccess::register_fields() → declare fields
         ↓
 req.form()                   → build the instance
         ↓
@@ -78,11 +82,11 @@ clear()                      → [optional] empty the form after processing
 
 **Method reference:**
 
-**`register_fields(form)`** — Declare the form fields.
+**`register_fields(form)`** (`FormAccess`) — Declare the form fields.
 
-**`from_form(form)`** — Build the instance from a `Forms`.
+**`from_form(form)`** (`FormAccess`) — Build the instance from a `Forms`.
 
-**`get_form()` / `get_form_mut()`** — Low-level accessors for the internal `Forms` (useful for rendering or dynamic field configuration). Do not use for data extraction.
+**`get_form()` / `get_form_mut()`** (`FormAccess`) — Low-level accessors for the internal `Forms` (useful for rendering or dynamic field configuration). Do not use for data extraction.
 
 **`clean_field(name)`** *(optional)* — Per-field business validation. Returns `bool`. Called after `validate()` for each field.
 

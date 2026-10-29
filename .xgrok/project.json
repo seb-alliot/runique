@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "setup": "integrated",
+  "languages": [
+    "Rust"
+  ],
+  "stacks": [
+    "Cargo"
+  ],
+  "markers": [
+    "Cargo.toml"
+  ],
+  "suggestedRun": "cargo run",
+  "suggestedTest": "cargo test",
+  "createdAt": "2026-10-29T15:03:23.841Z",
+  "tool": "xgrok"
+}

@@ -1,173 +1,162 @@
 # Mise en place de l'admin
 
-Guide pas à pas pour activer l'interface d'administration dans un projet Runique existant.
-
----
+Guide pas à pas pour activer l'interface d'administration avec le builder `ModelAdmin`.
 
 ## Prérequis
 
-- Un projet Runique fonctionnel avec une base de données configurée
-- Un modèle `users` avec les champs `is_staff` et `is_superuser` (générés par `model!`)
-- Le binaire `runique` installé (`cargo install runique --features <moteur> --locked` ou `cargo build` du workspace)
-
----
+- Un projet Runique avec base de données configurée
+- Des modèles déclarés via `model!` (entités SeaORM générées)
+- Un compte staff ou superuser pour se connecter
 
 ## Étape 1 — Créer `src/admin.rs`
 
-Ce fichier déclare les ressources administrables via la macro `admin!` :
+Une fonction de config reçoit `AdminStaging` et enregistre les modèles :
 
 ```rust
 // src/admin.rs
-use crate::entities::{users, articles};
-use crate::formulaire::{RegisterForm, ArticleForm};
+use crate::entities::{article, user_profile};
+use runique::admin::{AdminSite, ModelAdmin};
+use runique::app::staging::AdminStaging;
 
-admin! {
-    users: users::Model => RegisterForm {
-        title: "Utilisateurs",
-    },
-    articles: articles::Model => ArticleForm {
-        title: "Articles",
-    }
+pub fn config(admin: AdminStaging) -> AdminStaging {
+    admin
+        .site_title("Administration")
+        .path("/admin/")
+        .page_size(20)
+        .site(site)
+}
+
+fn site(site: AdminSite) -> AdminSite {
+    site.accounts_users(accounts())
+        .register(articles())
+}
+
+fn accounts() -> ModelAdmin<user_profile::Entity> {
+    use user_profile::Column::*;
+    ModelAdmin::new()
+        .list(|l| {
+            l.display([Username, Email, IsActive])
+                .sortable([Username])
+                .search([Username, Email])
+        })
+        .form(|f| f.fields([Username, Email]))
+}
+
+fn articles() -> ModelAdmin<article::Entity> {
+    use article::Column::*;
+    ModelAdmin::new()
+        .title("Articles")
+        .list(|l| l.display([Title, Status]).links([Title]).filter([Status]))
+        .form(|f| f.fields([Title, Body, Status]))
 }
 ```
 
----
+Points importants :
 
-## Étape 2 — Générer `src/admins/` avec le daemon
+- `accounts_users(...)` remplace l'admin comptes du framework (table étendue via `extend!`)
+- `register(...)` ajoute un modèle métier
+- Comptes et groupes existent déjà côté framework ; tu n'as pas à les recréer
 
-```bash
-runique start
-```
-
-Le daemon lit `src/admin.rs`, génère `src/admins/` et lance `cargo run`.
-Le dossier `src/admins/` est créé automatiquement — ne pas le modifier manuellement.
-
-```text
-src/admins/
-  ├── README.md
-  ├── mod.rs
-  └── admin_panel.rs
-```
-
-> Si `src/admins/` existe déjà depuis une génération précédente, `runique start` le régénère.
-
----
-
-## Étape 3 — Déclarer le module dans `src/main.rs`
+## Étape 2 — Déclarer le module
 
 ```rust
+// src/main.rs
 mod admin;
-mod admins;  // module généré par runique start
 ```
 
----
+Plus de dossier `src/admins/` généré : tout vit dans ton `admin.rs`.
 
-## Étape 4 — Câbler `.with_admin()` dans le builder
+## Étape 3 — Câbler `.with_admin()`
 
 ```rust
 use runique::app::builder::RuniqueAppBuilder as builder;
 
-RuniqueApp::builder(config)
+builder::new(config)
     .routes(url::routes())
     .with_database(db)
-    .with_admin(|a| {
-        a.site_title("Administration")
-         .routes(admins::routes("/admin"))
-         .with_state(admins::admin_state())
-    })
+    .with_admin(admin::config)
     .build()
     .await?
     .run()
     .await?;
 ```
 
+Tu peux aussi passer une closure inline :
+
+```rust
+.with_admin(|a| {
+    a.site_title("Admin")
+        .path("/admin/")
+        .site(|s| s.register(ModelAdmin::<article::Entity>::new()))
+})
+```
+
+## Path et prefix
+
+Deux réglages distincts :
+
 | Méthode | Rôle |
 | --- | --- |
-| `.prefix("secret")` | Segment monté **devant** l'admin (défaut : aucun) — voir ci-dessous |
-| `.site_title("…")` | Titre affiché dans l'interface |
-| `.routes(admins::routes("/admin"))` | Monte les routes CRUD sous `/admin` |
-| `.with_state(…)` | État partagé généré par le daemon |
-| `.no_robots_txt()` | Désactive le `/robots.txt` automatique |
+| `.path("/admin/")` | Où vit l'admin (segment CRUD) |
+| `.prefix("secret")` | Segment monté **devant** le path |
 
-### `.routes()` et `.prefix()` — deux réglages distincts
-
-`.routes(admins::routes("/site-admin"))` définit **où vit l'admin**.
-`.prefix("secret")` définit **ce qui est monté devant**. Ils se composent :
-
-| `routes(...)` | `.prefix(...)` | URL de l'admin |
+| `path` | `prefix` | URL finale |
 | --- | --- | --- |
-| `/site-admin` | — | `/site-admin/…` |
-| `/site-admin` | `secret` | `/secret/site-admin/…` |
-| *(non appelé)* | `secret` | `/secret/admin/…` (chemin par défaut) |
+| `/admin/` | — | `/admin/…` |
+| `/admin/` | `secret` | `/secret/admin/…` |
+| `/admin-runique/` | `prefix-test` | `/prefix-test/admin-runique/…` |
 
-L'ordre des deux appels n'a aucune importance, et les slashs sont optionnels :
-`secret`, `/secret` et `/secret/` sont équivalents.
+Exemple demo-app :
 
-> **Note de version** — `.prefix()` *remplaçait* auparavant le chemin de l'admin,
-> ce qui la mettait en concurrence avec `.routes()` : le dernier appelé gagnait, et
-> inverser les deux lignes changeait silencieusement les URLs servies. Elle préfixe
-> désormais, conformément à son nom. Un projet qui utilisait `.prefix("/backoffice")`
-> pour *renommer* l'admin doit passer ce chemin à `admins::routes("/backoffice")`.
+```rust
+admin
+    .path("/admin-runique/")
+    .prefix("/prefix-test")
+```
 
----
+## Options utiles de `AdminStaging`
 
-> **robots.txt automatique** — Quand l'admin est actif, Runique génère automatiquement
-> une route `/robots.txt` (ligne `Sitemap:` si `.sitemap(…)` est défini, plus les
-> signaux `Content-Signal`). Utilisez `.no_robots_txt()` si vous souhaitez gérer ce
-> fichier vous-même.
->
-> **Le préfixe admin n'y figure pas, volontairement.** `robots.txt` est un fichier
-> public : y écrire `Disallow: /mon-prefixe/` publierait justement le chemin qu'un
-> préfixe personnalisé cherche souvent à garder discret. Et `Disallow` demande de ne
-> pas *parcourir*, pas de ne pas *indexer* — une URL connue par ailleurs peut
-> apparaître malgré tout dans les résultats.
->
-> L'exclusion est assurée par l'en-tête `X-Robots-Tag: noindex, nofollow`, posé par
-> Runique sur **toutes** les réponses de l'admin — page de login incluse, ainsi que
-> les redirections, les erreurs et les réponses JSON. Il ne divulgue aucun chemin et
-> reste en place même si vous surchargez les templates admin.
+| Méthode | Effet |
+| --- | --- |
+| `.site_title("…")` | Titre dans l'UI |
+| `.page_size(15)` | Taille de page liste par défaut |
+| `.search_max_len(n)` | Longueur max du terme de recherche |
+| `.with_rate_limiter(...)` | Rate limit login / actions |
+| `.with_login_guard(...)` | Verrouillage après N échecs |
+| `.templates(|t| …)` | Surcharge globale des templates |
+| `.sitemap("https://…")` | Directive Sitemap dans `/robots.txt` |
+| `.no_robots_txt()` | Désactive le robots.txt auto |
+| `.disable()` / `.enable()` | Coupe ou active le panel |
 
----
-
-## Étape 5 — Créer un superuser
+## Créer un superuser
 
 ```bash
-runique create-superuser
+runique createsuperuser
 ```
 
-Suit un assistant interactif pour créer le premier compte admin (`is_superuser = true`).
+Le compte obtenu a `is_superuser` (et le staff nécessaire) pour ouvrir le panel.
 
----
+## Vérifier au boot
 
-## Accès à l'interface
+La config est validée au démarrage. En demo-app, un test unitaire rejoue les mêmes contrôles :
 
-Une fois le serveur démarré, l'interface est disponible à :
-
-```text
-http://localhost:{PORT}/admin/
+```rust
+#[test]
+fn every_registered_model_passes_the_boot_checks() {
+    let staging = super::config(AdminStaging::new().enable());
+    if let Err(e) = staging.validate() {
+        panic!("{e}");
+    }
+}
 ```
-
-La page `/admin/login` ouvre le tableau de bord une fois les identifiants validés. Ce qu'elle fait dépend de la session déjà ouverte dans le navigateur :
-
-| Session en cours | Résultat |
-| --- | --- |
-| Aucune | Le formulaire de connexion s'affiche |
-| Compte qui a accès à l'admin (rang, ou membre d'un groupe staff) | Redirection vers le tableau de bord |
-| Compte du site sans accès à l'admin | Redirection vers `/` avec un message ; la session du site est **conservée** (pas de déconnexion) |
-| Compte supprimé ou désactivé entre-temps | La session est fermée, puis retour à la connexion |
-
-Une session, c'est une identité : pour entrer dans l'admin avec un autre compte que celui connecté sur le site, il faut d'abord se déconnecter du site. Les autres pages de l'admin suivent les mêmes règles ; un visiteur sans session y est renvoyé vers la connexion.
-
----
 
 ## Voir aussi
 
 | Section | Description |
 | --- | --- |
-| [CLI](/docs/fr/admin/declaration) | Commande `runique start`, workflow général |
-| [Permissions](/docs/fr/admin/permission) | Rôles, `is_staff` / `is_superuser`, vérification runtime |
-| [Templates](/docs/fr/admin/template) | Hiérarchie de templates, blocks, surcharge du visuel |
-| [Évolutions](/docs/fr/admin/evolution) | Axes d'évolution et état bêta |
+| [Déclaration](/docs/fr/admin/declaration) | `AdminSite` et enregistrement |
+| [Builder ModelAdmin](/docs/fr/admin/declaration-macro) | API complète liste / form |
+| [Permissions](/docs/fr/admin/permission) | Qui voit quoi |
 
 ## Revenir au sommaire
 

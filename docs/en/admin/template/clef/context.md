@@ -11,7 +11,7 @@ These variables are injected into **every route** by the framework's `Request` e
 | Variable | Rust Type | Description |
 | --- | --- | --- |
 | `debug` | `bool` | Whether debug mode is enabled |
-| `csrf_token` | `String` | Masked CSRF token — include in every POST form |
+| `csrf_token` | `String` | Masked CSRF token (meta / JS) — a `RuniqueForm` already emits it in the HTML |
 | `csp_nonce` | `&str` | CSP nonce for `<script>` and `<style>` tags |
 | `static_runique` | `StaticConfig` | Runique static assets config (see below) |
 | `messages` | `Vec<FlashMessage>` | Flash messages from the current session |
@@ -38,26 +38,22 @@ These variables are injected into **all CRUD admin views** via `inject_context`,
 | `site_url` | `String` | "View site" link: the admin's `view_site_url`, else the public URL (`.with_public_url()`), else `/` |
 | `resource_key` | `&str` | Key of the current resource (e.g. `"users"`) |
 | `current_resource` | `&str` | Same as `resource_key` |
-| `resource` | `AdminResource` | Full metadata of the current resource (see below) |
-| `resources` | `Vec<AdminResource>` | The resources the signed-in account may see |
-| `resource_base` | `String` | Base URL of the current resource's actions (`{prefix}/{key}`, or nested under its parent) |
-| `group_actions` | list | Group actions declared in `admin!{}` |
+| `resource` | `ResourceRef` | Current resource metadata (see below) |
+| `resources` | list | Resources the signed-in account may see |
+| `resource_links` | `ResourceLinks` | Prebuilt list/create/bulk URLs for this resource |
+| `group_actions` | list | Bulk actions from `ModelAdmin` `.action(...)` (`index`, `label`) |
 | `can_create` / `can_read` / `can_update` / `can_delete` | `bool` | Rights of the signed-in account on this resource (from its groups) |
 | `can_update_own` / `can_delete_own` | `bool` | Same, limited to the account's own rows |
 
-> Keys declared in `extra: {}` in `admin!{}` are also injected as **top-level Tera variables**.
-> Example: `extra: { "icon" => "user" }` → `{{ icon }}` (direct access) AND `{{ resource.extra_context.icon }}`.
+> Prefer the prebuilt link objects (`nav`, `resource_links`, `entry.links`) over hand-built URLs.
 
-### `AdminResource` Structure
+### `ResourceRef` structure
 
 | Tera Field | Type | Description |
 | --- | --- | --- |
-| `resource.key` | `&str` | Unique resource key (`"users"`) |
-| `resource.title` | `&str` | Human-readable title (`"Users"`) |
-| `resource.model_path` | `&str` | SeaORM model path (`"crate::entities::users::Model"`) |
-| `resource.display.icon` | `String` *(optional)* | Icon name declared in config |
-| `resource.display.pagination` | `usize` | Entries per page (default: `25`) |
-| `resource.extra_context` | `HashMap<String, String>` | Custom keys declared in `extra: {}` |
+| `resource.key` | `&str` | Unique resource key (`"blog"`) |
+| `resource.title` | `String` | Human-readable title (`"Blog"`) |
+| `resource.display.list_filter` | list | Filter columns as `(column, label)` pairs |
 
 ---
 
@@ -313,8 +309,9 @@ resources, resource_counts, current_page
 
 | Variable | Type | Description |
 | --- | --- | --- |
-| `visible_columns` | `Vec<String>` | Column names to display (from `list_display`, or all except `id`/`password`) |
-| `column_labels` | `HashMap<String, String>` | Label per column — empty if `list_display` not set, otherwise `{ "col" => "Label" }` |
+| `visible_columns` | `Vec<String>` | Column names to display (from `.list().display(...)`, or non-secret defaults) |
+| `sortable_columns` | `Vec<String>` | Columns accepted for `?sort_by=` |
+| `column_labels` | `HashMap<String, String>` | Label per column — falls back to the column name |
 
 ### Sorting
 
@@ -334,14 +331,14 @@ resources, resource_counts, current_page
 
 | Variable | Type | Description |
 | --- | --- | --- |
-| `filter_values` | `HashMap<String, Vec<String>>` | Distinct values per filter column (from `list_filter`) |
+| `filter_values` | `HashMap<String, Vec<String>>` | Distinct values per filter column (from `.list().filter(...)`) |
 | `active_filters` | `HashMap<String, String>` | Active filter per column — `""` if no active filter on that column |
 | `filter_qs` | `String` | Query string fragment for active filters — append to pagination links |
-| `filter_meta` | `HashMap<String, Object>` | Sidebar pagination per column — see structure below |
-| `filter_page_size` | `u64` | Number of values shown per page in the filter sidebar (from `list_filter_limit`) |
-| `return_qs` | `String` | Full query string (sort + search + active filters) — pass to edit/delete links to restore list state on return |
+| `return_qs` | `String` | Full query string (sort + search + active filters) — restore list state after edit/delete |
+| `group_actions` | list | Declared bulk actions (`index`, `label`) |
+| `bulk_delete` | `bool` | Whether the bulk bar offers delete |
 
-> **Note:** `active_filters` is pre-populated for **all** `list_filter` columns (value `""` if inactive). Tera raises an error on missing keys — this pre-init prevents it. Multiple columns can have a non-empty value simultaneously: filter links preserve active filters from other columns.
+> **Note:** `active_filters` is pre-populated for **all** filter columns (value `""` if inactive). Multiple columns can be active at once.
 
 ### Required keys for template override
 
@@ -671,7 +668,6 @@ Overridden templates have access to the **same variables as the default template
 | Section | Description |
 | --- | --- |
 | [Override](/docs/en/admin/template-surcharge) | Replace the layout or a CRUD component |
-| [CSRF](/docs/en/admin/template-csrf) | CSRF token, `csrf.js`, custom login checklist |
 
 ## Back to summary
 

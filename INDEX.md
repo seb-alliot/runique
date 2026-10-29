@@ -2,7 +2,7 @@
 
 Navigate the Runique Framework codebase.
 
-**Version**: 3.0.0 — **Updated**: 2026-10-06
+**Version**: 4.0.0 — **Updated**: 2026-10-29
 
 ---
 
@@ -33,17 +33,11 @@ runique/
 - **`lib.rs`** — public API, prelude, module exports
 
 ### `admin/` — Admin Panel (beta)
-- **`admin_main/`** — CRUD request handlers, split by concern: `mod.rs` (entry, `check_csrf`, dispatch), `gate.rs` (single gate for every write: who, which rows, which fields), `handle_inline.rs` (nested child resources), `handle_list.rs` (pagination, sort, filters), `handle_crud.rs` (detail, create, edit, delete), `handle_bulk.rs` (bulk_action, group_set, bulk_delete), `handle_password.rs` (reset, user-created email)
-- **`builtin/`** — builtin resources: `user.rs`, `groupe.rs`, `droit.rs` (+ `mod.rs` → `builtin_resources()`)
-- **`daemon/`** — code generator + file watcher (`generator.rs`, `parser.rs`, `watcher.rs`)
-- **`helper/`** — `dyn_form.rs` (dynamic form dispatch), `resource_entry.rs` (`ResourceEntry`, `ListParams`, closures), `fk_resolve.rs`, `m2m.rs`, `sql_dialect.rs`, `template.rs`
-- **`registry.rs`** — `AdminRegistry` (`HashMap<name, ResourceEntry>`)
-- **`resource.rs`** — `admin!` DSL output / `AdminResource`, `DisplayConfig`, `ColumnFilter`
-- **`history.rs`** — admin action history (audit log)
-- **`table_admin/`** — `migrations_table.rs` (migration tracking table)
+- **`builder/`** — typed `ModelAdmin` + `AdminSite`: `admin_builder.rs`, `list.rs`, `form.rs`, `site.rs`, `registered.rs`, bulk/confirm helpers
+- **`router/`** — CRUD handlers and routing: `admin_router.rs`, `context.rs`, `history.rs`, `crud/`, `account/`, `path/`, `permission/`
+- **`template/`** — page/block overrides (`page.rs`, `block.rs`, `assemble.rs`, `stylesheet.rs`)
 - **`config/`** — `config_admin.rs` (admin configuration struct)
 - **`middleware/`** — admin-specific middleware
-- **`router/`** — admin router builder
 - **`trad/`** — admin-specific i18n
 
 ### `app/` — Application Lifecycle
@@ -115,7 +109,6 @@ runique/
 - **`prisme/`** — validation pipeline: `aegis` (security), `sentinel`, `rules` (CSRF check inline dans `extractor::check_csrf`)
 
 ### `macros/` — Macros
-- **`admin/macros_admin.rs`** — `admin!` declaration macro
 - **`bdd/`** — `impl_objects!`, `search!` / `search_cond!` (+ internal `search_apply_op!`, `search_munch!`), `Objects` query builder (`objects.rs`, `query.rs`), list fields `HasLists` / `ListField` (`list.rs`)
 - **`context/`** — `context!` / `context_update!` (`context_simplifier.rs`), flash macros `flash_now!` / `info!` / `success!` / `warning!` / `error!` (`flash.rs`), `impl_from_error!` (`impl_error.rs`)
 - **`forms/`** — `impl_form_access!` (`impl_form.rs`), `define_enum_kind!` (`enum_kind.rs`), `delegate_to_kind!` (`kind.rs`)
@@ -211,9 +204,8 @@ demo-app/src/
 ├── prelude.rs                # Local re-exports
 ├── url.rs                    # Route declarations
 ├── views.rs                  # Top-level view handlers
-├── admin.rs                  # admin! macro declarations
+├── admin.rs                  # ModelAdmin + AdminSite registration
 ├── demo_toggle.rs            # Feature toggle helpers
-├── admins/                   # Generated admin code (admin! output)
 ├── entities/                 # SeaORM models (30+ entities)
 ├── formulaire/               # Form structs (RuniqueForm impls)
 ├── backend/                  # Domain handlers (auth, blog, doc, pages…)

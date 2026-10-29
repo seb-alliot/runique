@@ -139,7 +139,7 @@ Aucun `{% extends %}` n'est nécessaire. Le template est un fichier HTML complet
 </html>
 ```
 
-> Si le template n'étend pas `admin_template.html`, les éléments CSRF ne sont plus injectés automatiquement. Il faut les ajouter manuellement (voir ci-dessus). Voir [CSRF](/docs/fr/admin/template-csrf) pour le détail.
+> Si le template n'étend pas `admin_template.html`, la meta CSRF et `csrf.js` ne sont plus injectés automatiquement. Il faut les ajouter manuellement (voir ci-dessus). Pour un `RuniqueForm` / `form_fields.html`, le champ `csrf_token` est déjà émis par le formulaire — voir [Protection CSRF](/docs/fr/middleware/csrf).
 
 ---
 

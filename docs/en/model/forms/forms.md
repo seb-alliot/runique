@@ -12,9 +12,10 @@ It generates:
 
 - a struct containing `form: Forms`
 - `impl ModelForm` (`schema()`, `fields()`, `exclude()`)
+- `impl FormAccess` (fields + accessors — no `impl_form_access!(model)` in user code)
 - `impl FormEntity` + `pub const objects` (automatic link to `<schema>::Entity`)
 
-The developer then writes `impl RuniqueForm` with `impl_form_access!(model)`:
+The developer then writes only `impl RuniqueForm` (empty, or with hooks):
 
 ```rust
 use runique::prelude::*;
@@ -22,9 +23,7 @@ use runique::prelude::*;
 #[form(schema = users, fields = [username, email])]
 pub struct UserForm;
 
-impl RuniqueForm for UserForm {
-    impl_form_access!(model);
-}
+impl RuniqueForm for UserForm {}
 ```
 
 ### ORM access from the form
@@ -98,8 +97,6 @@ pub struct RegisterForm;
 
 #[async_trait]
 impl RuniqueForm for RegisterForm {
-    impl_form_access!(model);
-
     async fn clean(&mut self) -> Result<(), StrMap> {
         let mut errors = StrMap::new();
         if self.cleaned::<String>("username").unwrap_or_default().len() < 3 {
@@ -147,13 +144,11 @@ It is currently not possible to customize a single field (e.g. add `.max_size(Fi
 pub struct ArticleForm;
 
 impl RuniqueForm for ArticleForm {
-    impl_form_access!(model);
     // override just the image field → impossible without rewriting everything
 }
 
 // ✅ Workaround: manual form
-impl RuniqueForm for ArticleForm {
-    impl_form_access!();
+impl FormAccess for ArticleForm {
     fn register_fields(form: &mut Forms) {
         form.field(&TextField::text("title").label("Title").required());
         form.field(
@@ -162,7 +157,10 @@ impl RuniqueForm for ArticleForm {
                 .max_size(FileSize::mb(5)),
         );
     }
+    impl_form_access!();
 }
+
+impl RuniqueForm for ArticleForm {}
 ```
 
 This limitation will be addressed in a future version with the introduction of per-field overrides (`overrides = [...]`).

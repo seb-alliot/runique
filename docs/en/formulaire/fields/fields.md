@@ -396,7 +396,7 @@ form.field(&IPAddressField::new("ipv6").label("IPv6 address").ipv6_only());
 
 ## HiddenField — Hidden field
 
-An invisible field in the HTML form (`<input type="hidden">`). Two main uses: pass technical data without showing it to the user, or manually validate a CSRF token.
+An invisible field in the HTML form (`<input type="hidden">`). Main use: pass technical data without showing it to the user.
 
 ```rust
 // Generic hidden field (e.g. linked entity ID)
@@ -404,12 +404,9 @@ form.field(
     &HiddenField::new("entity_id")
         .label("Entity ID"),
 );
-
-// Internal CSRF field (managed automatically by Runique — advanced use only)
-form.field(&HiddenField::new_csrf());
 ```
 
-> In standard Runique forms, CSRF is handled automatically via `{% csrf %}` in the template. You don't need `HiddenField::new_csrf()` unless you are building a fully custom form.
+> The CSRF field is **emitted naturally** by every `RuniqueForm` (`req.form()` / `form_fields.html` / `{% form.xxx %}`) — no need for `HiddenField::new_csrf()` or `{% csrf %}` in the template. `{% csrf %}` is only for a hand-written HTML `<form>`, outside `RuniqueForm`.
 
 ---
 

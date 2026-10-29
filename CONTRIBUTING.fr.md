@@ -66,17 +66,12 @@ utiliser les helpers `pk` de `runique/tests/helpers/pk.rs`, pas des entiers en d
 
 ---
 
-## Code généré
+## Déclaration admin
 
-`src/admins/` (dans demo-app ou un projet) est généré depuis `admin!{}` par `runique start` :
-ne le modifiez jamais à la main. Modifiez le générateur
-(`runique/src/admin/daemon/generator.rs`), puis rafraîchissez son fichier de référence et
-relisez le diff :
-
-```bash
-cd runique
-RUNIQUE_UPDATE_GOLDEN=1 cargo test --lib admin::daemon::generator
-```
+Les ressources admin se déclarent à la main dans `src/admin.rs` avec le builder typé
+`ModelAdmin`, puis s'enregistrent sur `AdminSite` (voir `demo-app/src/admin.rs`). Il n'y a
+plus de dossier généré `src/admins/` ni de daemon : un changement d'admin est du Rust
+ordinaire, vérifié à la compilation puis par `AdminStaging::validate()` au démarrage.
 
 ---
 

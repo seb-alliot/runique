@@ -10,7 +10,7 @@ Admin remplit le formulaire
 Compte créé en base, en attente (is_active = false, activated_at vide)
 Hash aléatoire injecté dans le champ password
         ↓
-Email de reset envoyé à l'utilisateur
+Email de bienvenue / reset envoyé à l'utilisateur
         ↓
 L'utilisateur clique le lien
 Définit son mot de passe
@@ -27,8 +27,8 @@ L'utilisateur peut se connecter
 | Étape | Comportement builtin |
 | --- | --- |
 | Création via admin | `is_active = false` — le compte est inactif à la création |
-| Champ `password` | Hash aléatoire injecté — l'utilisateur ne connaît pas ce mot de passe |
-| Email | Lien de reset envoyé à l'adresse fournie dans le formulaire |
+| Champ `password` | Hash aléatoire injecté par le gate — le staff ne le voit jamais |
+| Email | Lien « choisir mon mot de passe » envoyé à l'adresse du formulaire |
 | Définition du mot de passe | Le compte en attente est activé : `is_active = true` et `activated_at` rempli. Un compte déjà activé (désactivé depuis) n'est **pas** réactivé |
 | Connexion | Refusée tant que le compte n'est pas actif et activé (`can_sign_in()`) |
 | Email perdu | L'utilisateur redemande un lien via « mot de passe oublié » |
@@ -36,35 +36,33 @@ L'utilisateur peut se connecter
 
 ---
 
-## Formulaire de création builtin — `UserAdminCreateForm`
+## Formulaire comptes — plus de `create_form:` séparé
 
-Le formulaire fourni par Runique (`runique::admin::UserAdminCreateForm`) expose :
-
-| Champ | Type | Description |
-| --- | --- | --- |
-| `username` | Texte requis | Nom d'utilisateur (min. 3 caractères) |
-| `email` | Email requis | Adresse de contact + destinataire de l'email de reset |
-| `password` | Caché | Hash aléatoire injecté automatiquement — non visible dans l'interface |
-| `is_staff` | Booléen | Accès lecture au panel admin |
-
-`is_active` et `is_superuser` ne sont **pas** dans le formulaire — le compte est toujours créé inactif, et le statut superuser ne peut jamais être accordé depuis le panel admin lui-même (protection contre l'auto-élévation de privilèges).
-
----
-
-## Configuration dans `admin!{}`
+Avec le builder `ModelAdmin`, le formulaire de création / édition des comptes vient du modèle (table `eihwaz_users` étendue via `extend!`). Tu configures les champs visibles :
 
 ```rust
-admin! {
-    users: runique_users::Model => MyForm {
-        title: "Utilisateurs",
-        create_form: runique::admin::UserAdminCreateForm,
-        edit_form: crate::formulaire::UserEditForm,
-    }
+fn accounts() -> ModelAdmin<user_profile::Entity> {
+    use user_profile::Column::*;
+    ModelAdmin::new()
+        .title("Utilisateurs")
+        .list(|l| {
+            l.display([Username, Email, IsActive])
+                .search([Username, Email])
+        })
+        .form(|f| f.fields([Username, Email]))
 }
+
+// dans AdminSite :
+site.accounts_users(accounts())
 ```
 
-Le champ `create_form:` indique au daemon d'utiliser `UserAdminCreateForm` à la création
-et d'activer le flag `inject_password` sur la ressource.
+Points importants :
+
+- `password` est une colonne **secrète** : refusée dans `display`, `search`, `filter`, `fields`, etc.
+- les drapeaux de rang (`is_superuser`, `is_dirigeant`, `is_admin`) ne passent **jamais** par le formulaire — le gate les gère
+- à la création d'un compte, le gate injecte un hash inconnu et le handler envoie le lien de bienvenue (`AccountLink::Welcome`)
+
+Pas de `create_form:` / `edit_form:` / flag `inject_password` : c'est le comportement natif de la table comptes.
 
 ---
 
@@ -74,10 +72,10 @@ L'email est envoyé si le mailer est configuré (variables `SMTP_*` dans `.env`)
 
 Sans mailer (développement), le lien de reset est affiché dans un flash message.
 
-Le template email par défaut est `admin/user_created_email.html`. Il peut être surchargé
-via `AdminConfig::reset_password_email_template("mon_template/email.html")`.
+Le template email de bienvenue par défaut est `admin/user_created_email.html`.
+Le template de reset (depuis la fiche compte) est `admin/reset_password_email.html`.
 
-Contexte Tera disponible dans le template :
+Contexte Tera disponible dans ces templates :
 
 | Variable | Valeur |
 | --- | --- |
@@ -102,7 +100,8 @@ L'URL construite suit le schéma :
 
 ## Voir aussi
 
-- [Macro `admin!`](/docs/fr/admin/declaration-macro) — `create_form:`, `edit_form:`
+- [Builder `ModelAdmin`](/docs/fr/admin/declaration-macro) — `.form()`, `accounts_users`
+- [Déclaration](/docs/fr/admin/declaration) — `AdminSite`
 - [Réinitialisation de mot de passe](/docs/fr/auth/password-reset) — flux forgot/reset
 
 ## Revenir au sommaire

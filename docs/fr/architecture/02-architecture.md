@@ -16,7 +16,7 @@ mon-projet/
 │   │   └── blog.rs        # ou de macros proc-attribute
 │   │
 │   ├── main.rs            # Point d'entrée — RuniqueApp builder
-│   ├── admin.rs           # Déclaration admin!{} (si admin activé, necessaire pour la cli runique start)
+│   ├── admin.rs           # ModelAdmin + AdminSite (si admin activé)
 │   ├── url.rs             # urlpatterns! — table de routage
 │   ├── views.rs           # Handlers (fonctions async)
 │   └──  forms.rs          # Structs RuniqueForm (ou dossier forms/)
@@ -107,13 +107,26 @@ impl RuniqueForm for RegisterForm {
 }
 ```
 
-**`admin.rs`** — Déclaration de la vue admin (fichiers générés dans `src/admins/`) :
+**`admin.rs`** — Déclaration typée de l'admin (`ModelAdmin` + `AdminSite`) :
 
 ```rust
-admin! {
-    users: users::Model => RegisterForm {
-        title: "Utilisateurs",
-    }
+use runique::admin::{AdminSite, ModelAdmin};
+use runique::app::staging::AdminStaging;
+use crate::entities::article;
+
+pub fn config(admin: AdminStaging) -> AdminStaging {
+    admin.site_title("Administration").path("/admin/").site(site)
+}
+
+fn site(site: AdminSite) -> AdminSite {
+    site.register(articles())
+}
+
+fn articles() -> ModelAdmin<article::Entity> {
+    use article::Column::*;
+    ModelAdmin::new()
+        .title("Articles")
+        .list(|l| l.display([Title, Status]))
 }
 ```
 
@@ -124,7 +137,7 @@ admin! {
 ```bash
 runique new mon-projet
 cd mon-projet
-runique start
+cargo run
 ```
 
 `runique new` génère la structure minimale décrite ci-dessus. Voici ce que chaque fichier t'appartient de modifier ou non :
@@ -136,14 +149,13 @@ runique start
 | `src/views.rs` | Oui | Handlers de requêtes |
 | `src/entities/` | Oui | Déclarations de modèles (AST Runique, compatible `makemigrations`) |
 | `src/formulaire/` | Oui | Formulaires et validation |
-| `src/admin.rs` | Oui (si admin) | Déclaration `admin!{}`, requis pour `runique start` |
-| `src/admins/` | **Non** | Généré par le daemon — ne pas modifier à la main |
+| `src/admin.rs` | Oui (si admin) | `ModelAdmin` + enregistrement `AdminSite` |
 | `templates/` | Oui | Templates Tera |
 | `static/` | Oui | CSS, JS, images |
 | `migration/` | Non (sauf ajout de tables) | Migrations SeaORM |
 | `.env` | Oui | Variables d'environnement |
 
-> `runique start` surveille `src/admin.rs` et régénère `src/admins/` à chaque changement. Pour une app sans vue admin, `cargo run` suffit.
+> L'admin se déclare dans `src/admin.rs` et se câble avec `.with_admin(...)`. `cargo run` suffit — plus de génération de fichiers.
 
 ---
 

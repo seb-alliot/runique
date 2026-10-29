@@ -182,8 +182,8 @@ runique create-superuser
 
 Les étapes de l'assistant et les règles du mot de passe : [3. Créer le compte administrateur](#3-créer-le-compte-administrateur).
 
-`runique start` régénère `src/admins/` à partir de `src/admin.rs` avant de lancer le site :
-nécessaire seulement après avoir modifié les déclarations `admin!{}`.
+L'admin se déclare dans `src/admin.rs` avec `ModelAdmin` et se câble via `.with_admin(...)`.
+Un simple `cargo run -p demo-app` suffit ; aucune étape de génération de code.
 
 ---
 

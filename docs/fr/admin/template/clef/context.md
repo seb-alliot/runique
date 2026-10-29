@@ -11,7 +11,7 @@ Ces variables sont injectées sur **toutes les routes** par l'extracteur `Reques
 | Variable | Type Rust | Description |
 | --- | --- | --- |
 | `debug` | `bool` | Mode debug activé ou non |
-| `csrf_token` | `String` | Token CSRF masqué — à inclure dans les formulaires POST |
+| `csrf_token` | `String` | Token CSRF masqué (meta / JS) — un `RuniqueForm` l'émet déjà dans le HTML |
 | `csp_nonce` | `&str` | Nonce CSP pour les balises `<script>` et `<style>` |
 | `static_runique` | `StaticConfig` | Config des assets statiques Runique (voir ci-dessous) |
 | `messages` | `Vec<FlashMessage>` | Messages flash de la session courante |
@@ -38,26 +38,22 @@ Ces variables sont injectées sur **toutes les vues CRUD admin** via `inject_con
 | `site_url` | `String` | Lien « voir le site » : `view_site_url` de l'admin, sinon l'URL publique (`.with_public_url()`), sinon `/` |
 | `resource_key` | `&str` | Clé de la ressource courante (ex: `"users"`) |
 | `current_resource` | `&str` | Identique à `resource_key` |
-| `resource` | `AdminResource` | Métadonnées complètes de la ressource courante (voir ci-dessous) |
-| `resources` | `Vec<AdminResource>` | Les ressources que le compte connecté peut voir |
-| `resource_base` | `String` | URL de base des actions de la ressource courante (`{prefix}/{key}`, ou imbriquée sous son parent) |
-| `group_actions` | liste | Actions groupées déclarées dans `admin!{}` |
+| `resource` | `ResourceRef` | Métadonnées de la ressource courante (voir ci-dessous) |
+| `resources` | liste | Ressources que le compte connecté peut voir |
+| `resource_links` | `ResourceLinks` | URLs préconstruites list/create/bulk pour cette ressource |
+| `group_actions` | liste | Actions groupées de `ModelAdmin` `.action(...)` (`index`, `label`) |
 | `can_create` / `can_read` / `can_update` / `can_delete` | `bool` | Droits du compte connecté sur cette ressource (tirés de ses groupes) |
 | `can_update_own` / `can_delete_own` | `bool` | Idem, limités aux lignes du compte lui-même |
 
-> Les clés déclarées dans `extra: {}` du bloc `admin!{}` sont également injectées **en tant que variables Tera de premier niveau**.
-> Exemple : `extra: { "icon" => "user" }` → `{{ icon }}` (accessible directement) ET `{{ resource.extra_context.icon }}`.
+> Préférez les objets de liens préconstruits (`nav`, `resource_links`, `entry.links`) plutôt que d'assembler les URLs à la main.
 
-### Structure `AdminResource`
+### Structure `ResourceRef`
 
 | Champ Tera | Type | Description |
 | --- | --- | --- |
-| `resource.key` | `&str` | Clé unique de la ressource (`"users"`) |
-| `resource.title` | `&str` | Titre lisible (`"Utilisateurs"`) |
-| `resource.model_path` | `&str` | Chemin du modèle SeaORM (`"crate::entities::users::Model"`) |
-| `resource.display.icon` | `String` *(optionnel)* | Nom d'icône déclaré |
-| `resource.display.pagination` | `usize` | Entrées par page (défaut : `25`) |
-| `resource.extra_context` | `HashMap<String, String>` | Clés custom déclarées dans `extra: {}` |
+| `resource.key` | `&str` | Clé unique de la ressource (`"blog"`) |
+| `resource.title` | `String` | Titre lisible (`"Blog"`) |
+| `resource.display.list_filter` | liste | Colonnes filtrables sous forme de paires `(colonne, libellé)` |
 
 ---
 
@@ -313,8 +309,9 @@ resources, resource_counts, current_page
 
 | Variable | Type | Description |
 | --- | --- | --- |
-| `visible_columns` | `Vec<String>` | Noms des colonnes à afficher (depuis `list_display` ou toutes sauf `id`/`password`) |
-| `column_labels` | `HashMap<String, String>` | Label par colonne — vide si `list_display` non configuré, sinon `{ "col" => "Label" }` |
+| `visible_columns` | `Vec<String>` | Noms des colonnes à afficher (depuis `.list().display(...)`, ou défauts non secrets) |
+| `sortable_columns` | `Vec<String>` | Colonnes acceptées pour `?sort_by=` |
+| `column_labels` | `HashMap<String, String>` | Label par colonne — sinon le nom de colonne |
 
 ### Tri
 
@@ -682,7 +679,6 @@ RuniqueApp::builder(config)
 | Section | Description |
 | --- | --- |
 | [Surcharge](/docs/fr/admin/template-surcharge) | remplacer le layout ou un composant CRUD |
-| [CSRF](/docs/fr/admin/template-csrf) | token CSRF, `csrf.js`, checklist login custom |
 
 ## Revenir au sommaire
 

@@ -9,7 +9,7 @@
 [![GitHub stars](https://img.shields.io/github/stars/seb-alliot/runique?style=social)](https://github.com/seb-alliot/runique)
 [![Runique](https://img.shields.io/badge/Runique-brightgreen)](https://runique.io)
 
-Runique est un framework web construit sur Axum, axé sur les formulaires fortement typés, les middlewares de sécurité, le rendu de templates, l'intégration ORM et un workflow d'administration généré par code.
+Runique est un framework web construit sur Axum, axé sur les formulaires fortement typés, les middlewares de sécurité, le rendu de templates, l'intégration ORM et un panel d'administration typé.
 
 > État actuel : développement actif. La source de vérité du framework est la crate `runique`.
 > `demo-app` est utilisée comme application de validation/test pour le comportement du framework.
@@ -36,7 +36,7 @@ Version du workspace (source de vérité) : **4.0.0**.
 - Middlewares de sécurité (CSRF, CSP, hôtes autorisés, assainissement, auth/session)
 - Intégration SeaORM + outillage de migrations
 - Système de messages flash
-- Admin bêta (macro `admin!` + code CRUD généré par démon)
+- Admin bêta (builder typé `ModelAdmin` + `AdminSite`, sans génération de code)
 
 Les principaux modules publics sont exposés depuis `runique/src/lib.rs`.
 
@@ -93,34 +93,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 `runique` fournit :
 
 - `runique new <nom>`
-- `runique start [--main src/main.rs] [--admin src/admin.rs]`
+- `runique start` — lance l'app (équivalent à `cargo run` une fois l'admin câblé)
 - `runique create-superuser`
 - `runique makemigrations --entities src/entities --migrations migration/src [--force false]`
 - `runique migration up --migrations migration/src` (retour arrière et état : `sea-orm-cli migrate down` / `status`)
 
 ## État de l'admin bêta
 
-Comportement de `runique start` :
+L'admin est un builder typé — pas de macro, pas de fichiers générés sous `src/admins/`.
 
-- vérifie si `.with_admin(...)` existe dans `src/main.rs`
-- génère et lance uniquement si activé
-- sinon quitte avec un message explicite
+1. déclarez chaque ressource avec `ModelAdmin::<Entity>::new()` dans `src/admin.rs`
+2. enregistrez-les sur `AdminSite` via `.with_admin(admin::config)` dans `main`
+3. lancez avec un simple `cargo run`
 
-Les ressources admin sont déclarées dans `src/admin.rs` via `admin!`.
-
-Le workflow, séquentiel sur un seul thread :
-
-1. analyser les déclarations `admin!`
-2. générer le code admin sous `src/admins/`
-3. lancer `cargo run --release` (bloquant)
-
-Ce n'est pas un watcher : pour régénérer après une modification de `src/admin.rs`, relancez `runique start`.
-
-Limites actuelles de la bêta :
-
-- permissions principalement au niveau des ressources
-- écrasement des fichiers générés (`src/admins/admin.rs`, `mod.rs`, `README.md`)
-- durcissement itératif toujours en cours
+Les colonnes sont des enums SeaORM (`article::Column::Title`) : une typo ou un champ secret échoue à la compilation.
 
 Documentation admin : [Admin](https://runique.io/docs/en/admin)
 

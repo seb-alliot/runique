@@ -65,8 +65,8 @@ peut être active à la fois (`compile_error!` si deux sont déclarées ensemble
 ```toml
 [dependencies]
 # rien de déclaré → Pk = i32 (défaut)
-runique = { version = "3.0.0", features = ["postgres", "big-pk"] }    # Pk = i64
-runique = { version = "3.0.0", features = ["postgres", "pk-uuid"] }   # Pk = Uuid (généré via Uuid::now_v7())
+runique = { version = "4.0.0", features = ["postgres", "big-pk"] }    # Pk = i64
+runique = { version = "4.0.0", features = ["postgres", "pk-uuid"] }   # Pk = Uuid (généré via Uuid::now_v7())
 ```
 
 Utilisez `big-pk` quand vous anticipez plus de ~2 milliards de lignes dans une table, ou pour interopérer avec un schéma existant utilisant des clés primaires `BIGINT`. Utilisez `pk-uuid` pour des identifiants non séquentiels (multi-tenant, génération côté client, exposition publique des ids sans révéler le volume de lignes).
@@ -607,22 +607,22 @@ runique makemigrations
 # 3. Appliquer
 runique migration up
 
-# 4. Enregistrer dans admin!{} (src/admin.rs)
+# 4. Enregistrer avec ModelAdmin (src/admin.rs)
 ```
 
 ```rust
-admin! {
-    configure {
-        users: { hidden: true }   // masque le panel builtin "Utilisateurs"
-    }
-    user_profile: user_profile::Model => user_profile::AdminForm {
-        title: "Profils utilisateurs",
-        list_display: [
-            ["username", "Utilisateur"],
-            ["bio", "Bio"],
-            ["is_verified", "Vérifié"],
-        ],
-    }
+use runique::admin::ModelAdmin;
+use crate::entities::user_profile;
+
+fn user_profiles() -> ModelAdmin<user_profile::Entity> {
+    use user_profile::Column::*;
+    ModelAdmin::new()
+        .title("Profils utilisateurs")
+        .list(|l| {
+            l.display([Username, Bio, IsVerified])
+                .links([Username])
+        })
+        .form(|f| f.fields([Bio, Avatar, Website, Phone, BirthDate, IsVerified]))
 }
 ```
 

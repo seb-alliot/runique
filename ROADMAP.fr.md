@@ -87,10 +87,9 @@ sécurité ciblé, puis la suivante commence.
 
 Les ruptures, regroupées dans une seule version majeure, avec un guide de migration.
 
-- [ ] **Refonte de l'admin : builder `ModelAdmin<Entity>` typé** — remplace `admin!{}` et le
-  code généré par le daemon par une logique générique écrite une fois, et un fichier court par
-  table. Colonnes typées, listes blanches uniquement, invariants vérifiés au démarrage.
-  Ébauche : [ebauche-model-admin.md](ebauche-model-admin.md).
+- [x] **Refonte de l'admin : builder `ModelAdmin<Entity>` typé** — livré : remplace `admin!{}`
+  et le code généré par le daemon par une logique générique écrite une fois. Colonnes typées,
+  listes blanches uniquement, invariants vérifiés au démarrage.
 - [ ] **Action de suppression obligatoire** — un `belongs_to` sans `[cascade]`, `[set_null]` ou
   `[restrict]` ne compile plus, comme `on_delete` dans Django : chaque relation est un choix
   explicite.

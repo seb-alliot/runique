@@ -1,40 +1,64 @@
 # Admin Runique
 
-L'administration Runique génère un CRUD complet à partir d'une macro déclarative (`admin!`).
-Le code produit est du Rust ordinaire — lisible, auditable et modifiable si nécessaire.
-L'approche est volontairement transparente : pas de magie cachée, pas de runtime inconnu.
+L'administration Runique construit un CRUD complet à partir d'un **builder typé** (`ModelAdmin`). Plus de macro `admin!`, plus de génération de fichiers : tu déclares des colonnes SeaORM, le framework sert les routes, la liste, les formulaires et les permissions.
+
+Les colonnes sont des enums (`blog::Column::Title`) — le compilateur refuse une colonne inexistante, un secret exposé ou une action incohérente.
 
 ## Exemple minimal
 
 ```rust
-admin! {
-    users: users::Model => RegisterForm {
-        title: "Utilisateurs",
-        list_display: [
-            ["username", "Nom d'utilisateur"],
-            ["email", "Email"],
-            ["is_active", "Actif"],
-        ],
-        list_filter: [
-            ["is_active", "Actif"],
-        ]
-    }
+use runique::admin::{AdminSite, ModelAdmin};
+use runique::app::staging::AdminStaging;
+use crate::entities::article;
+
+pub fn config(admin: AdminStaging) -> AdminStaging {
+    admin
+        .site_title("Administration")
+        .path("/admin/")
+        .site(|site| site.register(articles()))
 }
+
+fn articles() -> ModelAdmin<article::Entity> {
+    use article::Column::*;
+    ModelAdmin::new()
+        .title("Articles")
+        .list(|l| {
+            l.display([Title, Status, Views])
+                .links([Title])
+                .sortable([Title])
+                .search([Title])
+                .filter([Status])
+        })
+        .form(|f| f.fields([Title, Body, Status]))
+}
+```
+
+Puis dans `main` :
+
+```rust
+builder::new(config)
+    .routes(url::routes())
+    .with_database(db)
+    .with_admin(admin::config)
+    .build()
+    .await?
+    .run()
+    .await?;
 ```
 
 ## Table des matières
 
 | Fichier | Contenu |
 | --- | --- |
-| [Mise en place](/docs/fr/admin/setup) | Câbler l'admin dans un projet existant, créer un superuser |
-| [CLI](/docs/fr/admin/declaration) | Commande `runique start`, workflow général |
-| [Génération de code admin](/docs/fr/admin/declaration-daemon) | Fichiers générés, flux `runique start` |
-| [Macro `admin!`](/docs/fr/admin/declaration-macro) | Syntaxe complète, champs obligatoires et optionnels |
-| [Création d'utilisateur](/docs/fr/admin/user-creation) | Flux complet création → email → activation, modèle custom |
-| [Vue liste](/docs/fr/admin/liste) | Pagination, tri, recherche, `list_display`, `list_filter` |
-| [Permissions](/docs/fr/admin/permission) | Rôles, `is_staff` / `is_superuser`, vérification runtime |
-| [Templates](/docs/fr/admin/template) | Hiérarchie de templates, blocks, surcharge du visuel |
-| [Évolutions](/docs/fr/admin/evolution) | Axes d'évolution et état bêta |
+| [Mise en place](/docs/fr/admin/setup) | Câbler l'admin, path, prefix, superuser |
+| [Déclaration](/docs/fr/admin/declaration) | `AdminStaging`, `AdminSite`, enregistrement |
+| [Builder `ModelAdmin`](/docs/fr/admin/declaration-macro) | API liste + formulaire, colonnes typées |
+| [Validation au boot](/docs/fr/admin/declaration-daemon) | Contrôles exécutés au démarrage |
+| [Création d'utilisateur](/docs/fr/admin/user-creation) | Flux création → email → activation |
+| [Vue liste](/docs/fr/admin/liste) | Pagination, tri, recherche, filtres, actions |
+| [Permissions](/docs/fr/admin/permission) | Rangs, groupes, grille de droits |
+| [Templates](/docs/fr/admin/template) | Surcharge des pages et des blocs |
+| [Évolutions](/docs/fr/admin/evolution) | Pistes futures |
 
 ## Revenir au menu
 
