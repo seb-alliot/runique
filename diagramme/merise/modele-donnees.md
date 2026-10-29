@@ -1,8 +1,10 @@
 # Merise — Modèle de données framework (`eihwaz_*`)
 
 Tables natives du framework, définies dans
-[`runique/src/admin/table_admin/migrations_table.rs`](../../runique/src/admin/table_admin/migrations_table.rs).
-La table utilisateur est toujours `eihwaz_users` (`RUNIQUE_USER_TABLE` supprimé en 3.0.0, 2026-10-06) : les FK des tables du framework la visent directement.
+[`runique/src/auth/migrations_table.rs`](../../runique/src/auth/migrations_table.rs)
+(déplacées hors `admin/` en 4.0 : nécessaires avec ou sans feature `admin`).
+La table utilisateur est toujours `eihwaz_users` : les FK du framework la visent
+directement. `history` est créée ici ; son usage UI reste côté admin.
 
 ## MCD (conceptuel)
 
@@ -10,7 +12,9 @@ La table utilisateur est toujours `eihwaz_users` (`RUNIQUE_USER_TABLE` supprimé
 erDiagram
     USER ||--o{ USER_GROUPE : "appartient à"
     GROUPE ||--o{ USER_GROUPE : "regroupe"
-    GROUPE ||--o{ GROUPE_DROIT : "possède"
+    GROUPE ||--o{ GROUPE_DROIT : "possède (table/colonne)"
+    USER ||--o{ GROUPE_DROIT : "grille admin (user_id)"
+    USER ||--o{ GROUPE : "responsable de"
     USER ||--o{ SESSION : "ouvre"
     USER ||--o{ RESET_TOKEN : "demande"
     USER }o..o{ HISTORY : "trace (réf. faible)"
@@ -21,7 +25,8 @@ erDiagram
         string email UK
         string password
         bool is_active
-        bool is_staff
+        bool is_dirigeant
+        bool is_admin
         bool is_superuser
         datetime created_at
         datetime updated_at
@@ -30,15 +35,23 @@ erDiagram
     GROUPE {
         int id PK
         string nom UK
+        bool is_staff
+        bool is_active
+        pk responsable_id FK
+        pk repris_par FK
     }
     GROUPE_DROIT {
+        int id PK
         int groupe_id FK
+        pk user_id FK
         string resource_key
+        string colonne
         bool can_create
         bool can_read
+        bool can_read_own
         bool can_update
-        bool can_delete
         bool can_update_own
+        bool can_delete
         bool can_delete_own
     }
     USER_GROUPE {
@@ -57,6 +70,7 @@ erDiagram
         bigint id PK
         string resource_key
         string object_pk
+        string object_repr
         string action
         pk user_id
         string username
@@ -75,66 +89,36 @@ erDiagram
 ## MLD (logique relationnel)
 
 | Table | PK | Colonnes | FK | Contraintes |
-|-------|----|----|----|------------|
-| `eihwaz_users` | `id` (int/bigint¹) | username, email, password, is_active, is_staff, is_superuser, created_at?, updated_at?, activated_at? | — | username UNIQUE, email UNIQUE, CHECK `is_active` ⇒ `activated_at` non NULL |
-| `eihwaz_groupes` | `id` (int) | nom | — | nom UNIQUE |
-| `eihwaz_groupes_droits` | (`groupe_id`,`resource_key`) | can_create/read/update/delete/update_own/delete_own | groupe_id → groupes.id **CASCADE** | PK composite |
-| `eihwaz_users_groupes` | (`user_id`,`groupe_id`) | — | user_id → user_table.id **CASCADE**, groupe_id → groupes.id **CASCADE** | PK composite |
-| `eihwaz_sessions` | `id` (int) | cookie_id, user_id, session_id, session_data?, expires_at | user_id → user_table.id **CASCADE** | cookie_id UNIQUE |
-| `eihwaz_history` | `id` (bigint) | resource_key, object_pk, action, user_id, username, created_at, summary?, batch_id? | **aucune** | — |
-| `eihwaz_reset_tokens` | `id` (bigint) | token_hash, user_id, expires_at | user_id → user_table.id **CASCADE** | token_hash UNIQUE |
+|-------|----|----------|----|-------------|
+| `eihwaz_users` | `id` (int/bigint/uuid¹) | username, email, password, is_active, **is_dirigeant**, **is_admin**, is_superuser, created_at?, updated_at?, activated_at? | — | username UNIQUE, email UNIQUE ; CHECK `ACTIVE_NEEDS_ACTIVATION` ; CHECK `ONE_RANK_AT_MOST` |
+| `eihwaz_groupes` | `id` (int) | nom, **is_staff**, **is_active**, **responsable_id**, **repris_par** | responsable_id → users.id **RESTRICT** ; repris_par → users.id **SET NULL** | nom UNIQUE |
+| `eihwaz_groupes_droits` | `id` (int) | groupe_id?, user_id?, resource_key, **colonne** (défaut `""`), can_create/read/**read_own**/update/update_own/delete/delete_own | groupe_id → groupes.id **CASCADE** ; user_id → users.id **CASCADE** | CHECK un seul holder ; CHECK groupe ≠ framework keys ; CHECK ligne colonne = read/create/update only ; UNIQUE (groupe, resource, colonne) ; UNIQUE (user, resource, colonne) |
+| `eihwaz_users_groupes` | (`user_id`,`groupe_id`) | — | user_id → users.id **CASCADE**, groupe_id → groupes.id **CASCADE** | PK composite |
+| `eihwaz_sessions` | `id` (int) | cookie_id, user_id, session_id, session_data?, expires_at | user_id → users.id **CASCADE** | cookie_id UNIQUE |
+| `eihwaz_history` | `id` (bigint) | resource_key, object_pk, **object_repr**, action, user_id, username, created_at, summary?, batch_id? | **aucune** | object_repr tronqué à 255 |
+| `eihwaz_reset_tokens` | `id` (bigint) | token_hash, user_id, expires_at | user_id → users.id **CASCADE** | token_hash UNIQUE |
 
-¹ `id`/`user_id` = `bigint` si feature `big-pk`, sinon `integer`.
+¹ `id` / `user_id` = `uuid` si `pk-uuid`, sinon `bigint` si `big-pk`, sinon `integer`.
+`eihwaz_groupes.id` et `groupe_id` restent **toujours** `integer` (indépendants de `Pk`).
 
-> **`resource_key` = référence molle (sans FK).** Dans `eihwaz_groupes_droits`, `resource_key`
-> pointe vers une clé du **registry en code** (pas une table `ressources`), donc la DB ne peut pas
-> en garantir l'intégrité → droits orphelins possibles si une ressource est renommée/supprimée.
-> Fermé côté applicatif par `prune_orphan_droits` au **boot** (supprime les droits dont
-> `resource_key ∉ registry`). Côté présentation, un droit est éditable comme **ressource enfant
-> scopée** du groupe (`/groupes/{id}/droits/…`) sans changement de schéma.
+## Évolutions 4.0 (par rapport aux diagrammes 3.x)
 
-## Ordre de création (migrations clé-en-main)
+| Avant (3.x) | Après (4.0) |
+|-------------|-------------|
+| `users.is_staff` | **supprimé** — staff = `groupes.is_staff` |
+| rang binaire staff/superuser | **4 rangs** : Lambda / Admin / Dirigeant / Superuser (`is_admin`, `is_dirigeant`, `is_superuser`, au plus un) |
+| `groupes` = id + nom | + `is_staff`, `is_active`, `responsable_id`, `repris_par` |
+| `groupes_droits` PK (`groupe_id`,`resource_key`) | PK `id` ; holder groupe **ou** compte ; granularité **colonne** ; `can_read_own` |
+| history sans `object_repr` | + `object_repr` (libellé figé) |
+| migrations dans `admin/table_admin/` | `auth/migrations_table.rs` |
 
-```mermaid
-flowchart LR
-    U[m..001 eihwaz_users] --> A[m..002 admin_table]
-    A --> G[eihwaz_groupes]
-    A --> GD[eihwaz_groupes_droits]
-    A --> UG[eihwaz_users_groupes]
-    A --> S[eihwaz_sessions]
-    A --> H[eihwaz_history]
-    U --> RT[m..005 reset_tokens]
-    style U fill:#2d4
-```
+## Anomalies / dette données
 
-`AdminTableMigration::up` crée dans l'ordre : groupes → groupes_droits → users_groupes →
-sessions → history. `eihwaz_users` et `eihwaz_reset_tokens` ont leurs propres migrations.
-
-## Anomalies / flux suspects (couche données)
-
-### 🔴 D1 — Incohérence de type sur `eihwaz_users_groupes.user_id` (feature `big-pk`) — ✅ CORRIGÉ
-**Corrigé (2.1.21).** Le bloc conditionnel `#[cfg(feature = "big-pk")]` (BIGINT/INTEGER) a été
-appliqué à `eihwaz_users_groupes.user_id`, aligné sur `sessions`/`history`/`reset_tokens`. La FK
-est désormais de type cohérent avec `eihwaz_users.id` sous `big-pk`.
-[`migrations_table.rs:184`](../../runique/src/admin/table_admin/migrations_table.rs#L184)
-Problème d'origine : `user_id` codé en dur `.integer()` → FK incompatible avec `eihwaz_users.id`
-BIGINT sous `big-pk` (échec de création FK sur Postgres strict).
-
-### 🟠 D2 — `eihwaz_history.user_id` sans FK : décision implicite
-[`migrations_table.rs:283-319`](../../runique/src/admin/table_admin/migrations_table.rs#L283)
-Aucune FK sur `history.user_id` (contrairement à sessions/reset_tokens en CASCADE).
-C'est probablement **voulu** (l'historique doit survivre à la suppression d'un user, sinon
-le CASCADE effacerait l'audit). Mais c'est implicite et non documenté → à acter comme choix
-de design, sinon quelqu'un « corrigera » en ajoutant un CASCADE qui détruirait l'audit.
-
-### 🟠 D3 — Index manquants sur les colonnes de requête fréquentes
-- `eihwaz_history` : filtres/vues par `resource_key`, `object_pk`, `batch_id`
-  ([handle history dans router]) → **table scan**, aucun index.
-- `eihwaz_sessions.user_id` : `invalidate_other_sessions()` filtre par `user_id` → scan.
-- `eihwaz_reset_tokens` : purge par `expires_at` → scan.
-Latent perf, s'aggrave avec le volume. À confirmer dans les flux (03).
-
-### 🟡 D4 — `session_id` vs `cookie_id` : deux identifiants, sémantique à clarifier
-`eihwaz_sessions` porte `cookie_id` (UNIQUE) **et** `session_id` (non unique). Le flux session
-(voir 03) doit confirmer lequel est l'identifiant d'opposabilité et pourquoi deux. Risque de
-collision/confusion déjà rencontré historiquement (collision `cookie_id` résolue en 2.1.19).
+| ID | Anomalie | Statut |
+|----|----------|--------|
+| **D1** | `users_groupes.user_id` hors cfg big-pk | ✅ corrigé (`user_pk_reference`) |
+| **D2** | `history.user_id` sans FK | voulu (audit) — à documenter côté produit |
+| **D3** | index manquants possibles (history composite, sessions.user_id, reset_tokens.expires_at) | ouvert — valider sous DB réelle |
+| **D4/S4** | double id session `cookie_id` / `session_id` | à documenter |
+| **D5** | table fantôme `eihwaz_droits` | ✅ supprimée |
+| Rank CHECK | `ONE_RANK_AT_MOST` + `ACTIVE_NEEDS_ACTIVATION` | ✅ en base (pas seulement ORM) |

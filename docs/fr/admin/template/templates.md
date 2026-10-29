@@ -53,7 +53,7 @@ Inscrits directement dans `admin_template.html` — **impossibles à supprimer**
 | Section | Description |
 | --- | --- |
 | [Mise en place](/docs/fr/admin/setup) | Câbler l'admin dans un projet existant, créer un superuser |
-| [CLI](/docs/fr/admin/declaration) | Commande `runique start`, workflow général |
+| [Déclaration](/docs/fr/admin/declaration) | Workflow `AdminStaging`, `AdminSite`, `ModelAdmin` |
 | [Permissions](/docs/fr/admin/permission) | Rôles, `is_staff` / `is_superuser`, vérification runtime |
 | [Évolutions](/docs/fr/admin/evolution) | Axes d'évolution et état bêta |
 

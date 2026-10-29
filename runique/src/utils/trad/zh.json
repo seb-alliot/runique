@@ -200,44 +200,14 @@
   },
   "cli": {
     "creating_project": "正在创建项目 '{}'……",
-    "admin_detected": "检测到 admin → 正在生成 admin 代码",
-    "add_admin_hint": "请在构建器中添加 .with_admin(...) 以启用管理后台。",
-    "daemon_error": "[守护进程] 错误：{}",
-    "cargo_run_failed": "应用服务器启动失败（cargo run）",
-    "file_not_found": "未找到文件：{}\n请确保您在 Runique 项目的根目录下运行此命令。",
-    "admin_not_found": "未找到 Admin 文件：{}\n请使用 admin!{} 宏创建 src/admin.rs 文件。",
     "name_empty": "项目名称不能为空",
     "name_invalid": "项目名称只能包含字母、数字、下划线或连字符",
     "name_dash": "项目名称不能以连字符开头",
     "folder_exists": "文件夹 '{}' 已存在",
-    "cargo_run_expect": "启动 cargo run 失败",
     "project_created": "项目 '{}' 创建成功！",
     "getting_started": "开始使用：",
     "cd_hint": "cd {}",
-    "cargo_run_hint": "cargo run",
-    "fmt_failed": "cargo fmt 失败 — 已跳过格式化：{}"
-  },
-  "daemon": {
-    "unable_read": "无法读取：{}",
-    "parse_error": "解析错误：{}",
-    "no_resource": "admin!{} 中未定义任何资源 — 无需生成",
-    "operational": "守护进程运行中 → src/admins/admin.rs",
-    "generation_error": "生成代码时出错：{}",
-    "generated_header": "自动生成 — 请勿手动修改",
-    "generated_notice": "由 `runique start` 从 src/admin.rs 生成。任何修改都将被覆盖。"
-  },
-  "macro": {
-    "named_fields_only": "仅支持具名字段的结构体",
-    "structs_only": "仅适用于结构体",
-    "forms_field_required": "结构体 '{}' 必须包含 'Forms' 字段",
-    "field_no_name": "字段缺少名称",
-    "model_form_named_only": "DeriveModelForm：仅支持具名字段的结构体",
-    "model_form_structs_only": "DeriveModelForm：仅适用于结构体"
-  },
-  "parser": {
-    "multiple_admin_blocks": "admin!: 每个文件只允许一个 admin! 块（第一个在第 {} 行，第二个在第 {} 行）— 请合并它们",
-    "title_required": "admin!: 'title' 是必填项",
-    "list_display_exclude_exclusive": "admin!: 'list_display' 和 'list_exclude' 互斥"
+    "cargo_run_hint": "cargo run"
   },
   "TemplateMessage": {
     "debug_info_title": "调试信息",
@@ -315,7 +285,7 @@
       "btn_create": "创建",
       "see_list": "查看列表 →",
       "empty_title": "未注册资源",
-      "empty_desc": "在src/admin.rs中使用admin!{{}}宏声明您的资源，然后运行runique start",
+      "empty_desc": "在 src/admin.rs 中用类型化 ModelAdmin 构建器注册模型，然后 cargo run",
       "kpi_resources": "资源",
       "kpi_entries": "条目总数",
       "kpi_largest": "最大",

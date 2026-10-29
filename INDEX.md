@@ -160,7 +160,7 @@ runique/
 
 ## Tests (`runique/tests/`)
 
-**2162 integration tests passing** (2 ignored: `migration up` against a live database — SQLx fails on a non-UTF-8 Windows code page; run them with `-- --ignored`). Whole workspace: 2727 passing, 110 ignored.
+**2382 integration tests passing** (3 ignored: `render_admin_pages` + 2 `migration up` against a live database — run them with `-- --ignored`). Package `runique`: **3092 passing**, 3 ignored (710 unit + 2382 integration).
 
 ```
 tests/

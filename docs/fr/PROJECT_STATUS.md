@@ -99,7 +99,7 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 - Override runtime `RUNIQUE_LOG_FILE`
 
 ### CLI
-- `runique new`, `runique start`, `runique create-superuser`, `runique makemigrations`, `runique migration up` (retour arrière et état : `sea-orm-cli`), `runique test`
+- `runique new`, `runique create-superuser`, `runique makemigrations`, `runique migration up` (retour arrière et état : `sea-orm-cli`), `runique test` — pas de `runique start` (`cargo run` + `ModelAdmin`)
 
 ---
 

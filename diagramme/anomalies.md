@@ -3,7 +3,11 @@
 Révélés par la mise en diagramme + suivi des flux de données. Sévérité :
 🔴 bloquant/sécurité · 🟠 sérieux · 🟡 mineur/dette. Chaque entrée pointe le code.
 
-> Aucune correction appliquée — ce document est le plan de remédiation.
+> Journal historique + plan de remédiation. Les entrées admin 3.x (Registry,
+> ResourceEntry, `admin_main`, `table_admin`) sont **obsolètes en 4.0** : voir
+> les diagrammes `uml/admin/*` et la session « alignement 4.0 » dans
+> [ETAT-AVANCEMENT.md](ETAT-AVANCEMENT.md). Chemins migrations framework :
+> `auth/migrations_table.rs`.
 
 ## 🔴 Critiques
 
@@ -11,16 +15,16 @@ Révélés par la mise en diagramme + suivi des flux de données. Sévérité :
 |----|----------|--------------|-------------------|
 | **C1** | Upload **commité en MEDIA_ROOT avant** CSRF/validation/auth | [parse_html.rs](../runique/src/utils/forms/parse_html.rs) | ✅ **CORRIGÉ (TDD)** — `parse_multipart` écrit en `.staging-{uuid}` ; `finalize` est le seul committer (gère aussi le cas sans `upload_to`). Test `parse_multipart_stages_file_without_eager_commit` |
 | **C3** | Aucun **rollback** du fichier si la requête est rejetée → orphelin permanent | [parse_html.rs](../runique/src/utils/forms/parse_html.rs) | ✅ **CORRIGÉ** — `sweep_stale_staging` purge les staging orphelins (TTL), erreurs **loggées** (pas avalées) |
-| **D1** | `eihwaz_users_groupes.user_id` codé `.integer()` sans `#[cfg(big-pk)]` → FK incompatible avec `users.id` BIGINT sous feature `big-pk` | [migrations_table.rs:184](../runique/src/admin/table_admin/migrations_table.rs#L184) | ✅ **CORRIGÉ** — bloc `cfg big-pk/else` appliqué |
+| **D1** | `eihwaz_users_groupes.user_id` codé `.integer()` sans `#[cfg(big-pk)]` → FK incompatible avec `users.id` BIGINT sous feature `big-pk` | [migrations_table.rs](../runique/src/auth/migrations_table.rs) (`user_pk_reference`) | ✅ **CORRIGÉ** — `user_pk_reference` (int/bigint/uuid) |
 
 ## 🟠 Sérieux
 
 | ID | Anomalie | Localisation | Correctif proposé |
 |----|----------|--------------|-------------------|
 | **C2** | ~~CSRF des forms HTML repose **uniquement** sur `req.form()` ; lire `req.prisme.data` direct **contourne** la CSRF~~ | [extractor.rs:20](../runique/src/forms/extractor.rs#L20), [template.rs:406](../runique/src/context/template.rs#L406) | ✅ **CORRIGÉ structurellement (Unreleased/breaking)** — `Prisme::data` passé en `pub(crate)` : le code tiers ne peut plus lire le corps hors CSRF, seuls `checked_data()` (fail-closed) et `req.form()` y donnent accès. Audit interne clean (admin/login/`form()` gardent tous la CSRF avant de toucher `.data`). demo-app migré |
-| **A1** | ~~Closures CRUD `Option` → no-op silencieux~~ | [handle_crud.rs:178/484/596](../runique/src/admin/admin_main/handle_crud.rs#L178) | ❌ **NON-ISSUE (vérifié)** — `create_fn`/`update_fn` None → **fallback `form.save()`** ; `delete_fn` None → **erreur explicite**. Seuls `get_fn`/`list_fn` None dégradent en « non trouvé »/vide = acceptable (resource sans détail/liste) |
-| **A2** | ~~`own_field = None` → `can_*_own` inopérant sans warning~~ | [resource_entry.rs:162](../runique/src/admin/helper/resource_entry.rs#L162) | ❌ **NON-ISSUE (vérifié)** — les droits `*_own` sont **par utilisateur** (groupes), pas déclarés par resource → aucun signal à valider au boot. `own_field=None` → `check_owns_record`=false = **défaut sûr par design** |
-| **A3** | `list_filter` dans `configure {}` sur un builtin ne peut jamais fonctionner — pas un 500 (reproduit 2026-09-25 : silencieux, panneau filtres vide). Root cause confirmée : `DisplayConfig.list_filter` (posable via `configure{}`) ne déclare que les colonnes filtrables ; les valeurs viennent d'une closure séparée `entry.filter_fn` que le générateur crée auto pour les resources déclarées normalement, mais que les builtins (code Rust écrit à la main, `admin/builtin/*.rs`) n'ont jamais — et `configure{}` n'a aucun moyen de leur en injecter un après coup | [handle_list.rs:76](../runique/src/admin/admin_main/handle_list.rs#L76), `admin/builtin/droit.rs` (zéro `filter_fn`) | Générer/injecter un `filter_fn` par défaut sur les builtins quand `configure{}.list_filter` est posé, ou documenter la limite explicitement |
+| **A1** | ~~Closures CRUD `Option` → no-op silencieux~~ | admin 3.x `admin_main` (supprimé) | ❌ **SANS OBJET en 4.0** — plus de closures CRUD ; `RegisteredModel` + gate `Authorized` |
+| **A2** | ~~`own_field = None` → `can_*_own` inopérant sans warning~~ | admin 3.x `resource_entry` (supprimé) | ❌ **SANS OBJET en 4.0** — ownership = `ModelMeta::OWNER` + preuves gate (`Scope::Own`) |
+| **A3** | ~~`list_filter` builtins sans `filter_fn`~~ | admin 3.x builtins (supprimés) | ❌ **SANS OBJET en 4.0** — filtres = `ListConfig::filter` + valeurs sous scope du proof ; comptes/groupes = `ModelAdmin` framework |
 | **TZ1** | `timestamp_tz [auto_now]` / `[auto_now_update]` : colonne créée en `TIMESTAMP` sans fuseau alors que le champ est un `DateTime<Utc>` → sous Postgres, insertion et lecture en échec (`TIMESTAMPTZ … not compatible with SQL type TIMESTAMP`) ; MariaDB/SQLite fonctionnaient | [column/mod.rs](../runique/src/migration/column/mod.rs) `auto_now`, [to_schema.rs](../runique/src/migration/utils/parser_builder/to_schema.rs) | ✅ **CORRIGÉ 2026-10-08 (TDD)** — le fuseau est gardé aux deux endroits ; `datetime`/`timestamp` inchangés. Tests `auto_now_keeps_the_time_zone_of_a_timestamp_tz` + 3 cas dans `test_dsl_types_roundtrip` (3 moteurs) |
 | **IX1** | Index d'une FK (`idx_{table}_{col}`) créé à côté de l'index implicite d'InnoDB → `migrate down/reset` sous MySQL/MariaDB en échec (erreur 1553 « needed in a foreign key constraint ») | [generators.rs](../runique/src/migration/utils/generators.rs) | ✅ **CORRIGÉ 2026-10-07** — `unless_mysql_fk` : vérification `information_schema` à l'exécution, index ni créé ni supprimé sous MySQL/MariaDB. Trouvé par la suite de référence de `cargo mutants --iterate` |
 | **SU1** | `create-superuser` sous la feature `pk-uuid` : aucun id attribué (`..Default::default()`) → insertion en échec | [cli_admin.rs](../runique/src/cli/cli_admin.rs) | ✅ **CORRIGÉ 2026-10-08** — `insert_superuser` extrait du wizard, `Uuid::now_v7()` comme l'admin ; tests sur la vraie migration `eihwaz_users` |

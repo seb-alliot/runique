@@ -1,144 +1,193 @@
-# UML — Admin : daemon, helper, forms admin, history
+# UML — Admin 4.0 : config, templates, middleware, history, forms internes
 
 Complément de [admin-resource-permissions.md](admin-resource-permissions.md).
 
-## Helper (templates, dyn form, params liste)
+## AdminConfig
 
-[`admin/helper/`](../../../runique/src/admin/helper/)
+[`admin/config/config_admin.rs`](../../../runique/src/admin/config/config_admin.rs)
 
 ```mermaid
 classDiagram
-    class DynForm {
-        <<trait>>
-        +is_valid() async bool
-        +save(db) async Result
-        +get_form() / get_form_mut()
+    class AdminConfig {
+        +String prefix
+        +bool hot_reload / enabled
+        +String site_title
+        +Option~String~ view_site_url
+        +AdminTemplate templates
+        +u64 page_size
+        +usize search_max_len
+        +Option reset_link
+        +HashMap user_resources
+        +Option reset_password_email_template
+        +Vec~String~ resource_order
+        +Option~Arc~RateLimiter~~ rate_limiter
+        +Option~Arc~LoginGuard~~ login_guard
+        +view_site_href() &str
     }
-    class AdminTemplate {
-        +PathAdminTemplate list/create/edit/detail/delete/dashboard/login…
-        +resolve()
+    class AdminStaging {
+        +AdminConfig config
+        +AdminSite site
+        +String mount_prefix
+        +Vec~DeclaredAdminRoute~ declared_routes
+        +path() ≠ prefix()
+        +register / accounts_users
+        +rate_limit / login_guard / templates
     }
+    AdminStaging *-- AdminConfig
+    AdminStaging *-- AdminSite
+```
+
+Deux segments indépendants : `path()` = où vit l'admin (`/admin`) ;
+`prefix()` = ce qu'on met devant (`/secret` → `/secret/admin`). Ils ne
+s'écrasent jamais, quel que soit l'ordre d'appel.
+
+## Templates & stylesheets
+
+[`admin/template/`](../../../runique/src/admin/template/)
+
+```mermaid
+classDiagram
     class PathAdminTemplate {
         +Option~String~ dev
         +&str runique
         +resolve() &str
     }
-    class ListParams {
-        +u64 offset / limit
-        +Option~String~ sort_by
-        +SortDir sort_dir
-        +Option~String~ search
-        +Vec~(String,String)~ column_filters
-        +Option~(fk_col,parent_id)~ scope
+    class AdminTemplate {
+        +PathAdminTemplate dashboard/login/list/create/edit/detail/delete
+        +PathAdminTemplate htmx / history / history_diff
     }
-    class SortDir { <<enum>> Asc / Desc }
-    class M2mFieldOptions { +field_name +label +choices +selected }
-    class GroupAction { +field +label +choices }
+    class ModelTemplates {
+        +pages + blocks par modèle
+    }
+    class Page {
+        <<enum>>
+        Dashboard Login List Create Edit Detail Delete History …
+    }
+    class PageSheets {
+        +of(page, resource) stylesheets résolus + hashés au boot
+    }
+    class Block / GlobalBlock / ModelBlocks
     AdminTemplate *-- "*" PathAdminTemplate
-    ListParams *-- SortDir
+    ModelAdmin --> ModelTemplates
+    AdminState --> PageSheets
 ```
 
-`DynForm` = effacement de type pour stocker des forms hétérogènes dans `ResourceEntry`
-(le `FormBuilder` renvoie `Box<dyn DynForm>`). `PathAdminTemplate.dev` permet d'override le
-template Runique par un template projet (dev prioritaire).
+Priorité : override dev (`PathAdminTemplate.dev`) > défaut Runique. Les
+feuilles de style sont résolues et hashées **au boot** (`PageSheets`), servies
+par page + ressource courante via `chrome()`.
 
-### Surcharge de template — clés de contexte obligatoires (le contrat)
+## Middleware admin
 
-Override d'un template via `template_list()/template_create()/…` sur `AdminResource` (ou le bloc
-`admin!{}`). Le template custom **doit** consommer les clés ci-dessous — elles sont injectées par
-`inject_context` (commun) + le handler de l'action. Source : `admin_main/mod.rs` (`inject_context`),
-`handle_list.rs`, `handle_crud.rs`.
+[`admin/middleware/admin_middleware.rs`](../../../runique/src/admin/middleware/admin_middleware.rs)
 
-**Communes à TOUS les templates admin** (via `inject_context`) :
+```mermaid
+sequenceDiagram
+    participant R as Requête
+    participant LU as load_admin_user
+    participant AA as admin_access
+    participant DR as declared_route_access
+    participant H as handler
 
-| Clé | Type / contenu | Usage |
-|-----|----------------|-------|
-| `resource` | `AdminResource` (`.key`, `.title`, `.display`) | titres, colonnes |
-| `resource_base` | `String` — base d'URL **scope-aware** | ⚠️ **toute** URL d'action : `{{ resource_base }}/create`, `.../{id}/edit`… |
-| `resource_key` / `current_resource` | `&str` | état nav, checks perms |
-| `resources` | `Vec<AdminResource>` (= `visible_to`) | menu latéral |
-| `can_create/read/update/delete/update_own/delete_own` | `bool` | gate des boutons (UI = politique serveur) |
-| `group_actions` | `Vec<GroupAction>` | actions groupées |
-| `parent_key` / `parent_id` / `parent_title` / `parent_base` | `Option`/`String` | breadcrumb parent (nested) ; `parent_key` = null en flat |
-| `admin_prefix`, `site_title`, `site_url`, `lang` | `String` | chrome + liens fixes (login/logout/history) |
-| `admin_*` (i18n) | `String` | libellés (`admin_list_btn_edit`, …) |
+    R->>LU: session → user_id
+    LU->>LU: relit compte + groupes + droits en DB
+    Note over LU: pas de cache process-local (AM4 sans objet)
+    LU-->>R: Extension~CurrentUser~ si actif + (rang>Lambda ‖ staff)
+    R->>AA: can_access_admin ?
+    AA-->>AA: sinon redirect login
+    AA->>AA: insert AdminConstraint(user)
+    Note over AA: le gate lit AdminConstraint, jamais req.user mutable
+    R->>DR: routes déclarées `admin` hors préfixe
+    R->>H: chrome + CRUD
+```
 
-**Spécifiques par action :**
+`AdminConstraint` est `pub(crate)` : seul le middleware le pose. Le handler peut
+muter `req.user` sans influencer le gate.
 
-| Template | Clés obligatoires en plus |
-|----------|---------------------------|
-| **list** | `entries` `Vec<Value>` · `total` `page` `page_count` `has_prev/next` `prev_page/next_page` · `visible_columns` `Vec<String>` · `column_labels` `Map` · `sort_by` `sort_dir` `sort_dir_toggle` · `search` `filter_values` `active_filters` `filter_qs` `filter_meta` `return_qs` · `rich_fields` |
-| **create** | `form_fields` (`Forms`) · `is_edit=false` · `m2m_fields` (opt) |
-| **edit** | `form_fields` · `is_edit=true` · `object_id` (**id local**) · `return_qs` · `orig_updated_at` (opt) · `m2m_fields` (opt) |
-| **detail** | `entry` `Value` · `object_id` · `rich_fields` · `m2m_fields` (opt) · `inlines` `Vec<InlineList>` (opt, sous-listes enfants scopés) |
-| **delete** | `entry` `Value` · `object_id` |
+## History (audit)
 
-Règles :
-
-- **Jamais** coder `{{ admin_prefix }}/{{ resource.key }}/…` en dur → utiliser `{{ resource_base }}`
-  (gère flat **et** nested, id local vs composite). C'est LA source unique des URLs.
-- Les URLs d'un membre utilisent **`object_id`** (id local), pas `entry.id` (qui peut être un id
-  composite `"{parent}:{local}"` pour un enfant jonction).
-- Les boutons doivent être gatés par les `can_*` correspondants (le serveur ré-applique de toute
-  façon, mais l'UI ne doit pas afficher une action interdite).
-
-## Forms admin builtin
-
-[`admin/forms/mod.rs`](../../../runique/src/admin/forms/mod.rs)
+[`auth/history.rs`](../../../runique/src/auth/history.rs) — écrit par `save_as`
+**dans la même transaction** que l'écriture (admin et `save_as` projet).
 
 ```mermaid
 classDiagram
-    class DroitAdminForm
-    class GroupeAdminForm
-    class UserAdminCreateForm
-    class UserAdminEditForm
-    note for UserAdminEditForm "password skippé par fill() → add_value() (hash pré-calculé)"
-```
-
-## History (audit `eihwaz_history`)
-
-[`admin/history.rs`](../../../runique/src/admin/history.rs)
-
-```mermaid
-classDiagram
+    class ActionLog {
+        +Pk user_id
+        +&str username / resource_key / object_pk
+        +&str object_repr / action
+        +Option summary / batch_id
+    }
     class HistoryModel {
         +i64 id
-        +String resource_key / object_pk / action
+        +String resource_key / object_pk / object_repr
+        +String action / username
         +Pk user_id
-        +String username
         +NaiveDateTime created_at
-        +Option~String~ summary / batch_id
+        +Option summary / batch_id
     }
-    class AdminActionLog {
-        +Pk user_id
-        +&str username / resource_key / object_pk / action
-        +Option~String~ summary / batch_id
+    class HistoryScope {
+        +&str key + String title
+        +ReadableColumns readable
+        +bool label_readable
     }
-    AdminActionLog ..> HistoryModel : log_admin_action() insert
+    ActionLog ..> HistoryModel : log_action
+    RegisteredModel ..> HistoryScope : history_scope (read plein seulement)
 ```
 
-## Daemon admin (génération de code)
+- `object_repr` : libellé figé au moment de l'action (lisible après rename/delete), max 255.
+- Pas de FK sur `user_id` (audit survit à la suppression du compte) — **D2** à documenter.
+- `read_own` seul n'ouvre **pas** l'historique d'une ressource (impossible de savoir
+  à qui appartenait une ligne passée).
 
-[`admin/daemon/`](../../../runique/src/admin/daemon/) — fonctions (pas de struct) :
+## Forms internes admin (bulk / confirm)
+
+[`admin/builder/bulk_form.rs`](../../../runique/src/admin/builder/bulk_form.rs),
+[`confirm_form.rs`](../../../runique/src/admin/builder/confirm_form.rs)
 
 ```mermaid
-flowchart LR
-    SRC["src/admin.rs — admin!{}"] --> PAR[parser.rs]
-    PAR --> GEN[generator.rs]
-    GEN --> OUT["src/admins/admin.rs (généré · DO NOT EDIT)"]
-    OUT --> REG[AdminRegistry au boot]
-    WAT[watcher.rs] -->|hot-reload dev| GEN
+classDiagram
+    class BulkForm {
+        +ids + action index
+        +from_form / register_fields
+    }
+    class ConfirmForm {
+        +confirmation CSRF-bound
+        +from_form / register_fields
+    }
+    class BulkOutcome {
+        <<enum>>
+        Updated(u64)
+        Deleted(u64)
+        Refused(String)
+    }
+    class FormOutcome {
+        <<enum>>
+        Show(Value)
+        Saved(Option~email~)
+    }
+    BulkForm ..> BulkOutcome
+    ConfirmForm ..> FormOutcome
 ```
 
-Routes émises par `routes()` : deux plates `/{resource}/{action}` + `/{resource}/{id}/{action}`
-et **deux imbriquées** `/{parent}/{parent_id}/{resource}/[{id}/]{action}` (cf. ressources enfant
-scopées). `count_fn`/`list_fn` générés portent le param/champ `scope`.
+Les actions groupées ne portent **jamais** la valeur à écrire : l'URL/form ne
+nomme que l'index d'une `Action` déclarée (colonne + valeur fixées dans le builder).
+Sur la table comptes, rangs et `is_active` sont interdits en action groupée.
 
-## Anomalies / flux suspects
+## Router — pages spéciales
 
-### 🟢 `log_admin_action` désormais tracé (rappel)
-L'insert audit loggue son échec (`warn!`) au lieu de l'avaler — cf. correctifs tracing.
+| Route | Rôle |
+|-------|------|
+| `…/rank` | POST changement de rang (gate + `Rang::cibles_gerables`) |
+| `…/{id}/rights` | grille de droits d'un admin ou d'un groupe |
+| `…/{id}/groups` | memberships compte ↔ groupes |
+| `…/{id}/transfer` | transfert de responsabilité de groupe |
+| `…/{id}/reset-password` | lien reset (gate `ResetPassword`, rang protégé) |
+| `…/history` | journal filtré par `history_scopes` |
 
-### 🟡 Rappel A1/A2 — closures `Option` + `own_field`
-Voir [admin-resource-permissions.md](admin-resource-permissions.md) : closures CRUD `Option`
-(no-op silencieux) et `own_field = None` (droits `*_own` inopérants sans warning).
+## Anomalies / notes
+
+| ID | Note |
+|----|------|
+| **D2** | `user_id` history sans FK — voulu (survie audit) ; documenter |
+| **D3** | Index manquants possibles (`history` composite, `sessions.user_id`, `reset_tokens.expires_at`) — valider sous DB réelle |
+| **AM4** | Cache permissions process-local **supprimé** : droits relus à chaque requête admin |
+| Templates | Contrat de contexte : `chrome()` injecte `resources`, `nav`, `current_user`, `stylesheets`, messages i18n |

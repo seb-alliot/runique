@@ -200,44 +200,14 @@
   },
   "cli": {
     "creating_project": "Projekt '{}' wird erstellt...",
-    "admin_detected": "Admin erkannt → Admin-Code wird generiert",
-    "add_admin_hint": "Fügen Sie .with_admin(...) in Ihren Builder ein, um das Admin-Panel zu aktivieren.",
-    "daemon_error": "[Daemon] Fehler: {}",
-    "cargo_run_failed": "Der Anwendungsserver wurde nicht korrekt gestartet (cargo run)",
-    "file_not_found": "Datei nicht gefunden: {}\nStellen Sie sicher, dass Sie sich im Stammverzeichnis Ihres Runique-Projekts befinden.",
-    "admin_not_found": "Admin-Datei nicht gefunden: {}\nErstellen Sie src/admin.rs mit dem Makro admin!{}.",
     "name_empty": "Der Projektname darf nicht leer sein",
     "name_invalid": "Der Projektname darf nur Buchstaben, Zahlen, _ oder - enthalten",
     "name_dash": "Der Projektname darf nicht mit - beginnen",
     "folder_exists": "Der Ordner '{}' existiert bereits",
-    "cargo_run_expect": "Fehler beim Starten von cargo run",
     "project_created": "Projekt '{}' erfolgreich erstellt!",
     "getting_started": "Erste Schritte:",
     "cd_hint": "cd {}",
-    "cargo_run_hint": "cargo run",
-    "fmt_failed": "cargo fmt fehlgeschlagen — Formatierung übersprungen: {}"
-  },
-  "daemon": {
-    "unable_read": "Kann nicht lesen: {}",
-    "parse_error": "Analysefehler: {}",
-    "no_resource": "Keine Ressource in admin!{} — nichts zu generieren",
-    "operational": "Daemon läuft → src/admins/admin.rs",
-    "generation_error": "Generierungsfehler: {}",
-    "generated_header": "AUTOMATISCH GENERIERT — NICHT MANUELL BEARBEITEN",
-    "generated_notice": "Erzeugt von `runique start` aus src/admin.rs. Alle Änderungen werden überschrieben."
-  },
-  "macro": {
-    "named_fields_only": "Nur Structs mit benannten Feldern",
-    "structs_only": "Funktioniert nur auf Structs",
-    "forms_field_required": "Struct '{}' muss ein 'Forms'-Feld haben",
-    "field_no_name": "Feld ohne Namen",
-    "model_form_named_only": "DeriveModelForm: nur Structs mit benannten Feldern",
-    "model_form_structs_only": "DeriveModelForm: nur Structs"
-  },
-  "parser": {
-    "multiple_admin_blocks": "admin!: pro Datei ist nur ein admin!-Block erlaubt (erster Block in Zeile {}, zweiter in Zeile {}) — führen Sie sie zusammen",
-    "title_required": "admin!: 'title' ist erforderlich",
-    "list_display_exclude_exclusive": "admin!: 'list_display' und 'list_exclude' schließen sich gegenseitig aus"
+    "cargo_run_hint": "cargo run"
   },
   "TemplateMessage": {
     "debug_info_title": "Debug-Informationen",
@@ -315,7 +285,7 @@
       "btn_create": "Erstellen",
       "see_list": "Liste anzeigen →",
       "empty_title": "Keine Ressourcen registriert",
-      "empty_desc": "Deklarieren Sie Ihre Ressourcen in src/admin.rs mit dem admin!{{}}-Makro und führen Sie dann runique start aus",
+      "empty_desc": "Registrieren Sie Ihre Modelle in src/admin.rs mit dem typisierten ModelAdmin-Builder, dann cargo run",
       "kpi_resources": "Ressourcen",
       "kpi_entries": "Einträge gesamt",
       "kpi_largest": "Größte",

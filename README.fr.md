@@ -1,7 +1,7 @@
 # Runique — l'expérience développeur Django, en Rust type-safe
 
 ![Rust](https://img.shields.io/badge/rust-1.94%2B-orange)
-![Tests passing](https://img.shields.io/badge/tests-2875%20passing-green)
+![Tests passing](https://img.shields.io/badge/tests-3092%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Version](https://img.shields.io/badge/version-4.0.0-blue)
 [![Crates.io](https://img.shields.io/crates/v/runique)](https://crates.io/crates/runique)
@@ -98,8 +98,8 @@ cd myapp
 cargo run            # votre app est un binaire Rust normal
 ```
 
-> Préférez un simple `cargo run`. `runique start` est un lanceur mince autour
-> du même binaire une fois l'admin câblé avec `.with_admin(...)` et `ModelAdmin`
+> Préférez un simple `cargo run`. Câblez l'admin avec `.with_admin(...)` et le
+> builder typé `ModelAdmin` dans `src/admin.rs` — pas d'étape de génération
 > (voir [Admin (bêta)](#admin-beta)).
 
 Un `main.rs` allégé (version complète dans `demo-app/src/main.rs`) :
@@ -153,13 +153,15 @@ Version du workspace (source de vérité) : **4.0.0**.
 
 ## CLI
 
-`runique` fournit :
+`runique` fournit (voir `runique/src/bin/runique.rs`) :
 
 - `runique new <name>`
-- `runique start` — lance l'app (équivalent à `cargo run` une fois l'admin câblé)
 - `runique create-superuser`
+- `runique test [file] [test]`
 - `runique makemigrations --entities src/entities --migrations migration/src [--force false]`
 - `runique migration up --migrations migration/src` (retour arrière et état : `sea-orm-cli migrate down` / `status`)
+
+Pas de `runique start` : l'app est un binaire Rust normal (`cargo run`). L'admin est du Rust plain (`ModelAdmin` + `.with_admin(...)`), sans génération de code.
 
 ---
 
@@ -195,7 +197,7 @@ Référence complète : [Sessions](https://runique.io/docs/fr/session)
 
 ## Tests et couverture
 
-- Tests rapportés : **2875 réussis** (110 ignorés)
+- Tests rapportés : **3092 réussis** (3 ignorés)
 - Snapshot de couverture (`2026-10-08`, package `runique`, module admin inclus) : fonctions **88.72%**, lignes **88.81%**, régions **87.25%**
 
 ```bash

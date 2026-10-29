@@ -2,16 +2,19 @@
 
 ## CLI
 
+Commandes réelles du binaire `runique` (voir `runique/src/bin/runique.rs`) : `new`, `create-superuser`, `test`, `makemigrations`, `migration up`. Pas de `runique start` — l'admin est du Rust plain, `cargo run` suffit. Annuler / lister les migrations passe par SeaORM, pas par un sous-commande Runique.
+
 | Commande | Django | Runique |
 |----------|--------|---------|
 | Créer un projet | `django-admin startproject nom` | `runique new nom` |
 | Créer une app | `python manage.py startapp nom` | — |
 | Migrations (générer) | `python manage.py makemigrations` | `runique makemigrations` |
 | Migrations (appliquer) | `python manage.py migrate` | `runique migration up` |
-| Migrations (annuler) | `python manage.py migrate app 0001` | `sea-orm-cli migrate down -n N` |
+| Migrations (annuler) | `python manage.py migrate app 0001` | `sea-orm-cli migrate down` |
 | Statut migrations | `python manage.py showmigrations` | `sea-orm-cli migrate status` |
 | Créer superuser | `python manage.py createsuperuser` | `runique create-superuser` |
-| Démarrer | `python manage.py runserver` | `cargo run` (admin en Rust plain — pas d'étape de génération) |
+| Tests | `python manage.py test` | `runique test` |
+| Démarrer | `python manage.py runserver` | `cargo run` |
 
 ---
 

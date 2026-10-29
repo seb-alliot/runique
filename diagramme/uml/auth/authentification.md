@@ -1,106 +1,210 @@
-# UML — Authentification (traits, session, lockout, reset password)
+# UML — Authentification 4.0 (session, gate, rang, reset)
 
-[`auth/session.rs`](../../../runique/src/auth/session.rs),
-[`auth/guard.rs`](../../../runique/src/auth/guard.rs),
-[`auth/password.rs`](../../../runique/src/auth/password.rs),
-[`auth/user.rs`](../../../runique/src/auth/user.rs)
+Sources :
+[`auth/`](../../../runique/src/auth/),
+[`auth/gate/`](../../../runique/src/auth/gate/),
+[`auth/permissions/`](../../../runique/src/auth/permissions/),
+[`auth/migrations_table.rs`](../../../runique/src/auth/migrations_table.rs)
 
-## Trait & comptes (`eihwaz_users`, seul modèle utilisateur)
+## Comptes (`eihwaz_users`)
 
 ```mermaid
 classDiagram
     class RuniqueUser {
         <<trait>>
         +user_id() Pk
-        +email() &str
+        +email() / username() &str
         +password_hash() &str
-        +is_staff() / is_superuser() bool
+    }
+    class UserModel {
+        +Pk id
+        +String username / email / password
+        +bool is_active
+        +bool is_dirigeant / is_admin / is_superuser
+        +Option created_at / updated_at / activated_at
     }
     class BuiltinUserEntity {
-        <<unit>>
-        +find_by_id/email/username(...)
-        +update_password_by_id(...)
-        +activate_pending(...) / set_password_and_activate(...)
+        <<unit helpers>>
+        +find_by_id / email / username
+        +update_password_by_id
+        +activate_pending / set_password_and_activate
     }
     class authenticate_admin {
         <<fn>>
-        password vérifié d'abord, puis actif et staff/superuser
+        password d'abord, puis actif + can_access_admin
     }
+    class ModelMeta {
+        <<impl user::Entity>>
+        KEY = users
+        IS_ACCOUNT_TABLE / IS_FRAMEWORK_TABLE
+        SECRET = [password]
+        LABEL = username
+    }
+    UserModel ..|> RuniqueUser
+    BuiltinUserEntity ..> UserModel
     authenticate_admin ..> BuiltinUserEntity
-    BuiltinUserEntity ..> RuniqueUser : Model eihwaz_users
+    UserModel ..> ModelMeta
 ```
 
-## Lockout (process-local)
+Changements 4.0 vs diagrammes 3.x :
+
+- **`is_staff` retiré du user** — le staff est un flag de **groupe**.
+- **`is_dirigeant` + `is_admin`** ajoutés ; CHECK DB `ONE_RANK_AT_MOST` (au plus un rang).
+- CHECK `ACTIVE_NEEDS_ACTIVATION` : `is_active` ⇒ `activated_at` non NULL.
+- Migrations framework déplacées : `auth/migrations_table.rs` (plus `admin/table_admin/`).
+
+## CurrentUser & Rang
 
 ```mermaid
 classDiagram
-    class LoginGuard {
-        -Store store [Arc Mutex HashMap]
-        +u32 max_attempts
-        +u64 lockout_secs
-        +new() / max_attempts() / lockout_secs()
-        +spawn_cleanup(period)
-        +record_failure / is_locked / reset
+    class CurrentUser {
+        +Pk id
+        +String username
+        +Rang rang
+        +Vec~Groupe~ groupes
+        +Vec~Permission~ droits
+        +rights_on(key) Rights
+        +groups_union(key) Option~Permission~
+        +can_access_admin() bool
+        +is_staff() bool
     }
-    note for LoginGuard "Store en mémoire process-local"
+    class Rang {
+        <<enum Ord>>
+        Lambda < Admin < Dirigeant < Superuser
+        +cibles_gerables() Option~Condition~
+    }
+    class Groupe {
+        +id + nom
+        +bool is_staff / is_active
+        +Vec~Permission~ permissions
+    }
+    CurrentUser --> Rang
+    CurrentUser --> Groupe
+    CurrentUser --> Permission
 ```
 
-## Reset password (token haché, single-use)
+`can_access_admin` = `rang > Lambda` **ou** membre d'un groupe `is_staff`.
+Les droits d'un Admin sont sur **son compte** (`droits`) ; ceux d'un Lambda
+viennent de l'union de ses groupes ; Superuser/Dirigeant = tout (sans grille).
+
+## Gate (preuves) — cœur sécurité écritures
+
+Voir le détail classes dans [../admin/admin-resource-permissions.md](../admin/admin-resource-permissions.md).
+
+```mermaid
+flowchart LR
+    Req[Requête admin / save_as] --> MW[AdminConstraint]
+    MW --> CTX[GateCtx]
+    CTX --> DEC{decide: floor → rights → métier}
+    DEC -->|ok| PR[Authorized~O,E~]
+    DEC -->|non| RF[Refusal]
+    PR --> WR[write / save_as]
+    WR --> HIST[history log_action même txn]
+```
+
+Opérations : `List`, `View`, `Create`, `Update`, `Delete`, `ResetPassword`.
+Sur la table comptes, `Update`/`Delete`/`ResetPassword` appliquent
+`Rang::cibles_gerables` (strictement inférieur, jamais soi-même).
+
+## Session & lockout
+
+```mermaid
+classDiagram
+    class session {
+        <<mod>>
+        +login / logout
+        +protect_session / unprotect_session
+        +is_authenticated
+    }
+    class LoginGuard {
+        -Store process-local
+        +max_attempts / lockout_secs
+        +record_failure / is_locked / reset
+        +spawn_cleanup
+    }
+    class LoginError {
+        <<enum>>
+    }
+    session ..> LoginError
+    AdminConfig --> LoginGuard
+```
+
+TTL session : source unique builder (`OnceLock`, défaut 24h) — **AM3** corrigé.
+Lockout / rate-limit restent process-local → limite multi-instance (roadmap).
+
+## Reset password
 
 ```mermaid
 classDiagram
     class PasswordResetConfig {
-        +String forgot_route / reset_route
-        +String forgot_template / reset_template
-        +Option~String~ email_template
-        +String success_redirect
-        +Option~String~ base_url
-        +u64 max_requests / retry_after
-        +Duration token_ttl [défaut 1h]
+        +routes + templates
+        +token_ttl / rate
+        +base_url / success_redirect
     }
-    class ForgotPasswordForm {
-        +email
-    }
-    class PasswordResetForm {
-        +token
-        +new_password / confirm
-    }
+    class ForgotPasswordForm
+    class PasswordResetForm
     class ResetToken {
         <<eihwaz_reset_tokens>>
-        +bigint id
-        +String token_hash UK
-        +Pk user_id FK
-        +NaiveDateTime expires_at
-        +generate() / consume() / peek()
+        +token_hash UK
+        +user_id FK
+        +expires_at
     }
-    class build_router {
-        <<fn>>
-    }
-    build_router ..> BuiltinUserEntity
-    build_router ..> PasswordResetConfig
-    build_router ..> ResetToken
-    ForgotPasswordForm ..> ResetToken : génère (hashé)
-    PasswordResetForm ..> ResetToken : consume (single-use)
+    class handle_forgot_password
+    class handle_password_reset
+    PasswordResetConfig --> ForgotPasswordForm
+    PasswordResetConfig --> PasswordResetForm
+    handle_forgot_password ..> ResetToken
+    handle_password_reset ..> ResetToken
+    handle_password_reset ..> BuiltinUserEntity
 ```
 
-Sécurité reset (vérifié) : token **stocké haché** (jamais brut), **single-use strict**
-(delete + `rows_affected == 1`), `user_id` dérivé **du token** (jamais d'un champ URL/form)
-→ IDOR-safe.
+Token brut uniquement dans le mail ; DB = hash. `consume` single-use
+(`rows_affected == 1`). `user_id` vient du token, jamais de l'URL → IDOR-safe.
+Réponse forgot identique si email inconnu (anti-énumération).
 
-## Anomalies / flux suspects
+## Permissions en base
 
-### 🟠 AU1 — Lockout `LoginGuard` en mémoire process-local
-[`guard.rs:84`](../../../runique/src/auth/guard.rs#L84)
-Le compteur d'échecs vit dans une `HashMap` mémoire. En multi-process/multi-instance,
-le lockout d'une instance n'est pas vu par les autres → un attaquant réparti sur N instances
-multiplie les tentatives par N avant blocage. Cohérent avec le modèle mono-process actuel,
-mais à acter.
+```mermaid
+classDiagram
+    class eihwaz_groupes {
+        id PK
+        nom UK
+        is_staff
+        is_active
+        responsable_id FK users RESTRICT
+        repris_par FK users SET NULL
+    }
+    class eihwaz_groupes_droits {
+        id PK
+        groupe_id? FK CASCADE
+        user_id? FK CASCADE
+        resource_key
+        colonne  « "" = table »
+        can_create/read/read_own
+        can_update/update_own
+        can_delete/delete_own
+    }
+    class eihwaz_users_groupes {
+        user_id FK
+        groupe_id FK
+        PK composite
+    }
+    eihwaz_groupes ||--o{ eihwaz_groupes_droits : groupe
+    eihwaz_users ||--o{ eihwaz_groupes_droits : admin grid
+    eihwaz_users ||--o{ eihwaz_users_groupes
+    eihwaz_groupes ||--o{ eihwaz_users_groupes
+```
 
-### 🟡 AU2 — Cache permissions sans invalidation cross-instance (rappel AM4) — ✅ CORRIGÉ (2026-10-03)
-Cache supprimé : `load_admin_user` relit l'état du compte (`BuiltinUserEntity::find_by_id`) et les droits
-(`pull_groupes_db`, 2 requêtes) à chaque requête admin. Plus aucune copie à invalider.
+CHECK : exactement un holder (`groupe_id` XOR `user_id`) ; un groupe ne cible
+jamais une table framework ; une ligne colonne n'a que read/create/update.
 
-### Rappels (déjà listés ailleurs)
-- **AM2** double écriture `eihwaz_sessions` au login (`session_id` divergent).
-- **AM3** TTL 24h codé en dur en double.
-- **S1** sessions anonymes (et leur CSRF) perdues au restart.
+## Anomalies / notes
+
+| ID | Note | Statut |
+|----|------|--------|
+| **AM3** | TTL session unique | ✅ |
+| **AM4** | cache permissions | ✅ supprimé (relecture DB) |
+| **S1/S2** | sessions anonymes / lock avant write | ouverts (DB) |
+| **AU1** | lockout process-local | multi-instance roadmap |
+| **SU1** | create-superuser pk-uuid | ✅ |
+| Rank rule | codée en WHERE, pas en pre-read cible | design voulu |

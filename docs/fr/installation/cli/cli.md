@@ -6,7 +6,7 @@
 runique create-superuser
 ```
 
-Une interface en ligne de commande pour créer des superutilisateurs, lancer le serveur et gérer les migrations.
+Interface en ligne de commande pour créer un projet, un superutilisateur, générer/appliquer les migrations et lancer les tests métier.
 
 ```
 === Créer un superutilisateur ===  [Ctrl+C pour quitter]
@@ -44,12 +44,13 @@ Choix [1-4] (défaut: 1) :
 
 ```bash
 runique new <nom>                                                    # Créer un nouveau projet
-runique start [--main src/main.rs] [--admin src/admin.rs]           # Lancer avec daemon admin
 runique makemigrations --entities src/entities --migrations migration/src  # Générer les migrations
 runique migration up --migrations migration/src                     # Appliquer les migrations (sea-orm-cli migrate up)
 runique create-superuser                                            # Créer un superutilisateur
 runique test [fichier] [test]                                       # Lancer src/runique_test/ (voir Tests)
 ```
+
+Pas de `runique start` : l'app se lance avec `cargo run`. L'admin se déclare en Rust plain (`ModelAdmin` + `.with_admin(...)`), sans daemon ni génération.
 
 Annuler ou lister les migrations passe par SeaORM : `sea-orm-cli migrate down -n N`, `sea-orm-cli migrate status`. `runique test` est décrit dans [Tests](/docs/fr/architecture/testing).
 

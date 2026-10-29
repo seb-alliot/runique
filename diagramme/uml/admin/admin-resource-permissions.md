@@ -1,274 +1,318 @@
-# UML — Admin : registry, resource, permissions, dispatch
+# UML — Admin 4.0 : ModelAdmin, AdminSite, gate, droits
 
-## Registry & ResourceEntry
+Refonte 4.0 : plus de `AdminRegistry` / `ResourceEntry` / closures CRUD optionnelles.
+Un modèle s'enregistre via un builder typé `ModelAdmin<E: ModelMeta>` ; le site
+efface le type derrière `dyn RegisteredModel` ; **chaque écriture passe par le gate**
+(`auth::gate`) qui délivre une preuve `Authorized<O, E>` consommée une seule fois.
 
-[`registry.rs`](../../../runique/src/admin/registry.rs),
-[`helper/resource_entry.rs`](../../../runique/src/admin/helper/resource_entry.rs)
+Sources :
+[`admin/builder/`](../../../runique/src/admin/builder/),
+[`admin/router/`](../../../runique/src/admin/router/),
+[`auth/gate/`](../../../runique/src/auth/gate/),
+[`auth/meta.rs`](../../../runique/src/auth/meta.rs),
+[`auth/permissions/`](../../../runique/src/auth/permissions/)
+
+## Vue d'ensemble
 
 ```mermaid
 classDiagram
-    class AdminRegistry {
-        +IndexMap~String, ResourceEntry~ resources
-        +register(entry)
-        +get(key) Option~&ResourceEntry~
-        +configure(key, DisplayConfig)
-        +configure_group_actions(key, actions)
-        +remove(key) / reorder(order)
-        +visible_to(user) Vec~&AdminResource~
-        +accessible_keys(user) Vec~String~
+    class AdminStaging {
+        +AdminConfig config
+        +bool enabled
+        +AdminSite site
+        +register(ModelAdmin) Self
+        +accounts_users(ModelAdmin) Self
+        +path / prefix / resource_order / templates…
+        +validate() CheckReport
     }
-    class ResourceEntry {
-        +AdminResource meta
-        +FormBuilder form_builder
-        +Option~FormBuilder~ edit_form_builder
-        +Option~ListFn~ list_fn
-        +Option~GetFn~ get_fn
-        +Option~DeleteFn~ delete_fn
-        +Option~UpdateFn~ update_fn
-        +Option~UpdateFn~ partial_update_fn
-        +Option~CreateFn~ create_fn
-        +Option~CountFn~ count_fn
-        +Option~FilterFn~ filter_fn
-        +Vec~GroupAction~ group_actions
-        +Option~M2mLoaderFn~ m2m_loader
-        +&[&str] unique_fields
-        +Option~&str~ own_field
-        +Option~EnumLabelFn~ enum_label_fn
+    class AdminSite {
+        -Vec~Box~RegisteredModel~~ models
+        -Box~RegisteredModel~ accounts
+        -Box~RegisteredModel~ groups
+        -HashMap overrides
+        +register(ModelAdmin) Self
+        +accounts_users(ModelAdmin) Self
+        +model(key) Option~&dyn RegisteredModel~
+        +navigation(user, order) Vec~NavEntry~
+        +history_scopes(db, user) Vec~HistoryScope~
+        +check() Vec~String~
     }
-    class AdminResource {
-        +&str key
-        +DisplayConfig display
-        +Option~String~ template_list/create/edit/detail/delete
-        +HashMap~String,String~ extra_context
-        +Vec~(col,fk_table,label)~ fk_display
-        +Option~ParentScope~ parent_scope
-        +parent_scope(parent_key, fk_col, local_key) Self
+    class ModelAdmin~E: ModelMeta~ {
+        +ListConfig~E~ list
+        +FormConfig~E~ form
+        +Option~String~ title
+        +ModelTemplates templates
+        +new() / title() / list() / form() / templates()
+        +validate() Result
     }
-    class ParentScope {
-        +&str parent_key
-        +&str fk_col
-        +Option~&str~ local_key
-        +is_composite() bool
+    class RegisteredModel {
+        <<trait async>>
+        +key() / pk_column() / title() / check()
+        +visible_to(user) bool
+        +rights(user) CrudAction
+        +list / detail / create / edit / delete / bulk
+        +reset_password / history_scope / count_query
+        +keeps_account_rules() bool
     }
-    class DisplayConfig {
-        +Option~String~ icon
-        +ColumnFilter columns
-        +usize pagination
-        +Vec~(String,String,u64)~ list_filter
+    class ModelMeta {
+        <<trait>>
+        +const KEY
+        +const OWNER / SECRET / LABEL
+        +const IS_ACCOUNT_TABLE / IS_FRAMEWORK_TABLE
+        +type Form
+        +schema() ModelSchema
     }
-    AdminRegistry "1" o-- "*" ResourceEntry
-    ResourceEntry "1" *-- "1" AdminResource
-    AdminResource "1" *-- "1" DisplayConfig
-    AdminResource "1" o-- "0..1" ParentScope
+    AdminStaging *-- AdminSite
+    AdminStaging *-- AdminConfig
+    AdminSite o-- "*" RegisteredModel
+    ModelAdmin ..|> RegisteredModel : impl for E
+    ModelAdmin ..> ModelMeta : E:
 ```
 
-`ParentScope` déclare une resource comme **enfant scopé** d'une autre (atteinte via
-`/{parent}/{parent_id}/{child}/…`) : la liste enfant est filtrée `WHERE fk_col = parent_id`,
-le formulaire fixe/masque `fk_col`, et le détail parent la rend en sous-liste inline.
-`local_key = Some(col)` = enfant composite (jonction, closure-id `"{parent_id}:{col}"`,
-ex. `groupes_droits`) ; `None` = enfant à PK propre. Un enfant scopé reste visible au
-top-level **et** inline (les deux coexistent) ; il n'est pas route-bloqué.
+`AdminSite::default()` pose déjà l'admin des comptes (`eihwaz_users`) et des groupes
+(`eihwaz_groupes`). Un projet ne peut remplacer les comptes que via
+`accounts_users()` (un `register` sous la même clé est refusé au boot).
 
-`FormBuilder`/`ListFn`/`GetFn`/`DeleteFn`/`UpdateFn`/`CreateFn`/`CountFn`/`FilterFn`/
-`M2mLoaderFn` = closures `Arc<dyn Fn(...) -> BoxFuture<...>>` (effacement de type pour
-stocker des resources hétérogènes dans une seule map → pattern Strategy + type erasure).
-
-## Permissions (RBAC) & dispatch
-
-[`permissions/mod.rs`](../../../runique/src/auth/permissions/mod.rs),
-[`admin_main/action.rs`](../../../runique/src/admin/admin_main/action.rs)
+## ListConfig & FormConfig (déclaratif, typé colonnes)
 
 ```mermaid
 classDiagram
+    class ListConfig~E~ {
+        -Vec~Column~ display / links / sortable / filter / search
+        -Vec~(Column,Order)~ ordering
+        -Option~u64~ per_page
+        -Vec~Action~ actions
+        +display / links / sortable / ordering / search / filter
+        +per_page / action / empty_value / search_help
+        +validate() / select(proof) / resolve_*
+    }
+    class Action~E~ {
+        +Column col
+        +Value value
+        +String label
+    }
+    class ListQuery {
+        +u64 page
+        +Option sort_by / sort_dir / search
+        +Vec~(col,value)~ filters
+        +from_params(StrMap, max_len)
+    }
+    class FormConfig~E~ {
+        -Vec~Column~ fields / readonly / create_only
+        -Vec~(Column,String)~ labels
+        +fields / readonly / create_only / labels
+        +writable_on_create / writable_on_edit
+        +read_columns() / validate()
+    }
+    class ListPage {
+        +Vec columns / sortable / rows
+        +u64 total / page / page_size
+        +Vec~ListFilter~ filters
+        +Vec~OfferedAction~ actions
+    }
+    ListConfig --> Action
+    ListConfig ..> ListQuery : résout
+    ModelAdmin *-- ListConfig
+    ModelAdmin *-- FormConfig
+    RegisteredModel ..> ListPage : list()
+```
+
+Rien de l'URL n'est crédible : `ListQuery` ne fait que parser ; `ListConfig` décide
+quelles colonnes un nom peut atteindre (tri, filtre, recherche). Les secrets
+(`ModelMeta::SECRET`) et les flags de rang (`is_superuser` / `is_dirigeant` /
+`is_admin`) sont refusés dès `ModelAdmin::validate()`.
+
+## Gate — preuves typées (source unique d'autorisation)
+
+```mermaid
+classDiagram
+    class GateCtx {
+        +&ADb db
+        +&CurrentUser user
+    }
+    class AdminOperation {
+        <<trait>>
+        +const CRUD_NATURE
+        +const RIGHT / RIGHT_OWN
+        +const PROTECTS_RANK
+    }
+    class List
+    class View
+    class Create
+    class Update
+    class Delete
+    class ResetPassword
+    class Authorized~O,E~ {
+        -Option~Pk~ id
+        -Condition conditions
+        -ReadableColumns readable
+        +id() / readable()
+        +into_parts()  « consommé »
+    }
+    class ReadableIds~E~
+    class WritesLinks~E~
+    class Refusal {
+        +RefusalReason reason
+        +message() String
+    }
+    class CrudAction {
+        +can_create/read/read_own
+        +can_update/update_own
+        +can_delete/delete_own
+        +is_superuser
+        +resolve(user, key) Self
+        +has(Crud) bool
+    }
+    class Scope~E~ {
+        <<enum>>
+        All
+        Own(Column, Pk)
+    }
+    AdminOperation <|.. List
+    AdminOperation <|.. View
+    AdminOperation <|.. Create
+    AdminOperation <|.. Update
+    AdminOperation <|.. Delete
+    AdminOperation <|.. ResetPassword
+    GateCtx ..> Authorized : authorize_*
+    Authorized ..> Refusal : Err
+    CrudAction ..> Scope
+```
+
+Trois niveaux, dans l'ordre (tout « non » → même `Refusal`) :
+
+1. **Plancher Runique** — tables framework, secrets, comptes superuser, rangs ;
+2. **Droits du compte** — rang ou groupes (`CrudAction` / `ColumnRights`) ;
+3. **Règles métier du projet** — ne peuvent que restreindre.
+
+`Authorized` n'est ni `Clone` ni `Copy` : une écriture le consomme. Son
+constructeur est `pub(in crate::auth::gate)` — un court-circuit hors du module
+apparaît comme un changement de visibilité en revue.
+
+## Rang & résolution des droits
+
+```mermaid
+classDiagram
+    class Rang {
+        <<enum>>
+        Lambda
+        Admin
+        Dirigeant
+        Superuser
+        +of(flags) Self
+        +cibles_gerables() Option~Condition~
+    }
     class CurrentUser {
         +Pk id
         +String username
-        +bool is_staff
-        +bool is_superuser
+        +Rang rang
         +Vec~Groupe~ groupes
-        +permission_for(key) Option~Permission~
-        +permissions_effectives() Vec~Permission~
-        +can_access_resource(key) bool
+        +Vec~Permission~ droits
+        +rights_on(key) Rights
+        +can_access_admin() bool
+        +is_staff() bool
     }
-    class Groupe {
-        +Pk id
-        +String nom
-        +Vec~Permission~ permissions
+    class Rights {
+        +CrudAction crud
+        +ColumnRights columns
+    }
+    class ColumnRights {
+        <<enum>>
+        All
+        Only(Vec~ColumnRight~)
+        +readable() ReadableColumns
+        +can_create/can_update(col)
     }
     class Permission {
-        +String resource_key
-        +bool can_create/read/update/delete
-        +bool can_update_own/delete_own
-        +merge_from(other)
+        +resource_key
+        +can_* flags
+        +Vec~ColumnRight~ colonnes
     }
-    class ResourcePerms {
-        +bool can_create/read/update/delete
-        +bool can_update_own/delete_own
-        +resolve(user, key) Self
-        +can_edit(owns) bool
-        +can_remove(owns) bool
-    }
-    class CollectionAction {
-        <<enum>> List / Create / Bulk
-        +authorize_get(perms) Access
-        +authorize_post(perms, bulk) Access
-    }
-    class MemberAction {
-        <<enum>> Detail / Edit / Delete / ResetPassword
-        +authorize(perms, owns) Access
-    }
-    CurrentUser "1" o-- "*" Groupe
-    Groupe "1" o-- "*" Permission
-    ResourcePerms ..> CurrentUser : resolve()
-    CollectionAction ..> ResourcePerms
-    MemberAction ..> ResourcePerms
+    CurrentUser --> Rang
+    CurrentUser --> Permission
+    CurrentUser ..> Rights : rights_on
+    Rights *-- CrudAction
+    Rights *-- ColumnRights
 ```
 
-## Ressources enfant scopées (nested) & intégrité
+| Rang | Source des droits |
+|------|-------------------|
+| Superuser | tout (`is_superuser` bypass) |
+| Dirigeant | tout sauf bypass superuser |
+| Admin | grille posée sur **son compte** (`droits`, `user_id` dans `eihwaz_groupes_droits`) |
+| Lambda | union des **groupes** ; **jamais** sur une table framework |
 
-[`admin_main/mod.rs`](../../../runique/src/admin/admin_main/mod.rs),
-[`admin_main/handle_inline.rs`](../../../runique/src/admin/admin_main/handle_inline.rs),
-[`permissions/mod.rs`](../../../runique/src/auth/permissions/mod.rs)
+`is_staff` n'est plus un flag user : c'est un flag **groupe**. Un lambda entre
+dans l'admin s'il appartient à au moins un groupe `is_staff`.
 
-Une resource déclarée `parent_scope(...)` (cf. `ParentScope` plus haut) est atteignable via
-`/{parent}/{parent_id}/{child}/…` **en plus** du top-level. Les 4 handlers plats
-(`admin_get/post/get_id/post_id`) et 4 handlers `admin_nested_*` délèguent tous aux **mêmes
-dispatchers** — un seul chemin flat/nested.
+## Router admin (routes générées + couches)
 
 ```mermaid
 classDiagram
-    class RouteTarget {
-        +String resource_key
-        +String action
-        +Option~(parent_key,parent_id)~ parent
-        +flat(...) / nested(...)
+    class AdminPaths {
+        +login / dashboard / logout
+        +list / detail / create / edit / delete
+        +bulk / rank / reset_password
+        +rights / groups / transfer / history…
+        +list_of(key) / detail_of(site,key,id)
     }
-    class ParentBinding {
-        +String parent_key / parent_id
-        +&str fk_col
-        +Option~&str~ local_key
-        +is_composite() bool
-        +closure_id(local) String
-        +local_id(closure_id) &str
-        +base_path(prefix, child) String
+    class AdminState {
+        +Arc~AdminConfig~ config
+        +Option~Arc~LoginGuard~~ login_guard
+        +AdminPaths paths
+        +Arc~PageSheets~ sheets
     }
-    class InlineList {
-        +String key / title / base
-        +bool can_create / can_update / can_delete
-        +Vec~String~ columns
-        +Vec~Value~ rows
+    class AdminView {
+        <<enum>>
+        Detail
+        Standalone
     }
-    RouteTarget ..> ParentBinding : resolve_scope() valide
-    ParentBinding ..> InlineList : build_inlines() (détail parent)
+    class build_admin_router {
+        <<fn>>
+        login public + CRUD protégé
+        + layers : load_user, admin_access, noindex, no-store
+    }
+    build_admin_router ..> AdminState
+    build_admin_router ..> AdminPaths
+    build_admin_router ..> AdminSite
 ```
 
-Fonctions clés (libres, `mod.rs`) :
+Routes modèle (extrait) : `{prefix}/{resource}/list|create|bulk`,
+`{prefix}/{resource}/{id}/detail|edit|delete|reset-password|rights|groups|transfer`,
+plus history, rank, group_select. Les handlers ne font que router : auth,
+`CurrentUser`, `AdminConstraint` et chrome viennent des layers.
 
-- `resolve_scope(meta, parent)` — valide le binding nested vs `ParentScope` (sinon 404, interdit
-  `/{parent_étranger}/{id}/{child}/…`) ; un flat sur enfant scopé est **autorisé** (juste masqué
-  du nav, pas route-bloqué → bypass superuser préservé).
-- `ParentBinding.closure_id()/local_id()` — reconstruit/strippe l'id composite `"{parent}:{local}"`
-  (enfant jonction, `local_key = Some`) → les closures CRUD restent **inchangées**.
-- `verify_scope_ownership()` — garde **IDOR** pour un enfant à PK propre (`local_key = None`) :
-  vérifie `row[fk_col] == parent_id` (erreur DB tracée, pas avalée).
-- `force_scope_values()` / `hide_scope_fields()` (handle_crud) — **force** `fk_col = parent_id`
-  depuis le path autorisé (jamais le body) + masque le champ FK/clé locale dans le form.
-- `scope_base()` — base d'URL scope-aware, injectée en contexte (`resource_base`), **source unique**
-  des liens templates.
-- `build_inlines()` → `Vec~InlineList~` — sous-listes du détail parent (filtrées `can_read`,
-  boutons gatés `can_create/update/delete`).
+## Flux d'une page liste (résumé)
 
-**Intégrité — `prune_orphan_droits(db, valid_keys)`** ([permissions/mod.rs](../../../runique/src/auth/permissions/mod.rs)) :
-au **boot**, supprime les droits dont `resource_key ∉ registry` (réf. molle sans FK). Ferme la
-réutilisation-de-clé → grant périmé. No-op si `valid_keys` vide (jamais tout purger).
+```mermaid
+sequenceDiagram
+    participant MW as admin_access
+    participant H as list_view
+    participant S as AdminSite
+    participant M as dyn RegisteredModel
+    participant G as gate (authorize_list)
+    participant DB as DB
 
-> ⚠️ **Propriété de sécurité assumée** : `can_*` sur la resource `users` = **super-admin de fait**
-> (permet de fixer `is_superuser`/`is_staff` et de s'assigner un groupe). Granularité au niveau
-> resource ; pas de gate caché. Une vraie granularité « gérer sans élever » = feature niveau-champ.
+    MW->>MW: load_admin_user + can_access_admin
+    MW->>MW: insert AdminConstraint(user)
+    H->>S: model(resource)
+    H->>M: list(db, user, ListQuery, page_size)
+    M->>G: authorize_list → Authorized~List,E~
+    G-->>M: proof + Scope + ReadableColumns
+    M->>DB: SELECT filtré (conditions du proof)
+    M-->>H: ListPage
+    H->>H: chrome + template list
+```
 
 ## Anomalies / flux suspects
 
-### 🟠 A1 — Toutes les closures CRUD sont `Option` → no-op silencieux
-`list_fn`, `get_fn`, `create_fn`, `update_fn`, `delete_fn`… sont `Option`. Les handlers font
-`match &entry.get_fn { Some(f) => …, None => None }`. Si une resource est enregistrée sans
-sa closure (bug de génération du daemon), l'action **échoue en silence** (page vide / pas
-d'erreur) au lieu de 501/500. À tracer : un `None` inattendu devrait logger/erreur, pas
-dégrader silencieusement. (Lié à la règle « zéro erreur avalée ».)
+| ID | Observation | Statut |
+|----|-------------|--------|
+| **A1/A2** (closures Option no-op / own_field) | Architecture 3.x — **disparue**. Plus de closures CRUD ; ownership = `ModelMeta::OWNER` + preuves gate | ✅ sans objet en 4.0 |
+| **A3** (`list_filter` builtins sans `filter_fn`) | Plus de builtins manuels ni `filter_fn` : filtres = `ListConfig::filter` + valeurs lues en base sous le scope du proof | ✅ sans objet |
+| **A7** (pas de `get_queryset`) | Toujours ouvert côté design : le gate accepte des règles métier restrictives, pas encore d'API publique « queryset » arbitraire type Django | 🟡 backlog |
+| **Gate** | Preuve non clonable + `WHERE` rejoué à l'écriture → TOCTOU d'une ligne concurrente = refus (0 row), pas d'écriture fantôme | design voulu |
+| **can_read_own** | Colonne présente en base ; résolution rang/grille opérationnelle. Vérifier la couverture UI grille si un admin doit la cocher | à surveiller |
 
-### 🟠 A2 — `own_field = None` bloque les permissions `*_own` (sain) mais silencieux
-[`resource_entry.rs:162`](../../../runique/src/admin/helper/resource_entry.rs#L162)
-Si `own_field` n'est pas déclaré, `check_owns_record` renvoie toujours `false` → les droits
-`can_update_own`/`can_delete_own` sont **inopérants**. C'est le défaut sûr, mais un admin qui
-coche « modifier les siens » sans `own_field` déclaré ne verra **aucun effet ni avertissement**.
-Candidat à un warning au boot (validation de cohérence resource).
-
-### 🟠 A3 — `list_filter` dans `configure {}` builtin → 500 (bug connu)
-Bug déjà répertorié : `list_filter` dans le bloc `configure {}` des resources builtin
-provoque `Variable filter_values[col] not found in context`. `DisplayConfig.list_filter`
-existe, mais le flux `configure` ne pousse pas `filter_values` dans le contexte. À confirmer
-dans le flux liste admin et relier au bug connu.
-
-### 🟡 A4 — `bulk POST` exige `can_create` (quirk préservé)
-[`admin_main/action.rs`](../../../runique/src/admin/admin_main/action.rs) `authorize_post` :
-un bulk edit/delete exige `can_create` **en plus** du droit d'opération. Comportement
-historique préservé volontairement, mais probablement une sur-restriction non intentionnelle.
-À trancher.
-
-### 🔴 A5 — `eihwaz_history` recopiait la valeur des champs sensibles
-**Corrigé (2.2.0).** [`admin/history.rs`](../../../runique/src/admin/history.rs) `diff_fields`
-parcourait le corps POST et n'excluait que `csrf_token` et `__original_updated_at` : modifier un
-utilisateur par l'admin écrivait **l'ancien et le nouveau hash Argon2** dans la table d'audit, et
-la vue diff les affichait.
-
-Ce qui rend l'anomalie sérieuse n'est pas le hash en lui-même (Argon2id `m=19456,t=2` résiste
-bien) mais **la frontière de permission franchie** : un compte disposant du droit *historique*
-sans accès à la table utilisateurs pouvait lire les empreintes de tout le monde. La table d'audit
-devenait un contournement du contrôle d'accès, et conservait indéfiniment du matériel de cassage
-hors-ligne hors de la seule table censée le détenir.
-
-Redaction à **cinq points de passage** : deux en écriture (`diff_fields` ; `summary_json`, qui
-couvre les quatre variantes du bulk) et deux en lecture (`DiffField`, `parse_diff`). Le champ
-reste listé — *qu'un* mot de passe ait changé est une information d'audit légitime, sa valeur non.
-La redaction en lecture neutralise en outre **les lignes écrites avant le correctif**, sans
-migration de données.
-
-Le test porte sur le **nom** de colonne (`is_sensitive_key`) et non sur le type de champ,
-volontairement : l'historique travaille sur des lignes DB brutes, sans objet `FormField` sous la
-main — un `update_fn` custom peut écrire une colonne sensible sans jamais passer par un
-`PasswordField`. Voir F5 pour le signal typé, qui couvre les chemins où un formulaire existe.
-
-### 🟠 A6 — Les templates admin dupliquaient les règles de permission — et les appliquaient mal
-**Corrigé (2.2.0).** Neuf templates admin recalculaient les droits en Tera en parcourant
-`current_user.groupes[].permissions[]`, **écrasant** par `set_global` les drapeaux que
-`inject_context` fournit déjà depuis `ResourcePerms::resolve`. Deux implémentations d'une même
-règle d'accès, dont le commentaire de `ResourcePerms` affirmait pourtant qu'elle était
-*« single source of truth shared by the template context and the server-side access checks »*.
-
-La copie Tera ne testait que `can_update` / `can_delete` et **ignorait `can_update_own` /
-`can_delete_own`** : un utilisateur disposant de droits sur ses propres enregistrements était
-*autorisé* par le serveur et *refusé* par l'affichage. La fonctionnalité « droits sur ses propres
-enregistrements » était donc inutilisable dans l'UI — un refus indu, pas une faille, mais un
-défaut silencieux depuis l'origine.
-
-Le calcul dupliqué est retiré de `create`, `edit`, `delete` et `bulk_edit`, dont les gardes
-étaient de toute façon **inatteignables** : `authorize_get` et `MemberAction::authorize`
-redirigent avant tout rendu. Les cinq templates restants (`list`, `list_partial`, `dashboard`,
-`detail`, `kebab`) portent encore le recalcul — les corriger suppose que Rust injecte la décision
-**effective** par enregistrement (`owns_record` n'est connu qu'après `inject_context`), et pour
-`kebab`, rendu ligne par ligne, un `owns` porté par chaque ligne. Chantier ouvert.
-
-### 🟠 A7 — Pas de point d'accroche pour un filtre métier arbitraire dans `get_fn`/`list_fn`
-[`resource_entry.rs:71-72`](../../../runique/src/admin/helper/resource_entry.rs#L71),
-[`admin_main/mod.rs:1041`](../../../runique/src/admin/admin_main/mod.rs#L1041)
-`get_fn`/`list_fn` sont bien le point unique traversé par liste, détail, édition, bulk et
-`check_owns_record` — architecturalement le bon endroit pour un filtre métier type « n'afficher
-que les commandes de sa région ». Mais rien n'y accroche : aucun mot-clé dans le DSL `admin!{}`
-pour fournir un `get_fn`/`list_fn` custom, et le fichier généré (`src/admins/admin.rs`) est
-réécrit sans fusion à chaque `runique start` — une modification manuelle du `get_fn` généré serait
-effacée à la régénération suivante. Contrairement à l'ownership (`own_field`/`check_owns_record`,
-correctement revérifié à la source sur GET et POST — pas de trou IDOR), un filtre conditionnel non
-exprimable comme « égalité à un champ propriétaire » doit être répliqué manuellement sur chaque
-route touchant la resource, sans garantie de cohérence entre elles. Discuté avec Sébastien
-(comparaison Django `get_queryset()`, 2026-09-25), noté au backlog framework item #38 — non
-implémenté, piste : mot-clé DSL type `get_fn: "chemin::vers::ma_fn"` référençant une fonction
-écrite à la main hors du fichier régénéré.
+Voir aussi [admin-complements.md](admin-complements.md) (templates, history, middleware)
+et [../auth/authentification.md](../auth/authentification.md).

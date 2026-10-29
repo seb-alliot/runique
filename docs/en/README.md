@@ -1,7 +1,7 @@
 # Runique — the Django developer experience, in type-safe Rust
 
 ![Rust](https://img.shields.io/badge/rust-1.94%2B-orange)
-![Tests passing](https://img.shields.io/badge/tests-2875%20passing-green)
+![Tests passing](https://img.shields.io/badge/tests-3092%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Version](https://img.shields.io/badge/version-4.0.0-blue)
 [![Crates.io](https://img.shields.io/crates/v/runique)](https://crates.io/crates/runique)
@@ -98,8 +98,8 @@ cd myapp
 cargo run            # your app is a normal Rust binary
 ```
 
-> Prefer plain `cargo run`. `runique start` is a thin launcher around the same
-> binary once the admin is wired with `.with_admin(...)` and `ModelAdmin`
+> Prefer plain `cargo run`. Wire the admin with `.with_admin(...)` and the
+> typed `ModelAdmin` builder in `src/admin.rs` — no code generation step
 > (see [Admin (beta)](#admin-beta)).
 
 A trimmed-down `main.rs` (the full version lives in `demo-app/src/main.rs`):
@@ -153,13 +153,15 @@ Workspace version (source of truth): **4.0.0**.
 
 ## CLI
 
-`runique` gives you:
+`runique` gives you (see `runique/src/bin/runique.rs`):
 
 - `runique new <name>`
-- `runique start` — launches the app (same as `cargo run` once admin is wired)
 - `runique create-superuser`
+- `runique test [file] [test]`
 - `runique makemigrations --entities src/entities --migrations migration/src [--force false]`
 - `runique migration up --migrations migration/src` (rollback and status: `sea-orm-cli migrate down` / `status`)
+
+There is no `runique start`: the app is a normal Rust binary (`cargo run`). Admin is plain Rust (`ModelAdmin` + `.with_admin(...)`), with no generation step.
 
 ---
 
@@ -195,7 +197,7 @@ Full reference: [Sessions](https://runique.io/docs/en/session)
 
 ## Tests and coverage
 
-- Tests reported: **2875 passing** (110 ignored)
+- Tests reported: **3092 passing** (3 ignored)
 - Coverage snapshot (`2026-10-08`, package `runique`, admin module included): functions **88.72%**, lines **88.81%**, regions **87.25%**
 
 ```bash

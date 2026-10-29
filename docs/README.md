@@ -2,7 +2,7 @@
 # Runique — Framework Rust inspiré de Django
 
 ![Rust](https://img.shields.io/badge/rust-1.94%2B-orange)
-![Tests passing](https://img.shields.io/badge/tests-2875%20passing-green)
+![Tests passing](https://img.shields.io/badge/tests-3092%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Version](https://img.shields.io/badge/version-4.0.0-blue)
 [![Crates.io](https://img.shields.io/crates/v/runique)](https://crates.io/crates/runique)
@@ -90,13 +90,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## CLI (commandes actuelles)
 
-`runique` fournit :
+`runique` fournit (voir `runique/src/bin/runique.rs`) :
 
 - `runique new <nom>`
-- `runique start` — lance l'app (équivalent à `cargo run` une fois l'admin câblé)
 - `runique create-superuser`
+- `runique test [fichier] [test]`
 - `runique makemigrations --entities src/entities --migrations migration/src [--force false]`
 - `runique migration up --migrations migration/src` (retour arrière et état : `sea-orm-cli migrate down` / `status`)
+
+Pas de `runique start` : l'app est un binaire Rust normal (`cargo run`). L'admin est du Rust plain (`ModelAdmin` + `.with_admin(...)`), sans génération de code.
 
 ## État de l'admin bêta
 
@@ -129,7 +131,7 @@ Backends sélectionnables (mutuellement exclusifs) :
 
 ## Aperçu des tests et de la couverture
 
-- Tests rapportés : **2875 passants** (110 ignorés)
+- Tests rapportés : **3092 passants** (3 ignorés)
 - Aperçu de la couverture (`2026-10-08`, package `runique`, module admin inclus) :
   - Fonctions : **88,72 %**
   - Lignes : **88,81 %**
