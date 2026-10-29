@@ -34,11 +34,11 @@ Déclaration dans le builder (`src/main.rs`) :
 ```rust
 RuniqueApp::builder(config)
     .with_admin(|a| a
-        .routes(admins::routes("/admin"))
-        .with_state(admins::admin_state())
+        .path("/admin/")
         .templates(|t| t
             .with_list("templates/mon_theme/users_list.html")
         )
+        .site(|s| s.register(ModelAdmin::<article::Entity>::new()))
     )
     .build().await?
 ```
@@ -83,12 +83,12 @@ Déclaration dans le builder (`src/main.rs`) :
 ```rust
 RuniqueApp::builder(config)
     .with_admin(|a| a
-        .routes(admins::routes("/admin"))
-        .with_state(admins::admin_state())
+        .path("/admin/")
         .templates(|t| t
             .with_base("template.html")
             .with_list("templates/mon_theme/users_list.html")
         )
+        .site(|s| s.register(ModelAdmin::<article::Entity>::new()))
     )
     .build().await?
 ```

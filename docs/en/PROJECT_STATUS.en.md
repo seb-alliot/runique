@@ -145,14 +145,11 @@ This document consolidates the actual state of the repository from the reference
 
 ## Fixes to apply / roadmap
 
-### Done (checked October 9, 2026)
+### Done (checked October 29, 2026)
 
-- **Admin filters and SQL injection**: generated resources only accept the columns of their allowlist, with bound values; the built-in `users` resource ignores filters from the URL
+- **Admin filters and SQL injection**: registered models only accept the columns of their allowlist, with bound values; the built-in accounts resource ignores filters from the URL
 - **Security regression tests**: session and CSRF token rotation at login, per-operation checks, column allowlist, and the 3.0.2 fixes (each one verified by mutation)
-
-### High priority (3.x)
-
-- **Admin rework** around a typed `ModelAdmin<Entity>` builder, without generated code — see [the draft](https://github.com/seb-alliot/runique/blob/main/ebauche-model-admin.md)
+- **Admin rework**: typed `ModelAdmin<Entity>` builder shipped in 4.0 — no `admin!{}`, no `src/admins/` generation, no `runique start`; plain Rust in `src/admin.rs` + `cargo run`
 
 ### Low priority
 
@@ -168,5 +165,5 @@ This document consolidates the actual state of the repository from the reference
 
 ---
 
-**Last update**: October 9, 2026
+**Last update**: October 29, 2026
 **Global status**: ✅ Stable framework · 🟡 Admin mature beta · 🔒 Security: reset tokens DB-hardened, timing-safe auth · 📖 Full public API documentation (docs.rs)

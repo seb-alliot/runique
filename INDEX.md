@@ -57,7 +57,7 @@ runique/
 - **`form.rs`** — login form
 
 ### `bin/`
-- **`runique.rs`** — CLI: `new`, `start`, `makemigrations`, `migration up`, `create-superuser`, `test`
+- **`runique.rs`** — CLI: `new`, `makemigrations`, `migration up`, `create-superuser`, `test`
 
 ### `composant-bin/` — Scaffolding Templates
 - **`code/`** — generated code templates (main.rs, forms.rs, url.rs, views.rs, users.rs…)
@@ -137,7 +137,7 @@ runique/
 - **`utils/`** — `diff`, `generators`, `parser_seaorm`, `parser_builder` (reads `model!{}` through `runique_dsl`), `parser_extend`, `paths`, `types`
 
 ### `cli/` — CLI implementations
-- `makemigration.rs`, `migrate.rs` (`migration up`), `new_project.rs`, `start.rs`, `cli_admin.rs` (`create-superuser`), `test_runner.rs` (`runique test`)
+- `makemigration.rs`, `migrate.rs` (`migration up`), `new_project.rs`, `cli_admin.rs` (`create-superuser`), `test_runner.rs` (`runique test`)
 
 ### `utils/` — Utilities
 - **`acme/`** — automatic TLS via Let's Encrypt (ACME HTTP-01), `acme` feature

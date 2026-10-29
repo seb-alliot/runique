@@ -86,15 +86,14 @@
 
             <div class="hero-tab-panel" data-panel="admin">
 <pre class="hero-code-body"><code><span class="hc-ty">builder</span>::<span class="hc-fn">new</span>(config)
-    .<span class="hc-fn">with_admin</span>(|a| {
-        a.<span class="hc-fn">site_title</span>(<span class="hc-str">"Administration"</span>)
-        .<span class="hc-fn">auth</span>(<span class="hc-ty">RuniqueAdminAuth</span>::<span class="hc-fn">new</span>())
-        .<span class="hc-fn">page_size</span>(<span class="hc-kw">15</span>)
-    })
+    .<span class="hc-fn">with_admin</span>(admin::<span class="hc-fn">config</span>)
     .<span class="hc-fn">build</span>().<span class="hc-fn">await</span>?
     .<span class="hc-fn">run</span>().<span class="hc-fn">await</span>?
 
-<span class="hc-cm">// Typed CRUD admin from your SeaORM models</span></code></pre>
+<span class="hc-cm">// src/admin.rs — typed ModelAdmin&lt;Entity&gt;</span>
+<span class="hc-ty">ModelAdmin</span>::<span class="hc-fn">new</span>()
+    .<span class="hc-fn">list</span>(|l| l.<span class="hc-fn">display</span>([Title, Status]))
+    .<span class="hc-fn">form</span>(|f| f.<span class="hc-fn">fields</span>([Title, Body]))</code></pre>
                 <div class="hero-terminal">
                     <span class="hero-terminal-prompt">$</span>
                     <span class="hero-terminal-cmd">cargo run</span>

@@ -289,7 +289,7 @@ pub async fn rust_django_framework(mut request: Request) -> AppResult<Response> 
     inject_globals(&mut request).await;
     context_update!(request => {
         "title"       => "Rust Web Framework Inspired by Django",
-        "description" => "Runique is a Rust web framework inspired by Django: auto-generated admin panel, type-safe forms, built-in CSRF/CSP security and persistent sessions. The Django alternative for Rust, built on Axum, SeaORM and Tera.",
+        "description" => "Runique is a Rust web framework inspired by Django: typed ModelAdmin panel, type-safe forms, built-in CSRF/CSP security and persistent sessions. The Django alternative for Rust, built on Axum, SeaORM and Tera.",
     });
     request.render("seo/rust_django_framework.html")
 }

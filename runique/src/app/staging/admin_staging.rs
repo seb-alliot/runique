@@ -160,7 +160,7 @@ impl AdminStaging {
 
     /// Prepends a segment in front of the whole admin, without renaming it.
     ///
-    /// The admin's own path comes from `.routes(admins::routes("/site-admin"))`;
+    /// The admin's own path comes from [`.path("/site-admin")`](Self::path);
     /// this prefix is mounted in front of it, so `.prefix("secret")` serves it
     /// under `/secret/site-admin/…`. The two are independent: calling them in
     /// either order gives the same result.

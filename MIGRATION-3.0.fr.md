@@ -101,11 +101,10 @@ pub async fn get_article(db: &ADb, id: i32) -> Option<blog::Model>
 .with_password_reset::<UserEntity>(|pr| pr.forgot_route("/forgot"))
 .with_admin(|a| a.auth(RuniqueAdminAuth::new()).routes(admins::routes("/admin")))
 
-// 3.0
+// 3.0 / 4.0 — plus de .auth(), plus de module admins généré
 .with_password_reset(|pr| pr.forgot_route("/forgot"))
-.with_admin(|a| a.routes(admins::routes("/admin")))
+.with_admin(admin::config)   // ModelAdmin dans src/admin.rs
 ```
-
 Les recherches passent par `BuiltinUserEntity::find_by_id` / `find_by_username` / `find_by_email` ; la connexion à l'admin par `auth::authenticate_admin()`.
 
 **Nouvelle colonne `activated_at` et contrainte `CHECK`.** Une réinitialisation du mot de passe ne réactive plus un compte désactivé par l'équipe : le compte sépare maintenant son état (`is_active`) de sa première activation (`activated_at`), et la base le garantit. Mettez à jour une table existante sans la supprimer (ce qui supprimerait en cascade les sessions, les groupes et les colonnes `extend!{}`). Sous Postgres :
