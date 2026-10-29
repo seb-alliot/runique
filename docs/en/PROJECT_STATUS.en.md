@@ -11,7 +11,7 @@ This document consolidates the actual state of the repository from the reference
 
 ## Snapshot (as of October 9, 2026)
 
-- **Workspace version**: `3.0.3`
+- **Workspace version**: `4.0.0`
 - **derive_form**: `3.0.0`
 - **runique_dsl**: `0.1.0`
 - **License**: MIT
