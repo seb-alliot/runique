@@ -200,44 +200,14 @@
   },
   "cli": {
     "creating_project": "Создание проекта '{}'...",
-    "admin_detected": "Админка обнаружена → генерация кода админки",
-    "add_admin_hint": "Добавьте .with_admin(...) в ваш builder для активации панели администратора.",
-    "daemon_error": "[Daemon] Ошибка: {}",
-    "cargo_run_failed": "Приложение не запустилось корректно (cargo run)",
-    "file_not_found": "Файл не найден: {}\nУбедитесь, что вы находитесь в корне вашего проекта Runique.",
-    "admin_not_found": "Файл admin не найден: {}\nСоздайте src/admin.rs с макросом admin!{}.",
     "name_empty": "Имя проекта не может быть пустым",
     "name_invalid": "Имя проекта должно содержать только буквы, цифры, _ или -",
     "name_dash": "Имя проекта не может начинаться с -",
     "folder_exists": "Папка '{}' уже существует",
-    "cargo_run_expect": "Не удалось запустить cargo run",
     "project_created": "Проект '{}' успешно создан!",
     "getting_started": "Для начала:",
     "cd_hint": "cd {}",
-    "cargo_run_hint": "cargo run",
-    "fmt_failed": "cargo fmt завершился с ошибкой — форматирование пропущено: {}"
-  },
-  "daemon": {
-    "unable_read": "Невозможно прочитать: {}",
-    "parse_error": "Ошибка разбора: {}",
-    "no_resource": "Нет ресурсов в admin!{} — нечего генерировать",
-    "operational": "Daemon работает → src/admins/admin.rs",
-    "generation_error": "Ошибка генерации: {}",
-    "generated_header": "СГЕНЕРИРОВАНО АВТОМАТИЧЕСКИ — НЕ РЕДАКТИРОВАТЬ ВРУЧНУЮ",
-    "generated_notice": "Создано `runique start` из src/admin.rs. Любые изменения будут перезаписаны."
-  },
-  "macro": {
-    "named_fields_only": "Только структуры с именованными полями",
-    "structs_only": "Работает только со структурами",
-    "forms_field_required": "Структура '{}' должна иметь поле 'Forms'",
-    "field_no_name": "Поле без имени",
-    "model_form_named_only": "DeriveModelForm: только структуры с именованными полями",
-    "model_form_structs_only": "DeriveModelForm: только структуры"
-  },
-  "parser": {
-    "multiple_admin_blocks": "admin!: в одном файле допустим только один блок admin! (первый блок в строке {}, второй в строке {}) — объедините их",
-    "title_required": "admin!: 'title' обязателен",
-    "list_display_exclude_exclusive": "admin!: 'list_display' и 'list_exclude' взаимно исключают друг друга"
+    "cargo_run_hint": "cargo run"
   },
   "TemplateMessage": {
     "debug_info_title": "Отладочная информация",
@@ -315,7 +285,7 @@
       "btn_create": "Создать",
       "see_list": "Посмотреть список →",
       "empty_title": "Нет зарегистрированных ресурсов",
-      "empty_desc": "Объявите ваши ресурсы в src/admin.rs с макросом admin!{{}} затем запустите runique start",
+      "empty_desc": "Зарегистрируйте модели в src/admin.rs через типизированный ModelAdmin, затем cargo run",
       "kpi_resources": "Ресурсы",
       "kpi_entries": "Всего записей",
       "kpi_largest": "Наибольшая",

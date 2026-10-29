@@ -200,44 +200,14 @@
   },
   "cli": {
     "creating_project": "Creating project '{}'...",
-    "admin_detected": "Admin detected → generating admin code",
-    "add_admin_hint": "Add .with_admin(...) in your builder to enable the AdminPanel.",
-    "daemon_error": "[Daemon] Error: {}",
-    "cargo_run_failed": "Application server failed to start correctly (cargo run)",
-    "file_not_found": "File not found: {}\nMake sure you're at the root of your Runique project.",
-    "admin_not_found": "Admin file not found: {}\nCreate src/admin.rs with admin!{} macro.",
     "name_empty": "The project name cannot be empty",
     "name_invalid": "The project name must contain only letters, numbers, _ or -",
     "name_dash": "The project name cannot start with -",
     "folder_exists": "The folder '{}' already exists",
-    "cargo_run_expect": "Failed to launch cargo run",
     "project_created": "Project '{}' created successfully!",
     "getting_started": "To get started:",
     "cd_hint": "cd {}",
-    "cargo_run_hint": "cargo run",
-    "fmt_failed": "cargo fmt failed — formatting skipped: {}"
-  },
-  "daemon": {
-    "unable_read": "Unable to read: {}",
-    "parse_error": "Parsing error: {}",
-    "no_resource": "No resource in admin!{} — nothing to generate",
-    "operational": "Daemon operational → src/admins/admin.rs",
-    "generation_error": "Generation error: {}",
-    "generated_header": "AUTO-GENERATED — DO NOT EDIT MANUALLY",
-    "generated_notice": "Produced by `runique start` from src/admin.rs. Any change will be overwritten."
-  },
-  "macro": {
-    "named_fields_only": "Named fields structs only",
-    "structs_only": "Works only on structs",
-    "forms_field_required": "Struct '{}' must have a 'Forms' field",
-    "field_no_name": "Field without name",
-    "model_form_named_only": "DeriveModelForm: structs with named fields only",
-    "model_form_structs_only": "DeriveModelForm: structs only"
-  },
-  "parser": {
-    "multiple_admin_blocks": "admin!: only one admin! block is allowed per file (first block at line {}, second at line {}) — merge them",
-    "title_required": "admin!: 'title' is required",
-    "list_display_exclude_exclusive": "admin!: 'list_display' and 'list_exclude' are mutually exclusive"
+    "cargo_run_hint": "cargo run"
   },
   "TemplateMessage": {
     "debug_info_title": "Debug Information",

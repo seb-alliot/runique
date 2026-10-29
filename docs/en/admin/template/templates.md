@@ -53,7 +53,7 @@ Written directly in `admin_template.html` — **cannot be removed** by overridin
 | Section | Description |
 | --- | --- |
 | [Setup](/docs/en/admin/setup) | Wire the admin into an existing project, create a superuser |
-| [CLI](/docs/en/admin/declaration) | `runique start` command, general workflow |
+| [Declaration](/docs/en/admin/declaration) | `AdminStaging`, `AdminSite`, `ModelAdmin` workflow |
 | [Permissions](/docs/en/admin/permission) | Roles, `is_staff` / `is_superuser`, runtime check |
 | [Roadmap](/docs/en/admin/evolution) | Planned features and beta status |
 

@@ -3,89 +3,93 @@
 Objectif : représenter Runique en diagrammes (UML + Merise) pour **révéler les bugs latents
 et inconnus** en suivant les flux de données de bout en bout.
 
-Source de vérité : le code (`runique/`, `derive_form/`). Diagrammes en **Mermaid**
+Source de vérité : le code (`runique/`, `derive_form/`, `runique_dsl/`). Diagrammes en **Mermaid**
 (rendu natif GitHub/markdown, versionnable, sans outil binaire).
 
 > Périmètre : framework uniquement. `demo-app/` n'est ni lu ni modifié.
+> Version cible des diagrammes admin/auth/merise : **4.0** (refonte gate + ModelAdmin).
 
 ## Arborescence
 
 ```
 diagramme/
 ├── README.md                ← ce fichier (index)
+├── ETAT-AVANCEMENT.md       ← journal de reprise
+├── anomalies.md             ← synthèse bugs latents
 ├── merise/
-│   └── modele-donnees.md     ← MCD + MLD des tables eihwaz_* + anomalies données
+│   └── modele-donnees.md     ← MCD + MLD eihwaz_* (4.0)
 ├── uml/                      ← diagrammes de classes par couche
 │   ├── app/                  ← builder, staging, RuniqueApp
-│   ├── engine/               ← RuniqueEngine, état runtime
-│   ├── context/              ← Request, RuniqueContext (dans uml/app pour l'instant)
-│   ├── forms/                ← Forms, champs, Prisme, ModelForm
-│   ├── admin/                ← registry, resource, handlers, permissions
-│   ├── auth/                 ← session, guard, reset password
-│   ├── migration/            ← ColumnDef, ModelSchema, diff
-│   └── middleware/           ← slots, session store, sécurité
-├── flux/                     ← diagrammes de séquence / flux de données
-└── anomalies.md              ← synthèse consolidée des bugs latents
+│   ├── engine/               ← RuniqueEngine
+│   ├── context/              ← Request, pipeline, extensions
+│   ├── forms/                ← Forms, champs, Prisme, ValidationForm
+│   ├── admin/                ← ModelAdmin, AdminSite, gate UI, templates
+│   ├── auth/                 ← session, CurrentUser, Rang, gate, reset
+│   ├── migration/            ← ColumnDef, ModelSchema, diff, DSL
+│   ├── middleware/           ← sessions, sécurité
+│   ├── config/               ← RuniqueConfig, db
+│   ├── macros/               ← bdd, routeur, forms, template
+│   ├── derive_form/          ← proc-macro + runique_dsl
+│   ├── transverse/           ← errors, flash, mailer…
+│   └── utils/                ← tracing, tokens
+└── flux/                     ← séquences bout-en-bout
 ```
 
 ## Méthode
 
 Chaque diagramme est suivi d'une section **« Anomalies / flux suspects »**. Les trouvailles
 sont consolidées dans [anomalies.md](anomalies.md) avec sévérité (🔴 bloquant / 🟠 sérieux /
-🟡 mineur) et localisation `fichier:ligne`.
+🟡 mineur) et localisation.
 
 ## Avancement
 
-- [x] Merise — modèle de données ([merise/modele-donnees.md](merise/modele-donnees.md))
-- [x] UML classes — toutes les couches
-- [x] Flux — requête/CSRF/upload, login/session, makemigrations, admin CRUD, reset, contexte
+- [x] Merise — modèle de données 4.0 ([merise/modele-donnees.md](merise/modele-donnees.md))
+- [x] UML classes — toutes les couches (admin/auth réécrits pour 4.0)
+- [x] Flux — requête/CSRF/upload, login/session, makemigrations, admin CRUD gate, reset
 - [x] Synthèse anomalies ([anomalies.md](anomalies.md))
 
-### Diagrammes UML produits
+### Diagrammes UML
 
 - [uml/engine/engine-et-contexte.md](uml/engine/engine-et-contexte.md)
 - [uml/context/request-pipeline.md](uml/context/request-pipeline.md)
+- [uml/context/extensions-et-middleware-config.md](uml/context/extensions-et-middleware-config.md)
 - [uml/app/builder-staging.md](uml/app/builder-staging.md)
+- [uml/app/staging-configs-et-build-errors.md](uml/app/staging-configs-et-build-errors.md)
 - [uml/forms/formulaires.md](uml/forms/formulaires.md)
-- [uml/admin/admin-resource-permissions.md](uml/admin/admin-resource-permissions.md)
-- [uml/auth/authentification.md](uml/auth/authentification.md)
+- [uml/forms/fields-complets.md](uml/forms/fields-complets.md)
+- [uml/admin/admin-resource-permissions.md](uml/admin/admin-resource-permissions.md) ← **4.0 ModelAdmin + gate**
+- [uml/admin/admin-complements.md](uml/admin/admin-complements.md) ← **4.0 templates / history / MW**
+- [uml/auth/authentification.md](uml/auth/authentification.md) ← **4.0 Rang + CurrentUser + gate**
 - [uml/middleware/sessions.md](uml/middleware/sessions.md)
 - [uml/middleware/securite.md](uml/middleware/securite.md)
 - [uml/migration/schema-et-diff.md](uml/migration/schema-et-diff.md)
-- [uml/transverse/utilitaires.md](uml/transverse/utilitaires.md) (errors, flash, mailer, password, i18n)
-- [uml/derive_form/proc-macro.md](uml/derive_form/proc-macro.md) (AST, parser, generateur, registre)
-- [uml/config/configuration.md](uml/config/configuration.md) (RuniqueConfig, db)
-- [uml/forms/fields-complets.md](uml/forms/fields-complets.md) (tous les champs + options + validator)
-- [uml/migration/types-builder-et-parsed.md](uml/migration/types-builder-et-parsed.md) (PK/FK/index/relation/hooks + Parsed/Changes)
-- [uml/admin/admin-complements.md](uml/admin/admin-complements.md) (daemon, helper, forms admin, history)
-- [uml/app/staging-configs-et-build-errors.md](uml/app/staging-configs-et-build-errors.md) (BuildError, config builders)
-- [uml/macros/macros.md](uml/macros/macros.md) (bdd Objects/search!, routeur, context, forms, template)
-- [uml/utils/tracing-securite-tokens.md](uml/utils/tracing-securite-tokens.md) (RuniqueLog, TraceResult, CSRF/CSP)
-- [uml/context/extensions-et-middleware-config.md](uml/context/extensions-et-middleware-config.md) (RequestExtensions, MiddlewareConfig, Tera)
+- [uml/migration/types-builder-et-parsed.md](uml/migration/types-builder-et-parsed.md)
+- [uml/transverse/utilitaires.md](uml/transverse/utilitaires.md)
+- [uml/derive_form/proc-macro.md](uml/derive_form/proc-macro.md)
+- [uml/config/configuration.md](uml/config/configuration.md)
+- [uml/macros/macros.md](uml/macros/macros.md)
+- [uml/utils/tracing-securite-tokens.md](uml/utils/tracing-securite-tokens.md)
 
-> **Reprise de session** : [ETAT-AVANCEMENT.md](ETAT-AVANCEMENT.md) — ce qui est fait, les
-> faux positifs vérifiés, et la liste exhaustive de ce qui reste (macros, utils, compléments).
+> **Reprise de session** : [ETAT-AVANCEMENT.md](ETAT-AVANCEMENT.md)
 
-### Flux produits
+### Flux
 
 - [flux/requete-csrf-upload.md](flux/requete-csrf-upload.md)
 - [flux/auth-session-et-makemigrations.md](flux/auth-session-et-makemigrations.md)
-- [flux/admin-crud-reset-makemigrations.md](flux/admin-crud-reset-makemigrations.md)
+- [flux/admin-crud-reset-makemigrations.md](flux/admin-crud-reset-makemigrations.md) ← **4.0 gate**
 
 ### Couverture des modules (lib runique)
 
 | Module | Couvert par |
 |--------|-------------|
-| app / staging | uml/app |
+| app / staging (`AdminStaging.site`) | uml/app |
 | engine | uml/engine |
-| context | uml/context + uml/engine |
-| forms (+ prisme, fields) | uml/forms + flux/requete-csrf-upload |
-| admin (registry, resource, handlers, permissions) | uml/admin + flux/admin-crud |
-| auth (session, guard, reset) | uml/auth + flux/auth-session + flux/admin-crud-reset |
-| migration | uml/migration + flux/makemigrations |
-| middleware (session) | uml/middleware/sessions |
-| middleware (sécurité) | uml/middleware/securite |
+| context | uml/context |
+| forms (+ prisme, ValidationForm) | uml/forms + flux/requete-csrf-upload |
+| **admin 4.0** (builder, site, router, template, config, middleware) | uml/admin + flux/admin-crud |
+| **auth 4.0** (gate, ModelMeta, Rang, permissions, history, migrations_table) | uml/auth + merise |
+| migration + runique_dsl | uml/migration + flux/makemigrations |
+| middleware session / sécurité | uml/middleware |
 | tables eihwaz_* | merise/modele-donnees |
 
-Modules transverses non diagrammés (utilitaires sans flux de données propre) :
-`utils/{trad, mailer, password, cli, constante}`, `flash`, `errors` — à traiter si besoin.
+Hors-scope assumé : `composant-bin/` (scaffolding `new_project`) ; `cli/` couvert en flux.

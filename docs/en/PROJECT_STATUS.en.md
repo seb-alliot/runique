@@ -108,7 +108,7 @@ This document consolidates the actual state of the repository from the reference
 
 ### CLI
 
-- `runique new`, `runique start`, `runique create-superuser`, `runique makemigrations`, `runique migration up` (rollback and status: `sea-orm-cli`), `runique test`
+- `runique new`, `runique create-superuser`, `runique makemigrations`, `runique migration up` (rollback and status: `sea-orm-cli`), `runique test` — no `runique start` (`cargo run` + `ModelAdmin`)
 
 ---
 

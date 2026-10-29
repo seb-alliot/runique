@@ -13,7 +13,7 @@ This guide lists every breaking change of 3.0 and what to do about it, in the or
 3. **Database**: add the `activated_at` column to `eihwaz_users` (see [User accounts](#user-accounts)).
 4. **Builder**: add `.with_public_url(...)` (see [Builder](#builder)).
 5. **Code**: replace `&DatabaseConnection` with `&ADb`, then fix what the compiler points out, using the sections below.
-6. **Admin**: regenerate `src/admins/` with `runique start`.
+6. **Admin**: rewrite with the typed `ModelAdmin` builder in `src/admin.rs`, wire `.with_admin(...)`, delete any leftover `src/admins/` (there is no `runique start` any more — `cargo run` is enough).
 7. **Migrations**: run `runique makemigrations`; delete `migration/src/applied/` if it exists.
 
 ---
@@ -234,7 +234,7 @@ let filters: Filters = request.query()?;
 
 ## Admin
 
-Regenerate `src/admins/` with `runique start` after upgrading: the generated code follows every change below.
+There is no admin code generation and no `runique start`. Declare models with the typed `ModelAdmin` builder in `src/admin.rs`, register them via `.with_admin(...)`, and remove any leftover `src/admins/` folder. `cargo run` is enough. The notes below still apply to hand-written admin hooks.
 
 **`extra_routes` names the operation**, which decides the right checked (read, create, update, delete):
 

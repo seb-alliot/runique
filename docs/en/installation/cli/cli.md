@@ -2,7 +2,7 @@
 
 ## Create a Superuser
 
-Command-line interface to create superusers, start the server and manage migrations.
+Command-line interface to create a project, a superuser, generate/apply migrations, and run business tests.
 
 ```bash
 runique create-superuser
@@ -49,6 +49,8 @@ runique migration up --migrations migration/src                     # Apply migr
 runique create-superuser                                            # Create a superuser
 runique test [file] [test]                                          # Run src/runique_test/ (see Testing)
 ```
+
+There is no `runique start`: the app runs with `cargo run`. Admin is plain Rust (`ModelAdmin` + `.with_admin(...)`), with no daemon and no generation.
 
 Rolling back or listing migrations goes through SeaORM: `sea-orm-cli migrate down -n N`, `sea-orm-cli migrate status`. `runique test` is described in [Testing](/docs/en/architecture/testing).
 

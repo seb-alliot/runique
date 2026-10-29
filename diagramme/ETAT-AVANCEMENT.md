@@ -183,3 +183,43 @@ mutation, ou classés avec raison dans le tri). Couverture `runique` : 87.25 % r
 - `uml/migration/types-builder-et-parsed.md` : index d'une FK encadré par `unless_mysql_fk`.
 - `merise/modele-donnees.md` : `activated_at` et sa contrainte `CHECK` sur `eihwaz_users`.
 - `anomalies.md` : TZ1, IX1, SU1, DB1 (trouvés et corrigés les 07-08/10).
+
+## Session 2026-03-22 — alignement diagrammes sur admin 4.0
+
+Le code admin/auth a été entièrement refondu (workspace **4.0.0**) : plus de
+`AdminRegistry` / `ResourceEntry` / `admin_main` / closures CRUD. Nouvelle stack :
+
+- `admin/builder` : `ModelAdmin<E: ModelMeta>`, `ListConfig`, `FormConfig`, `AdminSite`,
+  `RegisteredModel`, bulk/confirm forms
+- `admin/router` : `AdminPaths`, `AdminState`, `build_admin_router`, crud/*, permission/*,
+  account/*, history
+- `admin/template` + `config` + `middleware` + `trad`
+- `auth/gate` : preuves `Authorized<O,E>`, opérations List/View/Create/Update/Delete/ResetPassword,
+  `save_as`, rank, transfer, rights_grid
+- `auth/meta::ModelMeta`, `auth/permissions::{Rang, rights, groupes_droits colonnes}`,
+  `auth/history` (+ `object_repr`), `auth/migrations_table` (ex-`admin/table_admin`)
+
+Schéma données 4.0 : `is_staff` quitte `users` pour `groupes` ; rangs
+`is_admin`/`is_dirigeant`/`is_superuser` + CHECK ; `groupes_droits` holder groupe XOR compte
++ granularité colonne + `can_read_own` ; groupes avec responsable/repris_par/is_active.
+
+### Diagrammes réécrits cette session
+
+- `uml/admin/admin-resource-permissions.md` — ModelAdmin + AdminSite + gate + Rang
+- `uml/admin/admin-complements.md` — config, templates, MW, history, bulk
+- `uml/auth/authentification.md` — CurrentUser, Rang, gate, permissions base
+- `merise/modele-donnees.md` — MCD/MLD 4.0
+- `flux/admin-crud-reset-makemigrations.md` — séquences gate
+- `README.md` + `anomalies.md` (A1/A2/A3 sans objet ; chemins migrations)
+
+### Anomalies 3.x devenues sans objet
+
+- **A1** closures CRUD Option → plus de closures
+- **A2** `own_field` → `ModelMeta::OWNER` + preuves
+- **A3** `list_filter` builtins sans `filter_fn` → `ListConfig::filter`
+- **AM4** cache permissions → déjà lu DB à chaque requête admin
+
+### Reste ouvert (inchangé)
+
+- D2/D3/D4, S1/S2, multi-instance lockout/rate-limit, A7 queryset métier
+- Passe fine éventuelle sur uml/app (AdminStaging.site), forms, middleware si drift mineur

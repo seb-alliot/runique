@@ -13,7 +13,7 @@ Ce guide liste chaque rupture de la 3.0 et ce qu'il faut faire, dans l'ordre où
 3. **Base** : ajouter la colonne `activated_at` à `eihwaz_users` (voir [Comptes utilisateurs](#comptes-utilisateurs)).
 4. **Builder** : ajouter `.with_public_url(...)` (voir [Builder](#builder)).
 5. **Code** : remplacer `&DatabaseConnection` par `&ADb`, puis corriger ce que le compilateur signale, à l'aide des sections ci-dessous.
-6. **Admin** : régénérer `src/admins/` avec `runique start`.
+6. **Admin** : réécrire avec le builder typé `ModelAdmin` dans `src/admin.rs`, câbler `.with_admin(...)`, supprimer un éventuel `src/admins/` restant (plus de `runique start` — `cargo run` suffit).
 7. **Migrations** : lancer `runique makemigrations` ; supprimer `migration/src/applied/` s'il existe.
 
 ---
@@ -234,7 +234,7 @@ let filtres: Filtres = request.query()?;
 
 ## Admin
 
-Après la mise à jour, régénérez `src/admins/` avec `runique start` : le code généré suit toutes les ruptures ci-dessous.
+Plus de génération de code admin, plus de `runique start`. Déclarez les modèles avec le builder typé `ModelAdmin` dans `src/admin.rs`, enregistrez-les via `.with_admin(...)`, et supprimez un éventuel dossier `src/admins/` restant. `cargo run` suffit. Les notes ci-dessous restent valables pour les hooks admin écrits à la main.
 
 **`extra_routes` nomme l'opération**, qui décide du droit vérifié (lecture, création, modification, suppression) :
 
