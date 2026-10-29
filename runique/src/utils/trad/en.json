@@ -315,7 +315,7 @@
       "btn_create": "Create",
       "see_list": "View list →",
       "empty_title": "No resources registered",
-      "empty_desc": "Declare your resources in src/admin.rs with the admin!{{}} macro then run runique start",
+      "empty_desc": "Register your models in src/admin.rs with the typed ModelAdmin builder, then cargo run",
       "kpi_resources": "Resources",
       "kpi_entries": "Total entries",
       "kpi_largest": "Largest",

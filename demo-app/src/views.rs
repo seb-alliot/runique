@@ -646,23 +646,23 @@ pub async fn llms_full_txt() -> &'static str {
         - **SeaORM** — async ORM supporting PostgreSQL, MySQL, MariaDB and SQLite\n\
         - **Tera** — Jinja2-compatible template engine\n\
         \n\
-        Current version: 2.1.0 (Rust edition 2024, MSRV 1.88)\n\
+        Current version: 4.0.0 (Rust edition 2024, MSRV 1.94)\n\
         \n\
         ## Key Features\n\
         \n\
         ### Type-safe Forms\n\
         Declare forms manually or derive them from a SeaORM schema with `#[form]`.\n\
         Fields: TextField, NumericField, BooleanField, ChoiceField, DateField, FileField, and more.\n\
-        CSRF protection is built-in and automatic via the Prisme extractor\n\
-        (Prisme is Runique's typed request extractor — it parses body, path, and query into a typed form struct).\n\
+        CSRF protection is built-in and automatic via the request form extractor.\n\
         \n\
-        ### Auto-generated Admin\n\
-        Declare resources with the `admin!{}` macro. Runique generates full CRUD routes,\n\
-        list/create/edit/delete views, search, pagination, column sorting, and role-based access.\n\
-        Templates are overridable via the builder.\n\
+        ### Typed Admin (ModelAdmin)\n\
+        Declare each model with the typed `ModelAdmin` builder in `src/admin.rs`.\n\
+        Runique serves full CRUD routes, list/create/edit/delete views, search,\n\
+        pagination, column sorting, and role-based access. No macro, no generated files.\n\
+        Templates are overridable via the builder. Plain `cargo run` is enough.\n\
         \n\
         ### Middleware\n\
-        - CSRF (via Prisme, Runique's typed request extractor)\n\
+        - CSRF (via the form extractor)\n\
         - CSP (Content Security Policy with nonce)\n\
         - Session (memory store with optional DB persistence)\n\
         - Rate limiter (sliding window per IP)\n\
@@ -688,14 +688,14 @@ pub async fn llms_full_txt() -> &'static str {
         cargo install runique\n\
         runique new my-project\n\
         cd my-project\n\
-        runique start\n\
+        cargo run\n\
         ```\n\
         \n\
         ## Cargo.toml\n\
         \n\
         ```toml\n\
         [dependencies]\n\
-        runique = { version = \"2.1.0\", features = [\"orm\", \"postgres\"] }\n\
+        runique = { version = \"4.0.0\", features = [\"postgres\"] }\n\
         ```\n\
         \n\
         ## Links\n\

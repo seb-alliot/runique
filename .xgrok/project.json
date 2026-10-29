@@ -11,7 +11,7 @@
     "Cargo.toml"
   ],
   "suggestedRun": "cargo run",
-  "suggestedTest": "cargo test",
+  "suggestedTest": "cargo test -p runique --no-fail-fast --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme,admin,test-utils 2>&1 | grep -E \"test result:|FAILED|^error\"",
   "createdAt": "2026-10-29T15:03:23.841Z",
   "tool": "xgrok"
 }
