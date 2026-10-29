@@ -261,7 +261,9 @@ mod tests {
             Some(Stylesheet::Runique("css/admin/blocks/detail.css"))
         );
         assert_eq!(
-            Block::Kebab.resolve(None, &ModelBlocks::default()).stylesheet,
+            Block::Kebab
+                .resolve(None, &ModelBlocks::default())
+                .stylesheet,
             None
         );
     }
