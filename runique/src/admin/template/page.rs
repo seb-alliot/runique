@@ -65,25 +65,11 @@ impl PathAdminTemplate {
             runique: "admin/delete.html",
         }
     }
-    /// Default base layout template (`admin_base.html`) that other admin templates extend.
-    pub fn base() -> Self {
-        Self {
-            dev: None,
-            runique: "admin_base.html",
-        }
-    }
     /// Default template for HTMX partial list responses (fragment only, no layout).
     pub fn htmx() -> Self {
         Self {
             dev: None,
             runique: "admin/list_partial.html",
-        }
-    }
-    /// Default template for the admin bulk edit view (`admin/bulk_edit.html`), no dev override.
-    pub fn bulk_edit() -> Self {
-        Self {
-            dev: None,
-            runique: "admin/bulk_edit.html",
         }
     }
     /// Default template for the admin history (`admin/history.html`), no dev override.
@@ -126,10 +112,8 @@ pub struct AdminTemplate {
     pub detail: PathAdminTemplate,
     pub delete: PathAdminTemplate,
     pub login: PathAdminTemplate,
-    pub base: PathAdminTemplate,
     /// Template for HTMX partial responses (fragment only, no layout).
     pub htmx: PathAdminTemplate,
-    pub bulk_edit: PathAdminTemplate,
     pub history: PathAdminTemplate,
     pub history_diff: PathAdminTemplate,
     /// The model pages' blocks replaced for every model.
@@ -211,9 +195,7 @@ impl AdminTemplate {
             detail: PathAdminTemplate::detail(),
             delete: PathAdminTemplate::delete(),
             login: PathAdminTemplate::login(),
-            base: PathAdminTemplate::base(),
             htmx: PathAdminTemplate::htmx(),
-            bulk_edit: PathAdminTemplate::bulk_edit(),
             history: PathAdminTemplate::history(),
             history_diff: PathAdminTemplate::history_diff(),
             blocks: Default::default(),
@@ -263,22 +245,10 @@ impl AdminTemplate {
         self.login.dev = Some(path.to_string());
         self
     }
-    /// Overrides the base layout template with a developer-provided path.
-    #[must_use]
-    pub fn with_base(mut self, path: &str) -> Self {
-        self.base.dev = Some(path.to_string());
-        self
-    }
     /// Overrides the HTMX partial-list template with a developer-provided path.
     #[must_use]
     pub fn with_htmx(mut self, path: &str) -> Self {
         self.htmx.dev = Some(path.to_string());
-        self
-    }
-    /// Overrides the bulk edit view template with a developer-provided path.
-    #[must_use]
-    pub fn with_bulk_edit(mut self, path: &str) -> Self {
-        self.bulk_edit.dev = Some(path.to_string());
         self
     }
     /// Overrides the history template with a developer-provided path.
@@ -355,5 +325,53 @@ impl AdminTemplate {
         }
         self.page_template(page)
             .map_or("", PathAdminTemplate::resolve)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Each `with_*` replaces its own page, and only it.
+    #[test]
+    fn each_page_override_lands_on_its_own_page() {
+        let t = AdminTemplate::new()
+            .with_dashboard("d.html")
+            .with_list("l.html")
+            .with_create("c.html")
+            .with_edit("e.html")
+            .with_detail("dt.html")
+            .with_delete("de.html")
+            .with_login("lo.html")
+            .with_htmx("h.html")
+            .with_history("hi.html")
+            .with_history_diff("hd.html");
+        let served = [
+            (&t.dashboard, "d.html"),
+            (&t.list, "l.html"),
+            (&t.create, "c.html"),
+            (&t.edit, "e.html"),
+            (&t.detail, "dt.html"),
+            (&t.delete, "de.html"),
+            (&t.login, "lo.html"),
+            (&t.htmx, "h.html"),
+            (&t.history, "hi.html"),
+            (&t.history_diff, "hd.html"),
+        ];
+        for (page, path) in served {
+            assert_eq!(page.resolve(), path);
+        }
+        let untouched = AdminTemplate::new().with_list("l.html");
+        assert_eq!(untouched.detail.resolve(), "admin/detail.html");
+    }
+
+    /// A global block's stylesheet is replaced like its HTML, apart from it.
+    #[test]
+    fn a_global_blocks_stylesheet_is_kept_apart_from_its_html() {
+        use super::super::block::GlobalBlock;
+        let t = AdminTemplate::new().global_block_stylesheet(GlobalBlock::Sidebar, "css/side.css");
+        let served = GlobalBlock::Sidebar.resolve(&t.global_blocks);
+        assert_eq!(served.stylesheet, Some(super::super::block::Stylesheet::Dev("css/side.css".into())));
+        assert_eq!(served.html.resolve(), GlobalBlock::Sidebar.runique());
     }
 }

@@ -82,7 +82,6 @@ pub const ADMIN_TEMPLATES: &[(&str, &str)] = tpls![
     ("admin/delete.html", "admin/pages/delete.html"),
     ("admin/history.html", "admin/pages/history.html"),
     ("admin/history_diff.html", "admin/pages/history_diff.html"),
-    ("admin/bulk_edit.html", "admin/pages/bulk_edit.html"),
     ("admin/rights.html", "admin/pages/rights.html"),
     ("admin/transfer.html", "admin/pages/transfer.html"),
     // Blocks: named by their path, so a project replaces one by putting a
