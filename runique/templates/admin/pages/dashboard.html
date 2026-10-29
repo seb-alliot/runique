@@ -16,7 +16,7 @@
     {% endif %}
 </div>
 {% endblock %}
-{% block dashboard_groups %}{% include "admin/blocks/dashboard/my_groups.html" %}{% endblock %}
+{% block dashboard_groups %}{% dev_block "dashboard_groups" %}{% endblock %}
 {% block dashboard_stats %}
 {% if not resources and not my_groups %}
 <div class="admin-card admin-card--full-width">

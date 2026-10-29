@@ -15,6 +15,11 @@ pub static BALISE_LINK_VAR: LazyLock<Regex> = LazyLock::new(|| {
         .unwrap()
 });
 
+/// `{% dev_block "list_table" %}`: a block of Runique's the developer may
+/// replace, by its name.
+pub static DEV_BLOCK_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r#"\{%\s*dev_block\s+"(?P<name>[^"]+)"\s*%\}"#).unwrap());
+
 pub static LINK_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r#"\{%\s*link\s*['"](?P<name>[^'"]+)['"]\s*(?:,\s*)?(?P<params>[^%]*?)\s*%}"#)
         .unwrap()

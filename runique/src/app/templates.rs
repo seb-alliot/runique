@@ -15,7 +15,7 @@ pub(crate) struct TemplateLoader;
 /// hashes: for a test that builds its own Tera from Runique's templates.
 #[doc(hidden)]
 pub fn preprocess(content: &str) -> String {
-    TemplateLoader::process_content(content.to_string(), &Integrity::default())
+    TemplateLoader::process_content(content.to_string(), &Integrity::default(), &[])
 }
 
 /// The SRI hashes of the static files, by folder: the project's
@@ -27,12 +27,30 @@ pub(crate) struct Integrity {
     pub runique: StrMap,
 }
 
+/// A block the developer replaced: what `{% dev_block "<name>" %}` becomes,
+/// in place of the include of Runique's template for it.
+#[doc(hidden)]
+#[derive(Debug, Clone, Default)]
+pub struct BlockDispatch {
+    pub name: String,
+    pub content: String,
+}
+
 impl TemplateLoader {
     /// Initializes Tera and processes all templates (internal + users)
     pub fn init(
         config: &RuniqueConfig,
         url_registry: ARlockmap,
     ) -> Result<Tera, Box<dyn std::error::Error>> {
+        Self::init_with_integrity(config, url_registry).map(|(tera, _)| tera)
+    }
+
+    /// `init`, also returning the static files' hashes it computed: the boot
+    /// reuses them for the admin's stylesheets instead of hashing twice.
+    pub(crate) fn init_with_integrity(
+        config: &RuniqueConfig,
+        url_registry: ARlockmap,
+    ) -> Result<(Tera, Integrity), Box<dyn std::error::Error>> {
         let mut tera = Tera::default();
         tera.autoescape_on(vec!["html", "xml"]);
 
@@ -55,37 +73,43 @@ impl TemplateLoader {
             )),
         };
 
-        // 3. Loading internal framework templates (WITH preprocess)
-        Self::load_internal_templates(&mut tera, &integrity_map)?;
-
-        let mut all_templates = Vec::new();
+        // 3. Runique's templates, the admin's with their block includes
+        //    rewritten, then the developer's (WITH preprocess). One batch:
+        //    Tera checks every include once all are in, so a rewritten include
+        //    naming a developer's template resolves.
+        let mut all_templates = Self::internal_templates(&integrity_map, &config.block_dispatch);
+        let internal_loaded = all_templates.len();
 
         // 4. Processing loop for configured template directories (dev) (WITH preprocess)
+        // The extensions Tera escapes (`autoescape_on` above), and no other.
         for dir_string in &config.static_files.templates_dir {
             let template_dir = Path::new(dir_string);
-            let pattern = format!("{}/**/*.html", template_dir.display());
+            for extension in ["html", "xml"] {
+                let pattern = format!("{}/**/*.{extension}", template_dir.display());
 
-            if let Ok(paths) = glob::glob(&pattern) {
-                for entry in paths.flatten() {
-                    let content = std::fs::read_to_string(&entry)?;
+                if let Ok(paths) = glob::glob(&pattern) {
+                    for entry in paths.flatten() {
+                        let content = std::fs::read_to_string(&entry)?;
 
-                    let processed = Self::process_content(content, &integrity_map);
+                        let processed =
+                            Self::process_content(content, &integrity_map, &config.block_dispatch);
 
-                    // Calculation of the template's logical name (relative path)
-                    let name = entry
-                        .strip_prefix(template_dir)?
-                        .to_string_lossy()
-                        .replace("\\", "/");
+                        // Calculation of the template's logical name (relative path)
+                        let name = entry
+                            .strip_prefix(template_dir)?
+                            .to_string_lossy()
+                            .replace("\\", "/");
 
-                    all_templates.push((name, processed));
+                        all_templates.push((name, processed));
+                    }
                 }
             }
         }
 
-        let user_count = all_templates.len();
+        let user_count = all_templates.len() - internal_loaded;
         if let Err(e) = tera.add_raw_templates(all_templates) {
             // Tera's error message already contains the template name and line number
-            tracing::error!(error = %e, "user template failed to load");
+            tracing::error!(error = %e, "templates failed to load");
             return Err(Box::new(e));
         }
 
@@ -108,11 +132,31 @@ impl TemplateLoader {
             );
         }
 
-        Ok(tera)
+        Ok((tera, integrity_map))
     }
 
     /// Applies all Runique transformations on a template content
-    fn process_content(mut content: String, integrity_map: &Integrity) -> String {
+    fn process_content(
+        mut content: String,
+        integrity_map: &Integrity,
+        blocks: &[BlockDispatch],
+    ) -> String {
+        // A block the developer may replace, by its name: what he declared
+        // for it, else Runique's template (written before Tera reads it, Tera
+        // naming an include once). An unknown name stays, refused by Tera.
+        content = DEV_BLOCK_REGEX
+            .replace_all(&content, |caps: &Captures| {
+                let name = &caps["name"];
+                match blocks.iter().find(|b| b.name == name) {
+                    Some(block) => block.content.clone(),
+                    None => match admin_block(name) {
+                        Some(path) => format!(r#"{{% include "{path}" %}}"#),
+                        None => caps[0].to_string(),
+                    },
+                }
+            })
+            .to_string();
+
         // Simple replacements (Runique DSL)
         content = content.replace("{% csrf %}", r#"{% include "csrf.html" %}"#);
         content = content.replace("{% messages %}", r#"{% include "message.html" %}"#);
@@ -190,19 +234,19 @@ impl TemplateLoader {
         content
     }
 
-    /// Loads HTML templates embedded in the Runique binary (WITH preprocess)
+    /// The HTML templates embedded in the Runique binary (WITH preprocess),
+    /// each `{% dev_block %}` written from `blocks`.
     ///
-    /// Added as a single batch, never one by one: Tera 2 resolves `{% include %}`
-    /// and `{% extends %}` when a template is added, so `add_raw_template` in a loop
-    /// rejects any template whose dependency comes later in the iteration order
-    /// (`debug.html` includes six partials declared after it). `add_raw_templates`
-    /// inserts the whole set before validating it once, and rolls the batch back
-    /// as a whole on failure.
-    fn load_internal_templates(
-        tera: &mut Tera,
+    /// Returned to be added in the same single batch as the developer's:
+    /// Tera 2 resolves `{% include %}` and `{% extends %}` when a template is
+    /// added, so templates added one by one reject any whose dependency comes
+    /// later (`debug.html` includes six partials declared after it), and a
+    /// `{% dev_block %}` naming a developer's template needs his in the set.
+    fn internal_templates(
         integrity_map: &Integrity,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        let templates: Vec<(&str, String)> = SIMPLE_TEMPLATES
+        blocks: &[BlockDispatch],
+    ) -> Vec<(String, String)> {
+        SIMPLE_TEMPLATES
             .iter()
             .chain(ERROR_CORPS.iter())
             .chain(FIELD_TEMPLATES.iter())
@@ -210,18 +254,11 @@ impl TemplateLoader {
             .chain(ADMIN_TEMPLATES.iter())
             .map(|(name, content)| {
                 (
-                    *name,
-                    Self::process_content(content.to_string(), integrity_map),
+                    name.to_string(),
+                    Self::process_content(content.to_string(), integrity_map, blocks),
                 )
             })
-            .collect();
-
-        if let Err(e) = tera.add_raw_templates(templates) {
-            // Tera's error already names the offending template and line.
-            tracing::error!(error = %e, "internal templates failed to load");
-            return Err(Box::new(e));
-        }
-        Ok(())
+            .collect()
     }
 }
 
@@ -233,7 +270,7 @@ mod process_content_tests {
     use crate::utils::aliases::StrMap;
 
     fn process(src: &str) -> String {
-        TemplateLoader::process_content(src.to_string(), &super::Integrity::default())
+        TemplateLoader::process_content(src.to_string(), &super::Integrity::default(), &[])
     }
 
     fn with_runique(path: &str) -> super::Integrity {
@@ -251,6 +288,7 @@ mod process_content_tests {
         let out = TemplateLoader::process_content(
             r#"<link href="{% runique_static "css/a.css" %}">"#.to_string(),
             &with_runique("css/a.css"),
+            &[],
         );
         assert!(
             out.contains(r#"{{ "css/a.css" | runique_static }}"#),
@@ -269,8 +307,38 @@ mod process_content_tests {
         let out = TemplateLoader::process_content(
             r#"<link href="{% static "css/a.css" %}">"#.to_string(),
             &with_runique("css/a.css"),
+            &[],
         );
         assert!(!out.contains("integrity"), "{out}");
+    }
+
+    /// A replaceable block is Runique's include, or the developer's dispatch
+    /// when he replaced it; the other blocks stay Runique's.
+    #[test]
+    fn a_dev_block_is_runiques_unless_replaced() {
+        let src = r#"{% dev_block "list_table" %}|{% dev_block "sidebar" %}"#;
+        let plain = process(src);
+        assert_eq!(
+            plain,
+            r#"{% include "admin/blocks/list/table.html" %}|{% include "admin/blocks/layout/sidebar.html" %}"#
+        );
+        let replaced = TemplateLoader::process_content(
+            src.to_string(),
+            &super::Integrity::default(),
+            &[super::BlockDispatch {
+                name: "list_table".into(),
+                content: r#"{% include "mine.html" %}"#.into(),
+            }],
+        );
+        assert_eq!(
+            replaced,
+            r#"{% include "mine.html" %}|{% include "admin/blocks/layout/sidebar.html" %}"#
+        );
+        assert_eq!(
+            process(r#"{% dev_block "nope" %}"#),
+            r#"{% dev_block "nope" %}"#,
+            "left for Tera to refuse"
+        );
     }
 
     #[test]

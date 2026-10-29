@@ -24,8 +24,8 @@
     </div>
     <div class="admin-card__body">
       <form method="POST" action="{{ form_action }}" enctype="multipart/form-data">
-        {% block edit_form_fields %}{% include "admin/blocks/form/fields.html" %}{% endblock %}
-        {% block edit_form_actions %}{% include "admin/blocks/form/actions.html" %}{% endblock %}
+        {% block edit_form_fields %}{% dev_block "form_fields" %}{% endblock %}
+        {% block edit_form_actions %}{% dev_block "form_actions" %}{% endblock %}
       </form>
     </div>
   </div>

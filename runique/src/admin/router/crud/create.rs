@@ -55,7 +55,14 @@ pub(crate) async fn create_view(
         Err(error) => return failure(error, &req, &admin).await,
     };
 
-    chrome(&mut req, &admin, &site, &user, key);
+    chrome(
+        &mut req,
+        &admin,
+        &site,
+        &user,
+        key,
+        crate::admin::template::Page::Create,
+    );
     insert_admin_messages(&mut req.context, "create");
     put(
         &mut req,
@@ -74,5 +81,8 @@ pub(crate) async fn create_view(
             },
         },
     )?;
-    req.render(admin.config.templates.create.resolve())
+    req.render(admin.config.templates.page_for(
+        crate::admin::template::Page::Create,
+        Some(model.templates()),
+    ))
 }

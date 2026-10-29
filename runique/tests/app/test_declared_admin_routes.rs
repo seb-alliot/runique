@@ -3231,6 +3231,16 @@ async fn a_group_handed_to_an_admin_is_reduced_to_his_rights() {
         !page.contains("checked"),
         "a sideways transfer keeps nothing at first"
     );
+    // Each line names its table, then the right: the table's, or a column's.
+    use runique::utils::trad::t;
+    assert!(
+        page.contains(&format!("— {}<", t("admin.rights.right_update"))),
+        "{page}"
+    );
+    assert!(
+        page.contains(&format!("— title : {}<", t("admin.rights.col_update"))),
+        "{page}"
+    );
     assert!(
         edits_notes(&base, STAFF_MEMBER).await,
         "nothing written by the page"
@@ -3382,4 +3392,279 @@ async fn a_right_kept_goes_to_the_receiver_and_stays_with_the_group() {
         edits_notes(&base, ORPHAN_STAFF_MEMBER).await,
         "the receiver got them"
     );
+}
+
+// ── Stylesheets ───────────────────────────────────────────────────────────
+
+/// Every page loads its sheets in its `<head>` only: the layout's, then its
+/// own (the rights' grid, the login's), none left in the body.
+#[tokio::test]
+#[serial]
+async fn every_page_loads_its_sheets_in_its_head() {
+    let base = spawn_with("", transfer_routes()).await;
+    let su = with_receivers(&base).await;
+    let anonymous = reqwest::Client::new();
+    let login = text(&anonymous, format!("{base}/secret-admin/login")).await;
+    let pages = [
+        (format!("{base}/secret-admin/"), "css/admin/layout.css"),
+        (
+            format!("{base}/secret-admin/probe_notes/list"),
+            "css/admin/layout.css",
+        ),
+        (
+            format!("{base}/secret-admin/groupes/1/detail"),
+            "css/admin/blocks/rights.css",
+        ),
+        (
+            format!("{base}/secret-admin/groupes/1/rights"),
+            "css/admin/blocks/rights.css",
+        ),
+        (
+            transfer_page(&base, 1, MEMBER),
+            "css/admin/blocks/transfer.css",
+        ),
+    ];
+    let mut bodies: Vec<(String, String, &str)> =
+        vec![("login".into(), login, "css/admin/login.css")];
+    for (url, own) in pages {
+        bodies.push((url.clone(), text(&su, url).await, own));
+    }
+    for (page, body, own) in bodies {
+        let (head, rest) = body
+            .split_once("</head>")
+            .unwrap_or_else(|| panic!("{page}: no head"));
+        for sheet in ["css/admin/variables.css", own] {
+            assert!(head.contains(&format!("{sheet}?v=")), "{page}: {sheet}");
+        }
+        assert!(
+            !rest.contains("rel=\"stylesheet\""),
+            "{page}: a sheet in the body"
+        );
+        for tag in head.split("<link rel=\"stylesheet\"").skip(1) {
+            let tag = &tag[..tag.find('>').unwrap_or(tag.len())];
+            assert!(tag.contains("integrity=\"sha384-"), "{page}: {tag}");
+        }
+    }
+}
+
+// ── Replaced templates ────────────────────────────────────────────────────
+
+/// A folder of the developer's templates, written for one test.
+fn theme_dir(files: &[(&str, &str)]) -> String {
+    let dir = std::env::temp_dir().join(format!("runique-theme-{}", uuid::Uuid::new_v4()));
+    for (name, body) in files {
+        let path = dir.join(name);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, body).unwrap();
+    }
+    dir.to_string_lossy().into_owned()
+}
+
+/// The app with the developer's templates in `dir`, the global replacements
+/// of `global`, and the notes' own of `notes`.
+async fn spawn_themed(
+    dir: String,
+    global: fn(runique::admin::template::AdminTemplate) -> runique::admin::template::AdminTemplate,
+    notes: fn(runique::admin::template::ModelTemplates) -> runique::admin::template::ModelTemplates,
+) -> Result<String, String> {
+    let dbc = db::fresh_db().await;
+    seed(&dbc).await;
+    let mut config = RuniqueConfig::from_env();
+    config.debug = true;
+    config.static_files.templates_dir = vec![dir];
+    let app = RuniqueApp::builder(config)
+        .with_database(dbc)
+        .routes(probe_routes())
+        .static_files(|s| s.enabled(false))
+        .with_admin(|a| {
+            a.path("/secret-admin").templates(global).site(|s| {
+                s.register(
+                    runique::admin::builder::admin_builder::ModelAdmin::<probe::Entity>::new()
+                        .list(|l| l.display([probe::Column::Title]))
+                        .form(|f| f.fields([probe::Column::Title]))
+                        .templates(notes),
+                )
+                .register(runique::admin::builder::admin_builder::ModelAdmin::<
+                    bare::Entity,
+                >::new())
+            })
+        })
+        .build()
+        .await
+        .map_err(|e| e.to_string())?;
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move { axum::serve(listener, app.router).await.unwrap() });
+    Ok(format!("http://{addr}"))
+}
+
+/// A block replaced for one model shows on its pages only, over a global
+/// one shown everywhere else; a page replaced for a model renders for it;
+/// a layout block replaced shows on every page.
+#[tokio::test]
+#[serial]
+async fn replaced_blocks_and_pages_show_where_declared() {
+    use runique::admin::template::{Block, GlobalBlock, Page};
+    let dir = theme_dir(&[
+        (
+            "theme/table.html",
+            "<p data-theme-table>{{ resource.key }}</p>",
+        ),
+        (
+            "notes/table.html",
+            "<p data-notes-table>{{ resource.key }}</p>",
+        ),
+        (
+            "notes/detail.html",
+            r#"{% extends "admin_base.html" %}{% block content %}<p data-notes-detail>{{ object_id }}</p>{% endblock %}"#,
+        ),
+        ("theme/sidebar.html", "<nav data-theme-sidebar></nav>"),
+        (
+            "theme/pagination.html",
+            r#"<div data-theme-pagination>{% include "admin/blocks/list/pagination.html" %}</div>"#,
+        ),
+    ]);
+    let base = spawn_themed(
+        dir,
+        |t| {
+            t.block(Block::ListTable, "theme/table.html")
+                .block(Block::ListPagination, "theme/pagination.html")
+                .global_block(GlobalBlock::Sidebar, "theme/sidebar.html")
+        },
+        |t| {
+            t.block(Block::ListTable, "notes/table.html")
+                .page(Page::Detail, "notes/detail.html")
+        },
+    )
+    .await
+    .expect("boots");
+    let su = signed_in(&base, SUPERUSER).await;
+
+    let notes = text(&su, format!("{base}/secret-admin/probe_notes/list")).await;
+    assert!(
+        notes.contains("<p data-notes-table>probe_notes</p>"),
+        "{notes}"
+    );
+    assert!(!notes.contains("data-theme-table"));
+    let bare = text(&su, format!("{base}/secret-admin/bare_notes/list")).await;
+    assert!(
+        bare.contains("<p data-theme-table>bare_notes</p>"),
+        "{bare}"
+    );
+    // A replacement wrapping Runique's block includes it by its own name
+    // (the boot checked that include; one page shows no pagination inside).
+    assert!(bare.contains("data-theme-pagination"), "{bare}");
+
+    let detail = text(&su, format!("{base}/secret-admin/probe_notes/1/detail")).await;
+    assert!(detail.contains("<p data-notes-detail>1</p>"), "{detail}");
+    let other = text(&su, format!("{base}/secret-admin/bare_notes/1/detail")).await;
+    assert!(
+        !other.contains("data-notes-detail"),
+        "Runique's for the others"
+    );
+
+    let dashboard = text(&su, format!("{base}/secret-admin/")).await;
+    assert!(dashboard.contains("data-theme-sidebar"), "{dashboard}");
+}
+
+/// A replacement naming a template that isn't there refuses the boot, as
+/// does a page about no model replaced for one.
+#[tokio::test]
+#[serial]
+async fn a_replacement_that_cant_render_refuses_the_boot() {
+    use runique::admin::template::{Block, Page};
+    let missing = spawn_themed(
+        theme_dir(&[]),
+        |t| t,
+        |t| t.block(Block::ListTable, "nowhere.html"),
+    )
+    .await;
+    assert!(missing.is_err(), "a missing template");
+    let dashboard =
+        spawn_themed(theme_dir(&[]), |t| t, |t| t.page(Page::Dashboard, "x.html")).await;
+    assert!(
+        dashboard.unwrap_err().contains("Dashboard"),
+        "a page about no model"
+    );
+}
+
+// ── Every page renders ────────────────────────────────────────────────────
+
+/// Every admin page, as a superuser sees it, with history to show: `(file
+/// name, URL)`. A dirigeant and an admin exist, so the transfer and the
+/// rights have something to render.
+async fn every_page(base: &str) -> (reqwest::Client, Vec<(&'static str, String)>) {
+    let su = with_receivers(base).await;
+    let admin = format!("{base}/secret-admin");
+    let pages = vec![
+        ("dashboard", format!("{admin}/")),
+        ("list", format!("{admin}/probe_notes/list")),
+        ("create", format!("{admin}/probe_notes/create")),
+        ("edit", format!("{admin}/probe_notes/1/edit")),
+        ("detail", format!("{admin}/probe_notes/1/detail")),
+        ("delete", format!("{admin}/probe_notes/1/delete")),
+        ("account_detail", format!("{admin}/users/{}/detail", pk(ADMIN))),
+        ("account_rights", format!("{admin}/users/{}/rights", pk(ADMIN))),
+        ("groups_list", format!("{admin}/groupes/list")),
+        ("group_detail", format!("{admin}/groupes/1/detail")),
+        ("group_rights", format!("{admin}/groupes/1/rights")),
+        ("transfer", transfer_page(base, 1, ORPHAN_STAFF_MEMBER)),
+        ("history", format!("{admin}/history")),
+        ("history_entry", format!("{admin}/history/1")),
+    ];
+    (su, pages)
+}
+
+/// The contract of the pages: each renders whole (a context key a template
+/// reads and the handler forgot fails the render), its stylesheets in its
+/// head; the login too.
+#[tokio::test]
+#[serial]
+async fn every_admin_page_renders() {
+    let base = spawn_with("", transfer_routes()).await;
+    let (su, pages) = every_page(&base).await;
+    let login = reqwest::Client::new()
+        .get(format!("{base}/secret-admin/login"))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(login.status(), reqwest::StatusCode::OK, "login");
+    for (name, url) in pages {
+        let resp = fetch(&su, url.clone(), None).await;
+        assert_eq!(resp.status(), reqwest::StatusCode::OK, "{name}: {url}");
+        let body = resp.text().await.unwrap();
+        assert!(body.contains("css/admin/variables.css") && body.contains("</html>"), "{name}");
+    }
+}
+
+/// Writes every admin page to `target/rendered/`, its static URLs pointed at
+/// Runique's static folder on disk (integrity dropped, a local file has no
+/// origin to check it against): opened in a browser, as served. Run on
+/// demand: `cargo test --features all-databases,admin,test-utils --test mod
+/// render_admin_pages -- --ignored`.
+#[tokio::test]
+#[serial]
+#[ignore = "writes files, for a look in a browser"]
+async fn render_admin_pages() {
+    let config = RuniqueConfig::from_env();
+    let statics = &config.static_files;
+    let folder = std::fs::canonicalize(&statics.static_runique_path).expect("Runique's static folder");
+    let url = format!("{}/", statics.static_runique_url.trim_end_matches('/'));
+    let local = format!("file://{}/", folder.display());
+    let out = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/rendered");
+    std::fs::create_dir_all(&out).unwrap();
+
+    let base = spawn_with("", transfer_routes()).await;
+    let (su, mut pages) = every_page(&base).await;
+    let login = text(&reqwest::Client::new(), format!("{base}/secret-admin/login")).await;
+    pages.insert(0, ("login", String::new()));
+    let attrs = regex::Regex::new(r#"\s(integrity|crossorigin)="[^"]*""#).unwrap();
+    let version = regex::Regex::new(r#"\?v=[A-Za-z0-9]+"#).unwrap();
+    for (name, page) in pages {
+        let body = if name == "login" { login.clone() } else { text(&su, page).await };
+        let body = body.replace(&format!("\"{url}"), &format!("\"{local}"));
+        let body = version.replace_all(&attrs.replace_all(&body, ""), "").into_owned();
+        std::fs::write(out.join(format!("{name}.html")), body).unwrap();
+    }
+    eprintln!("pages written to {}", out.canonicalize().unwrap().display());
 }

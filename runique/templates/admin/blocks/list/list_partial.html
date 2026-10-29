@@ -5,20 +5,20 @@
 {% set has_filters = resource.display.list_filter | length > 0 %}
 <div id="list-content">
 
-  {% block list_search %}{% include "admin/blocks/list/search.html" %}{% endblock list_search %}
+  {% block list_search %}{% dev_block "list_search" %}{% endblock list_search %}
 
-  {% block list_group_action %}{% include "admin/blocks/list/bulk.html" %}{% endblock list_group_action %}
+  {% block list_group_action %}{% dev_block "list_bulk" %}{% endblock list_group_action %}
 
   {# What a search typed in the field replaces; the field itself is never swapped. #}
   <div id="list-results" class="{% if has_filters %}admin-list__layout{% endif %}">
 
     {# ── Colonne principale : table + pagination ── #}
     <div>
-      {% block list_table %}{% include "admin/blocks/list/table.html" %}{% endblock list_table %}
-      {% block list_pagination %}{% include "admin/blocks/list/pagination.html" %}{% endblock list_pagination %}
+      {% block list_table %}{% dev_block "list_table" %}{% endblock list_table %}
+      {% block list_pagination %}{% dev_block "list_pagination" %}{% endblock list_pagination %}
     </div>
 
-    {% block list_filters %}{% include "admin/blocks/list/filters.html" %}{% endblock list_filters %}
+    {% block list_filters %}{% dev_block "list_filters" %}{% endblock list_filters %}
 
   </div>{# fin admin-list__layout #}
 </div>

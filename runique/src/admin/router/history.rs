@@ -137,7 +137,14 @@ pub(crate) async fn history_view(
         (entries, total.max(1))
     };
 
-    chrome(&mut req, &admin, &site, &user, "");
+    chrome(
+        &mut req,
+        &admin,
+        &site,
+        &user,
+        "",
+        crate::admin::template::Page::History,
+    );
     crate::admin::trad::insert_admin_messages(&mut req.context, "history");
     put(
         &mut req,
@@ -184,7 +191,14 @@ pub(crate) async fn history_entry_view(
         return failure(not_found, &req, &admin).await;
     };
 
-    chrome(&mut req, &admin, &site, &user, "");
+    chrome(
+        &mut req,
+        &admin,
+        &site,
+        &user,
+        "",
+        crate::admin::template::Page::HistoryDiff,
+    );
     crate::admin::trad::insert_admin_messages(&mut req.context, "history");
     put(
         &mut req,

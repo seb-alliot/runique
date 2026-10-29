@@ -1,0 +1,5 @@
+{# The page's stylesheets, all in its <head>: resolved at boot (whatever the
+   developer didn't replace stays Runique's), each with its integrity. #}
+{% for sheet in stylesheets %}
+<link rel="stylesheet" href="{{ sheet.href }}"{% if sheet.integrity %} integrity="{{ sheet.integrity }}" crossorigin="anonymous"{% endif %}>
+{% endfor %}

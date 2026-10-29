@@ -36,7 +36,14 @@ pub(crate) async fn edit_view(
     let key = model.key();
     let cancel_url = admin.paths.detail_of(&site, key, &id);
 
-    chrome(&mut req, &admin, &site, &user, key);
+    chrome(
+        &mut req,
+        &admin,
+        &site,
+        &user,
+        key,
+        crate::admin::template::Page::Edit,
+    );
     insert_admin_messages(&mut req.context, "edit");
     put(
         &mut req,
@@ -56,5 +63,10 @@ pub(crate) async fn edit_view(
             form_fields: form,
         },
     )?;
-    req.render(admin.config.templates.edit.resolve())
+    req.render(
+        admin
+            .config
+            .templates
+            .page_for(crate::admin::template::Page::Edit, Some(model.templates())),
+    )
 }

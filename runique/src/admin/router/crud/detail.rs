@@ -144,7 +144,14 @@ pub(crate) async fn detail_view(
         }
     }
 
-    chrome(&mut req, &admin, &site, &user, key);
+    chrome(
+        &mut req,
+        &admin,
+        &site,
+        &user,
+        key,
+        crate::admin::template::Page::Detail,
+    );
     insert_admin_messages(&mut req.context, "detail");
     insert_admin_messages(&mut req.context, "list");
     put(
@@ -176,5 +183,8 @@ pub(crate) async fn detail_view(
             rich_fields: Vec::new(),
         },
     )?;
-    req.render(admin.config.templates.detail.resolve())
+    req.render(admin.config.templates.page_for(
+        crate::admin::template::Page::Detail,
+        Some(model.templates()),
+    ))
 }

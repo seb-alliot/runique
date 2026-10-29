@@ -11,7 +11,7 @@
   <div class="admin-page__header">
     <div>
       <h1 class="admin-page__title">{{ entry.resource_title }} — {% if entry.object_label %}{{ entry.object_label }}{% else %}#{{ entry.object_pk }}{% endif %}</h1>
-      <p class="admin-page__subtitle">{{ entry.created_at }} · {{ entry.username }} · {% include "admin/blocks/history/action_badge.html" %}</p>
+      <p class="admin-page__subtitle">{{ entry.created_at }} · {{ entry.username }} · {% dev_block "history_action_badge" %}</p>
     </div>
     <div class="admin-page__actions">
       <a href="{{ entry.links.object }}" class="btn btn-secondary btn-sm">{{ admin_history_whole_row }}</a>

@@ -4,7 +4,7 @@ use crate::tpls;
 /// Built-in templates with no dependency on other internal templates —
 /// `(tera_name, embedded_content)` pairs, content embedded at compile time via
 /// `include_str!` (see the `tpls!` macro). Registered into Tera by
-/// `Templates::load_internal_templates`.
+/// `TemplateLoader::internal_templates`.
 pub const SIMPLE_TEMPLATES: &[(&str, &str)] = tpls![
     ("base_index.html", "runique_index/base_index.html"),
     ("message.html", "message/message.html"),
@@ -82,11 +82,6 @@ pub const ADMIN_TEMPLATES: &[(&str, &str)] = tpls![
     ("admin/delete.html", "admin/pages/delete.html"),
     ("admin/history.html", "admin/pages/history.html"),
     ("admin/history_diff.html", "admin/pages/history_diff.html"),
-    (
-        "admin/history_timeline.html",
-        "admin/pages/history_timeline.html"
-    ),
-    ("admin/history_batch.html", "admin/pages/history_batch.html"),
     ("admin/bulk_edit.html", "admin/pages/bulk_edit.html"),
     ("admin/rights.html", "admin/pages/rights.html"),
     ("admin/transfer.html", "admin/pages/transfer.html"),
@@ -95,6 +90,10 @@ pub const ADMIN_TEMPLATES: &[(&str, &str)] = tpls![
     (
         "admin/blocks/layout/sidebar.html",
         "admin/blocks/layout/sidebar.html"
+    ),
+    (
+        "admin/blocks/layout/stylesheets.html",
+        "admin/blocks/layout/stylesheets.html"
     ),
     (
         "admin/blocks/layout/topbar_actions.html",
@@ -187,3 +186,40 @@ pub const ADMIN_TEMPLATES: &[(&str, &str)] = tpls![
         "admin/emails/user_created_email.html"
     ),
 ];
+
+/// The admin blocks a developer may replace: the name a `{% dev_block %}`
+/// gives, and Runique's template for it.
+pub const ADMIN_BLOCKS: &[(&str, &str)] = &[
+    ("list_table", "admin/blocks/list/table.html"),
+    ("list_filters", "admin/blocks/list/filters.html"),
+    ("list_search", "admin/blocks/list/search.html"),
+    ("list_pagination", "admin/blocks/list/pagination.html"),
+    ("list_bulk", "admin/blocks/list/bulk.html"),
+    ("kebab", "admin/blocks/common/kebab.html"),
+    ("detail_fields", "admin/blocks/detail/fields.html"),
+    ("detail_actions", "admin/blocks/detail/actions.html"),
+    ("detail_groups", "admin/blocks/detail/groups.html"),
+    ("detail_transfer", "admin/blocks/detail/transfer.html"),
+    ("form_fields", "admin/blocks/form/fields.html"),
+    ("form_actions", "admin/blocks/form/actions.html"),
+    ("delete_warning", "admin/blocks/delete/warning.html"),
+    ("delete_actions", "admin/blocks/delete/actions.html"),
+    ("sidebar", "admin/blocks/layout/sidebar.html"),
+    ("topbar", "admin/blocks/layout/topbar_actions.html"),
+    ("dashboard_groups", "admin/blocks/dashboard/my_groups.html"),
+    ("history_table", "admin/blocks/history/table.html"),
+    ("history_filters", "admin/blocks/history/filters.html"),
+    (
+        "history_action_badge",
+        "admin/blocks/history/action_badge.html",
+    ),
+    ("rights_table", "admin/blocks/rights/table.html"),
+];
+
+/// Runique's template for the admin block named `name`.
+pub fn admin_block(name: &str) -> Option<&'static str> {
+    ADMIN_BLOCKS
+        .iter()
+        .find(|(key, _)| *key == name)
+        .map(|(_, path)| *path)
+}

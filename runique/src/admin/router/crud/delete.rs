@@ -36,7 +36,14 @@ pub(crate) async fn delete_view(
     };
     let cancel_url = admin.paths.detail_of(&site, key, &id);
 
-    chrome(&mut req, &admin, &site, &user, key);
+    chrome(
+        &mut req,
+        &admin,
+        &site,
+        &user,
+        key,
+        crate::admin::template::Page::Delete,
+    );
     insert_admin_messages(&mut req.context, "delete");
     put(
         &mut req,
@@ -51,5 +58,8 @@ pub(crate) async fn delete_view(
             cancel_url,
         },
     )?;
-    req.render(admin.config.templates.delete.resolve())
+    req.render(admin.config.templates.page_for(
+        crate::admin::template::Page::Delete,
+        Some(model.templates()),
+    ))
 }

@@ -142,7 +142,14 @@ pub(crate) async fn transfer_view(
         Err(e) => return failure(AdminError::Db(e), &req, &admin).await,
     };
 
-    chrome(&mut req, &admin, &site, &user, model.key());
+    chrome(
+        &mut req,
+        &admin,
+        &site,
+        &user,
+        model.key(),
+        crate::admin::template::Page::Transfer,
+    );
     insert_admin_messages(&mut req.context, "transfer");
     put(
         &mut req,

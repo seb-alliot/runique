@@ -24,7 +24,7 @@
               {% if entry.object_label %}{{ entry.object_label }}{% else %}#{{ entry.object_pk }}{% endif %}
             </a>
           </td>
-          <td>{% include "admin/blocks/history/action_badge.html" %}</td>
+          <td>{% dev_block "history_action_badge" %}</td>
           <td class="admin-table__td-actions">
             {% if entry.links.entry %}
             <a href="{{ entry.links.entry }}" class="btn btn-ghost btn-sm">{{ admin_history_btn_entry }}</a>

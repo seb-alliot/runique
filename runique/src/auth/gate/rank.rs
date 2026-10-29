@@ -144,3 +144,141 @@ pub(crate) async fn set_rank(
     txn.commit().await?;
     Ok(given)
 }
+
+#[cfg(all(test, feature = "sqlite"))]
+mod tests {
+    use super::*;
+    use crate::auth::gate::test_support::fixtures::{as_rank, groups_db, pk};
+    use crate::auth::history;
+    use crate::auth::permissions::groupe;
+    use sea_orm::{ActiveModelTrait, Set};
+
+    async fn rank_of(db: &ADb, n: u8) -> Rang {
+        Rang::from(
+            &user::Entity::find_by_id(pk(n))
+                .one(db)
+                .await
+                .unwrap()
+                .unwrap(),
+        )
+    }
+
+    async fn responsable(db: &ADb) -> Pk {
+        groupe::Entity::find_by_id(1)
+            .one(db)
+            .await
+            .unwrap()
+            .unwrap()
+            .responsable_id
+    }
+
+    /// One row of the admin's (33) own grid.
+    async fn grid_row(db: &ADb) {
+        groupes_droits::ActiveModel {
+            groupe_id: Set(None),
+            user_id: Set(Some(pk(33))),
+            resource_key: Set("notes".into()),
+            colonne: Set(String::new()),
+            can_create: Set(false),
+            can_read: Set(true),
+            can_read_own: Set(false),
+            can_update: Set(false),
+            can_update_own: Set(false),
+            can_delete: Set(false),
+            can_delete_own: Set(false),
+            ..Default::default()
+        }
+        .insert(db)
+        .await
+        .unwrap();
+    }
+
+    async fn grid_rows(db: &ADb) -> u64 {
+        groupes_droits::Entity::find()
+            .filter(groupes_droits::Column::UserId.eq(pk(33)))
+            .count(db)
+            .await
+            .unwrap()
+    }
+
+    /// Only from dirigeant up, never onto oneself nor nobody.
+    #[tokio::test]
+    async fn a_rank_is_given_from_dirigeant_up_to_others_only() {
+        let db = groups_db(pk(30)).await;
+        let admin = as_rank(33, Rang::Admin);
+        assert!(
+            set_rank(&admin, &[pk(31)], Rang::Lambda, &db)
+                .await
+                .is_err()
+        );
+        let dirigeant = as_rank(32, Rang::Dirigeant);
+        assert!(set_rank(&dirigeant, &[], Rang::Lambda, &db).await.is_err());
+        assert!(
+            set_rank(&dirigeant, &[pk(32), pk(31)], Rang::Lambda, &db)
+                .await
+                .is_err()
+        );
+        assert_eq!(rank_of(&db, 31).await, Rang::Lambda);
+        set_rank(&dirigeant, &[pk(31)], Rang::Admin, &db)
+            .await
+            .unwrap();
+        assert_eq!(rank_of(&db, 31).await, Rang::Admin);
+    }
+
+    /// A rank kept is no loss: the groups stay, the admin's grid too. Losing
+    /// the admin rank takes both: the groups back, the grid gone.
+    #[tokio::test]
+    async fn only_a_lower_rank_takes_the_groups_and_the_grid() {
+        let db = groups_db(pk(33)).await;
+        grid_row(&db).await;
+        let dirigeant = as_rank(32, Rang::Dirigeant);
+        set_rank(&dirigeant, &[pk(33)], Rang::Admin, &db)
+            .await
+            .unwrap();
+        assert_eq!(responsable(&db).await, pk(33));
+        assert_eq!(grid_rows(&db).await, 1);
+
+        set_rank(&dirigeant, &[pk(33)], Rang::Lambda, &db)
+            .await
+            .unwrap();
+        assert_eq!(responsable(&db).await, pk(32));
+        assert_eq!(grid_rows(&db).await, 0);
+    }
+
+    /// Admins never stay without an active dirigeant; without any admin, a
+    /// change needs none.
+    #[tokio::test]
+    async fn the_last_dirigeant_is_kept_only_while_admins_remain() {
+        let db = groups_db(pk(30)).await;
+        let su = as_rank(30, Rang::Superuser);
+        // No admin, no dirigeant left: a lambda stays a lambda freely.
+        set_rank(&su, &[pk(33), pk(32)], Rang::Lambda, &db)
+            .await
+            .unwrap();
+        set_rank(&su, &[pk(31)], Rang::Lambda, &db).await.unwrap();
+        // A first admin with no dirigeant above him: refused.
+        assert!(set_rank(&su, &[pk(31)], Rang::Admin, &db).await.is_err());
+        assert_eq!(rank_of(&db, 31).await, Rang::Lambda);
+    }
+
+    /// One account changed: one history row, no batch; several: one batch.
+    #[tokio::test]
+    async fn several_accounts_share_one_batch() {
+        let db = groups_db(pk(30)).await;
+        let dirigeant = as_rank(32, Rang::Dirigeant);
+        set_rank(&dirigeant, &[pk(31)], Rang::Admin, &db)
+            .await
+            .unwrap();
+        set_rank(&dirigeant, &[pk(31), pk(33)], Rang::Lambda, &db)
+            .await
+            .unwrap();
+        let rows = history::Entity::find()
+            .filter(history::Column::Action.eq("rank"))
+            .all(&db)
+            .await
+            .unwrap();
+        assert_eq!(rows.len(), 3);
+        assert!(rows[0].batch_id.is_none());
+        assert!(rows[1].batch_id.is_some() && rows[1].batch_id == rows[2].batch_id);
+    }
+}

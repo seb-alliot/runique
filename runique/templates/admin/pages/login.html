@@ -10,15 +10,7 @@
         <meta property="og:image" content="{{ og_image }}">
 
         <title>{% if admin_login_title %}{{ admin_login_title }}{% endif %} — {{ site_title | default(value="Administration", boolean=true) }}</title>
-        {% block extra_css %}
-            <link rel="stylesheet" href="{% runique_static "css/admin/variables.css" %}">
-            <link rel="stylesheet" href="{% runique_static "css/admin/layout.css" %}">
-            <link rel="stylesheet" href="{% runique_static "css/admin/components.css" %}">
-            <link rel="stylesheet" href="{% runique_static "css/admin/buttons.css" %}">
-            <link rel="stylesheet" href="{% runique_static "css/admin/forms.css" %}">
-            <link rel="stylesheet" href="{% runique_static "css/admin/responsive.css" %}">
-            <link rel="stylesheet" href="{% runique_static "css/admin/login.css" %}">
-        {% endblock %}
+        {% block extra_css %}{% include "admin/blocks/layout/stylesheets.html" %}{% endblock %}
     </head>
 
     <body>
