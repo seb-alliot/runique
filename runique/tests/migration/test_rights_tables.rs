@@ -9,7 +9,8 @@ use runique::migrations_table::{
     AdminTableMigration, DROITS_COLUMN_ROW_FLAGS, DROITS_GROUP_NEVER_FRAMEWORK, DROITS_ONE_HOLDER,
     EihwazUsersMigration,
 };
-use runique::sea_orm::{ConnectionTrait, DatabaseConnection, TransactionTrait};
+use runique::sea_orm::sea_query::{Alias, Expr, Query};
+use runique::sea_orm::{ConnectionTrait, DatabaseConnection, ExprTrait, TransactionTrait};
 use runique::utils::constante::resource_key::FRAMEWORK_KEYS;
 use sea_orm_migration::{MigrationTrait, SchemaManager};
 use serial_test::serial;
@@ -244,13 +245,50 @@ async fn postgres_rights_table_guarantees() {
 
 /// Same pinning as `drop_users_mariadb`: `FOREIGN_KEY_CHECKS` is per
 /// connection, the transaction keeps `SET`/`DROP`/`SET` on one.
+///
+/// Other tests leave tables on this database (`contributions` from the demo
+/// migrations, `eihwaz_reset_tokens`, …) with a foreign key onto these.
+/// MariaDB keeps that key when the parent is dropped with checks off, then
+/// refuses to recreate the parent if the key's type differs — errno 150.
+/// Under `pk-uuid` the new `id` is `binary(16)` and a leftover key is `int`.
 async fn drop_mariadb(db: &DatabaseConnection) {
     let txn = db.begin().await.unwrap();
     txn.execute_unprepared("SET FOREIGN_KEY_CHECKS = 0")
         .await
         .unwrap();
+    let referencing = Query::select()
+        .distinct()
+        .column(Alias::new("TABLE_NAME"))
+        .from((
+            Alias::new("information_schema"),
+            Alias::new("KEY_COLUMN_USAGE"),
+        ))
+        .and_where(Expr::col(Alias::new("TABLE_SCHEMA")).eq(Expr::cust("DATABASE()")))
+        .and_where(Expr::col(Alias::new("REFERENCED_TABLE_NAME")).is_in([
+            "eihwaz_users",
+            "eihwaz_groupes",
+            "eihwaz_groupes_droits",
+            "eihwaz_users_groupes",
+            "eihwaz_sessions",
+        ]))
+        .to_owned();
+    let referencing = txn
+        .query_all(&referencing)
+        .await
+        .expect("tables that reference the framework tables");
+    for row in referencing {
+        let name: String = row.try_get("", "TABLE_NAME").expect("table name");
+        let ident = name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_')
+            .then_some(name.as_str())
+            .expect("table name");
+        txn.execute_unprepared(&format!("DROP TABLE IF EXISTS `{ident}`"))
+            .await
+            .unwrap();
+    }
     for table in TABLES {
-        txn.execute_unprepared(&format!("DROP TABLE IF EXISTS {table}"))
+        txn.execute_unprepared(&format!("DROP TABLE IF EXISTS `{table}`"))
             .await
             .unwrap();
     }

@@ -123,6 +123,10 @@ use book::{Code, Genre, Level};
 use runique::db::ADb;
 use runique::sea_orm::{ActiveModelTrait, ActiveValue::Set, EntityTrait, ModelTrait};
 
+// The owner's key follows `Pk`. A list table keeps its own integer key; only
+// `owner_id` matches the owner. Under `pk-uuid` that key is a blob and the
+// application supplies it: SQLite will not invent a UUID.
+#[cfg(not(feature = "pk-uuid"))]
 const DDL: &str = "CREATE TABLE list_books (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
@@ -142,8 +146,30 @@ CREATE TABLE list_books_moods (
     UNIQUE (owner_id, value)
 );";
 
+#[cfg(feature = "pk-uuid")]
+const DDL: &str = "CREATE TABLE list_books (
+    id BLOB PRIMARY KEY,
+    title TEXT NOT NULL,
+    level INTEGER NOT NULL,
+    code INTEGER NOT NULL
+);
+CREATE TABLE list_books_genres (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    owner_id BLOB NOT NULL REFERENCES list_books(id) ON DELETE CASCADE,
+    value TEXT NOT NULL,
+    UNIQUE (owner_id, value)
+);
+CREATE TABLE list_books_moods (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    owner_id BLOB NOT NULL REFERENCES list_books(id) ON DELETE CASCADE,
+    value TEXT NOT NULL,
+    UNIQUE (owner_id, value)
+);";
+
 async fn insert(conn: &runique::sea_orm::DatabaseConnection, title: &str) -> book::Model {
     book::ActiveModel {
+        #[cfg(feature = "pk-uuid")]
+        id: Set(runique::sea_orm::prelude::Uuid::now_v7()),
         title: Set(title.into()),
         level: Set(Level::Low),
         code: Set(Code::A),
@@ -305,6 +331,29 @@ mod pg_book {
     }
 }
 
+// Same rule as the SQLite schema: the owner's key follows `Pk`, the list
+// table keeps its own `bigint`.
+#[cfg(all(feature = "postgres", feature = "pk-uuid"))]
+const PG_BOOKS: &str = "CREATE TABLE pg_list_books (id UUID PRIMARY KEY, title TEXT NOT NULL)";
+#[cfg(all(feature = "postgres", feature = "pk-uuid"))]
+const PG_GENRES: &str = "CREATE TABLE pg_list_books_genres (id BIGSERIAL PRIMARY KEY, owner_id UUID NOT NULL REFERENCES pg_list_books(id) ON DELETE CASCADE, value genre NOT NULL, UNIQUE (owner_id, value))";
+
+#[cfg(all(feature = "postgres", feature = "big-pk", not(feature = "pk-uuid")))]
+const PG_BOOKS: &str = "CREATE TABLE pg_list_books (id BIGSERIAL PRIMARY KEY, title TEXT NOT NULL)";
+#[cfg(all(feature = "postgres", feature = "big-pk", not(feature = "pk-uuid")))]
+const PG_GENRES: &str = "CREATE TABLE pg_list_books_genres (id BIGSERIAL PRIMARY KEY, owner_id BIGINT NOT NULL REFERENCES pg_list_books(id) ON DELETE CASCADE, value genre NOT NULL, UNIQUE (owner_id, value))";
+
+#[cfg(all(
+    feature = "postgres",
+    not(any(feature = "big-pk", feature = "pk-uuid"))
+))]
+const PG_BOOKS: &str = "CREATE TABLE pg_list_books (id SERIAL PRIMARY KEY, title TEXT NOT NULL)";
+#[cfg(all(
+    feature = "postgres",
+    not(any(feature = "big-pk", feature = "pk-uuid"))
+))]
+const PG_GENRES: &str = "CREATE TABLE pg_list_books_genres (id BIGSERIAL PRIMARY KEY, owner_id INTEGER NOT NULL REFERENCES pg_list_books(id) ON DELETE CASCADE, value genre NOT NULL, UNIQUE (owner_id, value))";
+
 #[cfg(feature = "postgres")]
 #[tokio::test]
 async fn list_on_postgres_with_a_native_enum() {
@@ -319,12 +368,14 @@ async fn list_on_postgres_with_a_native_enum() {
         "DROP TABLE IF EXISTS list_books",
         "DROP TYPE IF EXISTS genre",
         "CREATE TYPE genre AS ENUM ('Roman', 'Policier')",
-        "CREATE TABLE pg_list_books (id SERIAL PRIMARY KEY, title TEXT NOT NULL)",
-        "CREATE TABLE pg_list_books_genres (id BIGSERIAL PRIMARY KEY, owner_id INTEGER NOT NULL REFERENCES pg_list_books(id) ON DELETE CASCADE, value genre NOT NULL, UNIQUE (owner_id, value))",
+        PG_BOOKS,
+        PG_GENRES,
     ] {
         crate::helpers::db_postgres::exec(&conn, sql).await;
     }
     let new = |title: &str| pg_book::ActiveModel {
+        #[cfg(feature = "pk-uuid")]
+        id: Set(runique::sea_orm::prelude::Uuid::now_v7()),
         title: Set(title.into()),
         ..Default::default()
     };
