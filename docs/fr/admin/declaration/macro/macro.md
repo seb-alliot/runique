@@ -50,7 +50,7 @@ Le `use …::Column::*` reste **dans** la fonction du modèle : deux modèles av
 | `.links([Col, …])` | Colonnes cliquables vers le détail (défaut : première de display) |
 | `.sortable([Col, …])` | Seules colonnes acceptées via `?sort_by=` |
 | `.ordering([(Col, Order::Asc), …])` | Tri SQL par défaut |
-| `.search([Col, …])` | Colonnes plein-texte (`None` = textes de display ; `Some([])` via search vide désactive) |
+| `.search([Col, …])` | Colonnes plein-texte. Sans appel : textes du `display`. `.search([])` désactive |
 | `.search_help("…")` | Texte d'aide sous la barre de recherche |
 | `.filter([Col, …])` | Filtres latéraux (`?filter_status=…`) |
 | `.per_page(n)` | Taille de page pour ce modèle |

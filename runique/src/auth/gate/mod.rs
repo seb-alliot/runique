@@ -7,6 +7,10 @@
 //! 2. the user's rights, by rank or groups ([`CrudAction`]);
 //! 3. the developer's business rules, which can only restrict.
 //!
+//! A delete the database blocks because other rows still point at it is the
+//! one refusal whose sentence differs: it says so, and names neither those
+//! rows nor how many. The caller's rights do not change that sentence.
+//!
 //! Only this module builds an [`Authorized`]: its constructor is
 //! `pub(in crate::auth::gate)`, so a shortcut elsewhere in Runique shows up
 //! as a visibility change in review instead of a quiet call.

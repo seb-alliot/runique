@@ -92,7 +92,7 @@ clear()                      → [optionnel] vide le formulaire après traitemen
 
 **`save(&db)` / `delete(&db)`** — Sur le formulaire validé rendu par `try_form`, pour un formulaire relié à une entité : écrit la ligne, rend `Ok(form)` ou `Err(form)`. Voir « Écriture » plus bas.
 
-**`database_error(&err)`** — Analyse une erreur DB et la positionne sur le bon champ.
+**`database_error(&err)`** — Analyse une erreur DB et la positionne sur le bon champ. `ValidationForm::save` l'appelle déjà : le `Err(form)` revient avec l'erreur. À appeler soi-même seulement après une écriture maison qui renvoie un `DbErr`.
 
 **`clear()`** — Vide toutes les valeurs des champs (hors CSRF et nom du formulaire) et remet `submitted` à `false`. À appeler après avoir lu les données nettoyées, avant un redirect ou un re-rendu vide.
 

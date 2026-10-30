@@ -96,7 +96,7 @@ clear()                      → [optional] empty the form after processing
 
 **`save(&db)` / `delete(&db)`** — On the validated form `try_form` returns, for a form tied to an entity: writes the row, returns `Ok(form)` or `Err(form)`. See "Writing" below.
 
-**`database_error(&err)`** — Parses a DB error and attaches it to the correct field.
+**`database_error(&err)`** — Parses a DB error and attaches it to the correct field. `ValidationForm::save` already calls it: the `Err(form)` comes back with the error. Call it yourself only after a hand-written save that returns a `DbErr`.
 
 **`clear()`** — Clears all field values (except CSRF and the form's name) and resets `submitted` to `false`. Call it after reading cleaned data, before a redirect or empty re-render.
 

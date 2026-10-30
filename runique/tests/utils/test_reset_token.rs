@@ -1,9 +1,9 @@
 //! Tests — utils/reset_token
-//! Couvre : generate, consume, peek (DB-backed), encrypt_email, decrypt_email
+//! Couvre : generate, consume et peek (DB-backed).
 
 use crate::helpers::db;
 use crate::helpers::pk::pk;
-use runique::utils::reset_token::{consume, decrypt_email, encrypt_email, generate, peek};
+use runique::utils::reset_token::{consume, generate, peek, resolve};
 use std::time::Duration;
 
 #[cfg(feature = "pk-uuid")]
@@ -42,6 +42,16 @@ async fn test_generate_peek_valid() {
 }
 
 #[tokio::test]
+async fn test_resolve_returns_the_bound_user_without_consuming_the_token() {
+    let conn = runique::db::ADb::from_connection(db::fresh_db_with_schema(RESET_TOKENS_DDL).await);
+    let token = generate(&conn, pk(42), ttl()).await.unwrap();
+
+    assert_eq!(resolve(&conn, &token).await, Some(pk(42)));
+    assert!(peek(&conn, &token).await);
+    assert_eq!(consume(&conn, &token).await, Some(pk(42)));
+}
+
+#[tokio::test]
 async fn test_consume_returns_user_id() {
     let conn = runique::db::ADb::from_connection(db::fresh_db_with_schema(RESET_TOKENS_DDL).await);
     let token = generate(&conn, pk(42), ttl()).await.unwrap();
@@ -74,57 +84,6 @@ async fn test_consume_unknown_token() {
 async fn test_peek_unknown_token() {
     let conn = runique::db::ADb::from_connection(db::fresh_db_with_schema(RESET_TOKENS_DDL).await);
     assert!(!peek(&conn, "non-existent-token-abc").await);
-}
-
-// ═══════════════════════════════════════════════════════════════
-// encrypt_email / decrypt_email
-// ═══════════════════════════════════════════════════════════════
-
-#[test]
-fn test_encrypt_decrypt_roundtrip() {
-    let token = "test-token-roundtrip-abc";
-    let email = "test@example.com";
-    let encrypted = encrypt_email(token, email);
-    let decrypted = decrypt_email(token, &encrypted);
-    assert_eq!(decrypted, Some(email.to_string()));
-}
-
-#[test]
-fn test_encrypt_decrypt_long_email() {
-    let token = "token-long-email";
-    let email = "very.long.email.address.for.testing@subdomain.example.com";
-    let encrypted = encrypt_email(token, email);
-    let decrypted = decrypt_email(token, &encrypted);
-    assert_eq!(decrypted, Some(email.to_string()));
-}
-
-#[test]
-fn test_decrypt_wrong_token_returns_none() {
-    let encrypted = encrypt_email("correct-token", "test@example.com");
-    let result = decrypt_email("wrong-token", &encrypted);
-    assert_eq!(result, None);
-}
-
-#[test]
-fn test_decrypt_invalid_base64_returns_none() {
-    let result = decrypt_email("any-token", "not-valid-base64!!!!@#$");
-    assert_eq!(result, None);
-}
-
-#[test]
-fn test_decrypt_too_short_returns_none() {
-    use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
-    let short = URL_SAFE_NO_PAD.encode([0u8; 10]);
-    let result = decrypt_email("any-token", &short);
-    assert_eq!(result, None);
-}
-
-#[test]
-fn test_encrypt_different_tokens_give_different_output() {
-    let email = "same@example.com";
-    let enc1 = encrypt_email("token-one", email);
-    let enc2 = encrypt_email("token-two", email);
-    assert_ne!(enc1, enc2);
 }
 
 // Written from cargo-mutants survivors (2026-10-02): every test above passes
@@ -161,11 +120,4 @@ async fn test_only_the_token_hash_is_stored() {
     assert!(!stored.contains(&token));
     // base64url of a SHA-256 digest, without padding.
     assert_eq!(stored.len(), 43);
-}
-
-#[test]
-fn test_decrypt_accepts_the_shortest_value() {
-    // 16 bytes of tag + 1 byte of ciphertext: a one-character email.
-    let encoded = encrypt_email("token", "a");
-    assert_eq!(decrypt_email("token", &encoded).as_deref(), Some("a"));
 }

@@ -55,11 +55,13 @@ pub async fn index(mut request: Request) -> AppResult<Response> {
 pub async fn handler(mut request: Request) -> AppResult<Response> {
     let form: RegisterForm = request.form();
     let form = match ValidationForm::try_form(form, &request, "my_form").await {
-        Ok(validated) => {
-            let user = validated.save(&request.engine.db).await?;
-            success!(request.notices => "User created!");
-            return Ok(Redirect::to("/").into_response());
-        }
+        Ok(validated) => match validated.save(&request.engine.db).await {
+            Ok(_) => {
+                success!(request.notices => "User created!");
+                return Ok(Redirect::to("/").into_response());
+            }
+            Err(form) => form,
+        },
         Err(form) => form,
     };
 

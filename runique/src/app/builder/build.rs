@@ -209,10 +209,7 @@ impl<P> RuniqueAppBuilder<P> {
 
         let router = if let Some(pr) = self.password_reset {
             let forgot_path = pr.config.forgot_route.clone();
-            let reset_path = format!(
-                "{}/{{token}}/{{encrypted_email}}",
-                pr.config.reset_route.trim_end_matches('/')
-            );
+            let reset_path = format!("{}/{{token}}", pr.config.reset_route.trim_end_matches('/'));
             let pr_router = crate::auth::password::build_router(Arc::new(pr.config));
             register_name_url(&engine, "forgot_password", &forgot_path);
             register_name_url(&engine, "reset_password", &reset_path);

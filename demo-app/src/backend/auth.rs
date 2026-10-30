@@ -87,8 +87,13 @@ pub async fn handle_inscription(request: &mut Request, form: RegisterForm) -> Ap
                 std::time::Duration::from_secs(86_400),
             )
             .await
-            .unwrap_or_default();
-            let encrypted = reset_token::encrypt_email(&token, &user.email);
+            .map_err(|e| {
+                tracing::error!(error = %e, "failed to create account activation token");
+                Box::new(AppError::new(ErrorContext::generic(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "failed to create account activation token",
+                )))
+            })?;
             // Never the request's Host outside debug: a forged Host would send
             // the activation link — and its token — elsewhere.
             let Some(base_url) = request.public_url() else {
@@ -97,7 +102,7 @@ pub async fn handle_inscription(request: &mut Request, form: RegisterForm) -> Ap
                     "the public URL is not set (.with_public_url())",
                 ))));
             };
-            let activate_url = format!("{}/activate/{}/{}", base_url, token, encrypted);
+            let activate_url = format!("{}/activate/{}", base_url, token);
             if mailer_configured() {
                 Email::new()
                     .to(user.email.clone())
@@ -126,36 +131,16 @@ pub async fn handle_inscription(request: &mut Request, form: RegisterForm) -> Ap
     request.render(template)
 }
 
-pub async fn handle_activate(
-    request: &mut Request,
-    token: String,
-    encrypted_email: String,
-) -> AppResult<Response> {
-    // Verify and decrypt before consuming (consume is irreversible)
-    if !reset_token::peek(&request.engine.db, &token).await {
+pub async fn handle_activate(request: &mut Request, token: String) -> AppResult<Response> {
+    let Some(user_id) = reset_token::consume(&request.engine.db, &token).await else {
         warning!(request.notices => "This activation link is invalid or has expired.");
         return Ok(Redirect::to("/login").into_response());
-    }
-
-    let Some(email) = reset_token::decrypt_email(&token, &encrypted_email) else {
-        warning!(request.notices => "This activation link is invalid.");
-        return Ok(Redirect::to("/login").into_response());
     };
-
-    // Consume the token (single use)
-    let _ = reset_token::consume(&request.engine.db, &token).await;
 
     let db = request.engine.db.clone();
 
-    // Find the user by email
-    let query = search!(UserEntity => Email eq email.trim());
-    let Some(user) = query.first(&db).await.unwrap_or(None) else {
-        warning!(request.notices => "Account not found.");
-        return Ok(Redirect::to("/login").into_response());
-    };
-
     // Activate the account — only a pending one: a blocked account stays blocked.
-    let activated = match BuiltinUserEntity::activate_account(&db, user.id).await {
+    let activated = match BuiltinUserEntity::activate_account(&db, user_id).await {
         Ok(Some(activated)) => activated,
         Ok(None) => {
             warning!(request.notices => "This account is already activated or has been blocked.");
@@ -176,7 +161,9 @@ pub async fn handle_activate(
         return Ok(Redirect::to("/login").into_response());
     }
 
-    success!(request.notices => format!("Welcome {}! Your account is now active.", user.username));
+    success!(
+        request.notices => format!("Welcome {}! Your account is now active.", activated.username)
+    );
     Ok(Redirect::to("/profil").into_response())
 }
 

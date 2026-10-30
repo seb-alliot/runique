@@ -69,10 +69,11 @@ This work never ends: it comes before the items below.
 tracing, languages). A serious vulnerability may jump the queue; otherwise follow the numbering.
 Each item needs its regression test before it is checked off.
 
-1. [ ] **Password reset without the email in the link** — the email is encrypted today with a key
+1. [x] **Password reset without the email in the link** — the email was encrypted with a key
    derived from the token, which sits in the same link: it protects nothing. Compare the typed
-   email with the account's, and drop the email from the link; `encrypt_email` /
-   `decrypt_email` deprecated then removed (breaking change deferred to 5.0 if needed).
+   email with the account's, and drop the email from the link. The custom
+   `encrypt_email` / `decrypt_email` helpers were removed. Regression coverage verifies token-only
+   links and that a mismatched email does not consume a reset token.
 2. [ ] **Uploads of a refused form** — deleted right away, even when another field made the form
    invalid (today: at the next sweep, 1 h).
 3. [ ] **In-memory counters capped** — `RateLimiter` and `LoginGuard` bound their number of keys
@@ -80,9 +81,10 @@ Each item needs its regression test before it is checked off.
 4. [ ] **A superuser's sessions** — protected like their account: a staff member can't delete them.
 5. [ ] **Open redirect tests** — run the payloads of PortSwigger's *URL validation bypass* cheat
    sheet.
-6. [ ] **Deletion refused by a foreign key** — the admin shows a clear message ("can't delete: 3
-   orders are linked to it") instead of the raw database error. By default a `belongs_to` without
-   an action refuses (`NoAction`): never an implicit cascade.
+6. [x] **Deletion refused by a foreign key** — the admin shows "Cannot delete: other records still
+   use it." The sentence is the same whatever the read right: no table name, no count. The engine's
+   text stays in the log. By default a `belongs_to` without an action refuses (`NoAction`): never
+   an implicit cascade.
 
 Typical outcome: one or more **patch** releases `4.0.x` (e.g. `4.0.1`) while the 4.0 line is
 supported. No minor feature mixed into these patches.

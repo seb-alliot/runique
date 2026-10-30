@@ -736,3 +736,47 @@ async fn test_db_fallback_restores_a_signed_in_session_after_restart() {
     let without = CleaningMemoryStore::default();
     assert!(without.load(&signed_in.id).await.unwrap().is_none());
 }
+
+/// A stale response save racing with logout must not restore the old cookie:
+/// logout deletes the DB row, then an already-captured authenticated record
+/// may still be persisted by the in-flight response.
+#[cfg(feature = "orm")]
+#[tokio::test]
+async fn test_stale_authenticated_save_after_logout_does_not_restore_old_cookie() {
+    use runique::middleware::session::RuniqueSessionStore;
+    use std::sync::Arc;
+
+    let conn = crate::helpers::db::fresh_db_with_schema(super::test_session_db::SESSIONS_DDL).await;
+    let db = Arc::new(RuniqueSessionStore::new(runique::db::ADb::from_connection(
+        conn,
+    )));
+    let before_logout = CleaningMemoryStore::default().with_db_fallback(db.clone());
+    let mut authenticated = heavy_record(3600, 10, Some(42));
+    before_logout.create(&mut authenticated).await.unwrap();
+    let stale_snapshot = authenticated.clone();
+    let old_cookie_id = authenticated.id;
+
+    db.delete(&old_cookie_id.to_string()).await.unwrap();
+    let after_logout = CleaningMemoryStore::default().with_db_fallback(db.clone());
+    assert!(
+        after_logout.load(&old_cookie_id).await.unwrap().is_none(),
+        "logout removed the old authenticated session"
+    );
+
+    before_logout.save(&stale_snapshot).await.unwrap();
+
+    assert!(
+        before_logout.load(&old_cookie_id).await.unwrap().is_none(),
+        "the same process must reject the stale in-memory session"
+    );
+
+    let after_stale_save = CleaningMemoryStore::default().with_db_fallback(db);
+    assert!(
+        after_stale_save
+            .load(&old_cookie_id)
+            .await
+            .unwrap()
+            .is_none(),
+        "a stale save must not recreate a logged-out authenticated session"
+    );
+}

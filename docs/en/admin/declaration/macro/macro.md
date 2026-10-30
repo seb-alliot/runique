@@ -50,7 +50,7 @@ Keep `use …::Column::*` **inside** the model function so two models with a `Ti
 | `.links([Col, …])` | Clickable columns to detail (default: first display) |
 | `.sortable([Col, …])` | Only columns accepted via `?sort_by=` |
 | `.ordering([(Col, Order::Asc), …])` | Default SQL order |
-| `.search([Col, …])` | Full-text columns |
+| `.search([Col, …])` | Full-text columns. Omitted: text columns of `display`. `.search([])` disables |
 | `.search_help("…")` | Help text under the search bar |
 | `.filter([Col, …])` | Side filters (`?filter_status=…`) |
 | `.per_page(n)` | Page size for this model |

@@ -312,7 +312,3 @@ pub async fn unprotect_session(session: &Session) -> Result<(), tower_sessions::
     session.remove::<i64>(SESSION_ACTIVE_KEY).await?;
     Ok(())
 }
-
-// ═══════════════════════════════════════════════════════════════
-// Axum Middlewares
-// ═══════════════════════════════════════════════════════════════

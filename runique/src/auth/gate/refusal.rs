@@ -1,6 +1,10 @@
 //! One answer for every refusal. "Doesn't exist", "out of the parent", "no
 //! right", "protected account" look the same from outside, so ids can't be
 //! enumerated; the reason only goes to the logs.
+//!
+//! A delete the database blocks because other rows still point at this one
+//! is the exception ([`RefusalReason::LinkedRecords`]). The sentence names
+//! neither those rows nor how many, and the caller's rights do not change it.
 use crate::utils::trad::t;
 
 #[derive(Debug)]
@@ -8,6 +12,10 @@ pub struct Refusal {
     /// Logged when the refusal is made; kept on the value for the tests only.
     #[cfg(test)]
     reason: RefusalReason,
+    /// Set only for [`RefusalReason::LinkedRecords`]. Production keeps this
+    /// flag rather than the reason, so the shown sentence can differ while
+    /// every other refusal stays indistinguishable.
+    linked: bool,
 }
 
 /// Never shown to the user.
@@ -26,6 +34,9 @@ pub(crate) enum RefusalReason {
     UnreadableTarget,
     /// The database refused the write.
     WriteFailed,
+    /// A delete blocked because other rows still reference this one.
+    /// Shown on its own: see [`Refusal::message`].
+    LinkedRecords,
     /// No row read: missing, out of the user's read scope, or a malformed id.
     /// The scoped read can't tell which, and doesn't need to.
     NotFound,
@@ -39,6 +50,7 @@ impl Refusal {
         Self {
             #[cfg(test)]
             reason,
+            linked: matches!(reason, RefusalReason::LinkedRecords),
         }
     }
 
@@ -47,9 +59,14 @@ impl Refusal {
         &self.reason
     }
 
-    /// The message shown, whatever the reason.
+    /// The message shown. Every reason shares one sentence, except a delete
+    /// blocked by rows that still point here.
     pub fn message(&self) -> String {
-        t("admin.access.action_not_allowed").into_owned()
+        if self.linked {
+            t("forms.delete_linked").into_owned()
+        } else {
+            t("admin.access.action_not_allowed").into_owned()
+        }
     }
 }
 
@@ -80,5 +97,16 @@ mod tests {
         );
         assert!(!messages[0].is_empty());
         assert_eq!(messages[0], t("admin.access.action_not_allowed"));
+    }
+
+    #[test]
+    fn a_delete_blocked_by_related_rows_names_none_of_them() {
+        let refusal = Refusal::new(RefusalReason::LinkedRecords);
+        let message = refusal.message();
+        assert_eq!(message, t("forms.delete_linked"));
+        assert_ne!(message, t("admin.access.action_not_allowed"));
+        let lower = message.to_ascii_lowercase();
+        assert!(!lower.contains("foreign key"));
+        assert!(!lower.contains("constraint"));
     }
 }

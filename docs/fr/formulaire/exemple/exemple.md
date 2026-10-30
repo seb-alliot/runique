@@ -85,12 +85,16 @@ pub async fn inscription(mut request: Request) -> AppResult<Response> {
         }
     };
 
+    // `RegisterForm::save` (méthode du formulaire, pas `ValidationForm::save`) :
+    // `Ok` est le modèle, `Err` un `DbErr` à reporter avec `database_error`.
     match validated.save(&request.engine.db).await {
-        Ok(_) => {
+        Ok(_user) => {
             success!(request.notices => "Inscription réussie !");
             return Ok(Redirect::to("/").into_response());
         }
-        Err(err) => validated.database_error(&err),
+        Err(err) => {
+            validated.database_error(&err);
+        }
     }
 
     context_update!(request => {
@@ -102,7 +106,7 @@ pub async fn inscription(mut request: Request) -> AppResult<Response> {
 }
 ```
 
-> **💡** `validated` (type `ValidationForm<RegisterForm>`) implémente `Deref<Target = RegisterForm>` : `&*validated` donne accès au formulaire pour le sérialiser dans le contexte. `database_error()` reste appelable sur `ValidationForm` directement — pas besoin de `into_form()` pour poser une erreur de sauvegarde après coup.
+> **💡** Cette `save` est celle écrite sur `RegisterForm` : elle renvoie le modèle, et `database_error(&err)` reporte le `DbErr`. Pour un formulaire d'entité, `ValidationForm::save` renvoie le formulaire (`Ok(form)` / `Err(form)`) et l'erreur base est déjà dessus. `Deref` permet `&*validated` dans le contexte.
 
 ---
 

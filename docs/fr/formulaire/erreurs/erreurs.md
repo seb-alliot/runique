@@ -4,15 +4,22 @@
 
 ---
 
-La méthode `database_error()` analyse automatiquement les erreurs DB pour remonter l'erreur au bon champ :
+`database_error()` analyse une erreur DB pour la remonter au bon champ.
+
+Pour un formulaire d'entité, `ValidationForm::save` l'appelle déjà. Le `Err` est le formulaire, avec l'erreur posée :
 
 ```rust
-match form.save(&request.engine.db).await {
-    Ok(_) => { /* succès */ }
-    Err(err) => {
-        form.database_error(&err);
-        // L'erreur est positionnée sur le champ concerné
-    }
+match validated.save(&request.engine.db).await {
+    Ok(_form) => { /* succès */ }
+    Err(form) => { /* contrainte unique sur le champ, sinon erreur globale */ }
+}
+```
+
+Après une écriture maison qui renvoie un `DbErr`, on l'appelle soi-même :
+
+```rust
+if let Err(err) = insert_user(&request.engine.db).await {
+    form.database_error(&err);
 }
 ```
 

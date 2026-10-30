@@ -2,7 +2,7 @@
 //! as the database knows it now, not the copy taken into the session at login.
 
 use crate::helpers::db;
-use crate::helpers::framework_tables::USERS_DDL;
+use crate::helpers::framework_tables::{SESSIONS_DDL, USERS_DDL};
 use crate::helpers::pk::{pk, pk_sql_literal};
 use axum::{Router, routing::get};
 use runique::app::RuniqueApp;
@@ -31,6 +31,10 @@ async fn whoami(req: Request) -> String {
 async fn spawn() -> (String, DatabaseConnection) {
     let dbc = db::fresh_db().await;
     db::exec(&dbc, USERS_DDL).await;
+    // The app attaches the session DB backup whenever a database is configured.
+    // An authenticated load checks `eihwaz_sessions`; without the table the check
+    // fails closed and the signed-in request never reaches the handler.
+    db::exec(&dbc, SESSIONS_DDL).await;
     db::exec(
         &dbc,
         &format!(

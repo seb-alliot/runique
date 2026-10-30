@@ -1,13 +1,12 @@
 //! Tests — auth/password.rs
-//! Couvre : PasswordResetConfig builder, PasswordResetForm::clean() (5 branches),
-//!          ForgotPasswordForm
+//! Couvre : PasswordResetConfig builder, PasswordResetForm fields and password policy,
+//!          ForgotPasswordForm.
 
 use runique::auth::{ForgotPasswordForm, PasswordResetConfig, PasswordResetForm};
 use runique::forms::{
     field::{FormAccess, RuniqueForm},
     form::Forms,
 };
-use runique::utils::reset_token;
 
 // ═══════════════════════════════════════════════════════════════
 // PasswordResetConfig — builder
@@ -78,7 +77,7 @@ fn test_forgot_password_form_has_email_field() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PasswordResetForm::clean() — 5 branches
+// PasswordResetForm fields and password validation
 // ═══════════════════════════════════════════════════════════════
 
 fn make_reset_form() -> PasswordResetForm {
@@ -89,15 +88,21 @@ fn make_reset_form() -> PasswordResetForm {
     form
 }
 
+#[test]
+fn test_reset_form_uses_token_and_email_without_encrypted_email() {
+    let form = make_reset_form();
+    assert!(form.form.fields.contains_key("token"));
+    assert!(form.form.fields.contains_key("email"));
+    assert!(!form.form.fields.contains_key("encrypted_email"));
+}
+
 #[tokio::test]
 async fn test_reset_form_valid() {
     let email = "test@example.com";
     let token = "test-reset-token".to_string();
-    let encrypted = reset_token::encrypt_email(&token, email);
 
     let mut form = make_reset_form();
     form.form.add_value("token", &token);
-    form.form.add_value("encrypted_email", &encrypted);
     form.form.add_value("email", email);
     form.form.add_value("password", "StrongPassword1!");
     form.form.add_value("confirm", "StrongPassword1!");
@@ -106,46 +111,12 @@ async fn test_reset_form_valid() {
 }
 
 #[tokio::test]
-async fn test_reset_form_invalid_token_decrypt_fails() {
-    // Token inexistant → decrypt_email retourne None
-    let mut form = make_reset_form();
-    form.form.add_value("token", "inexistant-token");
-    form.form.add_value("encrypted_email", "bad-data");
-    form.form.add_value("email", "test@example.com");
-    form.form.add_value("password", "strongpassword1");
-    form.form.add_value("confirm", "strongpassword1");
-
-    assert!(!form.is_valid().await);
-    assert!(form.form.errors().contains_key("token"));
-}
-
-#[tokio::test]
-async fn test_reset_form_email_mismatch() {
-    // Token valide mais l'email fourni ne correspond pas à l'email chiffré
-    let real_email = "real@example.com";
-    let token = "test-reset-token".to_string();
-    let encrypted = reset_token::encrypt_email(&token, real_email);
-
-    let mut form = make_reset_form();
-    form.form.add_value("token", &token);
-    form.form.add_value("encrypted_email", &encrypted);
-    form.form.add_value("email", "wrong@example.com");
-    form.form.add_value("password", "strongpassword1");
-    form.form.add_value("confirm", "strongpassword1");
-
-    assert!(!form.is_valid().await);
-    assert!(form.form.errors().contains_key("email"));
-}
-
-#[tokio::test]
 async fn test_reset_form_password_too_short() {
     let email = "test@example.com";
     let token = "test-reset-token".to_string();
-    let encrypted = reset_token::encrypt_email(&token, email);
 
     let mut form = make_reset_form();
     form.form.add_value("token", &token);
-    form.form.add_value("encrypted_email", &encrypted);
     form.form.add_value("email", email);
     form.form.add_value("password", "short");
     form.form.add_value("confirm", "short");
@@ -158,11 +129,9 @@ async fn test_reset_form_password_too_short() {
 async fn test_reset_form_password_mismatch() {
     let email = "test@example.com";
     let token = "test-reset-token".to_string();
-    let encrypted = reset_token::encrypt_email(&token, email);
 
     let mut form = make_reset_form();
     form.form.add_value("token", &token);
-    form.form.add_value("encrypted_email", &encrypted);
     form.form.add_value("email", email);
     form.form.add_value("password", "strongpassword1");
     form.form.add_value("confirm", "differentpassword1");
@@ -179,10 +148,8 @@ async fn test_reset_form_password_mismatch() {
 async fn password_error(password: &str) -> bool {
     let email = "test@example.com";
     let token = "test-reset-token".to_string();
-    let encrypted = reset_token::encrypt_email(&token, email);
     let mut form = make_reset_form();
     form.form.add_value("token", &token);
-    form.form.add_value("encrypted_email", &encrypted);
     form.form.add_value("email", email);
     form.form.add_value("password", password);
     form.form.add_value("confirm", password);

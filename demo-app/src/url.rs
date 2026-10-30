@@ -22,7 +22,7 @@ pub fn routes() -> Routes {
 
         // Auth
         "/logout"                        => view! { deconnexion },            name = "logout",
-        "/activate/{token}/{encrypted_email}" => view! { activate_account },  name = "activate_account",
+        "/activate/{token}"             => view! { activate_account },       name = "activate_account",
 
         // Profil
         "/profil"                        => view! { profil },                 name = "profil",
