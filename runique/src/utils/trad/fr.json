@@ -83,7 +83,10 @@
     "unique_field_taken": "Ce {} est déjà utilisé.",
     "unique_value_taken": "La valeur du champ '{}' est déjà utilisée.",
     "unique_constraint_violated": "Une contrainte d'unicité a été violée.",
-    "db_error": "Erreur DB : {}",
+    "db_error": "L'enregistrement a été refusé par la base.",
+    "db_foreign_key": "Cette valeur ne correspond à aucun enregistrement lié.",
+    "db_not_null": "Une valeur obligatoire est manquante.",
+    "db_check": "Cette valeur n'est pas acceptée.",
     "delete_linked": "Impossible de supprimer : d'autres enregistrements l'utilisent encore.",
     "text_field_too_large": "Champ texte trop volumineux (max 1 Mo)",
     "upload_too_large": "Fichier trop volumineux (max {}Mo)"

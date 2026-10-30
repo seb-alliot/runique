@@ -83,7 +83,10 @@
     "unique_field_taken": "Este {} ya está en uso.",
     "unique_value_taken": "El valor del campo '{}' ya está en uso.",
     "unique_constraint_violated": "Se ha violado una restricción de unicidad.",
-    "db_error": "Error de base de datos: {}",
+    "db_error": "La base de datos ha rechazado el registro.",
+    "db_foreign_key": "Este valor no corresponde a ningún registro vinculado.",
+    "db_not_null": "Falta un valor obligatorio.",
+    "db_check": "Este valor no se acepta.",
     "delete_linked": "No se puede eliminar: otros registros aún lo utilizan.",
     "text_field_too_large": "Campo de texto demasiado grande (max 1 MB)",
     "upload_too_large": "Archivo demasiado grande (max {}MB)"

@@ -117,7 +117,7 @@ fn custom(msg: &str) -> runique::sea_orm::DbErr {
 }
 
 #[test]
-fn a_unique_violation_lands_on_its_field_on_every_engine() {
+fn a_custom_engine_sentence_is_not_classified() {
     for msg in [
         r#"duplicate key value violates unique constraint "users_email_key""#,
         "UNIQUE constraint failed: users.email",
@@ -125,19 +125,9 @@ fn a_unique_violation_lands_on_its_field_on_every_engine() {
     ] {
         let mut form = form_with(&["email"]);
         form.database_error(&custom(msg));
-        assert!(form.fields["email"].error().is_some(), "{msg}");
-        assert!(form.errors.is_empty(), "{msg}: not a global error");
+        assert!(form.fields["email"].error().is_none(), "{msg}");
+        assert_eq!(form.errors, vec![msg.to_string()], "{msg}");
     }
-}
-
-#[test]
-fn the_field_is_the_segment_before_key() {
-    let mut form = form_with(&["title", "item"]);
-    form.database_error(&custom(
-        r#"duplicate key value violates unique constraint "site_page_menu_item_title_key""#,
-    ));
-    assert!(form.fields["title"].error().is_some());
-    assert!(form.fields["item"].error().is_none());
 }
 
 #[test]

@@ -23,15 +23,13 @@ if let Err(err) = insert_user(&request.engine.db).await {
 }
 ```
 
-**Supported error formats:**
+An error that still carries SQLx is classed, then replaced by a translated sentence. The engine's text is logged.
 
-- **PostgreSQL**: `UNIQUE constraint`, `Key (field)=(value)`
-- **SQLite**: `UNIQUE constraint failed: table.field`
-- **MySQL**: `Duplicate entry ... for key 'table.field'`
+- **Unique**: on the field when the message or the constraint names the column ("This email is already taken"), otherwise a global sentence.
+- **Foreign key, required value, check**: one global sentence each. A Postgres exclusion uses the check sentence.
+- **Anything else**: one generic sentence (`forms.db_error`), without the engine's text.
 
-If the field is identified, the error appears on that field (e.g. "This email is already used"). Otherwise, it is added to global errors.
-
-Any other database error is shown with the engine's own text (`forms.db_error`). Runique does not replace it with a generic sentence: that text can name a table, a column or a constraint. Template escaping still applies.
+A `DbErr::Custom` is a sentence already chosen (a gate refusal, a linked record, an unreadable field). It is shown as it is.
 
 ---
 

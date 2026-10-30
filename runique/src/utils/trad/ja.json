@@ -83,7 +83,10 @@
     "unique_field_taken": "{} はすでに使用されています。",
     "unique_value_taken": "フィールド '{}' の値はすでに使用されています。",
     "unique_constraint_violated": "一意制約が違反されました。",
-    "db_error": "データベースエラー: {}",
+    "db_error": "データベースが保存を拒否しました。",
+    "db_foreign_key": "この値は、関連する記録と一致しません。",
+    "db_not_null": "必須の値がありません。",
+    "db_check": "この値は受け付けられません。",
     "delete_linked": "削除できません：他のレコードがまだ使用しています。",
     "text_field_too_large": "テキストフィールドが大きすぎます（最大1MB）",
     "upload_too_large": "ファイルが大きすぎます（最大{}MB）"

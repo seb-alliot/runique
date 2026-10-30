@@ -373,11 +373,7 @@ mod tests {
     }
 
     async fn account(db: &ADb, id: crate::utils::pk::Pk) -> user::Model {
-        user::Entity::find_by_id(id)
-            .one(&*db)
-            .await
-            .unwrap()
-            .unwrap()
+        user::Entity::find_by_id(id).one(db).await.unwrap().unwrap()
     }
 
     /// A superuser's proof would reach this lambda. The flag still does not
