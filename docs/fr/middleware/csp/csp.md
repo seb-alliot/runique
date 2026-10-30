@@ -64,6 +64,8 @@ Avec plusieurs proxys en chaîne (`http, https`), seule la première valeur comp
 
 L'hôte de l'URL de redirection est lu dans l'en-tête `Host`. La redirection s'exécute juste après la validation du Host (slot 17, après le slot 15) : avec la validation du Host activée (`.with_allowed_hosts(...)` dans le builder), un `Host` forgé est refusé avant d'être utilisé.
 
+Sans cet appel, la validation reste éteinte — c'est le défaut. L'hôte de la redirection est alors celui de la requête. Runique ne l'active pas à la place de l'application.
+
 **Avec ACME** (`ACME_ENABLED=true`), la redirection n'est **pas montée** : Runique sert alors le TLS lui-même, aucune requête ne porte `X-Forwarded-Proto`, et son écouteur du port 80 redirige déjà vers HTTPS (en conservant le chemin et la query). `ENFORCE_HTTPS` n'a donc aucun effet sur la redirection dans ce mode.
 
 Dans les deux cas, `ENFORCE_HTTPS` ou ACME active aussi l'en-tête HSTS (voir [En-têtes de sécurité](/docs/fr/middleware/csp-headers)).

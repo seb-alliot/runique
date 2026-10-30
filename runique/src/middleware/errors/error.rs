@@ -119,9 +119,14 @@ pub async fn error_handler_middleware(
         || status == StatusCode::TOO_MANY_REQUESTS
         || framework_bad_request
     {
-        // 429: direct rendering, no debug page
+        // 429: direct rendering, no debug page. The wait the limiter advertised
+        // stays on the page: this replacement would otherwise drop it.
         if status == StatusCode::TOO_MANY_REQUESTS {
-            return render_429(&tera, &config, csrf_token);
+            let retry_after = response
+                .headers()
+                .get(axum::http::header::RETRY_AFTER)
+                .cloned();
+            return render_429(&tera, &config, csrf_token, retry_after);
         }
 
         // 503: capacity/overload — direct rendering with Retry-After, no debug page
@@ -301,7 +306,12 @@ fn render_404(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -
     response
 }
 
-fn render_429(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -> Response {
+fn render_429(
+    tera: &Tera,
+    config: &RuniqueConfig,
+    csrf_token: Option<String>,
+    retry_after: Option<HeaderValue>,
+) -> Response {
     let mut context = Context::new();
     inject_global_vars(&mut context, config, csrf_token);
     context.insert("error_title", &t("html.429_title"));
@@ -318,6 +328,11 @@ fn render_429(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -
             fallback_429_html()
         }
     };
+    if let Some(value) = retry_after {
+        response
+            .headers_mut()
+            .insert(axum::http::header::RETRY_AFTER, value);
+    }
     inject_security_headers(response.headers_mut(), config);
     response
 }

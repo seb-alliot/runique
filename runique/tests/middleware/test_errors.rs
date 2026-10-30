@@ -328,6 +328,35 @@ async fn build_status_app() -> Router {
 }
 
 #[tokio::test]
+async fn test_429_page_keeps_the_retry_after_it_replaced() {
+    let engine = build_engine().await;
+    let app = Router::new()
+        .route(
+            "/r429_wait",
+            get(|| async {
+                (
+                    StatusCode::TOO_MANY_REQUESTS,
+                    [(axum::http::header::RETRY_AFTER, "12")],
+                    "slow",
+                )
+            }),
+        )
+        .layer(middleware::from_fn(error_handler_middleware))
+        .layer(Extension(engine.tera.clone()))
+        .layer(Extension(Arc::new(engine.config.clone())));
+    let resp = request::get(app, "/r429_wait").await;
+    assert_eq!(resp.status(), 429);
+    assert_eq!(
+        resp.headers().get("retry-after").map(|v| v.as_bytes()),
+        Some(&b"12"[..])
+    );
+    let body = resp.into_body().collect().await.unwrap().to_bytes();
+    let html = String::from_utf8_lossy(&body);
+    assert!(html.contains("429"), "{html}");
+    assert!(!html.contains("slow"), "{html}");
+}
+
+#[tokio::test]
 async fn test_429_and_503_render_their_own_page() {
     for (path, code) in [("/r429", 429u16), ("/r503", 503u16)] {
         let resp = request::get(build_status_app().await, path).await;

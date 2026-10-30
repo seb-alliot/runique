@@ -59,7 +59,7 @@ site.accounts_users(accounts())
 Points importants :
 
 - `password` est une colonne **secrète** : refusée dans `display`, `search`, `filter`, `fields`, etc.
-- les drapeaux de rang (`is_superuser`, `is_dirigeant`, `is_admin`) ne passent **jamais** par le formulaire — le gate les gère
+- les drapeaux de rang (`is_superuser`, `is_dirigeant`, `is_admin`) ne sont pas des champs du formulaire. Le rang se change depuis la fiche du compte. `is_superuser` se pose avec `runique create-superuser`. Détail : [Permissions](/docs/fr/admin/permission).
 - à la création d'un compte, le gate injecte un hash inconnu et le handler envoie le lien de bienvenue (`AccountLink::Welcome`)
 
 Pas de `create_form:` / `edit_form:` / flag `inject_password` : c'est le comportement natif de la table comptes.

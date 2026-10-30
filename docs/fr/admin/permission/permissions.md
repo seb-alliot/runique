@@ -84,12 +84,20 @@ authentifié ?
 
 ---
 
+## Drapeaux de rang
+
+`is_superuser`, `is_dirigeant` et `is_admin` ne sont pas des champs du formulaire admin. Le boot refuse de les déclarer dans `fields`. Le rang se change depuis la fiche du compte : un dirigeant peut donner admin ou lambda, un superuser peut donner dirigeant, admin ou lambda. Le rang donné reste strictement sous celui qui l'écrit. Cette action reprend les groupes en cas de perte de rang, retire la grille de droits d'un admin qui redescend, et garde au moins un dirigeant actif tant qu'il reste un admin. `is_superuser` ne se donne pas par là : il se pose avec `runique create-superuser`, par un insert direct.
+
+Le filtre de rang limite les lignes qu'une preuve peut toucher, selon le rang déjà enregistré : un admin ne touche ni un admin, ni un dirigeant, ni un superuser ; un dirigeant ne touche ni un dirigeant ni un superuser ; un superuser ne touche pas un autre superuser.
+
+`write::insert` refuse un `Set(true)` sur un de ces drapeaux. `write::update` refuse tout `Set`, `true` ou `false` : une promotion ou une rétrogradation qui passerait par là sauterait les règles ci-dessus. Un `insert` ou un `update` SeaORM appelé directement sur la connexion ne passe pas par le gate.
+
 ## Notes
 
 - `ModelAdmin` ne déclare pas de permissions : la configuration est entièrement en base.
 - Les permissions sont agrégées par OR logique sur tous les groupes de l'utilisateur.
 - Un utilisateur peut avoir `can_read` sans `can_create` — il voit la liste mais ne peut pas créer.
-- Les colonnes secrètes et les rangs restent hors formulaire même pour un superuser (gate + validation au boot).
+- Les colonnes secrètes et les rangs restent hors formulaire, y compris pour un superuser (refus au boot). Le détail des drapeaux est au-dessus.
 
 ---
 

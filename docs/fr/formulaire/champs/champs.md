@@ -296,7 +296,8 @@ form.field(
         .max_size(FileSize::mb(10)),
 );
 
-// Fichier quelconque (multi-fichiers)
+// Toute extension, sauf .svg. Le contenu n'est pas vérifié :
+// ce que le fichier est, et comment il est servi, est à la charge de l'application.
 form.field(
     &FileField::any("attachments")
         .label("Pièces jointes")
@@ -316,7 +317,7 @@ form.field(
 
 Le déplacement vers la destination finale s'effectue dans `finalize()`, **uniquement si la validation passe**. Le dossier est créé automatiquement s'il n'existe pas encore.
 
-> **Sécurité** : les fichiers `.svg` sont **toujours refusés** par défaut (risque XSS). La validation vérifie le format réel du fichier via lecture de ses magic bytes (pas seulement l'extension) ; le crate `image` intervient séparément, uniquement pour lire les dimensions (`max_dimensions`). Les fichiers vides (aucun fichier sélectionné) sont ignorés proprement — le champ `required` fonctionne correctement.
+> **Sécurité** : les fichiers `.svg` sont **toujours refusés** (risque XSS). `FileField::any` accepte toute autre extension et ne lit pas le contenu : la sécurité de ce champ est à la charge de l'application. Pour une image, la validation vérifie le format réel via les magic bytes (pas seulement l'extension) ; le crate `image` intervient séparément, uniquement pour lire les dimensions (`max_dimensions`). Les fichiers vides (aucun fichier sélectionné) sont ignorés proprement — le champ `required` fonctionne correctement.
 
 ### Fichiers JS associés
 

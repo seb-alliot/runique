@@ -46,6 +46,8 @@ Le défaut « plages privées » est sûr **derrière un reverse proxy**. Il dev
 
 Le danger : la confiance envers un réseau privé n'est sûre que si **seul votre proxy** vit dans ce réseau. Si un attaquant partage la plage privée de confiance — VPC voisin, conteneur latéral, autre machine du même LAN — son IP de connexion tombe dans `10.0.0.0/8` (etc.), il est donc traité comme un proxy de confiance, et il peut **forger `X-Forwarded-For`** pour usurper n'importe quelle IP cliente. Cela fausse tout ce qui repose sur l'IP : rate limiting, lockout, journaux.
 
+Runique ne resserre pas cette liste tout seul. Tant que l'application garde le défaut, une machine du même réseau privé est un proxy de confiance.
+
 **Règle :**
 
 - Derrière un reverse proxy (nginx, Caddy) sur réseau privé → gardez le défaut, ou déclarez l'IP exacte du proxy avec `.proxy(...)` pour être strict.

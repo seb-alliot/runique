@@ -111,7 +111,7 @@ fn accounts() -> ModelAdmin<user_profile::Entity> {
 site.accounts_users(accounts())
 ```
 
-Les drapeaux de rang (`is_superuser`, `is_dirigeant`, `is_admin`) ne passent **jamais** par le formulaire : le gate les gère.
+Les drapeaux de rang (`is_superuser`, `is_dirigeant`, `is_admin`) ne sont pas des champs du formulaire. Le boot les refuse. Le rang se change depuis la fiche du compte. `write::insert` refuse un `Set(true)` sur ces colonnes, `write::update` refuse tout `Set`. `is_superuser` se pose avec `runique create-superuser`. Détail : [Permissions](/docs/fr/admin/permission).
 
 ## Secrets
 

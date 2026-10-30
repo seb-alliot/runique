@@ -31,6 +31,8 @@ if let Err(err) = insert_user(&request.engine.db).await {
 
 If the field is identified, the error appears on that field (e.g. "This email is already used"). Otherwise, it is added to global errors.
 
+Any other database error is shown with the engine's own text (`forms.db_error`). Runique does not replace it with a generic sentence: that text can name a table, a column or a constraint. Template escaping still applies.
+
 ---
 
 ← [**Field types**](/docs/en/formulaire/fields) | [**Template rendering**](/docs/en/formulaire/templates) →

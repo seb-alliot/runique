@@ -610,7 +610,8 @@ impl Forms {
     /// Translates a database error into a user-facing form error. A
     /// unique/duplicate-key violation is attributed to the offending field
     /// when it can be identified from the error message, otherwise it is
-    /// added as a global error; any other error is added as a global error too.
+    /// added as a global error. Any other error is a global error carrying
+    /// the engine's own text (`forms.db_error`).
     pub fn database_error(&mut self, db_err: &sea_orm::DbErr) {
         let err_msg = db_err.to_string();
 

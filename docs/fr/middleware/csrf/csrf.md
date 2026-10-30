@@ -13,6 +13,12 @@
 
 Quand vous utilisez `{% form.xxx %}`, le CSRF est **inclus automatiquement**. Pas besoin de l'ajouter manuellement.
 
+## Où le jeton est vérifié
+
+Le middleware lit l'en-tête `X-CSRF-Token`. Un corps JSON sans cet en-tête est refusé (403). Pour `application/x-www-form-urlencoded` et `multipart/form-data`, il laisse passer le corps : le champ `csrf_token` est vérifié par `request.form()`, donc par tout `RuniqueForm`.
+
+Un handler qui lit le corps et écrit sans `request.form()` ne reçoit pas cette vérification de champ. Le cookie de session est `SameSite=Strict`.
+
 ---
 
 ## Dans les formulaires HTML manuels

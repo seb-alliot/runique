@@ -27,7 +27,7 @@ fn every_registered_model_passes_the_boot_checks() {
 - cohérence liste / formulaire (action sur colonne non writable, etc.)
 - secrets jamais exposés (display, search, filter, sort, form, action)
 - sur la table comptes : pas d'action groupée sur les rangs / `is_active`
-- rangs absents de `fields` (réservés au gate)
+- rangs absents de `fields` (pas des champs du formulaire ; `create-superuser` pose `is_superuser`)
 - owner jamais cible d'une action de transfert déguisée
 
 ### Au niveau site (`AdminSite::check`)
