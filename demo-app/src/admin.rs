@@ -6,11 +6,9 @@
 //! then names them alone, and two models' columns of the same name
 //! (`Email`, `Title`…) never meet.
 use crate::entities::{
-    blog, changelog_entry, chapitre, code_example, contrainte_ia, contribution, cour, cour_block,
-    cour_ia, demo_category, demo_page, demo_section, doc_block, doc_page, doc_section, form_field,
-    known_issue, page_doc_link, roadmap_entry, runique_release, site_config, test_all_field,
-    test_relation_child, test_relation_parent, test_relation_parent_tag, test_relation_profile,
-    test_relation_tag, user_profile,
+    blog, changelog_entry, chapitre, code_example, contribution,
+    demo_category, demo_page, demo_section, doc_block, doc_page, doc_section,
+    known_issue, page_doc_link, roadmap_entry, runique_release, site_config, user_profile,
 };
 use runique::admin::{AdminSite, ModelAdmin};
 use runique::app::staging::AdminStaging;
@@ -26,7 +24,6 @@ pub fn config(admin: AdminStaging) -> AdminStaging {
         .sitemap("https://runique.io/sitemap.xml")
         .path("/admin-runique/")
         .prefix("/prefix-test")
-        .templates(|t| t.with_dashboard("admin/test_dashboard.html"))
         .with_rate_limiter(RateLimiter::new().max_requests(20).retry_after(3600))
         .with_login_guard(LoginGuard::new().max_attempts(20).lockout_secs(300))
         .page_size(15)
@@ -154,56 +151,6 @@ fn code_example() -> ModelAdmin<code_example::Entity> {
     })
 }
 
-fn contrainte_ia() -> ModelAdmin<contrainte_ia::Entity> {
-    use contrainte_ia::Column::*;
-    ModelAdmin::new().title("Contraintes IA").list(|l| {
-        l.display([Lang, ContrainteIa])
-            .search([ContrainteIa])
-            .filter([Lang])
-    })
-}
-
-fn cour() -> ModelAdmin<cour::Entity> {
-    use cour::Column::*;
-    ModelAdmin::new()
-        .title("Cours")
-        .list(|l| {
-            l.display([Title, Lang, Theme, Difficulte, Ordre])
-                .links([Title])
-                .sortable([Title, Ordre])
-                .ordering([(Ordre, Order::Asc)])
-                .search([Title, Slug])
-                .filter([Theme, Difficulte, Lang])
-                .action(Difficulte, "avance", "Marquer avancé")
-        })
-        .form(|f| {
-            f.fields([Slug, Lang, Title, Theme, Difficulte, Ordre, SortOrder])
-                .create_only([Slug])
-                .labels([(Difficulte, "Difficulté")])
-        })
-}
-
-fn cour_block() -> ModelAdmin<cour_block::Entity> {
-    use cour_block::Column::*;
-    ModelAdmin::new().list(|l| {
-        l.display([Heading, BlockType, ChapitreId, SortOrder])
-            .ordering([(ChapitreId, Order::Asc), (SortOrder, Order::Asc)])
-            .search([Heading, Content])
-            .filter([BlockType, ChapitreId])
-            .empty_value("(sans titre)")
-            .per_page(10)
-    })
-}
-
-fn cour_ia() -> ModelAdmin<cour_ia::Entity> {
-    use cour_ia::Column::*;
-    ModelAdmin::new().title("Cours IA").list(|l| {
-        l.display([CourId, ContrainteId, SortOrder])
-            .ordering([(CourId, Order::Asc)])
-            .filter([CourId, ContrainteId])
-    })
-}
-
 fn demo_category() -> ModelAdmin<demo_category::Entity> {
     use demo_category::Column::*;
     ModelAdmin::new().list(|l| {
@@ -287,30 +234,6 @@ fn doc_section() -> ModelAdmin<doc_section::Entity> {
     })
 }
 
-fn form_field() -> ModelAdmin<form_field::Entity> {
-    use form_field::Column::*;
-    ModelAdmin::new()
-        .list(|l| {
-            l.display([Name, FieldType, PageId, SortOrder])
-                .ordering([(PageId, Order::Asc), (SortOrder, Order::Asc)])
-                .search([Name, Description])
-                .filter([FieldType])
-        })
-        // `html_preview` is generated, never typed: read-only.
-        .form(|f| {
-            f.fields([
-                PageId,
-                Name,
-                FieldType,
-                Description,
-                Example,
-                HtmlPreview,
-                SortOrder,
-            ])
-            .readonly([HtmlPreview])
-        })
-}
-
 fn page_doc_link() -> ModelAdmin<page_doc_link::Entity> {
     use page_doc_link::Column::*;
     ModelAdmin::new().list(|l| {
@@ -318,7 +241,7 @@ fn page_doc_link() -> ModelAdmin<page_doc_link::Entity> {
             .links([Label])
             .ordering([(PageId, Order::Asc), (SortOrder, Order::Asc)])
             .search([Label, Url])
-            .filter([LinkType])
+            .filter([LinkType]).per_page(10)
     })
 }
 
@@ -367,49 +290,24 @@ fn site_config() -> ModelAdmin<site_config::Entity> {
         })
 }
 
-/// The field types' test table: one column of each kind, a UUID key while
-/// the project's keys are integers.
-fn test_all_field() -> ModelAdmin<test_all_field::Entity> {
-    use test_all_field::Column::*;
-    ModelAdmin::new().title("Test : tous les champs").list(|l| {
-        l.display([FText, FEmail, FInteger, FCheckbox, FDate, FUuid])
-            .sortable([FText, FInteger, FDate])
-            .ordering([(CreatedAt, Order::Desc)])
-            .search([FText, FEmail])
-            .filter([FCheckbox, FSelect])
-            .empty_value("—")
-    })
-}
-
 pub fn site(site: AdminSite) -> AdminSite {
     site.accounts_users(accounts())
         .register(blog())
         .register(changelog_entry())
         .register(chapitre())
         .register(code_example())
-        .register(contrainte_ia())
         .register(contribution())
-        .register(cour())
-        .register(cour_block())
-        .register(cour_ia())
         .register(demo_category())
         .register(demo_page())
         .register(demo_section())
         .register(doc_block())
         .register(doc_page())
         .register(doc_section())
-        .register(form_field())
         .register(known_issue())
         .register(page_doc_link())
         .register(roadmap_entry())
         .register(runique_release())
         .register(site_config())
-        .register(test_all_field())
-        .register(ModelAdmin::<test_relation_child::Entity>::new())
-        .register(ModelAdmin::<test_relation_parent::Entity>::new())
-        .register(ModelAdmin::<test_relation_parent_tag::Entity>::new())
-        .register(ModelAdmin::<test_relation_profile::Entity>::new())
-        .register(ModelAdmin::<test_relation_tag::Entity>::new())
 }
 
 #[cfg(test)]

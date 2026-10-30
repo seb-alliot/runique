@@ -41,9 +41,11 @@ fn with_live<T>(f: impl FnOnce(&mut HashSet<PathBuf>) -> T) -> T {
 /// a parser that merely returns the paths leaves the directory for that holder.
 pub(crate) struct Lease {
     path: PathBuf,
-    /// Exclusive lock, held for the life of this lease. Another process's sweep
-    /// fails to take it and leaves the directory alone. The kernel drops the
-    /// lock when this process dies.
+    /// Exclusive lock, held for the life of this lease. On Unix this is the
+    /// directory itself (`flock`). On Windows it is the `.lock` file inside it
+    /// (`LockFileEx`): a directory has no byte range to lock. Another process's
+    /// sweep fails to take it and leaves the directory alone. The kernel drops
+    /// the lock when this process dies, or when this handle closes.
     _lock: Option<File>,
     delete_on_drop: bool,
 }
@@ -67,7 +69,8 @@ impl Lease {
     }
 
     /// Locks the real directory. A symlink is not opened: locking it would lock
-    /// the folder it points at.
+    /// the folder it points at. On Windows the lock is the `.lock` file inside
+    /// the directory, and that name is not followed either.
     pub(crate) fn lock_dir(&mut self) -> std::io::Result<()> {
         if self._lock.is_some() {
             return Ok(());
@@ -76,7 +79,7 @@ impl Lease {
         if !meta.is_dir() || meta.file_type().is_symlink() {
             return Ok(());
         }
-        let file = File::open(&self.path)?;
+        let file = open_staging_lock(&self.path)?;
         lock_exclusive(&file)?;
         self._lock = Some(file);
         Ok(())
@@ -93,6 +96,10 @@ impl Drop for Lease {
         with_live(|live| {
             live.remove(&self.path);
         });
+        // Close the handle before removing the directory. On Windows the lock
+        // file lives inside it, and an open file there makes `remove_dir_all`
+        // fail. Closing also releases the kernel lock.
+        self._lock.take();
         if self.delete_on_drop {
             remove_staging_dir(&self.path);
         }
@@ -146,10 +153,63 @@ fn remove_staging_dir(path: &Path) {
     }
 }
 
+/// Opens the object both sides lock. Unix locks the directory. Windows locks
+/// `.lock` inside it, creating that file when it is absent. A symlink at that
+/// name is refused: opening it would lock whatever it points at.
+fn open_staging_lock(dir: &Path) -> std::io::Result<File> {
+    #[cfg(unix)]
+    {
+        File::open(dir)
+    }
+    #[cfg(windows)]
+    {
+        let path = dir.join(".lock");
+        match std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create_new(true)
+            .open(&path)
+        {
+            Ok(file) => Ok(file),
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
+                open_existing_lock(&path)
+            }
+            Err(error) => Err(error),
+        }
+    }
+    #[cfg(not(any(unix, windows)))]
+    {
+        let _ = dir;
+        compile_error!("staging directory locks are implemented for Unix and Windows");
+    }
+}
+
+#[cfg(windows)]
+fn open_existing_lock(path: &Path) -> std::io::Result<File> {
+    use std::os::windows::fs::OpenOptionsExt;
+    // `FILE_FLAG_OPEN_REPARSE_POINT`: the handle is the directory entry itself,
+    // not the target of a symlink planted under the name `.lock`.
+    const FILE_FLAG_OPEN_REPARSE_POINT: u32 = 0x0020_0000;
+    let file = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT)
+        .open(path)?;
+    if std::fs::symlink_metadata(path).is_ok_and(|meta| meta.file_type().is_symlink()) {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::AlreadyExists,
+            "staging lock is a symlink",
+        ));
+    }
+    Ok(file)
+}
+
+#[cfg(unix)]
 fn lock_exclusive(file: &File) -> std::io::Result<()> {
+    use std::os::unix::io::AsRawFd;
     // Safety: `file` is an open descriptor. `LOCK_EX` blocks until this process
     // is the only holder; the kernel releases it when the descriptor closes.
-    let rc = unsafe { libc::flock(as_raw_fd(file), libc::LOCK_EX) };
+    let rc = unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX) };
     if rc == 0 {
         Ok(())
     } else {
@@ -157,15 +217,67 @@ fn lock_exclusive(file: &File) -> std::io::Result<()> {
     }
 }
 
-/// `false` when another live process already holds the directory.
-fn try_lock_exclusive(file: &File) -> bool {
-    // Safety: same descriptor rules as `lock_exclusive`. `LOCK_NB` returns at once.
-    unsafe { libc::flock(as_raw_fd(file), libc::LOCK_EX | libc::LOCK_NB) == 0 }
+#[cfg(windows)]
+fn lock_exclusive(file: &File) -> std::io::Result<()> {
+    lock_file(file, LOCKFILE_EXCLUSIVE_LOCK)
 }
 
-fn as_raw_fd(file: &File) -> libc::c_int {
+/// `false` when another live process already holds the directory.
+#[cfg(unix)]
+fn try_lock_exclusive(file: &File) -> bool {
     use std::os::unix::io::AsRawFd;
-    file.as_raw_fd()
+    // Safety: same descriptor rules as `lock_exclusive`. `LOCK_NB` returns at once.
+    unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) == 0 }
+}
+
+#[cfg(windows)]
+fn try_lock_exclusive(file: &File) -> bool {
+    lock_file(file, LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY).is_ok()
+}
+
+#[cfg(windows)]
+const LOCKFILE_FAIL_IMMEDIATELY: u32 = 0x0000_0001;
+#[cfg(windows)]
+const LOCKFILE_EXCLUSIVE_LOCK: u32 = 0x0000_0002;
+
+#[cfg(windows)]
+#[link(name = "kernel32")]
+unsafe extern "system" {
+    fn LockFileEx(
+        file: *mut std::ffi::c_void,
+        flags: u32,
+        reserved: u32,
+        bytes_low: u32,
+        bytes_high: u32,
+        overlapped: *mut std::ffi::c_void,
+    ) -> i32;
+}
+
+#[cfg(windows)]
+fn lock_file(file: &File, flags: u32) -> std::io::Result<()> {
+    use std::os::windows::io::AsRawHandle;
+    // Synchronous handle: a zeroed `OVERLAPPED` locks from offset 0. One byte is
+    // enough, provided every caller locks that same byte. The buffer is larger
+    // than `OVERLAPPED` on both 32-bit and 64-bit so the stack slot stays valid
+    // for the call.
+    let mut overlapped = [0u64; 4];
+    // Safety: `file` is an open handle. `overlapped` is live and aligned for the
+    // duration of the call. The kernel releases the lock when the handle closes.
+    let rc = unsafe {
+        LockFileEx(
+            file.as_raw_handle(),
+            flags,
+            0,
+            1,
+            0,
+            overlapped.as_mut_ptr().cast(),
+        )
+    };
+    if rc != 0 {
+        Ok(())
+    } else {
+        Err(std::io::Error::last_os_error())
+    }
 }
 
 /// Reads a multipart body: text fields as they are, files written to a
@@ -440,7 +552,7 @@ async fn sweep_stale_staging(upload_dir: &Path) {
         if !meta.is_dir() || meta.file_type().is_symlink() {
             continue;
         }
-        let Ok(file) = File::open(&path) else {
+        let Ok(file) = open_staging_lock(&path) else {
             continue;
         };
         if !try_lock_exclusive(&file) {
@@ -450,6 +562,9 @@ async fn sweep_stale_staging(upload_dir: &Path) {
         if with_live(|live| live.contains(&path)) {
             continue;
         }
+        // The handle has to close before the directory goes. On Windows it is
+        // `.lock`, which sits inside the directory.
+        drop(file);
         if let Err(err) = tokio::fs::remove_dir_all(&path).await {
             warn!(dir = %path.display(), error = %err, "staging sweep: remove failed");
         }
@@ -676,6 +791,7 @@ mod staging_tests {
 #[cfg(test)]
 mod staging_dir_tests {
     use super::{Lease, StagingDir, sweep_stale_staging};
+    #[cfg(unix)]
     use std::os::unix::fs::symlink;
     use std::sync::Arc;
 
@@ -710,6 +826,7 @@ mod staging_dir_tests {
         let _ = std::fs::remove_dir_all(&root);
     }
 
+    #[cfg(unix)]
     #[test]
     fn a_symlink_wearing_a_staging_name_is_not_removed() {
         let root = std::env::temp_dir().join(format!("rq_link_{}", uuid::Uuid::new_v4()));
@@ -756,6 +873,7 @@ mod staging_dir_tests {
         let _ = std::fs::remove_dir_all(&root);
     }
 
+    #[cfg(unix)]
     #[tokio::test]
     async fn a_symlink_is_not_swept() {
         let root = std::env::temp_dir().join(format!("rq_sweep_link_{}", uuid::Uuid::new_v4()));
