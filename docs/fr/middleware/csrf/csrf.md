@@ -11,17 +11,23 @@
 
 ## Dans les formulaires Runique
 
-Quand vous utilisez `{% form.xxx %}`, le CSRF est **inclus automatiquement**. Pas besoin de l'ajouter manuellement.
+Un formulaire construit avec `RuniqueForm` contient déjà le jeton. `{% form.xxx %}` le pose dans la page. Pas besoin d'ajouter `{% csrf %}`.
 
 ## Où le jeton est vérifié
 
-Le middleware lit l'en-tête `X-CSRF-Token`. Un corps JSON sans cet en-tête est refusé (403). Pour `application/x-www-form-urlencoded` et `multipart/form-data`, il laisse passer le corps : le champ `csrf_token` est vérifié par `request.form()`, donc par tout `RuniqueForm`.
+`{% csrf %}` ne fait que poser le jeton sur le formulaire, dans un champ caché `csrf_token`. Il ne vérifie rien.
 
-Un handler qui lit le corps et écrit sans `request.form()` ne reçoit pas cette vérification de champ. Le cookie de session est `SameSite=Strict`.
+La vérification se fait dans `request.form()`. Sans jeton valide, le formulaire est invalide et `save()` ne part pas. C'est le chemin de tout `RuniqueForm`.
+
+Le middleware lit l'en-tête `X-CSRF-Token`. Un corps JSON sans cet en-tête est refusé (403). Pour `application/x-www-form-urlencoded` et `multipart/form-data`, il laisse passer le corps : le champ est lu par `request.form()`.
+
+Un handler qui lit le corps et écrit sans `request.form()` ne reçoit pas cette vérification, même si `{% csrf %}` est dans la page. Le cookie de session est `SameSite=Strict`.
 
 ---
 
 ## Dans les formulaires HTML manuels
+
+Le tag pose le jeton. Le handler doit appeler `request.form()` pour le vérifier.
 
 ```html
 <form method="post" action="/submit">
