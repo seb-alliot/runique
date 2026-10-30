@@ -32,6 +32,10 @@ jobs:
           toolchain: "1.94"
           components: rustfmt, clippy
 
+      # avif-native (workspace image crate) links the system dav1d decoder.
+      - name: Install dav1d
+        run: sudo apt-get update && sudo apt-get install -y libdav1d-dev
+
       - name: Cache cargo registry
         uses: actions/cache@v3
         with:
@@ -140,6 +144,9 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dav1d
+        run: sudo apt-get update && sudo apt-get install -y libdav1d-dev
 
       - name: Build documentation
         run: cargo doc --no-deps --features orm,sqlite,postgres,mysql,mariadb,all-databases,acme,admin
