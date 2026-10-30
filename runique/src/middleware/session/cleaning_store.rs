@@ -37,6 +37,35 @@ const MAX_SESSION_RECORD_SIZE: usize = 50 * 1024; // 50 KB
 // Internal helpers
 // ═══════════════════════════════════════════════════════════════
 
+#[cfg(feature = "orm")]
+fn db_snapshot(
+    record: &Record,
+) -> Option<(crate::utils::pk::Pk, chrono::NaiveDateTime, Option<String>)> {
+    let user_id = record
+        .data
+        .get(crate::utils::constante::session_key::session::SESSION_USER_ID_KEY)
+        .and_then(|v| {
+            serde_json::from_value::<crate::utils::pk::Pk>(v.clone()).trace(
+                crate::utils::runique_log::get_log()
+                    .session
+                    .as_ref()
+                    .and_then(|s| s.store),
+                "decode session user_id for DB backup",
+            )
+        })?;
+    let expires_at = chrono::DateTime::from_timestamp(record.expiry_date.unix_timestamp(), 0)
+        .map(|dt| dt.naive_utc())
+        .unwrap_or_else(|| chrono::Utc::now().naive_utc());
+    let data = serde_json::to_string(&record.data).trace(
+        crate::utils::runique_log::get_log()
+            .session
+            .as_ref()
+            .and_then(|s| s.store),
+        "serialize session data for DB backup",
+    );
+    Some((user_id, expires_at, data))
+}
+
 /// Estimated in-memory size of a record.
 /// UUID (16b) + `expiry_date` (8b) + serialized JSON data.
 fn estimate_size(record: &Record) -> usize {
@@ -136,10 +165,7 @@ impl CleaningMemoryStore {
         self
     }
 
-    /// Mirrors the authoritative in-memory record to the DB backup as a single full
-    /// snapshot (cookie_id, user_id, expiry, data). The unique persistence path for
-    /// both `create()` and `save()`: writing every field together makes a partial /
-    /// stale backup (e.g. data updated but not expiry) impossible by construction.
+    /// Mirrors a newly created authenticated record to the DB backup.
     ///
     /// No-op for anonymous sessions (no user_id) or when DB fallback is disabled.
     /// A write failure is logged, never silently dropped — a silent backup failure
@@ -184,6 +210,40 @@ impl CleaningMemoryStore {
                 .and_then(|s| s.store)
         {
             crate::runique_log!(level, "session DB backup write failed: {e}");
+        }
+    }
+
+    #[cfg(feature = "orm")]
+    async fn update_db_backup(&self, record: &Record) -> Option<bool> {
+        let db = self.db_fallback.as_ref()?;
+        let (user_id, expires_at, data) = db_snapshot(record)?;
+        match db
+            .update_session(&record.id.to_string(), user_id, expires_at, data)
+            .await
+        {
+            Ok(updated) => Some(updated),
+            Err(e) => {
+                if let Some(level) = crate::utils::runique_log::get_log()
+                    .session
+                    .as_ref()
+                    .and_then(|s| s.store)
+                {
+                    crate::runique_log!(level, "session DB backup update failed: {e}");
+                }
+                None
+            }
+        }
+    }
+
+    #[cfg(feature = "orm")]
+    async fn evict_if_unchanged(&self, record: &Record) {
+        let mut guard = self.data.lock().await;
+        let unchanged = guard.get(&record.id).is_some_and(|cached| {
+            cached.expiry_date == record.expiry_date && cached.data == record.data
+        });
+        if unchanged && let Some(cached) = guard.remove(&record.id) {
+            self.size_bytes
+                .fetch_sub(estimate_size(&cached), Ordering::Relaxed);
         }
     }
 
@@ -534,10 +594,12 @@ impl SessionStore for CleaningMemoryStore {
                 );
         }
 
-        // Mirror the authoritative in-memory record to the DB backup (full snapshot,
-        // refreshed expiry included) so it survives restarts.
+        // Update only an existing DB row. A late save after logout must not
+        // recreate the revoked cookie_id.
         #[cfg(feature = "orm")]
-        self.persist_to_db(record).await;
+        if self.update_db_backup(record).await == Some(false) {
+            self.evict_if_unchanged(record).await;
+        }
 
         Ok(())
     }
@@ -551,8 +613,38 @@ impl SessionStore for CleaningMemoryStore {
             .filter(|r| r.expiry_date > OffsetDateTime::now_utc())
             .cloned();
 
-        if in_memory.is_some() {
-            return Ok(in_memory);
+        if let Some(record) = in_memory {
+            #[cfg(feature = "orm")]
+            if let Some(db) = &self.db_fallback
+                && let Some(user_id) = record
+                    .data
+                    .get(crate::utils::constante::session_key::session::SESSION_USER_ID_KEY)
+                    .and_then(|value| {
+                        serde_json::from_value::<crate::utils::pk::Pk>(value.clone()).ok()
+                    })
+            {
+                match db.find_by_cookie_id(&session_id.to_string()).await {
+                    Ok(Some(model)) if model.user_id == user_id => return Ok(Some(record)),
+                    Ok(_) => {
+                        self.evict_if_unchanged(&record).await;
+                        return Ok(None);
+                    }
+                    Err(error) => {
+                        if let Some(level) = crate::utils::runique_log::get_log()
+                            .session
+                            .as_ref()
+                            .and_then(|s| s.store)
+                        {
+                            crate::runique_log!(
+                                level,
+                                "session DB validity check failed for in-memory cookie_id: {error}"
+                            );
+                        }
+                        return Err(session_store::Error::Backend(error.to_string()));
+                    }
+                }
+            }
+            return Ok(Some(record));
         }
 
         // DB fallback: restores authenticated sessions after a server restart.
@@ -564,7 +656,15 @@ impl SessionStore for CleaningMemoryStore {
             match db.find_by_cookie_id(&cookie_id).await {
                 Ok(Some(model)) => {
                     if let Some(data_str) = &model.session_data
-                        && let Ok(data) = serde_json::from_str(data_str)
+                        && let Ok(data) = serde_json::from_str::<
+                            std::collections::HashMap<String, serde_json::Value>,
+                        >(data_str)
+                        && let Some(data_user_id) = data
+                            .get(crate::utils::constante::session_key::session::SESSION_USER_ID_KEY)
+                            .and_then(|value| {
+                                serde_json::from_value::<crate::utils::pk::Pk>(value.clone()).ok()
+                            })
+                        && data_user_id == model.user_id
                     {
                         let expiry = OffsetDateTime::from_unix_timestamp(
                             model.expires_at.and_utc().timestamp(),

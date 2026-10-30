@@ -7,8 +7,8 @@
 `request.form()` est une méthode intégrée dans `Request` qui orchestre un pipeline complet en coulisses :
 
 1. **Aegis** — Extraction unique du body (multipart, urlencoded, json) normalisée en `HashMap`, dans la limite de taille de la requête. Pour un multipart, aucun fichier n'est écrit avant un jeton CSRF valide (en-tête `X-CSRF-Token`, ou champ `csrf_token` placé avant les fichiers).
-2. **CSRF Gate** — Vérifie le token CSRF dans les données parsées.
-3. **Construction** — Crée le formulaire `T`, remplit les champs et lance la validation.
+2. **CSRF** — Le pipeline note si le jeton est valide. Il ne rejette pas la requête pour autant : `request.form()` marque le formulaire invalide (`csrf.invalid_or_missing`) et `try_form` ne le valide pas.
+3. **Construction** — Crée le formulaire `T` et remplit les champs. La validation se lance ensuite, dans `ValidationForm::try_form`.
 
 ```rust
 use runique::prelude::*;
@@ -38,7 +38,7 @@ pub async fn inscription(mut request: Request) -> AppResult<Response> {
     let template = "inscription_form.html";
 
     // GET (rien soumis) ou POST invalide → réafficher avec les erreurs
-    let mut validated = match ValidationForm::try_form(form, &request, "my_form").await {
+    let validated = match ValidationForm::try_form(form, &request, "my_form").await {
         Ok(validated) => validated,
         Err(form) => {
             context_update!(request => { "inscription_form" => &form });
@@ -46,29 +46,26 @@ pub async fn inscription(mut request: Request) -> AppResult<Response> {
         }
     };
 
-    // POST valide — enregistrer
+    // POST valide — enregistrer. `save` consomme le formulaire et le rend :
+    // `Ok(form)` une fois écrit, `Err(form)` avec l'erreur DB déjà posée.
     match validated.save(&request.engine.db).await {
-        Ok(user) => {
-            success!(request.notices => format!("Bienvenue {} !", user.username));
-            return Ok(Redirect::to("/").into_response());
+        Ok(_form) => {
+            success!(request.notices => "Bienvenue !");
+            Ok(Redirect::to("/").into_response())
         }
-        Err(err) => {
-            // Erreur DB (ex. contrainte unique) reportée sur le formulaire
-            validated.database_error(&err);
+        Err(form) => {
+            context_update!(request => { "inscription_form" => &form });
+            request.render(template)
         }
     }
-
-    context_update!(request => { "inscription_form" => &*validated });
-    request.render(template)
 }
 ```
 
 Points clés :
 
 - `request.form()` renvoie un formulaire utilisable directement — pas de construction manuelle.
-- `ValidationForm::try_form(form, &request, "my_form").await` dispatche sur la méthode HTTP (`allow_get`/`allow_post`) puis valide ; `Ok` prouve au niveau du type que le formulaire a été validé, `Err` renvoie le formulaire avec ses erreurs de champ à ré-afficher (rendues automatiquement par `{{ form.inscription_form | form }}`).
-- `validated.save(&request.engine.db).await` persiste l'entité et renvoie le modèle créé.
-- `database_error(&err)` reporte une erreur DB (ex. email déjà pris) comme erreur de formulaire plutôt que comme 500 — appelable directement sur `ValidationForm` sans passer par `into_form()`.
+- `ValidationForm::try_form(form, &request, "my_form").await` dispatche sur la méthode HTTP (`allow_get`/`allow_post`) puis valide ; `Ok` prouve au niveau du type que le formulaire a été validé, `Err` renvoie le formulaire avec ses erreurs de champ à ré-afficher (rendues automatiquement par `{% form.inscription_form %}`).
+- `validated.save(&request.engine.db).await` persiste l'entité et renvoie le formulaire : `Ok(form)` une fois écrit, `Err(form)` si la base refuse (contrainte unique, ligne absente). L'erreur est déjà sur ce formulaire.
 
 ---
 

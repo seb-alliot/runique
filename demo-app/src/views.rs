@@ -37,10 +37,10 @@ pub async fn soumission_inscription(mut request: Request) -> AppResult<Response>
 }
 
 pub async fn activate_account(
-    Path((token, encrypted_email)): Path<(String, String)>,
+    Path(token): Path<String>,
     mut request: Request,
 ) -> AppResult<Response> {
-    handle_activate(&mut request, token, encrypted_email).await
+    handle_activate(&mut request, token).await
 }
 
 pub async fn login_user(mut request: Request) -> AppResult<Response> {

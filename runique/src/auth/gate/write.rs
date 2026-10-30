@@ -18,6 +18,48 @@ fn write_failed(e: sea_orm::DbErr) -> Refusal {
     Refusal::new(RefusalReason::WriteFailed)
 }
 
+/// A blocked foreign key, from the driver's error kind when the engine is
+/// compiled in, otherwise from the English wording the three engines share.
+/// The wording stays in the log; the caller shows the `forms.delete_linked`
+/// sentence and never a table name.
+pub(crate) fn is_foreign_key_violation(err: &sea_orm::DbErr) -> bool {
+    if driver_reports_foreign_key(err) {
+        return true;
+    }
+    err.to_string()
+        .to_ascii_lowercase()
+        .contains("foreign key constraint")
+}
+
+#[cfg(any(feature = "sqlite", feature = "postgres", feature = "mysql"))]
+fn driver_reports_foreign_key(err: &sea_orm::DbErr) -> bool {
+    let runtime = match err {
+        sea_orm::DbErr::Exec(err) | sea_orm::DbErr::Query(err) | sea_orm::DbErr::Conn(err) => err,
+        _ => return false,
+    };
+    let sea_orm::RuntimeErr::SqlxError(err) = runtime else {
+        return false;
+    };
+    err.as_database_error()
+        .is_some_and(|db| db.is_foreign_key_violation())
+}
+
+#[cfg(not(any(feature = "sqlite", feature = "postgres", feature = "mysql")))]
+fn driver_reports_foreign_key(_: &sea_orm::DbErr) -> bool {
+    false
+}
+
+/// A delete the engine refused because another row still points here.
+/// Any other error is returned unchanged. The engine text is logged, never shown.
+pub(crate) fn linked_delete_error(err: sea_orm::DbErr) -> sea_orm::DbErr {
+    if is_foreign_key_violation(&err) {
+        tracing::warn!(error = %err, "delete blocked by a foreign key");
+        sea_orm::DbErr::Custom(crate::utils::trad::t("forms.delete_linked").into_owned())
+    } else {
+        err
+    }
+}
+
 /// `primary key = id`, composite keys included.
 pub(in crate::auth::gate) fn pk_condition<E: EntityTrait>(id: PkOf<E>) -> Condition {
     E::PrimaryKey::iter()
@@ -89,7 +131,14 @@ pub async fn delete<E: EntityTrait, C: ConnectionTrait>(
         .filter(conditions)
         .exec(db)
         .await
-        .map_err(write_failed)?;
+        .map_err(|error| {
+            if is_foreign_key_violation(&error) {
+                tracing::warn!(error = %error, "delete blocked by a foreign key");
+                Refusal::new(RefusalReason::LinkedRecords)
+            } else {
+                write_failed(error)
+            }
+        })?;
     one_row(result.rows_affected)
 }
 
@@ -282,5 +331,36 @@ mod tests {
         .unwrap();
         assert_eq!(row.id, 7);
         assert_eq!(owner_of(&db, 7).await, Some(Some(pk(10))));
+    }
+}
+
+#[cfg(test)]
+mod foreign_key_tests {
+    use super::{is_foreign_key_violation, linked_delete_error};
+    use sea_orm::DbErr;
+
+    #[test]
+    fn the_three_engines_are_recognised_and_a_unique_violation_is_not() {
+        let blocked = [
+            "FOREIGN KEY constraint failed",
+            "update or delete on table \"posts\" violates foreign key constraint \"comments_post_id_posts_fkey\"",
+            "Cannot delete or update a parent row: a foreign key constraint fails (`demo`.`comments`, CONSTRAINT `comments_post_id_posts_fkey` FOREIGN KEY (`post_id`) REFERENCES `posts` (`id`))",
+        ];
+        for sample in blocked {
+            let err = DbErr::Custom(sample.to_string());
+            assert!(is_foreign_key_violation(&err), "{sample}");
+            let shown = linked_delete_error(err).to_string();
+            assert!(
+                !shown.to_ascii_lowercase().contains("foreign key"),
+                "{shown}"
+            );
+            assert!(!shown.contains("posts"), "{shown}");
+            assert!(!shown.contains("comments"), "{shown}");
+        }
+        let unique = DbErr::Custom(
+            "duplicate key value violates unique constraint \"users_email_key\"".to_string(),
+        );
+        assert!(!is_foreign_key_violation(&unique));
+        assert!(matches!(linked_delete_error(unique), DbErr::Custom(message) if message.contains("unique")));
     }
 }

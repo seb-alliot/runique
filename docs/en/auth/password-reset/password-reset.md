@@ -104,10 +104,10 @@ Available variables:
 
 | Variable | Description |
 | --- | --- |
-| `form` | Form with `password` + `confirm` fields (token and email are hidden) |
+| `form` | Form with a hidden token and `email`, `password`, and `confirm` fields |
 | `form.errors` | Validation errors |
 
-> **Automatic validations:** minimum 10-character password, matching confirmation, valid and non-expired token.
+> **Automatic validations:** minimum 10-character password, matching confirmation, valid and non-expired token, and the typed email matching the account bound to the token.
 
 ---
 
@@ -124,11 +124,11 @@ Available variables:
         ↓
 4. User clicks the link received by email
         ↓
-5. GET /reset-password/{token}/{encrypted_email} → displays the reset form
+5. GET /reset-password/{token} → displays the reset form
    - Invalid or expired token → error
         ↓
-6. POST /reset-password/{token}/{encrypted_email}
-   - Validates the form (password min 10 chars, confirmation)
+6. POST /reset-password/{token}
+   - Validates the form and checks the typed email against the account bound to the token
    - Consumes the token (single-use)
    - Updates password in DB
    - Redirects to success_redirect (default: /)

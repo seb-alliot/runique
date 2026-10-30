@@ -25,7 +25,7 @@ Runique provides a powerful form system inspired by Django. There are **two appr
 1. **Manual** — Define fields via the `RuniqueForm` trait.
 2. **Automatic** — Derive a form from a `model!` schema with `#[form(...)]`.
 
-Forms are automatically extracted from requests via `request.form()`, handle validation (including via the `validator` crate for emails/URLs), CSRF, Argon2 password hashing, and can be saved directly to the database.
+Forms are extracted from requests via `request.form()` (filling and CSRF). Validation happens in `ValidationForm::try_form` (including via the `validator` crate for emails/URLs), as does Argon2 password hashing, and a validated entity form is written with `save` / `delete`.
 
 ---
 

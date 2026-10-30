@@ -4,15 +4,22 @@
 
 ---
 
-The `database_error()` method automatically analyzes DB errors to attach the error to the correct field:
+`database_error()` analyzes a DB error and attaches it to the right field.
+
+For an entity form, `ValidationForm::save` already calls it. The `Err` is the form, with the error set:
 
 ```rust
-match form.save(&request.engine.db).await {
-    Ok(_) => { /* success */ }
-    Err(err) => {
-        form.database_error(&err);
-        // The error is set on the relevant field
-    }
+match validated.save(&request.engine.db).await {
+    Ok(_form) => { /* success */ }
+    Err(form) => { /* unique constraint on the field, otherwise a global error */ }
+}
+```
+
+After a hand-written save that returns a `DbErr`, call it yourself:
+
+```rust
+if let Err(err) = insert_user(&request.engine.db).await {
+    form.database_error(&err);
 }
 ```
 

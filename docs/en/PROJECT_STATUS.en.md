@@ -175,7 +175,6 @@ Detail and “finished” criteria: [ROADMAP.md](https://github.com/seb-alliot/r
 
 ### Open — 4.0.x patch (security / maintenance, in this order)
 
-1. Password reset without email in the link (retire `encrypt_email` / `decrypt_email`)
 2. Staging files of a refused form: delete immediately
 3. Cap `RateLimiter` / `LoginGuard` in-memory counters
 4. Superuser sessions not deletable by staff
@@ -208,4 +207,4 @@ Detail and “finished” criteria: [ROADMAP.md](https://github.com/seb-alliot/r
 ---
 
 **Last update**: October 29, 2026
-**Global status**: ✅ Stable framework · 🟡 Mature admin beta (`ModelAdmin`) · 🔒 Security: DB reset tokens, timing-safe auth, 4.0 fixes in tree · 📖 4.0 docs aligned · 📦 crates.io 4.0.0 still unreleased
+**Global status**: ✅ Stable framework · 🟡 Mature admin beta (`ModelAdmin`) · 🔒 Security: DB reset tokens, timing-safe auth, 4.0 fixes in tree · 📖 4.0 docs aligned · 📦 crates.io 4.0.0 still unreleased · ➡️ Next: `4.0.x` security patch queue (then 4.x minors)

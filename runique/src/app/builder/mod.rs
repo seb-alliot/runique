@@ -258,7 +258,7 @@ impl<PU, RT, LG, PR, DB, SD, ML> RuniqueAppBuilder<(PU, RT, LG, PR, DB, SD, ML)>
     ///
     /// Automatically registers two routes:
     ///   - `{config.forgot_route}` — email form (step 1)
-    ///   - `{config.reset_route}/{token}/{encrypted_email}` — new password (step 2)
+    ///   - `{config.reset_route}/{token}` — new password (step 2)
     ///
     /// Minimal example (built-in entity):
     /// ```rust,ignore

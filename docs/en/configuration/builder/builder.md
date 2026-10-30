@@ -134,7 +134,7 @@ let Some(base) = request.public_url() else {
     // production without .with_public_url(): send no link rather than a forged one
     return request.render("auth/registered.html");
 };
-let activate_url = format!("{base}/activate/{token}/{encrypted}");
+let activate_url = format!("{base}/activate/{token}");
 ```
 
 It's called **once**: a second `.with_public_url(...)` doesn't compile ("`with_public_url()` has already been called on this builder"), rather than silently replacing the first. To tell local from production apart, choose the value, not the call (the two branches of an `if` around the call wouldn't have the same type); an empty string leaves the public URL unset:

@@ -39,7 +39,7 @@ pub struct ForgotPasswordForm {
 impl FormAccess for ForgotPasswordForm {
     fn register_fields(form: &mut Forms) {
         form.field(
-            &TextField::text("email")
+            &TextField::email("email")
                 .label(&t("reset.email_label"))
                 .required(),
         );
@@ -54,10 +54,11 @@ impl RuniqueForm for ForgotPasswordForm {
 
 // ─── PasswordResetForm ────────────────────────────────────────────────────────
 
-/// Password reset form submitted from the emailed link: carries the token and
-/// encrypted email as hidden fields, plus email/password/confirm for the user
-/// to fill in. `clean()` checks the token decrypts to the submitted email and
-/// enforces the password policy (10+ chars, upper/lower/digit/special).
+/// Password reset form submitted from the emailed link: carries the token as a
+/// hidden field, plus email/password/confirm for the user to fill in. `clean()`
+/// enforces the password policy (10+ chars, upper/lower/digit/special). The
+/// typed email is checked against the account bound to the token in the handler
+/// (the link itself never carries an email).
 #[derive(Serialize, Debug, Clone)]
 #[serde(transparent)]
 pub struct PasswordResetForm {
@@ -67,9 +68,8 @@ pub struct PasswordResetForm {
 impl FormAccess for PasswordResetForm {
     fn register_fields(form: &mut Forms) {
         form.field(&HiddenField::new("token"));
-        form.field(&HiddenField::new("encrypted_email"));
         form.field(
-            &TextField::text("email")
+            &TextField::email("email")
                 .label(&t("reset.email_label"))
                 .required(),
         );
@@ -90,24 +90,9 @@ impl FormAccess for PasswordResetForm {
 #[async_trait]
 impl RuniqueForm for PasswordResetForm {
     async fn clean(&mut self) -> Result<(), StrMap> {
-        let token = self.cleaned::<String>("token").unwrap_or_default();
-        let encrypted = self
-            .cleaned::<String>("encrypted_email")
-            .unwrap_or_default();
-        let email = self.cleaned::<String>("email").unwrap_or_default();
         let password = self.cleaned::<String>("password").unwrap_or_default();
         let confirm = self.cleaned::<String>("confirm").unwrap_or_default();
         let mut errors = StrMap::new();
-
-        match crate::utils::reset_token::decrypt_email(&token, &encrypted) {
-            Some(ref expected) if expected.to_lowercase() == email.trim().to_lowercase() => {}
-            Some(_) => {
-                errors.insert("email".to_string(), t("reset.email_mismatch").to_string());
-            }
-            None => {
-                errors.insert("token".to_string(), t("reset.invalid_link").to_string());
-            }
-        }
 
         const SPECIAL: &str = "!@#$%^&*()_+-=[]{}|;':\",./<>?";
         if password.len() < 10 {
@@ -153,9 +138,8 @@ pub type ExtraContextFn = Arc<dyn for<'a> Fn(&'a mut Request) -> BoxFuture<'a, (
 pub struct PasswordResetConfig {
     /// Path of the "forgot password" GET/POST route. Default: `/forgot-password`.
     pub forgot_route: String,
-    /// Path prefix of the reset route; the token and encrypted email are
-    /// appended as path segments (`{reset_route}/{token}/{encrypted_email}`).
-    /// Default: `/reset-password`.
+    /// Path prefix of the reset route; the token is appended as a path
+    /// segment (`{reset_route}/{token}`). Default: `/reset-password`.
     pub reset_route: String,
     /// Template rendered for the "forgot password" page.
     pub forgot_template: String,
@@ -352,8 +336,9 @@ pub fn may_receive_reset_link(account: &crate::auth::user::Model) -> bool {
 }
 
 /// Mails `account`'s owner the link to choose a password: a fresh token valid
-/// `link.token_ttl`, to `{host}{reset_route}/{token}/{encrypted email}`. The
-/// one place a reset link is made, for the site's page and the admin alike.
+/// `link.token_ttl`, to `{host}{reset_route}/{token}`. The one place a reset
+/// link is made, for the site's page and the admin alike. The email is never
+/// put in the URL — the form checks it against the account bound to the token.
 ///
 /// It waits for the send. The site's page runs it in the background along
 /// with the account's lookup, so neither its answer nor its timing tells
@@ -374,9 +359,8 @@ pub async fn send_reset_link(
     let token = crate::utils::reset_token::generate(&engine.db, account.id, link.token_ttl)
         .await
         .map_err(ResetLinkError::Token)?;
-    let encrypted = crate::utils::reset_token::encrypt_email(&token, &account.email);
     let reset_url = format!(
-        "{}/{}/{token}/{encrypted}",
+        "{}/{}/{token}",
         host.trim_end_matches('/'),
         link.reset_route.trim_matches('/')
     );
@@ -533,15 +517,13 @@ pub async fn handle_forgot_password(
 /// consumes the token and updates the password (POST).
 ///
 /// The token is single-use (`consume`) and resolves to a server-side
-/// `user_id`; the password update is applied by that id, not by the email
-/// taken from the URL, and the URL email is only cross-checked against the
-/// account's real email as a UX sanity check — the URL alone cannot be used
-/// to reset an arbitrary account's password.
+/// `user_id`. The typed email on the form is checked against that account;
+/// the link never carries an email, so the URL alone cannot target another
+/// account.
 pub async fn handle_password_reset(
     request: &mut Request,
     form: PasswordResetForm,
     token: String,
-    encrypted_email: String,
     config: &PasswordResetConfig,
 ) -> AppResult<Response> {
     let template = config.reset_template.as_str();
@@ -554,58 +536,16 @@ pub async fn handle_password_reset(
         "logout before password reset",
     );
 
-    let Some(email) = crate::utils::reset_token::decrypt_email(&token, &encrypted_email) else {
-        request
-            .notices
-            .error(t("reset.invalid_or_expired").to_string())
-            .await;
-        return Ok(Redirect::to("/").into_response());
-    };
-
     let db = request.engine.db.clone();
 
-    if !crate::utils::reset_token::peek(&db, &token).await {
+    // Resolve the account bound to this token without consuming it yet.
+    let Some(user_id) = crate::utils::reset_token::resolve(&db, &token).await else {
         if let Some(level) = crate::utils::runique_log::get_log()
             .auth
             .as_ref()
             .and_then(|a| a.reset)
         {
-            crate::runique_log!(level, %email, "reset token invalid or expired");
-        }
-        request
-            .notices
-            .error(t("reset.invalid_or_expired").to_string())
-            .await;
-        return Ok(Redirect::to("/").into_response());
-    }
-
-    let mut form =
-        match crate::forms::ValidationForm::try_form(form, request, "reset_password").await {
-            Ok(validated) => validated.into_form(),
-            Err(mut form) => {
-                if request.method.is_safe() {
-                    form.get_form_mut().add_value("token", &token);
-                    form.get_form_mut()
-                        .add_value("encrypted_email", &encrypted_email);
-                }
-                apply_extra_context(request, &config.extra_context).await;
-                context_update!(request => {
-                    "title"           => t("reset.reset_title").as_ref(),
-                    "reset_form"      => &form,
-                    "token"           => &token,
-                    "encrypted_email" => &encrypted_email,
-                });
-                return request.render(template);
-            }
-        };
-
-    let Some(user_id) = crate::utils::reset_token::consume(&db, &token).await else {
-        if let Some(level) = crate::utils::runique_log::get_log()
-            .auth
-            .as_ref()
-            .and_then(|a| a.reset)
-        {
-            crate::runique_log!(level, %email, "reset token consume failed");
+            crate::runique_log!(level, "reset token invalid or expired");
         }
         request
             .notices
@@ -613,9 +553,6 @@ pub async fn handle_password_reset(
             .await;
         return Ok(Redirect::to("/").into_response());
     };
-
-    // The token binds the reset to one user_id (server-derived). Resolve and
-    // mutate by that id (IDOR-safe); the URL email is only a UX cross-check.
     let Some(user) = BuiltinUserEntity::find_by_id(&db, user_id).await else {
         request
             .notices
@@ -623,15 +560,53 @@ pub async fn handle_password_reset(
             .await;
         return Ok(Redirect::to("/").into_response());
     };
-    if user.email().to_lowercase() != email.to_lowercase() {
+
+    let mut form =
+        match crate::forms::ValidationForm::try_form(form, request, "reset_password").await {
+            Ok(validated) => validated.into_form(),
+            Err(mut form) => {
+                if request.method.is_safe() {
+                    form.get_form_mut().add_value("token", &token);
+                }
+                apply_extra_context(request, &config.extra_context).await;
+                context_update!(request => {
+                    "title"      => t("reset.reset_title").as_ref(),
+                    "reset_form" => &form,
+                    "token"      => &token,
+                });
+                return request.render(template);
+            }
+        };
+
+    let email_clean = form.cleaned::<String>("email").unwrap_or_default();
+    if user.email().to_lowercase() != email_clean.trim().to_lowercase() {
+        if let Some(field) = form.get_form_mut().fields.get_mut("email") {
+            field.set_error(t("reset.email_mismatch").to_string());
+        }
+        apply_extra_context(request, &config.extra_context).await;
+        context_update!(request => {
+            "title"      => t("reset.reset_title").as_ref(),
+            "reset_form" => &form,
+            "token"      => &token,
+        });
+        return request.render(template);
+    }
+
+    let Some(user_id) = crate::utils::reset_token::consume(&db, &token).await else {
+        if let Some(level) = crate::utils::runique_log::get_log()
+            .auth
+            .as_ref()
+            .and_then(|a| a.reset)
+        {
+            crate::runique_log!(level, email = %email_clean, "reset token consume failed");
+        }
         request
             .notices
             .error(t("reset.invalid_or_expired").to_string())
             .await;
         return Ok(Redirect::to("/").into_response());
-    }
+    };
 
-    let email_clean = form.cleaned::<String>("email").unwrap_or_default();
     let new_hash = form.cleaned::<String>("password").unwrap_or_default();
 
     match BuiltinUserEntity::set_password_and_activate(&db, user_id, &new_hash).await {
@@ -649,11 +624,10 @@ pub async fn handle_password_reset(
             form.clear();
             apply_extra_context(request, &config.extra_context).await;
             context_update!(request => {
-                "title"           => t("reset.success_title").as_ref(),
-                "reset_form"      => &form,
-                "reset_done"      => &true,
-                "token"           => &token,
-                "encrypted_email" => &encrypted_email,
+                "title"      => t("reset.success_title").as_ref(),
+                "reset_form" => &form,
+                "reset_done" => &true,
+                "token"      => &token,
             });
             return request.render(template);
         }
@@ -671,10 +645,9 @@ pub async fn handle_password_reset(
 
     apply_extra_context(request, &config.extra_context).await;
     context_update!(request => {
-        "title"           => t("reset.reset_title").as_ref(),
-        "reset_form"      => &form,
-        "token"           => &token,
-        "encrypted_email" => &encrypted_email,
+        "title"      => t("reset.reset_title").as_ref(),
+        "reset_form" => &form,
+        "token"      => &token,
     });
     request.render(template)
 }
@@ -701,11 +674,11 @@ async fn forgot_view(
 
 async fn reset_view(
     State(state): State<ResetState>,
-    Path((token, encrypted_email)): Path<(String, String)>,
+    Path(token): Path<String>,
     mut request: Request,
 ) -> AppResult<Response> {
     let form: PasswordResetForm = request.form();
-    handle_password_reset(&mut request, form, token, encrypted_email, &state.config).await
+    handle_password_reset(&mut request, form, token, &state.config).await
 }
 
 /// The merged forgot + reset router, with rate limiting applied to both routes.
@@ -734,7 +707,7 @@ pub fn build_router(config: Arc<PasswordResetConfig>) -> Router {
         ));
 
     let reset_path = format!(
-        "{}/{{token}}/{{encrypted_email}}",
+        "{}/{{token}}",
         reset_state.config.reset_route.trim_end_matches('/')
     );
     let reset_route = Router::new()

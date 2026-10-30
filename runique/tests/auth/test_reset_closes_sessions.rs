@@ -102,8 +102,7 @@ async fn complete_reset(base: &str, db: &DatabaseConnection) {
     let token = reset_token::generate(&adb, pk(1), Duration::from_secs(600))
         .await
         .unwrap();
-    let encrypted = reset_token::encrypt_email(&token, "alice@example.com");
-    let url = format!("{base}/reset-password/{token}/{encrypted}");
+    let url = format!("{base}/reset-password/{token}");
     let reset = client();
     let page = reset.get(&url).send().await.unwrap();
     let csrf = page.headers()["x-csrf-token"].to_str().unwrap().to_string();
@@ -111,7 +110,6 @@ async fn complete_reset(base: &str, db: &DatabaseConnection) {
         .post(&url)
         .form(&[
             ("token", token.as_str()),
-            ("encrypted_email", encrypted.as_str()),
             ("email", "alice@example.com"),
             ("password", NEW_PASSWORD),
             ("confirm", NEW_PASSWORD),
@@ -155,6 +153,48 @@ async fn a_completed_reset_signs_the_account_out_on_every_device() {
     // Signing in again after the reset gives a session that stays.
     text(&phone, format!("{base}/sign-in/1")).await;
     assert_eq!(text(&phone, format!("{base}/whoami")).await, "alice");
+}
+
+#[tokio::test]
+#[serial]
+async fn a_wrong_email_does_not_consume_the_reset_token() {
+    let (base, db) = spawn().await;
+    let adb = ADb::from_connection(db);
+    let token = reset_token::generate(&adb, pk(1), Duration::from_secs(600))
+        .await
+        .unwrap();
+    let url = format!("{base}/reset-password/{token}");
+    let reset = client();
+    let page = reset.get(&url).send().await.unwrap();
+    assert_eq!(page.status().as_u16(), 200);
+    let csrf = page.headers()["x-csrf-token"].to_str().unwrap().to_string();
+
+    let response = reset
+        .post(&url)
+        .form(&[
+            ("token", token.as_str()),
+            ("email", "bob@example.com"),
+            ("password", NEW_PASSWORD),
+            ("confirm", NEW_PASSWORD),
+            ("csrf_token", csrf.as_str()),
+            ("runique_form", "reset_password"),
+        ])
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(response.status().as_u16(), 200);
+    assert!(reset_token::peek(&adb, &token).await);
+    assert!(
+        authenticate_user(&adb, "alice", "old password 123")
+            .await
+            .is_some(),
+        "a mismatched email cannot change the account password"
+    );
+    assert!(
+        authenticate_user(&adb, "alice", NEW_PASSWORD)
+            .await
+            .is_none()
+    );
 }
 
 /// `request.user` is the account as the database has it now, like Django's:

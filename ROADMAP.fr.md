@@ -70,10 +70,11 @@ Ce travail n'a pas de fin : il passe avant les chantiers ci-dessous.
 tracing, langues). Une faille grave peut sauter la file ; sinon on suit la numérotation. Chaque
 item a son test de non-régression avant d'être coché.
 
-1. [ ] **Réinitialisation du mot de passe sans email dans le lien** — l'email est aujourd'hui
-   chiffré avec une clé tirée du jeton, présent dans le même lien : ça ne protège rien. Comparer
-   l'email saisi à celui du compte en base et retirer l'email du lien ; `encrypt_email` /
-   `decrypt_email` marqués dépréciés puis retirés (rupture reportée si besoin en 5.0).
+1. [x] **Réinitialisation du mot de passe sans email dans le lien** — l'email était chiffré avec
+   une clé tirée du jeton, présent dans le même lien : cela ne protégeait rien. Comparer l'email
+   saisi à celui du compte en base et retirer l'email du lien. Les helpers maison
+   `encrypt_email` / `decrypt_email` sont supprimés. Les tests vérifient les liens token-only et
+   qu'un email incorrect ne consomme pas le jeton de reset.
 2. [ ] **Fichiers en transit d'un formulaire refusé** — supprimés tout de suite, même quand c'est
    un autre champ qui rend le formulaire invalide (aujourd'hui : au nettoyage suivant, 1 h).
 3. [ ] **Compteurs en mémoire plafonnés** — `RateLimiter` et `LoginGuard` bornent leur nombre de
@@ -82,9 +83,10 @@ item a son test de non-régression avant d'être coché.
    supprimer.
 5. [ ] **Tests d'open redirect** — passer les charges utiles de l'antisèche PortSwigger
    (*URL validation bypass*).
-6. [ ] **Suppression refusée par une clé étrangère** — l'admin affiche un message clair (« impossible
-   de supprimer : 3 commandes y sont liées ») au lieu de l'erreur brute de la base. Par défaut, un
-   `belongs_to` sans action refuse (`NoAction`) : jamais de cascade implicite.
+6. [x] **Suppression refusée par une clé étrangère** — l'admin affiche « Impossible de supprimer :
+   d'autres enregistrements l'utilisent encore. » La phrase est la même quel que soit le droit de
+   lecture : aucun nom de table, aucun nombre. Le détail du moteur reste dans le journal. Par
+   défaut, un `belongs_to` sans action refuse (`NoAction`) : jamais de cascade implicite.
 
 Sortie typique : une ou plusieurs versions **patch** `4.0.x` (ex. `4.0.1`) tant que la ligne 4.0
 est supportée. Pas de feature mineure mélangée dans ces patchs.

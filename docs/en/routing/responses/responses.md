@@ -99,7 +99,7 @@ pub async fn about(mut request: Request) -> AppResult<Response> {
 pub async fn soumission_inscription(mut request: Request) -> AppResult<Response> {
     let form: RegisterForm = request.form();
 
-    let mut validated = match ValidationForm::try_form(form, &request, "my_form").await {
+    let validated = match ValidationForm::try_form(form, &request, "my_form").await {
         Ok(validated) => validated,
         Err(form) => {
             // GET (nothing submitted): blank form, no flash.
@@ -120,12 +120,20 @@ pub async fn soumission_inscription(mut request: Request) -> AppResult<Response>
         }
     };
 
-    let user = validated.save(&request.engine.db).await.map_err(|err| {
-        validated.database_error(&err);
-        AppError::from(err)
-    })?;
-    success!(request.notices => format!("Welcome {}!", user.username));
-    Ok(Redirect::to("/").into_response())
+    match validated.save(&request.engine.db).await {
+        Ok(_) => {
+            success!(request.notices => "Welcome!");
+            Ok(Redirect::to("/").into_response())
+        }
+        Err(form) => {
+            context_update!(request => {
+                "title" => "Error",
+                "inscription_form" => &form,
+                "messages" => flash_now!(error => "Please fix the errors"),
+            });
+            request.render("inscription_form.html")
+        }
+    }
 }
 ```
 

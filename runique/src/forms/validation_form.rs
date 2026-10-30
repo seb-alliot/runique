@@ -3,6 +3,7 @@
 //! in the caller's business logic.
 use crate::auth::gate::change::{WriteKind, changes};
 use crate::auth::gate::save::save_as;
+use crate::auth::gate::write::linked_delete_error;
 use crate::auth::permissions::rights::ColumnRights;
 use crate::context::Request;
 use crate::forms::FormEntity;
@@ -167,6 +168,7 @@ where
                 txn.commit().await
             }
             .await
+            .map_err(linked_delete_error)
         };
         written(form, result)
     }

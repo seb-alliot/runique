@@ -6,7 +6,7 @@
 pub async fn submit_signup(mut request: Request) -> AppResult<Response> {
     let form: RegisterForm = request.form();
 
-    let mut validated = match ValidationForm::try_form(form, &request, "my_form").await {
+    let validated = match ValidationForm::try_form(form, &request, "my_form").await {
         Ok(validated) => validated,
         Err(form) => {
             // ❌ Validation failed → immediate message (no redirect)
@@ -19,17 +19,21 @@ pub async fn submit_signup(mut request: Request) -> AppResult<Response> {
         }
     };
 
-    let user = validated.save(&request.engine.db).await.map_err(|err| {
-        validated.database_error(&err);
-        AppError::from(err)
-    })?;
-
-    // ✅ Flash message → displayed after redirect
-    success!(request.notices => format!(
-        "Welcome {}, your account has been created!",
-        user.username
-    ));
-    Ok(Redirect::to("/").into_response())
+    // ✅ Flash message → displayed after redirect. `save` returns the form.
+    match validated.save(&request.engine.db).await {
+        Ok(_) => {
+            success!(request.notices => "Welcome, your account has been created!");
+            Ok(Redirect::to("/").into_response())
+        }
+        Err(form) => {
+            context_update!(request => {
+                "title" => "Validation error",
+                "signup_form" => &form,
+                "messages" => flash_now!(error => "Please fix the errors"),
+            });
+            request.render("signup_form.html")
+        }
+    }
 }
 ```
 

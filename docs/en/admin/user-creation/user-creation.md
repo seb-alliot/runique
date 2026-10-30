@@ -90,7 +90,7 @@ Tera context available in these templates:
 The constructed URL follows this pattern:
 
 ```
-{public_url}{reset_route}/{token}/{encrypted_email}
+{public_url}{reset_route}/{token}
 ```
 
 `public_url` comes from `.with_public_url(…)` in the builder; `reset_route` is the one of `with_password_reset()` (`/reset-password` by default). In production, the app refuses to boot without it. In debug only, the URL is built from the `Host` header of the HTTP request

@@ -91,7 +91,7 @@ pub async fn inscription(mut request: Request) -> AppResult<Response> {
     let form: RegisterForm = request.form();
     let template = "inscription_form.html";
 
-    let mut validated = match ValidationForm::try_form(form, &request, "my_form").await {
+    let validated = match ValidationForm::try_form(form, &request, "my_form").await {
         Ok(validated) => validated,
         Err(form) => {
             context_update!(request => {
@@ -103,13 +103,20 @@ pub async fn inscription(mut request: Request) -> AppResult<Response> {
         }
     };
 
-    let user = validated.save(&request.engine.db).await.map_err(|err| {
-        validated.database_error(&err);
-        AppError::from(err)
-    })?;
-
-    success!(request.notices => format!("Bienvenue {} !", user.username));
-    Ok(Redirect::to("/").into_response())
+    match validated.save(&request.engine.db).await {
+        Ok(_) => {
+            success!(request.notices => "Bienvenue !");
+            Ok(Redirect::to("/").into_response())
+        }
+        Err(form) => {
+            context_update!(request => {
+                "title" => "Erreur de validation",
+                "inscription_form" => &form,
+                "messages" => flash_now!(error => "Veuillez corriger les erreurs"),
+            });
+            request.render(template)
+        }
+    }
 }
 ```
 

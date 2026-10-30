@@ -202,6 +202,30 @@ impl RuniqueSessionStore {
         Ok(())
     }
 
+    /// Updates a persisted session snapshot without creating a missing row.
+    ///
+    /// A zero-row update means the session was removed (for example by logout)
+    /// while a request still held a stale in-memory copy.
+    pub async fn update_session(
+        &self,
+        cookie_id: &str,
+        user_id: crate::utils::pk::Pk,
+        expires_at: chrono::NaiveDateTime,
+        data: Option<String>,
+    ) -> Result<bool, DbErr> {
+        let result = Entity::update_many()
+            .col_expr(Column::SessionData, sea_orm::sea_query::Expr::value(data))
+            .col_expr(
+                Column::ExpiresAt,
+                sea_orm::sea_query::Expr::value(expires_at),
+            )
+            .filter(Column::CookieId.eq(cookie_id))
+            .filter(Column::UserId.eq(user_id))
+            .exec(&*self.db)
+            .await?;
+        Ok(result.rows_affected > 0)
+    }
+
     /// Deletes expired sessions (should be called periodically).
     pub fn spawn_cleanup(&self, period: tokio::time::Duration) {
         let db = self.db.clone();

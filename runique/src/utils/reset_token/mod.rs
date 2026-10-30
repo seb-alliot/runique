@@ -1,23 +1,21 @@
-//! Password reset tokens — HMAC-SHA256 email encryption + DB-backed, single-use,
-//! hashed token store (table `eihwaz_reset_tokens`).
+//! Password reset tokens — DB-backed, single-use, hashed token store
+//! (table `eihwaz_reset_tokens`).
 //!
 //! The raw token lives only in the email link. The DB stores its **hash**, so a
 //! DB read leak cannot be replayed. The reset target is the `user_id` carried by
-//! the token row (server-derived) — never a URL/form field (IDOR-safe).
+//! the token row (server-derived) — never a URL/form field (IDOR-safe). The
+//! typed email on the reset form is checked against that account in the
+//! database; it is never carried in the link.
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
-use hmac::{Hmac, KeyInit, Mac};
 use sea_orm::{ActiveValue::Set, ColumnTrait, Condition, DbErr, EntityTrait, QueryFilter};
 use sha2::{Digest, Sha256};
 use std::time::Duration;
-use subtle::ConstantTimeEq;
 use uuid::Uuid;
 
 use crate::utils::aliases::ADb;
 use crate::utils::pk::Pk;
 
 mod entity;
-
-type HmacSha256 = Hmac<Sha256>;
 
 /// Hashes a raw token (the DB lookup key). The raw token is never stored.
 fn hash_token(token: &str) -> String {
@@ -61,6 +59,19 @@ pub async fn generate(db: &ADb, user_id: Pk, ttl: Duration) -> Result<String, Db
     Ok(token)
 }
 
+/// Returns the bound `user_id` if the token is still valid, without consuming it.
+pub async fn resolve(db: &ADb, token: &str) -> Option<Pk> {
+    let now = chrono::Utc::now().naive_utc();
+    entity::Entity::find()
+        .filter(entity::Column::TokenHash.eq(hash_token(token)))
+        .filter(entity::Column::ExpiresAt.gt(now))
+        .one(db)
+        .await
+        .ok()
+        .flatten()
+        .map(|row| row.user_id)
+}
+
 /// Consumes a token (single use) → returns the bound `user_id` if valid.
 ///
 /// The row is claimed by deleting it: under a concurrent double-submit both reads
@@ -80,99 +91,5 @@ pub async fn consume(db: &ADb, token: &str) -> Option<Pk> {
 
 /// Checks a token's validity without consuming it (to display the reset form).
 pub async fn peek(db: &ADb, token: &str) -> bool {
-    let now = chrono::Utc::now().naive_utc();
-    entity::Entity::find()
-        .filter(entity::Column::TokenHash.eq(hash_token(token)))
-        .filter(entity::Column::ExpiresAt.gt(now))
-        .one(db)
-        .await
-        .ok()
-        .flatten()
-        .is_some()
-}
-
-/// Encrypts email with token as key (CTR-SHA256 + HMAC-SHA256).
-/// Result: base64url, safe in a URL.
-///
-/// Construction: `enc_key` = SHA256(token || ":enc"), keystream[i] = `SHA256(enc_key` || `i_le32`)
-/// Authentication: HMAC-SHA256(token, ciphertext), tag truncated to 16 bytes as prefix.
-#[must_use]
-pub fn encrypt_email(token: &str, email: &str) -> String {
-    let email_bytes = email.as_bytes();
-
-    // Encryption key derived from token — unique per token (UUID4)
-    let enc_key: [u8; 32] = {
-        let mut h = Sha256::new();
-        h.update(token.as_bytes());
-        h.update(b":enc");
-        h.finalize().into()
-    };
-
-    // CTR encryption: keystream[i] = SHA256(enc_key || counter_le32)
-    let mut ciphertext = Vec::with_capacity(email_bytes.len());
-    for (block_idx, chunk) in email_bytes.chunks(32).enumerate() {
-        let mut block_input = [0u8; 36];
-        block_input[..32].copy_from_slice(&enc_key);
-        block_input[32..].copy_from_slice(&u32::try_from(block_idx).expect("REASON").to_le_bytes());
-        let keystream: [u8; 32] = Sha256::digest(block_input).into();
-        for (b, k) in chunk.iter().zip(keystream.iter()) {
-            ciphertext.push(b ^ k);
-        }
-    }
-
-    // Authentication tag: HMAC-SHA256(token, ciphertext), truncated to 16 bytes
-    let mut mac =
-        HmacSha256::new_from_slice(token.as_bytes()).expect("HMAC-SHA256 accepts any key length");
-    mac.update(&ciphertext);
-    let tag = mac.finalize().into_bytes();
-
-    // Output: tag[0..16] || ciphertext (tag as prefix for fast rejection)
-    let mut output = Vec::with_capacity(16usize.saturating_add(ciphertext.len()));
-    output.extend_from_slice(&tag[..16]);
-    output.extend_from_slice(&ciphertext);
-
-    URL_SAFE_NO_PAD.encode(&output)
-}
-
-/// Decrypts email from a base64url value produced by `encrypt_email`.
-/// Returns `None` if decoding, authentication or UTF-8 fails.
-#[must_use]
-pub fn decrypt_email(token: &str, encoded: &str) -> Option<String> {
-    let data = URL_SAFE_NO_PAD.decode(encoded).ok()?;
-    // Minimum: 16 bytes of tag + at least 1 byte of ciphertext
-    if data.len() < 17 {
-        return None;
-    }
-
-    let (tag_bytes, ciphertext) = data.split_at(16);
-
-    // Constant-time HMAC tag verification
-    let mut mac =
-        HmacSha256::new_from_slice(token.as_bytes()).expect("HMAC-SHA256 accepts any key length");
-    mac.update(ciphertext);
-    let expected = mac.finalize().into_bytes();
-    if !bool::from(tag_bytes.ct_eq(&expected[..16])) {
-        return None;
-    }
-
-    // CTR decryption (same keystream)
-    let enc_key: [u8; 32] = {
-        let mut h = Sha256::new();
-        h.update(token.as_bytes());
-        h.update(b":enc");
-        h.finalize().into()
-    };
-
-    let mut plaintext = Vec::with_capacity(ciphertext.len());
-    for (block_idx, chunk) in ciphertext.chunks(32).enumerate() {
-        let mut block_input = [0u8; 36];
-        block_input[..32].copy_from_slice(&enc_key);
-        block_input[32..].copy_from_slice(&u32::try_from(block_idx).expect("REASON").to_le_bytes());
-        let keystream: [u8; 32] = Sha256::digest(block_input).into();
-        for (b, k) in chunk.iter().zip(keystream.iter()) {
-            plaintext.push(b ^ k);
-        }
-    }
-
-    String::from_utf8(plaintext).ok()
+    resolve(db, token).await.is_some()
 }

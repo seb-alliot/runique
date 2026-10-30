@@ -104,10 +104,10 @@ Variables disponibles :
 
 | Variable | Description |
 | --- | --- |
-| `form` | Formulaire avec champs `password` + `confirm` (token et email sont en hidden) |
+| `form` | Formulaire avec un token caché et les champs `email`, `password` et `confirm` |
 | `form.errors` | Erreurs de validation |
 
-> **Validations automatiques :** mot de passe minimum 10 caractères, confirmation identique, token valide et non expiré.
+> **Validations automatiques :** mot de passe minimum 10 caractères, confirmation identique, token valide et non expiré, et email saisi correspondant au compte lié au token.
 
 ---
 
@@ -124,11 +124,11 @@ Variables disponibles :
         ↓
 4. Utilisateur clique le lien reçu par email
         ↓
-5. GET /reset-password/{token}/{email_chiffré} → affiche le formulaire de reset
+5. GET /reset-password/{token} → affiche le formulaire de reset
    - Token invalide ou expiré → erreur
         ↓
-6. POST /reset-password/{token}/{email_chiffré}
-   - Valide le formulaire (mot de passe min 10 chars, confirmation)
+6. POST /reset-password/{token}
+   - Valide le formulaire et compare l'email saisi au compte lié au token
    - Consomme le token (usage unique)
    - Met à jour le mot de passe en DB
    - Redirige vers success_redirect (défaut : /)

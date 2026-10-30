@@ -62,25 +62,27 @@
                 </div>
             </div>
 
-            <pre class="hero-code-body hero-tab-panel active" data-panel="orm"><code><span class="hc-attr">#[form(schema = user_schema, model = users::Entity)]</span>
-<span class="hc-kw">pub struct</span> <span class="hc-ty">UserForm</span>;
+            <pre class="hero-code-body hero-tab-panel active" data-panel="orm"><code><span class="hc-attr">#[form(schema = blog, fields = [title, email, summary, website, content])]</span>
+<span class="hc-kw">pub struct</span> <span class="hc-ty">BlogForm</span>;
 
-<span class="hc-cm">// Typed search via form</span>
-<span class="hc-fn">search!</span>(<span class="hc-attr">@UserForm</span> <span class="hc-op">=></span> Username <span class="hc-op">eq</span> <span class="hc-str">"alice"</span>)
+<span class="hc-cm">// Typed search (demo-app/src/backend/blog.rs)</span>
+<span class="hc-fn">search!</span>(<span class="hc-ty">BlogEntity</span> <span class="hc-op">=></span> Title <span class="hc-op">icontains</span> <span class="hc-str">"runique"</span>)
     .all(<span class="hc-op">&amp;</span>db).<span class="hc-fn">await</span>?;
 
-<span class="hc-cm">// Direct access via objects</span>
-<span class="hc-ty">users::Entity</span>::objects.<span class="hc-fn">filter</span>(...).<span class="hc-fn">first</span>(<span class="hc-op">&amp;</span>db).<span class="hc-fn">await</span>?;</code></pre>
+<span class="hc-fn">search!</span>(<span class="hc-ty">BlogEntity</span> <span class="hc-op">=></span> Id <span class="hc-op">eq</span> id)
+    .<span class="hc-fn">first</span>(<span class="hc-op">&amp;</span>db).<span class="hc-fn">await</span>?;</code></pre>
 
             <pre class="hero-code-body hero-tab-panel" data-panel="route"><code><span class="hc-fn">urlpatterns!</span> {
-    <span class="hc-str">"/"</span>           <span class="hc-op">=&gt;</span> <span class="hc-fn">view!</span>{ index },         name <span class="hc-op">=</span> <span class="hc-str">"index"</span>,
-    <span class="hc-str">"/users"</span>      <span class="hc-op">=&gt;</span> <span class="hc-fn">view!</span>{ list },          name <span class="hc-op">=</span> <span class="hc-str">"user_list"</span>,
-    <span class="hc-str">"/users/{id}"</span> <span class="hc-op">=&gt;</span> <span class="hc-fn">view!</span>{ detail },        name <span class="hc-op">=</span> <span class="hc-str">"user_detail"</span>,
+    <span class="hc-str">"/"</span>          <span class="hc-op">=&gt;</span> <span class="hc-fn">view!</span>{ index },        name <span class="hc-op">=</span> <span class="hc-str">"index"</span>,
+    <span class="hc-str">"/blog/liste"</span> <span class="hc-op">=&gt;</span> <span class="hc-fn">view!</span>{ blog_list },    name <span class="hc-op">=</span> <span class="hc-str">"blog_list"</span>,
+    <span class="hc-str">"/blog/{id}"</span>  <span class="hc-op">=&gt;</span> <span class="hc-fn">view!</span>{ blog_detail },  name <span class="hc-op">=</span> <span class="hc-str">"blog_detail"</span>,
 }
 
-<span class="hc-cm">// Handler — DB accessible via request.engine.db</span>
-<span class="hc-kw">pub async fn</span> <span class="hc-fn">detail</span>(<span class="hc-kw">mut</span> request: <span class="hc-ty">Request</span>) <span class="hc-op">-&gt;</span> <span class="hc-ty">AppResult</span>&lt;<span class="hc-ty">Response</span>&gt; {
-    <span class="hc-kw">let</span> id <span class="hc-op">=</span> request.<span class="hc-fn">get_path_as</span>::&lt;<span class="hc-ty">Pk</span>&gt;(<span class="hc-str">"id"</span>)<span class="hc-op">...</span>;
+<span class="hc-cm">// Handler — path param via axum Path + request.engine.db</span>
+<span class="hc-kw">pub async fn</span> <span class="hc-fn">blog_detail</span>(
+    <span class="hc-ty">Path</span>(id): <span class="hc-ty">Path</span>&lt;<span class="hc-ty">Pk</span>&gt;,
+    <span class="hc-kw">mut</span> request: <span class="hc-ty">Request</span>,
+) <span class="hc-op">-&gt;</span> <span class="hc-ty">AppResult</span>&lt;<span class="hc-ty">Response</span>&gt; {
     <span class="hc-op">...</span>
 }</code></pre>
 
@@ -90,21 +92,30 @@
     .<span class="hc-fn">build</span>().<span class="hc-fn">await</span>?
     .<span class="hc-fn">run</span>().<span class="hc-fn">await</span>?
 
-<span class="hc-cm">// src/admin.rs — typed ModelAdmin&lt;Entity&gt;</span>
+<span class="hc-cm">// src/admin.rs — typed ModelAdmin&lt;blog::Entity&gt;</span>
 <span class="hc-ty">ModelAdmin</span>::<span class="hc-fn">new</span>()
-    .<span class="hc-fn">list</span>(|l| l.<span class="hc-fn">display</span>([Title, Status]))
-    .<span class="hc-fn">form</span>(|f| f.<span class="hc-fn">fields</span>([Title, Body]))</code></pre>
+    .<span class="hc-fn">list</span>(|l| {
+        l.<span class="hc-fn">display</span>([Title, Email, Website, Status])
+            .<span class="hc-fn">links</span>([Title])
+            .<span class="hc-fn">filter</span>([Status])
+    })
+    .<span class="hc-fn">form</span>(|f| f.<span class="hc-fn">fields</span>([Title, Email, Summary, Content, Status]))</code></pre>
                 <div class="hero-terminal">
                     <span class="hero-terminal-prompt">$</span>
                     <span class="hero-terminal-cmd">cargo run</span>
-                    <span class="hero-terminal-out">→ Admin available at /admin</span>
+                    <span class="hero-terminal-out">→ Admin available at /admin-runique/</span>
                 </div>
             </div>
 
             <pre class="hero-code-body hero-tab-panel" data-panel="securite"><code>.<span class="hc-fn">middleware</span>(|m| {
-    m.<span class="hc-fn">with_csp</span>(|c| c.<span class="hc-fn">policy</span>(<span class="hc-ty">SecurityPolicy</span>::<span class="hc-fn">strict</span>()))
-    .<span class="hc-fn">with_allowed_hosts</span>(|h| h.<span class="hc-fn">host</span>(<span class="hc-str">"mysite.com"</span>))
-    .<span class="hc-fn">with_session_memory_limit</span>(<span class="hc-kw">5</span> <span class="hc-op">*</span> <span class="hc-kw">1024</span> <span class="hc-op">*</span> <span class="hc-kw">1024</span>, <span class="hc-op">...</span>)
+    m.<span class="hc-fn">with_allowed_hosts</span>(|h| {
+        h.<span class="hc-fn">enabled</span>(!<span class="hc-fn">is_debug</span>())
+            .<span class="hc-fn">host</span>(<span class="hc-str">"runique.io"</span>)
+    })
+    .<span class="hc-fn">with_csp</span>(|c| {
+        c.<span class="hc-fn">policy</span>(<span class="hc-ty">SecurityPolicy</span>::<span class="hc-fn">strict</span>())
+            .<span class="hc-fn">scripts</span>(vec![<span class="hc-str">"'strict-dynamic'"</span>])
+    })
 })
 
 <span class="hc-cm">// CSRF enabled by default — cannot be disabled</span>

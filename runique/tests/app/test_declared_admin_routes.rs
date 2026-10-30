@@ -5,7 +5,8 @@
 
 use crate::helpers::db;
 use crate::helpers::framework_tables::{
-    GROUPES_DDL, GROUPES_DROITS_DDL, HISTORY_DDL, RESET_TOKENS_DDL, USERS_DDL, USERS_GROUPES_DDL,
+    GROUPES_DDL, GROUPES_DROITS_DDL, HISTORY_DDL, RESET_TOKENS_DDL, SESSIONS_DDL, USERS_DDL,
+    USERS_GROUPES_DDL,
 };
 use crate::helpers::pk::{pk, pk_sql_literal};
 use axum::extract::Path;
@@ -66,6 +67,7 @@ async fn seed(dbc: &runique::sea_orm::DatabaseConnection) {
         USERS_GROUPES_DDL,
         HISTORY_DDL,
         RESET_TOKENS_DDL,
+        SESSIONS_DDL,
         "CREATE TABLE probe_notes (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, body TEXT, code TEXT, flag TEXT)",
         "CREATE TABLE bare_notes (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, body TEXT)",
     ] {

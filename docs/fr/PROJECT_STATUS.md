@@ -163,7 +163,6 @@ Source de vérité détaillée : [ROADMAP.fr.md](https://github.com/seb-alliot/r
 Détail et critères de « fini » : [ROADMAP.fr.md](https://github.com/seb-alliot/runique/blob/main/ROADMAP.fr.md).
 
 ### Ouvert — patch 4.0.x (sécu / entretien, dans cet ordre)
-1. Reset password sans email dans le lien (`encrypt_email` / `decrypt_email` à retirer)
 2. Fichiers staging d'un formulaire refusé : suppression immédiate
 3. Plafond des compteurs `RateLimiter` / `LoginGuard`
 4. Sessions superutilisateur non supprimables par un staff
@@ -194,4 +193,4 @@ Détail et critères de « fini » : [ROADMAP.fr.md](https://github.com/seb-alli
 ---
 
 **Dernière mise à jour** : 29 octobre 2026
-**Statut global** : ✅ Framework stable · 🟡 Admin bêta mature (`ModelAdmin`) · 🔒 Sécurité : tokens reset en DB, auth temps constant, correctifs 4.0 dans l'arbre · 📖 Doc 4.0 alignée · 📦 crates.io 4.0.0 encore non publiée
+**Statut global** : ✅ Framework stable · 🟡 Admin bêta mature (`ModelAdmin`) · 🔒 Sécurité : tokens reset en DB, auth temps constant, correctifs 4.0 dans l'arbre · 📖 Doc 4.0 alignée · 📦 crates.io 4.0.0 encore non publiée · ➡️ Prochain : file patch sécu `4.0.x` (puis mineures 4.x)

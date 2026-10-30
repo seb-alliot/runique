@@ -84,6 +84,7 @@
     "unique_value_taken": "Field '{}' value is already taken.",
     "unique_constraint_violated": "A uniqueness constraint was violated.",
     "db_error": "DB error: {}",
+    "delete_linked": "Cannot delete: other records still use it.",
     "text_field_too_large": "Text field too large (max 1 MB)",
     "upload_too_large": "File upload too large (max {}MB)"
   },
