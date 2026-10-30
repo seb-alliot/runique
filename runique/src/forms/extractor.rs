@@ -1,6 +1,7 @@
 //! Prisme: non-generic CSRF + body extractor integrated into the Request pipeline.
 use crate::forms::prisme::aegis;
 use crate::utils::aliases::{ARuniqueConfig, StrMap, StrVecMap};
+use crate::utils::parse_html::StagingDir;
 use crate::utils::trad::t;
 use crate::utils::{
     constante::session_key::session::CSRF_TOKEN_KEY, crypto::csrf::unmask_csrf_token,
@@ -23,6 +24,10 @@ pub struct Prisme {
     /// only via `checked_data()` (fail-closed) or `req.form()`.
     pub(crate) data: StrMap,
     pub csrf_valid: bool,
+    /// `.staging-*` directory this request created. `None` when the body wrote
+    /// no file. [`Request`](crate::context::Request) drops it when the request
+    /// ends; the last clone removes the directory.
+    pub(crate) staging: Option<std::sync::Arc<StagingDir>>,
 }
 
 impl Prisme {
@@ -45,7 +50,11 @@ impl Prisme {
     #[cfg(feature = "test-utils")]
     #[doc(hidden)]
     pub fn for_test(data: StrMap, csrf_valid: bool) -> Self {
-        Self { data, csrf_valid }
+        Self {
+            data,
+            csrf_valid,
+            staging: None,
+        }
     }
 }
 
@@ -110,7 +119,8 @@ where
     let upload_gate =
         (csrf_required(&method) && !exempt && !header_valid).then(|| csrf_session.as_str());
 
-    let parsed = aegis::aegis_guarded(req, state, config, &content_type, upload_gate).await?;
+    let (parsed, staging) =
+        aegis::aegis_guarded(req, state, config, &content_type, upload_gate).await?;
 
     let csrf_valid = check_csrf(
         &parsed,
@@ -120,7 +130,11 @@ where
     );
     let data = convert_for_form(parsed);
 
-    Ok(Prisme { data, csrf_valid })
+    Ok(Prisme {
+        data,
+        csrf_valid,
+        staging: staging.map(StagingDir::hold),
+    })
 }
 
 /// **Single** source of truth for the per-method CSRF policy: only GET/HEAD (safe,
@@ -204,6 +218,7 @@ mod checked_data_tests {
         let invalid = Prisme {
             data: data.clone(),
             csrf_valid: false,
+            staging: None,
         };
         assert!(invalid.checked_data().is_none(), "CSRF KO → aucune donnée");
         assert!(
@@ -214,6 +229,7 @@ mod checked_data_tests {
         let valid = Prisme {
             data,
             csrf_valid: true,
+            staging: None,
         };
         assert!(valid.checked_data().is_some(), "CSRF OK → données dispo");
     }

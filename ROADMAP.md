@@ -74,8 +74,11 @@ Each item needs its regression test before it is checked off.
    email with the account's, and drop the email from the link. The custom
    `encrypt_email` / `decrypt_email` helpers were removed. Regression coverage verifies token-only
    links and that a mismatched email does not consume a reset token.
-2. [ ] **Uploads of a refused form** — deleted right away, even when another field made the form
-   invalid (today: at the next sweep, 1 h).
+2. [x] **Uploads of a refused form** — deleted before the page is sent back when the form never
+   reaches `finalize` (token, another field, `clean()`). The request then removes the `.staging-*`
+   directory it created, including when the handler never validates. The one-hour sweep remains
+   only if the process dies first. Tests cover a failing sibling field, a forced-invalid token, a
+   form that was not submitted, and an accepted upload the end of the request does not remove.
 3. [ ] **In-memory counters capped** — `RateLimiter` and `LoginGuard` bound their number of keys
    between two sweeps.
 4. [ ] **A superuser's sessions** — protected like their account: a staff member can't delete them.

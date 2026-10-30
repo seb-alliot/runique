@@ -123,6 +123,15 @@ pub struct Request {
     pub(crate) admin_constraint: Option<CurrentUser>,
 }
 
+impl Drop for Request {
+    fn drop(&mut self) {
+        // The handler has returned: every form has either moved its files out
+        // or discarded them. Releasing the directory here removes what is left.
+        // A cloned request still holds its own `Arc` until that clone drops too.
+        drop(self.prisme.staging.take());
+    }
+}
+
 impl<S> FromRequest<S> for Request
 where
     S: Send + Sync,
@@ -258,6 +267,7 @@ impl Request {
                 // RuniqueContext (FromRequestParts) never runs check_csrf — no body access.
                 // Fail-closed: only `Request` via `request.form()` can actually validate CSRF.
                 csrf_valid: false,
+                staging: None,
             },
             honeypot_field_name: None,
             admin_constraint: None,
@@ -548,7 +558,10 @@ mod admin_constraint_tests {
     #[tokio::test]
     async fn the_extension_makes_the_extracted_request_constrained_as_its_account() {
         let req = extracted(Method::GET, Some(account(7))).await;
-        assert_eq!(req.admin_constraint.map(|u| u.id), Some(pk(7)));
+        assert_eq!(
+            req.admin_constraint.clone().as_ref().map(|u| u.id),
+            Some(pk(7))
+        );
     }
 
     #[tokio::test]

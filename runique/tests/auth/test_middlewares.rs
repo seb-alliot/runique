@@ -23,7 +23,7 @@ async fn sign_in(req: Request) -> &'static str {
 }
 
 async fn whoami(req: Request) -> String {
-    req.user.map_or("anonymous".into(), |u| {
+    req.user.clone().map_or("anonymous".into(), |u| {
         format!("{}|{:?}", u.username, u.rang)
     })
 }

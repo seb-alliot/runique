@@ -75,8 +75,12 @@ item a son test de non-régression avant d'être coché.
    saisi à celui du compte en base et retirer l'email du lien. Les helpers maison
    `encrypt_email` / `decrypt_email` sont supprimés. Les tests vérifient les liens token-only et
    qu'un email incorrect ne consomme pas le jeton de reset.
-2. [ ] **Fichiers en transit d'un formulaire refusé** — supprimés tout de suite, même quand c'est
-   un autre champ qui rend le formulaire invalide (aujourd'hui : au nettoyage suivant, 1 h).
+2. [x] **Fichiers en transit d'un formulaire refusé** — supprimés avant le renvoi de la page quand
+   le formulaire n'atteint pas `finalize` (jeton, autre champ, `clean()`). La requête supprime
+   ensuite le dossier `.staging-*` qu'elle a créé, donc aussi quand le handler ne valide pas. Le
+   balayage d'une heure ne reste que si le processus meurt avant. Les tests couvrent le champ
+   voisin, le jeton forcé invalide, un formulaire non soumis, et un envoi accepté que la fin de
+   requête ne retire pas.
 3. [ ] **Compteurs en mémoire plafonnés** — `RateLimiter` et `LoginGuard` bornent leur nombre de
    clés entre deux purges.
 4. [ ] **Sessions d'un superutilisateur** — protégées comme son compte : un staff ne peut pas les

@@ -28,7 +28,7 @@ async fn sign_in(Path(id): Path<u32>, req: Request) -> &'static str {
 }
 
 async fn whoami(req: Request) -> String {
-    req.user.map_or("anonymous".into(), |u| u.username)
+    req.user.clone().map_or("anonymous".into(), |u| u.username)
 }
 
 async fn spawn() -> (String, DatabaseConnection) {

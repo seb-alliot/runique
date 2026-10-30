@@ -77,6 +77,51 @@ async fn cleanup_files(files: &[String]) {
     }
 }
 
+/// A submitted form that did not reach `finalize`. Removes the staged uploads
+/// its file and binary fields still hold, and clears those values. A text
+/// field is left as it is, even when its text contains a comma. A path that
+/// is not a staged upload — a file already stored — is left on disk and in
+/// the field.
+pub(crate) async fn discard_staged_uploads(fields: &mut crate::utils::aliases::FieldsMap) {
+    for field in fields.values_mut() {
+        let kind = field.field_type().to_string();
+        match kind.as_str() {
+            "file" => discard_file_value(field.as_mut()).await,
+            "binary" => discard_binary_value(field.as_mut()).await,
+            _ => {}
+        }
+    }
+}
+
+async fn discard_file_value(field: &mut dyn FormField) {
+    let value = field.value().to_string();
+    let parts = parse_file_list(&value);
+    let staged: Vec<String> = parts
+        .iter()
+        .copied()
+        .filter(|p| is_staged_upload(p))
+        .map(str::to_string)
+        .collect();
+    if staged.is_empty() {
+        return;
+    }
+    cleanup_files(&staged).await;
+    let kept: Vec<&str> = parts
+        .into_iter()
+        .filter(|part| !staged.iter().any(|staged| staged == *part))
+        .collect();
+    field.set_value(&kept.join(","));
+}
+
+async fn discard_binary_value(field: &mut dyn FormField) {
+    let value = field.value().trim().to_string();
+    if value.is_empty() || !is_staged_upload(&value) {
+        return;
+    }
+    cleanup_files(std::slice::from_ref(&value)).await;
+    field.set_value("");
+}
+
 /// Checks if the file is a valid image using magic bytes.
 /// Covers JPEG, PNG, GIF, WebP, and ISO BMFF containers (AVIF, HEIC, HEIF).
 async fn is_valid_image_content(path: &str) -> bool {
@@ -472,7 +517,12 @@ impl FormField for FileField {
 
     fn set_value(&mut self, value: &str) {
         let current = self.base.value.trim().to_string();
-        if !current.is_empty() && current != value.trim() {
+        // A staged path is not a file already stored. Remembering it would make
+        // a later `finalize` try to delete it as the previous media file.
+        let stored = parse_file_list(&current)
+            .iter()
+            .any(|p| !is_staged_upload(p));
+        if !current.is_empty() && current != value.trim() && stored {
             self.prev_value = Some(current);
         }
         self.base.value = value.to_string();
@@ -982,6 +1032,7 @@ mod finalize_tests {
 mod guarantees {
     use super::*;
     use crate::forms::base::FormField;
+    use crate::forms::field::{FormAccess, RuniqueForm};
     use std::fs;
     use std::path::{Path, PathBuf};
 
@@ -1268,5 +1319,148 @@ mod guarantees {
             shown.contains("FileUploadConfig") && shown.contains("max_size"),
             "{shown}"
         );
+    }
+
+    // ── A refused form drops what it staged ───────────────────────────────
+
+    #[derive(Clone)]
+    struct UploadForm {
+        form: crate::forms::form::Forms,
+    }
+
+    impl crate::forms::field::FormAccess for UploadForm {
+        fn register_fields(form: &mut crate::forms::form::Forms) {
+            form.field(&FileField::any("doc"));
+            form.field(&crate::forms::fields::BinaryField::new("blob"));
+            form.field(&crate::forms::fields::TextField::text("title").required());
+            form.field(&crate::forms::fields::TextField::text("note"));
+        }
+        crate::impl_form_access!();
+    }
+
+    impl crate::forms::field::RuniqueForm for UploadForm {}
+
+    fn upload_form() -> UploadForm {
+        let mut form = crate::forms::Forms::new("t");
+        UploadForm::register_fields(&mut form);
+        UploadForm::from_form(form)
+    }
+
+    #[tokio::test]
+    async fn clearing_a_staged_upload_does_not_remember_it_as_the_old_file() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        let staged = media.staged("a.txt", b"x");
+        let mut field = FileField::any("doc");
+        field.set_value(&staged);
+        field.set_value("");
+        assert!(
+            field.prev_value.is_none(),
+            "a staging path is not a stored file"
+        );
+        field.set_value("plats/old.txt");
+        field.set_value("plats/new.txt");
+        assert_eq!(field.prev_value.as_deref(), Some("plats/old.txt"));
+    }
+
+    #[tokio::test]
+    async fn a_form_that_was_not_submitted_leaves_the_staged_file() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        let staged = media.staged("a.txt", b"hello");
+        let mut form = upload_form();
+        form.get_form_mut()
+            .fields
+            .get_mut("doc")
+            .unwrap()
+            .set_value(&staged);
+        assert!(!form.is_valid().await);
+        assert!(Path::new(&staged).exists(), "not a submission");
+    }
+
+    #[tokio::test]
+    async fn another_field_failing_removes_the_staged_uploads() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        let doc = media.staged("hello.txt", b"hello");
+        let blob = media.staged("blob.bin", b"xyz");
+        let mut form = upload_form();
+        let fields = form.get_form_mut();
+        fields.add_value("doc", &doc);
+        fields.add_value("blob", &blob);
+        fields.add_value("note", "a, b");
+        assert!(!form.is_valid().await, "title is required and empty");
+        assert!(!Path::new(&doc).exists(), "the file upload is gone");
+        assert!(!Path::new(&blob).exists(), "the binary upload is gone");
+        assert!(
+            form.get_form()
+                .fields
+                .get("doc")
+                .unwrap()
+                .value()
+                .is_empty()
+        );
+        assert!(
+            form.get_form()
+                .fields
+                .get("blob")
+                .unwrap()
+                .value()
+                .is_empty()
+        );
+        assert_eq!(form.get_form().fields.get("note").unwrap().value(), "a, b");
+    }
+
+    #[tokio::test]
+    async fn an_invalid_token_removes_the_staged_uploads() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        let doc = media.staged("hello.txt", b"hello");
+        let mut form = upload_form();
+        let fields = form.get_form_mut();
+        fields.force_invalid = true;
+        fields.add_value("doc", &doc);
+        fields.add_value("title", "ok");
+        fields.add_value("note", "a, b");
+        assert!(!form.is_valid().await);
+        assert!(!Path::new(&doc).exists());
+        assert!(
+            form.get_form()
+                .fields
+                .get("doc")
+                .unwrap()
+                .value()
+                .is_empty()
+        );
+        assert_eq!(form.get_form().fields.get("note").unwrap().value(), "a, b");
+        assert_eq!(form.get_form().fields.get("title").unwrap().value(), "ok");
+    }
+
+    #[tokio::test]
+    async fn an_accepted_upload_survives_the_request_dropping_its_staging_dir() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        let doc = media.staged("hello.txt", b"hello");
+        let blob = media.staged("blob.bin", b"xyz");
+        let mut form = upload_form();
+        let fields = form.get_form_mut();
+        fields.add_value("doc", &doc);
+        fields.add_value("blob", &blob);
+        fields.add_value("title", "ok");
+        fields.add_value("note", "a, b");
+        assert!(form.is_valid().await, "the form commits");
+        let stored = form.get_form().fields.get("doc").unwrap().value();
+        assert_eq!(stored, "hello.txt");
+        assert_eq!(fs::read(media.root.join("hello.txt")).unwrap(), b"hello");
+        assert!(!Path::new(&doc).exists(), "moved out of staging");
+        {
+            let _guard = crate::utils::parse_html::StagingDir::hold(media.staging.clone());
+        }
+        assert!(
+            !media.staging.exists(),
+            "the empty directory goes with the request"
+        );
+        assert_eq!(fs::read(media.root.join("hello.txt")).unwrap(), b"hello");
+        assert_eq!(form.get_form().fields.get("note").unwrap().value(), "a, b");
     }
 }

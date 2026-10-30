@@ -27,7 +27,9 @@ pub async fn aegis<S>(
 where
     S: Send + Sync,
 {
-    aegis_guarded(req, state, config, content_type, None).await
+    aegis_guarded(req, state, config, content_type, None)
+        .await
+        .map(|(data, _staging)| data)
 }
 
 /// `aegis`, refusing to write an uploaded file before a valid `csrf_token`
@@ -38,7 +40,7 @@ pub(crate) async fn aegis_guarded<S>(
     config: ARuniqueConfig,
     content_type: &str,
     upload_gate: Option<&str>,
-) -> Result<StrVecMap, Response>
+) -> Result<(StrVecMap, Option<std::path::PathBuf>), Response>
 where
     S: Send + Sync,
 {
@@ -54,9 +56,10 @@ where
             .into_iter()
             .map(|(k, v)| (k, vec![v]))
             .collect();
-        return Ok(parsed);
+        return Ok((parsed, None));
     }
 
+    let mut staging = None;
     if content_type.starts_with("multipart/form-data") {
         let multipart = Multipart::from_request(req, state).await.map_err(|_e| {
             (
@@ -67,7 +70,7 @@ where
         })?;
 
         let upload_dir = std::path::Path::new(&config.static_files.media_root);
-        parsed = parse_multipart_guarded(
+        let (body, dir) = parse_multipart_guarded(
             multipart,
             upload_dir,
             config.static_files.max_upload_mb,
@@ -75,6 +78,8 @@ where
             upload_gate,
         )
         .await?;
+        parsed = body;
+        staging = dir;
     } else {
         // Bounded like the multipart body (`DefaultBodyLimit`, set at build):
         // a raw `collect()` would read a body of any size into memory.
@@ -107,5 +112,5 @@ where
         }
     }
 
-    Ok(parsed)
+    Ok((parsed, staging))
 }

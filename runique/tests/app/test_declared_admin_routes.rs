@@ -32,7 +32,10 @@ async fn sign_in(Path(n): Path<u32>, req: Request) -> &'static str {
 }
 
 async fn whoami(req: Request) -> String {
-    req.user.map_or("anonymous".into(), |u| u.username)
+    req.user
+        .clone()
+        .as_ref()
+        .map_or("anonymous".into(), |u| u.username.clone())
 }
 
 async fn flashes(notices: Message) -> String {
