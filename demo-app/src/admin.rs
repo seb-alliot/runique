@@ -6,9 +6,9 @@
 //! then names them alone, and two models' columns of the same name
 //! (`Email`, `Title`…) never meet.
 use crate::entities::{
-    blog, changelog_entry, chapitre, code_example, contribution,
-    demo_category, demo_page, demo_section, doc_block, doc_page, doc_section,
-    known_issue, page_doc_link, roadmap_entry, runique_release, site_config, user_profile,
+    blog, changelog_entry, chapitre, code_example, contribution, demo_category, demo_page,
+    demo_section, doc_block, doc_page, doc_section, known_issue, page_doc_link, roadmap_entry,
+    runique_release, site_config, user_profile,
 };
 use runique::admin::{AdminSite, ModelAdmin};
 use runique::app::staging::AdminStaging;
@@ -241,7 +241,8 @@ fn page_doc_link() -> ModelAdmin<page_doc_link::Entity> {
             .links([Label])
             .ordering([(PageId, Order::Asc), (SortOrder, Order::Asc)])
             .search([Label, Url])
-            .filter([LinkType]).per_page(10)
+            .filter([LinkType])
+            .per_page(10)
     })
 }
 
