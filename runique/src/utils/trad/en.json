@@ -83,7 +83,10 @@
     "unique_field_taken": "This {} is already taken.",
     "unique_value_taken": "Field '{}' value is already taken.",
     "unique_constraint_violated": "A uniqueness constraint was violated.",
-    "db_error": "DB error: {}",
+    "db_error": "The database refused this save.",
+    "db_foreign_key": "This value does not match a linked record.",
+    "db_not_null": "A required value is missing.",
+    "db_check": "This value is not accepted.",
     "delete_linked": "Cannot delete: other records still use it.",
     "text_field_too_large": "Text field too large (max 1 MB)",
     "upload_too_large": "File upload too large (max {}MB)"

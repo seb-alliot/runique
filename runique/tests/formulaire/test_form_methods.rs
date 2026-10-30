@@ -208,15 +208,13 @@ fn test_add_value_unknown_field_ignored() {
 // ═══════════════════════════════════════════════════════════════
 
 #[test]
-fn test_database_error_unique_known_field() {
+fn test_database_error_custom_sentence_is_not_parsed() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::text("username"));
-    // Format PostgreSQL : constraint "table_field_key" → parse_constraint_name extrait "username"
-    let err = DbErr::Custom(
-        r#"duplicate key value violates unique constraint "users_username_key""#.to_string(),
-    );
-    form.database_error(&err);
-    assert!(form.fields.get("username").unwrap().error().is_some());
+    let sentence = r#"duplicate key value violates unique constraint "users_username_key""#;
+    form.database_error(&DbErr::Custom(sentence.to_string()));
+    assert!(form.fields.get("username").unwrap().error().is_none());
+    assert_eq!(form.errors, vec![sentence.to_string()]);
 }
 
 #[test]
