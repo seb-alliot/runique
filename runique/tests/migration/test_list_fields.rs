@@ -167,17 +167,21 @@ CREATE TABLE list_books_moods (
 );";
 
 async fn insert(conn: &runique::sea_orm::DatabaseConnection, title: &str) -> book::Model {
-    book::ActiveModel {
-        #[cfg(feature = "pk-uuid")]
-        id: Set(runique::sea_orm::prelude::Uuid::now_v7()),
+    // `id` stays out of the literal. `Default` leaves an integer key unset
+    // for the database; a UUID is written on the next line.
+    let row = book::ActiveModel {
         title: Set(title.into()),
         level: Set(Level::Low),
         code: Set(Code::A),
         ..Default::default()
-    }
-    .insert(conn)
-    .await
-    .expect("insert")
+    };
+    #[cfg(feature = "pk-uuid")]
+    let row = {
+        let mut row = row;
+        row.id = Set(runique::sea_orm::prelude::Uuid::now_v7());
+        row
+    };
+    row.insert(conn).await.expect("insert")
 }
 
 fn titles(books: Vec<book::Model>) -> Vec<String> {
@@ -373,11 +377,18 @@ async fn list_on_postgres_with_a_native_enum() {
     ] {
         crate::helpers::db_postgres::exec(&conn, sql).await;
     }
-    let new = |title: &str| pg_book::ActiveModel {
+    let new = |title: &str| {
+        let row = pg_book::ActiveModel {
+            title: Set(title.into()),
+            ..Default::default()
+        };
         #[cfg(feature = "pk-uuid")]
-        id: Set(runique::sea_orm::prelude::Uuid::now_v7()),
-        title: Set(title.into()),
-        ..Default::default()
+        let row = {
+            let mut row = row;
+            row.id = Set(runique::sea_orm::prelude::Uuid::now_v7());
+            row
+        };
+        row
     };
     let roman = new("roman").insert(&conn).await.unwrap();
     let both = new("both").insert(&conn).await.unwrap();
