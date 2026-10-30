@@ -133,7 +133,7 @@ where
     Ok(Prisme {
         data,
         csrf_valid,
-        staging: staging.map(StagingDir::hold),
+        staging: staging.map(|lease| std::sync::Arc::new(StagingDir::from_lease(lease))),
     })
 }
 

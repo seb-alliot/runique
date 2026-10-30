@@ -187,8 +187,8 @@ async fn upload_limits_take_the_limit_itself() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
-/// A parse sweeps staging folders older than an hour, and only those: a fresh
-/// one stays, and so does any other old folder (parse_html.rs:193, 209, 221).
+/// A parse removes every `.staging-*` directory no live process holds, however
+/// recent it is. Any other folder stays (`sweep_stale_staging`).
 #[tokio::test]
 async fn stale_staging_folders_are_swept_and_nothing_else() {
     let dir = temp_upload_dir();
@@ -211,7 +211,7 @@ async fn stale_staging_folders_are_swept_and_nothing_else() {
     );
     let _ = std::fs::remove_dir_all(&dir);
     assert_eq!(status, StatusCode::OK);
-    assert!(!old, "an hour-old staging folder is removed");
-    assert!(new, "a fresh one stays");
+    assert!(!old, "an unclaimed staging folder is removed");
+    assert!(!new, "a fresh unclaimed staging folder is removed too");
     assert!(other, "anything that isn't staging is never touched");
 }

@@ -82,6 +82,7 @@ anyhow.workspace = true
 regex.workspace = true
 fancy-regex.workspace = true
 uuid.workspace = true
+libc = "0.2"
 futures-util.workspace = true
 phone_number.workspace = true
 country.workspace = true

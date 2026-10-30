@@ -159,6 +159,13 @@ async fn is_valid_image_content(path: &str) -> bool {
     false
 }
 
+/// Width and height, or why the crate could not measure the file.
+/// The text stays in the log: the form shows `forms.file_invalid_image`.
+fn read_image_dimensions(path: &str) -> Result<(u32, u32), String> {
+    let reader = ImageReader::open(path).map_err(|e| e.to_string())?;
+    reader.into_dimensions().map_err(|e| e.to_string())
+}
+
 /// Moves a staged file to its destination. `rename` fails with `CrossesDevices`
 /// when the staging directory and `MEDIA_ROOT` are on different filesystems
 /// (e.g. `/tmp` on tmpfs vs. a mounted media volume) — falls back to copy+remove.
@@ -469,6 +476,8 @@ impl FileField {
     }
 
     /// Maximum image dimensions in pixels. Only checked for `FileFieldType::Image`.
+    /// A file the `image` crate cannot measure is refused, for every format:
+    /// without a measurement the limit would not apply.
     pub fn max_dimensions(mut self, width: u32, height: u32) -> Self {
         self.max_width = Some(width);
         self.max_height = Some(height);
@@ -625,18 +634,38 @@ impl FormField for FileField {
                     return false;
                 }
 
-                let dims = if self.max_width.is_some() || self.max_height.is_some() {
-                    let filename = filename.clone();
-                    tokio::task::spawn_blocking(move || {
-                        ImageReader::open(&filename).ok()?.into_dimensions().ok()
-                    })
-                    .await
-                    .ok()
-                    .flatten()
-                } else {
-                    None
-                };
-                if let Some((w, h)) = dims {
+                // Refused when in doubt, for every format: an unreadable
+                // measurement would skip the width and height limits.
+                if self.max_width.is_some() || self.max_height.is_some() {
+                    let path = filename.clone();
+                    let read =
+                        tokio::task::spawn_blocking(move || read_image_dimensions(&path)).await;
+                    let dims = match read {
+                        Ok(Ok(dims)) => Some(dims),
+                        Ok(Err(error)) => {
+                            tracing::warn!(
+                                field = %self.base.name,
+                                file = %filename,
+                                error = %error,
+                                "image field: dimensions unreadable, refused"
+                            );
+                            None
+                        }
+                        Err(error) => {
+                            tracing::warn!(
+                                field = %self.base.name,
+                                error = %error,
+                                "image field: dimension read task failed, refused"
+                            );
+                            None
+                        }
+                    };
+                    let Some((w, h)) = dims else {
+                        cleanup_files(&files).await;
+                        self.base.value.clear();
+                        self.set_error(tf("forms.file_invalid_image", &[filename.as_str()]));
+                        return false;
+                    };
                     if let Some(max_w) = self.max_width
                         && w > max_w
                     {
@@ -1100,7 +1129,8 @@ mod guarantees {
             "not a staging dir"
         );
 
-        let elsewhere = temp_dir("elsewhere").join(".staging-x");
+        let outside = temp_dir("elsewhere");
+        let elsewhere = outside.join(".staging-x");
         fs::create_dir_all(&elsewhere).unwrap();
         fs::write(elsewhere.join("d.png"), b"x").unwrap();
         assert!(
@@ -1117,6 +1147,7 @@ mod guarantees {
         assert!(!is_staged_upload(
             &media.staging.join("missing.png").to_string_lossy()
         ));
+        let _ = fs::remove_dir_all(&outside);
     }
 
     #[tokio::test]
@@ -1131,6 +1162,84 @@ mod guarantees {
         assert!(!field.validate().await, "vanished upload");
         assert!(field.base.value.is_empty(), "finalize must not see it");
         assert!(field.error().is_some());
+    }
+
+    fn encode_image(format: image::ImageFormat, w: u32, h: u32) -> Vec<u8> {
+        let img = image::DynamicImage::ImageRgb8(image::RgbImage::from_pixel(
+            w,
+            h,
+            image::Rgb([9, 8, 7]),
+        ));
+        let mut buf = std::io::Cursor::new(Vec::new());
+        img.write_to(&mut buf, format).expect("encode");
+        buf.into_inner()
+    }
+
+    /// `true` when a staged image passes `max_dimensions`. A refusal must drop
+    /// the value and the staged file, same as the other file checks.
+    async fn image_with_limit(name: &str, bytes: &[u8], max_w: u32, max_h: u32) -> bool {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        let staged = media.staged(name, bytes);
+        let mut field = FileField::image("photo").max_dimensions(max_w, max_h);
+        field.set_value(&staged);
+        let ok = field.validate().await;
+        if !ok {
+            assert!(field.base.value.is_empty(), "{name}");
+            assert!(field.error().is_some(), "{name}");
+            assert!(
+                !Path::new(&staged).exists(),
+                "{name}: the refused upload is removed"
+            );
+        }
+        ok
+    }
+
+    #[tokio::test]
+    async fn a_dimension_limit_measures_every_format_the_crate_decodes() {
+        for (format, name) in [
+            (image::ImageFormat::Png, "a.png"),
+            (image::ImageFormat::Jpeg, "a.jpg"),
+            (image::ImageFormat::Gif, "a.gif"),
+            (image::ImageFormat::WebP, "a.webp"),
+        ] {
+            let small = encode_image(format, 2, 2);
+            assert!(
+                image_with_limit(name, &small, 8, 8).await,
+                "{name} within the limit"
+            );
+            let wide = encode_image(format, 8, 2);
+            assert!(
+                !image_with_limit(name, &wide, 4, 8).await,
+                "{name} over the width"
+            );
+            let tall = encode_image(format, 2, 8);
+            assert!(
+                !image_with_limit(name, &tall, 8, 4).await,
+                "{name} over the height"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn a_dimension_limit_refuses_an_image_the_crate_cannot_measure() {
+        let samples: &[(&str, &[u8])] = &[
+            ("a.jpg", &[0xFF, 0xD8, 0xFF, 0xE0, 0, 0, 0, 0, 0, 0, 0, 0]),
+            (
+                "a.png",
+                &[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0],
+            ),
+            ("a.gif", b"GIF89a\0\0\0\0\0\0"),
+            ("a.webp", b"RIFF\0\0\0\0WEBP"),
+            ("a.avif", b"\0\0\0\x18ftypavif"),
+            ("clip.avif", b"\0\0\0\x20ftypmp42"),
+        ];
+        for (name, bytes) in samples {
+            assert!(
+                !image_with_limit(name, bytes, 64, 64).await,
+                "{name} skipped the limit"
+            );
+        }
     }
 
     #[tokio::test]
@@ -1210,6 +1319,56 @@ mod guarantees {
         assert!(
             !is_valid_image_content("/nonexistent/x.png").await,
             "unreadable"
+        );
+    }
+
+    /// The byte check stops at `ftyp`. An MP4 carries the same box with another
+    /// brand. The `image` crate's own signature asks for `ftypavif`.
+    #[tokio::test]
+    async fn avif_byte_check_accepts_another_ftyp_brand() {
+        let mp4 = b"\0\0\0\x20ftypmp42";
+        assert!(
+            image("clip.bin", mp4).await,
+            "the check does not read the brand"
+        );
+        assert!(
+            image::guess_format(mp4).is_err(),
+            "the image crate refuses a brand other than avif"
+        );
+    }
+
+    /// `avif` encodes and `avif-native` decodes. A real file is measured by the
+    /// field. A bare `ftyp` box is covered by the refusal test above.
+    #[tokio::test]
+    async fn avif_roundtrip_is_measured_by_the_dimension_limit() {
+        let bytes = encode_image(image::ImageFormat::Avif, 8, 2);
+        assert!(
+            bytes.windows(8).any(|w| w == b"ftypavif"),
+            "the encoder writes the avif brand"
+        );
+        assert_eq!(
+            image::guess_format(&bytes).expect("brand avif"),
+            image::ImageFormat::Avif
+        );
+
+        let dir = temp_dir("avif-read");
+        let path = dir.join("photo.avif");
+        fs::write(&path, &bytes).unwrap();
+        let dims = read_image_dimensions(&path.to_string_lossy()).expect("avif decoder");
+        assert_eq!(dims, (8, 2));
+        let _ = fs::remove_dir_all(&dir);
+
+        assert!(
+            image_with_limit("photo.avif", &bytes, 8, 8).await,
+            "within the limit"
+        );
+        assert!(
+            !image_with_limit("photo.avif", &bytes, 4, 8).await,
+            "over the width"
+        );
+        assert!(
+            !image_with_limit("photo.avif", &bytes, 8, 1).await,
+            "over the height"
         );
     }
 
@@ -1459,7 +1618,10 @@ mod guarantees {
         assert_eq!(fs::read(media.root.join("hello.txt")).unwrap(), b"hello");
         assert!(!Path::new(&doc).exists(), "moved out of staging");
         {
-            let _guard = crate::utils::parse_html::StagingDir::hold(media.staging.clone());
+            let mut lease = crate::utils::parse_html::Lease::claim(media.staging.clone());
+            let _ = lease.lock_dir();
+            let _guard =
+                std::sync::Arc::new(crate::utils::parse_html::StagingDir::from_lease(lease));
         }
         assert!(
             !media.staging.exists(),

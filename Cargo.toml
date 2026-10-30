@@ -74,7 +74,7 @@ phone_number = "0.1.1"
 country = "0.5.0"
 postal-code = "0.3.0"
 dyn-clone = "1.0.20"
-image = { version = "0.25.10", features = ["avif"] }
+image = { version = "0.25.10", features = ["avif", "avif-native"] }
 dialoguer = "0.12"
 walkdir = "2.5.0"
 
