@@ -233,67 +233,81 @@ pub trait RuniqueForm: FormAccess {
         // without setting any field errors. This prevents showing validation errors on the
         // initial page load, and lets GET search forms fall through to their else branch
         // cleanly. Note: Forms::is_valid() (sync) does not have this guard.
+        // A form that was not submitted also leaves staged files alone: they belong
+        // to the request, which removes its own directory when it ends.
         if !self.is_submitted() {
             return false;
         }
 
-        let mut fields_valid = match self.get_form_mut().is_valid().await {
-            Ok(valid) => valid,
-            Err(ValidationError::StackOverflow) => {
-                self.get_form_mut()
-                    .errors
-                    .push(t("forms.validation_overflow").into_owned());
-                return false;
-            }
-            Err(_) => return false,
-        };
-
-        let names: Vec<String> = self.get_form().fields.keys().cloned().collect();
-        for name in names {
-            if !self.clean_field(&name).await {
-                fields_valid = false;
-            }
+        let accepted = submission_accepted(self).await;
+        if !accepted {
+            // The file never reached `finalize`. Drop it before the handler
+            // re-renders the form, so the page doesn't keep a staging path.
+            crate::forms::fields::discard_staged_uploads(&mut self.get_form_mut().fields).await;
         }
-
-        if !fields_valid {
-            return false;
-        }
-
-        match self.clean().await {
-            Ok(_) => {
-                if let Err(e) = self.get_form_mut().finalize().await {
-                    self.get_form_mut().errors.push(e);
-                    return false;
-                }
-                // A field given a column must read as that column's type: a
-                // valid form is one the write can't refuse on a type.
-                let mut storable = true;
-                for field in self.get_form_mut().fields.values_mut() {
-                    if field.column_type().is_some()
-                        && let Err(message) = field.to_value()
-                    {
-                        field.set_error(message);
-                        storable = false;
-                    }
-                }
-                storable
-            }
-            Err(business_errors) => {
-                let form = self.get_form_mut();
-                for (name, msg) in business_errors {
-                    if let Some(field) = form.fields.get_mut(&name) {
-                        field.set_error(msg);
-                    } else {
-                        form.errors.push(msg);
-                    }
-                }
-                false
-            }
-        }
+        accepted
     }
 
     fn database_error(&mut self, err: &DbErr) {
         self.get_form_mut().database_error(err);
+    }
+}
+
+/// The body of [`RuniqueForm::is_valid`] once the form is known to be submitted.
+/// `false` means it never committed: the caller deletes staged uploads.
+async fn submission_accepted<T: RuniqueForm>(form: &mut T) -> bool {
+    let mut fields_valid = match form.get_form_mut().is_valid().await {
+        Ok(valid) => valid,
+        Err(ValidationError::StackOverflow) => {
+            form.get_form_mut()
+                .errors
+                .push(t("forms.validation_overflow").into_owned());
+            return false;
+        }
+        Err(_) => return false,
+    };
+
+    let names: Vec<String> = form.get_form().fields.keys().cloned().collect();
+    for name in names {
+        if !form.clean_field(&name).await {
+            fields_valid = false;
+        }
+    }
+
+    if !fields_valid {
+        return false;
+    }
+
+    match form.clean().await {
+        Ok(_) => {
+            if let Err(e) = form.get_form_mut().finalize().await {
+                form.get_form_mut().errors.push(e);
+                return false;
+            }
+            // A field given a column must read as that column's type: a
+            // valid form is one the write can't refuse on a type.
+            let mut storable = true;
+            for field in form.get_form_mut().fields.values_mut() {
+                if field.column_type().is_some()
+                    && let Err(message) = field.to_value()
+                {
+                    field.set_error(message);
+                    storable = false;
+                }
+            }
+            storable
+        }
+        Err(business_errors) => {
+            let form = form.get_form_mut();
+            for (name, msg) in business_errors {
+                if let Some(field) = form.fields.get_mut(&name) {
+                    field.set_error(msg);
+                } else {
+                    form.errors.push(msg);
+                }
+            }
+            false
+        }
     }
 }
 

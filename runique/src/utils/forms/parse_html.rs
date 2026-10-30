@@ -20,8 +20,49 @@ use tokio::io::AsyncWriteExt;
 use tracing::warn;
 use uuid::Uuid;
 
-/// Staging dirs older than this are considered orphaned by a rejected upload.
+/// Staging dirs older than this are considered orphaned by a process that died
+/// before the request could remove its own `.staging-*` directory.
 const STAGING_TTL_SECS: u64 = 3600;
+
+/// The `.staging-*` directory one request created. The last clone removes it,
+/// and only it: the name has to be the directory `parse_multipart` made, and a
+/// symlink is left untouched so the removal can't be pointed at another folder.
+/// Accepted files have already been moved out by `finalize`.
+pub(crate) struct StagingDir {
+    path: PathBuf,
+}
+
+impl StagingDir {
+    pub(crate) fn hold(path: PathBuf) -> Arc<Self> {
+        Arc::new(Self { path })
+    }
+}
+
+impl Drop for StagingDir {
+    fn drop(&mut self) {
+        let Some(name) = self.path.file_name().and_then(|n| n.to_str()) else {
+            return;
+        };
+        if !name.starts_with(".staging-") {
+            return;
+        }
+        // `symlink_metadata` does not follow a link. A link kept under a staging
+        // name must not make `remove_dir_all` act on the folder it points at.
+        let Ok(meta) = std::fs::symlink_metadata(&self.path) else {
+            return;
+        };
+        if !meta.is_dir() || meta.file_type().is_symlink() {
+            return;
+        }
+        if let Err(e) = std::fs::remove_dir_all(&self.path) {
+            warn!(
+                dir = %self.path.display(),
+                error = %e,
+                "staged upload directory was not removed"
+            );
+        }
+    }
+}
 
 /// Reads a multipart body: text fields as they are, files written to a
 /// `.staging-*` folder under `upload_dir` (their path as the value), each held
@@ -33,6 +74,9 @@ pub async fn parse_multipart(
     max_upload_mb: u64,
     max_text_field_kb: usize,
 ) -> Result<StrVecMap, Response> {
+    // The directory is returned and dropped here on purpose: this function has
+    // no request to attach it to. The pipeline (`aegis_guarded`) is what holds
+    // it until the request ends. A direct caller still relies on the sweep.
     parse_multipart_guarded(
         multipart,
         upload_dir,
@@ -41,6 +85,7 @@ pub async fn parse_multipart(
         None,
     )
     .await
+    .map(|(data, _staging)| data)
 }
 
 /// `parse_multipart`, with `csrf_session` the session token when the request
@@ -48,25 +93,28 @@ pub async fn parse_multipart(
 /// `csrf_token` field matching it has been read, earlier in the body (the
 /// framework renders that field before every other). A file before it ends the
 /// request with a 403, nothing written.
+///
+/// On success the second value is the `.staging-*` directory when this body
+/// wrote a file. The caller decides how long it lives (`StagingDir` for a
+/// request). Error paths delete that directory before returning.
 pub(crate) async fn parse_multipart_guarded(
     mut multipart: Multipart,
     upload_dir: &Path,
     max_upload_mb: u64,
     max_text_field_kb: usize,
     csrf_session: Option<&str>,
-) -> Result<StrVecMap, Response> {
+) -> Result<(StrVecMap, Option<PathBuf>), Response> {
     let max_file_bytes = max_upload_mb.saturating_mul(1024).saturating_mul(1024);
     let max_text_bytes = max_text_field_kb.saturating_mul(1024);
 
     let mut data: StrVecMap = HashMap::new();
     // Staging dir (under upload_dir → même filesystem, donc le rename de finalize()
-    // est atomique). Les fichiers y restent jusqu'à ce que `FileField::finalize` les
-    // committe vers leur destination servie — APRÈS CSRF + validation. Créé à la
-    // demande au premier vrai fichier (aucun accès disque pour un form texte seul).
+    // est atomique). Créé à la demande au premier vrai fichier. La requête qui le
+    // reçoit le supprime en partant ; `finalize` en a déjà sorti les fichiers gardés.
     let mut tmp_dir: Option<PathBuf> = None;
     let mut csrf_checked = csrf_session.is_none();
 
-    // Best-effort : purge des staging laissés par des uploads précédemment rejetés.
+    // Dossiers laissés par un processus mort avant la fin de sa requête.
     sweep_stale_staging(upload_dir).await;
 
     loop {
@@ -238,17 +286,19 @@ pub(crate) async fn parse_multipart_guarded(
         }
     }
 
-    // Pas de commit ici : les fichiers restent en staging. `FileField::finalize`
-    // (le seul committer) les déplacera en destination servie après CSRF + validation.
-    // En cas de rejet (CSRF/validation), le staging est purgé par `sweep_stale_staging`
-    // au prochain upload (best-effort, TTL).
+    // Pas de commit ici. Le dossier est rendu à l'appelant : la requête le
+    // supprime en se terminant, et un formulaire qui n'atteint pas `finalize`
+    // retire avant ça les fichiers encore dedans. `finalize` est le seul à les
+    // déplacer vers la destination servie. Le balayage ne reste que pour un
+    // processus mort avant cette suppression.
 
-    Ok(data)
+    Ok((data, tmp_dir))
 }
 
-/// Best-effort cleanup of orphaned `.staging-*` folders (uploads rejected before
-/// `finalize`). Removes those older than `STAGING_TTL_SECS`. Failures are
-/// logged, never silently swallowed.
+/// Best-effort cleanup of `.staging-*` folders left by a process that died
+/// before the request removed its own. Removes those older than
+/// `STAGING_TTL_SECS`. Failures are logged, never silently swallowed. A
+/// directory whose date can't be read is left in place.
 async fn sweep_stale_staging(upload_dir: &Path) {
     let mut entries = match tokio::fs::read_dir(upload_dir).await {
         Ok(e) => e,
@@ -452,6 +502,7 @@ mod staging_tests {
             .unwrap();
         let out = parse_multipart_guarded(mp, &media, 10, 64, Some(SESSION))
             .await
+            .map(|(data, _staging)| data)
             .map_err(|r| r.status().as_u16());
         let written = std::fs::read_dir(&media).unwrap().next().is_some();
         let _ = std::fs::remove_dir_all(&media);
@@ -499,5 +550,51 @@ mod staging_tests {
         // No file: nothing to protect here, the token is checked by Prisme.
         let (out, written) = gated(&[("title", None, "t")]).await;
         assert!(out.is_ok() && !written);
+    }
+}
+
+#[cfg(test)]
+mod staging_dir_tests {
+    use super::StagingDir;
+    use std::os::unix::fs::symlink;
+
+    #[test]
+    fn dropping_the_guard_removes_the_staging_directory_and_nothing_else() {
+        let root = std::env::temp_dir().join(format!("rq_hold_{}", uuid::Uuid::new_v4()));
+        let staging = root.join(format!(".staging-{}", uuid::Uuid::new_v4()));
+        let kept = root.join(format!("kept-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&staging).unwrap();
+        std::fs::create_dir_all(&kept).unwrap();
+        std::fs::write(staging.join("a.txt"), b"x").unwrap();
+        std::fs::write(kept.join("b.txt"), b"y").unwrap();
+        let hold = StagingDir::hold(staging.clone());
+        let cloned = std::sync::Arc::clone(&hold);
+        drop(hold);
+        assert!(
+            staging.join("a.txt").exists(),
+            "a copied request still owns the directory"
+        );
+        drop(cloned);
+        {
+            let _kept = StagingDir::hold(kept.clone());
+        }
+        assert!(!staging.exists(), "the request's directory is gone");
+        assert!(kept.join("b.txt").exists(), "another directory stays");
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn a_symlink_wearing_a_staging_name_is_not_removed() {
+        let root = std::env::temp_dir().join(format!("rq_link_{}", uuid::Uuid::new_v4()));
+        let secret = root.join("secret");
+        std::fs::create_dir_all(&secret).unwrap();
+        std::fs::write(secret.join("k.txt"), b"k").unwrap();
+        let link = root.join(format!(".staging-{}", uuid::Uuid::new_v4()));
+        symlink(&secret, &link).unwrap();
+        {
+            let _guard = StagingDir::hold(link);
+        }
+        assert!(secret.join("k.txt").exists(), "the target stays");
+        let _ = std::fs::remove_dir_all(&root);
     }
 }

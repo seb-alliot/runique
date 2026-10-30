@@ -361,6 +361,8 @@ mod foreign_key_tests {
             "duplicate key value violates unique constraint \"users_email_key\"".to_string(),
         );
         assert!(!is_foreign_key_violation(&unique));
-        assert!(matches!(linked_delete_error(unique), DbErr::Custom(message) if message.contains("unique")));
+        assert!(
+            matches!(linked_delete_error(unique), DbErr::Custom(message) if message.contains("unique"))
+        );
     }
 }
