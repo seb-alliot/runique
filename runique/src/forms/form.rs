@@ -607,7 +607,9 @@ impl Forms {
 // ============================================================================
 
 /// What a driver error means for the form. The sentence is ours; the
-/// engine's text stays in the log.
+/// engine's text stays in the log. Only built when an engine is compiled:
+/// without one there is no SQLx error to class.
+#[cfg(any(feature = "sqlite", feature = "postgres", feature = "mysql"))]
 enum DbClass {
     Unique,
     ForeignKey,
@@ -616,8 +618,8 @@ enum DbClass {
     Other,
 }
 
-/// The class SQLx reports. Without a compiled engine, or when the error
-/// carries no driver error, this is [`DbClass::Other`].
+/// The class SQLx reports, or [`DbClass::Other`] when the error carries no
+/// driver error.
 #[cfg(any(feature = "sqlite", feature = "postgres", feature = "mysql"))]
 fn classify_driver(err: &sea_orm::DbErr) -> DbClass {
     use sea_orm::sqlx::error::ErrorKind;
@@ -631,11 +633,6 @@ fn classify_driver(err: &sea_orm::DbErr) -> DbClass {
         ErrorKind::CheckViolation | ErrorKind::ExclusionViolation => DbClass::Check,
         _ => DbClass::Other,
     }
-}
-
-#[cfg(not(any(feature = "sqlite", feature = "postgres", feature = "mysql")))]
-fn classify_driver(_err: &sea_orm::DbErr) -> DbClass {
-    DbClass::Other
 }
 
 #[cfg(any(feature = "sqlite", feature = "postgres", feature = "mysql"))]
@@ -663,11 +660,6 @@ fn unique_field(err: &sea_orm::DbErr) -> Option<String> {
     Forms::extract_field_name(db.message()).or_else(|| Forms::extract_field_name(&err.to_string()))
 }
 
-#[cfg(not(any(feature = "sqlite", feature = "postgres", feature = "mysql")))]
-fn unique_field(_err: &sea_orm::DbErr) -> Option<String> {
-    None
-}
-
 impl Forms {
     /// Translates a database error into a user-facing form error.
     ///
@@ -675,13 +667,16 @@ impl Forms {
     /// shows those as they are): it is stored unchanged. A driver error is
     /// classed from SQLx. A unique violation lands on the named field when
     /// the message or the constraint gives the column; every other class is
-    /// one global sentence. The engine text is logged, never shown.
+    /// one global sentence. The engine text is logged, never shown. Without
+    /// a compiled engine there is nothing to class, so the sentence is the
+    /// generic one.
     pub fn database_error(&mut self, db_err: &sea_orm::DbErr) {
         if let sea_orm::DbErr::Custom(message) = db_err {
             self.errors.push(message.clone());
             return;
         }
         tracing::warn!(error = %db_err, "form database error");
+        #[cfg(any(feature = "sqlite", feature = "postgres", feature = "mysql"))]
         match classify_driver(db_err) {
             DbClass::Unique => self.push_unique(db_err),
             DbClass::ForeignKey => self.errors.push(t("forms.db_foreign_key").into_owned()),
@@ -689,8 +684,11 @@ impl Forms {
             DbClass::Check => self.errors.push(t("forms.db_check").into_owned()),
             DbClass::Other => self.errors.push(t("forms.db_error").into_owned()),
         }
+        #[cfg(not(any(feature = "sqlite", feature = "postgres", feature = "mysql")))]
+        self.errors.push(t("forms.db_error").into_owned());
     }
 
+    #[cfg(any(feature = "sqlite", feature = "postgres", feature = "mysql"))]
     fn push_unique(&mut self, db_err: &sea_orm::DbErr) {
         let Some(field) = unique_field(db_err) else {
             self.errors
@@ -705,6 +703,7 @@ impl Forms {
         }
     }
 
+    #[cfg(any(feature = "sqlite", feature = "postgres", feature = "mysql"))]
     fn extract_field_name(err_msg: &str) -> Option<String> {
         use crate::utils::constante::{CONSTRAINT_REGEX, FAILED_REGEX, FOR_KEY_REGEX, KEY_REGEX};
 
@@ -731,6 +730,7 @@ impl Forms {
         None
     }
 
+    #[cfg(any(feature = "sqlite", feature = "postgres", feature = "mysql"))]
     fn parse_constraint_name(constraint: &str) -> Option<String> {
         // PK and FK constraints are not field-level unique violations.
         if constraint.ends_with("_pkey") || constraint.ends_with("_fkey") {
