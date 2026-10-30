@@ -448,7 +448,21 @@ ul { list-style: none; }
     .admin-list__layout { grid-template-columns: 1fr 200px; }
     .admin-list__layout.filter-collapsed { grid-template-columns: 1fr 36px; }
     .admin-list__layout.filter-collapsed .admin-filter__body { display: none; }
-    .admin-list__layout.filter-collapsed .admin-filter__title { opacity: 0; width: 0; }
+    /* Le titre est en `white-space: nowrap` : sans `min-width: 0`, le flex
+       garde la largeur du mot et pousse le bouton hors des 36px. Le panneau
+       a `overflow: hidden`, donc le bouton était coupé. */
+    .admin-list__layout.filter-collapsed .admin-filter__header {
+        justify-content: center;
+        padding: 0;
+        gap: 0;
+    }
+    .admin-list__layout.filter-collapsed .admin-filter__title {
+        opacity: 0;
+        width: 0;
+        min-width: 0;
+        overflow: hidden;
+    }
+    .admin-list__layout.filter-collapsed .admin-filter__toggle { flex-shrink: 0; }
 }
 
 /* ───────────────────────────────────────────────

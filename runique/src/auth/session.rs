@@ -132,15 +132,10 @@ pub async fn login(
 
     // Rotate the session ID on any privilege elevation (anonymous → auth, or user switch).
     // Prevents session fixation: an attacker who planted a session ID cannot reuse it after login.
+    // One retry covers a brief store failure. A second failure stops the login
+    // before the account id is written onto the old cookie.
     if is_privilege_elevation {
-        session.cycle_id().await.trace_or(
-            crate::utils::runique_log::get_log()
-                .session
-                .as_ref()
-                .and_then(|s| s.store),
-            tracing::Level::WARN,
-            "cycle session id (session fixation protection)",
-        );
+        cycle_session_id(session).await?;
         // The CSRF token has to go with the old session id: whoever planted
         // the anonymous session knows its token too.
         rotate_csrf_token(session).await?;
@@ -224,6 +219,35 @@ pub async fn login(
     }
 
     Ok(())
+}
+
+/// Renews the session id. A store failure is logged on `session.store`
+/// (`WARN` when that channel is off) and tried once more. The second failure
+/// is returned: the caller must not attach an account to the id that stayed.
+async fn cycle_session_id(session: &Session) -> Result<(), tower_sessions::session::Error> {
+    let level = crate::utils::runique_log::get_log()
+        .session
+        .as_ref()
+        .and_then(|s| s.store);
+    if let Err(error) = session.cycle_id().await {
+        log_cycle_id_failure(level, &error);
+        if let Err(error) = session.cycle_id().await {
+            log_cycle_id_failure(level, &error);
+            return Err(error);
+        }
+    }
+    Ok(())
+}
+
+#[track_caller]
+fn log_cycle_id_failure(level: Option<tracing::Level>, error: &impl std::fmt::Debug) {
+    let loc = std::panic::Location::caller();
+    crate::runique_log!(
+        level.unwrap_or(tracing::Level::WARN),
+        error = ?error,
+        at = %loc,
+        "cycle session id (session fixation protection)"
+    );
 }
 
 /// Why [`login`] opened no session.

@@ -53,14 +53,13 @@
     --font-mono:  "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
     /* Layout */
-    --sidebar-width:      240px;
-    --sidebar-collapsed:  64px;
-    --topbar-height:      44px;
+    --sidebar-width:      15em;     /* 240px */
+    --sidebar-collapsed:  4em;      /* 64px */
+    --topbar-height:      4em;      /* 64px */
 
-    /* Controls — one height for every button and toolbar field, so a button
-       beside a select or a search box always lines up. */
-    --control-height:     36px;
-    --control-height-sm:  30px;
+    /* Controls */
+    --control-height:     2.25em;   /* 36px */
+    --control-height-sm:  1.875em;  /* 30px */
 
     /* Rayons */
     --radius:      0.375rem;
@@ -92,7 +91,7 @@
     --z-modal:    9999;
 
     /* Largeur max du contenu : au-delà, on centre au lieu d'étirer */
-    --content-max: 1800px;
+    --content-max: 112.5em;
 
     color-scheme: dark;
 }
