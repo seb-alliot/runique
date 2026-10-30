@@ -26,6 +26,7 @@ tmpclaude-*
 
 # Fichiers perso
 .xgrok/
+AGENTS.md
 CLAUDE.md
 commande.txt
 architecture_current.txt
