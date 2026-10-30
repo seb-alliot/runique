@@ -9,7 +9,7 @@ mod book {
     model! {
         Book,
         table: "list_books",
-        pk: id => i32,
+        pk: id => Pk,
         enums: {
             Genre: [Roman, Policier],
             Level: i8 [Low = 1, High = 2],
@@ -296,7 +296,7 @@ mod pg_book {
     model! {
         PgBook,
         table: "pg_list_books",
-        pk: id => i32,
+        pk: id => Pk,
         enums: { Genre: [Roman, Policier] },
         {
             title: text [required],
