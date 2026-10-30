@@ -25,6 +25,10 @@ pub(crate) enum RefusalReason {
     NotOwner,
     /// The user's rank manages no account.
     RankTooLow,
+    /// A rank flag on `write::insert` or `write::update`. A rank change goes
+    /// through `set_rank`, which keeps the ceiling, the last dirigeant, the
+    /// groups and the history. Never shown apart from the other refusals.
+    RankNotWritable,
     /// A lookup the decision needed failed: refused, never let through.
     LookupFailed,
     /// A guarded write touched no row: it changed between the gate and the
@@ -80,6 +84,7 @@ mod tests {
             RefusalReason::NoRight,
             RefusalReason::NotOwner,
             RefusalReason::RankTooLow,
+            RefusalReason::RankNotWritable,
             RefusalReason::LookupFailed,
             RefusalReason::StaleRow,
             RefusalReason::UnreadableTarget,

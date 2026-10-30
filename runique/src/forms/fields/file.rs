@@ -219,7 +219,8 @@ impl AllowedExtensions {
         Self::new(vec!["pdf", "doc", "docx", "txt", "odt"])
     }
 
-    /// No extension filter (any extension accepted, SVG still rejected).
+    /// No extension filter. Every extension is accepted except `.svg`.
+    /// The content is not inspected: that check belongs to the caller.
     pub fn any() -> Self {
         Self { extensions: vec![] }
     }
@@ -393,7 +394,11 @@ impl FileField {
         Self::create(name, "file", FileFieldType::Document)
     }
 
-    /// Generic upload field. No extension restriction (SVG still rejected).
+    /// Generic upload field. Every extension is accepted except `.svg`.
+    /// The framework does not inspect the content: what the file is, and how
+    /// it is served, is the application's responsibility. Use [`image`](Self::image),
+    /// [`document`](Self::document), or [`allowed_extensions`](Self::allowed_extensions)
+    /// for a closed list.
     pub fn any(name: &str) -> Self {
         Self::create(name, "file", FileFieldType::Any)
     }

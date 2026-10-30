@@ -59,7 +59,7 @@ site.accounts_users(accounts())
 Key points:
 
 - `password` is a **secret** column: refused in `display`, `search`, `filter`, `fields`, etc.
-- rank flags (`is_superuser`, `is_dirigeant`, `is_admin`) never go through the form — the gate owns them
+- rank flags (`is_superuser`, `is_dirigeant`, `is_admin`) are not form fields. Rank is changed from the account page. `is_superuser` is set with `runique create-superuser`. Detail: [Permissions](/docs/en/admin/permission).
 - on account creation, the gate injects an unknown hash and the handler sends the welcome link (`AccountLink::Welcome`)
 
 No `create_form:` / `edit_form:` / `inject_password` flag: this is native behaviour for the accounts table.

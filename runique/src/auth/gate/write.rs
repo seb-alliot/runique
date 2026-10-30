@@ -9,8 +9,8 @@ use super::proof::Authorized;
 use super::refusal::{Refusal, RefusalReason};
 use sea_orm::sea_query::IntoValueTuple;
 use sea_orm::{
-    ActiveModelBehavior, ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, EntityTrait,
-    IntoActiveModel, Iterable, PrimaryKeyToColumn, QueryFilter,
+    ActiveModelBehavior, ActiveModelTrait, ActiveValue, ColumnTrait, Condition, ConnectionTrait,
+    EntityTrait, IdenStatic, IntoActiveModel, Iterable, PrimaryKeyToColumn, QueryFilter, Value,
 };
 
 fn write_failed(e: sea_orm::DbErr) -> Refusal {
@@ -77,6 +77,25 @@ fn one_row(rows_affected: u64) -> Result<(), Refusal> {
     }
 }
 
+/// A generic write must not carry `is_superuser`, `is_dirigeant` or `is_admin`.
+/// Giving or taking a rank goes through `set_rank`: the ceiling, the last
+/// active dirigeant, the groups and the history live there. An insert may
+/// leave the columns unset, or set them `false` (the table default, a lambda).
+/// An update may not set them at all: `false` on an admin is a demotion.
+fn rank_flags_block<A: ActiveModelTrait>(model: &A, update: bool) -> bool {
+    const FLAGS: [&str; 3] = ["is_superuser", "is_dirigeant", "is_admin"];
+    <<A as ActiveModelTrait>::Entity as EntityTrait>::Column::iter().any(|column| {
+        if !FLAGS.contains(&column.as_str()) {
+            return false;
+        }
+        match model.get(column) {
+            ActiveValue::Set(Value::Bool(Some(false))) => update,
+            ActiveValue::Set(_) => true,
+            _ => false,
+        }
+    })
+}
+
 pub async fn insert<E, A, C>(
     proof: Authorized<Create, E>,
     model: A,
@@ -88,6 +107,9 @@ where
     E::Model: IntoActiveModel<A>,
     C: ConnectionTrait,
 {
+    if rank_flags_block(&model, false) {
+        return Err(Refusal::new(RefusalReason::RankNotWritable));
+    }
     drop(proof);
     model.insert(db).await.map_err(write_failed)
 }
@@ -105,10 +127,16 @@ where
     A: ActiveModelTrait<Entity = E> + ActiveModelBehavior + Send,
     C: ConnectionTrait,
 {
+    if rank_flags_block(&changes, true) {
+        return Err(Refusal::new(RefusalReason::RankNotWritable));
+    }
     let (Some(id), conditions) = proof.into_parts() else {
         return Err(Refusal::new(RefusalReason::StaleRow));
     };
     let changes = changes.before_save(db, false).await.map_err(write_failed)?;
+    if rank_flags_block(&changes, true) {
+        return Err(Refusal::new(RefusalReason::RankNotWritable));
+    }
     let result = E::update_many()
         .set(changes)
         .filter(pk_condition::<E>(id))
@@ -331,6 +359,145 @@ mod tests {
         .unwrap();
         assert_eq!(row.id, 7);
         assert_eq!(owner_of(&db, 7).await, Some(Some(pk(10))));
+    }
+
+    fn accounts_manager() -> crate::auth::current_user::CurrentUser {
+        let mut manager = staff(
+            pk(40),
+            "users",
+            [true, true, false, true, false, false, false],
+        );
+        manager.rang = crate::auth::permissions::rang::Rang::Superuser;
+        manager.droits = manager.groupes[0].permissions.clone();
+        manager
+    }
+
+    async fn account(db: &ADb, id: crate::utils::pk::Pk) -> user::Model {
+        user::Entity::find_by_id(id)
+            .one(&*db)
+            .await
+            .unwrap()
+            .unwrap()
+    }
+
+    /// A superuser's proof would reach this lambda. The flag still does not
+    /// go out with the email: both stay as they were.
+    #[tokio::test]
+    async fn an_update_that_sets_a_rank_flag_writes_nothing() {
+        let db = db().await;
+        let manager = accounts_manager();
+        let ctx = GateCtx {
+            db: &db,
+            user: &manager,
+        };
+        let proof = authorize_row::<Update, user::Entity>(&ctx, pk(31))
+            .await
+            .unwrap();
+        let err = update(
+            proof,
+            user::ActiveModel {
+                email: Set("taken@evil.example".into()),
+                is_dirigeant: Set(true),
+                ..Default::default()
+            },
+            &db,
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(*err.reason(), RefusalReason::RankNotWritable);
+        let row = account(&db, pk(31)).await;
+        assert_eq!(row.email, "member@example.com");
+        assert!(!row.is_dirigeant);
+        assert!(!row.is_admin);
+        assert!(!row.is_superuser);
+    }
+
+    /// `false` on an admin is a demotion, and it does not belong here either.
+    #[tokio::test]
+    async fn an_update_that_clears_a_rank_flag_writes_nothing() {
+        let db = db().await;
+        let manager = accounts_manager();
+        let ctx = GateCtx {
+            db: &db,
+            user: &manager,
+        };
+        let proof = authorize_row::<Update, user::Entity>(&ctx, pk(33))
+            .await
+            .unwrap();
+        let err = update(
+            proof,
+            user::ActiveModel {
+                is_admin: Set(false),
+                ..Default::default()
+            },
+            &db,
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(*err.reason(), RefusalReason::RankNotWritable);
+        assert!(account(&db, pk(33)).await.is_admin);
+    }
+
+    #[tokio::test]
+    async fn an_insert_that_sets_a_rank_flag_creates_nothing() {
+        let db = db().await;
+        let manager = accounts_manager();
+        let proof = authorize_create::<user::Entity>(&GateCtx {
+            db: &db,
+            user: &manager,
+        })
+        .unwrap();
+        let err = insert(
+            proof,
+            user::ActiveModel {
+                username: Set("neo".into()),
+                email: Set("neo@example.com".into()),
+                password: Set("x".into()),
+                is_superuser: Set(true),
+                ..Default::default()
+            },
+            &db,
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(*err.reason(), RefusalReason::RankNotWritable);
+        let found = user::Entity::find()
+            .filter(user::Column::Username.eq("neo"))
+            .one(&*db)
+            .await
+            .unwrap();
+        assert!(found.is_none());
+    }
+
+    /// Explicit `false` is the table default: the new account is a lambda.
+    #[tokio::test]
+    async fn an_insert_that_only_clears_rank_flags_creates_a_lambda() {
+        let db = db().await;
+        let manager = accounts_manager();
+        let proof = authorize_create::<user::Entity>(&GateCtx {
+            db: &db,
+            user: &manager,
+        })
+        .unwrap();
+        let row = insert(
+            proof,
+            user::ActiveModel {
+                username: Set("neo".into()),
+                email: Set("neo@example.com".into()),
+                password: Set("x".into()),
+                is_active: Set(false),
+                is_superuser: Set(false),
+                is_dirigeant: Set(false),
+                is_admin: Set(false),
+                ..Default::default()
+            },
+            &db,
+        )
+        .await
+        .unwrap();
+        assert!(!row.is_superuser);
+        assert!(!row.is_dirigeant);
+        assert!(!row.is_admin);
     }
 }
 

@@ -84,12 +84,20 @@ authenticated?
 
 ---
 
+## Rank flags
+
+`is_superuser`, `is_dirigeant` and `is_admin` are not admin form fields. Boot refuses them in `fields`. Rank is changed from the account page: a dirigeant may give admin or lambda, a superuser may give dirigeant, admin or lambda. The rank given stays strictly below the one who writes it. That action takes groups back when rank is lost, drops the rights grid of an admin who steps down, and keeps at least one active dirigeant while an admin remains. `is_superuser` is not given there: it is set with `runique create-superuser`, by a direct insert.
+
+The rank filter limits which rows a proof may touch, from the rank already stored: an admin touches neither an admin, nor a dirigeant, nor a superuser; a dirigeant touches neither a dirigeant nor a superuser; a superuser does not touch another superuser.
+
+`write::insert` refuses a `Set(true)` on one of these flags. `write::update` refuses any `Set`, `true` or `false`: a promotion or a demotion through that path would skip the rules above. A SeaORM `insert` or `update` on the connection never enters the gate.
+
 ## Notes
 
 - `ModelAdmin` does not declare permissions: configuration is entirely in the database.
 - Permissions are aggregated with logical OR across all of the user's groups.
 - A user can have `can_read` without `can_create` — they see the list but cannot create.
-- Secret columns and ranks stay out of forms even for a superuser (gate + boot validation).
+- Secret columns and ranks stay out of forms, including for a superuser (refused at boot). The rank-flag detail is above.
 
 ---
 

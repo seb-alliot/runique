@@ -111,7 +111,7 @@ fn accounts() -> ModelAdmin<user_profile::Entity> {
 site.accounts_users(accounts())
 ```
 
-Rank flags never go through the form: the gate owns them.
+Rank flags (`is_superuser`, `is_dirigeant`, `is_admin`) are not form fields. Boot refuses them. Rank is changed from the account page. `write::insert` refuses a `Set(true)` on these columns, `write::update` refuses any `Set`. `is_superuser` is set with `runique create-superuser`. Detail: [Permissions](/docs/en/admin/permission).
 
 ## Secrets
 

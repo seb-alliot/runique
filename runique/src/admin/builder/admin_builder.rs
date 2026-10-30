@@ -160,7 +160,7 @@ impl<E: ModelMeta> ModelAdmin<E> {
             for flag in RANK_FLAGS {
                 if self.form.has_field(flag) {
                     errors.push(format!(
-                        "fields: `{flag}` is a rank, only ever set by the gate under the rank rule"
+                        "fields: `{flag}` is a rank flag, never a form field"
                     ));
                 }
             }

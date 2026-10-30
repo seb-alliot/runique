@@ -58,11 +58,13 @@ MEDIA_ROOT=media/
 ```rust
 FileField::image("img")     // jpg jpeg png gif webp avif
 FileField::document("doc")  // pdf doc docx txt odt
-FileField::any("f")         // no extension filter
+FileField::any("f")         // any extension, except .svg
 
 // Custom extensions:
 FileField::any("data").allowed_extensions(vec!["csv", "json"])
 ```
+
+`FileField::any` does not check the content. The framework only rejects `.svg`. What the file is, and how it is served, is the application's responsibility. For a closed list, use `image()`, `document()`, or `allowed_extensions`.
 
 ---
 

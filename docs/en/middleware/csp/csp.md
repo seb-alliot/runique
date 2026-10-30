@@ -64,6 +64,8 @@ With several proxies in a chain (`http, https`), only the first value counts: it
 
 The redirect URL's host is read from the `Host` header. The redirect runs right after Host validation (slot 17, after slot 15): with host validation enabled (`.with_allowed_hosts(...)` in the builder), a forged `Host` is refused before it's used.
 
+Without that call, validation stays off — that is the default. The redirect host is then the request's `Host`. Runique does not turn validation on for the application.
+
 **With ACME** (`ACME_ENABLED=true`), the redirect is **not mounted**: Runique then serves TLS itself, no request carries `X-Forwarded-Proto`, and its port-80 listener already redirects to HTTPS (keeping the path and query). `ENFORCE_HTTPS` has no effect on redirection in that mode.
 
 Either way, `ENFORCE_HTTPS` or ACME also enables the HSTS header (see [Security headers](/docs/en/middleware/csp-headers)).

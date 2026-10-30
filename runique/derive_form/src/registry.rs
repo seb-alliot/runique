@@ -91,10 +91,12 @@ static EIHWAZ_USERS: &[PhantomColumn] = &[
     // accounts start inactive (DB default), waiting for the owner's link.
     col!("is_active", PhantomType::Bool, FormWidget::Skip),
     // FormWidget::Skip (not Bool) on the three rank flags: a rank is never
-    // granted from a form, generated or handwritten — only the admin's gate
-    // sets them, under the rank rule. DB columns default to false
-    // (migrations_table.rs), so NotSet on create is safe; NotSet on update
-    // correctly leaves the existing value untouched.
+    // a form field, generated or handwritten. The account page changes it
+    // through `set_rank`. `create-superuser` sets `is_superuser` by a direct
+    // insert. `write::insert` refuses `Set(true)` on these columns;
+    // `write::update` refuses any `Set`. DB columns default to false
+    // (migrations_table.rs), so NotSet on create is a lambda; NotSet on
+    // update leaves the existing value untouched.
     col!("is_dirigeant", PhantomType::Bool, FormWidget::Skip),
     col!("is_admin", PhantomType::Bool, FormWidget::Skip),
     col!("is_superuser", PhantomType::Bool, FormWidget::Skip),

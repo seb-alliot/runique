@@ -27,7 +27,7 @@ fn every_registered_model_passes_the_boot_checks() {
 - list / form consistency (action on a non-writable column, etc.)
 - secrets never exposed (display, search, filter, sort, form, action)
 - on the accounts table: no bulk action on ranks / `is_active`
-- ranks absent from `fields` (gate-only)
+- ranks absent from `fields` (not form fields; `create-superuser` sets `is_superuser`)
 - owner never the target of a disguised transfer action
 
 ### Site level (`AdminSite::check`)

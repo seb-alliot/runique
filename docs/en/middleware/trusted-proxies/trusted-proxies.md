@@ -46,6 +46,8 @@ The "private ranges" default is safe **behind a reverse proxy**. It becomes a ri
 
 The danger: trusting a private network is only safe if **only your proxy** lives in that network. If an attacker shares the trusted private range — neighboring VPC, sidecar container, another machine on the same LAN — their connection IP falls inside `10.0.0.0/8` (etc.), so they are treated as a trusted proxy and can **forge `X-Forwarded-For`** to spoof any client IP. This corrupts everything that relies on the IP: rate limiting, lockout, logs.
 
+Runique does not narrow this list on its own. While the application keeps the default, a machine on the same private network is a trusted proxy.
+
 **Rule:**
 
 - Behind a reverse proxy (nginx, Caddy) on a private network → keep the default, or declare the exact proxy IP with `.proxy(...)` to be strict.

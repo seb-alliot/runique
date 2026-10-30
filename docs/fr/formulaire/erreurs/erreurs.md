@@ -31,6 +31,8 @@ if let Err(err) = insert_user(&request.engine.db).await {
 
 Si le champ est identifié, l'erreur apparaît sur ce champ (ex: « Ce email est déjà utilisé »). Sinon, elle est ajoutée aux erreurs globales.
 
+Toute autre erreur de base est affichée avec le texte du moteur (`forms.db_error`). Runique ne le remplace pas par une phrase générique : ce texte peut nommer une table, une colonne ou une contrainte. L'échappement du template reste appliqué.
+
 ---
 
 ← [**Types de champs**](/docs/fr/formulaire/champs) | [**Rendu dans les templates**](/docs/fr/formulaire/templates) →
