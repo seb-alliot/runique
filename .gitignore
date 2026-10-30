@@ -25,6 +25,7 @@ tmpclaude-*
 .mcp.json
 
 # Fichiers perso
+.xgrok/
 CLAUDE.md
 commande.txt
 architecture_current.txt
