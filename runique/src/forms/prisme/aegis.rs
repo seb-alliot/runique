@@ -40,7 +40,7 @@ pub(crate) async fn aegis_guarded<S>(
     config: ARuniqueConfig,
     content_type: &str,
     upload_gate: Option<&str>,
-) -> Result<(StrVecMap, Option<std::path::PathBuf>), Response>
+) -> Result<(StrVecMap, Option<crate::utils::parse_html::Lease>), Response>
 where
     S: Send + Sync,
 {

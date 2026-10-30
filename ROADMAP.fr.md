@@ -77,8 +77,9 @@ item a son test de non-régression avant d'être coché.
    qu'un email incorrect ne consomme pas le jeton de reset.
 2. [x] **Fichiers en transit d'un formulaire refusé** — supprimés avant le renvoi de la page quand
    le formulaire n'atteint pas `finalize` (jeton, autre champ, `clean()`). La requête supprime
-   ensuite le dossier `.staging-*` qu'elle a créé, donc aussi quand le handler ne valide pas. Le
-   balayage d'une heure ne reste que si le processus meurt avant. Les tests couvrent le champ
+   ensuite le dossier `.staging-*` qu'elle a créé, donc aussi quand le handler ne valide pas. Un
+   dossier encore tenu par un processus vivant reste, quelle que soit la durée de l'envoi. Le
+   multipart suivant retire celui qu'un processus mort a laissé. Les tests couvrent le champ
    voisin, le jeton forcé invalide, un formulaire non soumis, et un envoi accepté que la fin de
    requête ne retire pas.
 3. [ ] **Compteurs en mémoire plafonnés** — `RateLimiter` et `LoginGuard` bornent leur nombre de

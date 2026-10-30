@@ -76,8 +76,9 @@ Each item needs its regression test before it is checked off.
    links and that a mismatched email does not consume a reset token.
 2. [x] **Uploads of a refused form** — deleted before the page is sent back when the form never
    reaches `finalize` (token, another field, `clean()`). The request then removes the `.staging-*`
-   directory it created, including when the handler never validates. The one-hour sweep remains
-   only if the process dies first. Tests cover a failing sibling field, a forced-invalid token, a
+   directory it created, including when the handler never validates. A directory still held by a
+   live process is kept however long the upload takes. The next multipart removes one left by a
+   process that died. Tests cover a failing sibling field, a forced-invalid token, a
    form that was not submitted, and an accepted upload the end of the request does not remove.
 3. [ ] **In-memory counters capped** — `RateLimiter` and `LoginGuard` bound their number of keys
    between two sweeps.

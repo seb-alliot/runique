@@ -313,7 +313,7 @@ form.field(
 
 The move to the final destination happens in `finalize()`, **only if validation passes**. The directory is created automatically if it does not already exist.
 
-> **Security**: `.svg` files are **always rejected** (XSS risk). `FileField::any` accepts every other extension and does not read the content: the security of that field is the application's responsibility. For an image, validation checks the real format by reading its magic bytes (not just the extension); the `image` crate is used separately, only to read dimensions (`max_dimensions`). Empty submissions (no file selected) are handled correctly — the `required` constraint works as expected.
+> **Security**: `.svg` files are **always rejected** (XSS risk). `FileField::any` accepts every other extension and does not read the content: the security of that field is the application's responsibility. For an image, validation checks the real format by reading its magic bytes (not just the extension). With `max_dimensions`, the `image` crate measures the file: if the measurement fails, the file is refused, for every format. Without that measurement, the width and height limits would not apply. Empty submissions (no file selected) are handled correctly — the `required` constraint works as expected.
 
 ### Associated JS files
 

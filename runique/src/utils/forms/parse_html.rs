@@ -11,7 +11,9 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use futures_util::StreamExt;
-use std::sync::Arc;
+use std::collections::HashSet;
+use std::fs::File;
+use std::sync::{Arc, LazyLock, Mutex};
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
@@ -20,48 +22,150 @@ use tokio::io::AsyncWriteExt;
 use tracing::warn;
 use uuid::Uuid;
 
-/// Staging dirs older than this are considered orphaned by a process that died
-/// before the request could remove its own `.staging-*` directory.
-const STAGING_TTL_SECS: u64 = 3600;
+/// Directories this process is still uploading into. A sweep skips them, however
+/// old they are: a slow body must not lose its folder to the next request.
+/// The set dies with the process, so a directory left by a dead process is not
+/// in it and the next multipart removes that directory.
+static LIVE_STAGING: LazyLock<Mutex<HashSet<PathBuf>>> =
+    LazyLock::new(|| Mutex::new(HashSet::new()));
+
+fn with_live<T>(f: impl FnOnce(&mut HashSet<PathBuf>) -> T) -> T {
+    let mut guard = LIVE_STAGING
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner());
+    f(&mut guard)
+}
+
+/// Owns one `.staging-*` directory from the moment it is reserved until the
+/// request drops it. `delete_on_drop` is set only once the request holds it:
+/// a parser that merely returns the paths leaves the directory for that holder.
+pub(crate) struct Lease {
+    path: PathBuf,
+    /// Exclusive lock, held for the life of this lease. Another process's sweep
+    /// fails to take it and leaves the directory alone. The kernel drops the
+    /// lock when this process dies.
+    _lock: Option<File>,
+    delete_on_drop: bool,
+}
+
+impl Lease {
+    /// Reserves `path` before the directory exists, so a sweep cannot see it
+    /// unclaimed.
+    pub(crate) fn claim(path: PathBuf) -> Self {
+        with_live(|live| {
+            live.insert(path.clone());
+        });
+        Self {
+            path,
+            _lock: None,
+            delete_on_drop: false,
+        }
+    }
+
+    fn path(&self) -> &Path {
+        &self.path
+    }
+
+    /// Locks the real directory. A symlink is not opened: locking it would lock
+    /// the folder it points at.
+    pub(crate) fn lock_dir(&mut self) -> std::io::Result<()> {
+        if self._lock.is_some() {
+            return Ok(());
+        }
+        let meta = std::fs::symlink_metadata(&self.path)?;
+        if !meta.is_dir() || meta.file_type().is_symlink() {
+            return Ok(());
+        }
+        let file = File::open(&self.path)?;
+        lock_exclusive(&file)?;
+        self._lock = Some(file);
+        Ok(())
+    }
+
+    /// The request is over, whatever its result: the directory goes with the lease.
+    fn discard(mut self) {
+        self.delete_on_drop = true;
+    }
+}
+
+impl Drop for Lease {
+    fn drop(&mut self) {
+        with_live(|live| {
+            live.remove(&self.path);
+        });
+        if self.delete_on_drop {
+            remove_staging_dir(&self.path);
+        }
+    }
+}
 
 /// The `.staging-*` directory one request created. The last clone removes it,
 /// and only it: the name has to be the directory `parse_multipart` made, and a
 /// symlink is left untouched so the removal can't be pointed at another folder.
 /// Accepted files have already been moved out by `finalize`.
 pub(crate) struct StagingDir {
-    path: PathBuf,
+    lease: Lease,
 }
 
 impl StagingDir {
-    pub(crate) fn hold(path: PathBuf) -> Arc<Self> {
-        Arc::new(Self { path })
+    pub(crate) fn from_lease(mut lease: Lease) -> Self {
+        lease.delete_on_drop = true;
+        Self { lease }
     }
 }
 
 impl Drop for StagingDir {
     fn drop(&mut self) {
-        let Some(name) = self.path.file_name().and_then(|n| n.to_str()) else {
-            return;
-        };
-        if !name.starts_with(".staging-") {
-            return;
-        }
-        // `symlink_metadata` does not follow a link. A link kept under a staging
-        // name must not make `remove_dir_all` act on the folder it points at.
-        let Ok(meta) = std::fs::symlink_metadata(&self.path) else {
-            return;
-        };
-        if !meta.is_dir() || meta.file_type().is_symlink() {
-            return;
-        }
-        if let Err(e) = std::fs::remove_dir_all(&self.path) {
-            warn!(
-                dir = %self.path.display(),
-                error = %e,
-                "staged upload directory was not removed"
-            );
-        }
+        // The request is finished. `Lease` removes the directory as it drops.
+        self.lease.delete_on_drop = true;
     }
+}
+
+/// Removes a real `.staging-*` directory. A symlink under that name is left
+/// in place so the removal cannot be aimed at the folder it points at.
+fn remove_staging_dir(path: &Path) {
+    let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
+        return;
+    };
+    if !name.starts_with(".staging-") {
+        return;
+    }
+    // `symlink_metadata` does not follow a link.
+    let Ok(meta) = std::fs::symlink_metadata(path) else {
+        return;
+    };
+    if !meta.is_dir() || meta.file_type().is_symlink() {
+        return;
+    }
+    if let Err(e) = std::fs::remove_dir_all(path) {
+        warn!(
+            dir = %path.display(),
+            error = %e,
+            "staged upload directory was not removed"
+        );
+    }
+}
+
+fn lock_exclusive(file: &File) -> std::io::Result<()> {
+    // Safety: `file` is an open descriptor. `LOCK_EX` blocks until this process
+    // is the only holder; the kernel releases it when the descriptor closes.
+    let rc = unsafe { libc::flock(as_raw_fd(file), libc::LOCK_EX) };
+    if rc == 0 {
+        Ok(())
+    } else {
+        Err(std::io::Error::last_os_error())
+    }
+}
+
+/// `false` when another live process already holds the directory.
+fn try_lock_exclusive(file: &File) -> bool {
+    // Safety: same descriptor rules as `lock_exclusive`. `LOCK_NB` returns at once.
+    unsafe { libc::flock(as_raw_fd(file), libc::LOCK_EX | libc::LOCK_NB) == 0 }
+}
+
+fn as_raw_fd(file: &File) -> libc::c_int {
+    use std::os::unix::io::AsRawFd;
+    file.as_raw_fd()
 }
 
 /// Reads a multipart body: text fields as they are, files written to a
@@ -103,7 +207,7 @@ pub(crate) async fn parse_multipart_guarded(
     max_upload_mb: u64,
     max_text_field_kb: usize,
     csrf_session: Option<&str>,
-) -> Result<(StrVecMap, Option<PathBuf>), Response> {
+) -> Result<(StrVecMap, Option<Lease>), Response> {
     let max_file_bytes = max_upload_mb.saturating_mul(1024).saturating_mul(1024);
     let max_text_bytes = max_text_field_kb.saturating_mul(1024);
 
@@ -111,7 +215,7 @@ pub(crate) async fn parse_multipart_guarded(
     // Staging dir (under upload_dir → même filesystem, donc le rename de finalize()
     // est atomique). Créé à la demande au premier vrai fichier. La requête qui le
     // reçoit le supprime en partant ; `finalize` en a déjà sorti les fichiers gardés.
-    let mut tmp_dir: Option<PathBuf> = None;
+    let mut tmp_dir: Option<Lease> = None;
     let mut csrf_checked = csrf_session.is_none();
 
     // Dossiers laissés par un processus mort avant la fin de sa requête.
@@ -124,10 +228,8 @@ pub(crate) async fn parse_multipart_guarded(
             Ok(Some(field)) => field,
             Ok(None) => break,
             Err(e) => {
-                if let Some(ref tmp) = tmp_dir
-                    && let Err(err) = tokio::fs::remove_dir_all(tmp).await
-                {
-                    warn!(dir = %tmp.display(), error = %err, "staging cleanup after a body error failed");
+                if let Some(lease) = tmp_dir.take() {
+                    lease.discard();
                 }
                 return Err(
                     (e.status(), t("forms.multipart_stream_error").into_owned()).into_response()
@@ -170,16 +272,30 @@ pub(crate) async fn parse_multipart_guarded(
                     res
                 })?;
                 let dir = upload_dir.join(format!(".staging-{}", Uuid::new_v4()));
-                tokio::fs::create_dir_all(&dir).await.map_err(|_| {
-                    (
+                // Claimed before it exists: a sweep running alongside this body
+                // must not treat the new directory as abandoned.
+                let mut lease = Lease::claim(dir);
+                if let Err(err) = tokio::fs::create_dir_all(lease.path()).await {
+                    drop(lease);
+                    warn!(error = %err, "staging directory was not created");
+                    return Err((
                         StatusCode::INTERNAL_SERVER_ERROR,
                         t("forms.upload_dir_error").to_string(),
                     )
-                        .into_response()
-                })?;
-                tmp_dir = Some(dir);
+                        .into_response());
+                }
+                if let Err(err) = lease.lock_dir() {
+                    warn!(error = %err, "staging directory was not locked");
+                    lease.discard();
+                    return Err((
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        t("forms.upload_dir_error").to_string(),
+                    )
+                        .into_response());
+                }
+                tmp_dir = Some(lease);
             }
-            let cur_tmp = tmp_dir.as_ref().unwrap();
+            let cur_tmp = tmp_dir.as_ref().unwrap().path();
 
             let safe = sanitize_filename(&filename);
             let tmp_path = cur_tmp.join(&safe);
@@ -225,10 +341,8 @@ pub(crate) async fn parse_multipart_guarded(
             .await;
 
             if let Err(e) = stream_result {
-                if let Some(ref tmp) = tmp_dir
-                    && let Err(err) = tokio::fs::remove_dir_all(tmp).await
-                {
-                    warn!(dir = %tmp.display(), error = %err, "staging cleanup after stream error failed");
+                if let Some(lease) = tmp_dir.take() {
+                    lease.discard();
                 }
                 return Err(e);
             }
@@ -275,10 +389,8 @@ pub(crate) async fn parse_multipart_guarded(
                     data.entry(name).or_default().push(text);
                 }
                 Err(e) => {
-                    if let Some(ref tmp) = tmp_dir
-                        && let Err(err) = tokio::fs::remove_dir_all(tmp).await
-                    {
-                        warn!(dir = %tmp.display(), error = %err, "staging cleanup after text-field error failed");
+                    if let Some(lease) = tmp_dir.take() {
+                        lease.discard();
                     }
                     return Err(e);
                 }
@@ -287,24 +399,23 @@ pub(crate) async fn parse_multipart_guarded(
     }
 
     // Pas de commit ici. Le dossier est rendu à l'appelant : la requête le
-    // supprime en se terminant, et un formulaire qui n'atteint pas `finalize`
-    // retire avant ça les fichiers encore dedans. `finalize` est le seul à les
-    // déplacer vers la destination servie. Le balayage ne reste que pour un
-    // processus mort avant cette suppression.
+    // supprime en se terminant, quel que soit le résultat, et un formulaire qui
+    // n'atteint pas `finalize` retire avant ça les fichiers encore dedans.
+    // `finalize` est le seul à les déplacer vers la destination servie. Le
+    // balayage ne retire que les dossiers qu'aucun processus vivant ne tient.
 
     Ok((data, tmp_dir))
 }
 
-/// Best-effort cleanup of `.staging-*` folders left by a process that died
-/// before the request removed its own. Removes those older than
-/// `STAGING_TTL_SECS`. Failures are logged, never silently swallowed. A
-/// directory whose date can't be read is left in place.
+/// Removes `.staging-*` directories no live process holds. A directory this
+/// process reserved is skipped, however long the body has been arriving. A
+/// directory another process has locked is skipped. Anything else was left by
+/// a process that died, and goes now. A symlink is not followed.
 async fn sweep_stale_staging(upload_dir: &Path) {
     let mut entries = match tokio::fs::read_dir(upload_dir).await {
         Ok(e) => e,
         Err(_) => return, // upload_dir pas encore créé : rien à purger
     };
-    let now = std::time::SystemTime::now();
     loop {
         let entry = match entries.next_entry().await {
             Ok(Some(e)) => e,
@@ -320,17 +431,26 @@ async fn sweep_stale_staging(upload_dir: &Path) {
             continue;
         }
         let path = entry.path();
-        let age = entry
-            .metadata()
-            .await
-            .ok()
-            .and_then(|m| m.modified().ok())
-            .and_then(|t| now.duration_since(t).ok())
-            .map(|d| d.as_secs())
-            .unwrap_or(0);
-        if age > STAGING_TTL_SECS
-            && let Err(err) = tokio::fs::remove_dir_all(&path).await
-        {
+        if with_live(|live| live.contains(&path)) {
+            continue;
+        }
+        let Ok(meta) = std::fs::symlink_metadata(&path) else {
+            continue;
+        };
+        if !meta.is_dir() || meta.file_type().is_symlink() {
+            continue;
+        }
+        let Ok(file) = File::open(&path) else {
+            continue;
+        };
+        if !try_lock_exclusive(&file) {
+            continue;
+        }
+        // Reserved while we waited for the lock.
+        if with_live(|live| live.contains(&path)) {
+            continue;
+        }
+        if let Err(err) = tokio::fs::remove_dir_all(&path).await {
             warn!(dir = %path.display(), error = %err, "staging sweep: remove failed");
         }
     }
@@ -555,8 +675,15 @@ mod staging_tests {
 
 #[cfg(test)]
 mod staging_dir_tests {
-    use super::StagingDir;
+    use super::{Lease, StagingDir, sweep_stale_staging};
     use std::os::unix::fs::symlink;
+    use std::sync::Arc;
+
+    fn request_dir(path: std::path::PathBuf) -> Arc<StagingDir> {
+        let mut lease = Lease::claim(path);
+        let _ = lease.lock_dir();
+        Arc::new(StagingDir::from_lease(lease))
+    }
 
     #[test]
     fn dropping_the_guard_removes_the_staging_directory_and_nothing_else() {
@@ -567,7 +694,7 @@ mod staging_dir_tests {
         std::fs::create_dir_all(&kept).unwrap();
         std::fs::write(staging.join("a.txt"), b"x").unwrap();
         std::fs::write(kept.join("b.txt"), b"y").unwrap();
-        let hold = StagingDir::hold(staging.clone());
+        let hold = request_dir(staging.clone());
         let cloned = std::sync::Arc::clone(&hold);
         drop(hold);
         assert!(
@@ -576,7 +703,7 @@ mod staging_dir_tests {
         );
         drop(cloned);
         {
-            let _kept = StagingDir::hold(kept.clone());
+            let _kept = request_dir(kept.clone());
         }
         assert!(!staging.exists(), "the request's directory is gone");
         assert!(kept.join("b.txt").exists(), "another directory stays");
@@ -592,8 +719,52 @@ mod staging_dir_tests {
         let link = root.join(format!(".staging-{}", uuid::Uuid::new_v4()));
         symlink(&secret, &link).unwrap();
         {
-            let _guard = StagingDir::hold(link);
+            let _guard = request_dir(link);
         }
+        assert!(secret.join("k.txt").exists(), "the target stays");
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[tokio::test]
+    async fn a_directory_this_process_holds_survives_the_sweep() {
+        let root = std::env::temp_dir().join(format!("rq_live_{}", uuid::Uuid::new_v4()));
+        let staging = root.join(format!(".staging-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&staging).unwrap();
+        std::fs::write(staging.join("a.txt"), b"x").unwrap();
+        let hold = request_dir(staging.clone());
+        sweep_stale_staging(&root).await;
+        assert!(
+            staging.join("a.txt").exists(),
+            "the upload is still arriving"
+        );
+        drop(hold);
+        assert!(!staging.exists(), "the request ended");
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[tokio::test]
+    async fn a_directory_no_process_holds_is_removed_at_once() {
+        let root = std::env::temp_dir().join(format!("rq_dead_{}", uuid::Uuid::new_v4()));
+        let staging = root.join(format!(".staging-{}", uuid::Uuid::new_v4()));
+        let kept = root.join("kept");
+        std::fs::create_dir_all(&staging).unwrap();
+        std::fs::create_dir_all(&kept).unwrap();
+        std::fs::write(staging.join("a.txt"), b"x").unwrap();
+        sweep_stale_staging(&root).await;
+        assert!(!staging.exists(), "a dead process left this");
+        assert!(kept.exists(), "anything else stays");
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[tokio::test]
+    async fn a_symlink_is_not_swept() {
+        let root = std::env::temp_dir().join(format!("rq_sweep_link_{}", uuid::Uuid::new_v4()));
+        let secret = root.join("secret");
+        std::fs::create_dir_all(&secret).unwrap();
+        std::fs::write(secret.join("k.txt"), b"k").unwrap();
+        let link = root.join(format!(".staging-{}", uuid::Uuid::new_v4()));
+        symlink(&secret, &link).unwrap();
+        sweep_stale_staging(&root).await;
         assert!(secret.join("k.txt").exists(), "the target stays");
         let _ = std::fs::remove_dir_all(&root);
     }
