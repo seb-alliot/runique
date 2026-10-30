@@ -11,17 +11,23 @@
 
 ## In Runique forms
 
-When you use `{% form.xxx %}`, CSRF is **included automatically**. No need to add it manually.
+A form built with `RuniqueForm` already carries the token. `{% form.xxx %}` places it on the page. There is no need to add `{% csrf %}`.
 
 ## Where the token is checked
 
-The middleware reads the `X-CSRF-Token` header. A JSON body without that header is refused (403). For `application/x-www-form-urlencoded` and `multipart/form-data`, it lets the body through: the `csrf_token` field is checked by `request.form()`, and so by every `RuniqueForm`.
+`{% csrf %}` only places the token on the form, in a hidden `csrf_token` field. It checks nothing.
 
-A handler that reads the body and writes without `request.form()` does not get that field check. The session cookie is `SameSite=Strict`.
+The check happens in `request.form()`. Without a valid token, the form is invalid and `save()` does not run. That is the path of every `RuniqueForm`.
+
+The middleware reads the `X-CSRF-Token` header. A JSON body without that header is refused (403). For `application/x-www-form-urlencoded` and `multipart/form-data`, it lets the body through: the field is read by `request.form()`.
+
+A handler that reads the body and writes without `request.form()` does not get that check, even when `{% csrf %}` is on the page. The session cookie is `SameSite=Strict`.
 
 ---
 
 ## In manual HTML forms
+
+The tag places the token. The handler has to call `request.form()` to check it.
 
 ```html
 <form method="post" action="/submit">
