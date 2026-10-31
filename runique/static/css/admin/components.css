@@ -256,9 +256,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.875rem 1.25rem;
-    border-top: 1px solid var(--border);
     gap: 1rem;
+    margin-top: 2em;
 }
 
 .admin-pagination__info {
@@ -272,16 +271,18 @@
     left: 0;
     right: 0;
     gap: 1.5rem;
-    padding: 0.6rem 1rem calc(0.6rem + env(safe-area-inset-bottom, 0px));
     background: var(--bg-card);
     z-index: var(--z-bar);
+}
+
+#list-content {
+    padding: 0.6rem 1rem calc(0.6rem + env(safe-area-inset-bottom, 0px));
 }
 
 @media (min-width: 40em) {
     #list-content .admin-pagination {
         position: static;
         gap: 1rem;
-        padding: 0.875rem 1.25rem;
         background: none;
         z-index: auto;
     }
@@ -556,7 +557,7 @@
 .admin-filter__overlay.active { display: block; }
 
 .admin-filter__header {
-    height: var(--topbar-height);
+    height: var(--sidebar-collapsed);
     display: flex;
     align-items: center;
     justify-content: space-between;
