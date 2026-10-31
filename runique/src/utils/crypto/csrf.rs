@@ -1,7 +1,7 @@
 //! CSRF token generation and validation — HMAC-SHA256, base64 masking, anonymous/authenticated contexts.
 use base64::{Engine as _, engine::general_purpose};
 use hmac::{Hmac, KeyInit, Mac};
-use rand::RngExt;
+use rand::{Rng, RngExt};
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 
@@ -47,22 +47,21 @@ impl CsrfToken {
     }
 }
 
-/// HMAC-SHA256(secret, domain-tag ‖ option ‖ timestamp) as a hex token.
+/// HMAC-SHA256(secret, domain-tag ‖ len-prefixed option ‖ 32 random bytes) as a hex token.
 /// The token is stored server-side in the session and compared constant-time;
-/// the HMAC + nanosecond timestamp only serve to make it unpredictable and unique.
+/// the HMAC + the random nonce only serve to make it unpredictable and unique.
+/// Entropy comes from the RNG alone, never from the wall clock.
 fn generation(secret_key: &str, option: &str) -> String {
     let mut mac =
         HmacSha256::new_from_slice(secret_key.as_bytes()).expect("HMAC can take key of any size");
 
     mac.update(b"runique.middleware.csrf");
+    mac.update(&(option.len() as u64).to_be_bytes());
     mac.update(option.as_bytes());
 
-    let timestamp = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_nanos())
-        .unwrap_or(0)
-        .to_string();
-    mac.update(timestamp.as_bytes());
+    let mut nonce = [0u8; 32];
+    rand::rng().fill_bytes(&mut nonce);
+    mac.update(&nonce);
 
     hex::encode(mac.finalize().into_bytes())
 }

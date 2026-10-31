@@ -18,6 +18,22 @@ jobs:
   test:
     name: Test Suite
     runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:11
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_USER: runique
+          MARIADB_PASSWORD: runique_test
+          MARIADB_DATABASE: runique_test
+        ports:
+          - 3307:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
     strategy:
       matrix:
         rust: [stable, beta, nightly]
@@ -35,6 +51,12 @@ jobs:
       # avif-native (workspace image crate) links the system dav1d decoder.
       - name: Install dav1d
         run: sudo apt-get update && sudo apt-get install -y libdav1d-dev
+
+      - name: Configure MariaDB test permissions
+        run: |
+          docker exec ${{ job.services.mariadb.id }} \
+            mariadb -uroot -proot -e \
+            "GRANT ALL PRIVILEGES ON *.* TO 'runique'@'%' WITH GRANT OPTION; FLUSH PRIVILEGES;"
 
       - name: Cache cargo registry
         uses: actions/cache@v3
@@ -85,6 +107,7 @@ jobs:
         env:
           RUST_LOG: warn,runique::admin=trace,runique::auth=trace
           RUST_BACKTRACE: "1"
+          DATABASE_URL_MARIADB: mysql://runique:runique_test@127.0.0.1:3307/runique_test
 
       - name: Run tests (big-pk)
         run: cargo test --verbose --features big-pk,all-databases,admin
