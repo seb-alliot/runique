@@ -17,7 +17,7 @@ Sans ce middleware, `X-Forwarded-For` est une entrée utilisateur non fiable —
 3. Si elle **est** de confiance → parser `X-Forwarded-For`, parcourir de droite à gauche :
    - Ignorer les entrées qui sont des proxies de confiance.
    - Retourner la première entrée non fiable comme IP cliente réelle.
-4. Si toutes les entrées sont de confiance → retourner la plus à gauche (déclaration du client).
+4. Si toutes les entrées sont de confiance → revenir à l'IP de connexion directe ; l'en-tête ne contient aucune adresse cliente vérifiable.
 
 Le résultat est injecté dans les extensions de la requête sous la forme `ClientIp(IpAddr)`.
 

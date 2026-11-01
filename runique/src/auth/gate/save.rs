@@ -15,7 +15,7 @@ use crate::auth::meta::ModelMeta;
 use crate::auth::permissions::groupe;
 use crate::auth::permissions::rang::Rang;
 use crate::auth::user;
-use crate::forms::form::{Forms, SaveComportement};
+use crate::forms::form::{Forms, SaveComportement, write_with_uploads};
 use crate::forms::save::{SaveAction, on_fields, url_key};
 use crate::utils::aliases::ADb;
 use crate::utils::pk::Pk;
@@ -169,12 +169,15 @@ where
                 model.try_set(password, Value::from(hash))?;
             }
             missing_required::<E>(&model).map_err(|e| on_fields(form, e))?;
-            let txn = db.begin().await?;
-            let row = write::insert::<E, E::ActiveModel, _>(proof, model, &txn)
-                .await
-                .map_err(refused)?;
-            trace::<E, _>(&txn, &user, &row, "create", None, None).await?;
-            txn.commit().await
+            write_with_uploads(form, async {
+                let txn = db.begin().await?;
+                let row = write::insert::<E, E::ActiveModel, _>(proof, model, &txn)
+                    .await
+                    .map_err(refused)?;
+                trace::<E, _>(&txn, &user, &row, "create", None, None).await?;
+                txn.commit().await
+            })
+            .await
         }
         (SaveAction::Save, Some(id)) => {
             let proof = authorize_row::<Update, E>(&gate, id.clone())
@@ -192,17 +195,20 @@ where
             if !model.is_changed() {
                 return Ok(());
             }
-            let txn = db.begin().await?;
-            // The row as it was, read in the write's transaction: the trace
-            // compares against what the update replaces.
-            let Some(old) = E::find_by_id(id).one(&txn).await? else {
-                return Err(refused(Refusal::new(RefusalReason::StaleRow)));
-            };
-            keeps_responsable::<E, _>(&txn, &user, &old, deactivates::<E>(&model)).await?;
-            let summary = summary::<E>(&old, &model);
-            write::update(proof, model, &txn).await.map_err(refused)?;
-            trace::<E, _>(&txn, &user, &old, "update", summary, None).await?;
-            txn.commit().await
+            write_with_uploads(form, async {
+                let txn = db.begin().await?;
+                // The row as it was, read in the write's transaction: the trace
+                // compares against what the update replaces.
+                let Some(old) = E::find_by_id(id).one(&txn).await? else {
+                    return Err(refused(Refusal::new(RefusalReason::StaleRow)));
+                };
+                keeps_responsable::<E, _>(&txn, &user, &old, deactivates::<E>(&model)).await?;
+                let summary = summary::<E>(&old, &model);
+                write::update(proof, model, &txn).await.map_err(refused)?;
+                trace::<E, _>(&txn, &user, &old, "update", summary, None).await?;
+                txn.commit().await
+            })
+            .await
         }
         (SaveAction::Delete, Some(id)) => {
             let proof = authorize_row::<Delete, E>(&gate, id.clone())

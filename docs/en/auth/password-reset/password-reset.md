@@ -4,7 +4,7 @@
 
 ---
 
-> **`Auto` mode required for the built-in reset:** the integrated route (`with_password_reset`) reads the form value after `finalize()` and writes it to the database. In `Auto` mode, `finalize()` hashes the password automatically — everything works correctly. In `Manual`, `Custom`, or `Delegated` mode, `finalize()` does not hash: the password would be stored in plaintext. If you are not using `PasswordConfig::auto()`, write your own reset route that hashes the received value. See → [Password configuration](/docs/en/configuration/password)
+> The built-in reset hashes the submitted password using the password configuration on the running app. `Auto`, `Manual`, and `Custom` modes are supported. In `Delegated` mode, the built-in reset refuses to change a local password and leaves the reset token usable; use the identity provider's password recovery flow instead. See → [Password configuration](/docs/en/configuration/password).
 
 ## What the framework provides
 

@@ -596,12 +596,12 @@ fn build_alter_bodies(change: &Changes) -> (String, String) {
     for (col, enum_name, old_val, new_val) in &change.enum_renames {
         let enum_name_lc = enum_name.to_lowercase();
         up.push_str(&format!(
-            "        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{\n            manager\n                .alter_type(\n                    sea_query::extension::postgres::Type::alter()\n                        .name(Alias::new(\"{enum_name_lc}\"))\n                        .rename_value(Alias::new(\"{old}\"), Alias::new(\"{new}\"))\n                        .to_owned(),\n                )\n                .await?;\n        }} else {{\n            manager\n                .get_connection()\n                .execute(\n                    &Query::update()\n                        .table(Alias::new(\"{table}\"))\n                        .value(Alias::new(\"{col}\"), \"{new}\")\n                        .and_where(Expr::col(Alias::new(\"{col}\")).eq(\"{old}\"))\n                        .to_owned(),\n                )\n                .await?;\n        }}\n\n",
-            enum_name_lc = enum_name_lc, old = old_val, new = new_val, table = change.table_name, col = col,
+            "        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{\n            manager\n                .alter_type(\n                    sea_query::extension::postgres::Type::alter()\n                        .name(Alias::new(\"{enum_name_lc}\"))\n                        .rename_value(Alias::new({old_val:?}), Alias::new({new_val:?}))\n                        .to_owned(),\n                )\n                .await?;\n        }} else {{\n            manager\n                .get_connection()\n                .execute(\n                    &Query::update()\n                        .table(Alias::new(\"{table}\"))\n                        .value(Alias::new(\"{col}\"), {new_val:?})\n                        .and_where(Expr::col(Alias::new(\"{col}\")).eq({old_val:?}))\n                        .to_owned(),\n                )\n                .await?;\n        }}\n\n",
+            enum_name_lc = enum_name_lc, old_val = old_val, new_val = new_val, table = change.table_name, col = col,
         ));
         down.push_str(&format!(
-            "        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{\n            manager\n                .alter_type(\n                    sea_query::extension::postgres::Type::alter()\n                        .name(Alias::new(\"{enum_name_lc}\"))\n                        .rename_value(Alias::new(\"{new}\"), Alias::new(\"{old}\"))\n                        .to_owned(),\n                )\n                .await?;\n        }} else {{\n            manager\n                .get_connection()\n                .execute(\n                    &Query::update()\n                        .table(Alias::new(\"{table}\"))\n                        .value(Alias::new(\"{col}\"), \"{old}\")\n                        .and_where(Expr::col(Alias::new(\"{col}\")).eq(\"{new}\"))\n                        .to_owned(),\n                )\n                .await?;\n        }}\n\n",
-            enum_name_lc = enum_name_lc, old = old_val, new = new_val, table = change.table_name, col = col,
+            "        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{\n            manager\n                .alter_type(\n                    sea_query::extension::postgres::Type::alter()\n                        .name(Alias::new(\"{enum_name_lc}\"))\n                        .rename_value(Alias::new({new_val:?}), Alias::new({old_val:?}))\n                        .to_owned(),\n                )\n                .await?;\n        }} else {{\n            manager\n                .get_connection()\n                .execute(\n                    &Query::update()\n                        .table(Alias::new(\"{table}\"))\n                        .value(Alias::new(\"{col}\"), {old_val:?})\n                        .and_where(Expr::col(Alias::new(\"{col}\")).eq({new_val:?}))\n                        .to_owned(),\n                )\n                .await?;\n        }}\n\n",
+            enum_name_lc = enum_name_lc, old_val = old_val, new_val = new_val, table = change.table_name, col = col,
         ));
     }
 
@@ -611,18 +611,18 @@ fn build_alter_bodies(change: &Changes) -> (String, String) {
     for (_col, enum_name, val) in &change.enum_value_adds {
         let enum_name_lc = enum_name.to_lowercase();
         up.push_str(&format!(
-            "        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{\n            manager\n                .alter_type(\n                    sea_query::extension::postgres::Type::alter()\n                        .name(Alias::new(\"{enum_name_lc}\"))\n                        .add_value(Alias::new(\"{val}\"))\n                        .if_not_exists()\n                        .to_owned(),\n                )\n                .await?;\n        }}\n\n",
+            "        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{\n            manager\n                .alter_type(\n                    sea_query::extension::postgres::Type::alter()\n                        .name(Alias::new(\"{enum_name_lc}\"))\n                        .add_value(Alias::new({val:?}))\n                        .if_not_exists()\n                        .to_owned(),\n                )\n                .await?;\n        }}\n\n",
             enum_name_lc = enum_name_lc, val = val,
         ));
     }
     for (_col, enum_name, val) in &change.enum_value_drops {
         let enum_name_lc = enum_name.to_lowercase();
         up.push_str(&format!(
-            "        // WARNING: value '{val}' removed from {enum_name} — manual migration required (Postgres cannot drop an enum value).\n\n",
+            "        // WARNING: value {val:?} removed from {enum_name:?} — manual migration required (Postgres cannot drop an enum value).\n\n",
             val = val, enum_name = enum_name,
         ));
         down.push_str(&format!(
-            "        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{\n            manager\n                .alter_type(\n                    sea_query::extension::postgres::Type::alter()\n                        .name(Alias::new(\"{enum_name_lc}\"))\n                        .add_value(Alias::new(\"{val}\"))\n                        .if_not_exists()\n                        .to_owned(),\n                )\n                .await?;\n        }}\n\n",
+            "        if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{\n            manager\n                .alter_type(\n                    sea_query::extension::postgres::Type::alter()\n                        .name(Alias::new(\"{enum_name_lc}\"))\n                        .add_value(Alias::new({val:?}))\n                        .if_not_exists()\n                        .to_owned(),\n                )\n                .await?;\n        }}\n\n",
             enum_name_lc = enum_name_lc, val = val,
         ));
     }
@@ -752,10 +752,10 @@ fn enum_column_type(col: &ParsedColumn) -> String {
     let variants: Vec<String> = col
         .enum_string_values
         .iter()
-        .map(|v| format!("Alias::new(\"{}\").into_iden()", v))
+        .map(|v| format!("Alias::new({v:?}).into_iden()"))
         .collect();
     format!(
-        "if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{ ColumnType::Enum {{ name: Alias::new(\"{enum_name}\").into_iden(), variants: vec![{variants}] }} }} else {{ ColumnType::String(Default::default()) }}",
+        "if manager.get_connection().get_database_backend() == sea_orm::DbBackend::Postgres {{ ColumnType::Enum {{ name: Alias::new({enum_name:?}).into_iden(), variants: vec![{variants}] }} }} else {{ ColumnType::String(Default::default()) }}",
         variants = variants.join(", "),
     )
 }

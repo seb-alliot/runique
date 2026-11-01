@@ -20,6 +20,7 @@ use crate::forms::{
     field::{FormAccess, RuniqueForm},
     fields::{hidden::HiddenField, text::TextField},
 };
+use crate::utils::password::PasswordService;
 use crate::utils::{
     aliases::{AppResult, StrMap},
     trad::{current_lang, t, tf},
@@ -75,11 +76,13 @@ impl FormAccess for PasswordResetForm {
         );
         form.field(
             &TextField::password("password")
+                .no_hash()
                 .label(&t("reset.new_password_label"))
                 .required(),
         );
         form.field(
             &TextField::password("confirm")
+                .no_hash()
                 .label(&t("reset.confirm_label"))
                 .required(),
         );
@@ -592,46 +595,103 @@ pub async fn handle_password_reset(
         return request.render(template);
     }
 
-    let Some(user_id) = crate::utils::reset_token::consume(&db, &token).await else {
-        if let Some(level) = crate::utils::runique_log::get_log()
-            .auth
-            .as_ref()
-            .and_then(|a| a.reset)
-        {
-            crate::runique_log!(level, email = %email_clean, "reset token consume failed");
-        }
-        request
-            .notices
-            .error(t("reset.invalid_or_expired").to_string())
-            .await;
-        return Ok(Redirect::to("/").into_response());
-    };
-
-    let new_hash = form.cleaned::<String>("password").unwrap_or_default();
-
-    match BuiltinUserEntity::set_password_and_activate(&db, user_id, &new_hash).await {
-        Ok(()) => {
-            // Every device signs in again with the new password — a stolen
-            // session included. This request's own was closed on arrival.
-            request.engine.close_user_sessions(user_id).await;
-            if let Some(level) = crate::utils::runique_log::get_log()
-                .auth
-                .as_ref()
-                .and_then(|a| a.reset)
-            {
-                crate::runique_log!(level, email = %email_clean, "password reset ok");
+    let new_password = form.cleaned::<String>("password").unwrap_or_default();
+    let new_hash =
+        match PasswordService::new(request.engine.config.password.clone()).hash(&new_password) {
+            Ok(hash) => hash,
+            Err(_) => {
+                if let Some(field) = form.get_form_mut().fields.get_mut("password") {
+                    field.set_error(t("reset.invalid_or_expired").to_string());
+                }
+                apply_extra_context(request, &config.extra_context).await;
+                context_update!(request => {
+                    "title"      => t("reset.reset_title").as_ref(),
+                    "reset_form" => &form,
+                    "token"      => &token,
+                });
+                return request.render(template);
             }
-            form.clear();
+        };
+
+    use sea_orm::TransactionTrait;
+    let txn = match db.begin().await {
+        Ok(txn) => txn,
+        Err(error) => {
+            form.get_form_mut().database_error(&error);
             apply_extra_context(request, &config.extra_context).await;
             context_update!(request => {
-                "title"      => t("reset.success_title").as_ref(),
+                "title"      => t("reset.reset_title").as_ref(),
                 "reset_form" => &form,
-                "reset_done" => &true,
                 "token"      => &token,
             });
             return request.render(template);
         }
+    };
+    let consumed_user_id =
+        match crate::utils::reset_token::consume_in_transaction(&txn, &token).await {
+            Ok(Some(user_id)) if user_id == user.id => user_id,
+            Ok(_) => {
+                if let Err(error) = txn.rollback().await {
+                    tracing::error!(error = %error, "password reset rollback failed");
+                }
+                request
+                    .notices
+                    .error(t("reset.invalid_or_expired").to_string())
+                    .await;
+                return Ok(Redirect::to("/").into_response());
+            }
+            Err(error) => {
+                if let Err(rollback_error) = txn.rollback().await {
+                    tracing::error!(error = %rollback_error, "password reset rollback failed");
+                }
+                form.get_form_mut().database_error(&error);
+                apply_extra_context(request, &config.extra_context).await;
+                context_update!(request => {
+                    "title"      => t("reset.reset_title").as_ref(),
+                    "reset_form" => &form,
+                    "token"      => &token,
+                });
+                return request.render(template);
+            }
+        };
+
+    match BuiltinUserEntity::set_password_and_activate_in_transaction(
+        &txn,
+        consumed_user_id,
+        &new_hash,
+    )
+    .await
+    {
+        Ok(()) => match txn.commit().await {
+            Ok(()) => {
+                // Every device signs in again with the new password — a stolen
+                // session included. This request's own was closed on arrival.
+                request.engine.close_user_sessions(consumed_user_id).await;
+                if let Some(level) = crate::utils::runique_log::get_log()
+                    .auth
+                    .as_ref()
+                    .and_then(|a| a.reset)
+                {
+                    crate::runique_log!(level, email = %email_clean, "password reset ok");
+                }
+                form.clear();
+                apply_extra_context(request, &config.extra_context).await;
+                context_update!(request => {
+                    "title"      => t("reset.success_title").as_ref(),
+                    "reset_form" => &form,
+                    "reset_done" => &true,
+                    "token"      => &token,
+                });
+                return request.render(template);
+            }
+            Err(error) => {
+                form.get_form_mut().database_error(&error);
+            }
+        },
         Err(e) => {
+            if let Err(rollback_error) = txn.rollback().await {
+                tracing::error!(error = %rollback_error, "password reset rollback failed");
+            }
             if let Some(level) = crate::utils::runique_log::get_log()
                 .auth
                 .as_ref()

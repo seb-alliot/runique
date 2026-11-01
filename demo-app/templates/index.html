@@ -75,7 +75,11 @@
             <a href="{% link "changelog" %}">Changelog</a>
             <a href="{% link "contribution_list" %}">Contribute</a>
             <a href="{% link "rust_django_framework" %}">Runique</a>
+            {% if user %}
+                {% if user.rang != "Lambda" %}
             <a href="{% link "search-user" %}">User Search</a>
+                {% endif %}
+            {% endif %}
         </div>
         <div class="site-nav-actions">
             {% if user %}

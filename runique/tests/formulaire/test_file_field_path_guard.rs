@@ -33,7 +33,7 @@ async fn a_text_value_cannot_delete_a_server_file() {
     let _ = std::fs::remove_dir_all(target.parent().unwrap());
 }
 
-// ── Through the real upload chain: parse_multipart → fill → validate → finalize
+// ── Through the upload chain: parse_multipart → fill → validate → publish
 
 mod through_upload {
     use crate::utils::env::{del_env, set_env};
@@ -65,6 +65,8 @@ mod through_upload {
             return "invalid".into();
         }
         form.finalize().await.expect("finalize");
+        form.publish_uploads().await.expect("publish");
+        form.complete_uploads().await;
         form.fields["doc"].value().to_string()
     }
 
@@ -188,5 +190,39 @@ mod through_upload {
         assert_eq!(text, "Bonjour", "a text value still is taken");
         del_env("MEDIA_ROOT");
         let _ = std::fs::remove_dir_all(&media);
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn upload_to_cannot_escape_media_root() {
+        use runique::forms::base::FormField;
+
+        let media = media_root();
+        let escaped_name = format!("{}_escaped", media.file_name().unwrap().to_string_lossy());
+        let escaped_dir = media.parent().unwrap().join(&escaped_name);
+        let staged_dir = media.join(".staging-upload-to-guard");
+        std::fs::create_dir_all(&staged_dir).unwrap();
+        let staged_file = staged_dir.join("report.pdf");
+        std::fs::write(&staged_file, b"%PDF-1.4").unwrap();
+
+        let mut field = FileField::document("doc").upload_to(format!("../{escaped_name}"));
+        field.set_value(staged_file.to_string_lossy().to_string().as_ref());
+        let result = field.finalize().await;
+        let staged_remains = staged_file.exists();
+        let escaped_file_exists = escaped_dir.join("report.pdf").exists();
+
+        let _ = std::fs::remove_dir_all(&media);
+        let _ = std::fs::remove_dir_all(&escaped_dir);
+        del_env("MEDIA_ROOT");
+
+        assert!(
+            result.is_err(),
+            "an upload destination outside MEDIA_ROOT is refused"
+        );
+        assert!(
+            staged_remains,
+            "the staged upload is not moved outside the root"
+        );
+        assert!(!escaped_file_exists);
     }
 }

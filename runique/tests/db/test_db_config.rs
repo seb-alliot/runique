@@ -65,6 +65,18 @@ fn test_detect_unknown_retourne_err() {
     assert!(DatabaseEngine::detect_from_url("").is_err());
 }
 
+#[test]
+fn test_unsupported_database_url_error_does_not_expose_credentials() {
+    let url = "unsupported://db_user:super-secret@db.example.test/database";
+    let error = DatabaseEngine::detect_from_url(url).unwrap_err();
+
+    assert!(
+        !error.contains("super-secret"),
+        "configuration errors may be printed or logged and must not expose URL credentials"
+    );
+    assert!(!error.contains("db_user"));
+}
+
 // ═══════════════════════════════════════════════════════════════
 // DatabaseEngine::name
 // ═══════════════════════════════════════════════════════════════

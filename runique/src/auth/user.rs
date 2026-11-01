@@ -201,6 +201,31 @@ impl BuiltinUserEntity {
         Self::activate_account(db, id).await?;
         Ok(())
     }
+
+    /// Performs the password update and first-time activation inside the
+    /// caller's transaction.
+    pub(crate) async fn set_password_and_activate_in_transaction(
+        db: &sea_orm::DatabaseTransaction,
+        id: Pk,
+        new_hash: &str,
+    ) -> Result<(), sea_orm::DbErr> {
+        let user = Entity::find_by_id(id)
+            .one(db)
+            .await?
+            .ok_or_else(|| sea_orm::DbErr::RecordNotFound("User not found".into()))?;
+
+        let mut password_update: ActiveModel = user.clone().into();
+        password_update.password = Set(new_hash.to_string());
+        password_update.update(db).await?;
+
+        if user.activated_at.is_none() {
+            let mut activation: ActiveModel = user.into();
+            activation.is_active = Set(true);
+            activation.activated_at = Set(Some(chrono::Utc::now().naive_utc()));
+            activation.update(db).await?;
+        }
+        Ok(())
+    }
 }
 
 /// Authenticates a user by username and password against the built-in user table.

@@ -29,6 +29,8 @@ use uuid::Uuid;
 static LIVE_STAGING: LazyLock<Mutex<HashSet<PathBuf>>> =
     LazyLock::new(|| Mutex::new(HashSet::new()));
 
+const DIRECT_UPLOAD_GRACE_PERIOD: std::time::Duration = std::time::Duration::from_secs(60 * 60);
+
 fn with_live<T>(f: impl FnOnce(&mut HashSet<PathBuf>) -> T) -> T {
     let mut guard = LIVE_STAGING
         .lock()
@@ -109,7 +111,7 @@ impl Drop for Lease {
 /// The `.staging-*` directory one request created. The last clone removes it,
 /// and only it: the name has to be the directory `parse_multipart` made, and a
 /// symlink is left untouched so the removal can't be pointed at another folder.
-/// Accepted files have already been moved out by `finalize`.
+/// Published files have already been linked out of staging by the form save.
 pub(crate) struct StagingDir {
     lease: Lease,
 }
@@ -290,9 +292,9 @@ pub async fn parse_multipart(
     max_upload_mb: u64,
     max_text_field_kb: usize,
 ) -> Result<StrVecMap, Response> {
-    // The directory is returned and dropped here on purpose: this function has
-    // no request to attach it to. The pipeline (`aegis_guarded`) is what holds
-    // it until the request ends. A direct caller still relies on the sweep.
+    // The request pipeline holds its staging lease until request completion.
+    // Direct callers own the returned file paths; the sweeper grants recent
+    // files a bounded grace period because this API cannot return that lease.
     parse_multipart_guarded(
         multipart,
         upload_dir,
@@ -324,9 +326,9 @@ pub(crate) async fn parse_multipart_guarded(
     let max_text_bytes = max_text_field_kb.saturating_mul(1024);
 
     let mut data: StrVecMap = HashMap::new();
-    // Staging dir (under upload_dir → même filesystem, donc le rename de finalize()
-    // est atomique). Créé à la demande au premier vrai fichier. La requête qui le
-    // reçoit le supprime en partant ; `finalize` en a déjà sorti les fichiers gardés.
+    // Staging dir under upload_dir so publication can atomically link files on
+    // the same filesystem. Created on the first real file and removed when the
+    // owning request ends.
     let mut tmp_dir: Option<Lease> = None;
     let mut csrf_checked = csrf_session.is_none();
 
@@ -459,8 +461,8 @@ pub(crate) async fn parse_multipart_guarded(
                 return Err(e);
             }
 
-            // Chemin de staging : finalize() le committera en destination servie.
-            // Pas de commit eager ici → aucune écriture servie avant CSRF/validation.
+            // Staging path only: the form publishes it immediately before its
+            // database write. No file is served before CSRF and validation pass.
             data.entry(name)
                 .or_default()
                 .push(tmp_path.to_string_lossy().to_string());
@@ -510,19 +512,18 @@ pub(crate) async fn parse_multipart_guarded(
         }
     }
 
-    // Pas de commit ici. Le dossier est rendu à l'appelant : la requête le
+    // Pas de publication ici. Le dossier est rendu à l'appelant : la requête le
     // supprime en se terminant, quel que soit le résultat, et un formulaire qui
     // n'atteint pas `finalize` retire avant ça les fichiers encore dedans.
-    // `finalize` est le seul à les déplacer vers la destination servie. Le
+    // `publish_uploads` est l'étape qui les rend servis, juste avant l'écriture DB. Le
     // balayage ne retire que les dossiers qu'aucun processus vivant ne tient.
 
     Ok((data, tmp_dir))
 }
 
-/// Removes `.staging-*` directories no live process holds. A directory this
-/// process reserved is skipped, however long the body has been arriving. A
-/// directory another process has locked is skipped. Anything else was left by
-/// a process that died, and goes now. A symlink is not followed.
+/// Removes abandoned `.staging-*` directories. Active leases are protected by
+/// their lock; direct parser callers keep recent files for a bounded grace
+/// period. A symlink is not followed.
 async fn sweep_stale_staging(upload_dir: &Path) {
     let mut entries = match tokio::fs::read_dir(upload_dir).await {
         Ok(e) => e,
@@ -562,11 +563,51 @@ async fn sweep_stale_staging(upload_dir: &Path) {
         if with_live(|live| live.contains(&path)) {
             continue;
         }
+        if has_recent_staged_file(&path).await {
+            continue;
+        }
         // The handle has to close before the directory goes. On Windows it is
         // `.lock`, which sits inside the directory.
         drop(file);
         if let Err(err) = tokio::fs::remove_dir_all(&path).await {
             warn!(dir = %path.display(), error = %err, "staging sweep: remove failed");
+        }
+    }
+}
+
+async fn has_recent_staged_file(dir: &Path) -> bool {
+    let mut entries = match tokio::fs::read_dir(dir).await {
+        Ok(entries) => entries,
+        Err(_) => return true,
+    };
+    loop {
+        let entry = match entries.next_entry().await {
+            Ok(Some(entry)) => entry,
+            Ok(None) => return false,
+            Err(_) => return true,
+        };
+        if entry.file_name() == ".lock" {
+            continue;
+        }
+        let Ok(file_type) = entry.file_type().await else {
+            return true;
+        };
+        if !file_type.is_file() {
+            continue;
+        }
+        let Ok(metadata) = entry.metadata().await else {
+            return true;
+        };
+        match metadata.modified() {
+            Ok(modified)
+                if modified
+                    .elapsed()
+                    .is_ok_and(|age| age < DIRECT_UPLOAD_GRACE_PERIOD) =>
+            {
+                return true;
+            }
+            Ok(_) => {}
+            Err(_) => return true,
         }
     }
 }
@@ -860,13 +901,20 @@ mod staging_dir_tests {
     }
 
     #[tokio::test]
-    async fn a_directory_no_process_holds_is_removed_at_once() {
+    async fn a_stale_directory_no_process_holds_is_removed() {
         let root = std::env::temp_dir().join(format!("rq_dead_{}", uuid::Uuid::new_v4()));
         let staging = root.join(format!(".staging-{}", uuid::Uuid::new_v4()));
         let kept = root.join("kept");
         std::fs::create_dir_all(&staging).unwrap();
         std::fs::create_dir_all(&kept).unwrap();
-        std::fs::write(staging.join("a.txt"), b"x").unwrap();
+        let staged_file = staging.join("a.txt");
+        std::fs::write(&staged_file, b"x").unwrap();
+        std::fs::File::options()
+            .write(true)
+            .open(&staged_file)
+            .unwrap()
+            .set_times(std::fs::FileTimes::new().set_modified(std::time::UNIX_EPOCH))
+            .unwrap();
         sweep_stale_staging(&root).await;
         assert!(!staging.exists(), "a dead process left this");
         assert!(kept.exists(), "anything else stays");

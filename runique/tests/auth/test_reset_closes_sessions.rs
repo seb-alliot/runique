@@ -11,6 +11,7 @@ use runique::config::RuniqueConfig;
 use runique::context::template::Request;
 use runique::db::ADb;
 use runique::sea_orm::{ConnectionTrait, DatabaseConnection};
+use runique::utils::password::{External, Manual, PasswordConfig};
 use runique::utils::reset_token;
 use serial_test::serial;
 use std::time::Duration;
@@ -32,6 +33,10 @@ async fn whoami(req: Request) -> String {
 }
 
 async fn spawn() -> (String, DatabaseConnection) {
+    spawn_with_password_config(PasswordConfig::auto()).await
+}
+
+async fn spawn_with_password_config(password: PasswordConfig) -> (String, DatabaseConnection) {
     let dbc = db::fresh_db().await;
     for ddl in [USERS_DDL, RESET_TOKENS_DDL, SESSIONS_DDL] {
         db::exec(&dbc, ddl).await;
@@ -51,6 +56,7 @@ async fn spawn() -> (String, DatabaseConnection) {
 
     let mut config = RuniqueConfig::from_env();
     config.debug = true;
+    config.password = password;
     let app = RuniqueApp::builder(config)
         .with_database(dbc.clone())
         .routes(
@@ -128,6 +134,34 @@ async fn complete_reset(base: &str, db: &DatabaseConnection) {
     );
 }
 
+async fn submit_reset(base: &str, token: &str) {
+    let url = format!("{base}/reset-password/{token}");
+    let reset = client();
+    let page = reset.get(&url).send().await.unwrap();
+    let csrf = page.headers()["x-csrf-token"].to_str().unwrap().to_string();
+    let _response = reset
+        .post(&url)
+        .form(&[
+            ("token", token),
+            ("email", "alice@example.com"),
+            ("password", NEW_PASSWORD),
+            ("confirm", NEW_PASSWORD),
+            ("csrf_token", csrf.as_str()),
+            ("runique_form", "reset_password"),
+        ])
+        .send()
+        .await
+        .unwrap();
+}
+
+async fn stored_password(db: &DatabaseConnection) -> String {
+    let adb = ADb::from_connection(db.clone());
+    BuiltinUserEntity::find_by_id(&adb, pk(1))
+        .await
+        .expect("seeded account")
+        .password
+}
+
 #[tokio::test]
 #[serial]
 async fn a_completed_reset_signs_the_account_out_on_every_device() {
@@ -153,6 +187,91 @@ async fn a_completed_reset_signs_the_account_out_on_every_device() {
     // Signing in again after the reset gives a session that stays.
     text(&phone, format!("{base}/sign-in/1")).await;
     assert_eq!(text(&phone, format!("{base}/whoami")).await, "alice");
+}
+
+#[tokio::test]
+#[serial]
+async fn manual_password_reset_never_stores_the_submitted_password_in_plaintext() {
+    let (base, db) = spawn_with_password_config(PasswordConfig::manual(Manual::Argon2)).await;
+    let adb = ADb::from_connection(db.clone());
+    let token = reset_token::generate(&adb, pk(1), Duration::from_secs(600))
+        .await
+        .unwrap();
+
+    submit_reset(&base, &token).await;
+
+    assert_ne!(
+        stored_password(&db).await,
+        NEW_PASSWORD,
+        "Manual mode must hash through its configured algorithm or refuse the built-in reset"
+    );
+}
+
+#[tokio::test]
+#[serial]
+async fn delegated_password_reset_never_stores_a_local_password() {
+    let config = PasswordConfig::Delegated(External::GoogleOAuth);
+    let (base, db) = spawn_with_password_config(config).await;
+    let old_password = stored_password(&db).await;
+    let adb = ADb::from_connection(db.clone());
+    let token = reset_token::generate(&adb, pk(1), Duration::from_secs(600))
+        .await
+        .unwrap();
+
+    submit_reset(&base, &token).await;
+
+    assert_eq!(
+        stored_password(&db).await,
+        old_password,
+        "Delegated mode must not write a local password during reset"
+    );
+    assert!(
+        reset_token::peek(&adb, &token).await,
+        "a delegated password reset must not consume the usable reset link"
+    );
+}
+
+#[tokio::test]
+#[serial]
+async fn failed_password_update_does_not_consume_the_reset_token() {
+    let (base, db) = spawn().await;
+    let adb = ADb::from_connection(db.clone());
+    let token = reset_token::generate(&adb, pk(1), Duration::from_secs(600))
+        .await
+        .unwrap();
+    let url = format!("{base}/reset-password/{token}");
+    let reset = client();
+    let page = reset.get(&url).send().await.unwrap();
+    let csrf = page.headers()["x-csrf-token"].to_str().unwrap().to_string();
+
+    db::exec(
+        &db,
+        "CREATE TRIGGER reject_password_update BEFORE UPDATE OF password ON eihwaz_users \
+         BEGIN SELECT RAISE(FAIL, 'simulated password update failure'); END",
+    )
+    .await;
+
+    let _response = reset
+        .post(&url)
+        .form(&[
+            ("token", token.as_str()),
+            ("email", "alice@example.com"),
+            ("password", NEW_PASSWORD),
+            ("confirm", NEW_PASSWORD),
+            ("csrf_token", csrf.as_str()),
+            ("runique_form", "reset_password"),
+        ])
+        .send()
+        .await
+        .unwrap();
+
+    assert!(reset_token::peek(&adb, &token).await);
+    assert!(
+        authenticate_user(&adb, "alice", "old password 123")
+            .await
+            .is_some(),
+        "a failed password update must leave the previous credential usable"
+    );
 }
 
 #[tokio::test]

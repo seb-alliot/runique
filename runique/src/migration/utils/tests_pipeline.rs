@@ -1581,7 +1581,7 @@ fn enum_value_drop_warns_up_and_readds_down_on_postgres() {
     let sql = generate_alter_file(&changes);
     let (up, down) = up_down(&sql);
     assert!(
-        up.contains("WARNING: value 'Legacy' removed"),
+        up.contains("WARNING: value \"Legacy\" removed"),
         "up warning:\n{up}"
     );
     assert!(

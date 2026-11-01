@@ -246,6 +246,13 @@ async fn build_templated_error_app(debug: bool) -> Router {
     Router::new()
         .route("/bad_query", get(bad_query))
         .route(
+            "/reset/{token}",
+            get(|| async {
+                tracing::info!("reset error test handler");
+                StatusCode::INTERNAL_SERVER_ERROR
+            }),
+        )
+        .route(
             "/api_400",
             get(|| async { (StatusCode::BAD_REQUEST, "{\"error\":\"api\"}") }),
         )
@@ -280,6 +287,18 @@ async fn test_debug_bad_request_shows_the_reason() {
     let (status, html) = get_page(true, "/bad_query").await;
     assert_eq!(status, 400, "{html}");
     assert!(html.contains("invalid digit"));
+}
+
+#[tokio::test]
+async fn test_debug_error_page_redacts_password_reset_token_from_path() {
+    let token = "reset-bearer-secret-123";
+    let (status, html) = get_page(true, &format!("/reset/{token}")).await;
+
+    assert_eq!(status, 500);
+    assert!(
+        !html.contains(token),
+        "debug output must not disclose a bearer reset token from the URL path"
+    );
 }
 
 /// Without a `400.html` template, the built-in page still answers 400 with the

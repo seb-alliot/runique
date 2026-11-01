@@ -102,6 +102,26 @@ async fn test_a_live_token_never_lets_another_one_through() {
 }
 
 #[tokio::test]
+async fn test_failed_token_replacement_preserves_the_previous_token() {
+    use runique::sea_orm::ConnectionTrait;
+
+    let conn = runique::db::ADb::from_connection(db::fresh_db_with_schema(RESET_TOKENS_DDL).await);
+    let previous = generate(&conn, pk(1), ttl()).await.unwrap();
+    conn.execute_unprepared(
+        "CREATE TRIGGER reject_reset_token_insert BEFORE INSERT ON eihwaz_reset_tokens \
+         BEGIN SELECT RAISE(FAIL, 'simulated insert failure'); END",
+    )
+    .await
+    .unwrap();
+
+    assert!(generate(&conn, pk(1), ttl()).await.is_err());
+    assert!(
+        peek(&conn, &previous).await,
+        "a failed replacement must not delete the user's previously working reset link"
+    );
+}
+
+#[tokio::test]
 async fn test_only_the_token_hash_is_stored() {
     use runique::sea_orm::{ConnectionTrait, Statement};
     let conn = runique::db::ADb::from_connection(db::fresh_db_with_schema(RESET_TOKENS_DDL).await);

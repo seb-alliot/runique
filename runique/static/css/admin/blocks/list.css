@@ -122,7 +122,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    color: var(--label);
+    color: var(--accent);
 }
 
 .admin-list__field-value {

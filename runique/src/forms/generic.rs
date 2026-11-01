@@ -179,6 +179,18 @@ impl FormField for GenericField {
         delegate_to_field!(mut self, finalize).await
     }
 
+    async fn publish_uploads(&mut self) -> Result<(), String> {
+        delegate_to_field!(mut self, publish_uploads).await
+    }
+
+    async fn rollback_uploads(&mut self) {
+        delegate_to_field!(mut self, rollback_uploads).await
+    }
+
+    async fn complete_uploads(&mut self) {
+        delegate_to_field!(mut self, complete_uploads).await
+    }
+
     fn column_type(&self) -> Option<&sea_orm::sea_query::ColumnType> {
         delegate_to_field!(self, column_type)
     }

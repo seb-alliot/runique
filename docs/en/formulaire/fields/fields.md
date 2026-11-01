@@ -311,7 +311,7 @@ form.field(
 | `.upload_to_env()` | `{MEDIA_ROOT}/{field_name}/` |
 | *(none)* | `MEDIA_ROOT` directly (no subdirectory) |
 
-The move to the final destination happens in `finalize()`, **only if validation passes**. The directory is created automatically if it does not already exist.
+`finalize()` prepares the relative path but keeps the file in its temporary staging directory. With `ValidationForm::save`, Runique publishes the file immediately before the database write, removes it if that write fails, and only removes the previous file after success. For a custom save, call `form.get_form_mut().publish_uploads().await` before writing, then `complete_uploads().await` after success or `rollback_uploads().await` after failure. The destination must be relative to `MEDIA_ROOT` and cannot contain `.` or `..` components, Windows separators, or a volume prefix. The directory is created automatically if it does not already exist.
 
 > **Security**: `.svg` files are **always rejected** (XSS risk). `FileField::any` accepts every other extension and does not read the content: the security of that field is the application's responsibility. For an image, validation checks the real format by reading its magic bytes (not just the extension). With `max_dimensions`, the `image` crate measures the file: if the measurement fails, the file is refused, for every format. Without that measurement, the width and height limits would not apply. Empty submissions (no file selected) are handled correctly — the `required` constraint works as expected.
 

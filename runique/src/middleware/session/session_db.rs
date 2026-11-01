@@ -2,6 +2,11 @@
 use crate::utils::aliases::ADb;
 use sea_orm::{ActiveValue::Set, ColumnTrait, EntityTrait, QueryFilter, entity::prelude::*};
 use sea_query::OnConflict;
+use sha2::{Digest, Sha256};
+
+fn hash_cookie_id(cookie_id: &str) -> String {
+    hex::encode(Sha256::digest(cookie_id.as_bytes()))
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SeaORM Entity — eihwaz_sessions
@@ -15,7 +20,7 @@ pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
 
-    /// tower-sessions session ID (browser cookie) — unique per device
+    /// SHA-256 hash of the tower-sessions cookie ID — unique per device.
     #[sea_orm(unique)]
     pub cookie_id: String,
 
@@ -91,7 +96,7 @@ impl RuniqueSessionStore {
             ));
         }
         let model = ActiveModel {
-            cookie_id: Set(cookie_id.to_string()),
+            cookie_id: Set(hash_cookie_id(cookie_id)),
             user_id: Set(user_id),
             session_id: Set(session_id.to_string()),
             session_data: Set(None),
@@ -122,7 +127,7 @@ impl RuniqueSessionStore {
     /// Deletes the DB session corresponding to the cookie_id (logout).
     pub async fn delete(&self, cookie_id: &str) -> Result<(), DbErr> {
         Entity::delete_many()
-            .filter(Column::CookieId.eq(cookie_id))
+            .filter(Column::CookieId.eq(hash_cookie_id(cookie_id)))
             .exec(&*self.db)
             .await?;
         Ok(())
@@ -136,7 +141,7 @@ impl RuniqueSessionStore {
     ) -> Result<(), DbErr> {
         Entity::delete_many()
             .filter(Column::UserId.eq(user_id))
-            .filter(Column::CookieId.ne(current_cookie_id))
+            .filter(Column::CookieId.ne(hash_cookie_id(current_cookie_id)))
             .exec(&*self.db)
             .await?;
         Ok(())
@@ -154,11 +159,15 @@ impl RuniqueSessionStore {
     /// Returns the active session matching `cookie_id`, or `None` if absent/expired.
     pub async fn find_by_cookie_id(&self, cookie_id: &str) -> Result<Option<Model>, DbErr> {
         let now = chrono::Utc::now().naive_utc();
-        Entity::find()
-            .filter(Column::CookieId.eq(cookie_id))
+        let mut model = Entity::find()
+            .filter(Column::CookieId.eq(hash_cookie_id(cookie_id)))
             .filter(Column::ExpiresAt.gt(now))
             .one(&*self.db)
-            .await
+            .await?;
+        if let Some(model) = &mut model {
+            model.cookie_id = cookie_id.to_string();
+        }
+        Ok(model)
     }
 
     /// Persists serialized session data for an existing row (no-op if not found).
@@ -180,7 +189,7 @@ impl RuniqueSessionStore {
             ));
         }
         let model = ActiveModel {
-            cookie_id: Set(cookie_id.to_string()),
+            cookie_id: Set(hash_cookie_id(cookie_id)),
             user_id: Set(user_id),
             session_id: Set(uuid::Uuid::new_v4().to_string()),
             session_data: Set(data),
@@ -219,7 +228,7 @@ impl RuniqueSessionStore {
                 Column::ExpiresAt,
                 sea_orm::sea_query::Expr::value(expires_at),
             )
-            .filter(Column::CookieId.eq(cookie_id))
+            .filter(Column::CookieId.eq(hash_cookie_id(cookie_id)))
             .filter(Column::UserId.eq(user_id))
             .exec(&*self.db)
             .await?;

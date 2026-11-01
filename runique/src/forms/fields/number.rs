@@ -364,30 +364,55 @@ impl FormField for NumericField {
             NumericConfig::Decimal { value, .. } | NumericConfig::Float { value } => {
                 // A decimal is read the way it's saved (`Decimal`, exact, no
                 // exponent), not as an `f64` that would accept `1e5` and round.
-                let parsed = if matches!(self.config, NumericConfig::Decimal { .. }) {
-                    rust_decimal::Decimal::from_str_exact(&normalized)
-                        .ok()
-                        .and_then(|d| rust_decimal::prelude::ToPrimitive::to_f64(&d))
+                let is_decimal = matches!(self.config, NumericConfig::Decimal { .. });
+                let decimal_value = if is_decimal {
+                    rust_decimal::Decimal::from_str_exact(&normalized).ok()
                 } else {
-                    normalized.parse::<f64>().ok().filter(|v| v.is_finite())
+                    None
                 };
-                let Some(v) = parsed else {
+                let float_value = if !is_decimal {
+                    normalized.parse::<f64>().ok().filter(|v| v.is_finite())
+                } else {
+                    None
+                };
+                if (is_decimal && decimal_value.is_none()) || (!is_decimal && float_value.is_none())
+                {
                     self.set_error(t("forms.number_invalid").to_string());
                     return false;
-                };
+                }
                 if let Some(f) = value.as_ref() {
-                    let (min, max) = (f.min, f.max);
-                    if v < min {
-                        let msg =
-                            self.bound_message("min_message", || tf("forms.min_value", &[&min]));
-                        self.set_error(msg);
-                        return false;
-                    }
-                    if v > max {
-                        let msg =
-                            self.bound_message("max_message", || tf("forms.max_value", &[&max]));
-                        self.set_error(msg);
-                        return false;
+                    if let Some(v) = decimal_value {
+                        let min = rust_decimal::Decimal::from_str_exact(&f.min.to_string());
+                        let max = rust_decimal::Decimal::from_str_exact(&f.max.to_string());
+                        let (Ok(min), Ok(max)) = (min, max) else {
+                            self.set_error(t("forms.number_invalid").to_string());
+                            return false;
+                        };
+                        if v < min {
+                            let msg = self
+                                .bound_message("min_message", || tf("forms.min_value", &[&f.min]));
+                            self.set_error(msg);
+                            return false;
+                        }
+                        if v > max {
+                            let msg = self
+                                .bound_message("max_message", || tf("forms.max_value", &[&f.max]));
+                            self.set_error(msg);
+                            return false;
+                        }
+                    } else if let Some(v) = float_value {
+                        if v < f.min {
+                            let msg = self
+                                .bound_message("min_message", || tf("forms.min_value", &[&f.min]));
+                            self.set_error(msg);
+                            return false;
+                        }
+                        if v > f.max {
+                            let msg = self
+                                .bound_message("max_message", || tf("forms.max_value", &[&f.max]));
+                            self.set_error(msg);
+                            return false;
+                        }
                     }
                 }
                 normalized

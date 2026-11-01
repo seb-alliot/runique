@@ -63,7 +63,7 @@ impl DatabaseEngine {
         } else if url.starts_with("sqlite://") {
             Ok(DatabaseEngine::SQLite)
         } else {
-            Err(format!("Unsupported database URL: {}", url))
+            Err("Unsupported database URL scheme".to_string())
         }
     }
 

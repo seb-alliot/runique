@@ -241,7 +241,7 @@
     border-radius: 4px;
     font-size: 0.72rem;
     font-family: var(--font-mono);
-    color: var(--text-muted);
+    color: var(--label);
 }
 
 @media (min-width: 40em) {
@@ -594,7 +594,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: var(--text-muted);
+    color: var(--label);
     white-space: nowrap;
     overflow: hidden;
     opacity: 1;
