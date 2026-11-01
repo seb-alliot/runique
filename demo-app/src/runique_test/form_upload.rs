@@ -249,13 +249,7 @@ async fn validated_profile(
         .map_err(|form| fail(format!("invalid: {:?}", form.get_form().errors())))
 }
 
-/// `{MEDIA_ROOT}/<relative>`: where a stored path lives on disk.
-fn on_disk(relative: &str) -> PathBuf {
-    Path::new(&resolve_media_root()).join(relative)
-}
-
-/// What the developer writes to replace a file: read the stored path before
-/// the save, remove that file once the save went through.
+/// A custom handler removes the replaced file only after the row is written.
 #[tokio::test]
 async fn the_developer_removes_the_replaced_file_after_the_save() -> Result<(), TestFailure> {
     runique_test::<ADb>(super::ENV, async |db| {
@@ -271,7 +265,6 @@ async fn the_developer_removes_the_replaced_file_after_the_save() -> Result<(), 
         let staged = disk.staged(&unique("t"), &name, PNG);
         let new_file = disk.stored(&format!("avatars/{name}"));
 
-        // The developer's handler.
         let old = avatar_of(db, id).await?;
         let form = validated_profile(db, &id.to_string(), &username, &staged).await?;
         let Ok(form) = form.save(db).await else {
@@ -279,7 +272,10 @@ async fn the_developer_removes_the_replaced_file_after_the_save() -> Result<(), 
         };
         let new = form.get_form().fields["avatar"].value().to_string();
         if let Some(old) = old.filter(|old| *old != new) {
-            std::fs::remove_file(on_disk(&old)).map_err(|e| fail(e.to_string()))?;
+            let old_file = Path::new(&resolve_media_root()).join(old);
+            if old_file.exists() {
+                std::fs::remove_file(old_file).map_err(|e| fail(e.to_string()))?;
+            }
         }
 
         let avatar = avatar_of(db, id).await?;
@@ -297,10 +293,10 @@ async fn the_developer_removes_the_replaced_file_after_the_save() -> Result<(), 
     .await
 }
 
-/// What the developer writes when the save is refused: the form comes back
-/// holding the uploaded file's path, which the developer removes.
+/// A refused database write removes the published file and retains no stale
+/// destination path in the returned form.
 #[tokio::test]
-async fn the_developer_removes_the_upload_of_a_refused_save() -> Result<(), TestFailure> {
+async fn a_refused_save_rolls_back_the_new_upload() -> Result<(), TestFailure> {
     runique_test::<ADb>(super::ENV, async |db| {
         let mut disk = OnDisk::default();
         let username = unique("ghost");
@@ -314,13 +310,15 @@ async fn the_developer_removes_the_upload_of_a_refused_save() -> Result<(), Test
             return Err(fail("a missing row should be refused".into()));
         };
         let uploaded = form.get_form().fields["avatar"].value().to_string();
-        if uploaded != format!("avatars/{name}") {
-            return Err(fail(format!("the form holds {uploaded:?}")));
+        if !uploaded.is_empty() {
+            return Err(fail(format!("the refused form holds {uploaded:?}")));
         }
-        std::fs::remove_file(on_disk(&uploaded)).map_err(|e| fail(e.to_string()))?;
 
         if stored.exists() {
             return Err(fail("the upload should be gone".into()));
+        }
+        if Path::new(&staged).exists() {
+            return Err(fail("the staging copy should be gone".into()));
         }
         Ok(())
     })

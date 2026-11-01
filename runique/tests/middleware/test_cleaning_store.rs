@@ -737,6 +737,48 @@ async fn test_db_fallback_restores_a_signed_in_session_after_restart() {
     assert!(without.load(&signed_in.id).await.unwrap().is_none());
 }
 
+#[cfg(feature = "orm")]
+#[tokio::test]
+async fn test_db_fallback_propagates_database_errors() {
+    use runique::middleware::session::RuniqueSessionStore;
+    use std::sync::Arc;
+
+    let conn = crate::helpers::db::fresh_db_with_schema(super::test_session_db::SESSIONS_DDL).await;
+    let db = Arc::new(RuniqueSessionStore::new(runique::db::ADb::from_connection(
+        conn.clone(),
+    )));
+    crate::helpers::db::exec(&conn, "DROP TABLE eihwaz_sessions").await;
+    let store = CleaningMemoryStore::default().with_db_fallback(db);
+    let id = Id::default();
+
+    assert!(
+        store.load(&id).await.is_err(),
+        "a database failure is not the same as a missing session"
+    );
+}
+
+#[cfg(feature = "orm")]
+#[tokio::test]
+async fn test_delete_reports_database_revocation_failure() {
+    use runique::middleware::session::RuniqueSessionStore;
+    use std::sync::Arc;
+
+    let conn = crate::helpers::db::fresh_db_with_schema(super::test_session_db::SESSIONS_DDL).await;
+    let db = Arc::new(RuniqueSessionStore::new(runique::db::ADb::from_connection(
+        conn.clone(),
+    )));
+    let store = CleaningMemoryStore::default().with_db_fallback(db);
+    let mut authenticated = heavy_record(3600, 10, Some(42));
+    store.create(&mut authenticated).await.unwrap();
+
+    crate::helpers::db::exec(&conn, "DROP TABLE eihwaz_sessions").await;
+
+    assert!(
+        store.delete(&authenticated.id).await.is_err(),
+        "logout must not report successful revocation when persistent deletion failed"
+    );
+}
+
 /// A stale response save racing with logout must not restore the old cookie:
 /// logout deletes the DB row, then an already-captured authenticated record
 /// may still be persisted by the in-flight response.

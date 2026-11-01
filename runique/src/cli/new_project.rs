@@ -2,7 +2,7 @@
 use crate::utils::trad::{t, tf};
 use anyhow::Result;
 use rand::RngExt;
-use std::{fmt::Write, fs, path::Path};
+use std::{fs, path::Path};
 
 /// Scaffolds a new Runique project named `name`: creates the standard directory
 /// layout, writes the bundled example files (views, forms, templates, CSS,
@@ -163,18 +163,18 @@ fn write_project_files(project_dir: &Path, name: &str, version: &str) -> Result<
         fs::write(project_dir.join(path), content)?;
     }
 
-    let secret_key: String = (0..32).map(|_| rand::rng().random::<u8>()).fold(
-        String::with_capacity(64),
-        |mut acc, b| {
-            write!(&mut acc, "{b:02x}").unwrap();
-            acc
-        },
-    );
+    let secret_key: String = generate_secret_key();
     let env_file =
         include_str!("../composant-bin/config/secret").replace("your_secret_key_here", &secret_key);
     fs::write(project_dir.join(".env"), env_file)?;
 
     Ok(())
+}
+
+fn generate_secret_key() -> String {
+    let mut bytes = [0u8; 32];
+    rand::rng().fill(&mut bytes);
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
 /// Written from cargo-mutants survivors (2026-10-02): the name becomes a

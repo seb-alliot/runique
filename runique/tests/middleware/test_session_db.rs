@@ -67,6 +67,36 @@ async fn test_session_db_create_and_find() {
 }
 
 #[tokio::test]
+async fn test_session_db_does_not_store_the_raw_cookie_id() {
+    use runique::sea_orm::{ConnectionTrait, Statement};
+
+    let conn = db::fresh_db_with_schema(SESSIONS_DDL).await;
+    let store = RuniqueSessionStore::new(runique::db::ADb::from_connection(conn.clone()));
+    let cookie_id = "sensitive-session-cookie";
+    store
+        .create(cookie_id, pk(1), "sess-1", future_expiry())
+        .await
+        .unwrap();
+
+    let stored: String = conn
+        .query_one_raw(Statement::from_string(
+            conn.get_database_backend(),
+            "SELECT cookie_id FROM eihwaz_sessions",
+        ))
+        .await
+        .unwrap()
+        .unwrap()
+        .try_get("", "cookie_id")
+        .unwrap();
+
+    assert_ne!(
+        stored, cookie_id,
+        "a read-only database leak must not reveal a replayable session cookie"
+    );
+    assert!(store.find_by_cookie_id(cookie_id).await.unwrap().is_some());
+}
+
+#[tokio::test]
 async fn test_session_db_find_absent_returns_none() {
     let store = make_store().await;
     let result = store.find_by_cookie_id("nonexistent").await.unwrap();

@@ -49,3 +49,21 @@ fn an_ipv4_range_never_trusts_an_ipv6_address() {
     assert!(!trusts(("0.0.0.0", 0), "::1"));
     assert!(!trusts(("::", 0), "127.0.0.1"));
 }
+
+#[test]
+fn all_trusted_forwarded_hops_fall_back_to_the_direct_peer() {
+    use axum::{body::Body, http::Request};
+
+    let proxy = ip("10.0.0.1");
+    let trusted = TrustedProxies::new(Vec::new(), vec![(ip("10.0.0.0"), 8)]);
+    let request = Request::builder()
+        .header("x-forwarded-for", "10.1.2.3, 10.4.5.6")
+        .body(Body::empty())
+        .unwrap();
+
+    assert_eq!(
+        trusted.extract_client_ip(&request, Some(proxy)),
+        proxy,
+        "an all-trusted XFF chain cannot identify the client; do not trust its leftmost claim"
+    );
+}

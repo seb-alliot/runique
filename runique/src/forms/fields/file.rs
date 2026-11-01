@@ -37,7 +37,7 @@ impl IntoUploadPath for &StaticConfig {
 use async_trait::async_trait;
 use image::ImageReader;
 use serde::Serialize;
-use std::path::Path;
+use std::path::{Component, Path, PathBuf};
 use std::sync::Arc;
 use tokio::io::AsyncReadExt;
 
@@ -75,6 +75,94 @@ async fn cleanup_files(files: &[String]) {
             tracing::warn!(path = %path, error = %e, "cleanup_files: remove failed");
         }
     }
+}
+
+#[derive(Clone, Debug)]
+struct PendingUpload {
+    staged: PathBuf,
+    destination: PathBuf,
+}
+
+fn checked_upload_relative(raw: &str) -> Result<String, String> {
+    if raw.is_empty() {
+        return Ok(String::new());
+    }
+    if raw.contains('\\') || raw.contains(':') {
+        return Err(format!("invalid upload_to path '{raw}'"));
+    }
+    let segments = raw.strip_suffix('/').unwrap_or(raw).split('/');
+    if segments
+        .clone()
+        .any(|part| part.is_empty() || matches!(part, "." | ".."))
+    {
+        return Err(format!("invalid upload_to path '{raw}'"));
+    }
+
+    let path = Path::new(raw);
+    if path.is_absolute()
+        || path
+            .components()
+            .any(|component| !matches!(component, Component::Normal(_)))
+    {
+        return Err(format!("invalid upload_to path '{raw}'"));
+    }
+
+    Ok(raw.trim_end_matches('/').to_string())
+}
+
+async fn ensure_safe_upload_dir(root: &Path, parent: &Path) -> Result<PathBuf, String> {
+    let relative = parent.strip_prefix(root).map_err(|_| {
+        format!(
+            "upload destination '{}' escapes MEDIA_ROOT",
+            parent.display()
+        )
+    })?;
+    let mut current = root.to_path_buf();
+
+    for component in relative.components() {
+        let Component::Normal(name) = component else {
+            return Err(format!("invalid upload destination '{}'", parent.display()));
+        };
+        current.push(name);
+        match tokio::fs::symlink_metadata(&current).await {
+            Ok(metadata) if metadata.is_dir() && !metadata.file_type().is_symlink() => {}
+            Ok(_) => {
+                return Err(format!(
+                    "upload destination '{}' contains a non-directory or symlink",
+                    current.display()
+                ));
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                tokio::fs::create_dir(&current)
+                    .await
+                    .map_err(|e| format!("upload dir '{}': {e}", current.display()))?;
+                let metadata = tokio::fs::symlink_metadata(&current)
+                    .await
+                    .map_err(|e| format!("upload dir '{}': {e}", current.display()))?;
+                if !metadata.is_dir() || metadata.file_type().is_symlink() {
+                    return Err(format!(
+                        "upload destination '{}' is not a real directory",
+                        current.display()
+                    ));
+                }
+            }
+            Err(error) => {
+                return Err(format!("upload dir '{}': {error}", current.display()));
+            }
+        }
+
+        let canonical = tokio::fs::canonicalize(&current)
+            .await
+            .map_err(|e| format!("upload dir '{}': {e}", current.display()))?;
+        if !canonical.starts_with(root) {
+            return Err(format!(
+                "upload destination '{}' escapes MEDIA_ROOT",
+                current.display()
+            ));
+        }
+    }
+
+    Ok(current)
 }
 
 /// A submitted form that did not reach `finalize`. Removes the staged uploads
@@ -164,24 +252,6 @@ async fn is_valid_image_content(path: &str) -> bool {
 fn read_image_dimensions(path: &str) -> Result<(u32, u32), String> {
     let reader = ImageReader::open(path).map_err(|e| e.to_string())?;
     reader.into_dimensions().map_err(|e| e.to_string())
-}
-
-/// Moves a staged file to its destination. `rename` fails with `CrossesDevices`
-/// when the staging directory and `MEDIA_ROOT` are on different filesystems
-/// (e.g. `/tmp` on tmpfs vs. a mounted media volume) — falls back to copy+remove.
-async fn move_file(src: &Path, dest: &Path) -> std::io::Result<()> {
-    match tokio::fs::rename(src, dest).await {
-        Ok(()) => Ok(()),
-        Err(e) if e.kind() == std::io::ErrorKind::CrossesDevices => {
-            tracing::debug!(src = %src.display(), dest = %dest.display(), "cross-device move, falling back to copy");
-            tokio::fs::copy(src, dest).await?;
-            if let Err(e) = tokio::fs::remove_file(src).await {
-                tracing::warn!(path = %src.display(), error = %e, "cross-device move: leftover staged file removal failed");
-            }
-            Ok(())
-        }
-        Err(e) => Err(e),
-    }
 }
 
 /// Parses the field value into a list of file paths
@@ -356,6 +426,8 @@ pub struct FileField {
     pub max_width: Option<u32>,
     pub max_height: Option<u32>,
     pub prev_value: Option<String>,
+    pending_uploads: Vec<PendingUpload>,
+    published_uploads: Vec<PathBuf>,
 }
 
 impl CommonFieldConfig for FileField {
@@ -388,6 +460,8 @@ impl FileField {
             max_width: None,
             max_height: None,
             prev_value: None,
+            pending_uploads: Vec::new(),
+            published_uploads: Vec::new(),
         }
     }
 
@@ -704,25 +778,13 @@ impl FormField for FileField {
             return Ok(());
         }
 
-        // Sous-dossier déclaré sur le champ (ex: "plats/"), ou racine MEDIA_ROOT si
-        // aucun `upload_to`. `finalize` est le seul committer : un fichier stagé doit
-        // toujours être déplacé en destination servie et stocké en chemin RELATIF,
-        // y compris sans `upload_to` (sinon le fichier reste hors media_root et la DB
-        // garde un chemin absolu de staging).
+        self.pending_uploads.clear();
         let upload_rel_clean = match &self.upload_config.upload_to {
-            Some(f) => f(&self.base.name).trim_matches('/').to_string(),
+            Some(f) => checked_upload_relative(&f(&self.base.name))?,
             None => String::new(),
         };
-
-        // Physical destination: {MEDIA_ROOT}/{upload_rel}
-        let media_root = resolve_media_root();
-        let media_root_clean = media_root.trim_end_matches('/');
-        let dest_dir_abs = if upload_rel_clean.is_empty() {
-            media_root_clean.to_string()
-        } else {
-            format!("{}/{}", media_root_clean, upload_rel_clean)
-        };
-        let dest_dir_abs_path = Path::new(&dest_dir_abs);
+        let media_root = PathBuf::from(resolve_media_root());
+        let dest_dir = media_root.join(&upload_rel_clean);
 
         // Construit le chemin relatif stocké ("filename" en racine, sinon "rel/filename").
         let to_rel = |filename: &str| -> String {
@@ -738,14 +800,11 @@ impl FormField for FileField {
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty())
             .collect();
-
         let mut new_paths = Vec::new();
-
         for file_path in &files {
             let src = Path::new(file_path.as_str());
 
-            // Already in the right physical directory — store as relative path
-            if src.parent() == Some(dest_dir_abs_path) {
+            if src.parent() == Some(dest_dir.as_path()) {
                 let filename = src
                     .file_name()
                     .and_then(|n| n.to_str())
@@ -765,41 +824,150 @@ impl FormField for FileField {
                 return Err(format!("'{file_path}' is not an upload"));
             }
 
-            tokio::fs::create_dir_all(dest_dir_abs_path)
-                .await
-                .map_err(|e| format!("upload dir '{}': {}", dest_dir_abs, e))?;
-
             let filename = src
                 .file_name()
                 .and_then(|n| n.to_str())
                 .unwrap_or(file_path.as_str());
-            let dest_abs = dest_dir_abs_path.join(filename);
-
-            move_file(src, &dest_abs)
+            let canonical_root = tokio::fs::canonicalize(&media_root)
                 .await
-                .map_err(|e| format!("move '{}': {}", dest_abs.display(), e))?;
+                .map_err(|e| format!("media root '{}': {e}", media_root.display()))?;
+            self.pending_uploads.push(PendingUpload {
+                staged: src.to_path_buf(),
+                destination: canonical_root.join(&upload_rel_clean).join(filename),
+            });
 
             new_paths.push(to_rel(filename));
         }
 
         self.base.value = new_paths.join(",");
+        Ok(())
+    }
 
-        // Delete old file(s) if a new upload replaced them
-        if let Some(prev) = &self.prev_value {
-            for old_rel in prev.split(',').map(|s| s.trim()).filter(|s| !s.is_empty()) {
-                if !new_paths.iter().any(|p| p == old_rel) {
-                    let old_abs =
-                        format!("{}/{}", media_root_clean, old_rel.trim_start_matches('/'));
-                    if let Err(e) = tokio::fs::remove_file(&old_abs).await
-                        && e.kind() != std::io::ErrorKind::NotFound
-                    {
-                        tracing::warn!(path = %old_abs, error = %e, "old upload removal failed");
-                    }
-                }
+    async fn publish_uploads(&mut self) -> Result<(), String> {
+        if self.pending_uploads.is_empty() {
+            return Ok(());
+        }
+
+        let media_root = PathBuf::from(resolve_media_root());
+        let canonical_root = tokio::fs::canonicalize(&media_root)
+            .await
+            .map_err(|e| format!("media root '{}': {e}", media_root.display()))?;
+
+        for upload in &self.pending_uploads {
+            if !is_staged_upload(&upload.staged.to_string_lossy()) {
+                return Err(format!(
+                    "'{}' is no longer a staged upload",
+                    upload.staged.display()
+                ));
+            }
+            let metadata = tokio::fs::symlink_metadata(&upload.staged)
+                .await
+                .map_err(|e| format!("staged upload '{}': {e}", upload.staged.display()))?;
+            if !metadata.file_type().is_file() {
+                return Err(format!(
+                    "'{}' is not a regular staged file",
+                    upload.staged.display()
+                ));
+            }
+
+            let parent = upload.destination.parent().ok_or_else(|| {
+                format!(
+                    "invalid upload destination '{}'",
+                    upload.destination.display()
+                )
+            })?;
+            let safe_parent = ensure_safe_upload_dir(&canonical_root, parent).await?;
+            let filename = upload.destination.file_name().ok_or_else(|| {
+                format!(
+                    "invalid upload destination '{}'",
+                    upload.destination.display()
+                )
+            })?;
+            let destination = safe_parent.join(filename);
+
+            // Staging is under MEDIA_ROOT, so a hard link publishes the complete
+            // file atomically and fails rather than overwriting an existing file.
+            tokio::fs::hard_link(&upload.staged, &destination)
+                .await
+                .map_err(|e| format!("publish '{}': {e}", destination.display()))?;
+            self.published_uploads.push(destination);
+            if let Err(error) = tokio::fs::remove_file(&upload.staged).await {
+                return Err(format!(
+                    "remove staged upload '{}': {error}",
+                    upload.staged.display()
+                ));
             }
         }
 
         Ok(())
+    }
+
+    async fn rollback_uploads(&mut self) {
+        for path in self.published_uploads.drain(..) {
+            if let Err(error) = tokio::fs::remove_file(&path).await
+                && error.kind() != std::io::ErrorKind::NotFound
+            {
+                tracing::error!(path = %path.display(), error = %error, "published upload rollback failed");
+            }
+        }
+        if !self.pending_uploads.is_empty() {
+            self.base.value = self.prev_value.clone().unwrap_or_default();
+            self.pending_uploads.clear();
+        }
+    }
+
+    async fn complete_uploads(&mut self) {
+        if self.published_uploads.is_empty() {
+            return;
+        }
+        let media_root = PathBuf::from(resolve_media_root());
+        let canonical_root = match tokio::fs::canonicalize(&media_root).await {
+            Ok(path) => path,
+            Err(error) => {
+                tracing::error!(path = %media_root.display(), error = %error, "media root could not be resolved after upload commit");
+                self.published_uploads.clear();
+                self.pending_uploads.clear();
+                self.prev_value = None;
+                return;
+            }
+        };
+
+        if let Some(prev) = &self.prev_value {
+            for old_rel in prev.split(',').map(str::trim).filter(|s| !s.is_empty()) {
+                if self
+                    .base
+                    .value
+                    .split(',')
+                    .map(str::trim)
+                    .any(|new| new == old_rel)
+                {
+                    continue;
+                }
+                let Ok(clean_rel) = checked_upload_relative(old_rel) else {
+                    tracing::warn!(
+                        path = old_rel,
+                        "refusing to remove invalid previous upload path"
+                    );
+                    continue;
+                };
+                let old_abs = media_root.join(clean_rel);
+                let Ok(canonical_file) = tokio::fs::canonicalize(&old_abs).await else {
+                    continue;
+                };
+                if !canonical_file.starts_with(&canonical_root) {
+                    tracing::warn!(path = %old_abs.display(), "refusing to remove previous upload outside MEDIA_ROOT");
+                    continue;
+                }
+                if let Err(error) = tokio::fs::remove_file(&old_abs).await
+                    && error.kind() != std::io::ErrorKind::NotFound
+                {
+                    tracing::warn!(path = %old_abs.display(), error = %error, "old upload removal failed");
+                }
+            }
+        }
+        self.published_uploads.clear();
+        self.pending_uploads.clear();
+        self.prev_value = None;
     }
 
     fn render(&self, tera: &ATera) -> Result<String, String> {
@@ -848,11 +1016,38 @@ mod finalize_tests {
         p
     }
 
-    /// Without `upload_to`, `finalize` must commit the staged file at the root
-    /// of MEDIA_ROOT and store a RELATIVE path (not the staging's absolute one).
-    /// A prerequisite for `parse_multipart`'s move to an unserved staging area.
+    struct Media {
+        root: PathBuf,
+        staging: PathBuf,
+    }
+
+    impl Media {
+        fn new() -> Self {
+            let root = unique_dir("media");
+            let staging = root.join(format!(".staging-{}", uuid::Uuid::new_v4()));
+            fs::create_dir_all(&staging).unwrap();
+            unsafe { std::env::set_var("MEDIA_ROOT", root.to_str().unwrap()) };
+            Self { root, staging }
+        }
+
+        fn staged(&self, name: &str, bytes: &[u8]) -> String {
+            let path = self.staging.join(name);
+            fs::write(&path, bytes).unwrap();
+            path.to_string_lossy().into_owned()
+        }
+    }
+
+    impl Drop for Media {
+        fn drop(&mut self) {
+            unsafe { std::env::remove_var("MEDIA_ROOT") };
+            let _ = fs::remove_dir_all(&self.root);
+        }
+    }
+
+    /// `finalize` prepares the relative path, while publication is a separate
+    /// step that can be rolled back if the database write fails.
     #[tokio::test]
-    async fn finalize_without_upload_to_commits_staged_file_to_media_root() {
+    async fn finalize_prepares_but_does_not_publish_staged_file() {
         let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
         let media = unique_dir("media");
         // Where `parse_multipart` stages an upload.
@@ -871,11 +1066,17 @@ mod finalize_tests {
         f.finalize().await.expect("finalize should succeed");
 
         assert_eq!(f.base.value, "photo.png", "valeur normalisée en relatif");
+        assert!(staged.exists(), "finalize leaves the file staged");
+        assert!(!media.join("photo.png").exists(), "not yet published");
+
+        f.publish_uploads()
+            .await
+            .expect("publication should succeed");
         assert!(
             media.join("photo.png").exists(),
-            "fichier commité en media_root"
+            "published under media_root"
         );
-        assert!(!staged.exists(), "fichier déplacé hors du staging");
+        assert!(!staged.exists(), "staged link removed after publication");
 
         unsafe {
             std::env::remove_var("MEDIA_ROOT");
@@ -883,8 +1084,8 @@ mod finalize_tests {
         let _ = fs::remove_dir_all(&media);
     }
 
-    /// Stages `photo.png` under a fresh MEDIA_ROOT, runs `finalize` on `field`,
-    /// and returns the stored value with the media root to check against.
+    /// Stages `photo.png`, prepares and publishes it, then returns its stored
+    /// value and media root.
     async fn finalize_staged(mut field: FileField) -> (String, std::path::PathBuf) {
         let media = unique_dir("media");
         let staging = media.join(format!(".staging-{}", uuid::Uuid::new_v4()));
@@ -896,6 +1097,11 @@ mod finalize_tests {
         }
         field.base.value = staged.to_string_lossy().to_string();
         field.finalize().await.expect("finalize should succeed");
+        field
+            .publish_uploads()
+            .await
+            .expect("publication should succeed");
+        field.complete_uploads().await;
         unsafe {
             std::env::remove_var("MEDIA_ROOT");
         }
@@ -1011,6 +1217,131 @@ mod finalize_tests {
         let _ = fs::remove_dir_all(&media);
     }
 
+    #[tokio::test]
+    async fn rollback_removes_new_file_and_preserves_previous_file() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        fs::write(media.root.join("old.png"), b"old bytes").unwrap();
+        let staged = media.staged("new.png", b"new bytes");
+        let mut field = FileField::any("doc");
+        field.set_value("old.png");
+        field.set_value(&staged);
+
+        field.finalize().await.unwrap();
+        assert!(Path::new(&staged).exists());
+        assert!(media.root.join("old.png").exists());
+        field.publish_uploads().await.unwrap();
+        assert!(media.root.join("new.png").exists());
+        assert!(media.root.join("old.png").exists());
+
+        field.rollback_uploads().await;
+        assert!(!media.root.join("new.png").exists());
+        assert!(media.root.join("old.png").exists());
+        assert_eq!(field.base.value, "old.png");
+    }
+
+    #[tokio::test]
+    async fn failed_database_write_rolls_back_published_upload() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        fs::write(media.root.join("old.png"), b"old bytes").unwrap();
+        let staged = media.staged("new.png", b"new bytes");
+        let mut field = FileField::any("doc");
+        field.set_value("old.png");
+        field.set_value(&staged);
+        assert_eq!(field.prev_value.as_deref(), Some("old.png"));
+        field.finalize().await.unwrap();
+
+        let mut forms = crate::forms::form::Forms::new("");
+        forms.field(&field);
+
+        let result = crate::forms::form::write_with_uploads(&mut forms, async {
+            Err(sea_orm::DbErr::Custom(
+                "simulated write failure".to_string(),
+            ))
+        })
+        .await;
+
+        assert!(result.is_err());
+        assert!(!media.root.join("new.png").exists());
+        assert!(media.root.join("old.png").exists());
+        assert_eq!(forms.fields["doc"].value(), "old.png");
+    }
+
+    #[tokio::test]
+    async fn successful_completion_removes_replaced_file_after_publication() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        fs::write(media.root.join("old.png"), b"old bytes").unwrap();
+        let staged = media.staged("new.png", b"new bytes");
+        let mut field = FileField::any("doc");
+        field.set_value("old.png");
+        field.set_value(&staged);
+        field.finalize().await.unwrap();
+
+        assert!(media.root.join("old.png").exists());
+        field.publish_uploads().await.unwrap();
+        assert!(media.root.join("old.png").exists());
+        assert!(media.root.join("new.png").exists());
+        field.complete_uploads().await;
+        assert!(!media.root.join("old.png").exists());
+        assert!(media.root.join("new.png").exists());
+    }
+
+    #[tokio::test]
+    async fn upload_to_rejects_traversal_absolute_and_windows_paths() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        for upload_to in [
+            "../outside",
+            "avatars/../../outside",
+            "/tmp/outside",
+            r"C:\outside",
+        ] {
+            let staged = media.staged(&format!("{}.png", uuid::Uuid::new_v4()), b"data");
+            let mut field = FileField::any("doc").upload_to(upload_to);
+            field.base.value = staged;
+            assert!(
+                field.finalize().await.is_err(),
+                "rejected upload_to {upload_to:?}"
+            );
+        }
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn upload_to_symlink_cannot_escape_media_root() {
+        use std::os::unix::fs::symlink;
+
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        let outside = unique_dir("outside");
+        symlink(&outside, media.root.join("avatars")).unwrap();
+        let staged = media.staged("photo.png", b"data");
+        let mut field = FileField::any("doc").upload_to("avatars");
+        field.base.value = staged.clone();
+        field.finalize().await.unwrap();
+        assert!(field.publish_uploads().await.is_err());
+        assert!(!outside.join("photo.png").exists());
+        assert!(Path::new(&staged).exists());
+        let _ = fs::remove_dir_all(outside);
+    }
+
+    #[tokio::test]
+    async fn publication_collision_never_overwrites_existing_file() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        fs::write(media.root.join("photo.png"), b"existing").unwrap();
+        let staged = media.staged("photo.png", b"uploaded");
+        let mut field = FileField::any("doc");
+        field.base.value = staged.clone();
+        field.finalize().await.unwrap();
+
+        assert!(field.publish_uploads().await.is_err());
+        assert_eq!(fs::read(media.root.join("photo.png")).unwrap(), b"existing");
+        assert!(Path::new(&staged).exists());
+    }
+
     /// Current behaviour, not a wish: MEDIA_ROOT is a plain filesystem path.
     /// An address put there reaches no other machine; the upload lands in a
     /// local folder named after it, relative to the working directory. Written
@@ -1041,6 +1372,10 @@ mod finalize_tests {
             let mut f = FileField::any("doc");
             f.base.value = staged.to_string_lossy().to_string();
             let result = f.finalize().await;
+            if result.is_ok() {
+                f.publish_uploads().await.unwrap();
+                f.complete_uploads().await;
+            }
             unsafe { std::env::remove_var("MEDIA_ROOT") };
 
             let landed = cwd.join(&root).join("photo.png");
@@ -1441,14 +1776,26 @@ mod guarantees {
         field.set_value("old.pdf");
         field.set_value(&media.staged("new.pdf", b"new"));
         field.finalize().await.unwrap();
-        assert!(!media.root.join("old.pdf").exists(), "replaced: removed");
+        assert!(
+            media.root.join("old.pdf").exists(),
+            "still present before save"
+        );
+        field.publish_uploads().await.unwrap();
+        assert!(
+            media.root.join("old.pdf").exists(),
+            "still present before DB success"
+        );
         assert!(media.root.join("new.pdf").exists());
+        field.complete_uploads().await;
+        assert!(!media.root.join("old.pdf").exists(), "removed after save");
 
         fs::write(media.root.join("same.pdf"), b"same").unwrap();
         let mut field = FileField::any("doc");
         field.set_value("same.pdf");
         field.prev_value = Some("same.pdf".into());
         field.finalize().await.unwrap();
+        field.publish_uploads().await.unwrap();
+        field.complete_uploads().await;
         assert!(
             media.root.join("same.pdf").exists(),
             "still referenced: kept"
@@ -1612,11 +1959,13 @@ mod guarantees {
         fields.add_value("blob", &blob);
         fields.add_value("title", "ok");
         fields.add_value("note", "a, b");
-        assert!(form.is_valid().await, "the form commits");
+        assert!(form.is_valid().await, "the form validates");
+        form.get_form_mut().publish_uploads().await.unwrap();
+        form.get_form_mut().complete_uploads().await;
         let stored = form.get_form().fields.get("doc").unwrap().value();
         assert_eq!(stored, "hello.txt");
         assert_eq!(fs::read(media.root.join("hello.txt")).unwrap(), b"hello");
-        assert!(!Path::new(&doc).exists(), "moved out of staging");
+        assert!(!Path::new(&doc).exists(), "published out of staging");
         {
             let mut lease = crate::utils::parse_html::Lease::claim(media.staging.clone());
             let _ = lease.lock_dir();

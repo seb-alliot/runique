@@ -7,7 +7,10 @@
 //! typed email on the reset form is checked against that account in the
 //! database; it is never carried in the link.
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
-use sea_orm::{ActiveValue::Set, ColumnTrait, Condition, DbErr, EntityTrait, QueryFilter};
+use sea_orm::{
+    ActiveValue::Set, ColumnTrait, DatabaseTransaction, DbErr, EntityTrait, QueryFilter,
+    TransactionTrait,
+};
 use sha2::{Digest, Sha256};
 use std::time::Duration;
 use uuid::Uuid;
@@ -35,14 +38,10 @@ pub async fn generate(db: &ADb, user_id: Pk, ttl: Duration) -> Result<String, Db
         .and_then(|d| now.checked_add_signed(d))
         .unwrap_or(now);
 
-    // Best-effort cleanup; a failure here does not compromise the new token below,
-    // mais on le logge (tokens périmés qui s'accumulent) plutôt que de l'avaler.
+    // Expired rows belonging to other accounts can be cleaned independently.
     if let Err(e) = entity::Entity::delete_many()
-        .filter(
-            Condition::any()
-                .add(entity::Column::UserId.eq(user_id))
-                .add(entity::Column::ExpiresAt.lt(now)),
-        )
+        .filter(entity::Column::UserId.ne(user_id))
+        .filter(entity::Column::ExpiresAt.lt(now))
         .exec(db)
         .await
     {
@@ -55,7 +54,24 @@ pub async fn generate(db: &ADb, user_id: Pk, ttl: Duration) -> Result<String, Db
         expires_at: Set(expires_at),
         ..Default::default()
     };
-    entity::Entity::insert(model).exec(db).await?;
+    let txn = db.begin().await?;
+    if let Err(error) = entity::Entity::delete_many()
+        .filter(entity::Column::UserId.eq(user_id))
+        .exec(&txn)
+        .await
+    {
+        if let Err(rollback_error) = txn.rollback().await {
+            tracing::error!(user_id = %user_id, error = %rollback_error, "reset token replacement rollback failed");
+        }
+        return Err(error);
+    }
+    if let Err(error) = entity::Entity::insert(model).exec(&txn).await {
+        if let Err(rollback_error) = txn.rollback().await {
+            tracing::error!(user_id = %user_id, error = %rollback_error, "reset token replacement rollback failed");
+        }
+        return Err(error);
+    }
+    txn.commit().await?;
     Ok(token)
 }
 
@@ -77,16 +93,58 @@ pub async fn resolve(db: &ADb, token: &str) -> Option<Pk> {
 /// The row is claimed by deleting it: under a concurrent double-submit both reads
 /// may see the row, but only the delete that affects exactly one row wins.
 pub async fn consume(db: &ADb, token: &str) -> Option<Pk> {
+    let txn = match db.begin().await {
+        Ok(txn) => txn,
+        Err(error) => {
+            tracing::warn!(error = %error, "reset token consumption could not begin");
+            return None;
+        }
+    };
+    let user_id = match consume_in_transaction(&txn, token).await {
+        Ok(Some(user_id)) => user_id,
+        Ok(None) => {
+            if let Err(error) = txn.rollback().await {
+                tracing::error!(error = %error, "reset token consumption rollback failed");
+            }
+            return None;
+        }
+        Err(error) => {
+            tracing::warn!(error = %error, "reset token consumption failed");
+            if let Err(rollback_error) = txn.rollback().await {
+                tracing::error!(error = %rollback_error, "reset token consumption rollback failed");
+            }
+            return None;
+        }
+    };
+    if let Err(error) = txn.commit().await {
+        tracing::warn!(error = %error, "reset token consumption commit failed");
+        return None;
+    }
+    Some(user_id)
+}
+
+/// Consumes a valid token inside the caller's transaction.
+pub(crate) async fn consume_in_transaction(
+    txn: &DatabaseTransaction,
+    token: &str,
+) -> Result<Option<Pk>, DbErr> {
     let now = chrono::Utc::now().naive_utc();
     let row = entity::Entity::find()
         .filter(entity::Column::TokenHash.eq(hash_token(token)))
         .filter(entity::Column::ExpiresAt.gt(now))
-        .one(db)
-        .await
-        .ok()??;
+        .one(txn)
+        .await?;
+    let Some(row) = row else {
+        return Ok(None);
+    };
 
-    let deleted = entity::Entity::delete_by_id(row.id).exec(db).await.ok()?;
-    (deleted.rows_affected == 1).then_some(row.user_id)
+    let deleted = entity::Entity::delete_many()
+        .filter(entity::Column::Id.eq(row.id))
+        .filter(entity::Column::TokenHash.eq(hash_token(token)))
+        .filter(entity::Column::ExpiresAt.gt(now))
+        .exec(txn)
+        .await?;
+    Ok((deleted.rows_affected == 1).then_some(row.user_id))
 }
 
 /// Checks a token's validity without consuming it (to display the reset form).

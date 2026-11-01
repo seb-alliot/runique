@@ -21,6 +21,7 @@ use serde::{
     ser::{SerializeStruct, Serializer},
 };
 use serde_json::{Value, json};
+use std::future::Future;
 
 /// How `save` may write: freely, or only through the gate, as `user`.
 #[derive(Clone, Debug, Default)]
@@ -54,6 +55,26 @@ pub struct Forms {
     /// The name `try_form` gave the form: `save` looks for its key under
     /// `{<name>_<pk>}` in the URL first.
     pub(crate) name: Option<&'static str>,
+}
+
+pub(crate) async fn write_with_uploads(
+    forms: &mut Forms,
+    write: impl Future<Output = Result<(), sea_orm::DbErr>>,
+) -> Result<(), sea_orm::DbErr> {
+    forms
+        .publish_uploads()
+        .await
+        .map_err(sea_orm::DbErr::Custom)?;
+    match write.await {
+        Ok(()) => {
+            forms.complete_uploads().await;
+            Ok(())
+        }
+        Err(error) => {
+            forms.rollback_uploads().await;
+            Err(error)
+        }
+    }
 }
 
 impl std::fmt::Debug for Forms {
@@ -517,9 +538,9 @@ impl Forms {
         self.validated = false;
     }
 
-    /// Runs each field's finalize step (e.g. moving an uploaded file to its
-    /// destination, hashing a password) in registration order. Returns the
-    /// first error encountered, if any.
+    /// Runs each field's preparation step (e.g. preparing an upload's relative
+    /// path, hashing a password) in registration order. File uploads remain
+    /// staged until `publish_uploads` is called.
     pub async fn finalize(&mut self) -> Result<(), String> {
         let log_finalize = crate::utils::runique_log::get_log()
             .forms
@@ -541,6 +562,42 @@ impl Forms {
             }
         }
         Ok(())
+    }
+
+    /// Publishes staged uploads immediately before the corresponding database
+    /// write. If publication fails, already-published files are rolled back.
+    ///
+    /// `ValidationForm::save` handles publication and rollback automatically.
+    /// A custom save must call this before writing, then call
+    /// `complete_uploads` after a successful write or `rollback_uploads` after
+    /// a failed one.
+    pub async fn publish_uploads(&mut self) -> Result<(), String> {
+        let mut failure = None;
+        for field in self.fields.values_mut() {
+            if let Err(error) = field.publish_uploads().await {
+                failure = Some(error);
+                break;
+            }
+        }
+        if let Some(error) = failure {
+            self.rollback_uploads().await;
+            return Err(error);
+        }
+        Ok(())
+    }
+
+    /// Rolls back files published for a database write that did not succeed.
+    pub async fn rollback_uploads(&mut self) {
+        for field in self.fields.values_mut() {
+            field.rollback_uploads().await;
+        }
+    }
+
+    /// Completes upload publication after the database write succeeds.
+    pub async fn complete_uploads(&mut self) {
+        for field in self.fields.values_mut() {
+            field.complete_uploads().await;
+        }
     }
 }
 

@@ -57,6 +57,20 @@ const SENSITIVE_HEADER_WORDS: &[&str] = &[
     "signature",
 ];
 
+fn redact_sensitive_path(path: &str) -> String {
+    let mut parts: Vec<&str> = path.split('/').collect();
+    if let Some(index) = parts.iter().position(|part| {
+        let part = part.to_ascii_lowercase();
+        ["reset", "token", "password", "forgot", "invite", "verify"]
+            .iter()
+            .any(|marker| part.contains(marker))
+    }) && let Some(secret) = parts.get_mut(index + 1)
+    {
+        *secret = "[redacted]";
+    }
+    parts.join("/")
+}
+
 /// Transport for request info used in contextual debug
 pub struct RequestInfoHelper {
     pub method: String,
@@ -72,7 +86,7 @@ pub struct RequestInfoHelper {
 #[instrument(
     name = "RuniqueRequest",
     skip(tera, config, next, request),
-    fields(method = %request.method(), uri = %request.uri())
+    fields(method = %request.method(), uri = %redact_sensitive_path(request.uri().path()))
 )]
 pub async fn error_handler_middleware(
     Extension(tera): Extension<ATera>,
@@ -84,8 +98,8 @@ pub async fn error_handler_middleware(
     let csrf_token: Option<String> = request.extensions().get::<CsrfToken>().map(|t| t.0.clone());
     let request_helper = RequestInfoHelper {
         method: request.method().to_string(),
-        path: request.uri().path().to_string(),
-        query: request.uri().query().map(std::string::ToString::to_string),
+        path: redact_sensitive_path(request.uri().path()),
+        query: None,
         headers: request
             .headers()
             .iter()
@@ -735,7 +749,7 @@ pub(crate) fn html_escape(s: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{errors_http_level, errors_render_level, html_escape};
+    use super::{errors_http_level, errors_render_level, html_escape, redact_sensitive_path};
     use crate::utils::runique_log::{RuniqueLog, log_init, reset_log_for_test};
     use tracing::Level;
 
@@ -768,6 +782,14 @@ mod tests {
     #[test]
     fn test_html_escape_lt_gt() {
         assert_eq!(html_escape("<script>"), "&lt;script&gt;");
+    }
+
+    #[test]
+    fn reset_token_paths_are_redacted_before_logging_or_rendering() {
+        let token = "reset-bearer-secret-123";
+        let path = redact_sensitive_path(&format!("/reset/{token}"));
+        assert_eq!(path, "/reset/[redacted]");
+        assert!(!path.contains(token));
     }
 
     #[test]

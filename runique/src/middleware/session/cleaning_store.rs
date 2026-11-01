@@ -695,6 +695,7 @@ impl SessionStore for CleaningMemoryStore {
                             "session DB fallback load failed for cookie_id lookup: {e}"
                         );
                     }
+                    return Err(session_store::Error::Backend(e.to_string()));
                 }
             }
         }
@@ -713,14 +714,17 @@ impl SessionStore for CleaningMemoryStore {
         // Remove from DB too (covers cycle_id() old-ID cleanup and explicit session.delete()).
         // logout() already calls store.delete() before session.flush(), so this is idempotent.
         #[cfg(feature = "orm")]
-        if let Some(ref db) = self.db_fallback {
-            db.delete(&session_id.to_string()).await.trace(
-                crate::utils::runique_log::get_log()
-                    .session
-                    .as_ref()
-                    .and_then(|s| s.store),
-                "delete session from DB",
-            );
+        if let Some(ref db) = self.db_fallback
+            && let Err(error) = db.delete(&session_id.to_string()).await
+        {
+            if let Some(level) = crate::utils::runique_log::get_log()
+                .session
+                .as_ref()
+                .and_then(|s| s.store)
+            {
+                crate::runique_log!(level, "delete session from DB failed: {error}");
+            }
+            return Err(session_store::Error::Backend(error.to_string()));
         }
 
         Ok(())

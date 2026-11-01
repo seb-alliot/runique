@@ -8,7 +8,7 @@ use crate::auth::permissions::rights::ColumnRights;
 use crate::context::Request;
 use crate::forms::FormEntity;
 use crate::forms::field::RuniqueForm;
-use crate::forms::form::SaveComportement;
+use crate::forms::form::{SaveComportement, write_with_uploads};
 use crate::forms::save::{SaveAction, not_found, on_fields, url_key};
 use crate::utils::aliases::ADb;
 use crate::utils::constante::session_key::session::FORM_NAME_KEY;
@@ -119,9 +119,12 @@ where
                 let Some(id) = key else {
                     // `insert`, not `save`: a key the form itself carries would
                     // turn `save` into an update of that row.
-                    let txn = db.begin().await?;
-                    model.insert(&txn).await?;
-                    return txn.commit().await;
+                    return write_with_uploads(forms, async {
+                        let txn = db.begin().await?;
+                        model.insert(&txn).await?;
+                        txn.commit().await
+                    })
+                    .await;
                 };
                 if !model.is_changed() {
                     return Ok(());
@@ -132,12 +135,15 @@ where
                     model.set(column.into_column(), value);
                 }
                 // The model's own hooks write through the same transaction.
-                let txn = db.begin().await?;
-                match model.save(&txn).await {
-                    Ok(_) => txn.commit().await,
-                    Err(DbErr::RecordNotUpdated) => Err(not_found()),
-                    Err(e) => Err(e),
-                }
+                write_with_uploads(forms, async {
+                    let txn = db.begin().await?;
+                    match model.save(&txn).await {
+                        Ok(_) => txn.commit().await,
+                        Err(DbErr::RecordNotUpdated) => Err(not_found()),
+                        Err(e) => Err(e),
+                    }
+                })
+                .await
             }
             .await
         };

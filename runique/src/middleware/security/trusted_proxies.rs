@@ -139,7 +139,7 @@ impl TrustedProxies {
     ///   1. If the direct connection IP (conn_ip) is not trusted, return it directly.
     ///   2. Otherwise, parse `X-Forwarded-For` and walk from right to left,
     ///      skipping trusted proxies, to find the first untrusted IP.
-    ///   3. If all XFF entries are trusted, return the leftmost (client claim).
+    ///   3. If all XFF entries are trusted, fall back to the direct peer.
     pub fn extract_client_ip(&self, req: &Request<Body>, conn_ip: Option<IpAddr>) -> IpAddr {
         // No socket peer info (tests / non-socket contexts): we cannot verify the
         // request actually transited a trusted proxy, so X-Forwarded-For — which is
@@ -178,8 +178,8 @@ impl TrustedProxies {
             }
         }
 
-        // All entries are trusted proxies — use the leftmost as client claim
-        xff.into_iter().next().unwrap_or(conn_ip_value)
+        // An all-trusted chain contains no verifiable client address.
+        conn_ip_value
     }
 }
 
@@ -337,12 +337,12 @@ mod tests {
     }
 
     #[test]
-    fn all_xff_trusted_returns_leftmost() {
+    fn all_xff_trusted_returns_direct_peer() {
         let tp = TrustedProxies::default();
         let req = req_with_xff(Some("10.0.0.9, 10.0.0.2"));
         assert_eq!(
             tp.extract_client_ip(&req, Some(ip("10.0.0.1"))),
-            ip("10.0.0.9")
+            ip("10.0.0.1")
         );
     }
 

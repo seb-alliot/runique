@@ -204,6 +204,17 @@ async fn test_decimal_valide() {
 }
 
 #[tokio::test]
+async fn test_decimal_max_rejects_value_above_limit_beyond_f64_precision() {
+    let mut field = NumericField::decimal("montant").max(0.1, "");
+    field.set_value("0.100000000000000001");
+
+    assert!(
+        !field.validate().await,
+        "decimal bounds must compare the exact submitted value, not its rounded f64"
+    );
+}
+
+#[tokio::test]
 async fn test_decimal_invalide() {
     let mut field = NumericField::decimal("montant");
     field.set_value("abc");

@@ -362,6 +362,31 @@ fn test_create_file_postgres_enum_stmts() {
 }
 
 #[test]
+fn test_create_file_escapes_enum_values_as_rust_literals_everywhere() {
+    let value = "draft\"); compile_error!(\"injected\"); //";
+    let schema = ParsedSchema {
+        table_name: "articles".to_string(),
+        primary_key: Some(col("id", "i32")),
+        columns: vec![ParsedColumn {
+            name: "status".to_string(),
+            col_type: "String".to_string(),
+            enum_name: Some("Status".to_string()),
+            enum_string_values: vec![value.to_string()],
+            ..ParsedColumn::default()
+        }],
+        foreign_keys: vec![],
+        indexes: vec![],
+    };
+
+    let content = generate_create_file(&schema);
+    let escaped_literal = format!("Alias::new({value:?}).into_iden()");
+    assert!(
+        content.contains(&escaped_literal),
+        "every enum value inserted into generated Rust must be escaped as a string literal"
+    );
+}
+
+#[test]
 fn test_create_file_postgres_enum_drops() {
     let schema = ParsedSchema {
         table_name: "articles".to_string(),
@@ -379,6 +404,24 @@ fn test_create_file_postgres_enum_drops() {
     assert!(
         content.contains("Type::drop()"),
         "Postgres down doit supprimer le type"
+    );
+}
+
+#[test]
+fn test_alter_file_escapes_added_enum_values_as_rust_literals() {
+    let value = "draft\"); compile_error!(\"injected\"); //";
+    let mut changes = simple_changes("articles");
+    changes.enum_value_adds = vec![(
+        "status".to_string(),
+        "Status".to_string(),
+        value.to_string(),
+    )];
+
+    let content = generate_alter_file(&changes);
+    let escaped_literal = format!("Alias::new({value:?})");
+    assert!(
+        content.contains(&escaped_literal),
+        "added enum values must be escaped before generating Rust code"
     );
 }
 

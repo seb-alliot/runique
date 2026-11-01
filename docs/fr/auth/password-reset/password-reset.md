@@ -4,7 +4,7 @@
 
 ---
 
-> **Mode `Auto` requis pour le reset built-in :** la route intégrée (`with_password_reset`) lit la valeur du formulaire après `finalize()` et l'écrit en base. En mode `Auto`, `finalize()` hache automatiquement le mot de passe — tout est correct. En mode `Manual`, `Custom` ou `Delegated`, `finalize()` ne hache pas : le mot de passe serait stocké en clair. Si tu n'utilises pas `PasswordConfig::auto()`, écris ta propre route de reset qui hache la valeur reçue. Voir → [Configuration des mots de passe](/docs/fr/configuration/password)
+> Le reset intégré hache le mot de passe soumis avec la configuration de l'application. Les modes `Auto`, `Manual` et `Custom` sont pris en charge. En mode `Delegated`, le reset intégré refuse de modifier un mot de passe local et conserve le token utilisable ; utilise plutôt le flux de récupération du fournisseur d'identité. Voir → [Configuration des mots de passe](/docs/fr/configuration/password).
 
 ## Ce que le framework fournit
 

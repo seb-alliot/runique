@@ -187,6 +187,50 @@ async fn upload_limits_take_the_limit_itself() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
+#[tokio::test]
+async fn direct_multipart_file_remains_available_after_an_unrelated_parse() {
+    use axum::extract::Multipart;
+
+    let dir = temp_upload_dir();
+    let upload_dir = dir.clone();
+    let app = Router::new().route(
+        "/upload",
+        post(move |multipart: Multipart| {
+            let upload_dir = upload_dir.clone();
+            async move {
+                let parsed = parse_multipart(multipart, &upload_dir, 1, 1)
+                    .await
+                    .expect("multipart parsed");
+                parsed["doc"][0].clone()
+            }
+        }),
+    );
+    let response = app
+        .oneshot(multipart_file_request("doc", "report.pdf", "%PDF-1.4"))
+        .await
+        .unwrap();
+    let path = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let path = String::from_utf8(path.to_vec()).unwrap();
+
+    assert!(
+        std::path::Path::new(&path).exists(),
+        "the returned upload exists"
+    );
+    assert_eq!(
+        parse_into(dir.clone(), multipart_text_request(&[("note", "ok")])).await,
+        StatusCode::OK
+    );
+    let still_exists = std::path::Path::new(&path).exists();
+    let _ = std::fs::remove_dir_all(&dir);
+
+    assert!(
+        still_exists,
+        "an unrelated parse must not sweep a file path still owned by the direct caller"
+    );
+}
+
 /// A parse removes every `.staging-*` directory no live process holds, however
 /// recent it is. Any other folder stays (`sweep_stale_staging`).
 #[tokio::test]

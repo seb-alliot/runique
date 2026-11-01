@@ -19,11 +19,11 @@ mon-projet/
 │   ├── admin.rs           # ModelAdmin + AdminSite (si admin activé)
 │   ├── url.rs             # urlpatterns! — table de routage
 │   ├── views.rs           # Handlers (fonctions async)
-│   └──  forms.rs          # Structs RuniqueForm (ou dossier forms/)
+│   └── forms.rs           # Structs RuniqueForm (ou dossier forms/)
 │
 ├── templates/             # Templates Tera (.html)
 ├── static/                # Fichiers statiques (CSS, JS, images)
-│   └── media/             # Uploads (FileField)
+├── media/                 # Uploads (FileField)
 │                          # Media peux etre dans un autre dossier
 │
 ├── migration/             # Migrations SeaORM
@@ -51,14 +51,17 @@ mod views;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let config = RuniqueConfig::from_env();
-    let db_config = DatabaseConfig::from_env()?.min_connections(1).build();
-    let db: DatabaseConnection = db_config.connect().await?;
 
-    password_init(PasswordConfig::auto());
+    password_init(PasswordConfig::auto_with(Manual::Argon2));
+    set_lang(Lang::En);
+
+    let config: RuniqueConfig = RuniqueConfig::from_env();
+    let db_config = DatabaseConfig::from_env()?.build();
+    let db: DatabaseConnection = db_config.connect().await?;
 
     RuniqueApp::builder(config)
         .routes(url::routes())
+        .with_public_url("http://localhost:3000") // local environnement only else domain name
         .with_database(db)
         .statics()
         .build()
@@ -112,21 +115,29 @@ impl RuniqueForm for RegisterForm {
 ```rust
 use runique::admin::{AdminSite, ModelAdmin};
 use runique::app::staging::AdminStaging;
-use crate::entities::article;
+use crate::entities::demo_category;
 
 pub fn config(admin: AdminStaging) -> AdminStaging {
-    admin.site_title("Administration").path("/admin/").site(site)
+    admin
+        .site_title("Administration")
+        .path("/admin/")
+        .site(site)
 }
 
 fn site(site: AdminSite) -> AdminSite {
-    site.register(articles())
+    site
+        .register(demo_category())
 }
 
-fn articles() -> ModelAdmin<article::Entity> {
-    use article::Column::*;
-    ModelAdmin::new()
-        .title("Articles")
-        .list(|l| l.display([Title, Status]))
+fn demo_category() -> ModelAdmin<demo_category::Entity> {
+    use demo_category::Column::*;
+    ModelAdmin::new().list(|l| {
+        l.display([Title, BackLinkLabel, BackLinkUrl, SortOrder])
+            .links([Title])
+            .ordering([(SortOrder, Order::Asc)])
+            .search([Title])
+            .empty_value("—")
+    })
 }
 ```
 
