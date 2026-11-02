@@ -48,11 +48,33 @@ Les trois déclarent `is_safe()` — leur sortie est émise sans échappement, `
 
 ---
 
+## Filtres utilitaires
+
+| Filtre | Description |
+|--------|-------------|
+| `humanize` | Identifiant lisible : `"changelog_entry"` → `"Changelog Entry"`. Pour des noms techniques (valeurs d'enum, colonnes), pas pour une saisie utilisateur |
+| `format_date` | Date-heure (`NaiveDateTime`) au format `jj/mm/aaaa HH:MM` |
+| `date` | Date au format de votre choix (`{{ d \| date(format="%Y-%m-%d") }}`) |
+| `mask` | Remplace une valeur par autant de puces que de caractères (affichage d'une valeur sensible) |
+| `filesizeformat` / `filesize_format` | Taille en octets lisible (`1.2 MB`) |
+| `slugify` / `slug` | Texte en slug d'URL |
+| `striptags` | Retire les balises HTML (reste échappé) |
+| `spaceless` | Retire les espaces entre balises |
+| `regex_replace` | Remplacement par expression régulière |
+| `urlencode` / `urlencode_strict` | Encodage pour une URL |
+| `json_encode` | Valeur en JSON |
+| `shuffle` | Mélange une liste |
+
+---
+
 ## Fonctions Tera
 
 | Fonction | Description | Exemple |
 |----------|-------------|---------|
 | `link(link='...')` | Résolution d'URL nommée | `{{ link(link='index') }}` |
+| `csrf_token()` | Jeton CSRF masqué de la requête | `{{ csrf_token() }}` |
+| `now()` | Date-heure courante | `{{ now() }}` |
+| `get_random(start, end)` | Entier aléatoire | `{{ get_random(start=1, end=10) }}` |
 
 ## Variables de contexte auto-injectées
 
@@ -61,7 +83,8 @@ Les trois déclarent `is_safe()` — leur sortie est émise sans échappement, `
 | `csrf_token` | Token CSRF masqué (utilisé par `{% csrf %}` et `\| csrf_field`) |
 | `csp_nonce` | Valeur nonce CSP du header (utilisé par `{% csp %}`) |
 | `messages` | Flash messages de la requête |
-| `user` | Utilisateur authentifié courant (si connecté) |
+| `current_user` | Compte connecté (`username`, `id`, rang…), relu en base à chaque requête ; absent pour un visiteur anonyme |
+| `debug` | Valeur de `DEBUG` |
 | `current_path` | Path de l'URL courante, sans query string (utile pour `rel="canonical"`, `og:url`, navigation active) |
 
 ---

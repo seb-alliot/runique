@@ -1,134 +1,27 @@
-# Runique — Django-inspired Rust Framework
+# {{PROJECT_NAME}}
 
----
+Une application web construite avec [Runique](https://runique.io/docs/fr),
+générée par `runique new` (Runique v{{RUNIQUE_VERSION}}).
 
 ## Démarrage rapide
 
-### Étape 1 : Installation de sea-orm-cli
-
 ```bash
-# Installation globale (recommandé)
-cargo install sea-orm-cli
+# 1. Créer les tables du framework (comptes, sessions, droits)
+runique migration up
 
-#  L'installation prend environ 5-10 minutes, c'est normal !
+# 2. Lancer l'application
+cargo run
 ```
 
-<details>
-<summary>Installation plus rapide (SQLite uniquement)</summary>
+Puis ouvre **http://127.0.0.1:3000**. Le projet fournit l'inscription, la
+connexion et la déconnexion.
 
-Si tu utilises uniquement SQLite, tu peux installer une version allégée :
+Le premier `runique migration up` compile le crate `migration`, il prend donc un
+peu de temps ; les suivants sont rapides.
 
-```bash
-cargo install sea-orm-cli --no-default-features \
-    --features cli,runtime-tokio-rustls,sqlite
-```
+## Tes propres modèles
 
-Cela prend quelques minutes.
-
-</details>
-
----
-
-### Étape 2 : Initialiser les migrations
-
-```bash
-# Créer le dossier de migrations
-sea-orm-cli migrate init
-```
-
-Cela crée la structure suivante :
-
-```text
-migration/
-├── Cargo.toml
-├── README.md
-└── src/
-    ├── lib.rs
-    ├── main.rs
-    └── m20220101_000001_create_table.rs
-```
-
-Supprime `m20220101_000001_create_table.rs` — `runique makemigrations` générera les vrais fichiers.
-
----
-
-### Étape 3 : Configurer les fichiers de migration
-
-#### 3.1 - Modifier `migration/Cargo.toml`
-
-Remplace le contenu de `migration/Cargo.toml` par :
-
-```toml
-[package]
-name = "migration"
-version = "0.1.0"
-edition = "2024"
-
-[dependencies]
-# Les tables du framework (comptes, sessions, groupes) viennent de runique :
-# le `lib.rs` généré les utilise. Même feature de base que ton application.
-runique = { version = "{{RUNIQUE_VERSION}}", features = ["sqlite"] }
-sea-orm-migration = { version = "=2.0.4", features = [
-    "runtime-tokio-rustls",
-    "sqlx-postgres",
-    "sqlx-sqlite",
-] }
-tokio = { version = "1", features = ["full"] }
-async-trait = "0.1"
-```
-
-> **Important** : Utilise la version `=2.0.4` pour matcher avec Runique !
-
-<details>
-<summary>Personnaliser les features selon ta base de données</summary>
-
-**Pour PostgreSQL uniquement** :
-
-```toml
-sea-orm-migration = { version = "=2.0.4", features = [
-    "runtime-tokio-rustls",
-    "sqlx-postgres"
-] }
-```
-
-**Pour SQLite uniquement** :
-
-```toml
-sea-orm-migration = { version = "=2.0.4", features = [
-    "runtime-tokio-rustls",
-    "sqlx-sqlite"
-] }
-```
-
-**Pour MySQL uniquement** :
-
-```toml
-sea-orm-migration = { version = "=2.0.4", features = [
-    "runtime-tokio-rustls",
-    "sqlx-mysql"
-] }
-```
-
-</details>
-
-#### 3.2 - Modifier `migration/src/main.rs`
-
-Remplace le contenu de `migration/src/main.rs` par :
-
-```rust
-use sea_orm_migration::prelude::*;
-
-#[tokio::main]
-async fn main() {
-    cli::run_cli(migration::Migrator).await;
-}
-```
-
----
-
-### Étape 4 : Définir tes entités
-
-Déclare tes entités dans `src/entities/`, un fichier par modèle, avec la macro `model!` (les comptes utilisateurs sont déjà fournis par la table du framework `eihwaz_users`) :
+Déclare chaque modèle dans son propre fichier sous `src/entities/`, avec `model!` :
 
 ```rust
 // src/entities/article.rs
@@ -140,209 +33,94 @@ model! {
     pk: id => Pk,
     {
         title:      text     [required, max_length: 150],
-        slug:       slug     [required, unique],
         body:       textarea [required],
-        published:  bool     [default: false],
         created_at: datetime [auto_now],
-        updated_at: datetime [auto_now_update],
     }
 }
 ```
 
-Runique lit ces fichiers pour générer les migrations automatiquement.
-
----
-
-### Étape 5 : Générer les migrations
+Déclare-le dans `src/entities/mod.rs` (`pub mod article;`), puis :
 
 ```bash
-runique makemigrations
+runique makemigrations   # compare les modèles à leurs snapshots, écrit la migration
+runique migration up     # l'applique
 ```
 
-Cela scanne `src/entities/`, compare avec les snapshots, et génère :
+Pour modifier un modèle plus tard, change-le et relance les deux mêmes commandes :
+`makemigrations` écrit une migration `ALTER`. Un changement destructif (colonne
+supprimée, longueur réduite, `nullable` devenu obligatoire…) est bloqué, sauf
+avec `--force`.
 
-```text
-migration/src/
-├── lib.rs                                      ← mis à jour automatiquement
-├── main.rs
-├── m{TIMESTAMP}_create_articles_table.rs       ← généré
-└── snapshots/
-    └── articles.rs                             ← snapshot du schéma
+> **Changer le type d'une colonne n'est pas encore pris en charge.**
+> `makemigrations` le bloque ; avec `--force`, la migration écrite ne contient
+> qu'un commentaire d'avertissement, aucun `ALTER`, alors que le snapshot
+> enregistre déjà le nouveau type. La migration « s'applique » donc sans toucher
+> à la base, et rien ne le signale ensuite. En attendant : écris à la main le
+> `up()` et le `down()` de cette migration (`alter_table` / `modify_column` de
+> SeaORM) avant `migration up`, ou ajoute une nouvelle colonne, recopie les
+> données, puis supprime l'ancienne.
+
+## Migrations
+
+| Commande | Ce qu'elle fait |
+|---|---|
+| `runique makemigrations` | Écrit les migrations des modèles qui ont changé |
+| `runique makemigrations --force` | Pareil, en autorisant les changements destructifs |
+| `runique migration up` | Applique toutes les migrations en attente |
+| `runique migration down -n 1` | Annule la dernière migration (son `down()` s'exécute) |
+| `runique migration status` | Liste les migrations et indique lesquelles sont appliquées |
+
+`migration/` est un crate de migrations SeaORM standard : `makemigrations` tient
+son `src/lib.rs` à jour, il n'y a rien à y écrire à la main. Les commandes
+`runique migration` le lancent pour toi et lisent `DATABASE_URL` dans `.env`.
+
+## Structure du projet
+
 ```
-
-> Pour faire évoluer le schéma (ALTER), modifie ton entité et relance `runique makemigrations`.
-> Les changements destructifs (colonne supprimée, longueur réduite, `nullable → not null`…) sont bloqués ; `--force` les autorise.
->
-> ⚠️ **Avertissement — rollback de migrations**
-> La commande `runique makemigrations` génère les migrations tout en
-> respectant la chronologie du système de migrations.
-> Pour **revenir en arrière** sur une migration, privilégiez la CLI de SeaORM :
-> elle garde la table de suivi des migrations synchronisée avec l'état réel du schéma.
-> Mélanger les outils de rollback peut désynchroniser le suivi des migrations.
-
----
-
-### Étape 6 : Appliquer la migration
-
-```bash
-sea-orm-cli migrate up
-```
-
-Tu devrais voir :
-
-```text
-Applying migration 'm{TIMESTAMP}_create_articles_table'
-Migration 'm{TIMESTAMP}_create_articles_table' has been applied
-```
-
-**La table `articles` est créée, avec les tables du framework (`eihwaz_users` pour les comptes, les sessions, les groupes).**
-
----
-
-### Étape 7 : Lancer l'application
-
-```bash
-cargo run
-```
-
-Ouvre ton navigateur sur **`http://127.0.0.1:3000`**
-
----
-
-## Faire évoluer le schéma
-
-Quand tu dois ajouter, supprimer ou modifier une colonne :
-
-1. Modifie le `model!` dans `src/entities/ton_modele.rs`
-2. Lance `runique makemigrations` — détecte le diff, génère une migration ALTER
-3. Lance `sea-orm-cli migrate up` — l'applique
-
-Pour les changements destructifs (changement de type, nullable → not null) :
-
-```bash
-runique makemigrations --force
-```
-
----
-
-## Structure finale du projet
-
-```text
 {{PROJECT_NAME}}/
-├── migration/                           <- Créé à l'étape 2
-│   ├── Cargo.toml                       <- Configuré à l'étape 3.1
-│   └── src/
-│       ├── lib.rs                       <- Géré automatiquement par makemigrations
-│       ├── main.rs                      <- Configuré à l'étape 3.2
-│       ├── m{TIMESTAMP}_create_articles_table.rs
-│       └── snapshots/
-│           └── articles.rs
+├── migration/          le crate de migrations (Cargo.toml, src/main.rs, src/lib.rs)
 ├── src/
-│   ├── entities/
-│   │   ├── mod.rs
-│   │   └── article.rs                   <- Définit le schéma model!
-│   ├── formulaire/
-│   ├── main.rs
-│   ├── url.rs
-│   └── views.rs
-├── templates/
-├── static/
-├── .env
-├── Cargo.toml
-└── README.md
+│   ├── entities/       tes modèles (model!)
+│   ├── forms/          formulaires d'inscription et de connexion
+│   ├── main.rs         le builder de l'application
+│   ├── url.rs          les routes
+│   └── views.rs        les vues
+├── templates/          templates Tera (base.html est la mise en page)
+├── static/             CSS
+├── media/              favicon, logo, et les fichiers envoyés par les utilisateurs
+├── .env                réglages et SECRET_KEY (ne jamais le commiter)
+└── Cargo.toml
 ```
 
----
+## Versions
 
-## Commandes utiles
+Runique v{{RUNIQUE_VERSION}} est construit avec SeaORM `{{SEA_ORM_REQ}}` : `Cargo.toml` et
+`migration/Cargo.toml` imposent cette version exacte. Ne la change pas à la main ;
+quand tu mets Runique à jour, aligne les deux fichiers sur la version de la
+nouvelle release.
 
-```bash
-# Générer les migrations depuis les entités
-runique makemigrations
+## Configuration
 
-# Autoriser les changements destructifs (bloqués par défaut)
-runique makemigrations --force
+`.env` contient les réglages : `IP_SERVER` et `PORT` (où le serveur écoute),
+`DEBUG`, `SECRET_KEY` (générée pour ce projet : garde-la secrète, et mets-en une
+nouvelle à chaque déploiement) et la base de données (`DB_ENGINE`, `DATABASE_URL`).
 
-# Chemins personnalisés
-runique makemigrations --entities src/entities --migrations migration/src
+Pour passer de SQLite à PostgreSQL ou MySQL, change les trois ensemble : la
+feature `runique` dans `Cargo.toml` et dans `migration/Cargo.toml` (avec la
+feature `sqlx-postgres` / `sqlx-mysql` correspondante de `sea-orm-migration`),
+et `DB_ENGINE` / `DATABASE_URL` dans `.env`.
 
-# Appliquer les migrations
-sea-orm-cli migrate up
+## Aller plus loin
 
-# Voir le statut des migrations
-sea-orm-cli migrate status
+- Réinitialisation du mot de passe par email : `.with_password_reset(...)` sur le builder, avec un mailer.
+- Panneau d'administration : la feature `admin` de `runique`, puis `.with_admin(...)`.
 
-# Annuler les N dernières migrations
-sea-orm-cli migrate down -n 1
-
-# Réinitialiser la base de données (supprime toutes les données)
-sea-orm-cli migrate down -n 999
-sea-orm-cli migrate up
-```
-
----
+Les deux sont décrits dans la documentation : **https://runique.io/docs/fr**
 
 ## Dépannage
 
-### Erreur : "table … doesn't exist"
-
-Tu n'as pas appliqué la migration. Exécute :
-
-```bash
-sea-orm-cli migrate up
-```
-
-### Erreur : "sea-orm-cli: command not found"
-
-Installe sea-orm-cli :
-
-```bash
-cargo install sea-orm-cli
-```
-
-### Erreur : "version mismatch"
-
-Vérifie que `migration/Cargo.toml` utilise bien `sea-orm-migration = "=2.0.4"`
-
-### Erreur : "no such table: …"
-
-Vérifie que :
-
-1. La migration a bien été appliquée (`sea-orm-cli migrate status`)
-2. Le chemin `DATABASE_URL` dans `.env` est correct
-3. Tu lances `cargo run` depuis la racine du projet (pas depuis `migration/`)
-
-### Port 3000 déjà utilisé
-
-Change le port dans `.env` :
-
-```env
-PORT=8080
-```
-
-### Erreur : "workspace" lors de `sea-orm-cli migrate up`
-
-Vérifie que `migration/Cargo.toml` contient bien la section `[workspace]`
-
----
-
-## Fonctionnalités incluses
-
-- Inscription utilisateur avec validation
-- Page de connexion (`/connexion`)
-- Protection CSRF automatique
-- Flash messages (success, error, info, warning)
-- Thème sombre moderne et responsive
-- Templates Tera avec héritage
-
----
-
-## Documentation
-
-- [Runique Framework](https://docs.rs/runique)
-- [SeaORM Migrations](https://www.sea-ql.org/SeaORM/docs/migration/setting-up-migration/)
-- [Tera Templates](https://keats.github.io/tera/)
-
----
-
-Généré par **Runique CLI v{{RUNIQUE_VERSION}}**
+- **« no such table »** : les migrations ne sont pas encore appliquées. Lance `runique migration up`.
+- **Port 3000 déjà utilisé** : change `PORT` dans `.env`.
+- **La base de données est introuvable** : lance `cargo run` et `runique migration`
+  depuis la racine du projet, là où se trouve `.env` ; un chemin SQLite relatif
+  est lu depuis là.

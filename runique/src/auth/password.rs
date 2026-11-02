@@ -516,13 +516,10 @@ pub async fn handle_forgot_password(
 // ─── handle_password_reset ────────────────────────────────────────────────────
 
 /// Handles the reset-password page reached from the emailed link: verifies
-/// the token, logs out any existing session, then renders the form (GET) or
-/// consumes the token and updates the password (POST).
-///
-/// The token is single-use (`consume`) and resolves to a server-side
-/// `user_id`. The typed email on the form is checked against that account;
-/// the link never carries an email, so the URL alone cannot target another
-/// account.
+/// the token, then renders the form (GET) or consumes the token, updates the
+/// password and signs the account out everywhere (POST). Showing the form
+/// changes nothing: this browser's session is only closed once the reset
+/// commits, in the same transaction.
 pub async fn handle_password_reset(
     request: &mut Request,
     form: PasswordResetForm,
@@ -531,13 +528,6 @@ pub async fn handle_password_reset(
 ) -> AppResult<Response> {
     let template = config.reset_template.as_str();
     request.context.insert("lang", &current_lang().code());
-    logout(&request.session, None).await.trace(
-        crate::utils::runique_log::get_log()
-            .session
-            .as_ref()
-            .and_then(|s| s.store),
-        "logout before password reset",
-    );
 
     let db = request.engine.db.clone();
 
@@ -613,6 +603,15 @@ pub async fn handle_password_reset(
             }
         };
 
+    // Read before the transaction, which must revoke this browser's session too.
+    let cookie_id = request.session.id().map(|id| id.to_string());
+    let revokes_rows = request
+        .engine
+        .session_db_store
+        .read()
+        .ok()
+        .is_some_and(|g| g.is_some());
+
     use sea_orm::TransactionTrait;
     let txn = match db.begin().await {
         Ok(txn) => txn,
@@ -655,18 +654,39 @@ pub async fn handle_password_reset(
             }
         };
 
-    match BuiltinUserEntity::set_password_and_activate_in_transaction(
-        &txn,
-        consumed_user_id,
-        &new_hash,
-    )
-    .await
-    {
+    let written = async {
+        BuiltinUserEntity::set_password_and_activate_in_transaction(
+            &txn,
+            consumed_user_id,
+            &new_hash,
+        )
+        .await?;
+        // Without the DB session store, `eihwaz_sessions` may not exist.
+        if revokes_rows {
+            crate::middleware::session::session_db::RuniqueSessionStore::revoke_in_transaction(
+                &txn,
+                consumed_user_id,
+                cookie_id.as_deref(),
+            )
+            .await?;
+        }
+        Ok::<(), sea_orm::DbErr>(())
+    }
+    .await;
+
+    match written {
         Ok(()) => match txn.commit().await {
             Ok(()) => {
-                // Every device signs in again with the new password — a stolen
-                // session included. This request's own was closed on arrival.
-                request.engine.close_user_sessions(consumed_user_id).await;
+                // Rows gone with the commit: only memory copies are left, and
+                // `load` refuses them against the database anyway.
+                request.engine.forget_user_sessions(consumed_user_id).await;
+                logout(&request.session, None).await.trace(
+                    crate::utils::runique_log::get_log()
+                        .session
+                        .as_ref()
+                        .and_then(|s| s.store),
+                    "clear this browser's session after the reset",
+                );
                 if let Some(level) = crate::utils::runique_log::get_log()
                     .auth
                     .as_ref()

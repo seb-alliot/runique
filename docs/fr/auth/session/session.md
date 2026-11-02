@@ -73,6 +73,8 @@ logout(&session, Some(&store)).await?;
 
 `logout()` vide **toute** la session (messages flash compris) et lui donne un nouvel identifiant : un message flash destiné à la page suivante s'ajoute **après** l'appel.
 
+Si la suppression échoue (base indisponible), `logout()` renvoie l'erreur et la session reste **entière**, cookie compris : l'utilisateur peut réessayer. Ne montrez pas « déconnecté » dans ce cas. De même, `login` sous un autre compte ferme d'abord la session précédente ; s'il n'y parvient pas, la nouvelle connexion est refusée (`LoginError::Session`).
+
 ---
 
 ## Révocation des sessions
@@ -82,10 +84,10 @@ logout(&session, Some(&store)).await?;
 Le reset de mot de passe intégré (`with_password_reset`) le fait déjà une fois le nouveau mot de passe enregistré. Dans votre propre handler (changement de mot de passe depuis le profil, compte compromis…), une seule méthode suffit :
 
 ```rust
-engine.close_user_sessions(user_id).await;
+request.engine.close_user_sessions(user_id).await?;
 ```
 
-Elle supprime d'abord les sessions du compte en base (`eihwaz_sessions`), puis en mémoire. L'ordre compte : une session retirée de la mémoire en premier pourrait être relue depuis la base par une requête arrivant entre les deux. Une erreur de base est tracée, pas renvoyée.
+Elle supprime les sessions du compte en base (`eihwaz_sessions`), puis leurs copies en mémoire. La base fait autorité : chaque requête d'une session connectée revérifie sa ligne, donc une session supprimée en base est refusée partout, y compris sur une autre instance. Si la base échoue, rien d'autre n'est touché et l'erreur est renvoyée : les sessions sont encore actives, ne présentez pas l'opération comme réussie.
 
 > **Limite :** un store branché avec `with_session_store()` (Redis…) ne peut pas être parcouru par utilisateur ; ses sessions ne sont pas fermées.
 

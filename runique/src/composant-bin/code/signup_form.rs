@@ -1,13 +1,12 @@
 use runique::prelude::*;
 
-
-// registration
-/// Example user registration form: validates username length/charset and
-/// password strength, and persists a new `runique_users` row, activated at once.
+/// The sign-up form, built from the account model: checks the username and
+/// the password strength, then saves a new account, activated at once.
 #[form(schema = runique_users, fields = [username, email, password])]
-pub struct RegisterForm;
+pub struct SignupForm;
+
 #[async_trait]
-impl RuniqueForm for RegisterForm {
+impl RuniqueForm for SignupForm {
     async fn clean(&mut self) -> Result<(), StrMap> {
         let username = self.cleaned::<String>("username").unwrap_or_default();
         let password = self.cleaned::<String>("password").unwrap_or_default();
@@ -26,7 +25,6 @@ impl RuniqueForm for RegisterForm {
                 "Username cannot contain '#' or '—'.".to_string(),
             );
         }
-        // Password
         const SPECIAL: &str = "!@#$%^&*()_+-=[]{}|;':\",./<>?";
         if password.len() < 10 {
             errors.insert(
@@ -52,7 +50,7 @@ impl RuniqueForm for RegisterForm {
     }
 }
 
-impl RegisterForm {
+impl SignupForm {
     pub async fn save(
         &self,
         db: &ADb,

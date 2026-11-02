@@ -108,19 +108,43 @@ pub(super) fn verify_database_driver(engine: &DatabaseEngine) -> Result<(), Stri
     }
 }
 
-/// Both fixes: the dependency line for an app, `cargo install` for the CLI binary.
+/// Says what runique was compiled with, then both ways out: point `.env` at
+/// that engine (the usual mistake: the features changed, `.env` didn't), or
+/// compile for the engine `.env` asks for (dependency line, `cargo install`).
 #[cfg(not(all(feature = "postgres", feature = "mysql", feature = "sqlite")))]
 fn driver_not_enabled(engine: &DatabaseEngine, feature: &str) -> String {
+    let compiled = compiled_engines();
     crate::utils::trad::tf(
         "build.driver_not_enabled",
         &[
             engine.name(),
+            compiled.as_str(),
             feature,
+            compiled.as_str(),
+            engine.name(),
             env!("CARGO_PKG_VERSION"),
             feature,
             feature,
         ],
     )
+}
+
+/// The engine features this build has, as their names.
+#[cfg(not(all(feature = "postgres", feature = "mysql", feature = "sqlite")))]
+fn compiled_engines() -> String {
+    let engines: Vec<&str> = [
+        (cfg!(feature = "postgres"), "postgres"),
+        (cfg!(feature = "mysql"), "mysql"),
+        (cfg!(feature = "sqlite"), "sqlite"),
+    ]
+    .into_iter()
+    .filter_map(|(on, name)| on.then_some(name))
+    .collect();
+    if engines.is_empty() {
+        "none".to_string()
+    } else {
+        engines.join(", ")
+    }
 }
 
 #[cfg(test)]
@@ -138,6 +162,9 @@ mod tests {
             msg.contains("cargo install runique --features postgres --locked --force"),
             "{msg}"
         );
+        // The other way out: `.env` pointing at the engine this build has.
+        assert!(msg.contains(&format!("'{}'", compiled_engines())), "{msg}");
+        assert!(msg.contains("DB_ENGINE") && msg.contains("DATABASE_URL"), "{msg}");
     }
 
     #[cfg(feature = "sqlite")]

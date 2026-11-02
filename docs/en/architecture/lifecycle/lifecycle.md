@@ -3,14 +3,17 @@
 ## Lifecycle
 
 ```text
-1. HTTP request arrives
-2. Middlewares traversed (slot order)
-3. Extensions injected (Engine, Tera, Config)
-4. Session loaded, CSRF verified
-5. Handler called with extractors (Request, request.form())
-6. Handler returns AppResult<Response>
-7. Middlewares traversed in reverse order
-8. HTTP response sent
+1. The HTTP request arrives
+2. The middlewares run in slot order (see Middleware stack):
+   Engine/Tera/Config injected, client IP, host checked, security headers…
+3. The session is loaded, then the signed-in account read from the database (request.user)
+4. CSRF: a token sent as a header (X-CSRF-Token) is checked here; a form
+   token (csrf_token field) is checked by Prisme in the next step
+5. The handler receives Request: the body is read (Prisme), request.form()
+   builds the form, ValidationForm::try_form validates it
+6. The handler returns AppResult<Response>
+7. The middlewares run in reverse order (the session is saved)
+8. The HTTP response is sent
 ```
 
 ---

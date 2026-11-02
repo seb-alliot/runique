@@ -1,203 +1,94 @@
-# Variables d'environnement
+# Fichier `.env`
 
-## Serveur
+La configuration de l'application se lit dans le fichier `.env` à la racine du projet, puis se complète dans le code (builder). La liste complète des variables, avec leurs valeurs par défaut, est dans [Variables d'environnement](/docs/fr/env).
 
-| Variable | Défaut | Description |
-|----------|--------|-------------|
-| `IP_SERVER` | `127.0.0.1` | Adresse IP écoute |
-| `PORT` | `3000` | Port serveur |
-| `DEBUG` | `false` | Mode debug (templates, logs, etc.) |
-
-> **⚠️ Production :** Définir `DEBUG=false` explicitement. En mode debug, les pages d'erreur détaillées sont visibles, révélant potentiellement des informations sensibles. De plus, compiler avec `cargo build --release` désactive automatiquement les assertions debug, mais `DEBUG=true` peut outrepasser cela.
+`runique new` écrit un `.env` prêt à l'emploi, en SQLite, avec un `SECRET_KEY` aléatoire propre au projet.
 
 ---
 
-## Base de données
+## Exemples complets
 
-### Connexion
-
-| Variable | Défaut | Description |
-|----------|--------|-------------|
-| `DATABASE_URL` | — | URL complète (prioritaire sur toutes les variables composantes) |
-| `DB_ENGINE` | `sqlite` | `postgres`, `mysql`, `mariadb`, `sqlite` |
-| `DB_USER` | — | Utilisateur DB (requis sauf SQLite) |
-| `DB_PASSWORD` | — | Mot de passe DB (requis sauf SQLite) |
-| `DB_HOST` | `localhost` | Host DB |
-| `DB_PORT` | `5432` / `3306` | Port DB (défaut selon le moteur) |
-| `DB_NAME` | `local_base.sqlite` | Nom de la base de données |
-
-### Pool de connexions
-
-| Variable | Défaut | Description |
-|----------|--------|-------------|
-| `DB_MAX_CONNECTIONS` | `100` | Taille maximale du pool |
-| `DB_MIN_CONNECTIONS` | `20` | Taille minimale du pool |
-
-### Timeouts
-
-| Variable | Défaut | Unité | Description |
-|----------|--------|-------|-------------|
-| `DB_CONNECT_TIMEOUT` | `2` | secondes | Timeout d'établissement de connexion |
-| `DB_ACQUIRE_TIMEOUT` | `500` | millisecondes | Timeout d'acquisition depuis le pool |
-| `DB_IDLE_TIMEOUT` | `300` | secondes | Durée d'inactivité avant fermeture |
-| `DB_MAX_LIFETIME` | `3600` | secondes | Durée de vie maximale d'une connexion |
-
-### Logging
-
-| Variable | Défaut | Description |
-|----------|--------|-------------|
-| `DB_LOGGING` | `false` | Active les logs SQL (`true`, `1`, `yes`) |
-
-**PostgreSQL (URL directe) :**
+### Développement (SQLite)
 
 ```env
-DATABASE_URL=postgres://user:password@localhost:5432/dbname
-```
-
-**PostgreSQL (variables composantes) :**
-
-```env
-DB_ENGINE=postgres
-DB_USER=postgres
-DB_PASSWORD=secret
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=runique
-```
-
-**SQLite (dev) :**
-
-```env
-DB_ENGINE=sqlite
-DB_NAME=runique.db
-```
-
-**Pool personnalisé :**
-
-```env
-DB_MAX_CONNECTIONS=50
-DB_MIN_CONNECTIONS=5
-DB_CONNECT_TIMEOUT=5
-DB_IDLE_TIMEOUT=600
-DB_LOGGING=true
-```
-
----
-
-## Templates & Assets
-
-| Variable | Défaut | Description |
-|----------|--------|-------------|
-| `TEMPLATES_DIR` | `templates` | Répertoire templates |
-| `STATICFILES_DIRS` | `static` | Répertoire assets statiques — **un seul dossier**, pas de liste (`String` unique, aucun split sur `:`) |
-| `MEDIA_ROOT` | `{BASE_DIR}/media` | Répertoire médias (uploads) |
-
-```env
-TEMPLATES_DIR=templates
-STATICFILES_DIRS=static
-MEDIA_ROOT=uploads
-```
-
----
-
-## Sécurité
-
-| Variable | Défaut | Description |
-|----------|--------|-------------|
-| `SECRET_KEY` | *(requis)* | Clé secrète CSRF (⚠️ CHANGE EN PROD!) |
-
-```env
-SECRET_KEY=your_secret_key_change_this_in_production
-```
-
-> La validation des hosts autorisés se configure dans le builder (`main.rs`), pas via une variable d'environnement :
->
-> ```rust
-> .with_allowed_hosts(|h| h.enabled(true).host("example.com"))
-> ```
-
----
-
-## Fichier .env complet
-
-```env
-# ============================================================================
-# SERVER CONFIGURATION
-# ============================================================================
 IP_SERVER=127.0.0.1
 PORT=3000
 DEBUG=true
 
-# ============================================================================
-# DATABASE CONFIGURATION
-# ============================================================================
-DATABASE_URL=postgres://postgres:password@localhost:5432/runique
+SECRET_KEY=<généré par runique new>
+
+DB_ENGINE=sqlite
+DATABASE_URL="sqlite://data.db?mode=rwc"
+```
+
+`?mode=rwc` crée le fichier s'il n'existe pas. L'URL doit commencer par `sqlite://` : une forme courte comme `sqlite:data.db` est refusée (« Unsupported database URL scheme »).
+
+### Développement (PostgreSQL)
+
+```env
+IP_SERVER=127.0.0.1
+PORT=3000
+DEBUG=true
+
+SECRET_KEY=<généré par runique new>
+
 DB_ENGINE=postgres
-DB_USER=postgres
+DATABASE_URL=postgres://runique_user:password@localhost:5432/mon_projet
+```
+
+Ou, au lieu de `DATABASE_URL`, les variables composantes :
+
+```env
+DB_ENGINE=postgres
+DB_USER=runique_user
 DB_PASSWORD=password
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=runique
-
-# SQLite (Development only)
-# DATABASE_URL=sqlite:runique.db?mode=rwc
-
-# ============================================================================
-# TEMPLATES & STATIC FILES
-# ============================================================================
-TEMPLATES_DIR=templates
-STATICFILES_DIRS=static
-MEDIA_ROOT=media
-
-# ============================================================================
-# SECURITY
-# ============================================================================
-SECRET_KEY=your_secret_key_here_change_in_production
+DB_NAME=mon_projet
 ```
+
+Quand `DATABASE_URL` est définie, elle l'emporte : les variables `DB_*` sont ignorées.
+
+### Production (derrière un reverse proxy)
+
+```env
+IP_SERVER=127.0.0.1
+PORT=3000
+DEBUG=false
+
+SECRET_KEY=<une clé propre à ce déploiement>
+
+DB_ENGINE=postgres
+DATABASE_URL=postgres://runique_user:password@db.interne:5432/mon_projet
+
+ENFORCE_HTTPS=true
+```
+
+Le proxy (Nginx, Caddy…) écoute sur 80/443 et gère TLS ; Runique reste sur un port interne. Pour que Runique gère lui-même TLS sans proxy, voir [Réseau & HTTP](/docs/fr/installation/network) (ACME).
+
+En production, Runique refuse de démarrer si `SECRET_KEY` est faible, ou si la réinitialisation de mot de passe ou l'admin sont activés sans `.with_public_url(...)`.
 
 ---
 
 ## Générer une clé secrète
 
-```bash
-# Python
-python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+`runique new` en génère une à la création du projet. Pour en créer une autre (fuite, nouveau déploiement) : n'importe quelle chaîne aléatoire d'au moins 32 caractères.
 
-# OpenSSL
-openssl rand -base64 32
+```bash
+openssl rand -hex 32
 ```
 
 ---
 
-## Modes d'environnement
+## Ce qui ne se règle pas dans `.env`
 
-### Production
+Les hosts autorisés, la CSP, CORS, les sessions et les middlewares se configurent dans le builder (`main.rs`) :
 
-```env
-DEBUG=false
-PORT=443
-IP_SERVER=0.0.0.0
-SECRET_KEY=<généré dynamiquement>
-DATABASE_URL=postgres://user:pwd@prod-db.example.com:5432/runique
+```rust
+.middleware(|m| m.with_allowed_hosts(|h| h.enabled(!is_debug()).host("exemple.com")))
 ```
 
-### Développement
-
-```env
-DEBUG=true
-PORT=3000
-IP_SERVER=127.0.0.1
-SECRET_KEY=any_dev_key
-DATABASE_URL=sqlite:runique.db?mode=rwc
-```
-
-### Testing
-
-```env
-DEBUG=true
-SECRET_KEY=test_key
-DATABASE_URL=sqlite::memory:
-```
+Voir [Builder](/docs/fr/configuration/builder).
 
 ---
 
@@ -205,8 +96,9 @@ DATABASE_URL=sqlite::memory:
 
 | Section | Description |
 | --- | --- |
-| [Accès dans le code](/docs/fr/configuration/code) | `RuniqueConfig`, validation |
-| [Builder](/docs/fr/configuration/builder) | Builder classique et Intelligent |
+| [Variables d'environnement](/docs/fr/env) | Toutes les variables et leurs valeurs par défaut |
+| [Accès dans le code](/docs/fr/configuration/code) | `RuniqueConfig` |
+| [Builder](/docs/fr/configuration/builder) | Configuration programmatique |
 
 ## Retour au sommaire
 

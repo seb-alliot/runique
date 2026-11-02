@@ -70,6 +70,31 @@ fn test_verify_vide_retourne_false() {
     assert!(!bh.verify("password", ""));
 }
 
+/// An unrecognized stored value must cost an Argon2 check, like a missing
+/// account: answering at once would tell corrupted hashes apart. A lower
+/// bound only, so a slow machine can't make it fail.
+#[test]
+fn test_verify_prefixe_inconnu_coute_une_verification_argon2() {
+    use std::time::Instant;
+    let bh = BaseHash::new();
+    let argon2 = (0..3)
+        .map(|_| {
+            let start = Instant::now();
+            let _ = bh.verify("password", runique::utils::password::dummy_hash());
+            start.elapsed()
+        })
+        .min()
+        .unwrap();
+    for stored in ["pas-un-hash", ""] {
+        let start = Instant::now();
+        assert!(!bh.verify("password", stored));
+        assert!(
+            start.elapsed() * 4 >= argon2,
+            "{stored:?} answered too fast"
+        );
+    }
+}
+
 // ═══════════════════════════════════════════════════════════════
 // PasswordService — is_already_hashed
 // ═══════════════════════════════════════════════════════════════

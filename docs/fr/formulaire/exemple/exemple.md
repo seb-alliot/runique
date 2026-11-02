@@ -15,7 +15,7 @@ pub struct RegisterForm {
     pub form: Forms,
 }
 
-impl RuniqueForm for RegisterForm {
+impl FormAccess for RegisterForm {
     fn register_fields(form: &mut Forms) {
         form.field(
             &TextField::text("username")
@@ -40,13 +40,16 @@ impl RuniqueForm for RegisterForm {
     impl_form_access!();
 }
 
+impl RuniqueForm for RegisterForm {}
+
 impl RegisterForm {
     pub async fn save(&self, db: &DatabaseConnection) -> Result<users::Model, DbErr> {
         use sea_orm::Set;
         let model = users::ActiveModel {
             username: Set(self.cleaned::<String>("username").unwrap_or_default()),
             email: Set(self.cleaned::<String>("email").unwrap_or_default()),
-            // Le mot de passe est déjà haché en Argon2 après is_valid()
+            // Mode Auto : après is_valid(), la valeur du champ est déjà le hash.
+            // En mode Manual ou Custom, hachez-la ici avec hash().
             password: Set(self.cleaned::<String>("password").unwrap_or_default()),
             ..Default::default()
         };
@@ -169,14 +172,17 @@ context_update!(request => {
 });
 ```
 
-### 2. Oublier le `mut` sur form
+### 2. Valider sans nommer le formulaire
 
 ```rust
-//  Ne peut pas appeler is_valid()
-let form: MyForm = request.form();
-
-//  Correct
+// À éviter : is_valid() direct ne sait pas quel formulaire a été envoyé,
+// et un formulaire jamais nommé échoue au rendu de {% form.x %}.
 let mut form: MyForm = request.form();
+if form.is_valid().await { /* ... */ }
+
+// Correct : try_form nomme le formulaire et ne valide que celui envoyé
+let form: MyForm = request.form();
+match ValidationForm::try_form(form, &request, "my_form").await { /* ... */ }
 ```
 
 ### 3. Comparer des mots de passe après `is_valid()`

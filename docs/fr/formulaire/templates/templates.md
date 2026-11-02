@@ -32,6 +32,10 @@ Rend automatiquement : tous les champs, les labels, les erreurs de validation, l
 
 ---
 
+Le **premier** champ rendu ainsi emporte avec lui les champs cachés du formulaire (jeton CSRF et nom du formulaire). Rendez-les tous, ou au moins le premier champ déclaré : sans lui, l'envoi est refusé (CSRF) ou ignoré (nom absent).
+
+---
+
 ## Erreurs globales
 
 ```html

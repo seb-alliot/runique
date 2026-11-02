@@ -159,7 +159,7 @@ Workspace version (source of truth): **4.0.0**.
 - `runique create-superuser`
 - `runique test [file] [test]`
 - `runique makemigrations --entities src/entities --migrations migration/src [--force false]`
-- `runique migration up --migrations migration/src` (rollback and status: `sea-orm-cli migrate down` / `status`)
+- `runique migration up | down -n N | status` (runs the `migration` crate, no `sea-orm-cli`)
 
 There is no `runique start`: the app is a normal Rust binary (`cargo run`). Admin is plain Rust (`ModelAdmin` + `.with_admin(...)`), with no generation step.
 

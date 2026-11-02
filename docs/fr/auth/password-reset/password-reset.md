@@ -16,7 +16,7 @@ Runique intègre un système complet, prêt à l'emploi :
 - Envoi automatique de l'email si le mailer est configuré
 - Rate limiting intégré (5 requêtes / 5 min par défaut)
 - Messages i18n inclus
-- Déconnexion automatique à l'accès au formulaire de reset
+- Une fois le reset réussi : toutes les sessions du compte fermées, ainsi que celle du navigateur où il a eu lieu (même connecté sous un autre compte) — dans la même transaction que le changement de mot de passe. Afficher le formulaire ne déconnecte personne
 - Selon l'état du compte : lien d'activation (compte en attente), lien de réinitialisation (compte actif), email « compte bloqué » sans lien (compte désactivé) — la page répond toujours la même chose. Voir [États d'un compte](/docs/fr/auth/modele)
 
 ---
@@ -24,7 +24,8 @@ Runique intègre un système complet, prêt à l'emploi :
 ## Activation
 
 ```rust
-RuniqueAppBuilder::new(config)
+RuniqueApp::builder(config)
+    .with_public_url("https://monsite.com")
     .with_mailer_from_env()
     .with_password_reset(|pr| pr)
     .build()
@@ -134,7 +135,7 @@ Variables disponibles :
    - Redirige vers success_redirect (défaut : /)
 ```
 
-> **Sessions actives après reset :** une fois le nouveau mot de passe enregistré, **toutes les sessions du compte sont fermées**, sur tous les appareils — une session volée comprise. L'utilisateur se reconnecte avec le nouveau mot de passe. Les autres comptes ne sont pas touchés. Seuls les stores de Runique sont concernés : un store branché avec `with_session_store()` (Redis…) ne peut pas être parcouru par utilisateur — voir [Révocation des sessions](/docs/fr/auth/session#revocation-des-sessions).
+> **Sessions actives après reset :** une fois le nouveau mot de passe enregistré, **toutes les sessions du compte sont fermées**, sur tous les appareils — une session volée comprise —, ainsi que la session du navigateur qui a fait le reset. Le tout se fait dans la transaction du changement de mot de passe : si la base refuse, rien n'est changé et le lien reste utilisable. Un seul lien est actif par compte : une nouvelle demande remplace le précédent. L'utilisateur se reconnecte avec le nouveau mot de passe. Les autres comptes ne sont pas touchés. Seuls les stores de Runique sont concernés : un store branché avec `with_session_store()` (Redis…) ne peut pas être parcouru par utilisateur — voir [Révocation des sessions](/docs/fr/auth/session#revocation-des-sessions).
 
 ---
 

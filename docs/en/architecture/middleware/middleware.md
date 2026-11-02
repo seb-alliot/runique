@@ -16,14 +16,13 @@ Incoming request
 7.  HttpsRedirect (slot 17)   → HTTPS redirect behind a proxy (ENFORCE_HTTPS, without ACME)
 8.  Custom (slot 20+)         → Custom middlewares
 9.  OpenRedirect (slot 25)    → Inspects 3xx responses
-10. Security Headers (slot 30) → HSTS, X-Frame-Options, etc.
-11. CSP (slot 31)             → Content Security Policy
-12. Cache (slot 40)           → No-cache in development
-13. Session (slot 50)         → Session management
-14. SessionUpgrade (slot 55)  → Reads/writes in session
-15. Auth (slot 57)            → Loads CurrentUser from the session
-16. CSRF (slot 60)            → CSRF protection
-17. AntiBot (slot 65)         → Honeypot
+10. Security Headers (slot 30) → CSP (with its nonce), HSTS, X-Frame-Options, etc.
+11. Cache (slot 40)           → No-cache in development
+12. Session (slot 50)         → Session management
+13. SessionUpgrade (slot 55)  → Reads/writes in session
+14. Auth (slot 57)            → Reads the session's account from the database (CurrentUser)
+15. CSRF (slot 60)            → CSRF protection
+16. AntiBot (slot 65)         → Honeypot
     ↓
 Handler (your code)
     ↓

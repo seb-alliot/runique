@@ -133,7 +133,7 @@
     "validation_failed": "Build-Validierung fehlgeschlagen: {}",
     "check_failed": "Build fehlgeschlagen mit {} Prüffehler(n)",
     "template_failed": "Template-Laden fehlgeschlagen: {}",
-    "driver_not_enabled": "{}-Treiber nicht aktiviert: Runique wurde ohne das Feature '{}' kompiliert.\n\nIn der Cargo.toml Ihres Projekts:\nrunique = { version = \"{}\", features = [\"{}\"] }\n\nFür die runique-CLI:\ncargo install runique --features {} --locked --force\n\nUm alle Datenbanken zu unterstützen, verwenden Sie das Feature 'all-databases'.",
+    "driver_not_enabled": "{}-Treiber nicht aktiviert: Runique wurde mit '{}' kompiliert, nicht mit '{}'.\n\nWenn .env auf die falsche Datenbank zeigt (die Features wurden geändert, .env nicht), setzen Sie DB_ENGINE und DATABASE_URL auf die kompilierte Engine: '{}'.\n\nUm stattdessen {} zu verwenden, in der Cargo.toml Ihres Projekts und in migration/Cargo.toml:\nrunique = { version = \"{}\", features = [\"{}\"] }\n\nFür die runique-CLI:\ncargo install runique --features {} --locked --force\n\nUm alle Engines zu unterstützen, verwenden Sie das Feature 'all-databases'.",
     "db_missing": "Datenbankverbindung erforderlich, wenn das Feature 'orm' aktiviert ist",
     "component_not_ready": "Komponente '{}' ist nicht bereit",
     "check": {
@@ -211,7 +211,10 @@
     "project_created": "Projekt '{}' erfolgreich erstellt!",
     "getting_started": "Erste Schritte:",
     "cd_hint": "cd {}",
-    "cargo_run_hint": "cargo run"
+    "cargo_run_hint": "cargo run",
+    "name_digit": "Der Projektname darf nicht mit einer Ziffer beginnen",
+    "name_reserved": "'{}' ist reserviert (ein Rust-Schlüsselwort oder -Crate, ein cargo- oder Windows-Name oder Teil des generierten Projekts): Wählen Sie einen anderen Namen",
+    "migration_up_hint": "runique migration up      (erstellt die Tabellen des Frameworks: Konten, Sitzungen, Rechte)"
   },
   "TemplateMessage": {
     "debug_info_title": "Debug-Informationen",
@@ -541,12 +544,21 @@
     "long_identifier_detected": "Generierte SQL-Bezeichner sind zu lang (MariaDB/MySQL-Limit: 64 Zeichen):",
     "long_identifier_rename_required": "Kürzen Sie die betroffenen Tabellen-/Spaltennamen — Runique kürzt Bezeichner nicht automatisch.",
     "files_ready": "{} Datei(en) bereit für die Migration.",
-    "snapshots_upgraded": "{} Snapshot(s) aktualisiert, um Spaltenlängen zu speichern (keine Migration)."
+    "snapshots_upgraded": "{} Snapshot(s) aktualisiert, um Spaltenlängen zu speichern (keine Migration).",
+    "type_change_not_migrated": "WARNUNG: --force hat diese Spaltentyp-Änderungen durchgelassen, sie werden aber NOCH NICHT migriert. Ihre Migration enthält nur einen Kommentar, während der Snapshot bereits den neuen Typ speichert:",
+    "type_change_write_by_hand": "Schreiben Sie up() und down() dieser Migration von Hand (alter_table / modify_column), bevor Sie `runique migration up` ausführen: Sonst behält die Datenbank die alten Typen, und nichts weist Sie darauf hin.",
+    "no_changes": "Keine Änderungen erkannt: Ihre Modelle entsprechen ihren Snapshots.",
+    "apply_hint": "Wenden Sie die ausstehenden Migrationen an mit: runique migration up"
   },
   "migrate": {
-    "applying": "Migrationen aus '{}' werden angewendet...",
     "complete_up": "Migration abgeschlossen.",
-    "crate_missing": "Migrations-Crate nicht gefunden: '{}' enthält keine Cargo.toml."
+    "crate_missing": "Migrations-Crate nicht gefunden: '{}' enthält keine Cargo.toml.",
+    "running": "Führe 'migrate {}' mit dem Migrations-Crate '{}' aus...",
+    "complete_down": "Rücksetzung abgeschlossen.",
+    "cargo_missing": "cargo kann nicht gestartet werden. Ist Rust installiert und cargo im PATH?",
+    "failed": "Das Migrations-Crate ist bei 'migrate {}' fehlgeschlagen (Exit-Code: {}).",
+    "crate_created": "Migrations-Crate in '{}' erstellt.",
+    "engine_defaulted": "DB_ENGINE ist nicht gesetzt: Das Migrations-Crate verwendet SQLite. Ändern Sie bei Bedarf das runique-Feature in '{}'."
   },
   "reset": {
     "forgot_title": "Passwort vergessen",

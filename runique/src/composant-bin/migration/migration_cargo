@@ -1,0 +1,22 @@
+[package]
+name = "migration"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+name = "migration"
+path = "src/lib.rs"
+
+[dependencies]
+# The framework's own tables (accounts, sessions, rights) come from runique.
+# Same database feature as the app; the primary key features (big-pk, pk-uuid)
+# follow the app's through the workspace.
+runique = { version = "{{RUNIQUE_VERSION}}", features = ["{{DB_FEATURE}}"] }
+# Pinned to the exact version runique is built with: change both together.
+sea-orm-migration = { version = "{{SEA_ORM_MIGRATION_REQ}}", features = [
+    "runtime-tokio-rustls",
+    "{{SQLX_FEATURE}}",
+] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+async-trait = "0.1"

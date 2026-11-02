@@ -4,9 +4,9 @@
 
 ```rust
 pub async fn submit_signup(mut request: Request) -> AppResult<Response> {
-    let form: RegisterForm = request.form();
+    let form: SignupForm = request.form();
 
-    let validated = match ValidationForm::try_form(form, &request, "my_form").await {
+    let validated = match ValidationForm::try_form(form, &request, "signup").await {
         Ok(validated) => validated,
         Err(form) => {
             // ❌ Validation failed → immediate message (no redirect)
@@ -51,7 +51,7 @@ pub async fn about(mut request: Request) -> AppResult<Response> {
     context_update!(request => {
         "title" => "About",
     });
-    request.render("about/about.html")
+    request.render("about.html")
 }
 ```
 

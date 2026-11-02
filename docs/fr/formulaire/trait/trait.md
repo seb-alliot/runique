@@ -6,7 +6,7 @@
 
 ## Structure de base
 
-Chaque formulaire contient un champ `form: Forms` et implémente le trait `RuniqueForm` :
+Chaque formulaire contient un champ `form: Forms` et implémente deux traits : `FormAccess` (ses champs et l'accès au `Forms` interne) et `RuniqueForm` (les étapes de validation, toutes facultatives) :
 
 ```rust
 use runique::prelude::*;
@@ -17,7 +17,7 @@ pub struct UsernameForm {
     pub form: Forms,
 }
 
-impl RuniqueForm for UsernameForm {
+impl FormAccess for UsernameForm {
     fn register_fields(form: &mut Forms) {
         form.field(
             &TextField::text("username")
@@ -29,9 +29,11 @@ impl RuniqueForm for UsernameForm {
 
     impl_form_access!();
 }
+
+impl RuniqueForm for UsernameForm {}
 ```
 
-> **💡 `impl_form_access!()`** génère automatiquement `from_form()`, `get_form()` et `get_form_mut()`. Si votre champ ne s'appelle pas `form`, passez le nom en argument : `impl_form_access!(formulaire)`.
+> **💡 `impl_form_access!()`** génère `from_form()`, `get_form()` et `get_form_mut()`, pour une struct dont le champ s'appelle `form`. Un formulaire tiré d'un modèle (`#[form(schema = …)]`) n'a besoin d'aucun des deux blocs : la macro les génère.
 >
 > **Note de sécurité :** `get_form()` donne accès à la structure interne. Pour l'extraction des données nettoyées, passez toujours par les méthodes `cleaned_*` du trait (voir plus bas). Les méthodes d'extraction directe sur `Forms` sont réservées à l'usage interne du framework.
 
@@ -197,7 +199,7 @@ pub async fn search(mut request: Request) -> AppResult<Response> {
 }
 ```
 
-> Pour distinguer explicitement "premier affichage" de "formulaire soumis sans données valides", utilise `request.method.is_safe()` (GET/HEAD).
+> Pour distinguer "premier affichage" de "formulaire soumis sans données valides" (afficher un message d'erreur global dans le second cas seulement), les exemples testent aujourd'hui `request.method.is_safe()` (GET/HEAD). **Limite :** sur une page qui affiche plusieurs formulaires, l'envoi de l'un est un POST, et `is_safe()` répond `false` pour tous : le message s'afficherait aussi sous les formulaires non envoyés. Les erreurs de champ, elles, ne sont posées que sur le formulaire envoyé (grâce à son nom).
 
 ---
 

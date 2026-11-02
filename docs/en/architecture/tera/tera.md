@@ -26,6 +26,9 @@ The `form` filter declares `is_safe()` — its HTML is emitted unescaped, `\| sa
 | `media` | App media URL prefix |
 | `form` | Render full form or specific field |
 | `csrf_field` | Generate a hidden CSRF input |
+| `markdown`, `sanitize` | HTML rendered from Markdown / cleaned HTML (ammonia), not escaped |
+
+Runique also registers utility filters (`humanize`, `slugify`, `format_date`, `filesizeformat`, `mask`, `plaintext`, `striptags`, `urlencode`…): see [Filters](/docs/en/template/filters).
 
 ---
 

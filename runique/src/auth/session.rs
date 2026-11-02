@@ -115,19 +115,20 @@ pub async fn login(
     let username = user.username();
     let is_superuser = user.is_superuser();
 
-    // If another session is already active, perform a clean logout before login
-    let existing_id: Option<_> = session.get::<Pk>(SESSION_USER_ID_KEY).await.ok().flatten();
+    // Another account signed in on this browser is logged out first. If that
+    // fails its row survives, and with it any stolen copy of its cookie: the
+    // new sign-in is refused rather than leave it alive.
+    let existing_id: Option<_> = session
+        .get::<Pk>(SESSION_USER_ID_KEY)
+        .await
+        .map_err(LoginError::Session)?;
     let is_privilege_elevation = existing_id != Some(user_id);
     if let Some(existing) = existing_id
         && existing != user_id
     {
-        logout(session, db_store).await.trace(
-            crate::utils::runique_log::get_log()
-                .session
-                .as_ref()
-                .and_then(|s| s.store),
-            "pre-login logout of previous session",
-        );
+        logout(session, db_store)
+            .await
+            .map_err(LoginError::Session)?;
     }
 
     // Rotate the session ID on any privilege elevation (anonymous → auth, or user switch).
@@ -285,38 +286,34 @@ pub async fn logout(
     session: &Session,
     db_store: Option<&RuniqueSessionStore>,
 ) -> Result<(), tower_sessions::session::Error> {
-    // The password reset page calls this on every visit, usually from an
-    // anonymous session: flushing it would only throw away its CSRF token, and
-    // a form shown again on the same page would then carry a dead one.
-    if session
-        .get::<Pk>(SESSION_USER_ID_KEY)
-        .await
-        .ok()
-        .flatten()
-        .is_none()
-    {
+    // The password reset page calls this once its transaction committed,
+    // often from an anonymous session: flushing it would only throw away its
+    // CSRF token, and a form shown again on the same page would then carry a
+    // dead one.
+    if session.get::<Pk>(SESSION_USER_ID_KEY).await?.is_none() {
         return Ok(());
     }
 
-    // DB deletion before clearing the session (cookie_id still accessible)
     if let Some(store) = db_store
         && let Some(cookie_id) = session.id().map(|id| id.to_string())
     {
-        store.delete(&cookie_id).await.trace(
-            crate::utils::runique_log::get_log()
-                .session
-                .as_ref()
-                .and_then(|s| s.store),
-            "delete session from DB on logout",
-        );
+        store.delete(&cookie_id).await.map_err(|e| {
+            tower_sessions::session::Error::Store(tower_sessions::session_store::Error::Backend(
+                e.to_string(),
+            ))
+        })?;
     }
 
-    // `delete()` alone only drops the stored copy: the request's own copy still
-    // holds its id and data, and the session layer saves it right back at the
-    // end of the request. `flush()` empties that copy too, the CSRF token with
-    // it. It keeps the record's old id though, and the store only picks a new
-    // one on a collision; since the CSRF middleware writes a new token before
-    // the response leaves, the session would be recreated under the same id.
+    // Revoke before clearing: `delete()` leaves this request's data alone, so
+    // if the store fails the session stays whole, its cookie too, and the user
+    // can try again. `flush()` clears first: a failure there would drop the
+    // cookie while the row still lets a stolen copy in.
+    session.delete().await?;
+
+    // `flush()` empties this request's copy too, the CSRF token with it. It
+    // keeps the record's old id though, and the store only picks a new one on
+    // a collision; since the CSRF middleware writes a new token before the
+    // response leaves, the session would be recreated under the same id.
     // `cycle_id()` gives it a fresh one.
     session.flush().await?;
     session.cycle_id().await

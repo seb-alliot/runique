@@ -33,7 +33,7 @@ impl FormAccess for UsernameForm {
 impl RuniqueForm for UsernameForm {}
 ```
 
-> **💡 Split:** `FormAccess` owns `register_fields` + accessors; `RuniqueForm` owns validation hooks. `impl_form_access!()` generates `from_form()`, `get_form()` and `get_form_mut()` inside `impl FormAccess`. If your field is not named `form`, pass the name: `impl_form_access!(formulaire)`.
+> **💡 Split:** `FormAccess` owns `register_fields` + accessors; `RuniqueForm` owns validation hooks. `impl_form_access!()` generates `from_form()`, `get_form()` and `get_form_mut()` inside `impl FormAccess`. It's meant for a struct whose field is named `form`. A form taken from a model (`#[form(schema = …)]`) needs neither block: the macro writes them.
 >
 > With `#[form(schema = …)]`, the macro generates `impl FormAccess` for you — user code only writes `impl RuniqueForm` (`clean`, `customize`…).
 >
@@ -201,7 +201,7 @@ pub async fn search(mut request: Request) -> AppResult<Response> {
 }
 ```
 
-> To explicitly distinguish "first page load" from "form submitted with invalid data", use `request.method.is_safe()` (GET/HEAD).
+> To tell "first page load" from "form submitted with invalid data" (showing a global error message in the second case only), the examples test `request.method.is_safe()` (GET/HEAD) today. **Limit:** on a page showing several forms, submitting one is a POST, and `is_safe()` answers `false` for all of them: the message would also show under the forms not submitted. Field errors, on the other hand, are only set on the submitted form (thanks to its name).
 
 ---
 

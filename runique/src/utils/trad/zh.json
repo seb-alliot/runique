@@ -133,7 +133,7 @@
     "validation_failed": "构建验证失败：{}",
     "check_failed": "构建检查失败，共 {} 个错误",
     "template_failed": "模板加载失败：{}",
-    "driver_not_enabled": "{} 驱动未启用：Runique 编译时未启用 '{}' feature。\n\n在项目的 Cargo.toml 中：\nrunique = { version = \"{}\", features = [\"{}\"] }\n\n对于 runique CLI：\ncargo install runique --features {} --locked --force\n\n如需支持所有数据库，请使用 'all-databases' feature。",
+    "driver_not_enabled": "{} 驱动未启用：Runique 是用 '{}' 编译的，而不是 '{}'。\n\n如果 .env 指向了错误的数据库（features 已更改，但 .env 没有），请将 DB_ENGINE 和 DATABASE_URL 设置为已编译的引擎：'{}'。\n\n若要改用 {}，请在项目的 Cargo.toml 和 migration/Cargo.toml 中：\nrunique = { version = \"{}\", features = [\"{}\"] }\n\n对于 runique CLI：\ncargo install runique --features {} --locked --force\n\n若要支持所有引擎，请使用 'all-databases' feature。",
     "db_missing": "启用 'orm' 功能时需要数据库连接",
     "component_not_ready": "组件 '{}' 尚未就绪",
     "check": {
@@ -211,7 +211,10 @@
     "project_created": "项目 '{}' 创建成功！",
     "getting_started": "开始使用：",
     "cd_hint": "cd {}",
-    "cargo_run_hint": "cargo run"
+    "cargo_run_hint": "cargo run",
+    "name_digit": "项目名称不能以数字开头",
+    "name_reserved": "'{}' 是保留名称（Rust 关键字或 crate、cargo 或 Windows 名称，或生成项目的一部分）：请选择其他名称",
+    "migration_up_hint": "runique migration up      （创建框架的表：账户、会话、权限）"
   },
   "TemplateMessage": {
     "debug_info_title": "调试信息",
@@ -541,12 +544,21 @@
     "long_identifier_detected": "生成的 SQL 标识符过长（MariaDB/MySQL 限制：64 个字符）：",
     "long_identifier_rename_required": "请缩短相关的表名/列名 — Runique 不会自动截断标识符。",
     "files_ready": "{}个文件已准备好迁移。",
-    "snapshots_upgraded": "已更新 {} 个快照以记录列长度（无迁移）。"
+    "snapshots_upgraded": "已更新 {} 个快照以记录列长度（无迁移）。",
+    "type_change_not_migrated": "警告：--force 放行了这些列类型变更，但它们尚未被迁移。其迁移只包含一条注释，而快照已记录新类型：",
+    "type_change_write_by_hand": "请在 `runique migration up` 之前手动编写该迁移的 up() 和 down()（alter_table / modify_column）：否则数据库将保留旧类型，且不会有任何提示。",
+    "no_changes": "未检测到变更：您的模型与其快照一致。",
+    "apply_hint": "使用以下命令应用待执行的迁移：runique migration up"
   },
   "migrate": {
-    "applying": "正在从'{}'应用迁移...",
     "complete_up": "迁移完成。",
-    "crate_missing": "未找到迁移 crate：'{}' 中没有 Cargo.toml。"
+    "crate_missing": "未找到迁移 crate：'{}' 中没有 Cargo.toml。",
+    "running": "正在执行 'migrate {}'（迁移 crate '{}'）...",
+    "complete_down": "回滚完成。",
+    "cargo_missing": "无法启动 cargo。是否已安装 Rust 且 cargo 在 PATH 中？",
+    "failed": "迁移 crate 在 'migrate {}' 上失败（退出码：{}）。",
+    "crate_created": "已在 '{}' 创建迁移 crate。",
+    "engine_defaulted": "未设置 DB_ENGINE：迁移 crate 使用 SQLite。如有需要，请修改 '{}' 中的 runique feature。"
   },
   "reset": {
     "forgot_title": "忘记密码",

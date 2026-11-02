@@ -1,12 +1,15 @@
 use crate::views::*;
 use runique::prelude::*;
 
-/// Example route table wiring `/`, `/inscription`, `/connexion` and `/about` to their views.
+/// The application's routes: each one named, so templates link to it with
+/// `{% link "name" %}` instead of writing the path.
 pub fn routes() -> Routes {
     urlpatterns! {
-        "/"            => view!{ index },                  name = "index",
-        "/inscription" => view!{ soumission_inscription }, name = "inscription",
-        "/connexion"   => view!{ connexion },              name = "connexion",
-        "/about"       => view!{ about },                  name = "about",
+        "/"        => view!{ index },   name = "index",
+        "/signup"  => view!{ sign_up }, name = "signup",
+        "/login"   => view!{ sign_in }, name = "login",
+        // POST only: signing out changes the session, a GET never should.
+        "/logout"  => post(sign_out),   name = "logout",
+        "/about"   => view!{ about },   name = "about",
     }
 }

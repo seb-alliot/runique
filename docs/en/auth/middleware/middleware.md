@@ -31,7 +31,7 @@ async fn login_page(mut request: Request) -> AppResult<Response> {
 No middleware to add: Runique injects a `CurrentUser` into every request of a signed-in user,
 available as `request.user`.
 
-The session only keeps **who** signed in. The account (active, staff, superuser) is read from
+The session only keeps **who** signed in. The account (active, rank, groups) is read from
 the database on every request — one lookup by primary key. A deleted or deactivated account
 therefore has its session closed on its next request: `request.user` is `None` and
 `is_authenticated` returns `false`, whatever made the change (admin, CLI, SQL, another instance).
@@ -50,11 +50,11 @@ async fn profile(request: Request) -> impl IntoResponse {
 
 ```rust
 pub struct CurrentUser {
-    pub id: Pk,      // i32 by default, i64 with "big-pk", Uuid with "pk-uuid"
+    pub id: Pk,                    // i32 by default, i64 with "big-pk", Uuid with "pk-uuid"
     pub username: String,
-    pub is_staff: bool,
-    pub is_superuser: bool,
-    pub groupes: Vec<Groupe>,
+    pub rang: Rang,                // Lambda, Admin, Dirigeant, Superuser
+    pub groupes: Vec<Groupe>,      // loaded by load_user_rights()
+    pub droits: Vec<Permission>,   // an admin's own rights, loaded by load_user_rights()
 }
 ```
 
@@ -68,7 +68,7 @@ async fn articles(mut request: Request) -> AppResult<Response> {
     let can_edit = request
         .user
         .as_ref()
-        .is_some_and(|u| u.permission_for("articles").is_some_and(|p| p.can_update));
+        .is_some_and(|u| u.rights_on("articles").crud.can_update);
     // ...
 }
 ```
@@ -76,18 +76,20 @@ async fn articles(mut request: Request) -> AppResult<Response> {
 ### Available Methods
 
 ```rust
-// Effective permissions (all resources, logical OR across all groups)
-user.permissions_effectives()                 // → Vec<Permission>
+// Rights on a resource, per rank: everything for a dirigeant or a superuser,
+// an admin's own grid, the union of the groups for everyone else
+user.rights_on("articles")              // → Rights { crud, columns }
+user.rights_on("articles").crud.can_update
 
-// Permission for a specific resource
-user.permission_for("users")                  // → Option<Permission>
+// May the user read a resource?
+user.can_access_resource("articles")    // → bool
 
-// Read access to a resource (is_superuser bypasses everything)
-user.can_access_resource("users")             // → bool
-
-// Admin panel access (is_staff || is_superuser)
-user.can_access_admin()                       // → bool
+// Admin panel access: rank admin or above, or member of a staff group
+user.can_access_admin()                 // → bool
+user.is_staff()                         // member of a group that opens the admin
 ```
+
+These methods read the groups and rights: call `request.load_user_rights().await` first.
 
 ---
 

@@ -494,6 +494,8 @@ async fn auth_middleware(
                     .read()
                     .ok()
                     .and_then(|g| g.as_ref().cloned());
+                // Logged, not fatal: the account is read again on every request and
+                // refused here each time, so a row that survives grants nothing.
                 logout(&session, db_store.as_deref()).await.trace(
                     crate::utils::runique_log::get_log()
                         .session

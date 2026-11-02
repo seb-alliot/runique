@@ -1,14 +1,14 @@
 .form-group {
     position: relative;
-    margin-bottom: 1.6rem;
+    margin-bottom: 1.6em;
 }
 
 /* Label */
 .form-label {
     position: absolute;
-    top: 1rem;
+    top: 1.1765em;
     color: #64748b;
-    font-size: 0.85rem;
+    font-size: 0.85em;
     pointer-events: none;
     transition: all 0.2s ease;
     background: transparent;
@@ -19,23 +19,23 @@
     width: 100%;
     background: #0f172a;
     border: 1px solid #1f2937;
-    border-radius: 0.9rem;
-    padding: 1.4rem 0.9rem 0.6rem;
+    border-radius: 0.9474em;
+    padding: 1.4737em 0.9474em 0.6316em;
     color: var(--text-main);
-    font-size: 0.95rem;
+    font-size: 0.95em;
 }
 
-/* Quand le champ est focus */
+/* When the field has focus */
 .form-group:focus-within .form-label {
-    top: 0.35rem;
-    font-size: 0.7rem;
+    top: 0.5em;
+    font-size: 0.7em;
     color: var(--accent);
 }
 
-/* Quand le champ contient déjà une valeur */
+/* When the field already holds a value */
 .form-group:has(.form-control:not(:placeholder-shown)) .form-label {
-    top: 0.35rem;
-    font-size: 0.7rem;
+    top: 0.5em;
+    font-size: 0.7em;
     color: var(--accent);
 }
 
@@ -45,7 +45,7 @@ form {
 
 .form-group {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(0.5em);
     animation: fieldFade 0.5s ease forwards;
 }
 
@@ -55,7 +55,7 @@ form {
 .form-group:nth-child(4) { animation-delay: 0.4s; }
 
 @keyframes formFade {
-    from { opacity: 0; transform: translateY(15px); }
+    from { opacity: 0; transform: translateY(0.9375em); }
     to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -68,7 +68,7 @@ form {
 }
 
 .invalid-feedback {
-    font-size: 0.75rem;
+    font-size: 0.75em;
     color: #fca5a5;
-    margin-top: 0.3rem;
+    margin-top: 0.4em;
 }

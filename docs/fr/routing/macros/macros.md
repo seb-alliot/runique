@@ -37,7 +37,7 @@ urlpatterns! {
 <a href='{% link "user_detail" id="42" %}'>Profil</a>
 ```
 
-> Toutes les routes dans un même `urlpatterns!` doivent être soit toutes nommées, soit toutes sans nom — le mélange n'est pas supporté.
+> Le nom est facultatif route par route : on peut mélanger routes nommées et non nommées dans un même `urlpatterns!`. Seules les routes nommées sont accessibles à `{% link %}`.
 
 ### Sans noms
 
@@ -181,7 +181,7 @@ pub async fn contact_submit(mut request: Request) -> AppResult<Response> {
 
 ## Macro impl_objects! (bonus)
 
-`impl_objects!` est **générée automatiquement** par le daemon dans chaque fichier d'entité. Elle ajoute un manager Django-like utilisable directement dans les handlers :
+`model!{}` génère automatiquement ce manager pour chaque entité (une entité SeaORM écrite à la main l'obtient avec `impl_objects!(Entity)`). Il s'utilise directement dans les handlers :
 
 ```rust
 use crate::entities::users;

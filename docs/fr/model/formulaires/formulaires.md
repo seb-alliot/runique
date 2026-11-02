@@ -12,9 +12,10 @@ Elle génère :
 
 - la struct avec `form: Forms`
 - `impl ModelForm` (`schema()`, `fields()`, `exclude()`)
+- `impl FormAccess` (champs et accesseurs — pas de `impl_form_access!(model)` à écrire)
 - `impl FormEntity` + `pub const objects` (lien automatique vers `<schema>::Entity`)
 
-Le dev écrit ensuite `impl RuniqueForm` avec `impl_form_access!(model)` :
+Le dev écrit ensuite seulement `impl RuniqueForm` (vide, ou avec ses hooks) :
 
 ```rust
 use runique::prelude::*;
@@ -22,9 +23,7 @@ use runique::prelude::*;
 #[form(schema = users, fields = [username, email])]
 pub struct UserForm;
 
-impl RuniqueForm for UserForm {
-    impl_form_access!(model);
-}
+impl RuniqueForm for UserForm {}
 ```
 
 ### Accès ORM depuis le formulaire
@@ -98,7 +97,6 @@ pub struct RegisterForm;
 
 #[async_trait]
 impl RuniqueForm for RegisterForm {
-    impl_form_access!(model);
 
     async fn clean(&mut self) -> Result<(), StrMap> {
         let mut errors = StrMap::new();
@@ -133,31 +131,20 @@ impl RuniqueForm for RegisterForm {
 - `fields`/`exclude` mal alignés avec le schéma => erreurs de génération/exécution
 - `#[async_trait]` requis sur `impl RuniqueForm` uniquement quand on override `clean` ou `clean_field`
 
-### Limitation connue — surcharge de champ non prise en charge
+### Personnaliser un champ — `customize()`
 
-> **La surcharge individuelle d'un champ auto-généré par `#[form(...)]` ou `model!` n'est pas encore prise en charge.**
-
-Il n'est pas possible aujourd'hui de personnaliser un seul champ (ex: ajouter `.max_size(FileSize::mb(5))` ou changer le label) sans réécrire l'intégralité de `register_fields` à la main, ce qui annule le bénéfice de la macro.
-
-**Contournement actuel :** écrire un formulaire manuel complet et déclarer les champs explicitement.
+Un formulaire `#[form]` se personnalise champ par champ sans réécrire `register_fields` : le hook `customize()` s'exécute juste après l'enregistrement des champs du modèle, à chaque construction du formulaire. Redéclarer un champ sous le même nom le remplace.
 
 ```rust
-// ❌ Pas encore possible
 #[form(schema = article)]
 pub struct ArticleForm;
 
 impl RuniqueForm for ArticleForm {
-    impl_form_access!(model);
-    // surcharger juste le champ image → impossible sans tout réécrire
-}
-
-// ✅ Contournement : formulaire manuel
-impl RuniqueForm for ArticleForm {
-    impl_form_access!();
-    fn register_fields(form: &mut Forms) {
-        form.field(&TextField::text("titre").label("Titre").required());
+    fn customize(form: &mut Forms) {
+        // Remplace le seul champ `image`, les autres restent ceux du modèle
         form.field(
             &FileField::image("image")
+                .label("Illustration")
                 .upload_to("articles")
                 .max_size(FileSize::mb(5)),
         );
@@ -165,11 +152,7 @@ impl RuniqueForm for ArticleForm {
 }
 ```
 
-Cette limitation n'est pas encore levée. Un système de surcharge par champ (`overrides = [...]`) est prévu mais pas encore disponible.
-
-> **Important :** dans un formulaire manuel, la `max_size` définie sur le `FileField` et celle déclarée dans le `model!{}` sont deux valeurs indépendantes — elles ne sont pas automatiquement synchronisées. Il faut les aligner manuellement. Pour les formulaires générés via `#[form(...)]`, la limite du modèle est appliquée directement dans `register_fields`.
-
----
+Les limites déclarées dans le modèle (longueur, taille de fichier…) sont réappliquées après `customize()` : un formulaire peut les resserrer, jamais les dépasser.
 
 ## Voir aussi
 

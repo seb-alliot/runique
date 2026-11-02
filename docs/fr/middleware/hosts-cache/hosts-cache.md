@@ -22,7 +22,7 @@ et les proxies inverses qui proxifient en HTTP/2.
 Les rejections peuvent être loggées via `RuniqueLog` :
 
 ```rust
-.with_log(|l| l.host_validation(LogLevel::WARN))
+.with_log(|l| l.middleware(|m| m.host_validation(LogLevel::WARN)))
 ```
 
 En production, `WARN` est recommandé pour détecter des attaques ou des mauvaises configurations.
@@ -66,7 +66,7 @@ Pragma: no-cache
 
 ### Mode production (`DEBUG=false`)
 
-Headers de cache activés pour les performances.
+Aucun en-tête no-cache n'est ajouté : le navigateur applique son cache habituel. Le cache des fichiers statiques et médias se règle avec `.static_files(|s| s.static_cache("…").media_cache("…"))`.
 
 ---
 

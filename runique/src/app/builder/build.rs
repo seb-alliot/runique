@@ -39,6 +39,13 @@ fn body_limit(max_upload_mb: u64) -> usize {
     usize::try_from(bytes).unwrap_or(usize::MAX)
 }
 
+/// Runique's welcome page, served at `/` in debug when the app declares no `/`.
+async fn default_index(
+    mut request: crate::context::template::Request,
+) -> crate::utils::aliases::AppResult<axum::response::Response> {
+    request.render("base_index.html")
+}
+
 /// Policy of every media response: no script, no plugin, whatever the file
 /// claims to be (an uploaded `.html` or `.xhtml` is otherwise a page of the site).
 const MEDIA_CSP: &str = "script-src 'none'; object-src 'none'; base-uri 'none'";
@@ -198,6 +205,18 @@ impl<P> RuniqueAppBuilder<P> {
         // `.layer()` in Axum only covers routes present at call time;
         // merging after means admin routes run without Session/CSRF/Extensions.
         let router = router.unwrap_or_default();
+
+        // Outside debug, an undeclared `/` stays a 404: a welcome page on a
+        // live site would look unfinished and name the framework.
+        let forgot_on_root = self
+            .password_reset
+            .as_ref()
+            .is_some_and(|pr| pr.config.forgot_route == "/");
+        let router = if config.debug && self.root_free && !forgot_on_root {
+            router.route("/", axum::routing::get(default_index))
+        } else {
+            router
+        };
 
         // The admin's emailed reset links point to the reset page this app
         // serves. Its "view site" link stays `/` unless set: on the host the

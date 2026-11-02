@@ -50,7 +50,9 @@ Par défaut, le store est purement en mémoire. Lorsque la feature `orm` est act
 - **Écriture** : synchrone en mémoire + asynchrone en DB pour les sessions avec `user_id`
 - **Sessions anonymes** : jamais persistées en DB
 
-> La table `eihwaz_sessions` doit exister — elle est créée par les migrations du framework.
+> La table `eihwaz_sessions` doit exister — elle est créée par les migrations du framework (`runique migration up`). Sans elle, la première requête qui cherche une session en base échoue (`no such table`).
+>
+> Avec un store personnalisé (`with_session_store(...)`), ce fallback n'est pas installé, et Runique ne sait pas révoquer les sessions d'un utilisateur (déconnexion des autres appareils, réinitialisation de mot de passe) : c'est au store de le faire.
 
 ---
 
@@ -59,9 +61,9 @@ Par défaut, le store est purement en mémoire. Lorsque la feature `orm` est act
 Le store mémoire appartient à un seul processus. Derrière un répartiteur de charge avec plusieurs instances de l'application :
 
 - **Les sessions anonymes** (jeton CSRF, messages flash, tout ce qui est stocké avant la connexion) ne vivent que dans la mémoire de l'instance qui les a créées. Une requête envoyée à une autre instance ne les retrouve pas : un formulaire échoue au contrôle CSRF, un message flash disparaît.
-- **Les sessions authentifiées** sont retrouvées grâce au fallback base de données, mais chaque instance lit d'abord sa propre mémoire. Une déconnexion ou un `close_user_sessions` sur une instance vide la base et la mémoire de cette instance, pas les copies déjà chargées par les autres : là, la session reste utilisable jusqu'à son expiration.
+- **Les sessions authentifiées** sont partagées par la base : la base fait autorité. À chaque requête, une instance qui a la session en mémoire vérifie encore que sa ligne existe en base. Une déconnexion, une réinitialisation de mot de passe ou un `close_user_sessions` sur une instance supprime la ligne : les autres instances refusent leur copie dès la requête suivante.
 
-Tant qu'il n'existe pas de store partagé, envoyez chaque visiteur toujours vers la même instance (sessions « collantes », ou affinité de session, sur le répartiteur). Avec une seule instance, rien de tout cela ne s'applique.
+Tant qu'il n'existe pas de store partagé pour les sessions anonymes, envoyez chaque visiteur toujours vers la même instance (sessions « collantes », ou affinité de session, sur le répartiteur) si vos pages utilisent des formulaires avant la connexion. Avec une seule instance, rien de tout cela ne s'applique.
 
 ---
 
@@ -93,8 +95,8 @@ let app = RuniqueApp::builder(config)
 |-------------------------------|-----------------|--------|
 | Timer périodique | `with_session_cleanup_interval(secs)` | 60 s |
 | Low / High watermark | `with_session_memory_limit(low, high)` | 128 Mo / 256 Mo |
-| TTL session authentifiée | `with_session_duration(Duration)` | — |
-| TTL session anonyme | `with_anonymous_session_duration(Duration)` | — |
+| TTL session authentifiée | `with_session_duration(Duration)` | 24 h |
+| TTL session anonyme | `with_anonymous_session_duration(Duration)` | 5 min |
 | Login exclusif (un appareil) | `with_exclusive_login(bool)` | `false` |
 
 > Les watermarks s'expriment en **octets** : `64 * 1024 * 1024` = 64 Mo. La durée du timer est en **secondes**.

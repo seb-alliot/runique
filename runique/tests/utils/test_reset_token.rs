@@ -11,7 +11,7 @@ const RESET_TOKENS_DDL: &str = "
     CREATE TABLE eihwaz_reset_tokens (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
         token_hash  TEXT NOT NULL UNIQUE,
-        user_id     TEXT NOT NULL,
+        user_id     TEXT NOT NULL UNIQUE,
         expires_at  TEXT NOT NULL
     )
 ";
@@ -21,7 +21,7 @@ const RESET_TOKENS_DDL: &str = "
     CREATE TABLE eihwaz_reset_tokens (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
         token_hash  TEXT NOT NULL UNIQUE,
-        user_id     INTEGER NOT NULL,
+        user_id     INTEGER NOT NULL UNIQUE,
         expires_at  TEXT NOT NULL
     )
 ";
@@ -101,24 +101,28 @@ async fn test_a_live_token_never_lets_another_one_through() {
     assert_eq!(consume(&conn, &alice).await, Some(pk(1)));
 }
 
+/// A second request overwrites the first link instead of adding one: only the
+/// last token written works, and the user still has exactly one row.
 #[tokio::test]
-async fn test_failed_token_replacement_preserves_the_previous_token() {
-    use runique::sea_orm::ConnectionTrait;
-
+async fn test_a_new_token_replaces_the_previous_one() {
+    use runique::sea_orm::{ConnectionTrait, Statement};
     let conn = runique::db::ADb::from_connection(db::fresh_db_with_schema(RESET_TOKENS_DDL).await);
-    let previous = generate(&conn, pk(1), ttl()).await.unwrap();
-    conn.execute_unprepared(
-        "CREATE TRIGGER reject_reset_token_insert BEFORE INSERT ON eihwaz_reset_tokens \
-         BEGIN SELECT RAISE(FAIL, 'simulated insert failure'); END",
-    )
-    .await
-    .unwrap();
+    let first = generate(&conn, pk(1), ttl()).await.unwrap();
+    let second = generate(&conn, pk(1), ttl()).await.unwrap();
 
-    assert!(generate(&conn, pk(1), ttl()).await.is_err());
-    assert!(
-        peek(&conn, &previous).await,
-        "a failed replacement must not delete the user's previously working reset link"
-    );
+    assert!(!peek(&conn, &first).await, "the older link is dead");
+    assert!(peek(&conn, &second).await, "the newer link works");
+    let rows: i64 = conn
+        .query_one_raw(Statement::from_string(
+            conn.get_database_backend(),
+            "SELECT COUNT(*) AS n FROM eihwaz_reset_tokens WHERE user_id = 1",
+        ))
+        .await
+        .unwrap()
+        .unwrap()
+        .try_get("", "n")
+        .unwrap();
+    assert_eq!(rows, 1);
 }
 
 #[tokio::test]

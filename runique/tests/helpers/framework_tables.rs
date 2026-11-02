@@ -179,7 +179,7 @@ pub const RESET_TOKENS_DDL: &str = "
     CREATE TABLE eihwaz_reset_tokens (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
         token_hash  TEXT NOT NULL UNIQUE,
-        user_id     BLOB NOT NULL,
+        user_id     BLOB NOT NULL UNIQUE,
         expires_at  TEXT NOT NULL
     )
 ";
@@ -189,7 +189,7 @@ pub const RESET_TOKENS_DDL: &str = "
     CREATE TABLE eihwaz_reset_tokens (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
         token_hash  TEXT NOT NULL UNIQUE,
-        user_id     INTEGER NOT NULL,
+        user_id     INTEGER NOT NULL UNIQUE,
         expires_at  TEXT NOT NULL
     )
 ";

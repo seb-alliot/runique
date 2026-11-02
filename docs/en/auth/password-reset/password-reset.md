@@ -16,7 +16,7 @@ Runique includes a complete, ready-to-use system:
 - Automatic email sending if the mailer is configured
 - Built-in rate limiting (5 requests / 5 min by default)
 - Included i18n messages
-- Automatic logout when the reset form is accessed
+- Once the reset succeeds: every session of the account closed, and the one of the browser it ran in (even signed in as another account) — in the same transaction as the password change. Showing the form signs nobody out
 - Depending on the account's state: activation link (pending account), reset link (active account), "account blocked" email with no link (deactivated account) — the page always answers the same. See [Account states](/docs/en/auth/model)
 
 ---
@@ -24,7 +24,8 @@ Runique includes a complete, ready-to-use system:
 ## Activation
 
 ```rust
-RuniqueAppBuilder::new(config)
+RuniqueApp::builder(config)
+    .with_public_url("https://mysite.com")
     .with_mailer_from_env()
     .with_password_reset(|pr| pr)
     .build()
@@ -134,7 +135,7 @@ Available variables:
    - Redirects to success_redirect (default: /)
 ```
 
-> **Active sessions after reset:** once the new password is saved, **every session of the account is closed**, on every device — a stolen one included. The user signs in again with the new password. Other accounts are left alone. Only Runique's stores are covered: a store plugged in with `with_session_store()` (Redis…) can't be searched by user — see [Revoking sessions](/docs/en/auth/session#revoking-sessions).
+> **Active sessions after reset:** once the new password is saved, **every session of the account is closed**, on every device — a stolen one included —, and the session of the browser that did the reset. All of it happens in the password change's transaction: when the database refuses, nothing changes and the link stays usable. One link is live per account: a new request replaces the previous one. The user signs in again with the new password. Other accounts are left alone. Only Runique's stores are covered: a store plugged in with `with_session_store()` (Redis…) can't be searched by user — see [Revoking sessions](/docs/en/auth/session#revoking-sessions).
 
 ---
 

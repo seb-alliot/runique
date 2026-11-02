@@ -179,7 +179,7 @@ pub async fn contact_submit(mut request: Request) -> AppResult<Response> {
 
 ## Macro impl_objects! (bonus)
 
-`impl_objects!` is **automatically generated** by the daemon in each entity file. It adds a Django-like manager usable directly in handlers:
+`model!{}` generates this manager automatically for every entity (a SeaORM entity written by hand gets it with `impl_objects!(Entity)`). It's usable directly in handlers:
 
 ```rust
 use crate::entities::users;

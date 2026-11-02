@@ -1,4 +1,5 @@
 //! `new` command — scaffolds a new Runique project (files, dependencies, SECRET_KEY).
+use super::migration_crate::{self, Engine, SEA_ORM_MIGRATION_REQ, SEA_ORM_REQ};
 use crate::utils::trad::{t, tf};
 use anyhow::Result;
 use rand::RngExt;
@@ -6,7 +7,8 @@ use std::{fs, path::Path};
 
 /// Scaffolds a new Runique project named `name`: creates the standard directory
 /// layout, writes the bundled example files (views, forms, templates, CSS,
-/// `Cargo.toml`), and generates a fresh random `SECRET_KEY` into `.env`.
+/// `Cargo.toml`) and its `migration` crate, and generates a fresh random
+/// `SECRET_KEY` into `.env`.
 /// Fails if `name` is invalid or a folder with that name already exists.
 pub fn create_new_project(name: &str) -> Result<()> {
     validate_project_name(name)?;
@@ -28,10 +30,37 @@ pub fn create_new_project(name: &str) -> Result<()> {
     println!("  {}", tf("cli.project_created", &[&name]));
     println!("\n  {}", t("cli.getting_started"));
     println!("  {}", tf("cli.cd_hint", &[&name]));
+    // Before `cargo run`: the framework's tables (accounts, sessions) must
+    // exist, or the first request fails on a missing table.
+    println!("  {}", t("cli.migration_up_hint"));
     println!("  {}", t("cli.cargo_run_hint"));
 
     Ok(())
 }
+
+/// Names a project can't take, compared lowercase with `-` read as `_`:
+/// cargo refuses Rust's keywords and built-in crates, and its own build
+/// folders; Windows refuses its device names as folders; and the generated
+/// workspace already holds a `migration` crate and depends on `runique`.
+const RESERVED_NAMES: &[&str] = &[
+    // Rust keywords, reserved ones included
+    "abstract", "as", "async", "await", "become", "box", "break", "const", "continue",
+    "crate", "do", "dyn", "else", "enum", "extern", "false", "final", "fn", "for", "gen",
+    "if", "impl", "in", "let", "loop", "macro", "match", "mod", "move", "mut", "override",
+    "priv", "pub", "ref", "return", "self", "static", "struct", "super", "trait", "true",
+    "try", "type", "typeof", "unsafe", "unsized", "use", "virtual", "where", "while",
+    "yield",
+    // Rust's built-in crates
+    "alloc", "core", "proc_macro", "std", "test",
+    // cargo's build folders
+    "build", "deps", "examples", "incremental",
+    // Windows device names
+    "aux", "con", "nul", "prn", "com1", "com2", "com3", "com4", "com5", "com6", "com7",
+    "com8", "com9", "lpt1", "lpt2", "lpt3", "lpt4", "lpt5", "lpt6", "lpt7", "lpt8",
+    "lpt9",
+    // The generated workspace
+    "migration", "runique",
+];
 
 fn validate_project_name(name: &str) -> Result<()> {
     if name.is_empty() {
@@ -46,17 +75,24 @@ fn validate_project_name(name: &str) -> Result<()> {
     if name.starts_with('-') {
         anyhow::bail!("{}", t("cli.name_dash"));
     }
+    if name.starts_with(|c: char| c.is_ascii_digit()) {
+        anyhow::bail!("{}", t("cli.name_digit"));
+    }
+    let normalized = name.to_lowercase().replace('-', "_");
+    if RESERVED_NAMES.contains(&normalized.as_str()) {
+        anyhow::bail!("{}", tf("cli.name_reserved", &[name]));
+    }
     Ok(())
 }
 
 fn create_project_dirs(project_dir: &Path) -> Result<()> {
     let dirs = [
         "src/entities",
-        "src/formulaire",
-        "static/css/inscription",
+        "src/forms",
+        "static/css/forms",
         "static/js",
         "media/favicon",
-        "templates/about",
+        "templates",
     ];
     for d in dirs {
         fs::create_dir_all(project_dir.join(d))?;
@@ -72,16 +108,16 @@ fn write_project_files(project_dir: &Path, name: &str, version: &str) -> Result<
             "src/views.rs",
         ),
         (
-            include_bytes!("../composant-bin/code/forms.rs"),
-            "src/formulaire/register.rs",
+            include_bytes!("../composant-bin/code/signup_form.rs"),
+            "src/forms/signup.rs",
         ),
         (
             include_bytes!("../composant-bin/code/login_form.rs"),
-            "src/formulaire/login.rs",
+            "src/forms/login.rs",
         ),
         (
-            include_bytes!("../composant-bin/code/formulaire_mod.rs"),
-            "src/formulaire/mod.rs",
+            include_bytes!("../composant-bin/code/forms_mod.rs"),
+            "src/forms/mod.rs",
         ),
         (include_bytes!("../composant-bin/code/url.rs"), "src/url.rs"),
         (
@@ -89,20 +125,24 @@ fn write_project_files(project_dir: &Path, name: &str, version: &str) -> Result<
             "src/main.rs",
         ),
         (
+            include_bytes!("../composant-bin/template/base.html"),
+            "templates/base.html",
+        ),
+        (
             include_bytes!("../composant-bin/template/index.html"),
             "templates/index.html",
         ),
         (
             include_bytes!("../composant-bin/template/about.html"),
-            "templates/about/about.html",
+            "templates/about.html",
         ),
         (
-            include_bytes!("../composant-bin/template/inscription_form.html"),
-            "templates/inscription_form.html",
+            include_bytes!("../composant-bin/template/signup.html"),
+            "templates/signup.html",
         ),
         (
-            include_bytes!("../composant-bin/template/login_form.html"),
-            "templates/login_form.html",
+            include_bytes!("../composant-bin/template/login.html"),
+            "templates/login.html",
         ),
         (
             include_bytes!("../composant-bin/css/main.css"),
@@ -117,16 +157,16 @@ fn write_project_files(project_dir: &Path, name: &str, version: &str) -> Result<
             "static/css/variables.css",
         ),
         (
-            include_bytes!("../composant-bin/css/inscription/inscription.css"),
-            "static/css/inscription/inscription.css",
+            include_bytes!("../composant-bin/css/forms/forms.css"),
+            "static/css/forms/forms.css",
         ),
         (
-            include_bytes!("../composant-bin/css/inscription/inscription-label.css"),
-            "static/css/inscription/inscription-label.css",
+            include_bytes!("../composant-bin/css/forms/forms-label.css"),
+            "static/css/forms/forms-label.css",
         ),
         (
-            include_bytes!("../composant-bin/image/toshiro.avif"),
-            "media/toshiro.avif",
+            include_bytes!("../composant-bin/image/runique.avif"),
+            "media/runique.avif",
         ),
         (
             include_bytes!("../composant-bin/image/favicon.ico"),
@@ -159,9 +199,14 @@ fn write_project_files(project_dir: &Path, name: &str, version: &str) -> Result<
     ] {
         let content = template
             .replace("{{PROJECT_NAME}}", name)
-            .replace("{{RUNIQUE_VERSION}}", version);
+            .replace("{{RUNIQUE_VERSION}}", version)
+            .replace("{{SEA_ORM_REQ}}", SEA_ORM_REQ)
+            .replace("{{SEA_ORM_MIGRATION_REQ}}", SEA_ORM_MIGRATION_REQ);
         fs::write(project_dir.join(path), content)?;
     }
+
+    // SQLite, as the `.env` and the `Cargo.toml` written above.
+    migration_crate::write(&project_dir.join("migration"), Engine::Sqlite, version)?;
 
     let secret_key: String = generate_secret_key();
     let env_file =
@@ -192,20 +237,41 @@ mod name_tests {
             assert!(validate_project_name(bad).is_err(), "{bad:?}");
         }
     }
+
+    /// Accepted by the character check, refused by cargo, Windows or the
+    /// generated workspace: refused here instead, before any folder exists.
+    #[test]
+    fn reserved_names_are_refused_whatever_their_case_or_dash() {
+        for bad in [
+            "test", "std", "Core", "proc-macro", "proc_macro", "fn", "self", "deps", "CON",
+            "nul", "lpt1", "migration", "Runique", "1app",
+        ] {
+            assert!(validate_project_name(bad).is_err(), "{bad:?}");
+        }
+        for ok in ["tests", "my_test", "testing", "app1", "console", "migrations"] {
+            assert!(validate_project_name(ok).is_ok(), "{ok:?}");
+        }
+    }
 }
 
 /// The generated project carries its name and runique's version, and no
 /// placeholder is left in it (the README once said "v1.1.54" and "{}/").
 #[cfg(test)]
 mod generated_files_tests {
-    use super::{create_project_dirs, write_project_files};
+    use super::{SEA_ORM_MIGRATION_REQ, SEA_ORM_REQ, create_project_dirs, write_project_files};
 
     #[test]
     fn no_placeholder_is_left_in_the_generated_files() {
         let dir = std::env::temp_dir().join(format!("rq_new_{}", uuid::Uuid::new_v4()));
         create_project_dirs(&dir).unwrap();
         write_project_files(&dir, "shop", "9.8.7").unwrap();
-        for file in ["Cargo.toml", "README.md", "README.fr.md", ".env"] {
+        for file in [
+            "Cargo.toml",
+            "README.md",
+            "README.fr.md",
+            ".env",
+            "migration/Cargo.toml",
+        ] {
             let content = std::fs::read_to_string(dir.join(file)).unwrap();
             assert!(
                 !content.contains("{{") && !content.contains("{}/"),
@@ -217,10 +283,53 @@ mod generated_files_tests {
             readme.contains("shop/") && readme.contains("v9.8.7"),
             "name and version"
         );
+        let cargo = std::fs::read_to_string(dir.join("Cargo.toml")).unwrap();
+        assert!(cargo.contains(&format!(r#"sea-orm = "{SEA_ORM_REQ}""#)), "{cargo}");
+        assert!(cargo.contains(r#"members = ["migration"]"#), "{cargo}");
+        let migration = std::fs::read_to_string(dir.join("migration/Cargo.toml")).unwrap();
         assert!(
-            readme.contains(r#"runique = { version = "9.8.7""#),
+            migration.contains(r#"runique = { version = "9.8.7""#),
             "the migration crate depends on runique"
         );
+        assert!(migration.contains(&format!(r#"version = "{SEA_ORM_MIGRATION_REQ}""#)));
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// The generated project builds against this checkout of runique: the only
+    /// test that catches the scaffold falling behind the API. Slow on its first
+    /// run (it compiles SeaORM), hence ignored; the CI runs it with
+    /// `--ignored`. The target folder is kept between runs.
+    #[test]
+    #[ignore = "compiles a whole project: run with --ignored"]
+    fn the_generated_project_compiles() {
+        let runique = env!("CARGO_MANIFEST_DIR");
+        let dir = std::env::temp_dir().join(format!("rq_new_build_{}", uuid::Uuid::new_v4()));
+        create_project_dirs(&dir).unwrap();
+        write_project_files(&dir, "generated_app", "0.0.0").unwrap();
+        for manifest in ["Cargo.toml", "migration/Cargo.toml"] {
+            let path = dir.join(manifest);
+            let content = std::fs::read_to_string(&path).unwrap().replace(
+                r#"runique = { version = "0.0.0""#,
+                // A literal TOML string: a Windows path keeps its backslashes.
+                &format!("runique = {{ path = '{runique}'"),
+            );
+            std::fs::write(&path, content).unwrap();
+        }
+
+        let status = std::process::Command::new(env!("CARGO"))
+            .args(["check", "--workspace"])
+            .current_dir(&dir)
+            .env(
+                "CARGO_TARGET_DIR",
+                std::path::Path::new(runique).join("../target/generated-project"),
+            )
+            // Read at compile time by runique's macros: the CI exports
+            // `DB_ENGINE=postgres`, the generated project is SQLite.
+            .env_remove("DB_ENGINE")
+            .env_remove("DATABASE_URL")
+            .status()
+            .expect("cargo runs");
+        let _ = std::fs::remove_dir_all(&dir);
+        assert!(status.success(), "the generated project does not compile");
     }
 }

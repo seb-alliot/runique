@@ -599,7 +599,10 @@ async fn admin_toggle_template(
     Redirect::to(&admin.paths.dashboard).into_response()
 }
 
-async fn admin_logout(Extension(admin): Extension<Arc<AdminState>>, req: Request) -> Response {
+async fn admin_logout(
+    Extension(admin): Extension<Arc<AdminState>>,
+    req: Request,
+) -> AppResult<Response> {
     let session = &req.session;
     let db_store = req
         .engine
@@ -607,14 +610,10 @@ async fn admin_logout(Extension(admin): Extension<Arc<AdminState>>, req: Request
         .read()
         .ok()
         .and_then(|g| g.as_ref().cloned());
-    logout(session, db_store.as_deref()).await.trace(
-        crate::utils::runique_log::get_log()
-            .session
-            .as_ref()
-            .and_then(|s| s.store),
-        "admin logout",
-    );
+    // A failed revocation is an error page, not a "logged out" notice: the
+    // session is still alive and the user must know to try again.
+    logout(session, db_store.as_deref()).await?;
     let login_url = format!("{}?from=logout", admin.paths.login);
     flash_now!(info => t("admin.logout_success").as_ref());
-    Redirect::to(&login_url).into_response()
+    Ok(Redirect::to(&login_url).into_response())
 }

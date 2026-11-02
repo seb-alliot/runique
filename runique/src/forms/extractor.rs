@@ -194,9 +194,10 @@ pub(crate) fn token_matches(masked: &str, csrf_session: &str) -> bool {
 fn convert_for_form(parsed: StrVecMap) -> StrMap {
     parsed
         .into_iter()
-        .map(|(k, v)| {
+        .map(|(k, mut v)| {
             if k == CSRF_TOKEN_KEY {
-                (k, v.into_iter().next().unwrap_or_default())
+                // The last one, the token `check_csrf` judged.
+                (k, v.pop().unwrap_or_default())
             } else {
                 (k, v.join(","))
             }
@@ -337,7 +338,10 @@ mod csrf_tests {
         );
         parsed.insert("tags".to_string(), vec!["a".into(), "b".into()]);
         let data = convert_for_form(parsed);
-        assert_eq!(data[CSRF_TOKEN_KEY], "first");
+        assert_eq!(
+            data[CSRF_TOKEN_KEY], "second",
+            "the token check_csrf verified"
+        );
         assert_eq!(data["tags"], "a,b");
     }
 }

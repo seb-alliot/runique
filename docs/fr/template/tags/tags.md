@@ -22,6 +22,16 @@ Runique pré-traite les templates pour transformer une syntaxe Django-like en sy
 
 **Transformé en :** `{{ "avatars/photo.jpg" | media }}` → `/media/avatars/photo.jpg`
 
+### Avec une variable
+
+`{% static %}` et `{% media %}` acceptent aussi une **variable Tera**, sans guillemets — typiquement le chemin d'un fichier envoyé, enregistré en base :
+
+```html
+<img src="{% media user.avatar %}" alt="Avatar">
+```
+
+**Transformé en :** `{{ user.avatar | media }}`. Avec guillemets, la valeur est un chemin littéral ; sans guillemets, c'est le nom d'une variable du contexte.
+
 ---
 
 ## {% csrf %} — Protection CSRF
@@ -68,7 +78,7 @@ Runique pré-traite les templates pour transformer une syntaxe Django-like en sy
 <a href='{% link "user_detail" id="42" %}'>Profil utilisateur</a>
 ```
 
-**Transformé en :** `{{ link(link='index') }}`
+**Transformé en :** `{{ link(link='index') }}`, et pour une route à paramètres `{{ link(link='user_detail', id='42') }}`. Seules les routes déclarées avec `name = "…"` dans `urlpatterns!` sont résolues ; un nom inconnu fait échouer le rendu.
 
 ---
 

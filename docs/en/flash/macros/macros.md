@@ -74,6 +74,10 @@ context_update!(request => {
 
 ---
 
+> **Current limit:** the redirect macros ignore a failed session write. When the session can't be saved (database down with the database store), the message is lost with no error. The action itself isn't affected.
+
+---
+
 ## Difference: Flash vs Flash Now
 
 | | `success!` / `error!` / etc. | `flash_now!` |

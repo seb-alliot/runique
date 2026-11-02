@@ -70,6 +70,7 @@ RuniqueApp::builder(config)
 |-------|--------|-----------------|
 | `login` | Création de session | user_id, username, is_superuser, exclusive, db_persist |
 | `reset` | Flux reset mot de passe | email, étape (token généré / email envoyé / invalide / ok / error) |
+| `password_init` | `password_init()` appelé plusieurs fois | — |
 
 ### `mailer`
 
@@ -86,6 +87,21 @@ RuniqueApp::builder(config)
 | `middleware` | Stack middleware | count + slot + name pour chaque entrée |
 | `routes` | Registry URL | count |
 | `statics` | Fichiers statiques | static_url, static_dir, media_url, media_dir |
+
+### `templates` — Moteur de templates
+
+| Champ | Moment | Données loggées |
+|-------|--------|-----------------|
+| `load` | Chargement des templates | — |
+| `render` | Rendu d'un template | template, ok/error |
+
+### `migration` — Migrations
+
+| Champ | Moment | Données loggées |
+|-------|--------|-----------------|
+| `plan` | Calcul du plan de migration | — |
+| `apply` | Application | — |
+| `rollback` | Annulation | — |
 
 ### `errors` — Pages d'erreur HTTP
 
@@ -196,7 +212,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     RuniqueApp::builder(RuniqueConfig::from_env())
         .with_database(db)
-        .routes(url::urlpatterns())
+        .routes(url::routes())
         .with_log(|l| l.external())   // Runique n'installe pas son subscriber
         .build().await?
         .run().await
@@ -227,5 +243,5 @@ Indépendamment de la config tracing, certains événements sont toujours émis 
 
 ## Voir aussi
 
-- [Variables d'environnement](/docs/fr/configuration/variables) — `RUST_LOG`, `DEBUG`
+- [Variables d'environnement](/docs/fr/env) — `RUST_LOG`, `RUNIQUE_LOG_FILE`, `DEBUG`
 - [Configuration programmatique](/docs/fr/configuration/builder) — `.with_log()`

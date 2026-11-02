@@ -86,8 +86,10 @@ pub trait RuniqueForm: FormAccess {
     /// `Decimal` keeps every digit. Whitelisted (POST > path > query): `None`
     /// if the field is unknown, empty, or doesn't read as `T`.
     ///
-    /// The developer's reading, not the write's: a password comes back as
-    /// typed (a login compares it), never only as its hash.
+    /// A password field reads as its stored value: once `is_valid()` ran, the
+    /// hash in `Auto` mode (`finalize` replaced it); as typed only when marked
+    /// `.no_hash()` (a sign-in form compares it), or in `Manual` / `Custom`
+    /// mode, where hashing it is the developer's job.
     fn cleaned<T: sea_orm::sea_query::ValueType>(&self, name: &str) -> Option<T> {
         let raw = cleaned_value(self.get_form(), name)?;
         let read = crate::forms::column_value::column_value(&T::column_type(), &raw)

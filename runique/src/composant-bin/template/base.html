@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    {% block style %}
+        <link rel="stylesheet" href='{% static "css/variables.css" %}'>
+        <link rel="stylesheet" href='{% static "css/main.css" %}'>
+    {% endblock %}
+    <link rel="icon" href='{% media "favicon/favicon.ico" %}'>
+</head>
+<body>
+    {% if debug %}
+        <div class="debug-banner">
+            <strong>Debug mode enabled</strong>
+        </div>
+    {% endif %}
+
+    {% block header %}
+        <header>
+            <img src='{% media "runique.avif" %}' alt="Logo">
+        </header>
+    {% endblock %}
+
+    <main>
+        {% block messages %}
+            {% messages %}
+        {% endblock %}
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        {% block footer %}
+            <a href='{% link "index" %}'>Home</a>
+            <a href='{% link "about" %}'>About</a>
+            {% if current_user %}
+                <span>Signed in as {{ current_user.username }}</span>
+                {# A POST with its CSRF token: a link (GET) could be triggered by another site. #}
+                <form method="post" action='{% link "logout" %}' class="logout">
+                    {% csrf %}
+                    <button type="submit">Sign out</button>
+                </form>
+            {% else %}
+                <a href='{% link "signup" %}'>Sign up</a>
+                <a href='{% link "login" %}'>Sign in</a>
+            {% endif %}
+            <p>&copy; 2026 My Web Application</p>
+        {% endblock %}
+    </footer>
+</body>
+</html>

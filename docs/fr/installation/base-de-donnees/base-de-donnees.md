@@ -1,4 +1,4 @@
-# Configuration Base de Données
+# Base de données
 
 ## Choisir le moteur (features Cargo)
 
@@ -7,42 +7,77 @@
 | `orm` (par défaut) | SeaORM : entités, requêtes, migrations, sessions. **Aucun pilote** : le code compile et `makemigrations` fonctionne, mais l'application ne peut se connecter à aucune base. |
 | `sqlite`, `postgres`, `mysql` | Le pilote du moteur. Chacun active aussi `orm`. |
 | `mariadb` | Alias de `mysql`. |
-| `all-databases` | Les trois pilotes à la fois, pour les outils multi-moteurs. |
+| `all-databases` | Les trois pilotes à la fois, pour les outils multi-moteurs (CLI, CI). |
 
-Une application active **un seul** moteur : en activer deux est une erreur de compilation (sauf via `all-databases`). `orm` n'a pas besoin d'être écrite :
-
-```toml
-runique = { version = "4.0.0", features = ["postgres"] }
-```
+Une application active **un seul** moteur : en activer deux est une erreur de compilation (sauf via `all-databases`). `orm` n'a pas besoin d'être écrite.
 
 ---
 
-## SQLite (Développement)
+## Versions de SeaORM
 
-### 1. Modifier `demo-app/Cargo.toml`
+Runique impose une version **exacte** de SeaORM. Les `Cargo.toml` générés par `runique new` la reprennent automatiquement.
+
+| Runique | SeaORM / sea-orm-migration |
+|---|---|
+| 4.0.0 | `=2.0.4` |
+
+Ne changez pas cette version à la main : quand vous mettez Runique à jour, alignez `Cargo.toml` et `migration/Cargo.toml` sur la version de la nouvelle release. Une version différente dans le projet est refusée par Cargo à la résolution des dépendances.
+
+---
+
+## Changer de moteur : trois endroits à modifier ensemble
+
+Un projet créé par `runique new` est en SQLite. Pour passer à un autre moteur, modifiez **les trois** :
+
+**1. `Cargo.toml`** — la feature de `runique` :
 
 ```toml
 [dependencies]
-runique = { version = "4.0.0", features = ["sqlite"] }
+runique = { version = "4.0.0", features = ["postgres"] }
 ```
 
-### 2. Mettre à jour `.env`
+**2. `migration/Cargo.toml`** — la feature de `runique` **et** le pilote de `sea-orm-migration` :
+
+```toml
+[dependencies]
+runique = { version = "4.0.0", features = ["postgres"] }
+sea-orm-migration = { version = "=2.0.4", features = [
+    "runtime-tokio-rustls",
+    "sqlx-postgres",
+] }
+```
+
+| Moteur | Feature `runique` | Feature `sea-orm-migration` |
+|---|---|---|
+| SQLite | `sqlite` | `sqlx-sqlite` |
+| PostgreSQL | `postgres` | `sqlx-postgres` |
+| MySQL | `mysql` | `sqlx-mysql` |
+| MariaDB | `mariadb` | `sqlx-mysql` |
+
+**3. `.env`** — `DB_ENGINE` et `DATABASE_URL` :
 
 ```env
-DATABASE_URL=sqlite:runique.db?mode=rwc
+DB_ENGINE=postgres
+DATABASE_URL=postgres://runique_user:secure_password@localhost:5432/mon_projet
 ```
 
-### 3. Relancer
+Si `.env` désigne un moteur qui n'est pas compilé, l'application refuse de démarrer avec « driver not enabled » ; le message indique le moteur compilé, pour aligner l'un ou l'autre.
 
-```bash
-cargo run -p demo-app
+Puis appliquez les migrations sur la nouvelle base : `runique migration up`.
+
+### Exemples de `DATABASE_URL`
+
+```env
+DATABASE_URL="sqlite://data.db?mode=rwc"                        # fichier créé s'il n'existe pas
+DATABASE_URL=postgres://user:password@localhost:5432/ma_base
+DATABASE_URL=mysql://user:password@localhost:3306/ma_base       # MySQL et MariaDB
 ```
 
-SQLite par défaut, PostgreSQL recommandé en production.
+Un chemin SQLite relatif est lu depuis le dossier où l'application est lancée : lancez `cargo run` et `runique migration` depuis la racine du projet.
 
 ---
 
-## PostgreSQL (Production)
+## PostgreSQL
 
 ### 1. Installer PostgreSQL
 
@@ -60,62 +95,31 @@ sudo apt-get install postgresql postgresql-contrib
 sudo systemctl start postgresql
 ```
 
-**Windows :**
-
-- [Télécharger l'installer](https://www.postgresql.org/download/windows/)
-- Suivre l'assistant d'installation
+**Windows :** [télécharger l'installeur](https://www.postgresql.org/download/windows/) et suivre l'assistant.
 
 ### 2. Créer l'utilisateur et la base de données
 
 ```sql
--- Connecter en tant qu'admin
-psql -U postgres
-
--- Créer l'utilisateur
+-- En tant qu'administrateur : psql -U postgres
 CREATE USER runique_user WITH PASSWORD 'secure_password';
-
--- Créer la base de données
-CREATE DATABASE runique OWNER runique_user;
-
--- Accorder les permissions
-GRANT ALL PRIVILEGES ON DATABASE runique TO runique_user;
+CREATE DATABASE mon_projet OWNER runique_user;
+GRANT ALL PRIVILEGES ON DATABASE mon_projet TO runique_user;
 GRANT ALL PRIVILEGES ON SCHEMA public TO runique_user;
 ```
 
-### 3. Configurer `.env`
-
-```env
-IP_SERVER=127.0.0.1
-PORT=3000
-DEBUG=true
-SECRET_KEY=votre-cle-secrete-a-changer-en-production
-
-DB_ENGINE=postgres
-DB_USER=runique_user
-DB_PASSWORD=secure_password
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=runique
-DATABASE_URL=postgres://runique_user:secure_password@localhost:5432/runique
-```
-
-### 4. Vérifier la connexion
+### 3. Vérifier la connexion
 
 ```bash
-psql -U runique_user -d runique -h localhost
+psql -U runique_user -d mon_projet -h localhost
 ```
 
 ---
 
-## Créer un superutilisateur
+## Limites actuelles
 
-Après avoir appliqué les migrations, crée le premier compte admin :
-
-```bash
-runique create-superuser
-```
-
-Le CLI guide à travers un wizard interactif : algorithme de hash, nom d'utilisateur, email, mot de passe, puis confirmation avant création.
+- **Un moteur par compilation.** Une application ne peut pas parler à deux moteurs différents en même temps (sauf `all-databases`, réservé aux outils).
+- **SQLite n'accepte qu'un écrivain à la fois** sur toute la base : sous forte charge en écriture, une requête peut attendre puis échouer (`SQLITE_BUSY`). C'est le moteur de développement ; préférez PostgreSQL en production.
+- **Les migrations générées sont communes à tous les moteurs** : ce qui ne concerne qu'un moteur (type natif `CREATE TYPE` des enums sous PostgreSQL, clés étrangères d'un cycle) est choisi à l'exécution, dans le fichier. Changer de moteur ne demande pas de régénérer les migrations, mais une **base neuve** : les données ne sont pas transférées d'un moteur à l'autre.
 
 ---
 

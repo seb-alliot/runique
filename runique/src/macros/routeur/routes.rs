@@ -28,6 +28,9 @@ use crate::{
 pub struct Routes {
     pub(crate) router: Router,
     pub(crate) public_paths: Vec<String>,
+    /// False once a plain Axum `Router` is part of the set: its paths can't
+    /// be read back, so `public_paths` may miss some.
+    paths_known: bool,
     #[cfg(feature = "admin")]
     pub(crate) admin_routes: Vec<DeclaredAdminRoute>,
 }
@@ -39,6 +42,7 @@ impl Routes {
         Self {
             router: Router::new(),
             public_paths: Vec::new(),
+            paths_known: true,
             #[cfg(feature = "admin")]
             admin_routes: Vec::new(),
         }
@@ -79,9 +83,20 @@ impl Routes {
         let other = other.into();
         self.router = std::mem::replace(&mut self.router, Router::new()).merge(other.router);
         self.public_paths.extend(other.public_paths);
+        self.paths_known &= other.paths_known;
         #[cfg(feature = "admin")]
         self.admin_routes.extend(other.admin_routes);
         self
+    }
+
+    /// Whether `/` is surely left free: Runique may then serve its default
+    /// index there without Axum panicking on an overlapping route.
+    pub(crate) fn root_is_free(&self) -> bool {
+        #[cfg(feature = "admin")]
+        if self.admin_routes.iter().any(|route| route.path == "/") {
+            return false;
+        }
+        self.paths_known && !self.public_paths.iter().any(|path| path == "/")
     }
 
     /// The ordinary routes as an Axum router, for Runique's own assembly.
@@ -122,6 +137,7 @@ impl From<Router> for Routes {
         Self {
             router,
             public_paths: Vec::new(),
+            paths_known: false,
             #[cfg(feature = "admin")]
             admin_routes: Vec::new(),
         }

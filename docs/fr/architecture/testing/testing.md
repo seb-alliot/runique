@@ -102,7 +102,10 @@ runique test blog un_article_cree_est_trouve_par_son_id   # un seul test
 
 `runique test` vérifie d'abord la mise en place — `test-utils` uniquement en `[dev-dependencies]` (refusé s'il atteint un build de production via `[dependencies]`, `[workspace.dependencies]` ou une entrée de `[features]`), le module `runique_test` derrière `cfg(test)`, chaque fichier déclaré dans `mod.rs` — puis lance `cargo test` un test à la fois, sortie affichée. `cargo test` seul fonctionne aussi : les tests sont sérialisés dans le processus.
 
-Un autre moteur (MongoDB…) peut se brancher en implémentant le trait `TestTransaction` ; `ADb` (SeaORM) est l'implémentation fournie.
+`ADb` (SeaORM) est la seule implémentation fournie : elle couvre PostgreSQL, MySQL/MariaDB et SQLite. Un autre moteur (MongoDB…) demande deux choses distinctes :
+
+- **dans l'application**, le brancher avec `.with_custom_db(client)` et le lire avec `request.engine.extension::<Client>()` (voir [Builder](/docs/fr/configuration/builder)) ;
+- **dans les tests**, implémenter le trait `TestTransaction` pour un type à vous (connexion, ouverture et annulation d'une transaction de test), puis appeler `runique_test::<VotreType>(...)`.
 
 ---
 
@@ -123,6 +126,8 @@ Un autre moteur (MongoDB…) peut se brancher en implémentant le trait `TestTra
 - **Security** : une `SECRET_KEY` faible ;
 - **PublicUrl** : le reset de mot de passe ou l'admin activés sans `.with_public_url(...)` ;
 - **ACME** : `ACME_ENABLED` sans `ACME_DOMAIN` ou `ACME_EMAIL` (feature `acme`).
+
+Ces contrôles ne vérifient **pas** que les migrations sont appliquées : une application lancée sans `runique migration up` démarre, puis échoue à la première requête qui touche une table absente (voir [Troubleshooting](/docs/fr/installation/troubleshooting)).
 
 `build()` renvoie alors une `BuildError` — `BuildErrorKind::CheckFailed(CheckReport)` pour les contrôles ci-dessus, CORS à part — affichée dans le terminal avec une suggestion pour chaque problème.
 

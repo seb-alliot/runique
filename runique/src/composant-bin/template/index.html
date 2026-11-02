@@ -1,54 +1,26 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token }}">
-    <title>{{ title }}</title>
-    {% block style %}
-        <link rel="stylesheet" href='{% static "css/variables.css" %}'>
-        <link rel="stylesheet" href='{% static "css/main.css" %}'>
-    {% endblock %}
-    <link rel="icon" type="image/png" href='{% media "favicon/favicon.ico" %}'>
-</head>
-<body>
+{% extends "base.html" %}
 
-    {% if debug %}
-        <div class="debug-banner">
-            <strong>Debug Mode Enabled</strong>
-        </div>
-    {% endif %}
+{% block content %}
+<div class="content home">
+    <h1>{{ title }}</h1>
+    <p class="lead">{{ description }}</p>
 
+    <section class="steps">
+        <h2>Next steps</h2>
+        <ol>
+            <li>Declare a model in <code>src/entities/</code> with <code>model!</code>, and list it in <code>src/entities/mod.rs</code>.</li>
+            <li>Write its migration:
+                <pre><code>runique makemigrations</code></pre>
+            </li>
+            <li>Apply it:
+                <pre><code>runique migration up</code></pre>
+            </li>
+        </ol>
+    </section>
 
-    {% block header %}
-        <header>
-            <img src='{% media "toshiro.avif" %}' alt="Logo">
-        </header>
-    {% endblock %}
-
-    <main>
-        {% block content %}
-        <div class="content">
-            <div>
-                <h1>{{ title }}</h1>
-                <p>More information about the application.</p>
-                <a href="https://runique.io/" target="_blank">Visit the Runique website</a>
-            </div>
-        </div>
-
-        {% block messages %}
-            {% messages %}
-        {% endblock %}
-    {% endblock %}
-
-    </main>
-    <footer>
-        {% block footer %}
-            <a href="{% link "inscription" %}">Sign up!</a>
-            <a href="{% link "connexion" %}">Sign in</a>
-            <a href="{% link "about" %}">About</a>
-            <p>&copy; 2026 My Web Application</p>
-        {% endblock %}
-    </footer>
-</body>
+    <div class="actions">
+        <a class="button button-primary" href="https://runique.io/docs/en" target="_blank" rel="noopener">Documentation</a>
+        <a class="button button-secondary" href='{% link "about" %}'>About</a>
+    </div>
+</div>
+{% endblock %}

@@ -11,7 +11,7 @@ Le mailer s'initialise dans le builder de l'application. Deux modes disponibles 
 ### Via variables d'environnement (recommandé)
 
 ```rust
-RuniqueAppBuilder::new(config)
+RuniqueApp::builder(config)
     .with_mailer_from_env()
     // ...
 ```
@@ -35,7 +35,7 @@ SMTP_STARTTLS=true              # optionnel, défaut = true
 ```rust
 use runique::prelude::MailerConfig;
 
-RuniqueAppBuilder::new(config)
+RuniqueApp::builder(config)
     .with_mailer(MailerConfig {
         backend: Default::default(),  // Smtp
         host: "smtp.example.com".to_string(),

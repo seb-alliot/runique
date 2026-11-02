@@ -102,7 +102,10 @@ runique test blog created_article_is_found_by_id   # a single test
 
 `runique test` first checks the setup — `test-utils` only in `[dev-dependencies]` (refused when it reaches a release build through `[dependencies]`, `[workspace.dependencies]` or a `[features]` entry), the `runique_test` module behind `cfg(test)`, every file declared in `mod.rs` — then runs `cargo test` one test at a time, with its output shown. Plain `cargo test` works too: tests are serialized within the process.
 
-Another engine (MongoDB…) can plug in by implementing the `TestTransaction` trait; `ADb` (SeaORM) is the implementation provided.
+`ADb` (SeaORM) is the only implementation provided: it covers PostgreSQL, MySQL/MariaDB and SQLite. Another engine (MongoDB…) needs two separate things:
+
+- **in the app**, plug it in with `.with_custom_db(client)` and read it with `request.engine.extension::<Client>()` (see [Builder](/docs/en/configuration/builder));
+- **in the tests**, implement the `TestTransaction` trait for a type of yours (connecting, opening and rolling back a test transaction), then call `runique_test::<YourType>(...)`.
 
 ---
 
@@ -123,6 +126,8 @@ Another engine (MongoDB…) can plug in by implementing the `TestTransaction` tr
 - **Security**: a weak `SECRET_KEY`;
 - **PublicUrl**: the password reset or the admin enabled without `.with_public_url(...)`;
 - **ACME**: `ACME_ENABLED` without `ACME_DOMAIN` or `ACME_EMAIL` (`acme` feature).
+
+These checks do **not** verify that the migrations are applied: an app started without `runique migration up` boots, then fails on the first request touching a missing table (see [Troubleshooting](/docs/en/installation/troubleshooting)).
 
 `build()` then returns a `BuildError` — `BuildErrorKind::CheckFailed(CheckReport)` for the checks above, CORS aside — displayed in the terminal with a suggestion for each problem.
 

@@ -8,14 +8,14 @@
 
 1. **Aegis** — Extraction unique du body (multipart, urlencoded, json) normalisée en `HashMap`, dans la limite de taille de la requête. Pour un multipart, aucun fichier n'est écrit avant un jeton CSRF valide (en-tête `X-CSRF-Token`, ou champ `csrf_token` placé avant les fichiers).
 2. **CSRF** — Le pipeline note si le jeton est valide. Il ne rejette pas la requête pour autant : `request.form()` marque le formulaire invalide (`csrf.invalid_or_missing`) et `try_form` ne le valide pas.
-3. **Construction** — Crée le formulaire `T` et remplit les champs. La validation se lance ensuite, dans `ValidationForm::try_form`.
+3. **Construction** — Crée le formulaire `T` et remplit les champs. La validation se lance ensuite, dans `ValidationForm::try_form`, et seulement si la requête renvoie le nom donné au formulaire.
 
 ```rust
 use runique::prelude::*;
 
-pub async fn inscription(mut request: Request) -> AppResult<Response> {
-    let form: RegisterForm = request.form();
-    if let Ok(validated) = ValidationForm::try_form(form, &request, "my_form").await {
+pub async fn signup(mut request: Request) -> AppResult<Response> {
+    let form: SignupForm = request.form();
+    if let Ok(validated) = ValidationForm::try_form(form, &request, "signup").await {
         // Formulaire valide → traitement
     }
     // ...
@@ -33,15 +33,15 @@ Un même handler gère l'affichage (GET) et la soumission (POST). `request.form(
 ```rust
 use runique::prelude::*;
 
-pub async fn inscription(mut request: Request) -> AppResult<Response> {
-    let form: RegisterForm = request.form();
-    let template = "inscription_form.html";
+pub async fn signup(mut request: Request) -> AppResult<Response> {
+    let form: SignupForm = request.form();
+    let template = "signup.html";
 
     // GET (rien soumis) ou POST invalide → réafficher avec les erreurs
-    let validated = match ValidationForm::try_form(form, &request, "my_form").await {
+    let validated = match ValidationForm::try_form(form, &request, "signup").await {
         Ok(validated) => validated,
         Err(form) => {
-            context_update!(request => { "inscription_form" => &form });
+            context_update!(request => { "signup_form" => &form });
             return request.render(template);
         }
     };
@@ -54,7 +54,7 @@ pub async fn inscription(mut request: Request) -> AppResult<Response> {
             Ok(Redirect::to("/").into_response())
         }
         Err(form) => {
-            context_update!(request => { "inscription_form" => &form });
+            context_update!(request => { "signup_form" => &form });
             request.render(template)
         }
     }
@@ -64,7 +64,7 @@ pub async fn inscription(mut request: Request) -> AppResult<Response> {
 Points clés :
 
 - `request.form()` renvoie un formulaire utilisable directement — pas de construction manuelle.
-- `ValidationForm::try_form(form, &request, "my_form").await` dispatche sur la méthode HTTP (`allow_get`/`allow_post`) puis valide ; `Ok` prouve au niveau du type que le formulaire a été validé, `Err` renvoie le formulaire avec ses erreurs de champ à ré-afficher (rendues automatiquement par `{% form.inscription_form %}`).
+- `ValidationForm::try_form(form, &request, "signup").await` vérifie que la requête renvoie ce nom, dispatche sur la méthode HTTP (`allow_get`/`allow_post`) puis valide ; `Ok` prouve au niveau du type que le formulaire a été validé, `Err` renvoie le formulaire avec ses erreurs de champ à ré-afficher (rendues automatiquement par `{% form.signup_form %}`).
 - `validated.save(&request.engine.db).await` persiste l'entité et renvoie le formulaire : `Ok(form)` une fois écrit, `Err(form)` si la base refuse (contrainte unique, ligne absente). L'erreur est déjà sur ce formulaire.
 
 ---

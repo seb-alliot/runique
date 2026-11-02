@@ -27,7 +27,7 @@ Runique fournit un système de formulaires puissant, inspiré de Django. Il exis
 1. **Manuelle** — Définir les champs via le trait `RuniqueForm`.
 2. **Automatique** — Dériver un formulaire depuis un schéma `model!` avec `#[form(...)]`.
 
-Les formulaires sont extraits des requêtes via `request.form()` (remplissage et CSRF). La validation se fait avec `ValidationForm::try_form` (y compris via le crate `validator` pour les emails/URLs), le hachage Argon2 des mots de passe aussi, et un formulaire d'entité validé s'écrit avec `save` / `delete`.
+Les formulaires sont construits depuis la requête par `request.form()` (remplissage et contrôle CSRF). `ValidationForm::try_form` nomme le formulaire et le valide s'il a été envoyé (formats via le crate `validator`, hachage des mots de passe selon la `PasswordConfig`) ; un formulaire d'entité validé s'écrit ensuite avec `save` / `delete`.
 
 ---
 

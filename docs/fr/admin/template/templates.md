@@ -54,7 +54,7 @@ Inscrits directement dans `admin_template.html` — **impossibles à supprimer**
 | --- | --- |
 | [Mise en place](/docs/fr/admin/setup) | Câbler l'admin dans un projet existant, créer un superuser |
 | [Déclaration](/docs/fr/admin/declaration) | Workflow `AdminStaging`, `AdminSite`, `ModelAdmin` |
-| [Permissions](/docs/fr/admin/permission) | Rôles, `is_staff` / `is_superuser`, vérification runtime |
+| [Permissions](/docs/fr/admin/permission) | Rangs, droits par compte et par groupe, vérification à chaque requête |
 | [Évolutions](/docs/fr/admin/evolution) | Axes d'évolution et état bêta |
 
 ## Revenir au menu

@@ -16,7 +16,10 @@ Unlike IP rate limiting, there are no false positives from NAT or shared proxies
 - Empty username → `"anonym:{ip}"` (per-IP protection, independent counters)
 
 ```rust
+use axum::Extension;
+use runique::middleware::security::trusted_proxies::ClientIp;
 use runique::prelude::*;
+use std::sync::LazyLock;
 
 static GUARD: LazyLock<LoginGuard> = LazyLock::new(|| {
     LoginGuard::new()
@@ -24,34 +27,44 @@ static GUARD: LazyLock<LoginGuard> = LazyLock::new(|| {
         .lockout_secs(300)
 });
 
-pub async fn login(
-    session: Session,
-    State(db): State<DatabaseConnection>,
+pub async fn sign_in(
+    client_ip: Option<Extension<ClientIp>>,
     mut request: Request,
-) -> impl IntoResponse {
+) -> AppResult<Response> {
     let form: LoginForm = request.form();
-    let username = form.username();
-    let ip = /* extract IP from headers */;
+    let validated = match ValidationForm::try_form(form, &request, "login").await {
+        Ok(validated) => validated,
+        Err(form) => {
+            context_update!(request => { "login_form" => &form });
+            return request.render("login.html");
+        }
+    };
+    let username = validated.cleaned::<String>("username").unwrap_or_default();
+    let password = validated.cleaned::<String>("password").unwrap_or_default();
+    // The real client IP, resolved by the trusted proxies middleware
+    let ip = client_ip.map(|Extension(ClientIp(ip))| ip.to_string()).unwrap_or_default();
 
     // username submitted → "alice"  |  empty username → "anonym:1.2.3.4"
     let key = LoginGuard::effective_key(&username, &ip);
 
     if GUARD.is_locked(&key) {
         let remaining = GUARD.remaining_lockout_secs(&key).unwrap_or(0);
-        return (StatusCode::TOO_MANY_REQUESTS, format!("Try again in {remaining}s")).into_response();
+        return Ok((StatusCode::TOO_MANY_REQUESTS, format!("Try again in {remaining}s")).into_response());
     }
 
-    match authenticate(&username, &form.password(), &db).await {
-        Some(user) => {
-            GUARD.record_success(&key);
-            login(&session, &user, None, false).await.unwrap();
-            Redirect::to("/dashboard").into_response()
-        }
-        None => {
-            GUARD.record_failure(&key);
-            (StatusCode::UNAUTHORIZED, "Invalid credentials").into_response()
-        }
+    if let Some(user) = authenticate_user(&request.engine.db, &username, &password).await
+        && login(&request.session, &user, None, false).await.is_ok()
+    {
+        GUARD.record_success(&key);
+        return Ok(Redirect::to("/dashboard").into_response());
     }
+
+    GUARD.record_failure(&key);
+    context_update!(request => {
+        "login_form" => &*validated,
+        "messages" => flash_now!(error => "Invalid credentials"),
+    });
+    request.render("login.html")
 }
 ```
 
@@ -150,20 +163,16 @@ Both mechanisms cover different attack vectors and are complementary:
 static IP_LIMITER: LazyLock<RateLimiter> = LazyLock::new(|| RateLimiter::new().max_requests(10).retry_after(60));
 static GUARD:      LazyLock<LoginGuard>  = LazyLock::new(|| LoginGuard::new().max_attempts(5).lockout_secs(300));
 
-pub async fn login(/* ... */) -> impl IntoResponse {
-    // 1. Volume per IP → RateLimiter (middleware or manual)
-    if !IP_LIMITER.is_allowed(&ip) { /* 429 */ }
+// In the sign-in handler above, before authenticating:
 
-    // 2. Brute-force per account or anonymous IP → LoginGuard
-    let key = LoginGuard::effective_key(&username, &ip);
-    if GUARD.is_locked(&key) { /* 429 */ }
+// 1. Volume per IP → RateLimiter (as middleware on the route, or by hand)
+if !IP_LIMITER.is_allowed(&ip) { /* 429 */ }
 
-    // 3. Authentication
-    match authenticate(&username, &password, &db).await {
-        Some(user) => { GUARD.record_success(&key); /* ... */ }
-        None       => { GUARD.record_failure(&key); /* ... */ }
-    }
-}
+// 2. Brute force per account or anonymous IP → LoginGuard
+let key = LoginGuard::effective_key(&username, &ip);
+if GUARD.is_locked(&key) { /* 429 */ }
+
+// 3. Authentication: authenticate_user, then record_success / record_failure
 ```
 
 ---

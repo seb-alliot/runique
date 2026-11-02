@@ -63,14 +63,19 @@ In a multi-site setup, use a reverse proxy (nginx, Caddy) that manages Let's Enc
 | 80 | Let's Encrypt HTTP-01 challenge + HTTPS redirect |
 | 443 | HTTPS (TLS) |
 
-To listen on these ports without root, use `CAP_NET_BIND_SERVICE`:
+On Linux, ports below 1024 are reserved to root. For the service to open them while running as a dedicated user, grant it the `CAP_NET_BIND_SERVICE` capability only:
 
 ```ini
 # /etc/systemd/system/runique.service
 [Service]
+User=runique
+WorkingDirectory=/var/www/myproject
 CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 AmbientCapabilities=CAP_NET_BIND_SERVICE
 ```
+
+- `AmbientCapabilities` hands the capability to the process started as `User=`: without it, a non-root user can't open port 443.
+- `CapabilityBoundingSet` drops every other capability: even if compromised, the process can do nothing else as a privileged one.
 
 ## Behind a reverse proxy
 

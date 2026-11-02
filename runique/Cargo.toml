@@ -24,6 +24,10 @@ exclude = [
 name = "runique"
 path = "src/lib.rs"
 
+[build-dependencies]
+# Reads the SeaORM requirements `runique new` writes into a new project.
+toml = "1"
+
 [dependencies]
 # Web framework
 axum.workspace = true

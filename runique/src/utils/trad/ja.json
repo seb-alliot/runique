@@ -133,7 +133,7 @@
     "validation_failed": "ビルド検証に失敗しました: {}",
     "check_failed": "ビルドが {} 個のチェックエラーで失敗しました",
     "template_failed": "テンプレートの読み込みに失敗しました: {}",
-    "driver_not_enabled": "{} ドライバーが有効になっていません: Runique は '{}' フィーチャーなしでコンパイルされました。\n\nプロジェクトの Cargo.toml:\nrunique = { version = \"{}\", features = [\"{}\"] }\n\nrunique CLI の場合:\ncargo install runique --features {} --locked --force\n\nすべてのデータベースに対応するには 'all-databases' フィーチャーを使用してください。",
+    "driver_not_enabled": "{} ドライバーが有効ではありません：Runique は '{}' でコンパイルされており、'{}' ではありません。\n\n.env が誤ったデータベースを指している場合（features を変更したが .env はそのまま）、DB_ENGINE と DATABASE_URL をコンパイル済みのエンジンに設定してください：'{}'。\n\n代わりに {} を使う場合は、プロジェクトの Cargo.toml と migration/Cargo.toml で：\nrunique = { version = \"{}\", features = [\"{}\"] }\n\nrunique CLI の場合：\ncargo install runique --features {} --locked --force\n\nすべてのエンジンに対応するには、'all-databases' feature を使用してください。",
     "db_missing": "'orm' 機能が有効な場合、データベース接続が必要です",
     "component_not_ready": "コンポーネント '{}' の準備ができていません",
     "check": {
@@ -211,7 +211,10 @@
     "project_created": "プロジェクト '{}' を作成しました！",
     "getting_started": "始めるには：",
     "cd_hint": "cd {}",
-    "cargo_run_hint": "cargo run"
+    "cargo_run_hint": "cargo run",
+    "name_digit": "プロジェクト名は数字で始めることはできません",
+    "name_reserved": "'{}' は予約されています（Rust のキーワードまたはクレート、cargo または Windows の名前、または生成されるプロジェクトの一部）：別の名前を選んでください",
+    "migration_up_hint": "runique migration up      （フレームワークのテーブルを作成：アカウント、セッション、権限）"
   },
   "TemplateMessage": {
     "debug_info_title": "デバッグ情報",
@@ -541,12 +544,21 @@
     "long_identifier_detected": "生成されたSQL識別子が長すぎます（MariaDB/MySQLの上限：64文字）：",
     "long_identifier_rename_required": "関係するテーブル名/カラム名を短くしてください — Runiqueは識別子を自動的に切り詰めません。",
     "files_ready": "{}個のファイルが移行の準備ができています。",
-    "snapshots_upgraded": "{}個のスナップショットを列の長さを記録するよう更新しました（マイグレーションなし）。"
+    "snapshots_upgraded": "{}個のスナップショットを列の長さを記録するよう更新しました（マイグレーションなし）。",
+    "type_change_not_migrated": "警告：--force によりこれらの列の型変更は通過しましたが、まだマイグレーションされません。マイグレーションにはコメントしか含まれず、スナップショットにはすでに新しい型が記録されています：",
+    "type_change_write_by_hand": "`runique migration up` の前に、そのマイグレーションの up() と down() を手で書いてください（alter_table / modify_column）。そうしないと、データベースは古い型のままで、何も通知されません。",
+    "no_changes": "変更は検出されませんでした：モデルはスナップショットと一致しています。",
+    "apply_hint": "保留中のマイグレーションを適用するには：runique migration up"
   },
   "migrate": {
-    "applying": "'{}'からマイグレーションを適用中...",
     "complete_up": "マイグレーションが完了しました。",
-    "crate_missing": "マイグレーション crate が見つかりません: '{}' に Cargo.toml がありません。"
+    "crate_missing": "マイグレーション crate が見つかりません: '{}' に Cargo.toml がありません。",
+    "running": "'migrate {}' をマイグレーションクレート '{}' で実行しています...",
+    "complete_down": "ロールバックが完了しました。",
+    "cargo_missing": "cargo を起動できません。Rust がインストールされ、cargo が PATH にありますか？",
+    "failed": "マイグレーションクレートが 'migrate {}' で失敗しました（終了コード: {}）。",
+    "crate_created": "マイグレーションクレートを '{}' に作成しました。",
+    "engine_defaulted": "DB_ENGINE が設定されていません：マイグレーションクレートは SQLite を使用します。必要に応じて '{}' の runique feature を変更してください。"
   },
   "reset": {
     "forgot_title": "パスワードを忘れた",

@@ -73,6 +73,8 @@ logout(&session, Some(&store)).await?;
 
 `logout()` clears the **whole** session (flash messages included) and gives it a new id: a flash message meant for the next page is added **after** the call.
 
+When the deletion fails (database down), `logout()` returns the error and the session stays **whole**, cookie included: the user can try again. Don't show "signed out" then. Likewise, `login` as another account first closes the previous session; when it can't, the new sign-in is refused (`LoginError::Session`).
+
 ---
 
 ## Revoking sessions
@@ -82,10 +84,10 @@ logout(&session, Some(&store)).await?;
 The built-in password reset (`with_password_reset`) already does it once the new password is saved. In your own handler (password change from a profile page, compromised account…), one method is enough:
 
 ```rust
-engine.close_user_sessions(user_id).await;
+request.engine.close_user_sessions(user_id).await?;
 ```
 
-It deletes the account's sessions from the database (`eihwaz_sessions`) first, then from memory. The order matters: a session dropped from memory first could be read back from the database by a request arriving in between. A database error is traced, not returned.
+It deletes the account's sessions from the database (`eihwaz_sessions`), then their copies in memory. The database is the authority: every request of a signed-in session checks its row again, so a session deleted from the database is refused everywhere, another instance included. When the database fails, nothing else is touched and the error is returned: the sessions are still alive, don't present the operation as done.
 
 > **Limit:** a store plugged in with `with_session_store()` (Redis…) can't be searched by user; its sessions are not closed.
 

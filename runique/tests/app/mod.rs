@@ -2,6 +2,7 @@
 pub mod test_admin_prefix;
 #[cfg(feature = "admin")]
 pub mod test_declared_admin_routes;
+pub mod test_default_index;
 #[cfg(feature = "admin")]
 pub mod test_prune_orphan_rights;
 pub mod test_reset_link_base;

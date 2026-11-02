@@ -54,18 +54,36 @@ pub async fn login_post(mut request: Request) -> AppResult<Response> {
     request.render("login.html")
 }
 
-pub async fn logout_view(mut request: Request) -> AppResult<Response> {
-    logout(&request.session, None).await.ok();
+// POST-only route: "/logout" => post(views::logout_view), name = "logout"
+pub async fn logout_view(request: Request) -> AppResult<Response> {
+    // This view reads no form: it checks the CSRF token itself.
+    if !request.prisme.csrf_valid {
+        return Ok(StatusCode::FORBIDDEN.into_response());
+    }
+    // An error here means the session couldn't be closed: it is still
+    // alive, so the user gets an error page.
+    logout(&request.session, None).await?;
     Ok(Redirect::to("/login").into_response())
 }
 ```
+
+The sign-out form, in the template:
+
+```html
+<form method="post" action='{% link "logout" %}'>
+    {% csrf %}
+    <button type="submit">Sign out</button>
+</form>
+```
+
+A sign-out link (GET) could be triggered by another site (an image, a link): it must go through a POST with its CSRF token.
 
 ---
 
 ## Authentication for the AdminPanel
 
-Nothing to configure: the admin signs in accounts of `eihwaz_users` that are active and staff
-or superuser. To add fields to the user model, use `extend!{ table: "eihwaz_users", ... }`.
+Nothing to configure: the admin signs in the active, activated accounts of `eihwaz_users` of
+rank admin, dirigeant or superuser, or members of a group that opens the admin. To add fields to the user model, use `extend!{ table: "eihwaz_users", ... }`.
 
 To connect authentication to the admin panel, see also [11-Admin.md](/docs/en/admin).
 
