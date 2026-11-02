@@ -2,29 +2,28 @@
 
 ## Flash messages — tous les types
 
+Les macros `success!`, `info!`, `warning!`, `error!` stockent le message en session : il s'affiche à la page **suivante**, donc après une redirection.
+
 ```rust
-pub async fn demo_messages(mut request: Request) -> AppResult<Response> {
+pub async fn demo_messages(request: Request) -> AppResult<Response> {
     success!(request.notices => "Ceci est un message de succès.");
     info!(request.notices => "Ceci est un message d'information.");
     warning!(request.notices => "Ceci est un message d'avertissement.");
     error!(request.notices => "Ceci est un message d'erreur.");
-
-    context_update!(request => {
-        "title" => "Démo messages",
-    });
-    request.render("demo.html")
+    Ok(Redirect::to("/").into_response())
 }
 ```
 
-```html
-{% extends "base.html" %}
+Pour un message sur la page rendue par la même requête (formulaire ré-affiché après une erreur), utiliser `flash_now!` :
 
-{% block content %}
-    <h1>{{ title }}</h1>
-    {% messages %}
-    <p>Les messages ci-dessus viennent de la session flash.</p>
-{% endblock %}
+```rust
+context_update!(request => {
+    "messages" => flash_now!(warning => "Vérifiez les champs."),
+});
+request.render("page.html")
 ```
+
+`{% messages %}` affiche les deux sortes.
 
 ---
 
@@ -35,7 +34,7 @@ pub async fn demo_messages(mut request: Request) -> AppResult<Response> {
 ```rust
 pub fn routes() -> Routes {
     urlpatterns! {
-        "/api/users" => view!{ api_list_users }, name = "api_users",
+        "/api/articles" => view!{ api_list_articles }, name = "api_articles",
     }
 }
 ```
@@ -46,18 +45,21 @@ pub fn routes() -> Routes {
 use axum::Json;
 use serde_json::json;
 
-pub async fn api_list_users(request: Request) -> AppResult<Response> {
-    let users = users::Entity::find()
+pub async fn api_list_articles(request: Request) -> AppResult<Response> {
+    let articles = article::Entity::find()
         .all(&*request.engine.db)
         .await?;
 
     Ok(Json(json!({
-        "status": "success",
-        "count": users.len(),
-        "data": users
+        "count": articles.len(),
+        "data": articles
     })).into_response())
 }
 ```
+
+`data` sérialise chaque colonne du modèle. Ne faites jamais ça sur une table qui contient un secret (les comptes : hash du mot de passe) : sélectionnez les colonnes à exposer, ou passez par une struct dédiée.
+
+Un POST d'API sans formulaire Runique doit vérifier `request.prisme.csrf_valid` lui-même, comme la déconnexion (voir [Formulaires](/docs/fr/exemple/formulaires)).
 
 ---
 
@@ -79,7 +81,7 @@ pub async fn api_list_users(request: Request) -> AppResult<Response> {
         <nav>
             <a href='{% link "index" %}'>Accueil</a>
             <a href='{% link "about" %}'>À propos</a>
-            <a href='{% link "inscription" %}'>Inscription</a>
+            <a href='{% link "signup" %}'>Inscription</a>
         </nav>
     </header>
 
@@ -109,8 +111,8 @@ pub async fn api_list_users(request: Request) -> AppResult<Response> {
 | `context_update!(request => {...})` | Injecter des variables dans le template |
 | `success!(request.notices => "...")` | Message flash avant redirect |
 | `flash_now!(error => "...")` | Message immédiat (pas de redirect) |
-| `form.is_valid().await` | Valider un formulaire |
-| `form.save(&db).await` | Sauvegarder en base de données |
+| `ValidationForm::try_form(form, &request, "nom").await` | Valider un formulaire (seulement s'il a été envoyé) |
+| `validated.save(&db).await` | Sauvegarder en base (pas pour un compte : voir [Formulaires](/docs/fr/exemple/formulaires)) |
 | `form.get_form_mut().database_error(&err)` | Afficher une erreur DB dans le formulaire |
 
 ---

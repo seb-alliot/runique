@@ -1,118 +1,178 @@
-# CRUD avec formulaires
+# Formulaires : inscription, connexion, recherche
 
-## Formulaire d'inscription
+Les exemples ci-dessous reprennent le code du projet créé par `runique new` (compilé à chaque passage de la CI). Voir [Formulaires](/docs/fr/formulaire) pour l'API complète.
 
-### Formulaire manuel (sans modèle)
+---
+
+## Formulaire manuel : connexion
+
+Un formulaire manuel déclare ses champs à la main. À utiliser quand il ne correspond à aucune table (connexion, recherche, contact).
 
 ```rust
-// src/forms.rs
+// src/forms/login.rs
 use runique::prelude::*;
+use serde::Serialize;
 
-pub struct RegisterForm {
+#[derive(Serialize, Debug, Clone)]
+#[serde(transparent)]
+pub struct LoginForm {
     pub form: Forms,
 }
 
-impl FormAccess for RegisterForm {
+impl FormAccess for LoginForm {
     fn register_fields(form: &mut Forms) {
-        form.field(
-            &TextField::text("username")
-                .label("Nom d'utilisateur")
-                .required()
-                .min_length(3, "Minimum 3 caractères")
-                .max_length(50, "Maximum 50 caractères")
-        );
-        form.field(
-            &TextField::email("email")
-                .label("Email")
-                .required()
-        );
-        form.field(
-            &TextField::password("password")
-                .label("Mot de passe")
-                .required()
-                .min_length(8, "Minimum 8 caractères")
-        );
+        form.field(&TextField::text("username").label("Nom d'utilisateur").required());
+        form.field(&TextField::password("password").label("Mot de passe").required());
     }
     impl_form_access!();
 }
 
-#[async_trait]
-impl RuniqueForm for RegisterForm {
-    // Validation métier — appelée automatiquement par is_valid()
-    async fn clean(&mut self) -> Result<(), StrMap> {
-        let mut errors = StrMap::new();
-        if !self.cleaned::<String>("email").unwrap_or_default().contains('@') {
-            errors.insert("email".to_string(), "Email invalide".to_string());
-        }
-        if errors.is_empty() { Ok(()) } else { Err(errors) }
-    }
-}
+impl RuniqueForm for LoginForm {}
 ```
 
-### Formulaire basé sur un modèle
+`Serialize` (transparent) est nécessaire pour passer le formulaire au template. Ne rangez pas ces formulaires dans `src/entities/` : `runique makemigrations` y cherche les modèles.
 
-`#[form(...)]` génère la struct et `impl ModelForm`.
-`#[form]` génère `impl FormAccess` ; le dev n'écrit que `impl RuniqueForm`, avec ses hooks :
+### Handler de connexion
 
 ```rust
-use runique::prelude::*;
-
-#[form(schema = users_schema, fields = [username, email, password])]
-pub struct RegisterForm;
-
-#[async_trait]
-impl RuniqueForm for RegisterForm {
-
-    async fn clean(&mut self) -> Result<(), StrMap> {
-        let mut errors = StrMap::new();
-        if self.cleaned::<String>("username").unwrap_or_default().len() < 3 {
-            errors.insert("username".to_string(), "Minimum 3 caractères".to_string());
-        }
-        if !self.cleaned::<String>("email").unwrap_or_default().contains('@') {
-            errors.insert("email".to_string(), "Email invalide".to_string());
-        }
-        if self.cleaned::<String>("password").unwrap_or_default().len() < 10 {
-            errors.insert("password".to_string(), "Minimum 10 caractères".to_string());
-        }
-        if errors.is_empty() { Ok(()) } else { Err(errors) }
+pub async fn sign_in(mut request: Request) -> AppResult<Response> {
+    let form: LoginForm = request.form();
+    if request.user.is_some() {
+        return Ok(Redirect::to("/").into_response());
     }
-}
-```
 
-> `#[async_trait]` est requis uniquement quand on override `clean` ou `clean_field`.
-> Sans hook à surcharger, `impl RuniqueForm for RegisterForm {}` suffit.
-
----
-
-## Handler inscription
-
-```rust
-pub async fn inscription(mut request: Request) -> AppResult<Response> {
-    let form: RegisterForm = request.form();
-    let template = "signup_form.html";
-
-    let validated = match ValidationForm::try_form(form, &request, "my_form").await {
+    let template = "login.html";
+    let validated = match ValidationForm::try_form(form, &request, "login").await {
         Ok(validated) => validated,
         Err(form) => {
             context_update!(request => {
-                "title" => "Erreur de validation",
-                "signup_form" => &form,
-                "messages" => flash_now!(error => "Veuillez corriger les erreurs"),
+                "title" => "Connexion",
+                "login_form" => &form,
             });
             return request.render(template);
         }
     };
 
-    match validated.save(&request.engine.db).await {
-        Ok(_) => {
-            success!(request.notices => "Bienvenue !");
-            Ok(Redirect::to("/").into_response())
+    let username = validated.cleaned::<String>("username").unwrap_or_default();
+    let password = validated.cleaned::<String>("password").unwrap_or_default();
+    // Vérifie le mot de passe même pour un nom inconnu (même durée dans les
+    // deux cas) et refuse un compte inactif ou jamais activé.
+    if let Some(user) = authenticate_user(&request.engine.db, &username, &password).await
+        && login(&request.session, &user, None, false).await.is_ok()
+    {
+        success!(request.notices => format!("Bon retour {} !", user.username));
+        return Ok(Redirect::to("/").into_response());
+    }
+
+    context_update!(request => {
+        "title" => "Connexion",
+        "login_form" => &*validated,
+        "messages" => flash_now!(error => "Nom d'utilisateur ou mot de passe invalide."),
+    });
+    request.render(template)
+}
+```
+
+`ValidationForm::try_form(form, &request, "login")` nomme le formulaire et ne le valide que si la requête renvoie ce nom : un GET, ou l'envoi d'un autre formulaire de la même page, revient en `Err(form)` sans aucune erreur de champ. Le jeton CSRF est vérifié à la lecture du formulaire.
+
+---
+
+## Formulaire basé sur un modèle : inscription
+
+`#[form(schema = …, fields = […])]` génère la struct et `FormAccess` à partir du modèle ; vous n'écrivez que `RuniqueForm`, avec ses hooks.
+
+```rust
+// src/forms/signup.rs
+use runique::prelude::*;
+
+#[form(schema = runique_users, fields = [username, email, password])]
+pub struct SignupForm;
+
+#[async_trait]
+impl RuniqueForm for SignupForm {
+    async fn clean(&mut self) -> Result<(), StrMap> {
+        let username = self.cleaned::<String>("username").unwrap_or_default();
+        let mut errors = StrMap::new();
+        if username.len() < 5 {
+            errors.insert("username".to_string(), "Au moins 5 caractères.".to_string());
         }
+        if errors.is_empty() { Ok(()) } else { Err(errors) }
+    }
+}
+```
+
+`#[async_trait]` n'est utile que si vous surchargez un hook asynchrone (`clean`, `clean_field`) ; sans hook, `impl RuniqueForm for SignupForm {}` suffit.
+
+### Enregistrer un compte
+
+Pour un modèle ordinaire, `validated.save(&db)` enregistre la ligne. Pour un **compte**, elle ne suffit pas : `password` est une colonne secrète, que l'enregistrement générique n'écrit jamais. Le projet généré écrit donc son propre `save` :
+
+```rust
+impl SignupForm {
+    pub async fn save(&self, db: &ADb) -> Result<runique_users::Model, DbErr> {
+        use runique::prelude::runique_users::ActiveModel;
+        let now = chrono::Utc::now().naive_utc();
+        let user = ActiveModel {
+            username: Set(self.cleaned::<String>("username").unwrap_or_default()),
+            email: Set(self.cleaned::<String>("email").unwrap_or_default()),
+            // Après is_valid(), le champ password contient déjà le hash.
+            password: Set(self.cleaned::<String>("password").unwrap_or_default()),
+            is_active: Set(false),
+            is_superuser: Set(false),
+            is_dirigeant: Set(false),
+            is_admin: Set(false),
+            created_at: Set(Some(now)),
+            updated_at: Set(Some(now)),
+            ..Default::default()
+        }
+        .insert(db)
+        .await?;
+
+        // Un compte est créé inactif. L'activer est une décision métier : ici
+        // tout de suite ; pour confirmer l'email d'abord, envoyer un lien et
+        // appeler `activate_account` à son ouverture.
+        BuiltinUserEntity::activate_account(db, user.id)
+            .await?
+            .ok_or_else(|| DbErr::Custom("compte déjà activé".into()))
+    }
+}
+```
+
+### Handler d'inscription
+
+```rust
+pub async fn sign_up(mut request: Request) -> AppResult<Response> {
+    let form: SignupForm = request.form();
+    if request.user.is_some() {
+        return Ok(Redirect::to("/").into_response());
+    }
+
+    let template = "signup.html";
+    let mut form = match ValidationForm::try_form(form, &request, "signup").await {
+        Ok(validated) => validated.into_form(),
         Err(form) => {
             context_update!(request => {
-                "title" => "Erreur de validation",
+                "title" => "Inscription",
                 "signup_form" => &form,
-                "messages" => flash_now!(error => "Veuillez corriger les erreurs"),
+            });
+            return request.render(template);
+        }
+    };
+
+    match form.save(&request.engine.db).await {
+        Ok(user) => {
+            if login(&request.session, &user, None, false).await.is_ok() {
+                success!(request.notices => format!("Bienvenue {} !", user.username));
+            }
+            Ok(Redirect::to("/").into_response())
+        }
+        Err(err) => {
+            // Un nom ou un email déjà pris s'affiche sur le champ concerné.
+            form.get_form_mut().database_error(&err);
+            context_update!(request => {
+                "title" => "Inscription",
+                "signup_form" => &form,
+                "messages" => flash_now!(error => "L'inscription a échoué."),
             });
             request.render(template)
         }
@@ -120,107 +180,110 @@ pub async fn inscription(mut request: Request) -> AppResult<Response> {
 }
 ```
 
----
-
-## Template inscription
+### Template
 
 ```html
 {% extends "base.html" %}
 
 {% block content %}
-    <h1>{{ title }}</h1>
-    {% messages %}
-
-    <form method="post" action='{% link "inscription" %}'>
-        {% form.signup_form %}
-        <button type="submit">S'inscrire</button>
-    </form>
+  <h1>{{ title }}</h1>
+  {% messages %}
+  <form method="post" action='{% link "signup" %}'>
+    {% form.signup_form %}
+    <button type="submit">S'inscrire</button>
+  </form>
 {% endblock %}
+```
+
+`{% form.signup_form %}` écrit les champs, leurs erreurs, le jeton CSRF et le nom du formulaire.
+
+---
+
+## Déconnexion
+
+Un POST, jamais un GET. La vue ne lit aucun formulaire, elle vérifie donc le jeton CSRF elle-même :
+
+```rust
+pub async fn sign_out(request: Request) -> AppResult<Response> {
+    if !request.prisme.csrf_valid {
+        return Ok(StatusCode::FORBIDDEN.into_response());
+    }
+    logout(&request.session, None).await?;
+    Ok(Redirect::to("/").into_response())
+}
+```
+
+```rust
+// url.rs
+"/logout" => post(sign_out), name = "logout",
+```
+
+```html
+<form method="post" action='{% link "logout" %}'>
+  {% csrf %}
+  <button type="submit">Se déconnecter</button>
+</form>
 ```
 
 ---
 
-## Recherche et affichage d'entité
+## Formulaire de recherche (GET)
 
-### Formulaire de recherche
+Par défaut, un formulaire ne se valide jamais sur un GET : les GET ne portent pas de jeton CSRF, un lien forgé pourrait sinon déclencher ses effets. Un formulaire de recherche, qui ne fait que lire, l'autorise explicitement :
 
 ```rust
-pub struct UsernameForm {
+#[derive(Serialize, Debug, Clone)]
+#[serde(transparent)]
+pub struct SearchForm {
     pub form: Forms,
 }
 
-impl FormAccess for UsernameForm {
+impl FormAccess for SearchForm {
     fn register_fields(form: &mut Forms) {
-        form.field(
-            &TextField::text("username")
-                .label("Username")
-                .required()
-                .placeholder("Search a user")
-        );
+        form.field(&TextField::text("username").label("Utilisateur").required());
     }
     impl_form_access!();
 }
 
-impl RuniqueForm for UsernameForm {
-    // Ce formulaire ne sert que la recherche GET — jamais de validation POST.
-    fn allow_post(&self, _request: &Request) -> bool {
-        false
-    }
-
-    // Opt-in explicite : un formulaire de recherche/lecture seule est le cas
-    // qui doit auto-valider sur GET (`allow_get` retombe sur `false` par défaut).
+impl RuniqueForm for SearchForm {
     fn allow_get(&self, _request: &Request) -> bool {
         self.is_submitted()
     }
 }
 ```
 
-### Handler de recherche
-
 ```rust
-pub async fn info_user(mut request: Request) -> AppResult<Response> {
-    let mut form: UsernameForm = request.form();
-    let template = "profile/view_user.html";
+pub async fn search_user(mut request: Request) -> AppResult<Response> {
+    let form: SearchForm = request.form();
+    let template = "search.html";
 
-    match ValidationForm::try_form(form, &request, "my_form").await {
+    let form = match ValidationForm::try_form(form, &request, "search").await {
         Ok(validated) => {
-            let form = validated.into_form();
-            let username = form.cleaned::<String>("username").unwrap_or_default();
-            let db = request.engine.db.clone();
-
-            let user_opt = runique_users::Entity::find()
+            let username = validated.cleaned::<String>("username").unwrap_or_default();
+            let found = runique_users::Entity::find()
                 .filter(runique_users::Column::Username.eq(&username))
-                .one(&*db)
-                .await
-                .unwrap_or(None);
-
-            match user_opt {
-                Some(user) => {
-                    context_update!(request => {
-                        "title" => "Vue utilisateur",
-                        "found_user" => &user,  // ⚠️ NE PAS nommer "user" → collision avec le form
-                        "user" => &form,
-                        "messages" => flash_now!(success => "Utilisateur trouvé !"),
-                    });
-                }
-                None => {
-                    context_update!(request => {
-                        "title" => "Vue utilisateur",
-                        "user" => &form,
-                        "messages" => flash_now!(warning => "Utilisateur introuvable"),
-                    });
-                }
-            }
-
-            request.render(template)
+                .one(&*request.engine.db)
+                .await?;
+            context_update!(request => { "found_user" => &found.map(|u| u.username) });
+            validated.into_form()
         }
-        Err(form) => {
-            context_update!(request => { "title" => "Rechercher un utilisateur", "user" => &form });
-            request.render(template)
-        }
-    }
+        Err(form) => form,
+    };
+
+    context_update!(request => { "title" => "Recherche", "search_form" => &form });
+    request.render(template)
 }
 ```
+
+```html
+<form method="get">
+  {% form.search_form %}
+  <button type="submit">Chercher</button>
+</form>
+{% if found_user %}<p>Trouvé : {{ found_user }}</p>{% endif %}
+```
+
+Ne passez jamais un modèle de compte entier au template : il contient le hash du mot de passe. Ne gardez que les colonnes à afficher.
 
 ---
 

@@ -154,6 +154,27 @@ mod tests {
         let _ = fs::remove_dir_all(&root);
     }
 
+    /// The docs' table of versions, and their Cargo.toml examples, follow the
+    /// manifest: a SeaORM bump without them would tell users a version Cargo
+    /// then refuses.
+    #[test]
+    fn the_docs_give_the_sea_orm_version_runique_is_built_with() {
+        // One column in the docs for both crates.
+        assert_eq!(SEA_ORM_REQ, SEA_ORM_MIGRATION_REQ);
+        let docs = Path::new(env!("CARGO_MANIFEST_DIR")).join("../docs");
+        let row = format!("| {} | `{SEA_ORM_REQ}` |", env!("CARGO_PKG_VERSION"));
+        let snippet = format!(r#"sea-orm = "{SEA_ORM_REQ}""#);
+        for (page, expected) in [
+            ("fr/installation/base-de-donnees/base-de-donnees.md", &row),
+            ("en/installation/database/database.md", &row),
+            ("fr/installation/troubleshooting/troubleshooting.md", &snippet),
+            ("en/installation/troubleshooting/troubleshooting.md", &snippet),
+        ] {
+            let text = fs::read_to_string(docs.join(page)).unwrap();
+            assert!(text.contains(expected.as_str()), "{page}: `{expected}` missing");
+        }
+    }
+
     #[test]
     fn mariadb_and_mysql_share_the_mysql_driver() {
         assert_eq!(Engine::Mariadb.sqlx_feature(), "sqlx-mysql");

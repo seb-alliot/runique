@@ -31,7 +31,7 @@ L'ordre du tableau est l'ordre d'affichage des en-têtes.
 .list(|l| l.display([Title, Status]).links([Title]))
 ```
 
-Sans `links`, la première colonne de `display` devient le lien.
+**Sans effet pour l'instant** : `links` est accepté et vérifié (ses colonnes doivent être dans `display`), mais la liste affiche chaque ligne en carte avec son propre lien vers le détail (et son menu), quelles que soient les colonnes déclarées.
 
 ## Tri
 
@@ -55,18 +55,16 @@ Tout autre `?sort_by=` est ignoré.
 ## Recherche
 
 ```rust
-.list(|l| {
-    l.search([Title, Summary])
-        .search_help("Titre ou résumé")
-})
+.list(|l| l.search([Title, Summary]))
 ```
 
 Comportement :
 
 - minimum **3** caractères (sinon la recherche est ignorée)
-- longueur max bornée par `.search_max_len` du staging
+- au-delà de `.search_max_len(n)` du staging (150 par défaut), le terme est tronqué
 - sans `.search(...)` : les colonnes texte de `display` sont utilisées
-- pour désactiver : passe une liste vide via l'API search si besoin métier
+- `.search([])` désactive la recherche
+- `.search_help("…")` est accepté mais pas encore affiché
 
 ## Filtres
 
@@ -125,7 +123,7 @@ admin.page_size(15)
 Exemple :
 
 ```text
-/admin/blog/?page=2&sort_by=title&sort_dir=asc&search=runique&filter_status=Published
+/admin/blog/list?page=2&sort_by=title&sort_dir=asc&search=runique&filter_status=Published
 ```
 
 ## Valeur vide
@@ -134,7 +132,7 @@ Exemple :
 .list(|l| l.empty_value("—"))
 ```
 
-Remplace les cellules vides / NULL dans le rendu liste.
+**Sans effet pour l'instant** : accepté, mais la liste n'utilise pas encore ce texte.
 
 ## Voir aussi
 

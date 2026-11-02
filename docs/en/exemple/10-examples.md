@@ -7,7 +7,7 @@ Concrete examples covering the most common Runique use cases.
 | Module | Description |
 | --- | --- |
 | [Minimal Application](/docs/en/exemple/minimal) | `main.rs`, `url.rs`, `views.rs`, base template |
-| [CRUD Forms](/docs/en/exemple/forms) | Registration, entity search, error handling |
+| [Forms](/docs/en/exemple/forms) | Sign in, sign up, sign out, search |
 | [File Upload](/docs/en/exemple/upload) | `FileField`, upload handler, multipart template |
 | [Other Examples](/docs/en/exemple/others) | Flash messages, REST API, base template, pattern summary |
 

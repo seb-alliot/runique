@@ -222,6 +222,7 @@ Full per-file breakdown: [docs/couverture_test.md](docs/couverture_test.md)
 - [Flash Messages](https://runique.io/docs/en/flash)
 - [Examples](https://runique.io/docs/en/exemple)
 - [Admin beta](https://runique.io/docs/en/admin)
+- [Known limits](https://runique.io/docs/en/limites)
 - [Sessions](https://runique.io/docs/en/session)
 - [Environment variables](https://runique.io/docs/en/env)
 

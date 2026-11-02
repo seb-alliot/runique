@@ -70,7 +70,39 @@ fn blog() -> ModelAdmin<blog::Entity> {
 
 Without `.list().display(...)`, every non-secret column is shown (on accounts: username, email, is_active).
 
-Without `.form().fields(...)`, the form exposes every model field (except secrets and rank flags).
+Without `.form().fields(...)`, the form exposes every field of the model's form (`ModelMeta::Form`), cut to the user's rights.
+
+## Admin routes declared in `urlpatterns!`
+
+A page of your own, served behind the admin's protection, is declared in `urlpatterns!` with the word `admin` before the path:
+
+```rust
+use runique::admin::AdminView;
+
+urlpatterns! {
+    "/" => get(views::index), name = "index",
+
+    // A page of its own, attached to the articles model
+    admin "/articles/stats" => get(views::article_stats),
+        name = "article_stats",
+        for_model = article::Entity,
+
+    // Replaces the articles' detail page
+    admin "/articles/{id}" => get(views::article_detail),
+        name = "article_detail",
+        for_model = article::Entity,
+        overrides = AdminView::Detail,
+}
+```
+
+- `name` and `for_model` are required; the model must be registered in the admin.
+- Without `overrides`, the page is added (`AdminView::Standalone`), as many as you like per model.
+- `overrides = AdminView::Detail` replaces the model's detail page: the list's "view" links lead to your route. The path must hold exactly one `{id}` segment, and nothing else. It is the only page replaced by a route; the others are replaced by a template (see [Template override](/docs/en/admin/template-surcharge)).
+- The route keeps its own path, outside the admin prefix, and must overlap neither a public route nor the admin's namespace.
+- Access: signed in with admin access → your handler; signed in without it → sent to `/` with a notice, session kept; anonymous → `/` (or the admin login when coming from the admin). The admin prefix is never shown to a stranger.
+- The protection only checks **admin access**. What your handler reads or writes goes through the gate, as everywhere in the framework: see [Permissions](/docs/en/admin/permission).
+
+When the admin is disabled, declaring an `admin` route refuses the boot.
 
 ## Useful imports
 

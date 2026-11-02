@@ -15,12 +15,12 @@ ModelAdmin::new()
 
 The inline would show an editable table (add, remove, update) on the parent's create/edit page.
 
-## `view!{}` — public CRUD
+## Public CRUD
 
-Public routing macro similar to Django generic views, with overridable templates:
+Public generic views (in the manner of Django's), with overridable templates. The name is still to choose: `view!` already exists (GET / POST routing of a handler). Sketch:
 
 ```rust
-view! {
+crud! { // placeholder name
     Article {
         model: entities::article::Entity,
         prefix: "/articles",

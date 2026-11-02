@@ -9,13 +9,13 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 ---
 
-## Snapshot (au 29 octobre 2026)
+## Snapshot (au 2 novembre 2026)
 
 - **Version workspace** : `4.0.0` (**non publiée** sur crates.io — code + doc dans l'arbre)
 - **derive_form** : `3.0.0`
 - **runique_dsl** : `0.1.0`
 - **Licence** : MIT
-- **Branche** : `main`
+- **Branche** : `fix-bug`
 - **Stack** : Axum 0.8.9 + SeaORM 2.0.4 + Tera 2.4 · Rust edition 2024 · Rust 1.94
 - **Chantier principal livré** : admin `ModelAdmin` + documentation alignée 4.0
 
@@ -44,27 +44,27 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 ### Routing
 - `urlpatterns!{}` avec segments typés, GET/POST séparés
-- URL registry nommée, helper `{% url %}` Tera
+- URL registry nommée, balise `{% link "nom" %}`
 
 ### Templates
-- Moteur Tera + helpers de contexte (`{% csrf %}`, `{% static %}`, `{% url %}`, `{% media %}`)
+- Moteur Tera + helpers de contexte (`{% csrf %}`, `{% static %}`, `{% link %}`, `{% media %}`)
 - Autoescape actif sur `.html`/`.xml`
 
 ### Admin panel (stable bêta)
 - Builder typé `ModelAdmin<Entity>` — plus de macro `admin!{}`, plus de génération `src/admins/`
 - Déclaration dans `src/admin.rs`, câblage via `.with_admin(admin::config)` ; `cargo run` suffit
-- CRUD générique : list, detail, create, edit, delete, bulk edit, bulk delete, group actions
-- Colonnes SeaORM typées : `display`, `filter`, `search`, `sortable`, `links`
-- `group_action` : booléens et valeurs enum exactes
-- Relations M2M via table de jonction
+- CRUD générique : list, detail, create, edit, delete, actions groupées (`.action(colonne, valeur, libellé)`), suppression groupée
+- Colonnes SeaORM typées : `display`, `filter`, `search`, `sortable`, `ordering`
+- Rangs (superuser, dirigeant, admin, lambda), droits par compte pour les admins, groupes pour les lambdas, grille de droits
+- Routes admin déclarées dans `urlpatterns!` (`admin "…" => …`, page à part ou remplacement du détail)
 - `OWNER` sur `ModelMeta` (meta `model!`) : vérification d'appartenance pour `can_update_own`/`can_delete_own`
 - Historique des actions admin (log, batch_id, diff old/new)
-- Templates surchargeables par ressource
+- Templates surchargeables par bloc (HTML, CSS ou les deux) ou par page, pour tous les modèles ou pour un seul
 
 ### Sécurité
 - CSRF masqué (protection BREACH), token lié à la session, comparaison `subtle::ct_eq`
 - `session.cycle_id()` au login — protection fixation de session
-- Permissions admin granulaires par opération (`can_create`, `can_update`, `can_delete`, `can_update_own`, `can_delete_own`)
+- Droits par opération (create, read, read_own, update, update_own, delete, delete_own) et par colonne, tranchés par une seule porte (`auth/gate`)
 - Whitelist de colonnes SQL générée statiquement — protection injection SQL dans filtres/tri admin
 - CSP builder avec nonce, HSTS, host validation
 - `RateLimiter` global + par méthode HTTP (`rate_limit_get()`, `rate_limit_post()`, etc.)
@@ -87,7 +87,7 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 - Alias `Pk` : `i32` par défaut, `i64` (`big-pk`) ou `Uuid` via `Uuid::now_v7()` (`pk-uuid`) — features mutuellement exclusives (`compile_error!`). Utilisable sur n'importe quel champ (pas seulement la PK), typiquement une FK, pour rester automatiquement synchronisé avec le type de la table référencée
 - `model!{}` — syntaxe de champs unifiée (l'ancienne grammaire `fields: { name: SqlType }` est supprimée) : bloc anonyme unique, 43 types sémantiques, options `readonly`/`label` incluses
 - Générateur de migrations durci multi-moteurs (2026-09-01) : gardes runtime pour `CREATE TYPE`/triggers `updated_at` (au lieu d'un choix figé à la génération), casse d'identifiant Postgres corrigée sur `ALTER TYPE`, ordre `TYPE`/`USING` invalide corrigé, `modify_column` sauté sous SQLite (panique sea-query) ; FK toujours inline en `CREATE TABLE`
-- `makemigrations` reconnaît désormais un `migration/` initialisé via `sea-orm-cli migrate init` (`lib.rs` reformaté canoniquement, placeholder `todo!()` supprimé), et branche les tables du framework même sans aucun modèle propre au projet (3.0.2) — cf. [Migrations](/docs/fr/installation/migrations)
+- `makemigrations` crée le crate `migration/` s'il manque et branche les tables du framework même sans aucun modèle propre au projet ; un changement de type de colonne n'est pas migré (avertissement après `--force`) — cf. [Migrations](/docs/fr/installation/migrations)
 - Recherche/filtres portables multi-moteurs (2026-09-02) : `CAST(col AS TEXT)` invalide sur MySQL/MariaDB (exige `CHAR`) — corrigé via des helpers `text_cast_type`/`text_eq`/`ilike` détectant le moteur à l'exécution (`db.get_database_backend()`). `search_cond!` prend désormais la connexion `db` en premier argument sur ses 4 formes — cf. [Requêtes](/docs/fr/orm/requetes)
 
 ### I18n
@@ -100,7 +100,7 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 - Override runtime `RUNIQUE_LOG_FILE`
 
 ### CLI
-- `runique new`, `runique create-superuser`, `runique makemigrations`, `runique migration up` (retour arrière et état : `sea-orm-cli`), `runique test` — pas de `runique start` (`cargo run` + `ModelAdmin`)
+- `runique new` (projet + crate `migration/`), `runique create-superuser`, `runique makemigrations`, `runique migration up | down | status` (plus besoin de `sea-orm-cli`), `runique test` — pas de `runique start` (`cargo run` + `ModelAdmin`)
 
 ---
 
@@ -130,14 +130,20 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 | 4.0.0 | `password` / `is_active` exposés dans les formulaires `extend!` | Élevée |
 | 4.0.0 | Page debug template : lecture hors `templates/` | Élevée |
 | 4.0.0 | Erreurs globales de formulaire non échappées (XSS) | Moyenne |
+| 4.0.0 | Une erreur de suppression en base pouvait laisser une session réutilisable ; révocation des sessions hors de la transaction du reset (faille.md #12) | Moyenne |
+| 4.0.0 | Remplacement non atomique du jeton de reset : deux jetons valides en concurrence (#13) | Moyenne |
+| 4.0.0 | Hash au préfixe non reconnu : vérification plus rapide, donc mesurable (#3) | Faible |
+| 4.0.0 | Jeton CSRF en double dans un corps de formulaire (#10, partie corrigée) | Faible |
+| 4.0.0 | Alias d'enum chaîne ambigus interprétés comme une autre variante (#26) | Faible |
 
 ---
 
 ## État admin — permissions
 
-- `can_read`, `can_create`, `can_update`, `can_delete` : appliqués par opération ✅
-- `can_update_own`, `can_delete_own` : appliqués quand `ModelMeta::OWNER` est défini (meta `model!`) ✅
-- Permissions par groupe, relues en base à chaque requête (révocation immédiate) ✅
+- Rangs : superuser (tout, contournement compris), dirigeant (tout), admin (sa grille, réglée par un dirigeant), lambda (union de ses groupes, jamais les tables du framework) ✅
+- Droits `*_own` appliqués quand `ModelMeta::OWNER` est défini (meta `model!`) ✅
+- Compte et droits relus en base à chaque requête (révocation immédiate) ✅
+- Détail : [Permissions](/docs/fr/admin/permission)
 
 ---
 
@@ -172,7 +178,7 @@ Détail et critères de « fini » : [ROADMAP.fr.md](https://github.com/seb-alli
 → Sortie attendue : `4.0.1` (et suivants si besoin). Pas de feature mineure dans ces patchs.
 
 ### Ouvert — mineures 4.x (sans rupture, après la file 4.0.x)
-1. Many-to-many généré par le DSL + migration (admin M2M jonction déjà là)
+1. Many-to-many généré par le DSL + migration, puis dans l'admin
 2. `makemigrations` finalisé (rename+modify, noms de contraintes lus en base, backfill NOT NULL, limites d'identifiants par moteur, ALTER de type)
 3. Tracing (rotation fichier, request id, replis i18n visibles)
 4. Langues fournies par le projet (trait + builder)
@@ -192,5 +198,5 @@ Détail et critères de « fini » : [ROADMAP.fr.md](https://github.com/seb-alli
 
 ---
 
-**Dernière mise à jour** : 29 octobre 2026
+**Dernière mise à jour** : 2 novembre 2026
 **Statut global** : ✅ Framework stable · 🟡 Admin bêta mature (`ModelAdmin`) · 🔒 Sécurité : tokens reset en DB, auth temps constant, correctifs 4.0 dans l'arbre · 📖 Doc 4.0 alignée · 📦 crates.io 4.0.0 encore non publiée · ➡️ Prochain : file patch sécu `4.0.x` (puis mineures 4.x)

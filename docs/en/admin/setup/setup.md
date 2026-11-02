@@ -4,9 +4,14 @@ Step-by-step guide to enable the admin with the `ModelAdmin` builder.
 
 ## Prerequisites
 
-- A Runique project with a configured database
+- A Runique project with a configured database and applied migrations (`runique migration up`)
+- The `admin` feature enabled in `Cargo.toml`:
+
+  ```toml
+  runique = { version = "4.0.0", features = ["postgres", "admin"] }
+  ```
+
 - Models declared via `model!` (generated SeaORM entities)
-- A staff or superuser account to sign in
 
 ## Step 1 — Create `src/admin.rs`
 
@@ -53,8 +58,8 @@ fn articles() -> ModelAdmin<article::Entity> {
 
 Notes:
 
-- `accounts_users(...)` replaces the framework accounts admin (table extended via `extend!`)
-- `register(...)` adds a business model
+- `accounts_users(...)` replaces the framework's accounts admin with yours, built on your `extend!` of `eihwaz_users`. It is the only way to replace it: registering a model under the accounts' key refuses the boot.
+- `register(...)` adds a business model. **Register every `model!{}`**: at boot, group rights targeting an unregistered model are deleted from the database.
 - Accounts and groups already exist in the framework; you do not recreate them
 
 ## Step 2 — Declare the module
@@ -80,6 +85,8 @@ builder::new(config)
     .run()
     .await?;
 ```
+
+In production (`DEBUG=false`), add `.with_public_url("https://my-site.com")`: without it, the boot is refused as soon as the admin is enabled. Links sent by email (account creation, reset) are built on this address, never on the request's `Host` header, which an attacker can forge. In debug, the request's `Host` stands in for it.
 
 Or an inline closure:
 
@@ -115,7 +122,9 @@ Two separate knobs:
 | `.search_max_len(n)` | Max search term length |
 | `.with_rate_limiter(...)` | Login / action rate limit |
 | `.with_login_guard(...)` | Lockout after N failures |
-| `.templates(|t| …)` | Global template overrides |
+| `.templates(…)` | Template overrides, see [Templates](/docs/en/admin/template-surcharge) |
+| `.resource_order([…])` | Order of the models in the menu (unlisted keys last) |
+| `.view_site_url("…")` | "Back to the site" link when the public site is served elsewhere (default: `with_public_url`, else `/`) |
 | `.sitemap("https://…")` | Sitemap directive in `/robots.txt` |
 | `.no_robots_txt()` | Disable auto robots.txt |
 | `.disable()` / `.enable()` | Turn the panel off or on |
@@ -125,6 +134,8 @@ Two separate knobs:
 ```bash
 runique create-superuser
 ```
+
+The command asks for the hashing algorithm, the username, the email and the password, then creates an active account with `is_superuser`. The superuser has every right; then name a dirigeant from an account's page (rank form) for everyday use. See [Permissions](/docs/en/admin/permission).
 
 ## Boot checks
 

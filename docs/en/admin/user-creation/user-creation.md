@@ -68,33 +68,40 @@ No `create_form:` / `edit_form:` / `inject_password` flag: this is native behavi
 
 ## Email sending
 
-The email is sent if the mailer is configured (`SMTP_*` variables in `.env`).
+The welcome link is sent only when all three conditions hold:
 
-Without a mailer (development), the reset link is displayed in a flash message.
+- a mailer is configured (`SMTP_*` variables in `.env`, see [Mailer](/docs/en/mailer));
+- password reset is enabled (`.with_password_reset(…)` in the builder): the link leads to its page;
+- the public address is known (`.with_public_url(…)`; in debug only, the request's `Host` stands in for it).
 
-The default welcome email template is `admin/user_created_email.html`.
-The reset template (from the account page) is `admin/reset_password_email.html`.
+Otherwise the account is still created, and the staff sees a "link unavailable" warning. **The link is never shown to the staff**, not even in development: whoever creates the account must not be able to choose the password in its owner's place. The user can always ask for a link later through "forgot password".
+
+Templates:
+
+| Email | Template |
+| --- | --- |
+| Welcome (created from the admin) | `admin/user_created_email.html` |
+| Reset (button on the account's page) | `admin/reset_password_email.html` |
 
 Tera context available in these templates:
 
 | Variable | Value |
 | --- | --- |
 | `username` | Username |
-| `email` | Email address |
-| `reset_url` | Full reset link, absolute (on the public URL) |
+| `reset_url` | Full, absolute link (on the public address) |
+| `t_greeting`, `t_body`, `t_btn`… | The mail's translated texts (welcome: `t_greeting`, `t_body`, `t_btn`, `t_validity`; reset: `t_title`, `t_greeting`, `t_body`, `t_btn`, `t_ignore`) |
+
+The email address is never put in the link: the reset page checks it against the account bound to the token.
 
 ---
 
-## Reset URL
-
-The constructed URL follows this pattern:
+## Link URL
 
 ```
-{public_url}{reset_route}/{token}
+{public_url}/{reset_route}/{token}
 ```
 
-`public_url` comes from `.with_public_url(…)` in the builder; `reset_route` is the one of `with_password_reset()` (`/reset-password` by default). In production, the app refuses to boot without it. In debug only, the URL is built from the `Host` header of the HTTP request
-(`http://{host}/reset-password/...`).
+`public_url` comes from `.with_public_url(…)`; `reset_route` is the one of `with_password_reset()` (`/reset-password` by default). In production, the app refuses to boot without a public address when the admin or the reset is enabled. In debug only, the address is built from the request's `Host` header.
 
 ---
 

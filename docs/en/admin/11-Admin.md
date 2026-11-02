@@ -4,6 +4,18 @@ Runique's admin builds a full CRUD UI from a **typed builder** (`ModelAdmin`). N
 
 Columns are enums (`blog::Column::Title`) — the compiler rejects a missing column, an exposed secret, or an inconsistent action.
 
+## Before you start
+
+- **The `admin` feature is required.** Without it, the admin module isn't compiled: `with_admin`, `ModelAdmin`, `AdminSite` don't exist.
+
+  ```toml
+  runique = { version = "4.0.0", features = ["postgres", "admin"] }
+  ```
+
+- **`with_public_url` is required in production** when the admin is enabled: without it, the boot is refused (links sent by email would be built from the request's `Host` header, which anyone can forge). In debug, the request's `Host` stands in for it.
+- **Every `model!{}` of the project must be registered** in the admin (`register`, or `accounts_users` for the accounts' extension). At boot, group rights targeting an unregistered model are deleted from the database.
+- The framework's accounts, groups and rights are provided: you don't declare them.
+
 ## Minimal example
 
 ```rust

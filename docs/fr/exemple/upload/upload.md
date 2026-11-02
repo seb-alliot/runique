@@ -3,6 +3,11 @@
 ## Formulaire d'upload
 
 ```rust
+use runique::prelude::*;
+use serde::Serialize;
+
+#[derive(Serialize, Debug, Clone)]
+#[serde(transparent)]
 pub struct ImageForm {
     pub form: Forms,
 }
@@ -75,9 +80,9 @@ pub async fn upload_image(mut request: Request) -> AppResult<Response> {
     let form: ImageForm = request.form();
     let template = "forms/upload_image.html";
 
-    if let Err(form) = ValidationForm::try_form(form, &request, "my_form").await {
+    if let Err(form) = ValidationForm::try_form(form, &request, "upload").await {
         context_update!(request => {
-            "title" => "Erreur",
+            "title" => "Envoyer une image",
             "image_form" => &form,
         });
         return request.render(template);
