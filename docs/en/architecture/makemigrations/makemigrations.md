@@ -61,14 +61,18 @@ The passes above only *compute* an in-memory plan — nothing is written until t
 
    The check covers both `model!{}` and `extend!{}` changes.
 
-   > **Exception — column type change**: `--force` unblocks the command, but **never** generates the real `ALTER` for a type change (`String → Decimal`, etc.). The generated file only contains a `// Manual migration required.` comment — write it yourself. The other destructive categories generate the real SQL as soon as `--force` is passed. This exception is deliberate: a generic type conversion has no reliable cross-engine cast rule (Postgres needs an explicit `USING`, MariaDB casts silently without error on an invalid value, SQLite doesn't support `ALTER COLUMN TYPE` at all).
-2. **Single commit**: creating directories, writing files, registering in `lib.rs` and positioning the framework migrations run under one rollback. On a write error, the generated files are removed and the existing snapshots and `lib.rs` are restored to their previous state.
+   > **Exception — column type change**: `--force` unblocks the command, but **never** generates the real `ALTER` for a type change (`String → Decimal`, etc.). The generated file only contains a `// Manual migration required.` comment — write it yourself. The console says so in yellow after the generation, column by column. The other destructive categories generate the real SQL as soon as `--force` is passed. This exception is deliberate: a generic type conversion has no reliable cross-engine cast rule (Postgres needs an explicit `USING`, MariaDB casts silently without error on an invalid value, SQLite doesn't support `ALTER COLUMN TYPE` at all).
+2. **Protected writing**: writing the files, registering them in `lib.rs` and positioning the framework migrations run under one shared rollback. On a write error, the generated files are removed, and the existing snapshots and `lib.rs` are restored to their previous state.
+
+   **Current limits**: the folders are created before that protection, upgrading only the snapshots (with no migration) is written without rollback, and a hard stop (power cut, `kill -9`) mid-write isn't recovered. Full protection (writing to a temporary folder, then resuming on the next run) is planned. Until then, `migration/` being versioned, `git` restores it.
 
 ---
 
 ## Why customized snapshots?
 
-Runique doesn't rely only on the database state (which can drift). By keeping snapshots of the **DSL state**, the framework guarantees your Admin forms always match your model declarations, even before the migrations are applied.
+`makemigrations` doesn't connect to the database: it compares your models to **the last state it generated itself**, recorded in the snapshots. The command therefore works with no database available, gives the same result on every machine of the team, and doesn't depend on a database that may have been changed by hand.
+
+The trade-off: a snapshot means "already migrated". Snapshots copied from another project without their migration files make `makemigrations` believe the tables exist; it then writes nothing for them.
 
 ### `extend!{}` logic
 
@@ -135,11 +139,11 @@ runique makemigrations --force
 runique makemigrations --entities src/entities --migrations migration/src
 
 # Apply the generated migrations
-runique migration up            # or: sea-orm-cli migrate up
+runique migration up
 
 # Roll back the last N / see the state
-sea-orm-cli migrate down -n 1
-sea-orm-cli migrate status
+runique migration down -n 1
+runique migration status
 ```
 
 ---

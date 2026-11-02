@@ -3,19 +3,19 @@
 ## Pattern avec redirection (messages flash)
 
 ```rust
-pub async fn soumission_inscription(mut request: Request) -> AppResult<Response> {
-    let form: RegisterForm = request.form();
+pub async fn sign_up(mut request: Request) -> AppResult<Response> {
+    let form: SignupForm = request.form();
 
-    let validated = match ValidationForm::try_form(form, &request, "my_form").await {
+    let validated = match ValidationForm::try_form(form, &request, "signup").await {
         Ok(validated) => validated,
         Err(form) => {
             // ❌ Validation échouée → message immédiat (pas de redirect)
             context_update!(request => {
                 "title" => "Erreur de validation",
-                "inscription_form" => &form,
+                "signup_form" => &form,
                 "messages" => flash_now!(error => "Veuillez corriger les erreurs"),
             });
-            return request.render("inscription_form.html");
+            return request.render("signup.html");
         }
     };
 
@@ -28,10 +28,10 @@ pub async fn soumission_inscription(mut request: Request) -> AppResult<Response>
         Err(form) => {
             context_update!(request => {
                 "title" => "Erreur de validation",
-                "inscription_form" => &form,
+                "signup_form" => &form,
                 "messages" => flash_now!(error => "Veuillez corriger les erreurs"),
             });
-            request.render("inscription_form.html")
+            request.render("signup.html")
         }
     }
 }
@@ -51,7 +51,7 @@ pub async fn about(mut request: Request) -> AppResult<Response> {
     context_update!(request => {
         "title" => "À propos",
     });
-    request.render("about/about.html")
+    request.render("about.html")
 }
 ```
 
@@ -62,7 +62,7 @@ pub async fn about(mut request: Request) -> AppResult<Response> {
 Les messages flash stockés en session sont **consommés automatiquement** lors de l'affichage :
 
 ```
-1. POST /inscription
+1. POST /signup
    → success!("Bienvenue !")
    → Redirect::to("/")
 

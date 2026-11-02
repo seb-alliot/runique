@@ -76,7 +76,7 @@ pub fn routes() -> Routes {
     urlpatterns! {
         "/" => view!{ views::index }, name = "index",
         "/about" => view! { views::about }, name = "about",
-        "/inscription" => view! { views::soumission_inscription }, name = "inscription",
+        "/signup" => view! { views::sign_up }, name = "signup",
     }
 }
 ```
@@ -93,13 +93,13 @@ pub async fn index(mut request: Request) -> AppResult<Response> {
 pub async fn about(mut request: Request) -> AppResult<Response> {
     success!(request.notices => "Welcome!");
     context_update!(request => { "title" => "About" });
-    request.render("about/about.html")
+    request.render("about.html")
 }
 
-pub async fn soumission_inscription(mut request: Request) -> AppResult<Response> {
-    let form: RegisterForm = request.form();
+pub async fn sign_up(mut request: Request) -> AppResult<Response> {
+    let form: SignupForm = request.form();
 
-    let validated = match ValidationForm::try_form(form, &request, "my_form").await {
+    let validated = match ValidationForm::try_form(form, &request, "signup").await {
         Ok(validated) => validated,
         Err(form) => {
             // GET (nothing submitted): blank form, no flash.
@@ -107,16 +107,16 @@ pub async fn soumission_inscription(mut request: Request) -> AppResult<Response>
             if request.method.is_safe() {
                 context_update!(request => {
                     "title" => "Sign up",
-                    "inscription_form" => &form,
+                    "signup_form" => &form,
                 });
             } else {
                 context_update!(request => {
                     "title" => "Error",
-                    "inscription_form" => &form,
+                    "signup_form" => &form,
                     "messages" => flash_now!(error => "Please fix the errors"),
                 });
             }
-            return request.render("inscription_form.html");
+            return request.render("signup.html");
         }
     };
 
@@ -128,10 +128,10 @@ pub async fn soumission_inscription(mut request: Request) -> AppResult<Response>
         Err(form) => {
             context_update!(request => {
                 "title" => "Error",
-                "inscription_form" => &form,
+                "signup_form" => &form,
                 "messages" => flash_now!(error => "Please fix the errors"),
             });
-            request.render("inscription_form.html")
+            request.render("signup.html")
         }
     }
 }

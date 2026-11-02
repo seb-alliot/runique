@@ -23,6 +23,20 @@ Le middleware lit l'en-tête `X-CSRF-Token`. Un corps JSON sans cet en-tête est
 
 Un handler qui lit le corps et écrit sans `request.form()` ne reçoit pas cette vérification, même si `{% csrf %}` est dans la page. Le cookie de session est `SameSite=Strict`.
 
+**Une action POST sans formulaire** (déconnexion, bouton « supprimer ») vérifie le jeton elle-même, calculé à l'extraction de `Request` :
+
+```rust
+pub async fn logout_view(request: Request) -> AppResult<Response> {
+    if !request.prisme.csrf_valid {
+        return Ok(StatusCode::FORBIDDEN.into_response());
+    }
+    logout(&request.session, None).await?;
+    Ok(Redirect::to("/").into_response())
+}
+```
+
+Un extracteur Axum natif (`Form<T>`, `Json<T>` sans en-tête, `Multipart`) ne passe pas par cette vérification : une route qui en utilise un pour écrire doit contrôler le jeton elle-même.
+
 ---
 
 ## Dans les formulaires HTML manuels

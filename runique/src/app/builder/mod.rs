@@ -114,6 +114,8 @@ pub struct RuniqueAppBuilder<S = Fresh> {
     pub(super) middleware: MiddlewareStaging,
     pub(super) statics: StaticStaging,
     pub(super) router: Option<Router>,
+    /// Whether the routes surely leave `/` free for the default index.
+    pub(super) root_free: bool,
     #[cfg(feature = "admin")]
     pub(super) admin: AdminStaging,
     pub(super) password_reset: Option<PasswordResetStaging>,
@@ -137,6 +139,7 @@ impl RuniqueAppBuilder<Fresh> {
             middleware,
             statics: StaticStaging::new(),
             router: None,
+            root_free: true,
             #[cfg(feature = "admin")]
             admin: AdminStaging::new(),
             password_reset: None,
@@ -155,6 +158,7 @@ impl<S> RuniqueAppBuilder<S> {
             middleware: self.middleware,
             statics: self.statics,
             router: self.router,
+            root_free: self.root_free,
             #[cfg(feature = "admin")]
             admin: self.admin,
             password_reset: self.password_reset,
@@ -219,6 +223,7 @@ impl<PU, RT, LG, PR, DB, SD, ML> RuniqueAppBuilder<(PU, RT, LG, PR, DB, SD, ML)>
         RT: state::RoutesUnset,
     {
         let routes = routes.into();
+        self.root_free = routes.root_is_free();
         self.router = Some(routes.router);
         #[cfg(feature = "admin")]
         self.admin.public_route_paths.extend(routes.public_paths);

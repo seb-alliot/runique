@@ -1,4 +1,4 @@
-//! CLI binary `runique` — `new`, `makemigration`, `migrate` commands via clap.
+//! CLI binary `runique` — `new`, `makemigrations`, `migration up|down|status` commands via clap.
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use runique::{
@@ -38,6 +38,7 @@ enum Commands {
         /// Test function in that file
         test: Option<String>,
     },
+    /// Apply, roll back or list the migrations of the `migration` crate
     Migration {
         #[command(subcommand)]
         action: MigrateAction,
@@ -54,7 +55,21 @@ enum Commands {
 
 #[derive(Subcommand)]
 enum MigrateAction {
+    /// Apply every pending migration
     Up {
+        #[arg(long, default_value = "migration/src")]
+        migrations: String,
+    },
+    /// Roll back the last applied migrations
+    Down {
+        /// How many migrations to roll back
+        #[arg(short, long, default_value_t = 1)]
+        n: u32,
+        #[arg(long, default_value = "migration/src")]
+        migrations: String,
+    },
+    /// List the migrations and whether each one is applied
+    Status {
         #[arg(long, default_value = "migration/src")]
         migrations: String,
     },
@@ -76,9 +91,9 @@ async fn main() -> Result<()> {
         Commands::CreateSuperuser => create_superuser().await?,
         Commands::Test { file, test } => run_tests(file.as_deref(), test.as_deref())?,
         Commands::Migration { action } => match action {
-            MigrateAction::Up { migrations } => {
-                migrate::up(&migrations).await?;
-            }
+            MigrateAction::Up { migrations } => migrate::up(&migrations).await?,
+            MigrateAction::Down { n, migrations } => migrate::down(&migrations, n).await?,
+            MigrateAction::Status { migrations } => migrate::status(&migrations).await?,
         },
         Commands::Makemigrations {
             entities,

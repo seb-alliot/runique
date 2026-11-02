@@ -26,7 +26,7 @@ Plusieurs routes partageant le **même compteur** :
 ```rust
 .rate_limit_many(5, 60, vec![Method::POST], vec![
     ("/upload-image".into(), "upload_image".into(), view!(upload_image_submit)),
-    ("/inscription".into(),  "inscription".into(),  view!(soumission_inscription)),
+    ("/signup".into(),       "signup".into(),       view!(sign_up)),
 ])
 ```
 

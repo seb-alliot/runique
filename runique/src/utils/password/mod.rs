@@ -79,7 +79,8 @@ impl BaseHash {
     }
     /// Verifies `password` against `hash`, auto-detecting the algorithm from
     /// the hash's prefix (`$argon2*`, `$2*` for bcrypt, `$scrypt$`). Returns
-    /// `false` for an unrecognized prefix. Each algorithm's check runs through
+    /// `false` for an unrecognized prefix, after an Argon2 check against
+    /// `dummy_hash()`. Each algorithm's check runs through
     /// `verify_constant_time`, so a malformed stored hash takes the same time
     /// to reject as a well-formed one with the wrong password.
     #[must_use]
@@ -91,6 +92,9 @@ impl BaseHash {
         } else if hash.starts_with("$scrypt") {
             self.verify_scrypt(password, hash)
         } else {
+            // Corrupted or plain stored value: burn an Argon2 check like a
+            // missing account does, or answering at once tells it apart.
+            let _ = self.verify_argon2(password, dummy_hash());
             false
         }
     }

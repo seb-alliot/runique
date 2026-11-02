@@ -22,6 +22,16 @@ Runique pre-processes templates to transform Django-like syntax into standard Te
 
 **Transformed into:** `{{ "avatars/photo.jpg" | media }}` → `/media/avatars/photo.jpg`
 
+### With a variable
+
+`{% static %}` and `{% media %}` also take a **Tera variable**, with no quotes — typically the path of an uploaded file, stored in the database:
+
+```html
+<img src="{% media user.avatar %}" alt="Avatar">
+```
+
+**Transformed into:** `{{ user.avatar | media }}`. With quotes, the value is a literal path; without, it is the name of a context variable.
+
 ---
 
 ## {% csrf %} — CSRF protection
@@ -68,7 +78,7 @@ Runique pre-processes templates to transform Django-like syntax into standard Te
 <a href='{% link "user_detail" id="42" %}'>User profile</a>
 ```
 
-**Transformed into:** `{{ link(link='index') }}`
+**Transformed into:** `{{ link(link='index') }}`, and for a route with parameters `{{ link(link='user_detail', id='42') }}`. Only routes declared with `name = "…"` in `urlpatterns!` resolve; an unknown name makes the rendering fail.
 
 ---
 

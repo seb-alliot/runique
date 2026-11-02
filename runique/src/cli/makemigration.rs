@@ -740,6 +740,7 @@ pub fn merge_extend_schemas(schemas: Vec<ParsedSchema>) -> Vec<ParsedSchema> {
 /// changes unless `force` is set, then writes the full migration plan atomically.
 pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()> {
     let schemas = scan_entities(entities_path)?;
+    super::migration_crate::ensure(migrations_path)?;
 
     fs::create_dir_all(snapshot_dir(migrations_path))?;
 
@@ -770,6 +771,10 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
                 tf("makemigrations.snapshots_upgraded", &[upgrades.len()])
             );
         }
+        // Silent, a run looked like it did nothing at all; the framework's
+        // tables may still be waiting to be applied.
+        println!("{}", t("makemigrations.no_changes"));
+        println!("{}", t("makemigrations.apply_hint"));
         return Ok(());
     }
 
@@ -802,8 +807,67 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
     commit_plan(&plan, migrations_path)?;
 
     println!("{}", tf("makemigrations.files_ready", &[module_count]));
+    println!("{}", t("makemigrations.apply_hint"));
+    warn_unmigrated_type_changes(&destructive_set);
 
     Ok(())
+}
+
+/// The columns whose type changed: `--force` let them through, but their
+/// migration holds a warning comment only while the snapshot records the new
+/// type, so the database keeps the old one. A change to or from an enum is
+/// migrated (`build_enum_transition`) and isn't listed.
+fn unmigrated_type_changes(changes: &[Changes]) -> Vec<String> {
+    changes
+        .iter()
+        .flat_map(|c| {
+            c.modified_columns
+                .iter()
+                .filter(|(old, new)| {
+                    old.col_type != new.col_type
+                        && old.enum_string_values.is_empty() == new.enum_string_values.is_empty()
+                })
+                .map(|(old, new)| {
+                    format!(
+                        "  {}.{}: {} -> {}",
+                        c.table_name, old.name, old.col_type, new.col_type
+                    )
+                })
+        })
+        .collect()
+}
+
+/// Says so loudly, in yellow on a terminal (crossterm: ANSI, or the Windows
+/// console API on a terminal without it), plain when piped or with `NO_COLOR`.
+fn warn_unmigrated_type_changes(changes: &[Changes]) {
+    use crossterm::style::{Color, Print, ResetColor, SetAttribute, Attribute, SetForegroundColor};
+    use std::io::IsTerminal;
+
+    let lines = unmigrated_type_changes(changes);
+    if lines.is_empty() {
+        return;
+    }
+    let text = format!(
+        "\n{}\n{}\n{}\n",
+        t("makemigrations.type_change_not_migrated"),
+        lines.join("\n"),
+        t("makemigrations.type_change_write_by_hand")
+    );
+    let mut err = std::io::stderr();
+    let colored = err.is_terminal() && std::env::var_os("NO_COLOR").is_none();
+    let printed = colored
+        && crossterm::execute!(
+            err,
+            SetForegroundColor(Color::Yellow),
+            SetAttribute(Attribute::Bold),
+            Print(&text),
+            SetAttribute(Attribute::Reset),
+            ResetColor
+        )
+        .is_ok();
+    if !printed {
+        eprint!("{text}");
+    }
 }
 
 // ── unified plan ───────────────────────────────────────────────────────────────
@@ -1058,13 +1122,36 @@ pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
     let content = fs::read_to_string(&lib_file)?;
     strip_sea_orm_cli_placeholder_file(migrations_path);
     let mut state = parse_lib_state(&content);
-    state.uses_migrations_table = true;
+    position_framework_migrations(&mut state);
 
-    let admin_box = "Box::new(migrations_table::AdminTableMigration)".to_string();
-    let history_box = "Box::new(migrations_table::EihwazHistoryMigration)".to_string();
-    let sessions_box = "Box::new(migrations_table::EihwazSessionsMigration)".to_string();
-    let reset_box = "Box::new(migrations_table::EihwazResetTokensMigration)".to_string();
-    let users_box = "Box::new(migrations_table::EihwazUsersMigration)".to_string();
+    let result = render_lib(&state);
+    if result != content {
+        fs::write(&lib_file, &result)?;
+    }
+
+    Ok(())
+}
+
+/// The framework's migrations, in the order they must run.
+const FRAMEWORK_MIGRATIONS: [&str; 5] = [
+    "Box::new(migrations_table::EihwazUsersMigration)",
+    "Box::new(migrations_table::EihwazSessionsMigration)",
+    "Box::new(migrations_table::AdminTableMigration)",
+    "Box::new(migrations_table::EihwazHistoryMigration)",
+    "Box::new(migrations_table::EihwazResetTokensMigration)",
+];
+
+/// The `lib.rs` of a migration crate with no model of its own yet: the
+/// framework's tables only. `runique new` writes it; `makemigrations` would
+/// produce the very same file.
+pub(crate) fn initial_lib() -> String {
+    let mut state = LibState::default();
+    position_framework_migrations(&mut state);
+    render_lib(&state)
+}
+
+fn position_framework_migrations(state: &mut LibState) {
+    state.uses_migrations_table = true;
 
     // Tables created by `EihwazUsersMigration` + `EihwazSessionsMigration` + `AdminTableMigration` — to exclude from the vec
     const FRAMEWORK_TABLE_PATTERNS: &[&str] = &[
@@ -1079,33 +1166,15 @@ pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
 
     // Remove existing framework entries/mods (we'll re-inject at the top)
     // and also drop app migrations duplicating framework tables.
-    state.entries.retain(|e| {
-        e != &users_box
-            && e != &sessions_box
-            && e != &reset_box
-            && e != &admin_box
-            && e != &history_box
-    });
+    state
+        .entries
+        .retain(|e| !FRAMEWORK_MIGRATIONS.contains(&e.as_str()));
     state
         .mods
         .retain(|m| !FRAMEWORK_TABLE_PATTERNS.iter().any(|pat| m.contains(pat)));
-    state.entries.splice(
-        0..0,
-        [
-            users_box.clone(),
-            sessions_box.clone(),
-            admin_box.clone(),
-            history_box.clone(),
-            reset_box.clone(),
-        ],
-    );
-
-    let result = render_lib(&state);
-    if result != content {
-        fs::write(&lib_file, &result)?;
-    }
-
-    Ok(())
+    state
+        .entries
+        .splice(0..0, FRAMEWORK_MIGRATIONS.map(String::from));
 }
 
 // ── Extend pass (planning) ─────────────────────────────────────────────────────
@@ -1164,6 +1233,46 @@ fn plan_extend_changes(
 mod tests {
     use super::*;
     use crate::migration::utils::types::{ParsedColumn, ParsedFk};
+
+    /// Only a plain type change is listed: a change to or from an enum is
+    /// migrated, and a column whose other attributes changed isn't concerned.
+    #[test]
+    fn only_plain_type_changes_are_reported_as_unmigrated() {
+        let col = |col_type: &str, enum_values: &[&str], nullable: bool| ParsedColumn {
+            name: "c".into(),
+            col_type: col_type.into(),
+            nullable,
+            enum_string_values: enum_values.iter().map(|v| v.to_string()).collect(),
+            ..ParsedColumn::default()
+        };
+        let changes = |old: ParsedColumn, new: ParsedColumn| Changes {
+            table_name: "t".into(),
+            added_columns: vec![],
+            dropped_columns: vec![],
+            modified_columns: vec![(old, new)],
+            renamed_columns: vec![],
+            added_fks: vec![],
+            dropped_fks: vec![],
+            added_indexes: vec![],
+            dropped_indexes: vec![],
+            is_new_table: false,
+            enum_renames: vec![],
+            enum_value_adds: vec![],
+            enum_value_drops: vec![],
+        };
+
+        let plain = changes(col("Integer", &[], false), col("BigInteger", &[], false));
+        assert_eq!(
+            unmigrated_type_changes(&[plain]),
+            vec!["  t.c: Integer -> BigInteger".to_string()]
+        );
+
+        let to_enum = changes(col("String", &[], false), col("Enum", &["a"], false));
+        assert!(unmigrated_type_changes(&[to_enum]).is_empty());
+
+        let nullable = changes(col("String", &[], true), col("String", &[], false));
+        assert!(unmigrated_type_changes(&[nullable]).is_empty());
+    }
 
     fn temp(tag: &str) -> std::path::PathBuf {
         let dir = std::env::temp_dir().join(format!("rq_mk_{tag}_{}", uuid::Uuid::new_v4()));

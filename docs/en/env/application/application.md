@@ -4,10 +4,10 @@
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DEBUG` | `false` | Global dev/prod switch — read **once** at startup via `LazyLock`. Enables: `debug` log level, detailed error pages, admin template hot reload. In production (`false`): `warn` level, generic errors. |
+| `DEBUG` | `false` | Global dev/prod switch — read **once** at startup. Accepts `true`/`1`/`yes`/`on` and `false`/`0`/`no`/`off`, whatever the case. Turns on: `debug` log level (unless `RUST_LOG`), detailed error pages, templates read again on every request, the default home page when `/` isn't declared. In production (`false`): `warn` level, generic errors, security checks at startup (`SECRET_KEY`, `with_public_url`, ACME). |
 | `BASE_DIR` | `.` | Application root directory |
 | `TZ` | `UTC` | IANA timezone for the application (e.g. `Europe/Paris`, `America/New_York`). Accessible via `config.timezone` — parse it with `chrono-tz` in your project. |
-| `LANG` | system locale | CLI language (`fr`, `en`, `de`, `es`, `it`, `pt`, `ja`, `zh`, `ru`). Priority: `.env` > system locale (`LC_ALL`, `LC_MESSAGES`) > `en` |
+| `LANG` | system locale | CLI language (`fr`, `en`, `de`, `es`, `it`, `pt`, `ja`, `zh`, `ru`). Priority: `LANG` / `LC_ALL` / `LC_MESSAGES` from `.env` > system locale > `en`. The app's language is set in code (`set_lang(Lang::En)`) |
 
 ---
 
@@ -17,7 +17,7 @@
 |----------|---------|-------------|
 | `IP_SERVER` | `127.0.0.1` | Listening IP address |
 | `PORT` | `3000` | Listening port |
-| `SECRET_KEY` | `default_secret_key` | Secret key (CSRF, signatures). In production (`DEBUG=false`), **boot fails** if it's empty, equal to the default, or under 32 characters |
+| `SECRET_KEY` | `default_secret_key` | Secret key (CSRF, signatures). `runique new` writes a random one (64 hex characters) into the project's `.env`. To replace it: any random string of 32 characters or more (`openssl rand -hex 32`). In production (`DEBUG=false`), **startup fails** when it is empty, equal to the default, or shorter than 32 characters; in debug, a warning is shown |
 
 ---
 
@@ -27,8 +27,8 @@
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DATABASE_URL` | — | Full connection URL (takes priority over all component variables) |
-| `DB_ENGINE` | `sqlite` | Engine: `postgres`, `mysql`, `mariadb`, `sqlite` |
+| `DATABASE_URL` | — | Full URL. **Read first**: when set, `DB_ENGINE`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` and `DB_NAME` are ignored, and the engine comes from the URL's scheme (`postgres://`, `mysql://`, `mariadb://`, `sqlite://`) |
+| `DB_ENGINE` | `sqlite` | Engine, when `DATABASE_URL` is unset: `postgres`, `mysql`, `mariadb`, `sqlite`. Must match the compiled `runique` feature, or startup fails with "driver not enabled" |
 | `DB_USER` | — | Username (required except for SQLite) |
 | `DB_PASSWORD` | — | Password (required except for SQLite) |
 | `DB_HOST` | `localhost` | Host |
@@ -68,10 +68,10 @@ To attach an additional database connection (Redis pool, secondary PostgreSQL, M
 let redis = redis::Client::open("redis://127.0.0.1/")?;
 let db = DatabaseConfig::from_env()?.build().connect().await?;
 
-RuniqueAppBuilder::new(config)
+RuniqueApp::builder(config)
     .with_database(db)
     .with_custom_db(redis)   // T: Any + Send + Sync + 'static
-    .routes(url::urlpatterns())
+    .routes(url::routes())
     .build().await?
     .run().await
 ```

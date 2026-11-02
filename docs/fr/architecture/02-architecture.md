@@ -5,33 +5,27 @@ Un projet Runique est une crate binaire Rust standard. `runique new` génère la
 ## Structure type
 
 ```text
-mon-projet/
+mon_projet/
 ├── src/
-│   ├── entities/          # Déclaration des model
-│   │   ├── users.rs       # Utilise l'ast de runique pour la cli makemigrations
-│   │   └── blog.rs        # Le cli est non compatible avec les struct basique
-│   │
-│   ├── formulaire/        # Déclaration des formulaires
-│   │   ├── inscription.rs # Utilisation du moteur de formulaire
-│   │   └── blog.rs        # ou de macros proc-attribute
-│   │
-│   ├── main.rs            # Point d'entrée — RuniqueApp builder
-│   ├── admin.rs           # ModelAdmin + AdminSite (si admin activé)
+│   ├── main.rs            # Point d'entrée — builder RuniqueApp
 │   ├── url.rs             # urlpatterns! — table de routage
 │   ├── views.rs           # Handlers (fonctions async)
-│   └── forms.rs           # Structs RuniqueForm (ou dossier forms/)
+│   ├── forms/             # Formulaires (#[form] ou déclarés à la main)
+│   ├── entities/          # Modèles model!{} / extend!{}, lus par makemigrations
+│   └── admin.rs           # ModelAdmin + AdminSite (feature `admin` seulement)
 │
 ├── templates/             # Templates Tera (.html)
 ├── static/                # Fichiers statiques (CSS, JS, images)
-├── media/                 # Uploads (FileField)
-│                          # Media peux etre dans un autre dossier
-│
-├── migration/             # Migrations SeaORM
-│   └── src/
-│       └── lib.rs
+├── media/                 # Fichiers envoyés par les utilisateurs (FileField) ;
+│                          # MEDIA_ROOT peut pointer ailleurs
+├── migration/             # Crate des migrations (workspace)
+│   ├── Cargo.toml
+│   └── src/               # main.rs, lib.rs, migrations, snapshots/
 ├── .env                   # Variables d'environnement
-└── Cargo.toml
+└── Cargo.toml             # Workspace : l'application + migration
 ```
+
+`src/entities/` ne doit contenir que des `model!{}` et `extend!{}` : `makemigrations` lit ce dossier et génère une migration pour chaque modèle qu'il y trouve. Un formulaire déclaré à la main va dans `src/forms/`.
 
 ---
 
@@ -40,20 +34,16 @@ mon-projet/
 **`main.rs`** — Configure et lance l'application via le builder :
 
 ```rust
-#[macro_use]
-extern crate runique;
 use runique::prelude::*;
 
 mod entities;
-mod formulaire;
+mod forms;
 mod url;
 mod views;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-
     password_init(PasswordConfig::auto_with(Manual::Argon2));
-    set_lang(Lang::En);
 
     let config: RuniqueConfig = RuniqueConfig::from_env();
     let db_config = DatabaseConfig::from_env()?.build();
@@ -61,7 +51,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     RuniqueApp::builder(config)
         .routes(url::routes())
-        .with_public_url("http://localhost:3000") // local environnement only else domain name
         .with_database(db)
         .statics()
         .build()
@@ -76,13 +65,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 **`url.rs`** — Déclare les routes via `urlpatterns!` :
 
 ```rust
-use runique::prelude::*;
 use crate::views;
+use runique::prelude::*;
 
 pub fn routes() -> Routes {
     urlpatterns! {
-        "/" => view!{ views::index }, name = "index",
-        "/register" => view!{ views::register }, name = "register",
+        "/"       => view!{ views::index },  name = "index",
+        "/signup" => view!{ views::signup }, name = "signup",
     }
 }
 ```
@@ -90,32 +79,46 @@ pub fn routes() -> Routes {
 **`views.rs`** — Handlers de requêtes :
 
 ```rust
+use runique::prelude::*;
+
 pub async fn index(mut request: Request) -> AppResult<Response> {
     context_update!(request => { "title" => "Accueil" });
     request.render("index.html")
 }
 ```
 
-**`formulaire/`** — Formulaires typés :
+**`forms/`** — Formulaires typés. Un formulaire déclaré à la main :
 
 ```rust
-pub struct RegisterForm { pub form: Forms }
+use runique::prelude::*;
+use serde::Serialize;
 
-impl RuniqueForm for RegisterForm {
+#[derive(Serialize, Debug, Clone)]
+#[serde(transparent)]
+pub struct ContactForm {
+    pub form: Forms,
+}
+
+impl FormAccess for ContactForm {
     fn register_fields(form: &mut Forms) {
-        form.field(&TextField::text("username").label("Nom").required());
+        form.field(&TextField::text("name").label("Nom").required());
         form.field(&TextField::email("email").label("Email").required());
     }
     impl_form_access!();
 }
+
+impl RuniqueForm for ContactForm {}
 ```
+
+Un formulaire tiré d'un modèle s'écrit en une ligne : `#[form(schema = blog, fields = [title, content])]`. Voir [Formulaires](/docs/fr/formulaire).
 
 **`admin.rs`** — Déclaration typée de l'admin (`ModelAdmin` + `AdminSite`) :
 
 ```rust
+use crate::entities::demo_category;
 use runique::admin::{AdminSite, ModelAdmin};
 use runique::app::staging::AdminStaging;
-use crate::entities::demo_category;
+use sea_orm::Order;
 
 pub fn config(admin: AdminStaging) -> AdminStaging {
     admin
@@ -125,8 +128,7 @@ pub fn config(admin: AdminStaging) -> AdminStaging {
 }
 
 fn site(site: AdminSite) -> AdminSite {
-    site
-        .register(demo_category())
+    site.register(demo_category())
 }
 
 fn demo_category() -> ModelAdmin<demo_category::Entity> {
@@ -141,32 +143,41 @@ fn demo_category() -> ModelAdmin<demo_category::Entity> {
 }
 ```
 
+Câblé dans `main.rs` par `.with_admin(admin::config)`.
+
+> **L'admin est une feature à activer.** `runique::admin`, `AdminStaging` et `.with_admin(...)` n'existent que si `runique` est compilé avec la feature `admin` :
+>
+> ```toml
+> runique = { version = "4.0.0", features = ["postgres", "admin"] }
+> ```
+>
+> Sans elle, le compilateur signale `unresolved import runique::admin` ou `no method named with_admin`. Tout `model!{}` du projet doit être enregistré dans l'`AdminSite` : les droits d'un modèle absent sont supprimés au démarrage.
+
 ---
 
 ## Démarrer un nouveau projet
 
 ```bash
-runique new mon-projet
-cd mon-projet
+runique new mon_projet
+cd mon_projet
+runique migration up
 cargo run
 ```
 
-`runique new` génère la structure minimale décrite ci-dessus. Voici ce que chaque fichier t'appartient de modifier ou non :
+Ce que chaque partie du projet généré vous appartient de modifier :
 
 | Fichier / dossier | À modifier | Rôle |
 | --- | --- | --- |
 | `src/main.rs` | Oui | Configure le builder et déclare les modules |
 | `src/url.rs` | Oui | Table de routage |
 | `src/views.rs` | Oui | Handlers de requêtes |
-| `src/entities/` | Oui | Déclarations de modèles (AST Runique, compatible `makemigrations`) |
-| `src/formulaire/` | Oui | Formulaires et validation |
-| `src/admin.rs` | Oui (si admin) | `ModelAdmin` + enregistrement `AdminSite` |
+| `src/entities/` | Oui | Modèles (`model!{}`, `extend!{}`), lus par `makemigrations` |
+| `src/forms/` | Oui | Formulaires et validation |
+| `src/admin.rs` | Oui (feature `admin`) | `ModelAdmin` + enregistrement `AdminSite` |
 | `templates/` | Oui | Templates Tera |
 | `static/` | Oui | CSS, JS, images |
-| `migration/` | Non (sauf ajout de tables) | Migrations SeaORM |
+| `migration/` | Non | Tenu par `runique makemigrations` (`lib.rs`, migrations, snapshots). À la main : seulement le `up()` / `down()` d'un changement de type de colonne, que `makemigrations` ne sait pas encore écrire |
 | `.env` | Oui | Variables d'environnement |
-
-> L'admin se déclare dans `src/admin.rs` et se câble avec `.with_admin(...)`. `cargo run` suffit — plus de génération de fichiers.
 
 ---
 

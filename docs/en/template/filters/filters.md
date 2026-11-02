@@ -48,11 +48,33 @@ All three declare `is_safe()` — their output is emitted unescaped, `\| safe` i
 
 ---
 
+## Utility filters
+
+| Filter | Description |
+|--------|-------------|
+| `humanize` | Readable identifier: `"changelog_entry"` → `"Changelog Entry"`. For technical names (enum values, columns), not for user input |
+| `format_date` | Date-time (`NaiveDateTime`) as `dd/mm/yyyy HH:MM` |
+| `date` | Date in the format of your choice (`{{ d \| date(format="%Y-%m-%d") }}`) |
+| `mask` | Replaces a value with as many bullets as it has characters (showing a sensitive value) |
+| `filesizeformat` / `filesize_format` | Size in bytes, readable (`1.2 MB`) |
+| `slugify` / `slug` | Text as a URL slug |
+| `striptags` | Strips HTML tags (stays escaped) |
+| `spaceless` | Removes whitespace between tags |
+| `regex_replace` | Regular expression replacement |
+| `urlencode` / `urlencode_strict` | Encoding for a URL |
+| `json_encode` | Value as JSON |
+| `shuffle` | Shuffles a list |
+
+---
+
 ## Tera functions
 
 | Function | Description | Example |
 |----------|-------------|---------|
 | `link(link='...')` | Named URL resolution | `{{ link(link='index') }}` |
+| `csrf_token()` | The request's masked CSRF token | `{{ csrf_token() }}` |
+| `now()` | Current date-time | `{{ now() }}` |
+| `get_random(start, end)` | Random integer | `{{ get_random(start=1, end=10) }}` |
 
 ## Auto-injected context variables
 
@@ -61,7 +83,8 @@ All three declare `is_safe()` — their output is emitted unescaped, `\| safe` i
 | `csrf_token` | Masked CSRF token (used by `{% csrf %}` and `\| csrf_field`) |
 | `csp_nonce` | CSP nonce value for the header (used by `{% csp %}`) |
 | `messages` | Request flash messages |
-| `user` | Currently authenticated user (if logged in) |
+| `current_user` | The signed-in account (`username`, `id`, rank…), read from the database on every request; absent for an anonymous visitor |
+| `debug` | The value of `DEBUG` |
 | `current_path` | Current URL path, without query string (useful for `rel="canonical"`, `og:url`, active navigation) |
 
 ---

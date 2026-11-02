@@ -133,7 +133,7 @@
     "validation_failed": "Build validation failed: {}",
     "check_failed": "Build failed with {} check error(s)",
     "template_failed": "Template loading failed: {}",
-    "driver_not_enabled": "{} driver not enabled: Runique was compiled without the '{}' feature.\n\nIn your project's Cargo.toml:\nrunique = { version = \"{}\", features = [\"{}\"] }\n\nFor the runique CLI:\ncargo install runique --features {} --locked --force\n\nTo support every engine, use the 'all-databases' feature.",
+    "driver_not_enabled": "{} driver not enabled: Runique was compiled with '{}', not '{}'.\n\nIf .env points at the wrong database (the features changed, .env didn't), set DB_ENGINE and DATABASE_URL to the compiled engine: '{}'.\n\nTo use {} instead, in your project's Cargo.toml and migration/Cargo.toml:\nrunique = { version = \"{}\", features = [\"{}\"] }\n\nFor the runique CLI:\ncargo install runique --features {} --locked --force\n\nTo support every engine, use the 'all-databases' feature.",
     "db_missing": "Database connection required when 'orm' feature is enabled",
     "component_not_ready": "Component '{}' is not ready",
     "check": {
@@ -211,7 +211,10 @@
     "project_created": "Project '{}' created successfully!",
     "getting_started": "To get started:",
     "cd_hint": "cd {}",
-    "cargo_run_hint": "cargo run"
+    "cargo_run_hint": "cargo run",
+    "name_digit": "The project name cannot start with a digit",
+    "name_reserved": "'{}' is reserved (a Rust keyword or crate, a cargo or Windows name, or part of the generated project): pick another name",
+    "migration_up_hint": "runique migration up      (creates the framework's tables: accounts, sessions, rights)"
   },
   "TemplateMessage": {
     "debug_info_title": "Debug Information",
@@ -561,12 +564,21 @@
     "long_identifier_detected": "Generated SQL identifiers are too long (MariaDB/MySQL limit: 64 characters):",
     "long_identifier_rename_required": "Shorten the table/column names involved — Runique doesn't auto-truncate identifiers.",
     "files_ready": "{} file(s) ready to migrate.",
-    "snapshots_upgraded": "{} snapshot(s) updated to record column lengths (no migration)."
+    "snapshots_upgraded": "{} snapshot(s) updated to record column lengths (no migration).",
+    "type_change_not_migrated": "WARNING: --force let these column type changes through, but they are NOT migrated yet. Their migration holds a comment only, while the snapshot already records the new type:",
+    "type_change_write_by_hand": "Write that migration's up() and down() by hand (alter_table / modify_column) before `runique migration up`: otherwise the database keeps the old types and nothing will tell you.",
+    "no_changes": "No changes detected: your models match their snapshots.",
+    "apply_hint": "Apply the pending migrations with: runique migration up"
   },
   "migrate": {
-    "applying": "Applying migrations from '{}'...",
     "complete_up": "Migration complete.",
-    "crate_missing": "Migration crate not found: '{}' has no Cargo.toml."
+    "crate_missing": "Migration crate not found: '{}' has no Cargo.toml.",
+    "running": "Running 'migrate {}' with the migration crate '{}'...",
+    "complete_down": "Rollback complete.",
+    "cargo_missing": "Unable to launch cargo. Is Rust installed and cargo on the PATH?",
+    "failed": "The migration crate failed on 'migrate {}' (exit code: {}).",
+    "crate_created": "Migration crate created in '{}'.",
+    "engine_defaulted": "DB_ENGINE is not set: the migration crate uses SQLite. Change the runique feature in '{}' if needed."
   },
   "runique_test": {
     "connect_failed": "can't connect: {}",

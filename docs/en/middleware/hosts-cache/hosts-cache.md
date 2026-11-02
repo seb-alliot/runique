@@ -22,7 +22,7 @@ that proxy over HTTP/2.
 Rejections can be logged via `RuniqueLog`:
 
 ```rust
-.with_log(|l| l.host_validation(LogLevel::WARN))
+.with_log(|l| l.middleware(|m| m.host_validation(LogLevel::WARN)))
 ```
 
 In production, `WARN` is recommended to detect attacks or misconfigurations.
@@ -66,7 +66,7 @@ Pragma: no-cache
 
 ### Production mode (`DEBUG=false`)
 
-Caching headers are enabled for performance.
+No no-cache header is added: the browser applies its usual cache. Static and media files caching is set with `.static_files(|s| s.static_cache("…").media_cache("…"))`.
 
 ---
 

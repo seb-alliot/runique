@@ -32,6 +32,10 @@ Automatically renders: all fields, labels, validation errors, CSRF token, and JS
 
 ---
 
+The **first** field rendered this way carries the form's hidden fields along (CSRF token and form name). Render them all, or at least the first declared field: without it, the submission is refused (CSRF) or ignored (no name).
+
+---
+
 ## Global errors
 
 ```html

@@ -16,8 +16,8 @@
     border-radius: var(--radius-lg);
     padding: 0.8rem 0.9rem;
     display: flex;
-    flex-direction: row;
-    align-items: center;
+    flex-direction: column;
+    align-items: flex-start;
     gap: 1rem;
     transition: border-color var(--transition), box-shadow var(--transition);
 }
@@ -30,12 +30,12 @@
 .admin-stats__body {
     display: flex;
     flex-direction: column;
-    gap: 0.1rem;
+    gap: 1em;
     min-width: 0;
 }
 
 .admin-stats__label {
-    font-size: 0.78rem;
+    font-size: 0.90rem;
     color: var(--label);
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -52,6 +52,13 @@
 .admin-stats__action {
     margin-left: auto;
     flex-shrink: 0;
+    border: solid 1px white ;
+}
+
+.decoration {
+    text-decoration: underline;
+    text-decoration-color: wheat;
+    text-underline-offset: 5px;
 }
 
 @media (min-width: 40em) {

@@ -2,7 +2,7 @@
 
 Runique uses `CleaningMemoryStore` as the default session store — a wrapper around an in-memory `HashMap` that adds automatic cleanup, watermark protection, and protection for valuable sessions.
 
-By default, data is lost when the server restarts. For persistence of authenticated sessions, use `with_db_fallback()` (see [Store & watermarks](/docs/en/session/store)).
+Anonymous sessions live in memory and are lost on restart. **Authenticated** sessions are also saved in the database (`eihwaz_sessions`), automatically as soon as a database is configured: they survive a restart, and the database is the authority (see [Store & watermarks](/docs/en/session/store)).
 
 ---
 

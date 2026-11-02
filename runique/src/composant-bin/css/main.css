@@ -8,15 +8,34 @@
 }
 
 
+/* Three rows: the debug banner, the page, the footer. The header's photo and
+   the page share the middle row: the photo fills its top half and the page
+   is centered in it, so whatever the card's height, its middle sits on the
+   photo's bottom edge. */
 body {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    /* One column for all: two items given the same row and no column would
+       be set side by side, the grid adding a column for the second. */
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 100vh;
 }
 
-/* zone principale extensible */
+body > * {
+    grid-column: 1;
+}
+
+.debug-banner {
+    grid-row: 1;
+}
+
 main {
-    flex: 1;
+    grid-row: 2;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 
@@ -27,6 +46,18 @@ html, body {
     color: var(--text-main);
 }
 
+/* One color for links, visited or not: the browser's default purple is
+   unreadable on the dark background. */
+a,
+a:visited {
+    color: var(--accent);
+}
+
+a:hover,
+a:focus-visible {
+    color: var(--accent-light);
+}
+
 /* =========================
     DEBUG
    ========================= */
@@ -34,29 +65,31 @@ html, body {
     background: linear-gradient(90deg, #b91c1c, #ef4444);
     color: #fff;
     text-align: center;
-    padding: 0.5rem;
+    padding: 0.5em;
     font-weight: 600;
     letter-spacing: 0.05em;
 }
 
 /* =========================
-    HEADER (IMAGE EN FOND)
+    HEADER (BACKGROUND IMAGE)
    ========================= */
 header {
+    grid-row: 2;
+    align-self: start;
     position: relative;
-    height: 260px;
+    height: 50%;
     background: var(--bg-header);
     overflow: hidden;
     border-bottom: 1px solid #1f2937;
 }
 
-header img {
+img {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    opacity: 0.35;
+    opacity: 0.5;
     filter: contrast(1.05) saturate(1.1);
 }
 
@@ -66,8 +99,8 @@ header::after {
     inset: 0;
     background: linear-gradient(
         to bottom,
-        rgba(15, 18, 22, 0.4),
-        rgba(15, 18, 22, 0.95)
+        rgba(15, 18, 22, 0.45),
+        rgba(15, 18, 22, 0.85)
     );
 }
 
@@ -76,12 +109,13 @@ header::after {
    ========================= */
 .content {
     max-width: 90%;
-    margin: -5rem auto 3rem auto;
+    /* Same top and bottom: an uneven margin would move the card off center. */
+    margin: 2em auto;
     background: var(--bg-card);
-    padding: 2rem 2.5rem;
-    border-radius: 2rem;
+    padding: 2em 2.5em;
+    border-radius: 2em;
     box-shadow:
-        0 10px 30px rgba(0, 0, 0, 0.6),
+        0 0.625em 1.875em rgba(0, 0, 0, 0.6),
         inset 0 1px 0 rgba(255, 255, 255, 0.03);
     position: relative;
     z-index: 1;
@@ -91,36 +125,143 @@ header::after {
 }
 
 .content h1 {
-    font-size: 2rem;
-    margin-bottom: 1rem;
+    font-size: 2em;
+    margin-bottom: 0.5em;
     color: var(--accent);
 }
 
 .content p {
-    margin-bottom: 0.6rem;
+    margin-bottom: 0.6316em;
     color: var(--text-muted);
-    font-size: 0.95rem;
+    font-size: 0.95em;
 }
 
 .content p strong {
     color: var(--text-main);
 }
 
+/* =========================
+    HOME PAGE
+   ========================= */
+.content.home {
+    max-width: 47.5em;
+    align-items: stretch;
+    text-align: center;
+}
+
+.home .lead {
+    font-size: 1.05em;
+    margin-bottom: 1.6667em;
+}
+
+.home .steps {
+    text-align: left;
+    background: var(--bg-main);
+    border: 1px solid var(--border-color);
+    border-radius: 1em;
+    padding: 1.25em 1.5em;
+    margin-bottom: 1.75em;
+}
+
+.home .steps h2 {
+    font-size: 1em;
+    color: var(--text-main);
+    margin-bottom: 0.9em;
+}
+
+.home .steps ol {
+    padding-left: 1.3587em;
+    color: var(--text-muted);
+    font-size: 0.92em;
+}
+
+/* Inside the list, whose text is 0.92em: these em are on that. */
+.steps li + li {
+    margin-top: 0.8152em;
+}
+
+.home code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.9239em;
+    color: var(--text-main);
+    background: var(--bg-input);
+    border-radius: 0.4118em;
+    padding: 0.1176em 0.4118em;
+}
+
+/* A named font list, not the bare `monospace` default: browsers shrink that
+   one (13px), and every em below would shrink with it. */
+.home pre {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 1em;
+    margin-top: 0.4348em;
+    background: var(--bg-input);
+    border-radius: 0.5435em;
+    padding: 0.6522em 0.8696em;
+    overflow-x: auto;
+}
+
+.home pre code {
+    padding: 0;
+}
+
+.home .actions {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.75em;
+}
+
+.button {
+    display: inline-block;
+    padding: 0.6522em 1.413em;
+    border-radius: 0.6522em;
+    border: 1px solid var(--accent);
+    font-weight: 600;
+    font-size: 0.92em;
+    text-decoration: none;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.button-primary,
+.button-primary:visited {
+    background: var(--accent);
+    color: #fff;
+}
+
+.button-primary:hover,
+.button-primary:focus-visible {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+    color: #fff;
+}
+
+.button-secondary,
+.button-secondary:visited {
+    color: var(--text-main);
+}
+
+.button-secondary:hover,
+.button-secondary:focus-visible {
+    border-color: var(--accent-light);
+    color: var(--accent-light);
+}
+
 
 /* =========================
-    MESSAGES — STYLES AVANCÉS
+    MESSAGES
    ========================= */
 
 .flash-messages  {
     display: flex;
     flex-direction: column;
-    margin: 0.5rem;
+    margin: 0.5em;
 }
 [class^="message-"] {
-    margin-top: 1rem;
-    border-radius: 8px;
+    margin-top: 1.4286em;
+    border-radius: 0.7143em;
     font-weight: 600;
-    font-size: 0.7rem;
+    font-size: 0.7em;
     background: #1f2937;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
@@ -128,7 +269,7 @@ header::after {
 /* ERROR */
 .message-error {
     color: #fecaca;
-    border-left: 4px solid #ef4444;
+    border-left: 0.25em solid #ef4444;
     background: linear-gradient(
         90deg,
         rgba(239, 68, 68, 0.15),
@@ -139,7 +280,7 @@ header::after {
 /* SUCCESS */
 .message-success {
     color: #bbf7d0;
-    border-left: 4px solid #22c55e;
+    border-left: 0.25em solid #22c55e;
     background: linear-gradient(
         90deg,
         rgba(34, 197, 94, 0.15),
@@ -150,7 +291,7 @@ header::after {
 /* INFO */
 .message-info {
     color: #bfdbfe;
-    border-left: 4px solid #3b82f6;
+    border-left: 0.25em solid #3b82f6;
     background: linear-gradient(
         90deg,
         rgba(59, 130, 246, 0.15),
@@ -161,7 +302,7 @@ header::after {
 /* WARNING */
 .message-warning {
     color: #fde68a;
-    border-left: 4px solid #f59e0b;
+    border-left: 0.25em solid #f59e0b;
     background: linear-gradient(
         90deg,
         rgba(245, 158, 11, 0.15),
@@ -174,17 +315,19 @@ header::after {
     FOOTER
    ========================= */
 footer {
+    grid-row: 3;
     background: var(--bg-footer);
     border-top: 1px solid #1f2937;
-    padding: 1.5rem 1rem;
+    padding: 1.5em 1em;
     text-align: center;
 }
 
-footer a {
+footer a,
+footer a:visited {
     color: var(--text-muted);
     text-decoration: none;
-    margin: 0 0.8rem;
-    font-size: 0.9rem;
+    margin: 0 0.8889em;
+    font-size: 0.9em;
     transition: color 0.2s ease;
 }
 
@@ -192,9 +335,29 @@ footer a:hover {
     color: var(--accent);
 }
 
+/* Sign out is a POST form: its button looks like the footer links */
+footer form.logout {
+    display: inline;
+}
+
+footer form.logout button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    margin: 0 0.8889em;
+    font: inherit;
+    font-size: 0.9em;
+    transition: color 0.2s ease;
+}
+
+footer form.logout button:hover {
+    color: var(--accent);
+}
+
 footer p {
-    margin-top: 0.8rem;
-    font-size: 0.8rem;
+    margin-top: 1em;
+    font-size: 0.8em;
     color: #6b7280;
 }
 
@@ -203,97 +366,89 @@ footer p {
     RESPONSIVE
    ========================= */
 
-/* Tablettes */
-@media (max-width: 768px) {
-    header {
-        height: 200px;
-    }
-
+/* Tablets */
+@media (max-width: 48em) {
     .content {
-        margin: -3rem auto 2rem auto;
-        padding: 1.5rem;
+        margin: 2em auto;
+        padding: 1.5em;
     }
 
     .content h1 {
-        font-size: 1.6rem;
+        font-size: 1.6em;
     }
 
     .content p {
-        font-size: 0.9rem;
+        font-size: 0.9em;
     }
 
     footer a {
-        margin: 0 0.5rem;
-        font-size: 0.85rem;
+        margin: 0 0.5882em;
+        font-size: 0.85em;
     }
 }
 
 /* Mobile */
-@media (max-width: 480px) {
-    header {
-        height: 150px;
-    }
-
+@media (max-width: 30em) {
     .debug-banner {
-        font-size: 0.85rem;
-        padding: 0.4rem;
+        font-size: 0.85em;
+        padding: 0.4706em;
     }
 
     .content {
-        margin: 2rem;
-        border-radius: 0.75rem;
+        margin: 2em;
+        border-radius: 0.75em;
     }
 
     .content h1 {
-        font-size: 1.4rem;
-        margin-bottom: 0.75rem;
+        font-size: 1.4em;
+        margin-bottom: 0.5357em;
     }
 
     .content p {
-        font-size: 0.85rem;
-        margin-bottom: 0.5rem;
+        font-size: 0.85em;
+        margin-bottom: 0.5882em;
     }
 
     [class^="message-"] {
-        font-size: 0.85rem;
-        padding: 0.6rem 0.8rem;
+        font-size: 0.85em;
+        padding: 0.7059em 0.9412em;
     }
 
     footer {
-        padding: 1rem 0.5rem;
+        padding: 1em 0.5em;
     }
 
     footer a {
         display: inline-block;
-        margin: 0.3rem 0.4rem;
-        font-size: 0.8rem;
+        margin: 0.375em 0.5em;
+        font-size: 0.8em;
     }
 
     footer p {
-        margin-top: 0.6rem;
-        font-size: 0.75rem;
+        margin-top: 0.8em;
+        font-size: 0.75em;
     }
 }
 
 /* Form field hints */
 .field-hints {
-    font-size: 0.85rem;
+    font-size: 0.85em;
     color: #6c757d;
-    margin-top: 0.3rem;
+    margin-top: 0.3529em;
 }
 
-/* Très petit mobile (320px) */
-@media (max-width: 360px) {
+/* Very small mobile (320px) */
+@media (max-width: 22.5em) {
     .content h1 {
-        font-size: 1rem;
+        font-size: 1em;
     }
 
     .content {
-        padding: 0.75rem;
+        padding: 0.75em;
     }
 
     footer a {
         display: block;
-        margin: 0.4rem 0;
+        margin: 0.5em 0;
     }
 }

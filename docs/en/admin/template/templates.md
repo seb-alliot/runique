@@ -54,7 +54,7 @@ Written directly in `admin_template.html` — **cannot be removed** by overridin
 | --- | --- |
 | [Setup](/docs/en/admin/setup) | Wire the admin into an existing project, create a superuser |
 | [Declaration](/docs/en/admin/declaration) | `AdminStaging`, `AdminSite`, `ModelAdmin` workflow |
-| [Permissions](/docs/en/admin/permission) | Roles, `is_staff` / `is_superuser`, runtime check |
+| [Permissions](/docs/en/admin/permission) | Ranks, rights per account and per group, checked on every request |
 | [Roadmap](/docs/en/admin/evolution) | Planned features and beta status |
 
 ## Back to menu

@@ -133,7 +133,7 @@
     "validation_failed": "Ошибка валидации сборки: {}",
     "check_failed": "Ошибка сборки с {} ошибками проверки",
     "template_failed": "Ошибка загрузки шаблона: {}",
-    "driver_not_enabled": "Драйвер {} не включён: Runique скомпилирован без feature '{}'.\n\nВ Cargo.toml вашего проекта:\nrunique = { version = \"{}\", features = [\"{}\"] }\n\nДля CLI runique:\ncargo install runique --features {} --locked --force\n\nЧтобы поддерживать все СУБД, используйте feature 'all-databases'.",
+    "driver_not_enabled": "Драйвер {} не включён: Runique скомпилирован с '{}', а не с '{}'.\n\nЕсли .env указывает не на ту базу (изменились features, а .env — нет), задайте DB_ENGINE и DATABASE_URL для скомпилированного движка: '{}'.\n\nЧтобы использовать {}, в Cargo.toml проекта и в migration/Cargo.toml:\nrunique = { version = \"{}\", features = [\"{}\"] }\n\nДля CLI runique:\ncargo install runique --features {} --locked --force\n\nДля поддержки всех движков используйте feature 'all-databases'.",
     "db_missing": "Требуется подключение к базе данных при включённой функции 'orm'",
     "component_not_ready": "Компонент '{}' не готов",
     "check": {
@@ -211,7 +211,10 @@
     "project_created": "Проект '{}' успешно создан!",
     "getting_started": "Для начала:",
     "cd_hint": "cd {}",
-    "cargo_run_hint": "cargo run"
+    "cargo_run_hint": "cargo run",
+    "name_digit": "Имя проекта не может начинаться с цифры",
+    "name_reserved": "'{}' зарезервировано (ключевое слово или крейт Rust, имя cargo или Windows, либо часть генерируемого проекта): выберите другое имя",
+    "migration_up_hint": "runique migration up      (создаёт таблицы фреймворка: учётные записи, сессии, права)"
   },
   "TemplateMessage": {
     "debug_info_title": "Отладочная информация",
@@ -541,12 +544,21 @@
     "long_identifier_detected": "Сгенерированные SQL-идентификаторы слишком длинные (лимит MariaDB/MySQL: 64 символа):",
     "long_identifier_rename_required": "Сократите имена таблиц/столбцов — Runique не обрезает идентификаторы автоматически.",
     "files_ready": "{} файл(ов) готов(о) к миграции.",
-    "snapshots_upgraded": "Обновлено снимков: {} — теперь они хранят длину столбцов (без миграции)."
+    "snapshots_upgraded": "Обновлено снимков: {} — теперь они хранят длину столбцов (без миграции).",
+    "type_change_not_migrated": "ВНИМАНИЕ: --force пропустил эти изменения типа столбцов, но они ЕЩЁ НЕ мигрируются. Их миграция содержит только комментарий, а снимок уже записывает новый тип:",
+    "type_change_write_by_hand": "Напишите up() и down() этой миграции вручную (alter_table / modify_column) перед `runique migration up`: иначе база данных сохранит старые типы, и ничто вам об этом не сообщит.",
+    "no_changes": "Изменений не обнаружено: ваши модели совпадают со снимками.",
+    "apply_hint": "Примените ожидающие миграции командой: runique migration up"
   },
   "migrate": {
-    "applying": "Применение миграций из '{}'...",
     "complete_up": "Миграция завершена.",
-    "crate_missing": "Крейт миграций не найден: в '{}' нет Cargo.toml."
+    "crate_missing": "Крейт миграций не найден: в '{}' нет Cargo.toml.",
+    "running": "Выполнение 'migrate {}' с крейтом миграций '{}'...",
+    "complete_down": "Откат завершён.",
+    "cargo_missing": "Не удаётся запустить cargo. Установлен ли Rust и есть ли cargo в PATH?",
+    "failed": "Крейт миграций завершился с ошибкой на 'migrate {}' (код выхода: {}).",
+    "crate_created": "Крейт миграций создан в '{}'.",
+    "engine_defaulted": "DB_ENGINE не задан: крейт миграций использует SQLite. При необходимости измените feature runique в '{}'."
   },
   "reset": {
     "forgot_title": "Забыли пароль",

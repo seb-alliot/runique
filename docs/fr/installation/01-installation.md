@@ -1,15 +1,15 @@
 # Installation & Setup
 
-Guide complet pour installer et configurer un projet Runique.
+Guide complet pour installer Runique, créer un projet et le lancer.
 
 ## Table des matières
 
 | Module | Description |
 | --- | --- |
-| [Prérequis & setup initial](/docs/fr/installation/prerequis) | Rust, `cargo install runique`, créer un projet, lancer |
-| [Base de données](/docs/fr/installation/base-de-donnees) | SQLite (dev), PostgreSQL (prod) |
-| [Migrations](/docs/fr/installation/migrations) | `makemigrations`, `migrate up/down/status` |
-| [CLI Runique](/docs/fr/installation/cli) | `create-superuser`, `new`, `test`, `makemigrations` |
+| [Prérequis & premier projet](/docs/fr/installation/prerequis) | Rust, `cargo install runique`, `runique new`, `migration up`, `cargo run` |
+| [Base de données](/docs/fr/installation/base-de-donnees) | Choisir le moteur (SQLite, PostgreSQL, MySQL/MariaDB), versions de SeaORM |
+| [Migrations](/docs/fr/installation/migrations) | `makemigrations`, `migration up / down / status`, tables du framework |
+| [CLI Runique](/docs/fr/installation/cli) | `new`, `makemigrations`, `migration`, `create-superuser`, `test` |
 | [Troubleshooting](/docs/fr/installation/troubleshooting) | Erreurs courantes et solutions |
 | [Réseau & HTTP](/docs/fr/installation/network) | HTTP/2, HTTP/3, ACME, reverse proxy |
 

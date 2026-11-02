@@ -33,8 +33,7 @@ slot 15  HostValidation      → Allowed host validation (if with_allowed_hosts(
 slot 17  HttpsRedirect       → HTTPS redirect behind a proxy (if ENFORCE_HTTPS, never with ACME)
 slot 20+ Custom              → Your custom middlewares
 slot 25  OpenRedirect        → Block external redirects (always active)
-slot 30  SecurityHeaders     → X-Frame-Options, HSTS, Permissions-Policy… (always active)
-slot 31  CSP                 → Content Security Policy (conditional — see note)
+slot 30  SecurityHeaders     → CSP (with nonce), X-Frame-Options, HSTS, Permissions-Policy… (always active)
 slot 40  Cache               → No-cache in development (conditional, on by default)
 slot 50  Session             → Session management (always active)
 slot 55  SessionUpgrade      → Upgrade anonymous session → authenticated (always active)
@@ -47,7 +46,7 @@ Handler (your code)
 
 > **"Always active" slots** apply to every request with no extra configuration. Others only insert into the stack when their builder method is called.
 >
-> **CSP special case (slots 30/31)**: slot 30 (`SecurityHeaders`) **already** emits the CSP header by default, unconditionally — it's the outermost layer, so it writes the response last. Slot 31 (`CSP`) only inserts if `enable_csp` is set, but its own header gets overwritten by slot 30's right after anyway. `.with_csp(...)` therefore **customizes** the default policy rather than turning it on.
+> **CSP**: slot 30 (`SecurityHeaders`) emits the CSP header **unconditionally**, with its nonce. `.with_csp(...)` **customizes** the default policy, it doesn't turn it on.
 
 ## Next Steps
 

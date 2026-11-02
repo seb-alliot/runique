@@ -4,7 +4,7 @@
 
 Runique utilise **SeaORM** avec un manager Django-like via la macro `impl_objects!`.
 
-La macro est **générée automatiquement** par le daemon dans chaque fichier d'entité (`runique makemigrations`). Aucune déclaration manuelle nécessaire.
+`model!{}` l'applique automatiquement à chaque entité : aucune déclaration manuelle. Une entité SeaORM écrite à la main l'obtient avec `impl_objects!(Entity)`.
 
 > **Note** : `impl_objects!` est du sucre syntaxique pur. Elle ne modifie pas les requêtes générées — le SQL produit est identique à du SeaORM natif.
 

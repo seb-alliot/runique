@@ -1,5 +1,5 @@
 /* =========================
-   FORMULAIRE INSCRIPTION
+   FORMS (SIGN UP, SIGN IN)
    ========================= */
 
 
@@ -13,9 +13,9 @@ form {
     margin-left: auto;
     margin-right: auto;
     margin-block: var(--margin-top);
-    padding: 2rem;
+    padding: 2em;
     border: solid #003d9f;
-    border-radius: 10px;
+    border-radius: 0.625em;
     background-color: #0e1840;
 }
 .form-label {
@@ -42,16 +42,16 @@ form button {
     align-self: center;
 }
 
-/* Chaque div du formulaire */
+/* Each field wrapper of the form */
 form > div {
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: 0.4em;
 }
 
 /* Labels */
 form label {
-    font-size: 0.85rem;
+    font-size: 0.85em;
     font-weight: 600;
     color: var(--text-muted);
 }
@@ -63,10 +63,10 @@ form textarea,
 form select {
     background: #0f172a;
     border: 1px solid #1f2937;
-    border-radius: 0.75rem;
-    padding: 0.7rem 0.9rem;
+    border-radius: 0.7895em;
+    padding: 0.7368em 0.9474em;
     color: var(--text-main);
-    font-size: 0.95rem;
+    font-size: 0.95em;
     transition: all 0.2s ease;
     outline: none;
 }
@@ -76,55 +76,55 @@ form input::placeholder {
     color: #475569;
 }
 
-/* Focus premium */
+/* Focus */
 form input:focus,
 form textarea:focus,
 form select:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    box-shadow: 0 0 0 0.1974em rgba(99, 102, 241, 0.15);
     background: #111827;
 }
 
-/* Champs invalides (si backend ajoute class error) */
+/* Invalid fields (when the server adds the error class) */
 form .error input {
     border-color: #ef4444;
 }
 
 /* Texte d’erreur */
 form .error-message {
-    font-size: 0.75rem;
+    font-size: 0.75em;
     color: #fca5a5;
 }
 
 /* =========================
-   BOUTON
+   BUTTON
    ========================= */
 
 form button, .text-center a {
-    margin-top: 1rem;
+    margin-top: 1.0526em;
     background: linear-gradient(135deg, var(--accent), #6366f1);
     color: #fff;
     border: none;
-    padding: 0.8rem 1rem;
-    border-radius: 1rem;
+    padding: 0.8421em 1.0526em;
+    border-radius: 1.0526em;
     font-weight: 700;
-    font-size: 0.95rem;
+    font-size: 0.95em;
     cursor: pointer;
     transition: all 0.25s ease;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 0.6579em 1.6447em rgba(0, 0, 0, 0.4);
 }
 
-/* Hover élégant */
+/* Hover */
 form button:hover, .text-center:hover  {
     transform: translateY(-1px);
-    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 0.7895em 2.3026em rgba(0, 0, 0, 0.6);
     filter: brightness(1.05);
 }
 
 /* Active */
 form button:active, .text-center:active {
     transform: translateY(0);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 0.3947em 0.9868em rgba(0, 0, 0, 0.6);
 }
 .text-center:hover  {
     box-shadow: none;
@@ -149,14 +149,14 @@ form button:active, .text-center:active {
    RESPONSIVE
    ========================= */
 
-@media (max-width: 480px) {
+@media (max-width: 30em) {
     form {
-        gap: 1rem;
+        gap: 1em;
         width: 80%;
     }
 
     form button {
-        font-size: 0.9rem;
-        padding: 0.7rem;
+        font-size: 0.9em;
+        padding: 0.7778em;
     }
 }

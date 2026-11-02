@@ -2,84 +2,80 @@
 
 ## Overview
 
-The admin permission system has three levels:
+Admin access rests on the account's **rank**, three flags of `eihwaz_users` of which at most one is true (a `CHECK` constraint in the database):
 
-| Level | Control | Effect |
+| Rank | Flag | What it can do |
 | --- | --- | --- |
-| **`is_staff`** | User field | Grants access to the admin login page only |
-| **Groups** | `eihwaz_groupes` + `eihwaz_groupes_droits` tables | Granular CRUD permissions per resource |
-| **`is_superuser`** | User field | Bypasses all checks |
+| **Superuser** | `is_superuser` | Everything, the only one bypassing rights (never the invariants). The developer's account, to delete at delivery |
+| **Dirigeant** | `is_dirigeant` | Every right on the models, with no bypass. Grants the admins' rights |
+| **Admin** | `is_admin` | What the dirigeant ticks **on its account**, table by table and column by column |
+| **Lambda** | none | A site account. Enters the admin only as a member of a staff group |
+
+`can_access_admin()` is true for rank admin or above, or for a lambda member of an `is_staff` group. An account must also be active and activated.
 
 ---
 
-## Access control fields
+## Where rights come from
 
-| Field | Type | Role |
-| --- | --- | --- |
-| `is_staff` | `bool` | Allows login at `/admin/login` |
-| `is_superuser` | `bool` | Full access, bypasses all permission checks |
-| `is_active` | `bool` | Blocks inactive accounts |
+`CurrentUser::rights_on("resource")` is the only way to ask what an account may do, in the admin as in your views. The source depends on the rank alone:
 
----
-
-## Granular permissions per group
-
-Permissions are carried by **groups**, not directly by users. A user inherits permissions from all their groups (aggregated with logical OR).
-
-Each group has one entry per resource in `eihwaz_groupes_droits`:
-
-| Field | Effect |
+| Rank | Source of rights |
 | --- | --- |
-| `can_read` | See the resource in the nav + access the list |
-| `can_create` | Create a record |
-| `can_update` | Edit any record |
-| `can_delete` | Delete any record |
-| `can_update_own` | Edit only their own records |
-| `can_delete_own` | Delete only their own records |
+| Superuser | Everything, with bypass |
+| Dirigeant | Everything, no bypass |
+| Admin | Its own grid, set by the dirigeant (`eihwaz_groupes_droits`, rows tied to its account) |
+| Lambda | The union (logical OR) of its groups' rights — **never** on the framework's tables (accounts, groups, rights, memberships) |
 
-`can_update_own` / `can_delete_own` apply when the model declares an owner (owner column on `ModelMeta`). The gate then filters rows.
+Rights are set per table and per column:
+
+| Right | Level | Effect |
+| --- | --- | --- |
+| `can_read` | table + columns | See the resource and the ticked columns |
+| `can_create` | table + columns | Create, filling the ticked columns |
+| `can_update` | table + columns | Update the ticked columns |
+| `can_delete` | table | Delete |
+| `can_update_own` / `can_delete_own` | table | Own rows only, when the model declares an owner (`meta: { owner: … }`) |
+
+A column added to the model later is readable or writable only once ticked. Secret columns (password) are never offered.
+
+Rights are **not** declared in `ModelAdmin`: the whole grid lives in the database.
 
 ---
 
-## Configuration via the panel
+## Groups and staff
 
-1. Go to **Admin → Groups** → create a group
-2. Configure that group's permissions per resource
-3. Go to **Admin → Users** → assign the group to the user
-
-A user with no group sees no resources in the nav (except superuser).
-
-Rights are **not** declared on `ModelAdmin`: the whole grid lives in the database.
+Groups are for **lambda accounts**: public site roles, and rights on the **developer's** tables in the admin. A lambda member of a group marked `is_staff` enters the admin and sees its allowed resources there, plus a read-only summary of its own groups and rights. No group ever has a right on the framework's tables, whoever configures it.
 
 ### Immediate revocation
 
-Rights, and the account's state (active, staff, superuser), are read from the database on every admin request: the session only keeps who the user is. Removing a right or a group, deactivating an account or taking away its staff status therefore applies to its next request, whatever made the change (admin, CLI, SQL, another instance). An account that is deactivated or no longer has admin access gets its session closed.
+The account (active, rank), its groups and rights are read from the database on every admin request: the session only keeps the user's identity. Removing a right or a group, deactivating an account or lowering its rank takes effect on its next request, whatever path made the change (admin, CLI, SQL, another instance). A deactivated account, or one that lost admin access, has its session closed.
 
 ---
 
-## `groupes` and `groupes_droits` resources
+## Framework tables: `users`, `groupes`, `groupes_droits`
 
-These two resources get **no special treatment**: they follow the exact same generic logic as any other resource (`can_read`/`can_create`/`can_update`/`can_delete` via `eihwaz_groupes_droits`). A superuser can therefore deliberately grant `can_update` on `"groupes"` to an "Admin" group, which can then manage other groups' permissions (for example, to delegate to moderators) — this is a legitimate use, not a bypass.
+Accounts, groups, rights and memberships are reserved to **ranks**: the superuser, the dirigeant, and an admin only for the tables and columns the dirigeant ticked for it. No group can get a right on those tables, and nobody can grant it one, superuser included: a lambda, staff or not, does no operation on them.
 
-**What this means in practice:** granting rights on `groupes`/`groupes_droits` to a non-superuser group gives it real control over permissions — potentially including its own, if its user also belongs to that group. There's no framework safeguard against self-elevation in that specific case: it's up to whoever configures groups not to grant these rights to a role that shouldn't have them. Only `is_superuser` remains a total, non-delegatable bypass (a bit on the user, never granted through a group).
+One exception: a lambda reading a row linked to an account (through a foreign key) sees that account's `username`, read-only.
 
 ---
 
 ## Access logic
 
 ```text
-authenticated?
-  └─ no  → redirect to /admin/login
-  └─ yes → is_staff OR is_superuser?
-               └─ neither → redirect to /admin/login
-               └─ is_superuser → GRANTED (full access, all resources)
-               └─ is_staff → can_read on the resource?
-                                └─ no  → resource absent from the nav
-                                └─ yes → list visible
-                                         can_create / can_update / can_delete
-                                         for the corresponding operations
-                                         can_update_own / can_delete_own
-                                         for their own records only
+signed in, active and activated?
+  └─ no  → redirect /admin/login
+  └─ yes → can_access_admin()? (rank ≥ admin, or member of a staff group)
+               └─ no  → redirect /admin/login
+               └─ yes → rights_on(resource)
+                          superuser → everything, bypass included
+                          dirigeant → everything
+                          admin     → its grid (table × column)
+                          lambda    → union of its groups, never a framework table
+                        └─ can_read? no  → resource missing from the nav
+                                     yes → list, ticked columns only
+                                           can_create / can_update / can_delete
+                                           (_own: own rows)
 ```
 
 ---

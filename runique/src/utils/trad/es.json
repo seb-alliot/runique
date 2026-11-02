@@ -133,7 +133,7 @@
     "validation_failed": "La validación del build falló: {}",
     "check_failed": "El build falló con {} error(es) de verificación",
     "template_failed": "La carga de la plantilla falló: {}",
-    "driver_not_enabled": "Driver {} no activado: Runique se compiló sin la feature '{}'.\n\nEn el Cargo.toml de su proyecto:\nrunique = { version = \"{}\", features = [\"{}\"] }\n\nPara la CLI de runique:\ncargo install runique --features {} --locked --force\n\nPara admitir todos los motores, use la feature 'all-databases'.",
+    "driver_not_enabled": "Controlador {} no habilitado: Runique se compiló con '{}', no con '{}'.\n\nSi .env apunta a la base de datos equivocada (cambiaron las features, no .env), ponga DB_ENGINE y DATABASE_URL en el motor compilado: '{}'.\n\nPara usar {} en su lugar, en el Cargo.toml del proyecto y en migration/Cargo.toml:\nrunique = { version = \"{}\", features = [\"{}\"] }\n\nPara la CLI de runique:\ncargo install runique --features {} --locked --force\n\nPara admitir todos los motores, use la feature 'all-databases'.",
     "db_missing": "Se requiere conexión a la base de datos cuando la feature 'orm' está activada",
     "component_not_ready": "El componente '{}' no está listo",
     "check": {
@@ -211,7 +211,10 @@
     "project_created": "¡Proyecto '{}' creado con éxito!",
     "getting_started": "Para comenzar:",
     "cd_hint": "cd {}",
-    "cargo_run_hint": "cargo run"
+    "cargo_run_hint": "cargo run",
+    "name_digit": "El nombre del proyecto no puede empezar por un dígito",
+    "name_reserved": "'{}' está reservado (palabra clave o crate de Rust, nombre de cargo o de Windows, o parte del proyecto generado): elija otro nombre",
+    "migration_up_hint": "runique migration up      (crea las tablas del framework: cuentas, sesiones, permisos)"
   },
   "TemplateMessage": {
     "debug_info_title": "Información de depuración",
@@ -541,12 +544,21 @@
     "long_identifier_detected": "Los identificadores SQL generados son demasiado largos (límite de MariaDB/MySQL: 64 caracteres):",
     "long_identifier_rename_required": "Acorte los nombres de tabla/columna involucrados — Runique no trunca automáticamente los identificadores.",
     "files_ready": "{} archivo(s) listo(s) para migrar.",
-    "snapshots_upgraded": "{} snapshot(s) actualizado(s) para registrar la longitud de las columnas (sin migración)."
+    "snapshots_upgraded": "{} snapshot(s) actualizado(s) para registrar la longitud de las columnas (sin migración).",
+    "type_change_not_migrated": "ATENCIÓN: --force dejó pasar estos cambios de tipo de columna, pero TODAVÍA NO se migran. Su migración solo contiene un comentario, mientras que el snapshot ya registra el nuevo tipo:",
+    "type_change_write_by_hand": "Escriba a mano el up() y el down() de esa migración (alter_table / modify_column) antes de `runique migration up`: si no, la base de datos conserva los tipos antiguos y nada se lo indicará.",
+    "no_changes": "No se detectaron cambios: sus modelos coinciden con sus snapshots.",
+    "apply_hint": "Aplique las migraciones pendientes con: runique migration up"
   },
   "migrate": {
-    "applying": "Aplicando migraciones desde '{}'...",
     "complete_up": "Migración completada.",
-    "crate_missing": "No se encontró el crate de migraciones: '{}' no contiene Cargo.toml."
+    "crate_missing": "No se encontró el crate de migraciones: '{}' no contiene Cargo.toml.",
+    "running": "Ejecutando 'migrate {}' con el crate de migraciones '{}'...",
+    "complete_down": "Reversión completada.",
+    "cargo_missing": "No se puede iniciar cargo. ¿Está Rust instalado y cargo en el PATH?",
+    "failed": "El crate de migraciones falló en 'migrate {}' (código de salida: {}).",
+    "crate_created": "Crate de migraciones creado en '{}'.",
+    "engine_defaulted": "DB_ENGINE no está definido: el crate de migraciones usa SQLite. Cambie la feature de runique en '{}' si es necesario."
   },
   "reset": {
     "forgot_title": "Contraseña olvidada",

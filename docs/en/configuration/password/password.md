@@ -54,15 +54,15 @@ password_init(PasswordConfig::manual(Manual::Argon2));
 
 > Use this when you need precise control over when and how the password is hashed.
 
-> **Warning — built-in admin and reset flow:** the built-in reset route (`with_password_reset`) reads the form value **after** `finalize()` and writes it directly to the database. In `Auto` mode, `finalize()` already hashes the value — everything is correct. In `Manual`, `Custom`, or `Delegated` mode, `finalize()` does not hash: **the stored value will be plaintext** if you use the built-in route without adaptation.
+> **Built-in reset and admin:** the built-in reset route (`with_password_reset`) hashes the new password itself with the app's configuration, whatever the mode (`Auto`, `Manual` or `Custom`). In `Delegated` mode, it refuses the reset: no local password is written, and the link stays usable. An account created from the admin gets a random password, hashed the same way, then a link to choose its own.
 >
-> Solutions:
-> - Stay in `Auto` mode for any project using `with_password_reset` or the admin panel with password management.
-> - Or write a custom reset route that calls `hash()` explicitly before updating.
+> In **your own** forms, however, `finalize()` only hashes in `Auto` mode: in `Manual` or `Custom`, call `hash()` before writing to the database.
 
 ### `Delegated` — External authentication (OAuth / SSO)
 
-No password is managed by Runique. Authentication is delegated to an external provider.
+No local password is managed by Runique: `verify()` always answers `false`, `hash()` fails, and the built-in reset is refused.
+
+> **This mode doesn't provide the external authentication itself yet.** The providers below are only names: Runique implements today neither the OAuth flow (redirect, code exchange, profile reading), nor LDAP, nor SAML. `Delegated` is there to switch local passwords off cleanly when **your app** handles sign-in by other means (an OAuth library, an authentication proxy), then opens the session with `login(&request.session, &user, None, false)` once the user is identified. Full provider integration is a planned evolution.
 
 ```rust
 use runique::prelude::External;
@@ -93,10 +93,12 @@ impl PasswordHandler for MyHasher {
         if input.len() < 8 { Err("Too short".into()) } else { Ok(()) }
     }
     fn transform(&self, input: &str) -> Result<String, String> {
-        Ok(format!("hashed:{}", input))
+        my_algo::hash(input).map_err(|e| e.to_string())
     }
     fn verify(&self, input: &str, stored: &str) -> bool {
-        stored == format!("hashed:{}", input)
+        // The comparison must run in constant time (the algorithm's own
+        // verify function, or `ct_eq`), never with `==`.
+        my_algo::verify(input, stored)
     }
 }
 
@@ -123,7 +125,9 @@ These functions automatically use the `PasswordConfig` initialized at startup.
 
 ## In forms
 
-`TextField::password()` fields are automatically hashed in `finalize()` in `Auto` mode. In `Manual` or `Delegated` mode, no automatic hashing occurs.
+`TextField::password()` fields are automatically hashed in `finalize()` in `Auto` mode. In `Manual` or `Custom` mode, no automatic hashing occurs: call `hash()` yourself. A field marked `.no_hash()` is never hashed (a sign-in form compares the password as typed, with `authenticate_user`).
+
+In `Auto` mode, a password hashed with another algorithm than the configured one is moved to it on the first successful sign-in.
 
 See → [Field types — TextField](/docs/en/formulaire/fields)
 

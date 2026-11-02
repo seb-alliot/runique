@@ -1,12 +1,15 @@
 //! A completed password reset closes every session of the account, on every
-//! device — a stolen one included — and nobody else's.
+//! device — a stolen one included — and nobody else's. It closes the browser
+//! it ran in too, whoever was signed in there, and only once it commits: a
+//! revocation the database refuses changes nothing. A logout or a sign-in
+//! that can't revoke the previous session says so instead of pretending.
 
 use crate::helpers::db;
 use crate::helpers::framework_tables::{RESET_TOKENS_DDL, SESSIONS_DDL, USERS_DDL};
 use crate::helpers::pk::{pk, pk_sql_literal};
 use axum::{Router, extract::Path, routing::get};
 use runique::app::RuniqueApp;
-use runique::auth::{BuiltinUserEntity, authenticate_user, login};
+use runique::auth::{BuiltinUserEntity, authenticate_user, login, logout};
 use runique::config::RuniqueConfig;
 use runique::context::template::Request;
 use runique::db::ADb;
@@ -26,6 +29,23 @@ async fn sign_in(Path(id): Path<u32>, req: Request) -> &'static str {
         .await
         .expect("login");
     "ok"
+}
+
+async fn try_sign_in(Path(id): Path<u32>, req: Request) -> &'static str {
+    let user = BuiltinUserEntity::find_by_id(&req.engine.db, pk(id))
+        .await
+        .expect("seeded account");
+    match login(&req.session, &user, None, false).await {
+        Ok(()) => "ok",
+        Err(_) => "refused",
+    }
+}
+
+async fn sign_out(req: Request) -> &'static str {
+    match logout(&req.session, None).await {
+        Ok(()) => "out",
+        Err(_) => "failed",
+    }
 }
 
 async fn whoami(req: Request) -> String {
@@ -62,6 +82,8 @@ async fn spawn_with_password_config(password: PasswordConfig) -> (String, Databa
         .routes(
             Router::new()
                 .route("/sign-in/{id}", get(sign_in))
+                .route("/try-sign-in/{id}", get(try_sign_in))
+                .route("/sign-out", get(sign_out))
                 .route("/whoami", get(whoami)),
         )
         .with_password_reset(|pr| pr)
@@ -153,6 +175,31 @@ async fn submit_reset(base: &str, token: &str) {
         .await
         .unwrap();
 }
+
+/// Posts alice's new password from `browser`, whatever account it is signed in as.
+async fn post_reset(base: &str, browser: &reqwest::Client, token: &str) -> u16 {
+    let url = format!("{base}/reset-password/{token}");
+    let page = browser.get(&url).send().await.unwrap();
+    let csrf = page.headers()["x-csrf-token"].to_str().unwrap().to_string();
+    browser
+        .post(&url)
+        .form(&[
+            ("token", token),
+            ("email", "alice@example.com"),
+            ("password", NEW_PASSWORD),
+            ("confirm", NEW_PASSWORD),
+            ("csrf_token", csrf.as_str()),
+            ("runique_form", "reset_password"),
+        ])
+        .send()
+        .await
+        .unwrap()
+        .status()
+        .as_u16()
+}
+
+const REJECT_SESSION_DELETE: &str = "CREATE TRIGGER reject_session_delete BEFORE DELETE ON eihwaz_sessions \
+     BEGIN SELECT RAISE(FAIL, 'simulated session delete failure'); END";
 
 async fn stored_password(db: &DatabaseConnection) -> String {
     let adb = ADb::from_connection(db.clone());
@@ -336,4 +383,136 @@ async fn request_user_follows_a_rename_at_once() {
     .await;
     assert_eq!(text(&alice, format!("{base}/whoami")).await, "alicia");
     assert_eq!(text(&client(), format!("{base}/whoami")).await, "anonymous");
+}
+
+/// Opening the emailed link only shows the form: nobody is signed out by a
+/// GET, so another site linking to the page can't log users out.
+#[tokio::test]
+#[serial]
+async fn showing_the_reset_form_signs_nobody_out() {
+    let (base, db) = spawn().await;
+    let adb = ADb::from_connection(db.clone());
+    let browser = client();
+    text(&browser, format!("{base}/sign-in/2")).await;
+    let token = reset_token::generate(&adb, pk(1), Duration::from_secs(600))
+        .await
+        .unwrap();
+
+    for url in [
+        format!("{base}/reset-password/{token}"),
+        format!("{base}/reset-password/made-up-token"),
+    ] {
+        browser.get(url).send().await.unwrap();
+        assert_eq!(text(&browser, format!("{base}/whoami")).await, "bob");
+    }
+    assert_eq!(sessions_of(&db, 2).await, 1);
+}
+
+/// The reset closes the session of the browser it ran in, signed in as another
+/// account (a shared computer), and leaves that account's other devices alone.
+#[tokio::test]
+#[serial]
+async fn a_reset_signs_out_the_browser_it_ran_in_whoever_was_signed_in() {
+    let (base, db) = spawn().await;
+    let adb = ADb::from_connection(db.clone());
+    let (shared, bobs_phone) = (client(), client());
+    text(&shared, format!("{base}/sign-in/2")).await;
+    text(&bobs_phone, format!("{base}/sign-in/2")).await;
+    let token = reset_token::generate(&adb, pk(1), Duration::from_secs(600))
+        .await
+        .unwrap();
+
+    assert_eq!(post_reset(&base, &shared, &token).await, 200);
+
+    assert_eq!(text(&shared, format!("{base}/whoami")).await, "anonymous");
+    assert_eq!(
+        text(&bobs_phone, format!("{base}/whoami")).await,
+        "bob",
+        "only the shared browser's session is closed, not bob's account"
+    );
+    assert_eq!(sessions_of(&db, 2).await, 1);
+}
+
+/// The session revocation is part of the reset's transaction: if the database
+/// refuses it, the token stays usable, the old password stays, and every
+/// session lives on.
+#[tokio::test]
+#[serial]
+async fn a_refused_session_revocation_undoes_the_whole_reset() {
+    let (base, db) = spawn().await;
+    let adb = ADb::from_connection(db.clone());
+    let laptop = client();
+    text(&laptop, format!("{base}/sign-in/1")).await;
+    let token = reset_token::generate(&adb, pk(1), Duration::from_secs(600))
+        .await
+        .unwrap();
+    db::exec(&db, REJECT_SESSION_DELETE).await;
+
+    post_reset(&base, &client(), &token).await;
+
+    assert!(
+        reset_token::peek(&adb, &token).await,
+        "the link still works"
+    );
+    assert!(
+        authenticate_user(&adb, "alice", "old password 123")
+            .await
+            .is_some(),
+        "the password change is rolled back with the revocation"
+    );
+    assert_eq!(text(&laptop, format!("{base}/whoami")).await, "alice");
+    assert_eq!(sessions_of(&db, 1).await, 1);
+
+    db::exec(&db, "DROP TRIGGER reject_session_delete").await;
+    post_reset(&base, &client(), &token).await;
+    assert_eq!(text(&laptop, format!("{base}/whoami")).await, "anonymous");
+    assert_eq!(sessions_of(&db, 1).await, 0);
+}
+
+/// A logout the database refuses reports it, and the session stays whole,
+/// cookie included, so the user can try again; once it goes through, the
+/// session is gone.
+#[tokio::test]
+#[serial]
+async fn a_refused_logout_keeps_the_session_and_says_so() {
+    let (base, db) = spawn().await;
+    let alice = client();
+    text(&alice, format!("{base}/sign-in/1")).await;
+    db::exec(&db, REJECT_SESSION_DELETE).await;
+
+    assert_eq!(text(&alice, format!("{base}/sign-out")).await, "failed");
+    assert_eq!(text(&alice, format!("{base}/whoami")).await, "alice");
+    assert_eq!(sessions_of(&db, 1).await, 1);
+
+    db::exec(&db, "DROP TRIGGER reject_session_delete").await;
+    assert_eq!(text(&alice, format!("{base}/sign-out")).await, "out");
+    assert_eq!(text(&alice, format!("{base}/whoami")).await, "anonymous");
+    assert_eq!(sessions_of(&db, 1).await, 0);
+}
+
+/// Signing in as another account first closes the previous one. If that
+/// can't be done, the sign-in is refused: the previous session would
+/// otherwise survive, a stolen copy of its cookie with it.
+#[tokio::test]
+#[serial]
+async fn switching_account_is_refused_while_the_previous_session_cannot_be_closed() {
+    let (base, db) = spawn().await;
+    let browser = client();
+    text(&browser, format!("{base}/sign-in/2")).await;
+    db::exec(&db, REJECT_SESSION_DELETE).await;
+
+    assert_eq!(
+        text(&browser, format!("{base}/try-sign-in/1")).await,
+        "refused"
+    );
+    assert_eq!(text(&browser, format!("{base}/whoami")).await, "bob");
+
+    db::exec(&db, "DROP TRIGGER reject_session_delete").await;
+    assert_eq!(text(&browser, format!("{base}/try-sign-in/1")).await, "ok");
+    assert_eq!(text(&browser, format!("{base}/whoami")).await, "alice");
+    assert_eq!(
+        sessions_of(&db, 2).await,
+        0,
+        "bob's previous session is gone"
+    );
 }

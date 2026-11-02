@@ -5,57 +5,49 @@ A Runique project is a standard Rust binary crate. `runique new` generates the b
 ## Project structure
 
 ```text
-my-project/
+my_project/
 ├── src/
-│   ├── entities/          # Model declarations
-│   │   ├── users.rs       # Uses Runique AST for the makemigrations CLI
-│   │   └── blog.rs        # CLI is not compatible with plain structs
-│   │
-│   ├── formulaire/        # Form declarations
-│   │   ├── inscription.rs # Using the form engine
-│   │   └── blog.rs        # or proc-attribute macros
-│   │
 │   ├── main.rs            # Entry point — RuniqueApp builder
-│   ├── admin.rs           # ModelAdmin + AdminSite (if admin enabled)
 │   ├── url.rs             # urlpatterns! — routing table
 │   ├── views.rs           # Handlers (async functions)
-│   └── forms.rs           # RuniqueForm structs (or forms/ folder)
+│   ├── forms/             # Forms (#[form] or declared by hand)
+│   ├── entities/          # model!{} / extend!{} models, read by makemigrations
+│   └── admin.rs           # ModelAdmin + AdminSite (`admin` feature only)
 │
 ├── templates/             # Tera templates (.html)
 ├── static/                # Static files (CSS, JS, images)
-│   └── media/             # Uploads (FileField)
-│                          # media/ can be placed in another folder
-│
-├── migration/             # SeaORM migrations
-│   └── src/
-│       └── lib.rs
+├── media/                 # Files users upload (FileField);
+│                          # MEDIA_ROOT may point elsewhere
+├── migration/             # The migrations crate (workspace)
+│   ├── Cargo.toml
+│   └── src/               # main.rs, lib.rs, migrations, snapshots/
 ├── .env                   # Environment variables
-└── Cargo.toml
+└── Cargo.toml             # Workspace: the app + migration
 ```
+
+`src/entities/` must hold only `model!{}` and `extend!{}`: `makemigrations` reads that folder and writes a migration for every model it finds there. A form declared by hand goes in `src/forms/`.
 
 ---
 
 ## Role of each file
 
-**`main.rs`** — Configures and starts the application via the builder:
+**`main.rs`** — Configures and runs the app through the builder:
 
 ```rust
-#[macro_use]
-extern crate runique;
 use runique::prelude::*;
 
 mod entities;
-mod formulaire;
+mod forms;
 mod url;
 mod views;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let config = RuniqueConfig::from_env();
-    let db_config = DatabaseConfig::from_env()?.min_connections(1).build();
-    let db: DatabaseConnection = db_config.connect().await?;
+    password_init(PasswordConfig::auto_with(Manual::Argon2));
 
-    password_init(PasswordConfig::auto());
+    let config: RuniqueConfig = RuniqueConfig::from_env();
+    let db_config = DatabaseConfig::from_env()?.build();
+    let db: DatabaseConnection = db_config.connect().await?;
 
     RuniqueApp::builder(config)
         .routes(url::routes())
@@ -70,16 +62,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-**`url.rs`** — Declares routes via `urlpatterns!`:
+**`url.rs`** — Declares the routes with `urlpatterns!`:
 
 ```rust
-use runique::prelude::*;
 use crate::views;
+use runique::prelude::*;
 
 pub fn routes() -> Routes {
     urlpatterns! {
-        "/" => view!{ views::index }, name = "index",
-        "/register" => view!{ views::register }, name = "register",
+        "/"       => view!{ views::index },  name = "index",
+        "/signup" => view!{ views::signup }, name = "signup",
     }
 }
 ```
@@ -87,111 +79,105 @@ pub fn routes() -> Routes {
 **`views.rs`** — Request handlers:
 
 ```rust
+use runique::prelude::*;
+
 pub async fn index(mut request: Request) -> AppResult<Response> {
     context_update!(request => { "title" => "Home" });
     request.render("index.html")
 }
 ```
 
-**`formulaire/`** — Typed forms:
+**`forms/`** — Typed forms. A form declared by hand:
 
 ```rust
-pub struct RegisterForm { pub form: Forms }
+use runique::prelude::*;
+use serde::Serialize;
 
-impl FormAccess for RegisterForm {
+#[derive(Serialize, Debug, Clone)]
+#[serde(transparent)]
+pub struct ContactForm {
+    pub form: Forms,
+}
+
+impl FormAccess for ContactForm {
     fn register_fields(form: &mut Forms) {
-        form.field(&TextField::text("username").label("Username").required());
+        form.field(&TextField::text("name").label("Name").required());
         form.field(&TextField::email("email").label("Email").required());
     }
     impl_form_access!();
 }
 
-impl RuniqueForm for RegisterForm {}
+impl RuniqueForm for ContactForm {}
 ```
 
-**`admin.rs`** — Typed admin declaration (`ModelAdmin` + `AdminSite`):
+A form taken from a model is one line: `#[form(schema = blog, fields = [title, content])]`. See [Forms](/docs/en/formulaire).
+
+**`admin.rs`** — The admin's typed declaration (`ModelAdmin` + `AdminSite`):
 
 ```rust
+use crate::entities::demo_category;
 use runique::admin::{AdminSite, ModelAdmin};
 use runique::app::staging::AdminStaging;
-use crate::entities::article;
+use sea_orm::Order;
 
 pub fn config(admin: AdminStaging) -> AdminStaging {
-    admin.site_title("Administration").path("/admin/").site(site)
+    admin
+        .site_title("Administration")
+        .path("/admin/")
+        .site(site)
 }
 
 fn site(site: AdminSite) -> AdminSite {
-    site.register(articles())
+    site.register(demo_category())
 }
 
-fn articles() -> ModelAdmin<article::Entity> {
-    use article::Column::*;
-    ModelAdmin::new()
-        .title("Articles")
-        .list(|l| l.display([Title, Status]))
+fn demo_category() -> ModelAdmin<demo_category::Entity> {
+    use demo_category::Column::*;
+    ModelAdmin::new().list(|l| {
+        l.display([Title, BackLinkLabel, BackLinkUrl, SortOrder])
+            .links([Title])
+            .ordering([(SortOrder, Order::Asc)])
+            .search([Title])
+            .empty_value("—")
+    })
 }
 ```
+
+Wired in `main.rs` with `.with_admin(admin::config)`.
+
+> **The admin is a feature to turn on.** `runique::admin`, `AdminStaging` and `.with_admin(...)` only exist when `runique` is compiled with the `admin` feature:
+>
+> ```toml
+> runique = { version = "4.0.0", features = ["postgres", "admin"] }
+> ```
+>
+> Without it, the compiler reports `unresolved import runique::admin` or `no method named with_admin`. Every `model!{}` of the project must be registered in the `AdminSite`: the rights of a model left out are pruned at boot.
 
 ---
 
 ## Starting a new project
 
 ```bash
-runique new my-project
-cd my-project
+runique new my_project
+cd my_project
+runique migration up
 cargo run
 ```
 
-`runique new` generates the minimal structure above. What to edit and what to leave alone:
+What each part of the generated project is yours to change:
 
-| File / folder | Edit? | Role |
+| File / folder | To change | Role |
 | --- | --- | --- |
-| `src/main.rs` | Yes | Configures the builder and declares modules |
+| `src/main.rs` | Yes | Configures the builder and declares the modules |
 | `src/url.rs` | Yes | Routing table |
 | `src/views.rs` | Yes | Request handlers |
-| `src/entities/` | Yes | Model declarations (Runique AST, compatible with `makemigrations`) |
-| `src/formulaire/` | Yes | Forms and validation |
-| `src/admin.rs` | Yes (if admin) | `ModelAdmin` + `AdminSite` registration |
+| `src/entities/` | Yes | Models (`model!{}`, `extend!{}`), read by `makemigrations` |
+| `src/forms/` | Yes | Forms and validation |
+| `src/admin.rs` | Yes (`admin` feature) | `ModelAdmin` + `AdminSite` registration |
 | `templates/` | Yes | Tera templates |
 | `static/` | Yes | CSS, JS, images |
-| `migration/` | No (unless adding tables) | SeaORM migrations |
+| `migration/` | No | Kept by `runique makemigrations` (`lib.rs`, migrations, snapshots). By hand: only the `up()` / `down()` of a column type change, which `makemigrations` can't write yet |
 | `.env` | Yes | Environment variables |
-
-> Wire the admin in `src/admin.rs` with `.with_admin(...)`. Plain `cargo run` is enough — no generated files.
-
----
-
-## Framework internal structure
-
-```text
-runique/src/
-├── app/                    # App Builder, Templates & Intelligent Builder
-│   ├── builder.rs          # RuniqueAppBuilder with slots
-│   ├── error_build.rs      # Build errors
-│   ├── templates.rs        # TemplateLoader (Tera)
-│   └── staging/            # Staging structs
-│       ├── core_staging.rs
-│       ├── middleware_staging.rs
-│       └── static_staging.rs
-├── config/                 # Configuration & Settings
-├── context/                # Request Context & Tera tools
-│   ├── request.rs          # Request struct (extractor)
-│   └── tera/               # Tera filters and functions
-├── db/                     # ORM & Database
-├── engine/                 # RuniqueEngine
-├── errors/                 # Error handling
-├── flash/                  # Flash messages
-├── forms/                  # Form system
-├── macros/                 # Utility macros
-│   ├── context_macro/      # context!, context_update!
-│   ├── flash_message/      # success!, error!, info!, warning!, flash_now!
-│   └── router/             # urlpatterns!, view!, impl_objects!
-├── middleware/             # Middleware (Security)
-│   └── security/           # CSRF, CSP, Host, Cache, Error Handler
-├── utils/                  # Utilities
-├── lib.rs
-└── prelude.rs
-```
 
 ---
 

@@ -123,6 +123,19 @@ jobs:
         run: cargo test --verbose --features all-databases
         working-directory: runique
 
+      # Without `test-utils`, six modules are left out with no warning (0 test
+      # run): test_validation_form, test_form_guarantees, test_hooks,
+      # test_login_form, test_builder and the handler_req helper.
+      - name: Run tests (test-utils)
+        run: cargo test --verbose --features all-databases,admin,test-utils
+        working-directory: runique
+
+      # `runique new`'s project, built against this checkout: the scaffold must
+      # follow the API. Ignored locally (it compiles a whole project).
+      - name: Generated project compiles
+        run: cargo test --lib --features all-databases the_generated_project_compiles -- --ignored
+        working-directory: runique
+
   security:
     name: Security Audit
     runs-on: ubuntu-latest

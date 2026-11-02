@@ -1,15 +1,12 @@
 use runique::prelude::*;
 use serde::Serialize;
 
-// Manual form — fields declared explicitly, not tied to an entity schema.
-// Use this approach when your form does not map directly to a database table
-// (e.g. login, search, contact forms).
+// A manual form: its fields are declared here, not taken from a model. Use one
+// when the form doesn't map to a database table (sign in, search, contact).
 //
-// WARNING: Do not declare non-entity models inside src/entities/.
-// `runique makemigrations` scans that folder and will attempt to generate
-// a migration for any model found there.
-/// Example manual (non-entity) form for a login page: declares `username` and
-/// `password` fields directly instead of deriving them from a schema.
+// Don't put such forms in src/entities/: `runique makemigrations` scans that
+// folder and generates a migration for every model it finds there.
+/// The sign-in form: `username` and `password`, declared by hand.
 #[derive(Serialize, Debug, Clone)]
 #[serde(transparent)]
 pub struct LoginForm {

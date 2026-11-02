@@ -64,11 +64,13 @@ let app = RuniqueApp::builder(config)
 
 ```rust
 let app = RuniqueApp::builder(config)
-    .middleware(|m| m.with_debug_errors(true))  // Pages d'erreur détaillées (défaut : true)
+    .middleware(|m| m.with_debug_errors(true))  // Monte le gestionnaire d'erreurs (défaut : true)
     .routes(router)
     .build()
     .await?;
 ```
+
+Le gestionnaire d'erreurs est monté par défaut ; c'est `DEBUG` qui décide de son contenu (page détaillée en debug, page générique en production). `with_debug_errors(false)` le retire entièrement : les erreurs sortent alors sans page Runique.
 
 ### Middlewares
 
@@ -207,7 +209,6 @@ RuniqueApp::builder(config)
 | ---------------------------------- | ----------------------------------- | ---------------------------------------------------------- |
 | `csrf`            | `.middleware(\|m\| m.csrf(...))`         | Token CSRF détecté dans une URL GET (nettoyage silencieux) |
 | `exclusive_login` | `.session(\|s\| s.exclusive_login(...))` | Sessions invalidées lors d'une connexion exclusive         |
-| `filter_fn`       | `.admin(\|a\| a.filter_fn(...))`         | Échec d'une `filter_fn` dans la vue liste admin            |
 | `password_init`   | `.auth(\|a\| a.password_init(...))`      | `password_init()` appelé plusieurs fois                    |
 | `store`           | `.session(\|s\| s.store(...))`           | Watermarks mémoire, records volumineux, erreurs cleanup    |
 | `connect`         | `.db(\|d\| d.connect(...))`              | Connexion DB en cours / connexion établie                  |
@@ -244,6 +245,10 @@ async fn mon_handler(req: Request) -> Response {
 ```
 
 `engine.custom_db::<T>()` est un alias conservé pour la compatibilité ascendante — les deux méthodes sont équivalentes.
+
+### Administration
+
+`.with_admin(...)` n'existe que si `runique` est compilé avec la feature `admin`. Voir [Admin](/docs/fr/admin).
 
 ### Fichiers statiques
 
@@ -293,7 +298,7 @@ L'état est porté par le type du builder (`RuniqueAppBuilder<S>`), invisible ta
 | **CSP + headers de sécurité** | ✅ Toujours actifs | Inconditionnel, quel que soit le mode ; `.with_csp(...)` personnalise, n'active pas |
 | **Host validation** | ❌ Désactivée | Aucune variable `.env` ne la contrôle — appeler `.with_allowed_hosts(...)` |
 | **Cache control** | ✅ Activé | No-cache en debug ; `.with_cache(true)` le désactive |
-| **Static files** | ✅ Activés | `.static_files(\|s\| s.enabled(false))` pour désactiver |
+| **Static files** | ✅ Activés | Servis sous `STATIC_URL` et `MEDIA_URL` ; `.static_files(\|s\| s.enabled(false))` pour désactiver (fichiers servis par Nginx, par exemple) |
 | **URL publique** | — | Obligatoire en production si le reset ou l'admin est activé — `.with_public_url(...)` |
 | **Hot reload admin** | Selon `DEBUG` | Automatique via `is_debug()` |
 | **Logs framework** | ❌ Désactivés | Activer via `.with_log(\|l\| ...)` |
@@ -304,7 +309,7 @@ L'état est porté par le type du builder (`RuniqueAppBuilder<S>`), invisible ta
 
 | Section | Description |
 | --- | --- |
-| [Variables d'environnement](/docs/fr/configuration/variables) | Toutes les variables `.env` |
+| [Variables d'environnement](/docs/fr/env) | Toutes les variables `.env` |
 | [Accès dans le code](/docs/fr/configuration/code) | `RuniqueConfig`, validation |
 
 ## Retour au sommaire

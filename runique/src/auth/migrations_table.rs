@@ -516,7 +516,7 @@ impl sea_orm_migration::MigrationTrait for EihwazHistoryMigration {
 /// from the token row — never from a URL/form field.
 pub fn create_eihwaz_reset_tokens_table() -> TableCreateStatement {
     let mut user_id_col = user_pk_reference("user_id");
-    user_id_col.not_null();
+    user_id_col.not_null().unique_key();
 
     let fk_name = "fk_eihwaz_reset_tokens_eihwaz_users_id";
 

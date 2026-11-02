@@ -4,15 +4,15 @@
 
 ### Affichage automatique (via {% form.xxx %})
 
-Quand vous utilisez `{% form.inscription_form %}`, les erreurs de validation sont **rendues automatiquement** sous chaque champ concerné.
+Quand vous utilisez `{% form.signup_form %}`, les erreurs de validation sont **rendues automatiquement** sous chaque champ concerné.
 
 ### Affichage manuel des erreurs globales
 
 ```html
-{% if inscription_form.errors %}
+{% if signup_form.errors %}
     <div class="alert alert-warning">
         <ul>
-            {% for field_name, error_msg in inscription_form.errors %}
+            {% for field_name, error_msg in signup_form.errors %}
                 <li><strong>{{ field_name }} :</strong> {{ error_msg }}</li>
             {% endfor %}
         </ul>
@@ -26,18 +26,18 @@ Quand vous utilisez `{% form.inscription_form %}`, les erreurs de validation son
 
 ```rust
 // Handler Rust
-pub async fn inscription(mut request: Request) -> AppResult<Response> {
-    let form: RegisterForm = request.form();
+pub async fn signup(mut request: Request) -> AppResult<Response> {
+    let form: SignupForm = request.form();
 
-    let validated = match ValidationForm::try_form(form, &request, "my_form").await {
+    let validated = match ValidationForm::try_form(form, &request, "signup").await {
         Ok(validated) => validated,
         Err(form) => {
             context_update!(request => {
                 "title" => "Inscription",
-                "inscription_form" => &form,
+                "signup_form" => &form,
                 "messages" => flash_now!(error => "Veuillez corriger les erreurs"),
             });
-            return request.render("inscription.html");
+            return request.render("signup.html");
         }
     };
 
@@ -49,10 +49,10 @@ pub async fn inscription(mut request: Request) -> AppResult<Response> {
         Err(form) => {
             context_update!(request => {
                 "title" => "Inscription",
-                "inscription_form" => &form,
+                "signup_form" => &form,
                 "messages" => flash_now!(error => "Veuillez corriger les erreurs"),
             });
-            request.render("inscription.html")
+            request.render("signup.html")
         }
     }
 }
@@ -67,7 +67,7 @@ pub async fn inscription(mut request: Request) -> AppResult<Response> {
     <h1>{{ title }}</h1>
     {% messages %}
     <form method="post" action="/inscription">
-        {% form.inscription_form %}
+        {% form.signup_form %}
         <button type="submit" class="btn btn-primary">S'inscrire</button>
     </form>
 {% endblock %}

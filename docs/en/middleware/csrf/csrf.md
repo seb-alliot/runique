@@ -98,6 +98,20 @@ Use `.csrf_exempt()` to bypass CSRF validation on specific paths:
 
 CSRF is always on — there is no `.with_csrf()` method to call, only the exemption exists.
 
+**A POST action with no form** (sign-out, a "delete" button) checks the token itself, computed when `Request` is extracted:
+
+```rust
+pub async fn logout_view(request: Request) -> AppResult<Response> {
+    if !request.prisme.csrf_valid {
+        return Ok(StatusCode::FORBIDDEN.into_response());
+    }
+    logout(&request.session, None).await?;
+    Ok(Redirect::to("/").into_response())
+}
+```
+
+A native Axum extractor (`Form<T>`, `Json<T>` without the header, `Multipart`) doesn't go through that check: a route using one to write must check the token itself.
+
 Matching is **exact** — `/webhook/stripe` does not exempt `/webhook/stripe/sub`.
 
 > After exempting a path, verify the request authenticity by other means in your handler

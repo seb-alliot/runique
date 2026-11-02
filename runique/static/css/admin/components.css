@@ -133,6 +133,7 @@
     font-size: 16px;
     outline: none;
     transition: border-color var(--transition), box-shadow var(--transition);
+    text-align: center;
 }
 
 .admin-search__input::placeholder { color: var(--text-muted); }

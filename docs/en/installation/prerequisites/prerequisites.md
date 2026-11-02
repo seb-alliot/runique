@@ -1,73 +1,78 @@
-# Prerequisites & Initial Setup
+# Prerequisites & first project
 
 ## Prerequisites
 
-- **Rust 1.94+** — [Install rustup](https://rustup.rs/)
-- **PostgreSQL 12+** (or SQLite for development)
-
-### Check Versions
+- **Rust 1.94+** — [install rustup](https://rustup.rs/)
+- A database: **SQLite** (nothing to install, the default), **PostgreSQL 12+**, or **MySQL / MariaDB**
 
 ```bash
-rustc --version    # Rust 1.94+
-cargo --version    # Cargo 1.94+
+rustc --version    # 1.94 or later
 ```
 
 ---
 
-## Installation
-
-### 1. Install Rust
+## 1. Install the Runique CLI
 
 ```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+cargo install runique --features sqlite --locked
 ```
 
-### 2. Install the Runique CLI
-
-```bash
-cargo install runique --features postgres --locked
-```
-
-The CLI connects to the database (`create-superuser`, migrations), so it must be built with your engine's driver. Replace `postgres` with `sqlite`, `mysql` or `mariadb`, or use `all-databases` for one binary that talks to all three. Without a feature, every connection fails with "driver not enabled".
+The CLI connects to the database (`create-superuser`): it must be compiled with your engine's driver. Replace `sqlite` with `postgres`, `mysql` or `mariadb`, or use `all-databases` for a binary that talks to all three. Without an engine feature, every connection fails with "driver not enabled".
 
 `--locked` uses the dependency versions published with the crate; without it, Cargo may pick newer versions that don't work together.
 
-### 3. Create a New Project
+To switch engines later, reinstall with `--force`:
 
 ```bash
-runique new my-project
-cd my-project
+cargo install runique --features postgres --locked --force
 ```
 
-### 4. Configure the Environment
+---
 
-Create a `.env` file at the project root:
+## 2. Create the project
 
-```env
-# Server
-IP_SERVER=127.0.0.1
-PORT=3000
-DEBUG=true
-
-# Database (PostgreSQL)
-DB_ENGINE=postgres
-DB_USER=postgres
-DB_PASSWORD=your_password_here
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=my-project
-DATABASE_URL=postgres://postgres:your_password_here@localhost:5432/my-project
-
-# Templates & Static Files
-TEMPLATES_DIR=templates
-STATICFILES_DIRS=static
-MEDIA_ROOT=media
-
-# Security
-SECRET_KEY=your_secret_key_change_in_production
+```bash
+runique new my_project
+cd my_project
 ```
 
-### 5. Start the Server
+The name may only hold letters, digits, `_` and `-`, can't start with a digit or `-`, and can't be a reserved name (a Rust keyword, `std`, `core`, `test`, a Windows device name such as `con`, or `migration` / `runique`, already taken in the generated project).
+
+`runique new` writes a complete project, ready to run:
+
+```
+my_project/
+├── Cargo.toml          workspace: the app + its `migration` crate
+├── .env                settings, with a random SECRET_KEY of its own
+├── migration/          the migration crate (Cargo.toml, src/main.rs, src/lib.rs)
+├── src/
+│   ├── main.rs         the application builder
+│   ├── url.rs          the routes (/, /signup, /login, /logout, /about)
+│   ├── views.rs        the views
+│   ├── forms/          sign up and sign in forms
+│   └── entities/       your models (model!)
+├── templates/          base.html (the layout), index, about, signup, login
+├── static/css/
+└── media/              favicon, logo, and the files users upload
+```
+
+The project uses **SQLite** by default. For another engine, see [Database](/docs/en/installation/database).
+
+---
+
+## 3. Create the framework's tables
+
+```bash
+runique migration up
+```
+
+The `migration/` crate already holds the migrations of the framework's tables (`eihwaz_users`, sessions, rights, history, reset tokens). This command applies them. The first run compiles the crate, so it takes a while; later runs are quick.
+
+> Skip this step and the app still starts, but the first request touching a session fails with `no such table: eihwaz_sessions`.
+
+---
+
+## 4. Run the server
 
 ```bash
 cargo run
@@ -76,26 +81,61 @@ cargo run
 **Expected output:**
 
 ```
-   Runique is running
-      └──>  Server running at http://127.0.0.1:3000
+   Runique is operational
+      └──>  Server launched on http://127.0.0.1:3000
 ```
 
-> Prefer plain `cargo run`. Wire the admin with `.with_admin(...)` and the typed `ModelAdmin` builder in `src/admin.rs` — no code generation step.
+The home page comes with sign up, sign in and sign out.
 
 ---
 
-## Recommended Tools
+## 5. Create a superuser (optional)
 
 ```bash
-# Rust analyzer for IDE
-rustup component add rust-analyzer
-
-# Linter & formatter
-rustup component add clippy rustfmt
-
-# SeaORM CLI (required for migrations)
-cargo install sea-orm-cli
+runique create-superuser
 ```
+
+See [Runique CLI](/docs/en/installation/cli). The admin panel also needs the `admin` feature: see [Admin](/docs/en/admin).
+
+---
+
+## The `.env` file
+
+`runique new` writes it for you:
+
+```env
+IP_SERVER=127.0.0.1
+PORT=3000
+
+DEBUG=true
+
+# Signs the CSRF tokens and the sessions: this project's own, keep it secret
+SECRET_KEY=<64 hex characters generated by runique new>
+
+DB_ENGINE=sqlite
+DB_NAME=data.db
+DATABASE_URL="sqlite://data.db?mode=rwc"
+```
+
+The `SECRET_KEY` is generated at random when the project is created. If you need to replace it (leak, new deployment), any random string of 32 characters or more will do, for instance:
+
+```bash
+openssl rand -hex 32
+```
+
+In production (`DEBUG=false`), Runique refuses to start with a key that is missing, too short, or left at its example value.
+
+The other variables (templates, static and media folders, logging…) have defaults: see [Environment variables](/docs/en/env).
+
+---
+
+## Recommended tools (development)
+
+```bash
+rustup component add rust-analyzer clippy rustfmt
+```
+
+`sea-orm-cli` is **not** needed: `runique migration up | down | status` runs the `migration` crate directly.
 
 ---
 
@@ -103,9 +143,9 @@ cargo install sea-orm-cli
 
 | Section | Description |
 | --- | --- |
-| [Database](/docs/en/installation/database) | SQLite, PostgreSQL |
+| [Database](/docs/en/installation/database) | Switching engines |
 | [Migrations](/docs/en/installation/migrations) | Migration workflow |
-| [Runique CLI](/docs/en/installation/cli) | All available commands |
+| [Runique CLI](/docs/en/installation/cli) | Every command |
 
 ## Back to summary
 

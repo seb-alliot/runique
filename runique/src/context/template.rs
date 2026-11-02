@@ -56,7 +56,11 @@ impl AppError {
     }
 }
 
-impl_from_error!(anyhow::Error => from_anyhow, DbErr => database);
+impl_from_error!(
+    anyhow::Error => from_anyhow,
+    DbErr => database,
+    tower_sessions::session::Error => database
+);
 
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {

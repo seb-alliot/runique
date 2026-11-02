@@ -8,7 +8,7 @@ Runique fournit un ensemble de macros pour simplifier le développement.
 
 | Macro | Description | Exemple |
 | ----- | ----------- | ------- |
-| `context!` | Créer un contexte Tera | `context!("title" => "Page")` |
+| `context!` | Créer un contexte Tera | `context!("title" => "Page", "count" => 3)` |
 | `context_update!` | Ajouter au contexte d'une Request | `context_update!(request => { "key" => value })` |
 
 ---
@@ -21,7 +21,7 @@ Runique fournit un ensemble de macros pour simplifier le développement.
 | `error!` | Message d'erreur (session) | `error!(request.notices => "Erreur")` |
 | `info!` | Message info (session) | `info!(request.notices => "Info")` |
 | `warning!` | Avertissement (session) | `warning!(request.notices => "Attention")` |
-| `flash_now!` | Message immédiat (sans session) | `flash_now!(error => "Erreurs")` |
+| `flash_now!` | Message(s) immédiat(s), sans session | `flash_now!(error => "Erreur")`, ou plusieurs : `flash_now!(warning => "Un", "Deux")` |
 
 ---
 
@@ -30,8 +30,19 @@ Runique fournit un ensemble de macros pour simplifier le développement.
 | Macro | Description | Exemple |
 | ----- | ----------- | ------- |
 | `urlpatterns!` | Définir des routes avec noms | `urlpatterns!("/" => view!{...}, name = "index")` |
-| `view!` | Handler pour toutes méthodes HTTP | `view!{ handler }` |
-| `impl_objects!` | Manager Django-like pour SeaORM | `impl_objects!(Entity)` |
+| `view!` | Handler pour toutes méthodes HTTP (GET, POST, PUT, DELETE, PATCH) | `view!{ handler }` |
+
+Pour une route qui ne doit accepter qu'une méthode, passez le routeur d'Axum à la place de `view!` : `"/logout" => post(views::logout), name = "logout"`.
+
+---
+
+## Macros ORM
+
+| Macro | Description | Exemple |
+| ----- | ----------- | ------- |
+| `impl_objects!` | Manager Django-like (`Entity::objects.filter(...)`) | `impl_objects!(Entity)` |
+
+`model!{}` génère déjà ce manager : `impl_objects!` ne sert qu'à une entité SeaORM écrite à la main. Voir [ORM](/docs/fr/orm).
 
 ---
 

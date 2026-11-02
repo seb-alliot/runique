@@ -9,7 +9,7 @@
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use sea_orm::{
     ActiveValue::Set, ColumnTrait, DatabaseTransaction, DbErr, EntityTrait, QueryFilter,
-    TransactionTrait,
+    TransactionTrait, sea_query::OnConflict,
 };
 use sha2::{Digest, Sha256};
 use std::time::Duration;
@@ -54,24 +54,17 @@ pub async fn generate(db: &ADb, user_id: Pk, ttl: Duration) -> Result<String, Db
         expires_at: Set(expires_at),
         ..Default::default()
     };
-    let txn = db.begin().await?;
-    if let Err(error) = entity::Entity::delete_many()
-        .filter(entity::Column::UserId.eq(user_id))
-        .exec(&txn)
-        .await
-    {
-        if let Err(rollback_error) = txn.rollback().await {
-            tracing::error!(user_id = %user_id, error = %rollback_error, "reset token replacement rollback failed");
-        }
-        return Err(error);
-    }
-    if let Err(error) = entity::Entity::insert(model).exec(&txn).await {
-        if let Err(rollback_error) = txn.rollback().await {
-            tracing::error!(user_id = %user_id, error = %rollback_error, "reset token replacement rollback failed");
-        }
-        return Err(error);
-    }
-    txn.commit().await?;
+    // One statement, atomic on its own: a concurrent request for the same
+    // user waits on the unique index, then overwrites the row. Exactly one
+    // live link remains, the last one written; the older hash is gone.
+    entity::Entity::insert(model)
+        .on_conflict(
+            OnConflict::column(entity::Column::UserId)
+                .update_columns([entity::Column::TokenHash, entity::Column::ExpiresAt])
+                .to_owned(),
+        )
+        .exec_without_returning(db)
+        .await?;
     Ok(token)
 }
 

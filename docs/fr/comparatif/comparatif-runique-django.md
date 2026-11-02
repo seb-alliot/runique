@@ -10,8 +10,8 @@ Commandes réelles du binaire `runique` (voir `runique/src/bin/runique.rs`) : `n
 | Créer une app | `python manage.py startapp nom` | — |
 | Migrations (générer) | `python manage.py makemigrations` | `runique makemigrations` |
 | Migrations (appliquer) | `python manage.py migrate` | `runique migration up` |
-| Migrations (annuler) | `python manage.py migrate app 0001` | `sea-orm-cli migrate down` |
-| Statut migrations | `python manage.py showmigrations` | `sea-orm-cli migrate status` |
+| Migrations (annuler) | `python manage.py migrate app 0001` | `runique migration down -n 1` |
+| Statut migrations | `python manage.py showmigrations` | `runique migration status` |
 | Créer superuser | `python manage.py createsuperuser` | `runique create-superuser` |
 | Tests | `python manage.py test` | `runique test` |
 | Démarrer | `python manage.py runserver` | `cargo run` |

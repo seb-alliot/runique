@@ -1,43 +1,31 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bienvenue sur Runique</title>
-    <link rel="stylesheet" href="{% runique_static "css/main_runique.css" %}">
+    <title>Runique is running</title>
+    <link rel="stylesheet" href="{% runique_static "css/index/index.css" %}">
 </head>
-<body class="page">
-    <div class="container">
-        <header>
-            <h1>🦀 Bienvenue sur Runique</h1>
-            <p class="subtitle">Projet de framework web en rust</p>
-        </header>
+<body>
+    <main class="index">
+        <h1 class="index-title">Runique is running</h1>
+        <p class="index-text">
+            This page is shown because the application declares no <code>/</code> route
+            and runs with <code>DEBUG=true</code>. Outside debug mode, <code>/</code> answers 404.
+        </p>
 
-        <main class="content">
-            <section class="features">
-                <h2>Caractéristiques</h2>
-                <ul>
-                    <li>✨ Inspiré de Django pour une expérience familière</li>
-                    <li>⚡ Construit sur Axum pour des performances optimales</li>
-                    <li>🛡️ Gestion d'erreur sophistiquée avec pages de debug</li>
-                    <li>📝 Support de Tera pour le templating</li>
-                    <li>🗄️ Intégration SeaORM optionnelle</li>
-                    <li>🔧 Configuration flexible et intuitive</li>
-                </ul>
-            </section>
+        <section class="index-section">
+            <h2>Next step</h2>
+            <p class="index-text">Declare your home page in <code>src/url.rs</code>:</p>
+            <pre><code>urlpatterns! {
+    "/" => view! { index }, name = "index",
+}</code></pre>
+        </section>
 
-            <section class="info">
-                <h2>Commencer</h2>
-                    <ul>
-                        <li>cargo new my-app</li>
-                        <li>cd my-app</li>
-                        <li>cargo add runique</li>
-                    </ul>
-            </section>
-        </main>
-    </div>
-    <footer>
-        <p>Construit avec difficultées en Rust</p>
-    </footer>
+        <nav class="index-links">
+            <a class="index-link index-link-primary" href="https://runique.io/docs/en" rel="noopener">Documentation</a>
+            <a class="index-link" href="https://github.com/seb-alliot/runique" rel="noopener">Source code</a>
+        </nav>
+    </main>
 </body>
 </html>

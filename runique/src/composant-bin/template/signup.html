@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href='{% static "css/forms/forms.css" %}'>
+    <link rel="stylesheet" href='{% static "css/forms/forms-label.css" %}'>
+{% endblock %}
+
+{% block content %}
+    <h1>{{ title }}</h1>
+
+    <div id="form">
+        <form method="post" action='{% link "signup" %}'>
+            {# Each field shows its own errors under it. #}
+            {% form.signup_form %}
+            <button type="submit">Sign up</button>
+        </form>
+
+        <div class="text-center mt-3">
+            <a href='{% link "index" %}'>&larr; Back home</a>
+        </div>
+    </div>
+{% endblock %}

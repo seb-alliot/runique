@@ -54,15 +54,15 @@ password_init(PasswordConfig::manual(Manual::Argon2));
 
 > À utiliser si tu veux contrôler précisément quand et comment le mot de passe est haché.
 
-> **Attention — vue admin et reset intégrés :** la route de reset intégrée (`with_password_reset`) lit la valeur du formulaire **après** `finalize()` et l'écrit directement en base. En mode `Auto`, `finalize()` hache déjà la valeur — tout est correct. En mode `Manual`, `Custom` ou `Delegated`, `finalize()` ne hache pas : **la valeur stockée sera en clair** si tu utilises la route built-in sans adaptation.
+> **Reset intégré et admin :** la route de reset intégrée (`with_password_reset`) hache elle-même le nouveau mot de passe avec la configuration de l'application, quel que soit le mode (`Auto`, `Manual` ou `Custom`). En mode `Delegated`, elle refuse le reset : aucun mot de passe local n'est écrit, et le lien reste utilisable. Un compte créé depuis l'admin reçoit un mot de passe aléatoire, haché de la même façon, puis un lien pour choisir le sien.
 >
-> Solutions :
-> - Rester en mode `Auto` pour tout projet utilisant `with_password_reset` ou le panel admin avec gestion des mots de passe.
-> - Ou écrire une route de reset personnalisée qui appelle `hash()` explicitement avant la mise à jour.
+> Dans **vos propres** formulaires, en revanche, `finalize()` ne hache qu'en mode `Auto` : en `Manual` ou `Custom`, appelez `hash()` avant d'écrire en base.
 
 ### `Delegated` — Authentification externe (OAuth / SSO)
 
-Aucun mot de passe n'est géré par Runique. L'authentification est déléguée à un fournisseur externe.
+Aucun mot de passe local n'est géré par Runique : `verify()` répond toujours `false`, `hash()` échoue, et le reset intégré est refusé.
+
+> **Ce mode ne fournit pas encore l'authentification externe elle-même.** Les fournisseurs ci-dessous ne sont que des noms : Runique n'implémente aujourd'hui ni le flux OAuth (redirection, échange du code, lecture du profil), ni LDAP, ni SAML. `Delegated` sert à désactiver proprement les mots de passe locaux quand **votre application** gère la connexion par un autre moyen (une bibliothèque OAuth, un proxy d'authentification), puis ouvre la session avec `login(&request.session, &user, None, false)` une fois l'utilisateur identifié. L'intégration complète d'un fournisseur est une évolution prévue.
 
 ```rust
 use runique::prelude::{External};
@@ -93,10 +93,12 @@ impl PasswordHandler for MyHasher {
         if input.len() < 8 { Err("Trop court".into()) } else { Ok(()) }
     }
     fn transform(&self, input: &str) -> Result<String, String> {
-        Ok(format!("hashed:{}", input))
+        mon_algo::hash(input).map_err(|e| e.to_string())
     }
     fn verify(&self, input: &str, stored: &str) -> bool {
-        stored == format!("hashed:{}", input)
+        // La comparaison doit se faire en temps constant (la fonction de
+        // vérification de l'algorithme, ou `ct_eq`), jamais avec `==`.
+        mon_algo::verify(input, stored)
     }
 }
 
@@ -123,7 +125,9 @@ Ces fonctions utilisent automatiquement la `PasswordConfig` initialisée au dém
 
 ## Dans les formulaires
 
-Les champs `TextField::password()` sont hachés automatiquement dans `finalize()` en mode `Auto`. En mode `Manual` ou `Delegated`, aucun hachage automatique n'a lieu.
+Les champs `TextField::password()` sont hachés automatiquement dans `finalize()` en mode `Auto`. En mode `Manual` ou `Custom`, aucun hachage automatique n'a lieu : appelez `hash()` vous-même. Un champ marqué `.no_hash()` n'est jamais haché (un formulaire de connexion compare le mot de passe tel quel, avec `authenticate_user`).
+
+En mode `Auto`, un mot de passe haché avec un autre algorithme que celui configuré est converti à la première connexion réussie.
 
 Voir → [Types de champs — TextField](/docs/fr/formulaire/champs)
 

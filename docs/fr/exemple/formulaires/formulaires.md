@@ -12,10 +12,7 @@ pub struct RegisterForm {
     pub form: Forms,
 }
 
-#[async_trait]
-impl RuniqueForm for RegisterForm {
-    impl_form_access!();
-
+impl FormAccess for RegisterForm {
     fn register_fields(form: &mut Forms) {
         form.field(
             &TextField::text("username")
@@ -36,7 +33,11 @@ impl RuniqueForm for RegisterForm {
                 .min_length(8, "Minimum 8 caractères")
         );
     }
+    impl_form_access!();
+}
 
+#[async_trait]
+impl RuniqueForm for RegisterForm {
     // Validation métier — appelée automatiquement par is_valid()
     async fn clean(&mut self) -> Result<(), StrMap> {
         let mut errors = StrMap::new();
@@ -51,7 +52,7 @@ impl RuniqueForm for RegisterForm {
 ### Formulaire basé sur un modèle
 
 `#[form(...)]` génère la struct et `impl ModelForm`.
-Le dev écrit `impl RuniqueForm` avec `impl_form_access!(model)` :
+`#[form]` génère `impl FormAccess` ; le dev n'écrit que `impl RuniqueForm`, avec ses hooks :
 
 ```rust
 use runique::prelude::*;
@@ -61,7 +62,6 @@ pub struct RegisterForm;
 
 #[async_trait]
 impl RuniqueForm for RegisterForm {
-    impl_form_access!(model);
 
     async fn clean(&mut self) -> Result<(), StrMap> {
         let mut errors = StrMap::new();
@@ -80,7 +80,7 @@ impl RuniqueForm for RegisterForm {
 ```
 
 > `#[async_trait]` est requis uniquement quand on override `clean` ou `clean_field`.
-> Sans override async, `impl RuniqueForm { impl_form_access!(model); }` suffit.
+> Sans hook à surcharger, `impl RuniqueForm for RegisterForm {}` suffit.
 
 ---
 
@@ -89,14 +89,14 @@ impl RuniqueForm for RegisterForm {
 ```rust
 pub async fn inscription(mut request: Request) -> AppResult<Response> {
     let form: RegisterForm = request.form();
-    let template = "inscription_form.html";
+    let template = "signup_form.html";
 
     let validated = match ValidationForm::try_form(form, &request, "my_form").await {
         Ok(validated) => validated,
         Err(form) => {
             context_update!(request => {
                 "title" => "Erreur de validation",
-                "inscription_form" => &form,
+                "signup_form" => &form,
                 "messages" => flash_now!(error => "Veuillez corriger les erreurs"),
             });
             return request.render(template);
@@ -111,7 +111,7 @@ pub async fn inscription(mut request: Request) -> AppResult<Response> {
         Err(form) => {
             context_update!(request => {
                 "title" => "Erreur de validation",
-                "inscription_form" => &form,
+                "signup_form" => &form,
                 "messages" => flash_now!(error => "Veuillez corriger les erreurs"),
             });
             request.render(template)
@@ -132,7 +132,7 @@ pub async fn inscription(mut request: Request) -> AppResult<Response> {
     {% messages %}
 
     <form method="post" action='{% link "inscription" %}'>
-        {% form.inscription_form %}
+        {% form.signup_form %}
         <button type="submit">S'inscrire</button>
     </form>
 {% endblock %}
@@ -149,7 +149,7 @@ pub struct UsernameForm {
     pub form: Forms,
 }
 
-impl RuniqueForm for UsernameForm {
+impl FormAccess for UsernameForm {
     fn register_fields(form: &mut Forms) {
         form.field(
             &TextField::text("username")
@@ -159,7 +159,9 @@ impl RuniqueForm for UsernameForm {
         );
     }
     impl_form_access!();
+}
 
+impl RuniqueForm for UsernameForm {
     // Ce formulaire ne sert que la recherche GET — jamais de validation POST.
     fn allow_post(&self, _request: &Request) -> bool {
         false

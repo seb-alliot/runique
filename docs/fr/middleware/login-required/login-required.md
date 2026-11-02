@@ -45,7 +45,7 @@ fn login_required(
 | Paramètre      | Description                                        |
 | -------------- | -------------------------------------------------- |
 | `path`         | Chemin de la route (ex: `"/profil"`)               |
-| `name`         | Nom de la route pour `reverse()`                   |
+| `name`         | Nom de la route, pour `{% link %}`                 |
 | `handler`      | Vue à protéger (via `view!{}`)                     |
 | `redirect_url` | URL de redirection si non authentifié (ex: `"/login"`) |
 
@@ -53,7 +53,7 @@ fn login_required(
 
 ## Comportement
 
-- Vérifie la présence d'un identifiant utilisateur en session
+- Vérifie qu'un compte est connecté. Le compte est relu en base à chaque requête : un compte supprimé ou désactivé est déconnecté avant d'arriver ici, et redirigé
 - Authentifié → la requête passe normalement au handler
 - Non authentifié → `303 See Other` vers `redirect_url`
 - Compatible avec toutes les méthodes HTTP (GET, POST, etc.)
@@ -63,7 +63,7 @@ fn login_required(
 ## Notes
 
 - Cette protection s'applique à **n'importe quel utilisateur connecté**, sans distinction de rôle
-- Pour l'interface admin, Runique utilise son propre middleware `admin_access` (vérifie `is_staff` ou `is_superuser`) — `login_required` n'est pas nécessaire côté admin
+- Pour l'interface admin, Runique utilise son propre middleware `admin_access` (rang admin, dirigeant ou superuser, ou membre d'un groupe qui ouvre l'admin) — `login_required` n'est pas nécessaire côté admin
 
 ---
 

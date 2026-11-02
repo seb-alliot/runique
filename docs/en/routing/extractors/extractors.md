@@ -111,7 +111,7 @@ async fn handler(mut request: Request) -> AppResult<Response> {
 
 ## Database — `request.db()`
 
-Returns a `&DatabaseConnection` from the engine, ready to pass to SeaORM queries.
+Returns the engine's connection (`&ADb`), ready to pass to SeaORM queries.
 
 ```rust
 async fn handler(mut request: Request) -> AppResult<Response> {
@@ -121,7 +121,7 @@ async fn handler(mut request: Request) -> AppResult<Response> {
 }
 ```
 
-This is equivalent to `&*request.engine.db` but shorter and more readable.
+Equivalent to `&request.engine.db`, only shorter.
 
 ---
 
@@ -130,14 +130,21 @@ This is equivalent to `&*request.engine.db` but shorter and more readable.
 ```rust
 use runique::prelude::*;
 
-async fn inscription(mut request: Request) -> AppResult<Response> {
-    let mut form: RegisterForm = request.form();
-    if form.is_valid().await {
-        form.save(&request.engine.db).await?;
-    }
-    // ...
+async fn signup(mut request: Request) -> AppResult<Response> {
+    let form: SignupForm = request.form();
+    let form = match ValidationForm::try_form(form, &request, "signup").await {
+        Ok(validated) => match validated.save(&request.engine.db).await {
+            Ok(_) => return Ok(Redirect::to("/").into_response()),
+            Err(form) => form,
+        },
+        Err(form) => form,
+    };
+    context_update!(request => { "signup_form" => &form });
+    request.render("signup.html")
 }
 ```
+
+`request.form()` builds the form with the submitted data; `ValidationForm::try_form` validates it when it was actually submitted. See [Key concepts](/docs/en/architecture/concepts).
 
 ---
 

@@ -2,84 +2,80 @@
 
 ## Vue d'ensemble
 
-Le système de permissions admin repose sur trois niveaux :
+L'accès à l'admin repose sur le **rang** du compte, trois drapeaux de `eihwaz_users` dont au plus un est vrai (contrainte `CHECK` en base) :
 
-| Niveau | Contrôle | Effet |
+| Rang | Drapeau | Ce qu'il peut faire |
 | --- | --- | --- |
-| **`is_staff`** | Champ utilisateur | Donne accès à la page de login admin uniquement |
-| **Groupes** | Tables `eihwaz_groupes` + `eihwaz_groupes_droits` | Permissions CRUD granulaires par ressource |
-| **`is_superuser`** | Champ utilisateur | Bypass tous les contrôles |
+| **Superuser** | `is_superuser` | Tout, seul à contourner les droits (jamais les invariants). Compte du développeur, à supprimer à la livraison |
+| **Dirigeant** | `is_dirigeant` | Tous les droits sur les modèles, sans contournement. Donne les droits des admins |
+| **Admin** | `is_admin` | Ce que le dirigeant lui coche **sur son compte**, table par table et colonne par colonne |
+| **Lambda** | aucun | Compte du site. N'entre dans l'admin que s'il est membre d'un groupe staff |
+
+`can_access_admin()` répond vrai pour un rang admin ou supérieur, ou pour un lambda membre d'un groupe `is_staff`. Un compte doit aussi être actif et activé.
 
 ---
 
-## Champs de contrôle d'accès
+## D'où viennent les droits
 
-| Champ | Type | Rôle |
-| --- | --- | --- |
-| `is_staff` | `bool` | Autorise la connexion à la page `/admin/login` |
-| `is_superuser` | `bool` | Accès total, bypass toutes les vérifications |
-| `is_active` | `bool` | Bloque les comptes inactifs |
+`CurrentUser::rights_on("ressource")` est la seule façon de demander ce qu'un compte peut faire, dans l'admin comme dans vos vues. La source dépend du rang seul :
 
----
-
-## Permissions granulaires par groupe
-
-Les permissions sont portées par les **groupes**, pas directement par les utilisateurs. Un utilisateur hérite des permissions de tous ses groupes (agrégation par OR logique).
-
-Chaque groupe dispose d'une entrée par ressource dans `eihwaz_groupes_droits` :
-
-| Champ | Effet |
+| Rang | Source des droits |
 | --- | --- |
-| `can_read` | Voir la ressource dans la nav + accéder à la liste |
-| `can_create` | Créer un enregistrement |
-| `can_update` | Modifier n'importe quel enregistrement |
-| `can_delete` | Supprimer n'importe quel enregistrement |
-| `can_update_own` | Modifier uniquement ses propres enregistrements |
-| `can_delete_own` | Supprimer uniquement ses propres enregistrements |
+| Superuser | Tout, avec contournement |
+| Dirigeant | Tout, sans contournement |
+| Admin | Sa propre grille, posée par le dirigeant (`eihwaz_groupes_droits`, lignes rattachées à son compte) |
+| Lambda | L'union (OU logique) des droits de ses groupes — **jamais** sur les tables du framework (comptes, groupes, droits, appartenances) |
 
-`can_update_own` / `can_delete_own` s'appliquent quand le modèle déclare un owner (colonne owner côté `ModelMeta`). Le gate filtre alors les lignes.
+Les droits se règlent par table et par colonne :
 
----
+| Droit | Niveau | Effet |
+| --- | --- | --- |
+| `can_read` | table + colonnes | Voir la ressource et les colonnes cochées |
+| `can_create` | table + colonnes | Créer, en remplissant les colonnes cochées |
+| `can_update` | table + colonnes | Modifier les colonnes cochées |
+| `can_delete` | table | Supprimer |
+| `can_update_own` / `can_delete_own` | table | Seulement ses propres lignes, quand le modèle déclare un propriétaire (`meta: { owner: … }`) |
 
-## Configuration via le panel
-
-1. Aller dans **Admin → Groupes** → créer un groupe
-2. Configurer les permissions de ce groupe par ressource
-3. Aller dans **Admin → Utilisateurs** → assigner le groupe à l'utilisateur
-
-Un utilisateur sans groupe ne voit aucune ressource dans la nav (sauf superuser).
+Une colonne ajoutée plus tard au modèle n'est lisible ou modifiable qu'une fois cochée. Les colonnes secrètes (mot de passe) ne sont jamais proposées.
 
 Les droits ne se déclarent **pas** dans `ModelAdmin` : toute la grille vit en base.
 
+---
+
+## Groupes et staff
+
+Les groupes servent aux **comptes lambda** : rôles du site public, et droits sur les tables **du développeur** dans l'admin. Un lambda membre d'un groupe marqué `is_staff` entre dans l'admin et y voit ses ressources autorisées, ainsi qu'un résumé de ses propres groupes et droits, en lecture seule. Aucun groupe n'a jamais de droit sur les tables du framework, quel que soit celui qui le configure.
+
 ### Révocation immédiate
 
-Les droits, et l'état du compte (actif, staff, superuser), sont relus en base à chaque requête admin : la session ne garde que l'identité de l'utilisateur. Retirer un droit ou un groupe, désactiver un compte ou lui retirer le statut staff prend donc effet à sa requête suivante, quel que soit le chemin de la modification (admin, CLI, SQL, autre instance). Un compte désactivé ou qui n'a plus accès à l'admin voit sa session fermée.
+Le compte (actif, rang), ses groupes et ses droits sont relus en base à chaque requête admin : la session ne garde que l'identité de l'utilisateur. Retirer un droit ou un groupe, désactiver un compte ou baisser son rang prend donc effet à sa requête suivante, quel que soit le chemin de la modification (admin, CLI, SQL, autre instance). Un compte désactivé ou qui n'a plus accès à l'admin voit sa session fermée.
 
 ---
 
-## Ressources `groupes` et `groupes_droits`
+## Tables du framework : `users`, `groupes`, `groupes_droits`
 
-Ces deux ressources ne bénéficient d'**aucun traitement spécial** : elles suivent exactement la même logique générique que n'importe quelle ressource (`can_read`/`can_create`/`can_update`/`can_delete` via `eihwaz_groupes_droits`). Un superuser peut donc délibérément accorder `can_update` sur `"groupes"` à un groupe "Admin", qui pourra alors gérer les permissions d'autres groupes (par exemple pour déléguer à des modérateurs) — c'est un usage légitime, pas un contournement.
+Les comptes, les groupes, les droits et les appartenances sont réservés aux **rangs** : le superuser, le dirigeant, et un admin seulement pour les tables et colonnes que le dirigeant lui a cochées. Aucun groupe ne peut recevoir de droit sur ces tables, et personne ne peut le lui accorder, superuser compris : un lambda, même staff, n'y fait aucune opération.
 
-**Ce que ça implique en pratique :** accorder des droits sur `groupes`/`groupes_droits` à un groupe non-superuser lui donne un contrôle réel sur les permissions — y compris, potentiellement, les siennes propres si son utilisateur appartient aussi à ce groupe. Il n'existe pas de garde-fou framework contre l'auto-élévation dans ce cas précis : c'est à qui configure les groupes de ne pas accorder ces droits à un rôle qui ne doit pas les avoir. Seul `is_superuser` reste un bypass total et non délégable (bit sur l'utilisateur, jamais accordé via un groupe).
+Seule exception : un lambda qui lit une ligne liée à un compte (par une clé étrangère) voit le `username` de ce compte, en lecture seule.
 
 ---
 
 ## Logique d'accès
 
 ```text
-authentifié ?
+authentifié, actif et activé ?
   └─ non → redirection /admin/login
-  └─ oui → is_staff OU is_superuser ?
-               └─ aucun → redirection /admin/login
-               └─ is_superuser → AUTORISÉ (accès total, toutes ressources)
-               └─ is_staff → can_read sur la ressource ?
-                                └─ non  → ressource absente de la nav
-                                └─ oui  → liste visible
-                                          can_create / can_update / can_delete
-                                          pour les opérations correspondantes
-                                          can_update_own / can_delete_own
-                                          pour ses propres enregistrements uniquement
+  └─ oui → can_access_admin() ? (rang ≥ admin, ou membre d'un groupe staff)
+               └─ non → redirection /admin/login
+               └─ oui → rights_on(ressource)
+                          superuser → tout, contournement compris
+                          dirigeant → tout
+                          admin     → sa grille (table × colonne)
+                          lambda    → union de ses groupes, jamais une table du framework
+                        └─ can_read ? non → ressource absente de la nav
+                                      oui → liste, colonnes cochées seulement
+                                            can_create / can_update / can_delete
+                                            (_own : ses propres lignes)
 ```
 
 ---
@@ -95,7 +91,7 @@ Le filtre de rang limite les lignes qu'une preuve peut toucher, selon le rang d�
 ## Notes
 
 - `ModelAdmin` ne déclare pas de permissions : la configuration est entièrement en base.
-- Les permissions sont agrégées par OR logique sur tous les groupes de l'utilisateur.
+- Pour un lambda, les droits sont l'union (OU logique) de ses groupes, recalculée à chaque requête.
 - Un utilisateur peut avoir `can_read` sans `can_create` — il voit la liste mais ne peut pas créer.
 - Les colonnes secrètes et les rangs restent hors formulaire, y compris pour un superuser (refus au boot). Le détail des drapeaux est au-dessus.
 

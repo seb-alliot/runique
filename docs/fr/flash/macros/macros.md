@@ -74,6 +74,10 @@ context_update!(request => {
 
 ---
 
+> **Limite actuelle :** les macros de redirection ignorent un échec d'écriture en session. Si la session ne peut pas être enregistrée (base indisponible avec le store en base), le message est perdu sans erreur. L'action elle-même n'est pas affectée.
+
+---
+
 ## Différence flash vs flash_now
 
 | | `success!` / `error!` / etc. | `flash_now!` |

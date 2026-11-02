@@ -27,9 +27,9 @@ When using `{% form.signup_form %}`, validation errors are **automatically rende
 ```rust
 // Rust handler
 pub async fn signup(mut request: Request) -> AppResult<Response> {
-    let form: RegisterForm = request.form();
+    let form: SignupForm = request.form();
 
-    let validated = match ValidationForm::try_form(form, &request, "my_form").await {
+    let validated = match ValidationForm::try_form(form, &request, "signup").await {
         Ok(validated) => validated,
         Err(form) => {
             // GET (nothing submitted): blank form, no flash.

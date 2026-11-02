@@ -11,10 +11,11 @@ Runique includes a ready-to-use user model that requires no configuration.
 | `id` | `Pk` | Primary key (`i32` by default, `i64` with `big-pk`, `Uuid` with `pk-uuid`) |
 | `username` | `String` | Unique username |
 | `email` | `String` | Email address |
-| `password` | `String` | Argon2 hash — never stored in plain text |
+| `password` | `String` | Hash (the `PasswordConfig`'s algorithm) — never stored in plain text |
 | `is_active` | `bool` | Account active |
-| `is_staff` | `bool` | Admin panel access (limited) |
-| `is_superuser` | `bool` | Full access, bypasses all rules |
+| `is_admin` | `bool` | Admin rank: panel access, with its own rights (table × column) |
+| `is_dirigeant` | `bool` | Dirigeant rank: every right on the project's models |
+| `is_superuser` | `bool` | Superuser rank: full access |
 | `created_at` | datetime | Creation timestamp |
 | `updated_at` | datetime | Last update timestamp |
 | `activated_at` | datetime | Activation by the owner (empty while the account is pending) |
@@ -54,12 +55,12 @@ did its owner activate it, through the emailed link?).
 | --- | --- | --- | --- | --- |
 | `false` | empty | **Pending** — created, never activated | Refused | Link that **activates** the account |
 | `true` | set | **Active** | Allowed | Reset link |
-| `false` | set | **Deactivated** by the staff | Refused | "Account blocked" email, no link |
+| `false` | set | **Deactivated** from the admin | Refused | "Account blocked" email, no link |
 | `true` | empty | Impossible — refused by the database | — | — |
 
 - The **first activation** belongs to the email's owner: an admin can't tick `is_active` on a
   pending account.
-- **Deactivating and reactivating** an account activated before is the staff's role
+- **Deactivating and reactivating** an account activated before is done from the admin, by an account allowed to.
   (`can_update` on `users`).
 - Changing the password **never reactivates** a deactivated account.
 - The "forgot password" page answers the same whatever the account's state or existence.
@@ -73,7 +74,9 @@ In code, the model implements the `RuniqueUser` trait:
 | Method | Description |
 | --- | --- |
 | `can_sign_in()` | `is_active` **and** `activated_at` set |
-| `can_access_admin()` | `can_sign_in()` and (`is_staff` or `is_superuser`) |
+
+
+Admin panel access is read on the signed-in account (`request.user`): `can_access_admin()` is true for rank admin, dirigeant or superuser, or for a member of a group that opens the admin. See [Middlewares & CurrentUser](/docs/en/auth/middleware).
 
 ---
 

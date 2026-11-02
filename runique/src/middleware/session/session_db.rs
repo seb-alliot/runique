@@ -170,6 +170,22 @@ impl RuniqueSessionStore {
         Ok(model)
     }
 
+    /// Deletes, inside the caller's transaction, every session of `user_id`
+    /// and the one behind `cookie_id`, whoever it belongs to: a password reset
+    /// signs the account out everywhere, and the browser it ran in.
+    pub(crate) async fn revoke_in_transaction(
+        txn: &sea_orm::DatabaseTransaction,
+        user_id: crate::utils::pk::Pk,
+        cookie_id: Option<&str>,
+    ) -> Result<(), DbErr> {
+        let mut sessions = sea_orm::Condition::any().add(Column::UserId.eq(user_id));
+        if let Some(cookie_id) = cookie_id {
+            sessions = sessions.add(Column::CookieId.eq(hash_cookie_id(cookie_id)));
+        }
+        Entity::delete_many().filter(sessions).exec(txn).await?;
+        Ok(())
+    }
+
     /// Persists serialized session data for an existing row (no-op if not found).
     /// Creates or updates a session entry (upsert).
     ///

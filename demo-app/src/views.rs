@@ -48,8 +48,13 @@ pub async fn login_user(mut request: Request) -> AppResult<Response> {
     handle_login(&mut request, form).await
 }
 
+/// Runique checks a POST's CSRF token when the view reads its form; this one
+/// reads none, so it checks the token itself.
 pub async fn deconnexion(request: Request) -> AppResult<Response> {
-    logout(&request.session, None).await.ok();
+    if !request.prisme.csrf_valid {
+        return Ok(StatusCode::FORBIDDEN.into_response());
+    }
+    logout(&request.session, None).await?;
     Ok(Redirect::to("/").into_response())
 }
 

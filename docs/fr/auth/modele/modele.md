@@ -11,10 +11,11 @@ Runique inclut un modèle utilisateur prêt à l'emploi, sans aucune configurati
 | `id` | `Pk` | Clé primaire (`i32` par défaut, `i64` avec `big-pk`, `Uuid` avec `pk-uuid`) |
 | `username` | `String` | Nom d'utilisateur unique |
 | `email` | `String` | Adresse email |
-| `password` | `String` | Hash Argon2 — jamais en clair |
+| `password` | `String` | Hash (algorithme de la `PasswordConfig`) — jamais en clair |
 | `is_active` | `bool` | Compte actif |
-| `is_staff` | `bool` | Accès au panneau admin (limité) |
-| `is_superuser` | `bool` | Accès complet, bypass toutes les règles |
+| `is_admin` | `bool` | Rang admin : accès au panneau, avec ses droits propres (table × colonne) |
+| `is_dirigeant` | `bool` | Rang dirigeant : tous les droits sur les modèles du projet |
+| `is_superuser` | `bool` | Rang superuser : accès complet |
 | `created_at` | datetime | Date de création |
 | `updated_at` | datetime | Date de mise à jour |
 | `activated_at` | datetime | Activation par le propriétaire (vide tant que le compte est en attente) |
@@ -54,12 +55,12 @@ Deux colonnes décrivent l'état d'un compte : `is_active` (est-il actif ?) et `
 | --- | --- | --- | --- | --- |
 | `false` | vide | **En attente** — créé, jamais activé | Refusée | Lien qui **active** le compte |
 | `true` | rempli | **Actif** | Autorisée | Lien de réinitialisation |
-| `false` | rempli | **Désactivé** par le staff | Refusée | Email « compte bloqué », sans lien |
+| `false` | rempli | **Désactivé** depuis l'admin | Refusée | Email « compte bloqué », sans lien |
 | `true` | vide | Impossible — refusé par la base | — | — |
 
 - La **première activation** appartient au propriétaire de l'email : un admin ne peut pas cocher
   `is_active` sur un compte en attente.
-- **Désactiver et réactiver** un compte déjà activé est le rôle du staff (`can_update` sur `users`).
+- **Désactiver et réactiver** un compte déjà activé se fait depuis l'admin, par un compte qui en a le droit.
 - Changer de mot de passe **ne réactive jamais** un compte désactivé.
 - La page « mot de passe oublié » répond la même chose quel que soit l'état ou l'existence du compte.
 - Pour annuler une invitation (compte en attente), supprimer le compte.
@@ -72,7 +73,8 @@ Côté code, le modèle implémente le trait `RuniqueUser` :
 | Méthode | Description |
 | --- | --- |
 | `can_sign_in()` | `is_active` **et** `activated_at` rempli |
-| `can_access_admin()` | `can_sign_in()` et (`is_staff` ou `is_superuser`) |
+
+L'accès au panneau d'administration se lit sur le compte connecté (`request.user`) : `can_access_admin()` répond vrai pour un rang admin, dirigeant ou superuser, ou pour un membre d'un groupe qui ouvre l'admin. Voir [Middlewares & CurrentUser](/docs/fr/auth/middleware).
 
 ---
 

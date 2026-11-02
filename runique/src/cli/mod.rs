@@ -8,6 +8,7 @@ pub use makemigration::{
 };
 
 pub mod migrate;
+pub(crate) mod migration_crate;
 
 pub mod cli_admin;
 pub use cli_admin::create_superuser;

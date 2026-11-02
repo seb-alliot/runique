@@ -3,14 +3,17 @@
 ## Cycle de vie
 
 ```text
-1. Requête HTTP arrive
-2. Middlewares traversés (order des slots)
-3. Extensions injectées (Engine, Tera, Config)
-4. Session chargée, CSRF vérifié
-5. Handler appelé avec extracteurs (Request, request.form())
-6. Handler retourne AppResult<Response>
-7. Middlewares traversés en sens inverse
-8. Réponse HTTP envoyée
+1. La requête HTTP arrive
+2. Les middlewares sont traversés dans l'ordre des slots (voir Stack middleware) :
+   Engine/Tera/Config injectés, IP cliente, hôte vérifié, en-têtes de sécurité…
+3. La session est chargée, puis le compte connecté relu en base (request.user)
+4. CSRF : un jeton envoyé en en-tête (X-CSRF-Token) est vérifié ici ; un jeton
+   de formulaire (champ csrf_token) est vérifié par Prisme à l'étape suivante
+5. Le handler reçoit Request : le corps est lu (Prisme), request.form() construit
+   le formulaire, ValidationForm::try_form le valide
+6. Le handler retourne AppResult<Response>
+7. Les middlewares sont traversés en sens inverse (la session est enregistrée)
+8. La réponse HTTP est envoyée
 ```
 
 ---

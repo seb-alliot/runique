@@ -9,6 +9,22 @@ No middleware is configured through `.env`. In debug mode (`DEBUG=true`), no-cac
 
 ---
 
+## HTTPS, ACME and logging
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ENFORCE_HTTPS` | `false` | Redirects HTTP to HTTPS behind a proxy (see [Forced HTTPS](/docs/en/middleware/csp)) |
+| `HSTS_MAX_AGE` | `31536000` (1 year) | Duration of the `Strict-Transport-Security` header, in seconds |
+| `ACME_ENABLED` | `false` | Let's Encrypt certificates handled by Runique (`acme` feature) |
+| `ACME_DOMAIN`, `ACME_EMAIL` | — | Required when `ACME_ENABLED=true` |
+| `ACME_CERTS_DIR` | `./certs` | Certificate folder — an absolute path in production |
+| `RUST_LOG` | — | Log filter (`tracing`), overrides the default level (`debug` in debug, `warn` otherwise) |
+| `RUNIQUE_LOG_FILE` | — | Adds a log file, with no recompiling |
+
+See [Network & HTTP](/docs/en/installation/network) for ACME.
+
+---
+
 ## Sessions
 
 Session memory limits and cleanup interval are configured via the builder — see [Sessions](/docs/en/session).

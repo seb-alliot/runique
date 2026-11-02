@@ -9,6 +9,22 @@ Aucun middleware ne se configure par le `.env`. En mode debug (`DEBUG=true`), de
 
 ---
 
+## HTTPS, ACME et journalisation
+
+| Variable | Défaut | Description |
+|----------|--------|-------------|
+| `ENFORCE_HTTPS` | `false` | Redirige HTTP vers HTTPS derrière un proxy (voir [HTTPS forcé](/docs/fr/middleware/csp)) |
+| `HSTS_MAX_AGE` | `31536000` (1 an) | Durée de l'en-tête `Strict-Transport-Security`, en secondes |
+| `ACME_ENABLED` | `false` | Certificats Let's Encrypt gérés par Runique (feature `acme`) |
+| `ACME_DOMAIN`, `ACME_EMAIL` | — | Requis quand `ACME_ENABLED=true` |
+| `ACME_CERTS_DIR` | `./certs` | Dossier des certificats — chemin absolu en production |
+| `RUST_LOG` | — | Filtre de logs (`tracing`), prioritaire sur le niveau par défaut (`debug` en debug, `warn` sinon) |
+| `RUNIQUE_LOG_FILE` | — | Ajoute un fichier de logs, sans recompiler |
+
+Voir [Réseau & HTTP](/docs/fr/installation/network) pour ACME.
+
+---
+
 ## Sessions
 
 Les limites mémoire et l'intervalle de cleanup sont configurés via le builder — voir [Sessions](/docs/fr/session).

@@ -1,6 +1,6 @@
 use runique::prelude::*;
 mod entities;
-mod formulaire;
+mod forms;
 mod url;
 mod views;
 

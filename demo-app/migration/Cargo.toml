@@ -7,8 +7,6 @@ edition = "2021"
 sea-orm-migration = { version = "2.0.4", features = [
     "runtime-tokio-rustls",
     "sqlx-postgres",
-    "sqlx-mysql",
-    "sqlx-sqlite",
 ] }
 
 tokio = { version = "1", features = ["full"] }

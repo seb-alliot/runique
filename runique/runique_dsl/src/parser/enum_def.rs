@@ -1,11 +1,42 @@
 //! `enums: { Name [Variant, ...], ... }` entry parsing — one `EnumDef` per
 //! `Name: [...]` line.
 use crate::ast::{EnumBackingType, EnumDef, EnumVariant};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use syn::{
     Ident, Result, Token,
     parse::{Parse, ParseStream},
 };
+
+/// A string enum reads a submitted value back by its stored value, its name or
+/// its label (`FromStr`, first match wins): no two variants may share one, or
+/// a value the form offered for one variant is read back as another.
+fn validate_string_aliases(
+    name: &Ident,
+    backing_type: &EnumBackingType,
+    variants: &[EnumVariant],
+) -> Result<()> {
+    if !matches!(backing_type, EnumBackingType::Auto) {
+        return Ok(());
+    }
+    let mut owners: HashMap<String, &Ident> = HashMap::new();
+    for variant in variants {
+        let v = &variant.name;
+        let aliases: HashSet<String> = [variant.db_str(), v.to_string(), variant.display_str()]
+            .into_iter()
+            .collect();
+        for alias in aliases {
+            if let Some(other) = owners.insert(alias.clone(), v) {
+                return Err(syn::Error::new(
+                    v.span(),
+                    format!(
+                        "Enum '{name}': \"{alias}\" is a value, name or label of both '{other}' and '{v}' — a submitted \"{alias}\" would be read as '{other}'"
+                    ),
+                ));
+            }
+        }
+    }
+    Ok(())
+}
 
 /// An `i32`/`i64` enum stores each variant as its number: every variant needs
 /// one, within the type's range, and no two may share it — otherwise rows
@@ -131,6 +162,7 @@ impl Parse for EnumDef {
             ));
         }
         validate_int_values(&name, &backing_type, &variants)?;
+        validate_string_aliases(&name, &backing_type, &variants)?;
         let _ = input.parse::<Token![,]>();
         Ok(EnumDef {
             name,
@@ -205,6 +237,38 @@ mod tests {
     #[test]
     fn duplicate_variant_rejected() {
         assert!(parse("Status: [Active, Active]").is_err());
+    }
+
+    #[test]
+    fn label_matching_another_variants_value_rejected() {
+        let Err(e) = parse(r#"Status: [Admin: "draft", Draft="draft"]"#) else {
+            panic!("\"draft\" would read back as Admin");
+        };
+        assert!(
+            e.to_string().contains("'Admin' and 'Draft'"),
+            "names both: {e}"
+        );
+    }
+
+    #[test]
+    fn value_matching_another_variants_name_rejected() {
+        assert!(parse(r#"Status: [Draft, Published="Draft"]"#).is_err());
+    }
+
+    #[test]
+    fn shared_label_rejected() {
+        assert!(parse(r#"Status: [Draft: "Pending", Review: "Pending"]"#).is_err());
+    }
+
+    #[test]
+    fn a_variant_may_repeat_its_own_aliases() {
+        assert!(parse(r#"Status: [Draft="Draft", Published=("published", "Published")]"#).is_ok());
+    }
+
+    #[test]
+    fn int_enums_are_not_checked_for_string_aliases() {
+        // Their `FromStr` matches the variant name only.
+        assert!(parse(r#"Level: i32 [Low=(1, "Same"), High=(2, "Same")]"#).is_ok());
     }
 
     #[test]

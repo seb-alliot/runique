@@ -48,7 +48,8 @@ impl RegisterForm {
         let model = users::ActiveModel {
             username: Set(self.cleaned::<String>("username").unwrap_or_default()),
             email: Set(self.cleaned::<String>("email").unwrap_or_default()),
-            // The password is already Argon2-hashed after is_valid()
+            // Auto mode: after is_valid(), the field's value is already the hash.
+            // In Manual or Custom mode, hash it here with hash().
             password: Set(self.cleaned::<String>("password").unwrap_or_default()),
             ..Default::default()
         };
@@ -171,14 +172,17 @@ context_update!(request => {
 });
 ```
 
-### 2. Forgetting `mut` on form
+### 2. Validating without naming the form
 
 ```rust
-//  Cannot call is_valid()
-let form: MyForm = request.form();
-
-//  Correct
+// Avoid: is_valid() alone can't tell which form was submitted,
+// and a form never named fails to render with {% form.x %}.
 let mut form: MyForm = request.form();
+if form.is_valid().await { /* ... */ }
+
+// Correct: try_form names the form and only validates the one submitted
+let form: MyForm = request.form();
+match ValidationForm::try_form(form, &request, "my_form").await { /* ... */ }
 ```
 
 ### 3. Comparing passwords after `is_valid()`

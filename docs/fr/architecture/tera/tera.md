@@ -26,6 +26,9 @@ Le filtre `form` déclare `is_safe()` — son HTML est émis sans échappement, 
 | `media` | Préfixe URL média de l'app |
 | `form` | Rendu de formulaire complet ou par champ |
 | `csrf_field` | Génère un input hidden CSRF |
+| `markdown`, `sanitize` | HTML rendu depuis du Markdown / HTML nettoyé (ammonia), sans échappement |
+
+Runique enregistre aussi des filtres utilitaires (`humanize`, `slugify`, `format_date`, `filesizeformat`, `mask`, `plaintext`, `striptags`, `urlencode`…) : voir [Filtres](/docs/fr/template/filtres).
 
 ---
 

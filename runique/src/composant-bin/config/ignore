@@ -1,5 +1,14 @@
-# Fichiers et dossiers à ignorer par Git
+# Build output
 /target/
+
+# Local databases
 *.db
 *.sqlite
+
+# Secrets: SECRET_KEY, database credentials
 .env
+
+# Files your users upload (the project's own media are listed below)
+/media/*
+!/media/favicon/
+!/media/toshiro.avif

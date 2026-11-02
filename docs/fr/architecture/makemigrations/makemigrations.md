@@ -61,14 +61,18 @@ Les phases ci-dessus ne font que *calculer* un plan en mémoire — rien n'est �
 
    Le contrôle couvre les changements `model!{}` comme `extend!{}`.
 
-   > **Exception — changement de type de colonne** : `--force` débloque l'exécution de la commande, mais ne génère **jamais** l'`ALTER` réel pour un changement de type (`String → Decimal`, etc.). Le fichier généré contient uniquement un commentaire `// Manual migration required.` — à écrire vous-même. Les autres catégories destructives génèrent le vrai SQL dès que `--force` est passé. Cette exception est volontaire : une conversion de type générique n'a pas de règle de cast fiable inter-moteurs (Postgres exige un `USING` explicite, MariaDB caste silencieusement sans erreur en cas de valeur invalide, SQLite ne supporte pas `ALTER COLUMN TYPE` du tout).
-2. **Commit unique** : la création des dossiers, l'écriture des fichiers, l'enregistrement dans `lib.rs` et le positionnement des migrations du framework s'exécutent sous un rollback unique. En cas d'erreur d'écriture, les fichiers générés sont supprimés et les snapshots ainsi que `lib.rs` préexistants sont restaurés dans leur état précédent.
+   > **Exception — changement de type de colonne** : `--force` débloque l'exécution de la commande, mais ne génère **jamais** l'`ALTER` réel pour un changement de type (`String → Decimal`, etc.). Le fichier généré contient uniquement un commentaire `// Manual migration required.` — à écrire vous-même. La console le signale en jaune après la génération, colonne par colonne. Les autres catégories destructives génèrent le vrai SQL dès que `--force` est passé. Cette exception est volontaire : une conversion de type générique n'a pas de règle de cast fiable inter-moteurs (Postgres exige un `USING` explicite, MariaDB caste silencieusement sans erreur en cas de valeur invalide, SQLite ne supporte pas `ALTER COLUMN TYPE` du tout).
+2. **Écriture protégée** : l'écriture des fichiers, l'enregistrement dans `lib.rs` et le positionnement des migrations du framework s'exécutent sous un rollback commun. En cas d'erreur d'écriture, les fichiers générés sont supprimés, et les snapshots ainsi que `lib.rs` préexistants sont restaurés dans leur état précédent.
+
+   **Limites actuelles** : les dossiers sont créés avant cette protection, la mise à niveau des seuls snapshots (sans migration) s'écrit sans rollback, et un arrêt brutal (coupure, `kill -9`) en pleine écriture n'est pas rattrapé. Une protection complète (écriture dans un dossier temporaire, puis reprise au lancement suivant) est prévue. D'ici là, `migration/` étant versionné, `git` permet de le restaurer.
 
 ---
 
 ## Pourquoi des snapshots maison ?
 
-Runique ne s'appuie pas uniquement sur l'état de la base de données (qui peut être désynchronisé). En conservant des snapshots de l'**état DSL**, le framework garantit que vos formulaires Admin correspondent toujours à vos déclarations de modèles, même si vous n'avez pas encore appliqué les migrations.
+`makemigrations` ne se connecte pas à la base : il compare vos modèles au **dernier état qu'il a lui-même généré**, enregistré dans les snapshots. La commande fonctionne donc sans base disponible, donne le même résultat sur toutes les machines de l'équipe, et ne dépend pas d'une base qui aurait pu être modifiée à la main.
+
+La contrepartie : un snapshot signifie « déjà migré ». Des snapshots copiés d'un autre projet sans leurs fichiers de migration font croire à `makemigrations` que les tables existent ; il ne génère alors rien pour elles.
 
 ### Logique `extend!{}`
 
@@ -135,11 +139,11 @@ runique makemigrations --force
 runique makemigrations --entities src/entities --migrations migration/src
 
 # Appliquer les migrations générées
-runique migration up            # ou : sea-orm-cli migrate up
+runique migration up
 
 # Annuler les N dernières / voir l'état
-sea-orm-cli migrate down -n 1
-sea-orm-cli migrate status
+runique migration down -n 1
+runique migration status
 ```
 
 ---

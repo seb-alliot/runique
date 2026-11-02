@@ -17,7 +17,9 @@ pub struct Model {
     #[sea_orm(unique)]
     pub token_hash: String,
 
-    /// FK → user table: the authoritative target of the reset.
+    /// FK → user table: the authoritative target of the reset. Unique: one
+    /// live link per user, enforced by the database.
+    #[sea_orm(unique)]
     pub user_id: crate::utils::pk::Pk,
 
     /// Expiration timestamp (UTC naive).

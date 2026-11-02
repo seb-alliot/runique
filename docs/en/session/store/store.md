@@ -50,7 +50,9 @@ By default, the store is purely in-memory. When the `orm` feature is active, a d
 - **Write**: synchronous to memory + asynchronous to DB for sessions with `user_id`
 - **Anonymous sessions**: never persisted to DB
 
-> The `eihwaz_sessions` table must exist — it is created by the framework migrations.
+> The `eihwaz_sessions` table must exist — it is created by the framework migrations (`runique migration up`). Without it, the first request looking a session up in the database fails (`no such table`).
+>
+> With a custom store (`with_session_store(...)`), this fallback isn't installed, and Runique can't revoke a user's sessions (signing other devices out, password reset): that's the store's job.
 
 ---
 
@@ -59,9 +61,9 @@ By default, the store is purely in-memory. When the `orm` feature is active, a d
 The memory store belongs to one process. Behind a load balancer with several instances of the app:
 
 - **Anonymous sessions** (CSRF token, flash messages, anything stored before sign-in) live only in the memory of the instance that created them. A request sent to another instance doesn't find them: a form fails its CSRF check, a flash message disappears.
-- **Authenticated sessions** are found again through the database fallback, but each instance reads its own memory first. Signing out or `close_user_sessions` on one instance clears the database and that instance's memory, not the copies already loaded by the others: there, the session stays usable until it expires.
+- **Authenticated sessions** are shared through the database: the database is the authority. On every request, an instance holding the session in memory still checks its row exists in the database. A logout, a password reset or a `close_user_sessions` on one instance deletes the row: the other instances refuse their copy on the next request.
 
-Until a shared store exists, route each visitor to the same instance (sticky sessions, also called session affinity, on the load balancer). With a single instance, none of this applies.
+Until a shared store exists for anonymous sessions, route each visitor to the same instance (sticky sessions, also called session affinity, on the load balancer) if your pages use forms before sign-in. With a single instance, none of this applies.
 
 ---
 
@@ -93,8 +95,8 @@ let app = RuniqueApp::builder(config)
 |---------------------------|----------------|---------|
 | Periodic timer | `with_session_cleanup_interval(secs)` | 60 s |
 | Low / High watermark | `with_session_memory_limit(low, high)` | 128 MB / 256 MB |
-| Authenticated session TTL | `with_session_duration(Duration)` | — |
-| Anonymous session TTL | `with_anonymous_session_duration(Duration)` | — |
+| Authenticated session TTL | `with_session_duration(Duration)` | 24 h |
+| Anonymous session TTL | `with_anonymous_session_duration(Duration)` | 5 min |
 | Exclusive login (one device) | `with_exclusive_login(bool)` | `false` |
 
 > Watermarks are expressed in **bytes**: `64 * 1024 * 1024` = 64 MB. The timer interval is in **seconds**.
