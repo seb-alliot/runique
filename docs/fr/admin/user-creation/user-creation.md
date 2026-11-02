@@ -68,33 +68,40 @@ Pas de `create_form:` / `edit_form:` / flag `inject_password` : c'est le comport
 
 ## Envoi de l'email
 
-L'email est envoyé si le mailer est configuré (variables `SMTP_*` dans `.env`).
+Le lien de bienvenue n'est envoyé que si les trois conditions sont réunies :
 
-Sans mailer (développement), le lien de reset est affiché dans un flash message.
+- un mailer est configuré (variables `SMTP_*` dans `.env`, voir [Mailer](/docs/fr/mailer)) ;
+- la réinitialisation de mot de passe est activée (`.with_password_reset(…)` dans le builder) : le lien mène à sa page ;
+- l'adresse publique est connue (`.with_public_url(…)` ; en debug seulement, le `Host` de la requête la remplace).
 
-Le template email de bienvenue par défaut est `admin/user_created_email.html`.
-Le template de reset (depuis la fiche compte) est `admin/reset_password_email.html`.
+Sinon le compte est créé quand même, et l'admin voit un avertissement « lien indisponible ». **Le lien n'est jamais affiché à l'admin**, même en développement : celui qui crée le compte ne doit pas pouvoir choisir le mot de passe à la place de son propriétaire. L'utilisateur peut toujours demander un lien plus tard par « mot de passe oublié ».
+
+Templates :
+
+| Email | Template |
+| --- | --- |
+| Bienvenue (création depuis l'admin) | `admin/user_created_email.html` |
+| Réinitialisation (bouton de la fiche du compte) | `admin/reset_password_email.html` |
 
 Contexte Tera disponible dans ces templates :
 
 | Variable | Valeur |
 | --- | --- |
 | `username` | Nom d'utilisateur |
-| `email` | Adresse email |
-| `reset_url` | Lien complet de reset, absolu (sur l'URL publique) |
+| `reset_url` | Lien complet, absolu (sur l'adresse publique) |
+| `t_greeting`, `t_body`, `t_btn`… | Textes traduits du mail (bienvenue : `t_greeting`, `t_body`, `t_btn`, `t_validity` ; réinitialisation : `t_title`, `t_greeting`, `t_body`, `t_btn`, `t_ignore`) |
+
+L'adresse email n'est jamais mise dans le lien : la page de réinitialisation la vérifie contre le compte lié au token.
 
 ---
 
-## URL de reset
-
-L'URL construite suit le schéma :
+## URL du lien
 
 ```
-{public_url}{reset_route}/{token}
+{public_url}/{reset_route}/{token}
 ```
 
-`public_url` vient de `.with_public_url(…)` dans le builder ; `reset_route` est celle de `with_password_reset()` (`/reset-password` par défaut). En production, l'application refuse de démarrer sans elle. En debug seulement, l'URL est construite depuis le header `Host` de la requête HTTP
-(`http://{host}/reset-password/...`).
+`public_url` vient de `.with_public_url(…)` ; `reset_route` est celle de `with_password_reset()` (`/reset-password` par défaut). En production, l'application refuse de démarrer sans adresse publique quand l'admin ou la réinitialisation sont actifs. En debug seulement, l'adresse est construite depuis l'en-tête `Host` de la requête.
 
 ---
 

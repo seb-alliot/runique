@@ -1,287 +1,108 @@
-# CSS classes per block — admin
+# CSS classes and JS hooks — admin
 
-Reference of CSS classes used in each Tera block.  
-Useful for targeting specific elements via CSS selectors without rewriting the whole block.
+The classes Runique's templates use, block by block, and the `id`s / attributes the admin's scripts look for. Useful for:
 
-> To modify global colors and spacing, prefer [CSS custom properties](/docs/en/admin/template-surcharge-blocks#css-theme-custom-properties).
+- **the CSS only**: knowing what to target in your stylesheet;
+- **the template only**: knowing what to keep so Runique's JS and stylesheets still apply.
 
----
-
-## Targeting a class without rewriting the block
-
-Rather than overriding an entire Tera block, inject an extra stylesheet via the `extra_css` block (with `{{ super() }}` to keep Runique's CSS) and target the classes listed below:
-
-```html
-{# templates/admin_base.html — admin layout override #}
-{% block extra_css %}
-    {{ super() }}
-    <link rel="stylesheet" href="{% static 'css/admin_custom.css' %}">
-{% endblock %}
-```
-
-```css
-/* static/css/admin_custom.css */
-
-/* Admin page title in red */
-.admin-page__title {
-    color: #c0392b;
-}
-
-/* Full-width "Create" button on mobile */
-@media (max-width: 640px) {
-    .admin-page__header .btn-primary {
-        width: 100%;
-    }
-}
-```
-
-See [Template overriding](/docs/en/admin/template-surcharge) for the full mechanism (`{% block %}`, `{{ super() }}`) and [Template system](/docs/en/admin/template) for the file hierarchy.
+The source of truth: `runique/templates/admin/` and `runique/static/css/admin/`.
 
 ---
 
-## `list_header` — `list.html`
+## To keep when you replace the HTML
 
-| Class | Element | Role |
+Runique's scripts find their elements by these `id`s, classes and attributes. Without them, the matching behavior stops (with no visible error).
+
+| Block | To keep | Role |
 | --- | --- | --- |
-| `.admin-page__header` | `<div>` | Flex header container |
-| `.admin-page__title` | `<h1>` | Resource title |
-| `.admin-page__subtitle` | `<p>` | Entry count |
-| `.btn .btn-primary` | `<a>` | Create button |
+| `sidebar` | `#adminSidebar`, `#sidebarToggle`, `#sidebarOverlay` | Open / collapse the sidebar (`admin.js`); `#mobileBurger` is in `admin_base.html` |
+| `topbar` | `#themeToggle` | Theme button (`theme-toggle.js`) |
+| `kebab` | `.admin-menu__trigger`, `.admin-menu__dropdown` | Open the row menu (`admin-kebab.js`) |
+| `list_bulk`, `list_table` | `#bulk-form`, `#bulk-action-bar`, `#bulk-count`, `#bulk-action-input`, `#bulk-ids-input`, `#bulk-check-all`, `.admin-table__bulk-check`, `[data-bulk-action]` | Selection and grouped actions (`admin-bulk.js`) |
+| `list_filters` | `#filterSidebar`, `#filterOverlay`, `#filterToggle`, `.admin-filter__group`, `.admin-filter__group-title`, `.admin-filter__group-body`, `.admin-filter__chevron`, `[data-filter-col]` | Filter panel (`admin-list.js`) |
+| `list_search` | `#mobileFilterToggle` | Button opening the filters on mobile (`admin-list.js`) |
+| `list_table` | `.admin-list__cards`, `.admin-list__field-value` | List display (`admin-list.js`) |
+| create, edit, detail pages | `[data-admin-auto-init]` | Field initialization (`admin-actions.js`, `checkbox-toggle.js`, `choice-filter.js`) |
+| rights | `.admin-rights__menu a`, `select[data-autosubmit]` | Grid menu, picking a group |
+| layout | `#rqModalOverlay`, `#rqModalTitle`, `#rqModalMsg`, `#rqModalOk`, `#rqModalCancel` | Confirmation modal, in `admin/admin_template.html` (not replaceable) |
+
+The list's search, sort and pagination go through HTMX attributes (`hx-get`, `hx-target="#list-content"`, `hx-swap`): a replaced block that wants to keep refreshing without a reload must copy them from Runique's.
 
 ---
 
-## `list_search` — `list_partial.html`
+## Classes per block
 
-| Class | Element | Role |
-| --- | --- | --- |
-| `.admin-search__row` | `<div>` | Search bar container |
-| `.admin-search__form` | `<form>` | Search form |
-| `.admin-search__wrapper` | `<div>` | Flex wrapper for input + buttons |
-| `.admin-search__input` | `<input>` | Search field |
-| `.admin-search__btn` | `<button>` | Submit button (magnifier) |
-| `.admin-search__filter-toggle` | `<button>` | Mobile filter toggle button |
-| `.admin-search__filter-badge` | `<span>` | Active filter count (mobile) |
+### Layout
 
----
+| Template | Classes |
+| --- | --- |
+| `admin/admin_template.html` | `admin-layout`, `admin-main`, `admin-content`, `rq-modal-overlay`, `rq-modal-box`, `rq-modal-title`, `rq-modal-msg`, `rq-modal-actions` |
+| `admin_base.html` | `admin-topbar`, `admin-topbar__burger`, `admin-topbar__breadcrumb`, `admin-topbar__sep` (pages) |
+| `sidebar` | `admin-sidebar`, `admin-sidebar__header`, `admin-sidebar__logo`, `admin-sidebar__title`, `admin-sidebar__nav`, `admin-sidebar__footer`, `admin-sidebar__footer-center`, `admin-sidebar__toggle`, `admin-sidebar__overlay`, `admin-nav__item`, `admin-nav__icon`, `admin-nav__label`, `admin-nav__divider`, `admin-nav__section-label` |
+| `topbar` | `admin-theme-toggle`, `admin-theme-icon`, `admin-theme-icon--sun`, `admin-theme-icon--moon`, `admin-topbar__user`, `admin-topbar__avatar`, `admin-logout__form`, `admin-logout__btn` |
 
-## `list_group_action` — `list_partial.html`
+### Page headers
 
-| Class | Element | Role |
-| --- | --- | --- |
-| `.admin-group-action__bar` | `<div>` | Bar container (hidden by default) |
-| `.admin-group-action__bar--visible` | modifier | Makes the bar visible (added by JS) |
-| `.admin-group-action__info` | `<span>` | "N selected" text |
-| `.admin-group-action__btns` | `<div>` | Action buttons container |
-| `.admin-group-action__selects` | `<div>` | Group action selects row |
-| `.admin-group-action__select` | `<select>` | Group action select |
+`admin-page__header`, `admin-page__title`, `admin-page__subtitle`, `admin-page__header-actions`, `admin-page__actions`, `admin-page__create-btn`.
 
----
+### List
 
-## `list_table` — `list_partial.html`
+| Block | Classes |
+| --- | --- |
+| `list_search` | `admin-search__wrapper`, `admin-search__form`, `admin-search__row`, `admin-search__input`, `admin-search__btn`, `admin-search__filter-toggle`, `admin-search__filter-badge` |
+| `list_bulk` | `admin-group-action__bar`, `admin-group-action__info`, `admin-group-action__btns` |
+| `list_table` | `admin-list__toolbar`, `admin-list__select-all`, `admin-list__sort-bar`, `admin-table__sort-link`, `admin-table__sort-indicator`, `admin-list__cards`, `admin-list__card`, `admin-list__card-header`, `admin-list__card-body`, `admin-list__card-actions`, `admin-list__field`, `admin-list__field-label`, `admin-list__field-value`, `admin-table__bulk-check`, `admin-table__td-actions` |
+| `list_pagination` | `admin-pagination`, `admin-pagination__info` |
+| `list_filters` | `admin-filter__sidebar`, `admin-filter__overlay`, `admin-filter__header`, `admin-filter__title`, `admin-filter__toggle`, `admin-filter__body`, `admin-filter__group`, `admin-filter__group-title`, `admin-filter__group-body`, `admin-filter__chevron`, `admin-filter__option`, `admin-filter__option--clear` |
+| `kebab` | `admin-menu`, `admin-menu__trigger`, `admin-menu__dropdown`, `admin-menu__item`, `admin-menu__item--danger`, `admin-menu__item--create-mobile`, `admin-menu__separator` |
 
-| Class | Element | Role |
-| --- | --- | --- |
-| `.admin-card` | `<div>` | Card container |
-| `.admin-table__wrapper` | `<div>` | Horizontal scroll |
-| `.admin-table` | `<table>` | Main table |
-| `.admin-table__col-bulk` | `<col>` | Checkbox column |
-| `.admin-table__col-id` | `<col>` | ID column |
-| `.admin-table__col-secondary` | `<col>` / `<td>` / `<th>` | Secondary columns (hidden on mobile) |
-| `.admin-table__col-expand` | `<col>` | Expand button column |
-| `.admin-table__col-actions` | `<col>` | Kebab actions column |
-| `.admin-table__th-bulk` | `<th>` | Checkbox header |
-| `.admin-table__th-right` | `<th>` | Actions header (right-aligned) |
-| `.admin-table__th-expand` | `<th>` | Expand header (empty) |
-| `.admin-table__sort-link` | `<a>` | Sort link in header |
-| `.admin-table__sort-indicator` | `<span>` | ▲▼ sort indicator |
-| `.admin-table__td-bulk` | `<td>` | Checkbox cell |
-| `.admin-table__bulk-check` | `<input>` | Selection checkbox |
-| `.admin-table__td-data` | `<td>` | Data cell (truncatable) |
-| `.admin-table__td-expand` | `<td>` | Expand button cell |
-| `.admin-table__td-actions` | `<td>` | Kebab menu cell |
-| `.admin-table__td-content` | `<span>` | Content truncated to 2 lines |
-| `.admin-badge--id` | `<span>` | Monospace ID badge |
-| `.admin-badge.admin-badge--green` | `<span>` | Boolean true badge |
-| `.admin-badge.admin-badge--neutral` | `<span>` | Boolean false badge |
-| `.admin-text--muted` | `<span>` | Empty value `—` |
-| `.admin-table__expand-btn` | `<button>` | Row expand button |
-| `.admin-table__expand-icon` | `<svg>` | Expand chevron icon |
-| `.admin-table__row-detail` | `<tr>` | Detail row (hidden by default) |
-| `.admin-table__detail-grid` | `<div>` | Secondary columns grid |
-| `.admin-table__detail-item` | `<div>` | Label + value item |
-| `.admin-table__detail-label` | `<span>` | Item label |
-| `.admin-table__detail-value` | `<span>` | Item value |
-| `.admin-empty-state` | `<div>` | Empty state container |
-| `.admin-empty-state__icon` | `<svg>` | Empty state icon |
-| `.admin-empty-state__title` | `<p>` | Empty state title |
-| `.admin-empty-state__desc` | `<p>` | Empty state description |
+### Detail
+
+| Block | Classes |
+| --- | --- |
+| page | `admin-detail__column` |
+| `detail_fields` | `admin-detail__fields`, `admin-detail__field`, `admin-detail__field-label`, `admin-detail__field-value` |
+| `detail_actions` | `admin-page__actions`, `admin-form--inline`, `admin-search__input--sm` |
+| `detail_groups` | `admin-rights__table`, `admin-rights__box` |
+| `detail_transfer` | `admin-search__input--sm` |
+
+### Forms and delete
+
+| Block | Classes |
+| --- | --- |
+| create / edit pages | `admin-card--form` |
+| `form_fields` | `form-grid` (the rest comes from the framework's field templates) |
+| `form_actions`, `delete_actions` | `admin-form__actions`, `admin-form--inline` |
+| `delete_warning` | `admin-warning` |
+
+### Dashboard, history, rights, transfer
+
+| Block | Classes |
+| --- | --- |
+| `dashboard_table` | `admin-stats__grid`, `admin-stats__card`, `admin-stats__body`, `admin-stats__label`, `admin-stats__value`, `admin-stats__action` |
+| `history_filters` | `admin-search__row`, `admin-search__input` |
+| `history_table`, entry page | `admin-table__wrapper`, `admin-table`, `admin-table__td-actions`, `admin-table__key` |
+| `rights_table` | `admin-rights__card`, `admin-rights__table`, `admin-rights__row`, `admin-rights__row--head`, `admin-rights__label`, `admin-rights__box`, `admin-rights__columns`, `admin-rights__column` |
+| rights page | `admin-rights`, `admin-rights__form`, `admin-rights__toc`, `admin-rights__toc-title`, `admin-rights__menu`, `admin-rights__links`, `admin-rights__select` |
+| transfer page | `admin-transfer__lines`, `admin-transfer__line`, `admin-transfer__keep`, `admin-transfer__gained-right`, `admin-transfer__lost-right` |
+
+### Login
+
+`login-wrapper`, `login-card`, `login-header`, `login-logo`, `login-title`, `login-subtitle`, `login-form`, `login-btn`, `form-group`, `form-label`, `form-input`, `form-error`, `alert`, `alert-danger`.
 
 ---
 
-## `list_pagination` — `list_partial.html`
+## Shared components
 
-| Class | Element | Role |
-| --- | --- | --- |
-| `.admin-pagination` | `<div>` | Pagination container |
-| `.admin-pagination__info` | `<span>` | "page / total" text |
-| `.btn .btn-sm .btn-secondary` | `<a>` / `<span>` | Previous / next buttons |
-| `.disabled` | modifier | Disabled button state |
+| Component | Classes |
+| --- | --- |
+| Card | `admin-card`, `admin-card__header`, `admin-card__title`, `admin-card__body`, `admin-card--flat`, `admin-card--full-width` |
+| Buttons | `btn`, `btn-primary`, `btn-secondary`, `btn-danger`, `btn-ghost`, `btn-sm`, `btn-icon` |
+| Badges | `admin-badge`, `admin-badge--id`, `admin-badge--green`, `admin-badge--red`, `admin-badge--blue`, `admin-badge--yellow`, `admin-badge--neutral` |
+| Empty state | `admin-empty-state`, `admin-empty-state__icon`, `admin-empty-state__title`, `admin-empty-state__desc` |
+| Text | `admin-text--muted`, `mt-sm` |
 
----
-
-## `list_filters` — `list_partial.html`
-
-| Class | Element | Role |
-| --- | --- | --- |
-| `.admin-filter__overlay` | `<div>` | Mobile overlay |
-| `.admin-filter__sidebar` | `<aside>` | Filter sidebar container |
-| `.admin-filter__header` | `<div>` | Sidebar header |
-| `.admin-filter__title` | `<span>` | "Filters" title |
-| `.admin-filter__toggle` | `<button>` | Hide/show button |
-| `.admin-filter__body` | `<div>` | Scrollable body |
-| `.admin-filter__group` | `<div>` | Single filter group |
-| `.admin-filter__group-title` | `<button>` | Group title (accordion) |
-| `.admin-filter__chevron` | `<svg>` | Accordion chevron |
-| `.admin-filter__group-body` | `<div>` | Group body |
-| `.admin-filter__option` | `<a>` | Filter option link |
-| `.admin-filter__option--active` | modifier | Active option |
-| `.admin-filter__option--clear` | modifier | Clear filter link |
-| `.admin-filter__pagination` | `<div>` | Filter value pagination |
-| `.admin-filter__page-btn` | `<a>` / `<span>` | Previous/next page button |
-| `.admin-filter__page-info` | `<span>` | Filter page info |
-
----
-
-## `create_header` / `edit_header` / `delete_header` / `group_edit_header`
-
-| Class | Element | Role |
-| --- | --- | --- |
-| `.admin-page__header` | `<header>` / `<div>` | Header container |
-
----
-
-## `create_form` / `edit_form`
-
-| Class | Element | Role |
-| --- | --- | --- |
-| `.admin-card.admin-card--form` | `<div>` | Form card |
-| `.admin-card__header` | `<div>` | Card header |
-| `.admin-card__body` | `<div>` | Card body |
-| `.form-grid` | `<div>` | Field grid (Runique class) |
-| `.admin-m2m__fields` | `<div>` | M2M fields section |
-| `.form-group.admin-m2m__group` | `<div>` | Single M2M field group |
-| `.form-label` | `<label>` | Field label (Runique class) |
-| `.admin-m2m__choices` | `<div>` | M2M choices container |
-| `.admin-m2m__choice` | `<label>` | Individual M2M choice |
-
----
-
-## `create_form_actions` / `edit_form_actions` / `delete_actions` / `group_edit_actions`
-
-| Class | Element | Role |
-| --- | --- | --- |
-| `.admin-form__actions` | `<div>` | Buttons container |
-| `.btn .btn-secondary` | `<a>` | Cancel button |
-| `.btn .btn-primary` | `<button>` | Submit button |
-| `.btn .btn-danger` | `<button>` | Delete confirm button |
-| `.admin-form--inline` | `<form>` | Inline form (delete) |
-
----
-
-## `detail_header`
-
-| Class | Element | Role |
-| --- | --- | --- |
-| `.admin-page__header` | `<div>` | Flex container |
-| `.admin-page__title` | `<h1>` | Title |
-| `.admin-page__subtitle` | `<p>` | Subtitle with ID |
-
-## `detail_actions`
-
-| Class | Element | Role |
-| --- | --- | --- |
-| `.admin-page__actions` | `<div>` | Action buttons container |
-| `.admin-btn--hide-mobile` | modifier | Hidden on mobile |
-| `.admin-btn--show-mobile` | modifier | Visible on mobile only |
-| `.admin-menu` | `<div>` | Mobile kebab container |
-| `.admin-menu__trigger` | `<button>` | Kebab trigger |
-| `.admin-menu__dropdown` | `<div>` | Dropdown menu |
-| `.admin-menu__item` | `<a>` / `<button>` | Menu item |
-| `.admin-menu__separator` | `<div>` | Separator |
-| `.admin-menu__item--danger` | modifier | Destructive item (red) |
-
-## `detail_table`
-
-| Class | Element | Role |
-| --- | --- | --- |
-| `.admin-card` | `<div>` | Container |
-| `.admin-table__wrapper` | `<div>` | Horizontal scroll |
-| `.admin-table` | `<table>` | Key → value table |
-| `.admin-table__key` | `<td>` | Key cell (left column) |
-| `.admin-badge--id` | `<span>` | ID badge |
-| `.admin-badge.admin-badge--green` | `<span>` | Boolean true |
-| `.admin-badge.admin-badge--neutral` | `<span>` | Boolean false |
-| `.admin-text--muted` | `<span>` | Empty value |
-
----
-
-## `delete_warning`
-
-| Class | Element | Role |
-| --- | --- | --- |
-| `.admin-warning` | `<div>` | Red warning banner |
-
----
-
-## `group_edit_fields`
-
-| Class | Element | Role |
-| --- | --- | --- |
-| `.admin-card.admin-card--form.admin-group-edit__section` | `<div>` | Section card |
-| `.form-grid` | `<div>` | Field grid (Runique class) |
-| `.admin-group-edit__toggle-row` | `<div>` | Check-all button row |
-
-## `group_edit_permissions`
-
-| Class | Element | Role |
-| --- | --- | --- |
-| `.admin-group-edit__section` | `<div>` | Permissions card section |
-| `.admin-group-edit__section-header` | `<div>` | Header with check-all button |
-| `.admin-group-edit__perm-grid` | `<div>` | Permissions grid (populated by JS) |
-
----
-
-## `dashboard_header`
-
-| Class | Element | Role |
-| --- | --- | --- |
-| `.admin-page__header` | `<div>` | Flex container |
-| `.admin-page__title` | `<h1>` | Title |
-| `.admin-page__subtitle` | `<p>` | Subtitle |
-
-## `dashboard_stats`
-
-| Class | Element | Role |
-| --- | --- | --- |
-| `.admin-stats__grid` | `<div>` | Card grid |
-| `.admin-stats__card` | `<a>` | Resource card |
-| `.admin-stats__label` | `<div>` | Resource name |
-| `.admin-stats__value` | `<div>` | Count |
-| `.admin-card.admin-card--full-width` | `<div>` | Empty state card (full width) |
-
-## `dashboard_table`
-
-| Class | Element | Role |
-| --- | --- | --- |
-| `.admin-card` | `<div>` | Container |
-| `.admin-card__header` | `<div>` | Card header |
-| `.admin-card__title` | `<h2>` | Card title |
-| `.admin-table__wrapper` | `<div>` | Horizontal scroll |
-| `.admin-table.admin-table--resources` | `<table>` | Resources table |
-| `.admin-table__col-secondary` | `<td>` / `<th>` | Hidden on mobile |
-| `.admin-badge--id` | `<span>` | Resource key badge |
-| `.admin-badge.admin-badge--blue` | `<span>` | Group badge |
-| `.admin-table__actions` | `<div>` | Action buttons container |
+Colors and sizes go through the CSS variables: see [CSS theme](/docs/en/admin/template-surcharge-blocks).
 
 ---
 
@@ -289,6 +110,6 @@ See [Template overriding](/docs/en/admin/template-surcharge) for the full mechan
 
 | Section | Description |
 | --- | --- |
-| [Block reference](/docs/en/admin/template-surcharge-blocks) | Block list + CSS custom properties |
-| [Template override](/docs/en/admin/template-surcharge) | Principle and examples |
+| [Override](/docs/en/admin/template-surcharge) | Block, CSS, page: how to declare |
+| [Block reference](/docs/en/admin/template-surcharge-blocks) | Block keys, CSS variables |
 | [Template summary](/docs/en/admin/template) | Admin templates |

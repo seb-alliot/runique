@@ -11,7 +11,8 @@ mon_app/
 │   ├── url.rs
 │   └── views.rs
 ├── templates/
-│   └── index.html
+│   ├── index.html
+│   └── about.html
 └── static/
     └── css/
         └── main.css
@@ -22,9 +23,6 @@ mon_app/
 ## main.rs
 
 ```rust
-#[macro_use]
-extern crate runique;
-
 mod url;
 mod views;
 
@@ -60,7 +58,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```rust
 use crate::views;
 use runique::prelude::*;
-use runique::{urlpatterns, view};
 
 pub fn routes() -> Routes {
     urlpatterns! {

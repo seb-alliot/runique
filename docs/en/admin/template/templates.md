@@ -1,43 +1,48 @@
 # Admin template system
 
-## 3-level hierarchy
+## Hierarchy
 
 ```
-admin_template.html   ← level 1: contract (defined blocks, fixed elements)
+admin/admin_template.html   ← contract: <head>, CSRF meta, csrf.js, modal
         ↓ extends
-admin_base.html            ← level 2: default visual layout
+admin_base.html             ← layout: stylesheets, sidebar, top bar
         ↓ extends
-list.html / create.html …  ← level 3: CRUD components
+admin/list.html, admin/create.html …   ← the pages, made of blocks
 ```
 
-**Level 1 — `admin_template.html`**: elements outside blocks guaranteed (CSRF, messages). Do not override directly.
+**`admin/admin_template.html`**: the HTML skeleton and what must always be there. Not replaceable.
 
-**Level 2 — `admin_base.html`**: default layout (sidebar, topbar, styles). This is the file the developer replaces to change the appearance.
+**`admin_base.html`**: the layout. It isn't replaced in one go: its sidebar and top bar change through their blocks (`GlobalBlock::Sidebar`, `GlobalBlock::Topbar`), its stylesheets through the CSS overrides.
 
-**Level 3 — components**: CRUD pages that extend level 2 and fill `{% block content %}`.
+**The pages**: each is made of replaceable blocks (`{% dev_block "name" %}`). You replace a block, or the whole page, for every model or for one. See [Template override](/docs/en/admin/template-surcharge).
 
 ---
 
-## Available blocks
+## Tera blocks of the skeleton
+
+A page extending `admin_base.html` (or `admin/admin_template.html`) can redefine:
 
 | Block | Role |
 | --- | --- |
+| `{% block lang %}` | The `<html lang>` tag |
 | `{% block title %}` | Page title (`<title>`) |
-| `{% block extra_css %}` | Additional CSS in `<head>` |
-| `{% block layout %}` | Wraps the entire layout (sidebar + main) |
-| `{% block sidebar %}` | Navigation sidebar |
-| `{% block topbar %}` | Top bar (breadcrumb, logout) |
-| `{% block breadcrumb %}` | Breadcrumb (defined in `admin_base`) |
-| `{% block messages %}` | Flash message area — contains `{% messages %}` by default |
-| `{% block content %}` | Main page content |
-| `{% block extra_js %}` | Additional JS scripts before `</body>` |
+| `{% block extra_css %}` | Stylesheets in `<head>`: `admin_base.html` writes the page's there, keep `{{ super() }}` |
+| `{% block layout %}` | The whole layout (sidebar + main area) |
+| `{% block sidebar %}` | Sidebar |
+| `{% block topbar %}` | Top bar (holds `breadcrumb`) |
+| `{% block breadcrumb %}` | Breadcrumb |
+| `{% block messages %}` | Flash messages, holds `{% messages %}` |
+| `{% block content %}` | Page content |
+| `{% block extra_js %}` | Scripts before `</body>`: `admin_base.html` puts the admin's there, keep `{{ super() }}` |
+| `{% block footer %}` | Footer |
 
-### Elements outside blocks (always present)
+### Outside blocks (always present)
 
-Written directly in `admin_template.html` — **cannot be removed** by overriding:
+Written directly in `admin/admin_template.html`, no override removes them (except a page extending nothing):
 
-- `<meta name="csrf-token" content="{{ csrf_token }}">` in `<head>`
+- `<meta name="csrf-token" content="{{ csrf_token }}">` and `<meta name="robots" content="noindex, nofollow">` in `<head>`
 - `<script src="{% runique_static "js/csrf.js" %}" defer></script>` before `</body>`
+- the confirmation modal
 
 ---
 
@@ -46,7 +51,7 @@ Written directly in `admin_template.html` — **cannot be removed** by overridin
 | Section | Description |
 | --- | --- |
 | [Context keys](/docs/en/admin/template-clef) | Variables injected by the backend into each template |
-| [Override](/docs/en/admin/template-surcharge) | Replace the layout or a CRUD component |
+| [Override](/docs/en/admin/template-surcharge) | Replace a block (HTML, CSS or both) or a whole page |
 
 ## See also
 

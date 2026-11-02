@@ -70,7 +70,39 @@ fn blog() -> ModelAdmin<blog::Entity> {
 
 Sans `.list().display(...)`, le framework affiche toutes les colonnes non secrètes (sur les comptes : username, email, is_active).
 
-Sans `.form().fields(...)`, le formulaire expose tous les champs du modèle (hors secrets et drapeaux de rang).
+Sans `.form().fields(...)`, le formulaire expose tous les champs du formulaire du modèle (`ModelMeta::Form`), réduits aux droits de l'utilisateur.
+
+## Routes admin déclarées dans `urlpatterns!`
+
+Une page à vous, servie avec la protection de l'admin, se déclare dans `urlpatterns!` avec le mot `admin` devant le chemin :
+
+```rust
+use runique::admin::AdminView;
+
+urlpatterns! {
+    "/" => get(views::index), name = "index",
+
+    // Page à part, rattachée au modèle des articles
+    admin "/articles/stats" => get(views::article_stats),
+        name = "article_stats",
+        for_model = article::Entity,
+
+    // Remplace la page de détail des articles
+    admin "/articles/{id}" => get(views::article_detail),
+        name = "article_detail",
+        for_model = article::Entity,
+        overrides = AdminView::Detail,
+}
+```
+
+- `name` et `for_model` sont obligatoires ; le modèle doit être enregistré dans l'admin.
+- Sans `overrides`, la page s'ajoute (`AdminView::Standalone`), autant que vous voulez par modèle.
+- `overrides = AdminView::Detail` remplace la page de détail du modèle : les liens « voir » de la liste mènent à votre route. Le chemin doit contenir exactement un segment `{id}`, et rien d'autre. C'est la seule page qui se remplace par une route ; les autres se remplacent par un template (voir [Surcharge](/docs/fr/admin/template-surcharge)).
+- La route garde son propre chemin, hors du préfixe de l'admin, et ne doit chevaucher ni une route publique ni l'espace de l'admin.
+- Accès : connecté avec accès à l'admin → votre handler ; connecté sans accès → renvoyé vers `/` avec un message, session gardée ; anonyme → `/` (ou la connexion de l'admin s'il venait de l'admin). Le préfixe de l'admin n'est jamais révélé à un inconnu.
+- La protection ne vérifie que l'**accès à l'admin**. Ce que votre handler lit ou écrit passe par la porte, comme dans le reste du framework : voir [Permissions](/docs/fr/admin/permission).
+
+Si l'admin est désactivé, déclarer une route `admin` refuse le démarrage.
 
 ## Imports utiles
 

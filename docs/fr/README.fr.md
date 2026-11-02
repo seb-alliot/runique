@@ -222,6 +222,7 @@ Détail complet par fichier : [docs/couverture_test.md](docs/couverture_test.md)
 - [Messages flash](https://runique.io/docs/fr/flash)
 - [Exemples](https://runique.io/docs/fr/exemple)
 - [Admin bêta](https://runique.io/docs/fr/admin)
+- [Limites connues](https://runique.io/docs/fr/limites)
 - [Sessions](https://runique.io/docs/fr/session)
 - [Variables d'environnement](https://runique.io/docs/fr/env)
 

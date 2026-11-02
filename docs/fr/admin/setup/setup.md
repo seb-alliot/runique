@@ -4,9 +4,14 @@ Guide pas à pas pour activer l'interface d'administration avec le builder `Mode
 
 ## Prérequis
 
-- Un projet Runique avec base de données configurée
+- Un projet Runique avec base de données configurée et migrations appliquées (`runique migration up`)
+- La feature `admin` activée dans `Cargo.toml` :
+
+  ```toml
+  runique = { version = "4.0.0", features = ["postgres", "admin"] }
+  ```
+
 - Des modèles déclarés via `model!` (entités SeaORM générées)
-- Un compte staff ou superuser pour se connecter
 
 ## Étape 1 — Créer `src/admin.rs`
 
@@ -53,8 +58,8 @@ fn articles() -> ModelAdmin<article::Entity> {
 
 Points importants :
 
-- `accounts_users(...)` remplace l'admin comptes du framework (table étendue via `extend!`)
-- `register(...)` ajoute un modèle métier
+- `accounts_users(...)` remplace l'admin des comptes du framework par le vôtre, construit sur votre `extend!` de `eihwaz_users`. C'est la seule façon de le remplacer : enregistrer un modèle sous la clé des comptes refuse le démarrage.
+- `register(...)` ajoute un modèle métier. **Enregistrez tous vos `model!{}`** : au démarrage, les droits de groupe qui visent un modèle non enregistré sont supprimés de la base.
 - Comptes et groupes existent déjà côté framework ; tu n'as pas à les recréer
 
 ## Étape 2 — Déclarer le module
@@ -80,6 +85,8 @@ builder::new(config)
     .run()
     .await?;
 ```
+
+En production (`DEBUG=false`), ajoutez `.with_public_url("https://mon-site.fr")` : sans elle, le démarrage est refusé dès que l'admin est actif. Les liens envoyés par mail (création de compte, réinitialisation) sont construits sur cette adresse, jamais sur l'en-tête `Host` de la requête, qu'un attaquant peut forger. En debug, le `Host` de la requête la remplace.
 
 Tu peux aussi passer une closure inline :
 
@@ -123,7 +130,9 @@ admin
 | `.search_max_len(n)` | Longueur max du terme de recherche |
 | `.with_rate_limiter(...)` | Rate limit login / actions |
 | `.with_login_guard(...)` | Verrouillage après N échecs |
-| `.templates(|t| …)` | Surcharge globale des templates |
+| `.templates(…)` | Surcharge des templates, voir [Templates](/docs/fr/admin/template-surcharge) |
+| `.resource_order([…])` | Ordre des modèles dans le menu (clés non listées à la fin) |
+| `.view_site_url("…")` | Lien « retour au site » quand le site public est servi ailleurs (par défaut : `with_public_url`, sinon `/`) |
 | `.sitemap("https://…")` | Directive Sitemap dans `/robots.txt` |
 | `.no_robots_txt()` | Désactive le robots.txt auto |
 | `.disable()` / `.enable()` | Coupe ou active le panel |
@@ -134,7 +143,7 @@ admin
 runique create-superuser
 ```
 
-Le compte obtenu a `is_superuser` (et le staff nécessaire) pour ouvrir le panel.
+La commande demande l'algorithme de hachage, le nom, l'email et le mot de passe, puis crée un compte actif avec `is_superuser`. Le superuser a tous les droits ; nommez ensuite un dirigeant depuis la fiche d'un compte (formulaire de rang) pour l'usage courant. Voir [Permissions](/docs/fr/admin/permission).
 
 ## Vérifier au boot
 

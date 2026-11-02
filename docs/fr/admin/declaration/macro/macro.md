@@ -37,24 +37,24 @@ Le `use …::Column::*` reste **dans** la fonction du modèle : deux modèles av
 
 | Méthode | Rôle |
 | --- | --- |
-| `.title("…")` | Nom dans la nav et les pages (sinon verbose_name / table) |
-| `.list(|l| …)` | Configure la vue liste |
-| `.form(|f| …)` | Configure create / edit |
-| `.templates(|t| …)` | Surcharge HTML de ce modèle uniquement |
+| `.title("…")` | Nom dans la nav et les pages (sinon `verbose_name_plural`, `verbose_name`, puis le nom de table) |
+| `.list(…)` | Configure la vue liste |
+| `.form(…)` | Configure create / edit |
+| `.templates(…)` | Surcharge des blocs ou des pages de ce modèle (HTML, CSS), voir [Surcharge](/docs/fr/admin/template-surcharge) |
 
 ## Liste — `ListConfig`
 
 | Méthode | Effet |
 | --- | --- |
 | `.display([Col, …])` | Colonnes visibles, dans l'ordre |
-| `.links([Col, …])` | Colonnes cliquables vers le détail (défaut : première de display) |
+| `.links([Col, …])` | Colonnes cliquables vers le détail. **Sans effet pour l'instant** (voir Limites) : chaque ligne a son lien vers le détail |
 | `.sortable([Col, …])` | Seules colonnes acceptées via `?sort_by=` |
 | `.ordering([(Col, Order::Asc), …])` | Tri SQL par défaut |
 | `.search([Col, …])` | Colonnes plein-texte. Sans appel : textes du `display`. `.search([])` désactive |
-| `.search_help("…")` | Texte d'aide sous la barre de recherche |
+| `.search_help("…")` | Texte d'aide de la recherche. **Sans effet pour l'instant** (voir Limites) |
 | `.filter([Col, …])` | Filtres latéraux (`?filter_status=…`) |
 | `.per_page(n)` | Taille de page pour ce modèle |
-| `.empty_value("—")` | Remplace les valeurs vides |
+| `.empty_value("—")` | Texte des valeurs vides. **Sans effet pour l'instant** (voir Limites) |
 | `.action(Col, value, "Label")` | Action groupée : fixe `Col` à `value` sur les lignes cochées |
 
 ### Actions groupées
@@ -90,7 +90,7 @@ Règles au boot :
 })
 ```
 
-Sans `.form()`, tous les champs du modèle (hors secrets / rangs) sont utilisés. Le gate décide encore ce que le compte courant peut lire ou écrire.
+Sans `.form()`, tous les champs du formulaire du modèle (`ModelMeta::Form`) sont utilisés. La porte décide encore ce que le compte courant peut lire ou écrire.
 
 ## Comptes étendus
 
@@ -116,6 +116,10 @@ Les drapeaux de rang (`is_superuser`, `is_dirigeant`, `is_admin`) ne sont pas de
 ## Secrets
 
 Les colonnes marquées secrètes sur le modèle (mot de passe, tokens…) sont refusées dans display, search, filter, sortable, links, fields, actions. Le message d'erreur apparaît au `validate()` de boot.
+
+## Limites actuelles
+
+- `.links`, `.search_help` et `.empty_value` sont acceptés et vérifiés au démarrage, mais l'affichage de la liste ne les utilise pas encore : la liste montre chaque ligne en carte avec son lien vers le détail, sans texte d'aide sous la recherche, et les valeurs vides telles quelles.
 
 ## Exemple réel (demo-app)
 

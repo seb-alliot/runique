@@ -1,30 +1,29 @@
 # Other examples
 
-## Flash messages — all types
+## Flash messages — every type
+
+The `success!`, `info!`, `warning!`, `error!` macros store the message in the session: it shows on the **next** page, so after a redirect.
 
 ```rust
-pub async fn demo_messages(mut request: Request) -> AppResult<Response> {
+pub async fn demo_messages(request: Request) -> AppResult<Response> {
     success!(request.notices => "This is a success message.");
-    info!(request.notices => "This is an informational message.");
+    info!(request.notices => "This is an information message.");
     warning!(request.notices => "This is a warning message.");
     error!(request.notices => "This is an error message.");
-
-    context_update!(request => {
-        "title" => "Messages demo",
-    });
-    request.render("demo.html")
+    Ok(Redirect::to("/").into_response())
 }
 ```
 
-```html
-{% extends "base.html" %}
+For a message on the page the same request renders (a form shown again after an error), use `flash_now!`:
 
-{% block content %}
-    <h1>{{ title }}</h1>
-    {% messages %}
-    <p>The messages above come from the flash session.</p>
-{% endblock %}
+```rust
+context_update!(request => {
+    "messages" => flash_now!(warning => "Check the fields."),
+});
+request.render("page.html")
 ```
+
+`{% messages %}` shows both kinds.
 
 ---
 
@@ -35,7 +34,7 @@ pub async fn demo_messages(mut request: Request) -> AppResult<Response> {
 ```rust
 pub fn routes() -> Routes {
     urlpatterns! {
-        "/api/users" => view!{ api_list_users }, name = "api_users",
+        "/api/articles" => view!{ api_list_articles }, name = "api_articles",
     }
 }
 ```
@@ -46,18 +45,21 @@ pub fn routes() -> Routes {
 use axum::Json;
 use serde_json::json;
 
-pub async fn api_list_users(request: Request) -> AppResult<Response> {
-    let users = users::Entity::find()
+pub async fn api_list_articles(request: Request) -> AppResult<Response> {
+    let articles = article::Entity::find()
         .all(&*request.engine.db)
         .await?;
 
     Ok(Json(json!({
-        "status": "success",
-        "count": users.len(),
-        "data": users
+        "count": articles.len(),
+        "data": articles
     })).into_response())
 }
 ```
+
+`data` serializes every column of the model. Never do it on a table holding a secret (the accounts: password hash): select the columns to expose, or go through a dedicated struct.
+
+An API POST without a Runique form must check `request.prisme.csrf_valid` itself, like sign-out (see [Forms](/docs/en/exemple/forms)).
 
 ---
 
@@ -109,8 +111,8 @@ pub async fn api_list_users(request: Request) -> AppResult<Response> {
 | `context_update!(request => {...})` | Inject variables into the template |
 | `success!(request.notices => "...")` | Flash message before redirect |
 | `flash_now!(error => "...")` | Immediate message (no redirect) |
-| `form.is_valid().await` | Validate a form |
-| `form.save(&db).await` | Persist to the database |
+| `ValidationForm::try_form(form, &request, "name").await` | Validate a form (only when it was sent) |
+| `validated.save(&db).await` | Persist to the database (not for an account: see [Forms](/docs/en/exemple/forms)) |
 | `form.get_form_mut().database_error(&err)` | Display a DB error inside the form |
 
 ---

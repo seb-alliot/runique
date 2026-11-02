@@ -15,12 +15,12 @@ ModelAdmin::new()
 
 L'inline afficherait un tableau éditable (ajout, suppression, modification) dans la page create/edit du parent.
 
-## `view!{}` — CRUD public
+## CRUD public
 
-Macro de routage public analogue aux vues génériques Django, avec templates surchargeables :
+Des vues génériques publiques (à la manière de Django), avec templates surchargeables. Le nom reste à choisir : `view!` existe déjà (routage GET / POST d'un handler). Esquisse :
 
 ```rust
-view! {
+crud! { // nom provisoire
     Article {
         model: entities::article::Entity,
         prefix: "/articles",

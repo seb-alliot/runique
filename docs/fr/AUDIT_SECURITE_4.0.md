@@ -6,6 +6,29 @@
 
 ---
 
+## État au 2 novembre 2026
+
+Ce document est l'audit du 29 mars 2026, laissé tel quel. État de chaque constat, revérifié dans le code à cette date :
+
+| Constat | État | Où le voir |
+|---------|------|-----------|
+| F-01 Email chiffré dans le lien de reset | ✅ Corrigé : lien = token seul, l'email saisi est comparé au compte du token | `auth/password.rs` (`send_reset_link`) |
+| F-02 Fichiers staging d'un formulaire refusé | ✅ Corrigé : supprimés dès que le formulaire est refusé | `forms/field.rs` (`discard_staged_uploads`) |
+| F-03 `RateLimiter` / `LoginGuard` sans plafond | 🟡 Ouvert (faille.md #1) | `middleware/security/rate_limit.rs`, `auth/guard.rs` |
+| F-04 Sessions d'un superuser | Sans objet : l'admin 4.0 n'expose plus les sessions ; aucune interface ne les gère (faille.md #9, fonctionnalité absente) | — |
+| F-05 Tests open-redirect | 🟡 Partiel : 18 tests, batterie PortSwigger pas importée | `tests/middleware/test_open_redirect.rs` |
+| F-06 Erreur FK brute à la suppression | ✅ Corrigé : la suppression bloquée par des lignes liées affiche un message, le texte du moteur ne va que dans les logs | `forms/validation_form.rs` (`linked_delete_error`, `written`) |
+| F-07 Crypto maison du reset | ✅ Disparu avec F-01 | — |
+| F-08 `consume` = lecture puis suppression | 🟢 Inchangé, acceptable : seule la suppression qui touche une ligne gagne | `utils/reset_token/mod.rs` |
+| F-09, F-10 | 🟢 Inchangés | — |
+| F-11 `success_redirect` non lu | 🟢 Inchangé : champ toujours non consommé, documenté | `auth/password.rs` |
+| F-12 Working tree non commité | Sans objet (état du dépôt au moment de l'audit) | — |
+| §5.2 (S1, S2, D3, D2, SEC1, SEC2, AM2) | Non revérifiés à cette date | — |
+
+Les constats suivants, plus récents, sont tenus dans `faille.md` à la racine du dépôt.
+
+---
+
 ## 1. Méthode
 
 | Source | Usage |

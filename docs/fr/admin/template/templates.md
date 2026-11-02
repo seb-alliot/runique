@@ -1,43 +1,48 @@
 # Système de templates admin
 
-## Hiérarchie en 3 niveaux
+## Hiérarchie
 
 ```
-admin_template.html   ← niveau 1 : contrat (blocks définis, éléments fixes)
+admin/admin_template.html   ← contrat : <head>, meta CSRF, csrf.js, fenêtre modale
         ↓ extends
-admin_base.html            ← niveau 2 : layout visuel par défaut
+admin_base.html             ← layout : feuilles de style, barre latérale, barre du haut
         ↓ extends
-list.html / create.html …  ← niveau 3 : composants CRUD
+admin/list.html, admin/create.html …   ← les pages, faites de blocs
 ```
 
-**Niveau 1 — `admin_template.html`** : éléments hors-blocks garantis (CSRF, messages). Ne pas surcharger directement.
+**`admin/admin_template.html`** : le squelette HTML et ce qui doit toujours être là. Ne se remplace pas.
 
-**Niveau 2 — `admin_base.html`** : layout par défaut (sidebar, topbar, styles). C'est ce fichier que le dev remplace pour changer l'apparence.
+**`admin_base.html`** : le layout. Il ne se remplace pas d'un bloc : on en change la barre latérale et la barre du haut par leurs blocs (`GlobalBlock::Sidebar`, `GlobalBlock::Topbar`), et ses feuilles de style par les surcharges de CSS.
 
-**Niveau 3 — composants** : pages CRUD qui héritent du niveau 2 et remplissent `{% block content %}`.
+**Les pages** : chacune est faite de blocs remplaçables (`{% dev_block "nom" %}`). On remplace un bloc, ou la page entière, pour tous les modèles ou pour un seul. Voir [Surcharge](/docs/fr/admin/template-surcharge).
 
 ---
 
-## Blocks disponibles
+## Blocs Tera du squelette
 
-| Block | Rôle |
+Une page qui étend `admin_base.html` (ou `admin/admin_template.html`) peut redéfinir :
+
+| Bloc | Rôle |
 | --- | --- |
+| `{% block lang %}` | La balise `<html lang>` |
 | `{% block title %}` | Titre de la page (`<title>`) |
-| `{% block extra_css %}` | CSS supplémentaires dans `<head>` |
-| `{% block layout %}` | Wraps l'ensemble du layout (sidebar + main) |
-| `{% block sidebar %}` | Barre latérale de navigation |
-| `{% block topbar %}` | Barre supérieure (breadcrumb, logout) |
-| `{% block breadcrumb %}` | Fil d'Ariane (défini dans `admin_base`) |
-| `{% block messages %}` | Zone de messages flash — contient `{% messages %}` par défaut |
-| `{% block content %}` | Contenu principal de la page |
-| `{% block extra_js %}` | Scripts JS supplémentaires avant `</body>` |
+| `{% block extra_css %}` | Feuilles de style dans `<head>` : `admin_base.html` y écrit celles de la page, garder `{{ super() }}` |
+| `{% block layout %}` | Tout le layout (barre latérale + zone principale) |
+| `{% block sidebar %}` | Barre latérale |
+| `{% block topbar %}` | Barre du haut (contient `breadcrumb`) |
+| `{% block breadcrumb %}` | Fil d'Ariane |
+| `{% block messages %}` | Messages flash, contient `{% messages %}` |
+| `{% block content %}` | Contenu de la page |
+| `{% block extra_js %}` | Scripts avant `</body>` : `admin_base.html` y met ceux de l'admin, garder `{{ super() }}` |
+| `{% block footer %}` | Pied de page |
 
-### Éléments hors-blocks (toujours présents)
+### Hors blocs (toujours présents)
 
-Inscrits directement dans `admin_template.html` — **impossibles à supprimer** par surcharge :
+Écrits directement dans `admin/admin_template.html`, aucune surcharge ne les retire (sauf une page qui n'étend rien) :
 
-- `<meta name="csrf-token" content="{{ csrf_token }}">` dans `<head>`
+- `<meta name="csrf-token" content="{{ csrf_token }}">` et `<meta name="robots" content="noindex, nofollow">` dans `<head>`
 - `<script src="{% runique_static "js/csrf.js" %}" defer></script>` avant `</body>`
+- la fenêtre modale de confirmation
 
 ---
 
@@ -46,7 +51,7 @@ Inscrits directement dans `admin_template.html` — **impossibles à supprimer**
 | Section | Description |
 | --- | --- |
 | [Clés de contexte](/docs/fr/admin/template-clef) | variables injectées par le backend dans chaque template
-| [Surcharge](/docs/fr/admin/template-surcharge) | remplacer le layout ou un composant CRUD |
+| [Surcharge](/docs/fr/admin/template-surcharge) | remplacer un bloc (HTML, CSS ou les deux) ou une page entière |
 
 ## Voir aussi
 

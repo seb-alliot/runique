@@ -44,11 +44,7 @@ Les colonnes sont des variants SeaORM (`Column::Lang`) : une typo ne compile pas
 
 ## Étape 2 — Validation au démarrage
 
-Plus de parser/daemon. `AdminStaging::validate()` vérifie que chaque colonne de filtre :
-
-- existe sur le modèle
-- n'est pas secrète
-- est cohérente avec le reste de la config liste
+Plus de parser/daemon. Qu'une colonne de filtre existe, c'est le compilateur qui le garantit (`Column::Lang` est une variante de l'enum de l'entité). Au démarrage, `AdminStaging::validate()` refuse en plus une colonne **secrète** (`password`…) dans `.filter([...])`, comme dans toute autre liste de colonnes.
 
 Une erreur arrête le démarrage avec un message clair.
 

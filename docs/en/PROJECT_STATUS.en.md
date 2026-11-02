@@ -9,13 +9,13 @@ This document consolidates the actual state of the repository from the reference
 
 ---
 
-## Snapshot (as of October 29, 2026)
+## Snapshot (as of November 2, 2026)
 
 - **Workspace version**: `4.0.0` (**unreleased** on crates.io — code + docs in tree)
 - **derive_form**: `3.0.0`
 - **runique_dsl**: `0.1.0`
 - **License**: MIT
-- **Branch**: `main`
+- **Branch**: `fix-bug`
 - **Stack**: Axum 0.8.9 + SeaORM 2.0.4 + Tera 2.4 · Rust edition 2024 · Rust 1.94
 - **Main work shipped**: `ModelAdmin` admin + documentation aligned to 4.0
 
@@ -46,30 +46,30 @@ This document consolidates the actual state of the repository from the reference
 ### Routing
 
 - `urlpatterns!{}` with typed segments, separate GET/POST
-- Named URL registry, `{% url %}` Tera helper
+- Named URL registry, `{% link "name" %}` tag
 
 ### Templates
 
-- Tera engine + context helpers (`{% csrf %}`, `{% static %}`, `{% url %}`, `{% media %}`)
+- Tera engine + context helpers (`{% csrf %}`, `{% static %}`, `{% link %}`, `{% media %}`)
 - Autoescape active on `.html`/`.xml`
 
 ### Admin panel (stable beta)
 
 - Typed `ModelAdmin<Entity>` builder — no `admin!{}` macro, no `src/admins/` generation
 - Declared in `src/admin.rs`, wired via `.with_admin(admin::config)`; plain `cargo run` is enough
-- Generic CRUD: list, detail, create, edit, delete, bulk edit, bulk delete, group actions
-- Typed SeaORM columns: `display`, `filter`, `search`, `sortable`, `links`
-- `group_action`: booleans and exact enum values
-- M2M relations via junction table
+- Generic CRUD: list, detail, create, edit, delete, grouped actions (`.action(column, value, label)`), grouped delete
+- Typed SeaORM columns: `display`, `filter`, `search`, `sortable`, `ordering`
+- Ranks (superuser, dirigeant, admin, lambda), per-account rights for admins, groups for lambdas, rights grid
+- Admin routes declared in `urlpatterns!` (`admin "…" => …`, standalone page or detail replacement)
 - `OWNER` on `ModelMeta` (from `model!` meta): ownership check for `can_update_own`/`can_delete_own`
 - Admin action history (log, batch_id, old/new diff)
-- Resource-overridable templates
+- Templates overridable per block (HTML, CSS or both) or per page, for every model or for one
 
 ### Security
 
 - Masked CSRF (BREACH protection), session-bound token, `subtle::ct_eq` comparison
 - `session.cycle_id()` on login — session fixation protection
-- Granular admin permissions per operation (`can_create`, `can_update`, `can_delete`, `can_update_own`, `can_delete_own`)
+- Rights per operation (create, read, read_own, update, update_own, delete, delete_own) and per column, decided by a single gate (`auth/gate`)
 - Statically generated SQL column whitelist — SQL injection protection in admin filters/sort
 - CSP builder with nonce, HSTS, host validation
 - Global + per-HTTP-method `RateLimiter` (`rate_limit_get()`, `rate_limit_post()`, etc.)
@@ -93,7 +93,7 @@ This document consolidates the actual state of the repository from the reference
 - `Pk` alias: `i32` by default, `i64` (`big-pk`), or `Uuid` via `Uuid::now_v7()` (`pk-uuid`) — mutually exclusive features (`compile_error!`). Usable on any field (not just the PK), typically a foreign key, to stay automatically in sync with the referenced table's type
 - `model!{}` — unified field syntax (the legacy `fields: { name: SqlType }` grammar is removed): single anonymous block, 43 semantic types, including `readonly`/`label` options
 - Migration generator hardened across engines (2026-09-01): runtime backend guards for `CREATE TYPE`/`updated_at` triggers (instead of a choice frozen at generation time), Postgres identifier case-folding fixed on `ALTER TYPE`, invalid `TYPE`/`USING` ordering fixed, `modify_column` skipped on SQLite (sea-query panic there); foreign keys always inline in `CREATE TABLE`
-- `makemigrations` now recognizes a `migration/` bootstrapped via `sea-orm-cli migrate init` (`lib.rs` canonically reformatted, `todo!()` placeholder removed), and wires the framework's tables in even without any model of the project's own (3.0.2) — see [Migrations](/docs/en/installation/migrations)
+- `makemigrations` creates the `migration/` crate when missing and wires the framework's tables in even without any model of the project's own; a column type change isn't migrated (warning after `--force`) — see [Migrations](/docs/en/installation/migrations)
 - Multi-engine-portable search/filters (2026-09-02): `CAST(col AS TEXT)` is invalid on MySQL/MariaDB (requires `CHAR`) — fixed via `text_cast_type`/`text_eq`/`ilike` helpers that detect the backend at runtime (`db.get_database_backend()`). `search_cond!` now takes the `db` connection as its first argument across all 4 forms — see [Queries](/docs/en/orm/queries)
 
 ### I18n
@@ -109,7 +109,7 @@ This document consolidates the actual state of the repository from the reference
 
 ### CLI
 
-- `runique new`, `runique create-superuser`, `runique makemigrations`, `runique migration up` (rollback and status: `sea-orm-cli`), `runique test` — no `runique start` (`cargo run` + `ModelAdmin`)
+- `runique new` (project + `migration/` crate), `runique create-superuser`, `runique makemigrations`, `runique migration up | down | status` (no `sea-orm-cli` needed), `runique test` — no `runique start` (`cargo run` + `ModelAdmin`)
 
 ---
 
@@ -139,14 +139,20 @@ This document consolidates the actual state of the repository from the reference
 | 4.0.0 | `password` / `is_active` exposed on `extend!` forms | High |
 | 4.0.0 | Debug template page: read outside `templates/` | High |
 | 4.0.0 | Form global errors unescaped (XSS) | Medium |
+| 4.0.0 | A database delete error could leave a reusable session; session revocation outside the reset's transaction (faille.md #12) | Medium |
+| 4.0.0 | Non-atomic reset token replacement: two valid tokens under concurrency (#13) | Medium |
+| 4.0.0 | Hash with an unrecognized prefix: faster, hence measurable, check (#3) | Low |
+| 4.0.0 | Duplicate CSRF token in a form body (#10, fixed part) | Low |
+| 4.0.0 | Ambiguous string enum aliases read as another variant (#26) | Low |
 
 ---
 
 ## Admin — permissions state
 
-- `can_read`, `can_create`, `can_update`, `can_delete`: enforced per operation ✅
-- `can_update_own`, `can_delete_own`: enforced when `ModelMeta::OWNER` is set (via `model!` meta) ✅
-- Per-group permissions, read from the database on every request (immediate revocation) ✅
+- Ranks: superuser (everything, bypass included), dirigeant (everything), admin (its own grid, set by a dirigeant), lambda (union of its groups, never the framework's tables) ✅
+- `*_own` rights enforced when `ModelMeta::OWNER` is set (via `model!` meta) ✅
+- Account and rights read from the database on every request (immediate revocation) ✅
+- Details: [Permissions](/docs/en/admin/permission)
 
 ---
 
@@ -185,7 +191,7 @@ Detail and “finished” criteria: [ROADMAP.md](https://github.com/seb-alliot/r
 
 ### Open — 4.x minors (no breaking change, after the 4.0.x queue)
 
-1. Many-to-many generated by the DSL + migration (admin junction M2M already there)
+1. Many-to-many generated by the DSL + migration, then in the admin
 2. `makemigrations` finished (rename+modify, constraint names from DB, NOT NULL backfill, per-engine identifier limits, type ALTER)
 3. Tracing (file rotation, request id, visible i18n fallbacks)
 4. Project-provided languages (trait + builder)
@@ -206,5 +212,5 @@ Detail and “finished” criteria: [ROADMAP.md](https://github.com/seb-alliot/r
 
 ---
 
-**Last update**: October 29, 2026
+**Last update**: November 2, 2026
 **Global status**: ✅ Stable framework · 🟡 Mature admin beta (`ModelAdmin`) · 🔒 Security: DB reset tokens, timing-safe auth, 4.0 fixes in tree · 📖 4.0 docs aligned · 📦 crates.io 4.0.0 still unreleased · ➡️ Next: `4.0.x` security patch queue (then 4.x minors)

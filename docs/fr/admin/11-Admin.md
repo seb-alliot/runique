@@ -4,6 +4,18 @@ L'administration Runique construit un CRUD complet à partir d'un **builder typ�
 
 Les colonnes sont des enums (`blog::Column::Title`) — le compilateur refuse une colonne inexistante, un secret exposé ou une action incohérente.
 
+## À savoir avant de commencer
+
+- **La feature `admin` est obligatoire.** Sans elle, le module admin n'est pas compilé : `with_admin`, `ModelAdmin`, `AdminSite` n'existent pas.
+
+  ```toml
+  runique = { version = "4.0.0", features = ["postgres", "admin"] }
+  ```
+
+- **`with_public_url` est obligatoire en production** quand l'admin est actif : sans elle, le démarrage est refusé (les liens envoyés par mail seraient construits depuis l'en-tête `Host` de la requête, que n'importe qui peut forger). En debug, le `Host` de la requête la remplace.
+- **Tout `model!{}` du projet doit être enregistré** dans l'admin (`register`, ou `accounts_users` pour l'extension des comptes). Au démarrage, les droits de groupe qui visent un modèle non enregistré sont supprimés de la base.
+- Les comptes, groupes et droits du framework sont fournis : vous ne les déclarez pas.
+
 ## Exemple minimal
 
 ```rust

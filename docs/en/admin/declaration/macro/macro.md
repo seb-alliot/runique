@@ -37,24 +37,24 @@ Keep `use …::Column::*` **inside** the model function so two models with a `Ti
 
 | Method | Role |
 | --- | --- |
-| `.title("…")` | Name in nav and pages (else verbose_name / table) |
-| `.list(|l| …)` | List view config |
-| `.form(|f| …)` | Create / edit config |
-| `.templates(|t| …)` | HTML overrides for this model only |
+| `.title("…")` | Name in nav and pages (else `verbose_name_plural`, `verbose_name`, then the table name) |
+| `.list(…)` | List view config |
+| `.form(…)` | Create / edit config |
+| `.templates(…)` | Overrides of this model's blocks or pages (HTML, CSS), see [Template override](/docs/en/admin/template-surcharge) |
 
 ## List — `ListConfig`
 
 | Method | Effect |
 | --- | --- |
 | `.display([Col, …])` | Visible columns, in order |
-| `.links([Col, …])` | Clickable columns to detail (default: first display) |
+| `.links([Col, …])` | Columns linking to the detail. **No effect for now** (see Limits): each row has its link to the detail |
 | `.sortable([Col, …])` | Only columns accepted via `?sort_by=` |
 | `.ordering([(Col, Order::Asc), …])` | Default SQL order |
 | `.search([Col, …])` | Full-text columns. Omitted: text columns of `display`. `.search([])` disables |
-| `.search_help("…")` | Help text under the search bar |
+| `.search_help("…")` | Search help text. **No effect for now** (see Limits) |
 | `.filter([Col, …])` | Side filters (`?filter_status=…`) |
 | `.per_page(n)` | Page size for this model |
-| `.empty_value("—")` | Placeholder for empty cells |
+| `.empty_value("—")` | Text for empty values. **No effect for now** (see Limits) |
 | `.action(Col, value, "Label")` | Bulk action: set `Col` to `value` on checked rows |
 
 ### Bulk actions
@@ -90,7 +90,7 @@ Boot rules:
 })
 ```
 
-Without `.form()`, every model field (except secrets / ranks) is used. The gate still decides what the current account may read or write.
+Without `.form()`, every field of the model's form (`ModelMeta::Form`) is used. The gate still decides what the current account may read or write.
 
 ## Extended accounts
 
@@ -116,6 +116,10 @@ Rank flags (`is_superuser`, `is_dirigeant`, `is_admin`) are not form fields. Boo
 ## Secrets
 
 Secret columns (password, tokens…) are refused in display, search, filter, sortable, links, fields, and actions. The error shows up in boot `validate()`.
+
+## Current limits
+
+- `.links`, `.search_help` and `.empty_value` are accepted and checked at boot, but the list's display doesn't use them yet: the list shows each row as a card with its link to the detail, no help text under the search, and empty values as they are.
 
 ## Real example (demo-app)
 

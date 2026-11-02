@@ -31,7 +31,7 @@ Array order is header order.
 .list(|l| l.display([Title, Status]).links([Title]))
 ```
 
-Without `links`, the first `display` column becomes the link.
+**No effect for now**: `links` is accepted and checked (its columns must be in `display`), but the list shows each row as a card with its own link to the detail (and its menu), whatever the declared columns.
 
 ## Sorting
 
@@ -55,17 +55,16 @@ Any other `?sort_by=` is ignored.
 ## Search
 
 ```rust
-.list(|l| {
-    l.search([Title, Summary])
-        .search_help("Title or summary")
-})
+.list(|l| l.search([Title, Summary]))
 ```
 
 Behaviour:
 
 - minimum **3** characters (shorter terms are ignored)
-- max length bounded by staging `.search_max_len`
+- beyond the staging's `.search_max_len(n)` (150 by default), the term is truncated
 - without `.search(...)`: text columns from `display` are used
+- `.search([])` disables the search
+- `.search_help("…")` is accepted but not shown yet
 
 ## Filters
 
@@ -122,7 +121,7 @@ admin.page_size(15)
 Example:
 
 ```text
-/admin/blog/?page=2&sort_by=title&sort_dir=asc&search=runique&filter_status=Published
+/admin/blog/list?page=2&sort_by=title&sort_dir=asc&search=runique&filter_status=Published
 ```
 
 ## Empty value
@@ -130,6 +129,8 @@ Example:
 ```rust
 .list(|l| l.empty_value("—"))
 ```
+
+**No effect for now**: accepted, but the list doesn't use this text yet.
 
 ## See also
 

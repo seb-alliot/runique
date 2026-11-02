@@ -1,684 +1,189 @@
-# Runique Admin — Variables Tera par vue
+# Admin — variables Tera par page
 
-Ce document liste toutes les variables disponibles dans le contexte Tera lorsqu'un développeur surcharge un template admin.
+Les variables que reçoit chaque page de l'admin, et donc tout bloc ou page qui la remplace (voir [Surcharge](/docs/fr/admin/template-surcharge)). La source qui fait foi est `runique/src/admin/router/context.rs` : chaque page y a sa structure (`ListContext`, `DetailContext`…).
 
----
-
-## Variables globales (toutes les routes)
-
-Ces variables sont injectées sur **toutes les routes** par l'extracteur `Request` du framework, avant même que les handlers admin s'exécutent.
-
-| Variable | Type Rust | Description |
-| --- | --- | --- |
-| `debug` | `bool` | Mode debug activé ou non |
-| `csrf_token` | `String` | Token CSRF masqué (meta / JS) — un `RuniqueForm` l'émet déjà dans le HTML |
-| `csp_nonce` | `&str` | Nonce CSP pour les balises `<script>` et `<style>` |
-| `static_runique` | `StaticConfig` | Config des assets statiques Runique (voir ci-dessous) |
-| `messages` | `Vec<FlashMessage>` | Messages flash de la session courante |
-| `current_user` | `CurrentUser` *(optionnel)* | Données de l'utilisateur connecté, absent si non authentifié |
-| `admin_prefix` | `String` | **Préfixe URL du panel admin** — ex : `"/admin"` ou `"/admin-campanile"`. Toujours utiliser cette variable pour tous les liens admin — ne jamais coder `/admin/` en dur. |
-
-### Champs de `static_runique`
-
-```html
-{{ static_runique.static_url }}   {# URL de base des assets, ex: /static #}
-{{ static_runique.static_dir }}   {# Répertoire physique sur disque #}
-```
+Les liens sont toujours fournis tout faits (`nav.*`, `resource_links.*`, `links.*`, `form_action`, `cancel_url`…) : le préfixe de l'admin et les droits de l'utilisateur y sont déjà appliqués. Un lien à `none` veut dire que l'utilisateur n'a pas le droit d'y aller. Ne construisez pas d'URL à la main.
 
 ---
 
-## Variables injectées par les handlers CRUD
+## Communes à toutes les pages (sauf la connexion)
 
-Ces variables sont injectées sur **toutes les vues CRUD admin** via `inject_context`, après l'extracteur.
-
-| Variable | Type | Description |
-| --- | --- | --- |
-| `lang` | `String` | Code de langue courant (ex: `"fr"`) |
-| `site_title` | `String` | Titre du site configuré dans `AdminConfig` |
-| `site_url` | `String` | Lien « voir le site » : `view_site_url` de l'admin, sinon l'URL publique (`.with_public_url()`), sinon `/` |
-| `resource_key` | `&str` | Clé de la ressource courante (ex: `"users"`) |
-| `current_resource` | `&str` | Identique à `resource_key` |
-| `resource` | `ResourceRef` | Métadonnées de la ressource courante (voir ci-dessous) |
-| `resources` | liste | Ressources que le compte connecté peut voir |
-| `resource_links` | `ResourceLinks` | URLs préconstruites list/create/bulk pour cette ressource |
-| `group_actions` | liste | Actions groupées de `ModelAdmin` `.action(...)` (`index`, `label`) |
-| `can_create` / `can_read` / `can_update` / `can_delete` | `bool` | Droits du compte connecté sur cette ressource (tirés de ses groupes) |
-| `can_update_own` / `can_delete_own` | `bool` | Idem, limités aux lignes du compte lui-même |
-
-> Préférez les objets de liens préconstruits (`nav`, `resource_links`, `entry.links`) plutôt que d'assembler les URLs à la main.
-
-### Structure `ResourceRef`
-
-| Champ Tera | Type | Description |
-| --- | --- | --- |
-| `resource.key` | `&str` | Clé unique de la ressource (`"blog"`) |
-| `resource.title` | `String` | Titre lisible (`"Blog"`) |
-| `resource.display.list_filter` | liste | Colonnes filtrables sous forme de paires `(colonne, libellé)` |
-
----
-
-## Variables i18n globales (toutes les vues CRUD)
-
-Injectées automatiquement via `insert_admin_messages`. Le nom de variable Tera est la clé i18n avec les `.` remplacés par `_`.
-
-### Section `base`
-
-| Variable Tera | Clé i18n |
+| Variable | Contenu |
 | --- | --- |
-| `admin_base_title` | `admin.base.title` |
-| `admin_base_breadcrumb` | `admin.base.breadcrumb` |
-| `admin_base_toggle` | `admin.base.toggle` |
-| `admin_base_logout_title` | `admin.base.logout_title` |
+| `site_title` | Titre déclaré par `.site_title(…)` |
+| `lang` | Code de la langue courante (`fr`, `en`…) |
+| `admin_prefix` | Adresse de base de l'admin (préfixe de montage + chemin), sans `/` final |
+| `stylesheets` | Feuilles de style de la page, chacune `{ href, integrity }` ; écrites par `admin_base.html` |
+| `resources` | Modèles que l'utilisateur peut voir, dans l'ordre du menu : `{ key, title, list_url }` |
+| `current_resource` | Clé du modèle de la page (chaîne), vide sur le tableau de bord |
+| `current_page` | `"dashboard"`, `"list"`, `"detail"`, `"create"`, `"edit"`, `"delete"`, `"history"`, `"rights"`, `"transfer"` |
+| `current_user` | Compte connecté : `id`, `username`, `rang`, `groupes`, `droits` |
+| `nav.dashboard` | Tableau de bord |
+| `nav.history` | Historique, `none` si le compte n'en lit aucun |
+| `nav.logout` | Où poste le formulaire de déconnexion (POST + CSRF) |
+| `nav.site` | Lien « retour au site » |
+| `nav.toggle_template` | Bascule du tableau de bord, voir plus bas |
+| `csrf_token` | Token CSRF de la requête |
+| `admin_base_*` | Traductions du layout |
 
-### Section `list`
+Et les variables de tout template Runique (`{% messages %}`, `{% csp %}`, `{% static %}`…), voir [Templates](/docs/fr/template).
 
-| Variable Tera | Clé i18n |
+---
+
+## Traductions
+
+Chaque page reçoit les traductions de sa section, sous la forme `admin.<section>.<clé>` → `{{ admin_<section>_<clé> }}` (par exemple `admin.list.btn_create` → `{{ admin_list_btn_create }}`). La liste des clés est dans `runique/src/utils/constante/admin_key.rs` (`ADMIN_MESSAGE_KEYS`), les textes dans `runique/src/utils/trad/<langue>.json`.
+
+| Page | Sections |
 | --- | --- |
-| `admin_list_breadcrumb_admin` | `admin.list.breadcrumb_admin` |
-| `admin_list_entries_count` | `admin.list.entries_count` |
-| `admin_list_btn_create` | `admin.list.btn_create` |
-| `admin_list_th_id` | `admin.list.th_id` |
-| `admin_list_th_actions` | `admin.list.th_actions` |
-| `admin_list_bool_true` | `admin.list.bool_true` |
-| `admin_list_bool_false` | `admin.list.bool_false` |
-| `admin_list_btn_detail` | `admin.list.btn_detail` |
-| `admin_list_btn_edit` | `admin.list.btn_edit` |
-| `admin_list_btn_delete` | `admin.list.btn_delete` |
-| `admin_list_confirm_delete` | `admin.list.confirm_delete` |
-| `admin_list_empty_title` | `admin.list.empty_title` |
-| `admin_list_empty_desc` | `admin.list.empty_desc` |
-| `admin_list_btn_create_first` | `admin.list.btn_create_first` |
+| connexion | `login` |
+| tableau de bord | `base`, `dashboard` |
+| liste | `base`, `list` |
+| détail | `base`, `detail`, `list` |
+| création | `base`, `create` |
+| édition | `base`, `edit` |
+| suppression | `base`, `delete` |
+| historique, entrée de l'historique | `base`, `history` |
+| droits | `base`, `rights` |
+| transfert de groupe | `base`, `transfer` |
 
-### Section `create`
+---
 
-| Variable Tera | Clé i18n |
+## Connexion
+
+| Variable | Contenu |
 | --- | --- |
-| `admin_create_title` | `admin.create.title` |
-| `admin_create_breadcrumb` | `admin.create.breadcrumb` |
-| `admin_create_card_info` | `admin.create.card_info` |
-| `admin_create_no_fields` | `admin.create.no_fields` |
-| `admin_create_btn_cancel` | `admin.create.btn_cancel` |
-| `admin_create_btn_submit` | `admin.create.btn_submit` |
+| `admin_prefix` | Le formulaire poste sur `{{ admin_prefix }}/login` |
+| `csrf_token` | À renvoyer dans le champ caché `csrf_token` |
+| `error` | Message d'échec (identifiants, CSRF, compte bloqué, session), absent sinon |
+| `site_title`, `site_url`, `lang`, `stylesheets` | — |
 
-### Section `edit`
+Champs attendus par le POST : `username`, `password`, `csrf_token`.
 
-| Variable Tera | Clé i18n |
+---
+
+## Tableau de bord
+
+| Variable | Contenu |
 | --- | --- |
-| `admin_edit_title` | `admin.edit.title` |
-| `admin_edit_breadcrumb` | `admin.edit.breadcrumb` |
-| `admin_edit_card_info` | `admin.edit.card_info` |
-| `admin_edit_no_fields` | `admin.edit.no_fields` |
-| `admin_edit_btn_cancel` | `admin.edit.btn_cancel` |
-| `admin_edit_btn_submit` | `admin.edit.btn_submit` |
+| `resource_counts` | Nombre de lignes par modèle : `resource_counts[resource.key]` ; vide si le comptage a échoué |
+| `my_groups` | Groupes du compte : `{ name, staff, rights: [{ table, rights }] }` |
+| `admin_has_session_override` | `true` quand la bascule a remis le tableau de bord de Runique |
 
-### Section `detail`
+Quand le tableau de bord est remplacé (`.with_dashboard`), `nav.toggle_template` permet d'afficher celui de Runique et d'en revenir ; le choix est gardé en session.
 
-| Variable Tera | Clé i18n |
+---
+
+## Liste
+
+Aussi rendue, sans layout, pour les requêtes HTMX (`admin/list_partial.html`).
+
+| Variable | Contenu |
 | --- | --- |
-| `admin_detail_title` | `admin.detail.title` |
-| `admin_detail_breadcrumb` | `admin.detail.breadcrumb` |
-| `admin_detail_entry_label` | `admin.detail.entry_label` |
-| `admin_detail_btn_list` | `admin.detail.btn_list` |
-| `admin_detail_btn_edit` | `admin.detail.btn_edit` |
-| `admin_detail_btn_delete` | `admin.detail.btn_delete` |
-| `admin_detail_confirm_delete` | `admin.detail.confirm_delete` |
+| `resource` | `{ key, title, display: { list_filter: [(colonne, libellé)] } }` |
+| `resource_links` | `{ list, create, bulk, rights }` ; `create`, `bulk`, `rights` à `none` sans le droit |
+| `entries` | Lignes de la page : `{ id, values, links: { detail, edit, delete }, taken_by }` |
+| `visible_columns` | Colonnes affichées, dans l'ordre (sans la clé) |
+| `sortable_columns` | Colonnes triables (déclarées `.sortable()`) |
+| `column_labels` | En-tête de chaque colonne, par nom |
+| `rich_fields` | Colonnes contenant du HTML, affichées en texte brut |
+| `group_actions` | Actions groupées proposées : `{ index, label }` |
+| `bulk_delete` | La barre d'actions groupées propose la suppression |
+| `return_qs` | Requête courante (recherche, tri, filtres, page), pour revenir au même endroit |
+| `filter_values` | Valeurs de chaque filtre, par colonne |
+| `active_filters` | Filtres appliqués, colonne → valeur |
+| `filter_qs` | Filtres appliqués en query string (`&filter_col=valeur…`) |
+| `search` | Recherche en cours |
+| `sort_by`, `sort_dir`, `sort_dir_toggle` | Tri en cours (`asc` / `desc`) et sens inverse |
+| `total` | Lignes correspondantes, toutes pages |
+| `page`, `page_count`, `has_prev`, `has_next`, `prev_page`, `next_page` | Pagination |
 
-### Section `delete`
+`entry.values[colonne]` donne la valeur d'une colonne affichée.
 
-| Variable Tera | Clé i18n |
+---
+
+## Détail
+
+| Variable | Contenu |
 | --- | --- |
-| `admin_delete_title` | `admin.delete.title` |
-| `admin_delete_breadcrumb` | `admin.delete.breadcrumb` |
-| `admin_delete_heading` | `admin.delete.heading` |
-| `admin_delete_btn_cancel` | `admin.delete.btn_cancel` |
-| `admin_delete_btn_confirm` | `admin.delete.btn_confirm` |
-| `admin_delete_warning_title` | `admin.delete.warning.title` |
-| `admin_delete_warning_desc` | `admin.delete.warning.desc` |
-| `admin_delete_warning_of` | `admin.delete.warning.of` |
-| `admin_delete_warning_irreversible` | `admin.delete.warning.irreversible` |
+| `resource`, `resource_key` | Le modèle (`resource_key` = `resource.key`) |
+| `object_id` | Clé de la ligne |
+| `entry` | La ligne : une entrée par colonne lisible |
+| `rich_fields` | Colonnes HTML, affichées assainies |
+| `list_url` | Retour à la liste |
+| `links` | `{ detail, edit, delete }` |
+| `reset_password_url` | Sur un compte, avec le droit de le modifier |
+| `rank_choices`, `current_rank`, `rank_url` | Sur un compte dont on peut changer le rang : rangs proposés `(valeur, libellé)`, rang actuel, où poster |
+| `rights_url` | Grille de droits d'un admin, si on peut la régler |
+| `memberships`, `memberships_url` | Sur un compte : groupes gérés `(nom du champ, nom du groupe, coché)`, où poster |
+| `transfer_receivers`, `transfer_url` | Sur un groupe, pour un dirigeant : comptes à qui le confier `(id, nom)`, page de transfert |
+| `taken_by` | Groupe repris après un départ : par qui |
 
 ---
 
-## Vue `login`
+## Création et édition
 
-**Route :** `GET /admin/login`
+| Variable | Contenu |
+| --- | --- |
+| `resource`, `resource_key` | Le modèle |
+| `object_id` | Clé de la ligne (édition seulement) |
+| `list_url` | Retour à la liste |
+| `form_fields` | Le formulaire : `html` (champs, CSRF et nom du formulaire inclus), `errors`, `form_errors`, `fields` |
+| `form_action` | Où poste le formulaire |
+| `cancel_url` | « Annuler » : la ligne en édition, la liste en création |
+| `cancel_label`, `submit_label` | Textes des boutons |
+| `no_fields_label` | Affiché quand le formulaire n'a aucun champ |
 
-> `inject_context` n'est **pas** appelé — les variables `resource`, `resources`, `resource_key` ne sont pas disponibles.
-
-| Variable | Type | Description |
-| --- | --- | --- |
-| `site_title` | `String` | Titre du site |
-| `lang` | `String` | Code de langue courant |
-| `csrf_token` | `String` | Token CSRF (injecté par l'extracteur de base) |
-| `admin_login_title` | `String` | i18n `admin.login.title` |
-| `admin_login_subtitle` | `String` | i18n `admin.login.subtitle` |
-| `admin_login_label_username` | `String` | i18n `admin.login.label_username` |
-| `admin_login_label_password` | `String` | i18n `admin.login.label_password` |
-| `admin_login_btn_submit` | `String` | i18n `admin.login.btn_submit` |
-| `admin_login_error_session` | `String` | i18n `admin.login.error_session` |
-| `admin_login_error_credentials` | `String` | i18n `admin.login.error_credentials` |
-| `error` *(optionnel)* | `String` | Message d'erreur verbatim — injecté uniquement en cas d'échec POST |
-
-### Clés obligatoires — `login`
-
-```text
-csrf_token, site_title, lang
-```
-
-> `error` est optionnel — présent uniquement après un échec POST.
-> En cas d'échec POST, les messages i18n de la section `base` sont aussi injectés.
-
-**Exemple minimal :**
-
-```html
-{% extends "admin/admin_template.html" %}
-
-{% block title %}{{ admin_login_title }}{% endblock %}
-
-{% block content %}
-<div class="login-container">
-    <h1>{{ admin_login_title }}</h1>
-    <p>{{ admin_login_subtitle }}</p>
-
-    {% if error %}
-    <div class="alert alert-danger">{{ error }}</div>
-    {% endif %}
-
-    <form method="POST" action="{{ admin_prefix }}/login">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <div>
-            <label>{{ admin_login_label_username }}</label>
-            <input type="text" name="username" required>
-        </div>
-        <div>
-            <label>{{ admin_login_label_password }}</label>
-            <input type="password" name="password" required>
-        </div>
-        <button type="submit">{{ admin_login_btn_submit }}</button>
-    </form>
-</div>
-{% endblock %}
-```
-
-> Le template login étend `admin_template.html` (contrat de blocs vides), pas `admin_base.html` — la sidebar et la topbar ne doivent pas apparaître sur la page de connexion.
+Écrivez `{{ form_fields.html }}` : au chargement, Runique le réécrit en `{{ form_fields.html | safe }}` (le HTML du formulaire est produit par Runique, ses valeurs déjà échappées). Les blocs `form_fields` et `form_actions` sont inclus dans la balise `<form>`.
 
 ---
 
-## Vue `dashboard`
+## Suppression
 
-**Route :** `GET /admin/`
-
-> `inject_context` n'est **pas** appelé. La variable `current_resource` est explicitement `None`.
-
-| Variable | Type | Description |
-| --- | --- | --- |
-| `site_title` | `String` | Titre du site |
-| `lang` | `String` | Code de langue courant |
-| `resources` | `Vec<AdminResource>` | Les ressources que le compte connecté peut voir |
-| `resource_groups` | `HashMap<String, Vec<String>>` | Noms des groupes ayant un droit sur chaque ressource (clé = `resource.key`) |
-| `resource_counts` | `HashMap<String, u64>` | Nombre d'entrées par ressource (clé = `resource.key`) |
-| `current_page` | `&str` | Vaut `"dashboard"` |
-| `current_resource` | `None` | Absent — aucune ressource sélectionnée |
-| `admin_base_*` | — | Clés i18n section `base` (voir ci-dessus) |
-| `admin_dashboard_title` | `String` | i18n `admin.dashboard.title` |
-| `admin_dashboard_subtitle` | `String` | i18n `admin.dashboard.subtitle` |
-| `admin_dashboard_card_resources` | `String` | i18n `admin.dashboard.card_resources` |
-| `admin_dashboard_th_resource` | `String` | i18n `admin.dashboard.th_resource` |
-| `admin_dashboard_th_key` | `String` | i18n `admin.dashboard.th_key` |
-| `admin_dashboard_th_permissions` | `String` | i18n `admin.dashboard.th_permissions` |
-| `admin_dashboard_th_actions` | `String` | i18n `admin.dashboard.th_actions` |
-| `admin_dashboard_btn_list` | `String` | i18n `admin.dashboard.btn_list` |
-| `admin_dashboard_btn_create` | `String` | i18n `admin.dashboard.btn_create` |
-| `admin_dashboard_see_list` | `String` | i18n `admin.dashboard.see_list` |
-| `admin_dashboard_empty_title` | `String` | i18n `admin.dashboard.empty_title` |
-| `admin_dashboard_empty_desc` | `String` | i18n `admin.dashboard.empty_desc` |
-
-### Clés obligatoires — `dashboard`
-
-```text
-resources, resource_counts, current_page
-```
-
-**Exemple minimal :**
-
-```html
-{% extends "admin/admin_base" %}
-
-{% block title %}{{ admin_dashboard_title }}{% endblock %}
-
-{% block content %}
-<h1>{{ admin_dashboard_title }}</h1>
-<p>{{ admin_dashboard_subtitle }}</p>
-
-{% if resources %}
-<h2>{{ admin_dashboard_card_resources }}</h2>
-<table class="table">
-    <thead>
-        <tr>
-            <th>{{ admin_dashboard_th_resource }}</th>
-            <th>{{ admin_dashboard_th_key }}</th>
-            <th>{{ admin_dashboard_th_permissions }}</th>
-            <th>{{ admin_dashboard_th_actions }}</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for res in resources %}
-        <tr>
-            <td>{{ res.title }}</td>
-            <td><code>{{ res.key }}</code></td>
-            <td>{% if resource_groups[res.key] %}{% for grp in resource_groups[res.key] %}{{ grp }} {% endfor %}{% endif %}</td>
-            <td>
-                <a href="{{ admin_prefix }}/{{ res.key }}/list">
-                    {{ admin_dashboard_btn_list }}
-                    {% if resource_counts[res.key] %}({{ resource_counts[res.key] }}){% endif %}
-                </a>
-                <a href="{{ admin_prefix }}/{{ res.key }}/create">{{ admin_dashboard_btn_create }}</a>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-{% else %}
-<p>{{ admin_dashboard_empty_title }}</p>
-<p>{{ admin_dashboard_empty_desc }}</p>
-{% endif %}
-{% endblock %}
-```
+| Variable | Contenu |
+| --- | --- |
+| `resource`, `resource_key` | Le modèle |
+| `object_id` | Clé de la ligne |
+| `list_url` | Retour à la liste |
+| `form_action` | Où poste la confirmation |
+| `form_fields` | Formulaire de confirmation, sans champ : `html` (token CSRF et nom), `errors`, `form_errors` |
+| `cancel_url` | Retour à la ligne |
 
 ---
 
-## Vue `list`
+## Historique
 
-**Route :** `GET /admin/{resource}/list`
+| Variable | Contenu |
+| --- | --- |
+| `history_url` | Historique complet : où postent les filtres, et leur remise à zéro |
+| `entries` | Entrées, les plus récentes d'abord (voir ci-dessous) |
+| `history_resources` | Modèles dont le compte lit l'historique : `{ key, title }` |
+| `filter_resource`, `filter_object`, `filter_action`, `filter_user` | Filtres en cours |
+| `page`, `total_pages` | Pagination |
 
-### Pagination
+Une entrée : `{ id, created_at, username, resource_key, resource_title, object_pk, object_label, action, has_changes, links: { user, object, entry } }`. `action` vaut `create`, `update` ou `delete` ; `created_at` est en UTC (`AAAA-MM-JJ HH:MM:SS`) ; `links.entry` est `none` sans changement lisible.
 
-| Variable | Type | Description |
-| --- | --- | --- |
-| `entries` | `Vec<Value>` | Enregistrements de la page courante, sérialisés en JSON |
-| `total` | `u64` | Nombre total d'entrées |
-| `page` | `u64` | Page courante (commence à 1) |
-| `page_count` | `u64` | Nombre total de pages |
-| `has_prev` | `bool` | Il existe une page précédente |
-| `has_next` | `bool` | Il existe une page suivante |
-| `prev_page` | `u64` | Numéro de la page précédente |
-| `next_page` | `u64` | Numéro de la page suivante |
-| `current_page` | `&str` | Vaut `"list"` |
+## Entrée de l'historique
 
-### Colonnes
-
-| Variable | Type | Description |
-| --- | --- | --- |
-| `visible_columns` | `Vec<String>` | Noms des colonnes à afficher (depuis `.list().display(...)`, ou défauts non secrets) |
-| `sortable_columns` | `Vec<String>` | Colonnes acceptées pour `?sort_by=` |
-| `column_labels` | `HashMap<String, String>` | Label par colonne — sinon le nom de colonne |
-
-### Tri
-
-| Variable | Type | Description |
-| --- | --- | --- |
-| `sort_by` | `String` | Colonne de tri active — chaîne vide si aucun tri |
-| `sort_dir` | `String` | Direction : `"asc"` ou `"desc"` |
-| `sort_dir_toggle` | `String` | Direction opposée à `sort_dir` — pratique pour les liens d'en-tête |
-
-### Recherche
-
-| Variable | Type | Description |
-| --- | --- | --- |
-| `search` | `String` | Terme de recherche courant — chaîne vide si aucune recherche |
-
-### Filtres sidebar
-
-| Variable | Type | Description |
-| --- | --- | --- |
-| `filter_values` | `HashMap<String, Vec<String>>` | Valeurs distinctes par colonne de filtre (depuis `list_filter`) |
-| `active_filters` | `HashMap<String, String>` | Filtre actif par colonne — `""` si aucun filtre actif sur cette colonne |
-| `filter_qs` | `String` | Fragment query string des filtres actifs — à inclure dans les liens de pagination |
-| `filter_meta` | `HashMap<String, Object>` | Pagination sidebar par colonne — voir structure ci-dessous |
-| `return_qs` | `String` | Query string complet (tri + recherche + filtres actifs) — à passer aux liens edit/delete pour retrouver l'état de la liste après retour |
-
-> **Note :** `active_filters` est pré-rempli pour **toutes** les colonnes de `list_filter` (valeur `""` si inactif). Tera lève une erreur si on accède à une clé absente — cette pré-initialisation l'évite. Plusieurs colonnes peuvent avoir une valeur non vide simultanément : les liens de filtre préservent les filtres des autres colonnes.
-
-### Structure de `filter_meta[colonne]`
-
-| Champ | Type | Description |
-| --- | --- | --- |
-| `current_page` | `u64` | Page courante dans la sidebar filtre (commence à 0) |
-| `total_pages` | `u64` | Nombre total de pages de valeurs distinctes |
-| `has_prev` | `bool` | Il existe une page précédente |
-| `has_next` | `bool` | Il existe une page suivante |
-| `prev_qs` | `String` | Query string complet pour la page précédente — `href="?{{ filter_meta[col].prev_qs }}"` |
-| `next_qs` | `String` | Query string complet pour la page suivante |
-
-### Clés obligatoires — `list`
-
-À fournir pour surcharger ce template :
-
-```text
-entries, total, page, page_count, has_prev, has_next,
-prev_page, next_page, visible_columns,
-sort_by, sort_dir, sort_dir_toggle, search
-```
-
-> Les variables i18n de la section `list` sont listées dans les variables globales ci-dessus.
-
-**Exemple minimal :**
-
-```html
-{% extends "admin/admin_base" %}
-
-{% block title %}{{ resource.title }}{% endblock %}
-
-{% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h1>{{ resource.title }}
-        <small class="text-muted fs-6">{{ total }} {{ admin_list_entries_count }}</small>
-    </h1>
-    <a href="{{ admin_prefix }}/{{ resource_key }}/create" class="btn btn-primary">
-        {{ admin_list_btn_create }}
-    </a>
-</div>
-
-{% if entries %}
-<table class="table">
-    <thead>
-        <tr>
-            <th>{{ admin_list_th_id }}</th>
-            {# ajouter les colonnes selon le modèle #}
-            <th>{{ admin_list_th_actions }}</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for entry in entries %}
-        <tr>
-            <td>{{ entry.id }}</td>
-            <td>
-                <a href="{{ admin_prefix }}/{{ resource_key }}/{{ entry.id }}/detail">{{ admin_list_btn_detail }}</a>
-                <a href="{{ admin_prefix }}/{{ resource_key }}/{{ entry.id }}/edit">{{ admin_list_btn_edit }}</a>
-                <a href="{{ admin_prefix }}/{{ resource_key }}/{{ entry.id }}/delete">{{ admin_list_btn_delete }}</a>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-{% else %}
-<p>{{ admin_list_empty_title }}</p>
-<p>{{ admin_list_empty_desc }}</p>
-<a href="{{ admin_prefix }}/{{ resource_key }}/create">{{ admin_list_btn_create_first }}</a>
-{% endif %}
-{% endblock %}
-```
+| Variable | Contenu |
+| --- | --- |
+| `history_url` | Retour à l'historique |
+| `entry` | L'entrée (même forme que ci-dessus) |
+| `changes` | Colonnes changées et lisibles : `{ column, old, new }` |
 
 ---
 
-## Vue `create`
+## Droits et transfert
 
-**Route :** `GET /admin/{resource}/create`
-
-| Variable | Type | Description |
-| --- | --- | --- |
-| `form_fields` | `Forms` | Formulaire généré par `request.form()` — rendu via `{% form.field_name %}` ou `form_fields.html` |
-| `is_edit` | `bool` | Vaut `false` |
-| `m2m_fields` | `Vec<M2mFieldOptions>` *(optionnel)* | Champs many-to-many déclarés via `m2m: [...]` dans le DSL. Absent si aucun M2M n'est déclaré sur la ressource. |
-
-Chaque entrée de `m2m_fields` expose :
-
-| Propriété | Type | Description |
-| --- | --- | --- |
-| `field_name` | `String` | Nom du champ — préfixe des inputs (`m2m_{field_name}__{id}`) |
-| `label` | `String` | Label affiché dans le formulaire |
-| `choices` | `Vec<(String, String)>` | Toutes les options disponibles — `(id, label)` |
-| `selected` | `Vec<String>` | IDs sélectionnés (vide en création) |
-
-**Exemple Tera :**
-
-```html
-{% if m2m_fields is defined and m2m_fields %}
-  {% for field in m2m_fields %}
-  <div class="form-group">
-    <label>{{ field.label }}</label>
-    {% for choice in field.choices %}
-    <label>
-      <input type="checkbox"
-             name="m2m_{{ field.field_name }}__{{ choice[0] }}"
-             value="1">
-      {{ choice[1] }}
-    </label>
-    {% endfor %}
-  </div>
-  {% endfor %}
-{% endif %}
-```
-
-### Clés obligatoires — `create`
-
-```text
-form_fields, is_edit
-```
-
-> Les variables i18n de la section `create` sont listées dans les variables globales ci-dessus.
-
-**Exemple minimal :**
-
-```html
-{% extends "admin/admin_base" %}
-
-{% block title %}{{ admin_create_title }} — {{ resource.title }}{% endblock %}
-
-{% block content %}
-<h1>{{ admin_create_title }} — {{ resource.title }}</h1>
-<p class="text-muted">{{ admin_create_card_info }}</p>
-
-<form method="POST" action="{{ admin_prefix }}/{{ resource_key }}/create">
-    {# csrf.js gère le token automatiquement pour les formulaires admin #}
-    {% if form_fields.html %}
-        {{ form_fields.html | safe }}
-    {% else %}
-        <p>{{ admin_create_no_fields }}</p>
-    {% endif %}
-    <button type="submit" class="btn btn-primary">{{ admin_create_btn_submit }}</button>
-    <a href="{{ admin_prefix }}/{{ resource_key }}/list" class="btn btn-secondary">{{ admin_create_btn_cancel }}</a>
-</form>
-{% endblock %}
-```
+Ces deux pages ne se remplacent pas ; seul le bloc `rights_table` de la page des droits se remplace. Leur contexte (`RightsContext`, `TransferContext`) est décrit dans `context.rs`.
 
 ---
-
-## Vue `edit`
-
-**Route :** `GET /admin/{resource}/{id}/edit`
-
-| Variable | Type | Description |
-| --- | --- | --- |
-| `form_fields` | `Forms` | Formulaire pré-rempli avec les données existantes |
-| `is_edit` | `bool` | Vaut `true` |
-| `object_id` | `String` | ID de l'entrée en cours d'édition |
-| `m2m_fields` | `Vec<M2mFieldOptions>` *(optionnel)* | Même structure qu'en création — `selected` contient les IDs déjà associés, les checkboxes correspondantes sont pré-cochées. |
-
-**Exemple Tera (avec pré-sélection) :**
-
-```html
-{% if m2m_fields is defined and m2m_fields %}
-  {% for field in m2m_fields %}
-  <div class="form-group">
-    <label>{{ field.label }}</label>
-    {% for choice in field.choices %}
-    <label>
-      <input type="checkbox"
-             name="m2m_{{ field.field_name }}__{{ choice[0] }}"
-             value="1"
-             {% if choice[0] in field.selected %}checked{% endif %}>
-      {{ choice[1] }}
-    </label>
-    {% endfor %}
-  </div>
-  {% endfor %}
-{% endif %}
-```
-
-### Clés obligatoires — `edit`
-
-```text
-form_fields, is_edit, object_id
-```
-
-> Les variables i18n de la section `edit` sont listées dans les variables globales ci-dessus.
-
-**Exemple minimal :**
-
-```html
-{% extends "admin/admin_base" %}
-
-{% block title %}{{ admin_edit_title }} — {{ resource.title }} #{{ object_id }}{% endblock %}
-
-{% block content %}
-<h1>{{ admin_edit_title }} — {{ resource.title }} <small>#{{ object_id }}</small></h1>
-<p class="text-muted">{{ admin_edit_card_info }}</p>
-
-<form method="POST" action="{{ admin_prefix }}/{{ resource_key }}/{{ object_id }}/edit">
-    {% if form_fields.html %}
-        {{ form_fields.html | safe }}
-    {% else %}
-        <p>{{ admin_edit_no_fields }}</p>
-    {% endif %}
-    <button type="submit" class="btn btn-primary">{{ admin_edit_btn_submit }}</button>
-    <a href="{{ admin_prefix }}/{{ resource_key }}/list" class="btn btn-secondary">{{ admin_edit_btn_cancel }}</a>
-</form>
-{% endblock %}
-```
-
----
-
-## Vue `detail`
-
-**Route :** `GET /admin/{resource}/{id}/detail`
-
-| Variable | Type | Description |
-| --- | --- | --- |
-| `entry` | `Value` *(optionnel)* | Enregistrement sérialisé en JSON — absent si `get_fn` non configurée |
-| `object_id` | `String` | ID de l'entrée |
-
-### Clés obligatoires — `detail`
-
-```text
-object_id
-```
-
-> `entry` est optionnel — absent si `get_fn` n'est pas configurée sur la ressource.
-> Les variables i18n de la section `detail` sont listées dans les variables globales ci-dessus.
-
-**Exemple minimal :**
-
-```html
-{% extends "admin/admin_base" %}
-
-{% block title %}{{ admin_detail_title }} — {{ resource.title }} #{{ object_id }}{% endblock %}
-
-{% block content %}
-<h1>{{ admin_detail_title }} — {{ resource.title }} <small>#{{ object_id }}</small></h1>
-
-{% if entry %}
-<dl class="row">
-    {# itération dynamique sur les champs de l'entrée #}
-    {% for key, value in entry %}
-    <dt class="col-sm-3">{{ key }}</dt>
-    <dd class="col-sm-9">{{ value }}</dd>
-    {% endfor %}
-</dl>
-{% endif %}
-
-<a href="{{ admin_prefix }}/{{ resource_key }}/list" class="btn btn-secondary">{{ admin_detail_btn_list }}</a>
-<a href="{{ admin_prefix }}/{{ resource_key }}/{{ object_id }}/edit" class="btn btn-primary">{{ admin_detail_btn_edit }}</a>
-<a href="{{ admin_prefix }}/{{ resource_key }}/{{ object_id }}/delete" class="btn btn-danger">{{ admin_detail_btn_delete }}</a>
-{% endblock %}
-```
-
----
-
-## Vue `delete`
-
-**Route :** `GET /admin/{resource}/{id}/delete`
-
-| Variable | Type | Description |
-| --- | --- | --- |
-| `entry` | `Value` *(optionnel)* | Enregistrement sérialisé en JSON — absent si `get_fn` non configurée |
-| `object_id` | `String` | ID de l'entrée à supprimer |
-
-### Clés obligatoires — `delete`
-
-```text
-object_id
-```
-
-> `entry` est optionnel — absent si `get_fn` n'est pas configurée sur la ressource.
-> Les variables i18n de la section `delete` sont listées dans les variables globales ci-dessus.
-
-**Exemple minimal :**
-
-```html
-{% extends "admin/admin_base" %}
-
-{% block title %}{{ admin_delete_title }} — {{ resource.title }} #{{ object_id }}{% endblock %}
-
-{% block content %}
-<h1>{{ admin_delete_heading }}</h1>
-
-<div class="alert alert-danger">
-    <strong>{{ admin_delete_warning_title }}</strong>
-    <p>{{ admin_delete_warning_desc }}</p>
-    {% if entry %}
-    <p>{{ admin_delete_warning_of }} <strong>#{{ object_id }}</strong></p>
-    {% endif %}
-    <p>{{ admin_delete_warning_irreversible }}</p>
-</div>
-
-<form method="POST" action="{{ admin_prefix }}/{{ resource_key }}/{{ object_id }}/delete">
-    <button type="submit" class="btn btn-danger">{{ admin_delete_btn_confirm }}</button>
-    <a href="{{ admin_prefix }}/{{ resource_key }}/list" class="btn btn-secondary">{{ admin_delete_btn_cancel }}</a>
-</form>
-{% endblock %}
-```
-
----
-
-## Pattern recommandé pour les variables i18n
-
-```html
-{{ admin_create_title }}
-```
-
-> Ne pas utiliser `| default(value="...")` — les variables i18n sont toujours présentes si la langue est configurée.
-
----
-
-## Surcharger un template
-
-Via `.templates()` dans le builder, remplace le template pour **toutes** les ressources :
-
-```rust
-RuniqueApp::builder(config)
-    .with_admin(|a| a
-        .templates(|t| t
-            .with_list("mon_theme/list")
-            .with_create("mon_theme/create")
-            .with_edit("mon_theme/edit")
-            .with_detail("mon_theme/detail")
-            .with_delete("mon_theme/delete")
-            .with_dashboard("mon_theme/dashboard")
-            .with_login("mon_theme/login")
-            .with_base("mon_theme/admin_base")
-        )
-    )
-    .build().await?
-```
-
-> Les templates surchargés ont accès aux mêmes variables que les templates par défaut.
 
 ## Sous-sections
 
 | Section | Description |
 | --- | --- |
-| [Surcharge](/docs/fr/admin/template-surcharge) | remplacer le layout ou un composant CRUD |
+| [Surcharge](/docs/fr/admin/template-surcharge) | remplacer un bloc (HTML, CSS ou les deux) ou une page entière |
 
 ## Revenir au sommaire
 
