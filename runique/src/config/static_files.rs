@@ -47,6 +47,20 @@ fn current_dir_str() -> String {
 #[cfg(test)]
 pub(crate) static MEDIA_ENV_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
+/// Puts back the test run's `MEDIA_ROOT` (`runique/.cargo/config.toml`) after a
+/// test changed it, rather than removing it: a test building an app meanwhile
+/// would create `{cwd}/media`. Removed when the run sets none.
+#[cfg(test)]
+pub(crate) fn restore_media_root() {
+    // SAFETY: the tests touching MEDIA_ROOT hold a lock on it.
+    unsafe {
+        match option_env!("MEDIA_ROOT") {
+            Some(root) => std::env::set_var("MEDIA_ROOT", root),
+            None => std::env::remove_var("MEDIA_ROOT"),
+        }
+    }
+}
+
 /// Resolves the media root directory, in priority order: the `MEDIA_ROOT` env
 /// var if set, otherwise `{BASE_DIR}/media` if `BASE_DIR` is set, otherwise
 /// `{cwd}/media`.
@@ -155,7 +169,7 @@ mod tests {
             std::env::remove_var("BASE_DIR");
         }
         let result = resolve_media_root();
-        unsafe { std::env::remove_var("MEDIA_ROOT") };
+        restore_media_root();
         assert_eq!(result, "/custom/media");
     }
 
@@ -168,6 +182,7 @@ mod tests {
         }
         let result = resolve_media_root();
         unsafe { std::env::remove_var("BASE_DIR") };
+        restore_media_root();
         assert_eq!(result, "/var/www/app/media");
     }
 
@@ -179,6 +194,7 @@ mod tests {
             std::env::remove_var("BASE_DIR");
         }
         let result = resolve_media_root();
+        restore_media_root();
         assert_eq!(result, format!("{}/media", current_dir_str()));
         assert!(
             std::path::Path::new(&result).is_absolute(),

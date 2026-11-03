@@ -1,6 +1,6 @@
 // Tests pour StaticConfig
 
-use crate::utils::env::{del_env, set_env};
+use crate::utils::env::{del_env, restore_media_root, set_env};
 use runique::config::static_files::StaticConfig;
 use serial_test::serial;
 
@@ -38,6 +38,7 @@ fn test_static_config_default_media_root() {
     del_env("MEDIA_ROOT");
     del_env("BASE_DIR");
     let cfg = StaticConfig::from_env();
+    restore_media_root();
     assert!(
         cfg.media_root.ends_with("/media") || cfg.media_root.ends_with("\\media"),
         "expected media_root to end with /media or \\media, got: {}",

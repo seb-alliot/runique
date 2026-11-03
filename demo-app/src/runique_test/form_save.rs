@@ -84,7 +84,7 @@ async fn validated(req: &Request) -> Result<ValidationForm<BlogForm>, DbErr> {
         .map_err(|form| {
             DbErr::Custom(format!(
                 "the form should be valid: {:?}",
-                form.get_form().errors()
+                form.forms().errors()
             ))
         })
 }
@@ -189,7 +189,7 @@ async fn an_unknown_or_unreadable_key_writes_nothing() -> Result<(), TestFailure
                 Ok(_) => return Err(DbErr::Custom(format!("key {key:?} was saved"))),
                 Err(form) => form,
             };
-            if form.get_form().errors.is_empty() {
+            if form.forms().errors.is_empty() {
                 return Err(DbErr::Custom(format!("key {key:?}: no error on the form")));
             }
         }
@@ -227,7 +227,7 @@ async fn delete_without_a_key_removes_nothing() -> Result<(), TestFailure> {
             Ok(_) => return Err(fail("delete without a key should be refused")),
             Err(form) => form,
         };
-        if form.get_form().errors.is_empty() {
+        if form.forms().errors.is_empty() {
             return Err(fail("no error on the form"));
         }
         match titled(db, TITLE).await? {
@@ -255,10 +255,10 @@ async fn user_id_is_none_without_a_login() -> Result<(), TestFailure> {
 async fn refused_on_title(req: &Request) -> Result<(), DbErr> {
     match ValidationForm::try_form(req.form::<BlogForm>(), req, "blog").await {
         Ok(_) => Err(fail("an empty title should not validate")),
-        Err(form) if form.get_form().errors().contains_key("title") => Ok(()),
+        Err(form) if form.forms().errors().contains_key("title") => Ok(()),
         Err(form) => Err(DbErr::Custom(format!(
             "the error should be on title: {:?}",
-            form.get_form().errors()
+            form.forms().errors()
         ))),
     }
 }

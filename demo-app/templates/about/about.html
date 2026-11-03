@@ -52,21 +52,28 @@
 
             <div class="demo-code-title">views.rs — pattern redirect typique</div>
             <pre><code><span class="cm">// After an action: add + redirect</span>
-<span class="kw">pub async fn</span> <span class="fn_">create_post</span>(
+<span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="fn_">create_post</span>(
     <span class="kw">mut</span> request: <span class="ty">Request</span>,
-) -> <span class="ty">AppResult</span>&lt;<span class="ty">Response</span>&gt; {
-    <span class="kw">let mut</span> form: <span class="ty">BlogForm</span> = request.<span class="fn_">form</span>();
-    <span class="kw">if</span> request.<span class="fn_">is_post</span>() && form.<span class="fn_">is_valid</span>().<span class="kw">await</span> {
-        form.<span class="fn_">save</span>(&db).<span class="kw">await</span>?;
-        <span class="mc">success!</span>(request.notices => <span class="st">"Article published!"</span>);
-        <span class="kw">return</span> <span class="ty">Ok</span>(<span class="ty">Redirect</span>::<span class="fn_">to</span>(<span class="st">"/blog"</span>).<span class="fn_">into_response</span>());
+) -&gt; <span class="ty">AppResult</span>&lt;<span class="ty">Response</span>&gt; {
+    <span class="kw">let</span> form: <span class="ty">BlogForm</span> = request.<span class="fn_">form</span>();
+    <span class="kw">let</span> form = <span class="kw">match</span> <span class="ty">ValidationForm</span>::<span class="fn_">try_form</span>(form, &amp;request, <span class="st">"blog"</span>).<span class="kw">await</span> {
+        <span class="ty">Ok</span>(validated) =&gt; validated,
+        <span class="ty">Err</span>(form) =&gt; {
+            <span class="mc">context_update!</span>(request =&gt; { <span class="st">"blog_form"</span> =&gt; &amp;form });
+            <span class="kw">return</span> request.<span class="fn_">render</span>(<span class="st">"blog/blog.html"</span>);
+        }
+    };
+    <span class="kw">if</span> form.<span class="fn_">save</span>(&amp;request.engine.db).<span class="kw">await</span>.<span class="fn_">is_ok</span>() {
+        <span class="mc">success!</span>(request.notices =&gt; <span class="st">"Article published!"</span>);
     }
-    request.<span class="fn_">render</span>(<span class="st">"blog/blog.html"</span>)
+    <span class="ty">Ok</span>(<span class="ty">Redirect</span>::<span class="fn_">to</span>(<span class="st">"/blog"</span>).<span class="fn_">into_response</span>())
 }</code></pre>
 
             <div class="demo-code-title">flash_now! — immediate message without session</div>
             <pre><code><span class="cm">// Display the message on the current page (no redirect)</span>
-<span class="mc">flash_now!</span>(error => request, <span class="st">"Invalid form."</span>);</code></pre>
+<span class="mc">context_update!</span>(request =&gt; {
+    <span class="st">"messages"</span> =&gt; <span class="mc">flash_now!</span>(error =&gt; <span class="st">"Invalid form."</span>),
+});</code></pre>
 
             <div class="demo-code-title">index.html — affichage dans le template</div>
             <pre><code><span class="cm">&lt;!-- dans le layout de base --&gt;</span>

@@ -43,10 +43,10 @@ impl FormAccess for SearchForm {
     fn from_form(form: Forms) -> Self {
         Self { form }
     }
-    fn get_form(&self) -> &Forms {
+    fn forms(&self) -> &Forms {
         &self.form
     }
-    fn get_form_mut(&mut self) -> &mut Forms {
+    fn forms_mut(&mut self) -> &mut Forms {
         &mut self.form
     }
 }
@@ -69,7 +69,7 @@ async fn get_without_data_is_err_and_has_no_field_errors() {
             // allow_get() returned false before is_valid() ever ran — no
             // "required" error should have been set on the field.
             assert!(
-                !form.get_form().has_errors(),
+                !form.forms().has_errors(),
                 "no validation attempt should mean no field errors"
             );
         }
@@ -101,7 +101,7 @@ async fn post_missing_required_field_is_err_with_field_error() {
     match ValidationForm::try_form(form, &request, NAME).await {
         Ok(_) => panic!("POST with a missing required field must not validate"),
         Err(form) => {
-            let errors = form.get_form().errors();
+            let errors = form.forms().errors();
             assert!(
                 errors.contains_key("q"),
                 "the required field must carry its own error, got: {errors:?}"
@@ -140,10 +140,10 @@ impl FormAccess for DynamicForm {
     fn from_form(form: Forms) -> Self {
         Self { form }
     }
-    fn get_form(&self) -> &Forms {
+    fn forms(&self) -> &Forms {
         &self.form
     }
-    fn get_form_mut(&mut self) -> &mut Forms {
+    fn forms_mut(&mut self) -> &mut Forms {
         &mut self.form
     }
 }
@@ -151,9 +151,9 @@ impl FormAccess for DynamicForm {
 #[async_trait::async_trait]
 impl RuniqueForm for DynamicForm {
     async fn register_dynamic_fields(&mut self, _request: &runique::context::Request) {
-        self.get_form_mut()
+        self.forms_mut()
             .field(&TextField::text("late_field").required());
-        self.get_form_mut().add_value("late_field", "present");
+        self.forms_mut().add_value("late_field", "present");
     }
 }
 
@@ -175,7 +175,7 @@ async fn register_dynamic_fields_runs_before_validation() {
         }
         Err(form) => panic!(
             "late_field must have been registered+filled by register_dynamic_fields before is_valid(), errors: {:?}",
-            form.get_form().errors()
+            form.forms().errors()
         ),
     }
 }
@@ -195,10 +195,10 @@ impl FormAccess for AlwaysPostOnlyForm {
     fn from_form(form: Forms) -> Self {
         Self { form }
     }
-    fn get_form(&self) -> &Forms {
+    fn forms(&self) -> &Forms {
         &self.form
     }
-    fn get_form_mut(&mut self) -> &mut Forms {
+    fn forms_mut(&mut self) -> &mut Forms {
         &mut self.form
     }
 }
@@ -223,7 +223,7 @@ async fn explicit_allow_get_false_blocks_validation_even_with_data() {
         Ok(_) => panic!("allow_get() override returning false must block validation"),
         Err(form) => {
             // Never attempted: no error should have been recorded either.
-            assert!(!form.get_form().has_errors());
+            assert!(!form.forms().has_errors());
         }
     }
 }
@@ -326,7 +326,7 @@ async fn try_form_with_its_name_still_reports_field_errors() {
     match ValidationForm::try_form(form, &request, "search").await {
         Ok(_) => panic!("the sent form with a missing required field must not validate"),
         Err(form) => assert!(
-            form.get_form().has_errors(),
+            form.forms().has_errors(),
             "the sent form must show its own validation errors"
         ),
     }
@@ -342,7 +342,7 @@ async fn try_form_with_another_name_is_err_without_field_errors() {
     match ValidationForm::try_form(form, &request, "search").await {
         Ok(_) => panic!("a POST sent by another form must not validate this one"),
         Err(form) => assert!(
-            !form.get_form().has_errors(),
+            !form.forms().has_errors(),
             "is_valid() must not run on a form that wasn't sent"
         ),
     }
@@ -357,7 +357,7 @@ async fn try_form_without_any_name_is_err_without_field_errors() {
 
     match ValidationForm::try_form(form, &request, "search").await {
         Ok(_) => panic!("a POST carrying no form name must bind no named form"),
-        Err(form) => assert!(!form.get_form().has_errors()),
+        Err(form) => assert!(!form.forms().has_errors()),
     }
 }
 
@@ -371,7 +371,7 @@ async fn try_form_puts_its_name_in_the_form_name_field() {
         .await
         .err()
         .expect("a bare GET never validates");
-    assert_eq!(form.get_form().fields[FORM_NAME_KEY].value(), "search");
+    assert_eq!(form.forms().fields[FORM_NAME_KEY].value(), "search");
 }
 
 #[tokio::test]
@@ -379,7 +379,7 @@ async fn a_form_never_given_to_try_form_has_an_empty_name() {
     let engine = build_engine().await;
     let request = build_handler_req(engine, None, HashMap::new(), Method::GET).await;
     let form: SearchForm = request.form();
-    assert_eq!(form.get_form().fields[FORM_NAME_KEY].value(), "");
+    assert_eq!(form.forms().fields[FORM_NAME_KEY].value(), "");
 }
 
 #[tokio::test]
@@ -388,5 +388,5 @@ async fn the_form_name_is_never_filled_from_the_request() {
     let data = named_data(Some("other"), Some("rust"));
     let request = build_handler_req(engine, None, data, Method::POST).await;
     let form: SearchForm = request.form();
-    assert_eq!(form.get_form().fields[FORM_NAME_KEY].value(), "");
+    assert_eq!(form.forms().fields[FORM_NAME_KEY].value(), "");
 }

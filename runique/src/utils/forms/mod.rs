@@ -4,5 +4,4 @@ pub mod parse_html;
 pub mod sanitizer;
 
 pub use parse_boolean::parse_bool;
-pub use parse_html::*;
 pub use sanitizer::*;

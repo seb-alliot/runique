@@ -187,7 +187,7 @@ async fn superuser_login_stores_no_rights_either() {
 // ── login: the account must be allowed to sign in ──────────────────────────
 
 /// An account waiting for its first activation (`is_active` off, no `activated_at`).
-async fn insert_pending(db: &ADb, n: u32, username: &str) {
+async fn insert_pending<C: runique::sea_orm::ConnectionTrait>(db: &C, n: u32, username: &str) {
     runique::sea_orm::ConnectionTrait::execute_unprepared(
         db,
         &format!(
@@ -267,6 +267,38 @@ async fn activate_account_returns_the_account_ready_to_sign_in() {
         "reactivation is the staff's"
     );
     assert!(!account(&db, 7).await.is_active);
+}
+
+/// Created and activated in one transaction, as the generated sign-up does:
+/// left without a commit, no row keeps the username; committed, the account
+/// is active.
+#[tokio::test]
+async fn an_account_created_and_activated_in_one_transaction_is_all_or_nothing() {
+    use runique::sea_orm::TransactionTrait;
+    let db = users_db().await;
+
+    let txn = db.begin().await.unwrap();
+    insert_pending(&txn, 8, "hugo").await;
+    assert!(
+        BuiltinUserEntity::activate_account(&txn, pk(8))
+            .await
+            .unwrap()
+            .is_some()
+    );
+    drop(txn); // what `?` does on an error: no commit, rollback
+    assert!(
+        BuiltinUserEntity::find_by_id(&db, pk(8)).await.is_none(),
+        "rolled back with its activation"
+    );
+
+    let txn = db.begin().await.unwrap();
+    insert_pending(&txn, 8, "hugo").await;
+    BuiltinUserEntity::activate_account(&txn, pk(8))
+        .await
+        .unwrap()
+        .expect("activated");
+    txn.commit().await.unwrap();
+    assert_eq!(account_state(&db, 8).await, (true, true));
 }
 
 // ── update_password_by_id ───────────────────────────────────────────────────

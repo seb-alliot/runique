@@ -11,7 +11,6 @@
 pub mod test_aegis;
 pub mod test_auto_now;
 pub mod test_base_field;
-pub mod test_binary_field;
 pub mod test_bool_choice;
 pub mod test_bool_strict;
 pub mod test_boolean_field;

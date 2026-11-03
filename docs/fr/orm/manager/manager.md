@@ -148,7 +148,7 @@ Lorsqu'un form est déclaré avec `#[form(schema = …)]`, Runique génère auto
 - Une constante `pub const objects` sur le form, identique à `Entity::objects`
 
 ```rust
-#[form(schema = users)]
+#[form(schema = users, fields = All)]
 pub struct UserForm;
 
 // Accès objects via le form — équivalent à users::Entity::objects

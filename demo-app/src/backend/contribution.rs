@@ -68,7 +68,7 @@ pub async fn handle_contribution_submit(
             Ok(Redirect::to("/contributions").into_response())
         }
         Err(err) => {
-            form.get_form_mut().database_error(&err);
+            form.forms_mut().database_error(&err);
             context_update!(request => { "title" => "Database error", "contribution_form" => &form });
             request.render(template)
         }

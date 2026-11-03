@@ -57,15 +57,25 @@ pub struct Forms {
     pub(crate) name: Option<&'static str>,
 }
 
+/// `write` runs the form's writes in a transaction it hands back uncommitted;
+/// the files move in between, then the commit. A refused write leaves them in
+/// staging, where the request's end removes them: only a failing commit has a
+/// published file to take back. Uncommitted, the row is seen by no one, so no
+/// reader meets it before its file is in place.
 pub(crate) async fn write_with_uploads(
     forms: &mut Forms,
-    write: impl Future<Output = Result<(), sea_orm::DbErr>>,
+    write: impl Future<Output = Result<sea_orm::DatabaseTransaction, sea_orm::DbErr>>,
 ) -> Result<(), sea_orm::DbErr> {
-    forms
-        .publish_uploads()
-        .await
-        .map_err(sea_orm::DbErr::Custom)?;
-    match write.await {
+    let result = async {
+        let txn = write.await?;
+        forms
+            .publish_uploads()
+            .await
+            .map_err(sea_orm::DbErr::Custom)?;
+        txn.commit().await
+    }
+    .await;
+    match result {
         Ok(()) => {
             forms.complete_uploads().await;
             Ok(())
@@ -564,13 +574,14 @@ impl Forms {
         Ok(())
     }
 
-    /// Publishes staged uploads immediately before the corresponding database
-    /// write. If publication fails, already-published files are rolled back.
+    /// Moves staged uploads to their destination. If one fails, those already
+    /// moved are taken back.
     ///
-    /// `ValidationForm::save` handles publication and rollback automatically.
-    /// A custom save must call this before writing, then call
-    /// `complete_uploads` after a successful write or `rollback_uploads` after
-    /// a failed one.
+    /// `ValidationForm::save` calls it between its write and its commit. A
+    /// form without a model, or a custom save, calls it itself: inside the
+    /// transaction after the write and before the commit, then
+    /// `complete_uploads` once committed, or `rollback_uploads` if the commit
+    /// fails.
     pub async fn publish_uploads(&mut self) -> Result<(), String> {
         let mut failure = None;
         for field in self.fields.values_mut() {
@@ -586,14 +597,16 @@ impl Forms {
         Ok(())
     }
 
-    /// Rolls back files published for a database write that did not succeed.
+    /// Takes back the files `publish_uploads` moved, for a write that did not
+    /// succeed, and restores each field's previous value.
     pub async fn rollback_uploads(&mut self) {
         for field in self.fields.values_mut() {
             field.rollback_uploads().await;
         }
     }
 
-    /// Completes upload publication after the database write succeeds.
+    /// Forgets the pending uploads once the write is committed. The file a new
+    /// one replaced stays on disk: removing it is the developer's call.
     pub async fn complete_uploads(&mut self) {
         for field in self.fields.values_mut() {
             field.complete_uploads().await;

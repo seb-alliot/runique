@@ -4,9 +4,18 @@
 
 The `#[form(...)]` attribute macro expects:
 
-- `schema = function_path` (required)
-- `fields = [..]` (optional)
-- `exclude = [..]` (optional)
+- `schema = model_module` (required);
+- **and exactly one** of these three declarations, saying which fields the form takes:
+
+| Declaration | Fields of the form |
+| --- | --- |
+| `fields = [a, b]` | only those, in that order |
+| `exclude = [a, b]` | all of them, but those |
+| `fields = All` | all of them |
+
+Without one of the three, or with `fields` and `exclude` together, the code **doesn't compile**: the declaration is incomplete. A name that isn't a column of the model (`fields = [username, roles]`) doesn't compile either, and the error points at the name.
+
+`fields = All` and `exclude` also take the columns added to the model later. For accounts (`runique_users`), "all" includes the ranks (`is_admin`, `is_dirigeant`, `is_superuser`) and `is_active`: keep it for a form whose use you control. On a public form (sign-up, profile), list the fields.
 
 It generates:
 
@@ -31,13 +40,13 @@ impl RuniqueForm for UserForm {}
 `#[form(schema = …)]` ties the form to its model module's entity automatically (`schema = blog` → `blog::Entity`), which gives `Form::objects` and `search!(@Form => …)`: the form becomes a direct entry point for ORM queries, without going through the entity type.
 
 ```rust
-#[form(schema = users)]
+#[form(schema = users, fields = All)]
 pub struct UserForm;
 
-#[form(schema = blog)]
+#[form(schema = blog, fields = All)]
 pub struct BlogForm;
 
-#[form(schema = document)]
+#[form(schema = document, fields = All)]
 pub struct DocumentForm;
 ```
 
@@ -135,7 +144,7 @@ impl RuniqueForm for RegisterForm {
 A `#[form]` form is customized field by field without rewriting `register_fields`: the `customize()` hook runs right after the model's fields are registered, every time the form is built. Declaring a field again under the same name replaces it.
 
 ```rust
-#[form(schema = article)]
+#[form(schema = article, fields = All)]
 pub struct ArticleForm;
 
 impl RuniqueForm for ArticleForm {

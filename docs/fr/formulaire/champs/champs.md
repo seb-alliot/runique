@@ -315,9 +315,29 @@ form.field(
 | `.upload_to_env()` | `{MEDIA_ROOT}/{nom_du_champ}/` |
 | *(aucune)* | `MEDIA_ROOT` directement (pas de sous-dossier) |
 
-`finalize()` prépare le chemin relatif, mais garde le fichier dans son dossier temporaire. Avec `ValidationForm::save`, Runique publie le fichier juste avant l'écriture en base, le retire si celle-ci échoue et ne supprime l'ancien fichier qu'après sa réussite. Pour une sauvegarde personnalisée, appelez `form.get_form_mut().publish_uploads().await` avant l'écriture, puis `complete_uploads().await` après sa réussite ou `rollback_uploads().await` après son échec. La destination doit être relative à `MEDIA_ROOT` et ne peut contenir de composant `.` ou `..`, de séparateur Windows ni de préfixe de volume. Le dossier est créé automatiquement s'il n'existe pas encore.
+`finalize()` prépare le chemin relatif, mais garde le fichier dans son dossier temporaire, sous `MEDIA_ROOT`, nommé `{uuid}.extension`. Avec `ValidationForm::save`, Runique écrit la ligne, déplace le fichier vers sa destination, puis valide la transaction. Tant que la ligne n'est pas validée, personne d'autre ne la voit : aucun lecteur ne tombe sur un chemin dont le fichier n'est pas encore en place. Une écriture refusée (valeur déjà prise, clé étrangère…) laisse le fichier dans le dossier temporaire, supprimé à la fin de la requête ; seul un échec du commit lui-même retire le fichier déjà déplacé. La destination doit être relative à `MEDIA_ROOT` et ne peut contenir de composant `.` ou `..`, de séparateur Windows ni de préfixe de volume. Le dossier est créé automatiquement s'il n'existe pas encore.
 
-> **Limite actuelle** : le fichier et la ligne ne sont pas écrits dans une même transaction. Une erreur ordinaire est rattrapée (le fichier publié est retiré), mais un arrêt brutal du processus entre la publication du fichier et la validation en base peut laisser un fichier orphelin sous `MEDIA_ROOT`.
+**Le fichier remplacé.** Runique ne supprime jamais le fichier qu'un nouvel envoi remplace : il peut encore vous servir (historique, archive). Pour le supprimer, lisez l'ancien chemin avant le `save`, puis supprimez-le une fois l'écriture faite :
+
+```rust
+let ancien = profil::Entity::find_by_id(id).one(&request.engine.db).await?.and_then(|p| p.avatar);
+match form.save(&request.engine.db).await {
+    Ok(form) => {
+        let nouveau = form.forms().fields["avatar"].value().to_string();
+        if let Some(ancien) = ancien.filter(|a| *a != nouveau) {
+            let _ = tokio::fs::remove_file(std::path::Path::new(&runique::config::static_files::resolve_media_root()).join(ancien)).await;
+        }
+        Ok(Redirect::to("/profil").into_response())
+    }
+    Err(form) => { /* le formulaire avec ses erreurs */ }
+}
+```
+
+**Sans `save`.** Un formulaire sans modèle (simple dépôt de fichier) ou une sauvegarde écrite à la main gère le fichier lui-même : `form.forms_mut().publish_uploads().await` dans votre transaction, après l'écriture et avant le `commit()`, puis `complete_uploads().await` une fois validé, ou `rollback_uploads().await` si le commit échoue. Sans écriture en base, `publish_uploads()` puis `complete_uploads()` suffisent.
+
+**Dans une transaction du handler** ([`request.db_atomic()`](/docs/fr/orm/avance)), le fichier est déplacé au moment du `save`. Si le handler sort sans `commit()`, la ligne est annulée (rollback) mais le fichier reste sur le disque, orphelin.
+
+> **Limite actuelle** : le disque ne participe pas à la transaction. Un arrêt brutal du processus entre le déplacement du fichier et la validation en base, ou un échec du commit qu'on ne peut rattraper, peut laisser un fichier orphelin sous `MEDIA_ROOT` — jamais une ligne qui pointe vers un fichier absent.
 
 > **Sécurité** : les fichiers `.svg` sont **toujours refusés** (risque XSS). `FileField::any` accepte toute autre extension et ne lit pas le contenu : la sécurité de ce champ est à la charge de l'application. Pour une image, la validation vérifie le format réel via les magic bytes (pas seulement l'extension). Avec `max_dimensions`, le crate `image` mesure le fichier : si la mesure échoue, le fichier est refusé, pour tous les formats. Sans cette mesure, le plafond de largeur et de hauteur ne s'appliquerait pas. Les fichiers vides (aucun fichier sélectionné) sont ignorés proprement — le champ `required` fonctionne correctement.
 

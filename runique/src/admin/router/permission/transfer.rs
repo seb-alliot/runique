@@ -97,7 +97,7 @@ pub(crate) async fn transfer_view(
 
     if req.method == axum::http::Method::POST {
         let mut form = req.form::<ConfirmForm<groupe::Entity>>();
-        form.get_form_mut().set_name(admin_form::TRANSFER);
+        form.forms_mut().set_name(admin_form::TRANSFER);
         let field = |name: &str| req.prisme.data.get(name).cloned().unwrap_or_default();
         let (to, shown) = (field(TO), field(SHOWN));
         let outcome = match ValidationForm::try_form(form, &req, admin_form::TRANSFER).await {

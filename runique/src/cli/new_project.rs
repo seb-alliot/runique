@@ -44,22 +44,94 @@ pub fn create_new_project(name: &str) -> Result<()> {
 /// workspace already holds a `migration` crate and depends on `runique`.
 const RESERVED_NAMES: &[&str] = &[
     // Rust keywords, reserved ones included
-    "abstract", "as", "async", "await", "become", "box", "break", "const", "continue",
-    "crate", "do", "dyn", "else", "enum", "extern", "false", "final", "fn", "for", "gen",
-    "if", "impl", "in", "let", "loop", "macro", "match", "mod", "move", "mut", "override",
-    "priv", "pub", "ref", "return", "self", "static", "struct", "super", "trait", "true",
-    "try", "type", "typeof", "unsafe", "unsized", "use", "virtual", "where", "while",
+    "abstract",
+    "as",
+    "async",
+    "await",
+    "become",
+    "box",
+    "break",
+    "const",
+    "continue",
+    "crate",
+    "do",
+    "dyn",
+    "else",
+    "enum",
+    "extern",
+    "false",
+    "final",
+    "fn",
+    "for",
+    "gen",
+    "if",
+    "impl",
+    "in",
+    "let",
+    "loop",
+    "macro",
+    "match",
+    "mod",
+    "move",
+    "mut",
+    "override",
+    "priv",
+    "pub",
+    "ref",
+    "return",
+    "self",
+    "static",
+    "struct",
+    "super",
+    "trait",
+    "true",
+    "try",
+    "type",
+    "typeof",
+    "unsafe",
+    "unsized",
+    "use",
+    "virtual",
+    "where",
+    "while",
     "yield",
     // Rust's built-in crates
-    "alloc", "core", "proc_macro", "std", "test",
+    "alloc",
+    "core",
+    "proc_macro",
+    "std",
+    "test",
     // cargo's build folders
-    "build", "deps", "examples", "incremental",
+    "build",
+    "deps",
+    "examples",
+    "incremental",
     // Windows device names
-    "aux", "con", "nul", "prn", "com1", "com2", "com3", "com4", "com5", "com6", "com7",
-    "com8", "com9", "lpt1", "lpt2", "lpt3", "lpt4", "lpt5", "lpt6", "lpt7", "lpt8",
+    "aux",
+    "con",
+    "nul",
+    "prn",
+    "com1",
+    "com2",
+    "com3",
+    "com4",
+    "com5",
+    "com6",
+    "com7",
+    "com8",
+    "com9",
+    "lpt1",
+    "lpt2",
+    "lpt3",
+    "lpt4",
+    "lpt5",
+    "lpt6",
+    "lpt7",
+    "lpt8",
     "lpt9",
     // The generated workspace
-    "migration", "runique",
+    "migration",
+    "runique",
 ];
 
 fn validate_project_name(name: &str) -> Result<()> {
@@ -243,12 +315,31 @@ mod name_tests {
     #[test]
     fn reserved_names_are_refused_whatever_their_case_or_dash() {
         for bad in [
-            "test", "std", "Core", "proc-macro", "proc_macro", "fn", "self", "deps", "CON",
-            "nul", "lpt1", "migration", "Runique", "1app",
+            "test",
+            "std",
+            "Core",
+            "proc-macro",
+            "proc_macro",
+            "fn",
+            "self",
+            "deps",
+            "CON",
+            "nul",
+            "lpt1",
+            "migration",
+            "Runique",
+            "1app",
         ] {
             assert!(validate_project_name(bad).is_err(), "{bad:?}");
         }
-        for ok in ["tests", "my_test", "testing", "app1", "console", "migrations"] {
+        for ok in [
+            "tests",
+            "my_test",
+            "testing",
+            "app1",
+            "console",
+            "migrations",
+        ] {
             assert!(validate_project_name(ok).is_ok(), "{ok:?}");
         }
     }
@@ -284,7 +375,10 @@ mod generated_files_tests {
             "name and version"
         );
         let cargo = std::fs::read_to_string(dir.join("Cargo.toml")).unwrap();
-        assert!(cargo.contains(&format!(r#"sea-orm = "{SEA_ORM_REQ}""#)), "{cargo}");
+        assert!(
+            cargo.contains(&format!(r#"sea-orm = "{SEA_ORM_REQ}""#)),
+            "{cargo}"
+        );
         assert!(cargo.contains(r#"members = ["migration"]"#), "{cargo}");
         let migration = std::fs::read_to_string(dir.join("migration/Cargo.toml")).unwrap();
         assert!(

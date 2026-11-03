@@ -16,22 +16,32 @@ pub(crate) enum WriteKind {
     Update,
 }
 
+/// Whether the write sets the model's secret columns. The admin never does;
+/// a form of the site writes every field it declares — a password field only
+/// as the hash it made, its `to_value` never giving the text typed in.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Secrets {
+    Skip,
+    Write,
+}
+
 /// The fields the write refused, with the reason, to show on the form.
 pub(crate) type FieldErrors = Vec<(String, String)>;
 
 /// The `ActiveModel` of `E` that `form` may write as `kind`. A column stays
-/// `NotSet` when it is secret, the key of an updated row, not allowed by
-/// `rights`, or not a field of the form.
+/// `NotSet` when it is secret and `secrets` skips them, the key of an updated
+/// row, not allowed by `rights`, or not a field of the form.
 pub(crate) fn changes<E: ModelMeta>(
     form: &Forms,
     rights: &ColumnRights,
     kind: WriteKind,
+    secrets: Secrets,
 ) -> Result<E::ActiveModel, FieldErrors> {
     let mut model = <E::ActiveModel as ActiveModelTrait>::default();
     let mut errors = FieldErrors::new();
     for column in E::Column::iter() {
         let name = column.as_str();
-        if E::SECRET.iter().any(|c| c.as_str() == name)
+        if (secrets == Secrets::Skip && E::SECRET.iter().any(|c| c.as_str() == name))
             || (kind == WriteKind::Update && is_primary_key::<E>(name))
         {
             continue;
@@ -206,7 +216,7 @@ mod tests {
         rights: &ColumnRights,
         kind: WriteKind,
     ) -> <E as EntityTrait>::ActiveModel {
-        changes::<E>(form, rights, kind).unwrap()
+        changes::<E>(form, rights, kind, Secrets::Skip).unwrap()
     }
 
     /// The value set on `column`, `None` while it is `NotSet`.
@@ -258,6 +268,34 @@ mod tests {
         let rights = only(&[("secret", true, true), ("title", true, true)]);
         let form = with(full_form(), &[("secret", "hunter2"), ("title", "t")]);
         let model = built(&form, &rights, WriteKind::Create);
+        assert_eq!(set(&model, C::Secret), None);
+        assert_eq!(set(&model, C::Title), text("t"));
+    }
+
+    /// A form of the site writes a secret field it declares, on create and on
+    /// update alike; the admin's `Skip` above never does.
+    #[test]
+    fn the_site_writes_a_secret_field_its_form_declares() {
+        let form = with(full_form(), &[("secret", "hunter2"), ("title", "t")]);
+        for kind in [WriteKind::Create, WriteKind::Update] {
+            let model = changes::<E>(&form, &ColumnRights::All, kind, Secrets::Write).unwrap();
+            assert_eq!(set(&model, C::Secret), text("hunter2"), "{kind:?}");
+            assert_eq!(set(&model, C::Title), text("t"));
+        }
+    }
+
+    /// Writing secrets lifts no other floor: the key on an update and a
+    /// column the form doesn't declare stay `NotSet`.
+    #[test]
+    fn the_site_writing_secrets_keeps_the_key_and_the_undeclared_columns_out() {
+        let mut form = Forms::new("");
+        form.field(&NumericField::integer("id"));
+        form.field(&TextField::text("title"));
+        type_fields(&mut form);
+        let form = with(form, &[("id", "7"), ("title", "t")]);
+        let model =
+            changes::<E>(&form, &ColumnRights::All, WriteKind::Update, Secrets::Write).unwrap();
+        assert_eq!(set(&model, C::Id), None);
         assert_eq!(set(&model, C::Secret), None);
         assert_eq!(set(&model, C::Title), text("t"));
     }
@@ -448,7 +486,8 @@ mod tests {
     #[test]
     fn a_nullable_column_whose_null_cannot_be_typed_is_an_error() {
         let form = with_addr(full_form());
-        let errors = changes::<E>(&form, &ColumnRights::All, WriteKind::Update).unwrap_err();
+        let errors =
+            changes::<E>(&form, &ColumnRights::All, WriteKind::Update, Secrets::Skip).unwrap_err();
         assert_eq!(errors, vec![("addr".to_string(), unconvertible())]);
     }
 
@@ -462,16 +501,18 @@ mod tests {
     #[test]
     fn an_unreadable_value_is_an_error_naming_its_field() {
         let form = with(full_form(), &[("score", "abc")]);
-        let errors = changes::<E>(&form, &ColumnRights::All, WriteKind::Create).unwrap_err();
+        let errors =
+            changes::<E>(&form, &ColumnRights::All, WriteKind::Create, Secrets::Skip).unwrap_err();
         assert_eq!(errors, vec![("score".to_string(), unconvertible())]);
     }
 
     #[test]
     fn an_integer_one_above_the_column_width_is_an_error() {
         let form = with(full_form(), &[("score", "2147483647")]);
-        assert!(changes::<E>(&form, &ColumnRights::All, WriteKind::Create).is_ok());
+        assert!(changes::<E>(&form, &ColumnRights::All, WriteKind::Create, Secrets::Skip).is_ok());
         let form = with(full_form(), &[("score", "2147483648")]);
-        let errors = changes::<E>(&form, &ColumnRights::All, WriteKind::Create).unwrap_err();
+        let errors =
+            changes::<E>(&form, &ColumnRights::All, WriteKind::Create, Secrets::Skip).unwrap_err();
         assert_eq!(errors, vec![("score".to_string(), unconvertible())]);
     }
 
@@ -481,7 +522,8 @@ mod tests {
         let mut form = Forms::new("");
         form.field(&TextField::text("score"));
         let form = with(form, &[("score", "5")]);
-        let errors = changes::<E>(&form, &ColumnRights::All, WriteKind::Update).unwrap_err();
+        let errors =
+            changes::<E>(&form, &ColumnRights::All, WriteKind::Update, Secrets::Skip).unwrap_err();
         assert_eq!(errors, vec![("score".to_string(), unconvertible())]);
     }
 
@@ -491,7 +533,8 @@ mod tests {
             full_form(),
             &[("score", "abc"), ("born", "not a date")],
         ));
-        let errors = changes::<E>(&form, &ColumnRights::All, WriteKind::Update).unwrap_err();
+        let errors =
+            changes::<E>(&form, &ColumnRights::All, WriteKind::Update, Secrets::Skip).unwrap_err();
         assert_eq!(
             errors,
             vec![
@@ -514,21 +557,22 @@ mod tests {
     fn an_error_on_a_locked_field_is_not_reported() {
         let mut form = with(full_form(), &[("score", "abc")]);
         form.field_readonly("score", true);
-        assert!(changes::<E>(&form, &ColumnRights::All, WriteKind::Update).is_ok());
+        assert!(changes::<E>(&form, &ColumnRights::All, WriteKind::Update, Secrets::Skip).is_ok());
     }
 
     #[test]
     fn an_error_on_a_secret_or_a_key_on_update_is_not_reported() {
         let form = with(full_form(), &[("id", "abc"), ("secret", "x")]);
-        assert!(changes::<E>(&form, &ColumnRights::All, WriteKind::Update).is_ok());
-        let errors = changes::<E>(&form, &ColumnRights::All, WriteKind::Create).unwrap_err();
+        assert!(changes::<E>(&form, &ColumnRights::All, WriteKind::Update, Secrets::Skip).is_ok());
+        let errors =
+            changes::<E>(&form, &ColumnRights::All, WriteKind::Create, Secrets::Skip).unwrap_err();
         assert_eq!(errors, vec![("id".to_string(), unconvertible())]);
     }
 
     #[test]
     fn a_valid_form_gives_the_model() {
         let form = with(full_form(), &[("title", "t")]);
-        assert!(changes::<E>(&form, &ColumnRights::All, WriteKind::Update).is_ok());
+        assert!(changes::<E>(&form, &ColumnRights::All, WriteKind::Update, Secrets::Skip).is_ok());
     }
 
     #[test]

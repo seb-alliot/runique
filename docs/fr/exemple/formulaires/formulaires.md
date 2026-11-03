@@ -105,7 +105,7 @@ impl RuniqueForm for SignupForm {
 
 ### Enregistrer un compte
 
-Pour un modèle ordinaire, `validated.save(&db)` enregistre la ligne. Pour un **compte**, elle ne suffit pas : `password` est une colonne secrète, que l'enregistrement générique n'écrit jamais. Le projet généré écrit donc son propre `save` :
+`validated.save(&db)` enregistre la ligne, mot de passe compris (son hash). Mais un compte naît **inactif** : il ne peut pas se connecter avant d'être activé. Le projet généré écrit donc son propre `save`, qui crée le compte puis l'active aussitôt :
 
 ```rust
 impl SignupForm {
@@ -168,7 +168,7 @@ pub async fn sign_up(mut request: Request) -> AppResult<Response> {
         }
         Err(err) => {
             // Un nom ou un email déjà pris s'affiche sur le champ concerné.
-            form.get_form_mut().database_error(&err);
+            form.forms_mut().database_error(&err);
             context_update!(request => {
                 "title" => "Inscription",
                 "signup_form" => &form,

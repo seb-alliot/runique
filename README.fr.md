@@ -159,7 +159,7 @@ Version du workspace (source de vérité) : **4.0.0**.
 - `runique create-superuser`
 - `runique test [file] [test]`
 - `runique makemigrations --entities src/entities --migrations migration/src [--force false]`
-- `runique migration up --migrations migration/src` (retour arrière et état : `sea-orm-cli migrate down` / `status`)
+- `runique migration up | down [-n N] | status` (lance le crate `migration/` du projet par `cargo run`, sans `sea-orm-cli`)
 
 Pas de `runique start` : l'app est un binaire Rust normal (`cargo run`). L'admin est du Rust plain (`ModelAdmin` + `.with_admin(...)`), sans génération de code.
 
@@ -173,7 +173,7 @@ L'admin est un builder typé — pas de macro, pas de fichiers générés sous `
 2. enregistrez-les sur `AdminSite` via `.with_admin(admin::config)` dans `main`
 3. lancez avec un simple `cargo run`
 
-Les colonnes sont des enums SeaORM (`article::Column::Title`) : une typo ou un champ secret échoue à la compilation. Permissions, filtres de liste, recherche et formulaires se configurent sur le même builder.
+Les colonnes sont des enums SeaORM (`article::Column::Title`) : une typo échoue à la compilation ; une colonne secrète (un mot de passe) placée dans une liste ou un formulaire est refusée au démarrage. Permissions, filtres de liste, recherche et formulaires se configurent sur le même builder.
 
 Documentation admin : [Admin](https://runique.io/docs/fr/admin)
 
@@ -198,10 +198,10 @@ Référence complète : [Sessions](https://runique.io/docs/fr/session)
 ## Tests et couverture
 
 - Tests rapportés : **3092 réussis** (3 ignorés)
-- Snapshot de couverture (`2026-10-08`, package `runique`, module admin inclus) : fonctions **88.72%**, lignes **88.81%**, régions **87.25%**
+- Snapshot de couverture (`2026-10-29`, package `runique`, module admin inclus) : fonctions **92.51%**, lignes **92.21%**, régions **91.19%**
 
 ```bash
-cargo llvm-cov --package runique --features all-databases --summary-only
+cargo llvm-cov --package runique --features all-databases,admin,test-utils --summary-only
 ```
 
 Détail complet par fichier : [docs/couverture_test.md](docs/couverture_test.md)

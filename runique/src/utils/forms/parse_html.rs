@@ -284,9 +284,10 @@ fn lock_file(file: &File, flags: u32) -> std::io::Result<()> {
 
 /// Reads a multipart body: text fields as they are, files written to a
 /// `.staging-*` folder under `upload_dir` (their path as the value), each held
-/// to `max_upload_mb`. No CSRF check here: the request pipeline uses
-/// `parse_multipart_guarded`.
-pub async fn parse_multipart(
+/// to `max_upload_mb`. No CSRF check and no lease: only the tests use it, the
+/// request pipeline uses `parse_multipart_guarded`.
+#[cfg(test)]
+pub(crate) async fn parse_multipart(
     multipart: Multipart,
     upload_dir: &Path,
     max_upload_mb: u64,
@@ -461,8 +462,8 @@ pub(crate) async fn parse_multipart_guarded(
                 return Err(e);
             }
 
-            // Staging path only: the form publishes it immediately before its
-            // database write. No file is served before CSRF and validation pass.
+            // Staging path only: the form publishes it between its database
+            // write and the commit. No file is served before CSRF and validation pass.
             data.entry(name)
                 .or_default()
                 .push(tmp_path.to_string_lossy().to_string());
@@ -933,5 +934,468 @@ mod staging_dir_tests {
         sweep_stale_staging(&root).await;
         assert!(secret.join("k.txt").exists(), "the target stays");
         let _ = std::fs::remove_dir_all(&root);
+    }
+}
+
+/// `parse_multipart` itself: text fields, files, size limits, the sweep.
+/// Moved from `tests/utils/test_parse_html.rs` when it became `pub(crate)`.
+#[cfg(test)]
+mod direct_parse_tests {
+    use super::parse_multipart;
+    use axum::{
+        Router,
+        body::Body,
+        extract::Multipart,
+        http::{Request, StatusCode, header},
+        response::IntoResponse,
+        routing::post,
+    };
+    use tower::ServiceExt;
+
+    // ── Handler de test ───────────────────────────────────────────────────────────
+
+    async fn multipart_handler(multipart: Multipart) -> impl IntoResponse {
+        let upload_dir = std::env::temp_dir().join("runique_test_upload");
+        match parse_multipart(multipart, &upload_dir, 100, 1024).await {
+            Ok(data) => {
+                // Retourne le nombre de champs parsés dans le body
+                let count = data.len().to_string();
+                (StatusCode::OK, count)
+            }
+            Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "error".to_string()),
+        }
+    }
+
+    fn multipart_app() -> Router {
+        Router::new().route("/upload", post(multipart_handler))
+    }
+
+    // ── Helper : construction d'une requête multipart texte ──────────────────────
+
+    fn multipart_text_request(fields: &[(&str, &str)]) -> Request<Body> {
+        let boundary = "----boundary123456";
+        let mut body = String::new();
+        for (name, value) in fields {
+            body.push_str(&format!(
+                "--{boundary}\r\nContent-Disposition: form-data; name=\"{name}\"\r\n\r\n{value}\r\n"
+            ));
+        }
+        body.push_str(&format!("--{boundary}--\r\n"));
+
+        Request::builder()
+            .method("POST")
+            .uri("/upload")
+            .header(
+                header::CONTENT_TYPE,
+                format!("multipart/form-data; boundary={boundary}"),
+            )
+            .body(Body::from(body))
+            .unwrap()
+    }
+
+    // ── Tests — champs texte ─────────────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn test_parse_multipart_champ_texte_simple() {
+        let req = multipart_text_request(&[("nom", "alice")]);
+        let resp = multipart_app().oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_parse_multipart_plusieurs_champs() {
+        let req = multipart_text_request(&[("nom", "alice"), ("age", "30"), ("ville", "Paris")]);
+        let resp = multipart_app().oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_parse_multipart_body_vide() {
+        let boundary = "----boundary_empty";
+        let body = format!("--{boundary}--\r\n");
+        let req = Request::builder()
+            .method("POST")
+            .uri("/upload")
+            .header(
+                header::CONTENT_TYPE,
+                format!("multipart/form-data; boundary={boundary}"),
+            )
+            .body(Body::from(body))
+            .unwrap();
+        let resp = multipart_app().oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+    }
+
+    // ── Tests — upload de fichier ─────────────────────────────────────────────────
+
+    fn multipart_file_request(field_name: &str, filename: &str, content: &str) -> Request<Body> {
+        let boundary = "----fileboundary789";
+        let body = format!(
+            "--{boundary}\r\nContent-Disposition: form-data; name=\"{field_name}\"; filename=\"{filename}\"\r\nContent-Type: text/plain\r\n\r\n{content}\r\n--{boundary}--\r\n"
+        );
+        Request::builder()
+            .method("POST")
+            .uri("/upload")
+            .header(
+                header::CONTENT_TYPE,
+                format!("multipart/form-data; boundary={boundary}"),
+            )
+            .body(Body::from(body))
+            .unwrap()
+    }
+
+    #[tokio::test]
+    async fn test_parse_multipart_upload_fichier() {
+        let req = multipart_file_request("fichier", "test.txt", "contenu du fichier");
+        let resp = multipart_app().oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_parse_multipart_upload_sans_extension() {
+        let req = multipart_file_request("fichier", "noext", "données sans extension");
+        let resp = multipart_app().oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_parse_multipart_mix_texte_et_fichier() {
+        let boundary = "----mixboundary";
+        let body = format!(
+            "--{boundary}\r\nContent-Disposition: form-data; name=\"nom\"\r\n\r\nbob\r\n\
+             --{boundary}\r\nContent-Disposition: form-data; name=\"doc\"; filename=\"doc.pdf\"\r\nContent-Type: application/pdf\r\n\r\n%PDF-1.4\r\n\
+             --{boundary}--\r\n"
+        );
+        let req = Request::builder()
+            .method("POST")
+            .uri("/upload")
+            .header(
+                header::CONTENT_TYPE,
+                format!("multipart/form-data; boundary={boundary}"),
+            )
+            .body(Body::from(body))
+            .unwrap();
+        let resp = multipart_app().oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+    }
+
+    // ── Written from cargo-mutants survivors (2026-10-08) ─────────────────────────
+
+    /// Parses a multipart request into a fresh `dir`, with 1 MB per file and 1 KB
+    /// per text field; returns the status.
+    async fn parse_into(dir: std::path::PathBuf, req: Request<Body>) -> StatusCode {
+        let app = Router::new().route(
+            "/upload",
+            post(move |multipart: Multipart| {
+                let dir = dir.clone();
+                async move {
+                    match parse_multipart(multipart, &dir, 1, 1).await {
+                        Ok(_) => StatusCode::OK,
+                        Err(resp) => resp.status(),
+                    }
+                }
+            }),
+        );
+        app.oneshot(req).await.unwrap().status()
+    }
+
+    fn temp_upload_dir() -> std::path::PathBuf {
+        std::env::temp_dir().join(format!("rq_parse_{}", uuid::Uuid::new_v4()))
+    }
+
+    /// Exactly at a limit is accepted; one byte over is refused (parse_html.rs:108, 154).
+    #[tokio::test]
+    async fn upload_limits_take_the_limit_itself() {
+        let dir = temp_upload_dir();
+        let text = |n: usize| multipart_text_request(&[("bio", &"a".repeat(n))]);
+        assert_eq!(parse_into(dir.clone(), text(1024)).await, StatusCode::OK);
+        assert_eq!(
+            parse_into(dir.clone(), text(1025)).await,
+            StatusCode::PAYLOAD_TOO_LARGE
+        );
+
+        let file = |n: usize| multipart_file_request("doc", "a.txt", &"b".repeat(n));
+        assert_eq!(
+            parse_into(dir.clone(), file(1024 * 1024)).await,
+            StatusCode::OK
+        );
+        assert_eq!(
+            parse_into(dir.clone(), file(1024 * 1024 + 1)).await,
+            StatusCode::PAYLOAD_TOO_LARGE
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn direct_multipart_file_remains_available_after_an_unrelated_parse() {
+        use axum::extract::Multipart;
+
+        let dir = temp_upload_dir();
+        let upload_dir = dir.clone();
+        let app = Router::new().route(
+            "/upload",
+            post(move |multipart: Multipart| {
+                let upload_dir = upload_dir.clone();
+                async move {
+                    let parsed = parse_multipart(multipart, &upload_dir, 1, 1)
+                        .await
+                        .expect("multipart parsed");
+                    parsed["doc"][0].clone()
+                }
+            }),
+        );
+        let response = app
+            .oneshot(multipart_file_request("doc", "report.pdf", "%PDF-1.4"))
+            .await
+            .unwrap();
+        let path = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let path = String::from_utf8(path.to_vec()).unwrap();
+
+        assert!(
+            std::path::Path::new(&path).exists(),
+            "the returned upload exists"
+        );
+        assert_eq!(
+            parse_into(dir.clone(), multipart_text_request(&[("note", "ok")])).await,
+            StatusCode::OK
+        );
+        let still_exists = std::path::Path::new(&path).exists();
+        let _ = std::fs::remove_dir_all(&dir);
+
+        assert!(
+            still_exists,
+            "an unrelated parse must not sweep a file path still owned by the direct caller"
+        );
+    }
+
+    /// A parse removes every `.staging-*` directory no live process holds, however
+    /// recent it is. Any other folder stays (`sweep_stale_staging`).
+    #[tokio::test]
+    async fn stale_staging_folders_are_swept_and_nothing_else() {
+        let dir = temp_upload_dir();
+        let two_hours_ago = std::time::SystemTime::now() - std::time::Duration::from_secs(7200);
+        for name in [".staging-old", ".staging-new", "kept-old"] {
+            std::fs::create_dir_all(dir.join(name)).unwrap();
+        }
+        for name in [".staging-old", "kept-old"] {
+            std::fs::File::open(dir.join(name))
+                .unwrap()
+                .set_modified(two_hours_ago)
+                .unwrap();
+        }
+
+        let status = parse_into(dir.clone(), multipart_text_request(&[("nom", "x")])).await;
+        let (old, new, other) = (
+            dir.join(".staging-old").exists(),
+            dir.join(".staging-new").exists(),
+            dir.join("kept-old").exists(),
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+        assert_eq!(status, StatusCode::OK);
+        assert!(!old, "an unclaimed staging folder is removed");
+        assert!(!new, "a fresh unclaimed staging folder is removed too");
+        assert!(other, "anything that isn't staging is never touched");
+    }
+}
+
+/// The upload chain from `parse_multipart` on: fill → validate → publish, and
+/// what a file field accepts as its value. Moved from
+/// `tests/formulaire/test_file_field_path_guard.rs` when `parse_multipart`
+/// became `pub(crate)`.
+#[cfg(test)]
+mod upload_chain_tests {
+    use super::parse_multipart;
+    use crate::forms::Forms;
+    use crate::forms::fields::FileField;
+    use axum::{
+        Router,
+        body::Body,
+        extract::Multipart,
+        http::{Request, header},
+        routing::post,
+    };
+    use tower::ServiceExt;
+
+    /// Stages the request's files the way Prisme does, then runs a form with
+    /// one `doc` file field; answers with the value the field ends up with.
+    async fn handler(multipart: Multipart) -> String {
+        let media = std::env::var("MEDIA_ROOT").expect("MEDIA_ROOT set by the test");
+        let parsed = parse_multipart(multipart, std::path::Path::new(&media), 10, 64)
+            .await
+            .expect("multipart parsed");
+        let data = parsed.into_iter().map(|(k, v)| (k, v.join(","))).collect();
+        let mut form = Forms::new("csrf");
+        form.field(&FileField::document("doc"));
+        form.fill(&data, axum::http::Method::POST);
+        if !form.is_valid().await.unwrap_or(false) {
+            return "invalid".into();
+        }
+        form.finalize().await.expect("finalize");
+        form.publish_uploads().await.expect("publish");
+        form.complete_uploads().await;
+        form.fields["doc"].value().to_string()
+    }
+
+    fn request(parts: &[(&str, Option<&str>, &str)]) -> Request<Body> {
+        let boundary = "----rqboundary";
+        let mut body = String::new();
+        for (name, filename, content) in parts {
+            let disposition = match filename {
+                Some(f) => format!("form-data; name=\"{name}\"; filename=\"{f}\""),
+                None => format!("form-data; name=\"{name}\""),
+            };
+            body.push_str(&format!(
+                "--{boundary}\r\nContent-Disposition: {disposition}\r\n\r\n{content}\r\n"
+            ));
+        }
+        body.push_str(&format!("--{boundary}--\r\n"));
+        Request::builder()
+            .method("POST")
+            .uri("/upload")
+            .header(
+                header::CONTENT_TYPE,
+                format!("multipart/form-data; boundary={boundary}"),
+            )
+            .body(Body::from(body))
+            .unwrap()
+    }
+
+    async fn send(req: Request<Body>) -> String {
+        let app = Router::new().route("/upload", post(handler));
+        let resp = app.oneshot(req).await.expect("response");
+        let bytes = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .expect("body");
+        String::from_utf8(bytes.to_vec()).expect("utf-8")
+    }
+
+    fn media_root() -> std::path::PathBuf {
+        let media = std::env::temp_dir().join(format!("rq_media_{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&media).unwrap();
+        set_env("MEDIA_ROOT", media.to_str().unwrap());
+        media
+    }
+
+    #[tokio::test]
+    async fn a_real_upload_is_committed_to_media_root() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let media = media_root();
+        let value = send(request(&[("doc", Some("report.pdf"), "%PDF-1.4")])).await;
+        // Staging renames the upload (random name, extension kept).
+        assert!(value.ends_with(".pdf") && !value.contains('/'), "{value}");
+        assert!(media.join(&value).exists(), "committed under MEDIA_ROOT");
+        crate::config::static_files::restore_media_root();
+        let _ = std::fs::remove_dir_all(&media);
+    }
+
+    #[tokio::test]
+    async fn a_path_sent_as_text_is_ignored() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let media = media_root();
+        let outside = std::env::temp_dir().join(format!("rq_out_{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&outside).unwrap();
+        let victim = outside.join("secret.pdf");
+        std::fs::write(&victim, b"server file").unwrap();
+        let path = victim.display().to_string();
+
+        // Alone, then next to a real upload under the same name.
+        let alone = send(request(&[("doc", None, &path)])).await;
+        let mixed = send(request(&[
+            ("doc", Some("report.pdf"), "%PDF-1.4"),
+            ("doc", None, &path),
+        ]))
+        .await;
+
+        assert_eq!(alone, "", "no upload, nothing kept");
+        assert_eq!(mixed, "", "one path that isn't an upload rejects the value");
+        assert!(victim.exists(), "the server file is untouched");
+        assert!(
+            !media.join("secret.pdf").exists(),
+            "and never moved into media"
+        );
+        crate::config::static_files::restore_media_root();
+        let _ = std::fs::remove_dir_all(&media);
+        let _ = std::fs::remove_dir_all(&outside);
+    }
+
+    /// Parses like Prisme, then fills a form whose `title` is a text field.
+    async fn text_title(multipart: Multipart) -> String {
+        let media = std::env::var("MEDIA_ROOT").expect("MEDIA_ROOT set by the test");
+        let parsed = parse_multipart(multipart, std::path::Path::new(&media), 10, 64)
+            .await
+            .expect("multipart parsed");
+        let data = parsed.into_iter().map(|(k, v)| (k, v.join(","))).collect();
+        let mut form = Forms::new("csrf");
+        form.field(&crate::forms::fields::TextField::text("title"));
+        form.fill(&data, axum::http::Method::POST);
+        form.fields["title"].value().to_string()
+    }
+
+    // A file part sent under a text field's name: the field must not take the
+    // staged path as its value, or a re-rendered form shows where the upload
+    // waits (and the file was reachable there).
+    #[tokio::test]
+    async fn a_text_field_never_shows_a_staged_path() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let media = media_root();
+        let app = Router::new().route("/upload", post(text_title));
+        let mut values = Vec::new();
+        for req in [
+            request(&[("title", Some("page.html"), "<script>")]),
+            request(&[("title", None, "Bonjour")]),
+        ] {
+            let resp = app.clone().oneshot(req).await.expect("response");
+            let bytes = axum::body::to_bytes(resp.into_body(), usize::MAX)
+                .await
+                .expect("body");
+            values.push(String::from_utf8(bytes.to_vec()).expect("utf-8"));
+        }
+        let (file, text) = (values[0].clone(), values[1].clone());
+
+        assert_eq!(file, "", "the staged path is dropped");
+        assert_eq!(text, "Bonjour", "a text value still is taken");
+        crate::config::static_files::restore_media_root();
+        let _ = std::fs::remove_dir_all(&media);
+    }
+
+    #[tokio::test]
+    async fn upload_to_cannot_escape_media_root() {
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        use crate::forms::base::FormField;
+
+        let media = media_root();
+        let escaped_name = format!("{}_escaped", media.file_name().unwrap().to_string_lossy());
+        let escaped_dir = media.parent().unwrap().join(&escaped_name);
+        let staged_dir = media.join(".staging-upload-to-guard");
+        std::fs::create_dir_all(&staged_dir).unwrap();
+        let staged_file = staged_dir.join("report.pdf");
+        std::fs::write(&staged_file, b"%PDF-1.4").unwrap();
+
+        let mut field = FileField::document("doc").upload_to(format!("../{escaped_name}"));
+        field.set_value(staged_file.to_string_lossy().to_string().as_ref());
+        let result = field.finalize().await;
+        let staged_remains = staged_file.exists();
+        let escaped_file_exists = escaped_dir.join("report.pdf").exists();
+
+        let _ = std::fs::remove_dir_all(&media);
+        let _ = std::fs::remove_dir_all(&escaped_dir);
+        crate::config::static_files::restore_media_root();
+
+        assert!(
+            result.is_err(),
+            "an upload destination outside MEDIA_ROOT is refused"
+        );
+        assert!(
+            staged_remains,
+            "the staged upload is not moved outside the root"
+        );
+        assert!(!escaped_file_exists);
+    }
+
+    fn set_env(key: &str, val: &str) {
+        // SAFETY: the tests touching MEDIA_ROOT hold `MEDIA_ENV_LOCK`.
+        unsafe { std::env::set_var(key, val) }
     }
 }

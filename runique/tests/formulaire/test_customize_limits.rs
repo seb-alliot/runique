@@ -26,7 +26,7 @@ mod stock {
 
 macro_rules! schema_form {
     ($name:ident, |$form:ident| $body:block) => {
-        #[runique::prelude::form(schema = stock)]
+        #[runique::prelude::form(schema = stock, fields = All)]
         pub struct $name;
 
         #[runique::prelude::async_trait]

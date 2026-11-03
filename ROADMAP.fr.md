@@ -84,8 +84,9 @@ item a son test de non-régression avant d'être coché.
    requête ne retire pas.
 3. [ ] **Compteurs en mémoire plafonnés** — `RateLimiter` et `LoginGuard` bornent leur nombre de
    clés entre deux purges.
-4. [ ] **Sessions d'un superutilisateur** — protégées comme son compte : un staff ne peut pas les
-   supprimer.
+4. [x] **Sessions d'un superutilisateur** — sans objet : le superuser est un compte de démarrage, supprimé
+   une fois un dirigeant nommé ; ses sessions se ferment quand un reset de mot de passe est validé (nouveau mot
+   de passe enregistré, tous les appareils) ou par la suppression du compte (`ON DELETE CASCADE`).
 5. [ ] **Tests d'open redirect** — passer les charges utiles de l'antisèche PortSwigger
    (*URL validation bypass*).
 6. [x] **Suppression refusée par une clé étrangère** — l'admin affiche « Impossible de supprimer :

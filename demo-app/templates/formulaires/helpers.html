@@ -17,7 +17,7 @@
         <p>
             Active route: <code>/formulaires/helpers/<strong>{{ path_id | default(value="—") }}</strong></code>
             &nbsp;·&nbsp;
-            <code>from_url("search")</code>: <strong>{{ search_value | default(value="—") }}</strong>
+            <code>get_query("search")</code>: <strong>{{ search_value | default(value="—") }}</strong>
             &nbsp;·&nbsp;
             <code>cleaned::&lt;String&gt;("search")</code>: <strong>{{ cleaned_search | default(value="—") }}</strong>
         </p>
@@ -72,25 +72,23 @@ let age  = form.<span class="fn_">cleaned</span>::&lt;<span class="ty">i32</span
         <!-- Date / time helpers -->
         <div class="demo-code">
             <div class="demo-code-title">Date / time helpers</div>
-            <pre><code>form.<span class="fn_">get_naive_date</span>(<span class="st">"birthday"</span>)
-form.<span class="fn_">get_naive_time</span>(<span class="st">"meeting"</span>)
-form.<span class="fn_">get_naive_datetime</span>(<span class="st">"event_start"</span>)
-form.<span class="fn_">get_datetime_utc</span>(<span class="st">"created_at"</span>)
+            <pre><code>form.cleaned::&lt;<span class="ty">NaiveDate</span>&gt;(<span class="st">"birthday"</span>)
+form.cleaned::&lt;<span class="ty">NaiveTime</span>&gt;(<span class="st">"meeting"</span>)
+form.cleaned::&lt;<span class="ty">NaiveDateTime</span>&gt;(<span class="st">"event_start"</span>)
+form.cleaned::&lt;<span class="ty">DateTime</span>&lt;<span class="ty">Utc</span>&gt;&gt;(<span class="st">"created_at"</span>)
 
-<span class="cm">// Option variants</span>
-form.<span class="fn_">get_option_naive_date</span>(<span class="st">"birthday"</span>)
-form.<span class="fn_">get_option_naive_datetime</span>(<span class="st">"event_start"</span>)
-form.<span class="fn_">get_option_datetime_utc</span>(<span class="st">"created_at"</span>)</code></pre>
+<span class="cm">// All return Option&lt;T&gt;: None if unknown, empty or unreadable</span></code></pre>
         </div>
 
         <!-- Raw URL access from Request -->
         <div class="demo-code">
             <div class="demo-code-title">Raw URL parameter access — from Request</div>
             <pre><code><span class="cm">// Declared route: "/article/{id}"</span>
-<span class="kw">let</span> id   = request.<span class="fn_">path_param</span>(<span class="st">"id"</span>);   <span class="cm">// Option&lt;&amp;str&gt;</span>
+<span class="kw">let</span> id   = request.<span class="fn_">get_path</span>(<span class="st">"id"</span>);    <span class="cm">// Option&lt;&amp;str&gt;</span>
+<span class="kw">let</span> id   = request.get_path_as::&lt;<span class="ty">Pk</span>&gt;(<span class="st">"id"</span>); <span class="cm">// Option&lt;Pk&gt;</span>
 
 <span class="cm">// Query string: /article/42?page=2</span>
-<span class="kw">let</span> page = request.<span class="fn_">from_url</span>(<span class="st">"page"</span>);  <span class="cm">// Option&lt;&amp;str&gt;</span></code></pre>
+<span class="kw">let</span> page = request.<span class="fn_">get_query</span>(<span class="st">"page"</span>); <span class="cm">// Option&lt;&amp;str&gt;</span></code></pre>
         </div>
 
         <!-- cleaned_* — whitelisted and typed -->

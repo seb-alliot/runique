@@ -1,21 +1,21 @@
 //! `ValidationForm<F>`: proof by type that a form has passed validation. A form
 //! of an entity is written from it (`save`, `delete`); any other action stays
 //! in the caller's business logic.
-use crate::auth::gate::change::{WriteKind, changes};
+use crate::auth::gate::change::{Secrets, WriteKind, changes};
+use crate::auth::gate::refusal::{Refusal, RefusalReason};
 use crate::auth::gate::save::save_as;
 use crate::auth::gate::write::linked_delete_error;
 use crate::auth::permissions::rights::ColumnRights;
 use crate::context::Request;
+use crate::db::DbWrite;
 use crate::forms::FormEntity;
 use crate::forms::field::RuniqueForm;
 use crate::forms::form::{SaveComportement, write_with_uploads};
 use crate::forms::save::{SaveAction, not_found, on_fields, url_key};
-use crate::utils::aliases::ADb;
 use crate::utils::constante::session_key::session::FORM_NAME_KEY;
 use sea_orm::sea_query::IntoValueTuple;
 use sea_orm::{
     ActiveModelTrait, DbErr, EntityTrait, IntoActiveModel, Iterable, PrimaryKeyToColumn,
-    TransactionTrait,
 };
 
 /// A form that has passed validation. The only way to obtain one is
@@ -41,7 +41,7 @@ impl<F: RuniqueForm> ValidationForm<F> {
     /// back with its field errors so the caller can re-render it.
     pub async fn try_form(mut form: F, request: &Request, name: &'static str) -> Result<Self, F> {
         form.register_dynamic_fields(request).await;
-        form.get_form_mut().set_name(name);
+        form.forms_mut().set_name(name);
 
         let validate = match request.method.is_safe() {
             true => form.allow_get(request),
@@ -72,13 +72,20 @@ impl<F: RuniqueForm> ValidationForm<F> {
 
 /// Writing a validated form of an entity. The row comes from the URL:
 /// `{<name>_<pk>}`, else `{<pk>}`, where `name` is the one given to
-/// [`ValidationForm::try_form`]; without one, `save` creates. Inside the
-/// admin's constraint the gate writes, as the checked account, with its
+/// [`ValidationForm::try_form`]; without one, `save` creates. On a route
+/// declared `admin` the gate writes, as the checked account, with its
 /// history; elsewhere SeaORM does, and checking that the user may touch that
 /// row is the handler's job.
 ///
 /// Both give the form back: `Ok` once written (redirect, or `clear()` it and
 /// render again), `Err` with the reason on its fields or its errors.
+///
+/// `db` is the connection, or a transaction from
+/// [`Request::db_atomic`](crate::context::Request::db_atomic) to tie the write
+/// to the handler's own: nothing is real before its `commit()`. A file moved by
+/// the save stays on disk if that transaction is never committed. A form on a
+/// route declared `admin` refuses a transaction: the gate decides on what it
+/// reads through the connection.
 ///
 /// ```rust,ignore
 /// match ValidationForm::try_form(form, &request, "article").await {
@@ -96,88 +103,107 @@ where
     <F::Entity as EntityTrait>::Model: IntoActiveModel<<F::Entity as EntityTrait>::ActiveModel>,
 {
     /// Creates the row, or updates the one the URL points at. Outside the
-    /// admin: every column the form carries, minus Runique's floor (secrets,
-    /// locked fields, the key on an update).
-    pub async fn save(self, db: &ADb) -> Result<F, F> {
+    /// admin: every column the form carries, secret ones included — a password
+    /// field only as its hash, an empty one on an update leaving it as it is —
+    /// minus the locked fields and the key on an update.
+    pub async fn save(self, db: &impl DbWrite) -> Result<F, F> {
         let mut form = self.form;
         // An error set since the validation (`database_error`) stops it too.
-        if !form.get_form().is_save_allowed() {
+        if !form.forms().is_save_allowed() {
             return Err(form);
         }
-        let forms = form.get_form_mut();
-        let result = if matches!(forms.save_comportement, SaveComportement::Gated { .. }) {
-            save_as::<F::Entity>(forms, SaveAction::Save, db).await
-        } else {
-            async {
-                let key = url_key::<F::Entity>(forms).map_err(|()| not_found())?;
-                let kind = match key {
-                    Some(_) => WriteKind::Update,
-                    None => WriteKind::Create,
-                };
-                let mut model = changes::<F::Entity>(forms, &ColumnRights::All, kind)
-                    .map_err(|e| on_fields(forms, e))?;
-                let Some(id) = key else {
-                    // `insert`, not `save`: a key the form itself carries would
-                    // turn `save` into an update of that row.
-                    return write_with_uploads(forms, async {
-                        let txn = db.begin().await?;
-                        model.insert(&txn).await?;
-                        txn.commit().await
-                    })
-                    .await;
-                };
-                if !model.is_changed() {
-                    return Ok(());
-                }
-                for (column, value) in
-                    <F::Entity as EntityTrait>::PrimaryKey::iter().zip(id.into_value_tuple())
-                {
-                    model.set(column.into_column(), value);
-                }
-                // The model's own hooks write through the same transaction.
-                write_with_uploads(forms, async {
+        if gated(form.forms()) {
+            return gated_write(form, SaveAction::Save, db).await;
+        }
+        let forms = form.forms_mut();
+        let result = async {
+            let key = url_key::<F::Entity>(forms).map_err(|()| not_found())?;
+            let kind = match key {
+                Some(_) => WriteKind::Update,
+                None => WriteKind::Create,
+            };
+            let mut model = changes::<F::Entity>(forms, &ColumnRights::All, kind, Secrets::Write)
+                .map_err(|e| on_fields(forms, e))?;
+            let Some(id) = key else {
+                // `insert`, not `save`: a key the form itself carries would
+                // turn `save` into an update of that row.
+                return write_with_uploads(forms, async {
                     let txn = db.begin().await?;
-                    match model.save(&txn).await {
-                        Ok(_) => txn.commit().await,
-                        Err(DbErr::RecordNotUpdated) => Err(not_found()),
-                        Err(e) => Err(e),
-                    }
+                    model.insert(&txn).await?;
+                    Ok(txn)
                 })
-                .await
+                .await;
+            };
+            if !model.is_changed() {
+                return Ok(());
             }
+            for (column, value) in
+                <F::Entity as EntityTrait>::PrimaryKey::iter().zip(id.into_value_tuple())
+            {
+                model.set(column.into_column(), value);
+            }
+            // The model's own hooks write through the same transaction.
+            write_with_uploads(forms, async {
+                let txn = db.begin().await?;
+                match model.save(&txn).await {
+                    Ok(_) => Ok(txn),
+                    Err(DbErr::RecordNotUpdated) => Err(not_found()),
+                    Err(e) => Err(e),
+                }
+            })
             .await
-        };
+        }
+        .await;
         written(form, result)
     }
 
     /// Deletes the row the URL points at.
-    pub async fn delete(self, db: &ADb) -> Result<F, F> {
+    pub async fn delete(self, db: &impl DbWrite) -> Result<F, F> {
         let mut form = self.form;
-        if !form.get_form().is_save_allowed() {
+        if !form.forms().is_save_allowed() {
             return Err(form);
         }
-        let forms = form.get_form_mut();
-        let result = if matches!(forms.save_comportement, SaveComportement::Gated { .. }) {
-            save_as::<F::Entity>(forms, SaveAction::Delete, db).await
-        } else {
-            async {
-                let Ok(Some(id)) = url_key::<F::Entity>(forms) else {
-                    return Err(not_found());
-                };
-                let txn = db.begin().await?;
-                let deleted = <F::Entity as EntityTrait>::delete_by_id(id)
-                    .exec(&txn)
-                    .await?;
-                if deleted.rows_affected == 0 {
-                    return Err(not_found());
-                }
-                txn.commit().await
+        if gated(form.forms()) {
+            return gated_write(form, SaveAction::Delete, db).await;
+        }
+        let forms = form.forms_mut();
+        let result = async {
+            let Ok(Some(id)) = url_key::<F::Entity>(forms) else {
+                return Err(not_found());
+            };
+            let txn = db.begin().await?;
+            let deleted = <F::Entity as EntityTrait>::delete_by_id(id)
+                .exec(&txn)
+                .await?;
+            if deleted.rows_affected == 0 {
+                return Err(not_found());
             }
-            .await
-            .map_err(linked_delete_error)
-        };
+            txn.commit().await
+        }
+        .await
+        .map_err(linked_delete_error);
         written(form, result)
     }
+}
+
+fn gated(forms: &crate::forms::Forms) -> bool {
+    matches!(forms.save_comportement, SaveComportement::Gated { .. })
+}
+
+/// The gate's write, through the connection only.
+async fn gated_write<F>(mut form: F, action: SaveAction, db: &impl DbWrite) -> Result<F, F>
+where
+    F: RuniqueForm + FormEntity,
+    <F::Entity as EntityTrait>::ActiveModel: Send,
+    <F::Entity as EntityTrait>::Model: IntoActiveModel<<F::Entity as EntityTrait>::ActiveModel>,
+{
+    let result = match db.as_adb() {
+        Some(db) => save_as::<F::Entity>(form.forms_mut(), action, db).await,
+        None => Err(DbErr::Custom(
+            Refusal::new(RefusalReason::InTransaction).message(),
+        )),
+    };
+    written(form, result)
 }
 
 /// The form back from its write: `Ok` once written, `Err` with the reason on
@@ -188,7 +214,7 @@ fn written<F: RuniqueForm>(mut form: F, result: Result<(), DbErr>) -> Result<F, 
         return Ok(form);
     };
     tracing::warn!(error = %err, "form write failed");
-    let forms = form.get_form_mut();
+    let forms = form.forms_mut();
     if !forms.has_errors() {
         match &err {
             DbErr::Custom(message) => forms.errors.push(message.clone()),

@@ -58,7 +58,7 @@ pub(crate) async fn memberships_view(
     let back = admin.paths.detail_of(&site, model.key(), &id);
 
     let mut form = req.form::<ConfirmForm<user::Entity>>();
-    form.get_form_mut().set_name(admin_form::GROUPS);
+    form.forms_mut().set_name(admin_form::GROUPS);
     let message = match ValidationForm::try_form(form, &req, admin_form::GROUPS).await {
         Err(_) => Err(t("csrf.invalid_or_missing").into_owned()),
         Ok(_) => match ticked_groups(&req) {

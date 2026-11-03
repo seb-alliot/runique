@@ -2,23 +2,73 @@
 
 ## Transactions
 
+Une transaction regroupe plusieurs écritures : elles deviennent toutes réelles au `commit()`, ou aucune. Sans `commit()`, la transaction est annulée (rollback) d'elle-même à la sortie du handler — un `return`, une erreur remontée par `?` —, sans `rollback()` à écrire.
+
+### Dans un handler — `request.db_atomic()`
+
+`request.db_atomic()` n'est qu'un raccourci d'écriture : il fait exactement `request.engine.db.begin()`, la transaction de SeaORM, sans importer `TransactionTrait`. C'est la forme à utiliser dans un handler.
+
+`ValidationForm::save` et `delete` acceptent la connexion (`&request.engine.db`) comme la transaction (`&txn`). Un formulaire correspond à un modèle et à un `save` ; la transaction sert à lier ce `save` à vos autres écritures :
+
+```rust
+pub async fn publier(mut request: Request) -> AppResult<Response> {
+    let template = "article/nouveau.html";
+    let form: ArticleForm = request.form();
+    let form = match ValidationForm::try_form(form, &request, "article").await {
+        Ok(validated) => validated,
+        Err(form) => {
+            context_update!(request => { "article_form" => &form });
+            return request.render(template); // rien n'a été ouvert
+        }
+    };
+
+    let txn = request.db_atomic().await?;
+
+    if let Err(form) = form.save(&txn).await {
+        context_update!(request => { "article_form" => &form });
+        return request.render(template); // sortie sans commit : rollback
+    }
+    journal::ActiveModel {
+        action: Set("article publié".to_string()),
+        ..Default::default()
+    }
+    .insert(&txn)
+    .await?; // erreur : rollback, l'article est annulé aussi
+
+    txn.commit().await?; // l'article et le journal, ou aucun des deux
+    Ok(Redirect::to("/articles").into_response())
+}
+```
+
+À l'intérieur, `save` ouvre sa propre transaction ; sur une transaction déjà ouverte, SeaORM en fait un savepoint. Un `save` qui échoue n'annule que sa propre écriture et rend le formulaire avec ses erreurs ; c'est la sortie sans `commit()` qui annule le reste.
+
+**Fichiers.** `save` déplace le fichier entre son écriture et la fin de son savepoint. Si le handler sort ensuite sans `commit()`, la ligne est annulée mais le fichier déplacé reste sur le disque, orphelin — jamais une ligne qui pointe vers un fichier absent. Voir [Champs](/docs/fr/formulaire/champs).
+
+**Routes `admin`.** Sur une route déclarée `admin` dans `urlpatterns!`, `save` écrit par la porte de l'admin, qui lit et écrit par la connexion : un formulaire de ces routes refuse une transaction (message de refus habituel). Passez-lui `&request.engine.db`.
+
+### Hors requête — CLI, tâches
+
+Sans `Request`, on ouvre la transaction directement sur la connexion, avec `TransactionTrait` importé :
+
 ```rust
 use sea_orm::TransactionTrait;
 
-let mut transaction = db.begin().await?;
+let txn = engine.db.begin().await?;
 
 let user = users::ActiveModel {
     email: Set("test@example.com".to_string()),
     ..Default::default()
-}.insert(&mut *transaction).await?;
+}.insert(&txn).await?;
 
-let profile = profiles::ActiveModel {
+profiles::ActiveModel {
     user_id: Set(user.id),
     ..Default::default()
-}.insert(&mut *transaction).await?;
+}.insert(&txn).await?;
 
-transaction.commit().await?;
+txn.commit().await?;
 ```
+
+C'est adapté à une commande qui crée un compte et ses lignes liées. Les migrations, elles, ne passent pas par là : `runique migration up` laisse sea-orm-migration décider, et il n'enveloppe chaque migration dans une transaction que sous Postgres. Voir [Migrations](/docs/fr/installation/migrations).
 
 ---
 

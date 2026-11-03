@@ -106,10 +106,10 @@ impl FormAccess for FlagForm {
     fn from_form(form: Forms) -> Self {
         Self { form }
     }
-    fn get_form(&self) -> &Forms {
+    fn forms(&self) -> &Forms {
         &self.form
     }
-    fn get_form_mut(&mut self) -> &mut Forms {
+    fn forms_mut(&mut self) -> &mut Forms {
         &mut self.form
     }
 }
@@ -138,7 +138,7 @@ async fn a_form_with_a_forged_boolean_is_invalid() {
         !form.is_valid().await,
         "a forged boolean made the form valid"
     );
-    assert!(form.get_form().fields["active"].error().is_some());
+    assert!(form.forms().fields["active"].error().is_some());
 }
 
 // ── the generated write (`admin_from_form`) ──────────────────────

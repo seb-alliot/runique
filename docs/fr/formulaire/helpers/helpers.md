@@ -93,7 +93,7 @@ Exemple — pré-remplir un champ depuis l'URL (`GET /edit?title=Mon+Article`) :
 ```rust
 if request.method.is_safe() {
     if let Some(t) = form.cleaned::<String>("title") {
-        form.get_form_mut().add_value("title", &t);
+        form.forms_mut().add_value("title", &t);
     }
 }
 ```
@@ -116,7 +116,7 @@ let choices: Vec<(String, String)> = themes::Entity::find()
     .map(|t| (t.id.to_string(), t.nom))
     .collect();
 
-form.get_form_mut().field_choices("theme_id", "Thème", choices);
+form.forms_mut().field_choices("theme_id", "Thème", choices);
 ```
 
 > Dans l'admin `ModelAdmin`, les champs de formulaire viennent des colonnes déclarées via `.form(|f| f.fields([...]))`. Pour un select peuplé depuis une autre table, utilise `field_choices` dans un handler custom, ou un `ChoiceField` dans ton formulaire. Voir [Vue liste](/docs/fr/admin/liste) et [Builder ModelAdmin](/docs/fr/admin/declaration-macro).

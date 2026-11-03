@@ -24,7 +24,12 @@ pub(crate) enum Engine {
 impl Engine {
     /// From `DB_ENGINE`, as the app reads it; `None` when unset or unknown.
     pub(crate) fn from_env() -> Option<Self> {
-        match std::env::var("DB_ENGINE").ok()?.trim().to_ascii_lowercase().as_str() {
+        match std::env::var("DB_ENGINE")
+            .ok()?
+            .trim()
+            .to_ascii_lowercase()
+            .as_str()
+        {
             "sqlite" => Some(Self::Sqlite),
             "postgres" | "postgresql" => Some(Self::Postgres),
             "mysql" => Some(Self::Mysql),
@@ -117,7 +122,10 @@ mod tests {
     #[test]
     fn the_requirements_come_from_the_manifest() {
         assert!(SEA_ORM_REQ.starts_with('='), "{SEA_ORM_REQ}");
-        assert!(SEA_ORM_MIGRATION_REQ.starts_with('='), "{SEA_ORM_MIGRATION_REQ}");
+        assert!(
+            SEA_ORM_MIGRATION_REQ.starts_with('='),
+            "{SEA_ORM_MIGRATION_REQ}"
+        );
     }
 
     #[test]
@@ -130,7 +138,10 @@ mod tests {
         assert!(cargo.contains(&format!(r#"version = "{SEA_ORM_MIGRATION_REQ}""#)));
         assert!(cargo.contains(r#""sqlx-postgres""#));
         let lib = fs::read_to_string(dir.join("src/lib.rs")).unwrap();
-        assert!(lib.contains("migrations_table::EihwazUsersMigration"), "{lib}");
+        assert!(
+            lib.contains("migrations_table::EihwazUsersMigration"),
+            "{lib}"
+        );
         let _ = fs::remove_dir_all(&dir);
     }
 
@@ -145,12 +156,18 @@ mod tests {
         fs::create_dir_all(&kept).unwrap();
         fs::write(kept.join("lib.rs"), "// the user's").unwrap();
         ensure(kept.to_str().unwrap()).unwrap();
-        assert_eq!(fs::read_to_string(kept.join("lib.rs")).unwrap(), "// the user's");
+        assert_eq!(
+            fs::read_to_string(kept.join("lib.rs")).unwrap(),
+            "// the user's"
+        );
         assert!(!root.join("other/Cargo.toml").exists());
 
         let flat = root.join("flat");
         ensure(flat.to_str().unwrap()).unwrap();
-        assert!(!flat.exists(), "no crate guessed outside the <crate>/src layout");
+        assert!(
+            !flat.exists(),
+            "no crate guessed outside the <crate>/src layout"
+        );
         let _ = fs::remove_dir_all(&root);
     }
 
@@ -167,11 +184,20 @@ mod tests {
         for (page, expected) in [
             ("fr/installation/base-de-donnees/base-de-donnees.md", &row),
             ("en/installation/database/database.md", &row),
-            ("fr/installation/troubleshooting/troubleshooting.md", &snippet),
-            ("en/installation/troubleshooting/troubleshooting.md", &snippet),
+            (
+                "fr/installation/troubleshooting/troubleshooting.md",
+                &snippet,
+            ),
+            (
+                "en/installation/troubleshooting/troubleshooting.md",
+                &snippet,
+            ),
         ] {
             let text = fs::read_to_string(docs.join(page)).unwrap();
-            assert!(text.contains(expected.as_str()), "{page}: `{expected}` missing");
+            assert!(
+                text.contains(expected.as_str()),
+                "{page}: `{expected}` missing"
+            );
         }
     }
 

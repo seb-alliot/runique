@@ -23,9 +23,9 @@ impl RuniqueForm for ChangePasswordForm {
     async fn clean_field(&mut self, name: &str) -> bool {
         match name {
             "password" => {
-                let pwd = self.get_form().get_string("password");
+                let pwd = self.forms().get_string("password");
                 if pwd.len() < 8 {
-                    if let Some(field) = self.get_form_mut().fields.get_mut("password") {
+                    if let Some(field) = self.forms_mut().fields.get_mut("password") {
                         field.set_error("Le mot de passe doit faire au moins 8 caractères".to_string());
                     }
                     return false;
@@ -37,8 +37,8 @@ impl RuniqueForm for ChangePasswordForm {
     }
     /// Validation globale inter-champs — appelée après tous les clean_field()
     async fn clean(&mut self) -> Result<(), StrMap> {
-        let password = self.get_form().get_string("password");
-        let confirm  = self.get_form().get_string("confirm");
+        let password = self.forms().get_string("password");
+        let confirm  = self.forms().get_string("confirm");
 
         if password != confirm {
             let mut errors = StrMap::new();

@@ -464,7 +464,7 @@ fn admin_form() -> book::Form {
 #[test]
 fn the_admin_form_shows_the_list_fields() {
     let form = admin_form();
-    let fields = &form.get_form().fields;
+    let fields = &form.forms().fields;
     assert_eq!(fields["genres"].field_type(), "checkbox");
     assert_eq!(fields["moods"].field_type(), "select-multiple");
 }
@@ -472,7 +472,7 @@ fn the_admin_form_shows_the_list_fields() {
 #[test]
 fn cleaned_enums_reads_a_list_and_cleaned_enum_an_integer_enum() {
     let mut form = admin_form();
-    let fields = &mut form.get_form_mut().fields;
+    let fields = &mut form.forms_mut().fields;
     fields
         .get_mut("genres")
         .unwrap()

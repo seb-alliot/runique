@@ -176,7 +176,11 @@ impl BuiltinUserEntity {
     /// `is_active` and `activated_at` together — and returns it, ready for
     /// `login`. An account activated before (active, or deactivated since) is
     /// left as it is (`None`): activation happens once, reactivation is the staff's.
-    pub async fn activate_account(db: &ADb, id: Pk) -> Result<Option<Model>, sea_orm::DbErr> {
+    /// `db` is the connection, or a transaction to create and activate together.
+    pub async fn activate_account<C: ConnectionTrait>(
+        db: &C,
+        id: Pk,
+    ) -> Result<Option<Model>, sea_orm::DbErr> {
         let user = Entity::find_by_id(id)
             .one(db)
             .await?

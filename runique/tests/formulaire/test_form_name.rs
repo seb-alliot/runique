@@ -32,10 +32,10 @@ impl FormAccess for SearchForm {
     fn from_form(form: Forms) -> Self {
         Self { form }
     }
-    fn get_form(&self) -> &Forms {
+    fn forms(&self) -> &Forms {
         &self.form
     }
-    fn get_form_mut(&mut self) -> &mut Forms {
+    fn forms_mut(&mut self) -> &mut Forms {
         &mut self.form
     }
 }
@@ -85,7 +85,7 @@ fn unnamed() -> SearchForm {
 }
 
 fn json(form: &SearchForm) -> Value {
-    serde_json::to_value(form.get_form()).unwrap()
+    serde_json::to_value(form.forms()).unwrap()
 }
 
 // ── Ordre des champs ─────────────────────────────────────────────────────────
@@ -93,7 +93,7 @@ fn json(form: &SearchForm) -> Value {
 #[test]
 fn the_form_name_comes_first_and_csrf_second() {
     let form = unnamed();
-    let keys: Vec<&str> = form.get_form().fields.keys().map(String::as_str).collect();
+    let keys: Vec<&str> = form.forms().fields.keys().map(String::as_str).collect();
     assert_eq!(&keys[..3], &[FORM_NAME_KEY, CSRF_TOKEN_KEY, "q"]);
 }
 
@@ -216,19 +216,19 @@ async fn field_by_field_rendering_injects_the_name_then_csrf_before_the_first_fi
 #[tokio::test]
 async fn clear_values_keeps_the_form_name() {
     let mut form = named("search").await;
-    form.get_form_mut().add_value("q", "rust");
-    form.get_form_mut().clear_values();
-    assert_eq!(form.get_form().fields[FORM_NAME_KEY].value(), "search");
-    assert_eq!(form.get_form().fields["q"].value(), "");
+    form.forms_mut().add_value("q", "rust");
+    form.forms_mut().clear_values();
+    assert_eq!(form.forms().fields[FORM_NAME_KEY].value(), "search");
+    assert_eq!(form.forms().fields["q"].value(), "");
 }
 
 #[test]
 fn setting_the_name_by_hand_does_not_mark_the_form_submitted() {
     let mut form = unnamed();
-    form.get_form_mut().add_value(FORM_NAME_KEY, "search");
+    form.forms_mut().add_value(FORM_NAME_KEY, "search");
     assert!(!form.is_submitted());
 
     let mut form = unnamed();
-    form.get_form_mut().add_value("q", "rust");
+    form.forms_mut().add_value("q", "rust");
     assert!(form.is_submitted());
 }

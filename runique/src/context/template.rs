@@ -354,6 +354,14 @@ impl Request {
         &self.engine.db
     }
 
+    /// Opens a transaction: shorthand for `request.engine.db.begin()`, without
+    /// importing `TransactionTrait`. Every write given it (`form.save(&txn)`)
+    /// becomes real at `txn.commit()`; dropping `txn` — any early `return` —
+    /// rolls them all back.
+    pub async fn db_atomic(&self) -> Result<sea_orm::DatabaseTransaction, DbErr> {
+        sea_orm::TransactionTrait::begin(&self.engine.db).await
+    }
+
     /// Base of the absolute links an app sends out (activation, reset, emails):
     /// the public URL set with `.with_public_url()`, else — in debug only —
     /// `http://` + the request's `Host`. `None` in production without a public
@@ -425,20 +433,20 @@ impl Request {
             .unwrap_or_else(|_| self.csrf_token.clone());
         let mut form =
             crate::forms::field::build_form::<T>(self.engine.tera.clone(), masked.as_str());
-        form.get_form_mut()
+        form.forms_mut()
             .set_url_params(&self.path_params, &self.query_params);
 
         if let Some(user) = &self.admin_constraint {
-            form.get_form_mut().save_comportement =
+            form.forms_mut().save_comportement =
                 crate::forms::form::SaveComportement::Gated { user: user.clone() };
         }
 
         if let Some(ref hp_name) = self.honeypot_field_name {
-            form.get_form_mut().set_honeypot(hp_name);
+            form.forms_mut().set_honeypot(hp_name);
             if self.method == Method::POST
                 && self.prisme.data.get(hp_name).is_some_and(|v| !v.is_empty())
             {
-                form.get_form_mut().force_invalid = true;
+                form.forms_mut().force_invalid = true;
             }
         }
 
@@ -453,12 +461,12 @@ impl Request {
         // failed submission isn't silently indistinguishable from an untouched form —
         // reuses the same key already shown by the admin CSRF check (`admin_router.rs`).
         if csrf_required(&self.method) && !self.prisme.csrf_valid {
-            let csrf = form.get_form_mut();
+            let csrf = form.forms_mut();
             csrf.force_invalid = true;
             csrf.errors.push(t("csrf.invalid_or_missing").into_owned());
         }
 
-        form.get_form_mut()
+        form.forms_mut()
             .fill(&self.prisme.data, self.method.clone());
         form
     }
@@ -583,14 +591,14 @@ mod admin_constraint_tests {
         let mut req = Request::new(engine().await, session(), csrf(), Method::GET);
         req.admin_constraint = Some(account(7));
         let form = req.form::<ProbeForm>();
-        assert_eq!(gated_as(&form.get_form().save_comportement), Some(pk(7)));
+        assert_eq!(gated_as(&form.forms().save_comportement), Some(pk(7)));
     }
 
     #[tokio::test]
     async fn an_unconstrained_request_builds_open_forms() {
         let req = Request::new(engine().await, session(), csrf(), Method::GET);
         let form = req.form::<ProbeForm>();
-        assert_eq!(gated_as(&form.get_form().save_comportement), None);
+        assert_eq!(gated_as(&form.forms().save_comportement), None);
     }
 
     /// The handler can change `req.user`; the form is still gated as the
@@ -600,7 +608,7 @@ mod admin_constraint_tests {
         let mut req = extracted(Method::GET, Some(account(7))).await;
         req.user = Some(account(9));
         let form = req.form::<ProbeForm>();
-        assert_eq!(gated_as(&form.get_form().save_comportement), Some(pk(7)));
+        assert_eq!(gated_as(&form.forms().save_comportement), Some(pk(7)));
     }
 
     /// A signed-in user outside the constraint gives an open form.
@@ -609,7 +617,7 @@ mod admin_constraint_tests {
         let mut req = extracted(Method::GET, None).await;
         req.user = Some(account(9));
         let form = req.form::<ProbeForm>();
-        assert_eq!(gated_as(&form.get_form().save_comportement), None);
+        assert_eq!(gated_as(&form.forms().save_comportement), None);
     }
 
     /// Both policies through the real extraction path, extension to form.
@@ -618,8 +626,8 @@ mod admin_constraint_tests {
         let gated = extracted(Method::GET, Some(account(7)))
             .await
             .form::<ProbeForm>();
-        assert_eq!(gated_as(&gated.get_form().save_comportement), Some(pk(7)));
+        assert_eq!(gated_as(&gated.forms().save_comportement), Some(pk(7)));
         let open = extracted(Method::GET, None).await.form::<ProbeForm>();
-        assert_eq!(gated_as(&open.get_form().save_comportement), None);
+        assert_eq!(gated_as(&open.forms().save_comportement), None);
     }
 }

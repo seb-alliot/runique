@@ -135,11 +135,10 @@ async fn build_with_body_limit(max_upload_mb: u64, max_body_mb: Option<u64>) -> 
     config.debug = true;
     config.static_files.max_upload_mb = max_upload_mb;
     config.static_files.max_body_mb = max_body_mb;
-    // Uploads accepted by these tests are staged here, not in the repository.
-    config.static_files.media_root = std::env::temp_dir()
-        .join(format!("rq_upload_{}", uuid::Uuid::new_v4()))
-        .to_string_lossy()
-        .into_owned();
+    // Uploads accepted by these tests are staged under the test run's
+    // MEDIA_ROOT (`target/test-media`), not in the repository; the staging
+    // folder goes at the end of each request.
+    config.static_files.media_root = runique::config::static_files::resolve_media_root();
     async fn read_form(_request: runique::prelude::Request) -> &'static str {
         "read"
     }

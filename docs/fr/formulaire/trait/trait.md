@@ -33,9 +33,9 @@ impl FormAccess for UsernameForm {
 impl RuniqueForm for UsernameForm {}
 ```
 
-> **💡 `impl_form_access!()`** génère `from_form()`, `get_form()` et `get_form_mut()`, pour une struct dont le champ s'appelle `form`. Un formulaire tiré d'un modèle (`#[form(schema = …)]`) n'a besoin d'aucun des deux blocs : la macro les génère.
+> **💡 `impl_form_access!()`** génère `from_form()`, `forms()` et `forms_mut()`, pour une struct dont le champ s'appelle `form`. Un formulaire tiré d'un modèle (`#[form(schema = …)]`) n'a besoin d'aucun des deux blocs : la macro les génère.
 >
-> **Note de sécurité :** `get_form()` donne accès à la structure interne. Pour l'extraction des données nettoyées, passez toujours par les méthodes `cleaned_*` du trait (voir plus bas). Les méthodes d'extraction directe sur `Forms` sont réservées à l'usage interne du framework.
+> **Note de sécurité :** `forms()` donne accès à la structure interne. Pour l'extraction des données nettoyées, passez toujours par les méthodes `cleaned_*` du trait (voir plus bas). Les méthodes d'extraction directe sur `Forms` sont réservées à l'usage interne du framework.
 
 <details>
 <summary>Équivalent sans macro (pour référence)</summary>
@@ -44,10 +44,10 @@ impl RuniqueForm for UsernameForm {}
 fn from_form(form: Forms) -> Self {
     Self { form }
 }
-fn get_form(&self) -> &Forms {
+fn forms(&self) -> &Forms {
     &self.form
 }
-fn get_form_mut(&mut self) -> &mut Forms {
+fn forms_mut(&mut self) -> &mut Forms {
     &mut self.form
 }
 ```
@@ -84,7 +84,7 @@ clear()                      → [optionnel] vide le formulaire après traitemen
 
 **`from_form(form)`** — Construit l'instance depuis un `Forms`.
 
-**`get_form()` / `get_form_mut()`** — Accesseurs de bas niveau vers le `Forms` interne (utile pour le rendu ou la configuration dynamique des champs). Ne pas utiliser pour extraire les données.
+**`forms()` / `forms_mut()`** — Accesseurs de bas niveau vers le `Forms` interne (utile pour le rendu ou la configuration dynamique des champs). Ne pas utiliser pour extraire les données.
 
 **`clean_field(name)`** *(optionnel)* — Validation métier par champ individuel. Retourne `bool`. Appelée après `validate()` pour chaque champ.
 
@@ -231,7 +231,7 @@ impl RuniqueForm for UsernameForm {
         if name == "username" {
             let val = self.cleaned::<String>("username").unwrap_or_default();
             if val.to_lowercase().contains("admin") {
-                if let Some(f) = self.get_form_mut().fields.get_mut("username") {
+                if let Some(f) = self.forms_mut().fields.get_mut("username") {
                     f.set_error("Le nom 'admin' est réservé".to_string());
                 }
                 return false;
@@ -321,8 +321,8 @@ Avec une clé, `save` met à jour cette ligne ; `delete` exige une clé. Une cl�
 
 ### Ce qui est écrit
 
-- **Hors admin** : SeaORM écrit (`insert` en création, `ActiveModel::save()` en mise à jour) ; le comportement du modèle (`ActiveModelBehavior::before_save` / `after_save`, `auto_now`) s'exécute. Les champs verrouillés (`readonly`, `disabled`) et les colonnes secrètes (mot de passe) ne sont jamais écrits. Vérifier que l'utilisateur a le droit de toucher la ligne est le rôle du handler, comme pour `search!`.
-- **Dans l'admin** (panneau et routes déclarées `admin`) : la porte écrit, au nom du compte vérifié — droits, propriétaire, historique, dans une transaction.
+- **Hors admin** : SeaORM écrit (`insert` en création, `ActiveModel::save()` en mise à jour) ; le comportement du modèle (`ActiveModelBehavior::before_save` / `after_save`, `auto_now`) s'exécute. Tous les champs déclarés par le formulaire sont écrits, colonnes secrètes comprises : un champ mot de passe ne l'est que sous la forme de son hash (jamais le texte saisi, jamais un champ `.no_hash()`), et laissé vide en mise à jour, il garde l'ancienne valeur. Les champs verrouillés (`readonly`, `disabled`) ne sont jamais écrits. Vérifier que l'utilisateur a le droit de toucher la ligne est le rôle du handler, comme pour `search!`.
+- **Dans l'admin** (panneau et routes déclarées `admin`) : la porte écrit, au nom du compte vérifié — droits, propriétaire, historique, dans une transaction. Les colonnes secrètes n'y sont jamais écrites.
 
 ### Où placer la logique métier
 

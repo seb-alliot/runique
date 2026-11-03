@@ -68,8 +68,8 @@ fn log_convert_failure<T, E: std::fmt::Display>(
 pub trait FormAccess: Sized + Send + Sync {
     fn register_fields(form: &mut Forms);
     fn from_form(form: Forms) -> Self;
-    fn get_form(&self) -> &Forms;
-    fn get_form_mut(&mut self) -> &mut Forms;
+    fn forms(&self) -> &Forms;
+    fn forms_mut(&mut self) -> &mut Forms;
 }
 
 #[async_trait]
@@ -91,7 +91,7 @@ pub trait RuniqueForm: FormAccess {
     /// `.no_hash()` (a sign-in form compares it), or in `Manual` / `Custom`
     /// mode, where hashing it is the developer's job.
     fn cleaned<T: sea_orm::sea_query::ValueType>(&self, name: &str) -> Option<T> {
-        let raw = cleaned_value(self.get_form(), name)?;
+        let raw = cleaned_value(self.forms(), name)?;
         let read = crate::forms::column_value::column_value(&T::column_type(), &raw)
             .and_then(|value| T::try_from(value).map_err(|e| e.to_string()));
         log_convert_failure(name, &raw, read)
@@ -100,7 +100,7 @@ pub trait RuniqueForm: FormAccess {
     /// An enum of `model!{}` (text or integer) — `None` if unknown, empty, or
     /// not a valid variant.
     fn cleaned_enum<T: std::str::FromStr>(&self, name: &str) -> Option<T> {
-        let raw = cleaned_value(self.get_form(), name)?;
+        let raw = cleaned_value(self.forms(), name)?;
         log_convert_failure(name, &raw, T::from_str(&raw).map_err(|_| "not a variant"))
     }
 
@@ -108,7 +108,7 @@ pub trait RuniqueForm: FormAccess {
     /// submitted; empty if the field is unknown or nothing was chosen. A value
     /// that isn't a variant is left out (and logged).
     fn cleaned_enums<T: std::str::FromStr>(&self, name: &str) -> Vec<T> {
-        let Some(raw) = cleaned_value(self.get_form(), name) else {
+        let Some(raw) = cleaned_value(self.forms(), name) else {
             return Vec::new();
         };
         raw.split(',')
@@ -124,39 +124,39 @@ pub trait RuniqueForm: FormAccess {
 
     /// Forces a value on a field, bypassing `fill()`. Useful for skipped fields (e.g. passwords).
     fn add_value(&mut self, name: &str, value: &str) -> &mut Self {
-        self.get_form_mut().add_value(name, value);
+        self.forms_mut().add_value(name, value);
         self
     }
 
     // ── Field display overrides ──────────────────────────────────────────────
 
     fn label(&mut self, name: &str, label: &str) -> &mut Self {
-        self.get_form_mut().field_label(name, label);
+        self.forms_mut().field_label(name, label);
         self
     }
 
     fn placeholder(&mut self, name: &str, placeholder: &str) -> &mut Self {
-        self.get_form_mut().field_placeholder(name, placeholder);
+        self.forms_mut().field_placeholder(name, placeholder);
         self
     }
 
     fn required(&mut self, name: &str, required: bool) -> &mut Self {
-        self.get_form_mut().field_required(name, required);
+        self.forms_mut().field_required(name, required);
         self
     }
 
     fn readonly(&mut self, name: &str, readonly: bool) -> &mut Self {
-        self.get_form_mut().field_readonly(name, readonly);
+        self.forms_mut().field_readonly(name, readonly);
         self
     }
 
     fn disabled(&mut self, name: &str, disabled: bool) -> &mut Self {
-        self.get_form_mut().field_disabled(name, disabled);
+        self.forms_mut().field_disabled(name, disabled);
         self
     }
 
     fn attr(&mut self, name: &str, key: &str, value: &str) -> &mut Self {
-        self.get_form_mut().field_attr(name, key, value);
+        self.forms_mut().field_attr(name, key, value);
         self
     }
 
@@ -166,18 +166,18 @@ pub trait RuniqueForm: FormAccess {
         name: &str,
         size: crate::forms::fields::FileSize,
     ) -> Result<&mut Self, String> {
-        self.get_form_mut().field_max_size(name, size)?;
+        self.forms_mut().field_max_size(name, size)?;
         Ok(self)
     }
 
     /// Clears all form values (except CSRF and the form's name).
     fn clear(&mut self) {
-        self.get_form_mut().clear_values();
+        self.forms_mut().clear_values();
     }
 
     // Business validation hook for individual fields
     async fn clean_field(&mut self, name: &str) -> bool {
-        self.get_form().fields.contains_key(name)
+        self.forms().fields.contains_key(name)
     }
 
     // Business validation hook for the entire form
@@ -197,7 +197,7 @@ pub trait RuniqueForm: FormAccess {
     /// `Forms::is_submitted()`, exposed here so external forms never need to
     /// reach into `Forms` directly to opt into `allow_get`, below).
     fn is_submitted(&self) -> bool {
-        self.get_form().is_submitted()
+        self.forms().is_submitted()
     }
 
     /// Whether [`ValidationForm`](crate::forms::ValidationForm) should attempt
@@ -245,23 +245,23 @@ pub trait RuniqueForm: FormAccess {
         if !accepted {
             // The file never reached `finalize`. Drop it before the handler
             // re-renders the form, so the page doesn't keep a staging path.
-            crate::forms::fields::discard_staged_uploads(&mut self.get_form_mut().fields).await;
+            crate::forms::fields::discard_staged_uploads(&mut self.forms_mut().fields).await;
         }
         accepted
     }
 
     fn database_error(&mut self, err: &DbErr) {
-        self.get_form_mut().database_error(err);
+        self.forms_mut().database_error(err);
     }
 }
 
 /// The body of [`RuniqueForm::is_valid`] once the form is known to be submitted.
 /// `false` means it never committed: the caller deletes staged uploads.
 async fn submission_accepted<T: RuniqueForm>(form: &mut T) -> bool {
-    let mut fields_valid = match form.get_form_mut().is_valid().await {
+    let mut fields_valid = match form.forms_mut().is_valid().await {
         Ok(valid) => valid,
         Err(ValidationError::StackOverflow) => {
-            form.get_form_mut()
+            form.forms_mut()
                 .errors
                 .push(t("forms.validation_overflow").into_owned());
             return false;
@@ -269,7 +269,7 @@ async fn submission_accepted<T: RuniqueForm>(form: &mut T) -> bool {
         Err(_) => return false,
     };
 
-    let names: Vec<String> = form.get_form().fields.keys().cloned().collect();
+    let names: Vec<String> = form.forms().fields.keys().cloned().collect();
     for name in names {
         if !form.clean_field(&name).await {
             fields_valid = false;
@@ -282,14 +282,14 @@ async fn submission_accepted<T: RuniqueForm>(form: &mut T) -> bool {
 
     match form.clean().await {
         Ok(_) => {
-            if let Err(e) = form.get_form_mut().finalize().await {
-                form.get_form_mut().errors.push(e);
+            if let Err(e) = form.forms_mut().finalize().await {
+                form.forms_mut().errors.push(e);
                 return false;
             }
             // A field given a column must read as that column's type: a
             // valid form is one the write can't refuse on a type.
             let mut storable = true;
-            for field in form.get_form_mut().fields.values_mut() {
+            for field in form.forms_mut().fields.values_mut() {
                 if field.column_type().is_some()
                     && let Err(message) = field.to_value()
                 {
@@ -300,7 +300,7 @@ async fn submission_accepted<T: RuniqueForm>(form: &mut T) -> bool {
             storable
         }
         Err(business_errors) => {
-            let form = form.get_form_mut();
+            let form = form.forms_mut();
             for (name, msg) in business_errors {
                 if let Some(field) = form.fields.get_mut(&name) {
                     field.set_error(msg);

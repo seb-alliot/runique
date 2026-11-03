@@ -4,9 +4,18 @@
 
 La macro attribut `#[form(...)]` attend :
 
-- `schema = chemin_fonction` (obligatoire)
-- `fields = [..]` (optionnel)
-- `exclude = [..]` (optionnel)
+- `schema = module_du_modèle` (obligatoire) ;
+- **et une seule** de ces trois déclarations, qui dit quels champs le formulaire prend :
+
+| Déclaration | Champs du formulaire |
+| --- | --- |
+| `fields = [a, b]` | seulement ceux-là, dans cet ordre |
+| `exclude = [a, b]` | tous, sauf ceux-là |
+| `fields = All` | tous |
+
+Sans l'une des trois, ou avec `fields` et `exclude` ensemble, le code **ne compile pas** : la déclaration est incomplète. Un nom qui n'est pas une colonne du modèle (`fields = [username, roles]`) ne compile pas non plus, et l'erreur pointe sur le nom.
+
+`fields = All` et `exclude` prennent aussi les colonnes ajoutées plus tard au modèle. Pour les comptes (`runique_users`), « tous » comprend les rangs (`is_admin`, `is_dirigeant`, `is_superuser`) et `is_active` : à réserver à un formulaire dont vous maîtrisez l'usage. Sur un formulaire public (inscription, profil), listez les champs.
 
 Elle génère :
 
@@ -31,13 +40,13 @@ impl RuniqueForm for UserForm {}
 `#[form(schema = …)]` relie automatiquement le formulaire à l'entité de son module de modèle (`schema = blog` → `blog::Entity`), ce qui donne `Form::objects` et `search!(@Form => …)` : le formulaire devient un point d'entrée direct pour les requêtes ORM, sans passer par l'entité.
 
 ```rust
-#[form(schema = users)]
+#[form(schema = users, fields = All)]
 pub struct UserForm;
 
-#[form(schema = blog)]
+#[form(schema = blog, fields = All)]
 pub struct BlogForm;
 
-#[form(schema = document)]
+#[form(schema = document, fields = All)]
 pub struct DocumentForm;
 ```
 
@@ -136,7 +145,7 @@ impl RuniqueForm for RegisterForm {
 Un formulaire `#[form]` se personnalise champ par champ sans réécrire `register_fields` : le hook `customize()` s'exécute juste après l'enregistrement des champs du modèle, à chaque construction du formulaire. Redéclarer un champ sous le même nom le remplace.
 
 ```rust
-#[form(schema = article)]
+#[form(schema = article, fields = All)]
 pub struct ArticleForm;
 
 impl RuniqueForm for ArticleForm {

@@ -917,54 +917,6 @@ impl FormField for FileField {
     }
 
     async fn complete_uploads(&mut self) {
-        if self.published_uploads.is_empty() {
-            return;
-        }
-        let media_root = PathBuf::from(resolve_media_root());
-        let canonical_root = match tokio::fs::canonicalize(&media_root).await {
-            Ok(path) => path,
-            Err(error) => {
-                tracing::error!(path = %media_root.display(), error = %error, "media root could not be resolved after upload commit");
-                self.published_uploads.clear();
-                self.pending_uploads.clear();
-                self.prev_value = None;
-                return;
-            }
-        };
-
-        if let Some(prev) = &self.prev_value {
-            for old_rel in prev.split(',').map(str::trim).filter(|s| !s.is_empty()) {
-                if self
-                    .base
-                    .value
-                    .split(',')
-                    .map(str::trim)
-                    .any(|new| new == old_rel)
-                {
-                    continue;
-                }
-                let Ok(clean_rel) = checked_upload_relative(old_rel) else {
-                    tracing::warn!(
-                        path = old_rel,
-                        "refusing to remove invalid previous upload path"
-                    );
-                    continue;
-                };
-                let old_abs = media_root.join(clean_rel);
-                let Ok(canonical_file) = tokio::fs::canonicalize(&old_abs).await else {
-                    continue;
-                };
-                if !canonical_file.starts_with(&canonical_root) {
-                    tracing::warn!(path = %old_abs.display(), "refusing to remove previous upload outside MEDIA_ROOT");
-                    continue;
-                }
-                if let Err(error) = tokio::fs::remove_file(&old_abs).await
-                    && error.kind() != std::io::ErrorKind::NotFound
-                {
-                    tracing::warn!(path = %old_abs.display(), error = %error, "old upload removal failed");
-                }
-            }
-        }
         self.published_uploads.clear();
         self.pending_uploads.clear();
         self.prev_value = None;
@@ -1039,7 +991,7 @@ mod finalize_tests {
 
     impl Drop for Media {
         fn drop(&mut self) {
-            unsafe { std::env::remove_var("MEDIA_ROOT") };
+            crate::config::static_files::restore_media_root();
             let _ = fs::remove_dir_all(&self.root);
         }
     }
@@ -1078,9 +1030,7 @@ mod finalize_tests {
         );
         assert!(!staged.exists(), "staged link removed after publication");
 
-        unsafe {
-            std::env::remove_var("MEDIA_ROOT");
-        }
+        crate::config::static_files::restore_media_root();
         let _ = fs::remove_dir_all(&media);
     }
 
@@ -1102,9 +1052,7 @@ mod finalize_tests {
             .await
             .expect("publication should succeed");
         field.complete_uploads().await;
-        unsafe {
-            std::env::remove_var("MEDIA_ROOT");
-        }
+        crate::config::static_files::restore_media_root();
         (field.base.value, media)
     }
 
@@ -1160,9 +1108,7 @@ mod finalize_tests {
         assert!(moved.finalize().await.is_err(), "not an upload: refused");
         assert!(victim.exists(), "and not moved into MEDIA_ROOT");
 
-        unsafe {
-            std::env::remove_var("MEDIA_ROOT");
-        }
+        crate::config::static_files::restore_media_root();
         let _ = fs::remove_dir_all(&media);
         let _ = fs::remove_dir_all(&outside);
     }
@@ -1184,9 +1130,7 @@ mod finalize_tests {
         f.set_submitted_value(&staged.to_string_lossy());
         assert_eq!(f.base.value, staged.to_string_lossy());
 
-        unsafe {
-            std::env::remove_var("MEDIA_ROOT");
-        }
+        crate::config::static_files::restore_media_root();
         let _ = fs::remove_dir_all(&media);
     }
 
@@ -1211,9 +1155,7 @@ mod finalize_tests {
         assert_eq!(f.base.value, "already.png");
         assert!(in_root.exists());
 
-        unsafe {
-            std::env::remove_var("MEDIA_ROOT");
-        }
+        crate::config::static_files::restore_media_root();
         let _ = fs::remove_dir_all(&media);
     }
 
@@ -1241,7 +1183,7 @@ mod finalize_tests {
     }
 
     #[tokio::test]
-    async fn failed_database_write_rolls_back_published_upload() {
+    async fn a_refused_write_never_moves_the_upload() {
         let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
         let media = Media::new();
         fs::write(media.root.join("old.png"), b"old bytes").unwrap();
@@ -1264,12 +1206,47 @@ mod finalize_tests {
 
         assert!(result.is_err());
         assert!(!media.root.join("new.png").exists());
+        assert!(Path::new(&staged).exists(), "left to the staging cleanup");
         assert!(media.root.join("old.png").exists());
         assert_eq!(forms.fields["doc"].value(), "old.png");
     }
 
     #[tokio::test]
-    async fn successful_completion_removes_replaced_file_after_publication() {
+    async fn the_upload_moves_after_the_write_and_before_the_commit() {
+        use sea_orm::TransactionTrait;
+        let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
+        let media = Media::new();
+        fs::write(media.root.join("old.png"), b"old bytes").unwrap();
+        let staged = media.staged("new.png", b"new bytes");
+        let mut field = FileField::any("doc");
+        field.set_value("old.png");
+        field.set_value(&staged);
+        field.finalize().await.unwrap();
+
+        let mut forms = crate::forms::form::Forms::new("");
+        forms.field(&field);
+        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
+        let new = media.root.join("new.png");
+
+        let result = crate::forms::form::write_with_uploads(&mut forms, async {
+            let txn = db.begin().await?;
+            assert!(!new.exists(), "not moved before the write");
+            Ok(txn)
+        })
+        .await;
+
+        assert!(result.is_ok());
+        assert!(new.exists());
+        assert!(!Path::new(&staged).exists());
+        assert!(
+            media.root.join("old.png").exists(),
+            "the replaced file stays"
+        );
+        assert_eq!(forms.fields["doc"].value(), "new.png");
+    }
+
+    #[tokio::test]
+    async fn completion_keeps_the_replaced_file() {
         let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
         let media = Media::new();
         fs::write(media.root.join("old.png"), b"old bytes").unwrap();
@@ -1284,8 +1261,9 @@ mod finalize_tests {
         assert!(media.root.join("old.png").exists());
         assert!(media.root.join("new.png").exists());
         field.complete_uploads().await;
-        assert!(!media.root.join("old.png").exists());
+        assert!(media.root.join("old.png").exists());
         assert!(media.root.join("new.png").exists());
+        assert_eq!(field.prev_value, None);
     }
 
     #[tokio::test]
@@ -1376,7 +1354,7 @@ mod finalize_tests {
                 f.publish_uploads().await.unwrap();
                 f.complete_uploads().await;
             }
-            unsafe { std::env::remove_var("MEDIA_ROOT") };
+            crate::config::static_files::restore_media_root();
 
             let landed = cwd.join(&root).join("photo.png");
             let written_locally = landed.exists();
@@ -1435,7 +1413,7 @@ mod guarantees {
 
     impl Drop for Media {
         fn drop(&mut self) {
-            unsafe { std::env::remove_var("MEDIA_ROOT") };
+            crate::config::static_files::restore_media_root();
             let _ = fs::remove_dir_all(&self.root);
         }
     }
@@ -1768,7 +1746,7 @@ mod guarantees {
     }
 
     #[tokio::test]
-    async fn a_replaced_file_is_deleted_an_unchanged_one_is_kept() {
+    async fn neither_a_replaced_nor_an_unchanged_file_is_deleted() {
         let _g = crate::config::static_files::MEDIA_ENV_LOCK.lock().await;
         let media = Media::new();
         fs::write(media.root.join("old.pdf"), b"old").unwrap();
@@ -1787,7 +1765,10 @@ mod guarantees {
         );
         assert!(media.root.join("new.pdf").exists());
         field.complete_uploads().await;
-        assert!(!media.root.join("old.pdf").exists(), "removed after save");
+        assert!(
+            media.root.join("old.pdf").exists(),
+            "replaced: kept, removing it is the developer's call"
+        );
 
         fs::write(media.root.join("same.pdf"), b"same").unwrap();
         let mut field = FileField::any("doc");
@@ -1880,7 +1861,7 @@ mod guarantees {
         let media = Media::new();
         let staged = media.staged("a.txt", b"hello");
         let mut form = upload_form();
-        form.get_form_mut()
+        form.forms_mut()
             .fields
             .get_mut("doc")
             .unwrap()
@@ -1896,30 +1877,16 @@ mod guarantees {
         let doc = media.staged("hello.txt", b"hello");
         let blob = media.staged("blob.bin", b"xyz");
         let mut form = upload_form();
-        let fields = form.get_form_mut();
+        let fields = form.forms_mut();
         fields.add_value("doc", &doc);
         fields.add_value("blob", &blob);
         fields.add_value("note", "a, b");
         assert!(!form.is_valid().await, "title is required and empty");
         assert!(!Path::new(&doc).exists(), "the file upload is gone");
         assert!(!Path::new(&blob).exists(), "the binary upload is gone");
-        assert!(
-            form.get_form()
-                .fields
-                .get("doc")
-                .unwrap()
-                .value()
-                .is_empty()
-        );
-        assert!(
-            form.get_form()
-                .fields
-                .get("blob")
-                .unwrap()
-                .value()
-                .is_empty()
-        );
-        assert_eq!(form.get_form().fields.get("note").unwrap().value(), "a, b");
+        assert!(form.forms().fields.get("doc").unwrap().value().is_empty());
+        assert!(form.forms().fields.get("blob").unwrap().value().is_empty());
+        assert_eq!(form.forms().fields.get("note").unwrap().value(), "a, b");
     }
 
     #[tokio::test]
@@ -1928,23 +1895,16 @@ mod guarantees {
         let media = Media::new();
         let doc = media.staged("hello.txt", b"hello");
         let mut form = upload_form();
-        let fields = form.get_form_mut();
+        let fields = form.forms_mut();
         fields.force_invalid = true;
         fields.add_value("doc", &doc);
         fields.add_value("title", "ok");
         fields.add_value("note", "a, b");
         assert!(!form.is_valid().await);
         assert!(!Path::new(&doc).exists());
-        assert!(
-            form.get_form()
-                .fields
-                .get("doc")
-                .unwrap()
-                .value()
-                .is_empty()
-        );
-        assert_eq!(form.get_form().fields.get("note").unwrap().value(), "a, b");
-        assert_eq!(form.get_form().fields.get("title").unwrap().value(), "ok");
+        assert!(form.forms().fields.get("doc").unwrap().value().is_empty());
+        assert_eq!(form.forms().fields.get("note").unwrap().value(), "a, b");
+        assert_eq!(form.forms().fields.get("title").unwrap().value(), "ok");
     }
 
     #[tokio::test]
@@ -1954,15 +1914,15 @@ mod guarantees {
         let doc = media.staged("hello.txt", b"hello");
         let blob = media.staged("blob.bin", b"xyz");
         let mut form = upload_form();
-        let fields = form.get_form_mut();
+        let fields = form.forms_mut();
         fields.add_value("doc", &doc);
         fields.add_value("blob", &blob);
         fields.add_value("title", "ok");
         fields.add_value("note", "a, b");
         assert!(form.is_valid().await, "the form validates");
-        form.get_form_mut().publish_uploads().await.unwrap();
-        form.get_form_mut().complete_uploads().await;
-        let stored = form.get_form().fields.get("doc").unwrap().value();
+        form.forms_mut().publish_uploads().await.unwrap();
+        form.forms_mut().complete_uploads().await;
+        let stored = form.forms().fields.get("doc").unwrap().value();
         assert_eq!(stored, "hello.txt");
         assert_eq!(fs::read(media.root.join("hello.txt")).unwrap(), b"hello");
         assert!(!Path::new(&doc).exists(), "published out of staging");
@@ -1977,6 +1937,6 @@ mod guarantees {
             "the empty directory goes with the request"
         );
         assert_eq!(fs::read(media.root.join("hello.txt")).unwrap(), b"hello");
-        assert_eq!(form.get_form().fields.get("note").unwrap().value(), "a, b");
+        assert_eq!(form.forms().fields.get("note").unwrap().value(), "a, b");
     }
 }

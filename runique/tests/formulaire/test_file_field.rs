@@ -1,6 +1,7 @@
 //! Tests — forms/fields/file.rs
 //! Couvre : AllowedExtensions, FileUploadConfig, IntoUploadPath, FileField builders, FileField::validate()
 
+use crate::helpers::temp::TempDir;
 use runique::config::StaticConfig;
 use runique::forms::base::FormField;
 use runique::forms::fields::file::{AllowedExtensions, FileField, FileSize, FileUploadConfig};
@@ -380,16 +381,17 @@ async fn test_file_field_finalize_nonexistent_file_keeps_path() {
 // cargo-mutants (2026-10-07) : dimensions et taille jamais vérifiées
 // ═══════════════════════════════════════════════════════════════
 
-fn temp_path(name: &str) -> String {
-    let dir = std::env::temp_dir().join(format!("rq_file_{}", uuid::Uuid::new_v4()));
-    std::fs::create_dir_all(&dir).unwrap();
-    dir.join(name).to_string_lossy().into_owned()
+/// `name` in a fresh folder, removed with the returned guard.
+fn temp_path(name: &str) -> (TempDir, String) {
+    let dir = TempDir::new("rq_file");
+    let path = dir.join(name).to_string_lossy().into_owned();
+    (dir, path)
 }
 
-fn png(width: u32, height: u32) -> String {
-    let path = temp_path("img.png");
+fn png(width: u32, height: u32) -> (TempDir, String) {
+    let (dir, path) = temp_path("img.png");
     image::RgbImage::new(width, height).save(&path).unwrap();
-    path
+    (dir, path)
 }
 
 async fn image_accepted(path: &str) -> bool {
@@ -400,18 +402,18 @@ async fn image_accepted(path: &str) -> bool {
 
 #[tokio::test]
 async fn test_image_at_the_maximum_dimensions_is_accepted() {
-    assert!(image_accepted(&png(100, 100)).await);
+    assert!(image_accepted(&png(100, 100).1).await);
 }
 
 #[tokio::test]
 async fn test_image_one_pixel_too_wide_or_too_tall_is_refused() {
-    assert!(!image_accepted(&png(101, 100)).await, "too wide");
-    assert!(!image_accepted(&png(100, 101)).await, "too tall");
+    assert!(!image_accepted(&png(101, 100).1).await, "too wide");
+    assert!(!image_accepted(&png(100, 101).1).await, "too tall");
 }
 
 #[tokio::test]
 async fn test_file_too_large_reports_both_sizes_in_mb() {
-    let path = temp_path("big.pdf");
+    let (_big, path) = temp_path("big.pdf");
     std::fs::write(&path, vec![0u8; 5 * 512 * 1024]).unwrap(); // 2.5 MB
     let mut f = FileField::document("doc").max_size(FileSize::mb(1));
     f.set_value(&path);
@@ -420,7 +422,7 @@ async fn test_file_too_large_reports_both_sizes_in_mb() {
     assert!(err.contains("2.5") && err.contains("1.0"), "{err}");
 
     // The other side: a file under the limit passes.
-    let small = temp_path("small.pdf");
+    let (_small, small) = temp_path("small.pdf");
     std::fs::write(&small, vec![0u8; 512 * 1024]).unwrap(); // 0.5 MB
     let mut f = FileField::document("doc").max_size(FileSize::mb(1));
     f.set_value(&small);

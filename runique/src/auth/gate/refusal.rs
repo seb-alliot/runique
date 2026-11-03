@@ -46,6 +46,9 @@ pub(crate) enum RefusalReason {
     NotFound,
     /// The table right without any readable column beyond the key.
     NoReadableColumn,
+    /// A gated write handed the handler's transaction: the gate reads and
+    /// writes through the connection only.
+    InTransaction,
 }
 
 impl Refusal {
@@ -91,6 +94,7 @@ mod tests {
             RefusalReason::WriteFailed,
             RefusalReason::NotFound,
             RefusalReason::NoReadableColumn,
+            RefusalReason::InTransaction,
         ]
         .into_iter()
         .map(|r| Refusal::new(r).message())

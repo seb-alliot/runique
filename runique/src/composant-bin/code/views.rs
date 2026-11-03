@@ -60,7 +60,7 @@ pub async fn sign_up(mut request: Request) -> AppResult<Response> {
             Ok(Redirect::to("/").into_response())
         }
         Err(err) => {
-            form.get_form_mut().database_error(&err);
+            form.forms_mut().database_error(&err);
             context_update!(request => {
                 "title" => "Sign up",
                 "signup_form" => &form,

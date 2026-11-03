@@ -328,7 +328,7 @@ where
         authorize_create::<E>(&GateCtx { db, user })?;
 
         let mut form = req.form::<E::Form>();
-        let forms = form.get_form_mut();
+        let forms = form.forms_mut();
         self.shape_for_create(forms, &user.rights_on(E::KEY).columns);
         // Named at once: the page renders it with its name, the POST sends it back.
         forms.set_name(admin_form::CREATE);
@@ -381,7 +381,7 @@ where
         )
         .await?;
         let mut form = req.form::<ConfirmForm<E>>();
-        form.get_form_mut().set_name(admin_form::RESET_PASSWORD);
+        form.forms_mut().set_name(admin_form::RESET_PASSWORD);
         if ValidationForm::try_form(form, req, admin_form::RESET_PASSWORD)
             .await
             .is_err()
@@ -402,12 +402,12 @@ where
     ) -> Result<BulkOutcome, AdminError> {
         let refused = || BulkOutcome::Refused(Refusal::new(RefusalReason::NoRight).message());
         let mut form = req.form::<BulkForm<E>>();
-        form.get_form_mut().set_name(admin_form::BULK);
+        form.forms_mut().set_name(admin_form::BULK);
         let Ok(form) = ValidationForm::try_form(form, req, admin_form::BULK).await else {
             return Ok(refused());
         };
         let value = |name: &str| {
-            form.get_form()
+            form.forms()
                 .fields
                 .get(name)
                 .map(|f| f.value().to_string())
@@ -470,7 +470,7 @@ where
         authorize_row::<Delete, E>(&gate, key.clone()).await?;
 
         let mut form = req.form::<ConfirmForm<E>>();
-        let forms = form.get_form_mut();
+        let forms = form.forms_mut();
         forms.set_name(admin_form::DELETE);
         forms
             .path_params
@@ -486,9 +486,9 @@ where
         match ValidationForm::try_form(form, req, admin_form::DELETE).await {
             Ok(valid) => match valid.delete(db).await {
                 Ok(_) => Ok(FormOutcome::Saved(None)),
-                Err(form) => Ok(FormOutcome::Show(shown(form.get_form()))),
+                Err(form) => Ok(FormOutcome::Show(shown(form.forms()))),
             },
-            Err(form) => Ok(FormOutcome::Show(shown(form.get_form()))),
+            Err(form) => Ok(FormOutcome::Show(shown(form.forms()))),
         }
     }
 
@@ -509,7 +509,7 @@ where
         let readable = view.readable().preserve::<E>(&self.form_columns());
 
         let mut form = req.form::<E::Form>();
-        let forms = form.get_form_mut();
+        let forms = form.forms_mut();
         self.shape_for_edit(forms, &readable, &user.rights_on(E::KEY).columns);
         forms.set_name(admin_form::UPDATE);
         // `save_as` looks for the row under the key's own name; the route
@@ -546,14 +546,14 @@ where
     match ValidationForm::try_form(form, req, name).await {
         Ok(form) => match form.save(&req.engine.db).await {
             Ok(form) => Ok(FormOutcome::Saved(E::IS_ACCOUNT_TABLE.then(|| {
-                form.get_form()
+                form.forms()
                     .fields
                     .get("email")
                     .map(|f| f.value().trim().to_string())
                     .unwrap_or_default()
             }))),
-            Err(form) => Ok(FormOutcome::Show(shown(form.get_form()))),
+            Err(form) => Ok(FormOutcome::Show(shown(form.forms()))),
         },
-        Err(form) => Ok(FormOutcome::Show(shown(form.get_form()))),
+        Err(form) => Ok(FormOutcome::Show(shown(form.forms()))),
     }
 }

@@ -65,8 +65,9 @@ impl Function<TeraResult<Value>> for CsrfTokenFunction {
 /// (`ct_eq`) against the session token, so a wrong guess can't be
 /// distinguished from a right one by response timing. Requests without that
 /// header are only allowed through when they are form submissions
-/// (urlencoded/multipart) — Prisme then validates the `csrf_token` form
-/// field itself; a JSON request with no header is rejected outright. The
+/// (urlencoded/multipart) — Prisme then validates the `csrf_token` form field
+/// itself; a JSON request with no header is rejected outright. With
+/// `with_cross_site_form_guard`, a form sent from another site is refused too. The
 /// token exposed back to the client via the `X-CSRF-Token` response header
 /// is masked per response (`session_token.masked()`) as a BREACH mitigation,
 /// and a GET/HEAD request's own `csrf_token` query parameter is stripped via
@@ -159,6 +160,12 @@ pub async fn csrf_middleware(
             if !is_form {
                 return (StatusCode::FORBIDDEN, "CSRF token required").into_response();
             }
+            // A form posted from another site is refused here, before any
+            // handler: one reading its body with an Axum extractor rather than
+            // `Request::form()` would never check the token.
+            if engine.features.cross_site_form_guard && from_another_site(&req) {
+                return (StatusCode::FORBIDDEN, "Cross-site form submission").into_response();
+            }
             // Otherwise, we let Prisme validate the form field
         }
     }
@@ -187,6 +194,20 @@ pub async fn csrf_middleware(
     }
 
     res
+}
+
+/// `Sec-Fetch-Site` says the request comes from a page of another site
+/// (`cross-site`) or of a subdomain (`same-site`). The browser sets it, a page
+/// can neither set nor remove it; a client that doesn't send it (an old
+/// browser, curl) is left to the token.
+fn from_another_site(req: &Request<Body>) -> bool {
+    req.headers()
+        .get("sec-fetch-site")
+        .and_then(|v| v.to_str().ok())
+        .is_some_and(|v| {
+            let v = v.trim();
+            v.eq_ignore_ascii_case("cross-site") || v.eq_ignore_ascii_case("same-site")
+        })
 }
 
 /// Drops the session's CSRF token so the next one is a new one. Call it

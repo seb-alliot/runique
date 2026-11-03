@@ -530,7 +530,7 @@ mod bare {
 }
 
 /// `probe_notes`' form, validated on a GET so the test needs no CSRF token.
-#[form(schema = probe)]
+#[form(schema = probe, fields = All)]
 pub struct ProbeForm;
 
 impl RuniqueForm for ProbeForm {
@@ -546,7 +546,7 @@ async fn probe_write(req: Request) -> String {
     let form = req.form::<ProbeForm>();
     let form = match ValidationForm::try_form(form, &req, "probe").await {
         Ok(form) => form,
-        Err(form) => return format!("invalid: {:?}", form.get_form().errors()),
+        Err(form) => return format!("invalid: {:?}", form.forms().errors()),
     };
     let db = &req.engine.db;
     let written = if delete {
@@ -556,7 +556,7 @@ async fn probe_write(req: Request) -> String {
     };
     match written {
         Ok(_) => "written".to_string(),
-        Err(form) => format!("refused: {:?}", form.get_form().errors()),
+        Err(form) => format!("refused: {:?}", form.forms().errors()),
     }
 }
 

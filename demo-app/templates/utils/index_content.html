@@ -45,9 +45,9 @@
         <span class="stack-chip-label">Sessions</span>
         <span class="stack-chip-value">tower-sessions</span>
     </a>
-    <a href="https://crates.io/crates/sea-orm-cli" target="_blank" class="stack-chip">
+    <a href="https://crates.io/crates/sea-orm-migration" target="_blank" class="stack-chip">
         <span class="stack-chip-label">Migrations</span>
-        <span class="stack-chip-value">sea-orm-cli</span>
+        <span class="stack-chip-value">sea-orm-migration</span>
     </a>
 </div>
     <div class="hero-inner">
@@ -87,7 +87,7 @@
 }</code></pre>
 
             <div class="hero-tab-panel" data-panel="admin">
-<pre class="hero-code-body"><code><span class="hc-ty">builder</span>::<span class="hc-fn">new</span>(config)
+<pre class="hero-code-body"><code><span class="hc-ty">RuniqueApp</span>::<span class="hc-fn">builder</span>(config)
     .<span class="hc-fn">with_admin</span>(admin::<span class="hc-fn">config</span>)
     .<span class="hc-fn">build</span>().<span class="hc-fn">await</span>?
     .<span class="hc-fn">run</span>().<span class="hc-fn">await</span>?
